@@ -131,6 +131,9 @@ class ParsedScheme:
     folio: str
     amc: str
     transaction_count: int
+    arn_code: str | None = None
+    plan_name_variant: str = "unresolved"
+    plan_type: str = "unclassified"
 
 
 @dataclass
@@ -191,6 +194,8 @@ def _normalize_cas_data(data: CASData) -> ParseResult:
         for scheme in folio.schemes:
             key = (folio.folio, folio.amc, scheme.scheme)
             if key not in scheme_map:
+                name_variant = classify_plan_from_name(scheme.scheme)
+                arn_code = scheme.advisor if getattr(scheme, "advisor", None) else None
                 scheme_map[key] = ParsedScheme(
                     name=scheme.scheme,
                     isin=scheme.isin,
@@ -199,6 +204,9 @@ def _normalize_cas_data(data: CASData) -> ParseResult:
                     folio=folio.folio,
                     amc=folio.amc,
                     transaction_count=0,
+                    arn_code=arn_code,
+                    plan_name_variant=name_variant,
+                    plan_type=classify_folio_plan_type(name_variant, arn_code),
                 )
             for txn in scheme.transactions:
                 norm = NormalizedTransaction(
