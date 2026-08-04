@@ -89,13 +89,23 @@ one-paragraph pointer for a fresh session.)*
 **Phase 0 (foundation) is complete** — all 11 tasks in
 `Docs/superpowers/plans/2026-08-04-phase-0-foundation.md` committed, tests green
 (fast SQLite suite + Postgres-functional suite + frontend build/test, per CI).
-Repo pushed to `https://github.com/ayushkarnawat/MVP_V1_MF_only`.
+Repo is on `https://github.com/ayushkarnawat/MVP_V1_MF_only` — as of commit
+`ed7c4ec`, `origin/main` is one commit behind local `main` and needs a manual
+`git push` (no TTY for credentials from this sandbox).
 
-**Phase 1 has no plan file yet.** Two items were flagged during Phase 0 review,
-not yet resolved, and belong in whatever kicks off Phase 1:
+**`CAS Parsers/mf-import` and `App Flow References` were recovered this
+session** — the copy from this project's old `WealthOS` folder name had
+brought over only generated artifacts, not source. Real source was found at
+`/mnt/d/WealthOS/CAS Parsers/mf-import/` and copied in (commit `ed7c4ec`).
+Read `session.md`'s "Incident this session" section before assuming this
+directory's history predates today.
+
+**Phase 1 has no plan file yet.** Two items were flagged during Phase 0 review
+and verified against the now-recovered source — still unresolved:
 1. ADR-001's claim that the CAS Parser frontend is an existing React SPA is
    stale — the real code at `CAS Parsers/mf-import/frontend` is vanilla TS, no
    React. The Import Review UI will be new code, not a port.
-2. `CAS Parsers/mf-import/backend/app/models.py` persists `pan_masked` on
-   `Investor`/`Folio` — violates the no-PAN-persistence non-negotiable above.
-   Needs removal as part of the PRD-01 tightening pass.
+2. `CAS Parsers/mf-import/backend/app/models.py:56,66` persists `pan_masked`
+   on `Investor`/`Folio` — violates the no-PAN-persistence non-negotiable
+   above. Needs removal as part of the PRD-01 tightening pass, with a test
+   asserting no PAN field exists going forward.
