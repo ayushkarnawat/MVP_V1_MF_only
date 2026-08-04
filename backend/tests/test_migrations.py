@@ -43,3 +43,23 @@ def test_alembic_upgrade_creates_all_tables(tmp_path, monkeypatch):
         "fund_scores", "otp_requests", "sessions",
     }
     assert expected.issubset(tables)
+
+
+def test_alembic_handles_percent_in_database_url(tmp_path, monkeypatch):
+    """configparser interpolates '%' — a URL-encoded credential (e.g. %40 for
+    '@') must not crash env.py with ValueError: invalid interpolation syntax."""
+    db_path = tmp_path / "pct%40db.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+
+    upgrade = subprocess.run(
+        [sys.executable, "-m", "alembic", "upgrade", "head"],
+        cwd=BACKEND_DIR, capture_output=True, text=True,
+    )
+    assert upgrade.returncode == 0, upgrade.stderr
+    assert "interpolation" not in upgrade.stderr
+
+    downgrade = subprocess.run(
+        [sys.executable, "-m", "alembic", "downgrade", "base"],
+        cwd=BACKEND_DIR, capture_output=True, text=True,
+    )
+    assert downgrade.returncode == 0, downgrade.stderr

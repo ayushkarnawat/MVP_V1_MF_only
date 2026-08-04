@@ -1,5 +1,7 @@
 import enum
 
+from sqlalchemy import Enum
+
 
 class InvestorType(str, enum.Enum):
     SELF_DIRECTED = "self_directed"
@@ -80,3 +82,13 @@ class ArnStatus(str, enum.Enum):
     SUSPENDED = "suspended"
     INVALID = "invalid"
     UNRESOLVED = "unresolved"
+
+
+def enum_column(enum_cls: type[enum.Enum]) -> Enum:
+    """SQLAlchemy Enum that persists the member's lowercase ``.value``.
+
+    Without ``values_callable`` SQLAlchemy stores the member NAME ('PURCHASE'),
+    but the schema doc — and the raw partitioned-table CHECK constraint in
+    migration 0001 — both specify lowercase values ('purchase').
+    """
+    return Enum(enum_cls, values_callable=lambda e: [m.value for m in e])

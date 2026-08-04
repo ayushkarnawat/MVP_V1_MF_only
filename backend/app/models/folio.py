@@ -1,10 +1,10 @@
 import uuid
 
-from sqlalchemy import Enum, ForeignKey, String, UniqueConstraint, Uuid
+from sqlalchemy import ForeignKey, String, UniqueConstraint, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
-from app.models.enums import PlanType
+from app.models.enums import PlanType, enum_column
 
 
 class Folio(Base):
@@ -18,4 +18,4 @@ class Folio(Base):
     scheme_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("schemes.id"), nullable=False)
     folio_number: Mapped[str] = mapped_column(String, nullable=False)
     arn_code: Mapped[str | None] = mapped_column(String)
-    plan_type: Mapped[PlanType] = mapped_column(Enum(PlanType), nullable=False, default=PlanType.UNCLASSIFIED)
+    plan_type: Mapped[PlanType] = mapped_column(enum_column(PlanType), nullable=False, default=PlanType.UNCLASSIFIED)

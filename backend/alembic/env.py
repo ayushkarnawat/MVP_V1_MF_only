@@ -12,7 +12,9 @@ from app.db.base import Base
 import app.models  # noqa: F401 — populates Base.metadata
 
 config = context.config
-config.set_main_option("sqlalchemy.url", settings.database_url)
+# configparser interpolates '%' — escape it so URL-encoded credentials
+# (e.g. a password containing %40) don't blow up with ValueError.
+config.set_main_option("sqlalchemy.url", settings.database_url.replace("%", "%%"))
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)

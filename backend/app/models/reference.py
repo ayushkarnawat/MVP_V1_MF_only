@@ -4,12 +4,13 @@ Per Database-Schema-Unifolio.md Design Principle 1.
 """
 import uuid
 from datetime import date as date_, datetime
+from decimal import Decimal
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, Numeric, String, Uuid
+from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
-from app.models.enums import ArnStatus, BenchmarkIndex, PlanNameVariant
+from app.models.enums import ArnStatus, BenchmarkIndex, PlanNameVariant, enum_column
 
 
 class Scheme(Base):
@@ -21,7 +22,7 @@ class Scheme(Base):
     name: Mapped[str] = mapped_column(String, nullable=False)
     amc_name: Mapped[str] = mapped_column(String, nullable=False)
     sebi_category: Mapped[str] = mapped_column(String, nullable=False)
-    plan_name_variant: Mapped[PlanNameVariant | None] = mapped_column(Enum(PlanNameVariant))
+    plan_name_variant: Mapped[PlanNameVariant | None] = mapped_column(enum_column(PlanNameVariant))
 
 
 class NavHistory(Base):
@@ -29,7 +30,7 @@ class NavHistory(Base):
 
     scheme_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("schemes.id"), primary_key=True)
     date: Mapped[date_] = mapped_column(primary_key=True)
-    nav: Mapped[Numeric] = mapped_column(Numeric(10, 4), nullable=False)
+    nav: Mapped[Decimal] = mapped_column(Numeric(10, 4), nullable=False)
 
 
 class SchemeTer(Base):
@@ -37,7 +38,7 @@ class SchemeTer(Base):
 
     scheme_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("schemes.id"), primary_key=True)
     reference_period: Mapped[date_] = mapped_column(primary_key=True)
-    ter_value: Mapped[Numeric] = mapped_column(Numeric(5, 2), nullable=False)
+    ter_value: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False)
 
 
 class SchemeAaum(Base):
@@ -45,15 +46,15 @@ class SchemeAaum(Base):
 
     scheme_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("schemes.id"), primary_key=True)
     reference_period: Mapped[date_] = mapped_column(primary_key=True)
-    aaum_value: Mapped[Numeric] = mapped_column(Numeric(18, 2), nullable=False)
+    aaum_value: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
 
 
 class BenchmarkIndexHistory(Base):
     __tablename__ = "benchmark_index_history"
 
-    index_name: Mapped[BenchmarkIndex] = mapped_column(Enum(BenchmarkIndex), primary_key=True)
+    index_name: Mapped[BenchmarkIndex] = mapped_column(enum_column(BenchmarkIndex), primary_key=True)
     date: Mapped[date_] = mapped_column(primary_key=True)
-    value: Mapped[Numeric] = mapped_column(Numeric(12, 2), nullable=False)
+    value: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
 
 
 class ArnDirectory(Base):
@@ -61,7 +62,7 @@ class ArnDirectory(Base):
 
     arn_code: Mapped[str] = mapped_column(String, primary_key=True)
     distributor_name: Mapped[str | None] = mapped_column(String)
-    status: Mapped[ArnStatus] = mapped_column(Enum(ArnStatus), nullable=False, default=ArnStatus.UNRESOLVED)
+    status: Mapped[ArnStatus] = mapped_column(enum_column(ArnStatus), nullable=False, default=ArnStatus.UNRESOLVED)
     last_checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
@@ -71,5 +72,5 @@ class FundScore(Base):
     scheme_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("schemes.id"), primary_key=True)
     computed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), primary_key=True)
     risk_adjusted_tier: Mapped[int] = mapped_column(Integer, nullable=False)
-    cost_adjustment: Mapped[Numeric] = mapped_column(Numeric(3, 2), nullable=False)
-    final_score: Mapped[Numeric] = mapped_column(Numeric(5, 2), nullable=False)
+    cost_adjustment: Mapped[Decimal] = mapped_column(Numeric(3, 2), nullable=False)
+    final_score: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False)
