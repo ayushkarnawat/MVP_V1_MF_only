@@ -80,3 +80,22 @@ frontend framework, or a service split not already in that document.
 - Explain non-obvious decisions inline as code comments where the *why* isn't in the
   docs (e.g., a specific edge case handled a specific way) — don't restate what's already
   in `/Docs`.
+
+## Session State
+
+*(Updated 2026-08-04. See `session.md` at repo root for full detail — this is the
+one-paragraph pointer for a fresh session.)*
+
+**Phase 0 (foundation) is complete** — all 11 tasks in
+`Docs/superpowers/plans/2026-08-04-phase-0-foundation.md` committed, tests green
+(fast SQLite suite + Postgres-functional suite + frontend build/test, per CI).
+Repo pushed to `https://github.com/ayushkarnawat/MVP_V1_MF_only`.
+
+**Phase 1 has no plan file yet.** Two items were flagged during Phase 0 review,
+not yet resolved, and belong in whatever kicks off Phase 1:
+1. ADR-001's claim that the CAS Parser frontend is an existing React SPA is
+   stale — the real code at `CAS Parsers/mf-import/frontend` is vanilla TS, no
+   React. The Import Review UI will be new code, not a port.
+2. `CAS Parsers/mf-import/backend/app/models.py` persists `pan_masked` on
+   `Investor`/`Folio` — violates the no-PAN-persistence non-negotiable above.
+   Needs removal as part of the PRD-01 tightening pass.
