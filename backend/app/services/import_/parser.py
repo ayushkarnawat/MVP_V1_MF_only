@@ -40,9 +40,11 @@ SOURCE_CAS_TYPE_MAP = {"CAMS": "cams", "KFINTECH": "kfintech"}
 
 
 def mask_pan(pan: str | None) -> str | None:
-    if not pan or len(pan) < 10:
+    if not pan:
         return pan
-    return f"{pan[:5]}****{pan[-1]}"
+    if len(pan) < 2:
+        return None
+    return f"{pan[0]}{'*' * (len(pan) - 2)}{pan[-1]}"
 
 
 def normalize_txn_type(raw: str | CasTxnType) -> TransactionType:
