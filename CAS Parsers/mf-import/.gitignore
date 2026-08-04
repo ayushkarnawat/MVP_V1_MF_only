@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.coverage
+
+# SQLite & cache
+*.db
+.cache/
+
+# CAS fixtures (never commit real statements)
+*.pdf
+backend/tests/fixtures/
+
+# Env
+.env
+
+# Node
+node_modules/
+frontend/dist/
+
+# IDE
+.idea/
+.vscode/
