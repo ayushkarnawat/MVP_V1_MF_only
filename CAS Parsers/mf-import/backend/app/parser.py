@@ -42,6 +42,39 @@ def mask_pan(pan: str | None) -> str | None:
     return f"{pan[:5]}****{pan[-1]}"
 
 
+def classify_plan_from_name(scheme_name: str) -> str:
+    """FR-5 primary signal: scheme-name pattern match.
+
+    AMC naming conventions for plan type vary in punctuation/position
+    ("- Direct Plan", "-Direct-Growth", "Direct Plan -") but the word itself
+    is consistent — case-insensitive substring match is more robust across
+    AMCs than a fixed suffix pattern (verified against casparser's own
+    Scheme.type/scheme fields; no maintained per-AMC lookup table needed for
+    this signal, per PRD-01's open question on this).
+    """
+    name = scheme_name.upper()
+    has_direct = "DIRECT" in name
+    has_regular = "REGULAR" in name
+    if has_direct and not has_regular:
+        return "direct"
+    if has_regular and not has_direct:
+        return "regular"
+    return "unresolved"
+
+
+def classify_folio_plan_type(name_variant: str, arn_code: str | None) -> str:
+    """FR-5: combine name-pattern (primary) with ARN presence (corroborating
+    signal for Regular only). Where the two disagree, flag unclassified —
+    never silently guess, consistent with the AMFI-match confidence pattern.
+    """
+    has_arn = bool(arn_code and arn_code.strip())
+    if name_variant == "regular":
+        return "regular"
+    if name_variant == "direct":
+        return "unclassified" if has_arn else "direct"
+    return "unclassified"
+
+
 def normalize_txn_type(raw: str | CasTxnType) -> TxnType:
     key = str(raw).split('.')[-1].upper()
     return CAS_TO_CANONICAL.get(key, TxnType.MISC)
