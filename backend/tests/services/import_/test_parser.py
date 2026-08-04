@@ -19,7 +19,8 @@ def test_mask_pan():
     assert mask_pan("ABCDE1234F") == "A********F"
     assert mask_pan(None) is None
     assert mask_pan("") == ""
-    assert mask_pan("A") is None
+    assert mask_pan("A") == "*"
+    assert mask_pan("AB") == "**"
 
 
 def test_normalize_txn_type_maps_to_monolith_enum():

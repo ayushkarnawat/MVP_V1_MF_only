@@ -42,8 +42,8 @@ SOURCE_CAS_TYPE_MAP = {"CAMS": "cams", "KFINTECH": "kfintech"}
 def mask_pan(pan: str | None) -> str | None:
     if not pan:
         return pan
-    if len(pan) < 2:
-        return None
+    if len(pan) < 3:
+        return "*" * len(pan)
     return f"{pan[0]}{'*' * (len(pan) - 2)}{pan[-1]}"
 
 
