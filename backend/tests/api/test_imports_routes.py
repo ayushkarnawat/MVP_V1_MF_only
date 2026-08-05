@@ -1,19 +1,8 @@
-import uuid
-from datetime import date, datetime, timezone
+from datetime import date
 from decimal import Decimal
 from unittest.mock import AsyncMock, patch
 
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
-
-from app.db.base import Base
-from app.db.session import get_db
-from app.main import app
-from app.models.enums import Relationship, TransactionType
-from app.models.transaction import Transaction
-from app.models.user import HouseholdMember, User
+from app.models.enums import TransactionType
 from app.services.import_.parser import (
     NormalizedTransaction,
     ParsedInvestor,
@@ -22,20 +11,46 @@ from app.services.import_.parser import (
     ParseResult,
 )
 
-client = TestClient(app)
+
+def _authed_headers(client, phone: str) -> dict[str, str]:
+    otp = client.post("/auth/otp/request", json={"phone_number": phone}).json()["otp"]
+    token = client.post("/auth/otp/verify", json={"phone_number": phone, "otp": otp}).json()["session_token"]
+    return {"Authorization": f"Bearer {token}"}
 
 
-def test_parse_route_rejects_non_pdf():
+def _authed_headers_and_member(client, phone: str) -> tuple[dict[str, str], str]:
+    headers = _authed_headers(client, phone)
+    member = client.post(
+        "/household-members",
+        json={"name": "Self", "relationship": "self"},
+        headers=headers,
+    ).json()
+    return headers, member["id"]
+
+
+def test_parse_route_requires_auth(client):
+    response = client.post(
+        "/imports/parse",
+        files={"file": ("cas.pdf", b"%PDF-fake", "application/pdf")},
+        data={"password": "x"},
+    )
+    assert response.status_code == 401
+
+
+def test_parse_route_rejects_non_pdf(client):
+    headers = _authed_headers(client, "+919999999991")
     response = client.post(
         "/imports/parse",
         files={"file": ("notes.txt", b"hello", "text/plain")},
         data={"password": "x"},
+        headers=headers,
     )
     assert response.status_code == 400
     assert response.json()["detail"]["code"] == "invalid_file"
 
 
-def test_parse_route_surfaces_parse_error_as_422():
+def test_parse_route_surfaces_parse_error_as_422(client):
+    headers = _authed_headers(client, "+919999999992")
     with patch(
         "app.api.imports.parse_cas_pdf_bytes",
         side_effect=ParseError("wrong_password", "Incorrect PDF password."),
@@ -44,57 +59,89 @@ def test_parse_route_surfaces_parse_error_as_422():
             "/imports/parse",
             files={"file": ("cas.pdf", b"%PDF-fake", "application/pdf")},
             data={"password": "wrong"},
+            headers=headers,
         )
     assert response.status_code == 422
     assert response.json()["detail"]["code"] == "wrong_password"
 
 
-def test_confirm_route_404s_on_unknown_session():
+def test_confirm_route_requires_auth(client):
     response = client.post(
         "/imports/confirm",
-        json={"session_id": "does-not-exist", "household_member_id": "00000000-0000-0000-0000-000000000000", "scheme_confirmations": []},
+        json={"session_id": "x", "household_member_id": "00000000-0000-0000-0000-000000000000", "scheme_confirmations": []},
+    )
+    assert response.status_code == 401
+
+
+def test_confirm_route_404s_on_unknown_session(client):
+    headers, member_id = _authed_headers_and_member(client, "+919999999993")
+    response = client.post(
+        "/imports/confirm",
+        json={"session_id": "does-not-exist", "household_member_id": member_id, "scheme_confirmations": []},
+        headers=headers,
     )
     assert response.status_code == 404
 
 
-def test_confirm_route_400s_on_malformed_household_member_id():
+def test_confirm_route_400s_on_malformed_household_member_id(client):
+    headers = _authed_headers(client, "+919999999994")
     response = client.post(
         "/imports/confirm",
         json={"session_id": "x", "household_member_id": "not-a-uuid", "scheme_confirmations": []},
+        headers=headers,
     )
     assert response.status_code == 400
 
 
-def test_confirm_route_422s_on_malformed_plan_type_override():
+def test_confirm_route_422s_on_malformed_plan_type_override(client):
     """Fix 3a: plan_type_override must be validated against the PlanType enum
     at the request boundary — a garbage string should never reach the service
     layer (where it used to raise an unhandled ValueError, indistinguishable
     from "session not found")."""
+    headers, member_id = _authed_headers_and_member(client, "+919999999995")
     response = client.post(
         "/imports/confirm",
         json={
             "session_id": "x",
-            "household_member_id": "00000000-0000-0000-0000-000000000000",
+            "household_member_id": member_id,
             "scheme_confirmations": [{"temp_id": "t1", "plan_type_override": "not-a-real-plan-type"}],
         },
+        headers=headers,
     )
     assert response.status_code == 422
 
 
-def test_confirm_route_409s_on_low_confidence_scheme_without_override():
+def test_confirm_route_404s_when_household_member_belongs_to_another_user(client):
+    """IDOR gate: a session token authenticates the caller, but
+    household_member_id is still client-supplied — it must be checked against
+    the authenticated user, not merely validated as a well-formed UUID."""
+    _, other_users_member_id = _authed_headers_and_member(client, "+919999999996")
+    headers = _authed_headers(client, "+919999999997")
+
+    response = client.post(
+        "/imports/confirm",
+        json={"session_id": "does-not-exist", "household_member_id": other_users_member_id, "scheme_confirmations": []},
+        headers=headers,
+    )
+    assert response.status_code == 404
+
+
+def test_confirm_route_409s_on_low_confidence_scheme_without_override(client):
     """Fix 3b: SchemeConfidenceError (needs an AMFI override) is a distinct,
     fixable-by-the-client situation from "session not found" — it must surface
     as 409, not be swallowed into the same 404 as a missing/expired session."""
     from app.services.import_.service import SchemeConfidenceError
 
+    headers, member_id = _authed_headers_and_member(client, "+919999999998")
     with patch("app.api.imports.confirm_import", side_effect=SchemeConfidenceError("needs an override")):
         response = client.post(
             "/imports/confirm",
             json={
                 "session_id": "some-session",
-                "household_member_id": "00000000-0000-0000-0000-000000000000",
+                "household_member_id": member_id,
                 "scheme_confirmations": [],
             },
+            headers=headers,
         )
     assert response.status_code == 409
 
@@ -118,77 +165,56 @@ def _sample_parse_result() -> ParseResult:
     )
 
 
-def test_parse_then_confirm_lands_a_transaction_in_the_real_db():
+def test_parse_then_confirm_lands_a_transaction_in_the_real_db(client):
     """Route -> service -> DB integration test. Only parse_cas_pdf_bytes and
     the MfApiClient's network-touching methods are mocked — build_import_preview
-    and confirm_import run for real against a real (test) database via
-    app.dependency_overrides[get_db]. This is exactly the kind of test that
-    would have caught Fix 1's dedupe race: the pre-fix route tests never
+    and confirm_import run for real against a real (test) database via the
+    shared `client` fixture's DB override. This is exactly the kind of test
+    that would have caught Fix 1's dedupe race: the pre-fix route tests never
     reached a real DB."""
-    engine = create_engine(
-        "sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool,
-    )
-    Base.metadata.create_all(engine)
-    # autoflush=False to match production's real SessionLocal (app/db/session.py).
-    TestSessionLocal = sessionmaker(autoflush=False, bind=engine)
+    from app.models.transaction import Transaction
 
-    def override_get_db():
-        db = TestSessionLocal()
-        try:
-            yield db
-        finally:
-            db.close()
+    headers, member_id = _authed_headers_and_member(client, "+919999999999")
 
-    setup_db = TestSessionLocal()
-    user = User(id=uuid.uuid4(), phone_number="+919999999998", created_at=datetime.now(timezone.utc))
-    setup_db.add(user)
-    setup_db.flush()
-    member = HouseholdMember(
-        id=uuid.uuid4(), user_id=user.id, name="Self",
-        relationship=Relationship.SELF, created_at=datetime.now(timezone.utc),
-    )
-    setup_db.add(member)
-    setup_db.commit()
-    member_id = member.id
-    setup_db.close()
+    # Only the network boundary is mocked (MfApiClient._get_json) — resolve_scheme
+    # and get_scheme_category run for real. The sample scheme carries
+    # amfi="125497" from the CAS, so resolve_scheme's amfi_from_cas
+    # short-circuit fires without calling _get_json at all; get_scheme_category
+    # does call it (for the category lookup), which is what this mocks.
+    with (
+        patch("app.api.imports.parse_cas_pdf_bytes", return_value=_sample_parse_result()),
+        patch(
+            "app.services.import_.enrich.MfApiClient._get_json",
+            new=AsyncMock(return_value={"meta": {"scheme_category": "Equity Scheme - Flexi Cap Fund"}}),
+        ),
+    ):
+        parse_response = client.post(
+            "/imports/parse",
+            files={"file": ("cas.pdf", b"%PDF-fake", "application/pdf")},
+            data={"password": "x"},
+            headers=headers,
+        )
+        assert parse_response.status_code == 200
+        session_id = parse_response.json()["session_id"]
 
-    app.dependency_overrides[get_db] = override_get_db
+        confirm_response = client.post(
+            "/imports/confirm",
+            json={
+                "session_id": session_id,
+                "household_member_id": member_id,
+                "scheme_confirmations": [],
+            },
+            headers=headers,
+        )
+        assert confirm_response.status_code == 200
+        assert confirm_response.json()["added"] == 1
+
+    from app.db.session import get_db
+    from app.main import app
+
+    override = app.dependency_overrides[get_db]
+    db = next(override())
     try:
-        # Only the network boundary is mocked (MfApiClient._get_json) — resolve_scheme
-        # and get_scheme_category run for real. The sample scheme carries
-        # amfi="125497" from the CAS, so resolve_scheme's amfi_from_cas
-        # short-circuit fires without calling _get_json at all; get_scheme_category
-        # does call it (for the category lookup), which is what this mocks.
-        with (
-            patch("app.api.imports.parse_cas_pdf_bytes", return_value=_sample_parse_result()),
-            patch(
-                "app.services.import_.enrich.MfApiClient._get_json",
-                new=AsyncMock(return_value={"meta": {"scheme_category": "Equity Scheme - Flexi Cap Fund"}}),
-            ),
-        ):
-            parse_response = client.post(
-                "/imports/parse",
-                files={"file": ("cas.pdf", b"%PDF-fake", "application/pdf")},
-                data={"password": "x"},
-            )
-            assert parse_response.status_code == 200
-            session_id = parse_response.json()["session_id"]
-
-            confirm_response = client.post(
-                "/imports/confirm",
-                json={
-                    "session_id": session_id,
-                    "household_member_id": str(member_id),
-                    "scheme_confirmations": [],
-                },
-            )
-            assert confirm_response.status_code == 200
-            assert confirm_response.json()["added"] == 1
+        assert db.query(Transaction).count() == 1
     finally:
-        app.dependency_overrides.pop(get_db, None)
-
-    verify_db = TestSessionLocal()
-    try:
-        assert verify_db.query(Transaction).count() == 1
-    finally:
-        verify_db.close()
+        db.close()

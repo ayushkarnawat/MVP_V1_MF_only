@@ -4,6 +4,9 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
+from app.models.user import User
+from app.services.auth.session import get_current_user
+from app.services.dashboard.household_members import get_household_member_for_user
 from app.services.import_.parser import ParseError, parse_cas_pdf_bytes
 from app.services.import_.schemas import ImportConfirmRequest, ImportConfirmResponse, ImportPreviewResponse
 from app.services.import_.service import SchemeConfidenceError, build_import_preview, confirm_import
@@ -12,7 +15,11 @@ router = APIRouter(prefix="/imports", tags=["imports"])
 
 
 @router.post("/parse", response_model=ImportPreviewResponse)
-async def parse_import(file: UploadFile = File(...), password: str = Form(...)):
+async def parse_import(
+    file: UploadFile = File(...),
+    password: str = Form(...),
+    user: User = Depends(get_current_user),
+):
     if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail={"code": "invalid_file", "message": "Please upload a PDF file."})
 
@@ -26,11 +33,20 @@ async def parse_import(file: UploadFile = File(...), password: str = Form(...)):
 
 
 @router.post("/confirm", response_model=ImportConfirmResponse)
-def confirm_import_route(body: ImportConfirmRequest, db: Session = Depends(get_db)):
+def confirm_import_route(
+    body: ImportConfirmRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     try:
         household_member_id = uuid.UUID(body.household_member_id)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="household_member_id must be a valid UUID.") from exc
+
+    # Ownership gate: household_member_id is client-supplied, so without this a
+    # caller could confirm an import against any user's household member (IDOR).
+    if get_household_member_for_user(db, user.id, household_member_id) is None:
+        raise HTTPException(status_code=404, detail="Household member not found.")
 
     try:
         return confirm_import(db, body.session_id, household_member_id, body.scheme_confirmations)

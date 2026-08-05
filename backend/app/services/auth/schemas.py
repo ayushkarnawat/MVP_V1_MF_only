@@ -34,6 +34,7 @@ class UpdateMeBody(BaseModel):
     onboarding_step: str | None = None
     investor_type: InvestorType | None = None
     primary_goal: PrimaryGoal | None = None
+    onboarding_completed: bool | None = None
 
 
 class MeResponse(BaseModel):

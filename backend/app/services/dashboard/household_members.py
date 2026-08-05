@@ -40,3 +40,13 @@ def list_household_members(db: DbSession, user_id: uuid.UUID) -> list[HouseholdM
         .order_by(HouseholdMember.created_at)
         .all()
     )
+
+
+def get_household_member_for_user(
+    db: DbSession, user_id: uuid.UUID, member_id: uuid.UUID
+) -> HouseholdMember | None:
+    """Scoped lookup used to authorize access to a household member before
+    acting on their data (e.g. confirming an import) — returns None for a
+    member that exists but belongs to a different user, same as one that
+    doesn't exist at all, so callers can't distinguish the two."""
+    return db.query(HouseholdMember).filter_by(id=member_id, user_id=user_id).first()

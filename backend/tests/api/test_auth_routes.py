@@ -61,6 +61,45 @@ def test_me_updates_onboarding_fields_with_valid_session(client):
     assert body["investor_type"] == "self_directed"
 
 
+def test_get_me_requires_auth(client):
+    response = client.get("/auth/me")
+    assert response.status_code == 401
+
+
+def test_get_me_returns_current_user_state(client):
+    phone = "+919333333333"
+    otp = client.post("/auth/otp/request", json={"phone_number": phone}).json()["otp"]
+    token = client.post("/auth/otp/verify", json={"phone_number": phone, "otp": otp}).json()["session_token"]
+    client.patch(
+        "/auth/me",
+        json={"onboarding_step": "q3"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    response = client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["phone_number"] == phone
+    assert body["onboarding_step"] == "q3"
+    assert body["onboarding_completed"] is False
+
+
+def test_me_can_mark_onboarding_completed(client):
+    phone = "+919222222222"
+    otp = client.post("/auth/otp/request", json={"phone_number": phone}).json()["otp"]
+    token = client.post("/auth/otp/verify", json={"phone_number": phone, "otp": otp}).json()["session_token"]
+
+    response = client.patch(
+        "/auth/me",
+        json={"onboarding_completed": True},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["onboarding_completed"] is True
+
+
 def test_session_refresh_requires_auth(client):
     response = client.post("/auth/session/refresh")
     assert response.status_code == 401

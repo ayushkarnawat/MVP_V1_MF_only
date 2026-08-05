@@ -60,6 +60,23 @@ def refresh_session_route(
     return SessionRefreshResponse(expires_at=refreshed.expires_at.isoformat())
 
 
+def _me_response(user: User) -> MeResponse:
+    return MeResponse(
+        user_id=str(user.id),
+        phone_number=user.phone_number,
+        email=user.email,
+        onboarding_step=user.onboarding_step,
+        onboarding_completed=user.onboarding_completed_at is not None,
+        investor_type=user.investor_type,
+        primary_goal=user.primary_goal,
+    )
+
+
+@router.get("/me", response_model=MeResponse)
+def get_me(user: User = Depends(get_current_user)):
+    return _me_response(user)
+
+
 @router.patch("/me", response_model=MeResponse)
 def update_me(
     body: UpdateMeBody,
@@ -72,14 +89,11 @@ def update_me(
         user.investor_type = body.investor_type
     if body.primary_goal is not None:
         user.primary_goal = body.primary_goal
+    # First-completion-wins: onboarding_completed=false is not a supported
+    # "un-complete" action, only forward marking is needed (PRD-02 has no
+    # revert-to-onboarding flow once done).
+    if body.onboarding_completed is True and user.onboarding_completed_at is None:
+        user.onboarding_completed_at = datetime.now(timezone.utc)
     db.commit()
 
-    return MeResponse(
-        user_id=str(user.id),
-        phone_number=user.phone_number,
-        email=user.email,
-        onboarding_step=user.onboarding_step,
-        onboarding_completed=user.onboarding_completed_at is not None,
-        investor_type=user.investor_type,
-        primary_goal=user.primary_goal,
-    )
+    return _me_response(user)
