@@ -154,3 +154,61 @@ def test_confirm_import_rejects_low_confidence_scheme_without_override():
     import pytest
     with pytest.raises(ValueError, match="requires an explicit AMFI code"):
         confirm_import(db, preview.session_id, member.id, scheme_confirmations=[])
+
+
+def test_confirm_import_rejection_writes_nothing_even_for_earlier_confident_scheme():
+    """Fix 2 regression: confirm_import validates every referenced scheme
+    before writing anything. A mix of one confident scheme (which used to get
+    flushed to the session before the loop reached the low-confidence one)
+    and one low-confidence scheme must leave zero rows in every table."""
+    from app.services.import_.enrich import SchemeMatch
+
+    confident_txn = NormalizedTransaction(
+        folio="123/45", amc="HDFC AMC", scheme_name="HDFC Flexi Cap Fund - Direct Plan - Growth",
+        isin="INF123", amfi="125497", scheme_type="EQUITY", txn_date=date(2024, 1, 1),
+        txn_type=TransactionType.PURCHASE, description="Purchase",
+        amount=Decimal("5000.00"), units=Decimal("10.000"), nav=Decimal("500.0000"),
+    )
+    confident_scheme = ParsedScheme(
+        name="HDFC Flexi Cap Fund - Direct Plan - Growth", isin="INF123", amfi="125497",
+        scheme_type="EQUITY", folio="123/45", amc="HDFC AMC", transaction_count=1,
+        arn_code=None, plan_name_variant="direct", plan_type="direct",
+    )
+    ambiguous_txn = NormalizedTransaction(
+        folio="1", amc="X AMC", scheme_name="Ambiguous Fund", isin=None, amfi=None,
+        scheme_type="EQUITY", txn_date=date(2024, 1, 1), txn_type=TransactionType.PURCHASE,
+        description="Purchase", amount=Decimal("1000.00"), units=Decimal("5.000"), nav=Decimal("200.0000"),
+    )
+    ambiguous_scheme = ParsedScheme(
+        name="Ambiguous Fund", isin=None, amfi=None, scheme_type="EQUITY", folio="1", amc="X AMC",
+        transaction_count=1, arn_code=None, plan_name_variant="unresolved", plan_type="unclassified",
+    )
+    parse_result = ParseResult(
+        investor=ParsedInvestor(name="Test Investor", email="t@example.com", pan_masked="ABCDE****F"),
+        schemes=[confident_scheme, ambiguous_scheme], transactions=[confident_txn, ambiguous_txn],
+        raw_json="{}", parse_warnings=[], cas_type="DETAILED", file_type="FileType.CAMS",
+    )
+
+    db = _session()
+    member = _household_member(db)
+
+    client = AsyncMock()
+
+    async def _resolve_scheme(name, amfi):
+        if amfi == "125497":
+            return SchemeMatch(amfi_code="125497", scheme_name=name, confidence=1.0), "confirmed"
+        return None, "pending"
+
+    client.resolve_scheme.side_effect = _resolve_scheme
+    client.get_scheme_category.return_value = "Equity Scheme - Flexi Cap Fund"
+
+    preview = asyncio.run(build_import_preview(parse_result, "test.pdf", client=client))
+
+    import pytest
+    with pytest.raises(ValueError, match="requires an explicit AMFI code"):
+        confirm_import(db, preview.session_id, member.id, scheme_confirmations=[])
+
+    assert db.query(Import).count() == 0
+    assert db.query(Scheme).count() == 0
+    assert db.query(Folio).count() == 0
+    assert db.query(Transaction).count() == 0

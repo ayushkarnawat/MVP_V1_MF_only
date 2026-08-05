@@ -108,6 +108,26 @@ def confirm_import(
     key_to_temp = session["key_to_temp"]
     overrides = {c.temp_id: c for c in scheme_confirmations}
 
+    # Validate every referenced scheme up front — a rejection here makes zero DB
+    # writes, instead of leaving earlier schemes/folios/transactions flushed
+    # (not committed, but written) to the session for the caller to roll back.
+    seen_temp_ids: set[str] = set()
+    for norm in parse_result.transactions:
+        temp_id = key_to_temp[(norm.folio, norm.amc, norm.scheme_name)]
+        if temp_id in seen_temp_ids:
+            continue
+        seen_temp_ids.add(temp_id)
+        preview = previews[temp_id]
+        override = overrides.get(temp_id)
+        amfi_code = (override.amfi_code if override and override.amfi_code else None) or preview.suggested_amfi_code
+        confident = preview.match_confidence >= CONFIDENCE_THRESHOLD or bool(override and override.amfi_code)
+        if not amfi_code or not confident:
+            raise ValueError(
+                f"Scheme '{preview.name}' requires an explicit AMFI code override (match confidence "
+                f"{preview.match_confidence:.2f} below {CONFIDENCE_THRESHOLD})."
+            )
+
+    # All schemes validated — safe to start writing.
     import_rec = Import(
         id=uuid.uuid4(), household_member_id=household_member_id, status=ImportStatus.CONFIRMED,
         source_cas_type=_map_source_cas_type(parse_result.file_type),
@@ -128,12 +148,6 @@ def confirm_import(
         override = overrides.get(temp_id)
 
         amfi_code = (override.amfi_code if override and override.amfi_code else None) or preview.suggested_amfi_code
-        confident = preview.match_confidence >= CONFIDENCE_THRESHOLD or bool(override and override.amfi_code)
-        if not amfi_code or not confident:
-            raise ValueError(
-                f"Scheme '{preview.name}' requires an explicit AMFI code override (match confidence "
-                f"{preview.match_confidence:.2f} below {CONFIDENCE_THRESHOLD})."
-            )
 
         if amfi_code not in scheme_cache:
             existing = db.query(Scheme).filter_by(amfi_code=amfi_code).first()

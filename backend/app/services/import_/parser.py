@@ -181,6 +181,7 @@ def _normalize_cas_data(data: CASData) -> ParseResult:
 
     transactions: list[NormalizedTransaction] = []
     scheme_map: dict[tuple[str, str, str], ParsedScheme] = {}
+    parse_warnings: list[str] = list(data.parse_warnings or [])
 
     for folio in data.folios:
         for scheme in folio.schemes:
@@ -201,24 +202,42 @@ def _normalize_cas_data(data: CASData) -> ParseResult:
                     plan_type=classify_folio_plan_type(name_variant, arn_code),
                 )
             for txn in scheme.transactions:
+                # casparser genuinely allows amount/units/nav to be None on some
+                # lines; Transaction.amount/units/nav are NOT NULL downstream, so
+                # skip and surface why in parse_warnings rather than crash or
+                # violate the constraint later in confirm_import.
+                amount = quantize_amount(to_decimal(txn.amount)) if txn.amount is not None else None
+                units = quantize_units(to_decimal(txn.units)) if txn.units is not None else None
+                nav = quantize_nav(to_decimal(txn.nav)) if txn.nav is not None else None
+                if amount is None or units is None or nav is None:
+                    parse_warnings.append(
+                        f"Skipped transaction on {txn.date} for {scheme.scheme} (folio {folio.folio}): "
+                        f"missing amount, units, or NAV — {txn.description}"
+                    )
+                    continue
                 norm = NormalizedTransaction(
                     folio=folio.folio, amc=folio.amc, scheme_name=scheme.scheme,
                     isin=scheme.isin, amfi=scheme.amfi, scheme_type=scheme.type,
                     txn_date=_parse_date(txn.date), txn_type=normalize_txn_type(txn.type),
-                    description=txn.description,
-                    amount=quantize_amount(to_decimal(txn.amount)) if txn.amount is not None else None,
-                    units=quantize_units(to_decimal(txn.units)) if txn.units is not None else None,
-                    nav=quantize_nav(to_decimal(txn.nav)) if txn.nav is not None else None,
+                    description=txn.description, amount=amount, units=units, nav=nav,
                 )
                 transactions.append(norm)
                 scheme_map[key].transaction_count += 1
+
+    # PAN never leaves this function unmasked: raw_json is persisted verbatim
+    # into imports.raw_parser_output by confirm_import, so redact before
+    # serializing rather than relying on callers to scrub it later.
+    redacted = data.model_copy(deep=True)
+    for f in redacted.folios:
+        f.PAN = None
+    raw_json = redacted.model_dump_json()
 
     return ParseResult(
         investor=investor,
         schemes=list(scheme_map.values()),
         transactions=transactions,
-        raw_json=data.model_dump_json(),
-        parse_warnings=list(data.parse_warnings or []),
+        raw_json=raw_json,
+        parse_warnings=parse_warnings,
         cas_type=str(data.cas_type),
         file_type=str(data.file_type),
     )
