@@ -88,26 +88,37 @@ frontend framework, or a service split not already in that document.
 *(Updated 2026-08-05. See `session.md` at repo root for full detail — this is the
 one-paragraph pointer for a fresh session.)*
 
-**Phase 0 (foundation) and Phase 1 (backend) are both complete.** Phase 0:
-all 11 tasks in `Docs/superpowers/plans/2026-08-04-phase-0-foundation.md`.
-Phase 1 backend: all 9 tasks in
-`Docs/superpowers/plans/2026-08-04-phase-1-cas-import-backend.md` — CAS
-import tightened (Direct/Regular classification, ARN capture per PRD-01
-FR-5-8) and ported into `backend/app/services/import_/`, real endpoints live
-at `POST /imports/parse` / `POST /imports/confirm`. Built in an isolated
-worktree/branch (`worktree-phase-1-cas-import-backend`), reviewed clean
-end-to-end including a whole-branch pass that caught and fixed a real
-production bug — **not yet merged to `main`**, see `session.md`'s "What's
-next" for the merge step.
+**Phase 0 and Phase 1 (backend + frontend) are all complete and merged to
+`main`.** Phase 0: `Docs/superpowers/plans/2026-08-04-phase-0-foundation.md`.
+Phase 1 backend: `Docs/superpowers/plans/2026-08-04-phase-1-cas-import-backend.md`
+— CAS import tightened and ported into `backend/app/services/import_/`, live
+at `POST /imports/parse` / `POST /imports/confirm`. Phase 1b frontend:
+`Docs/superpowers/plans/2026-08-05-phase-1b-import-review-frontend.md` — the
+five-screen Import Review flow in `frontend/src/features/import/`, plus
+design tokens (`frontend/src/styles/tokens.css`) and a shared `Badge`
+component implementing `Design-Schema-Unifolio.md`. ADR-001's stale
+"React already in progress" claim (see below) is now corrected. Test
+suites on `main`: backend 48 passing, frontend 23 passing. **Not yet pushed**
+— `main` is ahead of `origin/main`, no TTY for credentials in this sandbox;
+push manually.
 
-**One deliberately parked item:** `/imports/confirm` trusts
-`household_member_id` from the request body with no ownership check (IDOR)
-— there's no auth/session system yet to check against (Auth service is
-still an empty Phase-0 stub, per the deferred "full auth/security policy"
-non-negotiable above). Fix once PRD-02's auth work lands.
+**Two deliberately parked items**, both real, neither silently dropped:
+1. `/imports/confirm` trusts `household_member_id` from the request body
+   with no ownership check (IDOR) — no auth/session system exists yet to
+   check against (Auth service is still an empty Phase-0 stub, per the
+   deferred "full auth/security policy" non-negotiable above). Fix once
+   PRD-02's auth work lands.
+2. `confirm_import`'s plan-type override has no server-side 409 backstop
+   (unlike the AMFI-confidence check) — the frontend's Confirm-gating is
+   currently the *only* enforcement of "never silently guess" for plan type.
+   Needs a small backend fix mirroring the existing `SchemeConfidenceError`
+   gate. Discovered in Phase 1b's final review, not yet fixed.
 
-**Still open, unrelated to Phase 1 backend:**
-1. ADR-001's claim that the CAS Parser frontend is an existing React SPA is
-   stale — the real code at `CAS Parsers/mf-import/frontend` is vanilla TS, no
-   React. The Import Review UI (Phase 1b, not yet planned) will be new code,
-   not a port.
+**ADR-001 — resolved.** Its claim that the CAS Parser frontend was an
+existing React SPA "already in progress" was stale (the real prototype was
+vanilla TS); corrected via an Amendment section, Decision unchanged.
+
+**Phase 2 scope is an open decision — ask before assuming.** PRD-01 (CAS
+Import) is now fully built. PRD-02 (Onboarding), PRD-03 (Main Dashboard),
+and PRD-04 (Analytics) are all unbuilt; see `session.md` for the two leading
+candidates and why neither is presumptively "next."
