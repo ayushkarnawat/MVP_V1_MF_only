@@ -1,8 +1,8 @@
 ---
 artifact: prd
-version: "1.3"
+version: "1.4"
 created: 2026-07-22
-updated: 2026-07-22
+updated: 2026-08-05
 status: draft
 product: Unifolio
 module: MF Import (CAS Parser v2)
@@ -165,7 +165,11 @@ once this PRD is approved.
 
 #### Review & Confirm Flow
 - FR-9: `/api/imports/parse` returns a preview (no DB writes) with scheme-level confidence
-  scores for AMFI matches and direct/regular classification.
+  scores for AMFI matches and direct/regular classification. Called once per file — per
+  PRD-02 v1.3's Family CAS Upload flow, a batch "Parse Files" action on the frontend calls
+  this endpoint once per queued file, sequentially, each tagged to its own
+  `household_member_id`; this endpoint itself has no batch/multi-file mode (added v1.3
+  cross-reference).
 - FR-10: User must confirm before `/api/imports/confirm` persists anything. Low-confidence
   AMFI matches (<0.92) and `unclassified` direct/regular results block silent confirm —
   each requires an explicit user choice.
@@ -289,3 +293,4 @@ list below, since the original requirements were accurate as written.
 | 1.1 | 2026-07-22 | Claude (PM partner) | Added Update note resolving ARN-to-distributor data-source question (see Appendix) |
 | 1.2 | 2026-07-22 | Claude (PM partner) | Added Ongoing Data Addition as an explicit v1 scope item (import is recurring, not onboarding-only); noted in ADR-004 that PDF retention (vs. current delete-after-parse) is now an open decision pending Ayush's call, not yet changed |
 | 1.3 | 2026-07-22 | Claude (PM partner) | FR-2 clarified: PAN confirmed never persisted (transient use only), resolved via Database Schema's open question |
+| 1.4 | 2026-08-05 | Claude (PM partner), from team brainstorm relayed by Ayush | FR-9 cross-referenced to PRD-02 v1.3's Family CAS Upload batch-parse flow: this endpoint is still called once per file, sequentially, tagged per `household_member_id` — no batch/multi-file mode added here, the queueing/sequencing lives entirely in the frontend per PRD-02 |

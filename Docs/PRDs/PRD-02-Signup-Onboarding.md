@@ -1,8 +1,8 @@
 ---
 artifact: prd
-version: "1.2"
+version: "1.3"
 created: 2026-07-22
-updated: 2026-07-22
+updated: 2026-08-05
 status: draft
 product: Unifolio
 module: Signup & Onboarding
@@ -207,6 +207,13 @@ directly with the goal of a frictionless first step. See the Authentication sect
   login after the first OTP verification (same pattern as Groww/INDmoney's post-first-login
   flow) — this belongs in a future Auth/Security PRD for full spec, flagged here only
   because it blocks screen 1 of onboarding.
+- FR-2b **(added v1.3):** The very first screen is not the phone-number field itself — it's a
+  brief landing screen offering "Sign Up" and "Log In" as two labeled entry points, so a
+  first-time and a returning user each see language that matches their actual situation.
+  Both buttons lead to the identical phone+OTP flow (FR-2's backend already treats a new
+  vs. an existing phone number transparently — a new `User` row is created on first OTP
+  verification, an existing one is reused otherwise); this screen changes only the framing
+  a user sees before that flow starts, not a second authentication mechanism.
 
 #### Trust-First Framing
 - FR-3: Before any data is requested, show a brief, concrete trust statement: read-only
@@ -225,6 +232,12 @@ directly with the goal of a frictionless first step. See the Authentication sect
   relationship, indicate whether each member's own CAS will be imported now or later.
 - FR-7: Every step must be skippable or deferrable except the ones required to reach the
   CAS import step — nothing blocks a user from getting to their portfolio.
+- FR-7a **(added v1.3):** Skippable means genuinely revisitable, not a one-way door — a
+  user must be able to go back and answer a question they skipped (or change one they
+  already answered) via ordinary back-navigation, not just by re-running the whole
+  questionnaire from the start. This was implicit in FR-7's original wording but not
+  concretely specified; making it explicit now that it's actually being built, so "skippable"
+  isn't read as "skip and lose the chance to go back."
 
 ### Onboarding Questionnaire (Draft)
 
@@ -265,14 +278,61 @@ target range without a separate HNI-branded question.
 
 **Q4 — Household (branches into family setup, not a yes/no dead end)**
 > "Just you, or tracking for family too?"
-- "Just me" → straight to CAS import
+- "Just me" → straight to "Upload your own CAS?" (see Closing step below)
 - "Family too" → add-member flow (name, relationship, whether their CAS will be added
-  now or later) before CAS import
+  now or later), **then the Family CAS Upload flow (added v1.3, see below)** before the
+  closing step
 
 **Closing step — the payoff, not a fifth question**
-> "Let's bring in your first portfolio." → straight into CAS upload (PRD-01). This is
-  intentionally framed as the destination, not another step in a list, per FR's emphasis on
-  onboarding ending at real data, not at a "you're all set!" screen with nothing to show.
+> "Let's bring in your first portfolio." → CAS upload (PRD-01). For a solo user this is
+  immediate; for a user who added family members, it's reached via the Family CAS
+  Upload flow below rather than directly, since there's now more than one portfolio to
+  bring in. Either way this is intentionally framed as the destination, not another step in
+  a list, per FR's emphasis on onboarding ending at real data, not at a "you're all set!"
+  screen with nothing to show.
+
+### Family CAS Upload (added v1.3)
+
+**Why this exists:** the original v1.0-1.2 draft above assumed a single hand-off straight
+into CAS upload regardless of household size. That assumption broke once family setup
+was actually being built: a household with several members needs a way to bring in
+*multiple* people's CAS data without conflating whose transactions are whose, and
+without forcing one file to finish parsing before the next can even be selected. This
+section is the resolution — inserted between Family Setup (FR-6) and the existing CAS
+import handoff (FR-9), for households with more than one member. A solo ("Just me")
+user skips straight to "Upload your own CAS?" below, unaffected by any of this.
+
+- FR-10: After family setup completes, show one independent upload card per family
+  member added during onboarding (name + "Upload CAS" action + a status of
+  `Not Uploaded` / `Uploaded`). Each member's upload is fully independent — selecting or
+  uploading a file for one member must never affect, overwrite, or merge with another
+  member's upload or data. This directly extends PRD-01's existing folio/transaction data
+  model (already keyed per household member); no new merge logic is introduced here,
+  only a UI surface that keeps uploads visibly separated per person.
+- FR-11: Once every family member has either uploaded or been explicitly skipped, ask
+  "Upload your own CAS?" with two equally-weighted options: **Upload Now** (opens the
+  same CAS Upload screen PRD-01 already defines, for the account holder's own file) or
+  **Upload Later** (skips directly to FR-12's queue/parse step with the account holder's
+  own CAS simply absent from the batch — resumable later via PRD-01/03's existing
+  Ongoing Data Addition path, same as any other post-onboarding import).
+- FR-12: Uploading a file (for any member, including the account holder) does **not**
+  trigger parsing immediately. Each upload is added to a visible queue (filename shown per
+  entry) and stays queued until the user takes one explicit action — a single **Parse
+  Files** button — that parses every queued file. This is a deliberate change from
+  PRD-01's original single-file assumption: with multiple files in play, parsing each one
+  the instant it's chosen would interrupt the person mid-upload-flow for every other
+  member. Batching removes that interruption.
+- FR-13: "Parse Files" parses every queued CAS independently — one call into PRD-01's
+  existing parser per file, each still tagged with the household member it was uploaded
+  for. No two members' parsed data is ever combined into one preview or one confirm
+  call. Review and confirm then proceed one member at a time, reusing PRD-01's existing
+  Import Review screen exactly as already specified (confidence badges, Direct/Regular
+  tags, manual override) — this section does not redefine that screen, only the path that
+  leads into it when more than one file is queued.
+- FR-14: A family member who was skipped at FR-10 (no upload during onboarding) is not
+  blocked from anything — per FR-7/FR-7a, their CAS can be added anytime afterward via
+  the same ongoing "Add Data" entry point PRD-01/03 already define, scoped to that
+  member.
 
 ### HNI Treatment in v1 (decided)
 
@@ -295,7 +355,10 @@ structurally different — not before.
 #### Handoff to CAS Import
 - FR-9: The CAS import step is the natural conclusion of onboarding, not a separate
   post-onboarding task — framed as "the moment your real numbers show up," matching
-  the emphasis on a fast first payoff from the research above.
+  the emphasis on a fast first payoff from the research above. For a household with more
+  than one member, this handoff is now the Family CAS Upload flow (FR-10-FR-14, added
+  v1.3) rather than a direct jump into CAS upload — the payoff framing is unchanged, only
+  the path to it when there's more than one portfolio to bring in.
 
 ### User Experience
 
@@ -313,6 +376,9 @@ elements like badges or points, per FR-1.
 | User has no CAS yet (hasn't requested one from CAMS) | Clear guidance shown, onboarding can complete without import; dashboard shows an empty state with import prompt |
 | User adds family members but only has their own CAS to upload | Other members' profiles exist as placeholders; import can happen per-member later |
 | HNI-segment user selects an investor-type answer that doesn't map cleanly to retail/HNI | No hard branching logic in v1 — the flow doesn't change based on this answer yet, it's captured for future personalization only (per Non-Goals) |
+| User skips a question (Q2/Q3), reaches CAS import, later wants to answer it | FR-7a — back-navigation lets them revisit and answer it; nothing about having already reached CAS import locks the earlier questions **(added v1.3)** |
+| User uploads two family members' CAS files, then closes the app before clicking "Parse Files" | Queue is not yet parsed/persisted server-side (per FR-12); on return, the family member's status still shows `Uploaded` if the file selection survived, or `Not Uploaded` if not — either way nothing was silently discarded server-side since nothing was sent until Parse Files is clicked **(added v1.3)** |
+| One family member's CAS fails to parse (wrong password, scanned PDF, etc.) while others in the same batch succeed | Per FR-13's "parses every queued CAS independently" — a failure on one file surfaces PRD-01's existing specific error for that member only (FR-12-14 of PRD-01) and does not block or roll back the others' successful parses **(added v1.3)** |
 
 ## Technical Considerations
 
@@ -383,6 +449,13 @@ needs to inherit these decisions rather than re-litigate them:
 5. **The CAS import step is the visual and narrative payoff of onboarding** — the Design
    Brief should treat the "your portfolio just appeared" moment as the emotional peak of
    the sequence, not a generic "setup complete" screen.
+6. **(added v1.3) The Family CAS Upload flow (FR-10-FR-14) sits between family setup and
+   that payoff for multi-member households** — per-member upload cards, an explicit
+   "Upload your own CAS?" choice, and a queue-then-batch-parse pattern rather than
+   parse-on-upload. The Design Brief should treat the per-member cards as siblings, not a
+   hierarchy (no member's card should visually imply priority over another's), and should
+   NOT redesign the actual Import Review screen this flow leads into — that's still PRD-01's,
+   unchanged.
 
 This PRD's Solution Design and UX sections are intentionally structural, not visual — the
 actual look, motion, and microcopy are correctly a Design Brief job, not a PRD job. The
@@ -398,8 +471,11 @@ each other later.
       (`otp_requests`, `sessions` in the Database Schema doc) so login functions at MVP;
       the deferred PRD covers policy on top of that (rate-limiting, lockout, device
       management), not the base tables.
-- [ ] Whether "Family too" in Q4 should let a user add members before or after their own
-      CAS import completes — sequencing detail, doesn't block PRD sign-off — Owner: Ayush
+- [x] Whether "Family too" in Q4 should let a user add members before or after their own
+      CAS import completes — **Resolved v1.3**: family setup completes first, then every
+      added member gets an independent upload slot in the new Family CAS Upload flow
+      (FR-10), with the account holder's own CAS handled last via "Upload your own CAS?"
+      (FR-11) — see the new Family CAS Upload section above.
 
 ## Appendix
 
@@ -430,3 +506,4 @@ each other later.
 | 1.0 | 2026-07-22 | Claude (PM partner) | Initial draft, includes research pass |
 | 1.1 | 2026-07-22 | Claude (PM partner) | Added draft questionnaire (Q1–Q4 + family step); resolved auth to phone+OTP (no password); resolved HNI treatment (no separate flow in v1); added second research pass (question-phrasing and Indian auth-pattern findings); added Design Handoff Alignment section |
 | 1.2 | 2026-07-22 | Claude (PM partner) | Noted foundational `otp_requests`/`sessions` tables now exist in the Database Schema doc, unblocking basic login at MVP; full auth/security policy remains deferred as before |
+| 1.3 | 2026-08-05 | Claude (PM partner), from team brainstorm relayed by Ayush | Added FR-2b (Sign Up/Log In landing screen before the phone-number field); added FR-7a (skipped questions must be genuinely revisitable via back-navigation, not just a one-way skip); added the Family CAS Upload section (FR-10-FR-14) for multi-member households — per-member upload cards, independent state per member, "Upload your own CAS?" Now/Later, and a queue-then-batch-parse pattern (Parse Files) instead of parse-on-upload, sequencing into PRD-01's existing Import Review screen unchanged, once per member; resolved the "before or after own CAS import" open question accordingly; updated FR-9 and Design Handoff Alignment to match |
