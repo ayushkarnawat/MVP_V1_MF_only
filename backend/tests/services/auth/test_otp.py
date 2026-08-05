@@ -88,6 +88,17 @@ def test_verify_otp_rejects_unknown_phone_number():
         verify_otp(db, "+910000000000", "123456")
 
 
+def test_create_otp_request_refuses_stub_mode_against_non_sqlite_database(monkeypatch):
+    import app.services.auth.otp as otp_module
+
+    monkeypatch.setattr(otp_module.settings, "otp_delivery_mode", "stub")
+    monkeypatch.setattr(otp_module.settings, "database_url", "postgresql+psycopg2://x")
+    db = _session()
+
+    with pytest.raises(RuntimeError, match="not allowed against a non-SQLite database"):
+        create_otp_request(db, "+919999999999")
+
+
 def test_verify_otp_uses_latest_request_when_multiple_exist():
     db = _session()
     create_otp_request(db, "+919999999999")

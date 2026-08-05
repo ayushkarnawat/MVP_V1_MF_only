@@ -34,6 +34,13 @@ def create_otp_request(db: DbSession, phone_number: str) -> tuple[OtpRequest, st
     raw_otp is only non-None in dev-stub delivery mode, for the API
     response to echo back; a real SMS-integrated mode returns None here
     and sends the code out-of-band instead."""
+    if settings.otp_delivery_mode == "stub" and not settings.database_url.startswith("sqlite"):
+        raise RuntimeError(
+            "otp_delivery_mode='stub' is not allowed against a non-SQLite database — "
+            "this would leak real OTPs in the API response outside local dev. "
+            "Set OTP_DELIVERY_MODE to a real delivery mode before deploying against Postgres."
+        )
+
     otp = generate_otp()
     request = OtpRequest(
         phone_number=phone_number,
