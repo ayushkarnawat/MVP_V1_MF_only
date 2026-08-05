@@ -1,4 +1,4 @@
-# Session state — 2026-08-05
+# Session state — 2026-08-05 (updated)
 
 Working notes for picking this project back up cold. Not a planning doc — see
 `Docs/superpowers/plans/` for those. This file tracks *where things stand*,
@@ -67,25 +67,78 @@ dispatches by default (user's explicit token-budget priority), `sonnet` only
 when a task is genuinely security/complexity-sensitive enough to warrant it
 (e.g. the Phase 2 final review) — not a blanket policy, a per-dispatch call.
 
-Test suites on `main` as of this session: **backend 80 passing** (2
-postgres-marked deselected in this sandbox), **frontend 23 passing**.
+Test suites on `main` as of this session: **backend 92 passing** (2
+postgres-marked deselected in this sandbox), **frontend 23 passing** — see
+the pivot section below for what changed since the 80/23 counts at Phase 2
+backend's completion.
 
-**Not yet pushed to GitHub** — `main` is 6 commits ahead of `origin/main`
-(this sandbox has no TTY for HTTPS credentials, same limitation every
-session). Push manually: `git push origin main`.
+**`origin/main` caught up to the Phase 2 backend merge at some point since**
+(the earlier "6 commits ahead, no TTY to push" state is resolved — Ayush
+must have pushed manually as suggested). `main` is now 2 commits ahead of
+`origin/main` again (the doc pivot + auth-wiring fix below) — same no-TTY
+limitation applies; push manually: `git push origin main`.
 
-## Follow-up items surfaced during review, not yet actioned
+## Mid-Phase-2b scope pivot (2026-08-05): Family CAS Upload + landing screen
 
-1. **`/imports/confirm` still doesn't use the new auth system.** Phase 2
-   built `get_current_user` and real sessions, but Phase 1's Import Service
-   endpoints (`/imports/parse`, `/imports/confirm`) were not touched by this
-   phase — they still take `household_member_id` from the request body via
-   the Phase 1 dev-seed script (`backend/scripts/seed_dev_household_member.py`),
-   not from a session token. The IDOR gap is technically still open on
-   *those* endpoints specifically, even though the auth infrastructure to
-   fix it now exists. Wiring `Depends(get_current_user)` into
-   `backend/app/api/imports.py` (and removing the dev-seed dependency) is a
-   small, well-scoped follow-up — not done yet.
+A team brainstorm (relayed by Ayush) surfaced real gaps in the Phase 2b
+onboarding design mid-brainstorm. Instead of finishing the original "simple
+Auth+Onboarding frontend" design, we stopped, updated the authoritative docs
+first (per the project's doc-driven philosophy and Ayush's explicit "change
+all and any files... official docs" authorization), then closed a related
+backend gap, before resuming the frontend design. **Docs and the backend
+piece are done; the frontend itself is not built yet — see "What's next."**
+
+New requirements (now captured in the docs, not yet in code):
+- A landing screen (Sign Up / Log In) before phone entry — phone entry is no
+  longer the true first screen.
+- Onboarding back-navigation: skipped questions must be genuinely
+  revisitable, not just skippable.
+- **Family CAS Upload flow**, inserted after Family Setup: one independent
+  upload card per family member (status Not Uploaded/Uploaded), each
+  member's upload/data never merges with or overwrites another's.
+- After all members are handled: "Upload your own CAS?" (Upload Now / Upload
+  Later).
+- **Batch parse**: uploads queue client-side (not auto-parsed); a single
+  "Parse Files" action parses every queued file, each staying mapped to its
+  owning member; review/confirm is sequential, reusing the existing Import
+  Review screen once per file — no new combined multi-member review UI.
+
+**Docs updated and committed** (commit `ca1b985`):
+- `Docs/PRDs/PRD-02-Signup-Onboarding.md` → v1.3: added FR-2b (landing
+  screen), FR-7a (skip/revisit), and a new Family CAS Upload section
+  (FR-10-FR-14).
+- `Docs/PRDs/App-Flow-Unifolio.md` → v1.2: added S23 (Landing), S24 (Family
+  CAS Upload), S25 (Upload My CAS? Now/Later), S26 (Parse Queue); updated
+  Primary Flow and Onboarding Questionnaire diagrams; added a dedicated
+  Family CAS Upload sub-flow diagram; documented onboarding back-navigation
+  and per-item status.
+- `Docs/PRDs/PRD-01-CAS-Parser-v2.md` → v1.4: cross-referenced FR-9 — the
+  parse endpoint stays single-file; batching/sequencing is a frontend
+  concern owned by PRD-02, not a new backend batch mode.
+
+## Follow-up items surfaced during review
+
+1. **DONE (commit `a33ca3c`): `/imports/parse` and `/imports/confirm` now
+   require real auth.** Both routes take `Depends(get_current_user)`;
+   `/confirm` validates `household_member_id` belongs to the authenticated
+   user via a new `get_household_member_for_user()` scoped lookup in
+   `backend/app/services/dashboard/household_members.py`, closing the IDOR
+   gap. Also added in the same commit (needed regardless, and specifically
+   needed by the Family CAS Upload sequential-confirm flow): `GET /auth/me`,
+   and `PATCH /auth/me` can now set `onboarding_completed` (forward-only —
+   first-completion-wins, no "un-complete" path). Backend suite: **92
+   passing** (2 postgres-marked deselected).
+
+   **Known consequence, not a bug:** the Phase 1b Import Review frontend has
+   no login step yet, so it can no longer call these endpoints
+   unauthenticated (it was relying on `backend/scripts/seed_dev_household_member.py`
+   + a `VITE_DEV_HOUSEHOLD_MEMBER_ID` env var, neither of which mint a
+   session token). This is expected to stay broken until the Phase 2b
+   frontend (below) wires real login ahead of the import flow — that was
+   always the plan, not a regression to chase separately. The dev-seed
+   script itself is untouched and still works for creating dev fixtures
+   manually.
+
 2. **Plan-type override has no server-side backstop.**
    `backend/app/services/import_/service.py`'s `confirm_import` blocks a
    low-confidence AMFI match via `SchemeConfidenceError` (409) but silently
@@ -108,19 +161,38 @@ session). Push manually: `git push origin main`.
 
 ## What's next
 
-**Phase 2b — Onboarding frontend.** The natural next step: the questionnaire
-UI (Trust Primer, Q1-Q4, family setup) that calls the endpoints this phase
-just built. Matches the Phase 1 → Phase 1b pattern. Needs its own
-brainstorm/design pass — PRD-02's Design Handoff Alignment section has the
-locked structural requirements (no gamification mechanics, one flow not
-two, four questions + family step in order, phone+OTP first screen, CAS
-import as the emotional payoff).
+**Phase 2b — Onboarding frontend, scope now includes the pivot above.** Not
+started yet — design brainstorm is where this session left off. Must cover,
+per the updated PRD-02 v1.3 / App-Flow v1.2:
+- Landing screen (S23: Sign Up / Log In) before phone entry.
+- The existing questionnaire UI (Trust Primer, Q1-Q4, family setup) —
+  matches the Phase 1 → Phase 1b pattern, calling the auth endpoints Phase 2
+  backend built.
+- Onboarding back-navigation/revisit (FR-7a) — a history stack, not just
+  forward-only skip.
+- **Family CAS Upload subsystem** (S24-S26): per-member independent upload
+  cards, "Upload My CAS? Now/Later", a client-side queue (File objects held
+  in browser state until "Parse Files" is clicked — confirmed to need no new
+  backend beyond what's already shipped), and **sequential** review/confirm
+  reusing Phase 1b's existing `ReviewTable`/Import Review screens unchanged,
+  once per queued file (user-confirmed decision, not a new combined-review
+  UI).
 
-**Also worth doing, smaller, either before or alongside Phase 2b:**
-- Follow-up #1 above (wire real auth into Import Service, retire the
-  dev-seed script) — this is the natural moment, since Phase 2b's frontend
-  will need to call `/auth/otp/verify` before `/imports/parse` anyway, so
-  the dev-seed's reason for existing goes away regardless.
+PRD-02's Design Handoff Alignment section has the locked structural
+requirements (no gamification mechanics, one flow not two, four questions +
+family step in order, CAS import as the emotional payoff) plus the new item
+#6 about the Family CAS Upload cards.
+
+**Next concrete action:** resume the `superpowers:brainstorming` design pass
+for Phase 2b — 2 sections were already approved before the pivot
+(Architecture, part of Screens & Flow) but need revising to fold in S23 and
+S24-S26; write the updated spec to
+`Docs/superpowers/specs/2026-08-05-phase-2b-onboarding-frontend-design.md`,
+get approval, then `writing-plans` → `subagent-driven-development`
+(`fable` for implementer/reviewer dispatches by default, per the standing
+model-cost policy).
+
+**Also still open:**
 - PRD-03 (Main Dashboard) and PRD-04 (Analytics) remain fully unbuilt and
   are the two modules after Onboarding in the natural build order.
 

@@ -92,26 +92,40 @@ one-paragraph pointer for a fresh session.)*
 complete and merged to `main`.** Phase 1 built CAS import end to end
 (`backend/app/services/import_/`, `frontend/src/features/import/`). Phase 2
 backend built phone+OTP auth (`backend/app/services/auth/`,
-`POST /auth/otp/request|verify`, `POST /auth/session/refresh`,
-`PATCH /auth/me`) and household-member CRUD
+`POST /auth/otp/request|verify`, `GET`/`PATCH /auth/me`,
+`POST /auth/session/refresh`) and household-member CRUD
 (`backend/app/services/dashboard/household_members.py`,
 `POST`/`GET /household-members`) — a `get_current_user` FastAPI dependency
-is now the real security boundary for authenticated endpoints, resolving the
+is the real security boundary for authenticated endpoints, resolving the
 acting user strictly from a bearer session token, never a client-supplied
-id. Test suites on `main`: backend 80 passing, frontend 23 passing. **Not
-yet pushed** — `main` is ahead of `origin/main`, no TTY for credentials in
+id. Test suites on `main`: backend 92 passing, frontend 23 passing.
+
+**Mid-Phase-2b scope pivot (2026-08-05):** a team brainstorm surfaced real
+gaps in the onboarding design — a landing (Sign Up/Log In) screen before
+phone entry, revisitable/back-navigable onboarding questions, and a **Family
+CAS Upload** flow (per-member independent upload cards, never merged; a
+client-side upload queue; a single "Parse Files" batch action; sequential
+review/confirm reusing the existing Import Review screen once per file).
+Docs updated first, then a backend gap the new flow depends on:
+- **Docs, done and committed:** `PRD-02-Signup-Onboarding.md` v1.3 (new FR-2b,
+  FR-7a, FR-10-FR-14), `App-Flow-Unifolio.md` v1.2 (S23-S26 + new diagrams),
+  `PRD-01-CAS-Parser-v2.md` v1.4 (cross-reference note only).
+- **Backend, done and committed:** `/imports/parse` and `/imports/confirm`
+  now require `Depends(get_current_user)`; `/confirm` validates
+  `household_member_id` belongs to the caller (closes the IDOR gap noted
+  below); added `GET /auth/me`; `PATCH /auth/me` can now set
+  `onboarding_completed` (forward-only). **Known consequence:** the Phase 1b
+  Import Review frontend has no login step yet, so it can't call these
+  endpoints until Phase 2b's frontend wires real auth in — expected, not a
+  regression.
+
+**Not yet pushed** — `main` is 2 commits ahead of `origin/main` (the doc
+pivot + auth-wiring fix above); `origin/main` did catch up to the earlier
+Phase 2 backend merge at some point this session. No TTY for credentials in
 this sandbox; push manually.
 
-**Auth exists now, but isn't wired into Phase 1's Import Service yet.**
-`/imports/parse` / `/imports/confirm` still take `household_member_id` from
-the request body via a Phase 1 dev-seed script — the IDOR gap on those
-specific endpoints is still open even though the fix (`get_current_user`) is
-now available. Small follow-up, not done yet — see `session.md`.
-
-**One item resolved this session, one still open:**
-1. ~~`/imports/confirm` had no ownership check (IDOR)~~ — the auth system
-   this required now exists (Phase 2 backend); wiring it into the Import
-   Service specifically is the remaining step (see above).
+**Resolved / still open:**
+1. ~~`/imports/confirm` had no ownership check (IDOR)~~ — fixed, see above.
 2. `confirm_import`'s plan-type override has no server-side 409 backstop
    (unlike the AMFI-confidence check) — still open, pre-existing Phase 1
    backend code untouched since.
@@ -119,7 +133,9 @@ now available. Small follow-up, not done yet — see `session.md`.
 **ADR-001 — resolved.** Corrected via an Amendment section (Decision
 unchanged) — the CAS Parser frontend was never existing React work.
 
-**Phase 2b (Onboarding frontend) is the natural next step** — the
-questionnaire UI calling the endpoints Phase 2 backend just built, matching
-the Phase 1 → Phase 1b pattern. PRD-03 (Main Dashboard) and PRD-04
-(Analytics) remain fully unbuilt beyond that.
+**Phase 2b (Onboarding frontend) is next, scope now includes the pivot
+above** — not started. Needs a design brainstorm covering the landing
+screen, back-navigation, and the full Family CAS Upload subsystem (queue,
+batch parse, per-member cards, sequential reuse of `ReviewTable`) before
+`writing-plans` → `subagent-driven-development`. PRD-03 (Main Dashboard) and
+PRD-04 (Analytics) remain fully unbuilt beyond that.
