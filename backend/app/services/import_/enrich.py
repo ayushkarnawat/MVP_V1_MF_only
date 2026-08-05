@@ -15,7 +15,6 @@ from datetime import datetime, timedelta, timezone
 from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any
-from urllib.parse import quote
 
 import httpx
 
@@ -50,8 +49,14 @@ def _cache_valid(path: Path, ttl: timedelta) -> bool:
 class MfApiClient:
     def __init__(self, cache_dir: Path | None = None):
         self.cache_dir = Path(cache_dir) if cache_dir else DEFAULT_CACHE_DIR
-        self.cache_dir.mkdir(parents=True, exist_ok=True)
         self._schemes: list[dict[str, Any]] | None = None
+
+    def _write_cache(self, cache_path: Path, data: Any) -> None:
+        # Created lazily, right before the first write — not at __init__ time
+        # (module-level `mfapi_client` singleton would otherwise mkdir on
+        # every import, which fails on a read-only container filesystem).
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        cache_path.write_text(json.dumps(data), encoding="utf-8")
 
     async def _get_json(self, url: str) -> Any:
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -67,7 +72,7 @@ class MfApiClient:
             self._schemes = json.loads(cache_path.read_text(encoding="utf-8"))
             return self._schemes
         data = await self._get_json(f"{MFAPI_BASE}/mf")
-        cache_path.write_text(json.dumps(data), encoding="utf-8")
+        self._write_cache(cache_path, data)
         self._schemes = data
         return data
 
@@ -83,11 +88,19 @@ class MfApiClient:
         return best
 
     async def resolve_scheme(self, scheme_name: str, amfi_from_cas: str | None) -> tuple[SchemeMatch | None, str]:
-        """Returns (match, match_status). Never silently guess below 0.92 (PRD-01 FR-10)."""
+        """Returns (match, match_status). Never silently guess below 0.92 (PRD-01 FR-10).
+
+        An mfapi.in outage degrades to (None, "pending") — a manual-resolution
+        case, same as a low-confidence match — rather than crashing and
+        discarding an already-parsed CAS (the user's PDF upload + password
+        entry is expensive; mfapi.in being down is not their fault)."""
         if amfi_from_cas:
             return SchemeMatch(amfi_code=amfi_from_cas, scheme_name=scheme_name, confidence=1.0), "confirmed"
 
-        scheme_list = await self.get_scheme_list()
+        try:
+            scheme_list = await self.get_scheme_list()
+        except httpx.HTTPError:
+            return None, "pending"
         match = self.fuzzy_match_scheme(scheme_name, scheme_list)
         if match is None or match.confidence < 0.92:
             return match, "pending"
@@ -98,8 +111,11 @@ class MfApiClient:
         if _cache_valid(cache_path, SCHEMES_TTL):
             data = json.loads(cache_path.read_text(encoding="utf-8"))
         else:
-            data = await self._get_json(f"{MFAPI_BASE}/mf/{amfi_code}")
-            cache_path.write_text(json.dumps(data), encoding="utf-8")
+            try:
+                data = await self._get_json(f"{MFAPI_BASE}/mf/{amfi_code}")
+            except httpx.HTTPError:
+                return None
+            self._write_cache(cache_path, data)
         meta = data.get("meta") or {}
         return meta.get("scheme_category") or meta.get("schemeCategory")
 

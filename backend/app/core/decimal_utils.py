@@ -4,7 +4,6 @@ from decimal import ROUND_HALF_UP, Decimal
 UNITS_PLACES = Decimal("0.001")
 AMOUNT_PLACES = Decimal("0.01")
 NAV_PLACES = Decimal("0.0001")
-PCT_PLACES = Decimal("0.0001")
 
 
 def quantize_units(value: Decimal) -> Decimal:
@@ -17,10 +16,6 @@ def quantize_amount(value: Decimal) -> Decimal:
 
 def quantize_nav(value: Decimal) -> Decimal:
     return value.quantize(NAV_PLACES, rounding=ROUND_HALF_UP)
-
-
-def quantize_pct(value: Decimal) -> Decimal:
-    return value.quantize(PCT_PLACES, rounding=ROUND_HALF_UP)
 
 
 def to_decimal(value: str | Decimal | int | None) -> Decimal | None:

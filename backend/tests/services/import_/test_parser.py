@@ -1,4 +1,3 @@
-from datetime import date
 from decimal import Decimal
 from unittest.mock import MagicMock
 
@@ -8,7 +7,6 @@ from casparser.types import CASData, Folio, InvestorInfo, Scheme, SchemeValuatio
 
 from app.models.enums import TransactionType
 from app.services.import_.parser import (
-    NormalizedTransaction,
     _normalize_cas_data,
     classify_folio_plan_type,
     classify_plan_from_name,
@@ -39,17 +37,6 @@ def test_classify_plan_from_name_direct():
 
 def test_classify_folio_plan_type_disagreement_is_unclassified():
     assert classify_folio_plan_type("direct", "ARN-12345") == "unclassified"
-
-
-def test_dedupe_hash_stable():
-    txn = NormalizedTransaction(
-        folio="123/45", amc="HDFC AMC", scheme_name="HDFC Flexi Cap",
-        isin="INF123", amfi="125497", scheme_type="EQUITY",
-        txn_date=date(2024, 1, 1), txn_type=TransactionType.PURCHASE,
-        description="Purchase", amount=Decimal("5000.00"),
-        units=Decimal("10.000"), nav=Decimal("500.0000"),
-    )
-    assert txn.dedupe_hash() == txn.dedupe_hash()
 
 
 def test_normalize_cas_data_captures_arn_and_plan_type():

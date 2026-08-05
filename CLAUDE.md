@@ -22,9 +22,11 @@ Before writing any code in a fresh session, read in this order:
 *patterns* (table layout, allocation views), never for visual style. Unifolio's visual
 identity is `/Docs/Design-Schema-Unifolio.md`, full stop — do not imitate Mprofit's look.
 
-`/CAS Parsers Code` is the existing, working CAS parser build (scaffold, `calc.py`,
-models, `casparser` wrapper, `mfapi.in` enrichment, parse/confirm API routes). **This is a
-tightening pass per PRD-01, not a rewrite.** Read what's there before touching it.
+The CAS parser (scaffold, `casparser` wrapper, `mfapi.in` enrichment, parse/confirm API
+routes) has been ported per PRD-01 and lives in `backend/app/services/import_/`
+(`parser.py`, `enrich.py`, `service.py`, `schemas.py`) — the standalone prototype backend
+it was ported from no longer exists on this branch. `CAS Parsers/mf-import/frontend`
+(vanilla TS prototype) is unaffected and still there as reference.
 
 ## Non-negotiables
 
@@ -105,7 +107,8 @@ and verified against the now-recovered source — still unresolved:
 1. ADR-001's claim that the CAS Parser frontend is an existing React SPA is
    stale — the real code at `CAS Parsers/mf-import/frontend` is vanilla TS, no
    React. The Import Review UI will be new code, not a port.
-2. `CAS Parsers/mf-import/backend/app/models.py:56,66` persists `pan_masked`
-   on `Investor`/`Folio` — violates the no-PAN-persistence non-negotiable
-   above. Needs removal as part of the PRD-01 tightening pass, with a test
-   asserting no PAN field exists going forward.
+2. **Resolved.** The prototype's `CAS Parsers/mf-import/backend/app/models.py:56,66`
+   (which persisted `pan_masked` on `Investor`/`Folio`) no longer exists — that
+   backend was retired this branch. The ported code enforces the no-PAN-persistence
+   non-negotiable structurally: no PAN column anywhere in `backend/app/models/`,
+   guarded by `backend/tests/models/test_no_pan_field.py`.

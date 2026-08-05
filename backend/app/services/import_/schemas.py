@@ -6,6 +6,8 @@ from datetime import date
 
 from pydantic import BaseModel, Field
 
+from app.models.enums import PlanType
+
 
 class SchemeMatchPreview(BaseModel):
     temp_id: str
@@ -51,7 +53,7 @@ class ImportPreviewResponse(BaseModel):
 class SchemeConfirmation(BaseModel):
     temp_id: str
     amfi_code: str | None = None
-    plan_type_override: str | None = None
+    plan_type_override: PlanType | None = None
 
 
 class ImportConfirmRequest(BaseModel):

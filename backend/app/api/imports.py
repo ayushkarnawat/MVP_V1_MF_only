@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.services.import_.parser import ParseError, parse_cas_pdf_bytes
 from app.services.import_.schemas import ImportConfirmRequest, ImportConfirmResponse, ImportPreviewResponse
-from app.services.import_.service import build_import_preview, confirm_import
+from app.services.import_.service import SchemeConfidenceError, build_import_preview, confirm_import
 
 router = APIRouter(prefix="/imports", tags=["imports"])
 
@@ -34,5 +34,7 @@ def confirm_import_route(body: ImportConfirmRequest, db: Session = Depends(get_d
 
     try:
         return confirm_import(db, body.session_id, household_member_id, body.scheme_confirmations)
+    except SchemeConfidenceError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc

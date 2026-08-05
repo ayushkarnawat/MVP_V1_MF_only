@@ -8,7 +8,6 @@ response (CLAUDE.md non-negotiable, ADR-004).
 
 from __future__ import annotations
 
-import hashlib
 from dataclasses import dataclass, field
 from datetime import date
 
@@ -102,12 +101,6 @@ class NormalizedTransaction:
     amount: Decimal | None
     units: Decimal | None
     nav: Decimal | None
-
-    def dedupe_hash(self) -> str:
-        key = "|".join(
-            [self.folio, self.scheme_name, self.txn_date.isoformat(), str(self.amount or ""), str(self.units or "")]
-        )
-        return hashlib.sha256(key.encode()).hexdigest()
 
 
 @dataclass

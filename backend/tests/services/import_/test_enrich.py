@@ -1,6 +1,8 @@
 import asyncio
 from unittest.mock import AsyncMock, patch
 
+import httpx
+
 from app.services.import_.enrich import MfApiClient
 
 
@@ -48,6 +50,26 @@ def test_get_scheme_category_missing_returns_none(tmp_path):
     mock_response = {"meta": {}, "data": []}
     with patch.object(client, "_get_json", new=AsyncMock(return_value=mock_response)):
         category = asyncio.run(client.get_scheme_category("999999"))
+    assert category is None
+
+
+def test_resolve_scheme_degrades_gracefully_on_mfapi_outage(tmp_path):
+    """Fix 4: an mfapi.in outage during fuzzy matching must not crash the
+    parse and discard an already-parsed CAS — it degrades to a
+    manual-resolution case, same as any other low-confidence match."""
+    client = MfApiClient(cache_dir=tmp_path)
+    with patch.object(client, "_get_json", new=AsyncMock(side_effect=httpx.ConnectError("boom"))):
+        match, status = asyncio.run(client.resolve_scheme("Some Fund Name", None))
+    assert match is None
+    assert status == "pending"
+
+
+def test_get_scheme_category_degrades_gracefully_on_mfapi_outage(tmp_path):
+    """Fix 4: same outage handling for category lookup — returns None instead
+    of propagating httpx.HTTPError up through resolve_scheme/preview building."""
+    client = MfApiClient(cache_dir=tmp_path)
+    with patch.object(client, "_get_json", new=AsyncMock(side_effect=httpx.ConnectError("boom"))):
+        category = asyncio.run(client.get_scheme_category("125497"))
     assert category is None
 
 

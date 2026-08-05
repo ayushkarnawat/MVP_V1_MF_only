@@ -8,13 +8,13 @@ Redis-backed session store if a multi-instance deploy needs this later).
 
 from __future__ import annotations
 
+import json
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.core.decimal_utils import quantize_amount
 from app.models.enums import PlanNameVariant, PlanType, SourceCasType
 from app.models.folio import Folio
 from app.models.imports import Import, ImportStatus
@@ -33,11 +33,34 @@ from app.services.import_.schemas import (
 _preview_sessions: dict[str, dict[str, Any]] = {}
 
 CONFIDENCE_THRESHOLD = 0.92
+SESSION_TTL_MINUTES = 60
+
+
+class SchemeConfidenceError(Exception):
+    """Raised when a scheme needs an explicit AMFI override and didn't get
+    one — distinct from ValueError's "session not found" so the route can
+    return 409 (fixable by the client) instead of 404 (start over)."""
+
+
+def _sweep_expired_sessions(ttl_minutes: int = SESSION_TTL_MINUTES) -> None:
+    """Evicts preview sessions older than ttl_minutes. Each session holds the
+    full ParseResult, including investor name/email — sweeping keeps
+    abandoned/rejected parses from accumulating in process memory forever.
+
+    ponytail: sweeps on every build_import_preview call rather than a
+    background thread/scheduler — fine for this single-process prototype
+    (see module docstring); move to a real TTL cache if that changes.
+    """
+    cutoff = datetime.now(timezone.utc) - timedelta(minutes=ttl_minutes)
+    expired = [sid for sid, s in _preview_sessions.items() if s["created_at"] < cutoff]
+    for sid in expired:
+        del _preview_sessions[sid]
 
 
 async def build_import_preview(
     parse_result: ParseResult, filename: str, client: MfApiClient | None = None
 ) -> ImportPreviewResponse:
+    _sweep_expired_sessions()
     client = client or mfapi_client
     session_id = uuid.uuid4().hex
 
@@ -75,6 +98,7 @@ async def build_import_preview(
     ]
 
     _preview_sessions[session_id] = {
+        "created_at": datetime.now(timezone.utc),
         "filename": filename, "parse_result": parse_result,
         "key_to_temp": key_to_temp,
         "scheme_previews": {s.temp_id: s for s in scheme_previews},
@@ -120,9 +144,13 @@ def confirm_import(
         preview = previews[temp_id]
         override = overrides.get(temp_id)
         amfi_code = (override.amfi_code if override and override.amfi_code else None) or preview.suggested_amfi_code
-        confident = preview.match_confidence >= CONFIDENCE_THRESHOLD or bool(override and override.amfi_code)
+        # Gate on the same match_status already shown to the user in the preview
+        # (not a fresh confidence comparison) — a scheme the preview labeled
+        # "pending" must never be silently confirmed just because its score
+        # happens to clear this function's own copy of the threshold.
+        confident = preview.match_status == "confirmed" or bool(override and override.amfi_code)
         if not amfi_code or not confident:
-            raise ValueError(
+            raise SchemeConfidenceError(
                 f"Scheme '{preview.name}' requires an explicit AMFI code override (match confidence "
                 f"{preview.match_confidence:.2f} below {CONFIDENCE_THRESHOLD})."
             )
@@ -131,14 +159,15 @@ def confirm_import(
     import_rec = Import(
         id=uuid.uuid4(), household_member_id=household_member_id, status=ImportStatus.CONFIRMED,
         source_cas_type=_map_source_cas_type(parse_result.file_type),
-        raw_parser_output={"raw": parse_result.raw_json},
+        raw_parser_output=json.loads(parse_result.raw_json),
         uploaded_at=datetime.now(timezone.utc), confirmed_at=datetime.now(timezone.utc),
     )
     db.add(import_rec)
     db.flush()
 
     scheme_cache: dict[str, Scheme] = {}
-    folio_cache: dict[tuple[str, str], Folio] = {}
+    folio_cache: dict[tuple[uuid.UUID, uuid.UUID, str], Folio] = {}
+    added_keys: set[tuple] = set()
     added = 0
     skipped = 0
 
@@ -193,6 +222,17 @@ def confirm_import(
                 folio_cache[folio_key] = new_folio
 
         folio = folio_cache[folio_key]
+        dedupe_key = (folio.id, norm.txn_date, norm.amount, norm.units)
+        # Session with autoflush=False (matches production, see db/session.py)
+        # doesn't flush pending db.add()s before this query runs, so a DB
+        # lookup alone can't see rows added earlier in THIS same loop — two
+        # same-day, same-amount/units rows (e.g. SIP installments, stamp
+        # duty/STT sharing a date) would both pass the check and then blow up
+        # the UniqueConstraint at commit. Track this call's own adds in memory
+        # too.
+        if dedupe_key in added_keys:
+            skipped += 1
+            continue
         dup = (
             db.query(Transaction)
             .filter_by(folio_id=folio.id, date=norm.txn_date, amount=norm.amount, units=norm.units)
@@ -205,10 +245,11 @@ def confirm_import(
         db.add(
             Transaction(
                 id=uuid.uuid4(), folio_id=folio.id, import_id=import_rec.id, type=norm.txn_type,
-                date=norm.txn_date, amount=quantize_amount(norm.amount), units=norm.units, nav=norm.nav,
+                date=norm.txn_date, amount=norm.amount, units=norm.units, nav=norm.nav,
                 raw_description=norm.description,
             )
         )
+        added_keys.add(dedupe_key)
         added += 1
 
     import_rec.new_transactions_count = added
