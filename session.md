@@ -1,4 +1,4 @@
-# Session state — 2026-08-04
+# Session state — 2026-08-05
 
 Working notes for picking this project back up cold. Not a planning doc — see
 `Docs/superpowers/plans/` for those. This file tracks *where things stand*,
@@ -10,104 +10,75 @@ anything by re-reading the whole repo.**
 ## What's done
 
 **Phase 0 (foundation)** — complete, all 11 tasks from
-`Docs/superpowers/plans/2026-08-04-phase-0-foundation.md` committed on `main`.
-FastAPI backend skeleton (four empty service packages), SQLAlchemy 2.0 models
-for all 15 tables, Alembic migration `0001_initial_schema` (dialect-branched
-partitioning for `transactions`/`nav_history`), local Postgres via
-`docker-compose.yml`, pytest split (fast SQLite vs. Postgres-functional),
-React/Vite frontend scaffold, CI with three jobs. One post-review fix commit
-on top (froze migration 0001, persisted enum values/JSONB/Decimal hints).
-Verified: all tests green per commit history and CI config.
+`Docs/superpowers/plans/2026-08-04-phase-0-foundation.md`, on `main`,
+pushed to `https://github.com/ayushkarnawat/MVP_V1_MF_only`.
 
-**Repo is on GitHub** — `https://github.com/ayushkarnawat/MVP_V1_MF_only`,
-`main` tracked. Getting it there took a few detours this session (see
-"Incident" below) — as of commit `ed7c4ec` locally, `origin/main` is one
-commit behind and needs a manual push (this sandbox has no TTY for HTTPS
-credentials): run `git push origin main` from a real terminal.
+**Phase 1 (backend) — CAS import tightening + monolith port — complete.**
+Plan: `Docs/superpowers/plans/2026-08-04-phase-1-cas-import-backend.md`,
+executed via `superpowers:subagent-driven-development` in an isolated
+worktree (`.claude/worktrees/phase-1-cas-import-backend`, branch
+`worktree-phase-1-cas-import-backend`) — **not yet merged to `main`**, see
+"What's next" below.
 
-## Incident this session — read before trusting any prior "Phase 1 ready" claim
+What it built: Direct/Regular plan classification and ARN/broker-code
+capture (PRD-01 FR-5-8), a shared Decimal-quantization module, and the full
+Import Service ported from the standalone prototype into
+`backend/app/services/import_/` (`parser.py`, `enrich.py`, `service.py`,
+`schemas.py`) against the real Phase-0 schema — `POST /imports/parse` and
+`POST /imports/confirm` wired in `backend/app/api/imports.py`. The
+standalone prototype backend (`CAS Parsers/mf-import/backend`) was retired
+once fully ported; its frontend stub stays as reference for Phase 1b.
 
-A `/context` message arrived bundled with pasted "Resume — Phase 1 Kickoff"
-instructions that asserted `CAS Parsers/mf-import` was "already committed
-as-is — the clean before baseline Phase 1 needs." That was checked and was
-**false**, and led to a real discovery:
+All 9 tasks individually reviewed (several went through fix rounds — see
+the plan's execution ledger, since deleted per the SDD workflow, but every
+finding and fix is preserved in the branch's commit messages). The final
+whole-branch review (dispatched on the most capable model) caught a real,
+reproducible production bug — a dedupe race that only surfaced because the
+test suite's DB session used different flush semantics than the app's real
+one (`autoflush=True` vs. production's `autoflush=False`) — plus a genuine
+data-persistence defect (`raw_parser_output` stored an escaped JSON string
+instead of structured JSON, defeating the JSONB column) and several
+threshold/error-handling inconsistencies. All fixed in one consolidated fix
+wave, independently re-verified (the re-reviewer reverted the dedupe fix and
+reproduced the exact `IntegrityError` to prove the regression guard was
+real), zero residual findings. One item — no ownership check on
+`household_member_id` in `/imports/confirm` (IDOR) — was explicitly parked,
+not fixed: there's no auth/session system yet to check ownership against
+(Auth service is still an empty Phase-0 stub). Tracked here, not silently
+dropped: **fix this once PRD-02's auth work lands, before this endpoint is
+exposed beyond local dev.**
 
-- `CAS Parsers/mf-import` inside this repo (`/mnt/d/Unifolio code`) had **no
-  actual source code** — `backend/app/` contained only `__pycache__`,
-  `frontend/src/pages/` was empty. Only generated artifacts existed
-  (`.venv`, `node_modules`, `__pycache__`, one stray `.db`). Neither
-  `CAS Parsers/` nor `App Flow References/` was tracked in git at all.
-- The real source was found at `/mnt/d/WealthOS/CAS Parsers/mf-import/` —
-  `WealthOS` appears to be this project's old folder name before the rename
-  to `Unifolio code`; whatever copy happened during the rename brought only
-  build artifacts, not source, into the new location.
-- Separately, this session's own push attempt failed for lack of a TTY
-  (expected, flagged, and left for the user). Between turns, the user re-ran
-  the full boilerplate git block themselves in what looks like a native
-  Windows/PowerShell terminal (commit author `akproprettyboi
-  <ayushkarnawat2003@gmail.com>`, not this session's `root@...` identity).
-  That created a redundant second "first commit" and — because PowerShell's
-  `echo >>` writes UTF-16 — corrupted `README.md` with a garbled duplicate
-  line. Confirmed via `git reflog` and `git show --stat`; not caused by any
-  command run in this session (everything here was read-only until the fix).
+Backend test suite: 47 passing (0 postgres-marked deselected in this
+sandbox), pristine output, verified independently by both the task-level
+and whole-branch reviewers, not just the implementer's self-report.
 
-**Both fixed, with user confirmation before acting:**
-1. Copied the real source (`.py`/`.ts` files, configs, `Planning-V1.MD`, the
-   `.cursor` plan, and the `App Flow References/Mprofit` screenshots) from
-   `/mnt/d/WealthOS` into this repo via `rsync`, excluding generated dirs
-   (`node_modules`, `.venv`, `__pycache__`, `.pytest_cache`, `.cache`,
-   `dist`) since those are gitignored and reproducible (`pip install` /
-   `npm install`). Committed as `ed7c4ec` — 58 files, the real "before"
-   baseline for Phase 1.
-2. Rewrote `README.md` back to a single clean line.
+## What's next
 
-**Not yet pushed** — `origin/main` is one commit behind local `main`
-(`ed7c4ec`). Push manually before starting Phase 1 work elsewhere, or the
-recovered source won't exist anywhere but this machine.
+**Merge this branch.** The worktree at
+`.claude/worktrees/phase-1-cas-import-backend` (branch
+`worktree-phase-1-cas-import-backend`) is done and reviewed clean but not
+yet merged to `main` — use `superpowers:finishing-a-development-branch` to
+decide how (the SDD workspace at `.superpowers/sdd/2026-08-04-phase-1-cas-import-backend/`
+gets deleted as part of finishing a clean final review; the ledger's content
+is summarized here and in commit messages first, nothing is lost).
 
-## What's next — Phase 1
+**Phase 1b — Import Review frontend.** Deliberately out of scope for the
+backend plan above; needs its own plan once the branch above is merged.
+Build a *new* React component (`frontend/src/features/import/`) talking to
+the now-live `/imports/parse` / `/imports/confirm` endpoints — there's
+nothing to port from, since `CAS Parsers/mf-import/frontend` is vanilla
+TypeScript with no React.
 
-No Phase 1 plan file exists yet. Per `CLAUDE.md`, Phase 1 is the CAS Parser
-tightening pass (PRD-01) against `CAS Parsers/mf-import/` (now present and
-committed) — not a rewrite. Two conflicts flagged during Phase 0 review,
-verified against the now-recovered source, still unresolved:
+**ADR-001 correction — still not done.** Flagged since Phase 0, still
+accurate: `Docs/ADR-Technical-Stack-Decisions.md` claims the CAS Parser
+frontend is an existing React SPA "already in progress." It's not — the
+real prototype frontend is vanilla TS/Vite, no React/JSX. Small, independent
+doc fix (with a revision-history entry) — do it before or alongside Phase
+1b, since that's the plan whose scope it directly affects.
 
-1. **ADR-001 is stale.** It claims the CAS Parser frontend is an existing
-   React SPA "already in progress." The real code at
-   `CAS Parsers/mf-import/frontend` is vanilla TypeScript + Vite (`main.ts`,
-   `counter.ts`, `src/pages/{dashboard,history,review,upload}.ts`) — no
-   React, no JSX. There's no existing React Import Review screen to
-   preserve; it'll be new code. **Fix, don't work around silently:** correct
-   ADR-001 in `Docs/ADR-Technical-Stack-Decisions.md` with a brief
-   revision-history entry.
-2. **PAN persistence violation — confirmed against the recovered file.**
-   `CAS Parsers/mf-import/backend/app/models.py:56` and `:66` persist
-   `pan_masked: Mapped[str | None] = mapped_column(String(20))` on both
-   `Investor` and `Folio`. `Database-Schema-Unifolio.md` and `CLAUDE.md`'s
-   non-negotiables are explicit: PAN is never persisted, even masked. The
-   Phase 0 schema already has no PAN column anywhere. **Fix:** remove the
-   columns, and add a test asserting no PAN field exists in the persisted
-   models — not just delete-and-move-on.
-
-**Scope split for planning** — backend logic (`calc.py`, the `casparser`
-wrapper, models, parse/confirm routes) is a *tightening pass* per PRD-01;
-don't touch working backend logic just because the frontend is being redone.
-The Import Review UI is genuinely *new* React code, not a port, since
-there's nothing React to port from.
-
-Before writing any Phase 1 code: read `Docs/PRD-01-CAS-Parser-v2.md` in
-full, then `CAS Parsers/mf-import/` in full (scaffold, `calc.py`, models,
-`parser.py`, `enrich.py`, parse/confirm API routes), then use
-`superpowers:writing-plans` to produce a Phase 1 plan with the same
-discipline as Phase 0's — explicitly resolving (not just re-flagging) the
-two items above. Stop and show the plan before executing, same as Phase 0.
-
-Suggested execution mode: `superpowers:subagent-driven-development`, same as
-Phase 0, once the plan is approved. The PAN-removal fix and anything
-touching money math (`calc.py`, dedupe logic) is worth an independent review
-pass before that commit lands, given the non-negotiables at stake.
+**IDOR on `/imports/confirm`** (see above) — revisit once PRD-02's
+Auth/session work exists to check `household_member_id` ownership against.
 
 ## Context/token usage
 
-Checked via `/context` this session: 86.1k/967k tokens (9%) at last check —
-plenty of headroom, not a constraint on continuing this session directly.
+Not tracked this session — run `/context` directly in the CLI if needed.

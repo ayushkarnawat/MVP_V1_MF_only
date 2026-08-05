@@ -85,30 +85,29 @@ frontend framework, or a service split not already in that document.
 
 ## Session State
 
-*(Updated 2026-08-04. See `session.md` at repo root for full detail — this is the
+*(Updated 2026-08-05. See `session.md` at repo root for full detail — this is the
 one-paragraph pointer for a fresh session.)*
 
-**Phase 0 (foundation) is complete** — all 11 tasks in
-`Docs/superpowers/plans/2026-08-04-phase-0-foundation.md` committed, tests green
-(fast SQLite suite + Postgres-functional suite + frontend build/test, per CI).
-Repo is on `https://github.com/ayushkarnawat/MVP_V1_MF_only` — as of commit
-`ed7c4ec`, `origin/main` is one commit behind local `main` and needs a manual
-`git push` (no TTY for credentials from this sandbox).
+**Phase 0 (foundation) and Phase 1 (backend) are both complete.** Phase 0:
+all 11 tasks in `Docs/superpowers/plans/2026-08-04-phase-0-foundation.md`.
+Phase 1 backend: all 9 tasks in
+`Docs/superpowers/plans/2026-08-04-phase-1-cas-import-backend.md` — CAS
+import tightened (Direct/Regular classification, ARN capture per PRD-01
+FR-5-8) and ported into `backend/app/services/import_/`, real endpoints live
+at `POST /imports/parse` / `POST /imports/confirm`. Built in an isolated
+worktree/branch (`worktree-phase-1-cas-import-backend`), reviewed clean
+end-to-end including a whole-branch pass that caught and fixed a real
+production bug — **not yet merged to `main`**, see `session.md`'s "What's
+next" for the merge step.
 
-**`CAS Parsers/mf-import` and `App Flow References` were recovered this
-session** — the copy from this project's old `WealthOS` folder name had
-brought over only generated artifacts, not source. Real source was found at
-`/mnt/d/WealthOS/CAS Parsers/mf-import/` and copied in (commit `ed7c4ec`).
-Read `session.md`'s "Incident this session" section before assuming this
-directory's history predates today.
+**One deliberately parked item:** `/imports/confirm` trusts
+`household_member_id` from the request body with no ownership check (IDOR)
+— there's no auth/session system yet to check against (Auth service is
+still an empty Phase-0 stub, per the deferred "full auth/security policy"
+non-negotiable above). Fix once PRD-02's auth work lands.
 
-**Phase 1 has no plan file yet.** Two items were flagged during Phase 0 review
-and verified against the now-recovered source — still unresolved:
+**Still open, unrelated to Phase 1 backend:**
 1. ADR-001's claim that the CAS Parser frontend is an existing React SPA is
    stale — the real code at `CAS Parsers/mf-import/frontend` is vanilla TS, no
-   React. The Import Review UI will be new code, not a port.
-2. **Resolved.** The prototype's `CAS Parsers/mf-import/backend/app/models.py:56,66`
-   (which persisted `pan_masked` on `Investor`/`Folio`) no longer exists — that
-   backend was retired this branch. The ported code enforces the no-PAN-persistence
-   non-negotiable structurally: no PAN column anywhere in `backend/app/models/`,
-   guarded by `backend/tests/models/test_no_pan_field.py`.
+   React. The Import Review UI (Phase 1b, not yet planned) will be new code,
+   not a port.
