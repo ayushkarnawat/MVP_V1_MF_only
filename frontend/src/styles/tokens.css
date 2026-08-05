@@ -1,0 +1,62 @@
+:root {
+  /* Color tokens — light mode (Design-Schema-Unifolio.md) */
+  --color-bg: #FCFCFC;
+  --color-ink: #111111;
+  --color-surface: #FFFFFF;
+  --color-border: #E5E5E5;
+  --color-text-secondary: #5C5C5C;
+  --color-accent: #22C55E;
+  --color-positive: #16A34A;
+  --color-negative: #EF4444;
+  --color-neutral-badge: #94A3B8;
+  --color-warning: #F59E0B;
+
+  /* Typography */
+  --font-display: "DM Sans", sans-serif;
+  --font-body: "Manrope", sans-serif;
+  --type-h1-size: 24px;
+  --type-h2-size: 18px;
+  --type-body-size: 15px;
+  --type-caption-size: 13px;
+  --type-data-size: 15px;
+
+  /* Spacing scale (4px base) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Shape */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+
+  /* Motion */
+  --motion-fast: 150ms ease-out;
+  --motion-reveal: 400ms ease-in-out;
+  --motion-page: 300ms ease-in-out;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #0F0F0F;
+    --color-ink: #F5F5F5;
+    --color-surface: #1A1A1A;
+    --color-border: #2A2A2A;
+    --color-text-secondary: #A3A3A3;
+    --color-positive: #22C55E;
+    --color-negative: #F87171;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-reveal: 0ms;
+    --motion-page: 0ms;
+  }
+}
