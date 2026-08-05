@@ -6,6 +6,7 @@ class Settings(BaseSettings):
 
     database_url: str = "sqlite:///./unifolio_dev.db"
     test_database_url: str | None = None
+    otp_delivery_mode: str = "stub"
 
 
 settings = Settings()
