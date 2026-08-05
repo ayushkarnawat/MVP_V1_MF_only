@@ -38,3 +38,11 @@ def test_confirm_route_404s_on_unknown_session():
         json={"session_id": "does-not-exist", "household_member_id": "00000000-0000-0000-0000-000000000000", "scheme_confirmations": []},
     )
     assert response.status_code == 404
+
+
+def test_confirm_route_400s_on_malformed_household_member_id():
+    response = client.post(
+        "/imports/confirm",
+        json={"session_id": "x", "household_member_id": "not-a-uuid", "scheme_confirmations": []},
+    )
+    assert response.status_code == 400
