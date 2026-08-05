@@ -28,13 +28,31 @@ had initially only proposed.
 **Date:** 2026-07-22
 **Deciders:** Ayush, Claude (PM partner)
 
+## Amendment (2026-08-05)
+
+This ADR's Context and "Positive Consequences" originally assumed the CAS Parser v2
+Import Review screen was existing, in-progress React work that this decision would
+preserve. That assumption was checked against the actual prototype during Phase 1 and
+was **false**: the code at `CAS Parsers/mf-import/frontend` is vanilla TypeScript +
+Vite — no React, no JSX, plain `.ts` page files driving the DOM directly. There was no
+in-progress React Import Review screen to keep intact.
+
+This does not change the **Decision** (React SPA via Vite, no Next.js, no
+micro-frontends) — that call stands on its own architectural merits (team size, no
+public/SEO surface, design-system consistency) independent of whether prior React work
+existed. It only corrects the framing: Phase 1's Import Review UI (see
+`Docs/superpowers/plans/`) was built as new React code, not a port of anything. The
+"No rework of the CAS Parser v2 frontend already in progress" positive consequence
+below should be read as moot rather than as a realized benefit — there was nothing to
+avoid reworking.
+
 ## Context
 
-The frontend for CAS Parser v2's Import Review screen is already scoped against a
-Vite + React SPA (per the original build spec — `Planning-V1.MD`/`MF_CAS_Parsers.md`),
-with that screen currently the one piece of frontend work still in progress. The product
-proposal on the table now is Next.js, and separately, "pure React + MFE (micro-frontend)
-components" as a structural pattern.
+The frontend for CAS Parser v2's Import Review screen was scoped as a Vite + React SPA
+per the original build spec (`Planning-V1.MD`/`MF_CAS_Parsers.md`) — the actual
+prototype frontend, however, was vanilla TypeScript, not React (see Amendment above).
+The product proposal on the table now is Next.js, and separately, "pure React + MFE
+(micro-frontend) components" as a structural pattern.
 
 These are two different axes and need separating: (1) Next.js vs. a plain React SPA
 (Vite) is a framework choice; (2) micro-frontends vs. a single modular application is an
