@@ -88,37 +88,38 @@ frontend framework, or a service split not already in that document.
 *(Updated 2026-08-05. See `session.md` at repo root for full detail — this is the
 one-paragraph pointer for a fresh session.)*
 
-**Phase 0 and Phase 1 (backend + frontend) are all complete and merged to
-`main`.** Phase 0: `Docs/superpowers/plans/2026-08-04-phase-0-foundation.md`.
-Phase 1 backend: `Docs/superpowers/plans/2026-08-04-phase-1-cas-import-backend.md`
-— CAS import tightened and ported into `backend/app/services/import_/`, live
-at `POST /imports/parse` / `POST /imports/confirm`. Phase 1b frontend:
-`Docs/superpowers/plans/2026-08-05-phase-1b-import-review-frontend.md` — the
-five-screen Import Review flow in `frontend/src/features/import/`, plus
-design tokens (`frontend/src/styles/tokens.css`) and a shared `Badge`
-component implementing `Design-Schema-Unifolio.md`. ADR-001's stale
-"React already in progress" claim (see below) is now corrected. Test
-suites on `main`: backend 48 passing, frontend 23 passing. **Not yet pushed**
-— `main` is ahead of `origin/main`, no TTY for credentials in this sandbox;
-push manually.
+**Phase 0, Phase 1 (backend + frontend), and Phase 2 (backend) are all
+complete and merged to `main`.** Phase 1 built CAS import end to end
+(`backend/app/services/import_/`, `frontend/src/features/import/`). Phase 2
+backend built phone+OTP auth (`backend/app/services/auth/`,
+`POST /auth/otp/request|verify`, `POST /auth/session/refresh`,
+`PATCH /auth/me`) and household-member CRUD
+(`backend/app/services/dashboard/household_members.py`,
+`POST`/`GET /household-members`) — a `get_current_user` FastAPI dependency
+is now the real security boundary for authenticated endpoints, resolving the
+acting user strictly from a bearer session token, never a client-supplied
+id. Test suites on `main`: backend 80 passing, frontend 23 passing. **Not
+yet pushed** — `main` is ahead of `origin/main`, no TTY for credentials in
+this sandbox; push manually.
 
-**Two deliberately parked items**, both real, neither silently dropped:
-1. `/imports/confirm` trusts `household_member_id` from the request body
-   with no ownership check (IDOR) — no auth/session system exists yet to
-   check against (Auth service is still an empty Phase-0 stub, per the
-   deferred "full auth/security policy" non-negotiable above). Fix once
-   PRD-02's auth work lands.
+**Auth exists now, but isn't wired into Phase 1's Import Service yet.**
+`/imports/parse` / `/imports/confirm` still take `household_member_id` from
+the request body via a Phase 1 dev-seed script — the IDOR gap on those
+specific endpoints is still open even though the fix (`get_current_user`) is
+now available. Small follow-up, not done yet — see `session.md`.
+
+**One item resolved this session, one still open:**
+1. ~~`/imports/confirm` had no ownership check (IDOR)~~ — the auth system
+   this required now exists (Phase 2 backend); wiring it into the Import
+   Service specifically is the remaining step (see above).
 2. `confirm_import`'s plan-type override has no server-side 409 backstop
-   (unlike the AMFI-confidence check) — the frontend's Confirm-gating is
-   currently the *only* enforcement of "never silently guess" for plan type.
-   Needs a small backend fix mirroring the existing `SchemeConfidenceError`
-   gate. Discovered in Phase 1b's final review, not yet fixed.
+   (unlike the AMFI-confidence check) — still open, pre-existing Phase 1
+   backend code untouched since.
 
-**ADR-001 — resolved.** Its claim that the CAS Parser frontend was an
-existing React SPA "already in progress" was stale (the real prototype was
-vanilla TS); corrected via an Amendment section, Decision unchanged.
+**ADR-001 — resolved.** Corrected via an Amendment section (Decision
+unchanged) — the CAS Parser frontend was never existing React work.
 
-**Phase 2 scope is an open decision — ask before assuming.** PRD-01 (CAS
-Import) is now fully built. PRD-02 (Onboarding), PRD-03 (Main Dashboard),
-and PRD-04 (Analytics) are all unbuilt; see `session.md` for the two leading
-candidates and why neither is presumptively "next."
+**Phase 2b (Onboarding frontend) is the natural next step** — the
+questionnaire UI calling the endpoints Phase 2 backend just built, matching
+the Phase 1 → Phase 1b pattern. PRD-03 (Main Dashboard) and PRD-04
+(Analytics) remain fully unbuilt beyond that.
