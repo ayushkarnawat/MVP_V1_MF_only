@@ -1,11 +1,18 @@
-from fastapi import APIRouter, Depends
+import uuid
+
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session as DbSession
 
 from app.db.session import get_db
 from app.models.user import User
 from app.services.auth.session import get_current_user
-from app.services.dashboard.household_members import create_household_member, list_household_members
-from app.services.dashboard.schemas import HouseholdMemberCreate, HouseholdMemberResponse
+from app.services.dashboard.holdings import compute_holdings
+from app.services.dashboard.household_members import (
+    create_household_member,
+    get_household_member_for_user,
+    list_household_members,
+)
+from app.services.dashboard.schemas import HoldingRow, HouseholdMemberCreate, HouseholdMemberResponse
 
 router = APIRouter(tags=["dashboard"])
 
@@ -39,3 +46,14 @@ def list_members(user: User = Depends(get_current_user), db: DbSession = Depends
         )
         for m in members
     ]
+
+
+@router.get("/household-members/{member_id}/holdings", response_model=list[HoldingRow])
+async def get_member_holdings(
+    member_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    db: DbSession = Depends(get_db),
+):
+    if get_household_member_for_user(db, user.id, member_id) is None:
+        raise HTTPException(status_code=404, detail="Household member not found.")
+    return await compute_holdings(db, [member_id])
