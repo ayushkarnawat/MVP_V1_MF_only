@@ -14,6 +14,12 @@ import type {
 
 type Step = "upload" | "parsing" | "review" | "error" | "confirmed";
 
+interface ImportFlowProps {
+  householdMemberId: string;
+  ctaLabel?: string;
+  onDone?: () => void;
+}
+
 const GENERIC_NETWORK_ERROR: ParseErrorPayload = {
   code: "network_error",
   message: "Couldn't reach the server. Check your connection and try again.",
@@ -21,12 +27,14 @@ const GENERIC_NETWORK_ERROR: ParseErrorPayload = {
 
 function toParseErrorPayload(err: unknown): ParseErrorPayload {
   if (err instanceof ApiError) {
-    return typeof err.payload === "string" ? { code: "error", message: err.payload } : err.payload;
+    // ApiError.payload is `unknown`; the import API only ever throws ParseErrorPayload | string.
+    const payload = err.payload as ParseErrorPayload | string;
+    return typeof payload === "string" ? { code: "error", message: payload } : payload;
   }
   return GENERIC_NETWORK_ERROR;
 }
 
-export function ImportFlow() {
+export function ImportFlow({ householdMemberId, ctaLabel, onDone }: ImportFlowProps) {
   const [step, setStep] = useState<Step>("upload");
   const [preview, setPreview] = useState<ImportPreviewResponse | null>(null);
   const [confirmResult, setConfirmResult] = useState<ImportConfirmResponse | null>(null);
@@ -60,7 +68,7 @@ export function ImportFlow() {
     setConfirming(true);
     setReviewNotice(null);
     try {
-      const result = await confirmImport(preview.session_id, confirmations);
+      const result = await confirmImport(preview.session_id, householdMemberId, confirmations);
       setConfirmResult(result);
       setStep("confirmed");
     } catch (err) {
@@ -68,9 +76,7 @@ export function ImportFlow() {
         setReviewNotice(
           err.status === 404
             ? "This import session has expired. Please re-upload your CAS."
-            : typeof err.payload === "string"
-              ? err.payload
-              : err.payload.message,
+            : toParseErrorPayload(err).message,
         );
       } else {
         setError(toParseErrorPayload(err));
@@ -96,7 +102,7 @@ export function ImportFlow() {
     );
   }
   if (step === "confirmed" && confirmResult) {
-    return <ImportConfirmed result={confirmResult} onImportAnother={reset} />;
+    return <ImportConfirmed result={confirmResult} onImportAnother={onDone ?? reset} ctaLabel={ctaLabel} />;
   }
   return <ImportError error={error ?? GENERIC_NETWORK_ERROR} onRetry={reset} />;
 }

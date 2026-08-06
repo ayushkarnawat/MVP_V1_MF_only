@@ -30,7 +30,7 @@ describe("ImportFlow", () => {
   it("moves from upload to review on a successful parse", async () => {
     vi.mocked(api.parseImport).mockResolvedValue(EMPTY_PREVIEW);
 
-    render(<ImportFlow />);
+    render(<ImportFlow householdMemberId="member-1" />);
     uploadAFile();
 
     await waitFor(() => expect(screen.getByText(/review cas import/i)).toBeInTheDocument());
@@ -41,7 +41,7 @@ describe("ImportFlow", () => {
       new ApiError(422, { code: "wrong_password", message: "Incorrect PDF password." }),
     );
 
-    render(<ImportFlow />);
+    render(<ImportFlow householdMemberId="member-1" />);
     uploadAFile();
 
     await waitFor(() => expect(screen.getByText(/incorrect pdf password/i)).toBeInTheDocument());
@@ -50,29 +50,30 @@ describe("ImportFlow", () => {
   it("shows a generic message on a network failure", async () => {
     vi.mocked(api.parseImport).mockRejectedValue(new TypeError("Failed to fetch"));
 
-    render(<ImportFlow />);
+    render(<ImportFlow householdMemberId="member-1" />);
     uploadAFile();
 
     await waitFor(() => expect(screen.getByText(/couldn't reach the server/i)).toBeInTheDocument());
   });
 
-  it("moves to confirmed on a successful confirm", async () => {
+  it("moves to confirmed on a successful confirm, passing the householdMemberId", async () => {
     vi.mocked(api.parseImport).mockResolvedValue(EMPTY_PREVIEW);
     vi.mocked(api.confirmImport).mockResolvedValue({ added: 3, skipped: 1, import_id: "imp1" });
 
-    render(<ImportFlow />);
+    render(<ImportFlow householdMemberId="member-1" />);
     uploadAFile();
     await waitFor(() => screen.getByRole("button", { name: /confirm import/i }));
     fireEvent.click(screen.getByRole("button", { name: /confirm import/i }));
 
     await waitFor(() => expect(screen.getByText(/import complete/i)).toBeInTheDocument());
+    expect(api.confirmImport).toHaveBeenCalledWith("s1", "member-1", []);
   });
 
   it("shows an inline notice instead of navigating away on a 409", async () => {
     vi.mocked(api.parseImport).mockResolvedValue(EMPTY_PREVIEW);
     vi.mocked(api.confirmImport).mockRejectedValue(new ApiError(409, "Scheme 'X' requires an explicit AMFI code."));
 
-    render(<ImportFlow />);
+    render(<ImportFlow householdMemberId="member-1" />);
     uploadAFile();
     await waitFor(() => screen.getByRole("button", { name: /confirm import/i }));
     fireEvent.click(screen.getByRole("button", { name: /confirm import/i }));
@@ -81,11 +82,11 @@ describe("ImportFlow", () => {
     expect(screen.getByText(/review cas import/i)).toBeInTheDocument();
   });
 
-  it("resets to upload from the confirmed screen", async () => {
+  it("resets to upload from the confirmed screen by default", async () => {
     vi.mocked(api.parseImport).mockResolvedValue(EMPTY_PREVIEW);
     vi.mocked(api.confirmImport).mockResolvedValue({ added: 1, skipped: 0, import_id: "imp1" });
 
-    render(<ImportFlow />);
+    render(<ImportFlow householdMemberId="member-1" />);
     uploadAFile();
     await waitFor(() => screen.getByRole("button", { name: /confirm import/i }));
     fireEvent.click(screen.getByRole("button", { name: /confirm import/i }));
@@ -93,5 +94,20 @@ describe("ImportFlow", () => {
     fireEvent.click(screen.getByRole("button", { name: /import another cas/i }));
 
     expect(screen.getByRole("button", { name: /^upload$/i })).toBeInTheDocument();
+  });
+
+  it("uses ctaLabel and onDone instead of the default reset when provided", async () => {
+    vi.mocked(api.parseImport).mockResolvedValue(EMPTY_PREVIEW);
+    vi.mocked(api.confirmImport).mockResolvedValue({ added: 1, skipped: 0, import_id: "imp1" });
+    const onDone = vi.fn();
+
+    render(<ImportFlow householdMemberId="member-1" ctaLabel="Continue" onDone={onDone} />);
+    uploadAFile();
+    await waitFor(() => screen.getByRole("button", { name: /confirm import/i }));
+    fireEvent.click(screen.getByRole("button", { name: /confirm import/i }));
+    await waitFor(() => screen.getByRole("button", { name: /^continue$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
+
+    expect(onDone).toHaveBeenCalled();
   });
 });

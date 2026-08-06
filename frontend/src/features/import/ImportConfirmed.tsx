@@ -4,9 +4,10 @@ import styles from "./ImportConfirmed.module.css";
 interface ImportConfirmedProps {
   result: ImportConfirmResponse;
   onImportAnother: () => void;
+  ctaLabel?: string;
 }
 
-export function ImportConfirmed({ result, onImportAnother }: ImportConfirmedProps) {
+export function ImportConfirmed({ result, onImportAnother, ctaLabel = "Import another CAS" }: ImportConfirmedProps) {
   const addedText = `${result.added} new transaction${result.added === 1 ? "" : "s"} added`;
   const skippedText =
     result.skipped > 0 ? `, ${result.skipped} duplicate${result.skipped === 1 ? "" : "s"} skipped` : "";
@@ -16,7 +17,7 @@ export function ImportConfirmed({ result, onImportAnother }: ImportConfirmedProp
       <h1>Import complete</h1>
       <p>{`${addedText}${skippedText}.`}</p>
       <button type="button" onClick={onImportAnother}>
-        Import another CAS
+        {ctaLabel}
       </button>
     </div>
   );

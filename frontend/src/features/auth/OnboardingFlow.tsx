@@ -10,6 +10,7 @@ import { Q2Investing } from "./Q2Investing";
 import { Q3Purpose } from "./Q3Purpose";
 import { Q4Household } from "./Q4Household";
 import { AddFamilyMembers } from "./AddFamilyMembers";
+import { SoloCasUpload } from "./SoloCasUpload";
 import type { HouseholdMember, InvestorType, PrimaryGoal } from "./types";
 
 export interface OnboardingAnswers {
@@ -115,7 +116,7 @@ export function OnboardingFlow() {
   }
 
   if (step === "cas_upload") {
-    return <p>Solo CAS Upload — built in Task 9.</p>;
+    return <SoloCasUpload name={answers.name} />;
   }
 
   if (step === "family_cas_upload" || step === "upload_my_cas" || step === "parse_queue") {

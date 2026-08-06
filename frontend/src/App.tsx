@@ -6,7 +6,9 @@ function App() {
       <header>
         <h2>Unifolio</h2>
       </header>
-      <ImportFlow />
+      {/* Phase 1b standalone screen — already non-functional without auth (known state).
+          Task 11 replaces this file with the AuthProvider composition root. */}
+      <ImportFlow householdMemberId="" />
     </div>
   );
 }

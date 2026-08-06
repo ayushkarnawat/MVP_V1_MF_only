@@ -17,4 +17,19 @@ describe("ImportConfirmed", () => {
 
     expect(screen.getByText(/1 new transaction added\./i)).toBeInTheDocument();
   });
+
+  it("uses a custom ctaLabel when provided", () => {
+    const onImportAnother = vi.fn();
+    render(
+      <ImportConfirmed
+        result={{ added: 2, skipped: 0, import_id: "imp1" }}
+        onImportAnother={onImportAnother}
+        ctaLabel="Continue"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
+    expect(onImportAnother).toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: /import another cas/i })).not.toBeInTheDocument();
+  });
 });
