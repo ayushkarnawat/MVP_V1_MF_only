@@ -7,6 +7,7 @@ from app.db.session import get_db
 from app.models.user import User
 from app.services.auth.session import get_current_user
 from app.services.dashboard.allocation import compute_allocation
+from app.services.dashboard.cash_flow import compute_cash_flow
 from app.services.dashboard.holdings import compute_holdings
 from app.services.dashboard.household_members import (
     create_household_member,
@@ -15,6 +16,7 @@ from app.services.dashboard.household_members import (
 )
 from app.services.dashboard.schemas import (
     AllocationSummary,
+    CashFlowEntry,
     HoldingRow,
     HouseholdMemberCreate,
     HouseholdMemberResponse,
@@ -87,3 +89,14 @@ def get_member_sips(
     if get_household_member_for_user(db, user.id, member_id) is None:
         raise HTTPException(status_code=404, detail="Household member not found.")
     return compute_active_sips(db, [member_id])
+
+
+@router.get("/household-members/{member_id}/cash-flow", response_model=list[CashFlowEntry])
+def get_member_cash_flow(
+    member_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    db: DbSession = Depends(get_db),
+):
+    if get_household_member_for_user(db, user.id, member_id) is None:
+        raise HTTPException(status_code=404, detail="Household member not found.")
+    return compute_cash_flow(db, [member_id])

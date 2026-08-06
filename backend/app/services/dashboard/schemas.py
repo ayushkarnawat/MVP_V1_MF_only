@@ -4,7 +4,7 @@ from datetime import date
 
 from pydantic import BaseModel
 
-from app.models.enums import PlanType, Relationship
+from app.models.enums import PlanType, Relationship, TransactionType
 
 
 class HouseholdMemberCreate(BaseModel):
@@ -58,3 +58,13 @@ class SipRow(BaseModel):
     household_member_name: str
     sip_date: date
     sip_amount: str
+
+
+class CashFlowEntry(BaseModel):
+    date: date
+    type: TransactionType
+    amount: str
+    direction: str
+    scheme_name: str
+    household_member_id: str
+    household_member_name: str
