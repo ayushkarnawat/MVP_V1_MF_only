@@ -88,48 +88,65 @@ frontend framework, or a service split not already in that document.
 *(Updated 2026-08-06. See `session.md` at repo root for full detail — this is the
 one-paragraph pointer for a fresh session.)*
 
-**Phase 0, Phase 1 (backend + frontend), Phase 2 (backend), and Phase 2b
-(Onboarding frontend) are all complete and merged to `main`.** Phase 1 built
-CAS import end to end (`backend/app/services/import_/`,
-`frontend/src/features/import/`). Phase 2 backend built phone+OTP auth
-(`backend/app/services/auth/`, `POST /auth/otp/request|verify`,
-`GET`/`PATCH /auth/me`, `POST /auth/session/refresh`) and household-member
-CRUD (`POST`/`GET /household-members`) — `get_current_user` is the real
-security boundary for authenticated endpoints. Phase 2b built the full
-Onboarding frontend in `frontend/src/features/auth/`: a landing screen
-(Sign Up/Log In), phone+OTP login, a back-navigable questionnaire (a pure,
-tested history reducer backs FR-7a's revisit requirement), and the Family
-CAS Upload subsystem — per-member upload cards, a client-side queue, strictly
-sequential batch parsing (never parallel — the backend's in-memory
-preview-session store isn't safe under concurrent parses), and one aggregate
-`ImportConfirmed` payoff at the end. Test suites on `main`: backend 92
-passing, frontend 81 passing (17 files), `tsc -b --noEmit` clean.
+**Phase 0, Phase 1 (backend + frontend), Phase 2 (backend), Phase 2b
+(Onboarding frontend), and Phase 3 (Main Dashboard backend) are all complete
+and merged to `main`.** Phase 1 built CAS import end to end. Phase 2 backend
+built phone+OTP auth and household-member CRUD, `get_current_user` as the
+real security boundary. Phase 2b built the full Onboarding frontend —
+landing screen, back-navigable questionnaire, and a Family CAS Upload
+subsystem (per-member upload cards, client-side queue, strictly sequential
+batch parsing, one aggregate payoff). Phase 3 built the Main Dashboard
+backend (`backend/app/services/dashboard/`): a FIFO holdings engine with
+hand-built known-answer test fixtures, on-demand NAV fetch-and-cache
+(standing in for the real scheduled job, deployment-phase infra not built
+yet), allocation/SIP/cash-flow/monthly-snapshot views, and placeholder-aware
+family aggregation — 10 new `GET` routes, one implementation per concern
+parameterized by a list of member IDs (no separate family/per-member code
+paths). Test suites on `main`: backend 140 passing, frontend 81 passing
+(17 files), `tsc -b --noEmit` clean.
 
-**Phase 2b's final whole-branch review caught 5 real issues, all fixed
-before merge** — most notably a permanent dead end for a family user who
-skipped every upload (queue empty, "Parse Files" stuck disabled, no way to
-finish onboarding), and the family roster not surviving a page reload
-(fixed by having `FamilyImportFlow` fetch its own roster live from
-`GET /household-members` instead of trusting a React-state prop). Full list
-in `session.md`. One implementer self-correction during the fix wave: a
-React StrictMode double-invoke guard, initially specified one way, would
-have deadlocked the component — caught by an actual failing test run, then
-independently re-verified (not just re-read) by the re-reviewer.
+**Both Phase 2b's and Phase 3's final whole-branch reviews caught real
+issues before merge — full detail in `session.md`.** Phase 2b: 5 issues,
+most notably a permanent onboarding dead-end and the family roster not
+surviving a page reload. Phase 3: 3 real bugs, two rooted in already-shipped
+Phase 1 parsing code — (1) `casparser` represents redemption/switch-out
+units and amounts as **negative**; the parser passed them through
+unnormalized, which would have made every real redemption a silent no-op in
+the new FIFO engine (fixed at the root cause: `abs()` at the parser
+boundary, your explicit call over defending in the engine); (2) same-date
+transaction ordering was nondeterministic (`Transaction.id` is a random
+UUID), so a same-day purchase+redemption could silently under-consume —
+fixed with a purchase-before-redemption tiebreak, applied identically in
+both the holdings engine and the snapshot backfill (which runs its own
+separate query); (3) the final review caught a transient-NAV-outage bug
+permanently caching a wrong snapshot value — fixed to stay retryable
+instead.
 
 **Not yet pushed** — `main` is ahead of `origin/main`; no TTY for
 credentials in this sandbox, push manually.
 
-**Still open (pre-existing, none from this session's work):**
-1. `confirm_import`'s plan-type override has no server-side 409 backstop
-   (unlike the AMFI-confidence check) — pre-existing Phase 1 backend code.
-2. No DB uniqueness constraint on the "self" `household_members` row —
-   Phase 2b's frontend mitigates client-side (list-then-create), but two
-   browser tabs or overlapping devices could still race a duplicate. Real
-   fix is a backend migration.
+**Still open:**
+1. **Time-sensitive, flagged by Phase 3's final review to lead the *next*
+   branch:** `transactions`' dedupe key/`UniqueConstraint` doesn't include
+   `type` — after fix (1) above normalized signs, a same-day purchase and
+   redemption of equal magnitude can now collide and get silently dropped
+   as a false duplicate on import. Needs a migration, before Phase 2b's
+   Family CAS Upload starts processing real CAS files.
+2. A held scheme with no obtainable NAV silently vanishes from
+   holdings/allocation/aggregates, no error or placeholder — a Phase 3
+   design choice, worth revisiting once the Phase 3 frontend decides the
+   "NAV unavailable" UI treatment.
+3. `confirm_import`'s plan-type override has no server-side 409 backstop —
+   pre-existing Phase 1 backend code.
+4. No DB uniqueness constraint on the "self" `household_members` row —
+   Phase 2b's frontend mitigates client-side; real fix is a migration.
 
 **ADR-001 — resolved.** Corrected via an Amendment section (Decision
 unchanged) — the CAS Parser frontend was never existing React work.
 
-**PRD-03 (Main Dashboard) and PRD-04 (Analytics) are next** — both fully
-unbuilt. `DashboardPlaceholder` (`frontend/src/features/dashboard/`) is an
-intentional stub to replace outright, not extend, when PRD-03 starts.
+**Phase 3b (Main Dashboard frontend) is next** — the screens consuming the
+10 routes Phase 3 just built. `DashboardPlaceholder`
+(`frontend/src/features/dashboard/`) is an intentional stub to replace
+outright, not extend. Distributor Comparison (PRD-03 FR-11) was explicitly
+deferred out of Phase 3 to its own small follow-up. PRD-04 (Analytics)
+remains fully unbuilt beyond that.
