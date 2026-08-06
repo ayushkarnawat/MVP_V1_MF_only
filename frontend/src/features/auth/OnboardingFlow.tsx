@@ -75,6 +75,7 @@ export function OnboardingFlow() {
         onBack={back}
         onSkip={() => skip("q3_purpose")}
         onSelect={(investorType) => {
+          void updateMe({ investor_type: investorType });
           setAnswers((a) => ({ ...a, investorType }));
           advance("q3_purpose");
         }}
@@ -88,6 +89,7 @@ export function OnboardingFlow() {
         onBack={back}
         onSkip={() => skip("q4_household")}
         onSelect={(primaryGoal) => {
+          void updateMe({ primary_goal: primaryGoal });
           setAnswers((a) => ({ ...a, primaryGoal }));
           advance("q4_household");
         }}
@@ -121,7 +123,7 @@ export function OnboardingFlow() {
   }
 
   if (step === "family_cas_upload" || step === "upload_my_cas" || step === "parse_queue") {
-    return <FamilyImportFlow familyMembers={answers.familyMembers} selfName={answers.name} />;
+    return <FamilyImportFlow selfName={answers.name} />;
   }
 
   return null;

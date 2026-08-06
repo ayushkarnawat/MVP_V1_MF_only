@@ -15,7 +15,6 @@ import type { HouseholdMember } from "./types";
 import styles from "./onboarding.module.css";
 
 interface FamilyImportFlowProps {
-  familyMembers: HouseholdMember[];
   selfName: string;
 }
 
@@ -42,15 +41,40 @@ function toParseErrorPayload(err: unknown): ParseErrorPayload {
   return GENERIC_NETWORK_ERROR;
 }
 
-export function FamilyImportFlow({ familyMembers, selfName }: FamilyImportFlowProps) {
+export function FamilyImportFlow({ selfName }: FamilyImportFlowProps) {
   const { updateMe } = useAuth();
   const [stage, setStage] = useState<Stage>("cards");
+  const [familyMembers, setFamilyMembers] = useState<HouseholdMember[] | null>(null);
+  const [rosterError, setRosterError] = useState<string | null>(null);
   const [queue, setQueue] = useState<FamilyUpload[]>([]);
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
   const [processing, setProcessing] = useState<ProcessingState | null>(null);
   const [results, setResults] = useState<ImportConfirmResponse[]>([]);
   const [reviewNotice, setReviewNotice] = useState<string | null>(null);
   const [ownUploadError, setOwnUploadError] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
+
+  // Fetch the roster from the backend rather than trusting a prop: React state
+  // (OnboardingFlow's answers.familyMembers) doesn't survive a page reload, only
+  // the backend does, so a resumed family-onboarding session must re-fetch to
+  // avoid showing zero member cards.
+  useEffect(() => {
+    let cancelled = false;
+    listHouseholdMembers()
+      .then((members) => {
+        if (!cancelled) {
+          setFamilyMembers(members.filter((member) => member.relationship !== "self"));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setRosterError("Couldn't load your family members. Please try again.");
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Strictly sequential: one parse at a time — the next item only starts after
   // the current one is confirmed or skipped (the backend's preview-session
@@ -88,6 +112,7 @@ export function FamilyImportFlow({ familyMembers, selfName }: FamilyImportFlowPr
     if (!processing?.preview) return;
     const item = queue[processing.index];
     setReviewNotice(null);
+    setConfirming(true);
     try {
       const result = await confirmImport(processing.preview.session_id, item.memberId, confirmations);
       advanceOrFinish([...results, result]);
@@ -104,6 +129,8 @@ export function FamilyImportFlow({ familyMembers, selfName }: FamilyImportFlowPr
         return;
       }
       setProcessing({ ...processing, status: "error", error: toParseErrorPayload(err) });
+    } finally {
+      setConfirming(false);
     }
   };
 
@@ -123,6 +150,17 @@ export function FamilyImportFlow({ familyMembers, selfName }: FamilyImportFlowPr
     return self ?? createHouseholdMember(selfName.trim() || "Me", "self");
   };
 
+  if (rosterError) {
+    return (
+      <p role="alert" className={styles.error}>
+        {rosterError}
+      </p>
+    );
+  }
+  if (familyMembers === null) {
+    return <p>Loading...</p>;
+  }
+
   if (stage === "cards") {
     return (
       <FamilyCasUpload
@@ -141,7 +179,7 @@ export function FamilyImportFlow({ familyMembers, selfName }: FamilyImportFlowPr
       <UploadMyCas
         awaitingUpload={false}
         onUploadNow={() => setStage("own-upload")}
-        onUploadLater={() => setStage("queue")}
+        onUploadLater={() => setStage(queue.length === 0 ? "done" : "queue")}
         onSubmit={() => {}}
       />
     );
@@ -185,7 +223,7 @@ export function FamilyImportFlow({ familyMembers, selfName }: FamilyImportFlowPr
         <>
           <p>{`Reviewing: ${item.memberName}'s CAS`}</p>
           {reviewNotice && <p role="alert">{reviewNotice}</p>}
-          <ReviewTable preview={processing.preview} confirming={false} onConfirm={handleConfirm} />
+          <ReviewTable preview={processing.preview} confirming={confirming} onConfirm={handleConfirm} />
         </>
       );
     }

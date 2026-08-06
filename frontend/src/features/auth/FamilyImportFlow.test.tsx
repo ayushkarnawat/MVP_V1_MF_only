@@ -43,9 +43,10 @@ function uploadFor(memberLabel: RegExp) {
 function renderFlow() {
   vi.mocked(authApi.getMe).mockResolvedValue(ME);
   vi.mocked(authApi.updateMe).mockImplementation(async (body) => ({ ...ME, ...body }) as typeof ME);
+  vi.mocked(authApi.listHouseholdMembers).mockResolvedValue(FAMILY);
   return render(
     <AuthProvider>
-      <FamilyImportFlow familyMembers={FAMILY} selfName="Ayush" />
+      <FamilyImportFlow selfName="Ayush" />
     </AuthProvider>,
   );
 }
@@ -203,10 +204,11 @@ describe("FamilyImportFlow", () => {
   });
 
   it("shows a recoverable error when own-upload self-member setup fails", async () => {
-    vi.mocked(authApi.listHouseholdMembers).mockRejectedValue(new Error("network down"));
-
     renderFlow();
     await waitFor(() => screen.getByText("Mom"));
+    // The initial roster fetch (above) must succeed for cards to render; only the
+    // later resolveSelfMember() call (triggered by own-upload submit, below) should fail.
+    vi.mocked(authApi.listHouseholdMembers).mockRejectedValueOnce(new Error("network down"));
     fireEvent.click(screen.getByRole("button", { name: /skip for now.*mom/i }));
     fireEvent.click(screen.getByRole("button", { name: /skip for now.*dad/i }));
     await waitFor(() => expect(screen.getByRole("button", { name: /^continue$/i })).toBeEnabled());
@@ -222,5 +224,51 @@ describe("FamilyImportFlow", () => {
 
     await waitFor(() => expect(screen.getByText(/couldn't set up your profile/i)).toBeInTheDocument());
     expect(screen.getByLabelText(/cas pdf/i)).toBeInTheDocument();
+  });
+
+  it("completes onboarding straight away when everything is skipped and Upload Later is chosen with an empty queue", async () => {
+    renderFlow();
+    await waitFor(() => screen.getByText("Mom"));
+    fireEvent.click(screen.getByRole("button", { name: /skip for now.*mom/i }));
+    fireEvent.click(screen.getByRole("button", { name: /skip for now.*dad/i }));
+    await waitFor(() => expect(screen.getByRole("button", { name: /^continue$/i })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
+
+    await waitFor(() => expect(screen.getByText(/upload your own cas/i)).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: /upload later/i }));
+
+    await waitFor(() => expect(screen.getByText(/import complete/i)).toBeInTheDocument());
+    expect(screen.getByText(/0 new transactions added/i)).toBeInTheDocument();
+    expect(importApi.confirmImport).not.toHaveBeenCalled();
+  });
+
+  it("disables the Confirm button while a confirm is in flight", async () => {
+    vi.mocked(importApi.parseImport).mockResolvedValue(EMPTY_PREVIEW);
+    let resolveConfirm: (value: { added: number; skipped: number; import_id: string }) => void = () => {};
+    vi.mocked(importApi.confirmImport).mockReturnValue(
+      new Promise((resolve) => {
+        resolveConfirm = resolve;
+      }),
+    );
+
+    renderFlow();
+    await waitFor(() => screen.getByText("Mom"));
+    uploadFor(/upload cas for mom/i);
+    await waitFor(() => screen.getAllByText(/uploaded/i));
+    fireEvent.click(screen.getByRole("button", { name: /skip for now.*dad/i }));
+    await waitFor(() => expect(screen.getByRole("button", { name: /^continue$/i })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
+    await waitFor(() => screen.getByText(/upload your own cas/i));
+    fireEvent.click(screen.getByRole("button", { name: /upload later/i }));
+    await waitFor(() => screen.getByRole("button", { name: /parse files/i }));
+
+    fireEvent.click(screen.getByRole("button", { name: /parse files/i }));
+    await waitFor(() => expect(screen.getByText(/reviewing: mom's cas/i)).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: /confirm import/i }));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: /confirming/i })).toBeDisabled());
+
+    resolveConfirm({ added: 1, skipped: 0, import_id: "imp-mom" });
+    await waitFor(() => expect(screen.getByText(/import complete/i)).toBeInTheDocument());
   });
 });

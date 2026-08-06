@@ -76,4 +76,36 @@ describe("OnboardingFlow", () => {
     fireEvent.click(screen.getByRole("button", { name: /^back$/i }));
     await waitFor(() => expect(screen.getByText(/how are you investing right now/i)).toBeInTheDocument());
   });
+
+  it("persists the Q2 answer to the backend via updateMe", async () => {
+    renderFlow();
+    await waitFor(() => screen.getByRole("button", { name: /continue/i }));
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    await waitFor(() => screen.getByLabelText(/what should we call you/i));
+    fireEvent.click(screen.getByRole("button", { name: /^next$/i }));
+    await waitFor(() => screen.getByText(/how are you investing right now/i));
+
+    fireEvent.click(screen.getByRole("button", { name: /mostly on my own/i }));
+
+    await waitFor(() =>
+      expect(api.updateMe).toHaveBeenCalledWith(expect.objectContaining({ investor_type: "self_directed" })),
+    );
+  });
+
+  it("persists the Q3 answer to the backend via updateMe", async () => {
+    renderFlow();
+    await waitFor(() => screen.getByRole("button", { name: /continue/i }));
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    await waitFor(() => screen.getByLabelText(/what should we call you/i));
+    fireEvent.click(screen.getByRole("button", { name: /^next$/i }));
+    await waitFor(() => screen.getByText(/how are you investing right now/i));
+    fireEvent.click(screen.getByRole("button", { name: /mostly on my own/i }));
+    await waitFor(() => screen.getByText(/what brings you to unifolio/i));
+
+    fireEvent.click(screen.getByRole("button", { name: /see all my mutual funds/i }));
+
+    await waitFor(() =>
+      expect(api.updateMe).toHaveBeenCalledWith(expect.objectContaining({ primary_goal: "consolidated_view" })),
+    );
+  });
 });

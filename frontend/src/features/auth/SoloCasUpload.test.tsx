@@ -1,3 +1,4 @@
+import { StrictMode } from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SoloCasUpload } from "./SoloCasUpload";
@@ -56,5 +57,23 @@ describe("SoloCasUpload", () => {
     renderSolo("");
 
     await waitFor(() => expect(api.createHouseholdMember).toHaveBeenCalledWith("Me", "self"));
+  });
+
+  it("creates only one self household member under StrictMode's double-invoked mount effect", async () => {
+    vi.mocked(api.listHouseholdMembers).mockResolvedValue([]);
+    vi.mocked(api.createHouseholdMember).mockResolvedValue({
+      id: "self-1", name: "Ayush", relationship: "self", relationship_other_label: null,
+    });
+
+    render(
+      <StrictMode>
+        <AuthProvider>
+          <SoloCasUpload name="Ayush" />
+        </AuthProvider>
+      </StrictMode>,
+    );
+
+    await waitFor(() => expect(screen.getByLabelText(/cas pdf/i)).toBeInTheDocument());
+    expect(api.createHouseholdMember).toHaveBeenCalledTimes(1);
   });
 });
