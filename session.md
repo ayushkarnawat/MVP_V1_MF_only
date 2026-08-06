@@ -66,8 +66,8 @@ in the app, built entirely on tables Phase 0 already created (no migration):
   `Depends(get_current_user)`; per-member routes additionally
   ownership-checked via the existing `get_household_member_for_user`.
 
-Test suites on `main` as of this session: **backend 140 passing**, frontend
-81 passing (unchanged this phase — backend-only work).
+Test suites on `main` as of this session: **backend 142 passing**, frontend
+81 passing.
 
 **Not yet pushed to GitHub** — `main` is ahead of `origin/main`; no TTY for
 credentials in this sandbox, push manually (`git push origin main`).
@@ -102,33 +102,46 @@ credentials in this sandbox, push manually (`git push origin main`).
    cached forever — a transient outage becoming permanently wrong financial
    history. Fixed to skip and leave the month retryable instead.
 
+## Transaction dedupe-key migration — resolved this session
+
+Follow-up #1 above (dedupe key missing `type`) is fixed and merged
+(`Docs/superpowers/plans/2026-08-06-transaction-dedupe-type-migration.md`,
+2 tasks + a schema-doc fix). `transactions`' dedupe key is now
+`(folio_id, date, amount, units, type)` everywhere it's defined: a new
+migration (`0002`, `0001` stays frozen), the SQLAlchemy ORM model, and
+`confirm_import`'s dedupe check. **A real gap in the plan itself was found
+mid-execution and closed:** the plan assumed the ORM model and the
+migration "agree by construction," but they're independently maintained in
+this codebase — this project's test suite builds its schema via
+`Base.metadata.create_all()`, not by running Alembic migrations, so the
+model file (not just the migration) had to be widened too, or `confirm_import`'s
+own new test would hit a real `IntegrityError` from the stale 4-column
+constraint. Also: the plan's own prescribed SQLite migration code
+(`PRAGMA index_list` to find a droppable constraint name) turned out to be
+fundamentally broken — SQLite/SQLAlchemy reflection nulls out unnamed
+constraints' names, so that approach could never work — fixed with the
+documented Alembic pattern (`sa.inspect().get_unique_constraints()` +
+`naming_convention` on `batch_alter_table`), verified via a full
+upgrade→downgrade→re-upgrade cycle. `Database-Schema-Unifolio.md` (v1.2)
+updated to match. Postgres path written carefully per the same pattern but
+unverified at runtime — no live Postgres in this sandbox; the postgres
+functional suite already smoke-runs `alembic upgrade head`, so it gets
+exercised in CI even though not here.
+
 ## Follow-up items, not yet actioned
 
-1. **Transaction dedupe key doesn't include `type` — needs a migration,
-   should lead the next branch.** `transactions`' `UniqueConstraint` and the
-   app-side dedupe tuple are `(folio_id, date, amount, units)`. Before Fix
-   #1 above, a same-day purchase and redemption of equal magnitude had
-   opposite signs and couldn't collide; after normalizing both to positive
-   magnitudes, they now can — the import pipeline's dedupe logic would
-   silently drop the second one as a false duplicate. Reproduced directly
-   during Task 5's own test-writing. **Flagged by the final review to lead
-   the next branch specifically because Phase 2b's Family CAS Upload is the
-   next real feature to touch this path with actual CAS files** — needs
-   `type` added to both the DB constraint (a migration) and the app-side
-   tuple in `backend/app/services/import_/service.py`, together (fixing one
-   without the other turns silent drops into `IntegrityError` 500s).
-2. **A held scheme with no obtainable NAV silently vanishes** from
+1. **A held scheme with no obtainable NAV silently vanishes** from
    holdings, allocation, and family aggregates — no row, no error, no
    placeholder. Matches the plan's own code (a stated design choice, not an
-   implementation slip), flagged by the final review as worth deciding
-   properly once the Phase 3 frontend is built (where the "NAV
+   implementation slip), flagged by Phase 3's final review as worth
+   deciding properly once the Phase 3 frontend is built (where the "NAV
    unavailable" UI treatment gets decided anyway).
-3. **Plan-type override has no server-side 409 backstop.** Pre-existing
+2. **Plan-type override has no server-side 409 backstop.** Pre-existing
    since Phase 1 backend, still open.
-4. **No DB uniqueness constraint on the "self" `household_members` row.**
+3. **No DB uniqueness constraint on the "self" `household_members` row.**
    Phase 2b's frontend mitigates client-side (list-then-create); a real fix
    is a backend migration. Pre-existing, still open.
-5. Various Minor items from Phase 3's task reviews, none blocking:
+4. Various Minor items from Phase 3's task reviews, none blocking:
    `average_nav`/snapshot `total_value` unquantized in API responses (up to
    28 significant digits); over-redemption silently swallowed with no log;
    `date.today()` is server-local, not IST-aware (matters once deployed);
@@ -137,21 +150,20 @@ credentials in this sandbox, push manually (`git push origin main`).
 
 ## What's next
 
-**Phase 3b (Main Dashboard frontend)** is the natural next step — the
-screens consuming the 10 routes this phase just built (App-Flow-Unifolio's
-S13-S16, S21-S22: per-member/family-aggregate dashboard, fund detail, Add
-Data re-entry, empty states). Needs its own design brainstorm.
+**Distributor Comparison (PRD-03 FR-11)** is next, per your explicit
+instruction — was originally deferred out of Phase 3 during brainstorming
+(external AMFI ARN-lookup dependency, own risk profile), now scheduled as
+its own small follow-up phase before the frontend. `arn_directory` (the
+caching table) already exists from Phase 0.
 
-**Distributor Comparison (PRD-03 FR-11)** was explicitly deferred out of
-this phase during brainstorming — its own small follow-up once the core
-dashboard ships, given its external AMFI ARN-lookup dependency.
+**Phase 3b (Main Dashboard frontend)** comes after Distributor Comparison —
+the screens consuming the now-11 (10 + distributor comparison) routes
+(App-Flow-Unifolio's S13-S17, S21-S22: per-member/family-aggregate
+dashboard, fund detail, distributor comparison, Add Data re-entry, empty
+states). Needs its own design brainstorm.
 
 **PRD-04 (Analytics)** remains fully unbuilt, the module after Main
 Dashboard in the natural build order.
-
-**Worth doing before real CAS data flows through Family CAS Upload:**
-Follow-up #1 above (the dedupe-key migration) — small, backend-only, but
-explicitly time-sensitive per the final review's own recommendation.
 
 ## Context/token usage
 

@@ -102,7 +102,7 @@ hand-built known-answer test fixtures, on-demand NAV fetch-and-cache
 yet), allocation/SIP/cash-flow/monthly-snapshot views, and placeholder-aware
 family aggregation — 10 new `GET` routes, one implementation per concern
 parameterized by a list of member IDs (no separate family/per-member code
-paths). Test suites on `main`: backend 140 passing, frontend 81 passing
+paths). Test suites on `main`: backend 142 passing, frontend 81 passing
 (17 files), `tsc -b --noEmit` clean.
 
 **Both Phase 2b's and Phase 3's final whole-branch reviews caught real
@@ -125,28 +125,36 @@ instead.
 **Not yet pushed** — `main` is ahead of `origin/main`; no TTY for
 credentials in this sandbox, push manually.
 
+**Transaction dedupe-key migration — resolved this session.** The
+time-sensitive follow-up Phase 3's final review flagged (dedupe key
+missing `type`, making a same-day purchase+redemption of equal magnitude
+collide and silently drop after fix (1) above) is fixed and merged —
+`transactions`' key is now `(folio_id, date, amount, units, type)` in the
+migration, the ORM model, and `confirm_import`. Two real gaps found and
+closed mid-execution: the ORM model needed widening too (this project's
+test suite builds schema via `create_all`, not Alembic — the plan wrongly
+assumed the two "agree by construction"), and the plan's own prescribed
+SQLite migration approach (`PRAGMA index_list`) was fundamentally broken,
+replaced with the documented Alembic pattern. Full detail in `session.md`.
+
 **Still open:**
-1. **Time-sensitive, flagged by Phase 3's final review to lead the *next*
-   branch:** `transactions`' dedupe key/`UniqueConstraint` doesn't include
-   `type` — after fix (1) above normalized signs, a same-day purchase and
-   redemption of equal magnitude can now collide and get silently dropped
-   as a false duplicate on import. Needs a migration, before Phase 2b's
-   Family CAS Upload starts processing real CAS files.
-2. A held scheme with no obtainable NAV silently vanishes from
+1. A held scheme with no obtainable NAV silently vanishes from
    holdings/allocation/aggregates, no error or placeholder — a Phase 3
    design choice, worth revisiting once the Phase 3 frontend decides the
    "NAV unavailable" UI treatment.
-3. `confirm_import`'s plan-type override has no server-side 409 backstop —
+2. `confirm_import`'s plan-type override has no server-side 409 backstop —
    pre-existing Phase 1 backend code.
-4. No DB uniqueness constraint on the "self" `household_members` row —
+3. No DB uniqueness constraint on the "self" `household_members` row —
    Phase 2b's frontend mitigates client-side; real fix is a migration.
 
 **ADR-001 — resolved.** Corrected via an Amendment section (Decision
 unchanged) — the CAS Parser frontend was never existing React work.
 
-**Phase 3b (Main Dashboard frontend) is next** — the screens consuming the
-10 routes Phase 3 just built. `DashboardPlaceholder`
-(`frontend/src/features/dashboard/`) is an intentional stub to replace
-outright, not extend. Distributor Comparison (PRD-03 FR-11) was explicitly
-deferred out of Phase 3 to its own small follow-up. PRD-04 (Analytics)
+**Distributor Comparison (PRD-03 FR-11) is next**, per explicit instruction
+— was deferred out of Phase 3 during brainstorming, now scheduled as its
+own small phase before the frontend. `arn_directory` already exists from
+Phase 0. **Phase 3b (Main Dashboard frontend) follows** — the screens
+consuming Phase 3's routes plus distributor comparison.
+`DashboardPlaceholder` (`frontend/src/features/dashboard/`) is an
+intentional stub to replace outright, not extend. PRD-04 (Analytics)
 remains fully unbuilt beyond that.
