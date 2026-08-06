@@ -1,0 +1,156 @@
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { FamilyImportFlow } from "./FamilyImportFlow";
+import { AuthProvider } from "./AuthContext";
+import * as authApi from "./api";
+import * as importApi from "../import/api";
+
+vi.mock("./api", async () => {
+  const actual = await vi.importActual<typeof import("./api")>("./api");
+  return { ...actual, getMe: vi.fn(), updateMe: vi.fn(), listHouseholdMembers: vi.fn(), createHouseholdMember: vi.fn() };
+});
+
+vi.mock("../import/api", async () => {
+  const actual = await vi.importActual<typeof import("../import/api")>("../import/api");
+  return { ...actual, parseImport: vi.fn(), confirmImport: vi.fn() };
+});
+
+const ME = {
+  user_id: "u1", phone_number: "+919999999999", email: null,
+  onboarding_step: "family_cas_upload", onboarding_completed: false, investor_type: null, primary_goal: null,
+};
+
+const FAMILY = [
+  { id: "mom", name: "Mom", relationship: "parent" as const, relationship_other_label: null },
+  { id: "dad", name: "Dad", relationship: "parent" as const, relationship_other_label: null },
+];
+
+const EMPTY_PREVIEW = {
+  session_id: "s1", filename: "cas.pdf", investor_name: null, investor_email: null,
+  pan_masked: null, schemes: [], transactions: [], transaction_count: 0,
+  parse_warnings: [], cas_type: "DETAILED", file_type: "FileType.CAMS",
+};
+
+function uploadFor(memberLabel: RegExp) {
+  const file = new File(["pdf-bytes"], "cas.pdf", { type: "application/pdf" });
+  fireEvent.click(screen.getByRole("button", { name: memberLabel }));
+  fireEvent.change(screen.getByLabelText(/cas pdf/i), { target: { files: [file] } });
+  fireEvent.change(screen.getByLabelText(/pdf password/i), { target: { value: "secret" } });
+  fireEvent.click(screen.getByRole("button", { name: /^upload$/i }));
+}
+
+function renderFlow() {
+  vi.mocked(authApi.getMe).mockResolvedValue(ME);
+  vi.mocked(authApi.updateMe).mockImplementation(async (body) => ({ ...ME, ...body }) as typeof ME);
+  return render(
+    <AuthProvider>
+      <FamilyImportFlow familyMembers={FAMILY} selfName="Ayush" />
+    </AuthProvider>,
+  );
+}
+
+describe("FamilyImportFlow", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("shows one card per family member, all Not Uploaded initially", async () => {
+    renderFlow();
+    await waitFor(() => expect(screen.getByText("Mom")).toBeInTheDocument());
+
+    expect(screen.getAllByText(/not uploaded/i)).toHaveLength(2);
+  });
+
+  it("flips a card to Uploaded after choosing a file for that member, without affecting the other card", async () => {
+    renderFlow();
+    await waitFor(() => screen.getByText("Mom"));
+
+    uploadFor(/upload cas for mom/i);
+
+    // Anchored: /uploaded/i alone would also match the "Not Uploaded" badge.
+    await waitFor(() => expect(screen.getAllByText(/^uploaded$/i)).toHaveLength(1));
+    expect(screen.getByText(/not uploaded/i)).toBeInTheDocument();
+  });
+
+  it("does not call parseImport when a file is queued (upload only queues, never auto-parses)", async () => {
+    renderFlow();
+    await waitFor(() => screen.getByText("Mom"));
+
+    uploadFor(/upload cas for mom/i);
+
+    await waitFor(() => expect(screen.getAllByText(/^uploaded$/i)).toHaveLength(1));
+    expect(importApi.parseImport).not.toHaveBeenCalled();
+  });
+
+  it("reaches Upload My CAS? once every member card is Uploaded or skipped, then Parse Queue on Upload Later", async () => {
+    renderFlow();
+    await waitFor(() => screen.getByText("Mom"));
+    uploadFor(/upload cas for mom/i);
+    await waitFor(() => screen.getAllByText(/uploaded/i));
+    fireEvent.click(screen.getByRole("button", { name: /skip for now.*dad/i }));
+    await waitFor(() => expect(screen.getByRole("button", { name: /^continue$/i })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
+
+    await waitFor(() => expect(screen.getByText(/upload your own cas/i)).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: /upload later/i }));
+
+    await waitFor(() => expect(screen.getByText(/cas\.pdf/i)).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: /parse files/i })).toBeInTheDocument();
+  });
+
+  it("parses queued files sequentially and shows one aggregate ImportConfirmed at the end", async () => {
+    vi.mocked(importApi.parseImport).mockResolvedValue(EMPTY_PREVIEW);
+    vi.mocked(importApi.confirmImport)
+      .mockResolvedValueOnce({ added: 2, skipped: 0, import_id: "imp-mom" })
+      .mockResolvedValueOnce({ added: 3, skipped: 1, import_id: "imp-dad" });
+
+    renderFlow();
+    await waitFor(() => screen.getByText("Mom"));
+    uploadFor(/upload cas for mom/i);
+    await waitFor(() => screen.getAllByText(/uploaded/i));
+    uploadFor(/upload cas for dad/i);
+    await waitFor(() => expect(screen.getByRole("button", { name: /^continue$/i })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
+    await waitFor(() => expect(screen.getByText(/upload your own cas/i)).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: /upload later/i }));
+    await waitFor(() => screen.getByRole("button", { name: /parse files/i }));
+
+    fireEvent.click(screen.getByRole("button", { name: /parse files/i }));
+
+    await waitFor(() => expect(screen.getByText(/reviewing: mom's cas/i)).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: /confirm import/i }));
+
+    await waitFor(() => expect(screen.getByText(/reviewing: dad's cas/i)).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: /confirm import/i }));
+
+    await waitFor(() => expect(screen.getByText(/import complete/i)).toBeInTheDocument());
+    expect(screen.getByText(/5 new transactions added, 1 duplicate skipped/i)).toBeInTheDocument();
+    expect(importApi.confirmImport).toHaveBeenNthCalledWith(1, "s1", "mom", []);
+    expect(importApi.confirmImport).toHaveBeenNthCalledWith(2, "s1", "dad", []);
+  });
+
+  it("continues to the next queued file after a per-item parse failure", async () => {
+    vi.mocked(importApi.parseImport)
+      .mockRejectedValueOnce({ status: 422, payload: { code: "wrong_password", message: "Incorrect PDF password." } })
+      .mockResolvedValueOnce(EMPTY_PREVIEW);
+    vi.mocked(importApi.confirmImport).mockResolvedValue({ added: 1, skipped: 0, import_id: "imp-dad" });
+
+    renderFlow();
+    await waitFor(() => screen.getByText("Mom"));
+    uploadFor(/upload cas for mom/i);
+    await waitFor(() => screen.getAllByText(/uploaded/i));
+    uploadFor(/upload cas for dad/i);
+    await waitFor(() => expect(screen.getByRole("button", { name: /^continue$/i })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
+    await waitFor(() => screen.getByText(/upload your own cas/i));
+    fireEvent.click(screen.getByRole("button", { name: /upload later/i }));
+    await waitFor(() => screen.getByRole("button", { name: /parse files/i }));
+
+    fireEvent.click(screen.getByRole("button", { name: /parse files/i }));
+
+    await waitFor(() => expect(screen.getByText(/import failed/i)).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: /try again/i }));
+
+    await waitFor(() => expect(screen.getByText(/reviewing: dad's cas/i)).toBeInTheDocument());
+  });
+});

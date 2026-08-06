@@ -11,6 +11,7 @@ import { Q3Purpose } from "./Q3Purpose";
 import { Q4Household } from "./Q4Household";
 import { AddFamilyMembers } from "./AddFamilyMembers";
 import { SoloCasUpload } from "./SoloCasUpload";
+import { FamilyImportFlow } from "./FamilyImportFlow";
 import type { HouseholdMember, InvestorType, PrimaryGoal } from "./types";
 
 export interface OnboardingAnswers {
@@ -120,7 +121,7 @@ export function OnboardingFlow() {
   }
 
   if (step === "family_cas_upload" || step === "upload_my_cas" || step === "parse_queue") {
-    return <p>Family CAS Upload — built in Task 10.</p>;
+    return <FamilyImportFlow familyMembers={answers.familyMembers} selfName={answers.name} />;
   }
 
   return null;
