@@ -1,3 +1,5 @@
+import { API_BASE_URL, ApiError, parseErrorDetail } from "../../lib/apiClient";
+import { getToken } from "../auth/session";
 import type {
   ImportConfirmResponse,
   ImportPreviewResponse,
@@ -5,37 +7,11 @@ import type {
   SchemeConfirmation,
 } from "./types";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
-const HOUSEHOLD_MEMBER_ID = import.meta.env.VITE_DEV_HOUSEHOLD_MEMBER_ID ?? "";
+export { ApiError };
 
-export class ApiError extends Error {
-  status: number;
-  payload: ParseErrorPayload | string;
-
-  constructor(status: number, payload: ParseErrorPayload | string) {
-    super(typeof payload === "string" ? payload : payload.message);
-    this.status = status;
-    this.payload = payload;
-  }
-}
-
-async function parseErrorDetail(response: Response): Promise<ParseErrorPayload | string> {
-  try {
-    const body = await response.json();
-    const detail = body?.detail;
-    if (detail && typeof detail === "object" && !Array.isArray(detail) && "code" in detail) {
-      return detail as ParseErrorPayload;
-    }
-    if (typeof detail === "string") {
-      return detail;
-    }
-    if (Array.isArray(detail) && detail.length > 0 && typeof detail[0]?.msg === "string") {
-      return detail[0].msg as string;
-    }
-    return `Request failed with status ${response.status}`;
-  } catch {
-    return `Request failed with status ${response.status}`;
-  }
+function authHeaders(): HeadersInit {
+  const token = getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 export async function parseImport(file: File, password: string): Promise<ImportPreviewResponse> {
@@ -45,11 +21,12 @@ export async function parseImport(file: File, password: string): Promise<ImportP
 
   const response = await fetch(`${API_BASE_URL}/imports/parse`, {
     method: "POST",
+    headers: authHeaders(),
     body: formData,
   });
 
   if (!response.ok) {
-    throw new ApiError(response.status, await parseErrorDetail(response));
+    throw new ApiError(response.status, (await parseErrorDetail(response)) as ParseErrorPayload | string);
   }
 
   return (await response.json()) as ImportPreviewResponse;
@@ -57,20 +34,21 @@ export async function parseImport(file: File, password: string): Promise<ImportP
 
 export async function confirmImport(
   sessionId: string,
+  householdMemberId: string,
   schemeConfirmations: SchemeConfirmation[],
 ): Promise<ImportConfirmResponse> {
   const response = await fetch(`${API_BASE_URL}/imports/confirm`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({
       session_id: sessionId,
-      household_member_id: HOUSEHOLD_MEMBER_ID,
+      household_member_id: householdMemberId,
       scheme_confirmations: schemeConfirmations,
     }),
   });
 
   if (!response.ok) {
-    throw new ApiError(response.status, await parseErrorDetail(response));
+    throw new ApiError(response.status, (await parseErrorDetail(response)) as ParseErrorPayload | string);
   }
 
   return (await response.json()) as ImportConfirmResponse;
