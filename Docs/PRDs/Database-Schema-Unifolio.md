@@ -1,8 +1,8 @@
 ---
 artifact: database-schema
-version: "1.1"
+version: "1.2"
 created: 2026-07-22
-updated: 2026-07-22
+updated: 2026-08-06
 status: draft
 product: Unifolio
 target: "AWS RDS for PostgreSQL (ADR-003)"
@@ -166,7 +166,7 @@ below); the dedupe constraint already includes `date` so it partitions cleanly a
 | `nav` | `NUMERIC(10,4)` NOT NULL | |
 | `raw_description` | `VARCHAR` NULLABLE | Preserves original text for `misc`-typed rows, per PRD-01 FR-3 |
 | PRIMARY KEY | `(id, date)` | Composite because `date` (the partition key) must be part of every unique index on a partitioned table — `id` alone remains the practical row identifier for foreign-key references from elsewhere if ever needed |
-| UNIQUE | `(folio_id, date, amount, units)` | **The dedupe key** — PRD-01 FR-9, PRD-03's re-upload edge case. Already includes `date`, so it partitions cleanly with no redesign needed |
+| UNIQUE | `(folio_id, date, amount, units, type)` | **The dedupe key** — PRD-01 FR-9, PRD-03's re-upload edge case. Already includes `date`, so it partitions cleanly with no redesign needed. (`type` added v1.2: `amount`/`units` are stored as positive magnitudes, so a same-day purchase and redemption of equal size would otherwise collide and one be dropped as a false duplicate) |
 | Partitions | `transactions_2020` ... `transactions_2026`, `transactions_default` | Yearly range partitions; a `DEFAULT` partition catches anything outside the defined ranges (e.g., a very old transaction from a long-held fund) rather than failing the insert — new yearly partitions get added routinely as time passes, a small recurring ops task rather than a redesign |
 
 ### `nav_history` (reference data)
@@ -331,3 +331,4 @@ None remaining from this pass.
 |---------|------|--------|---------|
 | 1.0 | 2026-07-22 | Claude (PM partner) | Initial draft |
 | 1.1 | 2026-07-22 | Claude (PM partner) | PAN confirmed never persisted; `relationship` changed to structured enum + other-label fallback; `transactions` and `nav_history` now partitioned by `RANGE(date)`, yearly, from MVP launch (not deferred); added foundational `otp_requests` and `sessions` tables for PRD-02's phone+OTP auth |
+| 1.2 | 2026-08-06 | Claude (PM partner) | `transactions` dedupe key widened to `(folio_id, date, amount, units, type)` — with amounts/units normalized to positive magnitudes, equal-magnitude same-day purchase+redemption pairs were no longer sign-distinguishable and collided under the 4-column key; matches migration 0002 |
