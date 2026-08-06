@@ -9,6 +9,7 @@ import { Q1Name } from "./Q1Name";
 import { Q2Investing } from "./Q2Investing";
 import { Q3Purpose } from "./Q3Purpose";
 import { Q4Household } from "./Q4Household";
+import { AddFamilyMembers } from "./AddFamilyMembers";
 import type { HouseholdMember, InvestorType, PrimaryGoal } from "./types";
 
 export interface OnboardingAnswers {
@@ -103,7 +104,14 @@ export function OnboardingFlow() {
   }
 
   if (step === "add_family") {
-    return <p>Add Family Members — built in Task 8.</p>;
+    return (
+      <AddFamilyMembers
+        members={answers.familyMembers}
+        onMembersChange={(familyMembers) => setAnswers((a) => ({ ...a, familyMembers }))}
+        onBack={back}
+        onContinue={() => advance("family_cas_upload")}
+      />
+    );
   }
 
   if (step === "cas_upload") {
