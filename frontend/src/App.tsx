@@ -1,15 +1,28 @@
-import { ImportFlow } from "./features/import/ImportFlow";
+import { AuthProvider, useAuth } from "./features/auth/AuthContext";
+import { AuthEntryFlow } from "./features/auth/AuthEntryFlow";
+import { OnboardingFlow } from "./features/auth/OnboardingFlow";
+import { DashboardPlaceholder } from "./features/dashboard/DashboardPlaceholder";
+
+function AppShell() {
+  const { me, loading } = useAuth();
+
+  if (loading) {
+    return null;
+  }
+  if (!me) {
+    return <AuthEntryFlow />;
+  }
+  if (!me.onboarding_completed) {
+    return <OnboardingFlow />;
+  }
+  return <DashboardPlaceholder />;
+}
 
 function App() {
   return (
-    <div>
-      <header>
-        <h2>Unifolio</h2>
-      </header>
-      {/* Phase 1b standalone screen — already non-functional without auth (known state).
-          Task 11 replaces this file with the AuthProvider composition root. */}
-      <ImportFlow householdMemberId="" />
-    </div>
+    <AuthProvider>
+      <AppShell />
+    </AuthProvider>
   );
 }
 
