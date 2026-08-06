@@ -4,6 +4,7 @@ import { FamilyImportFlow } from "./FamilyImportFlow";
 import { AuthProvider } from "./AuthContext";
 import * as authApi from "./api";
 import * as importApi from "../import/api";
+import { ApiError } from "../import/api";
 
 vi.mock("./api", async () => {
   const actual = await vi.importActual<typeof import("./api")>("./api");
@@ -129,11 +130,35 @@ describe("FamilyImportFlow", () => {
     expect(importApi.confirmImport).toHaveBeenNthCalledWith(2, "s1", "dad", []);
   });
 
-  it("continues to the next queued file after a per-item parse failure", async () => {
+  it("retries the same item on Try again after a per-item parse failure", async () => {
     vi.mocked(importApi.parseImport)
       .mockRejectedValueOnce({ status: 422, payload: { code: "wrong_password", message: "Incorrect PDF password." } })
       .mockResolvedValueOnce(EMPTY_PREVIEW);
-    vi.mocked(importApi.confirmImport).mockResolvedValue({ added: 1, skipped: 0, import_id: "imp-dad" });
+
+    renderFlow();
+    await waitFor(() => screen.getByText("Mom"));
+    uploadFor(/upload cas for mom/i);
+    await waitFor(() => screen.getAllByText(/uploaded/i));
+    fireEvent.click(screen.getByRole("button", { name: /skip for now.*dad/i }));
+    await waitFor(() => expect(screen.getByRole("button", { name: /^continue$/i })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
+    await waitFor(() => screen.getByText(/upload your own cas/i));
+    fireEvent.click(screen.getByRole("button", { name: /upload later/i }));
+    await waitFor(() => screen.getByRole("button", { name: /parse files/i }));
+
+    fireEvent.click(screen.getByRole("button", { name: /parse files/i }));
+
+    await waitFor(() => expect(screen.getByText(/import failed/i)).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: /try again/i }));
+
+    await waitFor(() => expect(screen.getByText(/reviewing: mom's cas/i)).toBeInTheDocument());
+    expect(importApi.parseImport).toHaveBeenCalledTimes(2);
+  });
+
+  it("skips a failed item via the explicit skip button and moves to the next queued file", async () => {
+    vi.mocked(importApi.parseImport)
+      .mockRejectedValueOnce({ status: 422, payload: { code: "wrong_password", message: "Incorrect PDF password." } })
+      .mockResolvedValueOnce(EMPTY_PREVIEW);
 
     renderFlow();
     await waitFor(() => screen.getByText("Mom"));
@@ -149,8 +174,53 @@ describe("FamilyImportFlow", () => {
     fireEvent.click(screen.getByRole("button", { name: /parse files/i }));
 
     await waitFor(() => expect(screen.getByText(/import failed/i)).toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: /try again/i }));
+    fireEvent.click(screen.getByRole("button", { name: /skip mom for now/i }));
 
     await waitFor(() => expect(screen.getByText(/reviewing: dad's cas/i)).toBeInTheDocument());
+  });
+
+  it("stays on the review screen with an alert when confirm fails with 404", async () => {
+    vi.mocked(importApi.parseImport).mockResolvedValue(EMPTY_PREVIEW);
+    vi.mocked(importApi.confirmImport).mockRejectedValueOnce(new ApiError(404, "Import session not found."));
+
+    renderFlow();
+    await waitFor(() => screen.getByText("Mom"));
+    uploadFor(/upload cas for mom/i);
+    await waitFor(() => screen.getAllByText(/uploaded/i));
+    fireEvent.click(screen.getByRole("button", { name: /skip for now.*dad/i }));
+    await waitFor(() => expect(screen.getByRole("button", { name: /^continue$/i })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
+    await waitFor(() => screen.getByText(/upload your own cas/i));
+    fireEvent.click(screen.getByRole("button", { name: /upload later/i }));
+    await waitFor(() => screen.getByRole("button", { name: /parse files/i }));
+
+    fireEvent.click(screen.getByRole("button", { name: /parse files/i }));
+    await waitFor(() => expect(screen.getByText(/reviewing: mom's cas/i)).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: /confirm import/i }));
+
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(/expired/i));
+    expect(screen.getByText(/reviewing: mom's cas/i)).toBeInTheDocument();
+  });
+
+  it("shows a recoverable error when own-upload self-member setup fails", async () => {
+    vi.mocked(authApi.listHouseholdMembers).mockRejectedValue(new Error("network down"));
+
+    renderFlow();
+    await waitFor(() => screen.getByText("Mom"));
+    fireEvent.click(screen.getByRole("button", { name: /skip for now.*mom/i }));
+    fireEvent.click(screen.getByRole("button", { name: /skip for now.*dad/i }));
+    await waitFor(() => expect(screen.getByRole("button", { name: /^continue$/i })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
+    await waitFor(() => screen.getByText(/upload your own cas/i));
+    fireEvent.click(screen.getByRole("button", { name: /upload now/i }));
+    await waitFor(() => screen.getByLabelText(/cas pdf/i));
+
+    const file = new File(["pdf-bytes"], "cas.pdf", { type: "application/pdf" });
+    fireEvent.change(screen.getByLabelText(/cas pdf/i), { target: { files: [file] } });
+    fireEvent.change(screen.getByLabelText(/pdf password/i), { target: { value: "secret" } });
+    fireEvent.click(screen.getByRole("button", { name: /^upload$/i }));
+
+    await waitFor(() => expect(screen.getByText(/couldn't set up your profile/i)).toBeInTheDocument());
+    expect(screen.getByLabelText(/cas pdf/i)).toBeInTheDocument();
   });
 });

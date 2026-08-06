@@ -12,6 +12,7 @@ import type { ImportConfirmResponse, ImportPreviewResponse, ParseErrorPayload, S
 import { useAuth } from "./AuthContext";
 import { createHouseholdMember, listHouseholdMembers } from "./api";
 import type { HouseholdMember } from "./types";
+import styles from "./onboarding.module.css";
 
 interface FamilyImportFlowProps {
   familyMembers: HouseholdMember[];
@@ -48,11 +49,14 @@ export function FamilyImportFlow({ familyMembers, selfName }: FamilyImportFlowPr
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
   const [processing, setProcessing] = useState<ProcessingState | null>(null);
   const [results, setResults] = useState<ImportConfirmResponse[]>([]);
+  const [reviewNotice, setReviewNotice] = useState<string | null>(null);
+  const [ownUploadError, setOwnUploadError] = useState<string | null>(null);
 
   // Strictly sequential: one parse at a time — the next item only starts after
   // the current one is confirmed or skipped (the backend's preview-session
   // store is not safe under concurrent parses).
   const startParsing = async (index: number) => {
+    setReviewNotice(null);
     setProcessing({ index, status: "parsing", preview: null, error: null });
     try {
       const preview = await parseImport(queue[index].file, queue[index].password);
@@ -83,11 +87,29 @@ export function FamilyImportFlow({ familyMembers, selfName }: FamilyImportFlowPr
   const handleConfirm = async (confirmations: SchemeConfirmation[]) => {
     if (!processing?.preview) return;
     const item = queue[processing.index];
+    setReviewNotice(null);
     try {
       const result = await confirmImport(processing.preview.session_id, item.memberId, confirmations);
       advanceOrFinish([...results, result]);
-    } catch {
-      setProcessing({ ...processing, status: "error", error: GENERIC_NETWORK_ERROR });
+    } catch (err) {
+      // 409 (needs an override) / 404 (session expired) are recoverable from the
+      // review screen — keep the parsed preview rendered with an inline notice,
+      // mirroring ImportFlow.handleConfirm.
+      if (err instanceof ApiError && (err.status === 409 || err.status === 404)) {
+        setReviewNotice(
+          err.status === 404
+            ? "This import session has expired. Please re-upload your CAS."
+            : toParseErrorPayload(err).message,
+        );
+        return;
+      }
+      setProcessing({ ...processing, status: "error", error: toParseErrorPayload(err) });
+    }
+  };
+
+  const handleRetryFailedItem = () => {
+    if (processing) {
+      void startParsing(processing.index);
     }
   };
 
@@ -127,16 +149,25 @@ export function FamilyImportFlow({ familyMembers, selfName }: FamilyImportFlowPr
 
   if (stage === "own-upload") {
     return (
-      <UploadMyCas
-        awaitingUpload
-        onUploadNow={() => {}}
-        onUploadLater={() => {}}
-        onSubmit={async (file, password) => {
-          const self = await resolveSelfMember();
-          setQueue((q) => [...q, { memberId: self.id, memberName: self.name, file, password }]);
-          setStage("queue");
-        }}
-      />
+      <>
+        {ownUploadError && <p className={styles.error}>{ownUploadError}</p>}
+        <UploadMyCas
+          awaitingUpload
+          onUploadNow={() => {}}
+          onUploadLater={() => {}}
+          onSubmit={async (file, password) => {
+            // UploadForm doesn't await/catch onSubmit — errors must be caught here.
+            setOwnUploadError(null);
+            try {
+              const self = await resolveSelfMember();
+              setQueue((q) => [...q, { memberId: self.id, memberName: self.name, file, password }]);
+              setStage("queue");
+            } catch {
+              setOwnUploadError("Couldn't set up your profile. Please try again.");
+            }
+          }}
+        />
+      </>
     );
   }
 
@@ -153,15 +184,22 @@ export function FamilyImportFlow({ familyMembers, selfName }: FamilyImportFlowPr
       return (
         <>
           <p>{`Reviewing: ${item.memberName}'s CAS`}</p>
+          {reviewNotice && <p role="alert">{reviewNotice}</p>}
           <ReviewTable preview={processing.preview} confirming={false} onConfirm={handleConfirm} />
         </>
       );
     }
     return (
-      <ImportError
-        error={processing.error ?? GENERIC_NETWORK_ERROR}
-        onRetry={handleSkipFailedItem}
-      />
+      <>
+        <p>{`${item.memberName}'s CAS`}</p>
+        <ImportError
+          error={processing.error ?? GENERIC_NETWORK_ERROR}
+          onRetry={handleRetryFailedItem}
+        />
+        <button type="button" onClick={handleSkipFailedItem}>
+          {`Skip ${item.memberName} for now`}
+        </button>
+      </>
     );
   }
 
