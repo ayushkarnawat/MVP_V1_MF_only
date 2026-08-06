@@ -85,57 +85,51 @@ frontend framework, or a service split not already in that document.
 
 ## Session State
 
-*(Updated 2026-08-05. See `session.md` at repo root for full detail — this is the
+*(Updated 2026-08-06. See `session.md` at repo root for full detail — this is the
 one-paragraph pointer for a fresh session.)*
 
-**Phase 0, Phase 1 (backend + frontend), and Phase 2 (backend) are all
-complete and merged to `main`.** Phase 1 built CAS import end to end
-(`backend/app/services/import_/`, `frontend/src/features/import/`). Phase 2
-backend built phone+OTP auth (`backend/app/services/auth/`,
-`POST /auth/otp/request|verify`, `GET`/`PATCH /auth/me`,
-`POST /auth/session/refresh`) and household-member CRUD
-(`backend/app/services/dashboard/household_members.py`,
-`POST`/`GET /household-members`) — a `get_current_user` FastAPI dependency
-is the real security boundary for authenticated endpoints, resolving the
-acting user strictly from a bearer session token, never a client-supplied
-id. Test suites on `main`: backend 92 passing, frontend 23 passing.
+**Phase 0, Phase 1 (backend + frontend), Phase 2 (backend), and Phase 2b
+(Onboarding frontend) are all complete and merged to `main`.** Phase 1 built
+CAS import end to end (`backend/app/services/import_/`,
+`frontend/src/features/import/`). Phase 2 backend built phone+OTP auth
+(`backend/app/services/auth/`, `POST /auth/otp/request|verify`,
+`GET`/`PATCH /auth/me`, `POST /auth/session/refresh`) and household-member
+CRUD (`POST`/`GET /household-members`) — `get_current_user` is the real
+security boundary for authenticated endpoints. Phase 2b built the full
+Onboarding frontend in `frontend/src/features/auth/`: a landing screen
+(Sign Up/Log In), phone+OTP login, a back-navigable questionnaire (a pure,
+tested history reducer backs FR-7a's revisit requirement), and the Family
+CAS Upload subsystem — per-member upload cards, a client-side queue, strictly
+sequential batch parsing (never parallel — the backend's in-memory
+preview-session store isn't safe under concurrent parses), and one aggregate
+`ImportConfirmed` payoff at the end. Test suites on `main`: backend 92
+passing, frontend 81 passing (17 files), `tsc -b --noEmit` clean.
 
-**Mid-Phase-2b scope pivot (2026-08-05):** a team brainstorm surfaced real
-gaps in the onboarding design — a landing (Sign Up/Log In) screen before
-phone entry, revisitable/back-navigable onboarding questions, and a **Family
-CAS Upload** flow (per-member independent upload cards, never merged; a
-client-side upload queue; a single "Parse Files" batch action; sequential
-review/confirm reusing the existing Import Review screen once per file).
-Docs updated first, then a backend gap the new flow depends on:
-- **Docs, done and committed:** `PRD-02-Signup-Onboarding.md` v1.3 (new FR-2b,
-  FR-7a, FR-10-FR-14), `App-Flow-Unifolio.md` v1.2 (S23-S26 + new diagrams),
-  `PRD-01-CAS-Parser-v2.md` v1.4 (cross-reference note only).
-- **Backend, done and committed:** `/imports/parse` and `/imports/confirm`
-  now require `Depends(get_current_user)`; `/confirm` validates
-  `household_member_id` belongs to the caller (closes the IDOR gap noted
-  below); added `GET /auth/me`; `PATCH /auth/me` can now set
-  `onboarding_completed` (forward-only). **Known consequence:** the Phase 1b
-  Import Review frontend has no login step yet, so it can't call these
-  endpoints until Phase 2b's frontend wires real auth in — expected, not a
-  regression.
+**Phase 2b's final whole-branch review caught 5 real issues, all fixed
+before merge** — most notably a permanent dead end for a family user who
+skipped every upload (queue empty, "Parse Files" stuck disabled, no way to
+finish onboarding), and the family roster not surviving a page reload
+(fixed by having `FamilyImportFlow` fetch its own roster live from
+`GET /household-members` instead of trusting a React-state prop). Full list
+in `session.md`. One implementer self-correction during the fix wave: a
+React StrictMode double-invoke guard, initially specified one way, would
+have deadlocked the component — caught by an actual failing test run, then
+independently re-verified (not just re-read) by the re-reviewer.
 
-**Not yet pushed** — `main` is 2 commits ahead of `origin/main` (the doc
-pivot + auth-wiring fix above); `origin/main` did catch up to the earlier
-Phase 2 backend merge at some point this session. No TTY for credentials in
-this sandbox; push manually.
+**Not yet pushed** — `main` is ahead of `origin/main`; no TTY for
+credentials in this sandbox, push manually.
 
-**Resolved / still open:**
-1. ~~`/imports/confirm` had no ownership check (IDOR)~~ — fixed, see above.
-2. `confirm_import`'s plan-type override has no server-side 409 backstop
-   (unlike the AMFI-confidence check) — still open, pre-existing Phase 1
-   backend code untouched since.
+**Still open (pre-existing, none from this session's work):**
+1. `confirm_import`'s plan-type override has no server-side 409 backstop
+   (unlike the AMFI-confidence check) — pre-existing Phase 1 backend code.
+2. No DB uniqueness constraint on the "self" `household_members` row —
+   Phase 2b's frontend mitigates client-side (list-then-create), but two
+   browser tabs or overlapping devices could still race a duplicate. Real
+   fix is a backend migration.
 
 **ADR-001 — resolved.** Corrected via an Amendment section (Decision
 unchanged) — the CAS Parser frontend was never existing React work.
 
-**Phase 2b (Onboarding frontend) is next, scope now includes the pivot
-above** — not started. Needs a design brainstorm covering the landing
-screen, back-navigation, and the full Family CAS Upload subsystem (queue,
-batch parse, per-member cards, sequential reuse of `ReviewTable`) before
-`writing-plans` → `subagent-driven-development`. PRD-03 (Main Dashboard) and
-PRD-04 (Analytics) remain fully unbuilt beyond that.
+**PRD-03 (Main Dashboard) and PRD-04 (Analytics) are next** — both fully
+unbuilt. `DashboardPlaceholder` (`frontend/src/features/dashboard/`) is an
+intentional stub to replace outright, not extend, when PRD-03 starts.
