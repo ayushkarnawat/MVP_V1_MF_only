@@ -49,3 +49,12 @@ class AllocationSummary(BaseModel):
     by_asset_class: list[AllocationBucket]
     by_amc: list[AllocationBucket]
     total_value: str
+
+
+class SipRow(BaseModel):
+    scheme_id: str
+    scheme_name: str
+    household_member_id: str
+    household_member_name: str
+    sip_date: date
+    sip_amount: str

@@ -18,7 +18,9 @@ from app.services.dashboard.schemas import (
     HoldingRow,
     HouseholdMemberCreate,
     HouseholdMemberResponse,
+    SipRow,
 )
+from app.services.dashboard.sip import compute_active_sips
 
 router = APIRouter(tags=["dashboard"])
 
@@ -74,3 +76,14 @@ async def get_member_allocation(
     if get_household_member_for_user(db, user.id, member_id) is None:
         raise HTTPException(status_code=404, detail="Household member not found.")
     return await compute_allocation(db, [member_id])
+
+
+@router.get("/household-members/{member_id}/sips", response_model=list[SipRow])
+def get_member_sips(
+    member_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    db: DbSession = Depends(get_db),
+):
+    if get_household_member_for_user(db, user.id, member_id) is None:
+        raise HTTPException(status_code=404, detail="Household member not found.")
+    return compute_active_sips(db, [member_id])
