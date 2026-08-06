@@ -6,6 +6,13 @@ from sqlalchemy.orm import Session as DbSession
 from app.db.session import get_db
 from app.models.user import User
 from app.services.auth.session import get_current_user
+from app.services.dashboard.aggregate import (
+    get_aggregate_allocation,
+    get_aggregate_cash_flow,
+    get_aggregate_holdings,
+    get_aggregate_sips,
+    get_aggregate_snapshots,
+)
 from app.services.dashboard.allocation import compute_allocation
 from app.services.dashboard.cash_flow import compute_cash_flow
 from app.services.dashboard.holdings import compute_holdings
@@ -15,6 +22,11 @@ from app.services.dashboard.household_members import (
     list_household_members,
 )
 from app.services.dashboard.schemas import (
+    AggregateAllocationResponse,
+    AggregateCashFlowResponse,
+    AggregateHoldingsResponse,
+    AggregateSipsResponse,
+    AggregateSnapshotsResponse,
     AllocationSummary,
     CashFlowEntry,
     HoldingRow,
@@ -113,3 +125,38 @@ async def get_member_snapshots(
     if get_household_member_for_user(db, user.id, member_id) is None:
         raise HTTPException(status_code=404, detail="Household member not found.")
     return await get_snapshots(db, [member_id])
+
+
+@router.get("/household/aggregate/holdings", response_model=AggregateHoldingsResponse)
+async def get_household_aggregate_holdings(
+    user: User = Depends(get_current_user), db: DbSession = Depends(get_db)
+):
+    return await get_aggregate_holdings(db, user.id)
+
+
+@router.get("/household/aggregate/allocation", response_model=AggregateAllocationResponse)
+async def get_household_aggregate_allocation(
+    user: User = Depends(get_current_user), db: DbSession = Depends(get_db)
+):
+    return await get_aggregate_allocation(db, user.id)
+
+
+@router.get("/household/aggregate/sips", response_model=AggregateSipsResponse)
+def get_household_aggregate_sips(
+    user: User = Depends(get_current_user), db: DbSession = Depends(get_db)
+):
+    return get_aggregate_sips(db, user.id)
+
+
+@router.get("/household/aggregate/cash-flow", response_model=AggregateCashFlowResponse)
+def get_household_aggregate_cash_flow(
+    user: User = Depends(get_current_user), db: DbSession = Depends(get_db)
+):
+    return get_aggregate_cash_flow(db, user.id)
+
+
+@router.get("/household/aggregate/snapshots", response_model=AggregateSnapshotsResponse)
+async def get_household_aggregate_snapshots(
+    user: User = Depends(get_current_user), db: DbSession = Depends(get_db)
+):
+    return await get_aggregate_snapshots(db, user.id)

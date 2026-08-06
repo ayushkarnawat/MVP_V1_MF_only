@@ -75,3 +75,34 @@ class SnapshotRow(BaseModel):
     household_member_name: str
     snapshot_month: date
     total_value: str
+
+
+class MemberStatus(BaseModel):
+    id: str
+    name: str
+    has_data: bool
+
+
+class AggregateHoldingsResponse(BaseModel):
+    members: list[MemberStatus]
+    holdings: list[HoldingRow]
+
+
+class AggregateAllocationResponse(BaseModel):
+    members: list[MemberStatus]
+    allocation: AllocationSummary
+
+
+class AggregateSipsResponse(BaseModel):
+    members: list[MemberStatus]
+    sips: list[SipRow]
+
+
+class AggregateCashFlowResponse(BaseModel):
+    members: list[MemberStatus]
+    cash_flow: list[CashFlowEntry]
+
+
+class AggregateSnapshotsResponse(BaseModel):
+    members: list[MemberStatus]
+    snapshots: list[SnapshotRow]
