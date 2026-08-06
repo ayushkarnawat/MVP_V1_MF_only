@@ -21,8 +21,10 @@ from app.services.dashboard.schemas import (
     HouseholdMemberCreate,
     HouseholdMemberResponse,
     SipRow,
+    SnapshotRow,
 )
 from app.services.dashboard.sip import compute_active_sips
+from app.services.dashboard.snapshots import get_snapshots
 
 router = APIRouter(tags=["dashboard"])
 
@@ -100,3 +102,14 @@ def get_member_cash_flow(
     if get_household_member_for_user(db, user.id, member_id) is None:
         raise HTTPException(status_code=404, detail="Household member not found.")
     return compute_cash_flow(db, [member_id])
+
+
+@router.get("/household-members/{member_id}/snapshots", response_model=list[SnapshotRow])
+async def get_member_snapshots(
+    member_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    db: DbSession = Depends(get_db),
+):
+    if get_household_member_for_user(db, user.id, member_id) is None:
+        raise HTTPException(status_code=404, detail="Household member not found.")
+    return await get_snapshots(db, [member_id])

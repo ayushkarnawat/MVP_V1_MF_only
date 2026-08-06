@@ -68,3 +68,10 @@ class CashFlowEntry(BaseModel):
     scheme_name: str
     household_member_id: str
     household_member_name: str
+
+
+class SnapshotRow(BaseModel):
+    household_member_id: str
+    household_member_name: str
+    snapshot_month: date
+    total_value: str
