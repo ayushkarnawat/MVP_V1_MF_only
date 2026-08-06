@@ -45,6 +45,43 @@ def test_alembic_upgrade_creates_all_tables(tmp_path, monkeypatch):
     assert expected.issubset(tables)
 
 
+def test_transaction_dedupe_constraint_includes_type_after_upgrade(tmp_path, monkeypatch):
+    import sqlite3
+
+    db_path = tmp_path / "dedupe_migration_test.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+
+    upgrade = subprocess.run(
+        [sys.executable, "-m", "alembic", "upgrade", "head"],
+        cwd=BACKEND_DIR, capture_output=True, text=True,
+    )
+    assert upgrade.returncode == 0, upgrade.stderr
+
+    def _unique_constraint_columns(conn) -> set[str]:
+        for row in conn.execute("PRAGMA index_list('transactions')").fetchall():
+            # row: (seq, name, unique, origin, partial) — origin 'u' means
+            # the index backs a UNIQUE constraint (not a plain CREATE INDEX
+            # or the PRIMARY KEY).
+            if row[2] == 1 and row[3] == "u":
+                index_name = row[1]
+                return {r[2] for r in conn.execute(f"PRAGMA index_info('{index_name}')").fetchall()}
+        return set()
+
+    conn = sqlite3.connect(db_path)
+    assert _unique_constraint_columns(conn) == {"folio_id", "date", "amount", "units", "type"}
+    conn.close()
+
+    downgrade = subprocess.run(
+        [sys.executable, "-m", "alembic", "downgrade", "0001"],
+        cwd=BACKEND_DIR, capture_output=True, text=True,
+    )
+    assert downgrade.returncode == 0, downgrade.stderr
+
+    conn = sqlite3.connect(db_path)
+    assert _unique_constraint_columns(conn) == {"folio_id", "date", "amount", "units"}
+    conn.close()
+
+
 def test_alembic_handles_percent_in_database_url(tmp_path, monkeypatch):
     """configparser interpolates '%' — a URL-encoded credential (e.g. %40 for
     '@') must not crash env.py with ValueError: invalid interpolation syntax."""
