@@ -11,6 +11,7 @@ from collections.abc import Iterator
 from datetime import date, datetime, timezone
 from decimal import Decimal
 
+from sqlalchemy import case
 from sqlalchemy.orm import Session
 
 from app.models.folio import Folio
@@ -18,7 +19,7 @@ from app.models.reference import Scheme
 from app.models.snapshot import PortfolioSnapshot
 from app.models.transaction import Transaction
 from app.models.user import HouseholdMember
-from app.services.dashboard.holdings import _process_folio_lots
+from app.services.dashboard.holdings import _LOT_CONSUMING_TYPES, _process_folio_lots
 from app.services.dashboard.nav import get_nav_on_or_before
 from app.services.dashboard.schemas import SnapshotRow
 
@@ -56,7 +57,16 @@ async def get_snapshots(db: Session, household_member_ids: list[uuid.UUID]) -> l
             folio.id: (
                 db.query(Transaction)
                 .filter(Transaction.folio_id == folio.id)
-                .order_by(Transaction.date, Transaction.id)
+                .order_by(
+                    Transaction.date,
+                    # Same-date purchases must sort before redemptions —
+                    # same fix as holdings.py: Transaction.id is a random
+                    # uuid4, so an id-only tiebreak would let a same-day
+                    # redemption randomly process first and silently
+                    # under-consume (no lots to draw from).
+                    case((Transaction.type.in_(_LOT_CONSUMING_TYPES), 1), else_=0),
+                    Transaction.id,
+                )
                 .all()
             )
             for folio in folios

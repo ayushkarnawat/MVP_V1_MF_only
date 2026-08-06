@@ -83,6 +83,33 @@ def test_get_snapshots_caches_into_portfolio_snapshots_table():
     assert len(cached) > 0
 
 
+def test_get_snapshots_processes_same_date_purchase_before_redemption():
+    """A same-day purchase and redemption must process purchase-first
+    regardless of id order — mirror of the holdings.py fix. Ids are fixed
+    (redemption < purchase) so an id-only tiebreak would deterministically
+    process the redemption first and silently no-op it."""
+    db = _session()
+    member = _household_member(db)
+    scheme = Scheme(id=uuid.uuid4(), amfi_code=uuid.uuid4().hex[:6], isin="INF123", name="Test Fund", amc_name="HDFC AMC", sebi_category="Equity Scheme - Flexi Cap Fund")
+    db.add(scheme)
+    folio = Folio(id=uuid.uuid4(), household_member_id=member.id, scheme_id=scheme.id, folio_number=uuid.uuid4().hex[:6], plan_type=PlanType.DIRECT)
+    db.add(folio)
+    same_date = date(2024, 3, 1)
+    db.add(Transaction(id=uuid.UUID(int=1), folio_id=folio.id, import_id=uuid.uuid4(), type=TransactionType.REDEMPTION, date=same_date, amount=Decimal("3000.00"), units=Decimal("50.000"), nav=Decimal("60.0000")))
+    db.add(Transaction(id=uuid.UUID(int=2), folio_id=folio.id, import_id=uuid.uuid4(), type=TransactionType.PURCHASE, date=same_date, amount=Decimal("5000.00"), units=Decimal("100.000"), nav=Decimal("50.0000")))
+    db.commit()
+
+    with patch(
+        "app.services.dashboard.snapshots.get_nav_on_or_before",
+        new=AsyncMock(return_value=(Decimal("55.0000"), date(2024, 3, 31))),
+    ):
+        rows = asyncio.run(get_snapshots(db, [member.id]))
+
+    # Purchase (100u) before redemption (50u) -> 50u held at month-end,
+    # 50 * 55 = 2750. Redemption-first would no-op, leaving 100u -> 5500.
+    assert Decimal(rows[0].total_value) == Decimal("2750.00")
+
+
 def test_get_snapshots_returns_empty_for_member_with_no_transactions():
     db = _session()
     member = _household_member(db)
