@@ -206,3 +206,36 @@ def test_compute_holdings_across_multiple_members_tags_each_row():
     assert len(rows) == 2
     names = {row.household_member_name for row in rows}
     assert names == {"Mom", "Dad"}
+
+
+def test_compute_holdings_processes_same_date_purchase_before_redemption():
+    """A same-day purchase and redemption must process purchase-first
+    regardless of insertion/id order, since a redemption can't legitimately
+    consume units that arrive the same day but are inserted after it."""
+    import asyncio
+
+    db = _session()
+    member = _household_member(db)
+    scheme = _scheme(db)
+    folio = _folio(db, member, scheme)
+    same_date = date(2024, 3, 1)
+    # Insert the REDEMPTION row first (before the PURCHASE it depends on) —
+    # this is deliberately the "bad" insertion order the old id-only sort
+    # would sometimes produce, to prove the fix doesn't depend on luck.
+    _persisted_txn(db, folio, TransactionType.REDEMPTION, same_date, Decimal("3000.00"), Decimal("50.000"), Decimal("60.0000"))
+    _persisted_txn(db, folio, TransactionType.PURCHASE, same_date, Decimal("5000.00"), Decimal("100.000"), Decimal("50.0000"))
+
+    with patch(
+        "app.services.dashboard.holdings.get_nav_on_or_before",
+        new=AsyncMock(return_value=(Decimal("60.0000"), date(2024, 6, 1))),
+    ), patch("app.services.dashboard.holdings.get_previous_nav_from_cache", return_value=None):
+        rows = asyncio.run(compute_holdings(db, [member.id]))
+
+    assert len(rows) == 1
+    # Purchase (100u) processed before redemption (50u) -> 50u remain, fully
+    # from the purchase lot, cost basis 50*50=2500. If the redemption had
+    # processed first (no lots yet), it would silently no-op, leaving
+    # units_held=100 and cost_basis=5000 instead — this assertion would
+    # catch that regression directly.
+    assert rows[0].units_held == "50.000"
+    assert Decimal(rows[0].amount_invested) == Decimal("2500.00")

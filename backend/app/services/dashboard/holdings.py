@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
 
+from sqlalchemy import case
 from sqlalchemy.orm import Session
 
 from app.models.enums import PlanType, TransactionType
@@ -92,7 +93,15 @@ async def compute_holdings(db: Session, household_member_ids: list[uuid.UUID]) -
             transactions = (
                 db.query(Transaction)
                 .filter(Transaction.folio_id == folio.id)
-                .order_by(Transaction.date, Transaction.id)
+                .order_by(
+                    Transaction.date,
+                    # Same-date purchases must sort before redemptions —
+                    # Transaction.id is a random uuid4, so id-only tiebreak
+                    # would let a same-day redemption randomly process first
+                    # and silently under-consume (no lots to draw from).
+                    case((Transaction.type.in_(_LOT_CONSUMING_TYPES), 1), else_=0),
+                    Transaction.id,
+                )
                 .all()
             )
             units_held, cost_basis, realized_gain = _process_folio_lots(transactions)
