@@ -110,6 +110,35 @@ def test_get_snapshots_processes_same_date_purchase_before_redemption():
     assert Decimal(rows[0].total_value) == Decimal("2750.00")
 
 
+def test_get_snapshots_does_not_cache_a_month_when_nav_is_unavailable():
+    """A transient NAV outage must not permanently poison the cache with an
+    understated total_value — the month should be retryable, not silently
+    wrong forever."""
+    db = _session()
+    member = _household_member(db)
+    _folio_with_purchase(db, member, date(2024, 1, 15), Decimal("5000.00"), Decimal("100.000"), Decimal("50.0000"))
+
+    with patch(
+        "app.services.dashboard.snapshots.get_nav_on_or_before",
+        new=AsyncMock(return_value=None),
+    ):
+        rows = asyncio.run(get_snapshots(db, [member.id]))
+
+    assert rows == []
+    assert db.query(PortfolioSnapshot).filter_by(household_member_id=member.id).count() == 0
+
+    # Retry once NAV becomes available — the month should now compute and cache.
+    with patch(
+        "app.services.dashboard.snapshots.get_nav_on_or_before",
+        new=AsyncMock(return_value=(Decimal("55.0000"), date(2024, 2, 1))),
+    ):
+        rows = asyncio.run(get_snapshots(db, [member.id]))
+
+    assert len(rows) >= 1
+    assert Decimal(rows[0].total_value) == Decimal("5500.00")
+    assert db.query(PortfolioSnapshot).filter_by(household_member_id=member.id).count() >= 1
+
+
 def test_get_snapshots_returns_empty_for_member_with_no_transactions():
     db = _session()
     member = _household_member(db)

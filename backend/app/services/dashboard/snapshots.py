@@ -94,6 +94,7 @@ async def get_snapshots(db: Session, household_member_ids: list[uuid.UUID]) -> l
                 continue
 
             total_value = Decimal("0")
+            nav_unavailable = False
             for folio in folios:
                 txns_to_date = [t for t in transactions_by_folio[folio.id] if t.date <= month_end]
                 units_held, _cost_basis, _realized = _process_folio_lots(txns_to_date)
@@ -102,9 +103,18 @@ async def get_snapshots(db: Session, household_member_ids: list[uuid.UUID]) -> l
                 scheme = db.get(Scheme, folio.scheme_id)
                 nav_result = await get_nav_on_or_before(db, scheme, month_end)
                 if nav_result is None:
-                    continue
+                    nav_unavailable = True
+                    break
                 nav, _actual_date = nav_result
                 total_value += units_held * nav
+
+            if nav_unavailable:
+                # Don't cache/persist an understated value for this month —
+                # leave it uncomputed so a later request (once NAV data is
+                # available) can retry, instead of permanently serving a
+                # silently-wrong financial figure. Matches this function's
+                # existing precedent for "no data point" (never a zero).
+                continue
 
             snapshot = PortfolioSnapshot(
                 household_member_id=member_id, snapshot_month=month_end,
