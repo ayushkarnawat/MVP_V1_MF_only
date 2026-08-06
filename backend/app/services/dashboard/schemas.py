@@ -37,3 +37,15 @@ class HoldingRow(BaseModel):
     realized_gain: str
     unrealized_gain: str
     today_gain: str
+
+
+class AllocationBucket(BaseModel):
+    label: str
+    current_value: str
+    percentage: str
+
+
+class AllocationSummary(BaseModel):
+    by_asset_class: list[AllocationBucket]
+    by_amc: list[AllocationBucket]
+    total_value: str
