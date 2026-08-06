@@ -17,7 +17,13 @@ class Transaction(Base):
     __tablename__ = "transactions"
     __table_args__ = (
         PrimaryKeyConstraint("id", "date"),
-        UniqueConstraint("folio_id", "date", "amount", "units"),
+        # Must stay in lockstep with migration 0002 (NEW_CONSTRAINT_NAME) and
+        # confirm_import's dedupe_key/filter_by — all three define the same
+        # 5-column dedupe identity.
+        UniqueConstraint(
+            "folio_id", "date", "amount", "units", "type",
+            name="uq_transactions_folio_date_amount_units_type",
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, default=uuid.uuid4)

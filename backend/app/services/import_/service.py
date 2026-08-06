@@ -222,7 +222,7 @@ def confirm_import(
                 folio_cache[folio_key] = new_folio
 
         folio = folio_cache[folio_key]
-        dedupe_key = (folio.id, norm.txn_date, norm.amount, norm.units)
+        dedupe_key = (folio.id, norm.txn_date, norm.amount, norm.units, norm.txn_type)
         # Session with autoflush=False (matches production, see db/session.py)
         # doesn't flush pending db.add()s before this query runs, so a DB
         # lookup alone can't see rows added earlier in THIS same loop — two
@@ -235,7 +235,7 @@ def confirm_import(
             continue
         dup = (
             db.query(Transaction)
-            .filter_by(folio_id=folio.id, date=norm.txn_date, amount=norm.amount, units=norm.units)
+            .filter_by(folio_id=folio.id, date=norm.txn_date, amount=norm.amount, units=norm.units, type=norm.txn_type)
             .first()
         )
         if dup:

@@ -265,6 +265,50 @@ def test_confirm_import_dedupes_same_key_transactions_within_one_upload():
     assert db.query(Transaction).count() == 1
 
 
+def test_confirm_import_does_not_dedupe_across_different_transaction_types():
+    """Regression test: before the redemption sign-normalization fix, a
+    same-day purchase and redemption of equal amount/units had opposite
+    signs and couldn't collide on the old 4-column dedupe key. After that
+    fix normalized both to positive magnitudes, they could — and the
+    second one would be silently dropped as a false duplicate. Both must
+    now be inserted; only `type` distinguishes them here."""
+    db = _session()
+    member = _household_member(db)
+    client = _mocked_client()
+
+    txn1 = NormalizedTransaction(
+        folio="123/45", amc="HDFC AMC", scheme_name="HDFC Flexi Cap Fund - Direct Plan - Growth",
+        isin="INF123", amfi="125497", scheme_type="EQUITY", txn_date=date(2024, 1, 1),
+        txn_type=TransactionType.PURCHASE, description="Purchase",
+        amount=Decimal("5000.00"), units=Decimal("10.000"), nav=Decimal("500.0000"),
+    )
+    txn2 = NormalizedTransaction(
+        folio="123/45", amc="HDFC AMC", scheme_name="HDFC Flexi Cap Fund - Direct Plan - Growth",
+        isin="INF123", amfi="125497", scheme_type="EQUITY", txn_date=date(2024, 1, 1),
+        txn_type=TransactionType.REDEMPTION, description="Same-day redemption, same amount/units",
+        amount=Decimal("5000.00"), units=Decimal("10.000"), nav=Decimal("500.0000"),
+    )
+    scheme = ParsedScheme(
+        name="HDFC Flexi Cap Fund - Direct Plan - Growth", isin="INF123", amfi="125497",
+        scheme_type="EQUITY", folio="123/45", amc="HDFC AMC", transaction_count=2,
+        arn_code=None, plan_name_variant="direct", plan_type="direct",
+    )
+    parse_result = ParseResult(
+        investor=ParsedInvestor(name="Test Investor", email="t@example.com", pan_masked="ABCDE****F"),
+        schemes=[scheme], transactions=[txn1, txn2], raw_json="{}",
+        parse_warnings=[], cas_type="DETAILED", file_type="FileType.CAMS",
+    )
+
+    preview = asyncio.run(build_import_preview(parse_result, "test.pdf", client=client))
+    result = confirm_import(db, preview.session_id, member.id, scheme_confirmations=[])
+
+    assert result.added == 2
+    assert result.skipped == 0
+    assert db.query(Transaction).count() == 2
+    types = {t.type for t in db.query(Transaction).all()}
+    assert types == {TransactionType.PURCHASE, TransactionType.REDEMPTION}
+
+
 def test_confirm_import_rejects_pending_status_scheme_even_above_raw_threshold():
     """Fix 2 regression: 0.95 confidence clears CONFIDENCE_THRESHOLD (0.92) as
     a raw number, but resolve_scheme labels [0.92, 0.98) "pending" — shown to
