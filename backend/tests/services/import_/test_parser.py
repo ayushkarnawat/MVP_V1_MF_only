@@ -96,6 +96,61 @@ def test_normalize_cas_data_direct_scheme_no_arn():
     assert parsed_scheme.plan_type == "direct"
 
 
+def test_normalize_cas_data_redemption_units_and_amount_are_positive():
+    """casparser flips units/amount negative for balance-decreasing rows
+    (redemptions/switch-outs); TransactionType alone encodes direction, so
+    normalization must emit non-negative magnitudes."""
+    txn = MagicMock(
+        date="2024-01-01", description="Redemption", amount="-3000", units="-50",
+        nav="60", type="REDEMPTION",
+    )
+    scheme = MagicMock(
+        scheme="HDFC Flexi Cap Fund - Regular Plan - Growth",
+        isin="INF123", amfi="125497", type="EQUITY", advisor="ARN-99999",
+        transactions=[txn],
+    )
+    folio = MagicMock(folio="123/45", amc="HDFC AMC", PAN="ABCDE1234F", schemes=[scheme])
+    data = MagicMock(
+        cas_type=CASFileType.DETAILED, file_type=FileType.CAMS,
+        investor_info=MagicMock(email="t@example.com"),
+        folios=[folio], parse_warnings=[],
+    )
+    data.model_dump_json.return_value = "{}"
+
+    result = _normalize_cas_data(data)
+
+    norm = result.transactions[0]
+    assert norm.txn_type == TransactionType.REDEMPTION
+    assert norm.units == Decimal("50.000")
+    assert norm.amount == Decimal("3000.00")
+
+
+def test_normalize_cas_data_purchase_units_and_amount_unchanged():
+    """abs() must be a no-op for already-positive purchase-side rows."""
+    txn = MagicMock(
+        date="2024-01-01", description="Purchase", amount="5000", units="10",
+        nav="500", type="PURCHASE",
+    )
+    scheme = MagicMock(
+        scheme="HDFC Flexi Cap Fund - Regular Plan - Growth",
+        isin="INF123", amfi="125497", type="EQUITY", advisor="ARN-99999",
+        transactions=[txn],
+    )
+    folio = MagicMock(folio="123/45", amc="HDFC AMC", PAN="ABCDE1234F", schemes=[scheme])
+    data = MagicMock(
+        cas_type=CASFileType.DETAILED, file_type=FileType.CAMS,
+        investor_info=MagicMock(email="t@example.com"),
+        folios=[folio], parse_warnings=[],
+    )
+    data.model_dump_json.return_value = "{}"
+
+    result = _normalize_cas_data(data)
+
+    norm = result.transactions[0]
+    assert norm.units == Decimal("10.000")
+    assert norm.amount == Decimal("5000.00")
+
+
 def _real_cas_data(*, pan: str | None, txn_kwargs: dict) -> CASData:
     """Builds a real (non-Mock) casparser CASData tree so .model_copy(deep=True)
     and .model_dump_json() actually run and can be asserted on."""

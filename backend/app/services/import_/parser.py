@@ -199,8 +199,12 @@ def _normalize_cas_data(data: CASData) -> ParseResult:
                 # lines; Transaction.amount/units/nav are NOT NULL downstream, so
                 # skip and surface why in parse_warnings rather than crash or
                 # violate the constraint later in confirm_import.
-                amount = quantize_amount(to_decimal(txn.amount)) if txn.amount is not None else None
-                units = quantize_units(to_decimal(txn.units)) if txn.units is not None else None
+                # casparser emits negative units/amount for balance-decreasing
+                # rows (redemptions/switch-outs); our convention is unsigned
+                # magnitudes with TransactionType as the sole direction signal,
+                # so normalize the sign away here at the parse boundary.
+                amount = abs(quantize_amount(to_decimal(txn.amount))) if txn.amount is not None else None
+                units = abs(quantize_units(to_decimal(txn.units))) if txn.units is not None else None
                 nav = quantize_nav(to_decimal(txn.nav)) if txn.nav is not None else None
                 if amount is None or units is None or nav is None:
                     parse_warnings.append(
