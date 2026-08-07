@@ -1,32 +1,255 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  max-width: 420px;
-  margin: 0 auto;
+  gap: var(--space-6);
+  max-width: 520px;
+  margin: var(--space-8) auto;
   padding: var(--space-8);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  animation: fadeIn var(--motion-page);
+}
+
+.iconHeader {
+  font-size: 40px;
+  line-height: 1;
+}
+
+.title {
+  font-family: var(--type-h1-font);
+  font-size: var(--type-h1-size);
+  font-weight: var(--type-h1-weight);
+  color: var(--color-ink);
+  margin: 0;
+}
+
+.subtitle {
+  font-size: var(--type-body-size);
+  color: var(--color-text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.trustCardGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-4);
+}
+
+.trustPoint {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.trustCheck {
+  color: var(--color-positive);
+  font-weight: 700;
+  font-size: 16px;
+  margin-top: 2px;
+}
+
+.trustPointTitle {
+  color: var(--color-ink);
+  font-size: var(--type-body-size);
+  display: block;
+}
+
+.trustPointDesc {
+  color: var(--color-text-secondary);
+  font-size: var(--type-caption-size);
+  margin: 2px 0 0 0;
+}
+
+.phoneInputGroup {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  overflow: hidden;
+  transition: border-color var(--motion-fast);
+}
+
+.phoneInputGroup:focus-within {
+  border-color: var(--color-accent);
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.countryCode {
+  padding: var(--space-3);
+  font-size: var(--type-body-size);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  background: color-mix(in srgb, var(--color-border) 40%, transparent);
+  border-right: 1px solid var(--color-border);
+}
+
+.phoneInputGroup input {
+  border: none;
+  background: transparent;
+  padding: var(--space-3);
+  width: 100%;
+  font-size: var(--type-body-size);
+  color: var(--color-ink);
+}
+
+.phoneInputGroup input:focus {
+  outline: none;
+}
+
+.devOtpBadge {
+  background: color-mix(in srgb, var(--color-warning) 15%, transparent);
+  border: 1px solid var(--color-warning);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--type-caption-size);
+  color: var(--color-warning);
+}
+
+.otpInput {
+  letter-spacing: 0.3em;
+  text-align: center;
+  font-weight: 700;
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--space-2);
   font-size: var(--type-body-size);
+}
+
+.field label {
+  font-weight: 600;
+  color: var(--color-ink);
 }
 
 .field input,
 .field select {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-3);
   font-size: var(--type-body-size);
-  background: var(--color-surface);
+  font-family: var(--font-body);
+  background: var(--color-bg);
+  color: var(--color-ink);
+  transition: border-color var(--motion-fast);
+}
+
+.field input:focus,
+.field select:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.choiceGrid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.choiceCard {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-4);
+  background: var(--color-bg);
+  color: var(--color-ink);
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: all var(--motion-fast);
+}
+
+.choiceCard:hover {
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
+  transform: translateX(2px);
+}
+
+.choiceCardLarge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-6);
+  background: var(--color-bg);
+  color: var(--color-ink);
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: all var(--motion-fast);
+}
+
+.choiceCardLarge:hover {
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.choiceIcon {
+  font-size: 24px;
+}
+
+.largeIcon {
+  font-size: 32px;
+}
+
+.choiceText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-grow: 1;
+}
+
+.choiceTitle {
+  font-size: var(--type-body-size);
   color: var(--color-ink);
 }
 
-.actions {
+.choiceDesc {
+  font-size: var(--type-caption-size);
+  color: var(--color-text-secondary);
+}
+
+.choiceArrow {
+  font-size: 18px;
+  color: var(--color-text-secondary);
+  transition: transform var(--motion-fast);
+}
+
+.choiceCard:hover .choiceArrow,
+.choiceCardLarge:hover .choiceArrow {
+  color: var(--color-accent);
+  transform: translateX(4px);
+}
+
+.actionsRight {
   display: flex;
-  gap: var(--space-3);
+  justify-content: flex-end;
+}
+
+.actionsLeft {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.actionsBetween {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .error {
@@ -39,4 +262,15 @@
   color: var(--color-text-secondary);
   font-size: var(--type-caption-size);
   margin: 0;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

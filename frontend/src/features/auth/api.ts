@@ -81,3 +81,5 @@ export async function listHouseholdMembers(): Promise<HouseholdMember[]> {
   await throwIfError(response);
   return (await response.json()) as HouseholdMember[];
 }
+
+export const getHouseholdMembers = listHouseholdMembers;

@@ -1,0 +1,86 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.schemeHeader {
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--space-3);
+}
+
+.schemeTitle {
+  color: var(--color-ink);
+  margin-bottom: var(--space-1);
+}
+
+.loadingSkeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.errorBox {
+  padding: var(--space-4);
+  background: color-mix(in srgb, var(--color-negative) 10%, transparent);
+  border: 1px solid var(--color-negative);
+  border-radius: var(--radius-sm);
+  color: var(--color-negative);
+}
+
+.tableWrapper {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.table th {
+  padding: var(--space-3) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--type-caption-size);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.table td {
+  padding: var(--space-3) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.row:hover {
+  background: var(--color-bg);
+}
+
+.distributorNameCell {
+  display: flex;
+  flex-direction: column;
+}
+
+.nameText {
+  color: var(--color-ink);
+}
+
+.numTh,
+.numTd {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.boldText {
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.positiveText {
+  color: var(--color-positive);
+  font-weight: 600;
+}
+
+.negativeText {
+  color: var(--color-negative);
+  font-weight: 600;
+}

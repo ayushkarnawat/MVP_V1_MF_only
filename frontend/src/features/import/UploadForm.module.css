@@ -1,30 +1,173 @@
 .form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  max-width: 420px;
-  margin: 0 auto;
+  gap: var(--space-6);
+  max-width: 520px;
+  margin: var(--space-8) auto;
   padding: var(--space-8);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  animation: fadeIn var(--motion-page);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.title {
+  color: var(--color-ink);
+}
+
+.subtitle {
+  color: var(--color-text-secondary);
+}
+
+.hiddenFileInput {
+  display: none;
+}
+
+.dropZone {
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-6);
+  background: var(--color-bg);
+  cursor: pointer;
+  transition: all var(--motion-fast);
+  text-align: center;
+}
+
+.dropZone:hover,
+.dragOver {
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
+}
+
+.hasFile {
+  border-style: solid;
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 4%, transparent);
+}
+
+.dropZonePrompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.uploadCloudIcon {
+  font-size: 32px;
+}
+
+.dropTitle {
+  color: var(--color-ink);
+}
+
+.fileBadgeContainer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: left;
+}
+
+.fileIcon {
+  font-size: 28px;
+}
+
+.fileInfo {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.fileName {
+  color: var(--color-ink);
+}
+
+.removeFileBtn {
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+}
+
+.removeFileBtn:hover {
+  color: var(--color-negative);
+  background: var(--color-surface);
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
-  font-size: var(--type-body-size);
+  gap: var(--space-2);
 }
 
-.field input {
+.labelRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.passwordInputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input {
+  width: 100%;
+  padding: var(--space-3);
+  padding-right: 44px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  padding: var(--space-2) var(--space-3);
   font-size: var(--type-body-size);
-  background: var(--color-surface);
+  font-family: var(--font-body);
+  background: var(--color-bg);
   color: var(--color-ink);
+  transition: border-color var(--motion-fast);
+}
+
+.input:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.togglePasswordBtn {
+  position: absolute;
+  right: var(--space-3);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-2);
 }
 
 .error {
   color: var(--color-negative);
   font-size: var(--type-caption-size);
   margin: 0;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

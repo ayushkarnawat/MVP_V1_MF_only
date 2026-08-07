@@ -1,6 +1,71 @@
 .container {
-  max-width: 420px;
-  margin: 0 auto;
+  max-width: 480px;
+  margin: var(--space-12) auto;
   padding: var(--space-8);
   text-align: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  animation: fadeIn var(--motion-page);
+}
+
+.successBadge {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-positive) 15%, transparent);
+  color: var(--color-positive);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: var(--space-2);
+}
+
+.title {
+  font-family: var(--type-h1-font);
+  font-size: var(--type-h1-size);
+  font-weight: var(--type-h1-weight);
+  color: var(--color-ink);
+  margin: 0;
+}
+
+.resultText {
+  color: var(--color-text-secondary);
+  font-size: var(--type-body-size);
+  margin: 0;
+}
+
+.actionBtn {
+  background: var(--color-accent);
+  color: #FFFFFF;
+  border: none;
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-sm);
+  font-size: var(--type-body-size);
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: var(--space-4);
+  transition: opacity var(--motion-fast);
+}
+
+.actionBtn:hover {
+  opacity: 0.92;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }

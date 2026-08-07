@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
+import { Button } from "../../components/Button";
 import styles from "./onboarding.module.css";
 
 interface Q1NameProps {
@@ -19,21 +20,37 @@ export function Q1Name({ value, onBack, onSkip, onSubmit }: Q1NameProps) {
 
   return (
     <form className={styles.container} onSubmit={handleSubmit}>
-      <h1>What should we call you?</h1>
-      <label className={styles.field}>
-        What should we call you?
-        <input value={name} onChange={(event) => setName(event.target.value)} />
-      </label>
-      <div className={styles.actions}>
-        {onBack && (
-          <button type="button" onClick={onBack}>
-            Back
-          </button>
-        )}
-        <button type="button" onClick={onSkip}>
-          Skip
-        </button>
-        <button type="submit">Next</button>
+      <h1 className={styles.title}>What should we call you?</h1>
+      <p className={styles.subtitle}>
+        We'll use your preferred name e.g. for personalizing your dashboard and portfolio reports.
+      </p>
+
+      <div className={styles.field}>
+        <label htmlFor="name-input">Your Full Name or First Name</label>
+        <input
+          id="name-input"
+          value={name}
+          placeholder="e.g. Ayush Karnawat"
+          onChange={(event) => setName(event.target.value)}
+          autoFocus
+        />
+      </div>
+
+      <div className={styles.actionsBetween}>
+        <div className={styles.actionsLeft}>
+          {onBack && (
+            <Button variant="ghost" size="sm" type="button" onClick={onBack}>
+              Back
+            </Button>
+          )}
+          <Button variant="ghost" size="sm" type="button" onClick={onSkip}>
+            Skip
+          </Button>
+        </div>
+
+        <Button variant="primary" size="md" type="submit" disabled={!name.trim()}>
+          Next
+        </Button>
       </div>
     </form>
   );

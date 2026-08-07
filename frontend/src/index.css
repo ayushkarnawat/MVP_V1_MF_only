@@ -6,23 +6,83 @@
 
 body {
   margin: 0;
-  background: var(--color-bg);
+  background-color: var(--color-bg);
   color: var(--color-ink);
-  font-family: var(--font-body);
+  font-family: var(--type-body-font);
   font-size: var(--type-body-size);
-  line-height: 1.5;
+  font-weight: var(--type-body-weight);
+  line-height: var(--type-body-line-height);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color var(--motion-page), color var(--motion-page);
 }
 
-h1 {
-  font-family: var(--font-display);
+h1, .type-h1 {
+  font-family: var(--type-h1-font);
   font-size: var(--type-h1-size);
-  font-weight: 700;
-  margin: 0 0 var(--space-4);
+  font-weight: var(--type-h1-weight);
+  line-height: var(--type-h1-line-height);
+  margin: 0;
 }
 
-h2 {
-  font-family: var(--font-display);
+h2, .type-h2 {
+  font-family: var(--type-h2-font);
   font-size: var(--type-h2-size);
-  font-weight: 600;
-  margin: 0 0 var(--space-2);
+  font-weight: var(--type-h2-weight);
+  line-height: var(--type-h2-line-height);
+  margin: 0;
+}
+
+.type-display {
+  font-family: var(--type-display-font);
+  font-size: var(--type-display-size);
+  font-weight: var(--type-display-weight);
+  line-height: var(--type-display-line-height);
+  letter-spacing: -0.02em;
+}
+
+.type-body-medium {
+  font-family: var(--type-body-medium-font);
+  font-size: var(--type-body-medium-size);
+  font-weight: var(--type-body-medium-weight);
+  line-height: var(--type-body-medium-line-height);
+}
+
+.type-caption {
+  font-family: var(--type-caption-font);
+  font-size: var(--type-caption-size);
+  font-weight: var(--type-caption-weight);
+  line-height: var(--type-caption-line-height);
+}
+
+/* MANDATORY Tabular Figures for all numeric data (Design Schema §Typography) */
+.type-data,
+.type-data-large,
+.tnum {
+  font-feature-settings: "tnum" 1, "cv05" 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.type-data {
+  font-family: var(--type-data-font);
+  font-size: var(--type-data-size);
+  font-weight: var(--type-data-weight);
+  line-height: var(--type-data-line-height);
+}
+
+.type-data-large {
+  font-family: var(--type-data-large-font);
+  font-size: var(--type-data-large-size);
+  font-weight: var(--type-data-large-weight);
+  line-height: var(--type-data-large-line-height);
+}
+
+/* Focus outline for accessibility (WCAG AA) */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+button {
+  font-family: inherit;
 }

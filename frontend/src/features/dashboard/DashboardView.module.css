@@ -1,0 +1,204 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  animation: fadeIn var(--motion-page);
+}
+
+.loadingContainer,
+.errorContainer {
+  padding: var(--space-8) 0;
+}
+
+.heroCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-6);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  box-shadow: var(--shadow-sm);
+}
+
+@media (max-width: 768px) {
+  .heroCard {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-4);
+  }
+}
+
+.heroPrimary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.heroLabel {
+  font-size: var(--type-caption-size);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+.heroValue {
+  color: var(--color-ink);
+}
+
+.heroMetrics {
+  display: flex;
+  gap: var(--space-8);
+}
+
+@media (max-width: 600px) {
+  .heroMetrics {
+    gap: var(--space-4);
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+.metricItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.metricLabel {
+  font-size: var(--type-caption-size);
+  color: var(--color-text-secondary);
+}
+
+.gainRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.positiveText {
+  color: var(--color-positive);
+  font-weight: 700;
+}
+
+.negativeText {
+  color: var(--color-negative);
+  font-weight: 700;
+}
+
+.gainBadge {
+  font-size: var(--type-caption-size);
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.positiveBadge {
+  background: color-mix(in srgb, var(--color-positive) 15%, transparent);
+  color: var(--color-positive);
+}
+
+.negativeBadge {
+  background: color-mix(in srgb, var(--color-negative) 15%, transparent);
+  color: var(--color-negative);
+}
+
+.placeholderSection {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+
+.sectionTitle {
+  color: var(--color-ink);
+  margin-bottom: var(--space-3);
+}
+
+.placeholderGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-3);
+}
+
+.placeholderCard {
+  background: var(--color-bg);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.placeholderInfo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.placeholderName {
+  color: var(--color-ink);
+}
+
+.addMemberDataBtn {
+  background: transparent;
+  border: 1px solid var(--color-accent);
+  color: var(--color-accent);
+  font-size: var(--type-caption-size);
+  font-weight: 600;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.addMemberDataBtn:hover {
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+}
+
+.allocationSection,
+.holdingsSection {
+  display: flex;
+  flex-direction: column;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.tabToggleGroup {
+  display: flex;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+}
+
+.tabBtn {
+  background: transparent;
+  border: none;
+  font-size: var(--type-caption-size);
+  color: var(--color-text-secondary);
+  padding: var(--space-1) var(--space-3);
+  border-radius: calc(var(--radius-sm) - 2px);
+  cursor: pointer;
+}
+
+.tabActive {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

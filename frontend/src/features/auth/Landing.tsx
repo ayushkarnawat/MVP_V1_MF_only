@@ -1,3 +1,4 @@
+import { Button } from "../../components/Button";
 import styles from "./onboarding.module.css";
 
 interface LandingProps {
@@ -7,15 +8,17 @@ interface LandingProps {
 export function Landing({ onContinue }: LandingProps) {
   return (
     <div className={styles.container}>
-      <h1>Unifolio</h1>
-      <p>Track every mutual fund you own, in one place.</p>
+      <h1 className={styles.title}>Unifolio</h1>
+      <p className={styles.subtitle}>
+        Track every mutual fund you own, in one place. Direct vs Regular comparison, real gains, and family aggregation.
+      </p>
       <div className={styles.actions}>
-        <button type="button" onClick={onContinue}>
+        <Button variant="primary" onClick={onContinue}>
           Sign Up
-        </button>
-        <button type="button" onClick={onContinue}>
+        </Button>
+        <Button variant="secondary" onClick={onContinue}>
           Log In
-        </button>
+        </Button>
       </div>
     </div>
   );

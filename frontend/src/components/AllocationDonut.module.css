@@ -1,0 +1,138 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+
+.title {
+  margin-bottom: var(--space-4);
+  color: var(--color-ink);
+}
+
+.chartWrapper {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-6);
+}
+
+@media (max-width: 640px) {
+  .chartWrapper {
+    flex-direction: column;
+  }
+}
+
+.svgWrapper {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  flex-shrink: 0;
+}
+
+.donutSvg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  overflow: visible;
+}
+
+.bgCircle {
+  fill: none;
+  stroke: var(--color-border);
+  stroke-width: 6;
+}
+
+.segment {
+  transition: stroke-width var(--motion-fast), opacity var(--motion-fast);
+  cursor: pointer;
+}
+
+.centerText {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  pointer-events: none;
+  padding: var(--space-2);
+}
+
+.centerLabel {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.centerVal {
+  color: var(--color-ink);
+  margin: 2px 0;
+}
+
+.centerPct {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.legend {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex-grow: 1;
+  width: 100%;
+}
+
+.legendItem {
+  display: grid;
+  grid-template-columns: 12px 1fr auto auto;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color var(--motion-fast);
+}
+
+.legendItem:hover,
+.legendActive {
+  background: var(--color-bg);
+}
+
+.legendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.legendLabel {
+  color: var(--color-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.legendPct {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.legendAmt {
+  color: var(--color-text-secondary);
+}
+
+.emptyContainer {
+  padding: var(--space-6);
+  text-align: center;
+  color: var(--color-text-secondary);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}

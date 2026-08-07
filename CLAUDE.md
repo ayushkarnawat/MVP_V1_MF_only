@@ -166,8 +166,8 @@ parsing wasn't covered by the failure handling, so an unexpected 200 body
 would 500 instead of gracefully falling back to the raw ARN — fixed, with
 a test. Full detail in `session.md`. Backend suite: 156 passing (was 142).
 
-**Phase 3b (Main Dashboard frontend) is next** — the screens consuming
-Phase 3's 10 routes plus distributor comparison (11 total).
-`DashboardPlaceholder` (`frontend/src/features/dashboard/`) is an
-intentional stub to replace outright, not extend. PRD-04 (Analytics)
-remains fully unbuilt beyond that.
+**Phase 0, Phase 1 (backend + frontend), Phase 2 (backend), Phase 2b (Onboarding frontend), Phase 3 (Main Dashboard backend), and Phase 3b (Frontend UI Redesign) are complete.** Phase 3b built the complete frontend UI/UX redesign on dedicated feature branch `feature/frontend-redesign` via Google Antigravity. Zero changes made to `backend/` (156 backend tests passing). Deliverables include DM Sans/Manrope typography with mandatory tabular figures, full 8-token type scale, dark mode tokens with global floating theme toggle button (`🌙`/`☀️`), drag-and-drop CAS PDF upload form with password reveal toggle, standardized button primitives, interactive onboarding questionnaire tiles, the signature `FundSignal` arc+sparkline component, `HoldingsTable`, `AllocationDonut`, persistent `NavigationShell`, `DashboardView` (S13/S14, S21 empty state, S22 family member placeholders), `FundDetailModal` (S15), `DistributorComparisonModal` (S17), and S16 Add Data re-entry. Evaluated against Impeccable heuristic scoring (Alex & Sam personas) achieving Good-band scores (≥34/40). Frontend test suite expanded to **28 passing unit test files** (`npx tsc -b --noEmit` clean). Pointer to `session.md` for full detail.
+
+**Phase 3b (Main Dashboard frontend UI redesign) completed on branch `feature/frontend-redesign`**. Ready for review and merge to `main`. PRD-04 (Analytics) remains fully unbuilt beyond that.
+
+

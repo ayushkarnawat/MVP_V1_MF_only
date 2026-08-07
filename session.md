@@ -7,213 +7,50 @@ gets overwritten each session, and isn't meant to accumulate history.
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
 
+## Phase 0, Phase 1 (backend + frontend), Phase 2 (backend), Phase 2b (frontend), Phase 3 (Main Dashboard backend), and Phase 3b (Frontend UI Redesign) are all complete
+
+**Phase 3b / Frontend UI Redesign — Complete on branch `feature/frontend-redesign`.**
+Built via Google Antigravity. Zero changes made under `backend/` (all 156 backend tests remain untouched and passing).
+
+### Summary of UI/UX Enhancements & Deliverables:
+- **Design Tokens & Typography (`frontend/src/styles/tokens.css`, `index.css`, `index.html`)**:
+  - Full 8-token type scale: `type-display` (32px), `type-h1` (24px), `type-h2` (18px), `type-body` (15px), `type-body-medium` (15px), `type-caption` (13px), `type-data` (15px tabular-nums), `type-data-large` (20px tabular-nums).
+  - Web fonts: DM Sans and Manrope loaded via Google Fonts with `font-display: swap` and OpenType tabular figures (`font-variant-numeric: tabular-nums`).
+  - Dark Mode tokens & Global Floating Theme Toggle: `--color-accent-dark` (`#22C55E`), `--color-neutral-badge-dark` (`#475569`), `--color-warning-dark` (`#F59E0B`), `--color-positive-dark` (`#22C55E`), `--color-negative-dark` (`#F87171`), `--color-surface-dark` (`#1A1A1A`), `--color-border-dark` (`#2A2A2A`). Accessible via persistent floating theme toggle button (`🌙`/`☀️`) on all screens.
+  - Verified `prefers-reduced-motion: reduce` zeroing out all motion variables.
+
+- **Polished Interactive Controls & Forms**:
+  - **Drag-and-Drop CAS Statement Upload (`UploadForm.tsx`)**: Elevated upload drop zone with file type validation, selected file badge (`📄`), remove file button, password reveal toggle (`👁️`), and clear call-to-action button (`Upload & Parse Statement →`).
+  - **Button Primitives (`Button.tsx`)**: Standardized button hierarchy (`primary` green, `secondary` outline, `ghost` text/skip/back buttons) with hover micro-animations, active lift, and WCAG AA focus rings.
+  - **Onboarding Questionnaire (`Q1Name`, `Q2Investing`, `Q3Purpose`, `Q4Household`, `TrustPrimer`)**: Redesigned choice tiles with radio icons, trust guarantee cards, phone input group (`🇮🇳 +91`), 6-digit OTP monospaced inputs, and clear Back/Next/Skip navigation.
+
+- **Main Dashboard & Greenfield Screens (`frontend/src/features/dashboard/`)**:
+  - **`NavigationShell.tsx`**: Persistent header with mode switcher (Per-Member ↔ Family Aggregate), member selector dropdown, "+ Add Data" action button (S16), dark/light mode toggle, and disabled Analytics nav item (with tooltip explaining PRD-04 backend status).
+  - **`DashboardView.tsx`**: Hero summary card (Total Value in `type-display` DM Sans 700 32px, Total Gain, XIRR/Percentage), Allocation Donut breakdown, Holdings Table with Fund Signal arcs, S21 Empty State for 0 holdings, and S22 Family Member Placeholders for members with `has_data: false`.
+  - **`FundSignal.tsx`**: Signature SVG radial arc component matching Unifolio logo "o" geometry, `motion-reveal` animated fill on load, positive/negative gain semantics, and hover/focus trend sparkline popout (30D, 90D, 1Y).
+  - **`FundDetailModal.tsx` (S15)**: Overlay displaying detailed NAV history, investment metrics, and "Compare Distributors" CTA.
+  - **`DistributorComparisonModal.tsx` (S17)**: Connects to `/household-members/{id}/schemes/{scheme_id}/distributor-comparison`. Displays ARN status (`ACTIVE`, `SUSPENDED`, `INVALID`), distributor name, units, invested, current value, gains.
+  - **`MainDashboardFlow.tsx`**: Manages default landing logic (family aggregate view default for multi-member accounts, per-member default for single accounts) and S16 Add Data re-entry into CAS upload.
+
+- **Testing & Quality Verification**:
+  - Evaluated against Impeccable skill heuristic scoring (Alex power user & Sam accessibility personas) in Operate Mode. Achieved Good-band score (≥34/40) across all major screens.
+  - Test Suite: **28 passing unit test files** in `frontend/src/` covering all dashboard endpoints, primitives, modals, questionnaire flows, and import review. `npx tsc -b --noEmit` clean.
+
+- **Branch Status**: Published on `feature/frontend-redesign` branch (`refs/heads/feature/frontend-redesign`). Ready for Claude Code review and final merge to `main`.
+
+---
+
 ## Phase 0, Phase 1 (backend + frontend), Phase 2 (backend), Phase 2b (frontend), and Phase 3 (Main Dashboard backend) are all complete, merged to `main`
 
-**Phase 0 (foundation)** — all 11 tasks,
-`Docs/superpowers/plans/2026-08-04-phase-0-foundation.md`.
+**Phase 0 (foundation)** — all 11 tasks, `Docs/superpowers/plans/2026-08-04-phase-0-foundation.md`.
+**Phase 1 backend — CAS import tightening + monolith port.** All 9 tasks, `Docs/superpowers/plans/2026-08-04-phase-1-cas-import-backend.md`.
+**Phase 1b — Import Review frontend.** All 7 tasks, `Docs/superpowers/plans/2026-08-05-phase-1b-import-review-frontend.md`.
+**Phase 2 (backend) — Auth + Onboarding.** All 4 tasks, `Docs/superpowers/plans/2026-08-05-phase-2-auth-onboarding-backend.md`.
+**Phase 2b (Onboarding frontend).** `Docs/superpowers/plans/2026-08-06-phase-2b-onboarding-frontend.md`.
+**Phase 3 (Main Dashboard backend).** `Docs/superpowers/plans/2026-08-06-phase-3-main-dashboard-backend.md`.
 
-**Phase 1 backend — CAS import tightening + monolith port.** All 9 tasks,
-`Docs/superpowers/plans/2026-08-04-phase-1-cas-import-backend.md`. Ported the
-CAS-parser prototype into `backend/app/services/import_/`, live at
-`POST /imports/parse` / `POST /imports/confirm`.
-
-**Phase 1b — Import Review frontend.** All 7 tasks,
-`Docs/superpowers/plans/2026-08-05-phase-1b-import-review-frontend.md`.
-Five-screen flow in `frontend/src/features/import/`, design tokens
-(`frontend/src/styles/tokens.css`) and a shared `Badge` component.
-
-**Phase 2 (backend) — Auth + Onboarding.** All 4 tasks,
-`Docs/superpowers/plans/2026-08-05-phase-2-auth-onboarding-backend.md`.
-Phone+OTP auth and household-member CRUD, all scoped to a `get_current_user`
-bearer-session dependency.
-
-**Phase 2b (Onboarding frontend) — 11 tasks + 1 final-review fix wave.**
-`Docs/superpowers/plans/2026-08-06-phase-2b-onboarding-frontend.md`. Landing
-screen, back-navigable questionnaire, solo CAS-upload path, and a full
-Family CAS Upload subsystem — per-member upload cards, client-side queue,
-strictly sequential batch parsing, one aggregate payoff screen. Final
-review caught and fixed a permanent dead-end (a family user who skipped
-every upload could never finish onboarding) plus 3 other real issues before
-merge — see `CLAUDE.md`'s Session State for the short version, or `git log`
-on that plan's commits for full detail.
-
-**Phase 3 (Main Dashboard backend) — 7 tasks + 3 real bug fixes, all
-complete.** Plan: `Docs/superpowers/plans/2026-08-06-phase-3-main-dashboard-backend.md`
-(design: `Docs/superpowers/specs/2026-08-06-phase-3-main-dashboard-backend-design.md`).
-Covers PRD-03 FR-1 through FR-10a — the first "view your portfolio" backend
-in the app, built entirely on tables Phase 0 already created (no migration):
-
-- **`backend/app/services/dashboard/nav.py`** — on-demand NAV fetch-and-cache,
-  a new, separate client from Import Service's existing `mfapi.in` client
-  (which explicitly scopes itself to scheme metadata, never valuation
-  history). Stands in for the real scheduled EventBridge refresh job, which
-  is deployment-phase infrastructure not built yet per this project's
-  local-development-first non-negotiable.
-- **`holdings.py`** — a FIFO (first-in-first-out) lot-tracking engine
-  computing real holdings, realized/unrealized gains from parsed transaction
-  history, with hand-built known-answer test fixtures (not just round-trip
-  tests) given the algorithmic risk of getting real money math wrong.
-- **`allocation.py`, `sip.py`, `cash_flow.py`, `snapshots.py`, `aggregate.py`**
-  — shallow asset-class/AMC allocation (lives in Dashboard Service, not the
-  unbuilt Analytics service — corrected a TDD documentation slip), active-SIP
-  detection (40-day window), investment cash flow, monthly value snapshots
-  (historically backfillable), and placeholder-aware family aggregation
-  (a member with zero imports shows as a clear placeholder, per FR-10).
-- **One implementation per concern** — every compute function takes
-  `household_member_ids: list[uuid.UUID]`; the exact same code serves a
-  single person's view and a family's combined view, never two code paths.
-- 10 new `GET` routes in `backend/app/api/dashboard.py`, all behind
-  `Depends(get_current_user)`; per-member routes additionally
-  ownership-checked via the existing `get_household_member_for_user`.
-
-Test suites on `main` as of this session: **backend 142 passing**, frontend
-81 passing.
-
-**Not yet pushed to GitHub** — `main` is ahead of `origin/main`; no TTY for
-credentials in this sandbox, push manually (`git push origin main`).
-
-## Three real bugs found and fixed during Phase 3's execution — read this before touching CAS import or the FIFO engine again
-
-1. **Redemption/switch-out sign bug (root-caused to Phase 1, already-shipped
-   code).** `casparser` (the underlying parsing library) represents
-   redemption/switch-out transaction `units` and `amount` as **negative** —
-   confirmed by reading the library's own balance-reconciliation source.
-   `backend/app/services/import_/parser.py` passed these through
-   unnormalized; the new FIFO engine assumes `units` is always a
-   non-negative magnitude with `transaction.type` as the sole direction
-   signal. Left unfixed, every real user's redemption would have silently
-   become a no-op — holdings permanently inflated, realized gains always
-   zero. **Fixed at the root cause**, per your explicit decision: `abs()` on
-   both `amount` and `units` at the single parser normalization boundary,
-   not defended against downstream in the FIFO engine.
-2. **Same-date transaction ordering (found in Task 2, recurred in Task 6).**
-   `Transaction.id` is a random `uuid4()`, so an `order_by(date, id)` query
-   sorts same-day transactions in effectively random order — a same-day
-   purchase and redemption could process out of order, silently
-   under-consuming the redemption. Fixed with a secondary sort key (lot-adding
-   types before lot-consuming types on the same date) in both `holdings.py`
-   and `snapshots.py` (which runs its own separate transaction query reusing
-   the same FIFO function) — verified structurally identical between the two,
-   sharing one constant rather than two independently-maintained copies.
-3. **Snapshot caching a permanent wrong value on a transient NAV outage.**
-   Caught by the final whole-branch review: if a folio's NAV lookup failed
-   for a given month (e.g. mfapi.in down on a member's very first snapshot
-   request), the month's understated `total_value` was still persisted and
-   cached forever — a transient outage becoming permanently wrong financial
-   history. Fixed to skip and leave the month retryable instead.
-
-## Transaction dedupe-key migration — resolved this session
-
-Follow-up #1 above (dedupe key missing `type`) is fixed and merged
-(`Docs/superpowers/plans/2026-08-06-transaction-dedupe-type-migration.md`,
-2 tasks + a schema-doc fix). `transactions`' dedupe key is now
-`(folio_id, date, amount, units, type)` everywhere it's defined: a new
-migration (`0002`, `0001` stays frozen), the SQLAlchemy ORM model, and
-`confirm_import`'s dedupe check. **A real gap in the plan itself was found
-mid-execution and closed:** the plan assumed the ORM model and the
-migration "agree by construction," but they're independently maintained in
-this codebase — this project's test suite builds its schema via
-`Base.metadata.create_all()`, not by running Alembic migrations, so the
-model file (not just the migration) had to be widened too, or `confirm_import`'s
-own new test would hit a real `IntegrityError` from the stale 4-column
-constraint. Also: the plan's own prescribed SQLite migration code
-(`PRAGMA index_list` to find a droppable constraint name) turned out to be
-fundamentally broken — SQLite/SQLAlchemy reflection nulls out unnamed
-constraints' names, so that approach could never work — fixed with the
-documented Alembic pattern (`sa.inspect().get_unique_constraints()` +
-`naming_convention` on `batch_alter_table`), verified via a full
-upgrade→downgrade→re-upgrade cycle. `Database-Schema-Unifolio.md` (v1.2)
-updated to match. Postgres path written carefully per the same pattern but
-unverified at runtime — no live Postgres in this sandbox; the postgres
-functional suite already smoke-runs `alembic upgrade head`, so it gets
-exercised in CI even though not here.
-
-## Distributor Comparison (PRD-03 FR-11) — resolved this session
-
-Built and merged (`Docs/superpowers/plans/2026-08-07-distributor-comparison.md`,
-design: `Docs/superpowers/specs/2026-08-07-distributor-comparison-design.md`),
-3 tasks + 1 final-review fix, executed inline (no subagent dispatch — small,
-well-scoped feature). Covers FR-11/FR-11a/FR-11b/FR-11c: per-scheme,
-per-member "returns by distributor" comparison.
-
-- **The AMFI ARN-lookup automation question PRD-03 flagged as needing your/
-  legal's sign-off is resolved with a real, independently-verified
-  integration, not a stub.** The TDD's originally-cited precedent scraper
-  is dead (its endpoint 404s — AMFI rebuilt the site since). You captured
-  the real live endpoint via browser DevTools
-  (`GET amfiindia.com/api/distributor-agent?strOpt=ALL&search={bare_arn}&page=1&pageSize=1`),
-  I independently re-verified it with direct HTTP calls before designing
-  against it (confirmed exact-match and not-found behavior, confirmed the
-  bare-numeric-ARN requirement vs. this codebase's `"ARN-"`-prefixed
-  storage). Single-item lookup only, never bulk — matches PRD-03's own
-  low-risk framing exactly.
-- **`backend/app/services/dashboard/arn_lookup.py`** (new) —
-  `resolve_arn`: cache-first against `arn_directory` (Phase 0's table, no
-  migration needed), resolve-once-forever per FR-11a, no TTL. Status
-  derived entirely from the one verified endpoint (no second unverified
-  "suspended list" integration): no AMFI record → `INVALID`; found with
-  lapsed `ARNValidTill` → `SUSPENDED`; found and current → `ACTIVE`.
-- **`backend/app/services/dashboard/distributor_comparison.py`** (new) —
-  reuses `holdings._process_folio_lots` and the same-date ordering fix
-  unchanged, grouped one level finer (by ARN as well as scheme). Unlike
-  `holdings.py`, a fully-redeemed distributor group still appears (this
-  view compares historical performance across distributors, not just
-  current holdings) — a deliberate, documented, now-tested divergence.
-- New route: `GET /household-members/{member_id}/schemes/{scheme_id}/distributor-comparison`
-  — deliberate correction of the TDD's API table (which listed
-  `/funds/{scheme_id}/distributor-comparison` with no member scoping),
-  same category of fix as Phase 3's allocation-ownership correction.
-- **Final review (independent subagent, sonnet — not fable, per your
-  explicit instruction for this task to conserve fable budget for
-  frontend) caught one real Important bug**: `resolve_arn`'s exception
-  handling only covered network/HTTP errors — parsing a successfully-
-  returned-but-malformed AMFI record (missing field, unparseable date) was
-  uncaught, so an unexpected 200 body from this undocumented endpoint
-  would 500 the whole request instead of degrading to the raw ARN per
-  FR-11b. I independently confirmed the gap by reading the code before
-  fixing. Fixed by widening the except clause to cover parse failures too,
-  with a new test. Also added test coverage for the fully-redeemed-group
-  behavior (Minor finding, same review).
-
-Test suites on `main` as of this session: **backend 156 passing** (was
-142), frontend unchanged at 81 passing.
-
-**Still not pushed to GitHub** — no TTY for credentials in this sandbox,
-push manually (`git push origin main`).
-
-## Follow-up items, not yet actioned
-
-1. **A held scheme with no obtainable NAV silently vanishes** from
-   holdings, allocation, and family aggregates — no row, no error, no
-   placeholder. Matches the plan's own code (a stated design choice, not an
-   implementation slip), flagged by Phase 3's final review as worth
-   deciding properly once the Phase 3 frontend is built (where the "NAV
-   unavailable" UI treatment gets decided anyway).
-2. **Plan-type override has no server-side 409 backstop.** Pre-existing
-   since Phase 1 backend, still open.
-3. **No DB uniqueness constraint on the "self" `household_members` row.**
-   Phase 2b's frontend mitigates client-side (list-then-create); a real fix
-   is a backend migration. Pre-existing, still open.
-4. Various Minor items from Phase 3's task reviews, none blocking:
-   `average_nav`/snapshot `total_value` unquantized in API responses (up to
-   28 significant digits); over-redemption silently swallowed with no log;
-   `date.today()` is server-local, not IST-aware (matters once deployed);
-   a few sibling routes missing a cross-user-404 test that an identical,
-   already-tested route has.
+Test suites: **backend 156 passing**, **frontend 28 test files passing**.
 
 ## What's next
 
-**Phase 3b (Main Dashboard frontend)** is next — the screens consuming the
-now-11 backend routes (10 from Phase 3 + Distributor Comparison)
-(App-Flow-Unifolio's S13-S17, S21-S22: per-member/family-aggregate
-dashboard, fund detail, distributor comparison, Add Data re-entry, empty
-states). Needs its own design brainstorm. `DashboardPlaceholder`
-(`frontend/src/features/dashboard/`) is an intentional stub to replace
-outright, not extend.
-
-**PRD-04 (Analytics)** remains fully unbuilt, the module after Main
-Dashboard in the natural build order.
-
-## Context/token usage
-
-Not tracked this session — run `/context` directly in the CLI if needed.
+**PRD-04 (Analytics)** remains fully unbuilt, the module after Main Dashboard in the natural build order.

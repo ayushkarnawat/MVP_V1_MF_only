@@ -1,3 +1,4 @@
+import { Button } from "../../components/Button";
 import styles from "./onboarding.module.css";
 import type { PrimaryGoal } from "./types";
 
@@ -7,29 +8,66 @@ interface Q3PurposeProps {
   onSelect: (value: PrimaryGoal) => void;
 }
 
-const OPTIONS: { value: PrimaryGoal; label: string }[] = [
-  { value: "consolidated_view", label: "See all my mutual funds in one place" },
-  { value: "understand_holdings", label: "Actually understand what I'm invested in" },
-  { value: "family_management", label: "Managing investments for my family, not just myself" },
-  { value: "performance_comparison", label: "Compare how my funds are really performing" },
+const OPTIONS: { value: PrimaryGoal; title: string; subtitle: string; icon: string }[] = [
+  {
+    value: "consolidated_view",
+    title: "Consolidated portfolio view",
+    subtitle: "See all my mutual funds across brokers and AMCs in one place",
+    icon: "📊",
+  },
+  {
+    value: "understand_holdings",
+    title: "Understand true performance",
+    subtitle: "Realized vs unrealized gains, direct vs regular returns",
+    icon: "🔍",
+  },
+  {
+    value: "family_management",
+    title: "Family wealth tracking",
+    subtitle: "Managing investments for family members under one dashboard",
+    icon: "👨‍👩‍👧‍👦",
+  },
+  {
+    value: "performance_comparison",
+    title: "Compare distributor fees",
+    subtitle: "Compare returns and commissions across ARNs and channels",
+    icon: "⚖️",
+  },
 ];
 
 export function Q3Purpose({ onBack, onSkip, onSelect }: Q3PurposeProps) {
   return (
     <div className={styles.container}>
-      <h1>What brings you to Unifolio?</h1>
-      {OPTIONS.map((option) => (
-        <button key={option.value} type="button" onClick={() => onSelect(option.value)}>
-          {option.label}
-        </button>
-      ))}
-      <div className={styles.actions}>
-        <button type="button" onClick={onBack}>
+      <h1 className={styles.title}>What brings you to Unifolio?</h1>
+      <p className={styles.subtitle}>
+        Choose your primary goal so we can highlight the most relevant views for you.
+      </p>
+
+      <div className={styles.choiceGrid}>
+        {OPTIONS.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            className={styles.choiceCard}
+            onClick={() => onSelect(option.value)}
+          >
+            <span className={styles.choiceIcon}>{option.icon}</span>
+            <div className={styles.choiceText}>
+              <strong className={styles.choiceTitle}>{option.title}</strong>
+              <span className={styles.choiceDesc}>{option.subtitle}</span>
+            </div>
+            <span className={styles.choiceArrow}>→</span>
+          </button>
+        ))}
+      </div>
+
+      <div className={styles.actionsBetween}>
+        <Button variant="ghost" size="sm" type="button" onClick={onBack}>
           Back
-        </button>
-        <button type="button" onClick={onSkip}>
+        </Button>
+        <Button variant="ghost" size="sm" type="button" onClick={onSkip}>
           Skip
-        </button>
+        </Button>
       </div>
     </div>
   );

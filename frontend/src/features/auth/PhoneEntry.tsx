@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
+import { Button } from "../../components/Button";
 import styles from "./onboarding.module.css";
 
 interface PhoneEntryProps {
@@ -18,19 +19,34 @@ export function PhoneEntry({ onSubmit, submitting, error }: PhoneEntryProps) {
 
   return (
     <form className={styles.container} onSubmit={handleSubmit}>
-      <h1>Enter your phone number</h1>
-      <label className={styles.field}>
-        Phone number
-        <input
-          type="tel"
-          value={phoneNumber}
-          onChange={(event) => setPhoneNumber(event.target.value)}
-        />
-      </label>
+      <h1 className={styles.title}>Welcome to Unifolio</h1>
+      <p className={styles.subtitle}>
+        Enter your mobile number to sign up or log in. No spam, ever.
+      </p>
+
+      <div className={styles.field}>
+        <label htmlFor="phone-input">Mobile Number</label>
+        <div className={styles.phoneInputGroup}>
+          <span className={styles.countryCode}>🇮🇳 +91</span>
+          <input
+            id="phone-input"
+            type="tel"
+            placeholder="98765 43210"
+            value={phoneNumber}
+            onChange={(event) => setPhoneNumber(event.target.value)}
+            className="type-data"
+            autoFocus
+          />
+        </div>
+      </div>
+
       {error && <p className={styles.error}>{error}</p>}
-      <button type="submit" disabled={submitting}>
-        {submitting ? "Sending..." : "Send OTP"}
-      </button>
+
+      <div className={styles.actionsRight}>
+        <Button variant="primary" size="lg" type="submit" disabled={submitting || !phoneNumber.trim()}>
+          {submitting ? "Sending OTP..." : "Send Verification Code →"}
+        </Button>
+      </div>
     </form>
   );
 }
