@@ -124,3 +124,23 @@ def test_resolve_arn_writes_nothing_and_returns_none_on_fetch_failure():
 
     assert result is None
     assert db.get(ArnDirectory, "ARN-5555") is None
+
+
+def test_resolve_arn_writes_nothing_and_returns_none_on_malformed_record():
+    """AMFI's endpoint is undocumented/reverse-engineered — a 200 response
+    missing an expected field (or with an unparseable date) is just as real
+    a failure mode as a network error, and must degrade the same way:
+    nothing cached, caller falls back to the raw ARN, retried next time."""
+    import asyncio
+
+    db = _session()
+    malformed_record = {"ARN": "0671"}  # missing ARNHolderName/ARNValidTill
+
+    with patch(
+        "app.services.dashboard.arn_lookup._fetch_arn_record",
+        new=AsyncMock(return_value=malformed_record),
+    ):
+        result = asyncio.run(resolve_arn(db, "ARN-0671"))
+
+    assert result is None
+    assert db.get(ArnDirectory, "ARN-0671") is None

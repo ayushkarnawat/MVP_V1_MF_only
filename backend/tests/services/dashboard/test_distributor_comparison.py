@@ -162,3 +162,39 @@ def test_compute_distributor_comparison_returns_empty_when_nav_unavailable():
         rows = asyncio.run(compute_distributor_comparison(db, member.id, scheme.id))
 
     assert rows == []
+
+
+def test_compute_distributor_comparison_includes_fully_redeemed_distributor_group():
+    """Deliberate divergence from holdings.py: a distributor group with zero
+    units held (fully redeemed through that ARN) still appears here, since
+    this view compares historical performance across distributors, not just
+    what's currently held. holdings.py.compute_holdings would drop this row
+    entirely (units_held == 0); this function must not."""
+    import asyncio
+
+    db = _session()
+    member = _household_member(db)
+    scheme = _scheme(db)
+
+    folio = _folio(db, member, scheme, "AAA", "ARN-11111")
+    _txn(db, folio, TransactionType.PURCHASE, date(2024, 1, 1), Decimal("5000.00"), Decimal("100.000"), Decimal("50.0000"))
+    _txn(db, folio, TransactionType.REDEMPTION, date(2024, 3, 1), Decimal("6000.00"), Decimal("100.000"), Decimal("60.0000"))
+
+    resolve_mock = AsyncMock(side_effect=_fake_resolve_arn({
+        "ARN-11111": SimpleNamespace(distributor_name="Alpha Distributors", status=ArnStatus.ACTIVE),
+    }))
+
+    with patch(
+        "app.services.dashboard.distributor_comparison.get_nav_on_or_before",
+        new=AsyncMock(return_value=(Decimal("70.0000"), date(2024, 6, 1))),
+    ), patch("app.services.dashboard.distributor_comparison.resolve_arn", new=resolve_mock):
+        rows = asyncio.run(compute_distributor_comparison(db, member.id, scheme.id))
+
+    assert len(rows) == 1
+    row = rows[0]
+    assert row.units_held == "0"
+    assert row.average_nav is None
+    assert Decimal(row.amount_invested) == Decimal("0")
+    assert Decimal(row.current_value) == Decimal("0")
+    assert Decimal(row.realized_gain) == Decimal("1000.00")  # 100*(60-50)
+    assert Decimal(row.current_profit_total) == Decimal("1000.00")

@@ -64,26 +64,32 @@ async def resolve_arn(db: Session, arn_code: str) -> ArnDirectory | None:
     arn_directory row is returned as-is, no re-fetch, no TTL.
 
     On a cache miss, calls _fetch_arn_record and writes a definitive
-    result. A transient failure (network/HTTP error) writes nothing and
-    returns None, so the caller falls back to the raw ARN this one time
-    and the next request retries — never cache a transient failure as a
-    permanent value."""
+    result. A transient failure — network/HTTP error, or a malformed/
+    unexpected-shape response body (a real risk on an undocumented,
+    reverse-engineered endpoint that could change without notice) — writes
+    nothing and returns None, so the caller falls back to the raw ARN this
+    one time and the next request retries — never cache a transient
+    failure as a permanent value."""
     cached = db.get(ArnDirectory, arn_code)
     if cached is not None:
         return cached
 
     try:
         record = await _fetch_arn_record(arn_code)
-    except httpx.HTTPError:
+        if record is None:
+            status = ArnStatus.INVALID
+            distributor_name = None
+        else:
+            valid_till = _parse_amfi_valid_till(record["ARNValidTill"])
+            status = ArnStatus.ACTIVE if valid_till >= date.today() else ArnStatus.SUSPENDED
+            distributor_name = record["ARNHolderName"]
+    except (httpx.HTTPError, KeyError, ValueError, TypeError):
+        # KeyError/ValueError/TypeError cover a malformed or unexpected-shape
+        # 200 response (missing field, non-JSON body, an unparseable date) —
+        # AMFI returning something not caught by raise_for_status() is just
+        # as real a failure mode here as a network error, and must degrade
+        # the same way: nothing cached, raw ARN shown, retried next time.
         return None
-
-    if record is None:
-        status = ArnStatus.INVALID
-        distributor_name = None
-    else:
-        valid_till = _parse_amfi_valid_till(record["ARNValidTill"])
-        status = ArnStatus.ACTIVE if valid_till >= date.today() else ArnStatus.SUSPENDED
-        distributor_name = record["ARNHolderName"]
 
     row = ArnDirectory(
         arn_code=arn_code,
