@@ -122,11 +122,12 @@ export function UploadForm({ onSubmit }: UploadFormProps) {
       {/* Password Field with Reveal Toggle */}
       <div className={styles.field}>
         <div className={styles.labelRow}>
-          <label className="type-body-medium">PDF Password</label>
+          <label htmlFor="cas-password-input" className="type-body-medium">PDF Password</label>
           <span className="type-caption">Usually your PAN (uppercase) or DOB</span>
         </div>
         <div className={styles.passwordInputWrapper}>
           <input
+            id="cas-password-input"
             type={showPassword ? "text" : "password"}
             placeholder="Enter PDF password if protected"
             value={password}

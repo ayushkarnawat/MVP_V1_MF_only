@@ -6,7 +6,7 @@ describe("FundSignal", () => {
   it("renders positive return arc and icon", () => {
     render(<FundSignal returnPercentage={12.5} schemeName="Axis Small Cap" />);
     const container = screen.getByRole("region");
-    aria-label: expect(container).toHaveAttribute(
+    expect(container).toHaveAttribute(
       "aria-label",
       expect.stringContaining("gain of 12.5%")
     );

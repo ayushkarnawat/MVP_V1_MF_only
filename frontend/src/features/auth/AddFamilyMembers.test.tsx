@@ -22,9 +22,9 @@ describe("AddFamilyMembers", () => {
       <AddFamilyMembers members={[]} onMembersChange={onMembersChange} onBack={vi.fn()} onContinue={vi.fn()} />,
     );
 
-    fireEvent.change(screen.getByLabelText(/member's name/i), { target: { value: "Mom" } });
+    fireEvent.change(screen.getByLabelText(/member's full name/i), { target: { value: "Mom" } });
     fireEvent.change(screen.getByLabelText(/relationship/i), { target: { value: "parent" } });
-    fireEvent.click(screen.getByRole("button", { name: /^add$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /add member/i }));
 
     await waitFor(() => expect(api.createHouseholdMember).toHaveBeenCalledWith("Mom", "parent", undefined));
     await waitFor(() =>

@@ -36,7 +36,6 @@ export function FundSignal({
   // Fill fraction capped between 10% and 100% for clear legibility
   const fillRatio = Math.min(Math.max(absReturn / 30, 0.15), 1);
   const strokeDasharray = 100;
-  const strokeDashoffset = strokeDasharray * (1 - fillRatio);
 
   // Fallback sparkline if none provided
   const points = sparklineData.length >= 2

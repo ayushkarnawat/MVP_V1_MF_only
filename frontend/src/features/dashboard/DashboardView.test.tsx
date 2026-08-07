@@ -62,7 +62,10 @@ describe("DashboardView", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Total Portfolio Value")).toBeInTheDocument();
-      expect(screen.getByText("₹7,500")).toBeInTheDocument();
+      // The fixture's single holding equals the portfolio total, so "₹7,500"
+      // legitimately appears more than once (hero, donut center, donut
+      // legend, table cell) — assert presence, not uniqueness.
+      expect(screen.getAllByText("₹7,500").length).toBeGreaterThan(0);
       expect(screen.getByText("HDFC Top 100 Fund")).toBeInTheDocument();
       expect(screen.getByText("Equity")).toBeInTheDocument();
     });

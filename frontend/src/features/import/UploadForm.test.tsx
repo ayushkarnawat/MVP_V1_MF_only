@@ -10,7 +10,7 @@ describe("UploadForm", () => {
     const file = new File(["not a pdf"], "notes.txt", { type: "text/plain" });
     fireEvent.change(screen.getByLabelText(/cas pdf/i), { target: { files: [file] } });
 
-    expect(screen.getByText(/please choose a pdf file/i)).toBeInTheDocument();
+    expect(screen.getByText(/please choose a valid pdf file/i)).toBeInTheDocument();
   });
 
   it("calls onSubmit with the file and password for a valid PDF", () => {
@@ -32,6 +32,6 @@ describe("UploadForm", () => {
     fireEvent.click(screen.getByRole("button", { name: /upload/i }));
 
     expect(onSubmit).not.toHaveBeenCalled();
-    expect(screen.getByText(/please choose a pdf file/i)).toBeInTheDocument();
+    expect(screen.getByText(/please select a pdf file to upload/i)).toBeInTheDocument();
   });
 });

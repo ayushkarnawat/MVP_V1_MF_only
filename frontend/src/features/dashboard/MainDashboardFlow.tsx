@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { NavigationShell, type MemberOption } from "./NavigationShell";
 import { DashboardView } from "./DashboardView";
-import { SoloCasUpload } from "../auth/SoloCasUpload";
+import { ImportFlow } from "../import/ImportFlow";
 import { getHouseholdMembers } from "../auth/api";
 import { useAuth } from "../auth/AuthContext";
 
@@ -57,10 +57,13 @@ export function MainDashboardFlow() {
         >
           ← Back to Dashboard
         </button>
-        <SoloCasUpload
-          householdMemberId={targetAddMemberId || undefined}
-          onDone={() => setIsAddingData(false)}
-        />
+        {targetAddMemberId && (
+          <ImportFlow
+            householdMemberId={targetAddMemberId}
+            ctaLabel="Back to Dashboard"
+            onDone={() => setIsAddingData(false)}
+          />
+        )}
       </div>
     );
   }

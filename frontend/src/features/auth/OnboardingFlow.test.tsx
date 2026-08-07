@@ -35,8 +35,8 @@ describe("OnboardingFlow", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: /continue/i })).toBeInTheDocument());
 
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
-    await waitFor(() => expect(screen.getByLabelText(/what should we call you/i)).toBeInTheDocument());
-    fireEvent.change(screen.getByLabelText(/what should we call you/i), { target: { value: "Ayush" } });
+    await waitFor(() => expect(screen.getByLabelText(/your full name or first name/i)).toBeInTheDocument());
+    fireEvent.change(screen.getByLabelText(/your full name or first name/i), { target: { value: "Ayush" } });
     fireEvent.click(screen.getByRole("button", { name: /^next$/i }));
 
     await waitFor(() => expect(screen.getByText(/how are you investing right now/i)).toBeInTheDocument());
@@ -52,22 +52,22 @@ describe("OnboardingFlow", () => {
     renderFlow();
     await waitFor(() => screen.getByRole("button", { name: /continue/i }));
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
-    await waitFor(() => screen.getByLabelText(/what should we call you/i));
-    fireEvent.change(screen.getByLabelText(/what should we call you/i), { target: { value: "Ayush" } });
+    await waitFor(() => screen.getByLabelText(/your full name or first name/i));
+    fireEvent.change(screen.getByLabelText(/your full name or first name/i), { target: { value: "Ayush" } });
     fireEvent.click(screen.getByRole("button", { name: /^next$/i }));
     await waitFor(() => screen.getByText(/how are you investing right now/i));
 
     fireEvent.click(screen.getByRole("button", { name: /^back$/i }));
 
-    await waitFor(() => expect(screen.getByLabelText(/what should we call you/i)).toHaveValue("Ayush"));
+    await waitFor(() => expect(screen.getByLabelText(/your full name or first name/i)).toHaveValue("Ayush"));
   });
 
   it("skipping Q2 still allows reaching it again via Back later", async () => {
     renderFlow();
     await waitFor(() => screen.getByRole("button", { name: /continue/i }));
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
-    await waitFor(() => screen.getByLabelText(/what should we call you/i));
-    fireEvent.click(screen.getByRole("button", { name: /^next$/i }));
+    await waitFor(() => screen.getByLabelText(/your full name or first name/i));
+    fireEvent.click(screen.getByRole("button", { name: /^skip$/i }));
     await waitFor(() => screen.getByText(/how are you investing right now/i));
 
     fireEvent.click(screen.getByRole("button", { name: /^skip$/i }));
@@ -81,8 +81,8 @@ describe("OnboardingFlow", () => {
     renderFlow();
     await waitFor(() => screen.getByRole("button", { name: /continue/i }));
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
-    await waitFor(() => screen.getByLabelText(/what should we call you/i));
-    fireEvent.click(screen.getByRole("button", { name: /^next$/i }));
+    await waitFor(() => screen.getByLabelText(/your full name or first name/i));
+    fireEvent.click(screen.getByRole("button", { name: /^skip$/i }));
     await waitFor(() => screen.getByText(/how are you investing right now/i));
 
     fireEvent.click(screen.getByRole("button", { name: /mostly on my own/i }));
@@ -96,8 +96,8 @@ describe("OnboardingFlow", () => {
     renderFlow();
     await waitFor(() => screen.getByRole("button", { name: /continue/i }));
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
-    await waitFor(() => screen.getByLabelText(/what should we call you/i));
-    fireEvent.click(screen.getByRole("button", { name: /^next$/i }));
+    await waitFor(() => screen.getByLabelText(/your full name or first name/i));
+    fireEvent.click(screen.getByRole("button", { name: /^skip$/i }));
     await waitFor(() => screen.getByText(/how are you investing right now/i));
     fireEvent.click(screen.getByRole("button", { name: /mostly on my own/i }));
     await waitFor(() => screen.getByText(/what brings you to unifolio/i));

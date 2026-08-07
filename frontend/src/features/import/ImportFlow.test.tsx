@@ -93,7 +93,7 @@ describe("ImportFlow", () => {
     await waitFor(() => screen.getByRole("button", { name: /import another cas/i }));
     fireEvent.click(screen.getByRole("button", { name: /import another cas/i }));
 
-    expect(screen.getByRole("button", { name: /^upload$/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /upload & parse statement/i })).toBeInTheDocument();
   });
 
   it("uses ctaLabel and onDone instead of the default reset when provided", async () => {

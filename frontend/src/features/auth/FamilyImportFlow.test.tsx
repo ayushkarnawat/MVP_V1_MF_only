@@ -37,7 +37,7 @@ function uploadFor(memberLabel: RegExp) {
   fireEvent.click(screen.getByRole("button", { name: memberLabel }));
   fireEvent.change(screen.getByLabelText(/cas pdf/i), { target: { files: [file] } });
   fireEvent.change(screen.getByLabelText(/pdf password/i), { target: { value: "secret" } });
-  fireEvent.click(screen.getByRole("button", { name: /^upload$/i }));
+  fireEvent.click(screen.getByRole("button", { name: /upload & parse statement/i }));
 }
 
 function renderFlow() {
@@ -220,7 +220,7 @@ describe("FamilyImportFlow", () => {
     const file = new File(["pdf-bytes"], "cas.pdf", { type: "application/pdf" });
     fireEvent.change(screen.getByLabelText(/cas pdf/i), { target: { files: [file] } });
     fireEvent.change(screen.getByLabelText(/pdf password/i), { target: { value: "secret" } });
-    fireEvent.click(screen.getByRole("button", { name: /^upload$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /upload & parse statement/i }));
 
     await waitFor(() => expect(screen.getByText(/couldn't set up your profile/i)).toBeInTheDocument());
     expect(screen.getByLabelText(/cas pdf/i)).toBeInTheDocument();

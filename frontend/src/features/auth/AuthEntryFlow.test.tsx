@@ -29,7 +29,7 @@ describe("AuthEntryFlow", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /sign up/i }));
 
-    expect(screen.getByLabelText(/phone number/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/mobile number/i)).toBeInTheDocument();
   });
 
   it("moves from phone entry to OTP verify after a successful request", async () => {
@@ -38,10 +38,10 @@ describe("AuthEntryFlow", () => {
     await waitFor(() => screen.getByRole("button", { name: /sign up/i }));
     fireEvent.click(screen.getByRole("button", { name: /sign up/i }));
 
-    fireEvent.change(screen.getByLabelText(/phone number/i), { target: { value: "+919999999999" } });
-    fireEvent.click(screen.getByRole("button", { name: /send otp/i }));
+    fireEvent.change(screen.getByLabelText(/mobile number/i), { target: { value: "+919999999999" } });
+    fireEvent.click(screen.getByRole("button", { name: /send verification code/i }));
 
-    await waitFor(() => expect(screen.getByLabelText(/6-digit code/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByLabelText(/verification code/i)).toBeInTheDocument());
     expect(screen.getByText(/654321/)).toBeInTheDocument();
   });
 
@@ -57,12 +57,12 @@ describe("AuthEntryFlow", () => {
     renderFlow();
     await waitFor(() => screen.getByRole("button", { name: /sign up/i }));
     fireEvent.click(screen.getByRole("button", { name: /sign up/i }));
-    fireEvent.change(screen.getByLabelText(/phone number/i), { target: { value: "+919999999999" } });
-    fireEvent.click(screen.getByRole("button", { name: /send otp/i }));
-    await waitFor(() => screen.getByLabelText(/6-digit code/i));
+    fireEvent.change(screen.getByLabelText(/mobile number/i), { target: { value: "+919999999999" } });
+    fireEvent.click(screen.getByRole("button", { name: /send verification code/i }));
+    await waitFor(() => screen.getByLabelText(/verification code/i));
 
-    fireEvent.change(screen.getByLabelText(/6-digit code/i), { target: { value: "654321" } });
-    fireEvent.click(screen.getByRole("button", { name: /^verify$/i }));
+    fireEvent.change(screen.getByLabelText(/verification code/i), { target: { value: "654321" } });
+    fireEvent.click(screen.getByRole("button", { name: /verify & continue/i }));
 
     await waitFor(() => expect(api.verifyOtp).toHaveBeenCalledWith("+919999999999", "654321"));
   });
@@ -73,12 +73,12 @@ describe("AuthEntryFlow", () => {
     renderFlow();
     await waitFor(() => screen.getByRole("button", { name: /sign up/i }));
     fireEvent.click(screen.getByRole("button", { name: /sign up/i }));
-    fireEvent.change(screen.getByLabelText(/phone number/i), { target: { value: "+919999999999" } });
-    fireEvent.click(screen.getByRole("button", { name: /send otp/i }));
-    await waitFor(() => screen.getByLabelText(/6-digit code/i));
+    fireEvent.change(screen.getByLabelText(/mobile number/i), { target: { value: "+919999999999" } });
+    fireEvent.click(screen.getByRole("button", { name: /send verification code/i }));
+    await waitFor(() => screen.getByLabelText(/verification code/i));
 
-    fireEvent.change(screen.getByLabelText(/6-digit code/i), { target: { value: "000000" } });
-    fireEvent.click(screen.getByRole("button", { name: /^verify$/i }));
+    fireEvent.change(screen.getByLabelText(/verification code/i), { target: { value: "000000" } });
+    fireEvent.click(screen.getByRole("button", { name: /verify & continue/i }));
 
     await waitFor(() => expect(screen.getByText(/invalid or expired otp/i)).toBeInTheDocument());
   });

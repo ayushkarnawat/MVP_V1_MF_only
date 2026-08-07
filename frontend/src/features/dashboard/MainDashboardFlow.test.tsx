@@ -30,8 +30,8 @@ describe("MainDashboardFlow", () => {
 
   it("fetches household members and defaults landing view", async () => {
     vi.mocked(authApi.getHouseholdMembers).mockResolvedValue([
-      { id: "m-1", user_id: "u-1", name: "Alice", relationship: "self", relationship_other_label: null, created_at: "" },
-      { id: "m-2", user_id: "u-1", name: "Bob", relationship: "spouse", relationship_other_label: null, created_at: "" },
+      { id: "m-1", name: "Alice", relationship: "self", relationship_other_label: null },
+      { id: "m-2", name: "Bob", relationship: "spouse", relationship_other_label: null },
     ]);
 
     vi.mocked(dashboardApi.getAggregateHoldings).mockResolvedValue({
