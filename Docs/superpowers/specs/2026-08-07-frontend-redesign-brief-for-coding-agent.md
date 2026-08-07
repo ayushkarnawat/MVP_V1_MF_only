@@ -422,13 +422,28 @@ Dashboard nav action instead of the onboarding flow.
 
 ### 7.2 Operationalize the `impeccable` plugin's own quality rubric
 
-This plugin (already installed for this project) scores interfaces against
-Nielsen's 10 usability heuristics (0–4 each, 40 total) and flags P0–P3
-issues. Use it as your own build-verification loop, not just something the
-product owner runs afterward:
+This plugin (already installed for this project, at whichever of
+`.agent/skills/impeccable/` or `.agents/skills/impeccable/` your install
+landed in) scores interfaces against Nielsen's 10 usability heuristics (0–4
+each, 40 total) and flags P0–P3 issues. Use it as your own build-verification
+loop, not just something the product owner runs afterward.
 
-1. Before writing code for a surface, run `/impeccable shape` on it (owns
-   task discovery and UX planning per the skill's own routing) — the Main
+**A note on invocation**: this skill's commands are written below as
+`/impeccable <command>` because that's how the skill's own reference docs
+name them, and it's exactly how to invoke them in a harness that supports
+`user-invocable` slash commands (Claude Code, Cursor, Copilot, and several
+others). Antigravity's frontmatter support does not include
+`user-invocable` — there may be no literal typed-slash affordance for it in
+your environment. If `/impeccable <command>` doesn't work as a typed command,
+the skill still applies: it auto-loads based on task-description matching
+(standard Agent Skills spec behavior), and once loaded you can direct it in
+plain language ("use the impeccable skill to critique this screen," "run an
+impeccable audit here") — it'll follow its own internal command routing
+either way. Try the literal slash form first; fall back to plain language if
+it's not recognized.
+
+1. Before writing code for a surface, invoke `shape` on it (owns task
+   discovery and UX planning per the skill's own routing) — the Main
    Dashboard and Distributor Comparison, having no existing implementation,
    are exactly the "new surface" case its `new-work.md` playbook covers.
 2. Every screen in this brief is **Operate mode** in `impeccable`'s own
@@ -441,16 +456,16 @@ product owner runs afterward:
    design against both explicitly. Alex needs the primary task completable
    fast with no forced hand-holding; Sam needs the entire flow keyboard-
    navigable with correct ARIA and WCAG AA contrast in both modes.
-4. After building each major surface, run `/impeccable critique` on it.
-   **Target: Good band or better (≥28/40, or ≥70% when a heuristic is validly
-   `n/a`)** before considering that surface done. If a critique comes back
-   Acceptable or below, treat every P0/P1 finding as blocking before moving
-   to the next surface — don't accumulate design debt across five screens and
-   try to fix it all at the end.
-5. Run `/impeccable audit` for the technical checks (accessibility,
-   performance, responsive) `critique`'s design review doesn't cover.
-6. End with `/impeccable polish` as the final pass before calling the
-   redesign complete, per the skill's own recommended sequence.
+4. After building each major surface, invoke `critique` on it. **Target: Good
+   band or better (≥28/40, or ≥70% when a heuristic is validly `n/a`)** before
+   considering that surface done. If a critique comes back Acceptable or
+   below, treat every P0/P1 finding as blocking before moving to the next
+   surface — don't accumulate design debt across five screens and try to fix
+   it all at the end.
+5. Invoke `audit` for the technical checks (accessibility, performance,
+   responsive) `critique`'s design review doesn't cover.
+6. End with `polish` as the final pass before calling the redesign complete,
+   per the skill's own recommended sequence.
 
 ### 7.3 Cognitive load discipline (Design Schema + `impeccable` both require this)
 
@@ -620,9 +635,11 @@ Antigravity), after it has access to this repository:
 > brief's guardrails, screen inventory, component list, backend API contract,
 > and motion/accessibility requirements exactly. Work on a new git branch,
 > never on `main` directly, and never modify anything under `backend/`. Use
-> the `impeccable` skill's `critique`/`audit`/`polish` commands as your own
-> build-verification loop per the brief's Section 7.2, targeting a Good-band
-> score or better on every major screen. When you're finished, update
+> the `impeccable` skill's shape/critique/audit/polish workflow as your own
+> build-verification loop per the brief's Section 7.2 (invoke it however
+> your harness supports — a typed `/impeccable <command>` if available, plain
+> language otherwise), targeting a Good-band score or better on every major
+> screen. When you're finished, update
 > `session.md` and `CLAUDE.md`'s Session State section per the brief's
 > Section 10 before stopping — that update is part of the deliverable, not
 > an afterthought.
