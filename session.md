@@ -71,11 +71,9 @@ Real app bugs, fixed in component code:
   unused in state. Client-side float accumulation across holdings is
   exactly the failure mode CLAUDE.md's "`Decimal`, never `float`" rule
   exists to prevent, on the single most visible number on the page. Fixed
-  to use the server total directly. **`investedVal`/`profitVal` still sum
-  parsed floats client-side** — the backend doesn't expose total-invested/
-  total-profit fields to substitute the same way, and a JS Decimal library
-  is a real architectural decision, not made unilaterally here. Flagged as
-  a follow-up, not silently left unmentioned.
+  to use the server total directly. `investedVal`/`profitVal` had no
+  server total to substitute the same way (allocation only exposes
+  `total_value`) — resolved separately, see below.
 - **`FundSignal.tsx`**: removed a dead, never-wired `strokeDashoffset`
   variable (an earlier arc-fill approach superseded by the working
   `strokeDasharray`/`fillRatio` technique already in use) — a `tsc` error,
@@ -107,22 +105,37 @@ change, not a masked regression):
   (`frontend/src/setupTests.ts`) — `ThemeToggle`/`NavigationShell` both call
   it and jsdom doesn't implement it.
 
-**Also found, not acted on — flagged for you to decide:**
-- Commit `d69b426` on this branch committed the entire `impeccable` plugin's
-  own tooling (`.agents/skills/impeccable/`, `.claude/skills/impeccable/`)
-  into this repo's git history. That's environment tooling, not application
-  code, and probably shouldn't be tracked here — left alone pending your
-  call on whether/how to remove it.
-- `HoldingsTable.tsx` references a `row.return_percentage_1y` field that
-  doesn't exist anywhere in the real `HoldingRow` backend response — always
-  `undefined` in practice, silently falling through to a client-computed
-  fallback. Harmless (the fallback is what runs either way), but dead code
-  worth cleaning up.
+**Both flagged items resolved this session, per your explicit follow-up
+instruction:**
+- **`investedVal`/`profitVal` float accumulation** — fixed with a new,
+  dependency-free `sumDecimalStrings` helper
+  (`frontend/src/lib/decimal.ts`): exact decimal-string addition via
+  integer minor units (`BigInt`), no new npm dependency. Handles a
+  variable number of decimal places (the backend doesn't quantize
+  `current_value`/`amount_invested` before serializing — `units * nav` can
+  carry more than 2 decimal places, so a fixed-2dp assumption would have
+  silently truncated real precision). Only the final summed result is
+  parsed to a number once, for display formatting — the accumulation
+  itself never touches `float`. 7 new tests, including one proving an
+  exact result where float accumulation would visibly drift (ten additions
+  of `"0.1"`).
+- **`impeccable` plugin committed into this repo's git history** —
+  untracked (`git rm --cached`) and added to `.gitignore`
+  (`.agents/skills/`, `.claude/skills/`), left in place on disk so any
+  coding agent working in this checkout still has it available. Per your
+  instruction: keep it usable for switching agents, don't keep it tracked
+  in the app's own history where it'll drift stale against the plugin's
+  own update mechanism.
+- `HoldingsTable.tsx` still references a `row.return_percentage_1y` field
+  that doesn't exist anywhere in the real `HoldingRow` backend response —
+  always `undefined` in practice, silently falling through to a
+  client-computed fallback. Harmless (the fallback is what runs either
+  way), but dead code worth cleaning up. Not yet actioned.
 
 - **Branch Status**: `feature/frontend-redesign`, now with the fixes above
-  on top of Antigravity's original commit. 156/156 backend, 104/104
-  frontend, `tsc -b --noEmit` clean — genuinely verified, not claimed.
-  Not yet merged to `main` — awaiting your decision.
+  on top of Antigravity's original commit. 156/156 backend, 111/111
+  frontend (30 files), `tsc -b --noEmit` clean — genuinely verified, not
+  claimed. Not yet merged to `main` — awaiting your decision.
 
 ---
 
