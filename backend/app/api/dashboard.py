@@ -15,6 +15,7 @@ from app.services.dashboard.aggregate import (
 )
 from app.services.dashboard.allocation import compute_allocation
 from app.services.dashboard.cash_flow import compute_cash_flow
+from app.services.dashboard.distributor_comparison import compute_distributor_comparison
 from app.services.dashboard.holdings import compute_holdings
 from app.services.dashboard.household_members import (
     create_household_member,
@@ -29,6 +30,7 @@ from app.services.dashboard.schemas import (
     AggregateSnapshotsResponse,
     AllocationSummary,
     CashFlowEntry,
+    DistributorComparisonRow,
     HoldingRow,
     HouseholdMemberCreate,
     HouseholdMemberResponse,
@@ -81,6 +83,21 @@ async def get_member_holdings(
     if get_household_member_for_user(db, user.id, member_id) is None:
         raise HTTPException(status_code=404, detail="Household member not found.")
     return await compute_holdings(db, [member_id])
+
+
+@router.get(
+    "/household-members/{member_id}/schemes/{scheme_id}/distributor-comparison",
+    response_model=list[DistributorComparisonRow],
+)
+async def get_member_distributor_comparison(
+    member_id: uuid.UUID,
+    scheme_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    db: DbSession = Depends(get_db),
+):
+    if get_household_member_for_user(db, user.id, member_id) is None:
+        raise HTTPException(status_code=404, detail="Household member not found.")
+    return await compute_distributor_comparison(db, member_id, scheme_id)
 
 
 @router.get("/household-members/{member_id}/allocation", response_model=AllocationSummary)
