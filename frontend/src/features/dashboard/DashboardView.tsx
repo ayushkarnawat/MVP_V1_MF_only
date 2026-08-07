@@ -6,6 +6,7 @@ import { HoldingsTableSkeleton } from "../../components/Skeleton";
 import { Badge } from "../../components/Badge";
 import { FundDetailModal } from "./FundDetailModal";
 import { DistributorComparisonModal } from "./DistributorComparisonModal";
+import { sumDecimalStrings } from "../../lib/decimal";
 import {
   getMemberHoldings,
   getMemberAllocation,
@@ -96,13 +97,15 @@ export function DashboardView({
     // here since the precise total is already fetched.
     const currentVal = allocation ? parseFloat(allocation.total_value || "0") : 0;
 
-    let investedVal = 0;
-    let profitVal = 0;
-
-    holdings.forEach((h) => {
-      investedVal += parseFloat(h.amount_invested || "0");
-      profitVal += parseFloat(h.unrealized_gain || h.current_profit_total || "0");
-    });
+    // investedVal/profitVal have no server-computed total to reuse the way
+    // currentVal does above, so they're summed here — but via exact
+    // decimal-string arithmetic (sumDecimalStrings), not parseFloat
+    // accumulation, for the same Decimal-never-float reason. Only the final
+    // summed result is parsed to a number, once, for display formatting.
+    const investedVal = parseFloat(sumDecimalStrings(holdings.map((h) => h.amount_invested)));
+    const profitVal = parseFloat(
+      sumDecimalStrings(holdings.map((h) => h.unrealized_gain || h.current_profit_total)),
+    );
 
     const gainPercentage = investedVal > 0 ? (profitVal / investedVal) * 100 : 0;
 
