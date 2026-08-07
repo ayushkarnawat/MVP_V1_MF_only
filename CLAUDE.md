@@ -85,7 +85,7 @@ frontend framework, or a service split not already in that document.
 
 ## Session State
 
-*(Updated 2026-08-06. See `session.md` at repo root for full detail — this is the
+*(Updated 2026-08-07. See `session.md` at repo root for full detail — this is the
 one-paragraph pointer for a fresh session.)*
 
 **Phase 0, Phase 1 (backend + frontend), Phase 2 (backend), Phase 2b
@@ -150,11 +150,24 @@ replaced with the documented Alembic pattern. Full detail in `session.md`.
 **ADR-001 — resolved.** Corrected via an Amendment section (Decision
 unchanged) — the CAS Parser frontend was never existing React work.
 
-**Distributor Comparison (PRD-03 FR-11) is next**, per explicit instruction
-— was deferred out of Phase 3 during brainstorming, now scheduled as its
-own small phase before the frontend. `arn_directory` already exists from
-Phase 0. **Phase 3b (Main Dashboard frontend) follows** — the screens
-consuming Phase 3's routes plus distributor comparison.
+**Distributor Comparison (PRD-03 FR-11) — resolved this session.** Built
+and merged: on-demand AMFI ARN name/status resolution
+(`backend/app/services/dashboard/arn_lookup.py`) cached platform-wide in
+Phase 0's `arn_directory`, plus per-distributor FIFO comparison
+(`distributor_comparison.py`, reusing `holdings.py`'s engine unchanged) at
+a new `GET /household-members/{id}/schemes/{scheme_id}/distributor-comparison`
+route. The AMFI automation question PRD-03 flagged as needing sign-off is
+resolved with a real, independently-verified endpoint — the originally-cited
+scraper precedent was dead (site rebuilt since); you captured the live
+endpoint via DevTools, I independently re-verified it with direct HTTP
+calls before designing against it. Final review (sonnet, not fable, per
+your explicit instruction for this task) caught one real bug: malformed-AMFI-response
+parsing wasn't covered by the failure handling, so an unexpected 200 body
+would 500 instead of gracefully falling back to the raw ARN — fixed, with
+a test. Full detail in `session.md`. Backend suite: 156 passing (was 142).
+
+**Phase 3b (Main Dashboard frontend) is next** — the screens consuming
+Phase 3's 10 routes plus distributor comparison (11 total).
 `DashboardPlaceholder` (`frontend/src/features/dashboard/`) is an
 intentional stub to replace outright, not extend. PRD-04 (Analytics)
 remains fully unbuilt beyond that.

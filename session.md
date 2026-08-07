@@ -1,4 +1,4 @@
-# Session state — 2026-08-06 (updated)
+# Session state — 2026-08-07 (updated)
 
 Working notes for picking this project back up cold. Not a planning doc — see
 `Docs/superpowers/plans/` for those. This file tracks *where things stand*,
@@ -128,6 +128,59 @@ unverified at runtime — no live Postgres in this sandbox; the postgres
 functional suite already smoke-runs `alembic upgrade head`, so it gets
 exercised in CI even though not here.
 
+## Distributor Comparison (PRD-03 FR-11) — resolved this session
+
+Built and merged (`Docs/superpowers/plans/2026-08-07-distributor-comparison.md`,
+design: `Docs/superpowers/specs/2026-08-07-distributor-comparison-design.md`),
+3 tasks + 1 final-review fix, executed inline (no subagent dispatch — small,
+well-scoped feature). Covers FR-11/FR-11a/FR-11b/FR-11c: per-scheme,
+per-member "returns by distributor" comparison.
+
+- **The AMFI ARN-lookup automation question PRD-03 flagged as needing your/
+  legal's sign-off is resolved with a real, independently-verified
+  integration, not a stub.** The TDD's originally-cited precedent scraper
+  is dead (its endpoint 404s — AMFI rebuilt the site since). You captured
+  the real live endpoint via browser DevTools
+  (`GET amfiindia.com/api/distributor-agent?strOpt=ALL&search={bare_arn}&page=1&pageSize=1`),
+  I independently re-verified it with direct HTTP calls before designing
+  against it (confirmed exact-match and not-found behavior, confirmed the
+  bare-numeric-ARN requirement vs. this codebase's `"ARN-"`-prefixed
+  storage). Single-item lookup only, never bulk — matches PRD-03's own
+  low-risk framing exactly.
+- **`backend/app/services/dashboard/arn_lookup.py`** (new) —
+  `resolve_arn`: cache-first against `arn_directory` (Phase 0's table, no
+  migration needed), resolve-once-forever per FR-11a, no TTL. Status
+  derived entirely from the one verified endpoint (no second unverified
+  "suspended list" integration): no AMFI record → `INVALID`; found with
+  lapsed `ARNValidTill` → `SUSPENDED`; found and current → `ACTIVE`.
+- **`backend/app/services/dashboard/distributor_comparison.py`** (new) —
+  reuses `holdings._process_folio_lots` and the same-date ordering fix
+  unchanged, grouped one level finer (by ARN as well as scheme). Unlike
+  `holdings.py`, a fully-redeemed distributor group still appears (this
+  view compares historical performance across distributors, not just
+  current holdings) — a deliberate, documented, now-tested divergence.
+- New route: `GET /household-members/{member_id}/schemes/{scheme_id}/distributor-comparison`
+  — deliberate correction of the TDD's API table (which listed
+  `/funds/{scheme_id}/distributor-comparison` with no member scoping),
+  same category of fix as Phase 3's allocation-ownership correction.
+- **Final review (independent subagent, sonnet — not fable, per your
+  explicit instruction for this task to conserve fable budget for
+  frontend) caught one real Important bug**: `resolve_arn`'s exception
+  handling only covered network/HTTP errors — parsing a successfully-
+  returned-but-malformed AMFI record (missing field, unparseable date) was
+  uncaught, so an unexpected 200 body from this undocumented endpoint
+  would 500 the whole request instead of degrading to the raw ARN per
+  FR-11b. I independently confirmed the gap by reading the code before
+  fixing. Fixed by widening the except clause to cover parse failures too,
+  with a new test. Also added test coverage for the fully-redeemed-group
+  behavior (Minor finding, same review).
+
+Test suites on `main` as of this session: **backend 156 passing** (was
+142), frontend unchanged at 81 passing.
+
+**Still not pushed to GitHub** — no TTY for credentials in this sandbox,
+push manually (`git push origin main`).
+
 ## Follow-up items, not yet actioned
 
 1. **A held scheme with no obtainable NAV silently vanishes** from
@@ -150,17 +203,13 @@ exercised in CI even though not here.
 
 ## What's next
 
-**Distributor Comparison (PRD-03 FR-11)** is next, per your explicit
-instruction — was originally deferred out of Phase 3 during brainstorming
-(external AMFI ARN-lookup dependency, own risk profile), now scheduled as
-its own small follow-up phase before the frontend. `arn_directory` (the
-caching table) already exists from Phase 0.
-
-**Phase 3b (Main Dashboard frontend)** comes after Distributor Comparison —
-the screens consuming the now-11 (10 + distributor comparison) routes
+**Phase 3b (Main Dashboard frontend)** is next — the screens consuming the
+now-11 backend routes (10 from Phase 3 + Distributor Comparison)
 (App-Flow-Unifolio's S13-S17, S21-S22: per-member/family-aggregate
 dashboard, fund detail, distributor comparison, Add Data re-entry, empty
-states). Needs its own design brainstorm.
+states). Needs its own design brainstorm. `DashboardPlaceholder`
+(`frontend/src/features/dashboard/`) is an intentional stub to replace
+outright, not extend.
 
 **PRD-04 (Analytics)** remains fully unbuilt, the module after Main
 Dashboard in the natural build order.
