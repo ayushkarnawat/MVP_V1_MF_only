@@ -4,7 +4,7 @@ from datetime import date
 
 from pydantic import BaseModel
 
-from app.models.enums import PlanType, Relationship, TransactionType
+from app.models.enums import ArnStatus, PlanType, Relationship, TransactionType
 
 
 class HouseholdMemberCreate(BaseModel):
@@ -37,6 +37,19 @@ class HoldingRow(BaseModel):
     realized_gain: str
     unrealized_gain: str
     today_gain: str
+
+
+class DistributorComparisonRow(BaseModel):
+    arn_code: str | None
+    distributor_name: str | None
+    arn_status: ArnStatus | None
+    units_held: str
+    average_nav: str | None
+    amount_invested: str
+    current_value: str
+    current_profit_total: str
+    realized_gain: str
+    unrealized_gain: str
 
 
 class AllocationBucket(BaseModel):
