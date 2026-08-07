@@ -18,3 +18,10 @@ dist/
 
 # Git worktrees (superpowers subagent-driven-development)
 .worktrees/
+
+# Coding-agent tooling installs (e.g. the impeccable design skill) — kept on
+# disk so any coding agent working in this checkout can use them, but not
+# tracked: they're environment tooling, not application code, and get
+# updated independently of this repo (npx impeccable skills install/update).
+.agents/skills/
+.claude/skills/
