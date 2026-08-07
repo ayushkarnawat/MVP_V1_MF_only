@@ -88,12 +88,18 @@ export function DashboardView({
 
   /* Portfolio Totals */
   const totals = useMemo(() => {
-    let currentVal = 0;
+    // currentVal comes from the allocation endpoint's total_value — a
+    // server-computed Decimal total, not a client-side re-sum of each
+    // holding's current_value. Re-summing parsed floats across many
+    // holdings is exactly the accumulation-error pattern CLAUDE.md's
+    // Decimal-never-float rule exists to prevent, and it's unnecessary
+    // here since the precise total is already fetched.
+    const currentVal = allocation ? parseFloat(allocation.total_value || "0") : 0;
+
     let investedVal = 0;
     let profitVal = 0;
 
     holdings.forEach((h) => {
-      currentVal += parseFloat(h.current_value || "0");
       investedVal += parseFloat(h.amount_invested || "0");
       profitVal += parseFloat(h.unrealized_gain || h.current_profit_total || "0");
     });
@@ -106,7 +112,7 @@ export function DashboardView({
       profitVal,
       gainPercentage,
     };
-  }, [holdings]);
+  }, [holdings, allocation]);
 
   if (loading) {
     return (
