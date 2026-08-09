@@ -132,10 +132,26 @@ instruction:**
   client-computed fallback. Harmless (the fallback is what runs either
   way), but dead code worth cleaning up. Not yet actioned.
 
-- **Branch Status**: `feature/frontend-redesign`, now with the fixes above
-  on top of Antigravity's original commit. 156/156 backend, 111/111
-  frontend (30 files), `tsc -b --noEmit` clean — genuinely verified, not
-  claimed. Not yet merged to `main` — awaiting your decision.
+- **Branch Status**: merged to `main` (fast-forward from
+  `feature/frontend-redesign` — same commit, `61bf6f4`). A `dev_intern`
+  branch was cut from `main` at this same commit for sharing with an
+  intern. Both `main` and `dev_intern` are pushed to `origin`. 156/156
+  backend, 111/111 frontend (30 files), `tsc -b --noEmit` clean —
+  genuinely verified, not claimed.
+
+## Knowledge graph — read this before re-scanning the codebase
+
+A full codebase knowledge graph exists at `.ua/knowledge-graph.json`
+(built via the `understand-anything` Claude Code plugin — 505 nodes, 1121
+edges, 10 architectural layers, a 14-step guided tour), with
+`meta.json.gitCommitHash` = `61bf6f423aee56d51cf16fecc584ee98150d0e5f`,
+matching `main`'s current HEAD exactly (not stale). A fresh session
+should query this graph (or launch its dashboard: `/understand-dashboard`)
+instead of re-reading/grepping the whole repo. If `main` has moved past
+that commit by the time you read this, the graph may be stale — check
+`git log -1 --format=%H` against `.ua/meta.json`'s `gitCommitHash` before
+trusting it, and re-run `/understand` (incremental update, only
+re-analyzes changed files) if they've diverged.
 
 ---
 
