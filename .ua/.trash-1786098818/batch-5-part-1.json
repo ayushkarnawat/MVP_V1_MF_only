@@ -1,0 +1,1407 @@
+{
+ "nodes": [
+  {
+   "id": "file:backend/app/services/dashboard/schemas.py",
+   "type": "file",
+   "name": "schemas.py",
+   "filePath": "backend/app/services/dashboard/schemas.py",
+   "summary": "Pydantic response and request models for every Main Dashboard view — holdings, distributor comparison, allocation, SIPs, cash flow, monthly snapshots — plus the placeholder-aware aggregate wrappers that pair each payload with per-member data statuses.",
+   "tags": [
+    "type-definition",
+    "data-model",
+    "serialization",
+    "api-schema"
+   ],
+   "complexity": "moderate",
+   "languageNotes": "All money/units/NAV fields are serialized as strings to preserve Decimal precision end to end, per the project's no-float rule."
+  },
+  {
+   "id": "class:backend/app/services/dashboard/schemas.py:HouseholdMemberCreate",
+   "type": "class",
+   "name": "HouseholdMemberCreate",
+   "filePath": "backend/app/services/dashboard/schemas.py",
+   "lineRange": [
+    10,
+    13
+   ],
+   "summary": "Request body for creating a household member: name, relationship, and an optional free-text label when the relationship is 'other'.",
+   "tags": [
+    "data-model",
+    "validation",
+    "request-schema"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:backend/app/services/dashboard/schemas.py:HouseholdMemberResponse",
+   "type": "class",
+   "name": "HouseholdMemberResponse",
+   "filePath": "backend/app/services/dashboard/schemas.py",
+   "lineRange": [
+    16,
+    20
+   ],
+   "summary": "API representation of a household member returned by the member CRUD routes.",
+   "tags": [
+    "data-model",
+    "serialization",
+    "response-schema"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:backend/app/services/dashboard/schemas.py:HoldingRow",
+   "type": "class",
+   "name": "HoldingRow",
+   "filePath": "backend/app/services/dashboard/schemas.py",
+   "lineRange": [
+    23,
+    39
+   ],
+   "summary": "One holdings-table row per scheme and member: units held, average and current NAV, amount invested, current value, and the realized/unrealized/today gain breakdown.",
+   "tags": [
+    "data-model",
+    "serialization",
+    "holdings"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:backend/app/services/dashboard/schemas.py:DistributorComparisonRow",
+   "type": "class",
+   "name": "DistributorComparisonRow",
+   "filePath": "backend/app/services/dashboard/schemas.py",
+   "lineRange": [
+    42,
+    52
+   ],
+   "summary": "Per-ARN distributor comparison row: distributor identity and status plus FIFO-derived units, invested amount, current value, and gains.",
+   "tags": [
+    "data-model",
+    "serialization",
+    "distributor"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:backend/app/services/dashboard/schemas.py:AllocationBucket",
+   "type": "class",
+   "name": "AllocationBucket",
+   "filePath": "backend/app/services/dashboard/schemas.py",
+   "lineRange": [
+    55,
+    58
+   ],
+   "summary": "Single allocation slice: label, current value, and percentage of the total.",
+   "tags": [
+    "data-model",
+    "serialization",
+    "allocation"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:backend/app/services/dashboard/schemas.py:AllocationSummary",
+   "type": "class",
+   "name": "AllocationSummary",
+   "filePath": "backend/app/services/dashboard/schemas.py",
+   "lineRange": [
+    61,
+    64
+   ],
+   "summary": "Allocation view payload grouping buckets by asset class and by AMC, with the portfolio total value.",
+   "tags": [
+    "data-model",
+    "serialization",
+    "allocation"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:backend/app/services/dashboard/schemas.py:SipRow",
+   "type": "class",
+   "name": "SipRow",
+   "filePath": "backend/app/services/dashboard/schemas.py",
+   "lineRange": [
+    67,
+    73
+   ],
+   "summary": "One active SIP: scheme, owning member, most recent SIP date, and installment amount.",
+   "tags": [
+    "data-model",
+    "serialization",
+    "sip"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:backend/app/services/dashboard/schemas.py:CashFlowEntry",
+   "type": "class",
+   "name": "CashFlowEntry",
+   "filePath": "backend/app/services/dashboard/schemas.py",
+   "lineRange": [
+    76,
+    83
+   ],
+   "summary": "Dated cash-flow ledger entry with transaction type, amount, debit/credit direction, and the scheme and member it belongs to.",
+   "tags": [
+    "data-model",
+    "serialization",
+    "cash-flow"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:backend/app/services/dashboard/schemas.py:SnapshotRow",
+   "type": "class",
+   "name": "SnapshotRow",
+   "filePath": "backend/app/services/dashboard/schemas.py",
+   "lineRange": [
+    86,
+    90
+   ],
+   "summary": "Month-end portfolio value for one member, keyed by snapshot month.",
+   "tags": [
+    "data-model",
+    "serialization",
+    "snapshot"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:backend/app/services/dashboard/schemas.py:MemberStatus",
+   "type": "class",
+   "name": "MemberStatus",
+   "filePath": "backend/app/services/dashboard/schemas.py",
+   "lineRange": [
+    93,
+    96
+   ],
+   "summary": "Member id/name plus a has_data flag, letting aggregate views render placeholders for members with no confirmed imports.",
+   "tags": [
+    "data-model",
+    "serialization",
+    "aggregation"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:backend/app/services/dashboard/schemas.py:AggregateHoldingsResponse",
+   "type": "class",
+   "name": "AggregateHoldingsResponse",
+   "filePath": "backend/app/services/dashboard/schemas.py",
+   "lineRange": [
+    99,
+    101
+   ],
+   "summary": "Household aggregate holdings payload: member statuses plus the combined holdings rows.",
+   "tags": [
+    "data-model",
+    "serialization",
+    "aggregation"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:backend/app/services/dashboard/schemas.py:AggregateAllocationResponse",
+   "type": "class",
+   "name": "AggregateAllocationResponse",
+   "filePath": "backend/app/services/dashboard/schemas.py",
+   "lineRange": [
+    104,
+    106
+   ],
+   "summary": "Household aggregate allocation payload: member statuses plus the combined allocation summary.",
+   "tags": [
+    "data-model",
+    "serialization",
+    "aggregation"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:backend/app/services/dashboard/schemas.py:AggregateSipsResponse",
+   "type": "class",
+   "name": "AggregateSipsResponse",
+   "filePath": "backend/app/services/dashboard/schemas.py",
+   "lineRange": [
+    109,
+    111
+   ],
+   "summary": "Household aggregate SIP payload: member statuses plus the combined active SIP rows.",
+   "tags": [
+    "data-model",
+    "serialization",
+    "aggregation"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:backend/app/services/dashboard/schemas.py:AggregateCashFlowResponse",
+   "type": "class",
+   "name": "AggregateCashFlowResponse",
+   "filePath": "backend/app/services/dashboard/schemas.py",
+   "lineRange": [
+    114,
+    116
+   ],
+   "summary": "Household aggregate cash-flow payload: member statuses plus the merged cash-flow entries.",
+   "tags": [
+    "data-model",
+    "serialization",
+    "aggregation"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:backend/app/services/dashboard/schemas.py:AggregateSnapshotsResponse",
+   "type": "class",
+   "name": "AggregateSnapshotsResponse",
+   "filePath": "backend/app/services/dashboard/schemas.py",
+   "lineRange": [
+    119,
+    121
+   ],
+   "summary": "Household aggregate snapshots payload: member statuses plus the merged monthly snapshot rows.",
+   "tags": [
+    "data-model",
+    "serialization",
+    "aggregation"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "file:backend/app/services/dashboard/sip.py",
+   "type": "file",
+   "name": "sip.py",
+   "filePath": "backend/app/services/dashboard/sip.py",
+   "summary": "Dashboard service that detects active SIPs: for each folio of the requested members it takes the most recent PURCHASE_SIP transaction and reports it as active if it falls within the last 40 days.",
+   "tags": [
+    "service",
+    "sip",
+    "dashboard",
+    "query"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "function:backend/app/services/dashboard/sip.py:compute_active_sips",
+   "type": "function",
+   "name": "compute_active_sips",
+   "filePath": "backend/app/services/dashboard/sip.py",
+   "lineRange": [
+    22,
+    51
+   ],
+   "summary": "Builds SipRow entries for the given household members by querying each folio's latest PURCHASE_SIP transaction and keeping only those dated within a 40-day recency window.",
+   "tags": [
+    "sip",
+    "query",
+    "heuristic"
+   ],
+   "complexity": "moderate"
+  },
+  {
+   "id": "file:backend/app/services/dashboard/snapshots.py",
+   "type": "file",
+   "name": "snapshots.py",
+   "filePath": "backend/app/services/dashboard/snapshots.py",
+   "summary": "Monthly portfolio snapshot service: backfills month-end portfolio values per member from the first transaction month onward, replaying FIFO lots and pricing them with cached NAV, and persists each computed month into portfolio_snapshots.",
+   "tags": [
+    "service",
+    "snapshot",
+    "dashboard",
+    "backfill"
+   ],
+   "complexity": "moderate",
+   "languageNotes": "Applies the same purchase-before-redemption same-date tiebreak as the holdings engine (Transaction.id is a random uuid4), and deliberately skips caching a month when NAV is unavailable so a transient NAV outage stays retryable instead of freezing a wrong value."
+  },
+  {
+   "id": "function:backend/app/services/dashboard/snapshots.py:_iter_month_ends",
+   "type": "function",
+   "name": "_iter_month_ends",
+   "filePath": "backend/app/services/dashboard/snapshots.py",
+   "lineRange": [
+    31,
+    41
+   ],
+   "summary": "Yields every month-end date between a start and end date, inclusive.",
+   "tags": [
+    "utility",
+    "date",
+    "generator"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "function:backend/app/services/dashboard/snapshots.py:get_snapshots",
+   "type": "function",
+   "name": "get_snapshots",
+   "filePath": "backend/app/services/dashboard/snapshots.py",
+   "lineRange": [
+    44,
+    131
+   ],
+   "summary": "Returns monthly SnapshotRow values per member: serves cached portfolio_snapshots rows where present, and for missing months replays each folio's transactions through the FIFO lot engine as of month end, prices holdings via get_nav_on_or_before, caches the result, and skips caching when NAV is unavailable.",
+   "tags": [
+    "snapshot",
+    "backfill",
+    "fifo",
+    "caching"
+   ],
+   "complexity": "complex"
+  },
+  {
+   "id": "file:backend/app/services/import_/schemas.py",
+   "type": "file",
+   "name": "schemas.py",
+   "filePath": "backend/app/services/import_/schemas.py",
+   "summary": "Pydantic models for the CAS import API's two-step parse/confirm flow: scheme match previews with mfapi confidence, transaction previews, the full parse preview response, and the confirm request/response pair.",
+   "tags": [
+    "type-definition",
+    "data-model",
+    "serialization",
+    "cas-import"
+   ],
+   "complexity": "moderate"
+  },
+  {
+   "id": "class:backend/app/services/import_/schemas.py:SchemeMatchPreview",
+   "type": "class",
+   "name": "SchemeMatchPreview",
+   "filePath": "backend/app/services/import_/schemas.py",
+   "lineRange": [
+    12,
+    25
+   ],
+   "summary": "Parsed CAS scheme with its suggested mfapi.in AMFI match, confidence score, match status, folio, plan type, and transaction count — the unit the user confirms or overrides.",
+   "tags": [
+    "data-model",
+    "serialization",
+    "scheme-matching"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:backend/app/services/import_/schemas.py:TransactionPreview",
+   "type": "class",
+   "name": "TransactionPreview",
+   "filePath": "backend/app/services/import_/schemas.py",
+   "lineRange": [
+    28,
+    36
+   ],
+   "summary": "One parsed CAS transaction shown in the preview: folio, scheme, date, type, description, amount, units, and NAV.",
+   "tags": [
+    "data-model",
+    "serialization",
+    "transaction"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:backend/app/services/import_/schemas.py:ImportPreviewResponse",
+   "type": "class",
+   "name": "ImportPreviewResponse",
+   "filePath": "backend/app/services/import_/schemas.py",
+   "lineRange": [
+    39,
+    50
+   ],
+   "summary": "Full parse-step response: session id, filename, investor identity with masked PAN, scheme previews, transaction previews, warnings, and CAS/file type.",
+   "tags": [
+    "data-model",
+    "serialization",
+    "response-schema"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:backend/app/services/import_/schemas.py:SchemeConfirmation",
+   "type": "class",
+   "name": "SchemeConfirmation",
+   "filePath": "backend/app/services/import_/schemas.py",
+   "lineRange": [
+    53,
+    56
+   ],
+   "summary": "Per-scheme user confirmation on the confirm step: temp id, chosen AMFI code, and an optional plan-type override.",
+   "tags": [
+    "data-model",
+    "validation",
+    "request-schema"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:backend/app/services/import_/schemas.py:ImportConfirmRequest",
+   "type": "class",
+   "name": "ImportConfirmRequest",
+   "filePath": "backend/app/services/import_/schemas.py",
+   "lineRange": [
+    59,
+    62
+   ],
+   "summary": "Confirm-step request: preview session id, target household member, and the list of scheme confirmations.",
+   "tags": [
+    "data-model",
+    "validation",
+    "request-schema"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "class:backend/app/services/import_/schemas.py:ImportConfirmResponse",
+   "type": "class",
+   "name": "ImportConfirmResponse",
+   "filePath": "backend/app/services/import_/schemas.py",
+   "lineRange": [
+    65,
+    68
+   ],
+   "summary": "Confirm-step result: counts of transactions added and skipped as duplicates, plus the created import id.",
+   "tags": [
+    "data-model",
+    "serialization",
+    "response-schema"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "file:backend/app/services/import_/service.py",
+   "type": "file",
+   "name": "service.py",
+   "filePath": "backend/app/services/import_/service.py",
+   "summary": "Core CAS import service implementing the parse/confirm flow: builds a TTL'd in-memory preview session from a parsed CAS (enriching each scheme via mfapi.in), then on confirmation persists the Import, upserts Schemes and Folios, and inserts transactions deduped on (folio, date, amount, units, type).",
+   "tags": [
+    "service",
+    "cas-import",
+    "persistence",
+    "session"
+   ],
+   "complexity": "complex",
+   "languageNotes": "Preview sessions live in an in-process dict with TTL sweeping — acceptable for the single-process MVP but not multi-worker safe. Low-confidence scheme matches are rejected atomically (nothing written) unless explicitly overridden."
+  },
+  {
+   "id": "class:backend/app/services/import_/service.py:SchemeConfidenceError",
+   "type": "class",
+   "name": "SchemeConfidenceError",
+   "filePath": "backend/app/services/import_/service.py",
+   "lineRange": [
+    39,
+    42
+   ],
+   "summary": "Raised when confirming an import that includes a scheme whose mfapi match confidence is below threshold and no explicit override was supplied.",
+   "tags": [
+    "error-handling",
+    "validation",
+    "scheme-matching"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "function:backend/app/services/import_/service.py:_sweep_expired_sessions",
+   "type": "function",
+   "name": "_sweep_expired_sessions",
+   "filePath": "backend/app/services/import_/service.py",
+   "lineRange": [
+    45,
+    57
+   ],
+   "summary": "Evicts preview sessions older than the TTL from the in-memory session store.",
+   "tags": [
+    "session",
+    "cleanup",
+    "utility"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "function:backend/app/services/import_/service.py:build_import_preview",
+   "type": "function",
+   "name": "build_import_preview",
+   "filePath": "backend/app/services/import_/service.py",
+   "lineRange": [
+    60,
+    113
+   ],
+   "summary": "Converts a ParseResult into an ImportPreviewResponse: resolves each parsed scheme against mfapi.in for an AMFI match and category, assembles scheme and transaction previews, and stores the session in the TTL'd in-memory store under a new session id.",
+   "tags": [
+    "cas-import",
+    "scheme-matching",
+    "session"
+   ],
+   "complexity": "moderate"
+  },
+  {
+   "id": "function:backend/app/services/import_/service.py:confirm_import",
+   "type": "function",
+   "name": "confirm_import",
+   "filePath": "backend/app/services/import_/service.py",
+   "lineRange": [
+    120,
+    260
+   ],
+   "summary": "Persists a confirmed CAS import in one transaction: validates scheme confidences (raising SchemeConfidenceError before any write), creates the Import row, upserts Scheme and Folio rows, and inserts transactions deduped both against the DB and within the upload on the (folio, date, amount, units, type) key.",
+   "tags": [
+    "cas-import",
+    "persistence",
+    "deduplication",
+    "validation"
+   ],
+   "complexity": "complex"
+  },
+  {
+   "id": "file:backend/tests/models/test_no_pan_field.py",
+   "type": "file",
+   "name": "test_no_pan_field.py",
+   "filePath": "backend/tests/models/test_no_pan_field.py",
+   "summary": "Guard test asserting that no PAN-shaped column exists on any import-related model (Folio, Import, Scheme), enforcing the ADR-004 decision that PAN is never persisted.",
+   "tags": [
+    "test",
+    "security",
+    "data-model",
+    "compliance"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "file:backend/tests/models/test_reference_models.py",
+   "type": "file",
+   "name": "test_reference_models.py",
+   "filePath": "backend/tests/models/test_reference_models.py",
+   "summary": "Model tests for reference data: round-trips a Scheme through an in-memory SQLite session and verifies ArnDirectory rows default to unresolved status.",
+   "tags": [
+    "test",
+    "data-model",
+    "reference-data"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "file:backend/tests/models/test_user_data_models.py",
+   "type": "file",
+   "name": "test_user_data_models.py",
+   "filePath": "backend/tests/models/test_user_data_models.py",
+   "summary": "Model tests for user data: verifies HouseholdMember rows belong to a User and that enum_column persists the lowercase enum value rather than the Python member name.",
+   "tags": [
+    "test",
+    "data-model",
+    "enum-persistence"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "file:backend/tests/services/dashboard/test_aggregate.py",
+   "type": "file",
+   "name": "test_aggregate.py",
+   "filePath": "backend/tests/services/dashboard/test_aggregate.py",
+   "summary": "Tests placeholder-aware family aggregation: members without a confirmed import are flagged has_data=False (pending imports don't count), and aggregate holdings still list every member.",
+   "tags": [
+    "test",
+    "aggregation",
+    "dashboard"
+   ],
+   "complexity": "simple"
+  },
+  {
+   "id": "file:backend/tests/services/dashboard/test_allocation.py",
+   "type": "file",
+   "name": "test_allocation.py",
+   "filePath": "backend/tests/services/dashboard/test_allocation.py",
+   "summary": "Tests compute_allocation: holdings are grouped into asset-class and AMC buckets with correct percentages, and an empty portfolio yields an empty allocation.",
+   "tags": [
+    "test",
+    "allocation",
+    "dashboard"
+   ],
+   "complexity": "moderate"
+  }
+ ],
+ "edges": [
+  {
+   "source": "file:backend/app/services/dashboard/schemas.py",
+   "target": "class:backend/app/services/dashboard/schemas.py:HouseholdMemberCreate",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1
+  },
+  {
+   "source": "file:backend/app/services/dashboard/schemas.py",
+   "target": "class:backend/app/services/dashboard/schemas.py:HouseholdMemberCreate",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:backend/app/services/dashboard/schemas.py",
+   "target": "class:backend/app/services/dashboard/schemas.py:HouseholdMemberResponse",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1
+  },
+  {
+   "source": "file:backend/app/services/dashboard/schemas.py",
+   "target": "class:backend/app/services/dashboard/schemas.py:HouseholdMemberResponse",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:backend/app/services/dashboard/schemas.py",
+   "target": "class:backend/app/services/dashboard/schemas.py:HoldingRow",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1
+  },
+  {
+   "source": "file:backend/app/services/dashboard/schemas.py",
+   "target": "class:backend/app/services/dashboard/schemas.py:HoldingRow",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:backend/app/services/dashboard/schemas.py",
+   "target": "class:backend/app/services/dashboard/schemas.py:DistributorComparisonRow",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1
+  },
+  {
+   "source": "file:backend/app/services/dashboard/schemas.py",
+   "target": "class:backend/app/services/dashboard/schemas.py:DistributorComparisonRow",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:backend/app/services/dashboard/schemas.py",
+   "target": "class:backend/app/services/dashboard/schemas.py:AllocationBucket",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1
+  },
+  {
+   "source": "file:backend/app/services/dashboard/schemas.py",
+   "target": "class:backend/app/services/dashboard/schemas.py:AllocationBucket",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:backend/app/services/dashboard/schemas.py",
+   "target": "class:backend/app/services/dashboard/schemas.py:AllocationSummary",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1
+  },
+  {
+   "source": "file:backend/app/services/dashboard/schemas.py",
+   "target": "class:backend/app/services/dashboard/schemas.py:AllocationSummary",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:backend/app/services/dashboard/schemas.py",
+   "target": "class:backend/app/services/dashboard/schemas.py:SipRow",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1
+  },
+  {
+   "source": "file:backend/app/services/dashboard/schemas.py",
+   "target": "class:backend/app/services/dashboard/schemas.py:SipRow",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:backend/app/services/dashboard/schemas.py",
+   "target": "class:backend/app/services/dashboard/schemas.py:CashFlowEntry",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1
+  },
+  {
+   "source": "file:backend/app/services/dashboard/schemas.py",
+   "target": "class:backend/app/services/dashboard/schemas.py:CashFlowEntry",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:backend/app/services/dashboard/schemas.py",
+   "target": "class:backend/app/services/dashboard/schemas.py:SnapshotRow",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1
+  },
+  {
+   "source": "file:backend/app/services/dashboard/schemas.py",
+   "target": "class:backend/app/services/dashboard/schemas.py:SnapshotRow",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:backend/app/services/dashboard/schemas.py",
+   "target": "class:backend/app/services/dashboard/schemas.py:MemberStatus",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1
+  },
+  {
+   "source": "file:backend/app/services/dashboard/schemas.py",
+   "target": "class:backend/app/services/dashboard/schemas.py:MemberStatus",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:backend/app/services/dashboard/schemas.py",
+   "target": "class:backend/app/services/dashboard/schemas.py:AggregateHoldingsResponse",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1
+  },
+  {
+   "source": "file:backend/app/services/dashboard/schemas.py",
+   "target": "class:backend/app/services/dashboard/schemas.py:AggregateHoldingsResponse",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:backend/app/services/dashboard/schemas.py",
+   "target": "class:backend/app/services/dashboard/schemas.py:AggregateAllocationResponse",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1
+  },
+  {
+   "source": "file:backend/app/services/dashboard/schemas.py",
+   "target": "class:backend/app/services/dashboard/schemas.py:AggregateAllocationResponse",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:backend/app/services/dashboard/schemas.py",
+   "target": "class:backend/app/services/dashboard/schemas.py:AggregateSipsResponse",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1
+  },
+  {
+   "source": "file:backend/app/services/dashboard/schemas.py",
+   "target": "class:backend/app/services/dashboard/schemas.py:AggregateSipsResponse",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:backend/app/services/dashboard/schemas.py",
+   "target": "class:backend/app/services/dashboard/schemas.py:AggregateCashFlowResponse",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1
+  },
+  {
+   "source": "file:backend/app/services/dashboard/schemas.py",
+   "target": "class:backend/app/services/dashboard/schemas.py:AggregateCashFlowResponse",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:backend/app/services/dashboard/schemas.py",
+   "target": "class:backend/app/services/dashboard/schemas.py:AggregateSnapshotsResponse",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1
+  },
+  {
+   "source": "file:backend/app/services/dashboard/schemas.py",
+   "target": "class:backend/app/services/dashboard/schemas.py:AggregateSnapshotsResponse",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:backend/app/services/dashboard/sip.py",
+   "target": "function:backend/app/services/dashboard/sip.py:compute_active_sips",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1
+  },
+  {
+   "source": "file:backend/app/services/dashboard/sip.py",
+   "target": "function:backend/app/services/dashboard/sip.py:compute_active_sips",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:backend/app/services/dashboard/snapshots.py",
+   "target": "function:backend/app/services/dashboard/snapshots.py:_iter_month_ends",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1
+  },
+  {
+   "source": "file:backend/app/services/dashboard/snapshots.py",
+   "target": "function:backend/app/services/dashboard/snapshots.py:get_snapshots",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1
+  },
+  {
+   "source": "file:backend/app/services/dashboard/snapshots.py",
+   "target": "function:backend/app/services/dashboard/snapshots.py:get_snapshots",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:backend/app/services/import_/schemas.py",
+   "target": "class:backend/app/services/import_/schemas.py:SchemeMatchPreview",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1
+  },
+  {
+   "source": "file:backend/app/services/import_/schemas.py",
+   "target": "class:backend/app/services/import_/schemas.py:SchemeMatchPreview",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:backend/app/services/import_/schemas.py",
+   "target": "class:backend/app/services/import_/schemas.py:TransactionPreview",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1
+  },
+  {
+   "source": "file:backend/app/services/import_/schemas.py",
+   "target": "class:backend/app/services/import_/schemas.py:TransactionPreview",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:backend/app/services/import_/schemas.py",
+   "target": "class:backend/app/services/import_/schemas.py:ImportPreviewResponse",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1
+  },
+  {
+   "source": "file:backend/app/services/import_/schemas.py",
+   "target": "class:backend/app/services/import_/schemas.py:ImportPreviewResponse",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:backend/app/services/import_/schemas.py",
+   "target": "class:backend/app/services/import_/schemas.py:SchemeConfirmation",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1
+  },
+  {
+   "source": "file:backend/app/services/import_/schemas.py",
+   "target": "class:backend/app/services/import_/schemas.py:SchemeConfirmation",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:backend/app/services/import_/schemas.py",
+   "target": "class:backend/app/services/import_/schemas.py:ImportConfirmRequest",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1
+  },
+  {
+   "source": "file:backend/app/services/import_/schemas.py",
+   "target": "class:backend/app/services/import_/schemas.py:ImportConfirmRequest",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:backend/app/services/import_/schemas.py",
+   "target": "class:backend/app/services/import_/schemas.py:ImportConfirmResponse",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1
+  },
+  {
+   "source": "file:backend/app/services/import_/schemas.py",
+   "target": "class:backend/app/services/import_/schemas.py:ImportConfirmResponse",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:backend/app/services/import_/service.py",
+   "target": "class:backend/app/services/import_/service.py:SchemeConfidenceError",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1
+  },
+  {
+   "source": "file:backend/app/services/import_/service.py",
+   "target": "class:backend/app/services/import_/service.py:SchemeConfidenceError",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:backend/app/services/import_/service.py",
+   "target": "function:backend/app/services/import_/service.py:_sweep_expired_sessions",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1
+  },
+  {
+   "source": "file:backend/app/services/import_/service.py",
+   "target": "function:backend/app/services/import_/service.py:build_import_preview",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1
+  },
+  {
+   "source": "file:backend/app/services/import_/service.py",
+   "target": "function:backend/app/services/import_/service.py:build_import_preview",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:backend/app/services/import_/service.py",
+   "target": "function:backend/app/services/import_/service.py:confirm_import",
+   "type": "contains",
+   "direction": "forward",
+   "weight": 1
+  },
+  {
+   "source": "file:backend/app/services/import_/service.py",
+   "target": "function:backend/app/services/import_/service.py:confirm_import",
+   "type": "exports",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:backend/app/services/dashboard/schemas.py",
+   "target": "file:backend/app/models/enums.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/app/services/dashboard/sip.py",
+   "target": "file:backend/app/models/enums.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/app/services/dashboard/sip.py",
+   "target": "file:backend/app/models/folio.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/app/services/dashboard/sip.py",
+   "target": "file:backend/app/models/reference.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/app/services/dashboard/sip.py",
+   "target": "file:backend/app/models/transaction.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/app/services/dashboard/sip.py",
+   "target": "file:backend/app/models/user.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/app/services/dashboard/sip.py",
+   "target": "file:backend/app/services/dashboard/schemas.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/app/services/dashboard/snapshots.py",
+   "target": "file:backend/app/models/folio.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/app/services/dashboard/snapshots.py",
+   "target": "file:backend/app/models/reference.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/app/services/dashboard/snapshots.py",
+   "target": "file:backend/app/models/snapshot.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/app/services/dashboard/snapshots.py",
+   "target": "file:backend/app/models/transaction.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/app/services/dashboard/snapshots.py",
+   "target": "file:backend/app/models/user.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/app/services/dashboard/snapshots.py",
+   "target": "file:backend/app/services/dashboard/holdings.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/app/services/dashboard/snapshots.py",
+   "target": "file:backend/app/services/dashboard/nav.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/app/services/dashboard/snapshots.py",
+   "target": "file:backend/app/services/dashboard/schemas.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/app/services/import_/schemas.py",
+   "target": "file:backend/app/models/enums.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/app/services/import_/service.py",
+   "target": "file:backend/app/models/enums.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/app/services/import_/service.py",
+   "target": "file:backend/app/models/folio.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/app/services/import_/service.py",
+   "target": "file:backend/app/models/imports.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/app/services/import_/service.py",
+   "target": "file:backend/app/models/reference.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/app/services/import_/service.py",
+   "target": "file:backend/app/models/transaction.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/app/services/import_/service.py",
+   "target": "file:backend/app/services/import_/enrich.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/app/services/import_/service.py",
+   "target": "file:backend/app/services/import_/parser.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/app/services/import_/service.py",
+   "target": "file:backend/app/services/import_/schemas.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/tests/models/test_no_pan_field.py",
+   "target": "file:backend/app/models/folio.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/tests/models/test_no_pan_field.py",
+   "target": "file:backend/app/models/imports.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/tests/models/test_no_pan_field.py",
+   "target": "file:backend/app/models/reference.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/tests/models/test_reference_models.py",
+   "target": "file:backend/app/db/base.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/tests/models/test_reference_models.py",
+   "target": "file:backend/app/models/enums.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/tests/models/test_reference_models.py",
+   "target": "file:backend/app/models/reference.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/tests/models/test_user_data_models.py",
+   "target": "file:backend/app/db/base.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/tests/models/test_user_data_models.py",
+   "target": "file:backend/app/models/enums.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/tests/models/test_user_data_models.py",
+   "target": "file:backend/app/models/user.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/tests/services/dashboard/test_aggregate.py",
+   "target": "file:backend/app/db/base.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/tests/services/dashboard/test_aggregate.py",
+   "target": "file:backend/app/models/enums.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/tests/services/dashboard/test_aggregate.py",
+   "target": "file:backend/app/models/imports.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/tests/services/dashboard/test_aggregate.py",
+   "target": "file:backend/app/models/user.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/tests/services/dashboard/test_aggregate.py",
+   "target": "file:backend/app/services/dashboard/aggregate.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/tests/services/dashboard/test_allocation.py",
+   "target": "file:backend/app/db/base.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/tests/services/dashboard/test_allocation.py",
+   "target": "file:backend/app/models/enums.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/tests/services/dashboard/test_allocation.py",
+   "target": "file:backend/app/models/folio.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/tests/services/dashboard/test_allocation.py",
+   "target": "file:backend/app/models/reference.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/tests/services/dashboard/test_allocation.py",
+   "target": "file:backend/app/models/transaction.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/tests/services/dashboard/test_allocation.py",
+   "target": "file:backend/app/models/user.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "file:backend/tests/services/dashboard/test_allocation.py",
+   "target": "file:backend/app/services/dashboard/allocation.py",
+   "type": "imports",
+   "direction": "forward",
+   "weight": 0.7
+  },
+  {
+   "source": "function:backend/app/services/dashboard/snapshots.py:get_snapshots",
+   "target": "function:backend/app/services/dashboard/holdings.py:_process_folio_lots",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:backend/app/services/dashboard/snapshots.py:get_snapshots",
+   "target": "function:backend/app/services/dashboard/nav.py:get_nav_on_or_before",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "function:backend/app/services/import_/service.py:build_import_preview",
+   "target": "class:backend/app/services/import_/enrich.py:MfApiClient",
+   "type": "calls",
+   "direction": "forward",
+   "weight": 0.8
+  },
+  {
+   "source": "file:backend/app/models/folio.py",
+   "target": "file:backend/tests/models/test_no_pan_field.py",
+   "type": "tested_by",
+   "direction": "forward",
+   "weight": 0.5
+  },
+  {
+   "source": "file:backend/app/models/imports.py",
+   "target": "file:backend/tests/models/test_no_pan_field.py",
+   "type": "tested_by",
+   "direction": "forward",
+   "weight": 0.5
+  },
+  {
+   "source": "file:backend/app/models/reference.py",
+   "target": "file:backend/tests/models/test_no_pan_field.py",
+   "type": "tested_by",
+   "direction": "forward",
+   "weight": 0.5
+  },
+  {
+   "source": "file:backend/app/models/reference.py",
+   "target": "file:backend/tests/models/test_reference_models.py",
+   "type": "tested_by",
+   "direction": "forward",
+   "weight": 0.5
+  },
+  {
+   "source": "file:backend/app/models/user.py",
+   "target": "file:backend/tests/models/test_user_data_models.py",
+   "type": "tested_by",
+   "direction": "forward",
+   "weight": 0.5
+  },
+  {
+   "source": "file:backend/app/services/dashboard/aggregate.py",
+   "target": "file:backend/tests/services/dashboard/test_aggregate.py",
+   "type": "tested_by",
+   "direction": "forward",
+   "weight": 0.5
+  },
+  {
+   "source": "file:backend/app/services/dashboard/allocation.py",
+   "target": "file:backend/tests/services/dashboard/test_allocation.py",
+   "type": "tested_by",
+   "direction": "forward",
+   "weight": 0.5
+  },
+  {
+   "source": "file:backend/app/services/dashboard/sip.py",
+   "target": "file:backend/tests/services/dashboard/test_sip.py",
+   "type": "tested_by",
+   "direction": "forward",
+   "weight": 0.5
+  },
+  {
+   "source": "file:backend/app/services/dashboard/snapshots.py",
+   "target": "file:backend/tests/services/dashboard/test_snapshots.py",
+   "type": "tested_by",
+   "direction": "forward",
+   "weight": 0.5
+  },
+  {
+   "source": "file:backend/app/services/import_/service.py",
+   "target": "file:backend/tests/services/import_/test_service.py",
+   "type": "tested_by",
+   "direction": "forward",
+   "weight": 0.5
+  }
+ ]
+}

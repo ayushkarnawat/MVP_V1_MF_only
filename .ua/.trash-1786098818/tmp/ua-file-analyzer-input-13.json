@@ -1,0 +1,17 @@
+{
+  "projectRoot": "/mnt/d/Unifolio code",
+  "batchFiles": [
+    {"path": "backend/.env.example", "language": "config", "sizeLines": 2, "fileCategory": "config"},
+    {"path": "backend/alembic.ini", "language": "config", "sizeLines": 148, "fileCategory": "config"},
+    {"path": "backend/pytest.ini", "language": "config", "sizeLines": 4, "fileCategory": "config"},
+    {"path": "backend/requirements-dev.txt", "language": "txt", "sizeLines": 2, "fileCategory": "docs"},
+    {"path": "backend/requirements.txt", "language": "txt", "sizeLines": 10, "fileCategory": "docs"}
+  ],
+  "batchImportData": {
+    "backend/.env.example": [],
+    "backend/alembic.ini": [],
+    "backend/pytest.ini": [],
+    "backend/requirements-dev.txt": [],
+    "backend/requirements.txt": []
+  }
+}

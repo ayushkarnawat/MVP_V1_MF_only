@@ -1,0 +1,72 @@
+{
+  "nodes": [
+    {
+      "id": "config:backend/.env.example",
+      "type": "config",
+      "name": ".env.example",
+      "filePath": "backend/.env.example",
+      "summary": "Template for backend environment variables, defining the local SQLite dev database URL and the Postgres URL used by the functional test suite.",
+      "tags": ["configuration", "environment-variables", "database"],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:backend/alembic.ini",
+      "type": "config",
+      "name": "alembic.ini",
+      "filePath": "backend/alembic.ini",
+      "summary": "Alembic migration tool configuration pointing to the backend/alembic migration scripts directory and configuring logging for schema migrations.",
+      "tags": ["configuration", "database", "migration"],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:backend/pytest.ini",
+      "type": "config",
+      "name": "pytest.ini",
+      "filePath": "backend/pytest.ini",
+      "summary": "Pytest configuration setting the test discovery path and registering the 'postgres' marker used to separate fast SQLite tests from Postgres-functional tests.",
+      "tags": ["configuration", "testing", "ci-cd"],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:backend/requirements-dev.txt",
+      "type": "config",
+      "name": "requirements-dev.txt",
+      "filePath": "backend/requirements-dev.txt",
+      "summary": "Development-only Python dependencies (psycopg2-binary, pyyaml) needed to run the Postgres-functional test suite locally.",
+      "tags": ["configuration", "dependencies", "testing"],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:backend/requirements.txt",
+      "type": "config",
+      "name": "requirements.txt",
+      "filePath": "backend/requirements.txt",
+      "summary": "Core backend Python dependencies for the FastAPI application, including SQLAlchemy, Alembic, pydantic-settings, pytest, and the casparser CAS-parsing library.",
+      "tags": ["configuration", "dependencies", "build-system"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "config:backend/.env.example",
+      "target": "config:backend/pytest.ini",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "config:backend/requirements.txt",
+      "target": "config:backend/alembic.ini",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:backend/requirements-dev.txt",
+      "target": "config:backend/pytest.ini",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    }
+  ]
+}

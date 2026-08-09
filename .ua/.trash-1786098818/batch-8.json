@@ -1,0 +1,67 @@
+{
+  "nodes": [
+    {
+      "id": "pipeline:.github/workflows/ci.yml",
+      "type": "pipeline",
+      "name": "ci.yml",
+      "filePath": ".github/workflows/ci.yml",
+      "summary": "GitHub Actions CI workflow that runs on push to main and on pull requests, executing the backend fast SQLite test suite, a Postgres-functional test suite against a postgres:16-alpine service container, and a frontend build-and-test job.",
+      "tags": ["ci-cd", "deployment", "testing", "infrastructure"],
+      "complexity": "moderate",
+      "languageNotes": "Splits backend tests into a fast SQLite-only suite (pytest -m 'not postgres') and a separate Postgres-functional suite (pytest -m postgres) run against a GitHub Actions service container, matching the project's SQLite-dev/Postgres-functional-parity testing strategy."
+    },
+    {
+      "id": "step:.github/workflows/ci.yml:backend-fast",
+      "type": "resource",
+      "name": "backend-fast",
+      "filePath": ".github/workflows/ci.yml",
+      "lineRange": [9, 19],
+      "summary": "CI job that installs backend Python dependencies and runs the fast pytest suite, excluding tests marked 'postgres', against the default SQLite setup.",
+      "tags": ["ci-cd", "testing", "python", "sqlite"],
+      "complexity": "simple"
+    },
+    {
+      "id": "step:.github/workflows/ci.yml:backend-postgres",
+      "type": "resource",
+      "name": "backend-postgres",
+      "filePath": ".github/workflows/ci.yml",
+      "lineRange": [21, 47],
+      "summary": "CI job that spins up a postgres:16-alpine service container with health checks and runs the pytest suite marked 'postgres' against it, providing Postgres-functional parity testing.",
+      "tags": ["ci-cd", "testing", "postgres", "database"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "step:.github/workflows/ci.yml:frontend",
+      "type": "resource",
+      "name": "frontend",
+      "filePath": ".github/workflows/ci.yml",
+      "lineRange": [49, 61],
+      "summary": "CI job that installs frontend dependencies with npm ci, builds the Vite app, and runs the frontend test suite.",
+      "tags": ["ci-cd", "testing", "frontend", "build-system"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "pipeline:.github/workflows/ci.yml",
+      "target": "step:.github/workflows/ci.yml:backend-fast",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "pipeline:.github/workflows/ci.yml",
+      "target": "step:.github/workflows/ci.yml:backend-postgres",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "pipeline:.github/workflows/ci.yml",
+      "target": "step:.github/workflows/ci.yml:frontend",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    }
+  ]
+}

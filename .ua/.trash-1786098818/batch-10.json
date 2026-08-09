@@ -1,0 +1,165 @@
+{
+  "nodes": [
+    {
+      "id": "document:Docs/PRDs/ADR-Technical-Stack-Decisions.md",
+      "type": "document",
+      "name": "ADR-Technical-Stack-Decisions.md",
+      "filePath": "Docs/PRDs/ADR-Technical-Stack-Decisions.md",
+      "summary": "Six Accepted Architecture Decision Records locking the core technical stack: React/Vite frontend (amended 2026-08-05 to note the CAS Parser frontend was never React work), FastAPI backend, AWS RDS PostgreSQL, scoped S3 with no raw CAS PDF retention, ECS Express Mode deployment, and EventBridge Scheduler for background jobs.",
+      "tags": ["documentation", "architecture-decision-records", "technical-stack", "infrastructure"],
+      "complexity": "complex",
+      "languageNotes": "Each ADR follows a fixed structure (Status, Context, Decision, Consequences, Alternatives Considered, References), making the stack's rationale traceable and non-negotiable per project convention."
+    },
+    {
+      "id": "document:Docs/PRDs/App-Flow-Unifolio.md",
+      "type": "document",
+      "name": "App-Flow-Unifolio.md",
+      "filePath": "Docs/PRDs/App-Flow-Unifolio.md",
+      "summary": "Screen-to-screen navigation map for the MF MVP: full screen inventory, primary flow, and detailed sub-flows for the onboarding questionnaire, family CAS upload, and CAS import/review/confirm, plus a traceability matrix from user stories to screens.",
+      "tags": ["documentation", "navigation", "screen-inventory", "ux"],
+      "complexity": "complex"
+    },
+    {
+      "id": "document:Docs/PRDs/Database-Schema-Unifolio.md",
+      "type": "document",
+      "name": "Database-Schema-Unifolio.md",
+      "filePath": "Docs/PRDs/Database-Schema-Unifolio.md",
+      "summary": "The exact, final database schema for Unifolio: entity relationship diagram and definitions for users, household_members, imports, schemes, folios, transactions, nav_history, and other reference/user-data tables, including partitioning and indexing notes.",
+      "tags": ["documentation", "database", "schema-definition", "data-model"],
+      "complexity": "complex"
+    },
+    {
+      "id": "document:Docs/PRDs/Design-Brief-Unifolio-updated.md",
+      "type": "document",
+      "name": "Design-Brief-Unifolio-updated.md",
+      "filePath": "Docs/PRDs/Design-Brief-Unifolio-updated.md",
+      "summary": "Updated design brief covering brand foundation, design philosophy (Apple-inspired, game-like pacing, one flow), color/typography discipline, motion principles, data visualization language, and the 'Fund Signal' signature UI element.",
+      "tags": ["documentation", "design", "brand", "ux"],
+      "complexity": "complex"
+    },
+    {
+      "id": "document:Docs/PRDs/Design-Brief-Unifolio.md",
+      "type": "document",
+      "name": "Design-Brief-Unifolio.md",
+      "filePath": "Docs/PRDs/Design-Brief-Unifolio.md",
+      "summary": "Original design brief for Unifolio's visual identity and design philosophy; superseded in content by Design-Brief-Unifolio-updated.md, which adds the 'Fund Signal' concept detail and research findings section.",
+      "tags": ["documentation", "design", "brand", "superseded"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:Docs/PRDs/Design-Schema-Unifolio.md",
+      "type": "document",
+      "name": "Design-Schema-Unifolio.md",
+      "filePath": "Docs/PRDs/Design-Schema-Unifolio.md",
+      "summary": "Concrete design token and component spec document: color tokens (light/dark, semantic), typography, spacing scale, shape/elevation, component specs (badges, Fund Signal, holdings table row, charts, scorer display), and motion tokens.",
+      "tags": ["documentation", "design-tokens", "design-system", "ui"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:Docs/PRDs/Migration-Plan-SQLite-to-Postgres.md",
+      "type": "document",
+      "name": "Migration-Plan-SQLite-to-Postgres.md",
+      "filePath": "Docs/PRDs/Migration-Plan-SQLite-to-Postgres.md",
+      "summary": "Data layer migration plan from local SQLite development to AWS RDS PostgreSQL: portability guardrails (Alembic from day one, ORM-only queries, dual-dialect testing), a readiness checklist, migration runbook, validation, and rollback procedure.",
+      "tags": ["documentation", "database", "migration", "postgresql"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:Docs/PRDs/PRD-01-CAS-Parser-v2.md",
+      "type": "document",
+      "name": "PRD-01-CAS-Parser-v2.md",
+      "filePath": "Docs/PRDs/PRD-01-CAS-Parser-v2.md",
+      "summary": "PRD for the CAS Parser v2 module: tightens and extends mutual fund CAS (Consolidated Account Statement) import, covering parsing/normalization, direct-vs-regular plan classification, ARN/broker code capture, and the review-and-confirm flow.",
+      "tags": ["documentation", "prd", "cas-import", "requirements"],
+      "complexity": "complex"
+    },
+    {
+      "id": "document:Docs/PRDs/PRD-02-Signup-Onboarding.md",
+      "type": "document",
+      "name": "PRD-02-Signup-Onboarding.md",
+      "filePath": "Docs/PRDs/PRD-02-Signup-Onboarding.md",
+      "summary": "PRD for the questionnaire-based, game-like signup and onboarding flow: phone+OTP authentication, trust-first framing, the onboarding questionnaire draft, family CAS upload (added v1.3), and HNI treatment decisions for v1.",
+      "tags": ["documentation", "prd", "onboarding", "requirements"],
+      "complexity": "complex"
+    },
+    {
+      "id": "document:Docs/PRDs/PRD-03-Main-Dashboard.md",
+      "type": "document",
+      "name": "PRD-03-Main-Dashboard.md",
+      "filePath": "Docs/PRDs/PRD-03-Main-Dashboard.md",
+      "summary": "PRD for the Main Dashboard: mutual fund holdings table, allocation summary, SIP visualization, investment cash flow, monthly value snapshots, family view, and the (unblocked) distributor comparison feature.",
+      "tags": ["documentation", "prd", "dashboard", "requirements"],
+      "complexity": "complex"
+    },
+    {
+      "id": "document:Docs/PRDs/PRD-04-MF-Analytics-Dashboard.md",
+      "type": "document",
+      "name": "PRD-04-MF-Analytics-Dashboard.md",
+      "filePath": "Docs/PRDs/PRD-04-MF-Analytics-Dashboard.md",
+      "summary": "PRD for the MF Analytics Dashboard: allocation analysis, category ranking/comparison, an industry-grade fund/portfolio scorer adapted to available data, benchmark comparison, and TER (total expense ratio) cost analysis.",
+      "tags": ["documentation", "prd", "analytics", "requirements"],
+      "complexity": "complex"
+    },
+    {
+      "id": "document:Docs/PRDs/TDD-Unifolio.md",
+      "type": "document",
+      "name": "TDD-Unifolio.md",
+      "filePath": "Docs/PRDs/TDD-Unifolio.md",
+      "summary": "Technical Design Document for the Unifolio MF MVP: system architecture, the four logical backend services (Auth, Import, Dashboard, Analytics), representative API surface, key sequence flows (CAS import, dashboard load), external integrations, background jobs, deployment architecture, and testing strategy.",
+      "tags": ["documentation", "architecture", "api-surface", "backend"],
+      "complexity": "complex"
+    }
+  ],
+  "edges": [
+    { "source": "document:Docs/PRDs/App-Flow-Unifolio.md", "target": "document:Docs/PRDs/PRD-01-CAS-Parser-v2.md", "type": "related", "direction": "forward", "weight": 0.5 },
+    { "source": "document:Docs/PRDs/App-Flow-Unifolio.md", "target": "document:Docs/PRDs/PRD-02-Signup-Onboarding.md", "type": "related", "direction": "forward", "weight": 0.5 },
+    { "source": "document:Docs/PRDs/App-Flow-Unifolio.md", "target": "document:Docs/PRDs/PRD-03-Main-Dashboard.md", "type": "related", "direction": "forward", "weight": 0.5 },
+    { "source": "document:Docs/PRDs/App-Flow-Unifolio.md", "target": "document:Docs/PRDs/PRD-04-MF-Analytics-Dashboard.md", "type": "related", "direction": "forward", "weight": 0.5 },
+    { "source": "document:Docs/PRDs/App-Flow-Unifolio.md", "target": "document:Docs/PRDs/Design-Brief-Unifolio-updated.md", "type": "related", "direction": "forward", "weight": 0.5 },
+    { "source": "document:Docs/PRDs/App-Flow-Unifolio.md", "target": "document:Docs/PRDs/Design-Schema-Unifolio.md", "type": "related", "direction": "forward", "weight": 0.5 },
+
+    { "source": "document:Docs/PRDs/Database-Schema-Unifolio.md", "target": "document:Docs/PRDs/PRD-01-CAS-Parser-v2.md", "type": "related", "direction": "forward", "weight": 0.5 },
+    { "source": "document:Docs/PRDs/Database-Schema-Unifolio.md", "target": "document:Docs/PRDs/PRD-02-Signup-Onboarding.md", "type": "related", "direction": "forward", "weight": 0.5 },
+    { "source": "document:Docs/PRDs/Database-Schema-Unifolio.md", "target": "document:Docs/PRDs/PRD-03-Main-Dashboard.md", "type": "related", "direction": "forward", "weight": 0.5 },
+    { "source": "document:Docs/PRDs/Database-Schema-Unifolio.md", "target": "document:Docs/PRDs/PRD-04-MF-Analytics-Dashboard.md", "type": "related", "direction": "forward", "weight": 0.5 },
+    { "source": "document:Docs/PRDs/Database-Schema-Unifolio.md", "target": "document:Docs/PRDs/ADR-Technical-Stack-Decisions.md", "type": "related", "direction": "forward", "weight": 0.5 },
+    { "source": "document:Docs/PRDs/Database-Schema-Unifolio.md", "target": "document:Docs/PRDs/App-Flow-Unifolio.md", "type": "related", "direction": "forward", "weight": 0.5 },
+
+    { "source": "document:Docs/PRDs/Design-Brief-Unifolio-updated.md", "target": "document:Docs/PRDs/PRD-01-CAS-Parser-v2.md", "type": "related", "direction": "forward", "weight": 0.5 },
+    { "source": "document:Docs/PRDs/Design-Brief-Unifolio-updated.md", "target": "document:Docs/PRDs/PRD-02-Signup-Onboarding.md", "type": "related", "direction": "forward", "weight": 0.5 },
+    { "source": "document:Docs/PRDs/Design-Brief-Unifolio-updated.md", "target": "document:Docs/PRDs/PRD-03-Main-Dashboard.md", "type": "related", "direction": "forward", "weight": 0.5 },
+    { "source": "document:Docs/PRDs/Design-Brief-Unifolio-updated.md", "target": "document:Docs/PRDs/PRD-04-MF-Analytics-Dashboard.md", "type": "related", "direction": "forward", "weight": 0.5 },
+
+    { "source": "document:Docs/PRDs/Design-Brief-Unifolio.md", "target": "document:Docs/PRDs/PRD-01-CAS-Parser-v2.md", "type": "related", "direction": "forward", "weight": 0.5 },
+    { "source": "document:Docs/PRDs/Design-Brief-Unifolio.md", "target": "document:Docs/PRDs/PRD-02-Signup-Onboarding.md", "type": "related", "direction": "forward", "weight": 0.5 },
+    { "source": "document:Docs/PRDs/Design-Brief-Unifolio.md", "target": "document:Docs/PRDs/PRD-03-Main-Dashboard.md", "type": "related", "direction": "forward", "weight": 0.5 },
+    { "source": "document:Docs/PRDs/Design-Brief-Unifolio.md", "target": "document:Docs/PRDs/PRD-04-MF-Analytics-Dashboard.md", "type": "related", "direction": "forward", "weight": 0.5 },
+    { "source": "document:Docs/PRDs/Design-Brief-Unifolio.md", "target": "document:Docs/PRDs/Design-Brief-Unifolio-updated.md", "type": "related", "direction": "forward", "weight": 0.5 },
+
+    { "source": "document:Docs/PRDs/Design-Schema-Unifolio.md", "target": "document:Docs/PRDs/Design-Brief-Unifolio-updated.md", "type": "related", "direction": "forward", "weight": 0.5 },
+    { "source": "document:Docs/PRDs/Design-Schema-Unifolio.md", "target": "document:Docs/PRDs/PRD-01-CAS-Parser-v2.md", "type": "related", "direction": "forward", "weight": 0.5 },
+    { "source": "document:Docs/PRDs/Design-Schema-Unifolio.md", "target": "document:Docs/PRDs/PRD-02-Signup-Onboarding.md", "type": "related", "direction": "forward", "weight": 0.5 },
+    { "source": "document:Docs/PRDs/Design-Schema-Unifolio.md", "target": "document:Docs/PRDs/PRD-03-Main-Dashboard.md", "type": "related", "direction": "forward", "weight": 0.5 },
+    { "source": "document:Docs/PRDs/Design-Schema-Unifolio.md", "target": "document:Docs/PRDs/PRD-04-MF-Analytics-Dashboard.md", "type": "related", "direction": "forward", "weight": 0.5 },
+
+    { "source": "document:Docs/PRDs/Migration-Plan-SQLite-to-Postgres.md", "target": "document:Docs/PRDs/ADR-Technical-Stack-Decisions.md", "type": "related", "direction": "forward", "weight": 0.5 },
+    { "source": "document:Docs/PRDs/Migration-Plan-SQLite-to-Postgres.md", "target": "document:Docs/PRDs/Database-Schema-Unifolio.md", "type": "related", "direction": "forward", "weight": 0.5 },
+    { "source": "document:Docs/PRDs/Migration-Plan-SQLite-to-Postgres.md", "target": "document:Docs/PRDs/TDD-Unifolio.md", "type": "related", "direction": "forward", "weight": 0.5 },
+
+    { "source": "document:Docs/PRDs/PRD-02-Signup-Onboarding.md", "target": "document:Docs/PRDs/PRD-01-CAS-Parser-v2.md", "type": "related", "direction": "forward", "weight": 0.5 },
+
+    { "source": "document:Docs/PRDs/PRD-03-Main-Dashboard.md", "target": "document:Docs/PRDs/PRD-01-CAS-Parser-v2.md", "type": "related", "direction": "forward", "weight": 0.5 },
+    { "source": "document:Docs/PRDs/PRD-03-Main-Dashboard.md", "target": "document:Docs/PRDs/PRD-02-Signup-Onboarding.md", "type": "related", "direction": "forward", "weight": 0.5 },
+
+    { "source": "document:Docs/PRDs/PRD-04-MF-Analytics-Dashboard.md", "target": "document:Docs/PRDs/PRD-01-CAS-Parser-v2.md", "type": "related", "direction": "forward", "weight": 0.5 },
+    { "source": "document:Docs/PRDs/PRD-04-MF-Analytics-Dashboard.md", "target": "document:Docs/PRDs/PRD-03-Main-Dashboard.md", "type": "related", "direction": "forward", "weight": 0.5 },
+
+    { "source": "document:Docs/PRDs/TDD-Unifolio.md", "target": "document:Docs/PRDs/PRD-01-CAS-Parser-v2.md", "type": "related", "direction": "forward", "weight": 0.5 },
+    { "source": "document:Docs/PRDs/TDD-Unifolio.md", "target": "document:Docs/PRDs/PRD-02-Signup-Onboarding.md", "type": "related", "direction": "forward", "weight": 0.5 },
+    { "source": "document:Docs/PRDs/TDD-Unifolio.md", "target": "document:Docs/PRDs/PRD-03-Main-Dashboard.md", "type": "related", "direction": "forward", "weight": 0.5 },
+    { "source": "document:Docs/PRDs/TDD-Unifolio.md", "target": "document:Docs/PRDs/PRD-04-MF-Analytics-Dashboard.md", "type": "related", "direction": "forward", "weight": 0.5 },
+    { "source": "document:Docs/PRDs/TDD-Unifolio.md", "target": "document:Docs/PRDs/ADR-Technical-Stack-Decisions.md", "type": "related", "direction": "forward", "weight": 0.5 },
+    { "source": "document:Docs/PRDs/TDD-Unifolio.md", "target": "document:Docs/PRDs/App-Flow-Unifolio.md", "type": "related", "direction": "forward", "weight": 0.5 },
+    { "source": "document:Docs/PRDs/TDD-Unifolio.md", "target": "document:Docs/PRDs/Database-Schema-Unifolio.md", "type": "related", "direction": "forward", "weight": 0.5 }
+  ]
+}

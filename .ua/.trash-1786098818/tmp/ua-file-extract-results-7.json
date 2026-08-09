@@ -1,0 +1,1731 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 5,
+  "filesSkipped": [],
+  "analysisOutcomes": {
+    "structure": {
+      "succeeded": 5,
+      "failed": 0
+    },
+    "callGraph": {
+      "succeeded": 5,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "results": [
+    {
+      "path": "backend/app/core/decimal_utils.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 26,
+      "nonEmptyLines": 17,
+      "functions": [
+        {
+          "name": "quantize_units",
+          "startLine": 9,
+          "endLine": 10,
+          "params": [
+            "value"
+          ]
+        },
+        {
+          "name": "quantize_amount",
+          "startLine": 13,
+          "endLine": 14,
+          "params": [
+            "value"
+          ]
+        },
+        {
+          "name": "quantize_nav",
+          "startLine": 17,
+          "endLine": 18,
+          "params": [
+            "value"
+          ]
+        },
+        {
+          "name": "to_decimal",
+          "startLine": 21,
+          "endLine": 26,
+          "params": [
+            "value"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "quantize_units",
+          "line": 9,
+          "isDefault": false
+        },
+        {
+          "name": "quantize_amount",
+          "line": 13,
+          "isDefault": false
+        },
+        {
+          "name": "quantize_nav",
+          "line": 17,
+          "isDefault": false
+        },
+        {
+          "name": "to_decimal",
+          "line": 21,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "quantize_units",
+          "callee": "value.quantize",
+          "lineNumber": 10
+        },
+        {
+          "caller": "quantize_amount",
+          "callee": "value.quantize",
+          "lineNumber": 14
+        },
+        {
+          "caller": "quantize_nav",
+          "callee": "value.quantize",
+          "lineNumber": 18
+        },
+        {
+          "caller": "to_decimal",
+          "callee": "isinstance",
+          "lineNumber": 24
+        },
+        {
+          "caller": "to_decimal",
+          "callee": "Decimal",
+          "lineNumber": 26
+        },
+        {
+          "caller": "to_decimal",
+          "callee": "str",
+          "lineNumber": 26
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 4,
+        "functionCount": 4,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/app/services/import_/parser.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 268,
+      "nonEmptyLines": 223,
+      "functions": [
+        {
+          "name": "mask_pan",
+          "startLine": 41,
+          "endLine": 46,
+          "params": [
+            "pan"
+          ]
+        },
+        {
+          "name": "normalize_txn_type",
+          "startLine": 49,
+          "endLine": 51,
+          "params": [
+            "raw"
+          ]
+        },
+        {
+          "name": "classify_plan_from_name",
+          "startLine": 54,
+          "endLine": 65,
+          "params": [
+            "scheme_name"
+          ]
+        },
+        {
+          "name": "classify_folio_plan_type",
+          "startLine": 68,
+          "endLine": 76,
+          "params": [
+            "name_variant",
+            "arn_code"
+          ]
+        },
+        {
+          "name": "source_cas_type_from_file_type",
+          "startLine": 79,
+          "endLine": 81,
+          "params": [
+            "file_type"
+          ]
+        },
+        {
+          "name": "_parse_date",
+          "startLine": 84,
+          "endLine": 87,
+          "params": [
+            "value"
+          ]
+        },
+        {
+          "name": "classify_parse_error",
+          "startLine": 145,
+          "endLine": 157,
+          "params": [
+            "exc"
+          ]
+        },
+        {
+          "name": "_normalize_cas_data",
+          "startLine": 160,
+          "endLine": 240,
+          "params": [
+            "data"
+          ]
+        },
+        {
+          "name": "parse_cas_pdf_bytes",
+          "startLine": 243,
+          "endLine": 268,
+          "params": [
+            "pdf_bytes",
+            "password"
+          ]
+        }
+      ],
+      "classes": [
+        {
+          "name": "NormalizedTransaction",
+          "startLine": 91,
+          "endLine": 103,
+          "methods": [],
+          "properties": [
+            "folio",
+            "amc",
+            "scheme_name",
+            "isin",
+            "amfi",
+            "scheme_type",
+            "txn_date",
+            "txn_type",
+            "description",
+            "amount",
+            "units",
+            "nav"
+          ]
+        },
+        {
+          "name": "ParsedInvestor",
+          "startLine": 107,
+          "endLine": 110,
+          "methods": [],
+          "properties": [
+            "name",
+            "email",
+            "pan_masked"
+          ]
+        },
+        {
+          "name": "ParsedScheme",
+          "startLine": 114,
+          "endLine": 124,
+          "methods": [],
+          "properties": [
+            "name",
+            "isin",
+            "amfi",
+            "scheme_type",
+            "folio",
+            "amc",
+            "transaction_count",
+            "arn_code",
+            "plan_name_variant",
+            "plan_type"
+          ]
+        },
+        {
+          "name": "ParseResult",
+          "startLine": 128,
+          "endLine": 135,
+          "methods": [],
+          "properties": [
+            "investor",
+            "schemes",
+            "transactions",
+            "raw_json",
+            "parse_warnings",
+            "cas_type",
+            "file_type"
+          ]
+        },
+        {
+          "name": "ParseError",
+          "startLine": 138,
+          "endLine": 142,
+          "methods": [
+            "__init__"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "mask_pan",
+          "line": 41,
+          "isDefault": false
+        },
+        {
+          "name": "normalize_txn_type",
+          "line": 49,
+          "isDefault": false
+        },
+        {
+          "name": "classify_plan_from_name",
+          "line": 54,
+          "isDefault": false
+        },
+        {
+          "name": "classify_folio_plan_type",
+          "line": 68,
+          "isDefault": false
+        },
+        {
+          "name": "source_cas_type_from_file_type",
+          "line": 79,
+          "isDefault": false
+        },
+        {
+          "name": "_parse_date",
+          "line": 84,
+          "isDefault": false
+        },
+        {
+          "name": "NormalizedTransaction",
+          "line": 90,
+          "isDefault": false
+        },
+        {
+          "name": "ParsedInvestor",
+          "line": 106,
+          "isDefault": false
+        },
+        {
+          "name": "ParsedScheme",
+          "line": 113,
+          "isDefault": false
+        },
+        {
+          "name": "ParseResult",
+          "line": 127,
+          "isDefault": false
+        },
+        {
+          "name": "ParseError",
+          "line": 138,
+          "isDefault": false
+        },
+        {
+          "name": "classify_parse_error",
+          "line": 145,
+          "isDefault": false
+        },
+        {
+          "name": "_normalize_cas_data",
+          "line": 160,
+          "isDefault": false
+        },
+        {
+          "name": "parse_cas_pdf_bytes",
+          "line": 243,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "mask_pan",
+          "callee": "len",
+          "lineNumber": 44
+        },
+        {
+          "caller": "mask_pan",
+          "callee": "len",
+          "lineNumber": 45
+        },
+        {
+          "caller": "mask_pan",
+          "callee": "len",
+          "lineNumber": 46
+        },
+        {
+          "caller": "normalize_txn_type",
+          "callee": "str(raw).split(\".\")[-1].upper",
+          "lineNumber": 50
+        },
+        {
+          "caller": "normalize_txn_type",
+          "callee": "str(raw).split",
+          "lineNumber": 50
+        },
+        {
+          "caller": "normalize_txn_type",
+          "callee": "str",
+          "lineNumber": 50
+        },
+        {
+          "caller": "normalize_txn_type",
+          "callee": "CAS_TO_CANONICAL.get",
+          "lineNumber": 51
+        },
+        {
+          "caller": "classify_plan_from_name",
+          "callee": "scheme_name.upper",
+          "lineNumber": 58
+        },
+        {
+          "caller": "classify_folio_plan_type",
+          "callee": "bool",
+          "lineNumber": 71
+        },
+        {
+          "caller": "classify_folio_plan_type",
+          "callee": "arn_code.strip",
+          "lineNumber": 71
+        },
+        {
+          "caller": "source_cas_type_from_file_type",
+          "callee": "str(file_type).split(\".\")[-1].upper",
+          "lineNumber": 80
+        },
+        {
+          "caller": "source_cas_type_from_file_type",
+          "callee": "str(file_type).split",
+          "lineNumber": 80
+        },
+        {
+          "caller": "source_cas_type_from_file_type",
+          "callee": "str",
+          "lineNumber": 80
+        },
+        {
+          "caller": "source_cas_type_from_file_type",
+          "callee": "SOURCE_CAS_TYPE_MAP.get",
+          "lineNumber": 81
+        },
+        {
+          "caller": "_parse_date",
+          "callee": "isinstance",
+          "lineNumber": 85
+        },
+        {
+          "caller": "_parse_date",
+          "callee": "date.fromisoformat",
+          "lineNumber": 87
+        },
+        {
+          "caller": "_parse_date",
+          "callee": "str",
+          "lineNumber": 87
+        },
+        {
+          "caller": "__init__",
+          "callee": "super().__init__",
+          "lineNumber": 142
+        },
+        {
+          "caller": "__init__",
+          "callee": "super",
+          "lineNumber": 142
+        },
+        {
+          "caller": "classify_parse_error",
+          "callee": "str(exc).lower",
+          "lineNumber": 146
+        },
+        {
+          "caller": "classify_parse_error",
+          "callee": "str",
+          "lineNumber": 146
+        },
+        {
+          "caller": "classify_parse_error",
+          "callee": "ParseError",
+          "lineNumber": 148
+        },
+        {
+          "caller": "classify_parse_error",
+          "callee": "ParseError",
+          "lineNumber": 153
+        },
+        {
+          "caller": "classify_parse_error",
+          "callee": "ParseError",
+          "lineNumber": 157
+        },
+        {
+          "caller": "classify_parse_error",
+          "callee": "str",
+          "lineNumber": 157
+        },
+        {
+          "caller": "_normalize_cas_data",
+          "callee": "str(data.cas_type).upper",
+          "lineNumber": 161
+        },
+        {
+          "caller": "_normalize_cas_data",
+          "callee": "str",
+          "lineNumber": 161
+        },
+        {
+          "caller": "_normalize_cas_data",
+          "callee": "ParseError",
+          "lineNumber": 162
+        },
+        {
+          "caller": "_normalize_cas_data",
+          "callee": "ParsedInvestor",
+          "lineNumber": 169
+        },
+        {
+          "caller": "_normalize_cas_data",
+          "callee": "mask_pan",
+          "lineNumber": 172
+        },
+        {
+          "caller": "_normalize_cas_data",
+          "callee": "list",
+          "lineNumber": 177
+        },
+        {
+          "caller": "_normalize_cas_data",
+          "callee": "classify_plan_from_name",
+          "lineNumber": 183
+        },
+        {
+          "caller": "_normalize_cas_data",
+          "callee": "getattr",
+          "lineNumber": 184
+        },
+        {
+          "caller": "_normalize_cas_data",
+          "callee": "ParsedScheme",
+          "lineNumber": 185
+        },
+        {
+          "caller": "_normalize_cas_data",
+          "callee": "classify_folio_plan_type",
+          "lineNumber": 195
+        },
+        {
+          "caller": "_normalize_cas_data",
+          "callee": "abs",
+          "lineNumber": 206
+        },
+        {
+          "caller": "_normalize_cas_data",
+          "callee": "quantize_amount",
+          "lineNumber": 206
+        },
+        {
+          "caller": "_normalize_cas_data",
+          "callee": "to_decimal",
+          "lineNumber": 206
+        },
+        {
+          "caller": "_normalize_cas_data",
+          "callee": "abs",
+          "lineNumber": 207
+        },
+        {
+          "caller": "_normalize_cas_data",
+          "callee": "quantize_units",
+          "lineNumber": 207
+        },
+        {
+          "caller": "_normalize_cas_data",
+          "callee": "to_decimal",
+          "lineNumber": 207
+        },
+        {
+          "caller": "_normalize_cas_data",
+          "callee": "quantize_nav",
+          "lineNumber": 208
+        },
+        {
+          "caller": "_normalize_cas_data",
+          "callee": "to_decimal",
+          "lineNumber": 208
+        },
+        {
+          "caller": "_normalize_cas_data",
+          "callee": "parse_warnings.append",
+          "lineNumber": 210
+        },
+        {
+          "caller": "_normalize_cas_data",
+          "callee": "NormalizedTransaction",
+          "lineNumber": 215
+        },
+        {
+          "caller": "_normalize_cas_data",
+          "callee": "_parse_date",
+          "lineNumber": 218
+        },
+        {
+          "caller": "_normalize_cas_data",
+          "callee": "normalize_txn_type",
+          "lineNumber": 218
+        },
+        {
+          "caller": "_normalize_cas_data",
+          "callee": "transactions.append",
+          "lineNumber": 221
+        },
+        {
+          "caller": "_normalize_cas_data",
+          "callee": "data.model_copy",
+          "lineNumber": 227
+        },
+        {
+          "caller": "_normalize_cas_data",
+          "callee": "redacted.model_dump_json",
+          "lineNumber": 230
+        },
+        {
+          "caller": "_normalize_cas_data",
+          "callee": "ParseResult",
+          "lineNumber": 232
+        },
+        {
+          "caller": "_normalize_cas_data",
+          "callee": "list",
+          "lineNumber": 234
+        },
+        {
+          "caller": "_normalize_cas_data",
+          "callee": "scheme_map.values",
+          "lineNumber": 234
+        },
+        {
+          "caller": "_normalize_cas_data",
+          "callee": "str",
+          "lineNumber": 238
+        },
+        {
+          "caller": "_normalize_cas_data",
+          "callee": "str",
+          "lineNumber": 239
+        },
+        {
+          "caller": "parse_cas_pdf_bytes",
+          "callee": "tempfile.NamedTemporaryFile",
+          "lineNumber": 249
+        },
+        {
+          "caller": "parse_cas_pdf_bytes",
+          "callee": "tmp.write",
+          "lineNumber": 250
+        },
+        {
+          "caller": "parse_cas_pdf_bytes",
+          "callee": "casparser.read_cas_pdf",
+          "lineNumber": 254
+        },
+        {
+          "caller": "parse_cas_pdf_bytes",
+          "callee": "classify_parse_error",
+          "lineNumber": 256
+        },
+        {
+          "caller": "parse_cas_pdf_bytes",
+          "callee": "Path(tmp_path).unlink",
+          "lineNumber": 258
+        },
+        {
+          "caller": "parse_cas_pdf_bytes",
+          "callee": "Path",
+          "lineNumber": 258
+        },
+        {
+          "caller": "parse_cas_pdf_bytes",
+          "callee": "isinstance",
+          "lineNumber": 260
+        },
+        {
+          "caller": "parse_cas_pdf_bytes",
+          "callee": "ParseError",
+          "lineNumber": 261
+        },
+        {
+          "caller": "parse_cas_pdf_bytes",
+          "callee": "isinstance",
+          "lineNumber": 265
+        },
+        {
+          "caller": "parse_cas_pdf_bytes",
+          "callee": "ParseError",
+          "lineNumber": 266
+        },
+        {
+          "caller": "parse_cas_pdf_bytes",
+          "callee": "_normalize_cas_data",
+          "lineNumber": 268
+        }
+      ],
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 14,
+        "functionCount": 9,
+        "classCount": 5
+      }
+    },
+    {
+      "path": "backend/tests/api/test_imports_routes.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 220,
+      "nonEmptyLines": 186,
+      "functions": [
+        {
+          "name": "_authed_headers",
+          "startLine": 15,
+          "endLine": 18,
+          "params": [
+            "client",
+            "phone"
+          ]
+        },
+        {
+          "name": "_authed_headers_and_member",
+          "startLine": 21,
+          "endLine": 28,
+          "params": [
+            "client",
+            "phone"
+          ]
+        },
+        {
+          "name": "test_parse_route_requires_auth",
+          "startLine": 31,
+          "endLine": 37,
+          "params": [
+            "client"
+          ]
+        },
+        {
+          "name": "test_parse_route_rejects_non_pdf",
+          "startLine": 40,
+          "endLine": 49,
+          "params": [
+            "client"
+          ]
+        },
+        {
+          "name": "test_parse_route_surfaces_parse_error_as_422",
+          "startLine": 52,
+          "endLine": 65,
+          "params": [
+            "client"
+          ]
+        },
+        {
+          "name": "test_confirm_route_requires_auth",
+          "startLine": 68,
+          "endLine": 73,
+          "params": [
+            "client"
+          ]
+        },
+        {
+          "name": "test_confirm_route_404s_on_unknown_session",
+          "startLine": 76,
+          "endLine": 83,
+          "params": [
+            "client"
+          ]
+        },
+        {
+          "name": "test_confirm_route_400s_on_malformed_household_member_id",
+          "startLine": 86,
+          "endLine": 93,
+          "params": [
+            "client"
+          ]
+        },
+        {
+          "name": "test_confirm_route_422s_on_malformed_plan_type_override",
+          "startLine": 96,
+          "endLine": 111,
+          "params": [
+            "client"
+          ]
+        },
+        {
+          "name": "test_confirm_route_404s_when_household_member_belongs_to_another_user",
+          "startLine": 114,
+          "endLine": 126,
+          "params": [
+            "client"
+          ]
+        },
+        {
+          "name": "test_confirm_route_409s_on_low_confidence_scheme_without_override",
+          "startLine": 129,
+          "endLine": 146,
+          "params": [
+            "client"
+          ]
+        },
+        {
+          "name": "_sample_parse_result",
+          "startLine": 149,
+          "endLine": 165,
+          "params": []
+        },
+        {
+          "name": "test_parse_then_confirm_lands_a_transaction_in_the_real_db",
+          "startLine": 168,
+          "endLine": 220,
+          "params": [
+            "client"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "_authed_headers",
+          "line": 15,
+          "isDefault": false
+        },
+        {
+          "name": "_authed_headers_and_member",
+          "line": 21,
+          "isDefault": false
+        },
+        {
+          "name": "test_parse_route_requires_auth",
+          "line": 31,
+          "isDefault": false
+        },
+        {
+          "name": "test_parse_route_rejects_non_pdf",
+          "line": 40,
+          "isDefault": false
+        },
+        {
+          "name": "test_parse_route_surfaces_parse_error_as_422",
+          "line": 52,
+          "isDefault": false
+        },
+        {
+          "name": "test_confirm_route_requires_auth",
+          "line": 68,
+          "isDefault": false
+        },
+        {
+          "name": "test_confirm_route_404s_on_unknown_session",
+          "line": 76,
+          "isDefault": false
+        },
+        {
+          "name": "test_confirm_route_400s_on_malformed_household_member_id",
+          "line": 86,
+          "isDefault": false
+        },
+        {
+          "name": "test_confirm_route_422s_on_malformed_plan_type_override",
+          "line": 96,
+          "isDefault": false
+        },
+        {
+          "name": "test_confirm_route_404s_when_household_member_belongs_to_another_user",
+          "line": 114,
+          "isDefault": false
+        },
+        {
+          "name": "test_confirm_route_409s_on_low_confidence_scheme_without_override",
+          "line": 129,
+          "isDefault": false
+        },
+        {
+          "name": "_sample_parse_result",
+          "line": 149,
+          "isDefault": false
+        },
+        {
+          "name": "test_parse_then_confirm_lands_a_transaction_in_the_real_db",
+          "line": 168,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "_authed_headers",
+          "callee": "client.post(\"/auth/otp/request\", json={\"phone_number\": phone}).json",
+          "lineNumber": 16
+        },
+        {
+          "caller": "_authed_headers",
+          "callee": "client.post",
+          "lineNumber": 16
+        },
+        {
+          "caller": "_authed_headers",
+          "callee": "client.post(\"/auth/otp/verify\", json={\"phone_number\": phone, \"otp\": otp}).json",
+          "lineNumber": 17
+        },
+        {
+          "caller": "_authed_headers",
+          "callee": "client.post",
+          "lineNumber": 17
+        },
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "_authed_headers",
+          "lineNumber": 22
+        },
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "client.post(\n        \"/household-members\",\n        json={\"name\": \"Self\", \"relationship\": \"self\"},\n        headers=headers,\n    ).json",
+          "lineNumber": 23
+        },
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "client.post",
+          "lineNumber": 23
+        },
+        {
+          "caller": "test_parse_route_requires_auth",
+          "callee": "client.post",
+          "lineNumber": 32
+        },
+        {
+          "caller": "test_parse_route_rejects_non_pdf",
+          "callee": "_authed_headers",
+          "lineNumber": 41
+        },
+        {
+          "caller": "test_parse_route_rejects_non_pdf",
+          "callee": "client.post",
+          "lineNumber": 42
+        },
+        {
+          "caller": "test_parse_route_rejects_non_pdf",
+          "callee": "response.json",
+          "lineNumber": 49
+        },
+        {
+          "caller": "test_parse_route_surfaces_parse_error_as_422",
+          "callee": "_authed_headers",
+          "lineNumber": 53
+        },
+        {
+          "caller": "test_parse_route_surfaces_parse_error_as_422",
+          "callee": "patch",
+          "lineNumber": 54
+        },
+        {
+          "caller": "test_parse_route_surfaces_parse_error_as_422",
+          "callee": "ParseError",
+          "lineNumber": 56
+        },
+        {
+          "caller": "test_parse_route_surfaces_parse_error_as_422",
+          "callee": "client.post",
+          "lineNumber": 58
+        },
+        {
+          "caller": "test_parse_route_surfaces_parse_error_as_422",
+          "callee": "response.json",
+          "lineNumber": 65
+        },
+        {
+          "caller": "test_confirm_route_requires_auth",
+          "callee": "client.post",
+          "lineNumber": 69
+        },
+        {
+          "caller": "test_confirm_route_404s_on_unknown_session",
+          "callee": "_authed_headers_and_member",
+          "lineNumber": 77
+        },
+        {
+          "caller": "test_confirm_route_404s_on_unknown_session",
+          "callee": "client.post",
+          "lineNumber": 78
+        },
+        {
+          "caller": "test_confirm_route_400s_on_malformed_household_member_id",
+          "callee": "_authed_headers",
+          "lineNumber": 87
+        },
+        {
+          "caller": "test_confirm_route_400s_on_malformed_household_member_id",
+          "callee": "client.post",
+          "lineNumber": 88
+        },
+        {
+          "caller": "test_confirm_route_422s_on_malformed_plan_type_override",
+          "callee": "_authed_headers_and_member",
+          "lineNumber": 101
+        },
+        {
+          "caller": "test_confirm_route_422s_on_malformed_plan_type_override",
+          "callee": "client.post",
+          "lineNumber": 102
+        },
+        {
+          "caller": "test_confirm_route_404s_when_household_member_belongs_to_another_user",
+          "callee": "_authed_headers_and_member",
+          "lineNumber": 118
+        },
+        {
+          "caller": "test_confirm_route_404s_when_household_member_belongs_to_another_user",
+          "callee": "_authed_headers",
+          "lineNumber": 119
+        },
+        {
+          "caller": "test_confirm_route_404s_when_household_member_belongs_to_another_user",
+          "callee": "client.post",
+          "lineNumber": 121
+        },
+        {
+          "caller": "test_confirm_route_409s_on_low_confidence_scheme_without_override",
+          "callee": "_authed_headers_and_member",
+          "lineNumber": 135
+        },
+        {
+          "caller": "test_confirm_route_409s_on_low_confidence_scheme_without_override",
+          "callee": "patch",
+          "lineNumber": 136
+        },
+        {
+          "caller": "test_confirm_route_409s_on_low_confidence_scheme_without_override",
+          "callee": "SchemeConfidenceError",
+          "lineNumber": 136
+        },
+        {
+          "caller": "test_confirm_route_409s_on_low_confidence_scheme_without_override",
+          "callee": "client.post",
+          "lineNumber": 137
+        },
+        {
+          "caller": "_sample_parse_result",
+          "callee": "NormalizedTransaction",
+          "lineNumber": 150
+        },
+        {
+          "caller": "_sample_parse_result",
+          "callee": "date",
+          "lineNumber": 152
+        },
+        {
+          "caller": "_sample_parse_result",
+          "callee": "Decimal",
+          "lineNumber": 154
+        },
+        {
+          "caller": "_sample_parse_result",
+          "callee": "Decimal",
+          "lineNumber": 154
+        },
+        {
+          "caller": "_sample_parse_result",
+          "callee": "Decimal",
+          "lineNumber": 154
+        },
+        {
+          "caller": "_sample_parse_result",
+          "callee": "ParsedScheme",
+          "lineNumber": 156
+        },
+        {
+          "caller": "_sample_parse_result",
+          "callee": "ParseResult",
+          "lineNumber": 161
+        },
+        {
+          "caller": "_sample_parse_result",
+          "callee": "ParsedInvestor",
+          "lineNumber": 162
+        },
+        {
+          "caller": "test_parse_then_confirm_lands_a_transaction_in_the_real_db",
+          "callee": "_authed_headers_and_member",
+          "lineNumber": 177
+        },
+        {
+          "caller": "test_parse_then_confirm_lands_a_transaction_in_the_real_db",
+          "callee": "patch",
+          "lineNumber": 185
+        },
+        {
+          "caller": "test_parse_then_confirm_lands_a_transaction_in_the_real_db",
+          "callee": "_sample_parse_result",
+          "lineNumber": 185
+        },
+        {
+          "caller": "test_parse_then_confirm_lands_a_transaction_in_the_real_db",
+          "callee": "patch",
+          "lineNumber": 186
+        },
+        {
+          "caller": "test_parse_then_confirm_lands_a_transaction_in_the_real_db",
+          "callee": "AsyncMock",
+          "lineNumber": 188
+        },
+        {
+          "caller": "test_parse_then_confirm_lands_a_transaction_in_the_real_db",
+          "callee": "client.post",
+          "lineNumber": 191
+        },
+        {
+          "caller": "test_parse_then_confirm_lands_a_transaction_in_the_real_db",
+          "callee": "parse_response.json",
+          "lineNumber": 198
+        },
+        {
+          "caller": "test_parse_then_confirm_lands_a_transaction_in_the_real_db",
+          "callee": "client.post",
+          "lineNumber": 200
+        },
+        {
+          "caller": "test_parse_then_confirm_lands_a_transaction_in_the_real_db",
+          "callee": "confirm_response.json",
+          "lineNumber": 210
+        },
+        {
+          "caller": "test_parse_then_confirm_lands_a_transaction_in_the_real_db",
+          "callee": "next",
+          "lineNumber": 216
+        },
+        {
+          "caller": "test_parse_then_confirm_lands_a_transaction_in_the_real_db",
+          "callee": "override",
+          "lineNumber": 216
+        },
+        {
+          "caller": "test_parse_then_confirm_lands_a_transaction_in_the_real_db",
+          "callee": "db.query(Transaction).count",
+          "lineNumber": 218
+        },
+        {
+          "caller": "test_parse_then_confirm_lands_a_transaction_in_the_real_db",
+          "callee": "db.query",
+          "lineNumber": 218
+        },
+        {
+          "caller": "test_parse_then_confirm_lands_a_transaction_in_the_real_db",
+          "callee": "db.close",
+          "lineNumber": 220
+        }
+      ],
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 13,
+        "functionCount": 13,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/tests/core/test_decimal_utils.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 21,
+      "nonEmptyLines": 12,
+      "functions": [
+        {
+          "name": "test_quantize_units_three_places_half_up",
+          "startLine": 6,
+          "endLine": 8,
+          "params": []
+        },
+        {
+          "name": "test_quantize_amount_two_places",
+          "startLine": 11,
+          "endLine": 12,
+          "params": []
+        },
+        {
+          "name": "test_quantize_nav_four_places",
+          "startLine": 15,
+          "endLine": 16,
+          "params": []
+        },
+        {
+          "name": "test_to_decimal_handles_string_and_none",
+          "startLine": 19,
+          "endLine": 21,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "test_quantize_units_three_places_half_up",
+          "line": 6,
+          "isDefault": false
+        },
+        {
+          "name": "test_quantize_amount_two_places",
+          "line": 11,
+          "isDefault": false
+        },
+        {
+          "name": "test_quantize_nav_four_places",
+          "line": 15,
+          "isDefault": false
+        },
+        {
+          "name": "test_to_decimal_handles_string_and_none",
+          "line": 19,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "test_quantize_units_three_places_half_up",
+          "callee": "quantize_units",
+          "lineNumber": 7
+        },
+        {
+          "caller": "test_quantize_units_three_places_half_up",
+          "callee": "Decimal",
+          "lineNumber": 7
+        },
+        {
+          "caller": "test_quantize_units_three_places_half_up",
+          "callee": "Decimal",
+          "lineNumber": 7
+        },
+        {
+          "caller": "test_quantize_units_three_places_half_up",
+          "callee": "quantize_units",
+          "lineNumber": 8
+        },
+        {
+          "caller": "test_quantize_units_three_places_half_up",
+          "callee": "Decimal",
+          "lineNumber": 8
+        },
+        {
+          "caller": "test_quantize_units_three_places_half_up",
+          "callee": "Decimal",
+          "lineNumber": 8
+        },
+        {
+          "caller": "test_quantize_amount_two_places",
+          "callee": "quantize_amount",
+          "lineNumber": 12
+        },
+        {
+          "caller": "test_quantize_amount_two_places",
+          "callee": "Decimal",
+          "lineNumber": 12
+        },
+        {
+          "caller": "test_quantize_amount_two_places",
+          "callee": "Decimal",
+          "lineNumber": 12
+        },
+        {
+          "caller": "test_quantize_nav_four_places",
+          "callee": "quantize_nav",
+          "lineNumber": 16
+        },
+        {
+          "caller": "test_quantize_nav_four_places",
+          "callee": "Decimal",
+          "lineNumber": 16
+        },
+        {
+          "caller": "test_quantize_nav_four_places",
+          "callee": "Decimal",
+          "lineNumber": 16
+        },
+        {
+          "caller": "test_to_decimal_handles_string_and_none",
+          "callee": "to_decimal",
+          "lineNumber": 20
+        },
+        {
+          "caller": "test_to_decimal_handles_string_and_none",
+          "callee": "Decimal",
+          "lineNumber": 20
+        },
+        {
+          "caller": "test_to_decimal_handles_string_and_none",
+          "callee": "to_decimal",
+          "lineNumber": 21
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 4,
+        "functionCount": 4,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/tests/services/import_/test_parser.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 202,
+      "nonEmptyLines": 166,
+      "functions": [
+        {
+          "name": "test_mask_pan",
+          "startLine": 18,
+          "endLine": 23,
+          "params": []
+        },
+        {
+          "name": "test_normalize_txn_type_maps_to_monolith_enum",
+          "startLine": 26,
+          "endLine": 31,
+          "params": []
+        },
+        {
+          "name": "test_classify_plan_from_name_direct",
+          "startLine": 34,
+          "endLine": 35,
+          "params": []
+        },
+        {
+          "name": "test_classify_folio_plan_type_disagreement_is_unclassified",
+          "startLine": 38,
+          "endLine": 39,
+          "params": []
+        },
+        {
+          "name": "test_normalize_cas_data_captures_arn_and_plan_type",
+          "startLine": 42,
+          "endLine": 68,
+          "params": []
+        },
+        {
+          "name": "test_normalize_cas_data_direct_scheme_no_arn",
+          "startLine": 71,
+          "endLine": 96,
+          "params": []
+        },
+        {
+          "name": "test_normalize_cas_data_redemption_units_and_amount_are_positive",
+          "startLine": 99,
+          "endLine": 125,
+          "params": []
+        },
+        {
+          "name": "test_normalize_cas_data_purchase_units_and_amount_unchanged",
+          "startLine": 128,
+          "endLine": 151,
+          "params": []
+        },
+        {
+          "name": "_real_cas_data",
+          "startLine": 154,
+          "endLine": 170,
+          "params": [
+            "pan",
+            "txn_kwargs"
+          ]
+        },
+        {
+          "name": "test_normalize_cas_data_redacts_pan_from_raw_json",
+          "startLine": 173,
+          "endLine": 186,
+          "params": []
+        },
+        {
+          "name": "test_normalize_cas_data_skips_transaction_missing_amount_and_warns",
+          "startLine": 189,
+          "endLine": 202,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "test_mask_pan",
+          "line": 18,
+          "isDefault": false
+        },
+        {
+          "name": "test_normalize_txn_type_maps_to_monolith_enum",
+          "line": 26,
+          "isDefault": false
+        },
+        {
+          "name": "test_classify_plan_from_name_direct",
+          "line": 34,
+          "isDefault": false
+        },
+        {
+          "name": "test_classify_folio_plan_type_disagreement_is_unclassified",
+          "line": 38,
+          "isDefault": false
+        },
+        {
+          "name": "test_normalize_cas_data_captures_arn_and_plan_type",
+          "line": 42,
+          "isDefault": false
+        },
+        {
+          "name": "test_normalize_cas_data_direct_scheme_no_arn",
+          "line": 71,
+          "isDefault": false
+        },
+        {
+          "name": "test_normalize_cas_data_redemption_units_and_amount_are_positive",
+          "line": 99,
+          "isDefault": false
+        },
+        {
+          "name": "test_normalize_cas_data_purchase_units_and_amount_unchanged",
+          "line": 128,
+          "isDefault": false
+        },
+        {
+          "name": "_real_cas_data",
+          "line": 154,
+          "isDefault": false
+        },
+        {
+          "name": "test_normalize_cas_data_redacts_pan_from_raw_json",
+          "line": 173,
+          "isDefault": false
+        },
+        {
+          "name": "test_normalize_cas_data_skips_transaction_missing_amount_and_warns",
+          "line": 189,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "test_mask_pan",
+          "callee": "mask_pan",
+          "lineNumber": 19
+        },
+        {
+          "caller": "test_mask_pan",
+          "callee": "mask_pan",
+          "lineNumber": 20
+        },
+        {
+          "caller": "test_mask_pan",
+          "callee": "mask_pan",
+          "lineNumber": 21
+        },
+        {
+          "caller": "test_mask_pan",
+          "callee": "mask_pan",
+          "lineNumber": 22
+        },
+        {
+          "caller": "test_mask_pan",
+          "callee": "mask_pan",
+          "lineNumber": 23
+        },
+        {
+          "caller": "test_normalize_txn_type_maps_to_monolith_enum",
+          "callee": "normalize_txn_type",
+          "lineNumber": 27
+        },
+        {
+          "caller": "test_normalize_txn_type_maps_to_monolith_enum",
+          "callee": "normalize_txn_type",
+          "lineNumber": 28
+        },
+        {
+          "caller": "test_normalize_txn_type_maps_to_monolith_enum",
+          "callee": "normalize_txn_type",
+          "lineNumber": 29
+        },
+        {
+          "caller": "test_normalize_txn_type_maps_to_monolith_enum",
+          "callee": "normalize_txn_type",
+          "lineNumber": 30
+        },
+        {
+          "caller": "test_normalize_txn_type_maps_to_monolith_enum",
+          "callee": "normalize_txn_type",
+          "lineNumber": 31
+        },
+        {
+          "caller": "test_classify_plan_from_name_direct",
+          "callee": "classify_plan_from_name",
+          "lineNumber": 35
+        },
+        {
+          "caller": "test_classify_folio_plan_type_disagreement_is_unclassified",
+          "callee": "classify_folio_plan_type",
+          "lineNumber": 39
+        },
+        {
+          "caller": "test_normalize_cas_data_captures_arn_and_plan_type",
+          "callee": "MagicMock",
+          "lineNumber": 45
+        },
+        {
+          "caller": "test_normalize_cas_data_captures_arn_and_plan_type",
+          "callee": "MagicMock",
+          "lineNumber": 49
+        },
+        {
+          "caller": "test_normalize_cas_data_captures_arn_and_plan_type",
+          "callee": "MagicMock",
+          "lineNumber": 54
+        },
+        {
+          "caller": "test_normalize_cas_data_captures_arn_and_plan_type",
+          "callee": "MagicMock",
+          "lineNumber": 55
+        },
+        {
+          "caller": "test_normalize_cas_data_captures_arn_and_plan_type",
+          "callee": "MagicMock",
+          "lineNumber": 57
+        },
+        {
+          "caller": "test_normalize_cas_data_captures_arn_and_plan_type",
+          "callee": "_normalize_cas_data",
+          "lineNumber": 62
+        },
+        {
+          "caller": "test_normalize_cas_data_captures_arn_and_plan_type",
+          "callee": "len",
+          "lineNumber": 64
+        },
+        {
+          "caller": "test_normalize_cas_data_direct_scheme_no_arn",
+          "callee": "MagicMock",
+          "lineNumber": 74
+        },
+        {
+          "caller": "test_normalize_cas_data_direct_scheme_no_arn",
+          "callee": "MagicMock",
+          "lineNumber": 78
+        },
+        {
+          "caller": "test_normalize_cas_data_direct_scheme_no_arn",
+          "callee": "MagicMock",
+          "lineNumber": 83
+        },
+        {
+          "caller": "test_normalize_cas_data_direct_scheme_no_arn",
+          "callee": "MagicMock",
+          "lineNumber": 84
+        },
+        {
+          "caller": "test_normalize_cas_data_direct_scheme_no_arn",
+          "callee": "MagicMock",
+          "lineNumber": 86
+        },
+        {
+          "caller": "test_normalize_cas_data_direct_scheme_no_arn",
+          "callee": "_normalize_cas_data",
+          "lineNumber": 91
+        },
+        {
+          "caller": "test_normalize_cas_data_redemption_units_and_amount_are_positive",
+          "callee": "MagicMock",
+          "lineNumber": 103
+        },
+        {
+          "caller": "test_normalize_cas_data_redemption_units_and_amount_are_positive",
+          "callee": "MagicMock",
+          "lineNumber": 107
+        },
+        {
+          "caller": "test_normalize_cas_data_redemption_units_and_amount_are_positive",
+          "callee": "MagicMock",
+          "lineNumber": 112
+        },
+        {
+          "caller": "test_normalize_cas_data_redemption_units_and_amount_are_positive",
+          "callee": "MagicMock",
+          "lineNumber": 113
+        },
+        {
+          "caller": "test_normalize_cas_data_redemption_units_and_amount_are_positive",
+          "callee": "MagicMock",
+          "lineNumber": 115
+        },
+        {
+          "caller": "test_normalize_cas_data_redemption_units_and_amount_are_positive",
+          "callee": "_normalize_cas_data",
+          "lineNumber": 120
+        },
+        {
+          "caller": "test_normalize_cas_data_redemption_units_and_amount_are_positive",
+          "callee": "Decimal",
+          "lineNumber": 124
+        },
+        {
+          "caller": "test_normalize_cas_data_redemption_units_and_amount_are_positive",
+          "callee": "Decimal",
+          "lineNumber": 125
+        },
+        {
+          "caller": "test_normalize_cas_data_purchase_units_and_amount_unchanged",
+          "callee": "MagicMock",
+          "lineNumber": 130
+        },
+        {
+          "caller": "test_normalize_cas_data_purchase_units_and_amount_unchanged",
+          "callee": "MagicMock",
+          "lineNumber": 134
+        },
+        {
+          "caller": "test_normalize_cas_data_purchase_units_and_amount_unchanged",
+          "callee": "MagicMock",
+          "lineNumber": 139
+        },
+        {
+          "caller": "test_normalize_cas_data_purchase_units_and_amount_unchanged",
+          "callee": "MagicMock",
+          "lineNumber": 140
+        },
+        {
+          "caller": "test_normalize_cas_data_purchase_units_and_amount_unchanged",
+          "callee": "MagicMock",
+          "lineNumber": 142
+        },
+        {
+          "caller": "test_normalize_cas_data_purchase_units_and_amount_unchanged",
+          "callee": "_normalize_cas_data",
+          "lineNumber": 147
+        },
+        {
+          "caller": "test_normalize_cas_data_purchase_units_and_amount_unchanged",
+          "callee": "Decimal",
+          "lineNumber": 150
+        },
+        {
+          "caller": "test_normalize_cas_data_purchase_units_and_amount_unchanged",
+          "callee": "Decimal",
+          "lineNumber": 151
+        },
+        {
+          "caller": "_real_cas_data",
+          "callee": "TransactionData",
+          "lineNumber": 157
+        },
+        {
+          "caller": "_real_cas_data",
+          "callee": "SchemeValuation",
+          "lineNumber": 158
+        },
+        {
+          "caller": "_real_cas_data",
+          "callee": "Decimal",
+          "lineNumber": 158
+        },
+        {
+          "caller": "_real_cas_data",
+          "callee": "Decimal",
+          "lineNumber": 158
+        },
+        {
+          "caller": "_real_cas_data",
+          "callee": "Scheme",
+          "lineNumber": 159
+        },
+        {
+          "caller": "_real_cas_data",
+          "callee": "Decimal",
+          "lineNumber": 161
+        },
+        {
+          "caller": "_real_cas_data",
+          "callee": "Decimal",
+          "lineNumber": 161
+        },
+        {
+          "caller": "_real_cas_data",
+          "callee": "Decimal",
+          "lineNumber": 162
+        },
+        {
+          "caller": "_real_cas_data",
+          "callee": "Folio",
+          "lineNumber": 164
+        },
+        {
+          "caller": "_real_cas_data",
+          "callee": "InvestorInfo",
+          "lineNumber": 165
+        },
+        {
+          "caller": "_real_cas_data",
+          "callee": "StatementPeriod",
+          "lineNumber": 166
+        },
+        {
+          "caller": "_real_cas_data",
+          "callee": "CASData",
+          "lineNumber": 167
+        },
+        {
+          "caller": "test_normalize_cas_data_redacts_pan_from_raw_json",
+          "callee": "_real_cas_data",
+          "lineNumber": 178
+        },
+        {
+          "caller": "test_normalize_cas_data_redacts_pan_from_raw_json",
+          "callee": "Decimal",
+          "lineNumber": 180
+        },
+        {
+          "caller": "test_normalize_cas_data_redacts_pan_from_raw_json",
+          "callee": "Decimal",
+          "lineNumber": 180
+        },
+        {
+          "caller": "test_normalize_cas_data_redacts_pan_from_raw_json",
+          "callee": "Decimal",
+          "lineNumber": 180
+        },
+        {
+          "caller": "test_normalize_cas_data_redacts_pan_from_raw_json",
+          "callee": "_normalize_cas_data",
+          "lineNumber": 183
+        },
+        {
+          "caller": "test_normalize_cas_data_skips_transaction_missing_amount_and_warns",
+          "callee": "_real_cas_data",
+          "lineNumber": 193
+        },
+        {
+          "caller": "test_normalize_cas_data_skips_transaction_missing_amount_and_warns",
+          "callee": "Decimal",
+          "lineNumber": 195
+        },
+        {
+          "caller": "test_normalize_cas_data_skips_transaction_missing_amount_and_warns",
+          "callee": "Decimal",
+          "lineNumber": 195
+        },
+        {
+          "caller": "test_normalize_cas_data_skips_transaction_missing_amount_and_warns",
+          "callee": "_normalize_cas_data",
+          "lineNumber": 198
+        },
+        {
+          "caller": "test_normalize_cas_data_skips_transaction_missing_amount_and_warns",
+          "callee": "len",
+          "lineNumber": 201
+        }
+      ],
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 11,
+        "functionCount": 11,
+        "classCount": 0
+      }
+    }
+  ]
+}

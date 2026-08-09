@@ -1,0 +1,90 @@
+{
+  "nodes": [
+    {
+      "id": "file:frontend/src/features/import/ImportConfirmed.module.css",
+      "type": "file",
+      "name": "ImportConfirmed.module.css",
+      "filePath": "frontend/src/features/import/ImportConfirmed.module.css",
+      "summary": "CSS module styling the CAS import success screen: a centered success card with a positive-color badge, title, result text, and an action button, with a fade-in entrance animation.",
+      "tags": ["css-module", "styling", "import-flow", "animation", "component-style"],
+      "complexity": "moderate",
+      "languageNotes": "Uses design-token custom properties (--space, --color, --radius, --shadow, --type, --motion) from the Unifolio design system rather than hardcoded values, keeping the style consistent with Design-Schema-Unifolio.md."
+    },
+    {
+      "id": "file:frontend/src/features/import/ImportError.module.css",
+      "type": "file",
+      "name": "ImportError.module.css",
+      "filePath": "frontend/src/features/import/ImportError.module.css",
+      "summary": "Minimal CSS module providing the centered container layout for the CAS import error screen.",
+      "tags": ["css-module", "styling", "import-flow", "error-state"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/features/import/ParsingIndicator.module.css",
+      "type": "file",
+      "name": "ParsingIndicator.module.css",
+      "filePath": "frontend/src/features/import/ParsingIndicator.module.css",
+      "summary": "CSS module styling the CAS parsing progress indicator: an animated SVG arc loader, step text, and progress dots, with a reduced-motion media query to disable the spin animation.",
+      "tags": ["css-module", "styling", "import-flow", "animation", "accessibility"],
+      "complexity": "moderate",
+      "languageNotes": "Includes a prefers-reduced-motion media query that disables the loader's spin keyframe animation for accessibility."
+    },
+    {
+      "id": "file:frontend/src/features/import/ReviewTable.module.css",
+      "type": "file",
+      "name": "ReviewTable.module.css",
+      "filePath": "frontend/src/features/import/ReviewTable.module.css",
+      "summary": "CSS module styling the CAS import review table: investor info summary grid, warning banner, an editable scheme-matching table, and the confirm button with disabled/hover states.",
+      "tags": ["css-module", "styling", "import-flow", "table", "responsive"],
+      "complexity": "moderate",
+      "languageNotes": "Uses a responsive grid-template-columns media query to collapse the investor info grid from 6 to 2 columns on narrow viewports, and tabular-nums font-variant for aligned numeric data."
+    },
+    {
+      "id": "file:frontend/src/features/import/UploadForm.module.css",
+      "type": "file",
+      "name": "UploadForm.module.css",
+      "filePath": "frontend/src/features/import/UploadForm.module.css",
+      "summary": "CSS module styling the CAS file upload form: drag-and-drop zone with hover/active states, selected-file badge, password-protected-PDF input with toggle button, and error/validation styling.",
+      "tags": ["css-module", "styling", "import-flow", "forms", "animation"],
+      "complexity": "moderate",
+      "languageNotes": "Uses color-mix() for tinted accent backgrounds on drag-over and selected-file states, layered on the shared design-token custom properties."
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:frontend/src/features/import/ImportConfirmed.module.css",
+      "target": "file:frontend/src/features/import/ImportConfirmed.tsx",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:frontend/src/features/import/ImportError.module.css",
+      "target": "file:frontend/src/features/import/ImportError.tsx",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:frontend/src/features/import/ParsingIndicator.module.css",
+      "target": "file:frontend/src/features/import/ParsingIndicator.tsx",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:frontend/src/features/import/ReviewTable.module.css",
+      "target": "file:frontend/src/features/import/ReviewTable.tsx",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:frontend/src/features/import/UploadForm.module.css",
+      "target": "file:frontend/src/features/import/UploadForm.tsx",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    }
+  ]
+}

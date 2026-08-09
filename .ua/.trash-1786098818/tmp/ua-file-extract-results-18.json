@@ -1,0 +1,3401 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 20,
+  "filesSkipped": [
+    ".ua/.understandignore",
+    ".ua/tmp/scan-stderr.txt",
+    "Docs/Competitor Analysis/competitive-matrix_Final.html",
+    "backend/alembic/README",
+    "backend/alembic/script.py.mako"
+  ],
+  "analysisOutcomes": {
+    "structure": {
+      "succeeded": 20,
+      "failed": 0
+    },
+    "callGraph": {
+      "succeeded": 17,
+      "failed": 0,
+      "skipped": 3
+    }
+  },
+  "results": [
+    {
+      "path": ".claude/settings.json",
+      "language": "json",
+      "fileCategory": "config",
+      "totalLines": 5,
+      "nonEmptyLines": 5,
+      "sections": [
+        {
+          "heading": "enabledPlugins",
+          "level": 1,
+          "line": 2
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 1
+      }
+    },
+    {
+      "path": "Docs/PRD-03-Main-Dashboard.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "totalLines": 274,
+      "nonEmptyLines": 212,
+      "sections": [
+        {
+          "heading": "PRD: Main Dashboard (Mutual Fund Holdings View)",
+          "level": 1,
+          "line": 10
+        },
+        {
+          "heading": "Overview",
+          "level": 2,
+          "line": 12
+        },
+        {
+          "heading": "Problem Statement",
+          "level": 3,
+          "line": 14
+        },
+        {
+          "heading": "Solution Summary",
+          "level": 3,
+          "line": 28
+        },
+        {
+          "heading": "Target Users",
+          "level": 3,
+          "line": 36
+        },
+        {
+          "heading": "Goals & Success Metrics",
+          "level": 2,
+          "line": 42
+        },
+        {
+          "heading": "Goals",
+          "level": 3,
+          "line": 44
+        },
+        {
+          "heading": "Success Metrics",
+          "level": 3,
+          "line": 52
+        },
+        {
+          "heading": "Non-Goals",
+          "level": 3,
+          "line": 60
+        },
+        {
+          "heading": "User Stories",
+          "level": 2,
+          "line": 73
+        },
+        {
+          "heading": "Scope",
+          "level": 2,
+          "line": 86
+        },
+        {
+          "heading": "In Scope",
+          "level": 3,
+          "line": 88
+        },
+        {
+          "heading": "Out of Scope",
+          "level": 3,
+          "line": 105
+        },
+        {
+          "heading": "Future Considerations",
+          "level": 3,
+          "line": 114
+        },
+        {
+          "heading": "Solution Design",
+          "level": 2,
+          "line": 122
+        },
+        {
+          "heading": "Functional Requirements",
+          "level": 3,
+          "line": 124
+        },
+        {
+          "heading": "Holdings Table",
+          "level": 4,
+          "line": 126
+        },
+        {
+          "heading": "Allocation Summary",
+          "level": 4,
+          "line": 137
+        },
+        {
+          "heading": "SIP Visualization",
+          "level": 4,
+          "line": 141
+        },
+        {
+          "heading": "Investment Cash Flow",
+          "level": 4,
+          "line": 149
+        },
+        {
+          "heading": "Monthly Value Snapshots",
+          "level": 4,
+          "line": 154
+        },
+        {
+          "heading": "Family View",
+          "level": 4,
+          "line": 161
+        },
+        {
+          "heading": "Distributor Comparison (gated)",
+          "level": 4,
+          "line": 169
+        },
+        {
+          "heading": "User Experience",
+          "level": 3,
+          "line": 175
+        },
+        {
+          "heading": "Edge Cases",
+          "level": 3,
+          "line": 182
+        },
+        {
+          "heading": "Technical Considerations",
+          "level": 2,
+          "line": 193
+        },
+        {
+          "heading": "Constraints",
+          "level": 3,
+          "line": 195
+        },
+        {
+          "heading": "Integration Points",
+          "level": 3,
+          "line": 201
+        },
+        {
+          "heading": "Data Requirements",
+          "level": 3,
+          "line": 207
+        },
+        {
+          "heading": "Dependencies & Risks",
+          "level": 2,
+          "line": 213
+        },
+        {
+          "heading": "Dependencies",
+          "level": 3,
+          "line": 215
+        },
+        {
+          "heading": "Risks",
+          "level": 3,
+          "line": 223
+        },
+        {
+          "heading": "Timeline & Milestones",
+          "level": 2,
+          "line": 231
+        },
+        {
+          "heading": "Open Questions",
+          "level": 2,
+          "line": 241
+        },
+        {
+          "heading": "Appendix",
+          "level": 2,
+          "line": 261
+        },
+        {
+          "heading": "Related Documents",
+          "level": 3,
+          "line": 263
+        },
+        {
+          "heading": "Revision History",
+          "level": 3,
+          "line": 270
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 37
+      }
+    },
+    {
+      "path": "Docs/PRD-04-MF-Analytics-Dashboard.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "totalLines": 311,
+      "nonEmptyLines": 253,
+      "sections": [
+        {
+          "heading": "PRD: MF Analytics Dashboard",
+          "level": 1,
+          "line": 10
+        },
+        {
+          "heading": "Overview",
+          "level": 2,
+          "line": 12
+        },
+        {
+          "heading": "Problem Statement",
+          "level": 3,
+          "line": 14
+        },
+        {
+          "heading": "Solution Summary",
+          "level": 3,
+          "line": 25
+        },
+        {
+          "heading": "Target Users",
+          "level": 3,
+          "line": 35
+        },
+        {
+          "heading": "Goals & Success Metrics",
+          "level": 2,
+          "line": 41
+        },
+        {
+          "heading": "Goals",
+          "level": 3,
+          "line": 43
+        },
+        {
+          "heading": "Success Metrics",
+          "level": 3,
+          "line": 53
+        },
+        {
+          "heading": "Non-Goals",
+          "level": 3,
+          "line": 62
+        },
+        {
+          "heading": "User Stories",
+          "level": 2,
+          "line": 70
+        },
+        {
+          "heading": "Scope",
+          "level": 2,
+          "line": 82
+        },
+        {
+          "heading": "In Scope (v1 — buildable on data confirmed available)",
+          "level": 3,
+          "line": 84
+        },
+        {
+          "heading": "Out of Scope / Data-Gated (not v1)",
+          "level": 3,
+          "line": 102
+        },
+        {
+          "heading": "Future Considerations",
+          "level": 3,
+          "line": 116
+        },
+        {
+          "heading": "Solution Design",
+          "level": 2,
+          "line": 124
+        },
+        {
+          "heading": "Research Summary",
+          "level": 3,
+          "line": 126
+        },
+        {
+          "heading": "Functional Requirements",
+          "level": 3,
+          "line": 160
+        },
+        {
+          "heading": "Allocation",
+          "level": 4,
+          "line": 162
+        },
+        {
+          "heading": "Category Ranking & Comparison",
+          "level": 4,
+          "line": 168
+        },
+        {
+          "heading": "Fund & Portfolio Scorer",
+          "level": 4,
+          "line": 177
+        },
+        {
+          "heading": "Benchmark Comparison",
+          "level": 4,
+          "line": 188
+        },
+        {
+          "heading": "Cost (TER)",
+          "level": 4,
+          "line": 199
+        },
+        {
+          "heading": "User Experience",
+          "level": 3,
+          "line": 207
+        },
+        {
+          "heading": "Edge Cases",
+          "level": 3,
+          "line": 213
+        },
+        {
+          "heading": "Technical Considerations",
+          "level": 2,
+          "line": 222
+        },
+        {
+          "heading": "Constraints",
+          "level": 3,
+          "line": 224
+        },
+        {
+          "heading": "Integration Points",
+          "level": 3,
+          "line": 232
+        },
+        {
+          "heading": "Data Requirements",
+          "level": 3,
+          "line": 240
+        },
+        {
+          "heading": "Dependencies & Risks",
+          "level": 2,
+          "line": 244
+        },
+        {
+          "heading": "Dependencies",
+          "level": 3,
+          "line": 246
+        },
+        {
+          "heading": "Risks",
+          "level": 3,
+          "line": 255
+        },
+        {
+          "heading": "Timeline & Milestones",
+          "level": 2,
+          "line": 263
+        },
+        {
+          "heading": "Open Questions",
+          "level": 2,
+          "line": 274
+        },
+        {
+          "heading": "Appendix",
+          "level": 2,
+          "line": 289
+        },
+        {
+          "heading": "Related Documents",
+          "level": 3,
+          "line": 291
+        },
+        {
+          "heading": "Research Sources",
+          "level": 3,
+          "line": 298
+        },
+        {
+          "heading": "Revision History",
+          "level": 3,
+          "line": 307
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 37
+      }
+    },
+    {
+      "path": "backend/alembic/versions/0001_initial_schema.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 294,
+      "nonEmptyLines": 274,
+      "functions": [
+        {
+          "name": "upgrade",
+          "startLine": 40,
+          "endLine": 187,
+          "params": []
+        },
+        {
+          "name": "downgrade",
+          "startLine": 190,
+          "endLine": 216,
+          "params": []
+        },
+        {
+          "name": "_create_transactions_plain",
+          "startLine": 219,
+          "endLine": 233,
+          "params": []
+        },
+        {
+          "name": "_create_transactions_postgres",
+          "startLine": 236,
+          "endLine": 267,
+          "params": []
+        },
+        {
+          "name": "_create_nav_history_plain",
+          "startLine": 270,
+          "endLine": 277,
+          "params": []
+        },
+        {
+          "name": "_create_nav_history_postgres",
+          "startLine": 280,
+          "endLine": 294,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "upgrade",
+          "line": 40,
+          "isDefault": false
+        },
+        {
+          "name": "downgrade",
+          "line": 190,
+          "isDefault": false
+        },
+        {
+          "name": "_create_transactions_plain",
+          "line": 219,
+          "isDefault": false
+        },
+        {
+          "name": "_create_transactions_postgres",
+          "line": 236,
+          "isDefault": false
+        },
+        {
+          "name": "_create_nav_history_plain",
+          "line": 270,
+          "isDefault": false
+        },
+        {
+          "name": "_create_nav_history_postgres",
+          "line": 280,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "upgrade",
+          "callee": "op.create_table",
+          "lineNumber": 41
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 43
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 43
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 44
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 44
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 45
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Enum",
+          "lineNumber": 45
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 46
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.DateTime",
+          "lineNumber": 46
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.PrimaryKeyConstraint",
+          "lineNumber": 47
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.create_table",
+          "lineNumber": 49
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 51
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Enum",
+          "lineNumber": 51
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 52
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Date",
+          "lineNumber": 52
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 53
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Numeric",
+          "lineNumber": 53
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.PrimaryKeyConstraint",
+          "lineNumber": 54
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.create_table",
+          "lineNumber": 56
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 58
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Uuid",
+          "lineNumber": 58
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 59
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 59
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 60
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 60
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 61
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.DateTime",
+          "lineNumber": 61
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 62
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.DateTime",
+          "lineNumber": 62
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 63
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 63
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 64
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.DateTime",
+          "lineNumber": 64
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.PrimaryKeyConstraint",
+          "lineNumber": 65
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.create_table",
+          "lineNumber": 67
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 69
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Uuid",
+          "lineNumber": 69
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 70
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 70
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 71
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 71
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 72
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 72
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 73
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 73
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 74
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 74
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 75
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Enum",
+          "lineNumber": 75
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.PrimaryKeyConstraint",
+          "lineNumber": 76
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.UniqueConstraint",
+          "lineNumber": 77
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.create_table",
+          "lineNumber": 79
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 81
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Uuid",
+          "lineNumber": 81
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 82
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 82
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 83
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 83
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 84
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.DateTime",
+          "lineNumber": 84
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 85
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 85
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 86
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.DateTime",
+          "lineNumber": 86
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 87
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Enum",
+          "lineNumber": 87
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 88
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Enum",
+          "lineNumber": 88
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.PrimaryKeyConstraint",
+          "lineNumber": 89
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.UniqueConstraint",
+          "lineNumber": 90
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.create_table",
+          "lineNumber": 92
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 94
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Uuid",
+          "lineNumber": 94
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 95
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.DateTime",
+          "lineNumber": 95
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 96
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 96
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 97
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Numeric",
+          "lineNumber": 97
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 98
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Numeric",
+          "lineNumber": 98
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.ForeignKeyConstraint",
+          "lineNumber": 99
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.PrimaryKeyConstraint",
+          "lineNumber": 100
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.create_table",
+          "lineNumber": 102
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 104
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Uuid",
+          "lineNumber": 104
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 105
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Uuid",
+          "lineNumber": 105
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 106
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 106
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 107
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Enum",
+          "lineNumber": 107
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 108
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 108
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 109
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.DateTime",
+          "lineNumber": 109
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.ForeignKeyConstraint",
+          "lineNumber": 110
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.PrimaryKeyConstraint",
+          "lineNumber": 111
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.create_table",
+          "lineNumber": 113
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 115
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Uuid",
+          "lineNumber": 115
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 116
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Date",
+          "lineNumber": 116
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 117
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Numeric",
+          "lineNumber": 117
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.ForeignKeyConstraint",
+          "lineNumber": 118
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.PrimaryKeyConstraint",
+          "lineNumber": 119
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.create_table",
+          "lineNumber": 121
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 123
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Uuid",
+          "lineNumber": 123
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 124
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Date",
+          "lineNumber": 124
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 125
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Numeric",
+          "lineNumber": 125
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.ForeignKeyConstraint",
+          "lineNumber": 126
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.PrimaryKeyConstraint",
+          "lineNumber": 127
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.create_table",
+          "lineNumber": 129
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 131
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Uuid",
+          "lineNumber": 131
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 132
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Uuid",
+          "lineNumber": 132
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 133
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 133
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 134
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.DateTime",
+          "lineNumber": 134
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 135
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.DateTime",
+          "lineNumber": 135
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 136
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.DateTime",
+          "lineNumber": 136
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 137
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 137
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.ForeignKeyConstraint",
+          "lineNumber": 138
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.PrimaryKeyConstraint",
+          "lineNumber": 139
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.create_table",
+          "lineNumber": 141
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 143
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Uuid",
+          "lineNumber": 143
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 144
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Uuid",
+          "lineNumber": 144
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 145
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Uuid",
+          "lineNumber": 145
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 146
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 146
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 147
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 147
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 148
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Enum",
+          "lineNumber": 148
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.ForeignKeyConstraint",
+          "lineNumber": 149
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.ForeignKeyConstraint",
+          "lineNumber": 150
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.PrimaryKeyConstraint",
+          "lineNumber": 151
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.UniqueConstraint",
+          "lineNumber": 152
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.create_table",
+          "lineNumber": 154
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 156
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Uuid",
+          "lineNumber": 156
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 157
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Uuid",
+          "lineNumber": 157
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 158
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Enum",
+          "lineNumber": 158
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 159
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Enum",
+          "lineNumber": 159
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 160
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.JSON().with_variant",
+          "lineNumber": 160
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.JSON",
+          "lineNumber": 160
+        },
+        {
+          "caller": "upgrade",
+          "callee": "postgresql.JSONB",
+          "lineNumber": 160
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Text",
+          "lineNumber": 160
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 161
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Enum",
+          "lineNumber": 161
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 162
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 162
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 163
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 163
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 164
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.DateTime",
+          "lineNumber": 164
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 165
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.DateTime",
+          "lineNumber": 165
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.ForeignKeyConstraint",
+          "lineNumber": 166
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.PrimaryKeyConstraint",
+          "lineNumber": 167
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.create_table",
+          "lineNumber": 169
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 171
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Uuid",
+          "lineNumber": 171
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 172
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Date",
+          "lineNumber": 172
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 173
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Numeric",
+          "lineNumber": 173
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 174
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.DateTime",
+          "lineNumber": 174
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.ForeignKeyConstraint",
+          "lineNumber": 175
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.PrimaryKeyConstraint",
+          "lineNumber": 176
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.get_bind",
+          "lineNumber": 182
+        },
+        {
+          "caller": "upgrade",
+          "callee": "_create_transactions_postgres",
+          "lineNumber": 183
+        },
+        {
+          "caller": "upgrade",
+          "callee": "_create_nav_history_postgres",
+          "lineNumber": 184
+        },
+        {
+          "caller": "upgrade",
+          "callee": "_create_transactions_plain",
+          "lineNumber": 186
+        },
+        {
+          "caller": "upgrade",
+          "callee": "_create_nav_history_plain",
+          "lineNumber": 187
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.get_bind",
+          "lineNumber": 191
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.execute",
+          "lineNumber": 193
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.execute",
+          "lineNumber": 194
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_table",
+          "lineNumber": 196
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_table",
+          "lineNumber": 197
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_table",
+          "lineNumber": 200
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_table",
+          "lineNumber": 201
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_table",
+          "lineNumber": 202
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_table",
+          "lineNumber": 203
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_table",
+          "lineNumber": 204
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_table",
+          "lineNumber": 205
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_table",
+          "lineNumber": 206
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_table",
+          "lineNumber": 207
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_table",
+          "lineNumber": 208
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_table",
+          "lineNumber": 209
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_table",
+          "lineNumber": 210
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_table",
+          "lineNumber": 211
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_table",
+          "lineNumber": 212
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.execute",
+          "lineNumber": 216
+        },
+        {
+          "caller": "_create_transactions_plain",
+          "callee": "op.create_table",
+          "lineNumber": 220
+        },
+        {
+          "caller": "_create_transactions_plain",
+          "callee": "sa.Column",
+          "lineNumber": 222
+        },
+        {
+          "caller": "_create_transactions_plain",
+          "callee": "sa.Uuid",
+          "lineNumber": 222
+        },
+        {
+          "caller": "_create_transactions_plain",
+          "callee": "sa.Column",
+          "lineNumber": 223
+        },
+        {
+          "caller": "_create_transactions_plain",
+          "callee": "sa.Uuid",
+          "lineNumber": 223
+        },
+        {
+          "caller": "_create_transactions_plain",
+          "callee": "sa.ForeignKey",
+          "lineNumber": 223
+        },
+        {
+          "caller": "_create_transactions_plain",
+          "callee": "sa.Column",
+          "lineNumber": 224
+        },
+        {
+          "caller": "_create_transactions_plain",
+          "callee": "sa.Uuid",
+          "lineNumber": 224
+        },
+        {
+          "caller": "_create_transactions_plain",
+          "callee": "sa.ForeignKey",
+          "lineNumber": 224
+        },
+        {
+          "caller": "_create_transactions_plain",
+          "callee": "sa.Column",
+          "lineNumber": 225
+        },
+        {
+          "caller": "_create_transactions_plain",
+          "callee": "sa.Enum",
+          "lineNumber": 225
+        },
+        {
+          "caller": "_create_transactions_plain",
+          "callee": "sa.Column",
+          "lineNumber": 226
+        },
+        {
+          "caller": "_create_transactions_plain",
+          "callee": "sa.Date",
+          "lineNumber": 226
+        },
+        {
+          "caller": "_create_transactions_plain",
+          "callee": "sa.Column",
+          "lineNumber": 227
+        },
+        {
+          "caller": "_create_transactions_plain",
+          "callee": "sa.Numeric",
+          "lineNumber": 227
+        },
+        {
+          "caller": "_create_transactions_plain",
+          "callee": "sa.Column",
+          "lineNumber": 228
+        },
+        {
+          "caller": "_create_transactions_plain",
+          "callee": "sa.Numeric",
+          "lineNumber": 228
+        },
+        {
+          "caller": "_create_transactions_plain",
+          "callee": "sa.Column",
+          "lineNumber": 229
+        },
+        {
+          "caller": "_create_transactions_plain",
+          "callee": "sa.Numeric",
+          "lineNumber": 229
+        },
+        {
+          "caller": "_create_transactions_plain",
+          "callee": "sa.Column",
+          "lineNumber": 230
+        },
+        {
+          "caller": "_create_transactions_plain",
+          "callee": "sa.String",
+          "lineNumber": 230
+        },
+        {
+          "caller": "_create_transactions_plain",
+          "callee": "sa.PrimaryKeyConstraint",
+          "lineNumber": 231
+        },
+        {
+          "caller": "_create_transactions_plain",
+          "callee": "sa.UniqueConstraint",
+          "lineNumber": 232
+        },
+        {
+          "caller": "_create_transactions_postgres",
+          "callee": "\", \".join",
+          "lineNumber": 246
+        },
+        {
+          "caller": "_create_transactions_postgres",
+          "callee": "op.execute",
+          "lineNumber": 247
+        },
+        {
+          "caller": "_create_transactions_postgres",
+          "callee": "range",
+          "lineNumber": 262
+        },
+        {
+          "caller": "_create_transactions_postgres",
+          "callee": "op.execute",
+          "lineNumber": 263
+        },
+        {
+          "caller": "_create_transactions_postgres",
+          "callee": "op.execute",
+          "lineNumber": 267
+        },
+        {
+          "caller": "_create_nav_history_plain",
+          "callee": "op.create_table",
+          "lineNumber": 271
+        },
+        {
+          "caller": "_create_nav_history_plain",
+          "callee": "sa.Column",
+          "lineNumber": 273
+        },
+        {
+          "caller": "_create_nav_history_plain",
+          "callee": "sa.Uuid",
+          "lineNumber": 273
+        },
+        {
+          "caller": "_create_nav_history_plain",
+          "callee": "sa.ForeignKey",
+          "lineNumber": 273
+        },
+        {
+          "caller": "_create_nav_history_plain",
+          "callee": "sa.Column",
+          "lineNumber": 274
+        },
+        {
+          "caller": "_create_nav_history_plain",
+          "callee": "sa.Date",
+          "lineNumber": 274
+        },
+        {
+          "caller": "_create_nav_history_plain",
+          "callee": "sa.Column",
+          "lineNumber": 275
+        },
+        {
+          "caller": "_create_nav_history_plain",
+          "callee": "sa.Numeric",
+          "lineNumber": 275
+        },
+        {
+          "caller": "_create_nav_history_plain",
+          "callee": "sa.PrimaryKeyConstraint",
+          "lineNumber": 276
+        },
+        {
+          "caller": "_create_nav_history_postgres",
+          "callee": "op.execute",
+          "lineNumber": 281
+        },
+        {
+          "caller": "_create_nav_history_postgres",
+          "callee": "range",
+          "lineNumber": 289
+        },
+        {
+          "caller": "_create_nav_history_postgres",
+          "callee": "op.execute",
+          "lineNumber": 290
+        },
+        {
+          "caller": "_create_nav_history_postgres",
+          "callee": "op.execute",
+          "lineNumber": 294
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 6,
+        "functionCount": 6,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/alembic/versions/0002_transaction_dedupe_includes_type.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 101,
+      "nonEmptyLines": 83,
+      "functions": [
+        {
+          "name": "_postgres_unique_constraint_name",
+          "startLine": 29,
+          "endLine": 36,
+          "params": [
+            "conn"
+          ]
+        },
+        {
+          "name": "upgrade",
+          "startLine": 39,
+          "endLine": 44,
+          "params": []
+        },
+        {
+          "name": "downgrade",
+          "startLine": 47,
+          "endLine": 52,
+          "params": []
+        },
+        {
+          "name": "_upgrade_sqlite",
+          "startLine": 55,
+          "endLine": 75,
+          "params": [
+            "bind"
+          ]
+        },
+        {
+          "name": "_downgrade_sqlite",
+          "startLine": 78,
+          "endLine": 83,
+          "params": [
+            "bind"
+          ]
+        },
+        {
+          "name": "_upgrade_postgres",
+          "startLine": 86,
+          "endLine": 93,
+          "params": [
+            "bind"
+          ]
+        },
+        {
+          "name": "_downgrade_postgres",
+          "startLine": 96,
+          "endLine": 101,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "_postgres_unique_constraint_name",
+          "line": 29,
+          "isDefault": false
+        },
+        {
+          "name": "upgrade",
+          "line": 39,
+          "isDefault": false
+        },
+        {
+          "name": "downgrade",
+          "line": 47,
+          "isDefault": false
+        },
+        {
+          "name": "_upgrade_sqlite",
+          "line": 55,
+          "isDefault": false
+        },
+        {
+          "name": "_downgrade_sqlite",
+          "line": 78,
+          "isDefault": false
+        },
+        {
+          "name": "_upgrade_postgres",
+          "line": 86,
+          "isDefault": false
+        },
+        {
+          "name": "_downgrade_postgres",
+          "line": 96,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "_postgres_unique_constraint_name",
+          "callee": "conn.exec_driver_sql(\n        \"\"\"\n        SELECT constraint_name FROM information_schema.table_constraints\n        WHERE table_name = 'transactions' AND constraint_type = 'UNIQUE'\n        \"\"\"\n    ).fetchall",
+          "lineNumber": 30
+        },
+        {
+          "caller": "_postgres_unique_constraint_name",
+          "callee": "conn.exec_driver_sql",
+          "lineNumber": 30
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.get_bind",
+          "lineNumber": 40
+        },
+        {
+          "caller": "upgrade",
+          "callee": "_upgrade_postgres",
+          "lineNumber": 42
+        },
+        {
+          "caller": "upgrade",
+          "callee": "_upgrade_sqlite",
+          "lineNumber": 44
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.get_bind",
+          "lineNumber": 48
+        },
+        {
+          "caller": "downgrade",
+          "callee": "_downgrade_postgres",
+          "lineNumber": 50
+        },
+        {
+          "caller": "downgrade",
+          "callee": "_downgrade_sqlite",
+          "lineNumber": 52
+        },
+        {
+          "caller": "_upgrade_sqlite",
+          "callee": "sa.inspect(bind).get_unique_constraints",
+          "lineNumber": 63
+        },
+        {
+          "caller": "_upgrade_sqlite",
+          "callee": "sa.inspect",
+          "lineNumber": 63
+        },
+        {
+          "caller": "_upgrade_sqlite",
+          "callee": "op.batch_alter_table",
+          "lineNumber": 65
+        },
+        {
+          "caller": "_upgrade_sqlite",
+          "callee": "batch_op.drop_constraint",
+          "lineNumber": 72
+        },
+        {
+          "caller": "_upgrade_sqlite",
+          "callee": "batch_op.create_unique_constraint",
+          "lineNumber": 73
+        },
+        {
+          "caller": "_downgrade_sqlite",
+          "callee": "op.batch_alter_table",
+          "lineNumber": 79
+        },
+        {
+          "caller": "_downgrade_sqlite",
+          "callee": "batch_op.drop_constraint",
+          "lineNumber": 80
+        },
+        {
+          "caller": "_downgrade_sqlite",
+          "callee": "batch_op.create_unique_constraint",
+          "lineNumber": 81
+        },
+        {
+          "caller": "_upgrade_postgres",
+          "callee": "_postgres_unique_constraint_name",
+          "lineNumber": 87
+        },
+        {
+          "caller": "_upgrade_postgres",
+          "callee": "op.execute",
+          "lineNumber": 89
+        },
+        {
+          "caller": "_upgrade_postgres",
+          "callee": "op.execute",
+          "lineNumber": 90
+        },
+        {
+          "caller": "_downgrade_postgres",
+          "callee": "op.execute",
+          "lineNumber": 97
+        },
+        {
+          "caller": "_downgrade_postgres",
+          "callee": "op.execute",
+          "lineNumber": 98
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 7,
+        "functionCount": 7,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/app/__init__.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 1,
+      "nonEmptyLines": 0,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/app/core/__init__.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 1,
+      "nonEmptyLines": 0,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/app/db/__init__.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 1,
+      "nonEmptyLines": 0,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/app/services/__init__.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 1,
+      "nonEmptyLines": 0,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/app/services/analytics/__init__.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 1,
+      "nonEmptyLines": 0,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/app/services/auth/__init__.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 1,
+      "nonEmptyLines": 0,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/app/services/dashboard/__init__.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 1,
+      "nonEmptyLines": 0,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/app/services/import_/__init__.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 1,
+      "nonEmptyLines": 0,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/app/services/import_/enrich.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 123,
+      "nonEmptyLines": 100,
+      "functions": [
+        {
+          "name": "_normalize_name",
+          "startLine": 34,
+          "endLine": 39,
+          "params": [
+            "name"
+          ]
+        },
+        {
+          "name": "_cache_valid",
+          "startLine": 42,
+          "endLine": 46,
+          "params": [
+            "path",
+            "ttl"
+          ]
+        }
+      ],
+      "classes": [
+        {
+          "name": "SchemeMatch",
+          "startLine": 27,
+          "endLine": 31,
+          "methods": [],
+          "properties": [
+            "amfi_code",
+            "scheme_name",
+            "confidence",
+            "category"
+          ]
+        },
+        {
+          "name": "MfApiClient",
+          "startLine": 49,
+          "endLine": 120,
+          "methods": [
+            "__init__",
+            "_write_cache",
+            "_get_json",
+            "get_scheme_list",
+            "fuzzy_match_scheme",
+            "resolve_scheme",
+            "get_scheme_category"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "SchemeMatch",
+          "line": 26,
+          "isDefault": false
+        },
+        {
+          "name": "_normalize_name",
+          "line": 34,
+          "isDefault": false
+        },
+        {
+          "name": "_cache_valid",
+          "line": 42,
+          "isDefault": false
+        },
+        {
+          "name": "MfApiClient",
+          "line": 49,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "_normalize_name",
+          "callee": "name.upper",
+          "lineNumber": 35
+        },
+        {
+          "caller": "_normalize_name",
+          "callee": "re.sub",
+          "lineNumber": 36
+        },
+        {
+          "caller": "_normalize_name",
+          "callee": "re.sub",
+          "lineNumber": 37
+        },
+        {
+          "caller": "_normalize_name",
+          "callee": "re.sub(r\"\\s+\", \" \", s).strip",
+          "lineNumber": 38
+        },
+        {
+          "caller": "_normalize_name",
+          "callee": "re.sub",
+          "lineNumber": 38
+        },
+        {
+          "caller": "_cache_valid",
+          "callee": "path.exists",
+          "lineNumber": 43
+        },
+        {
+          "caller": "_cache_valid",
+          "callee": "datetime.fromtimestamp",
+          "lineNumber": 45
+        },
+        {
+          "caller": "_cache_valid",
+          "callee": "path.stat",
+          "lineNumber": 45
+        },
+        {
+          "caller": "_cache_valid",
+          "callee": "datetime.now",
+          "lineNumber": 46
+        },
+        {
+          "caller": "__init__",
+          "callee": "Path",
+          "lineNumber": 51
+        },
+        {
+          "caller": "_write_cache",
+          "callee": "self.cache_dir.mkdir",
+          "lineNumber": 58
+        },
+        {
+          "caller": "_write_cache",
+          "callee": "cache_path.write_text",
+          "lineNumber": 59
+        },
+        {
+          "caller": "_write_cache",
+          "callee": "json.dumps",
+          "lineNumber": 59
+        },
+        {
+          "caller": "_get_json",
+          "callee": "httpx.AsyncClient",
+          "lineNumber": 62
+        },
+        {
+          "caller": "_get_json",
+          "callee": "client.get",
+          "lineNumber": 63
+        },
+        {
+          "caller": "_get_json",
+          "callee": "resp.raise_for_status",
+          "lineNumber": 64
+        },
+        {
+          "caller": "_get_json",
+          "callee": "resp.json",
+          "lineNumber": 65
+        },
+        {
+          "caller": "get_scheme_list",
+          "callee": "_cache_valid",
+          "lineNumber": 71
+        },
+        {
+          "caller": "get_scheme_list",
+          "callee": "json.loads",
+          "lineNumber": 72
+        },
+        {
+          "caller": "get_scheme_list",
+          "callee": "cache_path.read_text",
+          "lineNumber": 72
+        },
+        {
+          "caller": "get_scheme_list",
+          "callee": "self._get_json",
+          "lineNumber": 74
+        },
+        {
+          "caller": "get_scheme_list",
+          "callee": "self._write_cache",
+          "lineNumber": 75
+        },
+        {
+          "caller": "fuzzy_match_scheme",
+          "callee": "_normalize_name",
+          "lineNumber": 80
+        },
+        {
+          "caller": "fuzzy_match_scheme",
+          "callee": "item.get",
+          "lineNumber": 83
+        },
+        {
+          "caller": "fuzzy_match_scheme",
+          "callee": "item.get",
+          "lineNumber": 83
+        },
+        {
+          "caller": "fuzzy_match_scheme",
+          "callee": "SequenceMatcher(None, norm_query, _normalize_name(name)).ratio",
+          "lineNumber": 84
+        },
+        {
+          "caller": "fuzzy_match_scheme",
+          "callee": "SequenceMatcher",
+          "lineNumber": 84
+        },
+        {
+          "caller": "fuzzy_match_scheme",
+          "callee": "_normalize_name",
+          "lineNumber": 84
+        },
+        {
+          "caller": "fuzzy_match_scheme",
+          "callee": "str",
+          "lineNumber": 86
+        },
+        {
+          "caller": "fuzzy_match_scheme",
+          "callee": "item.get",
+          "lineNumber": 86
+        },
+        {
+          "caller": "fuzzy_match_scheme",
+          "callee": "item.get",
+          "lineNumber": 86
+        },
+        {
+          "caller": "fuzzy_match_scheme",
+          "callee": "SchemeMatch",
+          "lineNumber": 87
+        },
+        {
+          "caller": "resolve_scheme",
+          "callee": "SchemeMatch",
+          "lineNumber": 98
+        },
+        {
+          "caller": "resolve_scheme",
+          "callee": "self.get_scheme_list",
+          "lineNumber": 101
+        },
+        {
+          "caller": "resolve_scheme",
+          "callee": "self.fuzzy_match_scheme",
+          "lineNumber": 104
+        },
+        {
+          "caller": "get_scheme_category",
+          "callee": "_cache_valid",
+          "lineNumber": 111
+        },
+        {
+          "caller": "get_scheme_category",
+          "callee": "json.loads",
+          "lineNumber": 112
+        },
+        {
+          "caller": "get_scheme_category",
+          "callee": "cache_path.read_text",
+          "lineNumber": 112
+        },
+        {
+          "caller": "get_scheme_category",
+          "callee": "self._get_json",
+          "lineNumber": 115
+        },
+        {
+          "caller": "get_scheme_category",
+          "callee": "self._write_cache",
+          "lineNumber": 118
+        },
+        {
+          "caller": "get_scheme_category",
+          "callee": "data.get",
+          "lineNumber": 119
+        },
+        {
+          "caller": "get_scheme_category",
+          "callee": "meta.get",
+          "lineNumber": 120
+        },
+        {
+          "caller": "get_scheme_category",
+          "callee": "meta.get",
+          "lineNumber": 120
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 4,
+        "functionCount": 2,
+        "classCount": 2
+      }
+    },
+    {
+      "path": "backend/tests/api/__init__.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 1,
+      "nonEmptyLines": 0,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/tests/api/test_auth_routes.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 116,
+      "nonEmptyLines": 81,
+      "functions": [
+        {
+          "name": "test_otp_request_returns_otp_in_stub_mode",
+          "startLine": 1,
+          "endLine": 6,
+          "params": [
+            "client"
+          ]
+        },
+        {
+          "name": "test_otp_verify_creates_user_and_session_for_new_phone",
+          "startLine": 9,
+          "endLine": 19,
+          "params": [
+            "client"
+          ]
+        },
+        {
+          "name": "test_otp_verify_reuses_existing_user_for_known_phone",
+          "startLine": 22,
+          "endLine": 30,
+          "params": [
+            "client"
+          ]
+        },
+        {
+          "name": "test_otp_verify_rejects_wrong_code",
+          "startLine": 33,
+          "endLine": 39,
+          "params": [
+            "client"
+          ]
+        },
+        {
+          "name": "test_me_requires_auth",
+          "startLine": 42,
+          "endLine": 44,
+          "params": [
+            "client"
+          ]
+        },
+        {
+          "name": "test_me_updates_onboarding_fields_with_valid_session",
+          "startLine": 47,
+          "endLine": 61,
+          "params": [
+            "client"
+          ]
+        },
+        {
+          "name": "test_get_me_requires_auth",
+          "startLine": 64,
+          "endLine": 66,
+          "params": [
+            "client"
+          ]
+        },
+        {
+          "name": "test_get_me_returns_current_user_state",
+          "startLine": 69,
+          "endLine": 85,
+          "params": [
+            "client"
+          ]
+        },
+        {
+          "name": "test_me_can_mark_onboarding_completed",
+          "startLine": 88,
+          "endLine": 100,
+          "params": [
+            "client"
+          ]
+        },
+        {
+          "name": "test_session_refresh_requires_auth",
+          "startLine": 103,
+          "endLine": 105,
+          "params": [
+            "client"
+          ]
+        },
+        {
+          "name": "test_session_refresh_extends_expiry_with_valid_session",
+          "startLine": 108,
+          "endLine": 116,
+          "params": [
+            "client"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "test_otp_request_returns_otp_in_stub_mode",
+          "line": 1,
+          "isDefault": false
+        },
+        {
+          "name": "test_otp_verify_creates_user_and_session_for_new_phone",
+          "line": 9,
+          "isDefault": false
+        },
+        {
+          "name": "test_otp_verify_reuses_existing_user_for_known_phone",
+          "line": 22,
+          "isDefault": false
+        },
+        {
+          "name": "test_otp_verify_rejects_wrong_code",
+          "line": 33,
+          "isDefault": false
+        },
+        {
+          "name": "test_me_requires_auth",
+          "line": 42,
+          "isDefault": false
+        },
+        {
+          "name": "test_me_updates_onboarding_fields_with_valid_session",
+          "line": 47,
+          "isDefault": false
+        },
+        {
+          "name": "test_get_me_requires_auth",
+          "line": 64,
+          "isDefault": false
+        },
+        {
+          "name": "test_get_me_returns_current_user_state",
+          "line": 69,
+          "isDefault": false
+        },
+        {
+          "name": "test_me_can_mark_onboarding_completed",
+          "line": 88,
+          "isDefault": false
+        },
+        {
+          "name": "test_session_refresh_requires_auth",
+          "line": 103,
+          "isDefault": false
+        },
+        {
+          "name": "test_session_refresh_extends_expiry_with_valid_session",
+          "line": 108,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "test_otp_request_returns_otp_in_stub_mode",
+          "callee": "client.post",
+          "lineNumber": 2
+        },
+        {
+          "caller": "test_otp_request_returns_otp_in_stub_mode",
+          "callee": "response.json",
+          "lineNumber": 5
+        },
+        {
+          "caller": "test_otp_request_returns_otp_in_stub_mode",
+          "callee": "len",
+          "lineNumber": 6
+        },
+        {
+          "caller": "test_otp_request_returns_otp_in_stub_mode",
+          "callee": "response.json",
+          "lineNumber": 6
+        },
+        {
+          "caller": "test_otp_verify_creates_user_and_session_for_new_phone",
+          "callee": "client.post(\"/auth/otp/request\", json={\"phone_number\": phone}).json",
+          "lineNumber": 11
+        },
+        {
+          "caller": "test_otp_verify_creates_user_and_session_for_new_phone",
+          "callee": "client.post",
+          "lineNumber": 11
+        },
+        {
+          "caller": "test_otp_verify_creates_user_and_session_for_new_phone",
+          "callee": "client.post",
+          "lineNumber": 13
+        },
+        {
+          "caller": "test_otp_verify_creates_user_and_session_for_new_phone",
+          "callee": "response.json",
+          "lineNumber": 16
+        },
+        {
+          "caller": "test_otp_verify_reuses_existing_user_for_known_phone",
+          "callee": "client.post(\"/auth/otp/request\", json={\"phone_number\": phone}).json",
+          "lineNumber": 24
+        },
+        {
+          "caller": "test_otp_verify_reuses_existing_user_for_known_phone",
+          "callee": "client.post",
+          "lineNumber": 24
+        },
+        {
+          "caller": "test_otp_verify_reuses_existing_user_for_known_phone",
+          "callee": "client.post(\"/auth/otp/verify\", json={\"phone_number\": phone, \"otp\": otp1}).json",
+          "lineNumber": 25
+        },
+        {
+          "caller": "test_otp_verify_reuses_existing_user_for_known_phone",
+          "callee": "client.post",
+          "lineNumber": 25
+        },
+        {
+          "caller": "test_otp_verify_reuses_existing_user_for_known_phone",
+          "callee": "client.post(\"/auth/otp/request\", json={\"phone_number\": phone}).json",
+          "lineNumber": 27
+        },
+        {
+          "caller": "test_otp_verify_reuses_existing_user_for_known_phone",
+          "callee": "client.post",
+          "lineNumber": 27
+        },
+        {
+          "caller": "test_otp_verify_reuses_existing_user_for_known_phone",
+          "callee": "client.post(\"/auth/otp/verify\", json={\"phone_number\": phone, \"otp\": otp2}).json",
+          "lineNumber": 28
+        },
+        {
+          "caller": "test_otp_verify_reuses_existing_user_for_known_phone",
+          "callee": "client.post",
+          "lineNumber": 28
+        },
+        {
+          "caller": "test_otp_verify_rejects_wrong_code",
+          "callee": "client.post",
+          "lineNumber": 35
+        },
+        {
+          "caller": "test_otp_verify_rejects_wrong_code",
+          "callee": "client.post",
+          "lineNumber": 37
+        },
+        {
+          "caller": "test_me_requires_auth",
+          "callee": "client.patch",
+          "lineNumber": 43
+        },
+        {
+          "caller": "test_me_updates_onboarding_fields_with_valid_session",
+          "callee": "client.post(\"/auth/otp/request\", json={\"phone_number\": phone}).json",
+          "lineNumber": 49
+        },
+        {
+          "caller": "test_me_updates_onboarding_fields_with_valid_session",
+          "callee": "client.post",
+          "lineNumber": 49
+        },
+        {
+          "caller": "test_me_updates_onboarding_fields_with_valid_session",
+          "callee": "client.post(\"/auth/otp/verify\", json={\"phone_number\": phone, \"otp\": otp}).json",
+          "lineNumber": 50
+        },
+        {
+          "caller": "test_me_updates_onboarding_fields_with_valid_session",
+          "callee": "client.post",
+          "lineNumber": 50
+        },
+        {
+          "caller": "test_me_updates_onboarding_fields_with_valid_session",
+          "callee": "client.patch",
+          "lineNumber": 52
+        },
+        {
+          "caller": "test_me_updates_onboarding_fields_with_valid_session",
+          "callee": "response.json",
+          "lineNumber": 59
+        },
+        {
+          "caller": "test_get_me_requires_auth",
+          "callee": "client.get",
+          "lineNumber": 65
+        },
+        {
+          "caller": "test_get_me_returns_current_user_state",
+          "callee": "client.post(\"/auth/otp/request\", json={\"phone_number\": phone}).json",
+          "lineNumber": 71
+        },
+        {
+          "caller": "test_get_me_returns_current_user_state",
+          "callee": "client.post",
+          "lineNumber": 71
+        },
+        {
+          "caller": "test_get_me_returns_current_user_state",
+          "callee": "client.post(\"/auth/otp/verify\", json={\"phone_number\": phone, \"otp\": otp}).json",
+          "lineNumber": 72
+        },
+        {
+          "caller": "test_get_me_returns_current_user_state",
+          "callee": "client.post",
+          "lineNumber": 72
+        },
+        {
+          "caller": "test_get_me_returns_current_user_state",
+          "callee": "client.patch",
+          "lineNumber": 73
+        },
+        {
+          "caller": "test_get_me_returns_current_user_state",
+          "callee": "client.get",
+          "lineNumber": 79
+        },
+        {
+          "caller": "test_get_me_returns_current_user_state",
+          "callee": "response.json",
+          "lineNumber": 82
+        },
+        {
+          "caller": "test_me_can_mark_onboarding_completed",
+          "callee": "client.post(\"/auth/otp/request\", json={\"phone_number\": phone}).json",
+          "lineNumber": 90
+        },
+        {
+          "caller": "test_me_can_mark_onboarding_completed",
+          "callee": "client.post",
+          "lineNumber": 90
+        },
+        {
+          "caller": "test_me_can_mark_onboarding_completed",
+          "callee": "client.post(\"/auth/otp/verify\", json={\"phone_number\": phone, \"otp\": otp}).json",
+          "lineNumber": 91
+        },
+        {
+          "caller": "test_me_can_mark_onboarding_completed",
+          "callee": "client.post",
+          "lineNumber": 91
+        },
+        {
+          "caller": "test_me_can_mark_onboarding_completed",
+          "callee": "client.patch",
+          "lineNumber": 93
+        },
+        {
+          "caller": "test_me_can_mark_onboarding_completed",
+          "callee": "response.json",
+          "lineNumber": 100
+        },
+        {
+          "caller": "test_session_refresh_requires_auth",
+          "callee": "client.post",
+          "lineNumber": 104
+        },
+        {
+          "caller": "test_session_refresh_extends_expiry_with_valid_session",
+          "callee": "client.post(\"/auth/otp/request\", json={\"phone_number\": phone}).json",
+          "lineNumber": 110
+        },
+        {
+          "caller": "test_session_refresh_extends_expiry_with_valid_session",
+          "callee": "client.post",
+          "lineNumber": 110
+        },
+        {
+          "caller": "test_session_refresh_extends_expiry_with_valid_session",
+          "callee": "client.post(\"/auth/otp/verify\", json={\"phone_number\": phone, \"otp\": otp}).json",
+          "lineNumber": 111
+        },
+        {
+          "caller": "test_session_refresh_extends_expiry_with_valid_session",
+          "callee": "client.post",
+          "lineNumber": 111
+        },
+        {
+          "caller": "test_session_refresh_extends_expiry_with_valid_session",
+          "callee": "client.post",
+          "lineNumber": 113
+        },
+        {
+          "caller": "test_session_refresh_extends_expiry_with_valid_session",
+          "callee": "response.json",
+          "lineNumber": 116
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 11,
+        "functionCount": 11,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/tests/api/test_dashboard_aggregate_routes.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 49,
+      "nonEmptyLines": 36,
+      "functions": [
+        {
+          "name": "_authed_headers",
+          "startLine": 1,
+          "endLine": 4,
+          "params": [
+            "client",
+            "phone"
+          ]
+        },
+        {
+          "name": "test_aggregate_holdings_requires_auth",
+          "startLine": 7,
+          "endLine": 9,
+          "params": [
+            "client"
+          ]
+        },
+        {
+          "name": "test_aggregate_holdings_returns_members_and_empty_holdings",
+          "startLine": 12,
+          "endLine": 21,
+          "params": [
+            "client"
+          ]
+        },
+        {
+          "name": "test_aggregate_allocation_returns_empty_summary",
+          "startLine": 24,
+          "endLine": 28,
+          "params": [
+            "client"
+          ]
+        },
+        {
+          "name": "test_aggregate_sips_returns_empty_list",
+          "startLine": 31,
+          "endLine": 35,
+          "params": [
+            "client"
+          ]
+        },
+        {
+          "name": "test_aggregate_cash_flow_returns_empty_list",
+          "startLine": 38,
+          "endLine": 42,
+          "params": [
+            "client"
+          ]
+        },
+        {
+          "name": "test_aggregate_snapshots_returns_empty_list",
+          "startLine": 45,
+          "endLine": 49,
+          "params": [
+            "client"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "_authed_headers",
+          "line": 1,
+          "isDefault": false
+        },
+        {
+          "name": "test_aggregate_holdings_requires_auth",
+          "line": 7,
+          "isDefault": false
+        },
+        {
+          "name": "test_aggregate_holdings_returns_members_and_empty_holdings",
+          "line": 12,
+          "isDefault": false
+        },
+        {
+          "name": "test_aggregate_allocation_returns_empty_summary",
+          "line": 24,
+          "isDefault": false
+        },
+        {
+          "name": "test_aggregate_sips_returns_empty_list",
+          "line": 31,
+          "isDefault": false
+        },
+        {
+          "name": "test_aggregate_cash_flow_returns_empty_list",
+          "line": 38,
+          "isDefault": false
+        },
+        {
+          "name": "test_aggregate_snapshots_returns_empty_list",
+          "line": 45,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "_authed_headers",
+          "callee": "client.post(\"/auth/otp/request\", json={\"phone_number\": phone}).json",
+          "lineNumber": 2
+        },
+        {
+          "caller": "_authed_headers",
+          "callee": "client.post",
+          "lineNumber": 2
+        },
+        {
+          "caller": "_authed_headers",
+          "callee": "client.post(\"/auth/otp/verify\", json={\"phone_number\": phone, \"otp\": otp}).json",
+          "lineNumber": 3
+        },
+        {
+          "caller": "_authed_headers",
+          "callee": "client.post",
+          "lineNumber": 3
+        },
+        {
+          "caller": "test_aggregate_holdings_requires_auth",
+          "callee": "client.get",
+          "lineNumber": 8
+        },
+        {
+          "caller": "test_aggregate_holdings_returns_members_and_empty_holdings",
+          "callee": "_authed_headers",
+          "lineNumber": 13
+        },
+        {
+          "caller": "test_aggregate_holdings_returns_members_and_empty_holdings",
+          "callee": "client.post",
+          "lineNumber": 14
+        },
+        {
+          "caller": "test_aggregate_holdings_returns_members_and_empty_holdings",
+          "callee": "client.post",
+          "lineNumber": 15
+        },
+        {
+          "caller": "test_aggregate_holdings_returns_members_and_empty_holdings",
+          "callee": "client.get",
+          "lineNumber": 17
+        },
+        {
+          "caller": "test_aggregate_holdings_returns_members_and_empty_holdings",
+          "callee": "response.json",
+          "lineNumber": 19
+        },
+        {
+          "caller": "test_aggregate_allocation_returns_empty_summary",
+          "callee": "_authed_headers",
+          "lineNumber": 25
+        },
+        {
+          "caller": "test_aggregate_allocation_returns_empty_summary",
+          "callee": "client.get",
+          "lineNumber": 26
+        },
+        {
+          "caller": "test_aggregate_allocation_returns_empty_summary",
+          "callee": "response.json",
+          "lineNumber": 28
+        },
+        {
+          "caller": "test_aggregate_sips_returns_empty_list",
+          "callee": "_authed_headers",
+          "lineNumber": 32
+        },
+        {
+          "caller": "test_aggregate_sips_returns_empty_list",
+          "callee": "client.get",
+          "lineNumber": 33
+        },
+        {
+          "caller": "test_aggregate_sips_returns_empty_list",
+          "callee": "response.json",
+          "lineNumber": 35
+        },
+        {
+          "caller": "test_aggregate_cash_flow_returns_empty_list",
+          "callee": "_authed_headers",
+          "lineNumber": 39
+        },
+        {
+          "caller": "test_aggregate_cash_flow_returns_empty_list",
+          "callee": "client.get",
+          "lineNumber": 40
+        },
+        {
+          "caller": "test_aggregate_cash_flow_returns_empty_list",
+          "callee": "response.json",
+          "lineNumber": 42
+        },
+        {
+          "caller": "test_aggregate_snapshots_returns_empty_list",
+          "callee": "_authed_headers",
+          "lineNumber": 46
+        },
+        {
+          "caller": "test_aggregate_snapshots_returns_empty_list",
+          "callee": "client.get",
+          "lineNumber": 47
+        },
+        {
+          "caller": "test_aggregate_snapshots_returns_empty_list",
+          "callee": "response.json",
+          "lineNumber": 49
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 7,
+        "functionCount": 7,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/tests/api/test_dashboard_allocation_route.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 20,
+      "nonEmptyLines": 16,
+      "functions": [
+        {
+          "name": "_authed_headers_and_member",
+          "startLine": 1,
+          "endLine": 6,
+          "params": [
+            "client",
+            "phone"
+          ]
+        },
+        {
+          "name": "test_allocation_route_requires_auth",
+          "startLine": 9,
+          "endLine": 11,
+          "params": [
+            "client"
+          ]
+        },
+        {
+          "name": "test_allocation_route_returns_empty_summary_for_member_with_no_holdings",
+          "startLine": 14,
+          "endLine": 20,
+          "params": [
+            "client"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "_authed_headers_and_member",
+          "line": 1,
+          "isDefault": false
+        },
+        {
+          "name": "test_allocation_route_requires_auth",
+          "line": 9,
+          "isDefault": false
+        },
+        {
+          "name": "test_allocation_route_returns_empty_summary_for_member_with_no_holdings",
+          "line": 14,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "client.post(\"/auth/otp/request\", json={\"phone_number\": phone}).json",
+          "lineNumber": 2
+        },
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "client.post",
+          "lineNumber": 2
+        },
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "client.post(\"/auth/otp/verify\", json={\"phone_number\": phone, \"otp\": otp}).json",
+          "lineNumber": 3
+        },
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "client.post",
+          "lineNumber": 3
+        },
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "client.post(\"/household-members\", json={\"name\": \"Self\", \"relationship\": \"self\"}, headers=headers).json",
+          "lineNumber": 5
+        },
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "client.post",
+          "lineNumber": 5
+        },
+        {
+          "caller": "test_allocation_route_requires_auth",
+          "callee": "client.get",
+          "lineNumber": 10
+        },
+        {
+          "caller": "test_allocation_route_returns_empty_summary_for_member_with_no_holdings",
+          "callee": "_authed_headers_and_member",
+          "lineNumber": 15
+        },
+        {
+          "caller": "test_allocation_route_returns_empty_summary_for_member_with_no_holdings",
+          "callee": "client.get",
+          "lineNumber": 16
+        },
+        {
+          "caller": "test_allocation_route_returns_empty_summary_for_member_with_no_holdings",
+          "callee": "response.json",
+          "lineNumber": 18
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 3,
+        "functionCount": 3,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/tests/api/test_dashboard_cash_flow_route.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 18,
+      "nonEmptyLines": 14,
+      "functions": [
+        {
+          "name": "_authed_headers_and_member",
+          "startLine": 1,
+          "endLine": 6,
+          "params": [
+            "client",
+            "phone"
+          ]
+        },
+        {
+          "name": "test_cash_flow_route_requires_auth",
+          "startLine": 9,
+          "endLine": 11,
+          "params": [
+            "client"
+          ]
+        },
+        {
+          "name": "test_cash_flow_route_returns_empty_list_for_member_with_no_transactions",
+          "startLine": 14,
+          "endLine": 18,
+          "params": [
+            "client"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "_authed_headers_and_member",
+          "line": 1,
+          "isDefault": false
+        },
+        {
+          "name": "test_cash_flow_route_requires_auth",
+          "line": 9,
+          "isDefault": false
+        },
+        {
+          "name": "test_cash_flow_route_returns_empty_list_for_member_with_no_transactions",
+          "line": 14,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "client.post(\"/auth/otp/request\", json={\"phone_number\": phone}).json",
+          "lineNumber": 2
+        },
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "client.post",
+          "lineNumber": 2
+        },
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "client.post(\"/auth/otp/verify\", json={\"phone_number\": phone, \"otp\": otp}).json",
+          "lineNumber": 3
+        },
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "client.post",
+          "lineNumber": 3
+        },
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "client.post(\"/household-members\", json={\"name\": \"Self\", \"relationship\": \"self\"}, headers=headers).json",
+          "lineNumber": 5
+        },
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "client.post",
+          "lineNumber": 5
+        },
+        {
+          "caller": "test_cash_flow_route_requires_auth",
+          "callee": "client.get",
+          "lineNumber": 10
+        },
+        {
+          "caller": "test_cash_flow_route_returns_empty_list_for_member_with_no_transactions",
+          "callee": "_authed_headers_and_member",
+          "lineNumber": 15
+        },
+        {
+          "caller": "test_cash_flow_route_returns_empty_list_for_member_with_no_transactions",
+          "callee": "client.get",
+          "lineNumber": 16
+        },
+        {
+          "caller": "test_cash_flow_route_returns_empty_list_for_member_with_no_transactions",
+          "callee": "response.json",
+          "lineNumber": 18
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 3,
+        "functionCount": 3,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/tests/api/test_dashboard_distributor_comparison_route.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 33,
+      "nonEmptyLines": 23,
+      "functions": [
+        {
+          "name": "_authed_headers_and_member",
+          "startLine": 4,
+          "endLine": 9,
+          "params": [
+            "client",
+            "phone"
+          ]
+        },
+        {
+          "name": "test_distributor_comparison_route_requires_auth",
+          "startLine": 12,
+          "endLine": 15,
+          "params": [
+            "client"
+          ]
+        },
+        {
+          "name": "test_distributor_comparison_route_404s_for_another_users_member",
+          "startLine": 18,
+          "endLine": 24,
+          "params": [
+            "client"
+          ]
+        },
+        {
+          "name": "test_distributor_comparison_route_returns_empty_list_for_scheme_member_does_not_hold",
+          "startLine": 27,
+          "endLine": 33,
+          "params": [
+            "client"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "_authed_headers_and_member",
+          "line": 4,
+          "isDefault": false
+        },
+        {
+          "name": "test_distributor_comparison_route_requires_auth",
+          "line": 12,
+          "isDefault": false
+        },
+        {
+          "name": "test_distributor_comparison_route_404s_for_another_users_member",
+          "line": 18,
+          "isDefault": false
+        },
+        {
+          "name": "test_distributor_comparison_route_returns_empty_list_for_scheme_member_does_not_hold",
+          "line": 27,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "client.post(\"/auth/otp/request\", json={\"phone_number\": phone}).json",
+          "lineNumber": 5
+        },
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "client.post",
+          "lineNumber": 5
+        },
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "client.post(\"/auth/otp/verify\", json={\"phone_number\": phone, \"otp\": otp}).json",
+          "lineNumber": 6
+        },
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "client.post",
+          "lineNumber": 6
+        },
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "client.post(\"/household-members\", json={\"name\": \"Self\", \"relationship\": \"self\"}, headers=headers).json",
+          "lineNumber": 8
+        },
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "client.post",
+          "lineNumber": 8
+        },
+        {
+          "caller": "test_distributor_comparison_route_requires_auth",
+          "callee": "uuid.uuid4",
+          "lineNumber": 13
+        },
+        {
+          "caller": "test_distributor_comparison_route_requires_auth",
+          "callee": "client.get",
+          "lineNumber": 14
+        },
+        {
+          "caller": "test_distributor_comparison_route_404s_for_another_users_member",
+          "callee": "_authed_headers_and_member",
+          "lineNumber": 19
+        },
+        {
+          "caller": "test_distributor_comparison_route_404s_for_another_users_member",
+          "callee": "_authed_headers_and_member",
+          "lineNumber": 20
+        },
+        {
+          "caller": "test_distributor_comparison_route_404s_for_another_users_member",
+          "callee": "uuid.uuid4",
+          "lineNumber": 21
+        },
+        {
+          "caller": "test_distributor_comparison_route_404s_for_another_users_member",
+          "callee": "client.get",
+          "lineNumber": 23
+        },
+        {
+          "caller": "test_distributor_comparison_route_returns_empty_list_for_scheme_member_does_not_hold",
+          "callee": "_authed_headers_and_member",
+          "lineNumber": 28
+        },
+        {
+          "caller": "test_distributor_comparison_route_returns_empty_list_for_scheme_member_does_not_hold",
+          "callee": "uuid.uuid4",
+          "lineNumber": 29
+        },
+        {
+          "caller": "test_distributor_comparison_route_returns_empty_list_for_scheme_member_does_not_hold",
+          "callee": "client.get",
+          "lineNumber": 31
+        },
+        {
+          "caller": "test_distributor_comparison_route_returns_empty_list_for_scheme_member_does_not_hold",
+          "callee": "response.json",
+          "lineNumber": 33
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 4,
+        "functionCount": 4,
+        "classCount": 0
+      }
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "nodes": [
+    {
+      "id": "document:CLAUDE.md",
+      "type": "document",
+      "name": "CLAUDE.md",
+      "filePath": "CLAUDE.md",
+      "summary": "Project instructions for AI coding sessions on Unifolio: what the MF-only MVP covers, the mandated doc-reading order, non-negotiable engineering rules (TDD, Decimal-only money values, no raw CAS PDF storage, no PAN persistence, locked stack), and a running session-state pointer summarizing completed phases and open items.",
+      "tags": ["documentation", "entry-point", "project-guidelines", "non-negotiables", "ai-instructions"],
+      "complexity": "moderate",
+      "languageNotes": "Acts as the durable system prompt for AI agents working on this repo — read before any code change per its own first section."
+    },
+    {
+      "id": "document:README.md",
+      "type": "document",
+      "name": "README.md",
+      "filePath": "README.md",
+      "summary": "Single-line placeholder README naming the project as the MF-only V1 MVP; no setup or usage content yet.",
+      "tags": ["documentation", "placeholder", "entry-point"],
+      "complexity": "simple"
+    },
+    {
+      "id": "service:docker-compose.yml",
+      "type": "service",
+      "name": "docker-compose.yml",
+      "filePath": "docker-compose.yml",
+      "summary": "Defines a local Postgres 16 (alpine) service on port 5433 with a unifolio/unifolio_test database and a pg_isready healthcheck, used to give Postgres-functional tests local parity with the AWS RDS target before deployment.",
+      "tags": ["orchestration", "infrastructure", "database", "testing", "containerization"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:session.md",
+      "type": "document",
+      "name": "session.md",
+      "filePath": "session.md",
+      "summary": "Running session-state log tracking completed phases (CAS import, auth, onboarding frontend, main dashboard backend, frontend UI redesign), fixes made during reviews, and the current 'what's next' punch list for the Unifolio build.",
+      "tags": ["documentation", "project-status", "session-notes", "planning"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "config:skills-lock.json",
+      "type": "config",
+      "name": "skills-lock.json",
+      "filePath": "skills-lock.json",
+      "summary": "Lockfile pinning the externally-sourced 'impeccable' agent skill (from pbakaus/impeccable on GitHub) to a specific content hash for reproducible skill installs.",
+      "tags": ["configuration", "skills", "lockfile", "tooling"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "document:CLAUDE.md",
+      "target": "service:docker-compose.yml",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    }
+  ]
+}

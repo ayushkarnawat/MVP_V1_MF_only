@@ -1,0 +1,1820 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 23,
+  "filesSkipped": [],
+  "analysisOutcomes": {
+    "structure": {
+      "succeeded": 23,
+      "failed": 0
+    },
+    "callGraph": {
+      "succeeded": 23,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "results": [
+    {
+      "path": "frontend/src/components/AllocationDonut.test.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 24,
+      "nonEmptyLines": 21,
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/components/AllocationDonut.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 143,
+      "nonEmptyLines": 133,
+      "functions": [
+        {
+          "name": "AllocationDonut",
+          "startLine": 26,
+          "endLine": 135,
+          "params": [
+            "{ data, totalValue, title }"
+          ]
+        },
+        {
+          "name": "formatIndianCurrency",
+          "startLine": 137,
+          "endLine": 143,
+          "params": [
+            "valStr"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "AllocationDonut",
+          "line": 26,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "AllocationDonut",
+          "callee": "useState",
+          "lineNumber": 27
+        },
+        {
+          "caller": "AllocationDonut",
+          "callee": "data.map",
+          "lineNumber": 39
+        },
+        {
+          "caller": "AllocationDonut",
+          "callee": "Math.max",
+          "lineNumber": 41
+        },
+        {
+          "caller": "AllocationDonut",
+          "callee": "segments.map",
+          "lineNumber": 66
+        },
+        {
+          "caller": "AllocationDonut",
+          "callee": "setActiveIndex",
+          "lineNumber": 81
+        },
+        {
+          "caller": "AllocationDonut",
+          "callee": "setActiveIndex",
+          "lineNumber": 82
+        },
+        {
+          "caller": "AllocationDonut",
+          "callee": "formatIndianCurrency",
+          "lineNumber": 93
+        },
+        {
+          "caller": "AllocationDonut",
+          "callee": "formatIndianCurrency",
+          "lineNumber": 95
+        },
+        {
+          "caller": "AllocationDonut",
+          "callee": "activeSegment.pct.toFixed",
+          "lineNumber": 100
+        },
+        {
+          "caller": "AllocationDonut",
+          "callee": "segments.map",
+          "lineNumber": 107
+        },
+        {
+          "caller": "AllocationDonut",
+          "callee": "setActiveIndex",
+          "lineNumber": 113
+        },
+        {
+          "caller": "AllocationDonut",
+          "callee": "setActiveIndex",
+          "lineNumber": 114
+        },
+        {
+          "caller": "AllocationDonut",
+          "callee": "seg.pct.toFixed",
+          "lineNumber": 124
+        },
+        {
+          "caller": "AllocationDonut",
+          "callee": "formatIndianCurrency",
+          "lineNumber": 127
+        },
+        {
+          "caller": "formatIndianCurrency",
+          "callee": "parseFloat",
+          "lineNumber": 138
+        },
+        {
+          "caller": "formatIndianCurrency",
+          "callee": "isNaN",
+          "lineNumber": 139
+        },
+        {
+          "caller": "formatIndianCurrency",
+          "callee": "new Intl.NumberFormat(\"en-IN\", {\r\n    maximumFractionDigits: 0,\r\n  }).format",
+          "lineNumber": 140
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/components/Badge.test.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 15,
+      "nonEmptyLines": 13,
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/components/Badge.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 12,
+      "nonEmptyLines": 9,
+      "functions": [
+        {
+          "name": "Badge",
+          "startLine": 10,
+          "endLine": 12,
+          "params": [
+            "{ variant, children }"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "Badge",
+          "line": 10,
+          "isDefault": false
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/components/EmptyState.test.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 29,
+      "nonEmptyLines": 26,
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/components/EmptyState.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 33,
+      "nonEmptyLines": 31,
+      "functions": [
+        {
+          "name": "EmptyState",
+          "startLine": 12,
+          "endLine": 33,
+          "params": [
+            "{\r\n  title,\r\n  description,\r\n  actionLabel,\r\n  onAction,\r\n  icon = \"📈\",\r\n}"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "EmptyState",
+          "line": 12,
+          "isDefault": false
+        }
+      ],
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/components/FundSignal.test.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 31,
+      "nonEmptyLines": 27,
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/components/FundSignal.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 143,
+      "nonEmptyLines": 132,
+      "functions": [
+        {
+          "name": "FundSignal",
+          "startLine": 17,
+          "endLine": 143,
+          "params": [
+            "{\r\n  returnPercentage,\r\n  period = \"1Y\",\r\n  sparklineData = [],\r\n  size = \"sm\",\r\n  schemeName,\r\n}"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "FundSignal",
+          "line": 17,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "FundSignal",
+          "callee": "useState",
+          "lineNumber": 24
+        },
+        {
+          "caller": "FundSignal",
+          "callee": "useState",
+          "lineNumber": 25
+        },
+        {
+          "caller": "FundSignal",
+          "callee": "parseFloat",
+          "lineNumber": 29
+        },
+        {
+          "caller": "FundSignal",
+          "callee": "isNaN",
+          "lineNumber": 32
+        },
+        {
+          "caller": "FundSignal",
+          "callee": "isNaN",
+          "lineNumber": 33
+        },
+        {
+          "caller": "FundSignal",
+          "callee": "Math.abs",
+          "lineNumber": 33
+        },
+        {
+          "caller": "FundSignal",
+          "callee": "Math.min",
+          "lineNumber": 37
+        },
+        {
+          "caller": "FundSignal",
+          "callee": "Math.max",
+          "lineNumber": 37
+        },
+        {
+          "caller": "FundSignal",
+          "callee": "Math.min",
+          "lineNumber": 47
+        },
+        {
+          "caller": "FundSignal",
+          "callee": "Math.max",
+          "lineNumber": 48
+        },
+        {
+          "caller": "FundSignal",
+          "callee": "points\r\n    .map((val, idx) => {\r\n      const x = (idx / (points.length - 1)) * 100;\r\n      const y = 35 - ((val - minVal) / range) * 30;\r\n      return `${x},${y}`;\r\n    })\r\n    .join",
+          "lineNumber": 51
+        },
+        {
+          "caller": "FundSignal",
+          "callee": "points\r\n    .map",
+          "lineNumber": 51
+        },
+        {
+          "caller": "FundSignal",
+          "callee": "absReturn.toFixed",
+          "lineNumber": 62
+        },
+        {
+          "caller": "FundSignal",
+          "callee": "setExpanded",
+          "lineNumber": 67
+        },
+        {
+          "caller": "FundSignal",
+          "callee": "setExpanded",
+          "lineNumber": 68
+        },
+        {
+          "caller": "FundSignal",
+          "callee": "setExpanded",
+          "lineNumber": 69
+        },
+        {
+          "caller": "FundSignal",
+          "callee": "[\"30D\", \"90D\", \"1Y\"].map",
+          "lineNumber": 105
+        },
+        {
+          "caller": "FundSignal",
+          "callee": "e.stopPropagation",
+          "lineNumber": 112
+        },
+        {
+          "caller": "FundSignal",
+          "callee": "setSelectedPeriod",
+          "lineNumber": 113
+        },
+        {
+          "caller": "FundSignal",
+          "callee": "numericReturn.toFixed",
+          "lineNumber": 137
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/components/HoldingsTable.test.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 38,
+      "nonEmptyLines": 34,
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/components/HoldingsTable.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 213,
+      "nonEmptyLines": 201,
+      "functions": [
+        {
+          "name": "HoldingsTable",
+          "startLine": 33,
+          "endLine": 196,
+          "params": [
+            "{\r\n  holdings,\r\n  onSelectScheme,\r\n  showMemberName = false,\r\n}"
+          ]
+        },
+        {
+          "name": "formatCurrency",
+          "startLine": 198,
+          "endLine": 204,
+          "params": [
+            "valStr"
+          ]
+        },
+        {
+          "name": "formatNumber",
+          "startLine": 206,
+          "endLine": 213,
+          "params": [
+            "valStr",
+            "decimals"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "HoldingsTable",
+          "line": 33,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "HoldingsTable",
+          "callee": "useState",
+          "lineNumber": 38
+        },
+        {
+          "caller": "HoldingsTable",
+          "callee": "useState",
+          "lineNumber": 39
+        },
+        {
+          "caller": "HoldingsTable",
+          "callee": "useState",
+          "lineNumber": 40
+        },
+        {
+          "caller": "HoldingsTable",
+          "callee": "holdings.filter",
+          "lineNumber": 50
+        },
+        {
+          "caller": "HoldingsTable",
+          "callee": "h.scheme_name.toLowerCase().includes",
+          "lineNumber": 51
+        },
+        {
+          "caller": "HoldingsTable",
+          "callee": "h.scheme_name.toLowerCase",
+          "lineNumber": 51
+        },
+        {
+          "caller": "HoldingsTable",
+          "callee": "searchTerm.toLowerCase",
+          "lineNumber": 51
+        },
+        {
+          "caller": "HoldingsTable",
+          "callee": "h.amc_name.toLowerCase().includes",
+          "lineNumber": 52
+        },
+        {
+          "caller": "HoldingsTable",
+          "callee": "h.amc_name.toLowerCase",
+          "lineNumber": 52
+        },
+        {
+          "caller": "HoldingsTable",
+          "callee": "searchTerm.toLowerCase",
+          "lineNumber": 52
+        },
+        {
+          "caller": "HoldingsTable",
+          "callee": "[...filteredHoldings].sort",
+          "lineNumber": 55
+        },
+        {
+          "caller": "HoldingsTable",
+          "callee": "parseFloat",
+          "lineNumber": 56
+        },
+        {
+          "caller": "HoldingsTable",
+          "callee": "parseFloat",
+          "lineNumber": 57
+        },
+        {
+          "caller": "handleSort",
+          "callee": "setSortDirection",
+          "lineNumber": 65
+        },
+        {
+          "caller": "handleSort",
+          "callee": "setSortField",
+          "lineNumber": 67
+        },
+        {
+          "caller": "handleSort",
+          "callee": "setSortDirection",
+          "lineNumber": 68
+        },
+        {
+          "caller": "HoldingsTable",
+          "callee": "setSearchTerm",
+          "lineNumber": 80
+        },
+        {
+          "caller": "HoldingsTable",
+          "callee": "handleSort",
+          "lineNumber": 94
+        },
+        {
+          "caller": "HoldingsTable",
+          "callee": "handleSort",
+          "lineNumber": 99
+        },
+        {
+          "caller": "HoldingsTable",
+          "callee": "handleSort",
+          "lineNumber": 102
+        },
+        {
+          "caller": "HoldingsTable",
+          "callee": "handleSort",
+          "lineNumber": 105
+        },
+        {
+          "caller": "HoldingsTable",
+          "callee": "handleSort",
+          "lineNumber": 108
+        },
+        {
+          "caller": "HoldingsTable",
+          "callee": "handleSort",
+          "lineNumber": 111
+        },
+        {
+          "caller": "HoldingsTable",
+          "callee": "handleSort",
+          "lineNumber": 114
+        },
+        {
+          "caller": "HoldingsTable",
+          "callee": "sortedHoldings.map",
+          "lineNumber": 120
+        },
+        {
+          "caller": "HoldingsTable",
+          "callee": "parseFloat",
+          "lineNumber": 121
+        },
+        {
+          "caller": "HoldingsTable",
+          "callee": "parseFloat",
+          "lineNumber": 123
+        },
+        {
+          "caller": "HoldingsTable",
+          "callee": "parseFloat",
+          "lineNumber": 123
+        },
+        {
+          "caller": "HoldingsTable",
+          "callee": "onSelectScheme",
+          "lineNumber": 129
+        },
+        {
+          "caller": "HoldingsTable",
+          "callee": "formatNumber",
+          "lineNumber": 161
+        },
+        {
+          "caller": "HoldingsTable",
+          "callee": "formatNumber",
+          "lineNumber": 164
+        },
+        {
+          "caller": "HoldingsTable",
+          "callee": "formatNumber",
+          "lineNumber": 168
+        },
+        {
+          "caller": "HoldingsTable",
+          "callee": "formatCurrency",
+          "lineNumber": 177
+        },
+        {
+          "caller": "HoldingsTable",
+          "callee": "formatCurrency",
+          "lineNumber": 180
+        },
+        {
+          "caller": "HoldingsTable",
+          "callee": "formatCurrency",
+          "lineNumber": 185
+        },
+        {
+          "caller": "HoldingsTable",
+          "callee": "Math.abs",
+          "lineNumber": 185
+        },
+        {
+          "caller": "formatCurrency",
+          "callee": "parseFloat",
+          "lineNumber": 199
+        },
+        {
+          "caller": "formatCurrency",
+          "callee": "isNaN",
+          "lineNumber": 200
+        },
+        {
+          "caller": "formatCurrency",
+          "callee": "new Intl.NumberFormat(\"en-IN\", {\r\n    maximumFractionDigits: 0,\r\n  }).format",
+          "lineNumber": 201
+        },
+        {
+          "caller": "formatNumber",
+          "callee": "parseFloat",
+          "lineNumber": 207
+        },
+        {
+          "caller": "formatNumber",
+          "callee": "isNaN",
+          "lineNumber": 208
+        },
+        {
+          "caller": "formatNumber",
+          "callee": "new Intl.NumberFormat(\"en-IN\", {\r\n    minimumFractionDigits: decimals,\r\n    maximumFractionDigits: decimals,\r\n  }).format",
+          "lineNumber": 209
+        }
+      ],
+      "metrics": {
+        "importCount": 3,
+        "exportCount": 1,
+        "functionCount": 3,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/components/Modal.test.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 42,
+      "nonEmptyLines": 35,
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/components/Modal.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 53,
+      "nonEmptyLines": 49,
+      "functions": [
+        {
+          "name": "Modal",
+          "startLine": 12,
+          "endLine": 53,
+          "params": [
+            "{ isOpen, onClose, title, children }"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "Modal",
+          "line": 12,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "Modal",
+          "callee": "useEffect",
+          "lineNumber": 13
+        },
+        {
+          "caller": "handleKeyDown",
+          "callee": "onClose",
+          "lineNumber": 15
+        },
+        {
+          "caller": "Modal",
+          "callee": "window.addEventListener",
+          "lineNumber": 18
+        },
+        {
+          "caller": "Modal",
+          "callee": "window.removeEventListener",
+          "lineNumber": 20
+        },
+        {
+          "caller": "Modal",
+          "callee": "e.stopPropagation",
+          "lineNumber": 29
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/components/Skeleton.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 40,
+      "nonEmptyLines": 37,
+      "functions": [
+        {
+          "name": "Skeleton",
+          "startLine": 10,
+          "endLine": 22,
+          "params": [
+            "{\r\n  width = \"100%\",\r\n  height = \"20px\",\r\n  borderRadius = \"var(--radius-sm)\",\r\n  className = \"\",\r\n}"
+          ]
+        },
+        {
+          "name": "HoldingsTableSkeleton",
+          "startLine": 24,
+          "endLine": 40,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "Skeleton",
+          "line": 10,
+          "isDefault": false
+        },
+        {
+          "name": "HoldingsTableSkeleton",
+          "line": 24,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "HoldingsTableSkeleton",
+          "callee": "[1, 2, 3, 4, 5].map",
+          "lineNumber": 27
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 2,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/features/dashboard/DashboardView.test.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 119,
+      "nonEmptyLines": 108,
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/features/dashboard/DashboardView.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 319,
+      "nonEmptyLines": 294,
+      "functions": [
+        {
+          "name": "DashboardView",
+          "startLine": 25,
+          "endLine": 312,
+          "params": [
+            "{\r\n  viewMode,\r\n  memberId,\r\n  onAddDataForMember,\r\n}"
+          ]
+        },
+        {
+          "name": "formatIndianCurrency",
+          "startLine": 314,
+          "endLine": 319,
+          "params": [
+            "val"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "DashboardView",
+          "line": 25,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "DashboardView",
+          "callee": "useState",
+          "lineNumber": 30
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "useState",
+          "lineNumber": 31
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "useState",
+          "lineNumber": 32
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "useState",
+          "lineNumber": 33
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "useState",
+          "lineNumber": 34
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "useState",
+          "lineNumber": 35
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "useState",
+          "lineNumber": 38
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "useState",
+          "lineNumber": 39
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "useEffect",
+          "lineNumber": 45
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "setLoading",
+          "lineNumber": 47
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "setError",
+          "lineNumber": 48
+        },
+        {
+          "caller": "fetchData",
+          "callee": "Promise.all",
+          "lineNumber": 53
+        },
+        {
+          "caller": "fetchData",
+          "callee": "getAggregateHoldings",
+          "lineNumber": 54
+        },
+        {
+          "caller": "fetchData",
+          "callee": "getAggregateAllocation",
+          "lineNumber": 55
+        },
+        {
+          "caller": "fetchData",
+          "callee": "setHoldings",
+          "lineNumber": 58
+        },
+        {
+          "caller": "fetchData",
+          "callee": "setMembersStatus",
+          "lineNumber": 59
+        },
+        {
+          "caller": "fetchData",
+          "callee": "setAllocation",
+          "lineNumber": 60
+        },
+        {
+          "caller": "fetchData",
+          "callee": "setLoading",
+          "lineNumber": 61
+        },
+        {
+          "caller": "fetchData",
+          "callee": "Promise.all",
+          "lineNumber": 64
+        },
+        {
+          "caller": "fetchData",
+          "callee": "getMemberHoldings",
+          "lineNumber": 65
+        },
+        {
+          "caller": "fetchData",
+          "callee": "getMemberAllocation",
+          "lineNumber": 66
+        },
+        {
+          "caller": "fetchData",
+          "callee": "setHoldings",
+          "lineNumber": 69
+        },
+        {
+          "caller": "fetchData",
+          "callee": "setMembersStatus",
+          "lineNumber": 70
+        },
+        {
+          "caller": "fetchData",
+          "callee": "setAllocation",
+          "lineNumber": 71
+        },
+        {
+          "caller": "fetchData",
+          "callee": "setLoading",
+          "lineNumber": 72
+        },
+        {
+          "caller": "fetchData",
+          "callee": "setError",
+          "lineNumber": 78
+        },
+        {
+          "caller": "fetchData",
+          "callee": "setLoading",
+          "lineNumber": 79
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "fetchData",
+          "lineNumber": 84
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "useMemo",
+          "lineNumber": 91
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "parseFloat",
+          "lineNumber": 98
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "parseFloat",
+          "lineNumber": 105
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "sumDecimalStrings",
+          "lineNumber": 105
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "holdings.map",
+          "lineNumber": 105
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "parseFloat",
+          "lineNumber": 106
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "sumDecimalStrings",
+          "lineNumber": 107
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "holdings.map",
+          "lineNumber": 107
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "window.location.reload",
+          "lineNumber": 135
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "membersStatus.every",
+          "lineNumber": 143
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "onAddDataForMember",
+          "lineNumber": 149
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "formatIndianCurrency",
+          "lineNumber": 167
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "formatIndianCurrency",
+          "lineNumber": 175
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "formatIndianCurrency",
+          "lineNumber": 188
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "Math.abs",
+          "lineNumber": 188
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "totals.gainPercentage.toFixed",
+          "lineNumber": 196
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "membersStatus.some",
+          "lineNumber": 204
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "membersStatus\r\n              .filter((m) => !m.has_data)\r\n              .map",
+          "lineNumber": 208
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "membersStatus\r\n              .filter",
+          "lineNumber": 208
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "onAddDataForMember",
+          "lineNumber": 220
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "setAllocationTab",
+          "lineNumber": 241
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "setAllocationTab",
+          "lineNumber": 250
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "holdings.find",
+          "lineNumber": 277
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "setSelectedHolding",
+          "lineNumber": 278
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "setSelectedHolding",
+          "lineNumber": 286
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "setSelectedHolding",
+          "lineNumber": 289
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "setComparisonModalState",
+          "lineNumber": 290
+        },
+        {
+          "caller": "DashboardView",
+          "callee": "setComparisonModalState",
+          "lineNumber": 303
+        },
+        {
+          "caller": "formatIndianCurrency",
+          "callee": "isNaN",
+          "lineNumber": 315
+        },
+        {
+          "caller": "formatIndianCurrency",
+          "callee": "new Intl.NumberFormat(\"en-IN\", {\r\n    maximumFractionDigits: 0,\r\n  }).format",
+          "lineNumber": 316
+        }
+      ],
+      "metrics": {
+        "importCount": 11,
+        "exportCount": 1,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/features/dashboard/DistributorComparisonModal.test.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 56,
+      "nonEmptyLines": 52,
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/features/dashboard/DistributorComparisonModal.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 139,
+      "nonEmptyLines": 132,
+      "functions": [
+        {
+          "name": "DistributorComparisonModal",
+          "startLine": 17,
+          "endLine": 131,
+          "params": [
+            "{\r\n  isOpen,\r\n  onClose,\r\n  memberId,\r\n  schemeId,\r\n  schemeName = \"Mutual Fund Scheme\",\r\n}"
+          ]
+        },
+        {
+          "name": "formatCurrency",
+          "startLine": 133,
+          "endLine": 139,
+          "params": [
+            "valStr"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "DistributorComparisonModal",
+          "line": 17,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "DistributorComparisonModal",
+          "callee": "useState",
+          "lineNumber": 24
+        },
+        {
+          "caller": "DistributorComparisonModal",
+          "callee": "useState",
+          "lineNumber": 25
+        },
+        {
+          "caller": "DistributorComparisonModal",
+          "callee": "useState",
+          "lineNumber": 26
+        },
+        {
+          "caller": "DistributorComparisonModal",
+          "callee": "useEffect",
+          "lineNumber": 28
+        },
+        {
+          "caller": "DistributorComparisonModal",
+          "callee": "setLoading",
+          "lineNumber": 30
+        },
+        {
+          "caller": "DistributorComparisonModal",
+          "callee": "setError",
+          "lineNumber": 31
+        },
+        {
+          "caller": "DistributorComparisonModal",
+          "callee": "getDistributorComparison(memberId, schemeId)\r\n        .then((data) => {\r\n          setRows(data);\r\n          setLoading(false);\r\n        })\r\n        .catch",
+          "lineNumber": 32
+        },
+        {
+          "caller": "DistributorComparisonModal",
+          "callee": "getDistributorComparison(memberId, schemeId)\r\n        .then",
+          "lineNumber": 32
+        },
+        {
+          "caller": "DistributorComparisonModal",
+          "callee": "getDistributorComparison",
+          "lineNumber": 32
+        },
+        {
+          "caller": "DistributorComparisonModal",
+          "callee": "setRows",
+          "lineNumber": 34
+        },
+        {
+          "caller": "DistributorComparisonModal",
+          "callee": "setLoading",
+          "lineNumber": 35
+        },
+        {
+          "caller": "DistributorComparisonModal",
+          "callee": "setError",
+          "lineNumber": 38
+        },
+        {
+          "caller": "DistributorComparisonModal",
+          "callee": "setLoading",
+          "lineNumber": 39
+        },
+        {
+          "caller": "DistributorComparisonModal",
+          "callee": "rows.map",
+          "lineNumber": 80
+        },
+        {
+          "caller": "DistributorComparisonModal",
+          "callee": "parseFloat",
+          "lineNumber": 82
+        },
+        {
+          "caller": "DistributorComparisonModal",
+          "callee": "formatCurrency",
+          "lineNumber": 111
+        },
+        {
+          "caller": "DistributorComparisonModal",
+          "callee": "formatCurrency",
+          "lineNumber": 114
+        },
+        {
+          "caller": "DistributorComparisonModal",
+          "callee": "formatCurrency",
+          "lineNumber": 118
+        },
+        {
+          "caller": "DistributorComparisonModal",
+          "callee": "Math.abs",
+          "lineNumber": 118
+        },
+        {
+          "caller": "formatCurrency",
+          "callee": "parseFloat",
+          "lineNumber": 134
+        },
+        {
+          "caller": "formatCurrency",
+          "callee": "isNaN",
+          "lineNumber": 135
+        },
+        {
+          "caller": "formatCurrency",
+          "callee": "new Intl.NumberFormat(\"en-IN\", {\r\n    maximumFractionDigits: 0,\r\n  }).format",
+          "lineNumber": 136
+        }
+      ],
+      "metrics": {
+        "importCount": 6,
+        "exportCount": 1,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/features/dashboard/FundDetailModal.test.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 59,
+      "nonEmptyLines": 54,
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/features/dashboard/FundDetailModal.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 110,
+      "nonEmptyLines": 100,
+      "functions": [
+        {
+          "name": "FundDetailModal",
+          "startLine": 14,
+          "endLine": 103,
+          "params": [
+            "{\r\n  isOpen,\r\n  onClose,\r\n  holding,\r\n  onCompareDistributors,\r\n}"
+          ]
+        },
+        {
+          "name": "formatCurrency",
+          "startLine": 105,
+          "endLine": 110,
+          "params": [
+            "val"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "FundDetailModal",
+          "line": 14,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "FundDetailModal",
+          "callee": "parseFloat",
+          "lineNumber": 22
+        },
+        {
+          "caller": "FundDetailModal",
+          "callee": "parseFloat",
+          "lineNumber": 23
+        },
+        {
+          "caller": "FundDetailModal",
+          "callee": "parseFloat",
+          "lineNumber": 24
+        },
+        {
+          "caller": "FundDetailModal",
+          "callee": "formatCurrency",
+          "lineNumber": 46
+        },
+        {
+          "caller": "FundDetailModal",
+          "callee": "formatCurrency",
+          "lineNumber": 53
+        },
+        {
+          "caller": "FundDetailModal",
+          "callee": "formatCurrency",
+          "lineNumber": 64
+        },
+        {
+          "caller": "FundDetailModal",
+          "callee": "Math.abs",
+          "lineNumber": 64
+        },
+        {
+          "caller": "FundDetailModal",
+          "callee": "onCompareDistributors",
+          "lineNumber": 94
+        },
+        {
+          "caller": "formatCurrency",
+          "callee": "isNaN",
+          "lineNumber": 106
+        },
+        {
+          "caller": "formatCurrency",
+          "callee": "new Intl.NumberFormat(\"en-IN\", {\r\n    maximumFractionDigits: 0,\r\n  }).format",
+          "lineNumber": 107
+        }
+      ],
+      "metrics": {
+        "importCount": 5,
+        "exportCount": 1,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/features/dashboard/api.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 97,
+      "nonEmptyLines": 82,
+      "functions": [
+        {
+          "name": "authFetch",
+          "startLine": 17,
+          "endLine": 35,
+          "params": [
+            "path",
+            "options"
+          ]
+        },
+        {
+          "name": "getMemberHoldings",
+          "startLine": 38,
+          "endLine": 41,
+          "params": [
+            "memberId"
+          ]
+        },
+        {
+          "name": "getMemberAllocation",
+          "startLine": 43,
+          "endLine": 46,
+          "params": [
+            "memberId"
+          ]
+        },
+        {
+          "name": "getMemberSips",
+          "startLine": 48,
+          "endLine": 51,
+          "params": [
+            "memberId"
+          ]
+        },
+        {
+          "name": "getMemberCashFlow",
+          "startLine": 53,
+          "endLine": 56,
+          "params": [
+            "memberId"
+          ]
+        },
+        {
+          "name": "getMemberSnapshots",
+          "startLine": 58,
+          "endLine": 61,
+          "params": [
+            "memberId"
+          ]
+        },
+        {
+          "name": "getDistributorComparison",
+          "startLine": 63,
+          "endLine": 71,
+          "params": [
+            "memberId",
+            "schemeId"
+          ]
+        },
+        {
+          "name": "getAggregateHoldings",
+          "startLine": 74,
+          "endLine": 77,
+          "params": []
+        },
+        {
+          "name": "getAggregateAllocation",
+          "startLine": 79,
+          "endLine": 82,
+          "params": []
+        },
+        {
+          "name": "getAggregateSips",
+          "startLine": 84,
+          "endLine": 87,
+          "params": []
+        },
+        {
+          "name": "getAggregateCashFlow",
+          "startLine": 89,
+          "endLine": 92,
+          "params": []
+        },
+        {
+          "name": "getAggregateSnapshots",
+          "startLine": 94,
+          "endLine": 97,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "getMemberHoldings",
+          "line": 38,
+          "isDefault": false
+        },
+        {
+          "name": "getMemberAllocation",
+          "line": 43,
+          "isDefault": false
+        },
+        {
+          "name": "getMemberSips",
+          "line": 48,
+          "isDefault": false
+        },
+        {
+          "name": "getMemberCashFlow",
+          "line": 53,
+          "isDefault": false
+        },
+        {
+          "name": "getMemberSnapshots",
+          "line": 58,
+          "isDefault": false
+        },
+        {
+          "name": "getDistributorComparison",
+          "line": 63,
+          "isDefault": false
+        },
+        {
+          "name": "getAggregateHoldings",
+          "line": 74,
+          "isDefault": false
+        },
+        {
+          "name": "getAggregateAllocation",
+          "line": 79,
+          "isDefault": false
+        },
+        {
+          "name": "getAggregateSips",
+          "line": 84,
+          "isDefault": false
+        },
+        {
+          "name": "getAggregateCashFlow",
+          "line": 89,
+          "isDefault": false
+        },
+        {
+          "name": "getAggregateSnapshots",
+          "line": 94,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "authFetch",
+          "callee": "getToken",
+          "lineNumber": 18
+        },
+        {
+          "caller": "authFetch",
+          "callee": "headers.set",
+          "lineNumber": 21
+        },
+        {
+          "caller": "authFetch",
+          "callee": "fetch",
+          "lineNumber": 24
+        },
+        {
+          "caller": "authFetch",
+          "callee": "parseErrorDetail",
+          "lineNumber": 30
+        },
+        {
+          "caller": "getMemberHoldings",
+          "callee": "authFetch",
+          "lineNumber": 39
+        },
+        {
+          "caller": "getMemberHoldings",
+          "callee": "res.json",
+          "lineNumber": 40
+        },
+        {
+          "caller": "getMemberAllocation",
+          "callee": "authFetch",
+          "lineNumber": 44
+        },
+        {
+          "caller": "getMemberAllocation",
+          "callee": "res.json",
+          "lineNumber": 45
+        },
+        {
+          "caller": "getMemberSips",
+          "callee": "authFetch",
+          "lineNumber": 49
+        },
+        {
+          "caller": "getMemberSips",
+          "callee": "res.json",
+          "lineNumber": 50
+        },
+        {
+          "caller": "getMemberCashFlow",
+          "callee": "authFetch",
+          "lineNumber": 54
+        },
+        {
+          "caller": "getMemberCashFlow",
+          "callee": "res.json",
+          "lineNumber": 55
+        },
+        {
+          "caller": "getMemberSnapshots",
+          "callee": "authFetch",
+          "lineNumber": 59
+        },
+        {
+          "caller": "getMemberSnapshots",
+          "callee": "res.json",
+          "lineNumber": 60
+        },
+        {
+          "caller": "getDistributorComparison",
+          "callee": "authFetch",
+          "lineNumber": 67
+        },
+        {
+          "caller": "getDistributorComparison",
+          "callee": "res.json",
+          "lineNumber": 70
+        },
+        {
+          "caller": "getAggregateHoldings",
+          "callee": "authFetch",
+          "lineNumber": 75
+        },
+        {
+          "caller": "getAggregateHoldings",
+          "callee": "res.json",
+          "lineNumber": 76
+        },
+        {
+          "caller": "getAggregateAllocation",
+          "callee": "authFetch",
+          "lineNumber": 80
+        },
+        {
+          "caller": "getAggregateAllocation",
+          "callee": "res.json",
+          "lineNumber": 81
+        },
+        {
+          "caller": "getAggregateSips",
+          "callee": "authFetch",
+          "lineNumber": 85
+        },
+        {
+          "caller": "getAggregateSips",
+          "callee": "res.json",
+          "lineNumber": 86
+        },
+        {
+          "caller": "getAggregateCashFlow",
+          "callee": "authFetch",
+          "lineNumber": 90
+        },
+        {
+          "caller": "getAggregateCashFlow",
+          "callee": "res.json",
+          "lineNumber": 91
+        },
+        {
+          "caller": "getAggregateSnapshots",
+          "callee": "authFetch",
+          "lineNumber": 95
+        },
+        {
+          "caller": "getAggregateSnapshots",
+          "callee": "res.json",
+          "lineNumber": 96
+        }
+      ],
+      "metrics": {
+        "importCount": 3,
+        "exportCount": 11,
+        "functionCount": 12,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/features/dashboard/types.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 101,
+      "nonEmptyLines": 89,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/lib/decimal.test.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 41,
+      "nonEmptyLines": 34,
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/lib/decimal.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 35,
+      "nonEmptyLines": 31,
+      "functions": [
+        {
+          "name": "addDecimalStrings",
+          "startLine": 12,
+          "endLine": 31,
+          "params": [
+            "a",
+            "b"
+          ]
+        },
+        {
+          "name": "sumDecimalStrings",
+          "startLine": 33,
+          "endLine": 35,
+          "params": [
+            "values"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "sumDecimalStrings",
+          "line": 33,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "addDecimalStrings",
+          "callee": "(a || \"0\").split",
+          "lineNumber": 13
+        },
+        {
+          "caller": "addDecimalStrings",
+          "callee": "(b || \"0\").split",
+          "lineNumber": 14
+        },
+        {
+          "caller": "addDecimalStrings",
+          "callee": "Math.max",
+          "lineNumber": 15
+        },
+        {
+          "caller": "toScaled",
+          "callee": "whole.startsWith",
+          "lineNumber": 18
+        },
+        {
+          "caller": "toScaled",
+          "callee": "whole.replace",
+          "lineNumber": 19
+        },
+        {
+          "caller": "toScaled",
+          "callee": "BigInt",
+          "lineNumber": 20
+        },
+        {
+          "caller": "toScaled",
+          "callee": "frac.padEnd",
+          "lineNumber": 20
+        },
+        {
+          "caller": "addDecimalStrings",
+          "callee": "toScaled",
+          "lineNumber": 24
+        },
+        {
+          "caller": "addDecimalStrings",
+          "callee": "toScaled",
+          "lineNumber": 24
+        },
+        {
+          "caller": "addDecimalStrings",
+          "callee": "BigInt",
+          "lineNumber": 27
+        },
+        {
+          "caller": "addDecimalStrings",
+          "callee": "(abs / divisor).toString",
+          "lineNumber": 28
+        },
+        {
+          "caller": "addDecimalStrings",
+          "callee": "(abs % divisor).toString().padStart",
+          "lineNumber": 29
+        },
+        {
+          "caller": "addDecimalStrings",
+          "callee": "(abs % divisor).toString",
+          "lineNumber": 29
+        },
+        {
+          "caller": "sumDecimalStrings",
+          "callee": "values.reduce",
+          "lineNumber": 34
+        },
+        {
+          "caller": "sumDecimalStrings",
+          "callee": "addDecimalStrings",
+          "lineNumber": 34
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 1,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 0,
+  "filesSkipped": [
+    "frontend/src/features/dashboard/DashboardView.module.css",
+    "frontend/src/features/dashboard/DistributorComparisonModal.module.css",
+    "frontend/src/features/dashboard/FundDetailModal.module.css",
+    "frontend/src/features/dashboard/NavigationShell.module.css"
+  ],
+  "analysisOutcomes": {
+    "structure": {
+      "succeeded": 0,
+      "failed": 0
+    },
+    "callGraph": {
+      "succeeded": 0,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "results": []
+}

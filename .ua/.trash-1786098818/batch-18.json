@@ -1,0 +1,491 @@
+{
+  "nodes": [
+    {
+      "id": "config:.claude/settings.json",
+      "type": "config",
+      "name": "settings.json",
+      "filePath": ".claude/settings.json",
+      "summary": "Claude Code project settings enabling specific plugins for this repository's session tooling.",
+      "tags": ["configuration", "tooling", "claude-code"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:.ua/.understandignore",
+      "type": "file",
+      "name": ".understandignore",
+      "filePath": ".ua/.understandignore",
+      "summary": "Ignore-pattern file (gitignore syntax) controlling which directories and reference-only materials the Understand-Anything code-analysis tool excludes from scanning, including the CAS Parsers and App Flow References reference folders.",
+      "tags": ["tooling", "configuration", "ignore-patterns"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.ua/tmp/scan-stderr.txt",
+      "type": "document",
+      "name": "scan-stderr.txt",
+      "filePath": ".ua/tmp/scan-stderr.txt",
+      "summary": "Single-line stderr log captured from the Understand-Anything project scanner run, recording file counts and detected repository complexity.",
+      "tags": ["log", "tooling", "scanner-output"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:Docs/Competitor Analysis/competitive-matrix_Final.html",
+      "type": "file",
+      "name": "competitive-matrix_Final.html",
+      "filePath": "Docs/Competitor Analysis/competitive-matrix_Final.html",
+      "summary": "Standalone HTML competitive-landscape report mapping 11 Mprofit-class competitors, a feature-parity matrix, a calculator/tool inventory, and where these leave the Unifolio MVP scope.",
+      "tags": ["documentation", "competitive-analysis", "research", "markup"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:Docs/PRD-03-Main-Dashboard.md",
+      "type": "document",
+      "name": "PRD-03-Main-Dashboard.md",
+      "filePath": "Docs/PRD-03-Main-Dashboard.md",
+      "summary": "Product requirements document for the Main Holdings Dashboard — holdings table, allocation summary, SIP visualization, investment cash flow, monthly value snapshots, family view, and gated distributor comparison.",
+      "tags": ["documentation", "prd", "dashboard", "product-spec"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:Docs/PRD-04-MF-Analytics-Dashboard.md",
+      "type": "document",
+      "name": "PRD-04-MF-Analytics-Dashboard.md",
+      "filePath": "Docs/PRD-04-MF-Analytics-Dashboard.md",
+      "summary": "Product requirements document for the MF Analytics Dashboard covering allocation analysis, category ranking, fund/portfolio scoring, benchmark comparison, and TER cost analysis — the still-unbuilt PRD-04 module.",
+      "tags": ["documentation", "prd", "analytics", "product-spec"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/alembic/README",
+      "type": "file",
+      "name": "README",
+      "filePath": "backend/alembic/README",
+      "summary": "Default Alembic-generated README noting the project uses a generic single-database migration configuration.",
+      "tags": ["documentation", "migrations", "boilerplate"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/alembic/script.py.mako",
+      "type": "file",
+      "name": "script.py.mako",
+      "filePath": "backend/alembic/script.py.mako",
+      "summary": "Alembic revision template used to scaffold new migration files with upgrade()/downgrade() stubs and revision metadata.",
+      "tags": ["migrations", "template", "scaffolding", "alembic"],
+      "complexity": "simple",
+      "languageNotes": "Mako template interpolates Alembic's revision variables (${up_revision}, ${imports}, etc.) into each newly generated migration module."
+    },
+    {
+      "id": "file:backend/alembic/versions/0001_initial_schema.py",
+      "type": "file",
+      "name": "0001_initial_schema.py",
+      "filePath": "backend/alembic/versions/0001_initial_schema.py",
+      "summary": "Initial Alembic migration creating the full Unifolio schema — users, sessions, household_members, folios, schemes, arn_directory, and dialect-branched partitioned transactions/nav_history tables.",
+      "tags": ["migration", "database", "schema", "alembic"],
+      "complexity": "complex",
+      "languageNotes": "Branches on op.get_bind().dialect.name to create Postgres RANGE-partitioned transactions/nav_history tables versus plain SQLite equivalents, since SQLite has no native partitioning support."
+    },
+    {
+      "id": "file:backend/alembic/versions/0002_transaction_dedupe_includes_type.py",
+      "type": "file",
+      "name": "0002_transaction_dedupe_includes_type.py",
+      "filePath": "backend/alembic/versions/0002_transaction_dedupe_includes_type.py",
+      "summary": "Migration widening the transactions table's dedupe unique constraint to include the transaction type column, fixing a bug where a same-day purchase and redemption of equal amount/units could collide and silently drop a transaction.",
+      "tags": ["migration", "database", "bugfix", "alembic"],
+      "complexity": "moderate",
+      "languageNotes": "Uses Alembic's batch_alter_table for SQLite (which lacks native ALTER TABLE DROP/ADD CONSTRAINT) while the Postgres path looks up and drops the constraint by name via information_schema."
+    },
+    {
+      "id": "file:backend/app/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "backend/app/__init__.py",
+      "summary": "Empty package marker for the backend/app top-level FastAPI application package.",
+      "tags": ["package-marker", "python", "empty"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/core/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "backend/app/core/__init__.py",
+      "summary": "Empty package marker for the app.core module (shared configuration and settings utilities).",
+      "tags": ["package-marker", "python", "empty"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/db/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "backend/app/db/__init__.py",
+      "summary": "Empty package marker for the app.db module (database session and engine setup).",
+      "tags": ["package-marker", "python", "empty"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/services/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "backend/app/services/__init__.py",
+      "summary": "Empty package marker for the app.services package grouping the four logical services: Auth, Import, Dashboard, and Analytics.",
+      "tags": ["package-marker", "python", "empty"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/services/analytics/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "backend/app/services/analytics/__init__.py",
+      "summary": "Empty package marker for the not-yet-built Analytics service (PRD-04) — currently just a scaffold placeholder.",
+      "tags": ["package-marker", "python", "empty"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/services/auth/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "backend/app/services/auth/__init__.py",
+      "summary": "Empty package marker for the Auth service package (phone+OTP authentication, household-member CRUD).",
+      "tags": ["package-marker", "python", "empty"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/services/dashboard/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "backend/app/services/dashboard/__init__.py",
+      "summary": "Empty package marker for the Dashboard service package (holdings, allocation, SIP, cash-flow, snapshot, and distributor-comparison views).",
+      "tags": ["package-marker", "python", "empty"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/services/import_/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "backend/app/services/import_/__init__.py",
+      "summary": "Empty package marker for the Import service package (CAS parsing, mfapi.in enrichment, and confirm-import flow).",
+      "tags": ["package-marker", "python", "empty"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/services/import_/enrich.py",
+      "type": "file",
+      "name": "enrich.py",
+      "filePath": "backend/app/services/import_/enrich.py",
+      "summary": "mfapi.in enrichment client that resolves CAS scheme names to AMFI codes via exact and fuzzy matching, fetches scheme categories, and disk-caches both the AMFI scheme master list and per-scheme category lookups with a TTL.",
+      "tags": ["service", "external-integration", "caching", "fuzzy-matching"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/tests/api/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "backend/tests/api/__init__.py",
+      "summary": "Empty package marker for the backend/tests/api test package.",
+      "tags": ["package-marker", "test", "python"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/tests/api/test_auth_routes.py",
+      "type": "file",
+      "name": "test_auth_routes.py",
+      "filePath": "backend/tests/api/test_auth_routes.py",
+      "summary": "API-level tests for the phone+OTP auth routes, covering OTP request/verify, session-gated GET/PATCH /me, onboarding-field updates, and session refresh.",
+      "tags": ["test", "api-handler", "authentication"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/tests/api/test_dashboard_aggregate_routes.py",
+      "type": "file",
+      "name": "test_dashboard_aggregate_routes.py",
+      "filePath": "backend/tests/api/test_dashboard_aggregate_routes.py",
+      "summary": "API-level tests for the family-aggregate dashboard routes, verifying auth-required behavior and correct empty-state responses across holdings, allocation, SIPs, cash flow, and snapshots when no data exists.",
+      "tags": ["test", "api-handler", "dashboard", "aggregation"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/tests/api/test_dashboard_allocation_route.py",
+      "type": "file",
+      "name": "test_dashboard_allocation_route.py",
+      "filePath": "backend/tests/api/test_dashboard_allocation_route.py",
+      "summary": "API-level tests for the per-member allocation summary route, covering the auth-required guard and the empty-summary response for a member with no holdings.",
+      "tags": ["test", "api-handler", "dashboard", "allocation"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/tests/api/test_dashboard_cash_flow_route.py",
+      "type": "file",
+      "name": "test_dashboard_cash_flow_route.py",
+      "filePath": "backend/tests/api/test_dashboard_cash_flow_route.py",
+      "summary": "API-level tests for the per-member investment cash-flow route, covering the auth-required guard and the empty-list response for a member with no transactions.",
+      "tags": ["test", "api-handler", "dashboard", "cash-flow"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/tests/api/test_dashboard_distributor_comparison_route.py",
+      "type": "file",
+      "name": "test_dashboard_distributor_comparison_route.py",
+      "filePath": "backend/tests/api/test_dashboard_distributor_comparison_route.py",
+      "summary": "API-level tests for the distributor-comparison route (PRD-03 FR-11), covering the auth requirement, a 404 on another user's household member, and an empty-list response for a scheme the member does not hold.",
+      "tags": ["test", "api-handler", "dashboard", "distributor-comparison"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/alembic/versions/0001_initial_schema.py:upgrade",
+      "type": "function",
+      "name": "upgrade",
+      "filePath": "backend/alembic/versions/0001_initial_schema.py",
+      "lineRange": [40, 187],
+      "summary": "Creates the full initial schema: users, sessions, household_members, folios, schemes, and arn_directory, plus dialect-branched partitioned transactions and nav_history tables.",
+      "tags": ["migration", "schema-creation", "database"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/alembic/versions/0001_initial_schema.py:downgrade",
+      "type": "function",
+      "name": "downgrade",
+      "filePath": "backend/alembic/versions/0001_initial_schema.py",
+      "lineRange": [190, 216],
+      "summary": "Drops all tables created by the initial migration, executing raw DROP TABLE statements for the Postgres partitioned tables before dropping the remaining plain tables.",
+      "tags": ["migration", "database", "rollback"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/alembic/versions/0001_initial_schema.py:_create_transactions_plain",
+      "type": "function",
+      "name": "_create_transactions_plain",
+      "filePath": "backend/alembic/versions/0001_initial_schema.py",
+      "lineRange": [219, 233],
+      "summary": "Creates the non-partitioned SQLite variant of the transactions table with the same columns and unique constraint as the Postgres version.",
+      "tags": ["migration", "database", "sqlite"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/alembic/versions/0001_initial_schema.py:_create_transactions_postgres",
+      "type": "function",
+      "name": "_create_transactions_postgres",
+      "filePath": "backend/alembic/versions/0001_initial_schema.py",
+      "lineRange": [236, 267],
+      "summary": "Creates the Postgres RANGE-partitioned transactions table by date, then generates one child partition per calendar month via raw op.execute calls.",
+      "tags": ["migration", "database", "postgres", "partitioning"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/alembic/versions/0001_initial_schema.py:_create_nav_history_postgres",
+      "type": "function",
+      "name": "_create_nav_history_postgres",
+      "filePath": "backend/alembic/versions/0001_initial_schema.py",
+      "lineRange": [280, 294],
+      "summary": "Creates the Postgres RANGE-partitioned nav_history table by date and generates its monthly child partitions via raw SQL.",
+      "tags": ["migration", "database", "postgres", "partitioning"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/alembic/versions/0002_transaction_dedupe_includes_type.py:_upgrade_sqlite",
+      "type": "function",
+      "name": "_upgrade_sqlite",
+      "filePath": "backend/alembic/versions/0002_transaction_dedupe_includes_type.py",
+      "lineRange": [55, 75],
+      "summary": "SQLite-specific upgrade path that inspects the existing unique constraint on transactions, drops it, and recreates it including the transaction type column via batch_alter_table (SQLite lacks native ALTER CONSTRAINT support).",
+      "tags": ["migration", "sqlite", "constraint", "bugfix"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:backend/app/services/import_/enrich.py:SchemeMatch",
+      "type": "class",
+      "name": "SchemeMatch",
+      "filePath": "backend/app/services/import_/enrich.py",
+      "lineRange": [27, 31],
+      "summary": "Small result value object carrying an AMFI code, scheme name, match confidence score, and category for a resolved CAS scheme name.",
+      "tags": ["data-model", "value-object"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:backend/app/services/import_/enrich.py:MfApiClient",
+      "type": "class",
+      "name": "MfApiClient",
+      "filePath": "backend/app/services/import_/enrich.py",
+      "lineRange": [49, 120],
+      "summary": "HTTP client wrapping the mfapi.in API — fetches and disk-caches the full scheme master list, fuzzy-matches a CAS scheme name against it via difflib.SequenceMatcher, resolves a scheme to an AMFI code with a confidence score, and looks up per-scheme category with the same TTL cache.",
+      "tags": ["service", "external-integration", "caching", "fuzzy-matching"],
+      "complexity": "moderate",
+      "languageNotes": "Uses difflib.SequenceMatcher for approximate string matching rather than a fuzzy-matching dependency, and a simple mtime-based TTL check for on-disk JSON caching."
+    },
+    {
+      "id": "function:backend/tests/api/test_auth_routes.py:test_otp_verify_creates_user_and_session_for_new_phone",
+      "type": "function",
+      "name": "test_otp_verify_creates_user_and_session_for_new_phone",
+      "filePath": "backend/tests/api/test_auth_routes.py",
+      "lineRange": [9, 19],
+      "summary": "Verifies that OTP verification for a new phone number creates a new user and returns a valid session.",
+      "tags": ["test", "authentication"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/tests/api/test_auth_routes.py:test_me_updates_onboarding_fields_with_valid_session",
+      "type": "function",
+      "name": "test_me_updates_onboarding_fields_with_valid_session",
+      "filePath": "backend/tests/api/test_auth_routes.py",
+      "lineRange": [47, 61],
+      "summary": "Verifies that PATCH /me updates onboarding fields when called with a valid session.",
+      "tags": ["test", "authentication", "onboarding"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/tests/api/test_auth_routes.py:test_get_me_returns_current_user_state",
+      "type": "function",
+      "name": "test_get_me_returns_current_user_state",
+      "filePath": "backend/tests/api/test_auth_routes.py",
+      "lineRange": [69, 85],
+      "summary": "Verifies that GET /me returns the current user's state after onboarding fields have been patched.",
+      "tags": ["test", "authentication"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/tests/api/test_auth_routes.py:test_me_can_mark_onboarding_completed",
+      "type": "function",
+      "name": "test_me_can_mark_onboarding_completed",
+      "filePath": "backend/tests/api/test_auth_routes.py",
+      "lineRange": [88, 100],
+      "summary": "Verifies that PATCH /me can mark onboarding as completed for an authenticated user.",
+      "tags": ["test", "authentication", "onboarding"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/tests/api/test_dashboard_aggregate_routes.py:test_aggregate_holdings_returns_members_and_empty_holdings",
+      "type": "function",
+      "name": "test_aggregate_holdings_returns_members_and_empty_holdings",
+      "filePath": "backend/tests/api/test_dashboard_aggregate_routes.py",
+      "lineRange": [12, 21],
+      "summary": "Verifies the family-aggregate holdings route returns the household member list with empty holdings when no transactions exist.",
+      "tags": ["test", "dashboard", "aggregation"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:backend/alembic/versions/0001_initial_schema.py",
+      "target": "function:backend/alembic/versions/0001_initial_schema.py:upgrade",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/alembic/versions/0001_initial_schema.py",
+      "target": "function:backend/alembic/versions/0001_initial_schema.py:downgrade",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/alembic/versions/0001_initial_schema.py",
+      "target": "function:backend/alembic/versions/0001_initial_schema.py:_create_transactions_plain",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/alembic/versions/0001_initial_schema.py",
+      "target": "function:backend/alembic/versions/0001_initial_schema.py:_create_transactions_postgres",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/alembic/versions/0001_initial_schema.py",
+      "target": "function:backend/alembic/versions/0001_initial_schema.py:_create_nav_history_postgres",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/alembic/versions/0002_transaction_dedupe_includes_type.py",
+      "target": "function:backend/alembic/versions/0002_transaction_dedupe_includes_type.py:_upgrade_sqlite",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/services/import_/enrich.py",
+      "target": "class:backend/app/services/import_/enrich.py:SchemeMatch",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/services/import_/enrich.py",
+      "target": "class:backend/app/services/import_/enrich.py:MfApiClient",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/services/import_/enrich.py",
+      "target": "class:backend/app/services/import_/enrich.py:SchemeMatch",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/services/import_/enrich.py",
+      "target": "class:backend/app/services/import_/enrich.py:MfApiClient",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/services/import_/enrich.py",
+      "target": "file:backend/tests/services/import_/test_enrich.py",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:backend/tests/api/test_auth_routes.py",
+      "target": "function:backend/tests/api/test_auth_routes.py:test_otp_verify_creates_user_and_session_for_new_phone",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/tests/api/test_auth_routes.py",
+      "target": "function:backend/tests/api/test_auth_routes.py:test_me_updates_onboarding_fields_with_valid_session",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/tests/api/test_auth_routes.py",
+      "target": "function:backend/tests/api/test_auth_routes.py:test_get_me_returns_current_user_state",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/tests/api/test_auth_routes.py",
+      "target": "function:backend/tests/api/test_auth_routes.py:test_me_can_mark_onboarding_completed",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/tests/api/test_dashboard_aggregate_routes.py",
+      "target": "function:backend/tests/api/test_dashboard_aggregate_routes.py:test_aggregate_holdings_returns_members_and_empty_holdings",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "document:Docs/PRD-03-Main-Dashboard.md",
+      "target": "file:backend/app/services/dashboard/__init__.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:Docs/PRD-04-MF-Analytics-Dashboard.md",
+      "target": "file:backend/app/services/analytics/__init__.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    }
+  ]
+}

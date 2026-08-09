@@ -1,0 +1,555 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 7,
+  "filesSkipped": [],
+  "analysisOutcomes": {
+    "structure": {
+      "succeeded": 7,
+      "failed": 0
+    },
+    "callGraph": {
+      "succeeded": 0,
+      "failed": 0,
+      "skipped": 7
+    }
+  },
+  "results": [
+    {
+      "path": "Docs/superpowers/specs/2026-08-05-import-review-frontend-design.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "totalLines": 146,
+      "nonEmptyLines": 124,
+      "sections": [
+        {
+          "heading": "Import Review Frontend — Design (Phase 1b)",
+          "level": 1,
+          "line": 1
+        },
+        {
+          "heading": "Purpose",
+          "level": 2,
+          "line": 3
+        },
+        {
+          "heading": "Scope",
+          "level": 2,
+          "line": 12
+        },
+        {
+          "heading": "household_member_id sourcing",
+          "level": 2,
+          "line": 31
+        },
+        {
+          "heading": "Architecture",
+          "level": 2,
+          "line": 41
+        },
+        {
+          "heading": "Screens",
+          "level": 2,
+          "line": 73
+        },
+        {
+          "heading": "Error Handling",
+          "level": 2,
+          "line": 83
+        },
+        {
+          "heading": "Styling",
+          "level": 2,
+          "line": 98
+        },
+        {
+          "heading": "Testing",
+          "level": 2,
+          "line": 123
+        },
+        {
+          "heading": "Open Items Not Resolved Here",
+          "level": 2,
+          "line": 138
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 10
+      }
+    },
+    {
+      "path": "Docs/superpowers/specs/2026-08-05-phase-2-auth-onboarding-backend-design.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "totalLines": 153,
+      "nonEmptyLines": 127,
+      "sections": [
+        {
+          "heading": "Phase 2 (Backend) — Auth + Onboarding Design",
+          "level": 1,
+          "line": 1
+        },
+        {
+          "heading": "Purpose",
+          "level": 2,
+          "line": 3
+        },
+        {
+          "heading": "Scope",
+          "level": 2,
+          "line": 12
+        },
+        {
+          "heading": "Service Ownership",
+          "level": 2,
+          "line": 31
+        },
+        {
+          "heading": "Endpoints",
+          "level": 2,
+          "line": 44
+        },
+        {
+          "heading": "Data Flow",
+          "level": 2,
+          "line": 86
+        },
+        {
+          "heading": "Security",
+          "level": 2,
+          "line": 108
+        },
+        {
+          "heading": "Testing",
+          "level": 2,
+          "line": 132
+        },
+        {
+          "heading": "Open Items Not Resolved Here",
+          "level": 2,
+          "line": 144
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 9
+      }
+    },
+    {
+      "path": "Docs/superpowers/specs/2026-08-06-phase-2b-onboarding-frontend-design.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "totalLines": 215,
+      "nonEmptyLines": 191,
+      "sections": [
+        {
+          "heading": "Onboarding Frontend — Design (Phase 2b)",
+          "level": 1,
+          "line": 1
+        },
+        {
+          "heading": "Purpose",
+          "level": 2,
+          "line": 3
+        },
+        {
+          "heading": "Scope",
+          "level": 2,
+          "line": 16
+        },
+        {
+          "heading": "Architecture",
+          "level": 2,
+          "line": 50
+        },
+        {
+          "heading": "Screens (new/changed only — S8-S12 are Phase 1b, untouched)",
+          "level": 2,
+          "line": 151
+        },
+        {
+          "heading": "Error Handling",
+          "level": 2,
+          "line": 165
+        },
+        {
+          "heading": "Styling",
+          "level": 2,
+          "line": 187
+        },
+        {
+          "heading": "Testing",
+          "level": 2,
+          "line": 193
+        },
+        {
+          "heading": "Open Items Not Resolved Here",
+          "level": 2,
+          "line": 210
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 9
+      }
+    },
+    {
+      "path": "Docs/superpowers/specs/2026-08-06-phase-3-main-dashboard-backend-design.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "totalLines": 266,
+      "nonEmptyLines": 229,
+      "sections": [
+        {
+          "heading": "Main Dashboard — Backend Design (Phase 3)",
+          "level": 1,
+          "line": 1
+        },
+        {
+          "heading": "Purpose",
+          "level": 2,
+          "line": 3
+        },
+        {
+          "heading": "Scope",
+          "level": 2,
+          "line": 14
+        },
+        {
+          "heading": "Resolved Design Decisions (from brainstorming)",
+          "level": 2,
+          "line": 38
+        },
+        {
+          "heading": "Architecture",
+          "level": 2,
+          "line": 61
+        },
+        {
+          "heading": "API Surface",
+          "level": 2,
+          "line": 188
+        },
+        {
+          "heading": "Error Handling & Edge Cases",
+          "level": 2,
+          "line": 217
+        },
+        {
+          "heading": "Testing",
+          "level": 2,
+          "line": 235
+        },
+        {
+          "heading": "Open Items Not Resolved Here",
+          "level": 2,
+          "line": 254
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 9
+      }
+    },
+    {
+      "path": "Docs/superpowers/specs/2026-08-06-transaction-dedupe-type-migration-design.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "totalLines": 99,
+      "nonEmptyLines": 83,
+      "sections": [
+        {
+          "heading": "Transaction Dedupe Key Migration — Design",
+          "level": 1,
+          "line": 1
+        },
+        {
+          "heading": "Purpose",
+          "level": 2,
+          "line": 3
+        },
+        {
+          "heading": "Scope",
+          "level": 2,
+          "line": 17
+        },
+        {
+          "heading": "Migration",
+          "level": 2,
+          "line": 30
+        },
+        {
+          "heading": "`service.py`",
+          "level": 2,
+          "line": 58
+        },
+        {
+          "heading": "Testing",
+          "level": 2,
+          "line": 78
+        },
+        {
+          "heading": "Open Items Not Resolved Here",
+          "level": 2,
+          "line": 93
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 7
+      }
+    },
+    {
+      "path": "Docs/superpowers/specs/2026-08-07-distributor-comparison-design.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "totalLines": 209,
+      "nonEmptyLines": 174,
+      "sections": [
+        {
+          "heading": "Distributor Comparison — Backend Design",
+          "level": 1,
+          "line": 1
+        },
+        {
+          "heading": "Purpose",
+          "level": 2,
+          "line": 3
+        },
+        {
+          "heading": "Scope",
+          "level": 2,
+          "line": 14
+        },
+        {
+          "heading": "Resolved Open Item: AMFI ARN-lookup automation",
+          "level": 2,
+          "line": 26
+        },
+        {
+          "heading": "Architecture",
+          "level": 2,
+          "line": 58
+        },
+        {
+          "heading": "`arn_lookup.py`",
+          "level": 3,
+          "line": 67
+        },
+        {
+          "heading": "`distributor_comparison.py`",
+          "level": 3,
+          "line": 99
+        },
+        {
+          "heading": "Schema addition (`schemas.py`)",
+          "level": 3,
+          "line": 130
+        },
+        {
+          "heading": "API route (`dashboard.py`)",
+          "level": 3,
+          "line": 146
+        },
+        {
+          "heading": "Error Handling & Edge Cases",
+          "level": 2,
+          "line": 169
+        },
+        {
+          "heading": "Testing",
+          "level": 2,
+          "line": 187
+        },
+        {
+          "heading": "Global Constraints (carried from CLAUDE.md / prior specs)",
+          "level": 2,
+          "line": 202
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 12
+      }
+    },
+    {
+      "path": "Docs/superpowers/specs/2026-08-07-frontend-redesign-brief-for-coding-agent.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "totalLines": 645,
+      "nonEmptyLines": 554,
+      "sections": [
+        {
+          "heading": "Unifolio — Frontend Redesign Brief",
+          "level": 1,
+          "line": 10
+        },
+        {
+          "heading": "0. Read these first, in this order",
+          "level": 2,
+          "line": 17
+        },
+        {
+          "heading": "1. Why this brief exists",
+          "level": 2,
+          "line": 40
+        },
+        {
+          "heading": "2. Non-negotiable guardrails",
+          "level": 2,
+          "line": 96
+        },
+        {
+          "heading": "3. Design foundation — the compressed version",
+          "level": 2,
+          "line": 137
+        },
+        {
+          "heading": "3.1 Brand & principles",
+          "level": 3,
+          "line": 143
+        },
+        {
+          "heading": "3.2 Color tokens — fill the gaps",
+          "level": 3,
+          "line": 167
+        },
+        {
+          "heading": "3.3 Typography — full 8-token scale",
+          "level": 3,
+          "line": 189
+        },
+        {
+          "heading": "3.4 Spacing, shape, motion",
+          "level": 3,
+          "line": 215
+        },
+        {
+          "heading": "3.5 Fund Signal — the flagship component",
+          "level": 3,
+          "line": 231
+        },
+        {
+          "heading": "4. Screen inventory & scope",
+          "level": 2,
+          "line": 254
+        },
+        {
+          "heading": "5. Component library",
+          "level": 2,
+          "line": 281
+        },
+        {
+          "heading": "6. Backend context — the real, exact API surface",
+          "level": 2,
+          "line": 332
+        },
+        {
+          "heading": "Auth (`/auth/*`)",
+          "level": 3,
+          "line": 345
+        },
+        {
+          "heading": "Household members (`/household-members`)",
+          "level": 3,
+          "line": 355
+        },
+        {
+          "heading": "Dashboard — per member (`/household-members/{member_id}/...`)",
+          "level": 3,
+          "line": 362
+        },
+        {
+          "heading": "Dashboard — family aggregate (`/household/aggregate/...`)",
+          "level": 3,
+          "line": 375
+        },
+        {
+          "heading": "Import (`/imports/*`)",
+          "level": 3,
+          "line": 396
+        },
+        {
+          "heading": "7. Motion & UX quality bar",
+          "level": 2,
+          "line": 405
+        },
+        {
+          "heading": "7.1 Choreography (not just \"use the tokens\")",
+          "level": 3,
+          "line": 407
+        },
+        {
+          "heading": "7.2 Operationalize the `impeccable` plugin's own quality rubric",
+          "level": 3,
+          "line": 423
+        },
+        {
+          "heading": "7.3 Cognitive load discipline (Design Schema + `impeccable` both require this)",
+          "level": 3,
+          "line": 470
+        },
+        {
+          "heading": "7.4 Accessibility checklist (Design Schema, verbatim — treat as a gate, not a wishlist)",
+          "level": 3,
+          "line": 482
+        },
+        {
+          "heading": "8. Adding dependencies",
+          "level": 2,
+          "line": 492
+        },
+        {
+          "heading": "9. Testing this locally as you build",
+          "level": 2,
+          "line": 525
+        },
+        {
+          "heading": "10. When you're done — update the project's own memory",
+          "level": 2,
+          "line": 560
+        },
+        {
+          "heading": "11. What \"done\" looks like",
+          "level": 2,
+          "line": 593
+        },
+        {
+          "heading": "12. Assumptions made while writing this brief — flag if wrong",
+          "level": 2,
+          "line": 607
+        },
+        {
+          "heading": "Ready-to-paste prompt",
+          "level": 2,
+          "line": 626
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 29
+      }
+    }
+  ]
+}

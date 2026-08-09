@@ -1,0 +1,27 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 0,
+  "filesSkipped": [
+    "frontend/src/components/AllocationDonut.module.css",
+    "frontend/src/components/Badge.module.css",
+    "frontend/src/components/Button.module.css",
+    "frontend/src/components/EmptyState.module.css",
+    "frontend/src/components/FundSignal.module.css",
+    "frontend/src/components/HoldingsTable.module.css",
+    "frontend/src/components/Modal.module.css",
+    "frontend/src/components/Skeleton.module.css",
+    "frontend/src/components/ThemeToggle.module.css"
+  ],
+  "analysisOutcomes": {
+    "structure": {
+      "succeeded": 0,
+      "failed": 0
+    },
+    "callGraph": {
+      "succeeded": 0,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "results": []
+}

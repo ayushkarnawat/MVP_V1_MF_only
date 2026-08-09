@@ -1,0 +1,1 @@
+scan-project: filesScanned=254 filteredByIgnore=18 complexity=large

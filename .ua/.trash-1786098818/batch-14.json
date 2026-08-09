@@ -1,0 +1,134 @@
+{
+  "nodes": [
+    {
+      "id": "config:frontend/.env.example",
+      "type": "config",
+      "name": ".env.example",
+      "filePath": "frontend/.env.example",
+      "summary": "Template for local frontend environment variables, defining the backend API base URL used against the uvicorn dev server.",
+      "tags": ["configuration", "environment-variables", "local-dev"],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:frontend/.oxlintrc.json",
+      "type": "config",
+      "name": ".oxlintrc.json",
+      "filePath": "frontend/.oxlintrc.json",
+      "summary": "Oxlint configuration enabling the React, TypeScript, and Oxc plugin rule sets, including enforcement of React's rules-of-hooks.",
+      "tags": ["configuration", "linting", "react", "typescript"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:frontend/README.md",
+      "type": "document",
+      "name": "README.md",
+      "filePath": "frontend/README.md",
+      "summary": "Boilerplate README from the Vite React + TypeScript template, covering the available Vite plugins, the (unused) React Compiler option, and how to expand Oxlint with type-aware rules.",
+      "tags": ["documentation", "vite", "react", "scaffold"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/index.html",
+      "type": "file",
+      "name": "index.html",
+      "filePath": "frontend/index.html",
+      "summary": "HTML entry point for the Vite SPA — sets the Unifolio page title/description, loads Google Fonts (DM Sans, Manrope), and mounts the React app via src/main.tsx.",
+      "tags": ["entry-point", "html", "vite", "spa"],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:frontend/package.json",
+      "type": "config",
+      "name": "package.json",
+      "filePath": "frontend/package.json",
+      "summary": "Frontend package manifest declaring React 19 as the runtime dependency and Vite, TypeScript, Vitest, and Oxlint as the dev toolchain, with dev/build/lint/test/preview scripts.",
+      "tags": ["configuration", "build-system", "dependencies", "npm"],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:frontend/tsconfig.app.json",
+      "type": "config",
+      "name": "tsconfig.app.json",
+      "filePath": "frontend/tsconfig.app.json",
+      "summary": "TypeScript project config for the application source (src/): ES2023/DOM target, bundler module resolution, strict unused-locals/params linting, and JSX in react-jsx mode.",
+      "tags": ["configuration", "typescript", "build-system"],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:frontend/tsconfig.json",
+      "type": "config",
+      "name": "tsconfig.json",
+      "filePath": "frontend/tsconfig.json",
+      "summary": "Root TypeScript solution file with no direct source files — references the app and node project configs to enable TypeScript project references.",
+      "tags": ["configuration", "typescript", "build-system"],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:frontend/tsconfig.node.json",
+      "type": "config",
+      "name": "tsconfig.node.json",
+      "filePath": "frontend/tsconfig.node.json",
+      "summary": "TypeScript project config for Node-side tooling (vite.config.ts): ES2023 target, Node types, and nodenext module resolution, separate from the app's browser config.",
+      "tags": ["configuration", "typescript", "build-system"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "config:frontend/tsconfig.json",
+      "target": "config:frontend/tsconfig.app.json",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:frontend/tsconfig.json",
+      "target": "config:frontend/tsconfig.node.json",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:frontend/tsconfig.app.json",
+      "target": "file:frontend/src/main.tsx",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:frontend/tsconfig.node.json",
+      "target": "file:frontend/vite.config.ts",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:frontend/package.json",
+      "target": "file:frontend/src/main.tsx",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:frontend/index.html",
+      "target": "file:frontend/src/main.tsx",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "document:frontend/README.md",
+      "target": "file:frontend/index.html",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:frontend/README.md",
+      "target": "config:frontend/.oxlintrc.json",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    }
+  ]
+}

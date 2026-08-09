@@ -1,0 +1,983 @@
+{
+  "nodes": [
+    {
+      "id": "file:frontend/src/features/auth/Landing.tsx",
+      "type": "file",
+      "name": "Landing.tsx",
+      "filePath": "frontend/src/features/auth/Landing.tsx",
+      "summary": "Landing screen with the product pitch and a single continue call-to-action into the auth flow.",
+      "tags": [
+        "onboarding",
+        "component",
+        "ui"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/features/auth/OnboardingFlow.test.tsx",
+      "type": "file",
+      "name": "OnboardingFlow.test.tsx",
+      "filePath": "frontend/src/features/auth/OnboardingFlow.test.tsx",
+      "summary": "Tests the onboarding questionnaire orchestration: step progression, back navigation, skips, and persistence of answers via updateMe.",
+      "tags": [
+        "test",
+        "onboarding",
+        "questionnaire"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/features/auth/OnboardingFlow.tsx",
+      "type": "file",
+      "name": "OnboardingFlow.tsx",
+      "filePath": "frontend/src/features/auth/OnboardingFlow.tsx",
+      "summary": "Onboarding questionnaire orchestrator: maintains a back-navigable history stack, resumes from the user's stored step, walks the Q1-Q4 questions and trust primer, persists answers via updateMe, and branches into solo or family CAS upload.",
+      "tags": [
+        "onboarding",
+        "flow-orchestrator",
+        "questionnaire",
+        "state"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/features/auth/OtpVerify.tsx",
+      "type": "file",
+      "name": "OtpVerify.tsx",
+      "filePath": "frontend/src/features/auth/OtpVerify.tsx",
+      "summary": "OTP entry form showing the target phone number, a resend action, submit handling, and a dev-mode OTP hint.",
+      "tags": [
+        "auth",
+        "otp",
+        "form",
+        "component"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/features/auth/ParseQueue.tsx",
+      "type": "file",
+      "name": "ParseQueue.tsx",
+      "filePath": "frontend/src/features/auth/ParseQueue.tsx",
+      "summary": "Displays the queued family CAS files awaiting parsing and offers the action that starts the batch parse.",
+      "tags": [
+        "onboarding",
+        "cas-import",
+        "queue",
+        "component"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/features/auth/PhoneEntry.tsx",
+      "type": "file",
+      "name": "PhoneEntry.tsx",
+      "filePath": "frontend/src/features/auth/PhoneEntry.tsx",
+      "summary": "Phone number entry form that submits the trimmed number to request an OTP.",
+      "tags": [
+        "auth",
+        "form",
+        "component"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/features/auth/Q1Name.tsx",
+      "type": "file",
+      "name": "Q1Name.tsx",
+      "filePath": "frontend/src/features/auth/Q1Name.tsx",
+      "summary": "Onboarding question asking the user's name, with back and skip navigation and submit gated on a non-empty trimmed value.",
+      "tags": [
+        "onboarding",
+        "questionnaire",
+        "form"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/features/auth/Q2Investing.tsx",
+      "type": "file",
+      "name": "Q2Investing.tsx",
+      "filePath": "frontend/src/features/auth/Q2Investing.tsx",
+      "summary": "Single-select onboarding question about how long the user has been investing, rendered from a static options list.",
+      "tags": [
+        "onboarding",
+        "questionnaire",
+        "component"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/features/auth/Q3Purpose.tsx",
+      "type": "file",
+      "name": "Q3Purpose.tsx",
+      "filePath": "frontend/src/features/auth/Q3Purpose.tsx",
+      "summary": "Single-select onboarding question about the user's purpose for tracking investments, rendered from a static options list.",
+      "tags": [
+        "onboarding",
+        "questionnaire",
+        "component"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/features/auth/Q4Household.tsx",
+      "type": "file",
+      "name": "Q4Household.tsx",
+      "filePath": "frontend/src/features/auth/Q4Household.tsx",
+      "summary": "Onboarding question asking whether the user tracks just themselves or their whole family, branching the flow into the solo or family CAS import path.",
+      "tags": [
+        "onboarding",
+        "questionnaire",
+        "branching"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/features/auth/SoloCasUpload.test.tsx",
+      "type": "file",
+      "name": "SoloCasUpload.test.tsx",
+      "filePath": "frontend/src/features/auth/SoloCasUpload.test.tsx",
+      "summary": "Tests the solo CAS upload screen: resolving or creating the 'self' household member and completing onboarding after the import finishes.",
+      "tags": [
+        "test",
+        "cas-import",
+        "onboarding"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/features/auth/SoloCasUpload.tsx",
+      "type": "file",
+      "name": "SoloCasUpload.tsx",
+      "filePath": "frontend/src/features/auth/SoloCasUpload.tsx",
+      "summary": "Solo-path CAS upload: resolves or creates the 'self' household member, embeds the single-file ImportFlow for that member, and marks onboarding complete when done.",
+      "tags": [
+        "cas-import",
+        "onboarding",
+        "flow-orchestrator"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/features/auth/TrustPrimer.tsx",
+      "type": "file",
+      "name": "TrustPrimer.tsx",
+      "filePath": "frontend/src/features/auth/TrustPrimer.tsx",
+      "summary": "Trust and privacy primer shown before CAS upload, explaining how statement data is handled before asking the user to continue.",
+      "tags": [
+        "onboarding",
+        "ui",
+        "privacy"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/features/auth/UploadMyCas.tsx",
+      "type": "file",
+      "name": "UploadMyCas.tsx",
+      "filePath": "frontend/src/features/auth/UploadMyCas.tsx",
+      "summary": "Screen in the family onboarding path offering to upload the user's own CAS now via UploadForm or defer it for later.",
+      "tags": [
+        "onboarding",
+        "cas-import",
+        "upload"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/features/auth/Landing.tsx:Landing",
+      "type": "function",
+      "name": "Landing",
+      "filePath": "frontend/src/features/auth/Landing.tsx",
+      "lineRange": [
+        8,
+        25
+      ],
+      "summary": "Static landing screen presenting the product pitch with a continue button.",
+      "tags": [
+        "component",
+        "ui",
+        "onboarding"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/features/auth/OnboardingFlow.tsx:OnboardingFlow",
+      "type": "function",
+      "name": "OnboardingFlow",
+      "filePath": "frontend/src/features/auth/OnboardingFlow.tsx",
+      "lineRange": [
+        35,
+        130
+      ],
+      "summary": "Questionnaire orchestrator using the onboarding history stack: resumes from the stored step, renders the current question screen, persists answers via updateMe, and branches to solo or family CAS upload.",
+      "tags": [
+        "onboarding",
+        "flow-orchestrator",
+        "questionnaire"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/features/auth/OtpVerify.tsx:OtpVerify",
+      "type": "function",
+      "name": "OtpVerify",
+      "filePath": "frontend/src/features/auth/OtpVerify.tsx",
+      "lineRange": [
+        15,
+        75
+      ],
+      "summary": "Controlled OTP input form with resend support, submit gating while pending, inline error display, and a dev OTP hint.",
+      "tags": [
+        "auth",
+        "otp",
+        "form"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/features/auth/ParseQueue.tsx:ParseQueue",
+      "type": "function",
+      "name": "ParseQueue",
+      "filePath": "frontend/src/features/auth/ParseQueue.tsx",
+      "lineRange": [
+        10,
+        43
+      ],
+      "summary": "Lists queued CAS uploads by member and exposes the action that kicks off sequential parsing.",
+      "tags": [
+        "cas-import",
+        "queue",
+        "component"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/features/auth/PhoneEntry.tsx:PhoneEntry",
+      "type": "function",
+      "name": "PhoneEntry",
+      "filePath": "frontend/src/features/auth/PhoneEntry.tsx",
+      "lineRange": [
+        12,
+        52
+      ],
+      "summary": "Controlled phone-number form that submits the trimmed value and shows request errors inline.",
+      "tags": [
+        "auth",
+        "form",
+        "component"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/features/auth/Q1Name.tsx:Q1Name",
+      "type": "function",
+      "name": "Q1Name",
+      "filePath": "frontend/src/features/auth/Q1Name.tsx",
+      "lineRange": [
+        13,
+        57
+      ],
+      "summary": "Name question form with back/skip handlers; submit is enabled only for a non-empty trimmed name.",
+      "tags": [
+        "onboarding",
+        "questionnaire",
+        "form"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/features/auth/Q2Investing.tsx:Q2Investing",
+      "type": "function",
+      "name": "Q2Investing",
+      "filePath": "frontend/src/features/auth/Q2Investing.tsx",
+      "lineRange": [
+        38,
+        74
+      ],
+      "summary": "Renders the investing-experience options list and reports the chosen value via onSelect, with back and skip handlers.",
+      "tags": [
+        "onboarding",
+        "questionnaire",
+        "component"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/features/auth/Q3Purpose.tsx:Q3Purpose",
+      "type": "function",
+      "name": "Q3Purpose",
+      "filePath": "frontend/src/features/auth/Q3Purpose.tsx",
+      "lineRange": [
+        38,
+        74
+      ],
+      "summary": "Renders the tracking-purpose options list and reports the chosen value via onSelect, with back and skip handlers.",
+      "tags": [
+        "onboarding",
+        "questionnaire",
+        "component"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/features/auth/Q4Household.tsx:Q4Household",
+      "type": "function",
+      "name": "Q4Household",
+      "filePath": "frontend/src/features/auth/Q4Household.tsx",
+      "lineRange": [
+        10,
+        57
+      ],
+      "summary": "Presents the solo-versus-family choice that branches the remainder of onboarding.",
+      "tags": [
+        "onboarding",
+        "questionnaire",
+        "branching"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/features/auth/SoloCasUpload.tsx:SoloCasUpload",
+      "type": "function",
+      "name": "SoloCasUpload",
+      "filePath": "frontend/src/features/auth/SoloCasUpload.tsx",
+      "lineRange": [
+        11,
+        77
+      ],
+      "summary": "Resolves or creates the 'self' household member, then embeds ImportFlow for a single CAS upload and marks onboarding complete on finish.",
+      "tags": [
+        "cas-import",
+        "onboarding",
+        "flow-orchestrator"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/features/auth/TrustPrimer.tsx:TrustPrimer",
+      "type": "function",
+      "name": "TrustPrimer",
+      "filePath": "frontend/src/features/auth/TrustPrimer.tsx",
+      "lineRange": [
+        8,
+        46
+      ],
+      "summary": "Static trust and privacy explainer screen with a single continue action.",
+      "tags": [
+        "onboarding",
+        "ui",
+        "privacy"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/features/auth/UploadMyCas.tsx:UploadMyCas",
+      "type": "function",
+      "name": "UploadMyCas",
+      "filePath": "frontend/src/features/auth/UploadMyCas.tsx",
+      "lineRange": [
+        12,
+        38
+      ],
+      "summary": "Offers upload-now versus upload-later for the user's own CAS, embedding UploadForm when uploading now.",
+      "tags": [
+        "onboarding",
+        "upload",
+        "component"
+      ],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:frontend/src/features/auth/Landing.tsx",
+      "target": "file:frontend/src/components/Button.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/Landing.tsx",
+      "target": "file:frontend/src/features/auth/onboarding.module.css",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/OnboardingFlow.test.tsx",
+      "target": "file:frontend/src/features/auth/AuthContext.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/OnboardingFlow.test.tsx",
+      "target": "file:frontend/src/features/auth/OnboardingFlow.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/OnboardingFlow.test.tsx",
+      "target": "file:frontend/src/features/auth/api.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/OnboardingFlow.test.tsx",
+      "target": "file:frontend/src/features/auth/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/OnboardingFlow.tsx",
+      "target": "file:frontend/src/features/auth/AddFamilyMembers.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/OnboardingFlow.tsx",
+      "target": "file:frontend/src/features/auth/AuthContext.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/OnboardingFlow.tsx",
+      "target": "file:frontend/src/features/auth/FamilyImportFlow.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/OnboardingFlow.tsx",
+      "target": "file:frontend/src/features/auth/Q1Name.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/OnboardingFlow.tsx",
+      "target": "file:frontend/src/features/auth/Q2Investing.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/OnboardingFlow.tsx",
+      "target": "file:frontend/src/features/auth/Q3Purpose.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/OnboardingFlow.tsx",
+      "target": "file:frontend/src/features/auth/Q4Household.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/OnboardingFlow.tsx",
+      "target": "file:frontend/src/features/auth/SoloCasUpload.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/OnboardingFlow.tsx",
+      "target": "file:frontend/src/features/auth/TrustPrimer.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/OnboardingFlow.tsx",
+      "target": "file:frontend/src/features/auth/onboardingHistory.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/OnboardingFlow.tsx",
+      "target": "file:frontend/src/features/auth/onboardingSteps.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/OnboardingFlow.tsx",
+      "target": "file:frontend/src/features/auth/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/OtpVerify.tsx",
+      "target": "file:frontend/src/components/Button.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/OtpVerify.tsx",
+      "target": "file:frontend/src/features/auth/onboarding.module.css",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/ParseQueue.tsx",
+      "target": "file:frontend/src/components/Button.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/ParseQueue.tsx",
+      "target": "file:frontend/src/features/auth/FamilyCasUpload.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/ParseQueue.tsx",
+      "target": "file:frontend/src/features/auth/onboarding.module.css",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/PhoneEntry.tsx",
+      "target": "file:frontend/src/components/Button.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/PhoneEntry.tsx",
+      "target": "file:frontend/src/features/auth/onboarding.module.css",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/Q1Name.tsx",
+      "target": "file:frontend/src/components/Button.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/Q1Name.tsx",
+      "target": "file:frontend/src/features/auth/onboarding.module.css",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/Q2Investing.tsx",
+      "target": "file:frontend/src/components/Button.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/Q2Investing.tsx",
+      "target": "file:frontend/src/features/auth/onboarding.module.css",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/Q2Investing.tsx",
+      "target": "file:frontend/src/features/auth/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/Q3Purpose.tsx",
+      "target": "file:frontend/src/components/Button.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/Q3Purpose.tsx",
+      "target": "file:frontend/src/features/auth/onboarding.module.css",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/Q3Purpose.tsx",
+      "target": "file:frontend/src/features/auth/types.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/Q4Household.tsx",
+      "target": "file:frontend/src/components/Button.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/Q4Household.tsx",
+      "target": "file:frontend/src/features/auth/onboarding.module.css",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/SoloCasUpload.test.tsx",
+      "target": "file:frontend/src/features/auth/AuthContext.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/SoloCasUpload.test.tsx",
+      "target": "file:frontend/src/features/auth/SoloCasUpload.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/SoloCasUpload.test.tsx",
+      "target": "file:frontend/src/features/auth/api.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/SoloCasUpload.tsx",
+      "target": "file:frontend/src/features/auth/AuthContext.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/SoloCasUpload.tsx",
+      "target": "file:frontend/src/features/auth/api.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/SoloCasUpload.tsx",
+      "target": "file:frontend/src/features/auth/onboarding.module.css",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/SoloCasUpload.tsx",
+      "target": "file:frontend/src/features/import/ImportFlow.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/TrustPrimer.tsx",
+      "target": "file:frontend/src/components/Button.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/TrustPrimer.tsx",
+      "target": "file:frontend/src/features/auth/onboarding.module.css",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/UploadMyCas.tsx",
+      "target": "file:frontend/src/components/Button.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/UploadMyCas.tsx",
+      "target": "file:frontend/src/features/auth/onboarding.module.css",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/UploadMyCas.tsx",
+      "target": "file:frontend/src/features/import/UploadForm.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/features/auth/Landing.tsx",
+      "target": "function:frontend/src/features/auth/Landing.tsx:Landing",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/features/auth/Landing.tsx",
+      "target": "function:frontend/src/features/auth/Landing.tsx:Landing",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/features/auth/OnboardingFlow.tsx",
+      "target": "function:frontend/src/features/auth/OnboardingFlow.tsx:OnboardingFlow",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/features/auth/OnboardingFlow.tsx",
+      "target": "function:frontend/src/features/auth/OnboardingFlow.tsx:OnboardingFlow",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/features/auth/OtpVerify.tsx",
+      "target": "function:frontend/src/features/auth/OtpVerify.tsx:OtpVerify",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/features/auth/OtpVerify.tsx",
+      "target": "function:frontend/src/features/auth/OtpVerify.tsx:OtpVerify",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/features/auth/ParseQueue.tsx",
+      "target": "function:frontend/src/features/auth/ParseQueue.tsx:ParseQueue",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/features/auth/ParseQueue.tsx",
+      "target": "function:frontend/src/features/auth/ParseQueue.tsx:ParseQueue",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/features/auth/PhoneEntry.tsx",
+      "target": "function:frontend/src/features/auth/PhoneEntry.tsx:PhoneEntry",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/features/auth/PhoneEntry.tsx",
+      "target": "function:frontend/src/features/auth/PhoneEntry.tsx:PhoneEntry",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/features/auth/Q1Name.tsx",
+      "target": "function:frontend/src/features/auth/Q1Name.tsx:Q1Name",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/features/auth/Q1Name.tsx",
+      "target": "function:frontend/src/features/auth/Q1Name.tsx:Q1Name",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/features/auth/Q2Investing.tsx",
+      "target": "function:frontend/src/features/auth/Q2Investing.tsx:Q2Investing",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/features/auth/Q2Investing.tsx",
+      "target": "function:frontend/src/features/auth/Q2Investing.tsx:Q2Investing",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/features/auth/Q3Purpose.tsx",
+      "target": "function:frontend/src/features/auth/Q3Purpose.tsx:Q3Purpose",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/features/auth/Q3Purpose.tsx",
+      "target": "function:frontend/src/features/auth/Q3Purpose.tsx:Q3Purpose",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/features/auth/Q4Household.tsx",
+      "target": "function:frontend/src/features/auth/Q4Household.tsx:Q4Household",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/features/auth/Q4Household.tsx",
+      "target": "function:frontend/src/features/auth/Q4Household.tsx:Q4Household",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/features/auth/SoloCasUpload.tsx",
+      "target": "function:frontend/src/features/auth/SoloCasUpload.tsx:SoloCasUpload",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/features/auth/SoloCasUpload.tsx",
+      "target": "function:frontend/src/features/auth/SoloCasUpload.tsx:SoloCasUpload",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/features/auth/TrustPrimer.tsx",
+      "target": "function:frontend/src/features/auth/TrustPrimer.tsx:TrustPrimer",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/features/auth/TrustPrimer.tsx",
+      "target": "function:frontend/src/features/auth/TrustPrimer.tsx:TrustPrimer",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/features/auth/UploadMyCas.tsx",
+      "target": "function:frontend/src/features/auth/UploadMyCas.tsx:UploadMyCas",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:frontend/src/features/auth/UploadMyCas.tsx",
+      "target": "function:frontend/src/features/auth/UploadMyCas.tsx:UploadMyCas",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/features/auth/OnboardingFlow.tsx",
+      "target": "file:frontend/src/features/auth/OnboardingFlow.test.tsx",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:frontend/src/features/auth/SoloCasUpload.tsx",
+      "target": "file:frontend/src/features/auth/SoloCasUpload.test.tsx",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "function:frontend/src/features/auth/OnboardingFlow.tsx:OnboardingFlow",
+      "target": "function:frontend/src/features/auth/onboardingHistory.ts:initHistory",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/features/auth/OnboardingFlow.tsx:OnboardingFlow",
+      "target": "function:frontend/src/features/auth/onboardingHistory.ts:currentStep",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/features/auth/OnboardingFlow.tsx:OnboardingFlow",
+      "target": "function:frontend/src/features/auth/onboardingHistory.ts:goNext",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/features/auth/OnboardingFlow.tsx:OnboardingFlow",
+      "target": "function:frontend/src/features/auth/onboardingHistory.ts:goBack",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/features/auth/OnboardingFlow.tsx:OnboardingFlow",
+      "target": "function:frontend/src/features/auth/onboardingHistory.ts:skipToNext",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/features/auth/OnboardingFlow.tsx:OnboardingFlow",
+      "target": "function:frontend/src/features/auth/onboardingHistory.ts:markAnswered",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/features/auth/OnboardingFlow.tsx:OnboardingFlow",
+      "target": "function:frontend/src/features/auth/onboardingSteps.ts:isOnboardingStep",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/features/auth/OnboardingFlow.tsx:OnboardingFlow",
+      "target": "function:frontend/src/features/auth/AuthContext.tsx:useAuth",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/features/auth/SoloCasUpload.tsx:SoloCasUpload",
+      "target": "function:frontend/src/features/auth/api.ts:listHouseholdMembers",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/features/auth/SoloCasUpload.tsx:SoloCasUpload",
+      "target": "function:frontend/src/features/auth/api.ts:createHouseholdMember",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:frontend/src/features/auth/SoloCasUpload.tsx:SoloCasUpload",
+      "target": "function:frontend/src/features/auth/AuthContext.tsx:useAuth",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    }
+  ]
+}

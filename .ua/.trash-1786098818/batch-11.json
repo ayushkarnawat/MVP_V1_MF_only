@@ -1,0 +1,127 @@
+{
+  "nodes": [
+    {
+      "id": "document:Docs/superpowers/plans/2026-08-04-phase-0-foundation.md",
+      "type": "document",
+      "name": "2026-08-04-phase-0-foundation.md",
+      "filePath": "Docs/superpowers/plans/2026-08-04-phase-0-foundation.md",
+      "summary": "Phase 0 implementation plan for Unifolio's foundation: repo layout, the four-service FastAPI package skeleton, DB session layer, Alembic wiring, reference-data and user-data models, the dialect-branched initial schema migration, local Postgres via Docker Compose, the fast-SQLite/Postgres-functional pytest split, the React/Vite frontend scaffold, and the CI workflow.",
+      "tags": ["documentation", "implementation-plan", "foundation", "scaffolding", "planning"],
+      "complexity": "complex"
+    },
+    {
+      "id": "document:Docs/superpowers/plans/2026-08-04-phase-1-cas-import-backend.md",
+      "type": "document",
+      "name": "2026-08-04-phase-1-cas-import-backend.md",
+      "filePath": "Docs/superpowers/plans/2026-08-04-phase-1-cas-import-backend.md",
+      "summary": "Phase 1 backend implementation plan porting CAS import into the monolith: Direct/Regular plan classification, ARN/broker code capture, error-classification test coverage, a shared Decimal quantization module, the ported casparser wrapper and mfapi.in enrichment client, Import Service orchestration (parse preview + confirm), API route wiring, and the no-PAN guard test that retires the standalone prototype.",
+      "tags": ["documentation", "implementation-plan", "cas-import", "backend", "planning"],
+      "complexity": "complex"
+    },
+    {
+      "id": "document:Docs/superpowers/plans/2026-08-05-phase-1b-import-review-frontend.md",
+      "type": "document",
+      "name": "2026-08-05-phase-1b-import-review-frontend.md",
+      "filePath": "Docs/superpowers/plans/2026-08-05-phase-1b-import-review-frontend.md",
+      "summary": "Phase 1b frontend implementation plan for the Import Review flow: design tokens and shared Badge component, API contract types and fetch wrapper, UploadForm, ParsingIndicator/ImportError/ImportConfirmed states, the confidence/plan-type ReviewTable with override inputs, the ImportFlow orchestrator, and backend CORS plus dev seed wiring into App.tsx.",
+      "tags": ["documentation", "implementation-plan", "cas-import", "frontend", "planning"],
+      "complexity": "complex"
+    },
+    {
+      "id": "document:Docs/superpowers/plans/2026-08-05-phase-2-auth-onboarding-backend.md",
+      "type": "document",
+      "name": "2026-08-05-phase-2-auth-onboarding-backend.md",
+      "filePath": "Docs/superpowers/plans/2026-08-05-phase-2-auth-onboarding-backend.md",
+      "summary": "Phase 2 backend implementation plan for Auth + Onboarding: phone+OTP request/verify service logic, session creation and the current-user dependency, auth API routes, and the household-member service plus Dashboard API routes.",
+      "tags": ["documentation", "implementation-plan", "auth", "onboarding", "backend"],
+      "complexity": "complex"
+    },
+    {
+      "id": "document:Docs/superpowers/plans/2026-08-06-phase-2b-onboarding-frontend.md",
+      "type": "document",
+      "name": "2026-08-06-phase-2b-onboarding-frontend.md",
+      "filePath": "Docs/superpowers/plans/2026-08-06-phase-2b-onboarding-frontend.md",
+      "summary": "Phase 2b onboarding frontend implementation plan covering the shared API client and real-auth wiring, session token store, AuthContext, the back-navigable onboarding step reducer, Landing/Phone Entry/OTP Verify, the OnboardingFlow with Trust Primer and Q1-Q4, Add Family Members, Solo and Family CAS Upload subsystems, and the DashboardPlaceholder plus App.tsx composition root.",
+      "tags": ["documentation", "implementation-plan", "onboarding", "frontend", "planning"],
+      "complexity": "complex"
+    },
+    {
+      "id": "document:Docs/superpowers/plans/2026-08-06-phase-3-main-dashboard-backend.md",
+      "type": "document",
+      "name": "2026-08-06-phase-3-main-dashboard-backend.md",
+      "filePath": "Docs/superpowers/plans/2026-08-06-phase-3-main-dashboard-backend.md",
+      "summary": "Phase 3 Main Dashboard backend implementation plan: on-demand NAV fetch-and-cache, the FIFO holdings engine, allocation summary, active-SIP detection, investment cash flow, monthly value snapshots, and placeholder-aware family aggregation across five aggregate routes.",
+      "tags": ["documentation", "implementation-plan", "dashboard", "backend", "planning"],
+      "complexity": "complex"
+    },
+    {
+      "id": "document:Docs/superpowers/plans/2026-08-06-transaction-dedupe-type-migration.md",
+      "type": "document",
+      "name": "2026-08-06-transaction-dedupe-type-migration.md",
+      "filePath": "Docs/superpowers/plans/2026-08-06-transaction-dedupe-type-migration.md",
+      "summary": "Implementation plan for widening the transactions table's dedupe key to include transaction type via migration 0002, plus the matching widening of confirm_import's dedupe check, fixing a same-day purchase+redemption collision bug found during Phase 3 review.",
+      "tags": ["documentation", "implementation-plan", "migration", "bug-fix", "database"],
+      "complexity": "complex"
+    },
+    {
+      "id": "document:Docs/superpowers/plans/2026-08-07-distributor-comparison.md",
+      "type": "document",
+      "name": "2026-08-07-distributor-comparison.md",
+      "filePath": "Docs/superpowers/plans/2026-08-07-distributor-comparison.md",
+      "summary": "Implementation plan for the Distributor Comparison feature (PRD-03 FR-11): an AMFI ARN lookup client with arn_directory caching, per-distributor FIFO comparison computation, and the API route exposing it.",
+      "tags": ["documentation", "implementation-plan", "distributor-comparison", "backend", "planning"],
+      "complexity": "complex"
+    }
+  ],
+  "edges": [
+    {
+      "source": "document:Docs/superpowers/plans/2026-08-04-phase-0-foundation.md",
+      "target": "document:Docs/superpowers/plans/2026-08-04-phase-1-cas-import-backend.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:Docs/superpowers/plans/2026-08-04-phase-1-cas-import-backend.md",
+      "target": "document:Docs/superpowers/plans/2026-08-05-phase-1b-import-review-frontend.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:Docs/superpowers/plans/2026-08-05-phase-1b-import-review-frontend.md",
+      "target": "document:Docs/superpowers/plans/2026-08-05-phase-2-auth-onboarding-backend.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:Docs/superpowers/plans/2026-08-05-phase-2-auth-onboarding-backend.md",
+      "target": "document:Docs/superpowers/plans/2026-08-06-phase-2b-onboarding-frontend.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:Docs/superpowers/plans/2026-08-06-phase-2b-onboarding-frontend.md",
+      "target": "document:Docs/superpowers/plans/2026-08-06-phase-3-main-dashboard-backend.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:Docs/superpowers/plans/2026-08-06-phase-3-main-dashboard-backend.md",
+      "target": "document:Docs/superpowers/plans/2026-08-06-transaction-dedupe-type-migration.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:Docs/superpowers/plans/2026-08-06-transaction-dedupe-type-migration.md",
+      "target": "document:Docs/superpowers/plans/2026-08-07-distributor-comparison.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    }
+  ]
+}

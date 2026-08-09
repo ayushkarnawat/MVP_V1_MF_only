@@ -1,0 +1,1558 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 18,
+  "filesSkipped": [
+    "frontend/src/features/analytics/.gitkeep",
+    "frontend/src/features/auth/.gitkeep",
+    "frontend/src/features/auth/onboarding.module.css",
+    "frontend/src/features/dashboard/.gitkeep",
+    "frontend/src/features/import/.gitkeep",
+    "frontend/src/index.css",
+    "frontend/src/styles/tokens.css"
+  ],
+  "analysisOutcomes": {
+    "structure": {
+      "succeeded": 18,
+      "failed": 0
+    },
+    "callGraph": {
+      "succeeded": 18,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "results": [
+    {
+      "path": "backend/tests/api/test_dashboard_holdings_route.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 31,
+      "nonEmptyLines": 22,
+      "functions": [
+        {
+          "name": "_authed_headers_and_member",
+          "startLine": 6,
+          "endLine": 11,
+          "params": [
+            "client",
+            "phone"
+          ]
+        },
+        {
+          "name": "test_holdings_route_requires_auth",
+          "startLine": 14,
+          "endLine": 16,
+          "params": [
+            "client"
+          ]
+        },
+        {
+          "name": "test_holdings_route_404s_for_another_users_member",
+          "startLine": 19,
+          "endLine": 24,
+          "params": [
+            "client"
+          ]
+        },
+        {
+          "name": "test_holdings_route_returns_empty_list_for_member_with_no_folios",
+          "startLine": 27,
+          "endLine": 31,
+          "params": [
+            "client"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "_authed_headers_and_member",
+          "line": 6,
+          "isDefault": false
+        },
+        {
+          "name": "test_holdings_route_requires_auth",
+          "line": 14,
+          "isDefault": false
+        },
+        {
+          "name": "test_holdings_route_404s_for_another_users_member",
+          "line": 19,
+          "isDefault": false
+        },
+        {
+          "name": "test_holdings_route_returns_empty_list_for_member_with_no_folios",
+          "line": 27,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "client.post(\"/auth/otp/request\", json={\"phone_number\": phone}).json",
+          "lineNumber": 7
+        },
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "client.post",
+          "lineNumber": 7
+        },
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "client.post(\"/auth/otp/verify\", json={\"phone_number\": phone, \"otp\": otp}).json",
+          "lineNumber": 8
+        },
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "client.post",
+          "lineNumber": 8
+        },
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "client.post(\"/household-members\", json={\"name\": \"Self\", \"relationship\": \"self\"}, headers=headers).json",
+          "lineNumber": 10
+        },
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "client.post",
+          "lineNumber": 10
+        },
+        {
+          "caller": "test_holdings_route_requires_auth",
+          "callee": "client.get",
+          "lineNumber": 15
+        },
+        {
+          "caller": "test_holdings_route_404s_for_another_users_member",
+          "callee": "_authed_headers_and_member",
+          "lineNumber": 20
+        },
+        {
+          "caller": "test_holdings_route_404s_for_another_users_member",
+          "callee": "_authed_headers_and_member",
+          "lineNumber": 21
+        },
+        {
+          "caller": "test_holdings_route_404s_for_another_users_member",
+          "callee": "client.get",
+          "lineNumber": 23
+        },
+        {
+          "caller": "test_holdings_route_returns_empty_list_for_member_with_no_folios",
+          "callee": "_authed_headers_and_member",
+          "lineNumber": 28
+        },
+        {
+          "caller": "test_holdings_route_returns_empty_list_for_member_with_no_folios",
+          "callee": "client.get",
+          "lineNumber": 29
+        },
+        {
+          "caller": "test_holdings_route_returns_empty_list_for_member_with_no_folios",
+          "callee": "response.json",
+          "lineNumber": 31
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 4,
+        "functionCount": 4,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/tests/api/test_dashboard_routes.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 33,
+      "nonEmptyLines": 23,
+      "functions": [
+        {
+          "name": "_authed_headers",
+          "startLine": 1,
+          "endLine": 4,
+          "params": [
+            "client",
+            "phone"
+          ]
+        },
+        {
+          "name": "test_household_members_requires_auth",
+          "startLine": 7,
+          "endLine": 9,
+          "params": [
+            "client"
+          ]
+        },
+        {
+          "name": "test_create_and_list_household_member",
+          "startLine": 12,
+          "endLine": 23,
+          "params": [
+            "client"
+          ]
+        },
+        {
+          "name": "test_household_members_scoped_per_user",
+          "startLine": 26,
+          "endLine": 33,
+          "params": [
+            "client"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "_authed_headers",
+          "line": 1,
+          "isDefault": false
+        },
+        {
+          "name": "test_household_members_requires_auth",
+          "line": 7,
+          "isDefault": false
+        },
+        {
+          "name": "test_create_and_list_household_member",
+          "line": 12,
+          "isDefault": false
+        },
+        {
+          "name": "test_household_members_scoped_per_user",
+          "line": 26,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "_authed_headers",
+          "callee": "client.post(\"/auth/otp/request\", json={\"phone_number\": phone}).json",
+          "lineNumber": 2
+        },
+        {
+          "caller": "_authed_headers",
+          "callee": "client.post",
+          "lineNumber": 2
+        },
+        {
+          "caller": "_authed_headers",
+          "callee": "client.post(\"/auth/otp/verify\", json={\"phone_number\": phone, \"otp\": otp}).json",
+          "lineNumber": 3
+        },
+        {
+          "caller": "_authed_headers",
+          "callee": "client.post",
+          "lineNumber": 3
+        },
+        {
+          "caller": "test_household_members_requires_auth",
+          "callee": "client.get",
+          "lineNumber": 8
+        },
+        {
+          "caller": "test_create_and_list_household_member",
+          "callee": "_authed_headers",
+          "lineNumber": 13
+        },
+        {
+          "caller": "test_create_and_list_household_member",
+          "callee": "client.post",
+          "lineNumber": 15
+        },
+        {
+          "caller": "test_create_and_list_household_member",
+          "callee": "create_resp.json",
+          "lineNumber": 19
+        },
+        {
+          "caller": "test_create_and_list_household_member",
+          "callee": "client.get",
+          "lineNumber": 21
+        },
+        {
+          "caller": "test_create_and_list_household_member",
+          "callee": "list_resp.json",
+          "lineNumber": 23
+        },
+        {
+          "caller": "test_household_members_scoped_per_user",
+          "callee": "_authed_headers",
+          "lineNumber": 27
+        },
+        {
+          "caller": "test_household_members_scoped_per_user",
+          "callee": "_authed_headers",
+          "lineNumber": 28
+        },
+        {
+          "caller": "test_household_members_scoped_per_user",
+          "callee": "client.post",
+          "lineNumber": 29
+        },
+        {
+          "caller": "test_household_members_scoped_per_user",
+          "callee": "client.get",
+          "lineNumber": 31
+        },
+        {
+          "caller": "test_household_members_scoped_per_user",
+          "callee": "response.json",
+          "lineNumber": 33
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 4,
+        "functionCount": 4,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/tests/api/test_dashboard_sips_route.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 18,
+      "nonEmptyLines": 14,
+      "functions": [
+        {
+          "name": "_authed_headers_and_member",
+          "startLine": 1,
+          "endLine": 6,
+          "params": [
+            "client",
+            "phone"
+          ]
+        },
+        {
+          "name": "test_sips_route_requires_auth",
+          "startLine": 9,
+          "endLine": 11,
+          "params": [
+            "client"
+          ]
+        },
+        {
+          "name": "test_sips_route_returns_empty_list_for_member_with_no_sips",
+          "startLine": 14,
+          "endLine": 18,
+          "params": [
+            "client"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "_authed_headers_and_member",
+          "line": 1,
+          "isDefault": false
+        },
+        {
+          "name": "test_sips_route_requires_auth",
+          "line": 9,
+          "isDefault": false
+        },
+        {
+          "name": "test_sips_route_returns_empty_list_for_member_with_no_sips",
+          "line": 14,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "client.post(\"/auth/otp/request\", json={\"phone_number\": phone}).json",
+          "lineNumber": 2
+        },
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "client.post",
+          "lineNumber": 2
+        },
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "client.post(\"/auth/otp/verify\", json={\"phone_number\": phone, \"otp\": otp}).json",
+          "lineNumber": 3
+        },
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "client.post",
+          "lineNumber": 3
+        },
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "client.post(\"/household-members\", json={\"name\": \"Self\", \"relationship\": \"self\"}, headers=headers).json",
+          "lineNumber": 5
+        },
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "client.post",
+          "lineNumber": 5
+        },
+        {
+          "caller": "test_sips_route_requires_auth",
+          "callee": "client.get",
+          "lineNumber": 10
+        },
+        {
+          "caller": "test_sips_route_returns_empty_list_for_member_with_no_sips",
+          "callee": "_authed_headers_and_member",
+          "lineNumber": 15
+        },
+        {
+          "caller": "test_sips_route_returns_empty_list_for_member_with_no_sips",
+          "callee": "client.get",
+          "lineNumber": 16
+        },
+        {
+          "caller": "test_sips_route_returns_empty_list_for_member_with_no_sips",
+          "callee": "response.json",
+          "lineNumber": 18
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 3,
+        "functionCount": 3,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/tests/api/test_dashboard_snapshots_route.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 18,
+      "nonEmptyLines": 14,
+      "functions": [
+        {
+          "name": "_authed_headers_and_member",
+          "startLine": 1,
+          "endLine": 6,
+          "params": [
+            "client",
+            "phone"
+          ]
+        },
+        {
+          "name": "test_snapshots_route_requires_auth",
+          "startLine": 9,
+          "endLine": 11,
+          "params": [
+            "client"
+          ]
+        },
+        {
+          "name": "test_snapshots_route_returns_empty_list_for_member_with_no_transactions",
+          "startLine": 14,
+          "endLine": 18,
+          "params": [
+            "client"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "_authed_headers_and_member",
+          "line": 1,
+          "isDefault": false
+        },
+        {
+          "name": "test_snapshots_route_requires_auth",
+          "line": 9,
+          "isDefault": false
+        },
+        {
+          "name": "test_snapshots_route_returns_empty_list_for_member_with_no_transactions",
+          "line": 14,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "client.post(\"/auth/otp/request\", json={\"phone_number\": phone}).json",
+          "lineNumber": 2
+        },
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "client.post",
+          "lineNumber": 2
+        },
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "client.post(\"/auth/otp/verify\", json={\"phone_number\": phone, \"otp\": otp}).json",
+          "lineNumber": 3
+        },
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "client.post",
+          "lineNumber": 3
+        },
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "client.post(\"/household-members\", json={\"name\": \"Self\", \"relationship\": \"self\"}, headers=headers).json",
+          "lineNumber": 5
+        },
+        {
+          "caller": "_authed_headers_and_member",
+          "callee": "client.post",
+          "lineNumber": 5
+        },
+        {
+          "caller": "test_snapshots_route_requires_auth",
+          "callee": "client.get",
+          "lineNumber": 10
+        },
+        {
+          "caller": "test_snapshots_route_returns_empty_list_for_member_with_no_transactions",
+          "callee": "_authed_headers_and_member",
+          "lineNumber": 15
+        },
+        {
+          "caller": "test_snapshots_route_returns_empty_list_for_member_with_no_transactions",
+          "callee": "client.get",
+          "lineNumber": 16
+        },
+        {
+          "caller": "test_snapshots_route_returns_empty_list_for_member_with_no_transactions",
+          "callee": "response.json",
+          "lineNumber": 18
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 3,
+        "functionCount": 3,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/tests/conftest.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 43,
+      "nonEmptyLines": 34,
+      "functions": [
+        {
+          "name": "pytest_collection_modifyitems",
+          "startLine": 12,
+          "endLine": 15,
+          "params": [
+            "config",
+            "items"
+          ]
+        },
+        {
+          "name": "client",
+          "startLine": 19,
+          "endLine": 43,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "pytest_collection_modifyitems",
+          "line": 12,
+          "isDefault": false
+        },
+        {
+          "name": "client",
+          "line": 18,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "pytest_collection_modifyitems",
+          "callee": "str",
+          "lineNumber": 14
+        },
+        {
+          "caller": "pytest_collection_modifyitems",
+          "callee": "item.add_marker",
+          "lineNumber": 15
+        },
+        {
+          "caller": "client",
+          "callee": "create_engine",
+          "lineNumber": 28
+        },
+        {
+          "caller": "client",
+          "callee": "Base.metadata.create_all",
+          "lineNumber": 31
+        },
+        {
+          "caller": "client",
+          "callee": "sessionmaker",
+          "lineNumber": 32
+        },
+        {
+          "caller": "override_get_db",
+          "callee": "TestSessionLocal",
+          "lineNumber": 35
+        },
+        {
+          "caller": "override_get_db",
+          "callee": "db.close",
+          "lineNumber": 39
+        },
+        {
+          "caller": "client",
+          "callee": "TestClient",
+          "lineNumber": 42
+        },
+        {
+          "caller": "client",
+          "callee": "app.dependency_overrides.pop",
+          "lineNumber": 43
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 2,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/tests/core/__init__.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 1,
+      "nonEmptyLines": 0,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/tests/functional_postgres/__init__.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 1,
+      "nonEmptyLines": 0,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/tests/functional_postgres/test_partitioning.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 107,
+      "nonEmptyLines": 91,
+      "functions": [
+        {
+          "name": "postgres_url",
+          "startLine": 15,
+          "endLine": 19,
+          "params": []
+        },
+        {
+          "name": "test_transactions_and_nav_history_are_partitioned",
+          "startLine": 22,
+          "endLine": 41,
+          "params": [
+            "postgres_url",
+            "monkeypatch"
+          ]
+        },
+        {
+          "name": "test_transaction_orm_insert_round_trips_on_partitioned_table",
+          "startLine": 44,
+          "endLine": 107,
+          "params": [
+            "postgres_url",
+            "monkeypatch"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "postgres_url",
+          "line": 14,
+          "isDefault": false
+        },
+        {
+          "name": "test_transactions_and_nav_history_are_partitioned",
+          "line": 22,
+          "isDefault": false
+        },
+        {
+          "name": "test_transaction_orm_insert_round_trips_on_partitioned_table",
+          "line": 44,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "postgres_url",
+          "callee": "os.environ.get",
+          "lineNumber": 16
+        },
+        {
+          "caller": "postgres_url",
+          "callee": "pytest.skip",
+          "lineNumber": 18
+        },
+        {
+          "caller": "test_transactions_and_nav_history_are_partitioned",
+          "callee": "monkeypatch.setenv",
+          "lineNumber": 23
+        },
+        {
+          "caller": "test_transactions_and_nav_history_are_partitioned",
+          "callee": "subprocess.run",
+          "lineNumber": 24
+        },
+        {
+          "caller": "test_transactions_and_nav_history_are_partitioned",
+          "callee": "subprocess.run",
+          "lineNumber": 28
+        },
+        {
+          "caller": "test_transactions_and_nav_history_are_partitioned",
+          "callee": "psycopg2.connect",
+          "lineNumber": 34
+        },
+        {
+          "caller": "test_transactions_and_nav_history_are_partitioned",
+          "callee": "conn.cursor",
+          "lineNumber": 35
+        },
+        {
+          "caller": "test_transactions_and_nav_history_are_partitioned",
+          "callee": "cur.execute",
+          "lineNumber": 36
+        },
+        {
+          "caller": "test_transactions_and_nav_history_are_partitioned",
+          "callee": "cur.fetchall",
+          "lineNumber": 39
+        },
+        {
+          "caller": "test_transactions_and_nav_history_are_partitioned",
+          "callee": "conn.close",
+          "lineNumber": 40
+        },
+        {
+          "caller": "test_transactions_and_nav_history_are_partitioned",
+          "callee": "{\"transactions\", \"nav_history\"}.issubset",
+          "lineNumber": 41
+        },
+        {
+          "caller": "test_transaction_orm_insert_round_trips_on_partitioned_table",
+          "callee": "monkeypatch.setenv",
+          "lineNumber": 61
+        },
+        {
+          "caller": "test_transaction_orm_insert_round_trips_on_partitioned_table",
+          "callee": "subprocess.run",
+          "lineNumber": 62
+        },
+        {
+          "caller": "test_transaction_orm_insert_round_trips_on_partitioned_table",
+          "callee": "subprocess.run",
+          "lineNumber": 66
+        },
+        {
+          "caller": "test_transaction_orm_insert_round_trips_on_partitioned_table",
+          "callee": "datetime.now",
+          "lineNumber": 72
+        },
+        {
+          "caller": "test_transaction_orm_insert_round_trips_on_partitioned_table",
+          "callee": "sessionmaker",
+          "lineNumber": 73
+        },
+        {
+          "caller": "test_transaction_orm_insert_round_trips_on_partitioned_table",
+          "callee": "create_engine",
+          "lineNumber": 73
+        },
+        {
+          "caller": "test_transaction_orm_insert_round_trips_on_partitioned_table",
+          "callee": "User",
+          "lineNumber": 74
+        },
+        {
+          "caller": "test_transaction_orm_insert_round_trips_on_partitioned_table",
+          "callee": "uuid.uuid4",
+          "lineNumber": 74
+        },
+        {
+          "caller": "test_transaction_orm_insert_round_trips_on_partitioned_table",
+          "callee": "HouseholdMember",
+          "lineNumber": 75
+        },
+        {
+          "caller": "test_transaction_orm_insert_round_trips_on_partitioned_table",
+          "callee": "uuid.uuid4",
+          "lineNumber": 76
+        },
+        {
+          "caller": "test_transaction_orm_insert_round_trips_on_partitioned_table",
+          "callee": "Scheme",
+          "lineNumber": 79
+        },
+        {
+          "caller": "test_transaction_orm_insert_round_trips_on_partitioned_table",
+          "callee": "uuid.uuid4",
+          "lineNumber": 80
+        },
+        {
+          "caller": "test_transaction_orm_insert_round_trips_on_partitioned_table",
+          "callee": "Folio",
+          "lineNumber": 83
+        },
+        {
+          "caller": "test_transaction_orm_insert_round_trips_on_partitioned_table",
+          "callee": "uuid.uuid4",
+          "lineNumber": 84
+        },
+        {
+          "caller": "test_transaction_orm_insert_round_trips_on_partitioned_table",
+          "callee": "Import",
+          "lineNumber": 87
+        },
+        {
+          "caller": "test_transaction_orm_insert_round_trips_on_partitioned_table",
+          "callee": "uuid.uuid4",
+          "lineNumber": 88
+        },
+        {
+          "caller": "test_transaction_orm_insert_round_trips_on_partitioned_table",
+          "callee": "db.add_all",
+          "lineNumber": 92
+        },
+        {
+          "caller": "test_transaction_orm_insert_round_trips_on_partitioned_table",
+          "callee": "db.commit",
+          "lineNumber": 93
+        },
+        {
+          "caller": "test_transaction_orm_insert_round_trips_on_partitioned_table",
+          "callee": "uuid.uuid4",
+          "lineNumber": 95
+        },
+        {
+          "caller": "test_transaction_orm_insert_round_trips_on_partitioned_table",
+          "callee": "db.add",
+          "lineNumber": 96
+        },
+        {
+          "caller": "test_transaction_orm_insert_round_trips_on_partitioned_table",
+          "callee": "Transaction",
+          "lineNumber": 96
+        },
+        {
+          "caller": "test_transaction_orm_insert_round_trips_on_partitioned_table",
+          "callee": "date",
+          "lineNumber": 98
+        },
+        {
+          "caller": "test_transaction_orm_insert_round_trips_on_partitioned_table",
+          "callee": "Decimal",
+          "lineNumber": 99
+        },
+        {
+          "caller": "test_transaction_orm_insert_round_trips_on_partitioned_table",
+          "callee": "Decimal",
+          "lineNumber": 99
+        },
+        {
+          "caller": "test_transaction_orm_insert_round_trips_on_partitioned_table",
+          "callee": "Decimal",
+          "lineNumber": 99
+        },
+        {
+          "caller": "test_transaction_orm_insert_round_trips_on_partitioned_table",
+          "callee": "db.commit",
+          "lineNumber": 101
+        },
+        {
+          "caller": "test_transaction_orm_insert_round_trips_on_partitioned_table",
+          "callee": "db.expunge_all",
+          "lineNumber": 102
+        },
+        {
+          "caller": "test_transaction_orm_insert_round_trips_on_partitioned_table",
+          "callee": "db.get",
+          "lineNumber": 104
+        },
+        {
+          "caller": "test_transaction_orm_insert_round_trips_on_partitioned_table",
+          "callee": "date",
+          "lineNumber": 104
+        },
+        {
+          "caller": "test_transaction_orm_insert_round_trips_on_partitioned_table",
+          "callee": "Decimal",
+          "lineNumber": 106
+        },
+        {
+          "caller": "test_transaction_orm_insert_round_trips_on_partitioned_table",
+          "callee": "db.close",
+          "lineNumber": 107
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 3,
+        "functionCount": 3,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/tests/models/__init__.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 1,
+      "nonEmptyLines": 0,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/tests/services/__init__.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 1,
+      "nonEmptyLines": 0,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/tests/services/auth/__init__.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 1,
+      "nonEmptyLines": 0,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/tests/services/dashboard/__init__.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 1,
+      "nonEmptyLines": 0,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/tests/services/import_/__init__.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 1,
+      "nonEmptyLines": 0,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/tests/services/import_/test_enrich.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 101,
+      "nonEmptyLines": 79,
+      "functions": [
+        {
+          "name": "test_resolve_scheme_trusts_cas_amfi_code",
+          "startLine": 9,
+          "endLine": 14,
+          "params": [
+            "tmp_path"
+          ]
+        },
+        {
+          "name": "test_resolve_scheme_fuzzy_matches_when_no_cas_amfi_code",
+          "startLine": 17,
+          "endLine": 24,
+          "params": [
+            "tmp_path"
+          ]
+        },
+        {
+          "name": "test_resolve_scheme_low_confidence_is_pending",
+          "startLine": 27,
+          "endLine": 32,
+          "params": [
+            "tmp_path"
+          ]
+        },
+        {
+          "name": "test_get_scheme_category_happy_path",
+          "startLine": 35,
+          "endLine": 44,
+          "params": [
+            "tmp_path"
+          ]
+        },
+        {
+          "name": "test_get_scheme_category_missing_returns_none",
+          "startLine": 47,
+          "endLine": 53,
+          "params": [
+            "tmp_path"
+          ]
+        },
+        {
+          "name": "test_resolve_scheme_degrades_gracefully_on_mfapi_outage",
+          "startLine": 56,
+          "endLine": 64,
+          "params": [
+            "tmp_path"
+          ]
+        },
+        {
+          "name": "test_get_scheme_category_degrades_gracefully_on_mfapi_outage",
+          "startLine": 67,
+          "endLine": 73,
+          "params": [
+            "tmp_path"
+          ]
+        },
+        {
+          "name": "test_disk_cache_read_write_for_scheme_category",
+          "startLine": 76,
+          "endLine": 101,
+          "params": [
+            "tmp_path"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "test_resolve_scheme_trusts_cas_amfi_code",
+          "line": 9,
+          "isDefault": false
+        },
+        {
+          "name": "test_resolve_scheme_fuzzy_matches_when_no_cas_amfi_code",
+          "line": 17,
+          "isDefault": false
+        },
+        {
+          "name": "test_resolve_scheme_low_confidence_is_pending",
+          "line": 27,
+          "isDefault": false
+        },
+        {
+          "name": "test_get_scheme_category_happy_path",
+          "line": 35,
+          "isDefault": false
+        },
+        {
+          "name": "test_get_scheme_category_missing_returns_none",
+          "line": 47,
+          "isDefault": false
+        },
+        {
+          "name": "test_resolve_scheme_degrades_gracefully_on_mfapi_outage",
+          "line": 56,
+          "isDefault": false
+        },
+        {
+          "name": "test_get_scheme_category_degrades_gracefully_on_mfapi_outage",
+          "line": 67,
+          "isDefault": false
+        },
+        {
+          "name": "test_disk_cache_read_write_for_scheme_category",
+          "line": 76,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "test_resolve_scheme_trusts_cas_amfi_code",
+          "callee": "MfApiClient",
+          "lineNumber": 10
+        },
+        {
+          "caller": "test_resolve_scheme_trusts_cas_amfi_code",
+          "callee": "asyncio.run",
+          "lineNumber": 11
+        },
+        {
+          "caller": "test_resolve_scheme_trusts_cas_amfi_code",
+          "callee": "client.resolve_scheme",
+          "lineNumber": 11
+        },
+        {
+          "caller": "test_resolve_scheme_fuzzy_matches_when_no_cas_amfi_code",
+          "callee": "MfApiClient",
+          "lineNumber": 18
+        },
+        {
+          "caller": "test_resolve_scheme_fuzzy_matches_when_no_cas_amfi_code",
+          "callee": "patch.object",
+          "lineNumber": 20
+        },
+        {
+          "caller": "test_resolve_scheme_fuzzy_matches_when_no_cas_amfi_code",
+          "callee": "AsyncMock",
+          "lineNumber": 20
+        },
+        {
+          "caller": "test_resolve_scheme_fuzzy_matches_when_no_cas_amfi_code",
+          "callee": "asyncio.run",
+          "lineNumber": 21
+        },
+        {
+          "caller": "test_resolve_scheme_fuzzy_matches_when_no_cas_amfi_code",
+          "callee": "client.resolve_scheme",
+          "lineNumber": 21
+        },
+        {
+          "caller": "test_resolve_scheme_low_confidence_is_pending",
+          "callee": "MfApiClient",
+          "lineNumber": 28
+        },
+        {
+          "caller": "test_resolve_scheme_low_confidence_is_pending",
+          "callee": "patch.object",
+          "lineNumber": 30
+        },
+        {
+          "caller": "test_resolve_scheme_low_confidence_is_pending",
+          "callee": "AsyncMock",
+          "lineNumber": 30
+        },
+        {
+          "caller": "test_resolve_scheme_low_confidence_is_pending",
+          "callee": "asyncio.run",
+          "lineNumber": 31
+        },
+        {
+          "caller": "test_resolve_scheme_low_confidence_is_pending",
+          "callee": "client.resolve_scheme",
+          "lineNumber": 31
+        },
+        {
+          "caller": "test_get_scheme_category_happy_path",
+          "callee": "MfApiClient",
+          "lineNumber": 37
+        },
+        {
+          "caller": "test_get_scheme_category_happy_path",
+          "callee": "patch.object",
+          "lineNumber": 42
+        },
+        {
+          "caller": "test_get_scheme_category_happy_path",
+          "callee": "AsyncMock",
+          "lineNumber": 42
+        },
+        {
+          "caller": "test_get_scheme_category_happy_path",
+          "callee": "asyncio.run",
+          "lineNumber": 43
+        },
+        {
+          "caller": "test_get_scheme_category_happy_path",
+          "callee": "client.get_scheme_category",
+          "lineNumber": 43
+        },
+        {
+          "caller": "test_get_scheme_category_missing_returns_none",
+          "callee": "MfApiClient",
+          "lineNumber": 49
+        },
+        {
+          "caller": "test_get_scheme_category_missing_returns_none",
+          "callee": "patch.object",
+          "lineNumber": 51
+        },
+        {
+          "caller": "test_get_scheme_category_missing_returns_none",
+          "callee": "AsyncMock",
+          "lineNumber": 51
+        },
+        {
+          "caller": "test_get_scheme_category_missing_returns_none",
+          "callee": "asyncio.run",
+          "lineNumber": 52
+        },
+        {
+          "caller": "test_get_scheme_category_missing_returns_none",
+          "callee": "client.get_scheme_category",
+          "lineNumber": 52
+        },
+        {
+          "caller": "test_resolve_scheme_degrades_gracefully_on_mfapi_outage",
+          "callee": "MfApiClient",
+          "lineNumber": 60
+        },
+        {
+          "caller": "test_resolve_scheme_degrades_gracefully_on_mfapi_outage",
+          "callee": "patch.object",
+          "lineNumber": 61
+        },
+        {
+          "caller": "test_resolve_scheme_degrades_gracefully_on_mfapi_outage",
+          "callee": "AsyncMock",
+          "lineNumber": 61
+        },
+        {
+          "caller": "test_resolve_scheme_degrades_gracefully_on_mfapi_outage",
+          "callee": "httpx.ConnectError",
+          "lineNumber": 61
+        },
+        {
+          "caller": "test_resolve_scheme_degrades_gracefully_on_mfapi_outage",
+          "callee": "asyncio.run",
+          "lineNumber": 62
+        },
+        {
+          "caller": "test_resolve_scheme_degrades_gracefully_on_mfapi_outage",
+          "callee": "client.resolve_scheme",
+          "lineNumber": 62
+        },
+        {
+          "caller": "test_get_scheme_category_degrades_gracefully_on_mfapi_outage",
+          "callee": "MfApiClient",
+          "lineNumber": 70
+        },
+        {
+          "caller": "test_get_scheme_category_degrades_gracefully_on_mfapi_outage",
+          "callee": "patch.object",
+          "lineNumber": 71
+        },
+        {
+          "caller": "test_get_scheme_category_degrades_gracefully_on_mfapi_outage",
+          "callee": "AsyncMock",
+          "lineNumber": 71
+        },
+        {
+          "caller": "test_get_scheme_category_degrades_gracefully_on_mfapi_outage",
+          "callee": "httpx.ConnectError",
+          "lineNumber": 71
+        },
+        {
+          "caller": "test_get_scheme_category_degrades_gracefully_on_mfapi_outage",
+          "callee": "asyncio.run",
+          "lineNumber": 72
+        },
+        {
+          "caller": "test_get_scheme_category_degrades_gracefully_on_mfapi_outage",
+          "callee": "client.get_scheme_category",
+          "lineNumber": 72
+        },
+        {
+          "caller": "test_disk_cache_read_write_for_scheme_category",
+          "callee": "MfApiClient",
+          "lineNumber": 78
+        },
+        {
+          "caller": "test_disk_cache_read_write_for_scheme_category",
+          "callee": "AsyncMock",
+          "lineNumber": 83
+        },
+        {
+          "caller": "test_disk_cache_read_write_for_scheme_category",
+          "callee": "patch.object",
+          "lineNumber": 85
+        },
+        {
+          "caller": "test_disk_cache_read_write_for_scheme_category",
+          "callee": "asyncio.run",
+          "lineNumber": 87
+        },
+        {
+          "caller": "test_disk_cache_read_write_for_scheme_category",
+          "callee": "client.get_scheme_category",
+          "lineNumber": 87
+        },
+        {
+          "caller": "test_disk_cache_read_write_for_scheme_category",
+          "callee": "cache_file.exists",
+          "lineNumber": 93
+        },
+        {
+          "caller": "test_disk_cache_read_write_for_scheme_category",
+          "callee": "mock_get_json.reset_mock",
+          "lineNumber": 96
+        },
+        {
+          "caller": "test_disk_cache_read_write_for_scheme_category",
+          "callee": "asyncio.run",
+          "lineNumber": 99
+        },
+        {
+          "caller": "test_disk_cache_read_write_for_scheme_category",
+          "callee": "client.get_scheme_category",
+          "lineNumber": 99
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 8,
+        "functionCount": 8,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/tests/test_migrations.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 102,
+      "nonEmptyLines": 80,
+      "functions": [
+        {
+          "name": "test_alembic_upgrade_and_downgrade_round_trip",
+          "startLine": 8,
+          "endLine": 22,
+          "params": [
+            "tmp_path",
+            "monkeypatch"
+          ]
+        },
+        {
+          "name": "test_alembic_upgrade_creates_all_tables",
+          "startLine": 25,
+          "endLine": 45,
+          "params": [
+            "tmp_path",
+            "monkeypatch"
+          ]
+        },
+        {
+          "name": "test_transaction_dedupe_constraint_includes_type_after_upgrade",
+          "startLine": 48,
+          "endLine": 82,
+          "params": [
+            "tmp_path",
+            "monkeypatch"
+          ]
+        },
+        {
+          "name": "test_alembic_handles_percent_in_database_url",
+          "startLine": 85,
+          "endLine": 102,
+          "params": [
+            "tmp_path",
+            "monkeypatch"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "test_alembic_upgrade_and_downgrade_round_trip",
+          "line": 8,
+          "isDefault": false
+        },
+        {
+          "name": "test_alembic_upgrade_creates_all_tables",
+          "line": 25,
+          "isDefault": false
+        },
+        {
+          "name": "test_transaction_dedupe_constraint_includes_type_after_upgrade",
+          "line": 48,
+          "isDefault": false
+        },
+        {
+          "name": "test_alembic_handles_percent_in_database_url",
+          "line": 85,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "test_alembic_upgrade_and_downgrade_round_trip",
+          "callee": "monkeypatch.setenv",
+          "lineNumber": 10
+        },
+        {
+          "caller": "test_alembic_upgrade_and_downgrade_round_trip",
+          "callee": "subprocess.run",
+          "lineNumber": 12
+        },
+        {
+          "caller": "test_alembic_upgrade_and_downgrade_round_trip",
+          "callee": "subprocess.run",
+          "lineNumber": 18
+        },
+        {
+          "caller": "test_alembic_upgrade_creates_all_tables",
+          "callee": "monkeypatch.setenv",
+          "lineNumber": 29
+        },
+        {
+          "caller": "test_alembic_upgrade_creates_all_tables",
+          "callee": "subprocess.run",
+          "lineNumber": 31
+        },
+        {
+          "caller": "test_alembic_upgrade_creates_all_tables",
+          "callee": "sqlite3.connect",
+          "lineNumber": 37
+        },
+        {
+          "caller": "test_alembic_upgrade_creates_all_tables",
+          "callee": "conn.execute",
+          "lineNumber": 38
+        },
+        {
+          "caller": "test_alembic_upgrade_creates_all_tables",
+          "callee": "expected.issubset",
+          "lineNumber": 45
+        },
+        {
+          "caller": "test_transaction_dedupe_constraint_includes_type_after_upgrade",
+          "callee": "monkeypatch.setenv",
+          "lineNumber": 52
+        },
+        {
+          "caller": "test_transaction_dedupe_constraint_includes_type_after_upgrade",
+          "callee": "subprocess.run",
+          "lineNumber": 54
+        },
+        {
+          "caller": "_unique_constraint_columns",
+          "callee": "conn.execute(\"PRAGMA index_list('transactions')\").fetchall",
+          "lineNumber": 61
+        },
+        {
+          "caller": "_unique_constraint_columns",
+          "callee": "conn.execute",
+          "lineNumber": 61
+        },
+        {
+          "caller": "_unique_constraint_columns",
+          "callee": "conn.execute(f\"PRAGMA index_info('{index_name}')\").fetchall",
+          "lineNumber": 67
+        },
+        {
+          "caller": "_unique_constraint_columns",
+          "callee": "conn.execute",
+          "lineNumber": 67
+        },
+        {
+          "caller": "_unique_constraint_columns",
+          "callee": "set",
+          "lineNumber": 68
+        },
+        {
+          "caller": "test_transaction_dedupe_constraint_includes_type_after_upgrade",
+          "callee": "sqlite3.connect",
+          "lineNumber": 70
+        },
+        {
+          "caller": "test_transaction_dedupe_constraint_includes_type_after_upgrade",
+          "callee": "_unique_constraint_columns",
+          "lineNumber": 71
+        },
+        {
+          "caller": "test_transaction_dedupe_constraint_includes_type_after_upgrade",
+          "callee": "conn.close",
+          "lineNumber": 72
+        },
+        {
+          "caller": "test_transaction_dedupe_constraint_includes_type_after_upgrade",
+          "callee": "subprocess.run",
+          "lineNumber": 74
+        },
+        {
+          "caller": "test_transaction_dedupe_constraint_includes_type_after_upgrade",
+          "callee": "sqlite3.connect",
+          "lineNumber": 80
+        },
+        {
+          "caller": "test_transaction_dedupe_constraint_includes_type_after_upgrade",
+          "callee": "_unique_constraint_columns",
+          "lineNumber": 81
+        },
+        {
+          "caller": "test_transaction_dedupe_constraint_includes_type_after_upgrade",
+          "callee": "conn.close",
+          "lineNumber": 82
+        },
+        {
+          "caller": "test_alembic_handles_percent_in_database_url",
+          "callee": "monkeypatch.setenv",
+          "lineNumber": 89
+        },
+        {
+          "caller": "test_alembic_handles_percent_in_database_url",
+          "callee": "subprocess.run",
+          "lineNumber": 91
+        },
+        {
+          "caller": "test_alembic_handles_percent_in_database_url",
+          "callee": "subprocess.run",
+          "lineNumber": 98
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 4,
+        "functionCount": 4,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/setupTests.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 18,
+      "nonEmptyLines": 17,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/vite.config.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 7,
+      "nonEmptyLines": 6,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/vitest.config.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 9,
+      "nonEmptyLines": 8,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    }
+  ]
+}
