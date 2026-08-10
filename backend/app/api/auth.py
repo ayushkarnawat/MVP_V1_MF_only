@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session as DbSession
 
-from app.db.session import get_db
+from app.db.session import get_db #dependency for database session
 from app.models.auth import Session as SessionModel
 from app.models.user import User
 from app.services.auth.otp import OtpVerificationError, create_otp_request, verify_otp
@@ -15,12 +15,12 @@ from app.services.auth.schemas import (
     OtpVerifyResponse,
     SessionRefreshResponse,
     UpdateMeBody,
-)
+) #to validate api requests
 from app.services.auth.session import create_session, get_current_session, get_current_user, refresh_session
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-
+#otp authentication
 @router.post("/otp/request", response_model=OtpRequestResponse)
 def request_otp(body: OtpRequestBody, db: DbSession = Depends(get_db)):
     _, raw_otp = create_otp_request(db, body.phone_number)
@@ -50,7 +50,7 @@ def verify_otp_route(body: OtpVerifyBody, db: DbSession = Depends(get_db)):
         onboarding_completed=user.onboarding_completed_at is not None,
     )
 
-
+#session management
 @router.post("/session/refresh", response_model=SessionRefreshResponse)
 def refresh_session_route(
     session: SessionModel = Depends(get_current_session),
@@ -59,7 +59,7 @@ def refresh_session_route(
     refreshed = refresh_session(db, session)
     return SessionRefreshResponse(expires_at=refreshed.expires_at.isoformat())
 
-
+#current user endpoints
 def _me_response(user: User) -> MeResponse:
     return MeResponse(
         user_id=str(user.id),

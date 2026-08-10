@@ -7,13 +7,13 @@ from app.db.session import get_db
 from app.models.user import User
 from app.services.auth.session import get_current_user
 from app.services.dashboard.household_members import get_household_member_for_user
-from app.services.import_.parser import ParseError, parse_cas_pdf_bytes
+from app.services.import_.parser import ParseError, parse_cas_pdf_bytes #parsing logic
 from app.services.import_.schemas import ImportConfirmRequest, ImportConfirmResponse, ImportPreviewResponse
-from app.services.import_.service import SchemeConfidenceError, build_import_preview, confirm_import
+from app.services.import_.service import SchemeConfidenceError, build_import_preview, confirm_import #logic to process & confirm import
 
 router = APIRouter(prefix="/imports", tags=["imports"])
 
-
+#parsing & review
 @router.post("/parse", response_model=ImportPreviewResponse)
 async def parse_import(
     file: UploadFile = File(...),
@@ -31,7 +31,7 @@ async def parse_import(
 
     return await build_import_preview(parse_result, file.filename)
 
-
+#import confirmation
 @router.post("/confirm", response_model=ImportConfirmResponse)
 def confirm_import_route(
     body: ImportConfirmRequest,
