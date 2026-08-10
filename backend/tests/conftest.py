@@ -16,6 +16,23 @@ def pytest_collection_modifyitems(config, items):
 
 
 @pytest.fixture()
+def db_session():
+    """An isolated in-memory DB session for unit tests."""
+    from app.db.base import Base
+
+    engine = create_engine(
+        "sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool
+    )
+    Base.metadata.create_all(engine)
+    TestSessionLocal = sessionmaker(autoflush=False, bind=engine)
+    session = TestSessionLocal()
+    try:
+        yield session
+    finally:
+        session.close()
+
+
+@pytest.fixture()
 def client():
     """A TestClient backed by an isolated in-memory DB — StaticPool so every
     request in a test shares the same connection/data, autoflush=False to
@@ -41,3 +58,4 @@ def client():
     app.dependency_overrides[get_db] = override_get_db
     yield TestClient(app)
     app.dependency_overrides.pop(get_db, None)
+
