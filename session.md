@@ -7,12 +7,52 @@ gets overwritten each session, and isn't meant to accumulate history.
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
 
+## Pushed and synced with `origin/dev_intern` — but a large unrelated feature came in on pull, knowledge graph is stale again
+
+After committing the Phase 4 Part 1 merge (`9953e3a`) and pushing,
+`origin/dev_intern` had diverged with 9 commits building a completely
+separate, substantial feature: **CAS Import lifecycle + coverage-gap
+detection** (11-state import lifecycle engine, CAMS portal mailback
+requests, buffer cache, member attribution, opening-balance resolution,
+full Two-Path CAS import frontend UI — see `CAS-IMPORT-UPDATE-PLAN.md` at
+repo root for its own design doc). Pulling created merge commit `af74384`
+(`Merge: 9953e3a 8fc3580`) — **zero conflicts** (that branch touched
+`import_`/`cas_imports.py`, Phase 4 touched `analytics/`, no overlap).
+Backend suite verified green post-merge: **215 passed, 2 skipped** (up from
+164/2 — the new import-lifecycle tests). Both branches are now pushed and
+`dev_intern` is up to date with `origin/dev_intern` (confirmed via
+`git status`).
+
+**The knowledge graph (`.ua/knowledge-graph.json`) is stale again** —
+`meta.json.gitCommitHash` is still `1ab0fabc9c...` (the Phase 4 merge
+commit), but current HEAD is `af74384` and includes the entire CAS Import
+lifecycle feature the graph has never seen. Re-run `/understand`
+(incremental update) before trusting the graph for anything touching
+`backend/app/services/import_/`, `backend/app/api/cas_imports.py`, or the
+`frontend/src/features/import/` tree.
+
+**~50 files show as modified in `git status` but are NOT real changes** —
+confirmed via `git diff -w` (whitespace-ignoring) that every one is pure
+CRLF/line-ending noise, same pre-existing checkout-environment quirk
+documented earlier in this file for `backend/app/api/{auth,dashboard,imports}.py`.
+Do not `git add`/commit these unless you're deliberately normalizing line
+endings repo-wide; don't waste time investigating them as real diffs.
+
+**Worktree cleanup:** `.worktrees/phase4-part1-allocation` has been removed
+(`git worktree remove`) — `feature/phase4-part1-allocation` (tip `390395c`)
+was confirmed fully merged into `dev_intern` via
+`git merge-base --is-ancestor` before removal, and had zero uncommitted
+work. The local branch ref itself (`feature/phase4-part1-allocation`) was
+left in place (harmless, tiny) — delete with `git branch -d
+feature/phase4-part1-allocation` if you want it gone too; no remote branch
+exists for it.
+
 ## Phase 4 Part 1 (Analytics — category allocation, PRD-04 FR-1/FR-2) is built and merged to `dev_intern`
 
 Built in an earlier Claude Code session on branch `feature/phase4-part1-allocation`
-(via a git worktree at `.worktrees/phase4-part1-allocation`, still present on
-disk — safe to `git worktree remove` once you've confirmed the merge below is
-what you want). Merged into `dev_intern` this session with
+via a git worktree at `.worktrees/phase4-part1-allocation` (worktree since
+removed — see note above; the branch itself is unaffected and still exists).
+Merged into `dev_intern` this session with
 `git merge --no-ff` (merge commit `1ab0fab`, auto-merged cleanly, zero
 conflicts in the feature code). One unrelated conflict surfaced restoring
 this session's own pre-merge stash (`backend/app/api/analytics.py` — the
