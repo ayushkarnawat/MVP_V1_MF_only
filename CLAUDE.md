@@ -85,8 +85,24 @@ frontend framework, or a service split not already in that document.
 
 ## Session State
 
-*(Updated 2026-08-07. See `session.md` at repo root for full detail — this is the
+*(Updated 2026-08-10. See `session.md` at repo root for full detail — this is the
 one-paragraph pointer for a fresh session.)*
+
+**Phase 4 Part 1 (Analytics — category allocation, PRD-04 FR-1/FR-2) is
+built and merged to `dev_intern`.** Built in an earlier session on
+`feature/phase4-part1-allocation` (a git worktree), merged this session via
+`git merge --no-ff` (`1ab0fab`), zero real conflicts. Adds
+`backend/app/services/analytics/allocation.py` +
+`schemas.py` and two routes (per-member and family-aggregate SEBI-category
++ AMC allocation, Decimal-precise, reusing the existing FIFO holdings
+engine). Backend suite: 164 passing, 2 skipped (was 156), verified by
+re-running `pytest` after the merge. `dev_intern` is now ahead 7 / behind 10
+of `origin/dev_intern` — diverged, not synced this session. Per the Phase 4
+design doc's 5-step build order, **Part 2 (AMFI TER+AAUM → weighted TER,
+FR-10/FR-11) is next.** The knowledge graph (`.ua/knowledge-graph.json`) was
+refreshed this session via an incremental `/understand` update — now 533
+nodes / 1223 edges / 10 layers / 15 tour steps, `gitCommitHash
+1ab0fabc9cd075e7b7a40e2a9dc37835b77267de` matching this merge exactly.
 
 **Phase 0, Phase 1 (backend + frontend), Phase 2 (backend), Phase 2b
 (Onboarding frontend), and Phase 3 (Main Dashboard backend) are all complete

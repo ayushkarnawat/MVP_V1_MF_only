@@ -1,4 +1,4 @@
-# Session state — 2026-08-07 (updated)
+# Session state — 2026-08-10 (updated)
 
 Working notes for picking this project back up cold. Not a planning doc — see
 `Docs/superpowers/plans/` for those. This file tracks *where things stand*,
@@ -6,6 +6,82 @@ gets overwritten each session, and isn't meant to accumulate history.
 
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
+
+## Phase 4 Part 1 (Analytics — category allocation, PRD-04 FR-1/FR-2) is built and merged to `dev_intern`
+
+Built in an earlier Claude Code session on branch `feature/phase4-part1-allocation`
+(via a git worktree at `.worktrees/phase4-part1-allocation`, still present on
+disk — safe to `git worktree remove` once you've confirmed the merge below is
+what you want). Merged into `dev_intern` this session with
+`git merge --no-ff` (merge commit `1ab0fab`, auto-merged cleanly, zero
+conflicts in the feature code). One unrelated conflict surfaced restoring
+this session's own pre-merge stash (`backend/app/api/analytics.py` — the
+stashed side was just the old pre-Phase-4 stub file, no real content;
+resolved by keeping the merged version, nothing lost).
+
+Per the design doc's build order (`Docs/superpowers/plans/2026-08-10-phase-4-analytics-backend-design.md`),
+Analytics is being built in 5 steps: **(1) Allocation — done**, (2) AMFI
+TER+AAUM → weighted TER (FR-10, FR-11), (3) NSE Indices → benchmark
+comparison (FR-8, FR-9), (4) category-universe NAV caching → ranking (FR-3,
+FR-4), (5) Scorer (FR-5, FR-6, FR-7, depends on 2–4). **Part 2 (TER/AAUM) is
+next.**
+
+**What Part 1 built:**
+- `backend/app/services/analytics/allocation.py` — `compute_category_allocation`
+  (SEBI-category + AMC buckets, Decimal-precise throughout) and
+  `get_aggregate_category_allocation` (family-aggregate wrapper). Reuses
+  `dashboard/holdings.py`'s existing FIFO engine rather than duplicating
+  holdings computation — same pattern as `dashboard/allocation.py`'s
+  by-AMC view.
+- `backend/app/services/analytics/schemas.py` — `AnalyticsAllocationSummary`,
+  `AggregateAnalyticsAllocationResponse`.
+- Two new routes on `backend/app/api/analytics.py`:
+  `GET /analytics/household-members/{member_id}/allocation` (per-member) and
+  `GET /analytics/household/aggregate/allocation` (family aggregate).
+- 8 new tests (5 route-level in `test_analytics_allocation_route.py`, 3
+  service-level in `test_allocation.py`). **Backend suite: 164 passing, 2
+  skipped (was 156)** — verified by running `pytest` after the merge, not
+  just claimed.
+- Plan docs: `Docs/superpowers/plans/2026-08-10-phase-4-analytics-backend-design.md`
+  (full Analytics build-order design) and
+  `...-part1-allocation.md` (Part 1's own TDD plan), plus a
+  `Docs/PRDs/TDD-Unifolio.md` API-surface table correction.
+
+**Branch state:** `dev_intern` is now **ahead 7 / behind 10 of
+`origin/dev_intern`** (diverged — not pushed or pulled this session; no TTY
+for credentials in this sandbox, sync manually). Also carried in from an
+earlier commit on this branch (`675e0f2`, not part of the Phase 4 merge):
+Claude plugin config + local headroom-wrap session hooks
+(`.claude/settings.json`, `.claude/settings.local.json`).
+
+**Knowledge graph refreshed (incremental `/understand` update, same
+session).** `.ua/knowledge-graph.json` now matches `gitCommitHash
+1ab0fabc9cd075e7b7a40e2a9dc37835b77267de` (the Phase 4 Part 1 merge commit):
+533 nodes / 1223 edges / 10 layers / 15 tour steps (up from 505/1121/10/14
+pre-merge). Ran the full 7-phase pipeline manually (SCAN → BATCH → ANALYZE →
+ASSEMBLE REVIEW → ARCHITECTURE → TOUR → REVIEW → SAVE) since the `Skill`
+tool's `understand` skill wasn't loaded in this session's registry — executed
+the bundled scripts/subagent dispatches from SKILL.md directly instead.
+Incremental path: pruned the 27 old nodes/102 edges for the 16
+changed/new files from the prior graph into `batch-existing.json`, re-merged
+against 7 freshly-analyzed batches — 0 dropped edges, 0 validation issues.
+New Analytics service/route/schema/test nodes landed in the existing
+"Service Layer"/"API Layer"/"Types Layer"/"Test Layer" layers (no new layer
+needed); tour got one new step ("Analytics: Category & AMC Allocation",
+step 10 of 15) inserted after the dashboard-narrative steps. Also deleted 2
+leftover bogus `.ua/`-scoped nodes (`file:.ua/.understandignore`,
+`document:.ua/tmp/scan-stderr.txt`) that had been carried over from a prior
+run's data-hygiene issue.
+
+**Separate pre-existing hygiene issue (not fixed, flagged only):** an old
+`.ua/.trash-1786098818/` directory is tracked in git and shows as modified
+in `git status` — confirmed via `git diff -w` that it's pure CRLF/line-ending
+noise, same as the pre-existing `backend/app/api/{auth,dashboard,imports}.py`
+noise already noted above. A prior session apparently committed a
+plugin-cleanup trash dir to the repo; worth `git rm -r`-ing it in a future
+session, but out of scope here since it predates this session's changes.
+
+---
 
 ## Phase 0, Phase 1 (backend + frontend), Phase 2 (backend), Phase 2b (frontend), Phase 3 (Main Dashboard backend), and Phase 3b (Frontend UI Redesign) are all complete
 
@@ -142,13 +218,14 @@ instruction:**
 ## Knowledge graph — read this before re-scanning the codebase
 
 A full codebase knowledge graph exists at `.ua/knowledge-graph.json`
-(built via the `understand-anything` Claude Code plugin — 505 nodes, 1121
-edges, 10 architectural layers, a 14-step guided tour), with
-`meta.json.gitCommitHash` = `61bf6f423aee56d51cf16fecc584ee98150d0e5f`,
-matching `main`'s current HEAD exactly (not stale). A fresh session
-should query this graph (or launch its dashboard: `/understand-dashboard`)
-instead of re-reading/grepping the whole repo. If `main` has moved past
-that commit by the time you read this, the graph may be stale — check
+(built via the `understand-anything` Claude Code plugin — **533 nodes, 1223
+edges, 10 architectural layers, a 15-step guided tour** as of the Phase 4
+Part 1 merge), with `meta.json.gitCommitHash` =
+`1ab0fabc9cd075e7b7a40e2a9dc37835b77267de`, matching `dev_intern`'s HEAD at
+merge time (not stale as of this session). A fresh session should query this
+graph (or launch its dashboard: `/understand-dashboard`) instead of
+re-reading/grepping the whole repo. If `dev_intern` has moved past that
+commit by the time you read this, the graph may be stale — check
 `git log -1 --format=%H` against `.ua/meta.json`'s `gitCommitHash` before
 trusting it, and re-run `/understand` (incremental update, only
 re-analyzes changed files) if they've diverged.

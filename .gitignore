@@ -25,3 +25,11 @@ dist/
 # updated independently of this repo (npx impeccable skills install/update).
 .agents/skills/
 .claude/skills/
+
+# understand-anything plugin scratch state — knowledge-graph.json, meta.json,
+# fingerprints.json, and intermediate/scan-result.json ARE tracked
+# intentionally (a fresh session reuses them instead of re-scanning), but
+# per-run trash/tmp scratch dirs are disposable and must never be committed
+# (a prior session accidentally did this — see .ua/.trash-1786098818 cleanup).
+.ua/.trash-*/
+.ua/tmp/

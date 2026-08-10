@@ -2,13 +2,16 @@
   "name": "Unifolio code",
   "description": "MF-only MVP (V1) of Unifolio, a mutual fund portfolio tracking platform for the Indian market, built as a FastAPI backend monolith with a React/Vite frontend. Note: this project has over 100 source files; consider scoping analysis to a subdirectory for faster results.",
   "languages": [
+    "config",
     "css",
     "html",
     "json",
     "mako",
     "markdown",
     "python",
+    "txt",
     "typescript",
+    "unknown",
     "yaml"
   ],
   "frameworks": [
@@ -28,7 +31,13 @@
     {
       "path": ".claude/settings.json",
       "language": "json",
-      "sizeLines": 5,
+      "sizeLines": 6,
+      "fileCategory": "config"
+    },
+    {
+      "path": ".claude/settings.local.json",
+      "language": "json",
+      "sizeLines": 16,
       "fileCategory": "config"
     },
     {
@@ -38,21 +47,9 @@
       "fileCategory": "infra"
     },
     {
-      "path": ".ua/.understandignore",
-      "language": "unknown",
-      "sizeLines": 82,
-      "fileCategory": "code"
-    },
-    {
-      "path": ".ua/tmp/scan-stderr.txt",
-      "language": "txt",
-      "sizeLines": 0,
-      "fileCategory": "docs"
-    },
-    {
       "path": "CLAUDE.md",
       "language": "markdown",
-      "sizeLines": 175,
+      "sizeLines": 189,
       "fileCategory": "docs"
     },
     {
@@ -142,7 +139,19 @@
     {
       "path": "Docs/PRDs/TDD-Unifolio.md",
       "language": "markdown",
-      "sizeLines": 313,
+      "sizeLines": 314,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "Docs/PRDs/Updated-CAS-App-Flow.md",
+      "language": "markdown",
+      "sizeLines": 452,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "Docs/PRDs/Updated-CAS-PRD.md",
+      "language": "markdown",
+      "sizeLines": 636,
       "fileCategory": "docs"
     },
     {
@@ -191,6 +200,18 @@
       "path": "Docs/superpowers/plans/2026-08-07-distributor-comparison.md",
       "language": "markdown",
       "sizeLines": 818,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "Docs/superpowers/plans/2026-08-10-phase-4-analytics-backend-design.md",
+      "language": "markdown",
+      "sizeLines": 246,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "Docs/superpowers/plans/2026-08-10-phase-4-analytics-backend-part1-allocation.md",
+      "language": "markdown",
+      "sizeLines": 541,
       "fileCategory": "docs"
     },
     {
@@ -298,7 +319,7 @@
     {
       "path": "backend/app/api/analytics.py",
       "language": "python",
-      "sizeLines": 3,
+      "sizeLines": 41,
       "fileCategory": "code"
     },
     {
@@ -310,7 +331,7 @@
     {
       "path": "backend/app/api/dashboard.py",
       "language": "python",
-      "sizeLines": 179,
+      "sizeLines": 185,
       "fileCategory": "code"
     },
     {
@@ -425,6 +446,18 @@
       "path": "backend/app/services/analytics/__init__.py",
       "language": "python",
       "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/services/analytics/allocation.py",
+      "language": "python",
+      "sizeLines": 72,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/services/analytics/schemas.py",
+      "language": "python",
+      "sizeLines": 16,
       "fileCategory": "code"
     },
     {
@@ -584,6 +617,12 @@
       "fileCategory": "code"
     },
     {
+      "path": "backend/tests/api/test_analytics_allocation_route.py",
+      "language": "python",
+      "sizeLines": 44,
+      "fileCategory": "code"
+    },
+    {
       "path": "backend/tests/api/test_auth_routes.py",
       "language": "python",
       "sizeLines": 116,
@@ -701,6 +740,18 @@
       "path": "backend/tests/services/__init__.py",
       "language": "python",
       "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/services/analytics/__init__.py",
+      "language": "python",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/services/analytics/test_allocation.py",
+      "language": "python",
+      "sizeLines": 90,
       "fileCategory": "code"
     },
     {
@@ -1540,7 +1591,7 @@
     {
       "path": "session.md",
       "language": "markdown",
-      "sizeLines": 155,
+      "sizeLines": 225,
       "fileCategory": "docs"
     },
     {
@@ -1550,14 +1601,13 @@
       "fileCategory": "config"
     }
   ],
-  "totalFiles": 254,
+  "totalFiles": 262,
   "filteredByIgnore": 18,
   "estimatedComplexity": "large",
   "importMap": {
     ".claude/settings.json": [],
+    ".claude/settings.local.json": [],
     ".github/workflows/ci.yml": [],
-    ".ua/.understandignore": [],
-    ".ua/tmp/scan-stderr.txt": [],
     "CLAUDE.md": [],
     "Docs/Competitor Analysis/competitive-matrix_Final.html": [],
     "Docs/PRD-03-Main-Dashboard.md": [],
@@ -1574,6 +1624,8 @@
     "Docs/PRDs/PRD-03-Main-Dashboard.md": [],
     "Docs/PRDs/PRD-04-MF-Analytics-Dashboard.md": [],
     "Docs/PRDs/TDD-Unifolio.md": [],
+    "Docs/PRDs/Updated-CAS-App-Flow.md": [],
+    "Docs/PRDs/Updated-CAS-PRD.md": [],
     "Docs/superpowers/plans/2026-08-04-phase-0-foundation.md": [],
     "Docs/superpowers/plans/2026-08-04-phase-1-cas-import-backend.md": [],
     "Docs/superpowers/plans/2026-08-05-phase-1b-import-review-frontend.md": [],
@@ -1582,6 +1634,8 @@
     "Docs/superpowers/plans/2026-08-06-phase-3-main-dashboard-backend.md": [],
     "Docs/superpowers/plans/2026-08-06-transaction-dedupe-type-migration.md": [],
     "Docs/superpowers/plans/2026-08-07-distributor-comparison.md": [],
+    "Docs/superpowers/plans/2026-08-10-phase-4-analytics-backend-design.md": [],
+    "Docs/superpowers/plans/2026-08-10-phase-4-analytics-backend-part1-allocation.md": [],
     "Docs/superpowers/specs/2026-08-05-import-review-frontend-design.md": [],
     "Docs/superpowers/specs/2026-08-05-phase-2-auth-onboarding-backend-design.md": [],
     "Docs/superpowers/specs/2026-08-06-phase-2b-onboarding-frontend-design.md": [],
@@ -1603,7 +1657,14 @@
     "backend/alembic/versions/0002_transaction_dedupe_includes_type.py": [],
     "backend/app/__init__.py": [],
     "backend/app/api/__init__.py": [],
-    "backend/app/api/analytics.py": [],
+    "backend/app/api/analytics.py": [
+      "backend/app/db/session.py",
+      "backend/app/models/user.py",
+      "backend/app/services/analytics/allocation.py",
+      "backend/app/services/analytics/schemas.py",
+      "backend/app/services/auth/session.py",
+      "backend/app/services/dashboard/household_members.py"
+    ],
     "backend/app/api/auth.py": [
       "backend/app/db/session.py",
       "backend/app/models/auth.py",
@@ -1689,6 +1750,17 @@
     ],
     "backend/app/services/__init__.py": [],
     "backend/app/services/analytics/__init__.py": [],
+    "backend/app/services/analytics/allocation.py": [
+      "backend/app/models/reference.py",
+      "backend/app/services/analytics/schemas.py",
+      "backend/app/services/dashboard/aggregate.py",
+      "backend/app/services/dashboard/holdings.py",
+      "backend/app/services/dashboard/household_members.py",
+      "backend/app/services/dashboard/schemas.py"
+    ],
+    "backend/app/services/analytics/schemas.py": [
+      "backend/app/services/dashboard/schemas.py"
+    ],
     "backend/app/services/auth/__init__.py": [],
     "backend/app/services/auth/otp.py": [
       "backend/app/config.py",
@@ -1805,6 +1877,7 @@
       "backend/app/models/user.py"
     ],
     "backend/tests/api/__init__.py": [],
+    "backend/tests/api/test_analytics_allocation_route.py": [],
     "backend/tests/api/test_auth_routes.py": [],
     "backend/tests/api/test_dashboard_aggregate_routes.py": [],
     "backend/tests/api/test_dashboard_allocation_route.py": [],
@@ -1842,6 +1915,16 @@
       "backend/app/models/user.py"
     ],
     "backend/tests/services/__init__.py": [],
+    "backend/tests/services/analytics/__init__.py": [],
+    "backend/tests/services/analytics/test_allocation.py": [
+      "backend/app/db/base.py",
+      "backend/app/models/enums.py",
+      "backend/app/models/folio.py",
+      "backend/app/models/reference.py",
+      "backend/app/models/transaction.py",
+      "backend/app/models/user.py",
+      "backend/app/services/analytics/allocation.py"
+    ],
     "backend/tests/services/auth/__init__.py": [],
     "backend/tests/services/auth/test_otp.py": [
       "backend/app/db/base.py",

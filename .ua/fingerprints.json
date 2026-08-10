@@ -1,16 +1,26 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "61bf6f423aee56d51cf16fecc584ee98150d0e5f",
-  "generatedAt": "2026-08-07T10:33:21.334Z",
+  "gitCommitHash": "1ab0fabc9cd075e7b7a40e2a9dc37835b77267de",
+  "generatedAt": "2026-08-10T18:35:34.191Z",
   "files": {
     ".claude/settings.json": {
       "filePath": ".claude/settings.json",
-      "contentHash": "43fd9292d8554aea3381e56d82032711f710bf8de2cec4c06ef2966351c70934",
+      "contentHash": "22404e6d33c62d18468338539fb1d786b89692d8c143cc6a0d64e2e2bf128ee6",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 6,
+      "totalLines": 7,
+      "hasStructuralAnalysis": true
+    },
+    ".claude/settings.local.json": {
+      "filePath": ".claude/settings.local.json",
+      "contentHash": "97b2472502d90d5f1924a3043dda96ba9695edf05772fbec8ea83862893f20fe",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 17,
       "hasStructuralAnalysis": true
     },
     ".github/workflows/ci.yml": {
@@ -23,34 +33,14 @@
       "totalLines": 62,
       "hasStructuralAnalysis": true
     },
-    ".ua/.understandignore": {
-      "filePath": ".ua/.understandignore",
-      "contentHash": "db04b21d5450d220b9c96de5fd5af854b471262faf66a62bb04a08d39b1fd4cf",
-      "functions": [],
-      "classes": [],
-      "imports": [],
-      "exports": [],
-      "totalLines": 83,
-      "hasStructuralAnalysis": false
-    },
-    ".ua/tmp/scan-stderr.txt": {
-      "filePath": ".ua/tmp/scan-stderr.txt",
-      "contentHash": "bb4cd0d2b8bc5efb282cfd8a4de89c39ee0051600a71c73feb22ff24fe862b0d",
-      "functions": [],
-      "classes": [],
-      "imports": [],
-      "exports": [],
-      "totalLines": 2,
-      "hasStructuralAnalysis": false
-    },
     "CLAUDE.md": {
       "filePath": "CLAUDE.md",
-      "contentHash": "4dc5dd385e3dae9f5d501074b3eb19a23e834fc147a46cc240fc79aa26fd367c",
+      "contentHash": "7dd8d5fa0bc1ecd90610fb3047e51ed0dae935383c3e57a2885ca134ff62ba1d",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 176,
+      "totalLines": 190,
       "hasStructuralAnalysis": true
     },
     "Docs/Competitor Analysis/competitive-matrix_Final.html": {
@@ -195,12 +185,32 @@
     },
     "Docs/PRDs/TDD-Unifolio.md": {
       "filePath": "Docs/PRDs/TDD-Unifolio.md",
-      "contentHash": "a9bde86abc52cb2773650932a42f2a810599b73add918a67e7ef79d4cffaa500",
+      "contentHash": "5febe48611f4c15b353565f214da014590228c8bc198e0f57a476a8c0e91f0b3",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 314,
+      "totalLines": 315,
+      "hasStructuralAnalysis": true
+    },
+    "Docs/PRDs/Updated-CAS-App-Flow.md": {
+      "filePath": "Docs/PRDs/Updated-CAS-App-Flow.md",
+      "contentHash": "4d0e38348ad90854876e828f84b11378262907279bb2114dbc699dec8eef462f",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 453,
+      "hasStructuralAnalysis": true
+    },
+    "Docs/PRDs/Updated-CAS-PRD.md": {
+      "filePath": "Docs/PRDs/Updated-CAS-PRD.md",
+      "contentHash": "bdb66ea6b3b2c8285a2b79cdff002890c710c4a1fc2fd51ef1629eaf8d3b374e",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 637,
       "hasStructuralAnalysis": true
     },
     "Docs/superpowers/plans/2026-08-04-phase-0-foundation.md": {
@@ -281,6 +291,26 @@
       "imports": [],
       "exports": [],
       "totalLines": 819,
+      "hasStructuralAnalysis": true
+    },
+    "Docs/superpowers/plans/2026-08-10-phase-4-analytics-backend-design.md": {
+      "filePath": "Docs/superpowers/plans/2026-08-10-phase-4-analytics-backend-design.md",
+      "contentHash": "81e74ee02c3216102d07741c6dadf35203a15fd39b8b519a92ce1bb14367a8fb",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 247,
+      "hasStructuralAnalysis": true
+    },
+    "Docs/superpowers/plans/2026-08-10-phase-4-analytics-backend-part1-allocation.md": {
+      "filePath": "Docs/superpowers/plans/2026-08-10-phase-4-analytics-backend-part1-allocation.md",
+      "contentHash": "3aaa6a1c629f912bef0fe0d53b8c9261693f8cbd0b7371348581a8c68a1eee87",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 542,
       "hasStructuralAnalysis": true
     },
     "Docs/superpowers/specs/2026-08-05-import-review-frontend-design.md": {
@@ -671,24 +701,99 @@
     },
     "backend/app/api/analytics.py": {
       "filePath": "backend/app/api/analytics.py",
-      "contentHash": "c5611e036d7d5f4a2fcae90f36719de80348baaacc127c06769e030d68691203",
-      "functions": [],
+      "contentHash": "c1c81b728cf8d85c0077d91e2b4032cb2007c2b1780db5ef74b1b65e3761e6e2",
+      "functions": [
+        {
+          "name": "get_member_category_allocation",
+          "params": [
+            "member_id",
+            "user",
+            "db"
+          ],
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "get_household_aggregate_category_allocation",
+          "params": [
+            "user",
+            "db"
+          ],
+          "exported": true,
+          "lineCount": 4
+        }
+      ],
       "classes": [],
       "imports": [
         {
+          "source": "uuid",
+          "specifiers": [
+            "uuid"
+          ]
+        },
+        {
           "source": "fastapi",
           "specifiers": [
-            "APIRouter"
+            "APIRouter",
+            "Depends",
+            "HTTPException"
+          ]
+        },
+        {
+          "source": "sqlalchemy.orm",
+          "specifiers": [
+            "DbSession"
+          ]
+        },
+        {
+          "source": "app.db.session",
+          "specifiers": [
+            "get_db"
+          ]
+        },
+        {
+          "source": "app.models.user",
+          "specifiers": [
+            "User"
+          ]
+        },
+        {
+          "source": "app.services.analytics.allocation",
+          "specifiers": [
+            "compute_category_allocation",
+            "get_aggregate_category_allocation"
+          ]
+        },
+        {
+          "source": "app.services.analytics.schemas",
+          "specifiers": [
+            "AggregateAnalyticsAllocationResponse",
+            "AnalyticsAllocationSummary"
+          ]
+        },
+        {
+          "source": "app.services.auth.session",
+          "specifiers": [
+            "get_current_user"
+          ]
+        },
+        {
+          "source": "app.services.dashboard.household_members",
+          "specifiers": [
+            "get_household_member_for_user"
           ]
         }
       ],
-      "exports": [],
-      "totalLines": 4,
+      "exports": [
+        "get_member_category_allocation",
+        "get_household_aggregate_category_allocation"
+      ],
+      "totalLines": 42,
       "hasStructuralAnalysis": true
     },
     "backend/app/api/auth.py": {
       "filePath": "backend/app/api/auth.py",
-      "contentHash": "16670f9ea8076819a8b48fb686ad062365372070defb0a439575a139c976e932",
+      "contentHash": "26a37c5d0b2a1b53a69728c66e3335763cc278bff93ca4108d109315d69c6203",
       "functions": [
         {
           "name": "request_otp",
@@ -829,7 +934,7 @@
     },
     "backend/app/api/dashboard.py": {
       "filePath": "backend/app/api/dashboard.py",
-      "contentHash": "9ffaf3911df2b9d53a1f27704704eb37c84291b43205cfa34e2e91ee316d3804",
+      "contentHash": "4389e8e848443cab21d43eee0762de438205873fd46db0008bfa7f44ac5cfce6",
       "functions": [
         {
           "name": "create_member",
@@ -1085,12 +1190,12 @@
         "get_household_aggregate_cash_flow",
         "get_household_aggregate_snapshots"
       ],
-      "totalLines": 180,
+      "totalLines": 186,
       "hasStructuralAnalysis": true
     },
     "backend/app/api/imports.py": {
       "filePath": "backend/app/api/imports.py",
-      "contentHash": "59a856eccb336296b1102d9ebdfc605c1d8a181862471a12b1e98f059bf28d0c",
+      "contentHash": "a64f1e6299eccec26cbbcb9495ed3f4b7e691512e92070b02cc0d33d9986b1d5",
       "functions": [
         {
           "name": "parse_import",
@@ -2201,6 +2306,162 @@
       "imports": [],
       "exports": [],
       "totalLines": 1,
+      "hasStructuralAnalysis": true
+    },
+    "backend/app/services/analytics/allocation.py": {
+      "filePath": "backend/app/services/analytics/allocation.py",
+      "contentHash": "2166c3eef1e3a3b72f4682cb5fb1650f9c09431f67137c7b54abf456f33c893a",
+      "functions": [
+        {
+          "name": "_to_buckets",
+          "params": [
+            "grouped",
+            "total_value"
+          ],
+          "returnType": "list[AllocationBucket]",
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "compute_category_allocation",
+          "params": [
+            "db",
+            "household_member_ids"
+          ],
+          "returnType": "AnalyticsAllocationSummary",
+          "exported": true,
+          "lineCount": 28
+        },
+        {
+          "name": "get_aggregate_category_allocation",
+          "params": [
+            "db",
+            "user_id"
+          ],
+          "returnType": "AggregateAnalyticsAllocationResponse",
+          "exported": true,
+          "lineCount": 7
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "uuid",
+          "specifiers": [
+            "uuid"
+          ]
+        },
+        {
+          "source": "collections",
+          "specifiers": [
+            "defaultdict"
+          ]
+        },
+        {
+          "source": "decimal",
+          "specifiers": [
+            "Decimal"
+          ]
+        },
+        {
+          "source": "sqlalchemy.orm",
+          "specifiers": [
+            "Session"
+          ]
+        },
+        {
+          "source": "app.models.reference",
+          "specifiers": [
+            "Scheme"
+          ]
+        },
+        {
+          "source": "app.services.analytics.schemas",
+          "specifiers": [
+            "AggregateAnalyticsAllocationResponse",
+            "AnalyticsAllocationSummary"
+          ]
+        },
+        {
+          "source": "app.services.dashboard.aggregate",
+          "specifiers": [
+            "get_member_statuses"
+          ]
+        },
+        {
+          "source": "app.services.dashboard.holdings",
+          "specifiers": [
+            "compute_holdings"
+          ]
+        },
+        {
+          "source": "app.services.dashboard.household_members",
+          "specifiers": [
+            "list_household_members"
+          ]
+        },
+        {
+          "source": "app.services.dashboard.schemas",
+          "specifiers": [
+            "AllocationBucket"
+          ]
+        }
+      ],
+      "exports": [
+        "_to_buckets",
+        "compute_category_allocation",
+        "get_aggregate_category_allocation"
+      ],
+      "totalLines": 73,
+      "hasStructuralAnalysis": true
+    },
+    "backend/app/services/analytics/schemas.py": {
+      "filePath": "backend/app/services/analytics/schemas.py",
+      "contentHash": "f958a13bd89f1b1d40ca844e5d250a8e60885b1f4f75f24aa1e4a117fab405a1",
+      "functions": [],
+      "classes": [
+        {
+          "name": "AnalyticsAllocationSummary",
+          "methods": [],
+          "properties": [
+            "by_category",
+            "by_amc",
+            "total_value"
+          ],
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "AggregateAnalyticsAllocationResponse",
+          "methods": [],
+          "properties": [
+            "members",
+            "allocation"
+          ],
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "imports": [
+        {
+          "source": "pydantic",
+          "specifiers": [
+            "BaseModel"
+          ]
+        },
+        {
+          "source": "app.services.dashboard.schemas",
+          "specifiers": [
+            "AllocationBucket",
+            "MemberStatus"
+          ]
+        }
+      ],
+      "exports": [
+        "AnalyticsAllocationSummary",
+        "AggregateAnalyticsAllocationResponse"
+      ],
+      "totalLines": 17,
       "hasStructuralAnalysis": true
     },
     "backend/app/services/auth/__init__.py": {
@@ -4610,6 +4871,73 @@
       "totalLines": 1,
       "hasStructuralAnalysis": true
     },
+    "backend/tests/api/test_analytics_allocation_route.py": {
+      "filePath": "backend/tests/api/test_analytics_allocation_route.py",
+      "contentHash": "1cf2099a6c9c22df076d4abab37f4010731c7b25bf69c4ee9d90c4cde54a24f9",
+      "functions": [
+        {
+          "name": "_authed_headers_and_member",
+          "params": [
+            "client",
+            "phone"
+          ],
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "test_analytics_allocation_route_requires_auth",
+          "params": [
+            "client"
+          ],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "test_analytics_allocation_route_404_for_unknown_member",
+          "params": [
+            "client"
+          ],
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "test_analytics_allocation_route_returns_empty_summary_for_member_with_no_holdings",
+          "params": [
+            "client"
+          ],
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "test_analytics_aggregate_allocation_route_lists_members",
+          "params": [
+            "client"
+          ],
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "test_analytics_aggregate_allocation_route_requires_auth",
+          "params": [
+            "client"
+          ],
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [
+        "_authed_headers_and_member",
+        "test_analytics_allocation_route_requires_auth",
+        "test_analytics_allocation_route_404_for_unknown_member",
+        "test_analytics_allocation_route_returns_empty_summary_for_member_with_no_holdings",
+        "test_analytics_aggregate_allocation_route_lists_members",
+        "test_analytics_aggregate_allocation_route_requires_auth"
+      ],
+      "totalLines": 45,
+      "hasStructuralAnalysis": true
+    },
     "backend/tests/api/test_auth_routes.py": {
       "filePath": "backend/tests/api/test_auth_routes.py",
       "contentHash": "36d6402527d361cbc599837aa8889064cf64b47b1a41568cb56ca9f19359c44c",
@@ -5739,6 +6067,182 @@
       "imports": [],
       "exports": [],
       "totalLines": 1,
+      "hasStructuralAnalysis": true
+    },
+    "backend/tests/services/analytics/__init__.py": {
+      "filePath": "backend/tests/services/analytics/__init__.py",
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 1,
+      "hasStructuralAnalysis": true
+    },
+    "backend/tests/services/analytics/test_allocation.py": {
+      "filePath": "backend/tests/services/analytics/test_allocation.py",
+      "contentHash": "73074e4418231e28ae3910ac460bd1d66d5613b296b94d660e932ecdaaca7747",
+      "functions": [
+        {
+          "name": "_session",
+          "params": [],
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "_household_member",
+          "params": [
+            "db"
+          ],
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "_scheme",
+          "params": [
+            "db",
+            "amc_name",
+            "sebi_category"
+          ],
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "_folio_with_purchase",
+          "params": [
+            "db",
+            "member",
+            "scheme",
+            "amount",
+            "units",
+            "nav"
+          ],
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "test_compute_category_allocation_empty_when_no_holdings",
+          "params": [],
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "test_compute_category_allocation_buckets_by_granular_sebi_category",
+          "params": [],
+          "exported": true,
+          "lineCount": 21
+        },
+        {
+          "name": "test_get_aggregate_category_allocation_lists_member_status_with_no_data",
+          "params": [],
+          "exported": true,
+          "lineCount": 8
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "asyncio",
+          "specifiers": [
+            "asyncio"
+          ]
+        },
+        {
+          "source": "uuid",
+          "specifiers": [
+            "uuid"
+          ]
+        },
+        {
+          "source": "datetime",
+          "specifiers": [
+            "date",
+            "datetime",
+            "timezone"
+          ]
+        },
+        {
+          "source": "decimal",
+          "specifiers": [
+            "Decimal"
+          ]
+        },
+        {
+          "source": "unittest.mock",
+          "specifiers": [
+            "AsyncMock",
+            "patch"
+          ]
+        },
+        {
+          "source": "sqlalchemy",
+          "specifiers": [
+            "create_engine"
+          ]
+        },
+        {
+          "source": "sqlalchemy.orm",
+          "specifiers": [
+            "sessionmaker"
+          ]
+        },
+        {
+          "source": "app.db.base",
+          "specifiers": [
+            "Base"
+          ]
+        },
+        {
+          "source": "app.models.enums",
+          "specifiers": [
+            "PlanType",
+            "Relationship",
+            "TransactionType"
+          ]
+        },
+        {
+          "source": "app.models.folio",
+          "specifiers": [
+            "Folio"
+          ]
+        },
+        {
+          "source": "app.models.reference",
+          "specifiers": [
+            "Scheme"
+          ]
+        },
+        {
+          "source": "app.models.transaction",
+          "specifiers": [
+            "Transaction"
+          ]
+        },
+        {
+          "source": "app.models.user",
+          "specifiers": [
+            "HouseholdMember",
+            "User"
+          ]
+        },
+        {
+          "source": "app.services.analytics.allocation",
+          "specifiers": [
+            "compute_category_allocation",
+            "get_aggregate_category_allocation"
+          ]
+        }
+      ],
+      "exports": [
+        "_session",
+        "_household_member",
+        "_scheme",
+        "_folio_with_purchase",
+        "test_compute_category_allocation_empty_when_no_holdings",
+        "test_compute_category_allocation_buckets_by_granular_sebi_category",
+        "test_get_aggregate_category_allocation_lists_member_status_with_no_data"
+      ],
+      "totalLines": 91,
       "hasStructuralAnalysis": true
     },
     "backend/tests/services/auth/__init__.py": {
@@ -12581,12 +13085,12 @@
     },
     "session.md": {
       "filePath": "session.md",
-      "contentHash": "39cfddf3cf2854e8ff43cb132dc13e4383ba6c08cec6da2cb8890b9fd3f5edbc",
+      "contentHash": "fa54faafc0c714f3328b93d17e1754f82912e3f6bd97b154906571a4b3792715",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 156,
+      "totalLines": 226,
       "hasStructuralAnalysis": true
     },
     "skills-lock.json": {
