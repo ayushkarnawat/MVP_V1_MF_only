@@ -22,6 +22,7 @@ h1, .type-h1 {
   font-size: var(--type-h1-size);
   font-weight: var(--type-h1-weight);
   line-height: var(--type-h1-line-height);
+  letter-spacing: -0.025em;
   margin: 0;
 }
 
@@ -30,6 +31,16 @@ h2, .type-h2 {
   font-size: var(--type-h2-size);
   font-weight: var(--type-h2-weight);
   line-height: var(--type-h2-line-height);
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+
+h3, .type-h3 {
+  font-family: var(--type-h2-font);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
   margin: 0;
 }
 
@@ -38,7 +49,7 @@ h2, .type-h2 {
   font-size: var(--type-display-size);
   font-weight: var(--type-display-weight);
   line-height: var(--type-display-line-height);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
 }
 
 .type-body-medium {

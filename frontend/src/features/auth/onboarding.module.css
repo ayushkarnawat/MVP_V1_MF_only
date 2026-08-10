@@ -264,6 +264,104 @@
   margin: 0;
 }
 
+.actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.memberCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  transition: all var(--motion-fast);
+}
+
+.memberInfo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.memberName {
+  font-size: var(--type-body-size);
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.uploadBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-body);
+  font-size: var(--type-caption-size);
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  background: var(--color-ink);
+  color: var(--color-surface);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all var(--motion-fast);
+}
+
+.uploadBtn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.skipBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-body);
+  font-size: var(--type-caption-size);
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-secondary);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all var(--motion-fast);
+}
+
+.skipBtn:hover {
+  color: var(--color-ink);
+  background: color-mix(in srgb, var(--color-border) 40%, transparent);
+}
+
+.continueBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: var(--space-3) var(--space-6);
+  font-family: var(--font-body);
+  font-size: var(--type-body-size);
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+  color: #000000;
+  border: none;
+  cursor: pointer;
+  transition: all var(--motion-fast);
+  margin-top: var(--space-2);
+}
+
+.continueBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.continueBtn:not(:disabled):hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -274,3 +372,4 @@
     transform: translateY(0);
   }
 }
+
