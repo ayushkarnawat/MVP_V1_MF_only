@@ -25,6 +25,20 @@ describe("UploadForm", () => {
     expect(onSubmit).toHaveBeenCalledWith(file, "secret");
   });
 
+  it("rejects an oversized file (> 25MB) before submit", () => {
+    const onSubmit = vi.fn();
+    render(<UploadForm onSubmit={onSubmit} />);
+
+    // Create a mock file larger than 25MB
+    const largeFile = new File(["dummy"], "large.pdf", { type: "application/pdf" });
+    Object.defineProperty(largeFile, "size", { value: 26 * 1024 * 1024 });
+
+    fireEvent.change(screen.getByLabelText(/cas pdf/i), { target: { files: [largeFile] } });
+
+    expect(screen.getByText(/file is too large/i)).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
   it("shows an error and does not submit when no file is chosen", () => {
     const onSubmit = vi.fn();
     render(<UploadForm onSubmit={onSubmit} />);
@@ -35,3 +49,4 @@ describe("UploadForm", () => {
     expect(screen.getByText(/please select a pdf file to upload/i)).toBeInTheDocument();
   });
 });
+

@@ -1,8 +1,12 @@
 import { API_BASE_URL, ApiError, parseErrorDetail } from "../../lib/apiClient";
 import { getToken } from "../auth/session";
 import type {
+  CASImportStatusResponse,
+  CoverageGapItem,
   ImportConfirmResponse,
   ImportPreviewResponse,
+  OpeningBalancePayload,
+  OpeningBalanceResponse,
   ParseErrorPayload,
   SchemeConfirmation,
 } from "./types";
@@ -53,3 +57,147 @@ export async function confirmImport(
 
   return (await response.json()) as ImportConfirmResponse;
 }
+
+export async function uploadCasImport(
+  file: File,
+  password: string,
+  householdMemberId: string,
+  sourceTab: string = "upload",
+): Promise<CASImportStatusResponse> {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("password", password);
+  formData.append("household_member_id", householdMemberId);
+  formData.append("source_tab", sourceTab);
+
+  const response = await fetch(`${API_BASE_URL}/cas-imports`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new ApiError(response.status, (await parseErrorDetail(response)) as ParseErrorPayload | string);
+  }
+
+  return (await response.json()) as CASImportStatusResponse;
+}
+
+export async function getCasImportStatus(importId: string): Promise<CASImportStatusResponse> {
+  const response = await fetch(`${API_BASE_URL}/cas-imports/${importId}`, {
+    method: "GET",
+    headers: authHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new ApiError(response.status, (await parseErrorDetail(response)) as ParseErrorPayload | string);
+  }
+
+  return (await response.json()) as CASImportStatusResponse;
+}
+
+export async function retryCasImportPassword(
+  importId: string,
+  password: string,
+): Promise<CASImportStatusResponse> {
+  const response = await fetch(`${API_BASE_URL}/cas-imports/${importId}/password`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ password }),
+  });
+
+  if (!response.ok) {
+    throw new ApiError(response.status, (await parseErrorDetail(response)) as ParseErrorPayload | string);
+  }
+
+  return (await response.json()) as CASImportStatusResponse;
+}
+
+export async function getMemberImportHistory(memberId: string): Promise<CASImportStatusResponse[]> {
+  const response = await fetch(`${API_BASE_URL}/household-members/${memberId}/cas-imports`, {
+    method: "GET",
+    headers: authHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new ApiError(response.status, (await parseErrorDetail(response)) as ParseErrorPayload | string);
+  }
+
+  return (await response.json()) as CASImportStatusResponse[];
+}
+
+export async function getMemberCoverageGaps(memberId: string): Promise<CoverageGapItem[]> {
+  const response = await fetch(`${API_BASE_URL}/household-members/${memberId}/coverage-gaps`, {
+    method: "GET",
+    headers: authHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new ApiError(response.status, (await parseErrorDetail(response)) as ParseErrorPayload | string);
+  }
+
+  return (await response.json()) as CoverageGapItem[];
+}
+
+export async function postOpeningBalance(
+  folioId: string,
+  payload: OpeningBalancePayload,
+): Promise<OpeningBalanceResponse> {
+  const response = await fetch(`${API_BASE_URL}/folios/${folioId}/opening-balance`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new ApiError(response.status, (await parseErrorDetail(response)) as ParseErrorPayload | string);
+  }
+
+  return (await response.json()) as OpeningBalanceResponse;
+}
+
+export async function requestCamsStatement(
+  householdMemberId: string,
+): Promise<{
+  import_id: string;
+  household_member_id: string;
+  status: string;
+  cams_url: string;
+  expires_at: string;
+}> {
+  const response = await fetch(`${API_BASE_URL}/cas-imports/request`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ household_member_id: householdMemberId }),
+  });
+
+  if (!response.ok) {
+    throw new ApiError(response.status, (await parseErrorDetail(response)) as ParseErrorPayload | string);
+  }
+
+  return (await response.json()) as {
+    import_id: string;
+    household_member_id: string;
+    status: string;
+    cams_url: string;
+    expires_at: string;
+  };
+}
+
+export async function cancelImportRequest(
+  importId: string,
+): Promise<CASImportStatusResponse> {
+  const response = await fetch(`${API_BASE_URL}/cas-imports/${importId}/cancel`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new ApiError(response.status, (await parseErrorDetail(response)) as ParseErrorPayload | string);
+  }
+
+  return (await response.json()) as CASImportStatusResponse;
+}
+
+
+

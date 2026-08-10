@@ -55,3 +55,60 @@ export interface ParseErrorPayload {
   code: string;
   message: string;
 }
+
+export type ImportLifecycleStatus =
+  | "not_started"
+  | "requesting_cas"
+  | "waiting_for_user"
+  | "upload_started"
+  | "password_required"
+  | "validation_failed"
+  | "processing"
+  | "retry_pending"
+  | "import_successful"
+  | "import_failed"
+  | "expired";
+
+export interface CASImportStatusResponse {
+  import_id: string;
+  household_member_id: string;
+  status: ImportLifecycleStatus;
+  error_code: string | null;
+  error_message: string | null;
+  new_transactions_count: number | null;
+  duplicate_transactions_count: number | null;
+  statement_from_date: string | null;
+  statement_to_date: string | null;
+  source_cas_type: string | null;
+  uploaded_at: string;
+  confirmed_at: string | null;
+}
+
+export interface CoverageGapItem {
+  folio_id: string;
+  folio_number: string;
+  scheme_id: string;
+  scheme_name: string;
+  deficit_units: string;
+  first_deficit_date: string;
+}
+
+export interface OpeningBalancePayload {
+  units: string;
+  date: string;
+  amount?: string;
+  nav?: string;
+}
+
+export interface OpeningBalanceResponse {
+  transaction_id: string;
+  folio_id: string;
+  type: string;
+  date: string;
+  units: string;
+  amount: string;
+  nav: string;
+  has_coverage_gap: boolean;
+}
+
+
