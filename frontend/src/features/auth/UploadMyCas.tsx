@@ -1,5 +1,5 @@
 import { Button } from "../../components/Button";
-import { UploadForm } from "../import/UploadForm";
+import { TwoPathImportContainer } from "../import/TwoPathImportContainer";
 import styles from "./onboarding.module.css";
 
 interface UploadMyCasProps {
@@ -16,7 +16,15 @@ export function UploadMyCas({
   onSubmit,
 }: UploadMyCasProps) {
   if (awaitingUpload) {
-    return <UploadForm onSubmit={onSubmit} />;
+    return (
+      <div className={styles.container}>
+        <TwoPathImportContainer
+          memberId="self"
+          defaultTab="request"
+          onUploadSubmit={onSubmit}
+        />
+      </div>
+    );
   }
 
   return (

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { UploadForm } from "./UploadForm";
+import { TwoPathImportContainer } from "./TwoPathImportContainer";
 import { ParsingIndicator } from "./ParsingIndicator";
 import { ReviewTable } from "./ReviewTable";
 import { ImportError } from "./ImportError";
@@ -18,6 +18,7 @@ interface ImportFlowProps {
   householdMemberId: string;
   ctaLabel?: string;
   onDone?: () => void;
+  defaultTab?: "request" | "upload" | "history";
 }
 
 const GENERIC_NETWORK_ERROR: ParseErrorPayload = {
@@ -34,7 +35,7 @@ function toParseErrorPayload(err: unknown): ParseErrorPayload {
   return GENERIC_NETWORK_ERROR;
 }
 
-export function ImportFlow({ householdMemberId, ctaLabel, onDone }: ImportFlowProps) {
+export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab = "request" }: ImportFlowProps) {
   const [step, setStep] = useState<Step>("upload");
   const [preview, setPreview] = useState<ImportPreviewResponse | null>(null);
   const [confirmResult, setConfirmResult] = useState<ImportConfirmResponse | null>(null);
@@ -88,7 +89,13 @@ export function ImportFlow({ householdMemberId, ctaLabel, onDone }: ImportFlowPr
   };
 
   if (step === "upload") {
-    return <UploadForm onSubmit={handleUpload} />;
+    return (
+      <TwoPathImportContainer
+        memberId={householdMemberId}
+        defaultTab={defaultTab}
+        onUploadSubmit={handleUpload}
+      />
+    );
   }
   if (step === "parsing") {
     return <ParsingIndicator />;
