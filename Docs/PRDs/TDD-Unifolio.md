@@ -131,7 +131,8 @@ endpoint home.
 | `/household-members/{id}/snapshots` | GET | Dashboard | PRD-03 FR-8 |
 | `/household/aggregate` | GET | Dashboard | PRD-03 FR-9, App Flow S14 default |
 | `/funds/{scheme_id}/distributor-comparison` | GET | Dashboard | PRD-03 FR-11 |
-| `/household-members/{id}/allocation` | GET | Analytics | PRD-04 FR-1–FR-2 |
+| `/analytics/household-members/{id}/allocation` | GET | Analytics | PRD-04 FR-1–FR-2 (built 2026-08-10: granular `by_category` + re-exposed `by_amc`; distinct route/prefix from Dashboard's pre-existing `/household-members/{id}/allocation` coarse `by_asset_class`/`by_amc` view — the two are intentionally separate, not a collision) |
+| `/analytics/household/aggregate/allocation` | GET | Analytics | PRD-04 FR-1–FR-2 (family aggregate, built 2026-08-10) |
 | `/funds/{scheme_id}/category-rank` | GET | Analytics | PRD-04 FR-3–FR-4 |
 | `/funds/{scheme_id}/score` | GET | Analytics | PRD-04 FR-5–FR-7 |
 | `/household-members/{id}/benchmark-comparison` | GET | Analytics | PRD-04 FR-8–FR-9 |
