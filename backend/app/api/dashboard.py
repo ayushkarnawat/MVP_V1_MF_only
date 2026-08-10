@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session as DbSession
 
 from app.db.session import get_db
-from app.models.user import User
+from app.models.user import User #user db model
 from app.services.auth.session import get_current_user
 from app.services.dashboard.aggregate import (
     get_aggregate_allocation,
@@ -12,16 +12,21 @@ from app.services.dashboard.aggregate import (
     get_aggregate_holdings,
     get_aggregate_sips,
     get_aggregate_snapshots,
-)
-from app.services.dashboard.allocation import compute_allocation
-from app.services.dashboard.cash_flow import compute_cash_flow
-from app.services.dashboard.distributor_comparison import compute_distributor_comparison
+) #for aggregated data
+
+from app.services.dashboard.allocation import compute_allocation 
+from app.services.dashboard.cash_flow import compute_cash_flow #for individual
+from app.services.dashboard.distributor_comparison import compute_distributor_comparison 
 from app.services.dashboard.holdings import compute_holdings
+
+#household member related db operations
 from app.services.dashboard.household_members import (
     create_household_member,
     get_household_member_for_user,
     list_household_members,
 )
+
+#validate requests & structure api responses
 from app.services.dashboard.schemas import (
     AggregateAllocationResponse,
     AggregateCashFlowResponse,
@@ -37,12 +42,13 @@ from app.services.dashboard.schemas import (
     SipRow,
     SnapshotRow,
 )
-from app.services.dashboard.sip import compute_active_sips
+
+from app.services.dashboard.sip import compute_active_sips 
 from app.services.dashboard.snapshots import get_snapshots
 
 router = APIRouter(tags=["dashboard"])
 
-
+#household member management
 @router.post("/household-members", response_model=HouseholdMemberResponse)
 def create_member(
     body: HouseholdMemberCreate,
@@ -59,7 +65,7 @@ def create_member(
         relationship_other_label=member.relationship_other_label,
     )
 
-
+#return household members
 @router.get("/household-members", response_model=list[HouseholdMemberResponse])
 def list_members(user: User = Depends(get_current_user), db: DbSession = Depends(get_db)):
     members = list_household_members(db, user.id)
@@ -73,7 +79,7 @@ def list_members(user: User = Depends(get_current_user), db: DbSession = Depends
         for m in members
     ]
 
-
+#individual member dashboard
 @router.get("/household-members/{member_id}/holdings", response_model=list[HoldingRow])
 async def get_member_holdings(
     member_id: uuid.UUID,
@@ -143,7 +149,7 @@ async def get_member_snapshots(
         raise HTTPException(status_code=404, detail="Household member not found.")
     return await get_snapshots(db, [member_id])
 
-
+#aggregate dashboard
 @router.get("/household/aggregate/holdings", response_model=AggregateHoldingsResponse)
 async def get_household_aggregate_holdings(
     user: User = Depends(get_current_user), db: DbSession = Depends(get_db)
