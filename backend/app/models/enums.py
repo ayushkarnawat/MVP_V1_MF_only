@@ -30,6 +30,17 @@ class ImportStatus(str, enum.Enum):
     PENDING = "pending"
     CONFIRMED = "confirmed"
     FAILED = "failed"
+    NOT_STARTED = "not_started"
+    REQUESTING_CAS = "requesting_cas"
+    WAITING_FOR_USER = "waiting_for_user"
+    UPLOAD_STARTED = "upload_started"
+    PASSWORD_REQUIRED = "password_required"
+    VALIDATION_FAILED = "validation_failed"
+    PROCESSING = "processing"
+    RETRY_PENDING = "retry_pending"
+    IMPORT_SUCCESSFUL = "import_successful"
+    IMPORT_FAILED = "import_failed"
+    EXPIRED = "expired"
 
 
 class SourceCasType(str, enum.Enum):
@@ -68,6 +79,7 @@ class TransactionType(str, enum.Enum):
     STT = "stt"
     STAMP_DUTY = "stamp_duty"
     MISC = "misc"
+    OPENING_BALANCE = "opening_balance"
 
 
 class BenchmarkIndex(str, enum.Enum):
