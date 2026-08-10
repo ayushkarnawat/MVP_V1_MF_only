@@ -5,6 +5,8 @@ __pycache__/
 *.db
 .pytest_cache/
 backend/.cache/
+backend/pytest_tmp/
+pytest_tmp/
 
 # Node
 node_modules/

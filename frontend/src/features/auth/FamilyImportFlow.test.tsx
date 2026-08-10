@@ -35,6 +35,10 @@ const EMPTY_PREVIEW = {
 function uploadFor(memberLabel: RegExp) {
   const file = new File(["pdf-bytes"], "cas.pdf", { type: "application/pdf" });
   fireEvent.click(screen.getByRole("button", { name: memberLabel }));
+  const uploadTab = screen.queryByRole("tab", { name: /upload existing statement/i });
+  if (uploadTab) {
+    fireEvent.click(uploadTab);
+  }
   fireEvent.change(screen.getByLabelText(/cas pdf/i), { target: { files: [file] } });
   fireEvent.change(screen.getByLabelText(/pdf password/i), { target: { value: "secret" } });
   fireEvent.click(screen.getByRole("button", { name: /upload & parse statement/i }));
@@ -215,6 +219,10 @@ describe("FamilyImportFlow", () => {
     fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
     await waitFor(() => screen.getByText(/upload your own cas/i));
     fireEvent.click(screen.getByRole("button", { name: /upload now/i }));
+    const uploadTab = screen.queryByRole("tab", { name: /upload existing statement/i });
+    if (uploadTab) {
+      fireEvent.click(uploadTab);
+    }
     await waitFor(() => screen.getByLabelText(/cas pdf/i));
 
     const file = new File(["pdf-bytes"], "cas.pdf", { type: "application/pdf" });

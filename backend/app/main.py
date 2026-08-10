@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import analytics, auth, dashboard, imports
+from app.api import analytics, auth, cas_imports, dashboard, imports
 
 app = FastAPI(title="Unifolio API")
 
@@ -15,6 +15,7 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router(imports.router)
+app.include_router(cas_imports.router)
 app.include_router(dashboard.router)
 app.include_router(analytics.router)
 

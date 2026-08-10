@@ -21,6 +21,11 @@ export function UploadForm({ onSubmit }: UploadFormProps) {
       setFileError("Please choose a valid PDF file (.pdf)");
       return;
     }
+    if (selected && selected.size > 25 * 1024 * 1024) {
+      setFile(null);
+      setFileError("This file is too large. Maximum supported file size is 25MB.");
+      return;
+    }
     setFile(selected);
     setFileError(null);
   };

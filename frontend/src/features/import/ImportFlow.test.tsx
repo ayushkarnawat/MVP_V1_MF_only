@@ -10,6 +10,10 @@ vi.mock("./api", async () => {
 });
 
 function uploadAFile() {
+  const uploadTab = screen.queryByRole("tab", { name: /upload existing statement/i });
+  if (uploadTab) {
+    fireEvent.click(uploadTab);
+  }
   const file = new File(["pdf-bytes"], "cas.pdf", { type: "application/pdf" });
   fireEvent.change(screen.getByLabelText(/cas pdf/i), { target: { files: [file] } });
   fireEvent.change(screen.getByLabelText(/pdf password/i), { target: { value: "secret" } });
@@ -93,7 +97,7 @@ describe("ImportFlow", () => {
     await waitFor(() => screen.getByRole("button", { name: /import another cas/i }));
     fireEvent.click(screen.getByRole("button", { name: /import another cas/i }));
 
-    expect(screen.getByRole("button", { name: /upload & parse statement/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /request from cams/i })).toBeInTheDocument();
   });
 
   it("uses ctaLabel and onDone instead of the default reset when provided", async () => {
