@@ -116,4 +116,51 @@ describe("DashboardView", () => {
       expect(screen.getByText("No CAS Data")).toBeInTheDocument();
     });
   });
+
+  it("renders CoverageGapBanner when member has unresolved coverage gaps", async () => {
+    vi.mocked(api.getMemberHoldings).mockResolvedValue([
+      {
+        scheme_id: "scheme-101",
+        scheme_name: "HDFC Top 100 Fund",
+        amc_name: "HDFC Mutual Fund",
+        household_member_id: "m-1",
+        household_member_name: "John",
+        plan_type: "DIRECT",
+        units_held: "100.00",
+        average_nav: "50.00",
+        current_nav: "75.00",
+        amount_invested: "5000.00",
+        current_value: "7500.00",
+        current_profit_total: "2500.00",
+        realized_gain: "0.00",
+        unrealized_gain: "2500.00",
+        today_gain: "50.00",
+      },
+    ]);
+    vi.mocked(api.getMemberAllocation).mockResolvedValue({
+      by_asset_class: [{ label: "Equity", current_value: "7500.00", percentage: 100 }],
+      by_amc: [{ label: "HDFC", current_value: "7500.00", percentage: 100 }],
+      total_value: "7500.00",
+    });
+
+    const importApi = await import("../import/api");
+    vi.spyOn(importApi, "getMemberCoverageGaps").mockResolvedValue([
+      {
+        folio_id: "fol-1",
+        folio_number: "12345/67",
+        scheme_id: "scheme-101",
+        scheme_name: "HDFC Top 100 Fund",
+        deficit_units: "50.000",
+        first_deficit_date: "2024-02-15",
+      },
+    ]);
+
+    render(<DashboardView viewMode="member" memberId="m-1" />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/coverage gap detected/i)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /resolve gap/i })).toBeInTheDocument();
+    });
+  });
 });
+

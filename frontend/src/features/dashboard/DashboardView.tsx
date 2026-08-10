@@ -6,6 +6,10 @@ import { HoldingsTableSkeleton } from "../../components/Skeleton";
 import { Badge } from "../../components/Badge";
 import { FundDetailModal } from "./FundDetailModal";
 import { DistributorComparisonModal } from "./DistributorComparisonModal";
+import { CoverageGapBanner } from "../import/CoverageGapBanner";
+import { OpeningBalanceModal } from "../import/OpeningBalanceModal";
+import { getMemberCoverageGaps } from "../import/api";
+import type { CoverageGapItem } from "../import/types";
 import { sumDecimalStrings } from "../../lib/decimal";
 import {
   getMemberHoldings,
@@ -30,6 +34,8 @@ export function DashboardView({
   const [holdings, setHoldings] = useState<HoldingRow[]>([]);
   const [allocation, setAllocation] = useState<AllocationSummary | null>(null);
   const [membersStatus, setMembersStatus] = useState<FamilyMemberStatus[]>([]);
+  const [coverageGaps, setCoverageGaps] = useState<CoverageGapItem[]>([]);
+  const [selectedGap, setSelectedGap] = useState<CoverageGapItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [allocationTab, setAllocationTab] = useState<"asset" | "amc">("asset");
@@ -58,17 +64,20 @@ export function DashboardView({
             setHoldings(holdingsRes.holdings);
             setMembersStatus(holdingsRes.members);
             setAllocation(allocationRes.allocation);
+            setCoverageGaps([]);
             setLoading(false);
           }
         } else if (memberId) {
-          const [holdingsRes, allocationRes] = await Promise.all([
+          const [holdingsRes, allocationRes, gapsRes] = await Promise.all([
             getMemberHoldings(memberId),
             getMemberAllocation(memberId),
+            getMemberCoverageGaps(memberId).catch(() => []),
           ]);
           if (isMounted) {
             setHoldings(holdingsRes);
             setMembersStatus([]);
             setAllocation(allocationRes);
+            setCoverageGaps(gapsRes);
             setLoading(false);
           }
         }
@@ -159,6 +168,12 @@ export function DashboardView({
 
   return (
     <div className={styles.container}>
+      {/* Coverage Gap Warning Banner */}
+      <CoverageGapBanner
+        gaps={coverageGaps}
+        onResolveGap={(gap) => setSelectedGap(gap)}
+      />
+
       {/* Hero Portfolio Summary Card */}
       <div className={styles.heroCard}>
         <div className={styles.heroPrimary}>
@@ -307,6 +322,22 @@ export function DashboardView({
           schemeName={comparisonModalState.schemeName}
         />
       )}
+
+      {/* Opening Balance Modal for Coverage Gap Resolution */}
+      <OpeningBalanceModal
+        isOpen={!!selectedGap}
+        gap={selectedGap}
+        onClose={() => setSelectedGap(null)}
+        onResolved={() => {
+          setSelectedGap(null);
+          // Refetch data to refresh gaps and balances
+          if (memberId) {
+            getMemberHoldings(memberId).then(setHoldings).catch(() => {});
+            getMemberAllocation(memberId).then(setAllocation).catch(() => {});
+            getMemberCoverageGaps(memberId).then(setCoverageGaps).catch(() => {});
+          }
+        }}
+      />
     </div>
   );
 }
