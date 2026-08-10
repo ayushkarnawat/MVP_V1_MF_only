@@ -13,7 +13,7 @@ from app.models.folio import Folio
 from app.models.reference import Scheme
 from app.models.transaction import Transaction
 from app.models.user import HouseholdMember, User
-from app.services.analytics.allocation import compute_category_allocation
+from app.services.analytics.allocation import compute_category_allocation, get_aggregate_category_allocation
 
 
 def _session():
@@ -78,3 +78,13 @@ def test_compute_category_allocation_buckets_by_granular_sebi_category():
     # from the two granular category buckets above.
     assert len(summary.by_amc) == 1
     assert Decimal(summary.by_amc[0].current_value) == Decimal("10000.00")
+
+
+def test_get_aggregate_category_allocation_lists_member_status_with_no_data():
+    db = _session()
+    member = _household_member(db)
+    result = asyncio.run(get_aggregate_category_allocation(db, member.user_id))
+    assert len(result.members) == 1
+    assert result.members[0].has_data is False
+    assert result.allocation.by_category == []
+    assert Decimal(result.allocation.total_value) == Decimal("0")

@@ -12,8 +12,10 @@ from decimal import Decimal
 from sqlalchemy.orm import Session
 
 from app.models.reference import Scheme
-from app.services.analytics.schemas import AnalyticsAllocationSummary
+from app.services.analytics.schemas import AggregateAnalyticsAllocationResponse, AnalyticsAllocationSummary
+from app.services.dashboard.aggregate import get_member_statuses
 from app.services.dashboard.holdings import compute_holdings
+from app.services.dashboard.household_members import list_household_members
 from app.services.dashboard.schemas import AllocationBucket
 
 
@@ -59,3 +61,12 @@ async def compute_category_allocation(
         by_amc=_to_buckets(by_amc, total_value),
         total_value=str(total_value),
     )
+
+
+async def get_aggregate_category_allocation(
+    db: Session, user_id: uuid.UUID
+) -> AggregateAnalyticsAllocationResponse:
+    members = list_household_members(db, user_id)
+    statuses = get_member_statuses(db, user_id)
+    allocation = await compute_category_allocation(db, [m.id for m in members])
+    return AggregateAnalyticsAllocationResponse(members=statuses, allocation=allocation)

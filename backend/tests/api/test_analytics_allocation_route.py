@@ -27,3 +27,18 @@ def test_analytics_allocation_route_returns_empty_summary_for_member_with_no_hol
     assert body["by_category"] == []
     assert body["by_amc"] == []
     assert body["total_value"] == "0"
+
+
+def test_analytics_aggregate_allocation_route_lists_members(client):
+    headers, _ = _authed_headers_and_member(client, "+919000000022")
+    response = client.get("/analytics/household/aggregate/allocation", headers=headers)
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body["members"]) == 1
+    assert body["members"][0]["has_data"] is False
+    assert body["allocation"]["by_category"] == []
+
+
+def test_analytics_aggregate_allocation_route_requires_auth(client):
+    response = client.get("/analytics/household/aggregate/allocation")
+    assert response.status_code == 401
