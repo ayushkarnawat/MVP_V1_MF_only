@@ -9,12 +9,22 @@ from app.services.analytics.allocation import (
     compute_category_allocation,
     get_aggregate_category_allocation,
 )
+from app.services.analytics.benchmark import (
+    compute_fund_vs_benchmark,
+    compute_portfolio_vs_benchmarks,
+    get_aggregate_fund_vs_benchmark,
+    get_aggregate_portfolio_vs_benchmarks,
+)
 from app.services.analytics.schemas import (
     AggregateAnalyticsAllocationResponse,
     AggregateDirectRegularTerResponse,
+    AggregateFundVsBenchmarkResponse,
+    AggregatePortfolioBenchmarkResponse,
     AggregateWeightedTerResponse,
     AnalyticsAllocationSummary,
     DirectRegularTerComparison,
+    FundVsBenchmarkSummary,
+    PortfolioBenchmarkSummary,
     WeightedTerSummary,
 )
 from app.services.analytics.ter import (
@@ -87,3 +97,39 @@ async def get_household_aggregate_direct_regular_ter(
     user: User = Depends(get_current_user), db: DbSession = Depends(get_db)
 ):
     return await get_aggregate_direct_regular_ter_comparison(db, user.id)
+
+
+@router.get("/household-members/{member_id}/benchmark", response_model=PortfolioBenchmarkSummary)
+async def get_member_portfolio_benchmark(
+    member_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    db: DbSession = Depends(get_db),
+):
+    if get_household_member_for_user(db, user.id, member_id) is None:
+        raise HTTPException(status_code=404, detail="Household member not found.")
+    return await compute_portfolio_vs_benchmarks(db, [member_id])
+
+
+@router.get("/household/aggregate/benchmark", response_model=AggregatePortfolioBenchmarkResponse)
+async def get_household_aggregate_portfolio_benchmark(
+    user: User = Depends(get_current_user), db: DbSession = Depends(get_db)
+):
+    return await get_aggregate_portfolio_vs_benchmarks(db, user.id)
+
+
+@router.get("/household-members/{member_id}/benchmark/funds", response_model=FundVsBenchmarkSummary)
+async def get_member_fund_benchmark(
+    member_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    db: DbSession = Depends(get_db),
+):
+    if get_household_member_for_user(db, user.id, member_id) is None:
+        raise HTTPException(status_code=404, detail="Household member not found.")
+    return await compute_fund_vs_benchmark(db, [member_id])
+
+
+@router.get("/household/aggregate/benchmark/funds", response_model=AggregateFundVsBenchmarkResponse)
+async def get_household_aggregate_fund_benchmark(
+    user: User = Depends(get_current_user), db: DbSession = Depends(get_db)
+):
+    return await get_aggregate_fund_vs_benchmark(db, user.id)
