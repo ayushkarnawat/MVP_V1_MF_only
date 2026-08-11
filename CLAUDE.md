@@ -85,24 +85,37 @@ frontend framework, or a service split not already in that document.
 
 ## Session State
 
-*(Updated 2026-08-10. See `session.md` at repo root for full detail — this is the
+*(Updated 2026-08-11. See `session.md` at repo root for full detail — this is the
 one-paragraph pointer for a fresh session.)*
 
-**Phase 4 Part 1 (Analytics — category allocation, PRD-04 FR-1/FR-2) is
-built and merged to `dev_intern`.** Built in an earlier session on
-`feature/phase4-part1-allocation` (a git worktree), merged this session via
-`git merge --no-ff` (`1ab0fab`), zero real conflicts. Adds
-`backend/app/services/analytics/allocation.py` +
-`schemas.py` and two routes (per-member and family-aggregate SEBI-category
-+ AMC allocation, Decimal-precise, reusing the existing FIFO holdings
-engine). Backend suite: 164 passing, 2 skipped (was 156), verified by
-re-running `pytest` after the merge. `dev_intern` is now ahead 7 / behind 10
-of `origin/dev_intern` — diverged, not synced this session. Per the Phase 4
-design doc's 5-step build order, **Part 2 (AMFI TER+AAUM → weighted TER,
-FR-10/FR-11) is next.** The knowledge graph (`.ua/knowledge-graph.json`) was
-refreshed this session via an incremental `/understand` update — now 533
-nodes / 1223 edges / 10 layers / 15 tour steps, `gitCommitHash
-1ab0fabc9cd075e7b7a40e2a9dc37835b77267de` matching this merge exactly.
+**Phase 4 Part 3 (Analytics — NSE Indices integration → benchmark
+comparison, PRD-04 FR-8/FR-9) is built and tested on `dev_intern`,
+committed locally, not yet pushed** (no git credentials in this sandbox —
+push manually via `git push origin dev_intern`). Adds
+`backend/app/services/analytics/nse_indices_client.py` (fetch/cache client
+for niftyindices.com's historical-levels endpoint — corrects a stale
+`.aspx` endpoint path in the design doc and `TDD-Unifolio.md`; the working
+endpoint, all 4 `Trading_Index_Name` mappings, and the `HistoricalDate`
+date format were live-verified this session via direct HTTP calls),
+`xirr.py` (pure `Decimal` Newton-Raphson XIRR, no numpy/scipy, per
+CLAUDE.md's Decimal-never-float rule), and `benchmark.py`
+(`compute_portfolio_vs_benchmarks` for FR-8, `compute_fund_vs_benchmark`
+for FR-9, each with a family-aggregate wrapper). Two judgment calls not
+fully specified by the PRD are flagged in-code: how the benchmark-
+hypothetical XIRR replays redemptions against the index (module
+docstring), and how each SEBI category maps to one of only 4 available
+benchmark indices via substring match, falling back to Nifty 500
+(`_benchmark_index_for_category`'s docstring). Four new routes mirror the
+existing allocation/ter routes' auth/404 pattern exactly. Backend suite:
+**286 passing, 2 skipped** (up from 250/2), zero regressions, verified by
+re-running `pytest`. Per the Phase 4 design doc's 5-step build order,
+**Part 4 (category-universe NAV caching → ranking, FR-3/FR-4) is next**,
+with the Scorer (FR-5/FR-6/FR-7) built last since it depends on Parts
+2–4. The knowledge graph (`.ua/knowledge-graph.json`) has **not** been
+refreshed for this work — treat it as stale for the new `analytics/`
+files until re-run; it was last current at **661 nodes / 1657 edges / 10
+layers / 15 tour steps**, `gitCommitHash
+35fedd38f968e5b763269a67dbe8d16eff44e9ed` (pre-Part-2).
 
 **Phase 0, Phase 1 (backend + frontend), Phase 2 (backend), Phase 2b
 (Onboarding frontend), and Phase 3 (Main Dashboard backend) are all complete

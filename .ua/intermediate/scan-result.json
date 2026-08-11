@@ -47,9 +47,15 @@
       "fileCategory": "infra"
     },
     {
+      "path": "CAS-IMPORT-UPDATE-PLAN.md",
+      "language": "markdown",
+      "sizeLines": 174,
+      "fileCategory": "docs"
+    },
+    {
       "path": "CLAUDE.md",
       "language": "markdown",
-      "sizeLines": 189,
+      "sizeLines": 191,
       "fileCategory": "docs"
     },
     {
@@ -305,6 +311,12 @@
       "fileCategory": "code"
     },
     {
+      "path": "backend/alembic/versions/0003_cas_import_lifecycle_and_coverage_gaps.py",
+      "language": "python",
+      "sizeLines": 104,
+      "fileCategory": "code"
+    },
+    {
       "path": "backend/app/__init__.py",
       "language": "python",
       "sizeLines": 0,
@@ -326,6 +338,12 @@
       "path": "backend/app/api/auth.py",
       "language": "python",
       "sizeLines": 99,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/api/cas_imports.py",
+      "language": "python",
+      "sizeLines": 360,
       "fileCategory": "code"
     },
     {
@@ -379,7 +397,7 @@
     {
       "path": "backend/app/main.py",
       "language": "python",
-      "sizeLines": 24,
+      "sizeLines": 25,
       "fileCategory": "code"
     },
     {
@@ -397,19 +415,19 @@
     {
       "path": "backend/app/models/enums.py",
       "language": "python",
-      "sizeLines": 94,
+      "sizeLines": 106,
       "fileCategory": "code"
     },
     {
       "path": "backend/app/models/folio.py",
       "language": "python",
-      "sizeLines": 21,
+      "sizeLines": 25,
       "fileCategory": "code"
     },
     {
       "path": "backend/app/models/imports.py",
       "language": "python",
-      "sizeLines": 24,
+      "sizeLines": 31,
       "fileCategory": "code"
     },
     {
@@ -563,9 +581,39 @@
       "fileCategory": "code"
     },
     {
+      "path": "backend/app/services/import_/attribution.py",
+      "language": "python",
+      "sizeLines": 113,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/services/import_/buffer_cache.py",
+      "language": "python",
+      "sizeLines": 44,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/services/import_/cams_portal.py",
+      "language": "python",
+      "sizeLines": 95,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/services/import_/coverage_gap.py",
+      "language": "python",
+      "sizeLines": 171,
+      "fileCategory": "code"
+    },
+    {
       "path": "backend/app/services/import_/enrich.py",
       "language": "python",
       "sizeLines": 123,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/services/import_/lifecycle_service.py",
+      "language": "python",
+      "sizeLines": 283,
       "fileCategory": "code"
     },
     {
@@ -584,6 +632,12 @@
       "path": "backend/app/services/import_/service.py",
       "language": "python",
       "sizeLines": 265,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/services/import_/state_machine.py",
+      "language": "python",
+      "sizeLines": 105,
       "fileCategory": "code"
     },
     {
@@ -626,6 +680,24 @@
       "path": "backend/tests/api/test_auth_routes.py",
       "language": "python",
       "sizeLines": 116,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/api/test_cams_request_routes.py",
+      "language": "python",
+      "sizeLines": 73,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/api/test_cas_imports_routes.py",
+      "language": "python",
+      "sizeLines": 166,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/api/test_coverage_gaps_routes.py",
+      "language": "python",
+      "sizeLines": 137,
       "fileCategory": "code"
     },
     {
@@ -685,7 +757,7 @@
     {
       "path": "backend/tests/conftest.py",
       "language": "python",
-      "sizeLines": 43,
+      "sizeLines": 61,
       "fileCategory": "code"
     },
     {
@@ -845,9 +917,33 @@
       "fileCategory": "code"
     },
     {
+      "path": "backend/tests/services/import_/test_attribution.py",
+      "language": "python",
+      "sizeLines": 147,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/services/import_/test_cams_portal.py",
+      "language": "python",
+      "sizeLines": 77,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/services/import_/test_coverage_gap.py",
+      "language": "python",
+      "sizeLines": 187,
+      "fileCategory": "code"
+    },
+    {
       "path": "backend/tests/services/import_/test_enrich.py",
       "language": "python",
       "sizeLines": 101,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/services/import_/test_lifecycle_service.py",
+      "language": "python",
+      "sizeLines": 281,
       "fileCategory": "code"
     },
     {
@@ -860,6 +956,12 @@
       "path": "backend/tests/services/import_/test_service.py",
       "language": "python",
       "sizeLines": 402,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/services/import_/test_state_machine.py",
+      "language": "python",
+      "sizeLines": 92,
       "fileCategory": "code"
     },
     {
@@ -1135,13 +1237,13 @@
     {
       "path": "frontend/src/features/auth/FamilyCasUpload.tsx",
       "language": "typescript",
-      "sizeLines": 69,
+      "sizeLines": 114,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/features/auth/FamilyImportFlow.test.tsx",
       "language": "typescript",
-      "sizeLines": 274,
+      "sizeLines": 282,
       "fileCategory": "code"
     },
     {
@@ -1213,7 +1315,7 @@
     {
       "path": "frontend/src/features/auth/SoloCasUpload.test.tsx",
       "language": "typescript",
-      "sizeLines": 79,
+      "sizeLines": 82,
       "fileCategory": "code"
     },
     {
@@ -1231,7 +1333,7 @@
     {
       "path": "frontend/src/features/auth/UploadMyCas.tsx",
       "language": "typescript",
-      "sizeLines": 38,
+      "sizeLines": 46,
       "fileCategory": "code"
     },
     {
@@ -1249,7 +1351,7 @@
     {
       "path": "frontend/src/features/auth/onboarding.module.css",
       "language": "css",
-      "sizeLines": 276,
+      "sizeLines": 375,
       "fileCategory": "markup"
     },
     {
@@ -1309,13 +1411,13 @@
     {
       "path": "frontend/src/features/dashboard/DashboardView.test.tsx",
       "language": "typescript",
-      "sizeLines": 119,
+      "sizeLines": 166,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/features/dashboard/DashboardView.tsx",
       "language": "typescript",
-      "sizeLines": 319,
+      "sizeLines": 350,
       "fileCategory": "code"
     },
     {
@@ -1403,6 +1505,30 @@
       "fileCategory": "code"
     },
     {
+      "path": "frontend/src/features/import/AttributionModal.test.tsx",
+      "language": "typescript",
+      "sizeLines": 53,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/features/import/AttributionModal.tsx",
+      "language": "typescript",
+      "sizeLines": 75,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/features/import/CoverageGapBanner.test.tsx",
+      "language": "typescript",
+      "sizeLines": 34,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/features/import/CoverageGapBanner.tsx",
+      "language": "typescript",
+      "sizeLines": 47,
+      "fileCategory": "code"
+    },
+    {
       "path": "frontend/src/features/import/ImportConfirmed.module.css",
       "language": "css",
       "sizeLines": 71,
@@ -1441,13 +1567,49 @@
     {
       "path": "frontend/src/features/import/ImportFlow.test.tsx",
       "language": "typescript",
-      "sizeLines": 113,
+      "sizeLines": 117,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/features/import/ImportFlow.tsx",
       "language": "typescript",
-      "sizeLines": 108,
+      "sizeLines": 115,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/features/import/ImportHistoryList.test.tsx",
+      "language": "typescript",
+      "sizeLines": 47,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/features/import/ImportHistoryList.tsx",
+      "language": "typescript",
+      "sizeLines": 107,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/features/import/ImportLifecycleView.test.tsx",
+      "language": "typescript",
+      "sizeLines": 90,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/features/import/ImportLifecycleView.tsx",
+      "language": "typescript",
+      "sizeLines": 147,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/features/import/OpeningBalanceModal.test.tsx",
+      "language": "typescript",
+      "sizeLines": 66,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/features/import/OpeningBalanceModal.tsx",
+      "language": "typescript",
+      "sizeLines": 173,
       "fileCategory": "code"
     },
     {
@@ -1460,6 +1622,18 @@
       "path": "frontend/src/features/import/ParsingIndicator.tsx",
       "language": "typescript",
       "sizeLines": 55,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/features/import/RequestCamsPath.test.tsx",
+      "language": "typescript",
+      "sizeLines": 48,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/features/import/RequestCamsPath.tsx",
+      "language": "typescript",
+      "sizeLines": 135,
       "fileCategory": "code"
     },
     {
@@ -1481,6 +1655,18 @@
       "fileCategory": "code"
     },
     {
+      "path": "frontend/src/features/import/TwoPathImportContainer.test.tsx",
+      "language": "typescript",
+      "sizeLines": 25,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/features/import/TwoPathImportContainer.tsx",
+      "language": "typescript",
+      "sizeLines": 129,
+      "fileCategory": "code"
+    },
+    {
       "path": "frontend/src/features/import/UploadForm.module.css",
       "language": "css",
       "sizeLines": 173,
@@ -1489,37 +1675,49 @@
     {
       "path": "frontend/src/features/import/UploadForm.test.tsx",
       "language": "typescript",
-      "sizeLines": 37,
+      "sizeLines": 52,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/features/import/UploadForm.tsx",
       "language": "typescript",
-      "sizeLines": 155,
+      "sizeLines": 160,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/features/import/WaitingForCasView.test.tsx",
+      "language": "typescript",
+      "sizeLines": 48,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/features/import/WaitingForCasView.tsx",
+      "language": "typescript",
+      "sizeLines": 83,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/features/import/api.test.ts",
       "language": "typescript",
-      "sizeLines": 105,
+      "sizeLines": 301,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/features/import/api.ts",
       "language": "typescript",
-      "sizeLines": 55,
+      "sizeLines": 203,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/features/import/types.ts",
       "language": "typescript",
-      "sizeLines": 57,
+      "sizeLines": 114,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/index.css",
       "language": "css",
-      "sizeLines": 88,
+      "sizeLines": 99,
       "fileCategory": "markup"
     },
     {
@@ -1549,7 +1747,7 @@
     {
       "path": "frontend/src/setupTests.ts",
       "language": "typescript",
-      "sizeLines": 18,
+      "sizeLines": 44,
       "fileCategory": "code"
     },
     {
@@ -1591,7 +1789,7 @@
     {
       "path": "session.md",
       "language": "markdown",
-      "sizeLines": 225,
+      "sizeLines": 288,
       "fileCategory": "docs"
     },
     {
@@ -1601,13 +1799,14 @@
       "fileCategory": "config"
     }
   ],
-  "totalFiles": 262,
+  "totalFiles": 295,
   "filteredByIgnore": 18,
   "estimatedComplexity": "large",
   "importMap": {
     ".claude/settings.json": [],
     ".claude/settings.local.json": [],
     ".github/workflows/ci.yml": [],
+    "CAS-IMPORT-UPDATE-PLAN.md": [],
     "CLAUDE.md": [],
     "Docs/Competitor Analysis/competitive-matrix_Final.html": [],
     "Docs/PRD-03-Main-Dashboard.md": [],
@@ -1655,6 +1854,7 @@
     "backend/alembic/script.py.mako": [],
     "backend/alembic/versions/0001_initial_schema.py": [],
     "backend/alembic/versions/0002_transaction_dedupe_includes_type.py": [],
+    "backend/alembic/versions/0003_cas_import_lifecycle_and_coverage_gaps.py": [],
     "backend/app/__init__.py": [],
     "backend/app/api/__init__.py": [],
     "backend/app/api/analytics.py": [
@@ -1672,6 +1872,14 @@
       "backend/app/services/auth/otp.py",
       "backend/app/services/auth/schemas.py",
       "backend/app/services/auth/session.py"
+    ],
+    "backend/app/api/cas_imports.py": [
+      "backend/app/db/session.py",
+      "backend/app/models/imports.py",
+      "backend/app/models/user.py",
+      "backend/app/services/auth/session.py",
+      "backend/app/services/dashboard/household_members.py",
+      "backend/app/services/import_/lifecycle_service.py"
     ],
     "backend/app/api/dashboard.py": [
       "backend/app/db/session.py",
@@ -1708,6 +1916,7 @@
       "backend/app/api/__init__.py",
       "backend/app/api/analytics.py",
       "backend/app/api/auth.py",
+      "backend/app/api/cas_imports.py",
       "backend/app/api/dashboard.py",
       "backend/app/api/imports.py"
     ],
@@ -1850,7 +2059,36 @@
       "backend/app/services/dashboard/schemas.py"
     ],
     "backend/app/services/import_/__init__.py": [],
+    "backend/app/services/import_/attribution.py": [
+      "backend/app/models/user.py",
+      "backend/app/services/import_/parser.py"
+    ],
+    "backend/app/services/import_/buffer_cache.py": [],
+    "backend/app/services/import_/cams_portal.py": [
+      "backend/app/models/enums.py",
+      "backend/app/models/imports.py",
+      "backend/app/models/user.py",
+      "backend/app/services/import_/state_machine.py"
+    ],
+    "backend/app/services/import_/coverage_gap.py": [
+      "backend/app/models/enums.py",
+      "backend/app/models/folio.py",
+      "backend/app/models/imports.py",
+      "backend/app/models/transaction.py",
+      "backend/app/models/user.py"
+    ],
     "backend/app/services/import_/enrich.py": [],
+    "backend/app/services/import_/lifecycle_service.py": [
+      "backend/app/models/enums.py",
+      "backend/app/models/folio.py",
+      "backend/app/models/imports.py",
+      "backend/app/models/reference.py",
+      "backend/app/models/transaction.py",
+      "backend/app/services/import_/attribution.py",
+      "backend/app/services/import_/buffer_cache.py",
+      "backend/app/services/import_/parser.py",
+      "backend/app/services/import_/state_machine.py"
+    ],
     "backend/app/services/import_/parser.py": [
       "backend/app/core/decimal_utils.py",
       "backend/app/models/enums.py"
@@ -1868,6 +2106,9 @@
       "backend/app/services/import_/parser.py",
       "backend/app/services/import_/schemas.py"
     ],
+    "backend/app/services/import_/state_machine.py": [
+      "backend/app/models/enums.py"
+    ],
     "backend/pytest.ini": [],
     "backend/requirements-dev.txt": [],
     "backend/requirements.txt": [],
@@ -1879,6 +2120,25 @@
     "backend/tests/api/__init__.py": [],
     "backend/tests/api/test_analytics_allocation_route.py": [],
     "backend/tests/api/test_auth_routes.py": [],
+    "backend/tests/api/test_cams_request_routes.py": [
+      "backend/app/models/enums.py",
+      "backend/app/models/user.py",
+      "backend/app/services/auth/session.py"
+    ],
+    "backend/tests/api/test_cas_imports_routes.py": [
+      "backend/app/models/enums.py",
+      "backend/app/models/user.py",
+      "backend/app/services/auth/session.py"
+    ],
+    "backend/tests/api/test_coverage_gaps_routes.py": [
+      "backend/app/models/enums.py",
+      "backend/app/models/folio.py",
+      "backend/app/models/imports.py",
+      "backend/app/models/reference.py",
+      "backend/app/models/transaction.py",
+      "backend/app/models/user.py",
+      "backend/app/services/auth/session.py"
+    ],
     "backend/tests/api/test_dashboard_aggregate_routes.py": [],
     "backend/tests/api/test_dashboard_allocation_route.py": [],
     "backend/tests/api/test_dashboard_cash_flow_route.py": [],
@@ -2018,8 +2278,39 @@
       "backend/app/services/dashboard/snapshots.py"
     ],
     "backend/tests/services/import_/__init__.py": [],
+    "backend/tests/services/import_/test_attribution.py": [
+      "backend/app/models/enums.py",
+      "backend/app/models/user.py",
+      "backend/app/services/import_/attribution.py",
+      "backend/app/services/import_/parser.py"
+    ],
+    "backend/tests/services/import_/test_cams_portal.py": [
+      "backend/app/models/enums.py",
+      "backend/app/models/user.py",
+      "backend/app/services/import_/cams_portal.py"
+    ],
+    "backend/tests/services/import_/test_coverage_gap.py": [
+      "backend/app/models/enums.py",
+      "backend/app/models/folio.py",
+      "backend/app/models/imports.py",
+      "backend/app/models/reference.py",
+      "backend/app/models/transaction.py",
+      "backend/app/models/user.py",
+      "backend/app/services/import_/coverage_gap.py"
+    ],
     "backend/tests/services/import_/test_enrich.py": [
       "backend/app/services/import_/enrich.py"
+    ],
+    "backend/tests/services/import_/test_lifecycle_service.py": [
+      "backend/app/models/enums.py",
+      "backend/app/models/folio.py",
+      "backend/app/models/imports.py",
+      "backend/app/models/reference.py",
+      "backend/app/models/transaction.py",
+      "backend/app/models/user.py",
+      "backend/app/services/import_/buffer_cache.py",
+      "backend/app/services/import_/lifecycle_service.py",
+      "backend/app/services/import_/parser.py"
     ],
     "backend/tests/services/import_/test_parser.py": [
       "backend/app/models/enums.py",
@@ -2035,6 +2326,10 @@
       "backend/app/models/user.py",
       "backend/app/services/import_/parser.py",
       "backend/app/services/import_/service.py"
+    ],
+    "backend/tests/services/import_/test_state_machine.py": [
+      "backend/app/models/enums.py",
+      "backend/app/services/import_/state_machine.py"
     ],
     "backend/tests/test_db_session.py": [
       "backend/app/db/session.py"
@@ -2166,7 +2461,7 @@
       "frontend/src/components/Badge.tsx",
       "frontend/src/features/auth/onboarding.module.css",
       "frontend/src/features/auth/types.ts",
-      "frontend/src/features/import/UploadForm.tsx"
+      "frontend/src/features/import/TwoPathImportContainer.tsx"
     ],
     "frontend/src/features/auth/FamilyImportFlow.test.tsx": [
       "frontend/src/features/auth/AuthContext.tsx",
@@ -2262,7 +2557,7 @@
     "frontend/src/features/auth/UploadMyCas.tsx": [
       "frontend/src/components/Button.tsx",
       "frontend/src/features/auth/onboarding.module.css",
-      "frontend/src/features/import/UploadForm.tsx"
+      "frontend/src/features/import/TwoPathImportContainer.tsx"
     ],
     "frontend/src/features/auth/api.test.ts": [
       "frontend/src/features/auth/api.ts",
@@ -2306,6 +2601,10 @@
       "frontend/src/features/dashboard/FundDetailModal.tsx",
       "frontend/src/features/dashboard/api.ts",
       "frontend/src/features/dashboard/types.ts",
+      "frontend/src/features/import/CoverageGapBanner.tsx",
+      "frontend/src/features/import/OpeningBalanceModal.tsx",
+      "frontend/src/features/import/api.ts",
+      "frontend/src/features/import/types.ts",
       "frontend/src/lib/decimal.ts"
     ],
     "frontend/src/features/dashboard/DistributorComparisonModal.module.css": [],
@@ -2360,6 +2659,20 @@
     ],
     "frontend/src/features/dashboard/types.ts": [],
     "frontend/src/features/import/.gitkeep": [],
+    "frontend/src/features/import/AttributionModal.test.tsx": [
+      "frontend/src/features/import/AttributionModal.tsx"
+    ],
+    "frontend/src/features/import/AttributionModal.tsx": [
+      "frontend/src/components/Button.tsx",
+      "frontend/src/components/Modal.tsx"
+    ],
+    "frontend/src/features/import/CoverageGapBanner.test.tsx": [
+      "frontend/src/features/import/CoverageGapBanner.tsx"
+    ],
+    "frontend/src/features/import/CoverageGapBanner.tsx": [
+      "frontend/src/components/Button.tsx",
+      "frontend/src/features/import/types.ts"
+    ],
     "frontend/src/features/import/ImportConfirmed.module.css": [],
     "frontend/src/features/import/ImportConfirmed.test.tsx": [
       "frontend/src/features/import/ImportConfirmed.tsx"
@@ -2385,13 +2698,52 @@
       "frontend/src/features/import/ImportError.tsx",
       "frontend/src/features/import/ParsingIndicator.tsx",
       "frontend/src/features/import/ReviewTable.tsx",
-      "frontend/src/features/import/UploadForm.tsx",
+      "frontend/src/features/import/TwoPathImportContainer.tsx",
+      "frontend/src/features/import/api.ts",
+      "frontend/src/features/import/types.ts"
+    ],
+    "frontend/src/features/import/ImportHistoryList.test.tsx": [
+      "frontend/src/features/import/ImportHistoryList.tsx",
+      "frontend/src/features/import/api.ts"
+    ],
+    "frontend/src/features/import/ImportHistoryList.tsx": [
+      "frontend/src/components/Badge.tsx",
+      "frontend/src/features/import/api.ts",
+      "frontend/src/features/import/types.ts"
+    ],
+    "frontend/src/features/import/ImportLifecycleView.test.tsx": [
+      "frontend/src/features/import/ImportLifecycleView.tsx",
+      "frontend/src/features/import/api.ts"
+    ],
+    "frontend/src/features/import/ImportLifecycleView.tsx": [
+      "frontend/src/components/Button.tsx",
+      "frontend/src/features/import/ImportConfirmed.tsx",
+      "frontend/src/features/import/ImportError.tsx",
+      "frontend/src/features/import/ParsingIndicator.tsx",
+      "frontend/src/features/import/api.ts",
+      "frontend/src/features/import/types.ts"
+    ],
+    "frontend/src/features/import/OpeningBalanceModal.test.tsx": [
+      "frontend/src/features/import/OpeningBalanceModal.tsx",
+      "frontend/src/features/import/api.ts"
+    ],
+    "frontend/src/features/import/OpeningBalanceModal.tsx": [
+      "frontend/src/components/Button.tsx",
+      "frontend/src/components/Modal.tsx",
       "frontend/src/features/import/api.ts",
       "frontend/src/features/import/types.ts"
     ],
     "frontend/src/features/import/ParsingIndicator.module.css": [],
     "frontend/src/features/import/ParsingIndicator.tsx": [
       "frontend/src/features/import/ParsingIndicator.module.css"
+    ],
+    "frontend/src/features/import/RequestCamsPath.test.tsx": [
+      "frontend/src/features/import/RequestCamsPath.tsx",
+      "frontend/src/features/import/api.ts"
+    ],
+    "frontend/src/features/import/RequestCamsPath.tsx": [
+      "frontend/src/components/Button.tsx",
+      "frontend/src/features/import/api.ts"
     ],
     "frontend/src/features/import/ReviewTable.module.css": [],
     "frontend/src/features/import/ReviewTable.test.tsx": [
@@ -2403,6 +2755,16 @@
       "frontend/src/features/import/ReviewTable.module.css",
       "frontend/src/features/import/types.ts"
     ],
+    "frontend/src/features/import/TwoPathImportContainer.test.tsx": [
+      "frontend/src/features/import/TwoPathImportContainer.tsx"
+    ],
+    "frontend/src/features/import/TwoPathImportContainer.tsx": [
+      "frontend/src/features/import/ImportHistoryList.tsx",
+      "frontend/src/features/import/RequestCamsPath.tsx",
+      "frontend/src/features/import/UploadForm.tsx",
+      "frontend/src/features/import/WaitingForCasView.tsx",
+      "frontend/src/features/import/types.ts"
+    ],
     "frontend/src/features/import/UploadForm.module.css": [],
     "frontend/src/features/import/UploadForm.test.tsx": [
       "frontend/src/features/import/UploadForm.tsx"
@@ -2410,6 +2772,16 @@
     "frontend/src/features/import/UploadForm.tsx": [
       "frontend/src/components/Button.tsx",
       "frontend/src/features/import/UploadForm.module.css"
+    ],
+    "frontend/src/features/import/WaitingForCasView.test.tsx": [
+      "frontend/src/features/import/WaitingForCasView.tsx",
+      "frontend/src/features/import/api.ts"
+    ],
+    "frontend/src/features/import/WaitingForCasView.tsx": [
+      "frontend/src/components/Button.tsx",
+      "frontend/src/features/import/UploadForm.tsx",
+      "frontend/src/features/import/api.ts",
+      "frontend/src/features/import/types.ts"
     ],
     "frontend/src/features/import/api.test.ts": [
       "frontend/src/features/import/api.ts"

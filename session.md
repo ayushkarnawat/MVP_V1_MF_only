@@ -1,4 +1,4 @@
-# Session state — 2026-08-10 (updated)
+# Session state — 2026-08-11 (updated)
 
 Working notes for picking this project back up cold. Not a planning doc — see
 `Docs/superpowers/plans/` for those. This file tracks *where things stand*,
@@ -7,45 +7,191 @@ gets overwritten each session, and isn't meant to accumulate history.
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
 
-## Pushed and synced with `origin/dev_intern` — but a large unrelated feature came in on pull, knowledge graph is stale again
+## Phase 4 Part 3: NSE Indices → benchmark comparison (PRD-04 FR-8/FR-9) — built and committed
 
-After committing the Phase 4 Part 1 merge (`9953e3a`) and pushing,
-`origin/dev_intern` had diverged with 9 commits building a completely
-separate, substantial feature: **CAS Import lifecycle + coverage-gap
-detection** (11-state import lifecycle engine, CAMS portal mailback
-requests, buffer cache, member attribution, opening-balance resolution,
-full Two-Path CAS import frontend UI — see `CAS-IMPORT-UPDATE-PLAN.md` at
-repo root for its own design doc). Pulling created merge commit `af74384`
-(`Merge: 9953e3a 8fc3580`) — **zero conflicts** (that branch touched
-`import_`/`cas_imports.py`, Phase 4 touched `analytics/`, no overlap).
-Backend suite verified green post-merge: **215 passed, 2 skipped** (up from
-164/2 — the new import-lifecycle tests). Both branches are now pushed and
-`dev_intern` is up to date with `origin/dev_intern` (confirmed via
-`git status`).
+Built directly (TDD, one task per commit) per the Phase 4 design doc's
+build order, continuing straight on from Part 2 in the same session rather
+than a fresh one.
 
-**The knowledge graph (`.ua/knowledge-graph.json`) is stale again** —
-`meta.json.gitCommitHash` is still `1ab0fabc9c...` (the Phase 4 merge
-commit), but current HEAD is `af74384` and includes the entire CAS Import
-lifecycle feature the graph has never seen. Re-run `/understand`
-(incremental update) before trusting the graph for anything touching
-`backend/app/services/import_/`, `backend/app/api/cas_imports.py`, or the
-`frontend/src/features/import/` tree.
+**`backend/app/services/analytics/nse_indices_client.py`** — fetch/cache
+client for `niftyindices.com`'s historical-levels endpoint. Corrects a
+stale endpoint path in the Phase 4 design doc and `TDD-Unifolio.md`
+(`Backpage.aspx/getHistoricaldatatabletoString` is dead — niftyindices.com
+moved off `.aspx`); live-verified this session via `curl`/ad hoc Python
+against the real site (not just re-trusted from the design doc): the
+working endpoint is `POST /BackPage/getHistoricaldatatabletoString` (no
+`.aspx`, requires a browser `User-Agent` or the site silently drops the
+request), body `{"cinfo": "<nested JSON string>"}`, and the response's
+`HistoricalDate` field is formatted `"10 Aug 2026"` (`%d %b %Y`) — none of
+this had been captured verbatim anywhere before. All 4
+`Trading_Index_Name` mappings (Nifty 50, Nifty 500, Nifty LargeMidcap 250,
+Nifty Midcap 150) confirmed working live. `TDD-Unifolio.md`'s row for this
+integration is corrected accordingly. `ensure_index_history_fresh(db,
+index, start_date, end_date)` is bulk-per-index-per-range (unlike `nav.py`'s
+per-scheme fetches) and skips the network call entirely when cached date
+bounds already cover the requested range — avoids redundant HTTP calls
+across the 4 indices within a single XIRR computation. Degrades to
+`False`/no-op on any fetch failure, same convention as `nav.py`/`arn_lookup.py`.
 
-**~50 files show as modified in `git status` but are NOT real changes** —
-confirmed via `git diff -w` (whitespace-ignoring) that every one is pure
-CRLF/line-ending noise, same pre-existing checkout-environment quirk
-documented earlier in this file for `backend/app/api/{auth,dashboard,imports}.py`.
-Do not `git add`/commit these unless you're deliberately normalizing line
-endings repo-wide; don't waste time investigating them as real diffs.
+**`backend/app/services/analytics/xirr.py`** — pure `decimal.Decimal`
+Newton-Raphson XIRR solver, no numpy/scipy. `Decimal ** Decimal` supports
+fractional exponents for a positive base, so `(1+rate) ** (days/365)` never
+touches `float`, per CLAUDE.md's Decimal-never-float rule. Degrades to
+`None` on non-convergence rather than raising.
 
-**Worktree cleanup:** `.worktrees/phase4-part1-allocation` has been removed
-(`git worktree remove`) — `feature/phase4-part1-allocation` (tip `390395c`)
-was confirmed fully merged into `dev_intern` via
-`git merge-base --is-ancestor` before removal, and had zero uncommitted
-work. The local branch ref itself (`feature/phase4-part1-allocation`) was
-left in place (harmless, tiny) — delete with `git branch -d
-feature/phase4-part1-allocation` if you want it gone too; no remote branch
-exists for it.
+**`backend/app/services/analytics/benchmark.py`** — `compute_portfolio_vs_benchmarks`
+(FR-8: whole-portfolio XIRR alongside all 4 index XIRRs) and
+`compute_fund_vs_benchmark` (FR-9: per-fund-appropriate benchmark, plus an
+overall portfolio-vs-Nifty-500 view), each with a family-aggregate wrapper.
+Two judgment calls not fully spelled out by the PRD, flagged in-code per
+CLAUDE.md's "stop and say so" (see the module's docstring and
+`_benchmark_index_for_category`'s docstring for full reasoning): **(1)**
+benchmark-hypothetical XIRR replays each real transaction against the
+index — same cash-flow dates/amounts as the real portfolio, purchases buy
+`amount / index_level_on_date` hypothetical units, redemptions sell that
+many, only the terminal value differs (`net_units * today's index level`).
+**(2)** since only 4 benchmark indices exist in scope, every SEBI category
+folds into one via substring match on "LARGE"/"MID" (Large Cap → Nifty 50,
+Mid Cap → Nifty Midcap 150, Large & Mid Cap → Nifty LargeMidcap 250,
+everything else — Flexi/Multi/Small Cap, Value/Contra, Sectoral, ELSS,
+Debt, Hybrid, etc. — falls back to Nifty 500 as the broad-market default);
+never excludes a fund from comparison. Every missing-index-history date is
+skipped rather than crashing the whole comparison.
+
+**Routes:** `GET /analytics/household-members/{id}/benchmark`,
+`.../benchmark/funds`, and family-aggregate variants
+(`/analytics/household/aggregate/benchmark[/funds]`), mirroring the
+existing allocation/ter routes' auth/404/response-shape pattern exactly.
+
+**Backend suite: 286 passing, 2 skipped** (up from 250/2) — 36 new tests
+(7 NSE client + 8 XIRR + 11 benchmark service + 10 routes), zero
+regressions, verified re-running the full suite. Five commits, one per
+task (`0b9fffc` NSE client, `59d995b` XIRR, `9960565` FR-8 benchmark,
+`0e4c6f9` FR-9 benchmark, `66d0540` routes).
+
+**Not yet done:** knowledge graph not refreshed for this work — treat
+`analytics/nse_indices_client.py`, `xirr.py`, `benchmark.py`, and the 4 new
+routes as stale in the graph until a fresh `/understand` run. Per the
+design doc's 5-step build order, **Part 4 (category-universe NAV caching →
+ranking, FR-3/FR-4) is next**, with the Scorer (FR-5/FR-6/FR-7) built last
+since it depends on Parts 2–4.
+
+## Phase 4 Part 2: AMFI TER + AAUM integrations → weighted TER (PRD-04 FR-10/FR-11) — built and committed
+
+Built directly (TDD, one task per commit) per the Phase 4 design doc's
+build order (`Docs/superpowers/plans/2026-08-10-phase-4-analytics-backend-design.md`),
+without a separate written task-by-task plan file — the design doc already
+carried full research/spec, and this was executed in one continuous
+session rather than delegated to subagents.
+
+**`backend/app/services/analytics/amfi_ter_client.py`** — bulk TER
+ingestion. `refresh_ter_data(db)` fetches the latest published month from
+AMFI (`populate-ter-month` → `populate-te-rdata-revised`, paginated),
+dedupes to the latest `TER_Date` per `Scheme_Name` (AMFI republishes daily
+even unchanged), and fuzzy-matches each locally-known scheme with a
+resolved Direct/Regular plan variant against that name list
+(`difflib.SequenceMatcher`, same idiom as `import_/enrich.py`). One real
+tuning finding: `enrich.py`'s 0.92 confirmation threshold doesn't work
+here — local scheme names carry a "- Direct/Regular Plan - Growth" suffix
+AMFI's plan-generic `Scheme_Name` never has, capping a genuine match's
+ratio around 0.67 against an unrelated pair's ~0.26; landed on 0.55 after
+computing both live, comfortable margin either side. Degrades gracefully
+(returns `False`, writes nothing) on fetch failure or an empty month.
+
+**`backend/app/services/analytics/amfi_aaum_client.py`** — bulk AAUM
+ingestion, front-loaded per the design doc's build order even though
+FR-10/FR-11 don't consume it (infrastructure for the later FR-4 step).
+Matches directly by `AMFI_Code` (no fuzzy matching needed, unlike TER).
+**Flagged, not silently assumed:** the financial-years endpoint's shape
+was live-verified during design research, but the intermediate
+"periods within a financial year" endpoint's exact response shape was
+never captured — this module assumes the same envelope by analogy and
+documents that assumption inline (module docstring), recommending
+live-verification before FR-4 relies on it. Every failure mode here
+(missing years/periods, unparseable period label, zero scheme matches)
+degrades to "nothing ingested," never a wrong value.
+
+**`backend/app/services/analytics/ter.py`** — `compute_weighted_ter`
+(FR-10) and `compute_direct_regular_ter_comparison` (FR-11). Resolves a
+real ambiguity in PRD-04's own text: the PRD calls FR-10 "AUM-weighted,"
+but the design doc's research already clarified this means weighted by
+the *user's own holding value*, not the fund's platform-wide AAUM — this
+module never reads `scheme_aaum`. TER is refreshed on-demand with one
+bulk fetch (not one fetch per scheme, unlike NAV) only when a held scheme
+lacks a current-month `scheme_ter` row; a scheme whose fuzzy match never
+resolves is excluded from the weighted average and surfaced via
+`uncovered_schemes` rather than silently miscomputed or crashing, per
+PRD-04's "TER not yet published" edge case.
+
+**Routes:** `GET /analytics/household-members/{id}/ter`,
+`.../ter/direct-regular`, and family-aggregate variants
+(`/analytics/household/aggregate/ter[/direct-regular]`), mirroring the
+existing allocation routes' auth/404/response-shape pattern exactly.
+
+**Backend suite: 250 passing, 2 skipped** (up from 215/2) — 40 new tests
+across 4 new test files, zero regressions. Four commits, one per task
+(`f6bbb5c` TER client, `b7197ed` AAUM client, `0971148` weighted TER +
+Direct/Regular service, `e026751` routes).
+
+**Not yet done:** the knowledge graph (`.ua/knowledge-graph.json`) has not
+been refreshed for this work — a fresh session picking this up next
+should treat the graph as stale for the new `analytics/` files until
+re-run. AAUM's periods-endpoint shape (above) needs live verification
+before FR-4 build starts. Per the design doc's build order, **Part 3 (NSE
+Indices integration → benchmark comparison, FR-8/FR-9) is next.**
+
+## Cleanup pass complete: knowledge graph refreshed, worktree branch deleted, CRLF noise reconfirmed harmless
+
+Follow-up session to the CAS Import lifecycle sync (`af74384`) — worked
+through the full punch list before starting Phase 4 Part 2.
+
+**Knowledge graph re-refreshed (incremental `/understand` update) — now
+matches current HEAD `35fedd38f968e5b763269a67dbe8d16eff44e9ed`.**
+`.ua/knowledge-graph.json`: **661 nodes / 1657 edges / 10 layers / 15 tour
+steps** (up from 533/1223/10/15 pre-refresh — the CAS Import lifecycle
+feature added ~130 nodes across `backend/app/services/import_/`,
+`backend/app/api/cas_imports.py`, the Alembic migration, and the whole
+`frontend/src/features/import/` tree). Ran the full 7-phase pipeline
+manually again (SCAN → BATCH → ANALYZE → ASSEMBLE REVIEW → ARCHITECTURE →
+TOUR → REVIEW → SAVE) via the bundled scripts + subagent dispatches from
+SKILL.md, same as the Phase 4 Part 1 refresh. Phase 1 re-scanned from
+scratch (295 files, up from 262) since new files must be in `scan-result.json`
+before `compute-batches.mjs --changed-files` can see them. 13 batches
+dispatched to `file-analyzer` subagents (5+8 concurrent, small batches
+fused for token efficiency); one subagent (the CLAUDE.md/session.md docs
+batch) guessed two doc paths wrong (`Docs/TDD-Unifolio.md` instead of
+`Docs/PRDs/TDD-Unifolio.md`, and a wrong `FundSignal.tsx` path) — the merge
+script's dangling-edge dropper caught both, and both were manually
+re-added with corrected paths after cross-checking the real file tree.
+`assemble-reviewer` found nothing else to fix (0 nodes recovered, all 550
+import-map edges already present). Architecture layers stayed at the same
+10 (CAS Import files slotted into existing Service/API/UI/Test layers, no
+new layer needed). Tour grew from 15 to still-15 steps — split the old
+single "CAS Import Pipeline" step into "CAS Import: Upload & Parsing" +
+"CAS Import Lifecycle: State Machine, Attribution & Coverage Gaps", and
+merged "Frontend Entry Point" into "Frontend Auth & Onboarding" to stay
+under the 15-step cap. Inline validation: 0 issues, 37 orphan-node warnings
+(all pre-existing empty `__init__.py`/static doc files, expected).
+`meta.json`/`fingerprints.json` both regenerated and now agree on
+`gitCommitHash 35fedd38f...`.
+
+**`feature/phase4-part1-allocation` local branch deleted.** The worktree
+was already removed in the prior session; this session finished the
+cleanup with `git branch -d feature/phase4-part1-allocation` (safe delete,
+refused-if-unmerged check passed since it was confirmed fully merged into
+`dev_intern`). No remote branch existed for it, so nothing to clean up
+upstream.
+
+**~50 files showing as modified in `git status` are still pure CRLF
+noise** — reconfirmed via `git diff -w`, same pre-existing
+checkout-environment quirk as `backend/app/api/{auth,dashboard,imports}.py`.
+Not touched; not worth normalizing line endings repo-wide for.
+
+**Push still pending** — this sandbox has no git credentials configured
+(no credential helper, no SSH key), so `git push` fails immediately with
+`could not read Password`. Push manually from a terminal with credentials,
+or run `! git push origin dev_intern` in a Claude Code session that has
+them.
 
 ## Phase 4 Part 1 (Analytics — category allocation, PRD-04 FR-1/FR-2) is built and merged to `dev_intern`
 
