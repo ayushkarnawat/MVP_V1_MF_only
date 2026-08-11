@@ -2,6 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { DashboardView } from "./DashboardView";
 import * as api from "./api";
+import * as importApi from "../import/api";
 
 vi.mock("./api", () => ({
   getMemberHoldings: vi.fn(),
@@ -11,9 +12,14 @@ vi.mock("./api", () => ({
   getDistributorComparison: vi.fn(),
 }));
 
+vi.mock("../import/api", () => ({
+  getMemberCoverageGaps: vi.fn().mockResolvedValue([]),
+}));
+
 describe("DashboardView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(importApi.getMemberCoverageGaps).mockResolvedValue([]);
   });
 
   it("renders S21 Empty State when member has 0 holdings", async () => {
