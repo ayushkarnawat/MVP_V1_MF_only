@@ -1,0 +1,147 @@
+import asyncio
+import uuid
+from datetime import date
+from decimal import Decimal
+from unittest.mock import AsyncMock, patch
+
+import httpx
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+from app.db.base import Base
+from app.models.enums import PlanNameVariant
+from app.models.reference import Scheme, SchemeTer
+from app.services.analytics.amfi_ter_client import (
+    _current_financial_year,
+    _normalize_scheme_name,
+    refresh_ter_data,
+)
+
+
+def _session():
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    return sessionmaker(autoflush=False, bind=engine)()
+
+
+def _scheme(db, name, plan_name_variant):
+    scheme = Scheme(
+        id=uuid.uuid4(),
+        amfi_code=uuid.uuid4().hex[:6],
+        isin="INF123",
+        name=name,
+        amc_name="HDFC AMC",
+        sebi_category="Equity Scheme - Flexi Cap Fund",
+        plan_name_variant=plan_name_variant,
+    )
+    db.add(scheme)
+    db.commit()
+    return scheme
+
+
+def test_current_financial_year_before_april_is_prior_calendar_year_start():
+    assert _current_financial_year(date(2026, 2, 1)) == "2025-2026"
+
+
+def test_current_financial_year_on_or_after_april_is_same_calendar_year_start():
+    assert _current_financial_year(date(2026, 8, 11)) == "2026-2027"
+
+
+def test_normalize_scheme_name_strips_parens_and_punctuation():
+    assert _normalize_scheme_name("HDFC Flexi Cap Fund - Direct (IDCW)") == "HDFC FLEXI CAP FUND DIRECT"
+
+
+def test_refresh_ter_data_upserts_regular_and_direct_variants_from_shared_row():
+    db = _session()
+    direct = _scheme(db, "HDFC Flexi Cap Fund - Direct Plan - Growth", PlanNameVariant.DIRECT)
+    regular = _scheme(db, "HDFC Flexi Cap Fund - Regular Plan - Growth", PlanNameVariant.REGULAR)
+
+    rows = [
+        {
+            "Scheme_Name": "HDFC Flexi Cap Fund",
+            "SchemeCat_Desc": "Equity Scheme - Flexi Cap Fund",
+            "TER_Date": "10-Aug-2026",
+            "R_TER": "1.85",
+            "D_TER": "0.75",
+        }
+    ]
+    with (
+        patch("app.services.analytics.amfi_ter_client._fetch_latest_ter_month", new=AsyncMock(return_value="08-2026")),
+        patch("app.services.analytics.amfi_ter_client._fetch_ter_rows", new=AsyncMock(return_value=rows)),
+    ):
+        result = asyncio.run(refresh_ter_data(db))
+
+    assert result is True
+    direct_ter = db.get(SchemeTer, (direct.id, date(2026, 8, 1)))
+    regular_ter = db.get(SchemeTer, (regular.id, date(2026, 8, 1)))
+    assert direct_ter.ter_value == Decimal("0.75")
+    assert regular_ter.ter_value == Decimal("1.85")
+
+
+def test_refresh_ter_data_skips_schemes_with_unresolved_plan_variant():
+    db = _session()
+    unresolved = _scheme(db, "HDFC Flexi Cap Fund", PlanNameVariant.UNRESOLVED)
+    rows = [{"Scheme_Name": "HDFC Flexi Cap Fund", "TER_Date": "10-Aug-2026", "R_TER": "1.85", "D_TER": "0.75"}]
+
+    with (
+        patch("app.services.analytics.amfi_ter_client._fetch_latest_ter_month", new=AsyncMock(return_value="08-2026")),
+        patch("app.services.analytics.amfi_ter_client._fetch_ter_rows", new=AsyncMock(return_value=rows)),
+    ):
+        asyncio.run(refresh_ter_data(db))
+
+    assert db.query(SchemeTer).filter_by(scheme_id=unresolved.id).first() is None
+
+
+def test_refresh_ter_data_keeps_only_latest_ter_date_per_scheme_name():
+    db = _session()
+    direct = _scheme(db, "HDFC Flexi Cap Fund - Direct Plan - Growth", PlanNameVariant.DIRECT)
+    rows = [
+        {"Scheme_Name": "HDFC Flexi Cap Fund", "TER_Date": "05-Aug-2026", "R_TER": "1.90", "D_TER": "0.80"},
+        {"Scheme_Name": "HDFC Flexi Cap Fund", "TER_Date": "10-Aug-2026", "R_TER": "1.85", "D_TER": "0.75"},
+    ]
+
+    with (
+        patch("app.services.analytics.amfi_ter_client._fetch_latest_ter_month", new=AsyncMock(return_value="08-2026")),
+        patch("app.services.analytics.amfi_ter_client._fetch_ter_rows", new=AsyncMock(return_value=rows)),
+    ):
+        asyncio.run(refresh_ter_data(db))
+
+    direct_ter = db.get(SchemeTer, (direct.id, date(2026, 8, 1)))
+    assert direct_ter.ter_value == Decimal("0.75")
+
+
+def test_refresh_ter_data_skips_low_confidence_matches():
+    db = _session()
+    scheme = _scheme(db, "Totally Unrelated Fund Name", PlanNameVariant.DIRECT)
+    rows = [{"Scheme_Name": "HDFC Flexi Cap Fund", "TER_Date": "10-Aug-2026", "R_TER": "1.85", "D_TER": "0.75"}]
+
+    with (
+        patch("app.services.analytics.amfi_ter_client._fetch_latest_ter_month", new=AsyncMock(return_value="08-2026")),
+        patch("app.services.analytics.amfi_ter_client._fetch_ter_rows", new=AsyncMock(return_value=rows)),
+    ):
+        asyncio.run(refresh_ter_data(db))
+
+    assert db.query(SchemeTer).filter_by(scheme_id=scheme.id).first() is None
+
+
+def test_refresh_ter_data_returns_false_and_writes_nothing_on_fetch_failure():
+    db = _session()
+    scheme = _scheme(db, "HDFC Flexi Cap Fund - Direct Plan - Growth", PlanNameVariant.DIRECT)
+
+    with patch(
+        "app.services.analytics.amfi_ter_client._fetch_latest_ter_month",
+        new=AsyncMock(side_effect=httpx.ConnectError("boom")),
+    ):
+        result = asyncio.run(refresh_ter_data(db))
+
+    assert result is False
+    assert db.query(SchemeTer).filter_by(scheme_id=scheme.id).first() is None
+
+
+def test_refresh_ter_data_returns_false_when_no_month_data_available():
+    db = _session()
+    with patch(
+        "app.services.analytics.amfi_ter_client._fetch_latest_ter_month", new=AsyncMock(return_value=None)
+    ):
+        result = asyncio.run(refresh_ter_data(db))
+    assert result is False
