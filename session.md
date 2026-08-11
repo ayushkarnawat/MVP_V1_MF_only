@@ -1,4 +1,4 @@
-# Session state — 2026-08-10 (updated)
+# Session state — 2026-08-11 (updated)
 
 Working notes for picking this project back up cold. Not a planning doc — see
 `Docs/superpowers/plans/` for those. This file tracks *where things stand*,
@@ -7,45 +7,58 @@ gets overwritten each session, and isn't meant to accumulate history.
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
 
-## Pushed and synced with `origin/dev_intern` — but a large unrelated feature came in on pull, knowledge graph is stale again
+## Cleanup pass complete: knowledge graph refreshed, worktree branch deleted, CRLF noise reconfirmed harmless
 
-After committing the Phase 4 Part 1 merge (`9953e3a`) and pushing,
-`origin/dev_intern` had diverged with 9 commits building a completely
-separate, substantial feature: **CAS Import lifecycle + coverage-gap
-detection** (11-state import lifecycle engine, CAMS portal mailback
-requests, buffer cache, member attribution, opening-balance resolution,
-full Two-Path CAS import frontend UI — see `CAS-IMPORT-UPDATE-PLAN.md` at
-repo root for its own design doc). Pulling created merge commit `af74384`
-(`Merge: 9953e3a 8fc3580`) — **zero conflicts** (that branch touched
-`import_`/`cas_imports.py`, Phase 4 touched `analytics/`, no overlap).
-Backend suite verified green post-merge: **215 passed, 2 skipped** (up from
-164/2 — the new import-lifecycle tests). Both branches are now pushed and
-`dev_intern` is up to date with `origin/dev_intern` (confirmed via
-`git status`).
+Follow-up session to the CAS Import lifecycle sync (`af74384`) — worked
+through the full punch list before starting Phase 4 Part 2.
 
-**The knowledge graph (`.ua/knowledge-graph.json`) is stale again** —
-`meta.json.gitCommitHash` is still `1ab0fabc9c...` (the Phase 4 merge
-commit), but current HEAD is `af74384` and includes the entire CAS Import
-lifecycle feature the graph has never seen. Re-run `/understand`
-(incremental update) before trusting the graph for anything touching
-`backend/app/services/import_/`, `backend/app/api/cas_imports.py`, or the
-`frontend/src/features/import/` tree.
+**Knowledge graph re-refreshed (incremental `/understand` update) — now
+matches current HEAD `35fedd38f968e5b763269a67dbe8d16eff44e9ed`.**
+`.ua/knowledge-graph.json`: **661 nodes / 1657 edges / 10 layers / 15 tour
+steps** (up from 533/1223/10/15 pre-refresh — the CAS Import lifecycle
+feature added ~130 nodes across `backend/app/services/import_/`,
+`backend/app/api/cas_imports.py`, the Alembic migration, and the whole
+`frontend/src/features/import/` tree). Ran the full 7-phase pipeline
+manually again (SCAN → BATCH → ANALYZE → ASSEMBLE REVIEW → ARCHITECTURE →
+TOUR → REVIEW → SAVE) via the bundled scripts + subagent dispatches from
+SKILL.md, same as the Phase 4 Part 1 refresh. Phase 1 re-scanned from
+scratch (295 files, up from 262) since new files must be in `scan-result.json`
+before `compute-batches.mjs --changed-files` can see them. 13 batches
+dispatched to `file-analyzer` subagents (5+8 concurrent, small batches
+fused for token efficiency); one subagent (the CLAUDE.md/session.md docs
+batch) guessed two doc paths wrong (`Docs/TDD-Unifolio.md` instead of
+`Docs/PRDs/TDD-Unifolio.md`, and a wrong `FundSignal.tsx` path) — the merge
+script's dangling-edge dropper caught both, and both were manually
+re-added with corrected paths after cross-checking the real file tree.
+`assemble-reviewer` found nothing else to fix (0 nodes recovered, all 550
+import-map edges already present). Architecture layers stayed at the same
+10 (CAS Import files slotted into existing Service/API/UI/Test layers, no
+new layer needed). Tour grew from 15 to still-15 steps — split the old
+single "CAS Import Pipeline" step into "CAS Import: Upload & Parsing" +
+"CAS Import Lifecycle: State Machine, Attribution & Coverage Gaps", and
+merged "Frontend Entry Point" into "Frontend Auth & Onboarding" to stay
+under the 15-step cap. Inline validation: 0 issues, 37 orphan-node warnings
+(all pre-existing empty `__init__.py`/static doc files, expected).
+`meta.json`/`fingerprints.json` both regenerated and now agree on
+`gitCommitHash 35fedd38f...`.
 
-**~50 files show as modified in `git status` but are NOT real changes** —
-confirmed via `git diff -w` (whitespace-ignoring) that every one is pure
-CRLF/line-ending noise, same pre-existing checkout-environment quirk
-documented earlier in this file for `backend/app/api/{auth,dashboard,imports}.py`.
-Do not `git add`/commit these unless you're deliberately normalizing line
-endings repo-wide; don't waste time investigating them as real diffs.
+**`feature/phase4-part1-allocation` local branch deleted.** The worktree
+was already removed in the prior session; this session finished the
+cleanup with `git branch -d feature/phase4-part1-allocation` (safe delete,
+refused-if-unmerged check passed since it was confirmed fully merged into
+`dev_intern`). No remote branch existed for it, so nothing to clean up
+upstream.
 
-**Worktree cleanup:** `.worktrees/phase4-part1-allocation` has been removed
-(`git worktree remove`) — `feature/phase4-part1-allocation` (tip `390395c`)
-was confirmed fully merged into `dev_intern` via
-`git merge-base --is-ancestor` before removal, and had zero uncommitted
-work. The local branch ref itself (`feature/phase4-part1-allocation`) was
-left in place (harmless, tiny) — delete with `git branch -d
-feature/phase4-part1-allocation` if you want it gone too; no remote branch
-exists for it.
+**~50 files showing as modified in `git status` are still pure CRLF
+noise** — reconfirmed via `git diff -w`, same pre-existing
+checkout-environment quirk as `backend/app/api/{auth,dashboard,imports}.py`.
+Not touched; not worth normalizing line endings repo-wide for.
+
+**Push still pending** — this sandbox has no git credentials configured
+(no credential helper, no SSH key), so `git push` fails immediately with
+`could not read Password`. Push manually from a terminal with credentials,
+or run `! git push origin dev_intern` in a Claude Code session that has
+them.
 
 ## Phase 4 Part 1 (Analytics — category allocation, PRD-04 FR-1/FR-2) is built and merged to `dev_intern`
 

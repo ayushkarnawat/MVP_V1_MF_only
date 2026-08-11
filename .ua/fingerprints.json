@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "1ab0fabc9cd075e7b7a40e2a9dc37835b77267de",
-  "generatedAt": "2026-08-10T18:35:34.191Z",
+  "gitCommitHash": "35fedd38f968e5b763269a67dbe8d16eff44e9ed",
+  "generatedAt": "2026-08-11T08:04:50.088Z",
   "files": {
     ".claude/settings.json": {
       "filePath": ".claude/settings.json",
@@ -33,14 +33,24 @@
       "totalLines": 62,
       "hasStructuralAnalysis": true
     },
-    "CLAUDE.md": {
-      "filePath": "CLAUDE.md",
-      "contentHash": "7dd8d5fa0bc1ecd90610fb3047e51ed0dae935383c3e57a2885ca134ff62ba1d",
+    "CAS-IMPORT-UPDATE-PLAN.md": {
+      "filePath": "CAS-IMPORT-UPDATE-PLAN.md",
+      "contentHash": "1f9c92620f8d9ad6f0ff2b33be6ac828a6140295cf3e2688550ce77f21fe0863",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 190,
+      "totalLines": 175,
+      "hasStructuralAnalysis": true
+    },
+    "CLAUDE.md": {
+      "filePath": "CLAUDE.md",
+      "contentHash": "60fe1981f60ec2550ebdce9799cf61d9846596279b1215d9849358020c4a1e1c",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 192,
       "hasStructuralAnalysis": true
     },
     "Docs/Competitor Analysis/competitive-matrix_Final.html": {
@@ -679,6 +689,85 @@
       "totalLines": 102,
       "hasStructuralAnalysis": true
     },
+    "backend/alembic/versions/0003_cas_import_lifecycle_and_coverage_gaps.py": {
+      "filePath": "backend/alembic/versions/0003_cas_import_lifecycle_and_coverage_gaps.py",
+      "contentHash": "3a3ccaea74a5ee8257a3bc02cc573761756b07cd4fc5d170b3b5c93cca68b459",
+      "functions": [
+        {
+          "name": "upgrade",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "downgrade",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "_upgrade_sqlite",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "_downgrade_sqlite",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "_upgrade_postgres",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 26
+        },
+        {
+          "name": "_downgrade_postgres",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 11
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "alembic",
+          "specifiers": [
+            "op"
+          ]
+        },
+        {
+          "source": "sqlalchemy",
+          "specifiers": [
+            "sa"
+          ]
+        },
+        {
+          "source": "sqlalchemy.dialects",
+          "specifiers": [
+            "postgresql"
+          ]
+        }
+      ],
+      "exports": [
+        "upgrade",
+        "downgrade",
+        "_upgrade_sqlite",
+        "_downgrade_sqlite",
+        "_upgrade_postgres",
+        "_downgrade_postgres"
+      ],
+      "totalLines": 105,
+      "hasStructuralAnalysis": true
+    },
     "backend/app/__init__.py": {
       "filePath": "backend/app/__init__.py",
       "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -930,6 +1019,309 @@
         "update_me"
       ],
       "totalLines": 100,
+      "hasStructuralAnalysis": true
+    },
+    "backend/app/api/cas_imports.py": {
+      "filePath": "backend/app/api/cas_imports.py",
+      "contentHash": "7b39f7d46d120ca9b34beea839855a178b072d60aa982ea6f98b069ccdd4fe4b",
+      "functions": [
+        {
+          "name": "_serialize_import_response",
+          "params": [
+            "rec"
+          ],
+          "returnType": "dict[str, Any]",
+          "exported": true,
+          "lineCount": 15
+        },
+        {
+          "name": "upload_cas_import",
+          "params": [
+            "file",
+            "password",
+            "household_member_id",
+            "source_tab",
+            "user",
+            "db"
+          ],
+          "exported": true,
+          "lineCount": 33
+        },
+        {
+          "name": "get_cas_import_status",
+          "params": [
+            "import_id",
+            "user",
+            "db"
+          ],
+          "exported": true,
+          "lineCount": 18
+        },
+        {
+          "name": "retry_password",
+          "params": [
+            "import_id",
+            "body",
+            "user",
+            "db"
+          ],
+          "exported": true,
+          "lineCount": 31
+        },
+        {
+          "name": "list_member_import_history",
+          "params": [
+            "member_id",
+            "user",
+            "db"
+          ],
+          "exported": true,
+          "lineCount": 20
+        },
+        {
+          "name": "list_member_coverage_gaps",
+          "params": [
+            "member_id",
+            "user",
+            "db"
+          ],
+          "exported": true,
+          "lineCount": 37
+        },
+        {
+          "name": "post_opening_balance",
+          "params": [
+            "folio_id",
+            "body",
+            "user",
+            "db"
+          ],
+          "exported": true,
+          "lineCount": 50
+        },
+        {
+          "name": "request_cams_statement",
+          "params": [
+            "body",
+            "user",
+            "db"
+          ],
+          "exported": true,
+          "lineCount": 24
+        },
+        {
+          "name": "cancel_import_request",
+          "params": [
+            "import_id",
+            "user",
+            "db"
+          ],
+          "exported": true,
+          "lineCount": 18
+        }
+      ],
+      "classes": [
+        {
+          "name": "PasswordRetryRequest",
+          "methods": [],
+          "properties": [
+            "password"
+          ],
+          "exported": true,
+          "lineCount": 2
+        },
+        {
+          "name": "AttributionUpdateRequest",
+          "methods": [],
+          "properties": [
+            "household_member_id"
+          ],
+          "exported": true,
+          "lineCount": 2
+        },
+        {
+          "name": "CASImportStatusResponse",
+          "methods": [],
+          "properties": [
+            "import_id",
+            "household_member_id",
+            "status",
+            "error_code",
+            "error_message",
+            "new_transactions_count",
+            "duplicate_transactions_count",
+            "statement_from_date",
+            "statement_to_date",
+            "source_cas_type",
+            "uploaded_at",
+            "confirmed_at"
+          ],
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "CAMSInitiateRequest",
+          "methods": [],
+          "properties": [
+            "household_member_id"
+          ],
+          "exported": true,
+          "lineCount": 2
+        },
+        {
+          "name": "CAMSInitiateResponse",
+          "methods": [],
+          "properties": [
+            "import_id",
+            "household_member_id",
+            "status",
+            "cams_url",
+            "expires_at"
+          ],
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "CoverageGapItemResponse",
+          "methods": [],
+          "properties": [
+            "folio_id",
+            "folio_number",
+            "scheme_id",
+            "scheme_name",
+            "deficit_units",
+            "first_deficit_date"
+          ],
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "OpeningBalanceRequest",
+          "methods": [],
+          "properties": [
+            "units",
+            "date",
+            "amount",
+            "nav"
+          ],
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "OpeningBalanceResponse",
+          "methods": [],
+          "properties": [
+            "transaction_id",
+            "folio_id",
+            "type",
+            "date",
+            "units",
+            "amount",
+            "nav",
+            "has_coverage_gap"
+          ],
+          "exported": true,
+          "lineCount": 9
+        }
+      ],
+      "imports": [
+        {
+          "source": "uuid",
+          "specifiers": [
+            "uuid"
+          ]
+        },
+        {
+          "source": "typing",
+          "specifiers": [
+            "Any"
+          ]
+        },
+        {
+          "source": "fastapi",
+          "specifiers": [
+            "APIRouter",
+            "Depends",
+            "File",
+            "Form",
+            "HTTPException",
+            "UploadFile",
+            "status"
+          ]
+        },
+        {
+          "source": "pydantic",
+          "specifiers": [
+            "BaseModel"
+          ]
+        },
+        {
+          "source": "sqlalchemy.orm",
+          "specifiers": [
+            "Session"
+          ]
+        },
+        {
+          "source": "app.db.session",
+          "specifiers": [
+            "get_db"
+          ]
+        },
+        {
+          "source": "app.models.imports",
+          "specifiers": [
+            "Import"
+          ]
+        },
+        {
+          "source": "app.models.user",
+          "specifiers": [
+            "User"
+          ]
+        },
+        {
+          "source": "app.services.auth.session",
+          "specifiers": [
+            "get_current_user"
+          ]
+        },
+        {
+          "source": "app.services.dashboard.household_members",
+          "specifiers": [
+            "get_household_member_for_user"
+          ]
+        },
+        {
+          "source": "app.services.import_.lifecycle_service",
+          "specifiers": [
+            "FileTooLargeError",
+            "InvalidFileFormatError",
+            "SessionExpiredError",
+            "create_cas_import",
+            "retry_cas_import_password"
+          ]
+        }
+      ],
+      "exports": [
+        "PasswordRetryRequest",
+        "AttributionUpdateRequest",
+        "CASImportStatusResponse",
+        "CAMSInitiateRequest",
+        "CAMSInitiateResponse",
+        "_serialize_import_response",
+        "upload_cas_import",
+        "get_cas_import_status",
+        "retry_password",
+        "list_member_import_history",
+        "CoverageGapItemResponse",
+        "OpeningBalanceRequest",
+        "OpeningBalanceResponse",
+        "list_member_coverage_gaps",
+        "post_opening_balance",
+        "request_cams_statement",
+        "cancel_import_request"
+      ],
+      "totalLines": 361,
       "hasStructuralAnalysis": true
     },
     "backend/app/api/dashboard.py": {
@@ -1485,7 +1877,7 @@
     },
     "backend/app/main.py": {
       "filePath": "backend/app/main.py",
-      "contentHash": "9c333f411bab83a70c2cbb7605589507809e939e9ac4936cdad8ad5e71de80c9",
+      "contentHash": "ec9213af99dba4594c66ac1432ba81d0eec110ac51c155d43adf8ad86ca2f7e8",
       "functions": [
         {
           "name": "health",
@@ -1514,6 +1906,7 @@
           "specifiers": [
             "analytics",
             "auth",
+            "cas_imports",
             "dashboard",
             "imports"
           ]
@@ -1522,7 +1915,7 @@
       "exports": [
         "health"
       ],
-      "totalLines": 25,
+      "totalLines": 26,
       "hasStructuralAnalysis": true
     },
     "backend/app/models/__init__.py": {
@@ -1630,7 +2023,7 @@
     },
     "backend/app/models/enums.py": {
       "filePath": "backend/app/models/enums.py",
-      "contentHash": "2c971177b7cc9bda0721e6d0c6d12db0b3f4a224fcfc06bc69e6019323b2591d",
+      "contentHash": "b6d91b4b6af8d1cd237d445c82601bee845fee7f23b4224418617da7b24db888",
       "functions": [
         {
           "name": "enum_column",
@@ -1669,7 +2062,7 @@
           "methods": [],
           "properties": [],
           "exported": true,
-          "lineCount": 4
+          "lineCount": 15
         },
         {
           "name": "SourceCasType",
@@ -1704,7 +2097,7 @@
           "methods": [],
           "properties": [],
           "exported": true,
-          "lineCount": 12
+          "lineCount": 13
         },
         {
           "name": "BenchmarkIndex",
@@ -1749,12 +2142,12 @@
         "ArnStatus",
         "enum_column"
       ],
-      "totalLines": 95,
+      "totalLines": 107,
       "hasStructuralAnalysis": true
     },
     "backend/app/models/folio.py": {
       "filePath": "backend/app/models/folio.py",
-      "contentHash": "5b09cef22b80fa392806497ebf12602708f4aee090d1fb722936586ad8cc8141",
+      "contentHash": "04127dd3c73344f00d5343f17c3ad104f2e151a7fbef5da702a095d2d2819a5a",
       "functions": [],
       "classes": [
         {
@@ -1766,10 +2159,12 @@
             "scheme_id",
             "folio_number",
             "arn_code",
-            "plan_type"
+            "plan_type",
+            "has_coverage_gap",
+            "coverage_gap_details"
           ],
           "exported": true,
-          "lineCount": 12
+          "lineCount": 14
         }
       ],
       "imports": [
@@ -1782,10 +2177,18 @@
         {
           "source": "sqlalchemy",
           "specifiers": [
+            "Boolean",
             "ForeignKey",
+            "JSON",
             "String",
             "UniqueConstraint",
             "Uuid"
+          ]
+        },
+        {
+          "source": "sqlalchemy.dialects",
+          "specifiers": [
+            "postgresql"
           ]
         },
         {
@@ -1812,12 +2215,12 @@
       "exports": [
         "Folio"
       ],
-      "totalLines": 22,
+      "totalLines": 26,
       "hasStructuralAnalysis": true
     },
     "backend/app/models/imports.py": {
       "filePath": "backend/app/models/imports.py",
-      "contentHash": "ef0230ea56dc2acbc27f94640ab1429f0e30562f5f965db5fcdb9aa5aabc2011",
+      "contentHash": "2b04913a677c37bba076701144e77d8a554df40f52176d073bd64ed1986bbef1",
       "functions": [],
       "classes": [
         {
@@ -1830,13 +2233,19 @@
             "source_cas_type",
             "raw_parser_output",
             "error_type",
+            "error_code",
+            "error_message",
+            "source_tab",
+            "statement_from_date",
+            "statement_to_date",
             "new_transactions_count",
             "duplicate_transactions_count",
             "uploaded_at",
-            "confirmed_at"
+            "confirmed_at",
+            "expires_at"
           ],
           "exported": true,
-          "lineCount": 13
+          "lineCount": 19
         }
       ],
       "imports": [
@@ -1849,16 +2258,19 @@
         {
           "source": "datetime",
           "specifiers": [
-            "datetime"
+            "datetime",
+            "date_"
           ]
         },
         {
           "source": "sqlalchemy",
           "specifiers": [
             "JSON",
+            "Date",
             "DateTime",
             "ForeignKey",
             "Integer",
+            "String",
             "Uuid"
           ]
         },
@@ -1894,7 +2306,7 @@
       "exports": [
         "Import"
       ],
-      "totalLines": 25,
+      "totalLines": 32,
       "hasStructuralAnalysis": true
     },
     "backend/app/models/reference.py": {
@@ -4125,6 +4537,400 @@
       "totalLines": 1,
       "hasStructuralAnalysis": true
     },
+    "backend/app/services/import_/attribution.py": {
+      "filePath": "backend/app/services/import_/attribution.py",
+      "contentHash": "2d514096a598c5da62a17c082ebe6c7f54f388982f1dce1386ed6d45a1ea9b5a",
+      "functions": [
+        {
+          "name": "_normalize",
+          "params": [
+            "text"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "resolve_attribution",
+          "params": [
+            "db",
+            "user_id",
+            "selected_member_id",
+            "parse_result"
+          ],
+          "returnType": "AttributionDecision",
+          "exported": true,
+          "lineCount": 64
+        }
+      ],
+      "classes": [
+        {
+          "name": "AttributionStatus",
+          "methods": [],
+          "properties": [],
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "AttributionDecision",
+          "methods": [],
+          "properties": [
+            "status",
+            "resolved_member_id",
+            "matched_member_name",
+            "requires_confirmation",
+            "prompt_message",
+            "candidate_members"
+          ],
+          "exported": true,
+          "lineCount": 7
+        }
+      ],
+      "imports": [
+        {
+          "source": "enum",
+          "specifiers": [
+            "enum"
+          ]
+        },
+        {
+          "source": "re",
+          "specifiers": [
+            "re"
+          ]
+        },
+        {
+          "source": "uuid",
+          "specifiers": [
+            "uuid"
+          ]
+        },
+        {
+          "source": "dataclasses",
+          "specifiers": [
+            "dataclass",
+            "field"
+          ]
+        },
+        {
+          "source": "typing",
+          "specifiers": [
+            "Any"
+          ]
+        },
+        {
+          "source": "sqlalchemy.orm",
+          "specifiers": [
+            "Session"
+          ]
+        },
+        {
+          "source": "app.models.user",
+          "specifiers": [
+            "HouseholdMember",
+            "User"
+          ]
+        },
+        {
+          "source": "app.services.import_.parser",
+          "specifiers": [
+            "ParseResult"
+          ]
+        }
+      ],
+      "exports": [
+        "AttributionStatus",
+        "AttributionDecision",
+        "_normalize",
+        "resolve_attribution"
+      ],
+      "totalLines": 114,
+      "hasStructuralAnalysis": true
+    },
+    "backend/app/services/import_/buffer_cache.py": {
+      "filePath": "backend/app/services/import_/buffer_cache.py",
+      "contentHash": "d083e9d466162577275f90cab0f21bdbf6491f6a44e7769d844b9be0f7173f1e",
+      "functions": [
+        {
+          "name": "_sweep_expired_buffers",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "store_pdf_buffer",
+          "params": [
+            "import_id",
+            "pdf_bytes"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "get_pdf_buffer",
+          "params": [
+            "import_id"
+          ],
+          "returnType": "bytes | None",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "remove_pdf_buffer",
+          "params": [
+            "import_id"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 2
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "datetime",
+          "specifiers": [
+            "datetime",
+            "timedelta",
+            "timezone"
+          ]
+        },
+        {
+          "source": "typing",
+          "specifiers": [
+            "Any"
+          ]
+        }
+      ],
+      "exports": [
+        "_sweep_expired_buffers",
+        "store_pdf_buffer",
+        "get_pdf_buffer",
+        "remove_pdf_buffer"
+      ],
+      "totalLines": 45,
+      "hasStructuralAnalysis": true
+    },
+    "backend/app/services/import_/cams_portal.py": {
+      "filePath": "backend/app/services/import_/cams_portal.py",
+      "contentHash": "f93b68e9d99c8c60a2bb2db84e0467057705d6067f175c3cfdbc9fdc3b900055",
+      "functions": [
+        {
+          "name": "build_cams_mailback_url",
+          "params": [],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "initiate_cams_request",
+          "params": [
+            "db",
+            "user_id",
+            "household_member_id"
+          ],
+          "returnType": "tuple[Import, str]",
+          "exported": true,
+          "lineCount": 50
+        },
+        {
+          "name": "cancel_pending_request",
+          "params": [
+            "db",
+            "import_id",
+            "user_id"
+          ],
+          "returnType": "Import",
+          "exported": true,
+          "lineCount": 19
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "datetime",
+          "specifiers": [
+            "date",
+            "datetime",
+            "timedelta",
+            "timezone"
+          ]
+        },
+        {
+          "source": "urllib.parse",
+          "specifiers": [
+            "urllib.parse"
+          ]
+        },
+        {
+          "source": "uuid",
+          "specifiers": [
+            "uuid"
+          ]
+        },
+        {
+          "source": "sqlalchemy.orm",
+          "specifiers": [
+            "Session"
+          ]
+        },
+        {
+          "source": "app.models.enums",
+          "specifiers": [
+            "ImportStatus"
+          ]
+        },
+        {
+          "source": "app.models.imports",
+          "specifiers": [
+            "Import"
+          ]
+        },
+        {
+          "source": "app.models.user",
+          "specifiers": [
+            "HouseholdMember"
+          ]
+        },
+        {
+          "source": "app.services.import_.state_machine",
+          "specifiers": [
+            "transition_status"
+          ]
+        }
+      ],
+      "exports": [
+        "build_cams_mailback_url",
+        "initiate_cams_request",
+        "cancel_pending_request"
+      ],
+      "totalLines": 96,
+      "hasStructuralAnalysis": true
+    },
+    "backend/app/services/import_/coverage_gap.py": {
+      "filePath": "backend/app/services/import_/coverage_gap.py",
+      "contentHash": "0a1acde3a51dcbfd8550b2cfe9ef305cd12cf8be1ee53cd207a3df47f3a23178",
+      "functions": [
+        {
+          "name": "_type_sort_key",
+          "params": [
+            "txn_type"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "evaluate_folio_coverage_gaps",
+          "params": [
+            "db",
+            "folio_id"
+          ],
+          "returnType": "dict[str, Any] | None",
+          "exported": true,
+          "lineCount": 50
+        },
+        {
+          "name": "evaluate_member_coverage_gaps",
+          "params": [
+            "db",
+            "member_id"
+          ],
+          "returnType": "list[Folio]",
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "create_opening_balance",
+          "params": [
+            "db",
+            "folio_id",
+            "user_id",
+            "units",
+            "date_",
+            "amount",
+            "nav"
+          ],
+          "returnType": "Transaction",
+          "exported": true,
+          "lineCount": 70
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "datetime",
+          "specifiers": [
+            "date"
+          ]
+        },
+        {
+          "source": "decimal",
+          "specifiers": [
+            "Decimal"
+          ]
+        },
+        {
+          "source": "uuid",
+          "specifiers": [
+            "uuid"
+          ]
+        },
+        {
+          "source": "typing",
+          "specifiers": [
+            "Any"
+          ]
+        },
+        {
+          "source": "sqlalchemy.orm",
+          "specifiers": [
+            "Session"
+          ]
+        },
+        {
+          "source": "app.models.enums",
+          "specifiers": [
+            "ImportStatus",
+            "TransactionType"
+          ]
+        },
+        {
+          "source": "app.models.folio",
+          "specifiers": [
+            "Folio"
+          ]
+        },
+        {
+          "source": "app.models.imports",
+          "specifiers": [
+            "Import"
+          ]
+        },
+        {
+          "source": "app.models.transaction",
+          "specifiers": [
+            "Transaction"
+          ]
+        },
+        {
+          "source": "app.models.user",
+          "specifiers": [
+            "HouseholdMember"
+          ]
+        }
+      ],
+      "exports": [
+        "_type_sort_key",
+        "evaluate_folio_coverage_gaps",
+        "evaluate_member_coverage_gaps",
+        "create_opening_balance"
+      ],
+      "totalLines": 172,
+      "hasStructuralAnalysis": true
+    },
     "backend/app/services/import_/enrich.py": {
       "filePath": "backend/app/services/import_/enrich.py",
       "contentHash": "56ba587da3f663a4fd838166c1b03e37d61472ecf3b171783d7eb2c892777a26",
@@ -4237,6 +5043,202 @@
         "MfApiClient"
       ],
       "totalLines": 124,
+      "hasStructuralAnalysis": true
+    },
+    "backend/app/services/import_/lifecycle_service.py": {
+      "filePath": "backend/app/services/import_/lifecycle_service.py",
+      "contentHash": "ad36756a8ed05239414fa72b37b32ea362ea47680abc3d4f8a21a643caad99d4",
+      "functions": [
+        {
+          "name": "_map_source_cas_type",
+          "params": [
+            "file_type"
+          ],
+          "returnType": "SourceCasType | None",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "validate_file_payload",
+          "params": [
+            "file_bytes"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "_commit_parsed_transactions",
+          "params": [
+            "db",
+            "import_rec",
+            "parse_result",
+            "target_member_id"
+          ],
+          "returnType": "tuple[int, int]",
+          "exported": true,
+          "lineCount": 107
+        },
+        {
+          "name": "create_cas_import",
+          "params": [
+            "db",
+            "user_id",
+            "household_member_id",
+            "file_bytes",
+            "filename",
+            "password",
+            "source_tab"
+          ],
+          "returnType": "Import",
+          "exported": true,
+          "lineCount": 62
+        },
+        {
+          "name": "retry_cas_import_password",
+          "params": [
+            "db",
+            "import_id",
+            "user_id",
+            "new_password"
+          ],
+          "returnType": "Import",
+          "exported": true,
+          "lineCount": 53
+        }
+      ],
+      "classes": [
+        {
+          "name": "InvalidFileFormatError",
+          "methods": [],
+          "properties": [],
+          "exported": true,
+          "lineCount": 2
+        },
+        {
+          "name": "FileTooLargeError",
+          "methods": [],
+          "properties": [],
+          "exported": true,
+          "lineCount": 2
+        },
+        {
+          "name": "SessionExpiredError",
+          "methods": [],
+          "properties": [],
+          "exported": true,
+          "lineCount": 2
+        }
+      ],
+      "imports": [
+        {
+          "source": "json",
+          "specifiers": [
+            "json"
+          ]
+        },
+        {
+          "source": "uuid",
+          "specifiers": [
+            "uuid"
+          ]
+        },
+        {
+          "source": "datetime",
+          "specifiers": [
+            "date",
+            "datetime",
+            "timezone"
+          ]
+        },
+        {
+          "source": "typing",
+          "specifiers": [
+            "Any"
+          ]
+        },
+        {
+          "source": "sqlalchemy.orm",
+          "specifiers": [
+            "Session"
+          ]
+        },
+        {
+          "source": "app.models.enums",
+          "specifiers": [
+            "ImportStatus",
+            "PlanNameVariant",
+            "PlanType",
+            "SourceCasType"
+          ]
+        },
+        {
+          "source": "app.models.folio",
+          "specifiers": [
+            "Folio"
+          ]
+        },
+        {
+          "source": "app.models.imports",
+          "specifiers": [
+            "Import"
+          ]
+        },
+        {
+          "source": "app.models.reference",
+          "specifiers": [
+            "Scheme"
+          ]
+        },
+        {
+          "source": "app.models.transaction",
+          "specifiers": [
+            "Transaction"
+          ]
+        },
+        {
+          "source": "app.services.import_.attribution",
+          "specifiers": [
+            "AttributionDecision",
+            "AttributionStatus",
+            "resolve_attribution"
+          ]
+        },
+        {
+          "source": "app.services.import_.buffer_cache",
+          "specifiers": [
+            "get_pdf_buffer",
+            "remove_pdf_buffer",
+            "store_pdf_buffer"
+          ]
+        },
+        {
+          "source": "app.services.import_.parser",
+          "specifiers": [
+            "ParseError",
+            "ParseResult",
+            "parse_cas_pdf_bytes",
+            "source_cas_type_from_file_type"
+          ]
+        },
+        {
+          "source": "app.services.import_.state_machine",
+          "specifiers": [
+            "transition_status"
+          ]
+        }
+      ],
+      "exports": [
+        "InvalidFileFormatError",
+        "FileTooLargeError",
+        "SessionExpiredError",
+        "_map_source_cas_type",
+        "validate_file_payload",
+        "_commit_parsed_transactions",
+        "create_cas_import",
+        "retry_cas_import_password"
+      ],
+      "totalLines": 284,
       "hasStructuralAnalysis": true
     },
     "backend/app/services/import_/parser.py": {
@@ -4772,6 +5774,58 @@
       "totalLines": 266,
       "hasStructuralAnalysis": true
     },
+    "backend/app/services/import_/state_machine.py": {
+      "filePath": "backend/app/services/import_/state_machine.py",
+      "contentHash": "febb870b61e144401776bf7705bba4c62f25a276d355b3dc66b69807937e5b35",
+      "functions": [
+        {
+          "name": "can_transition",
+          "params": [
+            "from_status",
+            "to_status"
+          ],
+          "returnType": "bool",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "transition_status",
+          "params": [
+            "from_status",
+            "to_status"
+          ],
+          "returnType": "ImportStatus",
+          "exported": true,
+          "lineCount": 8
+        }
+      ],
+      "classes": [
+        {
+          "name": "InvalidStateTransitionError",
+          "methods": [
+            "__init__"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 9
+        }
+      ],
+      "imports": [
+        {
+          "source": "app.models.enums",
+          "specifiers": [
+            "ImportStatus"
+          ]
+        }
+      ],
+      "exports": [
+        "InvalidStateTransitionError",
+        "can_transition",
+        "transition_status"
+      ],
+      "totalLines": 106,
+      "hasStructuralAnalysis": true
+    },
     "backend/pytest.ini": {
       "filePath": "backend/pytest.ini",
       "contentHash": "59df1dddd4d68a7e910f69d7517b988c1bbe3b386e6a540c5a7120a4be982bfc",
@@ -5047,6 +6101,292 @@
         "test_session_refresh_extends_expiry_with_valid_session"
       ],
       "totalLines": 117,
+      "hasStructuralAnalysis": true
+    },
+    "backend/tests/api/test_cams_request_routes.py": {
+      "filePath": "backend/tests/api/test_cams_request_routes.py",
+      "contentHash": "2268a5f51d5b5212eb324ff40346ff371254e696390f89134684b8faf2f90c03",
+      "functions": [
+        {
+          "name": "auth_setup",
+          "params": [
+            "client"
+          ],
+          "exported": true,
+          "lineCount": 29
+        },
+        {
+          "name": "test_post_cas_imports_request_returns_waiting_status_and_cams_url",
+          "params": [
+            "client",
+            "auth_setup"
+          ],
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "test_post_cas_imports_cancel_transitions_to_expired",
+          "params": [
+            "client",
+            "auth_setup"
+          ],
+          "exported": true,
+          "lineCount": 18
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "datetime",
+          "specifiers": [
+            "datetime",
+            "timezone"
+          ]
+        },
+        {
+          "source": "uuid",
+          "specifiers": [
+            "uuid"
+          ]
+        },
+        {
+          "source": "pytest",
+          "specifiers": [
+            "pytest"
+          ]
+        },
+        {
+          "source": "app.models.enums",
+          "specifiers": [
+            "Relationship"
+          ]
+        },
+        {
+          "source": "app.models.user",
+          "specifiers": [
+            "HouseholdMember",
+            "User"
+          ]
+        },
+        {
+          "source": "app.services.auth.session",
+          "specifiers": [
+            "create_session"
+          ]
+        }
+      ],
+      "exports": [
+        "auth_setup",
+        "test_post_cas_imports_request_returns_waiting_status_and_cams_url",
+        "test_post_cas_imports_cancel_transitions_to_expired"
+      ],
+      "totalLines": 74,
+      "hasStructuralAnalysis": true
+    },
+    "backend/tests/api/test_cas_imports_routes.py": {
+      "filePath": "backend/tests/api/test_cas_imports_routes.py",
+      "contentHash": "6759190f4dbd7dcf60596f7bb7ec564624b6003dd547bc5710867c20ebbe5320",
+      "functions": [
+        {
+          "name": "auth_headers_and_member",
+          "params": [
+            "client"
+          ],
+          "exported": true,
+          "lineCount": 30
+        },
+        {
+          "name": "test_post_cas_imports_validates_pdf_magic_bytes",
+          "params": [
+            "client",
+            "auth_headers_and_member"
+          ],
+          "exported": true,
+          "lineCount": 16
+        },
+        {
+          "name": "test_post_cas_imports_wrong_password_returns_password_required_and_allows_patch",
+          "params": [
+            "client",
+            "auth_headers_and_member",
+            "monkeypatch"
+          ],
+          "exported": true,
+          "lineCount": 78
+        },
+        {
+          "name": "test_post_cas_imports_summary_cas_transitions_validation_failed",
+          "params": [
+            "client",
+            "auth_headers_and_member",
+            "monkeypatch"
+          ],
+          "exported": true,
+          "lineCount": 26
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "datetime",
+          "specifiers": [
+            "datetime",
+            "timezone"
+          ]
+        },
+        {
+          "source": "uuid",
+          "specifiers": [
+            "uuid"
+          ]
+        },
+        {
+          "source": "pytest",
+          "specifiers": [
+            "pytest"
+          ]
+        },
+        {
+          "source": "app.models.enums",
+          "specifiers": [
+            "Relationship"
+          ]
+        },
+        {
+          "source": "app.models.user",
+          "specifiers": [
+            "HouseholdMember",
+            "User"
+          ]
+        },
+        {
+          "source": "app.services.auth.session",
+          "specifiers": [
+            "create_session"
+          ]
+        }
+      ],
+      "exports": [
+        "auth_headers_and_member",
+        "test_post_cas_imports_validates_pdf_magic_bytes",
+        "test_post_cas_imports_wrong_password_returns_password_required_and_allows_patch",
+        "test_post_cas_imports_summary_cas_transitions_validation_failed"
+      ],
+      "totalLines": 167,
+      "hasStructuralAnalysis": true
+    },
+    "backend/tests/api/test_coverage_gaps_routes.py": {
+      "filePath": "backend/tests/api/test_coverage_gaps_routes.py",
+      "contentHash": "bc0aff9e670622b4fa46ff9273a48f7ead9030c81048a8f686c0791abac2510b",
+      "functions": [
+        {
+          "name": "gap_setup",
+          "params": [
+            "client"
+          ],
+          "exported": true,
+          "lineCount": 82
+        },
+        {
+          "name": "test_get_coverage_gaps_for_member",
+          "params": [
+            "client",
+            "gap_setup"
+          ],
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "test_post_opening_balance_resolves_gap",
+          "params": [
+            "client",
+            "gap_setup"
+          ],
+          "exported": true,
+          "lineCount": 24
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "datetime",
+          "specifiers": [
+            "date",
+            "datetime",
+            "timezone"
+          ]
+        },
+        {
+          "source": "decimal",
+          "specifiers": [
+            "Decimal"
+          ]
+        },
+        {
+          "source": "uuid",
+          "specifiers": [
+            "uuid"
+          ]
+        },
+        {
+          "source": "pytest",
+          "specifiers": [
+            "pytest"
+          ]
+        },
+        {
+          "source": "app.models.enums",
+          "specifiers": [
+            "PlanType",
+            "Relationship",
+            "TransactionType"
+          ]
+        },
+        {
+          "source": "app.models.folio",
+          "specifiers": [
+            "Folio"
+          ]
+        },
+        {
+          "source": "app.models.imports",
+          "specifiers": [
+            "Import",
+            "ImportStatus"
+          ]
+        },
+        {
+          "source": "app.models.reference",
+          "specifiers": [
+            "Scheme"
+          ]
+        },
+        {
+          "source": "app.models.transaction",
+          "specifiers": [
+            "Transaction"
+          ]
+        },
+        {
+          "source": "app.models.user",
+          "specifiers": [
+            "HouseholdMember",
+            "User"
+          ]
+        },
+        {
+          "source": "app.services.auth.session",
+          "specifiers": [
+            "create_session"
+          ]
+        }
+      ],
+      "exports": [
+        "gap_setup",
+        "test_get_coverage_gaps_for_member",
+        "test_post_opening_balance_resolves_gap"
+      ],
+      "totalLines": 138,
       "hasStructuralAnalysis": true
     },
     "backend/tests/api/test_dashboard_aggregate_routes.py": {
@@ -5631,7 +6971,7 @@
     },
     "backend/tests/conftest.py": {
       "filePath": "backend/tests/conftest.py",
-      "contentHash": "a4fd3ad4461122fe8b71300892ebb39ae5cd518bcc56991a01490fe152c4cc59",
+      "contentHash": "4c0e29e302981d241914e384da6a8a690f09442064ef49d91f9778a7a9c6d5df",
       "functions": [
         {
           "name": "pytest_collection_modifyitems",
@@ -5641,6 +6981,12 @@
           ],
           "exported": true,
           "lineCount": 4
+        },
+        {
+          "name": "db_session",
+          "params": [],
+          "exported": true,
+          "lineCount": 14
         },
         {
           "name": "client",
@@ -5690,9 +7036,10 @@
       ],
       "exports": [
         "pytest_collection_modifyitems",
+        "db_session",
         "client"
       ],
-      "totalLines": 44,
+      "totalLines": 62,
       "hasStructuralAnalysis": true
     },
     "backend/tests/core/__init__.py": {
@@ -8160,6 +9507,331 @@
       "totalLines": 1,
       "hasStructuralAnalysis": true
     },
+    "backend/tests/services/import_/test_attribution.py": {
+      "filePath": "backend/tests/services/import_/test_attribution.py",
+      "contentHash": "7fd44f64c7fc9cc4064a4c1b34d4d442bc9df1c4c37c9dc226e241ce6601e9cd",
+      "functions": [
+        {
+          "name": "household_setup",
+          "params": [
+            "db_session"
+          ],
+          "exported": true,
+          "lineCount": 41
+        },
+        {
+          "name": "test_clean_single_match_to_selected_member",
+          "params": [
+            "db_session",
+            "household_setup"
+          ],
+          "exported": true,
+          "lineCount": 21
+        },
+        {
+          "name": "test_mismatch_detected_when_statement_belongs_to_different_member",
+          "params": [
+            "db_session",
+            "household_setup"
+          ],
+          "exported": true,
+          "lineCount": 23
+        },
+        {
+          "name": "test_unrecognized_member_prompts_add_member",
+          "params": [
+            "db_session",
+            "household_setup"
+          ],
+          "exported": true,
+          "lineCount": 21
+        },
+        {
+          "name": "test_name_matching_handles_case_and_formatting",
+          "params": [
+            "db_session",
+            "household_setup"
+          ],
+          "exported": true,
+          "lineCount": 19
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "datetime",
+          "specifiers": [
+            "datetime",
+            "timezone"
+          ]
+        },
+        {
+          "source": "uuid",
+          "specifiers": [
+            "uuid"
+          ]
+        },
+        {
+          "source": "pytest",
+          "specifiers": [
+            "pytest"
+          ]
+        },
+        {
+          "source": "app.models.enums",
+          "specifiers": [
+            "Relationship"
+          ]
+        },
+        {
+          "source": "app.models.user",
+          "specifiers": [
+            "HouseholdMember",
+            "User"
+          ]
+        },
+        {
+          "source": "app.services.import_.attribution",
+          "specifiers": [
+            "AttributionDecision",
+            "AttributionStatus",
+            "resolve_attribution"
+          ]
+        },
+        {
+          "source": "app.services.import_.parser",
+          "specifiers": [
+            "ParsedInvestor",
+            "ParseResult"
+          ]
+        }
+      ],
+      "exports": [
+        "household_setup",
+        "test_clean_single_match_to_selected_member",
+        "test_mismatch_detected_when_statement_belongs_to_different_member",
+        "test_unrecognized_member_prompts_add_member",
+        "test_name_matching_handles_case_and_formatting"
+      ],
+      "totalLines": 148,
+      "hasStructuralAnalysis": true
+    },
+    "backend/tests/services/import_/test_cams_portal.py": {
+      "filePath": "backend/tests/services/import_/test_cams_portal.py",
+      "contentHash": "4c9213cb13e9d874154dff16ca5d71e9b7a4ace663714649e375f3d533d18a34",
+      "functions": [
+        {
+          "name": "member_setup",
+          "params": [
+            "db_session"
+          ],
+          "exported": true,
+          "lineCount": 22
+        },
+        {
+          "name": "test_build_cams_mailback_url",
+          "params": [],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "test_initiate_cams_request_creates_waiting_for_user_session",
+          "params": [
+            "db_session",
+            "member_setup"
+          ],
+          "exported": true,
+          "lineCount": 14
+        },
+        {
+          "name": "test_cancel_pending_request_transitions_to_expired",
+          "params": [
+            "db_session",
+            "member_setup"
+          ],
+          "exported": true,
+          "lineCount": 18
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "datetime",
+          "specifiers": [
+            "datetime",
+            "timezone"
+          ]
+        },
+        {
+          "source": "uuid",
+          "specifiers": [
+            "uuid"
+          ]
+        },
+        {
+          "source": "pytest",
+          "specifiers": [
+            "pytest"
+          ]
+        },
+        {
+          "source": "app.models.enums",
+          "specifiers": [
+            "ImportStatus",
+            "Relationship"
+          ]
+        },
+        {
+          "source": "app.models.user",
+          "specifiers": [
+            "HouseholdMember",
+            "User"
+          ]
+        },
+        {
+          "source": "app.services.import_.cams_portal",
+          "specifiers": [
+            "build_cams_mailback_url",
+            "cancel_pending_request",
+            "initiate_cams_request"
+          ]
+        }
+      ],
+      "exports": [
+        "member_setup",
+        "test_build_cams_mailback_url",
+        "test_initiate_cams_request_creates_waiting_for_user_session",
+        "test_cancel_pending_request_transitions_to_expired"
+      ],
+      "totalLines": 78,
+      "hasStructuralAnalysis": true
+    },
+    "backend/tests/services/import_/test_coverage_gap.py": {
+      "filePath": "backend/tests/services/import_/test_coverage_gap.py",
+      "contentHash": "800cd298137597e699a829e809ea890cb9c6ec07410dc9becc34fbceaf438a13",
+      "functions": [
+        {
+          "name": "folio_setup",
+          "params": [
+            "db_session"
+          ],
+          "exported": true,
+          "lineCount": 58
+        },
+        {
+          "name": "test_complete_history_has_no_coverage_gap",
+          "params": [
+            "db_session",
+            "folio_setup"
+          ],
+          "exported": true,
+          "lineCount": 33
+        },
+        {
+          "name": "test_redemption_exceeding_purchases_flags_coverage_gap",
+          "params": [
+            "db_session",
+            "folio_setup"
+          ],
+          "exported": true,
+          "lineCount": 34
+        },
+        {
+          "name": "test_manual_opening_balance_resolves_coverage_gap",
+          "params": [
+            "db_session",
+            "folio_setup"
+          ],
+          "exported": true,
+          "lineCount": 37
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "datetime",
+          "specifiers": [
+            "date",
+            "datetime",
+            "timezone"
+          ]
+        },
+        {
+          "source": "decimal",
+          "specifiers": [
+            "Decimal"
+          ]
+        },
+        {
+          "source": "uuid",
+          "specifiers": [
+            "uuid"
+          ]
+        },
+        {
+          "source": "pytest",
+          "specifiers": [
+            "pytest"
+          ]
+        },
+        {
+          "source": "app.models.enums",
+          "specifiers": [
+            "PlanType",
+            "Relationship",
+            "TransactionType"
+          ]
+        },
+        {
+          "source": "app.models.folio",
+          "specifiers": [
+            "Folio"
+          ]
+        },
+        {
+          "source": "app.models.imports",
+          "specifiers": [
+            "Import",
+            "ImportStatus"
+          ]
+        },
+        {
+          "source": "app.models.reference",
+          "specifiers": [
+            "Scheme"
+          ]
+        },
+        {
+          "source": "app.models.transaction",
+          "specifiers": [
+            "Transaction"
+          ]
+        },
+        {
+          "source": "app.models.user",
+          "specifiers": [
+            "HouseholdMember",
+            "User"
+          ]
+        },
+        {
+          "source": "app.services.import_.coverage_gap",
+          "specifiers": [
+            "create_opening_balance",
+            "evaluate_folio_coverage_gaps",
+            "evaluate_member_coverage_gaps"
+          ]
+        }
+      ],
+      "exports": [
+        "folio_setup",
+        "test_complete_history_has_no_coverage_gap",
+        "test_redemption_exceeding_purchases_flags_coverage_gap",
+        "test_manual_opening_balance_resolves_coverage_gap"
+      ],
+      "totalLines": 188,
+      "hasStructuralAnalysis": true
+    },
     "backend/tests/services/import_/test_enrich.py": {
       "filePath": "backend/tests/services/import_/test_enrich.py",
       "contentHash": "748c5c9fdcbc02898fe4eee9eb5e997d1b3632868105f841a38c1b4e46adbf4a",
@@ -8268,6 +9940,173 @@
         "test_disk_cache_read_write_for_scheme_category"
       ],
       "totalLines": 102,
+      "hasStructuralAnalysis": true
+    },
+    "backend/tests/services/import_/test_lifecycle_service.py": {
+      "filePath": "backend/tests/services/import_/test_lifecycle_service.py",
+      "contentHash": "93d47c05b487f2f1d4de5ba82060823cd15573905afd653d2762be94fae0e4c1",
+      "functions": [
+        {
+          "name": "sample_user_and_member",
+          "params": [
+            "db_session"
+          ],
+          "exported": true,
+          "lineCount": 21
+        },
+        {
+          "name": "test_magic_byte_validation_rejects_non_pdf",
+          "params": [
+            "db_session",
+            "sample_user_and_member"
+          ],
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "test_file_size_cap_rejects_oversized_files",
+          "params": [
+            "db_session",
+            "sample_user_and_member"
+          ],
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "test_wrong_password_caches_buffer_and_sets_password_required",
+          "params": [
+            "db_session",
+            "sample_user_and_member",
+            "monkeypatch"
+          ],
+          "exported": true,
+          "lineCount": 31
+        },
+        {
+          "name": "test_retry_password_unlocks_and_completes_import",
+          "params": [
+            "db_session",
+            "sample_user_and_member",
+            "monkeypatch"
+          ],
+          "exported": true,
+          "lineCount": 68
+        },
+        {
+          "name": "test_deduplication_fingerprint_skips_duplicates",
+          "params": [
+            "db_session",
+            "sample_user_and_member",
+            "monkeypatch"
+          ],
+          "exported": true,
+          "lineCount": 97
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "datetime",
+          "specifiers": [
+            "date",
+            "datetime",
+            "timezone"
+          ]
+        },
+        {
+          "source": "decimal",
+          "specifiers": [
+            "Decimal"
+          ]
+        },
+        {
+          "source": "uuid",
+          "specifiers": [
+            "uuid"
+          ]
+        },
+        {
+          "source": "pytest",
+          "specifiers": [
+            "pytest"
+          ]
+        },
+        {
+          "source": "app.models.enums",
+          "specifiers": [
+            "ImportStatus",
+            "PlanType",
+            "Relationship",
+            "TransactionType"
+          ]
+        },
+        {
+          "source": "app.models.folio",
+          "specifiers": [
+            "Folio"
+          ]
+        },
+        {
+          "source": "app.models.imports",
+          "specifiers": [
+            "Import"
+          ]
+        },
+        {
+          "source": "app.models.reference",
+          "specifiers": [
+            "Scheme"
+          ]
+        },
+        {
+          "source": "app.models.transaction",
+          "specifiers": [
+            "Transaction"
+          ]
+        },
+        {
+          "source": "app.models.user",
+          "specifiers": [
+            "HouseholdMember",
+            "User"
+          ]
+        },
+        {
+          "source": "app.services.import_.buffer_cache",
+          "specifiers": [
+            "get_pdf_buffer",
+            "store_pdf_buffer"
+          ]
+        },
+        {
+          "source": "app.services.import_.lifecycle_service",
+          "specifiers": [
+            "FileTooLargeError",
+            "InvalidFileFormatError",
+            "SessionExpiredError",
+            "create_cas_import",
+            "retry_cas_import_password"
+          ]
+        },
+        {
+          "source": "app.services.import_.parser",
+          "specifiers": [
+            "NormalizedTransaction",
+            "ParsedInvestor",
+            "ParsedScheme",
+            "ParseResult"
+          ]
+        }
+      ],
+      "exports": [
+        "sample_user_and_member",
+        "test_magic_byte_validation_rejects_non_pdf",
+        "test_file_size_cap_rejects_oversized_files",
+        "test_wrong_password_caches_buffer_and_sets_password_required",
+        "test_retry_password_unlocks_and_completes_import",
+        "test_deduplication_fingerprint_skips_duplicates"
+      ],
+      "totalLines": 282,
       "hasStructuralAnalysis": true
     },
     "backend/tests/services/import_/test_parser.py": {
@@ -8647,6 +10486,75 @@
       "totalLines": 403,
       "hasStructuralAnalysis": true
     },
+    "backend/tests/services/import_/test_state_machine.py": {
+      "filePath": "backend/tests/services/import_/test_state_machine.py",
+      "contentHash": "5726e4d0f55139e497045a3cfbf03b32b039a7972faa872b9c875df0ef1d57a2",
+      "functions": [
+        {
+          "name": "test_allowed_transitions_defined_for_all_non_terminal_states",
+          "params": [],
+          "exported": true,
+          "lineCount": 19
+        },
+        {
+          "name": "test_valid_transitions",
+          "params": [
+            "from_state",
+            "to_state"
+          ],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "test_invalid_transitions_raise_error",
+          "params": [
+            "from_state",
+            "to_state"
+          ],
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "test_terminal_states_cannot_transition",
+          "params": [],
+          "exported": true,
+          "lineCount": 9
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "pytest",
+          "specifiers": [
+            "pytest"
+          ]
+        },
+        {
+          "source": "app.models.enums",
+          "specifiers": [
+            "ImportStatus"
+          ]
+        },
+        {
+          "source": "app.services.import_.state_machine",
+          "specifiers": [
+            "ALLOWED_TRANSITIONS",
+            "TERMINAL_STATES",
+            "InvalidStateTransitionError",
+            "can_transition",
+            "transition_status"
+          ]
+        }
+      ],
+      "exports": [
+        "test_allowed_transitions_defined_for_all_non_terminal_states",
+        "test_valid_transitions",
+        "test_invalid_transitions_raise_error",
+        "test_terminal_states_cannot_transition"
+      ],
+      "totalLines": 93,
+      "hasStructuralAnalysis": true
+    },
     "backend/tests/test_db_session.py": {
       "filePath": "backend/tests/test_db_session.py",
       "contentHash": "97994169fa56e62dcaae463366c4b3f19e80d56eb1f93ee275c7f4f62a2fedc9",
@@ -8839,7 +10747,7 @@
     },
     "frontend/index.html": {
       "filePath": "frontend/index.html",
-      "contentHash": "9ccd3d1c2bd459de6a95d07819f761e065968419cfb798b04348fe370bc599ec",
+      "contentHash": "b3ff6b4f815c68e1c78c756740e894a6c573671aa56f72dbd029a77e8aeac219",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -10048,7 +11956,7 @@
     },
     "frontend/src/features/auth/FamilyCasUpload.tsx": {
       "filePath": "frontend/src/features/auth/FamilyCasUpload.tsx",
-      "contentHash": "d8722a225880ade2b0a1a58a53e8b71689def0d9dde7917f2bd1f5a110aa6e51",
+      "contentHash": "8fab740d6eaadde6248946fa621d5482cfa1bfd4447979d387b1febf8324f449",
       "functions": [
         {
           "name": "FamilyCasUpload",
@@ -10056,7 +11964,7 @@
             "{ members, queue, onQueueUpload, onSkip, skipped, onContinue }"
           ],
           "exported": true,
-          "lineCount": 47
+          "lineCount": 91
         }
       ],
       "classes": [],
@@ -10068,9 +11976,9 @@
           ]
         },
         {
-          "source": "../import/UploadForm",
+          "source": "../import/TwoPathImportContainer",
           "specifiers": [
-            "UploadForm"
+            "TwoPathImportContainer"
           ]
         },
         {
@@ -10095,12 +12003,12 @@
       "exports": [
         "FamilyCasUpload"
       ],
-      "totalLines": 70,
+      "totalLines": 115,
       "hasStructuralAnalysis": true
     },
     "frontend/src/features/auth/FamilyImportFlow.test.tsx": {
       "filePath": "frontend/src/features/auth/FamilyImportFlow.test.tsx",
-      "contentHash": "fb7cd43bacef4370a650b1c0454f1d4397df947f5a9cbe98f4682d8812b10aa9",
+      "contentHash": "5c462075ac3ce0ca1cf35b3bae265105ebe11636e715decc839e20f4455634f0",
       "functions": [
         {
           "name": "uploadFor",
@@ -10108,7 +12016,7 @@
             "memberLabel"
           ],
           "exported": false,
-          "lineCount": 7
+          "lineCount": 11
         },
         {
           "name": "renderFlow",
@@ -10170,7 +12078,7 @@
         }
       ],
       "exports": [],
-      "totalLines": 275,
+      "totalLines": 283,
       "hasStructuralAnalysis": true
     },
     "frontend/src/features/auth/FamilyImportFlow.tsx": {
@@ -10819,7 +12727,7 @@
     },
     "frontend/src/features/auth/SoloCasUpload.test.tsx": {
       "filePath": "frontend/src/features/auth/SoloCasUpload.test.tsx",
-      "contentHash": "a72a3d8de0238ed8a99a5f787edb11d250b01ed64cf02091d640deebb0564882",
+      "contentHash": "69ac8d4af3ce1f4a675b4ff4d63476aaf50610b1279bd033437e8b73e3acc227",
       "functions": [
         {
           "name": "renderSolo",
@@ -10876,7 +12784,7 @@
         }
       ],
       "exports": [],
-      "totalLines": 80,
+      "totalLines": 83,
       "hasStructuralAnalysis": true
     },
     "frontend/src/features/auth/SoloCasUpload.tsx": {
@@ -10970,7 +12878,7 @@
     },
     "frontend/src/features/auth/UploadMyCas.tsx": {
       "filePath": "frontend/src/features/auth/UploadMyCas.tsx",
-      "contentHash": "ad2f3cec2ee754d018199ba4a88fb8ca6f96ea39893a9395d0a912e8158e0c89",
+      "contentHash": "5ad25a110120c9101403b1570622dc72ca769ea06f5c0105e422549c720e8e43",
       "functions": [
         {
           "name": "UploadMyCas",
@@ -10978,7 +12886,7 @@
             "{\r\n  awaitingUpload,\r\n  onUploadNow,\r\n  onUploadLater,\r\n  onSubmit,\r\n}"
           ],
           "exported": true,
-          "lineCount": 27
+          "lineCount": 35
         }
       ],
       "classes": [],
@@ -10990,9 +12898,9 @@
           ]
         },
         {
-          "source": "../import/UploadForm",
+          "source": "../import/TwoPathImportContainer",
           "specifiers": [
-            "UploadForm"
+            "TwoPathImportContainer"
           ]
         },
         {
@@ -11005,7 +12913,7 @@
       "exports": [
         "UploadMyCas"
       ],
-      "totalLines": 39,
+      "totalLines": 47,
       "hasStructuralAnalysis": true
     },
     "frontend/src/features/auth/api.test.ts": {
@@ -11164,12 +13072,12 @@
     },
     "frontend/src/features/auth/onboarding.module.css": {
       "filePath": "frontend/src/features/auth/onboarding.module.css",
-      "contentHash": "26f2bf9b4c92e9bb6464251a028f62cd7265934308f0cb191ba9d5dda7ea14ce",
+      "contentHash": "df9d4a1561a8b65b50496b8d9f526e85c84bcde68222b930908702ff2ceff801",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 277,
+      "totalLines": 376,
       "hasStructuralAnalysis": false
     },
     "frontend/src/features/auth/onboardingHistory.test.ts": {
@@ -11441,7 +13349,7 @@
     },
     "frontend/src/features/dashboard/DashboardView.test.tsx": {
       "filePath": "frontend/src/features/dashboard/DashboardView.test.tsx",
-      "contentHash": "71cb6f3daeeab78181effe0c62f3a016a511a2b0a3fc3c87989497c96015219f",
+      "contentHash": "5ddfe4b79744544f91d6c94053ef9841e8f9aa831afb6f63bbb9de54cbf8a8db",
       "functions": [],
       "classes": [],
       "imports": [
@@ -11477,12 +13385,12 @@
         }
       ],
       "exports": [],
-      "totalLines": 120,
+      "totalLines": 167,
       "hasStructuralAnalysis": true
     },
     "frontend/src/features/dashboard/DashboardView.tsx": {
       "filePath": "frontend/src/features/dashboard/DashboardView.tsx",
-      "contentHash": "88489874abe69538369b670bff9c902f559db22c85b5e069ae84ef3116bafd9b",
+      "contentHash": "8d02778b9a15b1ae031428c2e52858818c3c025210b50bbd9fab7dd64f7b9a7e",
       "functions": [
         {
           "name": "DashboardView",
@@ -11490,7 +13398,7 @@
             "{\r\n  viewMode,\r\n  memberId,\r\n  onAddDataForMember,\r\n}"
           ],
           "exported": true,
-          "lineCount": 288
+          "lineCount": 315
         },
         {
           "name": "formatIndianCurrency",
@@ -11555,6 +13463,30 @@
           ]
         },
         {
+          "source": "../import/CoverageGapBanner",
+          "specifiers": [
+            "CoverageGapBanner"
+          ]
+        },
+        {
+          "source": "../import/OpeningBalanceModal",
+          "specifiers": [
+            "OpeningBalanceModal"
+          ]
+        },
+        {
+          "source": "../import/api",
+          "specifiers": [
+            "getMemberCoverageGaps"
+          ]
+        },
+        {
+          "source": "../import/types",
+          "specifiers": [
+            "CoverageGapItem"
+          ]
+        },
+        {
           "source": "../../lib/decimal",
           "specifiers": [
             "sumDecimalStrings"
@@ -11587,7 +13519,7 @@
       "exports": [
         "DashboardView"
       ],
-      "totalLines": 320,
+      "totalLines": 351,
       "hasStructuralAnalysis": true
     },
     "frontend/src/features/dashboard/DistributorComparisonModal.module.css": {
@@ -12189,6 +14121,148 @@
       "totalLines": 1,
       "hasStructuralAnalysis": false
     },
+    "frontend/src/features/import/AttributionModal.test.tsx": {
+      "filePath": "frontend/src/features/import/AttributionModal.test.tsx",
+      "contentHash": "4e8ec8807d30ad468d2dc80d0a769c32be6ee2547eea4347816b8599d579b402",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@testing-library/react",
+          "specifiers": [
+            "render",
+            "screen",
+            "fireEvent"
+          ]
+        },
+        {
+          "source": "vitest",
+          "specifiers": [
+            "describe",
+            "expect",
+            "it",
+            "vi"
+          ]
+        },
+        {
+          "source": "./AttributionModal",
+          "specifiers": [
+            "AttributionModal"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 54,
+      "hasStructuralAnalysis": true
+    },
+    "frontend/src/features/import/AttributionModal.tsx": {
+      "filePath": "frontend/src/features/import/AttributionModal.tsx",
+      "contentHash": "a2badc6cb29873bdbcd97a0e2e26c685d6c18b76495d1b37698208c98e293d0f",
+      "functions": [
+        {
+          "name": "AttributionModal",
+          "params": [
+            "{\r\n  isOpen,\r\n  matchedMemberName,\r\n  matchedMemberId,\r\n  candidates,\r\n  onConfirm,\r\n  onCancel,\r\n}"
+          ],
+          "exported": true,
+          "lineCount": 56
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState"
+          ]
+        },
+        {
+          "source": "../../components/Modal",
+          "specifiers": [
+            "Modal"
+          ]
+        },
+        {
+          "source": "../../components/Button",
+          "specifiers": [
+            "Button"
+          ]
+        }
+      ],
+      "exports": [
+        "AttributionModal"
+      ],
+      "totalLines": 76,
+      "hasStructuralAnalysis": true
+    },
+    "frontend/src/features/import/CoverageGapBanner.test.tsx": {
+      "filePath": "frontend/src/features/import/CoverageGapBanner.test.tsx",
+      "contentHash": "c5f57ecf89cd738dcb697ff6911c0a3b49ceda781d8fff8970393ef600da9fe7",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@testing-library/react",
+          "specifiers": [
+            "render",
+            "screen",
+            "fireEvent"
+          ]
+        },
+        {
+          "source": "vitest",
+          "specifiers": [
+            "describe",
+            "expect",
+            "it",
+            "vi"
+          ]
+        },
+        {
+          "source": "./CoverageGapBanner",
+          "specifiers": [
+            "CoverageGapBanner"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 35,
+      "hasStructuralAnalysis": true
+    },
+    "frontend/src/features/import/CoverageGapBanner.tsx": {
+      "filePath": "frontend/src/features/import/CoverageGapBanner.tsx",
+      "contentHash": "bb70cf96388674ff8959c74ecf6616802fe439ef9b46a28b1eced5c59ff5fbc3",
+      "functions": [
+        {
+          "name": "CoverageGapBanner",
+          "params": [
+            "{ gaps, onResolveGap }"
+          ],
+          "exported": true,
+          "lineCount": 39
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "../../components/Button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "./types",
+          "specifiers": [
+            "CoverageGapItem"
+          ]
+        }
+      ],
+      "exports": [
+        "CoverageGapBanner"
+      ],
+      "totalLines": 48,
+      "hasStructuralAnalysis": true
+    },
     "frontend/src/features/import/ImportConfirmed.module.css": {
       "filePath": "frontend/src/features/import/ImportConfirmed.module.css",
       "contentHash": "d7ec7aac5e592b4836f0a055ea21b500f2b7e7c4e9a6500aaad715cdd86a424b",
@@ -12347,13 +14421,13 @@
     },
     "frontend/src/features/import/ImportFlow.test.tsx": {
       "filePath": "frontend/src/features/import/ImportFlow.test.tsx",
-      "contentHash": "3715227928735ed2e8ba504afbfba25102ab89c47b37f226b4b48bb93c8ac829",
+      "contentHash": "e1b4df9d6d86749531dcb4abe9274cb9df97c131cd85c0f19c2740fbe1e539e4",
       "functions": [
         {
           "name": "uploadAFile",
           "params": [],
           "exported": false,
-          "lineCount": 6
+          "lineCount": 10
         }
       ],
       "classes": [],
@@ -12397,12 +14471,12 @@
         }
       ],
       "exports": [],
-      "totalLines": 114,
+      "totalLines": 118,
       "hasStructuralAnalysis": true
     },
     "frontend/src/features/import/ImportFlow.tsx": {
       "filePath": "frontend/src/features/import/ImportFlow.tsx",
-      "contentHash": "04e704f92a5b4ad16c3be680a074d338cb7fdf675d06ee98c30a3dbbf50c13f7",
+      "contentHash": "c7aea5635d061c3aec5c3d1e9d17839d1e9158b7ee35006ebc345fa1d8fa56fb",
       "functions": [
         {
           "name": "toParseErrorPayload",
@@ -12416,10 +14490,10 @@
         {
           "name": "ImportFlow",
           "params": [
-            "{ householdMemberId, ctaLabel, onDone }"
+            "{ householdMemberId, ctaLabel, onDone, defaultTab = \"request\" }"
           ],
           "exported": true,
-          "lineCount": 72
+          "lineCount": 78
         }
       ],
       "classes": [],
@@ -12431,9 +14505,9 @@
           ]
         },
         {
-          "source": "./UploadForm",
+          "source": "./TwoPathImportContainer",
           "specifiers": [
-            "UploadForm"
+            "TwoPathImportContainer"
           ]
         },
         {
@@ -12481,7 +14555,307 @@
       "exports": [
         "ImportFlow"
       ],
-      "totalLines": 109,
+      "totalLines": 116,
+      "hasStructuralAnalysis": true
+    },
+    "frontend/src/features/import/ImportHistoryList.test.tsx": {
+      "filePath": "frontend/src/features/import/ImportHistoryList.test.tsx",
+      "contentHash": "1ed3a3f7a8d0f4a241d9569da77114b180f7e73a05d47272f746f952e27c66d9",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@testing-library/react",
+          "specifiers": [
+            "render",
+            "screen",
+            "waitFor"
+          ]
+        },
+        {
+          "source": "vitest",
+          "specifiers": [
+            "describe",
+            "expect",
+            "it",
+            "vi",
+            "afterEach"
+          ]
+        },
+        {
+          "source": "./ImportHistoryList",
+          "specifiers": [
+            "ImportHistoryList"
+          ]
+        },
+        {
+          "source": "./api",
+          "specifiers": [
+            "* as api"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 48,
+      "hasStructuralAnalysis": true
+    },
+    "frontend/src/features/import/ImportHistoryList.tsx": {
+      "filePath": "frontend/src/features/import/ImportHistoryList.tsx",
+      "contentHash": "bc4d7a35c84acb2855c9da0452288973b8e12352f5a7cd2edaa5849dcdf6523e",
+      "functions": [
+        {
+          "name": "ImportHistoryList",
+          "params": [
+            "{ memberId }"
+          ],
+          "exported": true,
+          "lineCount": 98
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useEffect",
+            "useState"
+          ]
+        },
+        {
+          "source": "../../components/Badge",
+          "specifiers": [
+            "Badge"
+          ]
+        },
+        {
+          "source": "./api",
+          "specifiers": [
+            "getMemberImportHistory"
+          ]
+        },
+        {
+          "source": "./types",
+          "specifiers": [
+            "CASImportStatusResponse"
+          ]
+        }
+      ],
+      "exports": [
+        "ImportHistoryList"
+      ],
+      "totalLines": 108,
+      "hasStructuralAnalysis": true
+    },
+    "frontend/src/features/import/ImportLifecycleView.test.tsx": {
+      "filePath": "frontend/src/features/import/ImportLifecycleView.test.tsx",
+      "contentHash": "68a400bd45ef62252e27ffc9b57319b911121efc91d2521f6d47142007db43b9",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@testing-library/react",
+          "specifiers": [
+            "render",
+            "screen",
+            "fireEvent",
+            "waitFor"
+          ]
+        },
+        {
+          "source": "vitest",
+          "specifiers": [
+            "describe",
+            "expect",
+            "it",
+            "vi",
+            "afterEach"
+          ]
+        },
+        {
+          "source": "./ImportLifecycleView",
+          "specifiers": [
+            "ImportLifecycleView"
+          ]
+        },
+        {
+          "source": "./api",
+          "specifiers": [
+            "* as api"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 91,
+      "hasStructuralAnalysis": true
+    },
+    "frontend/src/features/import/ImportLifecycleView.tsx": {
+      "filePath": "frontend/src/features/import/ImportLifecycleView.tsx",
+      "contentHash": "467f76939127053d9f9df98eee1803f14574a403a9a09311683f9e7d46fe45c9",
+      "functions": [
+        {
+          "name": "ImportLifecycleView",
+          "params": [
+            "{\r\n  importId,\r\n  initialStatus,\r\n  onDone,\r\n  onReset,\r\n}"
+          ],
+          "exported": true,
+          "lineCount": 131
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState"
+          ]
+        },
+        {
+          "source": "react",
+          "specifiers": [
+            "FormEvent"
+          ]
+        },
+        {
+          "source": "../../components/Button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "./ImportConfirmed",
+          "specifiers": [
+            "ImportConfirmed"
+          ]
+        },
+        {
+          "source": "./ImportError",
+          "specifiers": [
+            "ImportError"
+          ]
+        },
+        {
+          "source": "./ParsingIndicator",
+          "specifiers": [
+            "ParsingIndicator"
+          ]
+        },
+        {
+          "source": "./api",
+          "specifiers": [
+            "retryCasImportPassword"
+          ]
+        },
+        {
+          "source": "./types",
+          "specifiers": [
+            "CASImportStatusResponse"
+          ]
+        }
+      ],
+      "exports": [
+        "ImportLifecycleView"
+      ],
+      "totalLines": 148,
+      "hasStructuralAnalysis": true
+    },
+    "frontend/src/features/import/OpeningBalanceModal.test.tsx": {
+      "filePath": "frontend/src/features/import/OpeningBalanceModal.test.tsx",
+      "contentHash": "842dfb79b960ead4e9eda49f50802414d7a2b810b6e109b437f6b5fb4af74188",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@testing-library/react",
+          "specifiers": [
+            "render",
+            "screen",
+            "fireEvent",
+            "waitFor"
+          ]
+        },
+        {
+          "source": "vitest",
+          "specifiers": [
+            "describe",
+            "expect",
+            "it",
+            "vi",
+            "afterEach"
+          ]
+        },
+        {
+          "source": "./OpeningBalanceModal",
+          "specifiers": [
+            "OpeningBalanceModal"
+          ]
+        },
+        {
+          "source": "./api",
+          "specifiers": [
+            "* as api"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 67,
+      "hasStructuralAnalysis": true
+    },
+    "frontend/src/features/import/OpeningBalanceModal.tsx": {
+      "filePath": "frontend/src/features/import/OpeningBalanceModal.tsx",
+      "contentHash": "1996404a616510569ebefba84196ce60a11bcd208b02a3b3d808228f7367ecf1",
+      "functions": [
+        {
+          "name": "OpeningBalanceModal",
+          "params": [
+            "{\r\n  isOpen,\r\n  gap,\r\n  onClose,\r\n  onResolved,\r\n}"
+          ],
+          "exported": true,
+          "lineCount": 159
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState"
+          ]
+        },
+        {
+          "source": "react",
+          "specifiers": [
+            "FormEvent"
+          ]
+        },
+        {
+          "source": "../../components/Modal",
+          "specifiers": [
+            "Modal"
+          ]
+        },
+        {
+          "source": "../../components/Button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "./api",
+          "specifiers": [
+            "postOpeningBalance"
+          ]
+        },
+        {
+          "source": "./types",
+          "specifiers": [
+            "CoverageGapItem"
+          ]
+        }
+      ],
+      "exports": [
+        "OpeningBalanceModal"
+      ],
+      "totalLines": 174,
       "hasStructuralAnalysis": true
     },
     "frontend/src/features/import/ParsingIndicator.module.css": {
@@ -12525,6 +14899,88 @@
         "ParsingIndicator"
       ],
       "totalLines": 56,
+      "hasStructuralAnalysis": true
+    },
+    "frontend/src/features/import/RequestCamsPath.test.tsx": {
+      "filePath": "frontend/src/features/import/RequestCamsPath.test.tsx",
+      "contentHash": "1a9c6c1a75da297f32e965fb7c8b254aa7f7d2de2fffadcf2068a18c30c0642c",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@testing-library/react",
+          "specifiers": [
+            "render",
+            "screen",
+            "fireEvent",
+            "waitFor"
+          ]
+        },
+        {
+          "source": "vitest",
+          "specifiers": [
+            "describe",
+            "expect",
+            "it",
+            "vi",
+            "afterEach"
+          ]
+        },
+        {
+          "source": "./RequestCamsPath",
+          "specifiers": [
+            "RequestCamsPath"
+          ]
+        },
+        {
+          "source": "./api",
+          "specifiers": [
+            "* as api"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 49,
+      "hasStructuralAnalysis": true
+    },
+    "frontend/src/features/import/RequestCamsPath.tsx": {
+      "filePath": "frontend/src/features/import/RequestCamsPath.tsx",
+      "contentHash": "88812ad2afc408834fc29275a406f8849e5e6c26042c9659f8364e1ffd1bb4de",
+      "functions": [
+        {
+          "name": "RequestCamsPath",
+          "params": [
+            "{\r\n  memberId,\r\n  onRequestInitiated,\r\n}"
+          ],
+          "exported": true,
+          "lineCount": 126
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState"
+          ]
+        },
+        {
+          "source": "../../components/Button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "./api",
+          "specifiers": [
+            "requestCamsStatement"
+          ]
+        }
+      ],
+      "exports": [
+        "RequestCamsPath"
+      ],
+      "totalLines": 136,
       "hasStructuralAnalysis": true
     },
     "frontend/src/features/import/ReviewTable.module.css": {
@@ -12652,6 +15108,98 @@
       "totalLines": 145,
       "hasStructuralAnalysis": true
     },
+    "frontend/src/features/import/TwoPathImportContainer.test.tsx": {
+      "filePath": "frontend/src/features/import/TwoPathImportContainer.test.tsx",
+      "contentHash": "7f80ad703ab492aec5c50496b7d1237e9554efa11b9c13ae320bff56569f83bc",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@testing-library/react",
+          "specifiers": [
+            "render",
+            "screen",
+            "fireEvent"
+          ]
+        },
+        {
+          "source": "vitest",
+          "specifiers": [
+            "describe",
+            "expect",
+            "it",
+            "vi"
+          ]
+        },
+        {
+          "source": "./TwoPathImportContainer",
+          "specifiers": [
+            "TwoPathImportContainer"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 26,
+      "hasStructuralAnalysis": true
+    },
+    "frontend/src/features/import/TwoPathImportContainer.tsx": {
+      "filePath": "frontend/src/features/import/TwoPathImportContainer.tsx",
+      "contentHash": "51f8717c941802a3a5b9154baa2129d204d3d449f633ff225b2bd8e3756ea5ff",
+      "functions": [
+        {
+          "name": "TwoPathImportContainer",
+          "params": [
+            "{\r\n  memberId,\r\n  defaultTab = \"request\",\r\n  onUploadSubmit,\r\n  onUploadReceived,\r\n}"
+          ],
+          "exported": true,
+          "lineCount": 115
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState"
+          ]
+        },
+        {
+          "source": "./RequestCamsPath",
+          "specifiers": [
+            "RequestCamsPath"
+          ]
+        },
+        {
+          "source": "./WaitingForCasView",
+          "specifiers": [
+            "WaitingForCasView"
+          ]
+        },
+        {
+          "source": "./UploadForm",
+          "specifiers": [
+            "UploadForm"
+          ]
+        },
+        {
+          "source": "./ImportHistoryList",
+          "specifiers": [
+            "ImportHistoryList"
+          ]
+        },
+        {
+          "source": "./types",
+          "specifiers": [
+            "CASImportStatusResponse"
+          ]
+        }
+      ],
+      "exports": [
+        "TwoPathImportContainer"
+      ],
+      "totalLines": 130,
+      "hasStructuralAnalysis": true
+    },
     "frontend/src/features/import/UploadForm.module.css": {
       "filePath": "frontend/src/features/import/UploadForm.module.css",
       "contentHash": "874b0f83aa7ac19a47cc0973e7dd061297edb932f6597f588fe11b5d6d8ef126",
@@ -12664,7 +15212,7 @@
     },
     "frontend/src/features/import/UploadForm.test.tsx": {
       "filePath": "frontend/src/features/import/UploadForm.test.tsx",
-      "contentHash": "0c3f9f840a958d397eee549d7ac2d8e0d7c6703e330421b8009ffcdd6d3db253",
+      "contentHash": "959110623deb0cbe69f04ab90bbe30c5192aebe6a59d38782617ef2ea0037eaf",
       "functions": [],
       "classes": [],
       "imports": [
@@ -12693,12 +15241,12 @@
         }
       ],
       "exports": [],
-      "totalLines": 38,
+      "totalLines": 53,
       "hasStructuralAnalysis": true
     },
     "frontend/src/features/import/UploadForm.tsx": {
       "filePath": "frontend/src/features/import/UploadForm.tsx",
-      "contentHash": "610b2c12b19ab91a563d155e93f360f2a773638cf154d41a5ae045ae9357966d",
+      "contentHash": "d1d7255e33cc4e8fde926542713f638dcea3b80c1736acf9fa6774fb787da295",
       "functions": [
         {
           "name": "UploadForm",
@@ -12706,7 +15254,7 @@
             "{ onSubmit }"
           ],
           "exported": true,
-          "lineCount": 146
+          "lineCount": 151
         }
       ],
       "classes": [],
@@ -12742,12 +15290,107 @@
       "exports": [
         "UploadForm"
       ],
-      "totalLines": 156,
+      "totalLines": 161,
+      "hasStructuralAnalysis": true
+    },
+    "frontend/src/features/import/WaitingForCasView.test.tsx": {
+      "filePath": "frontend/src/features/import/WaitingForCasView.test.tsx",
+      "contentHash": "c261778d49c08be7d411a3a8634f813d9bed8812b96ed73c6693933ed15e41ca",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "@testing-library/react",
+          "specifiers": [
+            "render",
+            "screen",
+            "fireEvent",
+            "waitFor"
+          ]
+        },
+        {
+          "source": "vitest",
+          "specifiers": [
+            "describe",
+            "expect",
+            "it",
+            "vi",
+            "afterEach"
+          ]
+        },
+        {
+          "source": "./WaitingForCasView",
+          "specifiers": [
+            "WaitingForCasView"
+          ]
+        },
+        {
+          "source": "./api",
+          "specifiers": [
+            "* as api"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 49,
+      "hasStructuralAnalysis": true
+    },
+    "frontend/src/features/import/WaitingForCasView.tsx": {
+      "filePath": "frontend/src/features/import/WaitingForCasView.tsx",
+      "contentHash": "e27d3dc7f4e54a72dd22b8bcb7e702750e594105ec1c431621f99d0023618fd7",
+      "functions": [
+        {
+          "name": "WaitingForCasView",
+          "params": [
+            "{\r\n  importId,\r\n  memberId,\r\n  onCancelled,\r\n  onUploadReceived,\r\n}"
+          ],
+          "exported": true,
+          "lineCount": 70
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useState"
+          ]
+        },
+        {
+          "source": "../../components/Button",
+          "specifiers": [
+            "Button"
+          ]
+        },
+        {
+          "source": "./UploadForm",
+          "specifiers": [
+            "UploadForm"
+          ]
+        },
+        {
+          "source": "./api",
+          "specifiers": [
+            "cancelImportRequest",
+            "uploadCasImport"
+          ]
+        },
+        {
+          "source": "./types",
+          "specifiers": [
+            "CASImportStatusResponse"
+          ]
+        }
+      ],
+      "exports": [
+        "WaitingForCasView"
+      ],
+      "totalLines": 84,
       "hasStructuralAnalysis": true
     },
     "frontend/src/features/import/api.test.ts": {
       "filePath": "frontend/src/features/import/api.test.ts",
-      "contentHash": "5e573f38e9b260f41563b62c647cc50f219c036da5ada2cb176705a3c31b52a8",
+      "contentHash": "dd69872e2d9054375fa879eda3c52760d4c4a3dffa4983458ef7a4b07b294bb7",
       "functions": [],
       "classes": [],
       "imports": [
@@ -12765,18 +15408,26 @@
           "source": "./api",
           "specifiers": [
             "ApiError",
+            "cancelImportRequest",
             "confirmImport",
-            "parseImport"
+            "getCasImportStatus",
+            "getMemberCoverageGaps",
+            "getMemberImportHistory",
+            "parseImport",
+            "postOpeningBalance",
+            "requestCamsStatement",
+            "retryCasImportPassword",
+            "uploadCasImport"
           ]
         }
       ],
       "exports": [],
-      "totalLines": 106,
+      "totalLines": 302,
       "hasStructuralAnalysis": true
     },
     "frontend/src/features/import/api.ts": {
       "filePath": "frontend/src/features/import/api.ts",
-      "contentHash": "e3464032176564fecabe37740b19a04d30ee11719bf7d77f0c022562b11c5a7d",
+      "contentHash": "d40e6132498a9c98007ff0c1cf82d13914b846272b79062bb0c47c6ba26b5c96",
       "functions": [
         {
           "name": "authHeaders",
@@ -12805,6 +15456,83 @@
           "returnType": "Promise<ImportConfirmResponse>",
           "exported": true,
           "lineCount": 21
+        },
+        {
+          "name": "uploadCasImport",
+          "params": [
+            "file",
+            "password",
+            "householdMemberId",
+            "sourceTab"
+          ],
+          "returnType": "Promise<CASImportStatusResponse>",
+          "exported": true,
+          "lineCount": 24
+        },
+        {
+          "name": "getCasImportStatus",
+          "params": [
+            "importId"
+          ],
+          "returnType": "Promise<CASImportStatusResponse>",
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "retryCasImportPassword",
+          "params": [
+            "importId",
+            "password"
+          ],
+          "returnType": "Promise<CASImportStatusResponse>",
+          "exported": true,
+          "lineCount": 16
+        },
+        {
+          "name": "getMemberImportHistory",
+          "params": [
+            "memberId"
+          ],
+          "returnType": "Promise<CASImportStatusResponse[]>",
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "getMemberCoverageGaps",
+          "params": [
+            "memberId"
+          ],
+          "returnType": "Promise<CoverageGapItem[]>",
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "postOpeningBalance",
+          "params": [
+            "folioId",
+            "payload"
+          ],
+          "returnType": "Promise<OpeningBalanceResponse>",
+          "exported": true,
+          "lineCount": 16
+        },
+        {
+          "name": "requestCamsStatement",
+          "params": [
+            "householdMemberId"
+          ],
+          "returnType": "Promise<{\r\n  import_id: string;\r\n  household_member_id: string;\r\n  status: string;\r\n  cams_url: string;\r\n  expires_at: string;\r\n}>",
+          "exported": true,
+          "lineCount": 27
+        },
+        {
+          "name": "cancelImportRequest",
+          "params": [
+            "importId"
+          ],
+          "returnType": "Promise<CASImportStatusResponse>",
+          "exported": true,
+          "lineCount": 14
         }
       ],
       "classes": [],
@@ -12826,8 +15554,12 @@
         {
           "source": "./types",
           "specifiers": [
+            "CASImportStatusResponse",
+            "CoverageGapItem",
             "ImportConfirmResponse",
             "ImportPreviewResponse",
+            "OpeningBalancePayload",
+            "OpeningBalanceResponse",
             "ParseErrorPayload",
             "SchemeConfirmation"
           ]
@@ -12836,29 +15568,37 @@
       "exports": [
         "ApiError",
         "parseImport",
-        "confirmImport"
+        "confirmImport",
+        "uploadCasImport",
+        "getCasImportStatus",
+        "retryCasImportPassword",
+        "getMemberImportHistory",
+        "getMemberCoverageGaps",
+        "postOpeningBalance",
+        "requestCamsStatement",
+        "cancelImportRequest"
       ],
-      "totalLines": 56,
+      "totalLines": 204,
       "hasStructuralAnalysis": true
     },
     "frontend/src/features/import/types.ts": {
       "filePath": "frontend/src/features/import/types.ts",
-      "contentHash": "4d039909374ef0bdda94f34989d91ffc1edabd7e7220d6054bfac22ad28eb0cc",
+      "contentHash": "916c36ab2ee482f937fffffa978f9781ee5a4f5957a6a3997f4c56bb348f54ad",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 58,
+      "totalLines": 115,
       "hasStructuralAnalysis": true
     },
     "frontend/src/index.css": {
       "filePath": "frontend/src/index.css",
-      "contentHash": "e6b6784108677409e6bff2b1dce38e30793860c76073c68cb908a0efb27a26df",
+      "contentHash": "032f41646b70c8487ec1cf9336dc8616857eb61d044b4c98b767ca11af050ea2",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 89,
+      "totalLines": 100,
       "hasStructuralAnalysis": false
     },
     "frontend/src/lib/apiClient.ts": {
@@ -12990,22 +15730,28 @@
     },
     "frontend/src/setupTests.ts": {
       "filePath": "frontend/src/setupTests.ts",
-      "contentHash": "7e8b1cb0333907ae81fb06e069fede4fdfaa5ca5f675e315b73428d4456e5074",
+      "contentHash": "350832f63a640acf0a50196cd6b98b16c8dc2397a680058abbb6abdb7f5b21d0",
       "functions": [],
       "classes": [],
       "imports": [
         {
           "source": "@testing-library/jest-dom/vitest",
           "specifiers": []
+        },
+        {
+          "source": "vitest",
+          "specifiers": [
+            "afterEach"
+          ]
         }
       ],
       "exports": [],
-      "totalLines": 19,
+      "totalLines": 45,
       "hasStructuralAnalysis": true
     },
     "frontend/src/styles/tokens.css": {
       "filePath": "frontend/src/styles/tokens.css",
-      "contentHash": "0cb22dd59a1bc0d8f18cd001e9f70d03e317b183872767a2d17e2e453a2194a7",
+      "contentHash": "71f78f3922d686c4f1b3f545a753ded96d929c6b12c342e9c7ecb0c7da74b6a9",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -13085,12 +15831,12 @@
     },
     "session.md": {
       "filePath": "session.md",
-      "contentHash": "fa54faafc0c714f3328b93d17e1754f82912e3f6bd97b154906571a4b3792715",
+      "contentHash": "6c57d7db41544832799042eb6ab5d30a4f6e57941ae91993714cb3d3d6f83af2",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 226,
+      "totalLines": 289,
       "hasStructuralAnalysis": true
     },
     "skills-lock.json": {
