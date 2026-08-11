@@ -89,10 +89,8 @@ frontend framework, or a service split not already in that document.
 one-paragraph pointer for a fresh session.)*
 
 **Phase 4 Part 4 (Analytics — category-universe NAV caching → category
-ranking, PRD-04 FR-3/FR-4) is built and tested on `feat/enhanced-ui`
-(the branch actually checked out this session — not `dev_intern` as this
-file previously described; flagged for the user's awareness, not resolved
-unilaterally), committed locally, not yet pushed**. Adds
+ranking, PRD-04 FR-3/FR-4) is built and tested, committed locally, not
+yet pushed**. Adds
 `backend/app/services/analytics/scheme_universe.py` (ingests AMFI's bulk
 `NAVAll.txt` to fix a data gap — mfapi.in's bulk scheme list has no
 category field, and per-scheme lookup across ~40,000 schemes is
@@ -121,6 +119,20 @@ been refreshed for this work — treat it as stale for the new `analytics/`
 files until re-run; it was last current at **661 nodes / 1657 edges / 10
 layers / 15 tour steps**, `gitCommitHash
 35fedd38f968e5b763269a67dbe8d16eff44e9ed` (pre-Part-2).
+
+**Branch reconciliation (this session)**: `dev_intern` and
+`feat/enhanced-ui` had diverged — merged the intern's UI/UX + CAS import
+work (`origin/feat/enhanced-ui`) with this session's Part 4 backend
+commits (`bb32b97`, clean merge, no conflicts), then fast-forwarded
+`dev_intern` to match. Both branches are now identical and carry
+everything. Run `npm install` in `frontend/` after pulling (new UI deps).
+Full suite verified post-merge: backend 314/2, frontend 43 files/151
+tests, all passing. The stale `feature/frontend-redesign` branch (0
+commits ahead/behind `main`) was deleted locally. **This sandbox has no
+git push credentials** — `dev_intern`, `feat/enhanced-ui`, and the remote
+deletion of `feature/frontend-redesign` all still need to be pushed from
+a machine with credentials. `main` is untouched, per instruction to hold
+off merging until the analytics dashboard is complete.
 
 **Phase 0, Phase 1 (backend + frontend), Phase 2 (backend), Phase 2b
 (Onboarding frontend), and Phase 3 (Main Dashboard backend) are all complete

@@ -68,11 +68,21 @@ routes' auth/404 pattern exactly.
 
 Tests: 314 passed, 2 skipped (up from 286/2 after Part 3).
 
-**Branch note**: commits landed on `feat/enhanced-ui`, the branch actually
-checked out this session — not `dev_intern` as this file and CLAUDE.md's
-narrative describe. All of Part 2/3/4's commits are present here; no
-branch switch was made mid-session since it wasn't requested. Flagged for
-the user's awareness, not resolved unilaterally.
+**Branch reconciliation (resolved this session)**: `dev_intern` and
+`feat/enhanced-ui` had diverged — local `feat/enhanced-ui` carried this
+session's Part 4 backend commits while `origin/feat/enhanced-ui` had
+separately gained the intern's UI/UX overhaul (shadcn/tailwind, dashboard,
+mobile shell) and CAS import flow redesign. Merged the two (clean,
+disjoint files — `bb32b97`), then fast-forwarded `dev_intern` to match,
+so both branches are now identical and carry everything. `frontend/`
+needs `npm install` after pulling (new deps: `lucide-react`, Radix UI
+primitives, Tailwind, `@visx/*`, etc.) — full suite verified after:
+backend 314/2, frontend 43 files / 151 tests, all passing. The stale
+`feature/frontend-redesign` branch (0 commits ahead/behind `main`) was
+deleted locally; **remote deletion and pushing `dev_intern`/
+`feat/enhanced-ui` still need to happen from a machine with git
+credentials** — this sandbox has none. `main` is untouched, per the
+user's instruction to hold off until the analytics dashboard is done.
 
 Per the design doc's 5-step build order, **the Scorer (FR-5/FR-6/FR-7) is
 the last remaining Phase 4 build step** — it depends on Parts 2, 3, and 4,
