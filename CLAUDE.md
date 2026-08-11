@@ -88,31 +88,36 @@ frontend framework, or a service split not already in that document.
 *(Updated 2026-08-11. See `session.md` at repo root for full detail — this is the
 one-paragraph pointer for a fresh session.)*
 
-**Phase 4 Part 3 (Analytics — NSE Indices integration → benchmark
-comparison, PRD-04 FR-8/FR-9) is built and tested on `dev_intern`,
-committed locally, not yet pushed** (no git credentials in this sandbox —
-push manually via `git push origin dev_intern`). Adds
-`backend/app/services/analytics/nse_indices_client.py` (fetch/cache client
-for niftyindices.com's historical-levels endpoint — corrects a stale
-`.aspx` endpoint path in the design doc and `TDD-Unifolio.md`; the working
-endpoint, all 4 `Trading_Index_Name` mappings, and the `HistoricalDate`
-date format were live-verified this session via direct HTTP calls),
-`xirr.py` (pure `Decimal` Newton-Raphson XIRR, no numpy/scipy, per
-CLAUDE.md's Decimal-never-float rule), and `benchmark.py`
-(`compute_portfolio_vs_benchmarks` for FR-8, `compute_fund_vs_benchmark`
-for FR-9, each with a family-aggregate wrapper). Two judgment calls not
-fully specified by the PRD are flagged in-code: how the benchmark-
-hypothetical XIRR replays redemptions against the index (module
-docstring), and how each SEBI category maps to one of only 4 available
-benchmark indices via substring match, falling back to Nifty 500
-(`_benchmark_index_for_category`'s docstring). Four new routes mirror the
-existing allocation/ter routes' auth/404 pattern exactly. Backend suite:
-**286 passing, 2 skipped** (up from 250/2), zero regressions, verified by
-re-running `pytest`. Per the Phase 4 design doc's 5-step build order,
-**Part 4 (category-universe NAV caching → ranking, FR-3/FR-4) is next**,
-with the Scorer (FR-5/FR-6/FR-7) built last since it depends on Parts
-2–4. The knowledge graph (`.ua/knowledge-graph.json`) has **not** been
-refreshed for this work — treat it as stale for the new `analytics/`
+**Phase 4 Part 4 (Analytics — category-universe NAV caching → category
+ranking, PRD-04 FR-3/FR-4) is built and tested on `feat/enhanced-ui`
+(the branch actually checked out this session — not `dev_intern` as this
+file previously described; flagged for the user's awareness, not resolved
+unilaterally), committed locally, not yet pushed**. Adds
+`backend/app/services/analytics/scheme_universe.py` (ingests AMFI's bulk
+`NAVAll.txt` to fix a data gap — mfapi.in's bulk scheme list has no
+category field, and per-scheme lookup across ~40,000 schemes is
+infeasible; live-verified this session via `curl`: 302-redirects to
+`portal.amfiindia.com`, CRLF line endings, category-header/AMC-name/
+scheme-row parsing, directly joinable with local `schemes.sebi_category`
+with zero string-format reconciliation; same disk-cache idiom as
+`import_/enrich.py`'s `MfApiClient`, 24h TTL) and `category_ranking.py`
+(`compute_category_ranking` for FR-3 — blended 3yr/5yr CAGR rank within
+the full SEBI-category peer universe — and an AUM-weighted category
+average for FR-4, using `SchemeAaum` rows from Part 2's
+`amfi_aaum_client.py`, each with a family-aggregate wrapper). One judgment
+call not fully specified by the PRD is flagged in-code (module docstring):
+the design doc fixes the blend *inputs* (3yr min, 5yr blended in once
+available, no 10yr window) but not the blend weights — used Morningstar's
+published 3/5/10yr weighting (20/30/50) normalized to 3yr=40%/5yr=60%.
+Thin-category handling reuses FR-5a's "at least 5 schemes" bar but only as
+a `thin_category` flag, never an exclusion (unlike FR-5a's harder rule).
+Two new routes mirror the existing routes' auth/404 pattern exactly.
+Backend suite: **314 passing, 2 skipped** (up from 286/2), zero
+regressions, verified by re-running `pytest`. Per the Phase 4 design doc's
+5-step build order, **the Scorer (FR-5/FR-6/FR-7) is the last remaining
+Phase 4 build step** — it depends on Parts 2, 3, and 4, all of which are
+now complete. The knowledge graph (`.ua/knowledge-graph.json`) has **not**
+been refreshed for this work — treat it as stale for the new `analytics/`
 files until re-run; it was last current at **661 nodes / 1657 edges / 10
 layers / 15 tour steps**, `gitCommitHash
 35fedd38f968e5b763269a67dbe8d16eff44e9ed` (pre-Part-2).

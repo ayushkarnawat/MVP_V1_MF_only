@@ -7,6 +7,77 @@ gets overwritten each session, and isn't meant to accumulate history.
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
 
+## Phase 4 Part 4: category-universe NAV caching → category ranking (PRD-04 FR-3/FR-4) — built and committed
+
+Built directly (TDD, one task per commit) per the Phase 4 design doc's
+build order, continuing straight on from Part 3 in the same session at the
+user's explicit "lets build it".
+
+**Data-gap fix — `backend/app/services/analytics/scheme_universe.py`**:
+mfapi.in's bulk scheme list has no category field, and per-scheme category
+lookup across ~40,000 schemes is infeasible, so category-universe lookups
+instead ingest AMFI's bulk `NAVAll.txt`
+(`https://www.amfiindia.com/spages/NAVAll.txt`, 302-redirects to
+`portal.amfiindia.com` — requires `follow_redirects=True`). Live-verified
+this session via `curl`: CRLF line endings, ~17,748 lines, 90 category
+header lines (`(Open Ended|Close Ended|Interval Fund) Schemes(<category>)`)
+across 83 distinct category names, AMC-name lines (no semicolons) and
+blank-line separators interspersed, scheme rows formatted `Scheme
+Code;ISIN Div Payout/ISIN Growth;ISIN Div Reinvestment;Scheme
+Name;Net Asset Value;Date`. Directly joinable with local
+`schemes.sebi_category` with zero string-format reconciliation, since both
+ultimately derive from mfapi.in's `meta.scheme_category`. Same disk-cache
+idiom as `import_/enrich.py`'s `MfApiClient` (24h TTL, test-injectable
+`cache_dir`), but class-based since this is a bulk universe file rather
+than the per-row DB-cache idiom `nav.py`/`arn_lookup.py` use.
+`get_category_universe(db, sebi_category)` is get-or-create by
+`amfi_code`, degrades to `[]` on `httpx.HTTPError`.
+
+**`backend/app/services/analytics/category_ranking.py`** —
+`compute_category_ranking` (FR-3: each held scheme's blended 3yr/5yr CAGR
+rank within its full SEBI-category peer universe) and its AUM-weighted
+category-average companion (FR-4, using `SchemeAaum` rows already ingested
+by Part 2's `amfi_aaum_client.py`, latest `reference_period` per scheme,
+degrades to `None` if no scheme in the pool has AAUM data). One judgment
+call flagged in-code per CLAUDE.md's "stop and say so" (see the module's
+docstring): PRD-04's Resolved Open Questions fixes the blend *inputs*
+("3-year minimum to qualify... 5-year blended in once available... no
+10-year window") but not the blend weights — used Morningstar's published
+3/5/10yr weighting (20/30/50), normalized without the unused 10yr weight,
+giving 3yr=40%/5yr=60% when both windows exist, 100% 3yr otherwise. The
+"3-year minimum to qualify" rule falls naturally out of
+`get_nav_on_or_before`'s existing `None`-on-no-data behavior rather than
+needing separate qualification logic. FR-3's rank is a plain return-based
+CAGR rank — explicitly not FR-5a's downside-weighted, risk-adjusted
+Scorer tier (a later build step that depends on this one). Thin-category
+handling reuses FR-5a's "at least 5 schemes" threshold for consistency,
+but per the Edge Cases table this only sets a `thin_category` flag, never
+excludes a category from ranking/averaging (unlike FR-5a's harder
+exclusion rule). A held scheme with no `sebi_category` gets
+`category_unavailable=True` and is excluded from ranking, never silently
+dropped; a scheme without 3yr history gets `insufficient_history=True` but
+is still shown as a row. Family-aggregate wrapper
+(`get_aggregate_category_ranking`) follows the exact same
+`get_member_statuses`/`list_household_members` pattern as every other
+`analytics/` module.
+
+**Routes** (`backend/app/api/analytics.py`) — `GET
+/analytics/household-members/{member_id}/category-ranking` and `GET
+/analytics/household/aggregate/category-ranking`, mirroring the existing
+routes' auth/404 pattern exactly.
+
+Tests: 314 passed, 2 skipped (up from 286/2 after Part 3).
+
+**Branch note**: commits landed on `feat/enhanced-ui`, the branch actually
+checked out this session — not `dev_intern` as this file and CLAUDE.md's
+narrative describe. All of Part 2/3/4's commits are present here; no
+branch switch was made mid-session since it wasn't requested. Flagged for
+the user's awareness, not resolved unilaterally.
+
+Per the design doc's 5-step build order, **the Scorer (FR-5/FR-6/FR-7) is
+the last remaining Phase 4 build step** — it depends on Parts 2, 3, and 4,
+all of which are now complete.
+
 ## Phase 4 Part 3: NSE Indices → benchmark comparison (PRD-04 FR-8/FR-9) — built and committed
 
 Built directly (TDD, one task per commit) per the Phase 4 design doc's
