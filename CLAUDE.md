@@ -88,31 +88,34 @@ frontend framework, or a service split not already in that document.
 *(Updated 2026-08-11. See `session.md` at repo root for full detail — this is the
 one-paragraph pointer for a fresh session.)*
 
-**Phase 4 Part 2 (Analytics — AMFI TER+AAUM integrations → weighted
-portfolio TER, PRD-04 FR-10/FR-11) is built and tested on `dev_intern`,
+**Phase 4 Part 3 (Analytics — NSE Indices integration → benchmark
+comparison, PRD-04 FR-8/FR-9) is built and tested on `dev_intern`,
 committed locally, not yet pushed** (no git credentials in this sandbox —
 push manually via `git push origin dev_intern`). Adds
-`backend/app/services/analytics/amfi_ter_client.py` (bulk TER ingestion,
-fuzzy-name-matched against local schemes, `MIN_MATCH_CONFIDENCE = 0.55`
-tuned empirically — local scheme names carry a Direct/Regular-plan suffix
-AMFI's plan-generic names never do, capping genuine matches ~0.67),
-`amfi_aaum_client.py` (bulk AAUM ingestion, matched directly by
-`AMFI_Code`; the periods-endpoint response shape is flagged in its
-docstring as an unverified assumption, pending live verification before
-FR-4 relies on it), and `ter.py` (`compute_weighted_ter` /
-`compute_direct_regular_ter_comparison` + family-aggregate wrappers).
-Resolves a real ambiguity in PRD-04's own FR-10 text: "AUM-weighted" means
-weighted by the **user's own holding value**, not the fund's
-platform-wide AAUM — `ter.py` never reads `scheme_aaum`; only the later
-FR-4 step will. Four new routes mirror the existing allocation routes'
-auth/404 pattern exactly. Backend suite: **250 passing, 2 skipped** (up
-from 215/2), zero regressions, verified by re-running `pytest`. Per the
-Phase 4 design doc's 5-step build order, **Part 3 (NSE Indices →
-benchmark comparison, FR-8/FR-9) is next.** The knowledge graph
-(`.ua/knowledge-graph.json`) has **not** been refreshed for this work —
-treat it as stale for the new `analytics/` files until re-run; it was
-last current at **661 nodes / 1657 edges / 10 layers / 15 tour steps**,
-`gitCommitHash 35fedd38f968e5b763269a67dbe8d16eff44e9ed` (pre-Part-2).
+`backend/app/services/analytics/nse_indices_client.py` (fetch/cache client
+for niftyindices.com's historical-levels endpoint — corrects a stale
+`.aspx` endpoint path in the design doc and `TDD-Unifolio.md`; the working
+endpoint, all 4 `Trading_Index_Name` mappings, and the `HistoricalDate`
+date format were live-verified this session via direct HTTP calls),
+`xirr.py` (pure `Decimal` Newton-Raphson XIRR, no numpy/scipy, per
+CLAUDE.md's Decimal-never-float rule), and `benchmark.py`
+(`compute_portfolio_vs_benchmarks` for FR-8, `compute_fund_vs_benchmark`
+for FR-9, each with a family-aggregate wrapper). Two judgment calls not
+fully specified by the PRD are flagged in-code: how the benchmark-
+hypothetical XIRR replays redemptions against the index (module
+docstring), and how each SEBI category maps to one of only 4 available
+benchmark indices via substring match, falling back to Nifty 500
+(`_benchmark_index_for_category`'s docstring). Four new routes mirror the
+existing allocation/ter routes' auth/404 pattern exactly. Backend suite:
+**286 passing, 2 skipped** (up from 250/2), zero regressions, verified by
+re-running `pytest`. Per the Phase 4 design doc's 5-step build order,
+**Part 4 (category-universe NAV caching → ranking, FR-3/FR-4) is next**,
+with the Scorer (FR-5/FR-6/FR-7) built last since it depends on Parts
+2–4. The knowledge graph (`.ua/knowledge-graph.json`) has **not** been
+refreshed for this work — treat it as stale for the new `analytics/`
+files until re-run; it was last current at **661 nodes / 1657 edges / 10
+layers / 15 tour steps**, `gitCommitHash
+35fedd38f968e5b763269a67dbe8d16eff44e9ed` (pre-Part-2).
 
 **Phase 0, Phase 1 (backend + frontend), Phase 2 (backend), Phase 2b
 (Onboarding frontend), and Phase 3 (Main Dashboard backend) are all complete

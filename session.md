@@ -7,6 +7,75 @@ gets overwritten each session, and isn't meant to accumulate history.
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
 
+## Phase 4 Part 3: NSE Indices → benchmark comparison (PRD-04 FR-8/FR-9) — built and committed
+
+Built directly (TDD, one task per commit) per the Phase 4 design doc's
+build order, continuing straight on from Part 2 in the same session rather
+than a fresh one.
+
+**`backend/app/services/analytics/nse_indices_client.py`** — fetch/cache
+client for `niftyindices.com`'s historical-levels endpoint. Corrects a
+stale endpoint path in the Phase 4 design doc and `TDD-Unifolio.md`
+(`Backpage.aspx/getHistoricaldatatabletoString` is dead — niftyindices.com
+moved off `.aspx`); live-verified this session via `curl`/ad hoc Python
+against the real site (not just re-trusted from the design doc): the
+working endpoint is `POST /BackPage/getHistoricaldatatabletoString` (no
+`.aspx`, requires a browser `User-Agent` or the site silently drops the
+request), body `{"cinfo": "<nested JSON string>"}`, and the response's
+`HistoricalDate` field is formatted `"10 Aug 2026"` (`%d %b %Y`) — none of
+this had been captured verbatim anywhere before. All 4
+`Trading_Index_Name` mappings (Nifty 50, Nifty 500, Nifty LargeMidcap 250,
+Nifty Midcap 150) confirmed working live. `TDD-Unifolio.md`'s row for this
+integration is corrected accordingly. `ensure_index_history_fresh(db,
+index, start_date, end_date)` is bulk-per-index-per-range (unlike `nav.py`'s
+per-scheme fetches) and skips the network call entirely when cached date
+bounds already cover the requested range — avoids redundant HTTP calls
+across the 4 indices within a single XIRR computation. Degrades to
+`False`/no-op on any fetch failure, same convention as `nav.py`/`arn_lookup.py`.
+
+**`backend/app/services/analytics/xirr.py`** — pure `decimal.Decimal`
+Newton-Raphson XIRR solver, no numpy/scipy. `Decimal ** Decimal` supports
+fractional exponents for a positive base, so `(1+rate) ** (days/365)` never
+touches `float`, per CLAUDE.md's Decimal-never-float rule. Degrades to
+`None` on non-convergence rather than raising.
+
+**`backend/app/services/analytics/benchmark.py`** — `compute_portfolio_vs_benchmarks`
+(FR-8: whole-portfolio XIRR alongside all 4 index XIRRs) and
+`compute_fund_vs_benchmark` (FR-9: per-fund-appropriate benchmark, plus an
+overall portfolio-vs-Nifty-500 view), each with a family-aggregate wrapper.
+Two judgment calls not fully spelled out by the PRD, flagged in-code per
+CLAUDE.md's "stop and say so" (see the module's docstring and
+`_benchmark_index_for_category`'s docstring for full reasoning): **(1)**
+benchmark-hypothetical XIRR replays each real transaction against the
+index — same cash-flow dates/amounts as the real portfolio, purchases buy
+`amount / index_level_on_date` hypothetical units, redemptions sell that
+many, only the terminal value differs (`net_units * today's index level`).
+**(2)** since only 4 benchmark indices exist in scope, every SEBI category
+folds into one via substring match on "LARGE"/"MID" (Large Cap → Nifty 50,
+Mid Cap → Nifty Midcap 150, Large & Mid Cap → Nifty LargeMidcap 250,
+everything else — Flexi/Multi/Small Cap, Value/Contra, Sectoral, ELSS,
+Debt, Hybrid, etc. — falls back to Nifty 500 as the broad-market default);
+never excludes a fund from comparison. Every missing-index-history date is
+skipped rather than crashing the whole comparison.
+
+**Routes:** `GET /analytics/household-members/{id}/benchmark`,
+`.../benchmark/funds`, and family-aggregate variants
+(`/analytics/household/aggregate/benchmark[/funds]`), mirroring the
+existing allocation/ter routes' auth/404/response-shape pattern exactly.
+
+**Backend suite: 286 passing, 2 skipped** (up from 250/2) — 36 new tests
+(7 NSE client + 8 XIRR + 11 benchmark service + 10 routes), zero
+regressions, verified re-running the full suite. Five commits, one per
+task (`0b9fffc` NSE client, `59d995b` XIRR, `9960565` FR-8 benchmark,
+`0e4c6f9` FR-9 benchmark, `66d0540` routes).
+
+**Not yet done:** knowledge graph not refreshed for this work — treat
+`analytics/nse_indices_client.py`, `xirr.py`, `benchmark.py`, and the 4 new
+routes as stale in the graph until a fresh `/understand` run. Per the
+design doc's 5-step build order, **Part 4 (category-universe NAV caching →
+ranking, FR-3/FR-4) is next**, with the Scorer (FR-5/FR-6/FR-7) built last
+since it depends on Parts 2–4.
+
 ## Phase 4 Part 2: AMFI TER + AAUM integrations → weighted TER (PRD-04 FR-10/FR-11) — built and committed
 
 Built directly (TDD, one task per commit) per the Phase 4 design doc's
