@@ -18,6 +18,16 @@ if (!window.matchMedia) {
     }) as MediaQueryList;
 }
 
+if (!window.ResizeObserver) {
+  class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+  window.ResizeObserver = ResizeObserver;
+  globalThis.ResizeObserver = ResizeObserver;
+}
+
 let store: Record<string, string> = {};
 const mockStorage: Storage = {
   getItem: (key: string) => (key in store ? store[key] : null),
@@ -41,4 +51,3 @@ Object.defineProperty(globalThis, "localStorage", { value: mockStorage, writable
 afterEach(() => {
   store = {};
 });
-
