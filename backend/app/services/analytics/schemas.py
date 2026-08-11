@@ -4,6 +4,7 @@ from datetime import date
 
 from pydantic import BaseModel
 
+from app.models.enums import BenchmarkIndex
 from app.services.dashboard.schemas import AllocationBucket, MemberStatus
 
 
@@ -45,3 +46,45 @@ class AggregateWeightedTerResponse(BaseModel):
 class AggregateDirectRegularTerResponse(BaseModel):
     members: list[MemberStatus]
     ter: DirectRegularTerComparison
+
+
+class IndexXirrRow(BaseModel):
+    index: BenchmarkIndex
+    xirr: str | None
+
+
+class PortfolioBenchmarkSummary(BaseModel):
+    """PRD-04 FR-8 — portfolio XIRR from the full transaction history,
+    alongside XIRR for all 4 Nifty indices computed via the same
+    cash-flow-timing method (see xirr.py, benchmark.py)."""
+
+    portfolio_xirr: str | None
+    benchmarks: list[IndexXirrRow]
+
+
+class AggregatePortfolioBenchmarkResponse(BaseModel):
+    members: list[MemberStatus]
+    benchmark: PortfolioBenchmarkSummary
+
+
+class FundBenchmarkRow(BaseModel):
+    """PRD-04 FR-9 — per-fund-appropriate benchmark, not the same index
+    for every fund (e.g. a large-cap fund vs. Nifty 50, a midcap fund vs.
+    Nifty Midcap 150)."""
+
+    scheme_id: str
+    scheme_name: str
+    benchmark_index: BenchmarkIndex
+    fund_xirr: str | None
+    benchmark_xirr: str | None
+
+
+class FundVsBenchmarkSummary(BaseModel):
+    funds: list[FundBenchmarkRow]
+    overall_portfolio_xirr: str | None
+    overall_broad_market_xirr: str | None
+
+
+class AggregateFundVsBenchmarkResponse(BaseModel):
+    members: list[MemberStatus]
+    comparison: FundVsBenchmarkSummary
