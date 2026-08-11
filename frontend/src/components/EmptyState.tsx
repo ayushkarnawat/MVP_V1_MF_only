@@ -1,5 +1,6 @@
-import styles from "./EmptyState.module.css";
-import { Button } from "./Button";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 export interface EmptyStateProps {
   title: string;
@@ -7,6 +8,7 @@ export interface EmptyStateProps {
   actionLabel?: string;
   onAction?: () => void;
   icon?: string;
+  className?: string;
 }
 
 export function EmptyState({
@@ -15,19 +17,28 @@ export function EmptyState({
   actionLabel,
   onAction,
   icon = "📈",
+  className,
 }: EmptyStateProps) {
   return (
-    <div className={styles.container}>
-      <div className={styles.iconWrapper}>{icon}</div>
-      <h3 className={`type-h2 ${styles.title}`}>{title}</h3>
-      <p className={`type-body ${styles.description}`}>{description}</p>
-      {actionLabel && onAction && (
-        <div className={styles.actionWrapper}>
-          <Button variant="primary" onClick={onAction}>
-            {actionLabel}
-          </Button>
+    <Card className={cn("text-center p-8 max-w-lg mx-auto my-8 border border-[var(--color-border)] shadow-sm bg-[var(--color-surface)]", className)}>
+      <CardContent className="flex flex-col items-center justify-center p-0 space-y-4">
+        <div className="text-4xl p-3 bg-[var(--color-bg)] rounded-2xl w-16 h-16 flex items-center justify-center border border-[var(--color-border)] shadow-sm" aria-hidden="true">
+          {icon}
         </div>
-      )}
-    </div>
+        <h3 className="font-display text-xl font-semibold tracking-tight text-[var(--color-ink)]">
+          {title}
+        </h3>
+        <p className="text-sm text-[var(--color-text-secondary)] max-w-sm leading-relaxed">
+          {description}
+        </p>
+        {actionLabel && onAction && (
+          <div className="pt-2">
+            <Button variant="primary" size="md" onClick={onAction}>
+              {actionLabel}
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

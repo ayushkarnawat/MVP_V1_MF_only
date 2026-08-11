@@ -15,6 +15,7 @@ export interface HoldingRow {
   realized_gain: string;
   unrealized_gain: string;
   today_gain: string;
+  category?: string;
   stale_nav?: boolean;
 }
 

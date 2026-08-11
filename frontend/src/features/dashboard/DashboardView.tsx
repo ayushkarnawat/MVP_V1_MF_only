@@ -18,7 +18,8 @@ import {
   getAggregateAllocation,
 } from "./api";
 import type { HoldingRow, AllocationSummary, FamilyMemberStatus } from "./types";
-import styles from "./DashboardView.module.css";
+import { cn } from "@/lib/utils";
+import { ArrowUpRight, ArrowDownRight, Users } from "lucide-react";
 
 export interface DashboardViewProps {
   viewMode: "aggregate" | "member";
@@ -80,10 +81,21 @@ export function DashboardView({
             setCoverageGaps(gapsRes);
             setLoading(false);
           }
+        } else {
+          if (isMounted) {
+            setHoldings([]);
+            setMembersStatus([]);
+            setAllocation(null);
+            setCoverageGaps([]);
+            setLoading(false);
+          }
         }
       } catch (err: unknown) {
         if (isMounted) {
-          const msg = err instanceof Error ? err.message : "Failed to load dashboard data";
+          const msg =
+            err instanceof Error
+              ? err.message
+              : "Failed to load dashboard data";
           setError(msg);
           setLoading(false);
         }
@@ -96,27 +108,23 @@ export function DashboardView({
     };
   }, [viewMode, memberId]);
 
-  /* Portfolio Totals */
+  /* Portfolio Totals using exact decimal arithmetic */
   const totals = useMemo(() => {
-    // currentVal comes from the allocation endpoint's total_value — a
-    // server-computed Decimal total, not a client-side re-sum of each
-    // holding's current_value. Re-summing parsed floats across many
-    // holdings is exactly the accumulation-error pattern CLAUDE.md's
-    // Decimal-never-float rule exists to prevent, and it's unnecessary
-    // here since the precise total is already fetched.
-    const currentVal = allocation ? parseFloat(allocation.total_value || "0") : 0;
+    const currentVal = allocation
+      ? parseFloat(allocation.total_value || "0")
+      : 0;
 
-    // investedVal/profitVal have no server-computed total to reuse the way
-    // currentVal does above, so they're summed here — but via exact
-    // decimal-string arithmetic (sumDecimalStrings), not parseFloat
-    // accumulation, for the same Decimal-never-float reason. Only the final
-    // summed result is parsed to a number, once, for display formatting.
-    const investedVal = parseFloat(sumDecimalStrings(holdings.map((h) => h.amount_invested)));
+    const investedVal = parseFloat(
+      sumDecimalStrings(holdings.map((h) => h.amount_invested))
+    );
     const profitVal = parseFloat(
-      sumDecimalStrings(holdings.map((h) => h.unrealized_gain || h.current_profit_total)),
+      sumDecimalStrings(
+        holdings.map((h) => h.unrealized_gain || h.current_profit_total)
+      )
     );
 
-    const gainPercentage = investedVal > 0 ? (profitVal / investedVal) * 100 : 0;
+    const gainPercentage =
+      investedVal > 0 ? (profitVal / investedVal) * 100 : 0;
 
     return {
       currentVal,
@@ -128,7 +136,7 @@ export function DashboardView({
 
   if (loading) {
     return (
-      <div className={styles.loadingContainer}>
+      <div className="py-8 animate-pulse">
         <HoldingsTableSkeleton />
       </div>
     );
@@ -136,7 +144,7 @@ export function DashboardView({
 
   if (error) {
     return (
-      <div className={styles.errorContainer}>
+      <div className="py-8">
         <EmptyState
           title="Dashboard Unavailable"
           description={error}
@@ -149,7 +157,10 @@ export function DashboardView({
   }
 
   // S21: Empty State — No Holdings Yet
-  if (holdings.length === 0 && (viewMode === "member" || membersStatus.every((m) => !m.has_data))) {
+  if (
+    holdings.length === 0 &&
+    (viewMode === "member" || membersStatus.every((m) => !m.has_data))
+  ) {
     return (
       <EmptyState
         title="No Holdings Found"
@@ -166,102 +177,146 @@ export function DashboardView({
       ? allocation?.by_asset_class || []
       : allocation?.by_amc || [];
 
+  const isPositiveGain = totals.profitVal >= 0;
+
   return (
-    <div className={styles.container}>
+    <div className="flex flex-col space-y-10 animate-in fade-in duration-200">
       {/* Coverage Gap Warning Banner */}
       <CoverageGapBanner
         gaps={coverageGaps}
         onResolveGap={(gap) => setSelectedGap(gap)}
       />
 
-      {/* Hero Portfolio Summary Card */}
-      <div className={styles.heroCard}>
-        <div className={styles.heroPrimary}>
-          <span className={styles.heroLabel}>Total Portfolio Value</span>
-          <h1 className={`type-display ${styles.heroValue}`}>
-            ₹{formatIndianCurrency(totals.currentVal)}
-          </h1>
-        </div>
-
-        <div className={styles.heroMetrics}>
-          <div className={styles.metricItem}>
-            <span className={styles.metricLabel}>Total Invested</span>
-            <span className="type-data-large">
-              ₹{formatIndianCurrency(totals.investedVal)}
+      {/* Editorial Portfolio Hero */}
+      <section className="pt-2 pb-6 border-b border-[var(--color-border)]">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          {/* Main Portfolio Stat */}
+          <div className="flex flex-col space-y-1">
+            <span className="text-[11px] font-semibold tracking-wider text-[var(--color-text-secondary)] uppercase">
+              Total Portfolio Value
             </span>
+            <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-[var(--color-ink)] tabular-nums type-display">
+              ₹{formatIndianCurrency(totals.currentVal)}
+            </h1>
           </div>
 
-          <div className={styles.metricItem}>
-            <span className={styles.metricLabel}>Total Gain / Loss</span>
-            <div className={styles.gainRow}>
-              <span
-                className={`type-data-large ${
-                  totals.profitVal >= 0 ? styles.positiveText : styles.negativeText
-                }`}
-              >
-                {totals.profitVal >= 0 ? "↑ " : "↓ "}₹
-                {formatIndianCurrency(Math.abs(totals.profitVal))}
+          {/* Secondary Stats Flow */}
+          <div className="flex items-center gap-8 sm:gap-12 flex-wrap">
+            {/* Total Invested */}
+            <div className="flex flex-col space-y-0.5">
+              <span className="text-xs text-[var(--color-text-secondary)] font-medium">
+                Total Invested
               </span>
-              <span
-                className={`${styles.gainBadge} ${
-                  totals.profitVal >= 0 ? styles.positiveBadge : styles.negativeBadge
-                }`}
-              >
-                {totals.profitVal >= 0 ? "+" : ""}
-                {totals.gainPercentage.toFixed(2)}%
+              <span className="font-display text-lg sm:text-xl font-semibold text-[var(--color-ink)] tabular-nums type-data-large">
+                ₹{formatIndianCurrency(totals.investedVal)}
               </span>
+            </div>
+
+            {/* Total Gain / Loss */}
+            <div className="flex flex-col space-y-0.5">
+              <span className="text-xs text-[var(--color-text-secondary)] font-medium">
+                Total Gain / Loss
+              </span>
+              <div className="flex items-center gap-2">
+                <span
+                  className={cn(
+                    "font-display text-lg sm:text-xl font-semibold tabular-nums type-data-large inline-flex items-center",
+                    isPositiveGain
+                      ? "text-[var(--color-positive)]"
+                      : "text-[var(--color-negative)]"
+                  )}
+                >
+                  {isPositiveGain ? (
+                    <ArrowUpRight className="h-4 w-4 mr-0.5" />
+                  ) : (
+                    <ArrowDownRight className="h-4 w-4 mr-0.5" />
+                  )}
+                  ₹{formatIndianCurrency(Math.abs(totals.profitVal))}
+                </span>
+
+                <span
+                  className={cn(
+                    "text-xs font-semibold px-2 py-0.5 rounded-full tabular-nums type-caption",
+                    isPositiveGain
+                      ? "bg-[color-mix(in_srgb,var(--color-positive)_12%,transparent)] text-[var(--color-positive)]"
+                      : "bg-[color-mix(in_srgb,var(--color-negative)_12%,transparent)] text-[var(--color-negative)]"
+                  )}
+                >
+                  {isPositiveGain ? "+" : ""}
+                  {totals.gainPercentage.toFixed(2)}%
+                </span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* S22: Family Member Placeholders Section (when in Aggregate View) */}
-      {viewMode === "aggregate" && membersStatus.some((m) => !m.has_data) && (
-        <div className={styles.placeholderSection}>
-          <h3 className={`type-h2 ${styles.sectionTitle}`}>Pending Family Imports</h3>
-          <div className={styles.placeholderGrid}>
-            {membersStatus
-              .filter((m) => !m.has_data)
-              .map((m) => (
-                <div key={m.id} className={styles.placeholderCard}>
-                  <div className={styles.placeholderInfo}>
-                    <span className={`type-body-medium ${styles.placeholderName}`}>
-                      {m.name}
-                    </span>
-                    <Badge variant="warning">No CAS Data</Badge>
-                  </div>
-                  <button
-                    className={styles.addMemberDataBtn}
-                    onClick={() => onAddDataForMember?.(m.id)}
-                    type="button"
-                  >
-                    + Import CAS
-                  </button>
-                </div>
-              ))}
+      {/* S22: Compact Pending Family Imports Strip (when in Aggregate View) */}
+      {viewMode === "aggregate" &&
+        membersStatus.some((m) => !m.has_data) && (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-2xs">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <div className="h-6 w-6 rounded-md bg-[var(--color-bg)] border border-[var(--color-border)] flex items-center justify-center text-[var(--color-text-secondary)] flex-shrink-0">
+                <Users className="h-3.5 w-3.5" />
+              </div>
+              <span className="text-xs font-semibold text-[var(--color-ink)]">
+                Pending Family Imports
+              </span>
+              <div className="flex items-center gap-2 flex-wrap">
+                {membersStatus
+                  .filter((m) => !m.has_data)
+                  .map((m) => (
+                    <div
+                      key={m.id}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--color-bg)] text-xs border border-[var(--color-border)]"
+                    >
+                      <span className="font-medium text-[var(--color-ink)]">
+                        {m.name}
+                      </span>
+                      <Badge variant="warning">No CAS Data</Badge>
+                      <button
+                        className="text-[11px] font-semibold text-[var(--color-accent)] hover:underline ml-1 cursor-pointer"
+                        onClick={() => onAddDataForMember?.(m.id)}
+                        type="button"
+                      >
+                        + Import
+                      </button>
+                    </div>
+                  ))}
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Allocation Donut Chart Section */}
+      {/* Portfolio Allocation Section (Open, Airy Composition) */}
       {allocationItems.length > 0 && (
-        <div className={styles.allocationSection}>
-          <div className={styles.sectionHeader}>
-            <h3 className={`type-h2 ${styles.sectionTitle}`}>Portfolio Allocation</h3>
-            <div className={styles.tabToggleGroup}>
+        <section className="flex flex-col space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <h2 className="font-display text-lg font-semibold tracking-tight text-[var(--color-ink)]">
+              Portfolio Allocation
+            </h2>
+
+            {/* Segmented Tab Switcher */}
+            <div className="inline-flex items-center p-1 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] self-start sm:self-auto shadow-2xs">
               <button
-                className={`${styles.tabBtn} ${
-                  allocationTab === "asset" ? styles.tabActive : ""
-                }`}
+                className={cn(
+                  "px-3 py-1 text-xs font-medium rounded-lg transition-colors duration-150 cursor-pointer",
+                  allocationTab === "asset"
+                    ? "bg-[var(--color-bg)] text-[var(--color-ink)] font-semibold shadow-xs"
+                    : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)]"
+                )}
                 onClick={() => setAllocationTab("asset")}
                 type="button"
               >
                 By Asset Class
               </button>
               <button
-                className={`${styles.tabBtn} ${
-                  allocationTab === "amc" ? styles.tabActive : ""
-                }`}
+                className={cn(
+                  "px-3 py-1 text-xs font-medium rounded-lg transition-colors duration-150 cursor-pointer",
+                  allocationTab === "amc"
+                    ? "bg-[var(--color-bg)] text-[var(--color-ink)] font-semibold shadow-xs"
+                    : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)]"
+                )}
                 onClick={() => setAllocationTab("amc")}
                 type="button"
               >
@@ -270,19 +325,21 @@ export function DashboardView({
             </div>
           </div>
 
-          <AllocationDonut
-            data={allocationItems}
-            totalValue={allocation?.total_value}
-          />
-        </div>
+          <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-2xs">
+            <AllocationDonut
+              data={allocationItems}
+              totalValue={allocation?.total_value}
+            />
+          </div>
+        </section>
       )}
 
       {/* Holdings Table Section */}
-      <div className={styles.holdingsSection}>
-        <div className={styles.sectionHeader}>
-          <h3 className={`type-h2 ${styles.sectionTitle}`}>
+      <section className="flex flex-col space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-lg font-semibold tracking-tight text-[var(--color-ink)]">
             Holdings ({holdings.length})
-          </h3>
+          </h2>
         </div>
 
         <HoldingsTable
@@ -293,7 +350,7 @@ export function DashboardView({
             if (h) setSelectedHolding(h);
           }}
         />
-      </div>
+      </section>
 
       {/* S15: Fund Detail Modal */}
       <FundDetailModal
@@ -315,7 +372,11 @@ export function DashboardView({
         <DistributorComparisonModal
           isOpen={comparisonModalState.isOpen}
           onClose={() =>
-            setComparisonModalState({ isOpen: false, schemeId: "", schemeName: "" })
+            setComparisonModalState({
+              isOpen: false,
+              schemeId: "",
+              schemeName: "",
+            })
           }
           memberId={selectedHolding?.household_member_id || memberId}
           schemeId={comparisonModalState.schemeId}
@@ -330,11 +391,12 @@ export function DashboardView({
         onClose={() => setSelectedGap(null)}
         onResolved={() => {
           setSelectedGap(null);
-          // Refetch data to refresh gaps and balances
           if (memberId) {
             getMemberHoldings(memberId).then(setHoldings).catch(() => {});
             getMemberAllocation(memberId).then(setAllocation).catch(() => {});
-            getMemberCoverageGaps(memberId).then(setCoverageGaps).catch(() => {});
+            getMemberCoverageGaps(memberId)
+              .then(setCoverageGaps)
+              .catch(() => {});
           }
         }}
       />

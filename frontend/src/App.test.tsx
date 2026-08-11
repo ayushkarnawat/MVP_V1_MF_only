@@ -8,7 +8,7 @@ import * as api from "./features/auth/api";
 // unhandled rejection — same pattern as OnboardingFlow.test.tsx.
 vi.mock("./features/auth/api", async () => {
   const actual = await vi.importActual<typeof import("./features/auth/api")>("./features/auth/api");
-  return { ...actual, getMe: vi.fn(), updateMe: vi.fn() };
+  return { ...actual, getMe: vi.fn(), updateMe: vi.fn(), listHouseholdMembers: vi.fn().mockResolvedValue([]) };
 });
 
 describe("App", () => {
@@ -37,7 +37,7 @@ describe("App", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: /continue/i })).toBeInTheDocument());
   });
 
-  it("shows DashboardPlaceholder when the session is valid and onboarding is complete", async () => {
+  it("shows DashboardPlaceholder when the session is valid and onboarding is complete on desktop viewport", async () => {
     localStorage.setItem("unifolio_session_token", "tok-1");
     vi.mocked(api.getMe).mockResolvedValue({
       user_id: "u1", phone_number: "+919999999999", email: null,
@@ -47,6 +47,39 @@ describe("App", () => {
     render(<App />);
 
     await waitFor(() => expect(screen.getByText(/welcome to unifolio/i)).toBeInTheDocument());
+  });
+
+  it("shows MobileRoot when the session is valid and viewport is mobile (< 768px)", async () => {
+    localStorage.setItem("unifolio_session_token", "tok-1");
+    vi.mocked(api.getMe).mockResolvedValue({
+      user_id: "u1", phone_number: "+919999999999", email: null,
+      onboarding_step: null, onboarding_completed: true, investor_type: null, primary_goal: null,
+    });
+
+    // Mock mobile matchMedia
+    const originalMatchMedia = window.matchMedia;
+    window.matchMedia = vi.fn().mockImplementation((query) => ({
+      matches: query.includes("767px"),
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("navigation", { name: /mobile navigation/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Dashboard" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Import" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /analytics/i })).toBeDisabled();
+      expect(screen.queryByRole("button", { name: "Holdings" })).not.toBeInTheDocument();
+    });
+
+    window.matchMedia = originalMatchMedia;
   });
 
   it("falls back to Landing when the stored session is invalid", async () => {

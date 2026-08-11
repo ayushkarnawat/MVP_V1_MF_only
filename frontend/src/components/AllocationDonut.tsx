@@ -1,21 +1,28 @@
 import { useState } from "react";
-import styles from "./AllocationDonut.module.css";
+import {
+  PieChart,
+  PieSlice,
+  PieCenter,
+  type PieData,
+} from "@/components/ui/charts";
+import { cn } from "@/lib/utils";
 
 export interface AllocationItem {
   label: string;
   current_value: string;
-  percentage: number;
+  percentage: number | string;
 }
 
 export interface AllocationDonutProps {
   data: AllocationItem[];
   totalValue?: string;
   title?: string;
+  className?: string;
 }
 
 const PALETTE = [
-  "#22C55E", // Accent green
-  "#3B82F6", // Blue
+  "#22C55E", // Brand Accent Green
+  "#3B82F6", // Primary Blue
   "#8B5CF6", // Purple
   "#F59E0B", // Amber
   "#06B6D4", // Cyan
@@ -23,121 +30,152 @@ const PALETTE = [
   "#64748B", // Slate
 ];
 
-export function AllocationDonut({ data, totalValue, title }: AllocationDonutProps) {
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
-
-  if (!data || data.length === 0) {
-    return (
-      <div className={styles.emptyContainer}>
-        <p className="type-caption">No allocation data available</p>
-      </div>
-    );
-  }
-
-  // Calculate cumulative percentages for SVG donut strokeDashoffset
-  let cumulative = 0;
-  const segments = data.map((item, idx) => {
-    const startAngle = cumulative;
-    const pct = Math.max(0, item.percentage || 0);
-    cumulative += pct;
-    const color = PALETTE[idx % PALETTE.length];
-    return {
-      ...item,
-      color,
-      pct,
-      startAngle,
-    };
-  });
-
-  const activeSegment = activeIndex !== null ? segments[activeIndex] : null;
-
-  return (
-    <div className={styles.container}>
-      {title && <h3 className={`type-h2 ${styles.title}`}>{title}</h3>}
-      <div className={styles.chartWrapper}>
-        <div className={styles.svgWrapper}>
-          <svg viewBox="0 0 100 100" className={styles.donutSvg}>
-            <circle
-              cx="50"
-              cy="50"
-              r="38"
-              className={styles.bgCircle}
-            />
-            {segments.map((seg, idx) => {
-              const strokeDasharray = `${seg.pct * 2.387} ${238.7 - seg.pct * 2.387}`;
-              const strokeDashoffset = -seg.startAngle * 2.387;
-              return (
-                <circle
-                  key={seg.label + idx}
-                  cx="50"
-                  cy="50"
-                  r="38"
-                  fill="none"
-                  stroke={seg.color}
-                  strokeWidth={activeIndex === idx ? "11" : "8"}
-                  strokeDasharray={strokeDasharray}
-                  strokeDashoffset={strokeDashoffset}
-                  className={styles.segment}
-                  onMouseEnter={() => setActiveIndex(idx)}
-                  onMouseLeave={() => setActiveIndex(null)}
-                />
-              );
-            })}
-          </svg>
-          <div className={styles.centerText}>
-            <span className={styles.centerLabel}>
-              {activeSegment ? activeSegment.label : "Total Value"}
-            </span>
-            <span className={`type-data-large ${styles.centerVal}`}>
-              {activeSegment
-                ? `₹${formatIndianCurrency(activeSegment.current_value)}`
-                : totalValue
-                ? `₹${formatIndianCurrency(totalValue)}`
-                : "100%"}
-            </span>
-            {activeSegment && (
-              <span className={`type-caption ${styles.centerPct}`}>
-                {activeSegment.pct.toFixed(1)}%
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className={styles.legend}>
-          {segments.map((seg, idx) => (
-            <div
-              key={seg.label + idx}
-              className={`${styles.legendItem} ${
-                activeIndex === idx ? styles.legendActive : ""
-              }`}
-              onMouseEnter={() => setActiveIndex(idx)}
-              onMouseLeave={() => setActiveIndex(null)}
-            >
-              <span
-                className={styles.legendDot}
-                style={{ backgroundColor: seg.color }}
-              />
-              <span className={`type-body-medium ${styles.legendLabel}`}>
-                {seg.label}
-              </span>
-              <span className={`type-data ${styles.legendPct}`}>
-                {seg.pct.toFixed(1)}%
-              </span>
-              <span className={`type-caption ${styles.legendAmt}`}>
-                ₹{formatIndianCurrency(seg.current_value)}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function formatIndianCurrency(valStr: string | number): string {
   const num = typeof valStr === "string" ? parseFloat(valStr) : valStr;
   if (isNaN(num)) return "0";
   return new Intl.NumberFormat("en-IN", {
     maximumFractionDigits: 0,
   }).format(num);
+}
+
+function parsePercentage(val: number | string | undefined | null): number {
+  if (typeof val === "number") return isNaN(val) ? 0 : val;
+  if (typeof val === "string") {
+    const parsed = parseFloat(val);
+    return isNaN(parsed) ? 0 : parsed;
+  }
+  return 0;
+}
+
+export function AllocationDonut({
+  data,
+  totalValue,
+  title,
+  className,
+}: AllocationDonutProps) {
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+
+  if (!data || data.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 text-[var(--color-text-secondary)]">
+        <p className="type-caption">No allocation data available</p>
+      </div>
+    );
+  }
+
+  const parsedTotal = totalValue
+    ? parseFloat(totalValue)
+    : data.reduce((sum, item) => sum + parseFloat(item.current_value || "0"), 0);
+
+  const pieData: PieData[] = data.map((item, idx) => {
+    const pct = parsePercentage(item.percentage);
+    const val = parseFloat(item.current_value) || pct || 1;
+    return {
+      label: item.label,
+      value: val,
+      color: PALETTE[idx % PALETTE.length],
+      formattedValue: item.current_value,
+    };
+  });
+
+  const activeItem = hoveredIndex !== null ? data[hoveredIndex] : null;
+
+  return (
+    <div className={cn("w-full", className)}>
+      {title && (
+        <h3 className="font-display text-base font-semibold tracking-tight text-[var(--color-ink)] mb-4">
+          {title}
+        </h3>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+        {/* Donut Chart */}
+        <div className="relative flex items-center justify-center min-h-[220px] max-w-[260px] mx-auto w-full aspect-square">
+          <PieChart
+            data={pieData}
+            size={240}
+            innerRadius={80}
+            padAngle={0.03}
+            cornerRadius={3}
+            hoverOffset={4}
+            hoveredIndex={hoveredIndex}
+            onHoverChange={setHoveredIndex}
+            className="w-full h-full"
+          >
+            {pieData.map((item, idx) => (
+              <PieSlice
+                key={item.label + idx}
+                index={idx}
+                hoverEffect="translate"
+                hoverOffset={4}
+              />
+            ))}
+            <PieCenter>
+              {() => {
+                const activePct = activeItem
+                  ? parsePercentage(activeItem.percentage)
+                  : 100;
+                return (
+                  <div className="flex flex-col items-center justify-center text-center px-2 select-none pointer-events-none">
+                    <span className="text-[11px] font-medium tracking-wide text-[var(--color-text-secondary)] truncate max-w-[110px]">
+                      {activeItem ? activeItem.label : "Total Value"}
+                    </span>
+                    <span className="font-display text-base font-bold text-[var(--color-ink)] tabular-nums type-data-large mt-0.5">
+                      ₹{formatIndianCurrency(activeItem ? activeItem.current_value : parsedTotal)}
+                    </span>
+                    <span className="text-[11px] text-[var(--color-accent)] font-medium tabular-nums type-caption mt-0.5">
+                      {activeItem ? `${activePct.toFixed(1)}%` : "100%"}
+                    </span>
+                  </div>
+                );
+              }}
+            </PieCenter>
+          </PieChart>
+        </div>
+
+        {/* Lightweight Breakdown Legend List */}
+        <div className="flex flex-col space-y-1.5 w-full">
+          {data.map((item, idx) => {
+            const isHovered = hoveredIndex === idx;
+            const color = PALETTE[idx % PALETTE.length];
+            const pct = parsePercentage(item.percentage);
+
+            return (
+              <div
+                key={item.label + idx}
+                className={cn(
+                  "flex items-center justify-between px-3 py-2 rounded-lg transition-colors duration-150 cursor-pointer",
+                  isHovered
+                    ? "bg-[var(--color-bg)] text-[var(--color-ink)]"
+                    : "hover:bg-[var(--color-bg)]/60 text-[var(--color-ink)]"
+                )}
+                onMouseEnter={() => setHoveredIndex(idx)}
+                onMouseLeave={() => setHoveredIndex(null)}
+              >
+                <div className="flex items-center space-x-2.5 min-w-0">
+                  <span
+                    className="h-2.5 w-2.5 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: color }}
+                    aria-hidden="true"
+                  />
+                  <span className="text-xs font-medium text-[var(--color-ink)] truncate">
+                    {item.label}
+                  </span>
+                </div>
+
+                <div className="flex items-center space-x-3 text-right flex-shrink-0">
+                  <span className="text-xs font-semibold text-[var(--color-ink)] tabular-nums type-data">
+                    {pct.toFixed(1)}%
+                  </span>
+                  <span className="text-xs text-[var(--color-text-secondary)] tabular-nums type-caption">
+                    ₹{formatIndianCurrency(item.current_value)}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
 }
