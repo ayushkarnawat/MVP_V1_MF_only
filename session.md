@@ -7,6 +7,70 @@ gets overwritten each session, and isn't meant to accumulate history.
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
 
+## Phase 4 Part 2: AMFI TER + AAUM integrations → weighted TER (PRD-04 FR-10/FR-11) — built and committed
+
+Built directly (TDD, one task per commit) per the Phase 4 design doc's
+build order (`Docs/superpowers/plans/2026-08-10-phase-4-analytics-backend-design.md`),
+without a separate written task-by-task plan file — the design doc already
+carried full research/spec, and this was executed in one continuous
+session rather than delegated to subagents.
+
+**`backend/app/services/analytics/amfi_ter_client.py`** — bulk TER
+ingestion. `refresh_ter_data(db)` fetches the latest published month from
+AMFI (`populate-ter-month` → `populate-te-rdata-revised`, paginated),
+dedupes to the latest `TER_Date` per `Scheme_Name` (AMFI republishes daily
+even unchanged), and fuzzy-matches each locally-known scheme with a
+resolved Direct/Regular plan variant against that name list
+(`difflib.SequenceMatcher`, same idiom as `import_/enrich.py`). One real
+tuning finding: `enrich.py`'s 0.92 confirmation threshold doesn't work
+here — local scheme names carry a "- Direct/Regular Plan - Growth" suffix
+AMFI's plan-generic `Scheme_Name` never has, capping a genuine match's
+ratio around 0.67 against an unrelated pair's ~0.26; landed on 0.55 after
+computing both live, comfortable margin either side. Degrades gracefully
+(returns `False`, writes nothing) on fetch failure or an empty month.
+
+**`backend/app/services/analytics/amfi_aaum_client.py`** — bulk AAUM
+ingestion, front-loaded per the design doc's build order even though
+FR-10/FR-11 don't consume it (infrastructure for the later FR-4 step).
+Matches directly by `AMFI_Code` (no fuzzy matching needed, unlike TER).
+**Flagged, not silently assumed:** the financial-years endpoint's shape
+was live-verified during design research, but the intermediate
+"periods within a financial year" endpoint's exact response shape was
+never captured — this module assumes the same envelope by analogy and
+documents that assumption inline (module docstring), recommending
+live-verification before FR-4 relies on it. Every failure mode here
+(missing years/periods, unparseable period label, zero scheme matches)
+degrades to "nothing ingested," never a wrong value.
+
+**`backend/app/services/analytics/ter.py`** — `compute_weighted_ter`
+(FR-10) and `compute_direct_regular_ter_comparison` (FR-11). Resolves a
+real ambiguity in PRD-04's own text: the PRD calls FR-10 "AUM-weighted,"
+but the design doc's research already clarified this means weighted by
+the *user's own holding value*, not the fund's platform-wide AAUM — this
+module never reads `scheme_aaum`. TER is refreshed on-demand with one
+bulk fetch (not one fetch per scheme, unlike NAV) only when a held scheme
+lacks a current-month `scheme_ter` row; a scheme whose fuzzy match never
+resolves is excluded from the weighted average and surfaced via
+`uncovered_schemes` rather than silently miscomputed or crashing, per
+PRD-04's "TER not yet published" edge case.
+
+**Routes:** `GET /analytics/household-members/{id}/ter`,
+`.../ter/direct-regular`, and family-aggregate variants
+(`/analytics/household/aggregate/ter[/direct-regular]`), mirroring the
+existing allocation routes' auth/404/response-shape pattern exactly.
+
+**Backend suite: 250 passing, 2 skipped** (up from 215/2) — 40 new tests
+across 4 new test files, zero regressions. Four commits, one per task
+(`f6bbb5c` TER client, `b7197ed` AAUM client, `0971148` weighted TER +
+Direct/Regular service, `e026751` routes).
+
+**Not yet done:** the knowledge graph (`.ua/knowledge-graph.json`) has not
+been refreshed for this work — a fresh session picking this up next
+should treat the graph as stale for the new `analytics/` files until
+re-run. AAUM's periods-endpoint shape (above) needs live verification
+before FR-4 build starts. Per the design doc's build order, **Part 3 (NSE
+Indices integration → benchmark comparison, FR-8/FR-9) is next.**
+
 ## Cleanup pass complete: knowledge graph refreshed, worktree branch deleted, CRLF noise reconfirmed harmless
 
 Follow-up session to the CAS Import lifecycle sync (`af74384`) — worked

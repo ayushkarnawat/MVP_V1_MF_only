@@ -88,29 +88,31 @@ frontend framework, or a service split not already in that document.
 *(Updated 2026-08-11. See `session.md` at repo root for full detail — this is the
 one-paragraph pointer for a fresh session.)*
 
-**Phase 4 Part 1 (Analytics — category allocation, PRD-04 FR-1/FR-2) is
-built and merged to `dev_intern`, and `dev_intern` is fully synced with
-`origin/dev_intern`.** Built in an earlier session on
-`feature/phase4-part1-allocation` (a git worktree, now removed; the local
-branch ref itself has also been deleted post-merge), merged via
-`git merge --no-ff` (`1ab0fab`), zero real conflicts. Adds
-`backend/app/services/analytics/allocation.py` +
-`schemas.py` and two routes (per-member and family-aggregate SEBI-category
-+ AMC allocation, Decimal-precise, reusing the existing FIFO holdings
-engine). A pull afterward brought in a large unrelated feature from
-`origin/dev_intern` — **CAS Import lifecycle + coverage-gap detection**
-(11-state import lifecycle engine, CAMS portal mailback, buffer cache,
-member attribution, full Two-Path CAS import frontend UI; see
-`CAS-IMPORT-UPDATE-PLAN.md`) — merged cleanly (zero conflicts, disjoint
-file sets). Backend suite: **215 passing, 2 skipped** (up from 164/2),
-verified by re-running `pytest`. Per the Phase 4 design doc's 5-step build
-order, **Part 2 (AMFI TER+AAUM → weighted TER, FR-10/FR-11) is next.** The
-knowledge graph (`.ua/knowledge-graph.json`) has been refreshed twice this
-arc — once for the Phase 4 Part 1 merge, again (incremental
-`/understand` update) to pick up the CAS Import lifecycle feature — and is
-now current: **661 nodes / 1657 edges / 10 layers / 15 tour steps**,
-`gitCommitHash 35fedd38f968e5b763269a67dbe8d16eff44e9ed` matching HEAD
-exactly.
+**Phase 4 Part 2 (Analytics — AMFI TER+AAUM integrations → weighted
+portfolio TER, PRD-04 FR-10/FR-11) is built and tested on `dev_intern`,
+committed locally, not yet pushed** (no git credentials in this sandbox —
+push manually via `git push origin dev_intern`). Adds
+`backend/app/services/analytics/amfi_ter_client.py` (bulk TER ingestion,
+fuzzy-name-matched against local schemes, `MIN_MATCH_CONFIDENCE = 0.55`
+tuned empirically — local scheme names carry a Direct/Regular-plan suffix
+AMFI's plan-generic names never do, capping genuine matches ~0.67),
+`amfi_aaum_client.py` (bulk AAUM ingestion, matched directly by
+`AMFI_Code`; the periods-endpoint response shape is flagged in its
+docstring as an unverified assumption, pending live verification before
+FR-4 relies on it), and `ter.py` (`compute_weighted_ter` /
+`compute_direct_regular_ter_comparison` + family-aggregate wrappers).
+Resolves a real ambiguity in PRD-04's own FR-10 text: "AUM-weighted" means
+weighted by the **user's own holding value**, not the fund's
+platform-wide AAUM — `ter.py` never reads `scheme_aaum`; only the later
+FR-4 step will. Four new routes mirror the existing allocation routes'
+auth/404 pattern exactly. Backend suite: **250 passing, 2 skipped** (up
+from 215/2), zero regressions, verified by re-running `pytest`. Per the
+Phase 4 design doc's 5-step build order, **Part 3 (NSE Indices →
+benchmark comparison, FR-8/FR-9) is next.** The knowledge graph
+(`.ua/knowledge-graph.json`) has **not** been refreshed for this work —
+treat it as stale for the new `analytics/` files until re-run; it was
+last current at **661 nodes / 1657 edges / 10 layers / 15 tour steps**,
+`gitCommitHash 35fedd38f968e5b763269a67dbe8d16eff44e9ed` (pre-Part-2).
 
 **Phase 0, Phase 1 (backend + frontend), Phase 2 (backend), Phase 2b
 (Onboarding frontend), and Phase 3 (Main Dashboard backend) are all complete
