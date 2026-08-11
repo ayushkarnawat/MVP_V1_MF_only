@@ -1,6 +1,11 @@
 import { useState } from "react";
-import { Button } from "../../components/Button";
 import { requestCamsStatement } from "./api";
+import { Button } from "@/components/ui/button";
+import {
+  ExternalLink,
+  AlertTriangle,
+  Loader2,
+} from "lucide-react";
 
 interface RequestCamsPathProps {
   memberId: string;
@@ -29,107 +34,126 @@ export function RequestCamsPath({
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)", maxWidth: "560px", margin: "0 auto" }}>
-      <div>
-        <h2 className="type-h2" style={{ margin: "0 0 var(--space-2) 0" }}>
-          Request CAS Statement from CAMS
-        </h2>
-        <p className="type-body" style={{ color: "var(--color-text-secondary)", margin: 0 }}>
-          CAMS generates a free Consolidated Account Statement across all your mutual funds and emails it directly to your registered email address.
+    <div className="p-5 sm:p-7 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs space-y-6">
+      {/* Header Section */}
+      <div className="space-y-1">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <h2 className="font-display font-bold text-base sm:text-lg text-[var(--color-ink)]">
+            Request CAS Statement from CAMS
+          </h2>
+          <span className="text-[10px] font-bold uppercase tracking-wider bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] text-[var(--color-accent)] px-2 py-0.5 rounded-full">
+            Recommended
+          </span>
+        </div>
+        <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed">
+          CAMS generates a free Consolidated Account Statement across all your mutual funds and delivers it directly to your registered email address.
         </p>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-        <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "flex-start" }}>
-          <div
-            style={{
-              width: "28px",
-              height: "28px",
-              borderRadius: "50%",
-              background: "var(--color-primary-subtle, rgba(59, 130, 246, 0.1))",
-              color: "var(--color-primary)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontWeight: 600,
-              flexShrink: 0,
-            }}
-          >
+      {/* Manual Selection Guidance Cards */}
+      <div className="space-y-3">
+        {/* Step 1 */}
+        <div className="flex items-start gap-3 p-3.5 rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)]/60">
+          <div className="h-6 w-6 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-ink)] flex items-center justify-center font-display font-bold text-xs flex-shrink-0 mt-0.5 shadow-2xs">
             1
           </div>
-          <div>
-            <div className="type-body-medium">Open CAMS Mailback Portal</div>
-            <div className="type-caption" style={{ color: "var(--color-text-muted)" }}>
-              We'll open CAMS with prefilled settings: <strong>Detailed statement</strong>, <strong>10-year duration</strong>, and <strong>with zero folios</strong>.
+          <div className="space-y-0.5 min-w-0">
+            <div className="font-semibold text-xs sm:text-sm text-[var(--color-ink)]">
+              Open CAMS Mailback Portal
             </div>
+            <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+              Click the button below to navigate to the official CAMS Online CAS request page in a new tab.
+            </p>
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "flex-start" }}>
-          <div
-            style={{
-              width: "28px",
-              height: "28px",
-              borderRadius: "50%",
-              background: "var(--color-primary-subtle, rgba(59, 130, 246, 0.1))",
-              color: "var(--color-primary)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontWeight: 600,
-              flexShrink: 0,
-            }}
-          >
+        {/* Step 2 */}
+        <div className="flex items-start gap-3 p-3.5 rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)]/60">
+          <div className="h-6 w-6 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-ink)] flex items-center justify-center font-display font-bold text-xs flex-shrink-0 mt-0.5 shadow-2xs">
             2
           </div>
-          <div>
-            <div className="type-body-medium">Enter your Email on CAMS</div>
-            <div className="type-caption" style={{ color: "var(--color-text-muted)" }}>
-              Provide the email address registered with your mutual fund folios.
+          <div className="space-y-2 min-w-0">
+            <div className="font-semibold text-xs sm:text-sm text-[var(--color-ink)]">
+              Select Statement Options on CAMS
+            </div>
+            <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+              On the CAMS portal form, please manually choose the following required options:
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+              <div className="p-2.5 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)]/80 text-xs">
+                <span className="text-[10px] font-semibold text-[var(--color-text-secondary)] block uppercase tracking-wider">
+                  Statement Type
+                </span>
+                <span className="font-semibold text-[var(--color-ink)] block mt-0.5">
+                  Detailed statement
+                </span>
+              </div>
+              <div className="p-2.5 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)]/80 text-xs">
+                <span className="text-[10px] font-semibold text-[var(--color-text-secondary)] block uppercase tracking-wider">
+                  Period Range
+                </span>
+                <span className="font-semibold text-[var(--color-ink)] block mt-0.5">
+                  10-year duration
+                </span>
+              </div>
+              <div className="p-2.5 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)]/80 text-xs">
+                <span className="text-[10px] font-semibold text-[var(--color-text-secondary)] block uppercase tracking-wider">
+                  Zero Balance
+                </span>
+                <span className="font-semibold text-[var(--color-ink)] block mt-0.5">
+                  with zero folios
+                </span>
+              </div>
             </div>
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "flex-start" }}>
-          <div
-            style={{
-              width: "28px",
-              height: "28px",
-              borderRadius: "50%",
-              background: "var(--color-primary-subtle, rgba(59, 130, 246, 0.1))",
-              color: "var(--color-primary)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontWeight: 600,
-              flexShrink: 0,
-            }}
-          >
+        {/* Step 3 */}
+        <div className="flex items-start gap-3 p-3.5 rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)]/60">
+          <div className="h-6 w-6 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-ink)] flex items-center justify-center font-display font-bold text-xs flex-shrink-0 mt-0.5 shadow-2xs">
             3
           </div>
-          <div>
-            <div className="type-body-medium">Check your Inbox</div>
-            <div className="type-caption" style={{ color: "var(--color-text-muted)" }}>
-              CAMS usually emails the statement PDF within 5 to 10 minutes.
+          <div className="space-y-0.5 min-w-0">
+            <div className="font-semibold text-xs sm:text-sm text-[var(--color-ink)]">
+              Enter Email &amp; Check Inbox
             </div>
+            <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+              Enter your registered email and PAN. CAMS will email the encrypted PDF statement to you within 5 to 10 minutes.
+            </p>
           </div>
         </div>
       </div>
 
+      {/* Error Alert */}
       {error && (
-        <p className="type-caption" style={{ color: "var(--color-negative)", margin: 0 }} role="alert">
-          {error}
-        </p>
+        <div
+          role="alert"
+          className="flex items-center gap-2.5 p-3 rounded-xl bg-[color-mix(in_srgb,var(--color-negative)_12%,transparent)] border border-[color-mix(in_srgb,var(--color-negative)_30%,transparent)] text-xs text-[var(--color-negative)] font-medium"
+        >
+          <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+          <span>{error}</span>
+        </div>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-        <Button variant="primary" size="lg" onClick={handleRequest} disabled={isLoading}>
-          {isLoading ? "Opening CAMS Portal..." : "Request Statement on CAMS →"}
-        </Button>
-        <span className="type-caption" style={{ textAlign: "center", color: "var(--color-text-muted)" }}>
-          Opens in a new browser tab. We never collect or store your credentials.
-        </span>
-      </div>
+      {/* Action Button */}
+      <Button
+        onClick={handleRequest}
+        disabled={isLoading}
+        className="w-full h-11 sm:h-12 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs sm:text-sm shadow-xs gap-2 cursor-pointer active:scale-[0.99] transition-all"
+        type="button"
+      >
+        {isLoading ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Opening CAMS Portal...</span>
+          </>
+        ) : (
+          <>
+            <span>Request Statement on CAMS</span>
+            <ExternalLink className="h-4 w-4" />
+          </>
+        )}
+      </Button>
     </div>
   );
 }
