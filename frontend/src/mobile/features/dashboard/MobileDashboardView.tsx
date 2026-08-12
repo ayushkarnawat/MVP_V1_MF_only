@@ -15,6 +15,7 @@ import type {
 import type { HouseholdMember } from "@/features/auth/types";
 import type { CoverageGapItem } from "@/features/import/types";
 import { AllocationDonut } from "@/components/AllocationDonut";
+import { Badge } from "@/components/Badge";
 import { MobileHoldingCardSummary } from "../holdings/MobileHoldingCardSummary";
 import { MobileFundDetailView } from "../holdings/MobileFundDetailView";
 import { Input } from "@/components/ui/input";
@@ -31,11 +32,13 @@ import {
 } from "lucide-react";
 
 export interface MobileDashboardViewProps {
-  onNavigateImport?: () => void;
+  onNavigateImport?: (memberId?: string) => void;
+  onDetailViewToggle?: (isOpen: boolean) => void;
 }
 
 export function MobileDashboardView({
   onNavigateImport,
+  onDetailViewToggle,
 }: MobileDashboardViewProps) {
   const [viewMode, setViewMode] = useState<"aggregate" | "member">("aggregate");
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
@@ -88,14 +91,15 @@ export function MobileDashboardView({
             setLoading(false);
           }
         } else if (selectedMemberId) {
-          const [holdingsRes, allocationRes, gapsRes] = await Promise.all([
+          const [holdingsRes, allocationRes, gapsRes, aggRes] = await Promise.all([
             getMemberHoldings(selectedMemberId),
             getMemberAllocation(selectedMemberId),
             getMemberCoverageGaps(selectedMemberId).catch(() => []),
+            getAggregateHoldings().catch(() => ({ holdings: [], members: [] })),
           ]);
           if (isMounted) {
             setHoldings(holdingsRes);
-            setMembersStatus([]);
+            setMembersStatus(aggRes.members || []);
             setAllocation(allocationRes);
             setCoverageGaps(gapsRes);
             setLoading(false);
@@ -163,12 +167,17 @@ export function MobileDashboardView({
     );
   }, [holdings, searchTerm]);
 
+  const handleSelectHolding = (item: HoldingRow | null) => {
+    setSelectedHolding(item);
+    onDetailViewToggle?.(item !== null);
+  };
+
   /* Dedicated Full-Screen Fund Details View */
   if (selectedHolding) {
     return (
       <MobileFundDetailView
         holding={selectedHolding}
-        onBack={() => setSelectedHolding(null)}
+        onBack={() => handleSelectHolding(null)}
       />
     );
   }
@@ -219,31 +228,94 @@ export function MobileDashboardView({
       <div className="flex flex-col space-y-4 animate-in fade-in duration-200">
         {/* Family vs Member Toggle (if multi-member) */}
         {hasFamily && (
-          <div className="inline-flex items-center p-1 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-2xs w-full">
-            <button
-              className={cn(
-                "flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer text-center",
-                viewMode === "aggregate"
-                  ? "bg-[var(--color-bg)] text-[var(--color-ink)] font-semibold shadow-xs"
-                  : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)]"
-              )}
-              onClick={() => setViewMode("aggregate")}
-              type="button"
-            >
-              Family Combined
-            </button>
-            <button
-              className={cn(
-                "flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer text-center",
-                viewMode === "member"
-                  ? "bg-[var(--color-bg)] text-[var(--color-ink)] font-semibold shadow-xs"
-                  : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)]"
-              )}
-              onClick={() => setViewMode("member")}
-              type="button"
-            >
-              Per Member
-            </button>
+          <div className="flex flex-col space-y-2">
+            <div className="inline-flex items-center p-1 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-2xs w-full">
+              <button
+                className={cn(
+                  "flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer text-center",
+                  viewMode === "aggregate"
+                    ? "bg-[var(--color-bg)] text-[var(--color-ink)] font-semibold shadow-xs"
+                    : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)]"
+                )}
+                onClick={() => setViewMode("aggregate")}
+                type="button"
+              >
+                Family Combined
+              </button>
+              <button
+                className={cn(
+                  "flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer text-center",
+                  viewMode === "member"
+                    ? "bg-[var(--color-bg)] text-[var(--color-ink)] font-semibold shadow-xs"
+                    : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)]"
+                )}
+                onClick={() => setViewMode("member")}
+                type="button"
+              >
+                Per Member
+              </button>
+            </div>
+
+            {/* Member Dropdown Picker (if in per-member mode) */}
+            {viewMode === "member" && members.length > 0 && (
+              <div className="relative">
+                <select
+                  value={selectedMemberId || ""}
+                  onChange={(e) => setSelectedMemberId(e.target.value)}
+                  className="w-full appearance-none pl-3 pr-8 py-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-xs font-semibold text-[var(--color-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] cursor-pointer shadow-2xs"
+                  aria-label="Select household member"
+                >
+                  {members.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name} ({m.relationship})
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-text-secondary)] pointer-events-none opacity-70" />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Pending Family Imports Strip (when members have no CAS data) */}
+        {membersStatus.some((m) => !m.has_data) && (
+          <div className="p-3.5 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-2xs space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Users className="h-3.5 w-3.5 text-[var(--color-text-secondary)]" />
+                <span className="text-xs font-semibold text-[var(--color-ink)]">
+                  Pending Family Imports
+                </span>
+              </div>
+              <button
+                onClick={() => onNavigateImport?.()}
+                className="text-[11px] font-semibold text-[var(--color-accent)] hover:underline cursor-pointer"
+                type="button"
+              >
+                + Add Data
+              </button>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              {membersStatus
+                .filter((m) => !m.has_data)
+                .map((m) => (
+                  <div
+                    key={m.id}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-ink)]"
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-warning,#f59e0b)]" />
+                    <span>{m.name}</span>
+                    <Badge variant="warning" className="text-[10px] py-0 px-1.5">No CAS Data</Badge>
+                    <button
+                      className="text-[11px] font-semibold text-[var(--color-accent)] hover:underline ml-0.5 cursor-pointer"
+                      onClick={() => onNavigateImport?.(m.id)}
+                      type="button"
+                    >
+                      + Import
+                    </button>
+                  </div>
+                ))}
+            </div>
           </div>
         )}
 
@@ -262,7 +334,7 @@ export function MobileDashboardView({
           <Button
             variant="default"
             size="sm"
-            onClick={onNavigateImport}
+            onClick={() => onNavigateImport?.(viewMode === "member" ? selectedMemberId || undefined : undefined)}
             className="w-full font-semibold h-11 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 shadow-xs"
           >
             + Upload CAS Statement
@@ -395,40 +467,47 @@ export function MobileDashboardView({
         </div>
       </section>
 
-      {/* 2. S22: Pending Family Imports Strip (when in Aggregate View) */}
-      {viewMode === "aggregate" &&
-        membersStatus.some((m) => !m.has_data) && (
-          <div className="p-3.5 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-2xs space-y-2.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Users className="h-3.5 w-3.5 text-[var(--color-text-secondary)]" />
-                <span className="text-xs font-semibold text-[var(--color-ink)]">
-                  Pending Family Imports
-                </span>
-              </div>
-              <button
-                onClick={onNavigateImport}
-                className="text-[11px] font-semibold text-[var(--color-accent)] hover:underline cursor-pointer"
-                type="button"
-              >
-                + Add Data
-              </button>
+      {/* 2. S22: Pending Family Imports Strip */}
+      {membersStatus.some((m) => !m.has_data) && (
+        <div className="p-3.5 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-2xs space-y-2.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Users className="h-3.5 w-3.5 text-[var(--color-text-secondary)]" />
+              <span className="text-xs font-semibold text-[var(--color-ink)]">
+                Pending Family Imports
+              </span>
             </div>
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {membersStatus
-                .filter((m) => !m.has_data)
-                .map((m) => (
-                  <span
-                    key={m.id}
-                    className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text-secondary)]"
-                  >
-                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-warning,#f59e0b)]" />
-                    {m.name}
-                  </span>
-                ))}
-            </div>
+            <button
+              onClick={() => onNavigateImport?.()}
+              className="text-[11px] font-semibold text-[var(--color-accent)] hover:underline cursor-pointer"
+              type="button"
+            >
+              + Add Data
+            </button>
           </div>
-        )}
+          <div className="flex items-center gap-2 flex-wrap">
+            {membersStatus
+              .filter((m) => !m.has_data)
+              .map((m) => (
+                <div
+                  key={m.id}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-ink)]"
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-warning,#f59e0b)]" />
+                  <span>{m.name}</span>
+                  <Badge variant="warning" className="text-[10px] py-0 px-1.5">No CAS Data</Badge>
+                  <button
+                    className="text-[11px] font-semibold text-[var(--color-accent)] hover:underline ml-0.5 cursor-pointer"
+                    onClick={() => onNavigateImport?.(m.id)}
+                    type="button"
+                  >
+                    + Import
+                  </button>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
 
       {/* 3. Portfolio Allocation Card */}
       {allocation && (
@@ -510,7 +589,7 @@ export function MobileDashboardView({
               <MobileHoldingCardSummary
                 key={h.scheme_id + (h.household_member_id || "")}
                 holding={h}
-                onSelect={(item) => setSelectedHolding(item)}
+                onSelect={(item) => handleSelectHolding(item)}
               />
             ))}
           </div>

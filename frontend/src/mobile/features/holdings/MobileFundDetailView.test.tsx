@@ -33,6 +33,7 @@ describe("MobileFundDetailView", () => {
       />
     );
 
+    expect(screen.getByText("FUND DETAILS")).toBeInTheDocument();
     expect(screen.getByText("Axis Bluechip Fund")).toBeInTheDocument();
     expect(screen.getAllByText("Axis Mutual Fund").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("DIRECT").length).toBeGreaterThanOrEqual(1);
@@ -66,5 +67,60 @@ describe("MobileFundDetailView", () => {
     const oneYearBtn = screen.getByText("1Y");
     fireEvent.click(oneYearBtn);
     expect(oneYearBtn).toHaveClass("bg-[var(--color-surface)]");
+  });
+
+  it("resets scroll container scrollTop to 0 when mounted inside a scrolled container", () => {
+    const parentContainer = document.createElement("div");
+    parentContainer.scrollTop = 450;
+    document.body.appendChild(parentContainer);
+
+    render(
+      <MobileFundDetailView
+        holding={sampleHolding}
+        onBack={vi.fn()}
+      />,
+      { container: parentContainer }
+    );
+
+    expect(parentContainer.scrollTop).toBe(0);
+    document.body.removeChild(parentContainer);
+  });
+
+  it("resets scroll container scrollTop to 0 when switching holdings", () => {
+    const parentContainer = document.createElement("div");
+    parentContainer.scrollTop = 300;
+    document.body.appendChild(parentContainer);
+
+    const { rerender } = render(
+      <MobileFundDetailView
+        holding={sampleHolding}
+        onBack={vi.fn()}
+      />,
+      { container: parentContainer }
+    );
+
+    expect(parentContainer.scrollTop).toBe(0);
+
+    // Simulate user scrolling inside the view
+    parentContainer.scrollTop = 500;
+    expect(parentContainer.scrollTop).toBe(500);
+
+    // Rerender with another holding
+    const anotherHolding: HoldingRow = {
+      ...sampleHolding,
+      scheme_id: "scheme-102",
+      scheme_name: "HDFC Top 100 Fund",
+    };
+
+    rerender(
+      <MobileFundDetailView
+        holding={anotherHolding}
+        onBack={vi.fn()}
+      />
+    );
+
+    expect(parentContainer.scrollTop).toBe(0);
+    expect(screen.getByText("HDFC Top 100 Fund")).toBeInTheDocument();
+    document.body.removeChild(parentContainer);
   });
 });

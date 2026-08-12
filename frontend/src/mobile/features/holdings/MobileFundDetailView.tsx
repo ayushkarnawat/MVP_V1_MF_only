@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useLayoutEffect } from "react";
 import { Badge } from "@/components/Badge";
 import { FundSignal } from "@/components/FundSignal";
 import { cn } from "@/lib/utils";
@@ -8,6 +8,7 @@ import {
   ArrowUpRight,
   Info,
 } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import type { HoldingRow } from "@/features/dashboard/types";
 
 export interface MobileFundDetailViewProps {
@@ -27,6 +28,35 @@ export function MobileFundDetailView({
   holding,
   onBack,
 }: MobileFundDetailViewProps) {
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const resetScroll = () => {
+      if (rootRef.current) {
+        rootRef.current.scrollTop = 0;
+        let parent: HTMLElement | null = rootRef.current.parentElement;
+        while (parent) {
+          parent.scrollTop = 0;
+          parent = parent.parentElement;
+        }
+      }
+      if (typeof window !== "undefined") {
+        window.scrollTo(0, 0);
+      }
+      if (typeof document !== "undefined") {
+        if (document.documentElement) {
+          document.documentElement.scrollTop = 0;
+        }
+        if (document.body) {
+          document.body.scrollTop = 0;
+        }
+      }
+    };
+
+    resetScroll();
+    const rafId = requestAnimationFrame(resetScroll);
+    return () => cancelAnimationFrame(rafId);
+  }, [holding]);
   const [selectedTimeframe, setSelectedTimeframe] = useState<Timeframe>("6M");
   const [hoveredPoint, setHoveredPoint] = useState<ChartPoint | null>(null);
 
@@ -116,25 +146,36 @@ export function MobileFundDetailView({
   const activePoint = hoveredPoint || chartData[chartData.length - 1];
 
   return (
-    <div className="flex flex-col min-h-dvh bg-[var(--color-bg)] pb-12 animate-in fade-in duration-200">
+    <div
+      ref={rootRef}
+      className="flex flex-col min-h-dvh bg-[var(--color-bg)] pb-12 animate-in fade-in duration-200"
+    >
       {/* Top Header with Back Navigation */}
-      <div className="sticky top-0 z-30 bg-[var(--color-surface)]/90 backdrop-blur-lg border-b border-[var(--color-border)] px-4 py-2.5 flex items-center justify-between">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-1 min-h-[44px] min-w-[44px] -ml-2 px-2 rounded-xl text-xs font-semibold text-[var(--color-ink)] hover:bg-[var(--color-bg)] active:scale-95 transition-all cursor-pointer"
-          type="button"
-          aria-label="Back to holdings"
-        >
-          <ChevronLeft className="h-5 w-5 text-[var(--color-ink)]" />
-          <span>Holdings</span>
-        </button>
+      <header className="sticky top-0 z-30 w-full h-14 bg-[var(--color-surface)]/85 backdrop-blur-md border-b border-[var(--color-border)] px-4 grid grid-cols-3 items-center transition-colors duration-200 select-none">
+        {/* Left: Back button with only back arrow icon */}
+        <div className="flex items-center justify-start">
+          <button
+            onClick={onBack}
+            className="h-11 w-11 -ml-2 rounded-full flex items-center justify-center text-[var(--color-ink)] hover:bg-[var(--color-bg)] active:scale-90 transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
+            type="button"
+            aria-label="Back to holdings"
+          >
+            <ChevronLeft className="h-6 w-6 stroke-[2.2]" />
+          </button>
+        </div>
 
-        <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)] truncate max-w-[180px]">
-          Fund Details
-        </span>
+        {/* Center: FUND DETAILS (Centered precisely) */}
+        <div className="flex items-center justify-center text-center">
+          <h1 className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)] truncate">
+            FUND DETAILS
+          </h1>
+        </div>
 
-        <div className="w-8" />
-      </div>
+        {/* Right: Theme Toggle */}
+        <div className="flex items-center justify-end">
+          <ThemeToggle className="h-9 w-9 rounded-xl" />
+        </div>
+      </header>
 
       {/* Main Content View */}
       <div className="p-4 space-y-5">
