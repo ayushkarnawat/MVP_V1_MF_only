@@ -5,9 +5,11 @@ session where Codex isn't ready.
 
 ## Detecting the situation
 
-Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.mjs" setup --json`
-(same check `/codex:setup` uses). If `ready` is `false` — no CLI, or not
-authenticated — this fallback applies.
+Run `/codex:setup` (the codex plugin's own setup check — never hand-roll
+a direct `codex-companion.mjs` Bash call for this; `CLAUDE_PLUGIN_ROOT`
+only resolves inside that plugin's own command, not from here). If its
+output reports not ready — no CLI, or not authenticated — this fallback
+applies.
 
 ## The ask (once per session, not once per delegation attempt)
 

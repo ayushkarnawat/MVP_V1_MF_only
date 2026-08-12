@@ -21,8 +21,10 @@ pipeline, not via `task-observer`'s own observation-driven update flow —
 this was a direct user-commissioned build. Full design:
 `Docs/superpowers/specs/2026-08-12-model-orchestration-skill-design.md`;
 full plan: `Docs/superpowers/plans/2026-08-12-model-orchestration-skill.md`.
-Parallel Codex dispatch capability: see Task 1's recorded verdict in
-that plan for whether it's verified this session.
+Parallel Codex dispatch capability: see the verdict recorded in
+`.claude/skills/model-orchestration/references/delegation-rules.md`
+(Task 1's live-verification result, carried there — the plan file's own
+placeholder for it was never back-filled).
 
 ## Phase 4 Part 4: category-universe NAV caching → category ranking (PRD-04 FR-3/FR-4) — built and committed
 
