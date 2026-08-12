@@ -47,6 +47,8 @@ const mockStorage: Storage = {
 };
 Object.defineProperty(window, "localStorage", { value: mockStorage, writable: true, configurable: true });
 Object.defineProperty(globalThis, "localStorage", { value: mockStorage, writable: true, configurable: true });
+Object.defineProperty(window, "sessionStorage", { value: mockStorage, writable: true, configurable: true });
+Object.defineProperty(globalThis, "sessionStorage", { value: mockStorage, writable: true, configurable: true });
 
 afterEach(() => {
   store = {};

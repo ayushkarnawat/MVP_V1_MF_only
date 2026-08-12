@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { MainDashboardFlow } from "./MainDashboardFlow";
 import * as authApi from "../auth/api";
@@ -56,5 +56,37 @@ describe("MainDashboardFlow", () => {
       expect(screen.getByText("Unifolio")).toBeInTheDocument();
       expect(screen.getByText("Family Combined")).toBeInTheDocument();
     });
+
+    const toggles = screen.getAllByLabelText("Toggle theme");
+    expect(toggles).toHaveLength(1);
+  });
+
+  it("renders exactly one theme toggle on the Add Data screen", async () => {
+    vi.mocked(authApi.getHouseholdMembers).mockResolvedValue([
+      { id: "m-1", name: "Alice", relationship: "self", relationship_other_label: null },
+    ]);
+
+    vi.mocked(dashboardApi.getMemberHoldings).mockResolvedValue([]);
+    vi.mocked(dashboardApi.getMemberAllocation).mockResolvedValue({
+      by_asset_class: [],
+      by_amc: [],
+      total_value: "0.00",
+    });
+
+    render(<MainDashboardFlow />);
+
+    await waitFor(() => {
+      expect(screen.getByText("+ Add Data")).toBeInTheDocument();
+    });
+
+    const addDataBtn = screen.getByText("+ Add Data");
+    fireEvent.click(addDataBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText("Back to Dashboard")).toBeInTheDocument();
+    });
+
+    const toggles = screen.getAllByLabelText("Toggle theme");
+    expect(toggles).toHaveLength(1);
   });
 });
