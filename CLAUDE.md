@@ -96,6 +96,17 @@ the skill file hasn't been updated yet. This enables immediate application
 of observations before they're permanently integrated during the weekly
 review.
 
+## Model Orchestration
+
+When delegating non-trivial implementation, refactor, boilerplate, or
+research/lookup work — or dispatching parallelizable independent
+subtasks that would otherwise mean multiple Claude subagents — invoke
+the model-orchestration skill first. It governs the Claude
+(orchestrator) / Codex (default worker) split, the mandatory per-task
+handoff doc, and the mandatory adversarial-review gate before any
+Codex-implemented change is considered done. Full design:
+`Docs/superpowers/specs/2026-08-12-model-orchestration-skill-design.md`.
+
 ## Session State
 
 *(Updated 2026-08-11. See `session.md` at repo root for full detail — this is the
