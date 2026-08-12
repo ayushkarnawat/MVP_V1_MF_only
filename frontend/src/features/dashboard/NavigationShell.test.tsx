@@ -1,8 +1,20 @@
 import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import { NavigationShell } from "./NavigationShell";
 
+const mockLogout = vi.fn();
+
+vi.mock("../auth/AuthContext", () => ({
+  useAuth: () => ({
+    logout: mockLogout,
+  }),
+}));
+
 describe("NavigationShell", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   const sampleMembers = [
     { id: "m-1", name: "Alice (Self)" },
     { id: "m-2", name: "Bob (Spouse)" },
@@ -46,5 +58,26 @@ describe("NavigationShell", () => {
 
     fireEvent.click(screen.getByText("Per Member"));
     expect(handleViewModeChange).toHaveBeenCalledWith("member");
+  });
+
+  it("renders logout button and triggers logout on click", () => {
+    render(
+      <NavigationShell
+        viewMode="aggregate"
+        selectedMemberId={null}
+        members={sampleMembers}
+        onViewModeChange={vi.fn()}
+        onMemberSelect={vi.fn()}
+        onAddData={vi.fn()}
+      >
+        <div>Content</div>
+      </NavigationShell>
+    );
+
+    const logoutBtn = screen.getByRole("button", { name: /logout/i });
+    expect(logoutBtn).toBeInTheDocument();
+
+    fireEvent.click(logoutBtn);
+    expect(mockLogout).toHaveBeenCalledTimes(1);
   });
 });

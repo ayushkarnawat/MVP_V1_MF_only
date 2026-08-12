@@ -45,4 +45,30 @@ describe("WaitingForCasView", () => {
       expect(onCancelled).toHaveBeenCalled();
     });
   });
+
+  it("calls onUploadSubmit when file is uploaded in waiting view", async () => {
+    const onUploadSubmit = vi.fn();
+    render(
+      <WaitingForCasView
+        importId="imp-req-1"
+        memberId="m-1"
+        onCancelled={vi.fn()}
+        onUploadSubmit={onUploadSubmit}
+      />
+    );
+
+    const fileInput = screen.getByLabelText(/CAS PDF/i);
+    const mockFile = new File(["dummy pdf content"], "CAS_statement.pdf", {
+      type: "application/pdf",
+    });
+
+    fireEvent.change(fileInput, { target: { files: [mockFile] } });
+    const passwordInput = screen.getByLabelText(/PDF Password/i);
+    fireEvent.change(passwordInput, { target: { value: "SECRET123" } });
+
+    const submitBtn = screen.getByRole("button", { name: /Upload & Parse Statement/i });
+    fireEvent.click(submitBtn);
+
+    expect(onUploadSubmit).toHaveBeenCalledWith(mockFile, "SECRET123");
+  });
 });

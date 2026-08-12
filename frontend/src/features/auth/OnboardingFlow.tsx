@@ -12,6 +12,7 @@ import { Q4Household } from "./Q4Household";
 import { AddFamilyMembers } from "./AddFamilyMembers";
 import { SoloCasUpload } from "./SoloCasUpload";
 import { FamilyImportFlow } from "./FamilyImportFlow";
+import { ThemeToggle } from "../../components/ThemeToggle";
 import type { HouseholdMember, InvestorType, PrimaryGoal } from "./types";
 
 export interface OnboardingAnswers {
@@ -51,82 +52,110 @@ export function OnboardingFlow() {
   const skip = (next: OnboardingStep) => setHistory((h) => skipToNext(h, next));
   const showBack = history.cursor > 0;
 
-  if (step === "trust_primer") {
-    return <TrustPrimer onContinue={() => advance("q1_name")} />;
-  }
+  const renderStep = () => {
+    if (step === "trust_primer") {
+      return <TrustPrimer onContinue={() => advance("q1_name")} />;
+    }
 
-  if (step === "q1_name") {
-    return (
-      <Q1Name
-        value={answers.name}
-        onBack={showBack ? back : undefined}
-        onSkip={() => skip("q2_investing")}
-        onSubmit={(name) => {
-          setAnswers((a) => ({ ...a, name }));
-          advance("q2_investing");
-        }}
-      />
-    );
-  }
+    if (step === "q1_name") {
+      return (
+        <Q1Name
+          value={answers.name}
+          onBack={showBack ? back : undefined}
+          onSkip={() => skip("q2_investing")}
+          onSubmit={(name) => {
+            setAnswers((a) => ({ ...a, name }));
+            advance("q2_investing");
+          }}
+        />
+      );
+    }
 
-  if (step === "q2_investing") {
-    return (
-      <Q2Investing
-        onBack={back}
-        onSkip={() => skip("q3_purpose")}
-        onSelect={(investorType) => {
-          void updateMe({ investor_type: investorType });
-          setAnswers((a) => ({ ...a, investorType }));
-          advance("q3_purpose");
-        }}
-      />
-    );
-  }
+    if (step === "q2_investing") {
+      return (
+        <Q2Investing
+          onBack={back}
+          onSkip={() => skip("q3_purpose")}
+          onSelect={(investorType) => {
+            void updateMe({ investor_type: investorType });
+            setAnswers((a) => ({ ...a, investorType }));
+            advance("q3_purpose");
+          }}
+        />
+      );
+    }
 
-  if (step === "q3_purpose") {
-    return (
-      <Q3Purpose
-        onBack={back}
-        onSkip={() => skip("q4_household")}
-        onSelect={(primaryGoal) => {
-          void updateMe({ primary_goal: primaryGoal });
-          setAnswers((a) => ({ ...a, primaryGoal }));
-          advance("q4_household");
-        }}
-      />
-    );
-  }
+    if (step === "q3_purpose") {
+      return (
+        <Q3Purpose
+          onBack={back}
+          onSkip={() => skip("q4_household")}
+          onSelect={(primaryGoal) => {
+            void updateMe({ primary_goal: primaryGoal });
+            setAnswers((a) => ({ ...a, primaryGoal }));
+            advance("q4_household");
+          }}
+        />
+      );
+    }
 
-  if (step === "q4_household") {
-    return (
-      <Q4Household
-        onBack={back}
-        onChooseSolo={() => advance("cas_upload")}
-        onChooseFamily={() => advance("add_family")}
-      />
-    );
-  }
+    if (step === "q4_household") {
+      return (
+        <Q4Household
+          onBack={back}
+          onChooseSolo={() => advance("cas_upload")}
+          onChooseFamily={() => advance("add_family")}
+        />
+      );
+    }
 
-  if (step === "add_family") {
-    return (
-      <AddFamilyMembers
-        members={answers.familyMembers}
-        onMembersChange={(familyMembers) => setAnswers((a) => ({ ...a, familyMembers }))}
-        onBack={back}
-        onContinue={() => advance("family_cas_upload")}
-      />
-    );
-  }
+    if (step === "add_family") {
+      return (
+        <div className="min-h-dvh w-full bg-[var(--color-bg)] flex flex-col justify-center items-center p-3.5 sm:p-6 lg:p-8 box-border overflow-y-auto">
+          <div className="w-full max-w-lg mx-auto my-auto">
+            <AddFamilyMembers
+              members={answers.familyMembers}
+              onMembersChange={(familyMembers) => setAnswers((a) => ({ ...a, familyMembers }))}
+              onBack={back}
+              onContinue={() => advance("family_cas_upload")}
+            />
+          </div>
+        </div>
+      );
+    }
 
-  if (step === "cas_upload") {
-    return <SoloCasUpload name={answers.name} />;
-  }
+    if (step === "cas_upload") {
+      return (
+        <div className="min-h-dvh w-full bg-[var(--color-bg)] flex flex-col justify-center items-center p-3.5 sm:p-6 lg:p-8 box-border overflow-y-auto">
+          <div className="w-full max-w-xl mx-auto my-auto">
+            <SoloCasUpload name={answers.name} />
+          </div>
+        </div>
+      );
+    }
 
-  if (step === "family_cas_upload" || step === "upload_my_cas" || step === "parse_queue") {
-    return <FamilyImportFlow selfName={answers.name} />;
-  }
+    if (step === "family_cas_upload" || step === "upload_my_cas" || step === "parse_queue") {
+      return (
+        <div className="min-h-dvh w-full bg-[var(--color-bg)] flex flex-col justify-center items-center p-3.5 sm:p-6 lg:p-8 box-border overflow-y-auto">
+          <div className="w-full max-w-xl mx-auto my-auto">
+            <FamilyImportFlow selfName={answers.name} />
+          </div>
+        </div>
+      );
+    }
 
-  return null;
+    return null;
+  };
+
+  return (
+    <div className="relative w-full min-h-dvh">
+      {/* Top Right Theme Toggle visible across all onboarding screens */}
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-30">
+        <ThemeToggle />
+      </div>
+      {renderStep()}
+    </div>
+  );
 }
 
 export { isSkipped };

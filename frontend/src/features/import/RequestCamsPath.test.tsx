@@ -29,9 +29,10 @@ describe("RequestCamsPath", () => {
       />
     );
 
-    expect(screen.getByText(/request statement on cams/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /request statement on cams/i })).toBeInTheDocument();
     expect(screen.getByText(/detailed statement/i)).toBeInTheDocument();
     expect(screen.getByText(/10-year duration/i)).toBeInTheDocument();
+    expect(screen.getByText(/zero folios/i)).toBeInTheDocument();
 
     const requestBtn = screen.getByRole("button", { name: /request statement on cams/i });
     fireEvent.click(requestBtn);

@@ -1,4 +1,5 @@
 import { Button } from "../../components/Button";
+import { AlertTriangle } from "lucide-react";
 import type { CoverageGapItem } from "./types";
 
 interface CoverageGapBannerProps {
@@ -28,7 +29,7 @@ export function CoverageGapBanner({ gaps, onResolveGap }: CoverageGapBannerProps
       role="alert"
     >
       <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
-        <span style={{ fontSize: "24px" }}>⚠️</span>
+        <AlertTriangle className="h-6 w-6 text-[var(--color-negative)] flex-shrink-0" />
         <div>
           <div className="type-body-medium" style={{ color: "var(--color-negative)", fontWeight: 600 }}>
             Coverage Gap Detected ({count} {count === 1 ? "folio" : "folios"} missing earlier purchases)

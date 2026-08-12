@@ -1,4 +1,5 @@
 import type { ImportConfirmResponse } from "./types";
+import { Check } from "lucide-react";
 import styles from "./ImportConfirmed.module.css";
 
 interface ImportConfirmedProps {
@@ -18,7 +19,9 @@ export function ImportConfirmed({
 
   return (
     <div className={styles.container}>
-      <div className={styles.successBadge} aria-hidden="true">✓</div>
+      <div className={styles.successBadge} aria-hidden="true">
+        <Check className="h-7 w-7 stroke-[2.5]" />
+      </div>
       <h1 className={styles.title}>Import complete</h1>
       <p className={`type-body ${styles.resultText}`}>{`${addedText}${skippedText}.`}</p>
       <button className={styles.actionBtn} type="button" onClick={onImportAnother}>

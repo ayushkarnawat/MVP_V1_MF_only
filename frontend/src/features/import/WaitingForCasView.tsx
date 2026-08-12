@@ -9,13 +9,15 @@ interface WaitingForCasViewProps {
   importId: string;
   memberId: string;
   onCancelled: () => void;
-  onUploadReceived: (res: CASImportStatusResponse) => void;
+  onUploadSubmit?: (file: File, password: string) => void;
+  onUploadReceived?: (res: CASImportStatusResponse) => void;
 }
 
 export function WaitingForCasView({
   importId,
   memberId,
   onCancelled,
+  onUploadSubmit,
   onUploadReceived,
 }: WaitingForCasViewProps) {
   const [isCancelling, setIsCancelling] = useState(false);
@@ -36,9 +38,13 @@ export function WaitingForCasView({
 
   const handleUpload = async (file: File, password: string) => {
     setError(null);
+    if (onUploadSubmit) {
+      onUploadSubmit(file, password);
+      return;
+    }
     try {
       const res = await uploadCasImport(file, password, memberId, "request");
-      onUploadReceived(res);
+      onUploadReceived?.(res);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Upload failed. Please try again.");
     }

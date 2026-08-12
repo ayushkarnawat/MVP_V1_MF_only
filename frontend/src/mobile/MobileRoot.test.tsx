@@ -10,15 +10,25 @@ vi.mock("../features/auth/AuthContext", () => ({
 }));
 
 vi.mock("./features/dashboard/MobileDashboardView", () => ({
-  MobileDashboardView: () => (
+  MobileDashboardView: ({ onDetailViewToggle }: { onDetailViewToggle?: (isOpen: boolean) => void }) => (
     <div data-testid="mobile-dashboard-view">
       <span>Dashboard View Content</span>
+      <button onClick={() => onDetailViewToggle?.(true)}>Open Details</button>
+      <button onClick={() => onDetailViewToggle?.(false)}>Close Details</button>
+    </div>
+  ),
+}));
+
+vi.mock("./features/import/MobileImportView", () => ({
+  MobileImportView: () => (
+    <div data-testid="mobile-import-view">
+      <span>Import View Content</span>
     </div>
   ),
 }));
 
 describe("MobileAppShell & MobileRoot", () => {
-  it("renders mobile header, brand logo, theme toggle, and bottom navigation tabs (Dashboard, Import, Analytics)", () => {
+  it("renders mobile header, brand logo, theme toggle, and bottom navigation tabs (Dashboard, Analytics, Import)", () => {
     vi.mocked(authContext.useAuth).mockReturnValue({
       token: "mock-token",
       me: {
@@ -62,7 +72,7 @@ describe("MobileAppShell & MobileRoot", () => {
 
     const importTab = screen.getByRole("button", { name: "Import" });
     fireEvent.click(importTab);
-    expect(screen.getByText("Import CAS Statements")).toBeInTheDocument();
+    expect(screen.getByTestId("mobile-import-view")).toBeInTheDocument();
 
     const dashboardTab = screen.getByRole("button", { name: "Dashboard" });
     fireEvent.click(dashboardTab);
@@ -115,5 +125,73 @@ describe("MobileAppShell & MobileRoot", () => {
     const actionBtn = screen.getByRole("button", { name: /upload cas/i });
     fireEvent.click(actionBtn);
     expect(handleEmptyAction).toHaveBeenCalledTimes(1);
+  });
+
+  it("hides shell header when detail view is open to prevent duplicate headers and theme toggles", () => {
+    vi.mocked(authContext.useAuth).mockReturnValue({
+      token: "mock-token",
+      me: {
+        user_id: "u-1",
+        phone_number: "+91 9209298772",
+        email: null,
+        onboarding_step: null,
+        onboarding_completed: true,
+        investor_type: null,
+        primary_goal: null,
+      },
+      loading: false,
+      login: vi.fn(),
+      logout: vi.fn(),
+      updateMe: vi.fn(),
+    });
+
+    render(<MobileRoot />);
+
+    // Initially shell header and theme toggle are present
+    expect(screen.getByText("Unifolio")).toBeInTheDocument();
+    expect(screen.getAllByLabelText("Toggle theme")).toHaveLength(1);
+
+    // Open detail view
+    const openBtn = screen.getByRole("button", { name: "Open Details" });
+    fireEvent.click(openBtn);
+
+    // Shell header is hidden
+    expect(screen.queryByText("Unifolio")).not.toBeInTheDocument();
+
+    // Close detail view
+    const closeBtn = screen.getByRole("button", { name: "Close Details" });
+    fireEvent.click(closeBtn);
+
+    // Shell header restored
+    expect(screen.getByText("Unifolio")).toBeInTheDocument();
+    expect(screen.getAllByLabelText("Toggle theme")).toHaveLength(1);
+  });
+
+  it("renders mobile logout button and triggers logout on click", () => {
+    const mockLogout = vi.fn();
+    vi.mocked(authContext.useAuth).mockReturnValue({
+      token: "mock-token",
+      me: {
+        user_id: "u-1",
+        phone_number: "+91 9209298772",
+        email: null,
+        onboarding_step: null,
+        onboarding_completed: true,
+        investor_type: null,
+        primary_goal: null,
+      },
+      loading: false,
+      login: vi.fn(),
+      logout: mockLogout,
+      updateMe: vi.fn(),
+    });
+
+    render(<MobileRoot />);
+
+    const logoutBtn = screen.getByRole("button", { name: "Logout" });
+    expect(logoutBtn).toBeInTheDocument();
+
+    fireEvent.click(logoutBtn);
+    expect(mockLogout).toHaveBeenCalledTimes(1);
   });
 });

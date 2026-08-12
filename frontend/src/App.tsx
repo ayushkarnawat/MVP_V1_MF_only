@@ -3,7 +3,6 @@ import { AuthProvider, useAuth } from "./features/auth/AuthContext";
 import { AuthEntryFlow } from "./features/auth/AuthEntryFlow";
 import { OnboardingFlow } from "./features/auth/OnboardingFlow";
 import { DashboardPlaceholder } from "./features/dashboard/DashboardPlaceholder";
-import { ThemeToggle } from "./components/ThemeToggle";
 import { MobileRoot } from "./mobile/MobileRoot";
 
 function useIsMobileViewport(breakpoint = 768) {
@@ -61,29 +60,14 @@ function MainApp() {
   }
 
   if (!me) {
-    return (
-      <>
-        {!isMobile && <ThemeToggle />}
-        <AuthEntryFlow />
-      </>
-    );
+    return <AuthEntryFlow />;
   }
 
   if (!me.onboarding_completed) {
-    return (
-      <>
-        {!isMobile && <ThemeToggle />}
-        <OnboardingFlow />
-      </>
-    );
+    return <OnboardingFlow />;
   }
 
-  return (
-    <>
-      {!isMobile && <ThemeToggle />}
-      {isMobile ? <MobileRoot /> : <DashboardPlaceholder />}
-    </>
-  );
+  return isMobile ? <MobileRoot /> : <DashboardPlaceholder />;
 }
 
 function App() {

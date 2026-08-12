@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { Button } from "../../components/Button";
-import styles from "./onboarding.module.css";
+import { Button } from "@/components/ui/button";
+import { User, ArrowLeft, ArrowRight } from "lucide-react";
 
 interface Q1NameProps {
   value: string;
@@ -19,39 +19,83 @@ export function Q1Name({ value, onBack, onSkip, onSubmit }: Q1NameProps) {
   };
 
   return (
-    <form className={styles.container} onSubmit={handleSubmit}>
-      <h1 className={styles.title}>What should we call you?</h1>
-      <p className={styles.subtitle}>
-        We'll use your preferred name e.g. for personalizing your dashboard and portfolio reports.
-      </p>
-
-      <div className={styles.field}>
-        <label htmlFor="name-input">Your Full Name or First Name</label>
-        <input
-          id="name-input"
-          value={name}
-          placeholder="e.g. Ayush Karnawat"
-          onChange={(event) => setName(event.target.value)}
-          autoFocus
-        />
-      </div>
-
-      <div className={styles.actionsBetween}>
-        <div className={styles.actionsLeft}>
-          {onBack && (
-            <Button variant="ghost" size="sm" type="button" onClick={onBack}>
-              Back
-            </Button>
-          )}
-          <Button variant="ghost" size="sm" type="button" onClick={onSkip}>
-            Skip
-          </Button>
+    <div className="min-h-dvh w-full bg-[var(--color-bg)] flex flex-col justify-center items-center p-3.5 sm:p-6 lg:p-8 box-border overflow-y-auto">
+      <form
+        onSubmit={handleSubmit}
+        className="w-full max-w-sm sm:max-w-md mx-auto my-auto p-5 sm:p-8 rounded-3xl bg-[var(--color-surface)] border border-[var(--color-border)]/80 shadow-lg space-y-6 text-left box-border animate-in fade-in zoom-in-95 duration-200"
+      >
+        {/* 1. Header with Eyebrow */}
+        <div className="space-y-1.5">
+          <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[var(--color-accent)] block font-mono">
+            PERSONALIZE YOUR EXPERIENCE
+          </span>
+          <h1 className="font-display font-bold text-xl sm:text-2xl text-[var(--color-ink)] tracking-tight leading-snug">
+            What should we call you?
+          </h1>
+          <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+            A few quick questions will help us tailor your wealth tracking experience to you.
+          </p>
         </div>
 
-        <Button variant="primary" size="md" type="submit" disabled={!name.trim()}>
-          Next
-        </Button>
-      </div>
-    </form>
+        {/* 2. Name Input Group */}
+        <div className="space-y-2">
+          <label
+            htmlFor="name-input"
+            className="text-xs font-semibold text-[var(--color-ink)] block"
+          >
+            Your Full Name or First Name
+          </label>
+          <div className="flex items-center rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] focus-within:border-[var(--color-accent)] focus-within:ring-2 focus-within:ring-[var(--color-accent)]/20 transition-all overflow-hidden h-11 sm:h-12 min-h-[44px] px-3.5 gap-2.5">
+            <User className="h-4 w-4 text-[var(--color-text-secondary)] flex-shrink-0" />
+            <input
+              id="name-input"
+              type="text"
+              value={name}
+              placeholder="e.g. Ayush Karnawat"
+              autoComplete="name"
+              autoCorrect="off"
+              autoCapitalize="words"
+              spellCheck="false"
+              onChange={(event) => setName(event.target.value)}
+              className="flex-1 bg-transparent text-xs sm:text-sm text-[var(--color-ink)] placeholder:text-[var(--color-text-secondary)]/50 focus:outline-none border-none outline-none ring-0 shadow-none appearance-none selection:bg-[var(--color-accent)]/20 selection:text-[var(--color-ink)] caret-[var(--color-accent)]"
+              autoFocus
+            />
+          </div>
+        </div>
+
+        {/* 3. Navigation Controls */}
+        <div className="flex items-center justify-between gap-3 pt-2">
+          <div className="flex items-center gap-2">
+            {onBack && (
+              <button
+                type="button"
+                onClick={onBack}
+                className="inline-flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] hover:bg-[var(--color-bg)] transition-colors cursor-pointer"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                <span>Back</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onSkip}
+              className="inline-flex items-center px-3 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] hover:bg-[var(--color-bg)] transition-colors cursor-pointer"
+            >
+              Skip
+            </button>
+          </div>
+
+          <Button
+            variant="primary"
+            type="submit"
+            disabled={!name.trim()}
+            className="h-11 sm:h-12 px-6 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs sm:text-sm shadow-xs gap-1.5 cursor-pointer active:scale-[0.99] transition-all min-h-[44px] sm:min-h-[48px]"
+          >
+            <span>Next</span>
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </form>
+    </div>
   );
 }

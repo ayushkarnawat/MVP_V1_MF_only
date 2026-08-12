@@ -3,6 +3,7 @@
   flex-direction: column;
   gap: var(--space-6);
   max-width: 520px;
+  width: 100%;
   margin: var(--space-8) auto;
   padding: var(--space-8);
   background: var(--color-surface);
@@ -10,6 +11,16 @@
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
   animation: fadeIn var(--motion-page);
+  box-sizing: border-box;
+}
+
+@media (max-width: 640px) {
+  .container {
+    margin: 0 auto;
+    padding: var(--space-6) var(--space-4);
+    border-radius: var(--radius-sm);
+    gap: var(--space-4);
+  }
 }
 
 .iconHeader {

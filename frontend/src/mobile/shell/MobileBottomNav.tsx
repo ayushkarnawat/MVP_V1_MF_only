@@ -23,7 +23,7 @@ export function MobileBottomNav({
       aria-label="Mobile Navigation"
     >
       <div className="max-w-md mx-auto flex items-center justify-around">
-        {/* Dashboard Tab */}
+        {/* 1. Dashboard Tab (Left) */}
         <button
           onClick={() => onTabChange("dashboard")}
           className={cn(
@@ -58,7 +58,26 @@ export function MobileBottomNav({
           </span>
         </button>
 
-        {/* Import Tab */}
+        {/* 2. Analytics Tab (Center - Disabled / Soon) */}
+        <button
+          disabled
+          aria-disabled="true"
+          className="group flex flex-col items-center justify-center min-w-[64px] min-h-[48px] py-1 px-3 rounded-2xl opacity-40 cursor-not-allowed text-[var(--color-text-secondary)]"
+          aria-label="Analytics Soon"
+          type="button"
+        >
+          <div className="relative flex items-center justify-center">
+            <BarChart2 className="h-5 w-5 stroke-[1.7]" />
+          </div>
+          <span className="inline-flex items-center gap-1 text-[10px] mt-1 tracking-tight font-medium text-[var(--color-text-secondary)]">
+            Analytics
+            <span className="text-[8px] font-bold uppercase tracking-wider bg-[var(--color-border)] text-[var(--color-text-secondary)] px-1 py-0.2 rounded">
+              Soon
+            </span>
+          </span>
+        </button>
+
+        {/* 3. Import Tab (Right) */}
         <button
           onClick={() => onTabChange("import")}
           className={cn(
@@ -90,25 +109,6 @@ export function MobileBottomNav({
             )}
           >
             Import
-          </span>
-        </button>
-
-        {/* Analytics Tab (Disabled / Soon) */}
-        <button
-          disabled
-          aria-disabled="true"
-          className="group flex flex-col items-center justify-center min-w-[64px] min-h-[48px] py-1 px-3 rounded-2xl opacity-40 cursor-not-allowed text-[var(--color-text-secondary)]"
-          aria-label="Analytics Soon"
-          type="button"
-        >
-          <div className="relative flex items-center justify-center">
-            <BarChart2 className="h-5 w-5 stroke-[1.7]" />
-          </div>
-          <span className="inline-flex items-center gap-1 text-[10px] mt-1 tracking-tight font-medium text-[var(--color-text-secondary)]">
-            Analytics
-            <span className="text-[8px] font-bold uppercase tracking-wider bg-[var(--color-border)] text-[var(--color-text-secondary)] px-1 py-0.2 rounded">
-              Soon
-            </span>
           </span>
         </button>
       </div>

@@ -1,15 +1,25 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { Button } from "../../components/Button";
-import styles from "./onboarding.module.css";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, AlertCircle, ShieldCheck, Loader2 } from "lucide-react";
 
 interface PhoneEntryProps {
+  mode?: "signup" | "login";
   onSubmit: (phoneNumber: string) => void;
+  onBack?: () => void;
+  onToggleMode?: (mode: "signup" | "login") => void;
   submitting: boolean;
   error: string | null;
 }
 
-export function PhoneEntry({ onSubmit, submitting, error }: PhoneEntryProps) {
+export function PhoneEntry({
+  mode = "signup",
+  onSubmit,
+  onBack,
+  onToggleMode,
+  submitting,
+  error,
+}: PhoneEntryProps) {
   const [phoneNumber, setPhoneNumber] = useState("");
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -17,35 +27,126 @@ export function PhoneEntry({ onSubmit, submitting, error }: PhoneEntryProps) {
     onSubmit(phoneNumber);
   };
 
-  return (
-    <form className={styles.container} onSubmit={handleSubmit}>
-      <h1 className={styles.title}>Welcome to Unifolio</h1>
-      <p className={styles.subtitle}>
-        Enter your mobile number to sign up or log in. No spam, ever.
-      </p>
+  const isSignUp = mode === "signup";
 
-      <div className={styles.field}>
-        <label htmlFor="phone-input">Mobile Number</label>
-        <div className={styles.phoneInputGroup}>
-          <span className={styles.countryCode}>🇮🇳 +91</span>
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className="w-full max-w-sm sm:max-w-md mx-auto p-5 sm:p-8 rounded-3xl bg-[var(--color-surface)] border border-[var(--color-border)]/80 shadow-lg space-y-6 text-center box-border animate-in fade-in zoom-in-95 duration-200"
+    >
+      {/* 1. Refined Brand Header */}
+      <div className="space-y-2.5">
+        <div className="mx-auto h-10 w-10 rounded-xl bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] border border-[color-mix(in_srgb,var(--color-accent)_24%,transparent)] text-[var(--color-accent)] flex items-center justify-center">
+          <svg
+            viewBox="0 0 100 100"
+            className="w-5 h-5 text-[var(--color-accent)] fill-none stroke-current stroke-[14] stroke-linecap-round"
+            aria-label="Unifolio Logo Mark"
+          >
+            <path d="M 50 10 A 40 40 0 0 1 90 50" />
+          </svg>
+        </div>
+        <div className="space-y-1">
+          <h1 className="font-display font-bold text-xl sm:text-2xl text-[var(--color-ink)] tracking-tight">
+            {isSignUp ? "Create your account" : "Welcome back"}
+          </h1>
+          <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed max-w-xs mx-auto">
+            {isSignUp
+              ? "Enter your mobile number to get started with Unifolio."
+              : "Enter your mobile number to log in to your portfolio."}
+          </p>
+        </div>
+      </div>
+
+      {/* 2. Premium Phone Input Group */}
+      <div className="space-y-2 text-left">
+        <label
+          htmlFor="phone-input"
+          className="text-xs font-semibold text-[var(--color-ink)] block"
+        >
+          Mobile Number
+        </label>
+        <div className="flex items-center rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] focus-within:border-[var(--color-accent)] focus-within:ring-2 focus-within:ring-[var(--color-accent)]/20 transition-all overflow-hidden h-11 sm:h-12 min-h-[44px]">
+          <div className="px-3 sm:px-3.5 flex items-center gap-1.5 border-r border-[var(--color-border)] text-xs font-medium text-[var(--color-ink)] select-none bg-[var(--color-surface)]/50 h-full">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">IN</span>
+            <span className="font-semibold">+91</span>
+          </div>
           <input
             id="phone-input"
             type="tel"
             placeholder="98765 43210"
             value={phoneNumber}
             onChange={(event) => setPhoneNumber(event.target.value)}
-            className="type-data"
+            className="flex-1 bg-transparent px-3 sm:px-3.5 text-xs sm:text-sm text-[var(--color-ink)] placeholder:text-[var(--color-text-secondary)]/50 focus:outline-none font-mono"
             autoFocus
           />
         </div>
       </div>
 
-      {error && <p className={styles.error}>{error}</p>}
+      {/* 3. Error Alert */}
+      {error && (
+        <div
+          role="alert"
+          className="flex items-center gap-2 p-3 rounded-xl bg-[color-mix(in_srgb,var(--color-negative)_10%,transparent)] border border-[color-mix(in_srgb,var(--color-negative)_25%,transparent)] text-xs text-[var(--color-negative)] font-medium text-left"
+        >
+          <AlertCircle className="h-4 w-4 flex-shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
 
-      <div className={styles.actionsRight}>
-        <Button variant="primary" size="lg" type="submit" disabled={submitting || !phoneNumber.trim()}>
-          {submitting ? "Sending OTP..." : "Send Verification Code →"}
+      {/* 4. Actions & Navigation */}
+      <div className="space-y-3 pt-1">
+        <Button
+          type="submit"
+          disabled={submitting || !phoneNumber.trim()}
+          className="w-full h-11 sm:h-12 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs sm:text-sm shadow-xs gap-2 cursor-pointer active:scale-[0.99] transition-all min-h-[44px] sm:min-h-[48px]"
+        >
+          {submitting ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Sending OTP...</span>
+            </>
+          ) : (
+            <>
+              <span>Send Verification Code</span>
+              <span>→</span>
+            </>
+          )}
         </Button>
+
+        <div className="flex items-center justify-between text-xs pt-0.5">
+          {onBack ? (
+            <button
+              type="button"
+              onClick={onBack}
+              className="inline-flex items-center gap-1 text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] font-medium transition-colors cursor-pointer"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              <span>Back</span>
+            </button>
+          ) : (
+            <div />
+          )}
+
+          {onToggleMode && (
+            <button
+              type="button"
+              onClick={() => onToggleMode(isSignUp ? "login" : "signup")}
+              className="text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] font-medium transition-colors cursor-pointer ml-auto"
+            >
+              {isSignUp ? (
+                <>Already have an account? <strong className="text-[var(--color-accent)] font-semibold">Log In</strong></>
+              ) : (
+                <>New to Unifolio? <strong className="text-[var(--color-accent)] font-semibold">Sign Up</strong></>
+              )}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* 5. Trust Footer */}
+      <div className="flex items-center justify-center gap-1.5 text-[11px] text-[var(--color-text-secondary)] pt-1 select-none">
+        <ShieldCheck className="h-3.5 w-3.5 text-[var(--color-accent)]" />
+        <span>256-bit encrypted · Read-only access · No spam</span>
       </div>
     </form>
   );

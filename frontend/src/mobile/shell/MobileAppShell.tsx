@@ -12,6 +12,7 @@ export interface MobileAppShellProps {
   showBack?: boolean;
   onBack?: () => void;
   rightAction?: React.ReactNode;
+  hideHeader?: boolean;
   isLoading?: boolean;
   error?: string | null;
   onRetry?: () => void;
@@ -30,6 +31,7 @@ export function MobileAppShell({
   showBack,
   onBack,
   rightAction,
+  hideHeader = false,
   isLoading = false,
   error = null,
   onRetry,
@@ -43,15 +45,17 @@ export function MobileAppShell({
   return (
     <MobileDeviceFrame>
       {/* Mobile Top Header */}
-      <MobileHeader
-        title={title}
-        showBack={showBack}
-        onBack={onBack}
-        rightAction={rightAction}
-      />
+      {!hideHeader && (
+        <MobileHeader
+          title={title}
+          showBack={showBack}
+          onBack={onBack}
+          rightAction={rightAction}
+        />
+      )}
 
       {/* Mobile Main Content Scroll Container */}
-      <main className="flex-1 min-h-0 w-full overflow-y-auto px-4 py-4 pb-28 overscroll-contain animate-in fade-in duration-200">
+      <main className="flex-1 min-h-0 w-full overflow-y-auto px-3.5 sm:px-4 py-3 sm:py-4 pb-20 sm:pb-24 overscroll-contain animate-in fade-in duration-200">
         {isLoading ? (
           <div className="flex flex-col space-y-4 py-6 animate-pulse" aria-label="Loading content">
             {/* Header skeleton */}

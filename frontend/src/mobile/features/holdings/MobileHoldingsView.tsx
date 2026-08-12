@@ -15,10 +15,12 @@ import { Search, ChevronDown, AlertTriangle, UploadCloud } from "lucide-react";
 
 export interface MobileHoldingsViewProps {
   onNavigateImport?: () => void;
+  onDetailViewToggle?: (isOpen: boolean) => void;
 }
 
 export function MobileHoldingsView({
   onNavigateImport,
+  onDetailViewToggle,
 }: MobileHoldingsViewProps) {
   const [viewMode, setViewMode] = useState<"aggregate" | "member">("aggregate");
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
@@ -100,12 +102,17 @@ export function MobileHoldingsView({
     );
   }, [holdings, searchTerm]);
 
+  const handleSelectHolding = (item: HoldingRow | null) => {
+    setSelectedHolding(item);
+    onDetailViewToggle?.(item !== null);
+  };
+
   /* Full-Screen Dedicated Fund Details View */
   if (selectedHolding) {
     return (
       <MobileFundDetailView
         holding={selectedHolding}
-        onBack={() => setSelectedHolding(null)}
+        onBack={() => handleSelectHolding(null)}
       />
     );
   }
@@ -150,31 +157,52 @@ export function MobileHoldingsView({
     return (
       <div className="flex flex-col space-y-4 animate-in fade-in duration-200">
         {hasFamily && (
-          <div className="inline-flex items-center p-1 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-2xs w-full">
-            <button
-              className={cn(
-                "flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer text-center",
-                viewMode === "aggregate"
-                  ? "bg-[var(--color-bg)] text-[var(--color-ink)] font-semibold shadow-xs"
-                  : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)]"
-              )}
-              onClick={() => setViewMode("aggregate")}
-              type="button"
-            >
-              Family Combined
-            </button>
-            <button
-              className={cn(
-                "flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer text-center",
-                viewMode === "member"
-                  ? "bg-[var(--color-bg)] text-[var(--color-ink)] font-semibold shadow-xs"
-                  : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)]"
-              )}
-              onClick={() => setViewMode("member")}
-              type="button"
-            >
-              Per Member
-            </button>
+          <div className="flex flex-col space-y-2">
+            <div className="inline-flex items-center p-1 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-2xs w-full">
+              <button
+                className={cn(
+                  "flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer text-center",
+                  viewMode === "aggregate"
+                    ? "bg-[var(--color-bg)] text-[var(--color-ink)] font-semibold shadow-xs"
+                    : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)]"
+                )}
+                onClick={() => setViewMode("aggregate")}
+                type="button"
+              >
+                Family Combined
+              </button>
+              <button
+                className={cn(
+                  "flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer text-center",
+                  viewMode === "member"
+                    ? "bg-[var(--color-bg)] text-[var(--color-ink)] font-semibold shadow-xs"
+                    : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)]"
+                )}
+                onClick={() => setViewMode("member")}
+                type="button"
+              >
+                Per Member
+              </button>
+            </div>
+
+            {/* Member Dropdown Picker (if in per-member mode) */}
+            {viewMode === "member" && members.length > 0 && (
+              <div className="relative">
+                <select
+                  value={selectedMemberId || ""}
+                  onChange={(e) => setSelectedMemberId(e.target.value)}
+                  className="w-full appearance-none pl-3 pr-8 py-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-xs font-semibold text-[var(--color-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] cursor-pointer shadow-2xs"
+                  aria-label="Select household member"
+                >
+                  {members.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name} ({m.relationship})
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-text-secondary)] pointer-events-none opacity-70" />
+              </div>
+            )}
           </div>
         )}
 
@@ -285,7 +313,7 @@ export function MobileHoldingsView({
             <MobileHoldingCardSummary
               key={h.scheme_id + (h.household_member_id || "")}
               holding={h}
-              onSelect={(item) => setSelectedHolding(item)}
+              onSelect={(item) => handleSelectHolding(item)}
             />
           ))}
         </div>

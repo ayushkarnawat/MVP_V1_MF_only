@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -7,7 +6,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { ChevronDown, Moon, Sun } from "lucide-react";
+import { ChevronDown, LogOut } from "lucide-react";
+import { ThemeToggle } from "../../components/ThemeToggle";
+import { useAuth } from "../auth/AuthContext";
 
 export interface MemberOption {
   id: string;
@@ -33,24 +34,7 @@ export function NavigationShell({
   onAddData,
   children,
 }: NavigationShellProps) {
-  const [theme, setTheme] = useState<"light" | "dark">(() => {
-    return (
-      (localStorage.getItem("unifolio_theme") as "light" | "dark") ||
-      (window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light")
-    );
-  });
-
-  useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
-    localStorage.setItem("unifolio_theme", theme);
-  }, [theme]);
-
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === "light" ? "dark" : "light"));
-  };
-
+  const { logout } = useAuth();
   const hasFamily = members.length > 1;
 
   return (
@@ -158,7 +142,7 @@ export function NavigationShell({
                 </div>
               )}
 
-              {/* Action Buttons: Add Data & Theme */}
+              {/* Action Buttons: Add Data, Theme & Logout */}
               <div className="flex items-center gap-2 ml-auto lg:ml-0">
                 <Button
                   variant="secondary"
@@ -169,18 +153,16 @@ export function NavigationShell({
                   + Add Data
                 </Button>
 
+                <ThemeToggle className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg" />
+
                 <button
-                  className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-ink)] flex items-center justify-center hover:bg-[var(--color-bg)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] cursor-pointer shadow-2xs"
-                  onClick={toggleTheme}
-                  title={`Switch to ${theme === "light" ? "Dark" : "Light"} mode`}
+                  onClick={logout}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-negative)] hover:bg-[var(--color-bg)] border border-transparent hover:border-[var(--color-border)] transition-colors cursor-pointer"
+                  aria-label="Logout"
                   type="button"
-                  aria-label="Toggle theme"
                 >
-                  {theme === "light" ? (
-                    <Moon className="h-4 w-4 text-[var(--color-text-secondary)]" />
-                  ) : (
-                    <Sun className="h-4 w-4 text-[var(--color-accent)]" />
-                  )}
+                  <LogOut className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Logout</span>
                 </button>
               </div>
             </div>

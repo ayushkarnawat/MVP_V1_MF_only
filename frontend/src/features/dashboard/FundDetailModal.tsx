@@ -1,6 +1,7 @@
 import { Modal } from "../../components/Modal";
 import { Badge } from "../../components/Badge";
 import { Button } from "../../components/Button";
+import { BarChart2 } from "lucide-react";
 import type { HoldingRow } from "./types";
 import styles from "./FundDetailModal.module.css";
 
@@ -93,8 +94,10 @@ export function FundDetailModal({
             onClick={() =>
               onCompareDistributors(holding.scheme_id, holding.scheme_name)
             }
+            className="gap-1.5 inline-flex items-center"
           >
-            📊 Compare Returns by Distributor
+            <BarChart2 className="h-4 w-4 inline" />
+            <span>Compare Returns by Distributor</span>
           </Button>
         </div>
       </div>

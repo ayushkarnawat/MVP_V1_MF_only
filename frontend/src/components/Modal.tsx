@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import type { ReactNode } from "react";
+import { X } from "lucide-react";
 import styles from "./Modal.module.css";
 
 export interface ModalProps {
@@ -43,7 +44,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
             aria-label="Close modal"
             type="button"
           >
-            ✕
+            <X className="h-4 w-4" />
           </button>
         </div>
         <div className={styles.body}>{children}</div>

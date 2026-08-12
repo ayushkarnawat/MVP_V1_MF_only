@@ -19,7 +19,7 @@ import {
 } from "./api";
 import type { HoldingRow, AllocationSummary, FamilyMemberStatus } from "./types";
 import { cn } from "@/lib/utils";
-import { ArrowUpRight, ArrowDownRight, Users } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, Users, AlertTriangle, BarChart2 } from "lucide-react";
 
 export interface DashboardViewProps {
   viewMode: "aggregate" | "member";
@@ -150,7 +150,7 @@ export function DashboardView({
           description={error}
           actionLabel="Try Again"
           onAction={() => window.location.reload()}
-          icon="⚠️"
+          icon={<AlertTriangle className="h-7 w-7 text-[var(--color-negative)]" />}
         />
       </div>
     );
@@ -167,7 +167,7 @@ export function DashboardView({
         description="Track all your mutual fund investments, Direct vs Regular plan comparisons, and performance analytics in one clean view."
         actionLabel="+ Upload CAS Statement"
         onAction={() => onAddDataForMember?.(memberId || undefined)}
-        icon="📊"
+        icon={<BarChart2 className="h-7 w-7 text-[var(--color-accent)]" />}
       />
     );
   }

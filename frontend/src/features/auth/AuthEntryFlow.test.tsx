@@ -82,4 +82,14 @@ describe("AuthEntryFlow", () => {
 
     await waitFor(() => expect(screen.getByText(/invalid or expired otp/i)).toBeInTheDocument());
   });
+
+  it("renders light/dark theme toggle on auth entry screen", async () => {
+    renderFlow();
+    await waitFor(() => expect(screen.getByRole("button", { name: /sign up/i })).toBeInTheDocument());
+
+    const themeToggle = screen.getByRole("button", { name: /toggle.*theme/i });
+    expect(themeToggle).toBeInTheDocument();
+    fireEvent.click(themeToggle);
+    expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+  });
 });

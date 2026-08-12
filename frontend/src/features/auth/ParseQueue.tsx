@@ -1,4 +1,5 @@
 import { Button } from "../../components/Button";
+import { FileText } from "lucide-react";
 import styles from "./onboarding.module.css";
 import type { FamilyUpload } from "./FamilyCasUpload";
 
@@ -18,7 +19,9 @@ export function ParseQueue({ queue, onParseFiles }: ParseQueueProps) {
       <div className={styles.trustCardGroup}>
         {queue.map((item) => (
           <div key={item.memberId} className={styles.trustPoint}>
-            <span className={styles.choiceIcon}>📄</span>
+            <span className={styles.choiceIcon}>
+              <FileText className="h-5 w-5 text-[var(--color-accent)] inline" />
+            </span>
             <div className={styles.choiceText}>
               <strong className={styles.choiceTitle}>{item.file.name}</strong>
               <span className={styles.choiceDesc}>Owner: {item.memberName}</span>

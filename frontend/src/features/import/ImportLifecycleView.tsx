@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
+import { Lock, AlertTriangle } from "lucide-react";
 import { Button } from "../../components/Button";
 import { ImportConfirmed } from "./ImportConfirmed";
 import { ImportError } from "./ImportError";
@@ -59,7 +60,11 @@ export function ImportLifecycleView({
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", maxWidth: "480px", margin: "0 auto" }}>
         <div style={{ textAlign: "center" }}>
-          <span style={{ fontSize: "36px" }}>🔒</span>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: "var(--space-2)" }}>
+            <div style={{ width: "48px", height: "48px", borderRadius: "14px", background: "color-mix(in srgb, var(--color-accent) 12%, transparent)", color: "var(--color-accent)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Lock style={{ width: "24px", height: "24px" }} />
+            </div>
+          </div>
           <h2 className="type-h2" style={{ marginTop: "var(--space-2)" }}>Password Required</h2>
           <p className="type-body" style={{ color: "var(--color-text-secondary)" }}>
             {statusObj.error_message || "Incorrect PDF password. CAMS/KFintech CAS passwords are usually your PAN in uppercase."}
@@ -114,7 +119,11 @@ export function ImportLifecycleView({
     const isSummary = statusObj.error_code === "summary_cas";
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", textAlign: "center", maxWidth: "480px", margin: "0 auto" }}>
-        <span style={{ fontSize: "36px" }}>⚠️</span>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: "var(--space-2)" }}>
+          <div style={{ width: "48px", height: "48px", borderRadius: "14px", background: "color-mix(in srgb, var(--color-negative) 12%, transparent)", color: "var(--color-negative)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <AlertTriangle style={{ width: "24px", height: "24px" }} />
+          </div>
+        </div>
         <h2 className="type-h2">{isSummary ? "Summary Statement Uploaded" : "Statement Validation Failed"}</h2>
         <p className="type-body" style={{ color: "var(--color-text-secondary)" }}>
           {statusObj.error_message || "This file could not be parsed as a Detailed CAS statement."}
