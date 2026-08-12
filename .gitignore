@@ -26,7 +26,11 @@ dist/
 # tracked: they're environment tooling, not application code, and get
 # updated independently of this repo (npx impeccable skills install/update).
 .agents/skills/
-.claude/skills/
+
+# .claude/skills/ is NOT ignored — project-authored skills (task-observer,
+# model-orchestration, etc.) are tracked and committed like any other repo
+# content, per explicit decision 2026-08-12. Only externally-managed tooling
+# installs (above) stay untracked.
 
 # understand-anything plugin scratch state — knowledge-graph.json, meta.json,
 # fingerprints.json, and intermediate/scan-result.json ARE tracked
