@@ -5,6 +5,7 @@ import { ReviewTable } from "./ReviewTable";
 import { ImportError } from "./ImportError";
 import { ImportConfirmed } from "./ImportConfirmed";
 import { ApiError, confirmImport, parseImport } from "./api";
+import { clearCasResumeStep2 } from "./casResumeState";
 import type {
   ImportConfirmResponse,
   ImportPreviewResponse,
@@ -44,6 +45,7 @@ export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab = "
   const [confirming, setConfirming] = useState(false);
 
   const reset = () => {
+    clearCasResumeStep2(householdMemberId);
     setStep("upload");
     setPreview(null);
     setConfirmResult(null);
@@ -53,6 +55,7 @@ export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab = "
   };
 
   const handleUpload = async (file: File, password: string) => {
+    clearCasResumeStep2(householdMemberId);
     setStep("parsing");
     try {
       const result = await parseImport(file, password);
@@ -70,6 +73,7 @@ export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab = "
     setReviewNotice(null);
     try {
       const result = await confirmImport(preview.session_id, householdMemberId, confirmations);
+      clearCasResumeStep2(householdMemberId);
       setConfirmResult(result);
       setStep("confirmed");
     } catch (err) {

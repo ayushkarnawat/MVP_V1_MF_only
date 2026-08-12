@@ -1,8 +1,7 @@
 @import "./styles/tokens.css";
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
 
 @layer base {
   * {
@@ -24,6 +23,23 @@
 
   button {
     font-family: inherit;
+  }
+
+  /* WebKit and mobile browser input reset & autofill styling */
+  input, textarea, select {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover, 
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    -webkit-text-fill-color: var(--color-ink) !important;
+    -webkit-box-shadow: 0 0 0px 1000px var(--color-bg) inset !important;
+    box-shadow: 0 0 0px 1000px var(--color-bg) inset !important;
+    transition: background-color 5000s ease-in-out 0s;
+    caret-color: var(--color-accent);
   }
 
   /* Focus outline for accessibility (WCAG AA) */

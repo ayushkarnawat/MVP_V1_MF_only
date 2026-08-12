@@ -1,5 +1,6 @@
 .container {
   max-width: 480px;
+  width: 100%;
   margin: var(--space-12) auto;
   padding: var(--space-8);
   text-align: center;
@@ -12,6 +13,15 @@
   align-items: center;
   gap: var(--space-4);
   animation: fadeIn var(--motion-page);
+  box-sizing: border-box;
+}
+
+@media (max-width: 640px) {
+  .container {
+    margin: var(--space-4) auto;
+    padding: var(--space-6) var(--space-4);
+    border-radius: var(--radius-sm);
+  }
 }
 
 .successBadge {
