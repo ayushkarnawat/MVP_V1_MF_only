@@ -7,6 +7,23 @@ gets overwritten each session, and isn't meant to accumulate history.
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
 
+## Model Orchestration skill — built this session
+
+New project-level skill at `.claude/skills/model-orchestration/`
+(internal, not open-source — contains this user's specific
+two-Claude-accounts-plus-Codex setup). Governs delegating implementation
+work to Codex (via the already-installed `openai/codex-plugin-cc`
+plugin's `codex:codex-rescue` subagent) as the default worker, with
+Claude Code staying the orchestrator for architecture/interface
+design/final assembly. Built via the standard brainstorming →
+writing-plans → (subagent-driven-development or executing-plans)
+pipeline, not via `task-observer`'s own observation-driven update flow —
+this was a direct user-commissioned build. Full design:
+`Docs/superpowers/specs/2026-08-12-model-orchestration-skill-design.md`;
+full plan: `Docs/superpowers/plans/2026-08-12-model-orchestration-skill.md`.
+Parallel Codex dispatch capability: see Task 1's recorded verdict in
+that plan for whether it's verified this session.
+
 ## Phase 4 Part 4: category-universe NAV caching → category ranking (PRD-04 FR-3/FR-4) — built and committed
 
 Built directly (TDD, one task per commit) per the Phase 4 design doc's
