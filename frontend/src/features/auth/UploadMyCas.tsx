@@ -1,5 +1,6 @@
 import { Button } from "../../components/Button";
 import { TwoPathImportContainer } from "../import/TwoPathImportContainer";
+import { clearCasResumeStep2 } from "../import/casResumeState";
 import styles from "./onboarding.module.css";
 
 interface UploadMyCasProps {
@@ -34,7 +35,15 @@ export function UploadMyCas({
         You can upload your own personal statement now or proceed directly to batch parse family statements.
       </p>
       <div className={styles.actionsBetween}>
-        <Button variant="secondary" size="md" type="button" onClick={onUploadLater}>
+        <Button
+          variant="secondary"
+          size="md"
+          type="button"
+          onClick={() => {
+            clearCasResumeStep2("self");
+            onUploadLater();
+          }}
+        >
           Upload Later
         </Button>
         <Button variant="primary" size="md" type="button" onClick={onUploadNow}>

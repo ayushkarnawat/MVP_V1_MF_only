@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { TwoPathImportContainer } from "../import/TwoPathImportContainer";
+import { clearCasResumeStep2 } from "../import/casResumeState";
 import { Badge } from "../../components/Badge";
 import styles from "./onboarding.module.css";
 import type { HouseholdMember } from "./types";
@@ -32,7 +33,10 @@ export function FamilyCasUpload({ members, queue, onQueueUpload, onSkip, skipped
       <div className={styles.container}>
         <button
           type="button"
-          onClick={() => setActiveMemberId(null)}
+          onClick={() => {
+            clearCasResumeStep2(activeMemberId);
+            setActiveMemberId(null);
+          }}
           style={{
             background: "none",
             border: "none",
