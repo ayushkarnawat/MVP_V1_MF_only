@@ -1,7 +1,19 @@
 # Handoff: phase4-scorer-composite-score
 
-**Status:** OPEN
+**Status:** DONE
 **Parent plan:** `Docs/superpowers/plans/2026-08-13-phase-4-analytics-backend-part5-scorer.md`, Task 2
+
+**Resolution (2026-08-13):** Codex implemented both files, self-proofread
+(sandbox couldn't reach the venv/network, same limitation as Task 1), and
+deferred verification. Controller ran the real suite directly: 6/6 new
+tests passed on the first run, no fixes needed; full suite 336 passed/2
+skipped (was 330/2, zero regressions). Committed at `aa8288f`.
+Task-reviewer subagent (haiku) approved spec compliance + code quality.
+One Important-but-inherited finding parked, not fixed here: `date.replace
+(year=year - N)` raises `ValueError` on Feb 29 in a non-leap target year —
+pre-existing in `risk_metrics.py` and already-shipped `category_ranking.py`,
+not introduced by this task. Recorded in the SDD ledger for the final
+whole-branch review to weigh.
 
 ## Task
 
