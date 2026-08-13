@@ -1,7 +1,19 @@
 # Handoff: phase4-scorer-portfolio-rollup
 
-**Status:** OPEN
+**Status:** DONE
 **Parent plan:** `Docs/superpowers/plans/2026-08-13-phase-4-analytics-backend-part5-scorer.md`, Task 3
+
+**Resolution (2026-08-13):** Codex implemented both files, self-proofread
+(sandbox couldn't reach venv/network, same limitation as Tasks 1-2), and
+deferred verification. Controller ran the real suite directly: 8/8 tests
+passed on first run (2 new), full suite 338 passed/2 skipped (was 336/2,
+zero regressions). Diff verified verbatim-identical to the plan's Task 3
+code. Committed at `6129e96`. Task-reviewer subagent approved spec
+compliance + code quality with no Critical/Important findings — two Minor
+notes (unguarded `KeyError` on an orphaned scheme_id, consistent with
+existing risk tolerance elsewhere in the package; mid-file import
+placement, already attributed as plan-mandated, not an implementer
+deviation).
 
 ## Task
 
