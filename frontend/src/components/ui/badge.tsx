@@ -3,22 +3,22 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:ring-offset-2",
+  "inline-flex items-center gap-1 rounded-sm px-[9px] py-[3px] font-body text-xs font-medium leading-[1.4] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:ring-offset-2",
   {
     variants: {
       variant: {
         default:
-          "bg-[color-mix(in_srgb,var(--color-neutral-badge)_15%,transparent)] text-[var(--color-neutral-badge)] border border-[color-mix(in_srgb,var(--color-neutral-badge)_30%,transparent)]",
+          "bg-[color-mix(in_srgb,var(--color-neutral-badge)_18%,transparent)] text-[var(--color-neutral-badge)]",
         neutral:
-          "bg-[color-mix(in_srgb,var(--color-neutral-badge)_15%,transparent)] text-[var(--color-neutral-badge)] border border-[color-mix(in_srgb,var(--color-neutral-badge)_30%,transparent)]",
+          "bg-[color-mix(in_srgb,var(--color-neutral-badge)_18%,transparent)] text-[var(--color-neutral-badge)]",
         positive:
-          "bg-[color-mix(in_srgb,var(--color-positive)_15%,transparent)] text-[var(--color-positive)] border border-[color-mix(in_srgb,var(--color-positive)_30%,transparent)]",
+          "bg-[color-mix(in_srgb,var(--color-positive)_14%,transparent)] text-[var(--color-positive)]",
         negative:
-          "bg-[color-mix(in_srgb,var(--color-negative)_15%,transparent)] text-[var(--color-negative)] border border-[color-mix(in_srgb,var(--color-negative)_30%,transparent)]",
+          "bg-[color-mix(in_srgb,var(--color-negative)_14%,transparent)] text-[var(--color-negative)]",
         warning:
-          "bg-[color-mix(in_srgb,var(--color-warning)_15%,transparent)] text-[var(--color-warning)] border border-[color-mix(in_srgb,var(--color-warning)_30%,transparent)]",
+          "bg-[color-mix(in_srgb,var(--color-warning)_16%,transparent)] text-[var(--color-warning)]",
         accent:
-          "bg-[color-mix(in_srgb,var(--color-accent)_15%,transparent)] text-[var(--color-accent)] border border-[color-mix(in_srgb,var(--color-accent)_30%,transparent)]",
+          "bg-[color-mix(in_srgb,var(--color-accent)_14%,transparent)] text-[var(--color-accent)]",
         outline:
           "border border-[var(--color-border)] text-[var(--color-ink)] bg-transparent",
       },

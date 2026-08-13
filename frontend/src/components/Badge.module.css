@@ -1,24 +1,26 @@
 .badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
   border-radius: var(--radius-sm);
-  padding: 2px var(--space-2);
+  padding: 3px 9px;
   font-family: var(--font-body);
-  font-size: var(--type-caption-size);
+  font-size: 12px;
   font-weight: 500;
   line-height: 1.4;
 }
 
 .positive {
-  background: color-mix(in srgb, var(--color-positive) 15%, transparent);
+  background: color-mix(in srgb, var(--color-positive) 14%, transparent);
   color: var(--color-positive);
 }
 
 .neutral {
-  background: color-mix(in srgb, var(--color-neutral-badge) 20%, transparent);
+  background: color-mix(in srgb, var(--color-neutral-badge) 18%, transparent);
   color: var(--color-neutral-badge);
 }
 
 .warning {
-  background: color-mix(in srgb, var(--color-warning) 15%, transparent);
+  background: color-mix(in srgb, var(--color-warning) 16%, transparent);
   color: var(--color-warning);
 }
