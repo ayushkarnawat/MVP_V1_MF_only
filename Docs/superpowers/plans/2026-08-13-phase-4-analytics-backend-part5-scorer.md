@@ -1090,9 +1090,12 @@ def _fake_row(scheme_id):
 
 
 def test_get_fund_score_404_when_scheme_not_found(monkeypatch):
+    from app.db.session import get_db
     from app.services.auth.session import get_current_user
 
+    fake_db = type("DB", (), {"get": lambda self, model, sid: None})()
     app.dependency_overrides[get_current_user] = lambda: type("U", (), {"id": uuid.uuid4()})()
+    app.dependency_overrides[get_db] = lambda: fake_db
     client = _client()
     try:
         response = client.get(f"/analytics/funds/{uuid.uuid4()}/score")

@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session as DbSession
 
 from app.db.session import get_db
+from app.models.reference import Scheme
 from app.models.user import User
 from app.services.analytics.allocation import (
     compute_category_allocation,
@@ -25,13 +26,21 @@ from app.services.analytics.schemas import (
     AggregateDirectRegularTerResponse,
     AggregateFundVsBenchmarkResponse,
     AggregatePortfolioBenchmarkResponse,
+    AggregatePortfolioScoreResponse,
     AggregateWeightedTerResponse,
     AnalyticsAllocationSummary,
     CategoryRankingSummary,
     DirectRegularTerComparison,
+    FundScoreRow,
     FundVsBenchmarkSummary,
     PortfolioBenchmarkSummary,
+    PortfolioScoreSummary,
     WeightedTerSummary,
+)
+from app.services.analytics.scorer import (
+    compute_fund_score,
+    compute_portfolio_score,
+    get_aggregate_portfolio_score,
 )
 from app.services.analytics.ter import (
     compute_direct_regular_ter_comparison,
@@ -157,3 +166,33 @@ async def get_household_aggregate_category_ranking(
     user: User = Depends(get_current_user), db: DbSession = Depends(get_db)
 ):
     return await get_aggregate_category_ranking(db, user.id)
+
+
+@router.get("/funds/{scheme_id}/score", response_model=FundScoreRow)
+async def get_fund_score(
+    scheme_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    db: DbSession = Depends(get_db),
+):
+    scheme = db.get(Scheme, scheme_id)
+    if scheme is None:
+        raise HTTPException(status_code=404, detail="Scheme not found.")
+    return await compute_fund_score(db, scheme)
+
+
+@router.get("/household-members/{member_id}/score", response_model=PortfolioScoreSummary)
+async def get_member_portfolio_score(
+    member_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    db: DbSession = Depends(get_db),
+):
+    if get_household_member_for_user(db, user.id, member_id) is None:
+        raise HTTPException(status_code=404, detail="Household member not found.")
+    return await compute_portfolio_score(db, [member_id])
+
+
+@router.get("/household/aggregate/score", response_model=AggregatePortfolioScoreResponse)
+async def get_household_aggregate_portfolio_score(
+    user: User = Depends(get_current_user), db: DbSession = Depends(get_db)
+):
+    return await get_aggregate_portfolio_score(db, user.id)
