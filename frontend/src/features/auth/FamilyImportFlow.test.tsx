@@ -211,7 +211,7 @@ describe("FamilyImportFlow", () => {
     renderFlow();
     await waitFor(() => screen.getByText("Mom"));
     // The initial roster fetch (above) must succeed for cards to render; only the
-    // later resolveSelfMember() call (triggered by own-upload submit, below) should fail.
+    // later resolveSelfMember() call (triggered on entering own-upload) should fail.
     vi.mocked(authApi.listHouseholdMembers).mockRejectedValueOnce(new Error("network down"));
     fireEvent.click(screen.getByRole("button", { name: /skip for now.*mom/i }));
     fireEvent.click(screen.getByRole("button", { name: /skip for now.*dad/i }));
@@ -219,19 +219,8 @@ describe("FamilyImportFlow", () => {
     fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
     await waitFor(() => screen.getByText(/upload your own cas/i));
     fireEvent.click(screen.getByRole("button", { name: /upload now/i }));
-    const uploadTab = screen.queryByRole("tab", { name: /upload existing statement/i });
-    if (uploadTab) {
-      fireEvent.click(uploadTab);
-    }
-    await waitFor(() => screen.getByLabelText(/cas pdf/i));
-
-    const file = new File(["pdf-bytes"], "cas.pdf", { type: "application/pdf" });
-    fireEvent.change(screen.getByLabelText(/cas pdf/i), { target: { files: [file] } });
-    fireEvent.change(screen.getByLabelText(/pdf password/i), { target: { value: "secret" } });
-    fireEvent.click(screen.getByRole("button", { name: /upload & parse statement/i }));
 
     await waitFor(() => expect(screen.getByText(/couldn't set up your profile/i)).toBeInTheDocument());
-    expect(screen.getByLabelText(/cas pdf/i)).toBeInTheDocument();
   });
 
   it("completes onboarding straight away when everything is skipped and Upload Later is chosen with an empty queue", async () => {

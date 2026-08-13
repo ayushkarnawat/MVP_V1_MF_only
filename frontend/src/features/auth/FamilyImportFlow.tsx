@@ -53,6 +53,7 @@ export function FamilyImportFlow({ selfName }: FamilyImportFlowProps) {
   const [reviewNotice, setReviewNotice] = useState<string | null>(null);
   const [ownUploadError, setOwnUploadError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [selfMember, setSelfMember] = useState<HouseholdMember | null>(null);
 
   // Fetch the roster from the backend rather than trusting a prop: React state
   // (OnboardingFlow's answers.familyMembers) doesn't survive a page reload, only
@@ -150,6 +151,25 @@ export function FamilyImportFlow({ selfName }: FamilyImportFlowProps) {
     return self ?? createHouseholdMember(selfName.trim() || "Me", "self");
   };
 
+  // Resolved eagerly on entering "own-upload" (rather than only inside
+  // Step 2's onSubmit) — Step 1 (Request from CAMS) needs the real UUID too,
+  // and it never goes through onSubmit at all. See UploadMyCas.tsx.
+  useEffect(() => {
+    if (stage !== "own-upload" || selfMember) return;
+    let cancelled = false;
+    resolveSelfMember()
+      .then((member) => {
+        if (!cancelled) setSelfMember(member);
+      })
+      .catch(() => {
+        if (!cancelled) setOwnUploadError("Couldn't set up your profile. Please try again.");
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage, selfMember]);
+
   if (rosterError) {
     return (
       <p role="alert" className={styles.error}>
@@ -186,26 +206,25 @@ export function FamilyImportFlow({ selfName }: FamilyImportFlowProps) {
   }
 
   if (stage === "own-upload") {
+    if (!selfMember) {
+      return (
+        <>
+          {ownUploadError && <p className={styles.error}>{ownUploadError}</p>}
+          <p>Setting up your profile...</p>
+        </>
+      );
+    }
     return (
-      <>
-        {ownUploadError && <p className={styles.error}>{ownUploadError}</p>}
-        <UploadMyCas
-          awaitingUpload
-          onUploadNow={() => {}}
-          onUploadLater={() => {}}
-          onSubmit={async (file, password) => {
-            // UploadForm doesn't await/catch onSubmit — errors must be caught here.
-            setOwnUploadError(null);
-            try {
-              const self = await resolveSelfMember();
-              setQueue((q) => [...q, { memberId: self.id, memberName: self.name, file, password }]);
-              setStage("queue");
-            } catch {
-              setOwnUploadError("Couldn't set up your profile. Please try again.");
-            }
-          }}
-        />
-      </>
+      <UploadMyCas
+        awaitingUpload
+        memberId={selfMember.id}
+        onUploadNow={() => {}}
+        onUploadLater={() => {}}
+        onSubmit={(file, password) => {
+          setQueue((q) => [...q, { memberId: selfMember.id, memberName: selfMember.name, file, password }]);
+          setStage("queue");
+        }}
+      />
     );
   }
 

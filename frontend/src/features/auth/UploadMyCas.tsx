@@ -5,6 +5,7 @@ import styles from "./onboarding.module.css";
 
 interface UploadMyCasProps {
   awaitingUpload: boolean;
+  memberId?: string;
   onUploadNow: () => void;
   onUploadLater: () => void;
   onSubmit: (file: File, password: string) => void;
@@ -12,15 +13,22 @@ interface UploadMyCasProps {
 
 export function UploadMyCas({
   awaitingUpload,
+  memberId,
   onUploadNow,
   onUploadLater,
   onSubmit,
 }: UploadMyCasProps) {
   if (awaitingUpload) {
+    // memberId must be the caller-resolved "self" household_member's real
+    // UUID, never a placeholder — Step 1 (Request from CAMS) sends it to the
+    // backend as-is, and a non-UUID value 400s with "Invalid household_member_id."
+    if (!memberId) {
+      return null;
+    }
     return (
       <div className={styles.importContainer}>
         <TwoPathImportContainer
-          memberId="self"
+          memberId={memberId}
           defaultTab="request"
           onUploadSubmit={onSubmit}
         />
