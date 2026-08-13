@@ -39,3 +39,12 @@ dist/
 # (a prior session accidentally did this — see .ua/.trash-1786098818 cleanup).
 .ua/.trash-*/
 .ua/tmp/
+
+# Per-developer Claude Code settings (hooks, env overrides, local plugin
+# state) and headroom's own runtime state file — both machine-specific and
+# never safe to share via git (a prior session committed these by mistake,
+# baking one developer's hardcoded local binary path and localhost proxy
+# port into every clone). .claude/settings.json (shared project config,
+# e.g. enabledPlugins) stays tracked.
+.claude/settings.local.json
+.claude/.headroom_wrap_marker.json
