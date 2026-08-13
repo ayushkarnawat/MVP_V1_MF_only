@@ -78,10 +78,8 @@
 }
 
 .expandedPopout {
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
+  position: fixed;
+  transform: translateX(calc(-50% + var(--popout-shift, 0px)));
   margin-top: var(--space-2);
   width: 190px;
   padding: var(--space-3);
@@ -96,11 +94,11 @@
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translate(-50%, -4px);
+    transform: translate(calc(-50% + var(--popout-shift, 0px)), -4px);
   }
   to {
     opacity: 1;
-    transform: translate(-50%, 0);
+    transform: translate(calc(-50% + var(--popout-shift, 0px)), 0);
   }
 }
 

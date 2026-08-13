@@ -45,9 +45,10 @@ export function DashboardView({
   const [selectedHolding, setSelectedHolding] = useState<HoldingRow | null>(null);
   const [comparisonModalState, setComparisonModalState] = useState<{
     isOpen: boolean;
+    memberId: string;
     schemeId: string;
     schemeName: string;
-  }>({ isOpen: false, schemeId: "", schemeName: "" });
+  }>({ isOpen: false, memberId: "", schemeId: "", schemeName: "" });
 
   useEffect(() => {
     let isMounted = true;
@@ -358,9 +359,16 @@ export function DashboardView({
         onClose={() => setSelectedHolding(null)}
         holding={selectedHolding}
         onCompareDistributors={(schemeId, schemeName) => {
+          // Captured now, before setSelectedHolding(null) below clears it —
+          // both updates land in the same batch, so reading
+          // selectedHolding?.household_member_id at render time would always
+          // see null and silently fall back to the page-level memberId,
+          // sending the wrong member's ID for any holding not owned by them.
+          const ownerId = selectedHolding?.household_member_id || memberId;
           setSelectedHolding(null);
           setComparisonModalState({
             isOpen: true,
+            memberId: ownerId,
             schemeId,
             schemeName,
           });
@@ -374,11 +382,12 @@ export function DashboardView({
           onClose={() =>
             setComparisonModalState({
               isOpen: false,
+              memberId: "",
               schemeId: "",
               schemeName: "",
             })
           }
-          memberId={selectedHolding?.household_member_id || memberId}
+          memberId={comparisonModalState.memberId || memberId}
           schemeId={comparisonModalState.schemeId}
           schemeName={comparisonModalState.schemeName}
         />

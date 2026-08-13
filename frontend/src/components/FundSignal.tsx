@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import styles from "./FundSignal.module.css";
 
 export interface FundSignalProps {
@@ -23,6 +24,52 @@ export function FundSignal({
 }: FundSignalProps) {
   const [expanded, setExpanded] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState(period);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const popoutRef = useRef<HTMLDivElement>(null);
+  const [popoutPosition, setPopoutPosition] = useState<{ top: number; left: number } | null>(null);
+  const [popoutShift, setPopoutShift] = useState(0);
+
+  // No Radix/shadcn Popover is used here (this is a bespoke SVG widget), so
+  // there's no built-in collision detection to enable. The popout is
+  // portaled to document.body — Holdings table ancestors use
+  // overflow-hidden/overflow-x-auto for scroll/rounded-corner clipping,
+  // which clips any in-place descendant regardless of its own position or
+  // transform, no matter how that position is computed.
+  useLayoutEffect(() => {
+    if (!expanded || !containerRef.current) {
+      setPopoutPosition(null);
+      setPopoutShift(0);
+      return;
+    }
+    setPopoutShift(0);
+    const anchorRect = containerRef.current.getBoundingClientRect();
+    setPopoutPosition({ top: anchorRect.bottom, left: anchorRect.left + anchorRect.width / 2 });
+  }, [expanded]);
+
+  // Once positioned relative to the anchor, measure the popout's actual
+  // on-screen rect (now unaffected by the table's overflow, since it's in
+  // document.body) and correct for viewport-edge overflow — computed from
+  // real measured overflow, never a guessed fixed offset.
+  useLayoutEffect(() => {
+    if (!expanded || !popoutPosition || !popoutRef.current) return;
+
+    const recalculate = () => {
+      const popout = popoutRef.current;
+      if (!popout) return;
+      const rect = popout.getBoundingClientRect();
+      const margin = 8;
+      if (rect.left < margin) {
+        setPopoutShift((prev) => prev + (margin - rect.left));
+      } else if (rect.right > window.innerWidth - margin) {
+        setPopoutShift((prev) => prev + (window.innerWidth - margin - rect.right));
+      }
+    };
+
+    recalculate();
+    window.addEventListener("resize", recalculate);
+    return () => window.removeEventListener("resize", recalculate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expanded, popoutPosition]);
 
   const numericReturn =
     typeof returnPercentage === "string"
@@ -63,6 +110,7 @@ export function FundSignal({
 
   return (
     <div
+      ref={containerRef}
       className={`${styles.container} ${styles[size]} ${expanded ? styles.isExpanded : ""}`}
       onMouseEnter={() => setExpanded(true)}
       onMouseLeave={() => setExpanded(false)}
@@ -97,8 +145,16 @@ export function FundSignal({
         </span>
       </div>
 
-      {expanded && (
-        <div className={styles.expandedPopout}>
+      {expanded && popoutPosition && createPortal(
+        <div
+          ref={popoutRef}
+          className={styles.expandedPopout}
+          style={{
+            top: popoutPosition.top,
+            left: popoutPosition.left,
+            "--popout-shift": `${popoutShift}px`,
+          } as React.CSSProperties}
+        >
           <div className={styles.popoutHeader}>
             <span className={styles.popoutTitle}>Trend ({selectedPeriod})</span>
             <div className={styles.periodToggles}>
@@ -136,7 +192,8 @@ export function FundSignal({
             <span>{isPositive ? "▲" : "▼"}</span>
             <span className="type-data">{isPositive ? "+" : ""}{numericReturn.toFixed(2)}%</span>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
