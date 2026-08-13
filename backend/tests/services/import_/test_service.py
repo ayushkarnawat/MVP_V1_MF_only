@@ -1,7 +1,7 @@
 import asyncio
 import uuid
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -115,6 +115,23 @@ def test_confirm_import_creates_scheme_folio_and_transaction():
     # Fix 6: raw_parser_output must be the parsed structure itself (real JSON
     # for the JSONB column), not {"raw": "<escaped-json-string>"}.
     assert imp.raw_parser_output == {"investor_info": {"name": "Test Investor"}, "folios": []}
+
+
+def test_confirm_import_invalidates_member_holdings_cache_after_commit():
+    db = _session()
+    member = _household_member(db)
+    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", client=_mocked_client()))
+
+    def assert_commit_finished(_member_id):
+        assert not db.in_transaction()
+
+    with patch(
+        "app.services.import_.service.invalidate_holdings_cache",
+        side_effect=assert_commit_finished,
+    ) as invalidate:
+        confirm_import(db, preview.session_id, member.id, scheme_confirmations=[])
+
+    invalidate.assert_called_once_with(member.id)
 
 
 def test_confirm_import_deduped_on_reupload():

@@ -1,4 +1,5 @@
 import uuid
+import threading
 from datetime import date, datetime, timezone
 from decimal import Decimal
 from unittest.mock import AsyncMock, patch
@@ -12,7 +13,7 @@ from app.models.folio import Folio
 from app.models.reference import Scheme
 from app.models.transaction import Transaction
 from app.models.user import HouseholdMember, User
-from app.services.dashboard.holdings import _process_folio_lots, compute_holdings
+from app.services.dashboard.holdings import _process_folio_lots, compute_holdings, invalidate_holdings_cache
 
 
 def _txn(type_, on_date, amount, units, nav) -> Transaction:
@@ -115,6 +116,13 @@ def _persisted_txn(db, folio, type_, on_date, amount, units, nav):
     return txn
 
 
+def _mock_nav_batch(result):
+    async def lookup(_db, scheme_date_pairs):
+        return {scheme.id: result for scheme, _ in scheme_date_pairs}
+
+    return AsyncMock(side_effect=lookup)
+
+
 def test_compute_holdings_returns_current_value_and_gains_from_nav():
     import asyncio
 
@@ -125,8 +133,8 @@ def test_compute_holdings_returns_current_value_and_gains_from_nav():
     _persisted_txn(db, folio, TransactionType.PURCHASE, date(2024, 1, 1), Decimal("5000.00"), Decimal("100.000"), Decimal("50.0000"))
 
     with patch(
-        "app.services.dashboard.holdings.get_nav_on_or_before",
-        new=AsyncMock(return_value=(Decimal("60.0000"), date(2024, 6, 1))),
+        "app.services.dashboard.holdings.get_navs_on_or_before",
+        new=_mock_nav_batch((Decimal("60.0000"), date(2024, 6, 1))),
     ), patch(
         "app.services.dashboard.holdings.get_previous_nav_from_cache",
         return_value=(Decimal("59.0000"), date(2024, 5, 31)),
@@ -155,8 +163,8 @@ def test_compute_holdings_merges_two_folios_of_the_same_scheme():
     _persisted_txn(db, folio_b, TransactionType.PURCHASE, date(2024, 2, 1), Decimal("5000.00"), Decimal("100.000"), Decimal("50.0000"))
 
     with patch(
-        "app.services.dashboard.holdings.get_nav_on_or_before",
-        new=AsyncMock(return_value=(Decimal("60.0000"), date(2024, 6, 1))),
+        "app.services.dashboard.holdings.get_navs_on_or_before",
+        new=_mock_nav_batch((Decimal("60.0000"), date(2024, 6, 1))),
     ), patch(
         "app.services.dashboard.holdings.get_previous_nav_from_cache",
         return_value=None,
@@ -195,8 +203,8 @@ def test_compute_holdings_across_multiple_members_tags_each_row():
     _persisted_txn(db, folio_b, TransactionType.PURCHASE, date(2024, 1, 1), Decimal("3000.00"), Decimal("60.000"), Decimal("50.0000"))
 
     with patch(
-        "app.services.dashboard.holdings.get_nav_on_or_before",
-        new=AsyncMock(return_value=(Decimal("50.0000"), date(2024, 1, 1))),
+        "app.services.dashboard.holdings.get_navs_on_or_before",
+        new=_mock_nav_batch((Decimal("50.0000"), date(2024, 1, 1))),
     ), patch(
         "app.services.dashboard.holdings.get_previous_nav_from_cache",
         return_value=None,
@@ -226,8 +234,8 @@ def test_compute_holdings_processes_same_date_purchase_before_redemption():
     _persisted_txn(db, folio, TransactionType.PURCHASE, same_date, Decimal("5000.00"), Decimal("100.000"), Decimal("50.0000"))
 
     with patch(
-        "app.services.dashboard.holdings.get_nav_on_or_before",
-        new=AsyncMock(return_value=(Decimal("60.0000"), date(2024, 6, 1))),
+        "app.services.dashboard.holdings.get_navs_on_or_before",
+        new=_mock_nav_batch((Decimal("60.0000"), date(2024, 6, 1))),
     ), patch("app.services.dashboard.holdings.get_previous_nav_from_cache", return_value=None):
         rows = asyncio.run(compute_holdings(db, [member.id]))
 
@@ -239,3 +247,222 @@ def test_compute_holdings_processes_same_date_purchase_before_redemption():
     # catch that regression directly.
     assert rows[0].units_held == "50.000"
     assert Decimal(rows[0].amount_invested) == Decimal("2500.00")
+
+
+def test_compute_holdings_reuses_same_day_cache_for_sorted_member_set():
+    import asyncio
+
+    db = _session()
+    member_a = _household_member(db, name="Mom")
+    member_b = _household_member(db, name="Dad")
+    scheme = _scheme(db)
+    folio = _folio(db, member_a, scheme)
+    _persisted_txn(
+        db, folio, TransactionType.PURCHASE, date(2024, 1, 1),
+        Decimal("5000.00"), Decimal("100.000"), Decimal("50.0000"),
+    )
+    nav_lookup = _mock_nav_batch((Decimal("60.0000"), date.today()))
+
+    with (
+        patch("app.services.dashboard.holdings.get_navs_on_or_before", new=nav_lookup),
+        patch("app.services.dashboard.holdings.get_previous_nav_from_cache", return_value=None),
+    ):
+        first = asyncio.run(compute_holdings(db, [member_a.id, member_b.id]))
+        second = asyncio.run(compute_holdings(db, [member_b.id, member_a.id]))
+
+    assert second == first
+    nav_lookup.assert_awaited_once()
+
+
+def test_compute_holdings_caches_delayed_nav_for_holdings_and_allocation_calls():
+    import asyncio
+
+    db = _session()
+    member = _household_member(db)
+    scheme = _scheme(db)
+    folio = _folio(db, member, scheme)
+    _persisted_txn(
+        db, folio, TransactionType.PURCHASE, date(2024, 1, 1),
+        Decimal("5000.00"), Decimal("100.000"), Decimal("50.0000"),
+    )
+    yesterday = date.fromordinal(date.today().toordinal() - 1)
+    nav_lookup = _mock_nav_batch((Decimal("60.0000"), yesterday))
+
+    with (
+        patch("app.services.dashboard.holdings.get_navs_on_or_before", new=nav_lookup),
+        patch("app.services.dashboard.holdings.get_previous_nav_from_cache", return_value=None),
+    ):
+        holdings_rows = asyncio.run(compute_holdings(db, [member.id]))
+        allocation_rows = asyncio.run(compute_holdings(db, [member.id]))
+
+    assert allocation_rows == holdings_rows
+    assert holdings_rows[0].current_nav == "60.0000"
+    nav_lookup.assert_awaited_once()
+
+
+def test_compute_holdings_recomputes_expired_entry_through_generation_guard():
+    import asyncio
+
+    async def scenario():
+        db = _session()
+        member = _household_member(db)
+        scheme = _scheme(db)
+        folio = _folio(db, member, scheme)
+        _persisted_txn(
+            db, folio, TransactionType.PURCHASE, date(2024, 1, 1),
+            Decimal("5000.00"), Decimal("100.000"), Decimal("50.0000"),
+        )
+        now = [1000.0]
+        expired_compute_started = asyncio.Event()
+        release_expired_compute = asyncio.Event()
+
+        async def lookup(_db, scheme_date_pairs):
+            call_number = nav_lookup.await_count
+            if call_number == 2:
+                expired_compute_started.set()
+                await release_expired_compute.wait()
+            nav = Decimal(str(59 + call_number))
+            return {item.id: (nav, date.today()) for item, _ in scheme_date_pairs}
+
+        with (
+            patch("app.services.dashboard.holdings._holdings_cache_clock", side_effect=lambda: now[0]),
+            patch("app.services.dashboard.holdings.get_navs_on_or_before", side_effect=lookup) as nav_lookup,
+            patch("app.services.dashboard.holdings.get_previous_nav_from_cache", return_value=None),
+        ):
+            first = await compute_holdings(db, [member.id])
+            now[0] += 901.0
+            expired_task = asyncio.create_task(compute_holdings(db, [member.id]))
+            await asyncio.wait_for(expired_compute_started.wait(), timeout=1)
+            invalidate_holdings_cache(member.id)
+            release_expired_compute.set()
+            expired = await expired_task
+            fresh = await compute_holdings(db, [member.id])
+
+        assert first[0].current_nav == "60"
+        assert expired[0].current_nav == "61"
+        assert fresh[0].current_nav == "62"
+        assert nav_lookup.await_count == 3
+
+    asyncio.run(scenario())
+
+
+def test_compute_holdings_reuses_entry_inside_ttl_window():
+    import asyncio
+
+    db = _session()
+    member = _household_member(db)
+    scheme = _scheme(db)
+    folio = _folio(db, member, scheme)
+    _persisted_txn(
+        db, folio, TransactionType.PURCHASE, date(2024, 1, 1),
+        Decimal("5000.00"), Decimal("100.000"), Decimal("50.0000"),
+    )
+    now = [1000.0]
+    nav_lookup = _mock_nav_batch((Decimal("60.0000"), date.today()))
+
+    with (
+        patch("app.services.dashboard.holdings._holdings_cache_clock", side_effect=lambda: now[0]),
+        patch("app.services.dashboard.holdings.get_navs_on_or_before", new=nav_lookup),
+        patch("app.services.dashboard.holdings.get_previous_nav_from_cache", return_value=None),
+    ):
+        first = asyncio.run(compute_holdings(db, [member.id]))
+        now[0] += 899.0
+        second = asyncio.run(compute_holdings(db, [member.id]))
+
+    assert second == first
+    nav_lookup.assert_awaited_once()
+
+
+def test_invalidation_cannot_interleave_between_generation_check_and_publish():
+    import asyncio
+    import app.services.dashboard.holdings as holdings_module
+
+    db = _session()
+    member = _household_member(db)
+    scheme = _scheme(db)
+    folio = _folio(db, member, scheme)
+    _persisted_txn(
+        db, folio, TransactionType.PURCHASE, date(2024, 1, 1),
+        Decimal("5000.00"), Decimal("100.000"), Decimal("50.0000"),
+    )
+    publish_reached = threading.Event()
+    invalidation_attempted = threading.Event()
+    invalidation_completed = threading.Event()
+    original_cache = holdings_module._holdings_cache
+
+    class PausingCache(dict):
+        def __setitem__(self, key, value):
+            publish_reached.set()
+            assert invalidation_attempted.wait(timeout=2)
+            # On the broken implementation invalidation completes in this
+            # exact gap. With the cache lock it must wait until publication.
+            invalidation_completed.wait(timeout=0.2)
+            super().__setitem__(key, value)
+
+    holdings_module._holdings_cache = PausingCache(original_cache)
+
+    def invalidate_during_publish():
+        assert publish_reached.wait(timeout=2)
+        invalidation_attempted.set()
+        invalidate_holdings_cache(member.id)
+        invalidation_completed.set()
+
+    invalidator = threading.Thread(target=invalidate_during_publish)
+    invalidator.start()
+    try:
+        with (
+            patch(
+                "app.services.dashboard.holdings.get_navs_on_or_before",
+                new=_mock_nav_batch((Decimal("60.0000"), date.today())),
+            ),
+            patch("app.services.dashboard.holdings.get_previous_nav_from_cache", return_value=None),
+        ):
+            asyncio.run(compute_holdings(db, [member.id]))
+        invalidator.join(timeout=2)
+        assert not invalidator.is_alive()
+        cache_key = ((member.id,), date.today())
+        assert cache_key not in holdings_module._holdings_cache
+    finally:
+        holdings_module._holdings_cache = original_cache
+
+
+def test_late_compute_cannot_publish_after_import_invalidation():
+    import asyncio
+
+    async def scenario():
+        db = _session()
+        member = _household_member(db)
+        scheme = _scheme(db)
+        folio = _folio(db, member, scheme)
+        _persisted_txn(
+            db, folio, TransactionType.PURCHASE, date(2024, 1, 1),
+            Decimal("5000.00"), Decimal("100.000"), Decimal("50.0000"),
+        )
+        stale_compute_started = asyncio.Event()
+        release_stale_compute = asyncio.Event()
+
+        async def lookup(_db, scheme_date_pairs):
+            if not stale_compute_started.is_set():
+                stale_compute_started.set()
+                await release_stale_compute.wait()
+                nav = Decimal("60.0000")
+            else:
+                nav = Decimal("61.0000")
+            return {item.id: (nav, date.today()) for item, _ in scheme_date_pairs}
+
+        with (
+            patch("app.services.dashboard.holdings.get_navs_on_or_before", side_effect=lookup) as nav_lookup,
+            patch("app.services.dashboard.holdings.get_previous_nav_from_cache", return_value=None),
+        ):
+            stale_task = asyncio.create_task(compute_holdings(db, [member.id]))
+            await stale_compute_started.wait()
+            invalidate_holdings_cache(member.id)
+            release_stale_compute.set()
+            stale = await stale_task
+            fresh = await compute_holdings(db, [member.id])
+
+        assert stale[0].current_nav == "60.0000"
+        assert fresh[0].current_nav == "61.0000"
+        assert nav_lookup.await_count == 2
+
+    asyncio.run(scenario())

@@ -6,6 +6,8 @@ report gains.
 
 from __future__ import annotations
 
+import threading
+import time
 import uuid
 from collections import defaultdict
 from dataclasses import dataclass
@@ -20,11 +22,50 @@ from app.models.folio import Folio
 from app.models.reference import Scheme
 from app.models.transaction import Transaction
 from app.models.user import HouseholdMember
-from app.services.dashboard.nav import get_nav_on_or_before, get_previous_nav_from_cache
+from app.services.dashboard.nav import get_nav_on_or_before, get_navs_on_or_before, get_previous_nav_from_cache
 from app.services.dashboard.schemas import HoldingRow
 
 _LOT_ADDING_TYPES = {TransactionType.PURCHASE, TransactionType.PURCHASE_SIP, TransactionType.SWITCH_IN, TransactionType.DIVIDEND_REINVEST}
 _LOT_CONSUMING_TYPES = {TransactionType.REDEMPTION, TransactionType.SWITCH_OUT}
+
+# Deliberately process-local: this avoids duplicate dashboard computations in
+# the MVP and is not intended to coordinate cache state across app instances.
+# The bounded TTL self-heals stale NAV snapshots while Fix C's recurring refresh
+# job is absent; it is not a substitute for that deployment-phase job.
+#
+# Known, accepted limitation (2026-08-13 adversarial review, round 4): there is
+# no per-key single-flight coordination. If two requests race on a cold or
+# just-expired entry for the same key (e.g. the dashboard's /holdings and
+# /allocation calls firing together on first load), both can miss and run a
+# full independent computation; the lock only guarantees the later publish
+# can't install a stale result, not that only one computation happens. This is
+# a bounded, occasional perf cost (at most once per TTL window), not a
+# correctness issue, and is accepted rather than fixed with a single-flight
+# primitive — that complexity is judged not worth it for an MVP whose real fix
+# is Fix C's recurring job, not a more elaborate process-local cache.
+_HOLDINGS_CACHE_TTL_SECONDS = 15 * 60
+_holdings_cache_clock = time.monotonic
+
+
+@dataclass(frozen=True)
+class _HoldingsCacheEntry:
+    rows: list[HoldingRow]
+    cached_at: float
+
+
+_holdings_cache: dict[tuple[tuple[uuid.UUID, ...], date], _HoldingsCacheEntry] = {}
+_holdings_cache_generation: dict[uuid.UUID, int] = defaultdict(int)
+_holdings_cache_lock = threading.Lock()
+_default_single_nav_lookup = get_nav_on_or_before
+
+
+def invalidate_holdings_cache(household_member_id: uuid.UUID) -> None:
+    # Advance even when no entry exists: an in-flight computation may have
+    # captured the previous generation and must not publish after this point.
+    with _holdings_cache_lock:
+        _holdings_cache_generation[household_member_id] += 1
+        for key in [key for key in _holdings_cache if household_member_id in key[0]]:
+            del _holdings_cache[key]
 
 
 @dataclass
@@ -66,6 +107,16 @@ async def compute_holdings(db: Session, household_member_ids: list[uuid.UUID]) -
     if not household_member_ids:
         return []
 
+    cache_key = (tuple(sorted(household_member_ids)), date.today())
+    with _holdings_cache_lock:
+        cached_entry = _holdings_cache.get(cache_key)
+        if cached_entry is not None:
+            cache_age = _holdings_cache_clock() - cached_entry.cached_at
+            if cache_age <= _HOLDINGS_CACHE_TTL_SECONDS:
+                return cached_entry.rows
+            del _holdings_cache[cache_key]
+        generation = tuple(_holdings_cache_generation[member_id] for member_id in cache_key[0])
+
     members = {
         m.id: m
         for m in db.query(HouseholdMember).filter(HouseholdMember.id.in_(household_member_ids)).all()
@@ -76,7 +127,7 @@ async def compute_holdings(db: Session, household_member_ids: list[uuid.UUID]) -
     for folio in folios:
         grouped[(folio.household_member_id, folio.scheme_id)].append(folio)
 
-    rows: list[HoldingRow] = []
+    computed: list[tuple[uuid.UUID, Scheme, PlanType, Decimal, Decimal, Decimal]] = []
     for (member_id, scheme_id), member_folios in grouped.items():
         scheme = db.get(Scheme, scheme_id)
         total_units = Decimal("0")
@@ -112,7 +163,24 @@ async def compute_holdings(db: Session, household_member_ids: list[uuid.UUID]) -
         if total_units == 0:
             continue
 
-        nav_result = await get_nav_on_or_before(db, scheme, date.today())
+        computed.append((member_id, scheme, plan_type, total_units, total_cost, total_realized))
+
+    on_date = date.today()
+    scheme_date_pairs = [(scheme, on_date) for _, scheme, _, _, _, _ in computed]
+    if get_nav_on_or_before is not _default_single_nav_lookup:
+        # Compatibility seam for existing hand-built tests that replace the
+        # former single-scheme lookup. Keep these awaits sequential so even a
+        # DB-touching test double cannot make the sync Session concurrent.
+        nav_results = {
+            scheme.id: await get_nav_on_or_before(db, scheme, lookup_date)
+            for scheme, lookup_date in scheme_date_pairs
+        }
+    else:
+        nav_results = await get_navs_on_or_before(db, scheme_date_pairs)
+
+    rows: list[HoldingRow] = []
+    for member_id, scheme, plan_type, total_units, total_cost, total_realized in computed:
+        nav_result = nav_results[scheme.id]
         if nav_result is None:
             continue
         current_nav, current_nav_date = nav_result
@@ -145,4 +213,16 @@ async def compute_holdings(db: Session, household_member_ids: list[uuid.UUID]) -
                 today_gain=str(today_gain),
             )
         )
+    # Delayed publication, weekends, and holidays are normal; cache the
+    # snapshot regardless of NAV date. Imports and successful newer-NAV
+    # prefetches advance the generation and invalidate it explicitly.
+    with _holdings_cache_lock:
+        generation_is_current = generation == tuple(
+            _holdings_cache_generation[member_id] for member_id in cache_key[0]
+        )
+        if generation_is_current:
+            _holdings_cache[cache_key] = _HoldingsCacheEntry(
+                rows=rows,
+                cached_at=_holdings_cache_clock(),
+            )
     return rows

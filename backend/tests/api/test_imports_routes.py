@@ -1,6 +1,9 @@
+import uuid
 from datetime import date
 from decimal import Decimal
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
+
+from fastapi import BackgroundTasks
 
 from app.models.enums import TransactionType
 from app.services.import_.parser import (
@@ -144,6 +147,85 @@ def test_confirm_route_409s_on_low_confidence_scheme_without_override(client):
             headers=headers,
         )
     assert response.status_code == 409
+
+
+def test_confirm_route_schedules_nav_prefetch_after_successful_confirm():
+    from app.api.imports import confirm_import_route
+    from app.services.import_.schemas import ImportConfirmRequest, ImportConfirmResponse
+
+    member_id = uuid.uuid4()
+    body = ImportConfirmRequest(
+        session_id="session-1",
+        household_member_id=str(member_id),
+        scheme_confirmations=[],
+    )
+    background_tasks = BackgroundTasks()
+    user = MagicMock(id=uuid.uuid4())
+    request_db = MagicMock()
+    response = ImportConfirmResponse(added=1, skipped=0, import_id=str(uuid.uuid4()))
+
+    with (
+        patch("app.api.imports.get_household_member_for_user", return_value=MagicMock()),
+        patch("app.api.imports.confirm_import", return_value=response),
+    ):
+        result = confirm_import_route(body, background_tasks, user, request_db)
+
+    assert result == response
+    assert len(background_tasks.tasks) == 1
+    task = background_tasks.tasks[0]
+    assert task.func.__name__ == "_prefetch_member_nav_history"
+    assert task.args == (member_id,)
+    assert request_db not in task.args
+
+
+def test_nav_prefetch_uses_fresh_session_and_never_raises():
+    import asyncio
+
+    from app.api.imports import _prefetch_member_nav_history
+
+    fresh_db = MagicMock()
+    fresh_db.query.return_value.join.return_value.filter.return_value.all.return_value = []
+
+    with patch("app.api.imports.SessionLocal", return_value=fresh_db) as session_factory:
+        asyncio.run(_prefetch_member_nav_history(uuid.uuid4()))
+
+    session_factory.assert_called_once_with()
+    fresh_db.close.assert_called_once_with()
+
+    broken_db = MagicMock()
+    broken_db.query.side_effect = RuntimeError("database unavailable")
+    with patch("app.api.imports.SessionLocal", return_value=broken_db):
+        asyncio.run(_prefetch_member_nav_history(uuid.uuid4()))
+    broken_db.close.assert_called_once_with()
+
+
+def test_nav_prefetch_invalidates_only_when_a_newer_nav_lands():
+    import asyncio
+
+    from app.api.imports import _prefetch_member_nav_history
+
+    member_id = uuid.uuid4()
+    scheme = MagicMock(id=uuid.uuid4())
+    fresh_db = MagicMock()
+    fresh_db.query.return_value.join.return_value.filter.return_value.all.return_value = [scheme]
+
+    with (
+        patch("app.api.imports.SessionLocal", return_value=fresh_db),
+        patch("app.api.imports._latest_nav_dates", side_effect=[{scheme.id: date(2024, 1, 1)}, {scheme.id: date(2024, 1, 2)}]),
+        patch("app.api.imports.get_navs_on_or_before", new=AsyncMock()),
+        patch("app.api.imports.invalidate_holdings_cache") as invalidate,
+    ):
+        asyncio.run(_prefetch_member_nav_history(member_id))
+    invalidate.assert_called_once_with(member_id)
+
+    with (
+        patch("app.api.imports.SessionLocal", return_value=fresh_db),
+        patch("app.api.imports._latest_nav_dates", side_effect=[{scheme.id: date(2024, 1, 2)}, {scheme.id: date(2024, 1, 2)}]),
+        patch("app.api.imports.get_navs_on_or_before", new=AsyncMock()),
+        patch("app.api.imports.invalidate_holdings_cache") as invalidate,
+    ):
+        asyncio.run(_prefetch_member_nav_history(member_id))
+    invalidate.assert_not_called()
 
 
 def _sample_parse_result() -> ParseResult:

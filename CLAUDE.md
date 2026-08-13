@@ -109,8 +109,35 @@ Codex-implemented change is considered done. Full design:
 
 ## Session State
 
-*(Updated 2026-08-11. See `session.md` at repo root for full detail — this is the
+*(Updated 2026-08-13. See `session.md` at repo root for full detail — this is the
 one-paragraph pointer for a fresh session.)*
+
+**Dashboard load-time performance fix (Fix A/B/D) is complete, reviewed, merged, and
+pushed to both `feat/enhanced-ui` and `dev_intern`.** Diagnosed and fixed the slow
+first-dashboard-load-after-import problem: background NAV prefetch on import confirm
+(Fix A), parallelized per-scheme NAV network fetch with DB access kept strictly
+sequential (Fix B), and a process-local per-day holdings cache with a 15-minute
+self-healing TTL and lock-guarded atomic invalidation (Fix D). Delegated to Codex via
+the `model-orchestration` skill's full workflow; took **4 rounds** of dispatch →
+independent verification → mandatory adversarial review to close — round 1 found 3 high
+races (stale-day caching, publish-vs-invalidation race, NAV-upsert race), round 2 closed
+the NAV race but left 2 more (non-atomic generation-check, a "today-only" cache rule that
+defeated the cache's purpose during normal delayed-NAV periods), round 3 closed both with
+a process-local lock and decoupling cache eligibility from calendar-date, round 4 added
+the TTL for the one remaining high finding (one-shot prefetch can't catch NAV published
+later in the day). One medium, correctness-safe finding remains from round 4 (no
+per-key single-flight coordination on concurrent cold-cache misses) — **accepted as a
+documented limitation per explicit user decision**, not dispatched for a round 5.
+Backend suite: **326 passing, 2 skipped** (up from 156), zero regressions across all 4
+rounds, independently re-verified every round rather than trusting Codex's self-report.
+Full round-by-round detail: `Docs/orchestration/dashboard-nav-perf-handoff.md` (Status:
+DONE) and `Docs/orchestration/delegation-log.md`. **Fix C — the real fix (ADR-006's
+EventBridge Scheduler + ECS Express Mode recurring NAV-refresh job) remains explicitly
+deferred to deployment phase**, not built this session; see `session.md`'s "Fix C" section
+for what it needs to cover when built and how it supersedes/interacts with Fix A/B/D.
+`feat/enhanced-ui` also picked up 4 incoming commits from the colleague's UI work
+(distributor comparison, import review page, a CAS-redirect auth fix, an import-card
+layout fix) via fast-forward before this session's fix was committed on top.
 
 **Phase 4 Part 4 (Analytics — category-universe NAV caching → category
 ranking, PRD-04 FR-3/FR-4) is built and tested, committed locally, not

@@ -10,11 +10,14 @@ the cache after that.
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
 import httpx
+from sqlalchemy.dialects.postgresql import insert as postgresql_insert
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Session
 
 from app.models.reference import NavHistory, Scheme
@@ -37,10 +40,21 @@ async def _fetch_nav_history(amfi_code: str) -> list[tuple[date, Decimal]]:
 
 
 def _upsert_nav_history(db: Session, scheme_id: uuid.UUID, rows: list[tuple[date, Decimal]]) -> None:
-    existing_dates = {d for (d,) in db.query(NavHistory.date).filter_by(scheme_id=scheme_id).all()}
-    for row_date, nav in rows:
-        if row_date not in existing_dates:
-            db.add(NavHistory(scheme_id=scheme_id, date=row_date, nav=nav))
+    if not rows:
+        return
+    values = [{"scheme_id": scheme_id, "date": row_date, "nav": nav} for row_date, nav in rows]
+    dialect_name = db.get_bind().dialect.name
+    if dialect_name == "sqlite":
+        statement = sqlite_insert(NavHistory).values(values).on_conflict_do_nothing(
+            index_elements=[NavHistory.scheme_id, NavHistory.date]
+        )
+    elif dialect_name == "postgresql":
+        statement = postgresql_insert(NavHistory).values(values).on_conflict_do_nothing(
+            index_elements=[NavHistory.scheme_id, NavHistory.date]
+        )
+    else:
+        raise RuntimeError(f"Unsupported database dialect for NAV upsert: {dialect_name}")
+    db.execute(statement)
     db.commit()
 
 
@@ -77,6 +91,44 @@ async def get_nav_on_or_before(db: Session, scheme: Scheme, on_date: date) -> tu
     _upsert_nav_history(db, scheme.id, rows)
     refreshed = _latest_cached_on_or_before(db, scheme.id, on_date)
     return (refreshed.nav, refreshed.date) if refreshed else None
+
+
+async def get_navs_on_or_before(
+    db: Session,
+    scheme_date_pairs: list[tuple[Scheme, date]],
+) -> dict[uuid.UUID, tuple[Decimal, date] | None]:
+    """Batch NAV lookup with concurrency confined to the pure HTTP leg."""
+    results: dict[uuid.UUID, tuple[Decimal, date] | None] = {}
+    pending: list[tuple[Scheme, date, NavHistory | None]] = []
+
+    # A synchronous SQLAlchemy Session is not coroutine-safe: all reads stay
+    # outside gather and execute in this sequential loop.
+    for scheme, on_date in scheme_date_pairs:
+        cached = _latest_cached_on_or_before(db, scheme.id, on_date)
+        trustworthy = cached is not None and (cached.date == on_date or on_date != date.today())
+        if trustworthy:
+            results[scheme.id] = (cached.nav, cached.date)
+        else:
+            pending.append((scheme, on_date, cached))
+
+    async def fetch(scheme: Scheme):
+        try:
+            return await _fetch_nav_history(scheme.amfi_code)
+        except httpx.HTTPError:
+            return None
+
+    fetched = await asyncio.gather(*(fetch(scheme) for scheme, _, _ in pending))
+
+    # Writes and final reads likewise remain strictly sequential.
+    for (scheme, on_date, cached), rows in zip(pending, fetched, strict=True):
+        if rows is None:
+            results[scheme.id] = (cached.nav, cached.date) if cached else None
+            continue
+        _upsert_nav_history(db, scheme.id, rows)
+        refreshed = _latest_cached_on_or_before(db, scheme.id, on_date)
+        results[scheme.id] = (refreshed.nav, refreshed.date) if refreshed else None
+
+    return results
 
 
 def get_previous_nav_from_cache(db: Session, scheme_id: uuid.UUID, before_date: date) -> tuple[Decimal, date] | None:

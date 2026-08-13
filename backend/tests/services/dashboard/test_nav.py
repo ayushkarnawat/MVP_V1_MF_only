@@ -1,4 +1,5 @@
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 from decimal import Decimal
 from unittest.mock import AsyncMock, patch
@@ -9,7 +10,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.db.base import Base
 from app.models.reference import Scheme
-from app.services.dashboard.nav import get_nav_on_or_before, get_previous_nav_from_cache
+from app.services.dashboard.nav import _upsert_nav_history, get_nav_on_or_before, get_navs_on_or_before, get_previous_nav_from_cache
 
 
 def _session():
@@ -130,3 +131,56 @@ def test_get_previous_nav_from_cache_returns_none_when_nothing_earlier():
     db = _session()
     scheme = _scheme(db)
     assert get_previous_nav_from_cache(db, scheme.id, date(2024, 1, 1)) is None
+
+
+def test_get_navs_fetches_network_legs_concurrently_then_caches_sequentially():
+    import asyncio
+
+    db = _session()
+    scheme_a = _scheme(db, "111111")
+    scheme_b = _scheme(db, "222222")
+    both_fetches_started = asyncio.Event()
+    started: set[str] = set()
+
+    async def fetch(amfi_code: str):
+        started.add(amfi_code)
+        if len(started) == 2:
+            both_fetches_started.set()
+        await asyncio.wait_for(both_fetches_started.wait(), timeout=1)
+        nav = Decimal("51.0000") if amfi_code == "111111" else Decimal("62.0000")
+        return [(date.today(), nav)]
+
+    with patch("app.services.dashboard.nav._fetch_nav_history", side_effect=fetch):
+        results = asyncio.run(
+            get_navs_on_or_before(db, [(scheme_a, date.today()), (scheme_b, date.today())])
+        )
+
+    assert results == {
+        scheme_a.id: (Decimal("51.0000"), date.today()),
+        scheme_b.id: (Decimal("62.0000"), date.today()),
+    }
+
+    from app.models.reference import NavHistory
+
+    assert db.query(NavHistory).count() == 2
+
+
+def test_upsert_nav_history_is_conflict_safe_across_sessions(tmp_path):
+    engine = create_engine(
+        f"sqlite:///{tmp_path / 'nav-race.db'}",
+        connect_args={"check_same_thread": False},
+    )
+    Base.metadata.create_all(engine)
+    sessions = sessionmaker(autoflush=False, bind=engine)
+    setup_db = sessions()
+    scheme = _scheme(setup_db)
+    row = [(date(2024, 1, 15), Decimal("50.1234"))]
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        futures = [executor.submit(_upsert_nav_history, sessions(), scheme.id, row) for _ in range(2)]
+        for future in futures:
+            future.result()
+
+    verify_db = sessions()
+    from app.models.reference import NavHistory
+    assert verify_db.query(NavHistory).filter_by(scheme_id=scheme.id).count() == 1

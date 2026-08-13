@@ -1,4 +1,4 @@
-# Session state — 2026-08-11 (updated)
+# Session state — 2026-08-13 (updated)
 
 Working notes for picking this project back up cold. Not a planning doc — see
 `Docs/superpowers/plans/` for those. This file tracks *where things stand*,
@@ -6,6 +6,169 @@ gets overwritten each session, and isn't meant to accumulate history.
 
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
+
+## Dashboard load-time performance fix (Fix A/B/D) — built, reviewed, merged, and pushed this session
+
+User reported the dashboard is slow to load, especially the *first* load right
+after signup/import. Diagnosed the root cause directly (not delegated): the
+Main Dashboard backend's on-demand NAV fetch (`backend/app/services/dashboard/nav.py`)
+is a local-dev-first stand-in for the real, not-yet-built ADR-006 scheduled
+refresh job (**Fix C** — see its own section below, still deferred). Three
+concrete, in-scope mitigations were identified and delegated end-to-end to
+Codex via the `model-orchestration` skill's full workflow (handoff doc →
+dispatch → the skill's *mandatory* adversarial-review gate before Status could
+move to `DONE`). Took **4 full rounds** of implement → independently-verify →
+adversarial-review before the design was actually correct — each round's
+review caught something real, none were rubber-stamped.
+
+**Fix A — background NAV prefetch on import confirm.**
+`confirm_import_route` (`backend/app/api/imports.py`) now schedules a
+`BackgroundTasks` job right after `confirm_import()` commits, prefetching NAV
+history for every scheme the member now holds, using a fresh `SessionLocal()`
+(never the request-scoped `db`, which closes when the response returns).
+Fire-and-forget — never raises into FastAPI's task runner, degrades the same
+way `nav.py`'s existing on-demand fetch already does.
+
+**Fix B — parallelized per-scheme NAV network fetch.** `compute_holdings`
+(`backend/app/services/dashboard/holdings.py`) used to fetch each held
+scheme's NAV sequentially — N sequential `mfapi.in` round trips for an
+N-holding member on every cold dashboard load. A new batch function,
+`get_navs_on_or_before` (`nav.py`), splits the work into three sequential
+phases with only the middle one parallelized: (1) sequential DB reads to find
+which schemes already have a trustworthy cached NAV, (2) `asyncio.gather` over
+only the schemes that need a real network fetch, (3) sequential DB
+upserts/reads for the fetched results. The non-negotiable rule throughout: a
+single synchronous SQLAlchemy `Session` must never have its DB reads/writes
+interleaved across concurrent coroutines — only the pure-network leg is ever
+gathered.
+
+**Fix D — process-local per-day cache for `compute_holdings`.** The dashboard
+fires `/holdings` and `/allocation` back-to-back on every page load
+(`Promise.all` on the frontend), each independently re-running the full
+FIFO+NAV computation for the same member set on the same day. Added an
+in-memory cache in `holdings.py`, keyed by `(household_member_ids,
+date.today())`. This is the fix that took all 4 rounds to close:
+- **Round 1 review** (3 high findings): a stale/incomplete snapshot (computed
+  before that day's NAV was even published) could get cached for the whole
+  day with nothing to invalidate it later; a race let an in-flight
+  computation publish a stale pre-import snapshot *after* an import's own
+  invalidation already ran; and `_upsert_nav_history` had a check-then-insert
+  race across separate `Session`s (two overlapping fetches could both try to
+  insert the same `(scheme_id, date)` row, one raising an uncaught
+  `IntegrityError`).
+- **Round 2 fix**: closed the NAV-upsert race with a dialect-native `ON
+  CONFLICT DO NOTHING` upsert (verified correctly closed, never flagged
+  again). Attempted the cache races with a per-member generation counter
+  (capture before compute, publish only if unchanged) plus a rule that
+  holdings are only cached when every NAV is dated exactly `date.today()`.
+  Round 2's own review found this still incomplete: the generation-check and
+  the cache-publish were two separate steps with a gap `invalidate_holdings_cache`
+  could still land in (narrower window than round 1, not closed); and the
+  "today-only" eligibility rule meant the cache barely ever activated during
+  completely normal delayed-NAV periods (weekends, holidays, or simply before
+  that evening's NAV publishes) — defeating Fix D's entire purpose exactly
+  when it mattered most.
+- **Round 3 fix**: closed both. A single process-local lock now spans
+  generation-capture, compare-and-publish, *and* `invalidate_holdings_cache`'s
+  own generation-bump-plus-delete, so the two paths can never interleave.
+  Cache eligibility was decoupled from "NAV dated today" entirely — snapshots
+  are cached regardless of NAV freshness, and the background prefetch (Fix A)
+  instead bumps the generation for a member only when it detects that a
+  scheme's *max stored NAV date actually advanced*, never on a calendar-date
+  rule. Round 3's own review found one new high finding: since Fix A's
+  prefetch is one-shot (fires once, right after that one import), it can
+  never catch NAV that publishes *later* in the day if the user's dashboard
+  was already loaded (and thus already cached) before publication — no
+  periodic hook exists to re-check, because Fix C (the real recurring job)
+  is deferred.
+- **Round 4 fix**: closed it with a bounded 15-minute TTL
+  (`_HOLDINGS_CACHE_TTL_SECONDS` in `holdings.py`, an injectable monotonic
+  clock so tests don't sleep for real) so a stale entry self-heals on its own
+  without needing any external trigger — deliberately not an attempt to
+  rebuild Fix C. An expired entry is deleted and falls through the exact same
+  lock/generation-check miss path as any other cache miss, not a bypass.
+  Round 4's review found one last finding, **medium severity, correctness-safe**:
+  there's no per-key single-flight coordination, so two concurrent requests on
+  the same cold/just-expired cache key (precisely Fix D's original motivating
+  case — `/holdings` and `/allocation` firing together) can both observe a
+  miss and both run a full independent computation, with the second's publish
+  simply overwriting the first's. No stale data survives, no corruption — just
+  an occasional redundant computation, bounded to at most once per TTL window
+  per key. **Explicit user decision: accept this as a documented limitation,
+  do not dispatch a round 5.** Closing it fully needs a genuine single-flight
+  primitive (one caller computes, concurrent callers await and reuse the
+  result) — judged not worth the added complexity for this MVP given the
+  finding is no longer a correctness bug and the real long-term fix is Fix C,
+  not a more elaborate process-local cache. Documented directly in
+  `holdings.py`'s existing cache-scope comment.
+
+Full round-by-round detail — every review's verbatim findings, every dispatch
+prompt, every independent-verification result — lives in
+`Docs/orchestration/dashboard-nav-perf-handoff.md` (**Status: DONE**) and
+`Docs/orchestration/delegation-log.md`. **Every round was independently
+re-verified by re-running the full backend suite directly** (never trusted
+Codex's self-report alone — Codex's own sandbox hit a Python 3.14/Starlette
+`TestClient` hang on every single round that never reproduced outside its
+sandbox, confirmed each time by the orchestrator's own run). Backend suite
+grew **156 → 326 passing, 2 skipped throughout, zero regressions at every
+step** (319 after round 1, 322 after round 2, 324 after round 3, 326 after
+round 4).
+
+### Fix C — the real fix, still deferred to deployment phase
+
+Fix A/B/D are explicitly local-dev-first mitigations layered on top of
+on-demand NAV fetching — none of them are the real fix, and the handoff doc
+says so throughout. **The actual fix is ADR-006's EventBridge Scheduler + ECS
+Express Mode recurring NAV-refresh job** (per `/Docs/ADR-Technical-Stack-Decisions.md`
+and `/Docs/TDD-Unifolio.md`), which should run on a daily schedule (aligned to
+mfapi.in/AMFI's evening publication window) and proactively refresh
+`nav_history` for every scheme any user holds — eliminating on-demand
+fetch-on-request entirely, not just mitigating its cost. This was **not**
+built this session — it's deployment-phase work per the Migration Plan's
+Readiness Checklist, same as the rest of AWS deployment. When it is built, it
+needs its own design pass covering at minimum: schedule cadence and how it
+handles a partially-failed run (some schemes' fetches failing mid-batch);
+whether it shares `nav.py`'s existing per-scheme fetch/upsert code (now
+conflict-safe via round 2's `ON CONFLICT DO NOTHING` fix) or needs a
+bulk-oriented client like `scheme_universe.py`'s AMFI bulk-file pattern
+(likely far more efficient than N per-scheme calls for every scheme in the
+system); and how it interacts with Fix A/B/D once live:
+- Fix A's one-shot post-import prefetch becomes redundant for schemes the
+  recurring job already covers, but is harmless to leave running — it only
+  matters for the gap between an import and the job's next scheduled run.
+- Fix D's cache (TTL, generation counter, lock) becomes largely moot — once
+  `nav_history` is proactively kept fresh, `compute_holdings` will already be
+  reading fresh data, so the cache's staleness-healing purpose (rounds 3-4)
+  disappears. Its remaining value (same-load `/holdings`+`/allocation` dedup)
+  is real but small — revisit then whether it's still worth keeping as-is, or
+  whether that's the moment to invest in real single-flight coordination
+  (round 4's accepted limitation) if the dedup case still matters.
+- Fix B (parallelized network fetch) stays useful regardless of Fix C — it's
+  about the shape of concurrent scheme-NAV fetches, not about whether the
+  fetch is on-demand or scheduled, so it isn't superseded by the recurring job.
+
+## Branch reconciliation and push (this session)
+
+`feat/enhanced-ui` was behind `origin/feat/enhanced-ui` by 4 commits — the
+colleague's incoming UI work (distributor-comparison view update, import
+review page update, a CAS-request-redirect auth fix, an import-card layout
+fix). Fast-forwarded to pick those up, then this session's dashboard-nav-perf
+fix (above) was committed on top and pushed. `dev_intern` was fast-forwarded
+to match and pushed too, so both branches stay identical and carry everything,
+same convention as the prior branch reconciliation. `main` remains untouched
+per the standing instruction to hold off merging until the analytics
+dashboard (PRD-04) is complete. See `git log` on both branches for the exact
+commits — this file intentionally doesn't duplicate commit hashes that go
+stale the moment a new commit lands.
+
+**Repo-hygiene note reconfirmed this session**: the working tree carries a
+large amount of unrelated in-progress work from other concurrent sessions
+(another Claude account's Phase 4 Scorer work in `Docs/superpowers/plans/`,
+plus the long-standing pure-CRLF-noise files across `.claude/skills/` and
+`frontend/src/`, reconfirmed again via `git diff -w` — zero real content).
+None of it was touched, staged, or reverted; every commit this session was
+scoped by explicit pathspec to only the files this session's work actually
+produced.
 
 ## Model Orchestration skill — built this session
 

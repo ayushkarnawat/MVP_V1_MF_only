@@ -20,6 +20,7 @@ from app.models.folio import Folio
 from app.models.imports import Import, ImportStatus
 from app.models.reference import Scheme
 from app.models.transaction import Transaction
+from app.services.dashboard.holdings import invalidate_holdings_cache
 from app.services.import_.enrich import MfApiClient, mfapi_client
 from app.services.import_.parser import ParseResult, source_cas_type_from_file_type
 from app.services.import_.schemas import (
@@ -255,6 +256,7 @@ def confirm_import(
     import_rec.new_transactions_count = added
     import_rec.duplicate_transactions_count = skipped
     db.commit()
+    invalidate_holdings_cache(household_member_id)
 
     del _preview_sessions[session_id]
     return ImportConfirmResponse(added=added, skipped=skipped, import_id=str(import_rec.id))
