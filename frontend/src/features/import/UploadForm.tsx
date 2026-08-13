@@ -74,7 +74,7 @@ export function UploadForm({ onSubmit }: UploadFormProps) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="p-5 sm:p-7 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs space-y-6 max-w-xl mx-auto"
+      className="p-7 sm:p-8 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs space-y-6 w-full"
     >
       {/* Header */}
       <div className="space-y-1">

@@ -51,7 +51,7 @@ export function WaitingForCasView({
   };
 
   return (
-    <div className="space-y-6 max-w-xl mx-auto">
+    <div className="space-y-6 w-full">
       {/* Waiting Status Card */}
       <div className="p-5 sm:p-6 rounded-2xl bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] border border-[color-mix(in_srgb,var(--color-accent)_20%,transparent)] shadow-xs space-y-3">
         <div className="flex items-center justify-between gap-3 flex-wrap">

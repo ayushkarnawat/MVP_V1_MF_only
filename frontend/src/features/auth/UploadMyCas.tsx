@@ -18,7 +18,7 @@ export function UploadMyCas({
 }: UploadMyCasProps) {
   if (awaitingUpload) {
     return (
-      <div className={styles.container}>
+      <div className={styles.importContainer}>
         <TwoPathImportContainer
           memberId="self"
           defaultTab="request"

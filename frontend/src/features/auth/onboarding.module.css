@@ -14,8 +14,25 @@
   box-sizing: border-box;
 }
 
+.importContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  max-width: 800px;
+  width: 100%;
+  margin: var(--space-8) auto;
+  padding: var(--space-8);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  animation: fadeIn var(--motion-page);
+  box-sizing: border-box;
+}
+
 @media (max-width: 640px) {
-  .container {
+  .container,
+  .importContainer {
     margin: 0 auto;
     padding: var(--space-6) var(--space-4);
     border-radius: var(--radius-sm);

@@ -65,7 +65,7 @@ export function TwoPathImportContainer({
   };
 
   return (
-    <div className="flex flex-col space-y-6 w-full max-w-xl mx-auto">
+    <div className="flex flex-col space-y-6 w-full max-w-3xl mx-auto">
       {/* Top Header & Secondary History Switcher */}
       <div className="flex items-center justify-between gap-3 flex-wrap px-0.5 pb-0.5">
         <div className="space-y-0.5">
@@ -106,14 +106,14 @@ export function TwoPathImportContainer({
           onClick={handleStep1Click}
           type="button"
           className={cn(
-            "flex-1 inline-flex items-center justify-center gap-1.5 sm:gap-2 py-2 sm:py-2.5 px-2.5 sm:px-3.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 cursor-pointer min-h-[38px] sm:min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
+            "flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 sm:gap-2 py-2 sm:py-2.5 px-2.5 sm:px-3.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 cursor-pointer min-h-[38px] sm:min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
             activeTab === "request"
               ? "bg-[var(--color-bg)] text-[var(--color-ink)] shadow-xs border border-[var(--color-border)]/60"
               : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] hover:bg-[var(--color-bg)]/50"
           )}
           aria-label="Request from CAMS (Recommended)"
         >
-          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+          <div className="flex items-center justify-center gap-1.5 sm:gap-2 min-w-0">
             <span
               className={cn(
                 "h-4 w-4 sm:h-5 sm:w-5 rounded-full text-[9px] sm:text-[10px] font-bold flex items-center justify-center flex-shrink-0 transition-colors",
@@ -124,8 +124,8 @@ export function TwoPathImportContainer({
             >
               1
             </span>
-            <span className="truncate hidden sm:inline">Step 1 — Request from CAMS</span>
-            <span className="truncate sm:hidden">Step 1 · CAMS</span>
+            <span className="truncate min-w-0 hidden sm:inline">Step 1 — Request from CAMS</span>
+            <span className="truncate min-w-0 sm:hidden">Step 1 · CAMS</span>
           </div>
         </button>
 
@@ -136,14 +136,14 @@ export function TwoPathImportContainer({
           onClick={() => setActiveTab("upload")}
           type="button"
           className={cn(
-            "flex-1 inline-flex items-center justify-center gap-1.5 sm:gap-2 py-2 sm:py-2.5 px-2.5 sm:px-3.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 cursor-pointer min-h-[38px] sm:min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
+            "flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 sm:gap-2 py-2 sm:py-2.5 px-2.5 sm:px-3.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 cursor-pointer min-h-[38px] sm:min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
             activeTab === "upload"
               ? "bg-[var(--color-bg)] text-[var(--color-ink)] shadow-xs border border-[var(--color-border)]/60"
               : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] hover:bg-[var(--color-bg)]/50"
           )}
           aria-label="Upload Existing Statement"
         >
-          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+          <div className="flex items-center justify-center gap-1.5 sm:gap-2 min-w-0">
             <span
               className={cn(
                 "h-4 w-4 sm:h-5 sm:w-5 rounded-full text-[9px] sm:text-[10px] font-bold flex items-center justify-center flex-shrink-0 transition-colors",
@@ -154,8 +154,8 @@ export function TwoPathImportContainer({
             >
               2
             </span>
-            <span className="truncate hidden sm:inline">Step 2 — Upload Existing Statement</span>
-            <span className="truncate sm:hidden">Step 2 · Upload</span>
+            <span className="truncate min-w-0 hidden sm:inline">Step 2 — Upload Existing Statement</span>
+            <span className="truncate min-w-0 sm:hidden">Step 2 · Upload</span>
           </div>
         </button>
       </div>

@@ -30,7 +30,7 @@ export function FamilyCasUpload({ members, queue, onQueueUpload, onSkip, skipped
   if (activeMemberId) {
     const member = members.find((m) => m.id === activeMemberId);
     return (
-      <div className={styles.container}>
+      <div className={styles.importContainer}>
         <button
           type="button"
           onClick={() => {
