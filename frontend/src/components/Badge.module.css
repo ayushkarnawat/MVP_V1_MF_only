@@ -8,6 +8,9 @@
   font-size: 12px;
   font-weight: 500;
   line-height: 1.4;
+  /* Display-layer only — never mutates the underlying data value (e.g.
+     backend's "DIRECT" or a preview's "direct" stay as-is in state/props). */
+  text-transform: capitalize;
 }
 
 .positive {

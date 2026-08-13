@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Badge } from "./Badge";
 import { FundSignal } from "./FundSignal";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import { cn, toTitleCase } from "@/lib/utils";
 import { ArrowDown, ArrowUp, ArrowUpDown, Search } from "lucide-react";
 
 export interface HoldingRowData {
@@ -223,7 +223,7 @@ export function HoldingsTable({
                           row.plan_type === "DIRECT" ? "positive" : "neutral"
                         }
                       >
-                        {row.plan_type || "UNKNOWN"}
+                        {toTitleCase(row.plan_type || "UNKNOWN")}
                       </Badge>
                     </div>
                   </td>

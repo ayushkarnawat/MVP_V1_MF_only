@@ -3,7 +3,11 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
-  "inline-flex items-center gap-1 rounded-sm px-[9px] py-[3px] font-body text-xs font-medium leading-[1.4] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:ring-offset-2",
+  // capitalize is display-only (never mutates the underlying value) — it
+  // only helps for a lowercase source like "direct"; an all-caps source
+  // like "DIRECT" needs toTitleCase() at the call site, since CSS
+  // text-transform never lowercases the rest of an already-uppercase word.
+  "inline-flex items-center gap-1 rounded-sm px-[9px] py-[3px] font-body text-xs font-medium leading-[1.4] capitalize transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:ring-offset-2",
   {
     variants: {
       variant: {

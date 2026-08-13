@@ -24,7 +24,7 @@ describe("HoldingsTable", () => {
   it("renders holdings row with scheme name, plan badge, and gain indicators", () => {
     render(<HoldingsTable holdings={sampleHoldings} />);
     expect(screen.getByText("Parag Parikh Flexi Cap Fund")).toBeInTheDocument();
-    expect(screen.getByText("DIRECT")).toBeInTheDocument();
+    expect(screen.getByText("Direct")).toBeInTheDocument();
     expect(screen.getByText("₹8,593")).toBeInTheDocument();
   });
 
