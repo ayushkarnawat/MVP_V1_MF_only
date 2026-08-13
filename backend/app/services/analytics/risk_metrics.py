@@ -38,6 +38,16 @@ from app.models.reference import NavHistory
 _ROLLING_WINDOW_MONTHS = 12
 
 
+def years_ago(d: date, years: int) -> date:
+    """`d` minus `years` calendar years, clamped to Feb 28 if `d` is Feb 29
+    and the target year isn't a leap year (`date.replace(year=...)` raises
+    ValueError in that case instead)."""
+    try:
+        return d.replace(year=d.year - years)
+    except ValueError:
+        return d.replace(month=2, day=28, year=d.year - years)
+
+
 def month_end_dates(start: date, end: date) -> list[date]:
     """Calendar month-end dates from `start`'s month through the last
     complete month at or before `end`. Never includes a partial/current

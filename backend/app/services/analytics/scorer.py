@@ -13,6 +13,7 @@ import uuid
 from datetime import date, datetime, timezone
 from decimal import Decimal
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models.reference import FundScore, Scheme
@@ -31,6 +32,7 @@ from app.services.analytics.risk_metrics import (
     month_end_dates,
     monthly_returns,
     rolling_12m_returns,
+    years_ago,
 )
 from app.services.analytics.schemas import FundScoreRow
 from app.services.analytics.scheme_universe import get_category_universe
@@ -63,7 +65,7 @@ async def _category_component_scores(
     if not returns:
         return {}
 
-    month_ends = month_end_dates(today.replace(year=today.year - _HISTORY_YEARS), today)
+    month_ends = month_end_dates(years_ago(today, _HISTORY_YEARS), today)
     series_by_scheme = {
         scheme_id: build_monthly_series(db, scheme_id, month_ends) for scheme_id in returns
     }
@@ -113,18 +115,29 @@ async def _category_component_scores(
     return scores
 
 
-async def _cost_adjustment(db: Session, scheme: Scheme, universe: list[Scheme]) -> Decimal:
+async def _category_ter_context(
+    db: Session, universe: list[Scheme]
+) -> tuple[dict[uuid.UUID, Decimal], Decimal | None]:
+    """TER-vs-category-average inputs, computed once per category so a
+    portfolio holding several funds in the same category doesn't repeat
+    the TER refresh + AUM-weighted average for every held scheme in it."""
+    if not universe:
+        return {}, None
     scheme_ids = {s.id for s in universe}
     await _ensure_ter_fresh(db, scheme_ids)
     ter_by_scheme = {
         s.id: info[0] for s in universe if (info := _latest_ter_for_scheme(db, s.id)) is not None
     }
-    own_ter = ter_by_scheme.get(scheme.id)
-    if own_ter is None:
-        return Decimal("0")
     aaum_by_scheme = _latest_aaum_by_scheme(db, list(ter_by_scheme.keys()))
     category_avg = _aum_weighted_average(ter_by_scheme, aaum_by_scheme)
-    if category_avg is None:
+    return ter_by_scheme, category_avg
+
+
+def _cost_adjustment_from_context(
+    scheme: Scheme, ter_by_scheme: dict[uuid.UUID, Decimal], category_avg: Decimal | None
+) -> Decimal:
+    own_ter = ter_by_scheme.get(scheme.id)
+    if own_ter is None or category_avg is None:
         return Decimal("0")
     diff = own_ter - category_avg
     if abs(diff) <= _TER_DEAD_ZONE:
@@ -148,14 +161,21 @@ def _empty_row(scheme: Scheme, *, category_unavailable: bool, insufficient_histo
     )
 
 
-async def compute_fund_score(db: Session, scheme: Scheme) -> FundScoreRow:
-    if not scheme.sebi_category:
-        return _empty_row(scheme, category_unavailable=True, insufficient_history=False)
-
-    now = datetime.now(timezone.utc)
-    today = now.date()
-    universe = await get_category_universe(db, scheme.sebi_category)
-    scores = await _category_component_scores(db, universe, today)
+def _finish_fund_score(
+    db: Session,
+    scheme: Scheme,
+    universe: list[Scheme],
+    scores: dict[uuid.UUID, dict[str, Decimal | None]],
+    ter_by_scheme: dict[uuid.UUID, Decimal],
+    category_avg: Decimal | None,
+    today: date,
+) -> FundScoreRow:
+    """Everything below the category-wide computations (`_category_component_scores`,
+    `_category_ter_context`) that's genuinely per-scheme: this scheme's own
+    rank, tier, cost nudge, and its own `fund_scores` row. Callers that
+    already hold the category-wide inputs for several schemes (a portfolio
+    with multiple holdings in the same category) call this once per scheme
+    without recomputing the category-wide work each time."""
     scheme_scores = scores.get(scheme.id)
 
     if scheme_scores is None or scheme_scores["composite"] is None:
@@ -169,26 +189,30 @@ async def compute_fund_score(db: Session, scheme: Scheme) -> FundScoreRow:
         return _empty_row(scheme, category_unavailable=False, insufficient_history=True)
 
     tier = _tier_from_percentile(composite_rank[1])
-    cost_adjustment = await _cost_adjustment(db, scheme, universe)
+    cost_adjustment = _cost_adjustment_from_context(scheme, ter_by_scheme, category_avg)
     final_score = (composite_rank[1] + cost_adjustment).quantize(Decimal("0.01"))
 
+    # `computed_at` is pinned to day-start (not `now`) so the existing
+    # (scheme_id, computed_at) primary key IS the one-row-per-day
+    # invariant -- two concurrent requests racing past a check-then-insert
+    # would otherwise both observe "no row today" and both insert. The
+    # loser's IntegrityError just means another request already persisted
+    # an equivalent row for today; its own freshly computed result is
+    # still returned to its caller either way.
     today_start = datetime(today.year, today.month, today.day, tzinfo=timezone.utc)
-    existing_today = (
-        db.query(FundScore)
-        .filter(FundScore.scheme_id == scheme.id, FundScore.computed_at >= today_start)
-        .first()
-    )
-    if existing_today is None:
-        db.add(
-            FundScore(
-                scheme_id=scheme.id,
-                computed_at=now,
-                risk_adjusted_tier=tier,
-                cost_adjustment=cost_adjustment,
-                final_score=final_score,
-            )
+    db.add(
+        FundScore(
+            scheme_id=scheme.id,
+            computed_at=today_start,
+            risk_adjusted_tier=tier,
+            cost_adjustment=cost_adjustment,
+            final_score=final_score,
         )
+    )
+    try:
         db.commit()
+    except IntegrityError:
+        db.rollback()
 
     return FundScoreRow(
         scheme_id=str(scheme.id),
@@ -203,6 +227,22 @@ async def compute_fund_score(db: Session, scheme: Scheme) -> FundScoreRow:
         risk_percentile=str(scheme_scores["risk_percentile"]),
         consistency_hit_rate=str(scheme_scores["consistency_hit_rate"]),
     )
+
+
+async def compute_fund_score(db: Session, scheme: Scheme) -> FundScoreRow:
+    if not scheme.sebi_category:
+        return _empty_row(scheme, category_unavailable=True, insufficient_history=False)
+
+    today = datetime.now(timezone.utc).date()
+    universe = await get_category_universe(db, scheme.sebi_category)
+    scores = await _category_component_scores(db, universe, today)
+    # Skip the TER fetch entirely when nobody in the category has return
+    # data yet -- matches the original short-circuit: cost adjustment is
+    # meaningless without a composite score to adjust.
+    ter_by_scheme, category_avg = (
+        await _category_ter_context(db, universe) if scores else ({}, None)
+    )
+    return _finish_fund_score(db, scheme, universe, scores, ter_by_scheme, category_avg, today)
 
 
 from app.services.dashboard.aggregate import get_member_statuses
@@ -226,12 +266,34 @@ async def compute_portfolio_score(db: Session, household_member_ids: list[uuid.U
         for s in db.query(Scheme).filter(Scheme.id.in_([uuid.UUID(sid) for sid in unique_scheme_ids])).all()
     }
 
-    rows: list[FundScoreRow] = []
+    # Group held schemes by category so a portfolio holding several funds
+    # in the same category (common — e.g. two large-cap funds) computes
+    # that category's universe/return/risk/consistency/TER work once,
+    # instead of once per held scheme in it (each involves a DB query per
+    # scheme in the whole category, not just the held ones).
+    today = datetime.now(timezone.utc).date()
+    schemes_by_category: dict[str, list[Scheme]] = {}
     row_by_scheme: dict[str, FundScoreRow] = {}
-    for scheme_id_str in unique_scheme_ids:
-        row = await compute_fund_score(db, schemes_by_id[scheme_id_str])
-        rows.append(row)
-        row_by_scheme[scheme_id_str] = row
+    for scheme_id_str, scheme in schemes_by_id.items():
+        if not scheme.sebi_category:
+            row_by_scheme[scheme_id_str] = _empty_row(
+                scheme, category_unavailable=True, insufficient_history=False
+            )
+            continue
+        schemes_by_category.setdefault(scheme.sebi_category, []).append(scheme)
+
+    for sebi_category, category_schemes in schemes_by_category.items():
+        universe = await get_category_universe(db, sebi_category)
+        scores = await _category_component_scores(db, universe, today)
+        ter_by_scheme, category_avg = (
+            await _category_ter_context(db, universe) if scores else ({}, None)
+        )
+        for scheme in category_schemes:
+            row_by_scheme[str(scheme.id)] = _finish_fund_score(
+                db, scheme, universe, scores, ter_by_scheme, category_avg, today
+            )
+
+    rows = [row_by_scheme[sid] for sid in unique_scheme_ids]
 
     total_value = Decimal("0")
     covered_value = Decimal("0")

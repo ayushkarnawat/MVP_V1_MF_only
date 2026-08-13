@@ -15,6 +15,7 @@ from app.services.analytics.risk_metrics import (
     month_end_dates,
     monthly_returns,
     rolling_12m_returns,
+    years_ago,
 )
 
 
@@ -42,6 +43,14 @@ def test_month_end_dates_spans_start_to_last_complete_month():
 def test_month_end_dates_excludes_current_partial_month():
     dates = month_end_dates(date(2024, 3, 1), date(2024, 3, 15))
     assert dates == []
+
+
+def test_years_ago_clamps_feb_29_in_non_leap_target_year():
+    assert years_ago(date(2024, 2, 29), 1) == date(2023, 2, 28)
+
+
+def test_years_ago_regular_date():
+    assert years_ago(date(2024, 6, 15), 5) == date(2019, 6, 15)
 
 
 def test_build_monthly_series_uses_nav_on_or_before_each_anchor():

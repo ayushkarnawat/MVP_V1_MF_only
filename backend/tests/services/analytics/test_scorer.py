@@ -101,6 +101,46 @@ def test_compute_fund_score_persists_one_row_per_day():
     assert len(stored) == 1  # second call didn't insert a duplicate for the same day
 
 
+def test_compute_fund_score_survives_concurrent_duplicate_insert():
+    """Simulates a second request's row already having landed for today
+    (e.g. a concurrent request that committed first) by pre-seeding it
+    directly, bypassing this call's own check. The (scheme_id, computed_at)
+    primary key -- computed_at pinned to day-start -- must reject the
+    duplicate with an IntegrityError that this call swallows, rather than
+    raising or silently double-inserting."""
+    db = _session()
+    held = _scheme(db, "Held Fund")
+    peer = _scheme(db, "Peer Fund")
+    _seed_monthly_nav(db, held, 24, monthly_growth=Decimal("0.02"))
+    _seed_monthly_nav(db, peer, 24, monthly_growth=Decimal("0.005"))
+
+    today_start = datetime(_TODAY.year, _TODAY.month, _TODAY.day, tzinfo=timezone.utc)
+    db.add(
+        FundScore(
+            scheme_id=held.id,
+            computed_at=today_start,
+            risk_adjusted_tier=1,
+            cost_adjustment=Decimal("0"),
+            final_score=Decimal("10.00"),
+        )
+    )
+    db.commit()
+
+    async def _returns(db_, universe, today):
+        return {held.id: Decimal("0.30"), peer.id: Decimal("0.05")}
+
+    with (
+        patch("app.services.analytics.scorer._category_returns", new=AsyncMock(side_effect=_returns)),
+        patch("app.services.analytics.scorer.get_category_universe", new=AsyncMock(return_value=[held, peer])),
+        patch("app.services.analytics.scorer._ensure_ter_fresh", new=AsyncMock(return_value=None)),
+    ):
+        row = asyncio.run(compute_fund_score(db, held))
+
+    assert row.risk_adjusted_tier is not None  # freshly computed, not the stale seeded row
+    stored = db.query(FundScore).filter(FundScore.scheme_id == held.id).all()
+    assert len(stored) == 1  # duplicate insert was rejected, not appended
+
+
 def test_compute_fund_score_best_return_in_min_category_gets_tier_five():
     db = _session()
     held = _scheme(db, "Held Fund")
@@ -215,3 +255,50 @@ def test_compute_portfolio_score_weights_by_holding_value():
     assert len(summary.funds) == 1
     assert summary.weighted_score == summary.funds[0].final_score
     assert summary.uncovered_schemes == []
+
+
+def test_compute_portfolio_score_dedupes_category_work_across_holdings_in_same_category():
+    """Two holdings in the same category must trigger exactly one round of
+    category-wide work (universe fetch, category returns, TER refresh),
+    not one per holding -- each of these does a DB query per scheme in the
+    whole category, not just the held ones."""
+    db = _session()
+    member = _household_member(db)
+    held_a = _scheme(db, "Held Fund A")
+    held_b = _scheme(db, "Held Fund B")
+    _seed_monthly_nav(db, held_a, 24, monthly_growth=Decimal("0.01"))
+    _seed_monthly_nav(db, held_b, 24, monthly_growth=Decimal("0.015"))
+    _folio_with_purchase(db, member, held_a, Decimal("1000"), Decimal("100"), Decimal("10"), _START_3Y)
+    _folio_with_purchase(db, member, held_b, Decimal("1000"), Decimal("100"), Decimal("10"), _START_3Y)
+
+    universe_calls = []
+    returns_calls = []
+    ter_calls = []
+
+    async def _universe(db_, sebi_category):
+        universe_calls.append(sebi_category)
+        return [held_a, held_b]
+
+    async def _returns(db_, universe, today):
+        returns_calls.append(len(universe))
+        return {held_a.id: Decimal("0.20"), held_b.id: Decimal("0.25")}
+
+    async def _ter_fresh(db_, scheme_ids):
+        ter_calls.append(scheme_ids)
+
+    async def _nav_lookup(db_, scheme, on_date):
+        return Decimal("11"), on_date
+
+    with (
+        patch("app.services.analytics.scorer.get_category_universe", new=AsyncMock(side_effect=_universe)),
+        patch("app.services.analytics.scorer._category_returns", new=AsyncMock(side_effect=_returns)),
+        patch("app.services.analytics.scorer._ensure_ter_fresh", new=AsyncMock(side_effect=_ter_fresh)),
+        patch("app.services.dashboard.holdings.get_nav_on_or_before", new=AsyncMock(side_effect=_nav_lookup)),
+        patch("app.services.dashboard.holdings.get_previous_nav_from_cache", return_value=None),
+    ):
+        summary = asyncio.run(compute_portfolio_score(db, [member.id]))
+
+    assert len(summary.funds) == 2
+    assert len(universe_calls) == 1  # not once per held scheme
+    assert len(returns_calls) == 1
+    assert len(ter_calls) == 1
