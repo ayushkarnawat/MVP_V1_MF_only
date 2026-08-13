@@ -20,6 +20,13 @@ import { MobileHoldingCardSummary } from "../holdings/MobileHoldingCardSummary";
 import { MobileFundDetailView } from "../holdings/MobileFundDetailView";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import {
   ArrowDownRight,
@@ -27,7 +34,6 @@ import {
   Users,
   AlertTriangle,
   UploadCloud,
-  ChevronDown,
   Search,
 } from "lucide-react";
 
@@ -52,6 +58,14 @@ export function MobileDashboardView({
   const [allocation, setAllocation] = useState<AllocationSummary | null>(null);
   const [coverageGaps, setCoverageGaps] = useState<CoverageGapItem[]>([]);
   const [allocationTab, setAllocationTab] = useState<"asset" | "amc">("asset");
+  // Local, display-only filter for the Holdings list in Family Combined
+  // view — independent of viewMode/selectedMemberId above, which control
+  // the whole screen's data-fetch context, not just what's shown in this list.
+  const [holdingsMemberFilter, setHoldingsMemberFilter] = useState<string>("all");
+
+  useEffect(() => {
+    setHoldingsMemberFilter("all");
+  }, [viewMode]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedHolding, setSelectedHolding] = useState<HoldingRow | null>(null);
   const [loading, setLoading] = useState(true);
@@ -162,14 +176,18 @@ export function MobileDashboardView({
   const isPositiveGain = totals.profitVal >= 0;
 
   const filteredHoldings = useMemo(() => {
-    if (!searchTerm.trim()) return holdings;
+    const byMember =
+      holdingsMemberFilter === "all"
+        ? holdings
+        : holdings.filter((h) => h.household_member_id === holdingsMemberFilter);
+    if (!searchTerm.trim()) return byMember;
     const q = searchTerm.toLowerCase();
-    return holdings.filter(
+    return byMember.filter(
       (h) =>
         h.scheme_name.toLowerCase().includes(q) ||
         (h.amc_name && h.amc_name.toLowerCase().includes(q))
     );
-  }, [holdings, searchTerm]);
+  }, [holdings, searchTerm, holdingsMemberFilter]);
 
   const handleSelectHolding = (item: HoldingRow | null) => {
     setSelectedHolding(item);
@@ -262,21 +280,24 @@ export function MobileDashboardView({
 
             {/* Member Dropdown Picker (if in per-member mode) */}
             {viewMode === "member" && members.length > 0 && (
-              <div className="relative">
-                <select
-                  value={selectedMemberId || ""}
-                  onChange={(e) => setSelectedMemberId(e.target.value)}
-                  className="w-full appearance-none pl-3 pr-8 py-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-xs font-semibold text-[var(--color-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] cursor-pointer shadow-2xs"
+              <Select
+                value={selectedMemberId || undefined}
+                onValueChange={setSelectedMemberId}
+              >
+                <SelectTrigger
+                  className="w-full h-10 gap-1.5 rounded-full border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-xs font-medium text-[var(--color-text-secondary)] [&>span]:line-clamp-1"
                   aria-label="Select household member"
                 >
+                  <SelectValue placeholder="Select member" />
+                </SelectTrigger>
+                <SelectContent>
                   {members.map((m) => (
-                    <option key={m.id} value={m.id}>
+                    <SelectItem key={m.id} value={m.id}>
                       {m.name} ({m.relationship})
-                    </option>
+                    </SelectItem>
                   ))}
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-text-secondary)] pointer-events-none opacity-70" />
-              </div>
+                </SelectContent>
+              </Select>
             )}
           </div>
         )}
@@ -382,21 +403,24 @@ export function MobileDashboardView({
 
           {/* Member Dropdown Picker (if in per-member mode) */}
           {viewMode === "member" && members.length > 0 && (
-            <div className="relative">
-              <select
-                value={selectedMemberId || ""}
-                onChange={(e) => setSelectedMemberId(e.target.value)}
-                className="w-full appearance-none pl-3 pr-8 py-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-xs font-semibold text-[var(--color-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] cursor-pointer shadow-2xs"
+            <Select
+              value={selectedMemberId || undefined}
+              onValueChange={setSelectedMemberId}
+            >
+              <SelectTrigger
+                className="w-full h-10 gap-1.5 rounded-full border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-xs font-medium text-[var(--color-text-secondary)] [&>span]:line-clamp-1"
                 aria-label="Select household member"
               >
+                <SelectValue placeholder="Select member" />
+              </SelectTrigger>
+              <SelectContent>
                 {members.map((m) => (
-                  <option key={m.id} value={m.id}>
+                  <SelectItem key={m.id} value={m.id}>
                     {m.name} ({m.relationship})
-                  </option>
+                  </SelectItem>
                 ))}
-              </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-text-secondary)] pointer-events-none opacity-70" />
-            </div>
+              </SelectContent>
+            </Select>
           )}
         </div>
       )}
@@ -582,13 +606,34 @@ export function MobileDashboardView({
         </div>
 
         {/* Holdings Header Bar */}
-        <div className="flex items-center justify-between px-1 text-xs">
+        <div className="flex items-center justify-between gap-2 px-1 text-xs flex-wrap">
           <span className="font-display text-sm font-bold text-[var(--color-ink)]">
             Holdings
           </span>
-          <span className="text-xs font-semibold text-[var(--color-text-secondary)] tabular-nums">
-            {filteredHoldings.length} holding{filteredHoldings.length !== 1 ? "s" : ""}
-          </span>
+
+          <div className="flex items-center gap-2">
+            {viewMode === "aggregate" && membersStatus.length > 0 && (
+              <Select value={holdingsMemberFilter} onValueChange={setHoldingsMemberFilter}>
+                <SelectTrigger
+                  className="h-8 w-auto min-w-[130px] gap-1.5 rounded-full border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1 text-xs font-medium text-[var(--color-text-secondary)] [&>span]:line-clamp-1"
+                  aria-label="Filter holdings by family member"
+                >
+                  <SelectValue placeholder="All Members" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Members</SelectItem>
+                  {membersStatus.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            <span className="text-xs font-semibold text-[var(--color-text-secondary)] tabular-nums">
+              {filteredHoldings.length} holding{filteredHoldings.length !== 1 ? "s" : ""}
+            </span>
+          </div>
         </div>
 
         {/* Summary-First Holding Cards List */}

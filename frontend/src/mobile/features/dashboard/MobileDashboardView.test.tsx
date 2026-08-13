@@ -317,8 +317,8 @@ describe("MobileDashboardView", () => {
     });
 
     // Switch to Spouse (m-2) who has 0 holdings
-    const memberSelect = screen.getByLabelText("Select household member");
-    fireEvent.change(memberSelect, { target: { value: "m-2" } });
+    fireEvent.click(screen.getByLabelText("Select household member"));
+    fireEvent.click(await screen.findByText("Spouse"));
 
     // Verify empty state is rendered, BUT the member dropdown is STILL present and not trapped
     await waitFor(() => {
@@ -327,7 +327,8 @@ describe("MobileDashboardView", () => {
     });
 
     // Switch back to Ayush (m-1)
-    fireEvent.change(screen.getByLabelText("Select household member"), { target: { value: "m-1" } });
+    fireEvent.click(screen.getByLabelText("Select household member"));
+    fireEvent.click(await screen.findByText("Ayush"));
 
     await waitFor(() => {
       expect(screen.getByText("HDFC Top 100 Fund")).toBeInTheDocument();
