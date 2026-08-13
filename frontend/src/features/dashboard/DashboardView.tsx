@@ -360,11 +360,13 @@ export function DashboardView({
         holding={selectedHolding}
         onCompareDistributors={(schemeId, schemeName) => {
           // Captured now, before setSelectedHolding(null) below clears it —
-          // both updates land in the same batch, so reading
-          // selectedHolding?.household_member_id at render time would always
-          // see null and silently fall back to the page-level memberId,
-          // sending the wrong member's ID for any holding not owned by them.
-          const ownerId = selectedHolding?.household_member_id || memberId;
+          // both updates land in the same batch, so reading it at render
+          // time would always see null. No fallback to the page-level
+          // memberId here: that's a different member than the one who
+          // actually owns this holding, and silently substituting it sends
+          // the wrong id instead of failing loudly (the render gate below
+          // treats an empty ownerId as "don't open").
+          const ownerId = selectedHolding?.household_member_id || "";
           setSelectedHolding(null);
           setComparisonModalState({
             isOpen: true,
@@ -375,8 +377,13 @@ export function DashboardView({
         }}
       />
 
-      {/* S17: Distributor Comparison Modal */}
-      {memberId && (
+      {/* S17: Distributor Comparison Modal — gated on its OWN captured
+          memberId (the clicked holding's actual owner), not the page-level
+          memberId. That page-level value is a different concept (which
+          member/aggregate the dashboard is currently viewing) and can be
+          null or point at a different member than the one being compared;
+          falling back to it here would silently resend the wrong id. */}
+      {comparisonModalState.memberId && (
         <DistributorComparisonModal
           isOpen={comparisonModalState.isOpen}
           onClose={() =>
@@ -387,7 +394,7 @@ export function DashboardView({
               schemeName: "",
             })
           }
-          memberId={comparisonModalState.memberId || memberId}
+          memberId={comparisonModalState.memberId}
           schemeId={comparisonModalState.schemeId}
           schemeName={comparisonModalState.schemeName}
         />

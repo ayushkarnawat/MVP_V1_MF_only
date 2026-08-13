@@ -31,6 +31,10 @@ import {
   Search,
 } from "lucide-react";
 
+// Mobile-only legend/segment order for "By Asset Class" — web keeps the
+// backend's natural array order.
+const ASSET_CLASS_ORDER = ["Equity", "Hybrid", "Other"];
+
 export interface MobileDashboardViewProps {
   onNavigateImport?: (memberId?: string) => void;
   onDetailViewToggle?: (isOpen: boolean) => void;
@@ -550,10 +554,15 @@ export function MobileDashboardView({
           <AllocationDonut
             data={
               allocationTab === "asset"
-                ? allocation.by_asset_class
+                ? [...allocation.by_asset_class].sort(
+                    (a, b) =>
+                      ASSET_CLASS_ORDER.indexOf(a.label) -
+                      ASSET_CLASS_ORDER.indexOf(b.label)
+                  )
                 : allocation.by_amc
             }
             title={allocationTab === "asset" ? "By Asset Class" : "By AMC"}
+            enableTapHighlight
           />
         </section>
       )}

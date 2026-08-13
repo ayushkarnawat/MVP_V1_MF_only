@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { DashboardView } from "./DashboardView";
 import * as api from "./api";
@@ -166,6 +166,57 @@ describe("DashboardView", () => {
     await waitFor(() => {
       expect(screen.getByText(/coverage gap detected/i)).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /resolve gap/i })).toBeInTheDocument();
+    });
+  });
+
+  it("compares distributors using the clicked holding's own member id in aggregate view, not the page-level memberId", async () => {
+    vi.mocked(api.getAggregateHoldings).mockResolvedValue({
+      members: [
+        { id: "m-1", name: "Alice", has_data: true },
+        { id: "m-2", name: "Bob", has_data: true },
+      ],
+      holdings: [
+        {
+          scheme_id: "scheme-A", scheme_name: "Alice Fund", household_member_id: "m-1", household_member_name: "Alice",
+          plan_type: "DIRECT", units_held: "50.00", average_nav: "60.00", current_nav: "80.00",
+          amount_invested: "3000.00", current_value: "4000.00", current_profit_total: "1000.00",
+          realized_gain: "0.00", unrealized_gain: "1000.00", today_gain: "20.00",
+        },
+        {
+          scheme_id: "scheme-B", scheme_name: "Bob Fund", household_member_id: "m-2", household_member_name: "Bob",
+          plan_type: "DIRECT", units_held: "50.00", average_nav: "60.00", current_nav: "80.00",
+          amount_invested: "3000.00", current_value: "4000.00", current_profit_total: "1000.00",
+          realized_gain: "0.00", unrealized_gain: "1000.00", today_gain: "20.00",
+        },
+      ],
+    } as any);
+    vi.mocked(api.getAggregateAllocation).mockResolvedValue({
+      members: [
+        { id: "m-1", name: "Alice", has_data: true },
+        { id: "m-2", name: "Bob", has_data: true },
+      ],
+      allocation: { by_asset_class: [], by_amc: [], total_value: "8000.00" },
+    } as any);
+    vi.mocked(api.getDistributorComparison).mockResolvedValue([]);
+
+    // Page-level memberId ("m-1") intentionally differs from the clicked
+    // holding's owner ("m-2") — matching MainDashboardFlow's real behavior
+    // of defaulting selectedMemberId to the first family member even while
+    // viewMode is "aggregate".
+    render(<DashboardView viewMode="aggregate" memberId="m-1" />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Bob Fund")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByText("Bob Fund"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Compare Returns by Distributor")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByText("Compare Returns by Distributor"));
+
+    await waitFor(() => {
+      expect(api.getDistributorComparison).toHaveBeenCalledWith("m-2", "scheme-B");
     });
   });
 });

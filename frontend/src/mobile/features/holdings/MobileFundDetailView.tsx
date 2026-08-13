@@ -1,14 +1,17 @@
 import { useState, useMemo, useRef, useLayoutEffect } from "react";
 import { Badge } from "@/components/Badge";
 import { FundSignal } from "@/components/FundSignal";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   ChevronLeft,
   ArrowDownRight,
   ArrowUpRight,
+  BarChart2,
   Info,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { MobileDistributorComparisonView } from "./MobileDistributorComparisonView";
 import type { HoldingRow } from "@/features/dashboard/types";
 
 export interface MobileFundDetailViewProps {
@@ -59,6 +62,7 @@ export function MobileFundDetailView({
   }, [holding]);
   const [selectedTimeframe, setSelectedTimeframe] = useState<Timeframe>("6M");
   const [hoveredPoint, setHoveredPoint] = useState<ChartPoint | null>(null);
+  const [showDistributorComparison, setShowDistributorComparison] = useState(false);
 
   const invested = parseFloat(holding.amount_invested || "0");
   const currentValue = parseFloat(holding.current_value || "0");
@@ -259,6 +263,17 @@ export function MobileFundDetailView({
           </div>
         </section>
 
+        {/* Compare Returns by Distributor — placed right after key stats,
+            same as the web Fund Details modal's ordering */}
+        <Button
+          variant="secondary"
+          onClick={() => setShowDistributorComparison(true)}
+          className="w-full h-11 gap-1.5 inline-flex items-center justify-center rounded-xl text-xs font-semibold"
+        >
+          <BarChart2 className="h-4 w-4" />
+          <span>Compare Returns by Distributor</span>
+        </Button>
+
         {/* Performance Chart Section */}
         <section className="p-4 sm:p-5 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs space-y-4">
           <div className="flex items-center justify-between">
@@ -455,6 +470,14 @@ export function MobileFundDetailView({
           </div>
         </section>
       </div>
+
+      <MobileDistributorComparisonView
+        isOpen={showDistributorComparison}
+        onClose={() => setShowDistributorComparison(false)}
+        memberId={holding.household_member_id}
+        schemeId={holding.scheme_id}
+        schemeName={holding.scheme_name}
+      />
     </div>
   );
 }

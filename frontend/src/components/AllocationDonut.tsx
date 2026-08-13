@@ -18,6 +18,10 @@ export interface AllocationDonutProps {
   totalValue?: string;
   title?: string;
   className?: string;
+  /** Mobile-only: highlight/pop out a segment on tap instead of hover.
+   * Reuses the same hoveredIndex + PieChart/PieSlice highlight this
+   * component already does on hover — web's hover behavior is unchanged. */
+  enableTapHighlight?: boolean;
 }
 
 const PALETTE = [
@@ -52,8 +56,16 @@ export function AllocationDonut({
   totalValue,
   title,
   className,
+  enableTapHighlight = false,
 }: AllocationDonutProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  // Separate, persistent state for tap mode — sharing hoveredIndex with
+  // onMouseEnter/onMouseLeave broke on touch devices: the browser's
+  // synthetic mouse-event emulation for taps fires a mouseleave right after
+  // the click, clearing hoveredIndex immediately (highlight flashes then
+  // disappears). This state is only ever set by onClick, never by hover.
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const activeIndex = enableTapHighlight ? selectedIndex : hoveredIndex;
 
   if (!data || data.length === 0) {
     return (
@@ -78,7 +90,7 @@ export function AllocationDonut({
     };
   });
 
-  const activeItem = hoveredIndex !== null ? data[hoveredIndex] : null;
+  const activeItem = activeIndex !== null ? data[activeIndex] : null;
 
   return (
     <div className={cn("w-full", className)}>
@@ -98,8 +110,8 @@ export function AllocationDonut({
             padAngle={0.03}
             cornerRadius={3}
             hoverOffset={4}
-            hoveredIndex={hoveredIndex}
-            onHoverChange={setHoveredIndex}
+            hoveredIndex={activeIndex}
+            onHoverChange={enableTapHighlight ? undefined : setHoveredIndex}
             className="w-full h-full"
           >
             {pieData.map((item, idx) => (
@@ -136,7 +148,7 @@ export function AllocationDonut({
         {/* Lightweight Breakdown Legend List */}
         <div className="flex flex-col space-y-1.5 w-full">
           {data.map((item, idx) => {
-            const isHovered = hoveredIndex === idx;
+            const isActive = activeIndex === idx;
             const color = PALETTE[idx % PALETTE.length];
             const pct = parsePercentage(item.percentage);
 
@@ -145,12 +157,17 @@ export function AllocationDonut({
                 key={item.label + idx}
                 className={cn(
                   "flex items-center justify-between px-3 py-2 rounded-lg transition-colors duration-150 cursor-pointer",
-                  isHovered
+                  isActive
                     ? "bg-[var(--color-bg)] text-[var(--color-ink)]"
                     : "hover:bg-[var(--color-bg)]/60 text-[var(--color-ink)]"
                 )}
-                onMouseEnter={() => setHoveredIndex(idx)}
-                onMouseLeave={() => setHoveredIndex(null)}
+                onMouseEnter={enableTapHighlight ? undefined : () => setHoveredIndex(idx)}
+                onMouseLeave={enableTapHighlight ? undefined : () => setHoveredIndex(null)}
+                onClick={
+                  enableTapHighlight
+                    ? () => setSelectedIndex((prev) => (prev === idx ? null : idx))
+                    : undefined
+                }
               >
                 <div className="flex items-center space-x-2.5 min-w-0">
                   <span
