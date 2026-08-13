@@ -17,9 +17,16 @@ import {
   getAggregateHoldings,
   getAggregateAllocation,
 } from "./api";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { HoldingRow, AllocationSummary, FamilyMemberStatus } from "./types";
 import { cn } from "@/lib/utils";
-import { ArrowUpRight, ArrowDownRight, Users, AlertTriangle, BarChart2 } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, User, Users, AlertTriangle, BarChart2 } from "lucide-react";
 
 export interface DashboardViewProps {
   viewMode: "aggregate" | "member";
@@ -40,6 +47,14 @@ export function DashboardView({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [allocationTab, setAllocationTab] = useState<"asset" | "amc">("asset");
+  // Local, display-only filter for the Holdings list in Family Combined view
+  // — independent of memberId/viewMode above, which control the whole
+  // dashboard's data-fetch context, not just what's shown in this list.
+  const [holdingsMemberFilter, setHoldingsMemberFilter] = useState<string>("all");
+
+  useEffect(() => {
+    setHoldingsMemberFilter("all");
+  }, [viewMode]);
 
   /* Modal state */
   const [selectedHolding, setSelectedHolding] = useState<HoldingRow | null>(null);
@@ -108,6 +123,11 @@ export function DashboardView({
       isMounted = false;
     };
   }, [viewMode, memberId]);
+
+  const displayedHoldings = useMemo(() => {
+    if (holdingsMemberFilter === "all") return holdings;
+    return holdings.filter((h) => h.household_member_id === holdingsMemberFilter);
+  }, [holdings, holdingsMemberFilter]);
 
   /* Portfolio Totals using exact decimal arithmetic */
   const totals = useMemo(() => {
@@ -337,17 +357,37 @@ export function DashboardView({
 
       {/* Holdings Table Section */}
       <section className="flex flex-col space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
           <h2 className="font-display text-lg font-semibold tracking-tight text-[var(--color-ink)]">
-            Holdings ({holdings.length})
+            Holdings ({displayedHoldings.length})
           </h2>
+
+          {viewMode === "aggregate" && membersStatus.length > 0 && (
+            <Select value={holdingsMemberFilter} onValueChange={setHoldingsMemberFilter}>
+              <SelectTrigger
+                className="h-8 w-auto min-w-[160px] gap-1.5 rounded-full border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1 text-xs font-medium text-[var(--color-text-secondary)] [&>span]:line-clamp-1"
+                aria-label="Filter holdings by family member"
+              >
+                <User className="h-3.5 w-3.5 text-[var(--color-accent)] flex-shrink-0" />
+                <SelectValue placeholder="All Members" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Members</SelectItem>
+                {membersStatus.map((m) => (
+                  <SelectItem key={m.id} value={m.id}>
+                    {m.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
 
         <HoldingsTable
-          holdings={holdings}
+          holdings={displayedHoldings}
           showMemberName={viewMode === "aggregate"}
           onSelectScheme={(schemeId) => {
-            const h = holdings.find((row) => row.scheme_id === schemeId);
+            const h = displayedHoldings.find((row) => row.scheme_id === schemeId);
             if (h) setSelectedHolding(h);
           }}
         />

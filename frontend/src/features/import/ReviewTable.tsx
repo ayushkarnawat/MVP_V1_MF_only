@@ -2,6 +2,13 @@ import { useState, useEffect } from "react";
 import type { ImportPreviewResponse, SchemeConfirmation } from "./types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import {
   User,
@@ -21,6 +28,9 @@ interface ReviewTableProps {
   preview: ImportPreviewResponse;
   confirming: boolean;
   onConfirm: (confirmations: SchemeConfirmation[]) => void;
+  /** Whose CAS this is, when known (e.g. sequential family review) — folded
+   * into the main heading so it reads as primary info, not a secondary label. */
+  memberName?: string;
 }
 
 interface OverrideState {
@@ -55,7 +65,7 @@ function useIsMobile(breakpoint = 768): boolean {
   return isMobile;
 }
 
-export function ReviewTable({ preview, confirming, onConfirm }: ReviewTableProps) {
+export function ReviewTable({ preview, confirming, onConfirm, memberName }: ReviewTableProps) {
   const [overrides, setOverrides] = useState<Record<string, OverrideState>>({});
   const [isWarningsExpanded, setIsWarningsExpanded] = useState(false);
   const isMobile = useIsMobile(768);
@@ -101,13 +111,19 @@ export function ReviewTable({ preview, confirming, onConfirm }: ReviewTableProps
 
   return (
     <div className="w-full min-w-0 max-w-5xl mx-auto space-y-6 text-left box-border">
-      {/* 1. Header Section */}
-      <div className="space-y-1">
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <h1 className="font-display font-bold text-xl sm:text-2xl text-[var(--color-ink)]">
-            Review CAS Import
+      {/* 1. Header Section — pr-14 on the title row reserves room for the
+          onboarding shell's absolutely-positioned top-right ThemeToggle
+          (OnboardingFlow.tsx, top-4/right-4), which sits outside this
+          component's own layout flow and would otherwise sit on top of a
+          long member name; the row stacks below sm so a long name always
+          gets its own full-width line to wrap within rather than competing
+          with the "Statement Verified" badge for space. */}
+      <div className="space-y-2">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pr-14 sm:pr-0">
+          <h1 className="font-display font-bold tracking-tight leading-tight text-xl sm:text-3xl text-[var(--color-ink)]">
+            {memberName ? `Review ${memberName}'s CAS Import` : "Review CAS Import"}
           </h1>
-          <span className="text-[10px] font-semibold uppercase tracking-wider bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] text-[var(--color-accent)] px-3 py-1 rounded-full">
+          <span className="self-start sm:self-auto flex-shrink-0 text-[10px] font-semibold uppercase tracking-wider bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] text-[var(--color-accent)] px-3 py-1 rounded-full">
             Statement Verified
           </span>
         </div>
@@ -263,20 +279,22 @@ export function ReviewTable({ preview, confirming, onConfirm }: ReviewTableProps
                         <label className="text-[11px] font-semibold text-[var(--color-ink)] block">
                           Select Plan Type
                         </label>
-                        <select
-                          role="combobox"
-                          value={override.planType}
-                          onChange={(event) =>
+                        <Select
+                          value={override.planType || undefined}
+                          onValueChange={(value) =>
                             updateOverride(scheme.temp_id, {
-                              planType: event.target.value as "" | "direct" | "regular",
+                              planType: value as "direct" | "regular",
                             })
                           }
-                          className="w-full h-11 min-h-[44px] px-3 text-xs bg-[var(--color-bg)] border border-[var(--color-border)] rounded-xl text-[var(--color-ink)] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] cursor-pointer"
                         >
-                          <option value="">Select...</option>
-                          <option value="direct">Direct</option>
-                          <option value="regular">Regular</option>
-                        </select>
+                          <SelectTrigger className="w-full h-11 min-h-[44px] gap-1.5 rounded-full border-[var(--color-border)] bg-[var(--color-bg)] px-3 text-xs font-medium text-[var(--color-text-secondary)] [&>span]:line-clamp-1">
+                            <SelectValue placeholder="Select..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="direct">Direct</SelectItem>
+                            <SelectItem value="regular">Regular</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     )}
                   </div>
@@ -378,20 +396,22 @@ export function ReviewTable({ preview, confirming, onConfirm }: ReviewTableProps
 
                           {needsPlan && (
                             <div className="pt-1">
-                              <select
-                                role="combobox"
-                                value={override.planType}
-                                onChange={(event) =>
+                              <Select
+                                value={override.planType || undefined}
+                                onValueChange={(value) =>
                                   updateOverride(scheme.temp_id, {
-                                    planType: event.target.value as "" | "direct" | "regular",
+                                    planType: value as "direct" | "regular",
                                   })
                                 }
-                                className="h-8 px-2.5 text-xs bg-[var(--color-bg)] border border-[var(--color-border)] rounded-lg text-[var(--color-ink)] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] cursor-pointer w-28"
                               >
-                                <option value="">Select...</option>
-                                <option value="direct">Direct</option>
-                                <option value="regular">Regular</option>
-                              </select>
+                                <SelectTrigger className="h-8 w-28 gap-1.5 rounded-full border-[var(--color-border)] bg-[var(--color-bg)] px-2.5 text-xs font-medium text-[var(--color-text-secondary)] [&>span]:line-clamp-1">
+                                  <SelectValue placeholder="Select..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="direct">Direct</SelectItem>
+                                  <SelectItem value="regular">Regular</SelectItem>
+                                </SelectContent>
+                              </Select>
                             </div>
                           )}
                         </div>

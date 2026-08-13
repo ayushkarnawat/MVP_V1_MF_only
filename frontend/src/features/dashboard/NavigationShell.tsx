@@ -1,12 +1,19 @@
 import { Button } from "@/components/ui/button";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { ChevronDown, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { ThemeToggle } from "../../components/ThemeToggle";
 import { useAuth } from "../auth/AuthContext";
 
@@ -125,20 +132,25 @@ export function NavigationShell({
 
               {/* Member Dropdown Selector (when in member view) */}
               {viewMode === "member" && members.length > 0 && (
-                <div className="relative flex-1 sm:flex-initial min-w-[130px]">
-                  <select
-                    value={selectedMemberId || ""}
-                    onChange={(e) => onMemberSelect(e.target.value)}
-                    className="w-full appearance-none pl-3 pr-8 py-1.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-xs font-semibold text-[var(--color-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent transition-colors cursor-pointer shadow-2xs"
-                    aria-label="Select household member"
+                <div className="flex-1 sm:flex-initial min-w-[130px]">
+                  <Select
+                    value={selectedMemberId || undefined}
+                    onValueChange={onMemberSelect}
                   >
-                    {members.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.name}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--color-text-secondary)] pointer-events-none opacity-70" />
+                    <SelectTrigger
+                      className="h-8 w-full sm:w-auto min-w-[130px] gap-1.5 rounded-full border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1 text-xs font-medium text-[var(--color-text-secondary)] [&>span]:line-clamp-1"
+                      aria-label="Select household member"
+                    >
+                      <SelectValue placeholder="Select member" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {members.map((m) => (
+                        <SelectItem key={m.id} value={m.id}>
+                          {m.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
 

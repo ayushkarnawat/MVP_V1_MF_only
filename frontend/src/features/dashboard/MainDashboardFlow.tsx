@@ -6,6 +6,13 @@ import { clearCasResumeStep2 } from "../import/casResumeState";
 import { getHouseholdMembers } from "../auth/api";
 import { useAuth } from "../auth/AuthContext";
 import { ThemeToggle } from "../../components/ThemeToggle";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../components/ui/select";
 import { ArrowLeft, ShieldCheck, User, LogOut } from "lucide-react";
 
 export function MainDashboardFlow() {
@@ -15,6 +22,13 @@ export function MainDashboardFlow() {
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [isAddingData, setIsAddingData] = useState(false);
   const [targetAddMemberId, setTargetAddMemberId] = useState<string | null>(null);
+  // True only when Add Data was reached from Family Combined view via the
+  // generic top-nav button (no specific member argument) — that path
+  // otherwise silently defaults to selectedMemberId (the first family
+  // member) with no way to change it. Per-member entry points (an explicit
+  // memberId passed in, or Per Member view where selectedMemberId already
+  // names the one member being viewed) keep the static label as-is.
+  const [addDataAllowsMemberChoice, setAddDataAllowsMemberChoice] = useState(false);
 
   useEffect(() => {
     getHouseholdMembers()
@@ -39,6 +53,7 @@ export function MainDashboardFlow() {
   }, [me]);
 
   const handleAddDataTrigger = (memberId?: string) => {
+    setAddDataAllowsMemberChoice(!memberId && viewMode === "aggregate");
     setTargetAddMemberId(memberId || selectedMemberId);
     setIsAddingData(true);
   };
@@ -64,11 +79,33 @@ export function MainDashboardFlow() {
             </button>
 
             <div className="flex items-center gap-2.5">
-              {targetMemberName && (
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] text-xs font-medium text-[var(--color-text-secondary)]">
-                  <User className="h-3.5 w-3.5 text-[var(--color-accent)]" />
-                  <span>Importing for <strong className="text-[var(--color-ink)] font-semibold">{targetMemberName}</strong></span>
-                </div>
+              {addDataAllowsMemberChoice && members.length > 0 ? (
+                <Select
+                  value={targetAddMemberId ?? undefined}
+                  onValueChange={(value) => setTargetAddMemberId(value)}
+                >
+                  <SelectTrigger
+                    className="h-8 w-auto min-w-[160px] gap-1.5 rounded-full border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1 text-xs font-medium text-[var(--color-text-secondary)] [&>span]:line-clamp-1"
+                    aria-label="Select family member to import for"
+                  >
+                    <User className="h-3.5 w-3.5 text-[var(--color-accent)] flex-shrink-0" />
+                    <SelectValue placeholder="Select member" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {members.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                targetMemberName && (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] text-xs font-medium text-[var(--color-text-secondary)]">
+                    <User className="h-3.5 w-3.5 text-[var(--color-accent)]" />
+                    <span>Importing for <strong className="text-[var(--color-ink)] font-semibold">{targetMemberName}</strong></span>
+                  </div>
+                )
               )}
               <ThemeToggle className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg" />
               <button
@@ -88,6 +125,7 @@ export function MainDashboardFlow() {
         <main className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-8">
           {targetAddMemberId && (
             <ImportFlow
+              key={targetAddMemberId}
               householdMemberId={targetAddMemberId}
               ctaLabel="Back to Dashboard"
               onDone={() => setIsAddingData(false)}

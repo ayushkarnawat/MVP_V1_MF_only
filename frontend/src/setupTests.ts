@@ -18,6 +18,22 @@ if (!window.matchMedia) {
     }) as MediaQueryList;
 }
 
+// jsdom doesn't implement these — Radix's Select (and other Radix primitives)
+// call them internally on open/scroll, throwing "is not a function" in any
+// test that clicks a shadcn Select trigger unless they're at least no-ops.
+if (!Element.prototype.hasPointerCapture) {
+  Element.prototype.hasPointerCapture = () => false;
+}
+if (!Element.prototype.setPointerCapture) {
+  Element.prototype.setPointerCapture = () => {};
+}
+if (!Element.prototype.releasePointerCapture) {
+  Element.prototype.releasePointerCapture = () => {};
+}
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = () => {};
+}
+
 if (!window.ResizeObserver) {
   class ResizeObserver {
     observe() {}
