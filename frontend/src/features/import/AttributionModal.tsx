@@ -1,6 +1,13 @@
 import { useState } from "react";
 import { Modal } from "../../components/Modal";
 import { Button } from "../../components/Button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../components/ui/select";
 
 interface CandidateMember {
   id: string;
@@ -39,25 +46,21 @@ export function AttributionModal({
             <label htmlFor="attribution-member-select" className="type-caption" style={{ color: "var(--color-text-muted)" }}>
               Assign to Household Member:
             </label>
-            <select
-              id="attribution-member-select"
-              value={selectedId}
-              onChange={(e) => setSelectedId(e.target.value)}
-              style={{
-                padding: "var(--space-3)",
-                borderRadius: "var(--radius-md)",
-                border: "1px solid var(--color-border)",
-                background: "var(--color-surface)",
-                color: "var(--color-text-primary)",
-                fontFamily: "inherit",
-              }}
-            >
-              {candidates.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name} ({m.relationship})
-                </option>
-              ))}
-            </select>
+            <Select value={selectedId} onValueChange={setSelectedId}>
+              <SelectTrigger
+                id="attribution-member-select"
+                className="w-full h-11 gap-1.5 rounded-full border-[var(--color-border)] bg-[var(--color-bg)] px-3 text-sm font-medium text-[var(--color-ink)] [&>span]:line-clamp-1"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {candidates.map((m) => (
+                  <SelectItem key={m.id} value={m.id}>
+                    {m.name} ({m.relationship})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         )}
 
