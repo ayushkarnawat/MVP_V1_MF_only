@@ -34,6 +34,7 @@ from app.services.analytics.schemas import (
     CategoryRankingSummary,
     CategoryRankRow,
 )
+from app.services.analytics.risk_metrics import years_ago
 from app.services.analytics.scheme_universe import get_category_universe
 from app.services.dashboard.aggregate import get_member_statuses
 from app.services.dashboard.holdings import compute_holdings
@@ -54,7 +55,7 @@ def _cagr(start_nav: Decimal, end_nav: Decimal, years: int) -> Decimal:
 
 
 async def _scheme_return(db: Session, scheme: Scheme, years: int, today: date) -> Decimal | None:
-    start_date = today.replace(year=today.year - years)
+    start_date = years_ago(today, years)
     start = await get_nav_on_or_before(db, scheme, start_date)
     if start is None:
         return None

@@ -109,6 +109,41 @@ class CategoryRankRow(BaseModel):
     thin_category: bool
 
 
+class FundScoreRow(BaseModel):
+    """PRD-04 FR-5/FR-7 — one fund's composite score plus the full
+    breakdown (return_percentile, risk_percentile, consistency_hit_rate)
+    so it's never displayed as a bare number or a single-word label."""
+
+    scheme_id: str
+    scheme_name: str
+    category_unavailable: bool
+    insufficient_history: bool
+    thin_category: bool
+    risk_adjusted_tier: int | None
+    cost_adjustment: str | None
+    final_score: str | None
+    return_percentile: str | None
+    risk_percentile: str | None
+    consistency_hit_rate: str | None
+
+
+class PortfolioScoreSummary(BaseModel):
+    """PRD-04 FR-6 — AUM-weighted (by the member's own holding value, same
+    convention as FR-10's weighted TER) roll-up of held funds' final_score,
+    computed on-read, never stored."""
+
+    funds: list[FundScoreRow]
+    weighted_score: str | None
+    covered_value: str
+    total_value: str
+    uncovered_schemes: list[str]
+
+
+class AggregatePortfolioScoreResponse(BaseModel):
+    members: list[MemberStatus]
+    score: PortfolioScoreSummary
+
+
 class CategoryRankingSummary(BaseModel):
     funds: list[CategoryRankRow]
 
