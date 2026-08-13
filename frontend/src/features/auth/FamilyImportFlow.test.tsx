@@ -260,7 +260,7 @@ describe("FamilyImportFlow", () => {
     await waitFor(() => screen.getByRole("button", { name: /parse files/i }));
 
     fireEvent.click(screen.getByRole("button", { name: /parse files/i }));
-    await waitFor(() => expect(screen.getByText(/reviewing: mom's cas/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/review mom's cas import/i)).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: /confirm import/i }));
 
     await waitFor(() => expect(screen.getByRole("button", { name: /confirming/i })).toBeDisabled());

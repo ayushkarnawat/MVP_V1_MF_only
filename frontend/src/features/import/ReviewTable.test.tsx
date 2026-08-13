@@ -37,7 +37,7 @@ describe("ReviewTable", () => {
     expect(screen.getByRole("button", { name: /confirm import/i })).toBeDisabled();
   });
 
-  it("enables Confirm once every pending/unclassified scheme has an override", () => {
+  it("enables Confirm once every pending/unclassified scheme has an override", async () => {
     const preview = buildPreview({
       schemes: [
         {
@@ -51,7 +51,8 @@ describe("ReviewTable", () => {
     render(<ReviewTable preview={preview} confirming={false} onConfirm={vi.fn()} />);
 
     fireEvent.change(screen.getByPlaceholderText(/amfi code/i), { target: { value: "125497" } });
-    fireEvent.change(screen.getByRole("combobox"), { target: { value: "direct" } });
+    fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowDown" });
+    fireEvent.click(await screen.findByRole("option", { name: /^direct$/i }));
 
     expect(screen.getByRole("button", { name: /confirm import/i })).toBeEnabled();
   });
