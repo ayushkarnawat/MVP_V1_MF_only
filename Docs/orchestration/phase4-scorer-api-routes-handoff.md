@@ -1,7 +1,21 @@
 # Handoff: phase4-scorer-api-routes
 
-**Status:** OPEN
+**Status:** DONE
 **Parent plan:** `Docs/superpowers/plans/2026-08-13-phase-4-analytics-backend-part5-scorer.md`, Task 4
+
+**Resolution (2026-08-13):** Codex implemented both files and self-proofread
+(sandbox couldn't reach venv/network, same limitation as Tasks 1-3). The
+dispatching Agent call itself hit a session-limit API error, but the
+underlying Codex job had already completed in the background — found
+directly via `codex-companion.mjs status --all` rather than re-dispatching.
+Controller found and fixed one genuine bug in the plan's own test code
+(`test_get_fund_score_404_when_scheme_not_found` never overrode `get_db`,
+so it hit the app's real un-migrated DB instead of the fake one — fixed to
+match the plan's own next test's already-established fake-`get_db`
+pattern; same class of fix as Task 1's median-test bug). 3/3 new tests
+passed after the fix; full suite 341 passed/2 skipped (was 338/2, zero
+regressions). Committed at `dc4df5c`. Task-reviewer subagent approved spec
+compliance + code quality with no Critical/Important findings.
 
 ## Task
 
