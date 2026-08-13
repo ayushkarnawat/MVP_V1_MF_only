@@ -123,10 +123,10 @@ describe("FamilyImportFlow", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /parse files/i }));
 
-    await waitFor(() => expect(screen.getByText(/reviewing: mom's cas/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/review mom's cas import/i)).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: /confirm import/i }));
 
-    await waitFor(() => expect(screen.getByText(/reviewing: dad's cas/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/review dad's cas import/i)).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: /confirm import/i }));
 
     await waitFor(() => expect(screen.getByText(/import complete/i)).toBeInTheDocument());
@@ -156,7 +156,7 @@ describe("FamilyImportFlow", () => {
     await waitFor(() => expect(screen.getByText(/import failed/i)).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: /try again/i }));
 
-    await waitFor(() => expect(screen.getByText(/reviewing: mom's cas/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/review mom's cas import/i)).toBeInTheDocument());
     expect(importApi.parseImport).toHaveBeenCalledTimes(2);
   });
 
@@ -181,7 +181,7 @@ describe("FamilyImportFlow", () => {
     await waitFor(() => expect(screen.getByText(/import failed/i)).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: /skip mom for now/i }));
 
-    await waitFor(() => expect(screen.getByText(/reviewing: dad's cas/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/review dad's cas import/i)).toBeInTheDocument());
   });
 
   it("stays on the review screen with an alert when confirm fails with 404", async () => {
@@ -200,11 +200,11 @@ describe("FamilyImportFlow", () => {
     await waitFor(() => screen.getByRole("button", { name: /parse files/i }));
 
     fireEvent.click(screen.getByRole("button", { name: /parse files/i }));
-    await waitFor(() => expect(screen.getByText(/reviewing: mom's cas/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/review mom's cas import/i)).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: /confirm import/i }));
 
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(/expired/i));
-    expect(screen.getByText(/reviewing: mom's cas/i)).toBeInTheDocument();
+    expect(screen.getByText(/review mom's cas import/i)).toBeInTheDocument();
   });
 
   it("shows a recoverable error when own-upload self-member setup fails", async () => {
