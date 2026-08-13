@@ -1,7 +1,17 @@
 # Handoff: phase4-scorer-risk-metrics
 
-**Status:** OPEN
+**Status:** DONE
 **Parent plan:** `Docs/superpowers/plans/2026-08-13-phase-4-analytics-backend-part5-scorer.md`, Task 1
+
+**Resolution (2026-08-13):** Codex implemented both files correctly but its
+sandbox couldn't reach this repo's `.venv` (outside its worktree) or the
+network, so it stopped BLOCKED before running tests. The orchestrator
+verified directly (absolute venv path), found and fixed one genuine bug in
+the plan's own test fixture (`category_medians` even-length case asserted
+the arithmetically wrong median), reran green (16/16, full suite 330
+passed/2 skipped, zero regressions vs. 314/2 baseline), and committed at
+`7058b0e`. Task-reviewer subagent (haiku) independently confirmed the median
+fix and approved spec compliance + code quality with no findings.
 
 ## Task
 
