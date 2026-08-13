@@ -213,7 +213,7 @@ def test_category_medians_per_index_across_schemes():
     scheme_c = [Decimal("0.05"), Decimal("0.40")]
     medians = category_medians([scheme_a, scheme_b, scheme_c])
     assert medians[0] == Decimal("0.10")  # median of 0.10, 0.30, 0.05
-    assert medians[1] == Decimal("0.20")  # median of 0.20, 0.40 (0.30's peer is None)
+    assert medians[1] == Decimal("0.30")  # median of 0.20, 0.40 (0.30's peer is None)
 
 
 def test_category_medians_empty_input():
