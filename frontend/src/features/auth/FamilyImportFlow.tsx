@@ -240,9 +240,13 @@ export function FamilyImportFlow({ selfName }: FamilyImportFlowProps) {
     if (processing.status === "review" && processing.preview) {
       return (
         <>
-          <p>{`Reviewing: ${item.memberName}'s CAS`}</p>
           {reviewNotice && <p role="alert">{reviewNotice}</p>}
-          <ReviewTable preview={processing.preview} confirming={confirming} onConfirm={handleConfirm} />
+          <ReviewTable
+            preview={processing.preview}
+            confirming={confirming}
+            onConfirm={handleConfirm}
+            memberName={item.memberName}
+          />
         </>
       );
     }

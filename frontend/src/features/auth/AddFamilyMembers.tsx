@@ -2,6 +2,13 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { Button } from "../../components/Button";
 import { Badge } from "../../components/Badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../components/ui/select";
 import styles from "./onboarding.module.css";
 import { createHouseholdMember } from "./api";
 import type { HouseholdMember, Relationship } from "./types";
@@ -97,17 +104,24 @@ export function AddFamilyMembers({
 
         <div className={styles.field}>
           <label htmlFor="member-rel">Relationship</label>
-          <select
-            id="member-rel"
+          <Select
             value={relationship}
-            onChange={(event) => setRelationship(event.target.value as Relationship)}
+            onValueChange={(value) => setRelationship(value as Relationship)}
           >
-            {RELATIONSHIPS.map((option) => (
-              <option key={option} value={option}>
-                {option.charAt(0).toUpperCase() + option.slice(1)}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger
+              id="member-rel"
+              className="w-full h-11 gap-1.5 rounded-full border-[var(--color-border)] bg-[var(--color-bg)] px-3 text-sm font-medium text-[var(--color-ink)] [&>span]:line-clamp-1"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {RELATIONSHIPS.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {option.charAt(0).toUpperCase() + option.slice(1)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {relationship === "other" && (
