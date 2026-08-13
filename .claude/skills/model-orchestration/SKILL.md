@@ -64,20 +64,48 @@ session to session.
 2. If Codex-bound and non-trivial: write a handoff doc per
    `references/handoff-doc-template.md` at
    `Docs/orchestration/<task-slug>-handoff.md` before dispatching.
-3. Dispatch via `Agent(subagent_type: codex:codex-rescue)` — one call for
+3. Dispatch via `Agent(subagent_type: codex:codex-rescue, run_in_background:
+   true, description: "<short task label>", prompt: "...")` — one call for
    a single subtask, N parallel calls for independent parallelizable
    subtasks. Use `gpt-5-4-prompting`'s recipe to shape the prompt; the
    prompt references the handoff doc's path rather than restating it.
+   `description` is a required parameter — a call without it fails
+   outright (`InputValidationError`); never omit it. `run_in_background:
+   true` is what makes the eventual `task-notification` arrive
+   automatically on completion — this is the only completion signal to
+   rely on; never set up a manual `Monitor`/`sleep`-poll loop around a
+   Codex dispatch, and never ask the user to check status — wait for the
+   notification.
 4. Append one line to `Docs/orchestration/delegation-log.md` recording
    the decision.
 5. Present Codex's output per the existing `codex-result-handling`
    skill's rules (findings first, ordered by severity; never auto-apply
-   fixes).
+   fixes). **Verification tiering:** for intermediate rounds (any round
+   before the one expected to close the review gate), independently
+   re-run only the touched-area test files — fast, sufficient signal
+   once the diff's scope is confirmed narrow (`git diff --stat`). Reserve
+   an independent full-suite run for (a) the round expected to reach
+   `DONE`, and (b) any round whose diff touches shared/cross-cutting code
+   beyond the task's own files. This trades a little intermediate-round
+   coverage for speed/tokens — the full suite still gates every `DONE`,
+   with zero exceptions.
 6. **Mandatory gate:** before the handoff doc's Status moves to `DONE`,
    run `/codex:review` or `/codex:adversarial-review` against the
-   change. This is not optional and not skippable for convenience —
-   only the user deciding a finding isn't worth fixing closes it out,
-   never a silent skip of the review step itself.
+   change — dispatched exactly like Step 3
+   (`Agent(subagent_type: codex:codex-rescue, run_in_background: true,
+   description: "...", prompt: "run /codex:adversarial-review against
+   <scope> and report verdict + findings")`), never as a direct Bash call
+   to `codex-companion.mjs`. This is not optional and not skippable for
+   convenience — only the user deciding a finding isn't worth fixing
+   closes it out, never a silent skip of the review step itself.
+   **Stopping heuristic:** when a round's remaining finding(s) have
+   trended to a lower severity than the prior round AND are explicitly
+   correctness-safe (bounded cost, no data-loss/corruption path) AND
+   fully closing them would need a materially bigger primitive than
+   anything built so far, proactively recommend accepting as a
+   documented limitation rather than defaulting to another round — state
+   the reasoning, let the user decide, don't auto-dispatch round N+1 as
+   the default action.
 7. If, at any point, one of the three conditions in
    `references/escalation-triggers.md` is met: state which one fired and
    ask before switching to Opus. Otherwise stay on the default
@@ -85,12 +113,62 @@ session to session.
 8. If Codex isn't configured/ready when Step 3 would otherwise fire:
    follow `references/no-codex-fallback.md` instead.
 
+## Review-loop fix authorship
+
+When the mandatory review gate (step 6) returns findings, the fix does
+not automatically default to a fresh Codex handoff/dispatch cycle. Fix
+directly as orchestrator, in the same turn, only when ALL of: the diff is
+small-to-moderate (a handful of functions, not a new subsystem), the
+touched file(s) are already fully loaded in the orchestrator's own
+context, and a fresh handoff doc + dispatch + wait round-trip would
+plainly cost more turns than fixing inline. This trades orchestrator
+tokens for turnaround speed — the reverse of the default Codex-delegation
+tradeoff — so use it only when the round-trip overhead clearly dominates,
+never as a general shortcut around delegation. Record the choice and
+reasoning in `delegation-log.md` exactly as any other delegation decision
+(`worker=orchestrator`, why).
+
+The mandatory review gate still applies unchanged to an orchestrator-direct
+fix — it is not exempt from independent review just because Codex didn't
+implement it. Dispatch a **scoped** re-review (point Codex at the fix
+commit and the prior findings list, not a fresh whole-branch review) when
+the fix's diff is confirmed narrow via `git diff --stat` against the
+finding's own file(s); fall back to a full fresh review if the fix touched
+shared/cross-cutting code beyond those files. This mirrors step 5's
+verification tiering, applied to review scope instead of test scope — a
+faster, cheaper confirmation that never weakens the gate itself.
+
 ## What this skill does not do
 
-- Does not hand-roll `codex-companion.mjs` Bash calls directly — always
-  through `codex:codex-rescue`.
+- Does not hand-roll `codex-companion.mjs` Bash calls directly, for any
+  dispatch shape — implementation (Step 3) and review/adversarial-review
+  (Step 6) alike — always through `codex:codex-rescue`. A review-only job
+  is not an exception to this rule.
+- Does not poll a Codex dispatch's status manually (no `Monitor`/`sleep`
+  loops, no "what's the status" check-ins) — `run_in_background: true`'s
+  `task-notification` is the sole completion signal, for both
+  implementation and review dispatches.
 - Does not auto-apply any review finding.
 - Does not switch models without asking first.
 - Does not maintain a full event ledger, digest-pinned routing file, or
   phase-folder hierarchy — deliberately lighter than `kiln`, per this
   project's existing conventions.
+
+## Changelog
+
+- **v1.1 (2026-08-13):** Added `delegation-rules.md`'s worktree-sandbox-
+  reach constraint and dispatch-layer-failure recovery step (Phase 4
+  Scorer build: Codex's sandbox never reached the shared venv across 5/5
+  dispatches; one dispatch's wrapper Agent call failed while its
+  underlying Codex job completed independently). Added "Review-loop fix
+  authorship," codifying when the orchestrator fixes a review finding
+  directly vs. redelegating, and how re-review is scoped after a fix
+  loop — both validated this session (fix committed `d732fce`, scoped
+  re-review returned clean, zero regressions across 345 tests).
+- **v1.0 (2026-08-12):** Initial skill — Codex as default worker,
+  mandatory handoff doc + adversarial-review gate, escalation triggers,
+  Bash→Agent routing for review dispatches, required `description`
+  parameter, verification tiering, stopping heuristic for
+  diminishing-returns findings. See
+  `Docs/superpowers/specs/2026-08-12-model-orchestration-skill-design.md`
+  for full rationale.
