@@ -203,3 +203,64 @@ async def compute_fund_score(db: Session, scheme: Scheme) -> FundScoreRow:
         risk_percentile=str(scheme_scores["risk_percentile"]),
         consistency_hit_rate=str(scheme_scores["consistency_hit_rate"]),
     )
+
+
+from app.services.dashboard.aggregate import get_member_statuses
+from app.services.dashboard.holdings import compute_holdings
+from app.services.dashboard.household_members import list_household_members
+from app.services.analytics.schemas import AggregatePortfolioScoreResponse, PortfolioScoreSummary
+
+_EMPTY_PORTFOLIO_SCORE = PortfolioScoreSummary(
+    funds=[], weighted_score=None, covered_value="0", total_value="0", uncovered_schemes=[]
+)
+
+
+async def compute_portfolio_score(db: Session, household_member_ids: list[uuid.UUID]) -> PortfolioScoreSummary:
+    holdings = await compute_holdings(db, household_member_ids)
+    if not holdings:
+        return _EMPTY_PORTFOLIO_SCORE
+
+    unique_scheme_ids = {h.scheme_id for h in holdings}
+    schemes_by_id = {
+        str(s.id): s
+        for s in db.query(Scheme).filter(Scheme.id.in_([uuid.UUID(sid) for sid in unique_scheme_ids])).all()
+    }
+
+    rows: list[FundScoreRow] = []
+    row_by_scheme: dict[str, FundScoreRow] = {}
+    for scheme_id_str in unique_scheme_ids:
+        row = await compute_fund_score(db, schemes_by_id[scheme_id_str])
+        rows.append(row)
+        row_by_scheme[scheme_id_str] = row
+
+    total_value = Decimal("0")
+    covered_value = Decimal("0")
+    weighted_sum = Decimal("0")
+    uncovered: set[str] = set()
+
+    for holding in holdings:
+        value = Decimal(holding.current_value)
+        total_value += value
+        row = row_by_scheme[holding.scheme_id]
+        if row.final_score is None:
+            uncovered.add(holding.scheme_name)
+            continue
+        covered_value += value
+        weighted_sum += value * Decimal(row.final_score)
+
+    weighted_score = (weighted_sum / covered_value).quantize(Decimal("0.01")) if covered_value else None
+
+    return PortfolioScoreSummary(
+        funds=rows,
+        weighted_score=str(weighted_score) if weighted_score is not None else None,
+        covered_value=str(covered_value),
+        total_value=str(total_value),
+        uncovered_schemes=sorted(uncovered),
+    )
+
+
+async def get_aggregate_portfolio_score(db: Session, user_id: uuid.UUID) -> AggregatePortfolioScoreResponse:
+    members = list_household_members(db, user_id)
+    statuses = get_member_statuses(db, user_id)
+    score = await compute_portfolio_score(db, [m.id for m in members])
+    return AggregatePortfolioScoreResponse(members=statuses, score=score)

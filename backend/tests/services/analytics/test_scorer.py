@@ -154,3 +154,64 @@ def test_compute_fund_score_cost_adjustment_nudges_final_score():
     # held's TER (0.50) is well below the AUM-weighted category average
     # (1.00) -> +0.25 nudge.
     assert row.cost_adjustment == "0.25"
+
+
+from app.models.enums import PlanType, Relationship, TransactionType
+from app.models.folio import Folio
+from app.models.transaction import Transaction
+from app.models.user import HouseholdMember, User
+from app.services.analytics.scorer import compute_portfolio_score
+
+
+def _household_member(db):
+    user = User(id=uuid.uuid4(), phone_number=f"+9199999{uuid.uuid4().hex[:5]}", created_at=datetime.now(timezone.utc))
+    db.add(user)
+    db.flush()
+    member = HouseholdMember(id=uuid.uuid4(), user_id=user.id, name="Self", relationship=Relationship.SELF, created_at=datetime.now(timezone.utc))
+    db.add(member)
+    db.commit()
+    return member
+
+
+def _folio_with_purchase(db, member, scheme, amount, units, nav, txn_date):
+    folio = Folio(id=uuid.uuid4(), household_member_id=member.id, scheme_id=scheme.id, folio_number=uuid.uuid4().hex[:6], plan_type=PlanType.DIRECT)
+    db.add(folio)
+    db.commit()
+    db.add(Transaction(id=uuid.uuid4(), folio_id=folio.id, import_id=uuid.uuid4(), type=TransactionType.PURCHASE, date=txn_date, amount=amount, units=units, nav=nav))
+    db.commit()
+    return folio
+
+
+def test_compute_portfolio_score_empty_when_no_holdings():
+    db = _session()
+    member = _household_member(db)
+    summary = asyncio.run(compute_portfolio_score(db, [member.id]))
+    assert summary.funds == []
+    assert summary.weighted_score is None
+
+
+def test_compute_portfolio_score_weights_by_holding_value():
+    db = _session()
+    member = _household_member(db)
+    held = _scheme(db, "Held Fund")
+    _seed_monthly_nav(db, held, 24, monthly_growth=Decimal("0.01"))
+    _folio_with_purchase(db, member, held, Decimal("1000"), Decimal("100"), Decimal("10"), _START_3Y)
+
+    async def _returns(db_, universe, today):
+        return {held.id: Decimal("0.20")}
+
+    async def _nav_lookup(db_, scheme, on_date):
+        return Decimal("11"), on_date
+
+    with (
+        patch("app.services.analytics.scorer._category_returns", new=AsyncMock(side_effect=_returns)),
+        patch("app.services.analytics.scorer.get_category_universe", new=AsyncMock(return_value=[held])),
+        patch("app.services.analytics.scorer._ensure_ter_fresh", new=AsyncMock(return_value=None)),
+        patch("app.services.dashboard.holdings.get_nav_on_or_before", new=AsyncMock(side_effect=_nav_lookup)),
+        patch("app.services.dashboard.holdings.get_previous_nav_from_cache", return_value=None),
+    ):
+        summary = asyncio.run(compute_portfolio_score(db, [member.id]))
+
+    assert len(summary.funds) == 1
+    assert summary.weighted_score == summary.funds[0].final_score
+    assert summary.uncovered_schemes == []

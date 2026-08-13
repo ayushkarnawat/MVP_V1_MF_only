@@ -127,6 +127,23 @@ class FundScoreRow(BaseModel):
     consistency_hit_rate: str | None
 
 
+class PortfolioScoreSummary(BaseModel):
+    """PRD-04 FR-6 — AUM-weighted (by the member's own holding value, same
+    convention as FR-10's weighted TER) roll-up of held funds' final_score,
+    computed on-read, never stored."""
+
+    funds: list[FundScoreRow]
+    weighted_score: str | None
+    covered_value: str
+    total_value: str
+    uncovered_schemes: list[str]
+
+
+class AggregatePortfolioScoreResponse(BaseModel):
+    members: list[MemberStatus]
+    score: PortfolioScoreSummary
+
+
 class CategoryRankingSummary(BaseModel):
     funds: list[CategoryRankRow]
 
