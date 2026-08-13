@@ -50,7 +50,7 @@ describe("DistributorComparisonModal", () => {
       expect(screen.getByText("Mirae Asset Large Cap")).toBeInTheDocument();
       expect(screen.getByText("Direct Plan (No Broker)")).toBeInTheDocument();
       expect(screen.getByText("ABC Wealth")).toBeInTheDocument();
-      expect(screen.getByText("ACTIVE")).toBeInTheDocument();
+      expect(screen.getByText("Active")).toBeInTheDocument();
     });
   });
 });

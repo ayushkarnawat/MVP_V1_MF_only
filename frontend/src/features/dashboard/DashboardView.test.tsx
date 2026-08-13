@@ -219,5 +219,69 @@ describe("DashboardView", () => {
       expect(api.getDistributorComparison).toHaveBeenCalledWith("m-2", "scheme-B");
     });
   });
+
+  it("narrows the Holdings list by the selected family member, and hides the filter outside aggregate view", async () => {
+    const aggregateFixture = {
+      members: [
+        { id: "m-1", name: "Alice", has_data: true },
+        { id: "m-2", name: "Bob", has_data: true },
+      ],
+      holdings: [
+        {
+          scheme_id: "scheme-A", scheme_name: "Alice Fund", household_member_id: "m-1", household_member_name: "Alice",
+          plan_type: "DIRECT", units_held: "50.00", average_nav: "60.00", current_nav: "80.00",
+          amount_invested: "3000.00", current_value: "4000.00", current_profit_total: "1000.00",
+          realized_gain: "0.00", unrealized_gain: "1000.00", today_gain: "20.00",
+        },
+        {
+          scheme_id: "scheme-B", scheme_name: "Bob Fund", household_member_id: "m-2", household_member_name: "Bob",
+          plan_type: "DIRECT", units_held: "50.00", average_nav: "60.00", current_nav: "80.00",
+          amount_invested: "3000.00", current_value: "4000.00", current_profit_total: "1000.00",
+          realized_gain: "0.00", unrealized_gain: "1000.00", today_gain: "20.00",
+        },
+      ],
+    };
+    vi.mocked(api.getAggregateHoldings).mockResolvedValue(aggregateFixture as any);
+    vi.mocked(api.getAggregateAllocation).mockResolvedValue({
+      members: aggregateFixture.members,
+      allocation: { by_asset_class: [], by_amc: [], total_value: "8000.00" },
+    } as any);
+
+    const { rerender } = render(<DashboardView viewMode="aggregate" memberId={null} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Alice Fund")).toBeInTheDocument();
+      expect(screen.getByText("Bob Fund")).toBeInTheDocument();
+    });
+
+    // The member filter only renders in aggregate view.
+    const filterTrigger = screen.getByLabelText("Filter holdings by family member");
+    expect(filterTrigger).toBeInTheDocument();
+
+    fireEvent.pointerDown(filterTrigger);
+    fireEvent.click(filterTrigger);
+
+    const bobOption = await screen.findByText("Bob", { selector: '[role="option"] *, [role="option"]' });
+    fireEvent.click(bobOption);
+
+    await waitFor(() => {
+      expect(screen.queryByText("Alice Fund")).not.toBeInTheDocument();
+      expect(screen.getByText("Bob Fund")).toBeInTheDocument();
+    });
+
+    // Switching to a single-member view hides the filter entirely.
+    vi.mocked(api.getMemberHoldings).mockResolvedValue([aggregateFixture.holdings[0]] as any);
+    vi.mocked(api.getMemberAllocation).mockResolvedValue({
+      by_asset_class: [],
+      by_amc: [],
+      total_value: "4000.00",
+    });
+    rerender(<DashboardView viewMode="member" memberId="m-1" />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Alice Fund")).toBeInTheDocument();
+    });
+    expect(screen.queryByLabelText("Filter holdings by family member")).not.toBeInTheDocument();
+  });
 });
 

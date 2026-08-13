@@ -1,5 +1,6 @@
 import { Modal } from "../../components/Modal";
 import { Badge } from "../../components/Badge";
+import { toTitleCase } from "../../lib/utils";
 import { Button } from "../../components/Button";
 import { FundSignalGraph } from "../../components/FundSignal";
 import { BarChart2 } from "lucide-react";
@@ -33,7 +34,7 @@ export function FundDetailModal({
           <div className={styles.titleRow}>
             <h3 className={`type-h2 ${styles.schemeName}`}>{holding.scheme_name}</h3>
             <Badge variant={holding.plan_type === "DIRECT" ? "positive" : "neutral"}>
-              {holding.plan_type}
+              {toTitleCase(holding.plan_type)}
             </Badge>
           </div>
           {holding.amc_name && (

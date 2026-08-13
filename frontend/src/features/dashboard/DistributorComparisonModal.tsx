@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Modal } from "../../components/Modal";
 import { Badge } from "../../components/Badge";
 import { Skeleton } from "../../components/Skeleton";
+import { toTitleCase } from "../../lib/utils";
 import { getDistributorComparison } from "./api";
 import type { DistributorComparisonRow } from "./types";
 import styles from "./DistributorComparisonModal.module.css";
@@ -100,11 +101,11 @@ export function DistributorComparisonModal({
                         {isDirect ? (
                           <Badge variant="positive">Direct</Badge>
                         ) : row.arn_status === "ACTIVE" ? (
-                          <Badge variant="positive">ACTIVE</Badge>
+                          <Badge variant="positive">{toTitleCase(row.arn_status)}</Badge>
                         ) : row.arn_status === "SUSPENDED" || row.arn_status === "INVALID" ? (
-                          <Badge variant="warning">{row.arn_status}</Badge>
+                          <Badge variant="warning">{toTitleCase(row.arn_status)}</Badge>
                         ) : (
-                          <Badge variant="neutral">UNRESOLVED</Badge>
+                          <Badge variant="neutral">Unresolved</Badge>
                         )}
                       </td>
                       <td className={`type-data ${styles.numTd}`}>
