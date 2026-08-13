@@ -1,6 +1,7 @@
 import { FundSignal } from "@/components/FundSignal";
 import { Badge } from "@/components/ui/badge";
 import { ChevronRight } from "lucide-react";
+import { toTitleCase } from "@/lib/utils";
 import type { HoldingRow } from "@/features/dashboard/types";
 
 export interface MobileHoldingCardSummaryProps {
@@ -46,12 +47,15 @@ export function MobileHoldingCardSummary({
             <span className="font-semibold text-sm text-[var(--color-ink)] leading-snug line-clamp-2">
               {holding.scheme_name}
             </span>
-            <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
+            <div className="flex items-center gap-1.5 mt-0.5 min-w-0 flex-wrap">
               {holding.household_member_name && (
                 <span className="text-[11px] font-medium text-[var(--color-text-secondary)] truncate">
                   {holding.household_member_name}
                 </span>
               )}
+              <Badge variant={holding.plan_type === "DIRECT" ? "positive" : "neutral"}>
+                {toTitleCase(holding.plan_type || "UNKNOWN")}
+              </Badge>
               {holding.stale_nav && <Badge variant="warning">stale</Badge>}
             </div>
           </div>

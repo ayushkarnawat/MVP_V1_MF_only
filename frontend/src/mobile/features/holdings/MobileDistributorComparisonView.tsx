@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Badge } from "@/components/Badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft } from "lucide-react";
+import { toTitleCase } from "@/lib/utils";
 import { getDistributorComparison } from "@/features/dashboard/api";
 import type { DistributorComparisonRow } from "@/features/dashboard/types";
 
@@ -123,11 +124,11 @@ export function MobileDistributorComparisonView({
                     {isDirect ? (
                       <Badge variant="positive">Direct</Badge>
                     ) : row.arn_status === "ACTIVE" ? (
-                      <Badge variant="positive">ACTIVE</Badge>
+                      <Badge variant="positive">{toTitleCase(row.arn_status)}</Badge>
                     ) : row.arn_status === "SUSPENDED" || row.arn_status === "INVALID" ? (
-                      <Badge variant="warning">{row.arn_status}</Badge>
+                      <Badge variant="warning">{toTitleCase(row.arn_status)}</Badge>
                     ) : (
-                      <Badge variant="neutral">UNRESOLVED</Badge>
+                      <Badge variant="neutral">Unresolved</Badge>
                     )}
                   </div>
 

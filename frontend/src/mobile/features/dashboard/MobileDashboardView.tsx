@@ -330,7 +330,7 @@ export function MobileDashboardView({
                   >
                     <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-warning,#f59e0b)]" />
                     <span>{m.name}</span>
-                    <Badge variant="warning" className="text-[10px] py-0 px-1.5">No CAS Data</Badge>
+                    <Badge variant="warning">No CAS Data</Badge>
                     <button
                       className="text-[11px] font-semibold text-[var(--color-accent)] hover:underline ml-0.5 cursor-pointer"
                       onClick={() => onNavigateImport?.(m.id)}
@@ -523,7 +523,7 @@ export function MobileDashboardView({
                 >
                   <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-warning,#f59e0b)]" />
                   <span>{m.name}</span>
-                  <Badge variant="warning" className="text-[10px] py-0 px-1.5">No CAS Data</Badge>
+                  <Badge variant="warning">No CAS Data</Badge>
                   <button
                     className="text-[11px] font-semibold text-[var(--color-accent)] hover:underline ml-0.5 cursor-pointer"
                     onClick={() => onNavigateImport?.(m.id)}

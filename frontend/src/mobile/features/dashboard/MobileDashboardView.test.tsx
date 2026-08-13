@@ -122,6 +122,97 @@ describe("MobileDashboardView", () => {
     expect(screen.queryByText("HDFC Top 100 Fund")).not.toBeInTheDocument();
   });
 
+  it("filters the Holdings list by family member in Family Combined view, combined with search", async () => {
+    vi.mocked(dashboardApi.getAggregateHoldings).mockResolvedValue({
+      holdings: [
+        {
+          scheme_id: "scheme-101",
+          scheme_name: "HDFC Top 100 Fund",
+          amc_name: "HDFC Mutual Fund",
+          household_member_id: "m-1",
+          household_member_name: "Ayush",
+          plan_type: "DIRECT",
+          units_held: "100.00",
+          average_nav: "50.00",
+          current_nav: "75.00",
+          amount_invested: "5000.00",
+          current_value: "7500.00",
+          current_profit_total: "2500.00",
+          realized_gain: "0.00",
+          unrealized_gain: "2500.00",
+          today_gain: "25.00",
+        },
+        {
+          scheme_id: "scheme-102",
+          scheme_name: "Parag Parikh Flexi Cap Fund",
+          amc_name: "PPFAS Mutual Fund",
+          household_member_id: "m-2",
+          household_member_name: "Spouse",
+          plan_type: "DIRECT",
+          units_held: "50.00",
+          average_nav: "60.00",
+          current_nav: "90.00",
+          amount_invested: "3000.00",
+          current_value: "4500.00",
+          current_profit_total: "1500.00",
+          realized_gain: "0.00",
+          unrealized_gain: "1500.00",
+          today_gain: "15.00",
+        },
+      ],
+      members: [
+        { id: "m-1", name: "Ayush", has_data: true },
+        { id: "m-2", name: "Spouse", has_data: true },
+      ],
+    });
+
+    vi.mocked(dashboardApi.getAggregateAllocation).mockResolvedValue({
+      members: [
+        { id: "m-1", name: "Ayush", has_data: true },
+        { id: "m-2", name: "Spouse", has_data: true },
+      ],
+      allocation: {
+        by_asset_class: [
+          { label: "Equity", current_value: "12000.00", percentage: 100.0 },
+        ],
+        by_amc: [],
+        total_value: "12000.00",
+      },
+    });
+
+    render(<MobileDashboardView />);
+
+    await waitFor(() => {
+      expect(screen.getByText("HDFC Top 100 Fund")).toBeInTheDocument();
+      expect(screen.getByText("Parag Parikh Flexi Cap Fund")).toBeInTheDocument();
+      expect(screen.getByText("2 holdings")).toBeInTheDocument();
+    });
+
+    // Filter Holdings list down to just Spouse's holding
+    const memberFilterTrigger = screen.getByLabelText(
+      "Filter holdings by family member"
+    );
+    fireEvent.keyDown(memberFilterTrigger, { key: "ArrowDown" });
+    const spouseOption = await screen.findByRole("option", { name: "Spouse" });
+    fireEvent.click(spouseOption);
+
+    await waitFor(() => {
+      expect(screen.getByText("Parag Parikh Flexi Cap Fund")).toBeInTheDocument();
+      expect(screen.queryByText("HDFC Top 100 Fund")).not.toBeInTheDocument();
+      expect(screen.getByText("1 holding")).toBeInTheDocument();
+    });
+
+    // Combined with search: narrowing the search term further while the
+    // member filter is still active should exclude the remaining holding too
+    const searchInput = screen.getByPlaceholderText("Search funds or AMCs...");
+    fireEvent.change(searchInput, { target: { value: "HDFC" } });
+
+    await waitFor(() => {
+      expect(screen.queryByText("Parag Parikh Flexi Cap Fund")).not.toBeInTheDocument();
+      expect(screen.getByText("No matching funds")).toBeInTheDocument();
+    });
+  });
+
   it("renders pending family imports strip when members have no data", async () => {
     vi.mocked(dashboardApi.getAggregateHoldings).mockResolvedValue({
       holdings: [

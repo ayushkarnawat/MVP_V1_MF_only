@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Badge } from "@/components/Badge";
 import { FundSignal } from "@/components/FundSignal";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn, toTitleCase } from "@/lib/utils";
 import { X, ArrowDownRight, ArrowUpRight } from "lucide-react";
 import type { HoldingRow } from "@/features/dashboard/types";
 
@@ -82,7 +82,7 @@ export function MobileFundDetailSheet({
                 <Badge
                   variant={holding.plan_type === "DIRECT" ? "positive" : "neutral"}
                 >
-                  {holding.plan_type || "UNKNOWN"}
+                  {toTitleCase(holding.plan_type || "UNKNOWN")}
                 </Badge>
                 {holding.household_member_name && (
                   <span className="text-[11px] font-medium text-[var(--color-text-secondary)] px-2 py-0.5 rounded-md bg-[var(--color-bg)] border border-[var(--color-border)]">

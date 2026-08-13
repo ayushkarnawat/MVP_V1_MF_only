@@ -48,7 +48,7 @@ describe("MobileFundDetailSheet", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByText("Axis Bluechip Fund")).toBeInTheDocument();
     expect(screen.getByText("Axis Mutual Fund")).toBeInTheDocument();
-    expect(screen.getByText("DIRECT")).toBeInTheDocument();
+    expect(screen.getByText("Direct")).toBeInTheDocument();
     expect(screen.getByText("Ayush")).toBeInTheDocument();
     expect(screen.getByText("Current Value")).toBeInTheDocument();
     expect(screen.getByText("Invested Amount")).toBeInTheDocument();

@@ -36,7 +36,7 @@ describe("MobileFundDetailView", () => {
     expect(screen.getByText("FUND DETAILS")).toBeInTheDocument();
     expect(screen.getByText("Axis Bluechip Fund")).toBeInTheDocument();
     expect(screen.getAllByText("Axis Mutual Fund").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("DIRECT").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Direct").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Ayush")).toBeInTheDocument();
     expect(screen.getByText("Large Cap Equity")).toBeInTheDocument();
     expect(screen.getAllByText("Current Value").length).toBeGreaterThanOrEqual(1);
