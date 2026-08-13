@@ -225,17 +225,86 @@ level, valued at today's index level).
 
 ## 6. Scorer (FR-5, FR-6, FR-7)
 
-Full formula and percentile-bucketing algorithm specified in Part 5's plan file
-(built last, after TER and category ranking exist). Cost-overlay nudge magnitude
-(Open Question 2, Claude's call): a scheme whose TER is below its category's
-AUM-weighted average TER gets `+0.25` added to `cost_adjustment`
-(`fund_scores.cost_adjustment`, `Numeric(3,2)`); above average gets `-0.25`;
-within 0.05 percentage points of the average (a dead zone, since TER differences
-that small are noise-level, not a meaningful "cheaper/more expensive" signal)
-gets `0`. Chosen to be a visible but not tier-dominating nudge — the scheme's
-tier (risk_adjusted_tier: 1–5) already carries most of the score, and ±0.25
-against a 5-point tier scale is a real but secondary adjustment, matching FR-5b's
-framing of cost as a secondary overlay, not a primary ranking axis.
+**Resolved with the user (2026-08-13)** — the PRD's Open Question 3 ("Scorer
+formula and weighting... needs your direct input, not just a technical
+default") was a genuine gate: PRD-04's Dependencies table still listed this
+"Not decided" and blocking FR-5–FR-7. Presented in plain language (the user
+is explicit that he isn't quantitatively technical and wants the *technical*
+call made by Claude, with only the *product-level* tradeoff explained back to
+him) — approved design and default weighting below. Full task-by-task build
+in Part 5's plan file
+(`2026-08-13-phase-4-analytics-backend-part5-scorer.md`).
+
+**The one hard product requirement:** the formula must be genuinely
+differentiated from existing agencies (Morningstar, CRISIL) and from
+competing apps' simplistic categorical labels (e.g. PowerUp's
+Good/Average/Poor bucketing) — verbatim: *"the formula should be unique...
+our score is a combination of multiple researchers... it doesn't need to
+just use one formula... I want differentiation compared to all the other
+products in the market."*
+
+**Design — three quality ingredients + one cost overlay**, all computed
+percentile-vs-category-peers using the same universe FR-3/FR-4 already
+build (`scheme_universe.py`'s `get_category_universe`):
+
+1. **Return (45% weight)** — reuses FR-3's already-built blended 3yr/5yr CAGR
+   percentile rank (`category_ranking.py`'s `_blend_returns` +
+   `_rank_and_percentile`) verbatim. No new computation.
+2. **Risk (30% weight)** — **downside deviation** of monthly NAV returns
+   (only negative months contribute; MAR = 0), not plain standard deviation.
+   Deliberately diverges from Morningstar/CRISIL's symmetric-volatility
+   convention: an investor doesn't experience big up-months as "risk" the
+   way they experience down-months — this is both more true to how risk is
+   actually felt and a concrete point of difference from the two named
+   competitors. Computed **unannualized** (monthly units) — annualizing
+   (×√12) is a constant scalar across every scheme in a category and would
+   not change the relative percentile ranking it feeds into, so it's
+   deliberately skipped (ponytail: fewer operations, same ranking result).
+   Percentile is inverted (lowest deviation → highest percentile, i.e.
+   safest fund ranks #1).
+3. **Consistency (25% weight)** — **the differentiating ingredient**, not
+   present in any of the cited competitors' published methodology: the % of
+   rolling 12-month windows (within the same 3yr/5yr-availability window
+   used for Return) where the scheme's trailing 12-month return beat its
+   category's trailing 12-month **median** return for that same
+   window-ending month. Used directly as a 0–100 figure (not re-percentiled)
+   — it's already a same-scale, more directly explainable number ("beat its
+   category in 8 of the last 10 rolling years") than a percentile-of-a-rate
+   would be, and this is exactly the number FR-7's "why this score"
+   breakdown surfaces per fund.
+4. **Cost overlay** (already resolved, unchanged): a scheme whose TER is
+   below its category's AUM-weighted average TER gets `+0.25` added to
+   `cost_adjustment` (`fund_scores.cost_adjustment`, `Numeric(3,2)`); above
+   average gets `-0.25`; within 0.05 percentage points of the average (a
+   dead zone — noise-level, not a meaningful signal) gets `0`.
+
+**Combining:** `composite = 0.45 × return_percentile + 0.30 × risk_percentile
++ 0.25 × consistency_hit_rate` (all four terms 0–100-scale). Composite is
+then itself percentile-ranked within the category (same rank-based formula
+as `_rank_and_percentile`, guaranteeing exactly-populated quintiles
+regardless of the composite's raw distribution shape) and bucketed into
+`risk_adjusted_tier` 1–5 (81–100th percentile → 5, ..., 0–20th → 1).
+`final_score` = that composite percentile + `cost_adjustment`, rounded to 2
+d.p. (`Numeric(5,2)` has ample headroom for a 0–100.25 range).
+
+**Deviation from the schema doc's terse FR-5a description** ("combining
+relative category return and volatility") flagged per CLAUDE.md: this design
+adds Consistency as a third tier-determining ingredient, beyond the two the
+schema comment names. This is intentional and user-approved (the 3rd
+ingredient is the differentiation the user explicitly required), not an
+oversight — noted here so a future reader doesn't read it as an unflagged
+inconsistency. `cost_adjustment` stays a separate overlay exactly as FR-5b
+already specified, unchanged.
+
+**FR-6 (portfolio-level roll-up):** AUM-weighted (by the member's own
+holding value, same convention as FR-10's weighted TER) average of held
+schemes' `final_score`, computed on-read — never stored, per the schema
+doc's staleness rationale.
+
+**FR-7 (explainability):** every score response carries the four component
+figures (`return_percentile`, `risk_percentile`, `consistency_hit_rate`,
+`cost_adjustment`) alongside the tier and final score — never a bare number
+or single-word label.
 
 ## Reference — verification artifacts (not committed, scratch only)
 
