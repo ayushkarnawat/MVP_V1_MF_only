@@ -100,7 +100,7 @@ export function ReviewTable({ preview, confirming, onConfirm }: ReviewTableProps
   ).length;
 
   return (
-    <div className="w-full min-w-0 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 pt-2 sm:pt-4 text-left box-border">
+    <div className="w-full min-w-0 max-w-5xl mx-auto space-y-6 text-left box-border">
       {/* 1. Header Section */}
       <div className="space-y-1">
         <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -163,63 +163,7 @@ export function ReviewTable({ preview, confirming, onConfirm }: ReviewTableProps
         </div>
       </div>
 
-      {/* 3. Collapsible Parse Warnings (Default: Collapsed) */}
-      {preview.parse_warnings && preview.parse_warnings.length > 0 && (
-        <div className="rounded-2xl bg-[color-mix(in_srgb,var(--color-warning)_8%,transparent)] border border-[color-mix(in_srgb,var(--color-warning)_25%,transparent)] overflow-hidden transition-all duration-200">
-          <button
-            type="button"
-            onClick={() => setIsWarningsExpanded((prev) => !prev)}
-            aria-expanded={isWarningsExpanded}
-            className="w-full p-4 flex items-center justify-between gap-3 text-left cursor-pointer hover:bg-[color-mix(in_srgb,var(--color-warning)_12%,transparent)] transition-colors select-none"
-          >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="h-6 w-6 rounded-full bg-[color-mix(in_srgb,var(--color-warning)_20%,transparent)] text-[var(--color-warning)] flex items-center justify-center flex-shrink-0">
-                <AlertTriangle className="h-3.5 w-3.5" />
-              </div>
-              <div className="min-w-0">
-                <span className="font-semibold text-xs sm:text-sm text-[var(--color-warning)] block truncate">
-                  Import Warnings ({preview.parse_warnings.length})
-                </span>
-                <span className="text-[11px] text-[var(--color-text-secondary)]">
-                  {isWarningsExpanded
-                    ? "Click to collapse notices"
-                    : `${preview.parse_warnings.length} non-blocking notice${preview.parse_warnings.length !== 1 ? "s" : ""} detected during statement parsing`}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-[var(--color-warning)] flex-shrink-0">
-              <span className="text-[11px] hidden sm:inline">
-                {isWarningsExpanded ? "Hide" : "View"}
-              </span>
-              <ChevronDown
-                className={cn(
-                  "h-4 w-4 transition-transform duration-200",
-                  isWarningsExpanded && "rotate-180"
-                )}
-              />
-            </div>
-          </button>
-
-          {/* Collapsible Body */}
-          <div
-            className={cn(
-              "px-4 pb-4 pt-1 border-t border-[color-mix(in_srgb,var(--color-warning)_20%,transparent)] transition-all",
-              !isWarningsExpanded && "hidden"
-            )}
-          >
-            <ul className="text-xs text-[var(--color-ink)] list-disc list-inside space-y-1.5 pt-2 pl-1">
-              {preview.parse_warnings.map((warning, idx) => (
-                <li key={idx} className="leading-relaxed">
-                  {warning}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      )}
-
-      {/* 4. Schemes Review Section */}
+      {/* 3. Schemes Review Section */}
       {isMobile ? (
         /* Mobile View (<768px): Stacked Touch Cards (No Table Headers) */
         <div className="w-full space-y-3 box-border">
@@ -345,13 +289,13 @@ export function ReviewTable({ preview, confirming, onConfirm }: ReviewTableProps
         /* Desktop View (>=768px): Financial Table */
         <div className="w-full rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs overflow-hidden box-border">
           <div className="w-full overflow-x-auto">
-            <table className="w-full min-w-[600px] text-left border-collapse">
+            <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-[var(--color-border)] bg-[var(--color-bg)]/60 text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider select-none">
-                  <th className="py-3 px-4 sm:px-6">Scheme &amp; Folio</th>
-                  <th className="py-3 px-4">AMFI Match</th>
-                  <th className="py-3 px-4">Plan Type</th>
-                  <th className="py-3 px-4 sm:px-6 text-right">Txns</th>
+                  <th className="py-3.5 px-4 sm:px-5 w-[40%]">Scheme &amp; Folio</th>
+                  <th className="py-3.5 px-4 sm:px-5 w-[30%]">AMFI Match</th>
+                  <th className="py-3.5 px-4 sm:px-5 w-[18%]">Plan Type</th>
+                  <th className="py-3.5 px-4 sm:px-5 w-[12%] text-right">Txns</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--color-border)]/60 text-xs">
@@ -366,7 +310,7 @@ export function ReviewTable({ preview, confirming, onConfirm }: ReviewTableProps
                       className="hover:bg-[var(--color-bg)]/50 transition-colors duration-150"
                     >
                       {/* Scheme Name & Folio / AMC */}
-                      <td className="py-4 px-4 sm:px-6 max-w-xs sm:max-w-md">
+                      <td className="py-4 px-4 sm:px-5">
                         <div className="space-y-0.5">
                           <div className="font-semibold text-xs sm:text-sm text-[var(--color-ink)] leading-snug">
                             {scheme.name}
@@ -380,7 +324,7 @@ export function ReviewTable({ preview, confirming, onConfirm }: ReviewTableProps
                       </td>
 
                       {/* AMFI Match */}
-                      <td className="py-4 px-4 align-top">
+                      <td className="py-4 px-4 sm:px-5 align-top">
                         <div className="space-y-1.5">
                           <div className="flex items-center gap-1.5">
                             {scheme.match_status === "confirmed" ? (
@@ -411,7 +355,7 @@ export function ReviewTable({ preview, confirming, onConfirm }: ReviewTableProps
                                 onChange={(event) =>
                                   updateOverride(scheme.temp_id, { amfiCode: event.target.value })
                                 }
-                                className="h-8 text-xs bg-[var(--color-bg)] border-[var(--color-border)] rounded-lg w-36 focus-visible:ring-[var(--color-accent)]"
+                                className="h-8 text-xs bg-[var(--color-bg)] border-[var(--color-border)] rounded-lg w-32 focus-visible:ring-[var(--color-accent)]"
                               />
                             </div>
                           )}
@@ -419,7 +363,7 @@ export function ReviewTable({ preview, confirming, onConfirm }: ReviewTableProps
                       </td>
 
                       {/* Plan Type */}
-                      <td className="py-4 px-4 align-top">
+                      <td className="py-4 px-4 sm:px-5 align-top">
                         <div className="space-y-1.5">
                           <span
                             className={cn(
@@ -442,7 +386,7 @@ export function ReviewTable({ preview, confirming, onConfirm }: ReviewTableProps
                                     planType: event.target.value as "" | "direct" | "regular",
                                   })
                                 }
-                                className="h-8 px-2.5 text-xs bg-[var(--color-bg)] border border-[var(--color-border)] rounded-lg text-[var(--color-ink)] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] cursor-pointer"
+                                className="h-8 px-2.5 text-xs bg-[var(--color-bg)] border border-[var(--color-border)] rounded-lg text-[var(--color-ink)] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] cursor-pointer w-28"
                               >
                                 <option value="">Select...</option>
                                 <option value="direct">Direct</option>
@@ -454,8 +398,8 @@ export function ReviewTable({ preview, confirming, onConfirm }: ReviewTableProps
                       </td>
 
                       {/* Transactions Count */}
-                      <td className="py-4 px-4 sm:px-6 text-right align-top font-bold text-xs sm:text-sm text-[var(--color-ink)] tabular-nums">
-                        <span className="px-2 py-0.5 rounded-md bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text-secondary)] font-semibold text-xs">
+                      <td className="py-4 px-4 sm:px-5 text-right align-top font-bold text-xs sm:text-sm text-[var(--color-ink)] tabular-nums">
+                        <span className="px-2 py-0.5 rounded-md bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text-secondary)] font-semibold text-xs inline-block">
                           {scheme.transaction_count}
                         </span>
                       </td>
@@ -464,6 +408,62 @@ export function ReviewTable({ preview, confirming, onConfirm }: ReviewTableProps
                 })}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* 4. Collapsible Parse Warnings (Default: Collapsed) */}
+      {preview.parse_warnings && preview.parse_warnings.length > 0 && (
+        <div className="rounded-2xl bg-[color-mix(in_srgb,var(--color-warning)_8%,transparent)] border border-[color-mix(in_srgb,var(--color-warning)_25%,transparent)] overflow-hidden transition-all duration-200">
+          <button
+            type="button"
+            onClick={() => setIsWarningsExpanded((prev) => !prev)}
+            aria-expanded={isWarningsExpanded}
+            className="w-full p-4 flex items-center justify-between gap-3 text-left cursor-pointer hover:bg-[color-mix(in_srgb,var(--color-warning)_12%,transparent)] transition-colors select-none"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="h-6 w-6 rounded-full bg-[color-mix(in_srgb,var(--color-warning)_20%,transparent)] text-[var(--color-warning)] flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="h-3.5 w-3.5" />
+              </div>
+              <div className="min-w-0">
+                <span className="font-semibold text-xs sm:text-sm text-[var(--color-warning)] block truncate">
+                  Import Warnings ({preview.parse_warnings.length})
+                </span>
+                <span className="text-[11px] text-[var(--color-text-secondary)]">
+                  {isWarningsExpanded
+                    ? "Click to collapse notices"
+                    : `${preview.parse_warnings.length} non-blocking notice${preview.parse_warnings.length !== 1 ? "s" : ""} detected during statement parsing`}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-[var(--color-warning)] flex-shrink-0">
+              <span className="text-[11px] hidden sm:inline">
+                {isWarningsExpanded ? "Hide" : "View"}
+              </span>
+              <ChevronDown
+                className={cn(
+                  "h-4 w-4 transition-transform duration-200",
+                  isWarningsExpanded && "rotate-180"
+                )}
+              />
+            </div>
+          </button>
+
+          {/* Collapsible Body */}
+          <div
+            className={cn(
+              "px-4 pb-4 pt-1 border-t border-[color-mix(in_srgb,var(--color-warning)_20%,transparent)] transition-all",
+              !isWarningsExpanded && "hidden"
+            )}
+          >
+            <ul className="text-xs text-[var(--color-ink)] list-disc list-inside space-y-1.5 pt-2 pl-1">
+              {preview.parse_warnings.map((warning, idx) => (
+                <li key={idx} className="leading-relaxed">
+                  {warning}
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       )}
