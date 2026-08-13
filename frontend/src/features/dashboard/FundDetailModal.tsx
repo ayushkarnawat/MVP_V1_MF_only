@@ -96,7 +96,10 @@ export function FundDetailModal({
           </div>
           <div className={styles.detailRow}>
             <span className={styles.detailLabel}>Current NAV</span>
-            <span className="type-data">₹{holding.current_nav}</span>
+            <span className="type-data" style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+              ₹{holding.current_nav}
+              {holding.stale_nav && <Badge variant="warning">stale</Badge>}
+            </span>
           </div>
           {holding.current_nav_date && (
             <div className={styles.detailRow}>

@@ -1,4 +1,5 @@
 import { FundSignal } from "@/components/FundSignal";
+import { Badge } from "@/components/ui/badge";
 import { ChevronRight } from "lucide-react";
 import type { HoldingRow } from "@/features/dashboard/types";
 
@@ -45,11 +46,14 @@ export function MobileHoldingCardSummary({
             <span className="font-semibold text-sm text-[var(--color-ink)] leading-snug line-clamp-2">
               {holding.scheme_name}
             </span>
-            {holding.household_member_name && (
-              <span className="text-[11px] font-medium text-[var(--color-text-secondary)] mt-0.5 truncate">
-                {holding.household_member_name}
-              </span>
-            )}
+            <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
+              {holding.household_member_name && (
+                <span className="text-[11px] font-medium text-[var(--color-text-secondary)] truncate">
+                  {holding.household_member_name}
+                </span>
+              )}
+              {holding.stale_nav && <Badge variant="warning">stale</Badge>}
+            </div>
           </div>
         </div>
 

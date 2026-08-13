@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { ImportPreviewResponse, SchemeConfirmation } from "@/features/import/types";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -89,9 +90,9 @@ export function MobileReviewView({
           <h2 className="font-display font-bold text-base text-[var(--color-ink)]">
             Review CAS Import
           </h2>
-          <span className="text-[9px] font-semibold uppercase tracking-wider bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] text-[var(--color-accent)] px-2 py-0.5 rounded-full">
+          <Badge variant="positive" className="uppercase tracking-wider">
             Statement Verified
-          </span>
+          </Badge>
         </div>
         <p className="text-xs text-[var(--color-text-secondary)]">
           Verify parsed funds and resolve any unclassified schemes before confirming.
@@ -227,25 +228,23 @@ export function MobileReviewView({
               {/* Status Badges Row */}
               <div className="flex items-center gap-2 flex-wrap pt-0.5">
                 {scheme.match_status === "confirmed" ? (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-[color-mix(in_srgb,var(--color-positive)_15%,transparent)] text-[var(--color-positive)]">
+                  <Badge variant="positive">
                     <CheckCircle2 className="h-3 w-3 flex-shrink-0" />
                     <span>Matched {scheme.amfi_code ? `(${scheme.amfi_code})` : ""}</span>
-                  </span>
+                  </Badge>
                 ) : (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-[color-mix(in_srgb,var(--color-warning)_15%,transparent)] text-[var(--color-warning)]">
+                  <Badge variant="neutral">
                     <HelpCircle className="h-3 w-3 flex-shrink-0" />
                     <span>AMFI Code Needed</span>
-                  </span>
+                  </Badge>
                 )}
 
-                {scheme.plan_type !== "unclassified" ? (
-                  <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-ink)] capitalize">
-                    {scheme.plan_type} Plan
-                  </span>
+                {scheme.plan_type === "unclassified" ? (
+                  <Badge variant="neutral">Plan Unclassified</Badge>
                 ) : (
-                  <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-[color-mix(in_srgb,var(--color-warning)_15%,transparent)] text-[var(--color-warning)]">
-                    Plan Unclassified
-                  </span>
+                  <Badge variant={scheme.plan_type === "direct" ? "positive" : "neutral"} className="capitalize">
+                    {scheme.plan_type} Plan
+                  </Badge>
                 )}
               </div>
 

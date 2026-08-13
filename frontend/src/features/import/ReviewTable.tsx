@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import type { ImportPreviewResponse, SchemeConfirmation } from "./types";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -123,9 +124,9 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
           <h1 className="font-display font-bold tracking-tight leading-tight text-xl sm:text-3xl text-[var(--color-ink)]">
             {memberName ? `Review ${memberName}'s CAS Import` : "Review CAS Import"}
           </h1>
-          <span className="self-start sm:self-auto flex-shrink-0 text-[10px] font-semibold uppercase tracking-wider bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] text-[var(--color-accent)] px-3 py-1 rounded-full">
+          <Badge variant="positive" className="self-start sm:self-auto flex-shrink-0 uppercase tracking-wider">
             Statement Verified
-          </span>
+          </Badge>
         </div>
         <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed">
           Verify parsed mutual fund schemes and resolve any missing classifications before committing to your portfolio.
@@ -224,25 +225,23 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
                 {/* 3. AMFI Match Status & 4. Plan Type Badges */}
                 <div className="flex items-center gap-2 flex-wrap pt-0.5">
                   {scheme.match_status === "confirmed" ? (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-[color-mix(in_srgb,var(--color-positive)_15%,transparent)] text-[var(--color-positive)]">
+                    <Badge variant="positive">
                       <CheckCircle2 className="h-3 w-3 flex-shrink-0" />
                       <span>Matched {scheme.amfi_code ? `(${scheme.amfi_code})` : ""}</span>
-                    </span>
+                    </Badge>
                   ) : (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-[color-mix(in_srgb,var(--color-warning)_15%,transparent)] text-[var(--color-warning)]">
+                    <Badge variant="neutral">
                       <HelpCircle className="h-3 w-3 flex-shrink-0" />
                       <span>AMFI Code Needed</span>
-                    </span>
+                    </Badge>
                   )}
 
-                  {scheme.plan_type !== "unclassified" ? (
-                    <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-ink)] capitalize">
-                      {scheme.plan_type} Plan
-                    </span>
+                  {scheme.plan_type === "unclassified" ? (
+                    <Badge variant="neutral">Plan Unclassified</Badge>
                   ) : (
-                    <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-[color-mix(in_srgb,var(--color-warning)_15%,transparent)] text-[var(--color-warning)]">
-                      Plan Unclassified
-                    </span>
+                    <Badge variant={scheme.plan_type === "direct" ? "positive" : "neutral"} className="capitalize">
+                      {scheme.plan_type} Plan
+                    </Badge>
                   )}
                 </div>
 
@@ -346,15 +345,15 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
                         <div className="space-y-1.5">
                           <div className="flex items-center gap-1.5">
                             {scheme.match_status === "confirmed" ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[color-mix(in_srgb,var(--color-positive)_15%,transparent)] text-[var(--color-positive)] font-semibold text-[11px]">
+                              <Badge variant="positive">
                                 <CheckCircle2 className="h-3 w-3" />
                                 <span>Matched {scheme.amfi_code ? `(${scheme.amfi_code})` : ""}</span>
-                              </span>
+                              </Badge>
                             ) : (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[color-mix(in_srgb,var(--color-warning)_15%,transparent)] text-[var(--color-warning)] font-semibold text-[11px]">
+                              <Badge variant="neutral">
                                 <HelpCircle className="h-3 w-3" />
                                 <span>{scheme.match_status}</span>
-                              </span>
+                              </Badge>
                             )}
                           </div>
 
@@ -383,16 +382,18 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
                       {/* Plan Type */}
                       <td className="py-4 px-4 sm:px-5 align-top">
                         <div className="space-y-1.5">
-                          <span
-                            className={cn(
-                              "inline-flex items-center px-2.5 py-0.5 rounded-full font-semibold text-[11px] capitalize",
+                          <Badge
+                            variant={
                               scheme.plan_type === "unclassified"
-                                ? "bg-[color-mix(in_srgb,var(--color-warning)_15%,transparent)] text-[var(--color-warning)]"
-                                : "bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-ink)]"
-                            )}
+                                ? "neutral"
+                                : scheme.plan_type === "direct"
+                                ? "positive"
+                                : "neutral"
+                            }
+                            className="capitalize"
                           >
                             {scheme.plan_type}
-                          </span>
+                          </Badge>
 
                           {needsPlan && (
                             <div className="pt-1">

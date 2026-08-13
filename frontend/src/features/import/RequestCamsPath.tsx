@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { requestCamsStatement } from "./api";
 import { setCasResumeStep2 } from "./casResumeState";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   ExternalLink,
@@ -43,9 +44,9 @@ export function RequestCamsPath({
           <h2 className="font-display font-bold text-base sm:text-lg text-[var(--color-ink)]">
             Request CAS Statement from CAMS
           </h2>
-          <span className="text-[10px] font-semibold uppercase tracking-wider bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] text-[var(--color-accent)] px-2.5 py-0.5 rounded-full">
+          <Badge variant="positive" className="uppercase tracking-wider">
             Recommended
-          </span>
+          </Badge>
         </div>
         <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed">
           CAMS generates a free Consolidated Account Statement across all your mutual funds and delivers it directly to your registered email address.
