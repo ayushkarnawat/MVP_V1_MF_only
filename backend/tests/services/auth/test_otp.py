@@ -107,3 +107,66 @@ def test_verify_otp_uses_latest_request_when_multiple_exist():
     verified = verify_otp(db, "+919999999999", second_otp)
 
     assert verified.verified_at is not None
+
+
+def test_create_otp_request_accepts_email_channel(monkeypatch):
+    import app.services.auth.otp as otp_module
+
+    monkeypatch.setattr(otp_module.settings, "otp_delivery_mode", "stub")
+    db = _session()
+    request, raw_otp = create_otp_request(db, "a@example.com", channel="email")
+
+    assert raw_otp is not None
+    assert request.email == "a@example.com"
+    assert request.phone_number is None
+
+
+def test_verify_otp_succeeds_for_email_channel():
+    db = _session()
+    _, raw_otp = create_otp_request(db, "a@example.com", channel="email")
+
+    verified = verify_otp(db, "a@example.com", raw_otp, channel="email")
+
+    assert verified.verified_at is not None
+
+
+def test_verify_otp_email_channel_does_not_match_phone_request():
+    db = _session()
+    create_otp_request(db, "+919999999999", channel="sms")
+
+    with pytest.raises(OtpVerificationError, match="No pending"):
+        verify_otp(db, "+919999999999", "000000", channel="email")
+
+
+def test_create_otp_request_email_channel_dispatches_via_email_provider_when_not_stub(monkeypatch):
+    import app.services.auth.otp as otp_module
+
+    monkeypatch.setattr(otp_module.settings, "otp_delivery_mode", "postmark")
+    monkeypatch.setattr(otp_module.settings, "database_url", "sqlite:///:memory:")
+
+    sent = {}
+
+    class FakeProvider:
+        def send_email(self, to, subject, body):
+            sent["to"] = to
+            sent["body"] = body
+
+    monkeypatch.setattr(otp_module, "get_email_provider", lambda: FakeProvider())
+    db = _session()
+
+    request, raw_otp = create_otp_request(db, "a@example.com", channel="email")
+
+    assert raw_otp is None
+    assert sent["to"] == "a@example.com"
+    assert request.otp_hash != sent["body"]  # sanity: body isn't the raw hash
+
+
+def test_create_otp_request_email_channel_raises_when_no_provider_configured(monkeypatch):
+    import app.services.auth.otp as otp_module
+
+    monkeypatch.setattr(otp_module.settings, "otp_delivery_mode", "postmark")
+    monkeypatch.setattr(otp_module.settings, "database_url", "sqlite:///:memory:")
+    db = _session()
+
+    with pytest.raises(otp_module.NoEmailProviderConfiguredError):
+        create_otp_request(db, "a@example.com", channel="email")
