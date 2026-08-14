@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import uuid
+from collections.abc import Iterable
 from datetime import date, datetime
 from decimal import Decimal
 
@@ -67,7 +68,9 @@ def _latest_cached_on_or_before(db: Session, scheme_id: uuid.UUID, on_date: date
     )
 
 
-async def get_nav_on_or_before(db: Session, scheme: Scheme, on_date: date) -> tuple[Decimal, date] | None:
+async def get_nav_on_or_before(
+    db: Session, scheme: Scheme, on_date: date, *, allow_stale_today: bool = False
+) -> tuple[Decimal, date] | None:
     """Most recent NAV on or before `on_date`. Returns `(nav, actual_date)`,
     or `None` if nothing is available even after attempting a fetch.
 
@@ -77,9 +80,16 @@ async def get_nav_on_or_before(db: Session, scheme: Scheme, on_date: date) -> tu
     attempting a fetch, since today's NAV may not have been published yet
     when it was last cached (FR-3's "not yet published" case is normal, not
     an error, but this function should still try to get the freshest data
-    available)."""
+    available) — unless `allow_stale_today=True`, for callers that only
+    need "latest available NAV as of roughly now" (e.g. category-ranking/
+    scorer's CAGR calc, where same-day vs. prior-business-day NAV is
+    immaterial) and have already warmed the cache via `warm_nav_history`,
+    where forcing a live re-fetch would just re-download data fetched
+    moments ago."""
     cached = _latest_cached_on_or_before(db, scheme.id, on_date)
-    have_trustworthy_cache = cached is not None and (cached.date == on_date or on_date != date.today())
+    have_trustworthy_cache = cached is not None and (
+        allow_stale_today or cached.date == on_date or on_date != date.today()
+    )
     if have_trustworthy_cache:
         return cached.nav, cached.date
 
@@ -91,6 +101,30 @@ async def get_nav_on_or_before(db: Session, scheme: Scheme, on_date: date) -> tu
     _upsert_nav_history(db, scheme.id, rows)
     refreshed = _latest_cached_on_or_before(db, scheme.id, on_date)
     return (refreshed.nav, refreshed.date) if refreshed else None
+
+
+async def warm_nav_history(db: Session, schemes: Iterable[Scheme]) -> None:
+    """Concurrently fetch and cache full NAV history for a batch of
+    schemes, deduplicated by scheme id. Lets a subsequent sequential
+    per-scheme, per-window lookup loop (category-ranking/scorer's 3yr+5yr
+    CAGR calc across an entire SEBI-category peer universe, which can be
+    30-150+ schemes) resolve from the local cache instead of one live
+    network round-trip per scheme per window — the difference between a
+    single concurrent batch and a multi-minute sequential hang. Best-
+    effort: a scheme whose fetch fails is simply left unwarmed, same
+    degrade-gracefully posture as `get_nav_on_or_before`."""
+    unique = {scheme.id: scheme for scheme in schemes}
+
+    async def fetch(scheme: Scheme) -> tuple[Scheme, list[tuple[date, Decimal]] | None]:
+        try:
+            return scheme, await _fetch_nav_history(scheme.amfi_code)
+        except httpx.HTTPError:
+            return scheme, None
+
+    fetched = await asyncio.gather(*(fetch(scheme) for scheme in unique.values()))
+    for scheme, rows in fetched:
+        if rows:
+            _upsert_nav_history(db, scheme.id, rows)
 
 
 async def get_navs_on_or_before(

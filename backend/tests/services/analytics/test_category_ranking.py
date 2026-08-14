@@ -59,7 +59,7 @@ def _folio_with_purchase(db, member, scheme, amount, units, nav, txn_date, plan_
 
 
 def _nav_side_effect(nav_data: dict[uuid.UUID, dict[str, Decimal]]):
-    async def _fn(db_, scheme, on_date):
+    async def _fn(db_, scheme, on_date, allow_stale_today=False):
         entry = nav_data.get(scheme.id)
         if entry is None:
             return None
@@ -83,6 +83,7 @@ def _mock_nav(nav_data):
         patch("app.services.dashboard.holdings.get_nav_on_or_before", new=AsyncMock(side_effect=side_effect)),
         patch("app.services.dashboard.holdings.get_previous_nav_from_cache", return_value=None),
         patch("app.services.analytics.category_ranking.get_nav_on_or_before", new=AsyncMock(side_effect=side_effect)),
+        patch("app.services.analytics.category_ranking.warm_nav_history", new=AsyncMock(return_value=None)),
     )
 
 
@@ -143,8 +144,8 @@ def test_compute_category_ranking_marks_category_unavailable():
     _folio_with_purchase(db, member, scheme, Decimal("1000"), Decimal("100"), Decimal("10"), _START_3Y)
 
     nav_data = {scheme.id: {"today": Decimal("12")}}
-    p1, p2, p3 = _mock_nav(nav_data)
-    with p1, p2, p3:
+    p1, p2, p3, p4 = _mock_nav(nav_data)
+    with p1, p2, p3, p4:
         summary = asyncio.run(compute_category_ranking(db, [member.id]))
 
     row = summary.funds[0]
@@ -165,8 +166,8 @@ def test_compute_category_ranking_ranks_against_peers_not_thin():
     for i, peer in enumerate(peers):
         nav_data[peer.id] = {"today": Decimal(str(11 - i)), "start3": Decimal("10")}
 
-    p1, p2, p3 = _mock_nav(nav_data)
-    with p1, p2, p3, _mock_universe([held, *peers]):
+    p1, p2, p3, p4 = _mock_nav(nav_data)
+    with p1, p2, p3, p4, _mock_universe([held, *peers]):
         summary = asyncio.run(compute_category_ranking(db, [member.id]))
 
     row = summary.funds[0]
@@ -189,8 +190,8 @@ def test_compute_category_ranking_flags_thin_category():
         held.id: {"today": Decimal("13"), "start3": Decimal("10")},
         peer.id: {"today": Decimal("11"), "start3": Decimal("10")},
     }
-    p1, p2, p3 = _mock_nav(nav_data)
-    with p1, p2, p3, _mock_universe([held, peer]):
+    p1, p2, p3, p4 = _mock_nav(nav_data)
+    with p1, p2, p3, p4, _mock_universe([held, peer]):
         summary = asyncio.run(compute_category_ranking(db, [member.id]))
 
     row = summary.funds[0]
@@ -215,7 +216,7 @@ def test_compute_category_ranking_blends_3yr_and_5yr_when_both_available():
     for i, peer in enumerate(peers):
         nav_data[peer.id] = {"today": Decimal("11"), "start3": Decimal("10")}
 
-    async def _fn(db_, scheme, on_date):
+    async def _fn(db_, scheme, on_date, allow_stale_today=False):
         if scheme.id == held.id:
             if on_date == _TODAY:
                 return Decimal("20"), on_date
@@ -240,6 +241,7 @@ def test_compute_category_ranking_blends_3yr_and_5yr_when_both_available():
         patch("app.services.dashboard.holdings.get_nav_on_or_before", new=AsyncMock(side_effect=_fn)),
         patch("app.services.dashboard.holdings.get_previous_nav_from_cache", return_value=None),
         patch("app.services.analytics.category_ranking.get_nav_on_or_before", new=AsyncMock(side_effect=_fn)),
+        patch("app.services.analytics.category_ranking.warm_nav_history", new=AsyncMock(return_value=None)),
         _mock_universe([held, *peers]),
     ):
         summary = asyncio.run(compute_category_ranking(db, [member.id]))
@@ -264,8 +266,8 @@ def test_compute_category_ranking_insufficient_history_for_held_scheme():
         held.id: {"today": Decimal("11")},
         peer.id: {"today": Decimal("11"), "start3": Decimal("10")},
     }
-    p1, p2, p3 = _mock_nav(nav_data)
-    with p1, p2, p3, _mock_universe([held, peer]):
+    p1, p2, p3, p4 = _mock_nav(nav_data)
+    with p1, p2, p3, p4, _mock_universe([held, peer]):
         summary = asyncio.run(compute_category_ranking(db, [member.id]))
 
     row = summary.funds[0]
@@ -281,8 +283,8 @@ def test_compute_category_ranking_category_avg_none_without_aaum_data():
     _folio_with_purchase(db, member, held, Decimal("1000"), Decimal("100"), Decimal("10"), _START_3Y)
 
     nav_data = {held.id: {"today": Decimal("13"), "start3": Decimal("10")}}
-    p1, p2, p3 = _mock_nav(nav_data)
-    with p1, p2, p3, _mock_universe([held]):
+    p1, p2, p3, p4 = _mock_nav(nav_data)
+    with p1, p2, p3, p4, _mock_universe([held]):
         summary = asyncio.run(compute_category_ranking(db, [member.id]))
 
     assert summary.funds[0].category_avg_return is None
@@ -303,8 +305,8 @@ def test_compute_category_ranking_uses_aum_weighted_average():
         held.id: {"today": Decimal("13"), "start3": Decimal("10")},
         peer.id: {"today": Decimal("12"), "start3": Decimal("10")},
     }
-    p1, p2, p3 = _mock_nav(nav_data)
-    with p1, p2, p3, _mock_universe([held, peer]):
+    p1, p2, p3, p4 = _mock_nav(nav_data)
+    with p1, p2, p3, p4, _mock_universe([held, peer]):
         summary = asyncio.run(compute_category_ranking(db, [member.id]))
 
     row = summary.funds[0]

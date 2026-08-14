@@ -62,71 +62,114 @@ export function AnalyticsView({
   const [selectedSchemeName, setSelectedSchemeName] = useState<string | undefined>(undefined);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const [loading, setLoading] = useState(true);
+  // Each section fetches and loads independently — allocation/TER/benchmark
+  // typically resolve in well under a second, while category-ranking/score
+  // (which each scan a full SEBI-category peer universe, live-verified
+  // 2026-08-14 to take much longer on first load) must never block them.
+  const [allocationLoading, setAllocationLoading] = useState(true);
+  const [terLoading, setTerLoading] = useState(true);
+  const [rankingLoading, setRankingLoading] = useState(true);
+  const [scoreLoading, setScoreLoading] = useState(true);
+  const [benchmarkLoading, setBenchmarkLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
-    setLoading(true);
+    setAllocationLoading(true);
+    setTerLoading(true);
+    setRankingLoading(true);
+    setScoreLoading(true);
+    setBenchmarkLoading(true);
     setError(null);
 
-    async function fetchData() {
-      try {
-        if (viewMode === "aggregate") {
-          const [allocRes, terRes, dirRegRes, rankRes, scoreRes, benchRes, fundBenchRes] =
-            await Promise.all([
-              getAggregateAllocation(),
-              getAggregateTer(),
-              getAggregateDirectRegularTer(),
-              getAggregateCategoryRanking(),
-              getAggregateScore(),
-              getAggregateBenchmark(),
-              getAggregateFundBenchmark(),
-            ]);
-
-          if (!isMounted) return;
-          setAllocation(allocRes.allocation);
-          setTer(terRes.ter);
-          setTerComparison(dirRegRes.ter);
-          setRanking(rankRes.ranking);
-          setScoreSummary(scoreRes.score);
-          setPortfolioBenchmark(benchRes.benchmark);
-          setFundBenchmark(fundBenchRes.comparison);
-          setMembers(allocRes.members);
-        } else if (memberId) {
-          const [allocRes, terRes, dirRegRes, rankRes, scoreRes, benchRes, fundBenchRes] =
-            await Promise.all([
-              getMemberAllocation(memberId),
-              getMemberTer(memberId),
-              getMemberDirectRegularTer(memberId),
-              getMemberCategoryRanking(memberId),
-              getMemberScore(memberId),
-              getMemberBenchmark(memberId),
-              getMemberFundBenchmark(memberId),
-            ]);
-
-          if (!isMounted) return;
-          setAllocation(allocRes);
-          setTer(terRes);
-          setTerComparison(dirRegRes);
-          setRanking(rankRes);
-          setScoreSummary(scoreRes);
-          setPortfolioBenchmark(benchRes);
-          setFundBenchmark(fundBenchRes);
-          setMembers([]);
-        } else {
-          setLoading(false);
-          return;
-        }
-      } catch (err: any) {
-        if (!isMounted) return;
-        setError(err.message || "Failed to load analytics data");
-      } finally {
-        if (isMounted) setLoading(false);
-      }
+    const isAggregate = viewMode === "aggregate";
+    if (!isAggregate && !memberId) {
+      setAllocationLoading(false);
+      setTerLoading(false);
+      setRankingLoading(false);
+      setScoreLoading(false);
+      setBenchmarkLoading(false);
+      return;
     }
 
-    fetchData();
+    // Allocation drives the hero "Total Portfolio Value" and is the one
+    // section every other section's data is meaningless without — its
+    // failure surfaces as the full-page error. A slow/failing
+    // category-ranking or score call must not take the rest of the
+    // dashboard down with it, so those log rather than blank the page;
+    // each section already renders a graceful empty state for null data.
+    const logSectionError = (section: string) => (err: any) => {
+      console.error(`Analytics: failed to load ${section}`, err);
+    };
+
+    (isAggregate ? getAggregateAllocation() : getMemberAllocation(memberId!))
+      .then((res: any) => {
+        if (!isMounted) return;
+        if (isAggregate) {
+          setAllocation(res.allocation);
+          setMembers(res.members);
+        } else {
+          setAllocation(res);
+          setMembers([]);
+        }
+      })
+      .catch((err: any) => {
+        if (!isMounted) return;
+        setError(err.message || "Failed to load analytics data");
+      })
+      .finally(() => {
+        if (isMounted) setAllocationLoading(false);
+      });
+
+    Promise.all(
+      isAggregate
+        ? [getAggregateTer(), getAggregateDirectRegularTer()]
+        : [getMemberTer(memberId!), getMemberDirectRegularTer(memberId!)]
+    )
+      .then(([terRes, dirRegRes]: any) => {
+        if (!isMounted) return;
+        setTer(isAggregate ? terRes.ter : terRes);
+        setTerComparison(isAggregate ? dirRegRes.ter : dirRegRes);
+      })
+      .catch(logSectionError("TER"))
+      .finally(() => {
+        if (isMounted) setTerLoading(false);
+      });
+
+    (isAggregate ? getAggregateCategoryRanking() : getMemberCategoryRanking(memberId!))
+      .then((res: any) => {
+        if (!isMounted) return;
+        setRanking(isAggregate ? res.ranking : res);
+      })
+      .catch(logSectionError("category ranking"))
+      .finally(() => {
+        if (isMounted) setRankingLoading(false);
+      });
+
+    (isAggregate ? getAggregateScore() : getMemberScore(memberId!))
+      .then((res: any) => {
+        if (!isMounted) return;
+        setScoreSummary(isAggregate ? res.score : res);
+      })
+      .catch(logSectionError("score"))
+      .finally(() => {
+        if (isMounted) setScoreLoading(false);
+      });
+
+    Promise.all(
+      isAggregate
+        ? [getAggregateBenchmark(), getAggregateFundBenchmark()]
+        : [getMemberBenchmark(memberId!), getMemberFundBenchmark(memberId!)]
+    )
+      .then(([benchRes, fundBenchRes]: any) => {
+        if (!isMounted) return;
+        setPortfolioBenchmark(isAggregate ? benchRes.benchmark : benchRes);
+        setFundBenchmark(isAggregate ? fundBenchRes.comparison : fundBenchRes);
+      })
+      .catch(logSectionError("benchmark"))
+      .finally(() => {
+        if (isMounted) setBenchmarkLoading(false);
+      });
 
     return () => {
       isMounted = false;
@@ -187,7 +230,7 @@ export function AnalyticsView({
               <span className="text-[11px] font-medium text-[var(--color-text-secondary)] block">
                 Total Portfolio Value
               </span>
-              {loading ? (
+              {allocationLoading ? (
                 <Skeleton className="h-7 w-32 mt-1" />
               ) : (
                 <span className="font-display text-xl sm:text-2xl font-bold text-[var(--color-ink)] tabular-nums type-display">
@@ -221,18 +264,18 @@ export function AnalyticsView({
       )}
 
       {/* Section 1: Allocation */}
-      <AllocationSection summary={allocation} isLoading={loading} />
+      <AllocationSection summary={allocation} isLoading={allocationLoading} />
 
       {/* Section 2: Cost / TER */}
-      <TerSection ter={ter} comparison={terComparison} isLoading={loading} />
+      <TerSection ter={ter} comparison={terComparison} isLoading={terLoading} />
 
       {/* Section 3: Category Ranking */}
-      <CategoryRankingSection ranking={ranking} isLoading={loading} />
+      <CategoryRankingSection ranking={ranking} isLoading={rankingLoading} />
 
       {/* Section 4: Fund & Portfolio Scorer (FR-5/FR-6/FR-7) */}
       <ScorerSection
         scoreSummary={scoreSummary}
-        isLoading={loading}
+        isLoading={scoreLoading}
         onSelectFundScore={handleOpenScoreModal}
       />
 
@@ -240,7 +283,7 @@ export function AnalyticsView({
       <BenchmarkSection
         portfolioBenchmark={portfolioBenchmark}
         fundBenchmark={fundBenchmark}
-        isLoading={loading}
+        isLoading={benchmarkLoading}
       />
 
       {/* S20 Fund Score Detail Modal */}

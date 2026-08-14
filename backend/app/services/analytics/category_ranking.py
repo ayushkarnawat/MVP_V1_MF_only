@@ -17,7 +17,11 @@ plain return-based rank — not FR-5a's downside-weighted, risk-adjusted
 Scorer tier (a separate, later build step, depends on this one). Category-
 universe NAV lookups reuse `dashboard/nav.py`'s on-demand fetch-and-cache
 (same production caveat as holdings: a real deployment pre-warms this via
-a scheduled job, not a fetch-per-request).
+a scheduled job, not a fetch-per-request) — `_category_returns` warms the
+whole peer universe concurrently via `warm_nav_history` first (live-verified
+2026-08-14: without this, a 100+ scheme category meant 100+ *sequential*
+live network round-trips and a multi-minute hang on first load), then reads
+NAVs from the now-local cache in its per-scheme loop.
 """
 
 from __future__ import annotations
@@ -39,7 +43,7 @@ from app.services.analytics.scheme_universe import get_category_universe
 from app.services.dashboard.aggregate import get_member_statuses
 from app.services.dashboard.holdings import compute_holdings
 from app.services.dashboard.household_members import list_household_members
-from app.services.dashboard.nav import get_nav_on_or_before
+from app.services.dashboard.nav import get_nav_on_or_before, warm_nav_history
 
 # Same "at least 5" bar FR-5a's Scorer uses (PRD-04 FR-5a) — reused here
 # for consistency, but never excludes a fund from ranking/comparison, only
@@ -59,7 +63,11 @@ async def _scheme_return(db: Session, scheme: Scheme, years: int, today: date) -
     start = await get_nav_on_or_before(db, scheme, start_date)
     if start is None:
         return None
-    end = await get_nav_on_or_before(db, scheme, today)
+    # allow_stale_today=True: same-day vs. prior-business-day NAV is
+    # immaterial to a multi-year CAGR, and the cache was just warmed by
+    # `_category_returns` — forcing the live-freshness check here would
+    # re-fetch data downloaded moments ago for every scheme in the universe.
+    end = await get_nav_on_or_before(db, scheme, today, allow_stale_today=True)
     if end is None:
         return None
     return _cagr(start[0], end[0], years)
@@ -72,6 +80,7 @@ def _blend_returns(r3: Decimal, r5: Decimal | None) -> Decimal:
 
 
 async def _category_returns(db: Session, universe: list[Scheme], today: date) -> dict[uuid.UUID, Decimal]:
+    await warm_nav_history(db, universe)
     returns: dict[uuid.UUID, Decimal] = {}
     for scheme in universe:
         r3 = await _scheme_return(db, scheme, 3, today)
