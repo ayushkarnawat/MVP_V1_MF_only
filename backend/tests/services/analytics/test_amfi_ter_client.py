@@ -138,6 +138,25 @@ def test_refresh_ter_data_returns_false_and_writes_nothing_on_fetch_failure():
     assert db.query(SchemeTer).filter_by(scheme_id=scheme.id).first() is None
 
 
+def test_refresh_ter_data_skips_stray_non_dict_rows_without_crashing():
+    db = _session()
+    direct = _scheme(db, "HDFC Flexi Cap Fund - Direct Plan - Growth", PlanNameVariant.DIRECT)
+    rows = [
+        "No Records Found",
+        {"Scheme_Name": "HDFC Flexi Cap Fund", "TER_Date": "10-Aug-2026", "R_TER": "1.85", "D_TER": "0.75"},
+    ]
+
+    with (
+        patch("app.services.analytics.amfi_ter_client._fetch_latest_ter_month", new=AsyncMock(return_value="08-2026")),
+        patch("app.services.analytics.amfi_ter_client._fetch_ter_rows", new=AsyncMock(return_value=rows)),
+    ):
+        result = asyncio.run(refresh_ter_data(db))
+
+    assert result is True
+    direct_ter = db.get(SchemeTer, (direct.id, date(2026, 8, 1)))
+    assert direct_ter.ter_value == Decimal("0.75")
+
+
 def test_refresh_ter_data_returns_false_when_no_month_data_available():
     db = _session()
     with patch(

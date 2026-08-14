@@ -127,6 +127,11 @@ def _latest_row_per_scheme(rows: list[dict]) -> dict[str, dict]:
     only the row with the latest TER_Date per Scheme_Name."""
     latest: dict[str, tuple[date, dict]] = {}
     for row in rows:
+        # AMFI's paginated feed has been observed mixing in stray non-dict
+        # elements (live-verified 2026-08-14) alongside genuine scheme rows —
+        # skip anything that isn't a row rather than crash the whole refresh.
+        if not isinstance(row, dict):
+            continue
         name = row.get("Scheme_Name")
         if not name:
             continue
@@ -171,7 +176,7 @@ async def refresh_ter_data(db: Session) -> bool:
         if month is None:
             return False
         rows = await _fetch_ter_rows(month)
-    except httpx.HTTPError:
+    except (httpx.HTTPError, KeyError, ValueError, TypeError, AttributeError):
         return False
 
     if not rows:
