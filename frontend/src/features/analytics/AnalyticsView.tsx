@@ -3,7 +3,7 @@ import { formatIndianCurrency } from "@/lib/decimal";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, Sparkles, TrendingUp } from "lucide-react";
+import { AlertCircle, TrendingUp } from "lucide-react";
 import {
   getMemberAllocation,
   getAggregateAllocation,
@@ -13,15 +13,27 @@ import {
   getAggregateDirectRegularTer,
   getMemberCategoryRanking,
   getAggregateCategoryRanking,
+  getMemberScore,
+  getAggregateScore,
+  getMemberBenchmark,
+  getAggregateBenchmark,
+  getMemberFundBenchmark,
+  getAggregateFundBenchmark,
 } from "./api";
 import { AllocationSection } from "./AllocationSection";
 import { TerSection } from "./TerSection";
 import { CategoryRankingSection } from "./CategoryRankingSection";
+import { ScorerSection } from "./ScorerSection";
+import { BenchmarkSection } from "./BenchmarkSection";
+import { FundScoreDetailModal } from "./FundScoreDetailModal";
 import type {
   AnalyticsAllocationSummary,
   WeightedTerSummary,
   DirectRegularTerComparison,
   CategoryRankingSummary,
+  PortfolioScoreSummary,
+  PortfolioBenchmarkSummary,
+  FundVsBenchmarkSummary,
   MemberStatus,
 } from "./types";
 
@@ -40,7 +52,15 @@ export function AnalyticsView({
   const [ter, setTer] = useState<WeightedTerSummary | null>(null);
   const [terComparison, setTerComparison] = useState<DirectRegularTerComparison | null>(null);
   const [ranking, setRanking] = useState<CategoryRankingSummary | null>(null);
+  const [scoreSummary, setScoreSummary] = useState<PortfolioScoreSummary | null>(null);
+  const [portfolioBenchmark, setPortfolioBenchmark] = useState<PortfolioBenchmarkSummary | null>(null);
+  const [fundBenchmark, setFundBenchmark] = useState<FundVsBenchmarkSummary | null>(null);
   const [members, setMembers] = useState<MemberStatus[]>([]);
+
+  // S20 Modal State
+  const [selectedSchemeId, setSelectedSchemeId] = useState<string | null>(null);
+  const [selectedSchemeName, setSelectedSchemeName] = useState<string | undefined>(undefined);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,32 +73,46 @@ export function AnalyticsView({
     async function fetchData() {
       try {
         if (viewMode === "aggregate") {
-          const [allocRes, terRes, dirRegRes, rankRes] = await Promise.all([
-            getAggregateAllocation(),
-            getAggregateTer(),
-            getAggregateDirectRegularTer(),
-            getAggregateCategoryRanking(),
-          ]);
+          const [allocRes, terRes, dirRegRes, rankRes, scoreRes, benchRes, fundBenchRes] =
+            await Promise.all([
+              getAggregateAllocation(),
+              getAggregateTer(),
+              getAggregateDirectRegularTer(),
+              getAggregateCategoryRanking(),
+              getAggregateScore(),
+              getAggregateBenchmark(),
+              getAggregateFundBenchmark(),
+            ]);
 
           if (!isMounted) return;
           setAllocation(allocRes.allocation);
           setTer(terRes.ter);
           setTerComparison(dirRegRes.ter);
           setRanking(rankRes.ranking);
+          setScoreSummary(scoreRes.score);
+          setPortfolioBenchmark(benchRes.benchmark);
+          setFundBenchmark(fundBenchRes.comparison);
           setMembers(allocRes.members);
         } else if (memberId) {
-          const [allocRes, terRes, dirRegRes, rankRes] = await Promise.all([
-            getMemberAllocation(memberId),
-            getMemberTer(memberId),
-            getMemberDirectRegularTer(memberId),
-            getMemberCategoryRanking(memberId),
-          ]);
+          const [allocRes, terRes, dirRegRes, rankRes, scoreRes, benchRes, fundBenchRes] =
+            await Promise.all([
+              getMemberAllocation(memberId),
+              getMemberTer(memberId),
+              getMemberDirectRegularTer(memberId),
+              getMemberCategoryRanking(memberId),
+              getMemberScore(memberId),
+              getMemberBenchmark(memberId),
+              getMemberFundBenchmark(memberId),
+            ]);
 
           if (!isMounted) return;
           setAllocation(allocRes);
           setTer(terRes);
           setTerComparison(dirRegRes);
           setRanking(rankRes);
+          setScoreSummary(scoreRes);
+          setPortfolioBenchmark(benchRes);
+          setFundBenchmark(fundBenchRes);
           setMembers([]);
         } else {
           setLoading(false);
@@ -98,6 +132,12 @@ export function AnalyticsView({
       isMounted = false;
     };
   }, [viewMode, memberId]);
+
+  const handleOpenScoreModal = (schemeId: string, schemeName: string) => {
+    setSelectedSchemeId(schemeId);
+    setSelectedSchemeName(schemeName);
+    setIsModalOpen(true);
+  };
 
   const targetMemberPlaceholder =
     viewMode === "aggregate"
@@ -131,14 +171,14 @@ export function AnalyticsView({
                 {viewMode === "aggregate" ? "Family Aggregate Analytics" : "Member Analytics"}
               </span>
               <Badge variant="outline" className="text-[10px] border-[var(--color-border)] text-[var(--color-text-secondary)]">
-                Phase 1 Active
+                Phase 1 & 2 Active
               </Badge>
             </div>
             <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-[var(--color-ink)] mt-1">
-              Portfolio Analytics & Fee Depth
+              Analytics & Portfolio Performance Dashboard
             </h1>
             <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] mt-1">
-              Deep-dive metrics across asset allocation, weighted costs (TER), and category performance rankings.
+              Full 5-part depth: Allocation, TER Costs, SEBI Category Ranks, Quality Scorer & Benchmark Comparisons.
             </p>
           </div>
 
@@ -159,7 +199,7 @@ export function AnalyticsView({
         </div>
       </Card>
 
-      {/* Aggregate Placeholder Notice for Members without CAS Data */}
+      {/* Aggregate Placeholder Notice */}
       {viewMode === "aggregate" && targetMemberPlaceholder && (
         <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
@@ -189,18 +229,28 @@ export function AnalyticsView({
       {/* Section 3: Category Ranking */}
       <CategoryRankingSection ranking={ranking} isLoading={loading} />
 
-      {/* Phase 2 Coming Next Placeholder Card */}
-      <Card className="p-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)]/40 text-center space-y-3">
-        <div className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-[var(--color-accent)]/10 text-[var(--color-accent)] mb-1">
-          <Sparkles className="h-5 w-5" />
-        </div>
-        <h3 className="font-display text-base font-bold text-[var(--color-ink)]">
-          Coming in Phase 2: Fund Quality Scorer & Benchmark Comparisons
-        </h3>
-        <p className="text-xs text-[var(--color-text-secondary)] max-w-lg mx-auto leading-relaxed">
-          Composite fund scoring (Risk, Return & Consistency weights), Nifty 50/500 benchmark comparisons, and individual scheme score detail modals will be dispatched in Phase 2.
-        </p>
-      </Card>
+      {/* Section 4: Fund & Portfolio Scorer (FR-5/FR-6/FR-7) */}
+      <ScorerSection
+        scoreSummary={scoreSummary}
+        isLoading={loading}
+        onSelectFundScore={handleOpenScoreModal}
+      />
+
+      {/* Section 5: Benchmark Comparison (FR-8/FR-9) */}
+      <BenchmarkSection
+        portfolioBenchmark={portfolioBenchmark}
+        fundBenchmark={fundBenchmark}
+        isLoading={loading}
+      />
+
+      {/* S20 Fund Score Detail Modal */}
+      <FundScoreDetailModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        schemeId={selectedSchemeId}
+        schemeName={selectedSchemeName}
+        initialData={scoreSummary?.funds.find((f) => f.scheme_id === selectedSchemeId) ?? null}
+      />
     </div>
   );
 }

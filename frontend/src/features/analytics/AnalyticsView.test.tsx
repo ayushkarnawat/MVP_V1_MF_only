@@ -73,12 +73,58 @@ const sampleCategoryRanking = {
   ],
 };
 
+const sampleScoreSummary = {
+  funds: [
+    {
+      scheme_id: "scheme-1",
+      scheme_name: "Parag Parikh Flexi Cap Fund - Direct Plan",
+      category_unavailable: false,
+      insufficient_history: false,
+      thin_category: false,
+      risk_adjusted_tier: 5,
+      cost_adjustment: "0.25",
+      final_score: "85.5",
+      return_percentile: "88.0",
+      risk_percentile: "82.0",
+      consistency_hit_rate: "80.0",
+    },
+  ],
+  weighted_score: "85.5",
+  covered_value: "166666.67",
+  total_value: "166666.67",
+  uncovered_schemes: [],
+};
+
+const samplePortfolioBenchmark = {
+  portfolio_xirr: "16.45",
+  benchmarks: [
+    { index: "nifty_50" as const, xirr: "12.30" },
+    { index: "nifty_500" as const, xirr: "14.10" },
+    { index: "nifty_largemidcap_250" as const, xirr: "15.00" },
+    { index: "nifty_midcap_150" as const, xirr: "17.20" },
+  ],
+};
+
+const sampleFundBenchmark = {
+  funds: [
+    {
+      scheme_id: "scheme-1",
+      scheme_name: "Parag Parikh Flexi Cap Fund - Direct Plan",
+      benchmark_index: "nifty_500" as const,
+      fund_xirr: "18.45",
+      benchmark_xirr: "14.10",
+    },
+  ],
+  overall_portfolio_xirr: "16.45",
+  overall_broad_market_xirr: "14.10",
+};
+
 describe("AnalyticsView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("fetches and renders aggregate analytics data", async () => {
+  function setupAggregateMocks() {
     vi.mocked(api.getAggregateAllocation).mockResolvedValue({
       members: [
         { id: "m-1", name: "Alice", has_data: true },
@@ -86,40 +132,45 @@ describe("AnalyticsView", () => {
       ],
       allocation: sampleAllocationSummary,
     });
-    vi.mocked(api.getAggregateTer).mockResolvedValue({
-      members: [],
-      ter: sampleTerSummary,
-    });
-    vi.mocked(api.getAggregateDirectRegularTer).mockResolvedValue({
-      members: [],
-      ter: sampleDirectRegularComparison,
-    });
-    vi.mocked(api.getAggregateCategoryRanking).mockResolvedValue({
-      members: [],
-      ranking: sampleCategoryRanking,
-    });
+    vi.mocked(api.getAggregateTer).mockResolvedValue({ members: [], ter: sampleTerSummary });
+    vi.mocked(api.getAggregateDirectRegularTer).mockResolvedValue({ members: [], ter: sampleDirectRegularComparison });
+    vi.mocked(api.getAggregateCategoryRanking).mockResolvedValue({ members: [], ranking: sampleCategoryRanking });
+    vi.mocked(api.getAggregateScore).mockResolvedValue({ members: [], score: sampleScoreSummary });
+    vi.mocked(api.getAggregateBenchmark).mockResolvedValue({ members: [], benchmark: samplePortfolioBenchmark });
+    vi.mocked(api.getAggregateFundBenchmark).mockResolvedValue({ members: [], comparison: sampleFundBenchmark });
+  }
+
+  function setupMemberMocks() {
+    vi.mocked(api.getMemberAllocation).mockResolvedValue(sampleAllocationSummary);
+    vi.mocked(api.getMemberTer).mockResolvedValue(sampleTerSummary);
+    vi.mocked(api.getMemberDirectRegularTer).mockResolvedValue(sampleDirectRegularComparison);
+    vi.mocked(api.getMemberCategoryRanking).mockResolvedValue(sampleCategoryRanking);
+    vi.mocked(api.getMemberScore).mockResolvedValue(sampleScoreSummary);
+    vi.mocked(api.getMemberBenchmark).mockResolvedValue(samplePortfolioBenchmark);
+    vi.mocked(api.getMemberFundBenchmark).mockResolvedValue(sampleFundBenchmark);
+  }
+
+  it("fetches and renders all 5 analytics sections for aggregate view", async () => {
+    setupAggregateMocks();
 
     render(<AnalyticsView viewMode="aggregate" memberId={null} />);
 
-    expect(screen.getByText("Portfolio Analytics & Fee Depth")).toBeInTheDocument();
+    expect(screen.getByText("Analytics & Portfolio Performance Dashboard")).toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByText("Portfolio Allocation")).toBeInTheDocument();
       expect(screen.getByText("Total Expense Ratio (TER) & Cost Analysis")).toBeInTheDocument();
       expect(screen.getByText("SEBI Category Ranking & Peer Comparison")).toBeInTheDocument();
+      expect(screen.getByText("Fund Quality Scorer & Composite Ratings")).toBeInTheDocument();
+      expect(screen.getByText("Benchmark Comparison (XIRR)")).toBeInTheDocument();
     });
 
     expect(screen.getByText("0.85%")).toBeInTheDocument();
-    expect(screen.getByText("Parag Parikh Flexi Cap Fund - Direct Plan")).toBeInTheDocument();
-    expect(screen.getByText("Category Unavailable")).toBeInTheDocument();
     expect(screen.getByText(/Bob/)).toBeInTheDocument();
   });
 
-  it("fetches and renders per-member analytics data", async () => {
-    vi.mocked(api.getMemberAllocation).mockResolvedValue(sampleAllocationSummary);
-    vi.mocked(api.getMemberTer).mockResolvedValue(sampleTerSummary);
-    vi.mocked(api.getMemberDirectRegularTer).mockResolvedValue(sampleDirectRegularComparison);
-    vi.mocked(api.getMemberCategoryRanking).mockResolvedValue(sampleCategoryRanking);
+  it("fetches and renders per-member analytics data for all 5 sections", async () => {
+    setupMemberMocks();
 
     render(<AnalyticsView viewMode="member" memberId="m-1" />);
 
@@ -128,6 +179,9 @@ describe("AnalyticsView", () => {
       expect(api.getMemberTer).toHaveBeenCalledWith("m-1");
       expect(api.getMemberDirectRegularTer).toHaveBeenCalledWith("m-1");
       expect(api.getMemberCategoryRanking).toHaveBeenCalledWith("m-1");
+      expect(api.getMemberScore).toHaveBeenCalledWith("m-1");
+      expect(api.getMemberBenchmark).toHaveBeenCalledWith("m-1");
+      expect(api.getMemberFundBenchmark).toHaveBeenCalledWith("m-1");
     });
 
     await waitFor(() => {
@@ -135,23 +189,25 @@ describe("AnalyticsView", () => {
     });
   });
 
-  it("switches allocation tabs between Category and AMC", async () => {
-    vi.mocked(api.getAggregateAllocation).mockResolvedValue({
-      members: [],
-      allocation: sampleAllocationSummary,
-    });
-    vi.mocked(api.getAggregateTer).mockResolvedValue({ members: [], ter: sampleTerSummary });
-    vi.mocked(api.getAggregateDirectRegularTer).mockResolvedValue({ members: [], ter: sampleDirectRegularComparison });
-    vi.mocked(api.getAggregateCategoryRanking).mockResolvedValue({ members: [], ranking: sampleCategoryRanking });
+  it("opens S20 score modal when fund score row is clicked", async () => {
+    setupAggregateMocks();
+    vi.mocked(api.getFundScore).mockResolvedValue(sampleScoreSummary.funds[0]);
 
     render(<AnalyticsView viewMode="aggregate" memberId={null} />);
 
     await waitFor(() => {
-      expect(screen.getByText("By AMC")).toBeInTheDocument();
+      expect(screen.getByText("Fund Quality Scorer & Composite Ratings")).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByText("By AMC"));
-    expect(screen.getByText("Parag Parikh Mutual Fund")).toBeInTheDocument();
+    // The same fund name renders in both CategoryRankingSection and ScorerSection at
+    // once (shared fixture data) — ScorerSection renders after CategoryRankingSection
+    // in AnalyticsView, so its row is the last match.
+    const scoreRowMatches = screen.getAllByText("Parag Parikh Flexi Cap Fund - Direct Plan");
+    fireEvent.click(scoreRowMatches[scoreRowMatches.length - 1]);
+
+    await waitFor(() => {
+      expect(screen.getByText("S20 · Unifolio Fund Score")).toBeInTheDocument();
+    });
   });
 
   it("renders error boundary when API fails", async () => {

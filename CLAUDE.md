@@ -112,6 +112,25 @@ Codex-implemented change is considered done. Full design:
 *(Updated 2026-08-14. See `session.md` at repo root for the full detailed history —
 this section is a current-status pointer, not the record of every past session.)*
 
+**PRD-04 (Analytics) Phase 2 frontend is built via Google Antigravity (Gemini 3.6 Flash)**, reviewed
+and fixed by Claude Code, on branch `feat/enhanced-ui`. Completes PRD-04 frontend with Fund &
+Portfolio Scorer (FR-5/FR-6/FR-7), Benchmark Comparison (FR-8/FR-9), and Fund Score Detail Modal
+(S20) across Web (S18/S19/S20) and Mobile (`MobileAnalyticsView.tsx`). Uses exact `Decimal`-string
+arithmetic (`sumDecimalStrings`, `diffDecimalStrings`, `formatIndianCurrency` from
+`frontend/src/lib/decimal.ts`), hand-rolled SVG/Tailwind chart primitives, and Radix `Dialog`
+primitives. Zero bare numbers displayed; zero backend code modified. Claude Code's review found
+both of the completion report's "clean" claims false — same failure mode as Phase 1 — 7 `tsc`
+errors (unused imports/types, one invalid `Badge` variant), 3 failing tests (all ambiguous
+`getByText` matches, a test-authoring bug not a UI bug), a High-severity `Decimal` violation
+(`BenchmarkSection.tsx`'s Portfolio-vs-Index diff used float subtraction instead of the file's own
+`diffDecimalStrings` pattern used elsewhere in the same file), a currency-formatting inconsistency,
+and a missed-optimization (`FundScoreDetailModal`'s unused `initialData` prop forcing an avoidable
+re-fetch on every open). All fixed directly. Final state: `tsc -b --noEmit` clean; full suite is
+flaky at full-parallelism in this sandbox (different unrelated files crash on `vitest` worker-pool
+timeouts each run — sandbox contention, not a regression) but every executed test passed across two
+full runs (194/194, 192/192); a scoped run of all 5 analytics test files passed cleanly, 13/13
+tests. Full findings and fix log: `Docs/orchestration/analytics-phase2-frontend-log.md`.
+
 **PRD-04 (Analytics) Phase 1 frontend is built via Google Antigravity (Gemini 3.6 Flash)**, reviewed
 and fixed by Claude Code, on git branch `feat/analytics-phase1` off `feat/enhanced-ui` (uncommitted
 working-tree changes, no commits yet on that branch). Covers Allocation (FR-1/FR-2), Cost/TER

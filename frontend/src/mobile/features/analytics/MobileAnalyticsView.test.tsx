@@ -54,12 +54,58 @@ const sampleCategoryRanking = {
   ],
 };
 
+const sampleScoreSummary = {
+  funds: [
+    {
+      scheme_id: "scheme-1",
+      scheme_name: "Parag Parikh Flexi Cap Fund - Direct Plan",
+      category_unavailable: false,
+      insufficient_history: false,
+      thin_category: false,
+      risk_adjusted_tier: 5,
+      cost_adjustment: "0.25",
+      final_score: "85.5",
+      return_percentile: "88.0",
+      risk_percentile: "82.0",
+      consistency_hit_rate: "80.0",
+    },
+  ],
+  weighted_score: "85.5",
+  covered_value: "50000",
+  total_value: "50000",
+  uncovered_schemes: [],
+};
+
+const samplePortfolioBenchmark = {
+  portfolio_xirr: "16.45",
+  benchmarks: [
+    { index: "nifty_50" as const, xirr: "12.30" },
+    { index: "nifty_500" as const, xirr: "14.10" },
+    { index: "nifty_largemidcap_250" as const, xirr: "15.00" },
+    { index: "nifty_midcap_150" as const, xirr: "17.20" },
+  ],
+};
+
+const sampleFundBenchmark = {
+  funds: [
+    {
+      scheme_id: "scheme-1",
+      scheme_name: "Parag Parikh Flexi Cap Fund - Direct Plan",
+      benchmark_index: "nifty_500" as const,
+      fund_xirr: "18.45",
+      benchmark_xirr: "14.10",
+    },
+  ],
+  overall_portfolio_xirr: "16.45",
+  overall_broad_market_xirr: "14.10",
+};
+
 describe("MobileAnalyticsView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("fetches and renders mobile analytics dashboard", async () => {
+  it("fetches and renders all 5 sections for mobile analytics dashboard", async () => {
     vi.mocked(api.getAggregateAllocation).mockResolvedValue({
       members: [],
       allocation: sampleAllocationSummary,
@@ -73,6 +119,18 @@ describe("MobileAnalyticsView", () => {
       members: [],
       ranking: sampleCategoryRanking,
     });
+    vi.mocked(api.getAggregateScore).mockResolvedValue({
+      members: [],
+      score: sampleScoreSummary,
+    });
+    vi.mocked(api.getAggregateBenchmark).mockResolvedValue({
+      members: [],
+      benchmark: samplePortfolioBenchmark,
+    });
+    vi.mocked(api.getAggregateFundBenchmark).mockResolvedValue({
+      members: [],
+      comparison: sampleFundBenchmark,
+    });
 
     render(<MobileAnalyticsView />);
 
@@ -82,6 +140,8 @@ describe("MobileAnalyticsView", () => {
       expect(screen.getByText("Portfolio Allocation")).toBeInTheDocument();
       expect(screen.getByText("Total Expense Ratio (TER) & Cost Analysis")).toBeInTheDocument();
       expect(screen.getByText("SEBI Category Ranking & Peer Comparison")).toBeInTheDocument();
+      expect(screen.getByText("Fund Quality Scorer & Composite Ratings")).toBeInTheDocument();
+      expect(screen.getByText("Benchmark Comparison (XIRR)")).toBeInTheDocument();
     });
   });
 

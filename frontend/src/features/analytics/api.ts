@@ -9,6 +9,13 @@ import type {
   AggregateDirectRegularTerResponse,
   CategoryRankingSummary,
   AggregateCategoryRankingResponse,
+  FundScoreRow,
+  PortfolioScoreSummary,
+  AggregatePortfolioScoreResponse,
+  PortfolioBenchmarkSummary,
+  AggregatePortfolioBenchmarkResponse,
+  FundVsBenchmarkSummary,
+  AggregateFundVsBenchmarkResponse,
 } from "./types";
 
 async function authFetch(path: string, options: RequestInit = {}): Promise<Response> {
@@ -77,5 +84,46 @@ export async function getMemberCategoryRanking(
 
 export async function getAggregateCategoryRanking(): Promise<AggregateCategoryRankingResponse> {
   const res = await authFetch(`/analytics/household/aggregate/category-ranking`);
+  return res.json();
+}
+
+/* Scorer (FR-5/FR-6/FR-7) */
+export async function getFundScore(schemeId: string): Promise<FundScoreRow> {
+  const res = await authFetch(`/analytics/funds/${schemeId}/score`);
+  return res.json();
+}
+
+export async function getMemberScore(memberId: string): Promise<PortfolioScoreSummary> {
+  const res = await authFetch(`/analytics/household-members/${memberId}/score`);
+  return res.json();
+}
+
+export async function getAggregateScore(): Promise<AggregatePortfolioScoreResponse> {
+  const res = await authFetch(`/analytics/household/aggregate/score`);
+  return res.json();
+}
+
+/* Benchmark Comparison (FR-8/FR-9) */
+export async function getMemberBenchmark(
+  memberId: string
+): Promise<PortfolioBenchmarkSummary> {
+  const res = await authFetch(`/analytics/household-members/${memberId}/benchmark`);
+  return res.json();
+}
+
+export async function getAggregateBenchmark(): Promise<AggregatePortfolioBenchmarkResponse> {
+  const res = await authFetch(`/analytics/household/aggregate/benchmark`);
+  return res.json();
+}
+
+export async function getMemberFundBenchmark(
+  memberId: string
+): Promise<FundVsBenchmarkSummary> {
+  const res = await authFetch(`/analytics/household-members/${memberId}/benchmark/funds`);
+  return res.json();
+}
+
+export async function getAggregateFundBenchmark(): Promise<AggregateFundVsBenchmarkResponse> {
+  const res = await authFetch(`/analytics/household/aggregate/benchmark/funds`);
   return res.json();
 }

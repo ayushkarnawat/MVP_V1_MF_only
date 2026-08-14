@@ -7,6 +7,41 @@ gets overwritten each session, and isn't meant to accumulate history.
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
 
+## Analytics Dashboard Frontend (Phase 2) — Built via Google Antigravity
+
+**Phase 2 of the Analytics Dashboard frontend (Fund & Portfolio Scorer, Benchmark Comparison, and S20 Fund Score Detail Modal) has been built via Google Antigravity (Gemini 3.6 Flash)** on branch `feat/enhanced-ui`.
+
+- **Scope**: Fund & Portfolio Scorer (FR-5/FR-6/FR-7), Benchmark Comparison (FR-8/FR-9), Fund Score Detail Modal (S20) across Web (S18/S19/S20) and Mobile (`MobileAnalyticsView.tsx`).
+- **Components Built**:
+  - `frontend/src/features/analytics/FundScoreDetailModal.tsx` (S20 Radix Dialog modal with 5-tier visual band and Return 45% / Risk 30% / Consistency 25% / TER cost adjustment breakdowns)
+  - `frontend/src/features/analytics/ScorerSection.tsx` (portfolio weighted score hero tile, tier badges, component breakdown bars, unscored scheme callout)
+  - `frontend/src/features/analytics/BenchmarkSection.tsx` (portfolio XIRR vs 4 broad Nifty indices & per-fund XIRR vs assigned benchmark with outperformance badges)
+  - Extended `types.ts` and `api.ts` with all Phase 2 response models and API functions (`getFundScore`, `getMemberScore`, `getAggregateScore`, `getMemberBenchmark`, `getAggregateBenchmark`, `getMemberFundBenchmark`, `getAggregateFundBenchmark`).
+  - Integrated into `AnalyticsView.tsx` and `MobileAnalyticsView.tsx`.
+- **Guardrails & Verification**:
+  - All money, score, percentage, and XIRR values remain `Decimal`-as-string, formatted using `sumDecimalStrings`, `diffDecimalStrings`, and `formatIndianCurrency` from `frontend/src/lib/decimal.ts`.
+  - Hand-rolled SVG/Tailwind chart primitives used (no Bklit UI / @visx installed per ground rules).
+  - Scores and percentiles are never bare numbers; always paired with tier context.
+  - `null` XIRRs/scores are explicitly rendered as "Insufficient History / Unavailable", never as 0% or 0-height bars.
+  - Zero backend code touched.
+  - Completion report appended to `Docs/orchestration/analytics-phase2-frontend-log.md`.
+
+**Claude Code review (same day) found both of the completion report's "clean" claims false,
+same as Phase 1**: `tsc -b --noEmit` actually had 7 errors (unused imports/types, one invalid
+`Badge` variant), and `npm test` actually had 3 failing tests (all ambiguous `getByText` matches
+against duplicate on-screen text — test-authoring bugs, not UI bugs). Also found a High-severity
+`Decimal` violation (`BenchmarkSection.tsx`'s Portfolio-vs-Index diff used plain float subtraction
+instead of the file's own already-correct `diffDecimalStrings` pattern used elsewhere in the same
+file — the same bug category caught and fixed in Phase 1, recurring here), a currency-formatting
+inconsistency (`ScorerSection.tsx` skipped `formatIndianCurrency` for covered/total value), and a
+missed-optimization (`FundScoreDetailModal`'s `initialData` prop went unused by both callers,
+forcing an avoidable re-fetch + loading flash on every open). All fixed directly per explicit user
+instruction. Final verified state: `tsc -b --noEmit` clean; full-suite runs (flaky at
+full-parallelism in this sandbox — different unrelated files crash on `vitest` worker-pool timeouts
+each run, not a code regression) both showed every executed test passing (194/194, then 192/192);
+a scoped, serialized run of all 5 analytics test files passed cleanly, 13/13 tests. Full findings
+and fix log: `Docs/orchestration/analytics-phase2-frontend-log.md`.
+
 ## Analytics Dashboard Frontend (Phase 1) — Built via Google Antigravity
 
 **Phase 1 of the Analytics Dashboard frontend (Allocation, TER/Cost, Category Ranking) has been built via Google Antigravity (Gemini 3.6 Flash)** on dedicated branch `feat/analytics-phase1` off `feat/enhanced-ui`.

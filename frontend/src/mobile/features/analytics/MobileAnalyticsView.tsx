@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { formatIndianCurrency } from "@/lib/decimal";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, Sparkles } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import {
   getAggregateAllocation,
   getMemberAllocation,
@@ -12,15 +12,27 @@ import {
   getMemberDirectRegularTer,
   getAggregateCategoryRanking,
   getMemberCategoryRanking,
+  getAggregateScore,
+  getMemberScore,
+  getAggregateBenchmark,
+  getMemberBenchmark,
+  getAggregateFundBenchmark,
+  getMemberFundBenchmark,
 } from "@/features/analytics/api";
 import { AllocationSection } from "@/features/analytics/AllocationSection";
 import { TerSection } from "@/features/analytics/TerSection";
 import { CategoryRankingSection } from "@/features/analytics/CategoryRankingSection";
+import { ScorerSection } from "@/features/analytics/ScorerSection";
+import { BenchmarkSection } from "@/features/analytics/BenchmarkSection";
+import { FundScoreDetailModal } from "@/features/analytics/FundScoreDetailModal";
 import type {
   AnalyticsAllocationSummary,
   WeightedTerSummary,
   DirectRegularTerComparison,
   CategoryRankingSummary,
+  PortfolioScoreSummary,
+  PortfolioBenchmarkSummary,
+  FundVsBenchmarkSummary,
 } from "@/features/analytics/types";
 
 export interface MobileAnalyticsViewProps {
@@ -32,6 +44,14 @@ export function MobileAnalyticsView({ memberId = null }: MobileAnalyticsViewProp
   const [ter, setTer] = useState<WeightedTerSummary | null>(null);
   const [terComparison, setTerComparison] = useState<DirectRegularTerComparison | null>(null);
   const [ranking, setRanking] = useState<CategoryRankingSummary | null>(null);
+  const [scoreSummary, setScoreSummary] = useState<PortfolioScoreSummary | null>(null);
+  const [portfolioBenchmark, setPortfolioBenchmark] = useState<PortfolioBenchmarkSummary | null>(null);
+  const [fundBenchmark, setFundBenchmark] = useState<FundVsBenchmarkSummary | null>(null);
+
+  // S20 Modal State
+  const [selectedSchemeId, setSelectedSchemeId] = useState<string | null>(null);
+  const [selectedSchemeName, setSelectedSchemeName] = useState<string | undefined>(undefined);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,29 +63,43 @@ export function MobileAnalyticsView({ memberId = null }: MobileAnalyticsViewProp
     async function fetchData() {
       try {
         if (!memberId) {
-          const [allocRes, terRes, dirRegRes, rankRes] = await Promise.all([
-            getAggregateAllocation(),
-            getAggregateTer(),
-            getAggregateDirectRegularTer(),
-            getAggregateCategoryRanking(),
-          ]);
+          const [allocRes, terRes, dirRegRes, rankRes, scoreRes, benchRes, fundBenchRes] =
+            await Promise.all([
+              getAggregateAllocation(),
+              getAggregateTer(),
+              getAggregateDirectRegularTer(),
+              getAggregateCategoryRanking(),
+              getAggregateScore(),
+              getAggregateBenchmark(),
+              getAggregateFundBenchmark(),
+            ]);
           if (!isMounted) return;
           setAllocation(allocRes.allocation);
           setTer(terRes.ter);
           setTerComparison(dirRegRes.ter);
           setRanking(rankRes.ranking);
+          setScoreSummary(scoreRes.score);
+          setPortfolioBenchmark(benchRes.benchmark);
+          setFundBenchmark(fundBenchRes.comparison);
         } else {
-          const [allocRes, terRes, dirRegRes, rankRes] = await Promise.all([
-            getMemberAllocation(memberId),
-            getMemberTer(memberId),
-            getMemberDirectRegularTer(memberId),
-            getMemberCategoryRanking(memberId),
-          ]);
+          const [allocRes, terRes, dirRegRes, rankRes, scoreRes, benchRes, fundBenchRes] =
+            await Promise.all([
+              getMemberAllocation(memberId),
+              getMemberTer(memberId),
+              getMemberDirectRegularTer(memberId),
+              getMemberCategoryRanking(memberId),
+              getMemberScore(memberId),
+              getMemberBenchmark(memberId),
+              getMemberFundBenchmark(memberId),
+            ]);
           if (!isMounted) return;
           setAllocation(allocRes);
           setTer(terRes);
           setTerComparison(dirRegRes);
           setRanking(rankRes);
+          setScoreSummary(scoreRes);
+          setPortfolioBenchmark(benchRes);
+          setFundBenchmark(fundBenchRes);
         }
       } catch (err: any) {
         if (!isMounted) return;
@@ -81,6 +115,12 @@ export function MobileAnalyticsView({ memberId = null }: MobileAnalyticsViewProp
       isMounted = false;
     };
   }, [memberId]);
+
+  const handleOpenScoreModal = (schemeId: string, schemeName: string) => {
+    setSelectedSchemeId(schemeId);
+    setSelectedSchemeName(schemeName);
+    setIsModalOpen(true);
+  };
 
   if (error) {
     return (
@@ -105,7 +145,7 @@ export function MobileAnalyticsView({ memberId = null }: MobileAnalyticsViewProp
             Mobile Analytics
           </span>
           <Badge variant="outline" className="text-[9px] px-1.5 py-0">
-            Phase 1
+            Phase 1 & 2 Complete
           </Badge>
         </div>
         <div>
@@ -122,25 +162,37 @@ export function MobileAnalyticsView({ memberId = null }: MobileAnalyticsViewProp
         </div>
       </div>
 
-      {/* Allocation */}
+      {/* Section 1: Allocation */}
       <AllocationSection summary={allocation} isLoading={loading} />
 
-      {/* TER & Cost */}
+      {/* Section 2: TER & Cost */}
       <TerSection ter={ter} comparison={terComparison} isLoading={loading} />
 
-      {/* Category Ranking */}
+      {/* Section 3: Category Ranking */}
       <CategoryRankingSection ranking={ranking} isLoading={loading} />
 
-      {/* Phase 2 Placeholder Banner */}
-      <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg)] p-4 text-center space-y-2">
-        <div className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-[var(--color-accent)]/10 text-[var(--color-accent)]">
-          <Sparkles className="h-4 w-4" />
-        </div>
-        <p className="text-xs font-bold text-[var(--color-ink)]">Phase 2 Fast-Follow</p>
-        <p className="text-[11px] text-[var(--color-text-secondary)] leading-relaxed">
-          Fund quality scorer & benchmark comparisons dispatched next in Phase 2.
-        </p>
-      </div>
+      {/* Section 4: Scorer */}
+      <ScorerSection
+        scoreSummary={scoreSummary}
+        isLoading={loading}
+        onSelectFundScore={handleOpenScoreModal}
+      />
+
+      {/* Section 5: Benchmark Comparison */}
+      <BenchmarkSection
+        portfolioBenchmark={portfolioBenchmark}
+        fundBenchmark={fundBenchmark}
+        isLoading={loading}
+      />
+
+      {/* S20 Modal */}
+      <FundScoreDetailModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        schemeId={selectedSchemeId}
+        schemeName={selectedSchemeName}
+        initialData={scoreSummary?.funds.find((f) => f.scheme_id === selectedSchemeId) ?? null}
+      />
     </div>
   );
 }
