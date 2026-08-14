@@ -178,6 +178,52 @@ def test_create_otp_request_email_channel_raises_when_no_provider_configured(mon
         create_otp_request(db, "a@example.com", channel="email")
 
 
+def test_create_otp_request_persists_nothing_when_the_email_provider_fails(monkeypatch):
+    # Finding 5. The row used to be committed BEFORE the send, so a provider
+    # failure left an orphaned, undelivered request behind — and because the
+    # throttle counts any recent unverified request, that orphan then blocked
+    # the user's own immediate retry for RESEND_THROTTLE_SECONDS. Asserting the
+    # absence of the row, not just that the exception propagates (which the
+    # test below this one already covered while the bug was live).
+    import app.services.auth.otp as otp_module
+
+    monkeypatch.setattr(otp_module.settings, "otp_delivery_mode", "postmark")
+    monkeypatch.setattr(otp_module.settings, "database_url", "sqlite:///:memory:")
+    db = _session()
+
+    with pytest.raises(otp_module.NoEmailProviderConfiguredError):
+        create_otp_request(db, "orphan@example.com", channel="email")
+
+    assert db.query(OtpRequest).filter_by(email="orphan@example.com").first() is None
+    assert db.query(OtpRequest).count() == 0
+
+
+def test_create_otp_request_retry_is_not_throttled_after_an_email_provider_failure(monkeypatch):
+    # Finding 5's user-visible symptom: the immediate retry must work. It only
+    # can if the failed attempt left no row for the throttle to trip on.
+    import app.services.auth.otp as otp_module
+
+    monkeypatch.setattr(otp_module.settings, "otp_delivery_mode", "postmark")
+    monkeypatch.setattr(otp_module.settings, "database_url", "sqlite:///:memory:")
+    db = _session()
+
+    with pytest.raises(otp_module.NoEmailProviderConfiguredError):
+        create_otp_request(db, "retry@example.com", channel="email")
+
+    sent = {}
+
+    class FakeProvider:
+        def send_email(self, to, subject, body):
+            sent["to"] = to
+
+    monkeypatch.setattr(otp_module, "get_email_provider", lambda: FakeProvider())
+
+    request, _ = create_otp_request(db, "retry@example.com", channel="email")
+
+    assert sent["to"] == "retry@example.com"  # not OtpRequestThrottledError
+    assert db.query(OtpRequest).filter_by(email="retry@example.com").count() == 1
+
+
 def test_create_otp_request_throttles_rapid_repeat_requests(monkeypatch):
     import app.services.auth.otp as otp_module
 

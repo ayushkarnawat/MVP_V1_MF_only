@@ -12,11 +12,18 @@ from app.services.auth.identity import (
     attach_pending_identity,
     complete_phone_gate_signup,
     find_identity_by_subject,
+    find_or_backfill_phone_identity,
     record_identity,
     resolve_new_verified_identity,
 )
 from app.services.auth.google_oauth import GoogleTokenVerificationError, verify_google_id_token
-from app.services.auth.otp import OtpRequestThrottledError, OtpVerificationError, create_otp_request, verify_otp
+from app.services.auth.otp import (
+    NoEmailProviderConfiguredError,
+    OtpRequestThrottledError,
+    OtpVerificationError,
+    create_otp_request,
+    verify_otp,
+)
 from app.services.auth.schemas import (
     GoogleAuthBody,
     LinkRequiredDetail,
@@ -57,6 +64,13 @@ def request_otp(body: OtpRequestBody, db: DbSession = Depends(get_db)):
         _, raw_otp = create_otp_request(db, identifier, channel=channel)
     except OtpRequestThrottledError as exc:
         raise HTTPException(status_code=429, detail=str(exc)) from exc
+    except NoEmailProviderConfiguredError as exc:
+        # A missing/misconfigured email provider is a server-side capability
+        # gap, not a client error: 503 tells the client "this channel is
+        # temporarily unavailable, try another or retry later", which is what
+        # the landing screen's three-equal-methods UX needs to hear. Same
+        # translate-at-the-route pattern as the 429 above.
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     return OtpRequestResponse(message="OTP sent.", otp=raw_otp)
 
 
@@ -81,7 +95,7 @@ def verify_otp_route(body: OtpVerifyBody, db: DbSession = Depends(get_db)):
                     raise HTTPException(status_code=401, detail="This account isn't linked yet.")
                 user_id = attach_pending_identity(db, body.pending_token, existing.user_id)
             else:
-                existing = find_identity_by_subject(db, provider, identifier)
+                existing = find_or_backfill_phone_identity(db, identifier)
                 if existing is not None:
                     user_id = attach_pending_identity(db, body.pending_token, existing.user_id)
                 else:
@@ -90,7 +104,14 @@ def verify_otp_route(body: OtpVerifyBody, db: DbSession = Depends(get_db)):
             raise HTTPException(status_code=401, detail=str(exc)) from exc
         return _session_response(user_id, provider, db)
 
-    existing = find_identity_by_subject(db, provider, identifier)
+    # Phone uses find_or_backfill_phone_identity so a pre-0005-backfill `users`
+    # row (identity row missing) logs in normally instead of falling through to
+    # the brand-new-signup INSERT below and violating users.phone_number UNIQUE.
+    existing = (
+        find_or_backfill_phone_identity(db, identifier)
+        if channel == "sms"
+        else find_identity_by_subject(db, provider, identifier)
+    )
     if existing is not None:
         return _session_response(existing.user_id, provider, db)
 

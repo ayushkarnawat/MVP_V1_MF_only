@@ -59,6 +59,38 @@ def record_identity(
     return identity
 
 
+def find_or_backfill_phone_identity(db: DbSession, phone_number: str) -> AuthIdentity | None:
+    """Returns the `phone_otp` identity for phone_number, self-healing the
+    pre-multi-method-auth case where a `users` row exists with no matching
+    `auth_identities` row.
+
+    Migration 0005 backfills those rows once, at deploy time — this is the
+    belt-and-braces runtime guard for a row that slipped through anyway (a
+    database restored from a pre-0005 dump, a user created by a script, a
+    partially-applied migration). Without it, the phone login path sees "no
+    identity" and tries to INSERT a second `User` for an already-taken,
+    UNIQUE phone number, which surfaces to the user as an unhandled 500 on a
+    perfectly ordinary login.
+
+    Backfilling from `users.created_at` (not `now`) matches migration 0005 and
+    the Design Spec §1 Migration note exactly: a verified phone has always
+    been a precondition for a `User` row existing at all, so `created_at` is
+    the accurate proof-of-verification timestamp. Returns None when the phone
+    number is genuinely unknown — a real brand-new signup.
+    """
+    identity = find_identity_by_subject(db, AuthIdentityProvider.PHONE_OTP, phone_number)
+    if identity is not None:
+        return identity
+
+    user = db.query(User).filter_by(phone_number=phone_number).first()
+    if user is None:
+        return None
+
+    return record_identity(
+        db, user.id, AuthIdentityProvider.PHONE_OTP, phone_number, None, user.created_at, commit=True
+    )
+
+
 def pick_primary_identity(identities: list[AuthIdentity]) -> AuthIdentity:
     return min(identities, key=lambda i: PROVIDER_PRECEDENCE[i.provider])
 
@@ -161,12 +193,23 @@ def complete_phone_gate_signup(db: DbSession, raw_token: str, phone_number: str)
             "This verification is for linking to an existing account, not creating a new one."
         )
 
+    # An UNVERIFIED email claim (a Google account whose `email_verified` is
+    # false) must never be persisted into either `users.email` or
+    # `auth_identities.email`: resolve_email_collision treats ANY matching
+    # AuthIdentity.email as proof of independent verified ownership
+    # (kind="auto_link"), so storing an unverified claim here would let this
+    # signup silently capture the real owner's later, genuinely-verified
+    # email-OTP signup. The pending record's own provider/provider_subject
+    # (the Google `sub`) is still recorded as-is — it isn't used by the
+    # email-based collision check at all. Design Spec §2 step 5 / §4.
+    verified_email = pending.email if pending.email_verified else None
+
     now = datetime.now(timezone.utc)
-    user = User(phone_number=phone_number, email=pending.email, created_at=now)
+    user = User(phone_number=phone_number, email=verified_email, created_at=now)
     db.add(user)
     db.flush()
     record_identity(db, user.id, AuthIdentityProvider.PHONE_OTP, phone_number, None, now, commit=False)
-    record_identity(db, user.id, pending.provider, pending.provider_subject, pending.email, now, commit=False)
+    record_identity(db, user.id, pending.provider, pending.provider_subject, verified_email, now, commit=False)
     db.delete(pending)
     db.commit()
     return user.id
@@ -175,15 +218,39 @@ def complete_phone_gate_signup(db: DbSession, raw_token: str, phone_number: str)
 def attach_pending_identity(db: DbSession, raw_token: str, resolved_user_id: uuid.UUID) -> uuid.UUID:
     """After ANY re-auth method (phone/email/Google) resolves to
     resolved_user_id, attaches the pending record's identity to that
-    user. Requires matched_user_id to already equal resolved_user_id —
-    guards against a pending token being replayed against the wrong
+    user. Only an actual *mismatch* is rejected: if the pending record
+    named a specific account (a §4 link_required collision), the caller
+    must have resolved to that same account.
+
+    A pending record with matched_user_id IS NULL (a §1 phone-gate
+    record) is allowed to attach to whatever account the caller already
+    independently verified. That case is legitimate and previously dead-
+    ended: §4's collision check only ever matches on EMAIL, never phone,
+    so an existing phone-only account whose phone number is entered at
+    the phone gate is never detected earlier — the route discovers it
+    only when find_identity_by_subject succeeds after a fresh phone-OTP
+    verification, which is itself proof of control over that exact
     account."""
     pending = _consume_pending_verification(db, raw_token)
-    if pending.matched_user_id is None or pending.matched_user_id != resolved_user_id:
+    if pending.matched_user_id is not None and pending.matched_user_id != resolved_user_id:
         raise PendingVerificationError("This verification token doesn't match the account you're linking to.")
 
+    # Same guard as complete_phone_gate_signup: an unverified email claim is
+    # never denormalized onto an identity row, because that row would then
+    # read as independently-verified ownership to resolve_email_collision.
+    # (A §4 link_required record always carries email_verified=True, so this
+    # only ever bites the now-reachable phone-gate-record path above.)
+    verified_email = pending.email if pending.email_verified else None
+
     now = datetime.now(timezone.utc)
-    record_identity(db, resolved_user_id, pending.provider, pending.provider_subject, pending.email, now, commit=False)
+    record_identity(db, resolved_user_id, pending.provider, pending.provider_subject, verified_email, now, commit=False)
+    # Explicit flush: production and test sessions are both autoflush=False, so
+    # without this the identity we just added is invisible to
+    # refresh_denormalized_email's own query and users.email is silently never
+    # updated — the account would gain a verified Google/email identity while
+    # /auth/me kept reporting email=None. Still one transaction: the single
+    # db.commit() below covers the flush, the delete, and the email update.
+    db.flush()
     user = db.get(User, resolved_user_id)
     refresh_denormalized_email(db, user, commit=False)
     db.delete(pending)

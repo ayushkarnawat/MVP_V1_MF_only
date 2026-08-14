@@ -14,6 +14,7 @@ from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 
 from app.config import settings
+from app.services.auth.schemas import normalize_email
 
 
 class GoogleTokenVerificationError(Exception):
@@ -37,8 +38,15 @@ def verify_google_id_token(raw_id_token: str) -> GoogleClaims:
     except (GoogleAuthError, ValueError) as exc:
         raise GoogleTokenVerificationError(str(exc)) from exc
 
+    # Normalized here, at the boundary where the claim enters our code, using
+    # the same helper the request schemas use — so that by the time this email
+    # reaches resolve_new_verified_identity's §4 collision lookup it is already
+    # in the one canonical form every other stored email is in. Google does not
+    # guarantee a canonical case for the `email` claim, and every email
+    # comparison downstream is a plain string compare. `None` (no email claim
+    # at all) passes straight through.
     return GoogleClaims(
         sub=claims["sub"],
-        email=claims.get("email"),
+        email=normalize_email(claims.get("email")),
         email_verified=bool(claims.get("email_verified", False)),
     )

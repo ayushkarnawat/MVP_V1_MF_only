@@ -16,6 +16,7 @@ from app.services.auth.identity import (
     complete_phone_gate_signup,
     create_pending_verification,
     find_identity_by_subject,
+    find_or_backfill_phone_identity,
     pick_primary_identity,
     record_identity,
     refresh_denormalized_email,
@@ -198,19 +199,126 @@ def test_attach_pending_identity_rejects_mismatched_resolved_user():
         attach_pending_identity(db, raw_token, other_user.id)
 
 
-def test_attach_pending_identity_rejects_a_phone_gate_token():
-    # matched_user_id is None on this token (it's a brand-new-signup pending
-    # record, not a linking one) — attach_pending_identity must not treat
-    # None as "matches everything." This is the other half of the
-    # replay-guard OR condition from the mismatched-user test above.
+def test_attach_pending_identity_allows_a_phone_gate_token_for_an_independently_verified_account():
+    # Finding 3. This test previously asserted the OPPOSITE (that a
+    # matched_user_id=None token could never attach), which made an existing
+    # phone-only user's first Google/email sign-in a permanent dead end: §4's
+    # collision check only ever matches on EMAIL, so an account whose only
+    # identifier is a phone number is never detected up front — the phone gate
+    # is where the collision is discovered, and by then the caller has already
+    # completed a fresh phone-OTP verification for that exact account, which
+    # IS the proof of ownership the old guard was demanding in advance.
+    # The replay guard still holds for any token that named a specific
+    # account: see test_attach_pending_identity_rejects_mismatched_resolved_user.
     db = _session()
     existing_user = _user(db, phone="+919888888888")
+    now = datetime.now(timezone.utc)
+    record_identity(db, existing_user.id, AuthIdentityProvider.PHONE_OTP, existing_user.phone_number, None, now)
     _, raw_token = create_pending_verification(
         db, AuthIdentityProvider.GOOGLE, "g-sub-7", "z@example.com", True, matched_user_id=None
     )
 
-    with pytest.raises(PendingVerificationError, match="doesn't match"):
-        attach_pending_identity(db, raw_token, existing_user.id)
+    returned_user_id = attach_pending_identity(db, raw_token, existing_user.id)
+
+    assert returned_user_id == existing_user.id
+    attached = find_identity_by_subject(db, AuthIdentityProvider.GOOGLE, "g-sub-7")
+    assert attached is not None
+    assert attached.user_id == existing_user.id
+    db.refresh(existing_user)
+    assert existing_user.email == "z@example.com"  # denormalized from the new, verified Google identity
+
+
+def test_complete_phone_gate_signup_never_persists_an_unverified_email():
+    # Finding 1. resolve_email_collision treats ANY matching
+    # AuthIdentity.email as proof of independent verified ownership, so
+    # persisting an unverified Google `email` claim here would launder it into
+    # a real auto-link credential — see
+    # test_unverified_email_does_not_capture_a_later_genuine_signup below for
+    # the actual hijack this prevents.
+    db = _session()
+    _, raw_token = create_pending_verification(
+        db, AuthIdentityProvider.GOOGLE, "g-sub-unverified", "victim@example.com", False, matched_user_id=None
+    )
+
+    user_id = complete_phone_gate_signup(db, raw_token, "+919000000010")
+
+    user = db.get(User, user_id)
+    assert user.email is None
+    google_identity = find_identity_by_subject(db, AuthIdentityProvider.GOOGLE, "g-sub-unverified")
+    assert google_identity is not None  # the Google `sub` itself is still a legitimate credential
+    assert google_identity.email is None
+
+
+def test_unverified_email_does_not_capture_a_later_genuine_signup():
+    # Finding 1, the consequence: after the attacker's unverified-email
+    # signup, the real owner's genuinely OTP-verified email signup for the
+    # same address must NOT auto-link into the attacker's account.
+    db = _session()
+    _, raw_token = create_pending_verification(
+        db, AuthIdentityProvider.GOOGLE, "g-sub-attacker", "victim@example.com", False, matched_user_id=None
+    )
+    complete_phone_gate_signup(db, raw_token, "+919000000011")
+
+    collision = resolve_email_collision(db, "victim@example.com")
+
+    assert collision.kind == "none"
+    assert collision.matched_user_id is None
+
+
+def test_attach_pending_identity_never_persists_an_unverified_email():
+    # Finding 1's second write site. Reachable now that a phone-gate token
+    # (which is the only kind that can carry email_verified=False) can attach.
+    db = _session()
+    existing_user = _user(db, phone="+919000000012")
+    now = datetime.now(timezone.utc)
+    record_identity(db, existing_user.id, AuthIdentityProvider.PHONE_OTP, existing_user.phone_number, None, now)
+    _, raw_token = create_pending_verification(
+        db, AuthIdentityProvider.GOOGLE, "g-sub-attach-unverified", "victim2@example.com", False, matched_user_id=None
+    )
+
+    attach_pending_identity(db, raw_token, existing_user.id)
+
+    attached = find_identity_by_subject(db, AuthIdentityProvider.GOOGLE, "g-sub-attach-unverified")
+    assert attached.email is None
+    db.refresh(existing_user)
+    assert existing_user.email is None
+    assert resolve_email_collision(db, "victim2@example.com").kind == "none"
+
+
+def test_find_or_backfill_phone_identity_heals_a_user_row_with_no_identity():
+    # Finding 2's runtime safety net: a pre-multi-method-auth `users` row that
+    # migration 0005's backfill never reached.
+    db = _session()
+    user = _user(db, phone="+919000000013")
+
+    identity = find_or_backfill_phone_identity(db, "+919000000013")
+
+    assert identity is not None
+    assert identity.user_id == user.id
+    assert identity.provider == AuthIdentityProvider.PHONE_OTP
+    assert identity.email is None
+    # Sourced from users.created_at, not `now` — same rule as migration 0005
+    # and the Design Spec §1 Migration note.
+    assert identity.identifier_verified_at == user.created_at
+
+
+def test_find_or_backfill_phone_identity_returns_existing_identity_unchanged():
+    db = _session()
+    user = _user(db, phone="+919000000014")
+    now = datetime.now(timezone.utc)
+    original = record_identity(db, user.id, AuthIdentityProvider.PHONE_OTP, user.phone_number, None, now)
+
+    found = find_or_backfill_phone_identity(db, "+919000000014")
+
+    assert found.id == original.id
+    assert db.query(AuthIdentity).filter_by(provider_subject="+919000000014").count() == 1
+
+
+def test_find_or_backfill_phone_identity_returns_none_for_a_genuinely_new_number():
+    db = _session()
+
+    assert find_or_backfill_phone_identity(db, "+919000000099") is None
+    assert db.query(AuthIdentity).count() == 0
 
 
 def test_complete_phone_gate_signup_rolls_back_atomically_on_second_identity_failure():

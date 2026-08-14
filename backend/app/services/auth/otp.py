@@ -85,14 +85,28 @@ def create_otp_request(
         created_at=datetime.now(timezone.utc),
     )
     db.add(request)
-    db.commit()
 
+    # Send BEFORE committing, and roll back if delivery fails. A row that is
+    # persisted but never delivered is worse than no row at all: the caller
+    # gets an error for a code that was never sent, AND the throttle check
+    # above counts that orphaned row as a "recent unverified request", so the
+    # user's immediate retry is blocked for RESEND_THROTTLE_SECONDS for a
+    # failure that was entirely server-side. The explicit rollback (rather
+    # than just letting the exception propagate) matters because the pending
+    # db.add() would otherwise still be in the session's identity map and
+    # could leak into a later implicit flush on the same session.
     if channel == "email" and settings.otp_delivery_mode != "stub":
-        get_email_provider().send_email(
-            to=identifier,
-            subject="Your Unifolio verification code",
-            body=f"Your Unifolio verification code is {otp}. It expires in {OTP_TTL_MINUTES} minutes.",
-        )
+        try:
+            get_email_provider().send_email(
+                to=identifier,
+                subject="Your Unifolio verification code",
+                body=f"Your Unifolio verification code is {otp}. It expires in {OTP_TTL_MINUTES} minutes.",
+            )
+        except Exception:
+            db.rollback()
+            raise
+
+    db.commit()
 
     raw_otp = otp if settings.otp_delivery_mode == "stub" else None
     return request, raw_otp

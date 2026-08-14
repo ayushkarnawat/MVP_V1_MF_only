@@ -49,6 +49,47 @@ def test_verify_google_id_token_requires_client_id_configured(monkeypatch):
         verify_google_id_token("fake-jwt")
 
 
+def test_verify_google_id_token_normalizes_email_case_and_whitespace(monkeypatch):
+    # Finding 4. Google does not guarantee a canonical case for the `email`
+    # claim, and every email comparison downstream (the §4 collision lookup,
+    # auth_identities.email, users.email) is a plain string compare — so an
+    # un-normalized claim would silently miss a genuine collision and defeat
+    # the linking system.
+    import app.services.auth.google_oauth as google_oauth_module
+
+    monkeypatch.setattr(google_oauth_module.settings, "google_oauth_client_id", "test-client-id")
+    monkeypatch.setattr(
+        google_oauth_module.id_token,
+        "verify_oauth2_token",
+        lambda token, request, audience: {
+            "sub": "google-sub-mixed",
+            "email": "  Victim@Example.COM ",
+            "email_verified": True,
+        },
+    )
+
+    claims = verify_google_id_token("fake-jwt")
+
+    assert claims.email == "victim@example.com"
+
+
+def test_verify_google_id_token_leaves_a_missing_email_as_none(monkeypatch):
+    # Normalization must not turn an absent claim into "" — resolve_new_verified_identity
+    # branches on `email is None`, and an empty string would take the wrong path.
+    import app.services.auth.google_oauth as google_oauth_module
+
+    monkeypatch.setattr(google_oauth_module.settings, "google_oauth_client_id", "test-client-id")
+    monkeypatch.setattr(
+        google_oauth_module.id_token,
+        "verify_oauth2_token",
+        lambda token, request, audience: {"sub": "google-sub-noemail", "email_verified": True},
+    )
+
+    claims = verify_google_id_token("fake-jwt")
+
+    assert claims.email is None
+
+
 def test_verify_google_id_token_defaults_missing_email_verified_to_false(monkeypatch):
     import app.services.auth.google_oauth as google_oauth_module
 

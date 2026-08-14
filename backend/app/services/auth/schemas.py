@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, field_validator, model_validator
 
 from app.models.enums import AuthIdentityProvider, InvestorType, PrimaryGoal
 
@@ -11,9 +11,34 @@ PROVIDER_TO_METHOD_LABEL: dict[AuthIdentityProvider, str] = {
 }
 
 
+def normalize_email(value: object) -> object:
+    """Canonicalizes an email identifier to strip+lowercase form.
+
+    Email is an identity key here (`otp_requests.email`,
+    `auth_identities.provider_subject`/`email`, and the Design Spec §4
+    collision lookup), and all of those compare as plain strings — so
+    `Victim@Example.com` and `victim@example.com` would otherwise be two
+    distinct identities and the collision/linking system would never fire.
+    Normalizing at the request boundary means every downstream comparison
+    already operates on one canonical form. Non-string input (including
+    `None`) is passed through untouched so Pydantic's own type errors, and
+    the exactly-one-identifier check, still behave as before.
+    """
+    if isinstance(value, str):
+        return value.strip().lower()
+    return value
+
+
 class OtpRequestBody(BaseModel):
     phone_number: str | None = None
     email: str | None = None
+
+    # mode="before" so the canonical value is what _exactly_one_identifier
+    # (a mode="after" validator) and every downstream consumer sees.
+    @field_validator("email", mode="before")
+    @classmethod
+    def _normalize_email(cls, value: object) -> object:
+        return normalize_email(value)
 
     @model_validator(mode="after")
     def _exactly_one_identifier(self) -> "OtpRequestBody":
@@ -32,6 +57,11 @@ class OtpVerifyBody(BaseModel):
     email: str | None = None
     otp: str
     pending_token: str | None = None
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def _normalize_email(cls, value: object) -> object:
+        return normalize_email(value)
 
     @model_validator(mode="after")
     def _exactly_one_identifier(self) -> "OtpVerifyBody":
