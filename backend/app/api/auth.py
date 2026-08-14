@@ -11,16 +11,14 @@ from app.services.auth.identity import (
     PendingVerificationError,
     attach_pending_identity,
     complete_phone_gate_signup,
-    create_pending_verification,
     find_identity_by_subject,
-    pick_primary_identity,
     record_identity,
-    refresh_denormalized_email,
-    resolve_email_collision,
+    resolve_new_verified_identity,
 )
+from app.services.auth.google_oauth import GoogleTokenVerificationError, verify_google_id_token
 from app.services.auth.otp import OtpVerificationError, create_otp_request, verify_otp
 from app.services.auth.schemas import (
-    GoogleAuthBody,  # noqa: F401 — unused until Task 10's /auth/google route lands in this file
+    GoogleAuthBody,
     LinkRequiredDetail,
     LinkRequiredResponse,
     MeResponse,
@@ -105,36 +103,57 @@ def verify_otp_route(body: OtpVerifyBody, db: DbSession = Depends(get_db)):
         return _session_response(user.id, AuthIdentityProvider.PHONE_OTP, db)
 
     # Email channel with no existing identity: run the collision check.
-    collision = resolve_email_collision(db, identifier)
-    if collision.kind == "auto_link":
-        now = datetime.now(timezone.utc)
-        record_identity(db, collision.matched_user_id, AuthIdentityProvider.EMAIL_OTP, identifier, identifier, now)
-        user = db.get(User, collision.matched_user_id)
-        refresh_denormalized_email(db, user)
-        return _session_response(collision.matched_user_id, AuthIdentityProvider.EMAIL_OTP, db)
-
-    if collision.kind == "link_required":
-        matched_user = db.get(User, collision.matched_user_id)
-        matched_identities = db.query(AuthIdentity).filter_by(user_id=matched_user.id).all()
-        existing_method_provider = (
-            pick_primary_identity(matched_identities).provider if matched_identities else AuthIdentityProvider.PHONE_OTP
-        )
-        pending, raw_token = create_pending_verification(
-            db, AuthIdentityProvider.EMAIL_OTP, identifier, identifier, True, matched_user_id=matched_user.id
-        )
+    resolution = resolve_new_verified_identity(db, provider, identifier, identifier, True)
+    if resolution.kind == "login":
+        return _session_response(resolution.user_id, provider, db)
+    if resolution.kind == "link_required":
         return LinkRequiredResponse(
             link_required=LinkRequiredDetail(
-                token=raw_token,
-                matched_email=identifier,
-                existing_method=PROVIDER_TO_METHOD_LABEL[existing_method_provider],
+                token=resolution.pending_token,
+                matched_email=resolution.matched_email,
+                existing_method=PROVIDER_TO_METHOD_LABEL[resolution.existing_method],
             )
         )
-
-    # kind == "none": brand-new signup, still needs the mandatory phone step.
-    pending, raw_token = create_pending_verification(
-        db, AuthIdentityProvider.EMAIL_OTP, identifier, identifier, True, matched_user_id=None
+    return PhoneRequiredResponse(
+        phone_required=PhoneRequiredDetail(token=resolution.pending_token, prefill_email=resolution.prefill_email)
     )
-    return PhoneRequiredResponse(phone_required=PhoneRequiredDetail(token=raw_token, prefill_email=identifier))
+
+
+@router.post("/oauth/google", response_model=OtpVerifyResponse | LinkRequiredResponse | PhoneRequiredResponse)
+def google_oauth_route(body: GoogleAuthBody, db: DbSession = Depends(get_db)):
+    try:
+        claims = verify_google_id_token(body.id_token)
+    except GoogleTokenVerificationError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+
+    if body.pending_token:
+        existing = find_identity_by_subject(db, AuthIdentityProvider.GOOGLE, claims.sub)
+        if existing is None:
+            raise HTTPException(status_code=401, detail="This Google account isn't linked yet.")
+        try:
+            user_id = attach_pending_identity(db, body.pending_token, existing.user_id)
+        except PendingVerificationError as exc:
+            raise HTTPException(status_code=401, detail=str(exc)) from exc
+        return _session_response(user_id, AuthIdentityProvider.GOOGLE, db)
+
+    existing = find_identity_by_subject(db, AuthIdentityProvider.GOOGLE, claims.sub)
+    if existing is not None:
+        return _session_response(existing.user_id, AuthIdentityProvider.GOOGLE, db)
+
+    resolution = resolve_new_verified_identity(db, AuthIdentityProvider.GOOGLE, claims.sub, claims.email, claims.email_verified)
+    if resolution.kind == "login":
+        return _session_response(resolution.user_id, AuthIdentityProvider.GOOGLE, db)
+    if resolution.kind == "link_required":
+        return LinkRequiredResponse(
+            link_required=LinkRequiredDetail(
+                token=resolution.pending_token,
+                matched_email=resolution.matched_email,
+                existing_method=PROVIDER_TO_METHOD_LABEL[resolution.existing_method],
+            )
+        )
+    return PhoneRequiredResponse(
+        phone_required=PhoneRequiredDetail(token=resolution.pending_token, prefill_email=resolution.prefill_email)
+    )
 
 
 #session management

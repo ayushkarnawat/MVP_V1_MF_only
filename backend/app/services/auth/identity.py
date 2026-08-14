@@ -189,3 +189,51 @@ def attach_pending_identity(db: DbSession, raw_token: str, resolved_user_id: uui
     db.delete(pending)
     db.commit()
     return resolved_user_id
+
+
+class IdentityResolution(NamedTuple):
+    kind: Literal["login", "link_required", "phone_required"]
+    user_id: uuid.UUID | None
+    pending_token: str | None
+    matched_email: str | None
+    existing_method: AuthIdentityProvider | None
+    prefill_email: str | None
+
+
+def resolve_new_verified_identity(
+    db: DbSession,
+    provider: AuthIdentityProvider,
+    provider_subject: str,
+    email: str | None,
+    email_verified: bool,
+) -> IdentityResolution:
+    """For a Google or email-OTP identity with NO existing auth_identities
+    row yet (caller has already checked find_identity_by_subject returns
+    None). Runs the Design Spec §4 collision check and returns exactly
+    what the route needs to respond."""
+    email_for_collision = email if email_verified else None
+
+    if email_for_collision is not None:
+        collision = resolve_email_collision(db, email_for_collision)
+        if collision.kind == "auto_link":
+            now = datetime.now(timezone.utc)
+            record_identity(db, collision.matched_user_id, provider, provider_subject, email, now)
+            refresh_denormalized_email(db, db.get(User, collision.matched_user_id))
+            return IdentityResolution("login", collision.matched_user_id, None, None, None, None)
+
+        if collision.kind == "link_required":
+            matched_identities = db.query(AuthIdentity).filter_by(user_id=collision.matched_user_id).all()
+            existing_method = (
+                pick_primary_identity(matched_identities).provider if matched_identities else AuthIdentityProvider.PHONE_OTP
+            )
+            _, raw_token = create_pending_verification(
+                db, provider, provider_subject, email, True, matched_user_id=collision.matched_user_id
+            )
+            return IdentityResolution(
+                "link_required", None, raw_token, email_for_collision, existing_method, None
+            )
+
+    _, raw_token = create_pending_verification(
+        db, provider, provider_subject, email, email_verified, matched_user_id=None
+    )
+    return IdentityResolution("phone_required", None, raw_token, None, None, email_for_collision)

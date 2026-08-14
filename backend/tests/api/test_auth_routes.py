@@ -228,3 +228,71 @@ def test_otp_verify_completing_a_link_via_phone(client):
 
     assert response.status_code == 200
     assert response.json()["user_id"] == first["user_id"]
+
+
+def _mock_google_claims(monkeypatch, sub, email=None, email_verified=True):
+    import app.api.auth as auth_module
+    from app.services.auth.google_oauth import GoogleClaims
+
+    monkeypatch.setattr(
+        auth_module, "verify_google_id_token", lambda token: GoogleClaims(sub=sub, email=email, email_verified=email_verified)
+    )
+
+
+def test_google_signup_with_no_collision_returns_phone_required(client, monkeypatch):
+    _mock_google_claims(monkeypatch, "g-sub-new", "newgoogle@example.com")
+
+    response = client.post("/auth/oauth/google", json={"id_token": "fake"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["phone_required"]["prefill_email"] == "newgoogle@example.com"
+
+
+def test_google_login_for_already_linked_account(client, monkeypatch):
+    _mock_google_claims(monkeypatch, "g-sub-returning", "returning-google@example.com")
+    gate = client.post("/auth/oauth/google", json={"id_token": "fake"}).json()
+    phone = "+919887766554"
+    phone_otp = client.post("/auth/otp/request", json={"phone_number": phone}).json()["otp"]
+    first = client.post(
+        "/auth/otp/verify",
+        json={"phone_number": phone, "otp": phone_otp, "pending_token": gate["phone_required"]["token"]},
+    ).json()
+
+    response = client.post("/auth/oauth/google", json={"id_token": "fake"})
+
+    assert response.status_code == 200
+    assert response.json()["user_id"] == first["user_id"]
+
+
+def test_google_unverified_email_never_auto_links(client, monkeypatch):
+    from app.db.session import get_db
+    from app.models.user import User
+
+    phone = "+919776655443"
+    phone_otp = client.post("/auth/otp/request", json={"phone_number": phone}).json()["otp"]
+    client.post("/auth/otp/verify", json={"phone_number": phone, "otp": phone_otp})
+    db = next(client.app.dependency_overrides[get_db]())
+    db.query(User).filter_by(phone_number=phone).update({"email": "spoofable@example.com"})
+    db.commit()
+    db.close()
+
+    _mock_google_claims(monkeypatch, "g-sub-unverified", "spoofable@example.com", email_verified=False)
+    response = client.post("/auth/oauth/google", json={"id_token": "fake"})
+
+    body = response.json()
+    assert "phone_required" in body  # treated as brand-new, not linked, per Design Spec §2
+
+
+def test_google_verification_failure_returns_401(client, monkeypatch):
+    import app.api.auth as auth_module
+    from app.services.auth.google_oauth import GoogleTokenVerificationError
+
+    def _raise(token):
+        raise GoogleTokenVerificationError("bad token")
+
+    monkeypatch.setattr(auth_module, "verify_google_id_token", _raise)
+
+    response = client.post("/auth/oauth/google", json={"id_token": "garbage"})
+
+    assert response.status_code == 401
