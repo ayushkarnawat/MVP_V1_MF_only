@@ -14,11 +14,13 @@
 
 `0003_cas_import_lifecycle_and_coverage_gaps` — `imports` gains `error_code`, `error_message`, `source_tab`, `statement_from_date`, `statement_to_date`, `expires_at` (all nullable). `folios` gains `has_coverage_gap` (`BOOLEAN NOT NULL`, default false) and `coverage_gap_details` (JSON — Postgres `JSONB`, SQLite generic `JSON`; note this predates the Migration Plan guardrail doc's explicit "no dialect-specific JSON literal" guidance being checked against new work, see `decisions.md`'s 2026-08-14 entry on the multi-method-auth schema being the first design explicitly confirmed compliant). New `TransactionType` enum value: `opening_balance`.
 
-## 2026-08-14 — (Planned, not yet migrated) Multi-method auth schema
+## 2026-08-14 — Migration 0004 landed: multi-method auth schema
 
-Design finalized and a full Alembic migration written as part of `Docs/superpowers/plans/2026-08-14-multi-method-auth-backend-plan.md`'s Task 1 (migration `0004_multi_method_auth_identities`), but **not yet executed/merged** as of this entry. Planned changes, for when this entry should be superseded by a real "migration 0004 landed" entry:
+Built, tested, and committed as Task 1 of `Docs/superpowers/plans/2026-08-14-multi-method-auth-backend-plan.md` (commit `39db87d`, migration `0004_multi_method_auth_identities`), with an upgrade/downgrade round-trip test. Actual changes:
 - New table `auth_identities` — one row per linked auth method (`phone_otp`/`email_otp`/`google`) per user; `UNIQUE(provider, provider_subject)`.
 - New table `pending_identity_verifications` — holds a verified-but-not-yet-attached Google/email identity during the mandatory phone-gate or account-linking step-up flow.
 - `otp_requests`: `phone_number` becomes nullable, new nullable `email` column, new check constraint enforcing exactly one of the two is set.
 - `sessions`: new `auth_method` column (`NOT NULL`, backfilled to `phone_otp` for pre-existing rows).
 - `users.phone_number` is explicitly **unchanged** — stays `UNIQUE NOT NULL` as it has been since migration 0001 (an earlier design draft would have loosened this; reversed before implementation — see `decisions.md`).
+
+Landing this migration also removed every OTP/session-related route's old direct-phone-lookup code path (Task 9) — every login now resolves through `auth_identities`. That created a real gap the implementation plan itself missed: **no migration was ever written to backfill existing `users` rows into `auth_identities`.** Flagged as Critical Finding 2 of the final whole-branch review (see `backend.md` and `log.md`'s 2026-08-14 entries) and closed in the same session: migration `0005_backfill_phone_otp_identities.py` now does the one-time backfill (Core-literals-only, re-runnable, documented no-op downgrade), landed as part of commit `2784b61`, independently re-verified clean.
