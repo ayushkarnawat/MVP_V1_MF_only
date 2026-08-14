@@ -3,6 +3,7 @@
     "understand-anything@understand-anything": true,
     "superpowers@claude-plugins-official": true,
     "ponytail@ponytail": true,
-    "codex@openai-codex": true
+    "codex@openai-codex": true,
+    "impeccable@impeccable": true
   }
 }

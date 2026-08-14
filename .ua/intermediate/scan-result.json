@@ -1,10 +1,11 @@
 {
   "name": "Unifolio code",
-  "description": "MF-only MVP (V1) of Unifolio, a mutual fund portfolio tracking platform for the Indian market, built as a FastAPI backend monolith with a React/Vite frontend. Note: this project has over 100 source files; consider scoping analysis to a subdirectory for faster results.",
+  "description": "Unifolio MF MVP — a mutual fund portfolio tracking and wealth-management platform for the Indian market, covering CAS import, onboarding, a holdings dashboard, and an analytics dashboard. Note: this project has over 100 source files; consider scoping analysis to a subdirectory for faster results.",
   "languages": [
     "config",
     "css",
     "html",
+    "javascript",
     "json",
     "mako",
     "markdown",
@@ -18,12 +19,12 @@
     "React",
     "Vite",
     "Vitest",
+    "Tailwind CSS",
     "FastAPI",
     "SQLAlchemy",
     "Alembic",
-    "Uvicorn",
-    "Pydantic",
     "pytest",
+    "Uvicorn",
     "Docker Compose",
     "GitHub Actions"
   ],
@@ -31,13 +32,7 @@
     {
       "path": ".claude/settings.json",
       "language": "json",
-      "sizeLines": 6,
-      "fileCategory": "config"
-    },
-    {
-      "path": ".claude/settings.local.json",
-      "language": "json",
-      "sizeLines": 16,
+      "sizeLines": 8,
       "fileCategory": "config"
     },
     {
@@ -45,6 +40,36 @@
       "language": "yaml",
       "sizeLines": 61,
       "fileCategory": "infra"
+    },
+    {
+      "path": ".ua/.understandignore",
+      "language": "unknown",
+      "sizeLines": 82,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".ua/fingerprints.json",
+      "language": "json",
+      "sizeLines": 15852,
+      "fileCategory": "config"
+    },
+    {
+      "path": ".ua/intermediate/scan-result.json",
+      "language": "json",
+      "sizeLines": 2814,
+      "fileCategory": "config"
+    },
+    {
+      "path": ".ua/knowledge-graph.json",
+      "language": "json",
+      "sizeLines": 0,
+      "fileCategory": "config"
+    },
+    {
+      "path": ".ua/meta.json",
+      "language": "json",
+      "sizeLines": 5,
+      "fileCategory": "config"
     },
     {
       "path": "CAS-IMPORT-UPDATE-PLAN.md",
@@ -55,7 +80,7 @@
     {
       "path": "CLAUDE.md",
       "language": "markdown",
-      "sizeLines": 191,
+      "sizeLines": 188,
       "fileCategory": "docs"
     },
     {
@@ -63,6 +88,12 @@
       "language": "html",
       "sizeLines": 625,
       "fileCategory": "markup"
+    },
+    {
+      "path": "Docs/MOBILE_APP_EXECUTION.md",
+      "language": "markdown",
+      "sizeLines": 52,
+      "fileCategory": "docs"
     },
     {
       "path": "Docs/PRD-03-Main-Dashboard.md",
@@ -161,6 +192,54 @@
       "fileCategory": "docs"
     },
     {
+      "path": "Docs/Scorer-Methodology-Unifolio.md",
+      "language": "markdown",
+      "sizeLines": 114,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "Docs/frontend_execution.md",
+      "language": "markdown",
+      "sizeLines": 754,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "Docs/orchestration/dashboard-nav-perf-handoff.md",
+      "language": "markdown",
+      "sizeLines": 331,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "Docs/orchestration/delegation-log.md",
+      "language": "markdown",
+      "sizeLines": 30,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "Docs/orchestration/phase4-scorer-api-routes-handoff.md",
+      "language": "markdown",
+      "sizeLines": 95,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "Docs/orchestration/phase4-scorer-composite-score-handoff.md",
+      "language": "markdown",
+      "sizeLines": 96,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "Docs/orchestration/phase4-scorer-portfolio-rollup-handoff.md",
+      "language": "markdown",
+      "sizeLines": 91,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "Docs/orchestration/phase4-scorer-risk-metrics-handoff.md",
+      "language": "markdown",
+      "sizeLines": 59,
+      "fileCategory": "docs"
+    },
+    {
       "path": "Docs/superpowers/plans/2026-08-04-phase-0-foundation.md",
       "language": "markdown",
       "sizeLines": 1618,
@@ -211,13 +290,25 @@
     {
       "path": "Docs/superpowers/plans/2026-08-10-phase-4-analytics-backend-design.md",
       "language": "markdown",
-      "sizeLines": 246,
+      "sizeLines": 315,
       "fileCategory": "docs"
     },
     {
       "path": "Docs/superpowers/plans/2026-08-10-phase-4-analytics-backend-part1-allocation.md",
       "language": "markdown",
       "sizeLines": 541,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "Docs/superpowers/plans/2026-08-12-model-orchestration-skill.md",
+      "language": "markdown",
+      "sizeLines": 740,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "Docs/superpowers/plans/2026-08-13-phase-4-analytics-backend-part5-scorer.md",
+      "language": "markdown",
+      "sizeLines": 1264,
       "fileCategory": "docs"
     },
     {
@@ -260,6 +351,12 @@
       "path": "Docs/superpowers/specs/2026-08-07-frontend-redesign-brief-for-coding-agent.md",
       "language": "markdown",
       "sizeLines": 645,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "Docs/superpowers/specs/2026-08-12-model-orchestration-skill-design.md",
+      "language": "markdown",
+      "sizeLines": 250,
       "fileCategory": "docs"
     },
     {
@@ -331,7 +428,7 @@
     {
       "path": "backend/app/api/analytics.py",
       "language": "python",
-      "sizeLines": 41,
+      "sizeLines": 198,
       "fileCategory": "code"
     },
     {
@@ -355,7 +452,7 @@
     {
       "path": "backend/app/api/imports.py",
       "language": "python",
-      "sizeLines": 56,
+      "sizeLines": 106,
       "fileCategory": "code"
     },
     {
@@ -473,9 +570,69 @@
       "fileCategory": "code"
     },
     {
+      "path": "backend/app/services/analytics/amfi_aaum_client.py",
+      "language": "python",
+      "sizeLines": 167,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/services/analytics/amfi_ter_client.py",
+      "language": "python",
+      "sizeLines": 196,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/services/analytics/benchmark.py",
+      "language": "python",
+      "sizeLines": 230,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/services/analytics/category_ranking.py",
+      "language": "python",
+      "sizeLines": 192,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/services/analytics/nse_indices_client.py",
+      "language": "python",
+      "sizeLines": 117,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/services/analytics/risk_metrics.py",
+      "language": "python",
+      "sizeLines": 164,
+      "fileCategory": "code"
+    },
+    {
       "path": "backend/app/services/analytics/schemas.py",
       "language": "python",
-      "sizeLines": 16,
+      "sizeLines": 153,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/services/analytics/scheme_universe.py",
+      "language": "python",
+      "sizeLines": 170,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/services/analytics/scorer.py",
+      "language": "python",
+      "sizeLines": 328,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/services/analytics/ter.py",
+      "language": "python",
+      "sizeLines": 165,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/services/analytics/xirr.py",
+      "language": "python",
+      "sizeLines": 58,
       "fileCategory": "code"
     },
     {
@@ -541,7 +698,7 @@
     {
       "path": "backend/app/services/dashboard/holdings.py",
       "language": "python",
-      "sizeLines": 148,
+      "sizeLines": 228,
       "fileCategory": "code"
     },
     {
@@ -553,7 +710,7 @@
     {
       "path": "backend/app/services/dashboard/nav.py",
       "language": "python",
-      "sizeLines": 89,
+      "sizeLines": 141,
       "fileCategory": "code"
     },
     {
@@ -631,7 +788,7 @@
     {
       "path": "backend/app/services/import_/service.py",
       "language": "python",
-      "sizeLines": 265,
+      "sizeLines": 267,
       "fileCategory": "code"
     },
     {
@@ -659,6 +816,12 @@
       "fileCategory": "docs"
     },
     {
+      "path": "backend/scripts/run_server.py",
+      "language": "python",
+      "sizeLines": 27,
+      "fileCategory": "code"
+    },
+    {
       "path": "backend/scripts/seed_dev_household_member.py",
       "language": "python",
       "sizeLines": 47,
@@ -674,6 +837,30 @@
       "path": "backend/tests/api/test_analytics_allocation_route.py",
       "language": "python",
       "sizeLines": 44,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/api/test_analytics_benchmark_route.py",
+      "language": "python",
+      "sizeLines": 79,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/api/test_analytics_category_ranking_route.py",
+      "language": "python",
+      "sizeLines": 41,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/api/test_analytics_scorer_route.py",
+      "language": "python",
+      "sizeLines": 69,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/api/test_analytics_ter_route.py",
+      "language": "python",
+      "sizeLines": 80,
       "fileCategory": "code"
     },
     {
@@ -751,7 +938,7 @@
     {
       "path": "backend/tests/api/test_imports_routes.py",
       "language": "python",
-      "sizeLines": 220,
+      "sizeLines": 302,
       "fileCategory": "code"
     },
     {
@@ -827,6 +1014,66 @@
       "fileCategory": "code"
     },
     {
+      "path": "backend/tests/services/analytics/test_amfi_aaum_client.py",
+      "language": "python",
+      "sizeLines": 123,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/services/analytics/test_amfi_ter_client.py",
+      "language": "python",
+      "sizeLines": 147,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/services/analytics/test_benchmark.py",
+      "language": "python",
+      "sizeLines": 220,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/services/analytics/test_category_ranking.py",
+      "language": "python",
+      "sizeLines": 314,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/services/analytics/test_nse_indices_client.py",
+      "language": "python",
+      "sizeLines": 104,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/services/analytics/test_risk_metrics.py",
+      "language": "python",
+      "sizeLines": 155,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/services/analytics/test_scheme_universe.py",
+      "language": "python",
+      "sizeLines": 130,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/services/analytics/test_scorer.py",
+      "language": "python",
+      "sizeLines": 304,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/services/analytics/test_ter.py",
+      "language": "python",
+      "sizeLines": 193,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/services/analytics/test_xirr.py",
+      "language": "python",
+      "sizeLines": 57,
+      "fileCategory": "code"
+    },
+    {
       "path": "backend/tests/services/auth/__init__.py",
       "language": "python",
       "sizeLines": 0,
@@ -883,7 +1130,7 @@
     {
       "path": "backend/tests/services/dashboard/test_holdings.py",
       "language": "python",
-      "sizeLines": 241,
+      "sizeLines": 468,
       "fileCategory": "code"
     },
     {
@@ -895,7 +1142,7 @@
     {
       "path": "backend/tests/services/dashboard/test_nav.py",
       "language": "python",
-      "sizeLines": 132,
+      "sizeLines": 186,
       "fileCategory": "code"
     },
     {
@@ -955,7 +1202,7 @@
     {
       "path": "backend/tests/services/import_/test_service.py",
       "language": "python",
-      "sizeLines": 402,
+      "sizeLines": 419,
       "fileCategory": "code"
     },
     {
@@ -1007,6 +1254,12 @@
       "fileCategory": "docs"
     },
     {
+      "path": "frontend/components.json",
+      "language": "json",
+      "sizeLines": 24,
+      "fileCategory": "config"
+    },
+    {
       "path": "frontend/index.html",
       "language": "html",
       "sizeLines": 18,
@@ -1015,19 +1268,25 @@
     {
       "path": "frontend/package.json",
       "language": "json",
-      "sizeLines": 30,
+      "sizeLines": 51,
       "fileCategory": "config"
+    },
+    {
+      "path": "frontend/postcss.config.js",
+      "language": "javascript",
+      "sizeLines": 6,
+      "fileCategory": "code"
     },
     {
       "path": "frontend/src/App.test.tsx",
       "language": "typescript",
-      "sizeLines": 60,
+      "sizeLines": 93,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/App.tsx",
       "language": "typescript",
-      "sizeLines": 35,
+      "sizeLines": 81,
       "fileCategory": "code"
     },
     {
@@ -1039,19 +1298,19 @@
     {
       "path": "frontend/src/components/AllocationDonut.test.tsx",
       "language": "typescript",
-      "sizeLines": 24,
+      "sizeLines": 47,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/components/AllocationDonut.tsx",
       "language": "typescript",
-      "sizeLines": 143,
+      "sizeLines": 198,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/components/Badge.module.css",
       "language": "css",
-      "sizeLines": 24,
+      "sizeLines": 29,
       "fileCategory": "markup"
     },
     {
@@ -1063,7 +1322,7 @@
     {
       "path": "frontend/src/components/Badge.tsx",
       "language": "typescript",
-      "sizeLines": 12,
+      "sizeLines": 13,
       "fileCategory": "code"
     },
     {
@@ -1099,25 +1358,25 @@
     {
       "path": "frontend/src/components/EmptyState.tsx",
       "language": "typescript",
-      "sizeLines": 33,
+      "sizeLines": 46,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/components/FundSignal.module.css",
       "language": "css",
-      "sizeLines": 159,
+      "sizeLines": 135,
       "fileCategory": "markup"
     },
     {
       "path": "frontend/src/components/FundSignal.test.tsx",
       "language": "typescript",
-      "sizeLines": 31,
+      "sizeLines": 32,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/components/FundSignal.tsx",
       "language": "typescript",
-      "sizeLines": 143,
+      "sizeLines": 200,
       "fileCategory": "code"
     },
     {
@@ -1135,13 +1394,13 @@
     {
       "path": "frontend/src/components/HoldingsTable.tsx",
       "language": "typescript",
-      "sizeLines": 213,
+      "sizeLines": 320,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/components/Modal.module.css",
       "language": "css",
-      "sizeLines": 66,
+      "sizeLines": 83,
       "fileCategory": "markup"
     },
     {
@@ -1153,7 +1412,7 @@
     {
       "path": "frontend/src/components/Modal.tsx",
       "language": "typescript",
-      "sizeLines": 53,
+      "sizeLines": 54,
       "fileCategory": "code"
     },
     {
@@ -1171,7 +1430,7 @@
     {
       "path": "frontend/src/components/ThemeToggle.module.css",
       "language": "css",
-      "sizeLines": 29,
+      "sizeLines": 27,
       "fileCategory": "markup"
     },
     {
@@ -1183,7 +1442,133 @@
     {
       "path": "frontend/src/components/ThemeToggle.tsx",
       "language": "typescript",
-      "sizeLines": 31,
+      "sizeLines": 59,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/ui/badge.tsx",
+      "language": "typescript",
+      "sizeLines": 46,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/ui/button.tsx",
+      "language": "typescript",
+      "sizeLines": 61,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/ui/card.tsx",
+      "language": "typescript",
+      "sizeLines": 85,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/ui/charts/animation.ts",
+      "language": "typescript",
+      "sizeLines": 36,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/ui/charts/chart-center-typography.ts",
+      "language": "typescript",
+      "sizeLines": 16,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/ui/charts/chart-stat-flow.tsx",
+      "language": "typescript",
+      "sizeLines": 125,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/ui/charts/index.ts",
+      "language": "typescript",
+      "sizeLines": 9,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/ui/charts/pie-center.tsx",
+      "language": "typescript",
+      "sizeLines": 108,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/ui/charts/pie-chart.tsx",
+      "language": "typescript",
+      "sizeLines": 500,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/ui/charts/pie-context.tsx",
+      "language": "typescript",
+      "sizeLines": 201,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/ui/charts/pie-slice.tsx",
+      "language": "typescript",
+      "sizeLines": 493,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/ui/charts/use-enter-complete.ts",
+      "language": "typescript",
+      "sizeLines": 26,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/ui/charts/use-mount-progress.ts",
+      "language": "typescript",
+      "sizeLines": 25,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/ui/dialog.tsx",
+      "language": "typescript",
+      "sizeLines": 116,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/ui/input.tsx",
+      "language": "typescript",
+      "sizeLines": 24,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/ui/label.tsx",
+      "language": "typescript",
+      "sizeLines": 23,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/ui/select.tsx",
+      "language": "typescript",
+      "sizeLines": 155,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/ui/skeleton.tsx",
+      "language": "typescript",
+      "sizeLines": 18,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/ui/table.tsx",
+      "language": "typescript",
+      "sizeLines": 116,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/ui/tabs.tsx",
+      "language": "typescript",
+      "sizeLines": 52,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/ui/tooltip.tsx",
+      "language": "typescript",
+      "sizeLines": 25,
       "fileCategory": "code"
     },
     {
@@ -1207,7 +1592,7 @@
     {
       "path": "frontend/src/features/auth/AddFamilyMembers.tsx",
       "language": "typescript",
-      "sizeLines": 148,
+      "sizeLines": 162,
       "fileCategory": "code"
     },
     {
@@ -1225,37 +1610,37 @@
     {
       "path": "frontend/src/features/auth/AuthEntryFlow.test.tsx",
       "language": "typescript",
-      "sizeLines": 85,
+      "sizeLines": 95,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/features/auth/AuthEntryFlow.tsx",
       "language": "typescript",
-      "sizeLines": 70,
+      "sizeLines": 96,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/features/auth/FamilyCasUpload.tsx",
       "language": "typescript",
-      "sizeLines": 114,
+      "sizeLines": 118,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/features/auth/FamilyImportFlow.test.tsx",
       "language": "typescript",
-      "sizeLines": 282,
+      "sizeLines": 271,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/features/auth/FamilyImportFlow.tsx",
       "language": "typescript",
-      "sizeLines": 262,
+      "sizeLines": 285,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/features/auth/Landing.tsx",
       "language": "typescript",
-      "sizeLines": 25,
+      "sizeLines": 103,
       "fileCategory": "code"
     },
     {
@@ -1267,49 +1652,49 @@
     {
       "path": "frontend/src/features/auth/OnboardingFlow.tsx",
       "language": "typescript",
-      "sizeLines": 132,
+      "sizeLines": 161,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/features/auth/OtpVerify.tsx",
       "language": "typescript",
-      "sizeLines": 75,
+      "sizeLines": 151,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/features/auth/ParseQueue.tsx",
       "language": "typescript",
-      "sizeLines": 43,
+      "sizeLines": 46,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/features/auth/PhoneEntry.tsx",
       "language": "typescript",
-      "sizeLines": 52,
+      "sizeLines": 153,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/features/auth/Q1Name.tsx",
       "language": "typescript",
-      "sizeLines": 57,
+      "sizeLines": 101,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/features/auth/Q2Investing.tsx",
       "language": "typescript",
-      "sizeLines": 74,
+      "sizeLines": 103,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/features/auth/Q3Purpose.tsx",
       "language": "typescript",
-      "sizeLines": 74,
+      "sizeLines": 103,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/features/auth/Q4Household.tsx",
       "language": "typescript",
-      "sizeLines": 57,
+      "sizeLines": 81,
       "fileCategory": "code"
     },
     {
@@ -1325,15 +1710,21 @@
       "fileCategory": "code"
     },
     {
+      "path": "frontend/src/features/auth/TrustPrimer.test.tsx",
+      "language": "typescript",
+      "sizeLines": 25,
+      "fileCategory": "code"
+    },
+    {
       "path": "frontend/src/features/auth/TrustPrimer.tsx",
       "language": "typescript",
-      "sizeLines": 46,
+      "sizeLines": 80,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/features/auth/UploadMyCas.tsx",
       "language": "typescript",
-      "sizeLines": 46,
+      "sizeLines": 63,
       "fileCategory": "code"
     },
     {
@@ -1351,7 +1742,7 @@
     {
       "path": "frontend/src/features/auth/onboarding.module.css",
       "language": "css",
-      "sizeLines": 375,
+      "sizeLines": 403,
       "fileCategory": "markup"
     },
     {
@@ -1411,13 +1802,13 @@
     {
       "path": "frontend/src/features/dashboard/DashboardView.test.tsx",
       "language": "typescript",
-      "sizeLines": 166,
+      "sizeLines": 287,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/features/dashboard/DashboardView.tsx",
       "language": "typescript",
-      "sizeLines": 350,
+      "sizeLines": 468,
       "fileCategory": "code"
     },
     {
@@ -1435,7 +1826,7 @@
     {
       "path": "frontend/src/features/dashboard/DistributorComparisonModal.tsx",
       "language": "typescript",
-      "sizeLines": 139,
+      "sizeLines": 140,
       "fileCategory": "code"
     },
     {
@@ -1453,19 +1844,19 @@
     {
       "path": "frontend/src/features/dashboard/FundDetailModal.tsx",
       "language": "typescript",
-      "sizeLines": 110,
+      "sizeLines": 122,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/features/dashboard/MainDashboardFlow.test.tsx",
       "language": "typescript",
-      "sizeLines": 60,
+      "sizeLines": 92,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/features/dashboard/MainDashboardFlow.tsx",
       "language": "typescript",
-      "sizeLines": 89,
+      "sizeLines": 163,
       "fileCategory": "code"
     },
     {
@@ -1477,13 +1868,13 @@
     {
       "path": "frontend/src/features/dashboard/NavigationShell.test.tsx",
       "language": "typescript",
-      "sizeLines": 50,
+      "sizeLines": 83,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/features/dashboard/NavigationShell.tsx",
       "language": "typescript",
-      "sizeLines": 142,
+      "sizeLines": 191,
       "fileCategory": "code"
     },
     {
@@ -1495,7 +1886,7 @@
     {
       "path": "frontend/src/features/dashboard/types.ts",
       "language": "typescript",
-      "sizeLines": 101,
+      "sizeLines": 102,
       "fileCategory": "code"
     },
     {
@@ -1513,7 +1904,7 @@
     {
       "path": "frontend/src/features/import/AttributionModal.tsx",
       "language": "typescript",
-      "sizeLines": 75,
+      "sizeLines": 78,
       "fileCategory": "code"
     },
     {
@@ -1525,13 +1916,13 @@
     {
       "path": "frontend/src/features/import/CoverageGapBanner.tsx",
       "language": "typescript",
-      "sizeLines": 47,
+      "sizeLines": 48,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/features/import/ImportConfirmed.module.css",
       "language": "css",
-      "sizeLines": 71,
+      "sizeLines": 81,
       "fileCategory": "markup"
     },
     {
@@ -1543,7 +1934,7 @@
     {
       "path": "frontend/src/features/import/ImportConfirmed.tsx",
       "language": "typescript",
-      "sizeLines": 29,
+      "sizeLines": 32,
       "fileCategory": "code"
     },
     {
@@ -1573,7 +1964,7 @@
     {
       "path": "frontend/src/features/import/ImportFlow.tsx",
       "language": "typescript",
-      "sizeLines": 115,
+      "sizeLines": 119,
       "fileCategory": "code"
     },
     {
@@ -1585,7 +1976,7 @@
     {
       "path": "frontend/src/features/import/ImportHistoryList.tsx",
       "language": "typescript",
-      "sizeLines": 107,
+      "sizeLines": 127,
       "fileCategory": "code"
     },
     {
@@ -1597,7 +1988,7 @@
     {
       "path": "frontend/src/features/import/ImportLifecycleView.tsx",
       "language": "typescript",
-      "sizeLines": 147,
+      "sizeLines": 156,
       "fileCategory": "code"
     },
     {
@@ -1627,13 +2018,13 @@
     {
       "path": "frontend/src/features/import/RequestCamsPath.test.tsx",
       "language": "typescript",
-      "sizeLines": 48,
+      "sizeLines": 49,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/features/import/RequestCamsPath.tsx",
       "language": "typescript",
-      "sizeLines": 135,
+      "sizeLines": 158,
       "fileCategory": "code"
     },
     {
@@ -1645,25 +2036,25 @@
     {
       "path": "frontend/src/features/import/ReviewTable.test.tsx",
       "language": "typescript",
-      "sizeLines": 84,
+      "sizeLines": 85,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/features/import/ReviewTable.tsx",
       "language": "typescript",
-      "sizeLines": 144,
+      "sizeLines": 529,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/features/import/TwoPathImportContainer.test.tsx",
       "language": "typescript",
-      "sizeLines": 25,
+      "sizeLines": 169,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/features/import/TwoPathImportContainer.tsx",
       "language": "typescript",
-      "sizeLines": 129,
+      "sizeLines": 233,
       "fileCategory": "code"
     },
     {
@@ -1681,19 +2072,19 @@
     {
       "path": "frontend/src/features/import/UploadForm.tsx",
       "language": "typescript",
-      "sizeLines": 160,
+      "sizeLines": 216,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/features/import/WaitingForCasView.test.tsx",
       "language": "typescript",
-      "sizeLines": 48,
+      "sizeLines": 74,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/features/import/WaitingForCasView.tsx",
       "language": "typescript",
-      "sizeLines": 83,
+      "sizeLines": 105,
       "fileCategory": "code"
     },
     {
@@ -1709,6 +2100,18 @@
       "fileCategory": "code"
     },
     {
+      "path": "frontend/src/features/import/casResumeState.test.ts",
+      "language": "typescript",
+      "sizeLines": 51,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/features/import/casResumeState.ts",
+      "language": "typescript",
+      "sizeLines": 49,
+      "fileCategory": "code"
+    },
+    {
       "path": "frontend/src/features/import/types.ts",
       "language": "typescript",
       "sizeLines": 114,
@@ -1717,13 +2120,13 @@
     {
       "path": "frontend/src/index.css",
       "language": "css",
-      "sizeLines": 99,
+      "sizeLines": 121,
       "fileCategory": "markup"
     },
     {
       "path": "frontend/src/lib/apiClient.ts",
       "language": "typescript",
-      "sizeLines": 35,
+      "sizeLines": 39,
       "fileCategory": "code"
     },
     {
@@ -1739,27 +2142,195 @@
       "fileCategory": "code"
     },
     {
+      "path": "frontend/src/lib/utils.test.ts",
+      "language": "typescript",
+      "sizeLines": 16,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/lib/utils.ts",
+      "language": "typescript",
+      "sizeLines": 15,
+      "fileCategory": "code"
+    },
+    {
       "path": "frontend/src/main.tsx",
       "language": "typescript",
       "sizeLines": 10,
       "fileCategory": "code"
     },
     {
+      "path": "frontend/src/mobile/MobileRoot.test.tsx",
+      "language": "typescript",
+      "sizeLines": 197,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/mobile/MobileRoot.tsx",
+      "language": "typescript",
+      "sizeLines": 72,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/mobile/features/dashboard/MobileDashboardView.test.tsx",
+      "language": "typescript",
+      "sizeLines": 483,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/mobile/features/dashboard/MobileDashboardView.tsx",
+      "language": "typescript",
+      "sizeLines": 666,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/mobile/features/dashboard/MobileHoldingCard.tsx",
+      "language": "typescript",
+      "sizeLines": 134,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/mobile/features/holdings/MobileDistributorComparisonView.test.tsx",
+      "language": "typescript",
+      "sizeLines": 108,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/mobile/features/holdings/MobileDistributorComparisonView.tsx",
+      "language": "typescript",
+      "sizeLines": 184,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/mobile/features/holdings/MobileFundDetailSheet.test.tsx",
+      "language": "typescript",
+      "sizeLines": 69,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/mobile/features/holdings/MobileFundDetailSheet.tsx",
+      "language": "typescript",
+      "sizeLines": 234,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/mobile/features/holdings/MobileFundDetailView.test.tsx",
+      "language": "typescript",
+      "sizeLines": 126,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/mobile/features/holdings/MobileFundDetailView.tsx",
+      "language": "typescript",
+      "sizeLines": 499,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/mobile/features/holdings/MobileHoldingCardSummary.test.tsx",
+      "language": "typescript",
+      "sizeLines": 55,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/mobile/features/holdings/MobileHoldingCardSummary.tsx",
+      "language": "typescript",
+      "sizeLines": 88,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/mobile/features/holdings/MobileHoldingsView.test.tsx",
+      "language": "typescript",
+      "sizeLines": 167,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/mobile/features/holdings/MobileHoldingsView.tsx",
+      "language": "typescript",
+      "sizeLines": 328,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/mobile/features/import/MobileImportHistory.tsx",
+      "language": "typescript",
+      "sizeLines": 158,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/mobile/features/import/MobileImportView.test.tsx",
+      "language": "typescript",
+      "sizeLines": 268,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/mobile/features/import/MobileImportView.tsx",
+      "language": "typescript",
+      "sizeLines": 433,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/mobile/features/import/MobileRequestCamsView.tsx",
+      "language": "typescript",
+      "sizeLines": 206,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/mobile/features/import/MobileReviewView.tsx",
+      "language": "typescript",
+      "sizeLines": 356,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/mobile/features/import/MobileUploadForm.tsx",
+      "language": "typescript",
+      "sizeLines": 232,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/mobile/shell/MobileAppShell.tsx",
+      "language": "typescript",
+      "sizeLines": 134,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/mobile/shell/MobileBottomNav.tsx",
+      "language": "typescript",
+      "sizeLines": 117,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/mobile/shell/MobileDeviceFrame.tsx",
+      "language": "typescript",
+      "sizeLines": 25,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/mobile/shell/MobileHeader.tsx",
+      "language": "typescript",
+      "sizeLines": 69,
+      "fileCategory": "code"
+    },
+    {
       "path": "frontend/src/setupTests.ts",
       "language": "typescript",
-      "sizeLines": 44,
+      "sizeLines": 71,
       "fileCategory": "code"
     },
     {
       "path": "frontend/src/styles/tokens.css",
       "language": "css",
-      "sizeLines": 135,
+      "sizeLines": 217,
       "fileCategory": "markup"
+    },
+    {
+      "path": "frontend/tailwind.config.js",
+      "language": "javascript",
+      "sizeLines": 102,
+      "fileCategory": "code"
     },
     {
       "path": "frontend/tsconfig.app.json",
       "language": "json",
-      "sizeLines": 26,
+      "sizeLines": 31,
       "fileCategory": "config"
     },
     {
@@ -1777,19 +2348,19 @@
     {
       "path": "frontend/vite.config.ts",
       "language": "typescript",
-      "sizeLines": 7,
+      "sizeLines": 13,
       "fileCategory": "code"
     },
     {
       "path": "frontend/vitest.config.ts",
       "language": "typescript",
-      "sizeLines": 9,
+      "sizeLines": 16,
       "fileCategory": "code"
     },
     {
       "path": "session.md",
       "language": "markdown",
-      "sizeLines": 288,
+      "sizeLines": 867,
       "fileCategory": "docs"
     },
     {
@@ -1799,16 +2370,21 @@
       "fileCategory": "config"
     }
   ],
-  "totalFiles": 295,
-  "filteredByIgnore": 18,
+  "totalFiles": 390,
+  "filteredByIgnore": 33,
   "estimatedComplexity": "large",
   "importMap": {
     ".claude/settings.json": [],
-    ".claude/settings.local.json": [],
     ".github/workflows/ci.yml": [],
+    ".ua/.understandignore": [],
+    ".ua/fingerprints.json": [],
+    ".ua/intermediate/scan-result.json": [],
+    ".ua/knowledge-graph.json": [],
+    ".ua/meta.json": [],
     "CAS-IMPORT-UPDATE-PLAN.md": [],
     "CLAUDE.md": [],
     "Docs/Competitor Analysis/competitive-matrix_Final.html": [],
+    "Docs/MOBILE_APP_EXECUTION.md": [],
     "Docs/PRD-03-Main-Dashboard.md": [],
     "Docs/PRD-04-MF-Analytics-Dashboard.md": [],
     "Docs/PRDs/ADR-Technical-Stack-Decisions.md": [],
@@ -1825,6 +2401,14 @@
     "Docs/PRDs/TDD-Unifolio.md": [],
     "Docs/PRDs/Updated-CAS-App-Flow.md": [],
     "Docs/PRDs/Updated-CAS-PRD.md": [],
+    "Docs/Scorer-Methodology-Unifolio.md": [],
+    "Docs/frontend_execution.md": [],
+    "Docs/orchestration/dashboard-nav-perf-handoff.md": [],
+    "Docs/orchestration/delegation-log.md": [],
+    "Docs/orchestration/phase4-scorer-api-routes-handoff.md": [],
+    "Docs/orchestration/phase4-scorer-composite-score-handoff.md": [],
+    "Docs/orchestration/phase4-scorer-portfolio-rollup-handoff.md": [],
+    "Docs/orchestration/phase4-scorer-risk-metrics-handoff.md": [],
     "Docs/superpowers/plans/2026-08-04-phase-0-foundation.md": [],
     "Docs/superpowers/plans/2026-08-04-phase-1-cas-import-backend.md": [],
     "Docs/superpowers/plans/2026-08-05-phase-1b-import-review-frontend.md": [],
@@ -1835,6 +2419,8 @@
     "Docs/superpowers/plans/2026-08-07-distributor-comparison.md": [],
     "Docs/superpowers/plans/2026-08-10-phase-4-analytics-backend-design.md": [],
     "Docs/superpowers/plans/2026-08-10-phase-4-analytics-backend-part1-allocation.md": [],
+    "Docs/superpowers/plans/2026-08-12-model-orchestration-skill.md": [],
+    "Docs/superpowers/plans/2026-08-13-phase-4-analytics-backend-part5-scorer.md": [],
     "Docs/superpowers/specs/2026-08-05-import-review-frontend-design.md": [],
     "Docs/superpowers/specs/2026-08-05-phase-2-auth-onboarding-backend-design.md": [],
     "Docs/superpowers/specs/2026-08-06-phase-2b-onboarding-frontend-design.md": [],
@@ -1842,6 +2428,7 @@
     "Docs/superpowers/specs/2026-08-06-transaction-dedupe-type-migration-design.md": [],
     "Docs/superpowers/specs/2026-08-07-distributor-comparison-design.md": [],
     "Docs/superpowers/specs/2026-08-07-frontend-redesign-brief-for-coding-agent.md": [],
+    "Docs/superpowers/specs/2026-08-12-model-orchestration-skill-design.md": [],
     "README.md": [],
     "backend/.env.example": [],
     "backend/alembic.ini": [],
@@ -1859,9 +2446,14 @@
     "backend/app/api/__init__.py": [],
     "backend/app/api/analytics.py": [
       "backend/app/db/session.py",
+      "backend/app/models/reference.py",
       "backend/app/models/user.py",
       "backend/app/services/analytics/allocation.py",
+      "backend/app/services/analytics/benchmark.py",
+      "backend/app/services/analytics/category_ranking.py",
       "backend/app/services/analytics/schemas.py",
+      "backend/app/services/analytics/scorer.py",
+      "backend/app/services/analytics/ter.py",
       "backend/app/services/auth/session.py",
       "backend/app/services/dashboard/household_members.py"
     ],
@@ -1897,9 +2489,13 @@
     ],
     "backend/app/api/imports.py": [
       "backend/app/db/session.py",
+      "backend/app/models/folio.py",
+      "backend/app/models/reference.py",
       "backend/app/models/user.py",
       "backend/app/services/auth/session.py",
+      "backend/app/services/dashboard/holdings.py",
       "backend/app/services/dashboard/household_members.py",
+      "backend/app/services/dashboard/nav.py",
       "backend/app/services/import_/parser.py",
       "backend/app/services/import_/schemas.py",
       "backend/app/services/import_/service.py"
@@ -1967,9 +2563,73 @@
       "backend/app/services/dashboard/household_members.py",
       "backend/app/services/dashboard/schemas.py"
     ],
-    "backend/app/services/analytics/schemas.py": [
+    "backend/app/services/analytics/amfi_aaum_client.py": [
+      "backend/app/models/reference.py"
+    ],
+    "backend/app/services/analytics/amfi_ter_client.py": [
+      "backend/app/models/enums.py",
+      "backend/app/models/reference.py"
+    ],
+    "backend/app/services/analytics/benchmark.py": [
+      "backend/app/models/enums.py",
+      "backend/app/models/folio.py",
+      "backend/app/models/reference.py",
+      "backend/app/models/transaction.py",
+      "backend/app/services/analytics/nse_indices_client.py",
+      "backend/app/services/analytics/schemas.py",
+      "backend/app/services/analytics/xirr.py",
+      "backend/app/services/dashboard/aggregate.py",
+      "backend/app/services/dashboard/cash_flow.py",
+      "backend/app/services/dashboard/holdings.py",
+      "backend/app/services/dashboard/household_members.py",
       "backend/app/services/dashboard/schemas.py"
     ],
+    "backend/app/services/analytics/category_ranking.py": [
+      "backend/app/models/reference.py",
+      "backend/app/services/analytics/risk_metrics.py",
+      "backend/app/services/analytics/schemas.py",
+      "backend/app/services/analytics/scheme_universe.py",
+      "backend/app/services/dashboard/aggregate.py",
+      "backend/app/services/dashboard/holdings.py",
+      "backend/app/services/dashboard/household_members.py",
+      "backend/app/services/dashboard/nav.py"
+    ],
+    "backend/app/services/analytics/nse_indices_client.py": [
+      "backend/app/models/enums.py",
+      "backend/app/models/reference.py"
+    ],
+    "backend/app/services/analytics/risk_metrics.py": [
+      "backend/app/models/reference.py"
+    ],
+    "backend/app/services/analytics/schemas.py": [
+      "backend/app/models/enums.py",
+      "backend/app/services/dashboard/schemas.py"
+    ],
+    "backend/app/services/analytics/scheme_universe.py": [
+      "backend/app/models/reference.py"
+    ],
+    "backend/app/services/analytics/scorer.py": [
+      "backend/app/models/reference.py",
+      "backend/app/services/analytics/category_ranking.py",
+      "backend/app/services/analytics/risk_metrics.py",
+      "backend/app/services/analytics/schemas.py",
+      "backend/app/services/analytics/scheme_universe.py",
+      "backend/app/services/analytics/ter.py",
+      "backend/app/services/dashboard/aggregate.py",
+      "backend/app/services/dashboard/holdings.py",
+      "backend/app/services/dashboard/household_members.py"
+    ],
+    "backend/app/services/analytics/ter.py": [
+      "backend/app/models/enums.py",
+      "backend/app/models/reference.py",
+      "backend/app/services/analytics/amfi_ter_client.py",
+      "backend/app/services/analytics/schemas.py",
+      "backend/app/services/dashboard/aggregate.py",
+      "backend/app/services/dashboard/holdings.py",
+      "backend/app/services/dashboard/household_members.py",
+      "backend/app/services/dashboard/schemas.py"
+    ],
+    "backend/app/services/analytics/xirr.py": [],
     "backend/app/services/auth/__init__.py": [],
     "backend/app/services/auth/otp.py": [
       "backend/app/config.py",
@@ -2102,6 +2762,7 @@
       "backend/app/models/imports.py",
       "backend/app/models/reference.py",
       "backend/app/models/transaction.py",
+      "backend/app/services/dashboard/holdings.py",
       "backend/app/services/import_/enrich.py",
       "backend/app/services/import_/parser.py",
       "backend/app/services/import_/schemas.py"
@@ -2112,6 +2773,9 @@
     "backend/pytest.ini": [],
     "backend/requirements-dev.txt": [],
     "backend/requirements.txt": [],
+    "backend/scripts/run_server.py": [
+      "backend/app/main.py"
+    ],
     "backend/scripts/seed_dev_household_member.py": [
       "backend/app/db/session.py",
       "backend/app/models/enums.py",
@@ -2119,6 +2783,13 @@
     ],
     "backend/tests/api/__init__.py": [],
     "backend/tests/api/test_analytics_allocation_route.py": [],
+    "backend/tests/api/test_analytics_benchmark_route.py": [],
+    "backend/tests/api/test_analytics_category_ranking_route.py": [],
+    "backend/tests/api/test_analytics_scorer_route.py": [
+      "backend/app/main.py",
+      "backend/app/services/analytics/schemas.py"
+    ],
+    "backend/tests/api/test_analytics_ter_route.py": [],
     "backend/tests/api/test_auth_routes.py": [],
     "backend/tests/api/test_cams_request_routes.py": [
       "backend/app/models/enums.py",
@@ -2184,6 +2855,72 @@
       "backend/app/models/transaction.py",
       "backend/app/models/user.py",
       "backend/app/services/analytics/allocation.py"
+    ],
+    "backend/tests/services/analytics/test_amfi_aaum_client.py": [
+      "backend/app/db/base.py",
+      "backend/app/models/reference.py",
+      "backend/app/services/analytics/amfi_aaum_client.py"
+    ],
+    "backend/tests/services/analytics/test_amfi_ter_client.py": [
+      "backend/app/db/base.py",
+      "backend/app/models/enums.py",
+      "backend/app/models/reference.py",
+      "backend/app/services/analytics/amfi_ter_client.py"
+    ],
+    "backend/tests/services/analytics/test_benchmark.py": [
+      "backend/app/db/base.py",
+      "backend/app/models/enums.py",
+      "backend/app/models/folio.py",
+      "backend/app/models/reference.py",
+      "backend/app/models/transaction.py",
+      "backend/app/models/user.py",
+      "backend/app/services/analytics/benchmark.py"
+    ],
+    "backend/tests/services/analytics/test_category_ranking.py": [
+      "backend/app/db/base.py",
+      "backend/app/models/enums.py",
+      "backend/app/models/folio.py",
+      "backend/app/models/reference.py",
+      "backend/app/models/transaction.py",
+      "backend/app/models/user.py",
+      "backend/app/services/analytics/category_ranking.py"
+    ],
+    "backend/tests/services/analytics/test_nse_indices_client.py": [
+      "backend/app/db/base.py",
+      "backend/app/models/enums.py",
+      "backend/app/models/reference.py",
+      "backend/app/services/analytics/nse_indices_client.py"
+    ],
+    "backend/tests/services/analytics/test_risk_metrics.py": [
+      "backend/app/db/base.py",
+      "backend/app/models/reference.py",
+      "backend/app/services/analytics/risk_metrics.py"
+    ],
+    "backend/tests/services/analytics/test_scheme_universe.py": [
+      "backend/app/db/base.py",
+      "backend/app/models/reference.py",
+      "backend/app/services/analytics/scheme_universe.py"
+    ],
+    "backend/tests/services/analytics/test_scorer.py": [
+      "backend/app/db/base.py",
+      "backend/app/models/enums.py",
+      "backend/app/models/folio.py",
+      "backend/app/models/reference.py",
+      "backend/app/models/transaction.py",
+      "backend/app/models/user.py",
+      "backend/app/services/analytics/scorer.py"
+    ],
+    "backend/tests/services/analytics/test_ter.py": [
+      "backend/app/db/base.py",
+      "backend/app/models/enums.py",
+      "backend/app/models/folio.py",
+      "backend/app/models/reference.py",
+      "backend/app/models/transaction.py",
+      "backend/app/models/user.py",
+      "backend/app/services/analytics/ter.py"
+    ],
+    "backend/tests/services/analytics/test_xirr.py": [
+      "backend/app/services/analytics/xirr.py"
     ],
     "backend/tests/services/auth/__init__.py": [],
     "backend/tests/services/auth/test_otp.py": [
@@ -2342,26 +3079,26 @@
     "frontend/.env.example": [],
     "frontend/.oxlintrc.json": [],
     "frontend/README.md": [],
+    "frontend/components.json": [],
     "frontend/index.html": [],
     "frontend/package.json": [],
+    "frontend/postcss.config.js": [],
     "frontend/src/App.test.tsx": [
       "frontend/src/App.tsx",
       "frontend/src/features/auth/api.ts"
     ],
     "frontend/src/App.tsx": [
-      "frontend/src/components/ThemeToggle.tsx",
       "frontend/src/features/auth/AuthContext.tsx",
       "frontend/src/features/auth/AuthEntryFlow.tsx",
       "frontend/src/features/auth/OnboardingFlow.tsx",
-      "frontend/src/features/dashboard/DashboardPlaceholder.tsx"
+      "frontend/src/features/dashboard/DashboardPlaceholder.tsx",
+      "frontend/src/mobile/MobileRoot.tsx"
     ],
     "frontend/src/components/AllocationDonut.module.css": [],
     "frontend/src/components/AllocationDonut.test.tsx": [
       "frontend/src/components/AllocationDonut.tsx"
     ],
-    "frontend/src/components/AllocationDonut.tsx": [
-      "frontend/src/components/AllocationDonut.module.css"
-    ],
+    "frontend/src/components/AllocationDonut.tsx": [],
     "frontend/src/components/Badge.module.css": [],
     "frontend/src/components/Badge.test.tsx": [
       "frontend/src/components/Badge.tsx"
@@ -2380,10 +3117,7 @@
     "frontend/src/components/EmptyState.test.tsx": [
       "frontend/src/components/EmptyState.tsx"
     ],
-    "frontend/src/components/EmptyState.tsx": [
-      "frontend/src/components/Button.tsx",
-      "frontend/src/components/EmptyState.module.css"
-    ],
+    "frontend/src/components/EmptyState.tsx": [],
     "frontend/src/components/FundSignal.module.css": [],
     "frontend/src/components/FundSignal.test.tsx": [
       "frontend/src/components/FundSignal.tsx"
@@ -2397,8 +3131,7 @@
     ],
     "frontend/src/components/HoldingsTable.tsx": [
       "frontend/src/components/Badge.tsx",
-      "frontend/src/components/FundSignal.tsx",
-      "frontend/src/components/HoldingsTable.module.css"
+      "frontend/src/components/FundSignal.tsx"
     ],
     "frontend/src/components/Modal.module.css": [],
     "frontend/src/components/Modal.test.tsx": [
@@ -2418,6 +3151,39 @@
     "frontend/src/components/ThemeToggle.tsx": [
       "frontend/src/components/ThemeToggle.module.css"
     ],
+    "frontend/src/components/ui/badge.tsx": [],
+    "frontend/src/components/ui/button.tsx": [],
+    "frontend/src/components/ui/card.tsx": [],
+    "frontend/src/components/ui/charts/animation.ts": [],
+    "frontend/src/components/ui/charts/chart-center-typography.ts": [],
+    "frontend/src/components/ui/charts/chart-stat-flow.tsx": [],
+    "frontend/src/components/ui/charts/index.ts": [],
+    "frontend/src/components/ui/charts/pie-center.tsx": [
+      "frontend/src/components/ui/charts/chart-center-typography.ts",
+      "frontend/src/components/ui/charts/chart-stat-flow.tsx",
+      "frontend/src/components/ui/charts/pie-context.tsx"
+    ],
+    "frontend/src/components/ui/charts/pie-chart.tsx": [
+      "frontend/src/components/ui/charts/pie-context.tsx"
+    ],
+    "frontend/src/components/ui/charts/pie-context.tsx": [],
+    "frontend/src/components/ui/charts/pie-slice.tsx": [
+      "frontend/src/components/ui/charts/pie-context.tsx",
+      "frontend/src/components/ui/charts/use-enter-complete.ts",
+      "frontend/src/components/ui/charts/use-mount-progress.ts"
+    ],
+    "frontend/src/components/ui/charts/use-enter-complete.ts": [],
+    "frontend/src/components/ui/charts/use-mount-progress.ts": [
+      "frontend/src/components/ui/charts/animation.ts"
+    ],
+    "frontend/src/components/ui/dialog.tsx": [],
+    "frontend/src/components/ui/input.tsx": [],
+    "frontend/src/components/ui/label.tsx": [],
+    "frontend/src/components/ui/select.tsx": [],
+    "frontend/src/components/ui/skeleton.tsx": [],
+    "frontend/src/components/ui/table.tsx": [],
+    "frontend/src/components/ui/tabs.tsx": [],
+    "frontend/src/components/ui/tooltip.tsx": [],
     "frontend/src/features/analytics/.gitkeep": [],
     "frontend/src/features/auth/.gitkeep": [],
     "frontend/src/features/auth/AddFamilyMembers.test.tsx": [
@@ -2427,6 +3193,7 @@
     "frontend/src/features/auth/AddFamilyMembers.tsx": [
       "frontend/src/components/Badge.tsx",
       "frontend/src/components/Button.tsx",
+      "frontend/src/components/ui/select.tsx",
       "frontend/src/features/auth/api.ts",
       "frontend/src/features/auth/onboarding.module.css",
       "frontend/src/features/auth/types.ts"
@@ -2450,6 +3217,7 @@
       "frontend/src/lib/apiClient.ts"
     ],
     "frontend/src/features/auth/AuthEntryFlow.tsx": [
+      "frontend/src/components/ThemeToggle.tsx",
       "frontend/src/features/auth/AuthContext.tsx",
       "frontend/src/features/auth/Landing.tsx",
       "frontend/src/features/auth/OtpVerify.tsx",
@@ -2461,7 +3229,8 @@
       "frontend/src/components/Badge.tsx",
       "frontend/src/features/auth/onboarding.module.css",
       "frontend/src/features/auth/types.ts",
-      "frontend/src/features/import/TwoPathImportContainer.tsx"
+      "frontend/src/features/import/TwoPathImportContainer.tsx",
+      "frontend/src/features/import/casResumeState.ts"
     ],
     "frontend/src/features/auth/FamilyImportFlow.test.tsx": [
       "frontend/src/features/auth/AuthContext.tsx",
@@ -2484,10 +3253,7 @@
       "frontend/src/features/import/api.ts",
       "frontend/src/features/import/types.ts"
     ],
-    "frontend/src/features/auth/Landing.tsx": [
-      "frontend/src/components/Button.tsx",
-      "frontend/src/features/auth/onboarding.module.css"
-    ],
+    "frontend/src/features/auth/Landing.tsx": [],
     "frontend/src/features/auth/OnboardingFlow.test.tsx": [
       "frontend/src/features/auth/AuthContext.tsx",
       "frontend/src/features/auth/OnboardingFlow.tsx",
@@ -2495,6 +3261,7 @@
       "frontend/src/features/auth/types.ts"
     ],
     "frontend/src/features/auth/OnboardingFlow.tsx": [
+      "frontend/src/components/ThemeToggle.tsx",
       "frontend/src/features/auth/AddFamilyMembers.tsx",
       "frontend/src/features/auth/AuthContext.tsx",
       "frontend/src/features/auth/FamilyImportFlow.tsx",
@@ -2508,37 +3275,21 @@
       "frontend/src/features/auth/onboardingSteps.ts",
       "frontend/src/features/auth/types.ts"
     ],
-    "frontend/src/features/auth/OtpVerify.tsx": [
-      "frontend/src/components/Button.tsx",
-      "frontend/src/features/auth/onboarding.module.css"
-    ],
+    "frontend/src/features/auth/OtpVerify.tsx": [],
     "frontend/src/features/auth/ParseQueue.tsx": [
       "frontend/src/components/Button.tsx",
       "frontend/src/features/auth/FamilyCasUpload.tsx",
       "frontend/src/features/auth/onboarding.module.css"
     ],
-    "frontend/src/features/auth/PhoneEntry.tsx": [
-      "frontend/src/components/Button.tsx",
-      "frontend/src/features/auth/onboarding.module.css"
-    ],
-    "frontend/src/features/auth/Q1Name.tsx": [
-      "frontend/src/components/Button.tsx",
-      "frontend/src/features/auth/onboarding.module.css"
-    ],
+    "frontend/src/features/auth/PhoneEntry.tsx": [],
+    "frontend/src/features/auth/Q1Name.tsx": [],
     "frontend/src/features/auth/Q2Investing.tsx": [
-      "frontend/src/components/Button.tsx",
-      "frontend/src/features/auth/onboarding.module.css",
       "frontend/src/features/auth/types.ts"
     ],
     "frontend/src/features/auth/Q3Purpose.tsx": [
-      "frontend/src/components/Button.tsx",
-      "frontend/src/features/auth/onboarding.module.css",
       "frontend/src/features/auth/types.ts"
     ],
-    "frontend/src/features/auth/Q4Household.tsx": [
-      "frontend/src/components/Button.tsx",
-      "frontend/src/features/auth/onboarding.module.css"
-    ],
+    "frontend/src/features/auth/Q4Household.tsx": [],
     "frontend/src/features/auth/SoloCasUpload.test.tsx": [
       "frontend/src/features/auth/AuthContext.tsx",
       "frontend/src/features/auth/SoloCasUpload.tsx",
@@ -2550,14 +3301,15 @@
       "frontend/src/features/auth/onboarding.module.css",
       "frontend/src/features/import/ImportFlow.tsx"
     ],
-    "frontend/src/features/auth/TrustPrimer.tsx": [
-      "frontend/src/components/Button.tsx",
-      "frontend/src/features/auth/onboarding.module.css"
+    "frontend/src/features/auth/TrustPrimer.test.tsx": [
+      "frontend/src/features/auth/TrustPrimer.tsx"
     ],
+    "frontend/src/features/auth/TrustPrimer.tsx": [],
     "frontend/src/features/auth/UploadMyCas.tsx": [
       "frontend/src/components/Button.tsx",
       "frontend/src/features/auth/onboarding.module.css",
-      "frontend/src/features/import/TwoPathImportContainer.tsx"
+      "frontend/src/features/import/TwoPathImportContainer.tsx",
+      "frontend/src/features/import/casResumeState.ts"
     ],
     "frontend/src/features/auth/api.test.ts": [
       "frontend/src/features/auth/api.ts",
@@ -2588,7 +3340,8 @@
     "frontend/src/features/dashboard/DashboardView.module.css": [],
     "frontend/src/features/dashboard/DashboardView.test.tsx": [
       "frontend/src/features/dashboard/DashboardView.tsx",
-      "frontend/src/features/dashboard/api.ts"
+      "frontend/src/features/dashboard/api.ts",
+      "frontend/src/features/import/api.ts"
     ],
     "frontend/src/features/dashboard/DashboardView.tsx": [
       "frontend/src/components/AllocationDonut.tsx",
@@ -2596,7 +3349,6 @@
       "frontend/src/components/EmptyState.tsx",
       "frontend/src/components/HoldingsTable.tsx",
       "frontend/src/components/Skeleton.tsx",
-      "frontend/src/features/dashboard/DashboardView.module.css",
       "frontend/src/features/dashboard/DistributorComparisonModal.tsx",
       "frontend/src/features/dashboard/FundDetailModal.tsx",
       "frontend/src/features/dashboard/api.ts",
@@ -2618,7 +3370,8 @@
       "frontend/src/components/Skeleton.tsx",
       "frontend/src/features/dashboard/DistributorComparisonModal.module.css",
       "frontend/src/features/dashboard/api.ts",
-      "frontend/src/features/dashboard/types.ts"
+      "frontend/src/features/dashboard/types.ts",
+      "frontend/src/lib/utils.ts"
     ],
     "frontend/src/features/dashboard/FundDetailModal.module.css": [],
     "frontend/src/features/dashboard/FundDetailModal.test.tsx": [
@@ -2628,9 +3381,11 @@
     "frontend/src/features/dashboard/FundDetailModal.tsx": [
       "frontend/src/components/Badge.tsx",
       "frontend/src/components/Button.tsx",
+      "frontend/src/components/FundSignal.tsx",
       "frontend/src/components/Modal.tsx",
       "frontend/src/features/dashboard/FundDetailModal.module.css",
-      "frontend/src/features/dashboard/types.ts"
+      "frontend/src/features/dashboard/types.ts",
+      "frontend/src/lib/utils.ts"
     ],
     "frontend/src/features/dashboard/MainDashboardFlow.test.tsx": [
       "frontend/src/features/auth/api.ts",
@@ -2638,19 +3393,22 @@
       "frontend/src/features/dashboard/api.ts"
     ],
     "frontend/src/features/dashboard/MainDashboardFlow.tsx": [
+      "frontend/src/components/ThemeToggle.tsx",
+      "frontend/src/components/ui/select.tsx",
       "frontend/src/features/auth/AuthContext.tsx",
       "frontend/src/features/auth/api.ts",
       "frontend/src/features/dashboard/DashboardView.tsx",
       "frontend/src/features/dashboard/NavigationShell.tsx",
-      "frontend/src/features/import/ImportFlow.tsx"
+      "frontend/src/features/import/ImportFlow.tsx",
+      "frontend/src/features/import/casResumeState.ts"
     ],
     "frontend/src/features/dashboard/NavigationShell.module.css": [],
     "frontend/src/features/dashboard/NavigationShell.test.tsx": [
       "frontend/src/features/dashboard/NavigationShell.tsx"
     ],
     "frontend/src/features/dashboard/NavigationShell.tsx": [
-      "frontend/src/components/Button.tsx",
-      "frontend/src/features/dashboard/NavigationShell.module.css"
+      "frontend/src/components/ThemeToggle.tsx",
+      "frontend/src/features/auth/AuthContext.tsx"
     ],
     "frontend/src/features/dashboard/api.ts": [
       "frontend/src/features/auth/session.ts",
@@ -2664,7 +3422,8 @@
     ],
     "frontend/src/features/import/AttributionModal.tsx": [
       "frontend/src/components/Button.tsx",
-      "frontend/src/components/Modal.tsx"
+      "frontend/src/components/Modal.tsx",
+      "frontend/src/components/ui/select.tsx"
     ],
     "frontend/src/features/import/CoverageGapBanner.test.tsx": [
       "frontend/src/features/import/CoverageGapBanner.tsx"
@@ -2700,6 +3459,7 @@
       "frontend/src/features/import/ReviewTable.tsx",
       "frontend/src/features/import/TwoPathImportContainer.tsx",
       "frontend/src/features/import/api.ts",
+      "frontend/src/features/import/casResumeState.ts",
       "frontend/src/features/import/types.ts"
     ],
     "frontend/src/features/import/ImportHistoryList.test.tsx": [
@@ -2707,7 +3467,6 @@
       "frontend/src/features/import/api.ts"
     ],
     "frontend/src/features/import/ImportHistoryList.tsx": [
-      "frontend/src/components/Badge.tsx",
       "frontend/src/features/import/api.ts",
       "frontend/src/features/import/types.ts"
     ],
@@ -2742,8 +3501,8 @@
       "frontend/src/features/import/api.ts"
     ],
     "frontend/src/features/import/RequestCamsPath.tsx": [
-      "frontend/src/components/Button.tsx",
-      "frontend/src/features/import/api.ts"
+      "frontend/src/features/import/api.ts",
+      "frontend/src/features/import/casResumeState.ts"
     ],
     "frontend/src/features/import/ReviewTable.module.css": [],
     "frontend/src/features/import/ReviewTable.test.tsx": [
@@ -2751,34 +3510,32 @@
       "frontend/src/features/import/types.ts"
     ],
     "frontend/src/features/import/ReviewTable.tsx": [
-      "frontend/src/components/Badge.tsx",
-      "frontend/src/features/import/ReviewTable.module.css",
       "frontend/src/features/import/types.ts"
     ],
     "frontend/src/features/import/TwoPathImportContainer.test.tsx": [
-      "frontend/src/features/import/TwoPathImportContainer.tsx"
+      "frontend/src/features/import/TwoPathImportContainer.tsx",
+      "frontend/src/features/import/api.ts",
+      "frontend/src/features/import/casResumeState.ts"
     ],
     "frontend/src/features/import/TwoPathImportContainer.tsx": [
       "frontend/src/features/import/ImportHistoryList.tsx",
       "frontend/src/features/import/RequestCamsPath.tsx",
       "frontend/src/features/import/UploadForm.tsx",
       "frontend/src/features/import/WaitingForCasView.tsx",
-      "frontend/src/features/import/types.ts"
+      "frontend/src/features/import/casResumeState.ts",
+      "frontend/src/features/import/types.ts",
+      "frontend/src/mobile/features/import/MobileRequestCamsView.tsx"
     ],
     "frontend/src/features/import/UploadForm.module.css": [],
     "frontend/src/features/import/UploadForm.test.tsx": [
       "frontend/src/features/import/UploadForm.tsx"
     ],
-    "frontend/src/features/import/UploadForm.tsx": [
-      "frontend/src/components/Button.tsx",
-      "frontend/src/features/import/UploadForm.module.css"
-    ],
+    "frontend/src/features/import/UploadForm.tsx": [],
     "frontend/src/features/import/WaitingForCasView.test.tsx": [
       "frontend/src/features/import/WaitingForCasView.tsx",
       "frontend/src/features/import/api.ts"
     ],
     "frontend/src/features/import/WaitingForCasView.tsx": [
-      "frontend/src/components/Button.tsx",
       "frontend/src/features/import/UploadForm.tsx",
       "frontend/src/features/import/api.ts",
       "frontend/src/features/import/types.ts"
@@ -2791,6 +3548,10 @@
       "frontend/src/features/import/types.ts",
       "frontend/src/lib/apiClient.ts"
     ],
+    "frontend/src/features/import/casResumeState.test.ts": [
+      "frontend/src/features/import/casResumeState.ts"
+    ],
+    "frontend/src/features/import/casResumeState.ts": [],
     "frontend/src/features/import/types.ts": [],
     "frontend/src/index.css": [],
     "frontend/src/lib/apiClient.ts": [],
@@ -2798,12 +3559,86 @@
       "frontend/src/lib/decimal.ts"
     ],
     "frontend/src/lib/decimal.ts": [],
+    "frontend/src/lib/utils.test.ts": [
+      "frontend/src/lib/utils.ts"
+    ],
+    "frontend/src/lib/utils.ts": [],
     "frontend/src/main.tsx": [
       "frontend/src/App.tsx",
       "frontend/src/index.css"
     ],
+    "frontend/src/mobile/MobileRoot.test.tsx": [
+      "frontend/src/features/auth/AuthContext.tsx",
+      "frontend/src/mobile/MobileRoot.tsx",
+      "frontend/src/mobile/shell/MobileAppShell.tsx"
+    ],
+    "frontend/src/mobile/MobileRoot.tsx": [
+      "frontend/src/components/ThemeToggle.tsx",
+      "frontend/src/features/auth/AuthContext.tsx",
+      "frontend/src/mobile/features/dashboard/MobileDashboardView.tsx",
+      "frontend/src/mobile/features/import/MobileImportView.tsx",
+      "frontend/src/mobile/shell/MobileAppShell.tsx",
+      "frontend/src/mobile/shell/MobileBottomNav.tsx"
+    ],
+    "frontend/src/mobile/features/dashboard/MobileDashboardView.test.tsx": [
+      "frontend/src/mobile/features/dashboard/MobileDashboardView.tsx"
+    ],
+    "frontend/src/mobile/features/dashboard/MobileDashboardView.tsx": [
+      "frontend/src/mobile/features/holdings/MobileFundDetailView.tsx",
+      "frontend/src/mobile/features/holdings/MobileHoldingCardSummary.tsx"
+    ],
+    "frontend/src/mobile/features/dashboard/MobileHoldingCard.tsx": [],
+    "frontend/src/mobile/features/holdings/MobileDistributorComparisonView.test.tsx": [
+      "frontend/src/mobile/features/holdings/MobileDistributorComparisonView.tsx"
+    ],
+    "frontend/src/mobile/features/holdings/MobileDistributorComparisonView.tsx": [],
+    "frontend/src/mobile/features/holdings/MobileFundDetailSheet.test.tsx": [
+      "frontend/src/mobile/features/holdings/MobileFundDetailSheet.tsx"
+    ],
+    "frontend/src/mobile/features/holdings/MobileFundDetailSheet.tsx": [],
+    "frontend/src/mobile/features/holdings/MobileFundDetailView.test.tsx": [
+      "frontend/src/mobile/features/holdings/MobileFundDetailView.tsx"
+    ],
+    "frontend/src/mobile/features/holdings/MobileFundDetailView.tsx": [
+      "frontend/src/mobile/features/holdings/MobileDistributorComparisonView.tsx"
+    ],
+    "frontend/src/mobile/features/holdings/MobileHoldingCardSummary.test.tsx": [
+      "frontend/src/mobile/features/holdings/MobileHoldingCardSummary.tsx"
+    ],
+    "frontend/src/mobile/features/holdings/MobileHoldingCardSummary.tsx": [],
+    "frontend/src/mobile/features/holdings/MobileHoldingsView.test.tsx": [
+      "frontend/src/mobile/features/holdings/MobileHoldingsView.tsx"
+    ],
+    "frontend/src/mobile/features/holdings/MobileHoldingsView.tsx": [
+      "frontend/src/mobile/features/holdings/MobileFundDetailView.tsx",
+      "frontend/src/mobile/features/holdings/MobileHoldingCardSummary.tsx"
+    ],
+    "frontend/src/mobile/features/import/MobileImportHistory.tsx": [],
+    "frontend/src/mobile/features/import/MobileImportView.test.tsx": [
+      "frontend/src/mobile/features/import/MobileImportView.tsx"
+    ],
+    "frontend/src/mobile/features/import/MobileImportView.tsx": [
+      "frontend/src/mobile/features/import/MobileImportHistory.tsx",
+      "frontend/src/mobile/features/import/MobileRequestCamsView.tsx",
+      "frontend/src/mobile/features/import/MobileReviewView.tsx",
+      "frontend/src/mobile/features/import/MobileUploadForm.tsx"
+    ],
+    "frontend/src/mobile/features/import/MobileRequestCamsView.tsx": [
+      "frontend/src/mobile/features/import/MobileUploadForm.tsx"
+    ],
+    "frontend/src/mobile/features/import/MobileReviewView.tsx": [],
+    "frontend/src/mobile/features/import/MobileUploadForm.tsx": [],
+    "frontend/src/mobile/shell/MobileAppShell.tsx": [
+      "frontend/src/mobile/shell/MobileBottomNav.tsx",
+      "frontend/src/mobile/shell/MobileDeviceFrame.tsx",
+      "frontend/src/mobile/shell/MobileHeader.tsx"
+    ],
+    "frontend/src/mobile/shell/MobileBottomNav.tsx": [],
+    "frontend/src/mobile/shell/MobileDeviceFrame.tsx": [],
+    "frontend/src/mobile/shell/MobileHeader.tsx": [],
     "frontend/src/setupTests.ts": [],
     "frontend/src/styles/tokens.css": [],
+    "frontend/tailwind.config.js": [],
     "frontend/tsconfig.app.json": [],
     "frontend/tsconfig.json": [],
     "frontend/tsconfig.node.json": [],
