@@ -96,6 +96,37 @@ def test_normalize_cas_data_direct_scheme_no_arn():
     assert parsed_scheme.plan_type == "direct"
 
 
+def test_normalize_cas_data_direct_scheme_with_non_arn_advisor_placeholder():
+    """Some AMC/RTA CAS templates print a literal non-ARN placeholder in the
+    "(Advisor: ...)" annotation for direct-plan folios with no real
+    distributor (e.g. "DIRECT", "NIL") instead of omitting it outright.
+    That placeholder is not a genuine ARN/RIA code, so it must not be
+    treated as corroborating-Regular evidence -> still plain "direct"."""
+    txn = MagicMock(
+        date="2024-01-01", description="Purchase", amount="5000", units="10",
+        nav="500", type="PURCHASE",
+    )
+    scheme = MagicMock(
+        scheme="Aditya Birla Sun Life Frontline Equity Fund - Direct Plan - Growth",
+        isin="INF789", amfi="118989", type="EQUITY", advisor="DIRECT",
+        transactions=[txn],
+    )
+    folio = MagicMock(folio="111/22", amc="ABSL AMC", PAN="ABCDE1234F", schemes=[scheme])
+    data = MagicMock(
+        cas_type=CASFileType.DETAILED, file_type=FileType.CAMS,
+        investor_info=MagicMock(email="t@example.com"),
+        folios=[folio], parse_warnings=[],
+    )
+    data.model_dump_json.return_value = "{}"
+
+    result = _normalize_cas_data(data)
+
+    parsed_scheme = result.schemes[0]
+    assert parsed_scheme.arn_code is None
+    assert parsed_scheme.plan_name_variant == "direct"
+    assert parsed_scheme.plan_type == "direct"
+
+
 def test_normalize_cas_data_redemption_units_and_amount_are_positive():
     """casparser flips units/amount negative for balance-decreasing rows
     (redemptions/switch-outs); TransactionType alone encodes direction, so

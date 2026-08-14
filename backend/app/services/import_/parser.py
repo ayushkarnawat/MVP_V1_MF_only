@@ -8,6 +8,7 @@ response (CLAUDE.md non-negotiable, ADR-004).
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from datetime import date
 
@@ -36,6 +37,20 @@ CAS_TO_CANONICAL: dict[str, TransactionType] = {
 }
 
 SOURCE_CAS_TYPE_MAP = {"CAMS": "cams", "KFINTECH": "kfintech"}
+
+# casparser's Scheme.advisor is captured raw from a CAS statement's
+# "(Advisor: ...)" annotation and only narrowed to an actual ARN-xxxx/INAxxxx
+# code when that pattern is found inside it — some AMC/RTA templates print a
+# non-ARN placeholder there instead (e.g. "DIRECT", "NIL") for direct-plan
+# folios with no real distributor. Treating that placeholder as a genuine ARN
+# was corrupting FR-5 classification (forcing Direct-named schemes with a
+# placeholder advisor into "unclassified") and would corrupt the Distributor
+# Comparison AMFI lookup (arn_lookup.py) the same way.
+_ARN_CODE_RE = re.compile(r"^(ARN-?\d+|INA\d+)$", re.IGNORECASE)
+
+
+def _as_arn_code(raw_advisor: str | None) -> str | None:
+    return raw_advisor if raw_advisor and _ARN_CODE_RE.match(raw_advisor.strip()) else None
 
 
 def mask_pan(pan: str | None) -> str | None:
@@ -181,7 +196,7 @@ def _normalize_cas_data(data: CASData) -> ParseResult:
             key = (folio.folio, folio.amc, scheme.scheme)
             if key not in scheme_map:
                 name_variant = classify_plan_from_name(scheme.scheme)
-                arn_code = scheme.advisor if getattr(scheme, "advisor", None) else None
+                arn_code = _as_arn_code(getattr(scheme, "advisor", None))
                 scheme_map[key] = ParsedScheme(
                     name=scheme.scheme,
                     isin=scheme.isin,

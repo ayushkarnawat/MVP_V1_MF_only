@@ -124,6 +124,19 @@ yet committed as of this writing — see `Docs/orchestration/dashboard-nav-perf-
 "Round 5" section for full root-cause detail). Full narrative and verification numbers
 for all four: `session.md`'s "Post-Phase-2 bug fixes" section.
 
+**CAS Review screen "Unclassified" plan-type bug, same day (2026-08-14):** Direct-named
+schemes were showing "Unclassified" on the Import Review screen despite the scheme name
+saying "Direct Plan," inconsistently across otherwise-similar schemes. Root cause:
+casparser's `Scheme.advisor` field can hold non-ARN placeholder text (e.g. a literal
+`"DIRECT"`) printed by some AMC/RTA CAS templates for folios with no real distributor;
+`parser.py` treated any non-empty `advisor` value as a genuine ARN, so FR-5's
+name+ARN-disagreement rule wrongly fired. Fixed by validating `arn_code` actually
+matches an `ARN-xxxx`/`INAxxxx` shape before treating it as a real distributor signal —
+a single fix point that also prevents the same corruption in the Distributor Comparison
+AMFI lookup. TDD (failing test first); backend suite 363 passed, 2 skipped. Not yet
+committed as of this writing. Full detail: `session.md`'s "CAS Review screen
+'Unclassified' plan-type bug" section.
+
 **PRD-04 (Analytics) Phase 2 frontend is built via Google Antigravity (Gemini 3.6 Flash)**, reviewed
 and fixed by Claude Code, on branch `feat/enhanced-ui`. Completes PRD-04 frontend with Fund &
 Portfolio Scorer (FR-5/FR-6/FR-7), Benchmark Comparison (FR-8/FR-9), and Fund Score Detail Modal

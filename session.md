@@ -46,6 +46,48 @@ Backend suite: 362 passed, 2 skipped (was 357 before fix #2, growth is new tests
 across fixes #2/#4). Frontend: 202/202 passing (1 unrelated, confirmed-transient
 sandbox module-resolution flake on `ImportFlow.test.tsx`), `tsc -b --noEmit` clean.
 
+## CAS Review screen "Unclassified" plan-type bug (same day, 2026-08-14)
+
+Ayush reported the CAS Import Review screen showing "Unclassified" plan type for
+schemes whose name explicitly said "Direct Plan" and which had an "AMFI Match"
+confirmation badge — while other, similarly-named Direct schemes classified
+correctly. Root-caused via `superpowers:systematic-debugging` (traced backward from
+`plan_type` through `classify_folio_plan_type` to `arn_code` to casparser's own
+extraction code, not guessed):
+
+- `enrich.py`'s "AMFI Match" is scheme-*identity* resolution only (ISIN/fuzzy-name →
+  AMFI code) — it never fed the plan-type decision. Ayush's phrasing ("AMFI confirmed
+  it's Direct") described the identity-match badge; the actual, separate plan-type
+  classifier (FR-5, `parser.py`) was the one going wrong.
+- `casparser`'s `Scheme.advisor` field is captured raw from a CAS statement's
+  `"(Advisor: ...)"` annotation and only narrowed to a real `ARN-xxxx`/`INAxxxx` code
+  when that pattern is actually found inside it (`cams_detailed.py`'s
+  `_ADVISOR_CODE_RE`) — otherwise it passes through whatever raw text the AMC/RTA
+  template printed there. Several AMCs literally print `(Advisor: DIRECT)` (or similar
+  non-ARN placeholder text) on direct-plan folios that have no real distributor,
+  instead of omitting the annotation entirely.
+- `parser.py`'s `arn_code = scheme.advisor if ... else None` treated *any* non-empty
+  string as a genuine distributor ARN, so `classify_folio_plan_type("direct", "DIRECT")`
+  saw `has_arn=True` and forced `"unclassified"` under the (correct, intentional)
+  "name says Direct but a distributor is also present → disagreement → unclassified,
+  never silently guess" rule. Schemes whose statement had *no* `Advisor:` annotation at
+  all (`advisor=None`) classified correctly as `"direct"` — same name pattern, different
+  raw-text artifact, inconsistent result. This exact same root cause would also have
+  silently corrupted `arn_lookup.py`'s AMFI distributor lookups for Distributor
+  Comparison (looking up "DIRECT" as if it were a real ARN, wasting a call and coming
+  back `INVALID`).
+- **Fix**: added `_as_arn_code()`/`_ARN_CODE_RE` in `parser.py`, validating that
+  `scheme.advisor` actually matches `ARN-?\d+` or `INA\d+` (mirroring casparser's own
+  `_ADVISOR_CODE_RE`) before treating it as a real ARN; anything else (placeholder text)
+  is now treated as no-distributor, same as `None`. Single fix point — corrects both the
+  plan-type classifier and the Distributor Comparison ARN lookup, since both consume the
+  same `arn_code`/`ParsedScheme.arn_code` → `folios.arn_code` value.
+- TDD: added `test_normalize_cas_data_direct_scheme_with_non_arn_advisor_placeholder`
+  (red before the fix — asserted `arn_code is None`, `plan_type == "direct"` for a
+  Direct-named scheme with `advisor="DIRECT"`; got `arn_code == "DIRECT"`,
+  `plan_type == "unclassified"`). Green after the fix; full backend suite re-run clean —
+  **363 passed, 2 skipped** (was 362/2, +1 new test).
+
 ## Analytics Dashboard Frontend (Phase 2) — Built via Google Antigravity
 
 **Phase 2 of the Analytics Dashboard frontend (Fund & Portfolio Scorer, Benchmark Comparison, and S20 Fund Score Detail Modal) has been built via Google Antigravity (Gemini 3.6 Flash)** on branch `feat/enhanced-ui`.
