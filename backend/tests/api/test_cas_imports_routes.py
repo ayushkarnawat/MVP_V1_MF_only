@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 import uuid
 import pytest
-from app.models.enums import Relationship
+from app.models.enums import AuthIdentityProvider, Relationship
 from app.models.user import HouseholdMember, User
 from app.services.auth.session import create_session
 
@@ -35,7 +35,7 @@ def auth_headers_and_member(client):
 
     member_id = member.id
     user_id = user.id
-    _, token = create_session(db, user.id)
+    _, token = create_session(db, user.id, auth_method=AuthIdentityProvider.PHONE_OTP)
     return {"Authorization": f"Bearer {token}"}, member_id, user_id
 
 
