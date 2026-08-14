@@ -7,6 +7,45 @@ gets overwritten each session, and isn't meant to accumulate history.
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
 
+## Post-Phase-2 bug fixes (same day, 2026-08-14) — AMFI TER, dashboard hang, repeat-navigation speed
+
+Once the Analytics frontend (Phases 1 & 2 below) was merged and Ayush started testing
+on localhost, four distinct real bugs surfaced and were fixed in sequence, each
+root-caused before fixing (`superpowers:systematic-debugging` for the last one):
+
+1. **AMFI TER feed crash (`d366af6`)** — `amfi_ter_client.py` crashed with
+   `AttributeError: 'str' object has no attribute 'get'` because AMFI's live
+   `populate-te-rdata-revised` feed mixes stray non-dict elements into its paginated
+   row array. Fixed with an `isinstance` guard in `_latest_row_per_scheme`.
+2. **Multi-minute Analytics dashboard hang (`15c03e1`)** — two combined causes:
+   `AnalyticsView.tsx` gated all 5 sections behind one shared loading boolean, and
+   `category_ranking.py`'s per-scheme NAV fetching across a 30-150+ scheme category
+   universe ran sequentially. Fixed with per-section independent loading state in
+   `AnalyticsView.tsx`, plus a new `warm_nav_history()` (concurrent, deduplicated NAV
+   history warmer) in `nav.py` wired into `category_ranking.py`.
+3. **TER "Data Unavailable" — a deeper bug than fix #1 (`2c48723`)** — fix #1 only
+   stopped the crash; it didn't fix the actual ingestion. Root cause: AMFI's TER feed
+   wraps rows in `{"data": [...], "meta": {...}}`, not a bare array — the code was
+   iterating the envelope's own dict keys as if they were rows, so **zero real TER
+   rows had ever been ingested** (confirmed via a direct DB query: `scheme_ter` had 0
+   rows). Also fixed `TER_Date`'s actual format (ISO-8601 + "Z", not "DD-Mon-YYYY").
+   Live-verified against the real AMFI endpoint (24,867 real rows vs. 2 bogus) and the
+   dev DB (13/13 previously-excluded schemes now matched).
+4. **Repeat-navigation loading speed (this session)** — full root-cause + fix detail
+   in `Docs/orchestration/dashboard-nav-perf-handoff.md`'s "Round 5" section. Two
+   independent causes: `warm_nav_history` (added in fix #2 above) had no TTL, so every
+   Category Ranking/Scorer visit re-fetched the entire category universe's NAV history
+   from the network every time; and the frontend had no caching layer anywhere, so
+   every dashboard<->analytics tab switch and every combined<->per-member switch
+   re-issued the full GET set from scratch. Fixed with a 15-min TTL cache on
+   `warm_nav_history` (mirroring `holdings.py`'s existing pattern) and a 60s in-memory
+   GET-response cache in `lib/apiClient.ts` (invalidated on `confirmImport`/
+   `postOpeningBalance`).
+
+Backend suite: 362 passed, 2 skipped (was 357 before fix #2, growth is new tests
+across fixes #2/#4). Frontend: 202/202 passing (1 unrelated, confirmed-transient
+sandbox module-resolution flake on `ImportFlow.test.tsx`), `tsc -b --noEmit` clean.
+
 ## Analytics Dashboard Frontend (Phase 2) — Built via Google Antigravity
 
 **Phase 2 of the Analytics Dashboard frontend (Fund & Portfolio Scorer, Benchmark Comparison, and S20 Fund Score Detail Modal) has been built via Google Antigravity (Gemini 3.6 Flash)** on branch `feat/enhanced-ui`.

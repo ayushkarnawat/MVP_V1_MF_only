@@ -11,6 +11,8 @@ the cache after that.
 from __future__ import annotations
 
 import asyncio
+import threading
+import time
 import uuid
 from collections.abc import Iterable
 from datetime import date, datetime
@@ -24,6 +26,21 @@ from sqlalchemy.orm import Session
 from app.models.reference import NavHistory, Scheme
 
 MFAPI_BASE = "https://api.mfapi.in"
+
+# Process-local, same posture as holdings.py's _HOLDINGS_CACHE_TTL_SECONDS
+# (matching its window on purpose — re-warming a scheme's NAV history more
+# often than compute_holdings itself re-reads it buys nothing). Without
+# this, every Category Ranking/Scorer request re-fetched full NAV history
+# over the network for an entire SEBI-category peer universe (30-150+
+# schemes) on every call, live-verified 2026-08-14 as the dominant cost
+# behind slow repeat navigation between dashboard views. Timestamp is
+# recorded even on a failed fetch (best-effort, matching this module's
+# degrade-gracefully posture elsewhere) so an AMFI/mfapi outage doesn't
+# turn every request into a full re-fetch storm.
+_NAV_WARM_TTL_SECONDS = 15 * 60
+_nav_warm_clock = time.monotonic
+_nav_warm_cache: dict[uuid.UUID, float] = {}
+_nav_warm_lock = threading.Lock()
 
 
 async def _fetch_nav_history(amfi_code: str) -> list[tuple[date, Decimal]]:
@@ -112,8 +129,21 @@ async def warm_nav_history(db: Session, schemes: Iterable[Scheme]) -> None:
     network round-trip per scheme per window — the difference between a
     single concurrent batch and a multi-minute sequential hang. Best-
     effort: a scheme whose fetch fails is simply left unwarmed, same
-    degrade-gracefully posture as `get_nav_on_or_before`."""
+    degrade-gracefully posture as `get_nav_on_or_before`.
+
+    Skips any scheme warmed within `_NAV_WARM_TTL_SECONDS` of a prior call —
+    without this, repeat calls (e.g. re-navigating to the same Category
+    Ranking/Scorer view within the same session) re-fetched the entire
+    category universe's NAV history from the network every single time."""
     unique = {scheme.id: scheme for scheme in schemes}
+
+    now = _nav_warm_clock()
+    with _nav_warm_lock:
+        to_fetch = {
+            scheme_id: scheme
+            for scheme_id, scheme in unique.items()
+            if now - _nav_warm_cache.get(scheme_id, 0.0) > _NAV_WARM_TTL_SECONDS
+        }
 
     async def fetch(scheme: Scheme) -> tuple[Scheme, list[tuple[date, Decimal]] | None]:
         try:
@@ -121,10 +151,12 @@ async def warm_nav_history(db: Session, schemes: Iterable[Scheme]) -> None:
         except httpx.HTTPError:
             return scheme, None
 
-    fetched = await asyncio.gather(*(fetch(scheme) for scheme in unique.values()))
-    for scheme, rows in fetched:
-        if rows:
-            _upsert_nav_history(db, scheme.id, rows)
+    fetched = await asyncio.gather(*(fetch(scheme) for scheme in to_fetch.values()))
+    with _nav_warm_lock:
+        for scheme, rows in fetched:
+            if rows:
+                _upsert_nav_history(db, scheme.id, rows)
+            _nav_warm_cache[scheme.id] = now
 
 
 async def get_navs_on_or_before(

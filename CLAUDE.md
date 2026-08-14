@@ -112,6 +112,18 @@ Codex-implemented change is considered done. Full design:
 *(Updated 2026-08-14. See `session.md` at repo root for the full detailed history —
 this section is a current-status pointer, not the record of every past session.)*
 
+**Post-Phase-2 bug fixes, same day (2026-08-14):** once the Analytics frontend below
+was merged and tested on localhost, four real bugs were found and fixed in sequence —
+an AMFI TER feed crash (`d366af6`), a multi-minute Analytics dashboard hang from
+sequential NAV fetching + single shared loading state (`15c03e1`), a deeper TER
+"Data Unavailable" bug where AMFI's `data`/`meta` envelope was mis-parsed so **zero**
+TER rows had ever actually been ingested despite the crash-fix appearing to resolve
+things (`2c48723`), and a repeat-navigation loading-speed fix (`warm_nav_history` TTL
+cache in `nav.py` + a 60s GET-response cache in `frontend/src/lib/apiClient.ts`, not
+yet committed as of this writing — see `Docs/orchestration/dashboard-nav-perf-handoff.md`'s
+"Round 5" section for full root-cause detail). Full narrative and verification numbers
+for all four: `session.md`'s "Post-Phase-2 bug fixes" section.
+
 **PRD-04 (Analytics) Phase 2 frontend is built via Google Antigravity (Gemini 3.6 Flash)**, reviewed
 and fixed by Claude Code, on branch `feat/enhanced-ui`. Completes PRD-04 frontend with Fund &
 Portfolio Scorer (FR-5/FR-6/FR-7), Benchmark Comparison (FR-8/FR-9), and Fund Score Detail Modal

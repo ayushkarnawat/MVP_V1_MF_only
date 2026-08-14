@@ -1,4 +1,4 @@
-import { API_BASE_URL, ApiError, parseErrorDetail } from "../../lib/apiClient";
+import { API_BASE_URL, ApiError, invalidateApiCache, parseErrorDetail } from "../../lib/apiClient";
 import { getToken } from "../auth/session";
 import type {
   CASImportStatusResponse,
@@ -55,6 +55,11 @@ export async function confirmImport(
     throw new ApiError(response.status, (await parseErrorDetail(response)) as ParseErrorPayload | string);
   }
 
+  // Confirming an import changes holdings/allocation/analytics data —
+  // clear the GET cache so the dashboard/analytics views the user is
+  // returned to don't serve a pre-import snapshot for the rest of the
+  // cache TTL window.
+  invalidateApiCache();
   return (await response.json()) as ImportConfirmResponse;
 }
 
@@ -153,6 +158,9 @@ export async function postOpeningBalance(
     throw new ApiError(response.status, (await parseErrorDetail(response)) as ParseErrorPayload | string);
   }
 
+  // Resolving an opening balance changes holdings/allocation data for the
+  // affected folio — same reasoning as confirmImport above.
+  invalidateApiCache();
   return (await response.json()) as OpeningBalanceResponse;
 }
 

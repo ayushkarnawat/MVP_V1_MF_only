@@ -19,6 +19,38 @@ export class ApiError extends Error {
   }
 }
 
+// Repeat navigation (dashboard <-> analytics, family-combined <-> per-
+// member) re-mounts the same view and re-issues the exact same GET set —
+// there was no caching layer anywhere on the frontend (live-verified
+// 2026-08-14), so every switch re-fetched everything from scratch even
+// seconds after the same data was already loaded. A short, session-only
+// TTL closes that gap without risking meaningfully stale data; mutations
+// that change dashboard/analytics-visible data (confirmImport,
+// postOpeningBalance) call `invalidateApiCache()` explicitly rather than
+// waiting out the window.
+const GET_CACHE_TTL_MS = 60_000;
+const _getCache = new Map<string, { response: Response; expiresAt: number }>();
+
+export function invalidateApiCache(): void {
+  _getCache.clear();
+}
+
+export async function cachedFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const isGet = !options.method || options.method.toUpperCase() === "GET";
+  if (isGet) {
+    const cached = _getCache.get(url);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.response.clone();
+    }
+  }
+
+  const response = await fetch(url, options);
+  if (isGet && response.ok) {
+    _getCache.set(url, { response: response.clone(), expiresAt: Date.now() + GET_CACHE_TTL_MS });
+  }
+  return response;
+}
+
 export async function parseErrorDetail(response: Response): Promise<unknown> {
   try {
     const body = await response.json();

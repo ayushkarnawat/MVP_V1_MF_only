@@ -222,6 +222,68 @@ across all 4 rounds, not scope creep). Fix C (the real ADR-006 EventBridge+ECS
 scheduled NAV refresh job) remains explicitly deferred to deployment phase, per the
 original task scope.
 
+## Round 5 (2026-08-14) — `warm_nav_history` had no TTL, and the frontend had no caching layer at all
+
+Not a re-review of rounds 1-4's work (all of which held up, re-verified) — a **newly
+introduced** gap in the same file, plus a previously-unexamined frontend root cause,
+both surfaced by the user reporting that switching between Main Dashboard <->
+Analytics Dashboard, and between family-combined <-> per-member views on both, stayed
+slow on every repeat switch even once the underlying NAV/TER caches were warm.
+Diagnosed via `superpowers:systematic-debugging` (Phase 1 root-cause investigation
+before any fix):
+
+1. **Backend:** `warm_nav_history` (`nav.py`, added after round 4 to fix the
+   Category Ranking/Scorer multi-minute hang — see
+   `analytics-phase2-frontend-log.md` and commit `15c03e1`) unconditionally did a full
+   concurrent network re-fetch of NAV history for every scheme in a SEBI-category peer
+   universe (30-150+ schemes) on **every** call, with none of `compute_holdings`'s
+   TTL-cache treatment from rounds 1-4 of this same doc. Every repeat visit to Category
+   Ranking/Scorer re-downloaded the entire peer universe from `mfapi.in` from scratch.
+   **Fix:** added a 15-minute process-local TTL cache (`_nav_warm_cache`,
+   `_nav_warm_lock`, `_nav_warm_clock`, `_NAV_WARM_TTL_SECONDS`) to `warm_nav_history`,
+   mirroring `holdings.py`'s exact pattern from this doc's rounds 1-4 — a scheme warmed
+   within the TTL window is skipped on a subsequent call. Timestamp is recorded even on
+   a failed fetch (best-effort, matching this module's existing degrade-gracefully
+   posture) so an mfapi.in outage can't turn every request into a re-fetch storm. Two
+   new tests in `test_nav.py` (TTL-window dedup, TTL-expiry re-fetch); full backend
+   suite 362 passed, 2 skipped, zero regressions (was 360/2 before this round).
+2. **Frontend:** there was no caching layer anywhere in the frontend (confirmed —
+   no react-query/SWR, `lib/apiClient.ts` was a bare `fetch` wrapper). `AnalyticsView`/
+   `DashboardView` refetch their full GET set on every mount via `useEffect`, and
+   `MainDashboardFlow.tsx`'s `activeTab === "dashboard" ? <DashboardView/> :
+   <AnalyticsView/>` ternary fully unmounts/remounts the inactive view on every tab
+   switch — so every dashboard<->analytics switch, and every family-combined<->
+   per-member switch, re-issued the entire GET set from scratch regardless of how
+   recently the same data had already loaded.
+   **Fix:** added a short (60s), session-only, in-memory GET-response cache
+   (`cachedFetch`/`invalidateApiCache` in `lib/apiClient.ts`, using `Response.clone()`
+   so the cached body can be read more than once), wired into `dashboard/api.ts`'s and
+   `analytics/api.ts`'s shared `authFetch` helpers (mobile views reuse these same
+   modules, so they're covered without separate changes). `invalidateApiCache()` is
+   called from `import/api.ts`'s `confirmImport` and `postOpeningBalance` — the two
+   mutations that change dashboard/analytics-visible data — so a fresh import or
+   opening-balance resolution is never masked by the cache window. Deliberately did
+   **not** change `MainDashboardFlow.tsx`'s unmount/remount architecture itself
+   (bigger, riskier change than this fix needed) — the response cache alone means a
+   remount's refetch resolves from memory instead of the network, which is what
+   actually made repeat switches feel slow. 5 new tests in a new
+   `lib/apiClient.test.ts`; full frontend suite 202/202 passing (1 unrelated,
+   confirmed-transient sandbox module-resolution flake on `ImportFlow.test.tsx`, passes
+   7/7 in isolation), `tsc -b --noEmit` clean.
+
+Files touched: `backend/app/services/dashboard/nav.py`,
+`backend/tests/services/dashboard/test_nav.py`, `frontend/src/lib/apiClient.ts`,
+`frontend/src/lib/apiClient.test.ts` (new), `frontend/src/features/dashboard/api.ts`,
+`frontend/src/features/analytics/api.ts`, `frontend/src/features/import/api.ts`.
+
+**Deferred, not in scope for this round:** `analytics/ter.py`'s
+`_ensure_ter_fresh`/`_missing_current_month_ter` has a latent design flaw where a
+single held scheme that can never resolve a fuzzy AMFI TER match (closed-end fund,
+FMP, discontinued scheme) causes a full bulk AMFI TER refresh on *every* TER-related
+request forever, not just once. Confirmed not currently active for any real holdings
+in this build (all schemes resolve), so left as a documented latent issue rather than
+fixed speculatively — revisit if a real portfolio ever hits it.
+
 ## Task
 
 Fix three related performance issues in the Main Dashboard backend, all rooted in

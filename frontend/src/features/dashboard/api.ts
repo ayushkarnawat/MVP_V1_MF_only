@@ -1,4 +1,4 @@
-import { API_BASE_URL, ApiError, parseErrorDetail } from "../../lib/apiClient";
+import { API_BASE_URL, ApiError, cachedFetch, parseErrorDetail } from "../../lib/apiClient";
 import { getToken } from "../auth/session";
 import type {
   HoldingRow,
@@ -21,7 +21,7 @@ async function authFetch(path: string, options: RequestInit = {}): Promise<Respo
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const res = await fetch(`${API_BASE_URL}${path}`, {
+  const res = await cachedFetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers,
   });

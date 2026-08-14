@@ -10,7 +10,14 @@ from sqlalchemy.orm import sessionmaker
 
 from app.db.base import Base
 from app.models.reference import Scheme
-from app.services.dashboard.nav import _upsert_nav_history, get_nav_on_or_before, get_navs_on_or_before, get_previous_nav_from_cache
+from app.services.dashboard import nav as nav_module
+from app.services.dashboard.nav import (
+    _upsert_nav_history,
+    get_nav_on_or_before,
+    get_navs_on_or_before,
+    get_previous_nav_from_cache,
+    warm_nav_history,
+)
 
 
 def _session():
@@ -163,6 +170,43 @@ def test_get_navs_fetches_network_legs_concurrently_then_caches_sequentially():
     from app.models.reference import NavHistory
 
     assert db.query(NavHistory).count() == 2
+
+
+def test_warm_nav_history_skips_scheme_refetched_within_ttl():
+    import asyncio
+    db = _session()
+    scheme = _scheme(db)
+
+    fetch = AsyncMock(return_value=[(date.today(), Decimal("50.0000"))])
+    now = [1000.0]
+
+    with (
+        patch("app.services.dashboard.nav._fetch_nav_history", new=fetch),
+        patch.object(nav_module, "_nav_warm_clock", side_effect=lambda: now[0]),
+    ):
+        asyncio.run(warm_nav_history(db, [scheme]))
+        asyncio.run(warm_nav_history(db, [scheme]))
+
+    fetch.assert_awaited_once()
+
+
+def test_warm_nav_history_refetches_scheme_once_ttl_has_expired():
+    import asyncio
+    db = _session()
+    scheme = _scheme(db)
+
+    fetch = AsyncMock(return_value=[(date.today(), Decimal("50.0000"))])
+    now = [1000.0]
+
+    with (
+        patch("app.services.dashboard.nav._fetch_nav_history", new=fetch),
+        patch.object(nav_module, "_nav_warm_clock", side_effect=lambda: now[0]),
+    ):
+        asyncio.run(warm_nav_history(db, [scheme]))
+        now[0] += nav_module._NAV_WARM_TTL_SECONDS + 1
+        asyncio.run(warm_nav_history(db, [scheme]))
+
+    assert fetch.await_count == 2
 
 
 def test_upsert_nav_history_is_conflict_safe_across_sessions(tmp_path):
