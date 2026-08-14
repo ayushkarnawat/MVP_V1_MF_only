@@ -41,6 +41,7 @@ def test_alembic_upgrade_creates_all_tables(tmp_path, monkeypatch):
         "transactions", "nav_history", "scheme_ter", "scheme_aaum",
         "benchmark_index_history", "arn_directory", "portfolio_snapshots",
         "fund_scores", "otp_requests", "sessions",
+        "auth_identities", "pending_identity_verifications",
     }
     assert expected.issubset(tables)
 
@@ -97,6 +98,32 @@ def test_alembic_handles_percent_in_database_url(tmp_path, monkeypatch):
 
     downgrade = subprocess.run(
         [sys.executable, "-m", "alembic", "downgrade", "base"],
+        cwd=BACKEND_DIR, capture_output=True, text=True,
+    )
+    assert downgrade.returncode == 0, downgrade.stderr
+
+
+def test_multi_method_auth_migration_round_trip(tmp_path, monkeypatch):
+    import sqlite3
+
+    db_path = tmp_path / "multi_method_auth.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+
+    upgrade = subprocess.run(
+        [sys.executable, "-m", "alembic", "upgrade", "head"],
+        cwd=BACKEND_DIR, capture_output=True, text=True,
+    )
+    assert upgrade.returncode == 0, upgrade.stderr
+
+    conn = sqlite3.connect(db_path)
+    otp_columns = {row[1] for row in conn.execute("PRAGMA table_info(otp_requests)")}
+    assert "email" in otp_columns
+    session_columns = {row[1] for row in conn.execute("PRAGMA table_info(sessions)")}
+    assert "auth_method" in session_columns
+    conn.close()
+
+    downgrade = subprocess.run(
+        [sys.executable, "-m", "alembic", "downgrade", "0003"],
         cwd=BACKEND_DIR, capture_output=True, text=True,
     )
     assert downgrade.returncode == 0, downgrade.stderr

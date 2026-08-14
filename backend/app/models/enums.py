@@ -96,6 +96,12 @@ class ArnStatus(str, enum.Enum):
     UNRESOLVED = "unresolved"
 
 
+class AuthIdentityProvider(str, enum.Enum):
+    PHONE_OTP = "phone_otp"
+    EMAIL_OTP = "email_otp"
+    GOOGLE = "google"
+
+
 def enum_column(enum_cls: type[enum.Enum]) -> Enum:
     """SQLAlchemy Enum that persists the member's lowercase ``.value``.
 
