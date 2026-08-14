@@ -8,6 +8,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.db.base import Base
 from app.models.auth import Session as SessionModel
+from app.models.enums import AuthIdentityProvider
 from app.models.user import User
 from app.services.auth.session import (
     _extract_bearer_token,
@@ -35,7 +36,7 @@ def test_create_session_hashes_the_stored_token():
     db = _session()
     user = _user(db)
 
-    session, raw_token = create_session(db, user.id)
+    session, raw_token = create_session(db, user.id, auth_method=AuthIdentityProvider.PHONE_OTP)
 
     assert session.session_token_hash != raw_token
     assert len(raw_token) > 20
@@ -61,7 +62,7 @@ def test_extract_bearer_token_returns_token():
 def test_get_current_session_resolves_valid_token():
     db = _session()
     user = _user(db)
-    _, raw_token = create_session(db, user.id)
+    _, raw_token = create_session(db, user.id, auth_method=AuthIdentityProvider.PHONE_OTP)
 
     resolved = get_current_session(authorization=f"Bearer {raw_token}", db=db)
 
@@ -79,7 +80,7 @@ def test_get_current_session_rejects_unknown_token():
 def test_get_current_session_rejects_expired_session():
     db = _session()
     user = _user(db)
-    session, raw_token = create_session(db, user.id)
+    session, raw_token = create_session(db, user.id, auth_method=AuthIdentityProvider.PHONE_OTP)
     session.expires_at = datetime.now(timezone.utc) - timedelta(days=1)
     db.commit()
 
@@ -91,7 +92,7 @@ def test_get_current_session_rejects_expired_session():
 def test_refresh_session_extends_expiry():
     db = _session()
     user = _user(db)
-    session, _ = create_session(db, user.id)
+    session, _ = create_session(db, user.id, auth_method=AuthIdentityProvider.PHONE_OTP)
     original_expiry = session.expires_at
 
     refreshed = refresh_session(db, session)
@@ -102,8 +103,17 @@ def test_refresh_session_extends_expiry():
 def test_get_current_user_resolves_user_from_session():
     db = _session()
     user = _user(db)
-    session, _ = create_session(db, user.id)
+    session, _ = create_session(db, user.id, auth_method=AuthIdentityProvider.PHONE_OTP)
 
     resolved = get_current_user(session=session, db=db)
 
     assert resolved.id == user.id
+
+
+def test_create_session_records_auth_method():
+    db = _session()
+    user_id = uuid.uuid4()
+
+    session, _ = create_session(db, user_id, auth_method=AuthIdentityProvider.GOOGLE)
+
+    assert session.auth_method == AuthIdentityProvider.GOOGLE
