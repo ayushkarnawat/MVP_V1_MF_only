@@ -42,6 +42,7 @@ def record_identity(
     provider_subject: str,
     email: str | None,
     verified_at: datetime,
+    commit: bool = True,
 ) -> AuthIdentity:
     identity = AuthIdentity(
         user_id=user_id,
@@ -53,7 +54,8 @@ def record_identity(
         last_used_at=verified_at,
     )
     db.add(identity)
-    db.commit()
+    if commit:
+        db.commit()
     return identity
 
 
@@ -61,7 +63,7 @@ def pick_primary_identity(identities: list[AuthIdentity]) -> AuthIdentity:
     return min(identities, key=lambda i: PROVIDER_PRECEDENCE[i.provider])
 
 
-def refresh_denormalized_email(db: DbSession, user: User) -> None:
+def refresh_denormalized_email(db: DbSession, user: User, commit: bool = True) -> None:
     """Sets user.email from the highest-precedence identity that has one.
     No-op if the account has no email-bearing identity at all."""
     identities = db.query(AuthIdentity).filter_by(user_id=user.id).all()
@@ -69,7 +71,8 @@ def refresh_denormalized_email(db: DbSession, user: User) -> None:
     if not with_email:
         return
     user.email = pick_primary_identity(with_email).email
-    db.commit()
+    if commit:
+        db.commit()
 
 
 class EmailCollisionResult(NamedTuple):
@@ -162,8 +165,8 @@ def complete_phone_gate_signup(db: DbSession, raw_token: str, phone_number: str)
     user = User(phone_number=phone_number, email=pending.email, created_at=now)
     db.add(user)
     db.flush()
-    record_identity(db, user.id, AuthIdentityProvider.PHONE_OTP, phone_number, None, now)
-    record_identity(db, user.id, pending.provider, pending.provider_subject, pending.email, now)
+    record_identity(db, user.id, AuthIdentityProvider.PHONE_OTP, phone_number, None, now, commit=False)
+    record_identity(db, user.id, pending.provider, pending.provider_subject, pending.email, now, commit=False)
     db.delete(pending)
     db.commit()
     return user.id
@@ -180,9 +183,9 @@ def attach_pending_identity(db: DbSession, raw_token: str, resolved_user_id: uui
         raise PendingVerificationError("This verification token doesn't match the account you're linking to.")
 
     now = datetime.now(timezone.utc)
-    record_identity(db, resolved_user_id, pending.provider, pending.provider_subject, pending.email, now)
+    record_identity(db, resolved_user_id, pending.provider, pending.provider_subject, pending.email, now, commit=False)
     user = db.get(User, resolved_user_id)
-    refresh_denormalized_email(db, user)
+    refresh_denormalized_email(db, user, commit=False)
     db.delete(pending)
     db.commit()
     return resolved_user_id

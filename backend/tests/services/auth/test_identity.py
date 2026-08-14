@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 from sqlalchemy import create_engine
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 
 from app.db.base import Base
@@ -210,3 +211,39 @@ def test_attach_pending_identity_rejects_a_phone_gate_token():
 
     with pytest.raises(PendingVerificationError, match="doesn't match"):
         attach_pending_identity(db, raw_token, existing_user.id)
+
+
+def test_complete_phone_gate_signup_rolls_back_atomically_on_second_identity_failure():
+    # record_identity is called twice inside complete_phone_gate_signup
+    # (phone, then the originating Google/email identity) but must commit
+    # only once, as a single transaction — otherwise a failure on the
+    # second write leaves a durably-committed User+phone-identity behind
+    # with the (still-valid, still-undeleted) pending token, and a retry
+    # would create a second User row for the same phone number. Force the
+    # second write to fail via a pre-existing (provider, provider_subject)
+    # unique-constraint collision, and confirm nothing persists.
+    db = _session()
+    other_user = _user(db, phone="+919000000099")
+    now = datetime.now(timezone.utc)
+    record_identity(db, other_user.id, AuthIdentityProvider.GOOGLE, "g-sub-dup", "dup@example.com", now)
+
+    _, raw_token = create_pending_verification(
+        db, AuthIdentityProvider.GOOGLE, "g-sub-dup", "new@example.com", True, matched_user_id=None
+    )
+
+    with pytest.raises(IntegrityError):
+        complete_phone_gate_signup(db, raw_token, "+919123456789")
+
+    db.rollback()
+
+    assert db.query(User).filter_by(phone_number="+919123456789").first() is None
+    assert find_identity_by_subject(db, AuthIdentityProvider.PHONE_OTP, "+919123456789") is None
+    # The pending record's own deletion is part of the same rolled-back
+    # transaction, so the token row is still present (and still usable) --
+    # confirming the whole operation, not just the User row, was atomic.
+    assert (
+        db.query(PendingIdentityVerification)
+        .filter_by(provider_subject="g-sub-dup", matched_user_id=None)
+        .first()
+        is not None
+    )
