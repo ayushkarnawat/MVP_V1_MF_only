@@ -13,7 +13,9 @@ from app.models.enums import PlanNameVariant
 from app.models.reference import Scheme, SchemeTer
 from app.services.analytics.amfi_ter_client import (
     _current_financial_year,
+    _fetch_ter_rows,
     _normalize_scheme_name,
+    _parse_amfi_date,
     refresh_ter_data,
 )
 
@@ -49,6 +51,49 @@ def test_current_financial_year_on_or_after_april_is_same_calendar_year_start():
 
 def test_normalize_scheme_name_strips_parens_and_punctuation():
     assert _normalize_scheme_name("HDFC Flexi Cap Fund - Direct (IDCW)") == "HDFC FLEXI CAP FUND DIRECT"
+
+
+def test_parse_amfi_date_accepts_iso_datetime_with_milliseconds_and_z():
+    # Live-verified 2026-08-14: AMFI's populate-te-rdata-revised endpoint
+    # emits TER_Date as an ISO-8601 datetime, not the "DD-Mon-YYYY" this
+    # parser originally targeted.
+    assert _parse_amfi_date("2026-08-01T00:00:00.000Z") == date(2026, 8, 1)
+
+
+def test_fetch_ter_rows_unwraps_data_meta_envelope_and_paginates():
+    # Live-verified 2026-08-14: this endpoint wraps each page's rows in
+    # {"data": [...], "meta": {"page", "pageSize", "total", "pageCount"}}
+    # rather than returning a bare list — treating the envelope itself as
+    # the row list silently iterated over its two string keys ("data",
+    # "meta") instead of any real row, which is the true root cause behind
+    # the earlier "stray non-dict row" symptom.
+    pages = {
+        1: {
+            "data": [{"Scheme_Name": "HDFC Flexi Cap Fund", "TER_Date": "2026-08-01T00:00:00.000Z"}],
+            "meta": {"page": 1, "pageSize": 1, "total": 2, "pageCount": 2},
+        },
+        2: {
+            "data": [{"Scheme_Name": "ICICI Prudential Bluechip Fund", "TER_Date": "2026-08-01T00:00:00.000Z"}],
+            "meta": {"page": 2, "pageSize": 1, "total": 2, "pageCount": 2},
+        },
+    }
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        page = int(request.url.params["page"])
+        return httpx.Response(200, json=pages[page])
+
+    transport = httpx.MockTransport(handler)
+    real_async_client = httpx.AsyncClient
+
+    async def _run():
+        with patch(
+            "app.services.analytics.amfi_ter_client.httpx.AsyncClient",
+            lambda *a, **k: real_async_client(*a, transport=transport, **k),
+        ):
+            return await _fetch_ter_rows("08-2026")
+
+    rows = asyncio.run(_run())
+    assert [r["Scheme_Name"] for r in rows] == ["HDFC Flexi Cap Fund", "ICICI Prudential Bluechip Fund"]
 
 
 def test_refresh_ter_data_upserts_regular_and_direct_variants_from_shared_row():

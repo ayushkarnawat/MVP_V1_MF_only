@@ -14,6 +14,19 @@ endpoint — one month's data covers every scheme at once — so
 `refresh_ter_data` pulls the whole month once and matches it against every
 locally-known scheme with a resolved Direct/Regular plan in a single pass,
 rather than one HTTP round-trip per scheme.
+
+Live-verified 2026-08-14: `populate-te-rdata-revised` actually wraps each
+page's rows in `{"data": [...], "meta": {"page", "pageSize", "total",
+"pageCount"}}`, not a bare list as originally assumed — treating the
+envelope itself as the row list silently iterated over its two string dict
+keys ("data", "meta") instead of any real row. That was the true root cause
+of the "stray non-dict row" `AttributeError` this module was first patched
+around (`_latest_row_per_scheme`'s `isinstance` guard); the guard made the
+symptom stop crashing, but until `_fetch_ter_rows` was fixed to unwrap the
+envelope, every scheme's TER silently stayed unmatched (0 real rows, only
+2 bogus "rows" per page). `TER_Date` is also an ISO-8601 datetime with a
+"Z" suffix on this live endpoint (e.g. "2026-08-01T00:00:00.000Z"), not the
+"DD-Mon-YYYY"/"YYYY-MM-DD" formats `_parse_amfi_date` originally targeted.
 """
 
 from __future__ import annotations
@@ -67,9 +80,17 @@ def _normalize_scheme_name(name: str) -> str:
 
 def _parse_amfi_date(raw: str) -> date:
     # AMFI's own site uses "DD-Mon-YYYY" elsewhere (e.g. NAVAll.txt's
-    # "07-Aug-2026") but this specific JSON API's TER_Date format wasn't
-    # captured verbatim during design research — fall back to ISO in case
-    # this endpoint differs, rather than assume and silently misorder.
+    # "07-Aug-2026") but this specific JSON API's TER_Date is actually an
+    # ISO-8601 datetime with milliseconds and a "Z" suffix (live-verified
+    # 2026-08-14, e.g. "2026-08-01T00:00:00.000Z") — try that first, with
+    # the two originally-assumed formats kept as fallbacks in case AMFI
+    # changes shape again rather than assume and silently misorder.
+    if raw.endswith("Z"):
+        raw_iso = raw[:-1] + "+00:00"
+        try:
+            return datetime.fromisoformat(raw_iso).date()
+        except ValueError:
+            pass
     for fmt in ("%d-%b-%Y", "%Y-%m-%d"):
         try:
             return datetime.strptime(raw, fmt).date()
@@ -95,6 +116,12 @@ async def _fetch_latest_ter_month(financial_year: str) -> str | None:
 
 
 async def _fetch_ter_rows(month: str) -> list[dict]:
+    # Live-verified 2026-08-14: this endpoint wraps each page's rows in
+    # {"data": [...], "meta": {"page", "pageSize", "total", "pageCount"}},
+    # not a bare list — treating the envelope itself as the row list
+    # silently iterated over its two string dict keys instead of any real
+    # row (the true root cause behind the "stray non-dict row" symptom
+    # `_latest_row_per_scheme`'s isinstance guard was added for).
     rows: list[dict] = []
     async with httpx.AsyncClient(timeout=30.0) as client:
         page = 1
@@ -112,11 +139,16 @@ async def _fetch_ter_rows(month: str) -> list[dict]:
                 headers={"Referer": AMFI_TER_REFERER},
             )
             resp.raise_for_status()
-            page_rows = resp.json()
+            payload = resp.json()
+            page_rows = payload.get("data") if isinstance(payload, dict) else payload
             if not page_rows:
                 break
             rows.extend(page_rows)
-            if len(page_rows) < _PAGE_SIZE:
+            meta = payload.get("meta") if isinstance(payload, dict) else None
+            if meta is not None:
+                if page >= meta.get("pageCount", page):
+                    break
+            elif len(page_rows) < _PAGE_SIZE:
                 break
             page += 1
     return rows
