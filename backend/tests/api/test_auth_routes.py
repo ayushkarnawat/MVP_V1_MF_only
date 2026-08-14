@@ -6,6 +6,14 @@ def test_otp_request_returns_otp_in_stub_mode(client):
     assert len(response.json()["otp"]) == 6
 
 
+def test_otp_request_returns_429_when_throttled(client):
+    client.post("/auth/otp/request", json={"phone_number": "+919000011111"})
+
+    response = client.post("/auth/otp/request", json={"phone_number": "+919000011111"})
+
+    assert response.status_code == 429
+
+
 def test_otp_verify_creates_user_and_session_for_new_phone(client):
     phone = "+919888888888"
     otp = client.post("/auth/otp/request", json={"phone_number": phone}).json()["otp"]

@@ -101,7 +101,13 @@ def test_create_otp_request_refuses_stub_mode_against_non_sqlite_database(monkey
 
 def test_verify_otp_uses_latest_request_when_multiple_exist():
     db = _session()
-    create_otp_request(db, "+919999999999")
+    first, _ = create_otp_request(db, "+919999999999")
+    # Backdate the first request past the resend-throttle window (Task 11) so
+    # the second create_otp_request call below isn't rejected as a rapid
+    # repeat — this test's intent is verifying verify_otp picks the LATEST
+    # of several existing unverified requests, not exercising the throttle.
+    first.created_at = datetime.now(timezone.utc) - timedelta(seconds=61)
+    db.commit()
     _, second_otp = create_otp_request(db, "+919999999999")
 
     verified = verify_otp(db, "+919999999999", second_otp)
@@ -170,3 +176,37 @@ def test_create_otp_request_email_channel_raises_when_no_provider_configured(mon
 
     with pytest.raises(otp_module.NoEmailProviderConfiguredError):
         create_otp_request(db, "a@example.com", channel="email")
+
+
+def test_create_otp_request_throttles_rapid_repeat_requests(monkeypatch):
+    import app.services.auth.otp as otp_module
+
+    monkeypatch.setattr(otp_module.settings, "otp_delivery_mode", "stub")
+    db = _session()
+    create_otp_request(db, "+919999999999")
+
+    with pytest.raises(otp_module.OtpRequestThrottledError, match="wait"):
+        create_otp_request(db, "+919999999999")
+
+
+def test_create_otp_request_allows_repeat_after_throttle_window_passes(monkeypatch):
+    import app.services.auth.otp as otp_module
+
+    monkeypatch.setattr(otp_module.settings, "otp_delivery_mode", "stub")
+    db = _session()
+    first, _ = create_otp_request(db, "+919999999999")
+    first.created_at = datetime.now(timezone.utc) - timedelta(seconds=61)
+    db.commit()
+
+    request, raw_otp = create_otp_request(db, "+919999999999")
+
+    assert raw_otp is not None  # did not raise
+
+
+def test_create_otp_request_throttle_is_per_identifier():
+    db = _session()
+    create_otp_request(db, "+919999999999")
+
+    request, raw_otp = create_otp_request(db, "+918888888888")  # different number, not throttled
+
+    assert raw_otp is not None

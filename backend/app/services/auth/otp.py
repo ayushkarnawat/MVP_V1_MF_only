@@ -29,6 +29,7 @@ Channel = Literal["sms", "email"]
 
 __all__ = [
     "OtpVerificationError",
+    "OtpRequestThrottledError",
     "NoEmailProviderConfiguredError",
     "create_otp_request",
     "verify_otp",
@@ -58,6 +59,23 @@ def create_otp_request(
             "Set OTP_DELIVERY_MODE to a real delivery mode before deploying against Postgres."
         )
 
+    filter_kwargs = {"phone_number": identifier} if channel == "sms" else {"email": identifier}
+    recent = (
+        db.query(OtpRequest)
+        .filter_by(verified_at=None, **filter_kwargs)
+        .order_by(OtpRequest.created_at.desc())
+        .first()
+    )
+    if recent is not None:
+        created_at = recent.created_at
+        if created_at.tzinfo is None:
+            created_at = created_at.replace(tzinfo=timezone.utc)
+        seconds_since = (datetime.now(timezone.utc) - created_at).total_seconds()
+        if seconds_since < RESEND_THROTTLE_SECONDS:
+            raise OtpRequestThrottledError(
+                f"Please wait {int(RESEND_THROTTLE_SECONDS - seconds_since)}s before requesting another code."
+            )
+
     otp = generate_otp()
     request = OtpRequest(
         phone_number=identifier if channel == "sms" else None,
@@ -78,6 +96,15 @@ def create_otp_request(
 
     raw_otp = otp if settings.otp_delivery_mode == "stub" else None
     return request, raw_otp
+
+
+class OtpRequestThrottledError(Exception):
+    """Raised when a new OTP is requested for an identifier that already
+    has an unexpired, unverified request under 60 seconds old — a cost
+    control now that email sends are billed per-message (Design Spec §6)."""
+
+
+RESEND_THROTTLE_SECONDS = 60
 
 
 class OtpVerificationError(Exception):

@@ -16,7 +16,7 @@ from app.services.auth.identity import (
     resolve_new_verified_identity,
 )
 from app.services.auth.google_oauth import GoogleTokenVerificationError, verify_google_id_token
-from app.services.auth.otp import OtpVerificationError, create_otp_request, verify_otp
+from app.services.auth.otp import OtpRequestThrottledError, OtpVerificationError, create_otp_request, verify_otp
 from app.services.auth.schemas import (
     GoogleAuthBody,
     LinkRequiredDetail,
@@ -53,7 +53,10 @@ def _session_response(user_id, auth_method: AuthIdentityProvider, db: DbSession)
 def request_otp(body: OtpRequestBody, db: DbSession = Depends(get_db)):
     channel = "sms" if body.phone_number is not None else "email"
     identifier = body.phone_number if channel == "sms" else body.email
-    _, raw_otp = create_otp_request(db, identifier, channel=channel)
+    try:
+        _, raw_otp = create_otp_request(db, identifier, channel=channel)
+    except OtpRequestThrottledError as exc:
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
     return OtpRequestResponse(message="OTP sent.", otp=raw_otp)
 
 
