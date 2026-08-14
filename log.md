@@ -1,0 +1,61 @@
+# Session Log
+
+> Permanent, append-only chronological log of what was done, session by session. Distinct from `session.md`, which stays a short, prunable "picking this up cold" pointer to *current* status only and gets overwritten each session — this file is the full history and is never trimmed or summarized away. Backfilled 2026-08-14 from `session.md`'s own accumulated history plus `Docs/superpowers/plans/` and `Docs/superpowers/specs/`; entries before that date are reconstructed from those sources, not lived through in real time, so treat exact dates on early entries as best-available rather than certain.
+
+## 2026-07-22 — Stack decisions finalized
+
+ADR-001 through ADR-006 accepted: React/Vite SPA, FastAPI, AWS RDS Postgres, scoped S3 (no CAS PDF retention), ECS Express Mode, EventBridge Scheduler + Fargate. See `decisions.md` and `Docs/PRDs/ADR-Technical-Stack-Decisions.md`.
+
+## 2026-08-04 — Phase 0 (foundation) and Phase 1 backend (CAS import) built
+
+Phase 0: all 11 tasks, `Docs/superpowers/plans/2026-08-04-phase-0-foundation.md`. Phase 1 backend: CAS import tightening + monolith port, all 9 tasks, `Docs/superpowers/plans/2026-08-04-phase-1-cas-import-backend.md` — `casparser` wrapper, `mfapi.in` enrichment, two-phase parse/confirm API routes, Decimal-safe calc.
+
+## 2026-08-05 — Phase 1b (Import Review frontend) and Phase 2 backend (Auth + Onboarding) built
+
+Phase 1b: all 7 tasks, `Docs/superpowers/plans/2026-08-05-phase-1b-import-review-frontend.md`. Phase 2 backend: phone+OTP auth, session tokens, `GET`/`PATCH /auth/me`, household-member CRUD — all 4 tasks, `Docs/superpowers/plans/2026-08-05-phase-2-auth-onboarding-backend.md`.
+
+## 2026-08-06 — Phase 2b (onboarding frontend), Phase 3 backend (Main Dashboard), transaction-dedupe migration
+
+Phase 2b: `Docs/superpowers/plans/2026-08-06-phase-2b-onboarding-frontend.md`. Phase 3 backend: `Docs/superpowers/plans/2026-08-06-phase-3-main-dashboard-backend.md`. Also: migration 0002 widened the transaction dedupe key to include `type`, fixing a real bug where same-day equal-magnitude purchase/redemption pairs collided — see `decisions.md`.
+
+## 2026-08-07 — Distributor comparison (PRD-03 FR-11) built; frontend redesign brief written
+
+`Docs/superpowers/plans/2026-08-07-distributor-comparison.md`. Also produced `Docs/superpowers/specs/2026-08-07-frontend-redesign-brief-for-coding-agent.md`, setting up the later Antigravity-driven frontend redesign pass.
+
+## ~2026-08-08/09 — Phase 3b: Frontend UI Redesign (Google Antigravity), reviewed and fixed by Claude Code
+
+Built via Google Antigravity on `feature/frontend-redesign` (zero backend changes). Antigravity's own report claimed full test coverage — false on inspection: 39 of 104 frontend tests failing plus 6 `tsc` errors. Claude Code root-caused and fixed every one, not just patched to green. Real app bugs found and fixed: a PDF-password `<label>` missing `htmlFor` (accessibility regression), `MainDashboardFlow`'s Add Data re-entry silently misattributing uploads to the wrong household member (used an onboarding-only component with no way to target a specific member), and a `Decimal`-never-`float` violation on the dashboard's most visible number (Total Portfolio Value was client-side `parseFloat`-summed instead of using the already-fetched server total). Also fixed: a dead `strokeDashoffset` var, `import type` fixes for `verbatimModuleSyntax`, and ~20 tests stale against redesigned copy. Follow-up same session: fixed `investedVal`/`profitVal` float accumulation with a dependency-free exact-decimal-string `sumDecimalStrings` helper, and untracked the `impeccable` plugin from git history (kept on disk, added to `.gitignore`). Merged to `main` (fast-forward, commit `61bf6f4`); `dev_intern` cut from the same commit. Final verified state: 156/156 backend, 111/111 frontend, `tsc` clean.
+
+## 2026-08-10 — Phase 4 Analytics backend, Parts 1–4 built (design + build order set)
+
+Full 5-step Analytics build order designed: `Docs/superpowers/plans/2026-08-10-phase-4-analytics-backend-design.md`. **Part 1 (category allocation, FR-1/FR-2)** built on `feature/phase4-part1-allocation`, merged to `dev_intern` this session (`1ab0fab`) — `analytics/allocation.py`, 2 new routes, 8 tests, suite to 164/2. **Part 2 (AMFI TER+AAUM → weighted TER, FR-10/FR-11)** built same session, continuing straight on — `amfi_ter_client.py`, `amfi_aaum_client.py`, `ter.py`, 4 routes, 40 new tests, suite to 250/2 (see `decisions.md` for the 0.55 fuzzy-match-threshold tuning). **Part 3 (NSE Indices → benchmark comparison, FR-8/FR-9)** built same session — `nse_indices_client.py` (live-corrected the `niftyindices.com` endpoint path, since the design doc's and TDD's documented path was dead), `xirr.py` (pure-Decimal Newton-Raphson solver), `benchmark.py`, routes, 36 new tests, suite to 286/2. **Part 4 (category-universe NAV caching → ranking, FR-3/FR-4)** built same session — `scheme_universe.py` (AMFI bulk `NAVAll.txt` ingestion, live-verified format), `category_ranking.py` (see `decisions.md` for the 40/60 blend-weight decision), routes, suite to 314/2.
+
+Also this session: knowledge graph refreshed to match the Part 1 merge commit (533 nodes/1223 edges); branch reconciliation merging Part 1–4 work with the intern's separately-landed UI/UX overhaul and CAS import redesign (`bb32b97`), `dev_intern` fast-forwarded to match.
+
+## 2026-08-1X — Cleanup pass: knowledge graph refreshed again, stale branch deleted
+
+Follow-up session before Phase 4 Part 2 restart context: knowledge graph re-refreshed via full 7-phase `/understand` pipeline to 661 nodes/1657 edges/10 layers/15 tour steps, matching HEAD after the CAS Import lifecycle feature landed. `feature/phase4-part1-allocation` local branch deleted (confirmed merged). ~50 files reconfirmed as pure CRLF-line-ending noise, not touched.
+
+## 2026-08-12 — Model-orchestration skill built
+
+`.claude/skills/model-orchestration/` — governs delegating implementation work to Codex as default worker, Claude Code as orchestrator. Built via brainstorming → writing-plans → subagent-driven-development. Design: `Docs/superpowers/specs/2026-08-12-model-orchestration-skill-design.md`; plan: `Docs/superpowers/plans/2026-08-12-model-orchestration-skill.md`.
+
+## 2026-08-13 — Phase 4 Part 5: the Scorer built, completing PRD-04 Analytics backend
+
+Ayush's one hard product requirement for Analytics — see `decisions.md` for the 45/30/25 weighting decision. Built as three ordered tasks (`risk_metrics.py` shared time-series building blocks; `scorer.py`'s composite score; portfolio-level roll-up) plus 3 API routes and a stakeholder-facing methodology doc (`Docs/Scorer-Methodology-Unifolio.md`). Final whole-branch adversarial review (the `model-orchestration` skill's mandatory gate) caught 3 real findings, all fixed in one round: a redundant per-fund category-universe re-scoring (High), a Feb-29 `date.replace` crash (Medium, second occurrence of a bug already parked once elsewhere — fixed at the root with a shared `years_ago()` helper), and a racy check-then-insert on daily `FundScore` persistence (Medium, fixed via pinning `computed_at` to UTC day-start). Backend suite: 357 passing, 2 skipped (up from 341/2). PRD-04 backend is now fully complete — only the Analytics frontend remains unbuilt.
+
+## 2026-08-13/14 — Dashboard load-time performance fix (Fix A/B/D)
+
+Root cause diagnosed directly: on-demand NAV fetch is a local-dev-first stand-in for the still-deferred ADR-006 scheduled refresh job (Fix C). Three in-scope mitigations delegated end-to-end to Codex via `model-orchestration`: **Fix A** (background NAV prefetch on import confirm), **Fix B** (parallelized per-scheme NAV network fetch, DB reads/writes never interleaved across coroutines), **Fix D** (process-local per-day holdings cache). Fix D took 4 full implement→verify→adversarial-review rounds before it was correct — each round's review caught something real (a cacheable stale/incomplete snapshot, a publish-after-invalidate race, an NAV-upsert IntegrityError race, a too-narrow cache-eligibility rule defeating the cache's own purpose, and finally a bounded-but-accepted single-flight gap). Explicit user decision: accept round 4's remaining limitation (no per-key single-flight coordination), do not dispatch a round 5 — see `decisions.md`. Full round-by-round detail: `Docs/orchestration/dashboard-nav-perf-handoff.md` (Status: DONE) and `Docs/orchestration/delegation-log.md`. Backend suite grew 156 → 326 passing, 2 skipped throughout, zero regressions. Then: `feat/enhanced-ui` fast-forwarded to pick up 4 incoming colleague UI commits, this fix committed on top and pushed; `dev_intern` fast-forwarded to match and pushed.
+
+## 2026-08-14 — Branch reconciliation; CAS import lifecycle redesign and UI/UX foundation backfilled into shared history
+
+Session opened mid-branch-drift: intern (`aditishanbhag`) had pushed a Badge/Select componentry cleanup to `feat/enhanced-ui` while an in-progress local fix for the same two issues was still pending here — the in-progress local fix was discarded once the intern's independently-equivalent commits landed (confirmed via full suite re-verification, not reused from an earlier run). Result: `dev_intern` and `feat/enhanced-ui` merged and identical at `7426047` (357 passed/2 skipped backend, 190/190 frontend across 49 files, `tsc` clean).
+
+Reconciling the branches surfaced two authorship streams not yet reflected in `CLAUDE.md`/`session.md`:
+1. **CAS Import lifecycle redesign** (intern-authored, backend + frontend) — an 11-state import lifecycle state machine (`import_/state_machine.py`), migration 0003 (`Import`/`Folio` schema changes, new `OPENING_BALANCE` transaction type), coverage-gap detection, opening-balance resolution, a CAMS-portal mailback URL generator, and the matching frontend (API client/types, lifecycle views, a two-path CAS import UI). **Passes the full test suite but has not had an independent Claude Code review pass** against CLAUDE.md's non-negotiables — flagged as an open item, not treated as equivalent to "reviewed."
+2. **UI/UX foundation** (intern-authored) — shadcn/Tailwind/design-token setup, mobile app shell, dashboard/fund-details/responsive routing, then a same-day Radix `Select` refactor across `ReviewTable`/`AttributionModal`/`AddFamilyMembers`/mobile filters, a unified `Badge` component, and a `toTitleCase` utility for proper-casing badge/plan-type text. Also not yet independently reviewed.
+
+## 2026-08-14 — Multi-method auth: design finalized, backend implementation plan written
+
+Brainstormed and specced a remodel of auth from phone+OTP-only to phone + email-OTP + Google as equal-looking entry points, with Apple deferred to Future Scope. Design went through several rounds of resolution (see `decisions.md` for the substantive calls: mandatory phone gate, identity precedence, account-linking policy, `EmailProvider` abstraction, Postmark timing, Apple placeholder). Backend and frontend design specs split into separate files (`Docs/superpowers/specs/2026-08-14-multi-method-auth-design.md` and `...-frontend-design.md`), mirroring the existing Phase 2/2b precedent. A full backend implementation plan was then written (`Docs/superpowers/plans/2026-08-14-multi-method-auth-backend-plan.md`, 11 TDD tasks: schema/migration, `EmailProvider`, generalized OTP service, `Session.auth_method`, identity/collision resolution, pending-verification/phone-gate completion, Google ID-token verification, request/response schemas, the two OTP routes, the Google OAuth route, and OTP request throttling). **As of this entry, the backend plan is written but not yet executed, and the frontend implementation plan is still being written** — no code from this feature has been merged yet.
