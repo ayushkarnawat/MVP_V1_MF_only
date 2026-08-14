@@ -10,7 +10,7 @@ import { CoverageGapBanner } from "../import/CoverageGapBanner";
 import { OpeningBalanceModal } from "../import/OpeningBalanceModal";
 import { getMemberCoverageGaps } from "../import/api";
 import type { CoverageGapItem } from "../import/types";
-import { sumDecimalStrings } from "../../lib/decimal";
+import { sumDecimalStrings, formatIndianCurrency } from "../../lib/decimal";
 import {
   getMemberHoldings,
   getMemberAllocation,
@@ -458,11 +458,4 @@ export function DashboardView({
       />
     </div>
   );
-}
-
-function formatIndianCurrency(val: number): string {
-  if (isNaN(val)) return "0";
-  return new Intl.NumberFormat("en-IN", {
-    maximumFractionDigits: 0,
-  }).format(val);
 }

@@ -33,3 +33,30 @@ function addDecimalStrings(a: string, b: string): string {
 export function sumDecimalStrings(values: string[]): string {
   return values.reduce((acc, v) => addDecimalStrings(acc, v || "0"), "0");
 }
+
+function subtractDecimalStrings(a: string, b: string): string {
+  const [bWhole, bFrac = ""] = (b || "0").split(".");
+  const negatedB = bWhole.startsWith("-")
+    ? `${bWhole.slice(1)}${bFrac ? `.${bFrac}` : ""}`
+    : `-${bWhole || "0"}${bFrac ? `.${bFrac}` : ""}`;
+  return addDecimalStrings(a, negatedB);
+}
+
+/** Exact decimal-string subtraction (a - b), for display-only diffs (e.g.
+ * TER savings, category outperformance) where the operands are already
+ * rounded backend strings — avoids compounding float error before the
+ * single, final Number() conversion for formatting. */
+export function diffDecimalStrings(a: string, b: string): string {
+  return subtractDecimalStrings(a || "0", b || "0");
+}
+
+/** Formats a money value (string or number, already-summed/exact) as
+ * Indian-locale currency digits with no decimal places, e.g. "1,23,456".
+ * Callers prepend the ₹ symbol themselves. */
+export function formatIndianCurrency(valStr: string | number): string {
+  const num = typeof valStr === "string" ? parseFloat(valStr) : valStr;
+  if (isNaN(num)) return "0";
+  return new Intl.NumberFormat("en-IN", {
+    maximumFractionDigits: 0,
+  }).format(num);
+}

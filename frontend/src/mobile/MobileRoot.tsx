@@ -3,6 +3,7 @@ import { useAuth } from "../features/auth/AuthContext";
 import { MobileAppShell } from "./shell/MobileAppShell";
 import type { MobileTab } from "./shell/MobileBottomNav";
 import { MobileDashboardView } from "./features/dashboard/MobileDashboardView";
+import { MobileAnalyticsView } from "./features/analytics/MobileAnalyticsView";
 import { MobileImportView } from "./features/import/MobileImportView";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { LogOut } from "lucide-react";
@@ -60,6 +61,8 @@ export function MobileRoot() {
         />
       )}
 
+      {activeTab === "analytics" && <MobileAnalyticsView />}
+
       {activeTab === "import" && (
         <MobileImportView
           onNavigateDashboard={() => handleTabChange("dashboard")}
@@ -69,4 +72,5 @@ export function MobileRoot() {
     </MobileAppShell>
   );
 }
+
 

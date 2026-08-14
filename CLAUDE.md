@@ -112,6 +112,23 @@ Codex-implemented change is considered done. Full design:
 *(Updated 2026-08-14. See `session.md` at repo root for the full detailed history —
 this section is a current-status pointer, not the record of every past session.)*
 
+**PRD-04 (Analytics) Phase 1 frontend is built via Google Antigravity (Gemini 3.6 Flash)**, reviewed
+and fixed by Claude Code, on git branch `feat/analytics-phase1` off `feat/enhanced-ui` (uncommitted
+working-tree changes, no commits yet on that branch). Covers Allocation (FR-1/FR-2), Cost/TER
+(FR-10/FR-11), Category Ranking (FR-3/FR-4) for Web (S18/S19) and Mobile (`MobileAnalyticsView.tsx`).
+Reuses `AllocationDonut` unchanged; TER and Category Ranking use hand-rolled `<div>` bars, **not**
+Bklit UI or `@visx` — Bklit was never actually used despite the brief calling for it, and installing
+it properly (would overwrite `src/lib/utils.ts`, dropping `toTitleCase`) is deferred as a separate
+task. Claude Code's review found and fixed a build-breaking bug (`formatIndianCurrency` imported
+from `@/lib/decimal` but never exported there — confirmed crashing 3 test files at runtime, not just
+a type error), 7 `tsc` errors, two float-subtraction-then-display spots (now exact `Decimal` string
+arithmetic via a new `diffDecimalStrings` helper), an incidental deleted code comment, a flaky
+un-`waitFor`-wrapped test assertion, and one stale pre-existing `App.test.tsx` assertion (expected
+the mobile Analytics button disabled, from before this phase enabled it). `tsc -b --noEmit` clean;
+full suite 51/51 files, 197/197 tests passing. Full findings and fix log:
+`Docs/orchestration/analytics-phase1-frontend-log.md`. Phase 2 (Scorer/Benchmark comparison) briefed
+separately, not yet dispatched — gated on this Phase 1 fix pass being accepted.
+
 **PRD-04 (Analytics) backend is now fully complete — all 5 parts, including the
 Scorer.** Category allocation (Part 1), AMFI TER+AAUM → weighted TER (Part 2), NSE
 Indices → benchmark comparison (Part 3), category-universe ranking (Part 4), and the

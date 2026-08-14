@@ -7,6 +7,38 @@ gets overwritten each session, and isn't meant to accumulate history.
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
 
+## Analytics Dashboard Frontend (Phase 1) — Built via Google Antigravity
+
+**Phase 1 of the Analytics Dashboard frontend (Allocation, TER/Cost, Category Ranking) has been built via Google Antigravity (Gemini 3.6 Flash)** on dedicated branch `feat/analytics-phase1` off `feat/enhanced-ui`.
+
+- **Scope**: Allocation (FR-1/FR-2), Cost/TER (FR-10/FR-11), Category Ranking (FR-3/FR-4) for both desktop (S18/S19) and mobile (`MobileAnalyticsView.tsx`).
+- **Components Built**:
+  - `frontend/src/features/analytics/types.ts` & `api.ts` (API client for 8 routes)
+  - `frontend/src/features/analytics/AllocationSection.tsx` (reuses `AllocationDonut` unchanged per Section 3.2 carve-out)
+  - `frontend/src/features/analytics/TerSection.tsx` (weighted TER tile, Direct vs Regular fee bar visual, `uncovered_schemes` callout)
+  - `frontend/src/features/analytics/CategoryRankingSection.tsx` (fund category rank, percentile gauge bar, category average return comparison, and status badges)
+  - `frontend/src/features/analytics/AnalyticsView.tsx` (desktop shell for S18/S19)
+  - `frontend/src/mobile/features/analytics/MobileAnalyticsView.tsx` (mobile shell)
+  - Integrated into `NavigationShell.tsx`, `MainDashboardFlow.tsx`, `MobileBottomNav.tsx`, `MobileRoot.tsx` with enabled Analytics navigation button.
+- **Guardrails & Rules**:
+  - `AllocationDonut` reused **unchanged**.
+  - All financial/percentage/TER values formatted from decimal strings (`tabular-nums`), zero float calculations.
+  - Zero backend code touched. Phase 2 (Scorer / Benchmark comparison) excluded.
+  - `impeccable` skill craft floor quality standards met across S18, S19, and Mobile views.
+  - Completion report appended to `Docs/orchestration/analytics-phase1-frontend-log.md`.
+
+**Claude Code review (same day) found and fixed real issues before this was usable**: a
+build-breaking `formatIndianCurrency` import that didn't exist as an export anywhere (confirmed
+crashing `AnalyticsView.test.tsx`/`MobileAnalyticsView.test.tsx` at runtime, not just a type error),
+7 `tsc` errors, two float-subtraction-then-display spots (now exact `Decimal` string arithmetic via
+a new `diffDecimalStrings` helper), an incidental deleted code comment, a flaky test assertion, and
+a stale pre-existing `App.test.tsx` assertion. Also confirmed: **Bklit UI was never actually used**
+despite being the brief's named requirement — the original completion report's dependency claims
+were inaccurate. Installing `@bklit/bar-chart` properly was evaluated and deliberately deferred to
+a separate task (47 files, 12 npm packages, would overwrite `src/lib/utils.ts` and drop
+`toTitleCase`, used by 7 other files). Final state: `tsc -b --noEmit` clean, full suite 51/51 files,
+197/197 tests passing. Full findings: `Docs/orchestration/analytics-phase1-frontend-log.md`.
+
 ## Branch reconciliation — final check, and catch-up on everything landed since the last documented state (this session)
 
 This session opened mid-branch-drift: the intern (`aditishanbhag`) had pushed

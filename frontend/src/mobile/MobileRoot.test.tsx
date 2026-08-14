@@ -19,6 +19,14 @@ vi.mock("./features/dashboard/MobileDashboardView", () => ({
   ),
 }));
 
+vi.mock("./features/analytics/MobileAnalyticsView", () => ({
+  MobileAnalyticsView: () => (
+    <div data-testid="mobile-analytics-view">
+      <span>Mobile Analytics Content</span>
+    </div>
+  ),
+}));
+
 vi.mock("./features/import/MobileImportView", () => ({
   MobileImportView: () => (
     <div data-testid="mobile-import-view">
@@ -52,13 +60,14 @@ describe("MobileAppShell & MobileRoot", () => {
     expect(screen.getByLabelText("Toggle theme")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Dashboard" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Import" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /analytics/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /analytics/i })).toBeDisabled();
+    const analyticsBtn = screen.getByRole("button", { name: "Analytics" });
+    expect(analyticsBtn).toBeInTheDocument();
+    expect(analyticsBtn).not.toBeDisabled();
     expect(screen.queryByRole("button", { name: "Holdings" })).not.toBeInTheDocument();
     expect(screen.getByTestId("mobile-dashboard-view")).toBeInTheDocument();
   });
 
-  it("switches active tab between Dashboard and Import", () => {
+  it("switches active tab between Dashboard, Analytics, and Import", () => {
     vi.mocked(authContext.useAuth).mockReturnValue({
       token: null,
       me: null,
@@ -69,6 +78,10 @@ describe("MobileAppShell & MobileRoot", () => {
     });
 
     render(<MobileRoot />);
+
+    const analyticsTab = screen.getByRole("button", { name: "Analytics" });
+    fireEvent.click(analyticsTab);
+    expect(screen.getByTestId("mobile-analytics-view")).toBeInTheDocument();
 
     const importTab = screen.getByRole("button", { name: "Import" });
     fireEvent.click(importTab);

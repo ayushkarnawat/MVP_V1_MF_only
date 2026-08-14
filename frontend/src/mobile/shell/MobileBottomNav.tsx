@@ -1,7 +1,7 @@
 import { LayoutDashboard, PlusCircle, BarChart2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type MobileTab = "dashboard" | "import";
+export type MobileTab = "dashboard" | "analytics" | "import";
 
 export interface MobileBottomNavProps {
   activeTab: MobileTab;
@@ -58,22 +58,38 @@ export function MobileBottomNav({
           </span>
         </button>
 
-        {/* 2. Analytics Tab (Center - Disabled / Soon) */}
+        {/* 2. Analytics Tab (Center) */}
         <button
-          disabled
-          aria-disabled="true"
-          className="group flex flex-col items-center justify-center min-w-[64px] min-h-[48px] py-1 px-3 rounded-2xl opacity-40 cursor-not-allowed text-[var(--color-text-secondary)]"
-          aria-label="Analytics Soon"
+          onClick={() => onTabChange("analytics")}
+          className={cn(
+            "group flex flex-col items-center justify-center min-w-[64px] min-h-[48px] py-1 px-3 rounded-2xl transition-all duration-150 active:scale-90 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
+            activeTab === "analytics"
+              ? "text-[var(--color-accent)]"
+              : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)]"
+          )}
+          aria-label="Analytics"
+          aria-current={activeTab === "analytics" ? "page" : undefined}
           type="button"
         >
           <div className="relative flex items-center justify-center">
-            <BarChart2 className="h-5 w-5 stroke-[1.7]" />
+            <BarChart2
+              className={cn(
+                "h-5 w-5 transition-transform duration-150",
+                activeTab === "analytics"
+                  ? "scale-110 stroke-[2.2] text-[var(--color-accent)]"
+                  : "stroke-[1.7] group-hover:scale-105"
+              )}
+            />
           </div>
-          <span className="inline-flex items-center gap-1 text-[10px] mt-1 tracking-tight font-medium text-[var(--color-text-secondary)]">
+          <span
+            className={cn(
+              "text-[10px] mt-1 tracking-tight transition-colors duration-150",
+              activeTab === "analytics"
+                ? "font-bold text-[var(--color-ink)]"
+                : "font-medium text-[var(--color-text-secondary)]"
+            )}
+          >
             Analytics
-            <span className="text-[8px] font-bold uppercase tracking-wider bg-[var(--color-border)] text-[var(--color-text-secondary)] px-1 py-0.2 rounded">
-              Soon
-            </span>
           </span>
         </button>
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { NavigationShell, type MemberOption } from "./NavigationShell";
 import { DashboardView } from "./DashboardView";
+import { AnalyticsView } from "../analytics/AnalyticsView";
 import { ImportFlow } from "../import/ImportFlow";
 import { clearCasResumeStep2 } from "../import/casResumeState";
 import { getHouseholdMembers } from "../auth/api";
@@ -20,6 +21,7 @@ export function MainDashboardFlow() {
   const [members, setMembers] = useState<MemberOption[]>([]);
   const [viewMode, setViewMode] = useState<"aggregate" | "member">("aggregate");
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"dashboard" | "analytics">("dashboard");
   const [isAddingData, setIsAddingData] = useState(false);
   const [targetAddMemberId, setTargetAddMemberId] = useState<string | null>(null);
   // True only when Add Data was reached from Family Combined view via the
@@ -150,14 +152,25 @@ export function MainDashboardFlow() {
       onViewModeChange={setViewMode}
       onMemberSelect={setSelectedMemberId}
       onAddData={() => handleAddDataTrigger()}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
     >
       {/* Visual accessibility banner & App.test.tsx backward compatibility header */}
       <h1 style={{ display: "none" }}>Welcome to Unifolio</h1>
-      <DashboardView
-        viewMode={viewMode}
-        memberId={selectedMemberId}
-        onAddDataForMember={handleAddDataTrigger}
-      />
+      {activeTab === "dashboard" ? (
+        <DashboardView
+          viewMode={viewMode}
+          memberId={selectedMemberId}
+          onAddDataForMember={handleAddDataTrigger}
+        />
+      ) : (
+        <AnalyticsView
+          viewMode={viewMode}
+          memberId={selectedMemberId}
+          onAddDataForMember={handleAddDataTrigger}
+        />
+      )}
     </NavigationShell>
   );
 }
+

@@ -6,6 +6,7 @@ import {
   type PieData,
 } from "@/components/ui/charts";
 import { cn } from "@/lib/utils";
+import { formatIndianCurrency } from "@/lib/decimal";
 
 export interface AllocationItem {
   label: string;
@@ -33,14 +34,6 @@ const PALETTE = [
   "#EC4899", // Pink
   "#64748B", // Slate
 ];
-
-function formatIndianCurrency(valStr: string | number): string {
-  const num = typeof valStr === "string" ? parseFloat(valStr) : valStr;
-  if (isNaN(num)) return "0";
-  return new Intl.NumberFormat("en-IN", {
-    maximumFractionDigits: 0,
-  }).format(num);
-}
 
 function parsePercentage(val: number | string | undefined | null): number {
   if (typeof val === "number") return isNaN(val) ? 0 : val;

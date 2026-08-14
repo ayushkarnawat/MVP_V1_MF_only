@@ -6,12 +6,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { LogOut } from "lucide-react";
 import { ThemeToggle } from "../../components/ThemeToggle";
@@ -29,6 +23,8 @@ export interface NavigationShellProps {
   onViewModeChange: (mode: "aggregate" | "member") => void;
   onMemberSelect: (memberId: string) => void;
   onAddData: () => void;
+  activeTab?: "dashboard" | "analytics";
+  onTabChange?: (tab: "dashboard" | "analytics") => void;
   children: React.ReactNode;
 }
 
@@ -39,6 +35,8 @@ export function NavigationShell({
   onViewModeChange,
   onMemberSelect,
   onAddData,
+  activeTab = "dashboard",
+  onTabChange,
   children,
 }: NavigationShellProps) {
   const { logout } = useAuth();
@@ -55,6 +53,7 @@ export function NavigationShell({
               <div
                 className="flex items-center gap-2 font-display font-bold text-lg sm:text-xl tracking-tight text-[var(--color-ink)] select-none cursor-pointer flex-shrink-0"
                 aria-label="Unifolio Logo"
+                onClick={() => onTabChange?.("dashboard")}
               >
                 <span>Unifolio</span>
                 <svg
@@ -67,34 +66,30 @@ export function NavigationShell({
 
               <nav className="flex items-center gap-1 sm:gap-1.5" aria-label="Main Navigation">
                 <button
-                  className="inline-flex items-center px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-[var(--color-bg)] text-[var(--color-ink)] border border-[var(--color-border)] shadow-xs transition-colors"
+                  className={cn(
+                    "inline-flex items-center px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors cursor-pointer",
+                    activeTab === "dashboard"
+                      ? "bg-[var(--color-bg)] text-[var(--color-ink)] border border-[var(--color-border)] shadow-xs font-semibold"
+                      : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] border border-transparent"
+                  )}
                   type="button"
+                  onClick={() => onTabChange?.("dashboard")}
                 >
                   Dashboard
                 </button>
 
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="inline-block cursor-not-allowed">
-                        <button
-                          className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-[var(--color-text-secondary)] opacity-60 hover:opacity-80 transition-opacity"
-                          type="button"
-                          disabled
-                          aria-label="Analytics Soon"
-                        >
-                          Analytics{" "}
-                          <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider bg-[var(--color-border)] text-[var(--color-text-secondary)] px-1 sm:px-1.5 py-0.5 rounded">
-                            Soon
-                          </span>
-                        </button>
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Analytics Dashboard — backend coming soon in PRD-04</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <button
+                  className={cn(
+                    "inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors cursor-pointer",
+                    activeTab === "analytics"
+                      ? "bg-[var(--color-bg)] text-[var(--color-ink)] border border-[var(--color-border)] shadow-xs font-semibold"
+                      : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] border border-transparent"
+                  )}
+                  type="button"
+                  onClick={() => onTabChange?.("analytics")}
+                >
+                  Analytics
+                </button>
               </nav>
             </div>
 

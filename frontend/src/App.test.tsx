@@ -75,7 +75,7 @@ describe("App", () => {
       expect(screen.getByRole("navigation", { name: /mobile navigation/i })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Dashboard" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Import" })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /analytics/i })).toBeDisabled();
+      expect(screen.getByRole("button", { name: /analytics/i })).toBeEnabled();
       expect(screen.queryByRole("button", { name: "Holdings" })).not.toBeInTheDocument();
     });
 
