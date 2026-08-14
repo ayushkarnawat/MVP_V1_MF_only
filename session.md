@@ -1,4 +1,4 @@
-# Session state — 2026-08-13 (updated)
+# Session state — 2026-08-14 (updated)
 
 Working notes for picking this project back up cold. Not a planning doc — see
 `Docs/superpowers/plans/` for those. This file tracks *where things stand*,
@@ -6,6 +6,173 @@ gets overwritten each session, and isn't meant to accumulate history.
 
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
+
+## Branch reconciliation — final check, and catch-up on everything landed since the last documented state (this session)
+
+This session opened mid-branch-drift: the intern (`aditishanbhag`) had pushed
+a new batch of commits to `feat/enhanced-ui` — mostly a Badge/Select
+componentry cleanup — while a partial local fix for the same two issues
+(Badge `className` support, a broken Radix-`Select` test interaction in
+`ReviewTable.test.tsx`) was still in progress here. Ayush explicitly
+discarded that in-progress local fix once the intern's commits landed,
+calling this session's branch check "a final check for the same." That
+discard turned out to be the right call: the intern's own commits (`ef24999`
+"unify Badge components across review views and fund details", `54d3d49`
+"align Badge and ui/badge design tokens...ReactNode children support",
+`6296507`/`b4423e6`/`9902636` updating the affected tests) independently
+fixed the exact same two problems, using an equally valid but different
+`Select` test pattern (`fireEvent.keyDown` + `findByRole("option")` instead
+of the discarded `fireEvent.click` + `findByText` approach).
+
+**Result: `dev_intern` and `feat/enhanced-ui` are merged and identical**, both
+at commit `7426047` (`dev_intern` had zero unique commits, so merging
+`feat/enhanced-ui` into it was a clean fast-forward — no merge commit). Full
+suite independently re-verified fresh on the merged result, not reused from
+an earlier run: backend **357 passed, 2 skipped**; frontend **190 passed
+across 49 files**; `npx tsc -b --noEmit` clean. One harmless leftover: a
+`git stash` created mid-session (confirmed via `git diff -w` to be 100%
+CRLF-line-ending noise, zero real content) couldn't be dropped because the
+Bash auto-mode safety classifier was temporarily unavailable — safe to
+`git stash drop` manually later, nothing of value in it. **Not pushed** —
+this sandbox has no git push credentials; push `dev_intern`/`feat/enhanced-ui`
+from a machine that does.
+
+Reconciling the branches surfaced a large amount of work landed since the
+last time `CLAUDE.md`/`session.md` were updated (2026-08-13), across two
+different authorship streams:
+
+**1. Phase 4 Part 5 — Scorer (PRD-04 FR-5/FR-6/FR-7) — completes PRD-04
+Analytics backend in full.** Built, reviewed, and merged this stream. This
+was Ayush's one hard product requirement for the whole Analytics module: the
+score must be genuinely Unifolio's own, not a re-skin of Morningstar's,
+CRISIL's, or PowerUp's methodology (see
+`Docs/superpowers/specs/*scorer*` and the
+[phase4-scorer-project](../../../../home/ayush/.claude/projects/-mnt-d-Unifolio-code/memory/phase4-scorer-project.md)
+memory for the full ask). Landed as three ordered building blocks plus API
+routes and a stakeholder doc:
+- **Task 1 — `backend/app/services/analytics/risk_metrics.py`** (`7058b0e`):
+  the shared time-series building blocks — `month_end_dates`,
+  `build_monthly_series`, `monthly_returns`, `compute_downside_deviation`
+  (semi-deviation against a 0% MAR, Decimal throughout), `rolling_12m_returns`,
+  `category_medians`, `compute_consistency_hit_rate` (rolling 12-month
+  category-beat rate) — over a fixed 5-year month-end history window.
+- **Task 2 — `scorer.py`'s composite fund score** (`aa8288f`, FR-5/FR-7):
+  blends Return / Risk / Consistency into one 0–100 score plus a full
+  breakdown, using **fixed weights resolved with Ayush on 2026-08-13: Return
+  45%, Risk (downside deviation, inverted so lower risk scores higher) 30%,
+  Consistency (rolling-12-month category-beat rate) 25%** — chosen over
+  Morningstar's published 3/5/10yr-CAGR-weighted approach specifically to
+  keep risk isolated as its own ingredient rather than folded into a
+  risk-adjusted return, and to make consistency a first-class graded
+  ingredient rather than an omission. Tier boundaries are inclusive on the
+  lower bound: `>=80`→tier5 ... `>=20`→tier2, else tier1. FR-7's full
+  breakdown is **never persisted** — recomputed fresh on every read, by
+  explicit Global Constraint in the implementation plan, to avoid a second
+  source of truth alongside the daily `FundScore` row.
+- **Task 3 — portfolio-level roll-up** (`6129e96`, FR-6): holding-value-weighted
+  aggregation of each held fund's score up to the member/family level, reusing
+  Task 2's per-fund scorer unchanged.
+- **API routes** (`dc4df5c`): 3 new `GET` routes mirroring the existing
+  auth/404 pattern exactly —
+  `/funds/{scheme_id}/score`, `/household-members/{member_id}/score`,
+  `/household/aggregate/score`.
+- **Stakeholder-facing methodology doc** (`f7a0bc2`):
+  `Docs/Scorer-Methodology-Unifolio.md` — plain-language explanation of the
+  same 45/30/25 split and *why* it's differentiated, written for a non-technical
+  reader (Ayush's own stated preference — see the
+  `user_technical_background` memory).
+- **Final whole-branch adversarial review (`d732fce`)** — the
+  `model-orchestration` skill's mandatory gate — caught 3 real findings, all
+  fixed in one round: (High) `compute_portfolio_score` was redundantly
+  re-scoring each held fund's entire category universe independently instead
+  of computing category-wide inputs once per distinct category and finishing
+  each fund from that shared base; (Medium) `today.replace(year=today.year -
+  N)` crashes on Feb 29 in a non-leap target year — a second occurrence of a
+  bug already parked once in `category_ranking.py`, now fixed at the root
+  with a shared `years_ago()` helper (clamps to Feb 28) used in both places;
+  (Medium) daily `FundScore` persistence was a racy check-then-insert under
+  concurrent requests — fixed by pinning `computed_at` to UTC day-start so the
+  existing `(scheme_id, computed_at)` primary key itself enforces one-row-per-day,
+  with a losing concurrent insert's `IntegrityError` swallowed rather than
+  double-inserting.
+- **Backend suite: 357 passed, 2 skipped** (up from 341/2 pre-Scorer, +16 new
+  tests across the 3 tasks plus the review-fix round, zero regressions).
+- **What's left of PRD-04**: only the *frontend* Analytics dashboard UI. No
+  frontend work against the Scorer/ranking/benchmark/TER routes was found in
+  this session's commit survey — treat the Analytics dashboard as still
+  entirely unbuilt on the frontend side until confirmed otherwise.
+
+**2. CAS Import lifecycle redesign — intern-authored, backend AND frontend,
+NOT yet independently reviewed by Claude Code.** A substantial rework of the
+whole import flow, landed as a self-contained architecture doc
+(`3d40cfe`, "add CAS import update architecture and TDD implementation
+plan", gap analysis across FR-1–FR-9) followed by 9 implementation commits,
+all authored by `aditishanbhag`:
+- `01b6b77` — an **11-state import lifecycle state machine**
+  (`backend/app/services/import_/state_machine.py`) enforcing legal
+  transitions per FR-5, plus Alembic migration `0003` (`Import`/`Folio`
+  schema changes) and a new `OPENING_BALANCE` transaction type.
+- `4d60c8e` — a buffer cache, a lifecycle service, and member attribution.
+- `91d85ca` — coverage-gap detection and opening-balance resolution (what
+  happens when a CAS import doesn't cover a folio's full history).
+- `3e0640e` — a CAMS-portal mailback URL generator and a pending-request
+  lifecycle (for the "we requested your CAS by email, waiting for CAMS to
+  mail it" flow).
+- `e7db4c1`, `c902978`, `59ff810`, `e005f76` — the matching frontend: an API
+  client + types + lifecycle views, a coverage-gap banner + opening-balance
+  modal + import history view, a full "Two-Path" CAS import UI with CAMS
+  redirect and a pending-request view, and a redesigned web CAS import entry
+  point.
+
+This is a lot of new state-machine and money-adjacent logic (opening
+balances, coverage gaps) landing without the kind of review pass Phase 3b's
+Antigravity redesign got before merge (which caught 3 real bugs, including a
+`Decimal`-never-`float` violation on the dashboard's most visible number —
+see that section further down). **It passes the full test suite, but "tests
+pass" and "independently reviewed against CLAUDE.md's non-negotiables" are
+different claims.** Flagging this as an open item for a dedicated review
+pass, not silently treating passing tests as equivalent to review.
+
+**3. UI/UX foundation + today's Select/Badge refactor — also
+intern-authored, verified passing, not independently reviewed.** `290fb10`
+set up shadcn/Tailwind/design tokens; `01fe683` built the mobile app shell,
+dashboard, fund details, and responsive routing; `e91c86f` enhanced the web
+dashboard/allocation-donut/holdings presentation. On top of that foundation,
+a same-day refactor swapped native `<select>`s for Radix `Select` across
+`ReviewTable`, `AttributionModal`, `AddFamilyMembers`, and the mobile
+dashboard's member/holdings filters (`b31c442`, `7503f70`, `e7a5234`,
+`5964bb3`), unified the `Badge` component and aligned its design tokens with
+`ui/badge` (`ef24999`, `54d3d49`), and added a `toTitleCase` utility used to
+proper-case plan-type/badge text throughout (`b11a08e`, `38e92a5`, `4efc922`,
+`4531074`) — plus jsdom test-environment mocks for `Select`'s pointer-capture
+and `scrollIntoView` calls (`be0e6eb`) that the earlier Radix `Select` tests
+needed and didn't have.
+
+**Knowledge graph is now meaningfully stale.** `.ua/knowledge-graph.json`
+was last refreshed at `gitCommitHash
+35fedd38f968e5b763269a67dbe8d16eff44e9ed` (**661 nodes / 1657 edges**),
+which predates the Scorer, the entire CAS import lifecycle redesign, and the
+UI/Select refactor. Re-run `/understand` (incremental) before trusting it
+for any of `analytics/scorer.py`, `analytics/risk_metrics.py`,
+`import_/state_machine.py`, or the new frontend lifecycle views.
+
+**Still-open items carried forward, re-checked this session:**
+1. A held scheme with no obtainable NAV silently vanishes from
+   holdings/allocation/aggregates — unchanged, still open, no frontend
+   "NAV unavailable" treatment found.
+2. `confirm_import`'s plan-type override still has no server-side 409
+   backstop — pre-existing Phase 1 code, untouched by the CAS lifecycle
+   redesign (which added new states/transitions but didn't touch this
+   override path).
+3. No DB uniqueness constraint on the "self" `household_members` row —
+   **confirmed still open**: `backend/alembic/versions/` contains only
+   `0001_initial_schema.py`, `0002_transaction_dedupe_includes_type.py`, and
+   `0003_cas_import_lifecycle_and_coverage_gaps.py` — none add this
+   constraint. Frontend-side mitigation only.
+4. (New, low-priority) `HoldingsTable.tsx` still references a dead
+   `row.return_percentage_1y` field with no such field on the real API type
+   — harmless, the client-computed fallback always runs instead, never
+   cleaned up.
 
 ## Dashboard load-time performance fix (Fix A/B/D) — built, reviewed, merged, and pushed this session
 
@@ -693,5 +860,8 @@ re-analyzes changed files) if they've diverged.
 Test suites: **backend 156 passing**, **frontend 29 test files / 104 tests passing**.
 
 ## What's next
+
+*(Stale as of 2026-08-14 — kept for history. PRD-04's backend is now fully built; see
+the "Branch reconciliation" section at the top of this file for current status.)*
 
 **PRD-04 (Analytics)** remains fully unbuilt, the module after Main Dashboard in the natural build order.

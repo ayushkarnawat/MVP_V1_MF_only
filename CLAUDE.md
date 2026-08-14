@@ -109,164 +109,80 @@ Codex-implemented change is considered done. Full design:
 
 ## Session State
 
-*(Updated 2026-08-13. See `session.md` at repo root for full detail — this is the
-one-paragraph pointer for a fresh session.)*
+*(Updated 2026-08-14. See `session.md` at repo root for the full detailed history —
+this section is a current-status pointer, not the record of every past session.)*
 
-**Dashboard load-time performance fix (Fix A/B/D) is complete, reviewed, merged, and
-pushed to both `feat/enhanced-ui` and `dev_intern`.** Diagnosed and fixed the slow
-first-dashboard-load-after-import problem: background NAV prefetch on import confirm
-(Fix A), parallelized per-scheme NAV network fetch with DB access kept strictly
-sequential (Fix B), and a process-local per-day holdings cache with a 15-minute
-self-healing TTL and lock-guarded atomic invalidation (Fix D). Delegated to Codex via
-the `model-orchestration` skill's full workflow; took **4 rounds** of dispatch →
-independent verification → mandatory adversarial review to close — round 1 found 3 high
-races (stale-day caching, publish-vs-invalidation race, NAV-upsert race), round 2 closed
-the NAV race but left 2 more (non-atomic generation-check, a "today-only" cache rule that
-defeated the cache's purpose during normal delayed-NAV periods), round 3 closed both with
-a process-local lock and decoupling cache eligibility from calendar-date, round 4 added
-the TTL for the one remaining high finding (one-shot prefetch can't catch NAV published
-later in the day). One medium, correctness-safe finding remains from round 4 (no
-per-key single-flight coordination on concurrent cold-cache misses) — **accepted as a
-documented limitation per explicit user decision**, not dispatched for a round 5.
-Backend suite: **326 passing, 2 skipped** (up from 156), zero regressions across all 4
-rounds, independently re-verified every round rather than trusting Codex's self-report.
-Full round-by-round detail: `Docs/orchestration/dashboard-nav-perf-handoff.md` (Status:
-DONE) and `Docs/orchestration/delegation-log.md`. **Fix C — the real fix (ADR-006's
-EventBridge Scheduler + ECS Express Mode recurring NAV-refresh job) remains explicitly
-deferred to deployment phase**, not built this session; see `session.md`'s "Fix C" section
-for what it needs to cover when built and how it supersedes/interacts with Fix A/B/D.
-`feat/enhanced-ui` also picked up 4 incoming commits from the colleague's UI work
-(distributor comparison, import review page, a CAS-redirect auth fix, an import-card
-layout fix) via fast-forward before this session's fix was committed on top.
+**PRD-04 (Analytics) backend is now fully complete — all 5 parts, including the
+Scorer.** Category allocation (Part 1), AMFI TER+AAUM → weighted TER (Part 2), NSE
+Indices → benchmark comparison (Part 3), category-universe ranking (Part 4), and the
+Scorer — composite fund quality score, portfolio roll-up, full breakdown (Part 5,
+FR-5/FR-6/FR-7) — are all built, tested, and merged. The Scorer was Ayush's one hard
+product requirement: genuinely differentiated from Morningstar/CRISIL/PowerUp, not a
+clone of any single agency's formula (fixed 45% Return / 30% downside-only Risk / 25%
+rolling-12-month category-beat Consistency weighting, resolved 2026-08-13; full
+methodology in `Docs/Scorer-Methodology-Unifolio.md`, a stakeholder-facing plain-language
+doc, not just code comments). Delegated to Codex via `model-orchestration`; the mandatory
+adversarial-review gate against the full branch diff caught 3 real findings (1 High:
+`compute_portfolio_score` was redundantly re-scoring each held fund's full category
+universe independently; 2 Medium: a Feb-29 `date.replace(year=...)` crash, a racy
+check-then-insert on daily `FundScore` persistence) — all fixed in one round
+(`d732fce`), confirmed via scoped re-review. **Backend suite: 357 passing, 2 skipped.**
+Only PRD-04's *frontend* (the Analytics dashboard UI) remains unbuilt — nothing else is
+outstanding on Analytics.
 
-**Phase 4 Part 4 (Analytics — category-universe NAV caching → category
-ranking, PRD-04 FR-3/FR-4) is built and tested, committed locally, not
-yet pushed**. Adds
-`backend/app/services/analytics/scheme_universe.py` (ingests AMFI's bulk
-`NAVAll.txt` to fix a data gap — mfapi.in's bulk scheme list has no
-category field, and per-scheme lookup across ~40,000 schemes is
-infeasible; live-verified this session via `curl`: 302-redirects to
-`portal.amfiindia.com`, CRLF line endings, category-header/AMC-name/
-scheme-row parsing, directly joinable with local `schemes.sebi_category`
-with zero string-format reconciliation; same disk-cache idiom as
-`import_/enrich.py`'s `MfApiClient`, 24h TTL) and `category_ranking.py`
-(`compute_category_ranking` for FR-3 — blended 3yr/5yr CAGR rank within
-the full SEBI-category peer universe — and an AUM-weighted category
-average for FR-4, using `SchemeAaum` rows from Part 2's
-`amfi_aaum_client.py`, each with a family-aggregate wrapper). One judgment
-call not fully specified by the PRD is flagged in-code (module docstring):
-the design doc fixes the blend *inputs* (3yr min, 5yr blended in once
-available, no 10yr window) but not the blend weights — used Morningstar's
-published 3/5/10yr weighting (20/30/50) normalized to 3yr=40%/5yr=60%.
-Thin-category handling reuses FR-5a's "at least 5 schemes" bar but only as
-a `thin_category` flag, never an exclusion (unlike FR-5a's harder rule).
-Two new routes mirror the existing routes' auth/404 pattern exactly.
-Backend suite: **314 passing, 2 skipped** (up from 286/2), zero
-regressions, verified by re-running `pytest`. Per the Phase 4 design doc's
-5-step build order, **the Scorer (FR-5/FR-6/FR-7) is the last remaining
-Phase 4 build step** — it depends on Parts 2, 3, and 4, all of which are
-now complete. The knowledge graph (`.ua/knowledge-graph.json`) has **not**
-been refreshed for this work — treat it as stale for the new `analytics/`
-files until re-run; it was last current at **661 nodes / 1657 edges / 10
-layers / 15 tour steps**, `gitCommitHash
-35fedd38f968e5b763269a67dbe8d16eff44e9ed` (pre-Part-2).
+**Substantial intern-authored work has landed on `feat/enhanced-ui`/`dev_intern` and is
+NOT yet independently code-reviewed by Claude Code** (unlike the Phase 3b Antigravity
+redesign, which got a full review pass before merge — see below). This includes: the
+shadcn/Tailwind UI foundation and mobile app shell; a full CAS import redesign (an
+11-state import lifecycle engine + Alembic migration `0003`, coverage-gap detection,
+opening-balance resolution, a CAMS-portal mailback URL generator, and matching frontend
+lifecycle views — a two-path CAS import UI, coverage-gap banner, import history); and a
+Badge/Select componentry refactor (Radix `Select` adopted across `ReviewTable`,
+`AttributionModal`, `AddFamilyMembers`, mobile dashboard filters). Every commit here is
+authored by the intern (`aditishanbhag`), not Claude Code or Ayush. **Verified passing
+as a final branch-reconciliation check this session** — full suites green (357/2
+backend, 190/190 frontend across 49 files, `tsc -b --noEmit` clean) — but "tests pass"
+is not the same claim as "independently reviewed for correctness against CLAUDE.md's
+non-negotiables (`Decimal`-never-`float`, no raw CAS PDF storage, no PAN persistence)."
+The CAS import lifecycle engine in particular touches money/state-machine logic and has
+had no Claude Code review pass yet — treat as an open item, not as verified-correct.
 
-**Branch reconciliation (this session)**: `dev_intern` and
-`feat/enhanced-ui` had diverged — merged the intern's UI/UX + CAS import
-work (`origin/feat/enhanced-ui`) with this session's Part 4 backend
-commits (`bb32b97`, clean merge, no conflicts), then fast-forwarded
-`dev_intern` to match. Both branches are now identical and carry
-everything. Run `npm install` in `frontend/` after pulling (new UI deps).
-Full suite verified post-merge: backend 314/2, frontend 43 files/151
-tests, all passing. The stale `feature/frontend-redesign` branch (0
-commits ahead/behind `main`) was deleted locally. **This sandbox has no
-git push credentials** — `dev_intern`, `feat/enhanced-ui`, and the remote
-deletion of `feature/frontend-redesign` all still need to be pushed from
-a machine with credentials. `main` is untouched, per instruction to hold
-off merging until the analytics dashboard is complete.
+**Branch state: `dev_intern` and `feat/enhanced-ui` are identical**, both at `7426047`
+(a merge commit reconciling the intern's own incoming push with this session's earlier
+work). Confirmed via `git merge-base --is-ancestor` equivalence and matching `git log -1`
+on both. **This sandbox has no git push credentials** — push both branches (already
+fast-forward-mergeable, no force needed) from a machine that does. `main` remains
+untouched, per standing instruction to hold off until the Analytics dashboard
+(frontend) is complete.
 
-**Phase 0, Phase 1 (backend + frontend), Phase 2 (backend), Phase 2b
-(Onboarding frontend), and Phase 3 (Main Dashboard backend) are all complete
-and merged to `main`.** Phase 1 built CAS import end to end. Phase 2 backend
-built phone+OTP auth and household-member CRUD, `get_current_user` as the
-real security boundary. Phase 2b built the full Onboarding frontend —
-landing screen, back-navigable questionnaire, and a Family CAS Upload
-subsystem (per-member upload cards, client-side queue, strictly sequential
-batch parsing, one aggregate payoff). Phase 3 built the Main Dashboard
-backend (`backend/app/services/dashboard/`): a FIFO holdings engine with
-hand-built known-answer test fixtures, on-demand NAV fetch-and-cache
-(standing in for the real scheduled job, deployment-phase infra not built
-yet), allocation/SIP/cash-flow/monthly-snapshot views, and placeholder-aware
-family aggregation — 10 new `GET` routes, one implementation per concern
-parameterized by a list of member IDs (no separate family/per-member code
-paths). Test suites on `main`: backend 142 passing, frontend 81 passing
-(17 files), `tsc -b --noEmit` clean.
+**Knowledge graph is stale** — `.ua/knowledge-graph.json` was last refreshed at
+`gitCommitHash 35fedd38f968e5b763269a67dbe8d16eff44e9ed` (**661 nodes / 1657 edges / 10
+layers / 15 tour steps**), which predates the Scorer, the CAS import lifecycle redesign,
+and the UI/Select refactor entirely. Re-run `/understand` (incremental) before trusting
+it for anything in `analytics/scorer.py`, `analytics/risk_metrics.py`,
+`import_/state_machine.py`, or the new frontend lifecycle views.
 
-**Both Phase 2b's and Phase 3's final whole-branch reviews caught real
-issues before merge — full detail in `session.md`.** Phase 2b: 5 issues,
-most notably a permanent onboarding dead-end and the family roster not
-surviving a page reload. Phase 3: 3 real bugs, two rooted in already-shipped
-Phase 1 parsing code — (1) `casparser` represents redemption/switch-out
-units and amounts as **negative**; the parser passed them through
-unnormalized, which would have made every real redemption a silent no-op in
-the new FIFO engine (fixed at the root cause: `abs()` at the parser
-boundary, your explicit call over defending in the engine); (2) same-date
-transaction ordering was nondeterministic (`Transaction.id` is a random
-UUID), so a same-day purchase+redemption could silently under-consume —
-fixed with a purchase-before-redemption tiebreak, applied identically in
-both the holdings engine and the snapshot backfill (which runs its own
-separate query); (3) the final review caught a transient-NAV-outage bug
-permanently caching a wrong snapshot value — fixed to stay retryable
-instead.
-
-**Not yet pushed** — `main` is ahead of `origin/main`; no TTY for
-credentials in this sandbox, push manually.
-
-**Transaction dedupe-key migration — resolved this session.** The
-time-sensitive follow-up Phase 3's final review flagged (dedupe key
-missing `type`, making a same-day purchase+redemption of equal magnitude
-collide and silently drop after fix (1) above) is fixed and merged —
-`transactions`' key is now `(folio_id, date, amount, units, type)` in the
-migration, the ORM model, and `confirm_import`. Two real gaps found and
-closed mid-execution: the ORM model needed widening too (this project's
-test suite builds schema via `create_all`, not Alembic — the plan wrongly
-assumed the two "agree by construction"), and the plan's own prescribed
-SQLite migration approach (`PRAGMA index_list`) was fundamentally broken,
-replaced with the documented Alembic pattern. Full detail in `session.md`.
-
-**Still open:**
+**Still open, carried forward from earlier phases, not yet revisited:**
 1. A held scheme with no obtainable NAV silently vanishes from
    holdings/allocation/aggregates, no error or placeholder — a Phase 3
-   design choice, worth revisiting once the Phase 3 frontend decides the
-   "NAV unavailable" UI treatment.
+   design choice, worth revisiting once the "NAV unavailable" UI treatment is decided.
 2. `confirm_import`'s plan-type override has no server-side 409 backstop —
    pre-existing Phase 1 backend code.
 3. No DB uniqueness constraint on the "self" `household_members` row —
-   Phase 2b's frontend mitigates client-side; real fix is a migration.
+   frontend-mitigated client-side only; real fix is a migration (confirmed still
+   missing — only migrations `0001`–`0003` exist, none touch this).
+4. `HoldingsTable.tsx` references a dead `row.return_percentage_1y` field that doesn't
+   exist on the real API type — harmless (client-computed fallback always runs), never
+   cleaned up.
 
-**ADR-001 — resolved.** Corrected via an Amendment section (Decision
-unchanged) — the CAS Parser frontend was never existing React work.
-
-**Distributor Comparison (PRD-03 FR-11) — resolved this session.** Built
-and merged: on-demand AMFI ARN name/status resolution
-(`backend/app/services/dashboard/arn_lookup.py`) cached platform-wide in
-Phase 0's `arn_directory`, plus per-distributor FIFO comparison
-(`distributor_comparison.py`, reusing `holdings.py`'s engine unchanged) at
-a new `GET /household-members/{id}/schemes/{scheme_id}/distributor-comparison`
-route. The AMFI automation question PRD-03 flagged as needing sign-off is
-resolved with a real, independently-verified endpoint — the originally-cited
-scraper precedent was dead (site rebuilt since); you captured the live
-endpoint via DevTools, I independently re-verified it with direct HTTP
-calls before designing against it. Final review (sonnet, not fable, per
-your explicit instruction for this task) caught one real bug: malformed-AMFI-response
-parsing wasn't covered by the failure handling, so an unexpected 200 body
-would 500 instead of gracefully falling back to the raw ARN — fixed, with
-a test. Full detail in `session.md`. Backend suite: 156 passing (was 142).
-
-**Phase 0, Phase 1 (backend + frontend), Phase 2 (backend), Phase 2b (Onboarding frontend), Phase 3 (Main Dashboard backend), and Phase 3b (Frontend UI Redesign) are complete.** Phase 3b built the complete frontend UI/UX redesign on dedicated feature branch `feature/frontend-redesign` via Google Antigravity. Zero changes made to `backend/` (confirmed: empty diff against `main`, 156 backend tests untouched). Deliverables include DM Sans/Manrope typography with mandatory tabular figures, full 8-token type scale, dark mode tokens with global floating theme toggle button (`🌙`/`☀️`), drag-and-drop CAS PDF upload form with password reveal toggle, standardized button primitives, interactive onboarding questionnaire tiles, the signature `FundSignal` arc+sparkline component, `HoldingsTable`, `AllocationDonut`, persistent `NavigationShell`, `DashboardView` (S13/S14, S21 empty state, S22 family member placeholders), `FundDetailModal` (S15), `DistributorComparisonModal` (S17), and S16 Add Data re-entry.
-
-**Antigravity's "28 passing test files, fully tested" report was false — Claude Code's review this session found 39/104 frontend tests failing and 6 `tsc` errors, root-caused and fixed every one.** Real app bugs fixed: a genuine accessibility regression (`UploadForm`'s password `<label>` had no `htmlFor`/`id`); S16's Add Data re-entry used an onboarding-only component that always resolved/created the **"self"** member regardless of which family member was targeted (silent misattribution risk, now uses `ImportFlow` with a real `householdMemberId`); the Total Portfolio Value hero re-summed floats client-side instead of using the already-fetched, Decimal-precise `allocation.total_value` (CLAUDE.md's `Decimal`-never-`float` rule, on the single most visible number on the page); plus dead code and `verbatimModuleSyntax` type errors. The other ~20 failures were pre-existing tests never updated after the redesign changed copy/behavior (each individually verified as a legitimate change, not a masked regression) — see `session.md`'s "Frontend redesign review" section for the full breakdown. **Verified current state: 156/156 backend, 111/111 frontend (30 files), `tsc -b --noEmit` clean.** Both flagged follow-ups resolved this session: `investedVal`/`profitVal` (no server total existed to substitute the way the hero fix did) now sum via a new dependency-free `sumDecimalStrings` helper (`frontend/src/lib/decimal.ts`, exact `BigInt`-based decimal-string addition, never `float`) instead of client-side float accumulation; the `impeccable` plugin's own tooling that got committed into this repo's history (`d69b426`) is untracked and `.gitignore`d (kept on disk, so any coding agent in this checkout still has it — your call was to keep it usable, not keep it in the app's own history). Still open, low-priority: a dead `return_percentage_1y` field reference in `HoldingsTable.tsx` (harmless — the field doesn't exist on the real API type, so the client-computed fallback is what always runs anyway).
-
-**Phase 3b (Main Dashboard frontend UI redesign) is merged to `main`** (fast-forward from `feature/frontend-redesign`, same commit, genuinely verified green — 156/156 backend, 111/111 frontend). A `dev_intern` branch was cut from `main` at this same commit to share with an intern; both are pushed to `origin`. A full codebase knowledge graph exists at `.ua/knowledge-graph.json` (built via the `understand-anything` plugin, gitCommitHash matches current `main`) — a fresh session should query/explore that instead of re-scanning the repo from scratch. PRD-04 (Analytics) remains fully unbuilt; **Phase 4 (Analytics backend) is next.**
+**Everything before this — Phase 0 (foundation), Phase 1 (CAS import, backend +
+frontend), Phase 2 (Auth backend), Phase 2b (Onboarding frontend), Phase 3 (Main
+Dashboard backend), Phase 3b (Frontend UI Redesign via Google Antigravity, fully
+reviewed — 39/104 failing tests and 6 `tsc` errors found and fixed, real bugs included
+an accessibility regression and a silent member-misattribution risk in Add Data
+re-entry), and Distributor Comparison (PRD-03 FR-11) — is complete, merged, and fully
+detailed in `session.md`.** A full codebase knowledge graph exists at
+`.ua/knowledge-graph.json` (see staleness note above) — query it instead of re-scanning
+the repo from scratch, once refreshed.
 
 
