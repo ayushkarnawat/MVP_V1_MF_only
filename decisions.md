@@ -117,3 +117,27 @@ Ayush's explicit call once the intern (`aditishanbhag`) pushed commits fixing th
 ## 2026-08-14 — Intern-authored CAS import lifecycle redesign and UI foundation: "tests pass" is not "reviewed correct"
 
 The 11-state CAS import lifecycle state machine, coverage-gap detection, opening-balance resolution, CAMS-portal mailback flow, and shadcn/Tailwind UI foundation all passed the full suite (357/2 backend, 190/190 frontend) but have had no independent Claude Code review pass. **Why:** explicitly refusing to equate passing tests with reviewed-correct against CLAUDE.md's non-negotiables (`Decimal`-never-`float`, no raw CAS PDF storage, no PAN persistence) — same standard set on 2026-08-07 — flagged as an open item requiring a dedicated review, specifically because this batch touches money/state-machine logic (opening balances, coverage gaps).
+
+## 2026-08-14 — Multi-method auth: pill-button order locked — Google, Apple (disabled), Email, Phone
+
+**Why:** explicit product decision, not derived from any convention (not alphabetical, not by expected usage frequency) — recorded so it isn't silently reshuffled later. Apple's slot stays reserved even while disabled, so the layout doesn't reflow once real Apple sign-in ships.
+
+## 2026-08-14 — Multi-method auth: Postmark confirmed as the email provider (SES-vs-Postmark question closed)
+
+**Why:** deliverability for a login-critical OTP outweighs Amazon SES's lower cost and AWS-infra alignment at this volume — settled definitively, not left as a recommendation. Wiring it up is still deferred (see the `EmailProvider`/Postmark-timing entry above), but *which* provider is no longer open.
+
+## 2026-08-14 — Multi-method auth: email stays visible in the UI on the stub provider; Postmark becomes a firm pre-production prerequisite
+
+**Why:** resolves an open question the design spec had explicitly flagged rather than silently picking an answer — email-as-a-method is never hidden from users, including in early dev, but `otp.py`'s existing stub-mode guard means it genuinely can't send real email once this feature runs against Postgres. Postmark wiring is therefore required before (or as part of) this feature's first Postgres/production deploy, not an open-ended "someday."
+
+## 2026-08-14 — Multi-method auth: `pending_identity_verifications` uses one shared ~10-minute TTL for both triggers
+
+**Why:** the phone-gate case (mid-signup, hunting for your phone) and the step-up-link case (re-authenticating an existing account) are arguably different UX situations, but a single shared window was chosen over two different values for simplicity — flagged as an open item in the design spec, explicitly resolved this way by the user rather than left to implementation-time guessing.
+
+## 2026-08-14 — Multi-method auth: `Session.auth_method` built now, not deferred
+
+**Why:** originally flagged as optional/deferrable in the design spec; the user asked for it to be added as a firm decision mid-session — it's a small addition and directly useful for recording which method actually completed a phone-gated signup (the completing method, not the originating Google/email identity).
+
+## 2026-08-14 — Standing documentation discipline established: `decisions.md`, `log.md`, `backend.md`, `database.md`
+
+Four new append-only root-level tracking files, each distinct from an existing doc (see each file's own header). **Why:** this session's multi-method-auth work was substantial enough (a design spec, a follow-on frontend spec, two full implementation plans, six-plus rounds of decision resolution) that relying on `session.md` alone — a short, prunable, overwritten-each-session pointer — risked losing the "why" behind decisions once `session.md` gets pruned. A corresponding CLAUDE.md section ("End-of-Session Documentation") was drafted to make updating all of these a standing requirement, not proposed as optional — pending the user's manual merge into `CLAUDE.md`/`session.md` (not committed automatically here, to avoid a race with concurrent edits to those two specific files).
