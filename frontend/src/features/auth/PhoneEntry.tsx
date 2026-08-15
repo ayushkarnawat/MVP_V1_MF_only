@@ -4,30 +4,32 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, AlertCircle, ShieldCheck, Loader2 } from "lucide-react";
 
 interface PhoneEntryProps {
-  mode?: "signup" | "login";
+  /** "phoneGate": completing the mandatory phone step after a Google/email
+   * signup with no existing account match — different copy, no back button
+   * (Design Spec §1; Frontend Spec §3). Defaults to the plain entry copy. */
+  context?: "primary" | "phoneGate";
+  phoneGatePrefillEmail?: string | null;
   onSubmit: (phoneNumber: string) => void;
   onBack?: () => void;
-  onToggleMode?: (mode: "signup" | "login") => void;
   submitting: boolean;
   error: string | null;
 }
 
 export function PhoneEntry({
-  mode = "signup",
+  context = "primary",
+  phoneGatePrefillEmail,
   onSubmit,
   onBack,
-  onToggleMode,
   submitting,
   error,
 }: PhoneEntryProps) {
   const [phoneNumber, setPhoneNumber] = useState("");
+  const isPhoneGate = context === "phoneGate";
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     onSubmit(phoneNumber);
   };
-
-  const isSignUp = mode === "signup";
 
   return (
     <form
@@ -47,12 +49,14 @@ export function PhoneEntry({
         </div>
         <div className="space-y-1">
           <h1 className="font-display font-bold text-xl sm:text-2xl text-[var(--color-ink)] tracking-tight">
-            {isSignUp ? "Create your account" : "Welcome back"}
+            {isPhoneGate ? "One more step" : "Continue with your mobile number"}
           </h1>
           <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed max-w-xs mx-auto">
-            {isSignUp
-              ? "Enter your mobile number to get started with Unifolio."
-              : "Enter your mobile number to log in to your portfolio."}
+            {isPhoneGate
+              ? `Verify your phone to finish creating your account${
+                  phoneGatePrefillEmail ? ` for ${phoneGatePrefillEmail}` : ""
+                }.`
+              : "Enter your mobile number to get started with Unifolio."}
           </p>
         </div>
       </div>
@@ -113,34 +117,16 @@ export function PhoneEntry({
           )}
         </Button>
 
-        <div className="flex items-center justify-between text-xs pt-0.5">
-          {onBack ? (
-            <button
-              type="button"
-              onClick={onBack}
-              className="inline-flex items-center gap-1 text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] font-medium transition-colors cursor-pointer"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              <span>Back</span>
-            </button>
-          ) : (
-            <div />
-          )}
-
-          {onToggleMode && (
-            <button
-              type="button"
-              onClick={() => onToggleMode(isSignUp ? "login" : "signup")}
-              className="text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] font-medium transition-colors cursor-pointer ml-auto"
-            >
-              {isSignUp ? (
-                <>Already have an account? <strong className="text-[var(--color-accent)] font-semibold">Log In</strong></>
-              ) : (
-                <>New to Unifolio? <strong className="text-[var(--color-accent)] font-semibold">Sign Up</strong></>
-              )}
-            </button>
-          )}
-        </div>
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex items-center gap-1 text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] font-medium transition-colors cursor-pointer text-xs"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span>Back</span>
+          </button>
+        )}
       </div>
 
       {/* 5. Trust Footer */}
