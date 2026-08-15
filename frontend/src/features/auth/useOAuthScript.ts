@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 
 export type OAuthScriptStatus = "loading" | "loaded" | "error";
 
+// Exported only so tests can reset it between cases via `.clear()` — do not call
+// this from application code. A stale-but-cleared entry with its <script> tag
+// still in the DOM would cause a duplicate injection on the next render.
 export const loadedScripts = new Map<string, Promise<void>>();
 
 function loadScriptOnce(src: string): Promise<void> {
