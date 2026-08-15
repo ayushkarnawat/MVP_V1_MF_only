@@ -4,7 +4,7 @@ import type {
   HouseholdMember,
   MeResponse,
   OtpRequestResponse,
-  OtpVerifyResponse,
+  OtpVerifyResult,
   Relationship,
   UpdateMeBody,
 } from "./types";
@@ -32,14 +32,66 @@ export async function requestOtp(phoneNumber: string): Promise<OtpRequestRespons
   return (await response.json()) as OtpRequestResponse;
 }
 
-export async function verifyOtp(phoneNumber: string, otp: string): Promise<OtpVerifyResponse> {
+export async function sendEmailOtp(email: string): Promise<OtpRequestResponse> {
+  const response = await fetch(`${API_BASE_URL}/auth/otp/request`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  await throwIfError(response);
+  return (await response.json()) as OtpRequestResponse;
+}
+
+export async function verifyOtp(
+  phoneNumber: string,
+  otp: string,
+  pendingToken?: string,
+): Promise<OtpVerifyResult> {
   const response = await fetch(`${API_BASE_URL}/auth/otp/verify`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ phone_number: phoneNumber, otp }),
+    body: JSON.stringify({
+      phone_number: phoneNumber,
+      otp,
+      ...(pendingToken ? { pending_token: pendingToken } : {}),
+    }),
   });
   await throwIfError(response);
-  return (await response.json()) as OtpVerifyResponse;
+  return (await response.json()) as OtpVerifyResult;
+}
+
+export async function verifyEmailOtp(
+  email: string,
+  otp: string,
+  pendingToken?: string,
+): Promise<OtpVerifyResult> {
+  const response = await fetch(`${API_BASE_URL}/auth/otp/verify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email,
+      otp,
+      ...(pendingToken ? { pending_token: pendingToken } : {}),
+    }),
+  });
+  await throwIfError(response);
+  return (await response.json()) as OtpVerifyResult;
+}
+
+export async function verifyGoogleCredential(
+  idToken: string,
+  pendingToken?: string,
+): Promise<OtpVerifyResult> {
+  const response = await fetch(`${API_BASE_URL}/auth/oauth/google`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      id_token: idToken,
+      ...(pendingToken ? { pending_token: pendingToken } : {}),
+    }),
+  });
+  await throwIfError(response);
+  return (await response.json()) as OtpVerifyResult;
 }
 
 export async function getMe(): Promise<MeResponse> {
