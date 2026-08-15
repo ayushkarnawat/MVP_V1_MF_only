@@ -35,6 +35,7 @@ const ME_RESPONSE = {
 describe("AuthEntryFlow", () => {
   afterEach(() => {
     vi.clearAllMocks();
+    delete (window as { google?: unknown }).google;
   });
 
   it("renders Google, Apple (disabled), Email, and Phone in that order", async () => {
@@ -73,6 +74,7 @@ describe("AuthEntryFlow", () => {
     fireEvent.click(screen.getByRole("button", { name: /verify & continue/i }));
 
     await waitFor(() => expect(api.verifyOtp).toHaveBeenCalledWith("+919999999999", "654321", undefined));
+    await waitFor(() => expect(api.getMe).toHaveBeenCalled());
   });
 
   it("shows an inline error when phone OTP verification fails", async () => {
@@ -90,6 +92,23 @@ describe("AuthEntryFlow", () => {
     await waitFor(() => expect(screen.getByText(/invalid or expired otp/i)).toBeInTheDocument());
   });
 
+  it("clears a stale error when navigating back from a failed phone OTP attempt", async () => {
+    vi.mocked(api.requestOtp).mockResolvedValue({ message: "OTP sent.", otp: "654321" });
+    vi.mocked(api.verifyOtp).mockRejectedValue(new ApiError(401, "Invalid or expired OTP."));
+    renderFlow();
+    fireEvent.click(screen.getByRole("button", { name: /continue with phone/i }));
+    fireEvent.change(screen.getByLabelText(/mobile number/i), { target: { value: "+919999999999" } });
+    fireEvent.click(screen.getByRole("button", { name: /send verification code/i }));
+    await waitFor(() => screen.getByLabelText(/verification code/i));
+    fireEvent.change(screen.getByLabelText(/verification code/i), { target: { value: "000000" } });
+    fireEvent.click(screen.getByRole("button", { name: /verify & continue/i }));
+    await waitFor(() => expect(screen.getByText(/invalid or expired otp/i)).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("button", { name: /change number/i }));
+
+    expect(screen.queryByText(/invalid or expired otp/i)).not.toBeInTheDocument();
+  });
+
   it("moves from email entry through email OTP to login", async () => {
     vi.mocked(api.sendEmailOtp).mockResolvedValue({ message: "OTP sent.", otp: "111222" });
     vi.mocked(api.verifyEmailOtp).mockResolvedValue(NORMAL_SESSION);
@@ -105,6 +124,7 @@ describe("AuthEntryFlow", () => {
     fireEvent.click(screen.getByRole("button", { name: /verify & continue/i }));
 
     await waitFor(() => expect(api.verifyEmailOtp).toHaveBeenCalledWith("a@example.com", "111222"));
+    await waitFor(() => expect(api.getMe).toHaveBeenCalled());
   });
 
   it("a Google credential with a normal session logs in directly, no intermediate screen", async () => {
@@ -120,7 +140,8 @@ describe("AuthEntryFlow", () => {
     await callback({ credential: "fake-id-token" });
 
     await waitFor(() => expect(api.verifyGoogleCredential).toHaveBeenCalledWith("fake-id-token"));
-    delete (window as { google?: unknown }).google;
+    await waitFor(() => expect(api.getMe).toHaveBeenCalled());
+    expect(screen.queryByText(/one more step/i)).not.toBeInTheDocument();
   });
 
   it("a phone_required response transitions to the phone step with phone-gate copy", async () => {
@@ -165,7 +186,6 @@ describe("AuthEntryFlow", () => {
     fireEvent.click(screen.getByRole("button", { name: /verify & continue/i }));
 
     await waitFor(() => expect(api.verifyOtp).toHaveBeenCalledWith("+919111111111", "999888", "gate-tok-2"));
-    delete (window as { google?: unknown }).google;
   });
 
   it("a link_required response transitions to the link-account screen instead of logging in", async () => {
