@@ -71,8 +71,8 @@ export function AuthEntryFlow() {
     try {
       const result = await requestOtp(phone);
       setIdentifier(phone);
-      setDevOtp(result.otp);
       goToStep("otp");
+      setDevOtp(result.otp);
     } catch (err) {
       setError(errorMessage(err, "Couldn't send the code. Try again."));
     } finally {
@@ -86,8 +86,8 @@ export function AuthEntryFlow() {
     try {
       const result = await sendEmailOtp(email);
       setIdentifier(email);
-      setDevOtp(result.otp);
       goToStep("email_otp");
+      setDevOtp(result.otp);
     } catch (err) {
       setError(errorMessage(err, "Couldn't send the code. Try again."));
     } finally {
