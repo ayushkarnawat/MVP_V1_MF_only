@@ -48,7 +48,7 @@ describe("auth api", () => {
     const [url, options] = mockFetch.mock.calls[0];
     expect(url).toContain("/auth/otp/verify");
     expect(JSON.parse(options.body as string)).toEqual({ phone_number: "+919999999999", otp: "123456" });
-    expect(result.session_token).toBe("tok-1");
+    expect("session_token" in result && result.session_token).toBe("tok-1");
   });
 
   it("getMe attaches the stored token as a Bearer header", async () => {
