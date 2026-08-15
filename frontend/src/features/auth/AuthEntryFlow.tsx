@@ -46,16 +46,23 @@ export function AuthEntryFlow() {
   // returns link_required.
   const [linkInfo, setLinkInfo] = useState<LinkInfo | null>(null);
 
-  const handleSelectPhone = () => {
+  // Helper to navigate between steps while clearing stale error/devOtp state.
+  // Used for back/resend/forward navigation, not for mid-async-operation
+  // state changes (those use raw setError(null) at handler entry).
+  const goToStep = (next: Step) => {
     setError(null);
+    setDevOtp(null);
+    setStep(next);
+  };
+
+  const handleSelectPhone = () => {
     setPhoneGateToken(null);
     setPhoneGatePrefillEmail(null);
-    setStep("phone");
+    goToStep("phone");
   };
 
   const handleSelectEmail = () => {
-    setError(null);
-    setStep("email");
+    goToStep("email");
   };
 
   const handlePhoneSubmit = async (phone: string) => {
@@ -65,7 +72,7 @@ export function AuthEntryFlow() {
       const result = await requestOtp(phone);
       setIdentifier(phone);
       setDevOtp(result.otp);
-      setStep("otp");
+      goToStep("otp");
     } catch (err) {
       setError(errorMessage(err, "Couldn't send the code. Try again."));
     } finally {
@@ -80,7 +87,7 @@ export function AuthEntryFlow() {
       const result = await sendEmailOtp(email);
       setIdentifier(email);
       setDevOtp(result.otp);
-      setStep("email_otp");
+      goToStep("email_otp");
     } catch (err) {
       setError(errorMessage(err, "Couldn't send the code. Try again."));
     } finally {
@@ -116,7 +123,7 @@ export function AuthEntryFlow() {
       if (isPhoneRequired(result)) {
         setPhoneGateToken(result.phone_required.token);
         setPhoneGatePrefillEmail(result.phone_required.prefill_email);
-        setStep("phone");
+        goToStep("phone");
         return;
       }
       if (isLinkRequired(result)) {
@@ -125,7 +132,7 @@ export function AuthEntryFlow() {
           matchedEmail: result.link_required.matched_email,
           existingMethod: result.link_required.existing_method,
         });
-        setStep("link_account");
+        goToStep("link_account");
         return;
       }
       await login(result.session_token);
@@ -144,7 +151,7 @@ export function AuthEntryFlow() {
       if (isPhoneRequired(result)) {
         setPhoneGateToken(result.phone_required.token);
         setPhoneGatePrefillEmail(result.phone_required.prefill_email);
-        setStep("phone");
+        goToStep("phone");
         return;
       }
       if (isLinkRequired(result)) {
@@ -153,7 +160,7 @@ export function AuthEntryFlow() {
           matchedEmail: result.link_required.matched_email,
           existingMethod: result.link_required.existing_method,
         });
-        setStep("link_account");
+        goToStep("link_account");
         return;
       }
       await login(result.session_token);
@@ -185,7 +192,7 @@ export function AuthEntryFlow() {
               context={phoneGateToken ? "phoneGate" : "primary"}
               phoneGatePrefillEmail={phoneGatePrefillEmail}
               onSubmit={handlePhoneSubmit}
-              onBack={phoneGateToken ? undefined : () => setStep("landing")}
+              onBack={phoneGateToken ? undefined : () => goToStep("landing")}
               submitting={submitting}
               error={error}
             />
@@ -194,8 +201,8 @@ export function AuthEntryFlow() {
             <OtpVerify
               phoneNumber={identifier}
               onSubmit={handlePhoneOtpSubmit}
-              onResend={() => setStep("phone")}
-              onBack={() => setStep("phone")}
+              onResend={() => goToStep("phone")}
+              onBack={() => goToStep("phone")}
               submitting={submitting}
               error={error}
               devOtp={devOtp}
@@ -204,7 +211,7 @@ export function AuthEntryFlow() {
           {step === "email" && (
             <EmailEntry
               onSubmit={handleEmailSubmit}
-              onBack={() => setStep("landing")}
+              onBack={() => goToStep("landing")}
               submitting={submitting}
               error={error}
             />
@@ -213,8 +220,8 @@ export function AuthEntryFlow() {
             <EmailOtpVerify
               email={identifier}
               onSubmit={handleEmailOtpSubmit}
-              onResend={() => setStep("email")}
-              onBack={() => setStep("email")}
+              onResend={() => goToStep("email")}
+              onBack={() => goToStep("email")}
               submitting={submitting}
               error={error}
               devOtp={devOtp}
