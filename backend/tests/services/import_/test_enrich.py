@@ -3,7 +3,8 @@ from unittest.mock import AsyncMock, patch
 
 import httpx
 
-from app.services.import_.enrich import MfApiClient
+from app.services.import_ import enrich
+from app.services.import_.enrich import MFAPI_BASE, MfApiClient
 
 
 def test_resolve_scheme_trusts_cas_amfi_code(tmp_path):
@@ -39,9 +40,47 @@ def test_get_scheme_category_happy_path(tmp_path):
         "meta": {"scheme_category": "Equity Scheme - Flexi Cap Fund"},
         "data": [],
     }
-    with patch.object(client, "_get_json", new=AsyncMock(return_value=mock_response)):
+    get_json = AsyncMock(return_value=mock_response)
+    with patch.object(client, "_get_json", new=get_json):
         category = asyncio.run(client.get_scheme_category("125497"))
     assert category == "Equity Scheme - Flexi Cap Fund"
+    get_json.assert_awaited_once_with(f"{MFAPI_BASE}/mf/125497/latest")
+
+
+def test_get_json_lazily_creates_and_reuses_shared_client():
+    class FakeResponse:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"ok": True}
+
+    class FakeAsyncClient:
+        def __init__(self):
+            self.get = AsyncMock(return_value=FakeResponse())
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+    shared_client = FakeAsyncClient()
+    client = MfApiClient()
+
+    async def fetch_twice():
+        await client._get_json("https://example.test/first")
+        await client._get_json("https://example.test/second")
+
+    with (
+        patch.object(enrich, "_http_client", None, create=True),
+        patch.object(enrich.httpx, "AsyncClient", return_value=shared_client) as client_factory,
+    ):
+        asyncio.run(fetch_twice())
+
+    client_factory.assert_called_once_with(timeout=30.0)
+    assert shared_client.get.await_args_list[0].args == ("https://example.test/first",)
+    assert shared_client.get.await_args_list[1].args == ("https://example.test/second",)
 
 
 def test_get_scheme_category_missing_returns_none(tmp_path):

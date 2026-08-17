@@ -91,6 +91,87 @@ def test_build_import_preview_confident_amfi_match_needs_no_override():
     assert preview.transaction_count == 1
 
 
+def _parse_result_with_schemes(*schemes):
+    sample = _sample_parse_result()
+    return ParseResult(
+        investor=sample.investor, schemes=list(schemes), transactions=[],
+        raw_json=sample.raw_json, parse_warnings=sample.parse_warnings,
+        cas_type=sample.cas_type, file_type=sample.file_type,
+    )
+
+
+def _parsed_scheme(name: str, amfi: str, folio: str):
+    return ParsedScheme(
+        name=name, isin=f"ISIN-{amfi}", amfi=amfi, scheme_type="EQUITY",
+        folio=folio, amc="Test AMC", transaction_count=0, arn_code=None,
+        plan_name_variant="direct", plan_type="direct",
+    )
+
+
+def test_build_import_preview_resolves_schemes_concurrently():
+    from app.services.import_.enrich import SchemeMatch
+
+    schemes = (
+        _parsed_scheme("First Fund", "100001", "folio-1"),
+        _parsed_scheme("Second Fund", "100002", "folio-2"),
+    )
+    client = AsyncMock()
+    both_resolutions_started = asyncio.Event()
+    started: set[str] = set()
+
+    async def resolve(name, amfi):
+        started.add(amfi)
+        if len(started) == 2:
+            both_resolutions_started.set()
+        await asyncio.wait_for(both_resolutions_started.wait(), timeout=1)
+        return SchemeMatch(amfi_code=amfi, scheme_name=name, confidence=1.0), "confirmed"
+
+    client.resolve_scheme.side_effect = resolve
+    client.get_scheme_category.return_value = "Equity"
+
+    preview = asyncio.run(build_import_preview(
+        _parse_result_with_schemes(*schemes), "test.pdf", client=client,
+    ))
+
+    assert [scheme.name for scheme in preview.schemes] == ["First Fund", "Second Fund"]
+
+
+def test_build_import_preview_preserves_input_order_when_resolution_finishes_out_of_order():
+    from app.services.import_.enrich import SchemeMatch
+
+    schemes = (
+        _parsed_scheme("Slow First Fund", "100001", "folio-1"),
+        _parsed_scheme("Fast Second Fund", "100002", "folio-2"),
+    )
+    client = AsyncMock()
+    second_finished = asyncio.Event()
+
+    async def resolve(name, amfi):
+        if amfi == "100001":
+            await asyncio.wait_for(second_finished.wait(), timeout=1)
+            confidence = 0.93
+        else:
+            confidence = 0.99
+            second_finished.set()
+        return SchemeMatch(amfi_code=amfi, scheme_name=f"Resolved {name}", confidence=confidence), "confirmed"
+
+    async def category(amfi):
+        return f"Category {amfi}"
+
+    client.resolve_scheme.side_effect = resolve
+    client.get_scheme_category.side_effect = category
+
+    preview = asyncio.run(build_import_preview(
+        _parse_result_with_schemes(*schemes), "test.pdf", client=client,
+    ))
+
+    assert [scheme.name for scheme in preview.schemes] == ["Slow First Fund", "Fast Second Fund"]
+    assert [scheme.suggested_name for scheme in preview.schemes] == [
+        "Resolved Slow First Fund", "Resolved Fast Second Fund",
+    ]
+    assert [scheme.category for scheme in preview.schemes] == ["Category 100001", "Category 100002"]
+
+
 def test_confirm_import_creates_scheme_folio_and_transaction():
     db = _session()
     member = _household_member(db)

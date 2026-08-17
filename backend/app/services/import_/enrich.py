@@ -8,6 +8,7 @@ difflib.SequenceMatcher per PRD-01 Constraints — no new dependency.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 from dataclasses import dataclass
@@ -21,6 +22,18 @@ import httpx
 MFAPI_BASE = "https://api.mfapi.in"
 DEFAULT_CACHE_DIR = Path(__file__).resolve().parent.parent.parent.parent / ".cache" / "mfapi"
 SCHEMES_TTL = timedelta(hours=24)
+
+_http_client: httpx.AsyncClient | None = None
+_http_client_lock = asyncio.Lock()
+
+
+async def _get_http_client() -> httpx.AsyncClient:
+    global _http_client
+    if _http_client is None:
+        async with _http_client_lock:
+            if _http_client is None:
+                _http_client = httpx.AsyncClient(timeout=30.0)
+    return _http_client
 
 
 @dataclass
@@ -59,10 +72,10 @@ class MfApiClient:
         cache_path.write_text(json.dumps(data), encoding="utf-8")
 
     async def _get_json(self, url: str) -> Any:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            resp = await client.get(url)
-            resp.raise_for_status()
-            return resp.json()
+        client = await _get_http_client()
+        resp = await client.get(url)
+        resp.raise_for_status()
+        return resp.json()
 
     async def get_scheme_list(self) -> list[dict[str, Any]]:
         if self._schemes is not None:
@@ -112,7 +125,7 @@ class MfApiClient:
             data = json.loads(cache_path.read_text(encoding="utf-8"))
         else:
             try:
-                data = await self._get_json(f"{MFAPI_BASE}/mf/{amfi_code}")
+                data = await self._get_json(f"{MFAPI_BASE}/mf/{amfi_code}/latest")
             except httpx.HTTPError:
                 return None
             self._write_cache(cache_path, data)
