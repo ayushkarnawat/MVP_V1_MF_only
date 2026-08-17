@@ -107,6 +107,18 @@ handoff doc, and the mandatory adversarial-review gate before any
 Codex-implemented change is considered done. Full design:
 `Docs/superpowers/specs/2026-08-12-model-orchestration-skill-design.md`.
 
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues on `ayushkarnawat/MVP_V1_MF_only`, via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Domain docs
+
+Not the generic `CONTEXT.md`/`docs/adr/` layout — points at this repo's existing `/Docs`
+system (schema, TDD, ADRs, PRDs, dated specs under `Docs/superpowers/`, `session.md`)
+instead. See `docs/agents/domain.md`.
+
 ## Session State
 
 *(Updated 2026-08-14. See `session.md` at repo root for the full detailed history —
