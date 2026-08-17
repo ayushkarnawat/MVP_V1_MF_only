@@ -29,7 +29,24 @@ export class ApiError extends Error {
 // postOpeningBalance) call `invalidateApiCache()` explicitly rather than
 // waiting out the window.
 const GET_CACHE_TTL_MS = 60_000;
-const _getCache = new Map<string, { response: Response; expiresAt: number }>();
+type CachedResponse = {
+  body: ArrayBuffer;
+  headers: [string, string][];
+  status: number;
+  statusText: string;
+  expiresAt: number;
+};
+
+const _getCache = new Map<string, CachedResponse>();
+
+function responseFromCache(cached: CachedResponse): Response {
+  const body = cached.status === 204 || cached.status === 205 ? null : cached.body.slice(0);
+  return new Response(body, {
+    status: cached.status,
+    statusText: cached.statusText,
+    headers: cached.headers,
+  });
+}
 
 export function invalidateApiCache(): void {
   _getCache.clear();
@@ -40,13 +57,27 @@ export async function cachedFetch(url: string, options: RequestInit = {}): Promi
   if (isGet) {
     const cached = _getCache.get(url);
     if (cached && cached.expiresAt > Date.now()) {
-      return cached.response.clone();
+      return responseFromCache(cached);
     }
   }
 
   const response = await fetch(url, options);
   if (isGet && response.ok) {
-    _getCache.set(url, { response: response.clone(), expiresAt: Date.now() + GET_CACHE_TTL_MS });
+    // `fetch()` resolves when response headers arrive, before its body is
+    // necessarily complete. Caching a live Response clone lets a later
+    // AbortController cancellation poison that cached body stream. Buffer
+    // the body first and cache detached bytes so only fully completed
+    // responses can be reused after rapid route changes.
+    const body = await response.arrayBuffer();
+    const cached: CachedResponse = {
+      body,
+      headers: Array.from(response.headers.entries()),
+      status: response.status,
+      statusText: response.statusText,
+      expiresAt: Date.now() + GET_CACHE_TTL_MS,
+    };
+    _getCache.set(url, cached);
+    return responseFromCache(cached);
   }
   return response;
 }
