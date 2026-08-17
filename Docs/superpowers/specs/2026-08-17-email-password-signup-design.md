@@ -145,7 +145,7 @@ account" / "Log in") rather than trying to auto-detect — sidesteps needing
 a "does this email exist" check entirely. Actual screen/copy design is a
 frontend-plan-time decision, flagged here so it isn't lost.
 
-### 4a. Why password-signup's email is always treated as unverified
+### 4a. Why password-signup's email is always treated as unverified — and what that concretely means
 
 Treating a freshly-typed signup email as "verified" for collision purposes
 would reopen the exact vulnerability class this project's own final backend
@@ -153,13 +153,47 @@ review already found and fixed for Google (Critical Finding 1: an
 unverified email claim getting laundered into a verified-ownership signal,
 letting an attacker capture a victim's later real signup). Nothing
 cryptographically proves the signer controls the mailbox at
-password-signup time — only a password-reset-style confirmation would —
-so `email_verified=False` is passed unconditionally, exactly matching how
+password-signup time — only an actual confirmation click does (§4c) — so
+`email_verified=False` is passed unconditionally, exactly matching how
 Google's own `email_verified: false` claim is already handled. Consequence:
 email+password can never `auto_link`/`link_required` by email match at
-signup. An existing account can still end up with an email+password
-credential via the **normal step-up-linking path** the collision system
-already has (§4c) — just never silently at signup time.
+signup.
+
+**Traced explicitly, not just asserted by analogy** (this is the scenario
+where the entered email already belongs to someone else's account, via
+phone, Google, or a prior password signup):
+
+- **A prior `EMAIL_PASSWORD` identity already exists for that email**:
+  rejected up front with 409 (§4, unchanged, already explicit).
+- **The email is tied to an account via phone or Google, but has no
+  `EMAIL_PASSWORD` identity yet**: the existing (unmodified)
+  `/auth/otp/verify` route logic decides what happens at phone-gate
+  completion based on the **phone number entered**, not the email —
+  `find_or_backfill_phone_identity` on that phone number. If it matches
+  an existing account, the new email+password identity attaches to it
+  (`attach_pending_identity`, no duplicate). If it doesn't — because the
+  real owner used a different phone, or because someone else typed a
+  stranger's email with their own phone number — `complete_phone_gate_
+  signup` creates a **brand-new, empty `User` row**, and the
+  `AuthIdentity` row's `provider_subject` (the login identifier) is set
+  to whatever email was typed, `email` itself staying `NULL` since it was
+  never verified.
+
+**No hijack of a real account is possible either way** — a fresh signup
+never attaches to an existing account unless the entered *phone number*
+matches, and controlling a phone number is a materially harder bar than
+typing an email string. What IS possible: someone typing a stranger's
+email creates their own new, empty, unrelated account whose password
+identity happens to be keyed by that stranger's email — a namespace-
+squatting nuisance (the real owner would 409 if they later tried to sign
+up with their own email), not an account compromise. §4c closes this: the
+squatted identity can never be used to log in until the real mailbox owner
+proves control of it, and a real owner can self-service reclaim it via
+password reset (§3) even without ever seeing this design doc.
+
+An existing account can still gain an email+password credential via the
+**normal step-up-linking path** the collision system already has (§4d) —
+just never silently at signup time.
 
 ### 4b. Threading the password hash through the phone gate
 
@@ -179,7 +213,66 @@ newly-created `AuthIdentity` row (harmless `None` for every non-password
 provider). This is the smallest change that doesn't touch the other three
 providers' code path at all beyond one unused default parameter.
 
-### 4c. Step-up linking (existing account adds email+password later)
+### 4c. Email confirmation, decoupled from signup — closes §4a's squatting gap
+
+Signup and the phone gate complete **immediately, with zero added
+friction** — the account is created and a session issued right away,
+identical to Google's UX today. What's gated is narrower: `AuthIdentity`
+gains `email_confirmed_at: TIMESTAMPTZ NULLABLE` (populated only for
+`EMAIL_PASSWORD` rows — every other provider is inherently verified at
+creation, so this column is permanently `NULL`/irrelevant there), and
+**only `/auth/login/email` checks it** — a password login attempt against
+an identity with `email_confirmed_at IS NULL` fails with a distinct
+message ("Please confirm your email before signing in with a password —
+check your inbox, or resend the link") rather than the generic
+wrong-credentials 401. This is safe to disclose distinctly: reaching that
+check already required the submitted password to match the stored hash,
+so only someone who already knows the correct password — the legitimate
+account holder, mid-confirmation — ever sees it. Until confirmed, the
+account remains fully usable via the phone number the gate already
+verified.
+
+**What actually sends email, stated explicitly rather than left to
+inference:** grepped the whole backend — today, `send_email` has exactly
+one caller anywhere (`otp.py`'s email-OTP delivery, removed by §1). This
+spec adds exactly two, and **nothing else in this codebase sends email to
+an `EMAIL_PASSWORD` address, confirmed or not** — no welcome email, no
+signup notification, nothing:
+1. **The confirmation link** (new) — sent once, immediately after
+   `complete_phone_gate_signup`/`attach_pending_identity` finish for a
+   password identity. Its entire purpose is reaching an unconfirmed
+   mailbox, so it's dispatched regardless of `email_confirmed_at` by
+   design.
+2. **The password-reset link** (§3) — also dispatched regardless of
+   confirmation status. This isn't an oversight needing a gate: resetting
+   a password by clicking a link mailed to that exact address is exactly
+   as strong a proof of mailbox control as the confirmation link itself,
+   so §3's reset flow is revised to **also set `email_confirmed_at`** (if
+   still `NULL`) the moment a reset succeeds. This is what makes squatting
+   self-service-recoverable: a real owner who discovers their email is
+   squatted (they 409 on their own signup attempt, get suspicious, hit
+   "forgot password") can reclaim login access to that identity row
+   without ever filing a support ticket — they end up controlling a
+   fresh, empty account under that email, not their real one, but they're
+   no longer permanently locked out of using that email for password
+   login going forward.
+
+**This must not be a silent background event.** A user who signs up with
+email+password has "I log in with email+password" as their mental model;
+if phone-gate completion gives no acknowledgment, the first time they log
+out and try password login, "please confirm your email" would be a
+confusing dead end with no memory of ever being told to expect it. The
+frontend needs a lightweight, non-blocking acknowledgment right after gate
+completion (e.g., "We've sent a confirmation link to {email} — click it to
+enable password login. You're already signed in via your phone."). No new
+backend response field is needed for this — the frontend already knows
+locally that it just drove an email+password signup through the gate, so
+it can show this from its own flow state without the backend echoing
+anything back. Flagged here so the requirement isn't lost when the
+frontend plan gets written — the actual banner/copy is still a
+frontend-plan-time decision, consistent with §4's other frontend note.
+
+### 4d. Step-up linking (existing account adds email+password later)
 
 Out of scope for this spec — the user didn't ask for an "add a login
 method" settings feature, and the mandatory-phone-gate + signup/login
@@ -254,7 +347,7 @@ file is append-only) explicitly marking the reversal:
 
 ## Open item carried forward (not blocking, flagged per this session's own convention)
 
-§4c (adding a password credential to an existing account after signup) is
+§4d (adding a password credential to an existing account after signup) is
 explicitly out of scope — noted so it doesn't get silently assumed to
 exist when the frontend team goes looking for a "change my login method"
 settings flow later.
