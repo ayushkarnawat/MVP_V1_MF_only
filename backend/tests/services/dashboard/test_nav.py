@@ -2,7 +2,7 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 from decimal import Decimal
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 from sqlalchemy import create_engine
@@ -38,6 +38,110 @@ def _scheme(db, amfi_code="125497"):
 
 def _mfapi_payload(entries: list[tuple[str, str]]) -> dict:
     return {"meta": {}, "data": [{"date": d, "nav": n} for d, n in entries]}
+
+
+def test_fetch_nav_history_deduplicates_concurrent_calls_for_same_amfi_code():
+    import asyncio
+
+    fetch_started = asyncio.Event()
+    release_fetch = asyncio.Event()
+
+    async def fetch(amfi_code: str):
+        fetch_started.set()
+        await asyncio.wait_for(release_fetch.wait(), timeout=1)
+        return [(date(2024, 1, 15), Decimal("50.1234"))]
+
+    async def run_calls():
+        first = asyncio.create_task(nav_module._fetch_nav_history("125497"))
+        await asyncio.wait_for(fetch_started.wait(), timeout=1)
+        second = asyncio.create_task(nav_module._fetch_nav_history("125497"))
+        await asyncio.sleep(0)
+        release_fetch.set()
+        return await asyncio.gather(first, second)
+
+    with patch.object(nav_module, "_fetch_nav_history_uncached", new=AsyncMock(side_effect=fetch)) as uncached:
+        results = asyncio.run(run_calls())
+
+    assert results == [[(date(2024, 1, 15), Decimal("50.1234"))]] * 2
+    uncached.assert_awaited_once_with("125497")
+
+
+def test_fetch_nav_history_fetches_different_amfi_codes_concurrently():
+    import asyncio
+
+    both_fetches_started = asyncio.Event()
+    started: set[str] = set()
+
+    async def fetch(amfi_code: str):
+        started.add(amfi_code)
+        if len(started) == 2:
+            both_fetches_started.set()
+        await asyncio.wait_for(both_fetches_started.wait(), timeout=1)
+        return [(date(2024, 1, 15), Decimal(amfi_code))]
+
+    async def run_calls():
+        return await asyncio.gather(
+            nav_module._fetch_nav_history("111111"),
+            nav_module._fetch_nav_history("222222"),
+        )
+
+    with patch.object(nav_module, "_fetch_nav_history_uncached", new=AsyncMock(side_effect=fetch)) as uncached:
+        results = asyncio.run(run_calls())
+
+    assert results == [
+        [(date(2024, 1, 15), Decimal("111111"))],
+        [(date(2024, 1, 15), Decimal("222222"))],
+    ]
+    assert uncached.await_count == 2
+
+
+def test_fetch_nav_history_cleans_up_completed_single_flight():
+    import asyncio
+
+    fetch_started = asyncio.Event()
+    release_fetch = asyncio.Event()
+
+    async def fetch(amfi_code: str):
+        fetch_started.set()
+        await asyncio.wait_for(release_fetch.wait(), timeout=1)
+        return [(date(2024, 1, 15), Decimal("50.1234"))]
+
+    async def run_calls():
+        first = asyncio.create_task(nav_module._fetch_nav_history("125497"))
+        await asyncio.wait_for(fetch_started.wait(), timeout=1)
+        second = asyncio.create_task(nav_module._fetch_nav_history("125497"))
+        await asyncio.sleep(0)
+        release_fetch.set()
+        first_results = await asyncio.gather(first, second)
+        third_result = await nav_module._fetch_nav_history("125497")
+        return first_results, third_result
+
+    with patch.object(nav_module, "_fetch_nav_history_uncached", new=AsyncMock(side_effect=fetch)) as uncached:
+        asyncio.run(run_calls())
+
+    assert uncached.await_count == 2
+
+
+def test_fetch_nav_history_uncached_reuses_lazily_created_client():
+    import asyncio
+
+    response = MagicMock()
+    response.json.return_value = _mfapi_payload([("15-01-2024", "50.1234")])
+    client = AsyncMock()
+    client.get.return_value = response
+
+    async def run_calls():
+        await nav_module._fetch_nav_history_uncached("111111")
+        await nav_module._fetch_nav_history_uncached("222222")
+
+    with (
+        patch.object(nav_module, "_nav_http_client", None),
+        patch("app.services.dashboard.nav.httpx.AsyncClient", return_value=client) as client_factory,
+    ):
+        asyncio.run(run_calls())
+
+    client_factory.assert_called_once()
+    assert client.get.await_count == 2
 
 
 def test_fetches_and_caches_on_first_call():

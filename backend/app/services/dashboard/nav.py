@@ -42,12 +42,30 @@ _nav_warm_clock = time.monotonic
 _nav_warm_cache: dict[uuid.UUID, float] = {}
 _nav_warm_lock = threading.Lock()
 
+_nav_http_client: httpx.AsyncClient | None = None
+_nav_http_client_lock = threading.Lock()
+_nav_fetches_in_flight: dict[str, asyncio.Task[list[tuple[date, Decimal]]]] = {}
+_nav_fetches_in_flight_lock = threading.Lock()
 
-async def _fetch_nav_history(amfi_code: str) -> list[tuple[date, Decimal]]:
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        resp = await client.get(f"{MFAPI_BASE}/mf/{amfi_code}")
-        resp.raise_for_status()
-        payload = resp.json()
+
+def _get_nav_http_client() -> httpx.AsyncClient:
+    global _nav_http_client
+
+    if _nav_http_client is None:
+        with _nav_http_client_lock:
+            if _nav_http_client is None:
+                _nav_http_client = httpx.AsyncClient(
+                    timeout=30,
+                    limits=httpx.Limits(max_connections=100, max_keepalive_connections=100),
+                )
+    return _nav_http_client
+
+
+async def _fetch_nav_history_uncached(amfi_code: str) -> list[tuple[date, Decimal]]:
+    client = _get_nav_http_client()
+    resp = await client.get(f"{MFAPI_BASE}/mf/{amfi_code}")
+    resp.raise_for_status()
+    payload = resp.json()
 
     rows: list[tuple[date, Decimal]] = []
     for entry in payload.get("data", []):
@@ -55,6 +73,27 @@ async def _fetch_nav_history(amfi_code: str) -> list[tuple[date, Decimal]]:
         parsed_date = datetime.strptime(entry["date"], "%d-%m-%Y").date()
         rows.append((parsed_date, Decimal(entry["nav"])))
     return rows
+
+
+def _remove_completed_nav_fetch(
+    amfi_code: str, fetch: asyncio.Task[list[tuple[date, Decimal]]]
+) -> None:
+    with _nav_fetches_in_flight_lock:
+        if _nav_fetches_in_flight.get(amfi_code) is fetch:
+            del _nav_fetches_in_flight[amfi_code]
+
+
+async def _fetch_nav_history(amfi_code: str) -> list[tuple[date, Decimal]]:
+    with _nav_fetches_in_flight_lock:
+        fetch = _nav_fetches_in_flight.get(amfi_code)
+        if fetch is None:
+            fetch = asyncio.create_task(_fetch_nav_history_uncached(amfi_code))
+            _nav_fetches_in_flight[amfi_code] = fetch
+            fetch.add_done_callback(
+                lambda completed, code=amfi_code: _remove_completed_nav_fetch(code, completed)
+            )
+
+    return await asyncio.shield(fetch)
 
 
 def _upsert_nav_history(db: Session, scheme_id: uuid.UUID, rows: list[tuple[date, Decimal]]) -> None:
