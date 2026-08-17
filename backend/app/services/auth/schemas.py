@@ -121,3 +121,32 @@ class MeResponse(BaseModel):
     onboarding_completed: bool
     investor_type: InvestorType | None
     primary_goal: PrimaryGoal | None
+
+
+class ForgotPasswordBody(BaseModel):
+    email: str
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def _normalize_email(cls, value: object) -> object:
+        return normalize_email(value)
+
+
+class ForgotPasswordResponse(BaseModel):
+    message: str
+
+
+class ResetPasswordBody(BaseModel):
+    token: str
+    new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def _min_length(cls, value: str) -> str:
+        if len(value) < 8:
+            raise ValueError("Password must be at least 8 characters.")
+        return value
+
+
+class ResetPasswordResponse(BaseModel):
+    message: str

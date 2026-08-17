@@ -17,10 +17,18 @@ from app.services.auth.identity import (
     record_identity,
     resolve_new_verified_identity,
 )
+from app.services.auth.email_provider import get_email_provider
 from app.services.auth.google_oauth import GoogleTokenVerificationError, verify_google_id_token
 from app.services.auth.otp import OtpRequestThrottledError, OtpVerificationError, create_otp_request, verify_otp
 from app.services.auth.password import hash_password, verify_password
+from app.services.auth.password_reset import (
+    PasswordResetTokenError,
+    consume_password_reset_token,
+    create_password_reset_token,
+)
 from app.services.auth.schemas import (
+    ForgotPasswordBody,
+    ForgotPasswordResponse,
     GoogleAuthBody,
     LinkRequiredDetail,
     LinkRequiredResponse,
@@ -33,6 +41,8 @@ from app.services.auth.schemas import (
     PhoneRequiredDetail,
     PhoneRequiredResponse,
     PROVIDER_TO_METHOD_LABEL,
+    ResetPasswordBody,
+    ResetPasswordResponse,
     SessionRefreshResponse,
     SignupEmailBody,
     UpdateMeBody,
@@ -110,6 +120,31 @@ def login_email(body: LoginEmailBody, db: DbSession = Depends(get_db)):
         return _session_response(user_id, AuthIdentityProvider.EMAIL_PASSWORD, db)
 
     return _session_response(existing.user_id, AuthIdentityProvider.EMAIL_PASSWORD, db)
+
+
+@router.post("/password/forgot", response_model=ForgotPasswordResponse)
+def forgot_password(body: ForgotPasswordBody, db: DbSession = Depends(get_db)):
+    # Always 200 regardless of whether the email matches an account —
+    # anti-enumeration (Design Spec §3).
+    identity = find_identity_by_subject(db, AuthIdentityProvider.EMAIL_PASSWORD, body.email)
+    if identity is not None:
+        _, raw_token = create_password_reset_token(db, identity.user_id)
+        reset_link = f"https://app.unifolio.in/reset-password?token={raw_token}"
+        get_email_provider().send_email(
+            to=body.email,
+            subject="Reset your Unifolio password",
+            body=f"Click this link to reset your password: {reset_link}. It expires in 30 minutes.",
+        )
+    return ForgotPasswordResponse(message="If that email is registered, a reset link has been sent.")
+
+
+@router.post("/password/reset", response_model=ResetPasswordResponse)
+def reset_password(body: ResetPasswordBody, db: DbSession = Depends(get_db)):
+    try:
+        consume_password_reset_token(db, body.token, body.new_password)
+    except PasswordResetTokenError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+    return ResetPasswordResponse(message="Your password has been reset.")
 
 
 #otp authentication
