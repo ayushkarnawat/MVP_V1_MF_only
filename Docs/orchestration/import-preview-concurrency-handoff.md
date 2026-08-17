@@ -1,6 +1,6 @@
 # Handoff: import-preview-concurrency
 
-**Status:** REVIEW (implemented + independently verified at `2a76b35`; awaiting adversarial review)
+**Status:** DONE (implemented at `2a76b35`; round 1 adversarial review returned request-changes for a real `asyncio.gather`-introduced race in `get_scheme_list()` — fixed at `dd62cff` along with 1 of 2 requested test additions; scoped re-review of `dd62cff` approved, Major finding confirmed closed, both new tests confirmed non-tautological, scope confirmed clean, the one deliberately-skipped Minor test explicitly accepted as a non-blocking documented gap. Full backend suite 368 passed/2 skipped, independently verified by the orchestrator, zero regressions.)
 **Parent plan:** none (direct diagnosis this session, sibling finding to
 `nav-fetch-connection-reuse-handoff.md` — same overall investigation into
 why the first dashboard load after signup/CAS import is slow, but a
