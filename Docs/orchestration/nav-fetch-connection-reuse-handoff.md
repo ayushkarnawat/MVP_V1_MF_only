@@ -1,6 +1,6 @@
 # Handoff: nav-fetch-connection-reuse
 
-**Status:** OPEN
+**Status:** REVIEW (implemented + independently verified at `d4700b7`; awaiting adversarial review)
 **Parent plan:** none (direct diagnosis this session, follow-on to `dashboard-nav-perf-handoff.md`, whose Status is DONE — this is a new, separately-scoped finding in the same file, not a reopening of that doc's rounds)
 
 ## Background
