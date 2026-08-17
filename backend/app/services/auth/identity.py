@@ -24,7 +24,8 @@ from app.models.user import User
 # shown or selected.
 PROVIDER_PRECEDENCE: dict[AuthIdentityProvider, int] = {
     AuthIdentityProvider.GOOGLE: 0,
-    AuthIdentityProvider.EMAIL_OTP: 1,
+    AuthIdentityProvider.EMAIL_OTP: 1,  # kept, unused going forward — see EMAIL_PASSWORD below
+    AuthIdentityProvider.EMAIL_PASSWORD: 1,  # occupies EMAIL_OTP's old precedence slot — same concept (an email-based method), just password- instead of OTP-verified
     AuthIdentityProvider.PHONE_OTP: 2,
 }
 
@@ -147,6 +148,7 @@ def create_pending_verification(
     email: str | None,
     email_verified: bool,
     matched_user_id: uuid.UUID | None,
+    password_hash: str | None = None,
 ) -> tuple[PendingIdentityVerification, str]:
     raw_token = secrets.token_urlsafe(PENDING_VERIFICATION_TOKEN_BYTES)
     now = datetime.now(timezone.utc)
@@ -155,6 +157,7 @@ def create_pending_verification(
         provider_subject=provider_subject,
         email=email,
         email_verified=email_verified,
+        password_hash=password_hash,
         matched_user_id=matched_user_id,
         token_hash=_hash_pending_token(raw_token),
         expires_at=now + timedelta(minutes=PENDING_VERIFICATION_TTL_MINUTES),
@@ -209,7 +212,13 @@ def complete_phone_gate_signup(db: DbSession, raw_token: str, phone_number: str)
     db.add(user)
     db.flush()
     record_identity(db, user.id, AuthIdentityProvider.PHONE_OTP, phone_number, None, now, commit=False)
-    record_identity(db, user.id, pending.provider, pending.provider_subject, verified_email, now, commit=False)
+    new_identity = record_identity(
+        db, user.id, pending.provider, pending.provider_subject, verified_email, now, commit=False
+    )
+    # password_hash is only ever non-None on an EMAIL_PASSWORD pending
+    # record (2026-08-17 email-password design spec §4b); harmless no-op
+    # for every other provider.
+    new_identity.password_hash = pending.password_hash
     db.delete(pending)
     db.commit()
     return user.id
@@ -243,7 +252,10 @@ def attach_pending_identity(db: DbSession, raw_token: str, resolved_user_id: uui
     verified_email = pending.email if pending.email_verified else None
 
     now = datetime.now(timezone.utc)
-    record_identity(db, resolved_user_id, pending.provider, pending.provider_subject, verified_email, now, commit=False)
+    new_identity = record_identity(
+        db, resolved_user_id, pending.provider, pending.provider_subject, verified_email, now, commit=False
+    )
+    new_identity.password_hash = pending.password_hash
     # Explicit flush: production and test sessions are both autoflush=False, so
     # without this the identity we just added is invisible to
     # refresh_denormalized_email's own query and users.email is silently never

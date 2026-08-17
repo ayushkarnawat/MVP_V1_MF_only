@@ -355,3 +355,117 @@ def test_complete_phone_gate_signup_rolls_back_atomically_on_second_identity_fai
         .first()
         is not None
     )
+
+
+def test_pick_primary_identity_handles_email_password_without_a_keyerror():
+    db = _session()
+    now = datetime.now(timezone.utc)
+    user = User(id=uuid.uuid4(), phone_number="+919777777770", created_at=now)
+    db.add(user)
+    db.flush()
+    email_password_identity = AuthIdentity(
+        user_id=user.id,
+        provider=AuthIdentityProvider.EMAIL_PASSWORD,
+        provider_subject="precedence@example.com",
+        email=None,
+        password_hash="hashed",
+        email_confirmed_at=None,
+        identifier_verified_at=now,
+        created_at=now,
+        last_used_at=now,
+    )
+    phone_identity = AuthIdentity(
+        user_id=user.id,
+        provider=AuthIdentityProvider.PHONE_OTP,
+        provider_subject="+919777777770",
+        email=None,
+        identifier_verified_at=now,
+        created_at=now,
+        last_used_at=now,
+    )
+    db.add_all([email_password_identity, phone_identity])
+    db.commit()
+
+    result = pick_primary_identity([email_password_identity, phone_identity])
+
+    assert result.provider == AuthIdentityProvider.EMAIL_PASSWORD
+
+
+def test_create_pending_verification_stores_password_hash():
+    db = _session()
+    pending, raw_token = create_pending_verification(
+        db,
+        AuthIdentityProvider.EMAIL_PASSWORD,
+        "a@example.com",
+        "a@example.com",
+        False,
+        matched_user_id=None,
+        password_hash="hashed-value",
+    )
+    assert pending.password_hash == "hashed-value"
+
+
+def test_create_pending_verification_defaults_password_hash_to_none():
+    db = _session()
+    pending, raw_token = create_pending_verification(
+        db,
+        AuthIdentityProvider.GOOGLE,
+        "google-sub-123",
+        "a@example.com",
+        True,
+        matched_user_id=None,
+    )
+    assert pending.password_hash is None
+
+
+def test_complete_phone_gate_signup_copies_password_hash_onto_the_new_identity():
+    db = _session()
+    pending, raw_token = create_pending_verification(
+        db,
+        AuthIdentityProvider.EMAIL_PASSWORD,
+        "a@example.com",
+        "a@example.com",
+        False,
+        matched_user_id=None,
+        password_hash="hashed-value",
+    )
+
+    user_id = complete_phone_gate_signup(db, raw_token, "+919999999999")
+
+    identity = (
+        db.query(AuthIdentity)
+        .filter_by(user_id=user_id, provider=AuthIdentityProvider.EMAIL_PASSWORD)
+        .one()
+    )
+    assert identity.password_hash == "hashed-value"
+    assert identity.provider_subject == "a@example.com"
+
+
+def test_attach_pending_identity_copies_password_hash_onto_the_new_identity():
+    db = _session()
+    existing_user_id = complete_phone_gate_signup(
+        db,
+        create_pending_verification(
+            db, AuthIdentityProvider.GOOGLE, "google-sub-456", None, False, matched_user_id=None
+        )[1],
+        "+919888888888",
+    )
+
+    pending, raw_token = create_pending_verification(
+        db,
+        AuthIdentityProvider.EMAIL_PASSWORD,
+        "b@example.com",
+        "b@example.com",
+        False,
+        matched_user_id=None,
+        password_hash="hashed-value-2",
+    )
+
+    attach_pending_identity(db, raw_token, existing_user_id)
+
+    identity = (
+        db.query(AuthIdentity)
+        .filter_by(user_id=existing_user_id, provider=AuthIdentityProvider.EMAIL_PASSWORD)
+        .one()
+    )
+    assert identity.password_hash == "hashed-value-2"
