@@ -1,3 +1,4 @@
+import contextlib
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date
@@ -120,6 +121,74 @@ def test_fetch_nav_history_cleans_up_completed_single_flight():
         asyncio.run(run_calls())
 
     assert uncached.await_count == 2
+
+
+def test_fetch_nav_history_propagates_error_to_all_waiters_then_clears_registry():
+    import asyncio
+
+    fetch_started = asyncio.Event()
+    release_fetch = asyncio.Event()
+    calls = 0
+
+    async def fetch(amfi_code: str):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            fetch_started.set()
+            await asyncio.wait_for(release_fetch.wait(), timeout=1)
+            raise httpx.HTTPError("boom")
+        return [(date(2024, 1, 15), Decimal("50.1234"))]
+
+    async def run_calls():
+        first = asyncio.create_task(nav_module._fetch_nav_history("125497"))
+        await asyncio.wait_for(fetch_started.wait(), timeout=1)
+        second = asyncio.create_task(nav_module._fetch_nav_history("125497"))
+        await asyncio.sleep(0)
+        release_fetch.set()
+        results = await asyncio.gather(first, second, return_exceptions=True)
+        third_result = await nav_module._fetch_nav_history("125497")
+        return results, third_result
+
+    with patch.object(nav_module, "_fetch_nav_history_uncached", new=AsyncMock(side_effect=fetch)) as uncached:
+        (first_err, second_err), third_result = asyncio.run(run_calls())
+
+    assert isinstance(first_err, httpx.HTTPError)
+    assert isinstance(second_err, httpx.HTTPError)
+    assert third_result == [(date(2024, 1, 15), Decimal("50.1234"))]
+    assert uncached.await_count == 2
+    assert "125497" not in nav_module._nav_fetches_in_flight
+
+
+def test_fetch_nav_history_cancelling_one_waiter_does_not_cancel_shared_fetch():
+    import asyncio
+
+    fetch_started = asyncio.Event()
+    release_fetch = asyncio.Event()
+
+    async def fetch(amfi_code: str):
+        fetch_started.set()
+        await asyncio.wait_for(release_fetch.wait(), timeout=1)
+        return [(date(2024, 1, 15), Decimal("50.1234"))]
+
+    async def run_calls():
+        first = asyncio.create_task(nav_module._fetch_nav_history("125497"))
+        await asyncio.wait_for(fetch_started.wait(), timeout=1)
+        second = asyncio.create_task(nav_module._fetch_nav_history("125497"))
+        await asyncio.sleep(0)
+
+        first.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await first
+
+        release_fetch.set()
+        return await second
+
+    with patch.object(nav_module, "_fetch_nav_history_uncached", new=AsyncMock(side_effect=fetch)) as uncached:
+        result = asyncio.run(run_calls())
+
+    assert result == [(date(2024, 1, 15), Decimal("50.1234"))]
+    uncached.assert_awaited_once_with("125497")
+    assert "125497" not in nav_module._nav_fetches_in_flight
 
 
 def test_fetch_nav_history_uncached_reuses_lazily_created_client():
