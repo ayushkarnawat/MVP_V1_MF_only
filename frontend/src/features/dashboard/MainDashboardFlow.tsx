@@ -21,7 +21,9 @@ export function MainDashboardFlow() {
   const [members, setMembers] = useState<MemberOption[]>([]);
   const [viewMode, setViewMode] = useState<"aggregate" | "member">("aggregate");
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"dashboard" | "analytics">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "analytics">(() =>
+    window.history.state?.unifolioTab === "analytics" ? "analytics" : "dashboard",
+  );
   const [isAddingData, setIsAddingData] = useState(false);
   const [targetAddMemberId, setTargetAddMemberId] = useState<string | null>(null);
   // True only when Add Data was reached from Family Combined view via the
@@ -53,6 +55,33 @@ export function MainDashboardFlow() {
         // Fallback if members fetch fails
       });
   }, [me]);
+
+  useEffect(() => {
+    const currentState = window.history.state ?? {};
+    if (currentState.unifolioTab !== activeTab) {
+      window.history.replaceState(
+        { ...currentState, unifolioTab: activeTab },
+        "",
+        window.location.href,
+      );
+    }
+
+    const handlePopState = (event: PopStateEvent) => {
+      setActiveTab(event.state?.unifolioTab === "analytics" ? "analytics" : "dashboard");
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [activeTab]);
+
+  const handleTabChange = (tab: "dashboard" | "analytics") => {
+    if (tab === activeTab) return;
+    window.history.pushState(
+      { ...(window.history.state ?? {}), unifolioTab: tab },
+      "",
+      window.location.href,
+    );
+    setActiveTab(tab);
+  };
 
   const handleAddDataTrigger = (memberId?: string) => {
     setAddDataAllowsMemberChoice(!memberId && viewMode === "aggregate");
@@ -153,7 +182,7 @@ export function MainDashboardFlow() {
       onMemberSelect={setSelectedMemberId}
       onAddData={() => handleAddDataTrigger()}
       activeTab={activeTab}
-      onTabChange={setActiveTab}
+      onTabChange={handleTabChange}
     >
       {/* Visual accessibility banner & App.test.tsx backward compatibility header */}
       <h1 style={{ display: "none" }}>Welcome to Unifolio</h1>
@@ -173,4 +202,3 @@ export function MainDashboardFlow() {
     </NavigationShell>
   );
 }
-

@@ -40,50 +40,53 @@ async function authFetch(path: string, options: RequestInit = {}): Promise<Respo
 
 /* Allocation (FR-1/FR-2) */
 export async function getMemberAllocation(
-  memberId: string
+  memberId: string,
+  signal?: AbortSignal,
 ): Promise<AnalyticsAllocationSummary> {
-  const res = await authFetch(`/analytics/household-members/${memberId}/allocation`);
+  const res = await authFetch(`/analytics/household-members/${memberId}/allocation`, { signal });
   return res.json();
 }
 
-export async function getAggregateAllocation(): Promise<AggregateAnalyticsAllocationResponse> {
-  const res = await authFetch(`/analytics/household/aggregate/allocation`);
+export async function getAggregateAllocation(signal?: AbortSignal): Promise<AggregateAnalyticsAllocationResponse> {
+  const res = await authFetch(`/analytics/household/aggregate/allocation`, { signal });
   return res.json();
 }
 
 /* Cost / TER (FR-10/FR-11) */
-export async function getMemberTer(memberId: string): Promise<WeightedTerSummary> {
-  const res = await authFetch(`/analytics/household-members/${memberId}/ter`);
+export async function getMemberTer(memberId: string, signal?: AbortSignal): Promise<WeightedTerSummary> {
+  const res = await authFetch(`/analytics/household-members/${memberId}/ter`, { signal });
   return res.json();
 }
 
-export async function getAggregateTer(): Promise<AggregateWeightedTerResponse> {
-  const res = await authFetch(`/analytics/household/aggregate/ter`);
+export async function getAggregateTer(signal?: AbortSignal): Promise<AggregateWeightedTerResponse> {
+  const res = await authFetch(`/analytics/household/aggregate/ter`, { signal });
   return res.json();
 }
 
 export async function getMemberDirectRegularTer(
-  memberId: string
+  memberId: string,
+  signal?: AbortSignal,
 ): Promise<DirectRegularTerComparison> {
-  const res = await authFetch(`/analytics/household-members/${memberId}/ter/direct-regular`);
+  const res = await authFetch(`/analytics/household-members/${memberId}/ter/direct-regular`, { signal });
   return res.json();
 }
 
-export async function getAggregateDirectRegularTer(): Promise<AggregateDirectRegularTerResponse> {
-  const res = await authFetch(`/analytics/household/aggregate/ter/direct-regular`);
+export async function getAggregateDirectRegularTer(signal?: AbortSignal): Promise<AggregateDirectRegularTerResponse> {
+  const res = await authFetch(`/analytics/household/aggregate/ter/direct-regular`, { signal });
   return res.json();
 }
 
 /* Category Ranking (FR-3/FR-4) */
 export async function getMemberCategoryRanking(
-  memberId: string
+  memberId: string,
+  signal?: AbortSignal,
 ): Promise<CategoryRankingSummary> {
-  const res = await authFetch(`/analytics/household-members/${memberId}/category-ranking`);
+  const res = await authFetch(`/analytics/household-members/${memberId}/category-ranking`, { signal });
   return res.json();
 }
 
-export async function getAggregateCategoryRanking(): Promise<AggregateCategoryRankingResponse> {
-  const res = await authFetch(`/analytics/household/aggregate/category-ranking`);
+export async function getAggregateCategoryRanking(signal?: AbortSignal): Promise<AggregateCategoryRankingResponse> {
+  const res = await authFetch(`/analytics/household/aggregate/category-ranking`, { signal });
   return res.json();
 }
 
@@ -93,37 +96,39 @@ export async function getFundScore(schemeId: string): Promise<FundScoreRow> {
   return res.json();
 }
 
-export async function getMemberScore(memberId: string): Promise<PortfolioScoreSummary> {
-  const res = await authFetch(`/analytics/household-members/${memberId}/score`);
+export async function getMemberScore(memberId: string, signal?: AbortSignal): Promise<PortfolioScoreSummary> {
+  const res = await authFetch(`/analytics/household-members/${memberId}/score`, { signal });
   return res.json();
 }
 
-export async function getAggregateScore(): Promise<AggregatePortfolioScoreResponse> {
-  const res = await authFetch(`/analytics/household/aggregate/score`);
+export async function getAggregateScore(signal?: AbortSignal): Promise<AggregatePortfolioScoreResponse> {
+  const res = await authFetch(`/analytics/household/aggregate/score`, { signal });
   return res.json();
 }
 
 /* Benchmark Comparison (FR-8/FR-9) */
 export async function getMemberBenchmark(
-  memberId: string
+  memberId: string,
+  signal?: AbortSignal,
 ): Promise<PortfolioBenchmarkSummary> {
-  const res = await authFetch(`/analytics/household-members/${memberId}/benchmark`);
+  const res = await authFetch(`/analytics/household-members/${memberId}/benchmark`, { signal });
   return res.json();
 }
 
-export async function getAggregateBenchmark(): Promise<AggregatePortfolioBenchmarkResponse> {
-  const res = await authFetch(`/analytics/household/aggregate/benchmark`);
+export async function getAggregateBenchmark(signal?: AbortSignal): Promise<AggregatePortfolioBenchmarkResponse> {
+  const res = await authFetch(`/analytics/household/aggregate/benchmark`, { signal });
   return res.json();
 }
 
 export async function getMemberFundBenchmark(
-  memberId: string
+  memberId: string,
+  signal?: AbortSignal,
 ): Promise<FundVsBenchmarkSummary> {
-  const res = await authFetch(`/analytics/household-members/${memberId}/benchmark/funds`);
+  const res = await authFetch(`/analytics/household-members/${memberId}/benchmark/funds`, { signal });
   return res.json();
 }
 
-export async function getAggregateFundBenchmark(): Promise<AggregateFundVsBenchmarkResponse> {
-  const res = await authFetch(`/analytics/household/aggregate/benchmark/funds`);
+export async function getAggregateFundBenchmark(signal?: AbortSignal): Promise<AggregateFundVsBenchmarkResponse> {
+  const res = await authFetch(`/analytics/household/aggregate/benchmark/funds`, { signal });
   return res.json();
 }

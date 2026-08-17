@@ -38,6 +38,38 @@ describe("DashboardView", () => {
     });
   });
 
+  it("renders core dashboard data without waiting for coverage gaps", async () => {
+    vi.mocked(api.getMemberHoldings).mockResolvedValue([]);
+    vi.mocked(api.getMemberAllocation).mockResolvedValue({
+      by_asset_class: [],
+      by_amc: [],
+      total_value: "0.00",
+    });
+    vi.mocked(importApi.getMemberCoverageGaps).mockImplementation(
+      () => new Promise(() => {}),
+    );
+
+    render(<DashboardView viewMode="member" memberId="m-1" />);
+
+    expect(await screen.findByText("No Holdings Found")).toBeInTheDocument();
+  });
+
+  it("aborts dashboard requests when the view unmounts", async () => {
+    let observedSignal: AbortSignal | undefined;
+    vi.mocked(api.getMemberHoldings).mockImplementation((_memberId, signal) => {
+      observedSignal = signal;
+      return new Promise(() => {});
+    });
+    vi.mocked(api.getMemberAllocation).mockImplementation(() => new Promise(() => {}));
+
+    const { unmount } = render(
+      <DashboardView viewMode="member" memberId="m-1" />,
+    );
+    unmount();
+
+    expect(observedSignal?.aborted).toBe(true);
+  });
+
   it("renders portfolio summary hero and holdings table when data exists", async () => {
     vi.mocked(api.getMemberHoldings).mockResolvedValue([
       {

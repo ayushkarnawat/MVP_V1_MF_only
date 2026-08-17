@@ -58,6 +58,8 @@ export function MobileAnalyticsView({ memberId = null }: MobileAnalyticsViewProp
 
   useEffect(() => {
     let isMounted = true;
+    const controller = new AbortController();
+    const { signal } = controller;
     setLoading(true);
 
     async function fetchData() {
@@ -65,13 +67,13 @@ export function MobileAnalyticsView({ memberId = null }: MobileAnalyticsViewProp
         if (!memberId) {
           const [allocRes, terRes, dirRegRes, rankRes, scoreRes, benchRes, fundBenchRes] =
             await Promise.all([
-              getAggregateAllocation(),
-              getAggregateTer(),
-              getAggregateDirectRegularTer(),
-              getAggregateCategoryRanking(),
-              getAggregateScore(),
-              getAggregateBenchmark(),
-              getAggregateFundBenchmark(),
+              getAggregateAllocation(signal),
+              getAggregateTer(signal),
+              getAggregateDirectRegularTer(signal),
+              getAggregateCategoryRanking(signal),
+              getAggregateScore(signal),
+              getAggregateBenchmark(signal),
+              getAggregateFundBenchmark(signal),
             ]);
           if (!isMounted) return;
           setAllocation(allocRes.allocation);
@@ -84,13 +86,13 @@ export function MobileAnalyticsView({ memberId = null }: MobileAnalyticsViewProp
         } else {
           const [allocRes, terRes, dirRegRes, rankRes, scoreRes, benchRes, fundBenchRes] =
             await Promise.all([
-              getMemberAllocation(memberId),
-              getMemberTer(memberId),
-              getMemberDirectRegularTer(memberId),
-              getMemberCategoryRanking(memberId),
-              getMemberScore(memberId),
-              getMemberBenchmark(memberId),
-              getMemberFundBenchmark(memberId),
+              getMemberAllocation(memberId, signal),
+              getMemberTer(memberId, signal),
+              getMemberDirectRegularTer(memberId, signal),
+              getMemberCategoryRanking(memberId, signal),
+              getMemberScore(memberId, signal),
+              getMemberBenchmark(memberId, signal),
+              getMemberFundBenchmark(memberId, signal),
             ]);
           if (!isMounted) return;
           setAllocation(allocRes);
@@ -113,6 +115,7 @@ export function MobileAnalyticsView({ memberId = null }: MobileAnalyticsViewProp
 
     return () => {
       isMounted = false;
+      controller.abort();
     };
   }, [memberId]);
 
