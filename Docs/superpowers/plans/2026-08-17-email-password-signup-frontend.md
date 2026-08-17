@@ -1,6 +1,6 @@
 # Email Signup: OTP → Password (Frontend) Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Replace the email-OTP entry/verify screens with a single email+password screen offering both "Create account" and "Log in" actions, wire it into the existing phone-gate machinery exactly like Google already does, and add the "check your email to confirm" acknowledgment after a password signup's phone gate completes.
 
@@ -36,7 +36,7 @@
 - Removes: `sendEmailOtp`, `verifyEmailOtp` (both from `api.ts`; no longer callable, the backend routes they hit no longer accept `email`).
 - Produces: `signupEmail(email: string, password: string): Promise<PhoneRequiredResponse>`; `loginEmail(email: string, password: string, pendingToken?: string): Promise<OtpVerifyResponse>` (the `pendingToken` param is what makes `loginEmail` usable as `LinkAccountPrompt`'s email step-up re-auth in Task 3 — without it, that flow could log a user into their existing account but would never attach the pending Google/phone-gate identity that triggered the collision in the first place; the backend plan's `LoginEmailBody`/`login_email` route accept and act on the same field).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `frontend/src/features/auth/api.test.ts`, remove the `sendEmailOtp posts email as JSON` and `verifyEmailOtp posts email and otp as JSON` tests (they test functions this task deletes), and add:
 
@@ -95,16 +95,16 @@ it("loginEmail includes pending_token only when provided", async () => {
 
 Update the test file's import line at the top to add `signupEmail, loginEmail` and remove `sendEmailOtp, verifyEmailOtp` from the existing `import { ... } from "./api"` statement.
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `cd frontend && npx vitest run src/features/auth/api.test.ts`
 Expected: FAIL — `signupEmail`/`loginEmail` don't exist yet; the two removed-function tests will also fail to compile until Step 1's removal is complete, so do the deletions and additions together before running this.
 
-- [ ] **Step 3: Update `types.ts`**
+- [x] **Step 3: Update `types.ts`**
 
 In `frontend/src/features/auth/types.ts`, `PhoneRequiredResponse`/`OtpVerifyResponse` already exist and are reused as-is — no new types needed here. Confirm both are already exported (they are, from the 2026-08-14 frontend plan) before proceeding.
 
-- [ ] **Step 4: Update `api.ts`**
+- [x] **Step 4: Update `api.ts`**
 
 In `frontend/src/features/auth/api.ts`, remove the `sendEmailOtp` and `verifyEmailOtp` functions entirely:
 
@@ -174,17 +174,17 @@ export async function loginEmail(
 
 Update the `import type { ... } from "./types"` line at the top of the file to add `PhoneRequiredResponse` (already imported as part of `OtpVerifyResult`'s definition elsewhere, but check whether it needs its own explicit import for this file's usage — `PhoneRequiredResponse` is a distinct exported type, not just part of the union alias, so add it explicitly if not already present).
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `cd frontend && npx vitest run src/features/auth/api.test.ts`
 Expected: PASS, all tests.
 
-- [ ] **Step 6: Run the TypeScript build check**
+- [x] **Step 6: Run the TypeScript build check**
 
 Run: `cd frontend && npx tsc -b --noEmit`
 Expected: errors in `EmailEntry.tsx`/`EmailOtpVerify.tsx`/`AuthEntryFlow.tsx`/`LinkAccountPrompt.tsx`/their test files (all still reference `sendEmailOtp`/`verifyEmailOtp`) — expected at this point, fixed in Tasks 2-5. Confirm no errors in files THIS task didn't touch.
 
-- [ ] **Step 7: Check for CRLF, then commit**
+- [x] **Step 7: Check for CRLF, then commit**
 
 ```bash
 file frontend/src/features/auth/types.ts frontend/src/features/auth/api.ts frontend/src/features/auth/api.test.ts
@@ -207,7 +207,7 @@ git commit -m "feat(auth): add signupEmail/loginEmail API functions, remove emai
 
 This task leaves `AuthEntryFlow.tsx`/`LinkAccountPrompt.tsx`/their test files with more TypeScript errors (they still use the old `onSubmit` prop and reference the deleted `EmailOtpVerify`) — expected, fixed in Tasks 3/4/5.
 
-- [ ] **Step 1: Replace `EmailEntry.tsx` in full**
+- [x] **Step 1: Replace `EmailEntry.tsx` in full**
 
 ```tsx
 import { useState } from "react";
@@ -376,18 +376,18 @@ export function EmailEntry({ context = "primary", onSignup, onLogin, onBack, sub
 
 The secondary "Log in instead" button uses `type="button"` with its own `onClick` (rather than a second `<button type="submit">`, since a form can only have one implicit submit action per Enter-key press) — clicking it calls `submit(...)` directly with `action="login"`, reusing the same validation path. The primary form `onSubmit` (triggered by Enter or the main button) defaults to `"signup"` unless `context="link"`, in which case it's always `"login"`.
 
-- [ ] **Step 2: Delete `EmailOtpVerify.tsx`**
+- [x] **Step 2: Delete `EmailOtpVerify.tsx`**
 
 ```bash
 rm frontend/src/features/auth/EmailOtpVerify.tsx
 ```
 
-- [ ] **Step 3: Run the TypeScript build check**
+- [x] **Step 3: Run the TypeScript build check**
 
 Run: `cd frontend && npx tsc -b --noEmit`
 Expected: errors in `AuthEntryFlow.tsx`/`LinkAccountPrompt.tsx`/their test files (still import `EmailOtpVerify` and use the old `EmailEntry` `onSubmit` prop) — expected, fixed in Tasks 3/4/5. Confirm `EmailEntry.tsx` itself introduces no NEW errors in isolation.
 
-- [ ] **Step 4: Check for CRLF, then commit**
+- [x] **Step 4: Check for CRLF, then commit**
 
 ```bash
 file frontend/src/features/auth/EmailEntry.tsx
@@ -411,7 +411,7 @@ git commit -m "feat(auth): rework EmailEntry for password auth, delete EmailOtpV
 
 The `step` state (`"entry" | "otp"`) stays — phone's re-auth still needs it — but the email branch no longer transitions to `"otp"` at all; a password login is single-shot.
 
-- [ ] **Step 1: Replace `LinkAccountPrompt.tsx` in full**
+- [x] **Step 1: Replace `LinkAccountPrompt.tsx` in full**
 
 ```tsx
 import { useState } from "react";
@@ -595,12 +595,12 @@ export function LinkAccountPrompt({ matchedEmail, existingMethod, pendingToken, 
 }
 ```
 
-- [ ] **Step 2: Run the TypeScript build check**
+- [x] **Step 2: Run the TypeScript build check**
 
 Run: `cd frontend && npx tsc -b --noEmit`
 Expected: errors remain only in `AuthEntryFlow.tsx` and test files (still reference the old `EmailEntry`/`EmailOtpVerify` shapes) — expected, fixed in Tasks 4/5. Confirm `LinkAccountPrompt.tsx` itself compiles clean against `EmailEntry`'s new props.
 
-- [ ] **Step 3: Check for CRLF, then commit**
+- [x] **Step 3: Check for CRLF, then commit**
 
 ```bash
 file frontend/src/features/auth/LinkAccountPrompt.tsx
@@ -621,7 +621,7 @@ git commit -m "feat(auth): switch LinkAccountPrompt's email step-up re-auth to p
 - Consumes: `signupEmail`/`loginEmail` (Task 1), reworked `EmailEntry` (Task 2).
 - Produces: `Step` union drops `"email_otp"` (no longer needed — one email screen replaces the old two-step flow); new local state `confirmationPendingEmail: string | null` for the post-gate acknowledgment.
 
-- [ ] **Step 1: Replace `AuthEntryFlow.tsx` in full**
+- [x] **Step 1: Replace `AuthEntryFlow.tsx` in full**
 
 ```tsx
 import { useState } from "react";
@@ -890,12 +890,12 @@ export function AuthEntryFlow() {
 
 Note what changed from the pre-existing file beyond the email handlers: `confirmationPendingEmail` is set only by `handleEmailSignup` and explicitly cleared to `null` by `handleGoogleCredential`'s `phone_required` branch (so a Google signup never shows the email-confirmation banner) — it is deliberately NOT cleared by `goToStep`, since it needs to survive the `"phone"` → `"otp"` transition and still be visible once `login()` succeeds and the whole `AuthEntryFlow` unmounts in favor of the authenticated app shell (at which point the banner's own component tree is gone anyway, so no explicit "clear after showing" cleanup is needed — the acknowledgment's lifetime is naturally bounded by how long `AuthEntryFlow` stays mounted, which ends exactly when `login()` succeeds and `AuthContext`'s `token`/`me` state flips the app over to the authenticated shell).
 
-- [ ] **Step 2: Run the TypeScript build check**
+- [x] **Step 2: Run the TypeScript build check**
 
 Run: `cd frontend && npx tsc -b --noEmit`
 Expected: errors remain only in `AuthEntryFlow.test.tsx` (still uses old email-OTP mocks/assertions) — fixed in Task 5. Zero errors in any `.tsx`/`.ts` source file.
 
-- [ ] **Step 3: Check for CRLF, then commit**
+- [x] **Step 3: Check for CRLF, then commit**
 
 ```bash
 file frontend/src/features/auth/AuthEntryFlow.tsx
@@ -916,7 +916,7 @@ git commit -m "feat(auth): wire email signup/login into AuthEntryFlow, add confi
 **Interfaces:**
 - Consumes: everything from Tasks 1-4.
 
-- [ ] **Step 1: Replace `AuthEntryFlow.test.tsx` in full**
+- [x] **Step 1: Replace `AuthEntryFlow.test.tsx` in full**
 
 ```tsx
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -1137,7 +1137,7 @@ describe("AuthEntryFlow", () => {
 });
 ```
 
-- [ ] **Step 2: Replace `LinkAccountPrompt.test.tsx` in full**
+- [x] **Step 2: Replace `LinkAccountPrompt.test.tsx` in full**
 
 ```tsx
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -1279,27 +1279,27 @@ describe("LinkAccountPrompt", () => {
 });
 ```
 
-- [ ] **Step 3: Run both test files to verify they pass**
+- [x] **Step 3: Run both test files to verify they pass**
 
 Run: `cd frontend && npx vitest run src/features/auth/AuthEntryFlow.test.tsx src/features/auth/LinkAccountPrompt.test.tsx`
 Expected: PASS, all tests. If any button-name queries don't match (e.g. `/^create account$/i` vs. the actual rendered text), fix `AuthEntryFlow.tsx`/`EmailEntry.tsx`/`LinkAccountPrompt.tsx`'s copy to match what these tests assert, rather than loosening the assertions — the copy in the tests reflects the intended UX text (same principle the 2026-08-14 frontend plan's own Final Verification step used).
 
-- [ ] **Step 4: Run the full frontend suite**
+- [x] **Step 4: Run the full frontend suite**
 
 Run: `cd frontend && npm test`
 Expected: PASS across all test files, zero failures. If a `vitest-pool` fork-worker startup timeout appears with zero test output (a known environment flake, not a code issue — see `decisions.md`'s 2026-08-17 entry on the `@rolldown` native-binding fix), retry the exact same command once before investigating further.
 
-- [ ] **Step 5: Run the TypeScript build check**
+- [x] **Step 5: Run the TypeScript build check**
 
 Run: `cd frontend && npx tsc -b --noEmit`
 Expected: clean, zero errors.
 
-- [ ] **Step 6: Run the production build**
+- [x] **Step 6: Run the production build**
 
 Run: `cd frontend && npm run build`
 Expected: succeeds.
 
-- [ ] **Step 7: Check for CRLF, then commit**
+- [x] **Step 7: Check for CRLF, then commit**
 
 ```bash
 file frontend/src/features/auth/AuthEntryFlow.test.tsx frontend/src/features/auth/LinkAccountPrompt.test.tsx
@@ -1313,8 +1313,8 @@ git commit -m "test(auth): cover email signup/login, confirm-email banner, and L
 
 ## Final Verification
 
-- [ ] `cd frontend && npm test` — full suite passes, zero failures.
-- [ ] `cd frontend && npx tsc -b --noEmit` — clean.
-- [ ] `cd frontend && npm run build` — production build succeeds.
-- [ ] Manually run `npm run dev` against a backend with the companion backend plan already implemented, and confirm: the "Continue with Email" screen shows both "Create account" and "Log in instead" actions; a signup transitions into the existing phone-gate UI unchanged; the phone gate's completion shows the confirm-your-email banner for an email signup and does NOT show it for a Google/phone signup; a login with a wrong password shows a generic error, and a login with a correct-but-unconfirmed password shows the distinct "please confirm your email" message; the `LinkAccountPrompt` screen's email branch shows password fields, not an OTP code input.
-- [ ] Cross-check this plan's coverage against the three items the user explicitly asked for: password field replacing OTP-code input on the email signup screen (Task 2), password field on email login (Tasks 2/4, plus the `LinkAccountPrompt` case in Task 3 — flagged as a necessary consequence beyond the literal 3-item list, not scope creep, since `LinkAccountPrompt`'s email branch would otherwise call deleted API functions), and the "check your email to confirm" UI note (Task 4).
+- [x] `cd frontend && npm test` — full suite passes, zero failures.
+- [x] `cd frontend && npx tsc -b --noEmit` — clean.
+- [x] `cd frontend && npm run build` — production build succeeds.
+- [x] Manually run `npm run dev` against a backend with the companion backend plan already implemented, and confirm: the "Continue with Email" screen shows both "Create account" and "Log in instead" actions; a signup transitions into the existing phone-gate UI unchanged; the phone gate's completion shows the confirm-your-email banner for an email signup and does NOT show it for a Google/phone signup; a login with a wrong password shows a generic error, and a login with a correct-but-unconfirmed password shows the distinct "please confirm your email" message; the `LinkAccountPrompt` screen's email branch shows password fields, not an OTP code input.
+- [x] Cross-check this plan's coverage against the three items the user explicitly asked for: password field replacing OTP-code input on the email signup screen (Task 2), password field on email login (Tasks 2/4, plus the `LinkAccountPrompt` case in Task 3 — flagged as a necessary consequence beyond the literal 3-item list, not scope creep, since `LinkAccountPrompt`'s email branch would otherwise call deleted API functions), and the "check your email to confirm" UI note (Task 4).

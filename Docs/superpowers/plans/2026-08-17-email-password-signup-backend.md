@@ -1,6 +1,6 @@
 # Email Signup: OTP → Password (Backend) Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Replace email+OTP with email+password as the email signup/login method. Google and phone+OTP are untouched. Every account still converges on a mandatory verified phone as step 2, reusing the exact `pending_identity_verifications`/phone-gate mechanism Google and email-OTP already use.
 
@@ -40,7 +40,7 @@
 
 This is EXPECTED to break existing email-OTP tests (`test_otp.py`'s email-channel tests, `test_auth_routes.py`'s email-OTP-request/verify tests, any `test_identity.py` test exercising an email-OTP path) — `otp_requests.email` disappears in this same migration, per spec §5's explicit instruction that all five schema changes land in one revision. **Do not fix those tests in this task** — Task 3 removes the email-OTP code path entirely (including its now-broken tests). Note the exact failure count in your report so it can be sanity-checked in Task 3.
 
-- [ ] **Step 1: Update `AuthIdentityProvider` enum**
+- [x] **Step 1: Update `AuthIdentityProvider` enum**
 
 In `backend/app/models/enums.py`, change:
 
@@ -61,7 +61,7 @@ class AuthIdentityProvider(str, enum.Enum):
     EMAIL_PASSWORD = "email_password"
 ```
 
-- [ ] **Step 2: Update models — `AuthIdentity`, `PendingIdentityVerification`, `OtpRequest`, and two new models**
+- [x] **Step 2: Update models — `AuthIdentity`, `PendingIdentityVerification`, `OtpRequest`, and two new models**
 
 In `backend/app/models/auth.py`:
 
@@ -178,7 +178,7 @@ class EmailConfirmationToken(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 ```
 
-- [ ] **Step 2b: Write the model tests**
+- [x] **Step 2b: Write the model tests**
 
 Create `backend/tests/models/test_password_auth_models.py`:
 
@@ -280,12 +280,12 @@ def test_email_confirmation_token_round_trip(db_session):
 
 Check `backend/tests/models/test_auth_identity_models.py` (the existing model test file from the original multi-method-auth plan) for the exact `db_session` fixture name/shape used there — match it exactly. If the fixture is named differently or lives in a different conftest, use that name instead.
 
-- [ ] **Step 3: Run the new model tests to verify they fail**
+- [x] **Step 3: Run the new model tests to verify they fail**
 
 Run: `cd backend && python3 -m pytest tests/models/test_password_auth_models.py -v`
 Expected: FAIL — `EMAIL_PASSWORD` doesn't exist yet, `password_hash`/`email_confirmed_at` aren't columns yet, `PasswordResetToken`/`EmailConfirmationToken` don't exist yet.
 
-- [ ] **Step 4: Write migration 0006**
+- [x] **Step 4: Write migration 0006**
 
 Create `backend/alembic/versions/0006_email_password_auth.py`:
 
@@ -412,13 +412,13 @@ def downgrade() -> None:
     # defined is harmless (same reasoning as never removing EMAIL_OTP).
 ```
 
-- [ ] **Step 5: Run the migration and confirm the model tests pass**
+- [x] **Step 5: Run the migration and confirm the model tests pass**
 
 Run: `cd backend && python3 -m alembic upgrade head`
 Then: `cd backend && python3 -m pytest tests/models/test_password_auth_models.py -v`
 Expected: PASS (4 tests).
 
-- [ ] **Step 6: Update `test_migrations.py`'s expected schema**
+- [x] **Step 6: Update `test_migrations.py`'s expected schema**
 
 Open `backend/tests/test_migrations.py`. Find wherever it lists expected tables (likely a set/list checked after `alembic upgrade head`) and add `"password_reset_tokens"` and `"email_confirmation_tokens"`. Find wherever it checks `otp_requests`' columns (if it does) and update to remove `email` from the expected column set, matching the same pattern the file already used when `0004` widened this table. Add one round-trip test matching `0005`'s own round-trip test pattern (`head -> 0005 -> head` or similar), adapted to `0006`:
 
@@ -433,12 +433,12 @@ def test_email_password_auth_migration_upgrade_downgrade_upgrade(alembic_config,
 
 (This step's exact code depends on `test_migrations.py`'s existing fixture conventions — read the file's current 0005 round-trip test in full before writing this one, and mirror it precisely rather than guessing the fixture shape.)
 
-- [ ] **Step 7: Run the full backend suite and confirm the EXPECTED breakage matches what Task 1's brief predicted**
+- [x] **Step 7: Run the full backend suite and confirm the EXPECTED breakage matches what Task 1's brief predicted**
 
 Run: `cd backend && python3 -m pytest`
 Expected: model/migration tests pass; email-OTP-related tests in `test_otp.py`, `test_auth_routes.py`, and any email-OTP-specific test in `test_identity.py`/`test_schemas.py` FAIL (column no longer exists / code paths reference a dropped column). Record the exact failure count and file list in your report — Task 3 must account for every one of them, either by fixing or by deliberately deleting the test (since the feature is being removed, not just moved).
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add backend/app/models/enums.py backend/app/models/auth.py \
@@ -459,7 +459,7 @@ git commit -m "feat(auth): add email+password schema, narrow otp_requests back t
 **Interfaces:**
 - Produces: `hash_password(raw: str) -> str`; `verify_password(raw: str, hashed: str) -> bool`.
 
-- [ ] **Step 1: Add the dependency**
+- [x] **Step 1: Add the dependency**
 
 In `backend/requirements.txt`, add a new line after `requests>=2.31.0`:
 
@@ -469,7 +469,7 @@ passlib[bcrypt]>=1.7.4
 
 Run: `cd backend && pip install -r requirements.txt`
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 Create `backend/tests/services/auth/test_password.py`:
 
@@ -504,12 +504,12 @@ def test_hash_password_produces_different_hashes_for_the_same_input():
     assert verify_password("correct horse battery staple", second) is True
 ```
 
-- [ ] **Step 3: Run tests to verify they fail**
+- [x] **Step 3: Run tests to verify they fail**
 
 Run: `cd backend && python3 -m pytest tests/services/auth/test_password.py -v`
 Expected: FAIL — `app.services.auth.password` doesn't exist yet.
 
-- [ ] **Step 4: Write the implementation**
+- [x] **Step 4: Write the implementation**
 
 Create `backend/app/services/auth/password.py`:
 
@@ -534,12 +534,12 @@ def verify_password(raw: str, hashed: str) -> bool:
     return _pwd_context.verify(raw, hashed)
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `cd backend && python3 -m pytest tests/services/auth/test_password.py -v`
 Expected: PASS (4 tests).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add backend/requirements.txt backend/app/services/auth/password.py backend/tests/services/auth/test_password.py
@@ -564,7 +564,7 @@ git commit -m "feat(auth): add bcrypt password hashing service"
 
 This task fixes the breakage Task 1 caused (email-OTP's column is gone) by removing the email-OTP code path entirely, per Design Spec §1: "remove the email channel's code path entirely; do not leave it 'just in case'." `EmailProvider`/`StubEmailProvider`/`get_email_provider` are NOT touched — they're reused unchanged in Task 6 for password-reset delivery and Task 7 for confirmation-link delivery.
 
-- [ ] **Step 1: Revert `otp.py` to phone-only**
+- [x] **Step 1: Revert `otp.py` to phone-only**
 
 Replace `backend/app/services/auth/otp.py` in full:
 
@@ -694,7 +694,7 @@ def verify_otp(db: DbSession, phone_number: str, otp: str) -> OtpRequest:
     return request
 ```
 
-- [ ] **Step 2: Revert `OtpRequestBody`/`OtpVerifyBody` in `schemas.py` to phone-only**
+- [x] **Step 2: Revert `OtpRequestBody`/`OtpVerifyBody` in `schemas.py` to phone-only**
 
 In `backend/app/services/auth/schemas.py`, replace:
 
@@ -767,7 +767,7 @@ PROVIDER_TO_METHOD_LABEL: dict[AuthIdentityProvider, str] = {
 
 **Do not remove `normalize_email`** — Task 5's new `SignupEmailBody`/`LoginEmailBody` schemas reuse it. Only its two call sites inside `OtpRequestBody`/`OtpVerifyBody` are removed (along with the now-unused `field_validator`/`model_validator` imports IF nothing else in the file uses them — check before removing; `normalize_email` itself is a plain function, not a validator, so it stays regardless).
 
-- [ ] **Step 3: Revert `/auth/otp/request`/`/auth/otp/verify` routes in `api/auth.py` to phone-only**
+- [x] **Step 3: Revert `/auth/otp/request`/`/auth/otp/verify` routes in `api/auth.py` to phone-only**
 
 In `backend/app/api/auth.py`, replace `request_otp`:
 
@@ -842,7 +842,7 @@ from app.services.auth.otp import OtpRequestThrottledError, OtpVerificationError
 
 Leave `resolve_new_verified_identity` imported from `app.services.auth.identity` — Google's route (`google_oauth_route`, untouched by this plan) still calls it; Task 5's new email+password signup route calls `create_pending_verification` directly instead (per spec §4), not `resolve_new_verified_identity`.
 
-- [ ] **Step 4: Delete or rewrite the now-obsolete email-OTP tests**
+- [x] **Step 4: Delete or rewrite the now-obsolete email-OTP tests**
 
 Open `backend/tests/services/auth/test_otp.py`. Delete every test whose name contains `email_channel` or that exercises `channel="email"` (these test a feature that no longer exists): `test_create_otp_request_accepts_email_channel`, `test_verify_otp_succeeds_for_email_channel`, `test_verify_otp_email_channel_does_not_match_phone_request`, `test_create_otp_request_email_channel_dispatches_via_email_provider_when_not_stub`, `test_create_otp_request_email_channel_raises_when_no_provider_configured`, `test_create_otp_request_persists_nothing_when_the_email_provider_fails`, `test_create_otp_request_retry_is_not_throttled_after_an_email_provider_failure` (check the actual current file for the exact full list — these are the ones the email-OTP finding/fix-wave added across this session's history; delete anything channel-parameterized). Update the remaining phone-only tests to call `create_otp_request(db, "+919999999999")`/`verify_otp(db, "+919999999999", otp)` without a `channel=` keyword argument (drop the keyword entirely, since the parameter no longer exists).
 
@@ -850,12 +850,12 @@ Open `backend/tests/services/auth/test_schemas.py`. Remove any test exercising `
 
 Open `backend/tests/api/test_auth_routes.py`. Remove every test targeting `/auth/otp/request`/`/auth/otp/verify` with `{"email": ...}` in the request body, and any test specifically about the 503/`NoEmailProviderConfiguredError` mapping for that route (that whole scenario is gone — email requests through `/auth/otp/*` no longer exist at all). Do NOT remove phone-only tests for these two routes.
 
-- [ ] **Step 5: Run the full backend suite**
+- [x] **Step 5: Run the full backend suite**
 
 Run: `cd backend && python3 -m pytest`
 Expected: PASS, zero failures — this should resolve every failure Task 1's report predicted. If anything else still fails, investigate before proceeding (don't assume it's unrelated).
 
-- [ ] **Step 6: Check for CRLF, then commit**
+- [x] **Step 6: Check for CRLF, then commit**
 
 ```bash
 file backend/app/services/auth/otp.py backend/app/services/auth/schemas.py backend/app/api/auth.py \
@@ -879,7 +879,7 @@ git commit -m "feat(auth): remove email-OTP code path, otp.py/routes back to pho
 - Consumes: nothing new.
 - Produces: `PROVIDER_PRECEDENCE` gains `AuthIdentityProvider.EMAIL_PASSWORD: 1` (same rank `EMAIL_OTP` already occupies — see Step 0); `create_pending_verification(db, provider, provider_subject, email, email_verified, matched_user_id, password_hash: str | None = None) -> tuple[PendingIdentityVerification, str]` (new optional parameter, default `None`, appended last so existing positional call sites are unaffected).
 
-- [ ] **Step 0: Add `EMAIL_PASSWORD` to `PROVIDER_PRECEDENCE` — fixes a real `KeyError` this plan's own new provider would otherwise cause**
+- [x] **Step 0: Add `EMAIL_PASSWORD` to `PROVIDER_PRECEDENCE` — fixes a real `KeyError` this plan's own new provider would otherwise cause**
 
 `identity.py`'s `PROVIDER_PRECEDENCE` dict currently has no entry for `EMAIL_PASSWORD` (it predates this plan). Traced concretely, not hypothetically: `resolve_new_verified_identity`'s `link_required` branch calls `pick_primary_identity(matched_identities)` on the FULL, unfiltered list of a matched user's identities — including any `EMAIL_PASSWORD` one, regardless of whether it carries an email claim. `pick_primary_identity` does `min(identities, key=lambda i: PROVIDER_PRECEDENCE[i.provider])`, which raises `KeyError` the first time this runs against an account that has an `EMAIL_PASSWORD` identity. This is a real, reachable crash: any account created via this plan's `/auth/signup/email` — which always has one, since it's the whole point of the route — hits this the moment a *different* new signup (Google, say) later collides with that account's denormalized email.
 
@@ -946,7 +946,7 @@ Run: `cd backend && python3 -m pytest tests/services/auth/test_identity.py -k pr
 
 **Known limitation, explicitly out of scope for this plan — do not silently build a fix:** `users.email` (the denormalized field) is never backfilled once an `EMAIL_PASSWORD` identity's `email_confirmed_at` gets set, because `complete_phone_gate_signup` always sets `user.email = None` for password signups (§4a: nothing is verified at signup time) and nothing subsequently updates it after confirmation — `refresh_denormalized_email` only considers identities with a non-`NULL` `AuthIdentity.email`, which an `EMAIL_PASSWORD` row never has (its own email claim is never "verified" in that collision-check sense, by design). Concretely: a user who signs up and fully confirms their email+password account will still see `email: null` from `/auth/me`. This is a real, visible gap the design spec didn't address — flagging it here rather than silently fixing it, since the correct fix touches `refresh_denormalized_email`'s precedence logic (whether a confirmed `EMAIL_PASSWORD`'s `provider_subject` should count as an "email claim" for denormalization, and how it should rank against a `Google` identity's already-verified email if both exist on one account) and deserves its own decision, not an inline judgment call made this deep into a task.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Add to `backend/tests/services/auth/test_identity.py` (match the existing file's imports/fixtures — read the file first for its exact `db_session`/helper conventions before writing these):
 
@@ -1032,12 +1032,12 @@ def test_attach_pending_identity_copies_password_hash_onto_the_new_identity(db_s
 
 (Adjust the exact `create_pending_verification` call shape in these tests to match its ACTUAL current parameter order in `identity.py` — read the function signature directly before writing these tests, since positional-vs-keyword argument order matters and must match exactly.)
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `cd backend && python3 -m pytest tests/services/auth/test_identity.py -k password_hash -v`
 Expected: FAIL — `create_pending_verification` doesn't accept `password_hash` yet, and the new `AuthIdentity` rows it creates won't have it set.
 
-- [ ] **Step 3: Update `create_pending_verification`**
+- [x] **Step 3: Update `create_pending_verification`**
 
 In `backend/app/services/auth/identity.py`, change:
 
@@ -1097,7 +1097,7 @@ def create_pending_verification(
     return pending, raw_token
 ```
 
-- [ ] **Step 4: Thread `password_hash` through `complete_phone_gate_signup`**
+- [x] **Step 4: Thread `password_hash` through `complete_phone_gate_signup`**
 
 Change:
 
@@ -1133,7 +1133,7 @@ to:
     return user.id
 ```
 
-- [ ] **Step 5: Thread `password_hash` through `attach_pending_identity`**
+- [x] **Step 5: Thread `password_hash` through `attach_pending_identity`**
 
 Change:
 
@@ -1176,17 +1176,17 @@ to:
     return resolved_user_id
 ```
 
-- [ ] **Step 6: Run tests to verify they pass**
+- [x] **Step 6: Run tests to verify they pass**
 
 Run: `cd backend && python3 -m pytest tests/services/auth/test_identity.py -v`
 Expected: PASS, all tests including the 4 new ones.
 
-- [ ] **Step 7: Run the full backend suite**
+- [x] **Step 7: Run the full backend suite**
 
 Run: `cd backend && python3 -m pytest`
 Expected: PASS, zero failures (this task's change is additive/backward-compatible — Google's and phone's call sites don't pass `password_hash`, defaulting to `None`, so their existing behavior is unaffected).
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 file backend/app/services/auth/identity.py backend/tests/services/auth/test_identity.py
@@ -1209,7 +1209,7 @@ git commit -m "feat(auth): thread password_hash through the phone gate's identit
 - Consumes: `hash_password`/`verify_password` (Task 2), `create_pending_verification` with `password_hash` (Task 4), `find_identity_by_subject`, `normalize_email` (existing, `schemas.py`).
 - Produces: `POST /auth/signup/email`, `POST /auth/login/email`.
 
-- [ ] **Step 1: Add the new schemas**
+- [x] **Step 1: Add the new schemas**
 
 In `backend/app/services/auth/schemas.py`, add (after `OtpVerifyBody`, before `OtpVerifyResponse` — or anywhere logical; exact position doesn't matter, just keep related schemas grouped):
 
@@ -1244,7 +1244,7 @@ class LoginEmailBody(BaseModel):
 
 (`LoginEmailBody` deliberately has no minimum-length check — an existing password that happens to be shorter than the current minimum, e.g. from a policy change, must still be checkable; only `SignupEmailBody` enforces the floor for new passwords. `pending_token` mirrors `OtpVerifyBody`/`GoogleAuthBody`'s own optional field — this is what makes email password login usable as a step-up re-authentication method: `LinkAccountPrompt`'s email branch re-authenticates via `/auth/login/email` with a pending token attached, exactly like phone/Google's re-auth branches already do via `/auth/otp/verify`/`/auth/oauth/google`.)
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 Create `backend/tests/api/test_auth_email_password_routes.py` (check `test_auth_routes.py`'s existing `client` fixture/imports first and match its conventions exactly):
 
@@ -1469,12 +1469,12 @@ Retrofit the earlier tests in this same file that repeat this exact sequence inl
 
 Remove the placeholder `otp = db_session.query.__self__` line from `test_signup_email_conflicts_when_email_already_has_a_password_identity` before running — it was left in as a marker; that test doesn't actually need the phone-gate to complete at all, since the 409 fires at signup-request time regardless of whether the first signup ever finishes its gate. Simplify that test to just two `POST /auth/signup/email` calls with the same email, dropping the phone-OTP lines entirely.
 
-- [ ] **Step 3: Run tests to verify they fail**
+- [x] **Step 3: Run tests to verify they fail**
 
 Run: `cd backend && python3 -m pytest tests/api/test_auth_email_password_routes.py -v`
 Expected: FAIL — routes don't exist yet (404s).
 
-- [ ] **Step 4: Add the routes**
+- [x] **Step 4: Add the routes**
 
 In `backend/app/api/auth.py`, add imports at the top:
 
@@ -1573,17 +1573,17 @@ def login_email(body: LoginEmailBody, db: DbSession = Depends(get_db)):
     return _session_response(existing.user_id, AuthIdentityProvider.EMAIL_PASSWORD, db)
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `cd backend && python3 -m pytest tests/api/test_auth_email_password_routes.py -v`
 Expected: PASS, all tests.
 
-- [ ] **Step 6: Run the full backend suite**
+- [x] **Step 6: Run the full backend suite**
 
 Run: `cd backend && python3 -m pytest`
 Expected: PASS, zero failures.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 file backend/app/services/auth/schemas.py backend/app/api/auth.py backend/tests/api/test_auth_email_password_routes.py
@@ -1608,7 +1608,7 @@ git commit -m "feat(auth): add /auth/signup/email and /auth/login/email routes"
 - Consumes: `hash_password` (Task 2), `get_email_provider`/`EmailProvider` (existing, unchanged), `PasswordResetToken` (Task 1).
 - Produces: `create_password_reset_token(db, user_id) -> tuple[PasswordResetToken, str]`; `consume_password_reset_token(db, raw_token, new_password) -> None`; `PasswordResetTokenError` exception; `POST /auth/password/forgot`, `POST /auth/password/reset`.
 
-- [ ] **Step 1: Write the failing service-level tests**
+- [x] **Step 1: Write the failing service-level tests**
 
 Create `backend/tests/services/auth/test_password_reset.py`:
 
@@ -1718,12 +1718,12 @@ def test_consume_password_reset_token_does_not_overwrite_an_existing_confirmatio
     assert identity.email_confirmed_at == original_confirmed_at
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `cd backend && python3 -m pytest tests/services/auth/test_password_reset.py -v`
 Expected: FAIL — `app.services.auth.password_reset` doesn't exist yet.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Create `backend/app/services/auth/password_reset.py`:
 
@@ -1810,12 +1810,12 @@ def consume_password_reset_token(db: DbSession, raw_token: str, new_password: st
     db.commit()
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `cd backend && python3 -m pytest tests/services/auth/test_password_reset.py -v`
 Expected: PASS, all 7 tests.
 
-- [ ] **Step 5: Add the request/response schemas**
+- [x] **Step 5: Add the request/response schemas**
 
 In `backend/app/services/auth/schemas.py`, add:
 
@@ -1849,7 +1849,7 @@ class ResetPasswordResponse(BaseModel):
     message: str
 ```
 
-- [ ] **Step 6: Write the failing route tests**
+- [x] **Step 6: Write the failing route tests**
 
 Create `backend/tests/api/test_password_reset_routes.py`:
 
@@ -1923,12 +1923,12 @@ def test_reset_password_rejects_a_short_new_password(client, db_session):
     assert response.status_code == 422
 ```
 
-- [ ] **Step 7: Run tests to verify they fail**
+- [x] **Step 7: Run tests to verify they fail**
 
 Run: `cd backend && python3 -m pytest tests/api/test_password_reset_routes.py -v`
 Expected: FAIL — routes don't exist yet.
 
-- [ ] **Step 8: Add the routes**
+- [x] **Step 8: Add the routes**
 
 In `backend/app/api/auth.py`, add imports:
 
@@ -1970,17 +1970,17 @@ def reset_password(body: ResetPasswordBody, db: DbSession = Depends(get_db)):
     return ResetPasswordResponse(message="Your password has been reset.")
 ```
 
-- [ ] **Step 9: Run tests to verify they pass**
+- [x] **Step 9: Run tests to verify they pass**
 
 Run: `cd backend && python3 -m pytest tests/api/test_password_reset_routes.py -v`
 Expected: PASS, all 5 tests.
 
-- [ ] **Step 10: Run the full backend suite**
+- [x] **Step 10: Run the full backend suite**
 
 Run: `cd backend && python3 -m pytest`
 Expected: PASS, zero failures.
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```bash
 file backend/app/services/auth/password_reset.py backend/app/services/auth/schemas.py backend/app/api/auth.py \
@@ -2008,7 +2008,7 @@ git commit -m "feat(auth): add password reset flow, reusing EmailProvider"
 - Consumes: `get_email_provider` (existing), `EmailConfirmationToken` (Task 1).
 - Produces: `create_email_confirmation_token(db, user_id) -> tuple[EmailConfirmationToken, str]`; `consume_email_confirmation_token(db, raw_token) -> None`; `send_confirmation_email(db, user_id, email) -> None` (generates the token AND sends it — a single call site for both routes that create an EMAIL_PASSWORD identity); `EmailConfirmationTokenError`; `POST /auth/email/confirm`.
 
-- [ ] **Step 1: Write the failing service-level tests**
+- [x] **Step 1: Write the failing service-level tests**
 
 Create `backend/tests/services/auth/test_email_confirmation.py`:
 
@@ -2111,12 +2111,12 @@ def test_send_confirmation_email_logs_via_the_stub_provider(db_session, caplog):
     assert any("StubEmailProvider" in record.message for record in caplog.records)
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `cd backend && python3 -m pytest tests/services/auth/test_email_confirmation.py -v`
 Expected: FAIL — `app.services.auth.email_confirmation` doesn't exist yet.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Create `backend/app/services/auth/email_confirmation.py`:
 
@@ -2206,12 +2206,12 @@ def send_confirmation_email(db: DbSession, user_id: uuid.UUID, email: str) -> No
     )
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `cd backend && python3 -m pytest tests/services/auth/test_email_confirmation.py -v`
 Expected: PASS, all 7 tests.
 
-- [ ] **Step 5: Wire `send_confirmation_email` into the phone gate**
+- [x] **Step 5: Wire `send_confirmation_email` into the phone gate**
 
 In `backend/app/services/auth/identity.py`, at the top of the file, add the import:
 
@@ -2242,7 +2242,7 @@ Apply the identical addition to `attach_pending_identity`, after `new_identity.p
         send_confirmation_email(db, resolved_user_id, pending.provider_subject)
 ```
 
-- [ ] **Step 6: Write the failing test for the phone-gate wiring**
+- [x] **Step 6: Write the failing test for the phone-gate wiring**
 
 Add to `backend/tests/services/auth/test_identity.py`:
 
@@ -2281,7 +2281,7 @@ Expected: FAIL first (before Step 5's wiring lands — if you're executing this 
 Then run: `cd backend && python3 -m pytest tests/services/auth/test_identity.py -v`
 Expected: PASS, all tests.
 
-- [ ] **Step 7: Add the confirm-email schema and route**
+- [x] **Step 7: Add the confirm-email schema and route**
 
 In `backend/app/services/auth/schemas.py`, add:
 
@@ -2306,7 +2306,7 @@ def confirm_email(body: ConfirmEmailBody, db: DbSession = Depends(get_db)):
     return ConfirmEmailResponse(message="Your email has been confirmed. You can now sign in with your password.")
 ```
 
-- [ ] **Step 8: Write the failing route tests**
+- [x] **Step 8: Write the failing route tests**
 
 Create `backend/tests/api/test_email_confirmation_routes.py`:
 
@@ -2354,17 +2354,17 @@ def test_signup_and_gate_completion_actually_dispatches_a_confirmation_email(cli
     assert any("StubEmailProvider" in record.message for record in caplog.records)
 ```
 
-- [ ] **Step 9: Run tests to verify they pass**
+- [x] **Step 9: Run tests to verify they pass**
 
 Run: `cd backend && python3 -m pytest tests/api/test_email_confirmation_routes.py -v`
 Expected: PASS, all 3 tests.
 
-- [ ] **Step 10: Run the full backend suite**
+- [x] **Step 10: Run the full backend suite**
 
 Run: `cd backend && python3 -m pytest`
 Expected: PASS, zero failures.
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```bash
 file backend/app/services/auth/email_confirmation.py backend/app/services/auth/schemas.py \
@@ -2395,7 +2395,7 @@ git commit -m "feat(auth): add email confirmation, wire into the phone gate"
 
 This task has no tests — it's a documentation-sync task, matching how the 2026-08-14 multi-method-auth plans handled their own doc updates. Run the full suite at the end anyway to confirm nothing was accidentally touched.
 
-- [ ] **Step 1: Update PRD-02 FR-2**
+- [x] **Step 1: Update PRD-02 FR-2**
 
 In `Docs/PRDs/PRD-02-Signup-Onboarding.md`, find the FR-2 section (`#### Authentication (decided)`, the line starting `- FR-2: Phone number + OTP is the sole signup/login method. No password, ever.`). Replace it with:
 
@@ -2410,7 +2410,7 @@ In `Docs/PRDs/PRD-02-Signup-Onboarding.md`, find the FR-2 section (`#### Authent
 
 Leave FR-2a (the PIN/biometric return-visit note) as-is — it's about phone's own login pattern, unaffected by this change.
 
-- [ ] **Step 2: Add the `decisions.md` entry**
+- [x] **Step 2: Add the `decisions.md` entry**
 
 Append to `decisions.md` (check the file's current tail for the exact date-heading format used by the most recent entries, and match it):
 
@@ -2440,7 +2440,7 @@ to that exact address is equally strong proof of mailbox control — this is
 what makes squatting self-service-recoverable without a support ticket.
 ```
 
-- [ ] **Step 3: Add the `backend.md` entry**
+- [x] **Step 3: Add the `backend.md` entry**
 
 Append to `backend.md`:
 
@@ -2464,7 +2464,7 @@ closed during review: `decisions.md`'s 2026-08-17 entry and
 `Docs/superpowers/specs/2026-08-17-email-password-signup-design.md`.
 ```
 
-- [ ] **Step 4: Add the `database.md` entry**
+- [x] **Step 4: Add the `database.md` entry**
 
 Append to `database.md`:
 
@@ -2487,16 +2487,16 @@ non-empty `email` rows existed before dropping — the migration itself
 enforces this with a runtime check, not just a manual confirmation).
 ```
 
-- [ ] **Step 5: Update `Database-Schema-Unifolio.md`**
+- [x] **Step 5: Update `Database-Schema-Unifolio.md`**
 
 This doc went stale when `0004`/`0005` landed (per the 2026-08-14 `database.md` entry flagging it) and is now further out of date after this plan's `0006`. Update the `users` table section's `phone_number` row note (currently reads "Sole login credential, per PRD-02 FR-2" — no longer accurate, since `auth_identities` is now the actual login-resolution source of truth) and the `otp_requests`/schema description to match the CURRENT real schema: `auth_identities` (with `password_hash`/`email_confirmed_at`), `pending_identity_verifications` (with `password_hash`), `password_reset_tokens`, `email_confirmation_tokens`, and narrowed `otp_requests` (phone-only again). Match this doc's existing table-description format exactly (see the `users`/`household_members` sections for the column-table style to replicate) — read the current file in full before editing, since it needs a genuine content refresh, not just a note pointing elsewhere.
 
-- [ ] **Step 6: Run the full backend suite one more time**
+- [x] **Step 6: Run the full backend suite one more time**
 
 Run: `cd backend && python3 -m pytest`
 Expected: PASS, zero failures (this task touches no code).
 
-- [ ] **Step 7: Check for CRLF, then commit**
+- [x] **Step 7: Check for CRLF, then commit**
 
 ```bash
 file "Docs/PRDs/PRD-02-Signup-Onboarding.md" decisions.md backend.md database.md "Docs/PRDs/Database-Schema-Unifolio.md"
@@ -2511,7 +2511,7 @@ git commit -m "docs: update PRD-02, decisions.md, backend.md, database.md for em
 
 ## Final Verification
 
-- [ ] `cd backend && python3 -m pytest` — full suite passes, zero failures.
-- [ ] `cd backend && python3 -m alembic current` shows `0006 (head)`.
-- [ ] Manually confirm, via a fresh venv install (`python3 -m venv /tmp/verify && /tmp/verify/bin/pip install -r backend/requirements.txt`), that `passlib[bcrypt]` installs cleanly and `python3 -c "from app.services.auth.password import hash_password; print(hash_password('test'))"` runs with zero `ImportError`s — this session has already hit one missing-explicit-dependency bug (`requests`) that only surfaced this way, so don't skip this check.
-- [ ] Cross-check every numbered section of `Docs/superpowers/specs/2026-08-17-email-password-signup-design.md` against this plan's tasks: §1 (Task 3), §2 (Task 2), §3 (Task 6), §4/§4a/§4b (Tasks 4, 5), §4c (Task 7), §4d (out of scope, confirmed not silently built), §5 (Task 1), §6 (Task 8).
+- [x] `cd backend && python3 -m pytest` — full suite passes, zero failures.
+- [x] `cd backend && python3 -m alembic current` shows `0006 (head)`.
+- [x] Manually confirm, via a fresh venv install (`python3 -m venv /tmp/verify && /tmp/verify/bin/pip install -r backend/requirements.txt`), that `passlib[bcrypt]` installs cleanly and `python3 -c "from app.services.auth.password import hash_password; print(hash_password('test'))"` runs with zero `ImportError`s — this session has already hit one missing-explicit-dependency bug (`requests`) that only surfaced this way, so don't skip this check.
+- [x] Cross-check every numbered section of `Docs/superpowers/specs/2026-08-17-email-password-signup-design.md` against this plan's tasks: §1 (Task 3), §2 (Task 2), §3 (Task 6), §4/§4a/§4b (Tasks 4, 5), §4c (Task 7), §4d (out of scope, confirmed not silently built), §5 (Task 1), §6 (Task 8).
