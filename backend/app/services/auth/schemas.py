@@ -1,6 +1,4 @@
-from __future__ import annotations
-
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from app.models.enums import AuthIdentityProvider, InvestorType, PrimaryGoal
 
@@ -43,6 +41,34 @@ class OtpVerifyBody(BaseModel):
     phone_number: str
     otp: str
     pending_token: str | None = None
+
+
+class SignupEmailBody(BaseModel):
+    email: str
+    password: str
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def _normalize_email(cls, value: object) -> object:
+        return normalize_email(value)
+
+    @field_validator("password")
+    @classmethod
+    def _min_length(cls, value: str) -> str:
+        if len(value) < 8:
+            raise ValueError("Password must be at least 8 characters.")
+        return value
+
+
+class LoginEmailBody(BaseModel):
+    email: str
+    password: str
+    pending_token: str | None = None
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def _normalize_email(cls, value: object) -> object:
+        return normalize_email(value)
 
 
 class OtpVerifyResponse(BaseModel):

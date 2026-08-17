@@ -11,6 +11,7 @@ from app.services.auth.identity import (
     PendingVerificationError,
     attach_pending_identity,
     complete_phone_gate_signup,
+    create_pending_verification,
     find_identity_by_subject,
     find_or_backfill_phone_identity,
     record_identity,
@@ -18,10 +19,12 @@ from app.services.auth.identity import (
 )
 from app.services.auth.google_oauth import GoogleTokenVerificationError, verify_google_id_token
 from app.services.auth.otp import OtpRequestThrottledError, OtpVerificationError, create_otp_request, verify_otp
+from app.services.auth.password import hash_password, verify_password
 from app.services.auth.schemas import (
     GoogleAuthBody,
     LinkRequiredDetail,
     LinkRequiredResponse,
+    LoginEmailBody,
     MeResponse,
     OtpRequestBody,
     OtpRequestResponse,
@@ -31,6 +34,7 @@ from app.services.auth.schemas import (
     PhoneRequiredResponse,
     PROVIDER_TO_METHOD_LABEL,
     SessionRefreshResponse,
+    SignupEmailBody,
     UpdateMeBody,
 ) #to validate api requests
 from app.services.auth.session import create_session, get_current_session, get_current_user, refresh_session
@@ -47,6 +51,65 @@ def _session_response(user_id, auth_method: AuthIdentityProvider, db: DbSession)
         onboarding_step=user.onboarding_step,
         onboarding_completed=user.onboarding_completed_at is not None,
     )
+
+
+@router.post("/signup/email", response_model=PhoneRequiredResponse)
+def signup_email(body: SignupEmailBody, db: DbSession = Depends(get_db)):
+    existing = find_identity_by_subject(db, AuthIdentityProvider.EMAIL_PASSWORD, body.email)
+    if existing is not None:
+        raise HTTPException(status_code=409, detail="An account with this email already exists — log in instead.")
+
+    # email_verified=False unconditionally: nothing cryptographically proves
+    # mailbox control at signup time (Design Spec §4a) — same reasoning that
+    # fixed Critical Finding 1 for Google's unverified-email case. Called
+    # directly rather than through resolve_new_verified_identity, since that
+    # function's collision-check branch can never fire when email_verified is
+    # False (§4).
+    _, raw_token = create_pending_verification(
+        db,
+        AuthIdentityProvider.EMAIL_PASSWORD,
+        body.email,
+        body.email,
+        False,
+        matched_user_id=None,
+        password_hash=hash_password(body.password),
+    )
+    return PhoneRequiredResponse(phone_required=PhoneRequiredDetail(token=raw_token, prefill_email=body.email))
+
+
+@router.post("/login/email", response_model=OtpVerifyResponse)
+def login_email(body: LoginEmailBody, db: DbSession = Depends(get_db)):
+    existing = find_identity_by_subject(db, AuthIdentityProvider.EMAIL_PASSWORD, body.email)
+    if existing is None or existing.password_hash is None or not verify_password(body.password, existing.password_hash):
+        # Same generic message either way — don't leak whether the email
+        # exists (Design Spec §4, anti-enumeration).
+        raise HTTPException(status_code=401, detail="Invalid email or password.")
+
+    if existing.email_confirmed_at is None:
+        # 403, not 401: the password already matched, so this is safe to
+        # disclose distinctly (Design Spec §4c) — only someone who already
+        # knows the correct password ever reaches this branch.
+        raise HTTPException(
+            status_code=403,
+            detail="Please confirm your email before signing in with a password — check your inbox, or resend the link.",
+        )
+
+    if body.pending_token:
+        # Step-up re-authentication: LinkAccountPrompt's email branch calls
+        # this route with a pending token when an existing account's
+        # highest-precedence method is email+password, exactly matching how
+        # verify_otp_route/google_oauth_route already handle their own
+        # pending_token branches. Without this, a password re-auth would log
+        # the user into their existing account but never attach the new
+        # Google/phone-gate-originating identity that triggered the
+        # collision in the first place.
+        try:
+            user_id = attach_pending_identity(db, body.pending_token, existing.user_id)
+        except PendingVerificationError as exc:
+            raise HTTPException(status_code=401, detail=str(exc)) from exc
+        return _session_response(user_id, AuthIdentityProvider.EMAIL_PASSWORD, db)
+
+    return _session_response(existing.user_id, AuthIdentityProvider.EMAIL_PASSWORD, db)
 
 
 #otp authentication
