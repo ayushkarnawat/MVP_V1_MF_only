@@ -42,6 +42,7 @@ def test_alembic_upgrade_creates_all_tables(tmp_path, monkeypatch):
         "benchmark_index_history", "arn_directory", "portfolio_snapshots",
         "fund_scores", "otp_requests", "sessions",
         "auth_identities", "pending_identity_verifications",
+        "password_reset_tokens", "email_confirmation_tokens",
     }
     assert expected.issubset(tables)
 
@@ -117,13 +118,15 @@ def test_multi_method_auth_migration_round_trip(tmp_path, monkeypatch):
 
     conn = sqlite3.connect(db_path)
     otp_columns = {row[1] for row in conn.execute("PRAGMA table_info(otp_requests)")}
-    assert "email" in otp_columns
+    # At head (0006), email column is dropped back out — only phone_number remains
+    assert "email" not in otp_columns
+    assert "phone_number" in otp_columns
     session_columns = {row[1] for row in conn.execute("PRAGMA table_info(sessions)")}
     assert "auth_method" in session_columns
     conn.close()
 
     downgrade = subprocess.run(
-        [sys.executable, "-m", "alembic", "downgrade", "0003"],
+        [sys.executable, "-m", "alembic", "downgrade", "0005"],
         cwd=BACKEND_DIR, capture_output=True, text=True,
     )
     assert downgrade.returncode == 0, downgrade.stderr
@@ -235,3 +238,61 @@ def test_backfill_migration_upgrade_is_idempotent(tmp_path, monkeypatch):
     ).fetchone()[0]
     conn.close()
     assert count == 1
+
+
+def test_email_password_auth_migration_upgrade_downgrade_upgrade(tmp_path, monkeypatch):
+    """0006 → 0005 → 0006 round-trip: email+password auth schema changes."""
+    import sqlite3
+
+    db_path = tmp_path / "email_password_auth.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+
+    upgrade = _alembic("upgrade", "head")
+    assert upgrade.returncode == 0, upgrade.stderr
+
+    conn = sqlite3.connect(db_path)
+    # Verify 0006 changes are applied: password_hash, email_confirmed_at on
+    # auth_identities; password_hash on pending_identity_verifications; new
+    # password_reset_tokens and email_confirmation_tokens tables; email
+    # column removed from otp_requests.
+    auth_id_columns = {row[1] for row in conn.execute("PRAGMA table_info(auth_identities)")}
+    assert "password_hash" in auth_id_columns
+    assert "email_confirmed_at" in auth_id_columns
+
+    pending_columns = {row[1] for row in conn.execute("PRAGMA table_info(pending_identity_verifications)")}
+    assert "password_hash" in pending_columns
+
+    otp_columns = {row[1] for row in conn.execute("PRAGMA table_info(otp_requests)")}
+    assert "email" not in otp_columns
+
+    tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    assert "password_reset_tokens" in tables
+    assert "email_confirmation_tokens" in tables
+    conn.close()
+
+    downgrade = _alembic("downgrade", "0005")
+    assert downgrade.returncode == 0, downgrade.stderr
+
+    conn = sqlite3.connect(db_path)
+    # At 0005, columns should be gone, email restored to otp_requests
+    auth_id_columns = {row[1] for row in conn.execute("PRAGMA table_info(auth_identities)")}
+    assert "password_hash" not in auth_id_columns
+    assert "email_confirmed_at" not in auth_id_columns
+
+    otp_columns = {row[1] for row in conn.execute("PRAGMA table_info(otp_requests)")}
+    assert "email" in otp_columns
+
+    tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    assert "password_reset_tokens" not in tables
+    assert "email_confirmation_tokens" not in tables
+    conn.close()
+
+    re_upgrade = _alembic("upgrade", "head")
+    assert re_upgrade.returncode == 0, re_upgrade.stderr
+
+    conn = sqlite3.connect(db_path)
+    # Re-applying 0006 should succeed without errors
+    auth_id_columns = {row[1] for row in conn.execute("PRAGMA table_info(auth_identities)")}
+    assert "password_hash" in auth_id_columns
+    assert "email_confirmed_at" in auth_id_columns
+    conn.close()
