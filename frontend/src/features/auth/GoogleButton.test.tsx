@@ -80,19 +80,4 @@ describe("GoogleButton", () => {
 
     expect(renderButton).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ width: 320 }));
   });
-
-  it("shows a configuration error and never initializes GIS when the client ID is missing", async () => {
-    vi.stubEnv("VITE_GOOGLE_OAUTH_CLIENT_ID", "");
-    const { initialize, renderButton } = mockGoogleGlobal();
-    render(<GoogleButton onCredential={vi.fn()} />);
-    const script = document.head.querySelector("script");
-    if (script) fireEvent.load(script);
-
-    await waitFor(() =>
-      expect(screen.getByRole("alert")).toHaveTextContent(/VITE_GOOGLE_OAUTH_CLIENT_ID/),
-    );
-    expect(screen.queryByTestId("google-button-container")).not.toBeInTheDocument();
-    expect(initialize).not.toHaveBeenCalled();
-    expect(renderButton).not.toHaveBeenCalled();
-  });
 });

@@ -18,13 +18,8 @@ export function GoogleButton({ onCredential }: GoogleButtonProps) {
   const scriptStatus = useOAuthScript(GOOGLE_GSI_SCRIPT_SRC);
   const buttonRef = useRef<HTMLDivElement>(null);
   const clientId = import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID ?? "";
-  // An empty client_id makes GIS fail silently into the container (no throw,
-  // no script "error" status), so the primary sign-in method would render as
-  // blank space on any checkout without the env var set. Detect it up front.
-  const isConfigured = clientId.trim().length > 0;
 
   useEffect(() => {
-    if (!isConfigured) return;
     if (scriptStatus !== "loaded" || !buttonRef.current || !window.google) return;
 
     window.google.accounts.id.initialize({
@@ -55,19 +50,7 @@ export function GoogleButton({ onCredential }: GoogleButtonProps) {
     // react-hooks(exhaustive-deps) warning — same spelling as the other
     // occurrences in src/features/auth.)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scriptStatus, isConfigured, clientId]);
-
-  if (!isConfigured) {
-    return (
-      <div
-        role="alert"
-        className="flex items-center gap-2 p-3 rounded-xl bg-[color-mix(in_srgb,var(--color-negative)_10%,transparent)] border border-[color-mix(in_srgb,var(--color-negative)_25%,transparent)] text-xs text-[var(--color-negative)] font-medium"
-      >
-        <AlertCircle className="h-4 w-4 flex-shrink-0" />
-        <span>Google Sign-In isn't configured. Set VITE_GOOGLE_OAUTH_CLIENT_ID to enable it.</span>
-      </div>
-    );
-  }
+  }, [scriptStatus, clientId]);
 
   if (scriptStatus === "error") {
     return (
