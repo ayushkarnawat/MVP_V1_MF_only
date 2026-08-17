@@ -26,9 +26,7 @@ from app.services.auth.identity import (
 
 def _session():
     engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(
-        engine, tables=[User.__table__, AuthIdentity.__table__, PendingIdentityVerification.__table__]
-    )
+    Base.metadata.create_all(engine)
     return sessionmaker(autoflush=False, bind=engine)()
 
 
@@ -469,3 +467,33 @@ def test_attach_pending_identity_copies_password_hash_onto_the_new_identity():
         .one()
     )
     assert identity.password_hash == "hashed-value-2"
+
+
+def test_complete_phone_gate_signup_sends_a_confirmation_email_for_password_identities(caplog):
+    db = _session()
+    pending, raw_token = create_pending_verification(
+        db,
+        AuthIdentityProvider.EMAIL_PASSWORD,
+        "confirmflow@example.com",
+        "confirmflow@example.com",
+        False,
+        matched_user_id=None,
+        password_hash="hashed-value",
+    )
+
+    with caplog.at_level("INFO"):
+        complete_phone_gate_signup(db, raw_token, "+919888888882")
+
+    assert any("StubEmailProvider" in record.message for record in caplog.records)
+
+
+def test_complete_phone_gate_signup_does_not_send_email_for_google_identities(caplog):
+    db = _session()
+    pending, raw_token = create_pending_verification(
+        db, AuthIdentityProvider.GOOGLE, "google-sub-789", "g@example.com", True, matched_user_id=None
+    )
+
+    with caplog.at_level("INFO"):
+        complete_phone_gate_signup(db, raw_token, "+919888888883")
+
+    assert not any("StubEmailProvider" in record.message for record in caplog.records)

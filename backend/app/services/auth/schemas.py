@@ -150,3 +150,11 @@ class ResetPasswordBody(BaseModel):
 
 class ResetPasswordResponse(BaseModel):
     message: str
+
+
+class ConfirmEmailBody(BaseModel):
+    token: str
+
+
+class ConfirmEmailResponse(BaseModel):
+    message: str

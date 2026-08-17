@@ -17,6 +17,10 @@ from app.services.auth.identity import (
     record_identity,
     resolve_new_verified_identity,
 )
+from app.services.auth.email_confirmation import (
+    EmailConfirmationTokenError,
+    consume_email_confirmation_token,
+)
 from app.services.auth.email_provider import get_email_provider
 from app.services.auth.google_oauth import GoogleTokenVerificationError, verify_google_id_token
 from app.services.auth.otp import OtpRequestThrottledError, OtpVerificationError, create_otp_request, verify_otp
@@ -27,6 +31,8 @@ from app.services.auth.password_reset import (
     create_password_reset_token,
 )
 from app.services.auth.schemas import (
+    ConfirmEmailBody,
+    ConfirmEmailResponse,
     ForgotPasswordBody,
     ForgotPasswordResponse,
     GoogleAuthBody,
@@ -145,6 +151,15 @@ def reset_password(body: ResetPasswordBody, db: DbSession = Depends(get_db)):
     except PasswordResetTokenError as exc:
         raise HTTPException(status_code=401, detail=str(exc)) from exc
     return ResetPasswordResponse(message="Your password has been reset.")
+
+
+@router.post("/email/confirm", response_model=ConfirmEmailResponse)
+def confirm_email(body: ConfirmEmailBody, db: DbSession = Depends(get_db)):
+    try:
+        consume_email_confirmation_token(db, body.token)
+    except EmailConfirmationTokenError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+    return ConfirmEmailResponse(message="Your email has been confirmed. You can now sign in with your password.")
 
 
 #otp authentication

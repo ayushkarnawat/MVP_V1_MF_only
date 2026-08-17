@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session as DbSession
 from app.models.auth import AuthIdentity, PendingIdentityVerification
 from app.models.enums import AuthIdentityProvider
 from app.models.user import User
+from app.services.auth.email_confirmation import send_confirmation_email
 
 # Lower value = higher precedence. Design Spec §1: "Identity precedence:
 # Google > Email > Phone" — applied wherever only one identity can be
@@ -219,6 +220,17 @@ def complete_phone_gate_signup(db: DbSession, raw_token: str, phone_number: str)
     # record (2026-08-17 email-password design spec §4b); harmless no-op
     # for every other provider.
     new_identity.password_hash = pending.password_hash
+    if pending.provider == AuthIdentityProvider.EMAIL_PASSWORD:
+        # Sent after the identity row is fully written but before the
+        # final commit below — if send_confirmation_email's own internal
+        # commit (it creates+commits an EmailConfirmationToken) succeeds
+        # but something later in this function failed, the token would
+        # still be valid for an account that technically doesn't exist yet
+        # in a fully-committed sense. This is an accepted, narrow edge case
+        # matching this codebase's existing tolerance for equivalent races
+        # elsewhere (see decisions.md's FundScore/backfill-identity race
+        # entries) — not worth a two-phase-commit for an email send.
+        send_confirmation_email(db, user.id, pending.provider_subject)
     db.delete(pending)
     db.commit()
     return user.id
@@ -256,6 +268,8 @@ def attach_pending_identity(db: DbSession, raw_token: str, resolved_user_id: uui
         db, resolved_user_id, pending.provider, pending.provider_subject, verified_email, now, commit=False
     )
     new_identity.password_hash = pending.password_hash
+    if pending.provider == AuthIdentityProvider.EMAIL_PASSWORD:
+        send_confirmation_email(db, resolved_user_id, pending.provider_subject)
     # Explicit flush: production and test sessions are both autoflush=False, so
     # without this the identity we just added is invisible to
     # refresh_denormalized_email's own query and users.email is silently never
