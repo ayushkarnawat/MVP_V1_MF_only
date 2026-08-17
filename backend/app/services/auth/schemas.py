@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel
 
 from app.models.enums import AuthIdentityProvider, InvestorType, PrimaryGoal
 
@@ -8,6 +8,7 @@ PROVIDER_TO_METHOD_LABEL: dict[AuthIdentityProvider, str] = {
     AuthIdentityProvider.PHONE_OTP: "phone",
     AuthIdentityProvider.EMAIL_OTP: "email",
     AuthIdentityProvider.GOOGLE: "google",
+    AuthIdentityProvider.EMAIL_PASSWORD: "email",
 }
 
 
@@ -30,21 +31,7 @@ def normalize_email(value: object) -> object:
 
 
 class OtpRequestBody(BaseModel):
-    phone_number: str | None = None
-    email: str | None = None
-
-    # mode="before" so the canonical value is what _exactly_one_identifier
-    # (a mode="after" validator) and every downstream consumer sees.
-    @field_validator("email", mode="before")
-    @classmethod
-    def _normalize_email(cls, value: object) -> object:
-        return normalize_email(value)
-
-    @model_validator(mode="after")
-    def _exactly_one_identifier(self) -> "OtpRequestBody":
-        if (self.phone_number is None) == (self.email is None):
-            raise ValueError("Provide exactly one of phone_number or email.")
-        return self
+    phone_number: str
 
 
 class OtpRequestResponse(BaseModel):
@@ -53,21 +40,9 @@ class OtpRequestResponse(BaseModel):
 
 
 class OtpVerifyBody(BaseModel):
-    phone_number: str | None = None
-    email: str | None = None
+    phone_number: str
     otp: str
     pending_token: str | None = None
-
-    @field_validator("email", mode="before")
-    @classmethod
-    def _normalize_email(cls, value: object) -> object:
-        return normalize_email(value)
-
-    @model_validator(mode="after")
-    def _exactly_one_identifier(self) -> "OtpVerifyBody":
-        if (self.phone_number is None) == (self.email is None):
-            raise ValueError("Provide exactly one of phone_number or email.")
-        return self
 
 
 class OtpVerifyResponse(BaseModel):

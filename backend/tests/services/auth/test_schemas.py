@@ -1,11 +1,4 @@
-"""Finding 4: email normalization at the request boundary.
-
-Email is an identity key (`otp_requests.email`,
-`auth_identities.provider_subject`/`email`, and the Design Spec §4 collision
-lookup) compared everywhere as a plain string, so `Victim@Example.com` and
-`victim@example.com` would otherwise be two distinct identities and the
-collision/linking system would never fire.
-"""
+"""Auth schema tests."""
 
 import pytest
 from pydantic import ValidationError
@@ -18,29 +11,29 @@ def test_normalize_email_strips_and_lowercases():
 
 
 def test_normalize_email_passes_non_strings_through_untouched():
-    # None must stay None so the exactly-one-identifier check still sees an
-    # absent email, and non-strings must reach Pydantic's own type errors.
     assert normalize_email(None) is None
     assert normalize_email(123) == 123
 
 
-def test_otp_request_body_normalizes_email():
-    assert OtpRequestBody(email="Foo@Example.COM").email == "foo@example.com"
+def test_otp_request_body_accepts_phone_number():
+    body = OtpRequestBody(phone_number="+919999999999")
+    assert body.phone_number == "+919999999999"
 
 
-def test_otp_verify_body_normalizes_email():
-    assert OtpVerifyBody(email=" Foo@Example.COM ", otp="123456").email == "foo@example.com"
-
-
-def test_normalization_does_not_break_the_exactly_one_identifier_rule():
-    # The before-validator runs first; the after-validator must still see a
-    # normalized-but-present email (and reject a second identifier alongside it).
-    with pytest.raises(ValidationError):
-        OtpRequestBody(phone_number="+919999999999", email="Foo@Example.COM")
+def test_otp_request_body_requires_phone_number():
     with pytest.raises(ValidationError):
         OtpRequestBody()
 
 
-def test_phone_number_is_not_lowercased_by_the_email_validator():
-    # Sanity: the validator is scoped to `email` only.
-    assert OtpRequestBody(phone_number="+919999999999").email is None
+def test_otp_verify_body_accepts_phone_number_and_otp():
+    body = OtpVerifyBody(phone_number="+919999999999", otp="123456")
+    assert body.phone_number == "+919999999999"
+    assert body.otp == "123456"
+    assert body.pending_token is None
+
+
+def test_otp_verify_body_requires_phone_number_and_otp():
+    with pytest.raises(ValidationError):
+        OtpVerifyBody(phone_number="+919999999999")
+    with pytest.raises(ValidationError):
+        OtpVerifyBody(otp="123456")

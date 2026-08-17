@@ -17,13 +17,7 @@ from app.services.auth.identity import (
     resolve_new_verified_identity,
 )
 from app.services.auth.google_oauth import GoogleTokenVerificationError, verify_google_id_token
-from app.services.auth.otp import (
-    NoEmailProviderConfiguredError,
-    OtpRequestThrottledError,
-    OtpVerificationError,
-    create_otp_request,
-    verify_otp,
-)
+from app.services.auth.otp import OtpRequestThrottledError, OtpVerificationError, create_otp_request, verify_otp
 from app.services.auth.schemas import (
     GoogleAuthBody,
     LinkRequiredDetail,
@@ -58,89 +52,47 @@ def _session_response(user_id, auth_method: AuthIdentityProvider, db: DbSession)
 #otp authentication
 @router.post("/otp/request", response_model=OtpRequestResponse)
 def request_otp(body: OtpRequestBody, db: DbSession = Depends(get_db)):
-    channel = "sms" if body.phone_number is not None else "email"
-    identifier = body.phone_number if channel == "sms" else body.email
     try:
-        _, raw_otp = create_otp_request(db, identifier, channel=channel)
+        _, raw_otp = create_otp_request(db, body.phone_number)
     except OtpRequestThrottledError as exc:
         raise HTTPException(status_code=429, detail=str(exc)) from exc
-    except NoEmailProviderConfiguredError as exc:
-        # A missing/misconfigured email provider is a server-side capability
-        # gap, not a client error: 503 tells the client "this channel is
-        # temporarily unavailable, try another or retry later", which is what
-        # the landing screen's three-equal-methods UX needs to hear. Same
-        # translate-at-the-route pattern as the 429 above.
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
     return OtpRequestResponse(message="OTP sent.", otp=raw_otp)
 
 
 @router.post("/otp/verify", response_model=OtpVerifyResponse | LinkRequiredResponse | PhoneRequiredResponse)
 def verify_otp_route(body: OtpVerifyBody, db: DbSession = Depends(get_db)):
-    channel = "sms" if body.phone_number is not None else "email"
-    identifier = body.phone_number if channel == "sms" else body.email
-    provider = AuthIdentityProvider.PHONE_OTP if channel == "sms" else AuthIdentityProvider.EMAIL_OTP
-
     try:
-        verify_otp(db, identifier, body.otp, channel=channel)
+        verify_otp(db, body.phone_number, body.otp)
     except OtpVerificationError as exc:
         raise HTTPException(status_code=401, detail=str(exc)) from exc
 
     if body.pending_token:
         try:
-            if channel != "sms":
-                # Only phone can complete the mandatory-phone-gate case;
-                # an email re-auth here can only be a link completion.
-                existing = find_identity_by_subject(db, provider, identifier)
-                if existing is None:
-                    raise HTTPException(status_code=401, detail="This account isn't linked yet.")
+            existing = find_or_backfill_phone_identity(db, body.phone_number)
+            if existing is not None:
                 user_id = attach_pending_identity(db, body.pending_token, existing.user_id)
             else:
-                existing = find_or_backfill_phone_identity(db, identifier)
-                if existing is not None:
-                    user_id = attach_pending_identity(db, body.pending_token, existing.user_id)
-                else:
-                    user_id = complete_phone_gate_signup(db, body.pending_token, identifier)
+                user_id = complete_phone_gate_signup(db, body.pending_token, body.phone_number)
         except PendingVerificationError as exc:
             raise HTTPException(status_code=401, detail=str(exc)) from exc
-        return _session_response(user_id, provider, db)
+        return _session_response(user_id, AuthIdentityProvider.PHONE_OTP, db)
 
     # Phone uses find_or_backfill_phone_identity so a pre-0005-backfill `users`
     # row (identity row missing) logs in normally instead of falling through to
     # the brand-new-signup INSERT below and violating users.phone_number UNIQUE.
-    existing = (
-        find_or_backfill_phone_identity(db, identifier)
-        if channel == "sms"
-        else find_identity_by_subject(db, provider, identifier)
-    )
+    existing = find_or_backfill_phone_identity(db, body.phone_number)
     if existing is not None:
-        return _session_response(existing.user_id, provider, db)
+        return _session_response(existing.user_id, AuthIdentityProvider.PHONE_OTP, db)
 
-    if channel == "sms":
-        # Phone never collision-checks (no email claim to collide with) —
-        # brand-new phone number always completes signup immediately.
-        now = datetime.now(timezone.utc)
-        user = User(phone_number=identifier, created_at=now)
-        db.add(user)
-        db.flush()
-        record_identity(db, user.id, AuthIdentityProvider.PHONE_OTP, identifier, None, now)
-        db.commit()
-        return _session_response(user.id, AuthIdentityProvider.PHONE_OTP, db)
-
-    # Email channel with no existing identity: run the collision check.
-    resolution = resolve_new_verified_identity(db, provider, identifier, identifier, True)
-    if resolution.kind == "login":
-        return _session_response(resolution.user_id, provider, db)
-    if resolution.kind == "link_required":
-        return LinkRequiredResponse(
-            link_required=LinkRequiredDetail(
-                token=resolution.pending_token,
-                matched_email=resolution.matched_email,
-                existing_method=PROVIDER_TO_METHOD_LABEL[resolution.existing_method],
-            )
-        )
-    return PhoneRequiredResponse(
-        phone_required=PhoneRequiredDetail(token=resolution.pending_token, prefill_email=resolution.prefill_email)
-    )
+    # Phone never collision-checks (no email claim to collide with) —
+    # brand-new phone number always completes signup immediately.
+    now = datetime.now(timezone.utc)
+    user = User(phone_number=body.phone_number, created_at=now)
+    db.add(user)
+    db.flush()
+    record_identity(db, user.id, AuthIdentityProvider.PHONE_OTP, body.phone_number, None, now)
+    db.commit()
+    return _session_response(user.id, AuthIdentityProvider.PHONE_OTP, db)
 
 
 @router.post("/oauth/google", response_model=OtpVerifyResponse | LinkRequiredResponse | PhoneRequiredResponse)

@@ -1,7 +1,7 @@
-"""OTP generation, hashing, and verification — phone+OTP and email+OTP,
-sharing one table and one code path per Design Spec §1: the hash/expiry/
-attempt-count/verify logic is identical between channels, only delivery
-differs.
+"""OTP generation, hashing, and verification — phone+OTP only. Email OTP
+was removed per the 2026-08-17 email-password design spec §1: email
+signup now uses email+password (see password.py), and email-OTP had zero
+remaining callers once that landed.
 
 sha256, not bcrypt/argon2: OTPs are short-lived (5 min), low-entropy
 6-digit codes, not long-lived credentials — there's nothing to gain from an
@@ -13,27 +13,21 @@ from __future__ import annotations
 import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone
-from typing import Literal
 
 from sqlalchemy.orm import Session as DbSession
 
 from app.config import settings
 from app.models.auth import OtpRequest
-from app.services.auth.email_provider import NoEmailProviderConfiguredError, get_email_provider
 
 OTP_LENGTH = 6
 OTP_TTL_MINUTES = 5
 MAX_ATTEMPTS = 5
 
-Channel = Literal["sms", "email"]
-
 __all__ = [
     "OtpVerificationError",
     "OtpRequestThrottledError",
-    "NoEmailProviderConfiguredError",
     "create_otp_request",
     "verify_otp",
-    "get_email_provider",
 ]
 
 
@@ -45,13 +39,11 @@ def generate_otp() -> str:
     return "".join(secrets.choice("0123456789") for _ in range(OTP_LENGTH))
 
 
-def create_otp_request(
-    db: DbSession, identifier: str, channel: Channel = "sms"
-) -> tuple[OtpRequest, str | None]:
-    """Creates and persists a new OtpRequest for either channel. Returns
-    (request, raw_otp) — raw_otp is only non-None in dev-stub delivery
-    mode, for the API response to echo back; a real delivery mode returns
-    None here and sends the code out-of-band instead."""
+def create_otp_request(db: DbSession, phone_number: str) -> tuple[OtpRequest, str | None]:
+    """Creates and persists a new OtpRequest. Returns (request, raw_otp) —
+    raw_otp is only non-None in dev-stub delivery mode, for the API
+    response to echo back; a real delivery mode returns None here and
+    sends the code out-of-band instead."""
     if settings.otp_delivery_mode == "stub" and not settings.database_url.startswith("sqlite"):
         raise RuntimeError(
             "otp_delivery_mode='stub' is not allowed against a non-SQLite database — "
@@ -59,10 +51,9 @@ def create_otp_request(
             "Set OTP_DELIVERY_MODE to a real delivery mode before deploying against Postgres."
         )
 
-    filter_kwargs = {"phone_number": identifier} if channel == "sms" else {"email": identifier}
     recent = (
         db.query(OtpRequest)
-        .filter_by(verified_at=None, **filter_kwargs)
+        .filter_by(verified_at=None, phone_number=phone_number)
         .order_by(OtpRequest.created_at.desc())
         .first()
     )
@@ -78,34 +69,12 @@ def create_otp_request(
 
     otp = generate_otp()
     request = OtpRequest(
-        phone_number=identifier if channel == "sms" else None,
-        email=identifier if channel == "email" else None,
+        phone_number=phone_number,
         otp_hash=_hash_otp(otp),
         expires_at=datetime.now(timezone.utc) + timedelta(minutes=OTP_TTL_MINUTES),
         created_at=datetime.now(timezone.utc),
     )
     db.add(request)
-
-    # Send BEFORE committing, and roll back if delivery fails. A row that is
-    # persisted but never delivered is worse than no row at all: the caller
-    # gets an error for a code that was never sent, AND the throttle check
-    # above counts that orphaned row as a "recent unverified request", so the
-    # user's immediate retry is blocked for RESEND_THROTTLE_SECONDS for a
-    # failure that was entirely server-side. The explicit rollback (rather
-    # than just letting the exception propagate) matters because the pending
-    # db.add() would otherwise still be in the session's identity map and
-    # could leak into a later implicit flush on the same session.
-    if channel == "email" and settings.otp_delivery_mode != "stub":
-        try:
-            get_email_provider().send_email(
-                to=identifier,
-                subject="Your Unifolio verification code",
-                body=f"Your Unifolio verification code is {otp}. It expires in {OTP_TTL_MINUTES} minutes.",
-            )
-        except Exception:
-            db.rollback()
-            raise
-
     db.commit()
 
     raw_otp = otp if settings.otp_delivery_mode == "stub" else None
@@ -113,9 +82,8 @@ def create_otp_request(
 
 
 class OtpRequestThrottledError(Exception):
-    """Raised when a new OTP is requested for an identifier that already
-    has an unexpired, unverified request under 60 seconds old — a cost
-    control now that email sends are billed per-message (Design Spec §6)."""
+    """Raised when a new OTP is requested for a phone number that already
+    has an unexpired, unverified request under 60 seconds old."""
 
 
 RESEND_THROTTLE_SECONDS = 60
@@ -125,21 +93,18 @@ class OtpVerificationError(Exception):
     """Any OTP verification failure — no pending request, expired, wrong code, or too many attempts."""
 
 
-def verify_otp(db: DbSession, identifier: str, otp: str, channel: Channel = "sms") -> OtpRequest:
+def verify_otp(db: DbSession, phone_number: str, otp: str) -> OtpRequest:
     """Verifies otp against the latest unverified OtpRequest for
-    identifier on the given channel. Raises OtpVerificationError on any
-    failure. On success, marks the request verified and returns it."""
-    filter_kwargs = {"phone_number": identifier} if channel == "sms" else {"email": identifier}
+    phone_number. Raises OtpVerificationError on any failure. On success,
+    marks the request verified and returns it."""
     request = (
         db.query(OtpRequest)
-        .filter_by(verified_at=None, **filter_kwargs)
+        .filter_by(verified_at=None, phone_number=phone_number)
         .order_by(OtpRequest.created_at.desc())
         .first()
     )
     if not request:
         raise OtpVerificationError("No pending OTP request for this identifier.")
-    # SQLite (dev/tests) returns naive datetimes even for DateTime(timezone=True);
-    # values are always written as UTC, so tag them as such. Postgres returns aware.
     expires_at = request.expires_at
     if expires_at.tzinfo is None:
         expires_at = expires_at.replace(tzinfo=timezone.utc)

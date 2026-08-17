@@ -102,10 +102,6 @@ def test_create_otp_request_refuses_stub_mode_against_non_sqlite_database(monkey
 def test_verify_otp_uses_latest_request_when_multiple_exist():
     db = _session()
     first, _ = create_otp_request(db, "+919999999999")
-    # Backdate the first request past the resend-throttle window (Task 11) so
-    # the second create_otp_request call below isn't rejected as a rapid
-    # repeat — this test's intent is verifying verify_otp picks the LATEST
-    # of several existing unverified requests, not exercising the throttle.
     first.created_at = datetime.now(timezone.utc) - timedelta(seconds=61)
     db.commit()
     _, second_otp = create_otp_request(db, "+919999999999")
@@ -113,115 +109,6 @@ def test_verify_otp_uses_latest_request_when_multiple_exist():
     verified = verify_otp(db, "+919999999999", second_otp)
 
     assert verified.verified_at is not None
-
-
-def test_create_otp_request_accepts_email_channel(monkeypatch):
-    import app.services.auth.otp as otp_module
-
-    monkeypatch.setattr(otp_module.settings, "otp_delivery_mode", "stub")
-    db = _session()
-    request, raw_otp = create_otp_request(db, "a@example.com", channel="email")
-
-    assert raw_otp is not None
-    assert request.email == "a@example.com"
-    assert request.phone_number is None
-
-
-def test_verify_otp_succeeds_for_email_channel():
-    db = _session()
-    _, raw_otp = create_otp_request(db, "a@example.com", channel="email")
-
-    verified = verify_otp(db, "a@example.com", raw_otp, channel="email")
-
-    assert verified.verified_at is not None
-
-
-def test_verify_otp_email_channel_does_not_match_phone_request():
-    db = _session()
-    create_otp_request(db, "+919999999999", channel="sms")
-
-    with pytest.raises(OtpVerificationError, match="No pending"):
-        verify_otp(db, "+919999999999", "000000", channel="email")
-
-
-def test_create_otp_request_email_channel_dispatches_via_email_provider_when_not_stub(monkeypatch):
-    import app.services.auth.otp as otp_module
-
-    monkeypatch.setattr(otp_module.settings, "otp_delivery_mode", "postmark")
-    monkeypatch.setattr(otp_module.settings, "database_url", "sqlite:///:memory:")
-
-    sent = {}
-
-    class FakeProvider:
-        def send_email(self, to, subject, body):
-            sent["to"] = to
-            sent["body"] = body
-
-    monkeypatch.setattr(otp_module, "get_email_provider", lambda: FakeProvider())
-    db = _session()
-
-    request, raw_otp = create_otp_request(db, "a@example.com", channel="email")
-
-    assert raw_otp is None
-    assert sent["to"] == "a@example.com"
-    assert request.otp_hash != sent["body"]  # sanity: body isn't the raw hash
-
-
-def test_create_otp_request_email_channel_raises_when_no_provider_configured(monkeypatch):
-    import app.services.auth.otp as otp_module
-
-    monkeypatch.setattr(otp_module.settings, "otp_delivery_mode", "postmark")
-    monkeypatch.setattr(otp_module.settings, "database_url", "sqlite:///:memory:")
-    db = _session()
-
-    with pytest.raises(otp_module.NoEmailProviderConfiguredError):
-        create_otp_request(db, "a@example.com", channel="email")
-
-
-def test_create_otp_request_persists_nothing_when_the_email_provider_fails(monkeypatch):
-    # Finding 5. The row used to be committed BEFORE the send, so a provider
-    # failure left an orphaned, undelivered request behind — and because the
-    # throttle counts any recent unverified request, that orphan then blocked
-    # the user's own immediate retry for RESEND_THROTTLE_SECONDS. Asserting the
-    # absence of the row, not just that the exception propagates (which the
-    # test below this one already covered while the bug was live).
-    import app.services.auth.otp as otp_module
-
-    monkeypatch.setattr(otp_module.settings, "otp_delivery_mode", "postmark")
-    monkeypatch.setattr(otp_module.settings, "database_url", "sqlite:///:memory:")
-    db = _session()
-
-    with pytest.raises(otp_module.NoEmailProviderConfiguredError):
-        create_otp_request(db, "orphan@example.com", channel="email")
-
-    assert db.query(OtpRequest).filter_by(email="orphan@example.com").first() is None
-    assert db.query(OtpRequest).count() == 0
-
-
-def test_create_otp_request_retry_is_not_throttled_after_an_email_provider_failure(monkeypatch):
-    # Finding 5's user-visible symptom: the immediate retry must work. It only
-    # can if the failed attempt left no row for the throttle to trip on.
-    import app.services.auth.otp as otp_module
-
-    monkeypatch.setattr(otp_module.settings, "otp_delivery_mode", "postmark")
-    monkeypatch.setattr(otp_module.settings, "database_url", "sqlite:///:memory:")
-    db = _session()
-
-    with pytest.raises(otp_module.NoEmailProviderConfiguredError):
-        create_otp_request(db, "retry@example.com", channel="email")
-
-    sent = {}
-
-    class FakeProvider:
-        def send_email(self, to, subject, body):
-            sent["to"] = to
-
-    monkeypatch.setattr(otp_module, "get_email_provider", lambda: FakeProvider())
-
-    request, _ = create_otp_request(db, "retry@example.com", channel="email")
-
-    assert sent["to"] == "retry@example.com"  # not OtpRequestThrottledError
-    assert db.query(OtpRequest).filter_by(email="retry@example.com").count() == 1
 
 
 def test_create_otp_request_throttles_rapid_repeat_requests(monkeypatch):

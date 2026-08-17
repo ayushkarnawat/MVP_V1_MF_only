@@ -104,29 +104,11 @@ def test_pending_identity_verification_round_trip():
     assert fetched.email_verified is True
 
 
-def test_otp_request_rejects_both_identifiers_set():
+def test_otp_request_round_trip():
     db = _session()
     now = datetime.now(timezone.utc)
-    db.add(
-        OtpRequest(
-            phone_number="+919999999999", email="a@example.com",
-            otp_hash="x", expires_at=now, created_at=now,
-        )
-    )
-    with pytest.raises(IntegrityError):
-        db.commit()
+    db.add(OtpRequest(phone_number="+919999999999", otp_hash="x", expires_at=now, created_at=now))
+    db.commit()
 
-
-def test_otp_request_rejects_neither_identifier_set():
-    db = _session()
-    now = datetime.now(timezone.utc)
-    db.add(OtpRequest(phone_number=None, email=None, otp_hash="x", expires_at=now, created_at=now))
-    with pytest.raises(IntegrityError):
-        db.commit()
-
-
-def test_otp_request_accepts_email_only():
-    db = _session()
-    now = datetime.now(timezone.utc)
-    db.add(OtpRequest(phone_number=None, email="a@example.com", otp_hash="x", expires_at=now, created_at=now))
-    db.commit()  # must not raise
+    fetched = db.query(OtpRequest).filter_by(phone_number="+919999999999").one()
+    assert fetched.phone_number == "+919999999999"
