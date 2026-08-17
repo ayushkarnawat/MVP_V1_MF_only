@@ -1,12 +1,12 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, ArrowLeft, Loader2, ShieldCheck } from "lucide-react";
+import { AlertCircle, ArrowLeft, ArrowRight, Loader2, ShieldCheck } from "lucide-react";
 
 interface EmailEntryProps {
   /** "login": direct email login from landing. "link": step-up re-authentication
-   * against an account that already exists. "primary": legacy entry point with
-   * both actions. Defaults to "login". */
+    * against an account that already exists. "primary": legacy entry point with
+    * both actions. Defaults to "login". */
   context?: "primary" | "login" | "link";
   onSignup?: (email: string, password: string) => void;
   onLogin: (email: string, password: string) => void;
@@ -45,23 +45,26 @@ export function EmailEntry({ context = "login", onSignup, onLogin, onBack, submi
   return (
     <form
       onSubmit={(event) => submit(event, isLoginOnly ? "login" : "signup")}
-      className="w-full max-w-sm sm:max-w-md mx-auto p-5 sm:p-8 rounded-3xl bg-[var(--color-surface)] border border-[var(--color-border)]/80 shadow-lg space-y-6 text-center box-border animate-in fade-in zoom-in-95 duration-200"
+      className="w-full max-w-md mx-auto space-y-6 text-left box-border"
     >
-      <div className="space-y-2.5">
-        <div className="mx-auto h-12 w-12 rounded-2xl bg-[color-mix(in_srgb,var(--color-accent)_15%,transparent)] border border-[color-mix(in_srgb,var(--color-accent)_30%,transparent)] text-[var(--color-accent)] flex items-center justify-center shadow-xs">
-          <svg
-            viewBox="0 0 100 100"
-            className="w-6 h-6 text-[var(--color-accent)] fill-none stroke-current stroke-[14] stroke-linecap-round"
-            aria-label="Unifolio Logo Mark"
+      {/* 1. Navigation & Brand Heading */}
+      <div className="space-y-3">
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex items-center gap-1.5 text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] font-medium transition-colors cursor-pointer"
           >
-            <path d="M 50 10 A 40 40 0 0 1 90 50" />
-          </svg>
-        </div>
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span>Back</span>
+          </button>
+        )}
+
         <div className="space-y-1">
-          <h1 className="font-display font-bold text-xl sm:text-2xl text-[var(--color-ink)] tracking-tight">
+          <h1 className="font-display font-bold text-2xl sm:text-3xl text-[var(--color-ink)] tracking-tight">
             {isLoginOnly ? "Log in with email" : "Continue with email"}
           </h1>
-          <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed max-w-xs mx-auto">
+          <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed">
             {isLink
               ? "Enter your email and password to link this to your account."
               : isLoginOnly
@@ -71,8 +74,9 @@ export function EmailEntry({ context = "login", onSignup, onLogin, onBack, submi
         </div>
       </div>
 
-      <div className="space-y-3 text-left">
-        <div className="space-y-2">
+      {/* 2. Inputs Group */}
+      <div className="space-y-3.5">
+        <div className="space-y-1.5">
           <label htmlFor="email-input" className="text-xs font-semibold text-[var(--color-ink)] block">
             Email address
           </label>
@@ -82,11 +86,12 @@ export function EmailEntry({ context = "login", onSignup, onLogin, onBack, submi
             placeholder="you@example.com"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="w-full h-11 sm:h-12 min-h-[44px] rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] focus-within:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/20 px-3.5 text-xs sm:text-sm text-[var(--color-ink)] placeholder:text-[var(--color-text-secondary)]/50 focus:outline-none transition-all"
+            className="w-full h-11 sm:h-12 min-h-[44px] rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/20 px-3.5 text-xs sm:text-sm text-[var(--color-ink)] placeholder:text-[var(--color-text-secondary)]/50 focus:outline-none transition-all"
             autoFocus
           />
         </div>
-        <div className="space-y-2">
+
+        <div className="space-y-1.5">
           <label htmlFor="password-input" className="text-xs font-semibold text-[var(--color-ink)] block">
             Password
           </label>
@@ -96,7 +101,7 @@ export function EmailEntry({ context = "login", onSignup, onLogin, onBack, submi
             placeholder="••••••••"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className="w-full h-11 sm:h-12 min-h-[44px] rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] focus-within:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/20 px-3.5 text-xs sm:text-sm text-[var(--color-ink)] placeholder:text-[var(--color-text-secondary)]/50 focus:outline-none transition-all"
+            className="w-full h-11 sm:h-12 min-h-[44px] rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/20 px-3.5 text-xs sm:text-sm text-[var(--color-ink)] placeholder:text-[var(--color-text-secondary)]/50 focus:outline-none transition-all"
           />
           {passwordTooShort && (
             <p className="text-[11px] text-[var(--color-text-secondary)]">
@@ -106,21 +111,23 @@ export function EmailEntry({ context = "login", onSignup, onLogin, onBack, submi
         </div>
       </div>
 
+      {/* 3. Error Alert */}
       {displayedError && (
         <div
           role="alert"
-          className="flex items-center gap-2 p-3 rounded-xl bg-[color-mix(in_srgb,var(--color-negative)_10%,transparent)] border border-[color-mix(in_srgb,var(--color-negative)_25%,transparent)] text-xs text-[var(--color-negative)] font-medium text-left"
+          className="flex items-center gap-2.5 p-3.5 rounded-2xl bg-[color-mix(in_srgb,var(--color-negative)_10%,transparent)] border border-[color-mix(in_srgb,var(--color-negative)_25%,transparent)] text-xs text-[var(--color-negative)] font-medium"
         >
           <AlertCircle className="h-4 w-4 flex-shrink-0" />
           <span>{displayedError}</span>
         </div>
       )}
 
+      {/* 4. Action Buttons */}
       <div className="space-y-3 pt-1">
         <Button
           type="submit"
           disabled={submitting || !email.trim() || !password.trim()}
-          className="w-full h-11 sm:h-12 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs sm:text-sm shadow-xs gap-2 cursor-pointer active:scale-[0.99] transition-all min-h-[44px] sm:min-h-[48px]"
+          className="w-full h-11 sm:h-12 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs sm:text-sm shadow-sm gap-2 cursor-pointer active:scale-[0.99] transition-all min-h-[44px] sm:min-h-[48px]"
         >
           {submitting ? (
             <>
@@ -128,7 +135,10 @@ export function EmailEntry({ context = "login", onSignup, onLogin, onBack, submi
               <span>{isLoginOnly ? "Logging in..." : "Creating account..."}</span>
             </>
           ) : (
-            <span>{isLoginOnly ? "Log in" : "Create account"}</span>
+            <>
+              <span>{isLoginOnly ? "Log in" : "Create account"}</span>
+              <ArrowRight className="h-3.5 w-3.5" />
+            </>
           )}
         </Button>
 
@@ -143,20 +153,10 @@ export function EmailEntry({ context = "login", onSignup, onLogin, onBack, submi
             Log in instead
           </Button>
         )}
-
-        {onBack && (
-          <button
-            type="button"
-            onClick={onBack}
-            className="inline-flex items-center gap-1 text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] font-medium transition-colors cursor-pointer text-xs"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            <span>Back</span>
-          </button>
-        )}
       </div>
 
-      <div className="flex items-center justify-center gap-1.5 text-[11px] text-[var(--color-text-secondary)] pt-1 select-none">
+      {/* 5. Security Footnote */}
+      <div className="flex items-center justify-center sm:justify-start gap-1.5 text-[11px] text-[var(--color-text-secondary)] pt-2 select-none">
         <ShieldCheck className="h-3.5 w-3.5 text-[var(--color-accent)]" />
         <span>256-bit encrypted · Read-only access · No spam</span>
       </div>

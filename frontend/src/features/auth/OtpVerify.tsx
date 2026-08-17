@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, AlertCircle, ShieldCheck, Loader2, KeyRound } from "lucide-react";
+import { ArrowLeft, ArrowRight, AlertCircle, ShieldCheck, Loader2, KeyRound } from "lucide-react";
 
 interface OtpVerifyProps {
   phoneNumber: string;
@@ -32,56 +32,45 @@ export function OtpVerify({
   return (
     <form
       onSubmit={handleSubmit}
-      className="w-full max-w-sm sm:max-w-md mx-auto p-5 sm:p-8 rounded-3xl bg-[var(--color-surface)] border border-[var(--color-border)]/80 shadow-lg space-y-6 text-center box-border animate-in fade-in zoom-in-95 duration-200"
+      className="w-full max-w-md mx-auto space-y-6 text-left box-border"
     >
-      {/* 1. Refined Brand Header */}
-      <div className="space-y-2.5">
-        <div className="mx-auto h-10 w-10 rounded-xl bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] border border-[color-mix(in_srgb,var(--color-accent)_24%,transparent)] text-[var(--color-accent)] flex items-center justify-center">
-          <svg
-            viewBox="0 0 100 100"
-            className="w-5 h-5 text-[var(--color-accent)] fill-none stroke-current stroke-[14] stroke-linecap-round"
-            aria-label="Unifolio Logo Mark"
-          >
-            <path d="M 50 10 A 40 40 0 0 1 90 50" />
-          </svg>
-        </div>
-        <div className="space-y-1">
-          <h1 className="font-display font-bold text-xl sm:text-2xl text-[var(--color-ink)] tracking-tight">
-            Verify your number
-          </h1>
-          <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed max-w-xs mx-auto">
-            We sent a 6-digit verification code to <strong className="text-[var(--color-ink)] font-mono">{phoneNumber}</strong>
-          </p>
-        </div>
+      {/* 1. Brand Heading */}
+      <div className="space-y-1">
+        <h1 className="font-display font-bold text-2xl sm:text-3xl text-[var(--color-ink)] tracking-tight">
+          Verify your number
+        </h1>
+        <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed">
+          We sent a 6-digit verification code to <strong className="text-[var(--color-ink)] font-mono">{phoneNumber}</strong>
+        </p>
       </div>
 
       {/* 2. Dev OTP Helper Banner */}
       {devOtp && (
-        <div className="flex items-center justify-between p-3 rounded-xl bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] border border-[color-mix(in_srgb,var(--color-accent)_20%,transparent)] text-xs text-[var(--color-ink)]">
+        <div className="flex items-center justify-between p-3 rounded-2xl bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] border border-[color-mix(in_srgb,var(--color-accent)_20%,transparent)] text-xs text-[var(--color-ink)]">
           <div className="flex items-center gap-1.5">
             <KeyRound className="h-3.5 w-3.5 text-[var(--color-accent)] flex-shrink-0" />
             <span className="font-semibold text-[var(--color-accent)]">Local Dev OTP:</span>
           </div>
-          <strong className="font-mono text-xs tracking-widest text-[var(--color-ink)] bg-[var(--color-surface)] px-2 py-0.5 rounded border border-[var(--color-border)]">
+          <strong className="font-mono text-xs tracking-widest text-[var(--color-ink)] bg-[var(--color-surface)] px-2.5 py-0.5 rounded-lg border border-[var(--color-border)] shadow-xs">
             {devOtp}
           </strong>
         </div>
       )}
 
       {/* 3. OTP Input Field */}
-      <div className="space-y-2 text-left">
+      <div className="space-y-1.5">
         <label
           htmlFor="otp-input"
           className="text-xs font-semibold text-[var(--color-ink)] block"
         >
-          Verification Code
+          Verification code
         </label>
         <input
           id="otp-input"
           type="text"
           inputMode="numeric"
           maxLength={6}
-          placeholder="• • • • • •"
+          placeholder="••••••"
           value={otp}
           onChange={(event) => setOtp(event.target.value)}
           className="w-full text-center tracking-[0.4em] font-mono text-xl sm:text-2xl font-bold h-12 sm:h-14 rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/20 text-[var(--color-ink)] focus:outline-none transition-all placeholder:text-[var(--color-text-secondary)]/30"
@@ -93,7 +82,7 @@ export function OtpVerify({
       {error && (
         <div
           role="alert"
-          className="flex items-center gap-2 p-3 rounded-xl bg-[color-mix(in_srgb,var(--color-negative)_10%,transparent)] border border-[color-mix(in_srgb,var(--color-negative)_25%,transparent)] text-xs text-[var(--color-negative)] font-medium text-left"
+          className="flex items-center gap-2.5 p-3.5 rounded-2xl bg-[color-mix(in_srgb,var(--color-negative)_10%,transparent)] border border-[color-mix(in_srgb,var(--color-negative)_25%,transparent)] text-xs text-[var(--color-negative)] font-medium"
         >
           <AlertCircle className="h-4 w-4 flex-shrink-0" />
           <span>{error}</span>
@@ -105,29 +94,29 @@ export function OtpVerify({
         <Button
           type="submit"
           disabled={submitting || otp.length < 4}
-          className="w-full h-11 sm:h-12 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs sm:text-sm shadow-xs cursor-pointer active:scale-[0.99] transition-all min-h-[44px] sm:min-h-[48px]"
+          className="w-full h-11 sm:h-12 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs sm:text-sm shadow-sm gap-2 cursor-pointer active:scale-[0.99] transition-all min-h-[44px] sm:min-h-[48px]"
         >
           {submitting ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Verifying...</span>
+              <span>Verifying code...</span>
             </>
           ) : (
             <>
               <span>Verify &amp; Continue</span>
-              <span>→</span>
+              <ArrowRight className="h-3.5 w-3.5" />
             </>
           )}
         </Button>
 
-        <div className="flex items-center justify-between text-xs pt-0.5">
+        <div className="flex items-center justify-between text-xs pt-1">
           <button
             type="button"
             onClick={onBack ?? onResend}
             className="inline-flex items-center gap-1 text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] font-medium transition-colors cursor-pointer"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            <span>Change Number</span>
+            <span>Change number</span>
           </button>
 
           <Button
@@ -141,8 +130,8 @@ export function OtpVerify({
         </div>
       </div>
 
-      {/* 6. Security Footer */}
-      <div className="flex items-center justify-center gap-1.5 text-[11px] text-[var(--color-text-secondary)] pt-1 select-none">
+      {/* 6. Security Footnote */}
+      <div className="flex items-center justify-center sm:justify-start gap-1.5 text-[11px] text-[var(--color-text-secondary)] pt-2 select-none">
         <ShieldCheck className="h-3.5 w-3.5 text-[var(--color-accent)]" />
         <span>256-bit encrypted · Read-only access · No spam</span>
       </div>

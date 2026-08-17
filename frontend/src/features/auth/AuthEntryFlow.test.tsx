@@ -55,6 +55,8 @@ describe("AuthEntryFlow", () => {
     expect(screen.getByRole("tab", { name: /^log in$/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /^sign up$/i })).toBeInTheDocument();
 
+    fireEvent.click(screen.getByRole("tab", { name: /^log in$/i }));
+
     expect(screen.queryByRole("button", { name: /continue with apple/i })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /continue with email/i })).toBeEnabled();
     expect(screen.getByRole("button", { name: /continue with phone/i })).toBeEnabled();
@@ -168,6 +170,7 @@ describe("AuthEntryFlow", () => {
     vi.mocked(api.loginEmail).mockResolvedValue(NORMAL_SESSION);
     vi.mocked(api.getMe).mockResolvedValue(ME_RESPONSE);
     renderFlow();
+    fireEvent.click(screen.getByRole("tab", { name: /^log in$/i }));
     fireEvent.click(screen.getByRole("button", { name: /continue with email/i }));
     fillEmailPassword("existing@example.com", "correcthorse");
     fireEvent.click(screen.getByRole("button", { name: /^log in$/i }));
@@ -181,6 +184,7 @@ describe("AuthEntryFlow", () => {
       new ApiError(403, "Please confirm your email before signing in with a password — check your inbox, or resend the link."),
     );
     renderFlow();
+    fireEvent.click(screen.getByRole("tab", { name: /^log in$/i }));
     fireEvent.click(screen.getByRole("button", { name: /continue with email/i }));
     fillEmailPassword("unconfirmed@example.com", "correcthorse");
     fireEvent.click(screen.getByRole("button", { name: /^log in$/i }));

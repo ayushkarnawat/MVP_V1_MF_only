@@ -73,13 +73,6 @@ export function LinkAccountPrompt({ matchedEmail, existingMethod, pendingToken, 
     setSubmitting(true);
     setError(null);
     try {
-      // loginEmail never returns link_required/phone_required (those are
-      // signup-only outcomes) — a successful call always means a session.
-      // pendingToken is threaded through here (unlike AuthEntryFlow's own
-      // primary email login in Task 4, which never passes one) — this is
-      // the one place email's step-up path differs from a normal login: it
-      // tells the backend to also attach this pending Google/phone-gate
-      // identity to whichever account the password just authenticated into.
       const result = await loginEmail(email, password, pendingToken);
       onLinked(result);
     } catch (err) {
@@ -107,35 +100,37 @@ export function LinkAccountPrompt({ matchedEmail, existingMethod, pendingToken, 
   };
 
   const banner = (
-    <p className="text-xs text-[var(--color-text-secondary)] text-center max-w-sm mx-auto">
-      We found an account associated with <strong className="text-[var(--color-ink)]">{matchedEmail}</strong> — log
-      in with your {existingMethod} to link this to it.
-    </p>
+    <div className="space-y-1">
+      <h2 className="font-display font-bold text-2xl text-[var(--color-ink)] tracking-tight">
+        Link to existing account
+      </h2>
+      <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed">
+        We found an account associated with <strong className="text-[var(--color-ink)] font-mono">{matchedEmail}</strong> — log in with your {existingMethod} to link this to it.
+      </p>
+    </div>
   );
 
   const cancelButton = (
-    <div className="flex justify-center">
-      <button
-        type="button"
-        onClick={onCancel}
-        className="inline-flex items-center gap-1 text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] font-medium transition-colors cursor-pointer text-xs"
-      >
-        <ArrowLeft className="h-3.5 w-3.5" />
-        <span>Back</span>
-      </button>
-    </div>
+    <button
+      type="button"
+      onClick={onCancel}
+      className="inline-flex items-center gap-1.5 text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] font-medium transition-colors cursor-pointer"
+    >
+      <ArrowLeft className="h-3.5 w-3.5" />
+      <span>Back</span>
+    </button>
   );
 
   if (existingMethod === "google") {
     return (
-      <div className="w-full max-w-sm sm:max-w-md mx-auto space-y-3">
+      <div className="w-full max-w-md mx-auto space-y-6 text-left box-border">
         {cancelButton}
         {banner}
-        <div className="p-5 sm:p-8 rounded-3xl bg-[var(--color-surface)] border border-[var(--color-border)]/80 shadow-lg flex justify-center">
+        <div className="pt-2">
           <GoogleButton onCredential={handleGoogleCredential} />
         </div>
         {error && (
-          <p role="alert" className="text-xs text-[var(--color-negative)] text-center">
+          <p role="alert" className="text-xs text-[var(--color-negative)] font-medium">
             {error}
           </p>
         )}
@@ -144,10 +139,8 @@ export function LinkAccountPrompt({ matchedEmail, existingMethod, pendingToken, 
   }
 
   if (existingMethod === "email") {
-    // Single-shot password login — no "entry then otp" transition needed,
-    // unlike phone below.
     return (
-      <div className="space-y-3">
+      <div className="space-y-4">
         {cancelButton}
         {banner}
         <EmailEntry context="link" onLogin={handleEmailLogin} submitting={submitting} error={error} />
@@ -157,7 +150,7 @@ export function LinkAccountPrompt({ matchedEmail, existingMethod, pendingToken, 
 
   if (step === "entry") {
     return (
-      <div className="space-y-3">
+      <div className="space-y-4">
         {cancelButton}
         {banner}
         <PhoneEntry onSubmit={handlePhoneEntrySubmit} submitting={submitting} error={error} />
