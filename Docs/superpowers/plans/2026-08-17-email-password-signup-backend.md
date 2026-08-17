@@ -869,7 +869,7 @@ git commit -m "feat(auth): remove email-OTP code path, otp.py/routes back to pho
 
 ---
 
-## Task 4: Thread `password_hash` through the phone gate in `identity.py`
+## Task 4: `PROVIDER_PRECEDENCE` for `EMAIL_PASSWORD`, and thread `password_hash` through the phone gate
 
 **Files:**
 - Modify: `backend/app/services/auth/identity.py`
@@ -877,7 +877,74 @@ git commit -m "feat(auth): remove email-OTP code path, otp.py/routes back to pho
 
 **Interfaces:**
 - Consumes: nothing new.
-- Produces: `create_pending_verification(db, provider, provider_subject, email, email_verified, matched_user_id, password_hash: str | None = None) -> tuple[PendingIdentityVerification, str]` (new optional parameter, default `None`, appended last so existing positional call sites are unaffected).
+- Produces: `PROVIDER_PRECEDENCE` gains `AuthIdentityProvider.EMAIL_PASSWORD: 1` (same rank `EMAIL_OTP` already occupies — see Step 0); `create_pending_verification(db, provider, provider_subject, email, email_verified, matched_user_id, password_hash: str | None = None) -> tuple[PendingIdentityVerification, str]` (new optional parameter, default `None`, appended last so existing positional call sites are unaffected).
+
+- [ ] **Step 0: Add `EMAIL_PASSWORD` to `PROVIDER_PRECEDENCE` — fixes a real `KeyError` this plan's own new provider would otherwise cause**
+
+`identity.py`'s `PROVIDER_PRECEDENCE` dict currently has no entry for `EMAIL_PASSWORD` (it predates this plan). Traced concretely, not hypothetically: `resolve_new_verified_identity`'s `link_required` branch calls `pick_primary_identity(matched_identities)` on the FULL, unfiltered list of a matched user's identities — including any `EMAIL_PASSWORD` one, regardless of whether it carries an email claim. `pick_primary_identity` does `min(identities, key=lambda i: PROVIDER_PRECEDENCE[i.provider])`, which raises `KeyError` the first time this runs against an account that has an `EMAIL_PASSWORD` identity. This is a real, reachable crash: any account created via this plan's `/auth/signup/email` — which always has one, since it's the whole point of the route — hits this the moment a *different* new signup (Google, say) later collides with that account's denormalized email.
+
+In `backend/app/services/auth/identity.py`, change:
+
+```python
+PROVIDER_PRECEDENCE: dict[AuthIdentityProvider, int] = {
+    AuthIdentityProvider.GOOGLE: 0,
+    AuthIdentityProvider.EMAIL_OTP: 1,
+    AuthIdentityProvider.PHONE_OTP: 2,
+}
+```
+
+to:
+
+```python
+PROVIDER_PRECEDENCE: dict[AuthIdentityProvider, int] = {
+    AuthIdentityProvider.GOOGLE: 0,
+    AuthIdentityProvider.EMAIL_OTP: 1,  # kept, unused going forward — see EMAIL_PASSWORD below
+    AuthIdentityProvider.EMAIL_PASSWORD: 1,  # occupies EMAIL_OTP's old precedence slot — same concept (an email-based method), just password- instead of OTP-verified
+    AuthIdentityProvider.PHONE_OTP: 2,
+}
+```
+
+Add a regression test to `backend/tests/services/auth/test_identity.py` proving this doesn't crash:
+
+```python
+def test_pick_primary_identity_handles_email_password_without_a_keyerror(db_session):
+    now = datetime.now(timezone.utc)
+    user = User(phone_number="+919777777770", created_at=now)
+    db_session.add(user)
+    db_session.flush()
+    email_password_identity = AuthIdentity(
+        user_id=user.id,
+        provider=AuthIdentityProvider.EMAIL_PASSWORD,
+        provider_subject="precedence@example.com",
+        email=None,
+        password_hash="hashed",
+        email_confirmed_at=None,
+        identifier_verified_at=now,
+        created_at=now,
+        last_used_at=now,
+    )
+    phone_identity = AuthIdentity(
+        user_id=user.id,
+        provider=AuthIdentityProvider.PHONE_OTP,
+        provider_subject="+919777777770",
+        email=None,
+        identifier_verified_at=now,
+        created_at=now,
+        last_used_at=now,
+    )
+    db_session.add_all([email_password_identity, phone_identity])
+    db_session.commit()
+
+    result = pick_primary_identity([email_password_identity, phone_identity])
+
+    assert result.provider == AuthIdentityProvider.EMAIL_PASSWORD
+```
+
+(Match the file's existing imports for `datetime`/`timezone`/`User`/`AuthIdentity`/`pick_primary_identity` — these are almost certainly already imported for other tests in this file; only add what's missing.)
+
+Run: `cd backend && python3 -m pytest tests/services/auth/test_identity.py -k precedence -v` — expect FAIL (KeyError) before this step's dict change, PASS after.
+
+**Known limitation, explicitly out of scope for this plan — do not silently build a fix:** `users.email` (the denormalized field) is never backfilled once an `EMAIL_PASSWORD` identity's `email_confirmed_at` gets set, because `complete_phone_gate_signup` always sets `user.email = None` for password signups (§4a: nothing is verified at signup time) and nothing subsequently updates it after confirmation — `refresh_denormalized_email` only considers identities with a non-`NULL` `AuthIdentity.email`, which an `EMAIL_PASSWORD` row never has (its own email claim is never "verified" in that collision-check sense, by design). Concretely: a user who signs up and fully confirms their email+password account will still see `email: null` from `/auth/me`. This is a real, visible gap the design spec didn't address — flagging it here rather than silently fixing it, since the correct fix touches `refresh_denormalized_email`'s precedence logic (whether a confirmed `EMAIL_PASSWORD`'s `provider_subject` should count as an "email claim" for denormalization, and how it should rank against a `Google` identity's already-verified email if both exist on one account) and deserves its own decision, not an inline judgment call made this deep into a task.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -1167,6 +1234,7 @@ class SignupEmailBody(BaseModel):
 class LoginEmailBody(BaseModel):
     email: str
     password: str
+    pending_token: str | None = None
 
     @field_validator("email", mode="before")
     @classmethod
@@ -1174,7 +1242,7 @@ class LoginEmailBody(BaseModel):
         return normalize_email(value)
 ```
 
-(`LoginEmailBody` deliberately has no minimum-length check — an existing password that happens to be shorter than the current minimum, e.g. from a policy change, must still be checkable; only `SignupEmailBody` enforces the floor for new passwords.)
+(`LoginEmailBody` deliberately has no minimum-length check — an existing password that happens to be shorter than the current minimum, e.g. from a policy change, must still be checkable; only `SignupEmailBody` enforces the floor for new passwords. `pending_token` mirrors `OtpVerifyBody`/`GoogleAuthBody`'s own optional field — this is what makes email password login usable as a step-up re-authentication method: `LinkAccountPrompt`'s email branch re-authenticates via `/auth/login/email` with a pending token attached, exactly like phone/Google's re-auth branches already do via `/auth/otp/verify`/`/auth/oauth/google`.)
 
 - [ ] **Step 2: Write the failing tests**
 
@@ -1312,7 +1380,92 @@ def test_login_email_returns_403_when_not_yet_confirmed(client, db_session):
     response = client.post("/auth/login/email", json={"email": "unconfirmed@example.com", "password": "correcthorse"})
 
     assert response.status_code == 403
+
+
+def test_login_email_with_a_pending_token_attaches_the_pending_identity(client, db_session):
+    # Step-up linking: an existing email+password account (fully confirmed)
+    # re-authenticates via password, attaching a pending Google identity
+    # that collided with it — same mechanic verify_otp_route/
+    # google_oauth_route already exercise for their own re-auth branches.
+    from datetime import datetime, timezone
+    from app.services.auth.identity import create_pending_verification
+
+    _signup_and_complete_gate(client, "stepup@example.com", "+919666666601")
+    identity = (
+        db_session.query(AuthIdentity)
+        .filter_by(provider=AuthIdentityProvider.EMAIL_PASSWORD, provider_subject="stepup@example.com")
+        .one()
+    )
+    identity.email_confirmed_at = datetime.now(timezone.utc)
+    db_session.commit()
+
+    _, pending_token = create_pending_verification(
+        db_session,
+        AuthIdentityProvider.GOOGLE,
+        "google-sub-stepup",
+        "stepup@example.com",
+        True,
+        matched_user_id=identity.user_id,
+    )
+
+    response = client.post(
+        "/auth/login/email",
+        json={"email": "stepup@example.com", "password": "correcthorse", "pending_token": pending_token},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["user_id"] == str(identity.user_id)
+    linked = (
+        db_session.query(AuthIdentity)
+        .filter_by(provider=AuthIdentityProvider.GOOGLE, provider_subject="google-sub-stepup")
+        .one()
+    )
+    assert linked.user_id == identity.user_id
+
+
+def test_login_email_rejects_a_pending_token_for_a_different_account(client, db_session):
+    from datetime import datetime, timezone
+    from app.services.auth.identity import create_pending_verification
+
+    _signup_and_complete_gate(client, "stepupmismatch@example.com", "+919666666602")
+    identity = (
+        db_session.query(AuthIdentity)
+        .filter_by(provider=AuthIdentityProvider.EMAIL_PASSWORD, provider_subject="stepupmismatch@example.com")
+        .one()
+    )
+    identity.email_confirmed_at = datetime.now(timezone.utc)
+    db_session.commit()
+
+    import uuid
+    _, pending_token = create_pending_verification(
+        db_session,
+        AuthIdentityProvider.GOOGLE,
+        "google-sub-mismatch",
+        "someone-else@example.com",
+        True,
+        matched_user_id=uuid.uuid4(),  # a different account entirely
+    )
+
+    response = client.post(
+        "/auth/login/email",
+        json={"email": "stepupmismatch@example.com", "password": "correcthorse", "pending_token": pending_token},
+    )
+
+    assert response.status_code == 401
 ```
+
+`_signup_and_complete_gate` isn't defined yet in this file at this point in the plan — it's the same small helper Task 6's tests define independently for their own file. Define it once at the top of `test_auth_email_password_routes.py` (after the imports, before the first test) rather than duplicating the phone-gate boilerplate inline in every test that needs an existing confirmed account:
+
+```python
+def _signup_and_complete_gate(client, email, phone):
+    signup = client.post("/auth/signup/email", json={"email": email, "password": "correcthorse"})
+    gate_token = signup.json()["phone_required"]["token"]
+    otp_request = client.post("/auth/otp/request", json={"phone_number": phone})
+    otp = otp_request.json()["otp"]
+    client.post("/auth/otp/verify", json={"phone_number": phone, "otp": otp, "pending_token": gate_token})
+```
+
+Retrofit the earlier tests in this same file that repeat this exact sequence inline (`test_signup_email_then_phone_gate_creates_an_email_password_identity_with_the_hash`, `test_login_email_succeeds_after_confirmation`, `test_login_email_rejects_wrong_password_generically`, `test_login_email_returns_403_when_not_yet_confirmed`) to call the helper instead, for consistency — functionally identical, just less duplicated boilerplate across the file.
 
 Remove the placeholder `otp = db_session.query.__self__` line from `test_signup_email_conflicts_when_email_already_has_a_password_identity` before running — it was left in as a marker; that test doesn't actually need the phone-gate to complete at all, since the 409 fires at signup-request time regardless of whether the first signup ever finishes its gate. Simplify that test to just two `POST /auth/signup/email` calls with the same email, dropping the phone-OTP lines entirely.
 
@@ -1401,6 +1554,21 @@ def login_email(body: LoginEmailBody, db: DbSession = Depends(get_db)):
             status_code=403,
             detail="Please confirm your email before signing in with a password — check your inbox, or resend the link.",
         )
+
+    if body.pending_token:
+        # Step-up re-authentication: LinkAccountPrompt's email branch calls
+        # this route with a pending token when an existing account's
+        # highest-precedence method is email+password, exactly matching how
+        # verify_otp_route/google_oauth_route already handle their own
+        # pending_token branches. Without this, a password re-auth would log
+        # the user into their existing account but never attach the new
+        # Google/phone-gate-originating identity that triggered the
+        # collision in the first place.
+        try:
+            user_id = attach_pending_identity(db, body.pending_token, existing.user_id)
+        except PendingVerificationError as exc:
+            raise HTTPException(status_code=401, detail=str(exc)) from exc
+        return _session_response(user_id, AuthIdentityProvider.EMAIL_PASSWORD, db)
 
     return _session_response(existing.user_id, AuthIdentityProvider.EMAIL_PASSWORD, db)
 ```
