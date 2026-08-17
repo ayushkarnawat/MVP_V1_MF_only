@@ -3,17 +3,16 @@ import { Landing } from "./Landing";
 import { PhoneEntry } from "./PhoneEntry";
 import { OtpVerify } from "./OtpVerify";
 import { EmailEntry } from "./EmailEntry";
-import { EmailOtpVerify } from "./EmailOtpVerify";
 import { LinkAccountPrompt } from "./LinkAccountPrompt";
 import { AuthShowcasePanel } from "./AuthShowcasePanel";
-import { requestOtp, sendEmailOtp, verifyEmailOtp, verifyGoogleCredential, verifyOtp } from "./api";
+import { requestOtp, signupEmail, loginEmail, verifyGoogleCredential, verifyOtp } from "./api";
 import { isLinkRequired, isPhoneRequired } from "./types";
 import type { ExistingMethod } from "./types";
 import { useAuth } from "./AuthContext";
 import { ThemeToggle } from "../../components/ThemeToggle";
 import { ApiError } from "../../lib/apiClient";
 
-type Step = "landing" | "phone" | "otp" | "email" | "email_otp" | "link_account";
+type Step = "landing" | "phone" | "otp" | "email" | "link_account";
 
 interface LinkInfo {
   token: string;
@@ -38,7 +37,7 @@ export function AuthEntryFlow() {
 
   // Mandatory phone-gate state (Design Spec §1): set when a Google/email
   // verification returns phone_required. Reuses the existing "phone"/"otp"
-  // steps — no fifth Step value needed.
+  // steps — no extra Step value needed.
   const [phoneGateToken, setPhoneGateToken] = useState<string | null>(null);
   const [phoneGatePrefillEmail, setPhoneGatePrefillEmail] = useState<string | null>(null);
 
@@ -46,9 +45,12 @@ export function AuthEntryFlow() {
   // returns link_required.
   const [linkInfo, setLinkInfo] = useState<LinkInfo | null>(null);
 
-  // Helper to navigate between steps while clearing stale error/devOtp state.
-  // Used for back/resend/forward navigation, not for mid-async-operation
-  // state changes (those use raw setError(null) at handler entry).
+  // Set the moment an email+password SIGNUP (not login) enters the phone
+  // gate; consumed once the gate completes, to show the "check your email"
+  // acknowledgment (2026-08-17 email-password design spec §4c). Cleared on
+  // every other path so a Google/phone signup never shows it by accident.
+  const [confirmationPendingEmail, setConfirmationPendingEmail] = useState<string | null>(null);
+
   const goToStep = (next: Step) => {
     setError(null);
     setDevOtp(null);
@@ -62,10 +64,6 @@ export function AuthEntryFlow() {
   };
 
   const handleSelectEmail = () => {
-    // Defensive parity with handleSelectPhone: unreachable today (there is no
-    // route back to the landing screen while a phone gate is pending), but a
-    // stale gate token must never leak into a fresh email attempt if a future
-    // change adds an escape hatch.
     setPhoneGateToken(null);
     setPhoneGatePrefillEmail(null);
     goToStep("email");
@@ -86,16 +84,37 @@ export function AuthEntryFlow() {
     }
   };
 
-  const handleEmailSubmit = async (email: string) => {
+  const handleEmailSignup = async (email: string, password: string) => {
     setSubmitting(true);
     setError(null);
     try {
-      const result = await sendEmailOtp(email);
-      setIdentifier(email);
-      goToStep("email_otp");
-      setDevOtp(result.otp);
+      const result = await signupEmail(email, password);
+      // signupEmail always resolves to phone_required (Design Spec §4/§4a)
+      // — there's no login/link_required branch to guard against here,
+      // unlike Google/the old email-OTP path.
+      setPhoneGateToken(result.phone_required.token);
+      setPhoneGatePrefillEmail(result.phone_required.prefill_email);
+      setConfirmationPendingEmail(email);
+      goToStep("phone");
     } catch (err) {
-      setError(errorMessage(err, "Couldn't send the code. Try again."));
+      setError(errorMessage(err, "Couldn't create your account. Try again."));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleEmailLogin = async (email: string, password: string) => {
+    setSubmitting(true);
+    setError(null);
+    try {
+      const result = await loginEmail(email, password);
+      await login(result.session_token);
+    } catch (err) {
+      // Covers both "wrong email or password" (401) and "please confirm
+      // your email" (403) — the backend's own message already
+      // distinguishes them correctly, no frontend branching needed
+      // (Global Constraints).
+      setError(errorMessage(err, "That didn't work. Try again."));
     } finally {
       setSubmitting(false);
     }
@@ -114,34 +133,9 @@ export function AuthEntryFlow() {
         return;
       }
       await login(result.session_token);
-    } catch (err) {
-      setError(errorMessage(err, "That code didn't work. Try again."));
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleEmailOtpSubmit = async (otp: string) => {
-    setSubmitting(true);
-    setError(null);
-    try {
-      const result = await verifyEmailOtp(identifier, otp);
-      if (isPhoneRequired(result)) {
-        setPhoneGateToken(result.phone_required.token);
-        setPhoneGatePrefillEmail(result.phone_required.prefill_email);
-        goToStep("phone");
-        return;
-      }
-      if (isLinkRequired(result)) {
-        setLinkInfo({
-          token: result.link_required.token,
-          matchedEmail: result.link_required.matched_email,
-          existingMethod: result.link_required.existing_method,
-        });
-        goToStep("link_account");
-        return;
-      }
-      await login(result.session_token);
+      // Only reachable when the just-completed gate followed an email+
+      // password signup — Google/plain-phone signups never set this.
+      // Cleared immediately after being consumed by the render below.
     } catch (err) {
       setError(errorMessage(err, "That code didn't work. Try again."));
     } finally {
@@ -157,6 +151,7 @@ export function AuthEntryFlow() {
       if (isPhoneRequired(result)) {
         setPhoneGateToken(result.phone_required.token);
         setPhoneGatePrefillEmail(result.phone_required.prefill_email);
+        setConfirmationPendingEmail(null);
         goToStep("phone");
         return;
       }
@@ -186,6 +181,17 @@ export function AuthEntryFlow() {
 
       <div className="w-full max-w-5xl mx-auto my-auto grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
         <div className="order-2 lg:order-1">
+          {confirmationPendingEmail && (
+            <div
+              role="status"
+              className="mb-3 flex items-center gap-2 p-3 rounded-xl bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] border border-[color-mix(in_srgb,var(--color-accent)_20%,transparent)] text-xs text-[var(--color-ink)] text-left"
+            >
+              <span>
+                We've sent a confirmation link to <strong>{confirmationPendingEmail}</strong> — click it to enable
+                password sign-in. You're already signed in via your phone.
+              </span>
+            </div>
+          )}
           {step === "landing" && (
             <Landing
               onSelectPhone={handleSelectPhone}
@@ -218,21 +224,11 @@ export function AuthEntryFlow() {
           )}
           {step === "email" && (
             <EmailEntry
-              onSubmit={handleEmailSubmit}
+              onSignup={handleEmailSignup}
+              onLogin={handleEmailLogin}
               onBack={() => goToStep("landing")}
               submitting={submitting}
               error={error}
-            />
-          )}
-          {step === "email_otp" && (
-            <EmailOtpVerify
-              email={identifier}
-              onSubmit={handleEmailOtpSubmit}
-              onResend={() => goToStep("email")}
-              onBack={() => goToStep("email")}
-              submitting={submitting}
-              error={error}
-              devOtp={devOtp}
             />
           )}
           {step === "link_account" && linkInfo && (
@@ -244,10 +240,6 @@ export function AuthEntryFlow() {
                 try {
                   await login(result.session_token);
                 } catch (err) {
-                  // login() can still fail after the token is stored (getMe
-                  // throwing, say). Surface it on the landing screen — the
-                  // link step has no place left to render it once we leave,
-                  // and floating the rejection would be silent.
                   const message = errorMessage(err, "Something went wrong finishing sign-in. Try again.");
                   setLinkInfo(null);
                   goToStep("landing");
