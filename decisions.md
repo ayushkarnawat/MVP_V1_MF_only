@@ -173,3 +173,27 @@ All 10 tasks + 1 out-of-plan `App.test.tsx` fix + the final whole-branch review'
 ## 2026-08-14 — Standing documentation discipline established: `decisions.md`, `log.md`, `backend.md`, `database.md`
 
 Four new append-only root-level tracking files, each distinct from an existing doc (see each file's own header). **Why:** this session's multi-method-auth work was substantial enough (a design spec, a follow-on frontend spec, two full implementation plans, six-plus rounds of decision resolution) that relying on `session.md` alone — a short, prunable, overwritten-each-session pointer — risked losing the "why" behind decisions once `session.md` gets pruned. A corresponding CLAUDE.md section ("End-of-Session Documentation") was drafted to make updating all of these a standing requirement, not proposed as optional — pending the user's manual merge into `CLAUDE.md`/`session.md` (not committed automatically here, to avoid a race with concurrent edits to those two specific files).
+
+## 2026-08-17 — Email signup reverses to email+password (was email+OTP)
+
+Email signup moves from email+OTP to email+password — reverses the
+2026-08-14 multi-method-auth decision that made email one of three
+transparent-OTP-style methods (that entry is marked superseded, not
+edited — this file is append-only). **Why:** password-manager autofill
+removes more real friction on email than email-OTP's inbox-check step
+saves — phone+OTP and Google both keep their zero-friction, instant-
+verification advantage, so the passwordless principle stays intact
+everywhere it was actually earning its keep. Google and phone+OTP are
+unchanged. Full design: `Docs/superpowers/specs/2026-08-17-email-password-signup-design.md`.
+
+Two real findings surfaced during design review, not just implementation:
+(1) a genuine namespace-squatting gap where an unverified signup email
+could occupy the `EMAIL_PASSWORD` identity slot before its real owner ever
+tries — traced explicitly (no real-account hijack is possible; a fresh
+signup only attaches to an existing account if the entered *phone number*
+matches) and closed with a decoupled email-confirmation step that gates
+only `/auth/login/email`, never signup or the phone gate itself, so there's
+zero added friction on the happy path; (2) a successful password reset
+also confirms the email if it wasn't already, since clicking a link mailed
+to that exact address is equally strong proof of mailbox control — this is
+what makes squatting self-service-recoverable without a support ticket.

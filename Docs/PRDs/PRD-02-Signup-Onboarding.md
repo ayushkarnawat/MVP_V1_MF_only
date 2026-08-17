@@ -197,12 +197,12 @@ directly with the goal of a frictionless first step. See the Authentication sect
   retail and HNI users — the *tone* of copy can flex, the *mechanic* should not.
 
 #### Authentication (decided)
-- FR-2: Phone number + OTP is the sole signup/login method. No password, ever. This
-  matches the now-standard Indian fintech pattern (Groww has fully retired password
-  login) and removes the single biggest documented source of onboarding drop-off
-  (each extra auth step measurably lowers completion — see Research). Email is
-  collected later, only for notification/recovery purposes, and is never required to
-  complete signup.
+- FR-2 (updated 2026-08-17): Phone+OTP and Google remain fully passwordless.
+  Email signup uses email+password — the one path where password-manager
+  autofill removes more friction than an inbox-check step would save. Every
+  account still converges on a verified phone as a mandatory second step
+  regardless of which method started signup. See decisions.md's 2026-08-17
+  entry for the full "why" and what this reverses.
 - FR-2a: 6-digit OTP, standard resend/retry handling, PIN or biometric for return-visit
   login after the first OTP verification (same pattern as Groww/INDmoney's post-first-login
   flow) — this belongs in a future Auth/Security PRD for full spec, flagged here only
