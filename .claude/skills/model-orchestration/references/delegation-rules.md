@@ -53,6 +53,22 @@ framing once the worktree's shared dependency has actually been
 provisioned inside the worktree itself (a real local venv, a symlink
 Codex's sandbox permits) — confirm that before assuming otherwise.
 
+## Isolation parameter for dispatches
+
+Never pass `isolation: "worktree"` on a Codex dispatch that is expected to
+make no file changes (a review/adversarial-review dispatch, or any other
+read-only task). The `Agent` tool auto-cleans up a `worktree`-isolated
+temp workspace "if the agent makes no changes" — for a review-only task
+that's every time by design — and that cleanup can fire while the
+underlying background Codex job is still running inside it, orphaning the
+job (confirmed live: a review dispatch's wrapper returned only "Codex Task
+started in the background" after ~44s, and `codex-companion.mjs status
+--all` found no jobs at all afterward — not even a still-running one). The
+orchestrator's own session is normally already isolated (its own
+worktree), so a review dispatch needs no additional isolation layer —
+dispatch it directly against the current working tree. Reserve
+`isolation: "worktree"` for dispatches that actually write files.
+
 ## Recovering from a dispatch-layer failure (distinct from a Codex job failure)
 
 A `task-notification` reporting the dispatching `Agent(subagent_type:
@@ -67,3 +83,27 @@ absent, still running past a reasonable timeout, or itself reports a real
 failure — a blind redispatch risks wasting a full Codex run and a second
 implementation landing on files the first one already (correctly)
 touched.
+
+**Sub-case — bare infra/API error, no job ID and no verdict at all.** If
+the failure message itself is an infra/API-level error (e.g. "API Error:
+The response stopped arriving") rather than a returned verdict or partial
+finding, there is nothing to check with `status --all` — this is a
+transient dispatch-infrastructure hiccup, not a signal about the task.
+Retry the identical dispatch once, unmodified. If the retry also fails the
+same way, stop and report to the user rather than retrying indefinitely
+(confirmed live: a scoped re-review dispatch failed this way, and the
+verbatim retry completed normally about a minute later with a full
+verdict).
+
+## Sanity-checking a returned review verdict
+
+A review dispatch that returns a real verdict (not a dispatch-layer
+failure) is not automatically trustworthy just because it completed —
+it can describe stale code it never actually re-read (see
+`no-codex-fallback.md`'s sibling caution in the skill's changelog).
+Before acting on a "REQUEST CHANGES"/needs-attention verdict that
+contradicts a fix the orchestrator already believes is correct, do a
+cheap sanity check: read the specific file/line range the review cites
+and confirm it matches what the review describes. A citation that
+contradicts a direct read is a strong, cheap-to-check signal to
+re-dispatch a fresh review rather than act on the stale one.

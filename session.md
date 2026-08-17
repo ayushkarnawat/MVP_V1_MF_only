@@ -1,4 +1,4 @@
-# Session state — 2026-08-14 (updated)
+# Session state — 2026-08-17 (updated)
 
 Working notes for picking this project back up cold. Not a planning doc — see
 `Docs/superpowers/plans/` for those. This file tracks *where things stand*,
@@ -6,6 +6,119 @@ gets overwritten each session, and isn't meant to accumulate history.
 
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
+
+## BUG-001 / DATA-001 investigation complete, PR #3 open (2026-08-17)
+
+Two tickets plus an ad-hoc XIRR complaint were investigated end-to-end in a
+dedicated worktree (`worktree-bug-001-analytics-load-investigation`,
+`/mnt/d/Unifolio code/.claude/worktrees/bug-001-analytics-load-investigation`)
+— **investigation only, no application code changed**, per explicit
+instruction. Both deliverables went through `model-orchestration`'s full
+handoff → Codex dispatch → mandatory adversarial-review gate cycle (initial
+review found 9 findings; a fix round plus two orchestrator-direct fixes
+closed all of them; final scoped re-review confirmed clean). Committed as
+`ef2c7b4` (`Docs/orchestration/*` only) and opened as
+[PR #3](https://github.com/ayushkarnawat/MVP_V1_MF_only/pull/3) against
+`feat/enhanced-ui`. **Not yet reviewed/merged as of this writing** — the
+next session's first move depends on whether it's merged (see "What's next").
+
+**BUG-001 finding** (`Docs/orchestration/bug-001-findings.md`, real
+backend-measured timings, ≥3 runs per endpoint, both concurrent-load orders):
+Analytics has (at least) three independent, differently-shaped performance
+causes, not one shared hang:
+1. **TER** (`amfi_ter_client.py`) — one missing current-month TER row
+   triggers a sequential whole-country AMFI pagination with **no
+   negative-cache/backoff**; an unresolved scheme re-triggers the full
+   national scan on every request. Measured 185.8s/277.0s cold vs. 0.0297s
+   once genuinely warm.
+2. **Category Ranking** (`category_ranking.py`) — sequential per-scheme
+   return computation across the full category universe (143 real schemes,
+   ~410K NAV rows in the repro). Measured an **unexplained alternating
+   43s/8s pattern** across 4 runs, not a clean cold/warm split — flagged as
+   a genuinely open question, not force-fit to a false explanation.
+3. **Scorer** (`scorer.py`) — the single highest-priority fix. A fully
+   synchronous, unyielding `series_by_scheme` dict comprehension
+   (`_category_component_scores`) builds full-history monthly series for
+   every scheme in every held category with no `await` inside the loop.
+   Unlike TER/Category Ranking, **this cost never drops on repeat calls**
+   (262.0–262.7s warm vs. 332.2s cold across 3 runs) — nothing about it is
+   cached across requests. Also inherits TER's refresh cost per unique
+   category.
+4. **Benchmark/NSE** — real but one-time cold cost (63.0s → 1.5–2.8s warm);
+   not a recurring hang. `nse_indices_client.py`'s httpx client has no
+   `follow_redirects=True`, and a live curl showed niftyindices.com
+   returning a 302 — likely explanation for a cold miss, not confirmed via
+   response-level tracing.
+5. Two concurrent-load samples (both start orders) found no observed
+   cross-request stalling, but this doesn't rule out blocking during
+   specific synchronous stretches within a request — flagged as an open
+   caveat, not a settled "ruled out."
+
+**DATA-001 finding** (`Docs/orchestration/data-001-findings.md`, field
+lineage + independent golden-dataset comparison):
+- **Confirmed, unambiguous bug**: `BenchmarkSection.formatXirrPercent()`
+  displays the backend's decimal-fraction XIRR without multiplying by 100
+  (`parseFloat(val).toFixed(2)` + `%`, no ×100) — a correct backend 10%
+  (`0.10`) displays as `+0.10%`. This is the confirmed root cause for a
+  complaint of exactly this shape (the ad-hoc "+0.10% seems too low for a
+  good portfolio" report) — the specific screenshot itself couldn't be
+  re-examined, but no other code path produces this 100×-too-small pattern.
+  Also violates CLAUDE.md's Decimal-never-float rule (`parseFloat` in a
+  money/percentage path).
+- **Confirmed correct**: backend XIRR (Newton-Raphson matches an
+  independent bisection reference to 10+ decimal places), weighted-TER
+  formula/arithmetic given valid inputs, missing-benchmark handling
+  (returns `None`, not a fabricated number).
+- **Confirmed structural gaps**: a literal `Decimal("0")` TER is
+  indistinguishable from "no match found" and is counted as real coverage;
+  `_cost_adjustment_from_context()` returns numeric `0` for "unavailable,"
+  indistinguishable from a genuine zero adjustment; CAS import's
+  `enrich.py`/`confirm_import()` accept a scheme name and AMFI code pair
+  with no cross-validation between them (`MIN_MATCH_CONFIDENCE = 0.55`, no
+  AMC/category check) — a real production risk, separate from this
+  session's own seed-script bug (see caveat below).
+- **Important caveat, don't skip on the next read**: the repro DB's 3
+  seeded schemes had **name↔AMFI-code pairs corrupted by this session's own
+  seed script**, not by any application code path (verified against
+  mfapi.in) — so the specific 0.65%-vs-0.28% weighted-TER golden mismatch
+  is primarily a seed-data artifact, not by itself a demonstrated
+  production bug. The doc explicitly flags that the golden TER comparison
+  needs to be **re-run with correctly-identified seed data** before
+  treating TER production-ingestion correctness as confirmed/ship-blocking
+  — this was not done this session (flagged as follow-up to conserve
+  time), so the next session should do this first if picking up TER work.
+- **Still open by missing implementation** (bigger scope, likely separate
+  work from the bug-fix pass below — check whether these were ever in
+  PRD-04's scope before assuming they're bugs): **Beta is not implemented
+  anywhere** (no field, computation, route, schema, or UI — `risk_metrics.py`
+  computes downside deviation/consistency, not beta); **AAUM has no real
+  refresh entrypoint** — `refresh_aaum_data()` exists and is unit-tested but
+  nothing (no route, no scheduled job) ever calls it in this codebase, so
+  `scheme_aaum` is empty in the repro DB and category AUM-weighted context
+  is currently always unavailable.
+
+## What's next
+
+**If PR #3 is merged**: implement the fixes above. A detailed
+implementation-session prompt is saved at
+`Docs/orchestration/bug-001-data-001-implementation-prompt.md` — paste its
+contents into a fresh session to start that work with full context, no
+re-derivation needed. Priority order per the findings doc: Scorer caching/bounding first
+(only fix that's both correctness-safe and addresses an endpoint that
+"never gets cheap"), then TER negative-cache, then Category Ranking's
+query/caching fix (investigate the alternating-timing mystery as part of
+this), then the DATA-001 correctness fixes (XIRR ×100 display bug is
+trivial and should probably go first regardless of the performance work's
+sequencing — it's an unrelated one-line-scope fix), then TER silent-zero +
+cost-adjustment sentinel, then the import identity-validation tightening.
+Follow standard TDD (failing test first) and `Decimal`-never-`float` per
+CLAUDE.md non-negotiables; use `model-orchestration` to delegate to Codex
+per its existing rules (v1.2 as of this session — see its own changelog).
+Beta and a real AAUM refresh entrypoint are open questions on scope, not
+drop-in bug fixes — check PRD-04 before treating them as this pass's job.
+
+**If PR #3 is not yet merged**: nothing else to do on BUG-001/DATA-001 until
+it is — don't start implementing against unreviewed findings.
 
 ## Post-Phase-2 bug fixes (same day, 2026-08-14) — AMFI TER, dashboard hang, repeat-navigation speed
 

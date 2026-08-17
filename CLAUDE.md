@@ -121,8 +121,26 @@ instead. See `docs/agents/domain.md`.
 
 ## Session State
 
-*(Updated 2026-08-14. See `session.md` at repo root for the full detailed history —
+*(Updated 2026-08-17. See `session.md` at repo root for the full detailed history —
 this section is a current-status pointer, not the record of every past session.)*
+
+**BUG-001 (Analytics dashboard hang) and DATA-001 (AUM/beta/TER/XIRR correctness)
+investigations are complete — investigation only, no application code changed.**
+Findings: `Docs/orchestration/bug-001-findings.md` (three independent performance
+causes — TER's missing negative-cache full-feed refetch, Category Ranking's
+sequential per-scheme loop with an unexplained alternating-timing pattern, and
+Scorer's synchronous full-category-universe series build that never gets cheap on
+repeat calls) and `Docs/orchestration/data-001-findings.md` (confirmed XIRR ×100
+display bug — root cause of the ad-hoc "+0.10% XIRR looks wrong" complaint —
+plus TER silent-zero handling, an unvalidated CAS-import name/AMFI-code pairing
+risk, and Beta/AAUM-refresh both confirmed unimplemented). Both docs went through
+`model-orchestration`'s full mandatory adversarial-review gate (9 findings, all
+resolved). Shipped as [PR #3](https://github.com/ayushkarnawat/MVP_V1_MF_only/pull/3)
+against `feat/enhanced-ui` — **open, not yet reviewed/merged as of this writing.**
+Once merged, the next session should implement the fixes — a ready-to-paste
+implementation prompt with priority order, per-fix file/line pointers, and
+constraints is saved at `Docs/orchestration/bug-001-data-001-implementation-prompt.md`.
+Do not start implementing against these findings before the PR is merged.
 
 **Post-Phase-2 bug fixes, same day (2026-08-14):** once the Analytics frontend below
 was merged and tested on localhost, four real bugs were found and fixed in sequence —
