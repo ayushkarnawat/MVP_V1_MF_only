@@ -4,6 +4,10 @@
     "superpowers@claude-plugins-official": true,
     "ponytail@ponytail": true,
     "codex@openai-codex": true,
-    "impeccable@impeccable": true
+    "impeccable@impeccable": true,
+    "mattpocock-skills@claude-plugins-official": true
+  },
+  "worktree": {
+    "baseRef": "head"
   }
 }
