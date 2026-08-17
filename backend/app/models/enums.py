@@ -98,9 +98,9 @@ class ArnStatus(str, enum.Enum):
 
 class AuthIdentityProvider(str, enum.Enum):
     PHONE_OTP = "phone_otp"
-    EMAIL_OTP = "email_otp"  # kept, unused going forward — Postgres enums can't cheaply drop a value (Design Spec §1)
+    EMAIL_OTP = "email_otp"
     GOOGLE = "google"
-    EMAIL_PASSWORD = "email_password"
+    EMAIL_PASSWORD = "email_password"  # kept, unused going forward — Postgres enums can't cheaply drop a value (remove-password-auth handoff spec §2)
 
 
 def enum_column(enum_cls: type[enum.Enum]) -> Enum:

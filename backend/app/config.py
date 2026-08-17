@@ -8,7 +8,6 @@ class Settings(BaseSettings):
     test_database_url: str | None = None
     otp_delivery_mode: str = "stub"
     google_oauth_client_id: str = ""
-    require_email_confirmation: bool = False
 
 
 settings = Settings()

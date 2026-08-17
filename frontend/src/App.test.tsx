@@ -20,7 +20,7 @@ describe("App", () => {
   it("shows Landing when there is no stored session", async () => {
     render(<App />);
 
-    await waitFor(() => expect(screen.getByRole("button", { name: /continue with phone/i })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("button", { name: /create account/i })).toBeInTheDocument());
   });
 
   it("shows OnboardingFlow when the session is valid and onboarding is incomplete", async () => {
@@ -88,6 +88,6 @@ describe("App", () => {
 
     render(<App />);
 
-    await waitFor(() => expect(screen.getByRole("button", { name: /continue with phone/i })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("button", { name: /create account/i })).toBeInTheDocument());
   });
 });

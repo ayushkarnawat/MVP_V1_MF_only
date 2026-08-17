@@ -12,7 +12,10 @@ class OtpRequest(Base):
     __tablename__ = "otp_requests"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    phone_number: Mapped[str] = mapped_column(String, nullable=False)
+    # Exactly one of phone_number/email is set (ck_otp_requests_exactly_one_identifier,
+    # migration 0007) -- phone and email OTPs share this one table/code path.
+    phone_number: Mapped[str | None] = mapped_column(String)
+    email: Mapped[str | None] = mapped_column(String)
     otp_hash: Mapped[str] = mapped_column(String, nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -39,14 +42,6 @@ class AuthIdentity(Base):
     # Denormalized from the identity's own claim — used only for the
     # collision lookup (Design Spec §4), never as a credential itself.
     email: Mapped[str | None] = mapped_column(String)
-    # Only populated for EMAIL_PASSWORD rows — NULL for every other provider,
-    # which are inherently verified/proven at creation time and have no
-    # password concept. 2026-08-17 email-password design spec §5.
-    password_hash: Mapped[str | None] = mapped_column(String)
-    # Only meaningful for EMAIL_PASSWORD rows: NULL until the mailbox owner
-    # clicks the confirmation link (or completes a password reset — spec
-    # §4c). /auth/login/email refuses to authenticate while this is NULL.
-    email_confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     identifier_verified_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     last_used_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -68,10 +63,6 @@ class PendingIdentityVerification(Base):
     provider_subject: Mapped[str] = mapped_column(String, nullable=False)
     email: Mapped[str | None] = mapped_column(String)
     email_verified: Mapped[bool] = mapped_column(nullable=False)
-    # Only set for an EMAIL_PASSWORD pending record — already hashed by the
-    # route before this row is created, never the raw password. NULL for
-    # every other provider. 2026-08-17 email-password design spec §4b.
-    password_hash: Mapped[str | None] = mapped_column(String)
     matched_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
     token_hash: Mapped[str] = mapped_column(String, nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -92,37 +83,3 @@ class Session(Base):
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     last_active_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     device_info: Mapped[str | None] = mapped_column(String)
-
-
-class PasswordResetToken(Base):
-    """Single-use, email-delivered password-reset link — same
-    hash-before-storage pattern as `pending_identity_verifications.
-    token_hash`, but its own table since a reset link is a fundamentally
-    different mechanism from the 10-minute pending-verification window
-    (2026-08-17 email-password design spec §3)."""
-
-    __tablename__ = "password_reset_tokens"
-
-    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
-    token_hash: Mapped[str] = mapped_column(String, nullable=False)
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class EmailConfirmationToken(Base):
-    """Single-use, email-delivered confirmation link sent once after an
-    EMAIL_PASSWORD signup completes its phone gate. Same shape as
-    `PasswordResetToken` — a separate table rather than a shared one with
-    a purpose flag, so each table's meaning stays obvious from its name
-    (2026-08-17 email-password design spec §4c)."""
-
-    __tablename__ = "email_confirmation_tokens"
-
-    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
-    token_hash: Mapped[str] = mapped_column(String, nullable=False)
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

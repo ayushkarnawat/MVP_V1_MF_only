@@ -6,7 +6,7 @@ PROVIDER_TO_METHOD_LABEL: dict[AuthIdentityProvider, str] = {
     AuthIdentityProvider.PHONE_OTP: "phone",
     AuthIdentityProvider.EMAIL_OTP: "email",
     AuthIdentityProvider.GOOGLE: "google",
-    AuthIdentityProvider.EMAIL_PASSWORD: "email",
+    AuthIdentityProvider.EMAIL_PASSWORD: "email",  # benched — kept, unused going forward
 }
 
 
@@ -45,25 +45,6 @@ class OtpVerifyBody(BaseModel):
 
 class SignupEmailBody(BaseModel):
     email: str
-    password: str
-
-    @field_validator("email", mode="before")
-    @classmethod
-    def _normalize_email(cls, value: object) -> object:
-        return normalize_email(value)
-
-    @field_validator("password")
-    @classmethod
-    def _min_length(cls, value: str) -> str:
-        if len(value) < 8:
-            raise ValueError("Password must be at least 8 characters.")
-        return value
-
-
-class LoginEmailBody(BaseModel):
-    email: str
-    password: str
-    pending_token: str | None = None
 
     @field_validator("email", mode="before")
     @classmethod
@@ -97,6 +78,39 @@ class PhoneRequiredResponse(BaseModel):
     phone_required: PhoneRequiredDetail
 
 
+class EmailOtpRequiredDetail(BaseModel):
+    token: str
+    prefill_email: str
+    otp: str | None = None  # only populated in dev-stub delivery mode
+
+
+class EmailOtpRequiredResponse(BaseModel):
+    email_otp_required: EmailOtpRequiredDetail
+
+
+class EmailOtpRequestBody(BaseModel):
+    email: str
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def _normalize_email(cls, value: object) -> object:
+        return normalize_email(value)
+
+
+class EmailOtpVerifyBody(BaseModel):
+    email: str
+    otp: str
+    # Optional now (remove-password-auth handoff spec §5): a fresh-signup or
+    # step-up-link caller supplies this; a plain-login caller (no pending
+    # record involved at all) does not.
+    pending_token: str | None = None
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def _normalize_email(cls, value: object) -> object:
+        return normalize_email(value)
+
+
 class GoogleAuthBody(BaseModel):
     id_token: str
     pending_token: str | None = None
@@ -123,38 +137,3 @@ class MeResponse(BaseModel):
     primary_goal: PrimaryGoal | None
 
 
-class ForgotPasswordBody(BaseModel):
-    email: str
-
-    @field_validator("email", mode="before")
-    @classmethod
-    def _normalize_email(cls, value: object) -> object:
-        return normalize_email(value)
-
-
-class ForgotPasswordResponse(BaseModel):
-    message: str
-
-
-class ResetPasswordBody(BaseModel):
-    token: str
-    new_password: str
-
-    @field_validator("new_password")
-    @classmethod
-    def _min_length(cls, value: str) -> str:
-        if len(value) < 8:
-            raise ValueError("Password must be at least 8 characters.")
-        return value
-
-
-class ResetPasswordResponse(BaseModel):
-    message: str
-
-
-class ConfirmEmailBody(BaseModel):
-    token: str
-
-
-class ConfirmEmailResponse(BaseModel):
-    message: str

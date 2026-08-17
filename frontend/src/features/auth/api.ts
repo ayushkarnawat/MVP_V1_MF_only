@@ -1,12 +1,12 @@
 import { API_BASE_URL, ApiError, parseErrorDetail } from "../../lib/apiClient";
 import { getToken } from "./session";
 import type {
+  EmailOtpRequiredResponse,
+  EmailOtpVerifyResult,
   HouseholdMember,
   MeResponse,
   OtpRequestResponse,
-  OtpVerifyResponse,
   OtpVerifyResult,
-  PhoneRequiredResponse,
   Relationship,
   UpdateMeBody,
 } from "./types";
@@ -34,32 +34,42 @@ export async function requestOtp(phoneNumber: string): Promise<OtpRequestRespons
   return (await response.json()) as OtpRequestResponse;
 }
 
-export async function signupEmail(email: string, password: string): Promise<PhoneRequiredResponse> {
+export async function signupEmail(email: string): Promise<EmailOtpRequiredResponse> {
   const response = await fetch(`${API_BASE_URL}/auth/signup/email`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email }),
   });
   await throwIfError(response);
-  return (await response.json()) as PhoneRequiredResponse;
+  return (await response.json()) as EmailOtpRequiredResponse;
 }
 
-export async function loginEmail(
+export async function requestEmailOtp(email: string): Promise<OtpRequestResponse> {
+  const response = await fetch(`${API_BASE_URL}/auth/email-otp/request`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  await throwIfError(response);
+  return (await response.json()) as OtpRequestResponse;
+}
+
+export async function verifyEmailOtp(
   email: string,
-  password: string,
+  otp: string,
   pendingToken?: string,
-): Promise<OtpVerifyResponse> {
-  const response = await fetch(`${API_BASE_URL}/auth/login/email`, {
+): Promise<EmailOtpVerifyResult> {
+  const response = await fetch(`${API_BASE_URL}/auth/email-otp/verify`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       email,
-      password,
+      otp,
       ...(pendingToken ? { pending_token: pendingToken } : {}),
     }),
   });
   await throwIfError(response);
-  return (await response.json()) as OtpVerifyResponse;
+  return (await response.json()) as EmailOtpVerifyResult;
 }
 
 export async function verifyOtp(

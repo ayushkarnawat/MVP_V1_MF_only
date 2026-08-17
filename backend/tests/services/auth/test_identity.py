@@ -17,6 +17,7 @@ from app.services.auth.identity import (
     create_pending_verification,
     find_identity_by_subject,
     find_or_backfill_phone_identity,
+    mark_pending_email_verified,
     pick_primary_identity,
     record_identity,
     refresh_denormalized_email,
@@ -366,8 +367,6 @@ def test_pick_primary_identity_handles_email_password_without_a_keyerror():
         provider=AuthIdentityProvider.EMAIL_PASSWORD,
         provider_subject="precedence@example.com",
         email=None,
-        password_hash="hashed",
-        email_confirmed_at=None,
         identifier_verified_at=now,
         created_at=now,
         last_used_at=now,
@@ -389,112 +388,74 @@ def test_pick_primary_identity_handles_email_password_without_a_keyerror():
     assert result.provider == AuthIdentityProvider.EMAIL_PASSWORD
 
 
-def test_create_pending_verification_stores_password_hash():
+def test_mark_pending_email_verified_sets_the_flag_without_consuming_the_pending_record():
     db = _session()
     pending, raw_token = create_pending_verification(
         db,
-        AuthIdentityProvider.EMAIL_PASSWORD,
-        "a@example.com",
-        "a@example.com",
+        AuthIdentityProvider.EMAIL_OTP,
+        "otpflow@example.com",
+        "otpflow@example.com",
         False,
         matched_user_id=None,
-        password_hash="hashed-value",
     )
-    assert pending.password_hash == "hashed-value"
 
+    result = mark_pending_email_verified(db, raw_token, "otpflow@example.com")
 
-def test_create_pending_verification_defaults_password_hash_to_none():
-    db = _session()
-    pending, raw_token = create_pending_verification(
-        db,
-        AuthIdentityProvider.GOOGLE,
-        "google-sub-123",
-        "a@example.com",
-        True,
-        matched_user_id=None,
+    assert result.email_verified is True
+    # Still present -- the phone gate step (complete_phone_gate_signup) is
+    # what eventually deletes it, not this call.
+    still_there = (
+        db.query(PendingIdentityVerification).filter_by(id=pending.id).first()
     )
-    assert pending.password_hash is None
+    assert still_there is not None
+    assert still_there.email_verified is True
 
 
-def test_complete_phone_gate_signup_copies_password_hash_onto_the_new_identity():
+def test_mark_pending_email_verified_rejects_an_unknown_token():
     db = _session()
-    pending, raw_token = create_pending_verification(
+
+    with pytest.raises(PendingVerificationError):
+        mark_pending_email_verified(db, "not-a-real-token", "someone@example.com")
+
+
+def test_mark_pending_email_verified_rejects_a_mismatched_email():
+    """An attacker who legitimately verifies their OWN email OTP must not
+    be able to apply that verification to a DIFFERENT pending record (e.g.
+    a victim's signup) just by supplying that pending record's token --
+    the pending row's own email must match the email the OTP was actually
+    verified for."""
+    db = _session()
+    _, victim_token = create_pending_verification(
         db,
-        AuthIdentityProvider.EMAIL_PASSWORD,
-        "a@example.com",
-        "a@example.com",
+        AuthIdentityProvider.EMAIL_OTP,
+        "victim@example.com",
+        "victim@example.com",
         False,
         matched_user_id=None,
-        password_hash="hashed-value",
     )
 
-    user_id = complete_phone_gate_signup(db, raw_token, "+919999999999")
+    with pytest.raises(PendingVerificationError):
+        mark_pending_email_verified(db, victim_token, "attacker@example.com")
 
-    identity = (
-        db.query(AuthIdentity)
-        .filter_by(user_id=user_id, provider=AuthIdentityProvider.EMAIL_PASSWORD)
-        .one()
-    )
-    assert identity.password_hash == "hashed-value"
-    assert identity.provider_subject == "a@example.com"
+    unchanged = db.query(PendingIdentityVerification).filter_by(email="victim@example.com").one()
+    assert unchanged.email_verified is False
 
 
-def test_attach_pending_identity_copies_password_hash_onto_the_new_identity():
+def test_complete_phone_gate_signup_denormalizes_user_email_when_pending_email_was_verified():
+    """User.email gets populated once email_verified genuinely flips to
+    True via email-OTP verification, before the phone gate completes."""
     db = _session()
-    existing_user_id = complete_phone_gate_signup(
-        db,
-        create_pending_verification(
-            db, AuthIdentityProvider.GOOGLE, "google-sub-456", None, False, matched_user_id=None
-        )[1],
-        "+919888888888",
-    )
-
     pending, raw_token = create_pending_verification(
         db,
-        AuthIdentityProvider.EMAIL_PASSWORD,
-        "b@example.com",
-        "b@example.com",
+        AuthIdentityProvider.EMAIL_OTP,
+        "denorm@example.com",
+        "denorm@example.com",
         False,
         matched_user_id=None,
-        password_hash="hashed-value-2",
     )
+    mark_pending_email_verified(db, raw_token, "denorm@example.com")
 
-    attach_pending_identity(db, raw_token, existing_user_id)
+    user_id = complete_phone_gate_signup(db, raw_token, "+919888888884")
 
-    identity = (
-        db.query(AuthIdentity)
-        .filter_by(user_id=existing_user_id, provider=AuthIdentityProvider.EMAIL_PASSWORD)
-        .one()
-    )
-    assert identity.password_hash == "hashed-value-2"
-
-
-def test_complete_phone_gate_signup_sends_a_confirmation_email_for_password_identities(caplog, monkeypatch):
-    monkeypatch.setattr("app.services.auth.identity.settings.require_email_confirmation", True)
-    db = _session()
-    pending, raw_token = create_pending_verification(
-        db,
-        AuthIdentityProvider.EMAIL_PASSWORD,
-        "confirmflow@example.com",
-        "confirmflow@example.com",
-        False,
-        matched_user_id=None,
-        password_hash="hashed-value",
-    )
-
-    with caplog.at_level("INFO"):
-        complete_phone_gate_signup(db, raw_token, "+919888888882")
-
-    assert any("StubEmailProvider" in record.message for record in caplog.records)
-
-
-def test_complete_phone_gate_signup_does_not_send_email_for_google_identities(caplog):
-    db = _session()
-    pending, raw_token = create_pending_verification(
-        db, AuthIdentityProvider.GOOGLE, "google-sub-789", "g@example.com", True, matched_user_id=None
-    )
-
-    with caplog.at_level("INFO"):
-        complete_phone_gate_signup(db, raw_token, "+919888888883")
-
-    assert not any("StubEmailProvider" in record.message for record in caplog.records)
+    user = db.get(User, user_id)
+    assert user.email == "denorm@example.com"

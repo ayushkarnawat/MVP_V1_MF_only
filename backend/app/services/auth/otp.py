@@ -1,7 +1,8 @@
-"""OTP generation, hashing, and verification — phone+OTP only. Email OTP
-was removed per the 2026-08-17 email-password design spec §1: email
-signup now uses email+password (see password.py), and email-OTP had zero
-remaining callers once that landed.
+"""OTP generation, hashing, and verification -- shared by phone+OTP login
+and email+OTP signup/login (remove-password-auth handoff spec). One table,
+one hash/expiry/attempt-count/
+throttle code path; only the identifier column and the delivery call (SMS
+stub vs. `get_email_provider().send_email(...)`) branch on channel.
 
 sha256, not bcrypt/argon2: OTPs are short-lived (5 min), low-entropy
 6-digit codes, not long-lived credentials — there's nothing to gain from an
@@ -13,15 +14,20 @@ from __future__ import annotations
 import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone
+from typing import Literal
 
 from sqlalchemy.orm import Session as DbSession
 
 from app.config import settings
 from app.models.auth import OtpRequest
+from app.services.auth.email_provider import get_email_provider
 
 OTP_LENGTH = 6
 OTP_TTL_MINUTES = 5
 MAX_ATTEMPTS = 5
+RESEND_THROTTLE_SECONDS = 60
+
+Channel = Literal["sms", "email"]
 
 __all__ = [
     "OtpVerificationError",
@@ -39,11 +45,18 @@ def generate_otp() -> str:
     return "".join(secrets.choice("0123456789") for _ in range(OTP_LENGTH))
 
 
-def create_otp_request(db: DbSession, phone_number: str) -> tuple[OtpRequest, str | None]:
-    """Creates and persists a new OtpRequest. Returns (request, raw_otp) —
-    raw_otp is only non-None in dev-stub delivery mode, for the API
-    response to echo back; a real delivery mode returns None here and
-    sends the code out-of-band instead."""
+def _identifier_filter(channel: Channel, identifier: str) -> dict[str, str]:
+    return {"phone_number": identifier} if channel == "sms" else {"email": identifier}
+
+
+def create_otp_request(
+    db: DbSession, identifier: str, channel: Channel = "sms"
+) -> tuple[OtpRequest, str | None]:
+    """Creates and persists a new OtpRequest for either channel. Returns
+    (request, raw_otp) — raw_otp is only non-None in dev-stub delivery
+    mode, for the API response to echo back; a real delivery mode returns
+    None here and sends the code out-of-band instead (SMS provider for
+    "sms", `get_email_provider().send_email(...)` for "email")."""
     if settings.otp_delivery_mode == "stub" and not settings.database_url.startswith("sqlite"):
         raise RuntimeError(
             "otp_delivery_mode='stub' is not allowed against a non-SQLite database — "
@@ -53,7 +66,7 @@ def create_otp_request(db: DbSession, phone_number: str) -> tuple[OtpRequest, st
 
     recent = (
         db.query(OtpRequest)
-        .filter_by(verified_at=None, phone_number=phone_number)
+        .filter_by(verified_at=None, **_identifier_filter(channel, identifier))
         .order_by(OtpRequest.created_at.desc())
         .first()
     )
@@ -69,7 +82,8 @@ def create_otp_request(db: DbSession, phone_number: str) -> tuple[OtpRequest, st
 
     otp = generate_otp()
     request = OtpRequest(
-        phone_number=phone_number,
+        phone_number=identifier if channel == "sms" else None,
+        email=identifier if channel == "email" else None,
         otp_hash=_hash_otp(otp),
         expires_at=datetime.now(timezone.utc) + timedelta(minutes=OTP_TTL_MINUTES),
         created_at=datetime.now(timezone.utc),
@@ -77,29 +91,33 @@ def create_otp_request(db: DbSession, phone_number: str) -> tuple[OtpRequest, st
     db.add(request)
     db.commit()
 
+    if channel == "email" and settings.otp_delivery_mode != "stub":
+        get_email_provider().send_email(
+            to=identifier,
+            subject="Your Unifolio verification code",
+            body=f"Your Unifolio verification code is {otp}. It expires in {OTP_TTL_MINUTES} minutes.",
+        )
+
     raw_otp = otp if settings.otp_delivery_mode == "stub" else None
     return request, raw_otp
 
 
 class OtpRequestThrottledError(Exception):
-    """Raised when a new OTP is requested for a phone number that already
+    """Raised when a new OTP is requested for an identifier that already
     has an unexpired, unverified request under 60 seconds old."""
-
-
-RESEND_THROTTLE_SECONDS = 60
 
 
 class OtpVerificationError(Exception):
     """Any OTP verification failure — no pending request, expired, wrong code, or too many attempts."""
 
 
-def verify_otp(db: DbSession, phone_number: str, otp: str) -> OtpRequest:
-    """Verifies otp against the latest unverified OtpRequest for
-    phone_number. Raises OtpVerificationError on any failure. On success,
-    marks the request verified and returns it."""
+def verify_otp(db: DbSession, identifier: str, otp: str, channel: Channel = "sms") -> OtpRequest:
+    """Verifies otp against the latest unverified OtpRequest for identifier
+    on the given channel. Raises OtpVerificationError on any failure. On
+    success, marks the request verified and returns it."""
     request = (
         db.query(OtpRequest)
-        .filter_by(verified_at=None, phone_number=phone_number)
+        .filter_by(verified_at=None, **_identifier_filter(channel, identifier))
         .order_by(OtpRequest.created_at.desc())
         .first()
     )

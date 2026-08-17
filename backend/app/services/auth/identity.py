@@ -15,19 +15,17 @@ from typing import Literal, NamedTuple
 
 from sqlalchemy.orm import Session as DbSession
 
-from app.config import settings
 from app.models.auth import AuthIdentity, PendingIdentityVerification
 from app.models.enums import AuthIdentityProvider
 from app.models.user import User
-from app.services.auth.email_confirmation import send_confirmation_email
 
 # Lower value = higher precedence. Design Spec §1: "Identity precedence:
 # Google > Email > Phone" — applied wherever only one identity can be
 # shown or selected.
 PROVIDER_PRECEDENCE: dict[AuthIdentityProvider, int] = {
     AuthIdentityProvider.GOOGLE: 0,
-    AuthIdentityProvider.EMAIL_OTP: 1,  # kept, unused going forward — see EMAIL_PASSWORD below
-    AuthIdentityProvider.EMAIL_PASSWORD: 1,  # occupies EMAIL_OTP's old precedence slot — same concept (an email-based method), just password- instead of OTP-verified
+    AuthIdentityProvider.EMAIL_OTP: 1,  # active again — see EMAIL_PASSWORD below
+    AuthIdentityProvider.EMAIL_PASSWORD: 1,  # kept, unused going forward — Postgres enums can't cheaply drop a value; occupies EMAIL_OTP's precedence slot (same concept, an email-based method) in case it's ever reactivated
     AuthIdentityProvider.PHONE_OTP: 2,
 }
 
@@ -150,7 +148,6 @@ def create_pending_verification(
     email: str | None,
     email_verified: bool,
     matched_user_id: uuid.UUID | None,
-    password_hash: str | None = None,
 ) -> tuple[PendingIdentityVerification, str]:
     raw_token = secrets.token_urlsafe(PENDING_VERIFICATION_TOKEN_BYTES)
     now = datetime.now(timezone.utc)
@@ -159,7 +156,6 @@ def create_pending_verification(
         provider_subject=provider_subject,
         email=email,
         email_verified=email_verified,
-        password_hash=password_hash,
         matched_user_id=matched_user_id,
         token_hash=_hash_pending_token(raw_token),
         expires_at=now + timedelta(minutes=PENDING_VERIFICATION_TTL_MINUTES),
@@ -185,6 +181,33 @@ def _consume_pending_verification(db: DbSession, raw_token: str) -> PendingIdent
         expires_at = expires_at.replace(tzinfo=timezone.utc)
     if expires_at < datetime.now(timezone.utc):
         raise PendingVerificationError("This verification has expired. Please start over.")
+    return pending
+
+
+def mark_pending_email_verified(
+    db: DbSession, raw_token: str, verified_email: str
+) -> PendingIdentityVerification:
+    """After email-OTP verification succeeds for an EMAIL_PASSWORD pending
+    record (2026-08-17 email-otp-signup handoff spec §3), flips
+    email_verified to True. Deliberately does NOT delete/consume the
+    pending row -- it stays alive for the phone gate step that follows,
+    exactly like the rest of the pending-token lifecycle where only
+    complete_phone_gate_signup/attach_pending_identity ever delete it.
+
+    `verified_email` MUST be the email the OTP was actually just verified
+    for -- otherwise a caller who owns a valid OTP for their OWN email
+    could apply that verification to an unrelated pending_token (e.g. a
+    victim's signup) purely by knowing/guessing that token, flipping
+    email_verified without ever proving control of the pending record's
+    email. This is the same ownership binding attach_pending_identity
+    already enforces via matched_user_id -- verify_otp proves control of
+    an identifier, this call must confirm it's the SAME identifier the
+    pending record claims."""
+    pending = _consume_pending_verification(db, raw_token)
+    if pending.email != verified_email:
+        raise PendingVerificationError("This verification code doesn't match this signup.")
+    pending.email_verified = True
+    db.commit()
     return pending
 
 
@@ -214,18 +237,9 @@ def complete_phone_gate_signup(db: DbSession, raw_token: str, phone_number: str)
     db.add(user)
     db.flush()
     record_identity(db, user.id, AuthIdentityProvider.PHONE_OTP, phone_number, None, now, commit=False)
-    new_identity = record_identity(
+    record_identity(
         db, user.id, pending.provider, pending.provider_subject, verified_email, now, commit=False
     )
-    # password_hash is only ever non-None on an EMAIL_PASSWORD pending
-    # record (2026-08-17 email-password design spec §4b); harmless no-op
-    # for every other provider.
-    new_identity.password_hash = pending.password_hash
-    if pending.provider == AuthIdentityProvider.EMAIL_PASSWORD:
-        if settings.require_email_confirmation:
-            send_confirmation_email(db, user.id, pending.provider_subject)
-        else:
-            new_identity.email_confirmed_at = now
     db.delete(pending)
     db.commit()
     return user.id
@@ -259,15 +273,9 @@ def attach_pending_identity(db: DbSession, raw_token: str, resolved_user_id: uui
     verified_email = pending.email if pending.email_verified else None
 
     now = datetime.now(timezone.utc)
-    new_identity = record_identity(
+    record_identity(
         db, resolved_user_id, pending.provider, pending.provider_subject, verified_email, now, commit=False
     )
-    new_identity.password_hash = pending.password_hash
-    if pending.provider == AuthIdentityProvider.EMAIL_PASSWORD:
-        if settings.require_email_confirmation:
-            send_confirmation_email(db, resolved_user_id, pending.provider_subject)
-        else:
-            new_identity.email_confirmed_at = now
     # Explicit flush: production and test sessions are both autoflush=False, so
     # without this the identity we just added is invisible to
     # refresh_denormalized_email's own query and users.email is silently never

@@ -4,7 +4,16 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, AlertCircle, ShieldCheck, Loader2, KeyRound } from "lucide-react";
 
 interface OtpVerifyProps {
+  /** The identifier the code was sent to -- a phone number for channel
+   * "phone", an email address for channel "email". Kept as `phoneNumber`
+   * for minimal diff against the existing phone-OTP call site rather than
+   * renaming to a generic `identifier` across every caller. */
   phoneNumber: string;
+  /** "phone" (default): existing mobile-OTP copy/behavior, unchanged.
+   * "email": the inline email-OTP confirmation step (2026-08-17
+   * email-otp-signup handoff spec §4) -- same component, different copy,
+   * since the underlying 6-digit-code verify UX is identical either way. */
+  channel?: "phone" | "email";
   onSubmit: (otp: string) => void;
   onResend: () => void;
   onBack?: () => void;
@@ -15,6 +24,7 @@ interface OtpVerifyProps {
 
 export function OtpVerify({
   phoneNumber,
+  channel = "phone",
   onSubmit,
   onResend,
   onBack,
@@ -23,6 +33,7 @@ export function OtpVerify({
   devOtp,
 }: OtpVerifyProps) {
   const [otp, setOtp] = useState("");
+  const isEmail = channel === "email";
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -37,7 +48,7 @@ export function OtpVerify({
       {/* 1. Brand Heading */}
       <div className="space-y-1">
         <h1 className="font-display font-bold text-2xl sm:text-3xl text-[var(--color-ink)] tracking-tight">
-          Verify your number
+          {isEmail ? "Verify your email" : "Verify your number"}
         </h1>
         <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed">
           We sent a 6-digit verification code to <strong className="text-[var(--color-ink)] font-mono">{phoneNumber}</strong>
@@ -116,7 +127,7 @@ export function OtpVerify({
             className="inline-flex items-center gap-1 text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] font-medium transition-colors cursor-pointer"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            <span>Change number</span>
+            <span>{isEmail ? "Change email" : "Change number"}</span>
           </button>
 
           <Button

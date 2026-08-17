@@ -10,9 +10,10 @@ vi.mock("./api", async () => {
   return {
     ...actual,
     requestOtp: vi.fn(),
+    requestEmailOtp: vi.fn(),
     signupEmail: vi.fn(),
-    loginEmail: vi.fn(),
     verifyOtp: vi.fn(),
+    verifyEmailOtp: vi.fn(),
     verifyGoogleCredential: vi.fn(),
     getMe: vi.fn(),
   };
@@ -32,9 +33,8 @@ const ME_RESPONSE = {
   onboarding_step: null, onboarding_completed: false, investor_type: null, primary_goal: null,
 };
 
-function fillEmailPassword(email: string, password: string) {
+function fillEmail(email: string) {
   fireEvent.change(screen.getByLabelText(/email/i), { target: { value: email } });
-  fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: password } });
 }
 
 describe("AuthEntryFlow", () => {
@@ -48,14 +48,11 @@ describe("AuthEntryFlow", () => {
     delete (window as { google?: unknown }).google;
   });
 
-  it("renders Log in tab with Continue with Google, Email, and Phone (no Apple)", async () => {
+  it("switches to Log in view with Continue with Google, Email, and Phone (no Apple)", async () => {
     renderFlow();
     await waitFor(() => expect(screen.getByTestId("google-button-container")).toBeInTheDocument());
 
-    expect(screen.getByRole("tab", { name: /^log in$/i })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /^sign up$/i })).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("tab", { name: /^log in$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^log in$/i }));
 
     expect(screen.queryByRole("button", { name: /continue with apple/i })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /continue with email/i })).toBeEnabled();
@@ -65,6 +62,7 @@ describe("AuthEntryFlow", () => {
   it("moves from phone entry to OTP verify after a successful request", async () => {
     vi.mocked(api.requestOtp).mockResolvedValue({ message: "OTP sent.", otp: "654321" });
     renderFlow();
+    fireEvent.click(screen.getByRole("button", { name: /^log in$/i }));
     fireEvent.click(screen.getByRole("button", { name: /continue with phone/i }));
 
     fireEvent.change(screen.getByLabelText(/mobile number/i), { target: { value: "+919999999999" } });
@@ -79,6 +77,7 @@ describe("AuthEntryFlow", () => {
     vi.mocked(api.verifyOtp).mockResolvedValue(NORMAL_SESSION);
     vi.mocked(api.getMe).mockResolvedValue(ME_RESPONSE);
     renderFlow();
+    fireEvent.click(screen.getByRole("button", { name: /^log in$/i }));
     fireEvent.click(screen.getByRole("button", { name: /continue with phone/i }));
     fireEvent.change(screen.getByLabelText(/mobile number/i), { target: { value: "+919999999999" } });
     fireEvent.click(screen.getByRole("button", { name: /send verification code/i }));
@@ -91,33 +90,43 @@ describe("AuthEntryFlow", () => {
     await waitFor(() => expect(api.getMe).toHaveBeenCalled());
   });
 
-  it("signs up directly with email/password from the Sign up tab, transitioning to the mandatory phone gate", async () => {
+  it("signs up directly with email from the Landing form, transitioning to the inline email-OTP step", async () => {
     vi.mocked(api.signupEmail).mockResolvedValue({
-      phone_required: { token: "gate-tok", prefill_email: "newsignup@example.com" },
+      email_otp_required: { token: "email-gate-tok", prefill_email: "newsignup@example.com", otp: "555444" },
     });
     renderFlow();
-    fireEvent.click(screen.getByRole("tab", { name: /^sign up$/i }));
-    fillEmailPassword("newsignup@example.com", "correcthorse");
+    fillEmail("newsignup@example.com");
     fireEvent.click(screen.getByRole("button", { name: /^create account$/i }));
 
-    await waitFor(() => expect(api.signupEmail).toHaveBeenCalledWith("newsignup@example.com", "correcthorse"));
-    await waitFor(() => expect(screen.getByText(/one more step/i)).toBeInTheDocument());
-    expect(screen.getByText(/finish creating your account for newsignup@example\.com/i)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /^back$/i })).not.toBeInTheDocument();
+    await waitFor(() => expect(api.signupEmail).toHaveBeenCalledWith("newsignup@example.com"));
+    await waitFor(() => expect(screen.getByText(/verify your email/i)).toBeInTheDocument());
+    expect(screen.getByText(/555444/)).toBeInTheDocument();
   });
 
-  it("completes signup and logs in once the phone gate completes after an email signup", async () => {
+  it("completes signup, verifies the email OTP, then the phone gate, and logs in", async () => {
     vi.mocked(api.signupEmail).mockResolvedValue({
+      email_otp_required: { token: "email-gate-tok", prefill_email: "confirmme@example.com", otp: "333444" },
+    });
+    vi.mocked(api.verifyEmailOtp).mockResolvedValue({
       phone_required: { token: "gate-tok", prefill_email: "confirmme@example.com" },
     });
     vi.mocked(api.requestOtp).mockResolvedValue({ message: "OTP sent.", otp: "111222" });
     vi.mocked(api.verifyOtp).mockResolvedValue(NORMAL_SESSION);
     vi.mocked(api.getMe).mockResolvedValue(ME_RESPONSE);
     renderFlow();
-    fireEvent.click(screen.getByRole("tab", { name: /^sign up$/i }));
-    fillEmailPassword("confirmme@example.com", "correcthorse");
+    fillEmail("confirmme@example.com");
     fireEvent.click(screen.getByRole("button", { name: /^create account$/i }));
+    await waitFor(() => screen.getByText(/verify your email/i));
+
+    fireEvent.change(screen.getByLabelText(/verification code/i), { target: { value: "333444" } });
+    fireEvent.click(screen.getByRole("button", { name: /verify & continue/i }));
+
+    await waitFor(() =>
+      expect(api.verifyEmailOtp).toHaveBeenCalledWith("confirmme@example.com", "333444", "email-gate-tok"),
+    );
     await waitFor(() => screen.getByText(/one more step/i));
+    expect(screen.getByText(/finish creating your account for confirmme@example\.com/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^back$/i })).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText(/mobile number/i), { target: { value: "+919111111112" } });
     fireEvent.click(screen.getByRole("button", { name: /send verification code/i }));
@@ -126,6 +135,38 @@ describe("AuthEntryFlow", () => {
     fireEvent.click(screen.getByRole("button", { name: /verify & continue/i }));
 
     await waitFor(() => expect(api.getMe).toHaveBeenCalled());
+  });
+
+  it("resends the email OTP via requestEmailOtp when Resend code is clicked on the email-OTP step", async () => {
+    vi.mocked(api.signupEmail).mockResolvedValue({
+      email_otp_required: { token: "email-gate-tok", prefill_email: "resend@example.com", otp: "111111" },
+    });
+    vi.mocked(api.requestEmailOtp).mockResolvedValue({ message: "OTP sent.", otp: "222222" });
+    renderFlow();
+    fillEmail("resend@example.com");
+    fireEvent.click(screen.getByRole("button", { name: /^create account$/i }));
+    await waitFor(() => screen.getByText(/verify your email/i));
+
+    fireEvent.click(screen.getByRole("button", { name: /resend code/i }));
+
+    await waitFor(() => expect(api.requestEmailOtp).toHaveBeenCalledWith("resend@example.com"));
+    await waitFor(() => expect(screen.getByText(/222222/)).toBeInTheDocument());
+  });
+
+  it("shows an inline error when the email OTP code is wrong", async () => {
+    vi.mocked(api.signupEmail).mockResolvedValue({
+      email_otp_required: { token: "email-gate-tok", prefill_email: "wrongcode@example.com", otp: "999999" },
+    });
+    vi.mocked(api.verifyEmailOtp).mockRejectedValue(new ApiError(401, "Incorrect OTP."));
+    renderFlow();
+    fillEmail("wrongcode@example.com");
+    fireEvent.click(screen.getByRole("button", { name: /^create account$/i }));
+    await waitFor(() => screen.getByText(/verify your email/i));
+
+    fireEvent.change(screen.getByLabelText(/verification code/i), { target: { value: "000000" } });
+    fireEvent.click(screen.getByRole("button", { name: /verify & continue/i }));
+
+    await waitFor(() => expect(screen.getByText(/incorrect otp/i)).toBeInTheDocument());
   });
 
   it("does not show the confirm-your-email acknowledgment for a Google signup's phone gate", async () => {
@@ -154,42 +195,53 @@ describe("AuthEntryFlow", () => {
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
-  it("shows an inline error when email signup fails on Sign up tab", async () => {
+  it("shows an inline error when email signup fails", async () => {
     vi.mocked(api.signupEmail).mockRejectedValue(
       new ApiError(409, "An account with this email already exists — log in instead."),
     );
     renderFlow();
-    fireEvent.click(screen.getByRole("tab", { name: /^sign up$/i }));
-    fillEmailPassword("dup@example.com", "correcthorse");
+    fillEmail("dup@example.com");
     fireEvent.click(screen.getByRole("button", { name: /^create account$/i }));
 
     await waitFor(() => expect(screen.getByText(/already exists/i)).toBeInTheDocument());
   });
 
-  it("logs in directly on successful email login from Continue with Email button, no phone gate", async () => {
-    vi.mocked(api.loginEmail).mockResolvedValue(NORMAL_SESSION);
+  it("logs in via email OTP from Continue with Email button, no phone gate", async () => {
+    vi.mocked(api.requestEmailOtp).mockResolvedValue({ message: "OTP sent.", otp: "777888" });
+    vi.mocked(api.verifyEmailOtp).mockResolvedValue(NORMAL_SESSION);
     vi.mocked(api.getMe).mockResolvedValue(ME_RESPONSE);
     renderFlow();
-    fireEvent.click(screen.getByRole("tab", { name: /^log in$/i }));
-    fireEvent.click(screen.getByRole("button", { name: /continue with email/i }));
-    fillEmailPassword("existing@example.com", "correcthorse");
     fireEvent.click(screen.getByRole("button", { name: /^log in$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /continue with email/i }));
+    fillEmail("existing@example.com");
+    fireEvent.click(screen.getByRole("button", { name: /send code/i }));
 
-    await waitFor(() => expect(api.loginEmail).toHaveBeenCalledWith("existing@example.com", "correcthorse"));
+    await waitFor(() => expect(api.requestEmailOtp).toHaveBeenCalledWith("existing@example.com"));
+    await waitFor(() => screen.getByLabelText(/verification code/i));
+
+    fireEvent.change(screen.getByLabelText(/verification code/i), { target: { value: "777888" } });
+    fireEvent.click(screen.getByRole("button", { name: /verify & continue/i }));
+
+    await waitFor(() => expect(api.verifyEmailOtp).toHaveBeenCalledWith("existing@example.com", "777888", undefined));
     await waitFor(() => expect(api.getMe).toHaveBeenCalled());
   });
 
-  it("shows the backend's own message on a failed email login, whether wrong credentials or unconfirmed", async () => {
-    vi.mocked(api.loginEmail).mockRejectedValue(
-      new ApiError(403, "Please confirm your email before signing in with a password — check your inbox, or resend the link."),
+  it("shows the backend's own message when logging in with an email that has no account", async () => {
+    vi.mocked(api.requestEmailOtp).mockResolvedValue({ message: "OTP sent.", otp: "444555" });
+    vi.mocked(api.verifyEmailOtp).mockRejectedValue(
+      new ApiError(401, "No account found for that email — sign up instead."),
     );
     renderFlow();
-    fireEvent.click(screen.getByRole("tab", { name: /^log in$/i }));
-    fireEvent.click(screen.getByRole("button", { name: /continue with email/i }));
-    fillEmailPassword("unconfirmed@example.com", "correcthorse");
     fireEvent.click(screen.getByRole("button", { name: /^log in$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /continue with email/i }));
+    fillEmail("noaccount@example.com");
+    fireEvent.click(screen.getByRole("button", { name: /send code/i }));
+    await waitFor(() => screen.getByLabelText(/verification code/i));
 
-    await waitFor(() => expect(screen.getByText(/please confirm your email/i)).toBeInTheDocument());
+    fireEvent.change(screen.getByLabelText(/verification code/i), { target: { value: "444555" } });
+    fireEvent.click(screen.getByRole("button", { name: /verify & continue/i }));
+
+    await waitFor(() => expect(screen.getByText(/no account found/i)).toBeInTheDocument());
   });
 
   it("a link_required response from Google transitions to the link-account screen instead of logging in", async () => {

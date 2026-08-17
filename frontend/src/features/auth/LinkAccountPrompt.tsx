@@ -4,7 +4,7 @@ import { PhoneEntry } from "./PhoneEntry";
 import { OtpVerify } from "./OtpVerify";
 import { EmailEntry } from "./EmailEntry";
 import { GoogleButton } from "./GoogleButton";
-import { requestOtp, loginEmail, verifyGoogleCredential, verifyOtp } from "./api";
+import { requestEmailOtp, requestOtp, verifyEmailOtp, verifyGoogleCredential, verifyOtp } from "./api";
 import { isLinkRequired, isPhoneRequired } from "./types";
 import type { ExistingMethod, OtpVerifyResponse } from "./types";
 import { ApiError } from "../../lib/apiClient";
@@ -17,7 +17,7 @@ interface LinkAccountPromptProps {
   onCancel: () => void;
 }
 
-type Step = "entry" | "otp";
+type Step = "entry" | "otp" | "email_otp";
 
 function errorMessage(err: unknown, fallback: string): string {
   if (err instanceof ApiError && typeof err.payload === "string") return err.payload;
@@ -27,6 +27,7 @@ function errorMessage(err: unknown, fallback: string): string {
 export function LinkAccountPrompt({ matchedEmail, existingMethod, pendingToken, onLinked, onCancel }: LinkAccountPromptProps) {
   const [step, setStep] = useState<Step>("entry");
   const [identifier, setIdentifier] = useState("");
+  const [emailIdentifier, setEmailIdentifier] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [devOtp, setDevOtp] = useState<string | null>(null);
@@ -69,14 +70,33 @@ export function LinkAccountPrompt({ matchedEmail, existingMethod, pendingToken, 
     }
   };
 
-  const handleEmailLogin = async (email: string, password: string) => {
+  const handleEmailOtpRequest = async (email: string) => {
     setSubmitting(true);
     setError(null);
     try {
-      const result = await loginEmail(email, password, pendingToken);
+      const result = await requestEmailOtp(email);
+      setEmailIdentifier(email);
+      setDevOtp(result.otp);
+      setStep("email_otp");
+    } catch (err) {
+      setError(errorMessage(err, "Couldn't send the code. Try again."));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleEmailOtpSubmit = async (otp: string) => {
+    setSubmitting(true);
+    setError(null);
+    try {
+      const result = await verifyEmailOtp(emailIdentifier, otp, pendingToken);
+      if (!("session_token" in result)) {
+        setError("Something went wrong linking your account. Please try again.");
+        return;
+      }
       onLinked(result);
     } catch (err) {
-      setError(errorMessage(err, "That didn't work. Try again."));
+      setError(errorMessage(err, "That code didn't work. Try again."));
     } finally {
       setSubmitting(false);
     }
@@ -139,11 +159,25 @@ export function LinkAccountPrompt({ matchedEmail, existingMethod, pendingToken, 
   }
 
   if (existingMethod === "email") {
+    if (step === "email_otp") {
+      return (
+        <OtpVerify
+          phoneNumber={emailIdentifier}
+          channel="email"
+          onSubmit={handleEmailOtpSubmit}
+          onResend={() => handleEmailOtpRequest(emailIdentifier)}
+          onBack={() => setStep("entry")}
+          submitting={submitting}
+          error={error}
+          devOtp={devOtp}
+        />
+      );
+    }
     return (
       <div className="space-y-4">
         {cancelButton}
         {banner}
-        <EmailEntry context="link" onLogin={handleEmailLogin} submitting={submitting} error={error} />
+        <EmailEntry context="link" onLogin={handleEmailOtpRequest} submitting={submitting} error={error} />
       </div>
     );
   }

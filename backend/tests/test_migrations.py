@@ -2,6 +2,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 
 
@@ -42,9 +44,14 @@ def test_alembic_upgrade_creates_all_tables(tmp_path, monkeypatch):
         "benchmark_index_history", "arn_directory", "portfolio_snapshots",
         "fund_scores", "otp_requests", "sessions",
         "auth_identities", "pending_identity_verifications",
-        "password_reset_tokens", "email_confirmation_tokens",
     }
     assert expected.issubset(tables)
+    # email_confirmation_tokens is dropped outright by 0007 -- the
+    # link-based email confirmation mechanism it backed no longer exists.
+    assert "email_confirmation_tokens" not in tables
+    # password_reset_tokens is dropped outright by 0008 -- password auth
+    # itself no longer exists (remove-password-auth handoff spec §1).
+    assert "password_reset_tokens" not in tables
 
 
 def test_transaction_dedupe_constraint_includes_type_after_upgrade(tmp_path, monkeypatch):
@@ -118,11 +125,24 @@ def test_multi_method_auth_migration_round_trip(tmp_path, monkeypatch):
 
     conn = sqlite3.connect(db_path)
     otp_columns = {row[1] for row in conn.execute("PRAGMA table_info(otp_requests)")}
-    # At head (0006), email column is dropped back out — only phone_number remains
-    assert "email" not in otp_columns
+    # At head (0007), email is back (re-widened for the email-OTP signup
+    # step) — this test only checks the 0004 shape, so stop at 0006 first
+    # for the "narrowed" assertion below instead of asserting against head.
     assert "phone_number" in otp_columns
     session_columns = {row[1] for row in conn.execute("PRAGMA table_info(sessions)")}
     assert "auth_method" in session_columns
+    conn.close()
+
+    at_0006 = subprocess.run(
+        [sys.executable, "-m", "alembic", "downgrade", "0006"],
+        cwd=BACKEND_DIR, capture_output=True, text=True,
+    )
+    assert at_0006.returncode == 0, at_0006.stderr
+
+    conn = sqlite3.connect(db_path)
+    otp_columns_at_0006 = {row[1] for row in conn.execute("PRAGMA table_info(otp_requests)")}
+    # At 0006, email column is narrowed back out — only phone_number remains
+    assert "email" not in otp_columns_at_0006
     conn.close()
 
     downgrade = subprocess.run(
@@ -247,7 +267,11 @@ def test_email_password_auth_migration_upgrade_downgrade_upgrade(tmp_path, monke
     db_path = tmp_path / "email_password_auth.db"
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
 
-    upgrade = _alembic("upgrade", "head")
+    # Pinned to 0006 (not head) — this test asserts 0006's own shape
+    # (otp_requests narrowed, email_confirmation_tokens present), which 0007
+    # deliberately changes again. See test_email_otp_signup_migration_round_trip
+    # for 0007's own shape.
+    upgrade = _alembic("upgrade", "0006")
     assert upgrade.returncode == 0, upgrade.stderr
 
     conn = sqlite3.connect(db_path)
@@ -287,7 +311,7 @@ def test_email_password_auth_migration_upgrade_downgrade_upgrade(tmp_path, monke
     assert "email_confirmation_tokens" not in tables
     conn.close()
 
-    re_upgrade = _alembic("upgrade", "head")
+    re_upgrade = _alembic("upgrade", "0006")
     assert re_upgrade.returncode == 0, re_upgrade.stderr
 
     conn = sqlite3.connect(db_path)
@@ -295,4 +319,136 @@ def test_email_password_auth_migration_upgrade_downgrade_upgrade(tmp_path, monke
     auth_id_columns = {row[1] for row in conn.execute("PRAGMA table_info(auth_identities)")}
     assert "password_hash" in auth_id_columns
     assert "email_confirmed_at" in auth_id_columns
+    conn.close()
+
+
+def test_email_otp_signup_migration_round_trip(tmp_path, monkeypatch):
+    """0007 -> 0006 -> 0007 round-trip (2026-08-17 email-otp-signup handoff
+    spec §1): otp_requests re-widened to accept email again, plus its CHECK
+    constraint, and email_confirmation_tokens dropped outright."""
+    import sqlite3
+
+    db_path = tmp_path / "email_otp_signup.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+
+    upgrade = _alembic("upgrade", "head")
+    assert upgrade.returncode == 0, upgrade.stderr
+
+    conn = sqlite3.connect(db_path)
+    otp_columns = {row[1] for row in conn.execute("PRAGMA table_info(otp_requests)")}
+    assert "email" in otp_columns
+    assert "phone_number" in otp_columns
+
+    tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    assert "email_confirmation_tokens" not in tables
+    conn.close()
+
+    # CHECK constraint behavior: exactly one of phone_number/email must be set.
+    conn = sqlite3.connect(db_path)
+    conn.execute("PRAGMA foreign_keys=ON")
+    import uuid as uuid_module
+    from datetime import datetime, timezone
+
+    now = datetime.now(timezone.utc).isoformat()
+
+    def _insert_otp_request(phone_number, email):
+        conn.execute(
+            "INSERT INTO otp_requests (id, phone_number, email, otp_hash, expires_at, created_at, attempt_count)"
+            " VALUES (?, ?, ?, 'hash', ?, ?, 0)",
+            (uuid_module.uuid4().hex, phone_number, email, now, now),
+        )
+
+    _insert_otp_request("+919999999999", None)  # phone-only: allowed
+    conn.commit()
+    _insert_otp_request(None, "a@example.com")  # email-only: allowed
+    conn.commit()
+
+    with pytest.raises(sqlite3.IntegrityError):
+        _insert_otp_request(None, None)  # neither: rejected
+    conn.rollback()
+
+    with pytest.raises(sqlite3.IntegrityError):
+        _insert_otp_request("+919999999998", "b@example.com")  # both: rejected
+    conn.rollback()
+    # Clean up the email-only row before downgrading -- 0007's downgrade
+    # re-narrows phone_number back to NOT NULL (mirrors 0006's own narrowing),
+    # which a real deploy would pre-check for non-empty emails the same way
+    # 0006's upgrade() does; this test only exercises the schema round-trip.
+    conn.execute("DELETE FROM otp_requests WHERE phone_number IS NULL")
+    conn.commit()
+    conn.close()
+
+    downgrade = _alembic("downgrade", "0006")
+    assert downgrade.returncode == 0, downgrade.stderr
+
+    conn = sqlite3.connect(db_path)
+    otp_columns = {row[1] for row in conn.execute("PRAGMA table_info(otp_requests)")}
+    assert "email" not in otp_columns
+
+    tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    assert "email_confirmation_tokens" in tables
+    conn.close()
+
+    re_upgrade = _alembic("upgrade", "head")
+    assert re_upgrade.returncode == 0, re_upgrade.stderr
+
+    conn = sqlite3.connect(db_path)
+    otp_columns = {row[1] for row in conn.execute("PRAGMA table_info(otp_requests)")}
+    assert "email" in otp_columns
+    tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    assert "email_confirmation_tokens" not in tables
+    conn.close()
+
+
+def test_remove_password_auth_migration_round_trip(tmp_path, monkeypatch):
+    """0008 -> 0007 -> 0008 round-trip (remove-password-auth handoff spec
+    §1): password auth is removed entirely -- auth_identities.password_hash,
+    auth_identities.email_confirmed_at, pending_identity_verifications.
+    password_hash, and the password_reset_tokens table are all dropped.
+    EMAIL_PASSWORD stays defined in the enum (not exercised at the schema
+    level -- Postgres-only, and this test runs on SQLite)."""
+    import sqlite3
+
+    db_path = tmp_path / "remove_password_auth.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+
+    upgrade = _alembic("upgrade", "head")
+    assert upgrade.returncode == 0, upgrade.stderr
+
+    conn = sqlite3.connect(db_path)
+    auth_id_columns = {row[1] for row in conn.execute("PRAGMA table_info(auth_identities)")}
+    assert "password_hash" not in auth_id_columns
+    assert "email_confirmed_at" not in auth_id_columns
+
+    pending_columns = {row[1] for row in conn.execute("PRAGMA table_info(pending_identity_verifications)")}
+    assert "password_hash" not in pending_columns
+
+    tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    assert "password_reset_tokens" not in tables
+    conn.close()
+
+    downgrade = _alembic("downgrade", "0007")
+    assert downgrade.returncode == 0, downgrade.stderr
+
+    conn = sqlite3.connect(db_path)
+    auth_id_columns = {row[1] for row in conn.execute("PRAGMA table_info(auth_identities)")}
+    assert "password_hash" in auth_id_columns
+    assert "email_confirmed_at" in auth_id_columns
+
+    pending_columns = {row[1] for row in conn.execute("PRAGMA table_info(pending_identity_verifications)")}
+    assert "password_hash" in pending_columns
+
+    tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    assert "password_reset_tokens" in tables
+    conn.close()
+
+    re_upgrade = _alembic("upgrade", "head")
+    assert re_upgrade.returncode == 0, re_upgrade.stderr
+
+    conn = sqlite3.connect(db_path)
+    auth_id_columns = {row[1] for row in conn.execute("PRAGMA table_info(auth_identities)")}
+    assert "password_hash" not in auth_id_columns
+    assert "email_confirmed_at" not in auth_id_columns
+    tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    assert "password_reset_tokens" not in tables
     conn.close()

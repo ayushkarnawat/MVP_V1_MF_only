@@ -197,3 +197,27 @@ zero added friction on the happy path; (2) a successful password reset
 also confirms the email if it wasn't already, since clicking a link mailed
 to that exact address is equally strong proof of mailbox control — this is
 what makes squatting self-service-recoverable without a support ticket.
+
+## 2026-08-17 — Password authentication removed entirely; email reverts to email+OTP for both signup and login
+
+**Reverses the entry immediately above this one** (this file is append-
+only — that entry is marked superseded, not edited). Password-based
+email signup/login, password reset, and every `password_hash`/
+`email_confirmed_at` field backing them are removed from the schema,
+backend, and frontend — no password field survives anywhere in the
+product. Email now uses the same OTP-verification pattern phone+OTP and
+the (already-built) email-OTP-signup-confirmation infrastructure already
+used: `signup_email` sends an email OTP directly (no password collected),
+and login is now request-code-then-verify against email+OTP as well —
+the `EMAIL_OTP` provider identity (benched, unused, in the 2026-08-17
+entry above) is reactivated as the active email provider; `EMAIL_PASSWORD`
+takes its place as the now-benched, kept-but-unused enum value, per the
+same "Postgres can't cheaply drop an enum value" reasoning already
+established for `EMAIL_OTP`.
+
+**Why:** management decision. This is a reversal of judgment, not new
+information about user behavior or a walked-back technical finding — the
+password-manager-autofill rationale in the entry above was a real
+tradeoff call at the time; leaving it uncontradicted here would misstate
+why the code changed. Google and phone+OTP were never password-based and
+are unaffected either way.

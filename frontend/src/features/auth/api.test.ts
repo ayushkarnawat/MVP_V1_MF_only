@@ -3,10 +3,11 @@ import {
   createHouseholdMember,
   getMe,
   listHouseholdMembers,
-  loginEmail,
+  requestEmailOtp,
   requestOtp,
   signupEmail,
   updateMe,
+  verifyEmailOtp,
   verifyGoogleCredential,
   verifyOtp,
 } from "./api";
@@ -137,24 +138,59 @@ describe("auth api", () => {
     expect(result).toHaveLength(1);
   });
 
-  it("signupEmail posts email and password as JSON", async () => {
+  it("signupEmail posts email as JSON", async () => {
     const mockFetch = vi.fn().mockResolvedValue(
       new Response(
-        JSON.stringify({ phone_required: { token: "gate-tok", prefill_email: "a@example.com" } }),
+        JSON.stringify({
+          email_otp_required: { token: "gate-tok", prefill_email: "a@example.com", otp: "111222" },
+        }),
         { status: 200 },
       ),
     );
     vi.stubGlobal("fetch", mockFetch);
 
-    const result = await signupEmail("a@example.com", "correcthorse");
+    const result = await signupEmail("a@example.com");
 
     const [url, options] = mockFetch.mock.calls[0];
     expect(url).toContain("/auth/signup/email");
-    expect(JSON.parse(options.body as string)).toEqual({ email: "a@example.com", password: "correcthorse" });
-    expect("phone_required" in result).toBe(true);
+    expect(JSON.parse(options.body as string)).toEqual({ email: "a@example.com" });
+    expect(result.email_otp_required.token).toBe("gate-tok");
   });
 
-  it("loginEmail posts email and password as JSON", async () => {
+  it("requestEmailOtp posts email as JSON", async () => {
+    const mockFetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ message: "OTP sent.", otp: "654321" }), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", mockFetch);
+
+    const result = await requestEmailOtp("a@example.com");
+
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toContain("/auth/email-otp/request");
+    expect(JSON.parse(options.body as string)).toEqual({ email: "a@example.com" });
+    expect(result.otp).toBe("654321");
+  });
+
+  it("verifyEmailOtp posts email, otp, and pending_token as JSON when provided", async () => {
+    const mockFetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({ phone_required: { token: "gate-tok-2", prefill_email: "a@example.com" } }),
+        { status: 200 },
+      ),
+    );
+    vi.stubGlobal("fetch", mockFetch);
+
+    const result = await verifyEmailOtp("a@example.com", "111222", "pending-tok");
+
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toContain("/auth/email-otp/verify");
+    expect(JSON.parse(options.body as string)).toEqual({
+      email: "a@example.com", otp: "111222", pending_token: "pending-tok",
+    });
+    expect("phone_required" in result && result.phone_required.token).toBe("gate-tok-2");
+  });
+
+  it("verifyEmailOtp omits pending_token when not provided (plain login)", async () => {
     const mockFetch = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({ session_token: "tok-5", user_id: "u5", onboarding_step: null, onboarding_completed: false }),
@@ -163,29 +199,11 @@ describe("auth api", () => {
     );
     vi.stubGlobal("fetch", mockFetch);
 
-    const result = await loginEmail("a@example.com", "correcthorse");
-
-    const [url, options] = mockFetch.mock.calls[0];
-    expect(url).toContain("/auth/login/email");
-    expect(JSON.parse(options.body as string)).toEqual({ email: "a@example.com", password: "correcthorse" });
-    expect(result.session_token).toBe("tok-5");
-  });
-
-  it("loginEmail includes pending_token only when provided", async () => {
-    const mockFetch = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({ session_token: "tok-6", user_id: "u6", onboarding_step: null, onboarding_completed: false }),
-        { status: 200 },
-      ),
-    );
-    vi.stubGlobal("fetch", mockFetch);
-
-    await loginEmail("a@example.com", "correcthorse", "pending-xyz");
+    const result = await verifyEmailOtp("a@example.com", "111222");
 
     const [, options] = mockFetch.mock.calls[0];
-    expect(JSON.parse(options.body as string)).toEqual({
-      email: "a@example.com", password: "correcthorse", pending_token: "pending-xyz",
-    });
+    expect(JSON.parse(options.body as string)).toEqual({ email: "a@example.com", otp: "111222" });
+    expect("session_token" in result && result.session_token).toBe("tok-5");
   });
 
   it("verifyOtp includes pending_token only when provided", async () => {

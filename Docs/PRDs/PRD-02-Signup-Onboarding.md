@@ -197,12 +197,14 @@ directly with the goal of a frictionless first step. See the Authentication sect
   retail and HNI users — the *tone* of copy can flex, the *mechanic* should not.
 
 #### Authentication (decided)
-- FR-2 (updated 2026-08-17): Phone+OTP and Google remain fully passwordless.
-  Email signup uses email+password — the one path where password-manager
-  autofill removes more friction than an inbox-check step would save. Every
-  account still converges on a verified phone as a mandatory second step
-  regardless of which method started signup. See decisions.md's 2026-08-17
-  entry for the full "why" and what this reverses.
+- FR-2 (updated 2026-08-17, second revision same day): Phone+OTP, Google,
+  and email are all fully passwordless — no password field anywhere in
+  the product. Email signup and login both use email+OTP (request a
+  code, verify it), reversing this same day's earlier email+password
+  revision. Every account still converges on a verified phone as a
+  mandatory second step regardless of which method started signup. See
+  decisions.md's second 2026-08-17 entry for the full "why" (management
+  decision) and what this reverses.
 - FR-2a: 6-digit OTP, standard resend/retry handling, PIN or biometric for return-visit
   login after the first OTP verification (same pattern as Groww/INDmoney's post-first-login
   flow) — this belongs in a future Auth/Security PRD for full spec, flagged here only
@@ -507,3 +509,4 @@ each other later.
 | 1.1 | 2026-07-22 | Claude (PM partner) | Added draft questionnaire (Q1–Q4 + family step); resolved auth to phone+OTP (no password); resolved HNI treatment (no separate flow in v1); added second research pass (question-phrasing and Indian auth-pattern findings); added Design Handoff Alignment section |
 | 1.2 | 2026-07-22 | Claude (PM partner) | Noted foundational `otp_requests`/`sessions` tables now exist in the Database Schema doc, unblocking basic login at MVP; full auth/security policy remains deferred as before |
 | 1.3 | 2026-08-05 | Claude (PM partner), from team brainstorm relayed by Ayush | Added FR-2b (Sign Up/Log In landing screen before the phone-number field); added FR-7a (skipped questions must be genuinely revisitable via back-navigation, not just a one-way skip); added the Family CAS Upload section (FR-10-FR-14) for multi-member households — per-member upload cards, independent state per member, "Upload your own CAS?" Now/Later, and a queue-then-batch-parse pattern (Parse Files) instead of parse-on-upload, sequencing into PRD-01's existing Import Review screen unchanged, once per member; resolved the "before or after own CAS import" open question accordingly; updated FR-9 and Design Handoff Alignment to match |
+| 1.4 | 2026-08-17 | Claude (PM partner) | FR-2 revised twice same day: first to email+password for the email signup path (password-manager-autofill rationale), then reversed back to email+OTP for both signup and login (management decision) — phone+OTP, Google, and email are all passwordless again, no password field anywhere. See decisions.md's two 2026-08-17 entries for the full sequence. |

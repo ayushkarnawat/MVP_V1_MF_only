@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session as DbSession
 
-from app.config import settings
 from app.db.session import get_db #dependency for database session
 from app.models.auth import AuthIdentity, Session as SessionModel
 from app.models.enums import AuthIdentityProvider
@@ -15,31 +14,20 @@ from app.services.auth.identity import (
     create_pending_verification,
     find_identity_by_subject,
     find_or_backfill_phone_identity,
+    mark_pending_email_verified,
     record_identity,
     resolve_new_verified_identity,
 )
-from app.services.auth.email_confirmation import (
-    EmailConfirmationTokenError,
-    consume_email_confirmation_token,
-)
-from app.services.auth.email_provider import get_email_provider
 from app.services.auth.google_oauth import GoogleTokenVerificationError, verify_google_id_token
 from app.services.auth.otp import OtpRequestThrottledError, OtpVerificationError, create_otp_request, verify_otp
-from app.services.auth.password import hash_password, verify_password
-from app.services.auth.password_reset import (
-    PasswordResetTokenError,
-    consume_password_reset_token,
-    create_password_reset_token,
-)
 from app.services.auth.schemas import (
-    ConfirmEmailBody,
-    ConfirmEmailResponse,
-    ForgotPasswordBody,
-    ForgotPasswordResponse,
+    EmailOtpRequestBody,
+    EmailOtpRequiredDetail,
+    EmailOtpRequiredResponse,
+    EmailOtpVerifyBody,
     GoogleAuthBody,
     LinkRequiredDetail,
     LinkRequiredResponse,
-    LoginEmailBody,
     MeResponse,
     OtpRequestBody,
     OtpRequestResponse,
@@ -48,8 +36,6 @@ from app.services.auth.schemas import (
     PhoneRequiredDetail,
     PhoneRequiredResponse,
     PROVIDER_TO_METHOD_LABEL,
-    ResetPasswordBody,
-    ResetPasswordResponse,
     SessionRefreshResponse,
     SignupEmailBody,
     UpdateMeBody,
@@ -70,97 +56,69 @@ def _session_response(user_id, auth_method: AuthIdentityProvider, db: DbSession)
     )
 
 
-@router.post("/signup/email", response_model=PhoneRequiredResponse)
+@router.post("/signup/email", response_model=EmailOtpRequiredResponse)
 def signup_email(body: SignupEmailBody, db: DbSession = Depends(get_db)):
-    existing = find_identity_by_subject(db, AuthIdentityProvider.EMAIL_PASSWORD, body.email)
+    existing = find_identity_by_subject(db, AuthIdentityProvider.EMAIL_OTP, body.email)
     if existing is not None:
         raise HTTPException(status_code=409, detail="An account with this email already exists — log in instead.")
 
-    # email_verified=False unconditionally: nothing cryptographically proves
-    # mailbox control at signup time (Design Spec §4a) — same reasoning that
-    # fixed Critical Finding 1 for Google's unverified-email case. Called
-    # directly rather than through resolve_new_verified_identity, since that
-    # function's collision-check branch can never fire when email_verified is
-    # False (§4).
     _, raw_token = create_pending_verification(
         db,
-        AuthIdentityProvider.EMAIL_PASSWORD,
+        AuthIdentityProvider.EMAIL_OTP,
         body.email,
         body.email,
         False,
         matched_user_id=None,
-        password_hash=hash_password(body.password),
     )
-    return PhoneRequiredResponse(phone_required=PhoneRequiredDetail(token=raw_token, prefill_email=body.email))
+    _, raw_otp = create_otp_request(db, body.email, channel="email")
+    return EmailOtpRequiredResponse(
+        email_otp_required=EmailOtpRequiredDetail(token=raw_token, prefill_email=body.email, otp=raw_otp)
+    )
 
 
-@router.post("/login/email", response_model=OtpVerifyResponse)
-def login_email(body: LoginEmailBody, db: DbSession = Depends(get_db)):
-    existing = find_identity_by_subject(db, AuthIdentityProvider.EMAIL_PASSWORD, body.email)
-    if existing is None or existing.password_hash is None or not verify_password(body.password, existing.password_hash):
-        # Same generic message either way — don't leak whether the email
-        # exists (Design Spec §4, anti-enumeration).
-        raise HTTPException(status_code=401, detail="Invalid email or password.")
+#email-otp signup confirmation and login (remove-password-auth handoff spec
+# §4/§5) -- replaces the link-based /email/confirm route entirely, and
+# /auth/login/email, not alongside either.
+@router.post("/email-otp/request", response_model=OtpRequestResponse)
+def request_email_otp(body: EmailOtpRequestBody, db: DbSession = Depends(get_db)):
+    try:
+        _, raw_otp = create_otp_request(db, body.email, channel="email")
+    except OtpRequestThrottledError as exc:
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
+    return OtpRequestResponse(message="OTP sent.", otp=raw_otp)
 
-    if settings.require_email_confirmation and existing.email_confirmed_at is None:
-        # 403, not 401: the password already matched, so this is safe to
-        # disclose distinctly (Design Spec §4c) — only someone who already
-        # knows the correct password ever reaches this branch.
-        raise HTTPException(
-            status_code=403,
-            detail="Please confirm your email before signing in with a password — check your inbox, or resend the link.",
-        )
+
+@router.post("/email-otp/verify", response_model=OtpVerifyResponse | PhoneRequiredResponse)
+def verify_email_otp(body: EmailOtpVerifyBody, db: DbSession = Depends(get_db)):
+    try:
+        verify_otp(db, body.email, body.otp, channel="email")
+    except OtpVerificationError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
 
     if body.pending_token:
-        # Step-up re-authentication: LinkAccountPrompt's email branch calls
-        # this route with a pending token when an existing account's
-        # highest-precedence method is email+password, exactly matching how
-        # verify_otp_route/google_oauth_route already handle their own
-        # pending_token branches. Without this, a password re-auth would log
-        # the user into their existing account but never attach the new
-        # Google/phone-gate-originating identity that triggered the
-        # collision in the first place.
+        existing = find_identity_by_subject(db, AuthIdentityProvider.EMAIL_OTP, body.email)
+        if existing is not None:
+            # Step-up re-auth (LinkAccountPrompt's email branch): the
+            # pending_token is a link/collision token, not a fresh-signup
+            # token -- attach it to the account this email already belongs to.
+            try:
+                user_id = attach_pending_identity(db, body.pending_token, existing.user_id)
+            except PendingVerificationError as exc:
+                raise HTTPException(status_code=401, detail=str(exc)) from exc
+            return _session_response(user_id, AuthIdentityProvider.EMAIL_OTP, db)
+        # Fresh signup: flip the pending record's verified flag, hand off
+        # to the existing mandatory phone gate -- unchanged from today.
         try:
-            user_id = attach_pending_identity(db, body.pending_token, existing.user_id)
+            pending = mark_pending_email_verified(db, body.pending_token, body.email)
         except PendingVerificationError as exc:
             raise HTTPException(status_code=401, detail=str(exc)) from exc
-        return _session_response(user_id, AuthIdentityProvider.EMAIL_PASSWORD, db)
+        return PhoneRequiredResponse(phone_required=PhoneRequiredDetail(token=body.pending_token, prefill_email=pending.email))
 
-    return _session_response(existing.user_id, AuthIdentityProvider.EMAIL_PASSWORD, db)
-
-
-@router.post("/password/forgot", response_model=ForgotPasswordResponse)
-def forgot_password(body: ForgotPasswordBody, db: DbSession = Depends(get_db)):
-    # Always 200 regardless of whether the email matches an account —
-    # anti-enumeration (Design Spec §3).
-    identity = find_identity_by_subject(db, AuthIdentityProvider.EMAIL_PASSWORD, body.email)
-    if identity is not None:
-        _, raw_token = create_password_reset_token(db, identity.user_id)
-        reset_link = f"https://app.unifolio.in/reset-password?token={raw_token}"
-        get_email_provider().send_email(
-            to=body.email,
-            subject="Reset your Unifolio password",
-            body=f"Click this link to reset your password: {reset_link}. It expires in 30 minutes.",
-        )
-    return ForgotPasswordResponse(message="If that email is registered, a reset link has been sent.")
-
-
-@router.post("/password/reset", response_model=ResetPasswordResponse)
-def reset_password(body: ResetPasswordBody, db: DbSession = Depends(get_db)):
-    try:
-        consume_password_reset_token(db, body.token, body.new_password)
-    except PasswordResetTokenError as exc:
-        raise HTTPException(status_code=401, detail=str(exc)) from exc
-    return ResetPasswordResponse(message="Your password has been reset.")
-
-
-@router.post("/email/confirm", response_model=ConfirmEmailResponse)
-def confirm_email(body: ConfirmEmailBody, db: DbSession = Depends(get_db)):
-    try:
-        consume_email_confirmation_token(db, body.token)
-    except EmailConfirmationTokenError as exc:
-        raise HTTPException(status_code=401, detail=str(exc)) from exc
-    return ConfirmEmailResponse(message="Your email has been confirmed. You can now sign in with your password.")
+    # Plain login: no pending record involved at all, just an existing identity.
+    existing = find_identity_by_subject(db, AuthIdentityProvider.EMAIL_OTP, body.email)
+    if existing is None:
+        raise HTTPException(status_code=401, detail="No account found for that email — sign up instead.")
+    return _session_response(existing.user_id, AuthIdentityProvider.EMAIL_OTP, db)
 
 
 #otp authentication

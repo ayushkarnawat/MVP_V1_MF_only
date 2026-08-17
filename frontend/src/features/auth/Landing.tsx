@@ -5,15 +5,13 @@ import { AlertCircle, ArrowRight, Loader2, Mail, Phone, ShieldCheck } from "luci
 import { GoogleButton } from "./GoogleButton";
 
 interface LandingProps {
-  onSignup: (email: string, password: string) => void;
+  onSignup: (email: string) => void;
   onSelectEmail: () => void;
   onSelectPhone: () => void;
   onGoogleCredential: (idToken: string) => void;
   error: string | null;
   submitting: boolean;
 }
-
-const MIN_PASSWORD_LENGTH = 8;
 
 export function Landing({
   onSignup,
@@ -26,67 +24,18 @@ export function Landing({
   // Sign up is the default state on application launch
   const [mode, setMode] = useState<"login" | "signup">("signup");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [validationError, setValidationError] = useState<string | null>(null);
-
-  const passwordTooShort = password.length > 0 && password.length < MIN_PASSWORD_LENGTH;
 
   const handleSignupSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (password.length < MIN_PASSWORD_LENGTH) {
-      setValidationError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
-      return;
-    }
-    setValidationError(null);
-    onSignup(email, password);
+    onSignup(email);
   };
 
-  const displayedError = validationError ?? error;
+  const displayedError = error;
 
   return (
     <div className="w-full max-w-md mx-auto space-y-6 text-left box-border py-2">
-      {/* 1. Header & Mode Switcher */}
+      {/* 1. Header */}
       <div className="space-y-4">
-        {/* Segmented Pill Control */}
-        <div
-          role="tablist"
-          aria-label="Authentication mode"
-          className="inline-flex p-1 rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] shadow-inner text-xs font-semibold w-full max-w-[240px]"
-        >
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mode === "signup"}
-            onClick={() => {
-              setMode("signup");
-              setValidationError(null);
-            }}
-            className={`relative flex-1 py-1.5 px-3 rounded-full transition-all duration-200 ease-out cursor-pointer text-center ${
-              mode === "signup"
-                ? "bg-[var(--color-surface)] text-[var(--color-ink)] shadow-xs border border-[var(--color-border)]/60 font-semibold"
-                : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] font-medium"
-            }`}
-          >
-            Sign up
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mode === "login"}
-            onClick={() => {
-              setMode("login");
-              setValidationError(null);
-            }}
-            className={`relative flex-1 py-1.5 px-3 rounded-full transition-all duration-200 ease-out cursor-pointer text-center ${
-              mode === "login"
-                ? "bg-[var(--color-surface)] text-[var(--color-ink)] shadow-xs border border-[var(--color-border)]/60 font-semibold"
-                : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] font-medium"
-            }`}
-          >
-            Log in
-          </button>
-        </div>
-
         {/* Clean Editorial Headline */}
         <div className="space-y-1">
           <h1 className="font-display font-bold text-2xl sm:text-3xl text-[var(--color-ink)] tracking-tight">
@@ -131,28 +80,9 @@ export function Landing({
               />
             </div>
 
-            <div className="space-y-1.5">
-              <label htmlFor="signup-password-input" className="text-xs font-semibold text-[var(--color-ink)] block font-body">
-                Password
-              </label>
-              <input
-                id="signup-password-input"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className="w-full h-11 sm:h-12 min-h-[44px] sm:min-h-[48px] rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/20 px-3.5 text-xs sm:text-sm text-[var(--color-ink)] placeholder:text-[var(--color-text-secondary)]/50 focus:outline-none transition-all font-body"
-              />
-              {passwordTooShort && (
-                <p className="text-[11px] text-[var(--color-text-secondary)] font-body">
-                  At least {MIN_PASSWORD_LENGTH} characters.
-                </p>
-              )}
-            </div>
-
             <Button
               type="submit"
-              disabled={submitting || !email.trim() || !password.trim()}
+              disabled={submitting || !email.trim()}
               aria-label="Create account"
               className="w-full h-11 sm:h-12 rounded-xl bg-[var(--color-accent)] hover:bg-[#16a34a] text-white font-semibold text-xs sm:text-sm shadow-md shadow-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/25 gap-2 cursor-pointer active:scale-[0.99] transition-all min-h-[44px] sm:min-h-[48px] mt-1.5"
             >
@@ -175,10 +105,7 @@ export function Landing({
             <span>Already have an account? </span>
             <button
               type="button"
-              onClick={() => {
-                setMode("login");
-                setValidationError(null);
-              }}
+              onClick={() => setMode("login")}
               className="font-semibold text-[var(--color-ink)] hover:text-[var(--color-accent)] underline-offset-4 hover:underline cursor-pointer transition-colors"
             >
               Log in
@@ -197,17 +124,6 @@ export function Landing({
           {/* Alternative Methods */}
           <div className="space-y-2.5">
             <GoogleButton onCredential={onGoogleCredential} />
-
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onSelectPhone}
-              disabled={submitting}
-              className="w-full h-11 sm:h-12 rounded-xl border border-[var(--color-border)] bg-transparent text-[var(--color-ink)] hover:bg-[var(--color-bg)] font-semibold text-xs sm:text-sm gap-2 cursor-pointer active:scale-[0.99] transition-all min-h-[44px] sm:min-h-[48px] flex items-center justify-center font-body"
-            >
-              <Phone className="h-4 w-4 text-[var(--color-accent)]" />
-              <span>Continue with Phone</span>
-            </Button>
           </div>
         </div>
       ) : (
@@ -242,10 +158,7 @@ export function Landing({
             <span>Don&apos;t have an account? </span>
             <button
               type="button"
-              onClick={() => {
-                setMode("signup");
-                setValidationError(null);
-              }}
+              onClick={() => setMode("signup")}
               className="font-semibold text-[var(--color-ink)] hover:text-[var(--color-accent)] underline-offset-4 hover:underline cursor-pointer transition-colors"
             >
               Sign up

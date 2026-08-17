@@ -112,3 +112,18 @@ def test_otp_request_round_trip():
 
     fetched = db.query(OtpRequest).filter_by(phone_number="+919999999999").one()
     assert fetched.phone_number == "+919999999999"
+    assert fetched.email is None
+
+
+def test_otp_request_supports_email_channel():
+    """2026-08-17 email-otp-signup handoff spec §1/§2: otp_requests is
+    shared between phone and email channels again -- email is nullable,
+    phone_number is nullable, exactly one is set per row."""
+    db = _session()
+    now = datetime.now(timezone.utc)
+    db.add(OtpRequest(email="a@example.com", otp_hash="x", expires_at=now, created_at=now))
+    db.commit()
+
+    fetched = db.query(OtpRequest).filter_by(email="a@example.com").one()
+    assert fetched.email == "a@example.com"
+    assert fetched.phone_number is None

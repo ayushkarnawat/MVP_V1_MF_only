@@ -8,39 +8,29 @@ interface EmailEntryProps {
     * against an account that already exists. "primary": legacy entry point with
     * both actions. Defaults to "login". */
   context?: "primary" | "login" | "link";
-  onSignup?: (email: string, password: string) => void;
-  onLogin: (email: string, password: string) => void;
+  onSignup?: (email: string) => void;
+  onLogin: (email: string) => void;
   onBack?: () => void;
   submitting: boolean;
   error: string | null;
 }
 
-const MIN_PASSWORD_LENGTH = 8;
-
 export function EmailEntry({ context = "login", onSignup, onLogin, onBack, submitting, error }: EmailEntryProps) {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [validationError, setValidationError] = useState<string | null>(null);
 
   const isLink = context === "link";
   const isLoginOnly = context === "login" || context === "link";
-  const passwordTooShort = !isLoginOnly && password.length > 0 && password.length < MIN_PASSWORD_LENGTH;
 
   const submit = (event: FormEvent<HTMLFormElement>, action: "signup" | "login") => {
     event.preventDefault();
-    if (action === "signup" && password.length < MIN_PASSWORD_LENGTH) {
-      setValidationError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
-      return;
-    }
-    setValidationError(null);
     if (action === "signup") {
-      onSignup?.(email, password);
+      onSignup?.(email);
     } else {
-      onLogin(email, password);
+      onLogin(email);
     }
   };
 
-  const displayedError = validationError ?? error;
+  const displayedError = error;
 
   return (
     <form
@@ -66,10 +56,10 @@ export function EmailEntry({ context = "login", onSignup, onLogin, onBack, submi
           </h1>
           <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed">
             {isLink
-              ? "Enter your email and password to link this to your account."
+              ? "Enter your email — we'll send a code to link this to your account."
               : isLoginOnly
-              ? "Enter your email and password to log in to your account."
-              : "Enter your email and choose a password to get started, or log in if you already have an account."}
+              ? "Enter your email and we'll send you a one-time code."
+              : "Enter your email to get started, or log in if you already have an account."}
           </p>
         </div>
       </div>
@@ -90,25 +80,6 @@ export function EmailEntry({ context = "login", onSignup, onLogin, onBack, submi
             autoFocus
           />
         </div>
-
-        <div className="space-y-1.5">
-          <label htmlFor="password-input" className="text-xs font-semibold text-[var(--color-ink)] block">
-            Password
-          </label>
-          <input
-            id="password-input"
-            type="password"
-            placeholder="••••••••"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            className="w-full h-11 sm:h-12 min-h-[44px] rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/20 px-3.5 text-xs sm:text-sm text-[var(--color-ink)] placeholder:text-[var(--color-text-secondary)]/50 focus:outline-none transition-all"
-          />
-          {passwordTooShort && (
-            <p className="text-[11px] text-[var(--color-text-secondary)]">
-              At least {MIN_PASSWORD_LENGTH} characters.
-            </p>
-          )}
-        </div>
       </div>
 
       {/* 3. Error Alert */}
@@ -126,17 +97,17 @@ export function EmailEntry({ context = "login", onSignup, onLogin, onBack, submi
       <div className="space-y-3 pt-1">
         <Button
           type="submit"
-          disabled={submitting || !email.trim() || !password.trim()}
+          disabled={submitting || !email.trim()}
           className="w-full h-11 sm:h-12 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs sm:text-sm shadow-sm gap-2 cursor-pointer active:scale-[0.99] transition-all min-h-[44px] sm:min-h-[48px]"
         >
           {submitting ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              <span>{isLoginOnly ? "Logging in..." : "Creating account..."}</span>
+              <span>Sending code...</span>
             </>
           ) : (
             <>
-              <span>{isLoginOnly ? "Log in" : "Create account"}</span>
+              <span>Send code</span>
               <ArrowRight className="h-3.5 w-3.5" />
             </>
           )}
@@ -146,7 +117,7 @@ export function EmailEntry({ context = "login", onSignup, onLogin, onBack, submi
           <Button
             type="button"
             variant="outline"
-            disabled={submitting || !email.trim() || !password.trim()}
+            disabled={submitting || !email.trim()}
             onClick={(event) => submit(event as unknown as FormEvent<HTMLFormElement>, "login")}
             className="w-full h-11 sm:h-12 rounded-xl border border-[var(--color-border)] bg-transparent text-[var(--color-ink)] hover:bg-[var(--color-bg)] font-semibold text-xs sm:text-sm cursor-pointer active:scale-[0.99] transition-all min-h-[44px] sm:min-h-[48px]"
           >

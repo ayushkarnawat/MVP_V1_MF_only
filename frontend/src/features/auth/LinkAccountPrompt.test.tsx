@@ -6,7 +6,13 @@ import { ApiError } from "../../lib/apiClient";
 
 vi.mock("./api", async () => {
   const actual = await vi.importActual<typeof import("./api")>("./api");
-  return { ...actual, requestOtp: vi.fn(), verifyOtp: vi.fn(), loginEmail: vi.fn() };
+  return {
+    ...actual,
+    requestOtp: vi.fn(),
+    verifyOtp: vi.fn(),
+    requestEmailOtp: vi.fn(),
+    verifyEmailOtp: vi.fn(),
+  };
 });
 
 describe("LinkAccountPrompt", () => {
@@ -55,8 +61,9 @@ describe("LinkAccountPrompt", () => {
     await waitFor(() => expect(onLinked).toHaveBeenCalledWith(expect.objectContaining({ session_token: "tok-linked" })));
   });
 
-  it("completes an email-based link via password login and calls onLinked with the session", async () => {
-    vi.mocked(api.loginEmail).mockResolvedValue({
+  it("completes an email-based link via OTP and calls onLinked with the session", async () => {
+    vi.mocked(api.requestEmailOtp).mockResolvedValue({ message: "OTP sent.", otp: "222333" });
+    vi.mocked(api.verifyEmailOtp).mockResolvedValue({
       session_token: "tok-linked-2", user_id: "u2", onboarding_step: null, onboarding_completed: false,
     });
     const onLinked = vi.fn();
@@ -65,24 +72,31 @@ describe("LinkAccountPrompt", () => {
     );
 
     fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: "a@example.com" } });
-    fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: "correcthorse" } });
-    fireEvent.click(screen.getByRole("button", { name: /^log in$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /send code/i }));
+    await waitFor(() => screen.getByLabelText(/verification code/i));
 
-    await waitFor(() => expect(api.loginEmail).toHaveBeenCalledWith("a@example.com", "correcthorse", "pending-tok-2"));
+    fireEvent.change(screen.getByLabelText(/verification code/i), { target: { value: "222333" } });
+    fireEvent.click(screen.getByRole("button", { name: /verify & continue/i }));
+
+    await waitFor(() => expect(api.verifyEmailOtp).toHaveBeenCalledWith("a@example.com", "222333", "pending-tok-2"));
     await waitFor(() => expect(onLinked).toHaveBeenCalledWith(expect.objectContaining({ session_token: "tok-linked-2" })));
   });
 
-  it("shows an error when the email password login fails", async () => {
-    vi.mocked(api.loginEmail).mockRejectedValue(new ApiError(401, "Invalid email or password."));
+  it("shows an error when the email OTP code is wrong", async () => {
+    vi.mocked(api.requestEmailOtp).mockResolvedValue({ message: "OTP sent.", otp: "222333" });
+    vi.mocked(api.verifyEmailOtp).mockRejectedValue(new ApiError(401, "Incorrect OTP."));
     render(
       <LinkAccountPrompt matchedEmail="a@example.com" existingMethod="email" pendingToken="pending-tok-2b" onLinked={vi.fn()} onCancel={vi.fn()} />,
     );
 
     fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: "a@example.com" } });
-    fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: "wrongpassword" } });
-    fireEvent.click(screen.getByRole("button", { name: /^log in$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /send code/i }));
+    await waitFor(() => screen.getByLabelText(/verification code/i));
 
-    await waitFor(() => expect(screen.getByText(/invalid email or password/i)).toBeInTheDocument());
+    fireEvent.change(screen.getByLabelText(/verification code/i), { target: { value: "000000" } });
+    fireEvent.click(screen.getByRole("button", { name: /verify & continue/i }));
+
+    await waitFor(() => expect(screen.getByText(/incorrect otp/i)).toBeInTheDocument());
   });
 
   it("renders a GoogleButton when the existing method is google", () => {
