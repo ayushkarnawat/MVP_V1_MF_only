@@ -83,6 +83,36 @@ def test_get_json_lazily_creates_and_reuses_shared_client():
     assert shared_client.get.await_args_list[1].args == ("https://example.test/second",)
 
 
+def test_get_scheme_list_deduplicates_concurrent_uncached_calls(tmp_path):
+    """Fix (import-preview-concurrency review finding): build_import_preview
+    now resolves schemes concurrently, so multiple no-AMFI schemes in the
+    same preview can all reach get_scheme_list() before any of them has
+    populated self._schemes. Without a lock, each would independently fetch
+    the full ~20k-scheme directory."""
+    client = MfApiClient(cache_dir=tmp_path)
+    fetch_started = asyncio.Event()
+    release_fetch = asyncio.Event()
+
+    async def get_json(url):
+        fetch_started.set()
+        await asyncio.wait_for(release_fetch.wait(), timeout=1)
+        return [{"schemeCode": "1", "schemeName": "Fund"}]
+
+    async def run_calls():
+        first = asyncio.create_task(client.get_scheme_list())
+        await asyncio.wait_for(fetch_started.wait(), timeout=1)
+        second = asyncio.create_task(client.get_scheme_list())
+        await asyncio.sleep(0)
+        release_fetch.set()
+        return await asyncio.gather(first, second)
+
+    with patch.object(client, "_get_json", new=AsyncMock(side_effect=get_json)) as mock_get_json:
+        results = asyncio.run(run_calls())
+
+    assert results[0] is results[1]
+    mock_get_json.assert_awaited_once()
+
+
 def test_get_scheme_category_missing_returns_none(tmp_path):
     """Verify get_scheme_category returns None when category key is missing."""
     client = MfApiClient(cache_dir=tmp_path)

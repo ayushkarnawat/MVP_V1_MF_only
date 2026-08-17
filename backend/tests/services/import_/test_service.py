@@ -172,6 +172,37 @@ def test_build_import_preview_preserves_input_order_when_resolution_finishes_out
     assert [scheme.category for scheme in preview.schemes] == ["Category 100001", "Category 100002"]
 
 
+def test_build_import_preview_fails_whole_call_when_one_scheme_resolution_raises():
+    """Concurrent resolution via asyncio.gather must preserve the old
+    sequential loop's contract: an unexpected error from any single scheme's
+    resolve_scheme/get_scheme_category fails the whole preview call and
+    leaves no partial session behind, exactly like the old loop (which
+    likewise never caught these exceptions and would abort partway)."""
+    from app.services.import_.service import _preview_sessions
+
+    schemes = (
+        _parsed_scheme("Good Fund", "100001", "folio-1"),
+        _parsed_scheme("Bad Fund", "100002", "folio-2"),
+    )
+    client = AsyncMock()
+
+    async def resolve(name, amfi):
+        if amfi == "100002":
+            raise RuntimeError("mfapi.in blew up")
+        from app.services.import_.enrich import SchemeMatch
+        return SchemeMatch(amfi_code=amfi, scheme_name=name, confidence=1.0), "confirmed"
+
+    client.resolve_scheme.side_effect = resolve
+    client.get_scheme_category.return_value = "Equity"
+
+    sessions_before = set(_preview_sessions)
+    import pytest
+    with pytest.raises(RuntimeError, match="mfapi.in blew up"):
+        asyncio.run(build_import_preview(_parse_result_with_schemes(*schemes), "test.pdf", client=client))
+
+    assert set(_preview_sessions) == sessions_before
+
+
 def test_confirm_import_creates_scheme_folio_and_transaction():
     db = _session()
     member = _household_member(db)

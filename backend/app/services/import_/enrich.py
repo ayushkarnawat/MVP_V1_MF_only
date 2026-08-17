@@ -63,6 +63,7 @@ class MfApiClient:
     def __init__(self, cache_dir: Path | None = None):
         self.cache_dir = Path(cache_dir) if cache_dir else DEFAULT_CACHE_DIR
         self._schemes: list[dict[str, Any]] | None = None
+        self._schemes_lock = asyncio.Lock()
 
     def _write_cache(self, cache_path: Path, data: Any) -> None:
         # Created lazily, right before the first write — not at __init__ time
@@ -80,14 +81,22 @@ class MfApiClient:
     async def get_scheme_list(self) -> list[dict[str, Any]]:
         if self._schemes is not None:
             return self._schemes
-        cache_path = self.cache_dir / "schemes.json"
-        if _cache_valid(cache_path, SCHEMES_TTL):
-            self._schemes = json.loads(cache_path.read_text(encoding="utf-8"))
-            return self._schemes
-        data = await self._get_json(f"{MFAPI_BASE}/mf")
-        self._write_cache(cache_path, data)
-        self._schemes = data
-        return data
+        # Double-checked lock: build_import_preview now resolves schemes
+        # concurrently (asyncio.gather), so multiple no-AMFI schemes in the
+        # same preview can all reach here before any of them has set
+        # self._schemes — without this lock each one would independently
+        # fetch the full ~20k-scheme directory instead of sharing one fetch.
+        async with self._schemes_lock:
+            if self._schemes is not None:
+                return self._schemes
+            cache_path = self.cache_dir / "schemes.json"
+            if _cache_valid(cache_path, SCHEMES_TTL):
+                self._schemes = json.loads(cache_path.read_text(encoding="utf-8"))
+                return self._schemes
+            data = await self._get_json(f"{MFAPI_BASE}/mf")
+            self._write_cache(cache_path, data)
+            self._schemes = data
+            return data
 
     def fuzzy_match_scheme(self, scheme_name: str, scheme_list: list[dict[str, Any]]) -> SchemeMatch | None:
         norm_query = _normalize_name(scheme_name)
