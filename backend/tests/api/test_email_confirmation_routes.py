@@ -42,7 +42,8 @@ def test_confirm_email_rejects_an_invalid_token(client):
     assert response.status_code == 401
 
 
-def test_signup_and_gate_completion_actually_dispatches_a_confirmation_email(client, caplog):
+def test_signup_and_gate_completion_actually_dispatches_a_confirmation_email(client, caplog, monkeypatch):
+    monkeypatch.setattr("app.services.auth.identity.settings.require_email_confirmation", True)
     with caplog.at_level("INFO"):
         _signup_and_complete_gate(client, "dispatch@example.com", "+919999999012")
 

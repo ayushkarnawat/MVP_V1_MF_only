@@ -4,10 +4,10 @@ import { Button } from "@/components/ui/button";
 import { AlertCircle, ArrowLeft, Loader2, ShieldCheck } from "lucide-react";
 
 interface EmailEntryProps {
-  /** "link": step-up re-authentication against an account that already
-   * exists — only a login action makes sense, never signup. Defaults to
-   * "primary" (the landing-screen entry point, both actions available). */
-  context?: "primary" | "link";
+  /** "login": direct email login from landing. "link": step-up re-authentication
+   * against an account that already exists. "primary": legacy entry point with
+   * both actions. Defaults to "login". */
+  context?: "primary" | "login" | "link";
   onSignup?: (email: string, password: string) => void;
   onLogin: (email: string, password: string) => void;
   onBack?: () => void;
@@ -17,17 +17,18 @@ interface EmailEntryProps {
 
 const MIN_PASSWORD_LENGTH = 8;
 
-export function EmailEntry({ context = "primary", onSignup, onLogin, onBack, submitting, error }: EmailEntryProps) {
+export function EmailEntry({ context = "login", onSignup, onLogin, onBack, submitting, error }: EmailEntryProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const isLink = context === "link";
-  const passwordTooShort = password.length > 0 && password.length < MIN_PASSWORD_LENGTH;
+  const isLoginOnly = context === "login" || context === "link";
+  const passwordTooShort = !isLoginOnly && password.length > 0 && password.length < MIN_PASSWORD_LENGTH;
 
   const submit = (event: FormEvent<HTMLFormElement>, action: "signup" | "login") => {
     event.preventDefault();
-    if (password.length < MIN_PASSWORD_LENGTH) {
+    if (action === "signup" && password.length < MIN_PASSWORD_LENGTH) {
       setValidationError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
       return;
     }
@@ -43,14 +44,14 @@ export function EmailEntry({ context = "primary", onSignup, onLogin, onBack, sub
 
   return (
     <form
-      onSubmit={(event) => submit(event, isLink ? "login" : "signup")}
+      onSubmit={(event) => submit(event, isLoginOnly ? "login" : "signup")}
       className="w-full max-w-sm sm:max-w-md mx-auto p-5 sm:p-8 rounded-3xl bg-[var(--color-surface)] border border-[var(--color-border)]/80 shadow-lg space-y-6 text-center box-border animate-in fade-in zoom-in-95 duration-200"
     >
       <div className="space-y-2.5">
-        <div className="mx-auto h-10 w-10 rounded-xl bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] border border-[color-mix(in_srgb,var(--color-accent)_24%,transparent)] text-[var(--color-accent)] flex items-center justify-center">
+        <div className="mx-auto h-12 w-12 rounded-2xl bg-[color-mix(in_srgb,var(--color-accent)_15%,transparent)] border border-[color-mix(in_srgb,var(--color-accent)_30%,transparent)] text-[var(--color-accent)] flex items-center justify-center shadow-xs">
           <svg
             viewBox="0 0 100 100"
-            className="w-5 h-5 text-[var(--color-accent)] fill-none stroke-current stroke-[14] stroke-linecap-round"
+            className="w-6 h-6 text-[var(--color-accent)] fill-none stroke-current stroke-[14] stroke-linecap-round"
             aria-label="Unifolio Logo Mark"
           >
             <path d="M 50 10 A 40 40 0 0 1 90 50" />
@@ -58,11 +59,13 @@ export function EmailEntry({ context = "primary", onSignup, onLogin, onBack, sub
         </div>
         <div className="space-y-1">
           <h1 className="font-display font-bold text-xl sm:text-2xl text-[var(--color-ink)] tracking-tight">
-            {isLink ? "Log in with email" : "Continue with email"}
+            {isLoginOnly ? "Log in with email" : "Continue with email"}
           </h1>
           <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed max-w-xs mx-auto">
             {isLink
               ? "Enter your email and password to link this to your account."
+              : isLoginOnly
+              ? "Enter your email and password to log in to your account."
               : "Enter your email and choose a password to get started, or log in if you already have an account."}
           </p>
         </div>
@@ -122,14 +125,14 @@ export function EmailEntry({ context = "primary", onSignup, onLogin, onBack, sub
           {submitting ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              <span>{isLink ? "Logging in..." : "Creating account..."}</span>
+              <span>{isLoginOnly ? "Logging in..." : "Creating account..."}</span>
             </>
           ) : (
-            <span>{isLink ? "Log in" : "Create account"}</span>
+            <span>{isLoginOnly ? "Log in" : "Create account"}</span>
           )}
         </Button>
 
-        {!isLink && (
+        {context === "primary" && (
           <Button
             type="button"
             variant="outline"

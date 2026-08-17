@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Landing } from "./Landing";
+import { EmailEntry } from "./EmailEntry";
 import { PhoneEntry } from "./PhoneEntry";
 import { OtpVerify } from "./OtpVerify";
-import { EmailEntry } from "./EmailEntry";
 import { LinkAccountPrompt } from "./LinkAccountPrompt";
 import { AuthShowcasePanel } from "./AuthShowcasePanel";
 import { requestOtp, signupEmail, loginEmail, verifyGoogleCredential, verifyOtp } from "./api";
@@ -12,7 +12,7 @@ import { useAuth } from "./AuthContext";
 import { ThemeToggle } from "../../components/ThemeToggle";
 import { ApiError } from "../../lib/apiClient";
 
-type Step = "landing" | "phone" | "otp" | "email" | "link_account";
+type Step = "landing" | "email" | "phone" | "otp" | "link_account";
 
 interface LinkInfo {
   token: string;
@@ -45,28 +45,22 @@ export function AuthEntryFlow() {
   // returns link_required.
   const [linkInfo, setLinkInfo] = useState<LinkInfo | null>(null);
 
-  // Set the moment an email+password SIGNUP (not login) enters the phone
-  // gate; consumed once the gate completes, to show the "check your email"
-  // acknowledgment (2026-08-17 email-password design spec §4c). Cleared on
-  // every other path so a Google/phone signup never shows it by accident.
-  const [confirmationPendingEmail, setConfirmationPendingEmail] = useState<string | null>(null);
-
   const goToStep = (next: Step) => {
     setError(null);
     setDevOtp(null);
     setStep(next);
   };
 
-  const handleSelectPhone = () => {
-    setPhoneGateToken(null);
-    setPhoneGatePrefillEmail(null);
-    goToStep("phone");
-  };
-
   const handleSelectEmail = () => {
     setPhoneGateToken(null);
     setPhoneGatePrefillEmail(null);
     goToStep("email");
+  };
+
+  const handleSelectPhone = () => {
+    setPhoneGateToken(null);
+    setPhoneGatePrefillEmail(null);
+    goToStep("phone");
   };
 
   const handlePhoneSubmit = async (phone: string) => {
@@ -90,11 +84,9 @@ export function AuthEntryFlow() {
     try {
       const result = await signupEmail(email, password);
       // signupEmail always resolves to phone_required (Design Spec §4/§4a)
-      // — there's no login/link_required branch to guard against here,
-      // unlike Google/the old email-OTP path.
+      // — transitions to mandatory phone gate.
       setPhoneGateToken(result.phone_required.token);
       setPhoneGatePrefillEmail(result.phone_required.prefill_email);
-      setConfirmationPendingEmail(email);
       goToStep("phone");
     } catch (err) {
       setError(errorMessage(err, "Couldn't create your account. Try again."));
@@ -112,8 +104,7 @@ export function AuthEntryFlow() {
     } catch (err) {
       // Covers both "wrong email or password" (401) and "please confirm
       // your email" (403) — the backend's own message already
-      // distinguishes them correctly, no frontend branching needed
-      // (Global Constraints).
+      // distinguishes them correctly, no frontend branching needed.
       setError(errorMessage(err, "That didn't work. Try again."));
     } finally {
       setSubmitting(false);
@@ -126,16 +117,10 @@ export function AuthEntryFlow() {
     try {
       const result = await verifyOtp(identifier, otp, phoneGateToken ?? undefined);
       if (isLinkRequired(result) || isPhoneRequired(result)) {
-        // Phone never produces either of these itself (Design Spec §1) —
-        // a defensive guard against a backend contract mismatch, not an
-        // expected path.
         setError("Something unexpected happened. Please try again.");
         return;
       }
       await login(result.session_token);
-      // Only reachable when the just-completed gate followed an email+
-      // password signup — Google/plain-phone signups never set this.
-      // Cleared immediately after being consumed by the render below.
     } catch (err) {
       setError(errorMessage(err, "That code didn't work. Try again."));
     } finally {
@@ -151,7 +136,6 @@ export function AuthEntryFlow() {
       if (isPhoneRequired(result)) {
         setPhoneGateToken(result.phone_required.token);
         setPhoneGatePrefillEmail(result.phone_required.prefill_email);
-        setConfirmationPendingEmail(null);
         goToStep("phone");
         return;
       }
@@ -181,24 +165,24 @@ export function AuthEntryFlow() {
 
       <div className="w-full max-w-5xl mx-auto my-auto grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
         <div className="order-2 lg:order-1">
-          {confirmationPendingEmail && (
-            <div
-              role="status"
-              className="mb-3 flex items-center gap-2 p-3 rounded-xl bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] border border-[color-mix(in_srgb,var(--color-accent)_20%,transparent)] text-xs text-[var(--color-ink)] text-left"
-            >
-              <span>
-                We've sent a confirmation link to <strong>{confirmationPendingEmail}</strong> — click it to enable
-                password sign-in. You're already signed in via your phone.
-              </span>
-            </div>
-          )}
           {step === "landing" && (
             <Landing
-              onSelectPhone={handleSelectPhone}
+              onSignup={handleEmailSignup}
               onSelectEmail={handleSelectEmail}
+              onSelectPhone={handleSelectPhone}
               onGoogleCredential={handleGoogleCredential}
               error={error}
               submitting={submitting}
+            />
+          )}
+          {step === "email" && (
+            <EmailEntry
+              context="login"
+              onLogin={handleEmailLogin}
+              onSignup={handleEmailSignup}
+              onBack={() => goToStep("landing")}
+              submitting={submitting}
+              error={error}
             />
           )}
           {step === "phone" && (
@@ -220,15 +204,6 @@ export function AuthEntryFlow() {
               submitting={submitting}
               error={error}
               devOtp={devOtp}
-            />
-          )}
-          {step === "email" && (
-            <EmailEntry
-              onSignup={handleEmailSignup}
-              onLogin={handleEmailLogin}
-              onBack={() => goToStep("landing")}
-              submitting={submitting}
-              error={error}
             />
           )}
           {step === "link_account" && linkInfo && (

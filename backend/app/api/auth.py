@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session as DbSession
 
+from app.config import settings
 from app.db.session import get_db #dependency for database session
 from app.models.auth import AuthIdentity, Session as SessionModel
 from app.models.enums import AuthIdentityProvider
@@ -101,7 +102,7 @@ def login_email(body: LoginEmailBody, db: DbSession = Depends(get_db)):
         # exists (Design Spec §4, anti-enumeration).
         raise HTTPException(status_code=401, detail="Invalid email or password.")
 
-    if existing.email_confirmed_at is None:
+    if settings.require_email_confirmation and existing.email_confirmed_at is None:
         # 403, not 401: the password already matched, so this is safe to
         # disclose distinctly (Design Spec §4c) — only someone who already
         # knows the correct password ever reaches this branch.

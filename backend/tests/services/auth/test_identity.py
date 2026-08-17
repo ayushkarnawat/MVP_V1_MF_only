@@ -469,7 +469,8 @@ def test_attach_pending_identity_copies_password_hash_onto_the_new_identity():
     assert identity.password_hash == "hashed-value-2"
 
 
-def test_complete_phone_gate_signup_sends_a_confirmation_email_for_password_identities(caplog):
+def test_complete_phone_gate_signup_sends_a_confirmation_email_for_password_identities(caplog, monkeypatch):
+    monkeypatch.setattr("app.services.auth.identity.settings.require_email_confirmation", True)
     db = _session()
     pending, raw_token = create_pending_verification(
         db,

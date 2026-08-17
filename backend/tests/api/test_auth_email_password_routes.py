@@ -105,12 +105,23 @@ def test_login_email_rejects_unknown_email_with_the_same_generic_message(client)
     assert response.json()["detail"] == "Invalid email or password."
 
 
-def test_login_email_returns_403_when_not_yet_confirmed(client):
+def test_login_email_returns_403_when_not_yet_confirmed(client, monkeypatch):
+    monkeypatch.setattr("app.api.auth.settings.require_email_confirmation", True)
+    monkeypatch.setattr("app.services.auth.identity.settings.require_email_confirmation", True)
     _signup_and_complete_gate(client, "unconfirmed@example.com", "+919555555555")
 
     response = client.post("/auth/login/email", json={"email": "unconfirmed@example.com", "password": "correcthorse"})
 
     assert response.status_code == 403
+
+
+def test_login_email_succeeds_immediately_in_dev_mode(client):
+    _signup_and_complete_gate(client, "devsignup@example.com", "+919555555556")
+
+    response = client.post("/auth/login/email", json={"email": "devsignup@example.com", "password": "correcthorse"})
+
+    assert response.status_code == 200
+    assert "session_token" in response.json()
 
 
 def test_login_email_with_a_pending_token_attaches_the_pending_identity(client):
