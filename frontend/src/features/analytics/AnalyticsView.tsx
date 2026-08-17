@@ -75,6 +75,8 @@ export function AnalyticsView({
 
   useEffect(() => {
     let isMounted = true;
+    const controller = new AbortController();
+    const { signal } = controller;
     setAllocationLoading(true);
     setTerLoading(true);
     setRankingLoading(true);
@@ -99,10 +101,11 @@ export function AnalyticsView({
     // dashboard down with it, so those log rather than blank the page;
     // each section already renders a graceful empty state for null data.
     const logSectionError = (section: string) => (err: any) => {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       console.error(`Analytics: failed to load ${section}`, err);
     };
 
-    (isAggregate ? getAggregateAllocation() : getMemberAllocation(memberId!))
+    (isAggregate ? getAggregateAllocation(signal) : getMemberAllocation(memberId!, signal))
       .then((res: any) => {
         if (!isMounted) return;
         if (isAggregate) {
@@ -123,8 +126,8 @@ export function AnalyticsView({
 
     Promise.all(
       isAggregate
-        ? [getAggregateTer(), getAggregateDirectRegularTer()]
-        : [getMemberTer(memberId!), getMemberDirectRegularTer(memberId!)]
+        ? [getAggregateTer(signal), getAggregateDirectRegularTer(signal)]
+        : [getMemberTer(memberId!, signal), getMemberDirectRegularTer(memberId!, signal)]
     )
       .then(([terRes, dirRegRes]: any) => {
         if (!isMounted) return;
@@ -136,7 +139,7 @@ export function AnalyticsView({
         if (isMounted) setTerLoading(false);
       });
 
-    (isAggregate ? getAggregateCategoryRanking() : getMemberCategoryRanking(memberId!))
+    (isAggregate ? getAggregateCategoryRanking(signal) : getMemberCategoryRanking(memberId!, signal))
       .then((res: any) => {
         if (!isMounted) return;
         setRanking(isAggregate ? res.ranking : res);
@@ -146,7 +149,7 @@ export function AnalyticsView({
         if (isMounted) setRankingLoading(false);
       });
 
-    (isAggregate ? getAggregateScore() : getMemberScore(memberId!))
+    (isAggregate ? getAggregateScore(signal) : getMemberScore(memberId!, signal))
       .then((res: any) => {
         if (!isMounted) return;
         setScoreSummary(isAggregate ? res.score : res);
@@ -158,8 +161,8 @@ export function AnalyticsView({
 
     Promise.all(
       isAggregate
-        ? [getAggregateBenchmark(), getAggregateFundBenchmark()]
-        : [getMemberBenchmark(memberId!), getMemberFundBenchmark(memberId!)]
+        ? [getAggregateBenchmark(signal), getAggregateFundBenchmark(signal)]
+        : [getMemberBenchmark(memberId!, signal), getMemberFundBenchmark(memberId!, signal)]
     )
       .then(([benchRes, fundBenchRes]: any) => {
         if (!isMounted) return;
@@ -173,6 +176,7 @@ export function AnalyticsView({
 
     return () => {
       isMounted = false;
+      controller.abort();
     };
   }, [viewMode, memberId]);
 
