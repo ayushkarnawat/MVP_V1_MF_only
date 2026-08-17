@@ -3,7 +3,8 @@ from unittest.mock import AsyncMock, patch
 
 import httpx
 
-from app.services.import_.enrich import MfApiClient
+from app.services.import_ import enrich
+from app.services.import_.enrich import MFAPI_BASE, MfApiClient
 
 
 def test_resolve_scheme_trusts_cas_amfi_code(tmp_path):
@@ -39,9 +40,77 @@ def test_get_scheme_category_happy_path(tmp_path):
         "meta": {"scheme_category": "Equity Scheme - Flexi Cap Fund"},
         "data": [],
     }
-    with patch.object(client, "_get_json", new=AsyncMock(return_value=mock_response)):
+    get_json = AsyncMock(return_value=mock_response)
+    with patch.object(client, "_get_json", new=get_json):
         category = asyncio.run(client.get_scheme_category("125497"))
     assert category == "Equity Scheme - Flexi Cap Fund"
+    get_json.assert_awaited_once_with(f"{MFAPI_BASE}/mf/125497/latest")
+
+
+def test_get_json_lazily_creates_and_reuses_shared_client():
+    class FakeResponse:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"ok": True}
+
+    class FakeAsyncClient:
+        def __init__(self):
+            self.get = AsyncMock(return_value=FakeResponse())
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+    shared_client = FakeAsyncClient()
+    client = MfApiClient()
+
+    async def fetch_twice():
+        await client._get_json("https://example.test/first")
+        await client._get_json("https://example.test/second")
+
+    with (
+        patch.object(enrich, "_http_client", None, create=True),
+        patch.object(enrich.httpx, "AsyncClient", return_value=shared_client) as client_factory,
+    ):
+        asyncio.run(fetch_twice())
+
+    client_factory.assert_called_once_with(timeout=30.0)
+    assert shared_client.get.await_args_list[0].args == ("https://example.test/first",)
+    assert shared_client.get.await_args_list[1].args == ("https://example.test/second",)
+
+
+def test_get_scheme_list_deduplicates_concurrent_uncached_calls(tmp_path):
+    """Fix (import-preview-concurrency review finding): build_import_preview
+    now resolves schemes concurrently, so multiple no-AMFI schemes in the
+    same preview can all reach get_scheme_list() before any of them has
+    populated self._schemes. Without a lock, each would independently fetch
+    the full ~20k-scheme directory."""
+    client = MfApiClient(cache_dir=tmp_path)
+    fetch_started = asyncio.Event()
+    release_fetch = asyncio.Event()
+
+    async def get_json(url):
+        fetch_started.set()
+        await asyncio.wait_for(release_fetch.wait(), timeout=1)
+        return [{"schemeCode": "1", "schemeName": "Fund"}]
+
+    async def run_calls():
+        first = asyncio.create_task(client.get_scheme_list())
+        await asyncio.wait_for(fetch_started.wait(), timeout=1)
+        second = asyncio.create_task(client.get_scheme_list())
+        await asyncio.sleep(0)
+        release_fetch.set()
+        return await asyncio.gather(first, second)
+
+    with patch.object(client, "_get_json", new=AsyncMock(side_effect=get_json)) as mock_get_json:
+        results = asyncio.run(run_calls())
+
+    assert results[0] is results[1]
+    mock_get_json.assert_awaited_once()
 
 
 def test_get_scheme_category_missing_returns_none(tmp_path):
