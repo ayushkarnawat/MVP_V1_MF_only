@@ -1,6 +1,6 @@
 # Handoff: import-preview-concurrency
 
-**Status:** OPEN
+**Status:** REVIEW (implemented + independently verified at `2a76b35`; awaiting adversarial review)
 **Parent plan:** none (direct diagnosis this session, sibling finding to
 `nav-fetch-connection-reuse-handoff.md` — same overall investigation into
 why the first dashboard load after signup/CAS import is slow, but a
