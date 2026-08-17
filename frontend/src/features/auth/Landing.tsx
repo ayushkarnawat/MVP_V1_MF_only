@@ -1,11 +1,17 @@
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, Mail, Phone } from "lucide-react";
+import { ShieldCheck, Mail, Phone, AlertCircle } from "lucide-react";
 import { GoogleButton } from "./GoogleButton";
 
 interface LandingProps {
   onSelectPhone: () => void;
   onSelectEmail: () => void;
   onGoogleCredential: (idToken: string) => void;
+  /** Errors raised while a landing-initiated sign-in is in flight (today only
+   * Google, the one method that completes without leaving this screen).
+   * Without this the failure would be invisible — the user clicks Google and
+   * nothing happens. */
+  error: string | null;
+  submitting: boolean;
 }
 
 function AppleLogo() {
@@ -16,7 +22,13 @@ function AppleLogo() {
   );
 }
 
-export function Landing({ onSelectPhone, onSelectEmail, onGoogleCredential }: LandingProps) {
+export function Landing({
+  onSelectPhone,
+  onSelectEmail,
+  onGoogleCredential,
+  error,
+  submitting,
+}: LandingProps) {
   return (
     <div className="w-full max-w-sm sm:max-w-md mx-auto p-5 sm:p-8 rounded-3xl bg-[var(--color-surface)] border border-[var(--color-border)]/80 shadow-lg space-y-6 text-center box-border animate-in fade-in zoom-in-95 duration-200">
       {/* 1. Refined Brand Header with Official Unifolio Arc Mark */}
@@ -64,6 +76,7 @@ export function Landing({ onSelectPhone, onSelectEmail, onGoogleCredential }: La
           type="button"
           variant="outline"
           onClick={onSelectEmail}
+          disabled={submitting}
           className="w-full h-11 sm:h-12 rounded-xl border border-[var(--color-border)] bg-transparent text-[var(--color-ink)] hover:bg-[var(--color-bg)] font-semibold text-xs sm:text-sm gap-2 cursor-pointer active:scale-[0.99] transition-all min-h-[44px] sm:min-h-[48px]"
         >
           <Mail className="h-4 w-4" />
@@ -74,6 +87,7 @@ export function Landing({ onSelectPhone, onSelectEmail, onGoogleCredential }: La
           type="button"
           variant="outline"
           onClick={onSelectPhone}
+          disabled={submitting}
           className="w-full h-11 sm:h-12 rounded-xl border border-[var(--color-border)] bg-transparent text-[var(--color-ink)] hover:bg-[var(--color-bg)] font-semibold text-xs sm:text-sm gap-2 cursor-pointer active:scale-[0.99] transition-all min-h-[44px] sm:min-h-[48px]"
         >
           <Phone className="h-4 w-4" />
@@ -81,7 +95,18 @@ export function Landing({ onSelectPhone, onSelectEmail, onGoogleCredential }: La
         </Button>
       </div>
 
-      {/* 3. Trust & Security Footer */}
+      {/* 3. Error Alert — same pattern as PhoneEntry/EmailEntry */}
+      {error && (
+        <div
+          role="alert"
+          className="flex items-center gap-2 p-3 rounded-xl bg-[color-mix(in_srgb,var(--color-negative)_10%,transparent)] border border-[color-mix(in_srgb,var(--color-negative)_25%,transparent)] text-xs text-[var(--color-negative)] font-medium text-left"
+        >
+          <AlertCircle className="h-4 w-4 flex-shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {/* 4. Trust & Security Footer */}
       <div className="flex items-center justify-center gap-1.5 text-[11px] text-[var(--color-text-secondary)] pt-1 select-none">
         <ShieldCheck className="h-3.5 w-3.5 text-[var(--color-accent)]" />
         <span>256-bit encrypted · Read-only access · No spam</span>

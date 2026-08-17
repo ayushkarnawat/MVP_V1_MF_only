@@ -62,6 +62,12 @@ export function AuthEntryFlow() {
   };
 
   const handleSelectEmail = () => {
+    // Defensive parity with handleSelectPhone: unreachable today (there is no
+    // route back to the landing screen while a phone gate is pending), but a
+    // stale gate token must never leak into a fresh email attempt if a future
+    // change adds an escape hatch.
+    setPhoneGateToken(null);
+    setPhoneGatePrefillEmail(null);
     goToStep("email");
   };
 
@@ -185,6 +191,8 @@ export function AuthEntryFlow() {
               onSelectPhone={handleSelectPhone}
               onSelectEmail={handleSelectEmail}
               onGoogleCredential={handleGoogleCredential}
+              error={error}
+              submitting={submitting}
             />
           )}
           {step === "phone" && (
@@ -232,7 +240,24 @@ export function AuthEntryFlow() {
               matchedEmail={linkInfo.matchedEmail}
               existingMethod={linkInfo.existingMethod}
               pendingToken={linkInfo.token}
-              onLinked={(result) => void login(result.session_token)}
+              onLinked={async (result) => {
+                try {
+                  await login(result.session_token);
+                } catch (err) {
+                  // login() can still fail after the token is stored (getMe
+                  // throwing, say). Surface it on the landing screen — the
+                  // link step has no place left to render it once we leave,
+                  // and floating the rejection would be silent.
+                  const message = errorMessage(err, "Something went wrong finishing sign-in. Try again.");
+                  setLinkInfo(null);
+                  goToStep("landing");
+                  setError(message);
+                }
+              }}
+              onCancel={() => {
+                setLinkInfo(null);
+                goToStep("landing");
+              }}
             />
           )}
         </div>

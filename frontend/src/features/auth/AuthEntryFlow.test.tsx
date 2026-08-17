@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthEntryFlow } from "./AuthEntryFlow";
 import { AuthProvider } from "./AuthContext";
 import * as api from "./api";
@@ -33,7 +33,15 @@ const ME_RESPONSE = {
 };
 
 describe("AuthEntryFlow", () => {
+  beforeEach(() => {
+    // No .env is committed, so VITE_GOOGLE_OAUTH_CLIENT_ID is undefined under
+    // vitest and GoogleButton would render its "not configured" banner
+    // instead of the GIS container.
+    vi.stubEnv("VITE_GOOGLE_OAUTH_CLIENT_ID", "test-client-id.apps.googleusercontent.com");
+  });
+
   afterEach(() => {
+    vi.unstubAllEnvs();
     vi.clearAllMocks();
     delete (window as { google?: unknown }).google;
   });
@@ -46,6 +54,48 @@ describe("AuthEntryFlow", () => {
     expect(appleButton).toBeDisabled();
     expect(screen.getByRole("button", { name: /continue with email/i })).toBeEnabled();
     expect(screen.getByRole("button", { name: /continue with phone/i })).toBeEnabled();
+
+    // Real DOM order, not just presence. Google is a GIS-owned container div
+    // (no <button> exists until the real script renders one), so it's checked
+    // by document position; the other three are checked by their index within
+    // the rendered pill buttons.
+    const pillNames = screen
+      .getAllByRole("button")
+      .map((button) => button.textContent ?? "")
+      .filter((text) => /continue with/i.test(text));
+    expect(pillNames).toHaveLength(3);
+    expect(pillNames[0]).toMatch(/continue with apple/i);
+    expect(pillNames[1]).toMatch(/continue with email/i);
+    expect(pillNames[2]).toMatch(/continue with phone/i);
+
+    const googleContainer = screen.getByTestId("google-button-container");
+    const ordered = [
+      googleContainer,
+      appleButton,
+      screen.getByRole("button", { name: /continue with email/i }),
+      screen.getByRole("button", { name: /continue with phone/i }),
+    ];
+    for (let i = 0; i < ordered.length - 1; i += 1) {
+      expect(
+        ordered[i].compareDocumentPosition(ordered[i + 1]) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    }
+  });
+
+  it("surfaces a Google sign-in failure on the landing screen", async () => {
+    vi.mocked(api.verifyGoogleCredential).mockRejectedValue(new ApiError(401, "Google token rejected."));
+    window.google = { accounts: { id: { initialize: vi.fn(), renderButton: vi.fn() } } };
+    renderFlow();
+    const script = document.head.querySelector("script")!;
+    fireEvent.load(script);
+    await waitFor(() => expect(window.google!.accounts.id.initialize).toHaveBeenCalled());
+
+    const { callback } = vi.mocked(window.google!.accounts.id.initialize).mock.calls[0][0];
+    await callback({ credential: "bad-id-token" });
+
+    await waitFor(() => expect(screen.getByText(/google token rejected/i)).toBeInTheDocument());
+    // Still on the landing screen — the error has somewhere to render.
+    expect(screen.getByRole("button", { name: /continue with phone/i })).toBeInTheDocument();
   });
 
   it("moves from phone entry to OTP verify after a successful request", async () => {
@@ -204,6 +254,54 @@ describe("AuthEntryFlow", () => {
     await waitFor(() => expect(screen.getByText(/existing@example\.com/)).toBeInTheDocument());
     expect(screen.getByText(/log in with your phone/i)).toBeInTheDocument();
     expect(api.verifyOtp).not.toHaveBeenCalled(); // no session was created
+  });
+
+  it("the link-account screen can be cancelled back to the landing screen", async () => {
+    vi.mocked(api.sendEmailOtp).mockResolvedValue({ message: "OTP sent.", otp: "555444" });
+    vi.mocked(api.verifyEmailOtp).mockResolvedValue({
+      link_required: { token: "link-tok", matched_email: "existing@example.com", existing_method: "phone" },
+    });
+    renderFlow();
+    fireEvent.click(screen.getByRole("button", { name: /continue with email/i }));
+    fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: "existing@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: /send verification code/i }));
+    await waitFor(() => screen.getByLabelText(/verification code/i));
+    fireEvent.change(screen.getByLabelText(/verification code/i), { target: { value: "555444" } });
+    fireEvent.click(screen.getByRole("button", { name: /verify & continue/i }));
+    await waitFor(() => expect(screen.getByText(/log in with your phone/i)).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("button", { name: /^back$/i }));
+
+    expect(screen.getByRole("button", { name: /continue with phone/i })).toBeInTheDocument();
+    expect(screen.queryByText(/log in with your phone/i)).not.toBeInTheDocument();
+  });
+
+  it("shows an error on the landing screen when login fails after a successful link", async () => {
+    vi.mocked(api.sendEmailOtp).mockResolvedValue({ message: "OTP sent.", otp: "555444" });
+    vi.mocked(api.verifyEmailOtp)
+      .mockResolvedValueOnce({
+        link_required: { token: "link-tok", matched_email: "existing@example.com", existing_method: "email" },
+      })
+      .mockResolvedValueOnce(NORMAL_SESSION);
+    vi.mocked(api.getMe).mockRejectedValue(new ApiError(500, "Profile lookup failed."));
+    renderFlow();
+    fireEvent.click(screen.getByRole("button", { name: /continue with email/i }));
+    fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: "existing@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: /send verification code/i }));
+    await waitFor(() => screen.getByLabelText(/verification code/i));
+    fireEvent.change(screen.getByLabelText(/verification code/i), { target: { value: "555444" } });
+    fireEvent.click(screen.getByRole("button", { name: /verify & continue/i }));
+    await waitFor(() => expect(screen.getByText(/log in with your email/i)).toBeInTheDocument());
+
+    // Second leg: complete the link, but let login() blow up on getMe().
+    fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: "existing@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: /send verification code/i }));
+    await waitFor(() => screen.getByLabelText(/verification code/i));
+    fireEvent.change(screen.getByLabelText(/verification code/i), { target: { value: "555444" } });
+    fireEvent.click(screen.getByRole("button", { name: /verify & continue/i }));
+
+    await waitFor(() => expect(screen.getByText(/profile lookup failed/i)).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: /continue with phone/i })).toBeInTheDocument();
   });
 
   it("renders light/dark theme toggle on auth entry screen", async () => {

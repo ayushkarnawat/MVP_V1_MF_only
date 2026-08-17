@@ -4,6 +4,7 @@ import { OtpVerify } from "./OtpVerify";
 import { EmailEntry } from "./EmailEntry";
 import { EmailOtpVerify } from "./EmailOtpVerify";
 import { GoogleButton } from "./GoogleButton";
+import { ArrowLeft } from "lucide-react";
 import { requestOtp, sendEmailOtp, verifyEmailOtp, verifyGoogleCredential, verifyOtp } from "./api";
 import { isLinkRequired, isPhoneRequired } from "./types";
 import type { ExistingMethod, OtpVerifyResponse } from "./types";
@@ -14,6 +15,9 @@ interface LinkAccountPromptProps {
   existingMethod: ExistingMethod;
   pendingToken: string;
   onLinked: (result: OtpVerifyResponse) => void;
+  /** Abandon the link and return to the caller's entry screen. Without it
+   * this step is a dead end — reloading the page is the only way out. */
+  onCancel: () => void;
 }
 
 type Step = "entry" | "otp";
@@ -23,12 +27,28 @@ function errorMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
-export function LinkAccountPrompt({ matchedEmail, existingMethod, pendingToken, onLinked }: LinkAccountPromptProps) {
+export function LinkAccountPrompt({
+  matchedEmail,
+  existingMethod,
+  pendingToken,
+  onLinked,
+  onCancel,
+}: LinkAccountPromptProps) {
   const [step, setStep] = useState<Step>("entry");
   const [identifier, setIdentifier] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [devOtp, setDevOtp] = useState<string | null>(null);
+
+  // Mirrors AuthEntryFlow's goToStep: clear stale error/devOtp before
+  // navigating, so a failed OTP's message doesn't survive going back to
+  // re-enter the identifier. Not for mid-async-operation state changes —
+  // those clear the error at handler entry.
+  const goToStep = (next: Step) => {
+    setError(null);
+    setDevOtp(null);
+    setStep(next);
+  };
 
   const handleEntrySubmit = async (value: string) => {
     setSubmitting(true);
@@ -88,9 +108,26 @@ export function LinkAccountPrompt({ matchedEmail, existingMethod, pendingToken, 
     </p>
   );
 
+  // Escape hatch out of the link step. Only rendered on the first screen of
+  // each branch — the OTP screens already have their own back control, which
+  // returns here.
+  const cancelButton = (
+    <div className="flex justify-center">
+      <button
+        type="button"
+        onClick={onCancel}
+        className="inline-flex items-center gap-1 text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] font-medium transition-colors cursor-pointer text-xs"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" />
+        <span>Back</span>
+      </button>
+    </div>
+  );
+
   if (existingMethod === "google") {
     return (
       <div className="w-full max-w-sm sm:max-w-md mx-auto space-y-3">
+        {cancelButton}
         {banner}
         <div className="p-5 sm:p-8 rounded-3xl bg-[var(--color-surface)] border border-[var(--color-border)]/80 shadow-lg flex justify-center">
           <GoogleButton onCredential={handleGoogleCredential} />
@@ -107,6 +144,7 @@ export function LinkAccountPrompt({ matchedEmail, existingMethod, pendingToken, 
   if (step === "entry") {
     return (
       <div className="space-y-3">
+        {cancelButton}
         {banner}
         {existingMethod === "phone" ? (
           <PhoneEntry onSubmit={handleEntrySubmit} submitting={submitting} error={error} />
@@ -121,8 +159,8 @@ export function LinkAccountPrompt({ matchedEmail, existingMethod, pendingToken, 
     <OtpVerify
       phoneNumber={identifier}
       onSubmit={handleOtpSubmit}
-      onResend={() => setStep("entry")}
-      onBack={() => setStep("entry")}
+      onResend={() => goToStep("entry")}
+      onBack={() => goToStep("entry")}
       submitting={submitting}
       error={error}
       devOtp={devOtp}
@@ -131,8 +169,8 @@ export function LinkAccountPrompt({ matchedEmail, existingMethod, pendingToken, 
     <EmailOtpVerify
       email={identifier}
       onSubmit={handleOtpSubmit}
-      onResend={() => setStep("entry")}
-      onBack={() => setStep("entry")}
+      onResend={() => goToStep("entry")}
+      onBack={() => goToStep("entry")}
       submitting={submitting}
       error={error}
       devOtp={devOtp}

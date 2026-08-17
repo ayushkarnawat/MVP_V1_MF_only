@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GoogleButton } from "./GoogleButton";
 import { loadedScripts } from "./useOAuthScript";
 
@@ -11,10 +11,18 @@ function mockGoogleGlobal() {
 }
 
 describe("GoogleButton", () => {
+  beforeEach(() => {
+    // No .env is committed, so VITE_GOOGLE_OAUTH_CLIENT_ID is undefined under
+    // vitest — stub it so the "not configured" guard doesn't short-circuit the
+    // happy-path cases.
+    vi.stubEnv("VITE_GOOGLE_OAUTH_CLIENT_ID", "test-client-id.apps.googleusercontent.com");
+  });
+
   afterEach(() => {
     document.head.innerHTML = "";
     delete (window as { google?: unknown }).google;
     loadedScripts.clear();
+    vi.unstubAllEnvs();
     vi.restoreAllMocks();
   });
 
@@ -49,5 +57,42 @@ describe("GoogleButton", () => {
     fireEvent.error(script);
 
     await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
+  });
+
+  it("sizes the rendered button to its container rather than a hardcoded width", async () => {
+    vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(288);
+    const { initialize, renderButton } = mockGoogleGlobal();
+    render(<GoogleButton onCredential={vi.fn()} />);
+    const script = document.head.querySelector("script")!;
+    fireEvent.load(script);
+    await waitFor(() => expect(initialize).toHaveBeenCalled());
+
+    expect(renderButton).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ width: 288 }));
+  });
+
+  it("clamps the measured width to the GIS maximum on wide containers", async () => {
+    vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(900);
+    const { initialize, renderButton } = mockGoogleGlobal();
+    render(<GoogleButton onCredential={vi.fn()} />);
+    const script = document.head.querySelector("script")!;
+    fireEvent.load(script);
+    await waitFor(() => expect(initialize).toHaveBeenCalled());
+
+    expect(renderButton).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ width: 320 }));
+  });
+
+  it("shows a configuration error and never initializes GIS when the client ID is missing", async () => {
+    vi.stubEnv("VITE_GOOGLE_OAUTH_CLIENT_ID", "");
+    const { initialize, renderButton } = mockGoogleGlobal();
+    render(<GoogleButton onCredential={vi.fn()} />);
+    const script = document.head.querySelector("script");
+    if (script) fireEvent.load(script);
+
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toHaveTextContent(/VITE_GOOGLE_OAUTH_CLIENT_ID/),
+    );
+    expect(screen.queryByTestId("google-button-container")).not.toBeInTheDocument();
+    expect(initialize).not.toHaveBeenCalled();
+    expect(renderButton).not.toHaveBeenCalled();
   });
 });
