@@ -1,11 +1,10 @@
 import { useState } from "react";
+import { ArrowLeft } from "lucide-react";
 import { PhoneEntry } from "./PhoneEntry";
 import { OtpVerify } from "./OtpVerify";
 import { EmailEntry } from "./EmailEntry";
-import { EmailOtpVerify } from "./EmailOtpVerify";
 import { GoogleButton } from "./GoogleButton";
-import { ArrowLeft } from "lucide-react";
-import { requestOtp, sendEmailOtp, verifyEmailOtp, verifyGoogleCredential, verifyOtp } from "./api";
+import { requestOtp, loginEmail, verifyGoogleCredential, verifyOtp } from "./api";
 import { isLinkRequired, isPhoneRequired } from "./types";
 import type { ExistingMethod, OtpVerifyResponse } from "./types";
 import { ApiError } from "../../lib/apiClient";
@@ -15,8 +14,6 @@ interface LinkAccountPromptProps {
   existingMethod: ExistingMethod;
   pendingToken: string;
   onLinked: (result: OtpVerifyResponse) => void;
-  /** Abandon the link and return to the caller's entry screen. Without it
-   * this step is a dead end — reloading the page is the only way out. */
   onCancel: () => void;
 }
 
@@ -27,35 +24,25 @@ function errorMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
-export function LinkAccountPrompt({
-  matchedEmail,
-  existingMethod,
-  pendingToken,
-  onLinked,
-  onCancel,
-}: LinkAccountPromptProps) {
+export function LinkAccountPrompt({ matchedEmail, existingMethod, pendingToken, onLinked, onCancel }: LinkAccountPromptProps) {
   const [step, setStep] = useState<Step>("entry");
   const [identifier, setIdentifier] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [devOtp, setDevOtp] = useState<string | null>(null);
 
-  // Mirrors AuthEntryFlow's goToStep: clear stale error/devOtp before
-  // navigating, so a failed OTP's message doesn't survive going back to
-  // re-enter the identifier. Not for mid-async-operation state changes —
-  // those clear the error at handler entry.
   const goToStep = (next: Step) => {
     setError(null);
     setDevOtp(null);
     setStep(next);
   };
 
-  const handleEntrySubmit = async (value: string) => {
+  const handlePhoneEntrySubmit = async (phoneNumber: string) => {
     setSubmitting(true);
     setError(null);
     try {
-      const result = existingMethod === "phone" ? await requestOtp(value) : await sendEmailOtp(value);
-      setIdentifier(value);
+      const result = await requestOtp(phoneNumber);
+      setIdentifier(phoneNumber);
       setDevOtp(result.otp);
       setStep("otp");
     } catch (err) {
@@ -65,13 +52,11 @@ export function LinkAccountPrompt({
     }
   };
 
-  const handleOtpSubmit = async (otp: string) => {
+  const handlePhoneOtpSubmit = async (otp: string) => {
     setSubmitting(true);
     setError(null);
     try {
-      const result = existingMethod === "phone"
-        ? await verifyOtp(identifier, otp, pendingToken)
-        : await verifyEmailOtp(identifier, otp, pendingToken);
+      const result = await verifyOtp(identifier, otp, pendingToken);
       if (isLinkRequired(result) || isPhoneRequired(result)) {
         setError("Something went wrong linking your account. Please try again.");
         return;
@@ -79,6 +64,26 @@ export function LinkAccountPrompt({
       onLinked(result);
     } catch (err) {
       setError(errorMessage(err, "That code didn't work. Try again."));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleEmailLogin = async (email: string, password: string) => {
+    setSubmitting(true);
+    setError(null);
+    try {
+      // loginEmail never returns link_required/phone_required (those are
+      // signup-only outcomes) — a successful call always means a session.
+      // pendingToken is threaded through here (unlike AuthEntryFlow's own
+      // primary email login in Task 4, which never passes one) — this is
+      // the one place email's step-up path differs from a normal login: it
+      // tells the backend to also attach this pending Google/phone-gate
+      // identity to whichever account the password just authenticated into.
+      const result = await loginEmail(email, password, pendingToken);
+      onLinked(result);
+    } catch (err) {
+      setError(errorMessage(err, "That didn't work. Try again."));
     } finally {
       setSubmitting(false);
     }
@@ -108,9 +113,6 @@ export function LinkAccountPrompt({
     </p>
   );
 
-  // Escape hatch out of the link step. Only rendered on the first screen of
-  // each branch — the OTP screens already have their own back control, which
-  // returns here.
   const cancelButton = (
     <div className="flex justify-center">
       <button
@@ -141,34 +143,32 @@ export function LinkAccountPrompt({
     );
   }
 
+  if (existingMethod === "email") {
+    // Single-shot password login — no "entry then otp" transition needed,
+    // unlike phone below.
+    return (
+      <div className="space-y-3">
+        {cancelButton}
+        {banner}
+        <EmailEntry context="link" onLogin={handleEmailLogin} submitting={submitting} error={error} />
+      </div>
+    );
+  }
+
   if (step === "entry") {
     return (
       <div className="space-y-3">
         {cancelButton}
         {banner}
-        {existingMethod === "phone" ? (
-          <PhoneEntry onSubmit={handleEntrySubmit} submitting={submitting} error={error} />
-        ) : (
-          <EmailEntry onSubmit={handleEntrySubmit} submitting={submitting} error={error} />
-        )}
+        <PhoneEntry onSubmit={handlePhoneEntrySubmit} submitting={submitting} error={error} />
       </div>
     );
   }
 
-  return existingMethod === "phone" ? (
+  return (
     <OtpVerify
       phoneNumber={identifier}
-      onSubmit={handleOtpSubmit}
-      onResend={() => goToStep("entry")}
-      onBack={() => goToStep("entry")}
-      submitting={submitting}
-      error={error}
-      devOtp={devOtp}
-    />
-  ) : (
-    <EmailOtpVerify
-      email={identifier}
-      onSubmit={handleOtpSubmit}
+      onSubmit={handlePhoneOtpSubmit}
       onResend={() => goToStep("entry")}
       onBack={() => goToStep("entry")}
       submitting={submitting}
