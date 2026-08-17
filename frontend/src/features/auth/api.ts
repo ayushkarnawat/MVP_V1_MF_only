@@ -4,7 +4,9 @@ import type {
   HouseholdMember,
   MeResponse,
   OtpRequestResponse,
+  OtpVerifyResponse,
   OtpVerifyResult,
+  PhoneRequiredResponse,
   Relationship,
   UpdateMeBody,
 } from "./types";
@@ -32,14 +34,32 @@ export async function requestOtp(phoneNumber: string): Promise<OtpRequestRespons
   return (await response.json()) as OtpRequestResponse;
 }
 
-export async function sendEmailOtp(email: string): Promise<OtpRequestResponse> {
-  const response = await fetch(`${API_BASE_URL}/auth/otp/request`, {
+export async function signupEmail(email: string, password: string): Promise<PhoneRequiredResponse> {
+  const response = await fetch(`${API_BASE_URL}/auth/signup/email`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email }),
+    body: JSON.stringify({ email, password }),
   });
   await throwIfError(response);
-  return (await response.json()) as OtpRequestResponse;
+  return (await response.json()) as PhoneRequiredResponse;
+}
+
+export async function loginEmail(
+  email: string,
+  password: string,
+  pendingToken?: string,
+): Promise<OtpVerifyResponse> {
+  const response = await fetch(`${API_BASE_URL}/auth/login/email`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email,
+      password,
+      ...(pendingToken ? { pending_token: pendingToken } : {}),
+    }),
+  });
+  await throwIfError(response);
+  return (await response.json()) as OtpVerifyResponse;
 }
 
 export async function verifyOtp(
@@ -52,24 +72,6 @@ export async function verifyOtp(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       phone_number: phoneNumber,
-      otp,
-      ...(pendingToken ? { pending_token: pendingToken } : {}),
-    }),
-  });
-  await throwIfError(response);
-  return (await response.json()) as OtpVerifyResult;
-}
-
-export async function verifyEmailOtp(
-  email: string,
-  otp: string,
-  pendingToken?: string,
-): Promise<OtpVerifyResult> {
-  const response = await fetch(`${API_BASE_URL}/auth/otp/verify`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      email,
       otp,
       ...(pendingToken ? { pending_token: pendingToken } : {}),
     }),
