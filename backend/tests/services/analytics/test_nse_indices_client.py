@@ -2,7 +2,7 @@ import asyncio
 import uuid
 from datetime import date
 from decimal import Decimal
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 from sqlalchemy import create_engine
@@ -13,6 +13,7 @@ from app.models.enums import BenchmarkIndex
 from app.models.reference import BenchmarkIndexHistory
 from app.services.analytics.nse_indices_client import (
     _TRADING_INDEX_NAME,
+    _fetch_index_history,
     ensure_index_history_fresh,
     get_index_level_on_or_before,
 )
@@ -26,6 +27,28 @@ def _session():
 
 def test_trading_index_name_covers_every_benchmark_index_enum_member():
     assert set(_TRADING_INDEX_NAME.keys()) == set(BenchmarkIndex)
+
+
+def test_fetch_index_history_follows_redirects():
+    """BUG-001/DATA-001: a live curl against niftyindices.com returned a
+    302 -- without `follow_redirects=True`, the redirect response's body
+    (not JSON) hits the broad `except` in `ensure_index_history_fresh` and
+    silently returns stale/empty data instead of genuinely fresh data."""
+    mock_response = MagicMock()
+    mock_response.raise_for_status = MagicMock()
+    mock_response.json = MagicMock(return_value=[])
+
+    mock_client = MagicMock()
+    mock_client.post = AsyncMock(return_value=mock_response)
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+
+    with patch(
+        "app.services.analytics.nse_indices_client.httpx.AsyncClient", return_value=mock_client
+    ) as mock_ctor:
+        asyncio.run(_fetch_index_history(BenchmarkIndex.NIFTY_50, date(2026, 8, 3), date(2026, 8, 4)))
+
+    assert mock_ctor.call_args.kwargs.get("follow_redirects") is True
 
 
 def test_ensure_index_history_fresh_fetches_and_caches_when_nothing_cached():

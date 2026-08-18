@@ -52,7 +52,10 @@ async def _fetch_index_history(index: BenchmarkIndex, start_date: date, end_date
             "indexName": trading_name,
         }
     )
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    # A live curl against niftyindices.com returned a 302 -- without this,
+    # the redirect response's non-JSON body hits the broad `except` below
+    # and silently returns stale/empty data instead of genuinely fresh data.
+    async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
         resp = await client.post(NSE_INDICES_URL, json={"cinfo": cinfo}, headers={"User-Agent": _USER_AGENT})
         resp.raise_for_status()
         payload = resp.json()
