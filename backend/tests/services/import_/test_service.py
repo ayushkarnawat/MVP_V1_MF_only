@@ -15,7 +15,7 @@ from app.models.transaction import Transaction
 from app.models.imports import Import
 from app.services.import_.parser import NormalizedTransaction, ParsedInvestor, ParsedScheme, ParseResult
 from app.services.import_.service import SchemeConfidenceError, build_import_preview, confirm_import
-from app.models.enums import TransactionType
+from app.models.enums import PlanType, TransactionType
 from decimal import Decimal
 from datetime import date
 
@@ -529,3 +529,141 @@ def test_sweep_expired_sessions_removes_backdated_entries():
     _sweep_expired_sessions()
 
     assert preview.session_id not in _preview_sessions
+
+
+def test_confirm_import_rejects_override_amfi_code_not_in_master_list():
+    """DATA-001: a user-supplied override.amfi_code used to be trusted
+    unconditionally with no cross-check. A code that doesn't even exist in
+    AMFI's own master list is a data-entry error, not a legitimate
+    correction -- must be rejected (409) rather than silently accepted."""
+    from app.services.import_.enrich import mfapi_client
+    from app.services.import_.schemas import SchemeConfirmation
+
+    db = _session()
+    member = _household_member(db)
+    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", client=_mocked_client()))
+    temp_id = preview.schemes[0].temp_id
+
+    scheme_list = [{"schemeCode": "125497", "schemeName": "HDFC Flexi Cap Fund - Direct Plan - Growth"}]
+    with patch.object(mfapi_client, "_schemes", scheme_list):
+        import pytest
+        with pytest.raises(SchemeConfidenceError, match="was not found in AMFI"):
+            confirm_import(
+                db, preview.session_id, member.id,
+                scheme_confirmations=[SchemeConfirmation(temp_id=temp_id, amfi_code="999999")],
+            )
+
+
+def test_confirm_import_accepts_override_amfi_code_when_name_plausibly_matches():
+    """A genuinely found override code paired with a plausibly-matching name
+    is accepted, and the CAS-parsed name is kept as-is (no unnecessary
+    rewrite when the pairing is already trustworthy)."""
+    from app.services.import_.enrich import mfapi_client
+    from app.services.import_.schemas import SchemeConfirmation
+
+    db = _session()
+    member = _household_member(db)
+    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", client=_mocked_client()))
+    temp_id = preview.schemes[0].temp_id
+
+    scheme_list = [{"schemeCode": "222222", "schemeName": "HDFC Flexi Cap Fund Direct Growth"}]
+    with patch.object(mfapi_client, "_schemes", scheme_list):
+        result = confirm_import(
+            db, preview.session_id, member.id,
+            scheme_confirmations=[SchemeConfirmation(temp_id=temp_id, amfi_code="222222")],
+        )
+
+    assert result.added == 1
+    scheme = db.query(Scheme).filter_by(amfi_code="222222").one()
+    assert scheme.name == "HDFC Flexi Cap Fund - Direct Plan - Growth"
+
+
+def test_confirm_import_persists_canonical_name_when_override_code_disagrees_with_cas_name():
+    """DATA-001's more concrete bug: `Scheme.name` was always the CAS-parsed
+    name regardless of an override's corrected `amfi_code`, so a legitimate
+    manual correction could still persist a `Scheme` row whose name doesn't
+    match its code. When the override code's real (master-list) name is NOT
+    plausibly similar to the CAS-parsed name, the canonical name must be
+    persisted instead."""
+    from app.services.import_.enrich import mfapi_client
+    from app.services.import_.schemas import SchemeConfirmation
+
+    db = _session()
+    member = _household_member(db)
+    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", client=_mocked_client()))
+    temp_id = preview.schemes[0].temp_id
+
+    scheme_list = [{"schemeCode": "222222", "schemeName": "SBI Bluechip Fund - Regular Plan - Growth"}]
+    with patch.object(mfapi_client, "_schemes", scheme_list):
+        result = confirm_import(
+            db, preview.session_id, member.id,
+            scheme_confirmations=[SchemeConfirmation(temp_id=temp_id, amfi_code="222222")],
+        )
+
+    assert result.added == 1
+    scheme = db.query(Scheme).filter_by(amfi_code="222222").one()
+    assert scheme.name == "SBI Bluechip Fund - Regular Plan - Growth"
+
+
+def test_confirm_import_override_degrades_gracefully_when_master_list_not_cached():
+    """A fresh process (master list never fetched this session, e.g. every
+    scheme in the CAS already carried a confirmed AMFI code) has nothing to
+    cross-check an override against -- must not block the confirm, and keeps
+    the pre-fix behavior (CAS-parsed name) rather than erroring out."""
+    from app.services.import_.enrich import mfapi_client
+    from app.services.import_.schemas import SchemeConfirmation
+
+    db = _session()
+    member = _household_member(db)
+    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", client=_mocked_client()))
+    temp_id = preview.schemes[0].temp_id
+
+    with patch.object(mfapi_client, "_schemes", None):
+        result = confirm_import(
+            db, preview.session_id, member.id,
+            scheme_confirmations=[SchemeConfirmation(temp_id=temp_id, amfi_code="333333")],
+        )
+
+    assert result.added == 1
+    scheme = db.query(Scheme).filter_by(amfi_code="333333").one()
+    assert scheme.name == "HDFC Flexi Cap Fund - Direct Plan - Growth"
+
+
+def test_confirm_import_rejects_plan_type_override_contradicting_parsed_plan_name():
+    """Combined fix for CLAUDE.md's "no server-side 409 backstop on plan-type
+    override" gap: the sample scheme's own CAS-parsed name unambiguously says
+    "Direct Plan" (plan_name_variant="direct"). An override claiming
+    "regular" contradicts that unambiguous signal and must be rejected."""
+    from app.services.import_.schemas import SchemeConfirmation
+
+    db = _session()
+    member = _household_member(db)
+    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", client=_mocked_client()))
+    temp_id = preview.schemes[0].temp_id
+
+    import pytest
+    with pytest.raises(SchemeConfidenceError, match="contradicts"):
+        confirm_import(
+            db, preview.session_id, member.id,
+            scheme_confirmations=[SchemeConfirmation(temp_id=temp_id, plan_type_override=PlanType.REGULAR)],
+        )
+
+
+def test_confirm_import_accepts_plan_type_override_matching_parsed_plan_name():
+    """Sanity check: an override that agrees with the CAS-parsed plan name is
+    never rejected by the new backstop."""
+    from app.services.import_.schemas import SchemeConfirmation
+
+    db = _session()
+    member = _household_member(db)
+    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", client=_mocked_client()))
+    temp_id = preview.schemes[0].temp_id
+
+    result = confirm_import(
+        db, preview.session_id, member.id,
+        scheme_confirmations=[SchemeConfirmation(temp_id=temp_id, plan_type_override=PlanType.DIRECT)],
+    )
+
+    assert result.added == 1
+    folio = db.query(Folio).filter_by(folio_number="123/45").one()
+    assert folio.plan_type.value == "direct"

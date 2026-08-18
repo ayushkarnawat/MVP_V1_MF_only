@@ -12,6 +12,7 @@ import asyncio
 import json
 import uuid
 from datetime import datetime, timedelta, timezone
+from difflib import SequenceMatcher
 from typing import Any
 
 from sqlalchemy.orm import Session
@@ -22,7 +23,7 @@ from app.models.imports import Import, ImportStatus
 from app.models.reference import Scheme
 from app.models.transaction import Transaction
 from app.services.dashboard.holdings import invalidate_holdings_cache
-from app.services.import_.enrich import MfApiClient, mfapi_client
+from app.services.import_.enrich import MfApiClient, _normalize_name, mfapi_client
 from app.services.import_.parser import ParseResult, source_cas_type_from_file_type
 from app.services.import_.schemas import (
     ImportConfirmResponse,
@@ -137,6 +138,7 @@ def confirm_import(
     previews: dict[str, SchemeMatchPreview] = session["scheme_previews"]
     key_to_temp = session["key_to_temp"]
     overrides = {c.temp_id: c for c in scheme_confirmations}
+    parsed_scheme_by_key = {(s.folio, s.amc, s.name): s for s in parse_result.schemes}
 
     # Validate every referenced scheme up front — a rejection here makes zero DB
     # writes, instead of leaving earlier schemes/folios/transactions flushed
@@ -160,6 +162,39 @@ def confirm_import(
                 f"Scheme '{preview.name}' requires an explicit AMFI code override (match confidence "
                 f"{preview.match_confidence:.2f} below {CONFIDENCE_THRESHOLD})."
             )
+
+        # DATA-001: an override.amfi_code used to be trusted at full confidence
+        # with zero cross-check — a code that doesn't exist at all in AMFI's
+        # own master list is a data-entry error, not a legitimate correction.
+        # Only checked when the master list is already cached this process
+        # (populated by the preceding build_import_preview call); a fresh
+        # process with nothing cached degrades to trusting the override, same
+        # as before this fix, rather than blocking the confirm on a lookup
+        # this synchronous function can't perform itself.
+        if override and override.amfi_code:
+            scheme_list = mfapi_client.cached_scheme_list()
+            if scheme_list is not None and mfapi_client._canonical_name_for_code(override.amfi_code, scheme_list) is None:
+                raise SchemeConfidenceError(
+                    f"Override AMFI code '{override.amfi_code}' for scheme '{preview.name}' was not found "
+                    "in AMFI's scheme master list."
+                )
+
+        # Combined fix for CLAUDE.md's "no server-side 409 backstop on
+        # plan-type override" gap: the scheme's own CAS-parsed name is an
+        # unambiguous, structurally-derived signal of Direct vs Regular
+        # (unlike the ARN-derived preview.plan_type an override exists to
+        # correct in the first place) — a plan_type_override that contradicts
+        # it is almost certainly a client-side error, not a real correction.
+        if override and override.plan_type_override:
+            parsed_scheme = parsed_scheme_by_key.get((norm.folio, norm.amc, norm.scheme_name))
+            variant = parsed_scheme.plan_name_variant if parsed_scheme else None
+            if variant in (PlanNameVariant.DIRECT.value, PlanNameVariant.REGULAR.value) and (
+                variant != override.plan_type_override.value
+            ):
+                raise SchemeConfidenceError(
+                    f"Plan-type override '{override.plan_type_override.value}' for scheme '{preview.name}' "
+                    f"contradicts its CAS-parsed plan name ('{variant}')."
+                )
 
     # All schemes validated — safe to start writing.
     import_rec = Import(
@@ -189,13 +224,32 @@ def confirm_import(
             if existing:
                 scheme_cache[amfi_code] = existing
             else:
-                plan_name_variant = None
-                for parsed_scheme in parse_result.schemes:
-                    if parsed_scheme.folio == norm.folio and parsed_scheme.amc == norm.amc and parsed_scheme.name == norm.scheme_name:
-                        plan_name_variant = parsed_scheme.plan_name_variant
-                        break
+                parsed_scheme = parsed_scheme_by_key.get((norm.folio, norm.amc, norm.scheme_name))
+                plan_name_variant = parsed_scheme.plan_name_variant if parsed_scheme else None
+
+                # DATA-001: when an override's amfi_code is genuinely
+                # different from what CAS parsing implies, the persisted
+                # Scheme.name must describe THAT code, not blindly carry over
+                # the original CAS-parsed name — otherwise a legitimate
+                # manual correction still produces a Scheme row whose name
+                # doesn't match its own amfi_code.
+                scheme_name = norm.scheme_name
+                if override and override.amfi_code:
+                    scheme_list = mfapi_client.cached_scheme_list()
+                    canonical_name = (
+                        mfapi_client._canonical_name_for_code(override.amfi_code, scheme_list)
+                        if scheme_list is not None
+                        else None
+                    )
+                    if canonical_name is not None:
+                        similarity = SequenceMatcher(
+                            None, _normalize_name(norm.scheme_name), _normalize_name(canonical_name)
+                        ).ratio()
+                        if similarity < CONFIDENCE_THRESHOLD:
+                            scheme_name = canonical_name
+
                 new_scheme = Scheme(
-                    id=uuid.uuid4(), amfi_code=amfi_code, isin=norm.isin, name=norm.scheme_name,
+                    id=uuid.uuid4(), amfi_code=amfi_code, isin=norm.isin, name=scheme_name,
                     amc_name=norm.amc, sebi_category=_resolve_category(preview.category, norm.scheme_type),
                     plan_name_variant=PlanNameVariant(plan_name_variant) if plan_name_variant else None,
                 )

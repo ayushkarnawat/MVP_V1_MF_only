@@ -7,12 +7,53 @@ from app.services.import_ import enrich
 from app.services.import_.enrich import MFAPI_BASE, MfApiClient
 
 
-def test_resolve_scheme_trusts_cas_amfi_code(tmp_path):
+def test_resolve_scheme_trusts_cas_amfi_code_when_name_plausibly_matches(tmp_path):
     client = MfApiClient(cache_dir=tmp_path)
-    match, status = asyncio.run(client.resolve_scheme("Any Fund Name", "125497"))
+    scheme_list = [{"schemeCode": "125497", "schemeName": "Any Fund Name"}]
+    with patch.object(client, "get_scheme_list", new=AsyncMock(return_value=scheme_list)):
+        match, status = asyncio.run(client.resolve_scheme("Any Fund Name", "125497"))
     assert match.amfi_code == "125497"
     assert match.confidence == 1.0
     assert status == "confirmed"
+
+
+def test_resolve_scheme_rejects_cas_amfi_code_paired_with_mismatched_name(tmp_path):
+    """DATA-001 finding: a CAS-parsed AMFI code was previously trusted at
+    confidence 1.0 with zero cross-check against the CAS-parsed scheme
+    name — a corrupted/mismatched (code, name) pair from a CAS parse would
+    silently persist as "confirmed". Here the master list's real name for
+    this code is completely unrelated to the CAS-supplied name, so the
+    pairing must NOT be confirmed -- it should fall through to a genuine
+    fuzzy match by name instead (which finds nothing here, so "pending")."""
+    client = MfApiClient(cache_dir=tmp_path)
+    scheme_list = [{"schemeCode": "125497", "schemeName": "Completely Unrelated Scheme Name"}]
+    with patch.object(client, "get_scheme_list", new=AsyncMock(return_value=scheme_list)):
+        match, status = asyncio.run(client.resolve_scheme("XYZ Totally Different Fund", "125497"))
+    assert status == "pending"
+    assert not (match is not None and match.amfi_code == "125497" and match.confidence == 1.0)
+
+
+def test_resolve_scheme_falls_through_when_cas_amfi_code_not_in_master_list(tmp_path):
+    """An override/CAS-supplied code that doesn't exist in AMFI's own master
+    list at all can't be cross-checked -- falls through to fuzzy-match-by-name
+    rather than blindly trusting an unverifiable code."""
+    client = MfApiClient(cache_dir=tmp_path)
+    scheme_list = [{"schemeCode": "999999", "schemeName": "HDFC Flexi Cap Fund Direct Growth"}]
+    with patch.object(client, "get_scheme_list", new=AsyncMock(return_value=scheme_list)):
+        match, status = asyncio.run(
+            client.resolve_scheme("HDFC Flexi Cap Fund - Direct Plan - Growth", "no-such-code")
+        )
+    assert match.amfi_code == "999999"
+    assert match.confidence > 0.9
+
+
+def test_resolve_scheme_with_cas_amfi_code_degrades_gracefully_on_mfapi_outage(tmp_path):
+    """Cross-checking a CAS-supplied code now needs the master list too --
+    an mfapi.in outage must still degrade to "pending", not crash."""
+    client = MfApiClient(cache_dir=tmp_path)
+    with patch.object(client, "_get_json", new=AsyncMock(side_effect=httpx.ConnectError("boom"))):
+        match, status = asyncio.run(client.resolve_scheme("Any Fund Name", "125497"))
+    assert status == "pending"
 
 
 def test_resolve_scheme_fuzzy_matches_when_no_cas_amfi_code(tmp_path):

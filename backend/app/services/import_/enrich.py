@@ -109,20 +109,50 @@ class MfApiClient:
                 best = SchemeMatch(amfi_code=code, scheme_name=name, confidence=ratio)
         return best
 
+    def cached_scheme_list(self) -> list[dict[str, Any]] | None:
+        """Synchronous peek at whatever `get_scheme_list()` has already fetched
+        this process (e.g. during the preceding `build_import_preview` call) —
+        `None` if nothing has been fetched yet (a fresh process/restart between
+        preview and confirm). Lets `confirm_import` cross-check an override's
+        AMFI code against the master list without itself becoming async just
+        for a lookup the preview step already paid for."""
+        return self._schemes
+
+    def _canonical_name_for_code(self, amfi_code: str, scheme_list: list[dict[str, Any]]) -> str | None:
+        for item in scheme_list:
+            code = str(item.get("schemeCode") or item.get("scheme_code") or "")
+            if code == amfi_code:
+                return item.get("schemeName") or item.get("scheme_name") or None
+        return None
+
     async def resolve_scheme(self, scheme_name: str, amfi_from_cas: str | None) -> tuple[SchemeMatch | None, str]:
         """Returns (match, match_status). Never silently guess below 0.92 (PRD-01 FR-10).
 
         An mfapi.in outage degrades to (None, "pending") — a manual-resolution
         case, same as a low-confidence match — rather than crashing and
         discarding an already-parsed CAS (the user's PDF upload + password
-        entry is expensive; mfapi.in being down is not their fault)."""
-        if amfi_from_cas:
-            return SchemeMatch(amfi_code=amfi_from_cas, scheme_name=scheme_name, confidence=1.0), "confirmed"
+        entry is expensive; mfapi.in being down is not their fault).
 
+        DATA-001: a CAS-supplied `amfi_from_cas` used to be trusted at
+        confidence 1.0 with zero cross-check against `scheme_name` — a
+        corrupted (code, name) pairing from a bad CAS parse would silently
+        "confirm". Now cross-checked against the AMFI master list's own name
+        for that code before being accepted; an unresolvable or implausible
+        pairing falls through to a genuine fuzzy match by name instead."""
         try:
             scheme_list = await self.get_scheme_list()
         except httpx.HTTPError:
             return None, "pending"
+
+        if amfi_from_cas:
+            canonical_name = self._canonical_name_for_code(amfi_from_cas, scheme_list)
+            if canonical_name is not None:
+                similarity = SequenceMatcher(
+                    None, _normalize_name(scheme_name), _normalize_name(canonical_name)
+                ).ratio()
+                if similarity >= 0.92:
+                    return SchemeMatch(amfi_code=amfi_from_cas, scheme_name=scheme_name, confidence=1.0), "confirmed"
+
         match = self.fuzzy_match_scheme(scheme_name, scheme_list)
         if match is None or match.confidence < 0.92:
             return match, "pending"

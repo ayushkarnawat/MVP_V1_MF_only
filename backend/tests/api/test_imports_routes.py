@@ -260,14 +260,21 @@ def test_parse_then_confirm_lands_a_transaction_in_the_real_db(client):
 
     # Only the network boundary is mocked (MfApiClient._get_json) — resolve_scheme
     # and get_scheme_category run for real. The sample scheme carries
-    # amfi="125497" from the CAS, so resolve_scheme's amfi_from_cas
-    # short-circuit fires without calling _get_json at all; get_scheme_category
-    # does call it (for the category lookup), which is what this mocks.
+    # amfi="125497" from the CAS; resolve_scheme now cross-checks that code
+    # against the master list's own name for it (DATA-001 fix) before
+    # short-circuiting to "confirmed", so the mocked scheme-list response must
+    # contain a plausibly-matching (code, name) pair, not just the category
+    # lookup's payload.
+    async def _fake_get_json(_self, url):
+        if url.endswith("/latest"):
+            return {"meta": {"scheme_category": "Equity Scheme - Flexi Cap Fund"}}
+        return [{"schemeCode": "125497", "schemeName": "HDFC Flexi Cap Fund - Direct Plan - Growth"}]
+
     with (
         patch("app.api.imports.parse_cas_pdf_bytes", return_value=_sample_parse_result()),
         patch(
             "app.services.import_.enrich.MfApiClient._get_json",
-            new=AsyncMock(return_value={"meta": {"scheme_category": "Equity Scheme - Flexi Cap Fund"}}),
+            new=_fake_get_json,
         ),
     ):
         parse_response = client.post(
