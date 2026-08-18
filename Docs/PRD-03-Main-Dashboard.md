@@ -145,6 +145,12 @@ onboarding.
 - FR-6: An "active" SIP is one with a `PURCHASE_SIP` transaction within the last ~35–40
   days (covers monthly cadence plus a grace window) — exact threshold needs your
   input, flagged in Open Questions.
+  **Superseded 2026-08-18** (explicit product experiment, not a silent
+  resolution — see `Docs/superpowers/specs/2026-08-18-active-sips-cadence-redesign-design.md`):
+  the 40-day cutoff has been removed. A SIP stays "active" indefinitely once
+  detected (excluding fully-redeemed folios), with a server-computed rolling
+  `next_due_date` projection and no "missed SIP" messaging. If this doesn't
+  hold up in use, FR-6's original 40-day window is the documented fallback.
 
 #### Investment Cash Flow
 - FR-7: Cash flow view computed entirely from existing parsed transactions — no new
@@ -188,7 +194,7 @@ Design Schema work — that level of detail isn't specified here.
 | Family member added but no CAS uploaded yet | Placeholder in aggregate view, not excluded or errored |
 | Monthly snapshot requested for a month before the user's first transaction | No data point shown for that month, not a zero or an error |
 | Scheme redeemed in full (zero units held) | Moves out of active holdings but remains in cash-flow and historical snapshot views |
-| SIP stopped (no `PURCHASE_SIP` within the active window) | Drops out of "active SIPs" list automatically, no manual state to maintain |
+| SIP stopped (no `PURCHASE_SIP` within the active window) | **Superseded 2026-08-18** — no longer applies; a SIP stays active indefinitely once detected (see FR-6 note above), only dropping out if its folio is fully redeemed |
 
 ## Technical Considerations
 
