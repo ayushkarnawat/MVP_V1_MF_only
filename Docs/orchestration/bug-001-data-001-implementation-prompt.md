@@ -31,6 +31,14 @@ still apply to every change here.
 Work in a dedicated new worktree (`superpowers:using-git-worktrees`), not
 directly on `feat/enhanced-ui`.
 
+**Not in scope, already fixed:** `Docs/investigations/BUG-002-dashboard-
+return-loading.md` (Main dashboard stuck loading after Analytics
+navigation) is a separate, already-merged ticket (PRs #1/#2, merged
+2026-08-17, well before this prompt's PR #3/#4) — its `Promise.all`/
+`AbortSignal`/browser-history fixes are already in `feat/enhanced-ui`. Do
+not re-investigate or re-fix it; it's unrelated to the Analytics-backend
+timing/correctness issues below.
+
 ## Before starting: one gating question to resolve, not assume
 
 DATA-001 found Beta is entirely unimplemented and AAUM has no real refresh
@@ -231,9 +239,15 @@ identity data is correct.
 
 ### 7. Import identity validation tightening (DATA-001, separate from the analytics fixes above)
 
-**Files:** `backend/app/services/import_/enrich.py` (~lines 90-99),
-`backend/app/services/import_/service.py`'s `confirm_import()` (~lines
-180-195).
+**Files:** `backend/app/services/import_/enrich.py`'s `resolve_scheme()`
+(the `if amfi_from_cas:` branch, currently line 119-120 — **note: PR #4
+("perf: cut first-login dashboard load time", merged 2026-08-17 after
+these findings docs were written) touched this file for CAS-import
+concurrency; re-confirm this line number against current code before
+editing, don't trust it blindly**) and `backend/app/services/import_/
+service.py`'s `confirm_import()` (the `amfi_code = (override.amfi_code ...)
+or preview.suggested_amfi_code` lines, currently ~152 and ~185 — same
+re-confirm-first caveat, PR #4 also touched `service.py`).
 
 **Bug:** `enrich.py` accepts a CAS-supplied AMFI code paired with the
 CAS-supplied scheme name at confidence 1.0 with no cross-check between
@@ -245,6 +259,13 @@ the TER fuzzy-matcher, this is a real production risk: a real
 casparser-derived scheme name variant could plausibly cross that low bar
 and get mismatched, the same failure class that (accidentally,
 self-inflicted) corrupted this session's own repro data.
+
+Verified this specific line still has the gap post-PR#4 (still `return
+SchemeMatch(amfi_code=amfi_from_cas, scheme_name=scheme_name,
+confidence=1.0), "confirmed"` with no cross-check) — PR #4's changes here
+were concurrency-only, not identity-validation-related, so the root cause
+and fix approach below are unaffected by that merge. Only the line numbers
+moved.
 
 **Fix:** add a cross-check between the CAS-supplied/override AMFI code and
 the scheme name before accepting the pairing at high confidence — e.g.
