@@ -120,19 +120,38 @@ def compute_sips_for_month(
     compute_active_sips for determining PROJECTION eligibility only —
     see redemption-exclusion note below):
 
+    Two separate reference points are needed per folio — conflating them
+    was a bug caught in spec review (see change log below):
+      - `latest_txn`: the most recent PURCHASE_SIP transaction ever (same
+        anchor compute_active_sips uses for forward projection).
+      - `first_txn`: the EARLIEST PURCHASE_SIP transaction ever — the
+        real "did this SIP exist yet" bound. Needed because `latest_txn`
+        can be AFTER the requested month (e.g. browsing back to August
+        once an October transaction exists as the new latest) — in that
+        case months-since-latest is negative, which is valid (projecting
+        backward), not a sentinel for "doesn't exist yet".
+
     1. Look for an actual PURCHASE_SIP transaction dated within
        [year, month]. If found (latest one, if duplicates), use its
        real date/amount.
-    2. Otherwise, compute months_diff = (year, month) minus the anchor
-       transaction's (year, month); if months_diff < 0, the SIP hadn't
-       started yet this month -> omit. Otherwise the projected date is
-       _add_months_clamped(anchor_date, months_diff); if that date's
-       (year, month) matches the requested month, include it as a
-       projected row. (It always will, by construction of months_diff.)
-    3. A fully-redeemed folio still shows its own real past-month
+    2. Otherwise, if (year, month) is before first_txn's (year, month),
+       the SIP didn't exist yet this month -> omit.
+    3. Otherwise, months_diff = (year, month) minus latest_txn's
+       (year, month) (may be negative — projecting backward from a more
+       recent anchor is valid and expected). The projected date is
+       _add_months_clamped(latest_txn.date, months_diff); its (year,
+       month) matches the requested month by construction -> include it
+       as a projected row.
+    4. A fully-redeemed folio still shows its own real past-month
        transactions (they really happened) but is never used to
        fabricate a projected row for a month with no real transaction —
        redemption only suppresses projection, never real history.
+
+    Projected rows are shown with no visual distinction from actual ones
+    even in hindsight (e.g. browsing back to a skipped August after a
+    real October transaction exists) — consistent with the no-"missed
+    SIP"-messaging decision; the row states what the cadence implies for
+    that month, not a judgment on what happened.
     """
 ```
 
@@ -229,6 +248,7 @@ existing `get_aggregate_sips` wrapper.
 | SIP transaction history has a multi-month gap (e.g. paused 6 months) | Still shown as active; `next_due_date` rolls forward to the nearest future occurrence, no visual distinction from a never-missed SIP |
 | Folio fully redeemed | Excluded from "Upcoming" entirely; still shows its real past transactions when browsing "This Month" for a month before the redemption, never a projected row for a month with no real transaction |
 | Requested month is before the folio's first-ever `PURCHASE_SIP` | Folio omitted from that month's response — no fabricated pre-history row |
+| Requested month is *before* the folio's most recent `PURCHASE_SIP` but *after* its first (e.g. browsing back to a skipped August once October's real transaction is the new anchor) | Projected row shown (backward-projected from the latest anchor), not omitted |
 | SIP anchor day doesn't exist in target month (e.g. anchor day 31, target month has 30 days) | Clamped to the target month's last day, consistent with `next_due_date`'s own clamping |
 | Leap-year Feb 29 anchor | Clamped via `calendar.monthrange`, same mechanism, no special-case code |
 | Two `PURCHASE_SIP` transactions land in the same requested month | Most recent one in that month is shown as the single row |
@@ -248,6 +268,12 @@ Backend (`backend/tests/services/dashboard/test_sip.py`, TDD, red-green-refactor
 - `test_sips_for_month_uses_projected_date_when_no_actual_transaction`
 - `test_sips_for_month_omits_folio_before_its_first_sip`
 - `test_sips_for_month_shows_real_past_transaction_even_if_folio_later_redeemed`
+- `test_sips_for_month_projects_backward_correctly_when_a_later_transaction_exists`
+  — anchor is October (latest), browse back to August (real gap, no actual
+  August transaction): must show a projected August row, not omit it.
+- `test_sips_for_month_omits_month_before_first_ever_transaction` — browsing
+  a month earlier than the SIP's true first transaction must omit, using
+  `first_txn`, not `latest_txn`.
 
 `backend/tests/api/test_dashboard_sips_route.py`:
 - New tests for both `/sips/monthly` routes (member + aggregate), default
