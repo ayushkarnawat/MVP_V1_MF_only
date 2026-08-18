@@ -109,11 +109,21 @@ Codex-implemented change is considered done. Full design:
 
 ## Session State
 
-*(Updated 2026-08-14. See `session.md` at repo root for the full detailed history —
+*(Updated 2026-08-18. See `session.md` at repo root for the full detailed history —
 this section is a current-status pointer, not the record of every past session.)*
 
-**PRD-04 (Analytics) backend is now fully complete — all 5 parts, including the
-Scorer.** Category allocation (Part 1), AMFI TER+AAUM → weighted TER (Part 2), NSE
+**Visual & Motion Continuity Redesign (Auth, Onboarding, Import, Review) is 100% complete on branch `authsetup`.**
+Executed by **Google Antigravity** per spec `Docs/superpowers/specs/2026-08-18-auth-onboarding-import-review-visual-motion-redesign.md`:
+- Built `OtpInput` (6-cell segmented input, auto-advance, paste support, unit-tested).
+- Built `AuthShell` (persistent split-screen shell, `layoutId="brand-mark"`, directional slide transitions).
+- Built evolving `AuthShowcasePanel` (`layoutId="fund-signal-ring"`, evolving fill fraction, step-driven copy).
+- Created `OnboardingIllustration` (bespoke inline SVG artwork for trust, name, investing, purpose, household with warm gold tones strictly isolated to SVG attributes).
+- Built `OnboardingCardStack` (stationary deck container with 2 background silhouettes and "dealt card" rotation+slide animation keyed to `history.cursor`).
+- Built `ImportFileProgressList` (row-level stagger, status badges, progress indicator, file removal).
+- Refined CAS Import (`motion-page` crossfade) and Review surfaces (`ReviewTable` & `MobileReviewView` calm container-level settle on mount, localized micro-interactions).
+- **All 55 test files and 234 frontend tests passing**, `npx tsc -b --noEmit` clean, zero warm colors outside `OnboardingIllustration.tsx`.
+
+**PRD-04 (Analytics) backend is fully complete — all 5 parts, including the Scorer.** Category allocation (Part 1), AMFI TER+AAUM → weighted TER (Part 2), NSE
 Indices → benchmark comparison (Part 3), category-universe ranking (Part 4), and the
 Scorer — composite fund quality score, portfolio roll-up, full breakdown (Part 5,
 FR-5/FR-6/FR-7) — are all built, tested, and merged. The Scorer was Ayush's one hard
