@@ -174,16 +174,18 @@ risk, and Beta/AAUM-refresh both confirmed unimplemented). Both docs went throug
 `model-orchestration`'s full mandatory adversarial-review gate (9 findings, all
 resolved). Shipped as [PR #3](https://github.com/ayushkarnawat/MVP_V1_MF_only/pull/3)
 against `feat/enhanced-ui` — **merged 2026-08-17.** Two other PRs merged into
-`feat/enhanced-ui` around the same time, unrelated to this work and already
-reconciled with no conflicts: PR #4 (dashboard/CAS-import perf, touches
-`nav.py`/`enrich.py`/`service.py` — the implementation prompt's fix items 2,
-4, and 7 were re-verified against its changes, only line numbers shifted,
-no root-cause impact) and BUG-002's dashboard-stuck-loading fix (PRs #1/#2,
-unrelated to Analytics, already fixed — see
-`Docs/investigations/BUG-002-dashboard-return-loading.md`). The next session
-should implement the fixes — a ready-to-paste implementation prompt with
-priority order, per-fix file/line pointers, and constraints is saved at
-`Docs/orchestration/bug-001-data-001-implementation-prompt.md`.
+`feat/enhanced-ui` around the same time, unrelated to this work: PR #4
+(dashboard/CAS-import perf, touches `nav.py`/`enrich.py`/`service.py`) and
+BUG-002's dashboard-stuck-loading fix (PRs #1/#2, unrelated to Analytics,
+already fixed — see `Docs/investigations/BUG-002-dashboard-return-loading.md`).
+A follow-up doc-only pass re-verified the implementation prompt's fix items
+2, 4, and 7 against PR #4's changes (only line numbers shifted, no
+root-cause impact) and cross-referenced BUG-002, shipped as
+[PR #5](https://github.com/ayushkarnawat/MVP_V1_MF_only/pull/5) — **merged
+2026-08-18.** Nothing is blocking implementation anymore — the next session
+should implement the fixes directly: a ready-to-paste implementation prompt
+with priority order, per-fix file/line pointers, and constraints is saved
+at `Docs/orchestration/bug-001-data-001-implementation-prompt.md`.
 
 **Post-Phase-2 bug fixes, same day (2026-08-14):** once the Analytics frontend below
 was merged and tested on localhost, four real bugs were found and fixed in sequence —
