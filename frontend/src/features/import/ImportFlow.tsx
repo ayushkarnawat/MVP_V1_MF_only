@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { TwoPathImportContainer } from "./TwoPathImportContainer";
 import { ParsingIndicator } from "./ParsingIndicator";
 import { ReviewTable } from "./ReviewTable";
@@ -6,6 +7,7 @@ import { ImportError } from "./ImportError";
 import { ImportConfirmed } from "./ImportConfirmed";
 import { ApiError, confirmImport, parseImport } from "./api";
 import { clearCasResumeStep2 } from "./casResumeState";
+import { isTestEnv } from "@/lib/motion";
 import type {
   ImportConfirmResponse,
   ImportPreviewResponse,
@@ -43,6 +45,8 @@ export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab = "
   const [error, setError] = useState<ParseErrorPayload | null>(null);
   const [reviewNotice, setReviewNotice] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+
+  const shouldReduceMotion = useReducedMotion() || isTestEnv;
 
   const reset = () => {
     clearCasResumeStep2(householdMemberId);
@@ -92,28 +96,48 @@ export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab = "
     }
   };
 
-  if (step === "upload") {
-    return (
-      <TwoPathImportContainer
-        memberId={householdMemberId}
-        defaultTab={defaultTab}
-        onUploadSubmit={handleUpload}
-      />
-    );
-  }
-  if (step === "parsing") {
-    return <ParsingIndicator />;
-  }
-  if (step === "review" && preview) {
-    return (
-      <>
-        {reviewNotice && <p role="alert">{reviewNotice}</p>}
-        <ReviewTable preview={preview} confirming={confirming} onConfirm={handleConfirm} />
-      </>
-    );
-  }
-  if (step === "confirmed" && confirmResult) {
-    return <ImportConfirmed result={confirmResult} onImportAnother={onDone ?? reset} ctaLabel={ctaLabel} />;
-  }
-  return <ImportError error={error ?? GENERIC_NETWORK_ERROR} onRetry={reset} />;
+  const renderStep = () => {
+    if (step === "upload") {
+      return (
+        <TwoPathImportContainer
+          memberId={householdMemberId}
+          defaultTab={defaultTab}
+          onUploadSubmit={handleUpload}
+        />
+      );
+    }
+    if (step === "parsing") {
+      return <ParsingIndicator />;
+    }
+    if (step === "review" && preview) {
+      return (
+        <>
+          {reviewNotice && <p role="alert">{reviewNotice}</p>}
+          <ReviewTable preview={preview} confirming={confirming} onConfirm={handleConfirm} />
+        </>
+      );
+    }
+    if (step === "confirmed" && confirmResult) {
+      return <ImportConfirmed result={confirmResult} onImportAnother={onDone ?? reset} ctaLabel={ctaLabel} />;
+    }
+    return <ImportError error={error ?? GENERIC_NETWORK_ERROR} onRetry={reset} />;
+  };
+
+  return (
+    <AnimatePresence mode="popLayout" initial={false}>
+      <motion.div
+        key={step}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{
+          duration: shouldReduceMotion ? 0.01 : 0.3,
+          ease: [0.4, 0, 0.2, 1],
+        }}
+        className="w-full"
+      >
+        {renderStep()}
+      </motion.div>
+    </AnimatePresence>
+  );
 }

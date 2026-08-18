@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
+import { motion } from "motion/react";
 import styles from "./ParsingIndicator.module.css";
+import { MOTION_EASING } from "@/lib/motion";
 
 const STEPS = [
   "Decrypting & parsing statement...",
@@ -19,7 +21,14 @@ export function ParsingIndicator() {
   }, []);
 
   return (
-    <div className={styles.container} role="status" aria-live="polite">
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: MOTION_EASING }}
+      className={styles.container}
+      role="status"
+      aria-live="polite"
+    >
       <div className={styles.arcLoader}>
         <svg viewBox="0 0 50 50" className={styles.loaderSvg}>
           <circle
@@ -39,17 +48,22 @@ export function ParsingIndicator() {
 
       <div className={styles.textContainer}>
         <h3 className={`type-h2 ${styles.title}`}>Importing Mutual Fund Statement</h3>
-        <p className={`type-body ${styles.stepText}`}>{STEPS[currentStep]}</p>
+        <p
+          key={currentStep}
+          className={`type-body ${styles.stepText} animate-in fade-in duration-200`}
+        >
+          {STEPS[currentStep]}
+        </p>
       </div>
 
       <div className={styles.dotsGroup}>
         {STEPS.map((_, idx) => (
           <span
             key={idx}
-            className={`${styles.dot} ${idx <= currentStep ? styles.dotActive : ""}`}
+            className={`${styles.dot} ${idx <= currentStep ? styles.dotActive : ""} transition-all duration-300`}
           />
         ))}
       </div>
-    </div>
+    </motion.div>
   );
 }

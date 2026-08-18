@@ -3,15 +3,14 @@ import type { ChangeEvent, FormEvent, DragEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ImportFileProgressList } from "@/features/import/ImportFileProgressList";
 import { cn } from "@/lib/utils";
 import {
   UploadCloud,
   Lock,
   Eye,
   EyeOff,
-  X,
   AlertCircle,
-  FileCheck,
 } from "lucide-react";
 
 export interface MobileUploadFormProps {
@@ -120,34 +119,14 @@ export function MobileUploadForm({
         />
 
         {file ? (
-          <div className="flex items-center justify-between gap-3 text-left w-full">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="h-10 w-10 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-accent)] flex items-center justify-center flex-shrink-0 shadow-2xs">
-                <FileCheck className="h-5 w-5" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-semibold text-[var(--color-ink)] truncate">
-                  {file.name}
-                </p>
-                <p className="text-[10px] text-[var(--color-text-secondary)] tabular-nums">
-                  {(file.size / (1024 * 1024)).toFixed(2)} MB • PDF Document
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
+          <div className="w-full" onClick={(e) => e.stopPropagation()}>
+            <ImportFileProgressList
+              files={[{ file, status: "done" }]}
+              onRemoveFile={() => {
                 setFile(null);
                 if (fileInputRef.current) fileInputRef.current.value = "";
               }}
-              title="Remove file"
-              className="h-9 w-9 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-negative)] hover:bg-[var(--color-surface)] flex items-center justify-center transition-colors cursor-pointer active:scale-90"
-              aria-label="Remove file"
-            >
-              <X className="h-4 w-4" />
-            </button>
+            />
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center space-y-1.5">
