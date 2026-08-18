@@ -47,6 +47,19 @@ def test_resolve_scheme_falls_through_when_cas_amfi_code_not_in_master_list(tmp_
     assert match.confidence > 0.9
 
 
+def test_resolve_scheme_does_not_confirm_blank_name_pairing(tmp_path):
+    """Review finding (round 2): SequenceMatcher("", "").ratio() returns 1.0
+    -- a whitespace/punctuation-only CAS or canonical name (which normalizes
+    to an empty string) must not be treated as a perfect match. Falls
+    through to fuzzy-match-by-name instead, same as any other implausible
+    pairing."""
+    client = MfApiClient(cache_dir=tmp_path)
+    scheme_list = [{"schemeCode": "125497", "schemeName": "***"}]
+    with patch.object(client, "get_scheme_list", new=AsyncMock(return_value=scheme_list)):
+        match, status = asyncio.run(client.resolve_scheme("///", "125497"))
+    assert not (match is not None and match.amfi_code == "125497" and match.confidence == 1.0)
+
+
 def test_resolve_scheme_with_cas_amfi_code_degrades_gracefully_on_mfapi_outage(tmp_path):
     """Cross-checking a CAS-supplied code now needs the master list too --
     an mfapi.in outage must still degrade to "pending", not crash."""

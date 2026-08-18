@@ -667,3 +667,50 @@ def test_confirm_import_accepts_plan_type_override_matching_parsed_plan_name():
     assert result.added == 1
     folio = db.query(Folio).filter_by(folio_number="123/45").one()
     assert folio.plan_type.value == "direct"
+
+
+def test_confirm_import_does_not_reject_override_when_name_lacks_plan_designator_phrase():
+    """Review finding (round 2): classify_plan_from_name is a loose substring
+    match (FR-5's own documented trade-off) -- plan_name_variant can say
+    "direct" purely because the scheme's base name happens to contain the
+    word "Direct" somewhere, with no actual "Direct Plan"/"Regular Plan"
+    designator in the name. The 409 backstop must not treat that loose
+    signal as an unambiguous veto over a legitimate override -- it only
+    fires when the scheme's own name contains the standard SEBI-mandated
+    "Direct Plan"/"Regular Plan" phrase matching plan_name_variant."""
+    from app.services.import_.schemas import SchemeConfirmation
+
+    db = _session()
+    member = _household_member(db)
+    # "Direct" appears in the base name, not as a "Direct Plan" designator --
+    # plan_name_variant is forced to "direct" here exactly as
+    # classify_plan_from_name's loose substring match would produce for a
+    # name like this.
+    scheme = ParsedScheme(
+        name="HDFC Direct Opportunities Fund - Growth", isin="INF999", amfi="125497",
+        scheme_type="EQUITY", folio="123/45", amc="HDFC AMC", transaction_count=1,
+        arn_code=None, plan_name_variant="direct", plan_type="direct",
+    )
+    txn = NormalizedTransaction(
+        folio="123/45", amc="HDFC AMC", scheme_name="HDFC Direct Opportunities Fund - Growth",
+        isin="INF999", amfi="125497", scheme_type="EQUITY", txn_date=date(2024, 1, 1),
+        txn_type=TransactionType.PURCHASE, description="Purchase",
+        amount=Decimal("5000.00"), units=Decimal("10.000"), nav=Decimal("500.0000"),
+    )
+    parse_result = ParseResult(
+        investor=ParsedInvestor(name="Test Investor", email="t@example.com", pan_masked="ABCDE****F"),
+        schemes=[scheme], transactions=[txn],
+        raw_json='{"investor_info": {"name": "Test Investor"}, "folios": []}',
+        parse_warnings=[], cas_type="DETAILED", file_type="FileType.CAMS",
+    )
+    preview = asyncio.run(build_import_preview(parse_result, "test.pdf", client=_mocked_client()))
+    temp_id = preview.schemes[0].temp_id
+
+    result = confirm_import(
+        db, preview.session_id, member.id,
+        scheme_confirmations=[SchemeConfirmation(temp_id=temp_id, plan_type_override=PlanType.REGULAR)],
+    )
+
+    assert result.added == 1
+    folio = db.query(Folio).filter_by(folio_number="123/45").one()
+    assert folio.plan_type.value == "regular"

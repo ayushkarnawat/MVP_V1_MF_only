@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import uuid
 from datetime import datetime, timedelta, timezone
 from difflib import SequenceMatcher
@@ -37,6 +38,15 @@ _preview_sessions: dict[str, dict[str, Any]] = {}
 
 CONFIDENCE_THRESHOLD = 0.92
 SESSION_TTL_MINUTES = 60
+
+# Review finding: classify_plan_from_name (parser.py) is a loose substring
+# match on the whole scheme name -- fine as FR-5's best-effort primary
+# signal, but not reliable enough to hard-veto a plan_type_override on its
+# own (a base name that merely contains the word "Direct"/"Regular" outside
+# of the standard SEBI-mandated designator would otherwise block a
+# legitimate correction). The 409 backstop below only fires when the name
+# also contains the actual "Direct Plan"/"Regular Plan" phrase.
+_PLAN_DESIGNATOR_RE = re.compile(r"\b(DIRECT|REGULAR)\s+PLAN\b")
 
 
 class SchemeConfidenceError(Exception):
@@ -188,8 +198,12 @@ def confirm_import(
         if override and override.plan_type_override:
             parsed_scheme = parsed_scheme_by_key.get((norm.folio, norm.amc, norm.scheme_name))
             variant = parsed_scheme.plan_name_variant if parsed_scheme else None
-            if variant in (PlanNameVariant.DIRECT.value, PlanNameVariant.REGULAR.value) and (
-                variant != override.plan_type_override.value
+            designator_match = _PLAN_DESIGNATOR_RE.search(preview.name.upper()) if preview.name else None
+            anchored_variant = designator_match.group(1).lower() if designator_match else None
+            if (
+                variant in (PlanNameVariant.DIRECT.value, PlanNameVariant.REGULAR.value)
+                and anchored_variant == variant
+                and variant != override.plan_type_override.value
             ):
                 raise SchemeConfidenceError(
                     f"Plan-type override '{override.plan_type_override.value}' for scheme '{preview.name}' "

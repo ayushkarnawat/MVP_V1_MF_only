@@ -103,7 +103,10 @@ class MfApiClient:
         best: SchemeMatch | None = None
         for item in scheme_list:
             name = item.get("schemeName") or item.get("scheme_name") or ""
-            ratio = SequenceMatcher(None, norm_query, _normalize_name(name)).ratio()
+            norm_name = _normalize_name(name)
+            # SequenceMatcher("", "").ratio() is 1.0 -- a blank/punctuation-only
+            # name must never "confirm" a match.
+            ratio = SequenceMatcher(None, norm_query, norm_name).ratio() if norm_query and norm_name else 0.0
             if best is None or ratio > best.confidence:
                 code = str(item.get("schemeCode") or item.get("scheme_code") or "")
                 best = SchemeMatch(amfi_code=code, scheme_name=name, confidence=ratio)
@@ -147,9 +150,12 @@ class MfApiClient:
         if amfi_from_cas:
             canonical_name = self._canonical_name_for_code(amfi_from_cas, scheme_list)
             if canonical_name is not None:
-                similarity = SequenceMatcher(
-                    None, _normalize_name(scheme_name), _normalize_name(canonical_name)
-                ).ratio()
+                norm_query = _normalize_name(scheme_name)
+                norm_canonical = _normalize_name(canonical_name)
+                # SequenceMatcher("", "").ratio() is 1.0 -- a name that
+                # normalizes to nothing (blank/punctuation-only) must not be
+                # treated as a perfect match.
+                similarity = SequenceMatcher(None, norm_query, norm_canonical).ratio() if norm_query and norm_canonical else 0.0
                 if similarity >= 0.92:
                     return SchemeMatch(amfi_code=amfi_from_cas, scheme_name=scheme_name, confidence=1.0), "confirmed"
 

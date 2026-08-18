@@ -247,7 +247,7 @@ def _sample_parse_result() -> ParseResult:
     )
 
 
-def test_parse_then_confirm_lands_a_transaction_in_the_real_db(client):
+def test_parse_then_confirm_lands_a_transaction_in_the_real_db(client, tmp_path):
     """Route -> service -> DB integration test. Only parse_cas_pdf_bytes and
     the MfApiClient's network-touching methods are mocked — build_import_preview
     and confirm_import run for real against a real (test) database via the
@@ -255,6 +255,7 @@ def test_parse_then_confirm_lands_a_transaction_in_the_real_db(client):
     that would have caught Fix 1's dedupe race: the pre-fix route tests never
     reached a real DB."""
     from app.models.transaction import Transaction
+    from app.services.import_.enrich import mfapi_client
 
     headers, member_id = _authed_headers_and_member(client, "+919999999999")
 
@@ -270,12 +271,20 @@ def test_parse_then_confirm_lands_a_transaction_in_the_real_db(client):
             return {"meta": {"scheme_category": "Equity Scheme - Flexi Cap Fund"}}
         return [{"schemeCode": "125497", "schemeName": "HDFC Flexi Cap Fund - Direct Plan - Growth"}]
 
+    # Review finding (round 2): the module-level `mfapi_client` singleton's
+    # default disk cache (backend/.cache/mfapi/) is real and gitignored, but
+    # NOT test-isolated — a prior run's mocked payload can persist there for
+    # 24h (its TTL) and silently feed a *different* shape into a later run.
+    # Redirect it to a per-test tmp_path and reset any in-process cache this
+    # or an earlier test may have already populated.
     with (
         patch("app.api.imports.parse_cas_pdf_bytes", return_value=_sample_parse_result()),
         patch(
             "app.services.import_.enrich.MfApiClient._get_json",
             new=_fake_get_json,
         ),
+        patch.object(mfapi_client, "cache_dir", tmp_path),
+        patch.object(mfapi_client, "_schemes", None),
     ):
         parse_response = client.post(
             "/imports/parse",
