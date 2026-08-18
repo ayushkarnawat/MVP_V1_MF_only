@@ -52,10 +52,16 @@ async def _fetch_index_history(index: BenchmarkIndex, start_date: date, end_date
             "indexName": trading_name,
         }
     )
-    # A live curl against niftyindices.com returned a 302 -- without this,
-    # the redirect response's non-JSON body hits the broad `except` below
-    # and silently returns stale/empty data instead of genuinely fresh data.
-    async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+    # Deliberately NOT following redirects here. A live curl confirmed the
+    # only redirect this endpoint issues is http-to-https (301, same host
+    # and path) -- moot since NSE_INDICES_URL is already hardcoded https.
+    # If NSE ever *does* redirect this POST, httpx's browser-compatible
+    # redirect handling converts it to a bodyless GET, dropping the
+    # `cinfo` payload that selects the index/date range -- following it
+    # could silently cache the wrong index's data under the requested
+    # `BenchmarkIndex` key, which is worse than the current graceful
+    # degrade-to-stale-cache behavior on any unexpected response shape.
+    async with httpx.AsyncClient(timeout=30.0) as client:
         resp = await client.post(NSE_INDICES_URL, json={"cinfo": cinfo}, headers={"User-Agent": _USER_AGENT})
         resp.raise_for_status()
         payload = resp.json()

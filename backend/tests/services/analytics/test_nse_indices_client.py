@@ -29,11 +29,17 @@ def test_trading_index_name_covers_every_benchmark_index_enum_member():
     assert set(_TRADING_INDEX_NAME.keys()) == set(BenchmarkIndex)
 
 
-def test_fetch_index_history_follows_redirects():
-    """BUG-001/DATA-001: a live curl against niftyindices.com returned a
-    302 -- without `follow_redirects=True`, the redirect response's body
-    (not JSON) hits the broad `except` in `ensure_index_history_fresh` and
-    silently returns stale/empty data instead of genuinely fresh data."""
+def test_fetch_index_history_does_not_blanket_follow_redirects():
+    """BUG-001/DATA-001: investigated adding `follow_redirects=True` after a
+    live curl once returned a 302 -- but a direct repro against the exact
+    configured URL/scheme (https, hardcoded) returned 200 with no redirect,
+    and the only redirect this endpoint issues is http-to-https (moot,
+    since the URL is already https). Blanket-following would be actively
+    worse if a redirect ever did occur: httpx converts this POST to a
+    bodyless GET on 301/302, dropping the `cinfo` payload that selects the
+    index/date range, risking silently caching the wrong index's data
+    rather than the current safe degrade-to-stale-cache on any unexpected
+    response shape. This regression test guards against reintroducing it."""
     mock_response = MagicMock()
     mock_response.raise_for_status = MagicMock()
     mock_response.json = MagicMock(return_value=[])
@@ -48,7 +54,7 @@ def test_fetch_index_history_follows_redirects():
     ) as mock_ctor:
         asyncio.run(_fetch_index_history(BenchmarkIndex.NIFTY_50, date(2026, 8, 3), date(2026, 8, 4)))
 
-    assert mock_ctor.call_args.kwargs.get("follow_redirects") is True
+    assert mock_ctor.call_args.kwargs.get("follow_redirects") is not True
 
 
 def test_ensure_index_history_fresh_fetches_and_caches_when_nothing_cached():
