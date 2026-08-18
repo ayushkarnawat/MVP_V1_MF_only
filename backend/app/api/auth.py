@@ -15,6 +15,7 @@ from app.services.auth.identity import (
     find_identity_by_subject,
     find_or_backfill_phone_identity,
     mark_pending_email_verified,
+    peek_pending_link_info,
     record_identity,
     resolve_new_verified_identity,
 )
@@ -96,18 +97,42 @@ def verify_email_otp(body: EmailOtpVerifyBody, db: DbSession = Depends(get_db)):
         raise HTTPException(status_code=401, detail=str(exc)) from exc
 
     if body.pending_token:
-        existing = find_identity_by_subject(db, AuthIdentityProvider.EMAIL_OTP, body.email)
-        if existing is not None:
-            # Step-up re-auth (LinkAccountPrompt's email branch): the
-            # pending_token is a link/collision token, not a fresh-signup
-            # token -- attach it to the account this email already belongs to.
+        try:
+            link_info = peek_pending_link_info(db, body.pending_token)
+        except PendingVerificationError as exc:
+            raise HTTPException(status_code=401, detail=str(exc)) from exc
+
+        if link_info.matched_user_id is not None:
+            # Step-up re-auth (LinkAccountPrompt's email branch): this is a
+            # genuine link_required collision token, already tied to a
+            # specific account by resolve_new_verified_identity against an
+            # email independently verified earlier (e.g. by Google) --
+            # attach directly to that account. Deliberately NOT looked up
+            # via find_identity_by_subject(body.email): an EMAIL_OTP
+            # pending token's own provider_subject is self-chosen at
+            # signup_email time with no ownership check, so looking up
+            # "does an account already exist for this email" here would
+            # let an attacker pre-claim an arbitrary victim email by
+            # verifying their own unrelated, genuinely-valid OTP.
+            #
+            # matched_user_id itself can't be forged (it's server-derived
+            # from Google's own verified claim), but that alone only
+            # proves *some* email collided with *some* account -- not that
+            # THIS request just verified control of the SPECIFIC contested
+            # address. Require that too, or any OTP the caller can pass
+            # for any email they control would satisfy this step-up.
+            if link_info.email != body.email:
+                raise HTTPException(status_code=401, detail="This verification code doesn't match this signup.")
             try:
-                user_id = attach_pending_identity(db, body.pending_token, existing.user_id)
+                user_id = attach_pending_identity(db, body.pending_token, link_info.matched_user_id)
             except PendingVerificationError as exc:
                 raise HTTPException(status_code=401, detail=str(exc)) from exc
             return _session_response(user_id, AuthIdentityProvider.EMAIL_OTP, db)
-        # Fresh signup: flip the pending record's verified flag, hand off
-        # to the existing mandatory phone gate -- unchanged from today.
+
+        # Fresh signup (matched_user_id is None): flip the pending
+        # record's verified flag, hand off to the existing mandatory
+        # phone gate -- unchanged from today. Never eligible to attach to
+        # an existing account, no matter whose email it claims.
         try:
             pending = mark_pending_email_verified(db, body.pending_token, body.email)
         except PendingVerificationError as exc:

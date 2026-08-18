@@ -184,11 +184,54 @@ def _consume_pending_verification(db: DbSession, raw_token: str) -> PendingIdent
     return pending
 
 
+class PendingLinkInfo(NamedTuple):
+    matched_user_id: uuid.UUID | None
+    email: str | None
+
+
+def peek_pending_link_info(db: DbSession, raw_token: str) -> PendingLinkInfo:
+    """Read-only lookup of a pending token's matched_user_id AND the email
+    it actually claims. Callers use both together, BEFORE calling
+    attach_pending_identity/mark_pending_email_verified/
+    complete_phone_gate_signup (whichever actually consumes the token),
+    to decide:
+
+    1. Which completion path is even eligible: matched_user_id set means
+       a genuine account-collision link (created by
+       resolve_new_verified_identity against an email that was ALREADY
+       independently verified -- e.g. by Google); matched_user_id None
+       means a fresh-signup token (created by signup_email for a
+       self-chosen email nobody has proven control of yet). Unlike
+       phone/Google, an EMAIL_OTP pending token's own provider_subject is
+       self-chosen with no ownership check at creation time (proof comes
+       later, via OTP) -- a matched_user_id IS NULL token must never be
+       attachable to an existing account found by looking up the email
+       the caller just separately proved control of: an attacker could
+       mint such a token for a victim's email, then attach it to their
+       OWN account by verifying their OWN unrelated OTP, pre-claiming the
+       victim's email before the victim ever proves mailbox control.
+
+    2. For a matched_user_id-set link token specifically: whether the
+       email the caller just OTP-verified is actually THE SAME email the
+       collision was raised against. Without this check, any OTP the
+       caller can genuinely pass -- for ANY email they happen to control
+       -- would satisfy the step-up re-auth, defeating the point of
+       asking for a second factor tied to the SPECIFIC contested address
+       (matched_user_id itself can't be forged, but that only proves
+       *an* email collided with *some* account -- not that this request
+       is proving control of that exact address).
+
+    Does not mutate anything -- _consume_pending_verification only
+    validates existence/expiry, it doesn't delete."""
+    pending = _consume_pending_verification(db, raw_token)
+    return PendingLinkInfo(matched_user_id=pending.matched_user_id, email=pending.email)
+
+
 def mark_pending_email_verified(
     db: DbSession, raw_token: str, verified_email: str
 ) -> PendingIdentityVerification:
-    """After email-OTP verification succeeds for an EMAIL_PASSWORD pending
-    record (2026-08-17 email-otp-signup handoff spec §3), flips
+    """After email-OTP verification succeeds for an EMAIL_OTP pending
+    record, flips
     email_verified to True. Deliberately does NOT delete/consume the
     pending row -- it stays alive for the phone gate step that follows,
     exactly like the rest of the pending-token lifecycle where only

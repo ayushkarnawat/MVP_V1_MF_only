@@ -18,6 +18,7 @@ from app.services.auth.identity import (
     find_identity_by_subject,
     find_or_backfill_phone_identity,
     mark_pending_email_verified,
+    peek_pending_link_info,
     pick_primary_identity,
     record_identity,
     refresh_denormalized_email,
@@ -416,6 +417,61 @@ def test_mark_pending_email_verified_rejects_an_unknown_token():
 
     with pytest.raises(PendingVerificationError):
         mark_pending_email_verified(db, "not-a-real-token", "someone@example.com")
+
+
+def test_peek_pending_link_info_returns_none_matched_user_id_for_a_fresh_signup_token():
+    db = _session()
+    _, raw_token = create_pending_verification(
+        db,
+        AuthIdentityProvider.EMAIL_OTP,
+        "fresh@example.com",
+        "fresh@example.com",
+        False,
+        matched_user_id=None,
+    )
+
+    info = peek_pending_link_info(db, raw_token)
+    assert info.matched_user_id is None
+    assert info.email == "fresh@example.com"
+
+
+def test_peek_pending_link_info_returns_the_matched_account_and_email_for_a_link_token():
+    db = _session()
+    user = User(id=uuid.uuid4(), phone_number="+919777777700", created_at=datetime.now(timezone.utc))
+    db.add(user)
+    db.flush()
+    _, raw_token = create_pending_verification(
+        db,
+        AuthIdentityProvider.EMAIL_OTP,
+        "linkme@example.com",
+        "linkme@example.com",
+        True,
+        matched_user_id=user.id,
+    )
+
+    info = peek_pending_link_info(db, raw_token)
+    assert info.matched_user_id == user.id
+    assert info.email == "linkme@example.com"
+
+
+def test_peek_pending_link_info_does_not_consume_the_pending_record():
+    """The step-up route calls this to decide which path to take, then
+    calls attach_pending_identity/mark_pending_email_verified on the SAME
+    token afterward -- peeking must not delete or invalidate it."""
+    db = _session()
+    _, raw_token = create_pending_verification(
+        db,
+        AuthIdentityProvider.EMAIL_OTP,
+        "stillhere@example.com",
+        "stillhere@example.com",
+        False,
+        matched_user_id=None,
+    )
+
+    peek_pending_link_info(db, raw_token)
+
+    result = mark_pending_email_verified(db, raw_token, "stillhere@example.com")
+    assert result.email_verified is True
 
 
 def test_mark_pending_email_verified_rejects_a_mismatched_email():
