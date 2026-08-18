@@ -97,7 +97,20 @@ session to session.
    <scope> and report verdict + findings")`), never as a direct Bash call
    to `codex-companion.mjs`. This is not optional and not skippable for
    convenience — only the user deciding a finding isn't worth fixing
-   closes it out, never a silent skip of the review step itself.
+   closes it out, never a silent skip of the review step itself. **Never
+   pass `isolation: "worktree"` on this dispatch** — see
+   `references/delegation-rules.md`'s "Isolation parameter for
+   dispatches" (a review makes no file changes, so worktree
+   auto-cleanup can orphan the in-flight job). **When the reviewed
+   change is a documentation/analysis deliverable rather than a code
+   diff** (e.g. an investigation findings doc), explicitly instruct the
+   dispatch to also check the document's own internal consistency (no
+   section contradicting another) and that every conclusion stated as
+   confirmed/fact is actually supported by the evidence presented
+   earlier in the same document — not just whether cited code/facts are
+   individually accurate. A pure code-correctness check misses
+   self-contradictions and overclaimed causal language sitting entirely
+   in the prose.
    **Stopping heuristic:** when a round's remaining finding(s) have
    trended to a lower severity than the prior round AND are explicitly
    correctness-safe (bounded cost, no data-loss/corruption path) AND
@@ -156,6 +169,16 @@ faster, cheaper confirmation that never weakens the gate itself.
 
 ## Changelog
 
+- **v1.2 (2026-08-17):** Added the "never `isolation: worktree` on a
+  review/read-only dispatch" rule (worktree auto-cleanup orphaned an
+  in-flight background job during the BUG-001/DATA-001 review gate),
+  the documentation-deliverable review dimension (internal consistency +
+  evidence-supports-conclusion, not just code-fact-checking — this
+  review caught 9 findings of exactly that shape), and the
+  infra-error-retry-once sub-case plus the stale-verdict sanity check in
+  `delegation-rules.md`'s dispatch-failure-recovery section. All three
+  validated live this session (BUG-001/DATA-001 investigation review
+  loop, PR #3).
 - **v1.1 (2026-08-13):** Added `delegation-rules.md`'s worktree-sandbox-
   reach constraint and dispatch-layer-failure recovery step (Phase 4
   Scorer build: Codex's sandbox never reached the shared venv across 5/5
