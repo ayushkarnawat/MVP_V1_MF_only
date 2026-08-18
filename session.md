@@ -46,7 +46,7 @@ worth doing before considering the original "30s → 15s/10s" ask fully closed, 
 verification so far is backend-test-suite-level, not an end-to-end timing measurement
 against the live app.
 
-## BUG-001 / DATA-001 investigation complete, PR #3 open (2026-08-17)
+## BUG-001 / DATA-001 investigation complete, implementation unblocked (2026-08-17/18)
 
 Two tickets plus an ad-hoc XIRR complaint were investigated end-to-end in a
 dedicated worktree (`worktree-bug-001-analytics-load-investigation`,
@@ -58,8 +58,30 @@ review found 9 findings; a fix round plus two orchestrator-direct fixes
 closed all of them; final scoped re-review confirmed clean). Committed as
 `ef2c7b4` (`Docs/orchestration/*` only) and opened as
 [PR #3](https://github.com/ayushkarnawat/MVP_V1_MF_only/pull/3) against
-`feat/enhanced-ui`. **Not yet reviewed/merged as of this writing** — the
-next session's first move depends on whether it's merged (see "What's next").
+`feat/enhanced-ui` — **merged 2026-08-17.**
+
+Two other PRs landed on `feat/enhanced-ui` around the same window,
+independent of this investigation: **PR #4** (the first-login dashboard
+load-time fix documented above — touches `nav.py`/`enrich.py`/`service.py`)
+and **BUG-002**'s dashboard-stuck-loading fix (PRs #1/#2, merged even
+earlier, 2026-08-17 — unrelated symptom, main-dashboard `Promise.all`
+lifecycle bug, not an Analytics issue; see
+`Docs/investigations/BUG-002-dashboard-return-loading.md`). Neither
+required any change to this investigation's findings docs — a follow-up
+pass (`worktree-bug-001-analytics-load-investigation` branch, merged as
+[PR #5](https://github.com/ayushkarnawat/MVP_V1_MF_only/pull/5), **merged
+2026-08-18**) re-verified PR #4's file overlap with the implementation
+prompt's fix items 2/4/7, confirmed the root causes and fix approaches are
+unaffected (only line numbers in item 7 had shifted), corrected those
+references, and cross-referenced BUG-002 in `CLAUDE.md`/this file so
+neither is rediscovered as a surprise. That pass also upgraded
+`model-orchestration` to v1.2 (isolation-parameter rule, documentation-
+deliverable review dimension, infra-retry-once sub-case) from observations
+made during the investigation's own review loop — a parallel session
+independently brought it to v1.3 with two more actioned observations
+(non-native-filesystem sandbox-reach sub-case; confirmed the stale-verdict
+check already covered the other) — both upgrades are cumulative on
+`feat/enhanced-ui`, no conflict.
 
 **BUG-001 finding** (`Docs/orchestration/bug-001-findings.md`, real
 backend-measured timings, ≥3 runs per endpoint, both concurrent-load orders):
@@ -138,26 +160,26 @@ lineage + independent golden-dataset comparison):
 
 ## What's next
 
-**If PR #3 is merged**: implement the fixes above. A detailed
+Implement the fixes above — nothing is blocking this anymore (PR #3, #4,
+and #5 are all merged, and BUG-002 is unrelated/already fixed). A detailed
 implementation-session prompt is saved at
 `Docs/orchestration/bug-001-data-001-implementation-prompt.md` — paste its
-contents into a fresh session to start that work with full context, no
-re-derivation needed. Priority order per the findings doc: Scorer caching/bounding first
-(only fix that's both correctness-safe and addresses an endpoint that
-"never gets cheap"), then TER negative-cache, then Category Ranking's
-query/caching fix (investigate the alternating-timing mystery as part of
-this), then the DATA-001 correctness fixes (XIRR ×100 display bug is
-trivial and should probably go first regardless of the performance work's
-sequencing — it's an unrelated one-line-scope fix), then TER silent-zero +
-cost-adjustment sentinel, then the import identity-validation tightening.
-Follow standard TDD (failing test first) and `Decimal`-never-`float` per
-CLAUDE.md non-negotiables; use `model-orchestration` to delegate to Codex
-per its existing rules (v1.2 as of this session — see its own changelog).
-Beta and a real AAUM refresh entrypoint are open questions on scope, not
-drop-in bug fixes — check PRD-04 before treating them as this pass's job.
-
-**If PR #3 is not yet merged**: nothing else to do on BUG-001/DATA-001 until
-it is — don't start implementing against unreviewed findings.
+contents into a fresh session (a new dedicated worktree) to start that work
+with full context, no re-derivation needed. It's already reconciled against
+PR #4's line-number shifts and flags BUG-002 as out of scope. Priority
+order per the findings doc: Scorer caching/bounding first (only fix that's
+both correctness-safe and addresses an endpoint that "never gets cheap"),
+then TER negative-cache, then Category Ranking's query/caching fix
+(investigate the alternating-timing mystery as part of this), then the
+DATA-001 correctness fixes (XIRR ×100 display bug is trivial and should
+probably go first regardless of the performance work's sequencing — it's
+an unrelated one-line-scope fix), then TER silent-zero + cost-adjustment
+sentinel, then the import identity-validation tightening. Follow standard
+TDD (failing test first) and `Decimal`-never-`float` per CLAUDE.md
+non-negotiables; use `model-orchestration` to delegate to Codex per its
+existing rules (v1.3 as of this session — see its own changelog). Beta and
+a real AAUM refresh entrypoint are open questions on scope, not drop-in bug
+fixes — check PRD-04 before treating them as this pass's job.
 
 ## Post-Phase-2 bug fixes (same day, 2026-08-14) — AMFI TER, dashboard hang, repeat-navigation speed
 
