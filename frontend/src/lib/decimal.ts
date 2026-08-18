@@ -53,15 +53,27 @@ export function diffDecimalStrings(a: string, b: string): string {
 /** Converts a raw decimal-fraction string (e.g. backend XIRR "0.1645", for
  * 16.45%) into an exact percentage display string ("16.45") by shifting the
  * decimal point 2 places right — not by multiplying as a float — so the
- * fraction-to-percent conversion never introduces error before display. */
+ * fraction-to-percent conversion never introduces error before display.
+ * Rounds half-up beyond 2 fractional digits (xirr()'s Newton-Raphson output
+ * is rarely round) rather than truncating, and normalizes signed zero. */
 export function toPercentString(val: string): string {
   const negative = val.startsWith("-");
   const unsigned = negative ? val.slice(1) : val;
   const [whole, frac = ""] = (unsigned || "0").split(".");
   const paddedFrac = frac.padEnd(2, "0");
-  const shiftedWhole = (whole + paddedFrac.slice(0, 2)).replace(/^0+(?=\d)/, "");
-  const remainingFrac = paddedFrac.slice(2).padEnd(2, "0").slice(0, 2);
-  return `${negative ? "-" : ""}${shiftedWhole}.${remainingFrac}`;
+  const percentWhole = (whole + paddedFrac.slice(0, 2)).replace(/^0+(?=\d)/, "") || "0";
+  const percentFracRest = paddedFrac.slice(2); // digits after the shifted decimal point
+  const cents = percentFracRest.slice(0, 2).padEnd(2, "0");
+  const roundUp = (percentFracRest.charAt(2) || "0") >= "5";
+
+  // A single BigInt on "whole*100 + cents" makes a carry (e.g. 99 cents -> a
+  // new whole digit) fall out for free, with no separate carry-propagation logic.
+  const combined = BigInt(percentWhole) * 100n + BigInt(cents) + (roundUp ? 1n : 0n);
+  if (combined === 0n) return "0.00"; // normalizes "-0.00" from a negative near-zero input
+  const combinedStr = combined.toString().padStart(3, "0");
+  const roundedWhole = combinedStr.slice(0, -2).replace(/^0+(?=\d)/, "") || "0";
+  const roundedCents = combinedStr.slice(-2);
+  return `${negative ? "-" : ""}${roundedWhole}.${roundedCents}`;
 }
 
 /** Formats a money value (string or number, already-summed/exact) as

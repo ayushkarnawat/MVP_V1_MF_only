@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sumDecimalStrings } from "./decimal";
+import { sumDecimalStrings, toPercentString } from "./decimal";
 
 describe("sumDecimalStrings", () => {
   it("sums simple two-decimal money strings exactly", () => {
@@ -37,5 +37,29 @@ describe("sumDecimalStrings", () => {
     // enough of these that a naive `+=` on parseFloat would visibly drift.
     const values = Array(10).fill("0.1");
     expect(sumDecimalStrings(values)).toBe("1.0");
+  });
+});
+
+describe("toPercentString", () => {
+  it("shifts a raw decimal fraction to a percentage", () => {
+    expect(toPercentString("0.1645")).toBe("16.45");
+    expect(toPercentString("0.12")).toBe("12.00");
+    expect(toPercentString("-0.1645")).toBe("-16.45");
+  });
+
+  it("rounds half-up beyond 2 fractional digits instead of truncating", () => {
+    // xirr()'s Newton-Raphson output rarely lands on a round number — the
+    // backend never quantizes it, so this is the common case, not an edge case.
+    expect(toPercentString("0.164549")).toBe("16.45");
+    expect(toPercentString("0.164550")).toBe("16.46");
+    expect(toPercentString("0.1234499999999999999999999978")).toBe("12.34");
+    // carry propagates through the shifted whole part, not just the cents.
+    expect(toPercentString("0.999999")).toBe("100.00");
+    expect(toPercentString("-0.164550")).toBe("-16.46");
+  });
+
+  it("normalizes signed zero to unsigned", () => {
+    expect(toPercentString("-0")).toBe("0.00");
+    expect(toPercentString("-0.0000001")).toBe("0.00");
   });
 });

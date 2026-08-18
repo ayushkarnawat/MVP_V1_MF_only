@@ -15,6 +15,7 @@ from app.models.transaction import Transaction
 from app.models.user import HouseholdMember, User
 from app.services.analytics.benchmark import (
     _benchmark_index_for_category,
+    _xirr_str,
     compute_fund_vs_benchmark,
     compute_portfolio_vs_benchmarks,
 )
@@ -218,3 +219,17 @@ def test_compute_fund_vs_benchmark_excludes_scheme_with_no_index_history():
     assert fund_row.fund_xirr is not None  # fund's own XIRR never needs index data
     assert fund_row.benchmark_xirr is None
     assert comparison.overall_broad_market_xirr is None
+
+
+def test_xirr_str_avoids_scientific_notation_for_near_zero_rates():
+    # bare str(Decimal) switches to scientific notation below 1e-6 (e.g.
+    # "1E-16"), which the frontend's decimal-fraction-to-percent shift can't
+    # parse — every XIRR serialization must go through this helper instead.
+    assert _xirr_str(Decimal("1E-16")) == "0.0000000000000001"
+    assert _xirr_str(Decimal("-1.00000000000204020000E-16")) == "-0.000000000000000100000000000204020000"
+    assert _xirr_str(Decimal("0.1645")) == "0.1645"
+    assert _xirr_str(None) is None
+
+
+def test_xirr_str_normalizes_negative_zero():
+    assert _xirr_str(Decimal("-0")) == "0"

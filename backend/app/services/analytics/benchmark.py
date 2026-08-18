@@ -105,6 +105,20 @@ async def _benchmark_xirr_for_transactions(
     return xirr(flows)
 
 
+def _xirr_str(rate: Decimal | None) -> str | None:
+    """Fixed-point serialization for XIRR rates. Bare `str()` on a Decimal
+    switches to scientific notation for near-zero results (xirr()'s
+    Newton-Raphson output can land arbitrarily close to zero) — the
+    frontend's decimal-fraction-to-percent shift can't parse that. `format(d,
+    "f")` is always fixed-point; the explicit zero-check also normalizes
+    signed zero ("-0"), which `format` alone does not."""
+    if rate is None:
+        return None
+    if rate == 0:
+        return "0"
+    return format(rate, "f")
+
+
 def _portfolio_xirr(transactions: list[Transaction], current_value: Decimal) -> Decimal | None:
     flows = [(t.date, _signed_amount(t)) for t in transactions]
     flows.append((date.today(), current_value))
@@ -135,10 +149,10 @@ async def compute_portfolio_vs_benchmarks(
     benchmark_rows = []
     for index in BenchmarkIndex:
         rate = await _benchmark_xirr_for_transactions(db, transactions, index)
-        benchmark_rows.append(IndexXirrRow(index=index, xirr=str(rate) if rate is not None else None))
+        benchmark_rows.append(IndexXirrRow(index=index, xirr=_xirr_str(rate)))
 
     return PortfolioBenchmarkSummary(
-        portfolio_xirr=str(portfolio_xirr) if portfolio_xirr is not None else None,
+        portfolio_xirr=_xirr_str(portfolio_xirr),
         benchmarks=benchmark_rows,
     )
 
@@ -207,8 +221,8 @@ async def compute_fund_vs_benchmark(
                 scheme_id=str(scheme_id),
                 scheme_name=scheme.name,
                 benchmark_index=index,
-                fund_xirr=str(fund_rate) if fund_rate is not None else None,
-                benchmark_xirr=str(benchmark_rate) if benchmark_rate is not None else None,
+                fund_xirr=_xirr_str(fund_rate),
+                benchmark_xirr=_xirr_str(benchmark_rate),
             )
         )
 
@@ -218,8 +232,8 @@ async def compute_fund_vs_benchmark(
 
     return FundVsBenchmarkSummary(
         funds=fund_rows,
-        overall_portfolio_xirr=str(overall_portfolio_rate) if overall_portfolio_rate is not None else None,
-        overall_broad_market_xirr=str(overall_broad_market_rate) if overall_broad_market_rate is not None else None,
+        overall_portfolio_xirr=_xirr_str(overall_portfolio_rate),
+        overall_broad_market_xirr=_xirr_str(overall_broad_market_rate),
     )
 
 

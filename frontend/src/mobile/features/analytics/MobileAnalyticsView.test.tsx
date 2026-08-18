@@ -76,13 +76,16 @@ const sampleScoreSummary = {
   uncovered_schemes: [],
 };
 
+// Backend XIRR values are raw decimal fractions (e.g. "0.1645" for 16.45%,
+// see backend/app/services/analytics/benchmark.py's _xirr_str) — not
+// already-scaled percentages.
 const samplePortfolioBenchmark = {
-  portfolio_xirr: "16.45",
+  portfolio_xirr: "0.1645",
   benchmarks: [
-    { index: "nifty_50" as const, xirr: "12.30" },
-    { index: "nifty_500" as const, xirr: "14.10" },
-    { index: "nifty_largemidcap_250" as const, xirr: "15.00" },
-    { index: "nifty_midcap_150" as const, xirr: "17.20" },
+    { index: "nifty_50" as const, xirr: "0.1230" },
+    { index: "nifty_500" as const, xirr: "0.1410" },
+    { index: "nifty_largemidcap_250" as const, xirr: "0.1500" },
+    { index: "nifty_midcap_150" as const, xirr: "0.1720" },
   ],
 };
 
@@ -92,12 +95,12 @@ const sampleFundBenchmark = {
       scheme_id: "scheme-1",
       scheme_name: "Parag Parikh Flexi Cap Fund - Direct Plan",
       benchmark_index: "nifty_500" as const,
-      fund_xirr: "18.45",
-      benchmark_xirr: "14.10",
+      fund_xirr: "0.1845",
+      benchmark_xirr: "0.1410",
     },
   ],
-  overall_portfolio_xirr: "16.45",
-  overall_broad_market_xirr: "14.10",
+  overall_portfolio_xirr: "0.1645",
+  overall_broad_market_xirr: "0.1410",
 };
 
 describe("MobileAnalyticsView", () => {
