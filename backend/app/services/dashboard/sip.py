@@ -14,7 +14,7 @@ from __future__ import annotations
 import calendar
 import uuid
 from collections import defaultdict
-from datetime import date, timedelta
+from datetime import date
 
 from sqlalchemy import case
 from sqlalchemy.orm import Session
@@ -49,27 +49,56 @@ def _next_due_on_or_after(anchor: date, today: date) -> date:
         candidate = _add_months_clamped(anchor, months)
     return candidate
 
-SIP_ACTIVE_WINDOW_DAYS = 40
+def _folio_transactions_by_id(
+    db: Session, folios: list[Folio]
+) -> dict[uuid.UUID, list[Transaction]]:
+    """Single batched query for every given folio's transactions, ordered
+    exactly like holdings.py's per-folio query (same-date redemptions
+    sorted after purchases, so _process_folio_lots gets correctly-ordered
+    input) — replaces what would otherwise be one query per folio."""
+    folio_ids = [f.id for f in folios]
+    if not folio_ids:
+        return {}
+    transactions = (
+        db.query(Transaction)
+        .filter(Transaction.folio_id.in_(folio_ids))
+        .order_by(
+            Transaction.date,
+            case((Transaction.type.in_(_LOT_CONSUMING_TYPES), 1), else_=0),
+            Transaction.id,
+        )
+        .all()
+    )
+    by_folio: dict[uuid.UUID, list[Transaction]] = defaultdict(list)
+    for txn in transactions:
+        by_folio[txn.folio_id].append(txn)
+    return by_folio
 
 
 def compute_active_sips(db: Session, household_member_ids: list[uuid.UUID]) -> list[SipRow]:
     if not household_member_ids:
         return []
 
-    members = {m.id: m for m in db.query(HouseholdMember).filter(HouseholdMember.id.in_(household_member_ids)).all()}
+    members = {
+        m.id: m
+        for m in db.query(HouseholdMember).filter(HouseholdMember.id.in_(household_member_ids)).all()
+    }
     folios = db.query(Folio).filter(Folio.household_member_id.in_(household_member_ids)).all()
-    cutoff = date.today() - timedelta(days=SIP_ACTIVE_WINDOW_DAYS)
+    by_folio = _folio_transactions_by_id(db, folios)
+    today = date.today()
 
     rows: list[SipRow] = []
     for folio in folios:
-        most_recent = (
-            db.query(Transaction)
-            .filter(Transaction.folio_id == folio.id, Transaction.type == TransactionType.PURCHASE_SIP)
-            .order_by(Transaction.date.desc())
-            .first()
-        )
-        if most_recent is None or most_recent.date < cutoff:
+        transactions = by_folio.get(folio.id, [])
+        sip_txns = [t for t in transactions if t.type == TransactionType.PURCHASE_SIP]
+        if not sip_txns:
             continue
+
+        units_held, _, _ = _process_folio_lots(transactions)
+        if units_held <= 0:
+            continue
+
+        latest = sip_txns[-1]  # transactions is chronologically ordered
         scheme = db.get(Scheme, folio.scheme_id)
         rows.append(
             SipRow(
@@ -77,8 +106,9 @@ def compute_active_sips(db: Session, household_member_ids: list[uuid.UUID]) -> l
                 scheme_name=scheme.name,
                 household_member_id=str(folio.household_member_id),
                 household_member_name=members[folio.household_member_id].name,
-                sip_date=most_recent.date,
-                sip_amount=str(most_recent.amount),
+                sip_date=latest.date,
+                sip_amount=str(latest.amount),
+                next_due_date=_next_due_on_or_after(latest.date, today),
             )
         )
     return rows

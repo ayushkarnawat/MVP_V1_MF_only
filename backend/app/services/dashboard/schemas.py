@@ -71,6 +71,7 @@ class SipRow(BaseModel):
     household_member_name: str
     sip_date: date
     sip_amount: str
+    next_due_date: date
 
 
 class CashFlowEntry(BaseModel):

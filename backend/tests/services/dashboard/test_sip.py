@@ -95,24 +95,43 @@ def _sip_txn(db, folio, on_date, amount=Decimal("1000.00"), units=Decimal("20.00
     return txn
 
 
-def test_sip_within_40_days_is_active():
+def test_sip_shown_regardless_of_last_transaction_age():
     db = _session()
     member = _household_member(db)
     scheme = _scheme(db)
     folio = _folio(db, member, scheme)
-    _sip_txn(db, folio, date.today() - timedelta(days=10))
+    _sip_txn(db, folio, date.today() - timedelta(days=400))
 
     sips = compute_active_sips(db, [member.id])
     assert len(sips) == 1
     assert sips[0].scheme_name == "SIP Fund"
 
 
-def test_sip_older_than_40_days_is_not_active():
+def test_sip_next_due_date_rolls_forward_from_last_transaction():
     db = _session()
     member = _household_member(db)
     scheme = _scheme(db)
     folio = _folio(db, member, scheme)
-    _sip_txn(db, folio, date.today() - timedelta(days=45))
+    last_run = date.today() - timedelta(days=100)
+    _sip_txn(db, folio, last_run)
+
+    sips = compute_active_sips(db, [member.id])
+    assert len(sips) == 1
+    assert sips[0].next_due_date >= date.today()
+
+
+def test_sip_excluded_when_folio_fully_redeemed():
+    db = _session()
+    member = _household_member(db)
+    scheme = _scheme(db)
+    folio = _folio(db, member, scheme)
+    _sip_txn(db, folio, date.today() - timedelta(days=60), units=Decimal("20.000"), nav=Decimal("50.0000"))
+    db.add(Transaction(
+        id=uuid.uuid4(), folio_id=folio.id, import_id=uuid.uuid4(),
+        type=TransactionType.REDEMPTION, date=date.today() - timedelta(days=10),
+        amount=Decimal("1000.00"), units=Decimal("20.000"), nav=Decimal("50.0000"),
+    ))
+    db.commit()
 
     sips = compute_active_sips(db, [member.id])
     assert sips == []
