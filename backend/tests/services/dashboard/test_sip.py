@@ -160,3 +160,81 @@ def test_non_sip_purchase_is_not_a_sip():
 
     sips = compute_active_sips(db, [member.id])
     assert sips == []
+
+
+from app.services.dashboard.sip import compute_sips_for_month
+
+
+def test_sips_for_month_uses_actual_transaction_when_one_exists_in_month():
+    db = _session()
+    member = _household_member(db)
+    scheme = _scheme(db)
+    folio = _folio(db, member, scheme)
+    _sip_txn(db, folio, date(2026, 7, 5), amount=Decimal("1000.00"))
+    _sip_txn(db, folio, date(2026, 8, 7), amount=Decimal("1200.00"))
+
+    rows = compute_sips_for_month(db, [member.id], 2026, 8)
+    assert len(rows) == 1
+    assert rows[0].date == date(2026, 8, 7)
+    assert Decimal(rows[0].amount) == Decimal("1200.00")
+
+
+def test_sips_for_month_uses_projected_date_when_no_actual_transaction():
+    db = _session()
+    member = _household_member(db)
+    scheme = _scheme(db)
+    folio = _folio(db, member, scheme)
+    _sip_txn(db, folio, date(2026, 7, 5), amount=Decimal("1000.00"))
+    # August skipped entirely — no actual transaction.
+
+    rows = compute_sips_for_month(db, [member.id], 2026, 8)
+    assert len(rows) == 1
+    assert rows[0].date == date(2026, 8, 5)
+    assert Decimal(rows[0].amount) == Decimal("1000.00")
+
+
+def test_sips_for_month_omits_month_before_first_ever_transaction():
+    db = _session()
+    member = _household_member(db)
+    scheme = _scheme(db)
+    folio = _folio(db, member, scheme)
+    _sip_txn(db, folio, date(2026, 7, 5))
+
+    rows = compute_sips_for_month(db, [member.id], 2026, 3)
+    assert rows == []
+
+
+def test_sips_for_month_projects_backward_correctly_when_a_later_transaction_exists():
+    db = _session()
+    member = _household_member(db)
+    scheme = _scheme(db)
+    folio = _folio(db, member, scheme)
+    _sip_txn(db, folio, date(2026, 7, 5), amount=Decimal("1000.00"))
+    # August skipped, SIP resumes in October — October becomes the latest anchor.
+    _sip_txn(db, folio, date(2026, 10, 5), amount=Decimal("1000.00"))
+
+    rows = compute_sips_for_month(db, [member.id], 2026, 8)
+    assert len(rows) == 1
+    assert rows[0].date == date(2026, 8, 5)
+
+
+def test_sips_for_month_shows_real_past_transaction_even_if_folio_later_redeemed():
+    db = _session()
+    member = _household_member(db)
+    scheme = _scheme(db)
+    folio = _folio(db, member, scheme)
+    _sip_txn(db, folio, date(2026, 7, 5), amount=Decimal("1000.00"), units=Decimal("20.000"), nav=Decimal("50.0000"))
+    db.add(Transaction(
+        id=uuid.uuid4(), folio_id=folio.id, import_id=uuid.uuid4(),
+        type=TransactionType.REDEMPTION, date=date(2026, 9, 1),
+        amount=Decimal("1000.00"), units=Decimal("20.000"), nav=Decimal("50.0000"),
+    ))
+    db.commit()
+
+    rows = compute_sips_for_month(db, [member.id], 2026, 7)
+    assert len(rows) == 1
+    assert rows[0].date == date(2026, 7, 5)
+
+    # But no fabricated projected row for a later, unpaid month post-redemption.
+    rows_later = compute_sips_for_month(db, [member.id], 2026, 11)
+    assert rows_later == []

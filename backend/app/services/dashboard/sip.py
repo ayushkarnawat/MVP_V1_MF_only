@@ -25,7 +25,7 @@ from app.models.reference import Scheme
 from app.models.transaction import Transaction
 from app.models.user import HouseholdMember
 from app.services.dashboard.holdings import _LOT_CONSUMING_TYPES, _process_folio_lots
-from app.services.dashboard.schemas import SipRow
+from app.services.dashboard.schemas import SipMonthlyRow, SipRow
 
 
 def _add_months_clamped(anchor: date, months: int) -> date:
@@ -109,6 +109,72 @@ def compute_active_sips(db: Session, household_member_ids: list[uuid.UUID]) -> l
                 sip_date=latest.date,
                 sip_amount=str(latest.amount),
                 next_due_date=_next_due_on_or_after(latest.date, today),
+            )
+        )
+    return rows
+
+
+def compute_sips_for_month(
+    db: Session, household_member_ids: list[uuid.UUID], year: int, month: int
+) -> list[SipMonthlyRow]:
+    if not household_member_ids:
+        return []
+
+    members = {
+        m.id: m
+        for m in db.query(HouseholdMember).filter(HouseholdMember.id.in_(household_member_ids)).all()
+    }
+    folios = db.query(Folio).filter(Folio.household_member_id.in_(household_member_ids)).all()
+    by_folio = _folio_transactions_by_id(db, folios)
+
+    rows: list[SipMonthlyRow] = []
+    for folio in folios:
+        transactions = by_folio.get(folio.id, [])
+        sip_txns = [t for t in transactions if t.type == TransactionType.PURCHASE_SIP]
+        if not sip_txns:
+            continue
+
+        first_txn = sip_txns[0]
+        latest_txn = sip_txns[-1]
+        actual = next(
+            (t for t in reversed(sip_txns) if t.date.year == year and t.date.month == month),
+            None,
+        )
+        scheme = db.get(Scheme, folio.scheme_id)
+        member_name = members[folio.household_member_id].name
+
+        if actual is not None:
+            rows.append(
+                SipMonthlyRow(
+                    scheme_id=str(scheme.id),
+                    scheme_name=scheme.name,
+                    household_member_id=str(folio.household_member_id),
+                    household_member_name=member_name,
+                    date=actual.date,
+                    amount=str(actual.amount),
+                )
+            )
+            continue
+
+        units_held, _, _ = _process_folio_lots(transactions)
+        if units_held <= 0:
+            # Redeemed, and no real transaction landed in this month —
+            # never fabricate a projected row for a dead folio.
+            continue
+
+        if (year, month) < (first_txn.date.year, first_txn.date.month):
+            continue
+
+        months_diff = (year - latest_txn.date.year) * 12 + (month - latest_txn.date.month)
+        projected_date = _add_months_clamped(latest_txn.date, months_diff)
+        rows.append(
+            SipMonthlyRow(
+                scheme_id=str(scheme.id),
+                scheme_name=scheme.name,
+                household_member_id=str(folio.household_member_id),
+                household_member_name=member_name,
+                date=projected_date,
+                amount=str(latest_txn.amount),
             )
         )
     return rows
