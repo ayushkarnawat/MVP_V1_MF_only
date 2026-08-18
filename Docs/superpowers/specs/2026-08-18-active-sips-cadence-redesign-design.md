@@ -241,6 +241,37 @@ existing `get_aggregate_sips` wrapper.
   - Reuse the existing segmented-tab-switcher classnames/pattern already
     used for the Allocation section's view toggle, for visual consistency.
 
+## Performance
+
+The dashboard's load-time work (`nav-fetch-connection-reuse-handoff.md`,
+`import-preview-concurrency-handoff.md`) is a standing constraint — this
+change must not reintroduce a load-time regression.
+
+- **No NAV/network calls anywhere in this feature.** Detection, the
+  redemption check, and both projection functions are pure DB-transaction
+  arithmetic — no `httpx` calls, no `mfapi.in` dependency. Unaffected by the
+  NAV-fetch bottlenecks the earlier perf work fixed.
+- **Fixing, not introducing, an N+1 query pattern.** The *current*
+  `compute_active_sips` already runs one query per folio (`most_recent =
+  db.query(Transaction).filter(folio_id == folio.id, ...).first()` inside a
+  `for folio in folios` loop). Adding the redemption check naively (another
+  per-folio query for `_process_folio_lots`' input) would double this. The
+  rewrite instead fetches **all transactions for all the household's folios
+  in a single query** (`Transaction.folio_id.in_([f.id for f in folios])`,
+  ordered by date), groups them in Python by `folio_id`, and derives both
+  the most-recent/first SIP transaction and the FIFO units-held check from
+  that one in-memory batch per folio. Net result: 2 queries total
+  (`folios`, `transactions`) regardless of folio count, replacing what was
+  previously O(folios) queries — a strict improvement over the current code,
+  not just cost-neutral.
+- **The roll-forward loop is bounded and cheap.** Worst case (a SIP anchor
+  a decade stale) is on the order of ~120 loop iterations of pure date
+  arithmetic — not a measurable cost next to a DB round-trip.
+- **The monthly endpoint is not part of the initial dashboard load.** Per
+  the frontend design above, `/sips/monthly` is fetched lazily only when
+  the "This Month" tab is opened or navigated, exactly like other
+  on-demand-only dashboard data — it cannot add latency to first paint.
+
 ## Error Handling & Edge Cases
 
 | Scenario | Expected Behavior |
@@ -274,6 +305,12 @@ Backend (`backend/tests/services/dashboard/test_sip.py`, TDD, red-green-refactor
 - `test_sips_for_month_omits_month_before_first_ever_transaction` — browsing
   a month earlier than the SIP's true first transaction must omit, using
   `first_txn`, not `latest_txn`.
+- `test_compute_active_sips_uses_constant_query_count_regardless_of_folio_count`
+  — no existing query-count test infra in this codebase, so this test adds
+  a small inline `sqlalchemy.event.listen(engine, "before_cursor_execute",
+  ...)` counter (stdlib SQLAlchemy feature, no new dependency) and asserts
+  the count is identical for 1 folio vs. many, guarding the batched-query
+  fix above.
 
 `backend/tests/api/test_dashboard_sips_route.py`:
 - New tests for both `/sips/monthly` routes (member + aggregate), default
