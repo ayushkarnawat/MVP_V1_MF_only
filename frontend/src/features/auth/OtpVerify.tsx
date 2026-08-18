@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { Button } from "@/components/ui/button";
+import { OtpInput } from "@/components/ui/otp-input";
 import { ArrowLeft, ArrowRight, AlertCircle, ShieldCheck, Loader2, KeyRound } from "lucide-react";
 
 interface OtpVerifyProps {
@@ -69,22 +70,18 @@ export function OtpVerify({
       )}
 
       {/* 3. OTP Input Field */}
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         <label
           htmlFor="otp-input"
           className="text-xs font-semibold text-[var(--color-ink)] block"
         >
           Verification code
         </label>
-        <input
+        <OtpInput
           id="otp-input"
-          type="text"
-          inputMode="numeric"
-          maxLength={6}
-          placeholder="••••••"
           value={otp}
-          onChange={(event) => setOtp(event.target.value)}
-          className="w-full text-center tracking-[0.4em] font-mono text-xl sm:text-2xl font-bold h-12 sm:h-14 rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/20 text-[var(--color-ink)] focus:outline-none transition-all placeholder:text-[var(--color-text-secondary)]/30"
+          onChange={setOtp}
+          disabled={submitting}
           autoFocus
         />
       </div>

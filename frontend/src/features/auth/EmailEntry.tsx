@@ -1,7 +1,9 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
+import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, ArrowLeft, ArrowRight, Loader2, ShieldCheck } from "lucide-react";
+import { staggerContainerVariants, staggerItemVariants } from "@/lib/motion";
 
 interface EmailEntryProps {
   /** "login": direct email login from landing. "link": step-up re-authentication
@@ -33,12 +35,15 @@ export function EmailEntry({ context = "login", onSignup, onLogin, onBack, submi
   const displayedError = error;
 
   return (
-    <form
+    <motion.form
+      variants={staggerContainerVariants}
+      initial="hidden"
+      animate="visible"
       onSubmit={(event) => submit(event, isLoginOnly ? "login" : "signup")}
       className="w-full max-w-md mx-auto space-y-6 text-left box-border"
     >
       {/* 1. Navigation & Brand Heading */}
-      <div className="space-y-3">
+      <motion.div variants={staggerItemVariants} className="space-y-3">
         {onBack && (
           <button
             type="button"
@@ -62,10 +67,10 @@ export function EmailEntry({ context = "login", onSignup, onLogin, onBack, submi
               : "Enter your email to get started, or log in if you already have an account."}
           </p>
         </div>
-      </div>
+      </motion.div>
 
       {/* 2. Inputs Group */}
-      <div className="space-y-3.5">
+      <motion.div variants={staggerItemVariants} className="space-y-3.5">
         <div className="space-y-1.5">
           <label htmlFor="email-input" className="text-xs font-semibold text-[var(--color-ink)] block">
             Email address
@@ -80,7 +85,7 @@ export function EmailEntry({ context = "login", onSignup, onLogin, onBack, submi
             autoFocus
           />
         </div>
-      </div>
+      </motion.div>
 
       {/* 3. Error Alert */}
       {displayedError && (
@@ -94,7 +99,7 @@ export function EmailEntry({ context = "login", onSignup, onLogin, onBack, submi
       )}
 
       {/* 4. Action Buttons */}
-      <div className="space-y-3 pt-1">
+      <motion.div variants={staggerItemVariants} className="space-y-3 pt-1">
         <Button
           type="submit"
           disabled={submitting || !email.trim()}
@@ -124,13 +129,13 @@ export function EmailEntry({ context = "login", onSignup, onLogin, onBack, submi
             Log in instead
           </Button>
         )}
-      </div>
+      </motion.div>
 
       {/* 5. Security Footnote */}
-      <div className="flex items-center justify-center sm:justify-start gap-1.5 text-[11px] text-[var(--color-text-secondary)] pt-2 select-none">
+      <motion.div variants={staggerItemVariants} className="flex items-center justify-center sm:justify-start gap-1.5 text-[11px] text-[var(--color-text-secondary)] pt-2 select-none">
         <ShieldCheck className="h-3.5 w-3.5 text-[var(--color-accent)]" />
         <span>256-bit encrypted · Read-only access · No spam</span>
-      </div>
-    </form>
+      </motion.div>
+    </motion.form>
   );
 }

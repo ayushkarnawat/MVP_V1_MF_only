@@ -1,7 +1,9 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
+import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, AlertCircle, ShieldCheck, Loader2 } from "lucide-react";
+import { staggerContainerVariants, staggerItemVariants } from "@/lib/motion";
 
 interface PhoneEntryProps {
   /** "phoneGate": completing the mandatory phone step after a Google/email
@@ -32,12 +34,15 @@ export function PhoneEntry({
   };
 
   return (
-    <form
+    <motion.form
+      variants={staggerContainerVariants}
+      initial="hidden"
+      animate="visible"
       onSubmit={handleSubmit}
       className="w-full max-w-md mx-auto space-y-6 text-left box-border"
     >
       {/* 1. Header & Context Indicator */}
-      <div className="space-y-3">
+      <motion.div variants={staggerItemVariants} className="space-y-3">
         {onBack && (
           <button
             type="button"
@@ -61,10 +66,10 @@ export function PhoneEntry({
               : "Enter your mobile number to receive a secure one-time passcode."}
           </p>
         </div>
-      </div>
+      </motion.div>
 
       {/* 2. Premium Phone Input */}
-      <div className="space-y-1.5">
+      <motion.div variants={staggerItemVariants} className="space-y-1.5">
         <label
           htmlFor="phone-input"
           className="text-xs font-semibold text-[var(--color-ink)] block"
@@ -86,7 +91,7 @@ export function PhoneEntry({
             autoFocus
           />
         </div>
-      </div>
+      </motion.div>
 
       {/* 3. Error Alert */}
       {error && (
@@ -100,7 +105,7 @@ export function PhoneEntry({
       )}
 
       {/* 4. Action Button */}
-      <div className="space-y-3 pt-1">
+      <motion.div variants={staggerItemVariants} className="space-y-3 pt-1">
         <Button
           type="submit"
           disabled={submitting || !phoneNumber.trim()}
@@ -118,13 +123,13 @@ export function PhoneEntry({
             </>
           )}
         </Button>
-      </div>
+      </motion.div>
 
       {/* 5. Trust Footnote */}
-      <div className="flex items-center justify-center sm:justify-start gap-1.5 text-[11px] text-[var(--color-text-secondary)] pt-2 select-none">
+      <motion.div variants={staggerItemVariants} className="flex items-center justify-center sm:justify-start gap-1.5 text-[11px] text-[var(--color-text-secondary)] pt-2 select-none">
         <ShieldCheck className="h-3.5 w-3.5 text-[var(--color-accent)]" />
         <span>256-bit encrypted · Read-only access · No spam</span>
-      </div>
-    </form>
+      </motion.div>
+    </motion.form>
   );
 }

@@ -9,6 +9,7 @@ import { Q1Name } from "./Q1Name";
 import { Q2Investing } from "./Q2Investing";
 import { Q3Purpose } from "./Q3Purpose";
 import { Q4Household } from "./Q4Household";
+import { OnboardingCardStack } from "./OnboardingCardStack";
 import { AddFamilyMembers } from "./AddFamilyMembers";
 import { SoloCasUpload } from "./SoloCasUpload";
 import { FamilyImportFlow } from "./FamilyImportFlow";
@@ -54,58 +55,70 @@ export function OnboardingFlow() {
 
   const renderStep = () => {
     if (step === "trust_primer") {
-      return <TrustPrimer onContinue={() => advance("q1_name")} />;
+      return (
+        <OnboardingCardStack history={history}>
+          <TrustPrimer onContinue={() => advance("q1_name")} />
+        </OnboardingCardStack>
+      );
     }
 
     if (step === "q1_name") {
       return (
-        <Q1Name
-          value={answers.name}
-          onBack={showBack ? back : undefined}
-          onSkip={() => skip("q2_investing")}
-          onSubmit={(name) => {
-            setAnswers((a) => ({ ...a, name }));
-            advance("q2_investing");
-          }}
-        />
+        <OnboardingCardStack history={history}>
+          <Q1Name
+            value={answers.name}
+            onBack={showBack ? back : undefined}
+            onSkip={() => skip("q2_investing")}
+            onSubmit={(name) => {
+              setAnswers((a) => ({ ...a, name }));
+              advance("q2_investing");
+            }}
+          />
+        </OnboardingCardStack>
       );
     }
 
     if (step === "q2_investing") {
       return (
-        <Q2Investing
-          onBack={back}
-          onSkip={() => skip("q3_purpose")}
-          onSelect={(investorType) => {
-            void updateMe({ investor_type: investorType });
-            setAnswers((a) => ({ ...a, investorType }));
-            advance("q3_purpose");
-          }}
-        />
+        <OnboardingCardStack history={history}>
+          <Q2Investing
+            onBack={back}
+            onSkip={() => skip("q3_purpose")}
+            onSelect={(investorType) => {
+              void updateMe({ investor_type: investorType });
+              setAnswers((a) => ({ ...a, investorType }));
+              advance("q3_purpose");
+            }}
+          />
+        </OnboardingCardStack>
       );
     }
 
     if (step === "q3_purpose") {
       return (
-        <Q3Purpose
-          onBack={back}
-          onSkip={() => skip("q4_household")}
-          onSelect={(primaryGoal) => {
-            void updateMe({ primary_goal: primaryGoal });
-            setAnswers((a) => ({ ...a, primaryGoal }));
-            advance("q4_household");
-          }}
-        />
+        <OnboardingCardStack history={history}>
+          <Q3Purpose
+            onBack={back}
+            onSkip={() => skip("q4_household")}
+            onSelect={(primaryGoal) => {
+              void updateMe({ primary_goal: primaryGoal });
+              setAnswers((a) => ({ ...a, primaryGoal }));
+              advance("q4_household");
+            }}
+          />
+        </OnboardingCardStack>
       );
     }
 
     if (step === "q4_household") {
       return (
-        <Q4Household
-          onBack={back}
-          onChooseSolo={() => advance("cas_upload")}
-          onChooseFamily={() => advance("add_family")}
-        />
+        <OnboardingCardStack history={history}>
+          <Q4Household
+            onBack={back}
+            onChooseSolo={() => advance("cas_upload")}
+            onChooseFamily={() => advance("add_family")}
+          />
+        </OnboardingCardStack>
       );
     }
 

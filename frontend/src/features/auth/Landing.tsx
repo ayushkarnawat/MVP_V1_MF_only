@@ -84,7 +84,7 @@ export function Landing({
               type="submit"
               disabled={submitting || !email.trim()}
               aria-label="Create account"
-              className="w-full h-11 sm:h-12 rounded-xl bg-[var(--color-accent)] hover:bg-[#16a34a] text-white font-semibold text-xs sm:text-sm shadow-md shadow-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/25 gap-2 cursor-pointer active:scale-[0.99] transition-all min-h-[44px] sm:min-h-[48px] mt-1.5"
+              className="w-full h-11 sm:h-12 rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent)]/90 text-white font-semibold text-xs sm:text-sm shadow-xs gap-2 cursor-pointer active:scale-[0.99] transition-all min-h-[44px] sm:min-h-[48px] mt-1.5"
             >
               {submitting ? (
                 <>
