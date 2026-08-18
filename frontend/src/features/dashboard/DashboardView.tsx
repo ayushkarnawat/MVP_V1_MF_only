@@ -14,8 +14,10 @@ import { sumDecimalStrings, formatIndianCurrency } from "../../lib/decimal";
 import {
   getMemberHoldings,
   getMemberAllocation,
+  getMemberSips,
   getAggregateHoldings,
   getAggregateAllocation,
+  getAggregateSips,
 } from "./api";
 import {
   Select,
@@ -24,7 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { HoldingRow, AllocationSummary, FamilyMemberStatus } from "./types";
+import type { HoldingRow, AllocationSummary, FamilyMemberStatus, SipRow } from "./types";
 import { cn } from "@/lib/utils";
 import { ArrowUpRight, ArrowDownRight, User, Users, AlertTriangle, BarChart2 } from "lucide-react";
 
@@ -41,6 +43,7 @@ export function DashboardView({
 }: DashboardViewProps) {
   const [holdings, setHoldings] = useState<HoldingRow[]>([]);
   const [allocation, setAllocation] = useState<AllocationSummary | null>(null);
+  const [sips, setSips] = useState<SipRow[]>([]);
   const [membersStatus, setMembersStatus] = useState<FamilyMemberStatus[]>([]);
   const [coverageGaps, setCoverageGaps] = useState<CoverageGapItem[]>([]);
   const [selectedGap, setSelectedGap] = useState<CoverageGapItem | null>(null);
@@ -75,26 +78,30 @@ export function DashboardView({
     const fetchData = async () => {
       try {
         if (viewMode === "aggregate") {
-          const [holdingsRes, allocationRes] = await Promise.all([
+          const [holdingsRes, allocationRes, sipsRes] = await Promise.all([
             getAggregateHoldings(controller.signal),
             getAggregateAllocation(controller.signal),
+            getAggregateSips(controller.signal),
           ]);
           if (isMounted) {
             setHoldings(holdingsRes.holdings);
             setMembersStatus(holdingsRes.members);
             setAllocation(allocationRes.allocation);
+            setSips(sipsRes.sips);
             setCoverageGaps([]);
             setLoading(false);
           }
         } else if (memberId) {
-          const [holdingsRes, allocationRes] = await Promise.all([
+          const [holdingsRes, allocationRes, sipsRes] = await Promise.all([
             getMemberHoldings(memberId, controller.signal),
             getMemberAllocation(memberId, controller.signal),
+            getMemberSips(memberId, controller.signal),
           ]);
           if (isMounted) {
             setHoldings(holdingsRes);
             setMembersStatus([]);
             setAllocation(allocationRes);
+            setSips(sipsRes);
             setLoading(false);
           }
 
@@ -112,6 +119,7 @@ export function DashboardView({
             setHoldings([]);
             setMembersStatus([]);
             setAllocation(null);
+            setSips([]);
             setCoverageGaps([]);
             setLoading(false);
           }
@@ -134,6 +142,22 @@ export function DashboardView({
       controller.abort();
     };
   }, [viewMode, memberId]);
+
+  const upcomingSips = useMemo(() => {
+    return sips
+      .map((sip) => ({
+        ...sip,
+        // ponytail: naive same-day-next-month projection (JS Date rolls
+        // day-overflow into the following month) — fine since SIPs are
+        // near-universally scheduled on a day that exists in every month
+        // (1st-28th); revisit if a day 29-31 SIP date is ever observed.
+        nextDueDate: (() => {
+          const last = new Date(sip.sip_date);
+          return new Date(last.getFullYear(), last.getMonth() + 1, last.getDate());
+        })(),
+      }))
+      .sort((a, b) => a.nextDueDate.getTime() - b.nextDueDate.getTime());
+  }, [sips]);
 
   const displayedHoldings = useMemo(() => {
     if (holdingsMemberFilter === "all") return holdings;
@@ -362,6 +386,47 @@ export function DashboardView({
               data={allocationItems}
               totalValue={allocation?.total_value}
             />
+          </div>
+        </section>
+      )}
+
+      {/* Upcoming SIPs Section (PRD-03 FR-5/FR-6) */}
+      {upcomingSips.length > 0 && (
+        <section className="flex flex-col space-y-4" data-testid="upcoming-sips">
+          <h2 className="font-display text-lg font-semibold tracking-tight text-[var(--color-ink)]">
+            Upcoming SIPs
+          </h2>
+
+          <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] divide-y divide-[var(--color-border)]">
+            {upcomingSips.map((sip) => (
+              <div
+                key={sip.scheme_id + sip.household_member_id}
+                className="flex items-center justify-between gap-4 px-4 py-3"
+              >
+                <div className="flex flex-col min-w-0">
+                  <span className="text-sm font-medium text-[var(--color-ink)] truncate">
+                    {sip.scheme_name}
+                  </span>
+                  {viewMode === "aggregate" && (
+                    <span className="text-xs text-[var(--color-text-secondary)]">
+                      {sip.household_member_name}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-6 flex-shrink-0">
+                  <span className="text-xs text-[var(--color-text-secondary)] tabular-nums">
+                    {sip.nextDueDate.toLocaleDateString("en-IN", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </span>
+                  <span className="text-sm font-semibold text-[var(--color-ink)] tabular-nums">
+                    ₹{formatIndianCurrency(sip.sip_amount)}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
       )}

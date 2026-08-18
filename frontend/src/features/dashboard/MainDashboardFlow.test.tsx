@@ -11,8 +11,10 @@ vi.mock("../auth/api", () => ({
 vi.mock("./api", () => ({
   getMemberHoldings: vi.fn(),
   getMemberAllocation: vi.fn(),
+  getMemberSips: vi.fn(),
   getAggregateHoldings: vi.fn(),
   getAggregateAllocation: vi.fn(),
+  getAggregateSips: vi.fn(),
   getDistributorComparison: vi.fn(),
 }));
 
@@ -31,6 +33,8 @@ describe("MainDashboardFlow", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     window.history.replaceState({}, "", "/");
+    vi.mocked(dashboardApi.getMemberSips).mockResolvedValue([]);
+    vi.mocked(dashboardApi.getAggregateSips).mockResolvedValue({ members: [], sips: [] });
   });
 
   it("records tab changes in browser history and restores Dashboard on Back", async () => {
