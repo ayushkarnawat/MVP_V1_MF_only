@@ -82,6 +82,45 @@ automatically, called out explicitly rather than discovered at cutover:
 | **`JSONB`** (`imports.raw_parser_output`) | SQLite has no native `JSONB` type — it stores JSON as `TEXT` via its JSON1 extension | Use SQLAlchemy's generic `JSON` type in models, which maps to `TEXT`-backed JSON on SQLite and native `JSONB` on Postgres automatically. The one thing to avoid in application code: don't write queries that rely on Postgres-specific JSONB operators (`->`, `->>`, `@>`) directly — if querying into the raw parser output is ever needed, that logic needs a Postgres-only functional test per Guardrail 3, since it won't run against SQLite at all |
 | **`ENUM` types** (`import.status`, `transactions.type`, `folios.plan_type`, and others throughout the schema) | Postgres has native enum types; SQLite emulates them via a `CHECK` constraint | SQLAlchemy's `Enum` type handles this abstraction already — no special handling needed, just confirmed here so it's not mistaken for a gap that needs manual work |
 
+## Deferred Postgres-Only Optimizations (Verify Once Postgres Is Live)
+
+Findings from BUG-001/DATA-001 fix work (2026-08-18) that are correctness-safe on
+SQLite today but can only be *properly* closed out — implemented and verified via a
+real query plan — once Postgres is the dev/prod target, per this doc's own guardrails.
+Listed here so they aren't lost between now and cutover, rather than living only in a
+review thread.
+
+- **`category_ranking.py`'s `_bulk_nav_on_or_before` (PRD-04 FR-3/FR-4, Category
+  Ranking).** Rewritten from a per-(scheme, date) N+1 query pattern to one
+  `MAX(date) GROUP BY scheme_id` join per target date (3 queries total per category,
+  each returning exactly one row per scheme) — this closed the original BUG-001 defect
+  (100+ *sequential* per-request ORM round-trips, the same class of bug
+  `risk_metrics.build_monthly_series` was fixed for earlier in the same investigation).
+  A scoped adversarial re-review confirmed ORM-side materialization is now correctly
+  bounded, but flagged a narrower residual: without an index structure that supports a
+  per-group skip-scan (a `LATERAL` join doing an index-seek + `LIMIT 1` per scheme,
+  rather than a plain `GROUP BY`), the database still has to scan every historical row
+  per scheme to compute each `MAX(date)` — bounded in what Python touches, not in what
+  the DB reads.
+  - **Why this is deferred, not fixed now:** the cost is already bounded to once per
+    15-minute TTL window per category (this same fix's cache), not per-request — the
+    original per-request cost is what's actually gone. A `LATERAL` join is a primitive
+    not used anywhere else in this codebase, and its benefit can't be confirmed without
+    a real Postgres query plan (`EXPLAIN ANALYZE`) — SQLite has no `LATERAL` semantics
+    to compare against, so implementing it now would be unverifiable guesswork against
+    this doc's own "test against both dialects, don't code blind for one" guardrail.
+  - **Action once Postgres is live (Guardrail 3's local Docker Postgres is sufficient,
+    doesn't need to wait for RDS):** run `EXPLAIN ANALYZE` against `_bulk_nav_on_or_before`'s
+    three queries with a realistic category-universe size (100+ schemes, multi-year NAV
+    history per scheme — mirror `nav_history`'s expected production row counts). If the
+    planner isn't already using an index-backed skip-scan for the `GROUP BY`, rewrite the
+    per-target-date query as a `LATERAL` join (`SELECT ... FROM schemes s, LATERAL
+    (SELECT nav, date FROM nav_history WHERE scheme_id = s.id AND date <= :target ORDER
+    BY date DESC LIMIT 1) nh`) backed by a composite index on `(scheme_id, date)` (already
+    present per the Database Schema's `nav_history` indexing — confirm before assuming).
+    Re-run the same `EXPLAIN ANALYZE` after the change to confirm the plan actually
+    switched to an index seek before calling this closed.
+
 ## Migration Readiness Checklist
 
 The signal to execute the runbook below isn't a calendar date — it's these conditions

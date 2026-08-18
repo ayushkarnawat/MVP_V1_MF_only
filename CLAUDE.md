@@ -310,6 +310,15 @@ it for anything in `analytics/scorer.py`, `analytics/risk_metrics.py`,
 4. `HoldingsTable.tsx` references a dead `row.return_percentage_1y` field that doesn't
    exist on the real API type — harmless (client-computed fallback always runs), never
    cleaned up.
+5. `category_ranking.py`'s `_bulk_nav_on_or_before` (BUG-001 fix, 2026-08-18): the
+   per-scheme N+1 query pattern is gone (one `MAX(date) GROUP BY` query per target date,
+   bounded by a 15-min per-category cache), but the DB-side scan to compute each
+   `MAX(date)` still isn't index-seek-bounded without a `LATERAL` join — a primitive
+   unused elsewhere in this codebase and unverifiable via query plan on SQLite. Accepted
+   as a documented limitation rather than a third fix round (correctness-safe, cost
+   already bounded by the cache). Full follow-up action and rationale:
+   `Docs/PRDs/Migration-Plan-SQLite-to-Postgres.md`'s "Deferred Postgres-Only
+   Optimizations" section — revisit with `EXPLAIN ANALYZE` once Postgres is live.
 
 **Everything before this — Phase 0 (foundation), Phase 1 (CAS import, backend +
 frontend), Phase 2 (Auth backend), Phase 2b (Onboarding frontend), Phase 3 (Main
