@@ -12,6 +12,7 @@ from __future__ import annotations
 import asyncio
 import time
 import uuid
+import weakref
 from datetime import date
 from decimal import Decimal
 
@@ -44,8 +45,31 @@ _EMPTY_SUMMARY = WeightedTerSummary(
 # scan happens at a time.
 _TER_REFRESH_BACKOFF_SECONDS = 15 * 60
 _ter_refresh_clock = time.monotonic
-_ter_refresh_lock = asyncio.Lock()
 _last_ter_refresh_attempt: float | None = None
+
+# A bare module-global `asyncio.Lock()` only actually binds to a specific
+# event loop once genuinely CONTENDED -- `Lock.acquire()`'s uncontended fast
+# path never touches the loop at all. So a single shared lock instance
+# contended from two *different* loops (e.g. two OS threads each running
+# their own loop) can silently deadlock rather than just error: the lock's
+# internal wake-up future belongs to whichever loop first contends it, and
+# `Future.set_result()` called from a different loop's thread isn't
+# thread-safe -- it never actually wakes the waiting loop up. Keying the
+# lock by the currently-running loop (via a `WeakKeyDictionary`, so an
+# entry is dropped once its loop is garbage-collected) means each loop
+# always gets its own lock and this can never happen. Reviewer-flagged
+# finding; reproduced live via two threads each with their own loop before
+# this fix, confirmed hanging without it.
+_ter_refresh_locks: "weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, asyncio.Lock]" = weakref.WeakKeyDictionary()
+
+
+def _get_ter_refresh_lock() -> asyncio.Lock:
+    loop = asyncio.get_running_loop()
+    lock = _ter_refresh_locks.get(loop)
+    if lock is None:
+        lock = asyncio.Lock()
+        _ter_refresh_locks[loop] = lock
+    return lock
 
 
 def _latest_ter_for_scheme(db: Session, scheme_id: uuid.UUID) -> tuple[Decimal, date] | None:
@@ -85,7 +109,7 @@ async def _ensure_ter_fresh(db: Session, scheme_ids: set[uuid.UUID]) -> None:
     global _last_ter_refresh_attempt
     if not _missing_current_month_ter(db, scheme_ids):
         return
-    async with _ter_refresh_lock:
+    async with _get_ter_refresh_lock():
         if not _missing_current_month_ter(db, scheme_ids):
             return  # a concurrent waiter already refreshed while we waited for the lock
         now = _ter_refresh_clock()
