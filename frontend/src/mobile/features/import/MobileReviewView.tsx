@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { motion } from "motion/react";
 import type { ImportPreviewResponse, SchemeConfirmation } from "@/features/import/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,12 +9,10 @@ import {
   User,
   CreditCard,
   Layers,
-  AlertTriangle,
   CheckCircle2,
   HelpCircle,
   ArrowRight,
   Loader2,
-  ChevronDown,
 } from "lucide-react";
 
 export interface MobileReviewViewProps {
@@ -45,7 +44,6 @@ export function MobileReviewView({
   reviewNotice,
 }: MobileReviewViewProps) {
   const [overrides, setOverrides] = useState<Record<string, OverrideState>>({});
-  const [isWarningsExpanded, setIsWarningsExpanded] = useState(false);
 
   const updateOverride = (tempId: string, patch: Partial<OverrideState>) => {
     setOverrides((prev) => {
@@ -83,7 +81,12 @@ export function MobileReviewView({
   };
 
   return (
-    <div className="w-full min-w-0 max-w-md mx-auto space-y-4 pt-2 sm:pt-3 pb-6 text-left box-border">
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+      className="w-full min-w-0 max-w-md mx-auto space-y-4 pt-2 sm:pt-3 pb-6 text-left box-border"
+    >
       {/* 1. Header Info */}
       <div className="space-y-1">
         <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -140,51 +143,6 @@ export function MobileReviewView({
           </span>
         </div>
       </div>
-
-      {/* 3. Collapsible Parse Warnings (Default: Collapsed) */}
-      {preview.parse_warnings && preview.parse_warnings.length > 0 && (
-        <div className="rounded-2xl bg-[color-mix(in_srgb,var(--color-warning)_8%,transparent)] border border-[color-mix(in_srgb,var(--color-warning)_25%,transparent)] overflow-hidden transition-all">
-          <button
-            type="button"
-            onClick={() => setIsWarningsExpanded((prev) => !prev)}
-            aria-expanded={isWarningsExpanded}
-            className="w-full p-3.5 flex items-center justify-between gap-2 text-left cursor-pointer hover:bg-[color-mix(in_srgb,var(--color-warning)_12%,transparent)] transition-colors select-none"
-          >
-            <div className="flex items-center gap-2 min-w-0">
-              <AlertTriangle className="h-4 w-4 text-[var(--color-warning)] flex-shrink-0" />
-              <span className="font-semibold text-xs text-[var(--color-warning)] truncate">
-                Import Warnings ({preview.parse_warnings.length})
-              </span>
-            </div>
-
-            <div className="flex items-center gap-1 text-[11px] font-semibold text-[var(--color-warning)] flex-shrink-0">
-              <span>{isWarningsExpanded ? "Hide" : "View"}</span>
-              <ChevronDown
-                className={cn(
-                  "h-3.5 w-3.5 transition-transform duration-200",
-                  isWarningsExpanded && "rotate-180"
-                )}
-              />
-            </div>
-          </button>
-
-          {/* Collapsible Body */}
-          <div
-            className={cn(
-              "px-3.5 pb-3.5 pt-1 border-t border-[color-mix(in_srgb,var(--color-warning)_20%,transparent)]",
-              !isWarningsExpanded && "hidden"
-            )}
-          >
-            <ul className="text-[11px] text-[var(--color-ink)] list-disc list-inside space-y-1 pt-1 pl-0.5">
-              {preview.parse_warnings.map((warning, idx) => (
-                <li key={idx} className="leading-relaxed">
-                  {warning}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      )}
 
       {/* Schemes Review List */}
       <div className="space-y-3">
@@ -351,6 +309,6 @@ export function MobileReviewView({
           )}
         </Button>
       </div>
-    </div>
+    </motion.div>
   );
 }

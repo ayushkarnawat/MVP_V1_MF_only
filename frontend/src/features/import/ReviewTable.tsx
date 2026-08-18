@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { motion } from "motion/react";
 import type { ImportPreviewResponse, SchemeConfirmation } from "./types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,19 +11,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
 import {
   User,
   CreditCard,
   Layers,
   FileCheck,
-  AlertTriangle,
   CheckCircle2,
   HelpCircle,
   ArrowRight,
   Loader2,
   ShieldCheck,
-  ChevronDown,
 } from "lucide-react";
 
 interface ReviewTableProps {
@@ -68,7 +66,6 @@ function useIsMobile(breakpoint = 768): boolean {
 
 export function ReviewTable({ preview, confirming, onConfirm, memberName }: ReviewTableProps) {
   const [overrides, setOverrides] = useState<Record<string, OverrideState>>({});
-  const [isWarningsExpanded, setIsWarningsExpanded] = useState(false);
   const isMobile = useIsMobile(768);
 
   const updateOverride = (tempId: string, patch: Partial<OverrideState>) => {
@@ -111,7 +108,12 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
   ).length;
 
   return (
-    <div className="w-full min-w-0 max-w-5xl mx-auto space-y-6 text-left box-border">
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+      className="w-full min-w-0 max-w-5xl mx-auto space-y-6 text-left box-border"
+    >
       {/* 1. Header Section — pr-14 on the title row reserves room for the
           onboarding shell's absolutely-positioned top-right ThemeToggle
           (OnboardingFlow.tsx, top-4/right-4), which sits outside this
@@ -433,63 +435,7 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
         </div>
       )}
 
-      {/* 4. Collapsible Parse Warnings (Default: Collapsed) */}
-      {preview.parse_warnings && preview.parse_warnings.length > 0 && (
-        <div className="rounded-2xl bg-[color-mix(in_srgb,var(--color-warning)_8%,transparent)] border border-[color-mix(in_srgb,var(--color-warning)_25%,transparent)] overflow-hidden transition-all duration-200">
-          <button
-            type="button"
-            onClick={() => setIsWarningsExpanded((prev) => !prev)}
-            aria-expanded={isWarningsExpanded}
-            className="w-full p-4 flex items-center justify-between gap-3 text-left cursor-pointer hover:bg-[color-mix(in_srgb,var(--color-warning)_12%,transparent)] transition-colors select-none"
-          >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="h-6 w-6 rounded-full bg-[color-mix(in_srgb,var(--color-warning)_20%,transparent)] text-[var(--color-warning)] flex items-center justify-center flex-shrink-0">
-                <AlertTriangle className="h-3.5 w-3.5" />
-              </div>
-              <div className="min-w-0">
-                <span className="font-semibold text-xs sm:text-sm text-[var(--color-warning)] block truncate">
-                  Import Warnings ({preview.parse_warnings.length})
-                </span>
-                <span className="text-[11px] text-[var(--color-text-secondary)]">
-                  {isWarningsExpanded
-                    ? "Click to collapse notices"
-                    : `${preview.parse_warnings.length} non-blocking notice${preview.parse_warnings.length !== 1 ? "s" : ""} detected during statement parsing`}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-[var(--color-warning)] flex-shrink-0">
-              <span className="text-[11px] hidden sm:inline">
-                {isWarningsExpanded ? "Hide" : "View"}
-              </span>
-              <ChevronDown
-                className={cn(
-                  "h-4 w-4 transition-transform duration-200",
-                  isWarningsExpanded && "rotate-180"
-                )}
-              />
-            </div>
-          </button>
-
-          {/* Collapsible Body */}
-          <div
-            className={cn(
-              "px-4 pb-4 pt-1 border-t border-[color-mix(in_srgb,var(--color-warning)_20%,transparent)] transition-all",
-              !isWarningsExpanded && "hidden"
-            )}
-          >
-            <ul className="text-xs text-[var(--color-ink)] list-disc list-inside space-y-1.5 pt-2 pl-1">
-              {preview.parse_warnings.map((warning, idx) => (
-                <li key={idx} className="leading-relaxed">
-                  {warning}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      )}
-
-      {/* 5. Final Confirmation Action Footer */}
+      {/* 4. Final Confirmation Action Footer */}
       <div className="w-full p-5 sm:p-6 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs flex items-center justify-between gap-4 flex-wrap box-border">
         <div className="space-y-0.5">
           <div className="flex items-center gap-2">
@@ -524,6 +470,6 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
           )}
         </Button>
       </div>
-    </div>
+    </motion.div>
   );
 }
