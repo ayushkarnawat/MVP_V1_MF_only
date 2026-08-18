@@ -8,6 +8,7 @@ difflib.SequenceMatcher per PRD-01 Constraints — no new dependency.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 from dataclasses import dataclass
@@ -21,6 +22,18 @@ import httpx
 MFAPI_BASE = "https://api.mfapi.in"
 DEFAULT_CACHE_DIR = Path(__file__).resolve().parent.parent.parent.parent / ".cache" / "mfapi"
 SCHEMES_TTL = timedelta(hours=24)
+
+_http_client: httpx.AsyncClient | None = None
+_http_client_lock = asyncio.Lock()
+
+
+async def _get_http_client() -> httpx.AsyncClient:
+    global _http_client
+    if _http_client is None:
+        async with _http_client_lock:
+            if _http_client is None:
+                _http_client = httpx.AsyncClient(timeout=30.0)
+    return _http_client
 
 
 @dataclass
@@ -50,6 +63,7 @@ class MfApiClient:
     def __init__(self, cache_dir: Path | None = None):
         self.cache_dir = Path(cache_dir) if cache_dir else DEFAULT_CACHE_DIR
         self._schemes: list[dict[str, Any]] | None = None
+        self._schemes_lock = asyncio.Lock()
 
     def _write_cache(self, cache_path: Path, data: Any) -> None:
         # Created lazily, right before the first write — not at __init__ time
@@ -59,22 +73,30 @@ class MfApiClient:
         cache_path.write_text(json.dumps(data), encoding="utf-8")
 
     async def _get_json(self, url: str) -> Any:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            resp = await client.get(url)
-            resp.raise_for_status()
-            return resp.json()
+        client = await _get_http_client()
+        resp = await client.get(url)
+        resp.raise_for_status()
+        return resp.json()
 
     async def get_scheme_list(self) -> list[dict[str, Any]]:
         if self._schemes is not None:
             return self._schemes
-        cache_path = self.cache_dir / "schemes.json"
-        if _cache_valid(cache_path, SCHEMES_TTL):
-            self._schemes = json.loads(cache_path.read_text(encoding="utf-8"))
-            return self._schemes
-        data = await self._get_json(f"{MFAPI_BASE}/mf")
-        self._write_cache(cache_path, data)
-        self._schemes = data
-        return data
+        # Double-checked lock: build_import_preview now resolves schemes
+        # concurrently (asyncio.gather), so multiple no-AMFI schemes in the
+        # same preview can all reach here before any of them has set
+        # self._schemes — without this lock each one would independently
+        # fetch the full ~20k-scheme directory instead of sharing one fetch.
+        async with self._schemes_lock:
+            if self._schemes is not None:
+                return self._schemes
+            cache_path = self.cache_dir / "schemes.json"
+            if _cache_valid(cache_path, SCHEMES_TTL):
+                self._schemes = json.loads(cache_path.read_text(encoding="utf-8"))
+                return self._schemes
+            data = await self._get_json(f"{MFAPI_BASE}/mf")
+            self._write_cache(cache_path, data)
+            self._schemes = data
+            return data
 
     def fuzzy_match_scheme(self, scheme_name: str, scheme_list: list[dict[str, Any]]) -> SchemeMatch | None:
         norm_query = _normalize_name(scheme_name)
@@ -112,7 +134,7 @@ class MfApiClient:
             data = json.loads(cache_path.read_text(encoding="utf-8"))
         else:
             try:
-                data = await self._get_json(f"{MFAPI_BASE}/mf/{amfi_code}")
+                data = await self._get_json(f"{MFAPI_BASE}/mf/{amfi_code}/latest")
             except httpx.HTTPError:
                 return None
             self._write_cache(cache_path, data)
