@@ -1,4 +1,4 @@
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { act, render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { MainDashboardFlow } from "./MainDashboardFlow";
 import * as authApi from "../auth/api";
@@ -16,6 +16,10 @@ vi.mock("./api", () => ({
   getDistributorComparison: vi.fn(),
 }));
 
+vi.mock("../analytics/AnalyticsView", () => ({
+  AnalyticsView: () => <div>Analytics test view</div>,
+}));
+
 vi.mock("../auth/AuthContext", () => ({
   useAuth: () => ({
     me: { user_id: "u-1", phone_number: "+919999999999" },
@@ -26,6 +30,33 @@ vi.mock("../auth/AuthContext", () => ({
 describe("MainDashboardFlow", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.history.replaceState({}, "", "/");
+  });
+
+  it("records tab changes in browser history and restores Dashboard on Back", async () => {
+    vi.mocked(authApi.getHouseholdMembers).mockResolvedValue([
+      { id: "m-1", name: "Alice", relationship: "self", relationship_other_label: null },
+      { id: "m-2", name: "Bob", relationship: "spouse", relationship_other_label: null },
+    ]);
+    vi.mocked(dashboardApi.getAggregateHoldings).mockResolvedValue({ members: [], holdings: [] });
+    vi.mocked(dashboardApi.getAggregateAllocation).mockResolvedValue({
+      members: [],
+      allocation: { by_asset_class: [], by_amc: [], total_value: "0.00" },
+    });
+
+    render(<MainDashboardFlow />);
+    await screen.findByText("No Holdings Found");
+
+    fireEvent.click(screen.getByRole("button", { name: "Analytics" }));
+    expect(screen.getByText("Analytics test view")).toBeInTheDocument();
+    expect(window.history.state).toMatchObject({ unifolioTab: "analytics" });
+
+    act(() => {
+      window.history.replaceState({ unifolioTab: "dashboard" }, "", "/");
+      fireEvent.popState(window);
+    });
+
+    expect(await screen.findByText("No Holdings Found")).toBeInTheDocument();
   });
 
   it("fetches household members and defaults landing view", async () => {

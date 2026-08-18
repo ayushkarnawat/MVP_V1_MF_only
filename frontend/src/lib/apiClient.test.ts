@@ -25,7 +25,9 @@ describe("cachedFetch", () => {
   });
 
   it("re-fetches once the TTL window has elapsed", async () => {
-    const mockFetch = vi.fn().mockResolvedValue(jsonResponse({ value: 1 }));
+    const mockFetch = vi.fn().mockImplementation(() =>
+      Promise.resolve(jsonResponse({ value: 1 })),
+    );
     vi.stubGlobal("fetch", mockFetch);
     const nowSpy = vi.spyOn(Date, "now").mockReturnValue(1_000_000);
 
@@ -57,13 +59,46 @@ describe("cachedFetch", () => {
   });
 
   it("invalidateApiCache forces the next GET to hit the network again", async () => {
-    const mockFetch = vi.fn().mockResolvedValue(jsonResponse({ value: 1 }));
+    const mockFetch = vi.fn().mockImplementation(() =>
+      Promise.resolve(jsonResponse({ value: 1 })),
+    );
     vi.stubGlobal("fetch", mockFetch);
 
     await cachedFetch("http://api/x", { method: "GET" });
     invalidateApiCache();
     await cachedFetch("http://api/x", { method: "GET" });
 
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not retain a response whose body is aborted after headers arrive", async () => {
+    const controller = new AbortController();
+    const abortableBody = new ReadableStream({
+      start(streamController) {
+        controller.signal.addEventListener("abort", () => {
+          streamController.error(
+            controller.signal.reason ?? new DOMException("Aborted", "AbortError"),
+          );
+        });
+      },
+    });
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(abortableBody, { status: 200 }))
+      .mockResolvedValueOnce(jsonResponse({ value: 2 }));
+    vi.stubGlobal("fetch", mockFetch);
+
+    const interruptedRequest = cachedFetch("http://api/x", {
+      method: "GET",
+      signal: controller.signal,
+    });
+    await vi.waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
+    controller.abort();
+
+    await expect(interruptedRequest).rejects.toMatchObject({ name: "AbortError" });
+
+    const retry = await cachedFetch("http://api/x", { method: "GET" });
+    await expect(retry.json()).resolves.toEqual({ value: 2 });
     expect(mockFetch).toHaveBeenCalledTimes(2);
   });
 });

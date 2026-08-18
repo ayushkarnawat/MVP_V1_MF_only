@@ -91,15 +91,17 @@ export function MobileDashboardView({
   /* Fetch dashboard data depending on viewMode & memberId */
   useEffect(() => {
     let isMounted = true;
+    const controller = new AbortController();
     setLoading(true);
     setError(null);
+    setCoverageGaps([]);
 
     const fetchData = async () => {
       try {
         if (viewMode === "aggregate") {
           const [holdingsRes, allocationRes] = await Promise.all([
-            getAggregateHoldings(),
-            getAggregateAllocation(),
+            getAggregateHoldings(controller.signal),
+            getAggregateAllocation(controller.signal),
           ]);
           if (isMounted) {
             setHoldings(holdingsRes.holdings);
@@ -109,19 +111,26 @@ export function MobileDashboardView({
             setLoading(false);
           }
         } else if (selectedMemberId) {
-          const [holdingsRes, allocationRes, gapsRes, aggRes] = await Promise.all([
-            getMemberHoldings(selectedMemberId),
-            getMemberAllocation(selectedMemberId),
-            getMemberCoverageGaps(selectedMemberId).catch(() => []),
-            getAggregateHoldings().catch(() => ({ holdings: [], members: [] })),
+          const [holdingsRes, allocationRes] = await Promise.all([
+            getMemberHoldings(selectedMemberId, controller.signal),
+            getMemberAllocation(selectedMemberId, controller.signal),
           ]);
           if (isMounted) {
             setHoldings(holdingsRes);
-            setMembersStatus(aggRes.members || []);
             setAllocation(allocationRes);
-            setCoverageGaps(gapsRes);
             setLoading(false);
           }
+
+          getMemberCoverageGaps(selectedMemberId, controller.signal)
+            .then((gapsRes) => {
+              if (isMounted) setCoverageGaps(gapsRes);
+            })
+            .catch(() => {});
+          getAggregateHoldings(controller.signal)
+            .then((aggRes) => {
+              if (isMounted) setMembersStatus(aggRes.members || []);
+            })
+            .catch(() => {});
         } else {
           if (isMounted) {
             setHoldings([]);
@@ -144,6 +153,7 @@ export function MobileDashboardView({
     fetchData();
     return () => {
       isMounted = false;
+      controller.abort();
     };
   }, [viewMode, selectedMemberId]);
 

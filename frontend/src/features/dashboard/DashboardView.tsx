@@ -67,15 +67,17 @@ export function DashboardView({
 
   useEffect(() => {
     let isMounted = true;
+    const controller = new AbortController();
     setLoading(true);
     setError(null);
+    setCoverageGaps([]);
 
     const fetchData = async () => {
       try {
         if (viewMode === "aggregate") {
           const [holdingsRes, allocationRes] = await Promise.all([
-            getAggregateHoldings(),
-            getAggregateAllocation(),
+            getAggregateHoldings(controller.signal),
+            getAggregateAllocation(controller.signal),
           ]);
           if (isMounted) {
             setHoldings(holdingsRes.holdings);
@@ -85,18 +87,26 @@ export function DashboardView({
             setLoading(false);
           }
         } else if (memberId) {
-          const [holdingsRes, allocationRes, gapsRes] = await Promise.all([
-            getMemberHoldings(memberId),
-            getMemberAllocation(memberId),
-            getMemberCoverageGaps(memberId).catch(() => []),
+          const [holdingsRes, allocationRes] = await Promise.all([
+            getMemberHoldings(memberId, controller.signal),
+            getMemberAllocation(memberId, controller.signal),
           ]);
           if (isMounted) {
             setHoldings(holdingsRes);
             setMembersStatus([]);
             setAllocation(allocationRes);
-            setCoverageGaps(gapsRes);
             setLoading(false);
           }
+
+          getMemberCoverageGaps(memberId, controller.signal)
+            .then((gapsRes) => {
+              if (isMounted) setCoverageGaps(gapsRes);
+            })
+            .catch((err: unknown) => {
+              if (isMounted && !(err instanceof DOMException && err.name === "AbortError")) {
+                setCoverageGaps([]);
+              }
+            });
         } else {
           if (isMounted) {
             setHoldings([]);
@@ -121,6 +131,7 @@ export function DashboardView({
     fetchData();
     return () => {
       isMounted = false;
+      controller.abort();
     };
   }, [viewMode, memberId]);
 

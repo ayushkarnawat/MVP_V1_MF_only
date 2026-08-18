@@ -131,10 +131,14 @@ export async function getMemberImportHistory(memberId: string): Promise<CASImpor
   return (await response.json()) as CASImportStatusResponse[];
 }
 
-export async function getMemberCoverageGaps(memberId: string): Promise<CoverageGapItem[]> {
+export async function getMemberCoverageGaps(
+  memberId: string,
+  signal?: AbortSignal,
+): Promise<CoverageGapItem[]> {
   const response = await fetch(`${API_BASE_URL}/household-members/${memberId}/coverage-gaps`, {
     method: "GET",
     headers: authHeaders(),
+    signal,
   });
 
   if (!response.ok) {
@@ -206,6 +210,5 @@ export async function cancelImportRequest(
 
   return (await response.json()) as CASImportStatusResponse;
 }
-
 
 
