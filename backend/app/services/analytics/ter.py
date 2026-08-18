@@ -9,6 +9,8 @@ never reads `scheme_aaum`.
 
 from __future__ import annotations
 
+import asyncio
+import time
 import uuid
 from datetime import date
 from decimal import Decimal
@@ -32,6 +34,18 @@ from app.services.dashboard.schemas import HoldingRow
 _EMPTY_SUMMARY = WeightedTerSummary(
     weighted_ter=None, covered_value="0", total_value="0", reference_period=None, uncovered_schemes=[]
 )
+
+# A single permanently-unresolvable scheme (bad fuzzy match, or TER never
+# published for it) would otherwise make `_missing_current_month_ter` stay
+# true forever, triggering a full AMFI national-feed scan on every request.
+# Back off refresh attempts to at most once per window (mirrors nav.py's
+# `_NAV_WARM_TTL_SECONDS` pattern) regardless of whether coverage is still
+# missing afterward, and coalesce concurrent callers so only one in-flight
+# scan happens at a time.
+_TER_REFRESH_BACKOFF_SECONDS = 15 * 60
+_ter_refresh_clock = time.monotonic
+_ter_refresh_lock = asyncio.Lock()
+_last_ter_refresh_attempt: float | None = None
 
 
 def _latest_ter_for_scheme(db: Session, scheme_id: uuid.UUID) -> tuple[Decimal, date] | None:
@@ -58,13 +72,26 @@ def _missing_current_month_ter(db: Session, scheme_ids: set[uuid.UUID]) -> bool:
 
 
 async def _ensure_ter_fresh(db: Session, scheme_ids: set[uuid.UUID]) -> None:
-    """One bulk refresh attempt per call, only if at least one held scheme
-    lacks a current-month TER row — TER is a bulk endpoint (one fetch
-    covers every scheme), unlike NAV's per-scheme fetch, so this never
-    loops a fetch per scheme. A refresh failure (network error, or every
-    scheme's fuzzy match failing) leaves whatever is already cached in
-    place — PRD-04's "TER not yet published" edge case, not an error."""
-    if _missing_current_month_ter(db, scheme_ids):
+    """At most one bulk refresh attempt per `_TER_REFRESH_BACKOFF_SECONDS`,
+    only if at least one held scheme lacks a current-month TER row — TER is
+    a bulk endpoint (one fetch covers every scheme), unlike NAV's per-scheme
+    fetch, so this never loops a fetch per scheme. A refresh failure
+    (network error, or every scheme's fuzzy match failing) leaves whatever
+    is already cached in place — PRD-04's "TER not yet published" edge
+    case, not an error. The backoff applies even when coverage is still
+    missing after a refresh, otherwise a permanently-unresolvable scheme
+    would re-trigger a full AMFI national scan on every single request.
+    Concurrent callers share one in-flight refresh via `_ter_refresh_lock`."""
+    global _last_ter_refresh_attempt
+    if not _missing_current_month_ter(db, scheme_ids):
+        return
+    async with _ter_refresh_lock:
+        if not _missing_current_month_ter(db, scheme_ids):
+            return  # a concurrent waiter already refreshed while we waited for the lock
+        now = _ter_refresh_clock()
+        if _last_ter_refresh_attempt is not None and now - _last_ter_refresh_attempt < _TER_REFRESH_BACKOFF_SECONDS:
+            return
+        _last_ter_refresh_attempt = now
         await refresh_ter_data(db)
 
 

@@ -4,16 +4,29 @@ from datetime import date, datetime, timezone
 from decimal import Decimal
 from unittest.mock import AsyncMock, patch
 
+import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+import app.services.analytics.ter as ter_module
 from app.db.base import Base
 from app.models.enums import PlanType, Relationship, TransactionType
 from app.models.folio import Folio
 from app.models.reference import Scheme, SchemeTer
 from app.models.transaction import Transaction
 from app.models.user import HouseholdMember, User
-from app.services.analytics.ter import compute_direct_regular_ter_comparison, compute_weighted_ter
+from app.services.analytics.ter import _ensure_ter_fresh, compute_direct_regular_ter_comparison, compute_weighted_ter
+
+
+@pytest.fixture(autouse=True)
+def _reset_ter_refresh_backoff():
+    # The backoff state is a module-level global (mirrors nav.py's warm
+    # cache) so it persists across tests within one pytest process unless
+    # explicitly cleared — without this, an earlier test's refresh attempt
+    # would silently suppress a later test's expected refresh call.
+    ter_module._last_ter_refresh_attempt = None
+    yield
+    ter_module._last_ter_refresh_attempt = None
 
 
 def _session():
@@ -175,6 +188,65 @@ def test_compute_direct_regular_ter_comparison_splits_by_plan_type():
     assert Decimal(comparison.direct.total_value) == Decimal("6000.00")
     assert Decimal(comparison.regular.weighted_ter) == Decimal("1.75")
     assert Decimal(comparison.regular.total_value) == Decimal("4000.00")
+
+
+def test_ensure_ter_fresh_backs_off_after_recent_attempt_even_if_still_missing():
+    db = _session()
+    scheme = _scheme(db, "Fund Never Resolved")
+    # refresh_ter_data never actually resolves this scheme's TER (e.g. a
+    # permanently-unresolvable fuzzy match) — coverage stays missing after
+    # every refresh, so a naive "missing => refresh" check would re-scan
+    # AMFI's whole feed on every single call.
+    mock_refresh = AsyncMock(return_value=False)
+    now = [1000.0]
+    with (
+        patch("app.services.analytics.ter.refresh_ter_data", new=mock_refresh),
+        patch.object(ter_module, "_ter_refresh_clock", side_effect=lambda: now[0]),
+    ):
+        asyncio.run(_ensure_ter_fresh(db, {scheme.id}))
+        now[0] += 60  # well within the backoff window
+        asyncio.run(_ensure_ter_fresh(db, {scheme.id}))
+
+    mock_refresh.assert_awaited_once()
+
+
+def test_ensure_ter_fresh_retries_after_backoff_window_expires():
+    db = _session()
+    scheme = _scheme(db, "Fund Never Resolved")
+    mock_refresh = AsyncMock(return_value=False)
+    now = [1000.0]
+    with (
+        patch("app.services.analytics.ter.refresh_ter_data", new=mock_refresh),
+        patch.object(ter_module, "_ter_refresh_clock", side_effect=lambda: now[0]),
+    ):
+        asyncio.run(_ensure_ter_fresh(db, {scheme.id}))
+        now[0] += ter_module._TER_REFRESH_BACKOFF_SECONDS + 1
+        asyncio.run(_ensure_ter_fresh(db, {scheme.id}))
+
+    assert mock_refresh.await_count == 2
+
+
+def test_ensure_ter_fresh_coalesces_concurrent_refresh_attempts():
+    db = _session()
+    scheme = _scheme(db, "Fund A")
+
+    async def _fake_refresh(db_):
+        await asyncio.sleep(0.05)
+        db_.add(SchemeTer(scheme_id=scheme.id, reference_period=_current_month_start(), ter_value=Decimal("1.00")))
+        db_.commit()
+        return True
+
+    async def _run_concurrent():
+        await asyncio.gather(
+            _ensure_ter_fresh(db, {scheme.id}),
+            _ensure_ter_fresh(db, {scheme.id}),
+        )
+
+    mock_refresh = AsyncMock(side_effect=_fake_refresh)
+    with patch("app.services.analytics.ter.refresh_ter_data", new=mock_refresh):
+        asyncio.run(_run_concurrent())
+
+    mock_refresh.assert_awaited_once()
 
 
 def test_compute_direct_regular_ter_comparison_empty_bucket_when_no_regular_holdings():
