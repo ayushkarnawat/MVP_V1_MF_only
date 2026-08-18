@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { diffDecimalStrings } from "@/lib/decimal";
+import { diffDecimalStrings, toPercentString } from "@/lib/decimal";
 import { cn } from "@/lib/utils";
 import { ArrowDownRight, ArrowUpRight, BarChart3, HelpCircle, Layers, TrendingUp } from "lucide-react";
 import type {
@@ -24,17 +24,22 @@ const INDEX_LABELS: Record<BenchmarkIndex, string> = {
   nifty_midcap_150: "Nifty Midcap 150",
 };
 
+// Backend XIRR values are raw decimal fractions (e.g. "0.1645" for 16.45%).
+// This is only used for bar-width proportions and sign/color checks, which
+// are scale-invariant under a common ×100 factor — never for displayed text
+// (formatXirrPercent below uses exact string arithmetic for that).
 function parseXirrNumber(val: string | null): number | null {
   if (val === null || val === undefined) return null;
   const num = parseFloat(val);
-  return isNaN(num) ? null : num;
+  return isNaN(num) ? null : num * 100;
 }
 
 function formatXirrPercent(val: string | null): string {
-  const num = parseXirrNumber(val);
-  if (num === null) return "N/A";
-  const sign = num > 0 ? "+" : "";
-  return `${sign}${num.toFixed(2)}%`;
+  if (val === null || val === undefined) return "N/A";
+  const percent = toPercentString(val);
+  const isZero = /^0(\.0+)?$/.test(percent);
+  const sign = percent.startsWith("-") || isZero ? "" : "+";
+  return `${sign}${percent}%`;
 }
 
 export function BenchmarkSection({
@@ -199,20 +204,21 @@ export function BenchmarkSection({
                   portfolioBenchmark?.portfolio_xirr != null && bRow.xirr !== null
                     ? diffDecimalStrings(portfolioBenchmark.portfolio_xirr, bRow.xirr)
                     : null;
-                const diffVal = parseXirrNumber(diffStr);
+                const diffPercent = diffStr !== null ? toPercentString(diffStr) : null;
+                const diffIsNegative = diffPercent?.startsWith("-") ?? false;
 
                 return (
                   <div key={bRow.index} className="space-y-1">
                     <div className="flex items-center justify-between text-xs font-medium">
                       <span className="text-[var(--color-text-secondary)] flex items-center gap-2">
                         <span>{label}</span>
-                        {diffVal !== null && (
+                        {diffPercent !== null && (
                           <span className={cn(
                             "text-[10px] font-semibold flex items-center gap-0.5",
-                            diffVal >= 0 ? "text-[var(--color-positive)]" : "text-[var(--color-negative)]"
+                            !diffIsNegative ? "text-[var(--color-positive)]" : "text-[var(--color-negative)]"
                           )}>
-                            {diffVal >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-                            {diffVal >= 0 ? `+${diffVal.toFixed(2)}%` : `${diffVal.toFixed(2)}%`}
+                            {!diffIsNegative ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                            {!diffIsNegative ? `+${diffPercent}%` : `${diffPercent}%`}
                           </span>
                         )}
                       </span>
@@ -285,7 +291,8 @@ export function BenchmarkSection({
                   fund.fund_xirr !== null && fund.benchmark_xirr !== null
                     ? diffDecimalStrings(fund.fund_xirr, fund.benchmark_xirr)
                     : null;
-                const diffNum = parseXirrNumber(diffStr);
+                const diffPercent = diffStr !== null ? toPercentString(diffStr) : null;
+                const diffIsNegative = diffPercent?.startsWith("-") ?? false;
 
                 return (
                   <div
@@ -306,20 +313,20 @@ export function BenchmarkSection({
                       </div>
 
                       {/* Difference Badge */}
-                      {diffNum !== null && (
+                      {diffPercent !== null && (
                         <div className="self-start sm:self-auto">
                           <Badge
-                            variant={diffNum >= 0 ? "positive" : "outline"}
+                            variant={!diffIsNegative ? "positive" : "outline"}
                             className={cn(
                               "text-xs font-bold gap-1 px-2.5 py-0.5",
-                              diffNum >= 0
+                              !diffIsNegative
                                 ? "bg-[var(--color-positive)]/10 text-[var(--color-positive)] border-[var(--color-positive)]/30"
                                 : "text-[var(--color-negative)] border-[var(--color-negative)]/30"
                             )}
                           >
                             <TrendingUp className="h-3 w-3" />
                             <span>
-                              {diffNum >= 0 ? `+${diffNum.toFixed(2)}% vs Benchmark` : `${diffNum.toFixed(2)}% vs Benchmark`}
+                              {!diffIsNegative ? `+${diffPercent}% vs Benchmark` : `${diffPercent}% vs Benchmark`}
                             </span>
                           </Badge>
                         </div>

@@ -3,13 +3,17 @@ import { describe, expect, it } from "vitest";
 import { BenchmarkSection } from "./BenchmarkSection";
 import type { PortfolioBenchmarkSummary, FundVsBenchmarkSummary } from "./types";
 
+// Backend XIRR values are raw decimal fractions (e.g. "0.1645" for 16.45%,
+// see backend/app/services/analytics/xirr.py's xirr() / benchmark.py's
+// str(rate) serialization) — these fixtures use that real shape, not
+// already-scaled percentages.
 const samplePortfolioBenchmark: PortfolioBenchmarkSummary = {
-  portfolio_xirr: "16.45",
+  portfolio_xirr: "0.1645",
   benchmarks: [
-    { index: "nifty_50", xirr: "12.30" },
-    { index: "nifty_500", xirr: "14.10" },
-    { index: "nifty_largemidcap_250", xirr: "15.00" },
-    { index: "nifty_midcap_150", xirr: "17.20" },
+    { index: "nifty_50", xirr: "0.1230" },
+    { index: "nifty_500", xirr: "0.1410" },
+    { index: "nifty_largemidcap_250", xirr: "0.1500" },
+    { index: "nifty_midcap_150", xirr: "0.1720" },
   ],
 };
 
@@ -19,19 +23,19 @@ const sampleFundBenchmark: FundVsBenchmarkSummary = {
       scheme_id: "scheme-1",
       scheme_name: "HDFC Mid-Cap Opportunities Fund",
       benchmark_index: "nifty_midcap_150",
-      fund_xirr: "19.50",
-      benchmark_xirr: "17.20",
+      fund_xirr: "0.1950",
+      benchmark_xirr: "0.1720",
     },
     {
       scheme_id: "scheme-2",
       scheme_name: "Recent New Fund",
       benchmark_index: "nifty_50",
       fund_xirr: null,
-      benchmark_xirr: "12.30",
+      benchmark_xirr: "0.1230",
     },
   ],
-  overall_portfolio_xirr: "16.45",
-  overall_broad_market_xirr: "14.10",
+  overall_portfolio_xirr: "0.1645",
+  overall_broad_market_xirr: "0.1410",
 };
 
 describe("BenchmarkSection", () => {

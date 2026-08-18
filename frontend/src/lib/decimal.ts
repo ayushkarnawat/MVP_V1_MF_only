@@ -50,6 +50,20 @@ export function diffDecimalStrings(a: string, b: string): string {
   return subtractDecimalStrings(a || "0", b || "0");
 }
 
+/** Converts a raw decimal-fraction string (e.g. backend XIRR "0.1645", for
+ * 16.45%) into an exact percentage display string ("16.45") by shifting the
+ * decimal point 2 places right — not by multiplying as a float — so the
+ * fraction-to-percent conversion never introduces error before display. */
+export function toPercentString(val: string): string {
+  const negative = val.startsWith("-");
+  const unsigned = negative ? val.slice(1) : val;
+  const [whole, frac = ""] = (unsigned || "0").split(".");
+  const paddedFrac = frac.padEnd(2, "0");
+  const shiftedWhole = (whole + paddedFrac.slice(0, 2)).replace(/^0+(?=\d)/, "");
+  const remainingFrac = paddedFrac.slice(2).padEnd(2, "0").slice(0, 2);
+  return `${negative ? "-" : ""}${shiftedWhole}.${remainingFrac}`;
+}
+
 /** Formats a money value (string or number, already-summed/exact) as
  * Indian-locale currency digits with no decimal places, e.g. "1,23,456".
  * Callers prepend the ₹ symbol themselves. */
