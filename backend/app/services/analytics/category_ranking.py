@@ -26,13 +26,13 @@ NAVs from the now-local cache in its per-scheme loop.
 
 from __future__ import annotations
 
-import bisect
 import threading
 import time
 import uuid
 from datetime import date
 from decimal import Decimal
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.reference import NavHistory, Scheme, SchemeAaum
@@ -82,35 +82,34 @@ def _blend_returns(r3: Decimal, r5: Decimal | None) -> Decimal:
 def _bulk_nav_on_or_before(
     db: Session, scheme_ids: list[uuid.UUID], target_dates: list[date]
 ) -> dict[uuid.UUID, dict[date, Decimal]]:
-    """One query for the latest-NAV-on-or-before of every (scheme, target
-    date) pair in the whole category universe, instead of one query per
-    pair (the BUG-001 cost: 100+ schemes x 2 sequential lookups each).
-    `warm_nav_history` has already ensured every row up to `today` is
-    locally cached, so this reads straight from the local table."""
+    """One bounded query per target date across the whole category universe
+    (not one query per (scheme, date) pair, the BUG-001 cost: 100+ schemes
+    x 2 sequential lookups each) -- a `MAX(date)` join returns exactly one
+    row per scheme, never materializing any intermediate history. Review
+    finding against an earlier version of this function: it fetched every
+    row from scheme-inception through `max(target_dates)` for every scheme
+    (bounded only on the upper end), the same unbounded-scan defect
+    `risk_metrics.build_monthly_series` was fixed for earlier in BUG-001."""
     if not scheme_ids:
         return {}
-    latest_target = max(target_dates)
-    rows = (
-        db.query(NavHistory)
-        .filter(NavHistory.scheme_id.in_(scheme_ids), NavHistory.date <= latest_target)
-        .order_by(NavHistory.scheme_id, NavHistory.date)
-        .all()
-    )
-    dates_by_scheme: dict[uuid.UUID, list[date]] = {}
-    navs_by_scheme: dict[uuid.UUID, list[Decimal]] = {}
-    for row in rows:
-        dates_by_scheme.setdefault(row.scheme_id, []).append(row.date)
-        navs_by_scheme.setdefault(row.scheme_id, []).append(row.nav)
-
-    result: dict[uuid.UUID, dict[date, Decimal]] = {}
-    for scheme_id, dates in dates_by_scheme.items():
-        navs = navs_by_scheme[scheme_id]
-        per_scheme: dict[date, Decimal] = {}
-        for target in target_dates:
-            idx = bisect.bisect_right(dates, target) - 1
-            if idx >= 0:
-                per_scheme[target] = navs[idx]
-        result[scheme_id] = per_scheme
+    result: dict[uuid.UUID, dict[date, Decimal]] = {sid: {} for sid in scheme_ids}
+    for target in target_dates:
+        latest_dates = (
+            db.query(NavHistory.scheme_id, func.max(NavHistory.date).label("max_date"))
+            .filter(NavHistory.scheme_id.in_(scheme_ids), NavHistory.date <= target)
+            .group_by(NavHistory.scheme_id)
+            .subquery()
+        )
+        rows = (
+            db.query(NavHistory.scheme_id, NavHistory.nav)
+            .join(
+                latest_dates,
+                (NavHistory.scheme_id == latest_dates.c.scheme_id) & (NavHistory.date == latest_dates.c.max_date),
+            )
+            .all()
+        )
+        for scheme_id, nav in rows:
+            result[scheme_id][target] = nav
     return result
 
 

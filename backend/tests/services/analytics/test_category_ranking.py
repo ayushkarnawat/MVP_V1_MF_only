@@ -1,6 +1,6 @@
 import asyncio
 import uuid
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from unittest.mock import AsyncMock, patch
 
@@ -341,3 +341,128 @@ def test_category_returns_caches_across_calls_for_same_category():
 
     assert first == second
     assert warm_mock.call_count == 1
+
+
+def test_bulk_nav_on_or_before_picks_nearest_prior_date_not_exact_match():
+    """No row lands exactly on the target date -- must fall back to the
+    latest row strictly before it, same on-or-before convention as
+    `nav.py`'s `get_nav_on_or_before`."""
+    db = _session()
+    scheme = _scheme(db)
+    _seed_nav(db, scheme, _TODAY - timedelta(days=5), Decimal("10"))
+    _seed_nav(db, scheme, _TODAY - timedelta(days=2), Decimal("11"))
+
+    result = category_ranking_module._bulk_nav_on_or_before(db, [scheme.id], [_TODAY])
+    assert result[scheme.id][_TODAY] == Decimal("11")
+
+
+def test_bulk_nav_on_or_before_omits_scheme_with_no_rows_at_or_before_target():
+    db = _session()
+    scheme = _scheme(db)
+    _seed_nav(db, scheme, _TODAY + timedelta(days=1), Decimal("10"))
+
+    result = category_ranking_module._bulk_nav_on_or_before(db, [scheme.id], [_TODAY])
+    assert result[scheme.id] == {}
+
+
+def test_bulk_nav_on_or_before_omits_scheme_with_no_rows_at_all():
+    db = _session()
+    scheme = _scheme(db)
+
+    result = category_ranking_module._bulk_nav_on_or_before(db, [scheme.id], [_TODAY])
+    assert result[scheme.id] == {}
+
+
+def test_bulk_nav_on_or_before_resolves_each_scheme_independently_with_competing_rows():
+    """Two schemes with different row layouts around the same target dates
+    -- each scheme's resolution must not leak into the other's."""
+    db = _session()
+    s1 = _scheme(db, "Fund One")
+    s2 = _scheme(db, "Fund Two")
+    _seed_nav(db, s1, _START_3Y, Decimal("10"))
+    _seed_nav(db, s1, _START_3Y + timedelta(days=1), Decimal("10.5"))
+    _seed_nav(db, s1, _TODAY, Decimal("13"))
+    _seed_nav(db, s2, _START_3Y - timedelta(days=1), Decimal("20"))
+    _seed_nav(db, s2, _TODAY, Decimal("25"))
+
+    result = category_ranking_module._bulk_nav_on_or_before(db, [s1.id, s2.id], [_START_3Y, _TODAY])
+
+    assert result[s1.id] == {_START_3Y: Decimal("10"), _TODAY: Decimal("13")}
+    assert result[s2.id] == {_START_3Y: Decimal("20"), _TODAY: Decimal("25")}
+
+
+def test_category_returns_recomputes_once_ttl_has_expired():
+    db = _session()
+    scheme = _scheme(db, "Held Fund")
+    _seed_nav(db, scheme, _START_3Y, Decimal("10"))
+    _seed_nav(db, scheme, _TODAY, Decimal("13"))
+
+    now = [1000.0]
+    with (
+        patch("app.services.analytics.category_ranking.warm_nav_history", new=AsyncMock(return_value=None)),
+        patch.object(category_ranking_module, "_category_returns_clock", side_effect=lambda: now[0]),
+    ):
+        asyncio.run(_category_returns(db, [scheme], _TODAY))
+        now[0] += category_ranking_module._CATEGORY_RETURNS_CACHE_TTL_SECONDS + 1
+        with patch(
+            "app.services.analytics.category_ranking.warm_nav_history", new=AsyncMock(return_value=None)
+        ) as warm_mock:
+            asyncio.run(_category_returns(db, [scheme], _TODAY))
+            assert warm_mock.call_count == 1
+
+
+def test_category_returns_recomputes_on_calendar_day_rollover():
+    """A cached same-TTL-window entry from a prior calendar day must not be
+    served -- returns are inherently day-dependent (3yr/5yr start dates
+    anchor off `today`), so a long-lived process spanning midnight would
+    otherwise silently serve yesterday's return windows."""
+    db = _session()
+    scheme = _scheme(db, "Held Fund")
+    _seed_nav(db, scheme, _START_3Y, Decimal("10"))
+    _seed_nav(db, scheme, _TODAY, Decimal("13"))
+    _seed_nav(db, scheme, _START_3Y - timedelta(days=1), Decimal("13"))
+
+    now = [1000.0]
+    with (
+        patch(
+            "app.services.analytics.category_ranking.warm_nav_history", new=AsyncMock(return_value=None)
+        ) as warm_mock,
+        patch.object(category_ranking_module, "_category_returns_clock", side_effect=lambda: now[0]),
+    ):
+        asyncio.run(_category_returns(db, [scheme], _TODAY))
+        asyncio.run(_category_returns(db, [scheme], _TODAY - timedelta(days=1)))
+
+    assert warm_mock.call_count == 2
+
+
+def test_category_returns_empty_universe_short_circuits_without_warming():
+    db = _session()
+    with patch(
+        "app.services.analytics.category_ranking.warm_nav_history", new=AsyncMock(return_value=None)
+    ) as warm_mock:
+        result = asyncio.run(_category_returns(db, [], _TODAY))
+
+    assert result == {}
+    assert warm_mock.call_count == 0
+
+
+def test_category_returns_cache_is_isolated_per_category():
+    """A cache hit for one SEBI category must never leak into a different
+    category's lookup -- the cache key is derived from `universe[0].sebi_category`."""
+    db = _session()
+    scheme_a = _scheme(db, "Fund A", sebi_category="Equity Scheme - Flexi Cap Fund")
+    scheme_b = _scheme(db, "Fund B", sebi_category="Equity Scheme - Large Cap Fund")
+    _seed_nav(db, scheme_a, _START_3Y, Decimal("10"))
+    _seed_nav(db, scheme_a, _TODAY, Decimal("13"))
+    _seed_nav(db, scheme_b, _START_3Y, Decimal("20"))
+    _seed_nav(db, scheme_b, _TODAY, Decimal("22"))
+
+    with patch(
+        "app.services.analytics.category_ranking.warm_nav_history", new=AsyncMock(return_value=None)
+    ) as warm_mock:
+        result_a = asyncio.run(_category_returns(db, [scheme_a], _TODAY))
+        result_b = asyncio.run(_category_returns(db, [scheme_b], _TODAY))
+
+    assert set(result_a.keys()) == {scheme_a.id}
+    assert set(result_b.keys()) == {scheme_b.id}
+    assert warm_mock.call_count == 2
