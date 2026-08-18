@@ -8,6 +8,7 @@ Redis-backed session store if a multi-instance deploy needs this later).
 
 from __future__ import annotations
 
+import asyncio
 import json
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -68,14 +69,18 @@ async def build_import_preview(
     scheme_previews: list[SchemeMatchPreview] = []
     key_to_temp: dict[tuple[str, str, str], str] = {}
 
-    for scheme in parse_result.schemes:
-        temp_id = uuid.uuid4().hex[:12]
-        key_to_temp[(scheme.folio, scheme.amc, scheme.name)] = temp_id
-
+    async def resolve(scheme):
         match, status = await client.resolve_scheme(scheme.name, scheme.amfi)
         category = None
         if match and match.amfi_code:
             category = await client.get_scheme_category(match.amfi_code)
+        return match, status, category
+
+    resolutions = await asyncio.gather(*(resolve(scheme) for scheme in parse_result.schemes))
+
+    for scheme, (match, status, category) in zip(parse_result.schemes, resolutions, strict=True):
+        temp_id = uuid.uuid4().hex[:12]
+        key_to_temp[(scheme.folio, scheme.amc, scheme.name)] = temp_id
 
         scheme_previews.append(
             SchemeMatchPreview(
