@@ -123,6 +123,36 @@ def test_refresh_ter_data_upserts_regular_and_direct_variants_from_shared_row():
     assert regular_ter.ter_value == Decimal("1.85")
 
 
+def test_refresh_ter_data_treats_zero_ter_as_no_data_not_a_real_value():
+    """DATA-001: AMFI's feed uses a literal 0 in R_TER/D_TER for a scheme
+    that has no plan of that type (e.g. a scheme with no Regular plan
+    reports R_TER=0), not a genuine zero-expense-ratio fund -- mutual fund
+    TERs are never actually 0.00% in practice (regulatory minimum
+    operating costs). Storing it as a real TER made a failed/inapplicable
+    match indistinguishable downstream from real coverage."""
+    db = _session()
+    direct = _scheme(db, "HDFC Flexi Cap Fund - Direct Plan - Growth", PlanNameVariant.DIRECT)
+    regular = _scheme(db, "HDFC Flexi Cap Fund - Regular Plan - Growth", PlanNameVariant.REGULAR)
+
+    rows = [
+        {
+            "Scheme_Name": "HDFC Flexi Cap Fund",
+            "TER_Date": "10-Aug-2026",
+            "R_TER": "0",
+            "D_TER": "0.75",
+        }
+    ]
+    with (
+        patch("app.services.analytics.amfi_ter_client._fetch_latest_ter_month", new=AsyncMock(return_value="08-2026")),
+        patch("app.services.analytics.amfi_ter_client._fetch_ter_rows", new=AsyncMock(return_value=rows)),
+    ):
+        asyncio.run(refresh_ter_data(db))
+
+    direct_ter = db.get(SchemeTer, (direct.id, date(2026, 8, 1)))
+    assert direct_ter.ter_value == Decimal("0.75")
+    assert db.get(SchemeTer, (regular.id, date(2026, 8, 1))) is None
+
+
 def test_refresh_ter_data_skips_schemes_with_unresolved_plan_variant():
     db = _session()
     unresolved = _scheme(db, "HDFC Flexi Cap Fund", PlanNameVariant.UNRESOLVED)

@@ -295,6 +295,35 @@ def test_compute_fund_score_cost_adjustment_nudges_final_score():
     assert row.cost_adjustment == "0.25"
 
 
+def test_compute_fund_score_cost_adjustment_is_none_not_zero_when_ter_unavailable():
+    """DATA-001: no TER data for either fund means the cost adjustment
+    can't be computed at all -- this must be reported as None
+    ("unavailable"), not the numeric string "0", which would look
+    identical to a genuinely-computed no-adjustment result (TER within the
+    dead zone of the category average)."""
+    db = _session()
+    held = _scheme(db, "Held Fund")
+    peer = _scheme(db, "Peer Fund")
+    _seed_monthly_nav(db, held, 24, monthly_growth=Decimal("0.01"))
+    _seed_monthly_nav(db, peer, 24, monthly_growth=Decimal("0.01"))
+    # Deliberately no SchemeTer/SchemeAaum rows for either scheme.
+
+    async def _returns(db_, universe, today):
+        return {held.id: Decimal("0.20"), peer.id: Decimal("0.20")}
+
+    with (
+        patch("app.services.analytics.scorer._category_returns", new=AsyncMock(side_effect=_returns)),
+        patch("app.services.analytics.scorer.get_category_universe", new=AsyncMock(return_value=[held, peer])),
+        patch("app.services.analytics.scorer._ensure_ter_fresh", new=AsyncMock(return_value=None)),
+    ):
+        row = asyncio.run(compute_fund_score(db, held))
+
+    assert row.cost_adjustment is None
+    # final_score still gets computed (best-effort, no adjustment applied)
+    # rather than being blocked entirely by missing TER data.
+    assert row.final_score is not None
+
+
 from app.models.enums import PlanType, Relationship, TransactionType
 from app.models.folio import Folio
 from app.models.transaction import Transaction

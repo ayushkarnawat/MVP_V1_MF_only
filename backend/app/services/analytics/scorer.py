@@ -169,10 +169,16 @@ async def _category_ter_context(
 
 def _cost_adjustment_from_context(
     scheme: Scheme, ter_by_scheme: dict[uuid.UUID, Decimal], category_avg: Decimal | None
-) -> Decimal:
+) -> Decimal | None:
+    """`None` means "can't be computed" (own or category-average TER
+    unavailable) -- distinct from `Decimal("0")`, a genuinely-computed
+    result meaning "TER is within the dead zone of the category average,
+    no nudge warranted". Collapsing both to 0 would make an unmatched
+    scheme's TER (DATA-001) indistinguishable from a real no-adjustment
+    verdict in the API response."""
     own_ter = ter_by_scheme.get(scheme.id)
     if own_ter is None or category_avg is None:
-        return Decimal("0")
+        return None
     diff = own_ter - category_avg
     if abs(diff) <= _TER_DEAD_ZONE:
         return Decimal("0")
@@ -224,7 +230,12 @@ def _finish_fund_score(
 
     tier = _tier_from_percentile(composite_rank[1])
     cost_adjustment = _cost_adjustment_from_context(scheme, ter_by_scheme, category_avg)
-    final_score = (composite_rank[1] + cost_adjustment).quantize(Decimal("0.01"))
+    # `None` (TER data unavailable) applies no nudge to the arithmetic --
+    # same numeric effect as a computed zero -- but is reported to the API
+    # caller as `None`, not "0", so "unavailable" and "no adjustment
+    # needed" stay distinguishable downstream (DATA-001).
+    applied_adjustment = cost_adjustment if cost_adjustment is not None else Decimal("0")
+    final_score = (composite_rank[1] + applied_adjustment).quantize(Decimal("0.01"))
 
     # `computed_at` is pinned to day-start (not `now`) so the existing
     # (scheme_id, computed_at) primary key IS the one-row-per-day
@@ -239,7 +250,7 @@ def _finish_fund_score(
             scheme_id=scheme.id,
             computed_at=today_start,
             risk_adjusted_tier=tier,
-            cost_adjustment=cost_adjustment,
+            cost_adjustment=applied_adjustment,
             final_score=final_score,
         )
     )
@@ -255,7 +266,7 @@ def _finish_fund_score(
         insufficient_history=False,
         thin_category=len(universe) < _THIN_CATEGORY_THRESHOLD,
         risk_adjusted_tier=tier,
-        cost_adjustment=str(cost_adjustment),
+        cost_adjustment=str(cost_adjustment) if cost_adjustment is not None else None,
         final_score=str(final_score),
         return_percentile=str(scheme_scores["return_percentile"]),
         risk_percentile=str(scheme_scores["risk_percentile"]),

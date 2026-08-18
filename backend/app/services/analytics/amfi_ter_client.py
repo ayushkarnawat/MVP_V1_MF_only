@@ -227,7 +227,16 @@ async def refresh_ter_data(db: Session) -> bool:
         raw_value = row["R_TER"] if scheme.plan_name_variant == PlanNameVariant.REGULAR else row["D_TER"]
         if raw_value in (None, ""):
             continue
-        _upsert_scheme_ter(db, scheme.id, reference_period, Decimal(str(raw_value)))
+        ter_value = Decimal(str(raw_value))
+        # AMFI uses a literal 0 here for "no plan of this type" (e.g. a
+        # scheme with no Regular plan reports R_TER=0), not a genuine
+        # zero-expense-ratio fund -- real TERs are never actually 0.00% in
+        # practice (regulatory minimum operating costs). Treat it the same
+        # as a missing/unmatched value rather than persisting a misleading
+        # "valid coverage at 0%" row.
+        if ter_value == 0:
+            continue
+        _upsert_scheme_ter(db, scheme.id, reference_period, ter_value)
 
     db.commit()
     return True
