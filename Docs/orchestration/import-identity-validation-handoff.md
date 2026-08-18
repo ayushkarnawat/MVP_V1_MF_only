@@ -117,6 +117,44 @@ the mandatory adversarial-review gate still applies unchanged.
   observed in production; not touched here to avoid an unverified
   threshold change with no repro.
 
+## Round 2 (review findings, commit e43391a)
+
+Adversarial review of `40754dc` returned REQUEST-CHANGES: 2 Medium, 3 Low.
+All fixed:
+
+- **Medium** — the `plan_type_override` 409 backstop trusted
+  `classify_plan_from_name`'s loose whole-name substring match as an
+  absolute veto; a base scheme name merely containing "Direct"/"Regular"
+  outside the actual plan designator could block a legitimate override.
+  Fixed: the backstop now also requires the scheme's own name to contain
+  the literal `"Direct Plan"`/`"Regular Plan"` phrase (regex-anchored,
+  `\b(DIRECT|REGULAR)\s+PLAN\b`) matching the parsed variant before it
+  fires — `parser.py`'s shared `classify_plan_from_name` itself was left
+  untouched (out of this task's file scope, and used elsewhere for a
+  looser best-effort purpose where that trade-off is already accepted).
+- **Medium** — the stale `.cache/mfapi/schemes.json` this session already
+  deleted once had recurred, because the integration test's
+  `MfApiClient._get_json` mock still wrote through the module-level
+  `mfapi_client` singleton's real, non-`tmp_path` cache dir. Fixed at the
+  root: the test now patches `mfapi_client.cache_dir` to `tmp_path` and
+  resets `_schemes` to `None` for the duration of the test, so it can no
+  longer write into (or read stale data from) the shared cache dir.
+  Confirmed empty after a full suite run.
+- **Low** — `SequenceMatcher("", "").ratio()` returns `1.0`; a
+  blank/punctuation-only name (post-normalization) could "confirm" a
+  match at full confidence. Fixed in both `resolve_scheme`'s new
+  cross-check and the pre-existing `fuzzy_match_scheme` (same root cause,
+  same file — fixed once, not just at the new call site).
+- **Low** (no action) — `parsed_scheme_by_key`'s once-per-call
+  construction confirmed functionally equivalent to the replaced scan,
+  no DB-write race (`confirm_import` is synchronous, `ParseResult` isn't
+  mutated).
+- **Low** (no action, already documented) — the cold-cache bypass is the
+  same accepted, already-documented limitation from Round 1.
+
+TDD: RED confirmed for both new regression tests before their fixes.
+Full suite: 412 passed, 2 skipped (was 410/2).
+
 ## Open questions
 
 None outstanding — flag in review if the reviewer sees a gap in this
