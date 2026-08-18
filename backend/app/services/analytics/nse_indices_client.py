@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import json
 from datetime import date, datetime
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 import httpx
 from sqlalchemy import func
@@ -104,7 +104,7 @@ async def ensure_index_history_fresh(db: Session, index: BenchmarkIndex, start_d
 
     try:
         rows = await _fetch_index_history(index, start_date, end_date)
-    except (httpx.HTTPError, KeyError, ValueError, TypeError):
+    except (httpx.HTTPError, KeyError, ValueError, TypeError, InvalidOperation):
         return False
     if not rows:
         return False

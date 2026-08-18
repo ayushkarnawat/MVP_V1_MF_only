@@ -1,4 +1,5 @@
 import asyncio
+import decimal
 import uuid
 from datetime import date
 from decimal import Decimal
@@ -98,6 +99,26 @@ def test_ensure_index_history_fresh_returns_false_on_fetch_failure():
     with patch(
         "app.services.analytics.nse_indices_client._fetch_index_history",
         new=AsyncMock(side_effect=httpx.ConnectError("boom")),
+    ):
+        result = asyncio.run(
+            ensure_index_history_fresh(db, BenchmarkIndex.NIFTY_50, date(2026, 8, 3), date(2026, 8, 4))
+        )
+    assert result is False
+    assert db.query(BenchmarkIndexHistory).count() == 0
+
+
+def test_ensure_index_history_fresh_returns_false_on_malformed_close_value():
+    """BUG-001/DATA-001 re-review finding: `Decimal(entry["CLOSE"])` inside
+    `_fetch_index_history` can raise `decimal.InvalidOperation` on a
+    malformed value from this undocumented, reverse-engineered endpoint --
+    pre-existing gap, not covered by the `except (httpx.HTTPError, KeyError,
+    ValueError, TypeError)` tuple, so it escaped uncaught instead of
+    degrading to stale-cache-return-False like every other malformed-response
+    case here."""
+    db = _session()
+    with patch(
+        "app.services.analytics.nse_indices_client._fetch_index_history",
+        new=AsyncMock(side_effect=decimal.InvalidOperation("bad CLOSE value")),
     ):
         result = asyncio.run(
             ensure_index_history_fresh(db, BenchmarkIndex.NIFTY_50, date(2026, 8, 3), date(2026, 8, 4))
