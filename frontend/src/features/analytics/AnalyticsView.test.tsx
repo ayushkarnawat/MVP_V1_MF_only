@@ -175,13 +175,13 @@ describe("AnalyticsView", () => {
     render(<AnalyticsView viewMode="member" memberId="m-1" />);
 
     await waitFor(() => {
-      expect(api.getMemberAllocation).toHaveBeenCalledWith("m-1");
-      expect(api.getMemberTer).toHaveBeenCalledWith("m-1");
-      expect(api.getMemberDirectRegularTer).toHaveBeenCalledWith("m-1");
-      expect(api.getMemberCategoryRanking).toHaveBeenCalledWith("m-1");
-      expect(api.getMemberScore).toHaveBeenCalledWith("m-1");
-      expect(api.getMemberBenchmark).toHaveBeenCalledWith("m-1");
-      expect(api.getMemberFundBenchmark).toHaveBeenCalledWith("m-1");
+      expect(api.getMemberAllocation).toHaveBeenCalledWith("m-1", expect.any(AbortSignal));
+      expect(api.getMemberTer).toHaveBeenCalledWith("m-1", expect.any(AbortSignal));
+      expect(api.getMemberDirectRegularTer).toHaveBeenCalledWith("m-1", expect.any(AbortSignal));
+      expect(api.getMemberCategoryRanking).toHaveBeenCalledWith("m-1", expect.any(AbortSignal));
+      expect(api.getMemberScore).toHaveBeenCalledWith("m-1", expect.any(AbortSignal));
+      expect(api.getMemberBenchmark).toHaveBeenCalledWith("m-1", expect.any(AbortSignal));
+      expect(api.getMemberFundBenchmark).toHaveBeenCalledWith("m-1", expect.any(AbortSignal));
     });
 
     await waitFor(() => {
@@ -219,5 +219,26 @@ describe("AnalyticsView", () => {
       expect(screen.getByText("Unable to load Analytics Dashboard")).toBeInTheDocument();
       expect(screen.getByText("Network Error")).toBeInTheDocument();
     });
+  });
+
+  it("aborts analytics requests when the view unmounts", () => {
+    let observedSignal: AbortSignal | undefined;
+    vi.mocked(api.getAggregateAllocation).mockImplementation((signal) => {
+      observedSignal = signal;
+      return new Promise(() => {});
+    });
+    vi.mocked(api.getAggregateTer).mockImplementation(() => new Promise(() => {}));
+    vi.mocked(api.getAggregateDirectRegularTer).mockImplementation(() => new Promise(() => {}));
+    vi.mocked(api.getAggregateCategoryRanking).mockImplementation(() => new Promise(() => {}));
+    vi.mocked(api.getAggregateScore).mockImplementation(() => new Promise(() => {}));
+    vi.mocked(api.getAggregateBenchmark).mockImplementation(() => new Promise(() => {}));
+    vi.mocked(api.getAggregateFundBenchmark).mockImplementation(() => new Promise(() => {}));
+
+    const { unmount } = render(
+      <AnalyticsView viewMode="aggregate" memberId={null} />,
+    );
+    unmount();
+
+    expect(observedSignal?.aborted).toBe(true);
   });
 });

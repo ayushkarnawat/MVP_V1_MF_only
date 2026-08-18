@@ -35,13 +35,13 @@ async function authFetch(path: string, options: RequestInit = {}): Promise<Respo
 }
 
 /* Per-member Dashboard API */
-export async function getMemberHoldings(memberId: string): Promise<HoldingRow[]> {
-  const res = await authFetch(`/household-members/${memberId}/holdings`);
+export async function getMemberHoldings(memberId: string, signal?: AbortSignal): Promise<HoldingRow[]> {
+  const res = await authFetch(`/household-members/${memberId}/holdings`, { signal });
   return res.json();
 }
 
-export async function getMemberAllocation(memberId: string): Promise<AllocationSummary> {
-  const res = await authFetch(`/household-members/${memberId}/allocation`);
+export async function getMemberAllocation(memberId: string, signal?: AbortSignal): Promise<AllocationSummary> {
+  const res = await authFetch(`/household-members/${memberId}/allocation`, { signal });
   return res.json();
 }
 
@@ -71,13 +71,13 @@ export async function getDistributorComparison(
 }
 
 /* Family Aggregate Dashboard API */
-export async function getAggregateHoldings(): Promise<AggregateHoldingsResponse> {
-  const res = await authFetch(`/household/aggregate/holdings`);
+export async function getAggregateHoldings(signal?: AbortSignal): Promise<AggregateHoldingsResponse> {
+  const res = await authFetch(`/household/aggregate/holdings`, { signal });
   return res.json();
 }
 
-export async function getAggregateAllocation(): Promise<AggregateAllocationResponse> {
-  const res = await authFetch(`/household/aggregate/allocation`);
+export async function getAggregateAllocation(signal?: AbortSignal): Promise<AggregateAllocationResponse> {
+  const res = await authFetch(`/household/aggregate/allocation`, { signal });
   return res.json();
 }
 
