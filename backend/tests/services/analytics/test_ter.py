@@ -262,13 +262,13 @@ def test_ensure_ter_fresh_lock_survives_contention_from_a_different_event_loop()
     reproduces (each thread gets its own DB session/scheme so only the
     lock/backoff state is contended across loops).
 
-    Also covers a second, related finding on that same per-loop-lock fix:
-    the per-loop lock only coalesces callers on the SAME loop, so the
-    shared `_last_ter_refresh_attempt` backoff check-and-claim must itself
-    be atomic across threads (`_claim_ter_refresh_slot`'s `threading.Lock`)
-    -- otherwise two different loops could both slip past a stale
-    timestamp and both trigger a refresh. `mock_refresh.assert_awaited_once()`
-    below asserts exactly that: only the first thread's refresh ever fires."""
+    This test alone does NOT prove the separate backoff-claim race (below)
+    is fixed -- gating the second thread on `refresh_started` means it only
+    ever runs after the first thread's claim has already landed, so it
+    would pass even without `_claim_ter_refresh_slot`'s locking. It only
+    proves the per-loop lock itself doesn't deadlock. See
+    `test_claim_ter_refresh_slot_is_atomic_across_threads` for a direct,
+    genuinely-simultaneous test of the claim's atomicity."""
     refresh_started = threading.Event()
     release_refresh = threading.Event()
 
@@ -302,8 +302,12 @@ def test_ensure_ter_fresh_lock_survives_contention_from_a_different_event_loop()
                 release_refresh.set()  # let the first thread's blocked refresh finish
 
     with patch("app.services.analytics.ter.refresh_ter_data", new=mock_refresh):
-        t1 = threading.Thread(target=_run, args=(False,))
-        t2 = threading.Thread(target=_run, args=(True,))
+        # daemon=True: a genuine regression here is a deadlock, not a slow
+        # pass -- the bounded joins below will still correctly fail the
+        # test on a hang, but a non-daemon hung thread would otherwise also
+        # block pytest's own process from exiting afterward.
+        t1 = threading.Thread(target=_run, args=(False,), daemon=True)
+        t2 = threading.Thread(target=_run, args=(True,), daemon=True)
         t1.start()
         t2.start()
         t1.join(timeout=5)
@@ -313,6 +317,70 @@ def test_ensure_ter_fresh_lock_survives_contention_from_a_different_event_loop()
     assert not t2.is_alive(), "second thread deadlocked"
     assert errors == []
     mock_refresh.assert_awaited_once()
+
+
+def test_claim_ter_refresh_slot_is_atomic_across_threads():
+    """Direct test of `_claim_ter_refresh_slot`'s atomicity, independent of
+    the async/event-loop machinery above. A plain torture-test loop (many
+    threads racing via a `threading.Barrier`, no injected delay) does NOT
+    reliably prove this under CPython: the check-then-set critical section
+    is short enough that the GIL rarely if ever switches threads mid-way
+    through it, so even an UNGUARDED reimplementation of the function still
+    produces exactly one winner by luck (confirmed empirically: 5/5 trials
+    of 50 racing threads against an unguarded version). Proving real mutual
+    exclusion requires deterministically forcing a second caller to attempt
+    entry WHILE the first genuinely holds the lock -- done here by wrapping
+    the actual production `_ter_refresh_backoff_guard` so its first
+    `__enter__` blocks (after really acquiring the real lock) until
+    signaled, giving a second thread's real `acquire()` call something
+    concrete to contend against."""
+    ter_module._last_ter_refresh_attempt = None
+    first_holds_lock = threading.Event()
+    let_first_release = threading.Event()
+    delay_next_enter = {"pending": True}
+    real_lock = ter_module._ter_refresh_backoff_guard
+
+    class _DelayedLock:
+        def __enter__(self):
+            real_lock.acquire()
+            if delay_next_enter["pending"]:
+                delay_next_enter["pending"] = False
+                first_holds_lock.set()
+                assert let_first_release.wait(5), "test itself never released the lock"
+            return self
+
+        def __exit__(self, *exc_info):
+            real_lock.release()
+
+    results: dict[str, bool] = {}
+
+    def _first():
+        results["first"] = ter_module._claim_ter_refresh_slot()
+
+    def _second():
+        assert first_holds_lock.wait(5), "first thread never acquired the lock"
+        results["second"] = ter_module._claim_ter_refresh_slot()
+
+    with patch("app.services.analytics.ter._ter_refresh_backoff_guard", new=_DelayedLock()):
+        t1 = threading.Thread(target=_first, daemon=True)
+        t2 = threading.Thread(target=_second, daemon=True)
+        t1.start()
+        t2.start()
+
+        assert first_holds_lock.wait(5)
+        # t2 is now genuinely blocked on the real lock's acquire() -- give
+        # it a moment and confirm it hasn't slipped through while the first
+        # thread still holds the lock.
+        t2.join(timeout=0.2)
+        assert "second" not in results, "second thread claimed the slot while the first still held the lock"
+
+        let_first_release.set()
+        t1.join(timeout=5)
+        t2.join(timeout=5)
+
+    assert not t1.is_alive()
+    assert not t2.is_alive()
+    assert results == {"first": True, "second": False}
 
 
 def test_compute_direct_regular_ter_comparison_empty_bucket_when_no_regular_holdings():
