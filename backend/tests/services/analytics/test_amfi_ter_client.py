@@ -153,6 +153,36 @@ def test_refresh_ter_data_treats_zero_ter_as_no_data_not_a_real_value():
     assert db.get(SchemeTer, (regular.id, date(2026, 8, 1))) is None
 
 
+def test_refresh_ter_data_deletes_a_stale_zero_row_from_a_pre_fix_refresh():
+    """Reviewer-flagged gap in the zero-skip fix above: skipping a NEW zero
+    value only stops writing fresh fake-coverage rows -- it does nothing
+    about a zero-value `SchemeTer` row a PRIOR (pre-fix) refresh already
+    persisted for this exact scheme/period. That stale row would keep
+    satisfying `_missing_current_month_ter`'s coverage check forever, since
+    this scheme/period combination would never again reach `_upsert_scheme_ter`
+    to get corrected -- the scheme silently never gets a real TER."""
+    db = _session()
+    regular = _scheme(db, "HDFC Flexi Cap Fund - Regular Plan - Growth", PlanNameVariant.REGULAR)
+    db.add(SchemeTer(scheme_id=regular.id, reference_period=date(2026, 8, 1), ter_value=Decimal("0")))
+    db.commit()
+
+    rows = [
+        {
+            "Scheme_Name": "HDFC Flexi Cap Fund",
+            "TER_Date": "10-Aug-2026",
+            "R_TER": "0",
+            "D_TER": "0.75",
+        }
+    ]
+    with (
+        patch("app.services.analytics.amfi_ter_client._fetch_latest_ter_month", new=AsyncMock(return_value="08-2026")),
+        patch("app.services.analytics.amfi_ter_client._fetch_ter_rows", new=AsyncMock(return_value=rows)),
+    ):
+        asyncio.run(refresh_ter_data(db))
+
+    assert db.get(SchemeTer, (regular.id, date(2026, 8, 1))) is None
+
+
 def test_refresh_ter_data_skips_schemes_with_unresolved_plan_variant():
     db = _session()
     unresolved = _scheme(db, "HDFC Flexi Cap Fund", PlanNameVariant.UNRESOLVED)

@@ -192,6 +192,19 @@ def _upsert_scheme_ter(db: Session, scheme_id: uuid.UUID, reference_period: date
         db.add(SchemeTer(scheme_id=scheme_id, reference_period=reference_period, ter_value=ter_value))
 
 
+def _clear_stale_zero_ter(db: Session, scheme_id: uuid.UUID, reference_period: date) -> None:
+    """A PRIOR (pre-fix) refresh may have persisted AMFI's "no plan of this
+    type" 0 as if it were a real TER for this exact scheme/period. Skipping
+    the upsert alone leaves that stale row in place, where it keeps
+    satisfying `_missing_current_month_ter`'s coverage check forever and the
+    scheme never gets a real TER. Only ever removes a row that is ITSELF
+    zero — a genuine non-zero value already on record for this period is
+    left untouched."""
+    existing = db.get(SchemeTer, (scheme_id, reference_period))
+    if existing is not None and existing.ter_value == 0:
+        db.delete(existing)
+
+
 async def refresh_ter_data(db: Session) -> bool:
     """Fetch the latest published TER month and upsert `scheme_ter` for
     every locally-known scheme with a confident fuzzy-name match and a
@@ -235,6 +248,7 @@ async def refresh_ter_data(db: Session) -> bool:
         # as a missing/unmatched value rather than persisting a misleading
         # "valid coverage at 0%" row.
         if ter_value == 0:
+            _clear_stale_zero_ter(db, scheme.id, reference_period)
             continue
         _upsert_scheme_ter(db, scheme.id, reference_period, ter_value)
 

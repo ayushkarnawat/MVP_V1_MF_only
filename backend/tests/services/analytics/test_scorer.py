@@ -322,6 +322,46 @@ def test_compute_fund_score_cost_adjustment_is_none_not_zero_when_ter_unavailabl
     # final_score still gets computed (best-effort, no adjustment applied)
     # rather than being blocked entirely by missing TER data.
     assert row.final_score is not None
+    # The DB-persisted row always stores an applied numeric value (arithmetic
+    # needs a concrete Decimal) -- confirms the None/"0" API distinction is
+    # purely at the schema layer, not a difference in what's computed.
+    stored = db.query(FundScore).filter(FundScore.scheme_id == held.id).one()
+    assert stored.cost_adjustment == Decimal("0")
+
+
+def test_compute_fund_score_cost_adjustment_is_zero_string_not_none_when_genuinely_computed():
+    """Contrast case for the None/"0" sentinel: TER data IS available for
+    both funds and the diff falls inside the dead zone, so the adjustment is
+    a genuinely-computed zero -- must be reported as the string "0", not
+    None, so a real "no nudge warranted" verdict stays distinguishable from
+    "TER data unavailable" (the test above)."""
+    db = _session()
+    held = _scheme(db, "Held Fund")
+    peer = _scheme(db, "Peer Fund")
+    _seed_monthly_nav(db, held, 24, monthly_growth=Decimal("0.01"))
+    _seed_monthly_nav(db, peer, 24, monthly_growth=Decimal("0.01"))
+
+    db.add(SchemeTer(scheme_id=held.id, reference_period=date(2026, 3, 1), ter_value=Decimal("1.00")))
+    db.add(SchemeTer(scheme_id=peer.id, reference_period=date(2026, 3, 1), ter_value=Decimal("1.00")))
+    db.add(SchemeAaum(scheme_id=held.id, reference_period=date(2026, 3, 31), aaum_value=Decimal("100")))
+    db.add(SchemeAaum(scheme_id=peer.id, reference_period=date(2026, 3, 31), aaum_value=Decimal("100")))
+    db.commit()
+
+    async def _returns(db_, universe, today):
+        return {held.id: Decimal("0.20"), peer.id: Decimal("0.20")}
+
+    with (
+        patch("app.services.analytics.scorer._category_returns", new=AsyncMock(side_effect=_returns)),
+        patch("app.services.analytics.scorer.get_category_universe", new=AsyncMock(return_value=[held, peer])),
+        patch("app.services.analytics.scorer._ensure_ter_fresh", new=AsyncMock(return_value=None)),
+    ):
+        row = asyncio.run(compute_fund_score(db, held))
+
+    # held's TER equals the category average exactly -> within the dead
+    # zone -> a real, computed "no adjustment" verdict.
+    assert row.cost_adjustment == "0"
+    stored = db.query(FundScore).filter(FundScore.scheme_id == held.id).one()
+    assert stored.cost_adjustment == Decimal("0")
 
 
 from app.models.enums import PlanType, Relationship, TransactionType
