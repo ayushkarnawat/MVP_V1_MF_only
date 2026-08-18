@@ -11,7 +11,51 @@ from app.models.folio import Folio
 from app.models.reference import Scheme
 from app.models.transaction import Transaction
 from app.models.user import HouseholdMember, User
+from app.services.dashboard.sip import _add_months_clamped, _next_due_on_or_after
 from app.services.dashboard.sip import compute_active_sips
+
+
+def test_add_months_clamped_same_day_next_month():
+    assert _add_months_clamped(date(2026, 6, 5), 1) == date(2026, 7, 5)
+
+
+def test_add_months_clamped_clamps_to_shorter_month():
+    assert _add_months_clamped(date(2026, 1, 31), 1) == date(2026, 2, 28)
+
+
+def test_add_months_clamped_handles_leap_year_feb_29_anchor():
+    assert _add_months_clamped(date(2028, 2, 29), 12) == date(2029, 2, 28)
+
+
+def test_add_months_clamped_rolls_year_boundary():
+    assert _add_months_clamped(date(2026, 11, 15), 3) == date(2027, 2, 15)
+
+
+def test_add_months_clamped_supports_negative_months():
+    assert _add_months_clamped(date(2026, 10, 5), -2) == date(2026, 8, 5)
+
+
+def test_next_due_on_or_after_returns_anchor_when_already_future():
+    anchor = date(2026, 9, 5)
+    today = date(2026, 8, 1)
+    assert _next_due_on_or_after(anchor, today) == anchor
+
+
+def test_next_due_on_or_after_rolls_forward_one_cycle():
+    anchor = date(2026, 7, 5)
+    today = date(2026, 8, 1)
+    assert _next_due_on_or_after(anchor, today) == date(2026, 8, 5)
+
+
+def test_next_due_on_or_after_rolls_forward_multiple_cycles_after_a_gap():
+    anchor = date(2025, 7, 5)
+    today = date(2026, 8, 18)
+    assert _next_due_on_or_after(anchor, today) == date(2026, 9, 5)
+
+
+def test_next_due_on_or_after_returns_today_when_anchor_is_today():
+    today = date(2026, 8, 18)
+    assert _next_due_on_or_after(today, today) == today
 
 
 def _session():

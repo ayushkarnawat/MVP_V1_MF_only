@@ -1,12 +1,22 @@
-"""Active-SIP detection — a SIP is "active" if its most recent
-purchase_sip transaction, per folio, falls within the last 40 days
-(covers a monthly cadence plus a grace window for processing delays)."""
+"""Active-SIP detection and cadence projection.
+
+A SIP is "active" if the folio has at least one PURCHASE_SIP transaction,
+ever, and the folio is not fully redeemed. There is deliberately no
+recency cutoff: once detected, a SIP keeps projecting its next due date
+forward indefinitely, regardless of gaps in the transaction history. See
+Docs/superpowers/specs/2026-08-18-active-sips-cadence-redesign-design.md
+for the product rationale (supersedes PRD-03 FR-6's original 40-day
+window).
+"""
 
 from __future__ import annotations
 
+import calendar
 import uuid
+from collections import defaultdict
 from datetime import date, timedelta
 
+from sqlalchemy import case
 from sqlalchemy.orm import Session
 
 from app.models.enums import TransactionType
@@ -14,7 +24,30 @@ from app.models.folio import Folio
 from app.models.reference import Scheme
 from app.models.transaction import Transaction
 from app.models.user import HouseholdMember
+from app.services.dashboard.holdings import _LOT_CONSUMING_TYPES, _process_folio_lots
 from app.services.dashboard.schemas import SipRow
+
+
+def _add_months_clamped(anchor: date, months: int) -> date:
+    """anchor's day-of-month, `months` months later (negative allowed, for
+    projecting backward), clamped to the target month's actual length."""
+    month_index = anchor.month - 1 + months
+    year = anchor.year + month_index // 12
+    month = month_index % 12 + 1
+    day = min(anchor.day, calendar.monthrange(year, month)[1])
+    return date(year, month, day)
+
+
+def _next_due_on_or_after(anchor: date, today: date) -> date:
+    """First monthly-cadence occurrence of anchor's day-of-month that
+    falls on or after today. Loop bound is small in practice — an anchor
+    a decade stale is ~120 iterations of pure date arithmetic."""
+    months = 0
+    candidate = anchor
+    while candidate < today:
+        months += 1
+        candidate = _add_months_clamped(anchor, months)
+    return candidate
 
 SIP_ACTIVE_WINDOW_DAYS = 40
 
