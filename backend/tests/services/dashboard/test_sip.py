@@ -238,3 +238,42 @@ def test_sips_for_month_shows_real_past_transaction_even_if_folio_later_redeemed
     # But no fabricated projected row for a later, unpaid month post-redemption.
     rows_later = compute_sips_for_month(db, [member.id], 2026, 11)
     assert rows_later == []
+
+
+from sqlalchemy import event
+
+
+def test_compute_active_sips_uses_constant_query_count_regardless_of_folio_count():
+    db = _session()
+    member = _household_member(db)
+
+    def _make_folio_with_sip():
+        scheme = _scheme(db, name=f"Fund {uuid.uuid4().hex[:6]}")
+        folio = _folio(db, member, scheme)
+        _sip_txn(db, folio, date.today() - timedelta(days=10))
+        return folio
+
+    _make_folio_with_sip()
+
+    counts: list[int] = []
+
+    def _count_queries(n_folios: int) -> int:
+        for _ in range(n_folios - 1):
+            _make_folio_with_sip()
+        count = 0
+
+        def _on_execute(*args, **kwargs):
+            nonlocal count
+            count += 1
+
+        event.listen(db.get_bind(), "before_cursor_execute", _on_execute)
+        try:
+            compute_active_sips(db, [member.id])
+        finally:
+            event.remove(db.get_bind(), "before_cursor_execute", _on_execute)
+        return count
+
+    counts.append(_count_queries(1))
+    counts.append(_count_queries(5))
+
+    assert counts[0] == counts[1], f"query count grew with folio count: {counts}"

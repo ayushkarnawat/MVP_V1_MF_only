@@ -75,6 +75,19 @@ def _folio_transactions_by_id(
     return by_folio
 
 
+def _schemes_by_id(db: Session, folios: list[Folio]) -> dict[uuid.UUID, Scheme]:
+    """Single batched query for every distinct scheme referenced by the
+    given folios — replaces a per-folio `db.get(Scheme, ...)`, which would
+    otherwise emit one query per folio (SQLAlchemy's default
+    expire_on_commit forces a reload on every db.get() call once the
+    session has committed, so identity-map caching doesn't save this)."""
+    scheme_ids = {f.scheme_id for f in folios}
+    if not scheme_ids:
+        return {}
+    schemes = db.query(Scheme).filter(Scheme.id.in_(scheme_ids)).all()
+    return {s.id: s for s in schemes}
+
+
 def compute_active_sips(db: Session, household_member_ids: list[uuid.UUID]) -> list[SipRow]:
     if not household_member_ids:
         return []
@@ -85,6 +98,7 @@ def compute_active_sips(db: Session, household_member_ids: list[uuid.UUID]) -> l
     }
     folios = db.query(Folio).filter(Folio.household_member_id.in_(household_member_ids)).all()
     by_folio = _folio_transactions_by_id(db, folios)
+    schemes = _schemes_by_id(db, folios)
     today = date.today()
 
     rows: list[SipRow] = []
@@ -99,7 +113,7 @@ def compute_active_sips(db: Session, household_member_ids: list[uuid.UUID]) -> l
             continue
 
         latest = sip_txns[-1]  # transactions is chronologically ordered
-        scheme = db.get(Scheme, folio.scheme_id)
+        scheme = schemes[folio.scheme_id]
         rows.append(
             SipRow(
                 scheme_id=str(scheme.id),
@@ -126,6 +140,7 @@ def compute_sips_for_month(
     }
     folios = db.query(Folio).filter(Folio.household_member_id.in_(household_member_ids)).all()
     by_folio = _folio_transactions_by_id(db, folios)
+    schemes = _schemes_by_id(db, folios)
 
     rows: list[SipMonthlyRow] = []
     for folio in folios:
@@ -140,7 +155,7 @@ def compute_sips_for_month(
             (t for t in reversed(sip_txns) if t.date.year == year and t.date.month == month),
             None,
         )
-        scheme = db.get(Scheme, folio.scheme_id)
+        scheme = schemes[folio.scheme_id]
         member_name = members[folio.household_member_id].name
 
         if actual is not None:
