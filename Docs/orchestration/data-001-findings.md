@@ -57,6 +57,37 @@ correctness can be treated as a confirmed, ship-blocking finding rather than a
 seed-data artifact — flagged as follow-up, not done
 here to conserve further token/time spend on a repro-only fix.
 
+### Golden-comparison re-run, correct identity (2026-08-18) — closes the item above
+
+Re-ran the comparison from scratch in a fresh isolated sqlite DB, seeded
+directly from `Docs/orchestration/data-001-golden-dataset.json` with the
+CORRECT (verified) name↔AMFI-code pairs this time (not `seed_bug001.py`'s
+scrambled pairing above), calling the app's real `compute_weighted_ter`
+end-to-end. The live AMFI NAV fetch was mocked to raise `httpx.HTTPError` so
+`get_nav_on_or_before`'s "always attempt a live refetch for `on_date ==
+date.today()`" behavior (`backend/app/services/dashboard/nav.py`) falls back
+to the seeded, frozen NAV rather than a real current-date value — this keeps
+the comparison pinned to the golden dataset's frozen valuation date without
+any live network dependency.
+
+**Result: exact match.** App-computed weighted TER `0.65%` vs. golden's
+`weighted_ter_percent_api_precision: 0.65` — **0.00pp diff**, well inside the
+stated `0.01pp` tolerance (golden's full unrounded expected value is
+`0.6499960033894331922350468161`).
+
+**Conclusion: no real ingestion discrepancy remains.** The original
+0.65%-vs-0.28% mismatch was caused entirely by `seed_bug001.py`'s scrambled
+identity mapping, not by any defect in `compute_weighted_ter`,
+`refresh_ter_data`, or `_best_match`'s fuzzy matching. TER production-
+ingestion correctness — for the specific case of correctly-identified
+scheme↔AMFI-code pairs — is now a **confirmed pass**, not an open item. The
+executive-summary table's "production ingestion correctness: open" verdicts
+below are superseded by this result; the only genuinely still-open risk in
+this area is the *unvalidated* name/AMFI-code pairing at import time
+(`MIN_MATCH_CONFIDENCE = 0.55`, `enrich.py`/`service.py`, described above) —
+a real-world scheme whose CAS-parsed name is a poor fuzzy match for its true
+AMFI-code identity, not a defect in the weighting/computation path itself.
+
 ## Executive summary
 
 | Metric | Verdict | Evidence |
