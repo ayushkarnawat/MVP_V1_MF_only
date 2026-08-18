@@ -7,6 +7,68 @@ gets overwritten each session, and isn't meant to accumulate history.
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
 
+## BUG-001/DATA-001 implementation complete, all 7 items DONE (2026-08-18)
+
+Worked from the ready-to-paste implementation prompt
+(`Docs/orchestration/bug-001-data-001-implementation-prompt.md`) in a
+dedicated worktree/branch (`bug-001-data-001-implementation`, off
+`feat/enhanced-ui`). All 7 items closed through `model-orchestration`'s
+full mandatory adversarial-review gate, TDD throughout:
+
+1. **XIRR ×100 display fix** — DONE.
+2. **Scorer caching + bounded series query** — DONE.
+3. **TER negative-cache/backoff** — DONE after 4 review→fix rounds: a
+   per-loop-lock fix introduced a cross-loop deadlock (fixed with a
+   `WeakKeyDictionary`-keyed lock per event loop), which introduced a
+   cross-thread backoff race on the shared last-attempt timestamp (fixed
+   with a `threading.Lock`-guarded claim function), whose own regression
+   test was non-deterministic (fixed with an `Event`-based deterministic
+   contention test). Closing review: APPROVE.
+4. **Category Ranking bulk query + alternating-timing investigation** —
+   DONE. `_bulk_nav_on_or_before`'s N+1 pattern replaced with one
+   `MAX(date) GROUP BY` query per target date, 15-min per-category cache.
+   Residual non-index-seek-bounded scan on SQLite accepted as a
+   documented Postgres-migration follow-up (`Migration-Plan-SQLite-to-Postgres.md`).
+5. **NSE `follow_redirects=True`** — the initial fix was found, on live
+   reproduction, to rest on a false premise, and was correctly reverted;
+   re-fixed with a narrower `decimal.InvalidOperation` catch at the
+   actual `Decimal(entry["CLOSE"])` conversion boundary. Closing review:
+   APPROVE.
+6. **TER silent-zero + Scorer cost-adjustment sentinel** — DONE after 2
+   rounds: ingestion now skips AMFI's literal-0 TER rows and the Scorer
+   distinguishes "TER unknown" (`None`) from "TER genuinely 0" via a
+   dead-zone check, and a stale already-persisted zero-TER row from
+   before the fix is now deleted on next refresh rather than surviving
+   forever. Closing review: APPROVE (1 Low process-only nitpick, no code
+   finding).
+7. **Import identity validation tightening** — `enrich.py`'s
+   `resolve_scheme()` now cross-checks a CAS-supplied AMFI code against
+   its canonical master-list name (≥0.92 similarity) before confirming
+   at full confidence, instead of trusting the pairing blindly;
+   `confirm_import()` gained a 409 backstop on both an override
+   `amfi_code` absent from the master list and a `plan_type_override`
+   contradicting an anchored "Direct Plan"/"Regular Plan" name match —
+   closing CLAUDE.md's previously-open "no server-side 409 backstop on
+   plan-type override" item. 2 review rounds: round 1 found the plan
+   backstop was checking a loose whole-name substring match (false-positive
+   risk), a recurred stale-`.cache/mfapi/` test-isolation gap, and a
+   `SequenceMatcher("", "").ratio() == 1.0` blank-name edge case in two
+   call sites — all fixed. Closing review: APPROVE, zero findings.
+
+Full backend suite: 412 passed, 2 skipped (started this workstream at
+401/2). `tsc -b --noEmit` clean throughout (frontend untouched by every
+item). Full per-item narrative, rejected approaches, and review verdicts:
+`Docs/orchestration/delegation-log.md` and the per-item handoff docs
+under `Docs/orchestration/` (`*-handoff.md`, one per item).
+
+**What's next:** this branch/worktree is not yet merged into
+`feat/enhanced-ui` — that's the next action. `task-observer` has not yet
+been run for this workstream's accumulated observations (codex-rescue
+meta-result pattern, an inconsistent status-check refusal, a self-caught
+`isolation: worktree` review-dispatch mistake, and the value of the
+root-cause-not-symptom stale-cache fix) — worth doing before or shortly
+after the merge.
+
 ## First-login dashboard load-time fix, PR #4 merged (2026-08-18)
 
 User-reported follow-up to the earlier `dashboard-nav-perf-handoff.md` round: first

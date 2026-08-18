@@ -1,6 +1,6 @@
 # Handoff: import-identity-validation
 
-**Status:** REVIEW
+**Status:** DONE
 **Parent plan:** `Docs/orchestration/bug-001-data-001-implementation-prompt.md` (Item 7)
 
 ## Task
@@ -154,6 +154,23 @@ All fixed:
 
 TDD: RED confirmed for both new regression tests before their fixes.
 Full suite: 412 passed, 2 skipped (was 410/2).
+
+## Closing review (commit e43391a)
+
+Scoped closing re-review returned **APPROVE, zero findings**. Confirmed:
+the anchored-designator fix closes the false-positive gap without
+reopening the original vulnerability; the `tmp_path`/`_schemes=None`
+patch genuinely isolates the integration test from the real disk cache;
+both `SequenceMatcher` call sites in `enrich.py` are guarded (no third
+site missed); `parsed_scheme_by_key` and the cold-cache bypass remain
+safe. Noted `git diff --stat 40754dc e43391a` spans 6 files because of
+the intervening `c4318fc` delegation-log commit — `e43391a` itself
+touches exactly the 5 expected files. Codex's sandbox couldn't run
+pytest (no writable temp dir); not a gap — the orchestrator had already
+independently run the full suite green (412 passed, 2 skipped) before
+dispatch.
+
+**Item 7 is DONE.**
 
 ## Open questions
 

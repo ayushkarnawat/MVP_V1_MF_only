@@ -124,6 +124,34 @@ instead. See `docs/agents/domain.md`.
 *(Updated 2026-08-18. See `session.md` at repo root for the full detailed history —
 this section is a current-status pointer, not the record of every past session.)*
 
+**BUG-001/DATA-001 implementation is fully complete — all 7 items DONE
+(2026-08-18).** Worked from `Docs/orchestration/bug-001-data-001-implementation-prompt.md`
+on branch `bug-001-data-001-implementation` (worktree, off `feat/enhanced-ui`):
+Item 1 (XIRR ×100 display fix), Item 2 (Scorer caching + bounded series
+query), Item 3 (TER negative-cache/backoff — 4 review→fix rounds:
+deadlock → cross-thread backoff race → flawed regression test), Item 4
+(Category Ranking bulk query + alternating-timing investigation), Item 5
+(NSE `follow_redirects=True` — fixed then correctly reverted after live
+reproduction falsified the original premise, re-fixed with a narrower
+`decimal.InvalidOperation` catch), Item 6 (TER silent-zero + Scorer
+cost-adjustment sentinel — 2 rounds: ingestion zero-skip + None sentinel →
+stale-zero-row deletion), and Item 7 (import identity validation
+tightening — `enrich.py`'s `resolve_scheme()` cross-checks a CAS-supplied
+AMFI code against its canonical master-list name instead of trusting the
+pairing blindly, `confirm_import()` gained a 409 backstop on both an
+override `amfi_code` absent from the master list and a `plan_type_override`
+contradicting an anchored "Direct Plan"/"Regular Plan" name match, closing
+the previously-open "no server-side 409 backstop on plan-type override"
+item; 2 review rounds — a plan-designator false-positive risk, a recurred
+stale-`.cache/mfapi/` test-isolation gap, and a `SequenceMatcher("", "")`
+blank-name edge case, all fixed). Every item went through
+`model-orchestration`'s full mandatory adversarial-review gate, TDD
+throughout (RED confirmed before every fix). Full backend suite: 412
+passed, 2 skipped (started at 401/2). `tsc -b --noEmit` clean. Not yet
+merged into `feat/enhanced-ui` — this worktree/branch is ready for that
+next. Full per-item detail: `Docs/orchestration/delegation-log.md` and
+the per-item handoff docs under `Docs/orchestration/`.
+
 **First-login/signup dashboard load-time fix, merged (2026-08-18):** user-reported
 follow-up to `dashboard-nav-perf-handoff.md` — first dashboard load right after
 CAS-upload signup was still ~30s despite that earlier round of fixes. Root-caused two
@@ -302,15 +330,13 @@ it for anything in `analytics/scorer.py`, `analytics/risk_metrics.py`,
 1. A held scheme with no obtainable NAV silently vanishes from
    holdings/allocation/aggregates, no error or placeholder — a Phase 3
    design choice, worth revisiting once the "NAV unavailable" UI treatment is decided.
-2. `confirm_import`'s plan-type override has no server-side 409 backstop —
-   pre-existing Phase 1 backend code.
-3. No DB uniqueness constraint on the "self" `household_members` row —
+2. No DB uniqueness constraint on the "self" `household_members` row —
    frontend-mitigated client-side only; real fix is a migration (confirmed still
    missing — only migrations `0001`–`0003` exist, none touch this).
-4. `HoldingsTable.tsx` references a dead `row.return_percentage_1y` field that doesn't
+3. `HoldingsTable.tsx` references a dead `row.return_percentage_1y` field that doesn't
    exist on the real API type — harmless (client-computed fallback always runs), never
    cleaned up.
-5. `category_ranking.py`'s `_bulk_nav_on_or_before` (BUG-001 fix, 2026-08-18): the
+4. `category_ranking.py`'s `_bulk_nav_on_or_before` (BUG-001 fix, 2026-08-18): the
    per-scheme N+1 query pattern is gone (one `MAX(date) GROUP BY` query per target date,
    bounded by a 15-min per-category cache), but the DB-side scan to compute each
    `MAX(date)` still isn't index-seek-bounded without a `LATERAL` join — a primitive
