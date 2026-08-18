@@ -1,6 +1,5 @@
 import asyncio
 import threading
-import time
 import uuid
 from datetime import date, datetime, timezone
 from decimal import Decimal
@@ -252,7 +251,7 @@ def test_ensure_ter_fresh_coalesces_concurrent_refresh_attempts():
 
 
 def test_ensure_ter_fresh_lock_survives_contention_from_a_different_event_loop():
-    """Review finding: `_ter_refresh_lock` is a bare module-global
+    """Review finding: `_ter_refresh_lock` was a bare module-global
     `asyncio.Lock()`. Python's `_LoopBoundMixin` only binds a lock to a
     running loop -- and enforces that binding -- once it's actually
     contended (the uncontended fast path in `Lock.acquire` never touches
@@ -261,34 +260,59 @@ def test_ensure_ter_fresh_lock_survives_contention_from_a_different_event_loop()
     contention from two different event loops at once -- e.g. two OS
     threads each running their own loop, which is exactly what this test
     reproduces (each thread gets its own DB session/scheme so only the
-    shared lock itself is contended across loops)."""
-    async def _slow_refresh(db_):
-        await asyncio.sleep(0.15)
+    lock/backoff state is contended across loops).
+
+    Also covers a second, related finding on that same per-loop-lock fix:
+    the per-loop lock only coalesces callers on the SAME loop, so the
+    shared `_last_ter_refresh_attempt` backoff check-and-claim must itself
+    be atomic across threads (`_claim_ter_refresh_slot`'s `threading.Lock`)
+    -- otherwise two different loops could both slip past a stale
+    timestamp and both trigger a refresh. `mock_refresh.assert_awaited_once()`
+    below asserts exactly that: only the first thread's refresh ever fires."""
+    refresh_started = threading.Event()
+    release_refresh = threading.Event()
+
+    async def _shared_refresh(db_):
+        refresh_started.set()
+        await asyncio.to_thread(release_refresh.wait, 5)
         return True
 
+    mock_refresh = AsyncMock(side_effect=_shared_refresh)
     errors: list[BaseException] = []
 
-    def _run():
+    def _run(wait_for_first: bool):
+        # sqlite connections are thread-affine -- each thread needs its own
+        # engine/session, created AND torn down on that same thread, never
+        # shared with or finalized from another thread (an engine disposed
+        # from the wrong thread at GC time raises `sqlite3.ProgrammingError`).
+        db_ = None
         try:
-            # sqlite connections are thread-affine -- each thread needs its
-            # own engine/session, created on that thread, not shared from
-            # the main thread.
+            if wait_for_first:
+                assert refresh_started.wait(5), "first thread never entered refresh"
             db_ = _session()
             scheme_ = _scheme(db_)
             asyncio.run(_ensure_ter_fresh(db_, {scheme_.id}))
         except BaseException as exc:  # noqa: BLE001 -- must catch RuntimeError from a different thread
             errors.append(exc)
+        finally:
+            if db_ is not None:
+                db_.close()
+                db_.get_bind().dispose()
+            if wait_for_first:
+                release_refresh.set()  # let the first thread's blocked refresh finish
 
-    with patch("app.services.analytics.ter.refresh_ter_data", new=AsyncMock(side_effect=_slow_refresh)):
-        t1 = threading.Thread(target=_run)
-        t2 = threading.Thread(target=_run)
+    with patch("app.services.analytics.ter.refresh_ter_data", new=mock_refresh):
+        t1 = threading.Thread(target=_run, args=(False,))
+        t2 = threading.Thread(target=_run, args=(True,))
         t1.start()
-        time.sleep(0.05)  # let t1 acquire the lock first so t2 genuinely contends it
         t2.start()
-        t1.join()
-        t2.join()
+        t1.join(timeout=5)
+        t2.join(timeout=5)
 
+    assert not t1.is_alive(), "first thread deadlocked"
+    assert not t2.is_alive(), "second thread deadlocked"
     assert errors == []
+    mock_refresh.assert_awaited_once()
 
 
 def test_compute_direct_regular_ter_comparison_empty_bucket_when_no_regular_holdings():

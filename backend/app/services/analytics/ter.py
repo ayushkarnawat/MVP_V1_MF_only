@@ -10,6 +10,7 @@ never reads `scheme_aaum`.
 from __future__ import annotations
 
 import asyncio
+import threading
 import time
 import uuid
 import weakref
@@ -72,6 +73,31 @@ def _get_ter_refresh_lock() -> asyncio.Lock:
     return lock
 
 
+# The per-loop lock above only coalesces callers on the SAME loop -- two
+# different loops (e.g. two OS threads each with their own loop) each get
+# their own lock instance and can both slip past `_missing_current_month_ter`
+# concurrently. `_last_ter_refresh_attempt` is a plain module global shared
+# across every loop/thread, so the check-then-set below must be its own
+# atomic, genuinely cross-thread-safe operation, or two different loops can
+# both observe a stale timestamp and both launch a refresh. A plain
+# `threading.Lock` (not `asyncio.Lock`) is correct here specifically because
+# the critical section is a synchronous comparison-and-assignment with no
+# `await` inside it. Reviewer-flagged finding on the per-loop-lock fix above.
+_ter_refresh_backoff_guard = threading.Lock()
+
+
+def _claim_ter_refresh_slot() -> bool:
+    """Atomically checks-and-claims the refresh backoff window across every
+    thread/loop. Returns True if this caller should proceed with a refresh."""
+    global _last_ter_refresh_attempt
+    now = _ter_refresh_clock()
+    with _ter_refresh_backoff_guard:
+        if _last_ter_refresh_attempt is not None and now - _last_ter_refresh_attempt < _TER_REFRESH_BACKOFF_SECONDS:
+            return False
+        _last_ter_refresh_attempt = now
+        return True
+
+
 def _latest_ter_for_scheme(db: Session, scheme_id: uuid.UUID) -> tuple[Decimal, date] | None:
     row = (
         db.query(SchemeTer)
@@ -105,17 +131,14 @@ async def _ensure_ter_fresh(db: Session, scheme_ids: set[uuid.UUID]) -> None:
     case, not an error. The backoff applies even when coverage is still
     missing after a refresh, otherwise a permanently-unresolvable scheme
     would re-trigger a full AMFI national scan on every single request.
-    Concurrent callers share one in-flight refresh via `_ter_refresh_lock`."""
-    global _last_ter_refresh_attempt
+    Concurrent callers share one in-flight refresh via `_get_ter_refresh_lock()`."""
     if not _missing_current_month_ter(db, scheme_ids):
         return
     async with _get_ter_refresh_lock():
         if not _missing_current_month_ter(db, scheme_ids):
             return  # a concurrent waiter already refreshed while we waited for the lock
-        now = _ter_refresh_clock()
-        if _last_ter_refresh_attempt is not None and now - _last_ter_refresh_attempt < _TER_REFRESH_BACKOFF_SECONDS:
-            return
-        _last_ter_refresh_attempt = now
+        if not _claim_ter_refresh_slot():
+            return  # a different loop/thread already claimed this backoff window
         await refresh_ter_data(db)
 
 
