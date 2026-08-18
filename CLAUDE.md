@@ -121,8 +121,45 @@ instead. See `docs/agents/domain.md`.
 
 ## Session State
 
-*(Updated 2026-08-17. See `session.md` at repo root for the full detailed history —
+*(Updated 2026-08-18. See `session.md` at repo root for the full detailed history —
 this section is a current-status pointer, not the record of every past session.)*
+
+**First-login/signup dashboard load-time fix, merged (2026-08-18):** user-reported
+follow-up to `dashboard-nav-perf-handoff.md` — first dashboard load right after
+CAS-upload signup was still ~30s despite that earlier round of fixes. Root-caused two
+independent, sibling bottlenecks via live benchmarking against the real `api.mfapi.in`
+(network egress confirmed, not assumed):
+1. **Dashboard NAV fetch** (`backend/app/services/dashboard/nav.py`) — `_fetch_nav_history`
+   opened a brand-new `httpx.AsyncClient` per call, and its 3 real callers (background
+   prefetch, `/holdings`, `/allocation`) raced on identical scheme codes with zero
+   de-duplication. Fixed with a lazy double-checked-locked shared client
+   (`httpx.Limits(max_connections=100, max_keepalive_connections=100)`) plus per-`amfi_code`
+   single-flight dedup via an in-flight `asyncio.Task` registry (`asyncio.shield`-protected
+   against a cancelled waiter cancelling the shared fetch).
+2. **CAS-upload preview** (`backend/app/services/import_/{enrich,service}.py`) —
+   `build_import_preview` resolved schemes in a fully sequential loop (no concurrency at
+   all), `MfApiClient` opened a new client per call, and `get_scheme_category` fetched the
+   *full* NAV-history endpoint just to read one metadata field (`/latest` returns the
+   identical `meta` block with a tiny payload — live-confirmed). Fixed with a shared client,
+   the `/latest` endpoint, and `asyncio.gather`-based concurrent resolution preserving input
+   order. Live-benchmarked 7.74s → 0.31s (~25x) for 30 schemes.
+
+Both fixes went through `model-orchestration`'s full Codex-dispatch + mandatory
+adversarial-review gate cycle (2 review rounds each). The import-preview parallelization
+review caught a genuine new race the naive `asyncio.gather` conversion introduced —
+concurrent no-AMFI schemes could all stampede `get_scheme_list()`'s uncached first-fetch
+path simultaneously (the old sequential loop had serialized this as a side effect) —
+closed with a double-checked `asyncio.Lock`, confirmed by a second scoped re-review after
+the first one returned a stale, contradicted-by-direct-read verdict (see
+`skill-observations/log.md` Observation 2 in the stable Claude Code workspace project
+folder — not tracked in this repo). Both branches merged into one combined branch
+(`perf/dashboard-load-time`) and shipped as
+[PR #4](https://github.com/ayushkarnawat/MVP_V1_MF_only/pull/4) against
+`feat/enhanced-ui` — **merged 2026-08-18.** Full backend suite on the combined branch:
+374 passed, 2 skipped, zero regressions. Handoff docs (full root-cause detail, rejected
+alternatives, live-benchmark numbers): `Docs/orchestration/nav-fetch-connection-reuse-handoff.md`,
+`Docs/orchestration/import-preview-concurrency-handoff.md`. All worktrees/branches/Codex
+work clones from this task have been cleaned up — nothing left to prune.
 
 **BUG-001 (Analytics dashboard hang) and DATA-001 (AUM/beta/TER/XIRR correctness)
 investigations are complete — investigation only, no application code changed.**

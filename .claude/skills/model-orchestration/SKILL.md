@@ -169,6 +169,15 @@ faster, cheaper confirmation that never weakens the gate itself.
 
 ## Changelog
 
+- **v1.3 (2026-08-18):** Added a sub-case to `delegation-rules.md`'s
+  "Known environment constraints": a Codex dispatch's sandbox write-scope
+  is bound to the dispatch process's own `cwd`, not any path in the
+  prompt text — a repo on a non-native-filesystem mount (confirmed for a
+  WSL `/mnt/*` 9p/drvfs mount, `rw` at the host level) was still
+  unreachable-for-writes from inside Codex's sandbox. Fix: clone the
+  target branch into a fresh dir under the dispatch process's own
+  native-filesystem root, dispatch there, pull commits back. Validated
+  this session (dashboard-load-time perf work, PR #4).
 - **v1.2 (2026-08-17):** Added the "never `isolation: worktree` on a
   review/read-only dispatch" rule (worktree auto-cleanup orphaned an
   in-flight background job during the BUG-001/DATA-001 review gate),

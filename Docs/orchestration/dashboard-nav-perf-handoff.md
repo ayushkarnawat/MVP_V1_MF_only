@@ -284,6 +284,21 @@ request forever, not just once. Confirmed not currently active for any real hold
 in this build (all schemes resolve), so left as a documented latent issue rather than
 fixed speculatively — revisit if a real portfolio ever hits it.
 
+## Round 6 (2026-08-17/18) — split into two sibling handoff docs, PR #4 merged
+
+The user's first-login "still 30s" report led to two further, independent fixes in the
+*same* end-to-end NAV-fetch pipeline, tracked in their own dedicated handoff docs rather
+than appended here (each got its own worktree, Codex dispatch, and adversarial-review
+cycle): `Docs/orchestration/nav-fetch-connection-reuse-handoff.md` (this file's own
+`nav.py` opening a brand-new `httpx.AsyncClient` per call with no de-dup across its 3
+concurrent callers — this doc's rounds 1-5 never addressed connection reuse, only
+prefetch timing/parallelization/caching) and
+`Docs/orchestration/import-preview-concurrency-handoff.md` (an earlier, up-until-then
+undiagnosed bottleneck in the CAS-upload preview step, before the user even reaches the
+dashboard this doc covers). Both merged as
+[PR #4](https://github.com/ayushkarnawat/MVP_V1_MF_only/pull/4) — see
+`session.md`'s "First-login dashboard load-time fix" section for the full narrative.
+
 ## Task
 
 Fix three related performance issues in the Main Dashboard backend, all rooted in

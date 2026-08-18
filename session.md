@@ -1,4 +1,4 @@
-# Session state — 2026-08-17 (updated)
+# Session state — 2026-08-18 (updated)
 
 Working notes for picking this project back up cold. Not a planning doc — see
 `Docs/superpowers/plans/` for those. This file tracks *where things stand*,
@@ -6,6 +6,45 @@ gets overwritten each session, and isn't meant to accumulate history.
 
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
+
+## First-login dashboard load-time fix, PR #4 merged (2026-08-18)
+
+User-reported follow-up to the earlier `dashboard-nav-perf-handoff.md` round: first
+dashboard load right after a new signup's CAS upload was still ~30s. Root-caused as
+two independent bottlenecks (dashboard NAV fetch's no-connection-reuse/no-dedup pattern
+in `nav.py`, and CAS-preview's fully-sequential no-connection-reuse/full-endpoint pattern
+in `enrich.py`/`service.py`) via live benchmarking against the real `api.mfapi.in`. Each
+fixed in its own worktree/branch (`perf/nav-fetch-connection-reuse`,
+`perf/import-preview-concurrency`), each through `model-orchestration`'s full
+Codex-dispatch + mandatory adversarial-review gate cycle — 2 review rounds apiece. The
+import-preview review's first round caught a real regression the `asyncio.gather`
+parallelization introduced (a concurrent stampede on `get_scheme_list()`'s uncached
+first-fetch path — the old sequential loop had accidentally serialized this); fixed with
+a double-checked `asyncio.Lock`. That fix's own scoped re-review returned a stale,
+contradicted-by-direct-read "REQUEST CHANGES" on the first dispatch (described the lock
+as absent when it was present) — re-dispatched and got a correct "APPROVE" on the second
+try; logged as `skill-observations/log.md` Observation 2 (stable Claude Code workspace
+project folder, not this repo) since blindly trusting a review verdict without a cheap
+sanity-check on the cited lines would have triggered wasted rework.
+
+Both branches were merged into one combined branch `perf/dashboard-load-time` (clean
+merge, no conflicts — disjoint files) and shipped as
+[PR #4](https://github.com/ayushkarnawat/MVP_V1_MF_only/pull/4) against
+`feat/enhanced-ui` — **merged 2026-08-18**. Full backend suite on the combined branch:
+374 passed, 2 skipped, zero regressions (up from 368/2 on `import-preview-concurrency`
+alone — the +6 delta is the `nav-fetch-connection-reuse` branch's own test additions
+folded in by the merge). Live-benchmark numbers, rejected alternatives, and full
+root-cause detail: `Docs/orchestration/nav-fetch-connection-reuse-handoff.md` and
+`Docs/orchestration/import-preview-concurrency-handoff.md` (both marked Status: DONE).
+Full decision trail: `Docs/orchestration/delegation-log.md`'s 2026-08-17/18 entries.
+All worktrees, local branches, and the two `~/codex-work/` Codex dispatch clones from
+this task have been removed — nothing left to prune from this task.
+
+**What's next:** nothing outstanding from this task. The user hasn't yet manually
+re-verified the signup → CAS-upload → dashboard wall-clock time drop in the browser —
+worth doing before considering the original "30s → 15s/10s" ask fully closed, since all
+verification so far is backend-test-suite-level, not an end-to-end timing measurement
+against the live app.
 
 ## BUG-001 / DATA-001 investigation complete, PR #3 open (2026-08-17)
 

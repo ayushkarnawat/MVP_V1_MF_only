@@ -53,6 +53,28 @@ framing once the worktree's shared dependency has actually been
 provisioned inside the worktree itself (a real local venv, a symlink
 Codex's sandbox permits) — confirm that before assuming otherwise.
 
+**Sub-case — the worktree's own location is unreachable, not just a
+dependency inside it.** A Codex dispatch's sandbox write-scope is bound to
+the `cwd` of the process that launched `codex-companion.mjs` (typically
+somewhere under the native-filesystem home directory tree), not to any
+path named in the forwarded prompt text — asking Codex to `cd` elsewhere
+in its own turn doesn't escape the sandbox root set at spawn time. This
+can be narrower than the actual OS-level filesystem permissions suggest:
+a repo living on a non-native-filesystem mount (confirmed live for a WSL
+`/mnt/*` 9p/drvfs Windows-drive mount, `rw` at the host level per
+`findmnt` and a manual write test from the orchestrator's own Bash) was
+still unreachable-for-writes from inside Codex's own sandbox. The fix
+above (provision the dependency inside the worktree) doesn't help when
+the worktree's own location is the unreachable thing. Instead: clone the
+target branch into a fresh directory under the dispatch process's own
+native-filesystem root (a plain local `git clone --branch <branch>
+file://<original-repo-path> <new-path>` is fast, disk-to-disk), dispatch
+Codex to work there, instruct it to commit its changes with git, then
+pull those commits back into the original repo's branch. Verify
+reachability with a real live dispatch (or a cheap probe) rather than
+assuming host-level `rw` mount options are sufficient evidence that
+Codex's own sandbox will agree.
+
 ## Isolation parameter for dispatches
 
 Never pass `isolation: "worktree"` on a Codex dispatch that is expected to
