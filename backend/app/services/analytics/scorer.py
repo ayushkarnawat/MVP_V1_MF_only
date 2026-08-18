@@ -9,6 +9,8 @@ plan for why the FR-7 breakdown itself is never persisted).
 
 from __future__ import annotations
 
+import threading
+import time
 import uuid
 from datetime import date, datetime, timezone
 from decimal import Decimal
@@ -45,6 +47,20 @@ _TER_DEAD_ZONE = Decimal("0.05")
 _TER_NUDGE = Decimal("0.25")
 _HISTORY_YEARS = 5
 
+# Mirrors nav.py's warm-cache posture (`_NAV_WARM_TTL_SECONDS`): this
+# category-wide computation (Return/Risk/Consistency across an entire SEBI
+# peer universe, 30-150+ schemes) was BUG-001's other dominant Scorer cost
+# -- a portfolio holding several categories, or repeat requests within a
+# session, recomputed every category from scratch every single call. Cache
+# value also carries the calendar day it was computed for, since the
+# composite score is inherently day-dependent (`month_end_dates` anchors
+# off `today`) -- a TTL alone could otherwise serve a stale day's score
+# across a midnight rollover even though the TTL window hasn't elapsed.
+_CATEGORY_SCORE_CACHE_TTL_SECONDS = 15 * 60
+_category_score_clock = time.monotonic
+_category_score_cache: dict[str, tuple[float, date, dict[uuid.UUID, dict[str, Decimal | None]]]] = {}
+_category_score_cache_lock = threading.Lock()
+
 
 def _tier_from_percentile(percentile: Decimal) -> int:
     if percentile >= Decimal("80"):
@@ -59,6 +75,24 @@ def _tier_from_percentile(percentile: Decimal) -> int:
 
 
 async def _category_component_scores(
+    db: Session, universe: list[Scheme], sebi_category: str, today: date
+) -> dict[uuid.UUID, dict[str, Decimal | None]]:
+    now = _category_score_clock()
+    with _category_score_cache_lock:
+        cached = _category_score_cache.get(sebi_category)
+    if cached is not None:
+        cached_at, cached_today, scores = cached
+        if cached_today == today and now - cached_at <= _CATEGORY_SCORE_CACHE_TTL_SECONDS:
+            return scores
+
+    scores = await _compute_category_component_scores(db, universe, today)
+
+    with _category_score_cache_lock:
+        _category_score_cache[sebi_category] = (now, today, scores)
+    return scores
+
+
+async def _compute_category_component_scores(
     db: Session, universe: list[Scheme], today: date
 ) -> dict[uuid.UUID, dict[str, Decimal | None]]:
     returns = await _category_returns(db, universe, today)
@@ -235,7 +269,7 @@ async def compute_fund_score(db: Session, scheme: Scheme) -> FundScoreRow:
 
     today = datetime.now(timezone.utc).date()
     universe = await get_category_universe(db, scheme.sebi_category)
-    scores = await _category_component_scores(db, universe, today)
+    scores = await _category_component_scores(db, universe, scheme.sebi_category, today)
     # Skip the TER fetch entirely when nobody in the category has return
     # data yet -- matches the original short-circuit: cost adjustment is
     # meaningless without a composite score to adjust.
@@ -284,7 +318,7 @@ async def compute_portfolio_score(db: Session, household_member_ids: list[uuid.U
 
     for sebi_category, category_schemes in schemes_by_category.items():
         universe = await get_category_universe(db, sebi_category)
-        scores = await _category_component_scores(db, universe, today)
+        scores = await _category_component_scores(db, universe, sebi_category, today)
         ter_by_scheme, category_avg = (
             await _category_ter_context(db, universe) if scores else ({}, None)
         )

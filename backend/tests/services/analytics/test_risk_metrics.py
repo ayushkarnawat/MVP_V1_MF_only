@@ -84,6 +84,58 @@ def test_build_monthly_series_empty_month_ends():
     assert build_monthly_series(db, scheme.id, []) == []
 
 
+def test_build_monthly_series_carries_forward_seed_far_before_first_anchor():
+    """A scheme's most recent NAV row before the series' first anchor can be
+    far in the past (inception years earlier, or a long publishing gap) --
+    the query's lower bound must still reach it, not just the anchors'
+    own window, or the first anchor would wrongly show None instead of
+    carrying forward the real last-known NAV."""
+    db = _session()
+    scheme = _scheme(db)
+    db.add(NavHistory(scheme_id=scheme.id, date=date(2015, 1, 5), nav=Decimal("10")))
+    db.add(NavHistory(scheme_id=scheme.id, date=date(2024, 2, 5), nav=Decimal("11")))
+    db.commit()
+
+    month_ends = [date(2024, 1, 31), date(2024, 2, 29)]
+    series = build_monthly_series(db, scheme.id, month_ends)
+
+    assert series == [Decimal("10"), Decimal("11")]
+
+
+def test_build_monthly_series_row_fetch_query_is_bounded_below():
+    """The old implementation queried `NavHistory.date <= month_ends[-1]`
+    with no lower bound -- for a long-lived scheme this scanned every row
+    since inception on every call, BUG-001's dominant Scorer cost. The
+    fetch query must filter on a lower date bound too, not just the upper
+    bound the old unbounded query used alone."""
+    from sqlalchemy import event
+
+    db = _session()
+    scheme = _scheme(db)
+    db.add(NavHistory(scheme_id=scheme.id, date=date(2010, 1, 5), nav=Decimal("5")))
+    db.add(NavHistory(scheme_id=scheme.id, date=date(2024, 1, 10), nav=Decimal("10")))
+    db.add(NavHistory(scheme_id=scheme.id, date=date(2024, 2, 5), nav=Decimal("11")))
+    db.commit()
+
+    month_ends = [date(2024, 1, 31), date(2024, 2, 29)]
+
+    queries: list[str] = []
+    engine = db.get_bind()
+
+    def _capture(conn, cursor, statement, parameters, context, executemany):
+        queries.append(statement)
+
+    event.listen(engine, "before_cursor_execute", _capture)
+    try:
+        series = build_monthly_series(db, scheme.id, month_ends)
+    finally:
+        event.remove(engine, "before_cursor_execute", _capture)
+
+    assert series == [Decimal("10"), Decimal("11")]
+    select_queries = [q for q in queries if q.strip().upper().startswith("SELECT")]
+    assert any(">=" in q for q in select_queries)
+
+
 def test_monthly_returns_first_entry_always_none():
     series = [Decimal("10"), Decimal("11"), Decimal("9.9")]
     returns = monthly_returns(series)

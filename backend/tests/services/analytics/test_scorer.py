@@ -1,18 +1,35 @@
 import asyncio
 import uuid
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from unittest.mock import AsyncMock, patch
 
+import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+import app.services.analytics.scorer as scorer_module
 from app.db.base import Base
 from app.models.reference import FundScore, NavHistory, Scheme, SchemeAaum, SchemeTer
-from app.services.analytics.scorer import _tier_from_percentile, compute_fund_score
+from app.services.analytics.scorer import (
+    _category_component_scores,
+    _tier_from_percentile,
+    compute_fund_score,
+)
 
 _TODAY = date.today()
 _START_3Y = _TODAY.replace(year=_TODAY.year - 3)
+
+
+@pytest.fixture(autouse=True)
+def _clear_category_score_cache():
+    """Different tests reuse the same literal `sebi_category` string (the
+    cache key) with fresh in-memory DBs each time -- without clearing, a
+    later test's category-wide computation would spuriously cache-hit on
+    an earlier test's cached scores instead of calling its own mocked
+    `_category_returns`."""
+    scorer_module._category_score_cache.clear()
+    yield
 
 
 def _session():
@@ -51,6 +68,88 @@ def test_tier_from_percentile_boundaries_are_inclusive_lower_bound():
     assert _tier_from_percentile(Decimal("20")) == 2
     assert _tier_from_percentile(Decimal("19.99")) == 1
     assert _tier_from_percentile(Decimal("0")) == 1
+
+
+def test_category_component_scores_uses_cache_within_ttl():
+    db = _session()
+    held = _scheme(db, "Held Fund")
+    _seed_monthly_nav(db, held, 24, monthly_growth=Decimal("0.02"))
+
+    returns_calls = 0
+
+    async def _returns(db_, universe, today):
+        nonlocal returns_calls
+        returns_calls += 1
+        return {held.id: Decimal("0.20")}
+
+    scorer_module._category_score_cache.clear()
+    now = [1000.0]
+    with (
+        patch("app.services.analytics.scorer._category_returns", new=AsyncMock(side_effect=_returns)),
+        patch.object(scorer_module, "_category_score_clock", side_effect=lambda: now[0]),
+    ):
+        asyncio.run(_category_component_scores(db, [held], "Equity Scheme - Flexi Cap Fund", _TODAY))
+        asyncio.run(_category_component_scores(db, [held], "Equity Scheme - Flexi Cap Fund", _TODAY))
+
+    assert returns_calls == 1
+
+
+def test_category_component_scores_recomputes_once_ttl_has_expired():
+    db = _session()
+    held = _scheme(db, "Held Fund")
+    _seed_monthly_nav(db, held, 24, monthly_growth=Decimal("0.02"))
+
+    returns_calls = 0
+
+    async def _returns(db_, universe, today):
+        nonlocal returns_calls
+        returns_calls += 1
+        return {held.id: Decimal("0.20")}
+
+    scorer_module._category_score_cache.clear()
+    now = [1000.0]
+    with (
+        patch("app.services.analytics.scorer._category_returns", new=AsyncMock(side_effect=_returns)),
+        patch.object(scorer_module, "_category_score_clock", side_effect=lambda: now[0]),
+    ):
+        asyncio.run(_category_component_scores(db, [held], "Equity Scheme - Flexi Cap Fund", _TODAY))
+        now[0] += scorer_module._CATEGORY_SCORE_CACHE_TTL_SECONDS + 1
+        asyncio.run(_category_component_scores(db, [held], "Equity Scheme - Flexi Cap Fund", _TODAY))
+
+    assert returns_calls == 2
+
+
+def test_category_component_scores_recomputes_on_calendar_day_rollover():
+    """Even within the TTL window, a cached category score from a prior
+    calendar day must not be served -- the composite score is inherently
+    day-dependent (month_end_dates anchors off `today`), so a same-process
+    long-lived cache entry spanning midnight would otherwise silently
+    serve yesterday's month-end anchors."""
+    db = _session()
+    held = _scheme(db, "Held Fund")
+    _seed_monthly_nav(db, held, 24, monthly_growth=Decimal("0.02"))
+
+    returns_calls = 0
+
+    async def _returns(db_, universe, today):
+        nonlocal returns_calls
+        returns_calls += 1
+        return {held.id: Decimal("0.20")}
+
+    scorer_module._category_score_cache.clear()
+    now = [1000.0]
+    with (
+        patch("app.services.analytics.scorer._category_returns", new=AsyncMock(side_effect=_returns)),
+        patch.object(scorer_module, "_category_score_clock", side_effect=lambda: now[0]),
+    ):
+        asyncio.run(_category_component_scores(db, [held], "Equity Scheme - Flexi Cap Fund", _TODAY))
+        asyncio.run(
+            _category_component_scores(
+                db, [held], "Equity Scheme - Flexi Cap Fund", _TODAY - timedelta(days=1)
+            )
+        )
+
+    assert returns_calls == 2
 
 
 def test_compute_fund_score_category_unavailable_when_no_sebi_category():

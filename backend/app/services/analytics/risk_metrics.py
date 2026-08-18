@@ -77,12 +77,31 @@ def build_monthly_series(
     `None` for anchors before the scheme's first cached NAV row. Assumes
     the caller has already ensured NAV cache warmth (Task 2's caller
     triggers this as a side effect of the Return computation it runs
-    first) — reads the cache only, no network call."""
+    first) — reads the cache only, no network call.
+
+    The row-fetch query is bounded below by the single most-recent NAV row
+    at or before `month_ends[0]` (a cheap seed lookup), instead of scanning
+    every row since the scheme's inception — for a long-lived scheme this
+    was BUG-001's dominant Scorer cost, re-scanning years of unused history
+    on every call. Bounding to that seed date is output-identical to the
+    old unbounded query: any earlier row would only ever be overwritten by
+    the seed row before the first anchor is read anyway."""
     if not month_ends:
         return []
+    seed = (
+        db.query(NavHistory.date)
+        .filter(NavHistory.scheme_id == scheme_id, NavHistory.date <= month_ends[0])
+        .order_by(NavHistory.date.desc())
+        .first()
+    )
+    lower_bound = seed[0] if seed is not None else month_ends[0]
     rows = (
         db.query(NavHistory)
-        .filter(NavHistory.scheme_id == scheme_id, NavHistory.date <= month_ends[-1])
+        .filter(
+            NavHistory.scheme_id == scheme_id,
+            NavHistory.date >= lower_bound,
+            NavHistory.date <= month_ends[-1],
+        )
         .order_by(NavHistory.date)
         .all()
     )
