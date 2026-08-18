@@ -1,6 +1,6 @@
 # Handoff: active-sips-frontend
 
-**Status:** OPEN
+**Status:** IN_PROGRESS
 **Parent plan:** `Docs/superpowers/plans/2026-08-18-active-sips-cadence-redesign.md` (Tasks 6-8)
 
 ## Task
