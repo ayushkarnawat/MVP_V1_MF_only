@@ -4,19 +4,22 @@ from datetime import date, datetime, timezone
 from decimal import Decimal
 from unittest.mock import AsyncMock, patch
 
+import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+import app.services.analytics.category_ranking as category_ranking_module
 from app.db.base import Base
 from app.models.enums import PlanType, Relationship, TransactionType
 from app.models.folio import Folio
-from app.models.reference import Scheme, SchemeAaum
+from app.models.reference import NavHistory, Scheme, SchemeAaum
 from app.models.transaction import Transaction
 from app.models.user import HouseholdMember, User
 from app.services.analytics.category_ranking import (
     _aum_weighted_average,
     _blend_returns,
     _cagr,
+    _category_returns,
     _rank_and_percentile,
     compute_category_ranking,
 )
@@ -24,6 +27,15 @@ from app.services.analytics.category_ranking import (
 _TODAY = date.today()
 _START_3Y = _TODAY.replace(year=_TODAY.year - 3)
 _START_5Y = _TODAY.replace(year=_TODAY.year - 5)
+
+
+@pytest.fixture(autouse=True)
+def _clear_category_returns_cache():
+    """Different tests reuse the same literal `sebi_category` string (the
+    cache key) with fresh in-memory DBs each time -- without clearing, a
+    later test would spuriously cache-hit on an earlier test's returns."""
+    category_ranking_module._category_returns_cache.clear()
+    yield
 
 
 def _session():
@@ -78,13 +90,30 @@ def _nav_side_effect(nav_data: dict[uuid.UUID, dict[str, Decimal]]):
 
 
 def _mock_nav(nav_data):
+    """Mocks the user's own holdings-valuation NAV lookup only. Category-
+    universe NAV data (consumed by `_category_returns`'s bulk SQL query) is
+    seeded as real `NavHistory` rows instead — see `_seed_nav` — since that
+    query reads the table directly rather than calling a mockable function."""
     side_effect = _nav_side_effect(nav_data)
     return (
         patch("app.services.dashboard.holdings.get_nav_on_or_before", new=AsyncMock(side_effect=side_effect)),
         patch("app.services.dashboard.holdings.get_previous_nav_from_cache", return_value=None),
-        patch("app.services.analytics.category_ranking.get_nav_on_or_before", new=AsyncMock(side_effect=side_effect)),
         patch("app.services.analytics.category_ranking.warm_nav_history", new=AsyncMock(return_value=None)),
     )
+
+
+def _seed_nav(db, scheme, on_date, value):
+    db.add(NavHistory(scheme_id=scheme.id, date=on_date, nav=value))
+    db.commit()
+
+
+def _seed_universe_nav(db, nav_data: dict[uuid.UUID, dict[str, Decimal]], schemes: list[Scheme]):
+    by_id = {s.id: s for s in schemes}
+    key_to_date = {"start5": _START_5Y, "start3": _START_3Y, "today": _TODAY}
+    for scheme_id, entry in nav_data.items():
+        scheme = by_id[scheme_id]
+        for key, value in entry.items():
+            _seed_nav(db, scheme, key_to_date[key], value)
 
 
 def _mock_universe(schemes):
@@ -144,8 +173,8 @@ def test_compute_category_ranking_marks_category_unavailable():
     _folio_with_purchase(db, member, scheme, Decimal("1000"), Decimal("100"), Decimal("10"), _START_3Y)
 
     nav_data = {scheme.id: {"today": Decimal("12")}}
-    p1, p2, p3, p4 = _mock_nav(nav_data)
-    with p1, p2, p3, p4:
+    p1, p2, p3 = _mock_nav(nav_data)
+    with p1, p2, p3:
         summary = asyncio.run(compute_category_ranking(db, [member.id]))
 
     row = summary.funds[0]
@@ -166,8 +195,9 @@ def test_compute_category_ranking_ranks_against_peers_not_thin():
     for i, peer in enumerate(peers):
         nav_data[peer.id] = {"today": Decimal(str(11 - i)), "start3": Decimal("10")}
 
-    p1, p2, p3, p4 = _mock_nav(nav_data)
-    with p1, p2, p3, p4, _mock_universe([held, *peers]):
+    _seed_universe_nav(db, nav_data, [held, *peers])
+    p1, p2, p3 = _mock_nav(nav_data)
+    with p1, p2, p3, _mock_universe([held, *peers]):
         summary = asyncio.run(compute_category_ranking(db, [member.id]))
 
     row = summary.funds[0]
@@ -190,8 +220,9 @@ def test_compute_category_ranking_flags_thin_category():
         held.id: {"today": Decimal("13"), "start3": Decimal("10")},
         peer.id: {"today": Decimal("11"), "start3": Decimal("10")},
     }
-    p1, p2, p3, p4 = _mock_nav(nav_data)
-    with p1, p2, p3, p4, _mock_universe([held, peer]):
+    _seed_universe_nav(db, nav_data, [held, peer])
+    p1, p2, p3 = _mock_nav(nav_data)
+    with p1, p2, p3, _mock_universe([held, peer]):
         summary = asyncio.run(compute_category_ranking(db, [member.id]))
 
     row = summary.funds[0]
@@ -206,44 +237,17 @@ def test_compute_category_ranking_blends_3yr_and_5yr_when_both_available():
     peers = [_scheme(db, f"Peer {i}") for i in range(4)]
     _folio_with_purchase(db, member, held, Decimal("1000"), Decimal("100"), Decimal("10"), _START_5Y)
 
-    # 3yr: 10 -> 13 (30% window return); 5yr: 10 -> 20 (100% window return).
+    # held: 3yr 13->20 (via start3), 5yr 10->20 (via start5); peers only
+    # have a 3yr window (no start5 row seeded, so r5 stays None for them).
     nav_data = {
-        held.id: {"today": Decimal("13"), "start3": Decimal("10"), "start5": Decimal("10")},
+        held.id: {"today": Decimal("20"), "start3": Decimal("13"), "start5": Decimal("10")},
     }
-    # Patch NAV so the 5yr lookup for "held" actually resolves to a
-    # different figure at start5 vs start3 by giving distinct NAV values
-    # keyed by exact date via a richer side effect below instead.
-    for i, peer in enumerate(peers):
+    for peer in peers:
         nav_data[peer.id] = {"today": Decimal("11"), "start3": Decimal("10")}
 
-    async def _fn(db_, scheme, on_date, allow_stale_today=False):
-        if scheme.id == held.id:
-            if on_date == _TODAY:
-                return Decimal("20"), on_date
-            if on_date == _START_3Y:
-                return Decimal("13"), on_date
-            if on_date == _START_5Y:
-                return Decimal("10"), on_date
-            return None
-        entry = nav_data.get(scheme.id)
-        if entry is None:
-            return None
-        if on_date == _TODAY:
-            key = "today"
-        elif on_date == _START_3Y:
-            key = "start3"
-        else:
-            return None
-        value = entry.get(key)
-        return (value, on_date) if value is not None else None
-
-    with (
-        patch("app.services.dashboard.holdings.get_nav_on_or_before", new=AsyncMock(side_effect=_fn)),
-        patch("app.services.dashboard.holdings.get_previous_nav_from_cache", return_value=None),
-        patch("app.services.analytics.category_ranking.get_nav_on_or_before", new=AsyncMock(side_effect=_fn)),
-        patch("app.services.analytics.category_ranking.warm_nav_history", new=AsyncMock(return_value=None)),
-        _mock_universe([held, *peers]),
-    ):
+    _seed_universe_nav(db, nav_data, [held, *peers])
+    p1, p2, p3 = _mock_nav({held.id: {"today": Decimal("20")}})
+    with p1, p2, p3, _mock_universe([held, *peers]):
         summary = asyncio.run(compute_category_ranking(db, [member.id]))
 
     row = summary.funds[0]
@@ -266,8 +270,9 @@ def test_compute_category_ranking_insufficient_history_for_held_scheme():
         held.id: {"today": Decimal("11")},
         peer.id: {"today": Decimal("11"), "start3": Decimal("10")},
     }
-    p1, p2, p3, p4 = _mock_nav(nav_data)
-    with p1, p2, p3, p4, _mock_universe([held, peer]):
+    _seed_universe_nav(db, nav_data, [held, peer])
+    p1, p2, p3 = _mock_nav(nav_data)
+    with p1, p2, p3, _mock_universe([held, peer]):
         summary = asyncio.run(compute_category_ranking(db, [member.id]))
 
     row = summary.funds[0]
@@ -283,8 +288,9 @@ def test_compute_category_ranking_category_avg_none_without_aaum_data():
     _folio_with_purchase(db, member, held, Decimal("1000"), Decimal("100"), Decimal("10"), _START_3Y)
 
     nav_data = {held.id: {"today": Decimal("13"), "start3": Decimal("10")}}
-    p1, p2, p3, p4 = _mock_nav(nav_data)
-    with p1, p2, p3, p4, _mock_universe([held]):
+    _seed_universe_nav(db, nav_data, [held])
+    p1, p2, p3 = _mock_nav(nav_data)
+    with p1, p2, p3, _mock_universe([held]):
         summary = asyncio.run(compute_category_ranking(db, [member.id]))
 
     assert summary.funds[0].category_avg_return is None
@@ -305,8 +311,9 @@ def test_compute_category_ranking_uses_aum_weighted_average():
         held.id: {"today": Decimal("13"), "start3": Decimal("10")},
         peer.id: {"today": Decimal("12"), "start3": Decimal("10")},
     }
-    p1, p2, p3, p4 = _mock_nav(nav_data)
-    with p1, p2, p3, p4, _mock_universe([held, peer]):
+    _seed_universe_nav(db, nav_data, [held, peer])
+    p1, p2, p3 = _mock_nav(nav_data)
+    with p1, p2, p3, _mock_universe([held, peer]):
         summary = asyncio.run(compute_category_ranking(db, [member.id]))
 
     row = summary.funds[0]
@@ -314,3 +321,23 @@ def test_compute_category_ranking_uses_aum_weighted_average():
     peer_return = _cagr(Decimal("10"), Decimal("12"), 3)
     expected = (held_return * Decimal("100") + peer_return * Decimal("300")) / Decimal("400")
     assert Decimal(row.category_avg_return) == expected
+
+
+def test_category_returns_caches_across_calls_for_same_category():
+    """BUG-001: `_category_returns` recomputed a category's returns from
+    scratch on every request, with no cross-request reuse -- a second call
+    for the same category within the TTL window must skip `warm_nav_history`
+    and the bulk NAV query entirely and return the identical cached result."""
+    db = _session()
+    scheme = _scheme(db, "Held Fund")
+    _seed_nav(db, scheme, _START_3Y, Decimal("10"))
+    _seed_nav(db, scheme, _TODAY, Decimal("13"))
+
+    with patch(
+        "app.services.analytics.category_ranking.warm_nav_history", new=AsyncMock(return_value=None)
+    ) as warm_mock:
+        first = asyncio.run(_category_returns(db, [scheme], _TODAY))
+        second = asyncio.run(_category_returns(db, [scheme], _TODAY))
+
+    assert first == second
+    assert warm_mock.call_count == 1

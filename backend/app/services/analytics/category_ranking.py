@@ -26,13 +26,16 @@ NAVs from the now-local cache in its per-scheme loop.
 
 from __future__ import annotations
 
+import bisect
+import threading
+import time
 import uuid
 from datetime import date
 from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
-from app.models.reference import Scheme, SchemeAaum
+from app.models.reference import NavHistory, Scheme, SchemeAaum
 from app.services.analytics.schemas import (
     AggregateCategoryRankingResponse,
     CategoryRankingSummary,
@@ -43,7 +46,7 @@ from app.services.analytics.scheme_universe import get_category_universe
 from app.services.dashboard.aggregate import get_member_statuses
 from app.services.dashboard.holdings import compute_holdings
 from app.services.dashboard.household_members import list_household_members
-from app.services.dashboard.nav import get_nav_on_or_before, warm_nav_history
+from app.services.dashboard.nav import warm_nav_history
 
 # Same "at least 5" bar FR-5a's Scorer uses (PRD-04 FR-5a) — reused here
 # for consistency, but never excludes a fund from ranking/comparison, only
@@ -53,24 +56,21 @@ _THIN_CATEGORY_THRESHOLD = 5
 _BLEND_WEIGHT_3YR = Decimal("0.4")
 _BLEND_WEIGHT_5YR = Decimal("0.6")
 
+# Mirrors scorer.py's `_category_score_cache` (BUG-001, same category-wide
+# cost pattern: `_scheme_return`'s old per-scheme, two-lookups-each loop
+# meant 100+ *sequential* ORM queries per category, on every request, with
+# zero cross-request reuse). Cache key is derived from `universe[0].sebi_category`
+# rather than an added parameter, so `scorer.py`'s call site (and its
+# mocked `_category_returns` tests) stay untouched — every scheme in one
+# `get_category_universe` result already shares the same category.
+_CATEGORY_RETURNS_CACHE_TTL_SECONDS = 15 * 60
+_category_returns_clock = time.monotonic
+_category_returns_cache: dict[str, tuple[float, date, dict[uuid.UUID, Decimal]]] = {}
+_category_returns_cache_lock = threading.Lock()
+
 
 def _cagr(start_nav: Decimal, end_nav: Decimal, years: int) -> Decimal:
     return (end_nav / start_nav) ** (Decimal(1) / Decimal(years)) - Decimal(1)
-
-
-async def _scheme_return(db: Session, scheme: Scheme, years: int, today: date) -> Decimal | None:
-    start_date = years_ago(today, years)
-    start = await get_nav_on_or_before(db, scheme, start_date)
-    if start is None:
-        return None
-    # allow_stale_today=True: same-day vs. prior-business-day NAV is
-    # immaterial to a multi-year CAGR, and the cache was just warmed by
-    # `_category_returns` — forcing the live-freshness check here would
-    # re-fetch data downloaded moments ago for every scheme in the universe.
-    end = await get_nav_on_or_before(db, scheme, today, allow_stale_today=True)
-    if end is None:
-        return None
-    return _cagr(start[0], end[0], years)
 
 
 def _blend_returns(r3: Decimal, r5: Decimal | None) -> Decimal:
@@ -79,15 +79,77 @@ def _blend_returns(r3: Decimal, r5: Decimal | None) -> Decimal:
     return _BLEND_WEIGHT_3YR * r3 + _BLEND_WEIGHT_5YR * r5
 
 
-async def _category_returns(db: Session, universe: list[Scheme], today: date) -> dict[uuid.UUID, Decimal]:
+def _bulk_nav_on_or_before(
+    db: Session, scheme_ids: list[uuid.UUID], target_dates: list[date]
+) -> dict[uuid.UUID, dict[date, Decimal]]:
+    """One query for the latest-NAV-on-or-before of every (scheme, target
+    date) pair in the whole category universe, instead of one query per
+    pair (the BUG-001 cost: 100+ schemes x 2 sequential lookups each).
+    `warm_nav_history` has already ensured every row up to `today` is
+    locally cached, so this reads straight from the local table."""
+    if not scheme_ids:
+        return {}
+    latest_target = max(target_dates)
+    rows = (
+        db.query(NavHistory)
+        .filter(NavHistory.scheme_id.in_(scheme_ids), NavHistory.date <= latest_target)
+        .order_by(NavHistory.scheme_id, NavHistory.date)
+        .all()
+    )
+    dates_by_scheme: dict[uuid.UUID, list[date]] = {}
+    navs_by_scheme: dict[uuid.UUID, list[Decimal]] = {}
+    for row in rows:
+        dates_by_scheme.setdefault(row.scheme_id, []).append(row.date)
+        navs_by_scheme.setdefault(row.scheme_id, []).append(row.nav)
+
+    result: dict[uuid.UUID, dict[date, Decimal]] = {}
+    for scheme_id, dates in dates_by_scheme.items():
+        navs = navs_by_scheme[scheme_id]
+        per_scheme: dict[date, Decimal] = {}
+        for target in target_dates:
+            idx = bisect.bisect_right(dates, target) - 1
+            if idx >= 0:
+                per_scheme[target] = navs[idx]
+        result[scheme_id] = per_scheme
+    return result
+
+
+async def _compute_category_returns(db: Session, universe: list[Scheme], today: date) -> dict[uuid.UUID, Decimal]:
     await warm_nav_history(db, universe)
+    start_3y = years_ago(today, 3)
+    start_5y = years_ago(today, 5)
+    navs = _bulk_nav_on_or_before(db, [s.id for s in universe], [start_3y, start_5y, today])
+
     returns: dict[uuid.UUID, Decimal] = {}
     for scheme in universe:
-        r3 = await _scheme_return(db, scheme, 3, today)
-        if r3 is None:
+        per_scheme = navs.get(scheme.id, {})
+        end = per_scheme.get(today)
+        start3 = per_scheme.get(start_3y)
+        if end is None or start3 is None:
             continue
-        r5 = await _scheme_return(db, scheme, 5, today)
+        r3 = _cagr(start3, end, 3)
+        start5 = per_scheme.get(start_5y)
+        r5 = _cagr(start5, end, 5) if start5 is not None else None
         returns[scheme.id] = _blend_returns(r3, r5)
+    return returns
+
+
+async def _category_returns(db: Session, universe: list[Scheme], today: date) -> dict[uuid.UUID, Decimal]:
+    if not universe:
+        return {}
+    sebi_category = universe[0].sebi_category
+    now = _category_returns_clock()
+    with _category_returns_cache_lock:
+        cached = _category_returns_cache.get(sebi_category)
+    if cached is not None:
+        cached_at, cached_today, returns = cached
+        if cached_today == today and now - cached_at <= _CATEGORY_RETURNS_CACHE_TTL_SECONDS:
+            return returns
+
+    returns = await _compute_category_returns(db, universe, today)
+
+    with _category_returns_cache_lock:
+        _category_returns_cache[sebi_category] = (now, today, returns)
     return returns
 
 
