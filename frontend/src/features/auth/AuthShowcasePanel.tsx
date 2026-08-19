@@ -1,441 +1,529 @@
-import { motion, useReducedMotion } from "motion/react";
+import { useEffect, useRef, useState, useMemo, useCallback } from "react";
+import { useReducedMotion } from "motion/react";
 import type { AuthStep } from "./AuthShell";
-import { isTestEnv, MOTION_EASING } from "@/lib/motion";
+import { isTestEnv } from "@/lib/motion";
 
-interface StepConfig {
-  headlinePrefix: string;
-  headlineEmphasis: string;
-  subtitle: string;
+// Module-level flag so animation plays ONLY ONCE per full page load.
+// Navigating between auth steps (landing, email, phone, otp, etc.) or form re-renders will NEVER replay or reset the animation.
+let hasAnimatedInSession = false;
+
+interface Milestone {
+  id: string;
   fraction: number;
-  percentageLabel: string;
-  metricLabel1: string;
-  metricValue1: string;
-  metricLabel2: string;
-  metricValue2: string;
-  metricLabel3: string;
-  metricValue3: string;
+  label: string;
+  value: string;
+  period: string;
+  accent?: "green" | "amber";
+  approxX: number;
+  approxY: number;
 }
 
-const STEP_CONFIGS: Record<AuthStep, StepConfig> = {
-  landing: {
-    headlinePrefix: "Visualize, Protect, and Organize Your",
-    headlineEmphasis: "Financial Life",
-    subtitle: "Access your personal wealth dashboard to manage assets, simulate inheritance, and store important documents.",
+const MILESTONES: Milestone[] = [
+  {
+    id: "inception",
+    fraction: 0.0,
+    label: "Inception",
+    value: "₹0.00",
+    period: "Folios Inception",
+    accent: "green",
+    approxX: 45,
+    approxY: 140,
+  },
+  {
+    id: "unified",
+    fraction: 0.25,
+    label: "Consolidation",
+    value: "+14.8%",
+    period: "Folios Unified",
+    accent: "green",
+    approxX: 135,
+    approxY: 155,
+  },
+  {
+    id: "direct",
     fraction: 0.5,
-    percentageLabel: "50%",
-    metricLabel1: "Business",
-    metricValue1: "15%",
-    metricLabel2: "Savings",
-    metricValue2: "35%",
-    metricLabel3: "Real Estate",
-    metricValue3: "50%",
+    label: "Direct Switch",
+    value: "+28.4%",
+    period: "Direct Plan Alpha",
+    accent: "green",
+    approxX: 275,
+    approxY: 140,
   },
-  email: {
-    headlinePrefix: "Identify, Verify, and Secure Your",
-    headlineEmphasis: "Wealth Identity",
-    subtitle: "Securely identifying your account to isolate and organize your mutual fund holdings.",
+  {
+    id: "compounding",
     fraction: 0.75,
-    percentageLabel: "75%",
-    metricLabel1: "Large Cap",
-    metricValue1: "15%",
-    metricLabel2: "Flexi Cap",
-    metricValue2: "35%",
-    metricLabel3: "Direct MF",
-    metricValue3: "50%",
+    label: "Disciplined SIP",
+    value: "+41.2%",
+    period: "3Y CAGR Compounding",
+    accent: "green",
+    approxX: 375,
+    approxY: 85,
   },
-  phone: {
-    headlinePrefix: "Identify, Verify, and Secure Your",
-    headlineEmphasis: "Wealth Identity",
-    subtitle: "Securely identifying your account to isolate and organize your mutual fund holdings.",
-    fraction: 0.75,
-    percentageLabel: "75%",
-    metricLabel1: "Large Cap",
-    metricValue1: "15%",
-    metricLabel2: "Flexi Cap",
-    metricValue2: "35%",
-    metricLabel3: "Direct MF",
-    metricValue3: "50%",
-  },
-  email_otp: {
-    headlinePrefix: "One Step Closer to Your",
-    headlineEmphasis: "Financial Life",
-    subtitle: "Confirm your verification code to complete sign-in and open your consolidated dashboard.",
-    fraction: 0.9,
-    percentageLabel: "90%",
-    metricLabel1: "Equity",
-    metricValue1: "60%",
-    metricLabel2: "Debt",
-    metricValue2: "25%",
-    metricLabel3: "Hybrid",
-    metricValue3: "15%",
-  },
-  otp: {
-    headlinePrefix: "One Step Closer to Your",
-    headlineEmphasis: "Financial Life",
-    subtitle: "Confirm your verification code to complete sign-in and open your consolidated dashboard.",
-    fraction: 0.9,
-    percentageLabel: "90%",
-    metricLabel1: "Equity",
-    metricValue1: "60%",
-    metricLabel2: "Debt",
-    metricValue2: "25%",
-    metricLabel3: "Hybrid",
-    metricValue3: "15%",
-  },
-  link_account: {
-    headlinePrefix: "Unify and Protect Your",
-    headlineEmphasis: "Financial Universe",
-    subtitle: "Link your existing identity method to access your unified portfolio across all devices.",
+  {
+    id: "peak",
     fraction: 1.0,
-    percentageLabel: "100%",
-    metricLabel1: "Direct Plans",
-    metricValue1: "80%",
-    metricLabel2: "Regular",
-    metricValue2: "20%",
-    metricLabel3: "Consolidated",
-    metricValue3: "100%",
+    label: "All-Time High",
+    value: "+56.8%",
+    period: "All-Time High",
+    accent: "amber",
+    approxX: 495,
+    approxY: 50,
   },
-};
+];
 
-// Semicircular gauge constants
-const GAUGE_WIDTH = 240;
-const GAUGE_HEIGHT = 130;
-const GAUGE_CX = 120;
-const GAUGE_CY = 120;
-const GAUGE_RADIUS = 85;
-const GAUGE_ARC_LENGTH = Math.PI * GAUGE_RADIUS; // ~267.035 px
+// Continuous, intentional performance path:
+// Starts with organic waveform through the chaos -> steps cleanly onto grid -> ascends to peak
+const PATH_DEFINITION =
+  "M 45,140 C 65,140 75,115 90,145 C 105,175 115,100 135,155 C 150,195 165,110 185,135 C 205,155 220,140 245,140 L 315,140 L 315,100 C 315,85 325,85 340,85 L 405,85 C 425,85 435,60 455,50 L 495,50";
+
+// Metallic wire loops for the left chaos zone (representing raw, unorganized portfolio data)
+const CHAOS_LOOPS = [
+  "M 75 140 C 60 70, 195 65, 205 130 C 215 195, 85 205, 75 140 Z",
+  "M 140 75 C 205 65, 215 195, 145 205 C 80 215, 70 85, 140 75 Z",
+  "M 90 100 C 130 50, 225 115, 190 175 C 150 235, 55 150, 90 100 Z",
+  "M 190 100 C 225 150, 130 235, 90 175 C 55 115, 150 50, 190 100 Z",
+  "M 65 140 C 65 95, 215 95, 215 140 C 215 185, 65 185, 65 140 Z",
+  "M 140 65 C 185 65, 185 215, 140 215 C 95 215, 95 65, 140 65 Z",
+  "M 98 122 C 118 68, 208 88, 192 158 C 176 226, 78 174, 98 122 Z",
+  "M 122 162 C 88 108, 178 58, 198 128 C 218 196, 152 216, 122 162 Z",
+];
+
+// Precise Cartesian Grid lines for the right structured matrix zone
+const GRID_COLUMNS = [270, 315, 360, 405, 450, 495];
+const GRID_ROWS = [50, 85, 120, 155, 190, 225];
 
 interface AuthShowcasePanelProps {
   step?: AuthStep;
 }
 
-export function AuthShowcasePanel({ step = "landing" }: AuthShowcasePanelProps) {
+export function AuthShowcasePanel({ step: _step = "landing" }: AuthShowcasePanelProps) {
   const shouldReduceMotion = useReducedMotion() || isTestEnv;
-  const config = STEP_CONFIGS[step] ?? STEP_CONFIGS.landing;
-  const currentFraction = config.fraction;
+  const pathRef = useRef<SVGPathElement>(null);
+  const svgContainerRef = useRef<SVGSVGElement>(null);
+  const [totalPathLength, setTotalPathLength] = useState<number>(560);
 
-  // Active gauge stroke offset (from full length 267 down to remaining portion)
-  const activeOffset = GAUGE_ARC_LENGTH * (1 - currentFraction);
+  // If already animated in this browser session or reduced-motion is requested, start immediately at 1.0
+  const [progress, setProgress] = useState<number>(() =>
+    hasAnimatedInSession || shouldReduceMotion ? 1 : 0,
+  );
+  const [isDrawing, setIsDrawing] = useState<boolean>(() => !hasAnimatedInSession && !shouldReduceMotion);
 
-  // Position of the white circular percentage indicator at the end of the active segment
-  // Angle theta: 0% fraction corresponds to 180° (left), 100% fraction corresponds to 0° (right).
-  const angleRad = Math.PI - currentFraction * Math.PI;
-  const badgeX = GAUGE_CX + GAUGE_RADIUS * Math.cos(angleRad);
-  const badgeY = GAUGE_CY - GAUGE_RADIUS * Math.sin(angleRad);
+  // Interactive Hover State (Only appears when user hovers over the graph)
+  const [hoveredMilestoneIndex, setHoveredMilestoneIndex] = useState<number | null>(null);
+
+  // Measure actual total path length on mount
+  useEffect(() => {
+    if (pathRef.current && typeof pathRef.current.getTotalLength === "function") {
+      try {
+        const length = pathRef.current.getTotalLength();
+        if (length > 0) {
+          setTotalPathLength(length);
+        }
+      } catch {
+        // Safe fallback in non-browser environments
+      }
+    }
+  }, []);
+
+  // Single deliberate animation on initial page load (plays ONLY ONCE, never loops or restarts)
+  useEffect(() => {
+    if (hasAnimatedInSession || shouldReduceMotion) {
+      setProgress(1);
+      setIsDrawing(false);
+      return;
+    }
+
+    const DURATION = 3200; // 3.2s smooth, deliberate, cinematic progressive draw
+    let startTime: number | null = null;
+    let animationFrameId: number;
+
+    const animate = (time: number) => {
+      if (startTime === null) startTime = time;
+      const elapsed = time - startTime;
+      const t = Math.min(elapsed / DURATION, 1);
+
+      // Smooth cubic-bezier easing (slow in, fluid flow, deliberate landing)
+      const eased = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      setProgress(eased);
+
+      if (t < 1) {
+        animationFrameId = requestAnimationFrame(animate);
+      } else {
+        setProgress(1);
+        setIsDrawing(false);
+        hasAnimatedInSession = true; // Mark as permanently completed for this session
+      }
+    };
+
+    animationFrameId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [shouldReduceMotion]);
+
+  // Compute exact coordinates of each milestone along the path
+  const milestoneCoordinates = useMemo(() => {
+    if (!pathRef.current || typeof pathRef.current.getPointAtLength !== "function" || totalPathLength === 0) {
+      return MILESTONES.map((m) => ({ x: m.approxX, y: m.approxY }));
+    }
+
+    return MILESTONES.map((m) => {
+      try {
+        const point = pathRef.current!.getPointAtLength(m.fraction * totalPathLength);
+        return { x: point.x, y: point.y };
+      } catch {
+        return { x: m.approxX, y: m.approxY };
+      }
+    });
+  }, [totalPathLength]);
+
+  // Leading glow spark position along the path as it draws
+  const currentDrawPoint = useMemo(() => {
+    if (!pathRef.current || typeof pathRef.current.getPointAtLength !== "function" || totalPathLength === 0) {
+      return { x: 45, y: 140 };
+    }
+    try {
+      const point = pathRef.current.getPointAtLength(progress * totalPathLength);
+      return { x: point.x, y: point.y };
+    } catch {
+      return { x: 45, y: 140 };
+    }
+  }, [progress, totalPathLength]);
+
+  // Hover detection: finds the nearest milestone point when hovering over the graph
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent<SVGSVGElement>) => {
+      if (!svgContainerRef.current) return;
+      const rect = svgContainerRef.current.getBoundingClientRect();
+      const svgX = ((e.clientX - rect.left) / rect.width) * 540;
+      const svgY = ((e.clientY - rect.top) / rect.height) * 280;
+
+      // Find closest milestone based on coordinate distance
+      let closestIdx = 0;
+      let minDistance = Infinity;
+
+      milestoneCoordinates.forEach((coords, idx) => {
+        const dist = Math.hypot(coords.x - svgX, coords.y - svgY);
+        if (dist < minDistance) {
+          minDistance = dist;
+          closestIdx = idx;
+        }
+      });
+
+      // Only show if reasonably close to the curve (within 60px)
+      if (minDistance < 65) {
+        setHoveredMilestoneIndex(closestIdx);
+      } else {
+        setHoveredMilestoneIndex(null);
+      }
+    },
+    [milestoneCoordinates],
+  );
+
+  const handleMouseLeave = useCallback(() => {
+    setHoveredMilestoneIndex(null);
+  }, []);
+
+  const hoveredMilestone = hoveredMilestoneIndex !== null ? MILESTONES[hoveredMilestoneIndex] : null;
+  const hoveredCoords =
+    hoveredMilestoneIndex !== null ? milestoneCoordinates[hoveredMilestoneIndex] : null;
+
+  // Stroke dash calculation for progressive line draw
+  const strokeDashoffset = totalPathLength * (1 - progress);
 
   return (
-    <div className="relative w-full h-full min-h-[580px] lg:min-h-[640px] rounded-3xl bg-[#062419] border border-emerald-900/40 p-8 sm:p-10 lg:p-12 flex flex-col justify-between overflow-hidden select-none text-white shadow-2xl">
-      {/* Ambient Radial Depth */}
+    <div className="relative w-full h-full min-h-[580px] lg:min-h-[640px] rounded-3xl bg-[#040806] border border-emerald-950/60 p-6 sm:p-8 lg:p-10 flex flex-col justify-between overflow-hidden select-none text-white shadow-2xl">
+      {/* 1. Ambient Depth & Fine Diamond Background Grid */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
           background:
-            "radial-gradient(circle at 45% 28%, rgba(13, 56, 38, 0.95) 0%, rgba(6, 36, 25, 0.98) 60%, rgba(4, 24, 16, 1) 100%)",
+            "radial-gradient(circle at 50% 32%, rgba(10, 46, 30, 0.85) 0%, rgba(4, 18, 12, 0.95) 55%, rgba(2, 8, 5, 1) 100%)",
         }}
       />
 
-      {/* Background Rounded Rectangular Grid Structure */}
-      <motion.div
-        initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: shouldReduceMotion ? 0.01 : 0.6, ease: MOTION_EASING }}
-        className="absolute inset-0 pointer-events-none"
-        aria-hidden="true"
-      >
-        <svg
-          className="w-full h-full object-cover"
-          viewBox="0 0 600 700"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          {/* Subtle Grid of Rounded Rectangles */}
-          <g stroke="rgba(74, 222, 128, 0.12)" strokeWidth="1.5">
-            {/* Row 1 */}
-            <rect x="20" y="20" width="120" height="120" rx="22" />
-            <rect x="160" y="20" width="120" height="120" rx="22" />
-            <rect x="300" y="20" width="120" height="120" rx="22" />
-            <rect x="440" y="20" width="120" height="120" rx="22" />
-
-            {/* Row 2 */}
-            <rect x="20" y="160" width="120" height="120" rx="22" />
-            <rect x="160" y="160" width="120" height="120" rx="22" />
-            <rect x="300" y="160" width="120" height="120" rx="22" />
-            <rect x="440" y="160" width="120" height="120" rx="22" />
-
-            {/* Row 3 */}
-            <rect x="20" y="300" width="120" height="120" rx="22" />
-            <rect x="160" y="300" width="120" height="120" rx="22" />
-            <rect x="300" y="300" width="120" height="120" rx="22" />
-            <rect x="440" y="300" width="120" height="120" rx="22" />
-
-            {/* Row 4 */}
-            <rect x="20" y="440" width="120" height="120" rx="22" />
-            <rect x="160" y="440" width="120" height="120" rx="22" />
-            <rect x="300" y="440" width="120" height="120" rx="22" />
-            <rect x="440" y="440" width="120" height="120" rx="22" />
-          </g>
-
-          {/* Luminous Highlighted Tile at top-left matching reference */}
-          <rect
-            x="70"
-            y="70"
-            width="120"
-            height="120"
-            rx="22"
-            stroke="rgba(74, 222, 128, 0.45)"
-            strokeWidth="2"
-            fill="none"
-            className="filter drop-shadow-[0_0_8px_rgba(74,222,128,0.25)]"
-          />
+      {/* Subtle diamond / isometric grid in background */}
+      <div className="absolute inset-0 pointer-events-none opacity-20" aria-hidden="true">
+        <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern
+              id="auth-diamond-grid"
+              width="44"
+              height="44"
+              patternUnits="userSpaceOnUse"
+              patternTransform="rotate(45)"
+            >
+              <rect width="44" height="44" fill="none" stroke="rgba(74, 222, 128, 0.15)" strokeWidth="0.8" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#auth-diamond-grid)" />
         </svg>
-      </motion.div>
+      </div>
 
-      {/* Central Translucent Financial Information Card */}
-      <div className="relative z-10 w-full max-w-[360px] sm:max-w-[380px] mx-auto mt-2 sm:mt-4">
-        <motion.div
-          initial={
-            shouldReduceMotion
-              ? { opacity: 1, y: 0, scale: 1 }
-              : { opacity: 0, y: 16, scale: 0.96 }
-          }
-          animate={{
-            opacity: 1,
-            y: 0,
-            scale: 1,
-          }}
-          transition={{
-            duration: shouldReduceMotion ? 0.01 : 0.5,
-            delay: shouldReduceMotion ? 0 : 0.15,
-            ease: MOTION_EASING,
-          }}
-          className="w-full rounded-3xl bg-[#0c3121]/80 backdrop-blur-md border border-emerald-500/20 shadow-2xl p-6 sm:p-7 flex flex-col gap-5 text-left relative overflow-hidden"
-        >
-          {/* Card Top Highlight Line */}
-          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-emerald-400/30 to-transparent" />
+      {/* 2. Top Editorial Brand & Headline Area */}
+      <div className="relative z-10 w-full flex items-start justify-between">
+        <div>
+          <h1 className="font-sans text-3xl sm:text-4xl lg:text-[38px] xl:text-[40px] font-extrabold text-white tracking-tight leading-[1.08]">
+            Stop Guessing.
+            <br />
+            <span className="text-white">Start Systemizing.</span>
+          </h1>
+        </div>
 
-          {/* 1. Card Header & Metadata */}
-          <motion.div
-            initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
-            animate={{
-              opacity: 1,
-              y: 0,
-            }}
-            transition={{
-              duration: shouldReduceMotion ? 0.01 : 0.4,
-              delay: shouldReduceMotion ? 0 : 0.3,
-              ease: MOTION_EASING,
-            }}
-            className="flex items-start justify-between gap-2"
-          >
-            <div>
-              <h3 className="font-sans font-bold text-base text-white tracking-tight leading-tight">
-                Asset Distribution
-              </h3>
-              <p className="font-sans text-[11px] text-emerald-200/60 mt-0.5 font-normal">
-                From 1-30 April, 2025
-              </p>
-            </div>
+        {/* Minimalist Rocket Brand Icon Glyph */}
+        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-white/[0.04] border border-white/10 backdrop-blur-sm text-emerald-400 shadow-inner flex-shrink-0">
+          <svg viewBox="0 0 24 24" className="w-5 h-5 fill-none stroke-current stroke-2 stroke-linecap-round stroke-linejoin-round">
+            <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" />
+            <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" />
+            <path d="M9 12H4s.55-3.03 2-4.5c1.62-1.63 5-1.5 5-1.5" />
+            <path d="M15 15v5s3.03-.55 4.5-2c1.63-1.62 1.5-5 1.5-5" />
+          </svg>
+        </div>
+      </div>
 
-            <button
-              type="button"
-              className="font-sans text-xs text-emerald-200 hover:text-white font-medium underline underline-offset-4 cursor-pointer transition-colors"
-            >
-              View Detail
-            </button>
-          </motion.div>
+      {/* 3. Central Physical Screen Display Card (Chaos -> Order Continuous Graph) */}
+      <div className="relative z-10 w-full max-w-[490px] sm:max-w-[520px] mx-auto my-auto py-2">
+        <div className="relative w-full rounded-2xl sm:rounded-3xl bg-[#09100d] border border-emerald-500/20 p-2 sm:p-3 overflow-hidden shadow-[0_24px_50px_-12px_rgba(0,0,0,0.85),0_0_30px_rgba(16,185,129,0.06)]">
+          {/* Card Top Bevel Light Refraction Line */}
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-emerald-400/40 to-transparent" />
 
-          {/* 2. Three Allocation Metrics with Vertical Separators */}
-          <div className="grid grid-cols-3 gap-2.5 pt-1">
-            {/* Metric 1 */}
-            <motion.div
-              initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
-              animate={{
-                opacity: 1,
-                y: 0,
-              }}
-              transition={{
-                duration: shouldReduceMotion ? 0.01 : 0.35,
-                delay: shouldReduceMotion ? 0 : 0.4,
-                ease: MOTION_EASING,
-              }}
-              className="flex items-center gap-2"
-            >
-              <div className="w-[3px] h-7 rounded-full bg-emerald-700/60 flex-shrink-0" />
-              <div className="min-w-0">
-                <span className="block text-[10px] sm:text-[11px] text-emerald-200/70 font-medium truncate">
-                  {config.metricLabel1}
-                </span>
-                <span className="block font-sans font-bold text-base sm:text-lg text-white leading-tight">
-                  {config.metricValue1}
-                </span>
-              </div>
-            </motion.div>
-
-            {/* Metric 2 */}
-            <motion.div
-              initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
-              animate={{
-                opacity: 1,
-                y: 0,
-              }}
-              transition={{
-                duration: shouldReduceMotion ? 0.01 : 0.35,
-                delay: shouldReduceMotion ? 0 : 0.5,
-                ease: MOTION_EASING,
-              }}
-              className="flex items-center gap-2"
-            >
-              <div className="w-[3px] h-7 rounded-full bg-emerald-600/60 flex-shrink-0" />
-              <div className="min-w-0">
-                <span className="block text-[10px] sm:text-[11px] text-emerald-200/70 font-medium truncate">
-                  {config.metricLabel2}
-                </span>
-                <span className="block font-sans font-bold text-base sm:text-lg text-white leading-tight">
-                  {config.metricValue2}
-                </span>
-              </div>
-            </motion.div>
-
-            {/* Metric 3 */}
-            <motion.div
-              initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
-              animate={{
-                opacity: 1,
-                y: 0,
-              }}
-              transition={{
-                duration: shouldReduceMotion ? 0.01 : 0.35,
-                delay: shouldReduceMotion ? 0 : 0.6,
-                ease: MOTION_EASING,
-              }}
-              className="flex items-center gap-2"
-            >
-              <div className="w-[3px] h-7 rounded-full bg-[#4ade80] shadow-[0_0_8px_rgba(74,222,128,0.6)] flex-shrink-0" />
-              <div className="min-w-0">
-                <span className="block text-[10px] sm:text-[11px] text-emerald-200/70 font-medium truncate">
-                  {config.metricLabel3}
-                </span>
-                <span className="block font-sans font-bold text-base sm:text-lg text-white leading-tight">
-                  {config.metricValue3}
-                </span>
-              </div>
-            </motion.div>
-          </div>
-
-          {/* 3. Semicircular Allocation Gauge Visualization */}
-          <div className="relative flex justify-center items-center pt-2">
+          {/* SVG Canvas for Chaos Loops, Coordinate Grid, and Deliberate Performance Path */}
+          <div className="relative w-full aspect-[540/280] overflow-visible">
             <svg
-              width={GAUGE_WIDTH}
-              height={GAUGE_HEIGHT}
-              viewBox={`0 0 ${GAUGE_WIDTH} ${GAUGE_HEIGHT}`}
-              className="overflow-visible"
-              aria-label={`Allocation Gauge ${config.percentageLabel}`}
+              ref={svgContainerRef}
+              viewBox="0 0 540 280"
+              className="w-full h-full overflow-visible cursor-crosshair"
+              preserveAspectRatio="xMidYMid meet"
+              onMouseMove={handleMouseMove}
+              onMouseLeave={handleMouseLeave}
+              aria-label="Unifolio Performance Compounding Engine"
             >
               <defs>
-                <linearGradient id="activeGaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#4ade80" />
-                  <stop offset="100%" stopColor="#86efac" />
+                {/* Luminous Glow Filter for Hero Performance Trajectory */}
+                <filter id="emeraldBloom" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="3.5" result="blur1" />
+                  <feGaussianBlur stdDeviation="1.2" result="blur2" />
+                  <feMerge>
+                    <feMergeNode in="blur1" />
+                    <feMergeNode in="blur2" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+
+                {/* Leading Spark Flare Filter */}
+                <filter id="sparkGlow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur stdDeviation="2.5" result="glow" />
+                  <feMerge>
+                    <feMergeNode in="glow" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+
+                {/* Hero Path Linear Gradient (Unifolio Green with Warm Golden Peak Alpha) */}
+                <linearGradient id="performanceTrajectoryGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#34d399" />
+                  <stop offset="35%" stopColor="#10b981" />
+                  <stop offset="70%" stopColor="#4ade80" />
+                  <stop offset="92%" stopColor="#86efac" />
+                  <stop offset="100%" stopColor="#fbbf24" />
                 </linearGradient>
               </defs>
 
-              {/* Base Muted Gauge Track */}
+              {/* 3a. Right Structured Grid Matrix (Order & Discipline) */}
+              <g className="structured-grid" opacity="0.8">
+                {/* Grid Enclosure Box */}
+                <rect
+                  x="270"
+                  y="45"
+                  width="225"
+                  height="185"
+                  rx="6"
+                  fill="rgba(6, 17, 12, 0.4)"
+                  stroke="rgba(74, 222, 128, 0.16)"
+                  strokeWidth="1"
+                />
+
+                {/* Vertical Column Grid Lines */}
+                {GRID_COLUMNS.map((x) => (
+                  <line
+                    key={`col-${x}`}
+                    x1={x}
+                    y1={45}
+                    x2={x}
+                    y2={230}
+                    stroke="rgba(255, 255, 255, 0.06)"
+                    strokeWidth="1"
+                  />
+                ))}
+
+                {/* Horizontal Row Grid Lines */}
+                {GRID_ROWS.map((y) => (
+                  <line
+                    key={`row-${y}`}
+                    x1={270}
+                    y1={y}
+                    x2={495}
+                    y2={y}
+                    stroke="rgba(255, 255, 255, 0.06)"
+                    strokeWidth="1"
+                  />
+                ))}
+
+                {/* Axis Coordinate Labels */}
+                <text x="495" y="244" fill="rgba(148, 163, 184, 0.35)" fontSize="8" fontFamily="var(--font-body)" textAnchor="end">
+                  Systematic Growth
+                </text>
+                <text x="270" y="244" fill="rgba(148, 163, 184, 0.35)" fontSize="8" fontFamily="var(--font-body)">
+                  Consolidated
+                </text>
+              </g>
+
+              {/* 3b. Left Entangled Metallic Wireframe Loops (Chaos / Scattered Raw Data) */}
+              <g className="chaos-cluster" opacity="0.7">
+                {CHAOS_LOOPS.map((d, index) => (
+                  <path
+                    key={`chaos-loop-${index}`}
+                    d={d}
+                    fill="none"
+                    stroke={index % 2 === 0 ? "rgba(148, 163, 184, 0.18)" : "rgba(100, 116, 139, 0.28)"}
+                    strokeWidth={index === 2 || index === 5 ? "1.3" : "1.0"}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                ))}
+              </g>
+
+              {/* 3c. Continuous Performance Trajectory Path */}
+              {/* Ghost Base Background Path for visual context */}
               <path
-                d={`M ${GAUGE_CX - GAUGE_RADIUS} ${GAUGE_CY} A ${GAUGE_RADIUS} ${GAUGE_RADIUS} 0 0 1 ${GAUGE_CX + GAUGE_RADIUS} ${GAUGE_CY}`}
+                d={PATH_DEFINITION}
                 fill="none"
-                stroke="rgba(74, 222, 128, 0.22)"
-                strokeWidth="24"
+                stroke="rgba(74, 222, 128, 0.07)"
+                strokeWidth="3"
                 strokeLinecap="round"
+                strokeLinejoin="round"
               />
 
-              {/* Progressive Active Gauge Segment */}
-              <motion.path
-                d={`M ${GAUGE_CX - GAUGE_RADIUS} ${GAUGE_CY} A ${GAUGE_RADIUS} ${GAUGE_RADIUS} 0 0 1 ${GAUGE_CX + GAUGE_RADIUS} ${GAUGE_CY}`}
+              {/* Glowing Outer Bloom Stroke */}
+              <path
+                d={PATH_DEFINITION}
                 fill="none"
-                stroke="url(#activeGaugeGradient)"
-                strokeWidth="24"
+                stroke="url(#performanceTrajectoryGradient)"
+                strokeWidth="4.5"
                 strokeLinecap="round"
-                strokeDasharray={GAUGE_ARC_LENGTH}
-                initial={
-                  shouldReduceMotion
-                    ? { strokeDashoffset: activeOffset }
-                    : { strokeDashoffset: GAUGE_ARC_LENGTH }
-                }
-                animate={{
-                  strokeDashoffset: activeOffset,
-                }}
-                transition={{
-                  duration: shouldReduceMotion ? 0.01 : 0.75,
-                  delay: shouldReduceMotion ? 0 : 0.7,
-                  ease: MOTION_EASING,
-                }}
+                strokeLinejoin="round"
+                strokeDasharray={totalPathLength}
+                strokeDashoffset={strokeDashoffset}
+                filter="url(#emeraldBloom)"
+                opacity="0.8"
               />
+
+              {/* Crisp Core Stroke (Progressively drawn along actual path) */}
+              <path
+                ref={pathRef}
+                d={PATH_DEFINITION}
+                fill="none"
+                stroke="url(#performanceTrajectoryGradient)"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeDasharray={totalPathLength}
+                strokeDashoffset={strokeDashoffset}
+              />
+
+              {/* 3d. Subtle Drawing Glow Tip (Visible only during initial single draw) */}
+              {isDrawing && progress > 0.01 && progress < 0.99 && (
+                <g transform={`translate(${currentDrawPoint.x}, ${currentDrawPoint.y})`}>
+                  <circle r="6" fill="rgba(74, 222, 128, 0.4)" filter="url(#sparkGlow)" />
+                  <circle r="2.5" fill="#ffffff" />
+                </g>
+              )}
+
+              {/* 3e. Hovered Data Point Indicator (Appears ONLY on user hover) */}
+              {hoveredCoords && (
+                <g transform={`translate(${hoveredCoords.x}, ${hoveredCoords.y})`}>
+                  {/* Subtle Outer Focus Ring */}
+                  <circle
+                    r="9"
+                    fill="none"
+                    stroke={hoveredMilestone?.accent === "amber" ? "rgba(251, 191, 36, 0.6)" : "rgba(74, 222, 128, 0.6)"}
+                    strokeWidth="1.5"
+                  />
+                  {/* Inner Solid Node */}
+                  <circle
+                    r="4"
+                    fill={hoveredMilestone?.accent === "amber" ? "#fbbf24" : "#4ade80"}
+                    stroke="#ffffff"
+                    strokeWidth="1.5"
+                  />
+                </g>
+              )}
             </svg>
 
-            {/* White Circular Percentage Indicator Badge at Active Tip */}
-            <motion.div
-              initial={
-                shouldReduceMotion
-                  ? { opacity: 1, scale: 1 }
-                  : { opacity: 0, scale: 0.4 }
-              }
-              animate={{
-                opacity: 1,
-                scale: 1,
-                left: `${(badgeX / GAUGE_WIDTH) * 100}%`,
-                top: `${(badgeY / GAUGE_HEIGHT) * 100}%`,
-              }}
-              transition={{
-                duration: shouldReduceMotion ? 0.01 : 0.4,
-                delay: shouldReduceMotion ? 0 : 1.2,
-                ease: MOTION_EASING,
-              }}
-              style={{
-                transform: "translate(-50%, -50%)",
-              }}
-              className="absolute w-12 h-12 rounded-full bg-white text-[#062419] font-bold text-xs sm:text-sm shadow-xl flex items-center justify-center font-sans tracking-tight select-none border border-black/5"
-            >
-              {config.percentageLabel}
-            </motion.div>
+            {/* 3f. Interactive Hover Tooltip (Revealed ONLY on user cursor hover) */}
+            {hoveredMilestone && hoveredCoords && (
+              <div
+                style={{
+                  position: "absolute",
+                  left: `${(hoveredCoords.x / 540) * 100}%`,
+                  top: `${(hoveredCoords.y / 280) * 100}%`,
+                  transform: "translate(-50%, -125%)",
+                  pointerEvents: "none",
+                  transition: "left 150ms cubic-bezier(0.2, 0, 0, 1), top 150ms cubic-bezier(0.2, 0, 0, 1)",
+                }}
+                className="z-30"
+              >
+                <div
+                  className={`relative rounded-xl px-3 py-1.5 text-left backdrop-blur-md shadow-2xl border flex items-center gap-2.5 whitespace-nowrap ${
+                    hoveredMilestone.accent === "amber"
+                      ? "bg-[#121008]/95 border-amber-400/40 shadow-amber-950/50"
+                      : "bg-[#06150e]/95 border-emerald-400/35 shadow-black/90"
+                  }`}
+                >
+                  {/* Glowing Indicator Dot */}
+                  <span
+                    className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                      hoveredMilestone.accent === "amber"
+                        ? "bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.9)]"
+                        : "bg-emerald-400 shadow-[0_0_8px_rgba(74,222,128,0.9)]"
+                    }`}
+                  />
+
+                  {/* Value and Period */}
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className={`font-sans font-bold text-xs sm:text-sm tracking-tight leading-tight type-data ${
+                          hoveredMilestone.accent === "amber" ? "text-amber-300" : "text-emerald-300"
+                        }`}
+                      >
+                        {hoveredMilestone.value}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-neutral-400 font-medium tracking-tight leading-none mt-0.5">
+                      {hoveredMilestone.period}
+                    </span>
+                  </div>
+
+                  {/* Downward Pointer Caret */}
+                  <div
+                    className={`absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full w-0 h-0 border-x-4 border-x-transparent border-t-[5px] ${
+                      hoveredMilestone.accent === "amber" ? "border-t-amber-400/40" : "border-t-emerald-400/35"
+                    }`}
+                  />
+                </div>
+              </div>
+            )}
           </div>
-        </motion.div>
+        </div>
       </div>
 
-      {/* Editorial Serif Headline & Supporting Description */}
-      <div className="relative z-10 mt-auto pt-6 text-center max-w-md mx-auto space-y-2.5">
-        <motion.h2
-          initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
-          animate={{
-            opacity: 1,
-            y: 0,
-          }}
-          transition={{
-            duration: shouldReduceMotion ? 0.01 : 0.5,
-            delay: shouldReduceMotion ? 0 : 1.35,
-            ease: MOTION_EASING,
-          }}
-          className="font-serif text-2xl sm:text-3xl lg:text-[34px] xl:text-[36px] text-white font-normal leading-[1.18] tracking-tight"
-        >
-          {config.headlinePrefix}{" "}
-          <em className="italic font-serif text-[#86efac] not-italic-none">
-            {config.headlineEmphasis}
-          </em>
-        </motion.h2>
-
-        <motion.p
-          initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
-          animate={{
-            opacity: 1,
-            y: 0,
-          }}
-          transition={{
-            duration: shouldReduceMotion ? 0.01 : 0.45,
-            delay: shouldReduceMotion ? 0 : 1.55,
-            ease: MOTION_EASING,
-          }}
-          className="text-xs sm:text-sm text-emerald-100/70 font-sans leading-relaxed max-w-sm sm:max-w-md mx-auto font-normal"
-        >
-          {config.subtitle}
-        </motion.p>
+      {/* 4. Bottom Editorial Subtitle */}
+      <div className="relative z-10 text-center max-w-sm sm:max-w-md mx-auto space-y-1 mt-auto pt-4">
+        <p className="text-xs sm:text-sm text-neutral-400 font-sans font-normal leading-relaxed">
+          Most investors manage wealth in scattered silos.
+        </p>
+        <p className="text-xs sm:text-sm text-emerald-300/90 font-sans font-medium leading-relaxed">
+          Disciplined portfolios run on a systematic engine.
+        </p>
       </div>
     </div>
   );
