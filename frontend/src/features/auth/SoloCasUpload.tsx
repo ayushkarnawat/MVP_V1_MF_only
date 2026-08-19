@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ImportFlow } from "../import/ImportFlow";
 import { useAuth } from "./AuthContext";
 import { createHouseholdMember, listHouseholdMembers } from "./api";
-import styles from "./onboarding.module.css";
+import { Loader2 } from "lucide-react";
 
 interface SoloCasUploadProps {
   name: string;
@@ -64,13 +64,20 @@ export function SoloCasUpload({ name }: SoloCasUploadProps) {
 
   if (error) {
     return (
-      <p role="alert" className={styles.error}>
-        {error}
-      </p>
+      <div className="p-4 rounded-2xl bg-[color-mix(in_srgb,var(--color-negative)_10%,transparent)] border border-[color-mix(in_srgb,var(--color-negative)_25%,transparent)] text-center">
+        <p role="alert" className="text-xs sm:text-sm text-[var(--color-negative)] font-medium">
+          {error}
+        </p>
+      </div>
     );
   }
   if (!memberId) {
-    return <p>Setting up your profile...</p>;
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 py-12 text-[var(--color-text-secondary)]">
+        <Loader2 className="h-6 w-6 animate-spin text-[var(--color-accent)]" />
+        <p className="text-xs sm:text-sm font-medium">Setting up your profile...</p>
+      </div>
+    );
   }
 
   return <ImportFlow householdMemberId={memberId} ctaLabel="Continue" onDone={handleDone} />;

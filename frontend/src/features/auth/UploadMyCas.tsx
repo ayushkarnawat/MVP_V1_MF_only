@@ -1,7 +1,10 @@
-import { Button } from "../../components/Button";
+import { motion } from "motion/react";
+import { Button } from "@/components/ui/button";
 import { TwoPathImportContainer } from "../import/TwoPathImportContainer";
 import { clearCasResumeStep2 } from "../import/casResumeState";
-import styles from "./onboarding.module.css";
+import { OnboardingIllustration } from "./OnboardingIllustration";
+import { ArrowRight, Clock } from "lucide-react";
+import { staggerContainerVariants, staggerItemVariants } from "@/lib/motion";
 
 interface UploadMyCasProps {
   awaitingUpload: boolean;
@@ -19,45 +22,87 @@ export function UploadMyCas({
   onSubmit,
 }: UploadMyCasProps) {
   if (awaitingUpload) {
-    // memberId must be the caller-resolved "self" household_member's real
-    // UUID, never a placeholder — Step 1 (Request from CAMS) sends it to the
-    // backend as-is, and a non-UUID value 400s with "Invalid household_member_id."
     if (!memberId) {
       return null;
     }
     return (
-      <div className={styles.importContainer}>
-        <TwoPathImportContainer
-          memberId={memberId}
-          defaultTab="request"
-          onUploadSubmit={onSubmit}
-        />
-      </div>
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-2xl mx-auto space-y-6 text-left box-border"
+      >
+        <div className="space-y-1">
+          <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[var(--color-accent)] block font-mono">
+            YOUR STATEMENT
+          </span>
+          <h2 className="font-display font-bold text-xl sm:text-2xl text-[var(--color-ink)] tracking-tight">
+            Import Your CAS Statement
+          </h2>
+        </div>
+
+        <div className="rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 sm:p-6 shadow-xs">
+          <TwoPathImportContainer
+            memberId={memberId}
+            defaultTab="request"
+            onUploadSubmit={onSubmit}
+          />
+        </div>
+      </motion.div>
     );
   }
 
   return (
-    <div className={styles.container}>
-      <h1 className={styles.title}>Upload your own CAS statement?</h1>
-      <p className={styles.subtitle}>
-        You can upload your own personal statement now or proceed directly to batch parse family statements.
-      </p>
-      <div className={styles.actionsBetween}>
+    <motion.div
+      variants={staggerContainerVariants}
+      initial="hidden"
+      animate="visible"
+      className="w-full max-w-lg mx-auto space-y-6 text-left box-border"
+    >
+      {/* Visual Artwork Anchor */}
+      <motion.div variants={staggerItemVariants}>
+        <OnboardingIllustration variant="upload" />
+      </motion.div>
+
+      {/* 1. Header with Eyebrow */}
+      <motion.div variants={staggerItemVariants} className="space-y-1.5">
+        <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[var(--color-accent)] block font-mono">
+          PERSONAL PORTFOLIO
+        </span>
+        <h1 className="font-display font-bold text-xl sm:text-2xl text-[var(--color-ink)] tracking-tight leading-snug">
+          Upload your own CAS statement?
+        </h1>
+        <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+          You can upload your own personal statement now or proceed directly to batch parse family statements.
+        </p>
+      </motion.div>
+
+      {/* 2. Action Choice Buttons */}
+      <motion.div variants={staggerItemVariants} className="flex items-center justify-between gap-3 pt-2">
         <Button
-          variant="secondary"
+          variant="outline"
           size="md"
           type="button"
           onClick={() => {
             clearCasResumeStep2("self");
             onUploadLater();
           }}
+          className="h-11 sm:h-12 px-5 rounded-xl border-[var(--color-border)] hover:bg-[var(--color-bg)] font-semibold text-xs sm:text-sm gap-1.5 cursor-pointer transition-all"
         >
-          Upload Later
+          <Clock className="h-4 w-4 text-[var(--color-text-secondary)]" />
+          <span>Upload Later</span>
         </Button>
-        <Button variant="primary" size="md" type="button" onClick={onUploadNow}>
-          Upload Now
+
+        <Button
+          variant="primary"
+          size="md"
+          type="button"
+          onClick={onUploadNow}
+          className="h-11 sm:h-12 px-6 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs sm:text-sm shadow-xs gap-2 cursor-pointer active:scale-[0.99] transition-all min-h-[44px] sm:min-h-[48px]"
+        >
+          <span>Upload Now</span>
+          <ArrowRight className="h-4 w-4" />
         </Button>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

@@ -37,13 +37,13 @@ export function Q1Name({ value, onBack, onSkip, onSubmit }: Q1NameProps) {
       {/* 1. Header with Eyebrow */}
       <motion.div variants={staggerItemVariants} className="space-y-1.5">
         <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[var(--color-accent)] block font-mono">
-          PERSONALIZE YOUR EXPERIENCE
+          INVESTOR PROFILE
         </span>
         <h1 className="font-display font-bold text-xl sm:text-2xl text-[var(--color-ink)] tracking-tight leading-snug">
           What should we call you?
         </h1>
         <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
-          A few quick questions will help us tailor your wealth tracking experience to you.
+          Personalizing your mutual fund summaries, portfolio reports, and tax statements.
         </p>
       </motion.div>
 
@@ -55,8 +55,10 @@ export function Q1Name({ value, onBack, onSkip, onSubmit }: Q1NameProps) {
         >
           Your Full Name or First Name
         </label>
-        <div className="flex items-center rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] focus-within:border-[var(--color-accent)] focus-within:ring-2 focus-within:ring-[var(--color-accent)]/20 transition-all overflow-hidden h-11 sm:h-12 min-h-[44px] px-3.5 gap-2.5">
-          <User className="h-4 w-4 text-[var(--color-text-secondary)] flex-shrink-0" />
+        <div className="flex items-center rounded-2xl bg-[var(--color-bg)] border border-[var(--color-border)] focus-within:border-[var(--color-accent)] focus-within:ring-2 focus-within:ring-[var(--color-accent)]/20 transition-all overflow-hidden h-12 sm:h-13 min-h-[48px] px-4 gap-3 shadow-xs">
+          <div className="h-7 w-7 rounded-lg bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] text-[var(--color-accent)] flex items-center justify-center flex-shrink-0">
+            <User className="h-4 w-4" />
+          </div>
           <input
             id="name-input"
             type="text"
@@ -67,7 +69,7 @@ export function Q1Name({ value, onBack, onSkip, onSubmit }: Q1NameProps) {
             autoCapitalize="words"
             spellCheck="false"
             onChange={(event) => setName(event.target.value)}
-            className="flex-1 bg-transparent text-xs sm:text-sm text-[var(--color-ink)] placeholder:text-[var(--color-text-secondary)]/50 focus:outline-none border-none outline-none ring-0 shadow-none appearance-none selection:bg-[var(--color-accent)]/20 selection:text-[var(--color-ink)] caret-[var(--color-accent)]"
+            className="flex-1 bg-transparent text-xs sm:text-sm font-medium text-[var(--color-ink)] placeholder:text-[var(--color-text-secondary)]/50 focus:outline-none border-none outline-none ring-0 shadow-none appearance-none selection:bg-[var(--color-accent)]/20 selection:text-[var(--color-ink)] caret-[var(--color-accent)]"
             autoFocus
           />
         </div>
@@ -80,7 +82,7 @@ export function Q1Name({ value, onBack, onSkip, onSubmit }: Q1NameProps) {
             <button
               type="button"
               onClick={onBack}
-              className="inline-flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] hover:bg-[var(--color-bg)] transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] hover:bg-[var(--color-bg)] transition-colors cursor-pointer"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
               <span>Back</span>
@@ -89,7 +91,7 @@ export function Q1Name({ value, onBack, onSkip, onSubmit }: Q1NameProps) {
           <button
             type="button"
             onClick={onSkip}
-            className="inline-flex items-center px-3 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] hover:bg-[var(--color-bg)] transition-colors cursor-pointer"
+            className="inline-flex items-center px-3.5 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] hover:bg-[var(--color-bg)] transition-colors cursor-pointer"
           >
             Skip
           </button>
@@ -99,7 +101,7 @@ export function Q1Name({ value, onBack, onSkip, onSubmit }: Q1NameProps) {
           variant="primary"
           type="submit"
           disabled={!name.trim()}
-          className="h-11 sm:h-12 px-6 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs sm:text-sm shadow-xs gap-1.5 cursor-pointer active:scale-[0.99] transition-all min-h-[44px] sm:min-h-[48px]"
+          className="h-11 sm:h-12 px-6 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs sm:text-sm shadow-xs gap-2 cursor-pointer active:scale-[0.99] transition-all min-h-[44px] sm:min-h-[48px]"
         >
           <span>Next</span>
           <ArrowRight className="h-4 w-4" />
