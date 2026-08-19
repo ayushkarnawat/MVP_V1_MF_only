@@ -253,6 +253,26 @@ confirmed via a scoped round-2 re-review returning **APPROVE, zero findings**. F
 backend suite: 418 passed, 2 skipped (was 413/2 pre-round). `tsc -b --noEmit` clean.
 Full detail: `Docs/orchestration/delegation-log.md`'s `correction-plan-round2*` entries.
 
+**Post-implementation performance assessment, DONE (2026-08-19):** before merging this
+branch into `feat/enhanced-ui`, the user asked for a grounded check of the Analytics
+dashboard's loading time, scalability, and efficiency across all sections, incorporating
+everything fixed across this branch's history. Investigation only, no code changed — a
+fresh re-read (not a memory recall) of every Analytics service file plus both
+orchestration layers confirmed every original BUG-001 performance cause has a
+verified-in-place fix: per-section independent fetch/loading in `AnalyticsView.tsx` (no
+waterfall, no shared spinner — a slow section like Category Ranking/Scorer can never
+block a fast one like Allocation/TER/Benchmark), a 15-minute category-wide TTL cache
+shared across Category Ranking and Scorer, bulk/bounded SQL (`_bulk_nav_on_or_before`'s
+per-target-date `GROUP BY`, Scorer's per-distinct-category-not-per-fund rescan)
+replacing every previously-documented N+1 pattern, and a connection-pooled/single-flight-
+deduplicated shared `httpx.AsyncClient` for NAV fetches. Two new, low-severity,
+not-previously-flagged observations surfaced (not fixed, not blockers — optional
+follow-ups per this file's "don't gold-plate" principle): `nse_indices_client.py` opens a
+fresh `httpx.AsyncClient` per call instead of reusing a shared client like `nav.py` does,
+and `scheme_universe.py`'s in-process memoization means its 24h disk-cache TTL is only
+re-checked once per process lifetime. Full detail:
+`Docs/orchestration/bug-001-data-001-post-implementation-performance-assessment.md`.
+
 **First-login/signup dashboard load-time fix, merged (2026-08-18):** user-reported
 follow-up to `dashboard-nav-perf-handoff.md` — first dashboard load right after
 CAS-upload signup was still ~30s despite that earlier round of fixes. Root-caused two
