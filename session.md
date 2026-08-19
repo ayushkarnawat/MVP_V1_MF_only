@@ -7,7 +7,7 @@ Working notes for picking this project back up cold in Claude Code or fresh sess
 ## Current Status: Visual & Motion Polish, Auth Validation, and Hero Illustrations 100% Complete on `authsetup`
 
 All recent tasks executed and verified:
-- **Left Auth Showcase Panel Redesign & Motion Language**: Completed in `AuthShowcasePanel.tsx`. Single continuous deliberate SVG path progressively drawn on load, session play-once guard (`hasAnimatedInSession`), interactive milestone hover tooltip (`+14.8%`, `+28.4%`, `+41.2%`, `+56.8%`), near-black radial backdrop with diamond grid, and JSDOM test-environment safety guards.
+- **Left Auth Showcase Panel Editorial Redesign**: Completed in `AuthShowcasePanel.tsx` and `AuthShowcasePanel.test.tsx` (6/6 tests passing). Replaced previous card/fragment animations with an editorial typography-led composition ("Stop Guessing. Start Systemizing."), subtle ambient brand-arc geometry at low opacity, static SVG grain overlay, and blur-to-focus reveal animation with reduced-motion support. Added dedicated `--auth-panel-*` color tokens and `--motion-hero-*` timing tokens in `tokens.css`.
 - **Comprehensive Auth Validation Engine**: Completed in `validation.ts` & `validation.test.ts` (30/30 tests passed). Covers deep email validation, extension prompts, smart typo suggestions (e.g. `gmial.com` -> `"Did you mean name@gmail.com?"`), Indian mobile number normalization (`+91XXXXXXXXXX`), dynamic live recovery on blur/change, and human-friendly backend error translation.
 - **Hero Illustrations & Option Card Assets Integration**: Extracted 5 distinct hand-drawn illustrations from the user's illustration sheet into transparent high-resolution PNGs with subtle Unifolio green accents (`#22C55E` / `#16A34A`), integrated via `OnboardingIllustration.tsx` with light/dark mode parity and ambient glow. Replaced option card icons on **Household** (`Q4Household.tsx`) and **Privacy & Security** (`TrustPrimer.tsx`) with matching bespoke hand-drawn SVGs.
 - **Backend CORS Multi-Port Support**: Updated `backend/app/main.py` with `allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$"` and multi-port list (5173, 5174, 5175, 3000) so preflight `OPTIONS` requests never fail on any local dev port.
@@ -35,11 +35,12 @@ All recent tasks executed and verified:
      - **No raw CAS PDF storage**: Hand-drawn document folio with folded corner, ruling lines, and green privacy checkmark seal.
 
 3. **`AuthShowcasePanel` (`frontend/src/features/auth/AuthShowcasePanel.tsx`)**:
-   - Visual focal point: 3D dark slate screen card with bevel highlight and ambient drop shadow.
-   - SVG Path Animation: One deliberate continuous trajectory starting as a chaotic waveform on the left and transitioning into a structured compounding upward curve on the right.
-   - `hasAnimatedInSession` session persistence flag ensures the 3.2s draw animation plays **only once** on initial load and stays in its completed state across auth steps.
-   - Hover Tooltip: Milestone hover interaction revealing metrics at nearest curve point.
-   - JSDOM safe: Guards `getTotalLength` and `getPointAtLength` with `typeof` checks to prevent test failures in non-browser environments.
+   - Concept: Editorial typography-led composition replacing busy card mockups.
+   - Dominant Headline: "Stop Guessing." & "Start Systemizing." anchored to the lower third with deliberate headroom.
+   - Supporting Copy: "Every folio, every family member — reconciled into one number you can trust."
+   - Ambient Texture: Scaled brand-arc curve geometry at low opacity (`0.14` to `0.22`) and non-animated static SVG grain overlay.
+   - Motion Reveal: Blur-to-focus fade and rise on initial load (`950ms` cubic-bezier), guarded by `hasAnimatedInSession` to run only once per session.
+   - Accessibility: Instant resting state under `prefers-reduced-motion` and test environments; decorative SVGs marked `aria-hidden="true"`.
 
 4. **Validation Engine (`frontend/src/features/auth/validation.ts`, `validation.test.ts`)**:
    - `validateEmail(value)`: Catches empty input, spaces, missing `@`, multiple `@`, consecutive dots, dot/hyphen boundaries, missing TLDs, and suggests corrections for common domain typos (`gmial.com`, `gamil.com`, `yaho.com`, `hotmial.com`, `.comcom`, `.coom`) without silent modification.
