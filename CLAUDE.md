@@ -121,8 +121,84 @@ instead. See `docs/agents/domain.md`.
 
 ## Session State
 
-*(Updated 2026-08-18. See `session.md` at repo root for the full detailed history —
+*(Updated 2026-08-19. See `session.md` at repo root for the full detailed history —
 this section is a current-status pointer, not the record of every past session.)*
+
+**"This Month" SIP tab feature, Tasks 6-8 (frontend), review gate closed
+(2026-08-19):** implements the frontend half of
+`Docs/superpowers/plans/2026-08-18-active-sips-cadence-redesign.md` (Tasks
+1-5, backend, already `DONE`) — a month-scoped SIP view alongside the
+existing Upcoming SIPs list on `DashboardView.tsx`, with a `role="tablist"`
+switcher between them. Went through the model-orchestration skill's full
+mandatory adversarial-review gate across three rounds: round 0 found 2
+Medium + 1 Low (a section-visibility gate that hid the tab switcher
+whenever there were no upcoming SIPs, stale monthly rows rendering during
+a fetch, missing tab ARIA semantics), fixed at `eeaade0`; round 1's scoped
+re-review of that fix found the loading-flash fix was incomplete
+(`setMonthlySipsLoading(true)` lived inside a `useEffect`, which fires
+after the paint that already shows the new month — one stale frame still
+got through) plus a missing `role="tabpanel"` wiring, both fixed at
+`8be5230` (the flash fix moved the `setState` call into the synchronous
+`onClick` handler so it batches with `setSipMonth` into one render, rather
+than reaching for `useLayoutEffect`); round 2's re-review found one
+remaining Low (the inactive tab's `aria-controls` IDREF points at a
+tabpanel `id` that isn't mounted in the DOM, since only the active panel
+renders) — accepted as a documented limitation per explicit user
+instruction (fix only if it's a loading/efficiency/scaling issue; this is
+a synchronous client-side ARIA-markup gap with no fetch path involved) and
+the skill's stopping heuristic (lower severity than round 0, correctness-
+safe, a real fix means always-mounting both panels — a bigger structural
+change than the finding warrants). Both fix rounds were applied directly
+by the orchestrator (not re-delegated to Codex) per the skill's
+"Review-loop fix authorship" rule, since both diffs were small and the
+touched file was already in context. Full frontend suite independently
+verified clean on the closing round: 55/55 files, 218/218 tests, zero
+regressions. **Tasks 6-8 review gate: DONE**, final scope `9e25017..8be5230`,
+closing commit `a148d42` (also documents the accepted ARIA gap in this
+file's "Still open" list, item 5, and mirrors it in
+`DEFERRED_FEATURES.md`'s appendix). Full round-by-round detail:
+`Docs/orchestration/delegation-log.md`'s 2026-08-19 entries;
+`Docs/orchestration/active-sips-frontend-handoff.md`'s `Status` line has
+the same summary. Nothing outstanding on this feature.
+
+**`model-orchestration` skill updated to v1.4 (2026-08-19):** added a
+mandatory cheap-probe-before-expensive-setup pre-step to
+`delegation-rules.md` (write a file, `git add`, `git commit` against any
+new Codex dispatch location, before paying a large dependency-tree copy
+cost) and documented that `git add`/`git commit` fail inside this
+project's `codex:codex-rescue` sandbox even when ordinary source-tree
+writes succeed (confirmed across two independent sessions/directories —
+scoped as a limitation of this environment's configuration, not a
+universal Codex constraint). Codified the resulting default worker split:
+Codex implements and self-tests; the orchestrator always handles
+staging/commits/merges/worktree management; Codex stays the default
+worker for read-only review/adversarial-review regardless, since those
+make no file changes. Also added an explicit independent-verification
+rule for agent completion (`git log`/`git diff`/tests) whenever a
+dispatched agent's terminal notification is missing, premature, or
+contradictory. Full changelog entry: `SKILL.md`'s v1.4 note.
+
+**Two Analytics Dashboard methodology docs exist, uncommitted until this
+session, awaiting stakeholder sign-off — not a Claude Code review-gate
+item:** `Docs/Analytics-Dashboard-Formula-Implementation-Review.md` (a
+stakeholder/CA-facing plain-language explanation of every analytics
+calculation — AUM, allocation, TER, XIRR, benchmark comparison, the
+Scorer — with a literal "Reviewed by" sign-off line) and
+`Docs/Analytics-Dashboard-Internal-Correction-Plan.md` (its internal
+companion: a prioritized P0/P1 correction plan, including the confirmed
+XIRR ×100 display bug from `Docs/orchestration/data-001-findings.md`,
+with its own explicit "Completion gate" requiring financial/product-owner
+sign-off before any item counts as done). Both predate this session's SIP
+tab work — the Correction Plan was last touched earlier today, the
+Review doc yesterday — but were never linked from `session.md`,
+`CLAUDE.md`, or `delegation-log.md` until now. They're a **planning/
+sign-off artifact, not yet an implementation task** — `Docs/orchestration/
+bug-001-data-001-implementation-prompt.md` remains the ready-to-paste
+prompt for the next session that actually implements DATA-001's fixes;
+these two docs are the stakeholder-facing paper trail that should sit
+alongside that work, not replace it. Worth reconciling the two the next
+time DATA-001 implementation starts, in case the Correction Plan's P0
+list has diverged from the implementation prompt's fix list.
 
 **First-login/signup dashboard load-time fix, merged (2026-08-18):** user-reported
 follow-up to `dashboard-nav-perf-handoff.md` — first dashboard load right after
