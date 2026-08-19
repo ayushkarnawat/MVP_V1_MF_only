@@ -102,6 +102,36 @@ def test_get_category_universe_returns_empty_list_for_unknown_category(tmp_path)
     assert universe == []
 
 
+_SAMPLE_TEXT_8_FIELD = (
+    "Scheme Code;ISIN Div Payout/ ISIN Growth;ISIN Div Reinvestment;Scheme Name;Plan;Option;"
+    "Net Asset Value;Date\r\n"
+    "\r\n"
+    "Open Ended Schemes(Equity Scheme - Flexi Cap Fund)\r\n"
+    "\r\n"
+    "Parag Parikh Mutual Fund\r\n"
+    "\r\n"
+    "122639;INF879O01027;-;Parag Parikh Flexi Cap Fund;Direct Plan;Growth;90.4982;18-Aug-2026\r\n"
+    "122640;-;INF879O01019;Parag Parikh Flexi Cap Fund;Regular Plan;Growth;82.4788;18-Aug-2026\r\n"
+)
+
+
+def test_parse_nav_all_handles_2026_amfi_format_with_separate_plan_and_option_columns():
+    """AMFI's NAVAll.txt changed live in Aug 2026 to split Plan/Option into
+    their own columns (8 fields, not the previous 6) — confirmed against
+    the real feed, not just a spec read. Root cause of every held fund
+    showing "Insufficient History": the old 6-field check silently
+    dropped every row, so `get_category_universe` always returned []."""
+    rows = _parse_nav_all(_SAMPLE_TEXT_8_FIELD)
+    assert len(rows) == 2
+
+    first = rows[0]
+    assert first.amfi_code == "122639"
+    assert first.isin == "INF879O01027"
+    assert first.name == "Parag Parikh Flexi Cap Fund - Direct Plan - Growth"
+    assert first.amc_name == "Parag Parikh Mutual Fund"
+    assert first.sebi_category == "Equity Scheme - Flexi Cap Fund"
+
+
 def test_get_category_universe_degrades_gracefully_on_fetch_failure(tmp_path):
     db = _session()
     client = SchemeUniverseClient(cache_dir=tmp_path)

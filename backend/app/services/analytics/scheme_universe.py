@@ -52,10 +52,18 @@ def _cache_valid(path: Path, ttl: timedelta) -> bool:
 def _parse_nav_all(text: str) -> list[UniverseRow]:
     """NAVAll.txt is a flat, stateful stream: a category header line, then
     one or more AMC-name lines, then that AMC's scheme rows, repeating,
-    blank lines throughout. Neither header nor AMC lines contain `;`; every
-    scheme row is `code;isinGrowth;isinReinvest;name;nav;date` (verified
-    live — always exactly 6 fields). A scheme row before any header/AMC
-    line has been seen is skipped rather than guessed at."""
+    blank lines throughout. Neither header nor AMC lines contain `;`.
+
+    AMFI changed the scheme-row shape live in Aug 2026: the historical
+    6-field row (`code;isinGrowth;isinReinvest;name;nav;date`, plan/option
+    baked into `name` as free text) became 8 fields
+    (`code;isinGrowth;isinReinvest;name;plan;option;nav;date`), name now
+    bare. Both are accepted so a future reversion doesn't silently break
+    this again — the old 6-field check silently dropped every row,
+    zeroing out every category universe (root cause of every held fund
+    showing "Insufficient History" regardless of actual track record,
+    confirmed live 2026-08-19). A scheme row before any header/AMC line
+    has been seen is skipped rather than guessed at."""
     rows: list[UniverseRow] = []
     current_category: str | None = None
     current_amc: str | None = None
@@ -75,12 +83,16 @@ def _parse_nav_all(text: str) -> list[UniverseRow]:
             continue
 
         fields = line.split(";")
-        if len(fields) != 6 or fields[0] == "Scheme Code":
+        if fields[0] == "Scheme Code" or len(fields) not in (6, 8):
             continue
         if current_category is None or current_amc is None:
             continue
 
-        code, isin_growth, isin_reinvest, name, _nav, _date = fields
+        if len(fields) == 6:
+            code, isin_growth, isin_reinvest, name, _nav, _date = fields
+        else:
+            code, isin_growth, isin_reinvest, base_name, plan, option, _nav, _date = fields
+            name = f"{base_name} - {plan} - {option}"
         isin = isin_growth if isin_growth != "-" else (isin_reinvest if isin_reinvest != "-" else None)
         rows.append(
             UniverseRow(
