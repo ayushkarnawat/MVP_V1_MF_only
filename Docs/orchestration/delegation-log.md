@@ -52,3 +52,161 @@ Format: `- YYYY-MM-DD | <task-slug> | worker=<codex|claude-subagent|orchestrator
 - 2026-08-18 | active-sips-backend + active-sips-frontend | worker=orchestrator | Both first-round dispatches failed at the sandbox layer: Codex reported the writable roots for this session as `/mnt/d/Unifolio code` (the project itself) and `/tmp` — the exact opposite of delegation-rules.md's documented /mnt/d-unreachable constraint. Logged as skill-observations Observation #13 (probe-first, don't assume the documented constraint holds across sessions). Recovered by creating two real `git worktree add .claude/worktrees/active-sips-{backend,frontend}` (matching this repo's existing worktree convention, confirmed writable since it's under the project root) instead of an external native-fs clone. Provisioned backend/.venv and frontend/node_modules by copy into each worktree, verified independently (pytest 4/4, tsc/vitest clean). Redispatching both to Codex against these worktrees next.
 - 2026-08-18 | active-sips-backend | worker=orchestrator | Second-round dispatch (retry, agent a1aba6bdfac6580d9) also failed, but at a different layer: Task 1's code/tests wrote fine (13 passed) but `git commit` failed — `fatal: Unable to create '/mnt/d/Unifolio code/.git/worktrees/active-sips-backend/index.lock': Read-only file system`. Root cause: a linked `git worktree`'s git metadata lives under the *main* repo's `.git/worktrees/<name>/`, outside the dispatch cwd's own directory tree — even though the worktree's working directory itself was writable, this metadata path was not. Fix: replaced both linked worktrees with standalone `git clone --local --branch <branch> "/mnt/d/Unifolio code" .claude/worktrees/<slug>` clones (self-contained `.git`, no cross-directory metadata dependency), still inside the project's confirmed-writable root. Backend Task 1's uncommitted diff (saved as a patch before removing the old worktree) reapplied cleanly to the new clone. Re-provisioning .venv/node_modules into the new clones before redispatching a third round.
 - 2026-08-18 | active-sips-backend | worker=orchestrator | Third-round dispatch (agent aa921a5cfcef0df2e) against the new standalone clone `.claude/worktrees/active-sips-backend` (branch active-sips-backend, own self-contained .git, backend/.venv re-copied and verified: 13 passed). Task 1's diff (patch-reapplied from the round-2 worktree) left uncommitted for Codex to review/commit as its first step, then proceed through Tasks 2-5.
+- 2026-08-18 | active-sips-backend | worker=orchestrator | Root cause finally found by reading `~/.codex/config.toml` directly: Codex maintains its own per-absolute-path trust allowlist (`[projects."<path>"] trust_level = "trusted"`) — only listed directories get real sandbox write access, independent of host filesystem permissions. Explains every prior-round failure (external clone, linked worktree, standalone clone all untrusted) as one shared mechanism rather than separate causes. `/mnt/d/Unifolio code` (the main repo) is the one directory confirmed trusted throughout this session. Abandoned the parallel-worktree/clone approach entirely — created branch `active-sips-cadence-redesign` directly in the main repo, reapplied the already-verified Task 1 patch (13 tests passing), and redispatched Tasks 1-5 there. Frontend Tasks 6-8 will follow sequentially in the same directory once backend lands, rather than in parallel, since only this one directory is confirmed writable. Logged as skill-observations Observation #16 (supersedes #13/#14's partial diagnoses).
+
+## 2026-08-18 — Codex abandoned for this session; switching to Claude subagent
+
+Codex dispatch failed to write/commit in 5/5 attempted locations this
+session (external clone, linked worktree, standalone clone, main repo
+despite trusted-list membership) — see skill-observations Observation
+17 for full detail and the correction to Observation 16's now-
+contradicted trust-list theory. Per explicit user instruction, Codex is
+benched for the remainder of this session. Remaining active-SIPs work
+(backend Tasks 2-5, frontend Tasks 6-8) will be dispatched to a genuine
+Claude subagent (`general-purpose`) instead, working directly in the
+main repo on branch `active-sips-cadence-redesign`. Root cause of the
+Codex write-access failures is NOT resolved — flagged as a follow-up
+investigation outside active task-delivery time, not attempted again
+this session.
+
+## 2026-08-18 — Backend Tasks 1-5 complete via Claude subagent, review clean, Status→DONE
+
+Tasks 2-5 implemented by a `general-purpose` Claude subagent directly in
+the main repo (commits `560523e`, `293a2cc`, `625710c`, `53919a6`, on top
+of Task 1's `5f71d19`). Full suite: 394 passed, 2 skipped (independently
+re-verified by orchestrator). One real bug caught during implementation
+itself: the plan's own Task 2 code snippet left a `db.get(Scheme, ...)`
+inside the per-folio loop, which the plan's Task 4 guard test exposed as
+a genuine N+1 the plan's prose had wrongly assumed was already fixed —
+resolved with a new `_schemes_by_id` batched helper (same pattern as
+`_folio_transactions_by_id`), logged as Observation 18. Mandatory
+adversarial review dispatched to a second Claude subagent (not Codex)
+against the full Tasks 2-5 diff — returned zero real findings across all
+8 review dimensions (Decimal correctness, query-count regression traced
+by hand plus an independent monkeypatch regression demo, two-anchor
+reconciliation logic, redemption exclusion reuse, API auth parity with
+sibling routes, month-clamping usage sites, test quality, general
+correctness), one minor non-blocking note (no month/year range
+validation on the new routes — accepted as harmless, not fixed).
+`Docs/orchestration/active-sips-backend-handoff.md` Status moved to
+DONE. Next: dispatch frontend Tasks 6-8 to a Claude subagent, same
+main-repo-direct approach, Codex still benched per Observation 17.
+
+## 2026-08-18 — Codex re-tested from scratch per user request, failed identically; confirmed root cause, reverting to Claude subagent
+
+User asked to retry Codex "from scratch" before continuing frontend
+work, to conserve Claude token budget. Ran a minimal 3-step isolated
+probe (plain file write, then `git add`, then `git commit`) against
+`/mnt/d/Unifolio code` directly via `codex:codex-rescue`. Plain write
+succeeded; `git add` failed immediately with the same
+`.git/index.lock: Read-only file system` error seen throughout this
+session. This isolates the failure precisely to `.git/`-directory
+writes, not the working tree — narrows and supersedes Observations
+16/17's theories, logged as Observation 19. Per the user's own
+fallback instruction ("if it fails then go back to cloud"), reverting
+to a Claude `general-purpose` subagent for frontend Tasks 7-8. Codex
+remains benched pending an upstream fix outside this session's scope.
+
+## 2026-08-19 — Diagnosis approved; Tasks 6-8 review re-dispatched to Codex; skill updated per user-approved findings
+
+Diagnosis from the prior session presented in full (table of every
+dispatch, Item 4/5 SQL and redirect analysis, root-cause synthesis) —
+user approved re-dispatching the pending Tasks 6-8 review to Codex
+(reviews are read-only, unaffected by the confirmed `.git`-write
+restriction) and approved 4 of the skill-optimization suggestions
+verbatim. Re-dispatched `codex:codex-rescue` (background, no
+`isolation: worktree`) against `/mnt/d/Unifolio code`,
+`active-sips-cadence-redesign`, scope `53919a6..4f39e9b` (commits
+`9e25017`, `cd3b7fd`, `4f39e9b`) — the prior review attempt for this
+exact scope failed mid-run on a Claude API session-limit error and never
+returned a verdict; this is a fresh first-round dispatch, not a
+continuation. Applied to `delegation-rules.md`/`SKILL.md` (v1.4): the
+mandatory cheap-probe-before-expensive-setup pre-step; the `.git`-write
+restriction documented explicitly as scoped to this project's
+`codex:codex-rescue` sandbox configuration (not a universal Codex claim);
+the resulting default worker split (Codex implements/tests, orchestrator
+always stages/commits/merges, Codex remains default for read-only
+review); and an explicit independent-verification-via-git/tests rule for
+ambiguous agent completion signals. Marked skill-observations
+Observations 15, 17, 19, 20 ACTIONED (2026-08-19).
+
+The re-dispatched Tasks 6-8 review (agent `a090551d8e71ffe8e`) returned
+REQUEST-CHANGES: 2 Medium (SIP section gated on `upcomingSips.length >
+0`, hiding "This Month" whenever there were no upcoming SIPs even with
+monthly data present; stale `monthlySips` rows rendered under the new
+month's heading during the post-navigation fetch window, not gated by
+`monthlySipsLoading`) and 1 Low (segmented control lacked
+tab/`aria-selected` semantics). Sanity-checked both files directly
+before acting (per `delegation-rules.md`'s verdict-sanity-check rule) —
+all three findings confirmed accurate against a direct read.
+`worker=orchestrator` fix, per "Review-loop fix authorship" (diff
+small-to-moderate, files already in context, no round-trip needed):
+removed the `upcomingSips.length > 0` gate and added a "No upcoming
+SIPs." empty state; gated row rendering on `!monthlySipsLoading` and
+added a "Loading…" placeholder; added `role="tablist"`/`role="tab"`/
+`aria-selected` to the switcher. Fixing broke 2 existing tests
+(`getByRole("button", { name: "This Month" })` — the button's accessible
+role changed to "tab"); updated both to `getByRole("tab", ...)`.
+`tsc -b --noEmit` clean; `DashboardView.test.tsx` 12/12 passing.
+Committed `eeaade0`. Dispatched a **scoped** re-review (agent
+`ae1c0c8224880f32b`, diff `4f39e9b..eeaade0` against just the two
+touched files, plus the prior findings list for context) per the
+skill's re-review-scoping rule — result pending.
+
+Round-1 re-review returned REQUEST-CHANGES: confirmed all three original
+findings addressed, but surfaced two new/incompletely-closed items — (1
+Medium) the stale-row-flash fix only worked after the effect ran;
+`setMonthlySipsLoading(true)` living inside `useEffect` (which fires
+after commit/paint) still allowed one stale-paint frame on month
+navigation; (2 Low) `role="tablist"`/`role="tab"` were wired with no
+associated `role="tabpanel"`, an incomplete ARIA tabs pattern.
+`worker=orchestrator` fix again (same small-diff/in-context rationale):
+moved `setMonthlySipsLoading(true)` into the prev/next month `onClick`
+handlers directly (batches into the same render as `setSipMonth`,
+closing the flash without `useLayoutEffect`); added
+`id`/`aria-controls` on both tab buttons and a wrapping
+`role="tabpanel"` div with matching `id`/`aria-labelledby`. `tsc -b
+--noEmit` clean; `DashboardView.test.tsx` 12/12. Committed `8be5230`.
+Dispatched a second scoped re-review (agent `ab637328c4dc31b4c`, diff
+`4f39e9b..8be5230`, explicitly asked to run the full frontend suite
+since this is the round expected to close the gate) — result pending.
+
+Round-2 re-review returned REQUEST-CHANGES with exactly one remaining
+item (Low): both SIP tab buttons carry a distinct `aria-controls` value,
+but only the active tab's `role="tabpanel"` actually exists in the DOM
+(a single conditionally-rendered panel, not two always-mounted ones), so
+the inactive tab's `aria-controls` IDREF doesn't resolve — an incomplete
+ARIA tabs authoring pattern. Everything else confirmed closed: the
+stale-row-flash fix holds under React 19's native-event batching (no
+`startTransition`/concurrent deferral reintroducing it); the "This
+Month" re-entry path was checked and found not to be a separate gap
+(`sipMonth` and its rows transition together); no regression from the
+new wrapping div or the two-`setState`-per-click-handler change; the
+`data-testid="upcoming-sips"` test hook is untouched. Codex's sandbox
+could not actually run the full suite (`npx vitest run` failed pre-collection
+on a read-only `.vite-temp` write) and substituted a code read per the
+documented fallback — the orchestrator independently ran the real full
+suite to close that gap: **55/55 test files, 218/218 tests passing.**
+
+User instruction: fix the remaining Low finding only if it implicates
+loading/efficiency/scaling; otherwise close the gate and document. Confirmed
+it's a pure ARIA-markup completeness gap with no performance dimension
+(tab switching is synchronous client-side state, not a fetch path) — no
+fix dispatched. Accepted as a documented limitation per the
+model-orchestration skill's stopping heuristic (lower severity than
+round 1, correctness-safe, and a real fix needs a materially bigger
+change — always-mounted dual panels instead of one conditionally-rendered
+panel, which also touches the lazy monthly-SIP-fetch effect's
+`sipTab !== "month"` early return). Documented in `CLAUDE.md`'s "Still
+open" list (item 5) and mirrored in `DEFERRED_FEATURES.md`'s appendix.
+
+**Tasks 6-8 mandatory adversarial-review gate: DONE.** Final scope
+`9e25017..8be5230` (This Month SIP tab feature: backend routes, types,
+API clients, frontend tab UI, tests, plus two orchestrator-authored
+review-finding fix rounds). Three review rounds total: round 0 (the
+original failed-then-re-dispatched review, `53919a6..4f39e9b`, 2 Medium
++ 1 Low, all fixed in `eeaade0`), round 1 (`4f39e9b..eeaade0` re-review,
+1 Medium + 1 Low found on the fix itself, both fixed in `8be5230`),
+round 2 (`4f39e9b..8be5230` re-review, 1 Low remaining, accepted as
+documented limitation per user instruction — no further fix). No
+outstanding review debt on this branch.

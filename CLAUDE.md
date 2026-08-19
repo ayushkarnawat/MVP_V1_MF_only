@@ -310,6 +310,23 @@ it for anything in `analytics/scorer.py`, `analytics/risk_metrics.py`,
 4. `HoldingsTable.tsx` references a dead `row.return_percentage_1y` field that doesn't
    exist on the real API type — harmless (client-computed fallback always runs), never
    cleaned up.
+5. `DashboardView.tsx`'s SIP Upcoming/This Month segmented control (`sip-tab-upcoming`/
+   `sip-tab-month`) always renders both tab buttons' `aria-controls` IDs, but only the
+   active tab's `role="tabpanel"` actually exists in the DOM — the inactive tab's
+   `aria-controls` points at an ID that doesn't resolve, an incomplete ARIA tabs IDREF
+   pattern. Confirmed via a second scoped Codex adversarial-review round
+   (2026-08-19, `active-sips-cadence-redesign` branch, commit `8be5230`) after two
+   earlier rounds closed a stale-row-flash bug and the missing tabpanel wiring itself.
+   Accepted as a documented limitation rather than a third fix round, per the
+   model-orchestration skill's stopping heuristic — negligible real-world screen-reader
+   impact since the tab/panel pairing is already correctly conveyed via
+   `role`/`aria-selected`/`aria-labelledby` on the panel that does exist, and a full fix
+   means always mounting both panels (one `hidden`) instead of one conditionally-rendered
+   panel, which also touches the lazy monthly-SIP-fetch trigger (the `sipTab !== "month"`
+   early-return in `DashboardView.tsx`'s fetch effect) — a bigger structural change than
+   proportionate to a Low finding. Revisit only if a real accessibility-audit or user
+   complaint surfaces it as an actual usability problem. Full review-round detail:
+   `Docs/orchestration/delegation-log.md`'s 2026-08-19 entries.
 
 **Everything before this — Phase 0 (foundation), Phase 1 (CAS import, backend +
 frontend), Phase 2 (Auth backend), Phase 2b (Onboarding frontend), Phase 3 (Main
