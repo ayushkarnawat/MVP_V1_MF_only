@@ -12,13 +12,24 @@ doc** — this is investigation/classification only, same posture as the origina
 **Confidence key:**
 - **VERIFIED** — read the actual implementation this session, evidence cited below.
 - **CARRIED** — presumed status from an earlier session's work/memory, not re-read this pass.
+- **PARTIAL** — part of the claim was read and confirmed this session, part was not (either presumed, or left for a scoped follow-up) — see the item's prose for exactly which part.
 - **UNCHECKED** — not investigated at all this pass; status unknown.
+
+**Adversarially reviewed (2026-08-19):** a Codex review pass caught 8 findings against the
+original version of this doc (1 High: an unsupported "confirmed price-only" leap on P0.3;
+5 Medium: a false "no documented trading-day convention" claim on P0.4, a wrong exact
+number in P2.4's clamp-overshoot example, VERIFIED labels on P1.2/P1.3/P2.8 that didn't
+match the investigation actually performed that section's own prose disclosed; 2 Low:
+missing PARTIAL in this key, an imprecise P1.10 description) — all fixed below. The two
+previously-unverified conditions (P1.2's both-TER-required check, P1.3's 45%/30% weight
+constants) were then independently re-read and confirmed present, so those two items are
+now genuinely VERIFIED rather than downgraded.
 
 ---
 
 ## P0 — Release-blocking
 
-### P0.1 XIRR percentage presentation — DONE (VERIFIED, prior session)
+### P0.1 XIRR percentage presentation — DONE (CARRIED)
 Already fixed as Item 1 of the original 7-item workstream (×100 at the presentation
 boundary). Not re-verified this pass beyond confirming `_xirr_str` in `benchmark.py`
 still serializes a raw decimal-fraction string (correct — the ×100 conversion belongs at
@@ -35,31 +46,41 @@ field) — confirms this is a genuine gap, structurally identical to the already
 1 XIRR bug but in an untouched code path. **This is a clean, high-confidence, low-risk fix
 — same shape as Item 1, recommend implementing via the same TDD path.**
 
-### P0.3 TRI (Total Return Index) vs. price-only benchmark — **CONFIRMED GAP** (VERIFIED)
+### P0.3 TRI (Total Return Index) vs. price-only benchmark — **CONFIRMED NAMING GAP, ECONOMIC CONTENT UNCONFIRMED** (VERIFIED, narrower claim)
 `nse_indices_client.py`'s `_TRADING_INDEX_NAME` maps all 4 `BenchmarkIndex` members to
-plain price-only NSE names ("Nifty 50", "Nifty 500", "NIFTY LARGEMID250", "Nifty Midcap
-150") — no TRI designation anywhere. Repo-wide grep for "TRI" across `backend/app/`,
-`Docs/PRDs/`, `Docs/TDD-Unifolio.md` returns zero genuine hits. Every benchmark XIRR
-currently computed (`compute_portfolio_vs_benchmarks`, `compute_fund_vs_benchmark`) is
-priced off a series that excludes reinvested distributions — not comparable to a mutual
-fund's total return, exactly as the doc describes. **This is the largest-scope item in the
-whole doc**: it needs a different NSE data source/index-name convention (TRI series aren't
-served by the same endpoint this client currently calls, unconfirmed whether NSE's public
-site exposes them at all without a paid data feed) — a sourcing/feasibility question, not
-a same-file code fix. Recommend scoping this as its own investigation before any
-implementation attempt.
+plain, non-TRI-labeled NSE names ("Nifty 50", "Nifty 500", "NIFTY LARGEMID250", "Nifty
+Midcap 150") — no TRI designation anywhere, and a repo-wide grep for "TRI" across
+`backend/app/`, `Docs/PRDs/`, `Docs/TDD-Unifolio.md` returns zero genuine hits. **What
+this actually establishes:** the requested series is not explicitly labeled/selected as
+TRI. **What it does NOT establish:** that the series NSE actually returns for these names
+is confirmed price-only (excludes reinvested distributions) — `_fetch_index_history` only
+consumes `HistoricalDate`/`CLOSE` values with no return-type metadata in the response, so
+nothing in this codebase inspects the retrieved values against known TRI/price-index
+figures to confirm which series NSE is actually serving under a plain "Nifty 50" request.
+Reviewed and corrected after an initial draft of this doc overclaimed "confirmed
+price-only" without that value-level check. Either way, this remains the doc's own
+release-blocker: per P0.3's acceptance criteria, the benchmark identifier and series type
+must be explicitly recorded and "TRI" displayed with the name — neither happens today
+regardless of what NSE is actually serving. **Recommend scoping this as its own
+investigation** (does NSE's public/free endpoint even expose TRI series, or does that
+require a different, possibly paid, data source?) **before any implementation attempt** —
+the largest-scope item in the whole doc.
 
 ### P0.4 Reject incomplete benchmark cash-flow paths — **CONFIRMED GAP** (VERIFIED)
 `benchmark.py`'s `_benchmark_xirr_for_transactions` (line 86–99): when a transaction's
 date has no index level available, it silently `continue`s — the flow is dropped, not
 the whole comparison rejected. There is no "return benchmark unavailable if any material
 flow remains unresolved" behavior; the function computes and returns a (silently biased)
-XIRR over whatever subset of flows happened to resolve. There is also no explicit,
-named trading-day convention — `get_index_level_on_or_before`'s "most recent on-or-before"
-lookup is an implicit convention, not a documented, testable one, and nothing is exposed
-to internal diagnostics when a date fails to resolve. **Confirmed gap** — the doc's
-"why it matters" (silently changes the economic question) applies directly to the current
-code as written.
+XIRR over whatever subset of flows happened to resolve, and nothing is exposed to internal
+diagnostics when a date fails to resolve. **Correction:** an earlier draft of this doc also
+claimed there is "no documented, testable trading-day convention" — that's wrong.
+`get_index_level_on_or_before`'s on-or-before convention IS explicitly documented
+(`nse_indices_client.py:126`'s own docstring: "trading holidays/weekends mean the exact
+date is often not present") and IS tested (`test_nse_indices_client.py`'s weekend-lookup
+test). The trading-day convention itself is fine; the confirmed gap is narrower and
+specifically about what happens when even that on-or-before lookup still comes up empty
+(no cached history covers the date at all) — silent drop instead of the doc's required
+"benchmark unavailable."
 
 ---
 
@@ -76,18 +97,18 @@ insufficient-AAUM suppression exists either.
 ### P1.2 Missing TER vs. genuine 0% TER — **LARGELY SATISFIED** (VERIFIED)
 `ter.py`: `weighted_ter=None` (distinct unavailable sentinel, not zero) when
 `covered_value` is falsy; `covered_value`/`total_value`/`uncovered_schemes` are explicit
-coverage-disclosure fields already returned. This matches Item 6's already-shipped fix
-and the doc's P1.2 acceptance criteria closely. Not independently re-verified: whether the
-Scorer's own cost-adjustment path (`_cost_adjustment_from_context`) correctly withholds the
-adjustment when *either* scheme TER *or* category reference TER is missing (only spot-checked
-the dead-zone/nudge constants, not this specific both-required condition) — worth a scoped
-follow-up check before declaring this fully closed.
+coverage-disclosure fields already returned. `scorer.py`'s `_cost_adjustment_from_context`
+(line 170–185) independently confirmed to return `None` if `own_ter is None or
+category_avg is None` — the exact both-required condition the doc's acceptance criteria
+asks for, closing the gap an earlier draft of this section had left as a follow-up.
+This matches Item 6's already-shipped fix and the doc's P1.2 acceptance criteria closely.
 
 ### P1.3 Scorer governance / one approved methodology — **NUMERICALLY MATCHES, GOVERNANCE OPEN** (VERIFIED)
-`scorer.py`'s actual constants: `_CONSISTENCY_WEIGHT = Decimal("0.25")`,
-`_TER_DEAD_ZONE = Decimal("0.05")`, `_TER_NUDGE = Decimal("0.25")` — these match the doc's
-"45% return / 30% downside risk / 25% consistency... ±0.25 TER adjustment outside a ±0.05pp
-tolerance" exactly (45%/30% weights presumed present alongside, not re-grepped this pass).
+`scorer.py`'s actual constants (line 43–47): `_RETURN_WEIGHT = Decimal("0.45")`,
+`_RISK_WEIGHT = Decimal("0.30")`, `_CONSISTENCY_WEIGHT = Decimal("0.25")`,
+`_TER_DEAD_ZONE = Decimal("0.05")`, `_TER_NUDGE = Decimal("0.25")` — all five independently
+re-read and confirmed present, matching the doc's "45% return / 30% downside risk / 25%
+consistency... ±0.25 TER adjustment outside a ±0.05pp tolerance" exactly.
 `Docs/Scorer-Methodology-Unifolio.md` already exists as the stakeholder-facing methodology
 doc from the original Scorer build. What's open is the doc's specific ask: reconciling
 "earlier requirement language and later scoring decisions... in one versioned policy
@@ -156,14 +177,18 @@ verified whether that matcher's looser threshold creates a live P1.9 risk in the
 path specifically.
 
 ### P1.10 Mixed plan types in aggregated holdings — **CONFIRMED BUG** (VERIFIED)
-`dashboard/holdings.py` line 136–141: when the same scheme appears in both direct and
-regular plan folios for one member, holdings aggregation explicitly collapses them into
-one row, taking "the first-encountered folio's plan_type" to represent the merged row —
-its own comment: "folio-level plan_type detail becomes visible [only after this
-simplification]." This is precisely the ambiguous-record collapsing P1.10 prohibits: units,
-cost, and NAV/TER/score inputs from a direct-plan and a regular-plan holding of the "same"
-scheme get merged under one arbitrary plan_type label. This is a *new* finding, not
-previously listed in CLAUDE.md's "Still open" carry-forward items.
+`dashboard/holdings.py`: rows are grouped by `(household_member_id, scheme_id)` (line 126)
+— the same key regardless of plan type — then units/cost are summed across all folios in
+that group while `plan_type = member_folios[0].plan_type` (line 136–141) picks only the
+first-encountered folio's plan type to label the merged row. So when the same scheme
+appears in both a direct and a regular plan folio for one member, the aggregated row shows
+one arbitrary plan_type while silently summing units/cost across both plans underneath it
+— the concrete defect is the folio-level plan attribution getting collapsed at the
+grouping step, which can then mis-bucket any scheme-level analytics keyed off that single
+`plan_type` label (not, more loosely, "NAV/TER/score inputs get merged" — all downstream
+NAV/TER/score lookups key off the shared `scheme_id`, not off this plan_type field
+directly). This is a *new* finding, not previously listed in CLAUDE.md's "Still open"
+carry-forward items.
 
 ---
 
@@ -186,10 +211,17 @@ was built as an explicit "acceptable age by asset type, disclosed when stale" po
 ### P2.4 Clamp adjusted scores to [0, 100] — **CONFIRMED GAP** (VERIFIED)
 `scorer.py` line 238: `final_score = (composite_rank[1] + applied_adjustment).quantize(
 Decimal("0.01"))` — no `min(100, ...)` / `max(0, ...)` clamp anywhere around this
-assignment or downstream. `composite_rank[1]` is a 0–100 percentile and `applied_adjustment`
-can be up to `±_TER_NUDGE = ±0.25`, so a fund at the very top or bottom of its category can
-currently produce a `final_score` of 100.25 or −0.25 — outside the documented valid range.
-**Small, low-risk, clean fix** — same character as P0.2, a good second TDD fix to pair with it.
+assignment or downstream. **Correction to the original example:** `_rank_and_percentile`
+computes `percentile = (total - rank) / total * 100` (`category_ranking.py:161`), so rank 1
+(the top fund) never gets an exact percentile of 100 — only `(n-1)/n × 100`, which
+approaches but never reaches 100 as category size `n` grows. An exact `100.25` overshoot
+is therefore not reachable at the top end. The bottom end IS exactly reachable, though:
+rank `n` (the worst fund) gets percentile `0`, and a `-_TER_NUDGE` adjustment produces a
+`final_score` of exactly **−0.25** — outside the documented `[0, 100]` valid range. The
+gap is real (no clamp exists either direction, and a large enough category's top fund can
+still land above 100, e.g. `99.98 + 0.25 = 100.23`), just not via the originally-cited
+exact number. **Small, low-risk, clean fix** — same character as P0.2, a good second TDD
+fix to pair with it.
 
 ### P2.5 Calculation lineage/audit metadata — UNCHECKED (likely gap)
 No `methodology_version`, `valuation_date`, `data_source_date`, or similar audit fields
@@ -215,12 +247,12 @@ NAV-fetch dedup work from the dashboard-perf fix), bounded retries, or source-he
 monitoring for TER/AAUM/NSE clients — none of these were seen in the code read this pass,
 and are presumed absent unless a future check finds otherwise.
 
-### P2.8 Validate redirects and trading-day/date-range freshness — **DONE** (VERIFIED)
-Both halves closed already: Item 5 (BUG-001/DATA-001) confirmed `_fetch_index_history`
-correctly does NOT blanket-follow redirects (would silently drop the `cinfo` payload
-selecting index/date range), and this window's follow-up fix added the missing
-response-date-range validation (`ValueError` raised if any parsed row falls outside the
-requested `[start_date, end_date]`) — committed `5073211`, adversarially reviewed
+### P2.8 Validate redirects and trading-day/date-range freshness — **DONE** (PARTIAL: date-range half VERIFIED this session, redirect half CARRIED)
+Both halves closed: the redirect-safety half was Item 5's already-shipped fix (prior
+session, not re-read this pass — CARRIED); this window's follow-up fix independently
+added and verified the missing response-date-range validation this session
+(`ValueError` raised if any parsed row falls outside the requested `[start_date,
+end_date]`, `nse_indices_client.py:78`) — committed `5073211`, adversarially reviewed
 APPROVE/zero-findings.
 
 ---
@@ -231,7 +263,7 @@ APPROVE/zero-findings.
 |------|--------|------------|
 | P0.1 XIRR % | DONE | CARRIED |
 | P0.2 Category CAGR % | **BUG, not fixed** | VERIFIED |
-| P0.3 TRI benchmark | **Gap — large scope** | VERIFIED |
+| P0.3 TRI benchmark | **Naming gap confirmed; economic content unconfirmed** | VERIFIED (narrower) |
 | P0.4 Cash-flow completeness | **Gap** | VERIFIED |
 | P1.1 AAUM refresh | **Gap** | VERIFIED |
 | P1.2 TER unavailable state | Largely satisfied | VERIFIED |
@@ -250,9 +282,9 @@ APPROVE/zero-findings.
 | P2.5 Audit lineage | Likely missing | UNCHECKED |
 | P2.6 Ranking efficiency | Partially addressed | CARRIED |
 | P2.7 Retrieval hardening | Partially addressed | CARRIED |
-| P2.8 Redirect/date-range validation | DONE | VERIFIED |
+| P2.8 Redirect/date-range validation | DONE | PARTIAL (date-range VERIFIED, redirect CARRIED) |
 
-## Recommendation
+## Recommendation (superseded by Final Decision below)
 
 Given the scope (22 items, several requiring product decisions, one — P0.3 — requiring a
 data-sourcing feasibility question before any code work), recommend **not** proceeding to
@@ -264,3 +296,44 @@ decision (P1.3 sign-off, **P1.4's direct conflict with the existing PRD "thin ca
 decision**), a scoping/feasibility pass (P0.3's TRI sourcing), or further investigation
 before a fix is even well-defined (P1.8, P1.9's non-import-time scope, all of P2.1/P2.2/
 P2.3/P2.5, and the unverified halves of P2.6/P2.7).
+
+## Final Decision (2026-08-19, per-item disposition)
+
+The recommendation above was reviewed item-by-item with the user; this table is the
+authoritative disposition — treat it over the "Recommendation" section above where they
+differ (P1.10 and P1.6 in particular moved from "not scoped yet" to "implemented this
+round").
+
+| Item | Disposition | Detail |
+|------|-------------|--------|
+| P0.2 Category CAGR % | **Implemented** | Round-2 fix, frontend-only, `CategoryRankingSection.tsx`. See `Docs/orchestration/correction-plan-round2-handoff.md`. |
+| P0.3 TRI benchmark | **Lighter fix implemented + full fix deferred** | Labeled "(Price Return)" in `BenchmarkSection.tsx`'s `INDEX_LABELS`; full TRI sourcing blocked on an unanswered feasibility question. Full detail and revisit path: `Docs/orchestration/tri-benchmark-deferred-plan.md`. |
+| P0.4 Cash-flow completeness | **Skipped, standing decision** | Hard-failing the benchmark comparison on any unresolved flow date conflicts with this codebase's established graceful-degrade pattern (`nav.py`, `ter.py`, `amfi_ter_client.py` all degrade rather than hard-fail). Not revisited unless that codebase-wide pattern itself changes. |
+| P1.1 AAUM refresh scheduler | **Deferred to AWS deployment** | Gated behind `Docs/PRDs/Migration-Plan-SQLite-to-Postgres.md`'s Readiness Checklist, same as every other production-infra item in this codebase — building a scheduler ahead of that gate would be premature per CLAUDE.md's "AWS deployment happens once that document's Readiness Checklist is met, not before." On-demand `refresh_aaum_data(db)` remains the interim path. |
+| P1.2 TER unavailable state | Already satisfied | No action needed (confirmed in the VERIFIED cross-reference above). |
+| P1.3 Scorer governance | **Decision: existing methodology doc IS the approved version** | `Docs/Scorer-Methodology-Unifolio.md`'s numbers (45%/30%/25%, ±0.25/±0.05) match `scorer.py`'s constants exactly — treated as signed off, no further governance action pending. |
+| P1.4 Minimum eligible peer count | **Decision: keep soft-flag, do not hard-suppress** | The correction plan's hard-suppression ask is explicitly rejected in favor of the existing PRD "Edge Cases table" soft-flag (`thin_category=True`) behavior — hiding data below 5 peers would harm real, common cases (niche Indian sectoral/international funds), not just hypothetical ones. |
+| P1.5 Tie-aware ranking | **Skipped** | Real Decimal-precision, NAV-derived CAGR values essentially never produce exact ties; solving a practically-nonexistent problem. Revisit only if a real tied-ranking complaint ever surfaces. |
+| P1.6 Switch handling in fund-level XIRR | **Implemented, full fix (not scoped down)** | `benchmark.py`'s fund-level XIRR now includes switch transactions with the correct sign convention; portfolio-level XIRR is unchanged (switches correctly stay excluded there). See the round-2 handoff doc for the exact design (`_signed_amount`'s `extra_debit_types` parameter, a `_fund_level_transactions` query). |
+| P1.7 Benchmark family mapping (non-equity) | **Deferred** | Fixing this properly requires sourcing debt/gold/international indices that don't exist in this product at all today — a new-data-source feature, not a same-file correction, and PRD-04 explicitly scoped only 4 indices. Revisit alongside any future benchmark-family expansion, not as a standalone task. |
+| P1.8 Valuation-date alignment | **Deferred, needs investigation first** | Not confirmed to the same depth as other items — a future pass should trace `compute_holdings`'s NAV-selection logic fully before deciding whether/how to fix. |
+| P1.9 Identity matching (broader, non-import-time) | **Deferred** | Item 7 already covers the practical import-time risk; the TER/AAUM pipeline's looser fuzzy matcher (`MIN_MATCH_CONFIDENCE=0.55`) was deliberately left alone during Item 7 as a different matching context, and no live risk from that threshold has been confirmed. Revisit if a real TER/AAUM mismatch is ever observed. |
+| P1.10 Mixed plan types in holdings | **Implemented** | Round-2 fix — `holdings.py`'s grouping key now includes `plan_type`; `HoldingsTable.tsx`'s React key updated to match. See the round-2 handoff doc. |
+| P2.1 Peer-set normalization | **Deferred** | Enterprise-grade peer-set governance; not needed for this MVP's current scale. Unchecked — no investigation performed. |
+| P2.2 Distribution treatment consistency | **Deferred** | Tied to the same underlying data-sourcing question as P0.3 (does the NAV series reflect reinvested distributions consistently); revisit alongside any future TRI work, not standalone. |
+| P2.3 NAV/market-data freshness tolerances | **Deferred** | Informal partial coverage exists (Item 3's TER negative-cache/backoff, NAV warming TTLs) but no formal "acceptable age by asset type, disclosed when stale" policy. Enterprise-grade hardening, not MVP-blocking. |
+| P2.4 Score clamping | **Implemented** | Round-2 fix, `scorer.py`. See the round-2 handoff doc. |
+| P2.5 Audit lineage/metadata | **Deferred** | Governance/compliance tooling appropriate for a later maturity stage, not this MVP. |
+| P2.6 Ranking efficiency | Already largely addressed | Items 2/4 cover the core ask; the unverified halves (Scorer's per-scheme loop reuse, specific bounded-query tests) are low-priority follow-ups, not tracked as open debt. |
+| P2.7 TER/market-data retrieval hardening | **Deferred** | Request coalescing, bounded retries, source-health monitoring — production-ops maturity work, appropriate once real production traffic exists, not before. |
+| P2.8 Redirect/date-range validation | Already done | No action needed. |
+
+**Rationale for the defer/skip items as a group:** CLAUDE.md is explicit that this is "an
+MVP prototype, not an enterprise system" and to "build what's scoped, don't build what isn't
+scoped yet." The deferred items above (P1.1, P1.5, P1.7, P1.8, P1.9's broader scope, P2.1,
+P2.2, P2.3, P2.5, P2.7) are all legitimate asks for an institutional-grade platform but
+represent production-operations maturity, statistical edge-case hardening, or net-new data
+sourcing — none are correctness bugs affecting a number a user is looking at today, unlike
+P0.2/P1.10/P1.6/P2.4 (implemented this round) or P0.3 (partially addressed via honest
+labeling). Each deferred item's table row above states its specific revisit trigger rather
+than leaving it as an untriaged backlog entry.

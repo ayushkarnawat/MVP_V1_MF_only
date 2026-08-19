@@ -197,10 +197,13 @@ Headline findings: **P0.2** (Category Ranking's CAGR return is never ×100'd —
 class as the already-fixed Item 1 XIRR bug, in an untouched code path — "0.12%" displayed
 instead of "12.00%") and **P2.4** (Scorer's `final_score` has no `[0, 100]` clamp after
 the ±0.25 TER adjustment) are both clean, low-risk, high-confidence fixes with no product
-decision attached — good next TDD targets. **P0.3** (benchmark comparison uses price-only
-NSE index data, not Total Return Index — not comparable to a fund's total return) is
-confirmed but needs a data-sourcing feasibility pass before any fix, not a same-file code
-change. **P1.4** surfaced a direct conflict with an existing, already-documented PRD
+decision attached — good next TDD targets. **P0.3** (benchmark comparison's NSE index
+names carry no TRI designation, and the doc requires the benchmark identifier/series type
+to be explicitly recorded and displayed — neither happens today; whether the underlying
+NSE feed's actual values are price-only or already total-return is unconfirmed, since
+nothing here inspects the retrieved figures against known TRI/price benchmarks) is
+confirmed as a naming/disclosure gap but needs a data-sourcing feasibility pass before any
+fix, not a same-file code change. **P1.4** surfaced a direct conflict with an existing, already-documented PRD
 decision: the PRD's Edge Cases table says thin categories (<5 peers) are "still shown, but
 flagged," while this doc requires hard suppression below 5 peers for the same threshold —
 flagged per CLAUDE.md's "stop and say so," not resolved either way. Also newly confirmed:
@@ -209,6 +212,46 @@ ambiguous aggregated row in `dashboard/holdings.py`), P0.4/P1.1/P1.5/P1.6/P1.7 (
 confirmed gaps with code evidence in the status doc). Several P2 items (P2.1, P2.2, P2.3,
 P2.5) remain unchecked. Nothing here has been implemented yet — awaiting direction on
 priority/scope before further work.
+
+**Analytics Dashboard Internal Correction Plan — round 2 (implementation), DONE
+(2026-08-19):** the user reviewed the 22-item status doc above and gave an explicit
+per-item disposition — full table and rationale in
+`Docs/orchestration/analytics-correction-plan-status.md`'s "Final Decision" section.
+Five items were fixed this round: **P0.2** (Category Ranking's CAGR now runs through
+`frontend/src/lib/decimal.ts`'s existing `toPercentString` before display, reusing the
+Item-1 XIRR precedent instead of a new helper), **P2.4** (Scorer's `final_score` clamped
+to `[0.00, 100.00]` after the TER adjustment), **P1.10** (`dashboard/holdings.py`'s
+grouping key extended to `(household_member_id, scheme_id, plan_type)`, so mixed
+direct/regular holdings of the same scheme now render as separate rows;
+`HoldingsTable.tsx`'s React key extended to match), **P0.3** (labeled all 4 benchmark
+index names "(Price Return)" in `BenchmarkSection.tsx` rather than sourcing a TRI feed —
+full deferred-implementation plan, feasibility questions, and revisit trigger in
+`Docs/orchestration/tri-benchmark-deferred-plan.md` per the user's explicit
+documentation requirement), and **P1.6** (fund-level XIRR now includes switch
+transactions — `benchmark.py` gained `_fund_level_transactions` plus an
+`extra_debit_types` parameter threaded through the existing XIRR helpers so SWITCH_IN
+is treated as a debit like a purchase and SWITCH_OUT as a credit like a redemption,
+scoped to fund-level only; portfolio-level XIRR is untouched — the user explicitly
+authorized "fix this properly" over an artificially narrow scope, and the orchestrator
+determined the correct scope was this bounded parameterization, not a larger redesign).
+**P0.4** (hard-fail on incomplete cash flows) was explicitly declined — it fights this
+codebase's established graceful-degrade pattern (`nav.py`/`ter.py`/`amfi_ter_client.py`
+all degrade rather than hard-fail). **P1.3** (Scorer methodology sign-off) and **P1.4**
+(keep the existing soft-flag over hard-suppression for thin categories) were
+decision-confirmed with no code change. **P1.1, P1.5, P1.7, P1.8, P1.9 (broader scope),
+P2.1, P2.2, P2.3, P2.5, P2.7** were deferred/skipped with documented rationale in the
+status doc's Final Decision table — pre-Postgres-migration production-hardening, not MVP
+scope, per CLAUDE.md's "don't gold-plate" principle. Went through the full
+model-orchestration TDD + adversarial-review cycle: implementation dispatched to Codex
+(handoff doc `Docs/orchestration/correction-plan-round2-handoff.md`), round-1 review
+returned REQUEST-CHANGES with 1 Medium finding (`compute_fund_vs_benchmark`'s
+early-return guard checked only the switch-excluding transaction list before
+`_fund_level_transactions()` was queried, so a switch-only household got zero fund
+rows — the exact case P1.6 was meant to fix) and 1 Low finding (a test's `console.error`
+spy not restored in `try`/`finally`), both fixed directly by the orchestrator and
+confirmed via a scoped round-2 re-review returning **APPROVE, zero findings**. Full
+backend suite: 418 passed, 2 skipped (was 413/2 pre-round). `tsc -b --noEmit` clean.
+Full detail: `Docs/orchestration/delegation-log.md`'s `correction-plan-round2*` entries.
 
 **First-login/signup dashboard load-time fix, merged (2026-08-18):** user-reported
 follow-up to `dashboard-nav-perf-handoff.md` — first dashboard load right after
