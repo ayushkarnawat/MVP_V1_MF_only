@@ -446,6 +446,8 @@ export function DashboardView({
             >
               <button
                 role="tab"
+                id="sip-tab-upcoming"
+                aria-controls="sip-panel-upcoming"
                 aria-selected={sipTab === "upcoming"}
                 className={cn(
                   "px-3 py-1 text-xs font-medium rounded-lg transition-colors duration-150 cursor-pointer",
@@ -460,6 +462,8 @@ export function DashboardView({
               </button>
               <button
                 role="tab"
+                id="sip-tab-month"
+                aria-controls="sip-panel-month"
                 aria-selected={sipTab === "month"}
                 className={cn(
                   "px-3 py-1 text-xs font-medium rounded-lg transition-colors duration-150 cursor-pointer",
@@ -475,19 +479,26 @@ export function DashboardView({
             </div>
           </div>
 
+          <div
+            role="tabpanel"
+            id={sipTab === "upcoming" ? "sip-panel-upcoming" : "sip-panel-month"}
+            aria-labelledby={sipTab === "upcoming" ? "sip-tab-upcoming" : "sip-tab-month"}
+            className="flex flex-col space-y-4"
+          >
           {sipTab === "month" && (
             <div className="flex items-center justify-center gap-4">
               <button
                 type="button"
                 aria-label="Previous month"
                 className="text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] cursor-pointer"
-                onClick={() =>
+                onClick={() => {
+                  setMonthlySipsLoading(true);
                   setSipMonth((prev) =>
                     prev.month === 1
                       ? { year: prev.year - 1, month: 12 }
                       : { year: prev.year, month: prev.month - 1 }
-                  )
-                }
+                  );
+                }}
               >
                 &larr;
               </button>
@@ -501,13 +512,14 @@ export function DashboardView({
                 type="button"
                 aria-label="Next month"
                 className="text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] cursor-pointer"
-                onClick={() =>
+                onClick={() => {
+                  setMonthlySipsLoading(true);
                   setSipMonth((prev) =>
                     prev.month === 12
                       ? { year: prev.year + 1, month: 1 }
                       : { year: prev.year, month: prev.month + 1 }
-                  )
-                }
+                  );
+                }}
               >
                 &rarr;
               </button>
@@ -590,6 +602,7 @@ export function DashboardView({
                   </div>
                 </div>
               ))}
+          </div>
           </div>
       </section>
 
