@@ -4,11 +4,13 @@ import type {
   HoldingRow,
   AllocationSummary,
   SipRow,
+  SipMonthlyRow,
   CashFlowEntry,
   SnapshotRow,
   AggregateHoldingsResponse,
   AggregateAllocationResponse,
   AggregateSipsResponse,
+  AggregateSipsMonthlyResponse,
   AggregateCashFlowResponse,
   AggregateSnapshotsResponse,
   DistributorComparisonRow,
@@ -45,8 +47,21 @@ export async function getMemberAllocation(memberId: string, signal?: AbortSignal
   return res.json();
 }
 
-export async function getMemberSips(memberId: string): Promise<SipRow[]> {
-  const res = await authFetch(`/household-members/${memberId}/sips`);
+export async function getMemberSips(memberId: string, signal?: AbortSignal): Promise<SipRow[]> {
+  const res = await authFetch(`/household-members/${memberId}/sips`, { signal });
+  return res.json();
+}
+
+export async function getMemberSipsMonthly(
+  memberId: string,
+  year: number,
+  month: number,
+  signal?: AbortSignal
+): Promise<SipMonthlyRow[]> {
+  const res = await authFetch(
+    `/household-members/${memberId}/sips/monthly?year=${year}&month=${month}`,
+    { signal }
+  );
   return res.json();
 }
 
@@ -81,8 +96,20 @@ export async function getAggregateAllocation(signal?: AbortSignal): Promise<Aggr
   return res.json();
 }
 
-export async function getAggregateSips(): Promise<AggregateSipsResponse> {
-  const res = await authFetch(`/household/aggregate/sips`);
+export async function getAggregateSips(signal?: AbortSignal): Promise<AggregateSipsResponse> {
+  const res = await authFetch(`/household/aggregate/sips`, { signal });
+  return res.json();
+}
+
+export async function getAggregateSipsMonthly(
+  year: number,
+  month: number,
+  signal?: AbortSignal
+): Promise<AggregateSipsMonthlyResponse> {
+  const res = await authFetch(
+    `/household/aggregate/sips/monthly?year=${year}&month=${month}`,
+    { signal }
+  );
   return res.json();
 }
 

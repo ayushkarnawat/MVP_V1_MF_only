@@ -1,4 +1,4 @@
-# Session state — 2026-08-18 (updated)
+# Session state — 2026-08-19 (updated)
 
 Working notes for picking this project back up cold. Not a planning doc — see
 `Docs/superpowers/plans/` for those. This file tracks *where things stand*,
@@ -68,6 +68,83 @@ meta-result pattern, an inconsistent status-check refusal, a self-caught
 `isolation: worktree` review-dispatch mistake, and the value of the
 root-cause-not-symptom stale-cache fix) — worth doing before or shortly
 after the merge.
+## "This Month" SIP tab feature, Tasks 6-8 review gate closed (2026-08-19)
+
+Frontend half of `Docs/superpowers/plans/2026-08-18-active-sips-cadence-redesign.md`
+(Tasks 1-5, backend, already `DONE` from a prior session) — a month-scoped SIP
+view on `DashboardView.tsx` alongside the existing Upcoming SIPs list, switched
+via a `role="tablist"` control. Went through `model-orchestration`'s full
+mandatory adversarial-review gate, three rounds:
+
+- **Round 0** (`53919a6..4f39e9b` scope, after an initial dispatch had to be
+  re-issued): 2 Medium + 1 Low — a `{upcomingSips.length > 0 && ...}` gate that
+  hid the entire tab switcher whenever there were no upcoming SIPs, stale
+  monthly-SIP rows rendering during an in-flight fetch, and missing tab ARIA
+  semantics (`role="tab"`/`aria-selected`). Fixed directly by the orchestrator
+  (small diff, file already in context — the skill's "Review-loop fix
+  authorship" rule) at `eeaade0`.
+- **Round 1** (scoped re-review of `eeaade0`): found the loading-flash fix was
+  necessary but incomplete — `setMonthlySipsLoading(true)` lived inside a
+  `useEffect`, which fires after the paint that already shows the new
+  `sipMonth`, so one stale frame still got through — plus a missing
+  `role="tabpanel"` (`id`/`aria-labelledby`/`aria-controls`) wiring. Fixed at
+  `8be5230`: moved the `setState` call into the Previous/Next month `onClick`
+  handlers directly so it batches with `setSipMonth` into the same render
+  (avoided reaching for `useLayoutEffect`), and added the tabpanel wiring.
+- **Round 2** (scoped re-review of `8be5230`, full frontend suite requested
+  since this round was expected to close the gate): one remaining Low — the
+  inactive tab's `aria-controls` still points at a `tabpanel` `id` that isn't
+  mounted in the DOM (only the active panel renders). Recommended accepting as
+  a documented limitation per the skill's stopping heuristic (lower severity
+  than round 0, correctness-safe — screen readers still get the correct
+  tab/panel pairing via `aria-selected`/`aria-labelledby` — and a real fix
+  needs always-mounted dual panels, a bigger structural change than the
+  finding warrants, also touching the lazy monthly-SIP-fetch effect's
+  `sipTab !== "month"` early return). User agreed, conditioned on it not being
+  a loading/efficiency/scaling issue (it isn't — synchronous client-side tab
+  state, no fetch path involved). No round 3 dispatched.
+
+Orchestrator independently ran the full frontend suite on the closing round:
+55/55 files, 218/218 tests, zero regressions. **Tasks 6-8 review gate: DONE**,
+final scope `9e25017..8be5230`. Closing commit `a148d42` documents the
+accepted ARIA gap in `CLAUDE.md`'s "Still open" list (item 5) and mirrors it in
+`DEFERRED_FEATURES.md`'s appendix; `Docs/orchestration/active-sips-frontend-handoff.md`'s
+`Status` line carries the same closing summary. Full round-by-round log:
+`Docs/orchestration/delegation-log.md`'s 2026-08-19 entries.
+
+**`model-orchestration` skill → v1.4, same session:** added
+`delegation-rules.md`'s mandatory cheap-probe-before-expensive-setup pre-step
+(write a file, `git add`, `git commit` against any new Codex dispatch
+location, before paying a large dependency-tree copy cost) after confirming
+`git add`/`git commit` fail inside this project's `codex:codex-rescue` sandbox
+even when ordinary source-tree writes succeed — reproduced across two
+independent sessions/directories, scoped as an environment limitation, not a
+universal Codex constraint. Codified the resulting default worker split
+(Codex implements + self-tests; orchestrator always handles
+staging/commits/merges/worktrees; Codex stays default worker for read-only
+review regardless) and an explicit independent-verification rule for agent
+completion whenever a dispatched agent's terminal notification is missing,
+premature, or contradictory. Full changelog: `SKILL.md`'s v1.4 note.
+
+**Housekeeping, same session:** two Analytics Dashboard docs
+(`Docs/Analytics-Dashboard-Formula-Implementation-Review.md`,
+`Docs/Analytics-Dashboard-Internal-Correction-Plan.md`) were found sitting
+uncommitted and unlinked from any session doc — a stakeholder-facing
+methodology write-up and its internal P0/P1 correction plan (including the
+already-known XIRR ×100 display bug from `data-001-findings.md`), both
+awaiting their own sign-off gates, not a Claude Code review-gate item. Now
+committed and pointed to from `CLAUDE.md`'s Session State — worth reconciling
+against `Docs/orchestration/bug-001-data-001-implementation-prompt.md`'s fix
+list next time DATA-001 implementation actually starts, in case the two have
+diverged. `.claude/settings.json`'s uncommitted diff (a trivial
+`worktree.baseRef` reordering, tool-generated) was deliberately left alone —
+unrelated to this session's work.
+
+**What's next:** nothing outstanding from the SIP tab task. The
+next real implementation work on the table is still DATA-001
+(`Docs/orchestration/bug-001-data-001-implementation-prompt.md`) and
+BUG-001 (`Docs/orchestration/bug-001-findings.md`) — both investigated and
+unblocked as of 2026-08-17/18, neither started yet.
 
 ## First-login dashboard load-time fix, PR #4 merged (2026-08-18)
 

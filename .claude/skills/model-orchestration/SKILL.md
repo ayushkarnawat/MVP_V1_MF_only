@@ -169,6 +169,27 @@ faster, cheaper confirmation that never weakens the gate itself.
 
 ## Changelog
 
+- **v1.4 (2026-08-19):** Added `delegation-rules.md`'s mandatory
+  cheap-probe-before-expensive-setup pre-step (write a file, `git add`,
+  `git commit` against any new dispatch location, before paying a large
+  dependency-tree copy cost) and a new sub-case documenting that Git
+  metadata writes (`git add`/`git commit`) fail in this project's
+  `codex:codex-rescue` sandbox configuration even when ordinary
+  source-tree writes succeed — confirmed across two independent sessions
+  and multiple directories, explicitly scoped as a limitation of this
+  environment's configuration, not a universal Codex constraint. Codified
+  the resulting default worker split: Codex implements and self-tests;
+  the orchestrator always performs staging/commits/merges/worktree
+  management; Codex remains the default worker for read-only
+  review/adversarial-review regardless, since those make no file changes.
+  Also added an explicit independent-verification rule for agent
+  completion (via `git log`/`git diff`/tests) whenever a dispatched
+  agent's terminal notification is missing, premature, or contradictory —
+  validated live this session (two Claude subagent self-reports were
+  incomplete/truncated but the underlying commits had genuinely landed,
+  confirmed only by direct `git log` checks rather than trusting the
+  self-report). See `skill-observations/log.md` Observations 15,
+  17, 19, 20 in the stable Claude Code workspace project folder.
 - **v1.3 (2026-08-18):** Added a sub-case to `delegation-rules.md`'s
   "Known environment constraints": a Codex dispatch's sandbox write-scope
   is bound to the dispatch process's own `cwd`, not any path in the

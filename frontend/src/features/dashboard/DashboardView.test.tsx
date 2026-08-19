@@ -1,4 +1,4 @@
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, within } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { DashboardView } from "./DashboardView";
 import * as api from "./api";
@@ -7,8 +7,12 @@ import * as importApi from "../import/api";
 vi.mock("./api", () => ({
   getMemberHoldings: vi.fn(),
   getMemberAllocation: vi.fn(),
+  getMemberSips: vi.fn(),
+  getMemberSipsMonthly: vi.fn(),
   getAggregateHoldings: vi.fn(),
   getAggregateAllocation: vi.fn(),
+  getAggregateSips: vi.fn(),
+  getAggregateSipsMonthly: vi.fn(),
   getDistributorComparison: vi.fn(),
 }));
 
@@ -20,6 +24,10 @@ describe("DashboardView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(importApi.getMemberCoverageGaps).mockResolvedValue([]);
+    vi.mocked(api.getMemberSips).mockResolvedValue([]);
+    vi.mocked(api.getAggregateSips).mockResolvedValue({ members: [], sips: [] });
+    vi.mocked(api.getMemberSipsMonthly).mockResolvedValue([]);
+    vi.mocked(api.getAggregateSipsMonthly).mockResolvedValue({ members: [], sips: [] });
   });
 
   it("renders S21 Empty State when member has 0 holdings", async () => {
@@ -314,6 +322,243 @@ describe("DashboardView", () => {
       expect(screen.getByText("Alice Fund")).toBeInTheDocument();
     });
     expect(screen.queryByLabelText("Filter holdings by family member")).not.toBeInTheDocument();
+  });
+
+  it("renders an Upcoming SIPs section with the projected next SIP date, sorted soonest-first", async () => {
+    vi.mocked(api.getMemberHoldings).mockResolvedValue([
+      {
+        scheme_id: "scheme-101",
+        scheme_name: "HDFC Top 100 Fund",
+        amc_name: "HDFC Mutual Fund",
+        household_member_id: "m-1",
+        household_member_name: "John",
+        plan_type: "DIRECT",
+        units_held: "100.00",
+        average_nav: "50.00",
+        current_nav: "75.00",
+        amount_invested: "5000.00",
+        current_value: "7500.00",
+        current_profit_total: "2500.00",
+        realized_gain: "0.00",
+        unrealized_gain: "2500.00",
+        today_gain: "50.00",
+      },
+    ]);
+    vi.mocked(api.getMemberAllocation).mockResolvedValue({
+      by_asset_class: [{ label: "Equity", current_value: "7500.00", percentage: 100 }],
+      by_amc: [{ label: "HDFC", current_value: "7500.00", percentage: 100 }],
+      total_value: "7500.00",
+    });
+    vi.mocked(api.getMemberSips).mockResolvedValue([
+      {
+        scheme_id: "scheme-101",
+        scheme_name: "HDFC Top 100 Fund",
+        household_member_id: "m-1",
+        household_member_name: "John",
+        sip_date: "2026-08-20",
+        sip_amount: "5000.00",
+        next_due_date: "2026-09-20",
+      },
+      {
+        scheme_id: "scheme-202",
+        scheme_name: "Axis Long Term Equity",
+        household_member_id: "m-1",
+        household_member_name: "John",
+        sip_date: "2026-08-05",
+        sip_amount: "2500.00",
+        next_due_date: "2026-09-05",
+      },
+    ]);
+
+    render(<DashboardView viewMode="member" memberId="m-1" />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("upcoming-sips")).toBeInTheDocument();
+    });
+
+    const sipSection = screen.getByTestId("upcoming-sips");
+    expect(within(sipSection).getByText("HDFC Top 100 Fund")).toBeInTheDocument();
+    expect(within(sipSection).getByText("Axis Long Term Equity")).toBeInTheDocument();
+    expect(within(sipSection).getByText("₹5,000")).toBeInTheDocument();
+    expect(within(sipSection).getByText("₹2,500")).toBeInTheDocument();
+
+    // next_due_date is now server-provided directly — Axis (closer date) sorts
+    // before HDFC (farther date).
+    const fundNames = within(sipSection)
+      .getAllByText(/Fund|Equity/)
+      .map((el) => el.textContent);
+    expect(fundNames.indexOf("Axis Long Term Equity")).toBeLessThan(
+      fundNames.indexOf("HDFC Top 100 Fund"),
+    );
+  });
+
+  it("hides the Upcoming SIPs section when there are no active SIPs", async () => {
+    vi.mocked(api.getMemberHoldings).mockResolvedValue([
+      {
+        scheme_id: "scheme-101",
+        scheme_name: "HDFC Top 100 Fund",
+        amc_name: "HDFC Mutual Fund",
+        household_member_id: "m-1",
+        household_member_name: "John",
+        plan_type: "DIRECT",
+        units_held: "100.00",
+        average_nav: "50.00",
+        current_nav: "75.00",
+        amount_invested: "5000.00",
+        current_value: "7500.00",
+        current_profit_total: "2500.00",
+        realized_gain: "0.00",
+        unrealized_gain: "2500.00",
+        today_gain: "50.00",
+      },
+    ]);
+    vi.mocked(api.getMemberAllocation).mockResolvedValue({
+      by_asset_class: [{ label: "Equity", current_value: "7500.00", percentage: 100 }],
+      by_amc: [{ label: "HDFC", current_value: "7500.00", percentage: 100 }],
+      total_value: "7500.00",
+    });
+
+    render(<DashboardView viewMode="member" memberId="m-1" />);
+
+    await waitFor(() => {
+      expect(screen.getByText("HDFC Top 100 Fund")).toBeInTheDocument();
+    });
+    expect(screen.queryByText("Upcoming SIPs")).not.toBeInTheDocument();
+  });
+
+  it("switches to This Month tab and renders monthly SIP rows", async () => {
+    vi.mocked(api.getMemberHoldings).mockResolvedValue([
+      {
+        scheme_id: "scheme-101",
+        scheme_name: "HDFC Top 100 Fund",
+        amc_name: "HDFC Mutual Fund",
+        household_member_id: "m-1",
+        household_member_name: "John",
+        plan_type: "DIRECT",
+        units_held: "100.00",
+        average_nav: "50.00",
+        current_nav: "75.00",
+        amount_invested: "5000.00",
+        current_value: "7500.00",
+        current_profit_total: "2500.00",
+        realized_gain: "0.00",
+        unrealized_gain: "2500.00",
+        today_gain: "50.00",
+      },
+    ]);
+    vi.mocked(api.getMemberAllocation).mockResolvedValue({
+      by_asset_class: [{ label: "Equity", current_value: "7500.00", percentage: 100 }],
+      by_amc: [{ label: "HDFC", current_value: "7500.00", percentage: 100 }],
+      total_value: "7500.00",
+    });
+    vi.mocked(api.getMemberSips).mockResolvedValue([
+      {
+        scheme_id: "scheme-101",
+        scheme_name: "HDFC Top 100 Fund",
+        household_member_id: "m-1",
+        household_member_name: "John",
+        sip_date: "2026-08-05",
+        sip_amount: "5000.00",
+        next_due_date: "2026-09-05",
+      },
+    ]);
+    vi.mocked(api.getMemberSipsMonthly).mockResolvedValue([
+      {
+        scheme_id: "scheme-101",
+        scheme_name: "HDFC Top 100 Fund",
+        household_member_id: "m-1",
+        household_member_name: "John",
+        date: "2026-08-05",
+        amount: "5000.00",
+      },
+    ]);
+
+    render(<DashboardView viewMode="member" memberId="m-1" />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("upcoming-sips")).toBeInTheDocument();
+    });
+
+    expect(api.getMemberSipsMonthly).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("tab", { name: "This Month" }));
+
+    await waitFor(() => {
+      expect(api.getMemberSipsMonthly).toHaveBeenCalledWith(
+        "m-1",
+        expect.any(Number),
+        expect.any(Number),
+        expect.anything()
+      );
+    });
+
+    const sipSection = screen.getByTestId("upcoming-sips");
+    await waitFor(() => {
+      expect(within(sipSection).getByText("₹5,000")).toBeInTheDocument();
+    });
+  });
+
+  it("navigates to the previous month and refetches monthly SIPs", async () => {
+    vi.mocked(api.getMemberHoldings).mockResolvedValue([
+      {
+        scheme_id: "scheme-101",
+        scheme_name: "HDFC Top 100 Fund",
+        amc_name: "HDFC Mutual Fund",
+        household_member_id: "m-1",
+        household_member_name: "John",
+        plan_type: "DIRECT",
+        units_held: "100.00",
+        average_nav: "50.00",
+        current_nav: "75.00",
+        amount_invested: "5000.00",
+        current_value: "7500.00",
+        current_profit_total: "2500.00",
+        realized_gain: "0.00",
+        unrealized_gain: "2500.00",
+        today_gain: "50.00",
+      },
+    ]);
+    vi.mocked(api.getMemberAllocation).mockResolvedValue({
+      by_asset_class: [{ label: "Equity", current_value: "7500.00", percentage: 100 }],
+      by_amc: [{ label: "HDFC", current_value: "7500.00", percentage: 100 }],
+      total_value: "7500.00",
+    });
+    vi.mocked(api.getMemberSips).mockResolvedValue([
+      {
+        scheme_id: "scheme-101",
+        scheme_name: "HDFC Top 100 Fund",
+        household_member_id: "m-1",
+        household_member_name: "John",
+        sip_date: "2026-08-05",
+        sip_amount: "5000.00",
+        next_due_date: "2026-09-05",
+      },
+    ]);
+    vi.mocked(api.getMemberSipsMonthly).mockResolvedValue([]);
+
+    render(<DashboardView viewMode="member" memberId="m-1" />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("upcoming-sips")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("tab", { name: "This Month" }));
+    await waitFor(() => {
+      expect(api.getMemberSipsMonthly).toHaveBeenCalledTimes(1);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Previous month" }));
+
+    await waitFor(() => {
+      expect(api.getMemberSipsMonthly).toHaveBeenCalledTimes(2);
+    });
+
+    const [, callArgs] = vi.mocked(api.getMemberSipsMonthly).mock.calls;
+    const [firstCallArgs] = vi.mocked(api.getMemberSipsMonthly).mock.calls;
+    // Compare the full year+month pair, not just year — navigating back one
+    // month keeps the same year in 11 of 12 months (only December→January
+    // rolls it), so asserting on year alone is date-dependent and wrong.
+    expect(`${callArgs[1]}-${callArgs[2]}`).not.toBe(`${firstCallArgs[1]}-${firstCallArgs[2]}`);
   });
 });
 

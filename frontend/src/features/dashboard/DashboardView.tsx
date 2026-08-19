@@ -14,8 +14,12 @@ import { sumDecimalStrings, formatIndianCurrency } from "../../lib/decimal";
 import {
   getMemberHoldings,
   getMemberAllocation,
+  getMemberSips,
+  getMemberSipsMonthly,
   getAggregateHoldings,
   getAggregateAllocation,
+  getAggregateSips,
+  getAggregateSipsMonthly,
 } from "./api";
 import {
   Select,
@@ -24,7 +28,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { HoldingRow, AllocationSummary, FamilyMemberStatus } from "./types";
+import type {
+  HoldingRow,
+  AllocationSummary,
+  FamilyMemberStatus,
+  SipRow,
+  SipMonthlyRow,
+} from "./types";
 import { cn } from "@/lib/utils";
 import { ArrowUpRight, ArrowDownRight, User, Users, AlertTriangle, BarChart2 } from "lucide-react";
 
@@ -41,12 +51,21 @@ export function DashboardView({
 }: DashboardViewProps) {
   const [holdings, setHoldings] = useState<HoldingRow[]>([]);
   const [allocation, setAllocation] = useState<AllocationSummary | null>(null);
+  const [sips, setSips] = useState<SipRow[]>([]);
   const [membersStatus, setMembersStatus] = useState<FamilyMemberStatus[]>([]);
   const [coverageGaps, setCoverageGaps] = useState<CoverageGapItem[]>([]);
   const [selectedGap, setSelectedGap] = useState<CoverageGapItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [allocationTab, setAllocationTab] = useState<"asset" | "amc">("asset");
+  const [sipTab, setSipTab] = useState<"upcoming" | "month">("upcoming");
+  const today = new Date();
+  const [sipMonth, setSipMonth] = useState<{ year: number; month: number }>({
+    year: today.getFullYear(),
+    month: today.getMonth() + 1,
+  });
+  const [monthlySips, setMonthlySips] = useState<SipMonthlyRow[]>([]);
+  const [monthlySipsLoading, setMonthlySipsLoading] = useState(false);
   // Local, display-only filter for the Holdings list in Family Combined view
   // — independent of memberId/viewMode above, which control the whole
   // dashboard's data-fetch context, not just what's shown in this list.
@@ -75,26 +94,30 @@ export function DashboardView({
     const fetchData = async () => {
       try {
         if (viewMode === "aggregate") {
-          const [holdingsRes, allocationRes] = await Promise.all([
+          const [holdingsRes, allocationRes, sipsRes] = await Promise.all([
             getAggregateHoldings(controller.signal),
             getAggregateAllocation(controller.signal),
+            getAggregateSips(controller.signal),
           ]);
           if (isMounted) {
             setHoldings(holdingsRes.holdings);
             setMembersStatus(holdingsRes.members);
             setAllocation(allocationRes.allocation);
+            setSips(sipsRes.sips);
             setCoverageGaps([]);
             setLoading(false);
           }
         } else if (memberId) {
-          const [holdingsRes, allocationRes] = await Promise.all([
+          const [holdingsRes, allocationRes, sipsRes] = await Promise.all([
             getMemberHoldings(memberId, controller.signal),
             getMemberAllocation(memberId, controller.signal),
+            getMemberSips(memberId, controller.signal),
           ]);
           if (isMounted) {
             setHoldings(holdingsRes);
             setMembersStatus([]);
             setAllocation(allocationRes);
+            setSips(sipsRes);
             setLoading(false);
           }
 
@@ -112,6 +135,7 @@ export function DashboardView({
             setHoldings([]);
             setMembersStatus([]);
             setAllocation(null);
+            setSips([]);
             setCoverageGaps([]);
             setLoading(false);
           }
@@ -134,6 +158,48 @@ export function DashboardView({
       controller.abort();
     };
   }, [viewMode, memberId]);
+
+  // Lazy — fetches only when the "This Month" tab is opened or the month is
+  // navigated, never as part of the initial page-load Promise.all above.
+  useEffect(() => {
+    if (sipTab !== "month") return;
+    let isMounted = true;
+    const controller = new AbortController();
+    setMonthlySipsLoading(true);
+
+    const fetchMonthly = async () => {
+      try {
+        const rows =
+          viewMode === "aggregate"
+            ? (await getAggregateSipsMonthly(sipMonth.year, sipMonth.month, controller.signal)).sips
+            : memberId
+              ? await getMemberSipsMonthly(memberId, sipMonth.year, sipMonth.month, controller.signal)
+              : [];
+        if (isMounted) {
+          setMonthlySips(rows);
+          setMonthlySipsLoading(false);
+        }
+      } catch (err: unknown) {
+        if (isMounted && !(err instanceof DOMException && err.name === "AbortError")) {
+          setMonthlySips([]);
+          setMonthlySipsLoading(false);
+        }
+      }
+    };
+
+    fetchMonthly();
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
+  }, [sipTab, sipMonth, viewMode, memberId]);
+
+  // next_due_date is now server-provided directly — sort soonest-first.
+  const upcomingSips = useMemo(() => {
+    return [...sips].sort(
+      (a, b) => new Date(a.next_due_date).getTime() - new Date(b.next_due_date).getTime()
+    );
+  }, [sips]);
 
   const displayedHoldings = useMemo(() => {
     if (holdingsMemberFilter === "all") return holdings;
@@ -365,6 +431,180 @@ export function DashboardView({
           </div>
         </section>
       )}
+
+      {/* Upcoming SIPs Section (PRD-03 FR-5/FR-6) */}
+      <section className="flex flex-col space-y-4" data-testid="upcoming-sips">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <h2 className="font-display text-lg font-semibold tracking-tight text-[var(--color-ink)]">
+              SIPs
+            </h2>
+
+            <div
+              role="tablist"
+              aria-label="SIP view"
+              className="inline-flex items-center p-1 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] self-start sm:self-auto shadow-2xs"
+            >
+              <button
+                role="tab"
+                id="sip-tab-upcoming"
+                aria-controls="sip-panel-upcoming"
+                aria-selected={sipTab === "upcoming"}
+                className={cn(
+                  "px-3 py-1 text-xs font-medium rounded-lg transition-colors duration-150 cursor-pointer",
+                  sipTab === "upcoming"
+                    ? "bg-[var(--color-bg)] text-[var(--color-ink)] font-semibold shadow-xs"
+                    : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)]"
+                )}
+                onClick={() => setSipTab("upcoming")}
+                type="button"
+              >
+                Upcoming
+              </button>
+              <button
+                role="tab"
+                id="sip-tab-month"
+                aria-controls="sip-panel-month"
+                aria-selected={sipTab === "month"}
+                className={cn(
+                  "px-3 py-1 text-xs font-medium rounded-lg transition-colors duration-150 cursor-pointer",
+                  sipTab === "month"
+                    ? "bg-[var(--color-bg)] text-[var(--color-ink)] font-semibold shadow-xs"
+                    : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)]"
+                )}
+                onClick={() => setSipTab("month")}
+                type="button"
+              >
+                This Month
+              </button>
+            </div>
+          </div>
+
+          <div
+            role="tabpanel"
+            id={sipTab === "upcoming" ? "sip-panel-upcoming" : "sip-panel-month"}
+            aria-labelledby={sipTab === "upcoming" ? "sip-tab-upcoming" : "sip-tab-month"}
+            className="flex flex-col space-y-4"
+          >
+          {sipTab === "month" && (
+            <div className="flex items-center justify-center gap-4">
+              <button
+                type="button"
+                aria-label="Previous month"
+                className="text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] cursor-pointer"
+                onClick={() => {
+                  setMonthlySipsLoading(true);
+                  setSipMonth((prev) =>
+                    prev.month === 1
+                      ? { year: prev.year - 1, month: 12 }
+                      : { year: prev.year, month: prev.month - 1 }
+                  );
+                }}
+              >
+                &larr;
+              </button>
+              <span className="text-sm font-medium text-[var(--color-ink)] tabular-nums">
+                {new Date(sipMonth.year, sipMonth.month - 1, 1).toLocaleDateString("en-IN", {
+                  month: "long",
+                  year: "numeric",
+                })}
+              </span>
+              <button
+                type="button"
+                aria-label="Next month"
+                className="text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] cursor-pointer"
+                onClick={() => {
+                  setMonthlySipsLoading(true);
+                  setSipMonth((prev) =>
+                    prev.month === 12
+                      ? { year: prev.year + 1, month: 1 }
+                      : { year: prev.year, month: prev.month + 1 }
+                  );
+                }}
+              >
+                &rarr;
+              </button>
+            </div>
+          )}
+
+          <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] divide-y divide-[var(--color-border)]">
+            {sipTab === "upcoming" && upcomingSips.length === 0 && (
+              <div className="px-4 py-6 text-center text-sm text-[var(--color-text-secondary)]">
+                No upcoming SIPs.
+              </div>
+            )}
+            {sipTab === "upcoming" && upcomingSips.map((sip) => (
+              <div
+                key={sip.scheme_id + sip.household_member_id}
+                className="flex items-center justify-between gap-4 px-4 py-3"
+              >
+                <div className="flex flex-col min-w-0">
+                  <span className="text-sm font-medium text-[var(--color-ink)] truncate">
+                    {sip.scheme_name}
+                  </span>
+                  {viewMode === "aggregate" && (
+                    <span className="text-xs text-[var(--color-text-secondary)]">
+                      {sip.household_member_name}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-6 flex-shrink-0">
+                  <span className="text-xs text-[var(--color-text-secondary)] tabular-nums">
+                    {new Date(sip.next_due_date).toLocaleDateString("en-IN", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </span>
+                  <span className="text-sm font-semibold text-[var(--color-ink)] tabular-nums">
+                    ₹{formatIndianCurrency(sip.sip_amount)}
+                  </span>
+                </div>
+              </div>
+            ))}
+            {sipTab === "month" && monthlySipsLoading && (
+              <div className="px-4 py-6 text-center text-sm text-[var(--color-text-secondary)]">
+                Loading…
+              </div>
+            )}
+            {sipTab === "month" && !monthlySipsLoading && monthlySips.length === 0 && (
+              <div className="px-4 py-6 text-center text-sm text-[var(--color-text-secondary)]">
+                No SIPs for this month.
+              </div>
+            )}
+            {sipTab === "month" &&
+              !monthlySipsLoading &&
+              monthlySips.map((sip) => (
+                <div
+                  key={sip.scheme_id + sip.household_member_id}
+                  className="flex items-center justify-between gap-4 px-4 py-3"
+                >
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-sm font-medium text-[var(--color-ink)] truncate">
+                      {sip.scheme_name}
+                    </span>
+                    {viewMode === "aggregate" && (
+                      <span className="text-xs text-[var(--color-text-secondary)]">
+                        {sip.household_member_name}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-6 flex-shrink-0">
+                    <span className="text-xs text-[var(--color-text-secondary)] tabular-nums">
+                      {new Date(sip.date).toLocaleDateString("en-IN", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </span>
+                    <span className="text-sm font-semibold text-[var(--color-ink)] tabular-nums">
+                      ₹{formatIndianCurrency(sip.amount)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+          </div>
+          </div>
+      </section>
 
       {/* Holdings Table Section */}
       <section className="flex flex-col space-y-4">

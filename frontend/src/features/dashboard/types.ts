@@ -38,6 +38,16 @@ export interface SipRow {
   household_member_name: string;
   sip_date: string;
   sip_amount: string;
+  next_due_date: string;
+}
+
+export interface SipMonthlyRow {
+  scheme_id: string;
+  scheme_name: string;
+  household_member_id: string;
+  household_member_name: string;
+  date: string;
+  amount: string;
 }
 
 export interface CashFlowEntry {
@@ -76,6 +86,11 @@ export interface AggregateAllocationResponse {
 export interface AggregateSipsResponse {
   members: FamilyMemberStatus[];
   sips: SipRow[];
+}
+
+export interface AggregateSipsMonthlyResponse {
+  members: FamilyMemberStatus[];
+  sips: SipMonthlyRow[];
 }
 
 export interface AggregateCashFlowResponse {

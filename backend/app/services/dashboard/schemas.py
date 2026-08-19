@@ -71,6 +71,16 @@ class SipRow(BaseModel):
     household_member_name: str
     sip_date: date
     sip_amount: str
+    next_due_date: date
+
+
+class SipMonthlyRow(BaseModel):
+    scheme_id: str
+    scheme_name: str
+    household_member_id: str
+    household_member_name: str
+    date: date
+    amount: str
 
 
 class CashFlowEntry(BaseModel):
@@ -109,6 +119,11 @@ class AggregateAllocationResponse(BaseModel):
 class AggregateSipsResponse(BaseModel):
     members: list[MemberStatus]
     sips: list[SipRow]
+
+
+class AggregateSipsMonthlyResponse(BaseModel):
+    members: list[MemberStatus]
+    sips: list[SipMonthlyRow]
 
 
 class AggregateCashFlowResponse(BaseModel):

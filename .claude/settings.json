@@ -1,4 +1,7 @@
 {
+  "worktree": {
+    "baseRef": "head"
+  },
   "enabledPlugins": {
     "understand-anything@understand-anything": true,
     "superpowers@claude-plugins-official": true,
@@ -6,8 +9,5 @@
     "codex@openai-codex": true,
     "impeccable@impeccable": true,
     "mattpocock-skills@claude-plugins-official": true
-  },
-  "worktree": {
-    "baseRef": "head"
   }
 }

@@ -82,6 +82,9 @@ the "self" `household_members` row (frontend-mitigated only); a dead
 `row.return_percentage_1y` field reference in `HoldingsTable.tsx`; `@bklit/bar-chart`
 never actually installed despite an early frontend brief calling for it (hand-rolled
 SVG/Tailwind used instead — installing it properly is a deliberately deferred, separate
-task since it would overwrite `src/lib/utils.ts`); and the `compute_holdings` cache's
+task since it would overwrite `src/lib/utils.ts`); the `compute_holdings` cache's
 accepted lack of single-flight coordination (harmless, documented, superseded once
-ADR-006's job above ships).
+ADR-006's job above ships); and the SIP Upcoming/This Month tab switcher's incomplete
+ARIA `aria-controls` IDREF pairing (inactive tab points at a not-yet-rendered
+`tabpanel` id) — a Low finding accepted per the model-orchestration skill's stopping
+heuristic rather than restructuring to always-mounted dual panels.
