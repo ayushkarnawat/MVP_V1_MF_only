@@ -152,6 +152,36 @@ merged into `feat/enhanced-ui` — this worktree/branch is ready for that
 next. Full per-item detail: `Docs/orchestration/delegation-log.md` and
 the per-item handoff docs under `Docs/orchestration/`.
 
+**Two small BUG-001/DATA-001 follow-ups, same branch (2026-08-19):**
+(1) Item 4's "accept the per-scheme full-history scan as a documented
+limitation" decision was previously backed only by a theoretical
+"`LATERAL` would be faster, unverifiable on SQLite" claim — now backed by
+a direct benchmark against the real dev DB: the current `GROUP BY
+MAX(date)` approach measured ~3.5s total (3 real target dates, 143-scheme
+category), a hand-written `LATERAL`-equivalent correlated-subquery
+reformulation measured **slower**, ~4.6s — confirmed via `EXPLAIN QUERY
+PLAN` it does perform the intended per-scheme index-seek shape. Doesn't
+overturn the deferral (SQLite's planner isn't Postgres's), but replaces
+"unverifiable" with data, and flags that the `LATERAL`-is-faster
+assumption should itself be re-measured when Postgres's `EXPLAIN ANALYZE`
+step finally runs (see `Docs/PRDs/Migration-Plan-SQLite-to-Postgres.md`'s
+"Deferred Postgres-Only Optimizations" section). (2) A user-referenced
+doc, `Docs/Analytics-Dashboard-Internal-Correction-Plan.md`, does not
+exist anywhere in this repo (checked working tree + full git history,
+all branches) — flagged rather than acted on as if it existed. The
+underlying technical point it was said to raise was independently
+verified as real and fixed regardless: `nse_indices_client.py`'s
+`_fetch_index_history` had no validation that a response's parsed dates
+actually fell within the requested `[start_date, end_date]` — a gap
+outside the scope of Item 5's 4 already-closed review rounds (redirects
+and `Decimal` parsing only). Fixed via TDD (RED confirmed, then a single
+inclusive-range check raising `ValueError`, caught by the existing
+broad-except degrade-to-stale-cache path); full suite 413 passed/2
+skipped; live-verified against the real endpoint (zero false-positive
+rejections); adversarially reviewed, APPROVE/zero findings. Full detail:
+`Docs/orchestration/delegation-log.md`'s `item4-lateral-benchmark` and
+`item5-p2.8-followup*` entries.
+
 **First-login/signup dashboard load-time fix, merged (2026-08-18):** user-reported
 follow-up to `dashboard-nav-perf-handoff.md` — first dashboard load right after
 CAS-upload signup was still ~30s despite that earlier round of fixes. Root-caused two
