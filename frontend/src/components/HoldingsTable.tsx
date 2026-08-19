@@ -179,7 +179,7 @@ export function HoldingsTable({
 
               return (
                 <tr
-                  key={row.scheme_id + (row.household_member_id || "")}
+                  key={row.scheme_id + (row.household_member_id || "") + row.plan_type}
                   className="block lg:table-row p-3.5 sm:p-4 lg:p-0 hover:bg-[var(--color-bg)]/80 transition-colors duration-150 cursor-pointer group"
                   onClick={() => onSelectScheme?.(row.scheme_id)}
                 >

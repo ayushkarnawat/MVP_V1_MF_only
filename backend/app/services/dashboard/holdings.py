@@ -123,23 +123,16 @@ async def compute_holdings(db: Session, household_member_ids: list[uuid.UUID]) -
     }
     folios = db.query(Folio).filter(Folio.household_member_id.in_(household_member_ids)).all()
 
-    grouped: dict[tuple[uuid.UUID, uuid.UUID], list[Folio]] = defaultdict(list)
+    grouped: dict[tuple[uuid.UUID, uuid.UUID, PlanType], list[Folio]] = defaultdict(list)
     for folio in folios:
-        grouped[(folio.household_member_id, folio.scheme_id)].append(folio)
+        grouped[(folio.household_member_id, folio.scheme_id, folio.plan_type)].append(folio)
 
     computed: list[tuple[uuid.UUID, Scheme, PlanType, Decimal, Decimal, Decimal]] = []
-    for (member_id, scheme_id), member_folios in grouped.items():
+    for (member_id, scheme_id, plan_type), member_folios in grouped.items():
         scheme = db.get(Scheme, scheme_id)
         total_units = Decimal("0")
         total_cost = Decimal("0")
         total_realized = Decimal("0")
-        # First-encountered folio's plan_type represents the merged row — a
-        # stated simplification for the rare case of the same scheme held
-        # via folios with different plan types (e.g. one direct, one
-        # regular). Distributor comparison (a later, separate phase) is
-        # where folio-level plan_type detail becomes visible.
-        plan_type = member_folios[0].plan_type
-
         for folio in member_folios:
             transactions = (
                 db.query(Transaction)

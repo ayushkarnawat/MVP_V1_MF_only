@@ -50,10 +50,10 @@ describe("BenchmarkSection", () => {
     expect(screen.getByText("Benchmark Comparison (XIRR)")).toBeInTheDocument();
     // "+16.45%" is shown twice by design: the hero stat and the portfolio bar row label.
     expect(screen.getAllByText("+16.45%").length).toBeGreaterThanOrEqual(2);
-    expect(screen.getByText("Nifty 50")).toBeInTheDocument();
-    expect(screen.getByText("Nifty 500")).toBeInTheDocument();
-    expect(screen.getByText("Nifty LargeMidcap 250")).toBeInTheDocument();
-    expect(screen.getByText("Nifty Midcap 150")).toBeInTheDocument();
+    expect(screen.getByText("Nifty 50 (Price Return)")).toBeInTheDocument();
+    expect(screen.getByText("Nifty 500 (Price Return)")).toBeInTheDocument();
+    expect(screen.getByText("Nifty LargeMidcap 250 (Price Return)")).toBeInTheDocument();
+    expect(screen.getByText("Nifty Midcap 150 (Price Return)")).toBeInTheDocument();
   });
 
   it("switches to Per-Fund vs Benchmark tab and handles null XIRR explicitly", () => {

@@ -176,6 +176,34 @@ def test_compute_holdings_merges_two_folios_of_the_same_scheme():
     assert Decimal(rows[0].amount_invested) == Decimal("10000.00")
 
 
+def test_compute_holdings_separates_direct_and_regular_folios_of_same_scheme():
+    import asyncio
+
+    db = _session()
+    member = _household_member(db)
+    scheme = _scheme(db)
+    direct = _folio(db, member, scheme, folio_number="DIRECT", plan_type=PlanType.DIRECT)
+    regular = _folio(db, member, scheme, folio_number="REGULAR", plan_type=PlanType.REGULAR)
+    _persisted_txn(db, direct, TransactionType.PURCHASE, date(2024, 1, 1), Decimal("5000.00"), Decimal("100.000"), Decimal("50.0000"))
+    _persisted_txn(db, regular, TransactionType.PURCHASE, date(2024, 2, 1), Decimal("3000.00"), Decimal("50.000"), Decimal("60.0000"))
+
+    with patch(
+        "app.services.dashboard.holdings.get_navs_on_or_before",
+        new=_mock_nav_batch((Decimal("70.0000"), date(2024, 6, 1))),
+    ), patch(
+        "app.services.dashboard.holdings.get_previous_nav_from_cache",
+        return_value=None,
+    ):
+        rows = asyncio.run(compute_holdings(db, [member.id]))
+
+    assert len(rows) == 2
+    by_plan = {row.plan_type: row for row in rows}
+    assert by_plan[PlanType.DIRECT].units_held == "100.000"
+    assert Decimal(by_plan[PlanType.DIRECT].amount_invested) == Decimal("5000.00")
+    assert by_plan[PlanType.REGULAR].units_held == "50.000"
+    assert Decimal(by_plan[PlanType.REGULAR].amount_invested) == Decimal("3000.00")
+
+
 def test_compute_holdings_drops_fully_redeemed_scheme():
     import asyncio
 

@@ -13,6 +13,7 @@ from app.db.base import Base
 from app.models.reference import FundScore, NavHistory, Scheme, SchemeAaum, SchemeTer
 from app.services.analytics.scorer import (
     _category_component_scores,
+    _finish_fund_score,
     _tier_from_percentile,
     compute_fund_score,
 )
@@ -293,6 +294,39 @@ def test_compute_fund_score_cost_adjustment_nudges_final_score():
     # held's TER (0.50) is well below the AUM-weighted category average
     # (1.00) -> +0.25 nudge.
     assert row.cost_adjustment == "0.25"
+
+
+@pytest.mark.parametrize(
+    ("percentile", "cost_adjustment", "expected"),
+    [
+        (Decimal("0"), Decimal("-0.25"), "0.00"),
+        (Decimal("100"), Decimal("0.25"), "100.00"),
+    ],
+)
+def test_finish_fund_score_clamps_cost_adjustment_to_valid_range(
+    percentile, cost_adjustment, expected
+):
+    db = _session()
+    held = _scheme(db, "Held Fund")
+    scores = {
+        held.id: {
+            "composite": Decimal("1"),
+            "return_percentile": Decimal("0"),
+            "risk_percentile": Decimal("0"),
+            "consistency_hit_rate": Decimal("0"),
+        }
+    }
+
+    with (
+        patch("app.services.analytics.scorer._rank_and_percentile", return_value=(1, percentile)),
+        patch(
+            "app.services.analytics.scorer._cost_adjustment_from_context",
+            return_value=cost_adjustment,
+        ),
+    ):
+        row = _finish_fund_score(db, held, [held], scores, {}, None, _TODAY)
+
+    assert row.final_score == expected
 
 
 def test_compute_fund_score_cost_adjustment_is_none_not_zero_when_ter_unavailable():

@@ -35,4 +35,29 @@ describe("HoldingsTable", () => {
     fireEvent.click(screen.getByText("Parag Parikh Flexi Cap Fund"));
     expect(handleSelect).toHaveBeenCalledWith("scheme-1");
   });
+
+  it("renders different plan types without a duplicate React key warning", () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    try {
+      render(
+        <HoldingsTable
+          holdings={[
+            { ...sampleHoldings[0], household_member_id: "member-1" },
+            {
+              ...sampleHoldings[0],
+              household_member_id: "member-1",
+              plan_type: "REGULAR",
+              units_held: "50.00",
+            },
+          ]}
+        />
+      );
+
+      expect(screen.getAllByText("Parag Parikh Flexi Cap Fund")).toHaveLength(2);
+      expect(consoleError.mock.calls.flat().join(" ")).not.toContain("same key");
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
 });

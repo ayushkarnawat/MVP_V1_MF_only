@@ -166,11 +166,17 @@ overturn the deferral (SQLite's planner isn't Postgres's), but replaces
 assumption should itself be re-measured when Postgres's `EXPLAIN ANALYZE`
 step finally runs (see `Docs/PRDs/Migration-Plan-SQLite-to-Postgres.md`'s
 "Deferred Postgres-Only Optimizations" section). (2) A user-referenced
-doc, `Docs/Analytics-Dashboard-Internal-Correction-Plan.md`, does not
-exist anywhere in this repo (checked working tree + full git history,
-all branches) — flagged rather than acted on as if it existed. The
-underlying technical point it was said to raise was independently
-verified as real and fixed regardless: `nse_indices_client.py`'s
+doc, `Docs/Analytics-Dashboard-Internal-Correction-Plan.md`, was initially
+(and incorrectly) reported as not existing anywhere in this repo — that
+search covered only this worktree's tree plus git's committed history,
+which can never surface an uncommitted file. The user corrected this: the
+doc is real, sitting uncommitted in the main checkout's working tree
+(`feat/enhanced-ui`, a sibling worktree at `/mnt/d/Unifolio code`) —
+confirmed by reading it directly at that path. See
+`Docs/orchestration/analytics-correction-plan-status.md` for the full
+22-item cross-reference against this codebase. The underlying technical
+point independently verified and fixed ahead of that cross-reference:
+`nse_indices_client.py`'s
 `_fetch_index_history` had no validation that a response's parsed dates
 actually fell within the requested `[start_date, end_date]` — a gap
 outside the scope of Item 5's 4 already-closed review rounds (redirects
@@ -181,6 +187,28 @@ skipped; live-verified against the real endpoint (zero false-positive
 rejections); adversarially reviewed, APPROVE/zero findings. Full detail:
 `Docs/orchestration/delegation-log.md`'s `item4-lateral-benchmark` and
 `item5-p2.8-followup*` entries.
+
+**Analytics Dashboard Internal Correction Plan — 22-item cross-reference, investigation
+only, no code changed (2026-08-19):** cross-referenced every P0/P1/P2 requirement in
+`Docs/Analytics-Dashboard-Internal-Correction-Plan.md` against this branch's actual code.
+Full detail, evidence, and classification (DONE / confirmed gap / conflicts with an
+existing decision / unchecked): `Docs/orchestration/analytics-correction-plan-status.md`.
+Headline findings: **P0.2** (Category Ranking's CAGR return is never ×100'd — same bug
+class as the already-fixed Item 1 XIRR bug, in an untouched code path — "0.12%" displayed
+instead of "12.00%") and **P2.4** (Scorer's `final_score` has no `[0, 100]` clamp after
+the ±0.25 TER adjustment) are both clean, low-risk, high-confidence fixes with no product
+decision attached — good next TDD targets. **P0.3** (benchmark comparison uses price-only
+NSE index data, not Total Return Index — not comparable to a fund's total return) is
+confirmed but needs a data-sourcing feasibility pass before any fix, not a same-file code
+change. **P1.4** surfaced a direct conflict with an existing, already-documented PRD
+decision: the PRD's Edge Cases table says thin categories (<5 peers) are "still shown, but
+flagged," while this doc requires hard suppression below 5 peers for the same threshold —
+flagged per CLAUDE.md's "stop and say so," not resolved either way. Also newly confirmed:
+**P1.10** (mixed direct/regular plan holdings of the same scheme collapse into one
+ambiguous aggregated row in `dashboard/holdings.py`), P0.4/P1.1/P1.5/P1.6/P1.7 (all
+confirmed gaps with code evidence in the status doc). Several P2 items (P2.1, P2.2, P2.3,
+P2.5) remain unchecked. Nothing here has been implemented yet — awaiting direction on
+priority/scope before further work.
 
 **First-login/signup dashboard load-time fix, merged (2026-08-18):** user-reported
 follow-up to `dashboard-nav-perf-handoff.md` — first dashboard load right after

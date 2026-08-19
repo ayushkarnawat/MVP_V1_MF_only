@@ -236,6 +236,7 @@ def _finish_fund_score(
     # needed" stay distinguishable downstream (DATA-001).
     applied_adjustment = cost_adjustment if cost_adjustment is not None else Decimal("0")
     final_score = (composite_rank[1] + applied_adjustment).quantize(Decimal("0.01"))
+    final_score = max(Decimal("0.00"), min(Decimal("100.00"), final_score))
 
     # `computed_at` is pinned to day-start (not `now`) so the existing
     # (scheme_id, computed_at) primary key IS the one-row-per-day

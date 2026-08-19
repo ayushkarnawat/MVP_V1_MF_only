@@ -13,8 +13,10 @@ from app.models.folio import Folio
 from app.models.reference import BenchmarkIndexHistory, Scheme
 from app.models.transaction import Transaction
 from app.models.user import HouseholdMember, User
+from app.services.dashboard.schemas import HoldingRow
 from app.services.analytics.benchmark import (
     _benchmark_index_for_category,
+    _signed_amount,
     _xirr_str,
     compute_fund_vs_benchmark,
     compute_portfolio_vs_benchmarks,
@@ -201,6 +203,107 @@ def test_compute_fund_vs_benchmark_uses_per_fund_appropriate_index():
     # individual funds' own categories.
     assert comparison.overall_portfolio_xirr is not None
     assert comparison.overall_broad_market_xirr is not None
+
+
+def test_compute_fund_vs_benchmark_includes_switches_only_in_fund_level_xirr():
+    db = _session()
+    member = _household_member(db)
+    source = _scheme(db, "Source Fund", sebi_category="Equity Scheme - Large Cap Fund")
+    target = _scheme(db, "Target Fund", sebi_category="Equity Scheme - Large Cap Fund")
+    purchase_date = date.today().replace(year=date.today().year - 1)
+    switch_date = date.today().replace(month=max(1, date.today().month - 1))
+    source_folio = _folio_with_purchase(db, member, source, Decimal("1000.00"), Decimal("100.000"), Decimal("10.0000"), purchase_date)
+    target_folio = _folio_with_purchase(db, member, target, Decimal("1000.00"), Decimal("100.000"), Decimal("10.0000"), purchase_date)
+    db.add_all(
+        [
+            Transaction(id=uuid.uuid4(), folio_id=source_folio.id, import_id=uuid.uuid4(), type=TransactionType.SWITCH_OUT, date=switch_date, amount=Decimal("300.00"), units=Decimal("30.000"), nav=Decimal("10.0000")),
+            Transaction(id=uuid.uuid4(), folio_id=target_folio.id, import_id=uuid.uuid4(), type=TransactionType.SWITCH_IN, date=switch_date, amount=Decimal("300.00"), units=Decimal("30.000"), nav=Decimal("10.0000")),
+        ]
+    )
+    db.commit()
+
+    holdings = [
+        HoldingRow(**{
+            "scheme_id": str(scheme.id),
+            "scheme_name": scheme.name,
+            "amc_name": scheme.amc_name,
+            "household_member_id": str(member.id),
+            "household_member_name": member.name,
+            "plan_type": PlanType.DIRECT,
+            "units_held": "100",
+            "average_nav": "10",
+            "current_nav": "10",
+            "current_nav_date": date.today(),
+            "amount_invested": "1000",
+            "current_value": "1000",
+            "current_profit_total": "0",
+            "realized_gain": "0",
+            "unrealized_gain": "0",
+            "today_gain": "0",
+        })
+        for scheme in (source, target)
+    ]
+    portfolio_calls = []
+    benchmark_calls = []
+
+    def capture_portfolio(transactions, current_value, extra_debit_types=frozenset()):
+        portfolio_calls.append((list(transactions), extra_debit_types))
+        return Decimal("0.10")
+
+    async def capture_benchmark(db_, transactions, index, extra_debit_types=frozenset()):
+        benchmark_calls.append((list(transactions), extra_debit_types))
+        return Decimal("0.10")
+
+    with (
+        patch("app.services.analytics.benchmark.compute_holdings", new=AsyncMock(return_value=holdings)),
+        patch("app.services.analytics.benchmark._portfolio_xirr", side_effect=capture_portfolio),
+        patch("app.services.analytics.benchmark._benchmark_xirr_for_transactions", new=AsyncMock(side_effect=capture_benchmark)),
+    ):
+        asyncio.run(compute_fund_vs_benchmark(db, [member.id]))
+
+    for calls in (portfolio_calls[:2], benchmark_calls[:2]):
+        fund_types = {txn.type for transactions, _ in calls for txn in transactions}
+        assert TransactionType.SWITCH_OUT in fund_types
+        assert TransactionType.SWITCH_IN in fund_types
+        assert all(extra == {TransactionType.SWITCH_IN} for _, extra in calls)
+
+    fund_transactions = [txn for transactions, _ in portfolio_calls[:2] for txn in transactions]
+    switch_in = next(txn for txn in fund_transactions if txn.type == TransactionType.SWITCH_IN)
+    switch_out = next(txn for txn in fund_transactions if txn.type == TransactionType.SWITCH_OUT)
+    assert _signed_amount(switch_in, frozenset({TransactionType.SWITCH_IN})) == Decimal("-300.00")
+    assert _signed_amount(switch_out, frozenset({TransactionType.SWITCH_IN})) == Decimal("300.00")
+
+    for transactions, extra in (portfolio_calls[-1], benchmark_calls[-1]):
+        assert all(txn.type not in {TransactionType.SWITCH_IN, TransactionType.SWITCH_OUT} for txn in transactions)
+        assert extra == frozenset()
+
+
+def test_compute_fund_vs_benchmark_switch_only_household_still_yields_fund_rows():
+    """A household whose only relevant history is a switch (no PURCHASE/SIP/REDEMPTION
+    anywhere) must still get fund-level rows — the early-return guard must not gate
+    solely on the switch-excluding transaction list."""
+    db = _session()
+    member = _household_member(db)
+    source = _scheme(db, "Source Fund", sebi_category="Equity Scheme - Large Cap Fund")
+    target = _scheme(db, "Target Fund", sebi_category="Equity Scheme - Large Cap Fund")
+    switch_date = date.today().replace(month=max(1, date.today().month - 1))
+    source_folio = Folio(id=uuid.uuid4(), household_member_id=member.id, scheme_id=source.id, folio_number=uuid.uuid4().hex[:6], plan_type=PlanType.DIRECT)
+    target_folio = Folio(id=uuid.uuid4(), household_member_id=member.id, scheme_id=target.id, folio_number=uuid.uuid4().hex[:6], plan_type=PlanType.DIRECT)
+    db.add_all([source_folio, target_folio])
+    db.commit()
+    db.add_all(
+        [
+            Transaction(id=uuid.uuid4(), folio_id=source_folio.id, import_id=uuid.uuid4(), type=TransactionType.SWITCH_OUT, date=switch_date, amount=Decimal("300.00"), units=Decimal("30.000"), nav=Decimal("10.0000")),
+            Transaction(id=uuid.uuid4(), folio_id=target_folio.id, import_id=uuid.uuid4(), type=TransactionType.SWITCH_IN, date=switch_date, amount=Decimal("300.00"), units=Decimal("30.000"), nav=Decimal("10.0000")),
+        ]
+    )
+    db.commit()
+
+    p1, p2 = _mock_holdings_multi({source.id: Decimal("10.0000"), target.id: Decimal("10.0000")})
+    with p1, p2, _no_fetch():
+        comparison = asyncio.run(compute_fund_vs_benchmark(db, [member.id]))
+
+    assert {f.scheme_id for f in comparison.funds} == {str(source.id), str(target.id)}
 
 
 def test_compute_fund_vs_benchmark_excludes_scheme_with_no_index_history():

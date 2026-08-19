@@ -3,8 +3,10 @@
 Both portfolio XIRR and benchmark-hypothetical XIRR share the same
 cash-flow convention as `dashboard/cash_flow.py`'s FR-7 logic: purchase/SIP
 outflows (negative) and redemption/dividend-payout inflows (positive) at
-their transaction dates, switches and STT/stamp-duty/misc excluded as
-intra-portfolio or non-cash-movement. This module runs its own transaction
+their transaction dates. Switches are excluded as intra-portfolio movements
+from portfolio-level and broad-market rollups only; per-fund XIRR includes
+switch-in debits and switch-out credits. STT/stamp-duty/misc remain excluded.
+This module runs its own transaction
 query rather than reusing `compute_cash_flow` because it needs each
 transaction's `scheme_id` (FR-9's per-fund grouping), which
 `CashFlowEntry` doesn't carry.
@@ -29,7 +31,7 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
-from app.models.enums import BenchmarkIndex
+from app.models.enums import BenchmarkIndex, TransactionType
 from app.models.folio import Folio
 from app.models.reference import Scheme
 from app.models.transaction import Transaction
@@ -50,6 +52,10 @@ from app.services.dashboard.household_members import list_household_members
 from app.services.dashboard.schemas import HoldingRow
 
 _RELEVANT_TYPES = _DEBIT_TYPES | _CREDIT_TYPES
+_fund_level_transaction_types = _RELEVANT_TYPES | {
+    TransactionType.SWITCH_IN,
+    TransactionType.SWITCH_OUT,
+}
 
 
 def _investment_transactions(db: Session, household_member_ids: list[uuid.UUID]) -> list[Transaction]:
@@ -68,12 +74,34 @@ def _investment_transactions(db: Session, household_member_ids: list[uuid.UUID])
     )
 
 
-def _signed_amount(txn: Transaction) -> Decimal:
-    return -txn.amount if txn.type in _DEBIT_TYPES else txn.amount
+def _fund_level_transactions(db: Session, household_member_ids: list[uuid.UUID]) -> list[Transaction]:
+    if not household_member_ids:
+        return []
+    folio_ids = [
+        f.id for f in db.query(Folio.id).filter(Folio.household_member_id.in_(household_member_ids)).all()
+    ]
+    if not folio_ids:
+        return []
+    return (
+        db.query(Transaction)
+        .filter(Transaction.folio_id.in_(folio_ids), Transaction.type.in_(_fund_level_transaction_types))
+        .order_by(Transaction.date, Transaction.id)
+        .all()
+    )
+
+
+def _signed_amount(
+    txn: Transaction, extra_debit_types: frozenset[TransactionType] = frozenset()
+) -> Decimal:
+    debit_types = _DEBIT_TYPES | extra_debit_types
+    return -txn.amount if txn.type in debit_types else txn.amount
 
 
 async def _benchmark_xirr_for_transactions(
-    db: Session, transactions: list[Transaction], index: BenchmarkIndex
+    db: Session,
+    transactions: list[Transaction],
+    index: BenchmarkIndex,
+    extra_debit_types: frozenset[TransactionType] = frozenset(),
 ) -> Decimal | None:
     if not transactions:
         return None
@@ -91,7 +119,7 @@ async def _benchmark_xirr_for_transactions(
             # hypothetical stream rather than crashing the whole comparison.
             continue
         index_value, _ = level
-        signed = _signed_amount(txn)
+        signed = _signed_amount(txn, extra_debit_types)
         if signed < 0:
             net_units += -signed / index_value
         else:
@@ -119,8 +147,12 @@ def _xirr_str(rate: Decimal | None) -> str | None:
     return format(rate, "f")
 
 
-def _portfolio_xirr(transactions: list[Transaction], current_value: Decimal) -> Decimal | None:
-    flows = [(t.date, _signed_amount(t)) for t in transactions]
+def _portfolio_xirr(
+    transactions: list[Transaction],
+    current_value: Decimal,
+    extra_debit_types: frozenset[TransactionType] = frozenset(),
+) -> Decimal | None:
+    flows = [(t.date, _signed_amount(t, extra_debit_types)) for t in transactions]
     flows.append((date.today(), current_value))
     return xirr(flows)
 
@@ -193,7 +225,8 @@ async def compute_fund_vs_benchmark(
     db: Session, household_member_ids: list[uuid.UUID]
 ) -> FundVsBenchmarkSummary:
     transactions = _investment_transactions(db, household_member_ids)
-    if not transactions:
+    fund_level_transactions = _fund_level_transactions(db, household_member_ids)
+    if not transactions and not fund_level_transactions:
         return FundVsBenchmarkSummary(funds=[], overall_portfolio_xirr=None, overall_broad_market_xirr=None)
 
     folio_scheme = {
@@ -201,7 +234,7 @@ async def compute_fund_vs_benchmark(
         for f in db.query(Folio.id, Folio.scheme_id).filter(Folio.household_member_id.in_(household_member_ids)).all()
     }
     grouped: dict[uuid.UUID, list[Transaction]] = defaultdict(list)
-    for txn in transactions:
+    for txn in fund_level_transactions:
         grouped[folio_scheme[txn.folio_id]].append(txn)
 
     holdings = await compute_holdings(db, household_member_ids)
@@ -213,8 +246,17 @@ async def compute_fund_vs_benchmark(
         scheme = schemes[scheme_id]
         index = _benchmark_index_for_category(scheme.sebi_category)
 
-        fund_rate = _portfolio_xirr(scheme_txns, current_value_by_scheme.get(str(scheme_id), Decimal("0")))
-        benchmark_rate = await _benchmark_xirr_for_transactions(db, scheme_txns, index)
+        fund_rate = _portfolio_xirr(
+            scheme_txns,
+            current_value_by_scheme.get(str(scheme_id), Decimal("0")),
+            extra_debit_types={TransactionType.SWITCH_IN},
+        )
+        benchmark_rate = await _benchmark_xirr_for_transactions(
+            db,
+            scheme_txns,
+            index,
+            extra_debit_types={TransactionType.SWITCH_IN},
+        )
 
         fund_rows.append(
             FundBenchmarkRow(

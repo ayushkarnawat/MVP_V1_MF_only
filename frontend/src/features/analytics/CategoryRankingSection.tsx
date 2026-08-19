@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { diffDecimalStrings } from "@/lib/decimal";
+import { diffDecimalStrings, toPercentString } from "@/lib/decimal";
 import { cn } from "@/lib/utils";
 import { Award, HelpCircle, Info, TrendingUp } from "lucide-react";
 import type { CategoryRankingSummary } from "./types";
@@ -22,6 +22,10 @@ function formatPercentString(val: string | null): string {
   if (num === null) return "N/A";
   const sign = num > 0 ? "+" : "";
   return `${sign}${num.toFixed(2)}%`;
+}
+
+function formatRawFractionPercent(val: string | null): string {
+  return val === null ? "N/A" : formatPercentString(toPercentString(val));
 }
 
 export function CategoryRankingSection({
@@ -87,7 +91,7 @@ export function CategoryRankingSection({
             // Decimal-discipline rule (see lib/decimal.ts).
             const diff =
               fund.scheme_return !== null && fund.category_avg_return !== null
-                ? Number(diffDecimalStrings(fund.scheme_return, fund.category_avg_return))
+                ? Number(toPercentString(diffDecimalStrings(fund.scheme_return, fund.category_avg_return)))
                 : null;
 
             return (
@@ -138,7 +142,7 @@ export function CategoryRankingSection({
                           "text-xs font-bold tabular-nums type-data",
                           schemeReturnNum >= 0 ? "text-[var(--color-positive)]" : "text-[var(--color-negative)]"
                         )}>
-                          {formatPercentString(fund.scheme_return)}
+                          {formatRawFractionPercent(fund.scheme_return)}
                         </span>
                       </div>
 
@@ -150,7 +154,7 @@ export function CategoryRankingSection({
                               Category Avg
                             </span>
                             <span className="text-xs font-semibold text-[var(--color-ink)] tabular-nums type-data">
-                              {formatPercentString(fund.category_avg_return)}
+                              {formatRawFractionPercent(fund.category_avg_return)}
                             </span>
                           </div>
                         </>
