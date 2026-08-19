@@ -21,11 +21,12 @@ from app.services.dashboard.schemas import (
     AggregateAllocationResponse,
     AggregateCashFlowResponse,
     AggregateHoldingsResponse,
+    AggregateSipsMonthlyResponse,
     AggregateSipsResponse,
     AggregateSnapshotsResponse,
     MemberStatus,
 )
-from app.services.dashboard.sip import compute_active_sips
+from app.services.dashboard.sip import compute_active_sips, compute_sips_for_month
 from app.services.dashboard.snapshots import get_snapshots
 
 
@@ -62,6 +63,15 @@ def get_aggregate_sips(db: Session, user_id: uuid.UUID) -> AggregateSipsResponse
     statuses = get_member_statuses(db, user_id)
     sips = compute_active_sips(db, [m.id for m in members])
     return AggregateSipsResponse(members=statuses, sips=sips)
+
+
+def get_aggregate_sips_monthly(
+    db: Session, user_id: uuid.UUID, year: int, month: int
+) -> AggregateSipsMonthlyResponse:
+    members = list_household_members(db, user_id)
+    statuses = get_member_statuses(db, user_id)
+    sips = compute_sips_for_month(db, [m.id for m in members], year, month)
+    return AggregateSipsMonthlyResponse(members=statuses, sips=sips)
 
 
 def get_aggregate_cash_flow(db: Session, user_id: uuid.UUID) -> AggregateCashFlowResponse:

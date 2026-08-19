@@ -17,6 +17,28 @@ Loaded on demand from `SKILL.md` when classifying a delegable subtask.
 Ambiguous cases default to Codex unless one of the fallback conditions
 below is met.
 
+## Mandatory pre-step: cheap probe before expensive setup
+
+Before copying any large dependency tree (`.venv`, `node_modules`, or
+similar) into a new Codex dispatch location — a fresh clone, worktree, or
+any directory not already confirmed writable this session — first send one
+cheap probe dispatch to that exact location: write a one-line file, `git
+add` it, `git commit` it. Nothing else. Require it to succeed before
+paying the copy cost. This is mandatory, not optional, whenever the
+dispatch target is new or unconfirmed.
+
+This exists because the alternative — provisioning the full dependency
+tree first, then discovering the write path doesn't actually work only
+after a full multi-task implementation dispatch fails — is expensive to
+fail: multi-minute copies (a `.venv`/`node_modules` copy can itself exceed
+typical tool timeouts) plus a full Codex dispatch's token cost, all
+wasted, per failed hypothesis. A dedicated session hit this 3 rounds in a
+row before running the cheap probe first (2026-08-18, active-SIPs cadence
+redesign dispatch — see `skill-observations/log.md` Observations 15/17 in
+the stable Claude Code workspace project folder). The probe turns each
+failed hypothesis into a ~10-second, near-zero-token check instead of a
+multi-minute copy plus a wasted implementation dispatch.
+
 ## Worker selection for parallelizable independent subtasks
 
 When a task decomposes into N independent subtasks (the case that would
@@ -74,6 +96,51 @@ pull those commits back into the original repo's branch. Verify
 reachability with a real live dispatch (or a cheap probe) rather than
 assuming host-level `rw` mount options are sufficient evidence that
 Codex's own sandbox will agree.
+
+**Sub-case — Git metadata writes fail in this environment's Codex-rescue
+sandbox configuration even when ordinary source-tree writes succeed.**
+Confirmed live, repeatedly, across two independent sessions and multiple
+directories (an external native-filesystem clone, a linked `git worktree`,
+a standalone clone, and the main repo itself on a `/mnt/*` mount — 2026-08-18):
+a plain file write inside the dispatch target succeeds, but the very next
+`git add`/`git commit` fails with `fatal: Unable to create
+'.../.git/index.lock': Read-only file system` — including against a
+directory explicitly listed `trusted` in `~/.codex/config.toml`, and
+including on a native (non-`/mnt/*`) filesystem clone in the other
+confirming session. This is **a limitation observed specifically in this
+project's Claude Code `codex:codex-rescue` sandbox configuration** — do
+not generalize this to "Codex cannot write to `.git` anywhere/universally";
+the exact upstream mechanism (a sandbox mount rule specific to `.git/`, a
+`codex exec` default not fully threaded through this dispatch wrapper, or
+something else) was never conclusively identified, and a future
+`codex:codex-rescue` configuration change could resolve it. Re-run the
+3-step probe above (this section supersedes needing a bigger one) before
+assuming either "it's fixed" or "it's still broken" in any new session —
+never rely on a stale memory of this constraint.
+
+**Resulting default worker split, until this is independently reconfirmed
+fixed:** if a probe shows ordinary source/test writes succeed but Git
+metadata writes fail, Codex may still implement and test — it does the
+actual code editing and self-verification. The orchestrator (Claude)
+always performs staging, commits, merges, and any worktree management for
+that work; never hand `git add`/`git commit`/merge responsibility to a
+Codex dispatch in this environment. Codex remains the default worker for
+read-only review/adversarial-review dispatches regardless (reviews make no
+file changes, so this constraint doesn't affect them at all — see
+"Isolation parameter for dispatches" below).
+
+**Verifying agent completion independently.** Whenever a dispatched
+agent's (Codex or Claude subagent) terminal notification is missing,
+arrives prematurely, or contradicts what the diff/tests actually show,
+verify completion independently via `git log`/`git diff`/`git status`
+against the expected commits, plus an independent test run — never take
+the agent's own self-report as the sole evidence that work landed or
+didn't. This applies symmetrically to both directions: a "completed"
+notification whose result text is clearly truncated/non-terminal is not
+proof of failure, and a "failed" notification (e.g. an API/session-limit
+error hitting the dispatch wrapper) is not proof the underlying job didn't
+still complete — see "Recovering from a dispatch-layer failure" below for
+the Codex-specific version of this same check.
 
 ## Isolation parameter for dispatches
 

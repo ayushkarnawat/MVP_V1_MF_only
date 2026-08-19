@@ -1,4 +1,5 @@
 import uuid
+from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session as DbSession
@@ -11,6 +12,7 @@ from app.services.dashboard.aggregate import (
     get_aggregate_cash_flow,
     get_aggregate_holdings,
     get_aggregate_sips,
+    get_aggregate_sips_monthly,
     get_aggregate_snapshots,
 ) #for aggregated data
 
@@ -31,6 +33,7 @@ from app.services.dashboard.schemas import (
     AggregateAllocationResponse,
     AggregateCashFlowResponse,
     AggregateHoldingsResponse,
+    AggregateSipsMonthlyResponse,
     AggregateSipsResponse,
     AggregateSnapshotsResponse,
     AllocationSummary,
@@ -39,11 +42,12 @@ from app.services.dashboard.schemas import (
     HoldingRow,
     HouseholdMemberCreate,
     HouseholdMemberResponse,
+    SipMonthlyRow,
     SipRow,
     SnapshotRow,
 )
 
-from app.services.dashboard.sip import compute_active_sips 
+from app.services.dashboard.sip import compute_active_sips, compute_sips_for_month
 from app.services.dashboard.snapshots import get_snapshots
 
 router = APIRouter(tags=["dashboard"])
@@ -128,6 +132,20 @@ def get_member_sips(
     return compute_active_sips(db, [member_id])
 
 
+@router.get("/household-members/{member_id}/sips/monthly", response_model=list[SipMonthlyRow])
+def get_member_sips_monthly(
+    member_id: uuid.UUID,
+    year: int | None = None,
+    month: int | None = None,
+    user: User = Depends(get_current_user),
+    db: DbSession = Depends(get_db),
+):
+    if get_household_member_for_user(db, user.id, member_id) is None:
+        raise HTTPException(status_code=404, detail="Household member not found.")
+    today = date.today()
+    return compute_sips_for_month(db, [member_id], year or today.year, month or today.month)
+
+
 @router.get("/household-members/{member_id}/cash-flow", response_model=list[CashFlowEntry])
 def get_member_cash_flow(
     member_id: uuid.UUID,
@@ -169,6 +187,17 @@ def get_household_aggregate_sips(
     user: User = Depends(get_current_user), db: DbSession = Depends(get_db)
 ):
     return get_aggregate_sips(db, user.id)
+
+
+@router.get("/household/aggregate/sips/monthly", response_model=AggregateSipsMonthlyResponse)
+def get_household_aggregate_sips_monthly(
+    year: int | None = None,
+    month: int | None = None,
+    user: User = Depends(get_current_user),
+    db: DbSession = Depends(get_db),
+):
+    today = date.today()
+    return get_aggregate_sips_monthly(db, user.id, year or today.year, month or today.month)
 
 
 @router.get("/household/aggregate/cash-flow", response_model=AggregateCashFlowResponse)

@@ -1,6 +1,22 @@
 # Handoff: active-sips-frontend
 
-**Status:** IN_PROGRESS
+**Status:** DONE (implemented at `9e25017`; round-0 review — dispatched
+against a re-checked-out scope after an initial failed dispatch — returned
+REQUEST-CHANGES for 2 Medium + 1 Low, fixed at `eeaade0`; round-1 scoped
+re-review of `eeaade0` returned REQUEST-CHANGES for 1 Medium
+(`setMonthlySipsLoading` inside a `useEffect` still let one stale-paint
+frame through on month nav) + 1 Low (missing `role="tabpanel"` wiring),
+both fixed at `8be5230`; round-2 scoped re-review of `8be5230` returned
+REQUEST-CHANGES for 1 remaining Low (inactive tab's `aria-controls` IDREF
+points at a not-yet-rendered panel) — accepted as a documented limitation
+per the model-orchestration skill's stopping heuristic and explicit user
+sign-off, logged in `CLAUDE.md`'s "Still open" list item 5 and mirrored in
+`DEFERRED_FEATURES.md`'s appendix, rather than dispatching a round 3. Both
+fix rounds applied directly by the orchestrator per "Review-loop fix
+authorship" (diff small-to-moderate, files already in context). Full
+frontend suite independently verified by the orchestrator on the closing
+round: 55/55 files, 218/218 tests, zero regressions. Full round-by-round
+detail: `Docs/orchestration/delegation-log.md`'s 2026-08-19 entries.)
 **Parent plan:** `Docs/superpowers/plans/2026-08-18-active-sips-cadence-redesign.md` (Tasks 6-8)
 
 ## Task
