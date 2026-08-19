@@ -109,6 +109,23 @@ review thread.
     a real Postgres query plan (`EXPLAIN ANALYZE`) — SQLite has no `LATERAL` semantics
     to compare against, so implementing it now would be unverifiable guesswork against
     this doc's own "test against both dialects, don't code blind for one" guardrail.
+  - **Empirically measured, not just theoretical (2026-08-19):** rather than accept the
+    `LATERAL`-would-be-faster claim on faith, both query shapes were benchmarked directly
+    against the real dev SQLite DB (`backend/unifolio_dev.db`, 410,845 NAV rows, 143
+    schemes sharing one SEBI category, per-scheme history up to 5,020 rows / ~20 years).
+    Current `GROUP BY MAX(date)` approach: ~3.5s total across the 3 real target dates
+    (`start_3y`/`start_5y`/`today`). A hand-written per-scheme correlated-subquery
+    reformulation (SQLite's closest equivalent to the `LATERAL` shape below — `CO-ROUTINE`
+    scan of schemes, `CORRELATED SCALAR SUBQUERY` doing the per-scheme index seek) measured
+    **slower**, ~4.6s total, confirmed via `EXPLAIN QUERY PLAN` that it does perform the
+    seek-per-scheme shape the reviewer described. On this dataset/engine, per-row
+    correlated-subquery invocation overhead outweighs the row-scan savings — the seek
+    shape is not a free win here. This does not contradict the deferral decision (SQLite's
+    planner and cost model aren't Postgres's — the doc's own guardrail against coding
+    blind for one dialect cuts both ways), but it does mean: don't treat "`LATERAL` is
+    obviously faster" as a given when the Postgres `EXPLAIN ANALYZE` step below finally
+    runs — measure it there too, since the SQLite result shows the theoretical direction
+    can be wrong in practice at this data scale.
   - **Action once Postgres is live (Guardrail 3's local Docker Postgres is sufficient,
     doesn't need to wait for RDS):** run `EXPLAIN ANALYZE` against `_bulk_nav_on_or_before`'s
     three queries with a realistic category-universe size (100+ schemes, multi-year NAV

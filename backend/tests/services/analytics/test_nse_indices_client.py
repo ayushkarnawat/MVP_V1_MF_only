@@ -6,6 +6,7 @@ from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
+import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -56,6 +57,37 @@ def test_fetch_index_history_does_not_blanket_follow_redirects():
         asyncio.run(_fetch_index_history(BenchmarkIndex.NIFTY_50, date(2026, 8, 3), date(2026, 8, 4)))
 
     assert mock_ctor.call_args.kwargs.get("follow_redirects") is not True
+
+
+def test_fetch_index_history_rejects_rows_outside_the_requested_date_range():
+    """DATA-001 follow-up: the response carries no index-identity field to
+    cross-check against the requested BenchmarkIndex (confirmed via the
+    module's own live-testing docstring), so the only implementable half of
+    "validate the response matches what was requested" is a date-range
+    check. Without it, a malformed/wrong-range response from this
+    undocumented, reverse-engineered endpoint would be silently upserted
+    into the cache under the requested index's key -- the same
+    "silently-wrong is worse than silently-stale" risk Item 5's redirect
+    finding was closed for."""
+    mock_response = MagicMock()
+    mock_response.raise_for_status = MagicMock()
+    mock_response.json = MagicMock(
+        return_value=[
+            {"HistoricalDate": "03 Aug 2026", "CLOSE": "24774.30"},
+            {"HistoricalDate": "15 Sep 2026", "CLOSE": "25000.00"},  # outside requested range
+        ]
+    )
+
+    mock_client = MagicMock()
+    mock_client.post = AsyncMock(return_value=mock_response)
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+
+    with patch(
+        "app.services.analytics.nse_indices_client.httpx.AsyncClient", return_value=mock_client
+    ):
+        with pytest.raises(ValueError, match="outside requested range"):
+            asyncio.run(_fetch_index_history(BenchmarkIndex.NIFTY_50, date(2026, 8, 3), date(2026, 8, 4)))
 
 
 def test_ensure_index_history_fresh_fetches_and_caches_when_nothing_cached():

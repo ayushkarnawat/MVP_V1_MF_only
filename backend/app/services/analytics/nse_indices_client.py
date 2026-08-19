@@ -69,6 +69,16 @@ async def _fetch_index_history(index: BenchmarkIndex, start_date: date, end_date
     rows: list[tuple[date, Decimal]] = []
     for entry in payload:
         parsed_date = datetime.strptime(entry["HistoricalDate"], "%d %b %Y").date()
+        # The response carries no index-identity field to cross-check against
+        # `index` (confirmed live -- just HistoricalDate/CLOSE pairs), so a
+        # date-range check is the only implementable half of "does the
+        # response actually match what was requested." Without it, a
+        # malformed/wrong-range response would be silently upserted into the
+        # cache under this index's key -- silently wrong, not just stale.
+        if not (start_date <= parsed_date <= end_date):
+            raise ValueError(
+                f"NSE response date {parsed_date} outside requested range {start_date}..{end_date}"
+            )
         rows.append((parsed_date, Decimal(entry["CLOSE"])))
     return rows
 
