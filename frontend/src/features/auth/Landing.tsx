@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, ArrowRight, Loader2, Mail, Phone, ShieldCheck } from "lucide-react";
+import { AlertCircle, ArrowRight, Loader2, Mail, Phone } from "lucide-react";
 import { GoogleButton } from "./GoogleButton";
 import { validateEmail } from "./validation";
 import { cn } from "@/lib/utils";
@@ -58,27 +58,24 @@ export function Landing({
   };
 
   return (
-    <div className="w-full max-w-md mx-auto space-y-6 text-left box-border py-2">
-      {/* 1. Header */}
-      <div className="space-y-4">
-        {/* Clean Editorial Headline */}
-        <div className="space-y-1">
-          <h1 className="font-display font-bold text-2xl sm:text-3xl text-[var(--color-ink)] tracking-tight">
-            {mode === "signup" ? "Create your account" : "Welcome back"}
-          </h1>
-          <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed font-body">
-            {mode === "signup"
-              ? "Start tracking and consolidating your mutual fund folios."
-              : "Access your consolidated investments and portfolio analytics."}
+    <div className="w-full max-w-md mx-auto text-left box-border py-1">
+      {/* 1. Header with cohesive spacing to email field */}
+      <div className="mb-4 sm:mb-5">
+        <h1 className="font-display font-bold text-2xl sm:text-3xl text-[var(--color-ink)] tracking-tight">
+          {mode === "signup" ? "Create your account" : "Welcome back"}
+        </h1>
+        {mode === "login" && (
+          <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed font-body mt-1">
+            Access your consolidated investments and portfolio analytics.
           </p>
-        </div>
+        )}
       </div>
 
       {/* 2. Server Authentication Error Alert */}
       {error && !validationError && (
         <div
           role="alert"
-          className="flex items-center gap-2.5 p-3.5 rounded-2xl bg-[color-mix(in_srgb,var(--color-negative)_10%,transparent)] border border-[color-mix(in_srgb,var(--color-negative)_25%,transparent)] text-xs text-[var(--color-negative)] font-medium font-body animate-in fade-in duration-150"
+          className="flex items-center gap-2.5 p-3.5 rounded-2xl bg-[color-mix(in_srgb,var(--color-negative)_10%,transparent)] border border-[color-mix(in_srgb,var(--color-negative)_25%,transparent)] text-xs text-[var(--color-negative)] font-medium font-body animate-in fade-in duration-150 mb-3.5"
         >
           <AlertCircle className="h-4 w-4 flex-shrink-0" />
           <span>{error}</span>
@@ -150,7 +147,7 @@ export function Landing({
                 setValidationError(null);
                 setMode("login");
               }}
-              className="font-semibold text-[var(--color-ink)] hover:text-[var(--color-accent)] underline-offset-4 hover:underline cursor-pointer transition-colors"
+              className="font-semibold text-[var(--color-ink)] hover:text-[var(--color-accent)] underline decoration-[var(--color-accent)] decoration-[1.5px] underline-offset-[4px] cursor-pointer transition-colors"
             >
               Log in
             </button>
@@ -206,19 +203,13 @@ export function Landing({
                 setValidationError(null);
                 setMode("signup");
               }}
-              className="font-semibold text-[var(--color-ink)] hover:text-[var(--color-accent)] underline-offset-4 hover:underline cursor-pointer transition-colors"
+              className="font-semibold text-[var(--color-ink)] hover:text-[var(--color-accent)] underline decoration-[var(--color-accent)] decoration-[1.5px] underline-offset-[4px] cursor-pointer transition-colors"
             >
               Sign up
             </button>
           </div>
         </div>
       )}
-
-      {/* 4. Trust Assurance */}
-      <div className="flex items-center justify-center sm:justify-start gap-1.5 text-[11px] text-[var(--color-text-secondary)] pt-2 select-none font-body">
-        <ShieldCheck className="h-3.5 w-3.5 text-[var(--color-accent)]" />
-        <span>256-bit encrypted · Read-only access · No spam</span>
-      </div>
     </div>
   );
 }

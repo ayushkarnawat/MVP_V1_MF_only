@@ -58,8 +58,8 @@ export function AuthShell({ step, formSlot, visualSlot }: AuthShellProps) {
 
       {/* Main Single Centered Rounded Container */}
       <div className="w-full max-w-6xl rounded-3xl bg-[var(--color-surface)] shadow-xl shadow-black/[0.04] dark:shadow-black/50 border border-[var(--color-border)] overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[640px] relative">
-        {/* Left ~58% Section: Deep Green Wealth Intelligence Visual Section (Desktop) */}
-        <div className="lg:col-span-6 xl:col-span-7 p-3 sm:p-4 lg:p-4 hidden lg:flex h-full order-2 lg:order-1">
+        {/* Left ~58% Section: Wealth Architecture Visual Section (Desktop) */}
+        <div className="lg:col-span-6 xl:col-span-7 hidden lg:flex h-full order-2 lg:order-1 border-r border-[var(--color-border)] bg-[#ECECE8]">
           {visualSlot}
         </div>
 
@@ -105,11 +105,6 @@ export function AuthShell({ step, formSlot, visualSlot }: AuthShellProps) {
                 </motion.div>
               </AnimatePresence>
             )}
-          </div>
-
-          {/* Clean Bottom Assurance */}
-          <div className="pt-4 text-left text-[11px] text-[var(--color-text-secondary)] select-none font-body">
-            SEBI registered scheme universe · 256-bit AES encryption
           </div>
         </div>
       </div>

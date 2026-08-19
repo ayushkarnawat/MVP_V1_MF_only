@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, AlertCircle, ShieldCheck, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, AlertCircle, Loader2 } from "lucide-react";
 import { staggerContainerVariants, staggerItemVariants } from "@/lib/motion";
 import { validateIndianPhone } from "./validation";
 import { cn } from "@/lib/utils";
@@ -170,12 +170,6 @@ export function PhoneEntry({
             </>
           )}
         </Button>
-      </motion.div>
-
-      {/* 5. Trust Footnote */}
-      <motion.div variants={staggerItemVariants} className="flex items-center justify-center sm:justify-start gap-1.5 text-[11px] text-[var(--color-text-secondary)] pt-2 select-none font-body">
-        <ShieldCheck className="h-3.5 w-3.5 text-[var(--color-accent)]" />
-        <span>256-bit encrypted · Read-only access · No spam</span>
       </motion.div>
     </motion.form>
   );

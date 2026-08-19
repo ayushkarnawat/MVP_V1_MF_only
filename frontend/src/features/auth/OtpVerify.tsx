@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { OtpInput } from "@/components/ui/otp-input";
-import { ArrowLeft, ArrowRight, AlertCircle, ShieldCheck, Loader2, KeyRound } from "lucide-react";
+import { ArrowLeft, ArrowRight, AlertCircle, Loader2, KeyRound } from "lucide-react";
 
 interface OtpVerifyProps {
   /** The identifier the code was sent to -- a phone number for channel
@@ -152,12 +152,6 @@ export function OtpVerify({
             Resend code
           </Button>
         </div>
-      </div>
-
-      {/* 6. Security Footnote */}
-      <div className="flex items-center justify-center sm:justify-start gap-1.5 text-[11px] text-[var(--color-text-secondary)] pt-2 select-none font-body">
-        <ShieldCheck className="h-3.5 w-3.5 text-[var(--color-accent)]" />
-        <span>256-bit encrypted · Read-only access · No spam</span>
       </div>
     </form>
   );
