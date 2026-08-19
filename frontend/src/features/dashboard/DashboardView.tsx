@@ -433,15 +433,20 @@ export function DashboardView({
       )}
 
       {/* Upcoming SIPs Section (PRD-03 FR-5/FR-6) */}
-      {upcomingSips.length > 0 && (
-        <section className="flex flex-col space-y-4" data-testid="upcoming-sips">
+      <section className="flex flex-col space-y-4" data-testid="upcoming-sips">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <h2 className="font-display text-lg font-semibold tracking-tight text-[var(--color-ink)]">
               SIPs
             </h2>
 
-            <div className="inline-flex items-center p-1 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] self-start sm:self-auto shadow-2xs">
+            <div
+              role="tablist"
+              aria-label="SIP view"
+              className="inline-flex items-center p-1 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] self-start sm:self-auto shadow-2xs"
+            >
               <button
+                role="tab"
+                aria-selected={sipTab === "upcoming"}
                 className={cn(
                   "px-3 py-1 text-xs font-medium rounded-lg transition-colors duration-150 cursor-pointer",
                   sipTab === "upcoming"
@@ -454,6 +459,8 @@ export function DashboardView({
                 Upcoming
               </button>
               <button
+                role="tab"
+                aria-selected={sipTab === "month"}
                 className={cn(
                   "px-3 py-1 text-xs font-medium rounded-lg transition-colors duration-150 cursor-pointer",
                   sipTab === "month"
@@ -508,6 +515,11 @@ export function DashboardView({
           )}
 
           <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] divide-y divide-[var(--color-border)]">
+            {sipTab === "upcoming" && upcomingSips.length === 0 && (
+              <div className="px-4 py-6 text-center text-sm text-[var(--color-text-secondary)]">
+                No upcoming SIPs.
+              </div>
+            )}
             {sipTab === "upcoming" && upcomingSips.map((sip) => (
               <div
                 key={sip.scheme_id + sip.household_member_id}
@@ -537,12 +549,18 @@ export function DashboardView({
                 </div>
               </div>
             ))}
+            {sipTab === "month" && monthlySipsLoading && (
+              <div className="px-4 py-6 text-center text-sm text-[var(--color-text-secondary)]">
+                Loading…
+              </div>
+            )}
             {sipTab === "month" && !monthlySipsLoading && monthlySips.length === 0 && (
               <div className="px-4 py-6 text-center text-sm text-[var(--color-text-secondary)]">
                 No SIPs for this month.
               </div>
             )}
             {sipTab === "month" &&
+              !monthlySipsLoading &&
               monthlySips.map((sip) => (
                 <div
                   key={sip.scheme_id + sip.household_member_id}
@@ -573,8 +591,7 @@ export function DashboardView({
                 </div>
               ))}
           </div>
-        </section>
-      )}
+      </section>
 
       {/* Holdings Table Section */}
       <section className="flex flex-col space-y-4">

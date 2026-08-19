@@ -481,7 +481,7 @@ describe("DashboardView", () => {
 
     expect(api.getMemberSipsMonthly).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole("button", { name: "This Month" }));
+    fireEvent.click(screen.getByRole("tab", { name: "This Month" }));
 
     await waitFor(() => {
       expect(api.getMemberSipsMonthly).toHaveBeenCalledWith(
@@ -542,7 +542,7 @@ describe("DashboardView", () => {
       expect(screen.getByTestId("upcoming-sips")).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "This Month" }));
+    fireEvent.click(screen.getByRole("tab", { name: "This Month" }));
     await waitFor(() => {
       expect(api.getMemberSipsMonthly).toHaveBeenCalledTimes(1);
     });
