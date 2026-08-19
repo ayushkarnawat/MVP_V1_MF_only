@@ -27,19 +27,14 @@ Landing this migration also removed every OTP/session-related route's old direct
 
 **Local-dev gotcha confirmed 2026-08-15:** a pre-existing `unifolio_dev.db` (SQLite) that predates this feature stays pinned at whatever revision it was last migrated to — starting the backend against it does NOT auto-apply new migrations. This surfaced as a real `/auth/otp/request` failure for the email channel (`otp_requests.email` didn't exist on disk yet, `alembic current` showed `0003` against a `0005` head). Fixed by running `alembic upgrade head`, confirmed directly against the SQLite schema (not just alembic's own bookkeeping) — `otp_requests` gained `email`/lost its `phone_number NOT NULL`, both new tables and `sessions.auth_method` all present. Then confirmed end-to-end against the running server: a genuine pre-2026-08-14 user (created before this feature existed) logged in successfully via phone — direct proof the 0005 backfill correctly protects real, not just synthetic, data — and a fresh email signup correctly triggered `phone_required`. **Why this matters:** anyone picking up `authsetup` fresh with an existing dev DB needs `alembic upgrade head` before testing this feature, not just `pip install`+ run.
 
-## 2026-08-17 — Migration 0006: email+password auth
+## 2026-08-17 — Migration 0006: email+password auth (Superseded)
 
-`0006_email_password_auth` — adds `EMAIL_PASSWORD` to the
-`AuthIdentityProvider` enum (additive-only `ADD VALUE`, `EMAIL_OTP` never
-removed/renamed); `auth_identities` gains `password_hash`/
-`email_confirmed_at` (both nullable, populated only for `EMAIL_PASSWORD`
-rows); `pending_identity_verifications` gains `password_hash` (nullable,
-threads a hashed password through the mandatory phone gate); two new
-tables, `password_reset_tokens` and `email_confirmation_tokens` (identical
-shape: `id`, `user_id` FK, `token_hash`, `expires_at`, `used_at`,
-`created_at` — same single-use hashed-token pattern as
-`pending_identity_verifications`); `otp_requests` narrows back to
-phone-only — `email` column and its exactly-one-identifier check
-constraint dropped, `phone_number` back to `NOT NULL` (confirmed no
-non-empty `email` rows existed before dropping — the migration itself
-enforces this with a runtime check, not just a manual confirmation).
+`0006_email_password_auth` — added `EMAIL_PASSWORD` to enum, `password_hash` columns, and password reset/email confirmation tables. *(Superseded by migrations 0007/0008 below).*
+
+## 2026-08-17/18 — Migration 0007 & 0008: Email-OTP Signup and Full Password Removal
+
+- **`0007_email_otp_signup`**: Widened `otp_requests` check constraint to support both email and phone channels; generalized `otp_requests` for inline email OTP verification.
+- **`0008_remove_password_auth`**: Fully dropped `password_reset_tokens` and `email_confirmation_tokens` tables. Dropped `password_hash` and `email_confirmed_at` from `auth_identities` and `pending_identity_verifications`.
+- Enum state: `EMAIL_OTP` is active; `EMAIL_PASSWORD` remains defined in the DB enum as an unused benched value (since Postgres cannot cheaply drop enum values).
+- Schema is 100% clean, verified with `alembic upgrade head` and 449 passing tests.
+

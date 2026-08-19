@@ -1,74 +1,74 @@
-# Session state — 2026-08-18 (updated)
+# Session state — 2026-08-19 (updated)
 
-Working notes for picking this project back up cold. Not a planning doc — see
-`Docs/superpowers/plans/` for those. This file tracks *where things stand*,
-gets overwritten each session, and isn't meant to accumulate history.
+Working notes for picking this project back up cold in Claude Code or fresh sessions. Not a planning doc — see `Docs/superpowers/plans/` for those. This file tracks *where things stand*, gets overwritten each session, and isn't meant to accumulate history.
 
-**Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
-anything by re-reading the whole repo.**
+**Read this file, then `CLAUDE.md`'s Session State section, before re-deriving anything by re-reading the whole repo.**
 
-## Current Status: Visual & Motion Continuity Redesign (Auth, Onboarding, Import, Review) 100% Complete on `authsetup`
+## Current Status: Visual & Motion Polish, Auth Validation, and Hero Illustrations 100% Complete on `authsetup`
 
-Executed by **Google Antigravity** per spec `Docs/superpowers/specs/2026-08-18-auth-onboarding-import-review-visual-motion-redesign.md`.
-
-All guardrails followed strictly:
-- No new color tokens anywhere; warm cream/gold tones strictly isolated inside `OnboardingIllustration.tsx` SVG markup (verified by grep across `frontend/src`).
-- No backend files touched.
-- No changes to state machines or step logic beyond the two permitted structural exceptions (`AuthShell` in §4.2, `OnboardingCardStack` in §4.6).
-- Motion system matches spec §5 exactly: stationary/transitioning split, forward/back directionality, two-tier stagger hierarchy, and only the two named `layoutId` shared-element anchors (`brand-mark` and `fund-signal-ring`).
+All recent tasks executed and verified:
+- **Left Auth Showcase Panel Redesign & Motion Language**: Completed in `AuthShowcasePanel.tsx`. Single continuous deliberate SVG path progressively drawn on load, session play-once guard (`hasAnimatedInSession`), interactive milestone hover tooltip (`+14.8%`, `+28.4%`, `+41.2%`, `+56.8%`), near-black radial backdrop with diamond grid, and JSDOM test-environment safety guards.
+- **Comprehensive Auth Validation Engine**: Completed in `validation.ts` & `validation.test.ts` (30/30 tests passed). Covers deep email validation, extension prompts, smart typo suggestions (e.g. `gmial.com` -> `"Did you mean name@gmail.com?"`), Indian mobile number normalization (`+91XXXXXXXXXX`), dynamic live recovery on blur/change, and human-friendly backend error translation.
+- **Hero Illustrations & Option Card Assets Integration**: Extracted 5 distinct hand-drawn illustrations from the user's illustration sheet into transparent high-resolution PNGs with subtle Unifolio green accents (`#22C55E` / `#16A34A`), integrated via `OnboardingIllustration.tsx` with light/dark mode parity and ambient glow. Replaced option card icons on **Household** (`Q4Household.tsx`) and **Privacy & Security** (`TrustPrimer.tsx`) with matching bespoke hand-drawn SVGs.
+- **Backend CORS Multi-Port Support**: Updated `backend/app/main.py` with `allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$"` and multi-port list (5173, 5174, 5175, 3000) so preflight `OPTIONS` requests never fail on any local dev port.
 
 ---
 
-### 1. Components Built & Integrated
-1. **`OtpInput` (`frontend/src/components/ui/otp-input.tsx`)**:
-   - 6-segmented input component replacing raw inputs in `OtpVerify.tsx`.
-   - Auto-advance, backspace navigation, paste distribution, numeric filtering, active cell focus outline with existing tokens, accessible labeling.
-   - Comprehensive unit test suite: `frontend/src/components/ui/otp-input.test.tsx` (7 tests).
+### 1. Components Built, Redesigned & Integrated
 
-2. **`AuthShell` & Evolving `AuthShowcasePanel` (`frontend/src/features/auth/AuthShell.tsx`, `AuthShowcasePanel.tsx`, `AuthEntryFlow.tsx`)**:
-   - `AuthShell.tsx`: Persistent split-screen shell, Unifolio logo with `layoutId="brand-mark"`, responsive single-column mobile layout, directional slide transitions with `framer-motion` (`AnimatePresence mode="popLayout"` forward/back directional tracking).
-   - `AuthShowcasePanel.tsx`: Evolving step-driven headlines, dynamic fill fraction ring (0.80 -> 0.85 -> 0.92 -> 1.0) with `layoutId="fund-signal-ring"`.
-   - `EmailEntry.tsx`, `PhoneEntry.tsx`, `Landing.tsx`: Section-level stagger motion (`staggerContainerVariants` / `staggerItemVariants`).
+1. **`OnboardingIllustration` (`frontend/src/features/auth/OnboardingIllustration.tsx`)**:
+   - Renders transparent hand-drawn illustrations with subtle Unifolio green accents and light/dark theme switching:
+     - `trust` (`/illustrations/trust.png`, `trust_dark.png`): Vault safe, padlock shield, and investment certificate with green security shield.
+     - `name` (`/illustrations/name.png`, `name_dark.png`): Hands holding interactive tablet with green upward growth arrow and active chart bar.
+     - `investing` (`/illustrations/investing.png`, `investing_dark.png`): Zigzag ascending multi-asset compounding chart with green arrow.
+     - `purpose` (`/illustrations/purpose.png`, `purpose_dark.png`): Milestone roadmap with green target bullseye and goal flag.
+     - `household` / `family` (`/illustrations/household.png`, `family.png`): Household roadmap and custom dashboard setup.
+     - `upload` (`/illustrations/upload.png`, `upload_dark.png`): Curved growth arrow and coins emerging from raw data.
+   - Ambient emerald radial aura behind each illustration with responsive containment.
 
-3. **Motion Constants (`frontend/src/lib/motion.ts`)**:
-   - Centralized motion tokens: `isTestEnv`, `MOTION_EASING`, `DURATION_FAST` (150ms), `DURATION_REVEAL` (400ms), `DURATION_PAGE` (300ms), Tier-1 section stagger variants (50ms offset), Tier-2 row stagger variants (30ms offset).
+2. **Hand-Drawn Option Card SVGs (`Q4Household.tsx`, `TrustPrimer.tsx`)**:
+   - `Q4Household.tsx`:
+     - **Just Me**: Single-person investor ID badge in charcoal linework with cream fill (`#FEF3C7`), verified star (`#F59E0B`), and Unifolio green header accent.
+     - **Family Too**: Dual-member household canopy (gold & emerald partner tokens) with connecting dotted bond and sheltering roof.
+   - `TrustPrimer.tsx`:
+     - **Read-only portfolio access**: Hand-drawn security shield with radiating trust sparks and embedded portfolio stepped bars in Unifolio green.
+     - **No raw CAS PDF storage**: Hand-drawn document folio with folded corner, ruling lines, and green privacy checkmark seal.
 
-4. **`OnboardingIllustration` (`frontend/src/features/auth/OnboardingIllustration.tsx`)**:
-   - Inline SVG artwork for all 5 questionnaire steps (`trust`, `name`, `investing`, `purpose`, `household`).
-   - Strict color guardrail adherence: warm cream/gold tones live strictly inside SVG `fill` and `stop-color` attributes.
+3. **`AuthShowcasePanel` (`frontend/src/features/auth/AuthShowcasePanel.tsx`)**:
+   - Visual focal point: 3D dark slate screen card with bevel highlight and ambient drop shadow.
+   - SVG Path Animation: One deliberate continuous trajectory starting as a chaotic waveform on the left and transitioning into a structured compounding upward curve on the right.
+   - `hasAnimatedInSession` session persistence flag ensures the 3.2s draw animation plays **only once** on initial load and stays in its completed state across auth steps.
+   - Hover Tooltip: Milestone hover interaction revealing metrics at nearest curve point.
+   - JSDOM safe: Guards `getTotalLength` and `getPointAtLength` with `typeof` checks to prevent test failures in non-browser environments.
 
-5. **`OnboardingCardStack` (`frontend/src/features/auth/OnboardingCardStack.tsx`)**:
-   - Persistent deck container with 2 blank background placeholder card silhouettes at fixed tilt angles (`-3deg` and `2.5deg`).
-   - "Dealt card" rotation + slide transition forward/back keyed to `history.cursor`.
-   - Unit tests: `frontend/src/features/auth/OnboardingCardStack.test.tsx` (2 tests).
-   - Wired into `OnboardingFlow.tsx` across all 5 questionnaire steps (`TrustPrimer`, `Q1Name`, `Q2Investing`, `Q3Purpose`, `Q4Household`).
+4. **Validation Engine (`frontend/src/features/auth/validation.ts`, `validation.test.ts`)**:
+   - `validateEmail(value)`: Catches empty input, spaces, missing `@`, multiple `@`, consecutive dots, dot/hyphen boundaries, missing TLDs, and suggests corrections for common domain typos (`gmial.com`, `gamil.com`, `yaho.com`, `hotmial.com`, `.comcom`, `.coom`) without silent modification.
+   - `validateIndianPhone(value)`: Validates 10-digit requirements, rejects non-digits and decimals, enforces valid starting digits (`6`, `7`, `8`, `9`), and normalizes `+91`, `91`, `0` prefixes.
+   - `formatAuthErrorMessage(err, fallback)`: Maps API errors (409 conflict, 401 incorrect OTP, 429 rate limit cooldown, 500 server error, network fetch failure) into clean human-friendly messages while preserving authentic backend detail.
+   - Form integration: Live dynamic recovery on blur and submit in `Landing.tsx`, `EmailEntry.tsx`, `PhoneEntry.tsx`, `OtpVerify.tsx`, and `AuthEntryFlow.tsx`.
 
-6. **`ImportFileProgressList` (`frontend/src/features/import/ImportFileProgressList.tsx`)**:
-   - One row per file with filename, formatted size, progress indicator, status badges (`Ready`, `Uploading...`, `Pending`, `Error`), and file removal button.
-   - Row-level stagger animation (Tier 2, 30ms offset).
-   - Unit tests: `frontend/src/features/import/ImportFileProgressList.test.tsx` (2 tests).
-   - Integrated into `UploadForm.tsx` (web) and `MobileUploadForm.tsx` (mobile).
-
-7. **CAS Import & Review Polish (`ImportFlow.tsx`, `ReviewTable.tsx`, `MobileReviewView.tsx`)**:
-   - `ImportFlow.tsx`: `motion-page` crossfade transition on step context changes.
-   - `ReviewTable.tsx` & `MobileReviewView.tsx`: Calm container-level settle on mount (`motion-reveal` for table container), localized micro-interactions on cell overrides and match status badges.
-
----
-
-### 2. §9 Open Items Resolution
-- **Review-screen visual inspiration**: Resolved — implemented calm container-level settle on mount without per-row stagger, keeping dense financial data stable, with localized cell micro-interactions.
-- **Onboarding illustration artwork**: Resolved — created bespoke inline SVG illustrations for all 5 variants with warm gold tones strictly isolated to SVG attributes.
-- **Card-stack / dealt-card transition**: Resolved — implemented stationary deck container with 2 background placeholder silhouettes and forward/backward dealt card rotation+slide animation.
-- **Mobile-specific onboarding views**: Confirmed — onboarding uses responsive web components throughout; mobile import surfaces in `frontend/src/mobile/features/import/` (`MobileUploadForm.tsx`, `MobileReviewView.tsx`) updated to match web enhancements.
+5. **Motion System & Visual Continuity (`lib/motion.ts`, `AuthShell.tsx`, `OnboardingCardStack.tsx`, `ImportFileProgressList.tsx`)**:
+   - Persistent split-screen shell with `layoutId="brand-mark"`.
+   - `OnboardingCardStack` with stationary deck silhouettes and forward/back dealt-card animation keyed to `history.cursor`.
+   - `ImportFileProgressList` with row stagger and status badges.
 
 ---
 
-### 3. Verification & Test Results
-- **Full Frontend Test Suite**: **234 tests passed across 55 test files** (`npm test -- --run`).
-- **TypeScript Typecheck**: **0 errors** (`npx tsc -b --noEmit`).
-- **Color Guardrail**: Grep search verified zero warm color hexes outside `OnboardingIllustration.tsx`.
-- **Git Branch**: All changes remain strictly on `authsetup` branch.
+### 2. Verification & Test Results
 
-## What's Next
-- Merge `authsetup` into `dev_intern` / `main` when ready.
-- Frontend Analytics Dashboard UI (PRD-04) remains the next major feature area.
+- **Validation Test Suite**: **30/30 tests passed** (`src/features/auth/validation.test.ts`).
+- **Auth Flow Tests**: **15/15 tests passed** (`src/features/auth/AuthEntryFlow.test.tsx`).
+- **Onboarding Flow Tests**: **6/6 tests passed** (`TrustPrimer.test.tsx`, `OnboardingFlow.test.tsx`).
+- **Backend Test Suite**: **449 passed, 2 skipped, 0 failed** (`pytest`).
+- **TypeScript Typecheck**: **0 errors** (`npx tsc -b`).
+- **Production Bundle Build**: **Clean build** (`npm run build`).
+
+---
+
+### 3. What's Next for Claude Code
+
+1. **Frontend Analytics Dashboard UI (PRD-04)**:
+   - Backend APIs and Scorer methodology are 100% complete and tested.
+   - Ready to build the React Analytics views: Category Allocation, Direct vs. Regular TER/AAUM savings, Benchmark comparison, and the proprietary Fund & Portfolio Quality Scorer display.
+2. **CAS Import Lifecycle Integration**:
+   - Review and wire the 11-state import lifecycle engine views into the main application workflow.

@@ -82,21 +82,47 @@ All 10 tasks completed and reviewed, each independently verified by the controll
 
 The mandatory final whole-branch review found 1 Critical + 6 Important findings — the Critical (Google sign-in failures completely invisible to the user — `Landing.tsx` had no `error`/`submitting` props to render what `AuthEntryFlow`'s Google handler already set) is the standout: neither Task 3 nor Task 7 could have caught it in isolation, since both were individually correct against their own briefs — only the merged wiring exposed the gap, because the design spec's explicit requirement for GoogleButton to own error/loading state was silently dropped when the plan's task briefs were written. A fix wave addressed all 9 findings (1 Critical, 6 Important, 2 selected Minor) in one commit, and — as a genuinely valuable side effect of needing its own verification to pass — found and fixed a real environment bug that had been causing this whole session's "transient" vitest worker-timeout flakiness (see `decisions.md`'s 2026-08-17 entry). Mid-fix-wave, the user tested the actual dev server in their own browser and explicitly rejected one specific piece of the fix (a visible "not configured" banner for missing Google client ID) — honored directly as a targeted follow-up revert, re-verified, without touching anything else from the fix wave. The final scoped re-review confirmed all 9 findings genuinely addressed (including the deliberate reversal), with only 3 cosmetic stale-comment items parked. **Full frontend suite: 219 passed, 0 failed, 0 skipped, tsc clean, production build clean.** Live browser visual verification remains an honestly-flagged gap in this sandbox (no Chrome/sudo available) — though the user's own direct browser testing during the fix-wave feedback loop is real, if partial, signal that the actual rendered UI works.
 
-## 2026-08-17 — Email+password auth: backend and frontend implementation plans fully completed
+## 2026-08-17 — Email+password auth: backend and frontend implementation plans fully completed (Superseded)
 
 Completed the transition from email-OTP to email+password authentication across both backend and frontend on branch `authsetup`.
+*(Superseded by 2026-08-17/18 password removal below).*
 
-**Backend Implementation (`2026-08-17-email-password-signup-backend.md`, all 8 tasks complete):**
-- Migration `0006_email_password_auth.py`: Added `EMAIL_PASSWORD` enum value, `password_hash` & `email_confirmed_at` to `auth_identities`, `password_hash` to `pending_identity_verifications`, new tables `password_reset_tokens` and `email_confirmation_tokens`, and tightened `otp_requests` check constraint to phone-only.
-- Service layer: `backend/app/services/auth/password.py` bcrypt service (`hash_password`, `verify_password`), `password_reset.py` (30-min hashed single-use tokens, sets new password & confirms email), `email_confirmation.py` (30-min hashed single-use tokens), and removed email-channel logic from `otp.py`.
-- Identity & Phone Gate: Provider precedence updated with `EMAIL_PASSWORD: 1`, `password_hash` threaded through `create_pending_verification` to `AuthIdentity` on phone gate completion, and automated confirmation email dispatch wired upon gate completion.
-- API Endpoints: `POST /auth/signup/email` (creates pending identity with `password_hash`, triggers phone gate), `POST /auth/login/email` (anti-enumeration credentials check, 403 if unconfirmed), `POST /auth/password/forgot`, `POST /auth/password/reset`, `POST /auth/email/confirm`.
-- Documentation & Verification: `PRD-02-Signup-Onboarding.md`, `decisions.md`, `backend.md`, `database.md`, `Database-Schema-Unifolio.md` updated. Backend test suite: 465 passed, 2 skipped, 0 failed.
+## 2026-08-17/18 — Password Auth Removal & Pure Email-OTP Flow Restoration
 
-**Frontend Implementation (`2026-08-17-email-password-signup-frontend.md`, all 5 tasks complete):**
-- Types & API client (`frontend/src/features/auth/types.ts`, `api.ts`, `api.test.ts`): Added `signupEmail(email, password)` and `loginEmail(email, password, pendingToken?)`, removed `sendEmailOtp`/`verifyEmailOtp`.
-- `EmailEntry.tsx`: Reworked to support password entry (minimum 8 characters), context-sensitive actions ("primary" with Signup and Login, "link" with Login only), and deleted `EmailOtpVerify.tsx`.
-- `LinkAccountPrompt.tsx`: Updated email branch to single-shot password login using `loginEmail(email, password, pendingToken)`.
-- `AuthEntryFlow.tsx`: Removed obsolete `email_otp` step, wired `signupEmail` to mandatory phone gate, wired `loginEmail` to session login, and added confirmation link status banner on phone gate completion for email signups.
-- Tests & Verification: Rewrote `AuthEntryFlow.test.tsx` and `LinkAccountPrompt.test.tsx`. Full frontend suite: 218 passed across 52 test files, `tsc -b --noEmit` clean, production build clean.
+Executed password removal across backend and frontend per management decision:
+- Applied migrations `0007_email_otp_signup` and `0008_remove_password_auth`.
+- Restored pure OTP-based email signup and login (`POST /auth/signup/email`, `POST /auth/email-otp/request`, `POST /auth/email-otp/verify`).
+- Removed all password fields and token tables from the backend and frontend forms.
+- Re-verified full test suites: backend 449 passed/2 skipped; frontend 218 passed across 52 test files.
+
+## 2026-08-19 — Left Auth Panel Motion, Auth Validation Engine, and Hand-Drawn Hero Illustrations Integration
+
+Executed comprehensive visual, motion, validation, and illustration enhancements:
+1. **Left Auth Showcase Panel Redesign (`AuthShowcasePanel.tsx`)**:
+   - Built a 3D dark slate screen card on a near-black radial background with diamond grid.
+   - Designed one deliberate continuous trajectory drawing smoothly along its actual SVG path from chaotic waveform to structured compounding.
+   - Added `hasAnimatedInSession` session persistence flag ensuring the animation plays exactly once per load and never restarts across step changes.
+   - Replaced automated cycling statistics with cursor-hover milestone tooltips (`+14.8%`, `+28.4%`, `+41.2%`, `+56.8%`).
+   - Added JSDOM guards for SVG path measurement methods to ensure test suite robustness.
+
+2. **CORS Multi-Port Dev Support (`backend/app/main.py`)**:
+   - Added `allow_origin_regex` to CORSMiddleware supporting ports 5173, 5174, 5175, and 3000.
+   - Automated tests added to `backend/tests/test_health.py`.
+
+3. **Comprehensive Auth Validation Engine (`validation.ts`, `validation.test.ts`)**:
+   - Built email validator with structural rules, extension prompts, and intelligent typo suggestions (e.g. `gmial.com` -> `"Did you mean name@gmail.com?"`) without silent modification.
+   - Built Indian mobile phone validator with 10-digit requirements, valid starting digits (`6-9`), non-digit rejection, and canonical normalization (`+91XXXXXXXXXX`).
+   - Wired live dynamic error recovery on blur and submit in `Landing.tsx`, `EmailEntry.tsx`, `PhoneEntry.tsx`, `OtpVerify.tsx`, and `AuthEntryFlow.tsx`.
+   - Comprehensive test suite: 30/30 unit tests passed in `validation.test.ts`.
+
+4. **Hand-Drawn Hero Illustrations & Option Cards Integration**:
+   - Extracted 5 distinct illustrations from the user's illustration sheet into transparent high-resolution PNGs with subtle Unifolio green accents (`#22C55E` / `#16A34A`), with both light mode (charcoal linework) and dark mode (luminous silver) assets.
+   - Integrated into `OnboardingIllustration.tsx` with light/dark theme switching and ambient emerald radial depth glow.
+   - Replaced generic Lucide icons in `Q4Household.tsx` (Just Me, Family Too) and `TrustPrimer.tsx` (Read-only access, No raw CAS PDF storage) with matching bespoke hand-drawn SVGs.
+
+5. **Full Verification**:
+   - All unit tests and integration tests passing (`30/30` validation, `15/15` auth entry flow, `6/6` onboarding flow).
+   - Backend suite: 449 passed, 2 skipped, 0 failed.
+   - Production bundle build: `npm run build` clean (0 errors).
+
 

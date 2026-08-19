@@ -221,3 +221,30 @@ password-manager-autofill rationale in the entry above was a real
 tradeoff call at the time; leaving it uncontradicted here would misstate
 why the code changed. Google and phone+OTP were never password-based and
 are unaffected either way.
+
+## 2026-08-19 — Left Auth Showcase Panel: Single Continuous Deliberate SVG Path Motion
+
+The left authentication showcase panel was redesigned (`AuthShowcasePanel.tsx`) to replace random floating bubbles and cycling statistics with a single, deliberate continuous path integrated into the central 3D dark slate card.
+- **Trajectory Motion**: The path draws progressively from a subtle chaotic waveform on the left into an increasingly structured upward compounding curve on the right.
+- **Play-Once Session Guard**: Uses `hasAnimatedInSession` module state so the 3.2s animation draws exactly once on initial page load and stays in its completed state across auth step transitions, avoiding jarring resets.
+- **Hover-Only Milestone Metrics**: Replaced automated cycling stats with a cursor-hover tooltip that reveals milestone data (`+14.8%`, `+28.4%`, `+41.2%`, `+56.8%`) at the nearest data point.
+
+**Why:** Creates a calm, premium, deliberate financial visualization that communicates portfolio progression without distracting motion or false complexity.
+
+## 2026-08-19 — Comprehensive Frontend Validation & Typo Detection Engine
+
+Implemented client-side validation across all auth screens for both Email and Phone channels (`frontend/src/features/auth/validation.ts`):
+- **Email Validation**: Structural checking (missing `@`, multiple `@`, spaces, consecutive dots, dot/hyphen boundaries) + missing TLD prompts + intelligent typo suggestions (e.g. `name@gmial.com` -> *"Did you mean name@gmail.com?"*) without silent modification.
+- **Indian Mobile Phone Validation**: Enforces 10-digit requirements, valid Indian prefixes (`6`, `7`, `8`, `9`), rejects non-digits/decimals, and normalizes `+91`, `91`, `0` prefixes to standard `+91XXXXXXXXXX`.
+- **Dynamic Live Recovery UX**: Errors trigger on blur and submit, and clear/update dynamically in real time as the user types corrections.
+
+**Why:** Eliminates failed OTP submissions, prevents subtle user typos, and provides human-friendly error guidance directly below input fields.
+
+## 2026-08-19 — Hand-Drawn Hero Illustrations & Bespoke Option Card SVGs
+
+Replaced generic vector artwork with bespoke hand-drawn illustrations sourced from the project's illustration sheet:
+- Extracted 5 transparent high-resolution PNGs with subtle Unifolio green accents (`#22C55E` / `#16A34A`) and light/dark theme assets, rendered in `OnboardingIllustration.tsx` with an ambient emerald radial glow.
+- Replaced generic Lucide icons on **Household** (`Q4Household.tsx`) and **Privacy & Security** (`TrustPrimer.tsx`) option cards with custom hand-drawn SVGs matching the stroke weight and character of the rest of the onboarding cards.
+
+**Why:** Creates a cohesive, bespoke visual identity across the entire onboarding and authentication experience while strictly honoring the brand's monochrome-with-green-accent design philosophy.
+

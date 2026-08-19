@@ -85,20 +85,27 @@ The re-review surfaced 4 new Minor findings in the fix-wave diff itself (a dupli
 
 All 10 tasks + 1 out-of-plan `App.test.tsx` fix + the final whole-branch review's 1 Critical/6 Important findings, fixed and independently re-verified twice. Full detail in `log.md`'s 2026-08-15–17 entry and `decisions.md`. **Both multi-method-auth plans (backend and frontend) are now fully complete** — the auth remodel started earlier this session is done end to end: Google Sign-In, email+OTP, and phone+OTP all work as equal entry points, backed by the mandatory phone-gate invariant and step-up-only account linking, verified end-to-end against a real running backend with real (pre-existing, non-synthetic) user data.
 
-## 2026-08-17 — Email+password auth backend complete
+## 2026-08-17 — Email+password auth backend complete (Superseded)
 
 Replaces email+OTP with email+password (Google and phone+OTP unchanged).
 New: `password.py` (bcrypt hashing), `password_reset.py` and
-`email_confirmation.py` (both reusing the existing `EmailProvider`
-abstraction, same single-use hashed-token pattern `pending_identity_
-verifications` already uses), `POST /auth/signup/email`, `POST
-/auth/login/email`, `POST /auth/password/forgot`, `POST /auth/password/
-reset`, `POST /auth/email/confirm`. Removed: the entire email-OTP code
-path (`otp.py`'s channel generalization, `otp_requests.email`) — the
-`EMAIL_OTP` enum value itself stays defined but unused, since Postgres
-enums can't cheaply drop a value. `AuthIdentity` gains `password_hash`/
-`email_confirmed_at`; `pending_identity_verifications` gains
-`password_hash` to thread it through the mandatory phone gate exactly the
-way Google's identity already does. Full design and the two real findings
-closed during review: `decisions.md`'s 2026-08-17 entry and
-`Docs/superpowers/specs/2026-08-17-email-password-signup-design.md`.
+`email_confirmation.py`. Migration `0006_email_password_auth`.
+*(Superseded by 2026-08-17/18 reversal below).*
+
+## 2026-08-17/18 — Pure Email-OTP Auth restoration & Password removal
+
+Reversed password auth completely across all backend routes and schema.
+Migration `0007_email_otp_signup` and `0008_remove_password_auth`:
+- Reactivated `EMAIL_OTP` as the active email auth provider in `AuthIdentity`.
+- Removed `password.py`, `password_reset.py`, `email_confirmation.py`, and dropped `password_reset_tokens` / `email_confirmation_tokens` tables.
+- Generalized `otp.py` across email and phone channels with SHA-256 hashed 6-digit codes and per-identifier 60s cooldowns.
+- Endpoints: `POST /auth/signup/email` (initiates email OTP send), `POST /auth/email-otp/request`, `POST /auth/email-otp/verify` (verifies code, attaches identity or transitions to mandatory phone gate).
+- Step-up account linking verified with `peek_pending_matched_user_id` security check against pre-emptive identity takeover.
+- Backend suite: 449 passed, 2 skipped, 0 failed.
+
+## 2026-08-19 — CORS Multi-Port Dev Support & Regex Configuration
+
+Updated `backend/app/main.py` `CORSMiddleware`:
+- Added `allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$"` alongside the standard origin list (`http://localhost:5173`, `http://localhost:5174`, `http://localhost:5175`, `http://localhost:3000`).
+- Prevents CORS preflight `OPTIONS` failure when the frontend dev server auto-allocates port 5174 or 5175.
+- Automated tests added to `backend/tests/test_health.py` covering multi-port preflight headers.

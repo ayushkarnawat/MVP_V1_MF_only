@@ -109,68 +109,28 @@ Codex-implemented change is considered done. Full design:
 
 ## Session State
 
-*(Updated 2026-08-18. See `session.md` at repo root for the full detailed history —
+*(Updated 2026-08-19. See `session.md` at repo root for the full detailed history —
 this section is a current-status pointer, not the record of every past session.)*
 
-**Visual & Motion Continuity Redesign (Auth, Onboarding, Import, Review) is 100% complete on branch `authsetup`.**
-Executed by **Google Antigravity** per spec `Docs/superpowers/specs/2026-08-18-auth-onboarding-import-review-visual-motion-redesign.md`:
-- Built `OtpInput` (6-cell segmented input, auto-advance, paste support, unit-tested).
-- Built `AuthShell` (persistent split-screen shell, `layoutId="brand-mark"`, directional slide transitions).
-- Built evolving `AuthShowcasePanel` (`layoutId="fund-signal-ring"`, evolving fill fraction, step-driven copy).
-- Created `OnboardingIllustration` (bespoke inline SVG artwork for trust, name, investing, purpose, household with warm gold tones strictly isolated to SVG attributes).
-- Built `OnboardingCardStack` (stationary deck container with 2 background silhouettes and "dealt card" rotation+slide animation keyed to `history.cursor`).
-- Built `ImportFileProgressList` (row-level stagger, status badges, progress indicator, file removal).
-- Refined CAS Import (`motion-page` crossfade) and Review surfaces (`ReviewTable` & `MobileReviewView` calm container-level settle on mount, localized micro-interactions).
-- **All 55 test files and 234 frontend tests passing**, `npx tsc -b --noEmit` clean, zero warm colors outside `OnboardingIllustration.tsx`.
+**Auth, Onboarding, Validation & Visual Experience are 100% complete on branch `authsetup`.**
+Executed and verified across recent sessions:
+- **Left Auth Showcase Panel Redesign (`AuthShowcasePanel.tsx`)**: Near-black radial backdrop, diamond grid, 3D slate screen card with bevel highlight, deliberate continuous trajectory drawing from chaotic waveform to structured compounding, session play-once persistence (`hasAnimatedInSession`), interactive milestone hover tooltip (`+14.8%`, `+28.4%`, `+41.2%`, `+56.8%`), and JSDOM test guards.
+- **Comprehensive Auth Validation Engine (`validation.ts`, `validation.test.ts`)**: 30/30 tests passing. Structural email validation, extension reminders, intelligent typo suggestions (e.g. `gmial.com` -> `"Did you mean name@gmail.com?"`), Indian mobile phone validation (10-digit, 6-9 prefix, no decimals/chars) with canonical normalization (`+91XXXXXXXXXX`), dynamic live recovery on blur/change, and friendly error translation (`formatAuthErrorMessage`).
+- **Hand-Drawn Hero Illustrations & Option Cards**: Sourced from user's illustration sheet, extracted as transparent high-res PNGs with subtle Unifolio green accents (`#22C55E` / `#16A34A`), integrated into `OnboardingIllustration.tsx` with light/dark theme parity and ambient glow. Replaced option card icons in `Q4Household.tsx` (Just Me & Family Too) and `TrustPrimer.tsx` (Read-only access & No raw CAS PDF storage) with matching bespoke hand-drawn SVGs.
+- **CORS Multi-Port Dev Support**: `backend/app/main.py` updated with `allow_origin_regex` and multi-port support (5173, 5174, 5175, 3000) so preflight `OPTIONS` requests never fail on any local dev port.
+- **Backend Auth Architecture**: Pure passwordless flow across all three methods (Phone+OTP, Google OAuth, Email+OTP), backed by mandatory phone gate, step-up account linking, and migration 0008. Backend suite: **449 passing, 2 skipped, 0 errors**.
+- **Frontend Verification**: **All test suites passing**, `npx tsc -b` clean (0 errors), `npm run build` clean.
 
 **PRD-04 (Analytics) backend is fully complete — all 5 parts, including the Scorer.** Category allocation (Part 1), AMFI TER+AAUM → weighted TER (Part 2), NSE
 Indices → benchmark comparison (Part 3), category-universe ranking (Part 4), and the
 Scorer — composite fund quality score, portfolio roll-up, full breakdown (Part 5,
-FR-5/FR-6/FR-7) — are all built, tested, and merged. The Scorer was Ayush's one hard
-product requirement: genuinely differentiated from Morningstar/CRISIL/PowerUp, not a
-clone of any single agency's formula (fixed 45% Return / 30% downside-only Risk / 25%
-rolling-12-month category-beat Consistency weighting, resolved 2026-08-13; full
-methodology in `Docs/Scorer-Methodology-Unifolio.md`, a stakeholder-facing plain-language
-doc, not just code comments). Delegated to Codex via `model-orchestration`; the mandatory
-adversarial-review gate against the full branch diff caught 3 real findings (1 High:
-`compute_portfolio_score` was redundantly re-scoring each held fund's full category
-universe independently; 2 Medium: a Feb-29 `date.replace(year=...)` crash, a racy
-check-then-insert on daily `FundScore` persistence) — all fixed in one round
-(`d732fce`), confirmed via scoped re-review. **Backend suite: 357 passing, 2 skipped.**
-Only PRD-04's *frontend* (the Analytics dashboard UI) remains unbuilt — nothing else is
-outstanding on Analytics.
+FR-5/FR-6/FR-7) — are all built, tested, and merged. Fixed 45% Return / 30% downside-only Risk / 25%
+rolling-12-month category-beat Consistency weighting; full methodology in `Docs/Scorer-Methodology-Unifolio.md`.
+Only PRD-04's *frontend* (the Analytics dashboard UI) remains unbuilt — ready for Claude Code to execute.
 
-**Substantial intern-authored work has landed on `feat/enhanced-ui`/`dev_intern` and is
-NOT yet independently code-reviewed by Claude Code** (unlike the Phase 3b Antigravity
-redesign, which got a full review pass before merge — see below). This includes: the
-shadcn/Tailwind UI foundation and mobile app shell; a full CAS import redesign (an
-11-state import lifecycle engine + Alembic migration `0003`, coverage-gap detection,
-opening-balance resolution, a CAMS-portal mailback URL generator, and matching frontend
-lifecycle views — a two-path CAS import UI, coverage-gap banner, import history); and a
-Badge/Select componentry refactor (Radix `Select` adopted across `ReviewTable`,
-`AttributionModal`, `AddFamilyMembers`, mobile dashboard filters). Every commit here is
-authored by the intern (`aditishanbhag`), not Claude Code or Ayush. **Verified passing
-as a final branch-reconciliation check this session** — full suites green (357/2
-backend, 190/190 frontend across 49 files, `tsc -b --noEmit` clean) — but "tests pass"
-is not the same claim as "independently reviewed for correctness against CLAUDE.md's
-non-negotiables (`Decimal`-never-`float`, no raw CAS PDF storage, no PAN persistence)."
-The CAS import lifecycle engine in particular touches money/state-machine logic and has
-had no Claude Code review pass yet — treat as an open item, not as verified-correct.
-
-**Branch state: `dev_intern` and `feat/enhanced-ui` are identical**, both at `7426047`
-(a merge commit reconciling the intern's own incoming push with this session's earlier
-work). Confirmed via `git merge-base --is-ancestor` equivalence and matching `git log -1`
-on both. **This sandbox has no git push credentials** — push both branches (already
-fast-forward-mergeable, no force needed) from a machine that does. `main` remains
-untouched, per standing instruction to hold off until the Analytics dashboard
-(frontend) is complete.
-
-**Knowledge graph is stale** — `.ua/knowledge-graph.json` was last refreshed at
-`gitCommitHash 35fedd38f968e5b763269a67dbe8d16eff44e9ed` (**661 nodes / 1657 edges / 10
-layers / 15 tour steps**), which predates the Scorer, the CAS import lifecycle redesign,
-and the UI/Select refactor entirely. Re-run `/understand` (incremental) before trusting
-it for anything in `analytics/scorer.py`, `analytics/risk_metrics.py`,
-`import_/state_machine.py`, or the new frontend lifecycle views.
+**Substantial intern-authored work on CAS Import Lifecycle is on `feat/enhanced-ui`/`dev_intern`**:
+Includes an 11-state import lifecycle engine + Alembic migration `0003`, coverage-gap detection,
+opening-balance resolution, and matching frontend lifecycle views.
 
 **Still open, carried forward from earlier phases, not yet revisited:**
 1. A held scheme with no obtainable NAV silently vanishes from
@@ -179,8 +139,7 @@ it for anything in `analytics/scorer.py`, `analytics/risk_metrics.py`,
 2. `confirm_import`'s plan-type override has no server-side 409 backstop —
    pre-existing Phase 1 backend code.
 3. No DB uniqueness constraint on the "self" `household_members` row —
-   frontend-mitigated client-side only; real fix is a migration (confirmed still
-   missing — only migrations `0001`–`0003` exist, none touch this).
+   frontend-mitigated client-side only; real fix is a migration.
 4. `HoldingsTable.tsx` references a dead `row.return_percentage_1y` field that doesn't
    exist on the real API type — harmless (client-computed fallback always runs), never
    cleaned up.
