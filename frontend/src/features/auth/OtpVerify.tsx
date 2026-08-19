@@ -34,16 +34,32 @@ export function OtpVerify({
   devOtp,
 }: OtpVerifyProps) {
   const [otp, setOtp] = useState("");
+  const [validationError, setValidationError] = useState<string | null>(null);
   const isEmail = channel === "email";
+
+  const handleOtpChange = (newOtp: string) => {
+    setOtp(newOtp);
+    if (validationError && newOtp.length === 6) {
+      setValidationError(null);
+    }
+  };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (otp.length < 6) {
+      setValidationError("Please enter the complete 6-digit verification code.");
+      return;
+    }
+    setValidationError(null);
     onSubmit(otp);
   };
+
+  const displayedError = validationError || error;
 
   return (
     <form
       onSubmit={handleSubmit}
+      noValidate
       className="w-full max-w-md mx-auto space-y-6 text-left box-border"
     >
       {/* 1. Brand Heading */}
@@ -51,14 +67,14 @@ export function OtpVerify({
         <h1 className="font-display font-bold text-2xl sm:text-3xl text-[var(--color-ink)] tracking-tight">
           {isEmail ? "Verify your email" : "Verify your number"}
         </h1>
-        <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed">
+        <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed font-body">
           We sent a 6-digit verification code to <strong className="text-[var(--color-ink)] font-mono">{phoneNumber}</strong>
         </p>
       </div>
 
       {/* 2. Dev OTP Helper Banner */}
       {devOtp && (
-        <div className="flex items-center justify-between p-3 rounded-2xl bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] border border-[color-mix(in_srgb,var(--color-accent)_20%,transparent)] text-xs text-[var(--color-ink)]">
+        <div className="flex items-center justify-between p-3 rounded-2xl bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] border border-[color-mix(in_srgb,var(--color-accent)_20%,transparent)] text-xs text-[var(--color-ink)] font-body">
           <div className="flex items-center gap-1.5">
             <KeyRound className="h-3.5 w-3.5 text-[var(--color-accent)] flex-shrink-0" />
             <span className="font-semibold text-[var(--color-accent)]">Local Dev OTP:</span>
@@ -73,27 +89,27 @@ export function OtpVerify({
       <div className="space-y-2">
         <label
           htmlFor="otp-input"
-          className="text-xs font-semibold text-[var(--color-ink)] block"
+          className="text-xs font-semibold text-[var(--color-ink)] block font-body"
         >
           Verification code
         </label>
         <OtpInput
           id="otp-input"
           value={otp}
-          onChange={setOtp}
+          onChange={handleOtpChange}
           disabled={submitting}
           autoFocus
         />
       </div>
 
       {/* 4. Error Alert */}
-      {error && (
+      {displayedError && (
         <div
           role="alert"
-          className="flex items-center gap-2.5 p-3.5 rounded-2xl bg-[color-mix(in_srgb,var(--color-negative)_10%,transparent)] border border-[color-mix(in_srgb,var(--color-negative)_25%,transparent)] text-xs text-[var(--color-negative)] font-medium"
+          className="flex items-center gap-2.5 p-3.5 rounded-2xl bg-[color-mix(in_srgb,var(--color-negative)_10%,transparent)] border border-[color-mix(in_srgb,var(--color-negative)_25%,transparent)] text-xs text-[var(--color-negative)] font-medium font-body animate-in fade-in duration-150"
         >
           <AlertCircle className="h-4 w-4 flex-shrink-0" />
-          <span>{error}</span>
+          <span>{displayedError}</span>
         </div>
       )}
 
@@ -101,7 +117,7 @@ export function OtpVerify({
       <div className="space-y-3 pt-1">
         <Button
           type="submit"
-          disabled={submitting || otp.length < 4}
+          disabled={submitting || otp.length === 0}
           className="w-full h-11 sm:h-12 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs sm:text-sm shadow-sm gap-2 cursor-pointer active:scale-[0.99] transition-all min-h-[44px] sm:min-h-[48px]"
         >
           {submitting ? (
@@ -117,7 +133,7 @@ export function OtpVerify({
           )}
         </Button>
 
-        <div className="flex items-center justify-between text-xs pt-1">
+        <div className="flex items-center justify-between text-xs pt-1 font-body">
           <button
             type="button"
             onClick={onBack ?? onResend}
@@ -139,7 +155,7 @@ export function OtpVerify({
       </div>
 
       {/* 6. Security Footnote */}
-      <div className="flex items-center justify-center sm:justify-start gap-1.5 text-[11px] text-[var(--color-text-secondary)] pt-2 select-none">
+      <div className="flex items-center justify-center sm:justify-start gap-1.5 text-[11px] text-[var(--color-text-secondary)] pt-2 select-none font-body">
         <ShieldCheck className="h-3.5 w-3.5 text-[var(--color-accent)]" />
         <span>256-bit encrypted · Read-only access · No spam</span>
       </div>

@@ -3,6 +3,8 @@ import type { FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, ArrowRight, Loader2, Mail, Phone, ShieldCheck } from "lucide-react";
 import { GoogleButton } from "./GoogleButton";
+import { validateEmail } from "./validation";
+import { cn } from "@/lib/utils";
 
 interface LandingProps {
   onSignup: (email: string) => void;
@@ -24,13 +26,36 @@ export function Landing({
   // Sign up is the default state on application launch
   const [mode, setMode] = useState<"login" | "signup">("signup");
   const [email, setEmail] = useState("");
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [isTouched, setIsTouched] = useState(false);
+
+  const handleEmailChange = (value: string) => {
+    setEmail(value);
+    if (isTouched || validationError) {
+      const res = validateEmail(value);
+      setValidationError(res.isValid ? null : res.error);
+    }
+  };
+
+  const handleEmailBlur = () => {
+    setIsTouched(true);
+    if (email.trim().length > 0) {
+      const res = validateEmail(email);
+      setValidationError(res.isValid ? null : res.error);
+    }
+  };
 
   const handleSignupSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    onSignup(email);
+    setIsTouched(true);
+    const res = validateEmail(email);
+    if (!res.isValid) {
+      setValidationError(res.error);
+      return;
+    }
+    setValidationError(null);
+    onSignup(email.trim());
   };
-
-  const displayedError = error;
 
   return (
     <div className="w-full max-w-md mx-auto space-y-6 text-left box-border py-2">
@@ -49,14 +74,14 @@ export function Landing({
         </div>
       </div>
 
-      {/* 2. Error Display */}
-      {displayedError && (
+      {/* 2. Server Authentication Error Alert */}
+      {error && !validationError && (
         <div
           role="alert"
-          className="flex items-center gap-2.5 p-3.5 rounded-2xl bg-[color-mix(in_srgb,var(--color-negative)_10%,transparent)] border border-[color-mix(in_srgb,var(--color-negative)_25%,transparent)] text-xs text-[var(--color-negative)] font-medium font-body"
+          className="flex items-center gap-2.5 p-3.5 rounded-2xl bg-[color-mix(in_srgb,var(--color-negative)_10%,transparent)] border border-[color-mix(in_srgb,var(--color-negative)_25%,transparent)] text-xs text-[var(--color-negative)] font-medium font-body animate-in fade-in duration-150"
         >
           <AlertCircle className="h-4 w-4 flex-shrink-0" />
-          <span>{displayedError}</span>
+          <span>{error}</span>
         </div>
       )}
 
@@ -64,7 +89,7 @@ export function Landing({
       {mode === "signup" ? (
         /* Sign Up Experience (Default) */
         <div key="signup-mode" className="space-y-4 animate-in fade-in duration-200">
-          <form onSubmit={handleSignupSubmit} className="space-y-3.5">
+          <form onSubmit={handleSignupSubmit} noValidate className="space-y-3.5">
             <div className="space-y-1.5">
               <label htmlFor="signup-email-input" className="text-xs font-semibold text-[var(--color-ink)] block font-body">
                 Email address
@@ -74,10 +99,26 @@ export function Landing({
                 type="email"
                 placeholder="you@example.com"
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                className="w-full h-11 sm:h-12 min-h-[44px] sm:min-h-[48px] rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/20 px-3.5 text-xs sm:text-sm text-[var(--color-ink)] placeholder:text-[var(--color-text-secondary)]/50 focus:outline-none transition-all font-body"
+                onChange={(event) => handleEmailChange(event.target.value)}
+                onBlur={handleEmailBlur}
+                className={cn(
+                  "w-full h-11 sm:h-12 min-h-[44px] sm:min-h-[48px] rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] px-3.5 text-xs sm:text-sm text-[var(--color-ink)] placeholder:text-[var(--color-text-secondary)]/50 focus:outline-none transition-all font-body",
+                  validationError
+                    ? "border-[var(--color-negative)] focus:border-[var(--color-negative)] focus:ring-2 focus:ring-[var(--color-negative)]/20"
+                    : "focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/20",
+                )}
                 autoFocus
               />
+              {/* Direct Inline Field Validation Error */}
+              {validationError && (
+                <div
+                  role="alert"
+                  className="flex items-center gap-1.5 text-xs text-[var(--color-negative)] font-medium font-body pt-0.5 animate-in fade-in duration-150"
+                >
+                  <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
+                  <span>{validationError}</span>
+                </div>
+              )}
             </div>
 
             <Button
@@ -105,7 +146,10 @@ export function Landing({
             <span>Already have an account? </span>
             <button
               type="button"
-              onClick={() => setMode("login")}
+              onClick={() => {
+                setValidationError(null);
+                setMode("login");
+              }}
               className="font-semibold text-[var(--color-ink)] hover:text-[var(--color-accent)] underline-offset-4 hover:underline cursor-pointer transition-colors"
             >
               Log in
@@ -158,7 +202,10 @@ export function Landing({
             <span>Don&apos;t have an account? </span>
             <button
               type="button"
-              onClick={() => setMode("signup")}
+              onClick={() => {
+                setValidationError(null);
+                setMode("signup");
+              }}
               className="font-semibold text-[var(--color-ink)] hover:text-[var(--color-accent)] underline-offset-4 hover:underline cursor-pointer transition-colors"
             >
               Sign up

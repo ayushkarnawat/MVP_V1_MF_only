@@ -4,6 +4,8 @@ import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, ArrowLeft, ArrowRight, Loader2, ShieldCheck } from "lucide-react";
 import { staggerContainerVariants, staggerItemVariants } from "@/lib/motion";
+import { validateEmail } from "./validation";
+import { cn } from "@/lib/utils";
 
 interface EmailEntryProps {
   /** "login": direct email login from landing. "link": step-up re-authentication
@@ -19,26 +21,50 @@ interface EmailEntryProps {
 
 export function EmailEntry({ context = "login", onSignup, onLogin, onBack, submitting, error }: EmailEntryProps) {
   const [email, setEmail] = useState("");
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [isTouched, setIsTouched] = useState(false);
 
   const isLink = context === "link";
   const isLoginOnly = context === "login" || context === "link";
 
-  const submit = (event: FormEvent<HTMLFormElement>, action: "signup" | "login") => {
-    event.preventDefault();
-    if (action === "signup") {
-      onSignup?.(email);
-    } else {
-      onLogin(email);
+  const handleEmailChange = (value: string) => {
+    setEmail(value);
+    if (isTouched || validationError) {
+      const res = validateEmail(value);
+      setValidationError(res.isValid ? null : res.error);
     }
   };
 
-  const displayedError = error;
+  const handleEmailBlur = () => {
+    setIsTouched(true);
+    if (email.trim().length > 0) {
+      const res = validateEmail(email);
+      setValidationError(res.isValid ? null : res.error);
+    }
+  };
+
+  const submit = (event: FormEvent<HTMLFormElement>, action: "signup" | "login") => {
+    event.preventDefault();
+    setIsTouched(true);
+    const res = validateEmail(email);
+    if (!res.isValid) {
+      setValidationError(res.error);
+      return;
+    }
+    setValidationError(null);
+    if (action === "signup") {
+      onSignup?.(email.trim());
+    } else {
+      onLogin(email.trim());
+    }
+  };
 
   return (
     <motion.form
       variants={staggerContainerVariants}
       initial="hidden"
       animate="visible"
+      noValidate
       onSubmit={(event) => submit(event, isLoginOnly ? "login" : "signup")}
       className="w-full max-w-md mx-auto space-y-6 text-left box-border"
     >
@@ -59,7 +85,7 @@ export function EmailEntry({ context = "login", onSignup, onLogin, onBack, submi
           <h1 className="font-display font-bold text-2xl sm:text-3xl text-[var(--color-ink)] tracking-tight">
             {isLoginOnly ? "Log in with email" : "Continue with email"}
           </h1>
-          <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed">
+          <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed font-body">
             {isLink
               ? "Enter your email — we'll send a code to link this to your account."
               : isLoginOnly
@@ -72,7 +98,7 @@ export function EmailEntry({ context = "login", onSignup, onLogin, onBack, submi
       {/* 2. Inputs Group */}
       <motion.div variants={staggerItemVariants} className="space-y-3.5">
         <div className="space-y-1.5">
-          <label htmlFor="email-input" className="text-xs font-semibold text-[var(--color-ink)] block">
+          <label htmlFor="email-input" className="text-xs font-semibold text-[var(--color-ink)] block font-body">
             Email address
           </label>
           <input
@@ -80,21 +106,37 @@ export function EmailEntry({ context = "login", onSignup, onLogin, onBack, submi
             type="email"
             placeholder="you@example.com"
             value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            className="w-full h-11 sm:h-12 min-h-[44px] rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/20 px-3.5 text-xs sm:text-sm text-[var(--color-ink)] placeholder:text-[var(--color-text-secondary)]/50 focus:outline-none transition-all"
+            onChange={(event) => handleEmailChange(event.target.value)}
+            onBlur={handleEmailBlur}
+            className={cn(
+              "w-full h-11 sm:h-12 min-h-[44px] rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] px-3.5 text-xs sm:text-sm text-[var(--color-ink)] placeholder:text-[var(--color-text-secondary)]/50 focus:outline-none transition-all font-body",
+              validationError
+                ? "border-[var(--color-negative)] focus:border-[var(--color-negative)] focus:ring-2 focus:ring-[var(--color-negative)]/20"
+                : "focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/20",
+            )}
             autoFocus
           />
+          {/* Direct Inline Field Validation Error */}
+          {validationError && (
+            <div
+              role="alert"
+              className="flex items-center gap-1.5 text-xs text-[var(--color-negative)] font-medium font-body pt-0.5 animate-in fade-in duration-150"
+            >
+              <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
+              <span>{validationError}</span>
+            </div>
+          )}
         </div>
       </motion.div>
 
-      {/* 3. Error Alert */}
-      {displayedError && (
+      {/* 3. Server Authentication Error Alert */}
+      {error && !validationError && (
         <div
           role="alert"
-          className="flex items-center gap-2.5 p-3.5 rounded-2xl bg-[color-mix(in_srgb,var(--color-negative)_10%,transparent)] border border-[color-mix(in_srgb,var(--color-negative)_25%,transparent)] text-xs text-[var(--color-negative)] font-medium"
+          className="flex items-center gap-2.5 p-3.5 rounded-2xl bg-[color-mix(in_srgb,var(--color-negative)_10%,transparent)] border border-[color-mix(in_srgb,var(--color-negative)_25%,transparent)] text-xs text-[var(--color-negative)] font-medium font-body animate-in fade-in duration-150"
         >
           <AlertCircle className="h-4 w-4 flex-shrink-0" />
-          <span>{displayedError}</span>
+          <span>{error}</span>
         </div>
       )}
 
@@ -132,7 +174,7 @@ export function EmailEntry({ context = "login", onSignup, onLogin, onBack, submi
       </motion.div>
 
       {/* 5. Security Footnote */}
-      <motion.div variants={staggerItemVariants} className="flex items-center justify-center sm:justify-start gap-1.5 text-[11px] text-[var(--color-text-secondary)] pt-2 select-none">
+      <motion.div variants={staggerItemVariants} className="flex items-center justify-center sm:justify-start gap-1.5 text-[11px] text-[var(--color-text-secondary)] pt-2 select-none font-body">
         <ShieldCheck className="h-3.5 w-3.5 text-[var(--color-accent)]" />
         <span>256-bit encrypted · Read-only access · No spam</span>
       </motion.div>

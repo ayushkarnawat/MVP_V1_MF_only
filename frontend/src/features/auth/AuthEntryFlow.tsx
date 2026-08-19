@@ -18,7 +18,7 @@ import {
 import { isLinkRequired, isPhoneRequired } from "./types";
 import type { ExistingMethod } from "./types";
 import { useAuth } from "./AuthContext";
-import { ApiError } from "../../lib/apiClient";
+import { formatAuthErrorMessage } from "./validation";
 
 type Step = AuthStep;
 
@@ -29,10 +29,7 @@ interface LinkInfo {
 }
 
 function errorMessage(err: unknown, fallback: string): string {
-  if (err instanceof ApiError && typeof err.payload === "string") {
-    return err.payload;
-  }
-  return fallback;
+  return formatAuthErrorMessage(err, fallback);
 }
 
 export function AuthEntryFlow() {
