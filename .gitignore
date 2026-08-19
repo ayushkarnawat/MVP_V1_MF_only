@@ -7,6 +7,8 @@ __pycache__/
 .venv/
 *.db
 .pytest_cache/
+.pytest_tmp/
+backend/.pytest_tmp/
 backend/.cache/
 backend/pytest_tmp/
 pytest_tmp/
