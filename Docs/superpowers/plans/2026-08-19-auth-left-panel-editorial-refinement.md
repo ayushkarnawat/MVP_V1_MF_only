@@ -165,7 +165,7 @@ git commit -m "feat(tokens): add auth-panel palette and hero-reveal motion token
 - Consumes: `AuthStep` type from `./AuthShell` (already exported there — `export type AuthStep = "landing" | "email" | "phone" | "otp" | "email_otp" | "link_account"`); `isTestEnv` from `@/lib/motion` (already exported there); the token names produced by Task 1.
 - Produces: `AuthShowcasePanelProps { step?: AuthStep }` (unchanged) and the default-exported `AuthShowcasePanel` function component (unchanged name/signature) — anything currently rendering `<AuthShowcasePanel step={...} />` keeps working with no changes on its end.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `frontend/src/features/auth/AuthShowcasePanel.test.tsx`:
 
@@ -228,12 +228,12 @@ describe("AuthShowcasePanel", () => {
 });
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `cd frontend && npx vitest run src/features/auth/AuthShowcasePanel.test.tsx`
 Expected: FAIL — the current `AuthShowcasePanel.tsx` renders "Stop Guessing." inside an `<h1>` (so the "no second heading" test fails), has zero `aria-hidden` SVGs, still has `rounded-3xl` and `select-none`, and has no "Every folio, every family member..." text or "Unifolio" wordmark at all.
 
-- [ ] **Step 3: Replace the implementation**
+- [x] **Step 3: Replace the implementation**
 
 Replace the entire contents of `frontend/src/features/auth/AuthShowcasePanel.tsx` with:
 
@@ -363,17 +363,17 @@ export function AuthShowcasePanel({ step = "landing" }: AuthShowcasePanelProps) 
 }
 ```
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `cd frontend && npx vitest run src/features/auth/AuthShowcasePanel.test.tsx`
 Expected: PASS — all 6 tests green.
 
-- [ ] **Step 5: Run the full frontend test suite to confirm nothing else broke**
+- [x] **Step 5: Run the full frontend test suite to confirm nothing else broke**
 
 Run: `cd frontend && npm test`
 Expected: PASS. In particular, check any test that renders `AuthShell.tsx` or the full auth flow still passes — this component's external contract (`AuthShowcasePanelProps`, export name) didn't change, so nothing should need updating there, but confirm rather than assume.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add frontend/src/features/auth/AuthShowcasePanel.tsx frontend/src/features/auth/AuthShowcasePanel.test.tsx
