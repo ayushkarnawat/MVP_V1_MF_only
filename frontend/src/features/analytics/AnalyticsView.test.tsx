@@ -244,4 +244,29 @@ describe("AnalyticsView", () => {
 
     expect(observedSignal?.aborted).toBe(true);
   });
+
+  it("disables the Download PDF button while any section is still loading", () => {
+    render(<AnalyticsView viewMode="aggregate" memberId={null} />);
+    const button = screen.getByRole("button", { name: /download pdf/i });
+    expect(button).toBeDisabled();
+  });
+
+  it("enables Download PDF once all sections have loaded, and posts the assembled payload", async () => {
+    setupAggregateMocks();
+    const blob = new Blob(["%PDF-1.4"], { type: "application/pdf" });
+    vi.mocked(api.postExportPdf).mockResolvedValue(blob);
+    // createObjectURL/revokeObjectURL don't exist in jsdom by default
+    vi.stubGlobal("URL", { ...URL, createObjectURL: vi.fn(() => "blob:fake"), revokeObjectURL: vi.fn() });
+
+    render(<AnalyticsView viewMode="aggregate" memberId={null} />);
+    const button = await screen.findByRole("button", { name: /download pdf/i });
+    await waitFor(() => expect(button).toBeEnabled());
+
+    fireEvent.click(button);
+
+    await waitFor(() => expect(api.postExportPdf).toHaveBeenCalledTimes(1));
+    const call = vi.mocked(api.postExportPdf).mock.calls[0][0];
+    expect(call.scope).toBe("aggregate");
+    expect(call.payload.scopeName).toBe("Family Aggregate");
+  });
 });
