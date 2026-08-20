@@ -5,6 +5,7 @@ import { AlertCircle, ArrowRight, Loader2, Mail, Phone } from "lucide-react";
 import { GoogleButton } from "./GoogleButton";
 import { validateEmail } from "./validation";
 import { cn } from "@/lib/utils";
+import { HandDrawnUnderline } from "@/components/HandDrawnUnderline";
 
 interface LandingProps {
   onSignup: (email: string) => void;
@@ -147,9 +148,9 @@ export function Landing({
                 setValidationError(null);
                 setMode("login");
               }}
-              className="font-semibold text-[var(--color-ink)] hover:text-[var(--color-accent)] underline decoration-[var(--color-accent)] decoration-[1.5px] underline-offset-[4px] cursor-pointer transition-colors"
+              className="font-semibold text-[var(--color-ink)] hover:text-[var(--color-accent)] cursor-pointer transition-colors focus-visible:outline-none"
             >
-              Log in
+              <HandDrawnUnderline>Log in</HandDrawnUnderline>
             </button>
           </div>
 
@@ -203,9 +204,9 @@ export function Landing({
                 setValidationError(null);
                 setMode("signup");
               }}
-              className="font-semibold text-[var(--color-ink)] hover:text-[var(--color-accent)] underline decoration-[var(--color-accent)] decoration-[1.5px] underline-offset-[4px] cursor-pointer transition-colors"
+              className="font-semibold text-[var(--color-ink)] hover:text-[var(--color-accent)] cursor-pointer transition-colors focus-visible:outline-none"
             >
-              Sign up
+              <HandDrawnUnderline>Sign up</HandDrawnUnderline>
             </button>
           </div>
         </div>
