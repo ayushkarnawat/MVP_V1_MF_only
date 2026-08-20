@@ -35,6 +35,7 @@ function errorMessage(err: unknown, fallback: string): string {
 export function AuthEntryFlow() {
   const { login } = useAuth();
   const [step, setStep] = useState<Step>("landing");
+  const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
   const [identifier, setIdentifier] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,6 +69,7 @@ export function AuthEntryFlow() {
   };
 
   const handleSelectEmail = () => {
+    setAuthMode("login");
     setPhoneGateToken(null);
     setPhoneGatePrefillEmail(null);
     setEmailOtpToken(null);
@@ -76,6 +78,7 @@ export function AuthEntryFlow() {
   };
 
   const handleSelectPhone = () => {
+    setAuthMode("login");
     setPhoneGateToken(null);
     setPhoneGatePrefillEmail(null);
     goToStep("phone");
@@ -101,6 +104,7 @@ export function AuthEntryFlow() {
     setError(null);
     try {
       const result = await signupEmail(email);
+      setAuthMode("signup");
       // signupEmail always resolves to email_otp_required — transitions to
       // the inline email-OTP step, which runs before the mandatory phone
       // gate for a brand-new signup.
@@ -121,6 +125,7 @@ export function AuthEntryFlow() {
     setError(null);
     try {
       const result = await requestEmailOtp(email);
+      setAuthMode("login");
       // No pending record at all for a login attempt -- verify below is
       // told which flow this is via emailOtpFlow, not by token presence.
       setEmailOtpFlow("login");
@@ -227,6 +232,8 @@ export function AuthEntryFlow() {
       case "landing":
         return (
           <Landing
+            initialMode={authMode}
+            onModeChange={setAuthMode}
             onSignup={handleEmailSignup}
             onSelectEmail={handleSelectEmail}
             onSelectPhone={handleSelectPhone}
@@ -255,7 +262,13 @@ export function AuthEntryFlow() {
             channel="email"
             onSubmit={handleEmailOtpSubmit}
             onResend={handleEmailOtpResend}
-            onBack={() => goToStep("email")}
+            onBack={() => {
+              if (emailOtpFlow === "login" || authMode === "login") {
+                goToStep("email");
+              } else {
+                goToStep("landing");
+              }
+            }}
             submitting={submitting}
             error={error}
             devOtp={devOtp}

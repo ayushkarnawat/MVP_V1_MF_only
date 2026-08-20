@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils";
 import { HandDrawnUnderline } from "@/components/HandDrawnUnderline";
 
 interface LandingProps {
+  initialMode?: "login" | "signup";
+  onModeChange?: (mode: "login" | "signup") => void;
   onSignup: (email: string) => void;
   onSelectEmail: () => void;
   onSelectPhone: () => void;
@@ -17,6 +19,8 @@ interface LandingProps {
 }
 
 export function Landing({
+  initialMode = "signup",
+  onModeChange,
   onSignup,
   onSelectEmail,
   onSelectPhone,
@@ -24,8 +28,8 @@ export function Landing({
   error,
   submitting,
 }: LandingProps) {
-  // Sign up is the default state on application launch
-  const [mode, setMode] = useState<"login" | "signup">("signup");
+  // Mode state initialized from prop to preserve auth context on back navigation
+  const [mode, setMode] = useState<"login" | "signup">(initialMode);
   const [email, setEmail] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isTouched, setIsTouched] = useState(false);
@@ -100,7 +104,7 @@ export function Landing({
                 onChange={(event) => handleEmailChange(event.target.value)}
                 onBlur={handleEmailBlur}
                 className={cn(
-                  "w-full h-11 sm:h-12 min-h-[44px] sm:min-h-[48px] rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] px-3.5 text-xs sm:text-sm text-[var(--color-ink)] placeholder:text-[var(--color-text-secondary)]/50 focus:outline-none transition-all font-body",
+                  "w-full h-11 sm:h-12 min-h-[44px] sm:min-h-[48px] rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] px-3.5 text-xs sm:text-sm text-[var(--color-ink)] placeholder:text-[var(--color-text-secondary)]/50 focus:outline-none transition-all font-body box-border",
                   validationError
                     ? "border-[var(--color-negative)] focus:border-[var(--color-negative)] focus:ring-2 focus:ring-[var(--color-negative)]/20"
                     : "focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/20",
@@ -147,6 +151,7 @@ export function Landing({
               onClick={() => {
                 setValidationError(null);
                 setMode("login");
+                onModeChange?.("login");
               }}
               className="font-semibold text-[var(--color-ink)] hover:text-[var(--color-accent)] cursor-pointer transition-colors focus-visible:outline-none"
             >
@@ -203,6 +208,7 @@ export function Landing({
               onClick={() => {
                 setValidationError(null);
                 setMode("signup");
+                onModeChange?.("signup");
               }}
               className="font-semibold text-[var(--color-ink)] hover:text-[var(--color-accent)] cursor-pointer transition-colors focus-visible:outline-none"
             >

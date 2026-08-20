@@ -300,4 +300,52 @@ describe("AuthEntryFlow", () => {
     fireEvent.click(themeToggle);
     expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
   });
+
+  it("returns to Login mode when Change Email is clicked from email login OTP", async () => {
+    vi.mocked(api.requestEmailOtp).mockResolvedValue({ message: "OTP sent.", otp: "123456" });
+    renderFlow();
+
+    // 1. Start from Login
+    fireEvent.click(screen.getByRole("button", { name: /^log in$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /continue with email/i }));
+
+    // 2. Enter email
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: "user@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: /send code/i }));
+
+    // 3. Reaches OTP screen
+    await waitFor(() => expect(screen.getByLabelText(/verification code/i)).toBeInTheDocument());
+
+    // 4. Click Change Email
+    fireEvent.click(screen.getByRole("button", { name: /change email/i }));
+
+    // 5. Returned to email entry, and backing out goes to Login page (not Signup)
+    expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /^back$/i }));
+    expect(screen.getByRole("button", { name: /continue with email/i })).toBeInTheDocument();
+  });
+
+  it("returns to Login mode when Change Phone Number is clicked from phone login OTP", async () => {
+    vi.mocked(api.requestOtp).mockResolvedValue({ message: "OTP sent.", otp: "654321" });
+    renderFlow();
+
+    // 1. Start from Login
+    fireEvent.click(screen.getByRole("button", { name: /^log in$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /continue with phone/i }));
+
+    // 2. Enter phone number
+    fireEvent.change(screen.getByLabelText(/mobile number/i), { target: { value: "+919999999999" } });
+    fireEvent.click(screen.getByRole("button", { name: /send verification code/i }));
+
+    // 3. Reaches OTP screen
+    await waitFor(() => expect(screen.getByLabelText(/verification code/i)).toBeInTheDocument());
+
+    // 4. Click Change Number
+    fireEvent.click(screen.getByRole("button", { name: /change number/i }));
+
+    // 5. Returned to phone entry, and backing out goes to Login page (not Signup)
+    expect(screen.getByLabelText(/mobile number/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /^back$/i }));
+    expect(screen.getByRole("button", { name: /continue with phone/i })).toBeInTheDocument();
+  });
 });
