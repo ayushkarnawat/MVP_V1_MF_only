@@ -33,6 +33,48 @@ def test_resolve_scheme_rejects_cas_amfi_code_paired_with_mismatched_name(tmp_pa
     assert not (match is not None and match.amfi_code == "125497" and match.confidence == 1.0)
 
 
+def test_resolve_scheme_trusts_isin_match_even_when_cas_name_differs_from_canonical(tmp_path):
+    """JioBlackRock Flexi Cap Fund (launched Oct 2025) real-world case: the
+    CAS prints the scheme name without "Plan"/"Option" suffixes, dropping
+    text-similarity against mfapi.in's canonical name to 0.87 -- below the
+    0.92 gate -- even though `amfi_from_cas` is correct (casparser resolved
+    it via ISIN, a unique identifier). An ISIN match against mfapi.in's own
+    isinGrowth for that code must confirm regardless of the name gap."""
+    client = MfApiClient(cache_dir=tmp_path)
+    scheme_list = [
+        {
+            "schemeCode": "153859",
+            "schemeName": "JioBlackRock Flexi Cap Fund - Direct Plan - Growth Option",
+            "isinGrowth": "INF22M001093",
+        }
+    ]
+    with patch.object(client, "get_scheme_list", new=AsyncMock(return_value=scheme_list)):
+        match, status = asyncio.run(
+            client.resolve_scheme("JioBlackRock Flexi Cap Fund - Direct - Growth", "153859", "INF22M001093")
+        )
+    assert match.amfi_code == "153859"
+    assert match.confidence == 1.0
+    assert status == "confirmed"
+
+
+def test_resolve_scheme_isin_mismatch_falls_through_to_name_similarity(tmp_path):
+    """An `isin` that doesn't match mfapi.in's ISIN for `amfi_from_cas` isn't
+    treated as confirmation -- falls through to the existing name-similarity
+    check (still correctly confirms here since the names match closely)."""
+    client = MfApiClient(cache_dir=tmp_path)
+    scheme_list = [
+        {
+            "schemeCode": "125497",
+            "schemeName": "Any Fund Name",
+            "isinGrowth": "INF000A00000",
+        }
+    ]
+    with patch.object(client, "get_scheme_list", new=AsyncMock(return_value=scheme_list)):
+        match, status = asyncio.run(client.resolve_scheme("Any Fund Name", "125497", "INF999Z99999"))
+    assert match.amfi_code == "125497"
+    assert status == "confirmed"
+
+
 def test_resolve_scheme_falls_through_when_cas_amfi_code_not_in_master_list(tmp_path):
     """An override/CAS-supplied code that doesn't exist in AMFI's own master
     list at all can't be cross-checked -- falls through to fuzzy-match-by-name

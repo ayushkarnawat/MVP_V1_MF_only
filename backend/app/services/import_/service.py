@@ -81,7 +81,7 @@ async def build_import_preview(
     key_to_temp: dict[tuple[str, str, str], str] = {}
 
     async def resolve(scheme):
-        match, status = await client.resolve_scheme(scheme.name, scheme.amfi)
+        match, status = await client.resolve_scheme(scheme.name, scheme.amfi, scheme.isin)
         category = None
         if match and match.amfi_code:
             category = await client.get_scheme_category(match.amfi_code)

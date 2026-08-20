@@ -128,7 +128,16 @@ class MfApiClient:
                 return item.get("schemeName") or item.get("scheme_name") or None
         return None
 
-    async def resolve_scheme(self, scheme_name: str, amfi_from_cas: str | None) -> tuple[SchemeMatch | None, str]:
+    def _canonical_isins_for_code(self, amfi_code: str, scheme_list: list[dict[str, Any]]) -> set[str]:
+        for item in scheme_list:
+            code = str(item.get("schemeCode") or item.get("scheme_code") or "")
+            if code == amfi_code:
+                return {i for i in (item.get("isinGrowth"), item.get("isinDivReinvestment")) if i}
+        return set()
+
+    async def resolve_scheme(
+        self, scheme_name: str, amfi_from_cas: str | None, isin: str | None = None
+    ) -> tuple[SchemeMatch | None, str]:
         """Returns (match, match_status). Never silently guess below 0.92 (PRD-01 FR-10).
 
         An mfapi.in outage degrades to (None, "pending") — a manual-resolution
@@ -141,7 +150,21 @@ class MfApiClient:
         corrupted (code, name) pairing from a bad CAS parse would silently
         "confirm". Now cross-checked against the AMFI master list's own name
         for that code before being accepted; an unresolvable or implausible
-        pairing falls through to a genuine fuzzy match by name instead."""
+        pairing falls through to a genuine fuzzy match by name instead.
+
+        `isin` is checked ahead of the name-similarity fallback when present:
+        casparser already resolved `amfi_from_cas` via an ISIN lookup (a
+        globally unique identifier), so an ISIN match against mfapi.in's own
+        `isinGrowth`/`isinDivReinvestment` for that code is strictly stronger
+        evidence than comparing scheme-name text -- RTAs, AMCs, and mfapi.in
+        each format the same scheme's name slightly differently (e.g. a
+        CAS's "Direct - Growth" vs mfapi's "Direct Plan - Growth Option"),
+        which cost a real scheme (JioBlackRock Flexi Cap, a fund newly
+        launched Oct 2025) its auto-confirm despite `amfi_from_cas` being
+        correct. Falls back to the name-similarity check when `isin` is
+        absent or mfapi.in has no ISIN on file for that code (true for most
+        of its ~37k schemes) -- purely additive, never a weaker check than
+        before."""
         try:
             scheme_list = await self.get_scheme_list()
         except httpx.HTTPError:
@@ -150,6 +173,8 @@ class MfApiClient:
         if amfi_from_cas:
             canonical_name = self._canonical_name_for_code(amfi_from_cas, scheme_list)
             if canonical_name is not None:
+                if isin and isin in self._canonical_isins_for_code(amfi_from_cas, scheme_list):
+                    return SchemeMatch(amfi_code=amfi_from_cas, scheme_name=scheme_name, confidence=1.0), "confirmed"
                 norm_query = _normalize_name(scheme_name)
                 norm_canonical = _normalize_name(canonical_name)
                 # SequenceMatcher("", "").ratio() is 1.0 -- a name that

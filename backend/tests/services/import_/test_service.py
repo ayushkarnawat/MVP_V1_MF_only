@@ -119,7 +119,7 @@ def test_build_import_preview_resolves_schemes_concurrently():
     both_resolutions_started = asyncio.Event()
     started: set[str] = set()
 
-    async def resolve(name, amfi):
+    async def resolve(name, amfi, isin=None):
         started.add(amfi)
         if len(started) == 2:
             both_resolutions_started.set()
@@ -146,7 +146,7 @@ def test_build_import_preview_preserves_input_order_when_resolution_finishes_out
     client = AsyncMock()
     second_finished = asyncio.Event()
 
-    async def resolve(name, amfi):
+    async def resolve(name, amfi, isin=None):
         if amfi == "100001":
             await asyncio.wait_for(second_finished.wait(), timeout=1)
             confidence = 0.93
@@ -186,7 +186,7 @@ def test_build_import_preview_fails_whole_call_when_one_scheme_resolution_raises
     )
     client = AsyncMock()
 
-    async def resolve(name, amfi):
+    async def resolve(name, amfi, isin=None):
         if amfi == "100002":
             raise RuntimeError("mfapi.in blew up")
         from app.services.import_.enrich import SchemeMatch
@@ -331,7 +331,7 @@ def test_confirm_import_rejection_writes_nothing_even_for_earlier_confident_sche
 
     client = AsyncMock()
 
-    async def _resolve_scheme(name, amfi):
+    async def _resolve_scheme(name, amfi, isin=None):
         if amfi == "125497":
             return SchemeMatch(amfi_code="125497", scheme_name=name, confidence=1.0), "confirmed"
         return None, "pending"
