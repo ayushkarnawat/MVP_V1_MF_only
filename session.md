@@ -4,11 +4,12 @@ Working notes for picking this project back up cold in Claude Code or fresh sess
 
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving anything by re-reading the whole repo.**
 
-## Current Status: Hand-Drawn Underline Vertical Clearance Adjusted 100% Complete on `authsetup`
+## Current Status: Mobile Auth Typography & Spacing Adjusted 100% Complete on `authsetup`
 
-Adjusted vertical positioning of the double-stroke ink scratch underline under "Log in" / "Sign up" toggle links:
-- **Enhanced Vertical Clearance (`HandDrawnUnderline.tsx`)**: Shifted SVG offset to `-bottom-[11px]` to ensure comfortable spacing below letter descenders ('g', 'p'), preventing any visual clashing with text while preserving the double pen-stroke scratch look.
-- **Verification**: **0 TypeScript errors** (`npx tsc -b`), **unit tests passed**.
+Refined mobile typography, brand logo size, and vertical spacing on the Auth landing card:
+- **Mobile Brand Header Typography & Logo (`AuthShell.tsx`)**: Slightly scaled up the mobile brand text (`text-2xl`), logo glyph (`w-5 h-5`), mobile headline (`text-xl`), and subtext (`text-sm`) for better legibility and prominence.
+- **Vertical Spacing Balance (`AuthShell.tsx`)**: Replaced `my-auto` centering on mobile form container with `mt-2 mb-auto lg:my-auto`, eliminating the excessive vertical blank gap between the subtext and "Create your account" form.
+- **Verification**: **0 TypeScript errors** (`npx tsc -b`), **unit tests passed** (`npx vitest run`).
 
 ---
 
