@@ -3,6 +3,7 @@
 Append-only. One line per delegation decision: task slug, worker chosen,
 one-line why. Not a full event ledger — see
 `Docs/superpowers/specs/2026-08-12-model-orchestration-skill-design.md`
+2026-08-20: distributor-comparison-portfolio-level Task 1 (backend compute_distributor_comparison rewrite: schemas+service+cache, full rewrite of test_distributor_comparison.py) — dispatched to codex:codex-rescue (agent a5d5a7662efc715e2), cheap tier per SDD Model Selection (plan text contains complete code, transcription+test task). worker=codex. Ruling: SDD task-brief file used in place of a separate handoff doc for this plan's execution (full ruling text in plan workspace ledger).
 for why this stays lightweight.
 
 Format: `- YYYY-MM-DD | <task-slug> | worker=<codex|claude-subagent|orchestrator> | <why>`
@@ -273,3 +274,5 @@ original failed-then-re-dispatched review, `53919a6..4f39e9b`, 2 Medium
 round 2 (`4f39e9b..8be5230` re-review, 1 Low remaining, accepted as
 documented limitation per user instruction — no further fix). No
 outstanding review debt on this branch.
+
+- 2026-08-20 | distributor-comparison-portfolio-level Task 1 | worker=orchestrator | Task-scoped review (agent `ada2832314d428bf3`) of `daa703b` returned "Needs fixes": Important — `compute_distributor_comparison` read the shared `_holdings_cache_generation` dict (owned/written by `holdings.py`'s `invalidate_holdings_cache`, under `_holdings_cache_lock`) while holding a *different* lock, `_distributor_cache_lock` — a genuine cross-lock race on a shared mutable dict. Fixed directly rather than a fresh Codex round-trip, per "Review-loop fix authorship": diff small (import one existing name, swap which lock guards two reads), `distributor_comparison.py` already fully loaded in context, redelegation round-trip strictly more expensive. Imported `_holdings_cache_lock` from `holdings.py` (existing module-level object, zero modification to that file) and read `_holdings_cache_generation` under it in both the initial cache-hit check and `_publish_if_current`, matching `holdings.py`'s own internal discipline exactly — the two locks are now acquired sequentially, never nested. Verified 10/10 `test_distributor_comparison.py` still pass. Committed `9f1f941`. Dispatching scoped re-review next (`git diff --stat` against `daa703b..9f1f941` confirms scope stayed within `distributor_comparison.py` alone).
