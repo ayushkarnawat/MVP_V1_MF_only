@@ -135,3 +135,14 @@ export interface AggregateFundVsBenchmarkResponse {
   members: MemberStatus[];
   comparison: FundVsBenchmarkSummary;
 }
+
+export interface AnalyticsExportPayload {
+  scopeName: string;
+  allocation: AnalyticsAllocationSummary | null;
+  ter: WeightedTerSummary | null;
+  terComparison: DirectRegularTerComparison | null;
+  ranking: CategoryRankingSummary | null;
+  scoreSummary: PortfolioScoreSummary | null;
+  portfolioBenchmark: PortfolioBenchmarkSummary | null;
+  fundBenchmark: FundVsBenchmarkSummary | null;
+}
