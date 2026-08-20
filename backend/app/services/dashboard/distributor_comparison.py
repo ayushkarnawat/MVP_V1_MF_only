@@ -80,15 +80,19 @@ async def compute_distributor_comparison(
     # _holdings_cache (a dict it owns), so this cache's stale entries
     # aren't deleted on that call — they're rejected here on next read
     # instead, by comparing the entry's captured generation against the
-    # current one. Read under holdings.py's OWN _holdings_cache_lock (not
-    # _distributor_cache_lock) — the same lock invalidate_holdings_cache
-    # writes this dict under — so this never observes a torn write from a
-    # concurrent invalidation; imported, not modified, so holdings.py stays
-    # untouched.
-    with _holdings_cache_lock:
+    # current one. Held for the whole capture-then-check (and, below,
+    # capture-then-publish) span, not released in between: holdings.py's
+    # OWN _holdings_cache_lock (not _distributor_cache_lock) is the only
+    # lock invalidate_holdings_cache ever takes, so holding it across both
+    # steps makes each span atomic with respect to a concurrent
+    # invalidation — closing the check-then-act window an earlier version
+    # of this fix left open (capture generation, release the lock, THEN
+    # check/publish — during that gap an invalidation could land and this
+    # code would never see it). _distributor_cache_lock nests inside,
+    # guarding only the local dict; imported, not modified, so holdings.py
+    # stays untouched.
+    with _holdings_cache_lock, _distributor_cache_lock:
         generation = tuple(_holdings_cache_generation[member_id] for member_id in cache_key[0])
-
-    with _distributor_cache_lock:
         cached_entry = _distributor_cache.get(cache_key)
         if cached_entry is not None:
             cache_age = _distributor_cache_clock() - cached_entry.cached_at
@@ -97,10 +101,9 @@ async def compute_distributor_comparison(
             del _distributor_cache[cache_key]
 
     def _publish_if_current(rows: list[DistributorPortfolioRow]) -> None:
-        with _holdings_cache_lock:
+        with _holdings_cache_lock, _distributor_cache_lock:
             current_generation = tuple(_holdings_cache_generation[m] for m in cache_key[0])
-        if generation == current_generation:
-            with _distributor_cache_lock:
+            if generation == current_generation:
                 _distributor_cache[cache_key] = _DistributorCacheEntry(
                     rows=rows, cached_at=_distributor_cache_clock(), generation=generation
                 )
