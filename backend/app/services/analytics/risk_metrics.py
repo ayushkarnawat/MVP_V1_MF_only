@@ -31,6 +31,7 @@ import uuid
 from datetime import date
 from decimal import Decimal
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.reference import NavHistory
@@ -105,15 +106,72 @@ def build_monthly_series(
         .order_by(NavHistory.date)
         .all()
     )
+    return _walk_series([(row.date, row.nav) for row in rows], month_ends)
+
+
+def _walk_series(rows: list[tuple[date, Decimal]], month_ends: list[date]) -> list[Decimal | None]:
+    """Shared walk between `build_monthly_series` and its bulk counterpart:
+    one NAV-on-or-before value per anchor, carrying the last-seen NAV
+    forward. `rows` must already be sorted by date and may safely start
+    earlier than strictly necessary (a bulk caller's shared lower bound can
+    be earlier than any one scheme's own seed) -- extra leading rows just
+    get walked through before the first anchor without changing the
+    result."""
     values: list[Decimal | None] = []
     idx = 0
     last_nav: Decimal | None = None
     for month_end in month_ends:
-        while idx < len(rows) and rows[idx].date <= month_end:
-            last_nav = rows[idx].nav
+        while idx < len(rows) and rows[idx][0] <= month_end:
+            last_nav = rows[idx][1]
             idx += 1
         values.append(last_nav)
     return values
+
+
+def build_monthly_series_bulk(
+    db: Session, scheme_ids: list[uuid.UUID], month_ends: list[date]
+) -> dict[uuid.UUID, list[Decimal | None]]:
+    """Same result as calling `build_monthly_series` once per scheme, but
+    in 2 bounded queries total regardless of how many schemes -- a SEBI
+    category universe can be 1000+ schemes (e.g. AMFI's catch-all "Other
+    Scheme - Index Funds" bucket), and the per-scheme version meant 2
+    queries per scheme, live-measured 2026-08-19 as the dominant reason the
+    Scorer was several minutes slower than Category Ranking, which already
+    got the equivalent bulk treatment in BUG-001. Every scheme is bounded
+    below by the single earliest per-scheme seed date needed across the
+    batch, not each scheme's own -- a harmless superset per `_walk_series`,
+    traded for a single shared query instead of one per scheme."""
+    if not scheme_ids or not month_ends:
+        return {scheme_id: [] for scheme_id in scheme_ids} if not month_ends else {}
+
+    seed_rows = (
+        db.query(NavHistory.scheme_id, func.max(NavHistory.date).label("seed_date"))
+        .filter(NavHistory.scheme_id.in_(scheme_ids), NavHistory.date <= month_ends[0])
+        .group_by(NavHistory.scheme_id)
+        .all()
+    )
+    seed_by_scheme = dict(seed_rows)
+    lower_bounds = [seed_by_scheme.get(scheme_id, month_ends[0]) for scheme_id in scheme_ids]
+    global_lower_bound = min(lower_bounds)
+
+    rows = (
+        db.query(NavHistory)
+        .filter(
+            NavHistory.scheme_id.in_(scheme_ids),
+            NavHistory.date >= global_lower_bound,
+            NavHistory.date <= month_ends[-1],
+        )
+        .order_by(NavHistory.scheme_id, NavHistory.date)
+        .all()
+    )
+    rows_by_scheme: dict[uuid.UUID, list[tuple[date, Decimal]]] = {scheme_id: [] for scheme_id in scheme_ids}
+    for row in rows:
+        rows_by_scheme[row.scheme_id].append((row.date, row.nav))
+
+    return {
+        scheme_id: _walk_series(scheme_rows, month_ends)
+        for scheme_id, scheme_rows in rows_by_scheme.items()
+    }
 
 
 def monthly_returns(series: list[Decimal | None]) -> list[Decimal | None]:

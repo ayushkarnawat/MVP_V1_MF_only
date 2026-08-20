@@ -27,7 +27,7 @@ from app.services.analytics.category_ranking import (
     _rank_and_percentile,
 )
 from app.services.analytics.risk_metrics import (
-    build_monthly_series,
+    build_monthly_series_bulk,
     category_medians,
     compute_consistency_hit_rate,
     compute_downside_deviation,
@@ -100,9 +100,7 @@ async def _compute_category_component_scores(
         return {}
 
     month_ends = month_end_dates(years_ago(today, _HISTORY_YEARS), today)
-    series_by_scheme = {
-        scheme_id: build_monthly_series(db, scheme_id, month_ends) for scheme_id in returns
-    }
+    series_by_scheme = build_monthly_series_bulk(db, list(returns), month_ends)
     rolling_by_scheme = {
         scheme_id: rolling_12m_returns(series) for scheme_id, series in series_by_scheme.items()
     }

@@ -96,7 +96,9 @@ async def _fetch_nav_history(amfi_code: str) -> list[tuple[date, Decimal]]:
     return await asyncio.shield(fetch)
 
 
-def _upsert_nav_history(db: Session, scheme_id: uuid.UUID, rows: list[tuple[date, Decimal]]) -> None:
+def _upsert_nav_history(
+    db: Session, scheme_id: uuid.UUID, rows: list[tuple[date, Decimal]], *, commit: bool = True
+) -> None:
     if not rows:
         return
     values = [{"scheme_id": scheme_id, "date": row_date, "nav": nav} for row_date, nav in rows]
@@ -112,7 +114,8 @@ def _upsert_nav_history(db: Session, scheme_id: uuid.UUID, rows: list[tuple[date
     else:
         raise RuntimeError(f"Unsupported database dialect for NAV upsert: {dialect_name}")
     db.execute(statement)
-    db.commit()
+    if commit:
+        db.commit()
 
 
 def _latest_cached_on_or_before(db: Session, scheme_id: uuid.UUID, on_date: date) -> NavHistory | None:
@@ -192,10 +195,18 @@ async def warm_nav_history(db: Session, schemes: Iterable[Scheme]) -> None:
 
     fetched = await asyncio.gather(*(fetch(scheme) for scheme in to_fetch.values()))
     with _nav_warm_lock:
+        any_rows = False
         for scheme, rows in fetched:
             if rows:
-                _upsert_nav_history(db, scheme.id, rows)
+                _upsert_nav_history(db, scheme.id, rows, commit=False)
+                any_rows = True
             _nav_warm_cache[scheme.id] = now
+        # One commit for the whole batch, not one per scheme — a category
+        # universe can be 1000+ schemes, and a per-scheme commit means
+        # 1000+ fsync-bound round trips (57x slower measured on a WSL
+        # DrvFs-mounted dev DB than a native filesystem, live 2026-08-19).
+        if any_rows:
+            db.commit()
 
 
 async def get_navs_on_or_before(

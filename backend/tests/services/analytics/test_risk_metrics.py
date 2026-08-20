@@ -9,6 +9,7 @@ from app.db.base import Base
 from app.models.reference import NavHistory, Scheme
 from app.services.analytics.risk_metrics import (
     build_monthly_series,
+    build_monthly_series_bulk,
     category_medians,
     compute_consistency_hit_rate,
     compute_downside_deviation,
@@ -134,6 +135,70 @@ def test_build_monthly_series_row_fetch_query_is_bounded_below():
     assert series == [Decimal("10"), Decimal("11")]
     select_queries = [q for q in queries if q.strip().upper().startswith("SELECT")]
     assert any(">=" in q for q in select_queries)
+
+
+def test_build_monthly_series_bulk_matches_per_scheme_results():
+    """Bulk must be output-identical to calling `build_monthly_series` once
+    per scheme, including the far-seed and no-data-yet edge cases -- it's a
+    query-count optimization, not a behavior change."""
+    db = _session()
+    old_seed_scheme = _scheme(db)
+    db.add(NavHistory(scheme_id=old_seed_scheme.id, date=date(2015, 1, 5), nav=Decimal("10")))
+    db.add(NavHistory(scheme_id=old_seed_scheme.id, date=date(2024, 2, 5), nav=Decimal("11")))
+
+    no_seed_scheme = _scheme(db)
+    db.add(NavHistory(scheme_id=no_seed_scheme.id, date=date(2024, 2, 5), nav=Decimal("20")))
+    db.commit()
+
+    month_ends = [date(2024, 1, 31), date(2024, 2, 29)]
+
+    bulk = build_monthly_series_bulk(db, [old_seed_scheme.id, no_seed_scheme.id], month_ends)
+
+    assert bulk[old_seed_scheme.id] == build_monthly_series(db, old_seed_scheme.id, month_ends)
+    assert bulk[no_seed_scheme.id] == build_monthly_series(db, no_seed_scheme.id, month_ends)
+    assert bulk == {
+        old_seed_scheme.id: [Decimal("10"), Decimal("11")],
+        no_seed_scheme.id: [None, Decimal("20")],
+    }
+
+
+def test_build_monthly_series_bulk_empty_inputs():
+    db = _session()
+    assert build_monthly_series_bulk(db, [], [date(2024, 1, 31)]) == {}
+    scheme = _scheme(db)
+    assert build_monthly_series_bulk(db, [scheme.id], []) == {scheme.id: []}
+
+
+def test_build_monthly_series_bulk_uses_a_bounded_query_count_regardless_of_scheme_count():
+    """The whole point: a 5-scheme batch and a 150-scheme batch must issue
+    the same small, constant number of queries -- not one pair of queries
+    per scheme (BUG-001's original Scorer-cost pattern, at the time fixed
+    for `category_ranking.py`'s NAV lookups but never for this function)."""
+    from sqlalchemy import event
+
+    db = _session()
+    schemes = [_scheme(db) for _ in range(5)]
+    for scheme in schemes:
+        db.add(NavHistory(scheme_id=scheme.id, date=date(2024, 1, 10), nav=Decimal("10")))
+    db.commit()
+
+    month_ends = [date(2024, 1, 31), date(2024, 2, 29)]
+    scheme_ids = [s.id for s in schemes]
+
+    queries: list[str] = []
+    engine = db.get_bind()
+
+    def _capture(conn, cursor, statement, parameters, context, executemany):
+        queries.append(statement)
+
+    event.listen(engine, "before_cursor_execute", _capture)
+    try:
+        build_monthly_series_bulk(db, scheme_ids, month_ends)
+    finally:
+        event.remove(engine, "before_cursor_execute", _capture)
+
+    select_queries = [q for q in queries if q.strip().upper().startswith("SELECT")]
+    assert len(select_queries) <= 2
 
 
 def test_monthly_returns_first_entry_always_none():

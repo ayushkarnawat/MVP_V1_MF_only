@@ -382,6 +382,36 @@ def test_warm_nav_history_refetches_scheme_once_ttl_has_expired():
     assert fetch.await_count == 2
 
 
+def test_warm_nav_history_commits_once_for_the_whole_batch_not_once_per_scheme():
+    """A per-scheme commit means N fsync-bound round trips for an N-scheme
+    category (live-measured 2026-08-19: ~57x slower per commit on a WSL
+    DrvFs-mounted dev DB than a native filesystem, and a reproduced real
+    `disk I/O error` running this exact path against a 1,150+-scheme AMFI
+    category) — one commit for the whole batch removes that multiplier
+    regardless of filesystem."""
+    import asyncio
+
+    db = _session()
+    schemes = [_scheme(db, amfi_code=str(code)) for code in range(3)]
+
+    async def fetch(amfi_code: str):
+        return [(date.today(), Decimal("50.0000"))]
+
+    commit_spy = MagicMock(wraps=db.commit)
+
+    with (
+        patch("app.services.dashboard.nav._fetch_nav_history", side_effect=fetch),
+        patch.object(db, "commit", commit_spy),
+    ):
+        asyncio.run(warm_nav_history(db, schemes))
+
+    assert commit_spy.call_count == 1
+
+    from app.models.reference import NavHistory
+
+    assert db.query(NavHistory).count() == 3
+
+
 def test_upsert_nav_history_is_conflict_safe_across_sessions(tmp_path):
     engine = create_engine(
         f"sqlite:///{tmp_path / 'nav-race.db'}",
