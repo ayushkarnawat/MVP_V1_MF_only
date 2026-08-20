@@ -135,7 +135,7 @@ export function MainDashboardFlow() {
           {/* Privacy & Trust Footer */}
           <div className="flex items-center justify-center gap-2 text-[11px] text-[var(--color-text-secondary)] pt-4 border-t border-[var(--color-border)]/60">
             <ShieldCheck className="h-4 w-4 text-[var(--color-positive)]" />
-            <span>256-bit encrypted · Read-only statement parsing · Zero transaction permissions</span>
+            <span>Read-only statement parsing · Zero transaction permissions</span>
           </div>
         </main>
       </div>

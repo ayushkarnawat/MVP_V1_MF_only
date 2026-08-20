@@ -1,6 +1,5 @@
 import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
-import { Lock } from "lucide-react";
 import { OnboardingIllustration } from "./OnboardingIllustration";
 import { staggerContainerVariants, staggerItemVariants } from "@/lib/motion";
 
@@ -105,12 +104,6 @@ export function TrustPrimer({ onContinue }: TrustPrimerProps) {
         >
           Continue
         </Button>
-      </motion.div>
-
-      {/* 4. Trust & Security Footnote */}
-      <motion.div variants={staggerItemVariants} className="flex items-center justify-center gap-1.5 text-[10px] sm:text-[11px] text-[var(--color-text-secondary)] pt-0.5 select-none">
-        <Lock className="h-3 w-3 text-[var(--color-accent)]" />
-        <span>256-bit encrypted · Read-only access · No spam</span>
       </motion.div>
     </motion.div>
   );

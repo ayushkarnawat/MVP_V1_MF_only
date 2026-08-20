@@ -373,12 +373,6 @@ export function MobileImportView({
           </div>
         )}
       </div>
-
-      {/* Trust & Security Tag */}
-      <div className="flex items-center justify-center gap-1.5 text-[10px] text-[var(--color-text-secondary)] pt-1 text-center select-none">
-        <ShieldCheck className="h-3 w-3 text-[var(--color-positive)] flex-shrink-0" />
-        <span>256-bit encrypted · Read-only access · No spam</span>
-      </div>
     </div>
   );
 }

@@ -106,7 +106,7 @@ export function UploadForm({ onBack, onSubmit }: UploadFormProps) {
             Upload your statement
           </h1>
           <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed">
-            Drop in the CAMS or KFintech Detailed CAS PDF you already have — we&apos;ll take it from here.
+            Drop in the Detailed CAS PDF you already have — we&apos;ll take it from here.
           </p>
         </div>
       </div>
@@ -156,14 +156,11 @@ export function UploadForm({ onBack, onSubmit }: UploadFormProps) {
                 <span className="hidden sm:inline">Click to choose file or drag &amp; drop PDF here</span>
               </p>
               <p className="text-[11px] text-[var(--color-text-secondary)] sm:hidden">
-                Select a CAMS or KFintech Detailed CAS PDF from your device
+                Select a Detailed CAS PDF from your device
               </p>
               <div className="flex items-center justify-center gap-1.5 flex-wrap pt-0.5">
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-medium bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)]">
                   CAMS
-                </span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-medium bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)]">
-                  KFintech
                 </span>
                 <span className="text-[11px] text-[var(--color-text-secondary)]">
                   Detailed CAS (up to 25MB)

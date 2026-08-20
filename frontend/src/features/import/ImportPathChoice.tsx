@@ -184,7 +184,7 @@ export function ImportPathChoice({
               </span>
             </div>
             <span className="block text-[11px] sm:text-xs text-[var(--color-text-secondary)] leading-tight sm:leading-relaxed">
-              Drop in a CAMS or KFintech PDF you already downloaded — done in seconds.
+              Drop in a CAS PDF statement you already downloaded — done in seconds.
             </span>
           </div>
 
