@@ -99,9 +99,13 @@ def _claim_ter_refresh_slot() -> bool:
 
 
 def _latest_ter_for_scheme(db: Session, scheme_id: uuid.UUID) -> tuple[Decimal, date] | None:
+    # Excludes NULL-value rows (amfi_ter_client.py's "checked this period,
+    # found no usable TER" marker) -- those aren't a displayable value, so
+    # this still falls through to an older *real* value if one exists,
+    # same as it always has for a scheme simply missing this month's row.
     row = (
         db.query(SchemeTer)
-        .filter(SchemeTer.scheme_id == scheme_id)
+        .filter(SchemeTer.scheme_id == scheme_id, SchemeTer.ter_value.isnot(None))
         .order_by(SchemeTer.reference_period.desc())
         .first()
     )

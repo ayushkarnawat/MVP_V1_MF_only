@@ -38,7 +38,12 @@ class SchemeTer(Base):
 
     scheme_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("schemes.id"), primary_key=True)
     reference_period: Mapped[date_] = mapped_column(primary_key=True)
-    ter_value: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False)
+    # NULL means "checked this scheme against this period's AMFI feed, found
+    # no usable TER" -- distinct from no row at all ("never checked"). See
+    # amfi_ter_client.py's `_mark_checked_no_match` for why this distinction
+    # exists (avoids re-triggering a full AMFI rescan forever for a scheme
+    # that will never match, e.g. a matured FMP no longer in AMFI's feed).
+    ter_value: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
 
 
 class SchemeAaum(Base):

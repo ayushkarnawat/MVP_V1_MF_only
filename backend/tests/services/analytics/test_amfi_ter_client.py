@@ -96,6 +96,38 @@ def test_fetch_ter_rows_unwraps_data_meta_envelope_and_paginates():
     assert [r["Scheme_Name"] for r in rows] == ["HDFC Flexi Cap Fund", "ICICI Prudential Bluechip Fund"]
 
 
+def test_fetch_ter_rows_fetches_pages_beyond_the_first_concurrently():
+    """Page count is known from page 1's `meta` envelope upfront -- pages
+    2..N must all be fetched (not just page 2), and in page order, even
+    though they're gathered concurrently rather than one at a time (the
+    ~4-minute sequential-fetch regression this replaces)."""
+    page_count = 5
+    pages = {
+        p: {
+            "data": [{"Scheme_Name": f"Fund {p}", "TER_Date": "2026-08-01T00:00:00.000Z"}],
+            "meta": {"page": p, "pageSize": 1, "total": page_count, "pageCount": page_count},
+        }
+        for p in range(1, page_count + 1)
+    }
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        page = int(request.url.params["page"])
+        return httpx.Response(200, json=pages[page])
+
+    transport = httpx.MockTransport(handler)
+    real_async_client = httpx.AsyncClient
+
+    async def _run():
+        with patch(
+            "app.services.analytics.amfi_ter_client.httpx.AsyncClient",
+            lambda *a, **k: real_async_client(*a, transport=transport, **k),
+        ):
+            return await _fetch_ter_rows("08-2026")
+
+    rows = asyncio.run(_run())
+    assert [r["Scheme_Name"] for r in rows] == [f"Fund {p}" for p in range(1, page_count + 1)]
+
+
 def test_refresh_ter_data_upserts_regular_and_direct_variants_from_shared_row():
     db = _session()
     direct = _scheme(db, "HDFC Flexi Cap Fund - Direct Plan - Growth", PlanNameVariant.DIRECT)
@@ -129,7 +161,10 @@ def test_refresh_ter_data_treats_zero_ter_as_no_data_not_a_real_value():
     reports R_TER=0), not a genuine zero-expense-ratio fund -- mutual fund
     TERs are never actually 0.00% in practice (regulatory minimum
     operating costs). Storing it as a real TER made a failed/inapplicable
-    match indistinguishable downstream from real coverage."""
+    match indistinguishable downstream from real coverage. It's persisted
+    as a NULL "checked, no match" marker row (not simply absent) so this
+    scheme/period doesn't keep looking like missing coverage forever --
+    see `_mark_checked_no_match`."""
     db = _session()
     direct = _scheme(db, "HDFC Flexi Cap Fund - Direct Plan - Growth", PlanNameVariant.DIRECT)
     regular = _scheme(db, "HDFC Flexi Cap Fund - Regular Plan - Growth", PlanNameVariant.REGULAR)
@@ -150,10 +185,12 @@ def test_refresh_ter_data_treats_zero_ter_as_no_data_not_a_real_value():
 
     direct_ter = db.get(SchemeTer, (direct.id, date(2026, 8, 1)))
     assert direct_ter.ter_value == Decimal("0.75")
-    assert db.get(SchemeTer, (regular.id, date(2026, 8, 1))) is None
+    regular_ter = db.get(SchemeTer, (regular.id, date(2026, 8, 1)))
+    assert regular_ter is not None
+    assert regular_ter.ter_value is None
 
 
-def test_refresh_ter_data_deletes_a_stale_zero_row_from_a_pre_fix_refresh():
+def test_refresh_ter_data_converts_a_stale_zero_row_from_a_pre_fix_refresh_into_a_marker():
     """Reviewer-flagged gap in the zero-skip fix above: skipping a NEW zero
     value only stops writing fresh fake-coverage rows -- it does nothing
     about a zero-value `SchemeTer` row a PRIOR (pre-fix) refresh already
@@ -180,7 +217,9 @@ def test_refresh_ter_data_deletes_a_stale_zero_row_from_a_pre_fix_refresh():
     ):
         asyncio.run(refresh_ter_data(db))
 
-    assert db.get(SchemeTer, (regular.id, date(2026, 8, 1))) is None
+    regular_ter = db.get(SchemeTer, (regular.id, date(2026, 8, 1)))
+    assert regular_ter is not None
+    assert regular_ter.ter_value is None
 
 
 def test_refresh_ter_data_skips_schemes_with_unresolved_plan_variant():
@@ -216,6 +255,11 @@ def test_refresh_ter_data_keeps_only_latest_ter_date_per_scheme_name():
 
 
 def test_refresh_ter_data_skips_low_confidence_matches():
+    """A low-confidence non-match still gets a NULL "checked, no match"
+    marker (not simply left with no row at all) -- otherwise a scheme
+    that's genuinely absent from AMFI's feed (e.g. a matured FMP) would
+    keep looking like missing coverage forever and re-trigger a full
+    national rescan every backoff window -- see `_mark_checked_no_match`."""
     db = _session()
     scheme = _scheme(db, "Totally Unrelated Fund Name", PlanNameVariant.DIRECT)
     rows = [{"Scheme_Name": "HDFC Flexi Cap Fund", "TER_Date": "10-Aug-2026", "R_TER": "1.85", "D_TER": "0.75"}]
@@ -226,7 +270,9 @@ def test_refresh_ter_data_skips_low_confidence_matches():
     ):
         asyncio.run(refresh_ter_data(db))
 
-    assert db.query(SchemeTer).filter_by(scheme_id=scheme.id).first() is None
+    marker = db.query(SchemeTer).filter_by(scheme_id=scheme.id).first()
+    assert marker is not None
+    assert marker.ter_value is None
 
 
 def test_refresh_ter_data_returns_false_and_writes_nothing_on_fetch_failure():

@@ -31,6 +31,7 @@ envelope, every scheme's TER silently stayed unmatched (0 real rows, only
 
 from __future__ import annotations
 
+import asyncio
 import re
 import uuid
 from datetime import date, datetime
@@ -61,6 +62,13 @@ AMFI_TER_REFERER = "https://www.amfiindia.com/ter-of-mf-schemes"
 MIN_MATCH_CONFIDENCE = 0.55
 _PAGE_SIZE = 500
 _RESOLVED_PLAN_VARIANTS = (PlanNameVariant.DIRECT, PlanNameVariant.REGULAR)
+
+# Caps how many of AMFI's 380+ TER pages are in flight at once (live-verified
+# 2026-08-20: fetching them one at a time was a ~4 minute sequential network
+# wait, the dominant cost behind a reported post-fix "still slow" regression).
+# Bounded rather than unbounded `gather` -- this endpoint has no documented
+# rate limit, and 300+ simultaneous requests risks tripping one.
+_TER_FETCH_CONCURRENCY = 20
 
 
 def _current_financial_year(today: date) -> str:
@@ -122,10 +130,9 @@ async def _fetch_ter_rows(month: str) -> list[dict]:
     # silently iterated over its two string dict keys instead of any real
     # row (the true root cause behind the "stray non-dict row" symptom
     # `_latest_row_per_scheme`'s isinstance guard was added for).
-    rows: list[dict] = []
     async with httpx.AsyncClient(timeout=30.0) as client:
-        page = 1
-        while True:
+
+        async def get_page(page: int) -> dict:
             resp = await client.get(
                 AMFI_TER_DATA_URL,
                 params={
@@ -139,19 +146,43 @@ async def _fetch_ter_rows(month: str) -> list[dict]:
                 headers={"Referer": AMFI_TER_REFERER},
             )
             resp.raise_for_status()
-            payload = resp.json()
-            page_rows = payload.get("data") if isinstance(payload, dict) else payload
-            if not page_rows:
-                break
-            rows.extend(page_rows)
-            meta = payload.get("meta") if isinstance(payload, dict) else None
-            if meta is not None:
-                if page >= meta.get("pageCount", page):
+            return resp.json()
+
+        first = await get_page(1)
+        first_rows = first.get("data") if isinstance(first, dict) else first
+        if not first_rows:
+            return []
+        rows: list[dict] = list(first_rows)
+        meta = first.get("meta") if isinstance(first, dict) else None
+
+        if meta is None:
+            # No envelope (never observed live, defensive fallback only) --
+            # page count can't be known upfront, so this path stays
+            # sequential, terminating on a short page like before.
+            page = 2
+            while len(first_rows) >= _PAGE_SIZE:
+                payload = await get_page(page)
+                page_rows = payload if not isinstance(payload, dict) else payload.get("data")
+                if not page_rows:
                     break
-            elif len(page_rows) < _PAGE_SIZE:
-                break
-            page += 1
-    return rows
+                rows.extend(page_rows)
+                first_rows = page_rows
+                page += 1
+            return rows
+
+        page_count = meta.get("pageCount", 1)
+        semaphore = asyncio.Semaphore(_TER_FETCH_CONCURRENCY)
+
+        async def get_page_bounded(page: int) -> dict:
+            async with semaphore:
+                return await get_page(page)
+
+        remaining = await asyncio.gather(*(get_page_bounded(p) for p in range(2, page_count + 1)))
+        for payload in remaining:
+            page_rows = payload.get("data") if isinstance(payload, dict) else payload
+            if page_rows:
+                rows.extend(page_rows)
+        return rows
 
 
 def _latest_row_per_scheme(rows: list[dict]) -> dict[str, dict]:
@@ -192,17 +223,29 @@ def _upsert_scheme_ter(db: Session, scheme_id: uuid.UUID, reference_period: date
         db.add(SchemeTer(scheme_id=scheme_id, reference_period=reference_period, ter_value=ter_value))
 
 
-def _clear_stale_zero_ter(db: Session, scheme_id: uuid.UUID, reference_period: date) -> None:
-    """A PRIOR (pre-fix) refresh may have persisted AMFI's "no plan of this
-    type" 0 as if it were a real TER for this exact scheme/period. Skipping
-    the upsert alone leaves that stale row in place, where it keeps
-    satisfying `_missing_current_month_ter`'s coverage check forever and the
-    scheme never gets a real TER. Only ever removes a row that is ITSELF
-    zero — a genuine non-zero value already on record for this period is
-    left untouched."""
+def _mark_checked_no_match(db: Session, scheme_id: uuid.UUID, reference_period: date) -> None:
+    """Persists "checked this scheme against this period's AMFI feed, found
+    no usable TER" as a NULL-value row — distinct from no row at all ("never
+    checked"). Without this, `_missing_current_month_ter` (ter.py) sees a
+    permanently-unmatchable scheme (e.g. a matured FMP no longer in AMFI's
+    feed) as perpetually missing coverage, re-triggering a full AMFI
+    national-feed rescan every backoff window forever — exactly the risk
+    ter.py's own docstring already flagged. Keyed by `reference_period`, so
+    a new calendar month still gets a fresh check; this only silences
+    repeat checks within an already-checked month. If AMFI's feed later
+    does start covering the scheme, the next refresh (triggered by any
+    other still-uncovered scheme, or the month rolling over) re-examines
+    every scheme fresh and overwrites this marker via `_upsert_scheme_ter`.
+
+    Also converts a PRIOR (pre-fix) refresh's stale 0 -- AMFI's "no plan of
+    this type" sentinel, once wrongly persisted as if it were a real TER --
+    into the same NULL marker, rather than leaving it looking like a
+    covered zero-expense-ratio fund."""
     existing = db.get(SchemeTer, (scheme_id, reference_period))
-    if existing is not None and existing.ter_value == 0:
-        db.delete(existing)
+    if existing is None:
+        db.add(SchemeTer(scheme_id=scheme_id, reference_period=reference_period, ter_value=None))
+    elif existing.ter_value == 0:
+        existing.ter_value = None
 
 
 async def refresh_ter_data(db: Session) -> bool:
@@ -235,10 +278,12 @@ async def refresh_ter_data(db: Session) -> bool:
     for scheme in schemes:
         match = _best_match(scheme.name, latest_by_name)
         if match is None or match[1] < MIN_MATCH_CONFIDENCE:
+            _mark_checked_no_match(db, scheme.id, reference_period)
             continue
         row, _confidence = match
         raw_value = row["R_TER"] if scheme.plan_name_variant == PlanNameVariant.REGULAR else row["D_TER"]
         if raw_value in (None, ""):
+            _mark_checked_no_match(db, scheme.id, reference_period)
             continue
         ter_value = Decimal(str(raw_value))
         # AMFI uses a literal 0 here for "no plan of this type" (e.g. a
@@ -248,7 +293,7 @@ async def refresh_ter_data(db: Session) -> bool:
         # as a missing/unmatched value rather than persisting a misleading
         # "valid coverage at 0%" row.
         if ter_value == 0:
-            _clear_stale_zero_ter(db, scheme.id, reference_period)
+            _mark_checked_no_match(db, scheme.id, reference_period)
             continue
         _upsert_scheme_ter(db, scheme.id, reference_period, ter_value)
 
