@@ -1,11 +1,107 @@
 import { motion } from "motion/react";
-import { ArrowRight, Mail, UploadCloud } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { OnboardingIllustration } from "@/features/auth/OnboardingIllustration";
 import { staggerContainerVariants, staggerItemVariants } from "@/lib/motion";
 
 export interface ImportPathChoiceProps {
   onSelectRequest: () => void;
   onSelectUpload: () => void;
+}
+
+/** Small hand-drawn editorial illustration representing CAMS email request */
+function CamsRequestIllustration({ className = "h-7 w-7" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 32 32"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      aria-hidden="true"
+    >
+      {/* Soft background aura */}
+      <circle cx="16" cy="16" r="12" fill="var(--color-accent)" fillOpacity="0.1" />
+
+      {/* Hand-drawn Envelope Body */}
+      <rect
+        x="5"
+        y="9"
+        width="22"
+        height="15"
+        rx="3"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+
+      {/* Envelope Flap Lines */}
+      <path
+        d="M5.5 10L14.8 16.6C15.5 17.1 16.5 17.1 17.2 16.6L26.5 10"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+
+      {/* Unifolio Green Accent Wax Seal Dot */}
+      <circle cx="16" cy="16.5" r="2" fill="#20B358" />
+
+      {/* Hand-Drawn Motion Arc & Amber Sparkle */}
+      <path
+        d="M22 6.5C23.5 5.2 25.2 5.5 26.5 6"
+        stroke="#F59E0B"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <circle cx="27.5" cy="5.5" r="1" fill="#F59E0B" />
+    </svg>
+  );
+}
+
+/** Small hand-drawn editorial illustration representing CAS document PDF upload */
+function StatementUploadIllustration({ className = "h-7 w-7" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 32 32"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      aria-hidden="true"
+    >
+      {/* Soft background aura */}
+      <circle cx="16" cy="16" r="12" fill="var(--color-accent)" fillOpacity="0.1" />
+
+      {/* Hand-drawn Document Sheet */}
+      <path
+        d="M8.5 7C8.5 5.89543 9.39543 5 10.5 5H18.5L23.5 10V25C23.5 26.1046 22.6046 27 21.5 27H10.5C9.39543 27 8.5 26.1046 8.5 25V7Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+
+      {/* Folded Corner */}
+      <path
+        d="M18 5.5V10.5H23"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+
+      {/* Unifolio Green Hand-drawn Upward Arrow */}
+      <path
+        d="M16 21V13M16 13L12.5 16.5M16 13L19.5 16.5"
+        stroke="#20B358"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+
+      {/* Amber Sparkle */}
+      <circle cx="25.5" cy="6.5" r="1" fill="#F59E0B" />
+    </svg>
+  );
 }
 
 export function ImportPathChoice({
@@ -46,7 +142,7 @@ export function ImportPathChoice({
           className="w-full p-4.5 sm:p-5 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-accent)]/50 hover:bg-[color-mix(in_srgb,var(--color-accent)_3%,var(--color-surface))] flex items-center gap-4 text-left transition-all duration-150 cursor-pointer active:scale-[0.99] group shadow-xs select-none min-h-[44px]"
         >
           <div className="h-12 w-12 rounded-2xl bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] text-[var(--color-ink)] flex items-center justify-center flex-shrink-0 group-hover:text-[var(--color-accent)] group-hover:scale-105 transition-all duration-200">
-            <Mail className="h-5 w-5 text-[var(--color-accent)]" />
+            <CamsRequestIllustration className="h-7 w-7 text-[var(--color-ink)] group-hover:text-[var(--color-accent)] transition-colors" />
           </div>
 
           <div className="flex-1 min-w-0 space-y-1">
@@ -75,7 +171,7 @@ export function ImportPathChoice({
           className="w-full p-4.5 sm:p-5 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-accent)]/50 hover:bg-[color-mix(in_srgb,var(--color-accent)_3%,var(--color-surface))] flex items-center gap-4 text-left transition-all duration-150 cursor-pointer active:scale-[0.99] group shadow-xs select-none min-h-[44px]"
         >
           <div className="h-12 w-12 rounded-2xl bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] text-[var(--color-ink)] flex items-center justify-center flex-shrink-0 group-hover:text-[var(--color-accent)] group-hover:scale-105 transition-all duration-200">
-            <UploadCloud className="h-5 w-5 text-[var(--color-accent)]" />
+            <StatementUploadIllustration className="h-7 w-7 text-[var(--color-ink)] group-hover:text-[var(--color-accent)] transition-colors" />
           </div>
 
           <div className="flex-1 min-w-0 space-y-1">

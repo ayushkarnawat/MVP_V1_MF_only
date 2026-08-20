@@ -15,6 +15,7 @@ import type {
 } from "@/features/import/types";
 import { ImportPathChoice } from "@/features/import/ImportPathChoice";
 import { WaitingForCasView } from "@/features/import/WaitingForCasView";
+import { ParsingIndicator } from "@/features/import/ParsingIndicator";
 import { MobileRequestCamsView } from "./MobileRequestCamsView";
 import { MobileUploadForm } from "./MobileUploadForm";
 import { MobileReviewView } from "./MobileReviewView";
@@ -162,23 +163,7 @@ export function MobileImportView({
 
   /* 1. Parsing Indicator Screen */
   if (step === "parsing") {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6 space-y-5 animate-in fade-in duration-200">
-        <div className="relative flex items-center justify-center">
-          <div className="h-16 w-16 rounded-full bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] flex items-center justify-center text-[var(--color-accent)]">
-            <Loader2 className="h-8 w-8 animate-spin" />
-          </div>
-        </div>
-        <div className="space-y-1.5 max-w-xs">
-          <h3 className="font-display font-bold text-base text-[var(--color-ink)]">
-            Decrypting &amp; Parsing Statement
-          </h3>
-          <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
-            Extracting folios, validating mutual fund transactions, and matching AMFI codes...
-          </p>
-        </div>
-      </div>
-    );
+    return <ParsingIndicator />;
   }
 
   /* 2. Review Screen */
