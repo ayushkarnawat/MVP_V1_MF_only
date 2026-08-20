@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getExportPayload } from "../api";
 import { AllocationSection } from "../AllocationSection";
 import { TerSection } from "../TerSection";
@@ -17,12 +17,19 @@ export function PrintAnalyticsView() {
   const token = useQueryToken();
   const [payload, setPayload] = useState<AnalyticsExportPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // The export token is single-use server-side (a consumed capability
+  // token, not a re-fetchable resource) — this ref stops StrictMode's
+  // dev-mode double-invocation of this effect from firing a second real
+  // fetch that would always 404 against an already-consumed token.
+  const hasFetchedRef = useRef(false);
 
   useEffect(() => {
     if (!token) {
       setError("Missing export token.");
       return;
     }
+    if (hasFetchedRef.current) return;
+    hasFetchedRef.current = true;
     getExportPayload(token)
       .then(setPayload)
       .catch((err) => setError(err.message || "Failed to load export data."));
@@ -67,6 +74,7 @@ export function PrintAnalyticsView() {
           portfolioBenchmark={payload.portfolioBenchmark}
           fundBenchmark={payload.fundBenchmark}
           isLoading={false}
+          printMode
         />
       </div>
 
