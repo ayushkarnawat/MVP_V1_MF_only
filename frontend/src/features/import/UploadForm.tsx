@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ImportFileProgressList } from "./ImportFileProgressList";
+import { OnboardingIllustration } from "@/features/auth/OnboardingIllustration";
 import { cn } from "@/lib/utils";
 import {
   UploadCloud,
@@ -12,6 +13,8 @@ import {
   EyeOff,
   AlertCircle,
   ArrowLeft,
+  FileCheck2,
+  ShieldCheck,
 } from "lucide-react";
 
 export interface UploadFormProps {
@@ -75,7 +78,7 @@ export function UploadForm({ onBack, onSubmit }: UploadFormProps) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="p-6 sm:p-8 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs space-y-6 w-full text-left"
+      className="p-6 sm:p-8 rounded-3xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-md space-y-6 w-full text-left relative overflow-hidden"
     >
       {/* Back Link */}
       {onBack && (
@@ -89,14 +92,24 @@ export function UploadForm({ onBack, onSubmit }: UploadFormProps) {
         </button>
       )}
 
-      {/* Header */}
-      <div className="space-y-1.5">
-        <h1 className="font-display font-bold text-lg sm:text-xl text-[var(--color-ink)] tracking-tight">
-          Upload your statement
-        </h1>
-        <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed">
-          Drop in the CAMS or KFintech Detailed CAS PDF you already have — we&apos;ll take it from here.
-        </p>
+      {/* Header Section with Supporting Illustration */}
+      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+        {/* Supporting Hand-Drawn Illustration Visual */}
+        <div className="flex-shrink-0">
+          <OnboardingIllustration variant="cas_upload" className="w-16 h-16 sm:w-20 sm:h-20" />
+        </div>
+
+        <div className="space-y-1 text-center sm:text-left flex-1 min-w-0">
+          <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-[var(--color-accent)] block">
+            CAS STATEMENT INGESTION
+          </span>
+          <h1 className="font-display font-bold text-lg sm:text-xl text-[var(--color-ink)] tracking-tight">
+            Upload your statement
+          </h1>
+          <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed">
+            Drop in the CAMS or KFintech Detailed CAS PDF you already have — we&apos;ll take it from here.
+          </p>
+        </div>
       </div>
 
       {/* Drag & Drop File Upload Box */}
@@ -106,12 +119,12 @@ export function UploadForm({ onBack, onSubmit }: UploadFormProps) {
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
         className={cn(
-          "relative border-2 border-dashed rounded-2xl p-6 sm:p-8 text-center cursor-pointer transition-all duration-200 select-none min-h-[140px] flex items-center justify-center",
+          "relative border-2 border-dashed rounded-2xl p-6 sm:p-7 text-center cursor-pointer transition-all duration-200 select-none min-h-[140px] flex items-center justify-center",
           isDragging
-            ? "border-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] scale-[1.005]"
+            ? "border-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-accent)_8%,var(--color-surface))] scale-[1.005] shadow-xs"
             : file
-            ? "border-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-accent)_4%,transparent)]"
-            : "border-[var(--color-border)] bg-[var(--color-bg)] hover:border-[var(--color-accent)] hover:bg-[color-mix(in_srgb,var(--color-accent)_3%,transparent)]"
+            ? "border-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-accent)_4%,var(--color-surface))]"
+            : "border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-accent)_2%,var(--color-bg))] hover:border-[var(--color-accent)]/60 hover:bg-[color-mix(in_srgb,var(--color-accent)_4%,var(--color-surface))]"
         )}
       >
         <input
@@ -134,17 +147,25 @@ export function UploadForm({ onBack, onSubmit }: UploadFormProps) {
             />
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center space-y-2">
-            <div className="h-11 w-11 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-accent)] flex items-center justify-center shadow-2xs">
+          <div className="flex flex-col items-center justify-center space-y-2.5">
+            <div className="h-11 w-11 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-accent)] flex items-center justify-center shadow-xs">
               <UploadCloud className="h-5 w-5" />
             </div>
-            <div className="space-y-0.5">
+            <div className="space-y-1">
               <p className="text-xs sm:text-sm font-semibold text-[var(--color-ink)]">
                 Click to choose file or drag &amp; drop PDF here
               </p>
-              <p className="text-[11px] text-[var(--color-text-secondary)]">
-                Supports CAMS &amp; KFintech Detailed CAS statements (up to 25MB)
-              </p>
+              <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-medium bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)]">
+                  CAMS
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-medium bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)]">
+                  KFintech
+                </span>
+                <span className="text-[11px] text-[var(--color-text-secondary)]">
+                  Detailed CAS (up to 25MB)
+                </span>
+              </div>
             </div>
           </div>
         )}
@@ -167,8 +188,9 @@ export function UploadForm({ onBack, onSubmit }: UploadFormProps) {
           <Label htmlFor="cas-password-input" className="text-xs font-semibold text-[var(--color-ink)]">
             PDF Password
           </Label>
-          <span className="text-[11px] text-[var(--color-text-secondary)]">
-            Usually your PAN (uppercase) or DOB
+          <span className="text-[11px] text-[var(--color-text-secondary)] flex items-center gap-1">
+            <ShieldCheck className="h-3 w-3 text-[var(--color-accent)]" />
+            <span>Usually your PAN (uppercase) or DOB</span>
           </span>
         </div>
 

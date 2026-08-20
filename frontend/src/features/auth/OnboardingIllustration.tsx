@@ -7,7 +7,9 @@ export type IllustrationVariant =
   | "purpose"
   | "household"
   | "family"
-  | "upload";
+  | "upload"
+  | "cas_upload"
+  | "import_complete";
 
 interface OnboardingIllustrationProps {
   variant: IllustrationVariant;
@@ -23,6 +25,8 @@ const ALT_TEXTS: Record<IllustrationVariant, string> = {
   household: "Household portfolio management roadmap illustration",
   family: "Family member portfolio customization illustration",
   upload: "CAS statement automated ingestion illustration",
+  cas_upload: "CAS upload illustration",
+  import_complete: "Import complete success illustration",
 };
 
 export function OnboardingIllustration({
@@ -55,7 +59,7 @@ export function OnboardingIllustration({
       <img
         src={lightSrc}
         alt={altText}
-        className="relative z-10 w-full h-full object-contain filter drop-shadow-sm transition-all dark:hidden"
+        className="relative z-10 w-full h-full object-contain filter drop-shadow-sm transition-all mix-blend-multiply dark:hidden"
         loading="eager"
         decoding="async"
       />
