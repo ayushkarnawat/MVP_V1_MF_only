@@ -109,17 +109,18 @@ Codex-implemented change is considered done. Full design:
 
 ## Session State
 
-*(Updated 2026-08-19. See `session.md` at repo root for the full detailed history —
+*(Updated 2026-08-20. See `session.md` at repo root for the full detailed history —
 this section is a current-status pointer, not the record of every past session.)*
 
-**Auth, Onboarding, Validation & Visual Experience are 100% complete on branch `authsetup`.**
+**Auth, Onboarding, Validation, Visual Experience, Mobile Auth & CAS Import Flow Redesign (v2) are 100% complete on branch `authsetup`.**
 Executed and verified across recent sessions:
-- **Left Auth Showcase Panel Redesign (`AuthShowcasePanel.tsx`)**: Near-black radial backdrop, diamond grid, 3D slate screen card with bevel highlight, deliberate continuous trajectory drawing from chaotic waveform to structured compounding, session play-once persistence (`hasAnimatedInSession`), interactive milestone hover tooltip (`+14.8%`, `+28.4%`, `+41.2%`, `+56.8%`), and JSDOM test guards.
+- **Bespoke Minimal Editorial Mobile Auth Background (`MobileAuthBackground.tsx`, `AuthShell.tsx`)**: Replaced the large full-image background on mobile with a pure vector SVG artwork built around the theme *"many separate financial pieces becoming one unified picture"*. Features concentric brand arcs, discrete folio nodes, converging trajectory streams, precision crosshairs, and restrained emerald beacons at the apexes (`#22C55E`), leaving quiet negative space behind a compact solid auth card (`max-w-[350px] sm:max-w-md`). Desktop split-screen layout remains 100% untouched.
+- **Onboarding Card Stack Narrow-Width Fix (`OnboardingCardStack.tsx`)**: Resolved placeholder-card corner clipping at 320px–375px viewports through container horizontal padding adjustment while preserving all motion and transition physics.
+- **CAS Import Flow Illustration-Led Redesign (v2)**: Built the approved entry choice screen (`ImportPathChoice.tsx`) with `<OnboardingIllustration variant="upload" />` hero and choice cards ("Request from CAMS" & "Already have a statement"), refactored `TwoPathImportContainer.tsx` to the `view: "choice" | "request" | "waiting" | "upload" | "history"` model (removing the tab bar), updated `RequestCamsPath.tsx` with consolidated reference card and 3 guided steps transitioning to `waiting`, added back-navigation to `UploadForm.tsx`, restructured `WaitingForCasView.tsx` with collapsed disclosure, migrated `CoverageGapBanner.tsx` to shadcn Button and Tailwind tokens, and established full mobile parity in `MobileImportView.tsx`, `MobileRequestCamsView.tsx`, and `MobileUploadForm.tsx`.
+- **Left Auth Showcase Panel Redesign (`AuthShowcasePanel.tsx`)**: Scaled SVG vector wealth architecture asset with responsive containment and unit tests.
 - **Comprehensive Auth Validation Engine (`validation.ts`, `validation.test.ts`)**: 30/30 tests passing. Structural email validation, extension reminders, intelligent typo suggestions (e.g. `gmial.com` -> `"Did you mean name@gmail.com?"`), Indian mobile phone validation (10-digit, 6-9 prefix, no decimals/chars) with canonical normalization (`+91XXXXXXXXXX`), dynamic live recovery on blur/change, and friendly error translation (`formatAuthErrorMessage`).
-- **Hand-Drawn Hero Illustrations & Option Cards**: Sourced from user's illustration sheet, extracted as transparent high-res PNGs with subtle Unifolio green accents (`#22C55E` / `#16A34A`), integrated into `OnboardingIllustration.tsx` with light/dark theme parity and ambient glow. Replaced option card icons in `Q4Household.tsx` (Just Me & Family Too) and `TrustPrimer.tsx` (Read-only access & No raw CAS PDF storage) with matching bespoke hand-drawn SVGs.
-- **CORS Multi-Port Dev Support**: `backend/app/main.py` updated with `allow_origin_regex` and multi-port support (5173, 5174, 5175, 3000) so preflight `OPTIONS` requests never fail on any local dev port.
-- **Backend Auth Architecture**: Pure passwordless flow across all three methods (Phone+OTP, Google OAuth, Email+OTP), backed by mandatory phone gate, step-up account linking, and migration 0008. Backend suite: **449 passing, 2 skipped, 0 errors**.
-- **Frontend Verification**: **All test suites passing**, `npx tsc -b` clean (0 errors), `npm run build` clean.
+- **Hand-Drawn Hero Illustrations & Option Cards**: Integrated transparent high-res PNGs with subtle Unifolio green accents into `OnboardingIllustration.tsx` with light/dark theme parity and ambient glow. Bespoke hand-drawn option card SVGs in `Q4Household.tsx` and `TrustPrimer.tsx`.
+- **Frontend Verification**: **All test suites passing** (272/272 unit tests across 59 test files), `oxlint` clean, `npx tsc -b` clean (0 errors), `npm run build` clean.
 
 **PRD-04 (Analytics) backend is fully complete — all 5 parts, including the Scorer.** Category allocation (Part 1), AMFI TER+AAUM → weighted TER (Part 2), NSE
 Indices → benchmark comparison (Part 3), category-universe ranking (Part 4), and the
