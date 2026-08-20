@@ -4,6 +4,8 @@ from typing import Any
 
 from playwright.async_api import Browser, Playwright, async_playwright
 
+from app.config import settings
+
 _TOKEN_TTL_SECONDS = 120
 
 # ponytail: in-process dict, not shared across worker processes and lost on
@@ -52,3 +54,14 @@ def get_shared_browser() -> Browser:
     if _browser is None:
         raise RuntimeError("Playwright browser not started")
     return _browser
+
+
+async def render_analytics_pdf(token: str) -> bytes:
+    browser = get_shared_browser()
+    page = await browser.new_page()
+    try:
+        await page.goto(f"{settings.frontend_base_url}/print/analytics?token={token}")
+        await page.wait_for_selector('[data-print-ready="true"]', timeout=15000)
+        return await page.pdf(format="A4", print_background=True)
+    finally:
+        await page.close()
