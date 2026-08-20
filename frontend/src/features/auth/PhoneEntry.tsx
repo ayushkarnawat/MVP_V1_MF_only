@@ -124,7 +124,7 @@ export function PhoneEntry({
             value={phoneNumber}
             onChange={(event) => handlePhoneChange(event.target.value)}
             onBlur={handlePhoneBlur}
-            className="flex-1 min-w-0 bg-transparent px-3.5 text-xs sm:text-sm text-[var(--color-ink)] placeholder:text-[var(--color-text-secondary)]/50 focus:outline-none font-mono rounded-r-xl"
+            className="flex-1 min-w-0 bg-transparent px-3.5 text-xs sm:text-sm text-[var(--color-ink)] placeholder:text-[var(--color-text-secondary)]/50 focus:outline-none focus:ring-0 focus:border-transparent outline-none border-none shadow-none font-mono rounded-r-xl"
             autoFocus
           />
         </div>

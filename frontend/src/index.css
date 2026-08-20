@@ -42,6 +42,37 @@
     caret-color: var(--color-accent);
   }
 
+  /* Completely remove Chrome/Edge default focus ring & blue outline */
+  input,
+  textarea,
+  select {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-focus-ring-color: transparent !important;
+  }
+
+  /* Global Input Focus Highlight - Unifolio Green */
+  input:focus,
+  input:focus-visible,
+  textarea:focus,
+  textarea:focus-visible,
+  select:focus,
+  select:focus-visible {
+    outline: none !important;
+    outline-color: transparent !important;
+    -webkit-focus-ring-color: transparent !important;
+    border-color: var(--color-accent) !important;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 20%, transparent) !important;
+  }
+
+  /* Inner inputs inside group containers (Phone, Member Name, etc.) should not draw double inner borders/shadows */
+  div > input:focus,
+  div > input:focus-visible,
+  div > input:focus-within {
+    border-color: transparent !important;
+    box-shadow: none !important;
+    outline: none !important;
+  }
+
   /* Focus outline for accessibility (WCAG AA) */
   :focus-visible {
     outline: 2px solid var(--color-accent);
