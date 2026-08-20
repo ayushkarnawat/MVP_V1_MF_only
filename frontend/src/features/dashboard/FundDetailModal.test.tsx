@@ -29,7 +29,6 @@ describe("FundDetailModal", () => {
         isOpen={true}
         onClose={vi.fn()}
         holding={sampleHolding}
-        onCompareDistributors={vi.fn()}
       />
     );
 
@@ -40,20 +39,13 @@ describe("FundDetailModal", () => {
     expect(screen.getByText("150.250")).toBeInTheDocument();
   });
 
-  it("triggers onCompareDistributors callback when CTA is clicked", () => {
-    const handleCompare = vi.fn();
+  it("no longer renders a Compare Distributors trigger — moved to the Holdings section header", () => {
     render(
-      <FundDetailModal
-        isOpen={true}
-        onClose={vi.fn()}
-        holding={sampleHolding}
-        onCompareDistributors={handleCompare}
-      />
+      <FundDetailModal isOpen={true} onClose={vi.fn()} holding={sampleHolding} />
     );
 
-    fireEvent.click(
-      screen.getByRole("button", { name: /compare returns by distributor/i })
-    );
-    expect(handleCompare).toHaveBeenCalledWith("scheme-42", "PPFAS Flexi Cap Fund");
+    expect(
+      screen.queryByRole("button", { name: /compare returns by distributor/i })
+    ).not.toBeInTheDocument();
   });
 });

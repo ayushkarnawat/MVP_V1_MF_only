@@ -3,7 +3,6 @@ import { Badge } from "../../components/Badge";
 import { toTitleCase } from "../../lib/utils";
 import { Button } from "../../components/Button";
 import { FundSignalGraph } from "../../components/FundSignal";
-import { BarChart2 } from "lucide-react";
 import type { HoldingRow } from "./types";
 import styles from "./FundDetailModal.module.css";
 
@@ -11,14 +10,12 @@ export interface FundDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   holding: HoldingRow | null;
-  onCompareDistributors: (schemeId: string, schemeName: string) => void;
 }
 
 export function FundDetailModal({
   isOpen,
   onClose,
   holding,
-  onCompareDistributors,
 }: FundDetailModalProps) {
   if (!holding) return null;
 
@@ -67,19 +64,6 @@ export function FundDetailModal({
               {isPositive ? "↑ " : "↓ "}₹{formatCurrency(Math.abs(profit))}
             </span>
           </div>
-        </div>
-
-        <div className={styles.actionFooter}>
-          <Button
-            variant="secondary"
-            onClick={() =>
-              onCompareDistributors(holding.scheme_id, holding.scheme_name)
-            }
-            className="gap-1.5 inline-flex items-center"
-          >
-            <BarChart2 className="h-4 w-4 inline" />
-            <span>Compare Returns by Distributor</span>
-          </Button>
         </div>
 
         <FundSignalGraph
