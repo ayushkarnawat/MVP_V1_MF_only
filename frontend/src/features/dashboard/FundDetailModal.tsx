@@ -1,7 +1,6 @@
 import { Modal } from "../../components/Modal";
 import { Badge } from "../../components/Badge";
 import { toTitleCase } from "../../lib/utils";
-import { Button } from "../../components/Button";
 import { FundSignalGraph } from "../../components/FundSignal";
 import type { HoldingRow } from "./types";
 import styles from "./FundDetailModal.module.css";

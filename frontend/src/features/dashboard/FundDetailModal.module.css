@@ -86,9 +86,3 @@
   color: var(--color-text-secondary);
   font-size: var(--type-body-size);
 }
-
-.actionFooter {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: var(--space-4);
-}
