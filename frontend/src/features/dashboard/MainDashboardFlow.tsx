@@ -65,7 +65,7 @@ export function MainDashboardFlow() {
       <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-ink)] transition-colors duration-200">
         {/* Top Minimal Navigation Bar */}
         <header className="sticky top-0 z-30 w-full bg-[var(--color-surface)]/85 backdrop-blur-md border-b border-[var(--color-border)]">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <button
               onClick={() => {
                 clearCasResumeStep2(targetAddMemberId);
@@ -122,7 +122,7 @@ export function MainDashboardFlow() {
         </header>
 
         {/* Add Data Content Area */}
-        <main className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-8">
+        <main className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-8">
           {targetAddMemberId && (
             <ImportFlow
               key={targetAddMemberId}

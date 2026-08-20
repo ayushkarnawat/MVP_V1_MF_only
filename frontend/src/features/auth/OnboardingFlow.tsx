@@ -139,8 +139,8 @@ export function OnboardingFlow() {
 
     if (step === "cas_upload") {
       return (
-        <div className="min-h-dvh w-full bg-[var(--color-bg)] flex flex-col justify-center items-center p-3.5 sm:p-6 lg:p-8 box-border overflow-y-auto">
-          <div className="w-full max-w-xl mx-auto my-auto">
+        <div className="min-h-dvh w-full bg-[var(--color-bg)] flex flex-col justify-start items-center p-3.5 sm:p-6 lg:p-8 box-border overflow-y-auto">
+          <div className="w-full max-w-[1600px] mx-auto my-auto">
             <SoloCasUpload name={answers.name} />
           </div>
         </div>
@@ -149,8 +149,8 @@ export function OnboardingFlow() {
 
     if (step === "family_cas_upload" || step === "upload_my_cas" || step === "parse_queue") {
       return (
-        <div className="min-h-dvh w-full bg-[var(--color-bg)] flex flex-col justify-center items-center p-3.5 sm:p-6 lg:p-8 box-border overflow-y-auto">
-          <div className="w-full max-w-xl mx-auto my-auto">
+        <div className="min-h-dvh w-full bg-[var(--color-bg)] flex flex-col justify-start items-center p-3.5 sm:p-6 lg:p-8 box-border overflow-y-auto">
+          <div className="w-full max-w-[1600px] mx-auto my-auto">
             <FamilyImportFlow selfName={answers.name} />
           </div>
         </div>
