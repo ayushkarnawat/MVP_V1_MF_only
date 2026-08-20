@@ -10,6 +10,7 @@ from app.services.auth.session import get_current_user
 from app.services.dashboard.aggregate import (
     get_aggregate_allocation,
     get_aggregate_cash_flow,
+    get_aggregate_distributor_comparison,
     get_aggregate_holdings,
     get_aggregate_sips,
     get_aggregate_sips_monthly,
@@ -32,13 +33,14 @@ from app.services.dashboard.household_members import (
 from app.services.dashboard.schemas import (
     AggregateAllocationResponse,
     AggregateCashFlowResponse,
+    AggregateDistributorComparisonResponse,
     AggregateHoldingsResponse,
     AggregateSipsMonthlyResponse,
     AggregateSipsResponse,
     AggregateSnapshotsResponse,
     AllocationSummary,
     CashFlowEntry,
-    DistributorComparisonRow,
+    DistributorPortfolioRow,
     HoldingRow,
     HouseholdMemberCreate,
     HouseholdMemberResponse,
@@ -96,18 +98,17 @@ async def get_member_holdings(
 
 
 @router.get(
-    "/household-members/{member_id}/schemes/{scheme_id}/distributor-comparison",
-    response_model=list[DistributorComparisonRow],
+    "/household-members/{member_id}/distributor-comparison",
+    response_model=list[DistributorPortfolioRow],
 )
 async def get_member_distributor_comparison(
     member_id: uuid.UUID,
-    scheme_id: uuid.UUID,
     user: User = Depends(get_current_user),
     db: DbSession = Depends(get_db),
 ):
     if get_household_member_for_user(db, user.id, member_id) is None:
         raise HTTPException(status_code=404, detail="Household member not found.")
-    return await compute_distributor_comparison(db, member_id, scheme_id)
+    return await compute_distributor_comparison(db, [member_id])
 
 
 @router.get("/household-members/{member_id}/allocation", response_model=AllocationSummary)
@@ -173,6 +174,16 @@ async def get_household_aggregate_holdings(
     user: User = Depends(get_current_user), db: DbSession = Depends(get_db)
 ):
     return await get_aggregate_holdings(db, user.id)
+
+
+@router.get(
+    "/household/aggregate/distributor-comparison",
+    response_model=AggregateDistributorComparisonResponse,
+)
+async def get_household_aggregate_distributor_comparison(
+    user: User = Depends(get_current_user), db: DbSession = Depends(get_db)
+):
+    return await get_aggregate_distributor_comparison(db, user.id)
 
 
 @router.get("/household/aggregate/allocation", response_model=AggregateAllocationResponse)

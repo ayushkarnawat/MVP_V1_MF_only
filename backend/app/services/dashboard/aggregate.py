@@ -15,11 +15,13 @@ from app.models.enums import ImportStatus
 from app.models.imports import Import
 from app.services.dashboard.allocation import compute_allocation
 from app.services.dashboard.cash_flow import compute_cash_flow
+from app.services.dashboard.distributor_comparison import compute_distributor_comparison
 from app.services.dashboard.holdings import compute_holdings
 from app.services.dashboard.household_members import list_household_members
 from app.services.dashboard.schemas import (
     AggregateAllocationResponse,
     AggregateCashFlowResponse,
+    AggregateDistributorComparisonResponse,
     AggregateHoldingsResponse,
     AggregateSipsMonthlyResponse,
     AggregateSipsResponse,
@@ -49,6 +51,15 @@ async def get_aggregate_holdings(db: Session, user_id: uuid.UUID) -> AggregateHo
     statuses = get_member_statuses(db, user_id)
     holdings = await compute_holdings(db, [m.id for m in members])
     return AggregateHoldingsResponse(members=statuses, holdings=holdings)
+
+
+async def get_aggregate_distributor_comparison(
+    db: Session, user_id: uuid.UUID
+) -> AggregateDistributorComparisonResponse:
+    members = list_household_members(db, user_id)
+    statuses = get_member_statuses(db, user_id)
+    rows = await compute_distributor_comparison(db, [m.id for m in members])
+    return AggregateDistributorComparisonResponse(members=statuses, rows=rows)
 
 
 async def get_aggregate_allocation(db: Session, user_id: uuid.UUID) -> AggregateAllocationResponse:
