@@ -30,7 +30,6 @@ import {
   RefreshCw,
   LayoutDashboard,
   UploadCloud,
-  ShieldCheck,
   ArrowLeft,
 } from "lucide-react";
 
@@ -280,7 +279,7 @@ export function MobileImportView({
                 className={cn(
                   "px-2.5 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 flex-shrink-0 min-h-[32px]",
                   (selectedMemberId ?? members[0]?.id) === m.id
-                    ? "bg-[var(--color-ink)] text-[var(--color-bg)] shadow-2xs"
+                    ? "bg-[var(--color-accent)] text-white shadow-2xs"
                     : "bg-[var(--color-surface)] text-[var(--color-text-secondary)] border border-[var(--color-border)] hover:text-[var(--color-ink)]"
                 )}
               >
@@ -309,7 +308,7 @@ export function MobileImportView({
           className={cn(
             "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer min-h-[32px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] ml-auto",
             view === "history"
-              ? "bg-[var(--color-ink)] text-[var(--color-bg)] shadow-xs"
+              ? "bg-[var(--color-accent)] text-white shadow-xs"
               : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface)] border border-[var(--color-border)]"
           )}
         >

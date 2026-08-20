@@ -82,7 +82,7 @@ export function TwoPathImportContainer({
           className={cn(
             "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer min-h-[36px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
             view === "history"
-              ? "bg-[var(--color-ink)] text-[var(--color-bg)] shadow-xs"
+              ? "bg-[var(--color-accent)] text-white shadow-xs"
               : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface)] border border-[var(--color-border)]"
           )}
         >

@@ -214,7 +214,7 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
             className={cn(
               "px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 min-h-[36px]",
               activeTab === "all"
-                ? "bg-[var(--color-ink)] text-[var(--color-bg)] shadow-xs"
+                ? "bg-[var(--color-accent)] text-white shadow-xs"
                 : "bg-[var(--color-surface)] text-[var(--color-text-secondary)] border border-[var(--color-border)] hover:text-[var(--color-ink)]"
             )}
           >
@@ -249,7 +249,7 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
             className={cn(
               "px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 min-h-[36px]",
               activeTab === "regular"
-                ? "bg-[var(--color-ink)] text-[var(--color-bg)] shadow-xs"
+                ? "bg-[var(--color-accent)] text-white shadow-xs"
                 : "bg-[var(--color-surface)] text-[var(--color-text-secondary)] border border-[var(--color-border)] hover:text-[var(--color-ink)]"
             )}
           >

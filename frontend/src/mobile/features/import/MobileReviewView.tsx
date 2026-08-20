@@ -184,7 +184,7 @@ export function MobileReviewView({
           className={cn(
             "px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1 flex-shrink-0 min-h-[32px]",
             activeTab === "all"
-              ? "bg-[var(--color-ink)] text-[var(--color-bg)] shadow-xs"
+              ? "bg-[var(--color-accent)] text-white shadow-xs"
               : "bg-[var(--color-surface)] text-[var(--color-text-secondary)] border border-[var(--color-border)]"
           )}
         >
@@ -219,7 +219,7 @@ export function MobileReviewView({
           className={cn(
             "px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1 flex-shrink-0 min-h-[32px]",
             activeTab === "regular"
-              ? "bg-[var(--color-ink)] text-[var(--color-bg)] shadow-xs"
+              ? "bg-[var(--color-accent)] text-white shadow-xs"
               : "bg-[var(--color-surface)] text-[var(--color-text-secondary)] border border-[var(--color-border)]"
           )}
         >
@@ -354,7 +354,7 @@ export function MobileReviewView({
                             className={cn(
                               "h-11 min-h-[44px] rounded-xl text-xs font-semibold border transition-all cursor-pointer flex items-center justify-center active:scale-[0.98]",
                               override.planType === "direct"
-                                ? "bg-[var(--color-ink)] text-[var(--color-bg)] border-[var(--color-ink)] shadow-xs"
+                                ? "bg-[var(--color-accent)] text-white border-[var(--color-accent)] shadow-xs"
                                 : "bg-[var(--color-surface)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:text-[var(--color-ink)]"
                             )}
                           >
@@ -368,7 +368,7 @@ export function MobileReviewView({
                             className={cn(
                               "h-11 min-h-[44px] rounded-xl text-xs font-semibold border transition-all cursor-pointer flex items-center justify-center active:scale-[0.98]",
                               override.planType === "regular"
-                                ? "bg-[var(--color-ink)] text-[var(--color-bg)] border-[var(--color-ink)] shadow-xs"
+                                ? "bg-[var(--color-accent)] text-white border-[var(--color-accent)] shadow-xs"
                                 : "bg-[var(--color-surface)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:text-[var(--color-ink)]"
                             )}
                           >

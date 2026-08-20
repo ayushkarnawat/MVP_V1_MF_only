@@ -156,7 +156,7 @@ export function FamilyCasUpload({
                     type="button"
                     size="sm"
                     onClick={() => setActiveMemberId(member.id)}
-                    className="h-9 px-3.5 rounded-xl bg-[var(--color-ink)] text-[var(--color-surface)] hover:bg-[var(--color-ink)]/90 font-semibold text-xs gap-1.5 shadow-xs cursor-pointer active:scale-[0.99] transition-all"
+                    className="h-9 px-3.5 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs gap-1.5 shadow-xs cursor-pointer active:scale-[0.99] transition-all"
                   >
                     <UploadCloud className="h-3.5 w-3.5" />
                     <span>{`Upload CAS for ${member.name}`}</span>
