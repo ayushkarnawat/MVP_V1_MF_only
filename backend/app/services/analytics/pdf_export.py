@@ -2,6 +2,8 @@ import secrets
 import time
 from typing import Any
 
+from playwright.async_api import Browser, Playwright, async_playwright
+
 _TOKEN_TTL_SECONDS = 120
 
 # ponytail: in-process dict, not shared across worker processes and lost on
@@ -24,3 +26,29 @@ def consume_export_payload(token: str) -> dict[str, Any] | None:
     if time.monotonic() > expires_at:
         return None
     return payload
+
+
+_playwright: Playwright | None = None
+_browser: Browser | None = None
+
+
+async def start_browser() -> None:
+    global _playwright, _browser
+    _playwright = await async_playwright().start()
+    _browser = await _playwright.chromium.launch()
+
+
+async def stop_browser() -> None:
+    global _playwright, _browser
+    if _browser is not None:
+        await _browser.close()
+        _browser = None
+    if _playwright is not None:
+        await _playwright.stop()
+        _playwright = None
+
+
+def get_shared_browser() -> Browser:
+    if _browser is None:
+        raise RuntimeError("Playwright browser not started")
+    return _browser

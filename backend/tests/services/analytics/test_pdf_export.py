@@ -1,8 +1,11 @@
 import time
 
+import pytest
+
 from app.services.analytics.pdf_export import (
     _export_payloads,
     consume_export_payload,
+    get_shared_browser,
     store_export_payload,
 )
 
@@ -26,3 +29,8 @@ def test_consume_expired_token_returns_none(monkeypatch):
     payload, _expires_at, used = _export_payloads[token]
     _export_payloads[token] = (payload, time.monotonic() - 1, used)
     assert consume_export_payload(token) is None
+
+
+def test_get_shared_browser_raises_before_started():
+    with pytest.raises(RuntimeError, match="not started"):
+        get_shared_browser()
