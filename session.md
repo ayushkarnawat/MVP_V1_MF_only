@@ -1,4 +1,4 @@
-# Session state — 2026-08-19 (updated)
+# Session state — 2026-08-20 (updated)
 
 Working notes for picking this project back up cold. Not a planning doc — see
 `Docs/superpowers/plans/` for those. This file tracks *where things stand*,
@@ -6,6 +6,36 @@ gets overwritten each session, and isn't meant to accumulate history.
 
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
+
+## Phantom-holding bug fixed, ISIN cross-check added, index-fund mega-category split investigated + deferred (2026-08-19/20)
+
+Root-caused a dashboard-visible phantom "UTI Children's Equity Fund" holding: a newly
+launched scheme (JioBlackRock Flexi Cap, launched Oct 2025) whose CAS-parsed name
+dropped "Plan"/"Option" suffixes fell to 0.87 name-similarity against mfapi.in's
+canonical name — below `resolve_scheme`'s 0.92 confirm gate — even though
+`amfi_from_cas` was correct (casparser resolved it via ISIN). General fix (not just this
+one scheme): `enrich.py`'s `resolve_scheme` now checks `isin` against mfapi.in's own
+`isinGrowth`/`isinDivReinvestment` for the CAS-supplied code *before* falling back to
+name-similarity — additive only, never weaker than the existing DATA-001 cross-check.
+Verified against the real cached mfapi data reproducing the exact previously-failing
+case now succeeding. Also cleaned up two throwaway test accounts. Committed as 3
+commits on `feat/enhanced-ui` (ISIN fix + tests, TER parallel-fetch/nullable-marker
+work already in flight, and the timing/logging instrumentation added to
+`main.py`/`nav.py`/`category_ranking.py`/`scorer.py` — explicitly kept per Ayush's
+request, useful for the next perf investigation).
+
+Separately, investigated whether to split AMFI's 1,150-scheme
+`"Other Scheme - Index Funds"` mega-category into smaller peer-groups for
+category-ranking/Scorer performance. Produced a concrete bucket list (both a
+fine-grained per-benchmark option and a coarser AMFI-precedented asset-class option,
+with real counts from the cached `NAVAll.txt`) for Ayush to review with finance-domain
+peers before any build decision. **Decision: deferred, not built** — peers judged the
+only design that actually shrinks the category (bespoke per-benchmark regex buckets) an
+unrecognized-by-AMFI taxonomy not worth the risk; the AMFI-native alternative doesn't
+solve the size problem. Full bucket list, both options, and a side finding (a possible
+data-completeness gap in `get_category_universe`'s exact-string category match) at
+`Docs/superpowers/specs/2026-08-20-index-fund-mega-category-split-deferred.md`; tracked
+in `DEFERRED_FEATURES.md`'s PRD-04 table for future revisit.
 
 ## BUG-001/DATA-001 implementation complete, all 7 items DONE (2026-08-18)
 

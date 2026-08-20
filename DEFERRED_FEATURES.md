@@ -58,6 +58,7 @@ built**, so those are not listed here. What PRD-04 itself still defers:
 | Deep multi-year rolling-return analysis (e.g. full rolling-return heatmaps) | PRD-04 §Out of Scope/Data-Gated | Not built | Beyond what the scorer and category comparison need; possible future enrichment once the core scorer shipped (it now has) | Future |
 | Equity-specific analytics (stock-level metrics) | PRD-04 §Non-Goals | Not built | MF-only per overall MVP scope | N/A (permanent) |
 | Scorer weighting evolution beyond the fixed v1 formula (Return 45% / Risk 30% / Consistency 25%) | PRD-04 §Future Considerations | Not built (v1 formula shipped and locked) | Explicitly framed as something to revisit once real usage data exists, not a v1 gap | Future |
+| Index-fund mega-category sub-bucketing (split AMFI's 1,150-scheme "Other Scheme - Index Funds" into smaller peer-groups for category-ranking/Scorer performance + comparison quality) | `Docs/superpowers/specs/2026-08-20-index-fund-mega-category-split-deferred.md` | Reviewed and deferred, not started | Investigated with a concrete bucket list (both a fine-grained per-benchmark option and a coarser AMFI-precedented asset-class option); reviewed with Ayush and finance-domain peers, who judged the only design that actually shrinks the category (bespoke per-benchmark regex buckets) as an unrecognized-by-AMFI taxonomy not worth the mis-bucketing/maintenance risk, while the AMFI-native alternative doesn't solve the size problem | Revisit only if index-fund category-ranking/Scorer load time becomes a demonstrated user-facing problem (currently mitigated by the existing BUG-001 15-min per-category cache) |
 
 ## Infrastructure & Deployment
 
@@ -82,7 +83,12 @@ the "self" `household_members` row (frontend-mitigated only); a dead
 `row.return_percentage_1y` field reference in `HoldingsTable.tsx`; `@bklit/bar-chart`
 never actually installed despite an early frontend brief calling for it (hand-rolled
 SVG/Tailwind used instead — installing it properly is a deliberately deferred, separate
-task since it would overwrite `src/lib/utils.ts`); the `compute_holdings` cache's
+task since it would overwrite `src/lib/utils.ts`); `scheme_universe.py`'s
+`get_category_universe` doing an exact-string match on `sebi_category`, meaning schemes
+tagged under AMFI's legacy `"Index Funds - Equity/Debt/Hybrid Funds"` headers are
+invisible to comparison against schemes tagged `"Other Scheme - Index Funds"` even when
+they track the same index (surfaced while investigating the mega-category split above,
+not confirmed high-impact, not investigated further); the `compute_holdings` cache's
 accepted lack of single-flight coordination (harmless, documented, superseded once
 ADR-006's job above ships); and the SIP Upcoming/This Month tab switcher's incomplete
 ARIA `aria-controls` IDREF pairing (inactive tab points at a not-yet-rendered
