@@ -26,6 +26,7 @@ NAVs from the now-local cache in its per-scheme loop.
 
 from __future__ import annotations
 
+import logging
 import threading
 import time
 import uuid
@@ -67,6 +68,8 @@ _CATEGORY_RETURNS_CACHE_TTL_SECONDS = 15 * 60
 _category_returns_clock = time.monotonic
 _category_returns_cache: dict[str, tuple[float, date, dict[uuid.UUID, Decimal]]] = {}
 _category_returns_cache_lock = threading.Lock()
+
+logger = logging.getLogger(__name__)
 
 
 def _cagr(start_nav: Decimal, end_nav: Decimal, years: int) -> Decimal:
@@ -114,10 +117,15 @@ def _bulk_nav_on_or_before(
 
 
 async def _compute_category_returns(db: Session, universe: list[Scheme], today: date) -> dict[uuid.UUID, Decimal]:
+    warm_start = time.perf_counter()
     await warm_nav_history(db, universe)
+    warm_elapsed = time.perf_counter() - warm_start
+
     start_3y = years_ago(today, 3)
     start_5y = years_ago(today, 5)
+    lookup_start = time.perf_counter()
     navs = _bulk_nav_on_or_before(db, [s.id for s in universe], [start_3y, start_5y, today])
+    lookup_elapsed = time.perf_counter() - lookup_start
 
     returns: dict[uuid.UUID, Decimal] = {}
     for scheme in universe:
@@ -130,6 +138,14 @@ async def _compute_category_returns(db: Session, universe: list[Scheme], today: 
         start5 = per_scheme.get(start_5y)
         r5 = _cagr(start5, end, 5) if start5 is not None else None
         returns[scheme.id] = _blend_returns(r3, r5)
+
+    # Instrumented 2026-08-20 alongside nav.py's warm_nav_history timing —
+    # see that module's docstring note for why (root-causing a reported
+    # post-fix regression rather than guessing).
+    logger.info(
+        "_compute_category_returns[%s]: %d schemes, warm=%.2fs bulk_nav_lookup=%.2fs",
+        universe[0].sebi_category if universe else "?", len(universe), warm_elapsed, lookup_elapsed,
+    )
     return returns
 
 

@@ -11,6 +11,7 @@ the cache after that.
 from __future__ import annotations
 
 import asyncio
+import logging
 import threading
 import time
 import uuid
@@ -26,6 +27,8 @@ from sqlalchemy.orm import Session
 from app.models.reference import NavHistory, Scheme
 
 MFAPI_BASE = "https://api.mfapi.in"
+
+logger = logging.getLogger(__name__)
 
 # Process-local, same posture as holdings.py's _HOLDINGS_CACHE_TTL_SECONDS
 # (matching its window on purpose — re-warming a scheme's NAV history more
@@ -193,7 +196,17 @@ async def warm_nav_history(db: Session, schemes: Iterable[Scheme]) -> None:
         except httpx.HTTPError:
             return scheme, None
 
+    # Instrumented 2026-08-20 to root-cause a reported regression (Category
+    # Ranking/Scorer got slower, not faster, after the commit-batching and
+    # bulk-query fixes) — logs which phase (network fetch vs DB write)
+    # actually dominates a given run instead of guessing from wall-clock
+    # alone. Cheap enough (a handful of time.perf_counter calls) to leave in
+    # permanently rather than strip out once this is root-caused.
+    fetch_start = time.perf_counter()
     fetched = await asyncio.gather(*(fetch(scheme) for scheme in to_fetch.values()))
+    fetch_elapsed = time.perf_counter() - fetch_start
+
+    commit_start = time.perf_counter()
     with _nav_warm_lock:
         any_rows = False
         for scheme, rows in fetched:
@@ -207,6 +220,13 @@ async def warm_nav_history(db: Session, schemes: Iterable[Scheme]) -> None:
         # DrvFs-mounted dev DB than a native filesystem, live 2026-08-19).
         if any_rows:
             db.commit()
+    commit_elapsed = time.perf_counter() - commit_start
+
+    logger.info(
+        "warm_nav_history: %d schemes total, %d fetched over network, "
+        "fetch=%.2fs commit=%.2fs",
+        len(unique), len(to_fetch), fetch_elapsed, commit_elapsed,
+    )
 
 
 async def get_navs_on_or_before(

@@ -9,6 +9,7 @@ plan for why the FR-7 breakdown itself is never persisted).
 
 from __future__ import annotations
 
+import logging
 import threading
 import time
 import uuid
@@ -46,6 +47,8 @@ _CONSISTENCY_WEIGHT = Decimal("0.25")
 _TER_DEAD_ZONE = Decimal("0.05")
 _TER_NUDGE = Decimal("0.25")
 _HISTORY_YEARS = 5
+
+logger = logging.getLogger(__name__)
 
 # Mirrors nav.py's warm-cache posture (`_NAV_WARM_TTL_SECONDS`): this
 # category-wide computation (Return/Risk/Consistency across an entire SEBI
@@ -95,12 +98,23 @@ async def _category_component_scores(
 async def _compute_category_component_scores(
     db: Session, universe: list[Scheme], today: date
 ) -> dict[uuid.UUID, dict[str, Decimal | None]]:
+    returns_start = time.perf_counter()
     returns = await _category_returns(db, universe, today)
+    returns_elapsed = time.perf_counter() - returns_start
     if not returns:
         return {}
 
     month_ends = month_end_dates(years_ago(today, _HISTORY_YEARS), today)
+    series_start = time.perf_counter()
     series_by_scheme = build_monthly_series_bulk(db, list(returns), month_ends)
+    series_elapsed = time.perf_counter() - series_start
+    # Instrumented 2026-08-20 alongside category_ranking.py/nav.py's timers —
+    # see nav.py's warm_nav_history docstring note for why.
+    logger.info(
+        "_compute_category_component_scores[%s]: %d schemes, category_returns=%.2fs "
+        "(cache hit if tiny) series_build=%.2fs",
+        universe[0].sebi_category if universe else "?", len(universe), returns_elapsed, series_elapsed,
+    )
     rolling_by_scheme = {
         scheme_id: rolling_12m_returns(series) for scheme_id, series in series_by_scheme.items()
     }
