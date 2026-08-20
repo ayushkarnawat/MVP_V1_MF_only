@@ -13,7 +13,6 @@ import {
   EyeOff,
   AlertCircle,
   ArrowLeft,
-  FileCheck2,
   ShieldCheck,
 } from "lucide-react";
 
@@ -78,7 +77,7 @@ export function UploadForm({ onBack, onSubmit }: UploadFormProps) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="p-6 sm:p-8 rounded-3xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-md space-y-6 w-full text-left relative overflow-hidden"
+      className="p-4 sm:p-8 rounded-3xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-md space-y-4 sm:space-y-6 w-full text-left relative overflow-hidden"
     >
       {/* Back Link */}
       {onBack && (
@@ -93,17 +92,17 @@ export function UploadForm({ onBack, onSubmit }: UploadFormProps) {
       )}
 
       {/* Header Section with Supporting Illustration */}
-      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 sm:gap-4">
         {/* Supporting Hand-Drawn Illustration Visual */}
         <div className="flex-shrink-0">
-          <OnboardingIllustration variant="cas_upload" className="w-16 h-16 sm:w-20 sm:h-20" />
+          <OnboardingIllustration variant="cas_upload" className="w-12 h-12 sm:w-20 sm:h-20" />
         </div>
 
-        <div className="space-y-1 text-center sm:text-left flex-1 min-w-0">
+        <div className="space-y-0.5 sm:space-y-1 text-center sm:text-left flex-1 min-w-0">
           <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-[var(--color-accent)] block">
             CAS STATEMENT INGESTION
           </span>
-          <h1 className="font-display font-bold text-lg sm:text-xl text-[var(--color-ink)] tracking-tight">
+          <h1 className="font-display font-bold text-base sm:text-xl text-[var(--color-ink)] tracking-tight">
             Upload your statement
           </h1>
           <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed">
@@ -119,7 +118,7 @@ export function UploadForm({ onBack, onSubmit }: UploadFormProps) {
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
         className={cn(
-          "relative border-2 border-dashed rounded-2xl p-6 sm:p-7 text-center cursor-pointer transition-all duration-200 select-none min-h-[140px] flex items-center justify-center",
+          "relative border-2 border-dashed rounded-2xl p-4 sm:p-7 text-center cursor-pointer transition-all duration-200 select-none min-h-[110px] sm:min-h-[140px] flex items-center justify-center",
           isDragging
             ? "border-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-accent)_8%,var(--color-surface))] scale-[1.005] shadow-xs"
             : file
@@ -153,9 +152,13 @@ export function UploadForm({ onBack, onSubmit }: UploadFormProps) {
             </div>
             <div className="space-y-1">
               <p className="text-xs sm:text-sm font-semibold text-[var(--color-ink)]">
-                Click to choose file or drag &amp; drop PDF here
+                <span className="sm:hidden">Tap to choose a PDF</span>
+                <span className="hidden sm:inline">Click to choose file or drag &amp; drop PDF here</span>
               </p>
-              <div className="flex items-center justify-center gap-1.5 flex-wrap">
+              <p className="text-[11px] text-[var(--color-text-secondary)] sm:hidden">
+                Select a CAMS or KFintech Detailed CAS PDF from your device
+              </p>
+              <div className="flex items-center justify-center gap-1.5 flex-wrap pt-0.5">
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-medium bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)]">
                   CAMS
                 </span>

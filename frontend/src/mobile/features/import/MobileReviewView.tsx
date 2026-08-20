@@ -13,10 +13,9 @@ import {
   HelpCircle,
   ArrowRight,
   Loader2,
-  ShieldCheck,
-  AlertCircle,
   Sparkles,
 } from "lucide-react";
+import { SchemeLogo } from "@/components/SchemeLogo";
 
 export interface MobileReviewViewProps {
   preview: ImportPreviewResponse;
@@ -260,16 +259,25 @@ export function MobileReviewView({
                     : "bg-[var(--color-surface)] border-[var(--color-border)] shadow-xs"
                 )}
               >
-                {/* Card Header: Scheme Name & Transaction Count */}
+                {/* Card Header: Scheme/AMC Logo + Scheme Name & Transaction Count */}
                 <div className="flex items-start justify-between gap-3">
-                  <div className="space-y-1 min-w-0 flex-1">
-                    <h3 className="font-display font-semibold text-sm text-[var(--color-ink)] leading-snug break-words">
-                      {scheme.name}
-                    </h3>
-                    <div className="text-xs text-[var(--color-text-secondary)] flex items-center gap-1.5 flex-wrap">
-                      <span>Folio: <strong className="text-[var(--color-ink)] font-medium">{scheme.folio}</strong></span>
-                      <span>·</span>
-                      <span className="truncate">{scheme.amc}</span>
+                  <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                    <SchemeLogo
+                      fundLogoUrl={scheme.fund_logo_url || scheme.logo_url}
+                      amcLogoUrl={scheme.amc_logo_url}
+                      amcName={scheme.amc}
+                      schemeName={scheme.name}
+                      size="sm"
+                    />
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <h3 className="font-display font-semibold text-sm text-[var(--color-ink)] leading-snug break-words">
+                        {scheme.name}
+                      </h3>
+                      <div className="text-xs text-[var(--color-text-secondary)] flex items-center gap-1.5 flex-wrap">
+                        <span>Folio: <strong className="text-[var(--color-ink)] font-medium">{scheme.folio}</strong></span>
+                        <span>·</span>
+                        <span className="truncate">{scheme.amc}</span>
+                      </div>
                     </div>
                   </div>
 
@@ -411,3 +419,4 @@ export function MobileReviewView({
     </motion.div>
   );
 }
+

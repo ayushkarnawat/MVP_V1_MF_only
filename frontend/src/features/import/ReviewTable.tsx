@@ -20,13 +20,14 @@ import {
   CheckCircle2,
   HelpCircle,
   ArrowRight,
-  Loader2,
-  ShieldCheck,
-  AlertCircle,
   Sparkles,
   LayoutGrid,
   List,
+  ShieldCheck,
+  AlertCircle,
+  Loader2,
 } from "lucide-react";
+import { SchemeLogo } from "@/components/SchemeLogo";
 
 interface ReviewTableProps {
   preview: ImportPreviewResponse;
@@ -123,6 +124,8 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
     (s) => needsAmfiOverride(s.match_status) || needsPlanTypeOverride(s.plan_type)
   ).length;
 
+  const effectiveLayoutMode = layoutMode === "list" ? "list" : "grid";
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 6 }}
@@ -130,7 +133,7 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
       transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
       className={cn(
         "w-full min-w-0 mx-auto space-y-6 text-left box-border relative pb-24 px-3 sm:px-6 lg:px-8 transition-all duration-300",
-        layoutMode === "grid" ? "max-w-[1600px]" : "max-w-5xl"
+        effectiveLayoutMode === "grid" ? "max-w-[1600px]" : "max-w-5xl"
       )}
     >
       {/* 1. Header Section */}
@@ -201,7 +204,7 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
         </div>
       </div>
 
-      {/* 3. Segmented Filter Tabs & Layout Mode Switcher */}
+      {/* 3. Segmented Filter Tabs & Desktop Layout Mode Switcher */}
       <div className="flex items-center justify-between gap-3 flex-wrap border-b border-[var(--color-border)] pb-3">
         <div className="flex items-center gap-2 overflow-x-auto">
           {/* All Schemes */}
@@ -262,8 +265,8 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
             Showing {filteredSchemes.length} of {preview.schemes.length} scheme{preview.schemes.length !== 1 ? "s" : ""}
           </span>
 
-          {/* A/B Layout Mode Switcher */}
-          <div className="flex items-center gap-1 p-1 rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)]">
+          {/* A/B Layout Mode Switcher (Desktop Only) */}
+          <div className="hidden sm:flex items-center gap-1 p-1 rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)]">
             <button
               type="button"
               aria-label="Grid View"
@@ -276,7 +279,7 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
               )}
             >
               <LayoutGrid className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Grid</span>
+              <span>Grid</span>
             </button>
             <button
               type="button"
@@ -290,7 +293,7 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
               )}
             >
               <List className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">List</span>
+              <span>List</span>
             </button>
           </div>
         </div>
@@ -352,16 +355,24 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
                     )}
                   </div>
 
-                  {/* Scheme Name & AMC Label */}
-                  <div className="space-y-1">
-                    <h3 className="font-display font-semibold text-base text-[var(--color-ink)] leading-snug line-clamp-2 min-h-[44px]">
-                      {scheme.name}
-                    </h3>
-                    <div className="flex items-center justify-between text-xs text-[var(--color-text-secondary)] pt-0.5">
-                      <span className="truncate max-w-[180px] font-medium">{scheme.amc}</span>
-                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[var(--color-bg)] text-[var(--color-ink)] border border-[var(--color-border)] tabular-nums flex-shrink-0">
-                        {scheme.transaction_count} txns
-                      </span>
+                  {/* Scheme Name & AMC Label with Scheme/AMC Logo */}
+                  <div className="flex items-start gap-3">
+                    <SchemeLogo
+                      fundLogoUrl={scheme.fund_logo_url || scheme.logo_url}
+                      amcLogoUrl={scheme.amc_logo_url}
+                      amcName={scheme.amc}
+                      schemeName={scheme.name}
+                    />
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <h3 className="font-display font-semibold text-base text-[var(--color-ink)] leading-snug line-clamp-2 min-h-[44px]">
+                        {scheme.name}
+                      </h3>
+                      <div className="flex items-center justify-between text-xs text-[var(--color-text-secondary)] pt-0.5">
+                        <span className="truncate max-w-[180px] font-medium">{scheme.amc}</span>
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[var(--color-bg)] text-[var(--color-ink)] border border-[var(--color-border)] tabular-nums flex-shrink-0">
+                          {scheme.transaction_count} txns
+                        </span>
+                      </div>
                     </div>
                   </div>
 
@@ -472,24 +483,32 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
                     : "bg-[var(--color-surface)] border-[var(--color-border)] hover:border-[var(--color-border)]/80"
                 )}
               >
-                {/* Header Row: Scheme Name & Transaction Count */}
+                {/* Header Row: Scheme/AMC Logo + Scheme Name & Transaction Count */}
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                  <div className="space-y-1 min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-display font-bold text-base sm:text-lg text-[var(--color-ink)] leading-snug break-words">
-                        {scheme.name}
-                      </h3>
-                      {needsAttention && (
-                        <span className="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-md bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] text-[var(--color-accent)] border border-[color-mix(in_srgb,var(--color-accent)_24%,transparent)] flex-shrink-0">
-                          Classification Needed
-                        </span>
-                      )}
-                    </div>
+                  <div className="flex items-start gap-3 min-w-0 flex-1">
+                    <SchemeLogo
+                      fundLogoUrl={scheme.fund_logo_url || scheme.logo_url}
+                      amcLogoUrl={scheme.amc_logo_url}
+                      amcName={scheme.amc}
+                      schemeName={scheme.name}
+                    />
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-display font-bold text-base sm:text-lg text-[var(--color-ink)] leading-snug break-words">
+                          {scheme.name}
+                        </h3>
+                        {needsAttention && (
+                          <span className="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-md bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] text-[var(--color-accent)] border border-[color-mix(in_srgb,var(--color-accent)_24%,transparent)] flex-shrink-0">
+                            Classification Needed
+                          </span>
+                        )}
+                      </div>
 
-                    <div className="text-xs text-[var(--color-text-secondary)] flex items-center gap-2 flex-wrap pt-0.5">
-                      <span>Folio: <strong className="text-[var(--color-ink)] font-semibold">{scheme.folio}</strong></span>
-                      <span>·</span>
-                      <span className="truncate font-medium">{scheme.amc}</span>
+                      <div className="text-xs text-[var(--color-text-secondary)] flex items-center gap-2 flex-wrap pt-0.5">
+                        <span>Folio: <strong className="text-[var(--color-ink)] font-semibold">{scheme.folio}</strong></span>
+                        <span>·</span>
+                        <span className="truncate font-medium">{scheme.amc}</span>
+                      </div>
                     </div>
                   </div>
 

@@ -1,5 +1,5 @@
 import type { ImportConfirmResponse } from "./types";
-import { CheckCircle2, ArrowRight, ShieldCheck } from "lucide-react";
+import { ArrowRight, ShieldCheck } from "lucide-react";
 import { motion } from "motion/react";
 import { OnboardingIllustration } from "../auth/OnboardingIllustration";
 
