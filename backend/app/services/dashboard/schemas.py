@@ -39,10 +39,11 @@ class HoldingRow(BaseModel):
     today_gain: str
 
 
-class DistributorComparisonRow(BaseModel):
-    arn_code: str | None
-    distributor_name: str | None
-    arn_status: ArnStatus | None
+class DistributorSchemeBreakdown(BaseModel):
+    scheme_id: str
+    scheme_name: str
+    household_member_id: str
+    household_member_name: str
     units_held: str
     average_nav: str | None
     amount_invested: str
@@ -50,6 +51,18 @@ class DistributorComparisonRow(BaseModel):
     current_profit_total: str
     realized_gain: str
     unrealized_gain: str
+
+
+class DistributorPortfolioRow(BaseModel):
+    arn_code: str | None
+    distributor_name: str | None
+    arn_status: ArnStatus | None
+    amount_invested: str
+    current_value: str
+    current_profit_total: str
+    realized_gain: str
+    unrealized_gain: str
+    schemes: list[DistributorSchemeBreakdown]
 
 
 class AllocationBucket(BaseModel):
@@ -134,3 +147,8 @@ class AggregateCashFlowResponse(BaseModel):
 class AggregateSnapshotsResponse(BaseModel):
     members: list[MemberStatus]
     snapshots: list[SnapshotRow]
+
+
+class AggregateDistributorComparisonResponse(BaseModel):
+    members: list[MemberStatus]
+    rows: list[DistributorPortfolioRow]
