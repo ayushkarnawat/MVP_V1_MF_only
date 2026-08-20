@@ -107,13 +107,13 @@ export function PhoneEntry({
         </label>
         <div
           className={cn(
-            "flex items-center rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] transition-all overflow-hidden h-11 sm:h-12 min-h-[44px]",
+            "flex items-center rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] transition-all h-11 sm:h-12 min-h-[44px]",
             validationError
               ? "border-[var(--color-negative)] focus-within:border-[var(--color-negative)] focus-within:ring-2 focus-within:ring-[var(--color-negative)]/20"
               : "focus-within:border-[var(--color-accent)] focus-within:ring-2 focus-within:ring-[var(--color-accent)]/20",
           )}
         >
-          <div className="px-3 sm:px-3.5 flex items-center gap-1.5 border-r border-[var(--color-border)] text-xs font-medium text-[var(--color-ink)] select-none bg-[var(--color-surface)]/50 h-full">
+          <div className="px-3 sm:px-3.5 flex items-center gap-1.5 border-r border-[var(--color-border)] text-xs font-medium text-[var(--color-ink)] select-none bg-[var(--color-surface)]/50 h-full rounded-l-xl flex-shrink-0">
             <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">IN</span>
             <span className="font-semibold">+91</span>
           </div>
@@ -124,7 +124,7 @@ export function PhoneEntry({
             value={phoneNumber}
             onChange={(event) => handlePhoneChange(event.target.value)}
             onBlur={handlePhoneBlur}
-            className="flex-1 bg-transparent px-3.5 text-xs sm:text-sm text-[var(--color-ink)] placeholder:text-[var(--color-text-secondary)]/50 focus:outline-none font-mono"
+            className="flex-1 min-w-0 bg-transparent px-3.5 text-xs sm:text-sm text-[var(--color-ink)] placeholder:text-[var(--color-text-secondary)]/50 focus:outline-none font-mono rounded-r-xl"
             autoFocus
           />
         </div>

@@ -106,7 +106,7 @@ export function OtpInput({
   };
 
   return (
-    <div className={cn("flex items-center justify-between gap-2 sm:gap-2.5", className)}>
+    <div className={cn("flex items-center justify-between gap-1.5 xs:gap-2 sm:gap-2.5 w-full max-w-full px-0.5 py-0.5 box-border", className)}>
       {digits.map((digit, index) => (
         <input
           key={index}
@@ -127,7 +127,7 @@ export function OtpInput({
           onPaste={handlePaste}
           onFocus={(e) => e.target.select()}
           className={cn(
-            "w-11 h-12 sm:w-12 sm:h-14 text-center text-xl sm:text-2xl font-bold font-mono rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-ink)] focus:outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/20 transition-all selection:bg-transparent shadow-2xs",
+            "flex-1 min-w-0 h-11 xs:h-12 sm:h-14 max-w-[44px] sm:max-w-[48px] text-center text-lg xs:text-xl sm:text-2xl font-bold font-mono rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-ink)] focus:outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/20 transition-all selection:bg-transparent shadow-2xs box-border",
             digit && "border-[var(--color-accent)]/50 bg-[var(--color-surface)]",
             disabled && "opacity-50 cursor-not-allowed"
           )}

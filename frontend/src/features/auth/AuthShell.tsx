@@ -77,17 +77,17 @@ export function AuthShell({ step, formSlot, visualSlot }: AuthShellProps) {
         </div>
 
         {/* 3. Right / Mobile Overlapping Section: Authentication Content Card */}
-        <div className="-mt-8 sm:-mt-10 lg:mt-0 relative z-20 rounded-t-3xl sm:rounded-none bg-[var(--color-surface)] border-t border-[var(--color-border)]/60 lg:border-t-0 flex-1 p-6 sm:p-8 lg:p-8 xl:p-10 flex flex-col justify-between h-full min-h-0 overflow-y-auto order-1 lg:order-2 shadow-lg lg:shadow-none">
+        <div className="-mt-8 sm:-mt-10 lg:mt-0 relative z-20 rounded-t-3xl sm:rounded-none bg-[var(--color-surface)] border-t border-[var(--color-border)]/60 lg:border-t-0 flex-1 p-5 sm:p-8 lg:p-8 xl:p-10 flex flex-col justify-between h-full min-h-0 overflow-y-auto order-1 lg:order-2 shadow-lg lg:shadow-none">
           {/* Brand Header & Headline Row */}
-          <div className="text-left select-none pb-4 sm:pb-6">
+          <div className="text-left select-none pb-2 sm:pb-6">
             <div className="flex items-center gap-2 mb-2 sm:mb-3">
-              <span className="font-display font-bold text-xl sm:text-2xl text-[var(--color-ink)] tracking-tight">
+              <span className="font-display font-bold text-2xl sm:text-2xl text-[var(--color-ink)] tracking-tight">
                 Unifolio
               </span>
               <motion.svg
                 layoutId="brand-mark"
                 viewBox="0 0 100 100"
-                className="w-4 h-4 text-[var(--color-accent)] fill-none stroke-current stroke-[14] stroke-linecap-round"
+                className="w-5 h-5 sm:w-4 sm:h-4 text-[var(--color-accent)] fill-none stroke-current stroke-[14] stroke-linecap-round"
                 aria-label="Unifolio Logo Glyph"
               >
                 <path d="M 50 10 A 40 40 0 0 1 90 50" />
@@ -95,18 +95,18 @@ export function AuthShell({ step, formSlot, visualSlot }: AuthShellProps) {
             </div>
 
             {/* Mobile HTML Headline & Subtext matching live web copy */}
-            <div className="block lg:hidden pt-0.5 space-y-1">
-              <h2 className="font-serif font-bold text-lg sm:text-xl text-[var(--color-ink)] tracking-tight leading-snug">
+            <div className="block lg:hidden pt-0.5 space-y-1.5">
+              <h2 className="font-serif font-bold text-xl sm:text-xl text-[var(--color-ink)] tracking-tight leading-snug">
                 Unify. Consolidate. Build Wealth.
               </h2>
-              <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed">
+              <p className="text-sm sm:text-sm text-[var(--color-text-secondary)] leading-relaxed">
                 Your fragmented investments, curated into one complete picture.
               </p>
             </div>
           </div>
 
           {/* Active Form Experience */}
-          <div className="my-auto w-full relative overflow-hidden py-1">
+          <div className="mt-2 mb-auto lg:my-auto w-full relative px-0.5 sm:px-1 py-1.5 overflow-visible">
             {shouldReduceMotion ? (
               <div key={step} className="w-full">
                 {formSlot}
