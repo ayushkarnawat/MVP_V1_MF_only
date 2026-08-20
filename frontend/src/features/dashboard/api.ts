@@ -13,7 +13,7 @@ import type {
   AggregateSipsMonthlyResponse,
   AggregateCashFlowResponse,
   AggregateSnapshotsResponse,
-  DistributorComparisonRow,
+  DistributorPortfolioRow, AggregateDistributorComparisonResponse,
 } from "./types";
 
 async function authFetch(path: string, options: RequestInit = {}): Promise<Response> {
@@ -75,13 +75,18 @@ export async function getMemberSnapshots(memberId: string): Promise<SnapshotRow[
   return res.json();
 }
 
-export async function getDistributorComparison(
+export async function getMemberDistributorComparison(
   memberId: string,
-  schemeId: string
-): Promise<DistributorComparisonRow[]> {
-  const res = await authFetch(
-    `/household-members/${memberId}/schemes/${schemeId}/distributor-comparison`
-  );
+  signal?: AbortSignal
+): Promise<DistributorPortfolioRow[]> {
+  const res = await authFetch(`/household-members/${memberId}/distributor-comparison`, { signal });
+  return res.json();
+}
+
+export async function getAggregateDistributorComparison(
+  signal?: AbortSignal
+): Promise<AggregateDistributorComparisonResponse> {
+  const res = await authFetch(`/household/aggregate/distributor-comparison`, { signal });
   return res.json();
 }
 

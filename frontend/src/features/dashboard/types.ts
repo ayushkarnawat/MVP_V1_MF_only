@@ -103,15 +103,34 @@ export interface AggregateSnapshotsResponse {
   snapshots: SnapshotRow[];
 }
 
-export interface DistributorComparisonRow {
-  arn_code: string | null;
-  distributor_name: string | null;
-  arn_status: "ACTIVE" | "SUSPENDED" | "INVALID" | "UNRESOLVED" | null;
+export interface DistributorSchemeBreakdown {
+  scheme_id: string;
+  scheme_name: string;
+  household_member_id: string;
+  household_member_name: string;
   units_held: string;
-  average_nav: string;
+  average_nav: string | null;
   amount_invested: string;
   current_value: string;
   current_profit_total: string;
   realized_gain: string;
   unrealized_gain: string;
 }
+
+export interface DistributorPortfolioRow {
+  arn_code: string | null;
+  distributor_name: string | null;
+  arn_status: "ACTIVE" | "SUSPENDED" | "INVALID" | "UNRESOLVED" | null;
+  amount_invested: string;
+  current_value: string;
+  current_profit_total: string;
+  realized_gain: string;
+  unrealized_gain: string;
+  schemes: DistributorSchemeBreakdown[];
+}
+
+export interface AggregateDistributorComparisonResponse {
+  members: FamilyMemberStatus[];
+  rows: DistributorPortfolioRow[];
+}
+
