@@ -15,6 +15,7 @@ vi.mock("@/features/import/api", () => ({
   parseImport: vi.fn(),
   confirmImport: vi.fn(),
   getMemberImportHistory: vi.fn(),
+  uploadCasImport: vi.fn(),
   ApiError: class ApiError extends Error {
     status: number;
     payload: unknown;
@@ -55,22 +56,25 @@ describe("MobileImportView", () => {
     vi.mocked(importApi.getMemberImportHistory).mockResolvedValue([]);
   });
 
-  it("renders Step 1 (Request from CAMS) with guidance cards and CAMS CTA", async () => {
+  it("renders entry choice screen with both options and navigates into Request view", async () => {
     render(<MobileImportView />);
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { level: 3, name: /Request your CAS/i })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: /how would you like to bring in your statement/i })).toBeInTheDocument();
     });
 
-    expect(screen.getByText("Use these settings")).toBeInTheDocument();
-    expect(screen.getByText("Check your email")).toBeInTheDocument();
-    expect(screen.getByText("Detailed statement")).toBeInTheDocument();
-    expect(screen.getByText("10-year duration")).toBeInTheDocument();
-    expect(screen.getByText("Zero folios")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Open CAMS Mailback Portal/i })).toBeInTheDocument();
+    expect(screen.getByText("Request from CAMS")).toBeInTheDocument();
+    expect(screen.getByText("Already have a statement")).toBeInTheDocument();
+
+    const requestChoice = screen.getByRole("button", { name: /request from cams/i });
+    fireEvent.click(requestChoice);
+
+    expect(screen.getByRole("heading", { level: 3, name: /request from cams/i })).toBeInTheDocument();
+    expect(screen.getByText(/back to import options/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /request statement on cams/i })).toBeInTheDocument();
   });
 
-  it("initiates CAMS request, persists resume state, and transitions to Step 2", async () => {
+  it("initiates CAMS request, persists resume state, and transitions to waiting view", async () => {
     const windowOpenSpy = vi.spyOn(window, "open").mockImplementation(() => null);
     vi.mocked(importApi.requestCamsStatement).mockResolvedValue({
       import_id: "imp-123",
@@ -82,8 +86,11 @@ describe("MobileImportView", () => {
 
     render(<MobileImportView defaultMemberId="m-1" />);
 
+    const requestChoice = await screen.findByRole("button", { name: /request from cams/i });
+    fireEvent.click(requestChoice);
+
     const requestBtn = await screen.findByRole("button", {
-      name: /Open CAMS Mailback Portal/i,
+      name: /request statement on cams/i,
     });
     fireEvent.click(requestBtn);
 
@@ -93,24 +100,22 @@ describe("MobileImportView", () => {
       expect(hasCasResumeStep2("m-1")).toBe(true);
     });
 
-    // Step 2 is now open directly
-    const uploadTab = screen.getByRole("tab", { name: /Step 2/i });
-    expect(uploadTab).toHaveAttribute("aria-selected", "true");
+    // Waiting view is now shown
+    expect(screen.getByText(/waiting for cams email/i)).toBeInTheDocument();
+    expect(screen.getByText(/already got the email\? upload it now/i)).toBeInTheDocument();
   });
 
-  it("automatically resumes at Step 2 when returning to MobileImportView with resume state", async () => {
+  it("automatically resumes at Upload view when returning to MobileImportView with resume state", async () => {
     setCasResumeStep2("m-1");
 
     render(<MobileImportView defaultMemberId="m-1" />);
 
     await waitFor(() => {
-      const uploadTab = screen.getByRole("tab", { name: /Step 2/i });
-      expect(uploadTab).toHaveAttribute("aria-selected", "true");
+      expect(screen.getByRole("heading", { level: 3, name: /upload your statement/i })).toBeInTheDocument();
     });
-    expect(screen.getByText(/Upload CAS Statement/i)).toBeInTheDocument();
   });
 
-  it("switches to Step 2 (Upload) and parses statement with password", async () => {
+  it("switches to Upload view and parses statement with password", async () => {
     vi.mocked(importApi.parseImport).mockResolvedValue({
       session_id: "sess-99",
       filename: "cas_statement.pdf",
@@ -143,10 +148,10 @@ describe("MobileImportView", () => {
 
     render(<MobileImportView defaultMemberId="m-1" />);
 
-    const uploadTab = await screen.findByRole("tab", { name: /Step 2/i });
-    fireEvent.click(uploadTab);
+    const uploadChoice = await screen.findByRole("button", { name: /already have a statement/i });
+    fireEvent.click(uploadChoice);
 
-    expect(screen.getByText(/Upload CAS Statement/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 3, name: /upload your statement/i })).toBeInTheDocument();
 
     const fileInput = screen.getByLabelText(/CAS PDF/i);
     const mockFile = new File(["dummy pdf content"], "cas_statement.pdf", {
@@ -235,7 +240,7 @@ describe("MobileImportView", () => {
     expect(handleDashboardNav).toHaveBeenCalledTimes(1);
   });
 
-  it("renders member import history when History tab is active", async () => {
+  it("renders member import history when History button is clicked", async () => {
     vi.mocked(importApi.getMemberImportHistory).mockResolvedValue([
       {
         import_id: "imp-hist-1",
@@ -255,8 +260,8 @@ describe("MobileImportView", () => {
 
     render(<MobileImportView defaultMemberId="m-1" />);
 
-    const historyTab = await screen.findByRole("tab", { name: "Import History" });
-    fireEvent.click(historyTab);
+    const historyBtn = await screen.findByRole("button", { name: "Import History" });
+    fireEvent.click(historyBtn);
 
     await waitFor(() => {
       expect(importApi.getMemberImportHistory).toHaveBeenCalledWith("m-1");

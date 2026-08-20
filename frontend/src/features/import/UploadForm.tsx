@@ -11,13 +11,15 @@ import {
   Eye,
   EyeOff,
   AlertCircle,
+  ArrowLeft,
 } from "lucide-react";
 
-interface UploadFormProps {
+export interface UploadFormProps {
+  onBack?: () => void;
   onSubmit: (file: File, password: string) => void;
 }
 
-export function UploadForm({ onSubmit }: UploadFormProps) {
+export function UploadForm({ onBack, onSubmit }: UploadFormProps) {
   const [file, setFile] = useState<File | null>(null);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -73,15 +75,27 @@ export function UploadForm({ onSubmit }: UploadFormProps) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="p-7 sm:p-8 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs space-y-6 w-full"
+      className="p-6 sm:p-8 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs space-y-6 w-full text-left"
     >
+      {/* Back Link */}
+      {onBack && (
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] transition-colors cursor-pointer py-1 -ml-1 min-h-[36px]"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          <span>Back to import options</span>
+        </button>
+      )}
+
       {/* Header */}
-      <div className="space-y-1">
-        <h1 className="font-display font-bold text-base sm:text-lg text-[var(--color-ink)]">
-          Import your CAS Statement
+      <div className="space-y-1.5">
+        <h1 className="font-display font-bold text-lg sm:text-xl text-[var(--color-ink)] tracking-tight">
+          Upload your statement
         </h1>
         <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed">
-          Upload your CAMS or KFintech Consolidated Account Statement (Detailed PDF) to import your portfolio.
+          Drop in the CAMS or KFintech Detailed CAS PDF you already have — we&apos;ll take it from here.
         </p>
       </div>
 
@@ -126,7 +140,7 @@ export function UploadForm({ onSubmit }: UploadFormProps) {
             </div>
             <div className="space-y-0.5">
               <p className="text-xs sm:text-sm font-semibold text-[var(--color-ink)]">
-                Click to choose file or drag & drop PDF here
+                Click to choose file or drag &amp; drop PDF here
               </p>
               <p className="text-[11px] text-[var(--color-text-secondary)]">
                 Supports CAMS &amp; KFintech Detailed CAS statements (up to 25MB)
@@ -173,7 +187,7 @@ export function UploadForm({ onSubmit }: UploadFormProps) {
             type="button"
             onClick={() => setShowPassword(!showPassword)}
             title={showPassword ? "Hide password" : "Show password"}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] transition-colors p-1.5 rounded-lg cursor-pointer"
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] transition-colors p-1.5 rounded-lg cursor-pointer min-h-[32px] min-w-[32px] flex items-center justify-center"
           >
             {showPassword ? (
               <EyeOff className="h-4 w-4" />
@@ -187,7 +201,7 @@ export function UploadForm({ onSubmit }: UploadFormProps) {
       {/* Submit Button */}
       <Button
         type="submit"
-        className="w-full h-11 sm:h-12 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs sm:text-sm shadow-xs gap-2 cursor-pointer active:scale-[0.99] transition-all"
+        className="w-full h-11 sm:h-12 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs sm:text-sm shadow-xs gap-2 cursor-pointer active:scale-[0.99] transition-all min-h-[44px]"
       >
         <UploadCloud className="h-4 w-4" />
         <span>Upload &amp; Parse Statement</span>

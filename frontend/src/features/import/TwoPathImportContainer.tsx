@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
+import { ImportPathChoice } from "./ImportPathChoice";
 import { RequestCamsPath } from "./RequestCamsPath";
 import { WaitingForCasView } from "./WaitingForCasView";
 import { UploadForm } from "./UploadForm";
 import { ImportHistoryList } from "./ImportHistoryList";
-import { MobileRequestCamsView } from "../../mobile/features/import/MobileRequestCamsView";
 import {
   hasCasResumeStep2,
   setCasResumeStep2,
@@ -11,37 +11,42 @@ import {
 } from "./casResumeState";
 import type { CASImportStatusResponse } from "./types";
 import { cn } from "@/lib/utils";
-import { History } from "lucide-react";
+import { History, ArrowLeft } from "lucide-react";
+
+export type ImportView = "choice" | "request" | "waiting" | "upload" | "history";
 
 export interface TwoPathImportContainerProps {
   memberId: string;
-  defaultTab?: "request" | "upload" | "history";
+  defaultTab?: "request" | "upload" | "history" | "choice" | "waiting";
   onUploadSubmit: (file: File, password: string, sourceTab: string) => void;
   onUploadReceived?: (res: CASImportStatusResponse) => void;
 }
 
 export function TwoPathImportContainer({
   memberId,
-  defaultTab = "request",
+  defaultTab,
   onUploadSubmit,
   onUploadReceived,
 }: TwoPathImportContainerProps) {
-  const [activeTab, setActiveTab] = useState<"request" | "upload" | "history">(() => {
-    if (defaultTab !== "request") return defaultTab;
-    return hasCasResumeStep2(memberId) ? "upload" : "request";
+  const [view, setView] = useState<ImportView>(() => {
+    if (defaultTab === "history") return "history";
+    if (defaultTab === "upload") return "upload";
+    if (defaultTab === "waiting") return "waiting";
+    if (defaultTab === "request") return "request";
+    return hasCasResumeStep2(memberId) ? "upload" : "choice";
   });
   const [pendingImportId, setPendingImportId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (defaultTab === "request" && hasCasResumeStep2(memberId)) {
-      setActiveTab("upload");
+    if ((!defaultTab || defaultTab === "choice" || defaultTab === "request") && hasCasResumeStep2(memberId)) {
+      setView("upload");
     }
   }, [memberId, defaultTab]);
 
   useEffect(() => {
     const handleFocus = () => {
       if (hasCasResumeStep2(memberId)) {
-        setActiveTab("upload");
+        setView("upload");
       }
     };
     window.addEventListener("focus", handleFocus);
@@ -51,12 +56,7 @@ export function TwoPathImportContainer({
   const handleRequestInitiated = (id: string) => {
     setPendingImportId(id);
     setCasResumeStep2(memberId);
-    setActiveTab("upload");
-  };
-
-  const handleStep1Click = () => {
-    clearCasResumeStep2(memberId);
-    setActiveTab("request");
+    setView("waiting");
   };
 
   const handleUploadSubmit = (file: File, password: string, sourceTab: string) => {
@@ -69,152 +69,72 @@ export function TwoPathImportContainer({
       {/* Top Header & Secondary History Switcher */}
       <div className="flex items-center justify-between gap-3 flex-wrap px-0.5 pb-0.5">
         <div className="space-y-0.5">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)] block">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)] block font-mono">
             CAS Import Flow
           </span>
         </div>
 
-        {/* Secondary Import History Action Tab */}
+        {/* Secondary Import History Action Button */}
         <button
-          role="tab"
-          aria-selected={activeTab === "history"}
-          onClick={() => setActiveTab("history")}
           type="button"
+          onClick={() => setView((prev) => (prev === "history" ? "choice" : "history"))}
+          aria-label="Import History"
           className={cn(
             "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer min-h-[36px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
-            activeTab === "history"
+            view === "history"
               ? "bg-[var(--color-ink)] text-[var(--color-bg)] shadow-xs"
               : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface)] border border-[var(--color-border)]"
           )}
-          aria-label="Import History"
         >
           <History className="h-3.5 w-3.5 flex-shrink-0" />
           <span>Import History</span>
         </button>
       </div>
 
-      {/* Primary Two-Step Segmented Navigation */}
-      <div
-        role="tablist"
-        aria-label="Import Options"
-        className="p-1 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs flex flex-row items-stretch gap-1 sm:gap-1.5"
-      >
-        {/* Step 1: Request from CAMS Tab */}
-        <button
-          role="tab"
-          aria-selected={activeTab === "request"}
-          onClick={handleStep1Click}
-          type="button"
-          className={cn(
-            "flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 sm:gap-2 py-2 sm:py-2.5 px-2.5 sm:px-3.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 cursor-pointer min-h-[38px] sm:min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
-            activeTab === "request"
-              ? "bg-[var(--color-bg)] text-[var(--color-ink)] shadow-xs border border-[var(--color-border)]/60"
-              : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] hover:bg-[var(--color-bg)]/50"
-          )}
-          aria-label="Request from CAMS (Recommended)"
-        >
-          <div className="flex items-center justify-center gap-1.5 sm:gap-2 min-w-0">
-            <span
-              className={cn(
-                "h-4 w-4 sm:h-5 sm:w-5 rounded-full text-[9px] sm:text-[10px] font-bold flex items-center justify-center flex-shrink-0 transition-colors",
-                activeTab === "request"
-                  ? "bg-[var(--color-accent)] text-white"
-                  : "bg-[var(--color-border)] text-[var(--color-text-secondary)]"
-              )}
-            >
-              1
-            </span>
-            <span className="truncate min-w-0 hidden sm:inline">Step 1 — Request from CAMS</span>
-            <span className="truncate min-w-0 sm:hidden">Step 1 · CAMS</span>
-          </div>
-        </button>
-
-        {/* Step 2: Upload Existing Statement Tab */}
-        <button
-          role="tab"
-          aria-selected={activeTab === "upload"}
-          onClick={() => setActiveTab("upload")}
-          type="button"
-          className={cn(
-            "flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 sm:gap-2 py-2 sm:py-2.5 px-2.5 sm:px-3.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 cursor-pointer min-h-[38px] sm:min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
-            activeTab === "upload"
-              ? "bg-[var(--color-bg)] text-[var(--color-ink)] shadow-xs border border-[var(--color-border)]/60"
-              : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] hover:bg-[var(--color-bg)]/50"
-          )}
-          aria-label="Upload Existing Statement"
-        >
-          <div className="flex items-center justify-center gap-1.5 sm:gap-2 min-w-0">
-            <span
-              className={cn(
-                "h-4 w-4 sm:h-5 sm:w-5 rounded-full text-[9px] sm:text-[10px] font-bold flex items-center justify-center flex-shrink-0 transition-colors",
-                activeTab === "upload"
-                  ? "bg-[var(--color-accent)] text-white"
-                  : "bg-[var(--color-border)] text-[var(--color-text-secondary)]"
-              )}
-            >
-              2
-            </span>
-            <span className="truncate min-w-0 hidden sm:inline">Step 2 — Upload Existing Statement</span>
-            <span className="truncate min-w-0 sm:hidden">Step 2 · Upload</span>
-          </div>
-        </button>
-      </div>
-
-      {/* Tab Panels */}
+      {/* Main View Container */}
       <div className="animate-in fade-in duration-200">
-        {activeTab === "request" && (
-          <div>
-            {pendingImportId ? (
-              <WaitingForCasView
-                importId={pendingImportId}
-                memberId={memberId}
-                onCancelled={() => {
-                  clearCasResumeStep2(memberId);
-                  setPendingImportId(null);
-                }}
-                onUploadSubmit={(file, password) => handleUploadSubmit(file, password, "request")}
-                onUploadReceived={(res) => {
-                  clearCasResumeStep2(memberId);
-                  onUploadReceived?.(res);
-                }}
-              />
-            ) : (
-              <>
-                {/* Desktop View: Restored Web Layout with Refined Spacing */}
-                <div className="hidden sm:block">
-                  <RequestCamsPath
-                    memberId={memberId}
-                    onRequestInitiated={handleRequestInitiated}
-                  />
-                </div>
-
-                {/* Mobile View: Compact Apple-Inspired Layout */}
-                <div className="block sm:hidden">
-                  <MobileRequestCamsView
-                    memberId={memberId}
-                    pendingImportId={pendingImportId}
-                    onRequestInitiated={handleRequestInitiated}
-                    onCancelled={() => {
-                      clearCasResumeStep2(memberId);
-                      setPendingImportId(null);
-                    }}
-                    onUploadSubmit={(file, password) => handleUploadSubmit(file, password, "request")}
-                  />
-                </div>
-              </>
-            )}
-          </div>
+        {view === "choice" && (
+          <ImportPathChoice
+            onSelectRequest={() => setView("request")}
+            onSelectUpload={() => setView("upload")}
+          />
         )}
 
-        {activeTab === "upload" && (
+        {view === "request" && (
+          <RequestCamsPath
+            memberId={memberId}
+            onBack={() => setView("choice")}
+            onRequestInitiated={handleRequestInitiated}
+          />
+        )}
+
+        {view === "waiting" && (
+          <WaitingForCasView
+            importId={pendingImportId || "pending-import"}
+            memberId={memberId}
+            onCancelled={() => {
+              clearCasResumeStep2(memberId);
+              setPendingImportId(null);
+              setView("choice");
+            }}
+            onUploadSubmit={(file, password) => handleUploadSubmit(file, password, "request")}
+            onUploadReceived={(res) => {
+              clearCasResumeStep2(memberId);
+              onUploadReceived?.(res);
+            }}
+          />
+        )}
+
+        {view === "upload" && (
           <UploadForm
+            onBack={() => setView("choice")}
             onSubmit={(file, password) => handleUploadSubmit(file, password, "upload")}
           />
         )}
 
-        {activeTab === "history" && (
-          <div className="p-5 sm:p-7 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs space-y-4">
-            <div className="flex items-center justify-between gap-2">
+        {view === "history" && (
+          <div className="p-5 sm:p-7 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs space-y-4 text-left">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
               <div>
                 <h2 className="font-display font-bold text-base sm:text-lg text-[var(--color-ink)]">
                   Import History
@@ -223,6 +143,15 @@ export function TwoPathImportContainer({
                   Past CAS statements processed for this member
                 </p>
               </div>
+
+              <button
+                type="button"
+                onClick={() => setView("choice")}
+                className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] transition-colors cursor-pointer py-1 min-h-[36px]"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                <span>Back to import</span>
+              </button>
             </div>
             <ImportHistoryList memberId={memberId} />
           </div>

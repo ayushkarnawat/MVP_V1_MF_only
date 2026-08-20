@@ -43,7 +43,6 @@ export function UploadMyCas({
         <div className="rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 sm:p-6 shadow-xs">
           <TwoPathImportContainer
             memberId={memberId}
-            defaultTab="request"
             onUploadSubmit={onSubmit}
           />
         </div>

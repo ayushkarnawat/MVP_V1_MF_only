@@ -1,21 +1,25 @@
 import { useState } from "react";
+import { motion } from "motion/react";
 import { requestCamsStatement } from "./api";
 import { setCasResumeStep2 } from "./casResumeState";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   ExternalLink,
   AlertTriangle,
   Loader2,
+  ArrowLeft,
 } from "lucide-react";
+import { staggerContainerVariants, staggerItemVariants } from "@/lib/motion";
 
-interface RequestCamsPathProps {
+export interface RequestCamsPathProps {
   memberId: string;
+  onBack?: () => void;
   onRequestInitiated: (importId: string, expiresAt: string) => void;
 }
 
 export function RequestCamsPath({
   memberId,
+  onBack,
   onRequestInitiated,
 }: RequestCamsPathProps) {
   const [isLoading, setIsLoading] = useState(false);
@@ -37,103 +41,122 @@ export function RequestCamsPath({
   };
 
   return (
-    <div className="p-7 sm:p-8 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs space-y-7 text-left">
-      {/* Header Section */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <h2 className="font-display font-bold text-base sm:text-lg text-[var(--color-ink)]">
-            Request CAS Statement from CAMS
-          </h2>
-          <Badge variant="positive" className="uppercase tracking-wider">
-            Recommended
-          </Badge>
-        </div>
-        <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed">
-          CAMS generates a free Consolidated Account Statement across all your mutual funds and delivers it directly to your registered email address.
-        </p>
-      </div>
+    <motion.div
+      variants={staggerContainerVariants}
+      initial="hidden"
+      animate="visible"
+      className="p-6 sm:p-8 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs space-y-6 text-left"
+    >
+      {/* Back Link */}
+      {onBack && (
+        <motion.div variants={staggerItemVariants}>
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] transition-colors cursor-pointer py-1 -ml-1 min-h-[36px]"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span>Back to import options</span>
+          </button>
+        </motion.div>
+      )}
 
-      {/* Cohesive Guided Timeline Sequence */}
-      <div className="relative pl-8 space-y-7 before:absolute before:left-[13px] before:top-2.5 before:bottom-3.5 before:w-[1.5px] before:bg-[var(--color-border)]/80">
+      {/* Header Section */}
+      <motion.div variants={staggerItemVariants} className="space-y-1.5">
+        <h2 className="font-display font-bold text-lg sm:text-xl text-[var(--color-ink)] tracking-tight">
+          Request from CAMS
+        </h2>
+        <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed">
+          CAMS generates a free Consolidated Account Statement across all your mutual funds and emails it to you directly.
+        </p>
+      </motion.div>
+
+      {/* Consolidated Reference Card */}
+      <motion.div
+        variants={staggerItemVariants}
+        className="p-4 sm:p-5 rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)]/80 space-y-3"
+      >
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] block font-mono">
+          On the CAMS form, select these three options
+        </span>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          <div className="p-2.5 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)]/60 text-xs">
+            <span className="text-[10px] uppercase font-semibold text-[var(--color-text-secondary)] tracking-wider block">
+              Statement
+            </span>
+            <span className="font-semibold text-[var(--color-ink)] mt-0.5 block">
+              Detailed statement
+            </span>
+          </div>
+          <div className="p-2.5 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)]/60 text-xs">
+            <span className="text-[10px] uppercase font-semibold text-[var(--color-text-secondary)] tracking-wider block">
+              Period
+            </span>
+            <span className="font-semibold text-[var(--color-ink)] mt-0.5 block">
+              10-year duration
+            </span>
+          </div>
+          <div className="p-2.5 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)]/60 text-xs">
+            <span className="text-[10px] uppercase font-semibold text-[var(--color-text-secondary)] tracking-wider block">
+              Folios
+            </span>
+            <span className="font-semibold text-[var(--color-ink)] mt-0.5 block">
+              with zero folios
+            </span>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* 3 Guided Steps */}
+      <motion.div
+        variants={staggerItemVariants}
+        className="relative pl-7 space-y-5 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[1.5px] before:bg-[var(--color-border)]/80"
+      >
         {/* Step 1 */}
-        <div className="relative space-y-1.5">
-          <div className="absolute -left-8 top-0 h-6 w-6 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-ink)] font-display font-bold text-xs flex items-center justify-center shadow-2xs">
+        <div className="relative space-y-0.5">
+          <div className="absolute -left-7 top-0 h-5 w-5 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-ink)] font-mono font-bold text-[10px] flex items-center justify-center shadow-2xs">
             1
           </div>
-          <h4 className="font-semibold text-xs sm:text-sm text-[var(--color-ink)]">
-            Open CAMS Mailback Portal
-          </h4>
-          <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
-            Click the button below to navigate to the official CAMS Online CAS request page in a new tab.
+          <p className="text-xs text-[var(--color-ink)] leading-relaxed font-medium">
+            Tapping below opens the official CAMS site in a new tab.
           </p>
         </div>
 
         {/* Step 2 */}
-        <div className="relative space-y-2.5">
-          <div className="absolute -left-8 top-0 h-6 w-6 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-ink)] font-display font-bold text-xs flex items-center justify-center shadow-2xs">
+        <div className="relative space-y-0.5">
+          <div className="absolute -left-7 top-0 h-5 w-5 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-ink)] font-mono font-bold text-[10px] flex items-center justify-center shadow-2xs">
             2
           </div>
-          <h4 className="font-semibold text-xs sm:text-sm text-[var(--color-ink)]">
-            Select Statement Options on CAMS
-          </h4>
-          <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
-            On the CAMS portal form, please manually choose the following required options:
+          <p className="text-xs text-[var(--color-ink)] leading-relaxed font-medium">
+            Select the above three options on the form.
           </p>
-          <div className="flex flex-wrap items-center gap-2.5 pt-1">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--color-bg)] border border-[var(--color-border)]/80 text-xs">
-              <span className="text-[10px] uppercase font-semibold text-[var(--color-text-secondary)] tracking-wider">
-                Statement:
-              </span>
-              <span className="font-semibold text-[var(--color-ink)]">
-                Detailed statement
-              </span>
-            </div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--color-bg)] border border-[var(--color-border)]/80 text-xs">
-              <span className="text-[10px] uppercase font-semibold text-[var(--color-text-secondary)] tracking-wider">
-                Period:
-              </span>
-              <span className="font-semibold text-[var(--color-ink)]">
-                10-year duration
-              </span>
-            </div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--color-bg)] border border-[var(--color-border)]/80 text-xs">
-              <span className="text-[10px] uppercase font-semibold text-[var(--color-text-secondary)] tracking-wider">
-                Folios:
-              </span>
-              <span className="font-semibold text-[var(--color-ink)]">
-                with zero folios
-              </span>
-            </div>
-          </div>
         </div>
 
         {/* Step 3 */}
-        <div className="relative space-y-1.5">
-          <div className="absolute -left-8 top-0 h-6 w-6 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-ink)] font-display font-bold text-xs flex items-center justify-center shadow-2xs">
+        <div className="relative space-y-0.5">
+          <div className="absolute -left-7 top-0 h-5 w-5 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-ink)] font-mono font-bold text-[10px] flex items-center justify-center shadow-2xs">
             3
           </div>
-          <h4 className="font-semibold text-xs sm:text-sm text-[var(--color-ink)]">
-            Enter Email &amp; Check Inbox
-          </h4>
-          <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
-            Enter your registered email and PAN. CAMS will email the encrypted PDF statement to you within 5 to 10 minutes.
+          <p className="text-xs text-[var(--color-ink)] leading-relaxed font-medium">
+            Enter your email and set a password for your CAS file — that&apos;s all CAMS needs from you.
           </p>
         </div>
-      </div>
+      </motion.div>
 
       {/* Error Alert */}
       {error && (
-        <div
+        <motion.div
+          variants={staggerItemVariants}
           role="alert"
           className="flex items-center gap-2.5 p-3 rounded-xl bg-[color-mix(in_srgb,var(--color-negative)_12%,transparent)] border border-[color-mix(in_srgb,var(--color-negative)_30%,transparent)] text-xs text-[var(--color-negative)] font-medium"
         >
           <AlertTriangle className="h-4 w-4 flex-shrink-0" />
           <span>{error}</span>
-        </div>
+        </motion.div>
       )}
 
       {/* Action Button */}
-      <div className="pt-1">
+      <motion.div variants={staggerItemVariants} className="pt-1">
         <Button
           onClick={handleRequest}
           disabled={isLoading}
@@ -152,7 +175,7 @@ export function RequestCamsPath({
             </>
           )}
         </Button>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

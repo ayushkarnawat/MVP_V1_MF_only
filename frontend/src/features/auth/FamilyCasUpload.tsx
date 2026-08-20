@@ -70,7 +70,6 @@ export function FamilyCasUpload({
         <div className="rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 sm:p-6 shadow-xs">
           <TwoPathImportContainer
             memberId={activeMemberId}
-            defaultTab="request"
             onUploadSubmit={(file, password) => {
               if (member) {
                 onQueueUpload({ memberId: member.id, memberName: member.name, file, password });
