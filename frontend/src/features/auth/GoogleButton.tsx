@@ -64,5 +64,13 @@ export function GoogleButton({ onCredential }: GoogleButtonProps) {
     );
   }
 
-  return <div ref={buttonRef} data-testid="google-button-container" className="w-full flex justify-center" />;
+  return (
+    <div className="w-full flex justify-center">
+      <div
+        ref={buttonRef}
+        data-testid="google-button-container"
+        className="w-full max-w-[320px] min-h-[40px] rounded-full bg-[#F8F9FA] hover:bg-[#F1F3F5] dark:bg-[#1E293B] dark:hover:bg-[#334155] border border-[#CBD5E1] dark:border-[#475569] shadow-[0_1px_2px_rgba(0,0,0,0.06)] hover:shadow-sm transition-all flex items-center justify-center overflow-hidden [&_iframe]:mix-blend-multiply dark:[&_iframe]:mix-blend-screen"
+      />
+    </div>
+  );
 }
