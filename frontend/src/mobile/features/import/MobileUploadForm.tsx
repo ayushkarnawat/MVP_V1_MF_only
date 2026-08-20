@@ -161,9 +161,12 @@ export function MobileUploadForm({
             </div>
             <div className="space-y-1">
               <p className="text-xs font-semibold text-[var(--color-ink)]">
-                Tap to choose CAS PDF
+                Tap to choose a PDF
               </p>
-              <div className="flex items-center justify-center gap-1 flex-wrap">
+              <p className="text-[11px] text-[var(--color-text-secondary)]">
+                Select a CAMS or KFintech Detailed CAS PDF from your device
+              </p>
+              <div className="flex items-center justify-center gap-1 flex-wrap pt-0.5">
                 <span className="px-1.5 py-0.5 rounded-full text-[9px] font-mono font-medium bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)]">
                   CAMS
                 </span>
@@ -171,7 +174,7 @@ export function MobileUploadForm({
                   KFintech
                 </span>
                 <span className="text-[10px] text-[var(--color-text-secondary)]">
-                  Up to 25MB
+                  Detailed CAS (up to 25MB)
                 </span>
               </div>
             </div>

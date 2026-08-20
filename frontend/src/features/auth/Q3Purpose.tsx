@@ -122,7 +122,7 @@ export function Q3Purpose({ onBack, onSkip, onSelect }: Q3PurposeProps) {
       variants={staggerContainerVariants}
       initial="hidden"
       animate="visible"
-      className="w-full space-y-6 text-left box-border"
+      className="w-full space-y-3 sm:space-y-5 text-left box-border"
     >
       {/* Visual Artwork Anchor */}
       <motion.div variants={staggerItemVariants}>
@@ -130,11 +130,11 @@ export function Q3Purpose({ onBack, onSkip, onSelect }: Q3PurposeProps) {
       </motion.div>
 
       {/* 1. Header with Eyebrow */}
-      <motion.div variants={staggerItemVariants} className="space-y-1.5">
-        <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[var(--color-accent)] block font-mono">
+      <motion.div variants={staggerItemVariants} className="space-y-1">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-accent)] block font-mono">
           YOUR GOALS
         </span>
-        <h1 className="font-display font-bold text-xl sm:text-2xl text-[var(--color-ink)] tracking-tight leading-snug">
+        <h1 className="font-display font-bold text-lg sm:text-2xl text-[var(--color-ink)] tracking-tight leading-snug">
           What brings you to Unifolio?
         </h1>
         <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
@@ -143,46 +143,46 @@ export function Q3Purpose({ onBack, onSkip, onSelect }: Q3PurposeProps) {
       </motion.div>
 
       {/* 2. Choice Cards Grid */}
-      <motion.div variants={staggerItemVariants} className="space-y-3">
+      <motion.div variants={staggerItemVariants} className="space-y-2 sm:space-y-3">
         {OPTIONS.map((option) => (
           <button
             key={option.value}
             type="button"
-            className="w-full p-3.5 sm:p-4 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-accent)]/60 hover:bg-[color-mix(in_srgb,var(--color-accent)_3%,var(--color-surface))] flex items-center gap-3.5 sm:gap-4 text-left transition-all duration-200 cursor-pointer active:scale-[0.99] group shadow-xs select-none"
+            className="w-full p-2.5 sm:p-3.5 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-accent)]/60 hover:bg-[color-mix(in_srgb,var(--color-accent)_3%,var(--color-surface))] flex items-center gap-3 sm:gap-4 text-left transition-all duration-200 cursor-pointer active:scale-[0.99] group shadow-xs select-none min-h-[44px]"
             onClick={() => onSelect(option.value)}
           >
             {/* Dedicated Editorial Illustration Tile */}
-            <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-2xl bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-ink)] flex items-center justify-center flex-shrink-0 group-hover:border-[var(--color-accent)]/40 group-hover:scale-105 transition-all duration-200 shadow-2xs">
+            <div className="h-9 w-9 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-ink)] flex items-center justify-center flex-shrink-0 group-hover:border-[var(--color-accent)]/40 group-hover:scale-105 transition-all duration-200 shadow-2xs">
               {option.renderIllustration()}
             </div>
 
-            <div className="flex-1 min-w-0 space-y-0.5 sm:space-y-1">
+            <div className="flex-1 min-w-0 space-y-0.5">
               <div className="flex items-center gap-2 flex-wrap">
                 <strong className="block font-display font-semibold text-xs sm:text-[14px] text-[var(--color-ink)] group-hover:text-[var(--color-accent)] transition-colors">
                   {option.title}
                 </strong>
-                <span className="text-[9px] font-mono font-bold tracking-wider uppercase px-1.5 py-0.5 rounded-md bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text-secondary)] group-hover:border-[var(--color-accent)]/40 group-hover:text-[var(--color-accent)] transition-colors">
+                <span className="text-[9px] font-mono font-bold tracking-wider uppercase px-1.5 py-0.2 rounded-md bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text-secondary)] group-hover:border-[var(--color-accent)]/40 group-hover:text-[var(--color-accent)] transition-colors">
                   {option.badge}
                 </span>
               </div>
-              <span className="block text-[11px] sm:text-xs text-[var(--color-text-secondary)] leading-relaxed">
+              <span className="block text-[11px] sm:text-xs text-[var(--color-text-secondary)] leading-tight sm:leading-relaxed">
                 {option.subtitle}
               </span>
             </div>
 
-            <div className="h-7 w-7 rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] flex items-center justify-center flex-shrink-0 group-hover:border-[var(--color-accent)] group-hover:bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] transition-all duration-150">
-              <ArrowRight className="h-3.5 w-3.5 text-[var(--color-text-secondary)] group-hover:text-[var(--color-accent)] group-hover:translate-x-0.5 transition-all duration-150" />
+            <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] flex items-center justify-center flex-shrink-0 group-hover:border-[var(--color-accent)] group-hover:bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] transition-all duration-150">
+              <ArrowRight className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-[var(--color-text-secondary)] group-hover:text-[var(--color-accent)] group-hover:translate-x-0.5 transition-all duration-150" />
             </div>
           </button>
         ))}
       </motion.div>
 
       {/* 3. Navigation Controls */}
-      <motion.div variants={staggerItemVariants} className="flex items-center justify-between gap-3 pt-2">
+      <motion.div variants={staggerItemVariants} className="flex items-center justify-between gap-3 pt-1">
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] hover:bg-[var(--color-bg)] transition-colors cursor-pointer"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] hover:bg-[var(--color-bg)] transition-colors cursor-pointer min-h-[44px]"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           <span>Back</span>
@@ -190,7 +190,7 @@ export function Q3Purpose({ onBack, onSkip, onSelect }: Q3PurposeProps) {
         <button
           type="button"
           onClick={onSkip}
-          className="inline-flex items-center px-3.5 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] hover:bg-[var(--color-bg)] transition-colors cursor-pointer"
+          className="inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] hover:bg-[var(--color-bg)] transition-colors cursor-pointer min-h-[44px]"
         >
           Skip
         </button>

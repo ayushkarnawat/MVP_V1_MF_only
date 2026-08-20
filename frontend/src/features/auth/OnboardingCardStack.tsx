@@ -57,9 +57,9 @@ export function OnboardingCardStack({
   }, [history.cursor]);
 
   return (
-    <div className="min-h-dvh w-full bg-[var(--color-bg)] flex flex-col justify-center items-center px-4 py-3.5 sm:p-6 lg:p-8 box-border overflow-x-hidden overflow-y-auto selection:bg-[var(--color-accent)]/20">
+    <div className="min-h-dvh w-full bg-[var(--color-bg)] flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8 py-3.5 box-border overflow-x-hidden overflow-y-auto selection:bg-[var(--color-accent)]/20">
       {/* Outer Card Deck Container with stationary background placeholder cards with narrow-width safety padding */}
-      <div className={`w-full max-w-sm sm:max-w-md mx-auto my-auto relative pt-4 pb-2 px-1 sm:px-0 ${className}`}>
+      <div className={`w-full max-w-sm sm:max-w-md mx-auto my-auto relative pt-4 pb-2 px-3 sm:px-1 lg:px-0 ${className}`}>
         {/* Stationary Card 2 (Bottom silhouette) with subtle depth reaction */}
         <motion.div
           data-testid="card-stack-placeholder"

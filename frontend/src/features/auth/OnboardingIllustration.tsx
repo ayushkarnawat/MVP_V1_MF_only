@@ -31,7 +31,7 @@ const ALT_TEXTS: Record<IllustrationVariant, string> = {
 
 export function OnboardingIllustration({
   variant,
-  className = "w-28 h-28 sm:w-36 sm:h-36 md:w-40 md:h-40 mx-auto",
+  className = "w-14 h-14 sm:w-24 sm:h-24 md:w-36 md:h-36 mx-auto",
 }: OnboardingIllustrationProps) {
   const altText = ALT_TEXTS[variant] || "Unifolio hero illustration";
   const lightSrc = `/illustrations/${variant}.png`;

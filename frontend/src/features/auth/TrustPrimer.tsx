@@ -14,7 +14,7 @@ export function TrustPrimer({ onContinue }: TrustPrimerProps) {
       variants={staggerContainerVariants}
       initial="hidden"
       animate="visible"
-      className="space-y-5 sm:space-y-6 text-center box-border"
+      className="space-y-3 sm:space-y-5 text-center box-border"
     >
       {/* Visual Artwork Anchor */}
       <motion.div variants={staggerItemVariants}>
@@ -22,21 +22,21 @@ export function TrustPrimer({ onContinue }: TrustPrimerProps) {
       </motion.div>
 
       {/* 1. Official Brand Header */}
-      <motion.div variants={staggerItemVariants} className="space-y-1 px-0.5">
-        <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[var(--color-accent)] block font-mono">
+      <motion.div variants={staggerItemVariants} className="space-y-0.5 px-0.5">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-accent)] block font-mono">
           DATA PRIVACY &amp; SECURITY
         </span>
-        <h1 className="font-display font-bold text-lg sm:text-xl md:text-2xl text-[var(--color-ink)] tracking-tight">
+        <h1 className="font-display font-bold text-base sm:text-xl md:text-2xl text-[var(--color-ink)] tracking-tight">
           Your privacy &amp; data safety come first
         </h1>
       </motion.div>
 
       {/* 2. Editorial Privacy Guarantee Cards */}
-      <motion.div variants={staggerItemVariants} className="space-y-3 text-left">
-        <div className="p-3.5 sm:p-4 rounded-2xl bg-[var(--color-bg)] border border-[var(--color-border)] space-y-1.5 transition-all">
+      <motion.div variants={staggerItemVariants} className="space-y-2 text-left">
+        <div className="p-2.5 sm:p-3.5 rounded-2xl bg-[var(--color-bg)] border border-[var(--color-border)] space-y-1 transition-all">
           <div className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] text-[var(--color-ink)] flex items-center justify-center flex-shrink-0">
-              <svg viewBox="0 0 32 32" className="w-5 h-5 select-none" fill="none">
+            <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] text-[var(--color-ink)] flex items-center justify-center flex-shrink-0">
+              <svg viewBox="0 0 32 32" className="w-4 h-4 sm:w-5 sm:h-5 select-none" fill="none">
                 {/* Radiating trust spark */}
                 <path d="M16 2 V4 M25 5 L23 7 M7 5 L9 7" stroke="#F59E0B" strokeWidth="1.5" strokeLinecap="round" />
                 {/* Protective Shield Outline */}
@@ -57,15 +57,15 @@ export function TrustPrimer({ onContinue }: TrustPrimerProps) {
               Read-only portfolio access
             </span>
           </div>
-          <p className="text-[11px] sm:text-xs text-[var(--color-text-secondary)] leading-relaxed pl-10.5">
+          <p className="text-[11px] sm:text-xs text-[var(--color-text-secondary)] leading-snug sm:leading-relaxed pl-9.5">
             Unifolio only parses holdings and transactions to show analytics. Nothing is ever bought, sold, or transferred.
           </p>
         </div>
 
-        <div className="p-3.5 sm:p-4 rounded-2xl bg-[var(--color-bg)] border border-[var(--color-border)] space-y-1.5 transition-all">
+        <div className="p-2.5 sm:p-3.5 rounded-2xl bg-[var(--color-bg)] border border-[var(--color-border)] space-y-1 transition-all">
           <div className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] text-[var(--color-ink)] flex items-center justify-center flex-shrink-0">
-              <svg viewBox="0 0 32 32" className="w-5 h-5 select-none" fill="none">
+            <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] text-[var(--color-ink)] flex items-center justify-center flex-shrink-0">
+              <svg viewBox="0 0 32 32" className="w-4 h-4 sm:w-5 sm:h-5 select-none" fill="none">
                 {/* Security action spark */}
                 <path d="M26 4 L28 2 M28 8 L30 8" stroke="#F59E0B" strokeWidth="1.5" strokeLinecap="round" />
                 {/* Hand-drawn Document Folio */}
@@ -90,14 +90,14 @@ export function TrustPrimer({ onContinue }: TrustPrimerProps) {
               No raw CAS PDF storage
             </span>
           </div>
-          <p className="text-[11px] sm:text-xs text-[var(--color-text-secondary)] leading-relaxed pl-10.5">
+          <p className="text-[11px] sm:text-xs text-[var(--color-text-secondary)] leading-snug sm:leading-relaxed pl-9.5">
             Statements are processed in-memory. Your raw CAS PDF and PAN are never permanently stored.
           </p>
         </div>
       </motion.div>
 
       {/* 3. Primary Action */}
-      <motion.div variants={staggerItemVariants} className="space-y-2.5 pt-1">
+      <motion.div variants={staggerItemVariants} className="space-y-2 pt-0.5">
         <Button
           onClick={onContinue}
           className="w-full h-11 sm:h-12 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs sm:text-sm shadow-xs cursor-pointer active:scale-[0.99] transition-all min-h-[44px] sm:min-h-[48px]"
@@ -108,8 +108,8 @@ export function TrustPrimer({ onContinue }: TrustPrimerProps) {
       </motion.div>
 
       {/* 4. Trust & Security Footnote */}
-      <motion.div variants={staggerItemVariants} className="flex items-center justify-center gap-1.5 text-[11px] text-[var(--color-text-secondary)] pt-0.5 select-none">
-        <Lock className="h-3.5 w-3.5 text-[var(--color-accent)]" />
+      <motion.div variants={staggerItemVariants} className="flex items-center justify-center gap-1.5 text-[10px] sm:text-[11px] text-[var(--color-text-secondary)] pt-0.5 select-none">
+        <Lock className="h-3 w-3 text-[var(--color-accent)]" />
         <span>256-bit encrypted · Read-only access · No spam</span>
       </motion.div>
     </motion.div>
