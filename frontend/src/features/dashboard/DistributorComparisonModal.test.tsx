@@ -2,6 +2,7 @@ import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { DistributorComparisonModal } from "./DistributorComparisonModal";
 import * as api from "./api";
+import type { DistributorPortfolioRow } from "./types";
 
 vi.mock("./api", () => ({
   getMemberDistributorComparison: vi.fn(),
@@ -32,7 +33,7 @@ const directRow = {
       unrealized_gain: "2500.00",
     },
   ],
-};
+} satisfies DistributorPortfolioRow;
 
 const brokeredRow = {
   arn_code: "ARN-12345",
@@ -58,7 +59,7 @@ const brokeredRow = {
       unrealized_gain: "1150.00",
     },
   ],
-};
+} satisfies DistributorPortfolioRow;
 
 describe("DistributorComparisonModal", () => {
   beforeEach(() => {
