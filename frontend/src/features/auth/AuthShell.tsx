@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { ThemeToggle } from "../../components/ThemeToggle";
 import { isTestEnv } from "@/lib/motion";
+import { MobileAuthBackground } from "./MobileAuthBackground";
 
 export type AuthStep = "landing" | "email" | "phone" | "otp" | "email_otp" | "link_account";
 
@@ -50,23 +51,26 @@ export function AuthShell({ step, formSlot, visualSlot }: AuthShellProps) {
   }, [step]);
 
   return (
-    <div className="min-h-dvh w-full bg-[var(--color-bg)] text-[var(--color-ink)] flex items-center justify-center p-3 sm:p-6 md:p-8 lg:p-10 relative box-border overflow-x-hidden selection:bg-[var(--color-accent)]/20">
+    <div className="min-h-dvh lg:h-dvh lg:max-h-dvh w-full bg-[var(--color-bg)] text-[var(--color-ink)] flex items-center justify-center p-3 sm:p-5 lg:p-5 xl:p-8 relative box-border overflow-x-hidden selection:bg-[var(--color-accent)]/20">
+      {/* Editorial Minimal Vector Background for Mobile */}
+      <MobileAuthBackground />
+
       {/* Theme Toggle (Discreet Canvas Top-Right) */}
       <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-30">
         <ThemeToggle />
       </div>
 
-      {/* Main Single Centered Rounded Container */}
-      <div className="w-full max-w-6xl rounded-3xl bg-[var(--color-surface)] shadow-xl shadow-black/[0.04] dark:shadow-black/50 border border-[var(--color-border)] overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[640px] relative">
-        {/* Left ~58% Section: Wealth Architecture Visual Section (Desktop) */}
-        <div className="lg:col-span-6 xl:col-span-7 hidden lg:flex h-full order-2 lg:order-1 border-r border-[var(--color-border)] bg-[#ECECE8]">
+      {/* Auth Card Container: Compact, Clean Surface on Mobile; 2-Column Grid on Desktop */}
+      <div className="w-full max-w-[350px] sm:max-w-md lg:max-w-[980px] lg:max-h-[calc(100vh-2.5rem)] rounded-3xl bg-[var(--color-surface)] shadow-xl shadow-black/[0.06] dark:shadow-black/70 border border-[var(--color-border)] overflow-hidden lg:flex lg:flex-row lg:h-[min(640px,calc(100vh-2.5rem))] relative z-10 my-auto">
+        {/* Left Section: Wealth Architecture Visual (Desktop Only) - Fits 1414x2000 (0.707 ratio) illustration 1:1 */}
+        <div className="lg:w-[452px] lg:h-full hidden lg:flex flex-shrink-0 min-h-0 order-2 lg:order-1 border-r border-[var(--color-border)] bg-[#ECECE8] overflow-hidden">
           {visualSlot}
         </div>
 
-        {/* Right ~42% Section: Clean Light Authentication Area */}
-        <div className="lg:col-span-6 xl:col-span-5 p-6 sm:p-10 md:p-12 lg:p-14 flex flex-col justify-between h-full bg-[var(--color-surface)] order-1 lg:order-2">
+        {/* Right / Mobile Main Section: Authentication Content */}
+        <div className="flex-1 p-6 sm:p-8 lg:p-8 xl:p-10 flex flex-col justify-between h-full min-h-0 overflow-y-auto bg-[var(--color-surface)] order-1 lg:order-2">
           {/* Top Unifolio Brand Logo */}
-          <div className="text-left select-none pb-4 flex items-center gap-2">
+          <div className="text-left select-none pb-4 sm:pb-6 flex items-center gap-2">
             <span className="font-display font-bold text-xl sm:text-2xl text-[var(--color-ink)] tracking-tight">
               Unifolio
             </span>
