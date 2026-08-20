@@ -1,6 +1,7 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
+from pydantic import BaseModel
 from sqlalchemy.orm import Session as DbSession
 
 from app.db.session import get_db
@@ -37,6 +38,11 @@ from app.services.analytics.schemas import (
     PortfolioScoreSummary,
     WeightedTerSummary,
 )
+from app.services.analytics.pdf_export import (
+    consume_export_payload,
+    render_analytics_pdf,
+    store_export_payload,
+)
 from app.services.analytics.scorer import (
     compute_fund_score,
     compute_portfolio_score,
@@ -52,6 +58,12 @@ from app.services.auth.session import get_current_user
 from app.services.dashboard.household_members import get_household_member_for_user
 
 router = APIRouter(prefix="/analytics", tags=["analytics"]) #for analytics related endpoints
+
+
+class AnalyticsExportRequest(BaseModel):
+    scope: str  # "aggregate" | "member"
+    member_id: uuid.UUID | None
+    payload: dict
 
 
 @router.get(
@@ -196,3 +208,26 @@ async def get_household_aggregate_portfolio_score(
     user: User = Depends(get_current_user), db: DbSession = Depends(get_db)
 ):
     return await get_aggregate_portfolio_score(db, user.id)
+
+
+@router.post("/export/pdf")
+async def export_analytics_pdf(
+    body: AnalyticsExportRequest,
+    user: User = Depends(get_current_user),
+    db: DbSession = Depends(get_db),
+):
+    if body.scope == "member":
+        if body.member_id is None or get_household_member_for_user(db, user.id, body.member_id) is None:
+            raise HTTPException(status_code=404, detail="Household member not found.")
+
+    token = store_export_payload(body.payload)
+    pdf_bytes = await render_analytics_pdf(token)
+    return Response(content=pdf_bytes, media_type="application/pdf")
+
+
+@router.get("/export/payload/{token}")
+async def get_export_payload(token: str):
+    payload = consume_export_payload(token)
+    if payload is None:
+        raise HTTPException(status_code=404, detail="Export token not found or expired.")
+    return payload
