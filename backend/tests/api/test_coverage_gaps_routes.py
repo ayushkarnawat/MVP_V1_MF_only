@@ -3,7 +3,7 @@ from decimal import Decimal
 import uuid
 import pytest
 
-from app.models.enums import PlanType, Relationship, TransactionType
+from app.models.enums import AuthIdentityProvider, PlanType, Relationship, TransactionType
 from app.models.folio import Folio
 from app.models.imports import Import, ImportStatus
 from app.models.reference import Scheme
@@ -93,7 +93,7 @@ def gap_setup(client):
 
     member_id = member.id
     folio_id = folio.id
-    _, token = create_session(db, user.id)
+    _, token = create_session(db, user.id, auth_method=AuthIdentityProvider.PHONE_OTP)
     return {"Authorization": f"Bearer {token}"}, member_id, folio_id
 
 

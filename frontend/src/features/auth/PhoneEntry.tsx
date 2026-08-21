@@ -1,72 +1,119 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
+import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, AlertCircle, ShieldCheck, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, AlertCircle, Loader2 } from "lucide-react";
+import { staggerContainerVariants, staggerItemVariants } from "@/lib/motion";
+import { validateIndianPhone } from "./validation";
+import { cn } from "@/lib/utils";
 
 interface PhoneEntryProps {
-  mode?: "signup" | "login";
+  /** "phoneGate": completing the mandatory phone step after a Google/email
+    * signup with no existing account match — different copy, no back button
+    * (Design Spec §1; Frontend Spec §3). Defaults to the plain entry copy. */
+  context?: "primary" | "phoneGate";
+  phoneGatePrefillEmail?: string | null;
   onSubmit: (phoneNumber: string) => void;
   onBack?: () => void;
-  onToggleMode?: (mode: "signup" | "login") => void;
   submitting: boolean;
   error: string | null;
 }
 
 export function PhoneEntry({
-  mode = "signup",
+  context = "primary",
+  phoneGatePrefillEmail,
   onSubmit,
   onBack,
-  onToggleMode,
   submitting,
   error,
 }: PhoneEntryProps) {
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [isTouched, setIsTouched] = useState(false);
+
+  const isPhoneGate = context === "phoneGate";
+
+  const handlePhoneChange = (value: string) => {
+    setPhoneNumber(value);
+    if (isTouched || validationError) {
+      const res = validateIndianPhone(value);
+      setValidationError(res.isValid ? null : res.error);
+    }
+  };
+
+  const handlePhoneBlur = () => {
+    setIsTouched(true);
+    if (phoneNumber.trim().length > 0) {
+      const res = validateIndianPhone(phoneNumber);
+      setValidationError(res.isValid ? null : res.error);
+    }
+  };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    onSubmit(phoneNumber);
+    setIsTouched(true);
+    const res = validateIndianPhone(phoneNumber);
+    if (!res.isValid) {
+      setValidationError(res.error);
+      return;
+    }
+    setValidationError(null);
+    onSubmit(res.normalized);
   };
 
-  const isSignUp = mode === "signup";
-
   return (
-    <form
+    <motion.form
+      variants={staggerContainerVariants}
+      initial="hidden"
+      animate="visible"
+      noValidate
       onSubmit={handleSubmit}
-      className="w-full max-w-sm sm:max-w-md mx-auto p-5 sm:p-8 rounded-3xl bg-[var(--color-surface)] border border-[var(--color-border)]/80 shadow-lg space-y-6 text-center box-border animate-in fade-in zoom-in-95 duration-200"
+      className="w-full max-w-md mx-auto space-y-6 text-left box-border"
     >
-      {/* 1. Refined Brand Header */}
-      <div className="space-y-2.5">
-        <div className="mx-auto h-10 w-10 rounded-xl bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] border border-[color-mix(in_srgb,var(--color-accent)_24%,transparent)] text-[var(--color-accent)] flex items-center justify-center">
-          <svg
-            viewBox="0 0 100 100"
-            className="w-5 h-5 text-[var(--color-accent)] fill-none stroke-current stroke-[14] stroke-linecap-round"
-            aria-label="Unifolio Logo Mark"
+      {/* 1. Header & Context Indicator */}
+      <motion.div variants={staggerItemVariants} className="space-y-3">
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex items-center gap-1.5 text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] font-medium transition-colors cursor-pointer"
           >
-            <path d="M 50 10 A 40 40 0 0 1 90 50" />
-          </svg>
-        </div>
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span>Back</span>
+          </button>
+        )}
+
         <div className="space-y-1">
-          <h1 className="font-display font-bold text-xl sm:text-2xl text-[var(--color-ink)] tracking-tight">
-            {isSignUp ? "Create your account" : "Welcome back"}
+          <h1 className="font-display font-bold text-2xl sm:text-3xl text-[var(--color-ink)] tracking-tight">
+            {isPhoneGate ? "One more step" : "Continue with phone"}
           </h1>
-          <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed max-w-xs mx-auto">
-            {isSignUp
-              ? "Enter your mobile number to get started with Unifolio."
-              : "Enter your mobile number to log in to your portfolio."}
+          <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed font-body">
+            {isPhoneGate
+              ? `Verify your mobile number to finish creating your account${
+                  phoneGatePrefillEmail ? ` for ${phoneGatePrefillEmail}` : ""
+                }.`
+              : "Enter your mobile number to receive a secure one-time passcode."}
           </p>
         </div>
-      </div>
+      </motion.div>
 
-      {/* 2. Premium Phone Input Group */}
-      <div className="space-y-2 text-left">
+      {/* 2. Premium Phone Input */}
+      <motion.div variants={staggerItemVariants} className="space-y-1.5">
         <label
           htmlFor="phone-input"
-          className="text-xs font-semibold text-[var(--color-ink)] block"
+          className="text-xs font-semibold text-[var(--color-ink)] block font-body"
         >
-          Mobile Number
+          Mobile number
         </label>
-        <div className="flex items-center rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] focus-within:border-[var(--color-accent)] focus-within:ring-2 focus-within:ring-[var(--color-accent)]/20 transition-all overflow-hidden h-11 sm:h-12 min-h-[44px]">
-          <div className="px-3 sm:px-3.5 flex items-center gap-1.5 border-r border-[var(--color-border)] text-xs font-medium text-[var(--color-ink)] select-none bg-[var(--color-surface)]/50 h-full">
+        <div
+          className={cn(
+            "flex items-center rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] transition-all h-11 sm:h-12 min-h-[44px]",
+            validationError
+              ? "border-[var(--color-negative)] focus-within:border-[var(--color-negative)] focus-within:ring-2 focus-within:ring-[var(--color-negative)]/20"
+              : "focus-within:border-[var(--color-accent)] focus-within:ring-2 focus-within:ring-[var(--color-accent)]/20",
+          )}
+        >
+          <div className="px-3 sm:px-3.5 flex items-center gap-1.5 border-r border-[var(--color-border)] text-xs font-medium text-[var(--color-ink)] select-none bg-[var(--color-surface)]/50 h-full rounded-l-xl flex-shrink-0">
             <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">IN</span>
             <span className="font-semibold">+91</span>
           </div>
@@ -75,79 +122,55 @@ export function PhoneEntry({
             type="tel"
             placeholder="98765 43210"
             value={phoneNumber}
-            onChange={(event) => setPhoneNumber(event.target.value)}
-            className="flex-1 bg-transparent px-3 sm:px-3.5 text-xs sm:text-sm text-[var(--color-ink)] placeholder:text-[var(--color-text-secondary)]/50 focus:outline-none font-mono"
+            onChange={(event) => handlePhoneChange(event.target.value)}
+            onBlur={handlePhoneBlur}
+            className="flex-1 min-w-0 bg-transparent px-3.5 text-xs sm:text-sm text-[var(--color-ink)] placeholder:text-[var(--color-text-secondary)]/50 focus:outline-none focus:ring-0 focus:border-transparent outline-none border-none shadow-none font-mono rounded-r-xl"
             autoFocus
           />
         </div>
-      </div>
+        {/* Direct Inline Field Validation Error */}
+        {validationError && (
+          <div
+            role="alert"
+            className="flex items-center gap-1.5 text-xs text-[var(--color-negative)] font-medium font-body pt-0.5 animate-in fade-in duration-150"
+          >
+            <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
+            <span>{validationError}</span>
+          </div>
+        )}
+      </motion.div>
 
-      {/* 3. Error Alert */}
-      {error && (
+      {/* 3. Server Authentication Error Alert */}
+      {error && !validationError && (
         <div
           role="alert"
-          className="flex items-center gap-2 p-3 rounded-xl bg-[color-mix(in_srgb,var(--color-negative)_10%,transparent)] border border-[color-mix(in_srgb,var(--color-negative)_25%,transparent)] text-xs text-[var(--color-negative)] font-medium text-left"
+          className="flex items-center gap-2.5 p-3.5 rounded-2xl bg-[color-mix(in_srgb,var(--color-negative)_10%,transparent)] border border-[color-mix(in_srgb,var(--color-negative)_25%,transparent)] text-xs text-[var(--color-negative)] font-medium font-body animate-in fade-in duration-150"
         >
           <AlertCircle className="h-4 w-4 flex-shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
-      {/* 4. Actions & Navigation */}
-      <div className="space-y-3 pt-1">
+      {/* 4. Action Button */}
+      <motion.div variants={staggerItemVariants} className="space-y-3 pt-1">
         <Button
           type="submit"
           disabled={submitting || !phoneNumber.trim()}
-          className="w-full h-11 sm:h-12 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs sm:text-sm shadow-xs gap-2 cursor-pointer active:scale-[0.99] transition-all min-h-[44px] sm:min-h-[48px]"
+          className="w-full h-11 sm:h-12 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs sm:text-sm shadow-sm gap-2 cursor-pointer active:scale-[0.99] transition-all min-h-[44px] sm:min-h-[48px]"
         >
           {submitting ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Sending OTP...</span>
+              <span>Sending verification code...</span>
             </>
           ) : (
             <>
-              <span>Send Verification Code</span>
-              <span>→</span>
+              <span>Send verification code</span>
+              <ArrowRight className="h-3.5 w-3.5" />
             </>
           )}
         </Button>
-
-        <div className="flex items-center justify-between text-xs pt-0.5">
-          {onBack ? (
-            <button
-              type="button"
-              onClick={onBack}
-              className="inline-flex items-center gap-1 text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] font-medium transition-colors cursor-pointer"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              <span>Back</span>
-            </button>
-          ) : (
-            <div />
-          )}
-
-          {onToggleMode && (
-            <button
-              type="button"
-              onClick={() => onToggleMode(isSignUp ? "login" : "signup")}
-              className="text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] font-medium transition-colors cursor-pointer ml-auto"
-            >
-              {isSignUp ? (
-                <>Already have an account? <strong className="text-[var(--color-accent)] font-semibold">Log In</strong></>
-              ) : (
-                <>New to Unifolio? <strong className="text-[var(--color-accent)] font-semibold">Sign Up</strong></>
-              )}
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* 5. Trust Footer */}
-      <div className="flex items-center justify-center gap-1.5 text-[11px] text-[var(--color-text-secondary)] pt-1 select-none">
-        <ShieldCheck className="h-3.5 w-3.5 text-[var(--color-accent)]" />
-        <span>256-bit encrypted · Read-only access · No spam</span>
-      </div>
-    </form>
+      </motion.div>
+    </motion.form>
   );
 }

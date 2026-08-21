@@ -3,8 +3,12 @@ import {
   createHouseholdMember,
   getMe,
   listHouseholdMembers,
+  requestEmailOtp,
   requestOtp,
+  signupEmail,
   updateMe,
+  verifyEmailOtp,
+  verifyGoogleCredential,
   verifyOtp,
 } from "./api";
 import { clearToken, setToken } from "./session";
@@ -45,7 +49,7 @@ describe("auth api", () => {
     const [url, options] = mockFetch.mock.calls[0];
     expect(url).toContain("/auth/otp/verify");
     expect(JSON.parse(options.body as string)).toEqual({ phone_number: "+919999999999", otp: "123456" });
-    expect(result.session_token).toBe("tok-1");
+    expect("session_token" in result && result.session_token).toBe("tok-1");
   });
 
   it("getMe attaches the stored token as a Bearer header", async () => {
@@ -132,5 +136,122 @@ describe("auth api", () => {
     expect(url).toContain("/household-members");
     expect((options.headers as Record<string, string>).Authorization).toBe("Bearer tok-abc");
     expect(result).toHaveLength(1);
+  });
+
+  it("signupEmail posts email as JSON", async () => {
+    const mockFetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          email_otp_required: { token: "gate-tok", prefill_email: "a@example.com", otp: "111222" },
+        }),
+        { status: 200 },
+      ),
+    );
+    vi.stubGlobal("fetch", mockFetch);
+
+    const result = await signupEmail("a@example.com");
+
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toContain("/auth/signup/email");
+    expect(JSON.parse(options.body as string)).toEqual({ email: "a@example.com" });
+    expect(result.email_otp_required.token).toBe("gate-tok");
+  });
+
+  it("requestEmailOtp posts email as JSON", async () => {
+    const mockFetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ message: "OTP sent.", otp: "654321" }), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", mockFetch);
+
+    const result = await requestEmailOtp("a@example.com");
+
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toContain("/auth/email-otp/request");
+    expect(JSON.parse(options.body as string)).toEqual({ email: "a@example.com" });
+    expect(result.otp).toBe("654321");
+  });
+
+  it("verifyEmailOtp posts email, otp, and pending_token as JSON when provided", async () => {
+    const mockFetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({ phone_required: { token: "gate-tok-2", prefill_email: "a@example.com" } }),
+        { status: 200 },
+      ),
+    );
+    vi.stubGlobal("fetch", mockFetch);
+
+    const result = await verifyEmailOtp("a@example.com", "111222", "pending-tok");
+
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toContain("/auth/email-otp/verify");
+    expect(JSON.parse(options.body as string)).toEqual({
+      email: "a@example.com", otp: "111222", pending_token: "pending-tok",
+    });
+    expect("phone_required" in result && result.phone_required.token).toBe("gate-tok-2");
+  });
+
+  it("verifyEmailOtp omits pending_token when not provided (plain login)", async () => {
+    const mockFetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({ session_token: "tok-5", user_id: "u5", onboarding_step: null, onboarding_completed: false }),
+        { status: 200 },
+      ),
+    );
+    vi.stubGlobal("fetch", mockFetch);
+
+    const result = await verifyEmailOtp("a@example.com", "111222");
+
+    const [, options] = mockFetch.mock.calls[0];
+    expect(JSON.parse(options.body as string)).toEqual({ email: "a@example.com", otp: "111222" });
+    expect("session_token" in result && result.session_token).toBe("tok-5");
+  });
+
+  it("verifyOtp includes pending_token only when provided", async () => {
+    const mockFetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({ session_token: "tok-3", user_id: "u3", onboarding_step: null, onboarding_completed: false }),
+        { status: 200 },
+      ),
+    );
+    vi.stubGlobal("fetch", mockFetch);
+
+    await verifyOtp("+919999999999", "123456", "pending-abc");
+
+    const [, options] = mockFetch.mock.calls[0];
+    expect(JSON.parse(options.body as string)).toEqual({
+      phone_number: "+919999999999", otp: "123456", pending_token: "pending-abc",
+    });
+  });
+
+  it("verifyOtp omits pending_token when not provided", async () => {
+    const mockFetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({ session_token: "tok-4", user_id: "u4", onboarding_step: null, onboarding_completed: false }),
+        { status: 200 },
+      ),
+    );
+    vi.stubGlobal("fetch", mockFetch);
+
+    await verifyOtp("+919999999999", "123456");
+
+    const [, options] = mockFetch.mock.calls[0];
+    expect(JSON.parse(options.body as string)).toEqual({ phone_number: "+919999999999", otp: "123456" });
+  });
+
+  it("verifyGoogleCredential posts id_token as JSON", async () => {
+    const mockFetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({ phone_required: { token: "gate-tok", prefill_email: "a@example.com" } }),
+        { status: 200 },
+      ),
+    );
+    vi.stubGlobal("fetch", mockFetch);
+
+    const result = await verifyGoogleCredential("fake-id-token");
+
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toContain("/auth/oauth/google");
+    expect(JSON.parse(options.body as string)).toEqual({ id_token: "fake-id-token" });
+    expect("phone_required" in result).toBe(true);
   });
 });

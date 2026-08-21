@@ -76,10 +76,13 @@ describe("ReviewTable", () => {
     expect(onConfirm).toHaveBeenCalledWith([]);
   });
 
-  it("renders parse warnings when present", () => {
-    const preview = buildPreview({ parse_warnings: ["Skipped transaction on 2024-01-01: missing amount"] });
+  it("does not render parse warnings in the UI even when present in preview data", () => {
+    const warningMsg = "Skipped transaction on 2024-01-01: missing amount";
+    const preview = buildPreview({ parse_warnings: [warningMsg] });
     render(<ReviewTable preview={preview} confirming={false} onConfirm={vi.fn()} />);
 
-    expect(screen.getByText(/skipped transaction on 2024-01-01/i)).toBeInTheDocument();
+    expect(screen.queryByText(/import warnings/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(warningMsg)).not.toBeInTheDocument();
+    expect(preview.parse_warnings).toEqual([warningMsg]);
   });
 });

@@ -100,6 +100,25 @@
   --motion-fast: 150ms ease-out;
   --motion-reveal: 400ms ease-in-out;
   --motion-page: 300ms ease-in-out;
+  /* First-impression hero reveals (e.g. AuthShowcasePanel's headline) are
+     deliberately slower and calmer than in-app micro-interactions — this is
+     its own tier, not a reuse of --motion-reveal. */
+  --motion-hero-reveal: 950ms cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-hero-stagger: 160ms;
+
+  /* Auth Panel (always-dark, intentional exception) — the left auth/onboarding
+     visual panel in AuthShowcasePanel.tsx does not follow the app's light/dark
+     theme toggle by design. These tokens exist so its colors are named and
+     reusable instead of hardcoded hex scattered through that one component;
+     they must NOT be touched by the dark-mode media query or [data-theme]
+     blocks below, since the panel doesn't change with theme. */
+  --auth-panel-bg: #040806;
+  --auth-panel-bg-2: #081a12;
+  --auth-panel-ink: #F5F7F4;
+  --auth-panel-ink-soft: rgba(245, 247, 244, 0.78);
+  --auth-panel-glow: #4ADE80;
+  --auth-panel-ghost: rgba(148, 163, 184, 0.5);
+  --auth-panel-ghost-soft: rgba(148, 163, 184, 0.22);
 }
 
 /* Explicit Dark Mode Overrides (Design Schema §Color Tokens) */
@@ -213,5 +232,7 @@
     --motion-fast: 0ms;
     --motion-reveal: 0ms;
     --motion-page: 0ms;
+    --motion-hero-reveal: 0ms;
+    --motion-hero-stagger: 0ms;
   }
 }

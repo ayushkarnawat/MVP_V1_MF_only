@@ -41,3 +41,46 @@ export interface HouseholdMember {
   relationship: Relationship;
   relationship_other_label: string | null;
 }
+
+export type ExistingMethod = "phone" | "email" | "google";
+
+export interface LinkRequiredDetail {
+  token: string;
+  matched_email: string;
+  existing_method: ExistingMethod;
+}
+
+export interface LinkRequiredResponse {
+  link_required: LinkRequiredDetail;
+}
+
+export interface PhoneRequiredDetail {
+  token: string;
+  prefill_email: string | null;
+}
+
+export interface PhoneRequiredResponse {
+  phone_required: PhoneRequiredDetail;
+}
+
+export interface EmailOtpRequiredDetail {
+  token: string;
+  prefill_email: string;
+  otp: string | null; // only populated in dev-stub delivery mode
+}
+
+export interface EmailOtpRequiredResponse {
+  email_otp_required: EmailOtpRequiredDetail;
+}
+
+export type OtpVerifyResult = OtpVerifyResponse | LinkRequiredResponse | PhoneRequiredResponse;
+
+export type EmailOtpVerifyResult = OtpVerifyResponse | PhoneRequiredResponse;
+
+export function isLinkRequired(result: OtpVerifyResult): result is LinkRequiredResponse {
+  return "link_required" in result;
+}
+
+export function isPhoneRequired(result: OtpVerifyResult): result is PhoneRequiredResponse {
+  return "phone_required" in result;
+}

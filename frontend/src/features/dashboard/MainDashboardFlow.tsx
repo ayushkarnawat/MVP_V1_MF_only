@@ -96,7 +96,7 @@ export function MainDashboardFlow() {
       <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-ink)] transition-colors duration-200">
         {/* Top Minimal Navigation Bar */}
         <header className="sticky top-0 z-30 w-full bg-[var(--color-surface)]/85 backdrop-blur-md border-b border-[var(--color-border)]">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <button
               onClick={() => {
                 clearCasResumeStep2(targetAddMemberId);
@@ -153,7 +153,7 @@ export function MainDashboardFlow() {
         </header>
 
         {/* Add Data Content Area */}
-        <main className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-8">
+        <main className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-8">
           {targetAddMemberId && (
             <ImportFlow
               key={targetAddMemberId}
@@ -166,7 +166,7 @@ export function MainDashboardFlow() {
           {/* Privacy & Trust Footer */}
           <div className="flex items-center justify-center gap-2 text-[11px] text-[var(--color-text-secondary)] pt-4 border-t border-[var(--color-border)]/60">
             <ShieldCheck className="h-4 w-4 text-[var(--color-positive)]" />
-            <span>256-bit encrypted · Read-only statement parsing · Zero transaction permissions</span>
+            <span>Read-only statement parsing · Zero transaction permissions</span>
           </div>
         </main>
       </div>
@@ -197,6 +197,7 @@ export function MainDashboardFlow() {
           viewMode={viewMode}
           memberId={selectedMemberId}
           onAddDataForMember={handleAddDataTrigger}
+          activeMemberName={members.find((m) => m.id === selectedMemberId)?.name}
         />
       )}
     </NavigationShell>

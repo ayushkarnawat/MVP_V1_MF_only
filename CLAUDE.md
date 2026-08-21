@@ -67,19 +67,24 @@ Deferred/not-yet-built features: `DEFERRED_FEATURES.md`.)*
 
 **Latest:** `distributor-comparison-portfolio-level` — the fund-scoped distributor
 comparison (PRD-03 FR-11) rewritten as portfolio-wide, both desktop and mobile —
-implemented via subagent-driven-development in a dedicated worktree, all 10 tasks
-through a clean task-scoped review gate, full-suite verification green
-(backend 455 passed/2 skipped, frontend 230 passed across 56 files, `tsc` clean).
-Awaiting final whole-branch review before merge into `feat/enhanced-ui`. Prior entry:
-`bug-001-data-001-implementation` merged into `feat/enhanced-ui`, alongside the SIP tab
-feature and `model-orchestration` skill v1.4 (2026-08-19). Branches `dev_intern`/
-`feat/enhanced-ui` are identical at `7426047`, fast-forward-mergeable into `main`,
-awaiting push from a machine with git credentials — nothing else is blocking.
+implemented via subagent-driven-development in a dedicated worktree, all 12 tasks
+through a clean task-scoped review gate plus a final whole-branch review (1 fix round:
+a Decimal-float violation, a missing TTL-expiry test, stale docs — commit `848a1fd`;
+1 scoped re-review residual, a Decimal scientific-notation sign-check gap — commit
+`b01ef0d`), then merged into `feat/enhanced-ui` via merge-conflict resolution (not
+rebase, since `feat/enhanced-ui` had moved 133 commits ahead of this branch's creation
+point) — only 3 real conflicts, all docs (`CLAUDE.md`, `session.md`,
+`Docs/orchestration/delegation-log.md`), everything else auto-merged clean. That
+divergence brought in, already on `feat/enhanced-ui`: `authsetup` — Auth, Onboarding,
+Validation, Visual Experience, Mobile Auth & CAS Import Flow Redesign (v2), 100%
+complete as of 2026-08-20 — and Analytics PDF export (all 10 plan tasks, two review
+rounds, merged as `ed149bf`). Full detail on all three: `session.md`'s merge entries,
+`Docs/orchestration/analytics-pdf-export-final-review-handoff.md`.
 Knowledge graph (`.ua/knowledge-graph.json`) is stale as of commit `35fedd3`, predating
-the Scorer, CAS import lifecycle redesign, UI/Select refactor, and this distributor
-comparison rewrite — re-run `/understand` (incremental) before trusting it. Full detail
-on all of the above: `session.md`.
-
+the Scorer, CAS import lifecycle redesign, UI/Select refactor, the distributor
+comparison rewrite, and everything merged in from `authsetup`/PDF export — re-run
+`/understand` (incremental) before trusting it. Full detail on all of the above:
+`session.md`.
 **Still open, carried forward from earlier phases, not yet revisited:**
 1. A held scheme with no obtainable NAV silently vanishes from
    holdings/allocation/aggregates, no error or placeholder — a Phase 3

@@ -15,6 +15,12 @@ export interface BenchmarkSectionProps {
   fundBenchmark: FundVsBenchmarkSummary | null;
   isLoading?: boolean;
   className?: string;
+  /**
+   * Static export (PDF print) mode: renders both the portfolio and per-fund
+   * comparisons unconditionally (no clickable tab toggle) and every fund row
+   * (no "Show More" pagination), since a static document has no way to click.
+   */
+  printMode?: boolean;
 }
 
 const INDEX_LABELS: Record<BenchmarkIndex, string> = {
@@ -47,6 +53,7 @@ export function BenchmarkSection({
   fundBenchmark,
   isLoading = false,
   className,
+  printMode = false,
 }: BenchmarkSectionProps) {
   const [tab, setTab] = useState<"portfolio" | "funds">("portfolio");
   const [displayCount, setDisplayCount] = useState<number>(5);
@@ -71,7 +78,7 @@ export function BenchmarkSection({
 
   const fundRows = fundBenchmark?.funds ?? [];
   const hasFundRows = fundRows.length > 0;
-  const visibleFundRows = fundRows.slice(0, displayCount);
+  const visibleFundRows = printMode ? fundRows : fundRows.slice(0, displayCount);
 
   // Maximum XIRR for scaling bar width calculations (default floor 10%)
   const allXirrs = [
@@ -97,37 +104,40 @@ export function BenchmarkSection({
           </p>
         </div>
 
-        {/* Tab Toggle: Portfolio vs Per Fund */}
-        <div className="inline-flex items-center p-1 rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] shadow-2xs self-start sm:self-auto">
-          <button
-            type="button"
-            className={cn(
-              "px-3 py-1 text-xs font-medium rounded-lg transition-all duration-150 cursor-pointer",
-              tab === "portfolio"
-                ? "bg-[var(--color-surface)] text-[var(--color-ink)] font-semibold shadow-xs"
-                : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)]"
-            )}
-            onClick={() => setTab("portfolio")}
-          >
-            Portfolio vs Broad Market
-          </button>
-          <button
-            type="button"
-            className={cn(
-              "px-3 py-1 text-xs font-medium rounded-lg transition-all duration-150 cursor-pointer",
-              tab === "funds"
-                ? "bg-[var(--color-surface)] text-[var(--color-ink)] font-semibold shadow-xs"
-                : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)]"
-            )}
-            onClick={() => setTab("funds")}
-          >
-            Per-Fund vs Benchmark
-          </button>
-        </div>
+        {/* Tab Toggle: Portfolio vs Per Fund — not rendered in printMode, since
+            a static document has both sections shown at once instead */}
+        {!printMode && (
+          <div className="inline-flex items-center p-1 rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] shadow-2xs self-start sm:self-auto">
+            <button
+              type="button"
+              className={cn(
+                "px-3 py-1 text-xs font-medium rounded-lg transition-all duration-150 cursor-pointer",
+                tab === "portfolio"
+                  ? "bg-[var(--color-surface)] text-[var(--color-ink)] font-semibold shadow-xs"
+                  : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)]"
+              )}
+              onClick={() => setTab("portfolio")}
+            >
+              Portfolio vs Broad Market
+            </button>
+            <button
+              type="button"
+              className={cn(
+                "px-3 py-1 text-xs font-medium rounded-lg transition-all duration-150 cursor-pointer",
+                tab === "funds"
+                  ? "bg-[var(--color-surface)] text-[var(--color-ink)] font-semibold shadow-xs"
+                  : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)]"
+              )}
+              onClick={() => setTab("funds")}
+            >
+              Per-Fund vs Benchmark
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Tab 1: Portfolio Broad Market Comparison */}
-      {tab === "portfolio" && (
+      {(printMode || tab === "portfolio") && (
         <div className="space-y-6">
           {/* Portfolio Hero Stat */}
           <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)]/50 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -248,7 +258,7 @@ export function BenchmarkSection({
       )}
 
       {/* Tab 2: Per-Fund vs Appropriate Benchmark */}
-      {tab === "funds" && (
+      {(printMode || tab === "funds") && (
         <div className="space-y-6">
           {/* Summary Line */}
           {fundBenchmark && (
@@ -388,8 +398,9 @@ export function BenchmarkSection({
                 );
               })}
 
-              {/* Show More / Show Less Pagination Control */}
-              {fundRows.length > 5 && (
+              {/* Show More / Show Less Pagination Control — not applicable in
+                  printMode, since visibleFundRows already includes every row */}
+              {!printMode && fundRows.length > 5 && (
                 <div className="text-center pt-2">
                   <button
                     type="button"

@@ -1,8 +1,31 @@
-from __future__ import annotations
+from pydantic import BaseModel, field_validator
 
-from pydantic import BaseModel
+from app.models.enums import AuthIdentityProvider, InvestorType, PrimaryGoal
 
-from app.models.enums import InvestorType, PrimaryGoal
+PROVIDER_TO_METHOD_LABEL: dict[AuthIdentityProvider, str] = {
+    AuthIdentityProvider.PHONE_OTP: "phone",
+    AuthIdentityProvider.EMAIL_OTP: "email",
+    AuthIdentityProvider.GOOGLE: "google",
+    AuthIdentityProvider.EMAIL_PASSWORD: "email",  # benched — kept, unused going forward
+}
+
+
+def normalize_email(value: object) -> object:
+    """Canonicalizes an email identifier to strip+lowercase form.
+
+    Email is an identity key here (`otp_requests.email`,
+    `auth_identities.provider_subject`/`email`, and the Design Spec §4
+    collision lookup), and all of those compare as plain strings — so
+    `Victim@Example.com` and `victim@example.com` would otherwise be two
+    distinct identities and the collision/linking system would never fire.
+    Normalizing at the request boundary means every downstream comparison
+    already operates on one canonical form. Non-string input (including
+    `None`) is passed through untouched so Pydantic's own type errors, and
+    the exactly-one-identifier check, still behave as before.
+    """
+    if isinstance(value, str):
+        return value.strip().lower()
+    return value
 
 
 class OtpRequestBody(BaseModel):
@@ -17,6 +40,16 @@ class OtpRequestResponse(BaseModel):
 class OtpVerifyBody(BaseModel):
     phone_number: str
     otp: str
+    pending_token: str | None = None
+
+
+class SignupEmailBody(BaseModel):
+    email: str
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def _normalize_email(cls, value: object) -> object:
+        return normalize_email(value)
 
 
 class OtpVerifyResponse(BaseModel):
@@ -24,6 +57,63 @@ class OtpVerifyResponse(BaseModel):
     user_id: str
     onboarding_step: str | None
     onboarding_completed: bool
+
+
+class LinkRequiredDetail(BaseModel):
+    token: str
+    matched_email: str
+    existing_method: str  # "phone" | "email" | "google"
+
+
+class LinkRequiredResponse(BaseModel):
+    link_required: LinkRequiredDetail
+
+
+class PhoneRequiredDetail(BaseModel):
+    token: str
+    prefill_email: str | None
+
+
+class PhoneRequiredResponse(BaseModel):
+    phone_required: PhoneRequiredDetail
+
+
+class EmailOtpRequiredDetail(BaseModel):
+    token: str
+    prefill_email: str
+    otp: str | None = None  # only populated in dev-stub delivery mode
+
+
+class EmailOtpRequiredResponse(BaseModel):
+    email_otp_required: EmailOtpRequiredDetail
+
+
+class EmailOtpRequestBody(BaseModel):
+    email: str
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def _normalize_email(cls, value: object) -> object:
+        return normalize_email(value)
+
+
+class EmailOtpVerifyBody(BaseModel):
+    email: str
+    otp: str
+    # Optional now (remove-password-auth handoff spec §5): a fresh-signup or
+    # step-up-link caller supplies this; a plain-login caller (no pending
+    # record involved at all) does not.
+    pending_token: str | None = None
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def _normalize_email(cls, value: object) -> object:
+        return normalize_email(value)
+
+
+class GoogleAuthBody(BaseModel):
+    id_token: str
+    pending_token: str | None = None
 
 
 class SessionRefreshResponse(BaseModel):
@@ -45,3 +135,5 @@ class MeResponse(BaseModel):
     onboarding_completed: bool
     investor_type: InvestorType | None
     primary_goal: PrimaryGoal | None
+
+

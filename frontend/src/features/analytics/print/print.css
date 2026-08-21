@@ -1,0 +1,12 @@
+@page {
+  size: A4;
+  margin: 16mm 14mm;
+}
+
+.print-section {
+  break-inside: avoid;
+}
+
+.print-cover {
+  break-after: page;
+}

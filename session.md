@@ -49,7 +49,145 @@ the file — removed. `compute_holdings`'s own pre-existing per-folio N+1 (disco
 a side effect, confirmed unrelated and out of scope) logged as a new "Still open" item
 in `CLAUDE.md` rather than fixed here, per the spec's own Follow-up section.
 
-Awaiting the final whole-branch review (Task 12) before merge into `feat/enhanced-ui`.
+Task 12 (final whole-branch review) is now complete: 1 fix round (a Decimal-float
+violation, a missing TTL-expiry test, stale docs — commit `848a1fd`), 1 scoped
+re-review residual (a Decimal scientific-notation sign-check gap — commit `b01ef0d`).
+Full ledger trail: `Docs/orchestration/delegation-log.md`. Merged into `feat/enhanced-ui`
+via merge-conflict resolution (not rebase, since `feat/enhanced-ui` had moved 133
+commits ahead of this branch's creation point) — only 3 real conflicts, all docs
+(`CLAUDE.md`, `session.md`, `Docs/orchestration/delegation-log.md`), everything else
+auto-merged clean. That divergence brought in, already on `feat/enhanced-ui`, the three
+sections immediately below: post-merge stabilization, the `authsetup` merge (Auth,
+Onboarding, CAS Import v2, Mobile Polish), and the Analytics PDF export merge.
+
+## Post-Merge Stabilization: Alembic Migration Linearization & Windows Playwright Lifecycle (2026-08-21)
+
+Stabilization following the merge of `authsetup` and `worktree-analytics-pdf-export` into `feat/enhanced-ui`:
+1. **Alembic Head Conflict**: Resolved two `0004` revisions by renumbering `0004_scheme_ter_nullable_value.py` to `0009_scheme_ter_nullable_value.py` (`down_revision = "0008"`), creating a linear chain from 0001 to 0009.
+2. **Local DB Version Alignment**: Local SQLite DB was reset with `alembic stamp 0003` then upgraded through `0009` so `auth_identities` table and phone OTP backfills created in 0004/0005 exist before application startup.
+3. **Windows Playwright Lifespan**: Playwright Chromium launch uses `asyncio.create_subprocess_exec`, which requires `ProactorEventLoop` on Windows. Set `asyncio.WindowsProactorEventLoopPolicy` in `app/main.py`, updated `backend/scripts/run_server.py`, and documented `--loop asyncio.ProactorEventLoop` for uvicorn reloader.
+4. **Detailed Reference**: Full failure modes, error logs, and verification checklist documented in `Docs/orchestration/post-merge-environment-and-migration-fixes.md`.
+
+## Auth, Onboarding, CAS Import v2 & Mobile Polish merged from `authsetup` (2026-08-20)
+
+Merged from a long-running parallel branch, `authsetup`, covering Auth, Onboarding,
+Validation, Visual Experience, Mobile Auth, and the CAS Import Flow Redesign (v2) —
+all reported 100% complete on that branch as of 2026-08-20. Most recent slice before
+merge: Mobile Auth Header Typography & Spacing (`AuthShell.tsx`) — scaled up mobile
+brand text (`text-2xl`), logo glyph (`w-5 h-5`), mobile headline (`text-xl`), and
+subtext (`text-sm`); replaced `my-auto` centering on the mobile form container with
+`mt-2 mb-auto lg:my-auto` to remove the excessive vertical gap between the subtext and
+the "Create your account" form.
+
+**Components built/integrated in this merge:**
+1. `amcLogos` module (`frontend/src/lib/amcLogos.ts` & `amcLogos.test.ts`) — AMC → logo
+   vector asset map and alias resolution engine (7/7 unit tests passing).
+2. `SchemeLogo` (`frontend/src/components/SchemeLogo.tsx`) — prioritizes AMC logo
+   vector assets mapped from parsed scheme data, falling back to initial-letter avatars.
+3. `ReviewTable` & `MobileReviewView` — embed AMC logo tiles in web (grid/list) and
+   mobile review cards.
+
+**Verification on `authsetup` before merge:** 60/60 test files, 279/279 tests passed
+(`npx vitest run`); 0 TypeScript errors (`npx tsc -b`).
+
+**Note for whoever picks this up next:** `authsetup`'s own "what's next" pointed at
+building the PRD-04 Analytics frontend — by the time of this merge that work had
+already progressed significantly on `feat/enhanced-ui` independently (see the Analytics
+PDF export and phantom-holding/ISIN sections below). Reconcile against those before
+assuming Analytics frontend work is still fully greenfield.
+
+Full detail on everything else merged from `authsetup` (Auth Input/OTP responsiveness,
+Auth Navigation Flow fix, the global mobile UI/UX pass across onboarding/auth/CAS-import,
+the illustration-led CAS Import redesign v2, the Auth Showcase panel redesign, the auth
+validation engine, hand-drawn illustrations): see `git log authsetup` prior to this
+merge, or `CLAUDE.md`'s Session State history before this merge commit.
+
+## Analytics PDF export: all 10 plan tasks done, reviewed clean, merged to feat/enhanced-ui (2026-08-20/21)
+
+Worktree `/mnt/d/Unifolio code/.claude/worktrees/analytics-pdf-export`,
+branch `worktree-analytics-pdf-export`, executed via
+`superpowers:subagent-driven-development` against
+`Docs/superpowers/plans/2026-08-20-analytics-pdf-export.md` (spec:
+`Docs/superpowers/specs/2026-08-20-analytics-pdf-export-design.md`). All 10
+tasks implemented, task-reviewed, and committed:
+`2f77e4b..4ce4561` (base for the review range is `321b6ed`, the plan-commit
+itself). Feature: capability-token payload store, shared Playwright browser
+lifecycle, `/export/pdf` + `/export/payload/{token}` routes, a real
+(non-mocked) Playwright integration test, `FundScoreCard` extraction,
+`AnalyticsExportPayload` type + API client, `/print/analytics` print route,
+and a "Download PDF" button gated on full dashboard load.
+
+**Task 10 (manual E2E verification) found and fixed two real bugs**,
+committed as `4ce4561`:
+1. `PrintAnalyticsView.tsx`'s fetch effect double-fired under React 18
+   StrictMode, always 404ing on the second call against the single-use
+   export token — fixed with a `useRef` guard.
+2. `BenchmarkSection.tsx`'s per-fund comparison tab and "Show More"
+   pagination were gated behind client-side click state, invisible to a
+   static PDF render, contradicting the design doc's explicit no-click-gating
+   claim — fixed with an opt-in `printMode` prop (mirrors the `FundScoreCard`
+   "always expanded" precedent from Tasks 6/8), plus a new test.
+
+Also confirmed correct (not bugs): the cover page's scope name for both
+single-member ("Dev User (Me)") and multi-member aggregate ("Family
+Aggregate") scenarios, and member-scoped PDF export correctly excluding
+other members' data.
+
+**Found, ledgered, ruled out of scope — not fixed:** a pre-existing backend
+bug, `category_ranking.py:76`'s `_cagr` raising `decimal.DivisionUndefined`
+(0/0) for aggregate multi-category portfolio scoring when a category's NAV
+history is shorter than the 3-year CAGR lookback. Confirmed via backend-log
+correlation that this identically breaks the *live* dashboard's own
+`getAggregateScore`/`getAggregateCategoryRanking` calls (degrading to an
+empty "No category ranking data available" state) — not introduced by or
+specific to PDF export. Worth a follow-up ticket; full detail in
+`.superpowers/sdd/2026-08-20-analytics-pdf-export/progress.md` (git-ignored
+ledger, worktree-local).
+
+All seed data, temp scripts, and manually-launched dev servers used for
+verification were cleaned up; working tree is clean apart from the
+untracked, pre-existing `backend/.venv`.
+
+**Handed off to Codex, not dispatched as a Claude subagent:** the plan's
+mandatory final whole-branch review (git range `321b6ed..4ce4561`) — because
+this Claude account is at ~93% of its weekly limit, and the review is a
+bounded read-only task Codex can do without spending Claude quota. Handoff
+doc: `Docs/orchestration/analytics-pdf-export-final-review-handoff.md`,
+logged in `Docs/orchestration/delegation-log.md`'s 2026-08-21 entries.
+
+**Review round 1** found 2 confirmed Important findings (both against the
+spec's literal "500 + evict token, regardless of success or failure" line):
+the print page's success and error paths both set the same "ready" marker,
+so a fetch failure rendered a 200 PDF of an error page instead of a 500; and
+the export token was only ever consumed by the print page's own fetch, so a
+render failure never evicted it. A third finding (`FundScoreCard`'s
+`parseFloat`/`toFixed`) was ruled *not* a defect — `decimal.ts`'s own
+documented exemption for single, non-accumulating display conversions
+covers it, and the code predates this plan (Task 4 only extracted it).
+Fix round 1 (Codex-authored, orchestrator-verified and committed — Codex's
+own sandbox hit an unrelated AnyIO/TestClient hang on the full suite and
+declined to commit under its completion contract; the orchestrator
+independently reran both full suites clean outside that sandbox): `d59542e`.
+
+**Round-2 scoped re-review** of that fix found one further Medium gap: the
+fix caught the render failure with `except Exception`, which does not catch
+`asyncio.CancelledError` (derives from `BaseException` in Python 3.8+) — a
+client disconnect or request timeout mid-render would skip token cleanup.
+Fixed directly by the orchestrator (not redelegated, per the
+model-orchestration skill's "Review-loop fix authorship" rule — small diff,
+files already in context) by moving the eviction into a `finally` block:
+`86c60c5`. A final scoped re-review confirmed the gap closed, no new issues,
+and returned **"Ready to merge? Yes"** for `321b6ed..86c60c5`.
+
+Merged into `feat/enhanced-ui` locally (Option 1 of
+`superpowers:finishing-a-development-branch`) as merge commit `ed149bf`
+(`9c1dcbc..ed149bf`, no conflicts — pre-verified conflict-free via
+`git merge-tree --write-tree`). Backend `pytest` and frontend `vitest` both
+confirmed passing on the merged tree. `feat/enhanced-ui`'s worktree is not
+under `.worktrees/`/`worktrees/`, so it's left in place per that skill's
+cleanup table. SDD workspace
+(`.superpowers/sdd/2026-08-20-analytics-pdf-export/`) deleted. This feature
+is fully done — nothing left open on this branch.
 
 ## Phantom-holding bug fixed, ISIN cross-check added, index-fund mega-category split investigated + deferred (2026-08-19/20)
 

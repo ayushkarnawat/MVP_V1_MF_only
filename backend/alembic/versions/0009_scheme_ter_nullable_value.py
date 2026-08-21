@@ -1,7 +1,7 @@
 """scheme_ter.ter_value nullable
 
-Revision ID: 0004
-Revises: 0003
+Revision ID: 0009
+Revises: 0008
 Create Date: 2026-08-20
 
 NULL now means "checked this scheme against this period's AMFI feed, found
@@ -14,8 +14,8 @@ national-feed rescan on every 15-minute backoff window forever.
 from alembic import op
 import sqlalchemy as sa
 
-revision = "0004"
-down_revision = "0003"
+revision = "0009"
+down_revision = "0008"
 branch_labels = None
 depends_on = None
 

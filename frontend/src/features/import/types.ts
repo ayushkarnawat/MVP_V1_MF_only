@@ -12,6 +12,9 @@ export interface SchemeMatchPreview {
   transaction_count: number;
   plan_type: string;
   category: string | null;
+  fund_logo_url?: string | null;
+  amc_logo_url?: string | null;
+  logo_url?: string | null;
 }
 
 export interface TransactionPreview {

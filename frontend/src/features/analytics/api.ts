@@ -16,6 +16,7 @@ import type {
   AggregatePortfolioBenchmarkResponse,
   FundVsBenchmarkSummary,
   AggregateFundVsBenchmarkResponse,
+  AnalyticsExportPayload,
 } from "./types";
 
 async function authFetch(path: string, options: RequestInit = {}): Promise<Response> {
@@ -130,5 +131,31 @@ export async function getMemberFundBenchmark(
 
 export async function getAggregateFundBenchmark(signal?: AbortSignal): Promise<AggregateFundVsBenchmarkResponse> {
   const res = await authFetch(`/analytics/household/aggregate/benchmark/funds`, { signal });
+  return res.json();
+}
+
+/* PDF Export (FR-12) */
+export async function postExportPdf(request: {
+  scope: "aggregate" | "member";
+  memberId: string | null;
+  payload: AnalyticsExportPayload;
+}): Promise<Blob> {
+  const res = await authFetch(`/analytics/export/pdf`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ scope: request.scope, member_id: request.memberId, payload: request.payload }),
+  });
+  return res.blob();
+}
+
+// Deliberately NOT authFetch: the headless print route has no session bearer
+// token available to it — this endpoint is gated by possession of the opaque,
+// single-use `token` itself (see the backend design spec's "Auth" section).
+export async function getExportPayload(token: string): Promise<AnalyticsExportPayload> {
+  const res = await fetch(`${API_BASE_URL}/analytics/export/payload/${token}`);
+  if (!res.ok) {
+    const errorPayload = await parseErrorDetail(res);
+    throw new ApiError(res.status, errorPayload);
+  }
   return res.json();
 }

@@ -35,7 +35,8 @@ describe("WaitingForCasView", () => {
       />
     );
 
-    expect(screen.getByText(/waiting for cams email delivery/i)).toBeInTheDocument();
+    expect(screen.getByText(/waiting for cams email/i)).toBeInTheDocument();
+    expect(screen.getByText(/already got the email\? upload it now/i)).toBeInTheDocument();
 
     const cancelBtn = screen.getByRole("button", { name: /cancel request/i });
     fireEvent.click(cancelBtn);
@@ -46,7 +47,7 @@ describe("WaitingForCasView", () => {
     });
   });
 
-  it("calls onUploadSubmit when file is uploaded in waiting view", async () => {
+  it("expands upload disclosure and calls onUploadSubmit when file is uploaded", async () => {
     const onUploadSubmit = vi.fn();
     render(
       <WaitingForCasView
@@ -57,6 +58,13 @@ describe("WaitingForCasView", () => {
       />
     );
 
+    // Click disclosure trigger to expand
+    const disclosureBtn = screen.getByRole("button", { name: /already got the email\? upload it now/i });
+    expect(disclosureBtn).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(disclosureBtn);
+    expect(disclosureBtn).toHaveAttribute("aria-expanded", "true");
+
+    // Form is now accessible
     const fileInput = screen.getByLabelText(/CAS PDF/i);
     const mockFile = new File(["dummy pdf content"], "CAS_statement.pdf", {
       type: "application/pdf",

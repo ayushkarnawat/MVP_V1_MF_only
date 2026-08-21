@@ -67,7 +67,7 @@ export function ImportLifecycleView({
           </div>
           <h2 className="type-h2" style={{ marginTop: "var(--space-2)" }}>Password Required</h2>
           <p className="type-body" style={{ color: "var(--color-text-secondary)" }}>
-            {statusObj.error_message || "Incorrect PDF password. CAMS/KFintech CAS passwords are usually your PAN in uppercase."}
+            {statusObj.error_message || "Incorrect PDF password. CAS passwords are usually your PAN in uppercase."}
           </p>
         </div>
 

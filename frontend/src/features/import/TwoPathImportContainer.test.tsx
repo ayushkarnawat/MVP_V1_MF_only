@@ -14,7 +14,7 @@ describe("TwoPathImportContainer", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders both tabs and toggles between Request and Upload views", () => {
+  it("renders entry choice screen with both options and navigates into Request view", () => {
     render(
       <TwoPathImportContainer
         memberId="m-1"
@@ -22,19 +22,48 @@ describe("TwoPathImportContainer", () => {
       />
     );
 
-    // Initial default tab: Request from CAMS (Step 1)
-    expect(screen.getByRole("tab", { name: /request from cams/i })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /upload existing statement/i })).toBeInTheDocument();
-    expect(screen.getByText(/request statement on cams/i)).toBeInTheDocument();
+    // Entry Choice Screen
+    expect(screen.getByRole("heading", { name: /how would you like to bring in your statement/i })).toBeInTheDocument();
+    expect(screen.getByText("Request from CAMS")).toBeInTheDocument();
+    expect(screen.getByText("Already have a statement")).toBeInTheDocument();
 
-    // Switch to Upload Existing Statement tab (Step 2)
-    const uploadTab = screen.getByRole("tab", { name: /upload existing statement/i });
-    fireEvent.click(uploadTab);
+    // Click Request from CAMS
+    const requestChoice = screen.getByRole("button", { name: /request from cams/i });
+    fireEvent.click(requestChoice);
 
-    expect(screen.getByText(/click to choose file or drag & drop pdf here/i)).toBeInTheDocument();
+    // Detail view is shown with back button
+    expect(screen.getByRole("heading", { name: /^request from cams$/i })).toBeInTheDocument();
+    expect(screen.getByText(/back to import options/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /request statement on cams/i })).toBeInTheDocument();
+
+    // Click back to options
+    fireEvent.click(screen.getByText(/back to import options/i));
+    expect(screen.getByRole("heading", { name: /how would you like to bring in your statement/i })).toBeInTheDocument();
   });
 
-  it("automatically resumes at Step 2 when resume state is present", () => {
+  it("navigates into Upload view from choice screen and supports back navigation", () => {
+    render(
+      <TwoPathImportContainer
+        memberId="m-1"
+        onUploadSubmit={vi.fn()}
+      />
+    );
+
+    // Click Already have a statement
+    const uploadChoice = screen.getByRole("button", { name: /already have a statement/i });
+    fireEvent.click(uploadChoice);
+
+    // Upload form is shown with back button
+    expect(screen.getByRole("heading", { name: /upload your statement/i })).toBeInTheDocument();
+    expect(screen.getByText(/back to import options/i)).toBeInTheDocument();
+    expect(screen.getByText(/click to choose file or drag & drop pdf here/i)).toBeInTheDocument();
+
+    // Click back
+    fireEvent.click(screen.getByText(/back to import options/i));
+    expect(screen.getByRole("heading", { name: /how would you like to bring in your statement/i })).toBeInTheDocument();
+  });
+
+  it("automatically resumes at upload view when resume state is present", () => {
     setCasResumeStep2("m-1");
 
     render(
@@ -44,13 +73,12 @@ describe("TwoPathImportContainer", () => {
       />
     );
 
-    // Should directly display Step 2 Upload form without requiring clicking Step 1
-    const uploadTab = screen.getByRole("tab", { name: /upload existing statement/i });
-    expect(uploadTab).toHaveAttribute("aria-selected", "true");
+    // Directly shows Upload form
+    expect(screen.getByRole("heading", { name: /upload your statement/i })).toBeInTheDocument();
     expect(screen.getByText(/click to choose file or drag & drop pdf here/i)).toBeInTheDocument();
   });
 
-  it("switches to Step 2 and persists resume state when Go to CAMS is clicked", async () => {
+  it("transitions to waiting view and persists resume state when Request on CAMS is clicked", async () => {
     const mockOpen = vi.fn();
     vi.stubGlobal("open", mockOpen);
 
@@ -69,6 +97,9 @@ describe("TwoPathImportContainer", () => {
       />
     );
 
+    // Go to Request from CAMS
+    fireEvent.click(screen.getByRole("button", { name: /request from cams/i }));
+
     const requestBtn = screen.getByRole("button", { name: /request statement on cams/i });
     fireEvent.click(requestBtn);
 
@@ -78,13 +109,12 @@ describe("TwoPathImportContainer", () => {
       expect(hasCasResumeStep2("m-1")).toBe(true);
     });
 
-    // Step 2 is opened directly
-    const uploadTab = screen.getByRole("tab", { name: /upload existing statement/i });
-    expect(uploadTab).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByText(/click to choose file or drag & drop pdf here/i)).toBeInTheDocument();
+    // Waiting view is displayed
+    expect(screen.getByText(/waiting for cams email/i)).toBeInTheDocument();
+    expect(screen.getByText(/already got the email\? upload it now/i)).toBeInTheDocument();
   });
 
-  it("resumes Step 2 on window focus when resume state is set", () => {
+  it("resumes upload view on window focus when resume state is set", () => {
     render(
       <TwoPathImportContainer
         memberId="m-1"
@@ -92,44 +122,20 @@ describe("TwoPathImportContainer", () => {
       />
     );
 
-    // Initial state: Step 1
-    const step1Tab = screen.getByRole("tab", { name: /request from cams/i });
-    expect(step1Tab).toHaveAttribute("aria-selected", "true");
+    // Initial state: choice screen
+    expect(screen.getByRole("heading", { name: /how would you like to bring in your statement/i })).toBeInTheDocument();
 
-    // Simulate CAMS action in another tab setting resume state
+    // Simulate resume state set
     setCasResumeStep2("m-1");
 
-    // Window gains focus when user returns
+    // Window focus
     fireEvent(window, new Event("focus"));
 
-    // Step 2 is active
-    const uploadTab = screen.getByRole("tab", { name: /upload existing statement/i });
-    expect(uploadTab).toHaveAttribute("aria-selected", "true");
+    // Upload view is active
+    expect(screen.getByRole("heading", { name: /upload your statement/i })).toBeInTheDocument();
   });
 
-  it("clears resume state when Step 1 tab is explicitly clicked", () => {
-    setCasResumeStep2("m-1");
-
-    render(
-      <TwoPathImportContainer
-        memberId="m-1"
-        onUploadSubmit={vi.fn()}
-      />
-    );
-
-    // Starts at Step 2 due to resume state
-    const uploadTab = screen.getByRole("tab", { name: /upload existing statement/i });
-    expect(uploadTab).toHaveAttribute("aria-selected", "true");
-
-    // User clicks Step 1 tab manually
-    const step1Tab = screen.getByRole("tab", { name: /request from cams/i });
-    fireEvent.click(step1Tab);
-
-    expect(step1Tab).toHaveAttribute("aria-selected", "true");
-    expect(hasCasResumeStep2("m-1")).toBe(false);
-  });
-
-  it("clears resume state on upload submission so subsequent flow starts at Step 1", () => {
+  it("clears resume state on upload submission so subsequent flow starts at choice view", () => {
     setCasResumeStep2("m-1");
     const onUploadSubmit = vi.fn();
 
@@ -155,7 +161,7 @@ describe("TwoPathImportContainer", () => {
 
     unmount();
 
-    // Next fresh import starts at Step 1
+    // Next fresh import starts at choice screen
     render(
       <TwoPathImportContainer
         memberId="m-1"
@@ -163,7 +169,6 @@ describe("TwoPathImportContainer", () => {
       />
     );
 
-    const step1Tab = screen.getByRole("tab", { name: /request from cams/i });
-    expect(step1Tab).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("heading", { name: /how would you like to bring in your statement/i })).toBeInTheDocument();
   });
 });

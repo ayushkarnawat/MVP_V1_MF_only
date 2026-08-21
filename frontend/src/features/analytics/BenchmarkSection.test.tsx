@@ -72,4 +72,21 @@ describe("BenchmarkSection", () => {
     expect(screen.getByText("Recent New Fund")).toBeInTheDocument();
     expect(screen.getByText("Insufficient history for fund XIRR")).toBeInTheDocument();
   });
+
+  it("printMode shows both portfolio and per-fund content with no tab toggle to click", () => {
+    render(
+      <BenchmarkSection
+        portfolioBenchmark={samplePortfolioBenchmark}
+        fundBenchmark={sampleFundBenchmark}
+        printMode
+      />
+    );
+
+    expect(screen.queryByRole("button", { name: "Per-Fund vs Benchmark" })).not.toBeInTheDocument();
+    // Portfolio tab content
+    expect(screen.getByText("Portfolio XIRR vs Nifty Market Indices")).toBeInTheDocument();
+    // Per-fund tab content, visible without any click
+    expect(screen.getByText("HDFC Mid-Cap Opportunities Fund")).toBeInTheDocument();
+    expect(screen.getByText("Recent New Fund")).toBeInTheDocument();
+  });
 });

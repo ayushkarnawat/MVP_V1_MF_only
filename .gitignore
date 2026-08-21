@@ -1,9 +1,14 @@
+# Superpowers brainstorming companion (local scratch, not for commit)
+.superpowers/
+
 # Python
 __pycache__/
 *.pyc
 .venv/
 *.db
 .pytest_cache/
+.pytest_tmp/
+backend/.pytest_tmp/
 backend/.cache/
 backend/pytest_tmp/
 pytest_tmp/

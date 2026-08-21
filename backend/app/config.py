@@ -7,6 +7,8 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./unifolio_dev.db"
     test_database_url: str | None = None
     otp_delivery_mode: str = "stub"
+    frontend_base_url: str = "http://localhost:5173"
+    google_oauth_client_id: str = ""
 
 
 settings = Settings()
