@@ -7,6 +7,14 @@ gets overwritten each session, and isn't meant to accumulate history.
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
 
+## Post-Merge Stabilization: Alembic Migration Linearization & Windows Playwright Lifecycle (2026-08-21)
+
+Stabilization following the merge of `authsetup` and `worktree-analytics-pdf-export` into `feat/enhanced-ui`:
+1. **Alembic Head Conflict**: Resolved two `0004` revisions by renumbering `0004_scheme_ter_nullable_value.py` to `0009_scheme_ter_nullable_value.py` (`down_revision = "0008"`), creating a linear chain from 0001 to 0009.
+2. **Local DB Version Alignment**: Local SQLite DB was reset with `alembic stamp 0003` then upgraded through `0009` so `auth_identities` table and phone OTP backfills created in 0004/0005 exist before application startup.
+3. **Windows Playwright Lifespan**: Playwright Chromium launch uses `asyncio.create_subprocess_exec`, which requires `ProactorEventLoop` on Windows. Set `asyncio.WindowsProactorEventLoopPolicy` in `app/main.py`, updated `backend/scripts/run_server.py`, and documented `--loop asyncio.ProactorEventLoop` for uvicorn reloader.
+4. **Detailed Reference**: Full failure modes, error logs, and verification checklist documented in `Docs/orchestration/post-merge-environment-and-migration-fixes.md`.
+
 ## Auth, Onboarding, CAS Import v2 & Mobile Polish merged from `authsetup` (2026-08-20)
 
 Merged from a long-running parallel branch, `authsetup`, covering Auth, Onboarding,
