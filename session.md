@@ -119,10 +119,14 @@ files already in context) by moving the eviction into a `finally` block:
 and returned **"Ready to merge? Yes"** for `321b6ed..86c60c5`.
 
 Merged into `feat/enhanced-ui` locally (Option 1 of
-`superpowers:finishing-a-development-branch`); see the merge commit for the
-exact range and post-merge test result. SDD workspace
-(`.superpowers/sdd/2026-08-20-analytics-pdf-export/`) deleted after the
-merge per that skill's process.
+`superpowers:finishing-a-development-branch`) as merge commit `ed149bf`
+(`9c1dcbc..ed149bf`, no conflicts — pre-verified conflict-free via
+`git merge-tree --write-tree`). Backend `pytest` and frontend `vitest` both
+confirmed passing on the merged tree. `feat/enhanced-ui`'s worktree is not
+under `.worktrees/`/`worktrees/`, so it's left in place per that skill's
+cleanup table. SDD workspace
+(`.superpowers/sdd/2026-08-20-analytics-pdf-export/`) deleted. This feature
+is fully done — nothing left open on this branch.
 
 ## Phantom-holding bug fixed, ISIN cross-check added, index-fund mega-category split investigated + deferred (2026-08-19/20)
 
