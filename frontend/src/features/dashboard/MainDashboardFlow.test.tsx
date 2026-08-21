@@ -17,7 +17,6 @@ vi.mock("./api", () => ({
   getAggregateAllocation: vi.fn(),
   getAggregateSips: vi.fn(),
   getAggregateSipsMonthly: vi.fn(),
-  getDistributorComparison: vi.fn(),
 }));
 
 vi.mock("../analytics/AnalyticsView", () => ({
