@@ -224,10 +224,16 @@ async def export_analytics_pdf(
     try:
         pdf_bytes = await render_analytics_pdf(token)
     except Exception:
-        consume_export_payload(token)
         raise HTTPException(
             status_code=500, detail="Failed to generate PDF export."
         ) from None
+    finally:
+        # finally, not except Exception: asyncio.CancelledError derives from
+        # BaseException (client disconnect / request timeout while awaiting
+        # Playwright), and the spec requires cleanup regardless of outcome.
+        # consume_export_payload is an idempotent pop — a no-op if the print
+        # page's own payload fetch already consumed it on the success path.
+        consume_export_payload(token)
     return Response(content=pdf_bytes, media_type="application/pdf")
 
 

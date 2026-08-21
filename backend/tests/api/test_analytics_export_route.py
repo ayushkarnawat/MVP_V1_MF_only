@@ -94,6 +94,40 @@ def test_export_pdf_render_failure_returns_generic_500_and_evicts_token():
     assert consume_export_payload(stored_tokens[0]) is None
 
 
+def test_export_pdf_cancellation_still_evicts_token():
+    # asyncio.CancelledError derives from BaseException, not Exception — a
+    # client disconnect / request timeout while awaiting render_analytics_pdf
+    # must not skip token cleanup (cleanup lives in `finally`, not
+    # `except Exception`, for exactly this case).
+    stored_tokens = []
+
+    def capture_token(payload):
+        token = real_store(payload)
+        stored_tokens.append(token)
+        return token
+
+    with (
+        patch("app.api.analytics.store_export_payload", side_effect=capture_token),
+        patch(
+            "app.api.analytics.render_analytics_pdf",
+            new=AsyncMock(side_effect=asyncio.CancelledError()),
+        ),
+    ):
+        with pytest.raises(asyncio.CancelledError):
+            asyncio.run(
+                export_analytics_pdf(
+                    AnalyticsExportRequest(
+                        scope="aggregate", member_id=None, payload={"allocation": {}}
+                    ),
+                    user=type("U", (), {"id": uuid.uuid4()})(),
+                    db=object(),
+                )
+            )
+
+    assert len(stored_tokens) == 1
+    assert consume_export_payload(stored_tokens[0]) is None
+
+
 def test_get_export_payload_returns_stored_blob_once():
     from app.services.analytics.pdf_export import store_export_payload
 
