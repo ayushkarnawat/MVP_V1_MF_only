@@ -197,6 +197,7 @@ export function MainDashboardFlow() {
           viewMode={viewMode}
           memberId={selectedMemberId}
           onAddDataForMember={handleAddDataTrigger}
+          activeMemberName={members.find((m) => m.id === selectedMemberId)?.name}
         />
       )}
     </NavigationShell>

@@ -19,6 +19,7 @@ import {
   getAggregateBenchmark,
   getMemberFundBenchmark,
   getAggregateFundBenchmark,
+  postExportPdf,
 } from "./api";
 import { AllocationSection } from "./AllocationSection";
 import { TerSection } from "./TerSection";
@@ -35,18 +36,21 @@ import type {
   PortfolioBenchmarkSummary,
   FundVsBenchmarkSummary,
   MemberStatus,
+  AnalyticsExportPayload,
 } from "./types";
 
 export interface AnalyticsViewProps {
   viewMode: "aggregate" | "member";
   memberId: string | null;
   onAddDataForMember?: (memberId?: string) => void;
+  activeMemberName?: string;
 }
 
 export function AnalyticsView({
   viewMode,
   memberId,
   onAddDataForMember,
+  activeMemberName,
 }: AnalyticsViewProps) {
   const [allocation, setAllocation] = useState<AnalyticsAllocationSummary | null>(null);
   const [ter, setTer] = useState<WeightedTerSummary | null>(null);
@@ -72,6 +76,40 @@ export function AnalyticsView({
   const [scoreLoading, setScoreLoading] = useState(true);
   const [benchmarkLoading, setBenchmarkLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  const allSectionsLoaded =
+    !allocationLoading && !terLoading && !rankingLoading && !scoreLoading && !benchmarkLoading;
+
+  const handleDownloadPdf = async () => {
+    setIsExporting(true);
+    setExportError(null);
+    try {
+      const payload: AnalyticsExportPayload = {
+        scopeName: viewMode === "aggregate" ? "Family Aggregate" : activeMemberName ?? "Member",
+        allocation,
+        ter,
+        terComparison,
+        ranking,
+        scoreSummary,
+        portfolioBenchmark,
+        fundBenchmark,
+      };
+      const blob = await postExportPdf({ scope: viewMode, memberId, payload });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `unifolio-analytics-${viewMode === "aggregate" ? "family" : memberId}.pdf`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      setExportError(err.message || "Failed to generate PDF");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -242,8 +280,19 @@ export function AnalyticsView({
                 </span>
               )}
             </div>
+            <button
+              type="button"
+              onClick={handleDownloadPdf}
+              disabled={!allSectionsLoaded || isExporting}
+              className="text-xs font-semibold px-4 py-2 rounded-lg bg-[var(--color-accent)] text-white disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {isExporting ? "Generating…" : "Download PDF"}
+            </button>
           </div>
         </div>
+        {exportError && (
+          <p className="text-xs text-[var(--color-negative)] mt-3 relative z-10">{exportError}</p>
+        )}
       </Card>
 
       {/* Aggregate Placeholder Notice */}
