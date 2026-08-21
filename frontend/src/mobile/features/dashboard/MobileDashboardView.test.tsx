@@ -10,6 +10,8 @@ vi.mock("@/features/dashboard/api", () => ({
   getAggregateAllocation: vi.fn(),
   getMemberHoldings: vi.fn(),
   getMemberAllocation: vi.fn(),
+  getAggregateDistributorComparison: vi.fn(),
+  getMemberDistributorComparison: vi.fn(),
 }));
 
 vi.mock("@/features/import/api", () => ({
@@ -120,6 +122,58 @@ describe("MobileDashboardView", () => {
 
     expect(screen.getByText("Parag Parikh Flexi Cap Fund")).toBeInTheDocument();
     expect(screen.queryByText("HDFC Top 100 Fund")).not.toBeInTheDocument();
+  });
+
+  it("opens the portfolio-wide distributor comparison from the embedded Holdings header", async () => {
+    vi.mocked(dashboardApi.getAggregateHoldings).mockResolvedValue({
+      holdings: [
+        {
+          scheme_id: "scheme-101",
+          scheme_name: "HDFC Top 100 Fund",
+          amc_name: "HDFC Mutual Fund",
+          household_member_id: "m-1",
+          household_member_name: "Ayush",
+          plan_type: "DIRECT",
+          units_held: "100.00",
+          average_nav: "50.00",
+          current_nav: "75.00",
+          amount_invested: "5000.00",
+          current_value: "7500.00",
+          current_profit_total: "2500.00",
+          realized_gain: "0.00",
+          unrealized_gain: "2500.00",
+          today_gain: "25.00",
+        },
+      ],
+      members: [{ id: "m-1", name: "Ayush", has_data: true }],
+    });
+    vi.mocked(dashboardApi.getAggregateAllocation).mockResolvedValue({
+      members: [{ id: "m-1", name: "Ayush", has_data: true }],
+      allocation: {
+        by_asset_class: [
+          { label: "Equity", current_value: "7500.00", percentage: 100.0 },
+        ],
+        by_amc: [],
+        total_value: "7500.00",
+      },
+    });
+    vi.mocked(dashboardApi.getAggregateDistributorComparison).mockResolvedValue({
+      members: [],
+      rows: [],
+    });
+
+    render(<MobileDashboardView />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Holdings")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /compare distributors/i }));
+
+    await waitFor(() => {
+      expect(dashboardApi.getAggregateDistributorComparison).toHaveBeenCalled();
+      expect(screen.getByText("DISTRIBUTOR COMPARISON")).toBeInTheDocument();
+    });
   });
 
   it("filters the Holdings list by family member in Family Combined view, combined with search", async () => {

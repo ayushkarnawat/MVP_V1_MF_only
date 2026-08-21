@@ -18,6 +18,7 @@ import { AllocationDonut } from "@/components/AllocationDonut";
 import { Badge } from "@/components/Badge";
 import { MobileHoldingCardSummary } from "../holdings/MobileHoldingCardSummary";
 import { MobileFundDetailView } from "../holdings/MobileFundDetailView";
+import { MobileDistributorComparisonView } from "../holdings/MobileDistributorComparisonView";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,6 +36,7 @@ import {
   AlertTriangle,
   UploadCloud,
   Search,
+  BarChart2,
 } from "lucide-react";
 
 // Mobile-only legend/segment order for "By Asset Class" — web keeps the
@@ -62,6 +64,7 @@ export function MobileDashboardView({
   // view — independent of viewMode/selectedMemberId above, which control
   // the whole screen's data-fetch context, not just what's shown in this list.
   const [holdingsMemberFilter, setHoldingsMemberFilter] = useState<string>("all");
+  const [isDistributorComparisonOpen, setIsDistributorComparisonOpen] = useState(false);
 
   useEffect(() => {
     setHoldingsMemberFilter("all");
@@ -621,7 +624,7 @@ export function MobileDashboardView({
             Holdings
           </span>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {viewMode === "aggregate" && membersStatus.length > 0 && (
               <Select value={holdingsMemberFilter} onValueChange={setHoldingsMemberFilter}>
                 <SelectTrigger
@@ -643,6 +646,15 @@ export function MobileDashboardView({
             <span className="text-xs font-semibold text-[var(--color-text-secondary)] tabular-nums">
               {filteredHoldings.length} holding{filteredHoldings.length !== 1 ? "s" : ""}
             </span>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setIsDistributorComparisonOpen(true)}
+              className="h-7 gap-1 rounded-full px-2.5 text-[11px]"
+            >
+              <BarChart2 className="h-3.5 w-3.5" />
+              <span>Compare Distributors</span>
+            </Button>
           </div>
         </div>
 
@@ -664,6 +676,13 @@ export function MobileDashboardView({
           </div>
         )}
       </section>
+
+      <MobileDistributorComparisonView
+        isOpen={isDistributorComparisonOpen}
+        onClose={() => setIsDistributorComparisonOpen(false)}
+        viewMode={viewMode}
+        memberId={selectedMemberId}
+      />
     </div>
   );
 }
