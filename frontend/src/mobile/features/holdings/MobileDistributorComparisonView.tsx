@@ -3,6 +3,7 @@ import { Badge } from "@/components/Badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn, toTitleCase } from "@/lib/utils";
+import { formatIndianCurrency } from "@/lib/decimal";
 import { getAggregateDistributorComparison, getMemberDistributorComparison } from "@/features/dashboard/api";
 import type { DistributorPortfolioRow } from "@/features/dashboard/types";
 
@@ -125,8 +126,7 @@ export function MobileDistributorComparisonView({
             {rows.map((row, idx) => {
               const key = rowKey(row, idx);
               const isDirect = !row.arn_code;
-              const gain = parseFloat(row.unrealized_gain || "0");
-              const isPositive = gain >= 0;
+              const isPositive = !isGainNegative(row.unrealized_gain);
               const isExpanded = expanded.has(key);
 
               return (
@@ -179,7 +179,7 @@ export function MobileDistributorComparisonView({
                           Invested
                         </span>
                         <span className="font-semibold text-[var(--color-ink)] tabular-nums">
-                          ₹{formatCurrency(row.amount_invested)}
+                          ₹{formatIndianCurrency(row.amount_invested)}
                         </span>
                       </div>
                       <div className="space-y-0.5">
@@ -187,7 +187,7 @@ export function MobileDistributorComparisonView({
                           Current
                         </span>
                         <span className="font-semibold text-[var(--color-ink)] tabular-nums">
-                          ₹{formatCurrency(row.current_value)}
+                          ₹{formatIndianCurrency(row.current_value)}
                         </span>
                       </div>
                       <div className="space-y-0.5">
@@ -202,7 +202,7 @@ export function MobileDistributorComparisonView({
                               : "text-[var(--color-negative)]")
                           }
                         >
-                          {isPositive ? "↑ " : "↓ "}₹{formatCurrency(Math.abs(gain))}
+                          {isPositive ? "↑ " : "↓ "}₹{formatIndianCurrency(gainMagnitude(row.unrealized_gain))}
                         </span>
                       </div>
                     </div>
@@ -211,8 +211,7 @@ export function MobileDistributorComparisonView({
                   {isExpanded && (
                     <div className="border-t border-[var(--color-border)]/60 divide-y divide-[var(--color-border)]/40">
                       {row.schemes.map((scheme) => {
-                        const schemeGain = parseFloat(scheme.unrealized_gain || "0");
-                        const schemeIsPositive = schemeGain >= 0;
+                        const schemeIsPositive = !isGainNegative(scheme.unrealized_gain);
                         return (
                           <div
                             key={`${scheme.scheme_id}-${scheme.household_member_id}`}
@@ -240,7 +239,7 @@ export function MobileDistributorComparisonView({
                                     : "text-[var(--color-negative)]")
                                 }
                               >
-                                {schemeIsPositive ? "↑ " : "↓ "}₹{formatCurrency(Math.abs(schemeGain))}
+                                {schemeIsPositive ? "↑ " : "↓ "}₹{formatIndianCurrency(gainMagnitude(scheme.unrealized_gain))}
                               </span>
                             </div>
                           </div>
@@ -258,10 +257,16 @@ export function MobileDistributorComparisonView({
   );
 }
 
-function formatCurrency(valStr: string | number): string {
-  const num = typeof valStr === "string" ? parseFloat(valStr) : valStr;
-  if (isNaN(num)) return "0";
-  return new Intl.NumberFormat("en-IN", {
-    maximumFractionDigits: 0,
-  }).format(num);
+// Sign/magnitude read directly off the decimal string, never off a parsed
+// float — see lib/decimal.ts's header comment on why accumulation/compare
+// steps must stay string-exact (formatIndianCurrency's own single, final
+// parseFloat for display is the one place that's fine).
+function isGainNegative(gainStr: string): boolean {
+  const s = gainStr || "0";
+  return s.startsWith("-") && /[1-9]/.test(s);
+}
+
+function gainMagnitude(gainStr: string): string {
+  const s = gainStr || "0";
+  return s.startsWith("-") ? s.slice(1) : s;
 }

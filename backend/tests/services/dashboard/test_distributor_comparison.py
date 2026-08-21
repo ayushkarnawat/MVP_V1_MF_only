@@ -381,6 +381,32 @@ def test_compute_distributor_comparison_reuses_entry_inside_ttl_window():
     nav_lookup.assert_awaited_once()
 
 
+def test_compute_distributor_comparison_recomputes_after_ttl_expiry():
+    import asyncio
+
+    db = _session()
+    member = _household_member(db)
+    scheme = _scheme(db)
+    folio = _folio(db, member, scheme, "AAA", "ARN-11111")
+    _txn(db, folio, TransactionType.PURCHASE, date(2024, 1, 1), Decimal("5000.00"), Decimal("100.000"), Decimal("50.0000"))
+    now = [1000.0]
+    nav_lookup = _mock_nav_batch({scheme.id: (Decimal("60.0000"), date.today())})
+
+    with (
+        patch("app.services.dashboard.distributor_comparison._distributor_cache_clock", side_effect=lambda: now[0]),
+        patch("app.services.dashboard.distributor_comparison.get_navs_on_or_before", new=nav_lookup),
+        patch(
+            "app.services.dashboard.distributor_comparison.resolve_arn",
+            new=AsyncMock(side_effect=_fake_resolve_arn({"ARN-11111": SimpleNamespace(distributor_name="Alpha", status=ArnStatus.ACTIVE)})),
+        ),
+    ):
+        asyncio.run(compute_distributor_comparison(db, [member.id]))
+        now[0] += 901.0
+        asyncio.run(compute_distributor_comparison(db, [member.id]))
+
+    assert nav_lookup.await_count == 2
+
+
 def test_compute_distributor_comparison_invalidated_by_holdings_cache_generation_bump():
     """The distributor cache is invalidated by the SAME signal
     (invalidate_holdings_cache) that already invalidates compute_holdings'
