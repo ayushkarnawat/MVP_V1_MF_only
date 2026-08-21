@@ -4,6 +4,7 @@ import { AllocationDonut } from "../../components/AllocationDonut";
 import { EmptyState } from "../../components/EmptyState";
 import { HoldingsTableSkeleton } from "../../components/Skeleton";
 import { Badge } from "../../components/Badge";
+import { Button } from "@/components/ui/button";
 import { FundDetailModal } from "./FundDetailModal";
 import { DistributorComparisonModal } from "./DistributorComparisonModal";
 import { CoverageGapBanner } from "../import/CoverageGapBanner";
@@ -77,12 +78,7 @@ export function DashboardView({
 
   /* Modal state */
   const [selectedHolding, setSelectedHolding] = useState<HoldingRow | null>(null);
-  const [comparisonModalState, setComparisonModalState] = useState<{
-    isOpen: boolean;
-    memberId: string;
-    schemeId: string;
-    schemeName: string;
-  }>({ isOpen: false, memberId: "", schemeId: "", schemeName: "" });
+  const [isDistributorComparisonOpen, setIsDistributorComparisonOpen] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -613,25 +609,36 @@ export function DashboardView({
             Holdings ({displayedHoldings.length})
           </h2>
 
-          {viewMode === "aggregate" && membersStatus.length > 0 && (
-            <Select value={holdingsMemberFilter} onValueChange={setHoldingsMemberFilter}>
-              <SelectTrigger
-                className="h-8 w-auto min-w-[160px] gap-1.5 rounded-full border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1 text-xs font-medium text-[var(--color-text-secondary)] [&>span]:line-clamp-1"
-                aria-label="Filter holdings by family member"
-              >
-                <User className="h-3.5 w-3.5 text-[var(--color-accent)] flex-shrink-0" />
-                <SelectValue placeholder="All Members" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Members</SelectItem>
-                {membersStatus.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>
-                    {m.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+          <div className="flex items-center gap-2 flex-wrap">
+            {viewMode === "aggregate" && membersStatus.length > 0 && (
+              <Select value={holdingsMemberFilter} onValueChange={setHoldingsMemberFilter}>
+                <SelectTrigger
+                  className="h-8 w-auto min-w-[160px] gap-1.5 rounded-full border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1 text-xs font-medium text-[var(--color-text-secondary)] [&>span]:line-clamp-1"
+                  aria-label="Filter holdings by family member"
+                >
+                  <User className="h-3.5 w-3.5 text-[var(--color-accent)] flex-shrink-0" />
+                  <SelectValue placeholder="All Members" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Members</SelectItem>
+                  {membersStatus.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setIsDistributorComparisonOpen(true)}
+              className="gap-1.5 inline-flex items-center"
+            >
+              <BarChart2 className="h-3.5 w-3.5" />
+              <span>Compare Distributors</span>
+            </Button>
+          </div>
         </div>
 
         <HoldingsTable
@@ -649,47 +656,18 @@ export function DashboardView({
         isOpen={!!selectedHolding}
         onClose={() => setSelectedHolding(null)}
         holding={selectedHolding}
-        onCompareDistributors={(schemeId, schemeName) => {
-          // Captured now, before setSelectedHolding(null) below clears it —
-          // both updates land in the same batch, so reading it at render
-          // time would always see null. No fallback to the page-level
-          // memberId here: that's a different member than the one who
-          // actually owns this holding, and silently substituting it sends
-          // the wrong id instead of failing loudly (the render gate below
-          // treats an empty ownerId as "don't open").
-          const ownerId = selectedHolding?.household_member_id || "";
-          setSelectedHolding(null);
-          setComparisonModalState({
-            isOpen: true,
-            memberId: ownerId,
-            schemeId,
-            schemeName,
-          });
-        }}
       />
 
-      {/* S17: Distributor Comparison Modal — gated on its OWN captured
-          memberId (the clicked holding's actual owner), not the page-level
-          memberId. That page-level value is a different concept (which
-          member/aggregate the dashboard is currently viewing) and can be
-          null or point at a different member than the one being compared;
-          falling back to it here would silently resend the wrong id. */}
-      {comparisonModalState.memberId && (
-        <DistributorComparisonModal
-          isOpen={comparisonModalState.isOpen}
-          onClose={() =>
-            setComparisonModalState({
-              isOpen: false,
-              memberId: "",
-              schemeId: "",
-              schemeName: "",
-            })
-          }
-          memberId={comparisonModalState.memberId}
-          schemeId={comparisonModalState.schemeId}
-          schemeName={comparisonModalState.schemeName}
-        />
-      )}
+      {/* S17: Distributor Comparison Modal — portfolio-wide, driven by the
+          page's own viewMode/memberId (same conditional every other
+          section on this page already uses), not by a specific clicked
+          holding. */}
+      <DistributorComparisonModal
+        isOpen={isDistributorComparisonOpen}
+        onClose={() => setIsDistributorComparisonOpen(false)}
+        viewMode={viewMode}
+        memberId={memberId}
+      />
 
       {/* Opening Balance Modal for Coverage Gap Resolution */}
       <OpeningBalanceModal
