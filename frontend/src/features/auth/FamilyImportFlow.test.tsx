@@ -35,6 +35,10 @@ const EMPTY_PREVIEW = {
 function uploadFor(memberLabel: RegExp) {
   const file = new File(["pdf-bytes"], "cas.pdf", { type: "application/pdf" });
   fireEvent.click(screen.getByRole("button", { name: memberLabel }));
+  const uploadChoice = screen.queryByRole("button", { name: /already have a statement/i });
+  if (uploadChoice) {
+    fireEvent.click(uploadChoice);
+  }
   const uploadTab = screen.queryByRole("tab", { name: /upload existing statement/i });
   if (uploadTab) {
     fireEvent.click(uploadTab);

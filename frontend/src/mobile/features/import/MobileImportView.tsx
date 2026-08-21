@@ -13,6 +13,9 @@ import type {
   ParseErrorPayload,
   SchemeConfirmation,
 } from "@/features/import/types";
+import { ImportPathChoice } from "@/features/import/ImportPathChoice";
+import { WaitingForCasView } from "@/features/import/WaitingForCasView";
+import { ParsingIndicator } from "@/features/import/ParsingIndicator";
 import { MobileRequestCamsView } from "./MobileRequestCamsView";
 import { MobileUploadForm } from "./MobileUploadForm";
 import { MobileReviewView } from "./MobileReviewView";
@@ -24,19 +27,19 @@ import {
   User,
   CheckCircle2,
   AlertCircle,
-  Loader2,
   RefreshCw,
   LayoutDashboard,
   UploadCloud,
-  ShieldCheck,
+  ArrowLeft,
 } from "lucide-react";
 
 export interface MobileImportViewProps {
   onNavigateDashboard?: () => void;
-  defaultTab?: "request" | "upload" | "history";
+  defaultTab?: "request" | "upload" | "history" | "choice" | "waiting";
   defaultMemberId?: string;
 }
 
+export type MobileImportViewMode = "choice" | "request" | "waiting" | "upload" | "history";
 type FlowStep = "flow" | "parsing" | "review" | "confirmed" | "error";
 
 const GENERIC_NETWORK_ERROR: ParseErrorPayload = {
@@ -54,15 +57,18 @@ function toParseErrorPayload(err: unknown): ParseErrorPayload {
 
 export function MobileImportView({
   onNavigateDashboard,
-  defaultTab = "request",
+  defaultTab,
   defaultMemberId,
 }: MobileImportViewProps) {
   const [members, setMembers] = useState<HouseholdMember[]>([]);
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(defaultMemberId ?? null);
-  const [activeTab, setActiveTab] = useState<"request" | "upload" | "history">(() => {
-    if (defaultTab !== "request") return defaultTab;
+  const [view, setView] = useState<MobileImportViewMode>(() => {
+    if (defaultTab === "history") return "history";
+    if (defaultTab === "upload") return "upload";
+    if (defaultTab === "waiting") return "waiting";
+    if (defaultTab === "request") return "request";
     if (defaultMemberId && hasCasResumeStep2(defaultMemberId)) return "upload";
-    return "request";
+    return "choice";
   });
   const [pendingImportId, setPendingImportId] = useState<string | null>(null);
 
@@ -86,15 +92,15 @@ export function MobileImportView({
   }, [defaultMemberId]);
 
   useEffect(() => {
-    if (selectedMemberId && defaultTab === "request" && hasCasResumeStep2(selectedMemberId)) {
-      setActiveTab("upload");
+    if (selectedMemberId && (!defaultTab || defaultTab === "choice" || defaultTab === "request") && hasCasResumeStep2(selectedMemberId)) {
+      setView("upload");
     }
   }, [selectedMemberId, defaultTab]);
 
   useEffect(() => {
     const handleFocus = () => {
       if (selectedMemberId && hasCasResumeStep2(selectedMemberId)) {
-        setActiveTab("upload");
+        setView("upload");
       }
     };
     window.addEventListener("focus", handleFocus);
@@ -155,23 +161,7 @@ export function MobileImportView({
 
   /* 1. Parsing Indicator Screen */
   if (step === "parsing") {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6 space-y-5 animate-in fade-in duration-200">
-        <div className="relative flex items-center justify-center">
-          <div className="h-16 w-16 rounded-full bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] flex items-center justify-center text-[var(--color-accent)]">
-            <Loader2 className="h-8 w-8 animate-spin" />
-          </div>
-        </div>
-        <div className="space-y-1.5 max-w-xs">
-          <h3 className="font-display font-bold text-base text-[var(--color-ink)]">
-            Decrypting &amp; Parsing Statement
-          </h3>
-          <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
-            Extracting folios, validating mutual fund transactions, and matching AMFI codes...
-          </p>
-        </div>
-      </div>
-    );
+    return <ParsingIndicator />;
   }
 
   /* 2. Review Screen */
@@ -270,9 +260,9 @@ export function MobileImportView({
 
   const activeMemberId = selectedMemberId || members[0]?.id || null;
 
-  /* 5. Main Flow Screen (Step 1, Step 2, History) */
+  /* 5. Main Flow Screen (Choice, Request, Waiting, Upload, History) */
   return (
-    <div className="flex flex-col space-y-3 text-left">
+    <div className="flex flex-col space-y-4 text-left">
       {/* Top Header with Member Selector & History Toggle */}
       <div className="flex items-center justify-between gap-2 flex-wrap px-0.5">
         {/* Member Selector / Indicator */}
@@ -289,7 +279,7 @@ export function MobileImportView({
                 className={cn(
                   "px-2.5 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 flex-shrink-0 min-h-[32px]",
                   (selectedMemberId ?? members[0]?.id) === m.id
-                    ? "bg-[var(--color-ink)] text-[var(--color-bg)] shadow-2xs"
+                    ? "bg-[var(--color-accent)] text-white shadow-2xs"
                     : "bg-[var(--color-surface)] text-[var(--color-text-secondary)] border border-[var(--color-border)] hover:text-[var(--color-ink)]"
                 )}
               >
@@ -310,123 +300,77 @@ export function MobileImportView({
           </div>
         )}
 
-        {/* Import History Action Tab */}
+        {/* Import History Action Button */}
         <button
-          role="tab"
-          aria-selected={activeTab === "history"}
-          onClick={() => setActiveTab(activeTab === "history" ? "request" : "history")}
           type="button"
+          onClick={() => setView((prev) => (prev === "history" ? "choice" : "history"))}
+          aria-label="Import History"
           className={cn(
             "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer min-h-[32px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] ml-auto",
-            activeTab === "history"
-              ? "bg-[var(--color-ink)] text-[var(--color-bg)] shadow-xs"
+            view === "history"
+              ? "bg-[var(--color-accent)] text-white shadow-xs"
               : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface)] border border-[var(--color-border)]"
           )}
-          aria-label="Import History"
         >
           <History className="h-3.5 w-3.5 flex-shrink-0" />
           <span>History</span>
         </button>
       </div>
 
-      {/* Primary Two-Step Segmented Navigation */}
-      {activeTab !== "history" && (
-        <div
-          role="tablist"
-          aria-label="Import Options"
-          className="p-1 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] flex items-stretch gap-1"
-        >
-          {/* Step 1 Tab */}
-          <button
-            role="tab"
-            aria-selected={activeTab === "request"}
-            onClick={() => {
-              clearCasResumeStep2(activeMemberId);
-              setActiveTab("request");
-            }}
-            type="button"
-            className={cn(
-              "flex-1 inline-flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs transition-all duration-150 cursor-pointer min-h-[34px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
-              activeTab === "request"
-                ? "bg-[var(--color-bg)] text-[var(--color-ink)] font-semibold shadow-xs border border-[var(--color-border)]/60"
-                : "text-[var(--color-text-secondary)] font-medium hover:text-[var(--color-ink)]"
-            )}
-            aria-label="Step 1 — Request from CAMS"
-          >
-            <span
-              className={cn(
-                "h-4 w-4 rounded-full text-[9px] font-bold flex items-center justify-center flex-shrink-0 transition-colors",
-                activeTab === "request"
-                  ? "bg-[var(--color-accent)] text-white"
-                  : "bg-[var(--color-border)] text-[var(--color-text-secondary)]"
-              )}
-            >
-              1
-            </span>
-            <span className="truncate">Step 1 · CAMS</span>
-          </button>
-
-          {/* Step 2 Tab */}
-          <button
-            role="tab"
-            aria-selected={activeTab === "upload"}
-            onClick={() => setActiveTab("upload")}
-            type="button"
-            className={cn(
-              "flex-1 inline-flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs transition-all duration-150 cursor-pointer min-h-[34px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
-              activeTab === "upload"
-                ? "bg-[var(--color-bg)] text-[var(--color-ink)] font-semibold shadow-xs border border-[var(--color-border)]/60"
-                : "text-[var(--color-text-secondary)] font-medium hover:text-[var(--color-ink)]"
-            )}
-            aria-label="Step 2 — Upload Statement"
-          >
-            <span
-              className={cn(
-                "h-4 w-4 rounded-full text-[9px] font-bold flex items-center justify-center flex-shrink-0 transition-colors",
-                activeTab === "upload"
-                  ? "bg-[var(--color-accent)] text-white"
-                  : "bg-[var(--color-border)] text-[var(--color-text-secondary)]"
-              )}
-            >
-              2
-            </span>
-            <span className="truncate">Step 2 · Upload</span>
-          </button>
-        </div>
-      )}
-
-      {/* Active Tab Panel */}
+      {/* Main View Display */}
       <div className="animate-in fade-in duration-150">
-        {activeTab === "request" && (
+        {view === "choice" && (
+          <ImportPathChoice
+            onSelectRequest={() => setView("request")}
+            onSelectUpload={() => setView("upload")}
+          />
+        )}
+
+        {view === "request" && (
           <MobileRequestCamsView
             memberId={activeMemberId ?? ""}
-            pendingImportId={pendingImportId}
+            onBack={() => setView("choice")}
             onRequestInitiated={(id) => {
               setPendingImportId(id);
               if (activeMemberId) setCasResumeStep2(activeMemberId);
-              setActiveTab("upload");
+              setView("waiting");
             }}
+          />
+        )}
+
+        {view === "waiting" && (
+          <WaitingForCasView
+            importId={pendingImportId || "pending-import"}
+            memberId={activeMemberId ?? ""}
             onCancelled={() => {
               if (activeMemberId) clearCasResumeStep2(activeMemberId);
               setPendingImportId(null);
+              setView("choice");
             }}
             onUploadSubmit={handleUpload}
           />
         )}
 
-        {activeTab === "upload" && (
-          <MobileUploadForm onSubmit={handleUpload} />
+        {view === "upload" && (
+          <MobileUploadForm
+            onBack={() => setView("choice")}
+            onSubmit={handleUpload}
+          />
         )}
 
-        {activeTab === "history" && activeMemberId && (
-          <MobileImportHistory memberId={activeMemberId} />
+        {view === "history" && activeMemberId && (
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => setView("choice")}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] transition-colors cursor-pointer py-1 min-h-[32px]"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              <span>Back to import</span>
+            </button>
+            <MobileImportHistory memberId={activeMemberId} />
+          </div>
         )}
-      </div>
-
-      {/* Trust & Security Tag */}
-      <div className="flex items-center justify-center gap-1.5 text-[10px] text-[var(--color-text-secondary)] pt-1 text-center select-none">
-        <ShieldCheck className="h-3 w-3 text-[var(--color-positive)] flex-shrink-0" />
-        <span>256-bit encrypted · Read-only access · No spam</span>
       </div>
     </div>
   );

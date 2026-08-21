@@ -3,24 +3,28 @@ import type { ChangeEvent, FormEvent, DragEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ImportFileProgressList } from "@/features/import/ImportFileProgressList";
+import { OnboardingIllustration } from "@/features/auth/OnboardingIllustration";
 import { cn } from "@/lib/utils";
 import {
   UploadCloud,
   Lock,
   Eye,
   EyeOff,
-  X,
   AlertCircle,
-  FileCheck,
+  ArrowLeft,
+  ShieldCheck,
 } from "lucide-react";
 
 export interface MobileUploadFormProps {
+  onBack?: () => void;
   onSubmit: (file: File, password: string) => void;
   isLoading?: boolean;
   className?: string;
 }
 
 export function MobileUploadForm({
+  onBack,
   onSubmit,
   isLoading = false,
   className,
@@ -81,18 +85,39 @@ export function MobileUploadForm({
     <form
       onSubmit={handleSubmit}
       className={cn(
-        "p-4 sm:p-5 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs space-y-4 text-left",
+        "p-5 sm:p-6 rounded-3xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-md space-y-5 text-left relative overflow-hidden",
         className
       )}
     >
-      {/* Form Title & Subtitle */}
-      <div className="space-y-0.5">
-        <h3 className="font-display font-bold text-sm sm:text-base text-[var(--color-ink)]">
-          Upload CAS Statement
-        </h3>
-        <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
-          Upload your CAMS or KFintech Detailed PDF statement.
-        </p>
+      {/* Back Link */}
+      {onBack && (
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] transition-colors cursor-pointer py-1 -ml-1 min-h-[36px]"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          <span>Back to import options</span>
+        </button>
+      )}
+
+      {/* Header Section with Supporting Illustration */}
+      <div className="flex items-start gap-3">
+        <div className="flex-shrink-0">
+          <OnboardingIllustration variant="cas_upload" className="w-14 h-14" />
+        </div>
+
+        <div className="space-y-0.5 flex-1 min-w-0">
+          <span className="text-[9px] font-mono font-bold tracking-wider uppercase text-[var(--color-accent)] block">
+            CAS INGESTION
+          </span>
+          <h3 className="font-display font-bold text-sm sm:text-base text-[var(--color-ink)]">
+            Upload your statement
+          </h3>
+          <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+            Drop in the Detailed CAS PDF you already have.
+          </p>
+        </div>
       </div>
 
       {/* Mobile Touch Dropzone */}
@@ -102,12 +127,12 @@ export function MobileUploadForm({
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
         className={cn(
-          "relative border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all duration-150 select-none min-h-[120px] flex items-center justify-center active:scale-[0.99]",
+          "relative border-2 border-dashed rounded-2xl p-5 text-center cursor-pointer transition-all duration-150 select-none min-h-[120px] flex items-center justify-center active:scale-[0.99]",
           isDragging
-            ? "border-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)]"
+            ? "border-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-accent)_8%,var(--color-surface))]"
             : file
-            ? "border-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-accent)_4%,transparent)]"
-            : "border-[var(--color-border)] bg-[var(--color-bg)] hover:border-[var(--color-accent)]"
+            ? "border-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-accent)_4%,var(--color-surface))]"
+            : "border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-accent)_2%,var(--color-bg))] hover:border-[var(--color-accent)]/60"
         )}
       >
         <input
@@ -120,47 +145,35 @@ export function MobileUploadForm({
         />
 
         {file ? (
-          <div className="flex items-center justify-between gap-3 text-left w-full">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="h-10 w-10 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-accent)] flex items-center justify-center flex-shrink-0 shadow-2xs">
-                <FileCheck className="h-5 w-5" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-semibold text-[var(--color-ink)] truncate">
-                  {file.name}
-                </p>
-                <p className="text-[10px] text-[var(--color-text-secondary)] tabular-nums">
-                  {(file.size / (1024 * 1024)).toFixed(2)} MB • PDF Document
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
+          <div className="w-full" onClick={(e) => e.stopPropagation()}>
+            <ImportFileProgressList
+              files={[{ file, status: "done" }]}
+              onRemoveFile={() => {
                 setFile(null);
                 if (fileInputRef.current) fileInputRef.current.value = "";
               }}
-              title="Remove file"
-              className="h-9 w-9 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-negative)] hover:bg-[var(--color-surface)] flex items-center justify-center transition-colors cursor-pointer active:scale-90"
-              aria-label="Remove file"
-            >
-              <X className="h-4 w-4" />
-            </button>
+            />
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center space-y-1.5">
-            <div className="h-10 w-10 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-accent)] flex items-center justify-center shadow-2xs">
+          <div className="flex flex-col items-center justify-center space-y-2">
+            <div className="h-10 w-10 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-accent)] flex items-center justify-center shadow-xs">
               <UploadCloud className="h-5 w-5" />
             </div>
-            <div className="space-y-0.5">
+            <div className="space-y-1">
               <p className="text-xs font-semibold text-[var(--color-ink)]">
-                Tap to choose CAS PDF
+                Tap to choose a PDF
               </p>
-              <p className="text-[10px] text-[var(--color-text-secondary)]">
-                Detailed statement up to 25MB
+              <p className="text-[11px] text-[var(--color-text-secondary)]">
+                Select a Detailed CAS PDF from your device
               </p>
+              <div className="flex items-center justify-center gap-1 flex-wrap pt-0.5">
+                <span className="px-1.5 py-0.5 rounded-full text-[9px] font-mono font-medium bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)]">
+                  CAMS
+                </span>
+                <span className="text-[10px] text-[var(--color-text-secondary)]">
+                  Detailed CAS (up to 25MB)
+                </span>
+              </div>
             </div>
           </div>
         )}
@@ -179,35 +192,32 @@ export function MobileUploadForm({
 
       {/* Password Field */}
       <div className="space-y-1.5">
-        <div className="flex items-center justify-between gap-2">
-          <Label
-            htmlFor="mobile-cas-password"
-            className="text-xs font-semibold text-[var(--color-ink)]"
-          >
+        <div className="flex items-center justify-between gap-1 flex-wrap">
+          <Label htmlFor="mobile-cas-password" className="text-xs font-semibold text-[var(--color-ink)]">
             PDF Password
           </Label>
-          <span className="text-[10px] text-[var(--color-text-secondary)]">
-            Usually PAN in UPPERCASE
+          <span className="text-[10px] text-[var(--color-text-secondary)] flex items-center gap-1">
+            <ShieldCheck className="h-3 w-3 text-[var(--color-accent)]" />
+            <span>PAN or DOB</span>
           </span>
         </div>
 
         <div className="relative">
-          <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-text-secondary)] pointer-events-none" />
+          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-text-secondary)] pointer-events-none" />
           <Input
             id="mobile-cas-password"
             aria-label="PDF Password"
             type={showPassword ? "text" : "password"}
-            placeholder="Enter PDF password if protected"
+            placeholder="Enter password if protected"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="pl-10 pr-10 h-11 text-xs bg-[var(--color-bg)] border-[var(--color-border)] rounded-xl focus-visible:ring-[var(--color-accent)]"
+            className="pl-9 pr-9 h-11 text-xs bg-[var(--color-bg)] border-[var(--color-border)] rounded-xl focus-visible:ring-[var(--color-accent)]"
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
             title={showPassword ? "Hide password" : "Show password"}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] transition-colors p-2 rounded-lg cursor-pointer active:scale-90"
-            aria-label={showPassword ? "Hide password" : "Show password"}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] p-1.5 rounded-lg cursor-pointer min-h-[32px] min-w-[32px] flex items-center justify-center"
           >
             {showPassword ? (
               <EyeOff className="h-4 w-4" />
@@ -218,14 +228,14 @@ export function MobileUploadForm({
         </div>
       </div>
 
-      {/* Parse File Action Button */}
+      {/* Submit Button */}
       <Button
         type="submit"
         disabled={isLoading}
-        className="w-full h-12 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs shadow-xs gap-2 cursor-pointer active:scale-[0.98] transition-all min-h-[48px]"
+        className="w-full h-11 sm:h-12 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs sm:text-sm shadow-xs gap-2 cursor-pointer active:scale-[0.98] transition-all min-h-[44px]"
       >
         <UploadCloud className="h-4 w-4" />
-        <span>{isLoading ? "Processing..." : "Upload & Parse Statement"}</span>
+        <span>{isLoading ? "Parsing Statement..." : "Upload & Parse Statement"}</span>
       </Button>
     </form>
   );

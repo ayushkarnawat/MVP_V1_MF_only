@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session as DbSession
 
 from app.db.session import get_db
 from app.models.auth import Session as SessionModel
+from app.models.enums import AuthIdentityProvider
 from app.models.user import User
 
 SESSION_TOKEN_BYTES = 32
@@ -26,15 +27,19 @@ def _hash_token(token: str) -> str:
 
 
 def create_session(
-    db: DbSession, user_id: uuid.UUID, device_info: str | None = None
+    db: DbSession, user_id: uuid.UUID, auth_method: AuthIdentityProvider, device_info: str | None = None
 ) -> tuple[SessionModel, str]:
     """Creates and persists a Session. Returns (session, raw_token) — the
-    raw token is returned to the caller exactly once and never stored."""
+    raw token is returned to the caller exactly once and never stored.
+    `auth_method` records whichever method's verification directly produced
+    this session (e.g. for a phone-gated signup, that's phone_otp, the
+    completing method — not the originating Google/email identity)."""
     raw_token = secrets.token_urlsafe(SESSION_TOKEN_BYTES)
     now = datetime.now(timezone.utc)
     session = SessionModel(
         user_id=user_id,
         session_token_hash=_hash_token(raw_token),
+        auth_method=auth_method,
         created_at=now,
         expires_at=now + timedelta(days=SESSION_TTL_DAYS),
         last_active_at=now,

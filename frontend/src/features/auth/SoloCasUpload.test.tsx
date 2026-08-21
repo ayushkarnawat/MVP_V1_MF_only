@@ -33,7 +33,7 @@ describe("SoloCasUpload", () => {
 
     renderSolo("Ayush");
 
-    await waitFor(() => expect(screen.getByRole("tab", { name: /request from cams/i })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("button", { name: /request from cams/i })).toBeInTheDocument());
     expect(api.createHouseholdMember).toHaveBeenCalledWith("Ayush", "self");
   });
 
@@ -44,7 +44,7 @@ describe("SoloCasUpload", () => {
 
     renderSolo("Ayush");
 
-    await waitFor(() => expect(screen.getByRole("tab", { name: /request from cams/i })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("button", { name: /request from cams/i })).toBeInTheDocument());
     expect(api.createHouseholdMember).not.toHaveBeenCalled();
   });
 
@@ -73,10 +73,7 @@ describe("SoloCasUpload", () => {
       </StrictMode>,
     );
 
-    await waitFor(() => expect(screen.getByRole("tab", { name: /request from cams/i })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("button", { name: /request from cams/i })).toBeInTheDocument());
     expect(api.createHouseholdMember).toHaveBeenCalledTimes(1);
   });
 });
-
-
-

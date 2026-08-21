@@ -8,7 +8,7 @@ describe("RequestCamsPath", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders steps and initiates CAMS request on button click", async () => {
+  it("renders steps, reference card, back button, and initiates CAMS request on button click", async () => {
     const mockOpen = vi.fn();
     vi.stubGlobal("open", mockOpen);
 
@@ -21,19 +21,33 @@ describe("RequestCamsPath", () => {
     });
 
     const onRequestInitiated = vi.fn();
+    const onBack = vi.fn();
 
     render(
       <RequestCamsPath
         memberId="m-1"
+        onBack={onBack}
         onRequestInitiated={onRequestInitiated}
       />
     );
 
-    expect(screen.getByRole("button", { name: /request statement on cams/i })).toBeInTheDocument();
+    // Verify back button
+    const backBtn = screen.getByText(/back to import options/i);
+    expect(backBtn).toBeInTheDocument();
+    fireEvent.click(backBtn);
+    expect(onBack).toHaveBeenCalled();
+
+    // Verify reference card and steps
+    expect(screen.getByText(/on the cams form, select these three options/i)).toBeInTheDocument();
     expect(screen.getByText(/detailed statement/i)).toBeInTheDocument();
     expect(screen.getByText(/10-year duration/i)).toBeInTheDocument();
-    expect(screen.getByText(/zero folios/i)).toBeInTheDocument();
+    expect(screen.getByText(/with zero folios/i)).toBeInTheDocument();
 
+    expect(screen.getByText(/tapping below opens the official cams site in a new tab/i)).toBeInTheDocument();
+    expect(screen.getByText(/select the above three options on the form/i)).toBeInTheDocument();
+    expect(screen.getByText(/enter your email and set a password for your cas file/i)).toBeInTheDocument();
+
+    // Verify CTA and submission
     const requestBtn = screen.getByRole("button", { name: /request statement on cams/i });
     fireEvent.click(requestBtn);
 

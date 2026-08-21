@@ -1,8 +1,8 @@
 ---
 artifact: database-schema
-version: "1.2"
+version: "1.3"
 created: 2026-07-22
-updated: 2026-08-06
+updated: 2026-08-17
 status: draft
 product: Unifolio
 target: "AWS RDS for PostgreSQL (ADR-003)"
@@ -46,6 +46,9 @@ assumes this schema rather than re-deriving it.
 erDiagram
     USERS ||--o{ HOUSEHOLD_MEMBERS : "owns"
     USERS ||--o{ SESSIONS : "has"
+    USERS ||--o{ AUTH_IDENTITIES : "has"
+    USERS ||--o{ PASSWORD_RESET_TOKENS : "has"
+    USERS ||--o{ EMAIL_CONFIRMATION_TOKENS : "has"
     HOUSEHOLD_MEMBERS ||--o{ IMPORTS : "has"
     HOUSEHOLD_MEMBERS ||--o{ FOLIOS : "holds"
     IMPORTS ||--o{ TRANSACTIONS : "introduces"
@@ -59,8 +62,8 @@ erDiagram
     HOUSEHOLD_MEMBERS ||--o{ PORTFOLIO_SNAPSHOTS : "has monthly"
 ```
 
-*Note: `OTP_REQUESTS` isn't shown as a relationship — it's a standalone, transient table
-keyed on phone number, not yet tied to a `USERS` row at the point it's created. `SCHEMES`,
+*Note: `OTP_REQUESTS` and `PENDING_IDENTITY_VERIFICATIONS` are standalone, transient tables
+keyed on phone number or token hash, not yet tied to a `USERS` row at creation time. `SCHEMES`,
 `NAV_HISTORY`, `SCHEME_TER`, `SCHEME_AAUM`, `BENCHMARK_INDEX_HISTORY`, `ARN_DIRECTORY`,
 and `FUND_SCORES` are reference data — no household/user foreign key, shared
 platform-wide, per Design Principle 1.*
@@ -73,8 +76,8 @@ The account holder — phone-number-authenticated, per PRD-02's auth decision.
 | Column | Type | Notes |
 |---|---|---|
 | `id` | `UUID` PK | |
-| `phone_number` | `VARCHAR` UNIQUE NOT NULL | Sole login credential, per PRD-02 FR-2 |
-| `email` | `VARCHAR` NULLABLE | Optional, notification/recovery only per PRD-02 |
+| `phone_number` | `VARCHAR` UNIQUE NOT NULL | Mandatory verified phone, per PRD-02 FR-2 (login resolution source of truth is `auth_identities`) |
+| `email` | `VARCHAR` NULLABLE | Denormalized highest-precedence email claim (Google > Email) per PRD-02 |
 | `created_at` | `TIMESTAMPTZ` | |
 | `onboarding_step` | `VARCHAR` NULLABLE | For resume, per PRD-02 FR-8; null once complete |
 | `onboarding_completed_at` | `TIMESTAMPTZ` NULLABLE | |
@@ -245,38 +248,94 @@ fund scores.
 | `final_score` | `NUMERIC(5,2)` NOT NULL | |
 | PRIMARY KEY | `(scheme_id, computed_at)` | Keeps score history rather than overwriting, allowing "score changed over time" to be answerable later without a design change |
 
+### `auth_identities`
+Stores one row per linked authentication identity per user (Phone OTP, Email Password, Google). Login resolution matches on `(provider, provider_subject)`.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | `UUID` PK | |
+| `user_id` | `UUID` FK → `users.id` NOT NULL | |
+| `provider` | `ENUM('phone_otp','email_otp','google','email_password')` NOT NULL | Authentication method identifier |
+| `provider_subject` | `VARCHAR` NOT NULL | Method-specific subject (normalized phone, normalized email, or Google `sub`) |
+| `email` | `VARCHAR` NULLABLE | Verified email associated with this identity (if any) |
+| `password_hash` | `VARCHAR` NULLABLE | bcrypt hash (populated only for `email_password`) |
+| `email_confirmed_at` | `TIMESTAMPTZ` NULLABLE | Populated on email confirmation or password reset |
+| `identifier_verified_at` | `TIMESTAMPTZ` NOT NULL | When ownership of this identifier was proven |
+| `last_used_at` | `TIMESTAMPTZ` NOT NULL | Updated on each login |
+| `created_at` | `TIMESTAMPTZ` NOT NULL | |
+| UNIQUE | `(provider, provider_subject)` | Prevents duplicate identity claims across accounts |
+
+### `pending_identity_verifications`
+Holds an independently-verified identity temporarily during the mandatory phone-gate signup or step-up account-linking flow.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | `UUID` PK | |
+| `token_hash` | `VARCHAR` UNIQUE NOT NULL | SHA-256 hash of the bearer token returned in `phone_required` / `link_required` |
+| `provider` | `ENUM('phone_otp','email_otp','google','email_password')` NOT NULL | |
+| `provider_subject` | `VARCHAR` NOT NULL | |
+| `email` | `VARCHAR` NULLABLE | |
+| `email_verified` | `BOOLEAN` NOT NULL | True only if provider proved email ownership |
+| `password_hash` | `VARCHAR` NULLABLE | Threads bcrypt hash through phone gate for `email_password` |
+| `matched_user_id` | `UUID` FK → `users.id` NULLABLE | Non-null for step-up linking to existing account |
+| `expires_at` | `TIMESTAMPTZ` NOT NULL | 10-minute TTL |
+| `used_at` | `TIMESTAMPTZ` NULLABLE | |
+| `created_at` | `TIMESTAMPTZ` NOT NULL | |
+
+### `password_reset_tokens`
+Single-use hashed tokens for self-service password reset.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | `UUID` PK | |
+| `user_id` | `UUID` FK → `users.id` NOT NULL | |
+| `token_hash` | `VARCHAR` NOT NULL | SHA-256 hash of URL token |
+| `expires_at` | `TIMESTAMPTZ` NOT NULL | 30-minute TTL |
+| `used_at` | `TIMESTAMPTZ` NULLABLE | Set when password is reset |
+| `created_at` | `TIMESTAMPTZ` NOT NULL | |
+
+### `email_confirmation_tokens`
+Single-use hashed tokens for email confirmation.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | `UUID` PK | |
+| `user_id` | `UUID` FK → `users.id` NOT NULL | |
+| `token_hash` | `VARCHAR` NOT NULL | SHA-256 hash of URL token |
+| `expires_at` | `TIMESTAMPTZ` NOT NULL | 30-minute TTL |
+| `used_at` | `TIMESTAMPTZ` NULLABLE | Set when email is confirmed |
+| `created_at` | `TIMESTAMPTZ` NOT NULL | |
+
 ### `otp_requests`
 Foundational schema for PRD-02's phone+OTP auth (FR-2) — transient, short-lived records,
 not a full auth/security spec (rate-limiting policy, lockout rules, etc. remain a future
-Auth/Security PRD per PRD-02's FR-2a note). This table exists so login actually works at
-MVP, built simply enough to extend later without a redesign.
+Auth/Security PRD per PRD-02's FR-2a note). Narrowed back to phone-only per migration 0006.
 
 | Column | Type | Notes |
 |---|---|---|
 | `id` | `UUID` PK | |
 | `phone_number` | `VARCHAR` NOT NULL | Not yet necessarily tied to a `users` row — OTP is requested before an account is confirmed to exist |
 | `otp_hash` | `VARCHAR` NOT NULL | Hashed, never the raw OTP |
-| `expires_at` | `TIMESTAMPTZ` NOT NULL | Short-lived, per standard OTP practice |
+| `expires_at` | `TIMESTAMPTZ` NOT NULL | Short-lived (5 min), per standard OTP practice |
 | `verified_at` | `TIMESTAMPTZ` NULLABLE | |
-| `attempt_count` | `INTEGER` NOT NULL DEFAULT `0` | Foundational hook for future rate-limiting, not enforcing a policy yet |
+| `attempt_count` | `INTEGER` NOT NULL DEFAULT `0` | Rate-limiting tracker |
 | `created_at` | `TIMESTAMPTZ` NOT NULL | |
 
 ### `sessions`
-Foundational session record following successful OTP verification, supporting
-return-visit login (PRD-02 FR-2a's PIN/biometric flow builds on top of this, not instead
-of it).
+Foundational session record following successful auth verification.
 
 | Column | Type | Notes |
 |---|---|---|
 | `id` | `UUID` PK | |
 | `user_id` | `UUID` FK → `users.id` NOT NULL | |
 | `session_token_hash` | `VARCHAR` NOT NULL | Hashed, never the raw token |
+| `auth_method` | `ENUM('phone_otp','email_otp','google','email_password')` NOT NULL | Method that established this session |
 | `created_at` | `TIMESTAMPTZ` NOT NULL | |
-| `expires_at` | `TIMESTAMPTZ` NOT NULL | |
+| `expires_at` | `TIMESTAMPTZ` NOT NULL | 30-day sliding TTL |
 | `last_active_at` | `TIMESTAMPTZ` NOT NULL | |
 | `device_info` | `VARCHAR` NULLABLE | Foundational only — full device-management UX is future Auth/Security PRD scope |
 
-
+## Data Classification & Security
 
 | Data | Classification | Handling |
 |---|---|---|
@@ -332,3 +391,4 @@ None remaining from this pass.
 | 1.0 | 2026-07-22 | Claude (PM partner) | Initial draft |
 | 1.1 | 2026-07-22 | Claude (PM partner) | PAN confirmed never persisted; `relationship` changed to structured enum + other-label fallback; `transactions` and `nav_history` now partitioned by `RANGE(date)`, yearly, from MVP launch (not deferred); added foundational `otp_requests` and `sessions` tables for PRD-02's phone+OTP auth |
 | 1.2 | 2026-08-06 | Claude (PM partner) | `transactions` dedupe key widened to `(folio_id, date, amount, units, type)` — with amounts/units normalized to positive magnitudes, equal-magnitude same-day purchase+redemption pairs were no longer sign-distinguishable and collided under the 4-column key; matches migration 0002 |
+| 1.3 | 2026-08-17 | Claude (PM partner) | Updated for multi-method auth (migrations 0004-0006): added `auth_identities`, `pending_identity_verifications`, `password_reset_tokens`, `email_confirmation_tokens`; added `sessions.auth_method`; narrowed `otp_requests` back to phone-only; updated `users.phone_number` and ERD to reflect `auth_identities` as auth source of truth |

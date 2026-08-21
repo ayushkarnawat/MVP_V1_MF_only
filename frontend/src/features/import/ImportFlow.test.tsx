@@ -10,6 +10,10 @@ vi.mock("./api", async () => {
 });
 
 function uploadAFile() {
+  const uploadChoice = screen.queryByRole("button", { name: /already have a statement/i });
+  if (uploadChoice) {
+    fireEvent.click(uploadChoice);
+  }
   const uploadTab = screen.queryByRole("tab", { name: /upload existing statement/i });
   if (uploadTab) {
     fireEvent.click(uploadTab);
@@ -97,7 +101,7 @@ describe("ImportFlow", () => {
     await waitFor(() => screen.getByRole("button", { name: /import another cas/i }));
     fireEvent.click(screen.getByRole("button", { name: /import another cas/i }));
 
-    expect(screen.getByRole("tab", { name: /request from cams/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /request from cams/i })).toBeInTheDocument();
   });
 
   it("uses ctaLabel and onDone instead of the default reset when provided", async () => {

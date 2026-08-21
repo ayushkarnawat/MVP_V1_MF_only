@@ -65,20 +65,22 @@ do not append session narrative here again. Full current status: `session.md` at
 root, overwritten each session. Full per-task history: `Docs/orchestration/delegation-log.md`.
 Deferred/not-yet-built features: `DEFERRED_FEATURES.md`.)*
 
-**Latest:** Analytics PDF export — all 10 plan tasks implemented, final whole-branch
-review handed to Codex (not a Claude subagent, to conserve this account's ~93%-used
-weekly limit) found 2 real Important gaps in the export-failure path (fixed as
-`d59542e`), a round-2 scoped re-review found one further Medium `CancelledError`/
-`finally` gap (fixed by the orchestrator directly, `86c60c5`), and a final scoped
-re-review returned "Ready to merge? Yes" — merged into `feat/enhanced-ui`. Full detail:
-`session.md`, `Docs/orchestration/analytics-pdf-export-final-review-handoff.md`.
+**Latest:** Merged in `authsetup` — Auth, Onboarding, Validation, Visual Experience,
+Mobile Auth & CAS Import Flow Redesign (v2), 100% complete on that branch as of
+2026-08-20; full detail in `session.md`'s merge entry. Also on `feat/enhanced-ui`:
+Analytics PDF export — all 10 plan tasks implemented, final whole-branch review handed
+to Codex (not a Claude subagent, to conserve this account's ~93%-used weekly limit)
+found 2 real Important gaps in the export-failure path (fixed as `d59542e`), a round-2
+scoped re-review found one further Medium `CancelledError`/`finally` gap (fixed by the
+orchestrator directly, `86c60c5`), and a final scoped re-review returned "Ready to
+merge? Yes" — merged into `feat/enhanced-ui`. Full detail: `session.md`,
+`Docs/orchestration/analytics-pdf-export-final-review-handoff.md`.
 Unrelated: branches `dev_intern`/`feat/enhanced-ui` are identical at `7426047`,
 fast-forward-mergeable into `main`, still awaiting push from a machine with git
 credentials — nothing else is blocking.
 Knowledge graph (`.ua/knowledge-graph.json`) is stale as of commit `35fedd3`, predating
 the Scorer, CAS import lifecycle redesign, and UI/Select refactor — re-run `/understand`
 (incremental) before trusting it. Full detail on all of the above: `session.md`.
-
 **Still open, carried forward from earlier phases, not yet revisited:**
 1. A held scheme with no obtainable NAV silently vanishes from
    holdings/allocation/aggregates, no error or placeholder — a Phase 3

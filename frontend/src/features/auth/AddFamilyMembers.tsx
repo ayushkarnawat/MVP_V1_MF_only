@@ -1,17 +1,19 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { Button } from "../../components/Button";
-import { Badge } from "../../components/Badge";
+import { motion } from "motion/react";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../../components/ui/select";
-import styles from "./onboarding.module.css";
+} from "@/components/ui/select";
+import { User, Users, Plus, ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
+import { OnboardingIllustration } from "./OnboardingIllustration";
 import { createHouseholdMember } from "./api";
 import type { HouseholdMember, Relationship } from "./types";
+import { staggerContainerVariants, staggerItemVariants } from "@/lib/motion";
 
 interface AddFamilyMembersProps {
   members: HouseholdMember[];
@@ -58,105 +60,186 @@ export function AddFamilyMembers({
   };
 
   return (
-    <div className={styles.container}>
-      <h1 className={styles.title}>Who else are you tracking for?</h1>
-      <p className={styles.subtitle}>
-        Add family members to enable family aggregate views and independent per-member statements.
-      </p>
+    <motion.div
+      variants={staggerContainerVariants}
+      initial="hidden"
+      animate="visible"
+      className="w-full max-w-xl mx-auto space-y-6 text-left box-border"
+    >
+      {/* Visual Artwork Anchor */}
+      <motion.div variants={staggerItemVariants}>
+        <OnboardingIllustration variant="household" />
+      </motion.div>
 
-      {/* Added Members Roster */}
+      {/* 1. Header with Eyebrow */}
+      <motion.div variants={staggerItemVariants} className="space-y-1.5">
+        <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[var(--color-accent)] block font-mono">
+          HOUSEHOLD ROSTER
+        </span>
+        <h1 className="font-display font-bold text-xl sm:text-2xl text-[var(--color-ink)] tracking-tight leading-snug">
+          Who else are you tracking for?
+        </h1>
+        <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+          Add family members to enable family aggregate views and independent per-member statements.
+        </p>
+      </motion.div>
+
+      {/* 2. Added Members Roster */}
       {members.length > 0 && (
-        <div className={styles.trustCardGroup}>
-          <span className="type-caption">Added Family Members ({members.length})</span>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
+        <motion.div variants={staggerItemVariants} className="space-y-2.5">
+          <div className="flex items-center justify-between text-xs font-semibold text-[var(--color-text-secondary)] px-1">
+            <span>Added Family Members ({members.length})</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             {members.map((member) => (
               <div
                 key={member.id}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "var(--space-2)",
-                  background: "var(--color-surface)",
-                  padding: "var(--space-2) var(--space-3)",
-                  borderRadius: "var(--radius-sm)",
-                  border: "1px solid var(--color-border)",
-                }}
+                className="p-3 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-between gap-3 shadow-xs"
               >
-                <span className="type-body-medium">{member.name}</span>
-                <Badge variant="neutral">{member.relationship}</Badge>
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="h-8 w-8 rounded-full bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] text-[var(--color-accent)] font-semibold text-xs flex items-center justify-center flex-shrink-0">
+                    {member.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-display font-semibold text-xs sm:text-sm text-[var(--color-ink)] truncate">
+                      {member.name}
+                    </p>
+                    <span className="text-[10px] text-[var(--color-text-secondary)] uppercase tracking-wider font-mono font-medium">
+                      {member.relationship_other_label || member.relationship}
+                    </span>
+                  </div>
+                </div>
+                <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-full bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] text-[var(--color-accent)] border border-[color-mix(in_srgb,var(--color-accent)_20%,transparent)]">
+                  Active
+                </span>
               </div>
             ))}
           </div>
-        </div>
+        </motion.div>
       )}
 
-      {/* Member Form */}
-      <form onSubmit={handleAdd} className={styles.field} style={{ gap: "var(--space-4)" }}>
-        <div className={styles.field}>
-          <label htmlFor="member-name">Member's Full Name</label>
-          <input
-            id="member-name"
-            value={name}
-            placeholder="e.g. Sunita Karnawat"
-            onChange={(event) => setName(event.target.value)}
-          />
+      {/* 3. Member Input Form */}
+      <motion.form
+        variants={staggerItemVariants}
+        onSubmit={handleAdd}
+        className="p-5 sm:p-6 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] space-y-4 shadow-xs"
+      >
+        <div className="flex items-center gap-2 pb-1 border-b border-[var(--color-border)]/50">
+          <Users className="h-4 w-4 text-[var(--color-accent)]" />
+          <h3 className="font-display font-semibold text-xs sm:text-sm text-[var(--color-ink)]">
+            Add New Member
+          </h3>
         </div>
 
-        <div className={styles.field}>
-          <label htmlFor="member-rel">Relationship</label>
-          <Select
-            value={relationship}
-            onValueChange={(value) => setRelationship(value as Relationship)}
-          >
-            <SelectTrigger
-              id="member-rel"
-              className="w-full h-11 gap-1.5 rounded-full border-[var(--color-border)] bg-[var(--color-bg)] px-3 text-sm font-medium text-[var(--color-ink)] [&>span]:line-clamp-1"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {RELATIONSHIPS.map((option) => (
-                <SelectItem key={option} value={option}>
-                  {option.charAt(0).toUpperCase() + option.slice(1)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {relationship === "other" && (
-          <div className={styles.field}>
-            <label htmlFor="other-label">Describe Relationship</label>
-            <input
-              id="other-label"
-              value={otherLabel}
-              placeholder="e.g. Uncle, In-law"
-              onChange={(event) => setOtherLabel(event.target.value)}
-            />
+        <div className="space-y-3.5">
+          <div className="space-y-1.5">
+            <label htmlFor="member-name" className="text-xs font-semibold text-[var(--color-ink)] block">
+              Member&apos;s Full Name
+            </label>
+            <div className="flex items-center rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] focus-within:border-[var(--color-accent)] focus-within:ring-2 focus-within:ring-[var(--color-accent)]/20 transition-all overflow-hidden h-11 px-3.5 gap-2.5">
+              <User className="h-4 w-4 text-[var(--color-text-secondary)] flex-shrink-0" />
+              <input
+                id="member-name"
+                value={name}
+                placeholder="e.g. Sunita Karnawat"
+                autoComplete="off"
+                onChange={(event) => setName(event.target.value)}
+                className="flex-1 bg-transparent text-xs sm:text-sm text-[var(--color-ink)] placeholder:text-[var(--color-text-secondary)]/50 focus:outline-none focus:ring-0 focus:border-transparent border-none outline-none ring-0 shadow-none appearance-none selection:bg-[var(--color-accent)]/20 selection:text-[var(--color-ink)] caret-[var(--color-accent)]"
+              />
+            </div>
           </div>
+
+          <div className="space-y-1.5">
+            <label htmlFor="member-rel" className="text-xs font-semibold text-[var(--color-ink)] block">
+              Relationship
+            </label>
+            <Select
+              value={relationship}
+              onValueChange={(value) => setRelationship(value as Relationship)}
+            >
+              <SelectTrigger
+                id="member-rel"
+                className="w-full h-11 rounded-xl border-[var(--color-border)] bg-[var(--color-bg)] px-3 text-xs sm:text-sm font-medium text-[var(--color-ink)] focus:ring-2 focus:ring-[var(--color-accent)]/20 focus:border-[var(--color-accent)]"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {RELATIONSHIPS.map((option) => (
+                  <SelectItem key={option} value={option} className="text-xs sm:text-sm">
+                    {option.charAt(0).toUpperCase() + option.slice(1)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {relationship === "other" && (
+            <div className="space-y-1.5 animate-in fade-in duration-200">
+              <label htmlFor="other-label" className="text-xs font-semibold text-[var(--color-ink)] block">
+                Describe Relationship
+              </label>
+              <div className="flex items-center rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] focus-within:border-[var(--color-accent)] focus-within:ring-2 focus-within:ring-[var(--color-accent)]/20 transition-all overflow-hidden h-11 px-3.5 gap-2.5">
+                <input
+                  id="other-label"
+                  value={otherLabel}
+                  placeholder="e.g. Uncle, In-law"
+                  onChange={(event) => setOtherLabel(event.target.value)}
+                  className="flex-1 bg-transparent text-xs sm:text-sm text-[var(--color-ink)] placeholder:text-[var(--color-text-secondary)]/50 focus:outline-none border-none outline-none ring-0 shadow-none appearance-none selection:bg-[var(--color-accent)]/20 selection:text-[var(--color-ink)] caret-[var(--color-accent)]"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {error && (
+          <p role="alert" className="text-xs text-[var(--color-negative)] font-medium">
+            {error}
+          </p>
         )}
 
-        {error && <p className={styles.error}>{error}</p>}
-
-        <Button variant="secondary" size="md" type="submit" disabled={adding || !name.trim()}>
-          {adding ? "Adding..." : "+ Add Member"}
+        <Button
+          variant="outline"
+          size="md"
+          type="submit"
+          disabled={adding || !name.trim()}
+          className="w-full h-11 rounded-xl border-[var(--color-border)] hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,var(--color-bg))] hover:text-[var(--color-accent)] hover:border-[var(--color-accent)]/40 font-semibold text-xs sm:text-sm gap-2 transition-all cursor-pointer"
+        >
+          {adding ? (
+            <>
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <span>Adding...</span>
+            </>
+          ) : (
+            <>
+              <Plus className="h-3.5 w-3.5" />
+              <span>Add Member</span>
+            </>
+          )}
         </Button>
-      </form>
+      </motion.form>
 
-      <div className={styles.actionsBetween}>
-        <Button variant="ghost" size="sm" type="button" onClick={onBack}>
-          Back
-        </Button>
+      {/* 4. Navigation Controls */}
+      <motion.div variants={staggerItemVariants} className="flex items-center justify-between gap-3 pt-2">
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] hover:bg-[var(--color-bg)] transition-colors cursor-pointer"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          <span>Back</span>
+        </button>
+
         <Button
           variant="primary"
-          size="md"
           type="button"
           disabled={members.length === 0}
           onClick={onContinue}
+          className="h-11 sm:h-12 px-6 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs sm:text-sm shadow-xs gap-2 cursor-pointer active:scale-[0.99] transition-all min-h-[44px] sm:min-h-[48px]"
         >
-          Continue
+          <span>Continue</span>
+          <ArrowRight className="h-4 w-4" />
         </Button>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

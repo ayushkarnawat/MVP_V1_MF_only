@@ -7,6 +7,40 @@ gets overwritten each session, and isn't meant to accumulate history.
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
 
+## Auth, Onboarding, CAS Import v2 & Mobile Polish merged from `authsetup` (2026-08-20)
+
+Merged from a long-running parallel branch, `authsetup`, covering Auth, Onboarding,
+Validation, Visual Experience, Mobile Auth, and the CAS Import Flow Redesign (v2) —
+all reported 100% complete on that branch as of 2026-08-20. Most recent slice before
+merge: Mobile Auth Header Typography & Spacing (`AuthShell.tsx`) — scaled up mobile
+brand text (`text-2xl`), logo glyph (`w-5 h-5`), mobile headline (`text-xl`), and
+subtext (`text-sm`); replaced `my-auto` centering on the mobile form container with
+`mt-2 mb-auto lg:my-auto` to remove the excessive vertical gap between the subtext and
+the "Create your account" form.
+
+**Components built/integrated in this merge:**
+1. `amcLogos` module (`frontend/src/lib/amcLogos.ts` & `amcLogos.test.ts`) — AMC → logo
+   vector asset map and alias resolution engine (7/7 unit tests passing).
+2. `SchemeLogo` (`frontend/src/components/SchemeLogo.tsx`) — prioritizes AMC logo
+   vector assets mapped from parsed scheme data, falling back to initial-letter avatars.
+3. `ReviewTable` & `MobileReviewView` — embed AMC logo tiles in web (grid/list) and
+   mobile review cards.
+
+**Verification on `authsetup` before merge:** 60/60 test files, 279/279 tests passed
+(`npx vitest run`); 0 TypeScript errors (`npx tsc -b`).
+
+**Note for whoever picks this up next:** `authsetup`'s own "what's next" pointed at
+building the PRD-04 Analytics frontend — by the time of this merge that work had
+already progressed significantly on `feat/enhanced-ui` independently (see the Analytics
+PDF export and phantom-holding/ISIN sections below). Reconcile against those before
+assuming Analytics frontend work is still fully greenfield.
+
+Full detail on everything else merged from `authsetup` (Auth Input/OTP responsiveness,
+Auth Navigation Flow fix, the global mobile UI/UX pass across onboarding/auth/CAS-import,
+the illustration-led CAS Import redesign v2, the Auth Showcase panel redesign, the auth
+validation engine, hand-drawn illustrations): see `git log authsetup` prior to this
+merge, or `CLAUDE.md`'s Session State history before this merge commit.
+
 ## Analytics PDF export: all 10 plan tasks done, reviewed clean, merged to feat/enhanced-ui (2026-08-20/21)
 
 Worktree `/mnt/d/Unifolio code/.claude/worktrees/analytics-pdf-export`,

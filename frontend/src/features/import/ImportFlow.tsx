@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { TwoPathImportContainer } from "./TwoPathImportContainer";
 import { ParsingIndicator } from "./ParsingIndicator";
 import { ReviewTable } from "./ReviewTable";
@@ -6,6 +7,7 @@ import { ImportError } from "./ImportError";
 import { ImportConfirmed } from "./ImportConfirmed";
 import { ApiError, confirmImport, parseImport } from "./api";
 import { clearCasResumeStep2 } from "./casResumeState";
+import { isTestEnv } from "@/lib/motion";
 import type {
   ImportConfirmResponse,
   ImportPreviewResponse,
@@ -19,7 +21,7 @@ interface ImportFlowProps {
   householdMemberId: string;
   ctaLabel?: string;
   onDone?: () => void;
-  defaultTab?: "request" | "upload" | "history";
+  defaultTab?: "choice" | "request" | "upload" | "history" | "waiting";
 }
 
 const GENERIC_NETWORK_ERROR: ParseErrorPayload = {
@@ -36,13 +38,15 @@ function toParseErrorPayload(err: unknown): ParseErrorPayload {
   return GENERIC_NETWORK_ERROR;
 }
 
-export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab = "request" }: ImportFlowProps) {
+export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab }: ImportFlowProps) {
   const [step, setStep] = useState<Step>("upload");
   const [preview, setPreview] = useState<ImportPreviewResponse | null>(null);
   const [confirmResult, setConfirmResult] = useState<ImportConfirmResponse | null>(null);
   const [error, setError] = useState<ParseErrorPayload | null>(null);
   const [reviewNotice, setReviewNotice] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+
+  const shouldReduceMotion = useReducedMotion() || isTestEnv;
 
   const reset = () => {
     clearCasResumeStep2(householdMemberId);
@@ -57,6 +61,7 @@ export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab = "
   const handleUpload = async (file: File, password: string) => {
     clearCasResumeStep2(householdMemberId);
     setStep("parsing");
+    setError(null);
     try {
       const result = await parseImport(file, password);
       setPreview(result);
@@ -92,28 +97,82 @@ export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab = "
     }
   };
 
-  if (step === "upload") {
-    return (
-      <TwoPathImportContainer
-        memberId={householdMemberId}
-        defaultTab={defaultTab}
-        onUploadSubmit={handleUpload}
-      />
-    );
-  }
-  if (step === "parsing") {
-    return <ParsingIndicator />;
-  }
-  if (step === "review" && preview) {
-    return (
-      <>
-        {reviewNotice && <p role="alert">{reviewNotice}</p>}
-        <ReviewTable preview={preview} confirming={confirming} onConfirm={handleConfirm} />
-      </>
-    );
-  }
-  if (step === "confirmed" && confirmResult) {
-    return <ImportConfirmed result={confirmResult} onImportAnother={onDone ?? reset} ctaLabel={ctaLabel} />;
-  }
-  return <ImportError error={error ?? GENERIC_NETWORK_ERROR} onRetry={reset} />;
+  return (
+    <div className="w-full">
+      <AnimatePresence mode="wait">
+        {step === "upload" && (
+          <motion.div
+            key="upload"
+            initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={shouldReduceMotion ? undefined : { opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+          >
+            <TwoPathImportContainer
+              memberId={householdMemberId}
+              defaultTab={defaultTab}
+              onUploadSubmit={handleUpload}
+            />
+          </motion.div>
+        )}
+
+        {step === "parsing" && (
+          <motion.div
+            key="parsing"
+            initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={shouldReduceMotion ? undefined : { opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.2 }}
+          >
+            <ParsingIndicator />
+          </motion.div>
+        )}
+
+        {step === "review" && preview && (
+          <motion.div
+            key="review"
+            initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={shouldReduceMotion ? undefined : { opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+          >
+            {reviewNotice && <p role="alert">{reviewNotice}</p>}
+            <ReviewTable
+              preview={preview}
+              confirming={confirming}
+              onConfirm={handleConfirm}
+            />
+          </motion.div>
+        )}
+
+        {step === "error" && (
+          <motion.div
+            key="error"
+            initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={shouldReduceMotion ? undefined : { opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.2 }}
+          >
+            <ImportError error={error ?? GENERIC_NETWORK_ERROR} onRetry={reset} />
+          </motion.div>
+        )}
+
+        {step === "confirmed" && confirmResult && (
+          <motion.div
+            key="confirmed"
+            initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={shouldReduceMotion ? undefined : { opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+          >
+            <ImportConfirmed
+              result={confirmResult}
+              ctaLabel={ctaLabel}
+              onImportAnother={onDone ?? reset}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
 }
