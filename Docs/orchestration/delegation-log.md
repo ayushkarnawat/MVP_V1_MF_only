@@ -284,3 +284,29 @@ in-session `Agent` dispatch to conserve Claude quota. Handoff doc:
 `Docs/orchestration/analytics-pdf-export-final-review-handoff.md`. Status:
 OPEN, dispatched in background; awaiting Codex's report before any fix
 round or branch close-out.
+
+**2026-08-21 — round-1 review: 2 Important findings confirmed against
+spec, 1 ruled not-a-defect; fix round 1 worker=codex.** Findings 1/2
+(print-ready/error marker conflation; token not evicted on render
+failure) confirmed against `Docs/superpowers/specs/2026-08-20-analytics-pdf-export-design.md`
+lines 157-158. Finding 3 (FundScoreCard `parseFloat`) ruled not a defect —
+matches `frontend/src/lib/decimal.ts`'s own documented exemption for a
+single non-accumulating display conversion. Codex implemented findings 1/2
+correctly (verified by direct diff read) but its sandbox hit an unrelated
+AnyIO/TestClient hang on the full backend suite and declined to commit;
+orchestrator independently reran both full suites clean (backend
+457/3 skipped, frontend 233/59 files) and committed `d59542e`.
+
+**2026-08-21 — scoped re-review (worker=codex) found a real Medium gap;
+fix worker=orchestrator (not redelegated).** Re-review of `4ce4561..d59542e`
+confirmed finding 1 fully fixed, but found finding 2's cleanup lived in
+`except Exception`, which `asyncio.CancelledError` (a `BaseException`
+subclass) bypasses — a client disconnect/timeout mid-render would still
+leak the token. Fixed directly as orchestrator, not redelegated: single
+function, one clear change (`except` → `finally`), file already fully
+loaded in context — a fresh handoff/dispatch/wait round-trip would have
+cost more turns than the fix itself. Added a cancellation regression test.
+Full backend suite: 458 passed (+1), 3 skipped. Committed `86c60c5`. A
+final scoped re-review of this fix is dispatched next per this skill's
+"the mandatory review gate still applies unchanged to an orchestrator-direct
+fix" rule.
