@@ -12,8 +12,8 @@ from app.main import app
 
 def main():
     if sys.platform == "win32":
-        # Force SelectorEventLoop to avoid Windows Proactor [WinError 64] socket drop bug in Python 3.14
-        loop = asyncio.SelectorEventLoop()
+        # ProactorEventLoop is required on Windows for Playwright subprocess creation
+        loop = asyncio.ProactorEventLoop()
         asyncio.set_event_loop(loop)
     else:
         loop = asyncio.new_event_loop()
