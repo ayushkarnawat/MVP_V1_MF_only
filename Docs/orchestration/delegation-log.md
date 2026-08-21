@@ -273,3 +273,14 @@ original failed-then-re-dispatched review, `53919a6..4f39e9b`, 2 Medium
 round 2 (`4f39e9b..8be5230` re-review, 1 Low remaining, accepted as
 documented limitation per user instruction — no further fix). No
 outstanding review debt on this branch.
+
+**2026-08-21 — analytics-pdf-export final whole-branch review handed to
+Codex, worker=codex (not orchestrator's own subagent dispatch).** Reason:
+Claude account at ~93% of weekly limit; the final review for
+`321b6ed..4ce4561` (all 10 plan tasks, `worktree-analytics-pdf-export`) is a
+bounded, well-specified, read-only review task — exactly the shape this
+skill defaults to Codex for — so it was routed there instead of an
+in-session `Agent` dispatch to conserve Claude quota. Handoff doc:
+`Docs/orchestration/analytics-pdf-export-final-review-handoff.md`. Status:
+OPEN, dispatched in background; awaiting Codex's report before any fix
+round or branch close-out.

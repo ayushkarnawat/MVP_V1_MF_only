@@ -1,4 +1,4 @@
-# Session state — 2026-08-20 (updated)
+# Session state — 2026-08-21 (updated)
 
 Working notes for picking this project back up cold. Not a planning doc — see
 `Docs/superpowers/plans/` for those. This file tracks *where things stand*,
@@ -6,6 +6,67 @@ gets overwritten each session, and isn't meant to accumulate history.
 
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
+
+## Analytics PDF export: all 10 plan tasks done, final review handed to Codex (2026-08-20/21)
+
+Worktree `/mnt/d/Unifolio code/.claude/worktrees/analytics-pdf-export`,
+branch `worktree-analytics-pdf-export`, executed via
+`superpowers:subagent-driven-development` against
+`Docs/superpowers/plans/2026-08-20-analytics-pdf-export.md` (spec:
+`Docs/superpowers/specs/2026-08-20-analytics-pdf-export-design.md`). All 10
+tasks implemented, task-reviewed, and committed:
+`2f77e4b..4ce4561` (base for the review range is `321b6ed`, the plan-commit
+itself). Feature: capability-token payload store, shared Playwright browser
+lifecycle, `/export/pdf` + `/export/payload/{token}` routes, a real
+(non-mocked) Playwright integration test, `FundScoreCard` extraction,
+`AnalyticsExportPayload` type + API client, `/print/analytics` print route,
+and a "Download PDF" button gated on full dashboard load.
+
+**Task 10 (manual E2E verification) found and fixed two real bugs**,
+committed as `4ce4561`:
+1. `PrintAnalyticsView.tsx`'s fetch effect double-fired under React 18
+   StrictMode, always 404ing on the second call against the single-use
+   export token — fixed with a `useRef` guard.
+2. `BenchmarkSection.tsx`'s per-fund comparison tab and "Show More"
+   pagination were gated behind client-side click state, invisible to a
+   static PDF render, contradicting the design doc's explicit no-click-gating
+   claim — fixed with an opt-in `printMode` prop (mirrors the `FundScoreCard`
+   "always expanded" precedent from Tasks 6/8), plus a new test.
+
+Also confirmed correct (not bugs): the cover page's scope name for both
+single-member ("Dev User (Me)") and multi-member aggregate ("Family
+Aggregate") scenarios, and member-scoped PDF export correctly excluding
+other members' data.
+
+**Found, ledgered, ruled out of scope — not fixed:** a pre-existing backend
+bug, `category_ranking.py:76`'s `_cagr` raising `decimal.DivisionUndefined`
+(0/0) for aggregate multi-category portfolio scoring when a category's NAV
+history is shorter than the 3-year CAGR lookback. Confirmed via backend-log
+correlation that this identically breaks the *live* dashboard's own
+`getAggregateScore`/`getAggregateCategoryRanking` calls (degrading to an
+empty "No category ranking data available" state) — not introduced by or
+specific to PDF export. Worth a follow-up ticket; full detail in
+`.superpowers/sdd/2026-08-20-analytics-pdf-export/progress.md` (git-ignored
+ledger, worktree-local).
+
+All seed data, temp scripts, and manually-launched dev servers used for
+verification were cleaned up; working tree is clean apart from the
+untracked, pre-existing `backend/.venv`.
+
+**Handed off to Codex, not dispatched as a Claude subagent:** the plan's
+mandatory final whole-branch review (git range `321b6ed..4ce4561`) — because
+this Claude account is at ~93% of its weekly limit, and the review is a
+bounded read-only task Codex can do without spending Claude quota. Handoff
+doc: `Docs/orchestration/analytics-pdf-export-final-review-handoff.md`,
+logged in `Docs/orchestration/delegation-log.md`'s 2026-08-21 entry.
+
+**Still open when picking this back up:** wait for / retrieve Codex's review
+report; if clean, proceed straight to
+`superpowers:finishing-a-development-branch` (merge
+`worktree-analytics-pdf-export` → `feat/enhanced-ui`, delete the SDD
+workspace); if findings exist, one fix round + one scoped re-review per the
+skill's process, then close out. This branch has not yet been merged
+anywhere.
 
 ## Phantom-holding bug fixed, ISIN cross-check added, index-fund mega-category split investigated + deferred (2026-08-19/20)
 

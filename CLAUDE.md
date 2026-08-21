@@ -65,10 +65,15 @@ do not append session narrative here again. Full current status: `session.md` at
 root, overwritten each session. Full per-task history: `Docs/orchestration/delegation-log.md`.
 Deferred/not-yet-built features: `DEFERRED_FEATURES.md`.)*
 
-**Latest:** `bug-001-data-001-implementation` merged into `feat/enhanced-ui`, alongside
-the SIP tab feature and `model-orchestration` skill v1.4 (2026-08-19). Branches
-`dev_intern`/`feat/enhanced-ui` are identical at `7426047`, fast-forward-mergeable into
-`main`, awaiting push from a machine with git credentials — nothing else is blocking.
+**Latest:** Analytics PDF export (`worktree-analytics-pdf-export`, off `feat/enhanced-ui`)
+— all 10 plan tasks implemented + committed through `4ce4561`, two real Task-10 bugs
+found and fixed, one pre-existing out-of-scope backend bug found and ledgered (not
+fixed). Final whole-branch review handed to Codex (not a Claude subagent) to conserve
+this account's ~93%-used weekly limit — awaiting its report before merge. Full detail:
+`session.md`, `Docs/orchestration/analytics-pdf-export-final-review-handoff.md`.
+Unrelated: branches `dev_intern`/`feat/enhanced-ui` are identical at `7426047`,
+fast-forward-mergeable into `main`, still awaiting push from a machine with git
+credentials — nothing else is blocking.
 Knowledge graph (`.ua/knowledge-graph.json`) is stale as of commit `35fedd3`, predating
 the Scorer, CAS import lifecycle redesign, and UI/Select refactor — re-run `/understand`
 (incremental) before trusting it. Full detail on all of the above: `session.md`.
