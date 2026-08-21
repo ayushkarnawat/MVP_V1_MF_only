@@ -8,10 +8,11 @@ import type { HoldingRow } from "@/features/dashboard/types";
 import type { HouseholdMember } from "@/features/auth/types";
 import { MobileHoldingCardSummary } from "./MobileHoldingCardSummary";
 import { MobileFundDetailView } from "./MobileFundDetailView";
+import { MobileDistributorComparisonView } from "./MobileDistributorComparisonView";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Search, ChevronDown, AlertTriangle, UploadCloud } from "lucide-react";
+import { Search, ChevronDown, AlertTriangle, UploadCloud, BarChart2 } from "lucide-react";
 
 export interface MobileHoldingsViewProps {
   onNavigateImport?: () => void;
@@ -28,6 +29,7 @@ export function MobileHoldingsView({
   const [holdings, setHoldings] = useState<HoldingRow[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedHolding, setSelectedHolding] = useState<HoldingRow | null>(null);
+  const [isDistributorComparisonOpen, setIsDistributorComparisonOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -297,13 +299,24 @@ export function MobileHoldingsView({
       </div>
 
       {/* Holdings Header Bar */}
-      <div className="flex items-center justify-between px-1 text-xs">
+      <div className="flex items-center justify-between gap-2 px-1 text-xs flex-wrap">
         <span className="font-display text-sm font-bold text-[var(--color-ink)]">
           All Holdings
         </span>
-        <span className="text-xs font-semibold text-[var(--color-text-secondary)] tabular-nums">
-          {filteredHoldings.length} holding{filteredHoldings.length !== 1 ? "s" : ""}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-[var(--color-text-secondary)] tabular-nums">
+            {filteredHoldings.length} holding{filteredHoldings.length !== 1 ? "s" : ""}
+          </span>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setIsDistributorComparisonOpen(true)}
+            className="h-7 gap-1 rounded-full px-2.5 text-[11px]"
+          >
+            <BarChart2 className="h-3.5 w-3.5" />
+            <span>Compare Distributors</span>
+          </Button>
+        </div>
       </div>
 
       {/* Summary-First Holding Cards List */}
@@ -323,6 +336,13 @@ export function MobileHoldingsView({
           <p>No holdings found matching &ldquo;{searchTerm}&rdquo;</p>
         </div>
       )}
+
+      <MobileDistributorComparisonView
+        isOpen={isDistributorComparisonOpen}
+        onClose={() => setIsDistributorComparisonOpen(false)}
+        viewMode={viewMode}
+        memberId={selectedMemberId}
+      />
     </div>
   );
 }

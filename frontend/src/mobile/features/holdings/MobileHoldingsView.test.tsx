@@ -7,6 +7,8 @@ import * as authApi from "@/features/auth/api";
 vi.mock("@/features/dashboard/api", () => ({
   getAggregateHoldings: vi.fn(),
   getMemberHoldings: vi.fn(),
+  getAggregateDistributorComparison: vi.fn(),
+  getMemberDistributorComparison: vi.fn(),
 }));
 
 vi.mock("@/features/auth/api", () => ({
@@ -163,5 +165,39 @@ describe("MobileHoldingsView", () => {
     // Click Back to return to holdings list
     fireEvent.click(screen.getByLabelText("Back to holdings"));
     expect(screen.getByText("All Holdings")).toBeInTheDocument();
+  });
+
+  it("opens the portfolio-wide distributor comparison from the Holdings header", async () => {
+    vi.mocked(authApi.listHouseholdMembers).mockResolvedValue([
+      { id: "m-1", name: "Ayush", relationship: "self" } as any,
+    ]);
+    vi.mocked(dashboardApi.getAggregateHoldings).mockResolvedValue({
+      members: [{ id: "m-1", name: "Ayush", has_data: true }],
+      holdings: [
+        {
+          scheme_id: "s-1", scheme_name: "PPFAS Flexi Cap Fund", household_member_id: "m-1", household_member_name: "Ayush",
+          plan_type: "DIRECT", units_held: "10.00", average_nav: "50.00", current_nav: "60.00",
+          amount_invested: "500.00", current_value: "600.00", current_profit_total: "100.00",
+          realized_gain: "0.00", unrealized_gain: "100.00", today_gain: "5.00",
+        },
+      ],
+    } as any);
+    vi.mocked(dashboardApi.getAggregateDistributorComparison).mockResolvedValue({
+      members: [],
+      rows: [],
+    });
+
+    render(<MobileHoldingsView />);
+
+    await waitFor(() => {
+      expect(screen.getByText("PPFAS Flexi Cap Fund")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /compare distributors/i }));
+
+    await waitFor(() => {
+      expect(dashboardApi.getAggregateDistributorComparison).toHaveBeenCalled();
+      expect(screen.getByText("DISTRIBUTOR COMPARISON")).toBeInTheDocument();
+    });
   });
 });
