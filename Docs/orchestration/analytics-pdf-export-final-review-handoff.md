@@ -1,6 +1,6 @@
 # Handoff: analytics-pdf-export-final-review
 
-**Status:** REVIEW (fix round 1 committed as `d59542e`; awaiting scoped re-review)
+**Status:** DONE (fix round 1: `d59542e`; cancellation-cleanup fix: `86c60c5`; final scoped re-review returned "Ready to merge? Yes")
 **Parent plan:** `Docs/superpowers/plans/2026-08-20-analytics-pdf-export.md`
 **Spec:** `Docs/superpowers/specs/2026-08-20-analytics-pdf-export-design.md`
 **Worktree:** `/mnt/d/Unifolio code/.claude/worktrees/analytics-pdf-export` (branch `worktree-analytics-pdf-export`)
