@@ -1,6 +1,6 @@
 # Handoff: analytics-pdf-export-final-review
 
-**Status:** OPEN
+**Status:** REVIEW (fix round 1 committed as `d59542e`; awaiting scoped re-review)
 **Parent plan:** `Docs/superpowers/plans/2026-08-20-analytics-pdf-export.md`
 **Spec:** `Docs/superpowers/specs/2026-08-20-analytics-pdf-export-design.md`
 **Worktree:** `/mnt/d/Unifolio code/.claude/worktrees/analytics-pdf-export` (branch `worktree-analytics-pdf-export`)
@@ -148,3 +148,19 @@ merge? No**, with 3 Important findings. Adjudication:
   simulated failure.
 - Run the full relevant test suites (backend `pytest`, frontend `vitest`)
   before reporting DONE.
+
+**Fix round 1 outcome:** Codex made all three code changes correctly
+(verified by direct diff read) and added targeted regression tests for
+both findings. Its own sandbox hit an unrelated AnyIO/TestClient hang
+running the *full* backend suite and declined to commit under its
+completion contract; the orchestrator independently ran both full suites
+outside that sandbox and confirmed clean (backend 457 passed/3 skipped,
+frontend 233 passed/0 failed across 59 files) — the hang was an
+environment-specific flake, not a real regression — then committed as
+`d59542e`.
+
+**Next: scoped re-review needed** on `4ce4561..d59542e` (6 files: the two
+backend source files, the frontend view, and their three test files) —
+confirm the two round-1 findings are actually resolved and no new issue
+was introduced by the fix itself. This is a small, mechanical diff; a
+scoped re-review, not a fresh whole-branch review.
