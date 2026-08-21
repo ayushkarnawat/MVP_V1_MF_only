@@ -61,7 +61,11 @@ async def render_analytics_pdf(token: str) -> bytes:
     page = await browser.new_page()
     try:
         await page.goto(f"{settings.frontend_base_url}/print/analytics?token={token}")
-        await page.wait_for_selector('[data-print-ready="true"]', timeout=15000)
+        marker = await page.wait_for_selector(
+            '[data-print-ready="true"], [data-print-error="true"]', timeout=15000
+        )
+        if marker is None or await marker.get_attribute("data-print-error") == "true":
+            raise RuntimeError("Analytics print page failed to load export data")
         return await page.pdf(format="A4", print_background=True)
     finally:
         await page.close()

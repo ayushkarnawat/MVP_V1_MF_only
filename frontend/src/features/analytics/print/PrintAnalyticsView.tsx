@@ -36,8 +36,12 @@ export function PrintAnalyticsView() {
   }, [token]);
 
   useEffect(() => {
-    if (payload || error) {
+    if (payload) {
+      delete document.documentElement.dataset.printError;
       document.documentElement.dataset.printReady = "true";
+    } else if (error) {
+      delete document.documentElement.dataset.printReady;
+      document.documentElement.dataset.printError = "true";
     }
   }, [payload, error]);
 

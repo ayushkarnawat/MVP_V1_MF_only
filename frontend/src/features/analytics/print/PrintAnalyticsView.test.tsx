@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { PrintAnalyticsView } from "./PrintAnalyticsView";
 import * as api from "../api";
 import type { AnalyticsExportPayload } from "../types";
@@ -37,8 +37,14 @@ const payload: AnalyticsExportPayload = {
 
 describe("PrintAnalyticsView", () => {
   beforeEach(() => {
+    delete document.documentElement.dataset.printReady;
+    delete document.documentElement.dataset.printError;
     window.history.pushState({}, "", "/print/analytics?token=tok-123");
     vi.spyOn(api, "getExportPayload").mockResolvedValue(payload);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it("renders every fund's score card inline, with no click required", async () => {
@@ -53,5 +59,18 @@ describe("PrintAnalyticsView", () => {
     await waitFor(() =>
       expect(document.documentElement.dataset.printReady).toBe("true"),
     );
+    expect(document.documentElement.dataset.printError).toBeUndefined();
+  });
+
+  it("sets only the print-error marker when the payload fetch fails", async () => {
+    vi.mocked(api.getExportPayload).mockRejectedValue(new Error("payload unavailable"));
+
+    render(<PrintAnalyticsView />);
+
+    await waitFor(() =>
+      expect(document.documentElement.dataset.printError).toBe("true"),
+    );
+    expect(document.documentElement.dataset.printReady).toBeUndefined();
+    expect(screen.getByTestId("print-error")).toHaveTextContent("payload unavailable");
   });
 });

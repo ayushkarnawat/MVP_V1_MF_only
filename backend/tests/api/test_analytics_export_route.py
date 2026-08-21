@@ -1,9 +1,17 @@
+import asyncio
 import uuid
 from unittest.mock import AsyncMock, patch
 
+import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
+from app.api.analytics import AnalyticsExportRequest, export_analytics_pdf
 from app.main import app
+from app.services.analytics.pdf_export import (
+    consume_export_payload,
+    store_export_payload as real_store,
+)
 
 
 def _client():
@@ -51,6 +59,39 @@ def test_export_pdf_aggregate_scope_skips_member_ownership_check():
         assert response.content == b"%PDF-1.4 fake"
     finally:
         app.dependency_overrides.clear()
+
+
+def test_export_pdf_render_failure_returns_generic_500_and_evicts_token():
+    stored_tokens = []
+
+    def capture_token(payload):
+        token = real_store(payload)
+        stored_tokens.append(token)
+        return token
+
+    with (
+        patch("app.api.analytics.store_export_payload", side_effect=capture_token),
+        patch(
+            "app.api.analytics.render_analytics_pdf",
+            new=AsyncMock(side_effect=RuntimeError("secret browser failure")),
+        ),
+    ):
+        with pytest.raises(HTTPException) as exc_info:
+            asyncio.run(
+                export_analytics_pdf(
+                    AnalyticsExportRequest(
+                        scope="aggregate", member_id=None, payload={"allocation": {}}
+                    ),
+                    user=type("U", (), {"id": uuid.uuid4()})(),
+                    db=object(),
+                )
+            )
+
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.detail == "Failed to generate PDF export."
+    assert "secret browser failure" not in exc_info.value.detail
+    assert len(stored_tokens) == 1
+    assert consume_export_payload(stored_tokens[0]) is None
 
 
 def test_get_export_payload_returns_stored_blob_once():

@@ -40,6 +40,9 @@ def test_get_shared_browser_raises_before_started():
 
 def test_render_analytics_pdf_navigates_and_returns_bytes():
     fake_page = AsyncMock()
+    ready_marker = AsyncMock()
+    ready_marker.get_attribute = AsyncMock(return_value=None)
+    fake_page.wait_for_selector = AsyncMock(return_value=ready_marker)
     fake_page.pdf = AsyncMock(return_value=b"%PDF-1.4 fake bytes")
     fake_browser = AsyncMock()
     fake_browser.new_page = AsyncMock(return_value=fake_page)
@@ -54,6 +57,24 @@ def test_render_analytics_pdf_navigates_and_returns_bytes():
         "http://localhost:5173/print/analytics?token=tok-123"
     )
     fake_page.wait_for_selector.assert_awaited_once_with(
-        '[data-print-ready="true"]', timeout=15000
+        '[data-print-ready="true"], [data-print-error="true"]', timeout=15000
     )
+    fake_page.close.assert_awaited_once()
+
+
+def test_render_analytics_pdf_raises_when_print_error_marker_wins():
+    fake_page = AsyncMock()
+    error_marker = AsyncMock()
+    error_marker.get_attribute = AsyncMock(return_value="true")
+    fake_page.wait_for_selector = AsyncMock(return_value=error_marker)
+    fake_browser = AsyncMock()
+    fake_browser.new_page = AsyncMock(return_value=fake_page)
+
+    with patch.object(pdf_export, "get_shared_browser", return_value=fake_browser):
+        import asyncio
+
+        with pytest.raises(RuntimeError, match="print page failed"):
+            asyncio.run(pdf_export.render_analytics_pdf("tok-123"))
+
+    fake_page.pdf.assert_not_awaited()
     fake_page.close.assert_awaited_once()

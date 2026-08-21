@@ -221,7 +221,13 @@ async def export_analytics_pdf(
             raise HTTPException(status_code=404, detail="Household member not found.")
 
     token = store_export_payload(body.payload)
-    pdf_bytes = await render_analytics_pdf(token)
+    try:
+        pdf_bytes = await render_analytics_pdf(token)
+    except Exception:
+        consume_export_payload(token)
+        raise HTTPException(
+            status_code=500, detail="Failed to generate PDF export."
+        ) from None
     return Response(content=pdf_bytes, media_type="application/pdf")
 
 
