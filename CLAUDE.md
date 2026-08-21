@@ -70,7 +70,8 @@ review handed to Codex (not a Claude subagent, to conserve this account's ~93%-u
 weekly limit) found 2 real Important gaps in the export-failure path (fixed as
 `d59542e`), a round-2 scoped re-review found one further Medium `CancelledError`/
 `finally` gap (fixed by the orchestrator directly, `86c60c5`), and a final scoped
-re-review returned "Ready to merge? Yes" — merged into `feat/enhanced-ui`. Full detail:
+re-review returned "Ready to merge? Yes" — merged into `feat/enhanced-ui` as `ed149bf`
+(both suites green on the merged tree). Full detail:
 `session.md`, `Docs/orchestration/analytics-pdf-export-final-review-handoff.md`.
 Unrelated: branches `dev_intern`/`feat/enhanced-ui` are identical at `7426047`,
 fast-forward-mergeable into `main`, still awaiting push from a machine with git
