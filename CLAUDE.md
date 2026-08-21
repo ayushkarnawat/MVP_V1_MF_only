@@ -60,18 +60,25 @@ instead. See `docs/agents/domain.md`.
 
 ## Session State
 
-*(Updated 2026-08-19. This section is a one-line current-status pointer, not a log —
+*(Updated 2026-08-21. This section is a one-line current-status pointer, not a log —
 do not append session narrative here again. Full current status: `session.md` at repo
 root, overwritten each session. Full per-task history: `Docs/orchestration/delegation-log.md`.
 Deferred/not-yet-built features: `DEFERRED_FEATURES.md`.)*
 
-**Latest:** `bug-001-data-001-implementation` merged into `feat/enhanced-ui`, alongside
-the SIP tab feature and `model-orchestration` skill v1.4 (2026-08-19). Branches
-`dev_intern`/`feat/enhanced-ui` are identical at `7426047`, fast-forward-mergeable into
-`main`, awaiting push from a machine with git credentials — nothing else is blocking.
+**Latest:** `distributor-comparison-portfolio-level` — the fund-scoped distributor
+comparison (PRD-03 FR-11) rewritten as portfolio-wide, both desktop and mobile —
+implemented via subagent-driven-development in a dedicated worktree, all 10 tasks
+through a clean task-scoped review gate, full-suite verification green
+(backend 455 passed/2 skipped, frontend 230 passed across 56 files, `tsc` clean).
+Awaiting final whole-branch review before merge into `feat/enhanced-ui`. Prior entry:
+`bug-001-data-001-implementation` merged into `feat/enhanced-ui`, alongside the SIP tab
+feature and `model-orchestration` skill v1.4 (2026-08-19). Branches `dev_intern`/
+`feat/enhanced-ui` are identical at `7426047`, fast-forward-mergeable into `main`,
+awaiting push from a machine with git credentials — nothing else is blocking.
 Knowledge graph (`.ua/knowledge-graph.json`) is stale as of commit `35fedd3`, predating
-the Scorer, CAS import lifecycle redesign, and UI/Select refactor — re-run `/understand`
-(incremental) before trusting it. Full detail on all of the above: `session.md`.
+the Scorer, CAS import lifecycle redesign, UI/Select refactor, and this distributor
+comparison rewrite — re-run `/understand` (incremental) before trusting it. Full detail
+on all of the above: `session.md`.
 
 **Still open, carried forward from earlier phases, not yet revisited:**
 1. A held scheme with no obtainable NAV silently vanishes from
@@ -109,6 +116,17 @@ the Scorer, CAS import lifecycle redesign, and UI/Select refactor — re-run `/u
    proportionate to a Low finding. Revisit only if a real accessibility-audit or user
    complaint surfaces it as an actual usability problem. Full review-round detail:
    `Docs/orchestration/delegation-log.md`'s 2026-08-19 entries.
+6. `compute_holdings`'s pre-existing per-folio `Transaction` N+1 query pattern
+   (`backend/app/services/dashboard/holdings.py`) — discovered as a side effect of the
+   2026-08-21 distributor-comparison-portfolio-level rewrite (the old
+   `compute_distributor_comparison` had the same pattern, since fixed via a batched
+   query as part of that work), confirmed pre-existing in `compute_holdings` and
+   explicitly out of scope for that change. Worth a dedicated, isolated perf pass of its
+   own, given how much review rigor `compute_holdings`'s existing caching already went
+   through — not touched here to avoid destabilizing already-reviewed code for an
+   unrelated task. Full rationale:
+   `Docs/superpowers/specs/2026-08-20-distributor-comparison-portfolio-level-design.md`'s
+   "Follow-up (not built here)" section.
 
 **Everything before this — Phase 0 (foundation), Phase 1 (CAS import, backend +
 frontend), Phase 2 (Auth backend), Phase 2b (Onboarding frontend), Phase 3 (Main

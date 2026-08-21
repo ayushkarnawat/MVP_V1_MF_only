@@ -1,4 +1,4 @@
-# Session state — 2026-08-20 (updated)
+# Session state — 2026-08-21 (updated)
 
 Working notes for picking this project back up cold. Not a planning doc — see
 `Docs/superpowers/plans/` for those. This file tracks *where things stand*,
@@ -6,6 +6,50 @@ gets overwritten each session, and isn't meant to accumulate history.
 
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
+
+## Distributor comparison rewritten portfolio-wide, desktop + mobile (2026-08-21)
+
+Rewrote the existing fund-scoped distributor comparison (PRD-03 FR-11, the
+`DistributorComparisonModal`/`MobileDistributorComparisonView` pair added in an earlier
+phase) into a portfolio-wide feature: one "Compare Distributors" trigger per Holdings
+section (desktop `DashboardView`, mobile `MobileHoldingsView`, mobile
+`MobileDashboardView`'s embedded Holdings section) instead of a per-fund CTA, showing
+every distributor across the whole household/member portfolio with expandable
+per-scheme breakdowns. Backend: `compute_distributor_comparison` rewritten around a
+batched query (`Folio.household_member_id.in_(...)`), replacing the old
+`compute_distributor_comparison`'s N+1 pattern; schema split into
+`DistributorSchemeBreakdown`/`DistributorPortfolioRow`/
+`AggregateDistributorComparisonResponse`; two new routes (member-scoped + aggregate),
+old single-scheme route removed. Frontend: `getMemberDistributorComparison`/
+`getAggregateDistributorComparison` replace the old `getDistributorComparison`;
+`DistributorComparisonModal` rebuilt as an expandable-row table (desktop),
+`MobileDistributorComparisonView` rebuilt as expandable cards (mobile idiom, not a
+ported table). Full design: `Docs/superpowers/specs/2026-08-20-distributor-comparison-portfolio-level-design.md`.
+
+Executed via `superpowers:subagent-driven-development` in a dedicated worktree
+(`.claude/worktrees/distributor-comparison-portfolio-level`, branch
+`worktree-distributor-comparison-portfolio-level`, off `feat/enhanced-ui`), 10
+implementation tasks + full-suite verification, each through the `model-orchestration`
+skill's mandatory Codex-implements/orchestrator-verifies/task-scoped-review loop. Every
+task closed on its first review pass except Task 5 (1 Important — test fixtures widened
+`DistributorPortfolioRow.arn_status` from its literal-union type to plain `string`,
+failing `tsc`/`npm run build`; fixed inline by the orchestrator per the "small diff,
+already in context" rule rather than a full Codex re-dispatch, then pre-empted from
+recurring in Task 8 by instructing that implementer to type the fixture up front) and a
+scoping-artifact false-positive on Task 7 (a delegation-log commit swept into the review
+diff range — not a code defect; fixed by tightening the review-package range, not the
+code). Full per-task narrative: `Docs/orchestration/delegation-log.md`'s 2026-08-21
+entries.
+
+Full-suite verification (Task 11) green: backend 455 passed/2 skipped, frontend 230
+passed across 56 files, `tsc --noEmit` clean. One dead-reference cleanup caught by the
+verification grep sweep and fixed inline: `MainDashboardFlow.test.tsx` still mocked the
+old singular `getDistributorComparison` (renamed/split in Task 3), unused elsewhere in
+the file — removed. `compute_holdings`'s own pre-existing per-folio N+1 (discovered as
+a side effect, confirmed unrelated and out of scope) logged as a new "Still open" item
+in `CLAUDE.md` rather than fixed here, per the spec's own Follow-up section.
+
+Awaiting the final whole-branch review (Task 12) before merge into `feat/enhanced-ui`.
 
 ## Phantom-holding bug fixed, ISIN cross-check added, index-fund mega-category split investigated + deferred (2026-08-19/20)
 
