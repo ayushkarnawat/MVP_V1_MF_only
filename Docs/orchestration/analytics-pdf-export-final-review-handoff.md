@@ -92,3 +92,59 @@ without new evidence just burns a review round:
 
 None — this is a bounded, read-only review task. If something in the plan
 or spec is ambiguous, note it in your report rather than guessing silently.
+
+---
+
+## Review round 1 (2026-08-21) — result, ruling, fix round dispatched
+
+Codex's round-1 review (range `321b6ed..4ce4561`) returned **Ready to
+merge? No**, with 3 Important findings. Adjudication:
+
+1. **Confirmed real, must-fix** — `PrintAnalyticsView.tsx`'s success and
+   error paths both set `data-print-ready="true"`, so a payload-fetch
+   failure renders a "successful" 200 PDF of an error page instead of the
+   spec's required 500. Design spec line 157-158: "Playwright
+   navigation/render failure → 500 with a generic message; the token is
+   cleaned up (marked used) regardless of success or failure, no retry
+   loop." Directly violated.
+2. **Confirmed real, must-fix** — same spec line: the export token is only
+   ever consumed by the frontend's own `GET /export/payload/{token}` call
+   inside the print page. If the browser never reaches that fetch (nav
+   failure, timeout, render crash before that point), the token is never
+   cleaned up — it sits in `_export_payloads` past its 120s TTL, never
+   swept, contrary to "cleaned up... regardless of success or failure."
+3. **Ruled NOT a defect** — FundScoreCard's `parseScore`
+   (`parseFloat`/`toFixed`) was flagged against the plan's Global
+   Constraint ("byte-for-byte, never parsed to float"). Ruling: this
+   constraint targets *accumulation* and *transport* (summing/reformatting
+   before it reaches display), not a single non-accumulating final-value
+   conversion for display rounding — exactly the exemption
+   `frontend/src/lib/decimal.ts`'s own docstring already documents
+   ("Parsing the *final* result to a number for display formatting... is
+   fine — this module exists for the accumulation step, not to ban
+   Number() everywhere"), an established repo convention that predates
+   this plan. `FundScoreCard` pre-existed (Task 4 only extracted it from
+   `FundScoreDetailModal`, unchanged logic) and the live dashboard already
+   renders it this way. No fix needed; not re-raised in re-review.
+
+**Fix round 1 dispatched to Codex** for findings 1 and 2 only:
+
+- `frontend/src/features/analytics/print/PrintAnalyticsView.tsx`: split
+  the single `data-print-ready` marker into a success marker and a
+  distinct error marker (e.g. keep `data-print-ready="true"` for the
+  `payload` case only; add `data-print-error="true"` for the `error`
+  case).
+- `backend/app/services/analytics/pdf_export.py`'s `render_analytics_pdf`:
+  wait for either marker; if the error marker is present, raise (don't
+  return a PDF of the error page).
+- `backend/app/api/analytics.py`'s `export_analytics_pdf` route: catch the
+  render failure, explicitly evict the token from `_export_payloads` via
+  `consume_export_payload(token)` (idempotent — safe no-op if the frontend
+  already consumed it), and return a generic 500 (`HTTPException(500, ...)`)
+  per the spec line above — never leak the underlying exception detail to
+  the client.
+- Add/extend tests covering: a render/fetch failure surfaces as a 500 (not
+  a 200 PDF), and the token store no longer holds the entry after a
+  simulated failure.
+- Run the full relevant test suites (backend `pytest`, frontend `vitest`)
+  before reporting DONE.
