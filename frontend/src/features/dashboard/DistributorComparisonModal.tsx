@@ -220,7 +220,13 @@ export function DistributorComparisonModal({
 // parseFloat for display is the one place that's fine).
 function isGainNegative(gainStr: string): boolean {
   const s = gainStr || "0";
-  return s.startsWith("-") && /[1-9]/.test(s);
+  if (!s.startsWith("-")) return false;
+  // Backend Decimal subtraction of equal-precision values can serialize an
+  // exact zero in scientific notation (e.g. "0E-7") — strip the exponent
+  // before checking for a nonzero digit so a zero mantissa never reads as
+  // negative regardless of the exponent's own digits.
+  const mantissa = s.split(/[eE]/)[0];
+  return /[1-9]/.test(mantissa);
 }
 
 function gainMagnitude(gainStr: string): string {
