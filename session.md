@@ -1,4 +1,4 @@
-# Session state — 2026-08-21 (updated)
+# Session state — 2026-08-24 (updated)
 
 Working notes for picking this project back up cold. Not a planning doc — see
 `Docs/superpowers/plans/` for those. This file tracks *where things stand*,
@@ -6,6 +6,113 @@ gets overwritten each session, and isn't meant to accumulate history.
 
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
+
+## Still open, carried forward from earlier phases, not yet revisited
+
+*(Moved here from `CLAUDE.md` 2026-08-24 — that file's Session State section is a
+short pointer only, per its own header note; this is the detail it points to.)*
+
+1. A held scheme with no obtainable NAV silently vanishes from
+   holdings/allocation/aggregates, no error or placeholder — a Phase 3
+   design choice, worth revisiting once the "NAV unavailable" UI treatment is decided.
+2. No DB uniqueness constraint on the "self" `household_members` row —
+   frontend-mitigated client-side only; real fix is a migration (confirmed still
+   missing — only migrations `0001`–`0003` exist, none touch this).
+3. `HoldingsTable.tsx` references a dead `row.return_percentage_1y` field that doesn't
+   exist on the real API type — harmless (client-computed fallback always runs), never
+   cleaned up.
+4. `category_ranking.py`'s `_bulk_nav_on_or_before` (BUG-001 fix, 2026-08-18): the
+   per-scheme N+1 query pattern is gone (one `MAX(date) GROUP BY` query per target date,
+   bounded by a 15-min per-category cache), but the DB-side scan to compute each
+   `MAX(date)` still isn't index-seek-bounded without a `LATERAL` join — a primitive
+   unused elsewhere in this codebase and unverifiable via query plan on SQLite. Accepted
+   as a documented limitation rather than a third fix round (correctness-safe, cost
+   already bounded by the cache). Full follow-up action and rationale:
+   `Docs/PRDs/Migration-Plan-SQLite-to-Postgres.md`'s "Deferred Postgres-Only
+   Optimizations" section — revisit with `EXPLAIN ANALYZE` once Postgres is live.
+5. `DashboardView.tsx`'s SIP Upcoming/This Month segmented control (`sip-tab-upcoming`/
+   `sip-tab-month`) always renders both tab buttons' `aria-controls` IDs, but only the
+   active tab's `role="tabpanel"` actually exists in the DOM — the inactive tab's
+   `aria-controls` points at an ID that doesn't resolve, an incomplete ARIA tabs IDREF
+   pattern. Confirmed via a second scoped Codex adversarial-review round
+   (2026-08-19, `active-sips-cadence-redesign` branch, commit `8be5230`) after two
+   earlier rounds closed a stale-row-flash bug and the missing tabpanel wiring itself.
+   Accepted as a documented limitation rather than a third fix round, per the
+   model-orchestration skill's stopping heuristic — negligible real-world screen-reader
+   impact since the tab/panel pairing is already correctly conveyed via
+   `role`/`aria-selected`/`aria-labelledby` on the panel that does exist, and a full fix
+   means always mounting both panels (one `hidden`) instead of one conditionally-rendered
+   panel, which also touches the lazy monthly-SIP-fetch trigger (the `sipTab !== "month"`
+   early-return in `DashboardView.tsx`'s fetch effect) — a bigger structural change than
+   proportionate to a Low finding. Revisit only if a real accessibility-audit or user
+   complaint surfaces it as an actual usability problem. Full review-round detail:
+   `Docs/orchestration/delegation-log.md`'s 2026-08-19 entries.
+6. `compute_holdings`'s pre-existing per-folio `Transaction` N+1 query pattern
+   (`backend/app/services/dashboard/holdings.py`) — discovered as a side effect of the
+   2026-08-21 distributor-comparison-portfolio-level rewrite (the old
+   `compute_distributor_comparison` had the same pattern, since fixed via a batched
+   query as part of that work), confirmed pre-existing in `compute_holdings` and
+   explicitly out of scope for that change. Worth a dedicated, isolated perf pass of its
+   own, given how much review rigor `compute_holdings`'s existing caching already went
+   through — not touched here to avoid destabilizing already-reviewed code for an
+   unrelated task. Full rationale:
+   `Docs/superpowers/specs/2026-08-20-distributor-comparison-portfolio-level-design.md`'s
+   "Follow-up (not built here)" section.
+
+## Two small post-merge bug fixes: AMFI TER concurrency, PDF export Allocation section (2026-08-24)
+
+Two independent, small bug fixes on `feat/enhanced-ui`, neither delegated to Codex
+(both small and contained enough for a direct fix — no `model-orchestration` dispatch):
+
+**1. AMFI TER fetch concurrency lowered to avoid a 429 rate limit (commit `bb9f507`).**
+`amfi_ter_client.py`'s `_TER_FETCH_CONCURRENCY` was raised to 20 in an earlier session
+to fix a ~4-minute sequential-fetch regression, on the documented assumption that AMFI's
+TER-page endpoint had no rate limit. Live-verified 2026-08-21 that assumption was wrong:
+20 concurrent page requests trips a 429, leaving `scheme_ter` empty until the next
+15-minute backoff window clears — surfaced to the user as "TER Data Unavailable" with
+every scheme excluded. Lowered to 5. No retry-on-429 added on purpose: `ter.py`'s
+existing 15-minute backoff already retries a failed refresh on the next request, so a
+second retry layer here would be redundant.
+
+**2. Analytics PDF export's Portfolio Allocation section rendered incorrectly (commit
+`12946f7`).** User-reported via screenshot after downloading a portfolio's Analytics
+PDF: the SEBI Category donut appeared as a barely-visible thin sliver instead of a full
+circle, and the AMC breakdown never appeared in the PDF at all — only the Category tab
+was visible. Two independent root causes, both traced from the actual render path
+(`backend/app/services/analytics/pdf_export.py`'s `render_analytics_pdf`, which drives
+Playwright against `frontend/src/features/analytics/print/PrintAnalyticsView.tsx`), not
+guessed:
+
+- **AMC tab never rendered**: `AllocationSection.tsx`'s Category/AMC toggle was pure
+  React click state (`useState`), defaulting to "category" — the exact same bug class
+  the PDF export feature's own Task 10 already found and fixed once, in
+  `BenchmarkSection.tsx`'s tab toggle (see the "Analytics PDF export" section below).
+  `AllocationSection` never got that same `printMode` treatment. Since Playwright's
+  static print capture never clicks anything, only the default tab's data could ever
+  reach the PDF.
+- **Donut rendered mid-animation**: `PieSlice.tsx` (the `ui/charts` primitive
+  `AllocationDonut` builds on) draws each slice in via a `motion/react` spring, with a
+  per-slice stagger delay, starting from a 0%-drawn arc on mount. `render_analytics_pdf`
+  captures `page.pdf()` the instant the `data-print-ready` DOM marker appears — which
+  fires as soon as the export payload loads, not once the chart's entrance animation has
+  finished — so the PDF snapshotted the donut a fraction of a second into its draw-in
+  animation, matching the screenshot exactly (a barely-visible sliver of the first
+  slice's color).
+
+**Fix**: gave `AllocationSection` a `printMode` prop mirroring `BenchmarkSection`'s
+existing pattern exactly — hides the toggle buttons, stacks both the Category and AMC
+`AllocationDonut` breakdowns instead of tab-switching between them. Separately, added an
+`animate` prop to `AllocationDonut`, forwarded to each `PieSlice` — `PieSlice` already
+had a built-in static (instant, non-animated) render path for this exact purpose, just
+never wired through to anything; both print-mode donuts now pass `animate={false}`.
+Wired into `PrintAnalyticsView.tsx` (`<AllocationSection ... printMode />`).
+
+TDD: new tests written first and confirmed red — `AllocationDonut.test.tsx` (a slice's
+`d` path attribute is empty on the very first render frame with the default animated
+path, present immediately with `animate={false}`) and a new `AllocationSection.test.tsx`
+(printMode renders both breakdowns with no tab button in the DOM at all) — then green
+after the fix. Full frontend suite re-run clean: 335/335 tests across 72 files, `tsc -b
+--noEmit` clean.
 
 ## Distributor comparison rewritten portfolio-wide, desktop + mobile (2026-08-21)
 

@@ -60,87 +60,25 @@ instead. See `docs/agents/domain.md`.
 
 ## Session State
 
-*(Updated 2026-08-21. This section is a one-line current-status pointer, not a log —
+*(Updated 2026-08-24. This section is a one-line current-status pointer, not a log —
 do not append session narrative here again. Full current status: `session.md` at repo
 root, overwritten each session. Full per-task history: `Docs/orchestration/delegation-log.md`.
 Deferred/not-yet-built features: `DEFERRED_FEATURES.md`.)*
 
-**Latest:** `distributor-comparison-portfolio-level` — the fund-scoped distributor
-comparison (PRD-03 FR-11) rewritten as portfolio-wide, both desktop and mobile —
-implemented via subagent-driven-development in a dedicated worktree, all 12 tasks
-through a clean task-scoped review gate plus a final whole-branch review (1 fix round:
-a Decimal-float violation, a missing TTL-expiry test, stale docs — commit `848a1fd`;
-1 scoped re-review residual, a Decimal scientific-notation sign-check gap — commit
-`b01ef0d`), then merged into `feat/enhanced-ui` via merge-conflict resolution (not
-rebase, since `feat/enhanced-ui` had moved 133 commits ahead of this branch's creation
-point) — only 3 real conflicts, all docs (`CLAUDE.md`, `session.md`,
-`Docs/orchestration/delegation-log.md`), everything else auto-merged clean. That
-divergence brought in, already on `feat/enhanced-ui`: `authsetup` — Auth, Onboarding,
-Validation, Visual Experience, Mobile Auth & CAS Import Flow Redesign (v2), 100%
-complete as of 2026-08-20 — and Analytics PDF export (all 10 plan tasks, two review
-rounds, merged as `ed149bf`). Full detail on all three: `session.md`'s merge entries,
-`Docs/orchestration/analytics-pdf-export-final-review-handoff.md`.
-Knowledge graph (`.ua/knowledge-graph.json`) is stale as of commit `35fedd3`, predating
-the Scorer, CAS import lifecycle redesign, UI/Select refactor, the distributor
-comparison rewrite, and everything merged in from `authsetup`/PDF export — re-run
-`/understand` (incremental) before trusting it. Full detail on all of the above:
-`session.md`.
-**Still open, carried forward from earlier phases, not yet revisited:**
-1. A held scheme with no obtainable NAV silently vanishes from
-   holdings/allocation/aggregates, no error or placeholder — a Phase 3
-   design choice, worth revisiting once the "NAV unavailable" UI treatment is decided.
-2. No DB uniqueness constraint on the "self" `household_members` row —
-   frontend-mitigated client-side only; real fix is a migration (confirmed still
-   missing — only migrations `0001`–`0003` exist, none touch this).
-3. `HoldingsTable.tsx` references a dead `row.return_percentage_1y` field that doesn't
-   exist on the real API type — harmless (client-computed fallback always runs), never
-   cleaned up.
-4. `category_ranking.py`'s `_bulk_nav_on_or_before` (BUG-001 fix, 2026-08-18): the
-   per-scheme N+1 query pattern is gone (one `MAX(date) GROUP BY` query per target date,
-   bounded by a 15-min per-category cache), but the DB-side scan to compute each
-   `MAX(date)` still isn't index-seek-bounded without a `LATERAL` join — a primitive
-   unused elsewhere in this codebase and unverifiable via query plan on SQLite. Accepted
-   as a documented limitation rather than a third fix round (correctness-safe, cost
-   already bounded by the cache). Full follow-up action and rationale:
-   `Docs/PRDs/Migration-Plan-SQLite-to-Postgres.md`'s "Deferred Postgres-Only
-   Optimizations" section — revisit with `EXPLAIN ANALYZE` once Postgres is live.
-5. `DashboardView.tsx`'s SIP Upcoming/This Month segmented control (`sip-tab-upcoming`/
-   `sip-tab-month`) always renders both tab buttons' `aria-controls` IDs, but only the
-   active tab's `role="tabpanel"` actually exists in the DOM — the inactive tab's
-   `aria-controls` points at an ID that doesn't resolve, an incomplete ARIA tabs IDREF
-   pattern. Confirmed via a second scoped Codex adversarial-review round
-   (2026-08-19, `active-sips-cadence-redesign` branch, commit `8be5230`) after two
-   earlier rounds closed a stale-row-flash bug and the missing tabpanel wiring itself.
-   Accepted as a documented limitation rather than a third fix round, per the
-   model-orchestration skill's stopping heuristic — negligible real-world screen-reader
-   impact since the tab/panel pairing is already correctly conveyed via
-   `role`/`aria-selected`/`aria-labelledby` on the panel that does exist, and a full fix
-   means always mounting both panels (one `hidden`) instead of one conditionally-rendered
-   panel, which also touches the lazy monthly-SIP-fetch trigger (the `sipTab !== "month"`
-   early-return in `DashboardView.tsx`'s fetch effect) — a bigger structural change than
-   proportionate to a Low finding. Revisit only if a real accessibility-audit or user
-   complaint surfaces it as an actual usability problem. Full review-round detail:
-   `Docs/orchestration/delegation-log.md`'s 2026-08-19 entries.
-6. `compute_holdings`'s pre-existing per-folio `Transaction` N+1 query pattern
-   (`backend/app/services/dashboard/holdings.py`) — discovered as a side effect of the
-   2026-08-21 distributor-comparison-portfolio-level rewrite (the old
-   `compute_distributor_comparison` had the same pattern, since fixed via a batched
-   query as part of that work), confirmed pre-existing in `compute_holdings` and
-   explicitly out of scope for that change. Worth a dedicated, isolated perf pass of its
-   own, given how much review rigor `compute_holdings`'s existing caching already went
-   through — not touched here to avoid destabilizing already-reviewed code for an
-   unrelated task. Full rationale:
-   `Docs/superpowers/specs/2026-08-20-distributor-comparison-portfolio-level-design.md`'s
-   "Follow-up (not built here)" section.
+**Latest:** two small direct bug fixes on `feat/enhanced-ui` (AMFI TER fetch
+concurrency, `bb9f507`; PDF export Portfolio Allocation rendering, `12946f7`) — full
+detail: `session.md`. Before that: `distributor-comparison-portfolio-level` merged in,
+bringing `authsetup` and the Analytics PDF export feature with it — full detail:
+`session.md`. Everything else is complete and merged — full history: `session.md`.
 
-**Everything before this — Phase 0 (foundation), Phase 1 (CAS import, backend +
-frontend), Phase 2 (Auth backend), Phase 2b (Onboarding frontend), Phase 3 (Main
-Dashboard backend), Phase 3b (Frontend UI Redesign via Google Antigravity, fully
-reviewed — 39/104 failing tests and 6 `tsc` errors found and fixed, real bugs included
-an accessibility regression and a silent member-misattribution risk in Add Data
-re-entry), and Distributor Comparison (PRD-03 FR-11) — is complete, merged, and fully
-detailed in `session.md`.** A full codebase knowledge graph exists at
-`.ua/knowledge-graph.json` (see staleness note above) — query it instead of re-scanning
-the repo from scratch, once refreshed.
+**Still open (6 items carried forward from earlier phases, not yet revisited — full
+detail on each in `session.md`'s "Still open" section):** a held scheme with no NAV
+silently vanishing from holdings/allocation; no DB uniqueness constraint on the "self"
+`household_members` row; a dead `HoldingsTable.tsx` field reference; a non-index-seek-
+bounded SQLite scan in `category_ranking.py` (Postgres follow-up); an ARIA IDREF gap on
+the SIP tab switcher; `compute_holdings`'s per-folio N+1 query pattern.
+
+Knowledge graph (`.ua/knowledge-graph.json`) is stale as of commit `35fedd3` — re-run
+`/understand` (incremental) before trusting it.
 
 
