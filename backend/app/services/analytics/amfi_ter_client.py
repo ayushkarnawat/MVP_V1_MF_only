@@ -66,9 +66,14 @@ _RESOLVED_PLAN_VARIANTS = (PlanNameVariant.DIRECT, PlanNameVariant.REGULAR)
 # Caps how many of AMFI's 380+ TER pages are in flight at once (live-verified
 # 2026-08-20: fetching them one at a time was a ~4 minute sequential network
 # wait, the dominant cost behind a reported post-fix "still slow" regression).
-# Bounded rather than unbounded `gather` -- this endpoint has no documented
-# rate limit, and 300+ simultaneous requests risks tripping one.
-_TER_FETCH_CONCURRENCY = 20
+# Originally 20, on the assumption this endpoint had no documented rate
+# limit -- live-verified 2026-08-21 that assumption was wrong: 20 concurrent
+# requests got a 429 from AMFI, leaving scheme_ter empty until the next
+# ter.py backoff window. Lowered to 5; no retry-on-429 added here on
+# purpose -- ter.py's existing 15-min backoff already retries a failed
+# refresh on the next request, so a second retry layer here would be
+# redundant.
+_TER_FETCH_CONCURRENCY = 5
 
 
 def _current_financial_year(today: date) -> str:
