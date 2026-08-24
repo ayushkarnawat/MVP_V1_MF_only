@@ -22,6 +22,26 @@ describe("AllocationDonut", () => {
     expect(screen.getByText("No allocation data available")).toBeInTheDocument();
   });
 
+  it("draws the full arc immediately when animate is disabled, instead of starting from an empty enter-animation frame", () => {
+    const { container } = render(
+      <AllocationDonut data={sampleData} totalValue="200000.00" animate={false} />
+    );
+
+    // The hitbox path (fill="transparent") is always present; the visible
+    // slice paths are the ones with a real fill color. With the mount
+    // enter-animation running (the default), a slice's `d` attribute starts
+    // as "" for the very first render frame — a static PDF capture (no
+    // animation frames ever run) would snapshot that empty frame, exactly
+    // the "barely visible sliver" bug this prop fixes.
+    const slicePaths = Array.from(container.querySelectorAll("path")).filter(
+      (path) => path.getAttribute("fill") !== "transparent"
+    );
+    expect(slicePaths.length).toBeGreaterThan(0);
+    for (const path of slicePaths) {
+      expect(path.getAttribute("d")).toBeTruthy();
+    }
+  });
+
   it("tapping a legend row toggles its highlight on, and tapping it again toggles it off", () => {
     render(
       <AllocationDonut data={sampleData} totalValue="200000.00" enableTapHighlight />

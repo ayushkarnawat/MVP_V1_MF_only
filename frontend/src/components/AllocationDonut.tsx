@@ -23,6 +23,11 @@ export interface AllocationDonutProps {
    * Reuses the same hoveredIndex + PieChart/PieSlice highlight this
    * component already does on hover — web's hover behavior is unchanged. */
   enableTapHighlight?: boolean;
+  /** Skip the slice mount enter-animation and draw the full arc immediately.
+   * Needed for the PDF export print route: Playwright's page.pdf() captures
+   * the instant the DOM is ready, well before the animation's stagger delay
+   * finishes, so the default animated path snapshots a mid-draw sliver. */
+  animate?: boolean;
 }
 
 const PALETTE = [
@@ -50,6 +55,7 @@ export function AllocationDonut({
   title,
   className,
   enableTapHighlight = false,
+  animate = true,
 }: AllocationDonutProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   // Separate, persistent state for tap mode — sharing hoveredIndex with
@@ -113,6 +119,7 @@ export function AllocationDonut({
                 index={idx}
                 hoverEffect="translate"
                 hoverOffset={4}
+                animate={animate}
               />
             ))}
             <PieCenter>

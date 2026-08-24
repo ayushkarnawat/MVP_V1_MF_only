@@ -8,12 +8,17 @@ export interface AllocationSectionProps {
   summary: AnalyticsAllocationSummary | null;
   isLoading?: boolean;
   className?: string;
+  /** Renders both Category and AMC breakdowns stacked, with no tab toggle,
+   * for the static PDF export print route (mirrors BenchmarkSection's
+   * printMode — a static document can't click a tab to reveal the other one). */
+  printMode?: boolean;
 }
 
 export function AllocationSection({
   summary,
   isLoading = false,
   className,
+  printMode = false,
 }: AllocationSectionProps) {
   const [tab, setTab] = useState<"category" | "amc">("category");
 
@@ -51,36 +56,58 @@ export function AllocationSection({
           </p>
         </div>
 
-        {/* Category vs AMC Segmented Toggle */}
-        <div className="inline-flex items-center p-1 rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] shadow-2xs self-start sm:self-auto">
-          <button
-            type="button"
-            className={cn(
-              "px-3 py-1 text-xs font-medium rounded-lg transition-all duration-150 cursor-pointer",
-              tab === "category"
-                ? "bg-[var(--color-surface)] text-[var(--color-ink)] font-semibold shadow-xs"
-                : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)]"
-            )}
-            onClick={() => setTab("category")}
-          >
-            By Category
-          </button>
-          <button
-            type="button"
-            className={cn(
-              "px-3 py-1 text-xs font-medium rounded-lg transition-all duration-150 cursor-pointer",
-              tab === "amc"
-                ? "bg-[var(--color-surface)] text-[var(--color-ink)] font-semibold shadow-xs"
-                : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)]"
-            )}
-            onClick={() => setTab("amc")}
-          >
-            By AMC
-          </button>
-        </div>
+        {/* Category vs AMC Segmented Toggle — not rendered in printMode,
+            since a static document shows both breakdowns at once instead */}
+        {!printMode && (
+          <div className="inline-flex items-center p-1 rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] shadow-2xs self-start sm:self-auto">
+            <button
+              type="button"
+              className={cn(
+                "px-3 py-1 text-xs font-medium rounded-lg transition-all duration-150 cursor-pointer",
+                tab === "category"
+                  ? "bg-[var(--color-surface)] text-[var(--color-ink)] font-semibold shadow-xs"
+                  : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)]"
+              )}
+              onClick={() => setTab("category")}
+            >
+              By Category
+            </button>
+            <button
+              type="button"
+              className={cn(
+                "px-3 py-1 text-xs font-medium rounded-lg transition-all duration-150 cursor-pointer",
+                tab === "amc"
+                  ? "bg-[var(--color-surface)] text-[var(--color-ink)] font-semibold shadow-xs"
+                  : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)]"
+              )}
+              onClick={() => setTab("amc")}
+            >
+              By AMC
+            </button>
+          </div>
+        )}
       </div>
 
-      {!hasData ? (
+      {printMode ? (
+        <div className="space-y-8">
+          {summary?.by_category && summary.by_category.length > 0 && (
+            <AllocationDonut
+              data={summary.by_category}
+              totalValue={summary?.total_value}
+              title="SEBI Category Distribution"
+              animate={false}
+            />
+          )}
+          {summary?.by_amc && summary.by_amc.length > 0 && (
+            <AllocationDonut
+              data={summary.by_amc}
+              totalValue={summary?.total_value}
+              title="Fund House (AMC) Distribution"
+              animate={false}
+            />
+          )}
+        </div>
+      ) : !hasData ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <p className="text-sm font-medium text-[var(--color-text-secondary)]">
             No allocation data available for this selection

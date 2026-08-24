@@ -65,7 +65,7 @@ export function PrintAnalyticsView() {
       </div>
 
       <div className="print-section">
-        <AllocationSection summary={payload.allocation} isLoading={false} />
+        <AllocationSection summary={payload.allocation} isLoading={false} printMode />
       </div>
       <div className="print-section">
         <TerSection ter={payload.ter} comparison={payload.terComparison} isLoading={false} />
