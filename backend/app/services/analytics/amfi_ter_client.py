@@ -32,6 +32,7 @@ envelope, every scheme's TER silently stayed unmatched (0 real rows, only
 from __future__ import annotations
 
 import asyncio
+import logging
 import re
 import uuid
 from datetime import date, datetime
@@ -43,6 +44,8 @@ from sqlalchemy.orm import Session
 
 from app.models.enums import PlanNameVariant
 from app.models.reference import Scheme, SchemeTer
+
+logger = logging.getLogger(__name__)
 
 AMFI_TER_MONTH_URL = "https://www.amfiindia.com/api/populate-ter-month"
 AMFI_TER_DATA_URL = "https://www.amfiindia.com/api/populate-te-rdata-revised"
@@ -269,10 +272,19 @@ async def refresh_ter_data(db: Session) -> bool:
         if month is None:
             return False
         rows = await _fetch_ter_rows(month)
-    except (httpx.HTTPError, KeyError, ValueError, TypeError, AttributeError):
+    except (httpx.HTTPError, KeyError, ValueError, TypeError, AttributeError) as exc:
+        # Degrade-gracefully posture (see docstring) means this must never
+        # raise -- but a bare `return False` with no logging previously left
+        # a real failure (429, DNS/proxy block, AMFI response-shape change)
+        # indistinguishable from "AMFI just hasn't published this month yet".
+        # Live-verified 2026-08-21: this silence is why a colleague's
+        # persistent "TER Data Unavailable" couldn't be diagnosed past
+        # guessing at 429s.
+        logger.warning("refresh_ter_data: fetch failed: %r", exc)
         return False
 
     if not rows:
+        logger.warning("refresh_ter_data: AMFI returned no rows for month %s", month)
         return False
 
     latest_by_name = _latest_row_per_scheme(rows)
