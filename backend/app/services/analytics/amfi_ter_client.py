@@ -115,8 +115,23 @@ def _parse_amfi_date(raw: str) -> date:
     raise ValueError(f"Unrecognized AMFI TER_Date format: {raw!r}")
 
 
+# Live-verified 2026-08-25: a colleague's `ReadTimeout` here wasn't AMFI
+# being slow -- it was this process's OWN event loop stalling. Sync
+# SQLAlchemy `db.commit()` calls elsewhere (e.g. `nav.py`'s
+# `warm_nav_history`) run directly inside `async def`s with no thread
+# offload, so a slow-disk commit (measured 63-66s live on that machine,
+# see `nav.py`'s "57x slower on WSL DrvFs" note) freezes the whole loop --
+# including an in-flight AMFI page request already waiting on its socket,
+# which then blows a 30s client-side timeout even though AMFI answered
+# fine. One page timing out fails the *entire* refresh_ter_data batch for
+# the full 15-min backoff (unlike nav.py's per-scheme degrade), so this
+# client gets real margin against an observed stall rather than matching
+# nav.py's 30s.
+_TER_HTTP_TIMEOUT = 90.0
+
+
 async def _fetch_latest_ter_month(financial_year: str) -> str | None:
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx.AsyncClient(timeout=_TER_HTTP_TIMEOUT) as client:
         resp = await client.get(
             AMFI_TER_MONTH_URL, params={"year": financial_year}, headers={"Referer": AMFI_TER_REFERER}
         )
@@ -138,7 +153,7 @@ async def _fetch_ter_rows(month: str) -> list[dict]:
     # silently iterated over its two string dict keys instead of any real
     # row (the true root cause behind the "stray non-dict row" symptom
     # `_latest_row_per_scheme`'s isinstance guard was added for).
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx.AsyncClient(timeout=_TER_HTTP_TIMEOUT) as client:
 
         async def get_page(page: int) -> dict:
             resp = await client.get(
