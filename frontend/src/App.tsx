@@ -64,7 +64,7 @@ function MainApp() {
   }
 
   if (!me.onboarding_completed) {
-    return <OnboardingFlow />;
+    return <OnboardingFlow isMobile={isMobile} />;
   }
 
   return isMobile ? <MobileRoot /> : <DashboardPlaceholder />;

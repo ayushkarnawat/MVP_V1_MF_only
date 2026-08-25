@@ -40,9 +40,6 @@ export function ParsingIndicator() {
 
       {/* Primary & Supporting Typography Messages */}
       <div className="space-y-1.5 max-w-xs mx-auto">
-        <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-[var(--color-accent)] block">
-          CAS INGESTION
-        </span>
         <h3 className="font-display font-bold text-lg sm:text-xl text-[var(--color-ink)] tracking-tight">
           Importing Mutual Fund Statement
         </h3>

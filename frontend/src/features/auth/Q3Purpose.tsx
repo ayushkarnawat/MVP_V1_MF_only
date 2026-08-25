@@ -1,20 +1,23 @@
 import { motion } from "motion/react";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ChevronRight } from "lucide-react";
 import type { PrimaryGoal } from "./types";
 import { OnboardingIllustration } from "./OnboardingIllustration";
+import { MobileOnboardingScreen } from "./MobileOnboardingScreen";
 import { staggerContainerVariants, staggerItemVariants } from "@/lib/motion";
 
 interface Q3PurposeProps {
   onBack: () => void;
   onSkip: () => void;
   onSelect: (value: PrimaryGoal) => void;
+  isMobile?: boolean;
+  currentStepIndex?: number;
+  totalSteps?: number;
 }
 
 interface PurposeOption {
   value: PrimaryGoal;
   title: string;
   subtitle: string;
-  badge: string;
   renderIllustration: () => React.ReactNode;
 }
 
@@ -23,22 +26,15 @@ const OPTIONS: PurposeOption[] = [
     value: "consolidated_view",
     title: "Consolidated portfolio view",
     subtitle: "See all my mutual funds across brokers and AMCs in one place",
-    badge: "360° VIEW",
     renderIllustration: () => (
       <svg viewBox="0 0 48 48" className="w-10 h-10 sm:w-11 sm:h-11 select-none" fill="none">
-        {/* Organization rays */}
         <path d="M24 5 V8 M12 8 L15 11 M36 8 L33 11" stroke="var(--color-accent)" strokeWidth="1.75" strokeLinecap="round" />
-        {/* Filing Cabinet Top/Back */}
-        <rect x="10" y="12" width="28" height="9" rx="3" fill="#FEF3C7" stroke="currentColor" strokeWidth="2" />
+        <rect x="10" y="12" width="28" height="9" rx="3" fill="color-mix(in srgb, var(--color-accent) 20%, transparent)" stroke="currentColor" strokeWidth="2" />
         <circle cx="24" cy="16.5" r="1.5" fill="currentColor" />
-        {/* Middle Drawer */}
         <rect x="10" y="21" width="28" height="9" rx="3" fill="color-mix(in srgb, var(--color-accent) 15%, transparent)" stroke="currentColor" strokeWidth="2" />
         <circle cx="24" cy="25.5" r="1.5" fill="var(--color-accent)" />
-        {/* Active Bottom Sliding Drawer */}
         <rect x="8" y="30" width="32" height="11" rx="3" fill="var(--color-surface)" stroke="currentColor" strokeWidth="2" />
-        {/* Drawer Handle */}
         <rect x="20" y="34" width="8" height="3" rx="1.5" fill="var(--color-accent)" stroke="currentColor" strokeWidth="1.5" />
-        {/* Color-coded Folio Tag */}
         <path d="M12 34 H16" stroke="var(--color-accent)" strokeWidth="2" strokeLinecap="round" />
       </svg>
     ),
@@ -47,22 +43,16 @@ const OPTIONS: PurposeOption[] = [
     value: "understand_holdings",
     title: "Understand true performance",
     subtitle: "Realized vs unrealized gains, direct vs regular returns",
-    badge: "ANALYTICS",
     renderIllustration: () => (
       <svg viewBox="0 0 48 48" className="w-10 h-10 sm:w-11 sm:h-11 select-none" fill="none">
-        {/* Faceted Gem / Alpha Node */}
-        <path d="M16 26 L20 18 H28 L32 26 L24 34 Z" fill="#FEF3C7" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+        <path d="M16 26 L20 18 H28 L32 26 L24 34 Z" fill="color-mix(in srgb, var(--color-accent) 20%, transparent)" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
         <path d="M20 18 L24 26 L28 18 M16 26 H32 M24 26 V34" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-        {/* Magnifying Glass Lens */}
         <circle cx="23" cy="21" r="11" stroke="currentColor" strokeWidth="2.25" fill="color-mix(in srgb, var(--color-accent) 15%, transparent)" />
-        {/* Lens Reflection Glint */}
         <path d="M16 16 C18 13 22 12 25 13" stroke="var(--color-accent)" strokeWidth="1.75" strokeLinecap="round" />
-        {/* Loupe Handle */}
         <path d="M31 29 L41 39" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-        <circle cx="40" cy="38" r="2" fill="#F59E0B" />
-        {/* Alpha Sparkles */}
+        <circle cx="40" cy="38" r="2" fill="var(--color-accent)" />
         <path d="M35 10 V14 M33 12 H37" stroke="var(--color-accent)" strokeWidth="2" strokeLinecap="round" />
-        <circle cx="11" cy="14" r="1.5" fill="#F59E0B" />
+        <circle cx="11" cy="14" r="1.5" fill="var(--color-accent)" />
       </svg>
     ),
   },
@@ -70,21 +60,15 @@ const OPTIONS: PurposeOption[] = [
     value: "family_management",
     title: "Family wealth tracking",
     subtitle: "Managing investments for family members under one dashboard",
-    badge: "HOUSEHOLD",
     renderIllustration: () => (
       <svg viewBox="0 0 48 48" className="w-10 h-10 sm:w-11 sm:h-11 select-none" fill="none">
-        {/* Protective Umbrella Canopy */}
-        <path d="M9 22 C9 13.5 15.5 8 24 8 C32.5 8 39 13.5 39 22 C34 20 29 22 24 20 C19 22 14 20 9 22 Z" fill="#FEF3C7" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-        {/* Umbrella Tip */}
+        <path d="M9 22 C9 13.5 15.5 8 24 8 C32.5 8 39 13.5 39 22 C34 20 29 22 24 20 C19 22 14 20 9 22 Z" fill="color-mix(in srgb, var(--color-accent) 20%, transparent)" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
         <path d="M24 5 V8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        {/* Umbrella Shaft & J-Hook Handle */}
         <path d="M24 20 V33 C24 35.5 22 37 20 37 C18 37 16.5 35.5 16.5 34" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        {/* Family Wealth Tokens Under Canopy */}
-        <circle cx="16" cy="27" r="4.5" fill="#FDE68A" stroke="currentColor" strokeWidth="1.75" />
-        <circle cx="16" cy="27" r="1.5" fill="#F59E0B" />
+        <circle cx="16" cy="27" r="4.5" fill="color-mix(in srgb, var(--color-accent) 30%, transparent)" stroke="currentColor" strokeWidth="1.75" />
+        <circle cx="16" cy="27" r="1.5" fill="var(--color-accent)" />
         <circle cx="32" cy="27" r="4.5" fill="color-mix(in srgb, var(--color-accent) 25%, transparent)" stroke="currentColor" strokeWidth="1.75" />
         <circle cx="32" cy="27" r="1.5" fill="var(--color-accent)" />
-        {/* Little Hearth Spark */}
         <path d="M30 13 L33 11 M35 15 L38 14" stroke="var(--color-accent)" strokeWidth="1.5" strokeLinecap="round" />
       </svg>
     ),
@@ -93,30 +77,80 @@ const OPTIONS: PurposeOption[] = [
     value: "performance_comparison",
     title: "Compare distributor fees",
     subtitle: "Compare returns and commissions across ARNs and channels",
-    badge: "FEE AUDIT",
     renderIllustration: () => (
       <svg viewBox="0 0 48 48" className="w-10 h-10 sm:w-11 sm:h-11 select-none" fill="none">
-        {/* Central Pillar & Pivot */}
         <path d="M24 9 V37 M18 37 H30" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        <circle cx="24" cy="11" r="2.5" fill="#FEF3C7" stroke="currentColor" strokeWidth="1.75" />
-        {/* Crossbeam (Tilted slightly to show Direct Plan superiority) */}
+        <circle cx="24" cy="11" r="2.5" fill="color-mix(in srgb, var(--color-accent) 20%, transparent)" stroke="currentColor" strokeWidth="1.75" />
         <path d="M10 15 L38 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        {/* Left Pan (Direct / Lighter higher pan with emerald alpha spark) */}
         <path d="M10 15 L7 24 M10 15 L15 24" stroke="currentColor" strokeWidth="1.5" />
         <path d="M6 24 C6 24 11 27 16 24 Z" fill="color-mix(in srgb, var(--color-accent) 30%, transparent)" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
         <circle cx="11" cy="22" r="2" fill="var(--color-accent)" />
-        {/* Right Pan (Regular / Heavier lower pan with distributor fee coin) */}
         <path d="M38 19 L33 30 M38 19 L43 30" stroke="currentColor" strokeWidth="1.5" />
-        <path d="M32 30 C32 30 38 33 44 30 Z" fill="#FEF3C7" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
-        <rect x="36" y="26" width="4" height="4" rx="1" fill="#F59E0B" stroke="currentColor" strokeWidth="1.25" />
-        {/* Radiating Precision Ticks */}
+        <path d="M32 30 C32 30 38 33 44 30 Z" fill="color-mix(in srgb, var(--color-accent) 20%, transparent)" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
+        <rect x="36" y="26" width="4" height="4" rx="1" fill="var(--color-accent)" stroke="currentColor" strokeWidth="1.25" />
         <path d="M7 11 L5 9 M10 8 L9 5" stroke="var(--color-accent)" strokeWidth="1.5" strokeLinecap="round" />
       </svg>
     ),
   },
 ];
 
-export function Q3Purpose({ onBack, onSkip, onSelect }: Q3PurposeProps) {
+export function Q3Purpose({
+  onBack,
+  onSkip,
+  onSelect,
+  isMobile = false,
+  currentStepIndex = 3,
+  totalSteps = 5,
+}: Q3PurposeProps) {
+  const choicesContent = (
+    <div className="space-y-2 sm:space-y-2.5">
+      {OPTIONS.map((option) => (
+        <motion.button
+          key={option.value}
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.98 }}
+          type="button"
+          className="w-full p-3 sm:p-3.5 rounded-2xl bg-[var(--color-surface)] border border-[color-mix(in_srgb,var(--color-border)_70%,transparent)] hover:border-[var(--color-accent)]/60 hover:bg-[color-mix(in_srgb,var(--color-accent)_4%,var(--color-surface))] flex items-center gap-3 sm:gap-4 text-left transition-all duration-200 cursor-pointer group shadow-xs select-none min-h-[48px]"
+          onClick={() => onSelect(option.value)}
+        >
+          <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] text-[var(--color-ink)] flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-all duration-200 shadow-2xs">
+            {option.renderIllustration()}
+          </div>
+
+          <div className="flex-1 min-w-0 space-y-0.5">
+            <strong className="block font-display font-bold text-xs sm:text-[14px] text-[var(--color-ink)] group-hover:text-[var(--color-accent)] transition-colors">
+              {option.title}
+            </strong>
+            <span className="block text-[11px] sm:text-xs text-[var(--color-text-secondary)] leading-tight sm:leading-relaxed font-medium">
+              {option.subtitle}
+            </span>
+          </div>
+
+          <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] flex items-center justify-center flex-shrink-0 group-hover:border-[var(--color-accent)] group-hover:bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] transition-all duration-150">
+            <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[var(--color-text-secondary)] group-hover:text-[var(--color-accent)] group-hover:translate-x-0.5 transition-all duration-150" />
+          </div>
+        </motion.button>
+      ))}
+    </div>
+  );
+
+  if (isMobile) {
+    return (
+      <MobileOnboardingScreen
+        currentStepIndex={currentStepIndex}
+        totalSteps={totalSteps}
+        onBack={onBack}
+        onSkip={onSkip}
+        title="What brings you to Unifolio?"
+        illustrationVariant="purpose"
+        subtext="Choose your primary goal so we can highlight the most relevant views for you."
+      >
+        {choicesContent}
+      </MobileOnboardingScreen>
+    );
+  }
+
+  // Desktop (isMobile === false) renders unchanged
   return (
     <motion.div
       variants={staggerContainerVariants}
@@ -131,9 +165,6 @@ export function Q3Purpose({ onBack, onSkip, onSelect }: Q3PurposeProps) {
 
       {/* 1. Header with Eyebrow */}
       <motion.div variants={staggerItemVariants} className="space-y-1">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-accent)] block font-mono">
-          YOUR GOALS
-        </span>
         <h1 className="font-display font-bold text-lg sm:text-2xl text-[var(--color-ink)] tracking-tight leading-snug">
           What brings you to Unifolio?
         </h1>
@@ -143,38 +174,8 @@ export function Q3Purpose({ onBack, onSkip, onSelect }: Q3PurposeProps) {
       </motion.div>
 
       {/* 2. Choice Cards Grid */}
-      <motion.div variants={staggerItemVariants} className="space-y-2 sm:space-y-3">
-        {OPTIONS.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            className="w-full p-2.5 sm:p-3.5 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-accent)]/60 hover:bg-[color-mix(in_srgb,var(--color-accent)_3%,var(--color-surface))] flex items-center gap-3 sm:gap-4 text-left transition-all duration-200 cursor-pointer active:scale-[0.99] group shadow-xs select-none min-h-[44px]"
-            onClick={() => onSelect(option.value)}
-          >
-            {/* Dedicated Editorial Illustration Tile */}
-            <div className="h-9 w-9 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-ink)] flex items-center justify-center flex-shrink-0 group-hover:border-[var(--color-accent)]/40 group-hover:scale-105 transition-all duration-200 shadow-2xs">
-              {option.renderIllustration()}
-            </div>
-
-            <div className="flex-1 min-w-0 space-y-0.5">
-              <div className="flex items-center gap-2 flex-wrap">
-                <strong className="block font-display font-semibold text-xs sm:text-[14px] text-[var(--color-ink)] group-hover:text-[var(--color-accent)] transition-colors">
-                  {option.title}
-                </strong>
-                <span className="text-[9px] font-mono font-bold tracking-wider uppercase px-1.5 py-0.2 rounded-md bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text-secondary)] group-hover:border-[var(--color-accent)]/40 group-hover:text-[var(--color-accent)] transition-colors">
-                  {option.badge}
-                </span>
-              </div>
-              <span className="block text-[11px] sm:text-xs text-[var(--color-text-secondary)] leading-tight sm:leading-relaxed">
-                {option.subtitle}
-              </span>
-            </div>
-
-            <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] flex items-center justify-center flex-shrink-0 group-hover:border-[var(--color-accent)] group-hover:bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] transition-all duration-150">
-              <ArrowRight className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-[var(--color-text-secondary)] group-hover:text-[var(--color-accent)] group-hover:translate-x-0.5 transition-all duration-150" />
-            </div>
-          </button>
-        ))}
+      <motion.div variants={staggerItemVariants}>
+        {choicesContent}
       </motion.div>
 
       {/* 3. Navigation Controls */}

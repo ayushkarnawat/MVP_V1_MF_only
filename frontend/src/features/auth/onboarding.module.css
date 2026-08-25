@@ -401,3 +401,32 @@
   }
 }
 
+@keyframes gentleFloat {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-6px) rotate(1.5deg);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.04);
+  }
+}
+
+.gentleFloat {
+  animation: gentleFloat 4s ease-in-out infinite;
+}
+
+.pulseGlow {
+  animation: pulseGlow 3s ease-in-out infinite;
+}
+
+

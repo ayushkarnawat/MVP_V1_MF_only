@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { ArrowRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { OnboardingIllustration } from "@/features/auth/OnboardingIllustration";
 import { staggerContainerVariants, staggerItemVariants } from "@/lib/motion";
 
@@ -122,9 +122,6 @@ export function ImportPathChoice({
 
       {/* Header with Eyebrow */}
       <motion.div variants={staggerItemVariants} className="space-y-1 text-center sm:text-left">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-accent)] block font-mono">
-          GET YOUR PORTFOLIO IN
-        </span>
         <h1 className="font-display font-bold text-lg sm:text-2xl text-[var(--color-ink)] tracking-tight leading-snug">
           How would you like to bring in your statement?
         </h1>
@@ -146,21 +143,16 @@ export function ImportPathChoice({
           </div>
 
           <div className="flex-1 min-w-0 space-y-0.5 sm:space-y-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <strong className="block font-display font-semibold text-xs sm:text-base text-[var(--color-ink)] group-hover:text-[var(--color-accent)] transition-colors">
-                Request from CAMS
-              </strong>
-              <span className="text-[9px] font-mono font-bold tracking-wider uppercase px-2 py-0.2 rounded-md bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] text-[var(--color-accent)] border border-[color-mix(in_srgb,var(--color-accent)_24%,transparent)]">
-                Recommended
-              </span>
-            </div>
+            <strong className="block font-display font-semibold text-xs sm:text-base text-[var(--color-ink)] group-hover:text-[var(--color-accent)] transition-colors">
+              Request from CAMS
+            </strong>
             <span className="block text-[11px] sm:text-xs text-[var(--color-text-secondary)] leading-tight sm:leading-relaxed">
               Free, official, and covers every AMC automatically. Arrives by email in 5–10 min.
             </span>
           </div>
 
           <div className="h-6 w-6 sm:h-8 sm:w-8 rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] flex items-center justify-center flex-shrink-0 group-hover:border-[var(--color-accent)] group-hover:bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] transition-all duration-150">
-            <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4 text-[var(--color-text-secondary)] group-hover:text-[var(--color-accent)] group-hover:translate-x-0.5 transition-all duration-150" />
+            <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[var(--color-text-secondary)] group-hover:text-[var(--color-accent)] group-hover:translate-x-0.5 transition-all duration-150" />
           </div>
         </button>
 
@@ -175,24 +167,20 @@ export function ImportPathChoice({
           </div>
 
           <div className="flex-1 min-w-0 space-y-0.5 sm:space-y-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <strong className="block font-display font-semibold text-xs sm:text-base text-[var(--color-ink)] group-hover:text-[var(--color-accent)] transition-colors">
-                Already have a statement
-              </strong>
-              <span className="text-[9px] font-mono font-bold tracking-wider uppercase px-2 py-0.2 rounded-md bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text-secondary)] group-hover:border-[var(--color-accent)]/40 group-hover:text-[var(--color-accent)] transition-colors">
-                Upload PDF
-              </span>
-            </div>
+            <strong className="block font-display font-semibold text-xs sm:text-base text-[var(--color-ink)] group-hover:text-[var(--color-accent)] transition-colors">
+              Already have a statement
+            </strong>
             <span className="block text-[11px] sm:text-xs text-[var(--color-text-secondary)] leading-tight sm:leading-relaxed">
               Drop in a CAS PDF statement you already downloaded — done in seconds.
             </span>
           </div>
 
           <div className="h-6 w-6 sm:h-8 sm:w-8 rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] flex items-center justify-center flex-shrink-0 group-hover:border-[var(--color-accent)] group-hover:bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] transition-all duration-150">
-            <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4 text-[var(--color-text-secondary)] group-hover:text-[var(--color-accent)] group-hover:translate-x-0.5 transition-all duration-150" />
+            <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[var(--color-text-secondary)] group-hover:text-[var(--color-accent)] group-hover:translate-x-0.5 transition-all duration-150" />
           </div>
         </button>
       </motion.div>
     </motion.div>
   );
 }
+

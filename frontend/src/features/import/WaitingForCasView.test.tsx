@@ -74,7 +74,7 @@ describe("WaitingForCasView", () => {
     const passwordInput = screen.getByLabelText(/PDF Password/i);
     fireEvent.change(passwordInput, { target: { value: "SECRET123" } });
 
-    const submitBtn = screen.getByRole("button", { name: /Upload & Parse Statement/i });
+    const submitBtn = screen.getByRole("button", { name: /Upload Statement/i });
     fireEvent.click(submitBtn);
 
     expect(onUploadSubmit).toHaveBeenCalledWith(mockFile, "SECRET123");

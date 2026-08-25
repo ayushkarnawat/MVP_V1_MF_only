@@ -166,7 +166,7 @@ export function LinkAccountPrompt({ matchedEmail, existingMethod, pendingToken, 
           channel="email"
           onSubmit={handleEmailOtpSubmit}
           onResend={() => handleEmailOtpRequest(emailIdentifier)}
-          onBack={() => setStep("entry")}
+          onBack={() => goToStep("entry")}
           submitting={submitting}
           error={error}
           devOtp={devOtp}

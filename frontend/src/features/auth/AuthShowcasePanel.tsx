@@ -23,7 +23,7 @@ export function AuthShowcasePanel({ step: _step = "landing" }: AuthShowcasePanel
 
       {/* Premium Integrated Typography Overlay (positioned cleanly below artwork elements) */}
       <div className="relative z-10 text-left w-full max-w-full mb-1">
-        <h2 className="font-serif font-bold text-lg sm:text-xl lg:text-[1.42rem] xl:text-[1.52rem] text-[var(--color-accent)] tracking-tight leading-[1.22] whitespace-nowrap overflow-visible">
+        <h2 className="font-display font-bold text-lg sm:text-xl lg:text-[1.42rem] xl:text-[1.52rem] text-[var(--color-accent)] tracking-tight leading-[1.22] whitespace-nowrap overflow-visible">
           Unify. Consolidate. Build Wealth.
         </h2>
         <p className="text-xs sm:text-sm text-[#4B5563] dark:text-[#9CA3AF] leading-relaxed font-body mt-2 tracking-normal font-normal">

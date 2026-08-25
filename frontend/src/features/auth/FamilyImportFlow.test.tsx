@@ -45,7 +45,7 @@ function uploadFor(memberLabel: RegExp) {
   }
   fireEvent.change(screen.getByLabelText(/cas pdf/i), { target: { files: [file] } });
   fireEvent.change(screen.getByLabelText(/pdf password/i), { target: { value: "secret" } });
-  fireEvent.click(screen.getByRole("button", { name: /upload & parse statement/i }));
+  fireEvent.click(screen.getByRole("button", { name: /upload statement/i }));
 }
 
 function renderFlow() {
@@ -105,7 +105,7 @@ describe("FamilyImportFlow", () => {
     fireEvent.click(screen.getByRole("button", { name: /upload later/i }));
 
     await waitFor(() => expect(screen.getByText(/cas\.pdf/i)).toBeInTheDocument());
-    expect(screen.getByRole("button", { name: /parse files/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /import now/i })).toBeInTheDocument();
   });
 
   it("parses queued files sequentially and shows one aggregate ImportConfirmed at the end", async () => {
@@ -123,9 +123,9 @@ describe("FamilyImportFlow", () => {
     fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
     await waitFor(() => expect(screen.getByText(/upload your own cas/i)).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: /upload later/i }));
-    await waitFor(() => screen.getByRole("button", { name: /parse files/i }));
+    await waitFor(() => screen.getByRole("button", { name: /import now/i }));
 
-    fireEvent.click(screen.getByRole("button", { name: /parse files/i }));
+    fireEvent.click(screen.getByRole("button", { name: /import now/i }));
 
     await waitFor(() => expect(screen.getByText(/review mom's cas import/i)).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: /confirm import/i }));
@@ -153,9 +153,9 @@ describe("FamilyImportFlow", () => {
     fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
     await waitFor(() => screen.getByText(/upload your own cas/i));
     fireEvent.click(screen.getByRole("button", { name: /upload later/i }));
-    await waitFor(() => screen.getByRole("button", { name: /parse files/i }));
+    await waitFor(() => screen.getByRole("button", { name: /import now/i }));
 
-    fireEvent.click(screen.getByRole("button", { name: /parse files/i }));
+    fireEvent.click(screen.getByRole("button", { name: /import now/i }));
 
     await waitFor(() => expect(screen.getByText(/import failed/i)).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: /try again/i }));
@@ -178,9 +178,9 @@ describe("FamilyImportFlow", () => {
     fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
     await waitFor(() => screen.getByText(/upload your own cas/i));
     fireEvent.click(screen.getByRole("button", { name: /upload later/i }));
-    await waitFor(() => screen.getByRole("button", { name: /parse files/i }));
+    await waitFor(() => screen.getByRole("button", { name: /import now/i }));
 
-    fireEvent.click(screen.getByRole("button", { name: /parse files/i }));
+    fireEvent.click(screen.getByRole("button", { name: /import now/i }));
 
     await waitFor(() => expect(screen.getByText(/import failed/i)).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: /skip mom for now/i }));
@@ -201,9 +201,9 @@ describe("FamilyImportFlow", () => {
     fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
     await waitFor(() => screen.getByText(/upload your own cas/i));
     fireEvent.click(screen.getByRole("button", { name: /upload later/i }));
-    await waitFor(() => screen.getByRole("button", { name: /parse files/i }));
+    await waitFor(() => screen.getByRole("button", { name: /import now/i }));
 
-    fireEvent.click(screen.getByRole("button", { name: /parse files/i }));
+    fireEvent.click(screen.getByRole("button", { name: /import now/i }));
     await waitFor(() => expect(screen.getByText(/review mom's cas import/i)).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: /confirm import/i }));
 
@@ -261,9 +261,9 @@ describe("FamilyImportFlow", () => {
     fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
     await waitFor(() => screen.getByText(/upload your own cas/i));
     fireEvent.click(screen.getByRole("button", { name: /upload later/i }));
-    await waitFor(() => screen.getByRole("button", { name: /parse files/i }));
+    await waitFor(() => screen.getByRole("button", { name: /import now/i }));
 
-    fireEvent.click(screen.getByRole("button", { name: /parse files/i }));
+    fireEvent.click(screen.getByRole("button", { name: /import now/i }));
     await waitFor(() => expect(screen.getByText(/review mom's cas import/i)).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: /confirm import/i }));
 

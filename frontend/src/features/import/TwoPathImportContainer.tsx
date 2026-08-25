@@ -68,11 +68,7 @@ export function TwoPathImportContainer({
     <div className="flex flex-col space-y-6 w-full max-w-3xl mx-auto">
       {/* Top Header & Secondary History Switcher */}
       <div className="flex items-center justify-between gap-3 flex-wrap px-0.5 pb-0.5">
-        <div className="space-y-0.5">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)] block font-mono">
-            CAS Import Flow
-          </span>
-        </div>
+        <div className="space-y-0.5" />
 
         {/* Secondary Import History Action Button */}
         <button

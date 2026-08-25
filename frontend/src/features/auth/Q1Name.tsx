@@ -4,6 +4,8 @@ import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { User, ArrowLeft, ArrowRight } from "lucide-react";
 import { OnboardingIllustration } from "./OnboardingIllustration";
+import { MobileOnboardingScreen } from "./MobileOnboardingScreen";
+import { DoodleSparkle } from "./OnboardingDoodles";
 import { staggerContainerVariants, staggerItemVariants } from "@/lib/motion";
 
 interface Q1NameProps {
@@ -11,16 +13,121 @@ interface Q1NameProps {
   onBack?: () => void;
   onSkip: () => void;
   onSubmit: (name: string) => void;
+  isMobile?: boolean;
+  currentStepIndex?: number;
+  totalSteps?: number;
 }
 
-export function Q1Name({ value, onBack, onSkip, onSubmit }: Q1NameProps) {
+/** Custom Editorial Illustration rendering the mobile name screen artwork */
+function MobileNameIllustration() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.94 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.4, ease: [0.34, 1.2, 0.64, 1] }}
+      className="relative flex items-center justify-center select-none w-56 h-56 sm:w-64 sm:h-64 mx-auto my-1"
+      aria-label="Name onboarding illustration"
+      role="img"
+    >
+      <motion.img
+        animate={{ y: [0, -3, 0] }}
+        transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
+        src="/illustrations/mobile_name_screen.png"
+        alt="Name onboarding illustration"
+        className="relative z-10 w-full h-full object-contain filter drop-shadow-sm transition-all dark:hidden"
+        loading="eager"
+        decoding="async"
+      />
+      <motion.img
+        animate={{ y: [0, -3, 0] }}
+        transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
+        src="/illustrations/mobile_name_screen_dark.png"
+        alt="Name onboarding illustration"
+        className="relative z-10 w-full h-full object-contain filter drop-shadow-[0_0_14px_rgba(74,222,128,0.2)] transition-all hidden dark:block"
+        loading="eager"
+        decoding="async"
+      />
+    </motion.div>
+  );
+}
+
+export function Q1Name({
+  value,
+  onBack,
+  onSkip,
+  onSubmit,
+  isMobile = false,
+  currentStepIndex = 1,
+  totalSteps = 5,
+}: Q1NameProps) {
   const [name, setName] = useState(value);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    onSubmit(name);
+    if (name.trim()) {
+      onSubmit(name);
+    }
   };
 
+  const nameInputContent = (
+    <div className="space-y-2 text-left relative">
+      <label
+        htmlFor="name-input"
+        className="text-xs font-semibold text-[var(--color-ink)] block"
+      >
+        Your Full Name or First Name
+      </label>
+      <div className="relative flex items-center rounded-2xl bg-[var(--color-bg)] border border-[var(--color-border)] focus-within:border-[var(--color-accent)] focus-within:ring-2 focus-within:ring-[var(--color-accent)]/20 transition-all overflow-hidden h-12 sm:h-13 min-h-[48px] px-4 gap-3 shadow-xs">
+        <div className="h-7 w-7 rounded-lg bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] text-[var(--color-accent)] flex items-center justify-center flex-shrink-0">
+          <User className="h-4 w-4" />
+        </div>
+        <input
+          id="name-input"
+          type="text"
+          value={name}
+          placeholder="e.g. Ayush Karnawat"
+          autoComplete="name"
+          autoCorrect="off"
+          autoCapitalize="words"
+          spellCheck="false"
+          onChange={(event) => setName(event.target.value)}
+          className="flex-1 bg-transparent text-xs sm:text-sm font-medium text-[var(--color-ink)] placeholder:text-[var(--color-text-secondary)]/50 focus:outline-none focus:ring-0 focus:border-none border-none outline-none ring-0 shadow-none appearance-none selection:bg-[var(--color-accent)]/20 selection:text-[var(--color-ink)] caret-[var(--color-accent)]"
+          autoFocus
+        />
+        {name.trim() && (
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+            <DoodleSparkle className="w-3.5 h-3.5 text-[var(--color-accent)] opacity-80" />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  if (isMobile) {
+    return (
+      <form onSubmit={handleSubmit} className="w-full">
+        <MobileOnboardingScreen
+          currentStepIndex={currentStepIndex}
+          totalSteps={totalSteps}
+          onBack={onBack}
+          onSkip={onSkip}
+          title="What should we call you?"
+          customIllustration={<MobileNameIllustration />}
+          subtext="Personalizing your mutual fund summaries, portfolio reports, and tax statements."
+          ctaLabel="Next"
+          ctaDisabled={!name.trim()}
+          onCtaClick={() => {
+            if (name.trim()) onSubmit(name);
+          }}
+          ctaIcon={<ArrowRight className="h-4 w-4" />}
+        >
+          {nameInputContent}
+        </MobileOnboardingScreen>
+      </form>
+    );
+  }
+
+  // Desktop (isMobile === false) renders unchanged
   return (
     <motion.form
       variants={staggerContainerVariants}
@@ -36,9 +143,6 @@ export function Q1Name({ value, onBack, onSkip, onSubmit }: Q1NameProps) {
 
       {/* 1. Header with Eyebrow */}
       <motion.div variants={staggerItemVariants} className="space-y-1.5">
-        <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[var(--color-accent)] block font-mono">
-          INVESTOR PROFILE
-        </span>
         <h1 className="font-display font-bold text-xl sm:text-2xl text-[var(--color-ink)] tracking-tight leading-snug">
           What should we call you?
         </h1>
@@ -48,31 +152,8 @@ export function Q1Name({ value, onBack, onSkip, onSubmit }: Q1NameProps) {
       </motion.div>
 
       {/* 2. Name Input Group */}
-      <motion.div variants={staggerItemVariants} className="space-y-2">
-        <label
-          htmlFor="name-input"
-          className="text-xs font-semibold text-[var(--color-ink)] block"
-        >
-          Your Full Name or First Name
-        </label>
-        <div className="flex items-center rounded-2xl bg-[var(--color-bg)] border border-[var(--color-border)] focus-within:border-[var(--color-accent)] focus-within:ring-2 focus-within:ring-[var(--color-accent)]/20 transition-all overflow-hidden h-12 sm:h-13 min-h-[48px] px-4 gap-3 shadow-xs">
-          <div className="h-7 w-7 rounded-lg bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] text-[var(--color-accent)] flex items-center justify-center flex-shrink-0">
-            <User className="h-4 w-4" />
-          </div>
-          <input
-            id="name-input"
-            type="text"
-            value={name}
-            placeholder="e.g. Ayush Karnawat"
-            autoComplete="name"
-            autoCorrect="off"
-            autoCapitalize="words"
-            spellCheck="false"
-            onChange={(event) => setName(event.target.value)}
-            className="flex-1 bg-transparent text-xs sm:text-sm font-medium text-[var(--color-ink)] placeholder:text-[var(--color-text-secondary)]/50 focus:outline-none border-none outline-none ring-0 shadow-none appearance-none selection:bg-[var(--color-accent)]/20 selection:text-[var(--color-ink)] caret-[var(--color-accent)]"
-            autoFocus
-          />
-        </div>
+      <motion.div variants={staggerItemVariants}>
+        {nameInputContent}
       </motion.div>
 
       {/* 3. Navigation Controls */}

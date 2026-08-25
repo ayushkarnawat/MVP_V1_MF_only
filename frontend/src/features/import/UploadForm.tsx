@@ -99,9 +99,6 @@ export function UploadForm({ onBack, onSubmit }: UploadFormProps) {
         </div>
 
         <div className="space-y-0.5 sm:space-y-1 text-center sm:text-left flex-1 min-w-0">
-          <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-[var(--color-accent)] block">
-            CAS STATEMENT INGESTION
-          </span>
           <h1 className="font-display font-bold text-base sm:text-xl text-[var(--color-ink)] tracking-tight">
             Upload your statement
           </h1>
@@ -226,7 +223,7 @@ export function UploadForm({ onBack, onSubmit }: UploadFormProps) {
         className="w-full h-11 sm:h-12 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs sm:text-sm shadow-xs gap-2 cursor-pointer active:scale-[0.99] transition-all min-h-[44px]"
       >
         <UploadCloud className="h-4 w-4" />
-        <span>Upload &amp; Parse Statement</span>
+        <span>Upload Statement</span>
       </Button>
     </form>
   );

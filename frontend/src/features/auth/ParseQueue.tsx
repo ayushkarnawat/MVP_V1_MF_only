@@ -25,15 +25,9 @@ export function ParseQueue({ queue, onParseFiles }: ParseQueueProps) {
 
       {/* 1. Header with Eyebrow */}
       <motion.div variants={staggerItemVariants} className="space-y-1.5">
-        <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[var(--color-accent)] block font-mono">
-          BATCH PROCESSING
-        </span>
         <h1 className="font-display font-bold text-xl sm:text-2xl text-[var(--color-ink)] tracking-tight leading-snug">
           Files ready to import
         </h1>
-        <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
-          {queue.length} statement{queue.length === 1 ? "" : "s"} queued for batch processing.
-        </p>
       </motion.div>
 
       {/* 2. Queued Statements List */}
@@ -73,7 +67,7 @@ export function ParseQueue({ queue, onParseFiles }: ParseQueueProps) {
           className="w-full h-11 sm:h-12 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs sm:text-sm shadow-xs gap-2 cursor-pointer active:scale-[0.99] transition-all min-h-[44px] sm:min-h-[48px]"
         >
           <Layers className="h-4 w-4" />
-          <span>Parse Files</span>
+          <span>Import Now</span>
           <ArrowRight className="h-4 w-4 ml-auto" />
         </Button>
       </motion.div>

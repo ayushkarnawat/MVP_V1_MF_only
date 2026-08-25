@@ -167,6 +167,36 @@ auto-merged clean. That divergence brought in, already on `feat/enhanced-ui`, th
 sections immediately below: post-merge stabilization, the `authsetup` merge (Auth,
 Onboarding, CAS Import v2, Mobile Polish), and the Analytics PDF export merge.
 
+## Mobile Privacy Screen & Onboarding Full-Screen Redesign (2026-08-21)
+
+Implemented the Mobile Privacy Screen & Onboarding Full-Screen Redesign per `Docs/superpowers/specs/2026-08-20-mobile-privacy-onboarding-fullscreen-plan.md` on branch `feat/enhanced-ui`:
+
+1. **`MobileOnboardingScreen.tsx` Component**:
+   - Built the shared mobile full-screen container (`min-h-dvh w-full bg-[var(--color-bg)] flex flex-col justify-between p-4 sm:p-6`).
+   - Implemented exact validated element order (§3):
+     `top bar → headline → illustration → subtext → content → CTA (no eyebrow label)`.
+   - Top bar renders back chevron (`ChevronLeft`), step progress indicator dashes (`Step X of 5`), and skip link (when available).
+   - Constrained illustration height to fit comfortably above subtext without pushing CTAs off-screen.
+
+2. **Client-Side 2-Point Privacy Split in `TrustPrimer.tsx` (§5)**:
+   - Added internal client-side `point: 1 | 2` state to `TrustPrimer.tsx` when `isMobile` is `true`:
+     - Point 1: Headline *"Your privacy & data safety come first"*, Illustration `trust`, Subtext *"Unifolio only parses holdings and transactions to show analytics. Nothing is ever bought, sold, or transferred."*, CTA *"Next"*.
+     - Point 2: Headline *"No raw CAS PDF storage"*, Custom Privacy Lock Hero Visual SVG with emerald glow, Subtext *"Statements are processed in-memory. Your raw CAS PDF and PAN are never permanently stored."*, CTA *"Continue"*.
+     - Removed redundant bottom bordered information boxes/cards, leaving the clean `Heading → Illustration → Description → CTA` structure matching reference design.
+     - Back navigation from Point 2 returns internal state to Point 1.
+   - Desktop presentation (`isMobile === false`) renders completely unchanged in its original single-card layout inside `OnboardingCardStack`.
+
+3. **Step Wrappers & Unification**:
+   - Threaded `isMobile` from `App.tsx` into `OnboardingFlow.tsx`.
+   - Wrapped `Q1Name.tsx`, `Q2Investing.tsx`, `Q3Purpose.tsx`, `Q4Household.tsx`, and `AddFamilyMembers.tsx` with `MobileOnboardingScreen` when `isMobile` is `true`.
+   - Swapped illustration variant in `AddFamilyMembers.tsx` from `"household"` to `"family"` (§6 #7).
+   - Preserved desktop's `OnboardingCardStack` presentation 100% unchanged.
+
+4. **Automated Unit Tests**:
+   - Created `MobileOnboardingScreen.test.tsx` testing top bar, element order, back/skip/CTA clicks, and disabled CTA states.
+   - Updated `TrustPrimer.test.tsx` testing both desktop view and mobile 2-point pagination navigation.
+   - Verified that all **72 test files (334 tests total)** pass 100% cleanly.
+
 ## Post-Merge Stabilization: Alembic Migration Linearization & Windows Playwright Lifecycle (2026-08-21)
 
 Stabilization following the merge of `authsetup` and `worktree-analytics-pdf-export` into `feat/enhanced-ui`:

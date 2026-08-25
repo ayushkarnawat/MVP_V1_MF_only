@@ -137,7 +137,7 @@ describe("MobileAnalyticsView", () => {
 
     render(<MobileAnalyticsView />);
 
-    expect(screen.getByText("Mobile Analytics")).toBeInTheDocument();
+    expect(screen.getByText("Portfolio Total Value")).toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByText("Portfolio Allocation")).toBeInTheDocument();

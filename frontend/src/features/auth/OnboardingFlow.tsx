@@ -34,7 +34,11 @@ function resumeStep(step: string | null | undefined): OnboardingStep {
   return isOnboardingStep(step) && step !== "done" ? step : "trust_primer";
 }
 
-export function OnboardingFlow() {
+interface OnboardingFlowProps {
+  isMobile?: boolean;
+}
+
+export function OnboardingFlow({ isMobile = false }: OnboardingFlowProps) {
   const { me, updateMe } = useAuth();
   const [history, setHistory] = useState<HistoryState>(() => initHistory(resumeStep(me?.onboarding_step)));
   const [answers, setAnswers] = useState<OnboardingAnswers>(INITIAL_ANSWERS);
@@ -55,7 +59,14 @@ export function OnboardingFlow() {
 
   const renderStep = () => {
     if (step === "trust_primer") {
-      return (
+      return isMobile ? (
+        <TrustPrimer
+          isMobile
+          currentStepIndex={0}
+          totalSteps={5}
+          onContinue={() => advance("q1_name")}
+        />
+      ) : (
         <OnboardingCardStack history={history}>
           <TrustPrimer onContinue={() => advance("q1_name")} />
         </OnboardingCardStack>
@@ -63,7 +74,20 @@ export function OnboardingFlow() {
     }
 
     if (step === "q1_name") {
-      return (
+      return isMobile ? (
+        <Q1Name
+          isMobile
+          currentStepIndex={1}
+          totalSteps={5}
+          value={answers.name}
+          onBack={showBack ? back : undefined}
+          onSkip={() => skip("q2_investing")}
+          onSubmit={(name) => {
+            setAnswers((a) => ({ ...a, name }));
+            advance("q2_investing");
+          }}
+        />
+      ) : (
         <OnboardingCardStack history={history}>
           <Q1Name
             value={answers.name}
@@ -79,7 +103,20 @@ export function OnboardingFlow() {
     }
 
     if (step === "q2_investing") {
-      return (
+      return isMobile ? (
+        <Q2Investing
+          isMobile
+          currentStepIndex={2}
+          totalSteps={5}
+          onBack={back}
+          onSkip={() => skip("q3_purpose")}
+          onSelect={(investorType) => {
+            void updateMe({ investor_type: investorType });
+            setAnswers((a) => ({ ...a, investorType }));
+            advance("q3_purpose");
+          }}
+        />
+      ) : (
         <OnboardingCardStack history={history}>
           <Q2Investing
             onBack={back}
@@ -95,7 +132,20 @@ export function OnboardingFlow() {
     }
 
     if (step === "q3_purpose") {
-      return (
+      return isMobile ? (
+        <Q3Purpose
+          isMobile
+          currentStepIndex={3}
+          totalSteps={5}
+          onBack={back}
+          onSkip={() => skip("q4_household")}
+          onSelect={(primaryGoal) => {
+            void updateMe({ primary_goal: primaryGoal });
+            setAnswers((a) => ({ ...a, primaryGoal }));
+            advance("q4_household");
+          }}
+        />
+      ) : (
         <OnboardingCardStack history={history}>
           <Q3Purpose
             onBack={back}
@@ -111,7 +161,17 @@ export function OnboardingFlow() {
     }
 
     if (step === "q4_household") {
-      return (
+      return isMobile ? (
+        <Q4Household
+          isMobile
+          currentStepIndex={4}
+          totalSteps={5}
+          onBack={back}
+          onSkip={() => skip("cas_upload")}
+          onChooseSolo={() => advance("cas_upload")}
+          onChooseFamily={() => advance("add_family")}
+        />
+      ) : (
         <OnboardingCardStack history={history}>
           <Q4Household
             onBack={back}
@@ -123,7 +183,18 @@ export function OnboardingFlow() {
     }
 
     if (step === "add_family") {
-      return (
+      return isMobile ? (
+        <AddFamilyMembers
+          isMobile
+          currentStepIndex={4}
+          totalSteps={5}
+          members={answers.familyMembers}
+          onMembersChange={(familyMembers) => setAnswers((a) => ({ ...a, familyMembers }))}
+          onBack={back}
+          onSkip={() => skip("family_cas_upload")}
+          onContinue={() => advance("family_cas_upload")}
+        />
+      ) : (
         <div className="min-h-dvh w-full bg-[var(--color-bg)] flex flex-col justify-center items-center p-3.5 sm:p-6 lg:p-8 box-border overflow-y-auto">
           <div className="w-full max-w-lg mx-auto my-auto">
             <AddFamilyMembers

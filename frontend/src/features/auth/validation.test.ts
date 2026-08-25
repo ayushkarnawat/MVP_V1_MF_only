@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   validateEmail,
   validateIndianPhone,
+  formatPhoneForDisplay,
   formatAuthErrorMessage,
 } from "./validation";
 import { ApiError } from "@/lib/apiClient";
@@ -153,6 +154,27 @@ describe("validateIndianPhone", () => {
     expect(r5.normalized).toBe("+919876543210");
   });
 });
+
+describe("formatPhoneForDisplay", () => {
+  it("formats unspaced +91 phone numbers to +91 XXXXXXXXXX", () => {
+    expect(formatPhoneForDisplay("+919876543210")).toBe("+91 9876543210");
+  });
+
+  it("keeps already formatted +91 XXXXXXXXXX phone numbers as +91 XXXXXXXXXX", () => {
+    expect(formatPhoneForDisplay("+91 9876543210")).toBe("+91 9876543210");
+  });
+
+  it("formats 10-digit phone numbers to +91 XXXXXXXXXX", () => {
+    expect(formatPhoneForDisplay("9876543210")).toBe("+91 9876543210");
+  });
+
+  it("handles null, undefined, and empty string gracefully", () => {
+    expect(formatPhoneForDisplay(null)).toBe("");
+    expect(formatPhoneForDisplay(undefined)).toBe("");
+    expect(formatPhoneForDisplay("")).toBe("");
+  });
+});
+
 
 describe("formatAuthErrorMessage", () => {
   it("formats 409 conflict errors with detail", () => {

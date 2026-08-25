@@ -3,6 +3,8 @@ import type { FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { OtpInput } from "@/components/ui/otp-input";
 import { ArrowLeft, ArrowRight, AlertCircle, Loader2, KeyRound } from "lucide-react";
+import { formatPhoneForDisplay } from "./validation";
+
 
 interface OtpVerifyProps {
   /** The identifier the code was sent to -- a phone number for channel
@@ -68,7 +70,7 @@ export function OtpVerify({
           {isEmail ? "Verify your email" : "Verify your number"}
         </h1>
         <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed font-body">
-          We sent a 6-digit verification code to <strong className="text-[var(--color-ink)] font-mono">{phoneNumber}</strong>
+          We sent a 6-digit verification code to <strong className="text-[var(--color-ink)] font-mono">{formatPhoneForDisplay(phoneNumber)}</strong>
         </p>
       </div>
 

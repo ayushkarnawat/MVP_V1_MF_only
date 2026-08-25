@@ -252,9 +252,6 @@ export function AnalyticsView({
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-accent)]">
-                {viewMode === "aggregate" ? "Family Aggregate Analytics" : "Member Analytics"}
-              </span>
               <Badge variant="outline" className="text-[10px] border-[var(--color-border)] text-[var(--color-text-secondary)]">
                 Phase 1 & 2 Active
               </Badge>

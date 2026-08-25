@@ -143,10 +143,7 @@ export function MobileAnalyticsView({ memberId = null }: MobileAnalyticsViewProp
     <div className="space-y-6 pb-24 px-3 sm:px-4 pt-3 animate-in fade-in duration-200">
       {/* Mobile Header Card */}
       <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-2xs space-y-3">
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-accent)]">
-            Mobile Analytics
-          </span>
+        <div className="flex items-center justify-end">
           <Badge variant="outline" className="text-[9px] px-1.5 py-0">
             Phase 1 & 2 Complete
           </Badge>

@@ -55,13 +55,10 @@ export function FamilyCasUpload({
           className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] transition-colors cursor-pointer py-1"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
-          <span>← Back to Family List</span>
+          <span>Back to Family List</span>
         </button>
 
         <div className="space-y-1">
-          <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[var(--color-accent)] block font-mono">
-            MEMBER STATEMENT
-          </span>
           <h2 className="font-display font-bold text-xl sm:text-2xl text-[var(--color-ink)] tracking-tight">
             {member ? `Import Statement for ${member.name}` : "Import Statement"}
           </h2>
@@ -96,9 +93,6 @@ export function FamilyCasUpload({
 
       {/* 1. Header with Eyebrow */}
       <motion.div variants={staggerItemVariants} className="space-y-1.5">
-        <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[var(--color-accent)] block font-mono">
-          HOUSEHOLD STATEMENTS
-        </span>
         <h1 className="font-display font-bold text-xl sm:text-2xl text-[var(--color-ink)] tracking-tight leading-snug">
           Family CAS Upload
         </h1>

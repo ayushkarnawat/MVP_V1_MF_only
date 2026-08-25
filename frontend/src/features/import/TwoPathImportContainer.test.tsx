@@ -153,7 +153,7 @@ describe("TwoPathImportContainer", () => {
     const passwordInput = screen.getByLabelText(/pdf password/i);
     fireEvent.change(passwordInput, { target: { value: "pass123" } });
 
-    const submitBtn = screen.getByRole("button", { name: /upload & parse statement/i });
+    const submitBtn = screen.getByRole("button", { name: /upload statement/i });
     fireEvent.click(submitBtn);
 
     expect(onUploadSubmit).toHaveBeenCalled();

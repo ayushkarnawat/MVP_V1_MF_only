@@ -116,9 +116,6 @@ export function MobileReviewView({
       <div className="space-y-1">
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="space-y-0.5">
-            <span className="text-[9px] font-mono font-bold tracking-wider uppercase text-[var(--color-accent)] block">
-              CAS REVIEW &amp; VERIFICATION
-            </span>
             <h2 className="font-display font-bold text-base text-[var(--color-ink)]">
               Review CAS Import
             </h2>

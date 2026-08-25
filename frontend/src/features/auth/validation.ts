@@ -320,6 +320,19 @@ export function validateIndianPhone(rawPhone: string): PhoneValidationResult {
   };
 }
 
+export function formatPhoneForDisplay(phone: string | null | undefined): string {
+  if (!phone) return "";
+  const trimmed = phone.trim();
+  if (trimmed.startsWith("+91") && !trimmed.startsWith("+91 ")) {
+    return `+91 ${trimmed.slice(3)}`;
+  }
+  if (/^\d{10}$/.test(trimmed)) {
+    return `+91 ${trimmed}`;
+  }
+  return trimmed;
+}
+
+
 /**
  * Formats API and authentication errors into clear, human-friendly messages.
  */

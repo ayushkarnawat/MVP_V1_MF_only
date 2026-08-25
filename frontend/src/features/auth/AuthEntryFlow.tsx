@@ -233,7 +233,11 @@ export function AuthEntryFlow() {
         return (
           <Landing
             initialMode={authMode}
-            onModeChange={setAuthMode}
+            onModeChange={(newMode) => {
+              setError(null);
+              setDevOtp(null);
+              setAuthMode(newMode);
+            }}
             onSignup={handleEmailSignup}
             onSelectEmail={handleSelectEmail}
             onSelectPhone={handleSelectPhone}

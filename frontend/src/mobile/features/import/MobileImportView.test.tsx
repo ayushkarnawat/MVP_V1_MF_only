@@ -164,7 +164,7 @@ describe("MobileImportView", () => {
     const passwordInput = screen.getByLabelText(/PDF Password/i);
     fireEvent.change(passwordInput, { target: { value: "ABCDE1234F" } });
 
-    const submitBtn = screen.getByRole("button", { name: /Upload & Parse Statement/i });
+    const submitBtn = screen.getByRole("button", { name: /Upload Statement/i });
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
@@ -220,7 +220,7 @@ describe("MobileImportView", () => {
     const mockFile = new File(["pdf"], "statement.pdf", { type: "application/pdf" });
     fireEvent.change(fileInput, { target: { files: [mockFile] } });
 
-    const submitBtn = screen.getByRole("button", { name: /Upload & Parse Statement/i });
+    const submitBtn = screen.getByRole("button", { name: /Upload Statement/i });
     fireEvent.click(submitBtn);
 
     await screen.findByText("Review CAS Import");

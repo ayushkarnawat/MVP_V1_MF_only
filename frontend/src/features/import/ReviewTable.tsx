@@ -140,9 +140,6 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
       <div className="space-y-1">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pr-14 sm:pr-0">
           <div className="space-y-0.5">
-            <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-[var(--color-accent)] block">
-              CAS REVIEW &amp; VERIFICATION
-            </span>
             <h1 className="font-display font-bold tracking-tight leading-tight text-xl sm:text-3xl text-[var(--color-ink)]">
               {memberName ? `Review ${memberName}'s CAS Import` : "Review CAS Import"}
             </h1>
@@ -340,16 +337,16 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
                 <div className="space-y-3">
                   {/* Top Bar: Folio Badge + Status Pill */}
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-mono font-semibold uppercase px-2.5 py-0.5 rounded-lg bg-[var(--color-bg)] text-[var(--color-text-secondary)] border border-[var(--color-border)]">
+                    <span className="text-[10px] font-semibold uppercase px-2.5 py-0.5 rounded-lg bg-[var(--color-bg)] text-[var(--color-text-secondary)] border border-[var(--color-border)]">
                       Folio: {scheme.folio}
                     </span>
 
                     {needsAttention ? (
-                      <span className="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-md bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] text-[var(--color-accent)] border border-[color-mix(in_srgb,var(--color-accent)_24%,transparent)] flex-shrink-0">
+                      <span className="text-[9px] font-bold uppercase px-2 py-0.5 rounded-md bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] text-[var(--color-accent)] border border-[color-mix(in_srgb,var(--color-accent)_24%,transparent)] flex-shrink-0">
                         Action Needed
                       </span>
                     ) : (
-                      <span className="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-md bg-[color-mix(in_srgb,var(--color-positive)_12%,transparent)] text-[var(--color-positive)] border border-[color-mix(in_srgb,var(--color-positive)_24%,transparent)] flex-shrink-0">
+                      <span className="text-[9px] font-bold uppercase px-2 py-0.5 rounded-md bg-[color-mix(in_srgb,var(--color-positive)_12%,transparent)] text-[var(--color-positive)] border border-[color-mix(in_srgb,var(--color-positive)_24%,transparent)] flex-shrink-0">
                         Verified
                       </span>
                     )}
@@ -498,7 +495,7 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
                           {scheme.name}
                         </h3>
                         {needsAttention && (
-                          <span className="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-md bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] text-[var(--color-accent)] border border-[color-mix(in_srgb,var(--color-accent)_24%,transparent)] flex-shrink-0">
+                          <span className="text-[9px] font-bold uppercase px-2 py-0.5 rounded-md bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] text-[var(--color-accent)] border border-[color-mix(in_srgb,var(--color-accent)_24%,transparent)] flex-shrink-0">
                             Classification Needed
                           </span>
                         )}

@@ -96,7 +96,7 @@ export function AuthShell({ step, formSlot, visualSlot }: AuthShellProps) {
 
             {/* Mobile HTML Headline & Subtext matching live web copy */}
             <div className="block lg:hidden pt-0.5 space-y-1.5">
-              <h2 className="font-serif font-bold text-xl sm:text-xl text-[var(--color-ink)] tracking-tight leading-snug">
+              <h2 className="font-display font-bold text-xl sm:text-xl text-[var(--color-ink)] tracking-tight leading-snug">
                 Unify. Consolidate. Build Wealth.
               </h2>
               <p className="text-sm sm:text-sm text-[var(--color-text-secondary)] leading-relaxed">

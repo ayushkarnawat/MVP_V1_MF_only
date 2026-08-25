@@ -348,4 +348,41 @@ describe("AuthEntryFlow", () => {
     fireEvent.click(screen.getByRole("button", { name: /^back$/i }));
     expect(screen.getByRole("button", { name: /continue with phone/i })).toBeInTheDocument();
   });
+
+  it("clears previous signup error immediately when switching to Log in mode", async () => {
+    vi.mocked(api.signupEmail).mockRejectedValue(
+      new ApiError(409, "An account with this email already exists — log in instead."),
+    );
+    renderFlow();
+    fillEmail("dup@example.com");
+    fireEvent.click(screen.getByRole("button", { name: /^create account$/i }));
+
+    await waitFor(() => expect(screen.getByText(/already exists/i)).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("button", { name: /^log in$/i }));
+
+    await waitFor(() => expect(screen.queryByText(/already exists/i)).not.toBeInTheDocument());
+  });
+
+  it("clears previous login error immediately when switching to Sign up mode", async () => {
+    vi.mocked(api.verifyGoogleCredential).mockRejectedValue(
+      new ApiError(401, "Google sign-in failed. Try again."),
+    );
+    window.google = { accounts: { id: { initialize: vi.fn(), renderButton: vi.fn() } } };
+    renderFlow();
+
+    fireEvent.click(screen.getByRole("button", { name: /^log in$/i }));
+    const script = document.head.querySelector("script")!;
+    fireEvent.load(script);
+    await waitFor(() => expect(window.google!.accounts.id.initialize).toHaveBeenCalled());
+    const { callback } = vi.mocked(window.google!.accounts.id.initialize).mock.calls[0][0];
+    await callback({ credential: "bad-token" });
+
+    await waitFor(() => expect(screen.getByText(/google sign-in failed/i)).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("button", { name: /^sign up$/i }));
+
+    await waitFor(() => expect(screen.queryByText(/google sign-in failed/i)).not.toBeInTheDocument());
+  });
 });
+

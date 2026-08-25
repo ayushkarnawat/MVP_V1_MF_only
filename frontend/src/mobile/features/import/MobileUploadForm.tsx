@@ -108,9 +108,6 @@ export function MobileUploadForm({
         </div>
 
         <div className="space-y-0.5 flex-1 min-w-0">
-          <span className="text-[9px] font-mono font-bold tracking-wider uppercase text-[var(--color-accent)] block">
-            CAS INGESTION
-          </span>
           <h3 className="font-display font-bold text-sm sm:text-base text-[var(--color-ink)]">
             Upload your statement
           </h3>
@@ -235,7 +232,7 @@ export function MobileUploadForm({
         className="w-full h-11 sm:h-12 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs sm:text-sm shadow-xs gap-2 cursor-pointer active:scale-[0.98] transition-all min-h-[44px]"
       >
         <UploadCloud className="h-4 w-4" />
-        <span>{isLoading ? "Parsing Statement..." : "Upload & Parse Statement"}</span>
+        <span>{isLoading ? "Parsing Statement..." : "Upload Statement"}</span>
       </Button>
     </form>
   );

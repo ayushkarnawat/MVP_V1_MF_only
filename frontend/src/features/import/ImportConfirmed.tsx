@@ -1,5 +1,5 @@
 import type { ImportConfirmResponse } from "./types";
-import { ArrowRight, ShieldCheck } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { motion } from "motion/react";
 import { OnboardingIllustration } from "../auth/OnboardingIllustration";
 
@@ -35,11 +35,6 @@ export function ImportConfirmed({
 
       {/* 2. Header & Results Text */}
       <div className="space-y-3 max-w-lg mx-auto">
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[color-mix(in_srgb,var(--color-positive)_10%,transparent)] border border-[color-mix(in_srgb,var(--color-positive)_25%,transparent)] text-[10px] sm:text-xs font-mono font-bold uppercase tracking-wider text-[var(--color-positive)]">
-          <ShieldCheck className="h-3.5 w-3.5" />
-          <span>Ingestion Complete</span>
-        </div>
-
         <h1 className="font-display font-bold tracking-tight text-2xl sm:text-4xl text-[var(--color-ink)]">
           Import complete
         </h1>
