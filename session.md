@@ -1,4 +1,4 @@
-# Session state — 2026-08-24 (updated)
+# Session state — 2026-08-26 (updated)
 
 Working notes for picking this project back up cold. Not a planning doc — see
 `Docs/superpowers/plans/` for those. This file tracks *where things stand*,
@@ -58,6 +58,7 @@ short pointer only, per its own header note; this is the detail it points to.)*
    unrelated task. Full rationale:
    `Docs/superpowers/specs/2026-08-20-distributor-comparison-portfolio-level-design.md`'s
    "Follow-up (not built here)" section.
+7. A colleague's AMFI TER `ReadTimeout`s were root-caused to event-loop starvation from a blocking `db.commit()` inside an `async def` (this backend's SQLAlchemy engine is fully synchronous, single worker/event loop) — not AMFI slowness. Stopgap applied (`945b271`): AMFI TER httpx client timeout raised 30s→90s, confirmed fixed live 2026-08-26. The underlying vulnerability (any blocking sync DB call inside an async handler stalls every concurrent user, not just the slow request) is architectural, not environment-specific, and will still exist in production under real concurrent load — deliberately not fixed now; revisit alongside the planned Postgres migration. Full narrative: this file's "AMFI TER `ReadTimeout` root-caused..." section below.
 
 ## Two small post-merge bug fixes: AMFI TER concurrency, PDF export Allocation section (2026-08-24)
 
@@ -113,6 +114,80 @@ path, present immediately with `animate={false}`) and a new `AllocationSection.t
 (printMode renders both breakdowns with no tab button in the DOM at all) — then green
 after the fix. Full frontend suite re-run clean: 335/335 tests across 72 files, `tsc -b
 --noEmit` clean.
+
+## AMFI TER `ReadTimeout` root-caused to event-loop starvation from blocking `db.commit()` (2026-08-25/26)
+
+A colleague's Analytics dashboard persistently showed "TER Data Unavailable"/"No
+Direct Holdings"/"No Regular Holdings" plus a growing TER-exclusion list, on the same
+codebase where Ayush's own laptop showed correct data. Diagnosed via
+`superpowers:systematic-debugging`, three rounds:
+
+1. **Fix 1 — AMFI 429** (`3b2b1d8` on this worktree / `bb9f507` on `feat/enhanced-ui`):
+   `_TER_FETCH_CONCURRENCY` 20→5 in `amfi_ter_client.py`. Live-verified the colleague was
+   getting rate-limited by AMFI at concurrency 20, leaving `scheme_ter` empty for the
+   full 15-min backoff window. Confirmed no scaling/loading-speed regression — matches
+   the existing degrade-gracefully convention used elsewhere (`nav.py`, `arn_lookup.py`).
+2. **The issue recurred after Fix 1.** `refresh_ter_data` had zero logging on any failure
+   path (a bare `return False`), making a recurrence undiagnosable from a report alone.
+   Added two `logger.warning(...)` calls — pure diagnostics, no behavior change
+   (`142eb6b`). Colleague re-tested live; the new logging immediately captured the real
+   failure on the very first run: `refresh_ter_data: fetch failed: ReadTimeout('')` — a
+   genuinely different failure mode from the already-fixed 429 (all AMFI TER pages in
+   this run returned `200 OK`).
+3. **Root cause**: this backend's SQLAlchemy engine is fully synchronous
+   (`app/db/session.py`'s `create_engine`, no async driver), and — per an existing
+   comment in `pdf_export.py` ("move to Redis/similar if/when this backend ever runs
+   multiple workers") — currently runs as a single worker, i.e. a single event loop
+   shared by every concurrent request. A blocking `db.commit()` called directly inside
+   an `async def` (here, `nav.py`'s `warm_nav_history`, logged at `commit=63.67s` then
+   `commit=66.69s` for the same 1150-scheme NAV warm on the colleague's machine, minutes
+   apart) freezes that entire event loop for its full duration — including an AMFI TER
+   page request already waiting on its socket in a concurrently-running task, which then
+   blows its own 30s client-side httpx timeout even though AMFI itself answered
+   normally. Not a repeat of the 429 (already fixed) and not the caching-divergence
+   theory originally suspected — direct evidence of event-loop starvation, correlating
+   with `nav.py`'s own documented note that commits measure "57x slower... on a WSL
+   DrvFs-mounted dev DB than a native filesystem."
+4. **Fix 3** (`945b271`): raised `amfi_ter_client.py`'s httpx client timeout from 30.0s
+   to 90.0s (`_TER_HTTP_TIMEOUT`, both `_fetch_latest_ter_month` and `_fetch_ter_rows`),
+   giving real margin against the observed 63-66s stall. This is a stopgap for TER
+   refresh's all-or-nothing blast radius (one page timing out currently fails the
+   *entire* batch for the full 15-min backoff, unlike NAV's per-scheme degrade), not a
+   fix for the underlying starvation. All 27 TER tests still passing.
+
+All three fixes cherry-picked onto `feat/enhanced-ui` and live-tested together on the
+colleague's machine 2026-08-26: **confirmed working** — TER data now loads correctly
+(noticeably slower than Ayush's machine, but correct — expected, since the colleague's
+disk/network genuinely is slower, not a bug).
+
+**Localhost-specific vs. global, discussed with Ayush, not yet built:** the *trigger*
+(60-120s SQLite commits) is dev-environment-specific — SQLite on a WSL DrvFs-mounted
+filesystem — and should mostly disappear once the app is on Postgres (per the planned
+SQLite→Postgres migration), where a comparable commit is typically single-digit
+milliseconds even under load. The underlying *vulnerability* (any blocking sync DB call
+inside an `async def` handler stalls every concurrent user sharing that event loop, not
+just the slow request) is architectural, not environment-specific, and will still exist
+in production: under real concurrent traffic, any sufficiently slow DB operation (lock
+wait, a big batch commit, connection-pool exhaustion, a large CAS re-import) could still
+freeze every logged-in user's request simultaneously — a materially worse failure shape
+(correlated, multi-tenant outage) than a typical N+1 slowdown, which only affects the one
+slow request.
+
+**Decision: not fixed now.** Logged as a new "Still open" item (`CLAUDE.md` item 7),
+same precedent as `compute_holdings`'s N+1 and `category_ranking`'s non-index-seek-bounded
+scan — avoid a large cross-cutting DB-layer refactor bundled into unrelated debugging
+work. Revisit deliberately, ideally paired with the Postgres migration, since that's the
+natural point to pick between these three remediation options against a real production
+driver instead of guessing against SQLite:
+1. **Targeted** — wrap only the known-heavy batch commits (`warm_nav_history`'s,
+   `refresh_ter_data`'s, CAS import's) in `asyncio.to_thread(db.commit)`.
+2. **Blanket** — wrap every sync DB call site inside an `async def` in
+   `asyncio.to_thread`. More consistent; needs auditing that no `Session` is touched
+   from two threads concurrently.
+3. **Correct long-term fix** — migrate to SQLAlchemy's native async engine
+   (`AsyncSession` + `asyncpg`/`aiosqlite`), rewriting every `db.query`/`db.execute`/
+   `db.commit` call across the backend. The right answer, but a dedicated project of
+   its own, not a task to bundle into other work.
 
 ## Distributor comparison rewritten portfolio-wide, desktop + mobile (2026-08-21)
 

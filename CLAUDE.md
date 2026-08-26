@@ -60,16 +60,30 @@ instead. See `docs/agents/domain.md`.
 
 ## Session State
 
-*(Updated 2026-08-24. This section is a one-line current-status pointer, not a log —
+*(Updated 2026-08-26. This section is a one-line current-status pointer, not a log —
 do not append session narrative here again. Full current status: `session.md` at repo
 root, overwritten each session. Full per-task history: `Docs/orchestration/delegation-log.md`.
 Deferred/not-yet-built features: `DEFERRED_FEATURES.md`.)*
 
-**Latest:** two small direct bug fixes on `feat/enhanced-ui` (AMFI TER fetch
-concurrency, `bb9f507`; PDF export Portfolio Allocation rendering, `12946f7`) — full
-detail: `session.md`. Before that: `distributor-comparison-portfolio-level` merged in,
-bringing `authsetup` and the Analytics PDF export feature with it — full detail:
-`session.md`. Everything else is complete and merged — full history: `session.md`.
+**Latest:** root-caused and fixed a colleague's AMFI TER `ReadTimeout`s on
+`feat/enhanced-ui` across three commits (fetch concurrency lowered to avoid a 429,
+`bb9f507`; diagnostic logging added, `142eb6b`; httpx client timeout raised 30s→90s
+after root-causing to event-loop starvation from a blocking `db.commit()`, `945b271`) —
+confirmed fixed live 2026-08-26, full narrative in `session.md`, underlying
+event-loop-blocking vulnerability deliberately deferred as Still-open item 7. Before
+that: PDF export Portfolio Allocation rendering fix (`12946f7`); before that,
+`distributor-comparison-portfolio-level` merged in, bringing `authsetup` and the
+Analytics PDF export feature with it — full detail: `session.md`. Everything else is
+complete and merged — full history: `session.md`.
+
+**Still open (7 items carried forward from earlier phases, not yet revisited — full
+detail on each in `session.md`'s "Still open" section):** a held scheme with no NAV
+silently vanishing from holdings/allocation/aggregates; no DB uniqueness constraint on
+the "self" `household_members` row; a dead `HoldingsTable.tsx` field reference; a non-
+index-seek-bounded SQLite scan in `category_ranking.py` (Postgres follow-up); an ARIA
+IDREF gap on the SIP tab switcher; `compute_holdings`'s per-folio N+1 query pattern; a
+blocking `db.commit()` inside an `async def` that can freeze the whole single-worker
+event loop under a slow-enough DB operation (Postgres-migration follow-up).
 
 **Still open (6 items carried forward from earlier phases, not yet revisited — full
 detail on each in `session.md`'s "Still open" section):** a held scheme with no NAV
