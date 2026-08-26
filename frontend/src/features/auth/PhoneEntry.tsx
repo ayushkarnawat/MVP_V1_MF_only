@@ -83,11 +83,11 @@ export function PhoneEntry({
           </button>
         )}
 
-        <div className="space-y-1">
-          <h1 className="font-display font-bold text-2xl sm:text-3xl text-[var(--color-ink)] tracking-tight">
+        <div className="space-y-2">
+          <h1 className="font-display font-bold text-[30px] xs:text-[32px] sm:text-[36px] text-[var(--color-ink)] tracking-tight leading-[1.08]">
             {isPhoneGate ? "One more step" : "Continue with phone"}
           </h1>
-          <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed font-body">
+          <p className="text-[13px] sm:text-[14px] text-[#5C5C5C] dark:text-[#A3A3A3] font-normal leading-relaxed">
             {isPhoneGate
               ? `Verify your mobile number to finish creating your account${
                   phoneGatePrefillEmail ? ` for ${phoneGatePrefillEmail}` : ""
@@ -107,13 +107,13 @@ export function PhoneEntry({
         </label>
         <div
           className={cn(
-            "flex items-center rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] transition-all h-11 sm:h-12 min-h-[44px]",
+            "flex items-center rounded-2xl bg-white/90 dark:bg-[var(--color-surface)] border border-[var(--color-border)] transition-all h-13 sm:h-14 min-h-[50px] sm:min-h-[54px] shadow-xs",
             validationError
               ? "border-[var(--color-negative)] focus-within:border-[var(--color-negative)] focus-within:ring-2 focus-within:ring-[var(--color-negative)]/20"
-              : "focus-within:border-[var(--color-accent)] focus-within:ring-2 focus-within:ring-[var(--color-accent)]/20",
+              : "focus-within:border-[#10B981] focus-within:ring-2 focus-within:ring-[#10B981]/20",
           )}
         >
-          <div className="px-3 sm:px-3.5 flex items-center gap-1.5 border-r border-[var(--color-border)] text-xs font-medium text-[var(--color-ink)] select-none bg-[var(--color-surface)]/50 h-full rounded-l-xl flex-shrink-0">
+          <div className="px-3.5 sm:px-4 flex items-center gap-1.5 border-r border-[var(--color-border)] text-xs font-medium text-[var(--color-ink)] select-none bg-[var(--color-surface)]/50 h-full rounded-l-2xl flex-shrink-0">
             <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">IN</span>
             <span className="font-semibold">+91</span>
           </div>
@@ -124,7 +124,7 @@ export function PhoneEntry({
             value={phoneNumber}
             onChange={(event) => handlePhoneChange(event.target.value)}
             onBlur={handlePhoneBlur}
-            className="flex-1 min-w-0 bg-transparent px-3.5 text-xs sm:text-sm text-[var(--color-ink)] placeholder:text-[var(--color-text-secondary)]/50 focus:outline-none focus:ring-0 focus:border-transparent outline-none border-none shadow-none font-mono rounded-r-xl"
+            className="flex-1 min-w-0 bg-transparent px-3.5 text-sm text-[var(--color-ink)] placeholder:text-[#5C5C5C]/50 dark:placeholder:text-[#A3A3A3]/50 focus:outline-none focus:ring-0 focus:border-transparent outline-none border-none shadow-none font-mono rounded-r-2xl"
             autoFocus
           />
         </div>
@@ -156,17 +156,17 @@ export function PhoneEntry({
         <Button
           type="submit"
           disabled={submitting || !phoneNumber.trim()}
-          className="w-full h-11 sm:h-12 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs sm:text-sm shadow-sm gap-2 cursor-pointer active:scale-[0.99] transition-all min-h-[44px] sm:min-h-[48px]"
+          className="w-full h-14 sm:h-[58px] px-8 rounded-full font-bold text-[15px] sm:text-base bg-[#10B981] hover:bg-[#059669] dark:bg-[#10B981] dark:hover:bg-[#059669] text-white shadow-xl shadow-[#10B981]/25 dark:shadow-[#10B981]/20 active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2.5 border border-[#10B981]/40 min-h-[52px]"
         >
           {submitting ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-4.5 w-4.5 animate-spin" />
               <span>Sending verification code...</span>
             </>
           ) : (
             <>
               <span>Send verification code</span>
-              <ArrowRight className="h-3.5 w-3.5" />
+              <ArrowRight className="h-4.5 w-4.5" />
             </>
           )}
         </Button>

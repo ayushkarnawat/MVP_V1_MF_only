@@ -36,6 +36,7 @@
   /* Typography Families (Design Schema §Typography: DM Sans headings, Manrope body) */
   --font-display: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-body: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-serif: "Instrument Serif", "Newsreader", "Playfair Display", Georgia, serif;
 
   /* 8-token Typography Scale (Design Schema §Typography) */
   --type-display-font: var(--font-display);

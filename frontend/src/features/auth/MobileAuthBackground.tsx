@@ -1,14 +1,9 @@
 /**
  * MobileAuthBackground
  *
- * Minimal, editorial vector background for mobile authentication (< lg).
- * Theme: "Many separate financial pieces becoming one unified picture."
- *
- * Designed specifically for mobile viewports (~375px) with pure SVG geometry:
- * - Concentric editorial arcs and converging folio trajectory paths
- * - Asymmetric corner anchor clusters with restrained emerald accents
- * - Clean, quiet negative space in the center behind the authentication card
- * - Zero heavy blur, zero text, zero raster overhead, 100% theme-adaptive.
+ * Subtle, organic ambient background for mobile authentication (< lg).
+ * Derived from the landing page's soft translucent glass and gradient language.
+ * Completely free of technical lines, crosshairs, or circuit dots.
  */
 export function MobileAuthBackground() {
   return (
@@ -24,107 +19,59 @@ export function MobileAuthBackground() {
         xmlns="http://www.w3.org/2000/svg"
       >
         <defs>
-          {/* Subtle linear gradient for converging trajectory lines */}
-          <linearGradient id="unifolio-stream-1" x1="0" y1="0" x2="375" y2="200" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="currentColor" stopOpacity="0.04" />
-            <stop offset="45%" stopColor="currentColor" stopOpacity="0.18" />
-            <stop offset="70%" stopColor="var(--color-accent)" stopOpacity="0.5" />
-            <stop offset="100%" stopColor="currentColor" stopOpacity="0.06" />
+          {/* Soft atmospheric linear gradients for organic glass curve traces */}
+          <linearGradient id="soft-glass-stream-1" x1="0" y1="50" x2="375" y2="280" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#10B981" stopOpacity="0.0" />
+            <stop offset="35%" stopColor="#10B981" stopOpacity="0.12" />
+            <stop offset="65%" stopColor="currentColor" stopOpacity="0.05" />
+            <stop offset="100%" stopColor="#10B981" stopOpacity="0.0" />
           </linearGradient>
 
-          <linearGradient id="unifolio-stream-2" x1="50" y1="650" x2="375" y2="800" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="currentColor" stopOpacity="0.04" />
-            <stop offset="55%" stopColor="currentColor" stopOpacity="0.16" />
-            <stop offset="80%" stopColor="var(--color-accent)" stopOpacity="0.45" />
-            <stop offset="100%" stopColor="currentColor" stopOpacity="0.06" />
+          <linearGradient id="soft-glass-stream-2" x1="40" y1="500" x2="375" y2="780" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="currentColor" stopOpacity="0.0" />
+            <stop offset="40%" stopColor="#10B981" stopOpacity="0.10" />
+            <stop offset="75%" stopColor="#34D399" stopOpacity="0.07" />
+            <stop offset="100%" stopColor="currentColor" stopOpacity="0.0" />
           </linearGradient>
 
-          {/* Precision Crosshair Marker */}
-          <g id="crosshair">
-            <line x1="-4" y1="0" x2="4" y2="0" stroke="currentColor" strokeWidth="0.75" opacity="0.12" />
-            <line x1="0" y1="-4" x2="0" y2="4" stroke="currentColor" strokeWidth="0.75" opacity="0.12" />
-          </g>
+          <linearGradient id="soft-glass-sheen" x1="0" y1="0" x2="300" y2="300" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#10B981" stopOpacity="0.12" />
+            <stop offset="50%" stopColor="currentColor" stopOpacity="0.03" />
+            <stop offset="100%" stopColor="#059669" stopOpacity="0.06" />
+          </linearGradient>
         </defs>
 
-        {/* ================================================================= */}
-        {/* TOP-LEFT / TOP CONVERGENCE CLUSTER                                */}
-        {/* ================================================================= */}
-
-        {/* Concentric Brand Radii radiating from off-canvas (-30, -30) */}
-        <circle cx="-30" cy="-30" r="120" stroke="currentColor" strokeWidth="0.75" opacity="0.07" strokeDasharray="3 4" />
-        <circle cx="-30" cy="-30" r="210" stroke="currentColor" strokeWidth="0.75" opacity="0.09" />
-        <circle cx="-30" cy="-30" r="300" stroke="currentColor" strokeWidth="0.75" opacity="0.06" strokeDasharray="4 6" />
-
-        {/* Multi-Stream Convergence Path: Disparate streams unifying into one trajectory */}
-        {/* Stream A (From upper left) */}
+        {/* 1. Upper Organic Translucent Curve Stream */}
         <path
-          d="M -10 95 C 45 92, 110 75, 175 62 C 230 52, 285 58, 385 28"
-          stroke="url(#unifolio-stream-1)"
-          strokeWidth="1.2"
-        />
-        {/* Stream B (From top center) */}
-        <path
-          d="M 120 -10 C 140 40, 195 55, 255 58 C 305 60, 345 42, 385 30"
-          stroke="currentColor"
-          strokeWidth="0.75"
-          opacity="0.1"
-          strokeDasharray="2 3"
-        />
-        {/* Stream C (Parallel harmonic arc) */}
-        <path
-          d="M 15 130 C 80 120, 150 90, 215 78 C 265 68, 310 72, 385 45"
-          stroke="currentColor"
-          strokeWidth="0.75"
-          opacity="0.07"
+          d="M -30 110 C 60 95, 140 60, 220 75 C 290 88, 335 65, 410 40"
+          stroke="url(#soft-glass-stream-1)"
+          strokeWidth="1.5"
+          strokeLinecap="round"
         />
 
-        {/* Discrete Folio Anchor Nodes along the converging trajectory */}
-        <circle cx="65" cy="88" r="2" fill="currentColor" opacity="0.2" />
-        <circle cx="120" cy="74" r="2.5" fill="currentColor" opacity="0.25" />
-        <circle cx="185" cy="62" r="2" fill="currentColor" opacity="0.2" />
-
-        {/* Unification Apex Node: Subtle emerald focal beacon */}
-        <circle cx="265" cy="58" r="3" fill="var(--color-accent)" opacity="0.8" />
-        <circle cx="265" cy="58" r="7.5" stroke="var(--color-accent)" strokeWidth="0.75" opacity="0.3" />
-
-        {/* Editorial Crosshairs & Coordinate Marks */}
-        <use href="#crosshair" x="32" y="160" />
-        <use href="#crosshair" x="345" y="105" />
-
-        {/* ================================================================= */}
-        {/* BOTTOM-RIGHT CONVERGENCE CLUSTER                                  */}
-        {/* ================================================================= */}
-
-        {/* Concentric Brand Radii radiating from off-canvas (400, 830) */}
-        <circle cx="400" cy="830" r="140" stroke="currentColor" strokeWidth="0.75" opacity="0.08" strokeDasharray="3 4" />
-        <circle cx="400" cy="830" r="230" stroke="currentColor" strokeWidth="0.75" opacity="0.06" />
-
-        {/* Sweeping Unifying Trajectory */}
+        {/* 2. Soft Parallel Harmonic Wave */}
         <path
-          d="M -15 725 C 75 745, 160 705, 245 730 C 295 745, 335 770, 390 790"
-          stroke="url(#unifolio-stream-2)"
-          strokeWidth="1.2"
-        />
-        {/* Secondary Stream */}
-        <path
-          d="M 30 770 C 110 780, 185 750, 260 762 C 305 772, 345 788, 390 802"
-          stroke="currentColor"
-          strokeWidth="0.75"
-          opacity="0.11"
-          strokeDasharray="2 4"
+          d="M -10 145 C 75 130, 165 95, 250 110 C 315 122, 355 105, 415 80"
+          stroke="url(#soft-glass-sheen)"
+          strokeWidth="1"
+          strokeLinecap="round"
         />
 
-        {/* Discrete Folio Anchor Nodes in lower cluster */}
-        <circle cx="115" cy="740" r="2" fill="currentColor" opacity="0.2" />
-        <circle cx="190" cy="716" r="2.5" fill="currentColor" opacity="0.25" />
+        {/* 3. Lower Organic Convergence Curve Stream */}
+        <path
+          d="M -20 690 C 80 710, 170 660, 260 690 C 315 710, 360 740, 410 760"
+          stroke="url(#soft-glass-stream-2)"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
 
-        {/* Lower Unification Beacon: Restrained emerald node */}
-        <circle cx="295" cy="745" r="3" fill="var(--color-accent)" opacity="0.8" />
-        <circle cx="295" cy="745" r="7.5" stroke="var(--color-accent)" strokeWidth="0.75" opacity="0.3" />
-
-        {/* Lower Crosshairs */}
-        <use href="#crosshair" x="40" y="680" />
-        <use href="#crosshair" x="335" y="715" />
+        {/* 4. Lower Ambient Supporting Wave */}
+        <path
+          d="M 10 730 C 100 745, 190 705, 280 725 C 330 740, 370 765, 415 780"
+          stroke="url(#soft-glass-sheen)"
+          strokeWidth="1"
+          strokeLinecap="round"
+        />
       </svg>
     </div>
   );

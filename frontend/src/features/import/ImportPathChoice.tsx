@@ -1,7 +1,15 @@
 import { motion } from "motion/react";
 import { ChevronRight } from "lucide-react";
 import { OnboardingIllustration } from "@/features/auth/OnboardingIllustration";
-import { staggerContainerVariants, staggerItemVariants } from "@/lib/motion";
+import {
+  MOTION_EASING_SMOOTH,
+  onboardingContainerVariants,
+  onboardingHeadingVariants,
+  onboardingIllustrationVariants,
+  onboardingOptionItemVariants,
+  onboardingOptionsContainerVariants,
+  onboardingSubtextVariants,
+} from "@/lib/motion";
 
 export interface ImportPathChoiceProps {
   onSelectRequest: () => void;
@@ -110,77 +118,90 @@ export function ImportPathChoice({
 }: ImportPathChoiceProps) {
   return (
     <motion.div
-      variants={staggerContainerVariants}
+      variants={onboardingContainerVariants}
       initial="hidden"
       animate="visible"
-      className="w-full space-y-3 sm:space-y-5 text-left box-border"
+      className="w-full space-y-3 sm:space-y-4 text-left box-border"
     >
       {/* Hero Illustration */}
-      <motion.div variants={staggerItemVariants} className="flex justify-center">
-        <OnboardingIllustration variant="upload" />
+      <motion.div variants={onboardingIllustrationVariants} className="flex justify-center py-0.5 sm:py-1">
+        <OnboardingIllustration variant="upload" className="w-32 h-32 sm:w-40 sm:h-40 mx-auto max-h-[180px]" />
       </motion.div>
 
-      {/* Header with Eyebrow */}
-      <motion.div variants={staggerItemVariants} className="space-y-1 text-center sm:text-left">
-        <h1 className="font-display font-bold text-lg sm:text-2xl text-[var(--color-ink)] tracking-tight leading-snug">
+      {/* Header with Title and Supporting Copy */}
+      <motion.div variants={onboardingHeadingVariants} className="space-y-1.5 text-center sm:text-left">
+        <h1 className="font-display font-bold text-[22px] xs:text-[24px] sm:text-[28px] text-[var(--color-ink)] tracking-tight leading-[1.14]">
           How would you like to bring in your statement?
         </h1>
-        <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+        <p className="text-[12.5px] xs:text-[13px] sm:text-[14px] text-[#5C5C5C] dark:text-[#A3A3A3] leading-relaxed max-w-[340px] mx-auto sm:mx-0 font-normal font-body">
           Either way, Unifolio turns it into one clear view of everything you hold.
         </p>
       </motion.div>
 
-      {/* Choice Rows */}
-      <motion.div variants={staggerItemVariants} className="space-y-2 sm:space-y-3">
+      {/* Choice List */}
+      <motion.div variants={onboardingOptionsContainerVariants} className="divide-y divide-[var(--color-border)]/35 -mx-1 pt-1">
         {/* Choice 1: Request from CAMS */}
-        <button
+        <motion.button
+          variants={onboardingOptionItemVariants}
+          whileHover={{
+            x: 2,
+            transition: { duration: 0.18, ease: MOTION_EASING_SMOOTH },
+          }}
+          whileTap={{ scale: 0.99 }}
           type="button"
           onClick={onSelectRequest}
-          className="w-full p-3 sm:p-4 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-accent)]/50 hover:bg-[color-mix(in_srgb,var(--color-accent)_3%,var(--color-surface))] flex items-center gap-3 sm:gap-4 text-left transition-all duration-150 cursor-pointer active:scale-[0.99] group shadow-xs select-none min-h-[44px]"
+          className="w-full py-3.5 sm:py-4 px-2.5 sm:px-3 rounded-xl hover:bg-black/[0.025] dark:hover:bg-white/[0.035] flex items-center gap-3.5 text-left transition-all duration-150 cursor-pointer group select-none min-h-[52px]"
         >
-          <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] text-[var(--color-ink)] flex items-center justify-center flex-shrink-0 group-hover:text-[var(--color-accent)] group-hover:scale-105 transition-all duration-200">
-            <CamsRequestIllustration className="h-6 w-6 sm:h-7 sm:w-7 text-[var(--color-ink)] group-hover:text-[var(--color-accent)] transition-colors" />
+          <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl bg-[#10B981]/10 text-[var(--color-ink)] flex items-center justify-center flex-shrink-0 group-hover:bg-[#10B981]/15 group-hover:text-[#10B981] dark:group-hover:text-[#34D399] transition-all duration-150">
+            <CamsRequestIllustration className="h-6 w-6 sm:h-7 sm:w-7 text-[var(--color-ink)] group-hover:text-[#10B981] dark:group-hover:text-[#34D399] transition-colors" />
           </div>
 
-          <div className="flex-1 min-w-0 space-y-0.5 sm:space-y-1">
-            <strong className="block font-display font-semibold text-xs sm:text-base text-[var(--color-ink)] group-hover:text-[var(--color-accent)] transition-colors">
+          <div className="flex-1 min-w-0 space-y-0.5">
+            <strong className="block font-display font-bold text-xs sm:text-[14px] text-[var(--color-ink)] group-hover:text-[#10B981] dark:group-hover:text-[#34D399] transition-colors">
               Request from CAMS
             </strong>
-            <span className="block text-[11px] sm:text-xs text-[var(--color-text-secondary)] leading-tight sm:leading-relaxed">
+            <span className="block text-[11px] sm:text-xs text-[#5C5C5C] dark:text-[#A3A3A3] leading-snug font-normal">
               Free, official, and covers every AMC automatically. Arrives by email in 5–10 min.
             </span>
           </div>
 
-          <div className="h-6 w-6 sm:h-8 sm:w-8 rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] flex items-center justify-center flex-shrink-0 group-hover:border-[var(--color-accent)] group-hover:bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] transition-all duration-150">
-            <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[var(--color-text-secondary)] group-hover:text-[var(--color-accent)] group-hover:translate-x-0.5 transition-all duration-150" />
+          <div className="h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0 text-[#5C5C5C]/50 dark:text-[#A3A3A3]/50 group-hover:text-[#10B981] dark:group-hover:text-[#34D399] group-hover:translate-x-0.5 transition-all duration-150">
+            <ChevronRight className="h-4 w-4" />
           </div>
-        </button>
+        </motion.button>
 
         {/* Choice 2: Already have a statement */}
-        <button
+        <motion.button
+          variants={onboardingOptionItemVariants}
+          whileHover={{
+            x: 2,
+            transition: { duration: 0.18, ease: MOTION_EASING_SMOOTH },
+          }}
+          whileTap={{ scale: 0.99 }}
           type="button"
           onClick={onSelectUpload}
-          className="w-full p-3 sm:p-4 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-accent)]/50 hover:bg-[color-mix(in_srgb,var(--color-accent)_3%,var(--color-surface))] flex items-center gap-3 sm:gap-4 text-left transition-all duration-150 cursor-pointer active:scale-[0.99] group shadow-xs select-none min-h-[44px]"
+          className="w-full py-3.5 sm:py-4 px-2.5 sm:px-3 rounded-xl hover:bg-black/[0.025] dark:hover:bg-white/[0.035] flex items-center gap-3.5 text-left transition-all duration-150 cursor-pointer group select-none min-h-[52px]"
         >
-          <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] text-[var(--color-ink)] flex items-center justify-center flex-shrink-0 group-hover:text-[var(--color-accent)] group-hover:scale-105 transition-all duration-200">
-            <StatementUploadIllustration className="h-6 w-6 sm:h-7 sm:w-7 text-[var(--color-ink)] group-hover:text-[var(--color-accent)] transition-colors" />
+          <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl bg-[#10B981]/10 text-[var(--color-ink)] flex items-center justify-center flex-shrink-0 group-hover:bg-[#10B981]/15 group-hover:text-[#10B981] dark:group-hover:text-[#34D399] transition-all duration-150">
+            <StatementUploadIllustration className="h-6 w-6 sm:h-7 sm:w-7 text-[var(--color-ink)] group-hover:text-[#10B981] dark:group-hover:text-[#34D399] transition-colors" />
           </div>
 
-          <div className="flex-1 min-w-0 space-y-0.5 sm:space-y-1">
-            <strong className="block font-display font-semibold text-xs sm:text-base text-[var(--color-ink)] group-hover:text-[var(--color-accent)] transition-colors">
+          <div className="flex-1 min-w-0 space-y-0.5">
+            <strong className="block font-display font-bold text-xs sm:text-[14px] text-[var(--color-ink)] group-hover:text-[#10B981] dark:group-hover:text-[#34D399] transition-colors">
               Already have a statement
             </strong>
-            <span className="block text-[11px] sm:text-xs text-[var(--color-text-secondary)] leading-tight sm:leading-relaxed">
+            <span className="block text-[11px] sm:text-xs text-[#5C5C5C] dark:text-[#A3A3A3] leading-snug font-normal">
               Drop in a CAS PDF statement you already downloaded — done in seconds.
             </span>
           </div>
 
-          <div className="h-6 w-6 sm:h-8 sm:w-8 rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] flex items-center justify-center flex-shrink-0 group-hover:border-[var(--color-accent)] group-hover:bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] transition-all duration-150">
-            <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[var(--color-text-secondary)] group-hover:text-[var(--color-accent)] group-hover:translate-x-0.5 transition-all duration-150" />
+          <div className="h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0 text-[#5C5C5C]/50 dark:text-[#A3A3A3]/50 group-hover:text-[#10B981] dark:group-hover:text-[#34D399] group-hover:translate-x-0.5 transition-all duration-150">
+            <ChevronRight className="h-4 w-4" />
           </div>
-        </button>
+        </motion.button>
       </motion.div>
     </motion.div>
   );
 }
+
 

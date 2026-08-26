@@ -10,6 +10,8 @@ import {
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import type { HoldingRow } from "@/features/dashboard/types";
+import { motion, useReducedMotion } from "motion/react";
+import { pageTransition, isTestEnv } from "@/lib/motion";
 
 export interface MobileFundDetailViewProps {
   holding: HoldingRow;
@@ -59,6 +61,7 @@ export function MobileFundDetailView({
   }, [holding]);
   const [selectedTimeframe, setSelectedTimeframe] = useState<Timeframe>("6M");
   const [hoveredPoint, setHoveredPoint] = useState<ChartPoint | null>(null);
+  const shouldReduceMotion = useReducedMotion() || isTestEnv;
 
   const invested = parseFloat(holding.amount_invested || "0");
   const currentValue = parseFloat(holding.current_value || "0");
@@ -146,9 +149,13 @@ export function MobileFundDetailView({
   const activePoint = hoveredPoint || chartData[chartData.length - 1];
 
   return (
-    <div
+    <motion.div
       ref={rootRef}
-      className="flex flex-col min-h-dvh bg-[var(--color-bg)] pb-12 animate-in fade-in duration-200"
+      initial={shouldReduceMotion ? false : { opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={shouldReduceMotion ? undefined : { opacity: 0, x: -20 }}
+      transition={pageTransition}
+      className="flex flex-col min-h-dvh bg-[var(--color-bg)] pb-12"
     >
       {/* Top Header with Back Navigation */}
       <header className="sticky top-0 z-30 w-full h-14 bg-[var(--color-surface)]/85 backdrop-blur-md border-b border-[var(--color-border)] px-4 grid grid-cols-3 items-center transition-colors duration-200 select-none">
@@ -456,7 +463,7 @@ export function MobileFundDetailView({
         </section>
       </div>
 
-    </div>
+    </motion.div>
   );
 }
 

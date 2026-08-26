@@ -64,16 +64,16 @@ export function Landing({
 
   return (
     <div className="w-full max-w-md mx-auto text-left box-border py-1">
-      {/* 1. Header with cohesive spacing to email field */}
-      <div className="mb-4 sm:mb-5">
-        <h1 className="font-display font-bold text-2xl sm:text-3xl text-[var(--color-ink)] tracking-tight">
+      {/* 1. Header with cohesive spacing to email field matching landing page */}
+      <div className="mb-5 sm:mb-6 space-y-2">
+        <h1 className="font-display font-bold text-[30px] xs:text-[32px] sm:text-[36px] text-[var(--color-ink)] tracking-tight leading-[1.08]">
           {mode === "signup" ? "Create your account" : "Welcome back"}
         </h1>
-        {mode === "login" && (
-          <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed font-body mt-1">
-            Access your consolidated investments and portfolio analytics.
-          </p>
-        )}
+        <p className="text-[13px] sm:text-[14px] text-[#5C5C5C] dark:text-[#A3A3A3] font-normal leading-relaxed">
+          {mode === "signup"
+            ? "All your mutual funds and folios, unified into one singular view."
+            : "Access your consolidated investments and portfolio analytics."}
+        </p>
       </div>
 
       {/* 2. Server Authentication Error Alert */}
@@ -104,10 +104,10 @@ export function Landing({
                 onChange={(event) => handleEmailChange(event.target.value)}
                 onBlur={handleEmailBlur}
                 className={cn(
-                  "w-full h-11 sm:h-12 min-h-[44px] sm:min-h-[48px] rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] px-3.5 text-xs sm:text-sm text-[var(--color-ink)] placeholder:text-[var(--color-text-secondary)]/50 focus:outline-none focus-visible:outline-none transition-all font-body box-border",
+                  "w-full h-13 sm:h-14 min-h-[50px] sm:min-h-[54px] rounded-2xl bg-white/90 dark:bg-[var(--color-surface)] border border-[var(--color-border)] px-4 text-sm text-[var(--color-ink)] placeholder:text-[#5C5C5C]/50 dark:placeholder:text-[#A3A3A3]/50 focus:outline-none focus-visible:outline-none transition-all font-body box-border shadow-xs",
                   validationError
                     ? "border-[var(--color-negative)] focus:border-[var(--color-negative)] focus:ring-2 focus:ring-[var(--color-negative)]/20"
-                    : "focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/20",
+                    : "focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981]/20",
                 )}
                 autoFocus
               />
@@ -127,24 +127,24 @@ export function Landing({
               type="submit"
               disabled={submitting || !email.trim()}
               aria-label="Create account"
-              className="w-full h-11 sm:h-12 rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent)]/90 text-white font-semibold text-xs sm:text-sm shadow-xs gap-2 cursor-pointer active:scale-[0.99] transition-all min-h-[44px] sm:min-h-[48px] mt-1.5"
+              className="w-full h-14 sm:h-[58px] px-8 rounded-full font-bold text-[15px] sm:text-base bg-[#10B981] hover:bg-[#059669] dark:bg-[#10B981] dark:hover:bg-[#059669] text-white shadow-xl shadow-[#10B981]/25 dark:shadow-[#10B981]/20 active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2.5 border border-[#10B981]/40 min-h-[52px] mt-2"
             >
               {submitting ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4.5 w-4.5 animate-spin" />
                   <span>Creating account...</span>
                 </>
               ) : (
                 <>
                   <span>Create account</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
+                  <ArrowRight className="h-4.5 w-4.5" />
                 </>
               )}
             </Button>
           </form>
 
           {/* Toggle Helper Link */}
-          <div className="text-center text-xs text-[var(--color-text-secondary)] pt-0.5 font-body">
+          <div className="text-center text-xs text-[#5C5C5C] dark:text-[#A3A3A3] pt-1.5 font-body">
             <span>Already have an account? </span>
             <button
               type="button"
@@ -153,19 +153,19 @@ export function Landing({
                 setMode("login");
                 onModeChange?.("login");
               }}
-              className="font-semibold text-[var(--color-ink)] hover:text-[var(--color-accent)] cursor-pointer transition-colors focus-visible:outline-none"
+              className="font-bold text-[#10B981] dark:text-[#34D399] hover:underline cursor-pointer transition-colors focus-visible:outline-none py-1"
             >
               <HandDrawnUnderline>Log in</HandDrawnUnderline>
             </button>
           </div>
 
           {/* Subtle "or" Divider */}
-          <div className="relative flex items-center py-1">
-            <div className="flex-grow border-t border-[var(--color-border)]/80" />
-            <span className="flex-shrink mx-3 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">
+          <div className="relative flex items-center py-2">
+            <div className="flex-grow border-t border-[var(--color-border)]/60" />
+            <span className="flex-shrink mx-3 text-[11px] font-medium uppercase tracking-wider text-[#5C5C5C]/70 dark:text-[#A3A3A3]/70">
               or
             </span>
-            <div className="flex-grow border-t border-[var(--color-border)]/80" />
+            <div className="flex-grow border-t border-[var(--color-border)]/60" />
           </div>
 
           {/* Alternative Methods */}
@@ -183,7 +183,7 @@ export function Landing({
             variant="outline"
             onClick={onSelectEmail}
             disabled={submitting}
-            className="w-full h-11 sm:h-12 rounded-xl border border-[var(--color-border)] bg-transparent text-[var(--color-ink)] hover:bg-[var(--color-bg)] font-semibold text-xs sm:text-sm gap-2 cursor-pointer active:scale-[0.99] transition-all min-h-[44px] sm:min-h-[48px] flex items-center justify-center font-body"
+            className="w-full h-13 sm:h-14 rounded-full border border-[var(--color-border)] bg-white/70 dark:bg-white/5 text-[var(--color-ink)] hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-sm gap-2.5 cursor-pointer active:scale-[0.98] transition-all min-h-[50px] flex items-center justify-center font-body shadow-xs"
           >
             <Mail className="h-4 w-4 text-[var(--color-accent)]" />
             <span>Continue with Email</span>
@@ -194,14 +194,14 @@ export function Landing({
             variant="outline"
             onClick={onSelectPhone}
             disabled={submitting}
-            className="w-full h-11 sm:h-12 rounded-xl border border-[var(--color-border)] bg-transparent text-[var(--color-ink)] hover:bg-[var(--color-bg)] font-semibold text-xs sm:text-sm gap-2 cursor-pointer active:scale-[0.99] transition-all min-h-[44px] sm:min-h-[48px] flex items-center justify-center font-body"
+            className="w-full h-13 sm:h-14 rounded-full border border-[var(--color-border)] bg-white/70 dark:bg-white/5 text-[var(--color-ink)] hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-sm gap-2.5 cursor-pointer active:scale-[0.98] transition-all min-h-[50px] flex items-center justify-center font-body shadow-xs"
           >
             <Phone className="h-4 w-4 text-[var(--color-accent)]" />
             <span>Continue with Phone</span>
           </Button>
 
           {/* Toggle Helper Link */}
-          <div className="text-center text-xs text-[var(--color-text-secondary)] pt-1 font-body">
+          <div className="text-center text-xs text-[#5C5C5C] dark:text-[#A3A3A3] pt-1.5 font-body">
             <span>Don&apos;t have an account? </span>
             <button
               type="button"
@@ -210,7 +210,7 @@ export function Landing({
                 setMode("signup");
                 onModeChange?.("signup");
               }}
-              className="font-semibold text-[var(--color-ink)] hover:text-[var(--color-accent)] cursor-pointer transition-colors focus-visible:outline-none"
+              className="font-bold text-[#10B981] dark:text-[#34D399] hover:underline cursor-pointer transition-colors focus-visible:outline-none py-1"
             >
               <HandDrawnUnderline>Sign up</HandDrawnUnderline>
             </button>

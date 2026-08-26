@@ -81,11 +81,11 @@ export function EmailEntry({ context = "login", onSignup, onLogin, onBack, submi
           </button>
         )}
 
-        <div className="space-y-1">
-          <h1 className="font-display font-bold text-2xl sm:text-3xl text-[var(--color-ink)] tracking-tight">
+        <div className="space-y-2">
+          <h1 className="font-display font-bold text-[30px] xs:text-[32px] sm:text-[36px] text-[var(--color-ink)] tracking-tight leading-[1.08]">
             {isLoginOnly ? "Log in with email" : "Continue with email"}
           </h1>
-          <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed font-body">
+          <p className="text-[13px] sm:text-[14px] text-[#5C5C5C] dark:text-[#A3A3A3] font-normal leading-relaxed">
             {isLink
               ? "Enter your email — we'll send a code to link this to your account."
               : isLoginOnly
@@ -109,10 +109,10 @@ export function EmailEntry({ context = "login", onSignup, onLogin, onBack, submi
             onChange={(event) => handleEmailChange(event.target.value)}
             onBlur={handleEmailBlur}
             className={cn(
-              "w-full h-11 sm:h-12 min-h-[44px] rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] px-3.5 text-xs sm:text-sm text-[var(--color-ink)] placeholder:text-[var(--color-text-secondary)]/50 focus:outline-none focus-visible:outline-none transition-all font-body box-border",
+              "w-full h-13 sm:h-14 min-h-[50px] sm:min-h-[54px] rounded-2xl bg-white/90 dark:bg-[var(--color-surface)] border border-[var(--color-border)] px-4 text-sm text-[var(--color-ink)] placeholder:text-[#5C5C5C]/50 dark:placeholder:text-[#A3A3A3]/50 focus:outline-none focus-visible:outline-none transition-all font-body box-border shadow-xs",
               validationError
                 ? "border-[var(--color-negative)] focus:border-[var(--color-negative)] focus:ring-2 focus:ring-[var(--color-negative)]/20"
-                : "focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/20",
+                : "focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981]/20",
             )}
             autoFocus
           />
@@ -145,17 +145,17 @@ export function EmailEntry({ context = "login", onSignup, onLogin, onBack, submi
         <Button
           type="submit"
           disabled={submitting || !email.trim()}
-          className="w-full h-11 sm:h-12 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs sm:text-sm shadow-sm gap-2 cursor-pointer active:scale-[0.99] transition-all min-h-[44px] sm:min-h-[48px]"
+          className="w-full h-14 sm:h-[58px] px-8 rounded-full font-bold text-[15px] sm:text-base bg-[#10B981] hover:bg-[#059669] dark:bg-[#10B981] dark:hover:bg-[#059669] text-white shadow-xl shadow-[#10B981]/25 dark:shadow-[#10B981]/20 active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2.5 border border-[#10B981]/40 min-h-[52px]"
         >
           {submitting ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-4.5 w-4.5 animate-spin" />
               <span>Sending code...</span>
             </>
           ) : (
             <>
               <span>Send code</span>
-              <ArrowRight className="h-3.5 w-3.5" />
+              <ArrowRight className="h-4.5 w-4.5" />
             </>
           )}
         </Button>
@@ -166,7 +166,7 @@ export function EmailEntry({ context = "login", onSignup, onLogin, onBack, submi
             variant="outline"
             disabled={submitting || !email.trim()}
             onClick={(event) => submit(event as unknown as FormEvent<HTMLFormElement>, "login")}
-            className="w-full h-11 sm:h-12 rounded-xl border border-[var(--color-border)] bg-transparent text-[var(--color-ink)] hover:bg-[var(--color-bg)] font-semibold text-xs sm:text-sm cursor-pointer active:scale-[0.99] transition-all min-h-[44px] sm:min-h-[48px]"
+            className="w-full h-13 sm:h-14 rounded-full border border-[var(--color-border)] bg-white/70 dark:bg-white/5 text-[var(--color-ink)] hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-sm cursor-pointer active:scale-[0.98] transition-all min-h-[50px]"
           >
             Log in instead
           </Button>

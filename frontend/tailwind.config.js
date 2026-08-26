@@ -72,6 +72,7 @@ export default {
         display: ["DM Sans", "system-ui", "-apple-system", "sans-serif"],
         heading: ["DM Sans", "system-ui", "-apple-system", "sans-serif"],
         body: ["Manrope", "system-ui", "-apple-system", "sans-serif"],
+        serif: ["Instrument Serif", "Newsreader", "Playfair Display", "Georgia", "serif"],
       },
       boxShadow: {
         sm: "var(--shadow-sm)",

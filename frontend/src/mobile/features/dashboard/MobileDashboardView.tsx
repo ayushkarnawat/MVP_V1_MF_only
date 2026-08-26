@@ -39,6 +39,9 @@ import {
   BarChart2,
 } from "lucide-react";
 
+import { motion, useReducedMotion } from "motion/react";
+import { staggerContainerVariants, staggerItemVariants, isTestEnv } from "@/lib/motion";
+
 // Mobile-only legend/segment order for "By Asset Class" — web keeps the
 // backend's natural array order.
 const ASSET_CLASS_ORDER = ["Equity", "Hybrid", "Other"];
@@ -73,6 +76,7 @@ export function MobileDashboardView({
   const [selectedHolding, setSelectedHolding] = useState<HoldingRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const shouldReduceMotion = useReducedMotion() || isTestEnv;
 
   /* Fetch initial household members list */
   useEffect(() => {
@@ -383,10 +387,15 @@ export function MobileDashboardView({
   }
 
   return (
-    <div className="flex flex-col space-y-5 animate-in fade-in duration-200">
+    <motion.div
+      variants={staggerContainerVariants}
+      initial="hidden"
+      animate="visible"
+      className="flex flex-col space-y-5"
+    >
       {/* Top View Selector Bar (Family vs Member) */}
       {hasFamily && (
-        <div className="flex flex-col space-y-2">
+        <motion.div variants={staggerItemVariants} className="flex flex-col space-y-2">
           <div className="inline-flex items-center p-1 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-2xs w-full">
             <button
               className={cn(
@@ -435,12 +444,15 @@ export function MobileDashboardView({
               </SelectContent>
             </Select>
           )}
-        </div>
+        </motion.div>
       )}
 
       {/* Coverage Gap Alert Strip */}
       {coverageGaps.length > 0 && (
-        <div className="flex items-center justify-between gap-2.5 p-3 rounded-xl bg-[color-mix(in_srgb,var(--color-warning,#f59e0b)_12%,transparent)] border border-[color-mix(in_srgb,var(--color-warning,#f59e0b)_30%,transparent)] text-xs">
+        <motion.div
+          variants={staggerItemVariants}
+          className="flex items-center justify-between gap-2.5 p-3 rounded-xl bg-[color-mix(in_srgb,var(--color-warning,#f59e0b)_12%,transparent)] border border-[color-mix(in_srgb,var(--color-warning,#f59e0b)_30%,transparent)] text-xs"
+        >
           <div className="flex items-center gap-2 min-w-0">
             <AlertTriangle className="h-4 w-4 text-[var(--color-warning,#f59e0b)] flex-shrink-0" />
             <span className="font-medium text-[var(--color-ink)] truncate">
@@ -450,11 +462,14 @@ export function MobileDashboardView({
           <span className="text-[11px] font-semibold text-[var(--color-accent)] flex-shrink-0">
             Review →
           </span>
-        </div>
+        </motion.div>
       )}
 
       {/* 1. Editorial Portfolio Hero Card */}
-      <section className="p-4 sm:p-5 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs">
+      <motion.section
+        variants={staggerItemVariants}
+        className="p-4 sm:p-5 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs"
+      >
         <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)] block">
           Total Portfolio Value
         </span>
@@ -506,11 +521,14 @@ export function MobileDashboardView({
             </div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* 2. S22: Pending Family Imports Strip */}
       {membersStatus.some((m) => !m.has_data) && (
-        <div className="p-3.5 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-2xs space-y-2.5">
+        <motion.div
+          variants={staggerItemVariants}
+          className="p-3.5 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-2xs space-y-2.5"
+        >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Users className="h-3.5 w-3.5 text-[var(--color-text-secondary)]" />
@@ -547,12 +565,15 @@ export function MobileDashboardView({
                 </div>
               ))}
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* 3. Portfolio Allocation Card */}
       {allocation && (
-        <section className="p-4 sm:p-5 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs space-y-4">
+        <motion.section
+          variants={staggerItemVariants}
+          className="p-4 sm:p-5 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs space-y-4"
+        >
           <div className="flex items-center justify-between">
             <span className="font-display text-sm font-bold text-[var(--color-ink)]">
               Portfolio Allocation
@@ -601,11 +622,11 @@ export function MobileDashboardView({
             title={allocationTab === "asset" ? "By Asset Class" : "By AMC"}
             enableTapHighlight
           />
-        </section>
+        </motion.section>
       )}
 
       {/* 4. Complete Holdings Section (with search & summary-first cards) */}
-      <section className="space-y-3 pt-1">
+      <motion.section variants={staggerItemVariants} className="space-y-3 pt-1">
         {/* Search Input Bar */}
         <div className="relative w-full">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-text-secondary)] pointer-events-none" />
@@ -675,7 +696,7 @@ export function MobileDashboardView({
             <p>No holdings found matching &ldquo;{searchTerm}&rdquo;</p>
           </div>
         )}
-      </section>
+      </motion.section>
 
       <MobileDistributorComparisonView
         isOpen={isDistributorComparisonOpen}
@@ -683,7 +704,7 @@ export function MobileDashboardView({
         viewMode={viewMode}
         memberId={selectedMemberId}
       />
-    </div>
+    </motion.div>
   );
 }
 

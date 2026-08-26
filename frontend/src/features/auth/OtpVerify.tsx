@@ -65,11 +65,11 @@ export function OtpVerify({
       className="w-full max-w-md mx-auto space-y-6 text-left box-border"
     >
       {/* 1. Brand Heading */}
-      <div className="space-y-1">
-        <h1 className="font-display font-bold text-2xl sm:text-3xl text-[var(--color-ink)] tracking-tight">
+      <div className="space-y-2">
+        <h1 className="font-display font-bold text-[30px] xs:text-[32px] sm:text-[36px] text-[var(--color-ink)] tracking-tight leading-[1.08]">
           {isEmail ? "Verify your email" : "Verify your number"}
         </h1>
-        <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed font-body">
+        <p className="text-[13px] sm:text-[14px] text-[#5C5C5C] dark:text-[#A3A3A3] font-normal leading-relaxed">
           We sent a 6-digit verification code to <strong className="text-[var(--color-ink)] font-mono">{formatPhoneForDisplay(phoneNumber)}</strong>
         </p>
       </div>
@@ -120,17 +120,17 @@ export function OtpVerify({
         <Button
           type="submit"
           disabled={submitting || otp.length === 0}
-          className="w-full h-11 sm:h-12 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs sm:text-sm shadow-sm gap-2 cursor-pointer active:scale-[0.99] transition-all min-h-[44px] sm:min-h-[48px]"
+          className="w-full h-14 sm:h-[58px] px-8 rounded-full font-bold text-[15px] sm:text-base bg-[#10B981] hover:bg-[#059669] dark:bg-[#10B981] dark:hover:bg-[#059669] text-white shadow-xl shadow-[#10B981]/25 dark:shadow-[#10B981]/20 active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2.5 border border-[#10B981]/40 min-h-[52px]"
         >
           {submitting ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-4.5 w-4.5 animate-spin" />
               <span>Verifying code...</span>
             </>
           ) : (
             <>
               <span>Verify &amp; Continue</span>
-              <ArrowRight className="h-3.5 w-3.5" />
+              <ArrowRight className="h-4.5 w-4.5" />
             </>
           )}
         </Button>
@@ -139,7 +139,7 @@ export function OtpVerify({
           <button
             type="button"
             onClick={onBack ?? onResend}
-            className="inline-flex items-center gap-1 text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] font-medium transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1 text-[#5C5C5C] dark:text-[#A3A3A3] hover:text-[var(--color-ink)] font-medium transition-colors cursor-pointer"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             <span>{isEmail ? "Change email" : "Change number"}</span>
@@ -149,7 +149,7 @@ export function OtpVerify({
             variant="ghost"
             type="button"
             onClick={onResend}
-            className="h-auto p-0 text-xs font-semibold text-[var(--color-accent)] hover:text-[var(--color-accent)]/80 hover:bg-transparent cursor-pointer"
+            className="h-auto p-0 text-xs font-bold text-[#10B981] dark:text-[#34D399] hover:text-[#10B981]/80 hover:bg-transparent cursor-pointer"
           >
             Resend code
           </Button>

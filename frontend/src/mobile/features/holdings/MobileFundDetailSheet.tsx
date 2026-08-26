@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { cn, toTitleCase } from "@/lib/utils";
 import { X, ArrowDownRight, ArrowUpRight } from "lucide-react";
 import type { HoldingRow } from "@/features/dashboard/types";
+import { motion, useReducedMotion } from "motion/react";
+import { isTestEnv } from "@/lib/motion";
 
 export interface MobileFundDetailSheetProps {
   isOpen: boolean;
@@ -38,6 +40,8 @@ export function MobileFundDetailSheet({
   const isPositive = profit >= 0;
   const returnPct = invested > 0 ? (profit / invested) * 100 : 0;
 
+  const shouldReduceMotion = useReducedMotion() || isTestEnv;
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
@@ -46,8 +50,12 @@ export function MobileFundDetailSheet({
       aria-modal="true"
       aria-labelledby="mobile-holding-detail-title"
     >
-      <div
-        className="w-full max-w-md max-h-[90dvh] bg-[var(--color-surface)] text-[var(--color-ink)] rounded-t-[32px] sm:rounded-[32px] border border-[var(--color-border)] shadow-2xl overflow-y-auto flex flex-col animate-in slide-in-from-bottom duration-250 pb-[max(env(safe-area-inset-bottom),1.5rem)]"
+      <motion.div
+        initial={shouldReduceMotion ? false : { y: "100%" }}
+        animate={{ y: 0 }}
+        exit={shouldReduceMotion ? undefined : { y: "100%" }}
+        transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+        className="w-full max-w-md max-h-[90dvh] bg-[var(--color-surface)] text-[var(--color-ink)] rounded-t-[32px] sm:rounded-[32px] border border-[var(--color-border)] shadow-2xl overflow-y-auto flex flex-col pb-[max(env(safe-area-inset-bottom),1.5rem)]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Sheet Drag Indicator & Close Row */}
@@ -212,7 +220,7 @@ export function MobileFundDetailSheet({
             </Button>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

@@ -187,29 +187,29 @@ export function MobileImportView({
 
     return (
       <div className="w-full min-w-0 max-w-md mx-auto space-y-4 pt-2 sm:pt-3 text-left box-border animate-in fade-in duration-200">
-        <div className="p-5 sm:p-6 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs space-y-5 text-center box-border">
-          <div className="mx-auto h-14 w-14 rounded-2xl bg-[color-mix(in_srgb,var(--color-positive)_12%,transparent)] border border-[color-mix(in_srgb,var(--color-positive)_24%,transparent)] text-[var(--color-positive)] flex items-center justify-center shadow-2xs">
-            <CheckCircle2 className="h-7 w-7 stroke-[2.2]" />
+        <div className="p-5 sm:p-6 rounded-2xl bg-white/80 dark:bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs space-y-4 text-center box-border">
+          <div className="mx-auto h-12 w-12 rounded-2xl bg-[#10B981]/15 text-[#10B981] flex items-center justify-center shadow-2xs">
+            <CheckCircle2 className="h-6 w-6 stroke-[2.2]" />
           </div>
 
           <div className="space-y-1.5 max-w-xs mx-auto">
             <h3 className="font-display font-bold text-lg sm:text-xl text-[var(--color-ink)] tracking-tight">
               Import Complete
             </h3>
-            <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+            <p className="text-xs text-[#5C5C5C] dark:text-[#A3A3A3] leading-relaxed">
               <strong className="text-[var(--color-ink)] font-semibold">{addedText}</strong>
               {skippedText}. Your portfolio and holdings have been updated.
             </p>
           </div>
 
-          <div className="w-full space-y-2.5 pt-1">
+          <div className="w-full space-y-2 pt-1">
             {onNavigateDashboard && (
               <Button
                 onClick={() => {
                   clearCasResumeStep2(selectedMemberId);
                   onNavigateDashboard();
                 }}
-                className="w-full h-11 sm:h-12 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs sm:text-sm shadow-xs gap-2 cursor-pointer active:scale-[0.98] transition-all min-h-[44px] sm:min-h-[48px]"
+                className="w-full h-13 sm:h-13.5 rounded-full bg-[#10B981] hover:bg-[#059669] dark:bg-[#10B981] dark:hover:bg-[#059669] text-white font-bold text-xs sm:text-sm shadow-lg shadow-[#10B981]/25 gap-2 cursor-pointer active:scale-[0.98] transition-all min-h-[48px] border-none"
               >
                 <LayoutDashboard className="h-4 w-4" />
                 <span>Go to Dashboard</span>
@@ -219,7 +219,7 @@ export function MobileImportView({
             <Button
               variant="outline"
               onClick={resetFlow}
-              className="w-full h-11 sm:h-12 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] hover:bg-[var(--color-surface)] text-[var(--color-ink)] text-xs sm:text-sm font-semibold gap-2 cursor-pointer active:scale-[0.98] transition-all min-h-[44px] sm:min-h-[48px]"
+              className="w-full h-13 sm:h-13.5 rounded-full border border-[var(--color-border)] bg-transparent hover:bg-black/5 dark:hover:bg-white/5 text-[var(--color-ink)] text-xs sm:text-sm font-bold gap-2 cursor-pointer active:scale-[0.98] transition-all min-h-[48px]"
             >
               <UploadCloud className="h-4 w-4" />
               <span>Import Another CAS</span>
@@ -233,23 +233,23 @@ export function MobileImportView({
   /* 4. Error Screen */
   if (step === "error") {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6 space-y-5 animate-in fade-in duration-200">
-        <div className="h-14 w-14 rounded-full bg-[color-mix(in_srgb,var(--color-negative)_12%,transparent)] text-[var(--color-negative)] flex items-center justify-center">
-          <AlertCircle className="h-7 w-7" />
+      <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-6 space-y-4 animate-in fade-in duration-200">
+        <div className="h-12 w-12 rounded-2xl bg-[color-mix(in_srgb,var(--color-negative)_12%,transparent)] text-[var(--color-negative)] flex items-center justify-center">
+          <AlertCircle className="h-6 w-6" />
         </div>
 
         <div className="space-y-1.5 max-w-xs">
           <h3 className="font-display font-bold text-base text-[var(--color-ink)]">
             Import Failed
           </h3>
-          <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+          <p className="text-xs text-[#5C5C5C] dark:text-[#A3A3A3] leading-relaxed">
             {error?.message || "We were unable to parse your statement. Please try again."}
           </p>
         </div>
 
         <Button
           onClick={resetFlow}
-          className="h-11 px-5 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs gap-2 min-h-[44px] active:scale-95"
+          className="h-11 px-6 rounded-full bg-[#10B981] hover:bg-[#059669] dark:bg-[#10B981] dark:hover:bg-[#059669] text-white font-bold text-xs gap-2 min-h-[44px] active:scale-95 shadow-md shadow-[#10B981]/20 border-none"
         >
           <RefreshCw className="h-4 w-4" />
           <span>Try Again</span>
@@ -262,8 +262,8 @@ export function MobileImportView({
 
   /* 5. Main Flow Screen (Choice, Request, Waiting, Upload, History) */
   return (
-    <div className="flex flex-col space-y-4 text-left">
-      {/* Top Header with Member Selector & History Toggle */}
+    <div className="flex flex-col space-y-3.5 sm:space-y-4 text-left">
+      {/* Top Header with Member Selector & Subtle Secondary History Toggle */}
       <div className="flex items-center justify-between gap-2 flex-wrap px-0.5">
         {/* Member Selector / Indicator */}
         {members.length > 1 ? (
@@ -277,10 +277,10 @@ export function MobileImportView({
                   setPendingImportId(null);
                 }}
                 className={cn(
-                  "px-2.5 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 flex-shrink-0 min-h-[32px]",
+                  "px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 flex-shrink-0 min-h-[32px]",
                   (selectedMemberId ?? members[0]?.id) === m.id
-                    ? "bg-[var(--color-accent)] text-white shadow-2xs"
-                    : "bg-[var(--color-surface)] text-[var(--color-text-secondary)] border border-[var(--color-border)] hover:text-[var(--color-ink)]"
+                    ? "bg-[#10B981] text-white shadow-2xs"
+                    : "bg-white/80 dark:bg-[var(--color-surface)] text-[#5C5C5C] dark:text-[#A3A3A3] border border-[var(--color-border)] hover:text-[var(--color-ink)]"
                 )}
               >
                 <User className="h-3 w-3" />
@@ -289,8 +289,8 @@ export function MobileImportView({
             ))}
           </div>
         ) : (
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] text-xs font-medium text-[var(--color-text-secondary)]">
-            <User className="h-3.5 w-3.5 text-[var(--color-accent)]" />
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/80 dark:bg-[var(--color-surface)] border border-[var(--color-border)] text-xs font-medium text-[#5C5C5C] dark:text-[#A3A3A3] shadow-2xs">
+            <User className="h-3.5 w-3.5 text-[#10B981]" />
             <span>
               Importing for{" "}
               <strong className="text-[var(--color-ink)] font-semibold">
@@ -300,16 +300,16 @@ export function MobileImportView({
           </div>
         )}
 
-        {/* Import History Action Button */}
+        {/* Subtle Secondary Import History Action Button */}
         <button
           type="button"
           onClick={() => setView((prev) => (prev === "history" ? "choice" : "history"))}
           aria-label="Import History"
           className={cn(
-            "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer min-h-[32px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] ml-auto",
+            "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all duration-150 cursor-pointer min-h-[32px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10B981] ml-auto",
             view === "history"
-              ? "bg-[var(--color-accent)] text-white shadow-xs"
-              : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface)] border border-[var(--color-border)]"
+              ? "bg-[#10B981] text-white shadow-xs"
+              : "text-[#5C5C5C] dark:text-[#A3A3A3] hover:text-[var(--color-ink)] hover:bg-black/5 dark:hover:bg-white/5 border border-[var(--color-border)] bg-white/80 dark:bg-[var(--color-surface)] shadow-2xs"
           )}
         >
           <History className="h-3.5 w-3.5 flex-shrink-0" />
@@ -363,7 +363,7 @@ export function MobileImportView({
             <button
               type="button"
               onClick={() => setView("choice")}
-              className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] transition-colors cursor-pointer py-1 min-h-[32px]"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#5C5C5C] dark:text-[#A3A3A3] hover:text-[var(--color-ink)] transition-colors cursor-pointer py-1 min-h-[32px]"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
               <span>Back to import</span>
