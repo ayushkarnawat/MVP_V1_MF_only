@@ -80,5 +80,5 @@ export function SoloCasUpload({ name }: SoloCasUploadProps) {
     );
   }
 
-  return <ImportFlow householdMemberId={memberId} ctaLabel="Continue" onDone={handleDone} />;
+  return <ImportFlow householdMemberId={memberId} ctaLabel="Get my first score" onDone={handleDone} />;
 }

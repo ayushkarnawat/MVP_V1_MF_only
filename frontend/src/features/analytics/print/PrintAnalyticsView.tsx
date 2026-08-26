@@ -6,6 +6,7 @@ import { CategoryRankingSection } from "../CategoryRankingSection";
 import { BenchmarkSection } from "../BenchmarkSection";
 import { FundScoreCard } from "../FundScoreCard";
 import type { AnalyticsExportPayload } from "../types";
+import { UnifolioLogo } from "@/components/UnifolioLogo";
 import "./print.css";
 
 function useQueryToken(): string | null {
@@ -55,8 +56,10 @@ export function PrintAnalyticsView() {
 
   return (
     <div className="p-10 space-y-10 bg-[var(--color-bg)]">
-      <div className="print-cover space-y-2 py-24 text-center">
-        <p className="text-xs font-bold uppercase tracking-widest text-[var(--color-accent)]">Unifolio</p>
+      <div className="print-cover space-y-3 py-20 text-center">
+        <div className="flex justify-center mb-1">
+          <UnifolioLogo variant="light" className="h-8" />
+        </div>
         <h1 className="font-display text-3xl font-bold text-[var(--color-ink)]">Analytics Report</h1>
         <p className="text-sm text-[var(--color-text-secondary)]">{payload.scopeName}</p>
         <p className="text-xs text-[var(--color-text-secondary)]">

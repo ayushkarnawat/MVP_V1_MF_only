@@ -13,7 +13,6 @@ import { OnboardingCardStack } from "./OnboardingCardStack";
 import { AddFamilyMembers } from "./AddFamilyMembers";
 import { SoloCasUpload } from "./SoloCasUpload";
 import { FamilyImportFlow } from "./FamilyImportFlow";
-import { ThemeToggle } from "../../components/ThemeToggle";
 import type { HouseholdMember, InvestorType, PrimaryGoal } from "./types";
 
 export interface OnboardingAnswers {
@@ -31,7 +30,7 @@ const INITIAL_ANSWERS: OnboardingAnswers = {
 };
 
 function resumeStep(step: string | null | undefined): OnboardingStep {
-  return isOnboardingStep(step) && step !== "done" ? step : "trust_primer";
+  return isOnboardingStep(step) && step !== "done" ? step : "q1_name";
 }
 
 interface OnboardingFlowProps {
@@ -58,26 +57,11 @@ export function OnboardingFlow({ isMobile = false }: OnboardingFlowProps) {
   const showBack = history.cursor > 0;
 
   const renderStep = () => {
-    if (step === "trust_primer") {
-      return isMobile ? (
-        <TrustPrimer
-          isMobile
-          currentStepIndex={0}
-          totalSteps={5}
-          onContinue={() => advance("q1_name")}
-        />
-      ) : (
-        <OnboardingCardStack history={history}>
-          <TrustPrimer onContinue={() => advance("q1_name")} />
-        </OnboardingCardStack>
-      );
-    }
-
     if (step === "q1_name") {
       return isMobile ? (
         <Q1Name
           isMobile
-          currentStepIndex={1}
+          currentStepIndex={0}
           totalSteps={5}
           value={answers.name}
           onBack={showBack ? back : undefined}
@@ -88,7 +72,7 @@ export function OnboardingFlow({ isMobile = false }: OnboardingFlowProps) {
           }}
         />
       ) : (
-        <OnboardingCardStack history={history}>
+        <OnboardingCardStack history={history} currentStepIndex={0} totalSteps={5}>
           <Q1Name
             value={answers.name}
             onBack={showBack ? back : undefined}
@@ -106,8 +90,9 @@ export function OnboardingFlow({ isMobile = false }: OnboardingFlowProps) {
       return isMobile ? (
         <Q2Investing
           isMobile
-          currentStepIndex={2}
+          currentStepIndex={1}
           totalSteps={5}
+          selectedValue={answers.investorType}
           onBack={back}
           onSkip={() => skip("q3_purpose")}
           onSelect={(investorType) => {
@@ -117,8 +102,9 @@ export function OnboardingFlow({ isMobile = false }: OnboardingFlowProps) {
           }}
         />
       ) : (
-        <OnboardingCardStack history={history}>
+        <OnboardingCardStack history={history} currentStepIndex={1} totalSteps={5}>
           <Q2Investing
+            selectedValue={answers.investorType}
             onBack={back}
             onSkip={() => skip("q3_purpose")}
             onSelect={(investorType) => {
@@ -135,26 +121,47 @@ export function OnboardingFlow({ isMobile = false }: OnboardingFlowProps) {
       return isMobile ? (
         <Q3Purpose
           isMobile
-          currentStepIndex={3}
+          currentStepIndex={2}
           totalSteps={5}
+          selectedValue={answers.primaryGoal}
           onBack={back}
-          onSkip={() => skip("q4_household")}
+          onSkip={() => skip("trust_primer")}
           onSelect={(primaryGoal) => {
             void updateMe({ primary_goal: primaryGoal });
             setAnswers((a) => ({ ...a, primaryGoal }));
-            advance("q4_household");
+            advance("trust_primer");
           }}
         />
       ) : (
-        <OnboardingCardStack history={history}>
+        <OnboardingCardStack history={history} currentStepIndex={2} totalSteps={5}>
           <Q3Purpose
+            selectedValue={answers.primaryGoal}
             onBack={back}
-            onSkip={() => skip("q4_household")}
+            onSkip={() => skip("trust_primer")}
             onSelect={(primaryGoal) => {
               void updateMe({ primary_goal: primaryGoal });
               setAnswers((a) => ({ ...a, primaryGoal }));
-              advance("q4_household");
+              advance("trust_primer");
             }}
+          />
+        </OnboardingCardStack>
+      );
+    }
+
+    if (step === "trust_primer") {
+      return isMobile ? (
+        <TrustPrimer
+          isMobile
+          currentStepIndex={3}
+          totalSteps={5}
+          onBack={back}
+          onContinue={() => advance("q4_household")}
+        />
+      ) : (
+        <OnboardingCardStack history={history} currentStepIndex={3} totalSteps={5}>
+          <TrustPrimer
+            onBack={back}
+            onContinue={() => advance("q4_household")}
           />
         </OnboardingCardStack>
       );
@@ -172,7 +179,7 @@ export function OnboardingFlow({ isMobile = false }: OnboardingFlowProps) {
           onChooseFamily={() => advance("add_family")}
         />
       ) : (
-        <OnboardingCardStack history={history}>
+        <OnboardingCardStack history={history} currentStepIndex={4} totalSteps={5}>
           <Q4Household
             onBack={back}
             onChooseSolo={() => advance("cas_upload")}
@@ -233,10 +240,6 @@ export function OnboardingFlow({ isMobile = false }: OnboardingFlowProps) {
 
   return (
     <div className="relative w-full min-h-dvh">
-      {/* Top Right Theme Toggle visible across all onboarding screens */}
-      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-30">
-        <ThemeToggle />
-      </div>
       {renderStep()}
     </div>
   );

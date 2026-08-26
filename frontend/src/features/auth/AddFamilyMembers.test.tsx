@@ -47,13 +47,13 @@ describe("AddFamilyMembers", () => {
     expect(screen.getByText("Dad")).toBeInTheDocument();
   });
 
-  it("disables Continue until at least one member has been added", () => {
+  it("disables Connect my investments until at least one member has been added", () => {
     render(<AddFamilyMembers members={[]} onMembersChange={vi.fn()} onBack={vi.fn()} onContinue={vi.fn()} />);
 
-    expect(screen.getByRole("button", { name: /continue/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /connect my investments/i })).toBeDisabled();
   });
 
-  it("calls onContinue when Continue is clicked with members present", () => {
+  it("calls onContinue when Connect my investments is clicked with members present", () => {
     const onContinue = vi.fn();
     render(
       <AddFamilyMembers
@@ -64,7 +64,7 @@ describe("AddFamilyMembers", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    fireEvent.click(screen.getByRole("button", { name: /connect my investments/i }));
 
     expect(onContinue).toHaveBeenCalled();
   });

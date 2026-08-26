@@ -124,7 +124,7 @@ export function LinkAccountPrompt({ matchedEmail, existingMethod, pendingToken, 
       <h2 className="font-display font-bold text-2xl text-[var(--color-ink)] tracking-tight">
         Link to existing account
       </h2>
-      <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed">
+      <p className="text-xs sm:text-sm text-[#5C5C5C] dark:text-[#A3A3A3] leading-relaxed font-body">
         We found an account associated with <strong className="text-[var(--color-ink)] font-mono">{matchedEmail}</strong> — log in with your {existingMethod} to link this to it.
       </p>
     </div>
@@ -134,7 +134,7 @@ export function LinkAccountPrompt({ matchedEmail, existingMethod, pendingToken, 
     <button
       type="button"
       onClick={onCancel}
-      className="inline-flex items-center gap-1.5 text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] font-medium transition-colors cursor-pointer"
+      className="inline-flex items-center gap-1.5 text-xs text-[#5C5C5C] dark:text-[#A3A3A3] hover:text-[var(--color-ink)] font-medium transition-colors cursor-pointer py-1"
     >
       <ArrowLeft className="h-3.5 w-3.5" />
       <span>Back</span>

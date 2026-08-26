@@ -4,6 +4,8 @@ import type { CASImportStatusResponse } from "@/features/import/types";
 import { FileText, AlertCircle, RefreshCw, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { motion, useReducedMotion } from "motion/react";
+import { listContainerVariants, listItemVariants, isTestEnv } from "@/lib/motion";
 
 export interface MobileImportHistoryProps {
   memberId: string;
@@ -14,6 +16,7 @@ export function MobileImportHistory({ memberId }: MobileImportHistoryProps) {
   const [history, setHistory] = useState<CASImportStatusResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const shouldReduceMotion = useReducedMotion() || isTestEnv;
 
   const fetchHistory = () => {
     setIsLoading(true);
@@ -65,17 +68,22 @@ export function MobileImportHistory({ memberId }: MobileImportHistoryProps) {
 
   if (history.length === 0) {
     return (
-      <div className="p-6 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] text-center space-y-2">
-        <div className="h-10 w-10 mx-auto rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text-secondary)] flex items-center justify-center shadow-2xs">
+      <motion.div
+        initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3 }}
+        className="p-6 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] text-center space-y-2.5 shadow-2xs"
+      >
+        <div className="h-12 w-12 mx-auto rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-accent)] flex items-center justify-center shadow-xs">
           <FileText className="h-5 w-5" />
         </div>
         <h4 className="font-display font-semibold text-xs text-[var(--color-ink)]">
           No import history found
         </h4>
-        <p className="text-[11px] text-[var(--color-text-secondary)]">
+        <p className="text-[11px] text-[var(--color-text-secondary)] max-w-xs mx-auto">
           Past CAS statement uploads and automated requests for this member will appear here.
         </p>
-      </div>
+      </motion.div>
     );
   }
 
@@ -90,7 +98,12 @@ export function MobileImportHistory({ memberId }: MobileImportHistoryProps) {
         </span>
       </div>
 
-      <div className="space-y-2.5">
+      <motion.div
+        variants={listContainerVariants}
+        initial="hidden"
+        animate="visible"
+        className="space-y-2.5"
+      >
         {history.map((item) => {
           const isSuccess = item.status === "import_successful";
           const dateRange =
@@ -99,8 +112,9 @@ export function MobileImportHistory({ memberId }: MobileImportHistoryProps) {
               : `Uploaded ${new Date(item.uploaded_at).toLocaleDateString()}`;
 
           return (
-            <div
+            <motion.div
               key={item.import_id}
+              variants={listItemVariants}
               className="p-3.5 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs space-y-2"
             >
               <div className="flex items-start justify-between gap-2">
@@ -149,10 +163,10 @@ export function MobileImportHistory({ memberId }: MobileImportHistoryProps) {
                   {item.error_message}
                 </p>
               )}
-            </div>
+            </motion.div>
           );
         })}
-      </div>
+      </motion.div>
     </div>
   );
 }

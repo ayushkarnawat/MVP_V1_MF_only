@@ -25,6 +25,7 @@ describe("MobileOnboardingScreen", () => {
     );
 
     // 1. Top bar elements
+    expect(screen.getByText("Unifolio")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /back/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /skip/i })).toBeInTheDocument();
     expect(screen.getByLabelText("Step 2 of 5")).toBeInTheDocument();

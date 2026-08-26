@@ -1,4 +1,5 @@
 import type { ParseErrorPayload } from "./types";
+import { Button } from "@/components/ui/button";
 import styles from "./ImportError.module.css";
 
 interface ImportErrorProps {
@@ -11,9 +12,9 @@ export function ImportError({ error, onRetry }: ImportErrorProps) {
     <div className={styles.container}>
       <h1>Import failed</h1>
       <p>{error.message}</p>
-      <button type="button" onClick={onRetry}>
+      <Button variant="primary" type="button" onClick={onRetry}>
         Try again
-      </button>
+      </Button>
     </div>
   );
 }

@@ -1,5 +1,7 @@
 import { LayoutDashboard, PlusCircle, BarChart2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { motion, useReducedMotion } from "motion/react";
+import { isTestEnv } from "@/lib/motion";
 
 export type MobileTab = "dashboard" | "analytics" | "import";
 
@@ -14,6 +16,8 @@ export function MobileBottomNav({
   onTabChange,
   className,
 }: MobileBottomNavProps) {
+  const shouldReduceMotion = useReducedMotion() || isTestEnv;
+
   return (
     <nav
       className={cn(
@@ -24,10 +28,12 @@ export function MobileBottomNav({
     >
       <div className="max-w-md mx-auto flex items-center justify-around">
         {/* 1. Dashboard Tab (Left) */}
-        <button
+        <motion.button
+          whileTap={shouldReduceMotion ? undefined : { scale: 0.92 }}
+          transition={{ duration: 0.1 }}
           onClick={() => onTabChange("dashboard")}
           className={cn(
-            "group flex flex-col items-center justify-center min-w-[64px] min-h-[48px] py-1 px-3 rounded-2xl transition-all duration-150 active:scale-90 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
+            "group flex flex-col items-center justify-center min-w-[64px] min-h-[48px] py-1 px-3 rounded-2xl transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
             activeTab === "dashboard"
               ? "text-[var(--color-accent)]"
               : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)]"
@@ -56,13 +62,15 @@ export function MobileBottomNav({
           >
             Dashboard
           </span>
-        </button>
+        </motion.button>
 
         {/* 2. Analytics Tab (Center) */}
-        <button
+        <motion.button
+          whileTap={shouldReduceMotion ? undefined : { scale: 0.92 }}
+          transition={{ duration: 0.1 }}
           onClick={() => onTabChange("analytics")}
           className={cn(
-            "group flex flex-col items-center justify-center min-w-[64px] min-h-[48px] py-1 px-3 rounded-2xl transition-all duration-150 active:scale-90 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
+            "group flex flex-col items-center justify-center min-w-[64px] min-h-[48px] py-1 px-3 rounded-2xl transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
             activeTab === "analytics"
               ? "text-[var(--color-accent)]"
               : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)]"
@@ -91,13 +99,15 @@ export function MobileBottomNav({
           >
             Analytics
           </span>
-        </button>
+        </motion.button>
 
         {/* 3. Import Tab (Right) */}
-        <button
+        <motion.button
+          whileTap={shouldReduceMotion ? undefined : { scale: 0.92 }}
+          transition={{ duration: 0.1 }}
           onClick={() => onTabChange("import")}
           className={cn(
-            "group flex flex-col items-center justify-center min-w-[64px] min-h-[48px] py-1 px-3 rounded-2xl transition-all duration-150 active:scale-90 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
+            "group flex flex-col items-center justify-center min-w-[64px] min-h-[48px] py-1 px-3 rounded-2xl transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
             activeTab === "import"
               ? "text-[var(--color-accent)]"
               : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)]"
@@ -126,7 +136,7 @@ export function MobileBottomNav({
           >
             Import
           </span>
-        </button>
+        </motion.button>
       </div>
     </nav>
   );

@@ -6,6 +6,8 @@ import { cn, toTitleCase } from "@/lib/utils";
 import { formatIndianCurrency } from "@/lib/decimal";
 import { getAggregateDistributorComparison, getMemberDistributorComparison } from "@/features/dashboard/api";
 import type { DistributorPortfolioRow } from "@/features/dashboard/types";
+import { motion, useReducedMotion } from "motion/react";
+import { pageTransition, listContainerVariants, listItemVariants, isTestEnv } from "@/lib/motion";
 
 export interface MobileDistributorComparisonViewProps {
   isOpen: boolean;
@@ -33,6 +35,7 @@ export function MobileDistributorComparisonView({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const shouldReduceMotion = useReducedMotion() || isTestEnv;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -76,7 +79,13 @@ export function MobileDistributorComparisonView({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col min-h-dvh bg-[var(--color-bg)] animate-in fade-in duration-200">
+    <motion.div
+      initial={shouldReduceMotion ? false : { opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={shouldReduceMotion ? undefined : { opacity: 0, x: -20 }}
+      transition={pageTransition}
+      className="fixed inset-0 z-50 flex flex-col min-h-dvh bg-[var(--color-bg)]"
+    >
       {/* Top Header with Back Navigation */}
       <header className="sticky top-0 z-30 w-full h-14 bg-[var(--color-surface)]/85 backdrop-blur-md border-b border-[var(--color-border)] px-4 grid grid-cols-3 items-center transition-colors duration-200 select-none">
         <div className="flex items-center justify-start">
@@ -122,7 +131,12 @@ export function MobileDistributorComparisonView({
             No distributor comparison data found.
           </p>
         ) : (
-          <div className="space-y-2.5">
+          <motion.div
+            variants={listContainerVariants}
+            initial="hidden"
+            animate="visible"
+            className="space-y-2.5"
+          >
             {rows.map((row, idx) => {
               const key = rowKey(row, idx);
               const isDirect = !row.arn_code;
@@ -130,8 +144,9 @@ export function MobileDistributorComparisonView({
               const isExpanded = expanded.has(key);
 
               return (
-                <div
+                <motion.div
                   key={key}
+                  variants={listItemVariants}
                   className="rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs overflow-hidden"
                 >
                   <button
@@ -247,13 +262,13 @@ export function MobileDistributorComparisonView({
                       })}
                     </div>
                   )}
-                </div>
+                </motion.div>
               );
             })}
-          </div>
+          </motion.div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }
 

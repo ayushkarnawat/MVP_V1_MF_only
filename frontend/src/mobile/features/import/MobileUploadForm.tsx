@@ -85,7 +85,7 @@ export function MobileUploadForm({
     <form
       onSubmit={handleSubmit}
       className={cn(
-        "p-5 sm:p-6 rounded-3xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-md space-y-5 text-left relative overflow-hidden",
+        "p-4 sm:p-5 rounded-2xl bg-white/80 dark:bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs space-y-3.5 sm:space-y-4 text-left relative overflow-hidden box-border",
         className
       )}
     >
@@ -94,7 +94,7 @@ export function MobileUploadForm({
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] transition-colors cursor-pointer py-1 -ml-1 min-h-[36px]"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#5C5C5C] dark:text-[#A3A3A3] hover:text-[var(--color-ink)] transition-colors cursor-pointer py-1 -ml-1 min-h-[36px]"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           <span>Back to import options</span>
@@ -102,34 +102,34 @@ export function MobileUploadForm({
       )}
 
       {/* Header Section with Supporting Illustration */}
-      <div className="flex items-start gap-3">
+      <div className="flex items-center gap-3">
         <div className="flex-shrink-0">
           <OnboardingIllustration variant="cas_upload" className="w-14 h-14" />
         </div>
 
         <div className="space-y-0.5 flex-1 min-w-0">
-          <h3 className="font-display font-bold text-sm sm:text-base text-[var(--color-ink)]">
+          <h3 className="font-display font-bold text-[17px] sm:text-[18px] text-[var(--color-ink)] tracking-tight leading-tight">
             Upload your statement
           </h3>
-          <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+          <p className="text-xs text-[#5C5C5C] dark:text-[#A3A3A3] leading-relaxed font-normal font-body">
             Drop in the Detailed CAS PDF you already have.
           </p>
         </div>
       </div>
 
-      {/* Mobile Touch Dropzone */}
+      {/* Mobile Touch Dropzone: Light, Chic & Integrated */}
       <div
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
         className={cn(
-          "relative border-2 border-dashed rounded-2xl p-5 text-center cursor-pointer transition-all duration-150 select-none min-h-[120px] flex items-center justify-center active:scale-[0.99]",
+          "relative border-2 border-dashed rounded-2xl p-4 text-center cursor-pointer transition-all duration-200 select-none min-h-[110px] flex items-center justify-center active:scale-[0.99]",
           isDragging
-            ? "border-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-accent)_8%,var(--color-surface))]"
+            ? "border-[#10B981] bg-[#10B981]/[0.08]"
             : file
-            ? "border-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-accent)_4%,var(--color-surface))]"
-            : "border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-accent)_2%,var(--color-bg))] hover:border-[var(--color-accent)]/60"
+            ? "border-[#10B981] bg-[#10B981]/[0.04]"
+            : "border-[var(--color-border)] bg-black/[0.015] dark:bg-white/[0.02] hover:border-[#10B981]/50 hover:bg-[#10B981]/[0.02]"
         )}
       >
         <input
@@ -152,22 +152,22 @@ export function MobileUploadForm({
             />
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center space-y-2">
-            <div className="h-10 w-10 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-accent)] flex items-center justify-center shadow-xs">
-              <UploadCloud className="h-5 w-5" />
+          <div className="flex flex-col items-center justify-center space-y-1.5">
+            <div className="h-9 w-9 rounded-xl bg-[#10B981]/10 text-[#10B981] flex items-center justify-center shadow-2xs">
+              <UploadCloud className="h-4.5 w-4.5" />
             </div>
-            <div className="space-y-1">
-              <p className="text-xs font-semibold text-[var(--color-ink)]">
+            <div className="space-y-0.5">
+              <p className="text-xs font-bold text-[var(--color-ink)]">
                 Tap to choose a PDF
               </p>
-              <p className="text-[11px] text-[var(--color-text-secondary)]">
+              <p className="text-[11px] text-[#5C5C5C] dark:text-[#A3A3A3]">
                 Select a Detailed CAS PDF from your device
               </p>
-              <div className="flex items-center justify-center gap-1 flex-wrap pt-0.5">
-                <span className="px-1.5 py-0.5 rounded-full text-[9px] font-mono font-medium bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)]">
+              <div className="flex items-center justify-center gap-1.5 pt-1">
+                <span className="px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/20">
                   CAMS
                 </span>
-                <span className="text-[10px] text-[var(--color-text-secondary)]">
+                <span className="text-[10px] text-[#5C5C5C] dark:text-[#A3A3A3]">
                   Detailed CAS (up to 25MB)
                 </span>
               </div>
@@ -188,19 +188,19 @@ export function MobileUploadForm({
       )}
 
       {/* Password Field */}
-      <div className="space-y-1.5">
+      <div className="space-y-1">
         <div className="flex items-center justify-between gap-1 flex-wrap">
-          <Label htmlFor="mobile-cas-password" className="text-xs font-semibold text-[var(--color-ink)]">
+          <Label htmlFor="mobile-cas-password" className="text-xs font-semibold text-[var(--color-ink)] font-body">
             PDF Password
           </Label>
-          <span className="text-[10px] text-[var(--color-text-secondary)] flex items-center gap-1">
-            <ShieldCheck className="h-3 w-3 text-[var(--color-accent)]" />
+          <span className="text-[10px] text-[#5C5C5C] dark:text-[#A3A3A3] flex items-center gap-1 font-medium">
+            <ShieldCheck className="h-3 w-3 text-[#10B981]" />
             <span>PAN or DOB</span>
           </span>
         </div>
 
-        <div className="relative">
-          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-text-secondary)] pointer-events-none" />
+        <div className="relative flex items-center rounded-xl bg-white/90 dark:bg-[var(--color-surface)] border border-[var(--color-border)] focus-within:border-[#10B981] focus-within:ring-2 focus-within:ring-[#10B981]/20 transition-all overflow-hidden h-11 px-3">
+          <Lock className="h-4 w-4 text-[#5C5C5C] dark:text-[#A3A3A3] pointer-events-none flex-shrink-0 mr-2" />
           <Input
             id="mobile-cas-password"
             aria-label="PDF Password"
@@ -208,13 +208,13 @@ export function MobileUploadForm({
             placeholder="Enter password if protected"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="pl-9 pr-9 h-11 text-xs bg-[var(--color-bg)] border-[var(--color-border)] rounded-xl focus-visible:ring-[var(--color-accent)]"
+            className="flex-1 bg-transparent text-xs sm:text-sm font-medium text-[var(--color-ink)] placeholder:text-[#5C5C5C]/50 dark:placeholder:text-[#A3A3A3]/50 focus:outline-none border-none outline-none ring-0 shadow-none appearance-none caret-[#10B981] p-0 h-auto"
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
             title={showPassword ? "Hide password" : "Show password"}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] p-1.5 rounded-lg cursor-pointer min-h-[32px] min-w-[32px] flex items-center justify-center"
+            className="text-[#5C5C5C] dark:text-[#A3A3A3] hover:text-[var(--color-ink)] p-1 rounded-lg cursor-pointer flex items-center justify-center flex-shrink-0 ml-1"
           >
             {showPassword ? (
               <EyeOff className="h-4 w-4" />
@@ -229,7 +229,7 @@ export function MobileUploadForm({
       <Button
         type="submit"
         disabled={isLoading}
-        className="w-full h-11 sm:h-12 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs sm:text-sm shadow-xs gap-2 cursor-pointer active:scale-[0.98] transition-all min-h-[44px]"
+        className="w-full h-13 sm:h-13.5 rounded-full bg-[#10B981] hover:bg-[#059669] dark:bg-[#10B981] dark:hover:bg-[#059669] text-white font-bold text-[14px] sm:text-[15px] shadow-lg shadow-[#10B981]/25 gap-2 cursor-pointer active:scale-[0.98] transition-all min-h-[48px] border-none"
       >
         <UploadCloud className="h-4 w-4" />
         <span>{isLoading ? "Parsing Statement..." : "Upload Statement"}</span>

@@ -3,9 +3,20 @@ import { ArrowLeft, ChevronRight } from "lucide-react";
 import type { PrimaryGoal } from "./types";
 import { OnboardingIllustration } from "./OnboardingIllustration";
 import { MobileOnboardingScreen } from "./MobileOnboardingScreen";
-import { staggerContainerVariants, staggerItemVariants } from "@/lib/motion";
+import { cn } from "@/lib/utils";
+import {
+  MOTION_EASING_SMOOTH,
+  onboardingContainerVariants,
+  onboardingHeadingVariants,
+  onboardingIllustrationVariants,
+  onboardingOptionItemVariants,
+  onboardingOptionsContainerVariants,
+  onboardingSubtextVariants,
+  onboardingFooterVariants,
+} from "@/lib/motion";
 
 interface Q3PurposeProps {
+  selectedValue?: PrimaryGoal | null;
   onBack: () => void;
   onSkip: () => void;
   onSelect: (value: PrimaryGoal) => void;
@@ -76,7 +87,7 @@ const OPTIONS: PurposeOption[] = [
   {
     value: "performance_comparison",
     title: "Compare distributor fees",
-    subtitle: "Compare returns and commissions across ARNs and channels",
+    subtitle: "Compare returns and commissions across different distributors",
     renderIllustration: () => (
       <svg viewBox="0 0 48 48" className="w-10 h-10 sm:w-11 sm:h-11 select-none" fill="none">
         <path d="M24 9 V37 M18 37 H30" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -95,43 +106,85 @@ const OPTIONS: PurposeOption[] = [
 ];
 
 export function Q3Purpose({
+  selectedValue,
   onBack,
   onSkip,
   onSelect,
   isMobile = false,
-  currentStepIndex = 3,
+  currentStepIndex = 2,
   totalSteps = 5,
 }: Q3PurposeProps) {
   const choicesContent = (
-    <div className="space-y-2 sm:space-y-2.5">
-      {OPTIONS.map((option) => (
-        <motion.button
-          key={option.value}
-          whileHover={{ scale: 1.01 }}
-          whileTap={{ scale: 0.98 }}
-          type="button"
-          className="w-full p-3 sm:p-3.5 rounded-2xl bg-[var(--color-surface)] border border-[color-mix(in_srgb,var(--color-border)_70%,transparent)] hover:border-[var(--color-accent)]/60 hover:bg-[color-mix(in_srgb,var(--color-accent)_4%,var(--color-surface))] flex items-center gap-3 sm:gap-4 text-left transition-all duration-200 cursor-pointer group shadow-xs select-none min-h-[48px]"
-          onClick={() => onSelect(option.value)}
-        >
-          <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] text-[var(--color-ink)] flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-all duration-200 shadow-2xs">
-            {option.renderIllustration()}
-          </div>
+    <motion.div
+      variants={onboardingOptionsContainerVariants}
+      initial="hidden"
+      animate="visible"
+      className="divide-y divide-[var(--color-border)]/35 -mx-1"
+    >
+      {OPTIONS.map((option) => {
+        const isSelected = selectedValue === option.value;
+        return (
+          <motion.button
+            key={option.value}
+            variants={onboardingOptionItemVariants}
+            whileHover={{
+              x: 2,
+              transition: { duration: 0.18, ease: MOTION_EASING_SMOOTH },
+            }}
+            whileTap={{ scale: 0.99 }}
+            type="button"
+            className={cn(
+              "w-full py-3 sm:py-3.5 px-2.5 sm:px-3 rounded-xl flex items-center gap-3.5 text-left transition-all duration-150 cursor-pointer group select-none min-h-[50px]",
+              isSelected
+                ? "bg-[#10B981]/[0.08] dark:bg-[#10B981]/[0.12]"
+                : "hover:bg-black/[0.025] dark:hover:bg-white/[0.035]"
+            )}
+            onClick={() => onSelect(option.value)}
+          >
+            {/* Left Icon */}
+            <div
+              className={cn(
+                "h-9 w-9 sm:h-10 sm:w-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-150",
+                isSelected
+                  ? "bg-[#10B981]/20 text-[#10B981] dark:text-[#34D399]"
+                  : "bg-[#10B981]/10 text-[var(--color-ink)] group-hover:bg-[#10B981]/15 group-hover:text-[#10B981] dark:group-hover:text-[#34D399]"
+              )}
+            >
+              {option.renderIllustration()}
+            </div>
 
-          <div className="flex-1 min-w-0 space-y-0.5">
-            <strong className="block font-display font-bold text-xs sm:text-[14px] text-[var(--color-ink)] group-hover:text-[var(--color-accent)] transition-colors">
-              {option.title}
-            </strong>
-            <span className="block text-[11px] sm:text-xs text-[var(--color-text-secondary)] leading-tight sm:leading-relaxed font-medium">
-              {option.subtitle}
-            </span>
-          </div>
+            {/* Title & Subtitle */}
+            <div className="flex-1 min-w-0 space-y-0.5">
+              <strong
+                className={cn(
+                  "block font-display font-bold text-xs sm:text-[13.5px] transition-colors",
+                  isSelected
+                    ? "text-[#10B981] dark:text-[#34D399]"
+                    : "text-[var(--color-ink)] group-hover:text-[#10B981] dark:group-hover:text-[#34D399]"
+                )}
+              >
+                {option.title}
+              </strong>
+              <span className="block text-[11px] sm:text-xs text-[#5C5C5C] dark:text-[#A3A3A3] leading-snug font-normal">
+                {option.subtitle}
+              </span>
+            </div>
 
-          <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] flex items-center justify-center flex-shrink-0 group-hover:border-[var(--color-accent)] group-hover:bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] transition-all duration-150">
-            <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[var(--color-text-secondary)] group-hover:text-[var(--color-accent)] group-hover:translate-x-0.5 transition-all duration-150" />
-          </div>
-        </motion.button>
-      ))}
-    </div>
+            {/* Right Arrow */}
+            <div
+              className={cn(
+                "h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-150",
+                isSelected
+                  ? "bg-[#10B981]/15 text-[#10B981] dark:text-[#34D399]"
+                  : "text-[#5C5C5C]/50 dark:text-[#A3A3A3]/50 group-hover:text-[#10B981] dark:group-hover:text-[#34D399] group-hover:translate-x-0.5"
+              )}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </div>
+          </motion.button>
+        );
+      })}
+    </motion.div>
   );
 
   if (isMobile) {
@@ -150,21 +203,21 @@ export function Q3Purpose({
     );
   }
 
-  // Desktop (isMobile === false) renders unchanged
+  // Desktop (isMobile === false) renders inside OnboardingCardStack
   return (
     <motion.div
-      variants={staggerContainerVariants}
+      variants={onboardingContainerVariants}
       initial="hidden"
       animate="visible"
       className="w-full space-y-3 sm:space-y-5 text-left box-border"
     >
       {/* Visual Artwork Anchor */}
-      <motion.div variants={staggerItemVariants}>
+      <motion.div variants={onboardingIllustrationVariants}>
         <OnboardingIllustration variant="purpose" />
       </motion.div>
 
       {/* 1. Header with Eyebrow */}
-      <motion.div variants={staggerItemVariants} className="space-y-1">
+      <motion.div variants={onboardingHeadingVariants} className="space-y-1">
         <h1 className="font-display font-bold text-lg sm:text-2xl text-[var(--color-ink)] tracking-tight leading-snug">
           What brings you to Unifolio?
         </h1>
@@ -174,12 +227,12 @@ export function Q3Purpose({
       </motion.div>
 
       {/* 2. Choice Cards Grid */}
-      <motion.div variants={staggerItemVariants}>
+      <motion.div variants={onboardingSubtextVariants}>
         {choicesContent}
       </motion.div>
 
       {/* 3. Navigation Controls */}
-      <motion.div variants={staggerItemVariants} className="flex items-center justify-between gap-3 pt-1">
+      <motion.div variants={onboardingFooterVariants} className="flex items-center justify-between gap-3 pt-1">
         <button
           type="button"
           onClick={onBack}

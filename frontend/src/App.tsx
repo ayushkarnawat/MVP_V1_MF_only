@@ -4,6 +4,8 @@ import { AuthEntryFlow } from "./features/auth/AuthEntryFlow";
 import { OnboardingFlow } from "./features/auth/OnboardingFlow";
 import { DashboardPlaceholder } from "./features/dashboard/DashboardPlaceholder";
 import { MobileRoot } from "./mobile/MobileRoot";
+import { MobileLandingPage } from "./mobile/features/landing/MobileLandingPage";
+import { UnifolioLogo } from "./components/UnifolioLogo";
 
 function useIsMobileViewport(breakpoint = 768) {
   const [isMobile, setIsMobile] = useState(() => {
@@ -34,6 +36,8 @@ function useIsMobileViewport(breakpoint = 768) {
 
 function MainApp() {
   const { me, loading } = useAuth();
+  const [showMobileLanding, setShowMobileLanding] = useState(true);
+  const [authInitialMode, setAuthInitialMode] = useState<"login" | "signup">("signup");
   const isMobileViewport = useIsMobileViewport(768);
   const isMobileRoute =
     typeof window !== "undefined" &&
@@ -44,23 +48,29 @@ function MainApp() {
 
   if (loading) {
     return (
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          minHeight: "100vh",
-          fontFamily: "var(--font-body)",
-          color: "var(--color-text-secondary)",
-        }}
-      >
-        <p>Loading Unifolio...</p>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[var(--color-bg)] text-[var(--color-text-secondary)] transition-colors duration-300">
+        <UnifolioLogo className="h-9 mb-3 animate-pulse" />
+        <p className="text-xs font-medium tracking-wide">Loading Unifolio…</p>
       </div>
     );
   }
 
   if (!me) {
-    return <AuthEntryFlow />;
+    if (isMobile && showMobileLanding) {
+      return (
+        <MobileLandingPage
+          onGetStarted={() => {
+            setAuthInitialMode("signup");
+            setShowMobileLanding(false);
+          }}
+          onLogin={() => {
+            setAuthInitialMode("login");
+            setShowMobileLanding(false);
+          }}
+        />
+      );
+    }
+    return <AuthEntryFlow initialMode={authInitialMode} />;
   }
 
   if (!me.onboarding_completed) {

@@ -13,6 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Search, ChevronDown, AlertTriangle, UploadCloud, BarChart2 } from "lucide-react";
+import { motion, useReducedMotion } from "motion/react";
+import { staggerContainerVariants, staggerItemVariants, listContainerVariants, listItemVariants, isTestEnv } from "@/lib/motion";
 
 export interface MobileHoldingsViewProps {
   onNavigateImport?: () => void;
@@ -32,6 +34,7 @@ export function MobileHoldingsView({
   const [isDistributorComparisonOpen, setIsDistributorComparisonOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const shouldReduceMotion = useReducedMotion() || isTestEnv;
 
   /* Fetch initial household members list */
   useEffect(() => {
@@ -234,10 +237,15 @@ export function MobileHoldingsView({
   }
 
   return (
-    <div className="flex flex-col space-y-4 animate-in fade-in duration-200">
+    <motion.div
+      variants={staggerContainerVariants}
+      initial="hidden"
+      animate="visible"
+      className="flex flex-col space-y-4"
+    >
       {/* Top Controls: Family Switcher + Member Select */}
       {hasFamily && (
-        <div className="flex flex-col space-y-2">
+        <motion.div variants={staggerItemVariants} className="flex flex-col space-y-2">
           <div className="inline-flex items-center p-1 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-2xs w-full">
             <button
               className={cn(
@@ -283,11 +291,11 @@ export function MobileHoldingsView({
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-text-secondary)] pointer-events-none opacity-70" />
             </div>
           )}
-        </div>
+        </motion.div>
       )}
 
       {/* Search Input Bar */}
-      <div className="relative w-full">
+      <motion.div variants={staggerItemVariants} className="relative w-full">
         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-text-secondary)] pointer-events-none" />
         <Input
           type="text"
@@ -296,10 +304,10 @@ export function MobileHoldingsView({
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-10 h-11 text-xs bg-[var(--color-surface)] border-[var(--color-border)] rounded-xl focus-visible:ring-[var(--color-accent)] shadow-2xs"
         />
-      </div>
+      </motion.div>
 
       {/* Holdings Header Bar */}
-      <div className="flex items-center justify-between gap-2 px-1 text-xs flex-wrap">
+      <motion.div variants={staggerItemVariants} className="flex items-center justify-between gap-2 px-1 text-xs flex-wrap">
         <span className="font-display text-sm font-bold text-[var(--color-ink)]">
           All Holdings
         </span>
@@ -317,19 +325,25 @@ export function MobileHoldingsView({
             <span>Compare Distributors</span>
           </Button>
         </div>
-      </div>
+      </motion.div>
 
       {/* Summary-First Holding Cards List */}
       {filteredHoldings.length > 0 ? (
-        <div className="space-y-2.5">
+        <motion.div
+          variants={listContainerVariants}
+          initial="hidden"
+          animate="visible"
+          className="space-y-2.5"
+        >
           {filteredHoldings.map((h) => (
-            <MobileHoldingCardSummary
-              key={h.scheme_id + (h.household_member_id || "")}
-              holding={h}
-              onSelect={(item) => handleSelectHolding(item)}
-            />
+            <motion.div key={h.scheme_id + (h.household_member_id || "")} variants={listItemVariants}>
+              <MobileHoldingCardSummary
+                holding={h}
+                onSelect={(item) => handleSelectHolding(item)}
+              />
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       ) : (
         <div className="p-8 text-center rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] text-xs text-[var(--color-text-secondary)] space-y-1">
           <p className="font-semibold text-[var(--color-ink)]">No matching funds</p>
@@ -343,6 +357,6 @@ export function MobileHoldingsView({
         viewMode={viewMode}
         memberId={selectedMemberId}
       />
-    </div>
+    </motion.div>
   );
 }

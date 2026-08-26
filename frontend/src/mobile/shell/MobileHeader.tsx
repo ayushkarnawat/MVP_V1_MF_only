@@ -1,6 +1,7 @@
 import React from "react";
 import { ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { UnifolioLogo } from "@/components/UnifolioLogo";
 
 export interface MobileHeaderProps {
   title?: string;
@@ -36,18 +37,7 @@ export function MobileHeader({
             <ChevronLeft className="h-6 w-6 stroke-[2.2]" />
           </button>
         ) : (
-          <div
-            className="flex items-center gap-1.5 font-display font-bold text-lg tracking-tight text-[var(--color-ink)]"
-            aria-label="Unifolio Logo"
-          >
-            <span>Unifolio</span>
-            <svg
-              viewBox="0 0 100 100"
-              className="w-3.5 h-3.5 text-[var(--color-accent)] fill-none stroke-current stroke-[14] stroke-linecap-round"
-            >
-              <path d="M 50 10 A 40 40 0 0 1 90 50" />
-            </svg>
-          </div>
+          <UnifolioLogo className="h-6" />
         )}
       </div>
 

@@ -3,6 +3,8 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronRight } from "lucide-react";
 import { toTitleCase } from "@/lib/utils";
 import type { HoldingRow } from "@/features/dashboard/types";
+import { motion, useReducedMotion } from "motion/react";
+import { isTestEnv } from "@/lib/motion";
 
 export interface MobileHoldingCardSummaryProps {
   holding: HoldingRow;
@@ -13,6 +15,7 @@ export function MobileHoldingCardSummary({
   holding,
   onSelect,
 }: MobileHoldingCardSummaryProps) {
+  const shouldReduceMotion = useReducedMotion() || isTestEnv;
   const unrealized = parseFloat(
     holding.unrealized_gain || holding.current_profit_total || "0"
   );
@@ -20,8 +23,11 @@ export function MobileHoldingCardSummary({
   const returnPct = invested > 0 ? (unrealized / invested) * 100 : 0;
 
   return (
-    <div
-      className="p-3.5 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-2xs hover:border-[var(--color-ink)]/20 active:scale-[0.98] transition-all duration-150 cursor-pointer select-none"
+    <motion.div
+      initial={false}
+      whileTap={shouldReduceMotion ? undefined : { scale: 0.98 }}
+      transition={{ duration: 0.1 }}
+      className="p-3.5 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-2xs hover:border-[var(--color-ink)]/20 transition-colors duration-150 cursor-pointer select-none"
       onClick={() => onSelect?.(holding)}
       role="button"
       tabIndex={0}
@@ -75,7 +81,7 @@ export function MobileHoldingCardSummary({
           <ChevronRight className="h-4 w-4 text-[var(--color-text-secondary)] opacity-40 ml-0.5 flex-shrink-0" />
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 

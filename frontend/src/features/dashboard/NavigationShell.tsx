@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { LogOut } from "lucide-react";
 import { ThemeToggle } from "../../components/ThemeToggle";
 import { useAuth } from "../auth/AuthContext";
+import { UnifolioLogo } from "@/components/UnifolioLogo";
 
 export interface MemberOption {
   id: string;
@@ -50,19 +51,10 @@ export function NavigationShell({
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 lg:gap-4 py-2.5 lg:py-0 lg:h-16">
             {/* Top Bar on Mobile / Left Section on Desktop: Brand Logo & Navigation */}
             <div className="flex items-center justify-between lg:justify-start gap-4 sm:gap-6 lg:gap-8">
-              <div
-                className="flex items-center gap-2 font-display font-bold text-lg sm:text-xl tracking-tight text-[var(--color-ink)] select-none cursor-pointer flex-shrink-0"
-                aria-label="Unifolio Logo"
+              <UnifolioLogo
+                className="h-6 sm:h-7"
                 onClick={() => onTabChange?.("dashboard")}
-              >
-                <span>Unifolio</span>
-                <svg
-                  viewBox="0 0 100 100"
-                  className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[var(--color-accent)] fill-none stroke-current stroke-[14] stroke-linecap-round"
-                >
-                  <path d="M 50 10 A 40 40 0 0 1 90 50" />
-                </svg>
-              </div>
+              />
 
               <nav className="flex items-center gap-1 sm:gap-1.5" aria-label="Main Navigation">
                 <button
