@@ -5,28 +5,35 @@ import type { Variants, Transition } from "motion/react";
 import { TransitionPanel } from "@/components/core/transition-panel";
 import type { HistoryState } from "./onboardingHistory";
 import { currentStep } from "./onboardingHistory";
+import { getStepIndex } from "./onboardingSteps";
 import { isTestEnv, MOTION_EASING } from "@/lib/motion";
+import { UnifolioLogo } from "@/components/UnifolioLogo";
 
 interface OnboardingCardStackProps {
   history: HistoryState;
   children: ReactNode;
   className?: string;
+  currentStepIndex?: number;
+  totalSteps?: number;
 }
 
-// Directional slide & fade variants matching Motion Primitives reference
+// Directional slide & fade variants matching refined calm motion
 const cardTransitionVariants: Variants = {
   enter: (direction: number) => ({
-    x: direction > 0 ? 364 : -364,
+    x: direction > 0 ? 32 : -32,
+    scale: 0.985,
     opacity: 0,
   }),
   center: {
     zIndex: 1,
     x: 0,
+    scale: 1,
     opacity: 1,
   },
   exit: (direction: number) => ({
     zIndex: 0,
-    x: direction < 0 ? 364 : -364,
+    x: direction < 0 ? 32 : -32,
+    scale: 0.985,
     opacity: 0,
     position: "absolute",
     top: 0,
@@ -35,26 +42,55 @@ const cardTransitionVariants: Variants = {
   }),
 };
 
-// Directional spring transition matching Motion Primitives reference:
-// x: spring stiffness 300, damping 30; opacity: 0.2s
+// Fluid, understated transition
 const cardTransition: Transition = {
-  x: { type: "spring", stiffness: 300, damping: 30 },
-  opacity: { duration: 0.2 },
+  x: { duration: 0.38, ease: MOTION_EASING },
+  scale: { duration: 0.38, ease: MOTION_EASING },
+  opacity: { duration: 0.28, ease: MOTION_EASING },
 };
 
 export function OnboardingCardStack({
   history,
   children,
   className = "",
+  currentStepIndex,
+  totalSteps = 5,
 }: OnboardingCardStackProps) {
   const step = currentStep(history);
   const prevCursorRef = useRef(history.cursor);
   const direction = history.cursor >= prevCursorRef.current ? 1 : -1;
   const shouldReduceMotion = useReducedMotion() || isTestEnv;
+  const activeStepIdx = currentStepIndex ?? getStepIndex(step);
 
   useEffect(() => {
     prevCursorRef.current = history.cursor;
   }, [history.cursor]);
+
+  const cardHeader = (
+    <header className="flex items-center justify-between pb-3.5 mb-4 border-b border-[var(--color-border)]/50 select-none">
+      {/* Unifolio Logo & Wordmark */}
+      <UnifolioLogo className="h-5 sm:h-5.5" />
+
+      {/* Desktop Progress Story Indicator */}
+      <div
+        className="flex items-center gap-1.5"
+        aria-label={`Step ${activeStepIdx + 1} of ${totalSteps}`}
+      >
+        {Array.from({ length: totalSteps }).map((_, idx) => (
+          <div
+            key={idx}
+            className={`h-1.5 rounded-full transition-all duration-300 ${
+              idx === activeStepIdx
+                ? "w-6 bg-[#10B981] dark:bg-[#34D399]"
+                : idx < activeStepIdx
+                ? "w-2.5 bg-[#10B981]/40 dark:bg-[#34D399]/40"
+                : "w-2.5 bg-black/10 dark:bg-white/15"
+            }`}
+          />
+        ))}
+      </div>
+    </header>
+  );
 
   return (
     <div className="min-h-dvh w-full bg-[var(--color-bg)] flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8 py-3.5 box-border overflow-x-hidden overflow-y-auto selection:bg-[var(--color-accent)]/20">
@@ -93,6 +129,7 @@ export function OnboardingCardStack({
               key={step}
               className="w-full rounded-3xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xl p-5 sm:p-8 text-left box-border"
             >
+              {cardHeader}
               {children}
             </div>
           ) : (
@@ -103,6 +140,7 @@ export function OnboardingCardStack({
               transition={cardTransition}
             >
               <div className="w-full rounded-3xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xl p-5 sm:p-8 text-left box-border">
+                {cardHeader}
                 {children}
               </div>
             </TransitionPanel>

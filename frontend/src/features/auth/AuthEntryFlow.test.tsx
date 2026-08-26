@@ -291,14 +291,11 @@ describe("AuthEntryFlow", () => {
     expect(screen.queryByRole("button", { name: /^back$/i })).not.toBeInTheDocument();
   });
 
-  it("renders light/dark theme toggle on auth entry screen", async () => {
+  it("does not render theme toggle on auth entry screen (appears from Dashboard onwards)", async () => {
     renderFlow();
     await waitFor(() => expect(screen.getByTestId("google-button-container")).toBeInTheDocument());
 
-    const themeToggle = screen.getByRole("button", { name: /toggle.*theme/i });
-    expect(themeToggle).toBeInTheDocument();
-    fireEvent.click(themeToggle);
-    expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+    expect(screen.queryByRole("button", { name: /toggle.*theme/i })).not.toBeInTheDocument();
   });
 
   it("returns to Login mode when Change Email is clicked from email login OTP", async () => {

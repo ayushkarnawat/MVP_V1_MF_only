@@ -30,12 +30,10 @@ describe("OnboardingFlow", () => {
     vi.clearAllMocks();
   });
 
-  it("starts at Trust Primer and walks forward through Q1-Q4 to the household branch", async () => {
+  it("starts at Name (Q1) and walks forward through Investing -> Goal -> Privacy/Trust -> Household", async () => {
     renderFlow();
-    await waitFor(() => expect(screen.getByRole("button", { name: /continue/i })).toBeInTheDocument());
-
-    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
     await waitFor(() => expect(screen.getByLabelText(/your full name or first name/i)).toBeInTheDocument());
+
     fireEvent.change(screen.getByLabelText(/your full name or first name/i), { target: { value: "Ayush" } });
     fireEvent.click(screen.getByRole("button", { name: /^next$/i }));
 
@@ -43,15 +41,16 @@ describe("OnboardingFlow", () => {
     fireEvent.click(screen.getByRole("button", { name: /mostly on my own/i }));
 
     await waitFor(() => expect(screen.getByText(/what brings you to unifolio/i)).toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: /see all my mutual funds/i }));
+    fireEvent.click(screen.getByRole("button", { name: /consolidated portfolio view/i }));
+
+    await waitFor(() => expect(screen.getByRole("heading", { level: 1, name: /we keep your insights, not your files\./i })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: /^next$/i }));
 
     await waitFor(() => expect(screen.getByText(/just you, or tracking for family too/i)).toBeInTheDocument());
   });
 
   it("supports Back navigation from Q2 to Q1 with the answer preserved", async () => {
     renderFlow();
-    await waitFor(() => screen.getByRole("button", { name: /continue/i }));
-    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
     await waitFor(() => screen.getByLabelText(/your full name or first name/i));
     fireEvent.change(screen.getByLabelText(/your full name or first name/i), { target: { value: "Ayush" } });
     fireEvent.click(screen.getByRole("button", { name: /^next$/i }));
@@ -64,8 +63,6 @@ describe("OnboardingFlow", () => {
 
   it("skipping Q2 still allows reaching it again via Back later", async () => {
     renderFlow();
-    await waitFor(() => screen.getByRole("button", { name: /continue/i }));
-    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
     await waitFor(() => screen.getByLabelText(/your full name or first name/i));
     fireEvent.click(screen.getByRole("button", { name: /^skip$/i }));
     await waitFor(() => screen.getByText(/how are you investing right now/i));
@@ -79,8 +76,6 @@ describe("OnboardingFlow", () => {
 
   it("persists the Q2 answer to the backend via updateMe", async () => {
     renderFlow();
-    await waitFor(() => screen.getByRole("button", { name: /continue/i }));
-    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
     await waitFor(() => screen.getByLabelText(/your full name or first name/i));
     fireEvent.click(screen.getByRole("button", { name: /^skip$/i }));
     await waitFor(() => screen.getByText(/how are you investing right now/i));
@@ -94,15 +89,13 @@ describe("OnboardingFlow", () => {
 
   it("persists the Q3 answer to the backend via updateMe", async () => {
     renderFlow();
-    await waitFor(() => screen.getByRole("button", { name: /continue/i }));
-    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
     await waitFor(() => screen.getByLabelText(/your full name or first name/i));
     fireEvent.click(screen.getByRole("button", { name: /^skip$/i }));
     await waitFor(() => screen.getByText(/how are you investing right now/i));
     fireEvent.click(screen.getByRole("button", { name: /mostly on my own/i }));
     await waitFor(() => screen.getByText(/what brings you to unifolio/i));
 
-    fireEvent.click(screen.getByRole("button", { name: /see all my mutual funds/i }));
+    fireEvent.click(screen.getByRole("button", { name: /consolidated portfolio view/i }));
 
     await waitFor(() =>
       expect(api.updateMe).toHaveBeenCalledWith(expect.objectContaining({ primary_goal: "consolidated_view" })),

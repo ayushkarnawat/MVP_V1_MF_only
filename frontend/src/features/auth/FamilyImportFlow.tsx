@@ -273,7 +273,7 @@ export function FamilyImportFlow({ selfName }: FamilyImportFlowProps) {
     return (
       <ImportConfirmed
         result={aggregate}
-        ctaLabel="Continue"
+        ctaLabel="Get my first score"
         onImportAnother={async () => {
           await updateMe({ onboarding_completed: true });
         }}

@@ -32,10 +32,18 @@ function errorMessage(err: unknown, fallback: string): string {
   return formatAuthErrorMessage(err, fallback);
 }
 
-export function AuthEntryFlow() {
+export interface AuthEntryFlowProps {
+  initialMode?: "login" | "signup";
+  initialStep?: Step;
+}
+
+export function AuthEntryFlow({
+  initialMode = "signup",
+  initialStep = "landing",
+}: AuthEntryFlowProps = {}) {
   const { login } = useAuth();
-  const [step, setStep] = useState<Step>("landing");
-  const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
+  const [step, setStep] = useState<Step>(initialStep);
+  const [authMode, setAuthMode] = useState<"login" | "signup">(initialMode);
   const [identifier, setIdentifier] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
