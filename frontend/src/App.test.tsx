@@ -17,24 +17,48 @@ describe("App", () => {
     localStorage.clear();
   });
 
-  it("shows Landing when there is no stored session", async () => {
+  it("shows Landing when there is no stored session on desktop viewport", async () => {
     render(<App />);
 
     await waitFor(() => expect(screen.getByRole("button", { name: /create account/i })).toBeInTheDocument());
+  });
+
+  it("shows MobileLandingPage when there is no stored session on mobile viewport and transitions to AuthEntryFlow", async () => {
+    const originalMatchMedia = window.matchMedia;
+    window.matchMedia = vi.fn().mockImplementation((query) => ({
+      matches: query.includes("767px"),
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Scattered")).toBeInTheDocument();
+      expect(screen.getByText(/holdings, one clear picture/i)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /get started/i })).toBeInTheDocument();
+    });
+
+    window.matchMedia = originalMatchMedia;
   });
 
   it("shows OnboardingFlow when the session is valid and onboarding is incomplete", async () => {
     localStorage.setItem("unifolio_session_token", "tok-1");
     const incompleteMe = {
       user_id: "u1", phone_number: "+919999999999", email: null,
-      onboarding_step: "trust_primer", onboarding_completed: false, investor_type: null, primary_goal: null,
+      onboarding_step: "q1_name", onboarding_completed: false, investor_type: null, primary_goal: null,
     };
     vi.mocked(api.getMe).mockResolvedValue(incompleteMe);
     vi.mocked(api.updateMe).mockResolvedValue(incompleteMe);
 
     render(<App />);
 
-    await waitFor(() => expect(screen.getByRole("button", { name: /continue/i })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByLabelText(/your full name or first name/i)).toBeInTheDocument());
   });
 
   it("shows DashboardPlaceholder when the session is valid and onboarding is complete on desktop viewport", async () => {
