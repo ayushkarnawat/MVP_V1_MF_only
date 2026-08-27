@@ -118,6 +118,22 @@ describe("MobileFundDetailView", () => {
     expect(await screen.findByText("Showing full history since inception — not enough data for 5Y")).toBeInTheDocument();
   });
 
+  it("does not show the clamped note alongside the empty-history message for a scheme with no NAV history at all", async () => {
+    // Backend returns clamped=true with points=[] when a scheme has zero NAV history
+    // rows for any non-MAX period — distinct from the "insufficient but nonzero" case above.
+    vi.mocked(getFundNavHistory).mockResolvedValue({
+      ...historyResponse,
+      period: "MAX",
+      requested_period: "5Y",
+      clamped: true,
+      points: [],
+      overall_return_pct: null,
+    });
+    render(<MobileFundDetailView holding={sampleHolding} onBack={vi.fn()} />);
+    expect(await screen.findByText("No performance history available yet.")).toBeInTheDocument();
+    expect(screen.queryByText(/Showing full history since inception/i)).not.toBeInTheDocument();
+  });
+
   it("updates the readout via keyboard navigation on the chart scrubber", async () => {
     render(<MobileFundDetailView holding={sampleHolding} onBack={vi.fn()} />);
     await screen.findByText((_, element) => element?.tagName === "SPAN" && element.textContent === "25 Aug: 31.87%");

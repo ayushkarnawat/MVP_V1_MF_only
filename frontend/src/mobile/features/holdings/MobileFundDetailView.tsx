@@ -440,7 +440,7 @@ export function MobileFundDetailView({
           </div>
           )}
 
-          {!loading && !error && history?.clamped && (
+          {!loading && !error && chartData.length > 0 && history?.clamped && (
             <div className="flex items-center gap-1.5 p-2.5 rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] text-[11px] text-[var(--color-text-secondary)]">
               <Info className="h-3.5 w-3.5 flex-shrink-0 text-[var(--color-accent)]" />
               <span>Showing full history since inception — not enough data for {history.requested_period}</span>
