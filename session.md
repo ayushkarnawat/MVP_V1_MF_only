@@ -44,6 +44,46 @@ anything by re-reading the whole repo.**
    - Fixed asymmetric left spacer in `MobileOnboardingScreen.tsx` footer when `onSkip` is absent.
    - Ensured explicit flex centering wrappers (`w-full flex justify-center items-center`) and `mx-auto` alignment on `ImportConfirmed.tsx`, `ImportError.tsx`, `MobileImportView.tsx`, and `EmptyState.tsx`.
 
+## Fund Details performance graph: unified periods + desktop chart-distortion fix (2026-08-27)
+
+Separate workstream from the mobile UI polish above, same day. Unified the "Fund
+Details" performance graph on both web (`FundSignal.tsx`/`FundDetailModal.tsx`) and
+mobile (`MobileFundDetailView.tsx`) onto the same 1M/1Y/3Y/5Y/MAX timeframe set,
+wired to a new real backend endpoint (`GET /funds/{scheme_id}/nav-history`,
+`fund_detail.py`) — both had previously shown 100% fake/stubbed chart data. Full
+task breakdown, review rounds, and commit trail: `Docs/orchestration/delegation-log.md`'s
+`fund-nav-history-graph` entries; spec/status: `Docs/orchestration/fund-nav-history-graph-handoff.md`
+(**Status: DONE**, Tasks 1-4).
+
+Built via `model-orchestration` (Codex implements, orchestrator verifies + reviews):
+Task 1 backend service/route/tests (`abc1347`→`248daae`), Task 2 web wiring incl. a
+scrubber-based hover/keyboard/touch interaction model (`b868947`→`9be0e2e`→`c38b37e`),
+Task 3 mobile wiring porting the same interaction model (`4378679`→`750f189`→`2d7e72b`),
+Task 4 final whole-diff review (3 Important + 1 Minor, all fixed: `c58c55b`, `83cfacc`,
+`d7d06d5`).
+
+**User-reported follow-up bug, found only after live use** (screenshots showed the
+web chart rendering correctly in DevTools mobile-emulation but visibly warped — an
+elliptical marker, distorted curve — on a real desktop/laptop width): root-caused to
+`FundSignal.tsx`'s `viewBox="0 0 100 44" preserveAspectRatio="none"` forcing
+non-uniform X/Y scaling once the wrapper's actual rendered width diverged from the
+viewBox's fixed aspect ratio (true at the modal's realistic ~300-640px range).
+Rejected a hardcoded-constant re-tune (range too wide for one constant) in favor of
+measuring the wrapper's live width via `ResizeObserver` and using it directly as the
+viewBox width, with viewBox height fixed to exactly match the CSS wrapper height —
+makes the SVG-to-screen scale factor exactly 1:1 on both axes for any container
+width. Committed `d6b367e`, visually confirmed by the user on both platforms.
+
+Also resolved, per the user's explicit call: both chart components' `Number(point.return_pct)`
+float coercion for chart-geometry (min/max/range) math was flagged across three review
+passes as possibly violating the Decimal-never-float constraint. Confirmed `return_pct`
+is always server-quantized to exactly `Decimal("0.01")` before being stringified, so
+float rounding error (~1e-15) is undetectable at any chart pixel scale — kept as float,
+documented as a deliberate, resolved exception rather than a residual bug.
+
+Full frontend suite green throughout: 75 files / 381 tests. Dev servers used for local
+verification (backend :8000, frontend :5173) were stopped at the end of this workstream.
+
 ## Still open, carried forward from earlier phases, not yet revisited
 
 *(Moved here from `CLAUDE.md` 2026-08-24 — that file's Session State section is a
