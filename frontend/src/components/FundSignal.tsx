@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, PointerEvent } from "react";
 import { area as d3Area, curveMonotoneX, line as d3Line } from "d3-shape";
 import { Info } from "lucide-react";
@@ -52,10 +52,16 @@ export interface FundSignalGraphProps {
 }
 
 const PERIODS: NavHistoryPeriod[] = ["1M", "1Y", "3Y", "5Y", "MAX"];
-const CHART_WIDTH = 100;
-const CHART_HEIGHT = 44;
-const CHART_PAD_X = 2;
-const CHART_PAD_Y = 4;
+// Real pixels, matching .sparklineWrapper's CSS height exactly — the viewBox width
+// is measured at render time (see chartWidth below) so the SVG's internal coordinate
+// system always maps 1:1 to actual screen pixels, whatever the wrapper's fluid width
+// ends up being. Without that 1:1 match, `preserveAspectRatio="none"` stretches a
+// fixed-aspect viewBox non-uniformly to fill the box, turning the round active-point
+// marker into an ellipse and warping the line's curve at its steepest points.
+const CHART_HEIGHT = 96;
+const CHART_PAD_X = 4;
+const CHART_PAD_Y = 10;
+const CHART_FALLBACK_WIDTH = 300;
 
 function isNegativeDecimal(value: string): boolean {
   return value.trim().startsWith("-") && !/^-(?:0+(?:\.0*)?|\.0+)$/.test(value.trim());
@@ -80,11 +86,16 @@ function formatDate(value: string): string {
 // Maps a pointer's screen X back to the nearest plotted index. Points are laid out
 // linearly by index (see `coords` below), so this is a closed-form inverse rather
 // than a distance scan — cheap even at the 400-point downsample cap.
-function indexFromClientX(clientX: number, rect: { left: number; width: number }, pointCount: number): number {
+function indexFromClientX(
+  clientX: number,
+  rect: { left: number; width: number },
+  pointCount: number,
+  chartWidth: number,
+): number {
   if (pointCount <= 1) return 0;
   const ratio = rect.width === 0 ? 0 : Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1);
-  const viewBoxX = ratio * CHART_WIDTH;
-  const plotWidth = CHART_WIDTH - CHART_PAD_X * 2;
+  const viewBoxX = ratio * chartWidth;
+  const plotWidth = chartWidth - CHART_PAD_X * 2;
   const relative = (viewBoxX - CHART_PAD_X) / plotWidth;
   return Math.min(Math.max(Math.round(relative * (pointCount - 1)), 0), pointCount - 1);
 }
@@ -95,7 +106,22 @@ export function FundSignalGraph({ schemeId, period = "1Y" }: FundSignalGraphProp
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [chartWidth, setChartWidth] = useState(CHART_FALLBACK_WIDTH);
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const gradientId = useId();
+
+  // Track the wrapper's actual rendered width so the SVG viewBox can match it 1:1 —
+  // see the CHART_HEIGHT comment above for why this matters.
+  useEffect(() => {
+    const el = wrapperRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width;
+      if (width) setChartWidth(width);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   // Reset during render (not in the effect) so React discards the stale-history
   // frame before it ever paints, instead of showing the old scheme/period's data
@@ -142,10 +168,10 @@ export function FundSignalGraph({ schemeId, period = "1Y" }: FundSignalGraphProp
     const plotHeight = CHART_HEIGHT - CHART_PAD_Y * 2;
     const baselineY = CHART_HEIGHT - CHART_PAD_Y;
     return values.map((value, index) => ({
-      x: values.length === 1 ? CHART_WIDTH / 2 : CHART_PAD_X + (index / (values.length - 1)) * (CHART_WIDTH - CHART_PAD_X * 2),
+      x: values.length === 1 ? chartWidth / 2 : CHART_PAD_X + (index / (values.length - 1)) * (chartWidth - CHART_PAD_X * 2),
       y: baselineY - ((value - minVal) / range) * plotHeight,
     }));
-  }, [values]);
+  }, [values, chartWidth]);
 
   const { linePath, areaPath } = useMemo(() => {
     const baselineY = CHART_HEIGHT - CHART_PAD_Y;
@@ -163,7 +189,7 @@ export function FundSignalGraph({ schemeId, period = "1Y" }: FundSignalGraphProp
 
   function handleScrubberPointerMove(event: PointerEvent<SVGRectElement>) {
     if (points.length === 0) return;
-    setActiveIndex(indexFromClientX(event.clientX, event.currentTarget.getBoundingClientRect(), points.length));
+    setActiveIndex(indexFromClientX(event.clientX, event.currentTarget.getBoundingClientRect(), points.length, chartWidth));
   }
 
   function handleScrubberKeyDown(event: KeyboardEvent<SVGRectElement>) {
@@ -208,15 +234,15 @@ export function FundSignalGraph({ schemeId, period = "1Y" }: FundSignalGraphProp
         <p className="type-body">No performance history available yet.</p>
       ) : (
         <>
-          <div className={styles.sparklineWrapper}>
-            <svg viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`} className={`${styles.sparklineSvg} ${colorClass}`} preserveAspectRatio="none">
+          <div className={styles.sparklineWrapper} ref={wrapperRef}>
+            <svg viewBox={`0 0 ${chartWidth} ${CHART_HEIGHT}`} className={`${styles.sparklineSvg} ${colorClass}`}>
               <defs><linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="currentColor" stopOpacity="0.22" /><stop offset="100%" stopColor="currentColor" stopOpacity="0" /></linearGradient></defs>
               <path d={areaPath} fill={`url(#${gradientId})`} stroke="none" />
               <path d={linePath} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               {displayedCoord && (
                 <>
                   <line className={styles.guideLine} x1={displayedCoord.x} y1={CHART_PAD_Y} x2={displayedCoord.x} y2={CHART_HEIGHT} />
-                  <circle className={styles.activePoint} cx={displayedCoord.x} cy={displayedCoord.y} r="2.2" />
+                  <circle className={styles.activePoint} cx={displayedCoord.x} cy={displayedCoord.y} r="4" />
                 </>
               )}
               {/* Single continuous hit region rather than one circle per point: at the
@@ -228,7 +254,7 @@ export function FundSignalGraph({ schemeId, period = "1Y" }: FundSignalGraphProp
                 className={styles.scrubberOverlay}
                 x={0}
                 y={0}
-                width={CHART_WIDTH}
+                width={chartWidth}
                 height={CHART_HEIGHT}
                 tabIndex={0}
                 role="slider"

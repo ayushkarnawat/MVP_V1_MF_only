@@ -154,8 +154,8 @@
 
 .guideLine {
   stroke: var(--color-border);
-  stroke-width: 0.5;
-  stroke-dasharray: 2 2;
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
   pointer-events: none;
 }
 
