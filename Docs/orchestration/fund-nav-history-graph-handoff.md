@@ -211,6 +211,10 @@ rather than guessing which is right.
 
 ## Task 2 — Web: wire `FundSignalGraph` to real data
 
+**Status: DONE** (commits `b868947`, `9be0e2e`, `c38b37e` — implementation + two
+review-fix rounds, full frontend suite 355 passing, `tsc` clean; see
+`delegation-log.md` 2026-08-27 entries.)
+
 **Depends on Task 1 being merged** (needs the real endpoint to exist).
 
 ### Files
