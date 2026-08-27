@@ -101,6 +101,21 @@ describe("FundSignalGraph", () => {
     ).toBeInTheDocument();
   });
 
+  it("does not show the clamped note alongside the empty-history message for a scheme with no NAV history at all", async () => {
+    vi.mocked(api.getFundNavHistory).mockResolvedValue({
+      ...historyResponse,
+      period: "MAX",
+      requested_period: "5Y",
+      clamped: true,
+      points: [],
+      overall_return_pct: null,
+    });
+    render(<FundSignalGraph schemeId="scheme-42" period="5Y" />);
+
+    expect(await screen.findByText("No performance history available yet.")).toBeInTheDocument();
+    expect(screen.queryByText(/Showing full history since inception/i)).not.toBeInTheDocument();
+  });
+
   it("updates the readout via keyboard navigation", async () => {
     render(<FundSignalGraph schemeId="scheme-42" />);
     await screen.findByText("Aug 25, 2026: +15.20%");
@@ -177,5 +192,24 @@ describe("FundSignalGraph", () => {
 
     expect(screen.getByText("+42.00%")).toBeInTheDocument();
     expect(screen.getByText("Trend (5Y)")).toBeInTheDocument();
+  });
+
+  it("clears the previous period's readout while a new one is loading", async () => {
+    let resolveNext: (value: SchemeNavHistoryResponse) => void = () => undefined;
+    const nextPromise = new Promise<SchemeNavHistoryResponse>((resolve) => {
+      resolveNext = resolve;
+    });
+
+    render(<FundSignalGraph schemeId="scheme-42" />);
+    await screen.findByText("Aug 25, 2026: +15.20%");
+
+    vi.mocked(api.getFundNavHistory).mockReturnValue(nextPromise);
+    fireEvent.click(screen.getByRole("button", { name: "5Y" }));
+
+    // Stale 1Y readout must not linger while the 5Y request is in flight.
+    expect(screen.queryByText("Aug 25, 2026: +15.20%")).not.toBeInTheDocument();
+
+    resolveNext({ ...historyResponse, period: "5Y", requested_period: "5Y" });
+    await screen.findByText("Aug 25, 2026: +15.20%");
   });
 });

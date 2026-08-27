@@ -97,11 +97,21 @@ export function FundSignalGraph({ schemeId, period = "1Y" }: FundSignalGraphProp
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const gradientId = useId();
 
-  useEffect(() => {
-    const controller = new AbortController();
+  // Reset during render (not in the effect) so React discards the stale-history
+  // frame before it ever paints, instead of showing the old scheme/period's data
+  // for one frame while the effect's setState calls are still pending.
+  const fetchKey = `${schemeId}|${selectedPeriod}`;
+  const [committedFetchKey, setCommittedFetchKey] = useState(fetchKey);
+  if (fetchKey !== committedFetchKey) {
+    setCommittedFetchKey(fetchKey);
+    setHistory(null);
     setLoading(true);
     setError(null);
     setActiveIndex(null);
+  }
+
+  useEffect(() => {
+    const controller = new AbortController();
 
     getFundNavHistory(schemeId, selectedPeriod, controller.signal)
       .then((data) => {
