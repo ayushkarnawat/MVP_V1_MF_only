@@ -14,6 +14,7 @@ from decimal import Decimal
 from sqlalchemy import case
 from sqlalchemy.orm import Session
 
+from app.db.session import commit_off_loop
 from app.models.folio import Folio
 from app.models.reference import Scheme
 from app.models.snapshot import PortfolioSnapshot
@@ -121,7 +122,7 @@ async def get_snapshots(db: Session, household_member_ids: list[uuid.UUID]) -> l
                 total_value=total_value, computed_at=datetime.now(timezone.utc),
             )
             db.add(snapshot)
-            db.commit()
+            await commit_off_loop(db)
             rows.append(
                 SnapshotRow(
                     household_member_id=str(member_id), household_member_name=member.name,

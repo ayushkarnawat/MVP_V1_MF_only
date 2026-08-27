@@ -24,6 +24,7 @@ from sqlalchemy.dialects.postgresql import insert as postgresql_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Session
 
+from app.db.session import commit_off_loop
 from app.models.reference import NavHistory, Scheme
 
 MFAPI_BASE = "https://api.mfapi.in"
@@ -99,7 +100,7 @@ async def _fetch_nav_history(amfi_code: str) -> list[tuple[date, Decimal]]:
     return await asyncio.shield(fetch)
 
 
-def _upsert_nav_history(
+async def _upsert_nav_history(
     db: Session, scheme_id: uuid.UUID, rows: list[tuple[date, Decimal]], *, commit: bool = True
 ) -> None:
     if not rows:
@@ -118,7 +119,7 @@ def _upsert_nav_history(
         raise RuntimeError(f"Unsupported database dialect for NAV upsert: {dialect_name}")
     db.execute(statement)
     if commit:
-        db.commit()
+        await commit_off_loop(db)
 
 
 def _latest_cached_on_or_before(db: Session, scheme_id: uuid.UUID, on_date: date) -> NavHistory | None:
@@ -160,7 +161,7 @@ async def get_nav_on_or_before(
     except httpx.HTTPError:
         return (cached.nav, cached.date) if cached else None
 
-    _upsert_nav_history(db, scheme.id, rows)
+    await _upsert_nav_history(db, scheme.id, rows)
     refreshed = _latest_cached_on_or_before(db, scheme.id, on_date)
     return (refreshed.nav, refreshed.date) if refreshed else None
 
@@ -207,19 +208,21 @@ async def warm_nav_history(db: Session, schemes: Iterable[Scheme]) -> None:
     fetch_elapsed = time.perf_counter() - fetch_start
 
     commit_start = time.perf_counter()
+    any_rows = False
     with _nav_warm_lock:
-        any_rows = False
         for scheme, rows in fetched:
             if rows:
-                _upsert_nav_history(db, scheme.id, rows, commit=False)
                 any_rows = True
             _nav_warm_cache[scheme.id] = now
-        # One commit for the whole batch, not one per scheme — a category
-        # universe can be 1000+ schemes, and a per-scheme commit means
-        # 1000+ fsync-bound round trips (57x slower measured on a WSL
-        # DrvFs-mounted dev DB than a native filesystem, live 2026-08-19).
-        if any_rows:
-            db.commit()
+    for scheme, rows in fetched:
+        if rows:
+            await _upsert_nav_history(db, scheme.id, rows, commit=False)
+    # One commit for the whole batch, not one per scheme — a category
+    # universe can be 1000+ schemes, and a per-scheme commit means
+    # 1000+ fsync-bound round trips (57x slower measured on a WSL
+    # DrvFs-mounted dev DB than a native filesystem, live 2026-08-19).
+    if any_rows:
+        await commit_off_loop(db)
     commit_elapsed = time.perf_counter() - commit_start
 
     logger.info(
@@ -260,7 +263,7 @@ async def get_navs_on_or_before(
         if rows is None:
             results[scheme.id] = (cached.nav, cached.date) if cached else None
             continue
-        _upsert_nav_history(db, scheme.id, rows)
+        await _upsert_nav_history(db, scheme.id, rows)
         refreshed = _latest_cached_on_or_before(db, scheme.id, on_date)
         results[scheme.id] = (refreshed.nav, refreshed.date) if refreshed else None
 

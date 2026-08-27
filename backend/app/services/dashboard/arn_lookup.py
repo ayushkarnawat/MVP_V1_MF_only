@@ -21,6 +21,7 @@ from datetime import date, datetime, timezone
 import httpx
 from sqlalchemy.orm import Session
 
+from app.db.session import commit_off_loop
 from app.models.enums import ArnStatus
 from app.models.reference import ArnDirectory
 
@@ -98,5 +99,5 @@ async def resolve_arn(db: Session, arn_code: str) -> ArnDirectory | None:
         last_checked_at=datetime.now(timezone.utc),
     )
     db.add(row)
-    db.commit()
+    await commit_off_loop(db)
     return row

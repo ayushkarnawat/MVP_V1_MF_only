@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, patch
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from app.db.base import Base
 from app.models.enums import PlanType, Relationship, TransactionType
@@ -18,7 +19,9 @@ from app.services.dashboard.snapshots import get_snapshots
 
 
 def _session():
-    engine = create_engine("sqlite:///:memory:")
+    engine = create_engine(
+        "sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool
+    )
     Base.metadata.create_all(engine)
     return sessionmaker(autoflush=False, bind=engine)()
 

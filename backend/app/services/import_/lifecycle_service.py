@@ -18,6 +18,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from app.db.session import commit_off_loop
 from app.models.enums import ImportStatus, PlanNameVariant, PlanType, SourceCasType
 from app.models.folio import Folio
 from app.models.imports import Import
@@ -164,7 +165,7 @@ def _commit_parsed_transactions(
     return added, skipped
 
 
-def create_cas_import(
+async def create_cas_import(
     db: Session,
     user_id: uuid.UUID,
     household_member_id: uuid.UUID,
@@ -202,7 +203,7 @@ def create_cas_import(
             import_rec.status = transition_status(import_rec.status, ImportStatus.IMPORT_FAILED)
             import_rec.error_code = exc.code
             import_rec.error_message = exc.message
-        db.commit()
+        await commit_off_loop(db)
         return import_rec
 
     # Parse succeeded -> Transition to Processing
@@ -224,7 +225,7 @@ def create_cas_import(
     import_rec.status = transition_status(import_rec.status, ImportStatus.IMPORT_SUCCESSFUL)
 
     remove_pdf_buffer(str(import_rec.id))
-    db.commit()
+    await commit_off_loop(db)
     return import_rec
 
 

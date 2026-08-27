@@ -25,6 +25,7 @@ from pathlib import Path
 import httpx
 from sqlalchemy.orm import Session
 
+from app.db.session import commit_off_loop
 from app.models.reference import Scheme
 
 NAV_ALL_URL = "https://www.amfiindia.com/spages/NAVAll.txt"
@@ -171,7 +172,7 @@ class SchemeUniverseClient:
             result.append(scheme)
 
         if created_any:
-            db.commit()
+            await commit_off_loop(db)
         return result
 
 
