@@ -7,6 +7,8 @@ import { staggerContainerVariants, staggerItemVariants } from "@/lib/motion";
 import { validateIndianPhone } from "./validation";
 import { cn } from "@/lib/utils";
 
+import { AuthIllustration } from "./AuthIllustration";
+
 interface PhoneEntryProps {
   /** "phoneGate": completing the mandatory phone step after a Google/email
     * signup with no existing account match — different copy, no back button
@@ -68,8 +70,16 @@ export function PhoneEntry({
       animate="visible"
       noValidate
       onSubmit={handleSubmit}
-      className="w-full max-w-md mx-auto space-y-6 text-left box-border"
+      className="w-full max-w-md mx-auto space-y-6 text-left box-border pt-3 xs:pt-4 sm:pt-6 lg:pt-0"
     >
+      {/* Hand-drawn mobile illustration */}
+      <div className="lg:hidden flex items-center justify-center h-[138px] xs:h-[154px] sm:h-[172px] mb-5 xs:mb-6 sm:mb-7">
+        <AuthIllustration
+          variant="phone_entry"
+          className="h-full mx-auto"
+        />
+      </div>
+
       {/* 1. Header & Context Indicator */}
       <motion.div variants={staggerItemVariants} className="space-y-3">
         {onBack && (
@@ -110,7 +120,7 @@ export function PhoneEntry({
             "flex items-center rounded-2xl bg-white/90 dark:bg-[var(--color-surface)] border border-[var(--color-border)] transition-all h-13 sm:h-14 min-h-[50px] sm:min-h-[54px] shadow-xs",
             validationError
               ? "border-[var(--color-negative)] focus-within:border-[var(--color-negative)] focus-within:ring-2 focus-within:ring-[var(--color-negative)]/20"
-              : "focus-within:border-[#10B981] focus-within:ring-2 focus-within:ring-[#10B981]/20",
+              : "focus-within:border-[#22C55E] focus-within:ring-2 focus-within:ring-[#22C55E]/20",
           )}
         >
           <div className="px-3.5 sm:px-4 flex items-center gap-1.5 border-r border-[var(--color-border)] text-xs font-medium text-[var(--color-ink)] select-none bg-[var(--color-surface)]/50 h-full rounded-l-2xl flex-shrink-0">
@@ -156,7 +166,7 @@ export function PhoneEntry({
         <Button
           type="submit"
           disabled={submitting || !phoneNumber.trim()}
-          className="w-full h-14 sm:h-[58px] px-8 rounded-full font-bold text-[15px] sm:text-base bg-[#10B981] hover:bg-[#059669] dark:bg-[#10B981] dark:hover:bg-[#059669] text-white shadow-xl shadow-[#10B981]/25 dark:shadow-[#10B981]/20 active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2.5 border border-[#10B981]/40 min-h-[52px]"
+          className="w-full h-14 sm:h-[58px] px-8 rounded-full font-bold text-[15px] sm:text-base bg-[#22C55E] hover:bg-[#22C55E]/90 dark:bg-[#22C55E] dark:hover:bg-[#22C55E]/90 text-white shadow-xl shadow-[#22C55E]/25 dark:shadow-[#22C55E]/20 active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2.5 border border-[#22C55E]/40 min-h-[52px]"
         >
           {submitting ? (
             <>

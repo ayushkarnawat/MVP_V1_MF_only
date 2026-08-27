@@ -6,6 +6,8 @@ import { ArrowLeft, ArrowRight, AlertCircle, Loader2, KeyRound } from "lucide-re
 import { formatPhoneForDisplay } from "./validation";
 
 
+import { AuthIllustration } from "./AuthIllustration";
+
 interface OtpVerifyProps {
   /** The identifier the code was sent to -- a phone number for channel
    * "phone", an email address for channel "email". Kept as `phoneNumber`
@@ -64,13 +66,21 @@ export function OtpVerify({
       noValidate
       className="w-full max-w-md mx-auto space-y-6 text-left box-border"
     >
+      {/* Hand-drawn mobile illustration */}
+      <div className="lg:hidden flex items-center justify-center h-[125px] xs:h-[142px] sm:h-[160px] mb-5 xs:mb-6 sm:mb-7">
+        <AuthIllustration
+          variant={isEmail ? "email_otp" : "phone_otp"}
+          className="h-full mx-auto"
+        />
+      </div>
+
       {/* 1. Brand Heading */}
       <div className="space-y-2">
         <h1 className="font-display font-bold text-[30px] xs:text-[32px] sm:text-[36px] text-[var(--color-ink)] tracking-tight leading-[1.08]">
           {isEmail ? "Verify your email" : "Verify your number"}
         </h1>
         <p className="text-[13px] sm:text-[14px] text-[#5C5C5C] dark:text-[#A3A3A3] font-normal leading-relaxed">
-          We sent a 6-digit verification code to <strong className="text-[var(--color-ink)] font-mono">{formatPhoneForDisplay(phoneNumber)}</strong>
+          We sent a 6-digit verification code to {isEmail ? phoneNumber : formatPhoneForDisplay(phoneNumber)}
         </p>
       </div>
 
@@ -120,7 +130,7 @@ export function OtpVerify({
         <Button
           type="submit"
           disabled={submitting || otp.length === 0}
-          className="w-full h-14 sm:h-[58px] px-8 rounded-full font-bold text-[15px] sm:text-base bg-[#10B981] hover:bg-[#059669] dark:bg-[#10B981] dark:hover:bg-[#059669] text-white shadow-xl shadow-[#10B981]/25 dark:shadow-[#10B981]/20 active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2.5 border border-[#10B981]/40 min-h-[52px]"
+          className="w-full h-14 sm:h-[58px] px-8 rounded-full font-bold text-[15px] sm:text-base bg-[#22C55E] hover:bg-[#22C55E]/90 dark:bg-[#22C55E] dark:hover:bg-[#22C55E]/90 text-white shadow-xl shadow-[#22C55E]/25 dark:shadow-[#22C55E]/20 active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2.5 border border-[#22C55E]/40 min-h-[52px]"
         >
           {submitting ? (
             <>
@@ -149,7 +159,7 @@ export function OtpVerify({
             variant="ghost"
             type="button"
             onClick={onResend}
-            className="h-auto p-0 text-xs font-bold text-[#10B981] dark:text-[#34D399] hover:text-[#10B981]/80 hover:bg-transparent cursor-pointer"
+            className="h-auto p-0 text-xs font-bold text-[#22C55E] hover:text-[#22C55E]/80 hover:bg-transparent cursor-pointer"
           >
             Resend code
           </Button>

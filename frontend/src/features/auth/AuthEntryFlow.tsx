@@ -337,9 +337,42 @@ export function AuthEntryFlow({
     }
   };
 
+  // Roadmap progression logic: Screen 1 -> Milestone 1 (0), Screen 2 -> Milestone 2 (1), Screen 3 -> Milestone 3 (2), Screen 4 -> Milestone 4 (3)
+  const getStepIndex = (): number => {
+    switch (step) {
+      case "landing":
+        return 0;
+
+      case "email":
+        return 1;
+
+      case "email_otp":
+        return emailOtpFlow === "signup" ? 1 : 2;
+
+      case "phone":
+        if (phoneGateToken) {
+          return emailOtpEmail ? 2 : 1;
+        }
+        return 1;
+
+      case "otp":
+        if (phoneGateToken) {
+          return emailOtpEmail ? 3 : 2;
+        }
+        return 2;
+
+      case "link_account":
+        return 3;
+
+      default:
+        return 0;
+    }
+  };
+
   return (
     <AuthShell
       step={step}
+      stepIndex={getStepIndex()}
       formSlot={renderFormSlot()}
       visualSlot={<AuthShowcasePanel step={step} />}
     />

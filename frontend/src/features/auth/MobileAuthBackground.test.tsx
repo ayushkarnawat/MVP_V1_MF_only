@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import { MobileAuthBackground } from "./MobileAuthBackground";
 
 describe("MobileAuthBackground", () => {
-  it("renders pure vector SVG geometry with proper aria-hidden attribute", () => {
-    const { container } = render(<MobileAuthBackground />);
+  it("renders pure vector SVG geometry with proper aria-hidden attribute on auth screens", () => {
+    const { container } = render(<MobileAuthBackground activeStep="auth_landing" />);
     const root = container.firstChild as HTMLElement;
     expect(root).toBeInTheDocument();
     expect(root).toHaveAttribute("aria-hidden", "true");
@@ -12,15 +12,31 @@ describe("MobileAuthBackground", () => {
 
     const svg = root.querySelector("svg");
     expect(svg).toBeInTheDocument();
-    expect(svg).toHaveAttribute("viewBox", "0 0 375 812");
+    expect(svg).toHaveAttribute("viewBox", "0 0 375 60");
   });
 
-  it("contains unifying stream gradient definitions and anchor paths", () => {
-    const { container } = render(<MobileAuthBackground />);
+  it("contains wandering S-curve gradients, route paths, and Unifolio ring logo traveler", () => {
+    const { container } = render(<MobileAuthBackground activeStep="auth_phone" />);
     const linearGradients = container.querySelectorAll("linearGradient");
     expect(linearGradients.length).toBeGreaterThanOrEqual(2);
 
     const paths = container.querySelectorAll("path");
-    expect(paths.length).toBeGreaterThanOrEqual(4);
+    expect(paths.length).toBeGreaterThanOrEqual(3);
+
+    // Traveler ring images (light and dark mode)
+    const images = container.querySelectorAll("image");
+    expect(images.length).toBe(2);
+
+    // 4 stationary milestone pedestals
+    const stationCircles = container.querySelectorAll("circle");
+    expect(stationCircles.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it("returns null on onboarding steps to guarantee complete removal from onboarding", () => {
+    const { container } = render(<MobileAuthBackground activeStep="onboarding_q1_name" />);
+    expect(container.firstChild).toBeNull();
   });
 });
+
+
+

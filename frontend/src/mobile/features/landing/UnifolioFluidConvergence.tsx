@@ -1,6 +1,5 @@
 import { motion, useReducedMotion } from "motion/react";
-import { isTestEnv } from "@/lib/motion";
-import glassSculptureImg from "@/assets/landing-glass-sculpture.png";
+import { isTestEnv, MOTION_EASING_FLOAT } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 interface UnifolioFluidConvergenceProps {
@@ -8,12 +7,13 @@ interface UnifolioFluidConvergenceProps {
 }
 
 /**
- * Unifolio Fluid Convergence Hero Sculpture
+ * Unifolio Hand-Drawn Wealth Convergence Hero Artwork
  * 
- * Recreates the exact 3D translucent flowing portfolio forms from the reference image:
- * - Multi-tonal emerald, mint, jade, and sage flowing glass ribbons
- * - Deep forest green glass vortex core
- * - Floating translucent glass bubbles and specular highlights
+ * Recreates the exact hand-drawn fan-out mutual fund portfolio artwork
+ * from the official mobile landing reference design:
+ * - Hand-drawn organic folio sheets and financial charts blooming from a central lens
+ * - Delicate Unifolio green/mint watercolor wash
+ * - Organic floating bubbles and stipple detail
  */
 export function UnifolioFluidConvergence({ className = "" }: UnifolioFluidConvergenceProps) {
   const shouldReduceMotion = useReducedMotion() || isTestEnv;
@@ -21,20 +21,20 @@ export function UnifolioFluidConvergence({ className = "" }: UnifolioFluidConver
   return (
     <div
       className={cn(
-        "relative select-none pointer-events-none w-full h-full flex items-center justify-center",
+        "relative select-none pointer-events-none w-full h-full flex items-start justify-end",
         className
       )}
       aria-label="Unifolio Fluid Wealth Convergence Visual"
     >
       {/* Ambient Atmospheric Glow Layers (Unifolio Green Palette) */}
       <div
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] h-[340px] sm:w-[440px] sm:h-[440px] rounded-full bg-[radial-gradient(circle,rgba(4,144,91,0.16)_0%,rgba(52,211,153,0.08)_45%,transparent_75%)] dark:bg-[radial-gradient(circle,rgba(4,144,91,0.22)_0%,rgba(52,211,153,0.12)_45%,transparent_80%)] blur-3xl pointer-events-none"
+        className="absolute top-1/3 right-0 -translate-y-1/2 w-[420px] h-[420px] sm:w-[500px] sm:h-[500px] rounded-full bg-[radial-gradient(circle,rgba(34,197,94,0.20)_0%,rgba(34,197,94,0.06)_50%,transparent_75%)] dark:bg-[radial-gradient(circle,rgba(34,197,94,0.28)_0%,rgba(34,197,94,0.08)_50%,transparent_80%)] blur-2xl pointer-events-none"
         aria-hidden="true"
       />
 
-      {/* Primary 3D Glass Sculpture Asset */}
+      {/* Primary Hand-Drawn Hero Artwork Asset */}
       <motion.div
-        initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.96 }}
+        initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.98 }}
         animate={
           shouldReduceMotion
             ? { opacity: 1, scale: 1 }
@@ -53,16 +53,26 @@ export function UnifolioFluidConvergence({ className = "" }: UnifolioFluidConver
                 y: {
                   duration: 5.5,
                   repeat: Infinity,
-                  ease: "easeInOut",
+                  ease: MOTION_EASING_FLOAT,
                 },
               }
         }
-        className="w-full h-full relative flex items-center justify-center"
+        className="w-full h-full relative flex items-start justify-end scale-[1.24] sm:scale-[1.30] origin-top-right"
       >
+        {/* Light Mode Illustration */}
         <img
-          src={glassSculptureImg}
-          alt="Translucent Flowing Mutual Fund Portfolio Forms"
-          className="w-full h-full max-h-[58vh] min-[400px]:max-h-[61vh] max-w-[96vw] sm:max-w-md object-contain object-center filter drop-shadow-[0_16px_36px_rgba(4,144,91,0.14)] dark:drop-shadow-[0_20px_40px_rgba(4,144,91,0.25)] select-none pointer-events-none"
+          src="/illustrations/landing/mobile_landing_hero.png"
+          alt="Scattered mutual fund holdings blossoming into one unified clarity"
+          className="w-auto h-full max-h-full max-w-full object-contain object-right-top select-none pointer-events-none block dark:hidden"
+          loading="eager"
+          decoding="async"
+        />
+
+        {/* Dark Mode Illustration */}
+        <img
+          src="/illustrations/landing/mobile_landing_hero_dark.png"
+          alt="Scattered mutual fund holdings blossoming into one unified clarity"
+          className="w-auto h-full max-h-full max-w-full object-contain object-right-top filter drop-shadow-[0_0_20px_rgba(34,197,94,0.2)] select-none pointer-events-none hidden dark:block"
           loading="eager"
           decoding="async"
         />

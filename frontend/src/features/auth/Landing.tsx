@@ -7,6 +7,8 @@ import { validateEmail } from "./validation";
 import { cn } from "@/lib/utils";
 import { HandDrawnUnderline } from "@/components/HandDrawnUnderline";
 
+import { AuthIllustration } from "./AuthIllustration";
+
 interface LandingProps {
   initialMode?: "login" | "signup";
   onModeChange?: (mode: "login" | "signup") => void;
@@ -64,16 +66,19 @@ export function Landing({
 
   return (
     <div className="w-full max-w-md mx-auto text-left box-border py-1">
-      {/* 1. Header with cohesive spacing to email field matching landing page */}
-      <div className="mb-5 sm:mb-6 space-y-2">
+      {/* Hand-drawn mobile illustration */}
+      <div className="lg:hidden flex items-center justify-center h-[125px] xs:h-[142px] sm:h-[160px] mb-5 xs:mb-6 sm:mb-7">
+        <AuthIllustration
+          variant={mode === "signup" ? "create_account" : "welcome_back"}
+          className="h-full mx-auto"
+        />
+      </div>
+
+      {/* 1. Header with direct flow to input / buttons */}
+      <div className="mb-5 sm:mb-6">
         <h1 className="font-display font-bold text-[30px] xs:text-[32px] sm:text-[36px] text-[var(--color-ink)] tracking-tight leading-[1.08]">
           {mode === "signup" ? "Create your account" : "Welcome back"}
         </h1>
-        <p className="text-[13px] sm:text-[14px] text-[#5C5C5C] dark:text-[#A3A3A3] font-normal leading-relaxed">
-          {mode === "signup"
-            ? "All your mutual funds and folios, unified into one singular view."
-            : "Access your consolidated investments and portfolio analytics."}
-        </p>
       </div>
 
       {/* 2. Server Authentication Error Alert */}
@@ -107,7 +112,7 @@ export function Landing({
                   "w-full h-13 sm:h-14 min-h-[50px] sm:min-h-[54px] rounded-2xl bg-white/90 dark:bg-[var(--color-surface)] border border-[var(--color-border)] px-4 text-sm text-[var(--color-ink)] placeholder:text-[#5C5C5C]/50 dark:placeholder:text-[#A3A3A3]/50 focus:outline-none focus-visible:outline-none transition-all font-body box-border shadow-xs",
                   validationError
                     ? "border-[var(--color-negative)] focus:border-[var(--color-negative)] focus:ring-2 focus:ring-[var(--color-negative)]/20"
-                    : "focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981]/20",
+                    : "focus:border-[#22C55E] focus:ring-2 focus:ring-[#22C55E]/20",
                 )}
                 autoFocus
               />
@@ -127,7 +132,7 @@ export function Landing({
               type="submit"
               disabled={submitting || !email.trim()}
               aria-label="Create account"
-              className="w-full h-14 sm:h-[58px] px-8 rounded-full font-bold text-[15px] sm:text-base bg-[#10B981] hover:bg-[#059669] dark:bg-[#10B981] dark:hover:bg-[#059669] text-white shadow-xl shadow-[#10B981]/25 dark:shadow-[#10B981]/20 active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2.5 border border-[#10B981]/40 min-h-[52px] mt-2"
+              className="w-full h-14 sm:h-[58px] px-8 rounded-full font-bold text-[15px] sm:text-base bg-[#22C55E] hover:bg-[#22C55E]/90 dark:bg-[#22C55E] dark:hover:bg-[#22C55E]/90 text-white shadow-xl shadow-[#22C55E]/25 dark:shadow-[#22C55E]/20 active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2.5 border border-[#22C55E]/40 min-h-[52px] mt-2"
             >
               {submitting ? (
                 <>
@@ -153,7 +158,7 @@ export function Landing({
                 setMode("login");
                 onModeChange?.("login");
               }}
-              className="font-bold text-[#10B981] dark:text-[#34D399] hover:underline cursor-pointer transition-colors focus-visible:outline-none py-1"
+              className="font-bold text-[#22C55E] hover:underline cursor-pointer transition-colors focus-visible:outline-none py-1"
             >
               <HandDrawnUnderline>Log in</HandDrawnUnderline>
             </button>
@@ -210,7 +215,7 @@ export function Landing({
                 setMode("signup");
                 onModeChange?.("signup");
               }}
-              className="font-bold text-[#10B981] dark:text-[#34D399] hover:underline cursor-pointer transition-colors focus-visible:outline-none py-1"
+              className="font-bold text-[#22C55E] hover:underline cursor-pointer transition-colors focus-visible:outline-none py-1"
             >
               <HandDrawnUnderline>Sign up</HandDrawnUnderline>
             </button>

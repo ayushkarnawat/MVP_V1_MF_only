@@ -7,6 +7,8 @@ import { staggerContainerVariants, staggerItemVariants } from "@/lib/motion";
 import { validateEmail } from "./validation";
 import { cn } from "@/lib/utils";
 
+import { AuthIllustration } from "./AuthIllustration";
+
 interface EmailEntryProps {
   /** "login": direct email login from landing. "link": step-up re-authentication
     * against an account that already exists. "primary": legacy entry point with
@@ -24,7 +26,6 @@ export function EmailEntry({ context = "login", onSignup, onLogin, onBack, submi
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isTouched, setIsTouched] = useState(false);
 
-  const isLink = context === "link";
   const isLoginOnly = context === "login" || context === "link";
 
   const handleEmailChange = (value: string) => {
@@ -68,6 +69,14 @@ export function EmailEntry({ context = "login", onSignup, onLogin, onBack, submi
       onSubmit={(event) => submit(event, isLoginOnly ? "login" : "signup")}
       className="w-full max-w-md mx-auto space-y-6 text-left box-border"
     >
+      {/* Hand-drawn mobile illustration */}
+      <div className="lg:hidden flex items-center justify-center h-[125px] xs:h-[142px] sm:h-[160px] mb-5 xs:mb-6 sm:mb-7">
+        <AuthIllustration
+          variant="email_entry"
+          className="h-full mx-auto"
+        />
+      </div>
+
       {/* 1. Navigation & Brand Heading */}
       <motion.div variants={staggerItemVariants} className="space-y-3">
         {onBack && (
@@ -81,17 +90,10 @@ export function EmailEntry({ context = "login", onSignup, onLogin, onBack, submi
           </button>
         )}
 
-        <div className="space-y-2">
+        <div>
           <h1 className="font-display font-bold text-[30px] xs:text-[32px] sm:text-[36px] text-[var(--color-ink)] tracking-tight leading-[1.08]">
             {isLoginOnly ? "Log in with email" : "Continue with email"}
           </h1>
-          <p className="text-[13px] sm:text-[14px] text-[#5C5C5C] dark:text-[#A3A3A3] font-normal leading-relaxed">
-            {isLink
-              ? "Enter your email — we'll send a code to link this to your account."
-              : isLoginOnly
-              ? "Enter your email and we'll send you a one-time code."
-              : "Enter your email to get started, or log in if you already have an account."}
-          </p>
         </div>
       </motion.div>
 
@@ -112,7 +114,7 @@ export function EmailEntry({ context = "login", onSignup, onLogin, onBack, submi
               "w-full h-13 sm:h-14 min-h-[50px] sm:min-h-[54px] rounded-2xl bg-white/90 dark:bg-[var(--color-surface)] border border-[var(--color-border)] px-4 text-sm text-[var(--color-ink)] placeholder:text-[#5C5C5C]/50 dark:placeholder:text-[#A3A3A3]/50 focus:outline-none focus-visible:outline-none transition-all font-body box-border shadow-xs",
               validationError
                 ? "border-[var(--color-negative)] focus:border-[var(--color-negative)] focus:ring-2 focus:ring-[var(--color-negative)]/20"
-                : "focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981]/20",
+                : "focus:border-[#22C55E] focus:ring-2 focus:ring-[#22C55E]/20",
             )}
             autoFocus
           />
@@ -145,7 +147,7 @@ export function EmailEntry({ context = "login", onSignup, onLogin, onBack, submi
         <Button
           type="submit"
           disabled={submitting || !email.trim()}
-          className="w-full h-14 sm:h-[58px] px-8 rounded-full font-bold text-[15px] sm:text-base bg-[#10B981] hover:bg-[#059669] dark:bg-[#10B981] dark:hover:bg-[#059669] text-white shadow-xl shadow-[#10B981]/25 dark:shadow-[#10B981]/20 active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2.5 border border-[#10B981]/40 min-h-[52px]"
+          className="w-full h-14 sm:h-[58px] px-8 rounded-full font-bold text-[15px] sm:text-base bg-[#22C55E] hover:bg-[#22C55E]/90 dark:bg-[#22C55E] dark:hover:bg-[#22C55E]/90 text-white shadow-xl shadow-[#22C55E]/25 dark:shadow-[#22C55E]/20 active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2.5 border border-[#22C55E]/40 min-h-[52px]"
         >
           {submitting ? (
             <>
