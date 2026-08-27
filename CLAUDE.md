@@ -65,16 +65,7 @@ do not append session narrative here again. Full current status: `session.md` at
 root, overwritten each session. Full per-task history: `Docs/orchestration/delegation-log.md`.
 Deferred/not-yet-built features: `DEFERRED_FEATURES.md`.)*
 
-**Latest:** root-caused and fixed a colleague's AMFI TER `ReadTimeout`s on
-`feat/enhanced-ui` across three commits (fetch concurrency lowered to avoid a 429,
-`bb9f507`; diagnostic logging added, `142eb6b`; httpx client timeout raised 30s→90s
-after root-causing to event-loop starvation from a blocking `db.commit()`, `945b271`) —
-confirmed fixed live 2026-08-26, full narrative in `session.md`, underlying
-event-loop-blocking vulnerability deliberately deferred as Still-open item 7. Before
-that: PDF export Portfolio Allocation rendering fix (`12946f7`); before that,
-`distributor-comparison-portfolio-level` merged in, bringing `authsetup` and the
-Analytics PDF export feature with it — full detail: `session.md`. Everything else is
-complete and merged — full history: `session.md`.
+**Latest (2026-08-27):** Fixed mobile CAS import scrolling, centered import-complete layout, added roadmap milestone pop/glow unlock animations, and audited CTA centering across mobile/web (358 tests passing).
 
 **Still open (7 items carried forward from earlier phases, not yet revisited — full
 detail on each in `session.md`'s "Still open" section):** a held scheme with no NAV

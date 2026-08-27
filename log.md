@@ -125,4 +125,33 @@ Executed comprehensive visual, motion, validation, and illustration enhancements
    - Backend suite: 449 passed, 2 skipped, 0 failed.
    - Production bundle build: `npm run build` clean (0 errors).
 
+## 2026-08-27 — Mobile Review Scroll Fixes, Roadmap Milestone Unlock Animations & CTA Centering Audit
+
+1. **Mobile CAS Import Review Scroll & Viewport Overflow Fixes (`ReviewTable.tsx`, `App.tsx`, `OnboardingFlow.tsx`)**:
+   - Resolved mobile viewport vertical overflow trap: removed `overflow-hidden` from `MobileInitialFlow` in `App.tsx`, enabled `overflow-y-auto`, and top-aligned the onboarding step containers in `OnboardingFlow.tsx`.
+   - Refined mobile layout for `ReviewTable.tsx`: hidden the statement verified badge on mobile, converted the filter row into a 3-column grid without horizontal scrollbars, tightened card padding and typography, and added `pb-28 sm:pb-24` bottom clearance for sticky footer visibility.
+
+2. **Mobile & Web Import Screens Vertical Centering & Upload Refinements (`UploadForm.tsx`, `MobileUploadForm.tsx`, `TwoPathImportContainer.tsx`, `ParsingIndicator.tsx`, `ImportConfirmed.tsx`, `ImportFlow.tsx`, `MobileImportView.tsx`)**:
+   - Vertically centered the Upload Screen on both web and mobile layouts.
+   - Enlarged the hero illustration on the upload statement screen (`w-24 h-24 sm:w-28 sm:h-28`) and removed the PAN/DOB password hint line.
+   - Vertically centered the CAS Processing Indicator screen on both web and mobile.
+   - Vertically centered the Import Complete screen on both web and mobile.
+   - Vertically centered the Import Choice screen while keeping top navigation anchored.
+
+3. **Roadmap Milestone Sequential Activation & Pop/Glow Animations (`MobileAuthBackground.tsx` / `AuthRoadmapSvg`)**:
+   - Updated authentication roadmap milestone behavior across both mobile and web:
+     - Icons remain muted/light (`opacity: 0.4`) before the traveler marker arrives.
+     - Animate with a subtle pop/lift effect (`scale: [1, 1.14, 1]`, `y: [0, -1.8, 0]`) as the marker reaches each step sequentially.
+     - Unlocks with a soft radiant `#milestone-unlock-glow` radial gradient aura.
+     - Persists in a dark, active state (`opacity: 1.0`, bold stroke styling, vivid green accents) after unlock.
+
+4. **UI Consistency & CTA Centering Audit**:
+   - Audited all action buttons, CTAs, and controls across mobile and web flows.
+   - Fixed asymmetric left offset in `MobileOnboardingScreen.tsx` by eliminating empty placeholder spacers when `onSkip` is absent and applying `w-full` directly.
+   - Enforced explicit flex centering wrappers (`w-full flex justify-center items-center`) and `mx-auto` alignment on `ImportConfirmed.tsx`, `ImportError.tsx`, `MobileImportView.tsx`, and `EmptyState.tsx`.
+
+5. **Full Verification**:
+   - Frontend test suite: 75 test files passed, 358 tests passed (100% green).
+   - Zero regressions across desktop and mobile test suites.
+
 
