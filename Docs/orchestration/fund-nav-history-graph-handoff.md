@@ -1,6 +1,8 @@
 # Handoff: fund-nav-history-graph
 
-**Status:** IN_PROGRESS
+**Status:** IN_PROGRESS — Tasks 1-3 DONE (backend, web, mobile). Task 4
+(final whole-branch verification + whole-diff review + docs update)
+remaining.
 **Parent plan:** none (small, fully-specified feature; no separate plan doc)
 
 ## Task
@@ -381,6 +383,9 @@ compatibility with.
 ---
 
 ## Task 3 — Mobile: wire `MobileFundDetailView`'s chart to real data
+
+**Status: DONE** (commits `4378679`, `750f189`, `2d7e72b` — implementation +
+two review-fix rounds, full narrative in `Docs/orchestration/delegation-log.md`)
 
 **Depends on Task 1 being merged. Independent of Task 2** (different
 files) — can be dispatched in parallel with it.
