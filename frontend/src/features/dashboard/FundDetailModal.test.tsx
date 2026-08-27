@@ -3,6 +3,14 @@ import { describe, expect, it, vi } from "vitest";
 import { FundDetailModal } from "./FundDetailModal";
 import type { HoldingRow } from "./types";
 
+const fundSignalGraphSpy = vi.fn();
+vi.mock("../../components/FundSignal", () => ({
+  FundSignalGraph: (props: unknown) => {
+    fundSignalGraphSpy(props);
+    return <div data-testid="fund-signal-graph" />;
+  },
+}));
+
 describe("FundDetailModal", () => {
   const sampleHolding: HoldingRow = {
     scheme_id: "scheme-42",
@@ -47,5 +55,13 @@ describe("FundDetailModal", () => {
     expect(
       screen.queryByRole("button", { name: /compare returns by distributor/i })
     ).not.toBeInTheDocument();
+  });
+
+  it("passes the holding scheme id to the performance graph", () => {
+    render(<FundDetailModal isOpen={true} onClose={vi.fn()} holding={sampleHolding} />);
+
+    expect(fundSignalGraphSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ schemeId: "scheme-42" }),
+    );
   });
 });

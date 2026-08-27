@@ -14,6 +14,7 @@ import type {
   AggregateCashFlowResponse,
   AggregateSnapshotsResponse,
   DistributorPortfolioRow, AggregateDistributorComparisonResponse,
+  NavHistoryPeriod, SchemeNavHistoryResponse,
 } from "./types";
 
 async function authFetch(path: string, options: RequestInit = {}): Promise<Response> {
@@ -125,5 +126,14 @@ export async function getAggregateCashFlow(): Promise<AggregateCashFlowResponse>
 
 export async function getAggregateSnapshots(): Promise<AggregateSnapshotsResponse> {
   const res = await authFetch(`/household/aggregate/snapshots`);
+  return res.json();
+}
+
+export async function getFundNavHistory(
+  schemeId: string,
+  period: NavHistoryPeriod,
+  signal?: AbortSignal,
+): Promise<SchemeNavHistoryResponse> {
+  const res = await authFetch(`/funds/${schemeId}/nav-history?period=${period}`, { signal });
   return res.json();
 }

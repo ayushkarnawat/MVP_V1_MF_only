@@ -134,3 +134,20 @@ export interface AggregateDistributorComparisonResponse {
   rows: DistributorPortfolioRow[];
 }
 
+export type NavHistoryPeriod = "1M" | "1Y" | "3Y" | "5Y" | "MAX";
+
+export interface NavHistoryPoint {
+  date: string;
+  nav: string;
+  return_pct: string;
+}
+
+export interface SchemeNavHistoryResponse {
+  scheme_id: string;
+  period: NavHistoryPeriod;
+  requested_period: NavHistoryPeriod;
+  clamped: boolean;
+  points: NavHistoryPoint[];
+  overall_return_pct: string | null;
+}
+
