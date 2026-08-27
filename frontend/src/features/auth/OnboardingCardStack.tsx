@@ -7,7 +7,6 @@ import type { HistoryState } from "./onboardingHistory";
 import { currentStep } from "./onboardingHistory";
 import { getStepIndex } from "./onboardingSteps";
 import { isTestEnv, MOTION_EASING } from "@/lib/motion";
-import { UnifolioLogo } from "@/components/UnifolioLogo";
 
 interface OnboardingCardStackProps {
   history: HistoryState;
@@ -67,10 +66,7 @@ export function OnboardingCardStack({
   }, [history.cursor]);
 
   const cardHeader = (
-    <header className="flex items-center justify-between pb-3.5 mb-4 border-b border-[var(--color-border)]/50 select-none">
-      {/* Unifolio Logo & Wordmark */}
-      <UnifolioLogo className="h-5 sm:h-5.5" />
-
+    <header className="flex items-center justify-end pb-3.5 mb-4 border-b border-[var(--color-border)]/50 select-none">
       {/* Desktop Progress Story Indicator */}
       <div
         className="flex items-center gap-1.5"
@@ -81,9 +77,9 @@ export function OnboardingCardStack({
             key={idx}
             className={`h-1.5 rounded-full transition-all duration-300 ${
               idx === activeStepIdx
-                ? "w-6 bg-[#10B981] dark:bg-[#34D399]"
+                ? "w-6 bg-[#22C55E]"
                 : idx < activeStepIdx
-                ? "w-2.5 bg-[#10B981]/40 dark:bg-[#34D399]/40"
+                ? "w-2.5 bg-[#22C55E]/40"
                 : "w-2.5 bg-black/10 dark:bg-white/15"
             }`}
           />

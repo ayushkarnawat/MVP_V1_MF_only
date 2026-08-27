@@ -54,7 +54,7 @@ export function Q4Household({
         className={cn(
           "w-full py-3.5 sm:py-4 px-2.5 sm:px-3 rounded-xl flex items-center gap-3.5 text-left transition-all duration-150 cursor-pointer group select-none min-h-[54px]",
           selectedChoice === "solo"
-            ? "bg-[#10B981]/[0.08] dark:bg-[#10B981]/[0.12]"
+            ? "bg-[#22C55E]/[0.08] dark:bg-[#22C55E]/[0.12]"
             : "hover:bg-black/[0.025] dark:hover:bg-white/[0.035]"
         )}
         onClick={onChooseSolo}
@@ -63,19 +63,19 @@ export function Q4Household({
           className={cn(
             "h-10 w-10 sm:h-11 sm:w-11 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-150",
             selectedChoice === "solo"
-              ? "bg-[#10B981]/20 text-[#10B981] dark:text-[#34D399]"
-              : "bg-[#10B981]/10 text-[var(--color-ink)] group-hover:bg-[#10B981]/15 group-hover:text-[#10B981] dark:group-hover:text-[#34D399]"
+              ? "bg-[#22C55E]/20 text-[#22C55E]"
+              : "bg-[#22C55E]/10 text-[var(--color-ink)] group-hover:bg-[#22C55E]/15 group-hover:text-[#22C55E]"
           )}
         >
           <svg viewBox="0 0 48 48" className="w-8 h-8 select-none" fill="none">
-            <path d="M24 4 V8 M14 7 L17 10 M34 7 L31 10" stroke="#10B981" strokeWidth="1.75" strokeLinecap="round" />
+            <path d="M24 4 V8 M14 7 L17 10 M34 7 L31 10" stroke="#22C55E" strokeWidth="1.75" strokeLinecap="round" />
             <rect x="10" y="13" width="28" height="26" rx="5" fill="var(--color-surface)" stroke="currentColor" strokeWidth="2" />
             <path d="M10 20 H38" stroke="var(--color-border)" strokeWidth="1.5" />
-            <rect x="14" y="16" width="8" height="2" rx="1" fill="#10B981" />
-            <circle cx="24" cy="27" r="4.5" fill="#10B981" fillOpacity="0.2" stroke="currentColor" strokeWidth="1.75" />
-            <circle cx="24" cy="27" r="1.75" fill="#10B981" />
-            <path d="M17 37 C17 33.5 20 32 24 32 C28 32 31 33.5 31 37" fill="#10B981" fillOpacity="0.2" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
-            <circle cx="33" cy="16.5" r="2" fill="#10B981" />
+            <rect x="14" y="16" width="8" height="2" rx="1" fill="#22C55E" />
+            <circle cx="24" cy="27" r="4.5" fill="#22C55E" fillOpacity="0.2" stroke="currentColor" strokeWidth="1.75" />
+            <circle cx="24" cy="27" r="1.75" fill="#22C55E" />
+            <path d="M17 37 C17 33.5 20 32 24 32 C28 32 31 33.5 31 37" fill="#22C55E" fillOpacity="0.2" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+            <circle cx="33" cy="16.5" r="2" fill="#22C55E" />
           </svg>
         </div>
         <div className="flex-1 min-w-0 space-y-0.5 sm:space-y-1">
@@ -83,8 +83,8 @@ export function Q4Household({
             className={cn(
               "block font-display font-bold text-xs sm:text-[14px] transition-colors",
               selectedChoice === "solo"
-                ? "text-[#10B981] dark:text-[#34D399]"
-                : "text-[var(--color-ink)] group-hover:text-[#10B981] dark:group-hover:text-[#34D399]"
+                ? "text-[#22C55E]"
+                : "text-[var(--color-ink)] group-hover:text-[#22C55E]"
             )}
           >
             Just Me
@@ -97,8 +97,8 @@ export function Q4Household({
           className={cn(
             "h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-150",
             selectedChoice === "solo"
-              ? "bg-[#10B981]/15 text-[#10B981] dark:text-[#34D399]"
-              : "text-[#5C5C5C]/50 dark:text-[#A3A3A3]/50 group-hover:text-[#10B981] dark:group-hover:text-[#34D399] group-hover:translate-x-0.5"
+              ? "bg-[#22C55E]/15 text-[#22C55E]"
+              : "text-[#5C5C5C]/50 dark:text-[#A3A3A3]/50 group-hover:text-[#22C55E] group-hover:translate-x-0.5"
           )}
         >
           <ChevronRight className="h-4 w-4" />
@@ -117,7 +117,7 @@ export function Q4Household({
         className={cn(
           "w-full py-3.5 sm:py-4 px-2.5 sm:px-3 rounded-xl flex items-center gap-3.5 text-left transition-all duration-150 cursor-pointer group select-none min-h-[54px]",
           selectedChoice === "family"
-            ? "bg-[#10B981]/[0.08] dark:bg-[#10B981]/[0.12]"
+            ? "bg-[#22C55E]/[0.08] dark:bg-[#22C55E]/[0.12]"
             : "hover:bg-black/[0.025] dark:hover:bg-white/[0.035]"
         )}
         onClick={onChooseFamily}
@@ -126,22 +126,22 @@ export function Q4Household({
           className={cn(
             "h-10 w-10 sm:h-11 sm:w-11 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-150",
             selectedChoice === "family"
-              ? "bg-[#10B981]/20 text-[#10B981] dark:text-[#34D399]"
-              : "bg-[#10B981]/10 text-[var(--color-ink)] group-hover:bg-[#10B981]/15 group-hover:text-[#10B981] dark:group-hover:text-[#34D399]"
+              ? "bg-[#22C55E]/20 text-[#22C55E]"
+              : "bg-[#22C55E]/10 text-[var(--color-ink)] group-hover:bg-[#22C55E]/15 group-hover:text-[#22C55E]"
           )}
         >
           <svg viewBox="0 0 48 48" className="w-8 h-8 select-none" fill="none">
-            <path d="M24 4 V8 M14 7 L17 10 M34 7 L31 10" stroke="#10B981" strokeWidth="1.75" strokeLinecap="round" />
+            <path d="M24 4 V8 M14 7 L17 10 M34 7 L31 10" stroke="#22C55E" strokeWidth="1.75" strokeLinecap="round" />
             <path d="M11 21 L24 10 L37 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M14 19 L24 11.5 L34 19" stroke="#10B981" strokeWidth="1.5" strokeLinecap="round" />
-            <circle cx="18" cy="27" r="4" fill="#10B981" fillOpacity="0.2" stroke="currentColor" strokeWidth="1.75" />
-            <circle cx="18" cy="27" r="1.5" fill="#10B981" />
+            <path d="M14 19 L24 11.5 L34 19" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" />
+            <circle cx="18" cy="27" r="4" fill="#22C55E" fillOpacity="0.2" stroke="currentColor" strokeWidth="1.75" />
+            <circle cx="18" cy="27" r="1.5" fill="#22C55E" />
             <path d="M12 37 C12 34 14.5 32.5 18 32.5 C20 32.5 21.8 33.2 22.8 34.5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
-            <circle cx="30" cy="27" r="4" fill="#10B981" fillOpacity="0.25" stroke="currentColor" strokeWidth="1.75" />
-            <circle cx="30" cy="27" r="1.5" fill="#10B981" />
+            <circle cx="30" cy="27" r="4" fill="#22C55E" fillOpacity="0.25" stroke="currentColor" strokeWidth="1.75" />
+            <circle cx="30" cy="27" r="1.5" fill="#22C55E" />
             <path d="M25.2 34.5 C26.2 33.2 28 32.5 30 32.5 C33.5 32.5 36 34 36 37" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
-            <path d="M18 27 H30" stroke="#10B981" strokeWidth="1.5" strokeDasharray="2 2" />
-            <circle cx="24" cy="35" r="2.5" fill="#10B981" fillOpacity="0.2" stroke="#10B981" strokeWidth="1.5" />
+            <path d="M18 27 H30" stroke="#22C55E" strokeWidth="1.5" strokeDasharray="2 2" />
+            <circle cx="24" cy="35" r="2.5" fill="#22C55E" fillOpacity="0.2" stroke="#22C55E" strokeWidth="1.5" />
           </svg>
         </div>
         <div className="flex-1 min-w-0 space-y-0.5 sm:space-y-1">
@@ -149,8 +149,8 @@ export function Q4Household({
             className={cn(
               "block font-display font-bold text-xs sm:text-[14px] transition-colors",
               selectedChoice === "family"
-                ? "text-[#10B981] dark:text-[#34D399]"
-                : "text-[var(--color-ink)] group-hover:text-[#10B981] dark:group-hover:text-[#34D399]"
+                ? "text-[#22C55E]"
+                : "text-[var(--color-ink)] group-hover:text-[#22C55E]"
             )}
           >
             Family Too
@@ -163,8 +163,8 @@ export function Q4Household({
           className={cn(
             "h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-150",
             selectedChoice === "family"
-              ? "bg-[#10B981]/15 text-[#10B981] dark:text-[#34D399]"
-              : "text-[#5C5C5C]/50 dark:text-[#A3A3A3]/50 group-hover:text-[#10B981] dark:group-hover:text-[#34D399] group-hover:translate-x-0.5"
+              ? "bg-[#22C55E]/15 text-[#22C55E]"
+              : "text-[#5C5C5C]/50 dark:text-[#A3A3A3]/50 group-hover:text-[#22C55E] group-hover:translate-x-0.5"
           )}
         >
           <ChevronRight className="h-4 w-4" />

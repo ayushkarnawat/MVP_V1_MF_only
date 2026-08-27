@@ -136,7 +136,7 @@ export function Q3Purpose({
             className={cn(
               "w-full py-3 sm:py-3.5 px-2.5 sm:px-3 rounded-xl flex items-center gap-3.5 text-left transition-all duration-150 cursor-pointer group select-none min-h-[50px]",
               isSelected
-                ? "bg-[#10B981]/[0.08] dark:bg-[#10B981]/[0.12]"
+                ? "bg-[#22C55E]/[0.08] dark:bg-[#22C55E]/[0.12]"
                 : "hover:bg-black/[0.025] dark:hover:bg-white/[0.035]"
             )}
             onClick={() => onSelect(option.value)}
@@ -146,8 +146,8 @@ export function Q3Purpose({
               className={cn(
                 "h-9 w-9 sm:h-10 sm:w-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-150",
                 isSelected
-                  ? "bg-[#10B981]/20 text-[#10B981] dark:text-[#34D399]"
-                  : "bg-[#10B981]/10 text-[var(--color-ink)] group-hover:bg-[#10B981]/15 group-hover:text-[#10B981] dark:group-hover:text-[#34D399]"
+                  ? "bg-[#22C55E]/20 text-[#22C55E]"
+                  : "bg-[#22C55E]/10 text-[var(--color-ink)] group-hover:bg-[#22C55E]/15 group-hover:text-[#22C55E]"
               )}
             >
               {option.renderIllustration()}
@@ -159,8 +159,8 @@ export function Q3Purpose({
                 className={cn(
                   "block font-display font-bold text-xs sm:text-[13.5px] transition-colors",
                   isSelected
-                    ? "text-[#10B981] dark:text-[#34D399]"
-                    : "text-[var(--color-ink)] group-hover:text-[#10B981] dark:group-hover:text-[#34D399]"
+                    ? "text-[#22C55E]"
+                    : "text-[var(--color-ink)] group-hover:text-[#22C55E]"
                 )}
               >
                 {option.title}
@@ -175,8 +175,8 @@ export function Q3Purpose({
               className={cn(
                 "h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-150",
                 isSelected
-                  ? "bg-[#10B981]/15 text-[#10B981] dark:text-[#34D399]"
-                  : "text-[#5C5C5C]/50 dark:text-[#A3A3A3]/50 group-hover:text-[#10B981] dark:group-hover:text-[#34D399] group-hover:translate-x-0.5"
+                  ? "bg-[#22C55E]/15 text-[#22C55E]"
+                  : "text-[#5C5C5C]/50 dark:text-[#A3A3A3]/50 group-hover:text-[#22C55E] group-hover:translate-x-0.5"
               )}
             >
               <ChevronRight className="h-4 w-4" />

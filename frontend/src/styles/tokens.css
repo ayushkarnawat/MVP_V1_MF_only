@@ -6,7 +6,7 @@
   --color-border: #E5E5E5;
   --color-text-secondary: #5C5C5C;
   --color-accent: #22C55E;
-  --color-positive: #16A34A;
+  --color-positive: #22C55E;
   --color-negative: #EF4444;
   --color-neutral-badge: #94A3B8;
   --color-warning: #F59E0B;
@@ -117,7 +117,7 @@
   --auth-panel-bg-2: #081a12;
   --auth-panel-ink: #F5F7F4;
   --auth-panel-ink-soft: rgba(245, 247, 244, 0.78);
-  --auth-panel-glow: #4ADE80;
+  --auth-panel-glow: #22C55E;
   --auth-panel-ghost: rgba(148, 163, 184, 0.5);
   --auth-panel-ghost-soft: rgba(148, 163, 184, 0.22);
 }
@@ -202,7 +202,7 @@
   --color-border: #E5E5E5;
   --color-text-secondary: #5C5C5C;
   --color-accent: #22C55E;
-  --color-positive: #16A34A;
+  --color-positive: #22C55E;
   --color-negative: #EF4444;
   --color-neutral-badge: #94A3B8;
   --color-warning: #F59E0B;

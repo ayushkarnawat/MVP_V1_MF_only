@@ -10,14 +10,13 @@ describe("OnboardingCardStack", () => {
     skipped: new Set(),
   };
 
-  it("renders front card content along with persistent logo, desktop progress dots, and exactly 2 background placeholder cards", () => {
+  it("renders front card content along with desktop progress dots and exactly 2 background placeholder cards", () => {
     render(
       <OnboardingCardStack history={baseHistory}>
         <div data-testid="front-card-content">Question 1</div>
       </OnboardingCardStack>
     );
 
-    expect(screen.getByText("Unifolio")).toBeInTheDocument();
     expect(screen.getByLabelText("Step 4 of 5")).toBeInTheDocument();
     expect(screen.getByTestId("front-card-content")).toBeInTheDocument();
     const placeholders = screen.getAllByTestId("card-stack-placeholder");

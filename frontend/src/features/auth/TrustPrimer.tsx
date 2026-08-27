@@ -49,7 +49,7 @@ function ShortStayPrivacyIllustration() {
         transition={{ duration: 5.5, repeat: Infinity, ease: MOTION_EASING_FLOAT }}
         src="/illustrations/mobile_privacy_screen_dark.png"
         alt="Privacy illustration showing statement dissolving into temporary insights"
-        className="relative z-10 w-full h-full object-contain filter drop-shadow-[0_0_14px_rgba(74,222,128,0.2)] transition-all hidden dark:block"
+        className="relative z-10 w-full h-full object-contain filter drop-shadow-[0_0_14px_rgba(34,197,94,0.2)] transition-all hidden dark:block"
         loading="eager"
         decoding="async"
       />
@@ -73,7 +73,7 @@ export function TrustPrimer({
         title={
           <span>
             {"We keep your "}
-            <span className="text-[#10B981] dark:text-[#34D399]">insights,</span>{" "}
+            <span className="text-[#22C55E]">insights,</span>{" "}
             <br />
             not your files.
           </span>
@@ -104,7 +104,7 @@ export function TrustPrimer({
       <motion.div variants={onboardingHeadingVariants} className="space-y-1 px-0.5 text-center">
         <h1 className="font-display font-bold text-xl sm:text-2xl text-[var(--color-ink)] tracking-tight leading-snug">
           {"We keep your "}
-          <span className="text-[#10B981] dark:text-[#34D399]">insights,</span>{" "}
+          <span className="text-[#22C55E]">insights,</span>{" "}
           not your files.
         </h1>
       </motion.div>
@@ -177,11 +177,11 @@ export function TrustPrimer({
         <motion.div
           variants={onboardingOptionItemVariants}
           whileHover={{ scale: 1.004, transition: { duration: 0.2, ease: MOTION_EASING_SMOOTH } }}
-          className="p-2.5 sm:p-3 rounded-2xl bg-[#10B981]/[0.06] dark:bg-[#10B981]/[0.10] border border-[#10B981]/25 flex items-center gap-2.5"
+          className="p-2.5 sm:p-3 rounded-2xl bg-[#22C55E]/[0.06] dark:bg-[#22C55E]/[0.10] border border-[#22C55E]/25 flex items-center gap-2.5"
         >
-          <ShieldCheck className="h-4 w-4 text-[#10B981] dark:text-[#34D399] flex-shrink-0" />
+          <ShieldCheck className="h-4 w-4 text-[#22C55E] flex-shrink-0" />
           <p className="text-[11px] sm:text-xs text-[var(--color-ink)] leading-tight font-medium">
-            Operates under the <strong className="text-[#10B981] dark:text-[#34D399]">Account Aggregator framework</strong>. You can disconnect anytime.
+            Operates under the <strong className="text-[#22C55E]">Account Aggregator framework</strong>. You can disconnect anytime.
           </p>
         </motion.div>
       </motion.div>

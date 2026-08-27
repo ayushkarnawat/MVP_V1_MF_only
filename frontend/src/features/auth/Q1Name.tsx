@@ -7,19 +7,16 @@ import { MobileOnboardingScreen } from "./MobileOnboardingScreen";
 import {
   MOTION_EASING,
   MOTION_EASING_FLOAT,
-  MOTION_EASING_SMOOTH,
   onboardingContainerVariants,
   onboardingHeadingVariants,
   onboardingIllustrationVariants,
   onboardingOptionItemVariants,
-  onboardingSubtextVariants,
   onboardingFooterVariants,
 } from "@/lib/motion";
 
 interface Q1NameProps {
   value: string;
   onBack?: () => void;
-  onSkip: () => void;
   onSubmit: (name: string) => void;
   isMobile?: boolean;
   currentStepIndex?: number;
@@ -51,7 +48,7 @@ function NameIllustration() {
         transition={{ duration: 5.5, repeat: Infinity, ease: MOTION_EASING_FLOAT }}
         src="/illustrations/mobile_name_screen_dark.png"
         alt="Name onboarding illustration"
-        className="relative z-10 w-full h-full object-contain filter drop-shadow-[0_0_14px_rgba(74,222,128,0.2)] transition-all hidden dark:block"
+        className="relative z-10 w-full h-full object-contain filter drop-shadow-[0_0_14px_rgba(34,197,94,0.2)] transition-all hidden dark:block"
         loading="eager"
         decoding="async"
       />
@@ -62,7 +59,6 @@ function NameIllustration() {
 export function Q1Name({
   value,
   onBack,
-  onSkip,
   onSubmit,
   isMobile = false,
   currentStepIndex = 0,
@@ -83,10 +79,10 @@ export function Q1Name({
         htmlFor="name-input"
         className="text-xs font-semibold text-[var(--color-ink)] block font-body"
       >
-        Your full name or first name
+        Your Name
       </label>
-      <div className="relative flex items-center rounded-2xl bg-white/90 dark:bg-[var(--color-surface)] border border-[var(--color-border)] focus-within:border-[#10B981] focus-within:ring-2 focus-within:ring-[#10B981]/20 transition-all duration-200 overflow-hidden h-13 sm:h-14 min-h-[50px] sm:min-h-[54px] px-4 gap-3 shadow-xs">
-        <div className="h-7 w-7 rounded-lg bg-[#10B981]/10 text-[#10B981] flex items-center justify-center flex-shrink-0">
+      <div className="relative flex items-center rounded-2xl bg-white/90 dark:bg-[var(--color-surface)] border border-[var(--color-border)] focus-within:border-[#22C55E] focus-within:ring-2 focus-within:ring-[#22C55E]/20 transition-all duration-200 overflow-hidden h-13 sm:h-14 min-h-[50px] sm:min-h-[54px] px-4 gap-3 shadow-xs">
+        <div className="h-7 w-7 rounded-lg bg-[#22C55E]/10 text-[#22C55E] flex items-center justify-center flex-shrink-0">
           <User className="h-4 w-4" />
         </div>
         <input
@@ -99,7 +95,7 @@ export function Q1Name({
           autoCapitalize="words"
           spellCheck="false"
           onChange={(event) => setName(event.target.value)}
-          className="flex-1 min-w-0 bg-transparent text-sm font-medium text-[var(--color-ink)] placeholder:text-[#5C5C5C]/50 dark:placeholder:text-[#A3A3A3]/50 focus:outline-none focus:ring-0 focus:border-none border-none outline-none ring-0 shadow-none appearance-none selection:bg-[#10B981]/20 selection:text-[var(--color-ink)] caret-[#10B981]"
+          className="flex-1 min-w-0 bg-transparent text-sm font-medium text-[var(--color-ink)] placeholder:text-[#5C5C5C]/50 dark:placeholder:text-[#A3A3A3]/50 focus:outline-none focus:ring-0 focus:border-none border-none outline-none ring-0 shadow-none appearance-none selection:bg-[#22C55E]/20 selection:text-[var(--color-ink)] caret-[#22C55E]"
           autoFocus
         />
       </div>
@@ -113,7 +109,6 @@ export function Q1Name({
           currentStepIndex={currentStepIndex}
           totalSteps={totalSteps}
           onBack={onBack}
-          onSkip={onSkip}
           title="What should we call you?"
           customIllustration={<NameIllustration />}
           subtext="Personalizing your mutual fund summaries, portfolio reports, and tax statements."
@@ -172,13 +167,6 @@ export function Q1Name({
               <span>Back</span>
             </button>
           )}
-          <button
-            type="button"
-            onClick={onSkip}
-            className="inline-flex items-center px-3.5 py-2 rounded-xl text-xs font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] hover:bg-[var(--color-bg)] transition-colors cursor-pointer"
-          >
-            Skip
-          </button>
         </div>
 
         <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.985 }}>

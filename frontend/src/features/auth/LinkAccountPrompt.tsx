@@ -4,6 +4,7 @@ import { PhoneEntry } from "./PhoneEntry";
 import { OtpVerify } from "./OtpVerify";
 import { EmailEntry } from "./EmailEntry";
 import { GoogleButton } from "./GoogleButton";
+import { AuthIllustration } from "./AuthIllustration";
 import { requestEmailOtp, requestOtp, verifyEmailOtp, verifyGoogleCredential, verifyOtp } from "./api";
 import { isLinkRequired, isPhoneRequired } from "./types";
 import type { ExistingMethod, OtpVerifyResponse } from "./types";
@@ -121,6 +122,13 @@ export function LinkAccountPrompt({ matchedEmail, existingMethod, pendingToken, 
 
   const banner = (
     <div className="space-y-1">
+      {/* Hand-drawn mobile illustration */}
+      <div className="lg:hidden flex items-center justify-center h-[125px] xs:h-[142px] sm:h-[160px] mb-5 xs:mb-6 sm:mb-7">
+        <AuthIllustration
+          variant="auth_complete"
+          className="h-full mx-auto"
+        />
+      </div>
       <h2 className="font-display font-bold text-2xl text-[var(--color-ink)] tracking-tight">
         Link to existing account
       </h2>

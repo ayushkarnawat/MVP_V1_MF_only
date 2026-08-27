@@ -185,7 +185,7 @@ export function AddFamilyMembers({
           type="submit"
           variant="outline"
           disabled={!name.trim() || loading}
-          className="w-full h-11 rounded-xl border-[var(--color-border)] hover:bg-[#10B981]/10 hover:text-[#10B981] hover:border-[#10B981]/40 font-semibold text-xs sm:text-sm gap-2 transition-all cursor-pointer min-h-[44px]"
+          className="w-full h-11 rounded-xl border-[var(--color-border)] hover:bg-[#22C55E]/10 hover:text-[#22C55E] hover:border-[#22C55E]/40 font-semibold text-xs sm:text-sm gap-2 transition-all cursor-pointer min-h-[44px]"
         >
           {loading ? (
             <Loader2 className="h-4 w-4 animate-spin text-[var(--color-accent)]" />
