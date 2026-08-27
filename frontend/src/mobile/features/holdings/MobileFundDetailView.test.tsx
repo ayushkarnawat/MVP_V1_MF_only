@@ -149,6 +149,39 @@ describe("MobileFundDetailView", () => {
     expect(screen.getByText((_, element) => element?.tagName === "SPAN" && element.textContent === "15 Jan: 0.00%")).toBeInTheDocument();
   });
 
+  it("resolves an interior pointer position to the correct point, not just an endpoint", async () => {
+    // Endpoint-only assertions (clientX 0) can't catch a broken padding/scale in the
+    // pointer-to-index inversion — an interior point exercises the full formula.
+    vi.mocked(getFundNavHistory).mockResolvedValue({
+      ...historyResponse,
+      points: [
+        { date: "2025-01-15", nav: "45.5000", return_pct: "0.00" },
+        { date: "2025-09-20", nav: "52.1000", return_pct: "14.50" },
+        { date: "2026-08-25", nav: "60.0000", return_pct: "31.87" },
+      ],
+    });
+    render(<MobileFundDetailView holding={sampleHolding} onBack={vi.fn()} />);
+    await screen.findByText((_, element) => element?.tagName === "SPAN" && element.textContent === "25 Aug: 31.87%");
+
+    const scrubber = screen.getByRole("slider");
+    vi.spyOn(scrubber, "getBoundingClientRect").mockReturnValue({
+      width: 320,
+      left: 0,
+      right: 320,
+      top: 0,
+      bottom: 140,
+      height: 140,
+      x: 0,
+      y: 0,
+      toJSON: () => undefined,
+    } as DOMRect);
+
+    // Middle point (index 1 of 3) sits at viewBox x=160 given PADDING_X=16, SVG_WIDTH=320.
+    fireEvent.pointerMove(scrubber, { clientX: 160 });
+
+    expect(screen.getByText((_, element) => element?.tagName === "SPAN" && element.textContent === "20 Sept: 14.50%")).toBeInTheDocument();
+  });
+
   it("updates the readout on a touch tap without requiring a drag", async () => {
     render(<MobileFundDetailView holding={sampleHolding} onBack={vi.fn()} />);
     await screen.findByText((_, element) => element?.tagName === "SPAN" && element.textContent === "25 Aug: 31.87%");

@@ -90,6 +90,21 @@ export function MobileFundDetailView({
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const shouldReduceMotion = useReducedMotion() || isTestEnv;
 
+  // Reset display state during render, not in the effect below. A `useEffect` reset
+  // only runs after React has already committed and painted the previous timeframe's/
+  // holding's stale data for one frame; calling setState here, while `fetchKey` still
+  // differs from the last-committed value, makes React discard this render and restart
+  // immediately with the reset state — so the stale value is never painted at all.
+  const fetchKey = `${holding.scheme_id}|${selectedTimeframe}`;
+  const [committedFetchKey, setCommittedFetchKey] = useState(fetchKey);
+  if (fetchKey !== committedFetchKey) {
+    setCommittedFetchKey(fetchKey);
+    setHistory(null);
+    setLoading(true);
+    setError(null);
+    setActiveIndex(null);
+  }
+
   const invested = parseFloat(holding.amount_invested || "0");
   const currentValue = parseFloat(holding.current_value || "0");
   const profit = parseFloat(
@@ -99,13 +114,6 @@ export function MobileFundDetailView({
   const totalReturnPct = invested > 0 ? (profit / invested) * 100 : 0;
   useEffect(() => {
     const controller = new AbortController();
-    setLoading(true);
-    setError(null);
-    setActiveIndex(null);
-    // Clear stale data too: the loading/error branches replace the chart, but the
-    // header's activePoint readout is rendered outside that conditional, so leaving
-    // the previous timeframe's history in place would show it as if it were current.
-    setHistory(null);
 
     getFundNavHistory(holding.scheme_id, selectedTimeframe, controller.signal)
       .then((data) => {
