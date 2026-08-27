@@ -98,7 +98,7 @@ export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab }: 
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full min-h-full flex-1 flex flex-col justify-center items-center my-auto">
       <AnimatePresence mode="wait">
         {step === "upload" && (
           <motion.div
@@ -107,6 +107,7 @@ export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab }: 
             animate={{ opacity: 1, y: 0 }}
             exit={shouldReduceMotion ? undefined : { opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
+            className="w-full flex-1 flex flex-col justify-center items-center my-auto"
           >
             <TwoPathImportContainer
               memberId={householdMemberId}
@@ -123,6 +124,7 @@ export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab }: 
             animate={{ opacity: 1, scale: 1 }}
             exit={shouldReduceMotion ? undefined : { opacity: 0, scale: 0.98 }}
             transition={{ duration: 0.2 }}
+            className="w-full flex-1 flex flex-col justify-center items-center my-auto min-h-[calc(100dvh-3rem)] sm:min-h-[520px]"
           >
             <ParsingIndicator />
           </motion.div>
@@ -135,6 +137,7 @@ export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab }: 
             animate={{ opacity: 1, y: 0 }}
             exit={shouldReduceMotion ? undefined : { opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
+            className="w-full"
           >
             {reviewNotice && <p role="alert">{reviewNotice}</p>}
             <ReviewTable
@@ -152,6 +155,7 @@ export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab }: 
             animate={{ opacity: 1, scale: 1 }}
             exit={shouldReduceMotion ? undefined : { opacity: 0, scale: 0.98 }}
             transition={{ duration: 0.2 }}
+            className="w-full flex-1 flex flex-col justify-center items-center my-auto min-h-[calc(100dvh-3rem)] sm:min-h-[520px]"
           >
             <ImportError error={error ?? GENERIC_NETWORK_ERROR} onRetry={reset} />
           </motion.div>
@@ -164,6 +168,7 @@ export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab }: 
             animate={{ opacity: 1, y: 0 }}
             exit={shouldReduceMotion ? undefined : { opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
+            className="w-full flex-1 flex flex-col justify-center items-center my-auto min-h-[calc(100dvh-3rem)] sm:min-h-[520px]"
           >
             <ImportConfirmed
               result={confirmResult}

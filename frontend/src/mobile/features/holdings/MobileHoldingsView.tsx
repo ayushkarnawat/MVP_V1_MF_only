@@ -13,8 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Search, ChevronDown, AlertTriangle, UploadCloud, BarChart2 } from "lucide-react";
-import { motion, useReducedMotion } from "motion/react";
-import { staggerContainerVariants, staggerItemVariants, listContainerVariants, listItemVariants, isTestEnv } from "@/lib/motion";
+import { motion } from "motion/react";
+import { staggerContainerVariants, staggerItemVariants, listContainerVariants, listItemVariants } from "@/lib/motion";
 
 export interface MobileHoldingsViewProps {
   onNavigateImport?: () => void;
@@ -34,7 +34,6 @@ export function MobileHoldingsView({
   const [isDistributorComparisonOpen, setIsDistributorComparisonOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const shouldReduceMotion = useReducedMotion() || isTestEnv;
 
   /* Fetch initial household members list */
   useEffect(() => {
@@ -46,7 +45,7 @@ export function MobileHoldingsView({
           setSelectedMemberId(data[0].id);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
 
     return () => {
       isMounted = false;

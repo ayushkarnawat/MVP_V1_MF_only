@@ -36,15 +36,17 @@ describe("App", () => {
       dispatchEvent: vi.fn(),
     }));
 
-    render(<App />);
+    try {
+      render(<App />);
 
-    await waitFor(() => {
-      expect(screen.getByText("Scattered")).toBeInTheDocument();
-      expect(screen.getByText(/holdings, one clear picture/i)).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /get started/i })).toBeInTheDocument();
-    });
-
-    window.matchMedia = originalMatchMedia;
+      await waitFor(() => {
+        expect(screen.getByText("Scattered")).toBeInTheDocument();
+        expect(screen.getByText(/holdings,\s*one clear\s*picture/i)).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /get started/i })).toBeInTheDocument();
+      });
+    } finally {
+      window.matchMedia = originalMatchMedia;
+    }
   });
 
   it("shows OnboardingFlow when the session is valid and onboarding is incomplete", async () => {
@@ -58,7 +60,7 @@ describe("App", () => {
 
     render(<App />);
 
-    await waitFor(() => expect(screen.getByLabelText(/your full name or first name/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByLabelText(/your name/i)).toBeInTheDocument());
   });
 
   it("shows DashboardPlaceholder when the session is valid and onboarding is complete on desktop viewport", async () => {
@@ -93,17 +95,19 @@ describe("App", () => {
       dispatchEvent: vi.fn(),
     }));
 
-    render(<App />);
+    try {
+      render(<App />);
 
-    await waitFor(() => {
-      expect(screen.getByRole("navigation", { name: /mobile navigation/i })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Dashboard" })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Import" })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /analytics/i })).toBeEnabled();
-      expect(screen.queryByRole("button", { name: "Holdings" })).not.toBeInTheDocument();
-    });
-
-    window.matchMedia = originalMatchMedia;
+      await waitFor(() => {
+        expect(screen.getByRole("navigation", { name: /mobile navigation/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Dashboard" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Import" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /analytics/i })).toBeEnabled();
+        expect(screen.queryByRole("button", { name: "Holdings" })).not.toBeInTheDocument();
+      });
+    } finally {
+      window.matchMedia = originalMatchMedia;
+    }
   });
 
   it("falls back to Landing when the stored session is invalid", async () => {

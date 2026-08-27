@@ -8,7 +8,6 @@ import {
   onboardingIllustrationVariants,
   onboardingOptionItemVariants,
   onboardingOptionsContainerVariants,
-  onboardingSubtextVariants,
 } from "@/lib/motion";
 
 export interface ImportPathChoiceProps {
@@ -52,7 +51,7 @@ function CamsRequestIllustration({ className = "h-7 w-7" }: { className?: string
       />
 
       {/* Unifolio Green Accent Wax Seal Dot */}
-      <circle cx="16" cy="16.5" r="2" fill="#20B358" />
+      <circle cx="16" cy="16.5" r="2" fill="#22C55E" />
 
       {/* Hand-Drawn Motion Arc & Amber Sparkle */}
       <path
@@ -100,7 +99,7 @@ function StatementUploadIllustration({ className = "h-7 w-7" }: { className?: st
       {/* Unifolio Green Hand-drawn Upward Arrow */}
       <path
         d="M16 21V13M16 13L12.5 16.5M16 13L19.5 16.5"
-        stroke="#20B358"
+        stroke="#22C55E"
         strokeWidth="1.8"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -121,21 +120,18 @@ export function ImportPathChoice({
       variants={onboardingContainerVariants}
       initial="hidden"
       animate="visible"
-      className="w-full space-y-3 sm:space-y-4 text-left box-border"
+      className="w-full max-w-xl mx-auto space-y-3 sm:space-y-4 text-left box-border my-auto flex flex-col justify-center"
     >
       {/* Hero Illustration */}
       <motion.div variants={onboardingIllustrationVariants} className="flex justify-center py-0.5 sm:py-1">
-        <OnboardingIllustration variant="upload" className="w-32 h-32 sm:w-40 sm:h-40 mx-auto max-h-[180px]" />
+        <OnboardingIllustration variant="upload" className="w-36 h-36 xs:w-44 xs:h-44 sm:w-48 sm:h-48 mx-auto max-h-[200px]" />
       </motion.div>
 
-      {/* Header with Title and Supporting Copy */}
+      {/* Header with Title */}
       <motion.div variants={onboardingHeadingVariants} className="space-y-1.5 text-center sm:text-left">
         <h1 className="font-display font-bold text-[22px] xs:text-[24px] sm:text-[28px] text-[var(--color-ink)] tracking-tight leading-[1.14]">
           How would you like to bring in your statement?
         </h1>
-        <p className="text-[12.5px] xs:text-[13px] sm:text-[14px] text-[#5C5C5C] dark:text-[#A3A3A3] leading-relaxed max-w-[340px] mx-auto sm:mx-0 font-normal font-body">
-          Either way, Unifolio turns it into one clear view of everything you hold.
-        </p>
       </motion.div>
 
       {/* Choice List */}
@@ -152,12 +148,12 @@ export function ImportPathChoice({
           onClick={onSelectRequest}
           className="w-full py-3.5 sm:py-4 px-2.5 sm:px-3 rounded-xl hover:bg-black/[0.025] dark:hover:bg-white/[0.035] flex items-center gap-3.5 text-left transition-all duration-150 cursor-pointer group select-none min-h-[52px]"
         >
-          <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl bg-[#10B981]/10 text-[var(--color-ink)] flex items-center justify-center flex-shrink-0 group-hover:bg-[#10B981]/15 group-hover:text-[#10B981] dark:group-hover:text-[#34D399] transition-all duration-150">
-            <CamsRequestIllustration className="h-6 w-6 sm:h-7 sm:w-7 text-[var(--color-ink)] group-hover:text-[#10B981] dark:group-hover:text-[#34D399] transition-colors" />
+          <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl bg-[#22C55E]/10 text-[var(--color-ink)] flex items-center justify-center flex-shrink-0 group-hover:bg-[#22C55E]/15 group-hover:text-[#22C55E] transition-all duration-150">
+            <CamsRequestIllustration className="h-6 w-6 sm:h-7 sm:w-7 text-[var(--color-ink)] group-hover:text-[#22C55E] transition-colors" />
           </div>
 
           <div className="flex-1 min-w-0 space-y-0.5">
-            <strong className="block font-display font-bold text-xs sm:text-[14px] text-[var(--color-ink)] group-hover:text-[#10B981] dark:group-hover:text-[#34D399] transition-colors">
+            <strong className="block font-display font-bold text-xs sm:text-[14px] text-[var(--color-ink)] group-hover:text-[#22C55E] transition-colors">
               Request from CAMS
             </strong>
             <span className="block text-[11px] sm:text-xs text-[#5C5C5C] dark:text-[#A3A3A3] leading-snug font-normal">
@@ -165,7 +161,7 @@ export function ImportPathChoice({
             </span>
           </div>
 
-          <div className="h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0 text-[#5C5C5C]/50 dark:text-[#A3A3A3]/50 group-hover:text-[#10B981] dark:group-hover:text-[#34D399] group-hover:translate-x-0.5 transition-all duration-150">
+          <div className="h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0 text-[#5C5C5C]/50 dark:text-[#A3A3A3]/50 group-hover:text-[#22C55E] group-hover:translate-x-0.5 transition-all duration-150">
             <ChevronRight className="h-4 w-4" />
           </div>
         </motion.button>
@@ -182,12 +178,12 @@ export function ImportPathChoice({
           onClick={onSelectUpload}
           className="w-full py-3.5 sm:py-4 px-2.5 sm:px-3 rounded-xl hover:bg-black/[0.025] dark:hover:bg-white/[0.035] flex items-center gap-3.5 text-left transition-all duration-150 cursor-pointer group select-none min-h-[52px]"
         >
-          <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl bg-[#10B981]/10 text-[var(--color-ink)] flex items-center justify-center flex-shrink-0 group-hover:bg-[#10B981]/15 group-hover:text-[#10B981] dark:group-hover:text-[#34D399] transition-all duration-150">
-            <StatementUploadIllustration className="h-6 w-6 sm:h-7 sm:w-7 text-[var(--color-ink)] group-hover:text-[#10B981] dark:group-hover:text-[#34D399] transition-colors" />
+          <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl bg-[#22C55E]/10 text-[var(--color-ink)] flex items-center justify-center flex-shrink-0 group-hover:bg-[#22C55E]/15 group-hover:text-[#22C55E] transition-all duration-150">
+            <StatementUploadIllustration className="h-6 w-6 sm:h-7 sm:w-7 text-[var(--color-ink)] group-hover:text-[#22C55E] transition-colors" />
           </div>
 
           <div className="flex-1 min-w-0 space-y-0.5">
-            <strong className="block font-display font-bold text-xs sm:text-[14px] text-[var(--color-ink)] group-hover:text-[#10B981] dark:group-hover:text-[#34D399] transition-colors">
+            <strong className="block font-display font-bold text-xs sm:text-[14px] text-[var(--color-ink)] group-hover:text-[#22C55E] transition-colors">
               Already have a statement
             </strong>
             <span className="block text-[11px] sm:text-xs text-[#5C5C5C] dark:text-[#A3A3A3] leading-snug font-normal">
@@ -195,7 +191,7 @@ export function ImportPathChoice({
             </span>
           </div>
 
-          <div className="h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0 text-[#5C5C5C]/50 dark:text-[#A3A3A3]/50 group-hover:text-[#10B981] dark:group-hover:text-[#34D399] group-hover:translate-x-0.5 transition-all duration-150">
+          <div className="h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0 text-[#5C5C5C]/50 dark:text-[#A3A3A3]/50 group-hover:text-[#22C55E] group-hover:translate-x-0.5 transition-all duration-150">
             <ChevronRight className="h-4 w-4" />
           </div>
         </motion.button>

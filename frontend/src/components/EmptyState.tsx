@@ -34,8 +34,8 @@ export function EmptyState({
           {description}
         </p>
         {actionLabel && onAction && (
-          <div className="pt-2">
-            <Button variant="primary" size="md" onClick={onAction}>
+          <div className="pt-2 w-full flex justify-center items-center">
+            <Button variant="primary" size="md" onClick={onAction} className="mx-auto">
               {actionLabel}
             </Button>
           </div>

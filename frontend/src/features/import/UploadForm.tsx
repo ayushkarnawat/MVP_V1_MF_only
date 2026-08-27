@@ -13,7 +13,6 @@ import {
   EyeOff,
   AlertCircle,
   ArrowLeft,
-  ShieldCheck,
 } from "lucide-react";
 
 export interface UploadFormProps {
@@ -25,8 +24,8 @@ export function UploadForm({ onBack, onSubmit }: UploadFormProps) {
   const [file, setFile] = useState<File | null>(null);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [fileError, setFileError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [fileError, setFileError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const validateAndSetFile = (selected: File | null) => {
@@ -54,7 +53,8 @@ export function UploadForm({ onBack, onSubmit }: UploadFormProps) {
     setIsDragging(true);
   };
 
-  const handleDragLeave = () => {
+  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
     setIsDragging(false);
   };
 
@@ -65,8 +65,8 @@ export function UploadForm({ onBack, onSubmit }: UploadFormProps) {
     validateAndSetFile(droppedFile);
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
     if (!file) {
       setFileError("Please select a PDF file to upload.");
       return;
@@ -77,7 +77,7 @@ export function UploadForm({ onBack, onSubmit }: UploadFormProps) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="p-4 sm:p-8 rounded-3xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-md space-y-4 sm:space-y-6 w-full text-left relative overflow-hidden"
+      className="p-4 sm:p-8 rounded-3xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-md space-y-4 sm:space-y-6 w-full max-w-xl mx-auto text-left relative overflow-hidden my-auto box-border"
     >
       {/* Back Link */}
       {onBack && (
@@ -91,20 +91,17 @@ export function UploadForm({ onBack, onSubmit }: UploadFormProps) {
         </button>
       )}
 
-      {/* Header Section with Supporting Illustration */}
-      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 sm:gap-4">
+      {/* Visual Header */}
+      <div className="flex flex-col items-center justify-center gap-2 text-center">
         {/* Supporting Hand-Drawn Illustration Visual */}
         <div className="flex-shrink-0">
-          <OnboardingIllustration variant="cas_upload" className="w-12 h-12 sm:w-20 sm:h-20" />
+          <OnboardingIllustration variant="cas_upload" className="w-24 h-24 sm:w-28 sm:h-28 mx-auto" />
         </div>
 
-        <div className="space-y-0.5 sm:space-y-1 text-center sm:text-left flex-1 min-w-0">
+        <div className="text-center w-full">
           <h1 className="font-display font-bold text-base sm:text-xl text-[var(--color-ink)] tracking-tight">
             Upload your statement
           </h1>
-          <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed">
-            Drop in the Detailed CAS PDF you already have — we&apos;ll take it from here.
-          </p>
         </div>
       </div>
 
@@ -115,7 +112,7 @@ export function UploadForm({ onBack, onSubmit }: UploadFormProps) {
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
         className={cn(
-          "relative border-2 border-dashed rounded-2xl p-4 sm:p-7 text-center cursor-pointer transition-all duration-200 select-none min-h-[110px] sm:min-h-[140px] flex items-center justify-center",
+          "relative border-2 border-dashed rounded-2xl p-4 sm:p-6 text-center cursor-pointer transition-all duration-200 select-none min-h-[100px] sm:min-h-[125px] flex items-center justify-center",
           isDragging
             ? "border-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-accent)_8%,var(--color-surface))] scale-[1.005] shadow-xs"
             : file
@@ -143,26 +140,18 @@ export function UploadForm({ onBack, onSubmit }: UploadFormProps) {
             />
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center space-y-2.5">
-            <div className="h-11 w-11 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-accent)] flex items-center justify-center shadow-xs">
+          <div className="flex flex-col items-center justify-center space-y-2 sm:space-y-2.5">
+            <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-accent)] flex items-center justify-center shadow-xs">
               <UploadCloud className="h-5 w-5" />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-0.5 sm:space-y-1">
               <p className="text-xs sm:text-sm font-semibold text-[var(--color-ink)]">
                 <span className="sm:hidden">Tap to choose a PDF</span>
                 <span className="hidden sm:inline">Click to choose file or drag &amp; drop PDF here</span>
               </p>
-              <p className="text-[11px] text-[var(--color-text-secondary)] sm:hidden">
+              <p className="text-[11px] text-[var(--color-text-secondary)]">
                 Select a Detailed CAS PDF from your device
               </p>
-              <div className="flex items-center justify-center gap-1.5 flex-wrap pt-0.5">
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-medium bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)]">
-                  CAMS
-                </span>
-                <span className="text-[11px] text-[var(--color-text-secondary)]">
-                  Detailed CAS (up to 25MB)
-                </span>
-              </div>
             </div>
           </div>
         )}
@@ -181,14 +170,10 @@ export function UploadForm({ onBack, onSubmit }: UploadFormProps) {
 
       {/* Password Field */}
       <div className="space-y-1.5">
-        <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center justify-between gap-2">
           <Label htmlFor="cas-password-input" className="text-xs font-semibold text-[var(--color-ink)]">
             PDF Password
           </Label>
-          <span className="text-[11px] text-[var(--color-text-secondary)] flex items-center gap-1">
-            <ShieldCheck className="h-3 w-3 text-[var(--color-accent)]" />
-            <span>Usually your PAN (uppercase) or DOB</span>
-          </span>
         </div>
 
         <div className="relative">

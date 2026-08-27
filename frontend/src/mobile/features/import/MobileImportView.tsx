@@ -161,7 +161,11 @@ export function MobileImportView({
 
   /* 1. Parsing Indicator Screen */
   if (step === "parsing") {
-    return <ParsingIndicator />;
+    return (
+      <div className="w-full flex-1 flex flex-col justify-center items-center min-h-[calc(100dvh-7rem)] sm:min-h-[500px] my-auto">
+        <ParsingIndicator />
+      </div>
+    );
   }
 
   /* 2. Review Screen */
@@ -186,9 +190,9 @@ export function MobileImportView({
         : "";
 
     return (
-      <div className="w-full min-w-0 max-w-md mx-auto space-y-4 pt-2 sm:pt-3 text-left box-border animate-in fade-in duration-200">
-        <div className="p-5 sm:p-6 rounded-2xl bg-white/80 dark:bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs space-y-4 text-center box-border">
-          <div className="mx-auto h-12 w-12 rounded-2xl bg-[#10B981]/15 text-[#10B981] flex items-center justify-center shadow-2xs">
+      <div className="w-full min-w-0 max-w-md mx-auto space-y-4 pt-2 sm:pt-3 text-left box-border animate-in fade-in duration-200 min-h-[calc(100dvh-7rem)] sm:min-h-[500px] flex flex-col justify-center items-center my-auto">
+        <div className="w-full p-5 sm:p-6 rounded-2xl bg-white/80 dark:bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs space-y-4 text-center box-border my-auto">
+          <div className="mx-auto h-12 w-12 rounded-2xl bg-[#22C55E]/15 text-[#22C55E] flex items-center justify-center shadow-2xs">
             <CheckCircle2 className="h-6 w-6 stroke-[2.2]" />
           </div>
 
@@ -209,7 +213,7 @@ export function MobileImportView({
                   clearCasResumeStep2(selectedMemberId);
                   onNavigateDashboard();
                 }}
-                className="w-full h-13 sm:h-13.5 rounded-full bg-[#10B981] hover:bg-[#059669] dark:bg-[#10B981] dark:hover:bg-[#059669] text-white font-bold text-xs sm:text-sm shadow-lg shadow-[#10B981]/25 gap-2 cursor-pointer active:scale-[0.98] transition-all min-h-[48px] border-none"
+                className="w-full h-13 sm:h-13.5 rounded-full bg-[#22C55E] hover:bg-[#22C55E]/90 dark:bg-[#22C55E] dark:hover:bg-[#22C55E]/90 text-white font-bold text-xs sm:text-sm shadow-lg shadow-[#22C55E]/25 gap-2 cursor-pointer active:scale-[0.98] transition-all min-h-[48px] border-none"
               >
                 <LayoutDashboard className="h-4 w-4" />
                 <span>Go to Dashboard</span>
@@ -249,7 +253,7 @@ export function MobileImportView({
 
         <Button
           onClick={resetFlow}
-          className="h-11 px-6 rounded-full bg-[#10B981] hover:bg-[#059669] dark:bg-[#10B981] dark:hover:bg-[#059669] text-white font-bold text-xs gap-2 min-h-[44px] active:scale-95 shadow-md shadow-[#10B981]/20 border-none"
+          className="h-11 px-6 rounded-full bg-[#22C55E] hover:bg-[#22C55E]/90 dark:bg-[#22C55E] dark:hover:bg-[#22C55E]/90 text-white font-bold text-xs gap-2 min-h-[44px] active:scale-95 shadow-md shadow-[#22C55E]/20 border-none mx-auto"
         >
           <RefreshCw className="h-4 w-4" />
           <span>Try Again</span>
@@ -260,11 +264,17 @@ export function MobileImportView({
 
   const activeMemberId = selectedMemberId || members[0]?.id || null;
 
-  /* 5. Main Flow Screen (Choice, Request, Waiting, Upload, History) */
   return (
-    <div className="flex flex-col space-y-3.5 sm:space-y-4 text-left">
+    <div
+      className={cn(
+        "flex flex-col text-left box-border w-full flex-1",
+        view === "choice" || view === "upload"
+          ? "min-h-[calc(100dvh-7rem)] sm:min-h-0 justify-between sm:justify-start space-y-2 sm:space-y-4 my-auto"
+          : "space-y-3.5 sm:space-y-4"
+      )}
+    >
       {/* Top Header with Member Selector & Subtle Secondary History Toggle */}
-      <div className="flex items-center justify-between gap-2 flex-wrap px-0.5">
+      <div className="flex items-center justify-between gap-2 flex-wrap px-0.5 flex-shrink-0">
         {/* Member Selector / Indicator */}
         {members.length > 1 ? (
           <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 max-w-full">
@@ -279,7 +289,7 @@ export function MobileImportView({
                 className={cn(
                   "px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 flex-shrink-0 min-h-[32px]",
                   (selectedMemberId ?? members[0]?.id) === m.id
-                    ? "bg-[#10B981] text-white shadow-2xs"
+                    ? "bg-[#22C55E] text-white shadow-2xs"
                     : "bg-white/80 dark:bg-[var(--color-surface)] text-[#5C5C5C] dark:text-[#A3A3A3] border border-[var(--color-border)] hover:text-[var(--color-ink)]"
                 )}
               >
@@ -290,7 +300,7 @@ export function MobileImportView({
           </div>
         ) : (
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/80 dark:bg-[var(--color-surface)] border border-[var(--color-border)] text-xs font-medium text-[#5C5C5C] dark:text-[#A3A3A3] shadow-2xs">
-            <User className="h-3.5 w-3.5 text-[#10B981]" />
+            <User className="h-3.5 w-3.5 text-[#22C55E]" />
             <span>
               Importing for{" "}
               <strong className="text-[var(--color-ink)] font-semibold">
@@ -306,9 +316,9 @@ export function MobileImportView({
           onClick={() => setView((prev) => (prev === "history" ? "choice" : "history"))}
           aria-label="Import History"
           className={cn(
-            "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all duration-150 cursor-pointer min-h-[32px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10B981] ml-auto",
+            "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all duration-150 cursor-pointer min-h-[32px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22C55E] ml-auto",
             view === "history"
-              ? "bg-[#10B981] text-white shadow-xs"
+              ? "bg-[#22C55E] text-white shadow-xs"
               : "text-[#5C5C5C] dark:text-[#A3A3A3] hover:text-[var(--color-ink)] hover:bg-black/5 dark:hover:bg-white/5 border border-[var(--color-border)] bg-white/80 dark:bg-[var(--color-surface)] shadow-2xs"
           )}
         >
@@ -318,7 +328,12 @@ export function MobileImportView({
       </div>
 
       {/* Main View Display */}
-      <div className="animate-in fade-in duration-150">
+      <div
+        className={cn(
+          "animate-in fade-in duration-150 w-full",
+          (view === "choice" || view === "upload") && "flex-1 flex flex-col justify-center items-center my-auto"
+        )}
+      >
         {view === "choice" && (
           <ImportPathChoice
             onSelectRequest={() => setView("request")}

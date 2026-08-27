@@ -23,7 +23,7 @@ export function ImportConfirmed({
       initial={{ opacity: 0, y: 10, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-      className="w-full max-w-2xl mx-auto py-8 sm:py-14 px-4 text-center space-y-8 box-border"
+      className="w-full max-w-2xl mx-auto py-6 sm:py-14 px-4 text-center space-y-8 box-border min-h-[calc(100dvh-2.5rem)] sm:min-h-0 flex flex-col justify-center items-center my-auto"
     >
       {/* 1. Refined Hand-Drawn Hero Visual Illustration */}
       <div className="relative inline-block mx-auto">
@@ -45,7 +45,7 @@ export function ImportConfirmed({
       </div>
 
       {/* 3. Action CTA Button */}
-      <div className="pt-2">
+      <div className="pt-2 w-full flex justify-center items-center">
         <button
           type="button"
           onClick={onImportAnother}

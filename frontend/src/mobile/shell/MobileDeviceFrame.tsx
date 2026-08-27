@@ -11,13 +11,13 @@ export function MobileDeviceFrame({
   className,
 }: MobileDeviceFrameProps) {
   return (
-    <div className="h-dvh w-full bg-[#F8FAF9] dark:bg-[var(--color-bg)] text-[var(--color-ink)] flex items-center justify-center md:py-8 md:px-4 transition-colors duration-200 overflow-hidden relative selection:bg-[#10B981]/20">
+    <div className="h-dvh w-full bg-[#F8FAF9] dark:bg-[var(--color-bg)] text-[var(--color-ink)] flex items-center justify-center md:py-8 md:px-4 transition-colors duration-200 overflow-hidden relative selection:bg-[#22C55E]/20">
       {/* Soft Painterly Atmospheric Background Lighting */}
       <div
         className="absolute top-0 left-0 w-80 h-80 pointer-events-none opacity-60 dark:opacity-20 transition-opacity z-0"
         style={{
           background:
-            "radial-gradient(circle at 10% 10%, rgba(16, 185, 129, 0.12) 0%, rgba(241, 247, 244, 0) 70%)",
+            "radial-gradient(circle at 10% 10%, rgba(34, 197, 94, 0.12) 0%, rgba(241, 247, 244, 0) 70%)",
         }}
         aria-hidden="true"
       />

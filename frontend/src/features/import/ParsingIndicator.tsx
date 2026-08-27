@@ -29,7 +29,7 @@ export function ParsingIndicator() {
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.35, ease: MOTION_EASING }}
-      className="p-8 sm:p-10 rounded-3xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-md space-y-6 text-center max-w-md mx-auto my-6 relative overflow-hidden box-border"
+      className="p-8 sm:p-10 rounded-3xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-md space-y-6 text-center max-w-md w-full mx-auto my-auto relative overflow-hidden box-border"
       role="status"
       aria-live="polite"
     >
@@ -55,7 +55,7 @@ export function ParsingIndicator() {
       <div className="space-y-2 pt-1 max-w-[240px] mx-auto">
         <div className="w-full h-1.5 rounded-full bg-[color-mix(in_srgb,var(--color-accent)_14%,var(--color-bg))] overflow-hidden relative border border-[color-mix(in_srgb,var(--color-accent)_10%,transparent)]">
           <div
-            className="h-full bg-[var(--color-accent)] rounded-full transition-all duration-700 ease-out shadow-[0_0_8px_rgba(32,179,88,0.4)]"
+            className="h-full bg-[var(--color-accent)] rounded-full transition-all duration-700 ease-out shadow-[0_0_8px_rgba(34,197,94,0.4)]"
             style={{ width: `${progress}%` }}
           />
         </div>

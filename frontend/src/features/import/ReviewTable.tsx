@@ -132,34 +132,34 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
       className={cn(
-        "w-full min-w-0 mx-auto space-y-6 text-left box-border relative pb-24 px-3 sm:px-6 lg:px-8 transition-all duration-300",
+        "w-full min-w-0 mx-auto space-y-3 sm:space-y-6 text-left box-border relative pb-28 sm:pb-24 px-1.5 sm:px-6 lg:px-8 transition-all duration-300",
         effectiveLayoutMode === "grid" ? "max-w-[1600px]" : "max-w-5xl"
       )}
     >
       {/* 1. Header Section */}
-      <div className="space-y-1">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pr-14 sm:pr-0">
+      <div className="space-y-0.5 sm:space-y-1">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2 pr-14 sm:pr-0">
           <div className="space-y-0.5">
-            <h1 className="font-display font-bold tracking-tight leading-tight text-xl sm:text-3xl text-[var(--color-ink)]">
+            <h1 className="font-display font-bold tracking-tight leading-tight text-lg sm:text-3xl text-[var(--color-ink)]">
               {memberName ? `Review ${memberName}'s CAS Import` : "Review CAS Import"}
             </h1>
           </div>
-          <Badge variant="positive" className="self-start sm:self-auto flex-shrink-0 uppercase tracking-wider gap-1">
+          <Badge variant="positive" className="hidden sm:inline-flex self-start sm:self-auto flex-shrink-0 uppercase tracking-wider gap-1">
             <CheckCircle2 className="h-3 w-3" />
             <span>Statement Verified</span>
           </Badge>
         </div>
-        <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed">
+        <p className="text-[11px] sm:text-sm text-[var(--color-text-secondary)] leading-snug sm:leading-relaxed">
           Verify parsed mutual fund schemes and resolve any missing classifications before committing to your portfolio.
         </p>
       </div>
 
       {/* 2. Investor & Import Summary Cards (Grid) */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 lg:gap-5">
         {/* Investor Name */}
-        <div className="p-4 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs space-y-1.5">
-          <div className="flex items-center gap-1.5 text-[10px] uppercase font-semibold text-[var(--color-text-secondary)] tracking-wider">
-            <User className="h-3.5 w-3.5 text-[var(--color-accent)]" />
+        <div className="p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs space-y-1 sm:space-y-1.5">
+          <div className="flex items-center gap-1 sm:gap-1.5 text-[9px] sm:text-[10px] uppercase font-semibold text-[var(--color-text-secondary)] tracking-wider">
+            <User className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-[var(--color-accent)]" />
             <span>Investor</span>
           </div>
           <p className="font-semibold text-xs sm:text-sm text-[var(--color-ink)] truncate">
@@ -168,9 +168,9 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
         </div>
 
         {/* Masked PAN */}
-        <div className="p-4 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs space-y-1.5">
-          <div className="flex items-center gap-1.5 text-[10px] uppercase font-semibold text-[var(--color-text-secondary)] tracking-wider">
-            <CreditCard className="h-3.5 w-3.5 text-[var(--color-accent)]" />
+        <div className="p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs space-y-1 sm:space-y-1.5">
+          <div className="flex items-center gap-1 sm:gap-1.5 text-[9px] sm:text-[10px] uppercase font-semibold text-[var(--color-text-secondary)] tracking-wider">
+            <CreditCard className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-[var(--color-accent)]" />
             <span>PAN Number</span>
           </div>
           <p className="font-semibold text-xs sm:text-sm text-[var(--color-ink)] font-mono">
@@ -179,9 +179,9 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
         </div>
 
         {/* Transactions Found */}
-        <div className="p-4 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs space-y-1.5">
-          <div className="flex items-center gap-1.5 text-[10px] uppercase font-semibold text-[var(--color-text-secondary)] tracking-wider">
-            <Layers className="h-3.5 w-3.5 text-[var(--color-accent)]" />
+        <div className="p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs space-y-1 sm:space-y-1.5">
+          <div className="flex items-center gap-1 sm:gap-1.5 text-[9px] sm:text-[10px] uppercase font-semibold text-[var(--color-text-secondary)] tracking-wider">
+            <Layers className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-[var(--color-accent)]" />
             <span>Transactions</span>
           </div>
           <p className="font-bold text-xs sm:text-sm text-[var(--color-ink)] tabular-nums">
@@ -190,9 +190,9 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
         </div>
 
         {/* Schemes Count */}
-        <div className="p-4 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs space-y-1.5">
-          <div className="flex items-center gap-1.5 text-[10px] uppercase font-semibold text-[var(--color-text-secondary)] tracking-wider">
-            <FileCheck className="h-3.5 w-3.5 text-[var(--color-accent)]" />
+        <div className="p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs space-y-1 sm:space-y-1.5">
+          <div className="flex items-center gap-1 sm:gap-1.5 text-[9px] sm:text-[10px] uppercase font-semibold text-[var(--color-text-secondary)] tracking-wider">
+            <FileCheck className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-[var(--color-accent)]" />
             <span>Funds / Folios</span>
           </div>
           <p className="font-bold text-xs sm:text-sm text-[var(--color-ink)] tabular-nums">
@@ -202,21 +202,21 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
       </div>
 
       {/* 3. Segmented Filter Tabs & Desktop Layout Mode Switcher */}
-      <div className="flex items-center justify-between gap-3 flex-wrap border-b border-[var(--color-border)] pb-3">
-        <div className="flex items-center gap-2 overflow-x-auto">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 border-b-0 sm:border-b border-[var(--color-border)] pb-0 sm:pb-3">
+        <div className="grid grid-cols-3 gap-1.5 sm:flex sm:items-center sm:gap-2 w-full sm:w-auto">
           {/* All Schemes */}
           <button
             type="button"
             onClick={() => setActiveTab("all")}
             className={cn(
-              "px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 min-h-[36px]",
+              "w-full px-2 py-1.5 sm:px-3.5 sm:py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1 sm:gap-1.5 min-h-[32px] sm:min-h-[36px]",
               activeTab === "all"
                 ? "bg-[var(--color-accent)] text-white shadow-xs"
                 : "bg-[var(--color-surface)] text-[var(--color-text-secondary)] border border-[var(--color-border)] hover:text-[var(--color-ink)]"
             )}
           >
-            <span>All Schemes</span>
-            <span className="px-1.5 py-0.5 rounded-md text-[10px] font-mono bg-white/20 dark:bg-black/20">
+            <span className="truncate">All Schemes</span>
+            <span className="px-1.5 py-0.2 sm:py-0.5 rounded-md text-[9px] sm:text-[10px] font-mono bg-white/20 dark:bg-black/20">
               {preview.schemes.length}
             </span>
           </button>
@@ -226,15 +226,15 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
             type="button"
             onClick={() => setActiveTab("direct")}
             className={cn(
-              "px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 min-h-[36px]",
+              "w-full px-2 py-1.5 sm:px-3.5 sm:py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1 sm:gap-1.5 min-h-[32px] sm:min-h-[36px]",
               activeTab === "direct"
                 ? "bg-[var(--color-accent)] text-white shadow-xs"
                 : "bg-[var(--color-surface)] text-[var(--color-text-secondary)] border border-[var(--color-border)] hover:text-[var(--color-ink)]"
             )}
           >
-            <CheckCircle2 className="h-3.5 w-3.5 text-[var(--color-positive)]" />
-            <span>Direct</span>
-            <span className="px-1.5 py-0.5 rounded-md text-[10px] font-mono bg-white/20 dark:bg-black/20">
+            <CheckCircle2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-[var(--color-positive)] flex-shrink-0" />
+            <span className="truncate">Direct</span>
+            <span className="px-1.5 py-0.2 sm:py-0.5 rounded-md text-[9px] sm:text-[10px] font-mono bg-white/20 dark:bg-black/20">
               {directSchemes.length}
             </span>
           </button>
@@ -244,21 +244,21 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
             type="button"
             onClick={() => setActiveTab("regular")}
             className={cn(
-              "px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 min-h-[36px]",
+              "w-full px-2 py-1.5 sm:px-3.5 sm:py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1 sm:gap-1.5 min-h-[32px] sm:min-h-[36px]",
               activeTab === "regular"
                 ? "bg-[var(--color-accent)] text-white shadow-xs"
                 : "bg-[var(--color-surface)] text-[var(--color-text-secondary)] border border-[var(--color-border)] hover:text-[var(--color-ink)]"
             )}
           >
-            <span>Regular</span>
-            <span className="px-1.5 py-0.5 rounded-md text-[10px] font-mono bg-white/20 dark:bg-black/20">
+            <span className="truncate">Regular</span>
+            <span className="px-1.5 py-0.2 sm:py-0.5 rounded-md text-[9px] sm:text-[10px] font-mono bg-white/20 dark:bg-black/20">
               {regularSchemes.length}
             </span>
           </button>
         </div>
 
-        <div className="flex items-center gap-3 flex-wrap ml-auto">
-          <span className="text-xs text-[var(--color-text-secondary)]">
+        <div className="flex items-center justify-between sm:justify-end gap-3 flex-wrap w-full sm:w-auto">
+          <span className="text-[11px] sm:text-xs text-[var(--color-text-secondary)]">
             Showing {filteredSchemes.length} of {preview.schemes.length} scheme{preview.schemes.length !== 1 ? "s" : ""}
           </span>
 
@@ -317,7 +317,7 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
         </div>
       ) : layoutMode === "grid" ? (
         /* GRID VIEW (3-4 Columns) */
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5 lg:gap-6">
           {filteredSchemes.map((scheme) => {
             const override = overrides[scheme.temp_id] ?? { amfiCode: "", planType: "" };
             const needsAmfi = needsAmfiOverride(scheme.match_status);
@@ -328,16 +328,16 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
               <div
                 key={scheme.temp_id}
                 className={cn(
-                  "w-full p-5 rounded-3xl border transition-all duration-200 flex flex-col justify-between space-y-4 box-border shadow-xs hover:shadow-md",
+                  "w-full p-3 sm:p-5 rounded-2xl sm:rounded-3xl border transition-all duration-200 flex flex-col justify-between space-y-2.5 sm:space-y-4 box-border shadow-xs hover:shadow-md",
                   needsAttention
                     ? "bg-[color-mix(in_srgb,var(--color-accent)_2%,var(--color-surface))] border-[color-mix(in_srgb,var(--color-accent)_35%,var(--color-border))]"
                     : "bg-[var(--color-surface)] border-[var(--color-border)] hover:border-[var(--color-border)]/80"
                 )}
               >
-                <div className="space-y-3">
+                <div className="space-y-2 sm:space-y-3">
                   {/* Top Bar: Folio Badge + Status Pill */}
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-semibold uppercase px-2.5 py-0.5 rounded-lg bg-[var(--color-bg)] text-[var(--color-text-secondary)] border border-[var(--color-border)]">
+                    <span className="text-[9px] sm:text-[10px] font-semibold uppercase px-2 py-0.5 sm:px-2.5 rounded-md sm:rounded-lg bg-[var(--color-bg)] text-[var(--color-text-secondary)] border border-[var(--color-border)]">
                       Folio: {scheme.folio}
                     </span>
 
@@ -353,20 +353,20 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
                   </div>
 
                   {/* Scheme Name & AMC Label with Scheme/AMC Logo */}
-                  <div className="flex items-start gap-3">
+                  <div className="flex items-start gap-2.5 sm:gap-3">
                     <SchemeLogo
                       fundLogoUrl={scheme.fund_logo_url || scheme.logo_url}
                       amcLogoUrl={scheme.amc_logo_url}
                       amcName={scheme.amc}
                       schemeName={scheme.name}
                     />
-                    <div className="space-y-1 min-w-0 flex-1">
-                      <h3 className="font-display font-semibold text-base text-[var(--color-ink)] leading-snug line-clamp-2 min-h-[44px]">
+                    <div className="space-y-0.5 sm:space-y-1 min-w-0 flex-1">
+                      <h3 className="font-display font-semibold text-sm sm:text-base text-[var(--color-ink)] leading-snug line-clamp-2 min-h-0 sm:min-h-[44px]">
                         {scheme.name}
                       </h3>
                       <div className="flex items-center justify-between text-xs text-[var(--color-text-secondary)] pt-0.5">
-                        <span className="truncate max-w-[180px] font-medium">{scheme.amc}</span>
-                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[var(--color-bg)] text-[var(--color-ink)] border border-[var(--color-border)] tabular-nums flex-shrink-0">
+                        <span className="truncate max-w-[180px] font-medium text-[11px] sm:text-xs">{scheme.amc}</span>
+                        <span className="text-[10px] sm:text-[11px] font-bold px-1.5 py-0.2 sm:px-2 sm:py-0.5 rounded-md bg-[var(--color-bg)] text-[var(--color-ink)] border border-[var(--color-border)] tabular-nums flex-shrink-0">
                           {scheme.transaction_count} txns
                         </span>
                       </div>
@@ -374,25 +374,25 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
                   </div>
 
                   {/* Status & Plan Badges Row */}
-                  <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                  <div className="flex items-center gap-1.5 flex-wrap pt-0.5 sm:pt-1">
                     {scheme.match_status === "confirmed" ? (
-                      <Badge variant="positive" className="gap-1 text-[10px]">
-                        <CheckCircle2 className="h-3 w-3 flex-shrink-0" />
+                      <Badge variant="positive" className="gap-1 text-[9px] sm:text-[10px]">
+                        <CheckCircle2 className="h-2.5 w-2.5 sm:h-3 sm:w-3 flex-shrink-0" />
                         <span>Matched {scheme.amfi_code ? `(${scheme.amfi_code})` : ""}</span>
                       </Badge>
                     ) : (
-                      <Badge variant="neutral" className="gap-1 text-[10px]">
-                        <HelpCircle className="h-3 w-3 flex-shrink-0" />
+                      <Badge variant="neutral" className="gap-1 text-[9px] sm:text-[10px]">
+                        <HelpCircle className="h-2.5 w-2.5 sm:h-3 sm:w-3 flex-shrink-0" />
                         <span>AMFI Code Needed</span>
                       </Badge>
                     )}
 
                     {scheme.plan_type === "unclassified" ? (
-                      <Badge variant="neutral" className="text-[10px]">Plan Unclassified</Badge>
+                      <Badge variant="neutral" className="text-[9px] sm:text-[10px]">Plan Unclassified</Badge>
                     ) : (
                       <Badge
                         variant={scheme.plan_type === "direct" ? "positive" : "neutral"}
-                        className="capitalize text-[10px]"
+                        className="capitalize text-[9px] sm:text-[10px]"
                       >
                         {scheme.plan_type} Plan
                       </Badge>
@@ -401,8 +401,8 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
 
                   {/* Suggested Match Banner */}
                   {scheme.suggested_name && (
-                    <div className="p-3 rounded-2xl bg-[var(--color-bg)] border border-[var(--color-border)] text-[11px] text-[var(--color-text-secondary)] leading-tight flex items-start gap-1.5">
-                      <Sparkles className="h-3.5 w-3.5 text-[var(--color-accent)] flex-shrink-0 mt-0.5" />
+                    <div className="p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-[var(--color-bg)] border border-[var(--color-border)] text-[10px] sm:text-[11px] text-[var(--color-text-secondary)] leading-tight flex items-start gap-1.5">
+                      <Sparkles className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-[var(--color-accent)] flex-shrink-0 mt-0.5" />
                       <span className="line-clamp-2">
                         Suggested: <strong className="text-[var(--color-ink)] font-medium">{scheme.suggested_name}</strong>
                       </span>
@@ -412,10 +412,10 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
 
                 {/* Interactive Classification / Override Form Controls */}
                 {needsAttention && (
-                  <div className="pt-3 border-t border-[var(--color-border)]/60 space-y-2.5 text-xs">
+                  <div className="pt-2.5 sm:pt-3 border-t border-[var(--color-border)]/60 space-y-2 sm:space-y-2.5 text-xs">
                     {needsAmfi && (
                       <div className="space-y-1">
-                        <label htmlFor={`amfi-input-${scheme.temp_id}`} className="text-[10px] font-semibold text-[var(--color-ink)] block uppercase tracking-wider">
+                        <label htmlFor={`amfi-input-${scheme.temp_id}`} className="text-[9px] sm:text-[10px] font-semibold text-[var(--color-ink)] block uppercase tracking-wider">
                           Enter 6-Digit AMFI Code
                         </label>
                         <Input
@@ -427,14 +427,14 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
                           onChange={(event) =>
                             updateOverride(scheme.temp_id, { amfiCode: event.target.value })
                           }
-                          className="h-10 text-xs bg-[var(--color-bg)] border-[var(--color-border)] rounded-xl focus-visible:ring-[var(--color-accent)] min-h-[40px]"
+                          className="h-9 sm:h-10 text-xs bg-[var(--color-bg)] border-[var(--color-border)] rounded-xl focus-visible:ring-[var(--color-accent)] min-h-[36px] sm:min-h-[40px]"
                         />
                       </div>
                     )}
 
                     {needsPlan && (
                       <div className="space-y-1">
-                        <label htmlFor={`plan-select-${scheme.temp_id}`} className="text-[10px] font-semibold text-[var(--color-ink)] block uppercase tracking-wider">
+                        <label htmlFor={`plan-select-${scheme.temp_id}`} className="text-[9px] sm:text-[10px] font-semibold text-[var(--color-ink)] block uppercase tracking-wider">
                           Select Plan Type
                         </label>
                         <Select
@@ -445,7 +445,7 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
                             })
                           }
                         >
-                          <SelectTrigger id={`plan-select-${scheme.temp_id}`} className="w-full h-10 min-h-[40px] gap-1.5 rounded-xl border-[var(--color-border)] bg-[var(--color-bg)] px-3 text-xs font-medium text-[var(--color-ink)]">
+                          <SelectTrigger id={`plan-select-${scheme.temp_id}`} className="w-full h-9 sm:h-10 min-h-[36px] sm:min-h-[40px] gap-1.5 rounded-xl border-[var(--color-border)] bg-[var(--color-bg)] px-3 text-xs font-medium text-[var(--color-ink)]">
                             <SelectValue placeholder="Select..." />
                           </SelectTrigger>
                           <SelectContent>
@@ -463,7 +463,7 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
         </div>
       ) : (
         /* LIST VIEW (Previous Centered Single-Column Stack) */
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {filteredSchemes.map((scheme) => {
             const override = overrides[scheme.temp_id] ?? { amfiCode: "", planType: "" };
             const needsAmfi = needsAmfiOverride(scheme.match_status);
@@ -474,24 +474,24 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
               <div
                 key={scheme.temp_id}
                 className={cn(
-                  "w-full p-5 sm:p-6 rounded-3xl border transition-all duration-200 space-y-4 box-border shadow-xs hover:shadow-md",
+                  "w-full p-3 sm:p-6 rounded-2xl sm:rounded-3xl border transition-all duration-200 space-y-3 sm:space-y-4 box-border shadow-xs hover:shadow-md",
                   needsAttention
                     ? "bg-[color-mix(in_srgb,var(--color-accent)_2%,var(--color-surface))] border-[color-mix(in_srgb,var(--color-accent)_35%,var(--color-border))]"
                     : "bg-[var(--color-surface)] border-[var(--color-border)] hover:border-[var(--color-border)]/80"
                 )}
               >
                 {/* Header Row: Scheme/AMC Logo + Scheme Name & Transaction Count */}
-                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                  <div className="flex items-start gap-3 min-w-0 flex-1">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2.5 sm:gap-3">
+                  <div className="flex items-start gap-2.5 sm:gap-3 min-w-0 flex-1">
                     <SchemeLogo
                       fundLogoUrl={scheme.fund_logo_url || scheme.logo_url}
                       amcLogoUrl={scheme.amc_logo_url}
                       amcName={scheme.amc}
                       schemeName={scheme.name}
                     />
-                    <div className="space-y-1 min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-display font-bold text-base sm:text-lg text-[var(--color-ink)] leading-snug break-words">
+                    <div className="space-y-0.5 sm:space-y-1 min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                        <h3 className="font-display font-bold text-sm sm:text-lg text-[var(--color-ink)] leading-snug break-words">
                           {scheme.name}
                         </h3>
                         {needsAttention && (
@@ -501,7 +501,7 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
                         )}
                       </div>
 
-                      <div className="text-xs text-[var(--color-text-secondary)] flex items-center gap-2 flex-wrap pt-0.5">
+                      <div className="text-xs text-[var(--color-text-secondary)] flex items-center gap-1.5 sm:gap-2 flex-wrap pt-0.5">
                         <span>Folio: <strong className="text-[var(--color-ink)] font-semibold">{scheme.folio}</strong></span>
                         <span>·</span>
                         <span className="truncate font-medium">{scheme.amc}</span>
@@ -509,31 +509,31 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
                     </div>
                   </div>
 
-                  <span className="text-xs font-bold px-3 py-1 rounded-xl bg-[var(--color-bg)] text-[var(--color-ink)] border border-[var(--color-border)] tabular-nums flex-shrink-0 self-start">
+                  <span className="text-[11px] sm:text-xs font-bold px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-lg sm:rounded-xl bg-[var(--color-bg)] text-[var(--color-ink)] border border-[var(--color-border)] tabular-nums flex-shrink-0 self-start">
                     {scheme.transaction_count} transaction{scheme.transaction_count !== 1 ? "s" : ""}
                   </span>
                 </div>
 
                 {/* Badges & Matching Status Row */}
-                <div className="flex items-center gap-2 flex-wrap pt-0.5">
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap pt-0.5">
                   {scheme.match_status === "confirmed" ? (
-                    <Badge variant="positive" className="gap-1">
+                    <Badge variant="positive" className="gap-1 text-[9px] sm:text-xs">
                       <CheckCircle2 className="h-3 w-3 flex-shrink-0" />
                       <span>Matched {scheme.amfi_code ? `(${scheme.amfi_code})` : ""}</span>
                     </Badge>
                   ) : (
-                    <Badge variant="neutral" className="gap-1">
+                    <Badge variant="neutral" className="gap-1 text-[9px] sm:text-xs">
                       <HelpCircle className="h-3 w-3 flex-shrink-0" />
                       <span>AMFI Code Needed</span>
                     </Badge>
                   )}
 
                   {scheme.plan_type === "unclassified" ? (
-                    <Badge variant="neutral">Plan Unclassified</Badge>
+                    <Badge variant="neutral" className="text-[9px] sm:text-xs">Plan Unclassified</Badge>
                   ) : (
                     <Badge
                       variant={scheme.plan_type === "direct" ? "positive" : "neutral"}
-                      className="capitalize"
+                      className="capitalize text-[9px] sm:text-xs"
                     >
                       {scheme.plan_type} Plan
                     </Badge>
@@ -542,8 +542,8 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
 
                 {/* Suggested Match Banner */}
                 {scheme.suggested_name && (
-                  <div className="p-3.5 rounded-2xl bg-[var(--color-bg)] border border-[var(--color-border)] text-xs text-[var(--color-text-secondary)] leading-relaxed flex items-center gap-2">
-                    <Sparkles className="h-3.5 w-3.5 text-[var(--color-accent)] flex-shrink-0" />
+                  <div className="p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-[var(--color-bg)] border border-[var(--color-border)] text-[11px] sm:text-xs text-[var(--color-text-secondary)] leading-relaxed flex items-center gap-1.5 sm:gap-2">
+                    <Sparkles className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-[var(--color-accent)] flex-shrink-0" />
                     <span>
                       Suggested match: <strong className="text-[var(--color-ink)] font-medium">{scheme.suggested_name}</strong>
                     </span>
@@ -552,10 +552,10 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
 
                 {/* Interactive Classification / Override Form Controls */}
                 {needsAttention && (
-                  <div className="pt-3 border-t border-[var(--color-border)]/60 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                  <div className="pt-2.5 sm:pt-3 border-t border-[var(--color-border)]/60 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs">
                     {needsAmfi && (
-                      <div className="space-y-1.5">
-                        <label htmlFor={`amfi-input-list-${scheme.temp_id}`} className="text-[11px] font-semibold text-[var(--color-ink)] block">
+                      <div className="space-y-1 sm:space-y-1.5">
+                        <label htmlFor={`amfi-input-list-${scheme.temp_id}`} className="text-[10px] sm:text-[11px] font-semibold text-[var(--color-ink)] block">
                           Enter 6-Digit AMFI Code
                         </label>
                         <Input
@@ -567,14 +567,14 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
                           onChange={(event) =>
                             updateOverride(scheme.temp_id, { amfiCode: event.target.value })
                           }
-                          className="h-11 text-xs bg-[var(--color-bg)] border-[var(--color-border)] rounded-xl focus-visible:ring-[var(--color-accent)] min-h-[44px]"
+                          className="h-10 sm:h-11 text-xs bg-[var(--color-bg)] border-[var(--color-border)] rounded-xl focus-visible:ring-[var(--color-accent)] min-h-[40px] sm:min-h-[44px]"
                         />
                       </div>
                     )}
 
                     {needsPlan && (
-                      <div className="space-y-1.5">
-                        <label htmlFor={`plan-select-list-${scheme.temp_id}`} className="text-[11px] font-semibold text-[var(--color-ink)] block">
+                      <div className="space-y-1 sm:space-y-1.5">
+                        <label htmlFor={`plan-select-list-${scheme.temp_id}`} className="text-[10px] sm:text-[11px] font-semibold text-[var(--color-ink)] block">
                           Select Plan Type
                         </label>
                         <Select
@@ -585,7 +585,7 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
                             })
                           }
                         >
-                          <SelectTrigger id={`plan-select-list-${scheme.temp_id}`} className="w-full h-11 min-h-[44px] gap-1.5 rounded-xl border-[var(--color-border)] bg-[var(--color-bg)] px-3 text-xs font-medium text-[var(--color-ink)]">
+                          <SelectTrigger id={`plan-select-list-${scheme.temp_id}`} className="w-full h-10 sm:h-11 min-h-[40px] sm:min-h-[44px] gap-1.5 rounded-xl border-[var(--color-border)] bg-[var(--color-bg)] px-3 text-xs font-medium text-[var(--color-ink)]">
                             <SelectValue placeholder="Select..." />
                           </SelectTrigger>
                           <SelectContent>
@@ -604,18 +604,18 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
       )}
 
       {/* 5. STICKY BOTTOM ACTION FOOTER BAR */}
-      <div className="sticky bottom-4 z-30 w-full p-4 sm:p-5 rounded-2xl bg-[var(--color-surface)]/95 backdrop-blur-md border border-[var(--color-border)] shadow-xl flex items-center justify-between gap-4 flex-wrap box-border mt-6">
-        <div className="space-y-0.5 min-w-0">
-          <div className="flex items-center gap-2">
+      <div className="sticky bottom-3 sm:bottom-4 z-30 w-full p-3 sm:p-5 rounded-xl sm:rounded-2xl bg-[var(--color-surface)]/95 backdrop-blur-md border border-[var(--color-border)] shadow-xl flex items-center justify-between gap-3 sm:gap-4 flex-wrap box-border mt-3 sm:mt-6">
+        <div className="space-y-0.5 min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             {allResolved ? (
-              <ShieldCheck className="h-4 w-4 text-[var(--color-positive)] flex-shrink-0" />
+              <ShieldCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[var(--color-positive)] flex-shrink-0" />
             ) : (
-              <AlertCircle className="h-4 w-4 text-[var(--color-accent)] flex-shrink-0" />
+              <AlertCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[var(--color-accent)] flex-shrink-0" />
             )}
-            <span className="font-semibold text-xs sm:text-sm text-[var(--color-ink)] truncate">
+            <span className="font-semibold text-[11px] sm:text-sm text-[var(--color-ink)] truncate block">
               {allResolved
-                ? "All schemes verified and ready to import"
-                : `Please resolve ${needsAttentionCount} scheme${needsAttentionCount !== 1 ? "s" : ""} requiring classification`}
+                ? "All schemes verified & ready"
+                : `Resolve ${needsAttentionCount} scheme${needsAttentionCount !== 1 ? "s" : ""}`}
             </span>
           </div>
           <p className="text-[11px] text-[var(--color-text-secondary)] hidden sm:block">
@@ -627,17 +627,17 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
           type="button"
           disabled={!allResolved || confirming}
           onClick={handleConfirm}
-          className="h-12 px-6 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs sm:text-sm shadow-xs gap-2 cursor-pointer active:scale-[0.99] transition-all min-h-[48px] ml-auto"
+          className="h-10 sm:h-12 px-4 sm:px-6 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs sm:text-sm shadow-xs gap-1.5 sm:gap-2 cursor-pointer active:scale-[0.99] transition-all min-h-[40px] sm:min-h-[48px] ml-auto"
         >
           {confirming ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
               <span>Confirming...</span>
             </>
           ) : (
             <>
               <span>Confirm Import</span>
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </>
           )}
         </Button>

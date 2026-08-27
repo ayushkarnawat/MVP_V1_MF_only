@@ -65,9 +65,16 @@ export function TwoPathImportContainer({
   };
 
   return (
-    <div className="flex flex-col space-y-6 w-full max-w-3xl mx-auto">
+    <div
+      className={cn(
+        "flex flex-col w-full max-w-3xl mx-auto box-border flex-1",
+        view === "choice" || view === "upload"
+          ? "min-h-[calc(100dvh-2.5rem)] sm:min-h-[540px] justify-between sm:justify-center space-y-2 sm:space-y-6 my-auto"
+          : "space-y-6"
+      )}
+    >
       {/* Top Header & Secondary History Switcher */}
-      <div className="flex items-center justify-between gap-3 flex-wrap px-0.5 pb-0.5">
+      <div className="flex items-center justify-between gap-3 flex-wrap px-0.5 pb-0.5 flex-shrink-0">
         <div className="space-y-0.5" />
 
         {/* Secondary Import History Action Button */}
@@ -88,7 +95,12 @@ export function TwoPathImportContainer({
       </div>
 
       {/* Main View Container */}
-      <div className="animate-in fade-in duration-200">
+      <div
+        className={cn(
+          "animate-in fade-in duration-200 w-full",
+          (view === "choice" || view === "upload") && "flex-1 flex flex-col justify-center items-center my-auto"
+        )}
+      >
         {view === "choice" && (
           <ImportPathChoice
             onSelectRequest={() => setView("request")}

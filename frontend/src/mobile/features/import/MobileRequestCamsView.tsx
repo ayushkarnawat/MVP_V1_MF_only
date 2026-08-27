@@ -64,23 +64,23 @@ export function MobileRequestCamsView({
       </div>
 
       {/* Cohesive Group: 3 Required CAMS Selections */}
-      <div className="p-3 sm:p-3.5 rounded-xl bg-[#10B981]/[0.05] dark:bg-[#10B981]/[0.08] border border-[#10B981]/25 space-y-2">
+      <div className="p-3 sm:p-3.5 rounded-xl bg-[#22C55E]/[0.05] dark:bg-[#22C55E]/[0.08] border border-[#22C55E]/25 space-y-2">
         <div className="flex items-center gap-1.5">
-          <CheckCircle2 className="h-3.5 w-3.5 text-[#10B981] flex-shrink-0" />
-          <span className="text-[10px] font-bold uppercase tracking-wider text-[#10B981] dark:text-[#34D399] block font-mono">
+          <CheckCircle2 className="h-3.5 w-3.5 text-[#22C55E] flex-shrink-0" />
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[#22C55E] block font-mono">
             On the CAMS form, select these three options
           </span>
         </div>
         <div className="grid grid-cols-3 gap-1.5 pt-0.5">
-          <div className="p-2 rounded-lg bg-white/90 dark:bg-[var(--color-surface)] border border-[#10B981]/20 text-center space-y-0.5 shadow-2xs">
+          <div className="p-2 rounded-lg bg-white/90 dark:bg-[var(--color-surface)] border border-[#22C55E]/20 text-center space-y-0.5 shadow-2xs">
             <span className="text-[9.5px] text-[#5C5C5C] dark:text-[#A3A3A3] block uppercase tracking-wider font-mono">Statement</span>
             <span className="text-[11px] font-bold text-[var(--color-ink)] block leading-tight">Detailed statement</span>
           </div>
-          <div className="p-2 rounded-lg bg-white/90 dark:bg-[var(--color-surface)] border border-[#10B981]/20 text-center space-y-0.5 shadow-2xs">
+          <div className="p-2 rounded-lg bg-white/90 dark:bg-[var(--color-surface)] border border-[#22C55E]/20 text-center space-y-0.5 shadow-2xs">
             <span className="text-[9.5px] text-[#5C5C5C] dark:text-[#A3A3A3] block uppercase tracking-wider font-mono">Period</span>
             <span className="text-[11px] font-bold text-[var(--color-ink)] block leading-tight">10-year duration</span>
           </div>
-          <div className="p-2 rounded-lg bg-white/90 dark:bg-[var(--color-surface)] border border-[#10B981]/20 text-center space-y-0.5 shadow-2xs">
+          <div className="p-2 rounded-lg bg-white/90 dark:bg-[var(--color-surface)] border border-[#22C55E]/20 text-center space-y-0.5 shadow-2xs">
             <span className="text-[9.5px] text-[#5C5C5C] dark:text-[#A3A3A3] block uppercase tracking-wider font-mono">Folios</span>
             <span className="text-[11px] font-bold text-[var(--color-ink)] block leading-tight">with zero folios</span>
           </div>
@@ -91,7 +91,7 @@ export function MobileRequestCamsView({
       <div className="relative pl-6 space-y-3 before:absolute before:left-[9px] before:top-2 before:bottom-2 before:w-[1.5px] before:bg-[var(--color-border)]/80">
         {/* Step 1 */}
         <div className="relative space-y-0.5">
-          <div className="absolute -left-6 top-0 h-4.5 w-4.5 rounded-full bg-white dark:bg-[var(--color-surface)] border border-[#10B981]/60 text-[#10B981] dark:text-[#34D399] font-mono font-bold text-[9px] flex items-center justify-center shadow-2xs">
+          <div className="absolute -left-6 top-0 h-4.5 w-4.5 rounded-full bg-white dark:bg-[var(--color-surface)] border border-[#22C55E]/60 text-[#22C55E] font-mono font-bold text-[9px] flex items-center justify-center shadow-2xs">
             1
           </div>
           <p className="text-xs text-[var(--color-ink)] leading-relaxed font-medium">
@@ -101,7 +101,7 @@ export function MobileRequestCamsView({
 
         {/* Step 2 */}
         <div className="relative space-y-0.5">
-          <div className="absolute -left-6 top-0 h-4.5 w-4.5 rounded-full bg-white dark:bg-[var(--color-surface)] border border-[#10B981]/60 text-[#10B981] dark:text-[#34D399] font-mono font-bold text-[9px] flex items-center justify-center shadow-2xs">
+          <div className="absolute -left-6 top-0 h-4.5 w-4.5 rounded-full bg-white dark:bg-[var(--color-surface)] border border-[#22C55E]/60 text-[#22C55E] font-mono font-bold text-[9px] flex items-center justify-center shadow-2xs">
             2
           </div>
           <p className="text-xs text-[var(--color-ink)] leading-relaxed font-medium">
@@ -111,7 +111,7 @@ export function MobileRequestCamsView({
 
         {/* Step 3 */}
         <div className="relative space-y-0.5">
-          <div className="absolute -left-6 top-0 h-4.5 w-4.5 rounded-full bg-white dark:bg-[var(--color-surface)] border border-[#10B981]/60 text-[#10B981] dark:text-[#34D399] font-mono font-bold text-[9px] flex items-center justify-center shadow-2xs">
+          <div className="absolute -left-6 top-0 h-4.5 w-4.5 rounded-full bg-white dark:bg-[var(--color-surface)] border border-[#22C55E]/60 text-[#22C55E] font-mono font-bold text-[9px] flex items-center justify-center shadow-2xs">
             3
           </div>
           <p className="text-xs text-[var(--color-ink)] leading-relaxed font-medium">
@@ -135,7 +135,7 @@ export function MobileRequestCamsView({
       <Button
         onClick={handleRequest}
         disabled={isLoading}
-        className="w-full h-13 sm:h-13.5 rounded-full bg-[#10B981] hover:bg-[#059669] dark:bg-[#10B981] dark:hover:bg-[#059669] text-white font-bold text-[14px] sm:text-[15px] shadow-lg shadow-[#10B981]/25 gap-2 cursor-pointer active:scale-[0.98] transition-all min-h-[48px] border-none"
+        className="w-full h-13 sm:h-13.5 rounded-full bg-[#22C55E] hover:bg-[#22C55E]/90 dark:bg-[#22C55E] dark:hover:bg-[#22C55E]/90 text-white font-bold text-[14px] sm:text-[15px] shadow-lg shadow-[#22C55E]/25 gap-2 cursor-pointer active:scale-[0.98] transition-all min-h-[48px] border-none"
       >
         {isLoading ? (
           <>

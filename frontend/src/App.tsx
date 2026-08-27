@@ -5,7 +5,8 @@ import { OnboardingFlow } from "./features/auth/OnboardingFlow";
 import { DashboardPlaceholder } from "./features/dashboard/DashboardPlaceholder";
 import { MobileRoot } from "./mobile/MobileRoot";
 import { MobileLandingPage } from "./mobile/features/landing/MobileLandingPage";
-import { UnifolioLogo } from "./components/UnifolioLogo";
+import { MobileJourneyContext } from "./features/auth/mobileJourneyContext";
+import type { MobileJourneyStep } from "./features/auth/mobileJourneyContext";
 
 function useIsMobileViewport(breakpoint = 768) {
   const [isMobile, setIsMobile] = useState(() => {
@@ -34,6 +35,26 @@ function useIsMobileViewport(breakpoint = 768) {
   return isMobile;
 }
 
+function MobileInitialFlow({ authInitialMode }: { authInitialMode: "login" | "signup" }) {
+  const { me } = useAuth();
+  const [journeyStep, setJourneyStep] = useState<MobileJourneyStep>("auth_landing");
+
+  return (
+    <MobileJourneyContext.Provider value={{ activeStep: journeyStep, setJourneyStep }}>
+      <div className="relative w-full min-h-dvh h-dvh max-h-dvh overflow-x-hidden overflow-y-auto bg-[#F8FAF9] dark:bg-[var(--color-bg)]">
+        {/* Foreground Content Card with physics-based fluid transition */}
+        <div className="relative z-10 w-full min-h-full flex flex-col">
+          {!me ? (
+            <AuthEntryFlow initialMode={authInitialMode} />
+          ) : (
+            <OnboardingFlow isMobile={true} />
+          )}
+        </div>
+      </div>
+    </MobileJourneyContext.Provider>
+  );
+}
+
 function MainApp() {
   const { me, loading } = useAuth();
   const [showMobileLanding, setShowMobileLanding] = useState(true);
@@ -49,14 +70,15 @@ function MainApp() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-[var(--color-bg)] text-[var(--color-text-secondary)] transition-colors duration-300">
-        <UnifolioLogo className="h-9 mb-3 animate-pulse" />
+        <div className="h-7 w-7 rounded-full border-2 border-[#22C55E] border-t-transparent animate-spin mb-3" />
         <p className="text-xs font-medium tracking-wide">Loading Unifolio…</p>
       </div>
     );
   }
 
-  if (!me) {
-    if (isMobile && showMobileLanding) {
+  // 1. Mobile Initial Flow (Landing -> Auth -> Onboarding) with persistent roadmap background
+  if (isMobile) {
+    if (showMobileLanding && !me) {
       return (
         <MobileLandingPage
           onGetStarted={() => {
@@ -70,14 +92,24 @@ function MainApp() {
         />
       );
     }
+
+    if (!me || !me.onboarding_completed) {
+      return <MobileInitialFlow authInitialMode={authInitialMode} />;
+    }
+
+    return <MobileRoot />;
+  }
+
+  // 2. Desktop Web Initial Flow (Untouched)
+  if (!me) {
     return <AuthEntryFlow initialMode={authInitialMode} />;
   }
 
   if (!me.onboarding_completed) {
-    return <OnboardingFlow isMobile={isMobile} />;
+    return <OnboardingFlow isMobile={false} />;
   }
 
-  return isMobile ? <MobileRoot /> : <DashboardPlaceholder />;
+  return <DashboardPlaceholder />;
 }
 
 function App() {

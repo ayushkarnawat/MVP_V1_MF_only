@@ -39,14 +39,15 @@ import {
   BarChart2,
 } from "lucide-react";
 
-import { motion, useReducedMotion } from "motion/react";
-import { staggerContainerVariants, staggerItemVariants, isTestEnv } from "@/lib/motion";
+import { motion } from "motion/react";
+import { staggerContainerVariants, staggerItemVariants } from "@/lib/motion";
 
 // Mobile-only legend/segment order for "By Asset Class" — web keeps the
 // backend's natural array order.
 const ASSET_CLASS_ORDER = ["Equity", "Hybrid", "Other"];
 
 export interface MobileDashboardViewProps {
+  onNavigateAnalytics?: () => void;
   onNavigateImport?: (memberId?: string) => void;
   onDetailViewToggle?: (isOpen: boolean) => void;
 }
@@ -76,7 +77,6 @@ export function MobileDashboardView({
   const [selectedHolding, setSelectedHolding] = useState<HoldingRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const shouldReduceMotion = useReducedMotion() || isTestEnv;
 
   /* Fetch initial household members list */
   useEffect(() => {
@@ -88,7 +88,7 @@ export function MobileDashboardView({
           setSelectedMemberId(data[0].id);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
 
     return () => {
       isMounted = false;
@@ -132,12 +132,12 @@ export function MobileDashboardView({
             .then((gapsRes) => {
               if (isMounted) setCoverageGaps(gapsRes);
             })
-            .catch(() => {});
+            .catch(() => { });
           getAggregateHoldings(controller.signal)
             .then((aggRes) => {
               if (isMounted) setMembersStatus(aggRes.members || []);
             })
-            .catch(() => {});
+            .catch(() => { });
         } else {
           if (isMounted) {
             setHoldings([]);
@@ -613,10 +613,10 @@ export function MobileDashboardView({
             data={
               allocationTab === "asset"
                 ? [...allocation.by_asset_class].sort(
-                    (a, b) =>
-                      ASSET_CLASS_ORDER.indexOf(a.label) -
-                      ASSET_CLASS_ORDER.indexOf(b.label)
-                  )
+                  (a, b) =>
+                    ASSET_CLASS_ORDER.indexOf(a.label) -
+                    ASSET_CLASS_ORDER.indexOf(b.label)
+                )
                 : allocation.by_amc
             }
             title={allocationTab === "asset" ? "By Asset Class" : "By AMC"}
