@@ -1,17 +1,25 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { FundDetailModal } from "./FundDetailModal";
 import type { HoldingRow } from "./types";
+import * as api from "./api";
 
-const fundSignalGraphSpy = vi.fn();
-vi.mock("../../components/FundSignal", () => ({
-  FundSignalGraph: (props: unknown) => {
-    fundSignalGraphSpy(props);
-    return <div data-testid="fund-signal-graph" />;
-  },
+vi.mock("./api", () => ({
+  getFundNavHistory: vi.fn(),
 }));
 
 describe("FundDetailModal", () => {
+  beforeEach(() => {
+    vi.mocked(api.getFundNavHistory).mockResolvedValue({
+      scheme_id: "scheme-42",
+      period: "1Y",
+      requested_period: "1Y",
+      clamped: false,
+      points: [],
+      overall_return_pct: null,
+    });
+  });
+
   const sampleHolding: HoldingRow = {
     scheme_id: "scheme-42",
     scheme_name: "PPFAS Flexi Cap Fund",
@@ -57,11 +65,23 @@ describe("FundDetailModal", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("passes the holding scheme id to the performance graph", () => {
+  it("wires the holding's scheme id into the performance graph's real data fetch", async () => {
+    vi.mocked(api.getFundNavHistory).mockResolvedValue({
+      scheme_id: "scheme-42",
+      period: "1Y",
+      requested_period: "1Y",
+      clamped: false,
+      points: [{ date: "2026-08-25", nav: "65.80", return_pct: "12.34" }],
+      overall_return_pct: "12.34",
+    });
+
     render(<FundDetailModal isOpen={true} onClose={vi.fn()} holding={sampleHolding} />);
 
-    expect(fundSignalGraphSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ schemeId: "scheme-42" }),
+    expect(await screen.findByText("+12.34%")).toBeInTheDocument();
+    expect(api.getFundNavHistory).toHaveBeenCalledWith(
+      "scheme-42",
+      "1Y",
+      expect.any(AbortSignal),
     );
   });
 });

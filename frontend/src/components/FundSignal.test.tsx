@@ -101,12 +101,59 @@ describe("FundSignalGraph", () => {
     ).toBeInTheDocument();
   });
 
-  it("updates the readout when a point is hovered", async () => {
+  it("updates the readout via keyboard navigation", async () => {
     render(<FundSignalGraph schemeId="scheme-42" />);
     await screen.findByText("Aug 25, 2026: +15.20%");
 
-    fireEvent.mouseEnter(screen.getByLabelText("Aug 25, 2025: 0.00%"));
+    fireEvent.keyDown(screen.getByRole("slider"), { key: "ArrowLeft" });
 
     expect(screen.getByText("Aug 25, 2025: 0.00%")).toBeInTheDocument();
+  });
+
+  it("updates the readout when scrubbing across the chart with a pointer", async () => {
+    render(<FundSignalGraph schemeId="scheme-42" />);
+    await screen.findByText("Aug 25, 2026: +15.20%");
+
+    const scrubber = screen.getByRole("slider");
+    vi.spyOn(scrubber, "getBoundingClientRect").mockReturnValue({
+      width: 100,
+      left: 0,
+      right: 100,
+      top: 0,
+      bottom: 44,
+      height: 44,
+      x: 0,
+      y: 0,
+      toJSON: () => undefined,
+    } as DOMRect);
+
+    fireEvent.pointerMove(scrubber, { clientX: 0 });
+
+    expect(screen.getByText("Aug 25, 2025: 0.00%")).toBeInTheDocument();
+  });
+
+  it("ignores a stale response that resolves after a newer request", async () => {
+    let resolveStale: (value: SchemeNavHistoryResponse) => void = () => undefined;
+    const stalePromise = new Promise<SchemeNavHistoryResponse>((resolve) => {
+      resolveStale = resolve;
+    });
+    vi.mocked(api.getFundNavHistory)
+      .mockReturnValueOnce(stalePromise)
+      .mockResolvedValueOnce({
+        ...historyResponse,
+        period: "5Y",
+        requested_period: "5Y",
+        overall_return_pct: "42.00",
+      });
+
+    render(<FundSignalGraph schemeId="scheme-42" />);
+    fireEvent.click(screen.getByRole("button", { name: "5Y" }));
+    await screen.findByText("+42.00%");
+
+    resolveStale(historyResponse);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(screen.getByText("+42.00%")).toBeInTheDocument();
+    expect(screen.getByText("Trend (5Y)")).toBeInTheDocument();
   });
 });
