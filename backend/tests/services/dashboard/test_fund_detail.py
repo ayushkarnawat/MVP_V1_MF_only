@@ -130,4 +130,3 @@ def test_return_percentages_use_first_point_and_round_half_up():
     result = _get_history(db, scheme, "MAX", rows)
 
     assert [point.return_pct for point in result.points] == ["0.00", "25.00", "33.34"]
-

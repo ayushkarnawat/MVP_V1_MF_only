@@ -19,9 +19,9 @@ from app.services.dashboard.aggregate import (
     get_aggregate_snapshots,
 ) #for aggregated data
 
-from app.services.dashboard.allocation import compute_allocation 
+from app.services.dashboard.allocation import compute_allocation
 from app.services.dashboard.cash_flow import compute_cash_flow #for individual
-from app.services.dashboard.distributor_comparison import compute_distributor_comparison 
+from app.services.dashboard.distributor_comparison import compute_distributor_comparison
 from app.services.dashboard.holdings import compute_holdings
 from app.services.dashboard.fund_detail import get_fund_nav_history
 
