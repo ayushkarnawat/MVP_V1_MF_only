@@ -1,7 +1,22 @@
-import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MobileFundDetailView } from "./MobileFundDetailView";
-import type { HoldingRow } from "@/features/dashboard/types";
+import type { HoldingRow, SchemeNavHistoryResponse } from "@/features/dashboard/types";
+import { getFundNavHistory } from "@/features/dashboard/api";
+
+vi.mock("@/features/dashboard/api", () => ({ getFundNavHistory: vi.fn() }));
+
+const historyResponse: SchemeNavHistoryResponse = {
+  scheme_id: "scheme-101",
+  period: "1Y",
+  requested_period: "1Y",
+  clamped: false,
+  points: [
+    { date: "2025-01-15", nav: "45.5000", return_pct: "0.00" },
+    { date: "2026-08-25", nav: "60.0000", return_pct: "31.87" },
+  ],
+  overall_return_pct: "31.87",
+};
 
 describe("MobileFundDetailView", () => {
   const sampleHolding: HoldingRow = {
@@ -24,7 +39,12 @@ describe("MobileFundDetailView", () => {
     category: "Large Cap Equity",
   };
 
-  it("renders full holding financial breakdown and performance chart", () => {
+  beforeEach(() => {
+    vi.mocked(getFundNavHistory).mockReset();
+    vi.mocked(getFundNavHistory).mockResolvedValue(historyResponse);
+  });
+
+  it("renders full holding financial breakdown and performance chart", async () => {
     const handleBack = vi.fn();
     render(
       <MobileFundDetailView
@@ -42,7 +62,9 @@ describe("MobileFundDetailView", () => {
     expect(screen.getAllByText("Current Value").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Invested")).toBeInTheDocument();
     expect(screen.getByText("Performance")).toBeInTheDocument();
-    expect(screen.getByText("6M")).toBeInTheDocument();
+    expect(screen.getByText("1Y")).toBeInTheDocument();
+    expect(await screen.findByText((_, element) => element?.tagName === "SPAN" && element.textContent === "25 Aug: 31.87%")).toBeInTheDocument();
+    expect(screen.getByText("31.87%")).toBeInTheDocument();
     expect(screen.getByText("Units")).toBeInTheDocument();
     expect(screen.getByText("123.456")).toBeInTheDocument();
     expect(screen.getByText("Avg NAV")).toBeInTheDocument();
@@ -56,7 +78,7 @@ describe("MobileFundDetailView", () => {
     expect(handleBack).toHaveBeenCalledTimes(1);
   });
 
-  it("switches performance timeframe when pills are clicked", () => {
+  it("refetches performance history when a timeframe pill is clicked", async () => {
     render(
       <MobileFundDetailView
         holding={sampleHolding}
@@ -64,9 +86,45 @@ describe("MobileFundDetailView", () => {
       />
     );
 
-    const oneYearBtn = screen.getByText("1Y");
-    fireEvent.click(oneYearBtn);
-    expect(oneYearBtn).toHaveClass("bg-[var(--color-surface)]");
+    await waitFor(() => expect(getFundNavHistory).toHaveBeenCalledWith("scheme-101", "1Y", expect.any(AbortSignal)));
+    fireEvent.click(screen.getByRole("button", { name: "5Y" }));
+    await waitFor(() => expect(getFundNavHistory).toHaveBeenLastCalledWith("scheme-101", "5Y", expect.any(AbortSignal)));
+    expect(screen.getByRole("button", { name: "5Y" })).toHaveClass("bg-[var(--color-surface)]");
+  });
+
+  it("shows a shared skeleton while performance history is loading", () => {
+    vi.mocked(getFundNavHistory).mockReturnValue(new Promise(() => {}));
+    const { container } = render(<MobileFundDetailView holding={sampleHolding} onBack={vi.fn()} />);
+    expect(container.querySelector('[style*="height: 150px"]')).toBeInTheDocument();
+    expect(container.querySelector("svg polyline")).not.toBeInTheDocument();
+  });
+
+  it("shows an error in the chart note treatment", async () => {
+    vi.mocked(getFundNavHistory).mockRejectedValue(new Error("NAV service unavailable"));
+    render(<MobileFundDetailView holding={sampleHolding} onBack={vi.fn()} />);
+    expect(await screen.findByText("NAV service unavailable")).toBeInTheDocument();
+    expect(screen.queryByText(/portfolio baseline trajectory/i)).not.toBeInTheDocument();
+  });
+
+  it("shows the empty state when no history is available", async () => {
+    vi.mocked(getFundNavHistory).mockResolvedValue({ ...historyResponse, points: [], overall_return_pct: null });
+    render(<MobileFundDetailView holding={sampleHolding} onBack={vi.fn()} />);
+    expect(await screen.findByText("No performance history available yet.")).toBeInTheDocument();
+  });
+
+  it("shows the requested period in the clamped-to-MAX note", async () => {
+    vi.mocked(getFundNavHistory).mockResolvedValue({ ...historyResponse, period: "MAX", requested_period: "5Y", clamped: true });
+    render(<MobileFundDetailView holding={sampleHolding} onBack={vi.fn()} />);
+    expect(await screen.findByText("Showing full history since inception — not enough data for 5Y")).toBeInTheDocument();
+  });
+
+  it("keeps hover interaction wired to fetched chart points", async () => {
+    const { container } = render(<MobileFundDetailView holding={sampleHolding} onBack={vi.fn()} />);
+    await waitFor(() => expect(container.querySelectorAll("circle.cursor-pointer")).toHaveLength(2));
+    const targets = container.querySelectorAll("circle.cursor-pointer");
+    fireEvent.mouseEnter(targets[0]);
+    expect(screen.getByText((_, element) => element?.tagName === "SPAN" && element.textContent === "15 Jan: 0.00%")).toBeInTheDocument();
+    expect(screen.getByText("0.00%")).toBeInTheDocument();
   });
 
   it("resets scroll container scrollTop to 0 when mounted inside a scrolled container", () => {

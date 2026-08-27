@@ -1,6 +1,7 @@
-import { useState, useMemo, useRef, useLayoutEffect } from "react";
+import { useState, useMemo, useRef, useLayoutEffect, useEffect } from "react";
 import { Badge } from "@/components/Badge";
 import { FundSignal } from "@/components/FundSignal";
+import { Skeleton } from "@/components/Skeleton";
 import { cn, toTitleCase } from "@/lib/utils";
 import {
   ChevronLeft,
@@ -9,7 +10,12 @@ import {
   Info,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import type { HoldingRow } from "@/features/dashboard/types";
+import { getFundNavHistory } from "@/features/dashboard/api";
+import type {
+  HoldingRow,
+  NavHistoryPeriod,
+  SchemeNavHistoryResponse,
+} from "@/features/dashboard/types";
 import { motion, useReducedMotion } from "motion/react";
 import { pageTransition, isTestEnv } from "@/lib/motion";
 
@@ -17,8 +23,6 @@ export interface MobileFundDetailViewProps {
   holding: HoldingRow;
   onBack: () => void;
 }
-
-type Timeframe = "1M" | "3M" | "6M" | "1Y" | "ALL";
 
 interface ChartPoint {
   date: string;
@@ -59,7 +63,10 @@ export function MobileFundDetailView({
     const rafId = requestAnimationFrame(resetScroll);
     return () => cancelAnimationFrame(rafId);
   }, [holding]);
-  const [selectedTimeframe, setSelectedTimeframe] = useState<Timeframe>("6M");
+  const [selectedTimeframe, setSelectedTimeframe] = useState<NavHistoryPeriod>("1Y");
+  const [history, setHistory] = useState<SchemeNavHistoryResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [hoveredPoint, setHoveredPoint] = useState<ChartPoint | null>(null);
   const shouldReduceMotion = useReducedMotion() || isTestEnv;
 
@@ -70,54 +77,41 @@ export function MobileFundDetailView({
   );
   const isPositive = profit >= 0;
   const totalReturnPct = invested > 0 ? (profit / invested) * 100 : 0;
-  const currentNavNum = parseFloat(holding.current_nav || "0");
-  const avgNavNum = parseFloat(holding.average_nav || "0");
+  useEffect(() => {
+    const controller = new AbortController();
+    setLoading(true);
+    setError(null);
+    setHoveredPoint(null);
 
-  /* Generate illustrative performance curve based on available valuation points */
+    getFundNavHistory(holding.scheme_id, selectedTimeframe, controller.signal)
+      .then((data) => {
+        // Guard on the controller's own abort flag, not just AbortError — a resolved
+        // (e.g. cached) response can still arrive after this request was superseded
+        // by a scheme/timeframe change, without ever rejecting.
+        if (controller.signal.aborted) return;
+        setHistory(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        if (controller.signal.aborted || err?.name === "AbortError") return;
+        setError(err?.message || "Failed to load performance history");
+        setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [holding.scheme_id, selectedTimeframe]);
+
   const chartData = useMemo<ChartPoint[]>(() => {
-    const pointsCount =
-      selectedTimeframe === "1M"
-        ? 6
-        : selectedTimeframe === "3M"
-        ? 8
-        : selectedTimeframe === "6M"
-        ? 10
-        : selectedTimeframe === "1Y"
-        ? 12
-        : 14;
-
-    const baseVal = avgNavNum > 0 ? avgNavNum : currentNavNum * 0.85;
-    const targetVal = currentNavNum > 0 ? currentNavNum : baseVal * 1.15;
-    const diff = targetVal - baseVal;
-
-    const points: ChartPoint[] = [];
-    const now = new Date();
-
-    for (let i = 0; i < pointsCount; i++) {
-      const progress = i / (pointsCount - 1);
-      // Realistic gentle curve with mild fluctuation
-      const noise =
-        i > 0 && i < pointsCount - 1
-          ? Math.sin(progress * Math.PI * 2) * (diff * 0.08)
-          : 0;
-      const val = baseVal + diff * Math.pow(progress, 0.9) + noise;
-
-      const dateObj = new Date(now);
-      const daysBack = (pointsCount - 1 - i) * (selectedTimeframe === "1M" ? 5 : selectedTimeframe === "3M" ? 11 : selectedTimeframe === "6M" ? 18 : 30);
-      dateObj.setDate(now.getDate() - daysBack);
-
-      points.push({
-        date: dateObj.toLocaleDateString("en-IN", {
+    return (history?.points ?? []).map((point) => ({
+        date: new Date(`${point.date}T00:00:00Z`).toLocaleDateString("en-IN", {
           month: "short",
           day: "numeric",
+          timeZone: "UTC",
         }),
-        value: Math.max(0.01, val),
-        label: `₹${val.toFixed(2)}`,
-      });
-    }
-
-    return points;
-  }, [selectedTimeframe, currentNavNum, avgNavNum]);
+        value: Number(point.return_pct),
+        label: `${point.return_pct}%`,
+      }));
+  }, [history]);
 
   // Compute SVG viewBox dimensions
   const svgWidth = 320;
@@ -133,7 +127,7 @@ export function MobileFundDetailView({
     .map((d, index) => {
       const x =
         paddingX +
-        (index / (chartData.length - 1)) * (svgWidth - paddingX * 2);
+        (chartData.length === 1 ? 0.5 : index / (chartData.length - 1)) * (svgWidth - paddingX * 2);
       const y =
         svgHeight -
         paddingY -
@@ -142,7 +136,7 @@ export function MobileFundDetailView({
     })
     .join(" ");
 
-  const areaPathString = `M ${paddingX},${svgHeight} L ${pointsString
+  const areaPathString = chartData.length === 0 ? "" : `M ${paddingX},${svgHeight} L ${pointsString
     .split(" ")
     .join(" L ")} L ${svgWidth - paddingX},${svgHeight} Z`;
 
@@ -273,14 +267,16 @@ export function MobileFundDetailView({
               <span className="font-display text-sm font-bold text-[var(--color-ink)] block">
                 Performance
               </span>
-              <span className="text-[11px] text-[var(--color-text-secondary)] mt-0.5">
-                {activePoint.date}: <strong className="text-[var(--color-ink)]">{activePoint.label}</strong>
-              </span>
+              {activePoint && (
+                <span className="text-[11px] text-[var(--color-text-secondary)] mt-0.5">
+                  {activePoint.date}: <strong className="text-[var(--color-ink)]">{activePoint.label}</strong>
+                </span>
+              )}
             </div>
 
             {/* Timeframe Selector Pills */}
             <div className="inline-flex items-center p-0.5 rounded-lg bg-[var(--color-bg)] border border-[var(--color-border)] shadow-2xs">
-              {(["1M", "3M", "6M", "1Y", "ALL"] as Timeframe[]).map((tf) => (
+              {(["1M", "1Y", "3Y", "5Y", "MAX"] as NavHistoryPeriod[]).map((tf) => (
                 <button
                   key={tf}
                   onClick={() => setSelectedTimeframe(tf)}
@@ -299,6 +295,16 @@ export function MobileFundDetailView({
           </div>
 
           {/* Interactive Chart Container */}
+          {loading ? (
+            <Skeleton height="150px" width="100%" />
+          ) : error ? (
+            <div className="flex items-center gap-1.5 p-2.5 rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] text-[11px] text-[var(--color-text-secondary)]">
+              <Info className="h-3.5 w-3.5 flex-shrink-0 text-[var(--color-negative)]" />
+              <span>{error}</span>
+            </div>
+          ) : chartData.length === 0 ? (
+            <p className="text-[11px] text-[var(--color-text-secondary)]">No performance history available yet.</p>
+          ) : (
           <div className="relative w-full h-[150px] select-none touch-none">
             <svg
               viewBox={`0 0 ${svgWidth} ${svgHeight}`}
@@ -336,7 +342,7 @@ export function MobileFundDetailView({
               {chartData.map((d, index) => {
                 const x =
                   paddingX +
-                  (index / (chartData.length - 1)) * (svgWidth - paddingX * 2);
+                  (chartData.length === 1 ? 0.5 : index / (chartData.length - 1)) * (svgWidth - paddingX * 2);
                 const y =
                   svgHeight -
                   paddingY -
@@ -382,12 +388,14 @@ export function MobileFundDetailView({
               })}
             </svg>
           </div>
+          )}
 
-          {/* Historical Data Transparency Note */}
-          <div className="flex items-center gap-1.5 p-2.5 rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] text-[11px] text-[var(--color-text-secondary)]">
-            <Info className="h-3.5 w-3.5 flex-shrink-0 text-[var(--color-accent)]" />
-            <span>Historical NAV timeseries API unavailable — displaying portfolio baseline trajectory.</span>
-          </div>
+          {!loading && !error && history?.clamped && (
+            <div className="flex items-center gap-1.5 p-2.5 rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] text-[11px] text-[var(--color-text-secondary)]">
+              <Info className="h-3.5 w-3.5 flex-shrink-0 text-[var(--color-accent)]" />
+              <span>Showing full history since inception — not enough data for {history.requested_period}</span>
+            </div>
+          )}
         </section>
 
         {/* Detailed Scheme Breakdown List */}
