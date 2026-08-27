@@ -152,3 +152,18 @@ class AggregateSnapshotsResponse(BaseModel):
 class AggregateDistributorComparisonResponse(BaseModel):
     members: list[MemberStatus]
     rows: list[DistributorPortfolioRow]
+
+
+class NavHistoryPoint(BaseModel):
+    date: date
+    nav: str
+    return_pct: str
+
+
+class SchemeNavHistoryResponse(BaseModel):
+    scheme_id: str
+    period: str
+    requested_period: str
+    clamped: bool
+    points: list[NavHistoryPoint]
+    overall_return_pct: str | None

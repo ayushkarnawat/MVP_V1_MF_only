@@ -1,10 +1,12 @@
 import uuid
 from datetime import date
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session as DbSession
 
 from app.db.session import get_db
+from app.models.reference import Scheme
 from app.models.user import User #user db model
 from app.services.auth.session import get_current_user
 from app.services.dashboard.aggregate import (
@@ -21,6 +23,7 @@ from app.services.dashboard.allocation import compute_allocation
 from app.services.dashboard.cash_flow import compute_cash_flow #for individual
 from app.services.dashboard.distributor_comparison import compute_distributor_comparison 
 from app.services.dashboard.holdings import compute_holdings
+from app.services.dashboard.fund_detail import get_fund_nav_history
 
 #household member related db operations
 from app.services.dashboard.household_members import (
@@ -46,6 +49,7 @@ from app.services.dashboard.schemas import (
     HouseholdMemberResponse,
     SipMonthlyRow,
     SipRow,
+    SchemeNavHistoryResponse,
     SnapshotRow,
 )
 
@@ -53,6 +57,19 @@ from app.services.dashboard.sip import compute_active_sips, compute_sips_for_mon
 from app.services.dashboard.snapshots import get_snapshots
 
 router = APIRouter(tags=["dashboard"])
+
+
+@router.get("/funds/{scheme_id}/nav-history", response_model=SchemeNavHistoryResponse)
+async def get_fund_nav_history_route(
+    scheme_id: uuid.UUID,
+    period: Literal["1M", "1Y", "3Y", "5Y", "MAX"] = "1Y",
+    user: User = Depends(get_current_user),
+    db: DbSession = Depends(get_db),
+):
+    scheme = db.get(Scheme, scheme_id)
+    if scheme is None:
+        raise HTTPException(status_code=404, detail="Scheme not found.")
+    return await get_fund_nav_history(db, scheme, period)
 
 #household member management
 @router.post("/household-members", response_model=HouseholdMemberResponse)
