@@ -19,6 +19,7 @@ from decimal import Decimal
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.db.session import commit_off_loop
 from app.models.reference import FundScore, Scheme
 from app.services.analytics.category_ranking import (
     _THIN_CATEGORY_THRESHOLD,
@@ -213,7 +214,7 @@ def _empty_row(scheme: Scheme, *, category_unavailable: bool, insufficient_histo
     )
 
 
-def _finish_fund_score(
+async def _finish_fund_score(
     db: Session,
     scheme: Scheme,
     universe: list[Scheme],
@@ -268,7 +269,7 @@ def _finish_fund_score(
         )
     )
     try:
-        db.commit()
+        await commit_off_loop(db)
     except IntegrityError:
         db.rollback()
 
@@ -300,7 +301,7 @@ async def compute_fund_score(db: Session, scheme: Scheme) -> FundScoreRow:
     ter_by_scheme, category_avg = (
         await _category_ter_context(db, universe) if scores else ({}, None)
     )
-    return _finish_fund_score(db, scheme, universe, scores, ter_by_scheme, category_avg, today)
+    return await _finish_fund_score(db, scheme, universe, scores, ter_by_scheme, category_avg, today)
 
 
 from app.services.dashboard.aggregate import get_member_statuses
@@ -347,7 +348,7 @@ async def compute_portfolio_score(db: Session, household_member_ids: list[uuid.U
             await _category_ter_context(db, universe) if scores else ({}, None)
         )
         for scheme in category_schemes:
-            row_by_scheme[str(scheme.id)] = _finish_fund_score(
+            row_by_scheme[str(scheme.id)] = await _finish_fund_score(
                 db, scheme, universe, scores, ter_by_scheme, category_avg, today
             )
 

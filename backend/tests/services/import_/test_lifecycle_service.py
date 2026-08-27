@@ -1,3 +1,4 @@
+import asyncio
 from datetime import date, datetime, timezone
 from decimal import Decimal
 import uuid
@@ -54,14 +55,14 @@ def test_magic_byte_validation_rejects_non_pdf(db_session, sample_user_and_membe
     non_pdf_bytes = b"Hello, this is a plain text file, not a PDF."
 
     with pytest.raises(InvalidFileFormatError):
-        create_cas_import(
+        asyncio.run(create_cas_import(
             db=db_session,
             user_id=user.id,
             household_member_id=member.id,
             file_bytes=non_pdf_bytes,
             filename="statement.txt",
             password="PASSWORD",
-        )
+        ))
 
 
 def test_file_size_cap_rejects_oversized_files(db_session, sample_user_and_member):
@@ -69,14 +70,14 @@ def test_file_size_cap_rejects_oversized_files(db_session, sample_user_and_membe
     oversized_bytes = b"%PDF-" + b"0" * (26 * 1024 * 1024)
 
     with pytest.raises(FileTooLargeError):
-        create_cas_import(
+        asyncio.run(create_cas_import(
             db=db_session,
             user_id=user.id,
             household_member_id=member.id,
             file_bytes=oversized_bytes,
             filename="huge_statement.pdf",
             password="PASSWORD",
-        )
+        ))
 
 
 def test_wrong_password_caches_buffer_and_sets_password_required(db_session, sample_user_and_member, monkeypatch):
@@ -97,14 +98,14 @@ def test_wrong_password_caches_buffer_and_sets_password_required(db_session, sam
 
     monkeypatch.setattr("app.services.import_.lifecycle_service.parse_cas_pdf_bytes", mock_parse)
 
-    import_rec = create_cas_import(
+    import_rec = asyncio.run(create_cas_import(
         db=db_session,
         user_id=user.id,
         household_member_id=member.id,
         file_bytes=fake_pdf,
         filename="statement.pdf",
         password="WRONG_PASS",
-    )
+    ))
 
     assert import_rec.status == ImportStatus.PASSWORD_REQUIRED
     assert import_rec.error_code == "wrong_password"
@@ -157,14 +158,14 @@ def test_retry_password_unlocks_and_completes_import(db_session, sample_user_and
     monkeypatch.setattr("app.services.import_.lifecycle_service.parse_cas_pdf_bytes", mock_parse)
 
     # Initial submission with wrong password
-    import_rec = create_cas_import(
+    import_rec = asyncio.run(create_cas_import(
         db=db_session,
         user_id=user.id,
         household_member_id=member.id,
         file_bytes=fake_pdf,
         filename="statement.pdf",
         password="WRONG_PASS",
-    )
+    ))
     assert import_rec.status == ImportStatus.PASSWORD_REQUIRED
 
     # In-place password retry without re-uploading file
@@ -236,14 +237,14 @@ def test_deduplication_fingerprint_skips_duplicates(db_session, sample_user_and_
     monkeypatch.setattr("app.services.import_.lifecycle_service.parse_cas_pdf_bytes", lambda b, p: parse_res_1)
 
     # First import
-    rec1 = create_cas_import(
+    rec1 = asyncio.run(create_cas_import(
         db=db_session,
         user_id=user.id,
         household_member_id=member.id,
         file_bytes=fake_pdf,
         filename="statement1.pdf",
         password="PASS",
-    )
+    ))
     assert rec1.status == ImportStatus.IMPORT_SUCCESSFUL
     assert rec1.new_transactions_count == 1
     assert rec1.duplicate_transactions_count == 0
@@ -268,14 +269,14 @@ def test_deduplication_fingerprint_skips_duplicates(db_session, sample_user_and_
     )
     monkeypatch.setattr("app.services.import_.lifecycle_service.parse_cas_pdf_bytes", lambda b, p: parse_res_2)
 
-    rec2 = create_cas_import(
+    rec2 = asyncio.run(create_cas_import(
         db=db_session,
         user_id=user.id,
         household_member_id=member.id,
         file_bytes=fake_pdf,
         filename="statement2.pdf",
         password="PASS",
-    )
+    ))
     assert rec2.status == ImportStatus.IMPORT_SUCCESSFUL
     assert rec2.new_transactions_count == 1  # only txn2 added
     assert rec2.duplicate_transactions_count == 1  # txn1 skipped as duplicate

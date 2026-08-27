@@ -66,7 +66,7 @@ export function FundDetailModal({
         </div>
 
         <FundSignalGraph
-          returnPercentage={invested > 0 ? (profit / invested) * 100 : 0}
+          schemeId={holding.scheme_id}
         />
 
         <div className={styles.detailsList}>

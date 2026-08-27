@@ -42,6 +42,7 @@ from difflib import SequenceMatcher
 import httpx
 from sqlalchemy.orm import Session
 
+from app.db.session import commit_off_loop
 from app.models.enums import PlanNameVariant
 from app.models.reference import Scheme, SchemeTer
 
@@ -329,5 +330,5 @@ async def refresh_ter_data(db: Session) -> bool:
             continue
         _upsert_scheme_ter(db, scheme.id, reference_period, ter_value)
 
-    db.commit()
+    await commit_off_loop(db)
     return True

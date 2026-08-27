@@ -23,6 +23,7 @@ import httpx
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.db.session import commit_off_loop
 from app.models.enums import BenchmarkIndex
 from app.models.reference import BenchmarkIndexHistory
 
@@ -83,12 +84,12 @@ async def _fetch_index_history(index: BenchmarkIndex, start_date: date, end_date
     return rows
 
 
-def _upsert_index_history(db: Session, index: BenchmarkIndex, rows: list[tuple[date, Decimal]]) -> None:
+async def _upsert_index_history(db: Session, index: BenchmarkIndex, rows: list[tuple[date, Decimal]]) -> None:
     existing_dates = {d for (d,) in db.query(BenchmarkIndexHistory.date).filter_by(index_name=index).all()}
     for row_date, value in rows:
         if row_date not in existing_dates:
             db.add(BenchmarkIndexHistory(index_name=index, date=row_date, value=value))
-    db.commit()
+    await commit_off_loop(db)
 
 
 def _cached_date_bounds(db: Session, index: BenchmarkIndex) -> tuple[date, date] | None:
@@ -119,7 +120,7 @@ async def ensure_index_history_fresh(db: Session, index: BenchmarkIndex, start_d
     if not rows:
         return False
 
-    _upsert_index_history(db, index, rows)
+    await _upsert_index_history(db, index, rows)
     return True
 
 

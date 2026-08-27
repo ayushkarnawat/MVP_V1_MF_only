@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from app.db.base import Base
 from app.models.reference import Scheme
@@ -22,7 +23,9 @@ from app.services.dashboard.nav import (
 
 
 def _session():
-    engine = create_engine("sqlite:///:memory:")
+    engine = create_engine(
+        "sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool
+    )
     Base.metadata.create_all(engine)
     return sessionmaker(autoflush=False, bind=engine)()
 
@@ -423,8 +426,13 @@ def test_upsert_nav_history_is_conflict_safe_across_sessions(tmp_path):
     scheme = _scheme(setup_db)
     row = [(date(2024, 1, 15), Decimal("50.1234"))]
 
+    def _run(session):
+        import asyncio
+
+        asyncio.run(_upsert_nav_history(session, scheme.id, row))
+
     with ThreadPoolExecutor(max_workers=2) as executor:
-        futures = [executor.submit(_upsert_nav_history, sessions(), scheme.id, row) for _ in range(2)]
+        futures = [executor.submit(_run, sessions()) for _ in range(2)]
         for future in futures:
             future.result()
 

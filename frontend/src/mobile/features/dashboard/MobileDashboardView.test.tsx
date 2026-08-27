@@ -12,6 +12,14 @@ vi.mock("@/features/dashboard/api", () => ({
   getMemberAllocation: vi.fn(),
   getAggregateDistributorComparison: vi.fn(),
   getMemberDistributorComparison: vi.fn(),
+  getFundNavHistory: vi.fn().mockResolvedValue({
+    scheme_id: "",
+    period: "1Y",
+    requested_period: "1Y",
+    clamped: false,
+    points: [],
+    overall_return_pct: null,
+  }),
 }));
 
 vi.mock("@/features/import/api", () => ({

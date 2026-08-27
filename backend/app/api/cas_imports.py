@@ -95,7 +95,7 @@ async def upload_cas_import(
 
     pdf_bytes = await file.read()
     try:
-        import_rec = create_cas_import(
+        import_rec = await create_cas_import(
             db=db,
             user_id=user.id,
             household_member_id=member_uuid,

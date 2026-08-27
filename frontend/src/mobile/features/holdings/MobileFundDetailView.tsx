@@ -1,6 +1,8 @@
-import { useState, useMemo, useRef, useLayoutEffect } from "react";
+import { useState, useMemo, useRef, useLayoutEffect, useEffect } from "react";
+import type { KeyboardEvent, PointerEvent } from "react";
 import { Badge } from "@/components/Badge";
 import { FundSignal } from "@/components/FundSignal";
+import { Skeleton } from "@/components/Skeleton";
 import { cn, toTitleCase } from "@/lib/utils";
 import {
   ChevronLeft,
@@ -9,7 +11,12 @@ import {
   Info,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import type { HoldingRow } from "@/features/dashboard/types";
+import { getFundNavHistory } from "@/features/dashboard/api";
+import type {
+  HoldingRow,
+  NavHistoryPeriod,
+  SchemeNavHistoryResponse,
+} from "@/features/dashboard/types";
 import { motion, useReducedMotion } from "motion/react";
 import { pageTransition, isTestEnv } from "@/lib/motion";
 
@@ -18,12 +25,29 @@ export interface MobileFundDetailViewProps {
   onBack: () => void;
 }
 
-type Timeframe = "1M" | "3M" | "6M" | "1Y" | "ALL";
-
 interface ChartPoint {
   date: string;
   value: number;
   label: string;
+}
+
+// Compute SVG viewBox dimensions (module-level: shared by layout and the pointer-to-index inversion below)
+const SVG_WIDTH = 320;
+const SVG_HEIGHT = 140;
+const PADDING_X = 16;
+const PADDING_Y = 16;
+
+// Maps a pointer's screen X back to the nearest plotted index. Points are laid out
+// linearly by index (see the x calc below), so this is a closed-form inverse rather
+// than a distance scan — cheap even at the backend's 400-point downsample cap.
+// Mirrors FundSignal.tsx's `indexFromClientX` (web), scaled to this chart's viewBox.
+function indexFromClientX(clientX: number, rect: { left: number; width: number }, pointCount: number): number {
+  if (pointCount <= 1) return 0;
+  const ratio = rect.width === 0 ? 0 : Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1);
+  const viewBoxX = ratio * SVG_WIDTH;
+  const plotWidth = SVG_WIDTH - PADDING_X * 2;
+  const relative = (viewBoxX - PADDING_X) / plotWidth;
+  return Math.min(Math.max(Math.round(relative * (pointCount - 1)), 0), pointCount - 1);
 }
 
 export function MobileFundDetailView({
@@ -59,9 +83,27 @@ export function MobileFundDetailView({
     const rafId = requestAnimationFrame(resetScroll);
     return () => cancelAnimationFrame(rafId);
   }, [holding]);
-  const [selectedTimeframe, setSelectedTimeframe] = useState<Timeframe>("6M");
-  const [hoveredPoint, setHoveredPoint] = useState<ChartPoint | null>(null);
+  const [selectedTimeframe, setSelectedTimeframe] = useState<NavHistoryPeriod>("1Y");
+  const [history, setHistory] = useState<SchemeNavHistoryResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const shouldReduceMotion = useReducedMotion() || isTestEnv;
+
+  // Reset display state during render, not in the effect below. A `useEffect` reset
+  // only runs after React has already committed and painted the previous timeframe's/
+  // holding's stale data for one frame; calling setState here, while `fetchKey` still
+  // differs from the last-committed value, makes React discard this render and restart
+  // immediately with the reset state — so the stale value is never painted at all.
+  const fetchKey = `${holding.scheme_id}|${selectedTimeframe}`;
+  const [committedFetchKey, setCommittedFetchKey] = useState(fetchKey);
+  if (fetchKey !== committedFetchKey) {
+    setCommittedFetchKey(fetchKey);
+    setHistory(null);
+    setLoading(true);
+    setError(null);
+    setActiveIndex(null);
+  }
 
   const invested = parseFloat(holding.amount_invested || "0");
   const currentValue = parseFloat(holding.current_value || "0");
@@ -70,83 +112,85 @@ export function MobileFundDetailView({
   );
   const isPositive = profit >= 0;
   const totalReturnPct = invested > 0 ? (profit / invested) * 100 : 0;
-  const currentNavNum = parseFloat(holding.current_nav || "0");
-  const avgNavNum = parseFloat(holding.average_nav || "0");
+  useEffect(() => {
+    const controller = new AbortController();
 
-  /* Generate illustrative performance curve based on available valuation points */
+    getFundNavHistory(holding.scheme_id, selectedTimeframe, controller.signal)
+      .then((data) => {
+        // Guard on the controller's own abort flag, not just AbortError — a resolved
+        // (e.g. cached) response can still arrive after this request was superseded
+        // by a scheme/timeframe change, without ever rejecting.
+        if (controller.signal.aborted) return;
+        setHistory(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        if (controller.signal.aborted || err?.name === "AbortError") return;
+        setError(err?.message || "Failed to load performance history");
+        setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [holding.scheme_id, selectedTimeframe]);
+
   const chartData = useMemo<ChartPoint[]>(() => {
-    const pointsCount =
-      selectedTimeframe === "1M"
-        ? 6
-        : selectedTimeframe === "3M"
-        ? 8
-        : selectedTimeframe === "6M"
-        ? 10
-        : selectedTimeframe === "1Y"
-        ? 12
-        : 14;
-
-    const baseVal = avgNavNum > 0 ? avgNavNum : currentNavNum * 0.85;
-    const targetVal = currentNavNum > 0 ? currentNavNum : baseVal * 1.15;
-    const diff = targetVal - baseVal;
-
-    const points: ChartPoint[] = [];
-    const now = new Date();
-
-    for (let i = 0; i < pointsCount; i++) {
-      const progress = i / (pointsCount - 1);
-      // Realistic gentle curve with mild fluctuation
-      const noise =
-        i > 0 && i < pointsCount - 1
-          ? Math.sin(progress * Math.PI * 2) * (diff * 0.08)
-          : 0;
-      const val = baseVal + diff * Math.pow(progress, 0.9) + noise;
-
-      const dateObj = new Date(now);
-      const daysBack = (pointsCount - 1 - i) * (selectedTimeframe === "1M" ? 5 : selectedTimeframe === "3M" ? 11 : selectedTimeframe === "6M" ? 18 : 30);
-      dateObj.setDate(now.getDate() - daysBack);
-
-      points.push({
-        date: dateObj.toLocaleDateString("en-IN", {
+    return (history?.points ?? []).map((point) => ({
+        date: new Date(`${point.date}T00:00:00Z`).toLocaleDateString("en-IN", {
           month: "short",
           day: "numeric",
+          timeZone: "UTC",
         }),
-        value: Math.max(0.01, val),
-        label: `₹${val.toFixed(2)}`,
-      });
-    }
-
-    return points;
-  }, [selectedTimeframe, currentNavNum, avgNavNum]);
-
-  // Compute SVG viewBox dimensions
-  const svgWidth = 320;
-  const svgHeight = 140;
-  const paddingX = 16;
-  const paddingY = 16;
+        value: Number(point.return_pct),
+        label: `${point.return_pct}%`,
+      }));
+  }, [history]);
 
   const minVal = Math.min(...chartData.map((d) => d.value));
   const maxVal = Math.max(...chartData.map((d) => d.value));
   const valRange = maxVal - minVal || 1;
 
-  const pointsString = chartData
-    .map((d, index) => {
-      const x =
-        paddingX +
-        (index / (chartData.length - 1)) * (svgWidth - paddingX * 2);
-      const y =
-        svgHeight -
-        paddingY -
-        ((d.value - minVal) / valRange) * (svgHeight - paddingY * 2);
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    })
-    .join(" ");
+  const coords = chartData.map((d, index) => ({
+    x:
+      PADDING_X +
+      (chartData.length === 1 ? 0.5 : index / (chartData.length - 1)) * (SVG_WIDTH - PADDING_X * 2),
+    y:
+      SVG_HEIGHT -
+      PADDING_Y -
+      ((d.value - minVal) / valRange) * (SVG_HEIGHT - PADDING_Y * 2),
+  }));
 
-  const areaPathString = `M ${paddingX},${svgHeight} L ${pointsString
+  const pointsString = coords.map(({ x, y }) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
+
+  const areaPathString = chartData.length === 0 ? "" : `M ${PADDING_X},${SVG_HEIGHT} L ${pointsString
     .split(" ")
-    .join(" L ")} L ${svgWidth - paddingX},${svgHeight} Z`;
+    .join(" L ")} L ${SVG_WIDTH - PADDING_X},${SVG_HEIGHT} Z`;
 
-  const activePoint = hoveredPoint || chartData[chartData.length - 1];
+  const displayedIndex = activeIndex ?? chartData.length - 1;
+  const activePoint = chartData[displayedIndex];
+  const displayedCoord = coords[displayedIndex];
+
+  function handleScrubberPointerMove(event: PointerEvent<SVGRectElement>) {
+    if (chartData.length === 0) return;
+    setActiveIndex(indexFromClientX(event.clientX, event.currentTarget.getBoundingClientRect(), chartData.length));
+  }
+
+  function handleScrubberKeyDown(event: KeyboardEvent<SVGRectElement>) {
+    if (chartData.length === 0) return;
+    const current = activeIndex ?? chartData.length - 1;
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      setActiveIndex(Math.max(0, current - 1));
+    } else if (event.key === "ArrowRight") {
+      event.preventDefault();
+      setActiveIndex(Math.min(chartData.length - 1, current + 1));
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      setActiveIndex(0);
+    } else if (event.key === "End") {
+      event.preventDefault();
+      setActiveIndex(chartData.length - 1);
+    }
+  }
 
   return (
     <motion.div
@@ -273,14 +317,16 @@ export function MobileFundDetailView({
               <span className="font-display text-sm font-bold text-[var(--color-ink)] block">
                 Performance
               </span>
-              <span className="text-[11px] text-[var(--color-text-secondary)] mt-0.5">
-                {activePoint.date}: <strong className="text-[var(--color-ink)]">{activePoint.label}</strong>
-              </span>
+              {activePoint && (
+                <span className="text-[11px] text-[var(--color-text-secondary)] mt-0.5">
+                  {activePoint.date}: <strong className="text-[var(--color-ink)]">{activePoint.label}</strong>
+                </span>
+              )}
             </div>
 
             {/* Timeframe Selector Pills */}
             <div className="inline-flex items-center p-0.5 rounded-lg bg-[var(--color-bg)] border border-[var(--color-border)] shadow-2xs">
-              {(["1M", "3M", "6M", "1Y", "ALL"] as Timeframe[]).map((tf) => (
+              {(["1M", "1Y", "3Y", "5Y", "MAX"] as NavHistoryPeriod[]).map((tf) => (
                 <button
                   key={tf}
                   onClick={() => setSelectedTimeframe(tf)}
@@ -299,9 +345,19 @@ export function MobileFundDetailView({
           </div>
 
           {/* Interactive Chart Container */}
-          <div className="relative w-full h-[150px] select-none touch-none">
+          {loading ? (
+            <Skeleton height="150px" width="100%" />
+          ) : error ? (
+            <div className="flex items-center gap-1.5 p-2.5 rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] text-[11px] text-[var(--color-text-secondary)]">
+              <Info className="h-3.5 w-3.5 flex-shrink-0 text-[var(--color-negative)]" />
+              <span>{error}</span>
+            </div>
+          ) : chartData.length === 0 ? (
+            <p className="text-[11px] text-[var(--color-text-secondary)]">No performance history available yet.</p>
+          ) : (
+          <div className="relative w-full h-[150px] select-none">
             <svg
-              viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+              viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}
               className="w-full h-full overflow-visible"
             >
               <defs>
@@ -332,62 +388,64 @@ export function MobileFundDetailView({
                 points={pointsString}
               />
 
-              {/* Interactive Point Targets */}
-              {chartData.map((d, index) => {
-                const x =
-                  paddingX +
-                  (index / (chartData.length - 1)) * (svgWidth - paddingX * 2);
-                const y =
-                  svgHeight -
-                  paddingY -
-                  ((d.value - minVal) / valRange) * (svgHeight - paddingY * 2);
-                const isCurrentActive =
-                  (hoveredPoint && hoveredPoint.date === d.date) ||
-                  (!hoveredPoint && index === chartData.length - 1);
+              {displayedCoord && (
+                <>
+                  <line
+                    x1={displayedCoord.x}
+                    y1={PADDING_Y}
+                    x2={displayedCoord.x}
+                    y2={SVG_HEIGHT}
+                    stroke="var(--color-border)"
+                    strokeDasharray="3,3"
+                    strokeWidth="1"
+                  />
+                  <circle
+                    cx={displayedCoord.x}
+                    cy={displayedCoord.y}
+                    r="5"
+                    fill="var(--color-accent, #22c55e)"
+                    stroke="var(--color-surface)"
+                    strokeWidth="2"
+                  />
+                </>
+              )}
 
-                return (
-                  <g key={d.date}>
-                    {isCurrentActive && (
-                      <>
-                        <line
-                          x1={x}
-                          y1={paddingY}
-                          x2={x}
-                          y2={svgHeight}
-                          stroke="var(--color-border)"
-                          strokeDasharray="3,3"
-                          strokeWidth="1"
-                        />
-                        <circle
-                          cx={x}
-                          cy={y}
-                          r="5"
-                          fill="var(--color-accent, #22c55e)"
-                          stroke="var(--color-surface)"
-                          strokeWidth="2"
-                        />
-                      </>
-                    )}
-                    <circle
-                      cx={x}
-                      cy={y}
-                      r="16"
-                      fill="transparent"
-                      className="cursor-pointer"
-                      onMouseEnter={() => setHoveredPoint(d)}
-                      onTouchStart={() => setHoveredPoint(d)}
-                    />
-                  </g>
-                );
-              })}
+              {/* Single continuous hit region rather than one circle per point: at the
+                  backend's 400-point downsample cap, adjacent points sit well under a
+                  pixel apart, so per-point targets would overlap and most points would
+                  be unreachable. `role="slider"` + arrow-key support also gives
+                  keyboard/screen-reader users the same point-by-point access that
+                  pointer scrubbing gets. Mirrors FundSignal.tsx's web implementation. */}
+              <rect
+                x={0}
+                y={0}
+                width={SVG_WIDTH}
+                height={SVG_HEIGHT}
+                fill="transparent"
+                className="cursor-pointer touch-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent)]"
+                style={{ touchAction: "none" }}
+                tabIndex={0}
+                role="slider"
+                aria-label="Fund performance history. Use arrow keys to inspect points."
+                aria-valuemin={0}
+                aria-valuemax={Math.max(chartData.length - 1, 0)}
+                aria-valuenow={displayedIndex}
+                aria-valuetext={activePoint ? `${activePoint.date}: ${activePoint.label}` : undefined}
+                onPointerDown={handleScrubberPointerMove}
+                onPointerMove={handleScrubberPointerMove}
+                onPointerLeave={() => setActiveIndex(null)}
+                onKeyDown={handleScrubberKeyDown}
+              />
             </svg>
           </div>
+          )}
 
-          {/* Historical Data Transparency Note */}
-          <div className="flex items-center gap-1.5 p-2.5 rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] text-[11px] text-[var(--color-text-secondary)]">
-            <Info className="h-3.5 w-3.5 flex-shrink-0 text-[var(--color-accent)]" />
-            <span>Historical NAV timeseries API unavailable — displaying portfolio baseline trajectory.</span>
-          </div>
+          {!loading && !error && chartData.length > 0 && history?.clamped && (
+            <div className="flex items-center gap-1.5 p-2.5 rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] text-[11px] text-[var(--color-text-secondary)]">
+              <Info className="h-3.5 w-3.5 flex-shrink-0 text-[var(--color-accent)]" />
+              <span>Showing full history since inception — not enough data for {history.requested_period}</span>
+            </div>
+          )}
         </section>
 
         {/* Detailed Scheme Breakdown List */}
