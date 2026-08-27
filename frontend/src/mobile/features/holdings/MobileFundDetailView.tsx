@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useLayoutEffect, useEffect } from "react";
+import type { KeyboardEvent, PointerEvent } from "react";
 import { Badge } from "@/components/Badge";
 import { FundSignal } from "@/components/FundSignal";
 import { Skeleton } from "@/components/Skeleton";
@@ -28,6 +29,25 @@ interface ChartPoint {
   date: string;
   value: number;
   label: string;
+}
+
+// Compute SVG viewBox dimensions (module-level: shared by layout and the pointer-to-index inversion below)
+const SVG_WIDTH = 320;
+const SVG_HEIGHT = 140;
+const PADDING_X = 16;
+const PADDING_Y = 16;
+
+// Maps a pointer's screen X back to the nearest plotted index. Points are laid out
+// linearly by index (see the x calc below), so this is a closed-form inverse rather
+// than a distance scan — cheap even at the backend's 400-point downsample cap.
+// Mirrors FundSignal.tsx's `indexFromClientX` (web), scaled to this chart's viewBox.
+function indexFromClientX(clientX: number, rect: { left: number; width: number }, pointCount: number): number {
+  if (pointCount <= 1) return 0;
+  const ratio = rect.width === 0 ? 0 : Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1);
+  const viewBoxX = ratio * SVG_WIDTH;
+  const plotWidth = SVG_WIDTH - PADDING_X * 2;
+  const relative = (viewBoxX - PADDING_X) / plotWidth;
+  return Math.min(Math.max(Math.round(relative * (pointCount - 1)), 0), pointCount - 1);
 }
 
 export function MobileFundDetailView({
@@ -67,7 +87,7 @@ export function MobileFundDetailView({
   const [history, setHistory] = useState<SchemeNavHistoryResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [hoveredPoint, setHoveredPoint] = useState<ChartPoint | null>(null);
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const shouldReduceMotion = useReducedMotion() || isTestEnv;
 
   const invested = parseFloat(holding.amount_invested || "0");
@@ -81,7 +101,11 @@ export function MobileFundDetailView({
     const controller = new AbortController();
     setLoading(true);
     setError(null);
-    setHoveredPoint(null);
+    setActiveIndex(null);
+    // Clear stale data too: the loading/error branches replace the chart, but the
+    // header's activePoint readout is rendered outside that conditional, so leaving
+    // the previous timeframe's history in place would show it as if it were current.
+    setHistory(null);
 
     getFundNavHistory(holding.scheme_id, selectedTimeframe, controller.signal)
       .then((data) => {
@@ -113,34 +137,52 @@ export function MobileFundDetailView({
       }));
   }, [history]);
 
-  // Compute SVG viewBox dimensions
-  const svgWidth = 320;
-  const svgHeight = 140;
-  const paddingX = 16;
-  const paddingY = 16;
-
   const minVal = Math.min(...chartData.map((d) => d.value));
   const maxVal = Math.max(...chartData.map((d) => d.value));
   const valRange = maxVal - minVal || 1;
 
-  const pointsString = chartData
-    .map((d, index) => {
-      const x =
-        paddingX +
-        (chartData.length === 1 ? 0.5 : index / (chartData.length - 1)) * (svgWidth - paddingX * 2);
-      const y =
-        svgHeight -
-        paddingY -
-        ((d.value - minVal) / valRange) * (svgHeight - paddingY * 2);
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    })
-    .join(" ");
+  const coords = chartData.map((d, index) => ({
+    x:
+      PADDING_X +
+      (chartData.length === 1 ? 0.5 : index / (chartData.length - 1)) * (SVG_WIDTH - PADDING_X * 2),
+    y:
+      SVG_HEIGHT -
+      PADDING_Y -
+      ((d.value - minVal) / valRange) * (SVG_HEIGHT - PADDING_Y * 2),
+  }));
 
-  const areaPathString = chartData.length === 0 ? "" : `M ${paddingX},${svgHeight} L ${pointsString
+  const pointsString = coords.map(({ x, y }) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
+
+  const areaPathString = chartData.length === 0 ? "" : `M ${PADDING_X},${SVG_HEIGHT} L ${pointsString
     .split(" ")
-    .join(" L ")} L ${svgWidth - paddingX},${svgHeight} Z`;
+    .join(" L ")} L ${SVG_WIDTH - PADDING_X},${SVG_HEIGHT} Z`;
 
-  const activePoint = hoveredPoint || chartData[chartData.length - 1];
+  const displayedIndex = activeIndex ?? chartData.length - 1;
+  const activePoint = chartData[displayedIndex];
+  const displayedCoord = coords[displayedIndex];
+
+  function handleScrubberPointerMove(event: PointerEvent<SVGRectElement>) {
+    if (chartData.length === 0) return;
+    setActiveIndex(indexFromClientX(event.clientX, event.currentTarget.getBoundingClientRect(), chartData.length));
+  }
+
+  function handleScrubberKeyDown(event: KeyboardEvent<SVGRectElement>) {
+    if (chartData.length === 0) return;
+    const current = activeIndex ?? chartData.length - 1;
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      setActiveIndex(Math.max(0, current - 1));
+    } else if (event.key === "ArrowRight") {
+      event.preventDefault();
+      setActiveIndex(Math.min(chartData.length - 1, current + 1));
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      setActiveIndex(0);
+    } else if (event.key === "End") {
+      event.preventDefault();
+      setActiveIndex(chartData.length - 1);
+    }
+  }
 
   return (
     <motion.div
@@ -305,9 +347,9 @@ export function MobileFundDetailView({
           ) : chartData.length === 0 ? (
             <p className="text-[11px] text-[var(--color-text-secondary)]">No performance history available yet.</p>
           ) : (
-          <div className="relative w-full h-[150px] select-none touch-none">
+          <div className="relative w-full h-[150px] select-none">
             <svg
-              viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+              viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}
               className="w-full h-full overflow-visible"
             >
               <defs>
@@ -338,54 +380,54 @@ export function MobileFundDetailView({
                 points={pointsString}
               />
 
-              {/* Interactive Point Targets */}
-              {chartData.map((d, index) => {
-                const x =
-                  paddingX +
-                  (chartData.length === 1 ? 0.5 : index / (chartData.length - 1)) * (svgWidth - paddingX * 2);
-                const y =
-                  svgHeight -
-                  paddingY -
-                  ((d.value - minVal) / valRange) * (svgHeight - paddingY * 2);
-                const isCurrentActive =
-                  (hoveredPoint && hoveredPoint.date === d.date) ||
-                  (!hoveredPoint && index === chartData.length - 1);
+              {displayedCoord && (
+                <>
+                  <line
+                    x1={displayedCoord.x}
+                    y1={PADDING_Y}
+                    x2={displayedCoord.x}
+                    y2={SVG_HEIGHT}
+                    stroke="var(--color-border)"
+                    strokeDasharray="3,3"
+                    strokeWidth="1"
+                  />
+                  <circle
+                    cx={displayedCoord.x}
+                    cy={displayedCoord.y}
+                    r="5"
+                    fill="var(--color-accent, #22c55e)"
+                    stroke="var(--color-surface)"
+                    strokeWidth="2"
+                  />
+                </>
+              )}
 
-                return (
-                  <g key={d.date}>
-                    {isCurrentActive && (
-                      <>
-                        <line
-                          x1={x}
-                          y1={paddingY}
-                          x2={x}
-                          y2={svgHeight}
-                          stroke="var(--color-border)"
-                          strokeDasharray="3,3"
-                          strokeWidth="1"
-                        />
-                        <circle
-                          cx={x}
-                          cy={y}
-                          r="5"
-                          fill="var(--color-accent, #22c55e)"
-                          stroke="var(--color-surface)"
-                          strokeWidth="2"
-                        />
-                      </>
-                    )}
-                    <circle
-                      cx={x}
-                      cy={y}
-                      r="16"
-                      fill="transparent"
-                      className="cursor-pointer"
-                      onMouseEnter={() => setHoveredPoint(d)}
-                      onTouchStart={() => setHoveredPoint(d)}
-                    />
-                  </g>
-                );
-              })}
+              {/* Single continuous hit region rather than one circle per point: at the
+                  backend's 400-point downsample cap, adjacent points sit well under a
+                  pixel apart, so per-point targets would overlap and most points would
+                  be unreachable. `role="slider"` + arrow-key support also gives
+                  keyboard/screen-reader users the same point-by-point access that
+                  pointer scrubbing gets. Mirrors FundSignal.tsx's web implementation. */}
+              <rect
+                x={0}
+                y={0}
+                width={SVG_WIDTH}
+                height={SVG_HEIGHT}
+                fill="transparent"
+                className="cursor-pointer touch-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent)]"
+                style={{ touchAction: "none" }}
+                tabIndex={0}
+                role="slider"
+                aria-label="Fund performance history. Use arrow keys to inspect points."
+                aria-valuemin={0}
+                aria-valuemax={Math.max(chartData.length - 1, 0)}
+                aria-valuenow={displayedIndex}
+                aria-valuetext={activePoint ? `${activePoint.date}: ${activePoint.label}` : undefined}
+                onPointerDown={handleScrubberPointerMove}
+                onPointerMove={handleScrubberPointerMove}
+                onPointerLeave={() => setActiveIndex(null)}
+                onKeyDown={handleScrubberKeyDown}
+              />
             </svg>
           </div>
           )}

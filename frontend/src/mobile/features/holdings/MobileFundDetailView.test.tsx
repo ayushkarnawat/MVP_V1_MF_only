@@ -118,13 +118,76 @@ describe("MobileFundDetailView", () => {
     expect(await screen.findByText("Showing full history since inception — not enough data for 5Y")).toBeInTheDocument();
   });
 
-  it("keeps hover interaction wired to fetched chart points", async () => {
-    const { container } = render(<MobileFundDetailView holding={sampleHolding} onBack={vi.fn()} />);
-    await waitFor(() => expect(container.querySelectorAll("circle.cursor-pointer")).toHaveLength(2));
-    const targets = container.querySelectorAll("circle.cursor-pointer");
-    fireEvent.mouseEnter(targets[0]);
+  it("updates the readout via keyboard navigation on the chart scrubber", async () => {
+    render(<MobileFundDetailView holding={sampleHolding} onBack={vi.fn()} />);
+    await screen.findByText((_, element) => element?.tagName === "SPAN" && element.textContent === "25 Aug: 31.87%");
+
+    fireEvent.keyDown(screen.getByRole("slider"), { key: "ArrowLeft" });
+
     expect(screen.getByText((_, element) => element?.tagName === "SPAN" && element.textContent === "15 Jan: 0.00%")).toBeInTheDocument();
-    expect(screen.getByText("0.00%")).toBeInTheDocument();
+  });
+
+  it("updates the readout when scrubbing across the chart with a pointer", async () => {
+    render(<MobileFundDetailView holding={sampleHolding} onBack={vi.fn()} />);
+    await screen.findByText((_, element) => element?.tagName === "SPAN" && element.textContent === "25 Aug: 31.87%");
+
+    const scrubber = screen.getByRole("slider");
+    vi.spyOn(scrubber, "getBoundingClientRect").mockReturnValue({
+      width: 320,
+      left: 0,
+      right: 320,
+      top: 0,
+      bottom: 140,
+      height: 140,
+      x: 0,
+      y: 0,
+      toJSON: () => undefined,
+    } as DOMRect);
+
+    fireEvent.pointerMove(scrubber, { clientX: 0 });
+
+    expect(screen.getByText((_, element) => element?.tagName === "SPAN" && element.textContent === "15 Jan: 0.00%")).toBeInTheDocument();
+  });
+
+  it("updates the readout on a touch tap without requiring a drag", async () => {
+    render(<MobileFundDetailView holding={sampleHolding} onBack={vi.fn()} />);
+    await screen.findByText((_, element) => element?.tagName === "SPAN" && element.textContent === "25 Aug: 31.87%");
+
+    const scrubber = screen.getByRole("slider");
+    vi.spyOn(scrubber, "getBoundingClientRect").mockReturnValue({
+      width: 320,
+      left: 0,
+      right: 320,
+      top: 0,
+      bottom: 140,
+      height: 140,
+      x: 0,
+      y: 0,
+      toJSON: () => undefined,
+    } as DOMRect);
+
+    fireEvent.pointerDown(scrubber, { clientX: 0, pointerType: "touch" });
+
+    expect(screen.getByText((_, element) => element?.tagName === "SPAN" && element.textContent === "15 Jan: 0.00%")).toBeInTheDocument();
+  });
+
+  it("clears the previous timeframe's readout while a new one is loading", async () => {
+    let resolveNext: (value: SchemeNavHistoryResponse) => void = () => undefined;
+    const nextPromise = new Promise<SchemeNavHistoryResponse>((resolve) => {
+      resolveNext = resolve;
+    });
+
+    render(<MobileFundDetailView holding={sampleHolding} onBack={vi.fn()} />);
+    await screen.findByText((_, element) => element?.tagName === "SPAN" && element.textContent === "25 Aug: 31.87%");
+
+    vi.mocked(getFundNavHistory).mockReturnValue(nextPromise);
+    fireEvent.click(screen.getByRole("button", { name: "5Y" }));
+
+    // Stale 1Y readout must not linger while the 5Y request is in flight.
+    expect(screen.queryByText((_, element) => element?.tagName === "SPAN" && element.textContent === "25 Aug: 31.87%")).not.toBeInTheDocument();
+
+    resolveNext({ ...historyResponse, period: "5Y", requested_period: "5Y" });
+    await screen.findByText((_, element) => element?.tagName === "SPAN" && element.textContent === "25 Aug: 31.87%");
   });
 
   it("resets scroll container scrollTop to 0 when mounted inside a scrolled container", () => {
