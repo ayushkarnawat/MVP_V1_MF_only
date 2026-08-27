@@ -1,9 +1,7 @@
 # Handoff: fund-nav-history-graph
 
-**Status:** IN_PROGRESS — Tasks 1-3 DONE (backend, web, mobile). Task 4
-(final whole-branch verification + whole-diff review + docs update) mostly
-done — one open question (float coercion for chart geometry, see Task 4
-below) is pending the user's call before this can close.
+**Status:** DONE — Tasks 1-4 complete (backend, web, mobile, final
+verification/review/docs).
 **Parent plan:** none (small, fully-specified feature; no separate plan doc)
 
 ## Task
@@ -475,22 +473,25 @@ schema" rule as Task 2.
 
 ## Task 4 — Final verification + whole-diff review + docs update
 
-**Status: mostly DONE** — see delegation log entries dated 2026-08-27
-under `fund-nav-history-graph Task 4` for full detail.
+**Status: DONE** — see delegation log entries dated 2026-08-27 under
+`fund-nav-history-graph Task 4` for full detail.
 
 Whole-diff review (job `task-mtb5xejv-kwscz6`) found 3 Important + 1 Minor.
 Fixed and committed: the web render-time stale-state reset (`c58c55b`,
 porting Task 3's mobile pattern), mobile's contradictory clamped+empty
 message (`83cfacc`), and the CRLF/trailing-whitespace Minor (`d7d06d5`).
 
-**Open — needs the user's call:** `values = points.map((p) =>
+**Resolved by user decision:** `values = points.map((p) =>
 Number(p.return_pct))` in both `FundSignal.tsx` and
 `MobileFundDetailView.tsx` float-coerces the Decimal-string `return_pct`
-for chart-geometry (min/max/range) math. The handoff constraint above says
-"Decimal-never-float in the data path, display-only `Number()` is fine" —
-three separate review passes disagreed on whether geometry math counts as
-"data path" or "display-only" here. Not resolved either way; needs a
-decision, not a guess.
+for chart-geometry (min/max/range) math — flagged as ambiguous against the
+"Decimal-never-float in the data path" constraint above. Confirmed
+`return_pct` is always server-side quantized to exactly `Decimal("0.01")`
+(`fund_detail.py`'s `_RETURN_QUANTUM`), so float rounding error is ~1e-15,
+undetectable at any chart pixel scale — Decimal-based geometry math would
+be pixel-identical. No visual upside; kept as-is (float for layout is an
+accepted exception to the data-path rule here, since no downstream number
+is ever displayed or persisted from this calculation).
 
 Also fixed this session, found only after implementation via user-reported
 screenshots (not part of the original whole-diff review): web's chart
@@ -499,7 +500,7 @@ distorted non-uniformly on real desktop/laptop widths (`viewBox="0 0 100
 anisotropic scaling at realistic modal widths). Fixed by measuring the
 wrapper's live rendered width via `ResizeObserver` and using it directly as
 the viewBox width, with viewBox height fixed to match the CSS wrapper
-height exactly — commit `d6b367e`. Not yet visually confirmed in a live
-browser (blocked on auth for an authenticated session, see delegation
-log); correctness rests on the geometry being 1:1 by construction.
+height exactly — commit `d6b367e`. Visually confirmed by the user on both
+web (desktop/laptop) and mobile after the fix — round marker renders as a
+true circle, no curve warping.
 file, flag it rather than guess" rule as Task 1/2.
