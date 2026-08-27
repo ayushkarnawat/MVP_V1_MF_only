@@ -34,6 +34,10 @@ This doc covers three sub-tasks, dispatched separately:
 
 ## Task 1 — Backend: `GET /funds/{scheme_id}/nav-history`
 
+**Status: DONE** (commits `abc1347`, `248daae` — service + route + 11 tests,
+full backend suite 574 passed/3 skipped/0 failed, adversarial review clean
+after one fix round; see `delegation-log.md` 2026-08-27 entries.)
+
 ### Files
 - `backend/app/services/dashboard/schemas.py` — add response models.
 - `backend/app/services/dashboard/fund_detail.py` — **new file**, service
