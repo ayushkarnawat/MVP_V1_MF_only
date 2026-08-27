@@ -15,7 +15,7 @@ export function MobileLandingPage({
   const shouldReduceMotion = useReducedMotion() || isTestEnv;
 
   return (
-    <div className="h-dvh max-h-dvh w-full bg-[#FCFCFC] dark:bg-[var(--color-bg)] text-[var(--color-ink)] flex flex-col justify-between px-6 sm:px-8 pt-[max(env(safe-area-inset-top),1.5rem)] pb-[max(env(safe-area-inset-bottom),2rem)] box-border overflow-hidden relative selection:bg-[#22C55E]/20">
+    <div className="min-h-dvh w-full bg-[#FCFCFC] dark:bg-[var(--color-bg)] text-[var(--color-ink)] flex flex-col justify-between px-6 sm:px-8 pt-[max(env(safe-area-inset-top),1.5rem)] pb-[max(env(safe-area-inset-bottom),2rem)] box-border overflow-x-hidden overflow-y-auto relative selection:bg-[#22C55E]/20">
       {/* Soft Painterly Atmospheric Background Lighting */}
       <div
         className="absolute top-0 right-0 w-[450px] h-[450px] pointer-events-none opacity-70 dark:opacity-20 transition-opacity"

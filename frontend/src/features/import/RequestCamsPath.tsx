@@ -76,7 +76,7 @@ export function RequestCamsPath({
         variants={staggerItemVariants}
         className="p-4 sm:p-5 rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)]/80 space-y-3"
       >
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] block font-mono">
+        <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] block font-body">
           On the CAMS form, select these three options
         </span>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">

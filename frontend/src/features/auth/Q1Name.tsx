@@ -104,7 +104,7 @@ export function Q1Name({
 
   if (isMobile) {
     return (
-      <form onSubmit={handleSubmit} className="w-full h-full flex flex-col justify-between">
+      <form onSubmit={handleSubmit} className="w-full min-h-dvh flex-1 flex flex-col">
         <MobileOnboardingScreen
           currentStepIndex={currentStepIndex}
           totalSteps={totalSteps}

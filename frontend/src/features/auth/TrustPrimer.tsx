@@ -31,7 +31,7 @@ function ShortStayPrivacyIllustration() {
       initial={{ opacity: 0, scale: 0.96 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.55, ease: MOTION_EASING }}
-      className="relative flex items-center justify-center select-none w-56 h-56 sm:w-64 sm:h-64 mx-auto my-1"
+      className="relative flex items-center justify-center select-none w-52 h-52 xs:w-56 xs:h-56 sm:w-64 sm:h-64 mx-auto my-1.5"
       aria-label="Privacy illustration showing CAS statement safely dissolving into temporary insights"
       role="img"
     >

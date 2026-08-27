@@ -41,7 +41,7 @@ function MobileInitialFlow({ authInitialMode }: { authInitialMode: "login" | "si
 
   return (
     <MobileJourneyContext.Provider value={{ activeStep: journeyStep, setJourneyStep }}>
-      <div className="relative w-full min-h-dvh h-dvh max-h-dvh overflow-x-hidden overflow-y-auto bg-[#F8FAF9] dark:bg-[var(--color-bg)]">
+      <div className="relative w-full min-h-dvh overflow-x-hidden overflow-y-auto bg-[#F8FAF9] dark:bg-[var(--color-bg)]">
         {/* Foreground Content Card with physics-based fluid transition */}
         <div className="relative z-10 w-full min-h-full flex flex-col">
           {!me ? (

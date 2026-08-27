@@ -48,7 +48,7 @@ export function MobileOnboardingScreen({
   const shouldReduceMotion = useReducedMotion() || isTestEnv;
 
   return (
-    <div className="h-dvh max-h-dvh w-full bg-[#F8FAF9] dark:bg-[var(--color-bg)] text-[var(--color-ink)] flex flex-col justify-between px-5 sm:px-6 pt-2.5 sm:pt-3 pb-[max(env(safe-area-inset-bottom),1.25rem)] box-border overflow-hidden relative selection:bg-[#22C55E]/20">
+    <div className="min-h-dvh w-full bg-[#F8FAF9] dark:bg-[var(--color-bg)] text-[var(--color-ink)] flex flex-col justify-between px-5 sm:px-6 pt-2.5 sm:pt-3 pb-[max(env(safe-area-inset-bottom),1.25rem)] box-border overflow-x-hidden overflow-y-auto relative selection:bg-[#22C55E]/20">
       {/* Soft Painterly Atmospheric Background Lighting */}
       <div
         className="absolute top-0 left-0 w-80 h-80 pointer-events-none opacity-60 dark:opacity-20 transition-opacity z-0"
@@ -109,19 +109,19 @@ export function MobileOnboardingScreen({
         </div>
       </header>
 
-      {/* 2. Main Content Column: Progressive Hierarchical Motion */}
+      {/* 2. Main Content Column: Progressive Hierarchical Motion (Vertically Centered) */}
       <motion.main
         key={currentStepIndex}
         initial={shouldReduceMotion ? undefined : { opacity: 0, y: 10 }}
         animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
         transition={{ duration: 0.38, ease: MOTION_EASING }}
-        className="relative z-10 flex-1 flex flex-col justify-center my-auto w-full max-w-sm sm:max-w-md mx-auto text-center py-1"
+        className="relative z-10 flex-1 flex flex-col justify-center items-center my-auto w-full max-w-sm sm:max-w-md mx-auto text-center py-3 sm:py-5"
       >
         <motion.div
           variants={shouldReduceMotion ? undefined : onboardingContainerVariants}
           initial={shouldReduceMotion ? undefined : "hidden"}
           animate={shouldReduceMotion ? undefined : "visible"}
-          className="space-y-2.5 sm:space-y-3.5 w-full"
+          className="space-y-3 sm:space-y-4 w-full my-auto flex flex-col justify-center items-center"
         >
           {/* 1. Heading reveals first */}
           <motion.div variants={shouldReduceMotion ? undefined : onboardingHeadingVariants}>
@@ -141,7 +141,7 @@ export function MobileOnboardingScreen({
               ) : illustrationVariant ? (
                 <OnboardingIllustration
                   variant={illustrationVariant}
-                  className="w-44 h-44 xs:w-48 xs:h-48 sm:w-56 sm:h-56 mx-auto max-h-[230px] sm:max-h-[250px]"
+                  className="w-44 h-44 xs:w-48 xs:h-48 sm:w-56 sm:h-56 mx-auto max-h-[220px] sm:max-h-[250px]"
                 />
               ) : null}
             </motion.div>
@@ -149,7 +149,7 @@ export function MobileOnboardingScreen({
 
           {/* 3. Subtext appears progressively */}
           {subtext && (
-            <motion.div variants={shouldReduceMotion ? undefined : onboardingSubtextVariants}>
+            <motion.div variants={shouldReduceMotion ? undefined : onboardingSubtextVariants} className="pt-2 sm:pt-3">
               <p className="text-[12.5px] xs:text-[13px] sm:text-[14px] text-[#5C5C5C] dark:text-[#A3A3A3] leading-relaxed max-w-[340px] mx-auto font-normal font-body">
                 {subtext}
               </p>
@@ -174,7 +174,7 @@ export function MobileOnboardingScreen({
           initial={shouldReduceMotion ? undefined : { opacity: 0, y: 6 }}
           animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
           transition={{ duration: 0.42, delay: 0.12, ease: MOTION_EASING }}
-          className="relative z-20 w-full max-w-sm sm:max-w-md mx-auto pt-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] flex-shrink-0 flex items-center justify-between gap-3 box-border"
+          className="sticky bottom-0 bg-[#F8FAF9]/95 dark:bg-[var(--color-bg)]/95 backdrop-blur-sm z-30 w-full max-w-sm sm:max-w-md mx-auto pt-2 sm:pt-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] flex-shrink-0 flex items-center justify-between gap-3 box-border mt-auto"
         >
           {/* Skip Button (only rendered when onSkip handler is provided) */}
           {onSkip && (

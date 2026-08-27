@@ -110,7 +110,7 @@ export function MobileReviewView({
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-      className="w-full min-w-0 max-w-md mx-auto space-y-3 pt-1 pb-20 text-left box-border relative"
+      className="w-full min-w-0 max-w-md mx-auto space-y-3 pt-1 pb-28 sm:pb-32 text-left box-border relative"
     >
       {/* 1. Header Section */}
       <div className="space-y-0.5">

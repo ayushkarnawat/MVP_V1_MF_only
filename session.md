@@ -17,10 +17,15 @@ anything by re-reading the whole repo.**
    - After successful OTP verification, navigates directly to the dashboard without adding further roadmap steps.
    - Added unit tests in `MobileAuthBackground.test.tsx` and re-verified all 75 test suites (381 tests passing).
 
-2. **Mobile CAS Import Review Scroll & Viewport Overflow Fixes**:
-   - Fixed vertical scrolling prevention on mobile (e.g. iPhone SE 375x667) where the 2nd scheme card and beyond were clipped and unscrollable.
-   - Removed `overflow-hidden` constraints from `MobileInitialFlow` in `frontend/src/App.tsx`, added `overflow-y-auto min-h-dvh`, and updated `OnboardingFlow.tsx` containers.
-   - Refined `ReviewTable.tsx` for mobile: hidden "Statement Verified" badge on mobile, converted tab filters to 3-column grid without horizontal scrollbars, added `pb-28 sm:pb-24` bottom clearance for sticky footer.
+2. **Comprehensive Mobile Scrolling Fixes across all Mobile Screens**:
+   - Resolved height/overflow trapping across all mobile screens where users were unable to scroll down to view options, inputs, or CTAs.
+   - `MobileOnboardingScreen.tsx`: Replaced rigid `h-dvh max-h-dvh overflow-hidden` with `min-h-dvh overflow-x-hidden overflow-y-auto`, adjusted `<motion.main>` to `justify-start sm:justify-center`, scaled onboarding artwork responsively, and pinned `<motion.footer>` with `sticky bottom-0 backdrop-blur-sm z-30` so CTAs are always accessible.
+   - `App.tsx` (`MobileInitialFlow`): Removed outer `h-dvh max-h-dvh` height barrier, establishing `min-h-dvh overflow-x-hidden overflow-y-auto`.
+   - `MobileLandingPage.tsx`: Replaced `h-dvh max-h-dvh overflow-hidden` with `min-h-dvh overflow-x-hidden overflow-y-auto`.
+   - `AuthShell.tsx`: Added `overflow-y-auto pb-28 lg:pb-5` on mobile to prevent form CTAs and inputs from colliding with or hiding behind the bottom mobile roadmap.
+   - `MobileDistributorComparisonView.tsx`: Added `flex-1 min-h-0 overflow-y-auto pb-16` to ensure the list of distributors and scheme breakdowns scroll smoothly without being cut off.
+   - `MobileReviewView.tsx`: Increased bottom clearance from `pb-20` to `pb-28 sm:pb-32` above the sticky bottom action bar.
+   - `TrustPrimer.tsx`: Scaled custom illustration gracefully (`w-36 h-36 xs:w-44 xs:h-44 sm:w-56 sm:h-56`) on compact screens.
 
 3. **Mobile & Web Import Screens Vertical Centering & Refinements**:
    - Vertically centered the Upload Screen (`UploadForm.tsx`, `MobileUploadForm.tsx`, `TwoPathImportContainer.tsx`).

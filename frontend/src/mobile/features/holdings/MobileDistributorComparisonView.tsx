@@ -109,7 +109,7 @@ export function MobileDistributorComparisonView({
       </header>
 
       {/* Main Content View */}
-      <div className="p-4 space-y-4 overflow-y-auto">
+      <div className="flex-1 min-h-0 p-4 pb-16 space-y-4 overflow-y-auto">
         <div className="space-y-1">
           <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
             Compare returns across Direct plans and Regular distributors, across every fund you hold

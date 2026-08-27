@@ -158,7 +158,14 @@ Executed comprehensive visual, motion, validation, and illustration enhancements
    - After successful OTP verification, navigates directly to the dashboard without adding further roadmap steps.
    - Added unit tests in `MobileAuthBackground.test.tsx`.
 
-6. **Full Verification**:
+6. **Comprehensive Mobile Scrolling Fixes**:
+   - Eliminated rigid `h-dvh max-h-dvh overflow-hidden` barriers across mobile containers (`MobileOnboardingScreen.tsx`, `App.tsx`, `MobileLandingPage.tsx`, `AuthShell.tsx`).
+   - Implemented `min-h-dvh overflow-x-hidden overflow-y-auto` enabling smooth vertical scrolling on all question screens (Q1 Name, Q2 Investing, Q3 Purpose, Q4 Household, Trust Primer, Add Family Members) on compact viewports.
+   - Pinned mobile onboarding footers with `sticky bottom-0 backdrop-blur-sm z-30` ensuring CTAs are never obscured or pushed out of reach.
+   - Added `flex-1 min-h-0 overflow-y-auto pb-16` on `MobileDistributorComparisonView.tsx` and increased `pb-28 sm:pb-32` on `MobileReviewView.tsx`.
+   - Verified zero impact on the desktop web application.
+
+7. **Full Verification**:
    - Frontend test suite: 75 test files passed, 381 tests passed (100% green).
    - Zero regressions across desktop and mobile test suites.
 

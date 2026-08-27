@@ -64,7 +64,7 @@ export function AuthShell({ step, formSlot, visualSlot, stepIndex, authMode }: A
   }, [step, journey, currentJourneyStep, stepIndex, authMode]);
 
   return (
-    <div className="min-h-dvh lg:h-dvh lg:max-h-dvh w-full bg-[#F8FAF9] dark:bg-[var(--color-bg)] text-[var(--color-ink)] flex flex-col items-center justify-between lg:justify-center p-5 sm:p-6 lg:p-5 xl:p-8 relative box-border overflow-x-hidden selection:bg-[#22C55E]/20">
+    <div className="min-h-dvh lg:h-dvh lg:max-h-dvh w-full bg-[#F8FAF9] dark:bg-[var(--color-bg)] text-[var(--color-ink)] flex flex-col items-center justify-between lg:justify-center p-5 sm:p-6 lg:p-5 xl:p-8 pb-28 lg:pb-5 xl:lg:pb-8 relative box-border overflow-x-hidden overflow-y-auto selection:bg-[#22C55E]/20">
       {/* Soft Painterly Atmospheric Background Lighting */}
       <div
         className="absolute top-0 left-0 w-80 h-80 pointer-events-none opacity-60 dark:opacity-20 transition-opacity"
