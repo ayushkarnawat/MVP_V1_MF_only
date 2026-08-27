@@ -132,6 +132,28 @@ describe("FundSignalGraph", () => {
     expect(screen.getByText("Aug 25, 2025: 0.00%")).toBeInTheDocument();
   });
 
+  it("updates the readout on a touch tap without requiring a drag", async () => {
+    render(<FundSignalGraph schemeId="scheme-42" />);
+    await screen.findByText("Aug 25, 2026: +15.20%");
+
+    const scrubber = screen.getByRole("slider");
+    vi.spyOn(scrubber, "getBoundingClientRect").mockReturnValue({
+      width: 100,
+      left: 0,
+      right: 100,
+      top: 0,
+      bottom: 44,
+      height: 44,
+      x: 0,
+      y: 0,
+      toJSON: () => undefined,
+    } as DOMRect);
+
+    fireEvent.pointerDown(scrubber, { clientX: 0, pointerType: "touch" });
+
+    expect(screen.getByText("Aug 25, 2025: 0.00%")).toBeInTheDocument();
+  });
+
   it("ignores a stale response that resolves after a newer request", async () => {
     let resolveStale: (value: SchemeNavHistoryResponse) => void = () => undefined;
     const stalePromise = new Promise<SchemeNavHistoryResponse>((resolve) => {

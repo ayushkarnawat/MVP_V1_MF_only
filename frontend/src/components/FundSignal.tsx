@@ -229,6 +229,7 @@ export function FundSignalGraph({ schemeId, period = "1Y" }: FundSignalGraphProp
                 aria-valuetext={
                   displayedPoint ? `${formatDate(displayedPoint.date)}: ${formatPercent(displayedPoint.return_pct)}` : undefined
                 }
+                onPointerDown={handleScrubberPointerMove}
                 onPointerMove={handleScrubberPointerMove}
                 onPointerLeave={() => setActiveIndex(null)}
                 onKeyDown={handleScrubberKeyDown}

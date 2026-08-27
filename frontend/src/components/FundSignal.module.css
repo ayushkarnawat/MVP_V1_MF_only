@@ -135,6 +135,9 @@
 .scrubberOverlay {
   fill: transparent;
   cursor: crosshair;
+  /* Without this, a touch tap/drag on the overlay can be hijacked by the browser
+     as a page-scroll gesture before onPointerDown/onPointerMove ever fires. */
+  touch-action: none;
 }
 
 .scrubberOverlay:focus-visible {
