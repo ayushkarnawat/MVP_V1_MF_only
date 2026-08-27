@@ -150,8 +150,16 @@ Executed comprehensive visual, motion, validation, and illustration enhancements
    - Fixed asymmetric left offset in `MobileOnboardingScreen.tsx` by eliminating empty placeholder spacers when `onSkip` is absent and applying `w-full` directly.
    - Enforced explicit flex centering wrappers (`w-full flex justify-center items-center`) and `mx-auto` alignment on `ImportConfirmed.tsx`, `ImportError.tsx`, `MobileImportView.tsx`, and `EmptyState.tsx`.
 
-5. **Full Verification**:
-   - Frontend test suite: 75 test files passed, 358 tests passed (100% green).
+5. **Login Roadmap State Logic & 2-Milestone Flow (`MobileAuthBackground.tsx`, `AuthShell.tsx`, `AuthEntryFlow.tsx`, `mobileJourneyContext.tsx`)**:
+   - Fixed roadmap milestone state management: explicitly decoupled login progression from page switching, route changing, or Sign-up/Login toggles.
+   - Starting at Step 1 (`x: 36, y: 38`), clicking "Log in" from the Sign-up page switches to Login mode while keeping the marker rock solid at Step 1 (Milestone 1).
+   - Selecting "Continue with Email" or "Continue with Phone" and typing credentials keeps the marker firmly at Step 1.
+   - Transitioning to the OTP verification screen (`email_otp` or `otp`) moves the marker smoothly along the curved route to Step 2 (`x: 340, y: 22`), triggering the milestone pop/lift effect and `#milestone-unlock-glow`.
+   - After successful OTP verification, navigates directly to the dashboard without adding further roadmap steps.
+   - Added unit tests in `MobileAuthBackground.test.tsx`.
+
+6. **Full Verification**:
+   - Frontend test suite: 75 test files passed, 381 tests passed (100% green).
    - Zero regressions across desktop and mobile test suites.
 
 

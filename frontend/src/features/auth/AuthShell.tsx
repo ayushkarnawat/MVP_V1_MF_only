@@ -13,6 +13,7 @@ interface AuthShellProps {
   formSlot: ReactNode;
   visualSlot: ReactNode;
   stepIndex?: number;
+  authMode?: "login" | "signup";
 }
 
 const STEP_ORDER: Record<AuthStep, number> = {
@@ -45,13 +46,13 @@ const slideVariants = {
   }),
 };
 
-export function AuthShell({ step, formSlot, visualSlot, stepIndex }: AuthShellProps) {
+export function AuthShell({ step, formSlot, visualSlot, stepIndex, authMode }: AuthShellProps) {
   const prevStepRef = useRef<AuthStep>(step);
   const shouldReduceMotion = useReducedMotion() || isTestEnv;
   const journey = useMobileJourney();
 
   const prevOrder = STEP_ORDER[prevStepRef.current] ?? 0;
-  const currentOrder = stepIndex ?? STEP_ORDER[step] ?? 0;
+  const currentOrder = STEP_ORDER[step] ?? 0;
   // If moving between same order (e.g. phone <-> email), treat as forward if switching to email/phone
   const direction = currentOrder !== prevOrder ? (currentOrder >= prevOrder ? 1 : -1) : 1;
 
@@ -59,8 +60,8 @@ export function AuthShell({ step, formSlot, visualSlot, stepIndex }: AuthShellPr
 
   useEffect(() => {
     prevStepRef.current = step;
-    journey?.setJourneyStep(currentJourneyStep, stepIndex);
-  }, [step, journey, currentJourneyStep, stepIndex]);
+    journey?.setJourneyStep(currentJourneyStep, stepIndex, authMode);
+  }, [step, journey, currentJourneyStep, stepIndex, authMode]);
 
   return (
     <div className="min-h-dvh lg:h-dvh lg:max-h-dvh w-full bg-[#F8FAF9] dark:bg-[var(--color-bg)] text-[var(--color-ink)] flex flex-col items-center justify-between lg:justify-center p-5 sm:p-6 lg:p-5 xl:p-8 relative box-border overflow-x-hidden selection:bg-[#22C55E]/20">
@@ -83,7 +84,11 @@ export function AuthShell({ step, formSlot, visualSlot, stepIndex }: AuthShellPr
       />
 
       {/* Restrained Ethereal Geometric Background Layer for Mobile (strictly lg:hidden) */}
-      <MobileAuthBackground activeStep={currentJourneyStep} stepIndex={stepIndex} />
+      <MobileAuthBackground
+        activeStep={currentJourneyStep}
+        stepIndex={stepIndex}
+        authMode={authMode}
+      />
 
       {/* Single Unified Container: Integrated seamlessly on mobile, Showcase dual-pane card on desktop */}
       <div className="w-full max-w-sm sm:max-w-md lg:max-w-[980px] lg:max-h-[calc(100vh-2.5rem)] rounded-none lg:rounded-3xl bg-transparent lg:bg-[var(--color-surface)] shadow-none lg:shadow-2xl lg:shadow-black/[0.08] dark:lg:shadow-black/70 border-0 lg:border border-[var(--color-border)] overflow-visible lg:overflow-hidden flex flex-col lg:flex-row lg:h-[min(640px,calc(100vh-2.5rem))] relative z-10 my-0 lg:my-auto flex-1 lg:flex-initial justify-start lg:justify-start pt-5 sm:pt-8 lg:pt-0">
@@ -129,6 +134,7 @@ export function AuthShell({ step, formSlot, visualSlot, stepIndex }: AuthShellPr
             <AuthRoadmapSvg
               activeStep={currentJourneyStep}
               stepIndex={stepIndex}
+              authMode={authMode}
               isDesktop={true}
               className="w-full h-full text-[var(--color-ink)]"
             />

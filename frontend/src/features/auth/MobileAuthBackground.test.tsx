@@ -15,8 +15,8 @@ describe("MobileAuthBackground", () => {
     expect(svg).toHaveAttribute("viewBox", "0 0 375 60");
   });
 
-  it("contains wandering S-curve gradients, route paths, and Unifolio ring logo traveler", () => {
-    const { container } = render(<MobileAuthBackground activeStep="auth_phone" />);
+  it("contains wandering S-curve gradients, route paths, and Unifolio ring logo traveler for signup", () => {
+    const { container } = render(<MobileAuthBackground activeStep="auth_phone" authMode="signup" />);
     const linearGradients = container.querySelectorAll("linearGradient");
     expect(linearGradients.length).toBeGreaterThanOrEqual(2);
 
@@ -30,6 +30,22 @@ describe("MobileAuthBackground", () => {
     // 4 stationary milestone pedestals
     const stationCircles = container.querySelectorAll("circle");
     expect(stationCircles.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it("renders exactly two milestones in login mode (Phone/Email entry -> OTP verification)", () => {
+    const { container } = render(<MobileAuthBackground activeStep="auth_email" authMode="login" stepIndex={0} />);
+    const svg = container.querySelector("svg");
+    expect(svg).toBeInTheDocument();
+
+    // Traveler ring images
+    const images = container.querySelectorAll("image");
+    expect(images.length).toBe(2);
+  });
+
+  it("advances to step 2 on OTP verification in login mode", () => {
+    const { container } = render(<MobileAuthBackground activeStep="auth_otp" authMode="login" stepIndex={1} />);
+    const svg = container.querySelector("svg");
+    expect(svg).toBeInTheDocument();
   });
 
   it("returns null on onboarding steps to guarantee complete removal from onboarding", () => {

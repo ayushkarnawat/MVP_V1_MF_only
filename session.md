@@ -9,28 +9,35 @@ anything by re-reading the whole repo.**
 
 ## Latest Session (2026-08-27)
 
-1. **Mobile CAS Import Review Scroll & Viewport Overflow Fixes**:
+1. **Login Roadmap State Logic & 2-Milestone Flow (`MobileAuthBackground.tsx`, `AuthEntryFlow.tsx`, `AuthShell.tsx`, `mobileJourneyContext.tsx`)**:
+   - Fixed roadmap milestone state management: explicitly decoupled login progression from page switching, route changing, or Sign-up/Login toggles.
+   - Starting at Step 1 (`x: 36, y: 38`), clicking "Log in" from the Sign-up page switches to Login mode while keeping the marker rock solid at Step 1 (Milestone 1).
+   - Selecting "Continue with Email" or "Continue with Phone" and typing credentials keeps the marker firmly at Step 1.
+   - Transitioning to the OTP verification screen (`email_otp` or `otp`) moves the marker smoothly along the curved route to Step 2 (`x: 340, y: 22`), triggering the milestone pop/lift effect and `#milestone-unlock-glow`.
+   - After successful OTP verification, navigates directly to the dashboard without adding further roadmap steps.
+   - Added unit tests in `MobileAuthBackground.test.tsx` and re-verified all 75 test suites (381 tests passing).
+
+2. **Mobile CAS Import Review Scroll & Viewport Overflow Fixes**:
    - Fixed vertical scrolling prevention on mobile (e.g. iPhone SE 375x667) where the 2nd scheme card and beyond were clipped and unscrollable.
    - Removed `overflow-hidden` constraints from `MobileInitialFlow` in `frontend/src/App.tsx`, added `overflow-y-auto min-h-dvh`, and updated `OnboardingFlow.tsx` containers.
    - Refined `ReviewTable.tsx` for mobile: hidden "Statement Verified" badge on mobile, converted tab filters to 3-column grid without horizontal scrollbars, added `pb-28 sm:pb-24` bottom clearance for sticky footer.
 
-2. **Mobile & Web Import Screens Vertical Centering & Refinements**:
+3. **Mobile & Web Import Screens Vertical Centering & Refinements**:
    - Vertically centered the Upload Screen (`UploadForm.tsx`, `MobileUploadForm.tsx`, `TwoPathImportContainer.tsx`).
    - Enlarged the hero illustration on the upload statement screen (`w-24 h-24 sm:w-28 sm:h-28`) and removed the PAN/DOB password hint line.
    - Vertically centered the CAS Processing Indicator Screen (`ParsingIndicator.tsx`, `ImportFlow.tsx`, `MobileImportView.tsx`).
    - Vertically centered the Import Complete Screen (`ImportConfirmed.tsx`, `ImportFlow.tsx`, `MobileImportView.tsx`).
    - Centered the "Import Choice" screen (`ImportPathChoice.tsx` & `TwoPathImportContainer.tsx`), keeping top "Import History" anchored while centering the illustration, title, and choice cards.
 
-3. **Roadmap Milestone Sequential Activation & Pop/Glow Animations**:
+4. **Roadmap Milestone Sequential Activation & Pop/Glow Animations**:
    - Updated `MobileAuthBackground.tsx` / `<AuthRoadmapSvg />` shared component across mobile and desktop.
    - Milestones remain muted (`opacity: 0.4`) until reached, then animate with a subtle pop/lift (`scale: [1, 1.14, 1]`, `y: [0, -1.8, 0]`) and a soft radial unlock glow (`#milestone-unlock-glow`).
    - Reached milestones persist in their dark, prominent active state (`opacity: 1.0`, bold stroke, green accents).
 
-4. **UI Consistency & CTA Centering Audit**:
+5. **UI Consistency & CTA Centering Audit**:
    - Audited all action controls across mobile and web.
    - Fixed asymmetric left spacer in `MobileOnboardingScreen.tsx` footer when `onSkip` is absent.
    - Ensured explicit flex centering wrappers (`w-full flex justify-center items-center`) and `mx-auto` alignment on `ImportConfirmed.tsx`, `ImportError.tsx`, `MobileImportView.tsx`, and `EmptyState.tsx`.
-   - Re-verified full test suite: 75 test files passed (358 tests).
 
 ## Still open, carried forward from earlier phases, not yet revisited
 

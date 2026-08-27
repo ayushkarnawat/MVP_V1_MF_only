@@ -33,7 +33,7 @@ export interface AuthStageInfo {
 }
 
 /**
- * Maps auth steps to their corresponding 4 chronological milestones:
+ * Maps auth steps to their corresponding 4 chronological milestones for signup:
  * Milestone 1 (Screen 1) -> Milestone 2 (Screen 2) -> Milestone 3 (Screen 3) -> Milestone 4 (Screen 4)
  */
 export function getAuthStage(
@@ -88,6 +88,45 @@ export function getAuthStage(
 }
 
 /**
+ * Maps login auth steps to their corresponding 2 chronological milestones:
+ * Step 1: Phone / Email entry (0.10) -> Step 2: OTP verification (0.95)
+ */
+export function getLoginAuthStage(
+  step: MobileJourneyStep | string = "auth_landing",
+  explicitStepIndex?: number
+): AuthStageInfo {
+  const milestoneProgress = [0.10, 0.95];
+
+  if (typeof explicitStepIndex === "number" && explicitStepIndex >= 0 && explicitStepIndex <= 1) {
+    return {
+      stage: explicitStepIndex === 0 ? "identity" : "verify",
+      stepIndex: explicitStepIndex,
+      progress: milestoneProgress[explicitStepIndex] ?? 0.10,
+      label: explicitStepIndex === 0 ? "Phone / Email" : "OTP",
+    };
+  }
+
+  switch (step) {
+    case "auth_landing":
+    case "landing":
+    case "auth_email":
+    case "email":
+    case "auth_phone":
+    case "phone":
+      return { stage: "identity", stepIndex: 0, progress: 0.10, label: "Phone / Email" };
+
+    case "auth_otp":
+    case "otp":
+    case "auth_email_otp":
+    case "email_otp":
+      return { stage: "verify", stepIndex: 1, progress: 0.95, label: "OTP" };
+
+    default:
+      return { stage: "identity", stepIndex: 0, progress: 0.10, label: "Phone / Email" };
+  }
+}
+
+/**
  * Coordinate matrix for auth steps
  */
 export const JOURNEY_COORDINATES: Record<MobileJourneyStep, CameraCoordinates> = {
@@ -110,7 +149,8 @@ export const JOURNEY_COORDINATES: Record<MobileJourneyStep, CameraCoordinates> =
 export interface MobileJourneyContextValue {
   activeStep: MobileJourneyStep;
   stepIndex?: number;
-  setJourneyStep: (step: MobileJourneyStep, stepIndex?: number) => void;
+  authMode?: "login" | "signup";
+  setJourneyStep: (step: MobileJourneyStep, stepIndex?: number, authMode?: "login" | "signup") => void;
 }
 
 export const MobileJourneyContext = createContext<MobileJourneyContextValue | null>(null);

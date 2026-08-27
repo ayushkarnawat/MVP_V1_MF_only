@@ -337,8 +337,26 @@ export function AuthEntryFlow({
     }
   };
 
-  // Roadmap progression logic: Screen 1 -> Milestone 1 (0), Screen 2 -> Milestone 2 (1), Screen 3 -> Milestone 3 (2), Screen 4 -> Milestone 4 (3)
+  // Roadmap progression logic:
+  // Login flow (2 Milestones): Step 1 Phone / Email entry (0) -> Step 2 OTP verification (1)
+  // Signup flow (4 Milestones): Landing (0) -> Email (1) -> Phone (2) -> Phone OTP (3)
   const getStepIndex = (): number => {
+    if (authMode === "login") {
+      switch (step) {
+        case "landing":
+        case "email":
+        case "phone":
+          return 0;
+
+        case "email_otp":
+        case "otp":
+          return 1;
+
+        default:
+          return 0;
+      }
+    }
+
     switch (step) {
       case "landing":
         return 0;
@@ -373,6 +391,7 @@ export function AuthEntryFlow({
     <AuthShell
       step={step}
       stepIndex={getStepIndex()}
+      authMode={authMode}
       formSlot={renderFormSlot()}
       visualSlot={<AuthShowcasePanel step={step} />}
     />
