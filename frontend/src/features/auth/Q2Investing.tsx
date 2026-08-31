@@ -51,7 +51,7 @@ const OPTIONS: InvestingOption[] = [
   {
     value: "advisor_assisted",
     title: "Through an advisor or distributor",
-    subtitle: "Distributor, bank RM, or family office, alongside my own tracking",
+    subtitle: "Distributor, bank advisor or family office, alongside my own tracking",
     renderIllustration: () => (
       <svg viewBox="0 0 48 48" className="w-10 h-10 sm:w-11 sm:h-11 select-none" fill="none">
         <path d="M24 4 V8 M14 7 L17 10 M34 7 L31 10" stroke="var(--color-accent)" strokeWidth="1.75" strokeLinecap="round" />
@@ -70,7 +70,7 @@ const OPTIONS: InvestingOption[] = [
   {
     value: "mixed",
     title: "A mix of both",
-    subtitle: "Direct plans + Regular distributor plans",
+    subtitle: "A bit of self-directed investing and a bit through an advisor",
     renderIllustration: () => (
       <svg viewBox="0 0 48 48" className="w-10 h-10 sm:w-11 sm:h-11 select-none" fill="none">
         <path d="M8 18 C8 12 14 8 20 8 M40 30 C40 36 34 40 28 40" stroke="var(--color-accent)" strokeWidth="1.5" strokeLinecap="round" strokeDasharray="3 3" />
@@ -194,7 +194,7 @@ export function Q2Investing({
         onSkip={onSkip}
         title="How are you investing right now?"
         illustrationVariant="investing"
-        subtext="Select the option that best describes your current investment approach."
+        subtext="Choose what best describes how you invest today"
       >
         {choicesContent}
       </MobileOnboardingScreen>
@@ -220,7 +220,7 @@ export function Q2Investing({
           How are you investing right now?
         </h1>
         <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
-          Select the option that best describes your current investment approach.
+          Choose what best describes how you invest today
         </p>
       </motion.div>
 

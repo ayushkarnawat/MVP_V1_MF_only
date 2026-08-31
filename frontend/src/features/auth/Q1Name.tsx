@@ -89,7 +89,7 @@ export function Q1Name({
           id="name-input"
           type="text"
           value={name}
-          placeholder="e.g. Ayush Karnawat"
+          placeholder="Your Name"
           autoComplete="name"
           autoCorrect="off"
           autoCapitalize="words"
@@ -111,7 +111,7 @@ export function Q1Name({
           onBack={onBack}
           title="What should we call you?"
           customIllustration={<NameIllustration />}
-          subtext="Personalizing your mutual fund summaries, portfolio reports, and tax statements."
+          subtext="We'll use this to personalize your mutual fund summaries, portfolio reports, and tax statements"
           ctaLabel="Next"
           ctaDisabled={!name.trim()}
           onCtaClick={() => {
@@ -145,7 +145,7 @@ export function Q1Name({
           What should we call you?
         </h1>
         <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
-          Personalizing your mutual fund summaries, portfolio reports, and tax statements.
+          We'll use this to personalize your mutual fund summaries, portfolio reports, and tax statements
         </p>
       </motion.div>
 

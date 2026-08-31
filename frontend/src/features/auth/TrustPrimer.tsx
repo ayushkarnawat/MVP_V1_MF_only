@@ -79,7 +79,7 @@ export function TrustPrimer({
           </span>
         }
         customIllustration={<ShortStayPrivacyIllustration />}
-        subtext="Your CAS is processed instantly and never saved. Built under the RBI Account Aggregator framework — you can disconnect anytime."
+        subtext="We process your CAS to understand your holdings, then forget it. Your original file and PAN are never stored."
         ctaLabel="Next"
         ctaIcon={<ArrowRight className="h-4 w-4" />}
         onCtaClick={onContinue}
@@ -169,7 +169,7 @@ export function TrustPrimer({
             </span>
           </div>
           <p className="text-[11px] sm:text-xs text-[var(--color-text-secondary)] leading-snug sm:leading-relaxed pl-9.5">
-            Statements are processed instantly and never saved. Your raw CAS PDF and PAN are never permanently stored.
+            We process your CAS to understand your holdings, then forget it. Your original file and PAN are never stored.
           </p>
         </motion.div>
 

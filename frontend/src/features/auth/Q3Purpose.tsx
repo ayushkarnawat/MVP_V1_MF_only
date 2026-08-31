@@ -36,7 +36,7 @@ const OPTIONS: PurposeOption[] = [
   {
     value: "consolidated_view",
     title: "Consolidated portfolio view",
-    subtitle: "See all my mutual funds across brokers and AMCs in one place",
+    subtitle: "See all my mutual funds across every broker and fund house in one place",
     renderIllustration: () => (
       <svg viewBox="0 0 48 48" className="w-10 h-10 sm:w-11 sm:h-11 select-none" fill="none">
         <path d="M24 5 V8 M12 8 L15 11 M36 8 L33 11" stroke="var(--color-accent)" strokeWidth="1.75" strokeLinecap="round" />
@@ -53,7 +53,7 @@ const OPTIONS: PurposeOption[] = [
   {
     value: "understand_holdings",
     title: "Understand true performance",
-    subtitle: "Realized vs unrealized gains, direct vs regular returns",
+    subtitle: "See your true returns after fees, taxes and plan type",
     renderIllustration: () => (
       <svg viewBox="0 0 48 48" className="w-10 h-10 sm:w-11 sm:h-11 select-none" fill="none">
         <path d="M16 26 L20 18 H28 L32 26 L24 34 Z" fill="color-mix(in srgb, var(--color-accent) 20%, transparent)" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
@@ -87,7 +87,7 @@ const OPTIONS: PurposeOption[] = [
   {
     value: "performance_comparison",
     title: "Compare distributor fees",
-    subtitle: "Compare returns and commissions across different distributors",
+    subtitle: "Compare returns and costs across different distributors",
     renderIllustration: () => (
       <svg viewBox="0 0 48 48" className="w-10 h-10 sm:w-11 sm:h-11 select-none" fill="none">
         <path d="M24 9 V37 M18 37 H30" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -196,7 +196,7 @@ export function Q3Purpose({
         onSkip={onSkip}
         title="What brings you to Unifolio?"
         illustrationVariant="purpose"
-        subtext="Choose your primary goal so we can highlight the most relevant views for you."
+        subtext="Pick what matters most to you, and we'll tailor your dashboard around it"
       >
         {choicesContent}
       </MobileOnboardingScreen>
@@ -221,8 +221,8 @@ export function Q3Purpose({
         <h1 className="font-display font-bold text-lg sm:text-2xl text-[var(--color-ink)] tracking-tight leading-snug">
           What brings you to Unifolio?
         </h1>
-        <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
-          Choose your primary goal so we can highlight the most relevant views for you.
+        <p className="text-[11px] sm:text-[12px] tracking-tight text-[var(--color-text-secondary)] leading-relaxed whitespace-nowrap">
+          Pick what matters most to you, and we'll tailor your dashboard around it
         </p>
       </motion.div>
 
