@@ -7,8 +7,11 @@
 scattered folios/apps/spreadsheets), not "free vs. paid" and not analytics depth — those
 are supporting beats, not the lead.
 
-This document is a creative brief, not a software design spec. Hand it to Manus directly,
-along with the open inputs listed in section 6.
+This document is a creative brief, not a software design spec. Five inputs (founder
+story, pricing model, trust-bar claim, product screenshots, GEO scope) couldn't be sourced
+from the repo, so each is filled with a **creative placeholder** — marked `[PLACEHOLDER]`
+inline and collected in §6. Confirm or replace every one before this goes live; don't hand
+the placeholder copy to Manus as final.
 
 ---
 
@@ -46,8 +49,13 @@ converge into the real unified-dashboard screenshot, staged in a tilted 3D frame
 plays on "uni-" in Unifolio. Below the hero, in order:
 1. A before/after scroll narrative (not a features grid) — literalizes the fragmentation
    story.
-2. A trust bar of actually-supported RTAs/AMCs (e.g. CAMS/KFintech) — **only include this
-   if the claim is accurate; do not fabricate integration logos** (see §6).
+2. A trust bar. `[PLACEHOLDER]` copy: *"Works with your CAS from every AMC — powered by
+   MFCentral"* (the repo's actual CAS ingestion is built against the MFCentral API, per
+   `Docs/749204247-MFCentral-API-Integration-Document-CAS-v2-2-1-2.txt`, so this is
+   grounded rather than invented — but it still needs a marketing/legal check before
+   launch, and any AMC-count claim like "44+ AMCs" needs a real number substituted in).
+   Don't source individual RTA logos (CAMS/KFintech) for this bar unless confirmed
+   accurate — lead with the MFCentral claim instead.
 3. A 3-beat feature teaser (Import / See / Understand) linking to Features.
 4. A short free-vs-Mprofit teaser linking to Pricing.
 5. Newsletter signup band (see below), near the footer.
@@ -59,7 +67,12 @@ explicitly here since it was called out as a requirement.
 Structured as the product's actual flow, not an icon grid: **Import → See → Understand →
 Track.** Each beat is one real screenshot or short demo clip with a literal, specific
 mechanism claim ("one CAS upload parses every AMC statement automatically" — not "smart
-parsing" or other vague AI-adjacent copy). Include the proprietary scoring methodology
+parsing" or other vague AI-adjacent copy). No real screenshot assets exist in this repo
+yet (`[PLACEHOLDER]`): until they're supplied, have Manus mock each screen's layout from
+the actual PRDs rather than inventing generic dashboard art —
+`Docs/PRDs/PRD-02-Signup-Onboarding.md` for Import, `Docs/PRD-03-Main-Dashboard.md` for
+See, `Docs/PRD-04-MF-Analytics-Dashboard.md` for Understand. Swap in real screenshots
+before launch; placeholder mockups should not ship as final. Include the proprietary scoring methodology
 (`Docs/Scorer-Methodology-Unifolio.md`) as a named differentiator — competitors don't have
 this, and it should be presented as a specific, explainable method, not a black box.
 
@@ -70,14 +83,23 @@ care about personal-portfolio clarity) without duplicating the whole page into t
 ### Pricing
 A direct, sourced comparison table against Mprofit, pulled from the existing competitor
 analysis (`Docs/Competitor Analysis/`) — real, verifiable claims only, nothing fabricated.
-**Open question (see §6):** is Unifolio free-core forever, or freemium with a paid tier
-planned? This determines whether the page is single-column ("free, full stop") or a
-two-tier comparison.
+`[PLACEHOLDER]` structure, chosen to match this repo's own "free-core" framing
+(`CLAUDE.md`: "a genuinely superior, free-core alternative to Mprofit"): single-column
+page, **"Free. Forever. No card required."** as the headline, with a soft-teased,
+greyed-out "Pro — coming soon" row (household-level aggregation for advisors, extended
+history) so the page doesn't foreclose a future paid tier. Replace with a real two-tier
+comparison if a paid tier is actually confirmed and priced.
 
 ### About Us
 Tells the same fragmentation story from the founders' side — why this got built, who it's
-for, what was underserved between expensive paid tools and messy spreadsheets. Requires
-real founder bios/motivation (see §6) — do not fabricate a founder narrative.
+for, what was underserved between expensive paid tools and messy spreadsheets.
+`[PLACEHOLDER]` narrative (replace names/years/background before use): *"Unifolio started
+when `[Founder Name]`, tracking a family's mutual funds across `[N]` AMCs by hand in
+`[Year]`, couldn't get a straight answer to 'are we actually doing well?' out of a
+spreadsheet or a paid tool that made the same question cost a subscription. `[Co-founder
+Name]`, coming from `[background — e.g. product/engineering at a fintech]`, joined to
+build the version that should have existed already: free, and honest about the number
+behind the number."*
 
 ### Open web app / Download mobile app
 Not a standalone page — a persistent, sticky-header CTA pair present on every page. The
@@ -125,24 +147,30 @@ section phrased as real searched questions ("what is the best free alternative t
 Mprofit," "how do I import a CAS statement automatically"). An `llms.txt` file at the site
 root.
 
-**If "GEO" was meant as geographic (not generative-engine) optimization** — flagged here
-as ambiguous and not yet resolved with the user — add on top of the above:
-`hreflang="en-IN"`, INR currency in schema, and India-specific structured data. Confirm
-which meaning is intended before Manus builds this section (see §6).
+`[PLACEHOLDER]` resolution: "GEO" was ambiguous (generative-engine vs. geographic
+optimization). Given both readings are cheap to build and plausible for an India-only
+product, this draft does **both** — the generative-engine treatment above, plus, on top
+of it: `hreflang="en-IN"`, INR currency in schema.org markup, and India-specific
+structured data (e.g. `addressCountry: IN` in `Organization` schema). Confirm this scope
+is right before Manus builds it — drop the geographic layer if "GEO" was only ever meant
+as generative-engine optimization.
 
-## 6. Open inputs required before handoff to Manus
+## 6. Placeholder content used in this draft (confirm or replace before launch)
 
-These are things this document could not responsibly fabricate. Supply them before or
-during the Manus build:
+Five inputs couldn't be sourced from the repo. Each was given a creative placeholder
+inline (marked `[PLACEHOLDER]` at each location above) so the brief is complete enough to
+hand to Manus now — but none of these should reach a live site unconfirmed:
 
-1. **Founder/team bios and motivation** for the About Us page.
-2. **Pricing model confirmation** — free-core forever, or freemium with a paid tier
-   planned (determines Pricing page structure).
-3. **Accurate list of supported RTAs/AMCs** (e.g. CAMS/KFintech) for the Home trust bar —
-   omit the trust bar entirely if this can't be confirmed as accurate.
-4. **Real product screenshots/screen recordings** of the CAS import flow, main holdings
-   dashboard, and analytics dashboard, to hand to Manus directly rather than have it
-   invent placeholder UI.
-5. **Clarify SEO vs. AEO vs. GEO intent** — confirm "GEO" means generative-engine
-   optimization (as assumed throughout §5) rather than geographic targeting, or specify
-   both are wanted.
+1. **Founder/team bios** (About Us, §3) — placeholder narrative with bracketed
+   `[Founder Name]` / `[Year]` / `[background]` fields. Replace with the real story.
+2. **Pricing model** (Pricing, §3) — placeholder assumes free-core forever with a
+   greyed-out "Pro — coming soon" tease. Replace with a real two-tier table if a paid tier
+   is actually planned and priced.
+3. **RTA/AMC trust-bar claim** (Home, §3) — placeholder leads with "powered by MFCentral"
+   (grounded in this repo's actual CAS integration), not specific RTA logos. Needs a
+   marketing/legal check and a real AMC-count before launch.
+4. **Product screenshots** (Features, §3) — none exist in the repo yet. Placeholder
+   directs Manus to mock each screen from the cited PRDs rather than inventing generic
+   dashboard art. Replace with real screenshots/recordings before launch.
+5. **SEO/AEO/GEO scope** (§5) — placeholder resolves "GEO" as both generative-engine
+   optimization and India geographic targeting. Confirm or narrow before Manus builds it.
