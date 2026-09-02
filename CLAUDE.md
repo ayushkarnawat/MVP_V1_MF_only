@@ -77,20 +77,25 @@ batched to one query), and F3 (`household_members` had no uniqueness enforcement
 = 'self'` via SQLAlchemy's `sqlite_where`/`postgresql_where` kwargs on one
 `op.create_index` call, plus a `DuplicateSelfMemberError` → 409 guard in
 `create_household_member`; a prior read-only check found zero existing violations) all
-fixed. Still open: F4, F8 below. The PAN-based real-person-dedup idea raised alongside F3
-is separate and remains unresolved/unauthorized — see "Still open".
+fixed. F4/F8/the PAN idea's scope questions all resolved by the user 2026-09-02 (F8 →
+degraded row with `nav_unavailable` flag; F4 → build the 4 job scripts now, defer the
+EventBridge/ECS Terraform; PAN idea → replaced with a non-PAN two-case design, zero new
+PII). All three handed off as Codex-run handoff docs (`Docs/orchestration/
+adr006-background-jobs-handoff.md`, `f8-nav-unavailable-degraded-row-handoff.md`,
+`non-pan-duplicate-person-detection-handoff.md`), status OPEN, not yet implemented — see
+"Still open" below. The single-ECS-task/Redis rewrite is deliberately deferred (not a code
+task today), documented as a dated DECISION in `AWS Readiness/aws-golive-launch-blockers.md`.
 
-**Still open (6 items carried forward from earlier phases plus the compliance audit, not
-yet revisited — full detail in `session.md`'s "Still open" section):** a held scheme with
-no NAV silently vanishing from holdings/allocation/aggregates (F8 — needs a product call
-on surfacing: error vs. degraded row vs. documented exclusion); a PAN-based
-real-person-dedup idea (raised alongside F3, not part of that fix) blocked on reconciling
-"PAN is currently persisted" against this codebase's explicit, test-guarded "no PAN
-persistence, ever" rule; a dead `HoldingsTable.tsx` field reference; a non-
-index-seek-bounded SQLite scan in `category_ranking.py` (Postgres follow-up); an ARIA
-IDREF gap on the SIP tab switcher; ADR-006's EventBridge Scheduler background jobs (F4 —
-building the job code now is unblocked, but the actual EventBridge/ECS Terraform can't be
-applied until an AWS account/ECR/ECS cluster exist).
+**Still open (6 items carried forward from earlier phases plus the compliance audit —
+detail in `session.md`'s "Still open" section):** a held scheme with no NAV silently
+vanishing from holdings/allocation/aggregates (F8 — design locked, degraded row +
+`nav_unavailable` flag, handed off to Codex, not yet implemented); a non-PAN
+real-person-dedup mechanism (F3's sibling — design locked, handed off to Codex, not yet
+implemented); a dead `HoldingsTable.tsx` field reference; a non-index-seek-bounded SQLite
+scan in `category_ranking.py` (Postgres follow-up); an ARIA IDREF gap on the SIP tab
+switcher; ADR-006's EventBridge Scheduler background jobs (F4 — the 4 job-entrypoint
+scripts are handed off to Codex, not yet implemented; the actual EventBridge/ECS Terraform
+stays deferred until an AWS account/ECR/ECS cluster exist).
 
 **Resolved, dropped from this list (2026-09-02):** the blocking `db.commit()` inside
 an `async def` freezing the single-worker event loop — fixed commit `bb5225f`

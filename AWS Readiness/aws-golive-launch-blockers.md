@@ -74,6 +74,19 @@ These are code-level facts, independent of the infrastructure-design questions c
 - **Risk if skipped:** Any auto-scaling event or rolling deploy immediately reproduces the correctness bug and the ~50% PDF-export failure rate.
 - **Scale note (~1,000 monthly active users target):** at internal-testing volumes, one task with no failover is a reasonable, deliberate trade-off — an occasional Fargate-managed task replacement is a minor, rare blip. At ~1,000 MAU, that same single point of failure is a real, user-visible outage risk, not a theoretical one; ECS/Fargate can and will replace an unhealthy task even at `desiredCount=1`, and there's no second task to absorb traffic while that happens. **This elevates the cache rewrite from "post-launch, whenever" to "do this before staging is trusted as the ongoing home for real, continuous user traffic"** — it does not need to block the initial staging cutover itself, but it shouldn't be left indefinitely once real users are actually on it. See the main report's §7/§8/§22 Phase 7 for where this now sits in the plan.
 
+- **DECISION (2026-09-02):** confirmed — the Redis/DB-backed cache rewrite is explicitly
+  deferred past the staging cutover, not silently dropped. Staging launches with the
+  operational mitigation only: ECS service `desiredCount = 1`, autoscaling disabled, and a
+  stop-then-start deploy strategy (no rolling deploys). This is a Terraform/ECS config
+  decision, not application code — it becomes parameters on the ECS service resource
+  (`desired_count = 1`, no `aws_appautoscaling_target`, `deployment_minimum_healthy_percent
+  = 0` / `deployment_maximum_percent = 100` to force stop-then-start) written when the ECS
+  Terraform module is authored (see F4's job-infrastructure work, same authoring phase).
+  **Revisit trigger:** before staging is trusted as the ongoing home for continuous real
+  user traffic (not a fixed date) — i.e. before scaling past internal-testing usage, or the
+  first time a second task is genuinely needed for capacity or zero-downtime deploys. Until
+  then this stays a single point of failure by design, accepted for the reasons above.
+
 ## BLOCKER — ImportStatus / TransactionType enum drift will break CAS import on first real migration
 
 - **Implemented:** App code assigns 14 `ImportStatus` values; the database-level constraint was only ever created with 3 (migration `0001`). Similarly, `TransactionType.OPENING_BALANCE` was added to the Postgres enum but never to the SQLite CHECK constraint.
