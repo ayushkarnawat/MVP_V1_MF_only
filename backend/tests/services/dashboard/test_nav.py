@@ -348,41 +348,54 @@ def test_get_navs_fetches_network_legs_concurrently_then_caches_sequentially():
     assert db.query(NavHistory).count() == 2
 
 
-def test_warm_nav_history_skips_scheme_refetched_within_ttl():
+def test_warm_nav_history_skips_scheme_with_a_fresh_nav_history_row():
     import asyncio
+    from app.models.reference import NavHistory
+
     db = _session()
     scheme = _scheme(db)
+    db.add(NavHistory(scheme_id=scheme.id, date=date.today(), nav=Decimal("50.0000")))
+    db.commit()
 
-    fetch = AsyncMock(return_value=[(date.today(), Decimal("50.0000"))])
-    now = [1000.0]
+    fetch = AsyncMock(return_value=[(date.today(), Decimal("51.0000"))])
 
-    with (
-        patch("app.services.dashboard.nav._fetch_nav_history", new=fetch),
-        patch.object(nav_module, "_nav_warm_clock", side_effect=lambda: now[0]),
-    ):
+    with patch("app.services.dashboard.nav._fetch_nav_history", new=fetch):
         asyncio.run(warm_nav_history(db, [scheme]))
+
+    fetch.assert_not_awaited()
+
+
+def test_warm_nav_history_refetches_scheme_with_a_stale_nav_history_row():
+    import asyncio
+    from datetime import timedelta
+    from app.models.reference import NavHistory
+
+    db = _session()
+    scheme = _scheme(db)
+    stale_date = date.today() - timedelta(days=nav_module._NAV_FRESHNESS_WINDOW_DAYS + 1)
+    db.add(NavHistory(scheme_id=scheme.id, date=stale_date, nav=Decimal("50.0000")))
+    db.commit()
+
+    fetch = AsyncMock(return_value=[(date.today(), Decimal("51.0000"))])
+
+    with patch("app.services.dashboard.nav._fetch_nav_history", new=fetch):
         asyncio.run(warm_nav_history(db, [scheme]))
 
     fetch.assert_awaited_once()
 
 
-def test_warm_nav_history_refetches_scheme_once_ttl_has_expired():
+def test_warm_nav_history_refetches_scheme_with_no_nav_history_row_at_all():
     import asyncio
+
     db = _session()
     scheme = _scheme(db)
 
-    fetch = AsyncMock(return_value=[(date.today(), Decimal("50.0000"))])
-    now = [1000.0]
+    fetch = AsyncMock(return_value=[(date.today(), Decimal("51.0000"))])
 
-    with (
-        patch("app.services.dashboard.nav._fetch_nav_history", new=fetch),
-        patch.object(nav_module, "_nav_warm_clock", side_effect=lambda: now[0]),
-    ):
-        asyncio.run(warm_nav_history(db, [scheme]))
-        now[0] += nav_module._NAV_WARM_TTL_SECONDS + 1
+    with patch("app.services.dashboard.nav._fetch_nav_history", new=fetch):
         asyncio.run(warm_nav_history(db, [scheme]))
 
-    assert fetch.await_count == 2
+    fetch.assert_awaited_once()
 
 
 def test_warm_nav_history_commits_once_for_the_whole_batch_not_once_per_scheme():
