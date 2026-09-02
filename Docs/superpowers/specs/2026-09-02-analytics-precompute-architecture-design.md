@@ -60,11 +60,20 @@ this path — this is what removes the pool-exhaustion risk at the root.
 4. Clears the in-flight flag in a `finally` block.
 
 This function **only ever runs inside a dedicated ECS Fargate `RunTask`**, never inline
-in a request-serving process. This is a hard rule, not an optimization: it's what
-avoids the confirmed event-loop-freeze risk (`session.md`'s "still open" item 7 — a
-blocking sync `db.commit()` inside `async def` stalls the entire single-worker event
-loop for the duration of the commit, 44-74s measured live). Running recompute inline
-would reintroduce that exact failure mode on every trigger.
+in a request-serving process. This is a hard rule, not an optimization: an inline
+recompute would still contend with live requests for the same SQLAlchemy connection
+pool while it holds connections across the NAV warm + 35-row write — the *original*
+pool-exhaustion bug this whole redesign exists to fix — and it keeps recompute's
+resource usage isolated from the app tier, consistent with ADR-006's existing pattern.
+
+Note: an earlier draft of this rationale also cited a blocking-event-loop risk
+(`session.md`'s "still open" item 7). Checked against current code while writing the
+implementation plan (2026-09-02) — that's already fixed (commit `bb5225f`,
+2026-08-27, predates this design work): `commit_off_loop` routes every reachable
+`db.commit()` through `asyncio.to_thread`, across all 8 affected files including
+`nav.py`, with a regression test. `session.md`'s "still open" section is stale and
+should be updated to drop item 7. The connection-pool-contention argument above still
+holds independently, so the RunTask-only decision is unchanged.
 
 Four triggers dispatch the same `RunTask`:
 - **CAS import completion** — one line added to `confirm_import` (`service.py:137`),
