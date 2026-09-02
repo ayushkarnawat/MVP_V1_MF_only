@@ -60,28 +60,44 @@ instead. See `docs/agents/domain.md`.
 
 ## Session State
 
-*(Updated 2026-08-26. This section is a one-line current-status pointer, not a log —
+*(Updated 2026-09-02. This section is a one-line current-status pointer, not a log —
 do not append session narrative here again. Full current status: `session.md` at repo
 root, overwritten each session. Full per-task history: `Docs/orchestration/delegation-log.md`.
 Deferred/not-yet-built features: `DEFERRED_FEATURES.md`.)*
 
-**Latest (2026-08-27):** Fixed mobile CAS import scrolling, centered import-complete layout, added roadmap milestone pop/glow unlock animations, and audited CTA centering across mobile/web (358 tests passing).
+**Latest (2026-09-02):** AWS staging prep — `AWS Readiness/sqlite-postgres-migration-compliance-audit.md`'s
+pre-staging findings (F1-F11) worked through: F1/F2 (enum drift) and all code-level
+launch blockers (OTP guard, Dockerfile, CORS, upload validation) independently verified
+resolved; F6 (`nav.py` Postgres upsert path had zero test coverage), F9 (`amfi_aaum_client.py`
+straggler `db.commit()` not routed through `commit_off_loop`), F10 (`folios.coverage_gap_details`
+migration/model type-declaration drift), F5 (`Database-Schema-Unifolio.md` refreshed to
+v1.4, stale by migrations 0003/0007-0010), F7 (`compute_holdings` per-folio N+1,
+batched to one query), and F3 (`household_members` had no uniqueness enforcement on its
+"self" row — migration 0011 adds a partial unique index on `(user_id) WHERE relationship
+= 'self'` via SQLAlchemy's `sqlite_where`/`postgresql_where` kwargs on one
+`op.create_index` call, plus a `DuplicateSelfMemberError` → 409 guard in
+`create_household_member`; a prior read-only check found zero existing violations) all
+fixed. Still open: F4, F8 below. The PAN-based real-person-dedup idea raised alongside F3
+is separate and remains unresolved/unauthorized — see "Still open".
 
-**Still open (7 items carried forward from earlier phases, not yet revisited — full
-detail on each in `session.md`'s "Still open" section):** a held scheme with no NAV
-silently vanishing from holdings/allocation/aggregates; no DB uniqueness constraint on
-the "self" `household_members` row; a dead `HoldingsTable.tsx` field reference; a non-
+**Still open (6 items carried forward from earlier phases plus the compliance audit, not
+yet revisited — full detail in `session.md`'s "Still open" section):** a held scheme with
+no NAV silently vanishing from holdings/allocation/aggregates (F8 — needs a product call
+on surfacing: error vs. degraded row vs. documented exclusion); a PAN-based
+real-person-dedup idea (raised alongside F3, not part of that fix) blocked on reconciling
+"PAN is currently persisted" against this codebase's explicit, test-guarded "no PAN
+persistence, ever" rule; a dead `HoldingsTable.tsx` field reference; a non-
 index-seek-bounded SQLite scan in `category_ranking.py` (Postgres follow-up); an ARIA
-IDREF gap on the SIP tab switcher; `compute_holdings`'s per-folio N+1 query pattern; a
-blocking `db.commit()` inside an `async def` that can freeze the whole single-worker
-event loop under a slow-enough DB operation (Postgres-migration follow-up).
+IDREF gap on the SIP tab switcher; ADR-006's EventBridge Scheduler background jobs (F4 —
+building the job code now is unblocked, but the actual EventBridge/ECS Terraform can't be
+applied until an AWS account/ECR/ECS cluster exist).
 
-**Still open (6 items carried forward from earlier phases, not yet revisited — full
-detail on each in `session.md`'s "Still open" section):** a held scheme with no NAV
-silently vanishing from holdings/allocation; no DB uniqueness constraint on the "self"
-`household_members` row; a dead `HoldingsTable.tsx` field reference; a non-index-seek-
-bounded SQLite scan in `category_ranking.py` (Postgres follow-up); an ARIA IDREF gap on
-the SIP tab switcher; `compute_holdings`'s per-folio N+1 query pattern.
+**Resolved, dropped from this list (2026-09-02):** the blocking `db.commit()` inside
+an `async def` freezing the single-worker event loop — fixed commit `bb5225f`
+(2026-08-27): `commit_off_loop` routes every reachable `db.commit()` through
+`asyncio.to_thread` across all 8 affected files, with a regression test. This list
+wasn't updated when that commit landed; caught while writing the Analytics precompute
+implementation plan, which had cited this item as load-bearing for a design decision.
 
 Knowledge graph (`.ua/knowledge-graph.json`) is stale as of commit `35fedd3` — re-run
 `/understand` (incremental) before trusting it.

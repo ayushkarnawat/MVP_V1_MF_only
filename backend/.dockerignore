@@ -1,0 +1,11 @@
+.cache/
+.claude/
+.env
+.pytest_cache/
+.pytest_tmp/
+.venv/
+.venv-win/
+__pycache__/
+*.db
+*.pyc
+tests/

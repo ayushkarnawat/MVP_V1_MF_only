@@ -7,7 +7,13 @@ from sqlalchemy.orm import sessionmaker
 from app.db.base import Base
 from app.models.enums import Relationship
 from app.models.user import HouseholdMember, User
-from app.services.dashboard.household_members import create_household_member, list_household_members
+import pytest
+
+from app.services.dashboard.household_members import (
+    DuplicateSelfMemberError,
+    create_household_member,
+    list_household_members,
+)
 
 
 def _session():
@@ -55,3 +61,23 @@ def test_list_household_members_returns_only_this_users_members():
 
     assert len(members) == 1
     assert members[0].name == "Ayush"
+
+
+def test_create_household_member_rejects_second_self_row():
+    db = _session()
+    user = _user(db)
+    create_household_member(db, user.id, "Ayush", Relationship.SELF)
+
+    with pytest.raises(DuplicateSelfMemberError):
+        create_household_member(db, user.id, "Ayush Again", Relationship.SELF)
+
+
+def test_create_household_member_allows_self_row_per_distinct_user():
+    db = _session()
+    user_a = _user(db, "+919999999999")
+    user_b = _user(db, "+919888888888")
+    create_household_member(db, user_a.id, "Ayush", Relationship.SELF)
+
+    member_b = create_household_member(db, user_b.id, "Someone Else", Relationship.SELF)
+
+    assert member_b.relationship == Relationship.SELF

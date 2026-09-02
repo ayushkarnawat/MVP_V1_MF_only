@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 
-from app.main import app
+from app.main import DEFAULT_LOCAL_CORS_ORIGINS, _allowed_cors_origins, app
 
 client = TestClient(app)
 
@@ -30,3 +30,15 @@ def test_cors_allows_dynamic_localhost_ports():
         assert response.status_code == 200
         assert response.headers["access-control-allow-origin"] == origin
 
+
+def test_cors_uses_configured_origins_and_ignores_blank_entries():
+    assert _allowed_cors_origins(
+        " https://staging.unifolio.example,https://app.unifolio.example, "
+    ) == [
+        "https://staging.unifolio.example",
+        "https://app.unifolio.example",
+    ]
+
+
+def test_cors_uses_existing_local_origins_when_configuration_is_unset():
+    assert _allowed_cors_origins("") == DEFAULT_LOCAL_CORS_ORIGINS

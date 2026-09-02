@@ -127,6 +127,31 @@ async def compute_holdings(db: Session, household_member_ids: list[uuid.UUID]) -
     for folio in folios:
         grouped[(folio.household_member_id, folio.scheme_id, folio.plan_type)].append(folio)
 
+    # Batched across all folios in one query instead of one query per folio —
+    # the same fix already applied to the NAV lookup below. Global ordering
+    # (date, consuming-after-adding, id) is preserved per-folio by grouping
+    # in query order, since a stable groupby over an already-ordered stream
+    # keeps each group's relative order intact.
+    all_transactions = (
+        db.query(Transaction)
+        .filter(Transaction.folio_id.in_([folio.id for folio in folios]))
+        .order_by(
+            Transaction.date,
+            # Same-date purchases must sort before redemptions —
+            # Transaction.id is a random uuid4, so id-only tiebreak
+            # would let a same-day redemption randomly process first
+            # and silently under-consume (no lots to draw from).
+            case((Transaction.type.in_(_LOT_CONSUMING_TYPES), 1), else_=0),
+            Transaction.id,
+        )
+        .all()
+        if folios
+        else []
+    )
+    transactions_by_folio: dict[uuid.UUID, list[Transaction]] = defaultdict(list)
+    for txn in all_transactions:
+        transactions_by_folio[txn.folio_id].append(txn)
+
     computed: list[tuple[uuid.UUID, Scheme, PlanType, Decimal, Decimal, Decimal]] = []
     for (member_id, scheme_id, plan_type), member_folios in grouped.items():
         scheme = db.get(Scheme, scheme_id)
@@ -134,20 +159,7 @@ async def compute_holdings(db: Session, household_member_ids: list[uuid.UUID]) -
         total_cost = Decimal("0")
         total_realized = Decimal("0")
         for folio in member_folios:
-            transactions = (
-                db.query(Transaction)
-                .filter(Transaction.folio_id == folio.id)
-                .order_by(
-                    Transaction.date,
-                    # Same-date purchases must sort before redemptions —
-                    # Transaction.id is a random uuid4, so id-only tiebreak
-                    # would let a same-day redemption randomly process first
-                    # and silently under-consume (no lots to draw from).
-                    case((Transaction.type.in_(_LOT_CONSUMING_TYPES), 1), else_=0),
-                    Transaction.id,
-                )
-                .all()
-            )
+            transactions = transactions_by_folio.get(folio.id, [])
             units_held, cost_basis, realized_gain = _process_folio_lots(transactions)
             total_units += units_held
             total_cost += cost_basis

@@ -52,6 +52,39 @@ def test_parse_route_rejects_non_pdf(client):
     assert response.json()["detail"]["code"] == "invalid_file"
 
 
+def test_parse_route_rejects_spoofed_pdf_content(client):
+    headers = _authed_headers(client, "+919999999981")
+    with patch("app.api.imports.parse_cas_pdf_bytes") as parser:
+        response = client.post(
+            "/imports/parse",
+            files={"file": ("cas.pdf", b"not-a-pdf", "application/pdf")},
+            data={"password": "x"},
+            headers=headers,
+        )
+
+    assert response.status_code == 400
+    assert response.json()["detail"]["code"] == "invalid_file"
+    parser.assert_not_called()
+
+
+def test_parse_route_rejects_oversized_pdf(client):
+    headers = _authed_headers(client, "+919999999982")
+    with (
+        patch("app.services.import_.lifecycle_service.MAX_FILE_SIZE_BYTES", 8),
+        patch("app.api.imports.parse_cas_pdf_bytes") as parser,
+    ):
+        response = client.post(
+            "/imports/parse",
+            files={"file": ("cas.pdf", b"%PDF-too-large", "application/pdf")},
+            data={"password": "x"},
+            headers=headers,
+        )
+
+    assert response.status_code == 413
+    assert response.json()["detail"]["code"] == "file_too_large"
+    parser.assert_not_called()
+
+
 def test_parse_route_surfaces_parse_error_as_422(client):
     headers = _authed_headers(client, "+919999999992")
     with patch(

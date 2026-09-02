@@ -1,8 +1,8 @@
 ---
 artifact: database-schema
-version: "1.3"
+version: "1.5"
 created: 2026-07-22
-updated: 2026-08-17
+updated: 2026-09-02
 status: draft
 product: Unifolio
 target: "AWS RDS for PostgreSQL (ADR-003)"
@@ -47,8 +47,6 @@ erDiagram
     USERS ||--o{ HOUSEHOLD_MEMBERS : "owns"
     USERS ||--o{ SESSIONS : "has"
     USERS ||--o{ AUTH_IDENTITIES : "has"
-    USERS ||--o{ PASSWORD_RESET_TOKENS : "has"
-    USERS ||--o{ EMAIL_CONFIRMATION_TOKENS : "has"
     HOUSEHOLD_MEMBERS ||--o{ IMPORTS : "has"
     HOUSEHOLD_MEMBERS ||--o{ FOLIOS : "holds"
     IMPORTS ||--o{ TRANSACTIONS : "introduces"
@@ -99,6 +97,10 @@ family-aggregate-default logic (Design Principle 5).
 | `relationship_other_label` | `VARCHAR` NULLABLE | Free-text only when `relationship = 'other'` — covers real cases (grandparent, in-law, etc.) without the enum sprawling |
 | `created_at` | `TIMESTAMPTZ` | |
 
+Partial unique index on `(user_id) WHERE relationship = 'self'` (migration 0011) enforces
+at most one account-holder row per user; `create_household_member` also pre-checks this
+and returns 409 rather than surfacing a raw constraint violation.
+
 ### `imports`
 A single CAS upload-and-confirm event — repeatable per member, per PRD-01's Ongoing
 Data Addition requirement.
@@ -107,10 +109,16 @@ Data Addition requirement.
 |---|---|---|
 | `id` | `UUID` PK | |
 | `household_member_id` | `UUID` FK → `household_members.id` NOT NULL | |
-| `status` | `ENUM('pending','confirmed','failed')` NOT NULL | |
+| `status` | `ENUM('pending','confirmed','failed','not_started','requesting_cas','waiting_for_user','upload_started','password_required','validation_failed','processing','retry_pending','import_successful','import_failed','expired')` NOT NULL | Widened from the original 3-value set (migration 0003) to the full lifecycle-state machine (Updated-CAS-PRD FR-5); `pending`/`confirmed`/`failed` remain as legacy values, not removed — Postgres enums can't cheaply drop a value |
 | `source_cas_type` | `ENUM('cams','kfintech')` NULLABLE | Set once parsing succeeds |
 | `raw_parser_output` | `JSONB` NULLABLE | Full `casparser` output, per PRD-01 FR-4, for debugging — not the source PDF |
 | `error_type` | `ENUM('wrong_password','scanned_pdf','wrong_cas_type','generic')` NULLABLE | Populated on failure, drives PRD-01 FR-12–14's specific messaging |
+| `error_code` | `VARCHAR` NULLABLE | Added migration 0003 — machine-readable failure code alongside `error_type`, for lifecycle-state error surfacing |
+| `error_message` | `VARCHAR` NULLABLE | Added migration 0003 — human-readable failure detail |
+| `source_tab` | `VARCHAR` NULLABLE | Added migration 0003 — which CAS-request UI tab/flow this import originated from |
+| `statement_from_date` | `DATE` NULLABLE | Added migration 0003 — CAS statement period start |
+| `statement_to_date` | `DATE` NULLABLE | Added migration 0003 — CAS statement period end |
+| `expires_at` | `TIMESTAMPTZ` NULLABLE | Added migration 0003 — lifecycle-state expiry (e.g. an unconfirmed CAS request going stale) |
 | `new_transactions_count` | `INTEGER` NULLABLE | Populated on confirm, PRD-01 FR-9 |
 | `duplicate_transactions_count` | `INTEGER` NULLABLE | Populated on confirm, PRD-01 FR-9 |
 | `uploaded_at` | `TIMESTAMPTZ` NOT NULL | |
@@ -148,6 +156,8 @@ distributors — see PRD-03 FR-11).
 | `folio_number` | `VARCHAR` NOT NULL | |
 | `arn_code` | `VARCHAR` NULLABLE | PRD-01 FR-7/FR-8 — captured per folio, not collapsed across folios |
 | `plan_type` | `ENUM('direct','regular','unclassified')` NOT NULL DEFAULT `'unclassified'` | Resolved per PRD-01 FR-5/FR-6, combining `schemes.plan_name_variant` and this folio's `arn_code` presence |
+| `has_coverage_gap` | `BOOLEAN` NOT NULL DEFAULT `false` | Added migration 0003 — flags a folio with a detected transaction-history coverage gap (Updated-CAS-PRD FR-7) |
+| `coverage_gap_details` | `JSONB` NULLABLE | Added migration 0003 — detail payload for the flagged gap |
 | UNIQUE | `(household_member_id, scheme_id, folio_number)` | Prevents duplicate folio rows on re-import |
 
 ### `transactions`
@@ -162,7 +172,7 @@ below); the dedupe constraint already includes `date` so it partitions cleanly a
 | `id` | `UUID` | Generated, not globally unique alone once partitioned — see composite PK |
 | `folio_id` | `UUID` FK → `folios.id` NOT NULL | |
 | `import_id` | `UUID` FK → `imports.id` NOT NULL | Which import introduced this row — enables audit/debugging without needing the source PDF |
-| `type` | `ENUM('purchase','purchase_sip','redemption','switch_in','switch_out','dividend_payout','dividend_reinvest','segregation','stt','stamp_duty','misc')` NOT NULL | Per PRD-01 FR-3 |
+| `type` | `ENUM('purchase','purchase_sip','redemption','switch_in','switch_out','dividend_payout','dividend_reinvest','segregation','stt','stamp_duty','misc','opening_balance')` NOT NULL | Per PRD-01 FR-3; `opening_balance` added migration 0003 (Updated-CAS-PRD FR-7's coverage-gap opening-balance row). On Postgres this column is `VARCHAR` + `CHECK (type IN (...))`, not a native enum type — migration 0001's `_create_transactions_postgres()` deliberately avoids a separate `CREATE TYPE` lifecycle for the partitioned table; the CHECK constraint was widened for `opening_balance` by migration 0010, not 0003 (0003's own attempted `ALTER TYPE` for this column was dead code, since no native type ever existed here) |
 | `date` | `DATE` NOT NULL | Partition key |
 | `amount` | `NUMERIC(14,2)` NOT NULL | |
 | `units` | `NUMERIC(14,3)` NOT NULL | |
@@ -193,7 +203,7 @@ years of daily NAV), not something that grows only with adoption.
 |---|---|---|
 | `scheme_id` | `UUID` FK → `schemes.id` | |
 | `reference_period` | `DATE` | Month the TER applies to, per AMFI's disclosure cadence (PRD-04 Research) |
-| `ter_value` | `NUMERIC(5,2)` NOT NULL | Percentage |
+| `ter_value` | `NUMERIC(5,2)` NULLABLE | Percentage. Made nullable migration 0009 — `NULL` means "checked this scheme against this period's AMFI feed, found no usable TER" (e.g. a matured FMP no longer in AMFI's feed), distinct from no row at all ("never checked"); avoids re-triggering a full AMFI rescan forever for a scheme that will never match |
 | PRIMARY KEY | `(scheme_id, reference_period)` | |
 
 ### `scheme_aaum` (reference data)
@@ -249,21 +259,23 @@ fund scores.
 | PRIMARY KEY | `(scheme_id, computed_at)` | Keeps score history rather than overwriting, allowing "score changed over time" to be answerable later without a design change |
 
 ### `auth_identities`
-Stores one row per linked authentication identity per user (Phone OTP, Email Password, Google). Login resolution matches on `(provider, provider_subject)`.
+Stores one row per linked authentication identity per user (Phone OTP, Email OTP, Google). Login resolution matches on `(provider, provider_subject)`.
 
 | Column | Type | Notes |
 |---|---|---|
 | `id` | `UUID` PK | |
 | `user_id` | `UUID` FK → `users.id` NOT NULL | |
-| `provider` | `ENUM('phone_otp','email_otp','google','email_password')` NOT NULL | Authentication method identifier |
+| `provider` | `ENUM('phone_otp','email_otp','google','email_password')` NOT NULL | `email_password` kept in the enum but unused going forward (Postgres can't cheaply drop an enum value) — password-based auth was removed migration 0008; every live identity today is `phone_otp`, `email_otp`, or `google` |
 | `provider_subject` | `VARCHAR` NOT NULL | Method-specific subject (normalized phone, normalized email, or Google `sub`) |
 | `email` | `VARCHAR` NULLABLE | Verified email associated with this identity (if any) |
-| `password_hash` | `VARCHAR` NULLABLE | bcrypt hash (populated only for `email_password`) |
-| `email_confirmed_at` | `TIMESTAMPTZ` NULLABLE | Populated on email confirmation or password reset |
 | `identifier_verified_at` | `TIMESTAMPTZ` NOT NULL | When ownership of this identifier was proven |
 | `last_used_at` | `TIMESTAMPTZ` NOT NULL | Updated on each login |
 | `created_at` | `TIMESTAMPTZ` NOT NULL | |
 | UNIQUE | `(provider, provider_subject)` | Prevents duplicate identity claims across accounts |
+
+`password_hash` and `email_confirmed_at` (present in v1.3) were dropped by migration 0008
+when password-based auth was removed in favor of email+OTP — see
+`Docs/orchestration/remove-password-auth-handoff.md`.
 
 ### `pending_identity_verifications`
 Holds an independently-verified identity temporarily during the mandatory phone-gate signup or step-up account-linking flow.
@@ -272,49 +284,35 @@ Holds an independently-verified identity temporarily during the mandatory phone-
 |---|---|---|
 | `id` | `UUID` PK | |
 | `token_hash` | `VARCHAR` UNIQUE NOT NULL | SHA-256 hash of the bearer token returned in `phone_required` / `link_required` |
-| `provider` | `ENUM('phone_otp','email_otp','google','email_password')` NOT NULL | |
+| `provider` | `ENUM('phone_otp','email_otp','google','email_password')` NOT NULL | Never `phone_otp` in practice — a phone-first verification completes signup on its own, without a pending record |
 | `provider_subject` | `VARCHAR` NOT NULL | |
 | `email` | `VARCHAR` NULLABLE | |
 | `email_verified` | `BOOLEAN` NOT NULL | True only if provider proved email ownership |
-| `password_hash` | `VARCHAR` NULLABLE | Threads bcrypt hash through phone gate for `email_password` |
 | `matched_user_id` | `UUID` FK → `users.id` NULLABLE | Non-null for step-up linking to existing account |
 | `expires_at` | `TIMESTAMPTZ` NOT NULL | 10-minute TTL |
 | `used_at` | `TIMESTAMPTZ` NULLABLE | |
 | `created_at` | `TIMESTAMPTZ` NOT NULL | |
 
-### `password_reset_tokens`
-Single-use hashed tokens for self-service password reset.
+`password_hash` (present in v1.3) was dropped by migration 0008 alongside password auth.
 
-| Column | Type | Notes |
-|---|---|---|
-| `id` | `UUID` PK | |
-| `user_id` | `UUID` FK → `users.id` NOT NULL | |
-| `token_hash` | `VARCHAR` NOT NULL | SHA-256 hash of URL token |
-| `expires_at` | `TIMESTAMPTZ` NOT NULL | 30-minute TTL |
-| `used_at` | `TIMESTAMPTZ` NULLABLE | Set when password is reset |
-| `created_at` | `TIMESTAMPTZ` NOT NULL | |
-
-### `email_confirmation_tokens`
-Single-use hashed tokens for email confirmation.
-
-| Column | Type | Notes |
-|---|---|---|
-| `id` | `UUID` PK | |
-| `user_id` | `UUID` FK → `users.id` NOT NULL | |
-| `token_hash` | `VARCHAR` NOT NULL | SHA-256 hash of URL token |
-| `expires_at` | `TIMESTAMPTZ` NOT NULL | 30-minute TTL |
-| `used_at` | `TIMESTAMPTZ` NULLABLE | Set when email is confirmed |
-| `created_at` | `TIMESTAMPTZ` NOT NULL | |
+`password_reset_tokens` and `email_confirmation_tokens` (both present in v1.3) no longer
+exist — `email_confirmation_tokens` was dropped outright by migration 0007 when email+OTP
+replaced link-based email confirmation, and `password_reset_tokens` was dropped by
+migration 0008 when password auth was removed entirely (both tables backed a mechanism
+that was deleted, not toggled off).
 
 ### `otp_requests`
-Foundational schema for PRD-02's phone+OTP auth (FR-2) — transient, short-lived records,
-not a full auth/security spec (rate-limiting policy, lockout rules, etc. remain a future
-Auth/Security PRD per PRD-02's FR-2a note). Narrowed back to phone-only per migration 0006.
+Foundational schema for PRD-02's phone+OTP auth (FR-2) and the email+OTP signup flow
+(migration 0007) — transient, short-lived records, not a full auth/security spec
+(rate-limiting policy, lockout rules, etc. remain a future Auth/Security PRD per PRD-02's
+FR-2a note).
 
 | Column | Type | Notes |
 |---|---|---|
 | `id` | `UUID` PK | |
-| `phone_number` | `VARCHAR` NOT NULL | Not yet necessarily tied to a `users` row — OTP is requested before an account is confirmed to exist |
+| `phone_number` | `VARCHAR` NULLABLE | Not yet necessarily tied to a `users` row — OTP is requested before an account is confirmed to exist |
+| `email` | `VARCHAR` NULLABLE | Added migration 0007, for the email+OTP signup flow's inline confirmation step |
+| CHECK | exactly one of `phone_number`/`email` set | `ck_otp_requests_exactly_one_identifier`, migration 0007 — phone and email OTPs share this one table |
 | `otp_hash` | `VARCHAR` NOT NULL | Hashed, never the raw OTP |
 | `expires_at` | `TIMESTAMPTZ` NOT NULL | Short-lived (5 min), per standard OTP practice |
 | `verified_at` | `TIMESTAMPTZ` NULLABLE | |
@@ -353,6 +351,9 @@ Foundational session record following successful auth verification.
   range scans PRD-03's monthly snapshot backfill needs.
 - `household_members(user_id)` — supports the family-aggregate query (Design
   Principle 5's computed default) with a simple existence/count check.
+- `household_members(user_id) WHERE relationship = 'self'` (unique, migration 0011) —
+  enforces one account-holder row per user; doubles as the existence check the
+  application-layer 409 guard also performs before insert.
 
 ## What This Document Doesn't Cover
 
@@ -392,3 +393,5 @@ None remaining from this pass.
 | 1.1 | 2026-07-22 | Claude (PM partner) | PAN confirmed never persisted; `relationship` changed to structured enum + other-label fallback; `transactions` and `nav_history` now partitioned by `RANGE(date)`, yearly, from MVP launch (not deferred); added foundational `otp_requests` and `sessions` tables for PRD-02's phone+OTP auth |
 | 1.2 | 2026-08-06 | Claude (PM partner) | `transactions` dedupe key widened to `(folio_id, date, amount, units, type)` — with amounts/units normalized to positive magnitudes, equal-magnitude same-day purchase+redemption pairs were no longer sign-distinguishable and collided under the 4-column key; matches migration 0002 |
 | 1.3 | 2026-08-17 | Claude (PM partner) | Updated for multi-method auth (migrations 0004-0006): added `auth_identities`, `pending_identity_verifications`, `password_reset_tokens`, `email_confirmation_tokens`; added `sessions.auth_method`; narrowed `otp_requests` back to phone-only; updated `users.phone_number` and ERD to reflect `auth_identities` as auth source of truth |
+| 1.4 | 2026-09-02 | Claude (PM partner) | Reconciled against migrations 0003, 0007-0010 (this doc had gone stale by 3-4 migrations, caught by the sqlite-postgres-migration-compliance-audit): `imports.status` widened to the full 14-value lifecycle enum, added `imports.error_code`/`error_message`/`source_tab`/`statement_from_date`/`statement_to_date`/`expires_at`; added `folios.has_coverage_gap`/`coverage_gap_details`; `transactions.type` gained `opening_balance` (and noted it's a `VARCHAR`+CHECK column on Postgres, never a native enum type); `scheme_ter.ter_value` made nullable with a documented meaning; dropped `password_reset_tokens` and `email_confirmation_tokens` entirely (removed by migrations 0007/0008) and `password_hash`/`email_confirmed_at` from `auth_identities`/`pending_identity_verifications` (removed by 0008); documented `otp_requests.email` and its exactly-one-identifier CHECK (added back by 0007) |
+| 1.5 | 2026-09-02 | Claude (PM partner) | F3 (compliance audit): `household_members` gained a partial unique index on `(user_id) WHERE relationship = 'self'` (migration 0011), enforcing one account-holder row per user — a gap this doc had never specified even before the code caught up; documented in both the `household_members` entity and Indexing Notes |

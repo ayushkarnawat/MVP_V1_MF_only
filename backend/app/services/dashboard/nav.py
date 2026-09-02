@@ -46,6 +46,8 @@ _nav_warm_clock = time.monotonic
 _nav_warm_cache: dict[uuid.UUID, float] = {}
 _nav_warm_lock = threading.Lock()
 
+_NAV_UPSERT_INSERT_BUILDERS = {"sqlite": sqlite_insert, "postgresql": postgresql_insert}
+
 _nav_http_client: httpx.AsyncClient | None = None
 _nav_http_client_lock = threading.Lock()
 _nav_fetches_in_flight: dict[str, asyncio.Task[list[tuple[date, Decimal]]]] = {}
@@ -107,16 +109,12 @@ async def _upsert_nav_history(
         return
     values = [{"scheme_id": scheme_id, "date": row_date, "nav": nav} for row_date, nav in rows]
     dialect_name = db.get_bind().dialect.name
-    if dialect_name == "sqlite":
-        statement = sqlite_insert(NavHistory).values(values).on_conflict_do_nothing(
-            index_elements=[NavHistory.scheme_id, NavHistory.date]
-        )
-    elif dialect_name == "postgresql":
-        statement = postgresql_insert(NavHistory).values(values).on_conflict_do_nothing(
-            index_elements=[NavHistory.scheme_id, NavHistory.date]
-        )
-    else:
+    insert_builder = _NAV_UPSERT_INSERT_BUILDERS.get(dialect_name)
+    if insert_builder is None:
         raise RuntimeError(f"Unsupported database dialect for NAV upsert: {dialect_name}")
+    statement = insert_builder(NavHistory).values(values).on_conflict_do_nothing(
+        index_elements=[NavHistory.scheme_id, NavHistory.date]
+    )
     db.execute(statement)
     if commit:
         await commit_off_loop(db)
