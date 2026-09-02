@@ -1,6 +1,12 @@
 # Handoff: analytics-precompute-implementation
 
-**Status:** OPEN — dispatched to user for external execution (2026-09-02)
+**Status:** OPEN — Tasks 1-3 done (commits `47b0bb9`, `9ca4933`, `729ea8e` on
+`worktree-analytics-precompute-architecture`), Tasks 4-9 remaining. Codex ran
+Tasks 1-2 cleanly, then correctly stopped mid-Task-3 per this doc's
+missing-context-gating clause rather than guessing a fix for two internal
+inconsistencies in the plan's literal Task 3 code (see "Task 3 findings"
+below). Claude fixed both directly and committed `729ea8e` — full suite green
+(587 passed, 3 skipped) before handing back for Tasks 4-9. (2026-09-02)
 **Parent plan:** `Docs/superpowers/plans/2026-09-02-analytics-precompute-architecture.md`
 (9 tasks, fully detailed, no placeholders — this handoff doc does not restate that
 plan's content, only the "why" and constraints a plain prompt summary would lose)
@@ -83,6 +89,30 @@ non-placeholder code for every step — this is execution, not design or researc
   `tests/models/test_auth_identity_models.py`'s `_session()` pattern for Task 1) and
   something is genuinely ambiguous, follow the referenced file's actual current
   convention over the plan's paraphrase of it.
+
+## Task 3 findings (resolved by Claude, 2026-09-02, commit `729ea8e`)
+
+Codex's stop-and-report was correct — both were genuine bugs in the plan's
+literal code, not something to guess around:
+
+1. `_SectionSpec` was declared `@dataclass(frozen=True)`, but the plan's own
+   tests patch `.compute` per-instance via `unittest.mock.patch.object`,
+   which requires attribute mutation. Fix: dropped `frozen=True`.
+2. `should_dispatch_recompute` subtracted a DB-round-tripped `started_at`
+   from an aware `datetime.now(timezone.utc)`. SQLite's `DateTime(timezone=True)`
+   doesn't preserve tzinfo on read (Postgres does) — a `started_at` written
+   aware comes back naive on SQLite. Fix: normalize a naive read to UTC
+   before subtracting.
+
+Also corrected the new `test_recompute_does_not_refetch_nav_over_network_for_a_category_shared_across_scopes`
+test: it asserted on `_fetch_nav_history`'s call count (2, not 1), but
+`compute_holdings` (called at the top of `compute_category_ranking`,
+unmodified by this plan) does its own separate, pre-existing per-scheme
+valuation lookup via `get_nav_on_or_before`, which also touches
+`_fetch_nav_history` once — independent of this module's category-returns
+caching. Rewrote to spy on `warm_nav_history` directly (call count == 1),
+which is the exact function the spec's "called once, not once per scope"
+claim is about.
 
 ## Verification required before reporting done
 
