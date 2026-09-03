@@ -10,5 +10,17 @@ class Settings(BaseSettings):
     frontend_base_url: str = "http://localhost:5173"
     google_oauth_client_id: str = ""
 
+    # ECS Fargate RunTask invocation for the analytics recompute dispatcher
+    # (see Docs/superpowers/specs/2026-09-02-analytics-precompute-architecture-design.md).
+    # Empty defaults are deliberate: the exact ARNs are being finalized in a
+    # parallel AWS-migration session as of 2026-09-02. EcsRunTaskDispatcher
+    # degrades to a logged no-op when any required value is unset.
+    aws_region: str = ""
+    ecs_cluster_arn: str = ""
+    ecs_task_definition_arn: str = ""
+    ecs_container_name: str = ""
+    ecs_subnet_ids: str = ""  # comma-separated subnet ids
+    ecs_security_group_ids: str = ""  # comma-separated security group ids
+
 
 settings = Settings()
