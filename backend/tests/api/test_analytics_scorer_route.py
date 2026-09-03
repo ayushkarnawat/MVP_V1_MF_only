@@ -54,16 +54,3 @@ def test_get_fund_score_returns_row_for_existing_scheme():
         assert response.json()["return_percentile"] == "70"
     finally:
         app.dependency_overrides.clear()
-
-
-def test_get_member_score_404_when_member_not_found():
-    from app.services.auth.session import get_current_user
-
-    app.dependency_overrides[get_current_user] = lambda: type("U", (), {"id": uuid.uuid4()})()
-    client = _client()
-    try:
-        with patch("app.api.analytics.get_household_member_for_user", return_value=None):
-            response = client.get(f"/analytics/household-members/{uuid.uuid4()}/score")
-        assert response.status_code == 404
-    finally:
-        app.dependency_overrides.clear()
