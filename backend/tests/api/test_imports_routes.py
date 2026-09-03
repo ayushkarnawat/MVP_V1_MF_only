@@ -200,15 +200,42 @@ def test_confirm_route_schedules_nav_prefetch_after_successful_confirm():
     with (
         patch("app.api.imports.get_household_member_for_user", return_value=MagicMock()),
         patch("app.api.imports.confirm_import", return_value=response),
+        patch("app.api.imports.should_dispatch_recompute", return_value=True),
     ):
         result = confirm_import_route(body, background_tasks, user, request_db)
 
     assert result == response
+    assert len(background_tasks.tasks) == 2
+    prefetch_task, dispatch_task = background_tasks.tasks
+    assert prefetch_task.func.__name__ == "_prefetch_member_nav_history"
+    assert prefetch_task.args == (member_id,)
+    assert dispatch_task.args == (user.id,)
+
+
+def test_confirm_route_does_not_dispatch_recompute_when_one_already_in_flight():
+    from app.api.imports import confirm_import_route
+    from app.services.import_.schemas import ImportConfirmRequest, ImportConfirmResponse
+
+    member_id = uuid.uuid4()
+    body = ImportConfirmRequest(
+        session_id="session-1",
+        household_member_id=str(member_id),
+        scheme_confirmations=[],
+    )
+    background_tasks = BackgroundTasks()
+    user = MagicMock(id=uuid.uuid4())
+    request_db = MagicMock()
+    response = ImportConfirmResponse(added=1, skipped=0, import_id=str(uuid.uuid4()))
+
+    with (
+        patch("app.api.imports.get_household_member_for_user", return_value=MagicMock()),
+        patch("app.api.imports.confirm_import", return_value=response),
+        patch("app.api.imports.should_dispatch_recompute", return_value=False),
+    ):
+        confirm_import_route(body, background_tasks, user, request_db)
+
     assert len(background_tasks.tasks) == 1
-    task = background_tasks.tasks[0]
-    assert task.func.__name__ == "_prefetch_member_nav_history"
-    assert task.args == (member_id,)
-    assert request_db not in task.args
+    assert background_tasks.tasks[0].func.__name__ == "_prefetch_member_nav_history"
 
 
 def test_nav_prefetch_uses_fresh_session_and_never_raises():
