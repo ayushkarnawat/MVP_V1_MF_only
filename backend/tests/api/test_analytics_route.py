@@ -92,3 +92,37 @@ def test_analytics_scope_route_surfaces_a_failed_section(client):
     response = client.get(f"/analytics/{member_id}", headers=headers)
     body = response.json()
     assert body["sections"]["score"]["failed_at"] is not None
+
+
+def test_analytics_retry_route_requires_auth(client):
+    response = client.post("/analytics/combined/retry")
+    assert response.status_code == 401
+
+
+def test_analytics_retry_route_404_for_unknown_member(client):
+    headers, _, _ = _authed_headers_and_member(client, "+919000000035")
+    response = client.post(
+        "/analytics/00000000-0000-0000-0000-000000000000/retry", headers=headers
+    )
+    assert response.status_code == 404
+
+
+def test_analytics_retry_route_dispatches_when_nothing_in_flight(client):
+    headers, _, _ = _authed_headers_and_member(client, "+919000000036")
+    with patch("app.api.analytics.dispatcher.dispatch") as mock_dispatch:
+        response = client.post("/analytics/combined/retry", headers=headers)
+    assert response.status_code == 200
+    assert response.json()["dispatched"] is True
+    mock_dispatch.assert_called_once()
+
+
+def test_analytics_retry_route_is_a_noop_while_one_is_already_in_flight(client):
+    headers, _, _ = _authed_headers_and_member(client, "+919000000037")
+    with (
+        patch("app.api.analytics.should_dispatch_recompute", return_value=False),
+        patch("app.api.analytics.dispatcher.dispatch") as mock_dispatch,
+    ):
+        response = client.post("/analytics/combined/retry", headers=headers)
+    assert response.status_code == 200
+    assert response.json()["dispatched"] is False
+    mock_dispatch.assert_not_called()

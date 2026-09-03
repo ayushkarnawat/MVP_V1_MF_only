@@ -163,3 +163,7 @@ class AnalyticsScopeResponse(BaseModel):
     scope: str
     recomputing: bool
     sections: dict[str, AnalyticsSectionState]
+
+
+class AnalyticsRetryResponse(BaseModel):
+    dispatched: bool

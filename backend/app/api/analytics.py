@@ -16,6 +16,7 @@ from app.services.analytics.pdf_export import (
 )
 from app.services.analytics.recompute import should_dispatch_recompute
 from app.services.analytics.schemas import (
+    AnalyticsRetryResponse,
     AnalyticsScopeResponse,
     AnalyticsSectionState,
     FundScoreRow,
@@ -80,6 +81,28 @@ def get_analytics_scope(
         recomputing = True
 
     return AnalyticsScopeResponse(scope=scope, recomputing=recomputing, sections=sections)
+
+
+@router.post("/{scope}/retry", response_model=AnalyticsRetryResponse)
+def retry_analytics_scope(
+    scope: str,
+    user: User = Depends(get_current_user),
+    db: DbSession = Depends(get_db),
+):
+    if scope != "combined":
+        try:
+            member_uuid = uuid.UUID(scope)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=400, detail='scope must be "combined" or a household member id.'
+            ) from exc
+        if get_household_member_for_user(db, user.id, member_uuid) is None:
+            raise HTTPException(status_code=404, detail="Household member not found.")
+
+    dispatched = should_dispatch_recompute(db, user.id)
+    if dispatched:
+        dispatcher.dispatch(user.id)
+    return AnalyticsRetryResponse(dispatched=dispatched)
 
 
 @router.post("/export/pdf")
