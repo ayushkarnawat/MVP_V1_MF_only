@@ -15,10 +15,11 @@ returned **needs-fixes** (6 findings), fixed `3ca83ae`; the fix's own scoped
 re-review (round 2) returned **needs-fixes** again with a Critical
 regression the round-1 fix introduced, fixed `3f2bdd0`; round 2's own fix
 scoped re-review (round 3) returned **needs-fixes** with 2 High findings in
-`EcsRunTaskDispatcher.dispatch()`'s error handling, fixed `88a1baa` (see
+`EcsRunTaskDispatcher.dispatch()`'s error handling, fixed `88a1baa`; round
+3's own fix scoped re-review (round 4) returned **PASS, zero findings** (see
 "Review gate round 1 & round 2 findings" below, which also covers rounds 3
-and 4). Round 4 (scoped re-review of the round-3 fix) dispatched, result
-pending — still not DONE. (2026-09-03)
+and 4). Full backend suite independently re-confirmed clean at the close of
+round 4: 597 passed, 6 skipped, 0 failures. **DONE.** (2026-09-03)
 
 **IMPORTANT — migration renumber:** this worktree's `0010_analytics_sections.py`
 migration was renumbered to `0012_analytics_sections.py` (`down_revision`
@@ -328,16 +329,30 @@ test file only) — dispatched a further scoped re-review (round 4) per the
 skill's stopping heuristic, since round 3's findings were High severity, not
 a lower-severity trend from round 2's Critical/High/Medium.
 
+**Round 4 (scoped re-review of the round-3 fix) verdict: PASS, zero
+findings.** Codex confirmed all 6 verification points against `git diff
+3f2bdd0..88a1baa` (both `dispatch.py` and its test file), independently
+checked the installed botocore exception hierarchy (`NoCredentialsError` ->
+`BotoCoreError`; `EndpointConnectionError` -> `ConnectionError` ->
+`BotoCoreError`; `ClientError` handled explicitly) to confirm the `except`
+clause is actually broad enough rather than accepting the fix's own
+docstring claim, and ran the 5 targeted tests (all passed) in its own
+environment. Orchestrator independently re-ran the full backend suite as
+the closing-round check: 597 passed, 6 skipped, 0 failures. Review gate
+closed — 4 rounds total (needs-fixes x3, PASS x1), all findings genuine
+(no plan-sequencing artifacts among them, unlike the implementation-phase
+task rounds above).
+
 **Environment note:** the `codex:codex-rescue` Agent dispatch is
 forwarder-only for implementation/most review dispatches — it returns a job
 ID immediately and Claude cannot poll it; `/codex:status`/`/codex:result`
 are `disable-model-invocation: true`, human-only. Round 1 needed a manual
-relay. Round 2's own `task-notification` unusually carried the full result
-inline instead; round 3's `task-notification` also carried the full result
-inline — this is now confirmed twice, so it appears to be the actual default
-behavior for this dispatch chain rather than a one-off anomaly. Round 1's
-forwarder-only behavior may have been the anomaly instead; not fully
-reconciled, but no manual relay has been needed since round 1.
+relay. Rounds 2-4's own `task-notification`s all carried the full result
+inline instead, with no manual relay needed — confirmed 3 times now, so
+this appears to be the actual default behavior for this dispatch chain;
+round 1's forwarder-only behavior may have been the anomaly instead. Not
+fully reconciled, but worth treating the inline-result behavior as the
+default going forward on similar chains.
 
 ## Verification required before reporting done
 
