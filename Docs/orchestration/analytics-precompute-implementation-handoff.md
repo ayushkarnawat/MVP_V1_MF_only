@@ -13,9 +13,12 @@ another dispatch round-trip for the remaining, now-well-understood work),
 full suite green throughout. Mandatory adversarial-review gate: round 1
 returned **needs-fixes** (6 findings), fixed `3ca83ae`; the fix's own scoped
 re-review (round 2) returned **needs-fixes** again with a Critical
-regression the round-1 fix introduced, fixed `3f2bdd0` (see "Review gate
-round 1 & round 2 findings" below). Round 3 (scoped re-review of the round-2
-fix) is the next step — still not DONE. (2026-09-03)
+regression the round-1 fix introduced, fixed `3f2bdd0`; round 2's own fix
+scoped re-review (round 3) returned **needs-fixes** with 2 High findings in
+`EcsRunTaskDispatcher.dispatch()`'s error handling, fixed `88a1baa` (see
+"Review gate round 1 & round 2 findings" below, which also covers rounds 3
+and 4). Round 4 (scoped re-review of the round-3 fix) dispatched, result
+pending — still not DONE. (2026-09-03)
 
 **IMPORTANT — migration renumber:** this worktree's `0010_analytics_sections.py`
 migration was renumbered to `0012_analytics_sections.py` (`down_revision`
@@ -293,13 +296,48 @@ function's return value. Full suite: 595 passed (+6 net), 6 skipped, 0
 failures. `git diff --stat` confirmed narrow (same 10 files as round 1).
 Round 3 (scoped re-review of this fix) dispatched next.
 
+**Round 3 (scoped re-review of the round-2 fix) verdict: needs-fixes, 2
+findings (both High), both confined to `EcsRunTaskDispatcher.dispatch()` in
+`dispatch.py`.** Round 3 first confirmed all 3 round-2 findings genuinely
+closed (with file:line citations for each) before reporting new findings.
+**Finding 1:** `boto3.client()`/`client.run_task()` exceptions (network/API
+errors) were never caught, so a transport failure would propagate straight
+past every caller's `release_recompute_claim()` check — reproducing the
+exact orphaned-claim-for-up-to-2-hours failure mode round 2's bool-return
+fix was meant to close, just via an uncaught exception instead of a `False`
+return. **Finding 2:** a `{"tasks": [], "failures": []}` `RunTask` response
+returned `True` on "no reported failures" alone, without confirming a task
+was actually placed — the existing "configured, success" test explicitly
+codified this gap (it asserted success from `{"failures": []}` with no
+`tasks` key at all). Both independently re-verified against `dispatch.py`
+before fixing.
+
+**Round-3 fix (commit `88a1baa`):** wrapped the `boto3.client()`/`run_task()`
+call in `try/except (BotoCoreError, ClientError)`, returning `False` (logged
+via `logger.exception`) on any transport/API failure. Added a
+`response.get("tasks")` truthiness check after the existing `failures`
+check, returning `False` (logged via `logger.error`) when no task was
+actually reported placed. Fixed the existing success test to include a
+non-empty `tasks` list (previously the gap-codifying shape); added
+`test_dispatch_returns_false_when_run_task_raises` and
+`test_dispatch_returns_false_when_run_task_reports_no_tasks_and_no_failures`.
+Touched-area suite (5 files): 52/52 passed. Full suite (run since this round
+was expected to potentially close the gate): 597 passed, 6 skipped, 0
+failures. `git diff --stat` confirmed narrow (2 files: `dispatch.py` + its
+test file only) — dispatched a further scoped re-review (round 4) per the
+skill's stopping heuristic, since round 3's findings were High severity, not
+a lower-severity trend from round 2's Critical/High/Medium.
+
 **Environment note:** the `codex:codex-rescue` Agent dispatch is
 forwarder-only for implementation/most review dispatches — it returns a job
 ID immediately and Claude cannot poll it; `/codex:status`/`/codex:result`
 are `disable-model-invocation: true`, human-only. Round 1 needed a manual
 relay. Round 2's own `task-notification` unusually carried the full result
-inline instead — not yet reconciled with round 1's behavior; treat round 1's
-behavior as the default assumption until this recurs.
+inline instead; round 3's `task-notification` also carried the full result
+inline — this is now confirmed twice, so it appears to be the actual default
+behavior for this dispatch chain rather than a one-off anomaly. Round 1's
+forwarder-only behavior may have been the anomaly instead; not fully
+reconciled, but no manual relay has been needed since round 1.
 
 ## Verification required before reporting done
 
