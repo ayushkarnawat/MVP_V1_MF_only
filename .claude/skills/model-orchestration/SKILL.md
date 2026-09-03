@@ -169,6 +169,13 @@ faster, cheaper confirmation that never weakens the gate itself.
 
 ## Changelog
 
+- **v1.5 (2026-09-03):** Added `delegation-rules.md`'s "forwarder-only
+  Agent wrapper" constraint — `codex:codex-rescue` cannot be polled by
+  Claude for status/result; `/codex:status`/`/codex:result` are
+  `disable-model-invocation: true`, human-only. Confirmed live across 2
+  review-gate rounds on analytics-precompute-architecture. Every
+  review-gate dispatch now needs the user told up front that a manual
+  relay will be required.
 - **v1.4 (2026-08-19):** Added `delegation-rules.md`'s mandatory
   cheap-probe-before-expensive-setup pre-step (write a file, `git add`,
   `git commit` against any new dispatch location, before paying a large

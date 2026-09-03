@@ -142,6 +142,30 @@ error hitting the dispatch wrapper) is not proof the underlying job didn't
 still complete — see "Recovering from a dispatch-layer failure" below for
 the Codex-specific version of this same check.
 
+**The `codex:codex-rescue` Agent wrapper is forwarder-only — it cannot be
+polled by Claude.** Confirmed live across 2 review-gate rounds
+(analytics-precompute-architecture, 2026-09-03): dispatching with
+`run_in_background: true` starts a Codex-CLI-native background job (a job
+ID like `task-xxxxx`, distinct from the Agent tool's own background-task
+mechanism) and the wrapper returns immediately — its notification/result
+only ever contains "Codex Task started in the background... Check
+`/codex:status <id>`," never the actual findings. Sending a follow-up
+message asking the same agent to poll/wait does not work — it will
+correctly report itself as forwarder-only, not permitted to call
+`status`/`result` on its own dispatched job. The only way to retrieve the
+job's status/result is the Claude Code slash commands `/codex:status
+<job-id>` and `/codex:result <job-id>` — both are defined with
+`disable-model-invocation: true` in their command frontmatter (confirmed
+by reading `commands/status.md`/`result.md` in the installed
+`openai-codex` plugin), meaning **Claude is structurally unable to invoke
+either command**, by any tool or approach. Every review-gate round in this
+environment requires the human user to type both slash commands
+themselves in the same CLI session and relay the output back into the
+conversation. Plan for this explicitly when dispatching a review: tell the
+user up front that a manual status/result check will be needed once the
+job completes, rather than waiting silently for a notification that will
+never carry the real findings.
+
 ## Isolation parameter for dispatches
 
 Never pass `isolation: "worktree"` on a Codex dispatch that is expected to
