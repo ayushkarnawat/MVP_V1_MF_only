@@ -31,3 +31,14 @@ def test_household_members_scoped_per_user(client):
     response = client.get("/household-members", headers=headers_b)
 
     assert response.json() == []
+
+
+def test_create_household_member_rejects_second_self_row(client):
+    headers = _authed_headers(client)
+    client.post("/household-members", json={"name": "Ayush", "relationship": "self"}, headers=headers)
+
+    response = client.post(
+        "/household-members", json={"name": "Ayush Again", "relationship": "self"}, headers=headers
+    )
+
+    assert response.status_code == 409

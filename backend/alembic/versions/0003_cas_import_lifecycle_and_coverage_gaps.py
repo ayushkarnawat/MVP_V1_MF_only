@@ -88,7 +88,10 @@ def _upgrade_postgres() -> None:
     op.create_index("ix_imports_member_uploaded_at", "imports", ["household_member_id", "uploaded_at"])
 
     op.add_column("folios", sa.Column("has_coverage_gap", sa.Boolean(), server_default=sa.text("false"), nullable=False))
-    op.add_column("folios", sa.Column("coverage_gap_details", postgresql.JSONB(), nullable=True))
+    op.add_column(
+        "folios",
+        sa.Column("coverage_gap_details", sa.JSON().with_variant(postgresql.JSONB(), "postgresql"), nullable=True),
+    )
 
 
 def _downgrade_postgres() -> None:

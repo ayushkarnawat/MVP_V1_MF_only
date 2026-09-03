@@ -37,6 +37,7 @@ from decimal import Decimal
 import httpx
 from sqlalchemy.orm import Session
 
+from app.db.session import commit_off_loop
 from app.models.reference import Scheme, SchemeAaum
 
 AMFI_AAUM_BASE = "https://www.amfiindia.com/api/average-aum-schemewise"
@@ -163,5 +164,5 @@ async def refresh_aaum_data(db: Session) -> bool:
         _upsert_scheme_aaum(db, scheme.id, reference_period, aaum_value)
         matched_any = True
 
-    db.commit()
+    await commit_off_loop(db)
     return matched_any

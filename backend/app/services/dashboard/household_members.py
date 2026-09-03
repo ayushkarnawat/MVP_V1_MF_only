@@ -14,6 +14,13 @@ from app.models.enums import Relationship
 from app.models.user import HouseholdMember
 
 
+class DuplicateSelfMemberError(Exception):
+    """Raised when a user already has a `relationship = 'self'` household
+    member — the DB's partial unique index (migration 0011) is the source of
+    truth; this pre-check exists to turn that constraint into a clean 409
+    instead of a raw IntegrityError bubbling out of the route."""
+
+
 def create_household_member(
     db: DbSession,
     user_id: uuid.UUID,
@@ -21,6 +28,17 @@ def create_household_member(
     relationship: Relationship,
     relationship_other_label: str | None = None,
 ) -> HouseholdMember:
+    if relationship == Relationship.SELF:
+        existing_self = (
+            db.query(HouseholdMember)
+            .filter_by(user_id=user_id, relationship=Relationship.SELF)
+            .first()
+        )
+        if existing_self is not None:
+            raise DuplicateSelfMemberError(
+                "This user already has a 'self' household member."
+            )
+
     member = HouseholdMember(
         user_id=user_id,
         name=name,

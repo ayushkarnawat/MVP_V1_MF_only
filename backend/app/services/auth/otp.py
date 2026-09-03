@@ -57,11 +57,11 @@ def create_otp_request(
     mode, for the API response to echo back; a real delivery mode returns
     None here and sends the code out-of-band instead (SMS provider for
     "sms", `get_email_provider().send_email(...)` for "email")."""
-    if settings.otp_delivery_mode == "stub" and not settings.database_url.startswith("sqlite"):
+    if settings.otp_delivery_mode == "stub" and settings.environment == "production":
         raise RuntimeError(
-            "otp_delivery_mode='stub' is not allowed against a non-SQLite database — "
-            "this would leak real OTPs in the API response outside local dev. "
-            "Set OTP_DELIVERY_MODE to a real delivery mode before deploying against Postgres."
+            "otp_delivery_mode='stub' is not allowed in production — "
+            "this would leak real OTPs in the API response. "
+            "Set OTP_DELIVERY_MODE to a real delivery mode before deploying to production."
         )
 
     recent = (

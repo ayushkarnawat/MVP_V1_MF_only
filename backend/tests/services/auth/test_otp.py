@@ -88,14 +88,28 @@ def test_verify_otp_rejects_unknown_phone_number():
         verify_otp(db, "+910000000000", "123456")
 
 
-def test_create_otp_request_refuses_stub_mode_against_non_sqlite_database(monkeypatch):
+def test_create_otp_request_allows_stub_mode_on_staging_postgres(monkeypatch):
     import app.services.auth.otp as otp_module
 
     monkeypatch.setattr(otp_module.settings, "otp_delivery_mode", "stub")
     monkeypatch.setattr(otp_module.settings, "database_url", "postgresql+psycopg2://x")
+    monkeypatch.setattr(otp_module.settings, "environment", "staging")
     db = _session()
 
-    with pytest.raises(RuntimeError, match="not allowed against a non-SQLite database"):
+    _, raw_otp = create_otp_request(db, "+919999999999")
+
+    assert raw_otp is not None
+
+
+def test_create_otp_request_refuses_stub_mode_in_production_even_with_sqlite(monkeypatch):
+    import app.services.auth.otp as otp_module
+
+    monkeypatch.setattr(otp_module.settings, "otp_delivery_mode", "stub")
+    monkeypatch.setattr(otp_module.settings, "database_url", "sqlite:///:memory:")
+    monkeypatch.setattr(otp_module.settings, "environment", "production")
+    db = _session()
+
+    with pytest.raises(RuntimeError, match="not allowed in production"):
         create_otp_request(db, "+919999999999")
 
 

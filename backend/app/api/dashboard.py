@@ -27,6 +27,7 @@ from app.services.dashboard.fund_detail import get_fund_nav_history
 
 #household member related db operations
 from app.services.dashboard.household_members import (
+    DuplicateSelfMemberError,
     create_household_member,
     get_household_member_for_user,
     list_household_members,
@@ -78,9 +79,12 @@ def create_member(
     user: User = Depends(get_current_user),
     db: DbSession = Depends(get_db),
 ):
-    member = create_household_member(
-        db, user.id, body.name, body.relationship, body.relationship_other_label
-    )
+    try:
+        member = create_household_member(
+            db, user.id, body.name, body.relationship, body.relationship_other_label
+        )
+    except DuplicateSelfMemberError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     return HouseholdMemberResponse(
         id=str(member.id),
         name=member.name,

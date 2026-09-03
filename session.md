@@ -1,4 +1,4 @@
-# Session state — 2026-08-27 (updated)
+# Session state — 2026-09-02 (updated)
 
 Working notes for picking this project back up cold. Not a planning doc — see
 `Docs/superpowers/plans/` for those. This file tracks *where things stand*,
@@ -7,7 +7,88 @@ gets overwritten each session, and isn't meant to accumulate history.
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
 
-## Latest Session (2026-08-27)
+## Latest Session (2026-09-02): AWS staging prep — compliance-audit remediation, Group 1
+
+Working through `AWS Readiness/sqlite-postgres-migration-compliance-audit.md`,
+`aws-golive-launch-blockers.md`, and `aws-golive-readiness-report.md` to close every
+pre-staging gap (any priority, as long as it isn't safely deferrable past staging) before
+starting the AWS Terraform build. Two prior Codex-implemented pieces were independently
+verified this session, not just trusted from self-report: `Docs/orchestration/staging-code-blockers-handoff.md`
+(OTP stub-mode guard now keyed on `environment == "production"` not a SQLite-path sniff,
+`Dockerfile`+`.dockerignore`+pinned `requirements.txt`, `_allowed_cors_origins` config-driven
+CORS, `/imports/parse` upload validation) and `enum-drift-migration-handoff.md` (migration
+`0010` widens the `importstatus` native enum and rebuilds the `transactions_type_check`
+CHECK constraint to include `opening_balance`) — both confirmed correct via fresh test
+runs, direct Postgres DDL inspection, and container boot checks. Both docs' own deviations
+from their handoff instructions (0010 skipping a native `transactiontype` Postgres enum
+that migration 0001 never actually created) were confirmed to be legitimate,
+evidence-based corrections, not errors.
+
+Remaining findings grouped into: **Group 1** (no product decision needed — done this
+session, directly in Claude, without Codex, since Codex's usage limit was exhausted until
+~7pm and the user didn't want to burn Claude's limits either while waiting):
+- **F6**: `nav.py`'s `_upsert_nav_history` Postgres `ON CONFLICT DO NOTHING` branch had
+  zero test coverage (only ever exercised on SQLite) — added
+  `test_upsert_nav_history_is_conflict_safe_on_postgres` to
+  `tests/functional_postgres/test_partitioning.py`, run and passing against the local
+  Docker Postgres 16 container. Also did the audit's suggested small refactor: the
+  per-call `if/elif` dialect branch in `_upsert_nav_history` is now a one-line
+  `_NAV_UPSERT_INSERT_BUILDERS` dict lookup.
+- **F9**: `amfi_aaum_client.py`'s `refresh_aaum_data` was the one remaining caller with a
+  bare `db.commit()` inside an `async def`, not routed through `commit_off_loop` like
+  every sibling analytics client — fixed. (Fixing this surfaced a real, previously-latent
+  test bug: `tests/services/analytics/test_amfi_aaum_client.py`'s in-memory SQLite fixture
+  didn't set `check_same_thread=False`/`StaticPool`, which every other `commit_off_loop`
+  caller's test fixture already does — `commit_off_loop`'s `asyncio.to_thread` hop crashed
+  against it. Fixed the fixture to match the established sibling pattern.)
+- **F10**: `folios.coverage_gap_details` migration 0003 used raw `postgresql.JSONB()`
+  while the ORM model uses the dialect-portable `sa.JSON().with_variant(postgresql.JSONB(),
+  "postgresql")` — cosmetic-only (identical compiled DDL either way), but flagged as
+  autogenerate-diff drift. Aligned the migration to the model's idiom; safe to edit
+  directly since no real deployment has ever run this migration against a live DB.
+- **F5**: `Docs/PRDs/Database-Schema-Unifolio.md` was stale by migrations 0003 and
+  0007-0010 — refreshed to v1.4: `imports.status`'s full 14-value lifecycle enum and its
+  6 undocumented columns, `folios.has_coverage_gap`/`coverage_gap_details`,
+  `transactions.type`'s `opening_balance` value (and the note that this column is
+  `VARCHAR`+CHECK on Postgres, never a native enum), `scheme_ter.ter_value`'s nullable
+  "checked, no match" meaning, `auth_identities`/`pending_identity_verifications`'s dropped
+  `password_hash`/`email_confirmed_at`, and full removal of the now-dropped
+  `password_reset_tokens`/`email_confirmation_tokens` tables.
+- Full non-Postgres test suite (584 tests) and the Postgres-marked subset (now 4 tests,
+  including the new F6 one) both green after all Group 1 changes.
+
+**Also done this session, outside Group 1 (user explicitly authorized each, overriding
+the initial recommendation to defer):**
+- **F7**: `compute_holdings`'s per-folio `Transaction` N+1 query, batched into one query
+  across all folios. See "Still open" list item 6 below for full detail.
+- **F3**: `household_members` had no uniqueness enforcement on its "self" row — read-only
+  violation check first (zero existing violations), then migration `0011` (partial unique
+  index) plus a `DuplicateSelfMemberError` → 409 application guard. See "Still open" list
+  item 2 below for full detail.
+
+**Handoff docs written and dispatched to the user's own Codex session 2026-09-02** (all
+open product/scope questions for F4, F8, and the non-PAN dedup idea were resolved by the
+user in one message this session — see "Still open" list items 1, 2, and 8 below for full
+detail on each):
+- `Docs/orchestration/adr006-background-jobs-handoff.md` (F4, piece 1 only — the 4 job
+  entrypoint scripts; the actual EventBridge/ECS Terraform is explicitly deferred to the
+  infra-authoring phase).
+- `Docs/orchestration/f8-nav-unavailable-degraded-row-handoff.md` (F8 — degraded row +
+  `nav_unavailable` flag, per user's confirmed "(b)" choice).
+- `Docs/orchestration/non-pan-duplicate-person-detection-handoff.md` (the PAN idea's
+  non-PAN replacement — see item 2's sub-paragraph below for the design).
+
+**Single-ECS-task / Redis deferral, documented not silently dropped (2026-09-02):** user
+confirmed they do NOT want the full Redis-backed cache rewrite built now, even for
+staging — the operational mitigation (`desiredCount=1`, no autoscaling, stop-then-start
+deploys — an ECS Terraform parameter, not code) is fine for now, but must stay tracked
+rather than quietly disappear from the list, since it's genuinely multi-day work that may
+come later. Full DECISION record (exact ECS parameters, revisit trigger): a new "DECISION
+(2026-09-02)" paragraph in `AWS Readiness/aws-golive-launch-blockers.md`, immediately
+after that doc's "Scale note" bullet in the "BLOCKER — The app can only safely run as
+exactly one instance" section.
+
+## Previous Session (2026-08-27)
 
 1. **Login Roadmap State Logic & 2-Milestone Flow (`MobileAuthBackground.tsx`, `AuthEntryFlow.tsx`, `AuthShell.tsx`, `mobileJourneyContext.tsx`)**:
    - Fixed roadmap milestone state management: explicitly decoupled login progression from page switching, route changing, or Sign-up/Login toggles.
@@ -89,12 +170,58 @@ verification (backend :8000, frontend :5173) were stopped at the end of this wor
 *(Moved here from `CLAUDE.md` 2026-08-24 — that file's Session State section is a
 short pointer only, per its own header note; this is the detail it points to.)*
 
-1. A held scheme with no obtainable NAV silently vanishes from
-   holdings/allocation/aggregates, no error or placeholder — a Phase 3
-   design choice, worth revisiting once the "NAV unavailable" UI treatment is decided.
-2. No DB uniqueness constraint on the "self" `household_members` row —
-   frontend-mitigated client-side only; real fix is a migration (confirmed still
-   missing — only migrations `0001`–`0003` exist, none touch this).
+1. **(= compliance audit F8, in scope for the AWS-staging push, not deferred)** A held
+   scheme with no obtainable NAV silently vanishes from holdings/allocation/aggregates,
+   no error or placeholder. **Product call resolved 2026-09-02**: user chose (b) — a
+   degraded row with a visible "NAV unavailable" flag, NAV-dependent fields null, FIFO-
+   derived fields (units held, invested, realized gain) always populated. Design fully
+   locked and handed off: `Docs/orchestration/f8-nav-unavailable-degraded-row-handoff.md`
+   (covers `HoldingRow`/`AllocationSummary` schema, `compute_holdings`, `compute_allocation`,
+   and `HoldingsTable.tsx`; `distributor_comparison.py`'s identical sibling bug explicitly
+   flagged as a separate, out-of-scope follow-up, not silently fixed alongside this).
+   Status: OPEN, dispatched to the user's own Codex session, not yet implemented.
+2. **RESOLVED 2026-09-02 (= compliance audit F3).** No DB uniqueness constraint on the
+   "self" `household_members` row — frontend-mitigated client-side only; real fix needed
+   a migration (confirmed missing — migrations `0001`-`0010` existed, none touched this).
+   **Read-only violation check run 2026-09-02** against the local dev SQLite DB
+   (`backend/unifolio_dev.db`) first: 39 `self`-relationship rows across 46 distinct
+   users, **zero users with more than one** — no existing dirty data to remediate,
+   simplifying the fix to a straight constraint-add + API guard with no data-migration
+   remediation strategy needed. Fixed: migration `0011_household_members_one_self_row.py`
+   adds a partial unique index on `household_members(user_id) WHERE relationship =
+   'self'`, expressed once via SQLAlchemy's `sqlite_where=`/`postgresql_where=` kwargs on
+   a single `op.create_index` call (no runtime dialect branch needed, unlike F6's fix);
+   `create_household_member` (`services/dashboard/household_members.py`) gained a
+   pre-check raising `DuplicateSelfMemberError`, mapped to a 409 in the
+   `/household-members` route (`api/dashboard.py`). Verified: new unit tests
+   (`tests/services/dashboard/test_household_members.py`), an API 409 test
+   (`tests/api/test_dashboard_routes.py`), a new Postgres functional test proving the
+   `postgresql_where` branch enforces the constraint against a real server
+   (`tests/functional_postgres/test_partitioning.py::test_household_members_one_self_row_per_user_on_postgres`),
+   and the full 587-test SQLite suite plus 5 Postgres-marked tests, all green.
+   `Docs/PRDs/Database-Schema-Unifolio.md` bumped to v1.5 documenting the new index.
+
+   User separately raised a PAN-based idea for a related-but-distinct problem (detecting
+   the same real person across multiple household-member/CAS-upload records), stating a
+   belief that PAN is "currently persisted." That conflicts with this codebase's explicit,
+   test-guarded rule — **no PAN persistence, ever** (`tests/models/test_no_pan_field.py`,
+   `Docs/PRDs/Database-Schema-Unifolio.md`'s Data Classification section) — flagged back
+   to the user 2026-09-02 per CLAUDE.md's "stop and say so" rule rather than silently
+   built or silently dropped.
+
+   **Resolved 2026-09-02**: user confirmed no PAN persistence, sign-off given for a
+   non-PAN alternative, design left to Claude, explicitly asked to be "extensive." Design:
+   split into two cases with different privacy remedies. Same-user cross-household-member
+   duplicates get a new `(folio_number, amc_name)` signal added to `resolve_attribution`'s
+   existing within-household matching (prioritized over its existing weaker name/email
+   signal, safe to auto-offer a redirect since same tenant). Cross-user duplicates (two
+   different Unifolio accounts holding the same real person's data) get a new, separate,
+   advisory-only `detect_cross_account_duplicate` check — never blocks, never merges,
+   never leaks the other account's identity, folio-match primary / name-match weaker
+   secondary signal. Zero new PII persisted (folio_number/amc_name are already-persisted
+   data reused, not new fields). Full design + rationale + rejected alternatives:
+   `Docs/orchestration/non-pan-duplicate-person-detection-handoff.md`. Status: OPEN,
+   dispatched to the user's own Codex session, not yet implemented.
 3. `HoldingsTable.tsx` references a dead `row.return_percentage_1y` field that doesn't
    exist on the real API type — harmless (client-computed fallback always runs), never
    cleaned up.
@@ -124,18 +251,43 @@ short pointer only, per its own header note; this is the detail it points to.)*
    proportionate to a Low finding. Revisit only if a real accessibility-audit or user
    complaint surfaces it as an actual usability problem. Full review-round detail:
    `Docs/orchestration/delegation-log.md`'s 2026-08-19 entries.
-6. `compute_holdings`'s pre-existing per-folio `Transaction` N+1 query pattern
-   (`backend/app/services/dashboard/holdings.py`) — discovered as a side effect of the
-   2026-08-21 distributor-comparison-portfolio-level rewrite (the old
-   `compute_distributor_comparison` had the same pattern, since fixed via a batched
-   query as part of that work), confirmed pre-existing in `compute_holdings` and
-   explicitly out of scope for that change. Worth a dedicated, isolated perf pass of its
-   own, given how much review rigor `compute_holdings`'s existing caching already went
-   through — not touched here to avoid destabilizing already-reviewed code for an
-   unrelated task. Full rationale:
-   `Docs/superpowers/specs/2026-08-20-distributor-comparison-portfolio-level-design.md`'s
+6. **RESOLVED 2026-09-02 (= compliance audit F7).** `compute_holdings`'s per-folio
+   `Transaction` N+1 query pattern (`backend/app/services/dashboard/holdings.py`) —
+   discovered as a side effect of the 2026-08-21 distributor-comparison-portfolio-level
+   rewrite, confirmed pre-existing and explicitly out of scope for that change at the
+   time. User explicitly asked for this fixed before staging rather than deferred
+   further. Fixed: one batched `Transaction` query across all folios
+   (`folio_id.in_(...)`), grouped by `folio_id` in Python preserving per-folio
+   chronological order (the FIFO lot processor requires it). 42 holdings/allocation/
+   category-ranking tests plus the full 584-test backend suite pass unchanged. Original
+   deferral rationale: `Docs/superpowers/specs/2026-08-20-distributor-comparison-portfolio-level-design.md`'s
    "Follow-up (not built here)" section.
-7. A colleague's AMFI TER `ReadTimeout`s were root-caused to event-loop starvation from a blocking `db.commit()` inside an `async def` (this backend's SQLAlchemy engine is fully synchronous, single worker/event loop) — not AMFI slowness. Stopgap applied (`945b271`): AMFI TER httpx client timeout raised 30s→90s, confirmed fixed live 2026-08-26. The underlying vulnerability (any blocking sync DB call inside an async handler stalls every concurrent user, not just the slow request) is architectural, not environment-specific, and will still exist in production under real concurrent load — deliberately not fixed now; revisit alongside the planned Postgres migration. Full narrative: this file's "AMFI TER `ReadTimeout` root-caused..." section below.
+8. **(= compliance audit F4)** ADR-006's EventBridge Scheduler background jobs (daily
+   NAV refresh, monthly TER, quarterly AAUM, daily benchmark) have never been built —
+   today's lazy on-demand-fetch mechanism is a documented interim stand-in. User
+   explicitly overrode the recommendation to defer/re-scope this past staging, reasoning
+   the AWS infra work is happening right now anyway. **Scope split confirmed 2026-09-02**:
+   (a) the 4 job-entrypoint scripts + wiring `amfi_aaum_client.refresh_aaum_data` into a
+   real caller — buildable immediately, no AWS dependency, handed off as
+   `Docs/orchestration/adr006-background-jobs-handoff.md` (status: OPEN, dispatched to the
+   user's own Codex session, not yet implemented); (b) the actual EventBridge Scheduler +
+   ECS Fargate task Terraform module — deliberately deferred to the infra-authoring phase,
+   once an AWS account/ECR repo/ECS cluster exist to schedule against — not started.
+7. **RESOLVED 2026-08-27, commit `bb5225f`** (this item was still marked open in the
+   "Still open" lists above as of this session — corrected 2026-09-02 while writing the
+   Analytics precompute implementation plan, which had cited it as a live risk before
+   checking current code). A colleague's AMFI TER `ReadTimeout`s were root-caused to
+   event-loop starvation from a blocking `db.commit()` inside an `async def` (this
+   backend's SQLAlchemy engine is fully synchronous, single worker/event loop) — not
+   AMFI slowness. Stopgap applied (`945b271`): AMFI TER httpx client timeout raised
+   30s→90s, confirmed fixed live 2026-08-26. The underlying architectural vulnerability
+   (any blocking sync DB call inside an async handler stalls every concurrent user, not
+   just the slow request) was then properly fixed, not just worked around: `bb5225f`
+   added `commit_off_loop` (routes `db.commit()` through `asyncio.to_thread`) and
+   rewired every reachable commit across all 8 affected service files, with a
+   regression test proving a slow commit no longer starves the event loop. Full
+   narrative: this file's "AMFI TER `ReadTimeout` root-caused..." section below (predates
+   the fix — read as historical, not current state).
 
 ## Two small post-merge bug fixes: AMFI TER concurrency, PDF export Allocation section (2026-08-24)
 

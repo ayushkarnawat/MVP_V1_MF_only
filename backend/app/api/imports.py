@@ -14,6 +14,11 @@ from app.services.auth.session import get_current_user
 from app.services.dashboard.household_members import get_household_member_for_user
 from app.services.dashboard.nav import get_navs_on_or_before
 from app.services.dashboard.holdings import invalidate_holdings_cache
+from app.services.import_.lifecycle_service import (
+    FileTooLargeError,
+    InvalidFileFormatError,
+    validate_file_payload,
+)
 from app.services.import_.parser import ParseError, parse_cas_pdf_bytes #parsing logic
 from app.services.import_.schemas import ImportConfirmRequest, ImportConfirmResponse, ImportPreviewResponse
 from app.services.import_.service import SchemeConfidenceError, build_import_preview, confirm_import #logic to process & confirm import
@@ -71,6 +76,19 @@ async def parse_import(
         raise HTTPException(status_code=400, detail={"code": "invalid_file", "message": "Please upload a PDF file."})
 
     pdf_bytes = await file.read()
+    try:
+        validate_file_payload(pdf_bytes)
+    except InvalidFileFormatError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail={"code": "invalid_file", "message": str(exc)},
+        ) from exc
+    except FileTooLargeError as exc:
+        raise HTTPException(
+            status_code=413,
+            detail={"code": "file_too_large", "message": str(exc)},
+        ) from exc
+
     try:
         parse_result = parse_cas_pdf_bytes(pdf_bytes, password)
     except ParseError as exc:
