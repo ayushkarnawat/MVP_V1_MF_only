@@ -1,6 +1,8 @@
 import uuid
 from unittest.mock import MagicMock, patch
 
+from botocore.exceptions import EndpointConnectionError
+
 from app.services.analytics.dispatch import EcsRunTaskDispatcher
 
 
@@ -30,7 +32,7 @@ def test_dispatch_calls_ecs_run_task_when_configured():
     dispatcher = EcsRunTaskDispatcher()
     user_id = uuid.uuid4()
     mock_ecs = MagicMock()
-    mock_ecs.run_task.return_value = {"failures": []}
+    mock_ecs.run_task.return_value = {"tasks": [{"taskArn": "arn:aws:ecs:...:task/unifolio/abc"}], "failures": []}
 
     with patch("app.services.analytics.dispatch.settings") as mock_settings, \
          patch("app.services.analytics.dispatch.boto3.client", return_value=mock_ecs) as mock_client:
@@ -66,3 +68,42 @@ def test_dispatch_logs_error_when_run_task_reports_a_placement_failure():
     assert result is False
     mock_logger.error.assert_called_once()
     mock_logger.info.assert_not_called()
+
+
+def test_dispatch_returns_false_when_run_task_raises():
+    # A transport/API-level failure (network error, throttling, etc.) never
+    # reaches the "tasks"/"failures" response body at all -- left uncaught,
+    # it would propagate past every caller's release_recompute_claim() check
+    # and orphan the already-committed claim (round-3 review finding).
+    dispatcher = EcsRunTaskDispatcher()
+    user_id = uuid.uuid4()
+    mock_ecs = MagicMock()
+    mock_ecs.run_task.side_effect = EndpointConnectionError(endpoint_url="https://ecs.ap-south-1.amazonaws.com")
+
+    with patch("app.services.analytics.dispatch.settings") as mock_settings, \
+         patch("app.services.analytics.dispatch.boto3.client", return_value=mock_ecs), \
+         patch("app.services.analytics.dispatch.logger") as mock_logger:
+        _configure(mock_settings)
+        result = dispatcher.dispatch(user_id)
+
+    assert result is False
+    mock_logger.exception.assert_called_once()
+
+
+def test_dispatch_returns_false_when_run_task_reports_no_tasks_and_no_failures():
+    # "No failures" alone is not sufficient proof a task was placed
+    # (round-3 review finding) -- an empty "tasks" list must also be
+    # treated as a non-placement, not a silent success.
+    dispatcher = EcsRunTaskDispatcher()
+    user_id = uuid.uuid4()
+    mock_ecs = MagicMock()
+    mock_ecs.run_task.return_value = {"tasks": [], "failures": []}
+
+    with patch("app.services.analytics.dispatch.settings") as mock_settings, \
+         patch("app.services.analytics.dispatch.boto3.client", return_value=mock_ecs), \
+         patch("app.services.analytics.dispatch.logger") as mock_logger:
+        _configure(mock_settings)
+        result = dispatcher.dispatch(user_id)
+
+    assert result is False
+    mock_logger.error.assert_called_once()
