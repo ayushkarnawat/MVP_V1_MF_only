@@ -1,12 +1,21 @@
 # Handoff: analytics-precompute-implementation
 
-**Status:** OPEN — Tasks 1-3 done (commits `47b0bb9`, `9ca4933`, `729ea8e` on
-`worktree-analytics-precompute-architecture`), Tasks 4-9 remaining. Codex ran
-Tasks 1-2 cleanly, then correctly stopped mid-Task-3 per this doc's
-missing-context-gating clause rather than guessing a fix for two internal
-inconsistencies in the plan's literal Task 3 code (see "Task 3 findings"
-below). Claude fixed both directly and committed `729ea8e` — full suite green
-(587 passed, 3 skipped) before handing back for Tasks 4-9. (2026-09-02)
+**Status:** OPEN — Tasks 1-5 done (commits `47b0bb9`, `9ca4933`, `729ea8e`,
+`d2c1be8`, `225e4e6` on `worktree-analytics-precompute-architecture`), Tasks
+6-9 remaining. Codex ran Tasks 1-2 and Task 4 cleanly, then correctly stopped
+mid-Task-3 and mid-Task-5 on genuine internal inconsistencies in the plan's
+literal code rather than guessing (see "Task 3 findings" / "Task 4 & 5
+findings" below) — Claude fixed both directly, full suite green each time,
+before handing back. (2026-09-03)
+
+**IMPORTANT — migration renumber:** this worktree's `0010_analytics_sections.py`
+migration was renumbered to `0012_analytics_sections.py` (`down_revision`
+`0011`) during a 2026-09-03 merge of `feat/enhanced-ui` into this branch — a
+parallel session's enum-drift migration had already landed as revision `0010`
+on `feat/enhanced-ui`, with a household-members migration chained on top of
+it as `0011`. If Task 9's grep-for-dangling-references step touches migration
+numbers, `0012` is the current one for `analytics_sections`/
+`analytics_recompute_status`, not `0010` as the plan's literal text says.
 **Parent plan:** `Docs/superpowers/plans/2026-09-02-analytics-precompute-architecture.md`
 (9 tasks, fully detailed, no placeholders — this handoff doc does not restate that
 plan's content, only the "why" and constraints a plain prompt summary would lose)
@@ -113,6 +122,23 @@ valuation lookup via `get_nav_on_or_before`, which also touches
 caching. Rewrote to spy on `warm_nav_history` directly (call count == 1),
 which is the exact function the spec's "called once, not once per scope"
 claim is about.
+
+## Task 4 & 5 findings (resolved by Claude, 2026-09-03)
+
+Task 4 (`d2c1be8`) completed cleanly by Codex, no findings.
+
+Task 5 (`225e4e6`) — Codex's stop-and-report was correct, a genuine bug:
+`test_run_one_calls_recompute_with_the_given_user_id` used `fake_db = object()`,
+but `_run_one`'s own `finally` block calls `db.close()`, which a bare
+`object()` has no attribute for. Fix: `fake_db = MagicMock()`, matching the
+sibling test's own hand-rolled fake-db-with-`close()` convention already
+present in the same file.
+
+Separately (not something Codex hit, since it happened between Codex's Task-4
+and Task-5 runs): this worktree branch needed a merge from `feat/enhanced-ui`
+to pick up this doc's own Task-3-findings update, which caused the
+`requirements.txt` pinning conflict and the migration renumber noted above.
+Both resolved before Task 5 ran; not a plan-code issue.
 
 ## Verification required before reporting done
 
