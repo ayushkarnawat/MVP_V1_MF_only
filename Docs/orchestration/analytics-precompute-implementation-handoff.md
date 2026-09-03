@@ -1,12 +1,13 @@
 # Handoff: analytics-precompute-implementation
 
-**Status:** OPEN — Tasks 1-5 done (commits `47b0bb9`, `9ca4933`, `729ea8e`,
-`d2c1be8`, `225e4e6` on `worktree-analytics-precompute-architecture`), Tasks
-6-9 remaining. Codex ran Tasks 1-2 and Task 4 cleanly, then correctly stopped
-mid-Task-3 and mid-Task-5 on genuine internal inconsistencies in the plan's
-literal code rather than guessing (see "Task 3 findings" / "Task 4 & 5
-findings" below) — Claude fixed both directly, full suite green each time,
-before handing back. (2026-09-03)
+**Status:** OPEN — Tasks 1-6 done (commits `47b0bb9`, `9ca4933`, `729ea8e`,
+`d2c1be8`, `225e4e6`, `e92e827` on `worktree-analytics-precompute-architecture`),
+Tasks 7-9 remaining. Codex ran Tasks 1-2 and Task 4 cleanly, then correctly
+stopped mid-Task-3, mid-Task-5, and mid-Task-6 on genuine internal
+inconsistencies in the plan's literal code rather than guessing (see "Task 3
+findings" / "Task 4 & 5 findings" / "Task 6 findings" below) — Claude fixed
+all three directly, full suite green each time, before handing back.
+(2026-09-03)
 
 **IMPORTANT — migration renumber:** this worktree's `0010_analytics_sections.py`
 migration was renumbered to `0012_analytics_sections.py` (`down_revision`
@@ -139,6 +140,34 @@ and Task-5 runs): this worktree branch needed a merge from `feat/enhanced-ui`
 to pick up this doc's own Task-3-findings update, which caused the
 `requirements.txt` pinning conflict and the migration renumber noted above.
 Both resolved before Task 5 ran; not a plan-code issue.
+
+## Task 6 findings (resolved by Claude, 2026-09-03)
+
+Codex's stop-and-report was correct, a genuine sequencing bug in the plan's
+own Step ordering: Task 6 Step 1's test patches
+`app.api.imports.should_dispatch_recompute` (`return_value=True`/`False`),
+but by default `unittest.mock.patch("module.attr")` does a `getattr` on the
+target module to save the original value, which raises `AttributeError` if
+the attribute doesn't exist yet — and it didn't, since Step 3 (which adds
+the `from app.services.analytics.recompute import should_dispatch_recompute`
+import) hadn't run yet. The plan's own Step 2 expects the red test to fail
+via `assert 1 == 2` (only the prefetch task scheduled), but it actually
+errored via `AttributeError` before ever reaching that assertion — same
+"literal test/step ordering assumes something not yet true" class of bug as
+Tasks 3 and 5.
+
+Fix: split Step 3's two import lines out and add them to `imports.py` ahead
+of the red-test run (no behavior change — `should_dispatch_recompute` and
+`dispatcher` become resolvable names but nothing calls them yet), confirmed
+this reaches the plan's own literal expected red failure
+(`assert 1 == 2`), then wired the actual `if should_dispatch_recompute(db,
+user.id): background_tasks.add_task(dispatcher.dispatch, user.id)` call as
+Step 3 originally specified. No test-file changes were needed — only the
+import ordering in production code moved earlier. Full suite green (603
+passed, 6 skipped, 1 pre-existing flake in
+`test_upsert_nav_history_is_conflict_safe_across_sessions` confirmed to pass
+in isolation — an unrelated cross-test flake, not caused by this change).
+Committed `e92e827`.
 
 ## Verification required before reporting done
 
