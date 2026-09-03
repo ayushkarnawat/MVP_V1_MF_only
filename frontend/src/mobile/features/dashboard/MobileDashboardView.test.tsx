@@ -1,4 +1,4 @@
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, within } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { MobileDashboardView } from "./MobileDashboardView";
 import * as dashboardApi from "@/features/dashboard/api";
@@ -130,6 +130,66 @@ describe("MobileDashboardView", () => {
 
     expect(screen.getByText("Parag Parikh Flexi Cap Fund")).toBeInTheDocument();
     expect(screen.queryByText("HDFC Top 100 Fund")).not.toBeInTheDocument();
+  });
+
+  it("excludes NAV-unavailable holdings from NAV-dependent portfolio totals", async () => {
+    vi.mocked(dashboardApi.getAggregateHoldings).mockResolvedValue({
+      holdings: [
+        {
+          scheme_id: "scheme-valued",
+          scheme_name: "Valued Fund",
+          household_member_id: "m-1",
+          household_member_name: "Ayush",
+          plan_type: "DIRECT",
+          units_held: "100.00",
+          average_nav: "50.00",
+          current_nav: "75.00",
+          amount_invested: "5000.00",
+          current_value: "7500.00",
+          current_profit_total: "2500.00",
+          realized_gain: "0.00",
+          unrealized_gain: "2500.00",
+          today_gain: "25.00",
+        },
+        {
+          scheme_id: "scheme-no-nav",
+          scheme_name: "NAV Missing Fund",
+          household_member_id: "m-1",
+          household_member_name: "Ayush",
+          plan_type: "DIRECT",
+          units_held: "80.00",
+          average_nav: "50.00",
+          current_nav: null,
+          current_nav_date: null,
+          amount_invested: "4000.00",
+          current_value: null,
+          current_profit_total: null,
+          realized_gain: "0.00",
+          unrealized_gain: null,
+          today_gain: null,
+          nav_unavailable: true,
+        },
+      ],
+      members: [{ id: "m-1", name: "Ayush", has_data: true }],
+    });
+    vi.mocked(dashboardApi.getAggregateAllocation).mockResolvedValue({
+      members: [{ id: "m-1", name: "Ayush", has_data: true }],
+      allocation: {
+        by_asset_class: [{ label: "Equity", current_value: "7500.00", percentage: 100 }],
+        by_amc: [],
+        total_value: "7500.00",
+        nav_unavailable_count: 1,
+      },
+    });
+
+    render(<MobileDashboardView />);
+
+    // Invested principal is FIFO-derived and known regardless of NAV availability,
+    // so it must include the degraded holding's amount_invested (5000 + 4000).
+    const investedLabel = await screen.findByText("Total Invested");
+    expect(within(investedLabel.parentElement!).getByText("₹9,000")).toBeInTheDocument();
+
+    expect(screen.getByText(/excludes 1 holding with unavailable NAV/i)).toBeInTheDocument();
   });
 
   it("opens the portfolio-wide distributor comparison from the embedded Holdings header", async () => {

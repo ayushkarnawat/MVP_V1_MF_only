@@ -7,14 +7,15 @@ export interface HoldingRow {
   plan_type: "DIRECT" | "REGULAR" | "UNKNOWN";
   units_held: string;
   average_nav: string;
-  current_nav: string;
-  current_nav_date?: string;
+  current_nav: string | null;
+  current_nav_date?: string | null;
   amount_invested: string;
-  current_value: string;
-  current_profit_total: string;
+  current_value: string | null;
+  current_profit_total: string | null;
   realized_gain: string;
-  unrealized_gain: string;
-  today_gain: string;
+  unrealized_gain: string | null;
+  today_gain: string | null;
+  nav_unavailable?: boolean;
   category?: string;
   stale_nav?: boolean;
 }
@@ -29,6 +30,7 @@ export interface AllocationSummary {
   by_asset_class: AllocationItem[];
   by_amc: AllocationItem[];
   total_value: string;
+  nav_unavailable_count?: number;
 }
 
 export interface SipRow {

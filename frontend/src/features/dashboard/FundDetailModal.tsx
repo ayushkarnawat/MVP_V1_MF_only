@@ -18,10 +18,11 @@ export function FundDetailModal({
 }: FundDetailModalProps) {
   if (!holding) return null;
 
+  const navUnavailable = holding.nav_unavailable === true;
   const invested = parseFloat(holding.amount_invested || "0");
-  const currentValue = parseFloat(holding.current_value || "0");
-  const profit = parseFloat(holding.current_profit_total || "0");
-  const isPositive = profit >= 0;
+  const currentValue = navUnavailable ? null : parseFloat(holding.current_value || "0");
+  const profit = navUnavailable ? null : parseFloat(holding.current_profit_total || "0");
+  const isPositive = profit !== null && profit >= 0;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Fund Details">
@@ -42,7 +43,7 @@ export function FundDetailModal({
           <div className={styles.kpiCard}>
             <span className={styles.kpiLabel}>Current Value</span>
             <span className={`type-data-large ${styles.kpiVal}`}>
-              ₹{formatCurrency(currentValue)}
+              {currentValue === null ? "—" : `₹${formatCurrency(currentValue)}`}
             </span>
           </div>
 
@@ -55,19 +56,21 @@ export function FundDetailModal({
 
           <div className={styles.kpiCard}>
             <span className={styles.kpiLabel}>Total Return</span>
-            <span
-              className={`type-data-large ${
-                isPositive ? styles.positiveText : styles.negativeText
-              }`}
-            >
-              {isPositive ? "↑ " : "↓ "}₹{formatCurrency(Math.abs(profit))}
-            </span>
+            {profit === null ? (
+              <span className={`type-data-large ${styles.kpiVal}`}>—</span>
+            ) : (
+              <span
+                className={`type-data-large ${
+                  isPositive ? styles.positiveText : styles.negativeText
+                }`}
+              >
+                {isPositive ? "↑ " : "↓ "}₹{formatCurrency(Math.abs(profit))}
+              </span>
+            )}
           </div>
         </div>
 
-        <FundSignalGraph
-          schemeId={holding.scheme_id}
-        />
+        {!navUnavailable && <FundSignalGraph schemeId={holding.scheme_id} />}
 
         <div className={styles.detailsList}>
           <div className={styles.detailRow}>
@@ -81,8 +84,12 @@ export function FundDetailModal({
           <div className={styles.detailRow}>
             <span className={styles.detailLabel}>Current NAV</span>
             <span className="type-data" style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-              ₹{holding.current_nav}
-              {holding.stale_nav && <Badge variant="warning">stale</Badge>}
+              {navUnavailable ? (
+                <Badge variant="warning">NAV unavailable</Badge>
+              ) : (
+                <>₹{holding.current_nav}</>
+              )}
+              {!navUnavailable && holding.stale_nav && <Badge variant="warning">stale</Badge>}
             </span>
           </div>
           {holding.current_nav_date && (

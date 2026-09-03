@@ -1,5 +1,6 @@
+import { useState } from "react";
 import type { ImportConfirmResponse } from "./types";
-import { ArrowRight } from "lucide-react";
+import { AlertTriangle, ArrowRight, X } from "lucide-react";
 import { motion } from "motion/react";
 import { OnboardingIllustration } from "../auth/OnboardingIllustration";
 
@@ -14,6 +15,7 @@ export function ImportConfirmed({
   onImportAnother,
   ctaLabel = "Import another CAS",
 }: ImportConfirmedProps) {
+  const [dismissedWarnings, setDismissedWarnings] = useState<Set<string>>(new Set());
   const addedText = `${result.added} new transaction${result.added === 1 ? "" : "s"} added`;
   const skippedText =
     result.skipped > 0 ? `, ${result.skipped} duplicate${result.skipped === 1 ? "" : "s"} skipped` : "";
@@ -43,6 +45,34 @@ export function ImportConfirmed({
           {`${addedText}${skippedText}.`}
         </p>
       </div>
+
+      {result.warnings
+        .filter((warning) => !dismissedWarnings.has(warning))
+        .map((warning) => (
+        <div
+          key={warning}
+          role="status"
+          className="w-full max-w-lg rounded-2xl border border-[var(--color-warning)]/30 bg-[var(--color-warning)]/10 px-4 py-3 text-left flex items-start gap-3"
+        >
+          <AlertTriangle
+            aria-hidden="true"
+            className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-warning)]"
+          />
+          <p className="type-body text-sm text-[var(--color-text-secondary)] leading-relaxed m-0">
+            {warning}
+          </p>
+          <button
+            type="button"
+            aria-label="Dismiss warning"
+            onClick={() =>
+              setDismissedWarnings((current) => new Set(current).add(warning))
+            }
+            className="ml-auto shrink-0 rounded-lg p-1 text-[var(--color-text-secondary)] hover:text-[var(--color-ink)]"
+          >
+            <X aria-hidden="true" className="h-4 w-4" />
+          </button>
+        </div>
+      ))}
 
       {/* 3. Action CTA Button */}
       <div className="pt-2 w-full flex justify-center items-center">

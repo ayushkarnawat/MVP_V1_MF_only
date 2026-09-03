@@ -14,14 +14,15 @@ export interface HoldingRowData {
   plan_type: string; // "DIRECT" | "REGULAR" | "UNKNOWN"
   units_held: string;
   average_nav: string;
-  current_nav: string;
-  current_nav_date?: string;
+  current_nav: string | null;
+  current_nav_date?: string | null;
   amount_invested: string;
-  current_value: string;
-  current_profit_total: string;
+  current_value: string | null;
+  current_profit_total: string | null;
   realized_gain: string;
-  unrealized_gain: string;
-  today_gain: string;
+  unrealized_gain: string | null;
+  today_gain: string | null;
+  nav_unavailable?: boolean;
   stale_nav?: boolean;
   return_percentage_1y?: number;
 }
@@ -167,15 +168,17 @@ export function HoldingsTable({
           </thead>
           <tbody className="block lg:table-row-group divide-y divide-[var(--color-border)]">
             {sortedHoldings.map((row) => {
-              const unrealized = parseFloat(
-                row.unrealized_gain || row.current_profit_total || "0"
-              );
-              const isGain = unrealized >= 0;
-              const returnPct =
-                row.return_percentage_1y ??
-                (parseFloat(row.amount_invested) > 0
-                  ? (unrealized / parseFloat(row.amount_invested)) * 100
-                  : 0);
+              const navUnavailable = row.nav_unavailable === true;
+              const unrealized = navUnavailable
+                ? null
+                : parseFloat(row.unrealized_gain || row.current_profit_total || "0");
+              const isGain = unrealized !== null && unrealized >= 0;
+              const returnPct = navUnavailable
+                ? null
+                : row.return_percentage_1y ??
+                  (parseFloat(row.amount_invested) > 0
+                    ? ((unrealized ?? 0) / parseFloat(row.amount_invested)) * 100
+                    : 0);
 
               return (
                 <tr
@@ -185,11 +188,13 @@ export function HoldingsTable({
                 >
                   {/* Signal */}
                   <td className="inline-block lg:table-cell py-1 lg:py-3 px-0 lg:px-3 text-left lg:text-center align-middle mr-2 lg:mr-0">
-                    <FundSignal
-                      returnPercentage={returnPct}
-                      schemeName={row.scheme_name}
-                      size="sm"
-                    />
+                    {returnPct === null ? "—" : (
+                      <FundSignal
+                        returnPercentage={returnPct}
+                        schemeName={row.scheme_name}
+                        size="sm"
+                      />
+                    )}
                   </td>
 
                   {/* Scheme Name */}
@@ -249,8 +254,12 @@ export function HoldingsTable({
                     <div className="flex justify-between lg:block">
                       <span className="lg:hidden text-[11px] font-medium text-[var(--color-text-secondary)]">Current NAV:</span>
                       <div className="inline-flex items-center gap-1">
-                        <span>₹{formatNumber(row.current_nav, 2)}</span>
-                        {row.stale_nav && (
+                        {navUnavailable ? (
+                          <Badge variant="warning">NAV unavailable</Badge>
+                        ) : (
+                          <span>₹{formatNumber(row.current_nav!, 2)}</span>
+                        )}
+                        {!navUnavailable && row.stale_nav && (
                           <Badge variant="warning">
                             stale
                           </Badge>
@@ -271,7 +280,7 @@ export function HoldingsTable({
                   <td className="block lg:table-cell py-1.5 lg:py-3 px-0 lg:px-4 text-left lg:text-right text-sm font-bold tabular-nums type-data text-[var(--color-ink)] align-middle whitespace-nowrap border-t lg:border-t-0 border-[var(--color-border)]/40 mt-1 lg:mt-0 pt-1 lg:pt-3">
                     <div className="flex justify-between lg:block">
                       <span className="lg:hidden text-xs font-semibold text-[var(--color-ink)]">Current Value:</span>
-                      <span>₹{formatCurrency(row.current_value)}</span>
+                      <span>{navUnavailable ? "—" : `₹${formatCurrency(row.current_value!)}`}</span>
                     </div>
                   </td>
 
@@ -279,17 +288,21 @@ export function HoldingsTable({
                   <td className="block lg:table-cell py-1 lg:py-3 px-0 lg:px-4 text-left lg:text-right text-xs font-bold tabular-nums type-data align-middle whitespace-nowrap">
                     <div className="flex justify-between lg:block">
                       <span className="lg:hidden text-[11px] font-medium text-[var(--color-text-secondary)]">Gain / Loss:</span>
-                      <span
-                        className={cn(
-                          "inline-flex items-center gap-1",
-                          isGain
-                            ? "text-[var(--color-positive)]"
-                            : "text-[var(--color-negative)]"
-                        )}
-                      >
-                        <span>{isGain ? "↑" : "↓"}</span>
-                        <span>₹{formatCurrency(Math.abs(unrealized))}</span>
-                      </span>
+                      {unrealized === null ? (
+                        <span>—</span>
+                      ) : (
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1",
+                            isGain
+                              ? "text-[var(--color-positive)]"
+                              : "text-[var(--color-negative)]"
+                          )}
+                        >
+                          <span>{isGain ? "↑" : "↓"}</span>
+                          <span>₹{formatCurrency(Math.abs(unrealized))}</span>
+                        </span>
+                      )}
                     </div>
                   </td>
                 </tr>

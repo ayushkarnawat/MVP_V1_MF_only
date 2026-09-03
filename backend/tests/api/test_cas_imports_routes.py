@@ -1,9 +1,29 @@
 from datetime import datetime, timezone
 import uuid
+from unittest.mock import patch
+
 import pytest
 from app.models.enums import AuthIdentityProvider, Relationship
 from app.models.user import HouseholdMember, User
 from app.services.auth.session import create_session
+
+
+def _member_mismatch_error():
+    from app.services.import_.attribution import (
+        AttributionConfirmationRequiredError,
+        AttributionDecision,
+        AttributionStatus,
+    )
+
+    return AttributionConfirmationRequiredError(
+        AttributionDecision(
+            status=AttributionStatus.MISMATCH_CONFIRMATION_REQUIRED,
+            resolved_member_id=uuid.uuid4(),
+            matched_member_name="Priya Kumar",
+            requires_confirmation=True,
+            prompt_message="This statement matches Priya Kumar.",
+        )
+    )
 
 
 @pytest.fixture
@@ -94,6 +114,12 @@ def test_post_cas_imports_wrong_password_returns_password_required_and_allows_pa
         )
 
     monkeypatch.setattr("app.services.import_.lifecycle_service.parse_cas_pdf_bytes", mock_parse)
+    from app.services.import_.attribution import CrossAccountDuplicateWarning
+
+    monkeypatch.setattr(
+        "app.services.import_.lifecycle_service.detect_cross_account_duplicate",
+        lambda *args, **kwargs: CrossAccountDuplicateWarning(detected=True, reason="folio_match"),
+    )
 
     # 1. Initial upload with wrong password
     upload_res = client.post(
@@ -127,6 +153,10 @@ def test_post_cas_imports_wrong_password_returns_password_required_and_allows_pa
     patch_data = patch_res.json()
     assert patch_data["status"] == "import_successful"
     assert patch_data["new_transactions_count"] == 1
+    assert patch_data["parse_warnings"] == [
+        "This investment may already be tracked under a different Unifolio account. "
+        "If that's you, consider using that account instead."
+    ]
 
     # 4. List import history via GET /household-members/{member_id}/cas-imports
     history_res = client.get(f"/household-members/{member_id}/cas-imports", headers=headers)
@@ -164,3 +194,62 @@ def test_post_cas_imports_summary_cas_transitions_validation_failed(client, auth
     assert data["error_code"] == "summary_cas"
     assert "Summary CAS" in data["error_message"]
 
+
+def test_post_cas_imports_maps_member_mismatch_to_structured_409(
+    client, auth_headers_and_member
+):
+    headers, member_id, _user_id = auth_headers_and_member
+    error = _member_mismatch_error()
+
+    with patch("app.api.cas_imports.create_cas_import", side_effect=error) as create:
+        response = client.post(
+            "/cas-imports",
+            headers=headers,
+            data={
+                "password": "PASS",
+                "household_member_id": str(member_id),
+                "confirmed_member_override": "true",
+            },
+            files={"file": ("statement.pdf", b"%PDF-1.4 statement", "application/pdf")},
+        )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == {
+        "code": "member_mismatch",
+        "message": "This statement matches Priya Kumar.",
+        "matched_member_id": str(error.attribution.resolved_member_id),
+        "matched_member_name": "Priya Kumar",
+    }
+    assert create.await_args.kwargs["confirmed_member_override"] is True
+
+
+def test_retry_password_maps_member_mismatch_and_threads_override(
+    client, auth_headers_and_member
+):
+    from app.db.session import get_db
+    from app.models.imports import Import, ImportStatus
+
+    headers, member_id, _user_id = auth_headers_and_member
+    db_gen = client.app.dependency_overrides[get_db]()
+    db = next(db_gen)
+    import_rec = Import(
+        id=uuid.uuid4(),
+        household_member_id=member_id,
+        status=ImportStatus.PASSWORD_REQUIRED,
+        uploaded_at=datetime.now(timezone.utc),
+    )
+    db.add(import_rec)
+    db.commit()
+    error = _member_mismatch_error()
+
+    with patch("app.api.cas_imports.retry_cas_import_password", side_effect=error) as retry:
+        response = client.patch(
+            f"/cas-imports/{import_rec.id}/password",
+            headers=headers,
+            json={"password": "PASS", "confirmed_member_override": True},
+        )
+
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "member_mismatch"
+    assert response.json()["detail"]["matched_member_name"] == "Priya Kumar"
+    assert retry.call_args.kwargs["confirmed_member_override"] is True

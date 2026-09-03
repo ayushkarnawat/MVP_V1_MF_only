@@ -3,6 +3,7 @@ import uuid
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, patch
 
+import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -12,7 +13,11 @@ from app.models.enums import Relationship
 from app.models.reference import Scheme
 from app.models.folio import Folio
 from app.models.transaction import Transaction
-from app.models.imports import Import
+from app.models.imports import Import, ImportStatus
+from app.services.import_.attribution import (
+    AttributionConfirmationRequiredError,
+    CROSS_ACCOUNT_DUPLICATE_WARNING,
+)
 from app.services.import_.parser import NormalizedTransaction, ParsedInvestor, ParsedScheme, ParseResult
 from app.services.import_.service import SchemeConfidenceError, build_import_preview, confirm_import
 from app.models.enums import PlanType, TransactionType
@@ -56,6 +61,17 @@ def _mocked_client(category: str | None = "Equity Scheme - Flexi Cap Fund"):
     )
     client.get_scheme_category.return_value = category
     return client
+
+
+def _confirm_for_member(db, preview, member, scheme_confirmations=None):
+    return confirm_import(
+        db,
+        preview.session_id,
+        member.id,
+        scheme_confirmations=scheme_confirmations or [],
+        user_id=member.user_id,
+        confirmed_member_override=True,
+    )
 
 
 def _sample_parse_result():
@@ -209,7 +225,7 @@ def test_confirm_import_creates_scheme_folio_and_transaction():
     client = _mocked_client()
     preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", client=client))
 
-    result = confirm_import(db, preview.session_id, member.id, scheme_confirmations=[])
+    result = _confirm_for_member(db, preview, member)
 
     assert result.added == 1
     assert result.skipped == 0
@@ -241,7 +257,7 @@ def test_confirm_import_invalidates_member_holdings_cache_after_commit():
         "app.services.import_.service.invalidate_holdings_cache",
         side_effect=assert_commit_finished,
     ) as invalidate:
-        confirm_import(db, preview.session_id, member.id, scheme_confirmations=[])
+        _confirm_for_member(db, preview, member)
 
     invalidate.assert_called_once_with(member.id)
 
@@ -252,10 +268,10 @@ def test_confirm_import_deduped_on_reupload():
     client = _mocked_client()
 
     preview1 = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", client=client))
-    confirm_import(db, preview1.session_id, member.id, scheme_confirmations=[])
+    _confirm_for_member(db, preview1, member)
 
     preview2 = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", client=client))
-    result2 = confirm_import(db, preview2.session_id, member.id, scheme_confirmations=[])
+    result2 = _confirm_for_member(db, preview2, member)
 
     assert result2.added == 0
     assert result2.skipped == 1
@@ -290,7 +306,7 @@ def test_confirm_import_rejects_low_confidence_scheme_without_override():
 
     import pytest
     with pytest.raises(SchemeConfidenceError, match="requires an explicit AMFI code"):
-        confirm_import(db, preview.session_id, member.id, scheme_confirmations=[])
+        _confirm_for_member(db, preview, member)
 
 
 def test_confirm_import_rejection_writes_nothing_even_for_earlier_confident_scheme():
@@ -343,7 +359,7 @@ def test_confirm_import_rejection_writes_nothing_even_for_earlier_confident_sche
 
     import pytest
     with pytest.raises(SchemeConfidenceError, match="requires an explicit AMFI code"):
-        confirm_import(db, preview.session_id, member.id, scheme_confirmations=[])
+        _confirm_for_member(db, preview, member)
 
     assert db.query(Import).count() == 0
     assert db.query(Scheme).count() == 0
@@ -387,7 +403,7 @@ def test_confirm_import_dedupes_same_key_transactions_within_one_upload():
     )
 
     preview = asyncio.run(build_import_preview(parse_result, "test.pdf", client=client))
-    result = confirm_import(db, preview.session_id, member.id, scheme_confirmations=[])
+    result = _confirm_for_member(db, preview, member)
 
     assert result.added == 1
     assert result.skipped == 1
@@ -429,7 +445,7 @@ def test_confirm_import_does_not_dedupe_across_different_transaction_types():
     )
 
     preview = asyncio.run(build_import_preview(parse_result, "test.pdf", client=client))
-    result = confirm_import(db, preview.session_id, member.id, scheme_confirmations=[])
+    result = _confirm_for_member(db, preview, member)
 
     assert result.added == 2
     assert result.skipped == 0
@@ -460,7 +476,7 @@ def test_confirm_import_rejects_pending_status_scheme_even_above_raw_threshold()
 
     import pytest
     with pytest.raises(SchemeConfidenceError):
-        confirm_import(db, preview.session_id, member.id, scheme_confirmations=[])
+        _confirm_for_member(db, preview, member)
 
 
 def test_confirm_import_separate_folios_for_same_scheme_via_different_distributors():
@@ -500,7 +516,7 @@ def test_confirm_import_separate_folios_for_same_scheme_via_different_distributo
     )
 
     preview = asyncio.run(build_import_preview(parse_result, "test.pdf", client=client))
-    result = confirm_import(db, preview.session_id, member.id, scheme_confirmations=[])
+    result = _confirm_for_member(db, preview, member)
 
     assert result.added == 2
     schemes = db.query(Scheme).all()
@@ -548,8 +564,8 @@ def test_confirm_import_rejects_override_amfi_code_not_in_master_list():
     with patch.object(mfapi_client, "_schemes", scheme_list):
         import pytest
         with pytest.raises(SchemeConfidenceError, match="was not found in AMFI"):
-            confirm_import(
-                db, preview.session_id, member.id,
+            _confirm_for_member(
+                db, preview, member,
                 scheme_confirmations=[SchemeConfirmation(temp_id=temp_id, amfi_code="999999")],
             )
 
@@ -568,8 +584,8 @@ def test_confirm_import_accepts_override_amfi_code_when_name_plausibly_matches()
 
     scheme_list = [{"schemeCode": "222222", "schemeName": "HDFC Flexi Cap Fund Direct Growth"}]
     with patch.object(mfapi_client, "_schemes", scheme_list):
-        result = confirm_import(
-            db, preview.session_id, member.id,
+        result = _confirm_for_member(
+            db, preview, member,
             scheme_confirmations=[SchemeConfirmation(temp_id=temp_id, amfi_code="222222")],
         )
 
@@ -595,8 +611,8 @@ def test_confirm_import_persists_canonical_name_when_override_code_disagrees_wit
 
     scheme_list = [{"schemeCode": "222222", "schemeName": "SBI Bluechip Fund - Regular Plan - Growth"}]
     with patch.object(mfapi_client, "_schemes", scheme_list):
-        result = confirm_import(
-            db, preview.session_id, member.id,
+        result = _confirm_for_member(
+            db, preview, member,
             scheme_confirmations=[SchemeConfirmation(temp_id=temp_id, amfi_code="222222")],
         )
 
@@ -619,8 +635,8 @@ def test_confirm_import_override_degrades_gracefully_when_master_list_not_cached
     temp_id = preview.schemes[0].temp_id
 
     with patch.object(mfapi_client, "_schemes", None):
-        result = confirm_import(
-            db, preview.session_id, member.id,
+        result = _confirm_for_member(
+            db, preview, member,
             scheme_confirmations=[SchemeConfirmation(temp_id=temp_id, amfi_code="333333")],
         )
 
@@ -643,8 +659,8 @@ def test_confirm_import_rejects_plan_type_override_contradicting_parsed_plan_nam
 
     import pytest
     with pytest.raises(SchemeConfidenceError, match="contradicts"):
-        confirm_import(
-            db, preview.session_id, member.id,
+        _confirm_for_member(
+            db, preview, member,
             scheme_confirmations=[SchemeConfirmation(temp_id=temp_id, plan_type_override=PlanType.REGULAR)],
         )
 
@@ -659,8 +675,8 @@ def test_confirm_import_accepts_plan_type_override_matching_parsed_plan_name():
     preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", client=_mocked_client()))
     temp_id = preview.schemes[0].temp_id
 
-    result = confirm_import(
-        db, preview.session_id, member.id,
+    result = _confirm_for_member(
+        db, preview, member,
         scheme_confirmations=[SchemeConfirmation(temp_id=temp_id, plan_type_override=PlanType.DIRECT)],
     )
 
@@ -706,11 +722,234 @@ def test_confirm_import_does_not_reject_override_when_name_lacks_plan_designator
     preview = asyncio.run(build_import_preview(parse_result, "test.pdf", client=_mocked_client()))
     temp_id = preview.schemes[0].temp_id
 
-    result = confirm_import(
-        db, preview.session_id, member.id,
+    result = _confirm_for_member(
+        db, preview, member,
         scheme_confirmations=[SchemeConfirmation(temp_id=temp_id, plan_type_override=PlanType.REGULAR)],
     )
 
     assert result.added == 1
     folio = db.query(Folio).filter_by(folio_number="123/45").one()
     assert folio.plan_type.value == "regular"
+
+
+def test_confirm_import_requires_attribution_confirmation_before_writing():
+    db = _session()
+    selected_member = _household_member(db)
+    matched_member = HouseholdMember(
+        id=uuid.uuid4(),
+        user_id=selected_member.user_id,
+        name="Existing Family Member",
+        relationship=Relationship.SPOUSE,
+        created_at=datetime.now(timezone.utc),
+    )
+    scheme = Scheme(
+        id=uuid.uuid4(),
+        amfi_code="125497",
+        name="HDFC Flexi Cap Fund - Direct Plan - Growth",
+        amc_name="HDFC AMC",
+        sebi_category="Equity",
+    )
+    db.add_all([matched_member, scheme])
+    db.flush()
+    db.add(
+        Folio(
+            id=uuid.uuid4(),
+            household_member_id=matched_member.id,
+            scheme_id=scheme.id,
+            folio_number="123/45",
+            plan_type=PlanType.DIRECT,
+        )
+    )
+    db.commit()
+    preview = asyncio.run(
+        build_import_preview(_sample_parse_result(), "test.pdf", client=_mocked_client())
+    )
+
+    with pytest.raises(AttributionConfirmationRequiredError) as exc_info:
+        confirm_import(
+            db,
+            preview.session_id,
+            selected_member.id,
+            scheme_confirmations=[],
+            user_id=selected_member.user_id,
+        )
+
+    assert exc_info.value.attribution.resolved_member_id == matched_member.id
+    assert db.query(Import).count() == 0
+    assert db.query(Transaction).count() == 0
+
+
+def test_confirm_import_continue_override_keeps_selected_member_for_persistence():
+    db = _session()
+    selected_member = _household_member(db)
+    matched_member = HouseholdMember(
+        id=uuid.uuid4(),
+        user_id=selected_member.user_id,
+        name="Existing Family Member",
+        relationship=Relationship.SPOUSE,
+        created_at=datetime.now(timezone.utc),
+    )
+    scheme = Scheme(
+        id=uuid.uuid4(),
+        amfi_code="125497",
+        name="HDFC Flexi Cap Fund - Direct Plan - Growth",
+        amc_name="HDFC AMC",
+        sebi_category="Equity",
+    )
+    db.add_all([matched_member, scheme])
+    db.flush()
+    db.add(
+        Folio(
+            id=uuid.uuid4(),
+            household_member_id=matched_member.id,
+            scheme_id=scheme.id,
+            folio_number="123/45",
+            plan_type=PlanType.DIRECT,
+        )
+    )
+    db.commit()
+    preview = asyncio.run(
+        build_import_preview(_sample_parse_result(), "test.pdf", client=_mocked_client())
+    )
+
+    result = confirm_import(
+        db,
+        preview.session_id,
+        selected_member.id,
+        scheme_confirmations=[],
+        user_id=selected_member.user_id,
+        confirmed_member_override=True,
+    )
+
+    assert result.added == 1
+    assert db.query(Import).one().household_member_id == selected_member.id
+    transaction = db.query(Transaction).one()
+    assert db.get(Folio, transaction.folio_id).household_member_id == selected_member.id
+
+
+def test_confirm_import_switch_override_uses_submitted_matched_member_for_persistence():
+    db = _session()
+    selected_member = _household_member(db)
+    matched_member = HouseholdMember(
+        id=uuid.uuid4(),
+        user_id=selected_member.user_id,
+        name="Existing Family Member",
+        relationship=Relationship.SPOUSE,
+        created_at=datetime.now(timezone.utc),
+    )
+    scheme = Scheme(
+        id=uuid.uuid4(),
+        amfi_code="125497",
+        name="HDFC Flexi Cap Fund - Direct Plan - Growth",
+        amc_name="HDFC AMC",
+        sebi_category="Equity",
+    )
+    db.add_all([matched_member, scheme])
+    db.flush()
+    db.add(
+        Folio(
+            id=uuid.uuid4(),
+            household_member_id=matched_member.id,
+            scheme_id=scheme.id,
+            folio_number="123/45",
+            plan_type=PlanType.DIRECT,
+        )
+    )
+    db.commit()
+    preview = asyncio.run(
+        build_import_preview(_sample_parse_result(), "test.pdf", client=_mocked_client())
+    )
+
+    with pytest.raises(AttributionConfirmationRequiredError):
+        confirm_import(
+            db,
+            preview.session_id,
+            selected_member.id,
+            scheme_confirmations=[],
+            user_id=selected_member.user_id,
+        )
+
+    result = confirm_import(
+        db,
+        preview.session_id,
+        matched_member.id,
+        scheme_confirmations=[],
+        user_id=selected_member.user_id,
+        confirmed_member_override=True,
+    )
+
+    assert result.added == 1
+    assert db.query(Import).one().household_member_id == matched_member.id
+    transaction = db.query(Transaction).one()
+    assert db.get(Folio, transaction.folio_id).household_member_id == matched_member.id
+
+
+def test_confirm_import_returns_generic_cross_account_warning():
+    db = _session()
+    selected_member = _household_member(db)
+    other_user = User(
+        id=uuid.uuid4(),
+        phone_number="+919000000001",
+        created_at=datetime.now(timezone.utc),
+    )
+    other_member = HouseholdMember(
+        id=uuid.uuid4(),
+        user_id=other_user.id,
+        name="Private Other Account",
+        relationship=Relationship.SELF,
+        created_at=datetime.now(timezone.utc),
+    )
+    scheme = Scheme(
+        id=uuid.uuid4(),
+        amfi_code="125497",
+        name="HDFC Flexi Cap Fund - Direct Plan - Growth",
+        amc_name="HDFC AMC",
+        sebi_category="Equity",
+    )
+    db.add_all([other_user, other_member, scheme])
+    db.flush()
+    db.add(
+        Folio(
+            id=uuid.uuid4(),
+            household_member_id=other_member.id,
+            scheme_id=scheme.id,
+            folio_number="123/45",
+            plan_type=PlanType.DIRECT,
+        )
+    )
+    db.commit()
+    preview = asyncio.run(
+        build_import_preview(_sample_parse_result(), "test.pdf", client=_mocked_client())
+    )
+
+    result = confirm_import(
+        db,
+        preview.session_id,
+        selected_member.id,
+        scheme_confirmations=[],
+        user_id=selected_member.user_id,
+        confirmed_member_override=True,
+    )
+
+    assert result.warnings == [CROSS_ACCOUNT_DUPLICATE_WARNING]
+    assert "Private Other Account" not in " ".join(result.warnings)
+    assert db.query(Import).one().status == ImportStatus.CONFIRMED
+
+
+def test_confirm_import_returns_no_warning_without_cross_account_match():
+    db = _session()
+    member = _household_member(db)
+    preview = asyncio.run(
+        build_import_preview(_sample_parse_result(), "test.pdf", client=_mocked_client())
+    )
+
+    result = confirm_import(
+        db,
+        preview.session_id,
+        member.id,
+        scheme_confirmations=[],
+        user_id=member.user_id,
+        confirmed_member_override=True,
+    )
+
+    assert result.warnings == []

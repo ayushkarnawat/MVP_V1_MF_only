@@ -111,8 +111,8 @@ describe("FamilyImportFlow", () => {
   it("parses queued files sequentially and shows one aggregate ImportConfirmed at the end", async () => {
     vi.mocked(importApi.parseImport).mockResolvedValue(EMPTY_PREVIEW);
     vi.mocked(importApi.confirmImport)
-      .mockResolvedValueOnce({ added: 2, skipped: 0, import_id: "imp-mom" })
-      .mockResolvedValueOnce({ added: 3, skipped: 1, import_id: "imp-dad" });
+      .mockResolvedValueOnce({ added: 2, skipped: 0, import_id: "imp-mom", warnings: [] })
+      .mockResolvedValueOnce({ added: 3, skipped: 1, import_id: "imp-dad", warnings: [] });
 
     renderFlow();
     await waitFor(() => screen.getByText("Mom"));
@@ -245,7 +245,7 @@ describe("FamilyImportFlow", () => {
 
   it("disables the Confirm button while a confirm is in flight", async () => {
     vi.mocked(importApi.parseImport).mockResolvedValue(EMPTY_PREVIEW);
-    let resolveConfirm: (value: { added: number; skipped: number; import_id: string }) => void = () => {};
+    let resolveConfirm: (value: Awaited<ReturnType<typeof importApi.confirmImport>>) => void = () => {};
     vi.mocked(importApi.confirmImport).mockReturnValue(
       new Promise((resolve) => {
         resolveConfirm = resolve;
@@ -269,7 +269,7 @@ describe("FamilyImportFlow", () => {
 
     await waitFor(() => expect(screen.getByRole("button", { name: /confirming/i })).toBeDisabled());
 
-    resolveConfirm({ added: 1, skipped: 0, import_id: "imp-mom" });
+    resolveConfirm({ added: 1, skipped: 0, import_id: "imp-mom", warnings: [] });
     await waitFor(() => expect(screen.getByText(/import complete/i)).toBeInTheDocument());
   });
 });

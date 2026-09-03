@@ -182,6 +182,45 @@ def test_confirm_route_409s_on_low_confidence_scheme_without_override(client):
     assert response.status_code == 409
 
 
+def test_confirm_route_maps_member_mismatch_to_structured_409(client):
+    from app.services.import_.attribution import (
+        AttributionConfirmationRequiredError,
+        AttributionDecision,
+        AttributionStatus,
+    )
+
+    headers, member_id = _authed_headers_and_member(client, "+919999999980")
+    matched_member_id = uuid.uuid4()
+    decision = AttributionDecision(
+        status=AttributionStatus.MISMATCH_CONFIRMATION_REQUIRED,
+        resolved_member_id=matched_member_id,
+        matched_member_name="Priya Kumar",
+        requires_confirmation=True,
+        prompt_message="This statement matches Priya Kumar.",
+    )
+    with patch(
+        "app.api.imports.confirm_import",
+        side_effect=AttributionConfirmationRequiredError(decision),
+    ):
+        response = client.post(
+            "/imports/confirm",
+            json={
+                "session_id": "some-session",
+                "household_member_id": member_id,
+                "scheme_confirmations": [],
+            },
+            headers=headers,
+        )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == {
+        "code": "member_mismatch",
+        "message": "This statement matches Priya Kumar.",
+        "matched_member_id": str(matched_member_id),
+        "matched_member_name": "Priya Kumar",
+    }
+
+
 def test_confirm_route_schedules_nav_prefetch_after_successful_confirm():
     from app.api.imports import confirm_import_route
     from app.services.import_.schemas import ImportConfirmRequest, ImportConfirmResponse
@@ -330,11 +369,12 @@ def test_parse_then_confirm_lands_a_transaction_in_the_real_db(client, tmp_path)
 
         confirm_response = client.post(
             "/imports/confirm",
-            json={
-                "session_id": session_id,
-                "household_member_id": member_id,
-                "scheme_confirmations": [],
-            },
+                json={
+                    "session_id": session_id,
+                    "household_member_id": member_id,
+                    "scheme_confirmations": [],
+                    "confirmed_member_override": True,
+                },
             headers=headers,
         )
         assert confirm_response.status_code == 200

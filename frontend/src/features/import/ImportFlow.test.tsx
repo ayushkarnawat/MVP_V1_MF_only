@@ -66,7 +66,7 @@ describe("ImportFlow", () => {
 
   it("moves to confirmed on a successful confirm, passing the householdMemberId", async () => {
     vi.mocked(api.parseImport).mockResolvedValue(EMPTY_PREVIEW);
-    vi.mocked(api.confirmImport).mockResolvedValue({ added: 3, skipped: 1, import_id: "imp1" });
+    vi.mocked(api.confirmImport).mockResolvedValue({ added: 3, skipped: 1, import_id: "imp1", warnings: [] });
 
     render(<ImportFlow householdMemberId="member-1" />);
     uploadAFile();
@@ -90,9 +90,75 @@ describe("ImportFlow", () => {
     expect(screen.getByText(/review cas import/i)).toBeInTheDocument();
   });
 
+  it("switches to the matched member after a member-mismatch confirmation", async () => {
+    vi.mocked(api.parseImport).mockResolvedValue(EMPTY_PREVIEW);
+    vi.mocked(api.confirmImport)
+      .mockRejectedValueOnce(
+        new ApiError(409, {
+          code: "member_mismatch",
+          message: "This statement matches Priya Kumar.",
+          matched_member_id: "member-2",
+          matched_member_name: "Priya Kumar",
+        }),
+      )
+      .mockResolvedValueOnce({ added: 1, skipped: 0, import_id: "imp1", warnings: [] });
+
+    render(<ImportFlow householdMemberId="member-1" />);
+    uploadAFile();
+    fireEvent.click(await screen.findByRole("button", { name: /confirm import/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /switch to priya kumar/i }));
+
+    await waitFor(() => expect(screen.getByText(/import complete/i)).toBeInTheDocument());
+    expect(api.confirmImport).toHaveBeenNthCalledWith(1, "s1", "member-1", []);
+    expect(api.confirmImport).toHaveBeenNthCalledWith(2, "s1", "member-2", [], true);
+  });
+
+  it("continues with the selected member despite a different matched member", async () => {
+    vi.mocked(api.parseImport).mockResolvedValue(EMPTY_PREVIEW);
+    vi.mocked(api.confirmImport)
+      .mockRejectedValueOnce(
+        new ApiError(409, {
+          code: "member_mismatch",
+          message: "This statement matches Priya Kumar.",
+          matched_member_id: "member-2",
+          matched_member_name: "Priya Kumar",
+        }),
+      )
+      .mockResolvedValueOnce({ added: 1, skipped: 0, import_id: "imp1", warnings: [] });
+
+    render(<ImportFlow householdMemberId="member-1" />);
+    uploadAFile();
+    fireEvent.click(await screen.findByRole("button", { name: /confirm import/i }));
+
+    expect(await screen.findByRole("button", { name: /switch to priya kumar/i })).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("button", { name: /continue anyway/i }));
+
+    await waitFor(() => expect(screen.getByText(/import complete/i)).toBeInTheDocument());
+    expect(api.confirmImport).toHaveBeenNthCalledWith(2, "s1", "member-1", [], true);
+  });
+
+  it("only offers continue when no matched member is available", async () => {
+    vi.mocked(api.parseImport).mockResolvedValue(EMPTY_PREVIEW);
+    vi.mocked(api.confirmImport).mockRejectedValueOnce(
+      new ApiError(409, {
+        code: "member_mismatch",
+        message: "We couldn't match this statement.",
+        matched_member_id: null,
+        matched_member_name: "Unknown Investor",
+      }),
+    );
+
+    render(<ImportFlow householdMemberId="member-1" />);
+    uploadAFile();
+    fireEvent.click(await screen.findByRole("button", { name: /confirm import/i }));
+
+    expect(await screen.findByRole("button", { name: /continue anyway/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /switch to/i })).not.toBeInTheDocument();
+  });
+
   it("resets to upload from the confirmed screen by default", async () => {
     vi.mocked(api.parseImport).mockResolvedValue(EMPTY_PREVIEW);
-    vi.mocked(api.confirmImport).mockResolvedValue({ added: 1, skipped: 0, import_id: "imp1" });
+    vi.mocked(api.confirmImport).mockResolvedValue({ added: 1, skipped: 0, import_id: "imp1", warnings: [] });
 
     render(<ImportFlow householdMemberId="member-1" />);
     uploadAFile();
@@ -106,7 +172,7 @@ describe("ImportFlow", () => {
 
   it("uses ctaLabel and onDone instead of the default reset when provided", async () => {
     vi.mocked(api.parseImport).mockResolvedValue(EMPTY_PREVIEW);
-    vi.mocked(api.confirmImport).mockResolvedValue({ added: 1, skipped: 0, import_id: "imp1" });
+    vi.mocked(api.confirmImport).mockResolvedValue({ added: 1, skipped: 0, import_id: "imp1", warnings: [] });
     const onDone = vi.fn();
 
     render(<ImportFlow householdMemberId="member-1" ctaLabel="Continue" onDone={onDone} />);

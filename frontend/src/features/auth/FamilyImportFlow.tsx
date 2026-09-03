@@ -269,6 +269,7 @@ export function FamilyImportFlow({ selfName }: FamilyImportFlowProps) {
       added: results.reduce((sum, r) => sum + r.added, 0),
       skipped: results.reduce((sum, r) => sum + r.skipped, 0),
       import_id: results.length > 0 ? results[results.length - 1].import_id : "",
+      warnings: results.flatMap((result) => result.warnings),
     };
     return (
       <ImportConfirmed

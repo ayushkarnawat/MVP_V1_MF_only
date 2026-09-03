@@ -40,6 +40,7 @@ export async function confirmImport(
   sessionId: string,
   householdMemberId: string,
   schemeConfirmations: SchemeConfirmation[],
+  confirmedMemberOverride: boolean = false,
 ): Promise<ImportConfirmResponse> {
   const response = await fetch(`${API_BASE_URL}/imports/confirm`, {
     method: "POST",
@@ -48,6 +49,7 @@ export async function confirmImport(
       session_id: sessionId,
       household_member_id: householdMemberId,
       scheme_confirmations: schemeConfirmations,
+      confirmed_member_override: confirmedMemberOverride,
     }),
   });
 
@@ -210,5 +212,4 @@ export async function cancelImportRequest(
 
   return (await response.json()) as CASImportStatusResponse;
 }
-
 

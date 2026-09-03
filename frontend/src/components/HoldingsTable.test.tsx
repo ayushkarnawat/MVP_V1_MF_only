@@ -60,4 +60,31 @@ describe("HoldingsTable", () => {
       consoleError.mockRestore();
     }
   });
+
+  it("keeps an unavailable-NAV holding visible without rendering zero valuation", () => {
+    render(
+      <HoldingsTable
+        holdings={[
+          {
+            ...sampleHoldings[0],
+            current_nav: null,
+            current_nav_date: null,
+            current_value: null,
+            current_profit_total: null,
+            unrealized_gain: null,
+            today_gain: null,
+            nav_unavailable: true,
+          },
+        ]}
+      />
+    );
+
+    expect(screen.getByText("Parag Parikh Flexi Cap Fund")).toBeInTheDocument();
+    expect(screen.getByText("NAV unavailable")).toBeInTheDocument();
+    expect(screen.getByText("125.450")).toBeInTheDocument();
+    expect(screen.getByText("₹5,670")).toBeInTheDocument();
+    expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(2);
+    expect(screen.queryAllByText(/^₹0(?:\.00)?$/)).toHaveLength(0);
+    expect(screen.queryByLabelText(/Fund Signal:/i)).not.toBeInTheDocument();
+  });
 });

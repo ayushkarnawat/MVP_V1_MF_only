@@ -5,7 +5,7 @@ import { ImportConfirmed } from "./ImportConfirmed";
 describe("ImportConfirmed", () => {
   it("shows added/skipped counts and calls onImportAnother", () => {
     const onImportAnother = vi.fn();
-    render(<ImportConfirmed result={{ added: 3, skipped: 1, import_id: "imp1" }} onImportAnother={onImportAnother} />);
+    render(<ImportConfirmed result={{ added: 3, skipped: 1, import_id: "imp1", warnings: [] }} onImportAnother={onImportAnother} />);
 
     expect(screen.getByText(/3 new transactions added, 1 duplicate skipped/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /import another cas/i }));
@@ -13,7 +13,7 @@ describe("ImportConfirmed", () => {
   });
 
   it("uses singular wording for one transaction and no duplicates clause when zero", () => {
-    render(<ImportConfirmed result={{ added: 1, skipped: 0, import_id: "imp2" }} onImportAnother={vi.fn()} />);
+    render(<ImportConfirmed result={{ added: 1, skipped: 0, import_id: "imp2", warnings: [] }} onImportAnother={vi.fn()} />);
 
     expect(screen.getByText(/1 new transaction added\./i)).toBeInTheDocument();
   });
@@ -22,7 +22,7 @@ describe("ImportConfirmed", () => {
     const onImportAnother = vi.fn();
     render(
       <ImportConfirmed
-        result={{ added: 2, skipped: 0, import_id: "imp1" }}
+        result={{ added: 2, skipped: 0, import_id: "imp1", warnings: [] }}
         onImportAnother={onImportAnother}
         ctaLabel="Continue"
       />,
@@ -31,5 +31,28 @@ describe("ImportConfirmed", () => {
     fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
     expect(onImportAnother).toHaveBeenCalled();
     expect(screen.queryByRole("button", { name: /import another cas/i })).not.toBeInTheDocument();
+  });
+
+  it("shows a generic, non-blocking warning after a successful import", () => {
+    render(
+      <ImportConfirmed
+        result={{
+          added: 2,
+          skipped: 0,
+          import_id: "imp3",
+          warnings: [
+            "This investment may already be tracked under a different Unifolio account. If that's you, consider using that account instead.",
+          ],
+        }}
+        onImportAnother={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/import complete/i)).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      /may already be tracked under a different Unifolio account/i,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /dismiss warning/i }));
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 });

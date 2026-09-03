@@ -11,11 +11,16 @@ import { isTestEnv } from "@/lib/motion";
 import type {
   ImportConfirmResponse,
   ImportPreviewResponse,
+  MemberMismatchErrorPayload,
   ParseErrorPayload,
   SchemeConfirmation,
 } from "./types";
 
 type Step = "upload" | "parsing" | "review" | "error" | "confirmed";
+
+type MemberMismatchConfirmation = MemberMismatchErrorPayload & {
+  confirmations: SchemeConfirmation[];
+};
 
 interface ImportFlowProps {
   householdMemberId: string;
@@ -44,6 +49,7 @@ export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab }: 
   const [confirmResult, setConfirmResult] = useState<ImportConfirmResponse | null>(null);
   const [error, setError] = useState<ParseErrorPayload | null>(null);
   const [reviewNotice, setReviewNotice] = useState<string | null>(null);
+  const [memberMismatch, setMemberMismatch] = useState<MemberMismatchConfirmation | null>(null);
   const [confirming, setConfirming] = useState(false);
 
   const shouldReduceMotion = useReducedMotion() || isTestEnv;
@@ -55,6 +61,7 @@ export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab }: 
     setConfirmResult(null);
     setError(null);
     setReviewNotice(null);
+    setMemberMismatch(null);
     setConfirming(false);
   };
 
@@ -72,22 +79,37 @@ export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab }: 
     }
   };
 
-  const handleConfirm = async (confirmations: SchemeConfirmation[]) => {
+  const submitConfirmation = async (
+    memberId: string,
+    confirmations: SchemeConfirmation[],
+    confirmedMemberOverride = false,
+  ) => {
     if (!preview) return;
     setConfirming(true);
     setReviewNotice(null);
+    setMemberMismatch(null);
     try {
-      const result = await confirmImport(preview.session_id, householdMemberId, confirmations);
+      const result = confirmedMemberOverride
+        ? await confirmImport(preview.session_id, memberId, confirmations, true)
+        : await confirmImport(preview.session_id, memberId, confirmations);
       clearCasResumeStep2(householdMemberId);
       setConfirmResult(result);
       setStep("confirmed");
     } catch (err) {
       if (err instanceof ApiError && (err.status === 409 || err.status === 404)) {
-        setReviewNotice(
-          err.status === 404
-            ? "This import session has expired. Please re-upload your CAS."
-            : toParseErrorPayload(err).message,
-        );
+        const payload = toParseErrorPayload(err);
+        if (err.status === 409 && payload.code === "member_mismatch") {
+          setMemberMismatch({
+            ...(payload as MemberMismatchErrorPayload),
+            confirmations,
+          });
+        } else {
+          setReviewNotice(
+            err.status === 404
+              ? "This import session has expired. Please re-upload your CAS."
+              : payload.message,
+          );
+        }
       } else {
         setError(toParseErrorPayload(err));
         setStep("error");
@@ -96,6 +118,9 @@ export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab }: 
       setConfirming(false);
     }
   };
+
+  const handleConfirm = (confirmations: SchemeConfirmation[]) =>
+    submitConfirmation(householdMemberId, confirmations);
 
   return (
     <div className="w-full min-h-full flex-1 flex flex-col justify-center items-center my-auto">
@@ -140,6 +165,48 @@ export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab }: 
             className="w-full"
           >
             {reviewNotice && <p role="alert">{reviewNotice}</p>}
+            {memberMismatch && (
+              <div
+                role="alert"
+                className="mb-4 rounded-2xl border border-[var(--color-warning)]/30 bg-[var(--color-warning)]/10 p-4 text-left"
+              >
+                <p className="type-body text-sm text-[var(--color-ink)] m-0">
+                  {memberMismatch.message}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {memberMismatch.matched_member_id && (
+                    <button
+                      type="button"
+                      disabled={confirming}
+                      onClick={() =>
+                        void submitConfirmation(
+                          memberMismatch.matched_member_id!,
+                          memberMismatch.confirmations,
+                          true,
+                        )
+                      }
+                      className="rounded-xl bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                    >
+                      Switch to {memberMismatch.matched_member_name ?? "matched member"}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    disabled={confirming}
+                    onClick={() =>
+                      void submitConfirmation(
+                        householdMemberId,
+                        memberMismatch.confirmations,
+                        true,
+                      )
+                    }
+                    className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm font-semibold text-[var(--color-ink)] disabled:opacity-50"
+                  >
+                    Continue anyway
+                  </button>
+                </div>
+              </div>
+            )}
             <ReviewTable
               preview={preview}
               confirming={confirming}

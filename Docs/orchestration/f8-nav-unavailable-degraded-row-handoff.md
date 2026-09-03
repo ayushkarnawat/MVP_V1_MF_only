@@ -1,6 +1,6 @@
 # Handoff: f8-nav-unavailable-degraded-row
 
-**Status:** OPEN (2026-09-02)
+**Status:** DONE (2026-09-03)
 **Parent:** `CLAUDE.md` Session State "F8" / `AWS Readiness/sqlite-postgres-migration-compliance-audit.md`
 **Dispatch mode:** User is running this directly in their own Codex CLI/app session (not via Claude's `codex:codex-rescue` Agent dispatch) — this doc is the source of truth both sides read; update `Status` here after Codex finishes and report back.
 
@@ -176,3 +176,38 @@ Any other consumer of `HoldingRowData`/the holdings API response (search for `cu
 
 - Exact copy/visual treatment for the new "NAV unavailable" badge — this doc specifies the mechanism (mirror `stale_nav`'s existing badge pattern) but the exact wording/color is a small enough call to make directly during implementation; flag back only if the existing `warning` badge variant doesn't read sensibly for this case.
 - Whether any other frontend surface beyond `HoldingsTable.tsx` (allocation charts, aggregate/family dashboard views) reads `current_value`/`unrealized_gain` directly and needs the same null-guard — must be checked by grep during implementation, not assumed to be scoped to this one file.
+
+## Review-gate note (2026-09-03, orchestrator)
+
+Codex reported implementation complete but held Status at OPEN because the full backend suite showed 1 failure: `test_refresh_session_extends_expiry` (`tests/services/auth/test_session.py`), self-diagnosed as an unrelated Windows clock-resolution flake. Independently verified before ruling: `create_session`/`refresh_session` (`app/services/auth/session.py`) both compute `datetime.now(timezone.utc) + timedelta(days=30)` independently — two calls a few lines apart in the test can land on the same clock tick, making the strict `>` assertion a coin flip. Confirmed unrelated to this task's diff (different subsystem entirely). Fixed directly, test-only, one file (`tests/services/auth/test_session.py`): backdate `original_expiry` by 1 day before refreshing, mirroring the sibling expired-session test's existing backdating pattern. Full backend suite reran twice after the fix: first run hit 4 different, unrelated failures, all of which passed in isolation and all of which passed on a second full-suite rerun (600 passed/6 skipped/0 failed) — confirmed environment-level timing flakiness under load, not a regression from this task. Status moved to REVIEW on this basis.
+
+## Review-gate round 1 findings (2026-09-03) — FAIL, fixed inline
+
+Mandatory adversarial-review gate returned FAIL with 2 findings, both confirmed correct on independent read:
+
+- **[P1] "Total Invested" understated degraded holdings' known principal.** `DashboardView.tsx`'s and `MobileDashboardView.tsx`'s totals both filtered to `valuedHoldings`/`continue`d on `nav_unavailable` *before* summing `amount_invested` — but `amount_invested` is FIFO-derived and always known regardless of NAV availability (this doc's own Task section says so explicitly). Only NAV-dependent figures (current value, gain) should exclude degraded rows. Fixed directly (small, isolated, both files already read in full this round): moved the `amount_invested` summation ahead of/outside the `nav_unavailable` filter in both files, leaving `current_value`/`unrealized_gain`/`current_profit_total` summation still correctly filtered.
+- **[P2] `nav_unavailable_count` computed and typed but never surfaced.** No production frontend read it, so a shrunk-but-correct total had no "excludes N holdings" explanation anywhere. Fixed directly: added a small caption under the Total Portfolio Value figure on both desktop (`DashboardView.tsx`) and mobile (`MobileDashboardView.tsx`), conditionally rendered when `allocation.nav_unavailable_count > 0`.
+- Two existing tests (`DashboardView.test.tsx`, `MobileDashboardView.test.tsx`) asserted the old (incorrect) understated-total behavior — updated to assert the corrected total and the new caption, not deleted.
+
+Verified: scoped rerun (both dashboard test files) green, then full frontend suite rerun clean (390 passed / 75 files). Backend untouched this round (no backend files in scope for these findings) — its clean 600 passed/6 skipped/0 failed from the round-1 dispatch still holds. `distributor_comparison.py`'s sibling bug reconfirmed still present and untouched, per this doc's own scope boundary.
+
+Status remains REVIEW pending a scoped re-review of this fix (diff confirmed narrow via `git diff --stat`: `DashboardView.tsx`, `MobileDashboardView.tsx`, and their two test files only).
+
+## Review-gate round 2 finding (2026-09-03) — FAIL, fixed inline
+
+Mandatory scoped re-review of round 1's fix returned FAIL with 1 P1 finding, confirmed correct on independent read:
+
+- **[P1] Gain-percentage mixed incompatible populations.** After round 1's fix, `gainPercentage` divided `profitVal` (summed over `valuedHoldings` only, correctly excluding NAV-unavailable rows) by `investedVal` (summed over *all* holdings, including the NAV-unavailable one) — e.g. ₹5,000 valued invested + ₹2,500 profit + ₹4,000 unavailable invested reported `2500 / 9000 = 27.78%` instead of the correct `2500 / 5000 = 50%` for the return that's actually known. A degraded holding's return literally cannot be computed (no NAV to derive it from), so it must be excluded from both sides of the ratio, not just the numerator. Fixed directly (small, isolated, both files already in context): added a second, valued-only invested total (`valuedInvestedVal`) computed alongside `investedVal`, and changed `gainPercentage`'s denominator to `valuedInvestedVal`. `investedVal` (all-holdings) is unchanged and still feeds "Total Invested" per round 1's fix — the two totals now serve their own distinct purposes rather than one being reused for both.
+- No existing test asserted a specific `gainPercentage` value (confirmed by grep on both test files), so no test needed updating for the old, incorrect behavior — only the two production files changed.
+
+Verified: scoped rerun (both dashboard test files) green (22 passed), then full frontend suite rerun clean (390 passed / 75 files) since this round is expected to close the gate. `distributor_comparison.py`'s sibling bug (same denominator-mixing shape, if present) not checked this round — out of this task's file scope, consistent with round 1's scope boundary; flagging here in case a future pass on that file should check for the same class of bug.
+
+Status remains REVIEW pending a scoped re-review of this fix.
+
+## Review-gate round 2 re-review (2026-09-03) — PASS, performed by orchestrator directly
+
+The Codex dispatch for this re-review hit Codex's usage limit mid-run (partial output only, no verdict — see `delegation-log.md`). Per explicit user instruction, the orchestrator performed the scoped re-review directly instead of waiting for Codex's limit reset — a deviation from this project's default "Codex reviews, orchestrator implements" split, done this once on explicit direction, not a standing change to the gate's dispatch mode.
+
+Verified directly: (1) `gainPercentage` in both files now divides by `valuedInvestedVal` (valued-holdings-only invested total), not all-holdings `investedVal` — confirmed via `git diff` read and a manual walkthrough of the prior round's own example numbers (₹5,000 valued invested / ₹2,500 profit / ₹4,000 unavailable invested → `50%`, matching the expected correct figure, not the prior incorrect 27.78%). (2) "Total Invested" still renders `totals.investedVal` (all-holdings, unfiltered) in both files — round 1's fix not regressed. (3) Grepped both files for any other percentage/ratio computation (`Percentage`, `toFixed`, `/ total`, `Val /`) — `gainPercentage` is the only one in each file, no sibling instance of the same bug class. (4) Divide-by-zero guard (`valuedInvestedVal > 0`) intact in both. Scoped test rerun: 22/22 passed, 2 files.
+
+**Verdict: PASS, zero findings.** Status moved to DONE.

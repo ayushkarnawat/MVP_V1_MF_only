@@ -170,16 +170,20 @@ verification (backend :8000, frontend :5173) were stopped at the end of this wor
 *(Moved here from `CLAUDE.md` 2026-08-24 — that file's Session State section is a
 short pointer only, per its own header note; this is the detail it points to.)*
 
-1. **(= compliance audit F8, in scope for the AWS-staging push, not deferred)** A held
-   scheme with no obtainable NAV silently vanishes from holdings/allocation/aggregates,
-   no error or placeholder. **Product call resolved 2026-09-02**: user chose (b) — a
-   degraded row with a visible "NAV unavailable" flag, NAV-dependent fields null, FIFO-
-   derived fields (units held, invested, realized gain) always populated. Design fully
-   locked and handed off: `Docs/orchestration/f8-nav-unavailable-degraded-row-handoff.md`
-   (covers `HoldingRow`/`AllocationSummary` schema, `compute_holdings`, `compute_allocation`,
-   and `HoldingsTable.tsx`; `distributor_comparison.py`'s identical sibling bug explicitly
-   flagged as a separate, out-of-scope follow-up, not silently fixed alongside this).
-   Status: OPEN, dispatched to the user's own Codex session, not yet implemented.
+1. **RESOLVED 2026-09-03 (= compliance audit F8).** A held scheme with no obtainable NAV
+   silently vanished from holdings/allocation/aggregates, no error or placeholder.
+   **Product call resolved 2026-09-02**: user chose (b) — a degraded row with a visible
+   "NAV unavailable" flag, NAV-dependent fields null, FIFO-derived fields (units held,
+   invested, realized gain) always populated. Design: `Docs/orchestration/
+   f8-nav-unavailable-degraded-row-handoff.md` (`distributor_comparison.py`'s identical
+   sibling bug explicitly flagged as a separate, out-of-scope follow-up, not silently
+   fixed alongside this). Implemented across 2 review rounds: round 1 fixed an
+   understated "Total Invested" and a missing caption; round 2 caught (via adversarial
+   review, independently confirmed) that `gainPercentage` mixed populations — dividing
+   valued-only profit by an all-holdings invested total, understating the return — fixed
+   by adding a `valuedInvestedVal` (valued-holdings-only) denominator in both
+   `DashboardView.tsx` and `MobileDashboardView.tsx`. Status: DONE, in the combined
+   uncommitted working-tree diff pending the non-PAN dedup task's own review closure.
 2. **RESOLVED 2026-09-02 (= compliance audit F3).** No DB uniqueness constraint on the
    "self" `household_members` row — frontend-mitigated client-side only; real fix needed
    a migration (confirmed missing — migrations `0001`-`0010` existed, none touched this).
@@ -220,8 +224,26 @@ short pointer only, per its own header note; this is the detail it points to.)*
    never leaks the other account's identity, folio-match primary / name-match weaker
    secondary signal. Zero new PII persisted (folio_number/amc_name are already-persisted
    data reused, not new fields). Full design + rationale + rejected alternatives:
-   `Docs/orchestration/non-pan-duplicate-person-detection-handoff.md`. Status: OPEN,
-   dispatched to the user's own Codex session, not yet implemented.
+   `Docs/orchestration/non-pan-duplicate-person-detection-handoff.md`. **RESOLVED
+   2026-09-03**: round 2 wired the design into the actual production import paths —
+   a shared `enforce_attribution_confirmation` gate added to `attribution.py` and
+   called at all 3 backend commit sites (`service.py::confirm_import`, both of
+   `lifecycle_service.py`'s), a structured `member_mismatch` 409 through both
+   `imports.py` and `cas_imports.py`, and desktop/mobile confirmation UI ("Switch" vs.
+   "Continue anyway", resolving to genuinely different target members, not just
+   different copy). This wiring surfaced a standalone architectural gap — two parallel
+   import backends (`service.py`'s preview/confirm flow and `lifecycle_service.py`'s
+   async CAS-upload flow) had independently drifted to need the identical fix wired in
+   twice — documented at `Docs/orchestration/
+   two-parallel-import-backends-architectural-gap.md`. Adversarial review round 2
+   returned a bare "PASS, no findings" whose own test-execution claim was flagged
+   unreproduced by the reviewer's environment (no SQLAlchemy in its Linux sandbox); not
+   accepted at face value — the orchestrator independently re-verified the 3
+   highest-risk points directly against the code (bypass-proofing at all 3 sites,
+   Switch/Continue's end-to-end divergence, 409-shape consistency across both routes)
+   plus PAN-safety, and independently reran both full test suites (614 backend/1
+   skipped, 397 frontend/75 files — both exact matches to the implementer's
+   self-report). Status: DONE, in the combined uncommitted working-tree diff.
 3. `HoldingsTable.tsx` references a dead `row.return_percentage_1y` field that doesn't
    exist on the real API type — harmless (client-computed fallback always runs), never
    cleaned up.
@@ -269,10 +291,12 @@ short pointer only, per its own header note; this is the detail it points to.)*
    the AWS infra work is happening right now anyway. **Scope split confirmed 2026-09-02**:
    (a) the 4 job-entrypoint scripts + wiring `amfi_aaum_client.refresh_aaum_data` into a
    real caller — buildable immediately, no AWS dependency, handed off as
-   `Docs/orchestration/adr006-background-jobs-handoff.md` (status: OPEN, dispatched to the
-   user's own Codex session, not yet implemented); (b) the actual EventBridge Scheduler +
-   ECS Fargate task Terraform module — deliberately deferred to the infra-authoring phase,
-   once an AWS account/ECR repo/ECS cluster exist to schedule against — not started.
+   `Docs/orchestration/adr006-background-jobs-handoff.md`. **RESOLVED 2026-09-03**:
+   piece (a) implemented and cleared the mandatory adversarial-review gate — status
+   DONE, in the combined uncommitted working-tree diff (`backend/scripts/jobs/`,
+   `backend/tests/scripts/`); (b) the actual EventBridge Scheduler + ECS Fargate task
+   Terraform module — deliberately deferred to the infra-authoring phase, once an AWS
+   account/ECR repo/ECS cluster exist to schedule against — not started.
 7. **RESOLVED 2026-08-27, commit `bb5225f`** (this item was still marked open in the
    "Still open" lists above as of this session — corrected 2026-09-02 while writing the
    Analytics precompute implementation plan, which had cited it as a live risk before

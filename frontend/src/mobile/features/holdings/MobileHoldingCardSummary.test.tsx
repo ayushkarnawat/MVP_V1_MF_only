@@ -52,4 +52,26 @@ describe("MobileHoldingCardSummary", () => {
     fireEvent.click(screen.getByLabelText("Axis Bluechip Fund holding"));
     expect(handleSelect).toHaveBeenCalledWith(baseHolding);
   });
+
+  it("shows NAV unavailable without a zero value or performance signal", () => {
+    render(
+      <MobileHoldingCardSummary
+        holding={{
+          ...baseHolding,
+          current_nav: null,
+          current_nav_date: null,
+          current_value: null,
+          current_profit_total: null,
+          unrealized_gain: null,
+          today_gain: null,
+          nav_unavailable: true,
+        }}
+      />
+    );
+
+    expect(screen.getByText("NAV unavailable")).toBeInTheDocument();
+    expect(screen.getByText("—")).toBeInTheDocument();
+    expect(screen.queryByText("₹0")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Fund Signal:/i)).not.toBeInTheDocument();
+  });
 });

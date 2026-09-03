@@ -151,6 +151,53 @@ def test_compute_holdings_returns_current_value_and_gains_from_nav():
     assert row.plan_type == PlanType.DIRECT
 
 
+def test_compute_holdings_keeps_fifo_fields_when_nav_is_unavailable():
+    import asyncio
+
+    db = _session()
+    member = _household_member(db)
+    scheme = _scheme(db)
+    folio = _folio(db, member, scheme)
+    _persisted_txn(
+        db,
+        folio,
+        TransactionType.PURCHASE,
+        date(2024, 1, 1),
+        Decimal("5000.00"),
+        Decimal("100.000"),
+        Decimal("50.0000"),
+    )
+    _persisted_txn(
+        db,
+        folio,
+        TransactionType.REDEMPTION,
+        date(2024, 3, 1),
+        Decimal("1200.00"),
+        Decimal("20.000"),
+        Decimal("60.0000"),
+    )
+
+    with patch(
+        "app.services.dashboard.holdings.get_navs_on_or_before",
+        new=_mock_nav_batch(None),
+    ):
+        rows = asyncio.run(compute_holdings(db, [member.id]))
+
+    assert len(rows) == 1
+    row = rows[0]
+    assert row.nav_unavailable is True
+    assert row.units_held == "80.000"
+    assert row.average_nav == "50.0000"
+    assert row.amount_invested == "4000.0000000"
+    assert row.realized_gain == "200.0000000"
+    assert row.current_nav is None
+    assert row.current_nav_date is None
+    assert row.current_value is None
+    assert row.current_profit_total is None
+    assert row.unrealized_gain is None
+    assert row.today_gain is None
+
+
 def test_compute_holdings_merges_two_folios_of_the_same_scheme():
     import asyncio
 

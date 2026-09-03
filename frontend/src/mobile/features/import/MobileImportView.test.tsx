@@ -56,6 +56,28 @@ describe("MobileImportView", () => {
     vi.mocked(importApi.getMemberImportHistory).mockResolvedValue([]);
   });
 
+  async function openEmptyReview() {
+    vi.mocked(importApi.parseImport).mockResolvedValue({
+      session_id: "sess-mismatch",
+      filename: "statement.pdf",
+      investor_email: null,
+      cas_type: "detailed",
+      file_type: "pdf",
+      transactions: [],
+      investor_name: "Pooja",
+      pan_masked: "ABCDE1234F",
+      transaction_count: 0,
+      parse_warnings: [],
+      schemes: [],
+    });
+    render(<MobileImportView defaultMemberId="m-1" />);
+    fireEvent.click(await screen.findByRole("button", { name: /already have a statement/i }));
+    const file = new File(["pdf"], "statement.pdf", { type: "application/pdf" });
+    fireEvent.change(screen.getByLabelText(/cas pdf/i), { target: { files: [file] } });
+    fireEvent.click(screen.getByRole("button", { name: /upload statement/i }));
+    await screen.findByText("Review CAS Import");
+  }
+
   it("renders entry choice screen with both options and navigates into Request view", async () => {
     render(<MobileImportView />);
 
@@ -211,6 +233,9 @@ describe("MobileImportView", () => {
       added: 8,
       skipped: 0,
       import_id: "imp-final-1",
+      warnings: [
+        "This investment may already be tracked under a different Unifolio account. If that's you, consider using that account instead.",
+      ],
     });
 
     const handleDashboardNav = vi.fn();
@@ -232,12 +257,88 @@ describe("MobileImportView", () => {
       expect(importApi.confirmImport).toHaveBeenCalledWith("sess-100", "m-1", []);
       expect(screen.getByText("Import Complete")).toBeInTheDocument();
       expect(screen.getByText(/8 new transactions added/i)).toBeInTheDocument();
+      expect(screen.getByRole("status")).toHaveTextContent(
+        /may already be tracked under a different Unifolio account/i,
+      );
       expect(hasCasResumeStep2("m-1")).toBe(false);
     });
+
+    fireEvent.click(screen.getByRole("button", { name: /dismiss warning/i }));
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
 
     const dashBtn = screen.getByRole("button", { name: /Go to Dashboard/i });
     fireEvent.click(dashBtn);
     expect(handleDashboardNav).toHaveBeenCalledTimes(1);
+  });
+
+  it("switches to the matched member after a member-mismatch confirmation", async () => {
+    vi.mocked(importApi.confirmImport)
+      .mockRejectedValueOnce(
+        new importApi.ApiError(409, {
+          code: "member_mismatch",
+          message: "This statement matches Pooja.",
+          matched_member_id: "m-2",
+          matched_member_name: "Pooja",
+        }),
+      )
+      .mockResolvedValueOnce({ added: 1, skipped: 0, import_id: "imp-2", warnings: [] });
+    await openEmptyReview();
+
+    fireEvent.click(screen.getByRole("button", { name: /confirm & import portfolio/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /switch to pooja/i }));
+
+    await waitFor(() => expect(screen.getByText("Import Complete")).toBeInTheDocument());
+    expect(importApi.confirmImport).toHaveBeenNthCalledWith(
+      2,
+      "sess-mismatch",
+      "m-2",
+      [],
+      true,
+    );
+  });
+
+  it("continues with the selected member despite a different matched member", async () => {
+    vi.mocked(importApi.confirmImport)
+      .mockRejectedValueOnce(
+        new importApi.ApiError(409, {
+          code: "member_mismatch",
+          message: "This statement matches Pooja.",
+          matched_member_id: "m-2",
+          matched_member_name: "Pooja",
+        }),
+      )
+      .mockResolvedValueOnce({ added: 1, skipped: 0, import_id: "imp-1", warnings: [] });
+    await openEmptyReview();
+
+    fireEvent.click(screen.getByRole("button", { name: /confirm & import portfolio/i }));
+    expect(await screen.findByRole("button", { name: /switch to pooja/i })).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("button", { name: /continue anyway/i }));
+
+    await waitFor(() => expect(screen.getByText("Import Complete")).toBeInTheDocument());
+    expect(importApi.confirmImport).toHaveBeenNthCalledWith(
+      2,
+      "sess-mismatch",
+      "m-1",
+      [],
+      true,
+    );
+  });
+
+  it("only offers continue when no matched member is available", async () => {
+    vi.mocked(importApi.confirmImport).mockRejectedValueOnce(
+      new importApi.ApiError(409, {
+        code: "member_mismatch",
+        message: "We couldn't match this statement.",
+        matched_member_id: null,
+        matched_member_name: "Unknown Investor",
+      }),
+    );
+    await openEmptyReview();
+
+    fireEvent.click(screen.getByRole("button", { name: /confirm & import portfolio/i }));
+
+    expect(await screen.findByRole("button", { name: /continue anyway/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /switch to/i })).not.toBeInTheDocument();
   });
 
   it("renders member import history when History button is clicked", async () => {

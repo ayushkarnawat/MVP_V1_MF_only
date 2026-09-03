@@ -105,13 +105,14 @@ export function MobileFundDetailView({
     setActiveIndex(null);
   }
 
+  const navUnavailable = holding.nav_unavailable === true;
   const invested = parseFloat(holding.amount_invested || "0");
-  const currentValue = parseFloat(holding.current_value || "0");
-  const profit = parseFloat(
-    holding.unrealized_gain || holding.current_profit_total || "0"
-  );
-  const isPositive = profit >= 0;
-  const totalReturnPct = invested > 0 ? (profit / invested) * 100 : 0;
+  const currentValue = navUnavailable ? null : parseFloat(holding.current_value || "0");
+  const profit = navUnavailable
+    ? null
+    : parseFloat(holding.unrealized_gain || holding.current_profit_total || "0");
+  const isPositive = profit !== null && profit >= 0;
+  const totalReturnPct = !navUnavailable && invested > 0 ? (profit! / invested) * 100 : null;
   useEffect(() => {
     const controller = new AbortController();
 
@@ -234,11 +235,13 @@ export function MobileFundDetailView({
         <section className="p-4 sm:p-5 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs space-y-4">
           <div className="flex items-start gap-3.5">
             <div className="flex-shrink-0 pt-0.5">
-              <FundSignal
-                returnPercentage={totalReturnPct}
-                schemeName={holding.scheme_name}
-                size="md"
-              />
+              {totalReturnPct !== null && (
+                <FundSignal
+                  returnPercentage={totalReturnPct}
+                  schemeName={holding.scheme_name}
+                  size="md"
+                />
+              )}
             </div>
             <div className="flex flex-col min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
@@ -270,7 +273,7 @@ export function MobileFundDetailView({
                 Current Value
               </span>
               <span className="font-display text-2xl font-bold text-[var(--color-ink)] tabular-nums mt-0.5 block">
-                ₹{formatCurrency(currentValue)}
+                {currentValue === null ? "—" : `₹${formatCurrency(currentValue)}`}
               </span>
             </div>
 
@@ -278,6 +281,9 @@ export function MobileFundDetailView({
               <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--color-text-secondary)] block">
                 Gain / Loss
               </span>
+              {profit === null || totalReturnPct === null ? (
+                <span className="font-display text-sm font-bold text-[var(--color-ink)] mt-0.5">—</span>
+              ) : (
               <div className="flex items-center gap-1.5 mt-0.5">
                 <span
                   className={cn(
@@ -306,6 +312,7 @@ export function MobileFundDetailView({
                   {totalReturnPct.toFixed(1)}%
                 </span>
               </div>
+              )}
             </div>
           </div>
         </section>
@@ -495,10 +502,14 @@ export function MobileFundDetailView({
             <div className="flex items-center justify-between py-2.5">
               <span className="text-[var(--color-text-secondary)]">Current NAV</span>
               <div className="flex items-center gap-1.5">
-                <span className="font-semibold text-[var(--color-ink)] tabular-nums">
-                  ₹{formatNumber(holding.current_nav, 2)}
-                </span>
-                {holding.stale_nav && (
+                {navUnavailable ? (
+                  <Badge variant="warning">NAV unavailable</Badge>
+                ) : (
+                  <span className="font-semibold text-[var(--color-ink)] tabular-nums">
+                    ₹{formatNumber(holding.current_nav!, 2)}
+                  </span>
+                )}
+                {!navUnavailable && holding.stale_nav && (
                   <Badge variant="warning">stale</Badge>
                 )}
               </div>
@@ -514,7 +525,7 @@ export function MobileFundDetailView({
             <div className="flex items-center justify-between py-2.5">
               <span className="text-[var(--color-text-secondary)]">Current Value</span>
               <span className="font-semibold text-[var(--color-ink)] tabular-nums">
-                ₹{formatCurrency(currentValue)}
+                {currentValue === null ? "—" : `₹${formatCurrency(currentValue)}`}
               </span>
             </div>
           </div>

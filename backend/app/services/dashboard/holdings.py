@@ -186,7 +186,29 @@ async def compute_holdings(db: Session, household_member_ids: list[uuid.UUID]) -
     rows: list[HoldingRow] = []
     for member_id, scheme, plan_type, total_units, total_cost, total_realized in computed:
         nav_result = nav_results[scheme.id]
+        average_nav = (total_cost / total_units) if total_units else None
         if nav_result is None:
+            rows.append(
+                HoldingRow(
+                    scheme_id=str(scheme.id),
+                    scheme_name=scheme.name,
+                    amc_name=scheme.amc_name,
+                    household_member_id=str(member_id),
+                    household_member_name=members[member_id].name,
+                    plan_type=plan_type,
+                    units_held=str(total_units),
+                    average_nav=str(average_nav) if average_nav is not None else None,
+                    current_nav=None,
+                    current_nav_date=None,
+                    amount_invested=str(total_cost),
+                    current_value=None,
+                    current_profit_total=None,
+                    realized_gain=str(total_realized),
+                    unrealized_gain=None,
+                    today_gain=None,
+                    nav_unavailable=True,
+                )
+            )
             continue
         current_nav, current_nav_date = nav_result
         previous = get_previous_nav_from_cache(db, scheme.id, current_nav_date)
@@ -196,7 +218,6 @@ async def compute_holdings(db: Session, household_member_ids: list[uuid.UUID]) -
         unrealized_gain = current_value - total_cost
         current_profit_total = total_realized + unrealized_gain
         today_gain = (current_nav - previous_nav) * total_units
-        average_nav = (total_cost / total_units) if total_units else None
 
         rows.append(
             HoldingRow(

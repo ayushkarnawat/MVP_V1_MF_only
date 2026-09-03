@@ -16,11 +16,12 @@ export function MobileHoldingCardSummary({
   onSelect,
 }: MobileHoldingCardSummaryProps) {
   const shouldReduceMotion = useReducedMotion() || isTestEnv;
-  const unrealized = parseFloat(
-    holding.unrealized_gain || holding.current_profit_total || "0"
-  );
+  const navUnavailable = holding.nav_unavailable === true;
+  const unrealized = navUnavailable
+    ? null
+    : parseFloat(holding.unrealized_gain || holding.current_profit_total || "0");
   const invested = parseFloat(holding.amount_invested) || 0;
-  const returnPct = invested > 0 ? (unrealized / invested) * 100 : 0;
+  const returnPct = !navUnavailable && invested > 0 ? (unrealized! / invested) * 100 : null;
 
   return (
     <motion.div
@@ -42,11 +43,13 @@ export function MobileHoldingCardSummary({
         {/* Left: FundSignal + Scheme Name + Member Name */}
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="flex-shrink-0">
-            <FundSignal
-              returnPercentage={returnPct}
-              schemeName={holding.scheme_name}
-              size="sm"
-            />
+            {returnPct !== null && (
+              <FundSignal
+                returnPercentage={returnPct}
+                schemeName={holding.scheme_name}
+                size="sm"
+              />
+            )}
           </div>
 
           <div className="flex flex-col min-w-0">
@@ -62,7 +65,11 @@ export function MobileHoldingCardSummary({
               <Badge variant={holding.plan_type === "DIRECT" ? "positive" : "neutral"}>
                 {toTitleCase(holding.plan_type || "UNKNOWN")}
               </Badge>
-              {holding.stale_nav && <Badge variant="warning">stale</Badge>}
+              {navUnavailable ? (
+                <Badge variant="warning">NAV unavailable</Badge>
+              ) : (
+                holding.stale_nav && <Badge variant="warning">stale</Badge>
+              )}
             </div>
           </div>
         </div>
@@ -74,7 +81,7 @@ export function MobileHoldingCardSummary({
               Current Value
             </span>
             <span className="font-display text-sm font-bold text-[var(--color-ink)] tabular-nums type-data mt-0.5">
-              ₹{formatCurrency(holding.current_value)}
+              {navUnavailable ? "—" : `₹${formatCurrency(holding.current_value!)}`}
             </span>
           </div>
 

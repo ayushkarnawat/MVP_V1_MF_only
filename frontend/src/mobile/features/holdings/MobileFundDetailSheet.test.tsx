@@ -66,4 +66,28 @@ describe("MobileFundDetailSheet", () => {
     fireEvent.click(closeBtn);
     expect(handleClose).toHaveBeenCalledTimes(1);
   });
+
+  it("shows unavailable placeholders instead of zero NAV-dependent metrics", () => {
+    render(
+      <MobileFundDetailSheet
+        isOpen={true}
+        onClose={vi.fn()}
+        holding={{
+          ...sampleHolding,
+          current_nav: null,
+          current_nav_date: null,
+          current_value: null,
+          current_profit_total: null,
+          unrealized_gain: null,
+          today_gain: null,
+          nav_unavailable: true,
+        }}
+      />
+    );
+
+    expect(screen.getByText("NAV unavailable")).toBeInTheDocument();
+    expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText("₹5,617")).toBeInTheDocument();
+    expect(screen.queryAllByText(/^₹0(?:\.00)?$/)).toHaveLength(0);
+  });
 });

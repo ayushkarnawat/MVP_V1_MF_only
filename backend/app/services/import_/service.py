@@ -24,6 +24,12 @@ from app.models.imports import Import, ImportStatus
 from app.models.reference import Scheme
 from app.models.transaction import Transaction
 from app.services.dashboard.holdings import invalidate_holdings_cache
+from app.services.import_.attribution import (
+    CROSS_ACCOUNT_DUPLICATE_WARNING,
+    detect_cross_account_duplicate,
+    enforce_attribution_confirmation,
+    resolve_attribution,
+)
 from app.services.import_.enrich import MfApiClient, _normalize_name, mfapi_client
 from app.services.import_.parser import ParseResult, source_cas_type_from_file_type
 from app.services.import_.schemas import (
@@ -139,12 +145,22 @@ def confirm_import(
     session_id: str,
     household_member_id: uuid.UUID,
     scheme_confirmations: list[SchemeConfirmation],
+    user_id: uuid.UUID,
+    confirmed_member_override: bool = False,
 ) -> ImportConfirmResponse:
     session = _preview_sessions.get(session_id)
     if not session:
         raise ValueError("Import session not found or expired.")
 
     parse_result: ParseResult = session["parse_result"]
+    attribution = resolve_attribution(db, user_id, household_member_id, parse_result)
+    enforce_attribution_confirmation(attribution, confirmed_member_override)
+    target_member_id = (
+        household_member_id
+        if confirmed_member_override
+        else attribution.resolved_member_id or household_member_id
+    )
+
     previews: dict[str, SchemeMatchPreview] = session["scheme_previews"]
     key_to_temp = session["key_to_temp"]
     overrides = {c.temp_id: c for c in scheme_confirmations}
@@ -212,7 +228,7 @@ def confirm_import(
 
     # All schemes validated — safe to start writing.
     import_rec = Import(
-        id=uuid.uuid4(), household_member_id=household_member_id, status=ImportStatus.CONFIRMED,
+        id=uuid.uuid4(), household_member_id=target_member_id, status=ImportStatus.CONFIRMED,
         source_cas_type=_map_source_cas_type(parse_result.file_type),
         raw_parser_output=json.loads(parse_result.raw_json),
         uploaded_at=datetime.now(timezone.utc), confirmed_at=datetime.now(timezone.utc),
@@ -272,11 +288,11 @@ def confirm_import(
                 scheme_cache[amfi_code] = new_scheme
 
         scheme = scheme_cache[amfi_code]
-        folio_key = (household_member_id, scheme.id, norm.folio)
+        folio_key = (target_member_id, scheme.id, norm.folio)
         if folio_key not in folio_cache:
             existing_folio = (
                 db.query(Folio)
-                .filter_by(household_member_id=household_member_id, scheme_id=scheme.id, folio_number=norm.folio)
+                .filter_by(household_member_id=target_member_id, scheme_id=scheme.id, folio_number=norm.folio)
                 .first()
             )
             if existing_folio:
@@ -288,7 +304,7 @@ def confirm_import(
                     None,
                 )
                 new_folio = Folio(
-                    id=uuid.uuid4(), household_member_id=household_member_id, scheme_id=scheme.id,
+                    id=uuid.uuid4(), household_member_id=target_member_id, scheme_id=scheme.id,
                     folio_number=norm.folio, arn_code=arn_code, plan_type=PlanType(plan_type),
                 )
                 db.add(new_folio)
@@ -329,10 +345,20 @@ def confirm_import(
     import_rec.new_transactions_count = added
     import_rec.duplicate_transactions_count = skipped
     db.commit()
-    invalidate_holdings_cache(household_member_id)
+    invalidate_holdings_cache(target_member_id)
+
+    warnings: list[str] = []
+    cross_account = detect_cross_account_duplicate(db, user_id, parse_result)
+    if cross_account is not None and cross_account.detected:
+        warnings.append(CROSS_ACCOUNT_DUPLICATE_WARNING)
 
     del _preview_sessions[session_id]
-    return ImportConfirmResponse(added=added, skipped=skipped, import_id=str(import_rec.id))
+    return ImportConfirmResponse(
+        added=added,
+        skipped=skipped,
+        import_id=str(import_rec.id),
+        warnings=warnings,
+    )
 
 
 def _map_source_cas_type(file_type: str) -> SourceCasType | None:

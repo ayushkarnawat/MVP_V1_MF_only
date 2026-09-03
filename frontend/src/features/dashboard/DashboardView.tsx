@@ -208,17 +208,26 @@ export function DashboardView({
       ? parseFloat(allocation.total_value || "0")
       : 0;
 
+    // Invested principal is FIFO-derived and always known, even for a degraded
+    // (nav_unavailable) holding — only NAV-dependent figures below need filtering.
     const investedVal = parseFloat(
       sumDecimalStrings(holdings.map((h) => h.amount_invested))
     );
+    const valuedHoldings = holdings.filter((h) => !h.nav_unavailable);
     const profitVal = parseFloat(
       sumDecimalStrings(
-        holdings.map((h) => h.unrealized_gain || h.current_profit_total)
+        valuedHoldings.map((h) => h.unrealized_gain || h.current_profit_total || "0")
       )
+    );
+    // gainPercentage must divide by the same (valued-only) population that
+    // produced profitVal — dividing by all-holdings investedVal understates
+    // the return by diluting it with an unvalued holding's principal.
+    const valuedInvestedVal = parseFloat(
+      sumDecimalStrings(valuedHoldings.map((h) => h.amount_invested))
     );
 
     const gainPercentage =
-      investedVal > 0 ? (profitVal / investedVal) * 100 : 0;
+      valuedInvestedVal > 0 ? (profitVal / valuedInvestedVal) * 100 : 0;
 
     return {
       currentVal,
@@ -292,6 +301,12 @@ export function DashboardView({
             <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-[var(--color-ink)] tabular-nums type-display">
               ₹{formatIndianCurrency(totals.currentVal)}
             </h1>
+            {!!allocation?.nav_unavailable_count && (
+              <span className="text-xs text-[var(--color-text-secondary)]">
+                Excludes {allocation.nav_unavailable_count} holding
+                {allocation.nav_unavailable_count === 1 ? "" : "s"} with unavailable NAV
+              </span>
+            )}
           </div>
 
           {/* Secondary Stats Flow */}

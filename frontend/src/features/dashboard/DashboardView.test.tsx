@@ -118,6 +118,60 @@ describe("DashboardView", () => {
     });
   });
 
+  it("excludes NAV-unavailable holdings from NAV-dependent portfolio totals", async () => {
+    vi.mocked(api.getMemberHoldings).mockResolvedValue([
+      {
+        scheme_id: "scheme-valued",
+        scheme_name: "Valued Fund",
+        household_member_id: "m-1",
+        household_member_name: "John",
+        plan_type: "DIRECT",
+        units_held: "100.00",
+        average_nav: "50.00",
+        current_nav: "75.00",
+        amount_invested: "5000.00",
+        current_value: "7500.00",
+        current_profit_total: "2500.00",
+        realized_gain: "0.00",
+        unrealized_gain: "2500.00",
+        today_gain: "50.00",
+      },
+      {
+        scheme_id: "scheme-no-nav",
+        scheme_name: "NAV Missing Fund",
+        household_member_id: "m-1",
+        household_member_name: "John",
+        plan_type: "DIRECT",
+        units_held: "80.00",
+        average_nav: "50.00",
+        current_nav: null,
+        current_nav_date: null,
+        amount_invested: "4000.00",
+        current_value: null,
+        current_profit_total: null,
+        realized_gain: "0.00",
+        unrealized_gain: null,
+        today_gain: null,
+        nav_unavailable: true,
+      },
+    ]);
+    vi.mocked(api.getMemberAllocation).mockResolvedValue({
+      by_asset_class: [{ label: "Equity", current_value: "7500.00", percentage: 100 }],
+      by_amc: [{ label: "HDFC", current_value: "7500.00", percentage: 100 }],
+      total_value: "7500.00",
+      nav_unavailable_count: 1,
+    });
+
+    render(<DashboardView viewMode="member" memberId="m-1" />);
+
+    // Invested principal is FIFO-derived and known regardless of NAV availability,
+    // so it must include the degraded holding's amount_invested (5000 + 4000).
+    const investedLabel = await screen.findByText("Total Invested");
+    expect(within(investedLabel.parentElement!).getByText("₹9,000")).toBeInTheDocument();
+
+    expect(screen.getByText(/excludes 1 holding with unavailable NAV/i)).toBeInTheDocument();
+  });
+
   it("renders S22 placeholder for family member without CAS data in aggregate view", async () => {
     vi.mocked(api.getAggregateHoldings).mockResolvedValue({
       members: [

@@ -15,12 +15,13 @@ export function MobileHoldingCard({
   showMemberName = false,
   onSelect,
 }: MobileHoldingCardProps) {
-  const unrealized = parseFloat(
-    holding.unrealized_gain || holding.current_profit_total || "0"
-  );
-  const isGain = unrealized >= 0;
+  const navUnavailable = holding.nav_unavailable === true;
+  const unrealized = navUnavailable
+    ? null
+    : parseFloat(holding.unrealized_gain || holding.current_profit_total || "0");
+  const isGain = unrealized !== null && unrealized >= 0;
   const invested = parseFloat(holding.amount_invested) || 0;
-  const returnPct = invested > 0 ? (unrealized / invested) * 100 : 0;
+  const returnPct = !navUnavailable && invested > 0 ? (unrealized! / invested) * 100 : null;
 
   return (
     <div
@@ -38,11 +39,13 @@ export function MobileHoldingCard({
       <div className="flex items-start justify-between gap-2.5">
         <div className="flex items-start gap-2.5 min-w-0">
           <div className="flex-shrink-0 pt-0.5">
-            <FundSignal
-              returnPercentage={returnPct}
-              schemeName={holding.scheme_name}
-              size="sm"
-            />
+            {returnPct !== null && (
+              <FundSignal
+                returnPercentage={returnPct}
+                schemeName={holding.scheme_name}
+                size="sm"
+              />
+            )}
           </div>
 
           <div className="flex flex-col min-w-0">
@@ -78,15 +81,18 @@ export function MobileHoldingCard({
           <span className="text-[11px] text-[var(--color-text-secondary)] tabular-nums">
             {formatNumber(holding.units_held, 2)} units
           </span>
-          {holding.stale_nav && (
-            <Badge variant="warning">stale</Badge>
+          {navUnavailable ? (
+            <Badge variant="warning">NAV unavailable</Badge>
+          ) : (
+            holding.stale_nav && <Badge variant="warning">stale</Badge>
           )}
         </div>
 
         <div className="flex flex-col items-end">
           <span className="font-display text-sm font-bold text-[var(--color-ink)] tabular-nums type-data">
-            ₹{formatCurrency(holding.current_value)}
+            {navUnavailable ? "—" : `₹${formatCurrency(holding.current_value!)}`}
           </span>
+          {!navUnavailable && unrealized !== null && returnPct !== null && (
           <div className="flex items-center gap-1 mt-0.5">
             <span
               className={cn(
@@ -110,6 +116,7 @@ export function MobileHoldingCard({
               {returnPct.toFixed(1)}%
             </span>
           </div>
+          )}
         </div>
       </div>
     </div>

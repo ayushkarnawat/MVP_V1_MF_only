@@ -112,6 +112,29 @@ describe("MobileFundDetailView", () => {
     expect(await screen.findByText("No performance history available yet.")).toBeInTheDocument();
   });
 
+  it("shows unavailable placeholders instead of zero NAV-dependent metrics", () => {
+    render(
+      <MobileFundDetailView
+        holding={{
+          ...sampleHolding,
+          current_nav: null,
+          current_nav_date: null,
+          current_value: null,
+          current_profit_total: null,
+          unrealized_gain: null,
+          today_gain: null,
+          nav_unavailable: true,
+        }}
+        onBack={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText("NAV unavailable")).toBeInTheDocument();
+    expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText("₹5,617")).toBeInTheDocument();
+    expect(screen.queryAllByText(/^₹0(?:\.00)?$/)).toHaveLength(0);
+  });
+
   it("shows the requested period in the clamped-to-MAX note", async () => {
     vi.mocked(getFundNavHistory).mockResolvedValue({ ...historyResponse, period: "MAX", requested_period: "5Y", clamped: true });
     render(<MobileFundDetailView holding={sampleHolding} onBack={vi.fn()} />);

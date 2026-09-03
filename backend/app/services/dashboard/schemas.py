@@ -29,14 +29,15 @@ class HoldingRow(BaseModel):
     plan_type: PlanType
     units_held: str
     average_nav: str | None
-    current_nav: str
-    current_nav_date: date
+    current_nav: str | None
+    current_nav_date: date | None
     amount_invested: str
-    current_value: str
-    current_profit_total: str
+    current_value: str | None
+    current_profit_total: str | None
     realized_gain: str
-    unrealized_gain: str
-    today_gain: str
+    unrealized_gain: str | None
+    today_gain: str | None
+    nav_unavailable: bool = False
 
 
 class DistributorSchemeBreakdown(BaseModel):
@@ -75,6 +76,7 @@ class AllocationSummary(BaseModel):
     by_asset_class: list[AllocationBucket]
     by_amc: list[AllocationBucket]
     total_value: str
+    nav_unavailable_count: int = 0
 
 
 class SipRow(BaseModel):

@@ -24,7 +24,14 @@ from app.models.folio import Folio
 from app.models.imports import Import
 from app.models.reference import Scheme
 from app.models.transaction import Transaction
-from app.services.import_.attribution import AttributionDecision, AttributionStatus, resolve_attribution
+from app.services.import_.attribution import (
+    AttributionDecision,
+    AttributionStatus,
+    CROSS_ACCOUNT_DUPLICATE_WARNING,
+    detect_cross_account_duplicate,
+    enforce_attribution_confirmation,
+    resolve_attribution,
+)
 from app.services.import_.buffer_cache import get_pdf_buffer, remove_pdf_buffer, store_pdf_buffer
 from app.services.import_.parser import ParseError, ParseResult, parse_cas_pdf_bytes, source_cas_type_from_file_type
 from app.services.import_.state_machine import transition_status
@@ -54,6 +61,21 @@ def validate_file_payload(file_bytes: bytes) -> None:
         raise FileTooLargeError("File too large. Maximum supported file size is 25MB.")
     if not file_bytes.startswith(b"%PDF-"):
         raise InvalidFileFormatError("PDF only — please upload a CAS statement in PDF format.")
+
+
+def _attach_cross_account_warning(
+    db: Session,
+    import_rec: Import,
+    user_id: uuid.UUID,
+    parse_result: ParseResult,
+) -> None:
+    """Attach an identity-free, response-only advisory without changing import flow."""
+    warning = detect_cross_account_duplicate(db, user_id, parse_result)
+    import_rec.parse_warnings = (
+        [CROSS_ACCOUNT_DUPLICATE_WARNING]
+        if warning is not None and warning.detected
+        else []
+    )
 
 
 def _commit_parsed_transactions(
@@ -173,6 +195,7 @@ async def create_cas_import(
     filename: str,
     password: str,
     source_tab: str = "upload",
+    confirmed_member_override: bool = False,
 ) -> Import:
     """Ingest a CAS PDF file, manage state transitions, parse, and commit."""
     validate_file_payload(file_bytes)
@@ -213,8 +236,14 @@ async def create_cas_import(
 
     # Attribution resolution
     attribution = resolve_attribution(db, user_id, household_member_id, parse_result)
-    target_member_id = attribution.resolved_member_id or household_member_id
+    enforce_attribution_confirmation(attribution, confirmed_member_override)
+    target_member_id = (
+        household_member_id
+        if confirmed_member_override
+        else attribution.resolved_member_id or household_member_id
+    )
     import_rec.household_member_id = target_member_id
+    _attach_cross_account_warning(db, import_rec, user_id, parse_result)
 
     # Commit transactions & deduplicate
     added, skipped = _commit_parsed_transactions(db, import_rec, parse_result, target_member_id)
@@ -234,6 +263,7 @@ def retry_cas_import_password(
     import_id: uuid.UUID,
     user_id: uuid.UUID,
     new_password: str,
+    confirmed_member_override: bool = False,
 ) -> Import:
     """In-place password retry against cached encrypted PDF buffer."""
     import_rec = db.query(Import).filter_by(id=import_id).first()
@@ -267,8 +297,14 @@ def retry_cas_import_password(
     import_rec.raw_parser_output = json.loads(parse_result.raw_json)
 
     attribution = resolve_attribution(db, user_id, import_rec.household_member_id, parse_result)
-    target_member_id = attribution.resolved_member_id or import_rec.household_member_id
+    enforce_attribution_confirmation(attribution, confirmed_member_override)
+    target_member_id = (
+        import_rec.household_member_id
+        if confirmed_member_override
+        else attribution.resolved_member_id or import_rec.household_member_id
+    )
     import_rec.household_member_id = target_member_id
+    _attach_cross_account_warning(db, import_rec, user_id, parse_result)
 
     added, skipped = _commit_parsed_transactions(db, import_rec, parse_result, target_member_id)
 

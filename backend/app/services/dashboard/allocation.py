@@ -30,17 +30,20 @@ def _asset_class_bucket(sebi_category: str) -> str:
 async def compute_allocation(db: Session, household_member_ids: list[uuid.UUID]) -> AllocationSummary:
     holdings = await compute_holdings(db, household_member_ids)
 
-    total_value = sum((Decimal(h.current_value) for h in holdings), Decimal("0"))
+    valued_holdings = [h for h in holdings if not h.nav_unavailable]
+    nav_unavailable_count = len(holdings) - len(valued_holdings)
+
+    total_value = sum((Decimal(h.current_value) for h in valued_holdings), Decimal("0"))
 
     # Bucket label needs the raw sebi_category, which HoldingRow doesn't
     # carry — one batch query for every scheme in this holding set, not one
     # query per holding row.
-    scheme_ids = {uuid.UUID(h.scheme_id) for h in holdings}
+    scheme_ids = {uuid.UUID(h.scheme_id) for h in valued_holdings}
     categories = {s.id: s.sebi_category for s in db.query(Scheme).filter(Scheme.id.in_(scheme_ids)).all()} if scheme_ids else {}
 
     by_class: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
     by_amc: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
-    for holding in holdings:
+    for holding in valued_holdings:
         value = Decimal(holding.current_value)
         by_amc[holding.amc_name] += value
         category = categories.get(uuid.UUID(holding.scheme_id), "")
@@ -57,4 +60,5 @@ async def compute_allocation(db: Session, household_member_ids: list[uuid.UUID])
         by_asset_class=_to_buckets(by_class),
         by_amc=_to_buckets(by_amc),
         total_value=str(total_value),
+        nav_unavailable_count=nav_unavailable_count,
     )

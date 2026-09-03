@@ -168,18 +168,23 @@ export function MobileDashboardView({
   const totals = useMemo(() => {
     let currentVal = 0;
     let investedVal = 0;
+    let valuedInvestedVal = 0;
     let profitVal = 0;
 
     for (const h of holdings) {
-      const c = parseFloat(h.current_value) || 0;
-      const inv = parseFloat(h.amount_invested) || 0;
-      const p = parseFloat(h.unrealized_gain || h.current_profit_total || "0") || 0;
-      currentVal += c;
-      investedVal += inv;
-      profitVal += p;
+      // Invested principal is FIFO-derived and always known, even for a degraded
+      // (nav_unavailable) holding — only NAV-dependent figures need to skip it.
+      investedVal += parseFloat(h.amount_invested) || 0;
+      if (h.nav_unavailable) continue;
+      valuedInvestedVal += parseFloat(h.amount_invested) || 0;
+      currentVal += parseFloat(h.current_value || "0") || 0;
+      profitVal += parseFloat(h.unrealized_gain || h.current_profit_total || "0") || 0;
     }
 
-    const gainPercentage = investedVal > 0 ? (profitVal / investedVal) * 100 : 0;
+    // gainPercentage must divide by the same (valued-only) population that
+    // produced profitVal — dividing by all-holdings investedVal understates
+    // the return by diluting it with an unvalued holding's principal.
+    const gainPercentage = valuedInvestedVal > 0 ? (profitVal / valuedInvestedVal) * 100 : 0;
 
     return {
       currentVal,
@@ -476,6 +481,12 @@ export function MobileDashboardView({
         <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-[var(--color-ink)] tabular-nums mt-1">
           ₹{formatCurrency(totals.currentVal)}
         </h1>
+        {!!allocation?.nav_unavailable_count && (
+          <span className="text-[11px] text-[var(--color-text-secondary)]">
+            Excludes {allocation.nav_unavailable_count} holding
+            {allocation.nav_unavailable_count === 1 ? "" : "s"} with unavailable NAV
+          </span>
+        )}
 
         <div className="flex items-center justify-between gap-3 mt-4 pt-3 border-t border-[var(--color-border)]/60 text-xs">
           <div className="flex flex-col">

@@ -50,6 +50,7 @@ export function ImportLifecycleView({
           added: statusObj.new_transactions_count ?? 0,
           skipped: statusObj.duplicate_transactions_count ?? 0,
           import_id: statusObj.import_id,
+          warnings: statusObj.parse_warnings ?? [],
         }}
         onImportAnother={onDone ?? onReset ?? (() => {})}
       />

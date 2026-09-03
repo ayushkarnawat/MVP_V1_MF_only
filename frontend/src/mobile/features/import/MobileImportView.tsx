@@ -10,6 +10,7 @@ import type { HouseholdMember } from "@/features/auth/types";
 import type {
   ImportPreviewResponse,
   ImportConfirmResponse,
+  MemberMismatchErrorPayload,
   ParseErrorPayload,
   SchemeConfirmation,
 } from "@/features/import/types";
@@ -31,6 +32,8 @@ import {
   LayoutDashboard,
   UploadCloud,
   ArrowLeft,
+  AlertTriangle,
+  X,
 } from "lucide-react";
 
 export interface MobileImportViewProps {
@@ -41,6 +44,10 @@ export interface MobileImportViewProps {
 
 export type MobileImportViewMode = "choice" | "request" | "waiting" | "upload" | "history";
 type FlowStep = "flow" | "parsing" | "review" | "confirmed" | "error";
+
+type MemberMismatchConfirmation = MemberMismatchErrorPayload & {
+  confirmations: SchemeConfirmation[];
+};
 
 const GENERIC_NETWORK_ERROR: ParseErrorPayload = {
   code: "network_error",
@@ -77,6 +84,8 @@ export function MobileImportView({
   const [confirmResult, setConfirmResult] = useState<ImportConfirmResponse | null>(null);
   const [error, setError] = useState<ParseErrorPayload | null>(null);
   const [reviewNotice, setReviewNotice] = useState<string | null>(null);
+  const [memberMismatch, setMemberMismatch] = useState<MemberMismatchConfirmation | null>(null);
+  const [dismissedWarnings, setDismissedWarnings] = useState<Set<string>>(new Set());
   const [confirming, setConfirming] = useState(false);
 
   /* Load household members */
@@ -114,6 +123,8 @@ export function MobileImportView({
     setConfirmResult(null);
     setError(null);
     setReviewNotice(null);
+    setMemberMismatch(null);
+    setDismissedWarnings(new Set());
     setConfirming(false);
   };
 
@@ -131,22 +142,38 @@ export function MobileImportView({
     }
   };
 
-  const handleConfirm = async (confirmations: SchemeConfirmation[]) => {
-    if (!preview || !selectedMemberId) return;
+  const submitConfirmation = async (
+    memberId: string,
+    confirmations: SchemeConfirmation[],
+    confirmedMemberOverride = false,
+  ) => {
+    if (!preview) return;
     setConfirming(true);
     setReviewNotice(null);
+    setMemberMismatch(null);
     try {
-      const result = await confirmImport(preview.session_id, selectedMemberId, confirmations);
+      const result = confirmedMemberOverride
+        ? await confirmImport(preview.session_id, memberId, confirmations, true)
+        : await confirmImport(preview.session_id, memberId, confirmations);
       clearCasResumeStep2(selectedMemberId);
       setConfirmResult(result);
+      setDismissedWarnings(new Set());
       setStep("confirmed");
     } catch (err) {
       if (err instanceof ApiError && (err.status === 409 || err.status === 404)) {
-        setReviewNotice(
-          err.status === 404
-            ? "This import session has expired. Please re-upload your CAS."
-            : toParseErrorPayload(err).message
-        );
+        const payload = toParseErrorPayload(err);
+        if (err.status === 409 && payload.code === "member_mismatch") {
+          setMemberMismatch({
+            ...(payload as MemberMismatchErrorPayload),
+            confirmations,
+          });
+        } else {
+          setReviewNotice(
+            err.status === 404
+              ? "This import session has expired. Please re-upload your CAS."
+              : payload.message,
+          );
+        }
       } else {
         setError(toParseErrorPayload(err));
         setStep("error");
@@ -154,6 +181,11 @@ export function MobileImportView({
     } finally {
       setConfirming(false);
     }
+  };
+
+  const handleConfirm = (confirmations: SchemeConfirmation[]) => {
+    if (!selectedMemberId) return;
+    return submitConfirmation(selectedMemberId, confirmations);
   };
 
   const selectedMemberName =
@@ -171,13 +203,59 @@ export function MobileImportView({
   /* 2. Review Screen */
   if (step === "review" && preview) {
     return (
-      <MobileReviewView
-        preview={preview}
-        confirming={confirming}
-        onConfirm={handleConfirm}
-        onCancel={resetFlow}
-        reviewNotice={reviewNotice}
-      />
+      <div className="w-full max-w-md mx-auto">
+        {memberMismatch && (
+          <div
+            role="alert"
+            className="mb-3 rounded-xl border border-[var(--color-warning)]/30 bg-[var(--color-warning)]/10 p-3 text-left"
+          >
+            <p className="text-xs font-medium text-[var(--color-ink)] m-0">
+              {memberMismatch.message}
+            </p>
+            <div className="mt-2 grid gap-2">
+              {memberMismatch.matched_member_id && (
+                <Button
+                  type="button"
+                  disabled={confirming}
+                  onClick={() =>
+                    void submitConfirmation(
+                      memberMismatch.matched_member_id!,
+                      memberMismatch.confirmations,
+                      true,
+                    )
+                  }
+                  className="h-10 rounded-xl bg-[var(--color-accent)] text-xs font-semibold text-white"
+                >
+                  Switch to {memberMismatch.matched_member_name ?? "matched member"}
+                </Button>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                disabled={confirming}
+                onClick={() =>
+                  selectedMemberId &&
+                  void submitConfirmation(
+                    selectedMemberId,
+                    memberMismatch.confirmations,
+                    true,
+                  )
+                }
+                className="h-10 rounded-xl text-xs font-semibold"
+              >
+                Continue anyway
+              </Button>
+            </div>
+          </div>
+        )}
+        <MobileReviewView
+          preview={preview}
+          confirming={confirming}
+          onConfirm={handleConfirm}
+          onCancel={resetFlow}
+          reviewNotice={reviewNotice}
+        />
+      </div>
     );
   }
 
@@ -205,6 +283,34 @@ export function MobileImportView({
               {skippedText}. Your portfolio and holdings have been updated.
             </p>
           </div>
+
+          {confirmResult.warnings
+            .filter((warning) => !dismissedWarnings.has(warning))
+            .map((warning) => (
+              <div
+                key={warning}
+                role="status"
+                className="w-full rounded-xl border border-[var(--color-warning)]/30 bg-[var(--color-warning)]/10 p-3 text-left flex items-start gap-2"
+              >
+                <AlertTriangle
+                  aria-hidden="true"
+                  className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-warning)]"
+                />
+                <p className="m-0 text-xs leading-relaxed text-[var(--color-text-secondary)]">
+                  {warning}
+                </p>
+                <button
+                  type="button"
+                  aria-label="Dismiss warning"
+                  onClick={() =>
+                    setDismissedWarnings((current) => new Set(current).add(warning))
+                  }
+                  className="ml-auto shrink-0 rounded-lg p-1 text-[var(--color-text-secondary)]"
+                >
+                  <X aria-hidden="true" className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
 
           <div className="w-full space-y-2 pt-1">
             {onNavigateDashboard && (

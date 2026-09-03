@@ -93,6 +93,11 @@ def test_refresh_session_extends_expiry():
     db = _session()
     user = _user(db)
     session, _ = create_session(db, user.id, auth_method=AuthIdentityProvider.PHONE_OTP)
+    # Backdate rather than compare against the just-created expires_at: two
+    # datetime.now() calls this close together can land on the same clock
+    # tick (observed on Windows), making a direct before/after comparison flaky.
+    session.expires_at = datetime.now(timezone.utc) - timedelta(days=1)
+    db.commit()
     original_expiry = session.expires_at
 
     refreshed = refresh_session(db, session)

@@ -77,3 +77,54 @@ def test_compute_allocation_empty_when_no_holdings():
     assert summary.by_asset_class == []
     assert summary.by_amc == []
     assert Decimal(summary.total_value) == Decimal("0")
+
+
+def test_compute_allocation_excludes_and_counts_nav_unavailable_holdings():
+    db = _session()
+    member = _household_member(db)
+    valued_scheme = _scheme(
+        db,
+        amc_name="HDFC AMC",
+        sebi_category="Equity Scheme - Flexi Cap Fund",
+    )
+    unavailable_scheme = _scheme(
+        db,
+        amc_name="ICICI AMC",
+        sebi_category="Debt Scheme - Liquid Fund",
+    )
+    _folio_with_purchase(
+        db,
+        member,
+        valued_scheme,
+        Decimal("6000.00"),
+        Decimal("100.000"),
+        Decimal("60.0000"),
+    )
+    _folio_with_purchase(
+        db,
+        member,
+        unavailable_scheme,
+        Decimal("4000.00"),
+        Decimal("100.000"),
+        Decimal("40.0000"),
+    )
+
+    async def nav_result(_db, scheme, _on_date):
+        if scheme.id == valued_scheme.id:
+            return Decimal("60.0000"), date(2024, 6, 1)
+        return None
+
+    with patch(
+        "app.services.dashboard.holdings.get_nav_on_or_before",
+        new=AsyncMock(side_effect=nav_result),
+    ), patch("app.services.dashboard.holdings.get_previous_nav_from_cache", return_value=None):
+        summary = asyncio.run(compute_allocation(db, [member.id]))
+
+    assert Decimal(summary.total_value) == Decimal("6000.0000000")
+    assert summary.nav_unavailable_count == 1
+    assert [(bucket.label, Decimal(bucket.current_value)) for bucket in summary.by_asset_class] == [
+        ("Equity", Decimal("6000.0000000"))
+    ]
+    assert [(bucket.label, Decimal(bucket.current_value)) for bucket in summary.by_amc] == [
+        ("HDFC AMC", Decimal("6000.0000000"))
+    ]

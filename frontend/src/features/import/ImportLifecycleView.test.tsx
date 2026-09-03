@@ -87,4 +87,34 @@ describe("ImportLifecycleView", () => {
     fireEvent.click(retryBtn);
     expect(onReset).toHaveBeenCalled();
   });
+
+  it("passes lifecycle warnings to the successful import view", () => {
+    render(
+      <ImportLifecycleView
+        importId="imp-2"
+        initialStatus={{
+          import_id: "imp-2",
+          household_member_id: "m-1",
+          status: "import_successful",
+          error_code: null,
+          error_message: null,
+          new_transactions_count: 1,
+          duplicate_transactions_count: 0,
+          statement_from_date: "2024-01-01",
+          statement_to_date: "2024-06-30",
+          source_cas_type: "cams",
+          uploaded_at: "2026-08-10T12:00:00Z",
+          confirmed_at: "2026-08-10T12:01:00Z",
+          parse_warnings: [
+            "This investment may already be tracked under a different Unifolio account. If that's you, consider using that account instead.",
+          ],
+        }}
+        onDone={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      /may already be tracked under a different Unifolio account/i,
+    );
+  });
 });

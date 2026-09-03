@@ -1,6 +1,6 @@
 # Handoff: adr006-background-jobs
 
-**Status:** OPEN (2026-09-02)
+**Status:** DONE (2026-09-03)
 **Parent:** `CLAUDE.md` Session State "F4" / ADR-006 (EventBridge Scheduler background jobs) / `AWS Readiness/aws-golive-launch-blockers.md`
 **Dispatch mode:** User is running this directly in their own Codex CLI/app session (not via Claude's `codex:codex-rescue` Agent dispatch) — this doc is the source of truth both sides read; update `Status` here after Codex finishes and report back.
 
@@ -51,3 +51,7 @@ For all 4: use `commit_off_loop`-safe `asyncio.run(main_async())` pattern (an `a
 
 - ~~The benchmark job's lookback window~~ — **Resolved 2026-09-03: 10 calendar years, fixed.** See item 4 above.
 - Confirm during implementation whether any of the 4 wrapped functions' commit behavior (`commit_off_loop` vs. a plain `db.commit()`) changes when called from a fresh top-level `asyncio.run()` vs. their existing callers (an in-flight FastAPI request) — should be a non-issue per `commit_off_loop`'s existing "safe under any running event loop" contract, but worth a sanity check in the new tests rather than assuming.
+
+## Review-gate note (2026-09-03, orchestrator)
+
+Independently reran the full backend suite (not just Codex's self-report) after the F8/non-PAN-dedup flake investigation landed alongside this: 600 passed/6 skipped/0 failed, clean. Mandatory adversarial-review gate: **PASS, zero findings** — standalone-script shape, held-only NAV scope, 10-year leap-safe benchmark lookback, wrapped functions unmodified, grep-able logging, non-zero exit on unhandled exceptions all confirmed. Status moved to DONE.

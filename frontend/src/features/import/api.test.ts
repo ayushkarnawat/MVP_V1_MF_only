@@ -90,6 +90,21 @@ describe("confirmImport", () => {
     expect(body.scheme_confirmations).toEqual([{ temp_id: "t1", amfi_code: "12345" }]);
   });
 
+  it("sends the explicit member-attribution override on a confirmation retry", async () => {
+    const mockFetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ added: 1, skipped: 0, import_id: "imp1", warnings: [] }), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", mockFetch);
+
+    await confirmImport("sess1", "member-2", [], true);
+
+    const [, options] = mockFetch.mock.calls[0];
+    expect(JSON.parse(options.body as string)).toMatchObject({
+      household_member_id: "member-2",
+      confirmed_member_override: true,
+    });
+  });
+
   it("throws ApiError with a string payload on a 404", async () => {
     vi.stubGlobal(
       "fetch",
@@ -296,6 +311,5 @@ describe("uploadCasImport & lifecycle methods", () => {
     expect(options.method).toBe("POST");
   });
 });
-
 
 

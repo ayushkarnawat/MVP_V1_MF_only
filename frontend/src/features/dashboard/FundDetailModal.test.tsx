@@ -84,4 +84,28 @@ describe("FundDetailModal", () => {
       expect.any(AbortSignal),
     );
   });
+
+  it("shows unavailable placeholders instead of zero NAV-dependent metrics", () => {
+    render(
+      <FundDetailModal
+        isOpen={true}
+        onClose={vi.fn()}
+        holding={{
+          ...sampleHolding,
+          current_nav: null,
+          current_nav_date: null,
+          current_value: null,
+          current_profit_total: null,
+          unrealized_gain: null,
+          today_gain: null,
+          nav_unavailable: true,
+        }}
+      />
+    );
+
+    expect(screen.getByText("NAV unavailable")).toBeInTheDocument();
+    expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText("₹6,386")).toBeInTheDocument();
+    expect(screen.queryAllByText(/^₹0$/)).toHaveLength(0);
+  });
 });

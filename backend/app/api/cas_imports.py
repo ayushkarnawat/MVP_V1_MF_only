@@ -4,7 +4,7 @@ import uuid
 from typing import Any
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -12,6 +12,7 @@ from app.models.imports import Import
 from app.models.user import User
 from app.services.auth.session import get_current_user
 from app.services.dashboard.household_members import get_household_member_for_user
+from app.services.import_.attribution import AttributionConfirmationRequiredError
 from app.services.import_.lifecycle_service import (
     FileTooLargeError,
     InvalidFileFormatError,
@@ -25,6 +26,7 @@ router = APIRouter(tags=["cas-imports"])
 
 class PasswordRetryRequest(BaseModel):
     password: str
+    confirmed_member_override: bool = False
 
 
 class AttributionUpdateRequest(BaseModel):
@@ -44,6 +46,7 @@ class CASImportStatusResponse(BaseModel):
     source_cas_type: str | None = None
     uploaded_at: str
     confirmed_at: str | None = None
+    parse_warnings: list[str] = Field(default_factory=list)
 
 
 class CAMSInitiateRequest(BaseModel):
@@ -73,6 +76,22 @@ def _serialize_import_response(rec: Import) -> dict[str, Any]:
         "source_cas_type": rec.source_cas_type.value if rec.source_cas_type else None,
         "uploaded_at": rec.uploaded_at.isoformat(),
         "confirmed_at": rec.confirmed_at.isoformat() if rec.confirmed_at else None,
+        "parse_warnings": list(getattr(rec, "parse_warnings", [])),
+    }
+
+
+def _member_mismatch_detail(
+    exc: AttributionConfirmationRequiredError,
+) -> dict[str, str | None]:
+    return {
+        "code": "member_mismatch",
+        "message": str(exc),
+        "matched_member_id": (
+            str(exc.attribution.resolved_member_id)
+            if exc.attribution.resolved_member_id
+            else None
+        ),
+        "matched_member_name": exc.attribution.matched_member_name,
     }
 
 
@@ -82,6 +101,7 @@ async def upload_cas_import(
     password: str = Form(...),
     household_member_id: str = Form(...),
     source_tab: str = Form("upload"),
+    confirmed_member_override: bool = Form(False),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -103,7 +123,13 @@ async def upload_cas_import(
             filename=file.filename or "statement.pdf",
             password=password,
             source_tab=source_tab,
+            confirmed_member_override=confirmed_member_override,
         )
+    except AttributionConfirmationRequiredError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail=_member_mismatch_detail(exc),
+        ) from exc
     except InvalidFileFormatError as exc:
         raise HTTPException(status_code=400, detail={"code": "invalid_file", "message": str(exc)}) from exc
     except FileTooLargeError as exc:
@@ -158,7 +184,13 @@ def retry_password(
             import_id=import_uuid,
             user_id=user.id,
             new_password=body.password,
+            confirmed_member_override=body.confirmed_member_override,
         )
+    except AttributionConfirmationRequiredError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail=_member_mismatch_detail(exc),
+        ) from exc
     except SessionExpiredError as exc:
         raise HTTPException(status_code=410, detail={"code": "session_expired", "message": str(exc)}) from exc
     except ValueError as exc:
@@ -356,5 +388,3 @@ def cancel_import_request(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     return _serialize_import_response(cancelled_rec)
-
-

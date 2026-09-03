@@ -52,11 +52,18 @@ export interface ImportConfirmResponse {
   added: number;
   skipped: number;
   import_id: string;
+  warnings: string[];
 }
 
 export interface ParseErrorPayload {
   code: string;
   message: string;
+}
+
+export interface MemberMismatchErrorPayload extends ParseErrorPayload {
+  code: "member_mismatch";
+  matched_member_id: string | null;
+  matched_member_name: string | null;
 }
 
 export type ImportLifecycleStatus =
@@ -85,6 +92,7 @@ export interface CASImportStatusResponse {
   source_cas_type: string | null;
   uploaded_at: string;
   confirmed_at: string | null;
+  parse_warnings?: string[];
 }
 
 export interface CoverageGapItem {
@@ -113,5 +121,3 @@ export interface OpeningBalanceResponse {
   nav: string;
   has_coverage_gap: boolean;
 }
-
-

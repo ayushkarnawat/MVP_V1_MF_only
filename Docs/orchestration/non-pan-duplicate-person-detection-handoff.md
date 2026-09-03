@@ -1,6 +1,6 @@
 # Handoff: non-pan-duplicate-person-detection
 
-**Status:** OPEN (2026-09-02)
+**Status:** DONE (2026-09-03)
 **Parent:** User instruction 2026-09-02 (see `CLAUDE.md` Session State) — the same real person must not silently end up entered twice (two CAS uploads, or two household members) — **without persisting PAN**, per this codebase's existing test-guarded rule (`tests/models/test_no_pan_field.py`, ADR-004). User's own framing: "it's okay if the statements don't need to be the same" (i.e. two *different* CAS statements for the same real person must still be catchable, not just byte-identical re-uploads) and this needs to be "extensive."
 **Dispatch mode:** User is running this directly in their own Codex CLI/app session (not via Claude's `codex:codex-rescue` Agent dispatch) — this doc is the source of truth both sides read; update `Status` here after Codex finishes and report back.
 
@@ -103,3 +103,267 @@ Grep for how `parse_warnings` (the existing precedent for a non-blocking parse-t
 - Whether this codebase already has any operator-facing (not user-facing) logging precedent for cross-tenant signals that would be an acceptable place to log a Case 2 hit's other-account id for potential manual support follow-up (e.g. "two accounts may represent the same person, a human should look at this") — flag back rather than assuming one exists or inventing a new logging channel unilaterally.
 - Whether `Import`'s response schema has an existing "non-fatal warnings" field/convention to reuse for the Case 2 warning, or whether one needs to be added — check `parse_warnings`' usage sites first; if no existing precedent evidently fits, flag back before inventing a new API contract shape.
 - Confidence threshold/rollout question left to product: should Case 2's warning be shown at all right now, or logged-only for now until there's a sense of the false-positive rate at scale? Not blocking implementation (build both the detection and the warning surfacing), but flag this as a real product open question rather than deciding unilaterally that user-facing display is definitely correct from day one.
+
+## Review-gate finding (2026-09-03) — FAIL, blocked pending user decision
+
+Mandatory adversarial-review gate returned FAIL with 2 P1 findings, both independently re-confirmed by direct grep/read (not accepted on the review's word alone):
+
+1. **The production import UI never reaches this task's code at all.** `ImportFlow.tsx`/`MobileImportView.tsx` call `/imports/parse` + `/imports/confirm`, which `app/main.py` routes to `app/api/imports.py` → `app/services/import_/service.py` (`build_import_preview`/`confirm_import`) — a pre-existing backend module, entirely separate from `lifecycle_service.py`. This task's dedup work (`resolve_attribution`'s folio signal, `detect_cross_account_duplicate`) was correctly built against the integration points this doc specified — but those points (`lifecycle_service.py`'s `create_cas_import`/`retry_cas_import_password`, mounted under `/cas-imports/*`) have **no reachable production frontend entry point today**. `ImportLifecycleView.tsx`, the UI that would surface the new warning, is referenced only by its own tests. This codebase currently has two coexisting, disconnected CAS-import backends, and this handoff doc targeted the one that real users don't currently go through.
+2. **`MISMATCH_CONFIRMATION_REQUIRED`/`requires_confirmation` has zero consumers anywhere** (confirmed by repo-wide grep) — not in `lifecycle_service.py`'s two call sites, not in any API response, not in any frontend. This predates this task: `resolve_attribution` already produced this status before Case 1 was added, but nothing was ever wired to act on it. This doc's Case 1 design assumed "feed into the existing gate" — there was no existing gate operating in production to feed into. `create_cas_import`/`retry_cas_import_password` both take `attribution.resolved_member_id` and commit transactions unconditionally, regardless of status.
+
+Both findings share a root cause bigger than this task's original scope — per `CLAUDE.md`'s "when what you're building conflicts with what's already there, stop and say so" — **not resolved unilaterally**. Options put to the user (2026-09-03, pending answer):
+   - (a) Wire this task's dedup logic (and the dormant confirmation gate) into `service.py`/`/imports/*` as well, so it actually runs for real users on the flow they currently use.
+   - (b) Cut the frontend over from `ImportFlow.tsx`/`/imports/*` to `ImportLifecycleView.tsx`/`/cas-imports/*` (a materially bigger, riskier change — this is the live import path).
+   - (c) Some other resolution/sequencing the user prefers (e.g. treat `/imports/*` as deprecated-but-not-yet-removed and explicitly scope this task to the future path only, documented as a known gap rather than fixed now).
+
+Status remains REVIEW, blocked, no further Codex dispatch on this task until the user decides.
+
+## Resolution round 2 (2026-09-03) — wire into `service.py` per user decision (option a)
+
+User decision: **option (a)**, explicitly rejecting (b) ("I don't think we should cut the
+frontend") — wire this task's dedup logic and the dormant confirmation gate into
+`service.py`/`/imports/*`, the currently-live production path, in addition to fixing
+`lifecycle_service.py`'s identical pre-existing gate bug (finding #2) via the same shared
+helper, since the incremental cost of also fixing it is near zero once the helper exists
+(ponytail's "fix once, where all callers route through" doctrine — see full narrative in
+`Docs/orchestration/two-parallel-import-backends-architectural-gap.md`).
+
+`ImportLifecycleView.tsx` still has no production call site, so `lifecycle_service.py`'s
+fix is backend-only — no new frontend work there, just closing the invariant violation
+(`resolved_member_id or household_member_id` silently misattributing on a mismatch,
+never checking `requires_confirmation` before committing).
+
+### 1. Shared gate + shared warning constant in `attribution.py`
+
+Add, alongside the existing `AttributionDecision`/`CrossAccountDuplicateWarning`:
+
+```python
+class AttributionConfirmationRequiredError(Exception):
+    """Raised when resolve_attribution requires explicit user confirmation and the
+    caller hasn't supplied an override. Mirrors service.py's SchemeConfidenceError
+    409-retry pattern: the client shows attribution.prompt_message and resubmits
+    with confirmed_member_override=True to proceed."""
+
+    def __init__(self, attribution: AttributionDecision):
+        self.attribution = attribution
+        super().__init__(
+            attribution.prompt_message or "Confirm which family member this statement belongs to."
+        )
+
+
+def enforce_attribution_confirmation(attribution: AttributionDecision, confirmed_override: bool) -> None:
+    """Single gate for resolve_attribution's own documented invariant: no commit
+    without either a clean match or explicit user confirmation. Every commit path
+    (service.py's confirm_import, lifecycle_service.py's create_cas_import and
+    retry_cas_import_password) must route through this rather than re-checking
+    attribution.status inline, so a future caller can't reintroduce the bypass this
+    round is fixing."""
+    if attribution.requires_confirmation and not confirmed_override:
+        raise AttributionConfirmationRequiredError(attribution)
+```
+
+Move `CROSS_ACCOUNT_DUPLICATE_WARNING` (currently defined in `lifecycle_service.py`,
+line ~38) into `attribution.py` as a shared constant — both `service.py` and
+`lifecycle_service.py` import it from there instead of `lifecycle_service.py` owning
+the only copy.
+
+### 2. `service.py` — thread `user_id` + the gate + the advisory into `confirm_import`
+
+`confirm_import(db, session_id, household_member_id, scheme_confirmations)` gains two
+new parameters: `user_id: uuid.UUID` and `confirmed_member_override: bool = False`.
+Immediately after loading `parse_result` from the preview session (before the existing
+scheme-confidence validation loop — cheapest to fail fast on the same "validate
+everything up front, then write" pattern this function already uses for
+`SchemeConfidenceError`):
+
+```python
+attribution = resolve_attribution(db, user_id, household_member_id, parse_result)
+enforce_attribution_confirmation(attribution, confirmed_member_override)
+target_member_id = attribution.resolved_member_id or household_member_id
+```
+
+Use `target_member_id` (not the raw `household_member_id` parameter) everywhere the
+function currently creates/looks up `Folio` rows — this is what actually applies a
+confirmed Case 1 redirect, not just gates on it.
+
+For Case 2, right before building the return value:
+
+```python
+warnings: list[str] = []
+cross_account = detect_cross_account_duplicate(db, user_id, parse_result)
+if cross_account is not None and cross_account.detected:
+    warnings.append(CROSS_ACCOUNT_DUPLICATE_WARNING)
+```
+
+Add `warnings: list[str] = Field(default_factory=list)` to `ImportConfirmResponse`
+(`schemas.py`) and return it from `confirm_import`. This is confirm-time (not
+parse-time) because `household_member_id` — needed for `resolve_attribution` — isn't
+known until confirm; don't try to move this earlier into `build_import_preview`.
+
+Add `confirmed_member_override: bool = False` to `ImportConfirmRequest` (`schemas.py`).
+
+### 3. `app/api/imports.py` — route the new exception to 409
+
+`user: User = Depends(get_current_user)` is already in scope on `confirm_import_route`
+— pass `user.id` and `body.confirmed_member_override` through to `confirm_import`, and
+add one more except clause alongside the existing `SchemeConfidenceError`/`ValueError`
+handling:
+
+```python
+except AttributionConfirmationRequiredError as exc:
+    raise HTTPException(
+        status_code=409,
+        detail={
+            "code": "member_mismatch",
+            "message": str(exc),
+            "matched_member_id": str(exc.attribution.resolved_member_id)
+            if exc.attribution.resolved_member_id
+            else None,
+            "matched_member_name": exc.attribution.matched_member_name,
+        },
+    ) from exc
+```
+
+(Use the structured `{"code", "message", ...}` dict shape — this is the dominant
+convention already used for `invalid_file`/`file_too_large`/parse-error details in this
+same route; `SchemeConfidenceError`'s plain-string 409 is the outlier, not the
+pattern to copy. The frontend needs `matched_member_id`/`matched_member_name` as real
+fields, not just embedded in prose, to offer a "switch member" action.)
+
+### 4. `lifecycle_service.py` — same gate at both existing call sites
+
+Replace both:
+
+```python
+attribution = resolve_attribution(db, user_id, household_member_id, parse_result)
+target_member_id = attribution.resolved_member_id or household_member_id
+```
+
+(`create_cas_import` line ~239, `retry_cas_import_password` line ~294, using each
+site's own local variable name for the pre-resolution id) with:
+
+```python
+attribution = resolve_attribution(db, user_id, household_member_id, parse_result)
+enforce_attribution_confirmation(attribution, confirmed_member_override)
+target_member_id = attribution.resolved_member_id or household_member_id
+```
+
+Both functions gain a `confirmed_member_override: bool = False` parameter, threaded
+from `cas_imports.py`'s corresponding routes exactly as in `imports.py` (same
+exception-to-409 mapping, same request-schema field addition on whatever request model
+those routes use). Since `ImportLifecycleView.tsx` has no production caller, this is a
+correctness fix with no matching frontend task — don't build UI for it.
+
+### 5. Frontend — `service.py`'s new 409 shape + the new `warnings` field
+
+`frontend/src/features/import/types.ts`: add `warnings: string[]` to
+`ImportConfirmResponse`, and add a `confirmed_member_override?: boolean` param to
+`confirmImport()` in `api.ts` (default omitted/false), sent as part of the POST body.
+
+`ImportFlow.tsx`'s `handleConfirm` currently treats any 409 as a generic
+`reviewNotice` string (see its existing `err.status === 409` branch). Extend this: when
+the 409 payload's `code === "member_mismatch"`, don't fall into the generic notice path
+— instead surface a confirmation step offering two explicit actions:
+- **Switch to `{matched_member_name}`**: resubmit `confirmImport` with
+  `householdMemberId = matched_member_id` and `confirmed_member_override: true`.
+- **Keep as is / continue anyway**: resubmit with the original `householdMemberId` and
+  `confirmed_member_override: true`.
+
+(When `matched_member_id` is null — the `UNRECOGNIZED_MEMBER` case, no existing member
+to switch to — show only the "continue anyway" action with `attribution`'s
+`prompt_message` text; don't build a second UI for this, same confirmation surface
+handles both by conditionally rendering the "switch" button only when
+`matched_member_id` is present.)
+
+Mirror the identical change in `frontend/src/mobile/features/import/MobileImportView.tsx`
+and its own `api.ts` usage (check whether mobile shares `features/import/api.ts` or has
+its own copy — matching the desktop pattern is the requirement either way).
+
+On a successful confirm with a non-empty `warnings` array, surface it on the
+`ImportConfirmed` success screen as a dismissible, non-alarming note (reuse whatever
+existing notice/banner component the codebase already has for this — check
+`ImportError.tsx`/`reviewNotice` rendering for a reusable pattern before adding new UI
+chrome).
+
+### Constraints (in addition to the original task's constraints, all still active)
+
+- The shared `enforce_attribution_confirmation` helper is mandatory for all three call
+  sites (`service.py`, and both of `lifecycle_service.py`'s) — no call site re-implements
+  the `requires_confirmation` check inline. This is the actual point of this round: a
+  bypass reintroduced by a fourth future caller should be structurally harder, not just
+  documented against.
+- `service.py`'s existing "validate everything up front, then write" ordering must be
+  preserved — the attribution gate raises before any DB write in `confirm_import`, exactly
+  like `SchemeConfidenceError` already does for scheme confirmations.
+- Run the full backend and frontend test suites — must stay green. Add tests for: (a)
+  `confirm_import` raising `AttributionConfirmationRequiredError` on a mismatch with no
+  override, (b) succeeding when `confirmed_member_override=True` is supplied, (c) the
+  route mapping that exception to 409 with the structured detail shape, (d) both
+  `lifecycle_service.py` call sites exhibiting the same behavior, (e) `warnings` populated
+  on a Case 2 hit and empty otherwise, (f) frontend: the member-mismatch confirmation step
+  rendering and both of its actions resubmitting with the correct parameters.
+
+### Review-gate note
+
+This round's diff is broader than round 1 (backend: `attribution.py`, `service.py`,
+`schemas.py`, `imports.py`, `lifecycle_service.py`, `cas_imports.py`'s request schema;
+frontend: `types.ts`, `api.ts` x2, `ImportFlow.tsx`, `MobileImportView.tsx`,
+`ImportConfirmed.tsx`) — the mandatory adversarial-review gate runs against the full
+diff, not a scoped subset, and a full test-suite rerun (not just touched-area) is
+required before Status can move to DONE, per the model-orchestration skill's
+verification-tiering rule for cross-cutting changes.
+
+## Review-gate round 2 result (2026-09-03) — PASS, closed
+
+Implementer (user-run Codex) self-reported round 2 complete: shared
+`enforce_attribution_confirmation` gate at all 3 backend call sites, structured
+`member_mismatch` 409 through both `imports.py`/`cas_imports.py`, "Switch"/"Continue
+anyway" honoring the submitted member, desktop+mobile confirmation UI, no PAN/
+preview-time changes, a prior round's critical member-selection bug fixed with DB-backed
+tests. Backend 614 passed/1 skipped, frontend 397 passed, production build passed.
+
+Per this project's never-trust-a-self-report-blind convention, independently reran
+rather than accepted: scoped backend (5 files) 69 passed; scoped frontend (17 files)
+72 passed; full backend suite 614 passed/1 skipped (exact match); full frontend suite
+397 passed/75 files (exact match). One transient vitest worker-pool timeout on an
+earlier scoped run, confirmed to be CPU/IO contention with the concurrently-running
+implementation process, not a code failure — clean on immediate retry.
+
+Dispatched the mandatory adversarial-review gate via `codex:codex-rescue` against the
+full round-2 diff, directed at 6 specific scrutiny points (bypass-proofing of the
+shared gate at all 3 sites, Switch-vs-Continue resolving different `target_member_id`s
+end-to-end, 409 detail-shape consistency across both routes, frontend resubmission
+carrying both the override flag and chosen member id, Case 2 `warnings` staying
+advisory-only with no identity leak, no new field that could reconstruct a PAN).
+Result: **Verdict: PASS, no findings** — but the dispatch's own environment couldn't
+execute either test suite (no SQLAlchemy in the Linux sandbox, Windows venv unusable
+under WSL), so the verdict rested on static reading only, with test verification
+explicitly flagged as unreproduced (not disproven) by the reviewer itself.
+
+Because the bare "PASS, no findings" carried no detail proving the 6 points were
+actually examined, treated it as insufficient on its own and independently re-verified
+the 3 highest-risk points directly against the code before accepting the gate as closed:
+1. **Bypass-proofing:** grepped all 3 call sites (`service.py:157`,
+   `lifecycle_service.py:239,296`) — each calls `enforce_attribution_confirmation`
+   immediately after `resolve_attribution`, before any DB write; no call site
+   re-implements the check inline.
+2. **Switch vs. Continue divergence:** traced end-to-end. Backend
+   (`service.py::confirm_import`): `target_member_id = household_member_id if
+   confirmed_member_override else (attribution.resolved_member_id or
+   household_member_id)` — whichever `household_member_id` is submitted on the
+   confirmed retry becomes the target. Frontend (`ImportFlow.tsx`): "Switch" resubmits
+   with `memberMismatch.matched_member_id` (the suggested match); "Continue anyway"
+   resubmits with the original `householdMemberId` — both with
+   `confirmed_member_override: true`. The two actions genuinely produce different
+   ownership, not just different UI copy.
+3. **409 shape consistency:** `imports.py` and `cas_imports.py`'s
+   `_member_mismatch_detail` both return the identical
+   `{code, message, matched_member_id, matched_member_name}` shape.
+4. **PAN safety:** grepped the full diff for any new PAN-adjacent field beyond the
+   pre-existing `pan_masked` — none found; `tests/models/test_no_pan_field.py`
+   re-verified passing.
+
+Test-execution risk from the reviewer's environment gap is covered by my own
+independent full-suite reruns above (which did execute and matched the self-report
+exactly), so the "unreproduced" caveat doesn't leave an actual verification gap.
+**Verdict: PASS, zero unresolved findings. Status moved to DONE.**

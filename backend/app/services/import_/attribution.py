@@ -16,8 +16,12 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
+from sqlalchemy import and_, or_
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app.models.folio import Folio
+from app.models.reference import Scheme
 from app.models.user import HouseholdMember, User
 from app.services.import_.parser import ParseResult
 
@@ -39,12 +43,108 @@ class AttributionDecision:
     candidate_members: list[dict[str, Any]] = field(default_factory=list)
 
 
+@dataclass(frozen=True)
+class CrossAccountDuplicateWarning:
+    detected: bool
+    reason: str
+
+
+CROSS_ACCOUNT_DUPLICATE_WARNING = (
+    "This investment may already be tracked under a different Unifolio account. "
+    "If that's you, consider using that account instead."
+)
+
+
+class AttributionConfirmationRequiredError(Exception):
+    """Raised when attribution needs an explicit user confirmation."""
+
+    def __init__(self, attribution: AttributionDecision):
+        self.attribution = attribution
+        super().__init__(
+            attribution.prompt_message
+            or "Confirm which family member this statement belongs to."
+        )
+
+
+def enforce_attribution_confirmation(
+    attribution: AttributionDecision,
+    confirmed_override: bool,
+) -> None:
+    """Block every commit path until a required attribution is confirmed."""
+    if attribution.requires_confirmation and not confirmed_override:
+        raise AttributionConfirmationRequiredError(attribution)
+
+
 def _normalize(text: str | None) -> str:
     if not text:
         return ""
     # Strip whitespace, punctuation, and lowercase
     cleaned = re.sub(r"\s+", " ", text.strip().lower())
     return cleaned
+
+
+def detect_cross_account_duplicate(
+    db: Session,
+    user_id: uuid.UUID,
+    parse_result: ParseResult,
+) -> CrossAccountDuplicateWarning | None:
+    """Return an identity-free advisory signal for matches in other accounts.
+
+    This check is deliberately non-blocking: it never returns the matched
+    account/member, and query failures degrade to no signal so an import can
+    continue unchanged.
+    """
+    try:
+        parsed_folio_keys = {
+            (scheme.folio, scheme.amc)
+            for scheme in parse_result.schemes
+            if scheme.folio and scheme.amc
+        }
+        investor_name = _normalize(parse_result.investor.name)
+    except (AttributeError, TypeError):
+        return None
+
+    try:
+        with db.begin_nested():
+            if parsed_folio_keys:
+                key_predicates = [
+                    and_(Folio.folio_number == folio_number, Scheme.amc_name == amc_name)
+                    for folio_number, amc_name in parsed_folio_keys
+                ]
+                folio_hit = (
+                    db.query(Folio.id)
+                    .join(Scheme, Folio.scheme_id == Scheme.id)
+                    .join(HouseholdMember, Folio.household_member_id == HouseholdMember.id)
+                    .filter(
+                        HouseholdMember.user_id != user_id,
+                        or_(*key_predicates),
+                    )
+                    .first()
+                )
+                if folio_hit is not None:
+                    return CrossAccountDuplicateWarning(detected=True, reason="folio_match")
+
+            if investor_name:
+                other_account_names = (
+                    db.query(HouseholdMember.name)
+                    .filter(HouseholdMember.user_id != user_id)
+                    .all()
+                )
+                if any(
+                    normalized_name
+                    and (
+                        normalized_name == investor_name
+                        or normalized_name in investor_name
+                        or investor_name in normalized_name
+                    )
+                    for (name,) in other_account_names
+                    if (normalized_name := _normalize(name))
+                ):
+                    return CrossAccountDuplicateWarning(detected=True, reason="name_match")
+    except SQLAlchemyError:
+        return None
+
+    return None
 
 
 def resolve_attribution(
@@ -66,21 +166,58 @@ def resolve_attribution(
     investor_name = _normalize(parse_result.investor.name)
     investor_email = _normalize(parse_result.investor.email)
 
-    matched_member: HouseholdMember | None = None
+    parsed_folio_keys = {
+        (scheme.folio, scheme.amc)
+        for scheme in parse_result.schemes
+        if scheme.folio and scheme.amc
+    }
+    folio_matched_member: HouseholdMember | None = None
+    folio_matched_key: tuple[str, str] | None = None
+    if parsed_folio_keys and members:
+        try:
+            with db.begin_nested():
+                existing_folios = (
+                    db.query(Folio.household_member_id, Folio.folio_number, Scheme.amc_name)
+                    .join(Scheme, Folio.scheme_id == Scheme.id)
+                    .filter(Folio.household_member_id.in_([member.id for member in members]))
+                    .all()
+                )
+        except SQLAlchemyError:
+            existing_folios = []
+
+        folio_key_to_member_id = {
+            (folio_number, amc_name): member_id
+            for member_id, folio_number, amc_name in existing_folios
+        }
+        for key in parsed_folio_keys:
+            member_id = folio_key_to_member_id.get(key)
+            if member_id is None:
+                continue
+            folio_matched_member = next(
+                (member for member in members if member.id == member_id),
+                None,
+            )
+            if folio_matched_member:
+                folio_matched_key = key
+                break
+
+    name_matched_member: HouseholdMember | None = None
 
     for m in members:
         norm_member_name = _normalize(m.name)
         if norm_member_name and (norm_member_name == investor_name or norm_member_name in investor_name or investor_name in norm_member_name):
-            matched_member = m
+            name_matched_member = m
             break
 
     # If not matched by name, check if email matches User email and member is 'self'
-    if not matched_member and investor_email and user and user.email:
+    if not name_matched_member and investor_email and user and user.email:
         if _normalize(user.email) == investor_email:
             for m in members:
                 if m.relationship.value == "self":
-                    matched_member = m
+                    name_matched_member = m
                     break
+
+    matched_member = folio_matched_member or name_matched_member
 
     if not matched_member:
         return AttributionDecision(
@@ -103,11 +240,17 @@ def resolve_attribution(
         )
 
     # Mismatch with currently selected member
+    prompt_message = (
+        f"This folio ({folio_matched_key[0]} at {folio_matched_key[1]}) is already linked to "
+        f"{matched_member.name} — import for {matched_member.name} instead?"
+        if folio_matched_key is not None
+        else f"This looks like {matched_member.name}'s statement — import for {matched_member.name} instead?"
+    )
     return AttributionDecision(
         status=AttributionStatus.MISMATCH_CONFIRMATION_REQUIRED,
         resolved_member_id=matched_member.id,
         matched_member_name=matched_member.name,
         requires_confirmation=True,
-        prompt_message=f"This looks like {matched_member.name}'s statement — import for {matched_member.name} instead?",
+        prompt_message=prompt_message,
         candidate_members=candidates,
     )

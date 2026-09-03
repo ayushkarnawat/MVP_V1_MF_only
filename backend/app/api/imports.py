@@ -14,6 +14,7 @@ from app.services.auth.session import get_current_user
 from app.services.dashboard.household_members import get_household_member_for_user
 from app.services.dashboard.nav import get_navs_on_or_before
 from app.services.dashboard.holdings import invalidate_holdings_cache
+from app.services.import_.attribution import AttributionConfirmationRequiredError
 from app.services.import_.lifecycle_service import (
     FileTooLargeError,
     InvalidFileFormatError,
@@ -115,9 +116,30 @@ def confirm_import_route(
         raise HTTPException(status_code=404, detail="Household member not found.")
 
     try:
-        response = confirm_import(db, body.session_id, household_member_id, body.scheme_confirmations)
+        response = confirm_import(
+            db,
+            body.session_id,
+            household_member_id,
+            body.scheme_confirmations,
+            user_id=user.id,
+            confirmed_member_override=body.confirmed_member_override,
+        )
         background_tasks.add_task(_prefetch_member_nav_history, household_member_id)
         return response
+    except AttributionConfirmationRequiredError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "member_mismatch",
+                "message": str(exc),
+                "matched_member_id": (
+                    str(exc.attribution.resolved_member_id)
+                    if exc.attribution.resolved_member_id
+                    else None
+                ),
+                "matched_member_name": exc.attribution.matched_member_name,
+            },
+        ) from exc
     except SchemeConfidenceError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except ValueError as exc:
