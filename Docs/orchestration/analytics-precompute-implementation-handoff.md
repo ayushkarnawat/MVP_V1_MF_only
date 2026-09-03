@@ -10,8 +10,12 @@ below); stopped again mid-Task-7 on a genuine schema mismatch (see "Task 7-9
 findings" below). Claude fixed all four rounds directly and implemented
 Tasks 7-9 directly (given the established recurring-bug pattern and to avoid
 another dispatch round-trip for the remaining, now-well-understood work),
-full suite green throughout. Mandatory adversarial-review gate not yet run
-— that's the only remaining step before this plan is fully DONE. (2026-09-03)
+full suite green throughout. Mandatory adversarial-review gate: round 1
+returned **needs-fixes** (6 findings), fixed `3ca83ae`; the fix's own scoped
+re-review (round 2) returned **needs-fixes** again with a Critical
+regression the round-1 fix introduced, fixed `3f2bdd0` (see "Review gate
+round 1 & round 2 findings" below). Round 3 (scoped re-review of the round-2
+fix) is the next step — still not DONE. (2026-09-03)
 
 **IMPORTANT — migration renumber:** this worktree's `0010_analytics_sections.py`
 migration was renumbered to `0012_analytics_sections.py` (`down_revision`
@@ -230,6 +234,72 @@ count reflects the 14 old-route tests + 1 old scorer test removed against
 the 10 new scope/retry tests added in Tasks 7-8).
 
 Committed: `95c2d93` (Task 7), `0d0d4b7` (Task 8), `9bf5603` (Task 9).
+
+## Review gate round 1 & round 2 findings (2026-09-03)
+
+**Round 1 verdict: needs-fixes, 6 findings (3 High, 3 Medium)** — the first
+round in this whole plan where findings were genuine design/logic gaps, not
+a plan-sequencing artifact. Root cause of the 3 High findings:
+`should_dispatch_recompute()` is read-only, so nothing atomically claimed
+`AnalyticsRecomputeStatus` at any of the 3 dispatch decision points (GET,
+retry, CAS-import), letting concurrent callers double-dispatch; GET's
+`recomputing` flag checked `started_at is not None` rather than staleness,
+permanently blocking its own recovery once stale; the daily `--all` backstop
+had zero in-flight guard, able to race an event-triggered recompute. The 3
+Medium findings: ECS `RunTask` placement failures silently logged as
+success; a non-canonical UUID scope (uppercase/hyphenless) passed auth but
+missed its stored row (queried on the raw string, not `str(member_uuid)`);
+no test coverage for any of the above. All 6 independently re-verified by
+direct code read before fixing.
+
+**Round-1 fix (commit `3ca83ae`):** added `try_claim_recompute()` to
+`recompute.py` — one atomic dialect-branching
+`INSERT ... ON CONFLICT DO UPDATE ... WHERE started_at IS NULL OR started_at
+< cutoff`, same pattern as `_upsert_section` — swapped in at all 4 dispatch
+decision call sites (GET, retry, CAS-import, and `_run_one()`). Canonicalized
+`scope`, added `RunTask` failure-response handling, added tests. Full suite:
+589 passed, 6 skipped.
+
+**Round 2 (scoped re-review of the round-1 fix) verdict: needs-fixes, 3
+findings (1 Critical, 1 High, 1 Medium).** **Critical:** the round-1 fix put
+`try_claim_recompute()` at both the 3 API dispatch sites (which commit the
+claim before calling `dispatcher.dispatch()`) and inside `_run_one()` — the
+same function the resulting ECS task calls when it starts — so the worker's
+own claim attempt always found the slot already freshly held by its own
+caller and returned `False`, silently skipping `recompute_household_analytics()`
+for every event-triggered recompute. The two claim sites were meant to be
+one continuous operation split across two processes, not two independent
+claimants. **High:** the API-layer claim committed before
+`dispatcher.dispatch()` ran, but `dispatch()`'s success/failure was never
+surfaced back, so a failed/unconfigured dispatch orphaned the claim for up
+to the 2-hour staleness ceiling. **Medium:** round-1's new tests mocked
+`try_claim_recompute`'s return value rather than seeding a real claim and
+exercising the actual cross-process handoff, which is why they didn't catch
+the Critical regression.
+
+**Round-2 fix (commit `3f2bdd0`):** `_run_one()` no longer claims at all —
+it trusts its caller (an API dispatch site, for `--household` mode) already
+claimed the slot, and runs `recompute_household_analytics()` directly.
+`_run_all()`'s own per-user loop claims instead, since that's the only path
+(the daily backstop) with nothing claimed on its behalf. `dispatch()` now
+returns `bool` (True only if RunTask actually placed the task); a new
+`release_recompute_claim()` is called by all 3 dispatch sites when dispatch
+returns `False` (`imports.py`'s CAS-confirm site via a new
+`_dispatch_recompute_and_release_claim_on_failure` background-task wrapper,
+since dispatch there runs via `background_tasks.add_task`). Tests rewritten
+to seed a real claim via `try_claim_recompute` against a real session and
+assert on actual worker/backstop behavior, instead of mocking the claim
+function's return value. Full suite: 595 passed (+6 net), 6 skipped, 0
+failures. `git diff --stat` confirmed narrow (same 10 files as round 1).
+Round 3 (scoped re-review of this fix) dispatched next.
+
+**Environment note:** the `codex:codex-rescue` Agent dispatch is
+forwarder-only for implementation/most review dispatches — it returns a job
+ID immediately and Claude cannot poll it; `/codex:status`/`/codex:result`
+are `disable-model-invocation: true`, human-only. Round 1 needed a manual
+relay. Round 2's own `task-notification` unusually carried the full result
+inline instead — not yet reconciled with round 1's behavior; treat round 1's
+behavior as the default assumption until this recurs.
 
 ## Verification required before reporting done
 
