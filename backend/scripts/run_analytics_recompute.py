@@ -30,15 +30,15 @@ logger = logging.getLogger(__name__)
 
 
 async def _run_one(user_id: uuid.UUID) -> None:
+    # No claim here: --household mode's only caller is an ECS task launched
+    # by a dispatch site (analytics.py GET/retry, imports.py CAS-confirm)
+    # that already claimed this slot before RunTask was invoked. Claiming
+    # again here would race that already-successful claim on the same
+    # fresh row and always lose, silently skipping every event-triggered
+    # recompute -- the claim is one continuous operation split across two
+    # processes, not two independent claimants.
     db = SessionLocal()
     try:
-        # Claim before running: without this, the daily --all backstop can
-        # race an already-in-flight event-triggered recompute for the same
-        # household, and whichever process finishes first clears
-        # started_at while the other is still writing sections.
-        if not try_claim_recompute(db, user_id):
-            logger.info("run_analytics_recompute: skipping user %s, recompute already in flight", user_id)
-            return
         await recompute_household_analytics(db, user_id)
     finally:
         db.close()
@@ -52,6 +52,18 @@ async def _run_all() -> None:
         db.close()
 
     for user_id in user_ids:
+        # Unlike --household mode, nothing has claimed on this loop's
+        # behalf -- claim per user here so the daily backstop can't race
+        # an already-in-flight event-triggered recompute for the same
+        # household.
+        claim_db = SessionLocal()
+        try:
+            claimed = try_claim_recompute(claim_db, user_id)
+        finally:
+            claim_db.close()
+        if not claimed:
+            logger.info("run_analytics_recompute: skipping user %s, recompute already in flight", user_id)
+            continue
         try:
             await _run_one(user_id)
         except Exception:

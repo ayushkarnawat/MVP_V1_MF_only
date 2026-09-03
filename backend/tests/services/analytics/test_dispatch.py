@@ -10,8 +10,11 @@ def test_dispatch_is_a_noop_when_ecs_not_configured():
          patch("app.services.analytics.dispatch.boto3.client") as mock_client:
         mock_settings.ecs_cluster_arn = ""
         mock_settings.ecs_task_definition_arn = ""
-        dispatcher.dispatch(uuid.uuid4())
+        result = dispatcher.dispatch(uuid.uuid4())
     mock_client.assert_not_called()
+    # False signals "nothing was actually placed" -- callers use this to
+    # roll back an already-committed try_claim_recompute() claim.
+    assert result is False
 
 
 def _configure(mock_settings):
@@ -32,8 +35,9 @@ def test_dispatch_calls_ecs_run_task_when_configured():
     with patch("app.services.analytics.dispatch.settings") as mock_settings, \
          patch("app.services.analytics.dispatch.boto3.client", return_value=mock_ecs) as mock_client:
         _configure(mock_settings)
-        dispatcher.dispatch(user_id)
+        result = dispatcher.dispatch(user_id)
 
+    assert result is True
     mock_client.assert_called_once_with("ecs", region_name="ap-south-1")
     mock_ecs.run_task.assert_called_once()
     call_kwargs = mock_ecs.run_task.call_args.kwargs
@@ -57,7 +61,8 @@ def test_dispatch_logs_error_when_run_task_reports_a_placement_failure():
          patch("app.services.analytics.dispatch.boto3.client", return_value=mock_ecs), \
          patch("app.services.analytics.dispatch.logger") as mock_logger:
         _configure(mock_settings)
-        dispatcher.dispatch(user_id)
+        result = dispatcher.dispatch(user_id)
 
+    assert result is False
     mock_logger.error.assert_called_once()
     mock_logger.info.assert_not_called()

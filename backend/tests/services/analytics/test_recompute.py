@@ -14,6 +14,7 @@ from app.models.user import HouseholdMember, User
 from app.services.analytics.recompute import (
     _SECTIONS,
     recompute_household_analytics,
+    release_recompute_claim,
     should_dispatch_recompute,
     try_claim_recompute,
 )
@@ -235,6 +236,26 @@ def test_try_claim_recompute_succeeds_over_a_stale_claim():
     # own docstring note; every write path here is UTC regardless.
     refreshed = status.started_at.replace(tzinfo=timezone.utc)
     assert refreshed > stale
+
+
+def test_release_recompute_claim_clears_started_at():
+    db = _session()
+    user, _members = _user_with_members(db, n_members=0)
+    assert try_claim_recompute(db, user.id) is True
+
+    release_recompute_claim(db, user.id)
+
+    status = db.get(AnalyticsRecomputeStatus, user.id)
+    assert status.started_at is None
+    # A cleared claim is immediately re-claimable.
+    assert try_claim_recompute(db, user.id) is True
+
+
+def test_release_recompute_claim_is_a_noop_when_no_row_exists():
+    db = _session()
+    user, _members = _user_with_members(db, n_members=0)
+    release_recompute_claim(db, user.id)  # must not raise
+    assert db.get(AnalyticsRecomputeStatus, user.id) is None
 
 
 def test_recompute_does_not_refetch_nav_over_network_for_a_category_shared_across_scopes():

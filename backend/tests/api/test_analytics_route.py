@@ -143,6 +143,28 @@ def test_analytics_retry_route_dispatches_when_nothing_in_flight(client):
     mock_dispatch.assert_called_once()
 
 
+def test_analytics_retry_route_releases_the_claim_when_dispatch_fails(client):
+    """Round-2 review's High finding: a claim committed by try_claim_recompute
+    must not be orphaned for up to the 2-hour staleness ceiling when the
+    dispatch it was meant to gate never actually placed a task."""
+    from app.db.session import get_db
+    from app.main import app
+    from app.models.analytics import AnalyticsRecomputeStatus
+
+    headers, _, user_id = _authed_headers_and_member(client, "+919000000039")
+    with patch("app.api.analytics.dispatcher.dispatch", return_value=False):
+        response = client.post("/analytics/combined/retry", headers=headers)
+
+    assert response.status_code == 200
+    assert response.json()["dispatched"] is False
+
+    override = app.dependency_overrides[get_db]
+    db = next(override())
+    status = db.get(AnalyticsRecomputeStatus, uuid.UUID(user_id))
+    db.close()
+    assert status.started_at is None
+
+
 def test_analytics_retry_route_is_a_noop_while_one_is_already_in_flight(client):
     headers, _, _ = _authed_headers_and_member(client, "+919000000037")
     with (

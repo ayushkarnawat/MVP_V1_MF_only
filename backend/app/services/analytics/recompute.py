@@ -118,6 +118,18 @@ def try_claim_recompute(db: Session, user_id: uuid.UUID) -> bool:
     return result.rowcount > 0
 
 
+def release_recompute_claim(db: Session, user_id: uuid.UUID) -> None:
+    """Clears a claim taken by try_claim_recompute() when the dispatch it
+    was meant to gate never actually started (ECS unconfigured, or RunTask
+    reported a placement failure) -- otherwise the claim sits held until
+    the 2-hour staleness ceiling passes, blocking should_dispatch_recompute
+    /try_claim_recompute recovery even though nothing is really running."""
+    status = db.get(AnalyticsRecomputeStatus, user_id)
+    if status is not None:
+        status.started_at = None
+        db.commit()
+
+
 def _upsert_section(
     db: Session, user_id: uuid.UUID, scope_key: str, household_member_id: uuid.UUID | None,
     section_name: str, payload: BaseModel,

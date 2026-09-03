@@ -14,7 +14,7 @@ from app.services.analytics.pdf_export import (
     render_analytics_pdf,
     store_export_payload,
 )
-from app.services.analytics.recompute import should_dispatch_recompute, try_claim_recompute
+from app.services.analytics.recompute import release_recompute_claim, should_dispatch_recompute, try_claim_recompute
 from app.services.analytics.schemas import (
     AnalyticsRetryResponse,
     AnalyticsScopeResponse,
@@ -84,8 +84,8 @@ def get_analytics_scope(
     recomputing = not should_dispatch_recompute(db, user.id)
 
     if not rows and not recomputing:
-        if try_claim_recompute(db, user.id):
-            dispatcher.dispatch(user.id)
+        if try_claim_recompute(db, user.id) and not dispatcher.dispatch(user.id):
+            release_recompute_claim(db, user.id)
         recomputing = True
 
     return AnalyticsScopeResponse(scope=scope_key, recomputing=recomputing, sections=sections)
@@ -108,8 +108,9 @@ def retry_analytics_scope(
             raise HTTPException(status_code=404, detail="Household member not found.")
 
     dispatched = try_claim_recompute(db, user.id)
-    if dispatched:
-        dispatcher.dispatch(user.id)
+    if dispatched and not dispatcher.dispatch(user.id):
+        release_recompute_claim(db, user.id)
+        dispatched = False
     return AnalyticsRetryResponse(dispatched=dispatched)
 
 

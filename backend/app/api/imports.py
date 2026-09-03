@@ -12,7 +12,7 @@ from app.models.reference import NavHistory, Scheme
 from app.models.user import User
 from app.services.auth.session import get_current_user
 from app.services.analytics.dispatch import dispatcher
-from app.services.analytics.recompute import try_claim_recompute
+from app.services.analytics.recompute import release_recompute_claim, try_claim_recompute
 from app.services.dashboard.household_members import get_household_member_for_user
 from app.services.dashboard.nav import get_navs_on_or_before
 from app.services.dashboard.holdings import invalidate_holdings_cache
@@ -38,6 +38,21 @@ def _latest_nav_dates(db: Session, scheme_ids: list[uuid.UUID]) -> dict[uuid.UUI
         .group_by(NavHistory.scheme_id)
         .all()
     )
+
+
+def _dispatch_recompute_and_release_claim_on_failure(user_id: uuid.UUID) -> None:
+    """Runs as a background task, after confirm_import_route already
+    committed the claim via try_claim_recompute -- if dispatch never
+    actually places the ECS task (unconfigured, or RunTask failures), a
+    fresh session releases that claim rather than leaving it orphaned for
+    up to the 2-hour staleness ceiling."""
+    if dispatcher.dispatch(user_id):
+        return
+    db = SessionLocal()
+    try:
+        release_recompute_claim(db, user_id)
+    finally:
+        db.close()
 
 
 async def _prefetch_member_nav_history(household_member_id: uuid.UUID) -> None:
@@ -120,7 +135,7 @@ def confirm_import_route(
         response = confirm_import(db, body.session_id, household_member_id, body.scheme_confirmations)
         background_tasks.add_task(_prefetch_member_nav_history, household_member_id)
         if try_claim_recompute(db, user.id):
-            background_tasks.add_task(dispatcher.dispatch, user.id)
+            background_tasks.add_task(_dispatch_recompute_and_release_claim_on_failure, user.id)
         return response
     except SchemeConfidenceError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc

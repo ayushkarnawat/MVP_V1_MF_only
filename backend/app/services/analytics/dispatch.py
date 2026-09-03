@@ -23,18 +23,23 @@ logger = logging.getLogger(__name__)
 
 
 class RecomputeDispatcher(Protocol):
-    def dispatch(self, user_id: uuid.UUID) -> None: ...
+    def dispatch(self, user_id: uuid.UUID) -> bool: ...
 
 
 class EcsRunTaskDispatcher:
-    def dispatch(self, user_id: uuid.UUID) -> None:
+    def dispatch(self, user_id: uuid.UUID) -> bool:
+        """Returns True only if RunTask actually placed the task -- callers
+        use this to roll back an already-committed try_claim_recompute()
+        claim when dispatch never really started anything, so a failed/
+        unconfigured dispatch doesn't orphan the claim for up to the 2-hour
+        staleness ceiling."""
         if not settings.ecs_cluster_arn or not settings.ecs_task_definition_arn:
             logger.info(
                 "EcsRunTaskDispatcher: ECS not configured, skipping recompute dispatch "
                 "for user %s (set ecs_cluster_arn/ecs_task_definition_arn to enable)",
                 user_id,
             )
-            return
+            return False
 
         client = boto3.client("ecs", region_name=settings.aws_region or None)
         response = client.run_task(
@@ -68,8 +73,9 @@ class EcsRunTaskDispatcher:
             logger.error(
                 "EcsRunTaskDispatcher: RunTask reported failures for user %s: %s", user_id, failures
             )
-            return
+            return False
         logger.info("EcsRunTaskDispatcher: dispatched recompute RunTask for user %s", user_id)
+        return True
 
 
 dispatcher: RecomputeDispatcher = EcsRunTaskDispatcher()

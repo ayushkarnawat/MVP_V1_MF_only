@@ -238,6 +238,79 @@ def test_confirm_route_does_not_dispatch_recompute_when_one_already_in_flight():
     assert background_tasks.tasks[0].func.__name__ == "_prefetch_member_nav_history"
 
 
+def _sqlite_session_factory():
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    from sqlalchemy.pool import StaticPool
+
+    from app.db.base import Base
+
+    engine = create_engine(
+        "sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool
+    )
+    Base.metadata.create_all(engine)
+    return sessionmaker(autoflush=False, bind=engine)
+
+
+def _claimed_user(session_factory) -> uuid.UUID:
+    from datetime import datetime, timezone
+
+    from app.models.user import User
+    from app.services.analytics.recompute import try_claim_recompute
+
+    db = session_factory()
+    user_id = uuid.uuid4()
+    user = User(id=user_id, phone_number=f"+9199{uuid.uuid4().hex[:8]}", created_at=datetime.now(timezone.utc))
+    db.add(user)
+    db.commit()
+    assert try_claim_recompute(db, user_id) is True
+    db.close()
+    return user_id
+
+
+def test_dispatch_and_release_on_failure_releases_the_claim_when_dispatch_fails():
+    """Round-2 review's High finding, exercised at the CAS-import background-
+    task layer specifically: confirm_import_route already committed the
+    claim via try_claim_recompute before scheduling this task -- if
+    dispatch never actually places the ECS task, the claim must not sit
+    orphaned for up to the 2-hour staleness ceiling."""
+    from app.api.imports import _dispatch_recompute_and_release_claim_on_failure
+    from app.models.analytics import AnalyticsRecomputeStatus
+
+    session_factory = _sqlite_session_factory()
+    user_id = _claimed_user(session_factory)
+
+    with (
+        patch("app.api.imports.dispatcher.dispatch", return_value=False),
+        patch("app.api.imports.SessionLocal", side_effect=session_factory),
+    ):
+        _dispatch_recompute_and_release_claim_on_failure(user_id)
+
+    check_db = session_factory()
+    status = check_db.get(AnalyticsRecomputeStatus, user_id)
+    check_db.close()
+    assert status.started_at is None
+
+
+def test_dispatch_and_release_on_failure_leaves_the_claim_when_dispatch_succeeds():
+    from app.api.imports import _dispatch_recompute_and_release_claim_on_failure
+    from app.models.analytics import AnalyticsRecomputeStatus
+
+    session_factory = _sqlite_session_factory()
+    user_id = _claimed_user(session_factory)
+
+    with (
+        patch("app.api.imports.dispatcher.dispatch", return_value=True),
+        patch("app.api.imports.SessionLocal", side_effect=session_factory),
+    ):
+        _dispatch_recompute_and_release_claim_on_failure(user_id)
+
+    check_db = session_factory()
+    status = check_db.get(AnalyticsRecomputeStatus, user_id)
+    check_db.close()
+    assert status.started_at is not None
+
+
 def test_nav_prefetch_uses_fresh_session_and_never_raises():
     import asyncio
 
