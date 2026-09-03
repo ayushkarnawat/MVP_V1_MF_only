@@ -200,7 +200,7 @@ def test_confirm_route_schedules_nav_prefetch_after_successful_confirm():
     with (
         patch("app.api.imports.get_household_member_for_user", return_value=MagicMock()),
         patch("app.api.imports.confirm_import", return_value=response),
-        patch("app.api.imports.should_dispatch_recompute", return_value=True),
+        patch("app.api.imports.try_claim_recompute", return_value=True),
     ):
         result = confirm_import_route(body, background_tasks, user, request_db)
 
@@ -230,7 +230,7 @@ def test_confirm_route_does_not_dispatch_recompute_when_one_already_in_flight():
     with (
         patch("app.api.imports.get_household_member_for_user", return_value=MagicMock()),
         patch("app.api.imports.confirm_import", return_value=response),
-        patch("app.api.imports.should_dispatch_recompute", return_value=False),
+        patch("app.api.imports.try_claim_recompute", return_value=False),
     ):
         confirm_import_route(body, background_tasks, user, request_db)
 

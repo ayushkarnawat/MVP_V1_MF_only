@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session as DbSession
 
 from app.db.session import get_db
-from app.models.analytics import AnalyticsRecomputeStatus, AnalyticsSection
+from app.models.analytics import AnalyticsSection
 from app.models.reference import Scheme
 from app.models.user import User
 from app.services.analytics.dispatch import dispatcher
@@ -14,7 +14,7 @@ from app.services.analytics.pdf_export import (
     render_analytics_pdf,
     store_export_payload,
 )
-from app.services.analytics.recompute import should_dispatch_recompute
+from app.services.analytics.recompute import should_dispatch_recompute, try_claim_recompute
 from app.services.analytics.schemas import (
     AnalyticsRetryResponse,
     AnalyticsScopeResponse,
@@ -52,7 +52,9 @@ def get_analytics_scope(
     user: User = Depends(get_current_user),
     db: DbSession = Depends(get_db),
 ):
-    if scope != "combined":
+    if scope == "combined":
+        scope_key = scope
+    else:
         try:
             member_uuid = uuid.UUID(scope)
         except ValueError as exc:
@@ -61,10 +63,14 @@ def get_analytics_scope(
             ) from exc
         if get_household_member_for_user(db, user.id, member_uuid) is None:
             raise HTTPException(status_code=404, detail="Household member not found.")
+        # Canonicalize: rows are stored under str(member.id) (_upsert_section),
+        # but uuid.UUID() accepts non-canonical spellings (uppercase,
+        # hyphenless) that would otherwise miss the row lookup below.
+        scope_key = str(member_uuid)
 
     rows = (
         db.query(AnalyticsSection)
-        .filter(AnalyticsSection.user_id == user.id, AnalyticsSection.scope_key == scope)
+        .filter(AnalyticsSection.user_id == user.id, AnalyticsSection.scope_key == scope_key)
         .all()
     )
     sections = {
@@ -72,15 +78,17 @@ def get_analytics_scope(
         for row in rows
     }
 
-    status = db.get(AnalyticsRecomputeStatus, user.id)
-    recomputing = status is not None and status.started_at is not None
+    # should_dispatch_recompute is staleness-aware (unlike a raw started_at
+    # is not None check), so a crashed/killed run's stuck flag doesn't
+    # permanently block this route's own recovery branch below.
+    recomputing = not should_dispatch_recompute(db, user.id)
 
     if not rows and not recomputing:
-        if should_dispatch_recompute(db, user.id):
+        if try_claim_recompute(db, user.id):
             dispatcher.dispatch(user.id)
         recomputing = True
 
-    return AnalyticsScopeResponse(scope=scope, recomputing=recomputing, sections=sections)
+    return AnalyticsScopeResponse(scope=scope_key, recomputing=recomputing, sections=sections)
 
 
 @router.post("/{scope}/retry", response_model=AnalyticsRetryResponse)
@@ -99,7 +107,7 @@ def retry_analytics_scope(
         if get_household_member_for_user(db, user.id, member_uuid) is None:
             raise HTTPException(status_code=404, detail="Household member not found.")
 
-    dispatched = should_dispatch_recompute(db, user.id)
+    dispatched = try_claim_recompute(db, user.id)
     if dispatched:
         dispatcher.dispatch(user.id)
     return AnalyticsRetryResponse(dispatched=dispatched)

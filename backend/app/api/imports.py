@@ -12,7 +12,7 @@ from app.models.reference import NavHistory, Scheme
 from app.models.user import User
 from app.services.auth.session import get_current_user
 from app.services.analytics.dispatch import dispatcher
-from app.services.analytics.recompute import should_dispatch_recompute
+from app.services.analytics.recompute import try_claim_recompute
 from app.services.dashboard.household_members import get_household_member_for_user
 from app.services.dashboard.nav import get_navs_on_or_before
 from app.services.dashboard.holdings import invalidate_holdings_cache
@@ -119,7 +119,7 @@ def confirm_import_route(
     try:
         response = confirm_import(db, body.session_id, household_member_id, body.scheme_confirmations)
         background_tasks.add_task(_prefetch_member_nav_history, household_member_id)
-        if should_dispatch_recompute(db, user.id):
+        if try_claim_recompute(db, user.id):
             background_tasks.add_task(dispatcher.dispatch, user.id)
         return response
     except SchemeConfidenceError as exc:

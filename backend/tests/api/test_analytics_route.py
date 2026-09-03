@@ -94,6 +94,33 @@ def test_analytics_scope_route_surfaces_a_failed_section(client):
     assert body["sections"]["score"]["failed_at"] is not None
 
 
+def test_analytics_scope_route_recovers_from_a_stale_recompute_flag(client):
+    from datetime import timedelta
+
+    from app.db.session import get_db
+    from app.main import app
+    from app.models.analytics import AnalyticsRecomputeStatus
+
+    headers, _, user_id = _authed_headers_and_member(client, "+919000000038")
+
+    override = app.dependency_overrides[get_db]
+    db = next(override())
+    db.add(AnalyticsRecomputeStatus(
+        user_id=uuid.UUID(user_id),
+        started_at=datetime.now(timezone.utc) - timedelta(hours=3),
+    ))
+    db.commit()
+    db.close()
+
+    with patch("app.api.analytics.dispatcher.dispatch") as mock_dispatch:
+        response = client.get("/analytics/combined", headers=headers)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["recomputing"] is True
+    mock_dispatch.assert_called_once()
+
+
 def test_analytics_retry_route_requires_auth(client):
     response = client.post("/analytics/combined/retry")
     assert response.status_code == 401
@@ -119,7 +146,7 @@ def test_analytics_retry_route_dispatches_when_nothing_in_flight(client):
 def test_analytics_retry_route_is_a_noop_while_one_is_already_in_flight(client):
     headers, _, _ = _authed_headers_and_member(client, "+919000000037")
     with (
-        patch("app.api.analytics.should_dispatch_recompute", return_value=False),
+        patch("app.api.analytics.try_claim_recompute", return_value=False),
         patch("app.api.analytics.dispatcher.dispatch") as mock_dispatch,
     ):
         response = client.post("/analytics/combined/retry", headers=headers)

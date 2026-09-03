@@ -89,6 +89,35 @@ def should_dispatch_recompute(db: Session, user_id: uuid.UUID) -> bool:
     return datetime.now(timezone.utc) - started_at > _STALE_RECOMPUTE_CEILING
 
 
+def try_claim_recompute(db: Session, user_id: uuid.UUID) -> bool:
+    """Atomically claims the in-flight recompute slot for user_id if none is
+    held or the held one is stale -- the single choke point every dispatch
+    decision (GET, retry, CAS-import confirm, the daily backstop) must pass
+    through before starting/queuing a recompute. should_dispatch_recompute()
+    alone is read-only and leaves a check-then-dispatch race open between
+    concurrent callers; this closes it with one atomic upsert, same
+    dialect-branching pattern as _upsert_section."""
+    now = datetime.now(timezone.utc)
+    cutoff = now - _STALE_RECOMPUTE_CEILING
+    dialect_name = db.get_bind().dialect.name
+    if dialect_name == "sqlite":
+        insert_fn = sqlite_insert
+    elif dialect_name == "postgresql":
+        insert_fn = postgresql_insert
+    else:
+        raise RuntimeError(f"Unsupported database dialect for analytics_recompute_status upsert: {dialect_name}")
+
+    statement = insert_fn(AnalyticsRecomputeStatus).values(user_id=user_id, started_at=now)
+    statement = statement.on_conflict_do_update(
+        index_elements=[AnalyticsRecomputeStatus.user_id],
+        set_={"started_at": now},
+        where=(AnalyticsRecomputeStatus.started_at.is_(None)) | (AnalyticsRecomputeStatus.started_at < cutoff),
+    )
+    result = db.execute(statement)
+    db.commit()
+    return result.rowcount > 0
+
+
 def _upsert_section(
     db: Session, user_id: uuid.UUID, scope_key: str, household_member_id: uuid.UUID | None,
     section_name: str, payload: BaseModel,

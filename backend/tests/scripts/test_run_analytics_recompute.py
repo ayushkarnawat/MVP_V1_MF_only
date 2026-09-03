@@ -13,11 +13,29 @@ def test_run_one_calls_recompute_with_the_given_user_id():
     fake_db = MagicMock()
 
     with patch("scripts.run_analytics_recompute.SessionLocal", return_value=fake_db), \
+         patch("scripts.run_analytics_recompute.try_claim_recompute", return_value=True) as mock_claim, \
          patch("scripts.run_analytics_recompute.recompute_household_analytics", new=AsyncMock()) as mock_recompute:
         import asyncio
         asyncio.run(_run_one(user_id))
 
+    mock_claim.assert_called_once_with(fake_db, user_id)
     mock_recompute.assert_awaited_once_with(fake_db, user_id)
+
+
+def test_run_one_skips_recompute_when_claim_fails():
+    from scripts.run_analytics_recompute import _run_one
+
+    user_id = uuid.uuid4()
+    fake_db = MagicMock()
+
+    with patch("scripts.run_analytics_recompute.SessionLocal", return_value=fake_db), \
+         patch("scripts.run_analytics_recompute.try_claim_recompute", return_value=False), \
+         patch("scripts.run_analytics_recompute.recompute_household_analytics", new=AsyncMock()) as mock_recompute:
+        import asyncio
+        asyncio.run(_run_one(user_id))
+
+    mock_recompute.assert_not_awaited()
+    fake_db.close.assert_called_once_with()
 
 
 def test_run_all_recomputes_every_user_and_keeps_going_after_one_failure():

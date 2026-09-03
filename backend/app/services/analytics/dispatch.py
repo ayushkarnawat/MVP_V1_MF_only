@@ -37,7 +37,7 @@ class EcsRunTaskDispatcher:
             return
 
         client = boto3.client("ecs", region_name=settings.aws_region or None)
-        client.run_task(
+        response = client.run_task(
             cluster=settings.ecs_cluster_arn,
             taskDefinition=settings.ecs_task_definition_arn,
             launchType="FARGATE",
@@ -57,6 +57,18 @@ class EcsRunTaskDispatcher:
                 ]
             },
         )
+        # RunTask can return 200 with no task placed -- failures land in this
+        # list, not an exception. Left uncaught, the caller (and its already
+        # -claimed AnalyticsRecomputeStatus row) has no way to know the task
+        # never started; it self-heals via should_dispatch_recompute's
+        # staleness ceiling, but log loudly since that's a silent multi-hour
+        # user-facing stall otherwise.
+        failures = response.get("failures") or []
+        if failures:
+            logger.error(
+                "EcsRunTaskDispatcher: RunTask reported failures for user %s: %s", user_id, failures
+            )
+            return
         logger.info("EcsRunTaskDispatcher: dispatched recompute RunTask for user %s", user_id)
 
 

@@ -24,7 +24,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.db.session import SessionLocal
 from app.models.user import User
-from app.services.analytics.recompute import recompute_household_analytics
+from app.services.analytics.recompute import recompute_household_analytics, try_claim_recompute
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +32,13 @@ logger = logging.getLogger(__name__)
 async def _run_one(user_id: uuid.UUID) -> None:
     db = SessionLocal()
     try:
+        # Claim before running: without this, the daily --all backstop can
+        # race an already-in-flight event-triggered recompute for the same
+        # household, and whichever process finishes first clears
+        # started_at while the other is still writing sections.
+        if not try_claim_recompute(db, user_id):
+            logger.info("run_analytics_recompute: skipping user %s, recompute already in flight", user_id)
+            return
         await recompute_household_analytics(db, user_id)
     finally:
         db.close()

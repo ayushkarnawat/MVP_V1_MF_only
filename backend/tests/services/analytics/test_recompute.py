@@ -15,6 +15,7 @@ from app.services.analytics.recompute import (
     _SECTIONS,
     recompute_household_analytics,
     should_dispatch_recompute,
+    try_claim_recompute,
 )
 from app.services.analytics.schemas import (
     AnalyticsAllocationSummary,
@@ -201,6 +202,39 @@ def test_should_dispatch_recompute_true_once_started_at_is_stale():
     db.add(AnalyticsRecomputeStatus(user_id=user.id, started_at=stale))
     db.commit()
     assert should_dispatch_recompute(db, user.id) is True
+
+
+def test_try_claim_recompute_succeeds_when_no_status_row():
+    db = _session()
+    user, _members = _user_with_members(db, n_members=0)
+    assert try_claim_recompute(db, user.id) is True
+    status = db.get(AnalyticsRecomputeStatus, user.id)
+    assert status.started_at is not None
+
+
+def test_try_claim_recompute_fails_while_a_fresh_claim_is_held():
+    db = _session()
+    user, _members = _user_with_members(db, n_members=0)
+    assert try_claim_recompute(db, user.id) is True
+    # A second, concurrent caller must not also win the claim while the
+    # first is still fresh -- this is the exact race should_dispatch_recompute
+    # alone left open (Finding #1).
+    assert try_claim_recompute(db, user.id) is False
+
+
+def test_try_claim_recompute_succeeds_over_a_stale_claim():
+    db = _session()
+    user, _members = _user_with_members(db, n_members=0)
+    stale = datetime.now(timezone.utc) - timedelta(hours=3)
+    db.add(AnalyticsRecomputeStatus(user_id=user.id, started_at=stale))
+    db.commit()
+
+    assert try_claim_recompute(db, user.id) is True
+    status = db.get(AnalyticsRecomputeStatus, user.id)
+    # SQLite doesn't round-trip tzinfo on read -- see should_dispatch_recompute's
+    # own docstring note; every write path here is UTC regardless.
+    refreshed = status.started_at.replace(tzinfo=timezone.utc)
+    assert refreshed > stale
 
 
 def test_recompute_does_not_refetch_nav_over_network_for_a_category_shared_across_scopes():
