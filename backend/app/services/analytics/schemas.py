@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 
 from pydantic import BaseModel
 
@@ -151,3 +151,15 @@ class CategoryRankingSummary(BaseModel):
 class AggregateCategoryRankingResponse(BaseModel):
     members: list[MemberStatus]
     ranking: CategoryRankingSummary
+
+
+class AnalyticsSectionState(BaseModel):
+    payload: dict | None
+    computed_at: datetime | None
+    failed_at: datetime | None
+
+
+class AnalyticsScopeResponse(BaseModel):
+    scope: str
+    recomputing: bool
+    sections: dict[str, AnalyticsSectionState]
