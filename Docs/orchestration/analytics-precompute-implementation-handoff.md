@@ -1,13 +1,17 @@
 # Handoff: analytics-precompute-implementation
 
-**Status:** OPEN — Tasks 1-6 done (commits `47b0bb9`, `9ca4933`, `729ea8e`,
-`d2c1be8`, `225e4e6`, `e92e827` on `worktree-analytics-precompute-architecture`),
-Tasks 7-9 remaining. Codex ran Tasks 1-2 and Task 4 cleanly, then correctly
-stopped mid-Task-3, mid-Task-5, and mid-Task-6 on genuine internal
-inconsistencies in the plan's literal code rather than guessing (see "Task 3
-findings" / "Task 4 & 5 findings" / "Task 6 findings" below) — Claude fixed
-all three directly, full suite green each time, before handing back.
-(2026-09-03)
+**Status:** All 9 tasks done (commits `47b0bb9`, `9ca4933`, `729ea8e`,
+`d2c1be8`, `225e4e6`, `e92e827`, `95c2d93`, `0d0d4b7`, `9bf5603` on
+`worktree-analytics-precompute-architecture`). Codex ran Tasks 1-2 and Task 4
+cleanly, then correctly stopped mid-Task-3, mid-Task-5, and mid-Task-6 on
+genuine internal inconsistencies in the plan's literal code rather than
+guessing (see "Task 3 findings" / "Task 4 & 5 findings" / "Task 6 findings"
+below); stopped again mid-Task-7 on a genuine schema mismatch (see "Task 7-9
+findings" below). Claude fixed all four rounds directly and implemented
+Tasks 7-9 directly (given the established recurring-bug pattern and to avoid
+another dispatch round-trip for the remaining, now-well-understood work),
+full suite green throughout. Mandatory adversarial-review gate not yet run
+— that's the only remaining step before this plan is fully DONE. (2026-09-03)
 
 **IMPORTANT — migration renumber:** this worktree's `0010_analytics_sections.py`
 migration was renumbered to `0012_analytics_sections.py` (`down_revision`
@@ -168,6 +172,64 @@ passed, 6 skipped, 1 pre-existing flake in
 `test_upsert_nav_history_is_conflict_safe_across_sessions` confirmed to pass
 in isolation — an unrelated cross-test flake, not caused by this change).
 Committed `e92e827`.
+
+## Task 7-9 findings (resolved/implemented by Claude, 2026-09-03)
+
+Codex's stop-and-report on Task 7 was correct, a genuine bug in the plan's
+own `_seed_section` snippet: it assigned `household_member_id=user_id`,
+but the authenticated user's id and the household-member id are distinct
+values — `analytics.py:30`'s `household_member_id` is a foreign key to
+`household_members.id`, not `users.id`. Fixed by using `scope_key`
+(the member id already passed into the helper) instead of `user_id`.
+
+A second bug surfaced during Claude's own red-run, which Codex hadn't
+reached yet: `AnalyticsSection.user_id`/`household_member_id` are
+`uuid.UUID`-typed SQLAlchemy columns, but the OTP-verify response's
+`user_id` and the household-member route's `id` are both plain JSON
+strings — constructing the ORM object directly with string values raised
+`StatementError: 'str' object has no attribute 'hex'`. Fixed by wrapping
+both values in `uuid.UUID(...)` inside `_seed_section`.
+
+The plan's own flagged open question — "check `app/api/auth.py`'s verify
+response shape... since it wasn't directly confirmed in this plan's
+research" — is resolved: `OtpVerifyResponse.user_id: str` (in
+`app/services/auth/schemas.py`) is already returned directly by
+`/auth/otp/verify`, no extra `/me`-style call needed.
+
+Given this was now the fourth round of the same "plan's literal
+test/step code assumes something not yet true" bug class (Tasks 3, 5, 6,
+7), and Tasks 8-9's remaining work was small, mechanical, and already
+fully specified in the plan's own literal code, Claude implemented Tasks
+7 (route replacement), 8 (`POST /analytics/{scope}/retry`), and 9 (test
+deletion + dangling-reference grep) directly rather than a further Codex
+dispatch round-trip — per `model-orchestration`'s "Review-loop fix
+authorship" allowance (small diffs, files already in context, faster
+than another handoff/dispatch/wait cycle).
+
+One own-test bug found while implementing Task 7: the test file (written
+by Claude, since Codex stopped before writing it) patched
+`app.api.analytics.compute_category_allocation` to assert live compute
+never runs — but the consolidated route's whole design point is that it
+*never* imports or calls any compute function, so that name no longer
+exists on the module. Fixed by asserting `dispatcher.dispatch` isn't
+called instead, which is the actually-correct signal for "no live
+compute/no dispatch happened."
+
+Task 9's Step 3 grep (for dangling references to the 14 removed routes)
+returned matches in `app/api/dashboard.py` and its tests — confirmed
+these are a **different, unprefixed router** (`/household-members/...`,
+`/household/aggregate/...` with no `/analytics` prefix) that happens to
+share the same relative path suffixes as the removed analytics routes.
+Pre-existing, unrelated functionality; not a dangling reference to
+anything this plan touched. The plan's own "Expected: no output" was
+imprecise on this point — flagging it here rather than silently treating
+the extra grep output as a false alarm without a reason.
+
+Full suite green after Task 9: 583 passed, 6 skipped, 0 failures (net
+count reflects the 14 old-route tests + 1 old scorer test removed against
+the 10 new scope/retry tests added in Tasks 7-8).
+
+Committed: `95c2d93` (Task 7), `0d0d4b7` (Task 8), `9bf5603` (Task 9).
 
 ## Verification required before reporting done
 
