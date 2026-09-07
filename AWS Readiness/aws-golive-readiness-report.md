@@ -502,7 +502,12 @@ Given the above, **the ECS task needs a real, working path to the public interne
 - Lock the task's security group so **inbound** is allowed only from the ALB's security group — the task has a public IP but nothing can reach it directly except through the ALB, and outbound to the internet works via the Internet Gateway with no NAT cost.
 - **The meaningful difference from Option A:** the task is *technically publicly addressable* (it has a real public IP, even though the security group blocks unsolicited inbound) rather than genuinely unreachable from the internet by network topology alone. This is a real, if modest, security posture downgrade — acceptable as a deliberate, named staging shortcut (see §15/§19), not something to carry into production.
 
-**Recommendation:** Option A for anything that will touch real user data (i.e., production); Option B is a legitimate, explicitly-flagged cost/time shortcut for staging if the NAT Gateway cost approval (see §19) isn't resolved in time — but it needs to be a decision made knowingly, not a default fallen into silently.
+**Option C — fck-nat (chosen for staging, 2026-09-07):** a self-hosted NAT alternative — a small EC2 instance (e.g. `t4g.nano`) running the open-source [fck-nat](https://github.com/AndrewGuenther/fck-nat) AMI in the public subnet, with the private subnet's route table pointing `0.0.0.0/0` at it instead of a managed NAT Gateway.
+- Keeps Option A's actual security posture (ECS task and RDS stay genuinely private, no public IP on the app tier) — unlike Option B, this isn't a downgrade, just a cheaper implementation of the same topology.
+- **Cost:** the EC2 instance itself (a `t4g.nano` is a few $/month) plus normal EC2 data-transfer rates — no NAT Gateway hourly charge and no per-GB NAT data-processing fee, which is where AWS's own NAT Gateway pricing hurts most for a low-traffic staging environment.
+- Trade-off versus a managed NAT Gateway: it's a single EC2 instance you patch/manage rather than a fully-managed AWS service — no built-in HA across AZs unless you build it (an ASG + failover script, or accept single-AZ risk for staging), and it depends on a third-party AMI rather than an AWS-owned one. Acceptable for staging; revisit for production once real traffic/uptime requirements are known.
+
+**Decision (2026-09-07):** fck-nat is the confirmed approach for staging, replacing Option A's NAT Gateway — chosen specifically to avoid the NAT Gateway cost-approval step in §19 for an environment where the traffic volume doesn't justify it. Terraform module planning (§22 Phase 1) should provision the fck-nat EC2 instance + route table wiring, not a managed NAT Gateway resource, for staging. Re-evaluate Option A (real NAT Gateway) for production once uptime/HA requirements are concrete.
 
 **RDS never needs outbound internet access at all** — it only receives connections, from the ECS task and the bastion; it never initiates a call to anything.
 
@@ -717,19 +722,20 @@ Everything Claude Code and the cloud engineer need from the team before (or duri
 |---|---|---|---|
 | AWS account access (IAM user/role for the cloud engineer) | AWS account owner | **Yes — blocks everything** | Immediate |
 | Scope of IAM permissions granted (admin vs. scoped role) | AWS account owner | Yes — blocks infra provisioning | Immediate |
-| AWS region decision | App team / account owner | Yes — blocks provisioning | Immediate |
-| Does a Route 53 hosted zone (or other DNS) already exist for the domain? | Account owner / whoever manages DNS today | Partially — blocks HTTPS/domain cutover, not the earlier build steps | Immediate |
-| Domain/DNS access (ability to create records) | Account owner / domain registrar admin | Yes, for the final cutover step, and now also for ACM validation on the critical path of the full-Terraform attempt (§9) | High — needed **today (Monday)**, not Wednesday, given the Tuesday checkpoint |
+| AWS region decision | App team / account owner | Yes — blocks provisioning | **Resolved 2026-09-07 — `ap-south-1` (Mumbai)** |
+| Does a Route 53 hosted zone (or other DNS) already exist for the domain? | Account owner / whoever manages DNS today | Partially — blocks HTTPS/domain cutover, not the earlier build steps | **Resolved 2026-09-07 — public hosted zone created for `unifolio.in`, GoDaddy nameservers switched over, propagation confirmed, existing Microsoft 365 mail records (MX/SPF/DMARC/autodiscover) preserved** |
+| Domain/DNS access (ability to create records) | Account owner / domain registrar admin | Yes, for the final cutover step, and now also for ACM validation on the critical path of the full-Terraform attempt (§9) | **Resolved 2026-09-07 — Route 53 is authoritative, account owner has console access to add ACM validation records directly** |
 | Google OAuth configuration (Google Cloud Console project/OAuth client access) | App team | No — staging's confirmed auth path is stub OTP; Google Sign-In is optional | Low, for staging |
-| Staging domain naming (e.g. `staging.unifolio.in`) | App team / account owner | No — can default to the raw ALB/CloudFront-generated domain temporarily | Medium |
-| Production domain naming (e.g. `app.unifolio.in`, `api.unifolio.in`) | App team / account owner | No — not needed for staging | Low for now |
-| Approval for NAT Gateway cost (~$32–40/month baseline + data processing) | Account owner | Gates the choice between §12's Option A and Option B | High — resolve by Tuesday morning |
+| Staging domain naming (e.g. `staging.unifolio.in`) | App team / account owner | No — can default to the raw ALB/CloudFront-generated domain temporarily | **Resolved 2026-09-07 — `staging.unifolio.in`** |
+| Production domain naming (e.g. `app.unifolio.in`, `api.unifolio.in`) | App team / account owner | No — not needed for staging | **Resolved 2026-09-07 — full architecture decided: `unifolio.in` (apex) is the marketing/overview site with Login/Sign Up CTAs, `app.unifolio.in` is the production web app, `staging.unifolio.in` is the staging web app. No production/staging split for the marketing site itself is defined yet — assumed single apex site for now.** |
+| Approval for NAT Gateway cost (~$32–40/month baseline + data processing) | Account owner | Gates the choice between §12's Option A and Option B | **Resolved 2026-09-07 — staging uses fck-nat (§12 Option C) instead, avoiding this cost/approval entirely; revisit NAT Gateway (Option A) for production** |
 | RDS sizing decision (instance class, storage) | Account owner / cloud engineer | Mild — a reasonable small default can be used and resized later | Medium |
 | Backup/retention requirements | App team / account owner (this is a financial-data product — worth a real answer, not a default) | Mild for staging, high for production | Medium now, high before production |
 | Explicit sign-off on staging shortcuts (stub OTP for phone/email — already given, per §4 — single ECS task; Option B networking only as a fallback if NAT isn't approved or the Tuesday Terraform checkpoint triggers it) | App team / account owner | **Yes — this is the decision that makes Friday achievable at all** | Immediate for the remaining, not-yet-confirmed items |
 | Terraform remote-state backend location (which account/bucket) | Cloud engineer proposes, account owner approves | Mild — can be bootstrapped in parallel with everything else | Medium |
 | Who owns ongoing deployment access (who can push images / trigger ECS deploys going forward) | Account owner | No — not needed for the first cut, needed before this is a repeatable workflow | Low for now |
 | Secrets/API credentials for future providers (SMS, email) | App team, once the provider is chosen | No — post-launch item per §7 | Low |
+| Backend API domain naming — a dedicated subdomain (e.g. `api.unifolio.in` / `staging-api.unifolio.in`) vs. path-based routing through the same CloudFront distribution (e.g. `staging.unifolio.in/api/*`) | App team / cloud engineer | Yes, for Phase 5 (ACM cert scope and CloudFront/ALB wiring depend on which) | **Open — raised 2026-09-07, needs an answer before Phase 5 Terraform work** |
 
 ---
 
@@ -846,7 +852,7 @@ The fuller, phase-by-phase version of §18 — written to be executed against di
 - **Tasks:** Request/validate ACM certificates (one for the API domain in the ALB's region, one in `us-east-1` for CloudFront regardless of primary region); create Route 53 records (or equivalent) pointing the staging subdomains at CloudFront and the ALB; update the backend's `ALLOWED_ORIGINS` and the frontend's `VITE_API_BASE_URL` to the final real domains, rebuilding/redeploying if the domains weren't known at Phase 3/4 time; enforce HTTP→HTTPS redirects.
 - **Dependencies:** Phases 3 and 4 must be live first; Phase 0's domain-naming decision and DNS access.
 - **Owner:** Cloud engineer.
-- **Expected output:** A real HTTPS staging URL for both frontend and backend (e.g. `staging.unifolio.in` / `staging-api.unifolio.in`).
+- **Expected output:** A real HTTPS staging URL for both frontend and backend — frontend at `staging.unifolio.in` (confirmed 2026-09-07); backend API domain still open, see §19.
 - **Validation:** Both domains resolve, serve valid HTTPS certificates, and the frontend can call the backend cross-origin with zero CORS errors.
 
 ### Phase 6 — Staging Validation

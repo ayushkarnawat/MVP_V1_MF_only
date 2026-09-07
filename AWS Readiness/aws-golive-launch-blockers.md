@@ -4,66 +4,41 @@ Split out from `Docs/orchestration/aws-golive-readiness-report.md` §4 into its 
 
 These are code-level facts, independent of the infrastructure-design questions covered in the main report's §3.
 
-## When each of these actually has to be resolved
+## Status as of 2026-09-07
 
-**Not all of these gate the *start* of the staging process.** The intro line above says "must be resolved before real users touch this system" deliberately — that's before staging is opened for use, not before you're allowed to begin building it. Most items below gate a specific *later* step in the sequence (see the main report's §16/§22), not day one.
+**All of this section's original code-level items are now RESOLVED** (Dockerfile, Playwright/Chromium install, CORS, `/imports/parse` upload validation, the OTP stub-mode guard, and the enum-drift migration — all shipped in commit `c7ba70a`, verified present in code and covered by a fully passing test suite: 614 backend/6 skipped, 397 frontend, `tsc -b --noEmit` clean). AWS account/region/DNS decisions are also resolved (see below). What remains is genuinely infrastructure work, not code fixes:
 
-**Doesn't block starting at all — begin immediately, in parallel with the code-fix track:**
-- Zero AWS infrastructure exists — that's the work itself, not a precondition to it.
-- No domain/HTTPS/certificates configured — should start early (ACM validation has real latency) but doesn't block anything else from starting.
+- Zero AWS *application* infrastructure exists yet (VPC, RDS, ECS, S3, CloudFront, ACM, Secrets Manager) — that's Phase 0 onward, the work itself, not a precondition to it.
+- ACM/HTTPS certificates — not yet requested; can start as soon as Phase 5 is reached, no DNS-propagation risk left in the way since Route 53 is already authoritative.
 - No RDS backup/retention configuration — set at RDS creation time, part of provisioning, not a gate before it.
-
-**Blocks a specific later step, not the start:**
-- No Dockerfile / Playwright-Chromium startup crash / CORS hardcoded to localhost / no upload validation on `/imports/parse` — all need to land before the backend can actually be *deployed and used* (main report §22 Phase 3), not before infrastructure provisioning begins.
-- Frontend production build-time variables unset — needed before the production frontend *build* (Phase 4), which naturally comes after the backend exists.
-- OTP stub-mode guard fix — needed before OTP can work at all against Postgres, i.e. before the backend is deployed against RDS — same timing as the Dockerfile fix.
-- No automated migration-run step — inherent to doing this manually per the plan; it's the database phase's own work, not a precondition to reaching it.
-
-**The one genuine "must happen before you touch real RDS" gate**, per the team decision recorded in the main report's §21: the `ImportStatus`/`TransactionType` enum-drift migration must be written and verified against **local Docker Postgres first** — explicitly sequenced *before* it's ever run against the real RDS instance (main report §10 step 5). RDS itself can still be provisioned in parallel; it's specifically the migration-*run* step that waits on this fix.
-
-**Not required at all for staging:**
-- The OTP account-takeover risk itself — explicitly accepted, no fix needed (only the guard's crash-on-Postgres behavior needs fixing — a different thing, listed above).
+- Frontend production build-time variables (`VITE_API_BASE_URL`, `VITE_GOOGLE_OAUTH_CLIENT_ID`) — still unset; needed before the production frontend *build* (Phase 4), naturally after the backend exists and its domain is known.
+- No automated migration-run step against real RDS — inherent to doing this manually per the plan; the database phase's own work (Phase 2), not a precondition to reaching it.
 - Google Sign-In's Client ID / Privacy Policy — explicitly marked non-blocking for staging, below.
 
-**Bottom line:** AWS provisioning (VPC, RDS, S3, ECR, networking) can start today, in parallel with the code-fix track. The only hard ordering constraint is that the enum-drift fix must be verified locally before it's run against real RDS, and the backend code fixes need to land before the backend deploy step specifically — not before the whole process kicks off.
+**Bottom line:** nothing below still gates the *start* of Phase 0/1. AWS provisioning (VPC, RDS, S3, ECR, networking) can proceed now.
 
 ---
 
-## BLOCKER for staging (code fix only) / BLOCKER for production (policy) — OTP stub mode
+## RESOLVED (2026-09-07, fixed in commit `c7ba70a`) — OTP stub mode
 
 **Team decision (recorded 2026-08-31): staging will keep `otp_delivery_mode="stub"` for both phone and email OTP.** Staging carries no real users and no real user data — it's internal testing only — so the account-takeover risk this finding originally centered on (anyone can request an OTP for an identifier they don't own and read it back out of the response) is accepted for staging specifically. **This acceptance is explicitly scoped to staging and does not carry forward to production** — see the staging-vs-production table in the main report's §15 and the go/no-go gate in §21.
 
-- **Implemented:** In `otp_delivery_mode="stub"`, the raw OTP is returned in the API response body to *any* caller (`app/services/auth/otp.py:101`), for both phone and email OTP requests.
-- **The part that's still a hard blocker even for staging:** a guard exists (`otp.py:60-65`) that raises a hard `RuntimeError` whenever stub mode is used against a **non-SQLite** database. Staging runs on RDS PostgreSQL (per ADR-003 — that's the whole point of this migration), so as written today, **every OTP request on staging will hard-fail with a 500**, not just be insecure — nobody, including internal testers, can sign up or log in via phone/email OTP on staging until this guard is changed. This is a real, newly-relevant blocker, distinct from the account-takeover risk.
-- **Why the guard exists this way:** it was written to infer "is this a safe environment to use stub mode in" from *which database dialect is active*, on the assumption that SQLite = local/dev and Postgres = production. That assumption is exactly what staging breaks — staging is Postgres, but is not production.
-- **Exactly what to do:** replace the dialect-based inference with an explicit environment flag (e.g. `ENVIRONMENT=staging|production`, read from config) and gate the guard on that instead of on `database_url.startswith("sqlite")`. This lets staging run stub-mode OTP against real Postgres deliberately, while keeping a hard block against stub-mode OTP ever running in a config explicitly marked `production`. This is a small, contained code change — recommend making it rather than deleting the guard outright, so the production safety net survives.
-- **Missing (still true, unrelated to the staging decision):** No real SMS provider exists at all (no Twilio/SNS/MSG91 integration anywhere). No real email provider exists either — only a stub; Postmark integration is explicitly a separate, later task per its own code comment. Neither is required for staging under this decision; both remain required before production.
-- **Completable in the timeline?** Yes — the environment-flag guard fix is a small, well-scoped change, see the main report's §22 Phase 0/3.
+- **Fixed:** `otp.py:60` now gates the stub-mode guard on `settings.environment == "production"` (an explicit config flag) instead of inferring safety from the database dialect (`database_url.startswith("sqlite")`). Staging can run `otp_delivery_mode="stub"` against real RDS Postgres deliberately, while a config explicitly marked `production` still hard-blocks it. Verified present in code and covered by the full passing test suite, independent of the original handoff doc's self-report.
+- **Still missing, unrelated to this fix, unchanged from the original finding:** No real SMS provider exists (no Twilio/SNS/MSG91). No real email provider exists either, only a stub. Neither is required for staging; both remain required before production.
 - **Residual risk, accepted for staging, to be re-confirmed before production:** anyone with access to the staging URL can take over any staging account by requesting an OTP for its phone/email and reading it back out of the response. Acceptable because staging has no real user data; **must be resolved (real provider, or a permanent product decision to drop phone/email auth) before any real user or real user data touches this system** — this is the single item in this report most likely to be forgotten once staging "just works," so it's called out explicitly here and again in the main report's §15/§19/§21.
 
-## BLOCKER — The app has no working container to deploy
+## RESOLVED (2026-09-07, fixed in commit `c7ba70a`) — The app had no working container to deploy
 
-- **Implemented:** A working local dev launcher (`backend/scripts/run_server.py`) that binds `uvicorn` to `127.0.0.1:8000` with a single worker, no process manager.
-- **Missing:** **No Dockerfile exists anywhere in the repository** — confirmed by an exhaustive search. The server binds to loopback (`127.0.0.1`), which is unreachable from an ALB on Fargate's `awsvpc` networking mode — it must bind `0.0.0.0`.
-- **Why it matters:** ECS Express Mode deploys "from source or container image" — even the source-deploy path would use a generic Python buildpack that has no idea Playwright needs a browser binary installed (see next finding). A hand-written Dockerfile is the only reliable way to get this app running correctly on Fargate.
-- **Completable in the timeline?** Yes — this is a few hours of focused work, see the main report's §22.
-- **Exactly what to do:** Write a Dockerfile: base Python image → `pip install -r requirements.txt` (pinned) → `playwright install --with-deps chromium` → expose 8000 → entrypoint running uvicorn bound to `0.0.0.0:8000`, no `--reload`.
+- **Fixed:** `backend/Dockerfile` exists — base Python image → `pip install -r requirements.txt` (pinned) → `playwright install --with-deps chromium` → uvicorn bound to `0.0.0.0:8000` (not the local dev launcher's `127.0.0.1`, which would have been unreachable from an ALB on Fargate's `awsvpc` networking mode). Verified present in the repo.
 
-## BLOCKER — The app crashes on startup — Chromium is launched but never installed
+## RESOLVED (2026-09-07, fixed alongside the Dockerfile in commit `c7ba70a`) — The app crashed on startup — Chromium was launched but never installed
 
-- **Implemented:** `backend/app/main.py:21-28`'s `lifespan` handler calls `start_browser()` unconditionally on *every* app startup (not lazily, not only when PDF export is used) — this launches a Playwright-managed headless Chromium process.
-- **Missing:** `pip install playwright` does not download the Chromium binary — that needs a separate `playwright install chromium` step, plus (on Linux) OS-level shared libraries normally installed via `playwright install --with-deps`. Nothing in this repo runs either step.
-- **Why it matters:** A freshly built container will boot, hit the `lifespan` startup hook, and fail to launch the browser — the entire API becomes unavailable, not just the PDF-export feature. This would be the first thing discovered on the very first deploy.
-- **Completable in the timeline?** Yes, trivially — it's one Dockerfile line, bundled with the previous finding's fix.
-- **Risk if skipped:** None if fixed together with the Dockerfile; catastrophic (total outage on first deploy) if missed.
+- **Fixed:** the Dockerfile's `playwright install --with-deps chromium` step installs the browser binary and its OS-level shared libraries, so `main.py`'s unconditional `start_browser()` on startup no longer fails.
 
-## BLOCKER — CORS is hardcoded to localhost only
+## RESOLVED (2026-09-07, fixed in commit `c7ba70a`) — CORS was hardcoded to localhost only
 
-- **Implemented:** `app/main.py:32-42` — `allow_origins` is a hardcoded list of localhost ports plus a localhost-only regex. No wildcard, so it fails *closed* today (safe, but non-functional against a real domain).
-- **Missing:** No env-driven origin list; nothing reads `frontend_base_url` or any other setting for CORS.
-- **Why it matters:** The moment the frontend moves to its real domain (CloudFront or custom), every single API call — including login — will be blocked by the browser's CORS check. This will look like a total outage.
-- **Completable in the timeline?** Yes — trivial code change: read an `ALLOWED_ORIGINS` env var (comma-separated) and pass it to `CORSMiddleware`.
-- **Note:** Auth here is Bearer-token-in-header, not cookies (confirmed via the frontend's `localStorage`-based session storage) — so `allow_credentials=True` carries no CSRF-via-cookie risk; the fix is purely about adding the real origin, not about credential handling.
+- **Fixed:** `app/main.py` now builds `allow_origins` via `_allowed_cors_origins(settings.allowed_origins)`, an env-driven, comma-separated origin list, replacing the old hardcoded localhost-only list/regex. Verified present in code.
+- **Note:** Auth here is Bearer-token-in-header, not cookies (confirmed via the frontend's `localStorage`-based session storage) — so `allow_credentials=True` carries no CSRF-via-cookie risk.
 
 ## BLOCKER — The app can only safely run as exactly one instance
 
@@ -87,25 +62,22 @@ These are code-level facts, independent of the infrastructure-design questions c
   first time a second task is genuinely needed for capacity or zero-downtime deploys. Until
   then this stays a single point of failure by design, accepted for the reasons above.
 
-## BLOCKER — ImportStatus / TransactionType enum drift will break CAS import on first real migration
+## RESOLVED (2026-09-07, fixed in commit `c7ba70a`) — ImportStatus / TransactionType enum drift would have broken CAS import on first real migration
 
-- **Implemented:** App code assigns 14 `ImportStatus` values; the database-level constraint was only ever created with 3 (migration `0001`). Similarly, `TransactionType.OPENING_BALANCE` was added to the Postgres enum but never to the SQLite CHECK constraint.
-- **Missing:** A migration widening the DB-level constraint to match the Python enum.
-- **Why it matters:** Already documented in full, with exact file:line citations and a remediation plan, in `AWS Readiness/sqlite-postgres-migration-compliance-audit.md` (findings F1/F2). This would very likely break the CAS import flow immediately after the first real `alembic upgrade head` run against fresh RDS.
-- **Completable in the timeline?** Yes — this is a single, well-scoped, additive migration. See the main report's §10 for the exact sequencing.
-- **Note:** Test it against a real Postgres instance (the local Docker container is sufficient) *before* touching the real RDS — this closes the "never actually verified end-to-end" gap the compliance audit flagged as unverified.
+- **Fixed:** migration `0010_widen_import_and_transaction_enums.py` widens the `importstatus` DB-level constraint to match the Python enum's full 14 values and rebuilds the `transactions_type_check` CHECK constraint to include `opening_balance`. Full original finding detail remains in `AWS Readiness/sqlite-postgres-migration-compliance-audit.md` (F1/F2).
+- **Verified:** present in `backend/alembic/versions/`, and per session.md, tested against local Docker Postgres before this was ever a concern for real RDS (the sequencing this doc originally called for).
+- **Separately, also present:** migration `0011_household_members_one_self_row.py` (a different, later fix — the "self" household-member uniqueness constraint, compliance-audit finding F3).
 
-## BLOCKER — No file-size or content validation on one of two live CAS-upload endpoints
+## RESOLVED (2026-09-07, fixed in commit `c7ba70a`) — No file-size or content validation on one of two live CAS-upload endpoints
 
-- **Implemented:** `POST /cas-imports` correctly enforces a 25MB cap and a PDF magic-byte check (`lifecycle_service.py:52-56`). Its sibling, `POST /imports/parse` (`api/imports.py:64-79`), checks only the filename ends in `.pdf` — trivially spoofable — with no size limit at all.
-- **Why it matters:** An unbounded upload buffered fully into memory on a small Fargate task is a real resource-exhaustion risk, and this endpoint is live and reachable from the desktop web import flow today, not dead code.
-- **Completable in the timeline?** Yes — apply the same `validate_file_payload()` helper already used by `/cas-imports` to this endpoint. Minutes of work.
+- **Fixed:** `POST /imports/parse` (`api/imports.py`) now calls the same `validate_file_payload()` helper `POST /cas-imports` already used, closing the gap where it previously only checked the filename ended in `.pdf` with no size limit. Verified present in code.
 
-## BLOCKER — Zero AWS infrastructure exists
+## IN PROGRESS (2026-09-07) — Zero AWS infrastructure exists
 
-- **Implemented:** Nothing — no RDS instance, no ECS cluster/service, no S3 bucket, no CloudFront distribution, no VPC configuration, no ACM certificates, no Route 53 records, no Secrets Manager secrets. Confirmed by an exhaustive search for Terraform/CDK/CloudFormation/Pulumi files and any AWS CLI provisioning script — none exist.
+- **Implemented:** Nothing yet on the infrastructure side itself — no RDS instance, no ECS cluster/service, no S3 bucket, no CloudFront distribution, no VPC configuration, no ACM certificates, no Secrets Manager secrets. Terraform authoring for all of this is Phase 0/1 onward (main report §22), starting now.
+- **Newly resolved as of 2026-09-07, unblocking this phase:** AWS account exists (root MFA, budget alert, IAM admin user), region (`ap-south-1`), and DNS (Route 53 hosted zone for `unifolio.in`, live and propagated, existing mail records preserved) — see the main report §12/§19 and `CLAUDE.md`'s Session State. A public Route 53 hosted zone with 7 records (MX, 2 TXT, `_dmarc` TXT, 2 CNAMEs, plus auto-generated NS/SOA) already exists, so this is no longer "no Route 53 records" for the domain's core mail/ownership records — it's specifically the *application* infrastructure (VPC, RDS, ECS, S3, CloudFront, ACM, staging/app subdomain records) that's still unbuilt.
 - **Why it matters:** This is the fundamental gap the whole exercise addresses — everything in the main report's §8 needs to be created from scratch.
-- **Completable in the timeline?** Yes — with the Friday deadline's extra 2 days, the main report's §9 now recommends **Terraform-first for the whole stack** (with AI-assisted module authoring and a Tuesday checkpoint), manual-then-import only as the fallback if that checkpoint isn't on track. See §15 for the honest feasibility read.
+- **Completable in the timeline?** Yes — see the main report's §9/§22 for the Terraform-first approach and phased plan.
 
 ## BLOCKER — Frontend production build-time variables are unset
 
@@ -113,11 +85,12 @@ These are code-level facts, independent of the infrastructure-design questions c
 - **Why it matters:** If `VITE_API_BASE_URL` is left unset, the app falls back to deriving a URL from `window.location` plus `:8000` — which will silently fail to reach the real backend once deployed behind CloudFront/ALB.
 - **Completable in the timeline?** Yes — set both as real values in whatever process runs `npm run build` for the production bundle.
 
-## BLOCKER — No domain, HTTPS, or certificates configured
+## PARTIALLY RESOLVED (2026-09-07) — No domain, HTTPS, or certificates configured
 
-- **Missing:** No ACM certificate, no Route 53 hosted zone confirmed, no HTTPS termination point for either the frontend (CloudFront) or backend (ALB).
-- **Why it matters:** Both CloudFront and the ALB need a validated ACM certificate before they can serve HTTPS on a custom domain; certificate DNS validation has non-trivial latency (minutes to hours) — this needs to start early, in parallel with everything else.
-- **Completable in the timeline?** Yes, if started immediately — see the main report's §22, Phase 5.
+- **Resolved:** the Route 53 hosted zone for `unifolio.in` now exists and is authoritative (GoDaddy nameservers switched, propagation confirmed). Subdomain naming decided: `staging.unifolio.in` (staging app), `app.unifolio.in` (production app), `unifolio.in` (marketing site).
+- **Still missing:** No ACM certificate requested or validated yet, no HTTPS termination point for either the frontend (CloudFront) or backend (ALB), and the backend API's own domain naming (dedicated subdomain vs. path-based routing) is still an open decision — see the main report §19.
+- **Why it matters:** Both CloudFront and the ALB need a validated ACM certificate before they can serve HTTPS on a custom domain; certificate DNS validation has non-trivial latency (minutes to hours) — now that Route 53 is authoritative, this can start as soon as Phase 5 is reached, with no DNS-propagation risk left in the way.
+- **Completable in the timeline?** Yes — see the main report's §22, Phase 5.
 
 ## IMPORTANT (not a staging blocker) — Google Sign-In has no real Client ID, and no Privacy Policy page exists
 

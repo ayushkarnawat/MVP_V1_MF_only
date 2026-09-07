@@ -1,4 +1,4 @@
-# Session state — 2026-09-02 (updated)
+# Session state — 2026-09-07 (updated)
 
 Working notes for picking this project back up cold. Not a planning doc — see
 `Docs/superpowers/plans/` for those. This file tracks *where things stand*,
@@ -7,7 +7,61 @@ gets overwritten each session, and isn't meant to accumulate history.
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
 
-## Latest Session (2026-09-02): AWS staging prep — compliance-audit remediation, Group 1
+## Latest Session (2026-09-07): AWS account + domain cutover, doc cleanup, pre-Terraform verification
+
+**AWS account and domain, done this session:**
+- AWS account created (root MFA via authenticator app, a $50 monthly budget alert,
+  IAM admin user `ayush-admim` with `AdministratorAccess`, account alias
+  `unifolio-aws-stagging`) — both names carry typos, cosmetic, fixable anytime via
+  `aws iam update-user --new-user-name` / IAM Dashboard, not fixed yet.
+- Region confirmed: `ap-south-1` (Mumbai).
+- `unifolio.in` cut over from GoDaddy DNS to a Route 53 public hosted zone. Before
+  switching nameservers, GoDaddy's existing 11 records were audited: the domain runs
+  live Microsoft 365 mail (MX → `unifolio-in.mail.protection.outlook.com`, SPF, DMARC,
+  `autodiscover` CNAME, an MS-verification TXT) — all preserved as new Route 53 records.
+  Dropped deliberately: GoDaddy's own NS/SOA (Route 53 generates its own), the
+  `_domainconnect` CNAME (GoDaddy-proprietary quick-setup protocol, meaningless once DNS
+  leaves GoDaddy), and the root `A` record (GoDaddy Website Builder's "Launching Soon"
+  placeholder page — tied to GoDaddy's own builder backend, not a portable IP; stops
+  working regardless of what's done with DNS, so nothing to preserve). Nameserver switch
+  verified propagated via `dig`/`nslookup` against Google's `8.8.8.8` resolver.
+- Domain/subdomain architecture decided: `unifolio.in` (apex) = marketing/overview site
+  with Login/Sign Up CTAs; `app.unifolio.in` = production web app; `staging.unifolio.in`
+  = staging web app (what all the AWS readiness work in this repo targets). Backend API's
+  own domain (dedicated subdomain vs. path-based CloudFront routing) is still an open
+  decision, needed before §22 Phase 5, not before Phase 0/1.
+- Networking decision: staging uses **fck-nat** (a self-hosted EC2 NAT alternative)
+  instead of a managed NAT Gateway, to avoid the NAT Gateway cost-approval step for a
+  low-traffic staging environment. All of the above folded into
+  `AWS Readiness/aws-golive-readiness-report.md` (§12 Option C, §19, §22 Phase 5).
+
+**Documentation cleanup, done this session, before starting Terraform Phase 0/1** (the
+user's own reasoning: infrastructure work is expensive to unwind once started, so verify
+everything code-side is actually as documented first, not just as claimed):
+- `CLAUDE.md`'s Session State section previously claimed 2026-09-03's F8/F4/non-PAN-dedup
+  work was "still uncommitted in one large combined working-tree diff" — checked `git log`
+  directly: it was already committed, as `9fe21fe`. Corrected.
+- `AWS Readiness/aws-golive-launch-blockers.md` listed several items as open BLOCKERs
+  that were actually already fixed in code (in commit `c7ba70a`, an earlier commit than
+  `9fe21fe`): the Dockerfile, the Playwright/Chromium install step, CORS, `/imports/parse`
+  upload validation, the OTP stub-mode environment-flag guard, and the
+  ImportStatus/TransactionType enum-widening migration. Verified each directly against
+  the actual source (not the doc, not a prior self-report) before marking resolved.
+- Ran both full test suites fresh as the final check: backend 614 passed/6 skipped,
+  frontend 397 passed (75 files), `tsc -b --noEmit` clean — matches prior self-reports
+  exactly, confirms the code side is genuinely stable going into infra work.
+- One environment artifact found and worked around (not a code bug): a stale
+  `backend/.pytest_tmp` directory (pytest.ini's configured `--basetemp`) was left with
+  broken permissions (`d--x--x--x`, likely from an interrupted test that deliberately
+  creates a permission-denied fixture) from the 2026-09-03 session, blocking a plain
+  `pytest` run with 32 unrelated-looking errors. Not a regression — bypassed via
+  `pytest --basetemp=<scratch-dir>`; the directory itself still needs `sudo rm -rf` to
+  actually remove, not done (no passwordless sudo in this environment).
+
+**Not yet started:** actual Terraform Phase 0/1 module authoring — the cloud engineer
+has suggested changes to the original plan, to be reviewed before drafting begins.
+
+## Previous Session (2026-09-02): AWS staging prep — compliance-audit remediation, Group 1
 
 Working through `AWS Readiness/sqlite-postgres-migration-compliance-audit.md`,
 `aws-golive-launch-blockers.md`, and `aws-golive-readiness-report.md` to close every
