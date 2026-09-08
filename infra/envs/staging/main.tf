@@ -18,6 +18,16 @@ module "security" {
   project     = var.project
 }
 
+module "database" {
+  source = "../../modules/database"
+
+  environment             = var.environment
+  project                 = var.project
+  private_data_subnet_ids = module.networking.private_data_subnet_ids
+  rds_security_group_id   = module.networking.rds_security_group_id
+  kms_key_arn             = module.security.kms_key_arn
+}
+
 output "networking" {
   description = "Phase 1 networking outputs consumed by later phases."
   value = {
@@ -44,4 +54,29 @@ output "kms_key_arn" {
 output "kms_key_id" {
   description = "KMS key ID for Phase 2 RDS and Phase 3 Secrets Manager resources."
   value       = module.security.kms_key_id
+}
+
+output "db_endpoint" {
+  description = "RDS endpoint including host and port."
+  value       = module.database.db_endpoint
+}
+
+output "db_address" {
+  description = "RDS endpoint hostname without the port."
+  value       = module.database.db_address
+}
+
+output "db_port" {
+  description = "Port on which PostgreSQL accepts connections."
+  value       = module.database.db_port
+}
+
+output "db_name" {
+  description = "Name of the staging PostgreSQL database."
+  value       = module.database.db_name
+}
+
+output "master_user_secret_arn" {
+  description = "ARN of the RDS-managed Secrets Manager secret for the master user."
+  value       = module.database.master_user_secret_arn
 }

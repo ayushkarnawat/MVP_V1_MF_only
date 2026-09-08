@@ -1,6 +1,6 @@
 # Handoff: aws-phase2-rds-foundation
 
-**Status:** OPEN
+**Status:** DONE — reviewed 2026-09-08, PASS zero findings, see `delegation-log.md`.
 **Parent plan:** `AWS Readiness/aws-golive-readiness-report.md` §9 (Terraform strategy), §11 (KMS), §19 (resolved decisions), §22 Phase 2 (Database)
 
 ## Task
