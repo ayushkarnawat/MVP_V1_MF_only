@@ -28,6 +28,31 @@ module "database" {
   kms_key_arn             = module.security.kms_key_arn
 }
 
+module "ecr" {
+  source = "../../modules/ecr"
+}
+
+module "backend" {
+  source = "../../modules/backend"
+
+  environment = var.environment
+  project     = var.project
+  aws_region  = var.aws_region
+
+  vpc_id                 = module.networking.vpc_id
+  public_subnet_ids      = module.networking.public_subnet_ids
+  private_app_subnet_ids = module.networking.private_app_subnet_ids
+  alb_security_group_id  = module.networking.alb_security_group_id
+  ecs_security_group_id  = module.networking.ecs_security_group_id
+  repository_url         = module.ecr.repository_url
+  master_user_secret_arn = module.database.master_user_secret_arn
+  kms_key_arn            = module.security.kms_key_arn
+  db_address             = module.database.db_address
+  db_port                = module.database.db_port
+  db_name                = module.database.db_name
+  google_oauth_client_id = var.google_oauth_client_id
+}
+
 output "networking" {
   description = "Phase 1 networking outputs consumed by later phases."
   value = {
@@ -79,4 +104,19 @@ output "db_name" {
 output "master_user_secret_arn" {
   description = "ARN of the RDS-managed Secrets Manager secret for the master user."
   value       = module.database.master_user_secret_arn
+}
+
+output "alb_dns_name" {
+  description = "DNS name of the staging backend Application Load Balancer."
+  value       = module.backend.alb_dns_name
+}
+
+output "ecs_cluster_name" {
+  description = "Name of the staging backend ECS cluster."
+  value       = module.backend.ecs_cluster_name
+}
+
+output "ecs_service_name" {
+  description = "Name of the staging backend ECS service."
+  value       = module.backend.ecs_service_name
 }

@@ -15,3 +15,9 @@ variable "project" {
   type        = string
   default     = "unifolio"
 }
+
+variable "google_oauth_client_id" {
+  description = "Optional Google OAuth client ID for staging."
+  type        = string
+  default     = ""
+}
