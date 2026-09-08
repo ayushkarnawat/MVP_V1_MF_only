@@ -1,6 +1,6 @@
 # Handoff: aws-phase1-terraform-foundation
 
-**Status:** OPEN
+**Status:** DONE — reviewed 2026-09-08, PASS zero findings, see `delegation-log.md`.
 **Parent plan:** `AWS Readiness/aws-golive-readiness-report.md` §9 (Terraform strategy), §11 (connectivity), §12 (private networking), §19 (resolved decisions), §22 Phase 1 (Infrastructure Foundation)
 
 ## Task

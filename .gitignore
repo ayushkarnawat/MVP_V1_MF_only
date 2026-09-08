@@ -56,3 +56,11 @@ dist/
 package-lock.json
 scratch/
 Docs/superpowers/specs/2026-08-27-analytics-loading-state-mockups.html
+
+# Terraform local state and developer-specific inputs
+.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.tfvars
+terraform.tfvars
+*.auto.tfvars

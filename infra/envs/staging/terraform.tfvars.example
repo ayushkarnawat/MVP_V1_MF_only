@@ -1,0 +1,4 @@
+# Copy this file to terraform.tfvars for local use. The real file is gitignored.
+aws_region  = "ap-south-1"
+environment = "staging"
+project     = "unifolio"
