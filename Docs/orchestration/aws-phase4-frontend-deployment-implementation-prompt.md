@@ -9,6 +9,41 @@ report back what you did and stop; a separate adversarial review pass runs
 afterward, driven by the user relaying your output back into the main Claude
 Code session.
 
+**Status: Codex's part of this is already done and independently reviewed
+(PASS, zero findings) — `infra/modules/frontend` exists and is committed.
+Nothing below this point needs to be pasted into Codex again.**
+
+## Manual steps for you, after Codex's part is done (not for Codex)
+
+1. `cd infra/envs/staging && terraform init` (safe to rerun — no new
+   provider, just picks up the new module).
+2. `terraform plan -out=tfplan` — expect only new resources (S3 bucket,
+   public access block, OAC, CloudFront distribution, bucket policy) and
+   the new `data "aws_caller_identity"` lookup. **0 to change, 0 to
+   destroy** on anything from Phase 1-3 — if you see anything proposed to
+   change/destroy outside `module.frontend`, stop and paste the plan output
+   back here before applying.
+3. `terraform apply "tfplan"` — CloudFront's first-time distribution
+   creation typically takes 15-20 minutes to reach `Deployed`; Terraform
+   blocks until then by default. This is normal, not a hang.
+4. After it finishes, save the three new outputs — you'll need them for
+   Phase 5 and for the eventual frontend upload:
+   `terraform output s3_bucket_name`, `terraform output
+   cloudfront_distribution_id`, `terraform output cloudfront_domain_name`.
+5. **Don't build/upload the frontend yet.** The ALB is still HTTP-only
+   until Phase 5 lands, so any real API call from the deployed frontend
+   would hit the browser's mixed-content block anyway — per your own call
+   to build Phase 4 and 5 back to back and only test for real once both
+   are applied. It's fine to open the `cloudfront_domain_name` URL in a
+   browser now just to confirm CloudFront serves *something* (it'll show
+   a blank/empty bucket, since nothing's uploaded yet) — that's optional,
+   not required.
+6. There's a leftover `infra/envs/staging/tfplan` binary in your working
+   tree from an earlier `terraform plan` — it's already excluded from what
+   got committed. Fine to leave it or delete it locally; just don't `git
+   add` it (plan files can contain resource details and shouldn't be
+   version-controlled).
+
 ---
 
 <task>

@@ -15,6 +15,55 @@ bucket Phase 4 creates, plus adds a new HTTPS listener to the live ALB
 Phase 3 created. If `infra/modules/frontend` doesn't exist yet in this repo,
 stop and say so instead of proceeding.
 
+## Manual steps for you, before and after Codex's part (not for Codex)
+
+**Before dispatching this prompt:** confirm you've already run
+`terraform apply` for Phase 4 (see
+`aws-phase4-frontend-deployment-implementation-prompt.md`'s own manual-steps
+section) — this dispatch edits live resources Phase 4 creates.
+
+**After Codex reports back and the Claude Code review passes (Status moves
+to `DONE`):**
+
+1. `cd infra/envs/staging && terraform plan -out=tfplan`. Expect: new
+   resources only in `module.dns` (2 ACM certs, their DNS validation
+   records, 2 cert-validation waits, 2 Route 53 alias records), plus
+   **in-place updates** (not destroy/recreate) to the existing ALB listener
+   and the existing CloudFront distribution. If the plan shows anything
+   destroyed/recreated instead of updated in place — especially the
+   CloudFront distribution or the ALB — stop and paste the plan output back
+   here before applying; that would mean something deviated from the
+   additive design both handoff docs describe.
+2. `terraform apply "tfplan"`. Budget 20-30 minutes total: ACM DNS
+   validation is usually a few minutes (the validation records land in the
+   Route 53 zone Terraform already manages), but the CloudFront distribution
+   update (adding `aliases`/`viewer_certificate`) triggers a full
+   redistribution across edge locations, typically 15-25 minutes, and
+   Terraform blocks until it reports `Deployed`. Slow is normal here, not
+   stuck.
+3. Sanity-check DNS and cert status once apply finishes:
+   - `dig staging.unifolio.in` / `dig staging-api.unifolio.in` — both
+     should resolve.
+   - `aws acm list-certificates --region us-east-1` and
+     `aws acm list-certificates --region ap-south-1` — both new certs
+     should show `Status: ISSUED`.
+4. **Now** rebuild and deploy the frontend for real — this is the point
+   where mixed content is no longer a problem:
+   ```
+   cd frontend
+   VITE_API_BASE_URL=https://staging-api.unifolio.in VITE_GOOGLE_OAUTH_CLIENT_ID= npm run build
+   aws s3 sync dist/ s3://$(terraform -chdir=../infra/envs/staging output -raw s3_bucket_name) --delete
+   aws cloudfront create-invalidation --distribution-id $(terraform -chdir=../infra/envs/staging output -raw cloudfront_distribution_id) --paths "/*"
+   ```
+   (Leaving `VITE_GOOGLE_OAUTH_CLIENT_ID` empty is deliberate — no real
+   client ID yet, per your own call; Google Sign-In stays inactive until
+   you provide one later.)
+5. Open `https://staging.unifolio.in` in a browser: confirm the SPA loads,
+   a client-side route survives a hard refresh (the 403/404→`/index.html`
+   mapping), and the network tab shows API calls succeeding over HTTPS to
+   `staging-api.unifolio.in` with no mixed-content warnings. Report back
+   here — that's the point Phase 6 (real functional validation) starts.
+
 ---
 
 <task>
