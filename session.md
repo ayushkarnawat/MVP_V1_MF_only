@@ -1,4 +1,4 @@
-# Session state — 2026-09-07 (updated)
+# Session state — 2026-09-09 (updated)
 
 Working notes for picking this project back up cold. Not a planning doc — see
 `Docs/superpowers/plans/` for those. This file tracks *where things stand*,
@@ -7,7 +7,127 @@ gets overwritten each session, and isn't meant to accumulate history.
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
 
-## Latest Session (2026-09-07): AWS account + domain cutover, doc cleanup, pre-Terraform verification
+## Latest Session (2026-09-09): Terraform Phases 1-3 applied to real AWS — staging infra now live
+
+Following the previous session's Phase 1-3 Terraform authoring (networking, security,
+database, ecr, backend modules — all already reviewed/committed), this session walked
+Ayush end-to-end through applying that code against a real AWS account for the first
+time, entirely from his own WSL terminal (Claude never runs `terraform apply` or any
+other AWS-state-mutating command — only the user does, per this project's established
+division of labor for irreversible/billable actions):
+
+- Installed AWS CLI v2, ran `aws configure` (IAM user `ayush-admim`, account
+  `811364789032`, region `ap-south-1`), installed Terraform 1.16.1 pinned to match the
+  repo's `.terraform.lock.hcl` files.
+- Ran `infra/bootstrap/create-state-backend.sh 811364789032` — created the S3 state
+  bucket `unifolio-tfstate-staging-811364789032` and DynamoDB lock table
+  `unifolio-tfstate-lock-staging` (both confirmed via `aws dynamodb describe-table`, not
+  just assumed from a truncated/paginated terminal paste — the first status check looked
+  ambiguous only because AWS CLI's default `less` pager cut off the JSON mid-way, not
+  because anything actually failed).
+- Edited `infra/envs/staging/backend.tf`'s placeholder bucket name to the real value.
+- `terraform init` (migrated to the S3 backend) → `terraform plan -out=tfplan` (57 to
+  add, 0 to change, 0 to destroy — reviewed against the already-verified module wiring
+  before giving go-ahead) → `terraform apply "tfplan"`, which succeeded: **57 resources
+  created, 0 changed, 0 destroyed.**
+
+**Now live in `ap-south-1` (real, billable AWS resources as of this session):**
+- VPC `vpc-0570cc60e505184ed` + full subnet/routing/security-group layout.
+- fck-nat instance (`i-0681a3cd783bcc695`) and SSM-only bastion (`i-0b67d40d9b58b7814`),
+  both `t4g.nano`.
+- KMS CMK `alias/unifolio-staging-cmk` for RDS/Secrets Manager encryption.
+- RDS PostgreSQL 16 instance, `staging-rds.ctu88scmut9m.ap-south-1.rds.amazonaws.com:5432`,
+  `skip_final_snapshot=true`/`deletion_protection=false` (correct for staging).
+- ECR repo `unifolio-staging-backend` (currently empty — no image pushed yet).
+- ECS cluster `unifolio-staging` + service `unifolio-staging-backend`, ALB at
+  `unifolio-staging-alb-958627457.ap-south-1.elb.amazonaws.com`.
+
+**Two known, expected (not bugs) follow-ups before this environment is actually usable — both RESOLVED same session:**
+1. **RESOLVED.** The ECS service was crash-looping (`CannotPullContainerError`) because
+   the ECR repo had no image yet. Fixed end-to-end from the local WSL machine (evaluated
+   and rejected an EC2-build-server alternative — redundant with the existing CI/ECR
+   path per `AWS Readiness/aws-golive-readiness-report.md` §3, and ECS Fargate defaults
+   to X86_64 which matches a local Docker Desktop build with no extra config needed):
+   `docker build` → `aws ecr get-login-password | docker login` → `docker tag` →
+   `docker push` → `aws ecs update-service --force-new-deployment`. One real blocker hit
+   and fixed mid-task: a stale `backend/.pytest_tmp` artifact directory (broken
+   permissions, `d--x--x--x`, left over from an interrupted test run) made Docker's
+   BuildKit context-transfer walker fail with `error from sender: failed to xattr
+   .pytest_tmp: permission denied` even though the path was already listed in
+   `.dockerignore` — BuildKit still has to stat/xattr every path during its initial
+   context walk regardless of ignore patterns. Plain `chmod`/`rm -rf` as the owning user
+   failed too (`permission denied`) because `backend/` lives on `/mnt/d`, a 9p/drvfs
+   mount of the Windows `D:` drive — the Linux permission bits there are emulated by the
+   9p client and can reject even the "owning" uid's own chmod. `sudo rm -rf` (bypasses
+   the 9p client-side check) removed it, after which the build/push/redeploy succeeded
+   cleanly. **Verified with 4 independent checks, not just the one `/health` curl**
+   (`/health` is a pure liveness stub — no DB call — so it alone doesn't prove much):
+   (1) ALB target-group health via `aws elbv2 describe-target-health` → `healthy`;
+   (2) `aws logs tail /ecs/staging-backend` → clean continuous `/health 200 OK`s, and
+   the *old* task's shutdown sequence in the logs confirms it was a deliberate drain,
+   not a crash; (3) a real DB write through the ECS task's own network path (not the
+   bastion path used for the migration) via `POST /auth/email-otp/request` (safe in
+   staging — `OTP_DELIVERY_MODE=stub` returns the OTP in the response instead of
+   emailing) → `{"message":"OTP sent.","otp":"..."}`, proving ALB → ECS task → its own
+   security group → RDS → back all work; (4) `aws ecs describe-tasks` → `RUNNING`, no
+   `stoppedReason`, `startedAt` unchanged since boot — confirms stability, not a lucky
+   snapshot.
+2. **RESOLVED.** The database schema didn't exist yet. Fixed via an SSM
+   Session Manager port-forward through the bastion (`aws ssm start-session
+   --document-name AWS-StartPortForwardingSessionToRemoteHost`, local port 5433 ->
+   RDS's 5432), fetching the Terraform-generated master password from Secrets Manager,
+   and running `alembic upgrade head` from the local `.venv` against the tunnel.
+   `alembic current` confirms `0011 (head)` on the real RDS instance — all 11 migrations
+   applied cleanly. **One real bug hit and fixed mid-task, worth remembering**: the
+   fetched password (`vtxAy$R(Drf$5:9M*bf5oBADitT2`) contains a literal `$R` and `$5` —
+   embedding it directly inside a double-quoted `python3 -c "..."` string let bash
+   variable-expand `$R`/`$5` to empty before Python ever saw it, silently corrupting the
+   password and producing a confusing `password authentication failed` further down the
+   stack. Fixed by piping the secret through `python3 -c` reading from `os.environ`
+   instead of a literal string, so bash never re-parses `$` inside it — general lesson:
+   never place a real secret value literally inside a double-quoted shell string, always
+   route it through a variable/env-var/stdin instead.
+
+**Security note — resolved 2026-09-09:** a real AWS IAM access key/secret for
+`ayush-admim` was pasted into this chat conversation in plaintext during `aws configure`,
+and the access key ID was also (accidentally) committed in this file's own text at one
+point. GitHub's push protection caught the committed copy and blocked the push. The key
+has been rotated (deactivated in IAM console, fresh key generated, `aws configure`
+re-run) and the offending commit rewritten via `git rebase -i` to remove the literal
+value before it was ever pushed — no shared history was affected since the commit had
+not left this machine. Lesson: never write a real credential value into any tracked
+file, even in a "note to self" — redact to `<redacted>` or reference the IAM user/key
+name only.
+
+**Staging backend is now fully live and verified end-to-end** (image built/pushed, ECS
+service healthy, DB schema migrated).
+
+**Phase 4 (frontend S3+CloudFront) — Terraform authored, reviewed, DONE; not yet
+applied.** Dispatched to Codex via `Docs/orchestration/aws-phase4-frontend-deployment-
+handoff.md`/`-implementation-prompt.md` (user-run, per established pattern). Codex built
+`infra/modules/frontend` (private S3 + CloudFront with OAC, both 403 and 404 mapped to
+`/index.html` for SPA routing, no domain/ACM yet — deliberately deferred to Phase 5).
+Independently reviewed against the handoff doc line by line — zero findings, `terraform
+fmt`/`validate` clean. Handoff doc Status moved to `DONE`. **Ayush still needs to run
+`terraform apply` himself** — a stray `infra/envs/staging/tfplan` from his own `plan`
+run was found in the working tree during review (not committed, flagged back to him).
+
+**Phase 5 (ACM/Route 53/ALB HTTPS/CloudFront domain) — Terraform handoff doc + prompt
+drafted, not yet dispatched.** `Docs/orchestration/aws-phase5-networking-domains-
+handoff.md`/`-implementation-prompt.md` written this session: two ACM certs (`us-east-1`
+for CloudFront, `ap-south-1` for the ALB), Route 53 alias records against the existing
+`unifolio.in` zone, an HTTPS listener + HTTP→HTTPS redirect on the live ALB, and in-place
+`aliases`/`viewer_certificate` updates to Phase 4's CloudFront distribution. Explicitly
+gated on Phase 4 being *applied* first (not just authored) — don't dispatch to Codex
+until then.
+
+**Not yet started:** Phase 6 (validation), Phase 7 (hardening/CI-CD). Once both Phase 4
+and Phase 5 are applied, the frontend still needs a manual rebuild pointed at
+`https://staging-api.unifolio.in` + upload to the Phase 4 S3 bucket + CloudFront
+invalidation before real functional testing can start — none of that is Terraform's job,
+see the phase docs' "Constraints" sections.
+
+## Previous Session (2026-09-07): AWS account + domain cutover, doc cleanup, pre-Terraform verification
 
 **AWS account and domain, done this session:**
 - AWS account created (root MFA via authenticator app, a $50 monthly budget alert,

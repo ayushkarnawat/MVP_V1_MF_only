@@ -53,6 +53,16 @@ module "backend" {
   google_oauth_client_id = var.google_oauth_client_id
 }
 
+data "aws_caller_identity" "current" {}
+
+module "frontend" {
+  source = "../../modules/frontend"
+
+  environment = var.environment
+  project     = var.project
+  account_id  = data.aws_caller_identity.current.account_id
+}
+
 output "networking" {
   description = "Phase 1 networking outputs consumed by later phases."
   value = {
@@ -119,4 +129,19 @@ output "ecs_cluster_name" {
 output "ecs_service_name" {
   description = "Name of the staging backend ECS service."
   value       = module.backend.ecs_service_name
+}
+
+output "s3_bucket_name" {
+  description = "Name of the private S3 bucket containing the built staging frontend assets."
+  value       = module.frontend.s3_bucket_name
+}
+
+output "cloudfront_distribution_id" {
+  description = "ID of the CloudFront distribution serving the staging frontend."
+  value       = module.frontend.cloudfront_distribution_id
+}
+
+output "cloudfront_domain_name" {
+  description = "CloudFront domain name serving the staging frontend."
+  value       = module.frontend.cloudfront_domain_name
 }
