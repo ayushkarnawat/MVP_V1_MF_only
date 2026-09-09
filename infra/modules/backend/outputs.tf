@@ -3,6 +3,11 @@ output "alb_dns_name" {
   value       = aws_lb.this.dns_name
 }
 
+output "alb_zone_id" {
+  description = "Hosted zone ID of the staging backend Application Load Balancer."
+  value       = aws_lb.this.zone_id
+}
+
 output "ecs_cluster_name" {
   description = "Name of the ECS cluster running the staging backend."
   value       = aws_ecs_cluster.this.name

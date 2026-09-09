@@ -32,6 +32,11 @@ module "ecr" {
   source = "../../modules/ecr"
 }
 
+data "aws_route53_zone" "primary" {
+  name         = "unifolio.in."
+  private_zone = false
+}
+
 module "backend" {
   source = "../../modules/backend"
 
@@ -51,6 +56,7 @@ module "backend" {
   db_port                = module.database.db_port
   db_name                = module.database.db_name
   google_oauth_client_id = var.google_oauth_client_id
+  acm_certificate_arn    = module.dns.backend_acm_certificate_arn
 }
 
 data "aws_caller_identity" "current" {}
@@ -61,6 +67,27 @@ module "frontend" {
   environment = var.environment
   project     = var.project
   account_id  = data.aws_caller_identity.current.account_id
+  domain_name = "staging.unifolio.in"
+
+  acm_certificate_arn = module.dns.frontend_acm_certificate_arn
+}
+
+module "dns" {
+  source = "../../modules/dns"
+
+  providers = {
+    aws           = aws
+    aws.us_east_1 = aws.us_east_1
+  }
+
+  zone_id              = data.aws_route53_zone.primary.zone_id
+  frontend_domain_name = "staging.unifolio.in"
+  backend_domain_name  = "staging-api.unifolio.in"
+
+  cloudfront_domain_name    = module.frontend.cloudfront_domain_name
+  cloudfront_hosted_zone_id = module.frontend.cloudfront_hosted_zone_id
+  alb_dns_name              = module.backend.alb_dns_name
+  alb_zone_id               = module.backend.alb_zone_id
 }
 
 output "networking" {

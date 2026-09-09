@@ -12,3 +12,8 @@ output "cloudfront_domain_name" {
   description = "CloudFront domain name serving the staging frontend."
   value       = aws_cloudfront_distribution.this.domain_name
 }
+
+output "cloudfront_hosted_zone_id" {
+  description = "Hosted zone ID of the CloudFront distribution serving the staging frontend."
+  value       = aws_cloudfront_distribution.this.hosted_zone_id
+}

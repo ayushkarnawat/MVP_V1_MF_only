@@ -79,3 +79,8 @@ variable "google_oauth_client_id" {
   type        = string
   default     = ""
 }
+
+variable "acm_certificate_arn" {
+  description = "ARN of the validated ACM certificate attached to the ALB HTTPS listener."
+  type        = string
+}

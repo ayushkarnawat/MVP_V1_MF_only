@@ -1,6 +1,6 @@
 # Handoff: aws-phase5-networking-domains
 
-**Status:** OPEN
+**Status:** DONE
 **Parent plan:** `AWS Readiness/aws-golive-readiness-report.md` §9 (Terraform strategy), §19 (resolved decisions), §22 Phase 5 (Networking & Domains)
 **Depends on:** `aws-phase4-frontend-deployment` must be `DONE` (reviewed **and** applied) before this is dispatched — this task modifies live resources Phase 4 creates (`infra/modules/frontend`'s CloudFront distribution) and adds a new HTTPS listener to a live resource Phase 3 created (`infra/modules/backend`'s ALB). Do not dispatch this to Codex until Phase 4's `terraform apply` has actually run.
 
