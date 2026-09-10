@@ -47,13 +47,20 @@ def _dispatch_recompute_and_release_claim_on_failure(user_id: uuid.UUID) -> None
     actually places the ECS task (unconfigured, or RunTask failures), a
     fresh session releases that claim rather than leaving it orphaned for
     up to the 2-hour staleness ceiling."""
-    if dispatcher.dispatch(user_id):
-        return
-    db = SessionLocal()
     try:
+        if dispatcher.dispatch(user_id):
+            return
+    except Exception:
+        logger.exception("Analytics recompute dispatch failed for user %s", user_id)
+    db: Session | None = None
+    try:
+        db = SessionLocal()
         release_recompute_claim(db, user_id)
+    except Exception:
+        logger.exception("Failed to release analytics recompute claim for user %s", user_id)
     finally:
-        db.close()
+        if db is not None:
+            db.close()
 
 
 async def _prefetch_member_nav_history(household_member_id: uuid.UUID) -> None:

@@ -350,6 +350,21 @@ def test_dispatch_and_release_on_failure_leaves_the_claim_when_dispatch_succeeds
     assert status.started_at is not None
 
 
+def test_dispatch_and_release_on_failure_never_raises_when_the_session_itself_errors():
+    """This runs as a fire-and-forget background task (see
+    `_prefetch_member_nav_history`'s identical posture) -- an unhandled
+    exception here must never propagate, or a DB hiccup on this narrow
+    release path would crash the background-task runner mid-request
+    instead of just leaving the claim to expire via the staleness ceiling."""
+    from app.api.imports import _dispatch_recompute_and_release_claim_on_failure
+
+    with (
+        patch("app.api.imports.dispatcher.dispatch", return_value=False),
+        patch("app.api.imports.SessionLocal", side_effect=RuntimeError("boom")),
+    ):
+        _dispatch_recompute_and_release_claim_on_failure(uuid.uuid4())  # must not raise
+
+
 def test_nav_prefetch_uses_fresh_session_and_never_raises():
     import asyncio
 
