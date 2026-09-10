@@ -71,11 +71,26 @@ staging user.
   (empty sections, `recomputing: true` indefinitely) until this is wired. Not a hard
   blocker for staging, but analytics will never actually populate until it's configured.
   Needs its own ECS task definition (distinct from the request-serving service) plus the
-  4 config values — reasonable to fold into Phase 7 unless the team wants working
-  analytics numbers in the very first staging pass.
-- ADR-006's 4 background-job scripts exist and their scheduler Terraform
-  (`infra/modules/scheduler`) is authored/reviewed, not yet applied — same
-  authored-not-applied status as Phases 4/5, can go in the same apply batch.
+  4 config values, reconciled against the real `ecs_cluster_arn` below. Tracked as its
+  own task (`Reconcile analytics-recompute dispatcher config against real ADR-006 ECS
+  values`).
+- **Correction (2026-09-10, later same day):** ADR-006's scheduler Terraform
+  (`infra/modules/scheduler`) is **not** merely authored/reviewed — it's already
+  `terraform apply`'d. Confirmed live via read-only AWS CLI: 4 EventBridge Scheduler
+  schedules (`unifolio-staging-job-{aaum-quarterly,benchmark-daily,nav-daily,ter-monthly}`),
+  all `ENABLED`, targeting `arn:aws:ecs:ap-south-1:811364789032:cluster/unifolio-staging`,
+  plus their 4 ECS task definitions, all created 2026-09-10 ~08:31 UTC. All 4 jobs were
+  run manually the same morning: `benchmark-daily`, `nav-daily`, `ter-monthly` succeeded
+  cleanly; `aaum-quarterly` crashed (`TypeError: string indices must be integers, not
+  'str'`) at 08:50 UTC — AMFI's period/year `id` counts *down* from most recent, but the
+  original code used `max()` to pick "latest," so it usually picked the wrong (oldest)
+  year and occasionally hit an incompatible response shape. Already fixed in commit
+  `037aa4c` (`min()` + documented rationale, on `feat/enhanced-ui`), but that fix is
+  **not yet in the deployed ECR image** — `unifolio-staging-backend:latest` was pushed at
+  09:02 UTC, before the 09:47 UTC fix commit, so the job currently wired to the live
+  schedule still carries the bug (it "succeeded" twice after the crash by luck, not
+  because it's fixed). No separate action needed: this is absorbed into step 3's backend
+  image rebuild+push below — just don't forget it's riding along in that rebuild.
 - CI (`.github/workflows/ci.yml`) is test-only — no branch triggers a deploy. All
   deployment remains a manual, human-run sequence (by design, per this project's
   division of labor: Claude/Codex never runs `terraform apply`, `docker push`, or any
@@ -111,9 +126,12 @@ exact commands when we get there rather than running them myself. Steps marked
 6. **[user-run] Rebuild the frontend** with `VITE_API_BASE_URL=https://staging-api.
    unifolio.in` (and the real Google OAuth client ID), upload to the Phase 4 S3 bucket,
    invalidate CloudFront.
-7. **(Optional, can defer to Phase 7) [user-run] `terraform apply` the scheduler module**
-   and set the 4 dispatcher config values, if you want real (not perpetually-pending)
-   analytics numbers in this staging pass.
+7. **[Claude/Codex author, user applies] Wire the analytics-recompute dispatcher** —
+   scheduler module Terraform is already applied (§1d correction); what's left is the
+   dispatcher's own ECS task definition + the 4 `EcsRunTaskDispatcher` config values,
+   reconciled against the real cluster ARN. If you want real (not perpetually-pending)
+   analytics numbers in this staging pass, this needs to happen before/alongside step 3;
+   otherwise it can defer to Phase 7.
 8. **[Claude+user, jointly] Phase 6 validation** — the full smoke-test checklist already
    defined in `AWS Readiness/aws-golive-readiness-report.md` §17/§22 Phase 6: Google
    sign-in, CAS import incl. password-retry, dashboard/holdings/allocation, analytics

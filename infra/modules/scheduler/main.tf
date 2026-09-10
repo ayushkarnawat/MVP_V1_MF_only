@@ -20,6 +20,19 @@ locals {
       command             = ["python", "scripts/jobs/refresh_aaum_quarterly.py"]
       schedule_expression = "cron(0 6 1 1,4,7,10 ? *)"
     }
+    # Design doc's "Daily EventBridge Scheduler backstop" (analytics-precompute
+    # spec) -- loops every household in one process run so NAV/market drift
+    # with no user activity still refreshes. Scheduled after nav_daily (0 6)
+    # so it picks up the day's freshly warmed NAV rows rather than racing them.
+    # A dedicated task def (not the on-demand one dispatch.py RunTask's) because
+    # EventBridge Scheduler's ecs_parameters has no containerOverrides support --
+    # unlike a direct boto3 RunTask call, it can only launch a task's fixed
+    # default command.
+    analytics_recompute_daily = {
+      slug                = "analytics-recompute-daily"
+      command             = ["python", "scripts/run_analytics_recompute.py", "--all"]
+      schedule_expression = "cron(30 6 * * ? *)"
+    }
   }
 }
 

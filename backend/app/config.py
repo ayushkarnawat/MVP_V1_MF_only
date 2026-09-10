@@ -14,8 +14,9 @@ class Settings(BaseSettings):
 
     # ECS Fargate RunTask invocation for the analytics recompute dispatcher
     # (see Docs/superpowers/specs/2026-09-02-analytics-precompute-architecture-design.md).
-    # Empty defaults are deliberate: the exact ARNs are being finalized in a
-    # parallel AWS-migration session as of 2026-09-02. EcsRunTaskDispatcher
+    # Empty defaults are deliberate for local dev. In staging these are
+    # injected as real values by infra/modules/backend (task def + task role
+    # authored 2026-09-10, pending `terraform apply`). EcsRunTaskDispatcher
     # degrades to a logged no-op when any required value is unset.
     aws_region: str = ""
     ecs_cluster_arn: str = ""

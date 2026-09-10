@@ -2,12 +2,13 @@
 Fargate RunTask, never inline on a request-serving replica (see this plan's
 Global Constraints and Docs/superpowers/specs/2026-09-02-analytics-precompute-architecture-design.md).
 
-The exact RunTask invocation contract (cluster/task-definition ARNs,
-container name, subnet/security-group ids) is being finalized in a parallel
-AWS-migration session as of 2026-09-02 -- built against config settings with
-empty defaults rather than concrete ARNs, so this code lands and is testable
-before that session's values exist. `dispatch` degrades to a logged no-op
-when unconfigured."""
+The RunTask invocation contract (cluster/task-definition ARNs, container
+name, subnet/security-group ids) is wired via infra/modules/backend as of
+2026-09-10 (`aws_ecs_task_definition.analytics_recompute` + a dedicated
+`backend_task` IAM role scoped to RunTask on just that task def), injected
+into the running container as the settings below -- pending `terraform
+apply` in staging. `dispatch` degrades to a logged no-op when unconfigured
+(e.g. local dev, or before that apply)."""
 
 from __future__ import annotations
 
