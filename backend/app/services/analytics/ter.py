@@ -41,7 +41,7 @@ _EMPTY_SUMMARY = WeightedTerSummary(
 # published for it) would otherwise make `_missing_current_month_ter` stay
 # true forever, triggering a full AMFI national-feed scan on every request.
 # Back off refresh attempts to at most once per window (mirrors nav.py's
-# `_NAV_WARM_TTL_SECONDS` pattern) regardless of whether coverage is still
+# warm-cache posture) regardless of whether coverage is still
 # missing afterward, and coalesce concurrent callers so only one in-flight
 # scan happens at a time.
 _TER_REFRESH_BACKOFF_SECONDS = 15 * 60

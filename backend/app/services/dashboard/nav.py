@@ -16,7 +16,7 @@ import threading
 import time
 import uuid
 from collections.abc import Iterable
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 
 import httpx
@@ -31,20 +31,22 @@ MFAPI_BASE = "https://api.mfapi.in"
 
 logger = logging.getLogger(__name__)
 
-# Process-local, same posture as holdings.py's _HOLDINGS_CACHE_TTL_SECONDS
-# (matching its window on purpose — re-warming a scheme's NAV history more
-# often than compute_holdings itself re-reads it buys nothing). Without
-# this, every Category Ranking/Scorer request re-fetched full NAV history
-# over the network for an entire SEBI-category peer universe (30-150+
-# schemes) on every call, live-verified 2026-08-14 as the dominant cost
-# behind slow repeat navigation between dashboard views. Timestamp is
-# recorded even on a failed fetch (best-effort, matching this module's
-# degrade-gracefully posture elsewhere) so an AMFI/mfapi outage doesn't
-# turn every request into a full re-fetch storm.
-_NAV_WARM_TTL_SECONDS = 15 * 60
-_nav_warm_clock = time.monotonic
-_nav_warm_cache: dict[uuid.UUID, float] = {}
-_nav_warm_lock = threading.Lock()
+# `warm_nav_history` is now called only from recompute.py's
+# recompute_household_analytics, run as a short-lived ECS Fargate RunTask —
+# a fresh process per invocation, sometimes several times a day for the same
+# household. A process-local "already warmed" cache doesn't survive across
+# those invocations, so the freshness check instead queries nav_history
+# itself: any scheme with a row dated within this window is treated as
+# fresh regardless of which process fetched it. The window (rather than
+# requiring exactly today's row) tolerates weekends/holidays when NSE/AMFI
+# simply hasn't published a new NAV yet.
+#
+# Known, accepted limitation (mirrors holdings.py's posture): if mfapi.in is
+# down for an entire daily-backstop run, every household in that run will
+# retry the fetch and fail again rather than backing off after the first
+# failure — bounded to at most one wasted retry per household per day, not
+# worth a dedicated attempts-tracking table at this call frequency.
+_NAV_FRESHNESS_WINDOW_DAYS = 3
 
 _NAV_UPSERT_INSERT_BUILDERS = {"sqlite": sqlite_insert, "postgresql": postgresql_insert}
 
@@ -164,6 +166,20 @@ async def get_nav_on_or_before(
     return (refreshed.nav, refreshed.date) if refreshed else None
 
 
+def _fresh_scheme_ids(db: Session, scheme_ids: Iterable[uuid.UUID]) -> set[uuid.UUID]:
+    scheme_ids = list(scheme_ids)
+    if not scheme_ids:
+        return set()
+    cutoff = date.today() - timedelta(days=_NAV_FRESHNESS_WINDOW_DAYS)
+    rows = (
+        db.query(NavHistory.scheme_id)
+        .filter(NavHistory.scheme_id.in_(scheme_ids), NavHistory.date >= cutoff)
+        .distinct()
+        .all()
+    )
+    return {row[0] for row in rows}
+
+
 async def warm_nav_history(db: Session, schemes: Iterable[Scheme]) -> None:
     """Concurrently fetch and cache full NAV history for a batch of
     schemes, deduplicated by scheme id. Lets a subsequent sequential
@@ -175,19 +191,15 @@ async def warm_nav_history(db: Session, schemes: Iterable[Scheme]) -> None:
     effort: a scheme whose fetch fails is simply left unwarmed, same
     degrade-gracefully posture as `get_nav_on_or_before`.
 
-    Skips any scheme warmed within `_NAV_WARM_TTL_SECONDS` of a prior call —
-    without this, repeat calls (e.g. re-navigating to the same Category
-    Ranking/Scorer view within the same session) re-fetched the entire
-    category universe's NAV history from the network every single time."""
+    Skips any scheme with a nav_history row within `_NAV_FRESHNESS_WINDOW_DAYS`
+    of today — without this, repeat calls (e.g. two scopes in the same
+    household recompute, or two households' recomputes minutes apart)
+    re-fetch the entire category universe's NAV history from the network
+    every time."""
     unique = {scheme.id: scheme for scheme in schemes}
 
-    now = _nav_warm_clock()
-    with _nav_warm_lock:
-        to_fetch = {
-            scheme_id: scheme
-            for scheme_id, scheme in unique.items()
-            if now - _nav_warm_cache.get(scheme_id, 0.0) > _NAV_WARM_TTL_SECONDS
-        }
+    fresh_ids = _fresh_scheme_ids(db, unique.keys())
+    to_fetch = {scheme_id: scheme for scheme_id, scheme in unique.items() if scheme_id not in fresh_ids}
 
     async def fetch(scheme: Scheme) -> tuple[Scheme, list[tuple[date, Decimal]] | None]:
         try:
@@ -207,13 +219,9 @@ async def warm_nav_history(db: Session, schemes: Iterable[Scheme]) -> None:
 
     commit_start = time.perf_counter()
     any_rows = False
-    with _nav_warm_lock:
-        for scheme, rows in fetched:
-            if rows:
-                any_rows = True
-            _nav_warm_cache[scheme.id] = now
     for scheme, rows in fetched:
         if rows:
+            any_rows = True
             await _upsert_nav_history(db, scheme.id, rows, commit=False)
     # One commit for the whole batch, not one per scheme — a category
     # universe can be 1000+ schemes, and a per-scheme commit means

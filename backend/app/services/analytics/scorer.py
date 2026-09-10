@@ -51,7 +51,7 @@ _HISTORY_YEARS = 5
 
 logger = logging.getLogger(__name__)
 
-# Mirrors nav.py's warm-cache posture (`_NAV_WARM_TTL_SECONDS`): this
+# Mirrors nav.py's warm-cache posture: this
 # category-wide computation (Return/Risk/Consistency across an entire SEBI
 # peer universe, 30-150+ schemes) was BUG-001's other dominant Scorer cost
 # -- a portfolio holding several categories, or repeat requests within a

@@ -5,55 +5,23 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session as DbSession
 
 from app.db.session import get_db
+from app.models.analytics import AnalyticsSection
 from app.models.reference import Scheme
 from app.models.user import User
-from app.services.analytics.allocation import (
-    compute_category_allocation,
-    get_aggregate_category_allocation,
-)
-from app.services.analytics.benchmark import (
-    compute_fund_vs_benchmark,
-    compute_portfolio_vs_benchmarks,
-    get_aggregate_fund_vs_benchmark,
-    get_aggregate_portfolio_vs_benchmarks,
-)
-from app.services.analytics.category_ranking import (
-    compute_category_ranking,
-    get_aggregate_category_ranking,
-)
-from app.services.analytics.schemas import (
-    AggregateAnalyticsAllocationResponse,
-    AggregateCategoryRankingResponse,
-    AggregateDirectRegularTerResponse,
-    AggregateFundVsBenchmarkResponse,
-    AggregatePortfolioBenchmarkResponse,
-    AggregatePortfolioScoreResponse,
-    AggregateWeightedTerResponse,
-    AnalyticsAllocationSummary,
-    CategoryRankingSummary,
-    DirectRegularTerComparison,
-    FundScoreRow,
-    FundVsBenchmarkSummary,
-    PortfolioBenchmarkSummary,
-    PortfolioScoreSummary,
-    WeightedTerSummary,
-)
+from app.services.analytics.dispatch import dispatcher
 from app.services.analytics.pdf_export import (
     consume_export_payload,
     render_analytics_pdf,
     store_export_payload,
 )
-from app.services.analytics.scorer import (
-    compute_fund_score,
-    compute_portfolio_score,
-    get_aggregate_portfolio_score,
+from app.services.analytics.recompute import release_recompute_claim, should_dispatch_recompute, try_claim_recompute
+from app.services.analytics.schemas import (
+    AnalyticsRetryResponse,
+    AnalyticsScopeResponse,
+    AnalyticsSectionState,
+    FundScoreRow,
 )
-from app.services.analytics.ter import (
-    compute_direct_regular_ter_comparison,
-    compute_weighted_ter,
-    get_aggregate_direct_regular_ter_comparison,
-    get_aggregate_weighted_ter,
-)
+from app.services.analytics.scorer import compute_fund_score
 from app.services.auth.session import get_current_user
 from app.services.dashboard.household_members import get_household_member_for_user
 
@@ -64,120 +32,6 @@ class AnalyticsExportRequest(BaseModel):
     scope: str  # "aggregate" | "member"
     member_id: uuid.UUID | None
     payload: dict
-
-
-@router.get(
-    "/household-members/{member_id}/allocation", response_model=AnalyticsAllocationSummary
-)
-async def get_member_category_allocation(
-    member_id: uuid.UUID,
-    user: User = Depends(get_current_user),
-    db: DbSession = Depends(get_db),
-):
-    if get_household_member_for_user(db, user.id, member_id) is None:
-        raise HTTPException(status_code=404, detail="Household member not found.")
-    return await compute_category_allocation(db, [member_id])
-
-
-@router.get(
-    "/household/aggregate/allocation", response_model=AggregateAnalyticsAllocationResponse
-)
-async def get_household_aggregate_category_allocation(
-    user: User = Depends(get_current_user), db: DbSession = Depends(get_db)
-):
-    return await get_aggregate_category_allocation(db, user.id)
-
-
-@router.get("/household-members/{member_id}/ter", response_model=WeightedTerSummary)
-async def get_member_weighted_ter(
-    member_id: uuid.UUID,
-    user: User = Depends(get_current_user),
-    db: DbSession = Depends(get_db),
-):
-    if get_household_member_for_user(db, user.id, member_id) is None:
-        raise HTTPException(status_code=404, detail="Household member not found.")
-    return await compute_weighted_ter(db, [member_id])
-
-
-@router.get("/household/aggregate/ter", response_model=AggregateWeightedTerResponse)
-async def get_household_aggregate_weighted_ter(
-    user: User = Depends(get_current_user), db: DbSession = Depends(get_db)
-):
-    return await get_aggregate_weighted_ter(db, user.id)
-
-
-@router.get("/household-members/{member_id}/ter/direct-regular", response_model=DirectRegularTerComparison)
-async def get_member_direct_regular_ter(
-    member_id: uuid.UUID,
-    user: User = Depends(get_current_user),
-    db: DbSession = Depends(get_db),
-):
-    if get_household_member_for_user(db, user.id, member_id) is None:
-        raise HTTPException(status_code=404, detail="Household member not found.")
-    return await compute_direct_regular_ter_comparison(db, [member_id])
-
-
-@router.get(
-    "/household/aggregate/ter/direct-regular", response_model=AggregateDirectRegularTerResponse
-)
-async def get_household_aggregate_direct_regular_ter(
-    user: User = Depends(get_current_user), db: DbSession = Depends(get_db)
-):
-    return await get_aggregate_direct_regular_ter_comparison(db, user.id)
-
-
-@router.get("/household-members/{member_id}/benchmark", response_model=PortfolioBenchmarkSummary)
-async def get_member_portfolio_benchmark(
-    member_id: uuid.UUID,
-    user: User = Depends(get_current_user),
-    db: DbSession = Depends(get_db),
-):
-    if get_household_member_for_user(db, user.id, member_id) is None:
-        raise HTTPException(status_code=404, detail="Household member not found.")
-    return await compute_portfolio_vs_benchmarks(db, [member_id])
-
-
-@router.get("/household/aggregate/benchmark", response_model=AggregatePortfolioBenchmarkResponse)
-async def get_household_aggregate_portfolio_benchmark(
-    user: User = Depends(get_current_user), db: DbSession = Depends(get_db)
-):
-    return await get_aggregate_portfolio_vs_benchmarks(db, user.id)
-
-
-@router.get("/household-members/{member_id}/benchmark/funds", response_model=FundVsBenchmarkSummary)
-async def get_member_fund_benchmark(
-    member_id: uuid.UUID,
-    user: User = Depends(get_current_user),
-    db: DbSession = Depends(get_db),
-):
-    if get_household_member_for_user(db, user.id, member_id) is None:
-        raise HTTPException(status_code=404, detail="Household member not found.")
-    return await compute_fund_vs_benchmark(db, [member_id])
-
-
-@router.get("/household/aggregate/benchmark/funds", response_model=AggregateFundVsBenchmarkResponse)
-async def get_household_aggregate_fund_benchmark(
-    user: User = Depends(get_current_user), db: DbSession = Depends(get_db)
-):
-    return await get_aggregate_fund_vs_benchmark(db, user.id)
-
-
-@router.get("/household-members/{member_id}/category-ranking", response_model=CategoryRankingSummary)
-async def get_member_category_ranking(
-    member_id: uuid.UUID,
-    user: User = Depends(get_current_user),
-    db: DbSession = Depends(get_db),
-):
-    if get_household_member_for_user(db, user.id, member_id) is None:
-        raise HTTPException(status_code=404, detail="Household member not found.")
-    return await compute_category_ranking(db, [member_id])
-
-
-@router.get("/household/aggregate/category-ranking", response_model=AggregateCategoryRankingResponse)
-async def get_household_aggregate_category_ranking(
-    user: User = Depends(get_current_user), db: DbSession = Depends(get_db)
-):
-    return await get_aggregate_category_ranking(db, user.id)
 
 
 @router.get("/funds/{scheme_id}/score", response_model=FundScoreRow)
@@ -192,22 +46,72 @@ async def get_fund_score(
     return await compute_fund_score(db, scheme)
 
 
-@router.get("/household-members/{member_id}/score", response_model=PortfolioScoreSummary)
-async def get_member_portfolio_score(
-    member_id: uuid.UUID,
+@router.get("/{scope}", response_model=AnalyticsScopeResponse)
+def get_analytics_scope(
+    scope: str,
     user: User = Depends(get_current_user),
     db: DbSession = Depends(get_db),
 ):
-    if get_household_member_for_user(db, user.id, member_id) is None:
-        raise HTTPException(status_code=404, detail="Household member not found.")
-    return await compute_portfolio_score(db, [member_id])
+    if scope == "combined":
+        scope_key = scope
+    else:
+        try:
+            member_uuid = uuid.UUID(scope)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=400, detail='scope must be "combined" or a household member id.'
+            ) from exc
+        if get_household_member_for_user(db, user.id, member_uuid) is None:
+            raise HTTPException(status_code=404, detail="Household member not found.")
+        # Canonicalize: rows are stored under str(member.id) (_upsert_section),
+        # but uuid.UUID() accepts non-canonical spellings (uppercase,
+        # hyphenless) that would otherwise miss the row lookup below.
+        scope_key = str(member_uuid)
+
+    rows = (
+        db.query(AnalyticsSection)
+        .filter(AnalyticsSection.user_id == user.id, AnalyticsSection.scope_key == scope_key)
+        .all()
+    )
+    sections = {
+        row.section: AnalyticsSectionState(payload=row.payload, computed_at=row.computed_at, failed_at=row.failed_at)
+        for row in rows
+    }
+
+    # should_dispatch_recompute is staleness-aware (unlike a raw started_at
+    # is not None check), so a crashed/killed run's stuck flag doesn't
+    # permanently block this route's own recovery branch below.
+    recomputing = not should_dispatch_recompute(db, user.id)
+
+    if not rows and not recomputing:
+        if try_claim_recompute(db, user.id) and not dispatcher.dispatch(user.id):
+            release_recompute_claim(db, user.id)
+        recomputing = True
+
+    return AnalyticsScopeResponse(scope=scope_key, recomputing=recomputing, sections=sections)
 
 
-@router.get("/household/aggregate/score", response_model=AggregatePortfolioScoreResponse)
-async def get_household_aggregate_portfolio_score(
-    user: User = Depends(get_current_user), db: DbSession = Depends(get_db)
+@router.post("/{scope}/retry", response_model=AnalyticsRetryResponse)
+def retry_analytics_scope(
+    scope: str,
+    user: User = Depends(get_current_user),
+    db: DbSession = Depends(get_db),
 ):
-    return await get_aggregate_portfolio_score(db, user.id)
+    if scope != "combined":
+        try:
+            member_uuid = uuid.UUID(scope)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=400, detail='scope must be "combined" or a household member id.'
+            ) from exc
+        if get_household_member_for_user(db, user.id, member_uuid) is None:
+            raise HTTPException(status_code=404, detail="Household member not found.")
+
+    dispatched = try_claim_recompute(db, user.id)
+    if dispatched and not dispatcher.dispatch(user.id):
+        release_recompute_claim(db, user.id)
+        dispatched = False
+    return AnalyticsRetryResponse(dispatched=dispatched)
 
 
 @router.post("/export/pdf")
