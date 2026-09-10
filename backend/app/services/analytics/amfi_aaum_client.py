@@ -8,22 +8,22 @@ the design doc's "Two distinct meanings of AUM-weighted" note — the
 user's own portfolio TER is weighted by the user's holding value, not by
 a fund's platform-wide AAUM).
 
-**Verification caveat.** The financial-years endpoint's response shape
-was live-verified during design research (2026-08-10) —
-`{"type":"financial_years","data":[{"id":..,"financial_year":".."}]}` —
-and each scheme-wise AAUM row's `AMFI_Code` and value field were also
-confirmed. The intermediate "periods within a financial year" endpoint's
-exact response shape was **not** captured verbatim in that research
-session (only "periods/quarters within that financial year" was noted).
-This module assumes the same `{"data": [{"id": ..., "period": ...}]}`
-envelope by analogy with the financial-years endpoint, and a `period`/
-`text`/`name` label field parsed as "<Month name> <YYYY>". This should be
-live-verified against a real response before FR-4 relies on this data —
-flagging per CLAUDE.md's "stop and say so" instruction rather than
-silently presenting an assumption as confirmed. Every failure mode here
-(missing years/periods, an unrecognized period label, no scheme matches)
-degrades to "nothing ingested this run" rather than a wrong value, so an
-incorrect assumption here is inert, not silently corrupting.
+**Verification caveat (updated 2026-09-10, live staging run).** The
+original design-research note (2026-08-10) claiming the financial-years
+endpoint returns `{"data":[{"id":..,"financial_year":".."}]}` did not
+match a live fetch on 2026-09-10: `data` is actually a `"[21]{schema}\n
+value,id\n..."` CSV-style string, not a JSON array — see `_parse_years_csv`.
+The periods endpoint's shape is now confirmed too: `data` is a single
+object `{"financial_year": .., "periods": [{"id":.., "period":..}, ...]}`,
+not a flat list — the `periods` key must be unwrapped explicitly. Also
+confirmed live: AMFI's `id` counts *down* from the most recent entry
+(`id: 1` = the current financial year / most recent period in a year;
+higher `id` = further in the past) — the opposite of the `max()` this
+module originally used to pick "latest", which was a silent bug (always
+returned the *oldest* year/period, never crashed). `_most_recent_by_id`
+now uses `min()` accordingly. Every failure mode here (missing years/
+periods, an unrecognized period label, no scheme matches) still degrades
+to "nothing ingested this run" rather than a wrong value.
 """
 
 from __future__ import annotations
@@ -44,18 +44,34 @@ AMFI_AAUM_BASE = "https://www.amfiindia.com/api/average-aum-schemewise"
 _AAUM_VALUE_FIELD = "ExcludingFundOfFundsDomesticButIncludingFundOfFundsOverseas"
 
 
+def _parse_years_csv(raw: str) -> list[dict]:
+    """`data` is a `"[count]{financial_year:string,id:int}\\nvalue,id\\n..."`
+    string, not JSON — split on the last comma per line since the label
+    itself ("April 2026 - March 2027") contains no comma but could in
+    principle, so rpartition is the safe direction to split from."""
+    lines = raw.strip().splitlines()
+    years = []
+    for line in lines[1:]:  # skip the "[count]{schema}" header line
+        financial_year, _, id_str = line.rpartition(",")
+        if financial_year and id_str.strip().lstrip("-").isdigit():
+            years.append({"financial_year": financial_year, "id": int(id_str)})
+    return years
+
+
 async def _fetch_financial_years() -> list[dict]:
     async with httpx.AsyncClient(timeout=30.0) as client:
         resp = await client.get(AMFI_AAUM_BASE, params={"strType": "Typewise", "MF_ID": 0})
         resp.raise_for_status()
-        return resp.json().get("data", [])
+        raw = resp.json().get("data", "")
+    return _parse_years_csv(raw) if isinstance(raw, str) else (raw or [])
 
 
 async def _fetch_periods(fy_id: int) -> list[dict]:
     async with httpx.AsyncClient(timeout=30.0) as client:
         resp = await client.get(AMFI_AAUM_BASE, params={"strType": "Typewise", "MF_ID": 0, "fyId": fy_id})
         resp.raise_for_status()
-        return resp.json().get("data", [])
+        data = resp.json().get("data", {})
+    return data.get("periods", []) if isinstance(data, dict) else []
 
 
 async def _fetch_aaum_rows(fy_id: int, period_id: int) -> list[dict]:
@@ -82,8 +98,10 @@ async def _fetch_aaum_rows(fy_id: int, period_id: int) -> list[dict]:
     return rows
 
 
-def _latest_by_id(items: list[dict]) -> dict | None:
-    return max(items, key=lambda item: item["id"]) if items else None
+def _most_recent_by_id(items: list[dict]) -> dict | None:
+    # AMFI's id counts down from the most recent entry (id 1 = newest) —
+    # the opposite of a typical auto-increment id, confirmed via live fetch.
+    return min(items, key=lambda item: item["id"]) if items else None
 
 
 def _period_end_date(period: dict) -> date | None:
@@ -134,11 +152,11 @@ async def refresh_aaum_data(db: Session) -> bool:
     same degrade-gracefully posture as `amfi_ter_client.py`."""
     try:
         years = await _fetch_financial_years()
-        latest_year = _latest_by_id(years)
+        latest_year = _most_recent_by_id(years)
         if latest_year is None:
             return False
         periods = await _fetch_periods(latest_year["id"])
-        latest_period = _latest_by_id(periods)
+        latest_period = _most_recent_by_id(periods)
         if latest_period is None:
             return False
         rows = await _fetch_aaum_rows(latest_year["id"], latest_period["id"])

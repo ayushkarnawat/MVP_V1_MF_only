@@ -13,6 +13,8 @@ from app.db.base import Base
 from app.models.reference import Scheme, SchemeAaum
 from app.services.analytics.amfi_aaum_client import (
     _extract_aaum_value,
+    _most_recent_by_id,
+    _parse_years_csv,
     _period_end_date,
     refresh_aaum_data,
 )
@@ -61,12 +63,34 @@ def test_extract_aaum_value_returns_none_when_missing():
     assert _extract_aaum_value({}) is None
 
 
+def test_parse_years_csv_reads_label_and_id_skipping_header():
+    raw = "[3]{financial_year:string,id:int}\nApril 2026 - March 2027,1\nApril 2025 - March 2026,2\nApril 2024 - March 2025,3\n"
+    assert _parse_years_csv(raw) == [
+        {"financial_year": "April 2026 - March 2027", "id": 1},
+        {"financial_year": "April 2025 - March 2026", "id": 2},
+        {"financial_year": "April 2024 - March 2025", "id": 3},
+    ]
+
+
+def test_most_recent_by_id_picks_smallest_id():
+    # AMFI counts down from the most recent entry (id 1 = newest).
+    items = [{"id": 3}, {"id": 1}, {"id": 2}]
+    assert _most_recent_by_id(items) == {"id": 1}
+
+
+def test_most_recent_by_id_returns_none_for_empty_list():
+    assert _most_recent_by_id([]) is None
+
+
 def test_refresh_aaum_data_upserts_matched_scheme_by_amfi_code():
     db = _session()
     scheme = _scheme(db, "119551")
 
-    years = [{"id": 1, "financial_year": "April 2025 - March 2026"}, {"id": 2, "financial_year": "April 2026 - March 2027"}]
-    periods = [{"id": 1, "period": "June 2026"}, {"id": 2, "period": "August 2026"}]
+    # AMFI's id counts down from the most recent entry (id 1 = newest) —
+    # `_most_recent_by_id` picks min(id), so id 1 must be the 2026-27 year
+    # and August 2026 period here for the assertion below to hold.
+    years = [{"id": 1, "financial_year": "April 2026 - March 2027"}, {"id": 2, "financial_year": "April 2025 - March 2026"}]
+    periods = [{"id": 1, "period": "August 2026"}, {"id": 2, "period": "June 2026"}]
     rows = [
         {
             "AMFI_Code": "119551",
