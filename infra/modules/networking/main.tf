@@ -277,4 +277,13 @@ resource "aws_instance" "bastion" {
   tags = merge(local.common_tags, {
     Name = "${var.environment}-bastion"
   })
+
+  # ami tracks data.aws_ami's most_recent lookup, which resolves to a newer
+  # AMI ID every time AWS publishes one — without this, every unrelated
+  # `terraform plan` shows a bastion replace. A jump box doesn't need to
+  # chase the latest AMI; replace deliberately (untaint this lifecycle rule)
+  # if a security-patch refresh is ever actually wanted.
+  lifecycle {
+    ignore_changes = [ami]
+  }
 }
