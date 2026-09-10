@@ -1,7 +1,8 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { MobileAnalyticsView } from "./MobileAnalyticsView";
 import * as api from "@/features/analytics/api";
+import type { AnalyticsSectionState } from "@/features/analytics/types";
 
 vi.mock("@/features/analytics/api");
 
@@ -103,41 +104,47 @@ const sampleFundBenchmark = {
   overall_broad_market_xirr: "0.1410",
 };
 
+function settled(
+  payload: Record<string, unknown> | null,
+  failedAt: string | null = null,
+): AnalyticsSectionState {
+  return {
+    payload: failedAt ? null : payload,
+    computed_at: failedAt ? null : "2026-09-01T00:00:00Z",
+    failed_at: failedAt,
+  };
+}
+
+function buildSections(isAggregate: boolean) {
+  const wrap = (field: string, value: Record<string, unknown>): Record<string, unknown> =>
+    isAggregate ? { members: [], [field]: value } : value;
+  return {
+    allocation: settled(wrap("allocation", sampleAllocationSummary)),
+    ter: settled(wrap("ter", sampleTerSummary)),
+    ter_direct_regular: settled(wrap("ter", sampleDirectRegularComparison)),
+    category_ranking: settled(wrap("ranking", sampleCategoryRanking)),
+    score: settled(wrap("score", sampleScoreSummary)),
+    benchmark: settled(wrap("benchmark", samplePortfolioBenchmark)),
+    benchmark_funds: settled(wrap("comparison", sampleFundBenchmark)),
+  };
+}
+
 describe("MobileAnalyticsView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it("fetches and renders all 5 sections for mobile analytics dashboard", async () => {
-    vi.mocked(api.getAggregateAllocation).mockResolvedValue({
-      members: [],
-      allocation: sampleAllocationSummary,
-    });
-    vi.mocked(api.getAggregateTer).mockResolvedValue({ members: [], ter: sampleTerSummary });
-    vi.mocked(api.getAggregateDirectRegularTer).mockResolvedValue({
-      members: [],
-      ter: sampleDirectRegularComparison,
-    });
-    vi.mocked(api.getAggregateCategoryRanking).mockResolvedValue({
-      members: [],
-      ranking: sampleCategoryRanking,
-    });
-    vi.mocked(api.getAggregateScore).mockResolvedValue({
-      members: [],
-      score: sampleScoreSummary,
-    });
-    vi.mocked(api.getAggregateBenchmark).mockResolvedValue({
-      members: [],
-      benchmark: samplePortfolioBenchmark,
-    });
-    vi.mocked(api.getAggregateFundBenchmark).mockResolvedValue({
-      members: [],
-      comparison: sampleFundBenchmark,
+    vi.mocked(api.getAnalyticsScope).mockResolvedValue({
+      scope: "combined",
+      recomputing: false,
+      sections: buildSections(true),
     });
 
     render(<MobileAnalyticsView />);
 
     expect(screen.getByText("Portfolio Total Value")).toBeInTheDocument();
+    expect(api.getAnalyticsScope).toHaveBeenCalledWith("combined", expect.any(AbortSignal));
 
     await waitFor(() => {
       expect(screen.getByText("Portfolio Allocation")).toBeInTheDocument();
@@ -148,8 +155,23 @@ describe("MobileAnalyticsView", () => {
     });
   });
 
+  it("uses the member id as the consolidated analytics scope", async () => {
+    vi.mocked(api.getAnalyticsScope).mockResolvedValue({
+      scope: "m-1",
+      recomputing: false,
+      sections: buildSections(false),
+    });
+
+    render(<MobileAnalyticsView memberId="m-1" />);
+
+    await waitFor(() => {
+      expect(api.getAnalyticsScope).toHaveBeenCalledWith("m-1", expect.any(AbortSignal));
+      expect(screen.getByText("Flexi Cap")).toBeInTheDocument();
+    });
+  });
+
   it("handles mobile error state when API fails", async () => {
-    vi.mocked(api.getAggregateAllocation).mockRejectedValue(new Error("Mobile Fetch Error"));
+    vi.mocked(api.getAnalyticsScope).mockRejectedValue(new Error("Mobile Fetch Error"));
 
     render(<MobileAnalyticsView />);
 
@@ -157,5 +179,26 @@ describe("MobileAnalyticsView", () => {
       expect(screen.getByText("Analytics Load Error")).toBeInTheDocument();
       expect(screen.getByText("Mobile Fetch Error")).toBeInTheDocument();
     });
+  });
+
+  it("retries the whole scope when a section has permanently failed", async () => {
+    const failedSections = {
+      ...buildSections(true),
+      score: settled(null, "2026-09-01T00:00:00Z"),
+    };
+    vi.mocked(api.getAnalyticsScope).mockResolvedValue({
+      scope: "combined",
+      recomputing: false,
+      sections: failedSections,
+    });
+    vi.mocked(api.retryAnalyticsScope).mockResolvedValue({ dispatched: true });
+
+    render(<MobileAnalyticsView />);
+
+    const retryButton = await screen.findByRole("button", { name: /retry/i });
+    fireEvent.click(retryButton);
+
+    await waitFor(() => expect(api.retryAnalyticsScope).toHaveBeenCalledWith("combined"));
+    await waitFor(() => expect(api.getAnalyticsScope).toHaveBeenCalledTimes(2));
   });
 });

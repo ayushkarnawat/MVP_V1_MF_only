@@ -4,6 +4,47 @@
 > (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps
 > use checkbox (`- [ ]`) syntax for tracking.
 
+> **Status addendum (2026-09-10, orchestrator review of a first implementation pass):**
+> Tasks 1-2 (`types.ts`, `api.ts`) are done and correct — verified directly against this
+> plan's target code, not taken on self-report. Tasks 3-7 were **not** done despite being
+> reported complete; independently confirmed via `npx tsc -b --noEmit`, which currently
+> fails with dozens of errors (`AnalyticsView.tsx` and its test still import the 14
+> functions Task 2 deleted from `api.ts`). Nothing here was committed, so the working
+> tree is safely fixable in place.
+>
+> **Real gap this plan itself never accounted for:** `frontend/src/mobile/features/
+> analytics/MobileAnalyticsView.tsx` (198 lines) is a second, independent full consumer
+> of the same 14 deleted functions — near-identical structure to `AnalyticsView.tsx`,
+> same section components, same `getMemberX`/`getAggregateX` import list. This plan's
+> Tasks 3/4/5/6/7 and the file-count in Task 8 need to additionally cover this file (and
+> its own test file, `MobileAnalyticsView.test.tsx`) or the mobile analytics view will
+> 404/fail-to-compile even after this plan is otherwise "done." See
+> `Docs/orchestration/analytics-frontend-migration-remaining-implementation-prompt.md`
+> for the corrected remaining-work scope.
+>
+> **Process note:** Task 8's instruction to dispatch the review gate via
+> `Agent(subagent_type: codex:codex-rescue, ...)` is superseded — in this repo the
+> orchestrator (Claude) reviews Codex's output directly (reads the diff, reruns tests/
+> `tsc` itself) rather than dispatching a review job. See `Docs/orchestration/
+> delegation-log.md`'s 2026-09-10 entries.
+>
+> **Status addendum #2 (2026-09-10, orchestrator review of the corrected/complete
+> pass): PASS, Status → DONE.** Read every changed file in full against this plan's
+> target code (Tasks 1-4), not the self-report: `types.ts`, `api.ts`,
+> `useAnalyticsScope.ts`/`.test.ts`, `AnalyticsView.tsx`/`.test.tsx` all match the plan
+> verbatim (only cosmetic line-wrap/typing-tightness diffs, no semantic deviation).
+> `MobileAnalyticsView.tsx`/`.test.tsx` (not in this plan, added per the corrected
+> remaining-work prompt) correctly reuse the same `useAnalyticsScope` hook rather than
+> duplicating polling logic, adapted to the mobile view's `memberId?: string | null`
+> prop shape. Independently ran `npx tsc -b --noEmit` myself — clean. Independently ran
+> the full frontend suite myself (not the pasted self-report) — first pass returned
+> 73/406 with 3 files failing to start (`vitest-pool-runner` worker-timeout, an
+> infra/WSL flake given the abnormal 400s+ setup/import durations, not a test
+> failure); re-ran those 3 files individually and they all passed, confirming the full
+> suite is genuinely 76 files / 412 tests passing. `get_fund_score` fate confirmed
+> unchanged and correct: still only called from `FundScoreDetailModal.tsx`, synchronous
+> on-demand by original design. Zero findings.
+
 **Goal:** Migrate the Analytics dashboard frontend off the 14 deleted per-section REST
 routes onto the new consolidated precompute contract (`GET /analytics/{scope}`,
 `POST /analytics/{scope}/retry`), so the dashboard renders real data instead of 404ing,

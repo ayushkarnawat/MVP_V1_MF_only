@@ -146,3 +146,32 @@ export interface AnalyticsExportPayload {
   portfolioBenchmark: PortfolioBenchmarkSummary | null;
   fundBenchmark: FundVsBenchmarkSummary | null;
 }
+
+/* Consolidated precompute contract (backend/app/services/analytics/schemas.py) */
+export const ANALYTICS_SECTION_NAMES = [
+  "allocation",
+  "ter",
+  "ter_direct_regular",
+  "benchmark",
+  "benchmark_funds",
+  "category_ranking",
+  "score",
+] as const;
+
+export type AnalyticsSectionName = (typeof ANALYTICS_SECTION_NAMES)[number];
+
+export interface AnalyticsSectionState {
+  payload: Record<string, unknown> | null;
+  computed_at: string | null;
+  failed_at: string | null;
+}
+
+export interface AnalyticsScopeResponse {
+  scope: string;
+  recomputing: boolean;
+  sections: Partial<Record<AnalyticsSectionName, AnalyticsSectionState>>;
+}
+
+export interface AnalyticsRetryResponse {
+  dispatched: boolean;
+}

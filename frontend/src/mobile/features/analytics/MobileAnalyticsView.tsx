@@ -1,24 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { formatIndianCurrency } from "@/lib/decimal";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle } from "lucide-react";
-import {
-  getAggregateAllocation,
-  getMemberAllocation,
-  getAggregateTer,
-  getMemberTer,
-  getAggregateDirectRegularTer,
-  getMemberDirectRegularTer,
-  getAggregateCategoryRanking,
-  getMemberCategoryRanking,
-  getAggregateScore,
-  getMemberScore,
-  getAggregateBenchmark,
-  getMemberBenchmark,
-  getAggregateFundBenchmark,
-  getMemberFundBenchmark,
-} from "@/features/analytics/api";
+import { AlertCircle, RefreshCw } from "lucide-react";
+import { isSectionSettled, useAnalyticsScope } from "@/features/analytics/useAnalyticsScope";
 import { AllocationSection } from "@/features/analytics/AllocationSection";
 import { TerSection } from "@/features/analytics/TerSection";
 import { CategoryRankingSection } from "@/features/analytics/CategoryRankingSection";
@@ -27,97 +12,59 @@ import { BenchmarkSection } from "@/features/analytics/BenchmarkSection";
 import { FundScoreDetailModal } from "@/features/analytics/FundScoreDetailModal";
 import type {
   AnalyticsAllocationSummary,
-  WeightedTerSummary,
-  DirectRegularTerComparison,
+  AnalyticsSectionName,
   CategoryRankingSummary,
-  PortfolioScoreSummary,
-  PortfolioBenchmarkSummary,
+  DirectRegularTerComparison,
   FundVsBenchmarkSummary,
+  PortfolioBenchmarkSummary,
+  PortfolioScoreSummary,
+  WeightedTerSummary,
 } from "@/features/analytics/types";
 
 export interface MobileAnalyticsViewProps {
   memberId?: string | null;
 }
 
+const AGGREGATE_FIELD: Record<AnalyticsSectionName, string> = {
+  allocation: "allocation",
+  ter: "ter",
+  ter_direct_regular: "ter",
+  benchmark: "benchmark",
+  benchmark_funds: "comparison",
+  category_ranking: "ranking",
+  score: "score",
+};
+
 export function MobileAnalyticsView({ memberId = null }: MobileAnalyticsViewProps) {
-  const [allocation, setAllocation] = useState<AnalyticsAllocationSummary | null>(null);
-  const [ter, setTer] = useState<WeightedTerSummary | null>(null);
-  const [terComparison, setTerComparison] = useState<DirectRegularTerComparison | null>(null);
-  const [ranking, setRanking] = useState<CategoryRankingSummary | null>(null);
-  const [scoreSummary, setScoreSummary] = useState<PortfolioScoreSummary | null>(null);
-  const [portfolioBenchmark, setPortfolioBenchmark] = useState<PortfolioBenchmarkSummary | null>(null);
-  const [fundBenchmark, setFundBenchmark] = useState<FundVsBenchmarkSummary | null>(null);
+  const isAggregate = !memberId;
+  const scope = memberId || "combined";
+  const { sections, fetchError, hasFailedSection, isRetrying, retry } = useAnalyticsScope(scope);
+
+  function unwrap<T>(name: AnalyticsSectionName): T | null {
+    const payload = sections[name]?.payload;
+    if (!payload) return null;
+    return (isAggregate ? (payload as Record<string, unknown>)[AGGREGATE_FIELD[name]] : payload) as T;
+  }
+
+  const allocation = unwrap<AnalyticsAllocationSummary>("allocation");
+  const ter = unwrap<WeightedTerSummary>("ter");
+  const terComparison = unwrap<DirectRegularTerComparison>("ter_direct_regular");
+  const ranking = unwrap<CategoryRankingSummary>("category_ranking");
+  const scoreSummary = unwrap<PortfolioScoreSummary>("score");
+  const portfolioBenchmark = unwrap<PortfolioBenchmarkSummary>("benchmark");
+  const fundBenchmark = unwrap<FundVsBenchmarkSummary>("benchmark_funds");
+
+  const allocationLoading = !isSectionSettled(sections.allocation);
+  const terLoading = !isSectionSettled(sections.ter) || !isSectionSettled(sections.ter_direct_regular);
+  const rankingLoading = !isSectionSettled(sections.category_ranking);
+  const scoreLoading = !isSectionSettled(sections.score);
+  const benchmarkLoading =
+    !isSectionSettled(sections.benchmark) || !isSectionSettled(sections.benchmark_funds);
 
   // S20 Modal State
   const [selectedSchemeId, setSelectedSchemeId] = useState<string | null>(null);
   const [selectedSchemeName, setSelectedSchemeName] = useState<string | undefined>(undefined);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let isMounted = true;
-    const controller = new AbortController();
-    const { signal } = controller;
-    setLoading(true);
-
-    async function fetchData() {
-      try {
-        if (!memberId) {
-          const [allocRes, terRes, dirRegRes, rankRes, scoreRes, benchRes, fundBenchRes] =
-            await Promise.all([
-              getAggregateAllocation(signal),
-              getAggregateTer(signal),
-              getAggregateDirectRegularTer(signal),
-              getAggregateCategoryRanking(signal),
-              getAggregateScore(signal),
-              getAggregateBenchmark(signal),
-              getAggregateFundBenchmark(signal),
-            ]);
-          if (!isMounted) return;
-          setAllocation(allocRes.allocation);
-          setTer(terRes.ter);
-          setTerComparison(dirRegRes.ter);
-          setRanking(rankRes.ranking);
-          setScoreSummary(scoreRes.score);
-          setPortfolioBenchmark(benchRes.benchmark);
-          setFundBenchmark(fundBenchRes.comparison);
-        } else {
-          const [allocRes, terRes, dirRegRes, rankRes, scoreRes, benchRes, fundBenchRes] =
-            await Promise.all([
-              getMemberAllocation(memberId, signal),
-              getMemberTer(memberId, signal),
-              getMemberDirectRegularTer(memberId, signal),
-              getMemberCategoryRanking(memberId, signal),
-              getMemberScore(memberId, signal),
-              getMemberBenchmark(memberId, signal),
-              getMemberFundBenchmark(memberId, signal),
-            ]);
-          if (!isMounted) return;
-          setAllocation(allocRes);
-          setTer(terRes);
-          setTerComparison(dirRegRes);
-          setRanking(rankRes);
-          setScoreSummary(scoreRes);
-          setPortfolioBenchmark(benchRes);
-          setFundBenchmark(fundBenchRes);
-        }
-      } catch (err: any) {
-        if (!isMounted) return;
-        setError(err.message || "Failed to load mobile analytics");
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    }
-
-    fetchData();
-
-    return () => {
-      isMounted = false;
-      controller.abort();
-    };
-  }, [memberId]);
 
   const handleOpenScoreModal = (schemeId: string, schemeName: string) => {
     setSelectedSchemeId(schemeId);
@@ -125,13 +72,13 @@ export function MobileAnalyticsView({ memberId = null }: MobileAnalyticsViewProp
     setIsModalOpen(true);
   };
 
-  if (error) {
+  if (fetchError) {
     return (
       <div className="p-4 space-y-4 text-center">
         <div className="rounded-2xl border border-[var(--color-negative)]/30 bg-[var(--color-negative)]/5 p-5 space-y-2">
           <AlertCircle className="h-6 w-6 text-[var(--color-negative)] mx-auto" />
           <p className="text-xs font-bold text-[var(--color-ink)]">Analytics Load Error</p>
-          <p className="text-[11px] text-[var(--color-text-secondary)]">{error}</p>
+          <p className="text-[11px] text-[var(--color-text-secondary)]">{fetchError}</p>
         </div>
       </div>
     );
@@ -152,7 +99,7 @@ export function MobileAnalyticsView({ memberId = null }: MobileAnalyticsViewProp
           <span className="text-[11px] text-[var(--color-text-secondary)] font-medium block">
             Portfolio Total Value
           </span>
-          {loading ? (
+          {allocationLoading ? (
             <Skeleton className="h-7 w-32 mt-1" />
           ) : (
             <span className="font-display text-2xl font-bold text-[var(--color-ink)] tabular-nums type-display">
@@ -162,19 +109,39 @@ export function MobileAnalyticsView({ memberId = null }: MobileAnalyticsViewProp
         </div>
       </div>
 
+      {hasFailedSection && (
+        <div className="rounded-2xl border border-[var(--color-negative)]/30 bg-[var(--color-negative)]/5 p-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-[var(--color-negative)] flex-shrink-0" />
+            <p className="text-[11px] text-[var(--color-text-secondary)]">
+              Some sections failed to compute.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={retry}
+            disabled={isRetrying}
+            className="text-xs font-semibold text-[var(--color-accent)] disabled:opacity-40 inline-flex items-center gap-1.5"
+          >
+            <RefreshCw className="h-3 w-3" />
+            {isRetrying ? "Retrying…" : "Retry"}
+          </button>
+        </div>
+      )}
+
       {/* Section 1: Allocation */}
-      <AllocationSection summary={allocation} isLoading={loading} />
+      <AllocationSection summary={allocation} isLoading={allocationLoading} />
 
       {/* Section 2: TER & Cost */}
-      <TerSection ter={ter} comparison={terComparison} isLoading={loading} />
+      <TerSection ter={ter} comparison={terComparison} isLoading={terLoading} />
 
       {/* Section 3: Category Ranking */}
-      <CategoryRankingSection ranking={ranking} isLoading={loading} />
+      <CategoryRankingSection ranking={ranking} isLoading={rankingLoading} />
 
       {/* Section 4: Scorer */}
       <ScorerSection
         scoreSummary={scoreSummary}
-        isLoading={loading}
+        isLoading={scoreLoading}
         onSelectFundScore={handleOpenScoreModal}
       />
 
@@ -182,7 +149,7 @@ export function MobileAnalyticsView({ memberId = null }: MobileAnalyticsViewProp
       <BenchmarkSection
         portfolioBenchmark={portfolioBenchmark}
         fundBenchmark={fundBenchmark}
-        isLoading={loading}
+        isLoading={benchmarkLoading}
       />
 
       {/* S20 Modal */}

@@ -1,42 +1,29 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { formatIndianCurrency } from "@/lib/decimal";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, TrendingUp } from "lucide-react";
-import {
-  getMemberAllocation,
-  getAggregateAllocation,
-  getMemberTer,
-  getAggregateTer,
-  getMemberDirectRegularTer,
-  getAggregateDirectRegularTer,
-  getMemberCategoryRanking,
-  getAggregateCategoryRanking,
-  getMemberScore,
-  getAggregateScore,
-  getMemberBenchmark,
-  getAggregateBenchmark,
-  getMemberFundBenchmark,
-  getAggregateFundBenchmark,
-  postExportPdf,
-} from "./api";
+import { AlertCircle, RefreshCw, TrendingUp } from "lucide-react";
+import { postExportPdf } from "./api";
+import { isSectionSettled, useAnalyticsScope } from "./useAnalyticsScope";
 import { AllocationSection } from "./AllocationSection";
 import { TerSection } from "./TerSection";
 import { CategoryRankingSection } from "./CategoryRankingSection";
 import { ScorerSection } from "./ScorerSection";
 import { BenchmarkSection } from "./BenchmarkSection";
 import { FundScoreDetailModal } from "./FundScoreDetailModal";
+import { ANALYTICS_SECTION_NAMES } from "./types";
 import type {
   AnalyticsAllocationSummary,
-  WeightedTerSummary,
-  DirectRegularTerComparison,
+  AnalyticsExportPayload,
+  AnalyticsSectionName,
   CategoryRankingSummary,
-  PortfolioScoreSummary,
-  PortfolioBenchmarkSummary,
+  DirectRegularTerComparison,
   FundVsBenchmarkSummary,
   MemberStatus,
-  AnalyticsExportPayload,
+  PortfolioBenchmarkSummary,
+  PortfolioScoreSummary,
+  WeightedTerSummary,
 } from "./types";
 
 export interface AnalyticsViewProps {
@@ -46,49 +33,68 @@ export interface AnalyticsViewProps {
   activeMemberName?: string;
 }
 
+const AGGREGATE_FIELD: Record<AnalyticsSectionName, string> = {
+  allocation: "allocation",
+  ter: "ter",
+  ter_direct_regular: "ter",
+  benchmark: "benchmark",
+  benchmark_funds: "comparison",
+  category_ranking: "ranking",
+  score: "score",
+};
+
 export function AnalyticsView({
   viewMode,
   memberId,
   onAddDataForMember,
   activeMemberName,
 }: AnalyticsViewProps) {
-  const [allocation, setAllocation] = useState<AnalyticsAllocationSummary | null>(null);
-  const [ter, setTer] = useState<WeightedTerSummary | null>(null);
-  const [terComparison, setTerComparison] = useState<DirectRegularTerComparison | null>(null);
-  const [ranking, setRanking] = useState<CategoryRankingSummary | null>(null);
-  const [scoreSummary, setScoreSummary] = useState<PortfolioScoreSummary | null>(null);
-  const [portfolioBenchmark, setPortfolioBenchmark] = useState<PortfolioBenchmarkSummary | null>(null);
-  const [fundBenchmark, setFundBenchmark] = useState<FundVsBenchmarkSummary | null>(null);
-  const [members, setMembers] = useState<MemberStatus[]>([]);
+  const isAggregate = viewMode === "aggregate";
+  const scope = isAggregate ? "combined" : memberId;
+  const { sections, recomputing, fetchError, hasFailedSection, isRetrying, retry } = useAnalyticsScope(scope);
+
+  function unwrap<T>(name: AnalyticsSectionName): T | null {
+    const payload = sections[name]?.payload;
+    if (!payload) return null;
+    return (isAggregate ? (payload as Record<string, unknown>)[AGGREGATE_FIELD[name]] : payload) as T;
+  }
+
+  const allocation = unwrap<AnalyticsAllocationSummary>("allocation");
+  const ter = unwrap<WeightedTerSummary>("ter");
+  const terComparison = unwrap<DirectRegularTerComparison>("ter_direct_regular");
+  const ranking = unwrap<CategoryRankingSummary>("category_ranking");
+  const scoreSummary = unwrap<PortfolioScoreSummary>("score");
+  const portfolioBenchmark = unwrap<PortfolioBenchmarkSummary>("benchmark");
+  const fundBenchmark = unwrap<FundVsBenchmarkSummary>("benchmark_funds");
+  const members: MemberStatus[] = isAggregate
+    ? (((sections.allocation?.payload as Record<string, unknown> | undefined)?.members as MemberStatus[]) ?? [])
+    : [];
+
+  const allocationLoading = !!scope && !isSectionSettled(sections.allocation);
+  const terLoading =
+    !!scope && (!isSectionSettled(sections.ter) || !isSectionSettled(sections.ter_direct_regular));
+  const rankingLoading = !!scope && !isSectionSettled(sections.category_ranking);
+  const scoreLoading = !!scope && !isSectionSettled(sections.score);
+  const benchmarkLoading =
+    !!scope && (!isSectionSettled(sections.benchmark) || !isSectionSettled(sections.benchmark_funds));
+
+  const allSectionsLoaded =
+    !scope || (!recomputing && ANALYTICS_SECTION_NAMES.every((name) => isSectionSettled(sections[name])));
 
   // S20 Modal State
   const [selectedSchemeId, setSelectedSchemeId] = useState<string | null>(null);
   const [selectedSchemeName, setSelectedSchemeName] = useState<string | undefined>(undefined);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Each section fetches and loads independently — allocation/TER/benchmark
-  // typically resolve in well under a second, while category-ranking/score
-  // (which each scan a full SEBI-category peer universe, live-verified
-  // 2026-08-14 to take much longer on first load) must never block them.
-  const [allocationLoading, setAllocationLoading] = useState(true);
-  const [terLoading, setTerLoading] = useState(true);
-  const [rankingLoading, setRankingLoading] = useState(true);
-  const [scoreLoading, setScoreLoading] = useState(true);
-  const [benchmarkLoading, setBenchmarkLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
-
-  const allSectionsLoaded =
-    !allocationLoading && !terLoading && !rankingLoading && !scoreLoading && !benchmarkLoading;
 
   const handleDownloadPdf = async () => {
     setIsExporting(true);
     setExportError(null);
     try {
       const payload: AnalyticsExportPayload = {
-        scopeName: viewMode === "aggregate" ? "Family Aggregate" : activeMemberName ?? "Member",
+        scopeName: isAggregate ? "Family Aggregate" : activeMemberName ?? "Member",
         allocation,
         ter,
         terComparison,
@@ -101,7 +107,7 @@ export function AnalyticsView({
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = `unifolio-analytics-${viewMode === "aggregate" ? "family" : memberId}.pdf`;
+      anchor.download = `unifolio-analytics-${isAggregate ? "family" : memberId}.pdf`;
       anchor.click();
       URL.revokeObjectURL(url);
     } catch (err: any) {
@@ -111,125 +117,15 @@ export function AnalyticsView({
     }
   };
 
-  useEffect(() => {
-    let isMounted = true;
-    const controller = new AbortController();
-    const { signal } = controller;
-    setAllocationLoading(true);
-    setTerLoading(true);
-    setRankingLoading(true);
-    setScoreLoading(true);
-    setBenchmarkLoading(true);
-    setError(null);
-
-    const isAggregate = viewMode === "aggregate";
-    if (!isAggregate && !memberId) {
-      setAllocationLoading(false);
-      setTerLoading(false);
-      setRankingLoading(false);
-      setScoreLoading(false);
-      setBenchmarkLoading(false);
-      return;
-    }
-
-    // Allocation drives the hero "Total Portfolio Value" and is the one
-    // section every other section's data is meaningless without — its
-    // failure surfaces as the full-page error. A slow/failing
-    // category-ranking or score call must not take the rest of the
-    // dashboard down with it, so those log rather than blank the page;
-    // each section already renders a graceful empty state for null data.
-    const logSectionError = (section: string) => (err: any) => {
-      if (err instanceof DOMException && err.name === "AbortError") return;
-      console.error(`Analytics: failed to load ${section}`, err);
-    };
-
-    (isAggregate ? getAggregateAllocation(signal) : getMemberAllocation(memberId!, signal))
-      .then((res: any) => {
-        if (!isMounted) return;
-        if (isAggregate) {
-          setAllocation(res.allocation);
-          setMembers(res.members);
-        } else {
-          setAllocation(res);
-          setMembers([]);
-        }
-      })
-      .catch((err: any) => {
-        if (!isMounted) return;
-        setError(err.message || "Failed to load analytics data");
-      })
-      .finally(() => {
-        if (isMounted) setAllocationLoading(false);
-      });
-
-    Promise.all(
-      isAggregate
-        ? [getAggregateTer(signal), getAggregateDirectRegularTer(signal)]
-        : [getMemberTer(memberId!, signal), getMemberDirectRegularTer(memberId!, signal)]
-    )
-      .then(([terRes, dirRegRes]: any) => {
-        if (!isMounted) return;
-        setTer(isAggregate ? terRes.ter : terRes);
-        setTerComparison(isAggregate ? dirRegRes.ter : dirRegRes);
-      })
-      .catch(logSectionError("TER"))
-      .finally(() => {
-        if (isMounted) setTerLoading(false);
-      });
-
-    (isAggregate ? getAggregateCategoryRanking(signal) : getMemberCategoryRanking(memberId!, signal))
-      .then((res: any) => {
-        if (!isMounted) return;
-        setRanking(isAggregate ? res.ranking : res);
-      })
-      .catch(logSectionError("category ranking"))
-      .finally(() => {
-        if (isMounted) setRankingLoading(false);
-      });
-
-    (isAggregate ? getAggregateScore(signal) : getMemberScore(memberId!, signal))
-      .then((res: any) => {
-        if (!isMounted) return;
-        setScoreSummary(isAggregate ? res.score : res);
-      })
-      .catch(logSectionError("score"))
-      .finally(() => {
-        if (isMounted) setScoreLoading(false);
-      });
-
-    Promise.all(
-      isAggregate
-        ? [getAggregateBenchmark(signal), getAggregateFundBenchmark(signal)]
-        : [getMemberBenchmark(memberId!, signal), getMemberFundBenchmark(memberId!, signal)]
-    )
-      .then(([benchRes, fundBenchRes]: any) => {
-        if (!isMounted) return;
-        setPortfolioBenchmark(isAggregate ? benchRes.benchmark : benchRes);
-        setFundBenchmark(isAggregate ? fundBenchRes.comparison : fundBenchRes);
-      })
-      .catch(logSectionError("benchmark"))
-      .finally(() => {
-        if (isMounted) setBenchmarkLoading(false);
-      });
-
-    return () => {
-      isMounted = false;
-      controller.abort();
-    };
-  }, [viewMode, memberId]);
-
   const handleOpenScoreModal = (schemeId: string, schemeName: string) => {
     setSelectedSchemeId(schemeId);
     setSelectedSchemeName(schemeName);
     setIsModalOpen(true);
   };
 
-  const targetMemberPlaceholder =
-    viewMode === "aggregate"
-      ? members.find((m) => !m.has_data)
-      : null;
+  const targetMemberPlaceholder = isAggregate ? members.find((m) => !m.has_data) : null;
 
-  if (error) {
+  if (fetchError) {
     return (
       <div className="rounded-xl border border-[var(--color-negative)]/30 bg-[var(--color-negative)]/5 p-6 text-center space-y-3">
         <AlertCircle className="h-8 w-8 text-[var(--color-negative)] mx-auto" />
@@ -237,7 +133,7 @@ export function AnalyticsView({
           Unable to load Analytics Dashboard
         </h2>
         <p className="text-xs text-[var(--color-text-secondary)] max-w-md mx-auto">
-          {error}
+          {fetchError}
         </p>
       </div>
     );
@@ -293,7 +189,7 @@ export function AnalyticsView({
       </Card>
 
       {/* Aggregate Placeholder Notice */}
-      {viewMode === "aggregate" && targetMemberPlaceholder && (
+      {isAggregate && targetMemberPlaceholder && (
         <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <TrendingUp className="h-4 w-4 text-[var(--color-accent)] flex-shrink-0" />
@@ -310,6 +206,26 @@ export function AnalyticsView({
               + Add CAS for {targetMemberPlaceholder.name}
             </button>
           )}
+        </div>
+      )}
+
+      {hasFailedSection && (
+        <div className="rounded-xl border border-[var(--color-negative)]/30 bg-[var(--color-negative)]/5 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <AlertCircle className="h-4 w-4 text-[var(--color-negative)] flex-shrink-0" />
+            <p className="text-xs text-[var(--color-text-secondary)]">
+              Some sections failed to compute.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={retry}
+            disabled={isRetrying}
+            className="text-xs font-semibold text-[var(--color-accent)] hover:underline cursor-pointer self-start sm:self-auto disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+          >
+            <RefreshCw className="h-3 w-3" />
+            {isRetrying ? "Retrying…" : "Retry"}
+          </button>
         </div>
       )}
 

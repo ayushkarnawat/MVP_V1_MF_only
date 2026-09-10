@@ -1,6 +1,73 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { postExportPdf, getExportPayload } from "./api";
+import { getAnalyticsScope, retryAnalyticsScope, postExportPdf, getExportPayload } from "./api";
 import * as session from "../auth/session";
+
+describe("getAnalyticsScope", () => {
+  beforeEach(() => {
+    vi.spyOn(session, "getToken").mockReturnValue("session-tok");
+  });
+
+  it("GETs /analytics/{scope} with the bearer token and an abort signal", async () => {
+    const body = { scope: "combined", recomputing: false, sections: {} };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response(JSON.stringify(body), { status: 200 })),
+    );
+    const controller = new AbortController();
+    const result = await getAnalyticsScope("combined", controller.signal);
+    expect(result).toEqual(body);
+    const [url, options] = (fetch as any).mock.calls[0];
+    expect(url).toContain("/analytics/combined");
+    expect(options.headers.get("Authorization")).toBe("Bearer session-tok");
+    expect(options.signal).toBe(controller.signal);
+  });
+
+  it("works with a member-id scope", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({ scope: "m-1", recomputing: false, sections: {} }),
+          { status: 200 },
+        ),
+      ),
+    );
+    await getAnalyticsScope("m-1");
+    const [url] = (fetch as any).mock.calls[0];
+    expect(url).toContain("/analytics/m-1");
+  });
+
+  it("throws ApiError on a non-ok response", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 404,
+        json: () => Promise.resolve({ detail: "Household member not found." }),
+      }),
+    );
+    await expect(getAnalyticsScope("bad-scope")).rejects.toThrow();
+  });
+});
+
+describe("retryAnalyticsScope", () => {
+  beforeEach(() => {
+    vi.spyOn(session, "getToken").mockReturnValue("session-tok");
+  });
+
+  it("POSTs /analytics/{scope}/retry with the bearer token", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ dispatched: true }) }),
+    );
+    const result = await retryAnalyticsScope("combined");
+    expect(result).toEqual({ dispatched: true });
+    const [url, options] = (fetch as any).mock.calls[0];
+    expect(url).toContain("/analytics/combined/retry");
+    expect(options.method).toBe("POST");
+    expect(options.headers.get("Authorization")).toBe("Bearer session-tok");
+  });
+});
 
 describe("postExportPdf", () => {
   beforeEach(() => {

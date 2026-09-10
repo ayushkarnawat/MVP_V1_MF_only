@@ -1,4 +1,4 @@
-# Session state — 2026-09-09 (updated)
+# Session state — 2026-09-10 (updated)
 
 Working notes for picking this project back up cold. Not a planning doc — see
 `Docs/superpowers/plans/` for those. This file tracks *where things stand*,
@@ -7,7 +7,21 @@ gets overwritten each session, and isn't meant to accumulate history.
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
 
-## Latest Session (2026-09-09): Terraform Phases 1-3 applied to real AWS — staging infra now live
+## Latest Session (2026-09-10): Analytics frontend precompute migration complete
+
+The Analytics dashboard frontend migration is implemented for both consumers: desktop
+`frontend/src/features/analytics/AnalyticsView.tsx` and mobile
+`frontend/src/mobile/features/analytics/MobileAnalyticsView.tsx`. Both now reuse the
+single `useAnalyticsScope` hook, consume `GET /analytics/{scope}`, poll the backend's
+cold-start/recompute state, and expose whole-scope retry UI for permanently failed
+sections. The previous broken-build/404 gap from the deleted 14 per-section analytics
+client functions is resolved. Verification: `npx tsc -b --noEmit` clean; full frontend
+suite 76 files / 412 tests passing. Implementation plan and exact contract:
+`Docs/superpowers/plans/2026-09-10-analytics-frontend-precompute-migration.md`.
+Manual backend smoke testing and the orchestrator-owned adversarial review remain
+outside this implementation session, per the corrected handoff prompt.
+
+## Previous Session (2026-09-09): Terraform Phases 1-3 applied to real AWS — staging infra now live
 
 Following the previous session's Phase 1-3 Terraform authoring (networking, security,
 database, ecr, backend modules — all already reviewed/committed), this session walked
