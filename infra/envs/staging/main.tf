@@ -59,6 +59,25 @@ module "backend" {
   acm_certificate_arn    = module.dns.backend_acm_certificate_arn
 }
 
+module "scheduler" {
+  source = "../../modules/scheduler"
+
+  environment = var.environment
+  project     = var.project
+  aws_region  = var.aws_region
+
+  ecs_cluster_arn             = module.backend.ecs_cluster_arn
+  repository_url              = module.ecr.repository_url
+  image_tag                   = "latest"
+  ecs_task_execution_role_arn = module.backend.ecs_task_execution_role_arn
+  master_user_secret_arn      = module.database.master_user_secret_arn
+  db_address                  = module.database.db_address
+  db_port                     = module.database.db_port
+  db_name                     = module.database.db_name
+  private_app_subnet_ids      = module.networking.private_app_subnet_ids
+  ecs_security_group_id       = module.networking.ecs_security_group_id
+}
+
 data "aws_caller_identity" "current" {}
 
 module "frontend" {

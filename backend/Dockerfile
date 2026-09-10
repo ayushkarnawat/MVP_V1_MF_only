@@ -10,6 +10,7 @@ RUN pip install --no-cache-dir -r requirements.txt \
     && playwright install --with-deps chromium
 
 COPY app ./app
+COPY scripts ./scripts
 COPY docker-entrypoint.sh /app/docker-entrypoint.sh
 RUN chmod +x /app/docker-entrypoint.sh
 
