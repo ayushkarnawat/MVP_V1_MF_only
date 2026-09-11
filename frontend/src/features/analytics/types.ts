@@ -80,6 +80,12 @@ export interface FundScoreRow {
   return_percentile: string | null;
   risk_percentile: string | null;
   consistency_hit_rate: string | null;
+  scheme_return: string | null;
+  category_avg_return: string | null;
+  downside_deviation: string | null;
+  category_avg_downside_deviation: string | null;
+  consistency_hits: number | null;
+  consistency_total_windows: number | null;
 }
 
 export interface PortfolioScoreSummary {
