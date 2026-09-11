@@ -80,4 +80,12 @@ describe("GoogleButton", () => {
 
     expect(renderButton).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ width: 320 }));
   });
+
+  it("renders nothing when no client id is configured", () => {
+    vi.stubEnv("VITE_GOOGLE_OAUTH_CLIENT_ID", "");
+    const { container } = render(<GoogleButton onCredential={vi.fn()} />);
+
+    expect(container).toBeEmptyDOMElement();
+    expect(screen.queryByTestId("google-button-container")).not.toBeInTheDocument();
+  });
 });

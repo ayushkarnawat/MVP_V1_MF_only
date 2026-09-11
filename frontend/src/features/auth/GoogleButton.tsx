@@ -52,6 +52,11 @@ export function GoogleButton({ onCredential }: GoogleButtonProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scriptStatus, clientId]);
 
+  // ponytail: Google OAuth isn't configured for staging yet (empty client
+  // id) — hide the button everywhere rather than render one that goes
+  // nowhere. Remove this guard once a real client id is wired.
+  if (!clientId) return null;
+
   if (scriptStatus === "error") {
     return (
       <div
