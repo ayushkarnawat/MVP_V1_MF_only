@@ -133,15 +133,27 @@ exact commands when we get there rather than running them myself. Steps marked
    analytics numbers in this staging pass, this needs to happen before/alongside step 3;
    otherwise it can defer to Phase 7.
 8. **[Claude+user, jointly] Phase 6 validation** — the full smoke-test checklist already
-   defined in `AWS Readiness/aws-golive-readiness-report.md` §17/§22 Phase 6: Google
-   sign-in, CAS import incl. password-retry, dashboard/holdings/allocation, analytics
-   views (now real, post-step-1), PDF export, empty-state for a brand-new user, RDS
-   backups enabled, active CloudWatch log watch during the pass.
-9. **Phase 7 hardening** — already scoped in the readiness report (§22 Phase 7): move
-   the 7 in-process caches off single-task-only state (flagged there as the
-   highest-priority item given the ~1,000 MAU target), real OTP provider, `terraform
-   import` any manually-created resources, NAT Gateway swap if wanted, structured
-   logging/error tracking, the recompute dispatcher wiring from §1d if deferred here.
+   defined in `AWS Readiness/aws-golive-readiness-report.md` §17/§22 Phase 6:
+   CAS import incl. password-retry, dashboard/holdings/allocation, analytics views (now
+   real, post-step-7), PDF export, empty-state for a brand-new user, RDS backups
+   enabled, active CloudWatch log watch during the pass.
+   **Explicit scope decision (2026-09-11):** Google Sign-In and real OTP delivery are
+   deliberately excluded from this pass — staging is for beta/friends-and-family users,
+   Google OAuth stays unconfigured (button hidden client-side, `83a3749`) and OTP stays
+   in stub mode. Both are real gaps for a public launch, tracked under step 9's Phase 7
+   hardening below, not something to solve before beta opens.
+9. **[Claude+user] Staging CI/CD pipeline** (task #20: `main` → build/test → deploy to
+   staging) — comes right after step 8, **not deferred**. Open design question carried
+   over from the original discussion: how `alembic upgrade head` runs in the pipeline
+   (leaning toward a pre-deploy one-off ECS `RunTask`, matching the ADR-006/dispatcher
+   `RunTask` pattern already in this repo) — needs a final decision before drafting.
+10. **Beta opens** once 8 and 9 are done.
+11. **Phase 7 hardening** (separate, deferred until scoped) — already listed in the
+    readiness report (§22 Phase 7): move the 7 in-process caches off single-task-only
+    state (flagged there as the highest-priority item given the ~1,000 MAU target), real
+    Google OAuth + OTP provider, `terraform import` any manually-created resources, NAT
+    Gateway swap if wanted, structured logging/error tracking. Production infra
+    build-out is its own separate task beyond this, scoped only when actually needed.
 
 ## 3. What I'd do right now, if you agree
 

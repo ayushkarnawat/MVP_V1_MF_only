@@ -1,4 +1,4 @@
-# Session state — 2026-09-10 (updated)
+# Session state — 2026-09-11 (updated)
 
 Working notes for picking this project back up cold. Not a planning doc — see
 `Docs/superpowers/plans/` for those. This file tracks *where things stand*,
@@ -7,7 +7,64 @@ gets overwritten each session, and isn't meant to accumulate history.
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
 
-## Latest Session (2026-09-10): Analytics frontend precompute migration complete
+## Latest Session (2026-09-11): Investor 10-item feature batch complete, committed; AWS staging prerequisites doc drafted
+
+Three small commits landed on `feat/enhanced-ui` first (pre-existing, unrelated to
+today's main thread): `83a3749` hides the Google sign-in button when no OAuth client id
+is configured, `b972e65` migrates the frontend off the 14 deleted per-section analytics
+routes onto the consolidated precompute contract, `20a825e` wires the analytics-recompute
+dispatcher to real ADR-006 ECS infra (Terraform authored, not yet applied).
+
+The investor-requested 10-item feature batch (Profile page, account deletion with a
+5-day grace period + exit survey + household cascade, email/phone change via OTP, theme
+toggle in Profile, import history + delete-import, Dashboard header XIRR, allocation
+sort toggle, AMC/asset-class drill-down modal, decimal-formatting consistency fix — full
+spec `Docs/orchestration/investor-beta-feature-batch-handoff.md`) went through 3 rounds
+of implementation + adversarial review (Round 1 → 8 Round-2 findings → 5 Round-3
+findings) and a same-session PM/tech-lead gap-analysis pass (3 more fixes: XIRR
+popover replaced with a Lifetime/Current toggle, a subtotal added to the AMC/asset
+drill-down modal, real-Postgres cascade-delete test coverage added). Round-3 fixes and
+the PM-gap fixes were both implemented directly by the orchestrator rather than Codex
+(Codex usage-limited both times) — per the model-orchestration skill's fix-authorship
+rule this is allowed for small/isolated diffs, but the mandatory adversarial-review gate
+for both rounds is **deferred, not run** this session (user explicitly deprioritized
+running it today in favor of moving straight to AWS execution planning — this is a real,
+open gap to flag, not a completed review). Full detail on every round: `Docs/orchestration/
+delegation-log.md`'s `round-3-adversarial-review-fixes` and `pm-gap-analysis-fixes`
+entries.
+
+Before committing, both full suites were re-run fresh from a clean shell (not trusted
+from any prior self-report in this session or an earlier one): backend 649 passed/8
+skipped, frontend 437 passed across 79 files, `npx tsc -b --noEmit` clean. Cross-checked
+every one of the 10 batch items plus Round 2/3's fixes directly against the actual code
+(not the handoff doc's claims) before treating them as real — all present. One
+environment artifact hit and worked around, not fixed: a stale `backend/.pytest_tmp`
+directory (`pytest.ini`'s configured `--basetemp`) was left in an unremovable
+permission state by an earlier interrupted run on this WSL/drvfs mount — `chmod`, `rm`,
+Windows-side `cmd.exe`/PowerShell `icacls` all independently denied removal. Worked
+around via `pytest --basetemp=<scratch-dir>` on the CLI; the directory itself is still
+sitting there unremoved, harmless as long as that flag is used for any future run in
+this environment.
+
+Everything above (the entire investor batch — it had never been committed before this
+session, all 79 changed/new files sitting in the working tree since it was implemented)
+committed to `feat/enhanced-ui`. See `git log` for the exact commit(s)/message(s) rather
+than duplicating them here, since this section predates the actual commit step in this
+session's own timeline — check `git log --oneline -10` first if picking this up.
+
+AWS staging prerequisites/runbook doc drafted: `Docs/superpowers/plans/
+2026-09-11-aws-staging-prerequisites.md`. Covers: current live-AWS state, the 3-migration
+alembic drift (`0012`-`0014` authored, not yet applied to real RDS — RDS is still at
+`0011`), two Terraform modules with real unapplied diffs (`infra/modules/backend`'s
+dispatcher task def/role, `infra/modules/scheduler`'s 2 new jobs beyond the 4 already
+live), the Docker Desktop WSL-integration prerequisite to re-verify before rebuilding the
+backend image, and a full command-by-command runbook (alembic via bastion tunnel, image
+build/push, `terraform apply` for backend+scheduler+Phase 4+Phase 5, ECS force-deploy,
+frontend rebuild/S3/CloudFront invalidation, smoke test). Every command in it is
+explicitly for the user to run themselves — no AWS/Terraform/Docker command has been
+executed by Claude in this repo at any point.
+
+## Previous Session (2026-09-10): Analytics frontend precompute migration complete
 
 The Analytics dashboard frontend migration is implemented for both consumers: desktop
 `frontend/src/features/analytics/AnalyticsView.tsx` and mobile
