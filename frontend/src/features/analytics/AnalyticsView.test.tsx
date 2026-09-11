@@ -40,7 +40,7 @@ const sampleCategoryRanking = {
 
 const sampleScoreSummary = {
   funds: [
-    { scheme_id: "scheme-1", scheme_name: "Parag Parikh Flexi Cap Fund - Direct Plan", category_unavailable: false, insufficient_history: false, thin_category: false, risk_adjusted_tier: 5, cost_adjustment: "0.25", final_score: "85.5", return_percentile: "88.0", risk_percentile: "82.0", consistency_hit_rate: "80.0" },
+    { scheme_id: "scheme-1", scheme_name: "Parag Parikh Flexi Cap Fund - Direct Plan", category_unavailable: false, insufficient_history: false, thin_category: false, risk_adjusted_tier: 5, cost_adjustment: "0.25", final_score: "85.5", return_percentile: "88.0", risk_percentile: "82.0", consistency_hit_rate: "80.0", scheme_return: null, category_avg_return: null, downside_deviation: null, category_avg_downside_deviation: null, consistency_hits: null, consistency_total_windows: null },
   ],
   weighted_score: "85.5",
   covered_value: "166666.67",
