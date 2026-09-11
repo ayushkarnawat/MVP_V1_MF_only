@@ -112,7 +112,11 @@ class CategoryRankRow(BaseModel):
 class FundScoreRow(BaseModel):
     """PRD-04 FR-5/FR-7 — one fund's composite score plus the full
     breakdown (return_percentile, risk_percentile, consistency_hit_rate)
-    so it's never displayed as a bare number or a single-word label."""
+    so it's never displayed as a bare number or a single-word label. The
+    six `*_return`/`*_deviation`/`consistency_*` fields below are the raw
+    numbers behind those percentiles — computed in `scorer.py` regardless,
+    now also threaded through for the card's "See the evidence" section
+    instead of being discarded after the percentile conversion."""
 
     scheme_id: str
     scheme_name: str
@@ -125,6 +129,12 @@ class FundScoreRow(BaseModel):
     return_percentile: str | None
     risk_percentile: str | None
     consistency_hit_rate: str | None
+    scheme_return: str | None
+    category_avg_return: str | None
+    downside_deviation: str | None
+    category_avg_downside_deviation: str | None
+    consistency_hits: int | None
+    consistency_total_windows: int | None
 
 
 class PortfolioScoreSummary(BaseModel):
