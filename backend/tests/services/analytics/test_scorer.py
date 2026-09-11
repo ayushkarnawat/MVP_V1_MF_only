@@ -271,6 +271,35 @@ def test_compute_fund_score_best_return_in_min_category_gets_tier_five():
     assert row.consistency_hit_rate is not None
 
 
+def test_compute_fund_score_includes_raw_evidence_fields():
+    db = _session()
+    held = _scheme(db, "Held Fund")
+    peer = _scheme(db, "Peer Fund")
+    _seed_monthly_nav(db, held, 24, monthly_growth=Decimal("0.02"))
+    _seed_monthly_nav(db, peer, 24, monthly_growth=Decimal("0.005"))
+    db.add(SchemeAaum(scheme_id=held.id, reference_period=date(2026, 3, 31), aaum_value=Decimal("100")))
+    db.add(SchemeAaum(scheme_id=peer.id, reference_period=date(2026, 3, 31), aaum_value=Decimal("100")))
+    db.commit()
+
+    async def _returns(db_, universe, today):
+        return {held.id: Decimal("0.30"), peer.id: Decimal("0.05")}
+
+    with (
+        patch("app.services.analytics.scorer._category_returns", new=AsyncMock(side_effect=_returns)),
+        patch("app.services.analytics.scorer.get_category_universe", new=AsyncMock(return_value=[held, peer])),
+        patch("app.services.analytics.scorer._ensure_ter_fresh", new=AsyncMock(return_value=None)),
+    ):
+        row = asyncio.run(compute_fund_score(db, held))
+
+    assert row.scheme_return == "0.30"
+    assert row.category_avg_return is not None
+    assert row.downside_deviation is not None
+    assert row.category_avg_downside_deviation is not None
+    assert row.consistency_hits is not None
+    assert row.consistency_total_windows is not None
+    assert row.consistency_hits <= row.consistency_total_windows
+
+
 def test_compute_fund_score_cost_adjustment_nudges_final_score():
     db = _session()
     held = _scheme(db, "Held Fund")

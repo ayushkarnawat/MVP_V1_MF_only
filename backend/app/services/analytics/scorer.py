@@ -66,6 +66,14 @@ _category_score_cache: dict[str, tuple[float, date, dict[uuid.UUID, dict[str, De
 _category_score_cache_lock = threading.Lock()
 
 
+def _decimal_field_to_str(value: Decimal | None) -> str | None:
+    return str(value) if value is not None else None
+
+
+def _decimal_field_to_int(value: Decimal | None) -> int | None:
+    return int(value) if value is not None else None
+
+
 def _tier_from_percentile(percentile: Decimal) -> int:
     if percentile >= Decimal("80"):
         return 5
@@ -105,6 +113,12 @@ async def _compute_category_component_scores(
     if not returns:
         return {}
 
+    # Same AUM-weighted category average calculation category_ranking.py
+    # already uses for CategoryRankRow.category_avg_return -- reused here,
+    # not reinvented, for the "See the evidence" section's raw numbers.
+    aaum_by_scheme = _latest_aaum_by_scheme(db, list(returns.keys()))
+    category_avg_return = _aum_weighted_average(returns, aaum_by_scheme)
+
     month_ends = month_end_dates(years_ago(today, _HISTORY_YEARS), today)
     series_start = time.perf_counter()
     series_by_scheme = build_monthly_series_bulk(db, list(returns), month_ends)
@@ -130,6 +144,12 @@ async def _compute_category_component_scores(
             # deviation.
             downside_by_scheme[scheme_id] = -deviation
 
+    category_avg_downside_deviation = (
+        -sum(downside_by_scheme.values(), Decimal(0)) / Decimal(len(downside_by_scheme))
+        if downside_by_scheme
+        else None
+    )
+
     consistency_by_scheme = {
         scheme_id: compute_consistency_hit_rate(rolling_by_scheme[scheme_id], medians)
         for scheme_id in returns
@@ -145,19 +165,32 @@ async def _compute_category_component_scores(
         )
         return_pct = return_rank[1] if return_rank else None
         risk_pct = risk_rank[1] if risk_rank else None
-        consistency = consistency_by_scheme.get(scheme_id)
+        consistency_pair = consistency_by_scheme.get(scheme_id)
+        consistency_pct = (
+            Decimal(consistency_pair[0]) / Decimal(consistency_pair[1]) * Decimal(100)
+            if consistency_pair
+            else None
+        )
 
         composite = None
-        if return_pct is not None and risk_pct is not None and consistency is not None:
+        if return_pct is not None and risk_pct is not None and consistency_pct is not None:
             composite = (
-                _RETURN_WEIGHT * return_pct + _RISK_WEIGHT * risk_pct + _CONSISTENCY_WEIGHT * consistency
+                _RETURN_WEIGHT * return_pct + _RISK_WEIGHT * risk_pct + _CONSISTENCY_WEIGHT * consistency_pct
             )
+
+        own_downside = -downside_by_scheme[scheme_id] if scheme_id in downside_by_scheme else None
 
         scores[scheme_id] = {
             "return_percentile": return_pct,
             "risk_percentile": risk_pct,
-            "consistency_hit_rate": consistency,
+            "consistency_hit_rate": consistency_pct,
             "composite": composite,
+            "scheme_return": returns.get(scheme_id),
+            "category_avg_return": category_avg_return,
+            "downside_deviation": own_downside,
+            "category_avg_downside_deviation": category_avg_downside_deviation,
+            "consistency_hits": Decimal(consistency_pair[0]) if consistency_pair else None,
+            "consistency_total_windows": Decimal(consistency_pair[1]) if consistency_pair else None,
         }
     return scores
 
@@ -211,6 +244,12 @@ def _empty_row(scheme: Scheme, *, category_unavailable: bool, insufficient_histo
         return_percentile=None,
         risk_percentile=None,
         consistency_hit_rate=None,
+        scheme_return=None,
+        category_avg_return=None,
+        downside_deviation=None,
+        category_avg_downside_deviation=None,
+        consistency_hits=None,
+        consistency_total_windows=None,
     )
 
 
@@ -285,6 +324,14 @@ async def _finish_fund_score(
         return_percentile=str(scheme_scores["return_percentile"]),
         risk_percentile=str(scheme_scores["risk_percentile"]),
         consistency_hit_rate=str(scheme_scores["consistency_hit_rate"]),
+        scheme_return=_decimal_field_to_str(scheme_scores.get("scheme_return")),
+        category_avg_return=_decimal_field_to_str(scheme_scores.get("category_avg_return")),
+        downside_deviation=_decimal_field_to_str(scheme_scores.get("downside_deviation")),
+        category_avg_downside_deviation=_decimal_field_to_str(
+            scheme_scores.get("category_avg_downside_deviation")
+        ),
+        consistency_hits=_decimal_field_to_int(scheme_scores.get("consistency_hits")),
+        consistency_total_windows=_decimal_field_to_int(scheme_scores.get("consistency_total_windows")),
     )
 
 
