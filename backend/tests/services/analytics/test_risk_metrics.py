@@ -265,7 +265,7 @@ def test_compute_consistency_hit_rate_counts_beats_at_or_above_median():
     # index0: 0.10 >= 0.08 -> hit. index1: 0.05 >= 0.08 -> miss.
     # index2: 0.30 >= 0.20 -> hit. index3: scheme value None -> skipped.
     result = compute_consistency_hit_rate(scheme_rolling, medians)
-    assert result == Decimal(2) / Decimal(3) * Decimal(100)
+    assert result == (2, 3)
 
 
 def test_compute_consistency_hit_rate_none_when_no_comparable_windows():

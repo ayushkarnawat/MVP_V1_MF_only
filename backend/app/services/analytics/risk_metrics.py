@@ -223,11 +223,14 @@ def category_medians(rolling_by_scheme: list[list[Decimal | None]]) -> list[Deci
 
 def compute_consistency_hit_rate(
     scheme_rolling: list[Decimal | None], medians: list[Decimal | None]
-) -> Decimal | None:
-    """% of rolling 12-month windows where the scheme's return was at or
-    above its category's median for that same window. `None` if there are
-    no comparable windows (e.g. a fund too new to overlap the category's
-    shared history)."""
+) -> tuple[int, int] | None:
+    """(hits, total) across comparable rolling 12-month windows -- a hit is
+    a window where the scheme's return was at or above its category's
+    median for that same window. `None` if there are no comparable windows
+    (e.g. a fund too new to overlap the category's shared history). Kept as
+    a raw pair, not a percentage, so callers can derive both the
+    `consistency_hit_rate` percentage and the "beat its category median in
+    X of Y periods" evidence text from a single computation."""
     hits = 0
     total = 0
     for value, median in zip(scheme_rolling, medians):
@@ -238,4 +241,4 @@ def compute_consistency_hit_rate(
             hits += 1
     if total == 0:
         return None
-    return Decimal(hits) / Decimal(total) * Decimal(100)
+    return hits, total
