@@ -17,6 +17,9 @@ def _fake_row(scheme_id):
         insufficient_history=False, thin_category=False, risk_adjusted_tier=4,
         cost_adjustment="0.25", final_score="72.25", return_percentile="70",
         risk_percentile="65", consistency_hit_rate="80",
+        scheme_return=None, category_avg_return=None, downside_deviation=None,
+        category_avg_downside_deviation=None, consistency_hits=None,
+        consistency_total_windows=None,
     )
 
 
