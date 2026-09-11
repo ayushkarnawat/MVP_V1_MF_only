@@ -27,9 +27,9 @@ describe("FundDetailModal", () => {
     household_member_id: "m-1",
     household_member_name: "Ayush",
     plan_type: "DIRECT",
-    units_held: "150.250",
-    average_nav: "42.50",
-    current_nav: "65.80",
+    units_held: "150.2500000",
+    average_nav: "42.5000000",
+    current_nav: "65.8000000",
     current_nav_date: "2026-08-06",
     amount_invested: "6385.63",
     current_value: "9886.45",
@@ -52,7 +52,9 @@ describe("FundDetailModal", () => {
     expect(screen.getByText("PPFAS Mutual Fund")).toBeInTheDocument();
     expect(screen.getByText("₹9,886")).toBeInTheDocument();
     expect(screen.getByText("₹6,386")).toBeInTheDocument();
-    expect(screen.getByText("150.250")).toBeInTheDocument();
+    expect(screen.getByText("150.25")).toBeInTheDocument();
+    expect(screen.getByText("₹42.50")).toBeInTheDocument();
+    expect(screen.getByText("₹65.80")).toBeInTheDocument();
   });
 
   it("no longer renders a Compare Distributors trigger — moved to the Holdings section header", () => {

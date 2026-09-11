@@ -28,6 +28,7 @@ export interface AllocationDonutProps {
    * the instant the DOM is ready, well before the animation's stagger delay
    * finishes, so the default animated path snapshots a mid-draw sliver. */
   animate?: boolean;
+  onSelectItem?: (item: AllocationItem) => void;
 }
 
 const PALETTE = [
@@ -56,6 +57,7 @@ export function AllocationDonut({
   className,
   enableTapHighlight = false,
   animate = true,
+  onSelectItem,
 }: AllocationDonutProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   // Separate, persistent state for tap mode — sharing hoveredIndex with
@@ -153,7 +155,9 @@ export function AllocationDonut({
             const pct = parsePercentage(item.percentage);
 
             return (
-              <div
+              <button
+                type="button"
+                aria-label={item.label}
                 key={item.label + idx}
                 className={cn(
                   "flex items-center justify-between px-3 py-2 rounded-lg transition-colors duration-150 cursor-pointer",
@@ -163,11 +167,12 @@ export function AllocationDonut({
                 )}
                 onMouseEnter={enableTapHighlight ? undefined : () => setHoveredIndex(idx)}
                 onMouseLeave={enableTapHighlight ? undefined : () => setHoveredIndex(null)}
-                onClick={
-                  enableTapHighlight
-                    ? () => setSelectedIndex((prev) => (prev === idx ? null : idx))
-                    : undefined
-                }
+                onClick={() => {
+                  if (enableTapHighlight) {
+                    setSelectedIndex((prev) => (prev === idx ? null : idx));
+                  }
+                  onSelectItem?.(item);
+                }}
               >
                 <div className="flex items-center space-x-2.5 min-w-0">
                   <span
@@ -188,7 +193,7 @@ export function AllocationDonut({
                     ₹{formatIndianCurrency(item.current_value)}
                   </span>
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>

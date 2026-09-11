@@ -2,12 +2,8 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { NavigationShell } from "./NavigationShell";
 
-const mockLogout = vi.fn();
-
 vi.mock("../auth/AuthContext", () => ({
-  useAuth: () => ({
-    logout: mockLogout,
-  }),
+  useAuth: () => ({ logout: vi.fn() }),
 }));
 
 describe("NavigationShell", () => {
@@ -80,7 +76,8 @@ describe("NavigationShell", () => {
     expect(handleViewModeChange).toHaveBeenCalledWith("member");
   });
 
-  it("renders logout button and triggers logout on click", () => {
+  it("opens Profile from the header without rendering logout there", () => {
+    const handleTabChange = vi.fn();
     render(
       <NavigationShell
         viewMode="aggregate"
@@ -89,15 +86,14 @@ describe("NavigationShell", () => {
         onViewModeChange={vi.fn()}
         onMemberSelect={vi.fn()}
         onAddData={vi.fn()}
+        onTabChange={handleTabChange}
       >
         <div>Content</div>
       </NavigationShell>
     );
 
-    const logoutBtn = screen.getByRole("button", { name: /logout/i });
-    expect(logoutBtn).toBeInTheDocument();
-
-    fireEvent.click(logoutBtn);
-    expect(mockLogout).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("button", { name: /logout/i })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /profile/i }));
+    expect(handleTabChange).toHaveBeenCalledWith("profile");
   });
 });

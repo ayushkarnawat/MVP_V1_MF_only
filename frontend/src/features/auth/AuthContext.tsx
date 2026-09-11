@@ -1,8 +1,15 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import { getMe, updateMe as apiUpdateMe } from "./api";
+import {
+  getMe,
+  reactivateAccount as apiReactivateAccount,
+  requestAccountDeletion as apiRequestAccountDeletion,
+  updateMe as apiUpdateMe,
+  requestContactChange as apiRequestContactChange,
+  verifyContactChange as apiVerifyContactChange,
+} from "./api";
 import { clearToken, getToken, setToken } from "./session";
-import type { MeResponse, UpdateMeBody } from "./types";
+import type { AccountDeletionReason, ContactChangeChannel, MeResponse, OtpRequestResponse, UpdateMeBody } from "./types";
 
 interface AuthContextValue {
   token: string | null;
@@ -11,6 +18,10 @@ interface AuthContextValue {
   login: (token: string) => Promise<void>;
   logout: () => void;
   updateMe: (body: UpdateMeBody) => Promise<void>;
+  requestAccountDeletion: (reason: AccountDeletionReason, feedback?: string) => Promise<void>;
+  reactivateAccount: () => Promise<void>;
+  requestContactChange: (channel: ContactChangeChannel, identifier: string) => Promise<OtpRequestResponse>;
+  verifyContactChange: (channel: ContactChangeChannel, identifier: string, otp: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -72,8 +83,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setMe(updated);
   };
 
+  const requestAccountDeletion = async (reason: AccountDeletionReason, feedback?: string) => {
+    setMe(await apiRequestAccountDeletion(reason, feedback));
+  };
+
+  const reactivateAccount = async () => {
+    setMe(await apiReactivateAccount());
+  };
+
+  const requestContactChange = (channel: ContactChangeChannel, identifier: string) =>
+    apiRequestContactChange(channel, identifier);
+
+  const verifyContactChange = async (channel: ContactChangeChannel, identifier: string, otp: string) => {
+    setMe(await apiVerifyContactChange(channel, identifier, otp));
+  };
+
   return (
-    <AuthContext.Provider value={{ token, me, loading, login, logout, updateMe }}>
+    <AuthContext.Provider value={{
+      token,
+      me,
+      loading,
+      login,
+      logout,
+      updateMe,
+      requestAccountDeletion,
+      reactivateAccount,
+      requestContactChange,
+      verifyContactChange,
+    }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, Uuid
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -10,6 +10,7 @@ from app.models.enums import InvestorType, PrimaryGoal, Relationship, enum_colum
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = (Index("ix_users_deletion_scheduled_at", "deletion_scheduled_at"),)
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     phone_number: Mapped[str] = mapped_column(String, unique=True, nullable=False)
@@ -19,6 +20,8 @@ class User(Base):
     onboarding_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     investor_type: Mapped[InvestorType | None] = mapped_column(enum_column(InvestorType))
     primary_goal: Mapped[PrimaryGoal | None] = mapped_column(enum_column(PrimaryGoal))
+    pending_deletion: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    deletion_scheduled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class HouseholdMember(Base):

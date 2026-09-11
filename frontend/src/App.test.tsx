@@ -75,6 +75,20 @@ describe("App", () => {
     await waitFor(() => expect(screen.getByText(/welcome to unifolio/i)).toBeInTheDocument());
   });
 
+  it("gates a pending-deletion session to the reactivation screen", async () => {
+    localStorage.setItem("unifolio_session_token", "tok-pending");
+    vi.mocked(api.getMe).mockResolvedValue({
+      user_id: "u1", phone_number: "+919999999999", email: null,
+      onboarding_step: null, onboarding_completed: true, investor_type: null, primary_goal: null,
+      pending_deletion: true, deletion_scheduled_at: "2026-09-16T08:00:00+00:00",
+    });
+
+    render(<App />);
+
+    expect(await screen.findByRole("button", { name: "Reactivate" })).toBeInTheDocument();
+    expect(screen.queryByText("Analytics")).not.toBeInTheDocument();
+  });
+
   it("shows MobileRoot when the session is valid and viewport is mobile (< 768px)", async () => {
     localStorage.setItem("unifolio_session_token", "tok-1");
     vi.mocked(api.getMe).mockResolvedValue({

@@ -7,9 +7,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { LogOut } from "lucide-react";
+import { CircleUserRound } from "lucide-react";
 import { ThemeToggle } from "../../components/ThemeToggle";
-import { useAuth } from "../auth/AuthContext";
 import { UnifolioLogo } from "@/components/UnifolioLogo";
 
 export interface MemberOption {
@@ -24,8 +23,8 @@ export interface NavigationShellProps {
   onViewModeChange: (mode: "aggregate" | "member") => void;
   onMemberSelect: (memberId: string) => void;
   onAddData: () => void;
-  activeTab?: "dashboard" | "analytics";
-  onTabChange?: (tab: "dashboard" | "analytics") => void;
+  activeTab?: "dashboard" | "analytics" | "profile";
+  onTabChange?: (tab: "dashboard" | "analytics" | "profile") => void;
   children: React.ReactNode;
 }
 
@@ -40,7 +39,6 @@ export function NavigationShell({
   onTabChange,
   children,
 }: NavigationShellProps) {
-  const { logout } = useAuth();
   const hasFamily = members.length > 1;
 
   return (
@@ -141,7 +139,7 @@ export function NavigationShell({
                 </div>
               )}
 
-              {/* Action Buttons: Add Data, Theme & Logout */}
+              {/* Action Buttons: Add Data, Theme & Profile */}
               <div className="flex items-center gap-2 ml-auto lg:ml-0">
                 <Button
                   variant="secondary"
@@ -155,13 +153,17 @@ export function NavigationShell({
                 <ThemeToggle className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg" />
 
                 <button
-                  onClick={logout}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-negative)] hover:bg-[var(--color-bg)] border border-transparent hover:border-[var(--color-border)] transition-colors cursor-pointer"
-                  aria-label="Logout"
+                  onClick={() => onTabChange?.("profile")}
+                  className={cn(
+                    "inline-flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg border transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
+                    activeTab === "profile"
+                      ? "border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-ink)]"
+                      : "border-transparent text-[var(--color-text-secondary)] hover:border-[var(--color-border)] hover:bg-[var(--color-bg)] hover:text-[var(--color-ink)]",
+                  )}
+                  aria-label="Profile"
                   type="button"
                 >
-                  <LogOut className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Logout</span>
+                  <CircleUserRound className="h-4 w-4" />
                 </button>
               </div>
             </div>

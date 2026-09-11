@@ -44,8 +44,15 @@ def test_alembic_upgrade_creates_all_tables(tmp_path, monkeypatch):
         "benchmark_index_history", "arn_directory", "portfolio_snapshots",
         "fund_scores", "otp_requests", "sessions",
         "auth_identities", "pending_identity_verifications",
+        "account_deletion_surveys",
     }
     assert expected.issubset(tables)
+    user_columns = {row[1] for row in conn.execute("PRAGMA table_info(users)")}
+    assert {"pending_deletion", "deletion_scheduled_at"}.issubset(user_columns)
+    recompute_columns = {
+        row[1] for row in conn.execute("PRAGMA table_info(analytics_recompute_status)")
+    }
+    assert "generation" in recompute_columns
     # email_confirmation_tokens is dropped outright by 0007 -- the
     # link-based email confirmation mechanism it backed no longer exists.
     assert "email_confirmation_tokens" not in tables

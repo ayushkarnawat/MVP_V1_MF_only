@@ -17,6 +17,7 @@ from app.services.dashboard.allocation import compute_allocation
 from app.services.dashboard.cash_flow import compute_cash_flow
 from app.services.dashboard.distributor_comparison import compute_distributor_comparison
 from app.services.dashboard.holdings import compute_holdings
+from app.services.dashboard.xirr import calculate_dashboard_xirr
 from app.services.dashboard.household_members import list_household_members
 from app.services.dashboard.schemas import (
     AggregateAllocationResponse,
@@ -50,7 +51,13 @@ async def get_aggregate_holdings(db: Session, user_id: uuid.UUID) -> AggregateHo
     members = list_household_members(db, user_id)
     statuses = get_member_statuses(db, user_id)
     holdings = await compute_holdings(db, [m.id for m in members])
-    return AggregateHoldingsResponse(members=statuses, holdings=holdings)
+    xirr_summary = calculate_dashboard_xirr(db, [m.id for m in members], holdings)
+    return AggregateHoldingsResponse(
+        members=statuses,
+        holdings=holdings,
+        lifetime_xirr=xirr_summary.lifetime_xirr,
+        current_holdings_xirr=xirr_summary.current_holdings_xirr,
+    )
 
 
 async def get_aggregate_distributor_comparison(

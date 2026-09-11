@@ -119,6 +119,52 @@ def test_recompute_clears_started_at_when_done():
     assert status.started_at is None
 
 
+def test_generation_bump_mid_run_stops_stale_writes_and_allows_fresh_dispatch():
+    """A transaction mutation must invalidate a recompute already in flight."""
+    import asyncio
+
+    from app.api.analytics import get_analytics_scope
+
+    db = _session()
+    user, _members = _user_with_members(db, n_members=1)
+    assert try_claim_recompute(db, user.id) is True
+
+    async def bump_generation_during_first_compute(*_args, **_kwargs):
+        status = db.get(AnalyticsRecomputeStatus, user.id)
+        assert status.started_at is not None  # the run really holds the claim
+        status.generation += 1
+        db.commit()
+        return _MOCK_RESULTS["allocation"]
+
+    patches = []
+    for section in _SECTIONS:
+        compute = (
+            AsyncMock(side_effect=bump_generation_during_first_compute)
+            if section.name == "allocation"
+            else AsyncMock(return_value=_MOCK_RESULTS[section.name])
+        )
+        patches.append(patch.object(section, "compute", compute))
+    for active_patch in patches:
+        active_patch.start()
+    try:
+        asyncio.run(recompute_household_analytics(db, user.id))
+    finally:
+        for active_patch in patches:
+            active_patch.stop()
+
+    assert db.query(AnalyticsSection).filter_by(user_id=user.id).count() == 0
+    status = db.get(AnalyticsRecomputeStatus, user.id)
+    assert status.generation == 1
+    assert status.started_at is None
+
+    with patch("app.api.analytics.dispatcher.dispatch", return_value=True) as dispatch:
+        response = get_analytics_scope("combined", user=user, db=db)
+
+    assert response.recomputing is True
+    assert response.sections == {}
+    dispatch.assert_called_once_with(user.id)
+
+
 def test_recompute_leaves_existing_row_and_sets_failed_at_when_a_section_raises():
     db = _session()
     user, _members = _user_with_members(db, n_members=1)
@@ -186,6 +232,16 @@ def test_should_dispatch_recompute_true_when_no_status_row():
     db = _session()
     user, _members = _user_with_members(db, n_members=0)
     assert should_dispatch_recompute(db, user.id) is True
+
+
+def test_recompute_status_generation_starts_at_zero():
+    db = _session()
+    user, _members = _user_with_members(db, n_members=0)
+    status = AnalyticsRecomputeStatus(user_id=user.id, started_at=None)
+    db.add(status)
+    db.commit()
+
+    assert status.generation == 0
 
 
 def test_should_dispatch_recompute_false_while_recently_started():

@@ -33,6 +33,13 @@ locals {
       command             = ["python", "scripts/run_analytics_recompute.py", "--all"]
       schedule_expression = "cron(30 6 * * ? *)"
     }
+    # Runs at 08:00 IST, clear of the 06:00 IST NAV/benchmark jobs and the
+    # 06:30 IST analytics recompute backstop.
+    account_deletion_daily = {
+      slug                = "account-deletion-daily"
+      command             = ["python", "scripts/jobs/delete_expired_accounts_daily.py"]
+      schedule_expression = "cron(0 8 * * ? *)"
+    }
   }
 }
 

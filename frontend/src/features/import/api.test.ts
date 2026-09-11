@@ -6,6 +6,8 @@ import {
   getCasImportStatus,
   getMemberCoverageGaps,
   getMemberImportHistory,
+  getHouseholdImportHistory,
+  deleteHouseholdImport,
   parseImport,
   postOpeningBalance,
   requestCamsStatement,
@@ -219,6 +221,20 @@ describe("uploadCasImport & lifecycle methods", () => {
     expect(url).toContain("/household-members/m-1/cas-imports");
   });
 
+  it("loads household history and deletes one import through the profile endpoints", async () => {
+    const history = [{ import_id: "imp-1", household_member_id: "m-1", status: "confirmed", uploaded_at: "2026-09-10T00:00:00Z", statement_from_date: null, statement_to_date: null, new_transactions_count: 3 }];
+    const mockFetch = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify(history), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ deleted_transactions_count: 3 }), { status: 200 }));
+    vi.stubGlobal("fetch", mockFetch);
+
+    expect(await getHouseholdImportHistory()).toEqual(history);
+    expect(await deleteHouseholdImport("imp-1")).toEqual({ deleted_transactions_count: 3 });
+    expect(mockFetch.mock.calls[0][0]).toContain("/imports/history");
+    expect(mockFetch.mock.calls[1][0]).toContain("/imports/imp-1");
+    expect(mockFetch.mock.calls[1][1].method).toBe("DELETE");
+  });
+
   it("getMemberCoverageGaps returns list of folios with gaps", async () => {
     const mockRes = [
       {
@@ -311,5 +327,4 @@ describe("uploadCasImport & lifecycle methods", () => {
     expect(options.method).toBe("POST");
   });
 });
-
 

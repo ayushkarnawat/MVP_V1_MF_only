@@ -19,6 +19,7 @@ from app.services.auth.identity import (
     record_identity,
     resolve_new_verified_identity,
 )
+from app.services.auth.account_deletion import reactivate_account, schedule_account_deletion
 from app.services.auth.google_oauth import GoogleTokenVerificationError, verify_google_id_token
 from app.services.auth.otp import OtpRequestThrottledError, OtpVerificationError, create_otp_request, verify_otp
 from app.services.auth.schemas import (
@@ -40,8 +41,11 @@ from app.services.auth.schemas import (
     SessionRefreshResponse,
     SignupEmailBody,
     UpdateMeBody,
+    AccountDeletionBody,
+    ContactChangeRequestBody,
+    ContactChangeVerifyBody,
 ) #to validate api requests
-from app.services.auth.session import create_session, get_current_session, get_current_user, refresh_session
+from app.services.auth.session import create_session, get_active_user, get_current_session, get_current_user, refresh_session
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -240,6 +244,9 @@ def refresh_session_route(
 
 #current user endpoints
 def _me_response(user: User) -> MeResponse:
+    deletion_scheduled_at = user.deletion_scheduled_at
+    if deletion_scheduled_at is not None and deletion_scheduled_at.tzinfo is None:
+        deletion_scheduled_at = deletion_scheduled_at.replace(tzinfo=timezone.utc)
     return MeResponse(
         user_id=str(user.id),
         phone_number=user.phone_number,
@@ -248,6 +255,8 @@ def _me_response(user: User) -> MeResponse:
         onboarding_completed=user.onboarding_completed_at is not None,
         investor_type=user.investor_type,
         primary_goal=user.primary_goal,
+        pending_deletion=user.pending_deletion,
+        deletion_scheduled_at=deletion_scheduled_at,
     )
 
 
@@ -256,10 +265,127 @@ def get_me(user: User = Depends(get_current_user)):
     return _me_response(user)
 
 
+@router.post("/account-deletion", response_model=MeResponse)
+def request_account_deletion(
+    body: AccountDeletionBody,
+    user: User = Depends(get_active_user),
+    db: DbSession = Depends(get_db),
+):
+    if user.pending_deletion:
+        raise HTTPException(status_code=409, detail="Account deletion is already scheduled.")
+    schedule_account_deletion(db, user, reason=body.reason, feedback=body.feedback)
+    return _me_response(user)
+
+
+@router.post("/reactivate", response_model=MeResponse)
+def reactivate_account_route(
+    user: User = Depends(get_current_user),
+    db: DbSession = Depends(get_db),
+):
+    reactivate_account(db, user)
+    return _me_response(user)
+
+
+def _contact_provider(channel: str) -> AuthIdentityProvider:
+    return AuthIdentityProvider.EMAIL_OTP if channel == "email" else AuthIdentityProvider.PHONE_OTP
+
+
+def _assert_contact_available(
+    db: DbSession,
+    *,
+    user: User,
+    channel: str,
+    identifier: str,
+) -> None:
+    provider = _contact_provider(channel)
+    identity = find_identity_by_subject(db, provider, identifier)
+    if identity is not None and identity.user_id != user.id:
+        raise HTTPException(status_code=409, detail=f"That {channel} is already linked to another account.")
+
+    user_field = User.email if channel == "email" else User.phone_number
+    matched_user = db.query(User).filter(user_field == identifier, User.id != user.id).first()
+    if matched_user is not None:
+        raise HTTPException(status_code=409, detail=f"That {channel} is already linked to another account.")
+
+
+@router.post("/contact-change/request", response_model=OtpRequestResponse)
+def request_contact_change(
+    body: ContactChangeRequestBody,
+    user: User = Depends(get_active_user),
+    db: DbSession = Depends(get_db),
+):
+    _assert_contact_available(db, user=user, channel=body.channel, identifier=body.identifier)
+    otp_channel = "email" if body.channel == "email" else "sms"
+    try:
+        _, raw_otp = create_otp_request(db, body.identifier, channel=otp_channel)
+    except OtpRequestThrottledError as exc:
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
+    return OtpRequestResponse(message="OTP sent.", otp=raw_otp)
+
+
+@router.post("/contact-change/verify", response_model=MeResponse)
+def verify_contact_change(
+    body: ContactChangeVerifyBody,
+    user: User = Depends(get_active_user),
+    db: DbSession = Depends(get_db),
+):
+    _assert_contact_available(db, user=user, channel=body.channel, identifier=body.identifier)
+    otp_channel = "email" if body.channel == "email" else "sms"
+    try:
+        verify_otp(db, body.identifier, body.otp, channel=otp_channel)
+    except OtpVerificationError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+
+    provider = _contact_provider(body.channel)
+    current_identifier = user.email if body.channel == "email" else user.phone_number
+    current_identity = None
+    if current_identifier is not None:
+        current_identity = (
+            db.query(AuthIdentity)
+            .filter_by(
+                user_id=user.id,
+                provider=provider,
+                provider_subject=current_identifier,
+            )
+            .one_or_none()
+        )
+    target_identity = (
+        db.query(AuthIdentity)
+        .filter_by(
+            user_id=user.id,
+            provider=provider,
+            provider_subject=body.identifier,
+        )
+        .one_or_none()
+    )
+    now = datetime.now(timezone.utc)
+    identity_email = body.identifier if body.channel == "email" else None
+    if target_identity is not None:
+        identity = target_identity
+        if current_identity is not None and current_identity.id != target_identity.id:
+            db.delete(current_identity)
+    elif current_identity is None:
+        record_identity(db, user.id, provider, body.identifier, identity_email, now, commit=False)
+    else:
+        identity = current_identity
+        identity.provider_subject = body.identifier
+    if target_identity is not None or current_identity is not None:
+        identity.email = identity_email
+        identity.identifier_verified_at = now
+        identity.last_used_at = now
+
+    if body.channel == "email":
+        user.email = body.identifier
+    else:
+        user.phone_number = body.identifier
+    db.commit()
+    return _me_response(user)
+
+
 @router.patch("/me", response_model=MeResponse)
 def update_me(
     body: UpdateMeBody,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_active_user),
     db: DbSession = Depends(get_db),
 ):
     if body.onboarding_step is not None:

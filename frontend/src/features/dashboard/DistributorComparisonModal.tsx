@@ -6,7 +6,7 @@ import { Skeleton } from "../../components/Skeleton";
 import { cn, toTitleCase } from "../../lib/utils";
 import { getAggregateDistributorComparison, getMemberDistributorComparison } from "./api";
 import type { DistributorPortfolioRow } from "./types";
-import { formatIndianCurrency } from "../../lib/decimal";
+import { formatDecimal, formatIndianCurrency } from "../../lib/decimal";
 import styles from "./DistributorComparisonModal.module.css";
 
 export interface DistributorComparisonModalProps {
@@ -186,7 +186,7 @@ export function DistributorComparisonModal({
                                 </div>
                               </td>
                               <td className="type-caption">
-                                {scheme.units_held} units @ ₹{scheme.average_nav ?? "—"}
+                                {scheme.units_held} units @ {scheme.average_nav === null ? "—" : `₹${formatDecimal(scheme.average_nav)}`}
                               </td>
                               <td className={`type-data ${styles.numTd}`}>
                                 ₹{formatIndianCurrency(scheme.amount_invested)}

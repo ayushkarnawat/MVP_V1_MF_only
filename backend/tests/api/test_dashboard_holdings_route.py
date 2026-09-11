@@ -28,4 +28,8 @@ def test_holdings_route_returns_empty_list_for_member_with_no_folios(client):
     headers, member_id = _authed_headers_and_member(client, "+919000000003")
     response = client.get(f"/household-members/{member_id}/holdings", headers=headers)
     assert response.status_code == 200
-    assert response.json() == []
+    assert response.json() == {
+        "holdings": [],
+        "lifetime_xirr": None,
+        "current_holdings_xirr": None,
+    }

@@ -24,6 +24,7 @@ class HoldingRow(BaseModel):
     scheme_id: str
     scheme_name: str
     amc_name: str
+    asset_class: str = "Other"
     household_member_id: str
     household_member_name: str
     plan_type: PlanType
@@ -124,6 +125,14 @@ class MemberStatus(BaseModel):
 class AggregateHoldingsResponse(BaseModel):
     members: list[MemberStatus]
     holdings: list[HoldingRow]
+    lifetime_xirr: str | None = None
+    current_holdings_xirr: str | None = None
+
+
+class MemberHoldingsResponse(BaseModel):
+    holdings: list[HoldingRow]
+    lifetime_xirr: str | None
+    current_holdings_xirr: str | None
 
 
 class AggregateAllocationResponse(BaseModel):

@@ -19,6 +19,26 @@ def test_aggregate_holdings_returns_members_and_empty_holdings(client):
     body = response.json()
     assert {m["name"] for m in body["members"]} == {"Mom", "Dad"}
     assert body["holdings"] == []
+    assert body["lifetime_xirr"] is None
+    assert body["current_holdings_xirr"] is None
+
+
+def test_member_holdings_response_includes_xirr_summary(client):
+    headers = _authed_headers(client, "+919000000059")
+    member = client.post(
+        "/household-members",
+        json={"name": "Self", "relationship": "self"},
+        headers=headers,
+    ).json()
+
+    response = client.get(f"/household-members/{member['id']}/holdings", headers=headers)
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "holdings": [],
+        "lifetime_xirr": None,
+        "current_holdings_xirr": None,
+    }
 
 
 def test_aggregate_allocation_returns_empty_summary(client):

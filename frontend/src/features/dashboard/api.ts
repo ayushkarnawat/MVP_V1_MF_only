@@ -1,7 +1,6 @@
 import { API_BASE_URL, ApiError, cachedFetch, parseErrorDetail } from "../../lib/apiClient";
 import { getToken } from "../auth/session";
 import type {
-  HoldingRow,
   AllocationSummary,
   SipRow,
   SipMonthlyRow,
@@ -15,6 +14,7 @@ import type {
   AggregateSnapshotsResponse,
   DistributorPortfolioRow, AggregateDistributorComparisonResponse,
   NavHistoryPeriod, SchemeNavHistoryResponse,
+  MemberHoldingsResponse, MemberHoldingsRows,
 } from "./types";
 
 async function authFetch(path: string, options: RequestInit = {}): Promise<Response> {
@@ -38,9 +38,13 @@ async function authFetch(path: string, options: RequestInit = {}): Promise<Respo
 }
 
 /* Per-member Dashboard API */
-export async function getMemberHoldings(memberId: string, signal?: AbortSignal): Promise<HoldingRow[]> {
+export async function getMemberHoldings(memberId: string, signal?: AbortSignal): Promise<MemberHoldingsRows> {
   const res = await authFetch(`/household-members/${memberId}/holdings`, { signal });
-  return res.json();
+  const response = await res.json() as MemberHoldingsResponse;
+  return Object.assign(response.holdings, {
+    lifetime_xirr: response.lifetime_xirr,
+    current_holdings_xirr: response.current_holdings_xirr,
+  });
 }
 
 export async function getMemberAllocation(memberId: string, signal?: AbortSignal): Promise<AllocationSummary> {

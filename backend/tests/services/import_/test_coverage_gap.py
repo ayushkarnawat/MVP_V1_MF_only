@@ -183,5 +183,11 @@ def test_manual_opening_balance_resolves_coverage_gap(db_session, folio_setup):
     )
 
     assert created_txn.type == TransactionType.OPENING_BALANCE
+    assert created_txn.import_id != import_rec.id
+    manual_import = db_session.get(Import, created_txn.import_id)
+    assert manual_import is not None
+    assert manual_import.new_transactions_count == 1
+    assert manual_import.statement_from_date is None
+    assert manual_import.statement_to_date is None
     assert folio.has_coverage_gap is False
     assert folio.coverage_gap_details is None

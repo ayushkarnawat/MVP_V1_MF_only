@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session as DbSession
 from app.db.session import get_db
 from app.models.reference import Scheme
 from app.models.user import User #user db model
-from app.services.auth.session import get_current_user
+from app.services.auth.session import get_active_user
 from app.services.dashboard.aggregate import (
     get_aggregate_allocation,
     get_aggregate_cash_flow,
@@ -24,6 +24,7 @@ from app.services.dashboard.cash_flow import compute_cash_flow #for individual
 from app.services.dashboard.distributor_comparison import compute_distributor_comparison
 from app.services.dashboard.holdings import compute_holdings
 from app.services.dashboard.fund_detail import get_fund_nav_history
+from app.services.dashboard.xirr import calculate_dashboard_xirr
 
 #household member related db operations
 from app.services.dashboard.household_members import (
@@ -48,6 +49,7 @@ from app.services.dashboard.schemas import (
     HoldingRow,
     HouseholdMemberCreate,
     HouseholdMemberResponse,
+    MemberHoldingsResponse,
     SipMonthlyRow,
     SipRow,
     SchemeNavHistoryResponse,
@@ -64,7 +66,7 @@ router = APIRouter(tags=["dashboard"])
 async def get_fund_nav_history_route(
     scheme_id: uuid.UUID,
     period: Literal["1M", "1Y", "3Y", "5Y", "MAX"] = "1Y",
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_active_user),
     db: DbSession = Depends(get_db),
 ):
     scheme = db.get(Scheme, scheme_id)
@@ -76,7 +78,7 @@ async def get_fund_nav_history_route(
 @router.post("/household-members", response_model=HouseholdMemberResponse)
 def create_member(
     body: HouseholdMemberCreate,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_active_user),
     db: DbSession = Depends(get_db),
 ):
     try:
@@ -94,7 +96,7 @@ def create_member(
 
 #return household members
 @router.get("/household-members", response_model=list[HouseholdMemberResponse])
-def list_members(user: User = Depends(get_current_user), db: DbSession = Depends(get_db)):
+def list_members(user: User = Depends(get_active_user), db: DbSession = Depends(get_db)):
     members = list_household_members(db, user.id)
     return [
         HouseholdMemberResponse(
@@ -107,15 +109,21 @@ def list_members(user: User = Depends(get_current_user), db: DbSession = Depends
     ]
 
 #individual member dashboard
-@router.get("/household-members/{member_id}/holdings", response_model=list[HoldingRow])
+@router.get("/household-members/{member_id}/holdings", response_model=MemberHoldingsResponse)
 async def get_member_holdings(
     member_id: uuid.UUID,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_active_user),
     db: DbSession = Depends(get_db),
 ):
     if get_household_member_for_user(db, user.id, member_id) is None:
         raise HTTPException(status_code=404, detail="Household member not found.")
-    return await compute_holdings(db, [member_id])
+    holdings = await compute_holdings(db, [member_id])
+    xirr_summary = calculate_dashboard_xirr(db, [member_id], holdings)
+    return MemberHoldingsResponse(
+        holdings=holdings,
+        lifetime_xirr=xirr_summary.lifetime_xirr,
+        current_holdings_xirr=xirr_summary.current_holdings_xirr,
+    )
 
 
 @router.get(
@@ -124,7 +132,7 @@ async def get_member_holdings(
 )
 async def get_member_distributor_comparison(
     member_id: uuid.UUID,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_active_user),
     db: DbSession = Depends(get_db),
 ):
     if get_household_member_for_user(db, user.id, member_id) is None:
@@ -135,7 +143,7 @@ async def get_member_distributor_comparison(
 @router.get("/household-members/{member_id}/allocation", response_model=AllocationSummary)
 async def get_member_allocation(
     member_id: uuid.UUID,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_active_user),
     db: DbSession = Depends(get_db),
 ):
     if get_household_member_for_user(db, user.id, member_id) is None:
@@ -146,7 +154,7 @@ async def get_member_allocation(
 @router.get("/household-members/{member_id}/sips", response_model=list[SipRow])
 def get_member_sips(
     member_id: uuid.UUID,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_active_user),
     db: DbSession = Depends(get_db),
 ):
     if get_household_member_for_user(db, user.id, member_id) is None:
@@ -159,7 +167,7 @@ def get_member_sips_monthly(
     member_id: uuid.UUID,
     year: int | None = None,
     month: int | None = None,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_active_user),
     db: DbSession = Depends(get_db),
 ):
     if get_household_member_for_user(db, user.id, member_id) is None:
@@ -171,7 +179,7 @@ def get_member_sips_monthly(
 @router.get("/household-members/{member_id}/cash-flow", response_model=list[CashFlowEntry])
 def get_member_cash_flow(
     member_id: uuid.UUID,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_active_user),
     db: DbSession = Depends(get_db),
 ):
     if get_household_member_for_user(db, user.id, member_id) is None:
@@ -182,7 +190,7 @@ def get_member_cash_flow(
 @router.get("/household-members/{member_id}/snapshots", response_model=list[SnapshotRow])
 async def get_member_snapshots(
     member_id: uuid.UUID,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_active_user),
     db: DbSession = Depends(get_db),
 ):
     if get_household_member_for_user(db, user.id, member_id) is None:
@@ -192,7 +200,7 @@ async def get_member_snapshots(
 #aggregate dashboard
 @router.get("/household/aggregate/holdings", response_model=AggregateHoldingsResponse)
 async def get_household_aggregate_holdings(
-    user: User = Depends(get_current_user), db: DbSession = Depends(get_db)
+    user: User = Depends(get_active_user), db: DbSession = Depends(get_db)
 ):
     return await get_aggregate_holdings(db, user.id)
 
@@ -202,21 +210,21 @@ async def get_household_aggregate_holdings(
     response_model=AggregateDistributorComparisonResponse,
 )
 async def get_household_aggregate_distributor_comparison(
-    user: User = Depends(get_current_user), db: DbSession = Depends(get_db)
+    user: User = Depends(get_active_user), db: DbSession = Depends(get_db)
 ):
     return await get_aggregate_distributor_comparison(db, user.id)
 
 
 @router.get("/household/aggregate/allocation", response_model=AggregateAllocationResponse)
 async def get_household_aggregate_allocation(
-    user: User = Depends(get_current_user), db: DbSession = Depends(get_db)
+    user: User = Depends(get_active_user), db: DbSession = Depends(get_db)
 ):
     return await get_aggregate_allocation(db, user.id)
 
 
 @router.get("/household/aggregate/sips", response_model=AggregateSipsResponse)
 def get_household_aggregate_sips(
-    user: User = Depends(get_current_user), db: DbSession = Depends(get_db)
+    user: User = Depends(get_active_user), db: DbSession = Depends(get_db)
 ):
     return get_aggregate_sips(db, user.id)
 
@@ -225,7 +233,7 @@ def get_household_aggregate_sips(
 def get_household_aggregate_sips_monthly(
     year: int | None = None,
     month: int | None = None,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_active_user),
     db: DbSession = Depends(get_db),
 ):
     today = date.today()
@@ -234,13 +242,13 @@ def get_household_aggregate_sips_monthly(
 
 @router.get("/household/aggregate/cash-flow", response_model=AggregateCashFlowResponse)
 def get_household_aggregate_cash_flow(
-    user: User = Depends(get_current_user), db: DbSession = Depends(get_db)
+    user: User = Depends(get_active_user), db: DbSession = Depends(get_db)
 ):
     return get_aggregate_cash_flow(db, user.id)
 
 
 @router.get("/household/aggregate/snapshots", response_model=AggregateSnapshotsResponse)
 async def get_household_aggregate_snapshots(
-    user: User = Depends(get_current_user), db: DbSession = Depends(get_db)
+    user: User = Depends(get_active_user), db: DbSession = Depends(get_db)
 ):
     return await get_aggregate_snapshots(db, user.id)

@@ -26,7 +26,18 @@ export interface MeResponse {
   onboarding_completed: boolean;
   investor_type: InvestorType | null;
   primary_goal: PrimaryGoal | null;
+  pending_deletion?: boolean;
+  deletion_scheduled_at?: string | null;
 }
+
+export type AccountDeletionReason =
+  | "not_using_enough"
+  | "missing_feature"
+  | "found_alternative"
+  | "data_or_trust_concern"
+  | "other";
+
+export type ContactChangeChannel = "email" | "phone";
 
 export interface UpdateMeBody {
   onboarding_step?: string;

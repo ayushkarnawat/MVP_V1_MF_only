@@ -7,6 +7,7 @@ import { MobileRoot } from "./mobile/MobileRoot";
 import { MobileLandingPage } from "./mobile/features/landing/MobileLandingPage";
 import { MobileJourneyContext } from "./features/auth/mobileJourneyContext";
 import type { MobileJourneyStep } from "./features/auth/mobileJourneyContext";
+import { PendingDeletionScreen } from "./features/profile/PendingDeletionScreen";
 
 function useIsMobileViewport(breakpoint = 768) {
   const [isMobile, setIsMobile] = useState(() => {
@@ -56,7 +57,7 @@ function MobileInitialFlow({ authInitialMode }: { authInitialMode: "login" | "si
 }
 
 function MainApp() {
-  const { me, loading } = useAuth();
+  const { me, loading, reactivateAccount } = useAuth();
   const [showMobileLanding, setShowMobileLanding] = useState(true);
   const [authInitialMode, setAuthInitialMode] = useState<"login" | "signup">("signup");
   const isMobileViewport = useIsMobileViewport(768);
@@ -73,6 +74,15 @@ function MainApp() {
         <div className="h-7 w-7 rounded-full border-2 border-[#22C55E] border-t-transparent animate-spin mb-3" />
         <p className="text-xs font-medium tracking-wide">Loading Unifolio…</p>
       </div>
+    );
+  }
+
+  if (me?.pending_deletion) {
+    return (
+      <PendingDeletionScreen
+        deletionScheduledAt={me.deletion_scheduled_at ?? new Date().toISOString()}
+        reactivate={reactivateAccount}
+      />
     );
   }
 

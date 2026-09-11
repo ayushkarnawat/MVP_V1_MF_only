@@ -91,3 +91,13 @@ def get_current_user(
     if not user:
         raise HTTPException(status_code=401, detail="Session references a deleted user.")
     return user
+
+
+def get_active_user(user: User = Depends(get_current_user)) -> User:
+    """Authenticated user dependency for every non-grace-period endpoint."""
+    if user.pending_deletion:
+        raise HTTPException(
+            status_code=403,
+            detail="Account is pending deletion. Reactivate it to continue.",
+        )
+    return user

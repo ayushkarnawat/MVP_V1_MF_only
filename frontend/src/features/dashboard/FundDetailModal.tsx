@@ -4,6 +4,7 @@ import { toTitleCase } from "../../lib/utils";
 import { FundSignalGraph } from "../../components/FundSignal";
 import type { HoldingRow } from "./types";
 import styles from "./FundDetailModal.module.css";
+import { formatDecimal } from "../../lib/decimal";
 
 export interface FundDetailModalProps {
   isOpen: boolean;
@@ -75,11 +76,11 @@ export function FundDetailModal({
         <div className={styles.detailsList}>
           <div className={styles.detailRow}>
             <span className={styles.detailLabel}>Units Held</span>
-            <span className="type-data">{holding.units_held}</span>
+            <span className="type-data">{formatDecimal(holding.units_held)}</span>
           </div>
           <div className={styles.detailRow}>
             <span className={styles.detailLabel}>Average NAV</span>
-            <span className="type-data">₹{holding.average_nav}</span>
+            <span className="type-data">{holding.average_nav === null ? "—" : `₹${formatDecimal(holding.average_nav)}`}</span>
           </div>
           <div className={styles.detailRow}>
             <span className={styles.detailLabel}>Current NAV</span>
@@ -87,7 +88,7 @@ export function FundDetailModal({
               {navUnavailable ? (
                 <Badge variant="warning">NAV unavailable</Badge>
               ) : (
-                <>₹{holding.current_nav}</>
+                <>₹{formatDecimal(holding.current_nav ?? "0")}</>
               )}
               {!navUnavailable && holding.stale_nav && <Badge variant="warning">stale</Badge>}
             </span>

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { NavigationShell, type MemberOption } from "./NavigationShell";
 import { DashboardView } from "./DashboardView";
 import { AnalyticsView } from "../analytics/AnalyticsView";
+import { ProfileView } from "../profile/ProfileView";
 import { ImportFlow } from "../import/ImportFlow";
 import { clearCasResumeStep2 } from "../import/casResumeState";
 import { getHouseholdMembers } from "../auth/api";
@@ -14,16 +15,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../components/ui/select";
-import { ArrowLeft, ShieldCheck, User, LogOut } from "lucide-react";
+import { ArrowLeft, ShieldCheck, User } from "lucide-react";
+
+type MainTab = "dashboard" | "analytics" | "profile";
 
 export function MainDashboardFlow() {
-  const { me, logout } = useAuth();
+  const { me, logout, requestAccountDeletion, requestContactChange, verifyContactChange } = useAuth();
   const [members, setMembers] = useState<MemberOption[]>([]);
   const [viewMode, setViewMode] = useState<"aggregate" | "member">("aggregate");
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"dashboard" | "analytics">(() =>
-    window.history.state?.unifolioTab === "analytics" ? "analytics" : "dashboard",
-  );
+  const [activeTab, setActiveTab] = useState<MainTab>(() => {
+    const historyTab = window.history.state?.unifolioTab;
+    return historyTab === "analytics" || historyTab === "profile" ? historyTab : "dashboard";
+  });
   const [isAddingData, setIsAddingData] = useState(false);
   const [targetAddMemberId, setTargetAddMemberId] = useState<string | null>(null);
   // True only when Add Data was reached from Family Combined view via the
@@ -67,13 +71,14 @@ export function MainDashboardFlow() {
     }
 
     const handlePopState = (event: PopStateEvent) => {
-      setActiveTab(event.state?.unifolioTab === "analytics" ? "analytics" : "dashboard");
+      const historyTab = event.state?.unifolioTab;
+      setActiveTab(historyTab === "analytics" || historyTab === "profile" ? historyTab : "dashboard");
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, [activeTab]);
 
-  const handleTabChange = (tab: "dashboard" | "analytics") => {
+  const handleTabChange = (tab: MainTab) => {
     if (tab === activeTab) return;
     window.history.pushState(
       { ...(window.history.state ?? {}), unifolioTab: tab },
@@ -139,15 +144,6 @@ export function MainDashboardFlow() {
                 )
               )}
               <ThemeToggle className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg" />
-              <button
-                onClick={logout}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-negative)] hover:bg-[var(--color-bg)] border border-transparent hover:border-[var(--color-border)] transition-colors cursor-pointer"
-                aria-label="Logout"
-                type="button"
-              >
-                <LogOut className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Logout</span>
-              </button>
             </div>
           </div>
         </header>
@@ -192,12 +188,22 @@ export function MainDashboardFlow() {
           memberId={selectedMemberId}
           onAddDataForMember={handleAddDataTrigger}
         />
-      ) : (
+      ) : activeTab === "analytics" ? (
         <AnalyticsView
           viewMode={viewMode}
           memberId={selectedMemberId}
           onAddDataForMember={handleAddDataTrigger}
           activeMemberName={members.find((m) => m.id === selectedMemberId)?.name}
+        />
+      ) : (
+        <ProfileView
+          name={members.find((member) => member.name.endsWith("(Me)"))?.name.replace(/\s*\(Me\)$/, "") ?? "Account holder"}
+          email={me?.email ?? null}
+          phoneNumber={me?.phone_number ?? ""}
+          logout={logout}
+          requestAccountDeletion={requestAccountDeletion}
+          requestContactChange={requestContactChange}
+          verifyContactChange={verifyContactChange}
         />
       )}
     </NavigationShell>

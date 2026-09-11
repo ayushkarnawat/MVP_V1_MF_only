@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 
 import pytest
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -15,6 +15,16 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker("postgres")
 
 
+def _enforce_sqlite_foreign_keys(engine):
+    """SQLite ignores FK constraints unless each connection turns them on --
+    without this, a test can pass with a delete order that would violate FK
+    constraints on the real Postgres target."""
+
+    @event.listens_for(engine, "connect")
+    def _set_pragma(dbapi_connection, _):
+        dbapi_connection.execute("PRAGMA foreign_keys=ON")
+
+
 @pytest.fixture()
 def db_session():
     """An isolated in-memory DB session for unit tests."""
@@ -23,6 +33,7 @@ def db_session():
     engine = create_engine(
         "sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool
     )
+    _enforce_sqlite_foreign_keys(engine)
     Base.metadata.create_all(engine)
     TestSessionLocal = sessionmaker(autoflush=False, bind=engine)
     session = TestSessionLocal()
@@ -45,6 +56,7 @@ def client():
     engine = create_engine(
         "sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool
     )
+    _enforce_sqlite_foreign_keys(engine)
     Base.metadata.create_all(engine)
     TestSessionLocal = sessionmaker(autoflush=False, bind=engine)
 

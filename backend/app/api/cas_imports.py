@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.imports import Import
 from app.models.user import User
-from app.services.auth.session import get_current_user
+from app.services.auth.session import get_active_user
 from app.services.dashboard.household_members import get_household_member_for_user
 from app.services.import_.attribution import AttributionConfirmationRequiredError
 from app.services.import_.lifecycle_service import (
@@ -102,7 +102,7 @@ async def upload_cas_import(
     household_member_id: str = Form(...),
     source_tab: str = Form("upload"),
     confirmed_member_override: bool = Form(False),
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_active_user),
     db: Session = Depends(get_db),
 ):
     try:
@@ -141,7 +141,7 @@ async def upload_cas_import(
 @router.get("/cas-imports/{import_id}", response_model=CASImportStatusResponse)
 def get_cas_import_status(
     import_id: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_active_user),
     db: Session = Depends(get_db),
 ):
     try:
@@ -163,7 +163,7 @@ def get_cas_import_status(
 def retry_password(
     import_id: str,
     body: PasswordRetryRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_active_user),
     db: Session = Depends(get_db),
 ):
     try:
@@ -202,7 +202,7 @@ def retry_password(
 @router.get("/household-members/{member_id}/cas-imports", response_model=list[CASImportStatusResponse])
 def list_member_import_history(
     member_id: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_active_user),
     db: Session = Depends(get_db),
 ):
     try:
@@ -252,7 +252,7 @@ class OpeningBalanceResponse(BaseModel):
 @router.get("/household-members/{member_id}/coverage-gaps", response_model=list[CoverageGapItemResponse])
 def list_member_coverage_gaps(
     member_id: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_active_user),
     db: Session = Depends(get_db),
 ):
     try:
@@ -293,7 +293,7 @@ def list_member_coverage_gaps(
 def post_opening_balance(
     folio_id: str,
     body: OpeningBalanceRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_active_user),
     db: Session = Depends(get_db),
 ):
     try:
@@ -345,7 +345,7 @@ def post_opening_balance(
 @router.post("/cas-imports/request", status_code=status.HTTP_201_CREATED, response_model=CAMSInitiateResponse)
 def request_cams_statement(
     body: CAMSInitiateRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_active_user),
     db: Session = Depends(get_db),
 ):
     try:
@@ -372,7 +372,7 @@ def request_cams_statement(
 @router.post("/cas-imports/{import_id}/cancel", response_model=CASImportStatusResponse)
 def cancel_import_request(
     import_id: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_active_user),
     db: Session = Depends(get_db),
 ):
     try:

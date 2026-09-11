@@ -24,6 +24,7 @@ from app.models.transaction import Transaction
 from app.models.user import HouseholdMember
 from app.services.dashboard.nav import get_nav_on_or_before, get_navs_on_or_before, get_previous_nav_from_cache
 from app.services.dashboard.schemas import HoldingRow
+from app.services.dashboard.allocation_labels import asset_class_bucket
 
 _LOT_ADDING_TYPES = {TransactionType.PURCHASE, TransactionType.PURCHASE_SIP, TransactionType.SWITCH_IN, TransactionType.DIVIDEND_REINVEST}
 _LOT_CONSUMING_TYPES = {TransactionType.REDEMPTION, TransactionType.SWITCH_OUT}
@@ -193,6 +194,7 @@ async def compute_holdings(db: Session, household_member_ids: list[uuid.UUID]) -
                     scheme_id=str(scheme.id),
                     scheme_name=scheme.name,
                     amc_name=scheme.amc_name,
+                    asset_class=asset_class_bucket(scheme.sebi_category),
                     household_member_id=str(member_id),
                     household_member_name=members[member_id].name,
                     plan_type=plan_type,
@@ -224,6 +226,7 @@ async def compute_holdings(db: Session, household_member_ids: list[uuid.UUID]) -
                 scheme_id=str(scheme.id),
                 scheme_name=scheme.name,
                 amc_name=scheme.amc_name,
+                asset_class=asset_class_bucket(scheme.sebi_category),
                 household_member_id=str(member_id),
                 household_member_name=members[member_id].name,
                 plan_type=plan_type,

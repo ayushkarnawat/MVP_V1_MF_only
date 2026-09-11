@@ -222,7 +222,13 @@ def test_cross_account_warning_does_not_block_new_import(
         amc_name="SBI Mutual Fund",
         sebi_category="Equity",
     )
-    db_session.add_all([other_user, other_member, existing_scheme])
+    # Flush the user before adding the member: without an ORM relationship()
+    # between User and HouseholdMember, the unit-of-work's insert ordering
+    # doesn't follow add_all()'s list order, so a single flush can attempt
+    # the FK-dependent insert first.
+    db_session.add(other_user)
+    db_session.flush()
+    db_session.add_all([other_member, existing_scheme])
     db_session.flush()
     db_session.add(
         Folio(

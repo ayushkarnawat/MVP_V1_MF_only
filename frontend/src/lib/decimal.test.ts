@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sumDecimalStrings, toPercentString } from "./decimal";
+import { compareDecimalStrings, formatDecimal, sumDecimalStrings, toPercentString } from "./decimal";
 
 describe("sumDecimalStrings", () => {
   it("sums simple two-decimal money strings exactly", () => {
@@ -61,5 +61,26 @@ describe("toPercentString", () => {
   it("normalizes signed zero to unsigned", () => {
     expect(toPercentString("-0")).toBe("0.00");
     expect(toPercentString("-0.0000001")).toBe("0.00");
+  });
+});
+
+describe("formatDecimal", () => {
+  it("renders raw backend decimal strings to exactly two places", () => {
+    expect(formatDecimal("26.2900000")).toBe("26.29");
+    expect(formatDecimal("26.3")).toBe("26.30");
+    expect(formatDecimal("12.345")).toBe("12.35");
+    expect(formatDecimal("-0.005")).toBe("-0.01");
+  });
+});
+
+describe("compareDecimalStrings", () => {
+  it("orders values exactly beyond Number's safe integer precision", () => {
+    expect(compareDecimalStrings("9007199254740993.00", "9007199254740992.99")).toBe(1);
+    expect(compareDecimalStrings("9007199254740992.99", "9007199254740993.00")).toBe(-1);
+  });
+
+  it("handles negatives and equivalent values with different scales", () => {
+    expect(compareDecimalStrings("-10.001", "-10.000")).toBe(-1);
+    expect(compareDecimalStrings("1.0", "1.0000")).toBe(0);
   });
 });

@@ -9,6 +9,8 @@ import type {
   OpeningBalanceResponse,
   ParseErrorPayload,
   SchemeConfirmation,
+  HouseholdImportHistoryItem,
+  DeleteImportResponse,
 } from "./types";
 
 export { ApiError };
@@ -133,6 +135,26 @@ export async function getMemberImportHistory(memberId: string): Promise<CASImpor
   return (await response.json()) as CASImportStatusResponse[];
 }
 
+export async function getHouseholdImportHistory(): Promise<HouseholdImportHistoryItem[]> {
+  const response = await fetch(`${API_BASE_URL}/imports/history`, { headers: authHeaders() });
+  if (!response.ok) {
+    throw new ApiError(response.status, await parseErrorDetail(response));
+  }
+  return (await response.json()) as HouseholdImportHistoryItem[];
+}
+
+export async function deleteHouseholdImport(importId: string): Promise<DeleteImportResponse> {
+  const response = await fetch(`${API_BASE_URL}/imports/${importId}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!response.ok) {
+    throw new ApiError(response.status, await parseErrorDetail(response));
+  }
+  invalidateApiCache();
+  return (await response.json()) as DeleteImportResponse;
+}
+
 export async function getMemberCoverageGaps(
   memberId: string,
   signal?: AbortSignal,
@@ -212,4 +234,3 @@ export async function cancelImportRequest(
 
   return (await response.json()) as CASImportStatusResponse;
 }
-

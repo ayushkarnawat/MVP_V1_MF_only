@@ -25,8 +25,9 @@ vi.mock("../analytics/AnalyticsView", () => ({
 
 vi.mock("../auth/AuthContext", () => ({
   useAuth: () => ({
-    me: { user_id: "u-1", phone_number: "+919999999999" },
+    me: { user_id: "u-1", phone_number: "+919999999999", email: "alice@example.com" },
     loading: false,
+    logout: vi.fn(),
   }),
 }));
 
@@ -64,6 +65,34 @@ describe("MainDashboardFlow", () => {
     });
 
     expect(await screen.findByText("No Holdings Found")).toBeInTheDocument();
+  });
+
+  it("opens Profile as a history-backed tab with account controls", async () => {
+    vi.mocked(authApi.getHouseholdMembers).mockResolvedValue([
+      { id: "m-1", name: "Alice", relationship: "self", relationship_other_label: null },
+    ]);
+    vi.mocked(dashboardApi.getMemberHoldings).mockResolvedValue([]);
+    vi.mocked(dashboardApi.getMemberAllocation).mockResolvedValue({
+      by_asset_class: [],
+      by_amc: [],
+      total_value: "0.00",
+    });
+
+    render(<MainDashboardFlow />);
+    await screen.findByText("No Holdings Found");
+
+    fireEvent.click(screen.getByRole("button", { name: /profile/i }));
+
+    expect(await screen.findByRole("heading", { name: "Profile" })).toBeInTheDocument();
+    expect(screen.getByText("Account Info")).toBeInTheDocument();
+    expect(screen.getByText("Alice")).toBeInTheDocument();
+    expect(screen.getByText("alice@example.com")).toBeInTheDocument();
+    expect(screen.getByText("+919999999999")).toBeInTheDocument();
+    expect(screen.getByText("Import History")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /logout/i })).toBeInTheDocument();
+    expect(screen.getByText("Danger Zone")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /delete account/i })).toBeInTheDocument();
+    expect(window.history.state).toMatchObject({ unifolioTab: "profile" });
   });
 
   it("fetches household members and defaults landing view", async () => {

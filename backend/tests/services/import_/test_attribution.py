@@ -73,7 +73,13 @@ def _member_for_new_user(db_session, *, name: str) -> tuple[User, HouseholdMembe
         relationship=Relationship.SELF,
         created_at=now,
     )
-    db_session.add_all([user, member])
+    # Flush the user before adding the member: without an ORM relationship()
+    # between User and HouseholdMember, the unit-of-work's insert ordering
+    # doesn't follow add_all()'s list order, so a single flush can attempt
+    # the FK-dependent insert first.
+    db_session.add(user)
+    db_session.flush()
+    db_session.add(member)
     db_session.commit()
     return user, member
 

@@ -140,3 +140,21 @@ def test_refresh_benchmark_daily_uses_ten_calendar_years_for_every_index(
     assert all(call[2] == date(2014, 2, 28) for call in calls)
     assert all(call[3] == date(2024, 2, 29) for call in calls)
     assert "refresh_benchmark_daily: indexes=4 succeeded=3 success=False" in caplog.messages
+
+
+def test_delete_expired_accounts_daily_runs_hard_delete_service(db_session, monkeypatch, caplog):
+    job = _load_job("delete_expired_accounts_daily")
+    calls = []
+
+    def fake_hard_delete_expired_accounts(db):
+        calls.append(db)
+        return 3
+
+    monkeypatch.setattr(job, "SessionLocal", lambda: db_session)
+    monkeypatch.setattr(job, "hard_delete_expired_accounts", fake_hard_delete_expired_accounts)
+    caplog.set_level(logging.INFO)
+
+    job.main()
+
+    assert calls == [db_session]
+    assert "delete_expired_accounts_daily: deleted_accounts=3 success=True" in caplog.messages

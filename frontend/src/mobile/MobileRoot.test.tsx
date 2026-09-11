@@ -52,6 +52,10 @@ describe("MobileAppShell & MobileRoot", () => {
       login: vi.fn(),
       logout: vi.fn(),
       updateMe: vi.fn(),
+      requestAccountDeletion: vi.fn(),
+      reactivateAccount: vi.fn(),
+      requestContactChange: vi.fn(),
+      verifyContactChange: vi.fn(),
     });
 
     render(<MobileRoot />);
@@ -75,6 +79,10 @@ describe("MobileAppShell & MobileRoot", () => {
       login: vi.fn(),
       logout: vi.fn(),
       updateMe: vi.fn(),
+      requestAccountDeletion: vi.fn(),
+      reactivateAccount: vi.fn(),
+      requestContactChange: vi.fn(),
+      verifyContactChange: vi.fn(),
     });
 
     render(<MobileRoot />);
@@ -156,6 +164,10 @@ describe("MobileAppShell & MobileRoot", () => {
       login: vi.fn(),
       logout: vi.fn(),
       updateMe: vi.fn(),
+      requestAccountDeletion: vi.fn(),
+      reactivateAccount: vi.fn(),
+      requestContactChange: vi.fn(),
+      verifyContactChange: vi.fn(),
     });
 
     render(<MobileRoot />);
@@ -197,6 +209,10 @@ describe("MobileAppShell & MobileRoot", () => {
       login: vi.fn(),
       logout: mockLogout,
       updateMe: vi.fn(),
+      requestAccountDeletion: vi.fn(),
+      reactivateAccount: vi.fn(),
+      requestContactChange: vi.fn(),
+      verifyContactChange: vi.fn(),
     });
 
     render(<MobileRoot />);

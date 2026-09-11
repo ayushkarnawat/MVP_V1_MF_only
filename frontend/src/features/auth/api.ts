@@ -9,6 +9,8 @@ import type {
   OtpVerifyResult,
   Relationship,
   UpdateMeBody,
+  AccountDeletionReason,
+  ContactChangeChannel,
 } from "./types";
 
 export { ApiError };
@@ -147,3 +149,52 @@ export async function listHouseholdMembers(): Promise<HouseholdMember[]> {
 }
 
 export const getHouseholdMembers = listHouseholdMembers;
+
+export async function requestAccountDeletion(
+  reason: AccountDeletionReason,
+  feedback?: string,
+): Promise<MeResponse> {
+  const response = await fetch(`${API_BASE_URL}/auth/account-deletion`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ reason, feedback: feedback || null }),
+  });
+  await throwIfError(response);
+  return (await response.json()) as MeResponse;
+}
+
+export async function reactivateAccount(): Promise<MeResponse> {
+  const response = await fetch(`${API_BASE_URL}/auth/reactivate`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+  await throwIfError(response);
+  return (await response.json()) as MeResponse;
+}
+
+export async function requestContactChange(
+  channel: ContactChangeChannel,
+  identifier: string,
+): Promise<OtpRequestResponse> {
+  const response = await fetch(`${API_BASE_URL}/auth/contact-change/request`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ channel, identifier }),
+  });
+  await throwIfError(response);
+  return (await response.json()) as OtpRequestResponse;
+}
+
+export async function verifyContactChange(
+  channel: ContactChangeChannel,
+  identifier: string,
+  otp: string,
+): Promise<MeResponse> {
+  const response = await fetch(`${API_BASE_URL}/auth/contact-change/verify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ channel, identifier, otp }),
+  });
+  await throwIfError(response);
+  return (await response.json()) as MeResponse;
+}

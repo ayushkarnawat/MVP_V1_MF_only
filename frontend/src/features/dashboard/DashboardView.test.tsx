@@ -63,6 +63,113 @@ describe("DashboardView", () => {
     expect(await screen.findByText("No Holdings Found")).toBeInTheDocument();
   });
 
+  it("shows lifetime XIRR by default and switches to current-holdings XIRR via the toggle", async () => {
+    vi.mocked(api.getMemberHoldings).mockResolvedValue(Object.assign([{
+        scheme_id: "scheme-xirr", scheme_name: "XIRR Fund", amc_name: "AMC",
+        household_member_id: "m-1", household_member_name: "John", plan_type: "DIRECT" as const,
+        units_held: "10.000", average_nav: "10.00", current_nav: "20.00",
+        amount_invested: "100.00", current_value: "200.00", current_profit_total: "100.00",
+        realized_gain: "0.00", unrealized_gain: "100.00", today_gain: "0.00",
+      }], {
+      lifetime_xirr: "0.1534",
+      current_holdings_xirr: "0.1821",
+    }));
+    vi.mocked(api.getMemberAllocation).mockResolvedValue({
+      by_asset_class: [{ label: "Equity", current_value: "200.00", percentage: 100 }],
+      by_amc: [{ label: "AMC", current_value: "200.00", percentage: 100 }],
+      total_value: "200.00",
+    });
+
+    render(<DashboardView viewMode="member" memberId="m-1" />);
+
+    expect(await screen.findByText("XIRR 15.34%")).toBeInTheDocument();
+    const currentTab = screen.getByRole("tab", { name: "Current" });
+    fireEvent.click(currentTab);
+    expect(screen.getByText("XIRR 18.21%")).toBeInTheDocument();
+    expect(screen.queryByText("XIRR 15.34%")).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ["10.00", "Total Gain"],
+    ["-10.00", "Total Loss"],
+  ])("labels a portfolio profit of %s as %s", async (profit, expectedLabel) => {
+    vi.mocked(api.getMemberHoldings).mockResolvedValue([{
+      scheme_id: "scheme-sign", scheme_name: "Sign Fund", amc_name: "AMC",
+      household_member_id: "m-1", household_member_name: "John", plan_type: "DIRECT",
+      units_held: "1.000", average_nav: "100.00", current_nav: "100.00",
+      amount_invested: "100.00", current_value: "100.00", current_profit_total: profit,
+      realized_gain: "0.00", unrealized_gain: profit, today_gain: "0.00",
+    }]);
+    vi.mocked(api.getMemberAllocation).mockResolvedValue({
+      by_asset_class: [{ label: "Equity", current_value: "100.00", percentage: 100 }],
+      by_amc: [{ label: "AMC", current_value: "100.00", percentage: 100 }],
+      total_value: "100.00",
+    });
+
+    render(<DashboardView viewMode="member" memberId="m-1" />);
+
+    expect(await screen.findByText(expectedLabel)).toBeInTheDocument();
+    expect(screen.queryByText("Total Gain / Loss")).not.toBeInTheDocument();
+  });
+
+  it("reverses the already-fetched allocation when sort direction is toggled", async () => {
+    vi.mocked(api.getMemberHoldings).mockResolvedValue([{
+      scheme_id: "large", scheme_name: "Large Fund", amc_name: "Large AMC",
+      household_member_id: "m-1", household_member_name: "John", plan_type: "DIRECT",
+      units_held: "1.000", average_nav: "300.00", current_nav: "300.00",
+      amount_invested: "300.00", current_value: "300.00", current_profit_total: "0.00",
+      realized_gain: "0.00", unrealized_gain: "0.00", today_gain: "0.00",
+    }]);
+    vi.mocked(api.getMemberAllocation).mockResolvedValue({
+      by_asset_class: [
+        { label: "Large", current_value: "9007199254740993.00", percentage: 75 },
+        { label: "Small", current_value: "9007199254740992.99", percentage: 25 },
+      ],
+      by_amc: [], total_value: "18014398509481985.99",
+    });
+
+    render(<DashboardView viewMode="member" memberId="m-1" />);
+    const large = await screen.findByText("Large");
+    const small = screen.getByText("Small");
+    expect(large.compareDocumentPosition(small) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Sort allocation ascending" }));
+    expect(small.compareDocumentPosition(large) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("opens the shared holding drill-down from AMC and asset-class allocation rows", async () => {
+    vi.mocked(api.getMemberHoldings).mockResolvedValue([
+      {
+        scheme_id: "equity", scheme_name: "Equity Fund", amc_name: "Alpha AMC", asset_class: "Equity",
+        household_member_id: "m-1", household_member_name: "John", plan_type: "DIRECT",
+        units_held: "2.000", average_nav: "50.00", current_nav: "60.00", amount_invested: "100.00",
+        current_value: "120.00", current_profit_total: "20.00", realized_gain: "0.00", unrealized_gain: "20.00", today_gain: "0.00",
+      },
+      {
+        scheme_id: "debt", scheme_name: "Debt Fund", amc_name: "Beta AMC", asset_class: "Debt",
+        household_member_id: "m-1", household_member_name: "John", plan_type: "DIRECT",
+        units_held: "1.000", average_nav: "80.00", current_nav: "80.00", amount_invested: "80.00",
+        current_value: "80.00", current_profit_total: "0.00", realized_gain: "0.00", unrealized_gain: "0.00", today_gain: "0.00",
+      },
+    ]);
+    vi.mocked(api.getMemberAllocation).mockResolvedValue({
+      by_asset_class: [{ label: "Equity", current_value: "120.00", percentage: 60 }, { label: "Debt", current_value: "80.00", percentage: 40 }],
+      by_amc: [{ label: "Alpha AMC", current_value: "120.00", percentage: 60 }, { label: "Beta AMC", current_value: "80.00", percentage: 40 }],
+      total_value: "200.00",
+    });
+    render(<DashboardView viewMode="member" memberId="m-1" />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Equity" }));
+    expect(screen.getByRole("dialog", { name: "Equity" })).toBeInTheDocument();
+    expect(screen.getAllByText("Equity Fund").length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "By AMC" }));
+    fireEvent.click(screen.getByRole("button", { name: "Alpha AMC" }));
+    expect(screen.getByRole("dialog", { name: "Alpha AMC" })).toBeInTheDocument();
+    expect(screen.getAllByText("Equity Fund").length).toBeGreaterThan(0);
+  });
+
   it("aborts dashboard requests when the view unmounts", async () => {
     let observedSignal: AbortSignal | undefined;
     vi.mocked(api.getMemberHoldings).mockImplementation((_memberId, signal) => {

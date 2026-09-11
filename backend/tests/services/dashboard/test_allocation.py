@@ -79,6 +79,24 @@ def test_compute_allocation_empty_when_no_holdings():
     assert Decimal(summary.total_value) == Decimal("0")
 
 
+def test_compute_allocation_sorts_both_breakdowns_by_value_descending():
+    db = _session()
+    member = _household_member(db)
+    smaller = _scheme(db, amc_name="First AMC", sebi_category="Equity Scheme")
+    larger = _scheme(db, amc_name="Second AMC", sebi_category="Debt Scheme")
+    _folio_with_purchase(db, member, smaller, Decimal("100.00"), Decimal("1.000"), Decimal("100.0000"))
+    _folio_with_purchase(db, member, larger, Decimal("300.00"), Decimal("1.000"), Decimal("300.0000"))
+
+    with patch(
+        "app.services.dashboard.holdings.get_nav_on_or_before",
+        new=AsyncMock(side_effect=lambda _db, scheme, _date: (Decimal("100.0000"), date.today()) if scheme.id == smaller.id else (Decimal("300.0000"), date.today())),
+    ), patch("app.services.dashboard.holdings.get_previous_nav_from_cache", return_value=None):
+        summary = asyncio.run(compute_allocation(db, [member.id]))
+
+    assert [bucket.label for bucket in summary.by_asset_class] == ["Debt", "Equity"]
+    assert [bucket.label for bucket in summary.by_amc] == ["Second AMC", "First AMC"]
+
+
 def test_compute_allocation_excludes_and_counts_nav_unavailable_holdings():
     db = _session()
     member = _household_member(db)

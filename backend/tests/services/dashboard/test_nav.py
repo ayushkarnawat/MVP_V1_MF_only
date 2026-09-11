@@ -437,12 +437,17 @@ def test_upsert_nav_history_is_conflict_safe_across_sessions(tmp_path):
     sessions = sessionmaker(autoflush=False, bind=engine)
     setup_db = sessions()
     scheme = _scheme(setup_db)
+    # Resolve the expired ORM attribute on its owning thread/session before
+    # the workers start. Sharing setup_db's ORM object across threads races
+    # SQLAlchemy's refresh machinery and can fail before _upsert_nav_history
+    # is exercised at all.
+    scheme_id = scheme.id
     row = [(date(2024, 1, 15), Decimal("50.1234"))]
 
     def _run(session):
         import asyncio
 
-        asyncio.run(_upsert_nav_history(session, scheme.id, row))
+        asyncio.run(_upsert_nav_history(session, scheme_id, row))
 
     with ThreadPoolExecutor(max_workers=2) as executor:
         futures = [executor.submit(_run, sessions()) for _ in range(2)]
@@ -451,4 +456,4 @@ def test_upsert_nav_history_is_conflict_safe_across_sessions(tmp_path):
 
     verify_db = sessions()
     from app.models.reference import NavHistory
-    assert verify_db.query(NavHistory).filter_by(scheme_id=scheme.id).count() == 1
+    assert verify_db.query(NavHistory).filter_by(scheme_id=scheme_id).count() == 1

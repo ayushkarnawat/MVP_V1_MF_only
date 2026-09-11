@@ -2,6 +2,7 @@ export interface HoldingRow {
   scheme_id: string;
   scheme_name: string;
   amc_name?: string;
+  asset_class?: string;
   household_member_id: string;
   household_member_name: string;
   plan_type: "DIRECT" | "REGULAR" | "UNKNOWN";
@@ -78,7 +79,20 @@ export interface FamilyMemberStatus {
 export interface AggregateHoldingsResponse {
   members: FamilyMemberStatus[];
   holdings: HoldingRow[];
+  lifetime_xirr?: string | null;
+  current_holdings_xirr?: string | null;
 }
+
+export interface MemberHoldingsResponse {
+  holdings: HoldingRow[];
+  lifetime_xirr: string | null;
+  current_holdings_xirr: string | null;
+}
+
+export type MemberHoldingsRows = HoldingRow[] & {
+  lifetime_xirr?: string | null;
+  current_holdings_xirr?: string | null;
+};
 
 export interface AggregateAllocationResponse {
   members: FamilyMemberStatus[];

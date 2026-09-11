@@ -9,19 +9,28 @@
  * the accumulation step, not to ban Number() everywhere.
  */
 
-function addDecimalStrings(a: string, b: string): string {
-  const [aWhole, aFrac = ""] = (a || "0").split(".");
-  const [bWhole, bFrac = ""] = (b || "0").split(".");
-  const scale = Math.max(aFrac.length, bFrac.length);
-
-  const toScaled = (whole: string, frac: string): bigint => {
-    const negative = whole.startsWith("-");
-    const digits = whole.replace("-", "") || "0";
-    const scaled = BigInt(digits + frac.padEnd(scale, "0"));
-    return negative ? -scaled : scaled;
+function decimalParts(value: string): { negative: boolean; whole: string; fraction: string } {
+  const match = (value || "0").match(/^([+-]?)(\d+)(?:\.(\d*))?$/);
+  if (!match) return { negative: false, whole: "0", fraction: "" };
+  return {
+    negative: match[1] === "-",
+    whole: match[2],
+    fraction: match[3] ?? "",
   };
+}
 
-  const sumScaled = toScaled(aWhole, aFrac) + toScaled(bWhole, bFrac);
+function scaledDecimal(value: string, scale: number): bigint {
+  const { negative, whole, fraction } = decimalParts(value);
+  const scaled = BigInt(whole + fraction.padEnd(scale, "0"));
+  return negative ? -scaled : scaled;
+}
+
+function addDecimalStrings(a: string, b: string): string {
+  const aParts = decimalParts(a);
+  const bParts = decimalParts(b);
+  const scale = Math.max(aParts.fraction.length, bParts.fraction.length);
+
+  const sumScaled = scaledDecimal(a, scale) + scaledDecimal(b, scale);
   const negative = sumScaled < 0n;
   const abs = negative ? -sumScaled : sumScaled;
   const divisor = 10n ** BigInt(scale);
@@ -32,6 +41,16 @@ function addDecimalStrings(a: string, b: string): string {
 
 export function sumDecimalStrings(values: string[]): string {
   return values.reduce((acc, v) => addDecimalStrings(acc, v || "0"), "0");
+}
+
+/** Compares backend Decimal strings without converting through IEEE-754. */
+export function compareDecimalStrings(a: string, b: string): -1 | 0 | 1 {
+  const scale = Math.max(decimalParts(a).fraction.length, decimalParts(b).fraction.length);
+  const left = scaledDecimal(a, scale);
+  const right = scaledDecimal(b, scale);
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return 0;
 }
 
 function subtractDecimalStrings(a: string, b: string): string {
@@ -85,4 +104,18 @@ export function formatIndianCurrency(valStr: string | number): string {
   return new Intl.NumberFormat("en-IN", {
     maximumFractionDigits: 0,
   }).format(num);
+}
+
+/** Formats a backend Decimal string with fixed two-place, half-up rounding. */
+export function formatDecimal(value: string): string {
+  const match = value.trim().match(/^([+-]?)(\d+)(?:\.(\d*))?$/);
+  if (!match) return "0.00";
+  const negative = match[1] === "-";
+  const whole = match[2].replace(/^0+(?=\d)/, "") || "0";
+  const fraction = (match[3] ?? "").padEnd(3, "0");
+  const roundUp = fraction[2] >= "5";
+  const scaled = BigInt(whole) * 100n + BigInt(fraction.slice(0, 2)) + (roundUp ? 1n : 0n);
+  const digits = scaled.toString().padStart(3, "0");
+  const formatted = `${digits.slice(0, -2)}.${digits.slice(-2)}`;
+  return negative && scaled !== 0n ? `-${formatted}` : formatted;
 }

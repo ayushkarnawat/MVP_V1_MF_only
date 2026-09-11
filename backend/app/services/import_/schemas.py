@@ -68,3 +68,17 @@ class ImportConfirmResponse(BaseModel):
     skipped: int
     import_id: str
     warnings: list[str] = Field(default_factory=list)
+
+
+class HouseholdImportHistoryItem(BaseModel):
+    import_id: str
+    household_member_id: str
+    uploaded_at: str
+    statement_from_date: str | None
+    statement_to_date: str | None
+    status: str
+    new_transactions_count: int | None
+
+
+class DeleteImportResponse(BaseModel):
+    deleted_transactions_count: int

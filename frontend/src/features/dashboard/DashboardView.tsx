@@ -7,11 +7,12 @@ import { Badge } from "../../components/Badge";
 import { Button } from "@/components/ui/button";
 import { FundDetailModal } from "./FundDetailModal";
 import { DistributorComparisonModal } from "./DistributorComparisonModal";
+import { AllocationDrilldownModal } from "./AllocationDrilldownModal";
 import { CoverageGapBanner } from "../import/CoverageGapBanner";
 import { OpeningBalanceModal } from "../import/OpeningBalanceModal";
 import { getMemberCoverageGaps } from "../import/api";
 import type { CoverageGapItem } from "../import/types";
-import { sumDecimalStrings, formatIndianCurrency } from "../../lib/decimal";
+import { compareDecimalStrings, sumDecimalStrings, formatIndianCurrency, toPercentString } from "../../lib/decimal";
 import {
   getMemberHoldings,
   getMemberAllocation,
@@ -37,7 +38,7 @@ import type {
   SipMonthlyRow,
 } from "./types";
 import { cn } from "@/lib/utils";
-import { ArrowUpRight, ArrowDownRight, User, Users, AlertTriangle, BarChart2 } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, ArrowUpDown, User, Users, AlertTriangle, BarChart2 } from "lucide-react";
 
 export interface DashboardViewProps {
   viewMode: "aggregate" | "member";
@@ -59,6 +60,9 @@ export function DashboardView({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [allocationTab, setAllocationTab] = useState<"asset" | "amc">("asset");
+  const [allocationSortDirection, setAllocationSortDirection] = useState<"desc" | "asc">("desc");
+  const [xirrSummary, setXirrSummary] = useState<{ lifetime: string | null; current: string | null }>({ lifetime: null, current: null });
+  const [xirrMode, setXirrMode] = useState<"lifetime" | "current">("lifetime");
   const [sipTab, setSipTab] = useState<"upcoming" | "month">("upcoming");
   const today = new Date();
   const [sipMonth, setSipMonth] = useState<{ year: number; month: number }>({
@@ -79,6 +83,7 @@ export function DashboardView({
   /* Modal state */
   const [selectedHolding, setSelectedHolding] = useState<HoldingRow | null>(null);
   const [isDistributorComparisonOpen, setIsDistributorComparisonOpen] = useState(false);
+  const [allocationDrilldown, setAllocationDrilldown] = useState<{ type: "amc" | "asset"; label: string } | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -97,6 +102,7 @@ export function DashboardView({
           ]);
           if (isMounted) {
             setHoldings(holdingsRes.holdings);
+            setXirrSummary({ lifetime: holdingsRes.lifetime_xirr ?? null, current: holdingsRes.current_holdings_xirr ?? null });
             setMembersStatus(holdingsRes.members);
             setAllocation(allocationRes.allocation);
             setSips(sipsRes.sips);
@@ -111,6 +117,7 @@ export function DashboardView({
           ]);
           if (isMounted) {
             setHoldings(holdingsRes);
+            setXirrSummary({ lifetime: holdingsRes.lifetime_xirr ?? null, current: holdingsRes.current_holdings_xirr ?? null });
             setMembersStatus([]);
             setAllocation(allocationRes);
             setSips(sipsRes);
@@ -275,10 +282,14 @@ export function DashboardView({
     );
   }
 
-  const allocationItems =
+  const unsortedAllocationItems =
     allocationTab === "asset"
       ? allocation?.by_asset_class || []
       : allocation?.by_amc || [];
+  const allocationItems = [...unsortedAllocationItems].sort((a, b) => {
+    const difference = compareDecimalStrings(b.current_value, a.current_value);
+    return allocationSortDirection === "desc" ? difference : -difference;
+  });
 
   const isPositiveGain = totals.profitVal >= 0;
 
@@ -321,40 +332,67 @@ export function DashboardView({
               </span>
             </div>
 
-            {/* Total Gain / Loss */}
+            {/* Total Gain or Loss */}
             <div className="flex flex-col space-y-0.5">
               <span className="text-xs text-[var(--color-text-secondary)] font-medium">
-                Total Gain / Loss
+                {isPositiveGain ? "Total Gain" : "Total Loss"}
               </span>
-              <div className="flex items-center gap-2">
-                <span
-                  className={cn(
-                    "font-display text-lg sm:text-xl font-semibold tabular-nums type-data-large inline-flex items-center",
-                    isPositiveGain
-                      ? "text-[var(--color-positive)]"
-                      : "text-[var(--color-negative)]"
-                  )}
-                >
-                  {isPositiveGain ? (
-                    <ArrowUpRight className="h-4 w-4 mr-0.5" />
-                  ) : (
-                    <ArrowDownRight className="h-4 w-4 mr-0.5" />
-                  )}
-                  ₹{formatIndianCurrency(Math.abs(totals.profitVal))}
-                </span>
+              <span
+                className={cn(
+                  "font-display text-lg sm:text-xl font-semibold tabular-nums type-data-large inline-flex items-center",
+                  isPositiveGain
+                    ? "text-[var(--color-positive)]"
+                    : "text-[var(--color-negative)]"
+                )}
+              >
+                {isPositiveGain ? (
+                  <ArrowUpRight className="h-4 w-4 mr-0.5" />
+                ) : (
+                  <ArrowDownRight className="h-4 w-4 mr-0.5" />
+                )}
+                ₹{formatIndianCurrency(Math.abs(totals.profitVal))}
+              </span>
+            </div>
 
-                <span
+            {/* XIRR — switchable between lifetime and current-holdings scope */}
+            <div className="flex flex-col space-y-0.5">
+              <div
+                role="tablist"
+                aria-label="XIRR scope"
+                className="inline-flex items-center self-start rounded-full bg-[var(--color-bg)] p-0.5 ring-1 ring-[var(--color-border)]"
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={xirrMode === "lifetime"}
+                  onClick={() => setXirrMode("lifetime")}
                   className={cn(
-                    "text-xs font-semibold px-2 py-0.5 rounded-full tabular-nums type-caption",
-                    isPositiveGain
-                      ? "bg-[color-mix(in_srgb,var(--color-positive)_12%,transparent)] text-[var(--color-positive)]"
-                      : "bg-[color-mix(in_srgb,var(--color-negative)_12%,transparent)] text-[var(--color-negative)]"
+                    "rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors cursor-pointer",
+                    xirrMode === "lifetime"
+                      ? "bg-[var(--color-surface)] text-[var(--color-ink)] shadow-xs"
+                      : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)]"
                   )}
                 >
-                  {isPositiveGain ? "+" : ""}
-                  {totals.gainPercentage.toFixed(2)}%
-                </span>
+                  Lifetime
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={xirrMode === "current"}
+                  onClick={() => setXirrMode("current")}
+                  className={cn(
+                    "rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors cursor-pointer",
+                    xirrMode === "current"
+                      ? "bg-[var(--color-surface)] text-[var(--color-ink)] shadow-xs"
+                      : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)]"
+                  )}
+                >
+                  Current
+                </button>
               </div>
+              <span className="font-display text-lg sm:text-xl font-semibold text-[var(--color-accent)] tabular-nums type-data-large">
+                XIRR {formatXirr(xirrMode === "lifetime" ? xirrSummary.lifetime : xirrSummary.current)}
+              </span>
             </div>
           </div>
         </div>
@@ -431,6 +469,14 @@ export function DashboardView({
               >
                 By AMC
               </button>
+              <button
+                type="button"
+                aria-label={`Sort allocation ${allocationSortDirection === "desc" ? "ascending" : "descending"}`}
+                onClick={() => setAllocationSortDirection((direction) => direction === "desc" ? "asc" : "desc")}
+                className="ml-1 rounded-lg p-1.5 text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-ink)]"
+              >
+                <ArrowUpDown className="h-3.5 w-3.5" />
+              </button>
             </div>
           </div>
 
@@ -438,6 +484,7 @@ export function DashboardView({
             <AllocationDonut
               data={allocationItems}
               totalValue={allocation?.total_value}
+              onSelectItem={(item) => setAllocationDrilldown({ type: allocationTab, label: item.label })}
             />
           </div>
         </section>
@@ -684,6 +731,14 @@ export function DashboardView({
         memberId={memberId}
       />
 
+      <AllocationDrilldownModal
+        isOpen={allocationDrilldown !== null}
+        onClose={() => setAllocationDrilldown(null)}
+        groupType={allocationDrilldown?.type ?? "asset"}
+        groupLabel={allocationDrilldown?.label ?? ""}
+        holdings={holdings}
+      />
+
       {/* Opening Balance Modal for Coverage Gap Resolution */}
       <OpeningBalanceModal
         isOpen={!!selectedGap}
@@ -692,7 +747,10 @@ export function DashboardView({
         onResolved={() => {
           setSelectedGap(null);
           if (memberId) {
-            getMemberHoldings(memberId).then(setHoldings).catch(() => {});
+            getMemberHoldings(memberId).then((response) => {
+              setHoldings(response);
+              setXirrSummary({ lifetime: response.lifetime_xirr ?? null, current: response.current_holdings_xirr ?? null });
+            }).catch(() => {});
             getMemberAllocation(memberId).then(setAllocation).catch(() => {});
             getMemberCoverageGaps(memberId)
               .then(setCoverageGaps)
@@ -702,4 +760,8 @@ export function DashboardView({
       />
     </div>
   );
+}
+
+function formatXirr(value: string | null): string {
+  return value === null ? "—" : `${toPercentString(value)}%`;
 }

@@ -130,6 +130,43 @@ def release_recompute_claim(db: Session, user_id: uuid.UUID) -> None:
         db.commit()
 
 
+def bump_recompute_generation(db: Session, user_id: uuid.UUID) -> None:
+    """Invalidates any analytics run that captured an earlier data version.
+
+    Deliberately does not commit: transaction-mutating callers must persist
+    the generation bump atomically with their own deletes.
+    """
+    dialect_name = db.get_bind().dialect.name
+    if dialect_name == "sqlite":
+        insert_fn = sqlite_insert
+    elif dialect_name == "postgresql":
+        insert_fn = postgresql_insert
+    else:
+        raise RuntimeError(f"Unsupported database dialect for analytics generation: {dialect_name}")
+
+    statement = insert_fn(AnalyticsRecomputeStatus).values(
+        user_id=user_id,
+        started_at=None,
+        generation=1,
+    ).on_conflict_do_update(
+        index_elements=[AnalyticsRecomputeStatus.user_id],
+        set_={"generation": AnalyticsRecomputeStatus.generation + 1},
+    )
+    db.execute(statement)
+
+
+def _locked_generation(db: Session, user_id: uuid.UUID) -> int | None:
+    # On PostgreSQL this row lock closes the check-then-upsert window: a
+    # concurrent mutation either commits its bump first (and this run stops),
+    # or waits and then deletes the section this run just committed.
+    return (
+        db.query(AnalyticsRecomputeStatus.generation)
+        .filter(AnalyticsRecomputeStatus.user_id == user_id)
+        .with_for_update()
+        .scalar()
+    )
+
+
 def _upsert_section(
     db: Session, user_id: uuid.UUID, scope_key: str, household_member_id: uuid.UUID | None,
     section_name: str, payload: BaseModel,
@@ -177,6 +214,7 @@ async def recompute_household_analytics(db: Session, user_id: uuid.UUID) -> None
     else:
         status.started_at = datetime.now(timezone.utc)
     await commit_off_loop(db)
+    captured_generation = status.generation
 
     try:
         members = list_household_members(db, user_id)
@@ -196,12 +234,19 @@ async def recompute_household_analytics(db: Session, user_id: uuid.UUID) -> None
                         "recompute_household_analytics: section=%s failed for user=%s scope=%s",
                         section.name, user_id, scope_key,
                     )
+                    if _locked_generation(db, user_id) != captured_generation:
+                        return
                     _mark_section_failed(db, user_id, scope_key, section.name)
                     await commit_off_loop(db)
                     continue
 
+                if _locked_generation(db, user_id) != captured_generation:
+                    return
                 _upsert_section(db, user_id, scope_key, household_member_id, section.name, payload)
                 await commit_off_loop(db)
     finally:
-        status.started_at = None
+        db.query(AnalyticsRecomputeStatus).filter_by(user_id=user_id).update(
+            {AnalyticsRecomputeStatus.started_at: None},
+            synchronize_session=False,
+        )
         await commit_off_loop(db)

@@ -25,7 +25,7 @@ const directRow = {
       household_member_id: "m-1",
       household_member_name: "Ayush",
       units_held: "100.00",
-      average_nav: "50.00",
+      average_nav: "50.0000000",
       amount_invested: "5000.00",
       current_value: "7500.00",
       current_profit_total: "2500.00",
@@ -51,7 +51,7 @@ const brokeredRow = {
       household_member_id: "m-1",
       household_member_name: "Ayush",
       units_held: "50.00",
-      average_nav: "52.00",
+      average_nav: "52.0000000",
       amount_invested: "2600.00",
       current_value: "3750.00",
       current_profit_total: "1150.00",
@@ -115,6 +115,7 @@ describe("DistributorComparisonModal", () => {
     await waitFor(() => {
       expect(screen.getByText("Mirae Asset Large Cap")).toBeInTheDocument();
     });
+    expect(screen.getByText("50.00 units @ ₹52.00")).toBeInTheDocument();
   });
 
   it("shows the empty state when there are no rows", async () => {

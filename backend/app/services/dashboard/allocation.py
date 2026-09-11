@@ -14,17 +14,7 @@ from sqlalchemy.orm import Session
 from app.models.reference import Scheme
 from app.services.dashboard.holdings import compute_holdings
 from app.services.dashboard.schemas import AllocationBucket, AllocationSummary
-
-
-def _asset_class_bucket(sebi_category: str) -> str:
-    lower = sebi_category.lower()
-    if "equity" in lower:
-        return "Equity"
-    if "debt" in lower or "income" in lower or "liquid" in lower or "money market" in lower:
-        return "Debt"
-    if "hybrid" in lower:
-        return "Hybrid"
-    return "Other"
+from app.services.dashboard.allocation_labels import asset_class_bucket
 
 
 async def compute_allocation(db: Session, household_member_ids: list[uuid.UUID]) -> AllocationSummary:
@@ -47,11 +37,11 @@ async def compute_allocation(db: Session, household_member_ids: list[uuid.UUID])
         value = Decimal(holding.current_value)
         by_amc[holding.amc_name] += value
         category = categories.get(uuid.UUID(holding.scheme_id), "")
-        by_class[_asset_class_bucket(category)] += value
+        by_class[asset_class_bucket(category)] += value
 
     def _to_buckets(grouped: dict[str, Decimal]) -> list[AllocationBucket]:
         buckets = []
-        for label, value in grouped.items():
+        for label, value in sorted(grouped.items(), key=lambda item: item[1], reverse=True):
             percentage = (value / total_value * 100) if total_value else Decimal("0")
             buckets.append(AllocationBucket(label=label, current_value=str(value), percentage=str(percentage.quantize(Decimal("0.01")))))
         return buckets

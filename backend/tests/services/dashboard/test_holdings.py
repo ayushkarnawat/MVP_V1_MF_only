@@ -149,6 +149,7 @@ def test_compute_holdings_returns_current_value_and_gains_from_nav():
     assert Decimal(row.unrealized_gain) == Decimal("1000.00")  # 6000 - 5000
     assert Decimal(row.today_gain) == Decimal("100.00")  # (60-59) * 100
     assert row.plan_type == PlanType.DIRECT
+    assert row.asset_class == "Equity"
 
 
 def test_compute_holdings_keeps_fifo_fields_when_nav_is_unavailable():

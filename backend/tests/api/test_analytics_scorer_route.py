@@ -25,7 +25,9 @@ def test_get_fund_score_404_when_scheme_not_found(monkeypatch):
     from app.services.auth.session import get_current_user
 
     fake_db = type("DB", (), {"get": lambda self, model, sid: None})()
-    app.dependency_overrides[get_current_user] = lambda: type("U", (), {"id": uuid.uuid4()})()
+    app.dependency_overrides[get_current_user] = lambda: type(
+        "U", (), {"id": uuid.uuid4(), "pending_deletion": False}
+    )()
     app.dependency_overrides[get_db] = lambda: fake_db
     client = _client()
     try:
@@ -43,7 +45,9 @@ def test_get_fund_score_returns_row_for_existing_scheme():
     fake_scheme = type("S", (), {"id": scheme_id})()
     fake_db = type("DB", (), {"get": lambda self, model, sid: fake_scheme if sid == scheme_id else None})()
 
-    app.dependency_overrides[get_current_user] = lambda: type("U", (), {"id": uuid.uuid4()})()
+    app.dependency_overrides[get_current_user] = lambda: type(
+        "U", (), {"id": uuid.uuid4(), "pending_deletion": False}
+    )()
     app.dependency_overrides[get_db] = lambda: fake_db
     client = _client()
     try:

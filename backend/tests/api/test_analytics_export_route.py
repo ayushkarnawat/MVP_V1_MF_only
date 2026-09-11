@@ -25,7 +25,9 @@ def test_export_pdf_404_when_member_not_owned():
     fake_db = type("DB", (), {"query": lambda self, *a: type(
         "Q", (), {"filter_by": lambda self, **kw: type("F", (), {"first": lambda self: None})()}
     )()})()
-    app.dependency_overrides[get_current_user] = lambda: type("U", (), {"id": uuid.uuid4()})()
+    app.dependency_overrides[get_current_user] = lambda: type(
+        "U", (), {"id": uuid.uuid4(), "pending_deletion": False}
+    )()
     app.dependency_overrides[get_db] = lambda: fake_db
     client = _client()
     try:
@@ -42,7 +44,9 @@ def test_export_pdf_aggregate_scope_skips_member_ownership_check():
     from app.db.session import get_db
     from app.services.auth.session import get_current_user
 
-    app.dependency_overrides[get_current_user] = lambda: type("U", (), {"id": uuid.uuid4()})()
+    app.dependency_overrides[get_current_user] = lambda: type(
+        "U", (), {"id": uuid.uuid4(), "pending_deletion": False}
+    )()
     app.dependency_overrides[get_db] = lambda: object()
     client = _client()
     try:

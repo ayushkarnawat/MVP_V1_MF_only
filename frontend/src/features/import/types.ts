@@ -95,6 +95,20 @@ export interface CASImportStatusResponse {
   parse_warnings?: string[];
 }
 
+export interface HouseholdImportHistoryItem {
+  import_id: string;
+  household_member_id: string;
+  uploaded_at: string;
+  statement_from_date: string | null;
+  statement_to_date: string | null;
+  status: string;
+  new_transactions_count: number | null;
+}
+
+export interface DeleteImportResponse {
+  deleted_transactions_count: number;
+}
+
 export interface CoverageGapItem {
   folio_id: string;
   folio_number: string;

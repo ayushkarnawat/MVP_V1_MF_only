@@ -1,3 +1,6 @@
+from datetime import datetime
+from typing import Literal
+
 from pydantic import BaseModel, field_validator
 
 from app.models.enums import AuthIdentityProvider, InvestorType, PrimaryGoal
@@ -135,5 +138,37 @@ class MeResponse(BaseModel):
     onboarding_completed: bool
     investor_type: InvestorType | None
     primary_goal: PrimaryGoal | None
+    pending_deletion: bool
+    deletion_scheduled_at: datetime | None
 
 
+DeletionReason = Literal[
+    "not_using_enough",
+    "missing_feature",
+    "found_alternative",
+    "data_or_trust_concern",
+    "other",
+]
+
+
+class AccountDeletionBody(BaseModel):
+    reason: DeletionReason
+    feedback: str | None = None
+
+
+class ContactChangeRequestBody(BaseModel):
+    channel: Literal["email", "phone"]
+    identifier: str
+
+    @field_validator("identifier", mode="before")
+    @classmethod
+    def _normalize_identifier(cls, value: object, info) -> object:
+        if info.data.get("channel") == "email":
+            return normalize_email(value)
+        if isinstance(value, str):
+            return value.strip()
+        return value
+
+
+class ContactChangeVerifyBody(ContactChangeRequestBody):
+    otp: str

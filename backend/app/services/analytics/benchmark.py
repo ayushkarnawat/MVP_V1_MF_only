@@ -50,6 +50,7 @@ from app.services.dashboard.cash_flow import _CREDIT_TYPES, _DEBIT_TYPES
 from app.services.dashboard.holdings import compute_holdings
 from app.services.dashboard.household_members import list_household_members
 from app.services.dashboard.schemas import HoldingRow
+from app.services.dashboard.xirr import portfolio_xirr as _portfolio_xirr
 
 _RELEVANT_TYPES = _DEBIT_TYPES | _CREDIT_TYPES
 _fund_level_transaction_types = _RELEVANT_TYPES | {
@@ -145,16 +146,6 @@ def _xirr_str(rate: Decimal | None) -> str | None:
     if rate == 0:
         return "0"
     return format(rate, "f")
-
-
-def _portfolio_xirr(
-    transactions: list[Transaction],
-    current_value: Decimal,
-    extra_debit_types: frozenset[TransactionType] = frozenset(),
-) -> Decimal | None:
-    flows = [(t.date, _signed_amount(t, extra_debit_types)) for t in transactions]
-    flows.append((date.today(), current_value))
-    return xirr(flows)
 
 
 def _current_value_by_scheme(holdings: list[HoldingRow]) -> dict[str, Decimal]:

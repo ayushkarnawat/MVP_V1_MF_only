@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime, timezone
 from decimal import Decimal
 import uuid
 from typing import Any
@@ -131,29 +131,26 @@ def create_opening_balance(
 
     assert amount is not None and nav is not None
 
-    # Link to member's latest import or create a manual import marker
-    latest_import = (
-        db.query(Import)
-        .filter_by(household_member_id=folio.household_member_id)
-        .order_by(Import.uploaded_at.desc())
-        .first()
+    # Manual corrections have an independent lifecycle from every CAS import.
+    # The marker remains an ordinary Import because Transaction.import_id is
+    # deliberately non-nullable; its count keeps Import History truthful.
+    now = datetime.now(timezone.utc)
+    manual_import = Import(
+        id=uuid.uuid4(),
+        household_member_id=folio.household_member_id,
+        status=ImportStatus.IMPORT_SUCCESSFUL,
+        new_transactions_count=1,
+        duplicate_transactions_count=0,
+        uploaded_at=now,
+        confirmed_at=now,
     )
-    if latest_import is None:
-        from datetime import datetime, timezone
-        latest_import = Import(
-            id=uuid.uuid4(),
-            household_member_id=folio.household_member_id,
-            status=ImportStatus.IMPORT_SUCCESSFUL,
-            uploaded_at=datetime.now(timezone.utc),
-            confirmed_at=datetime.now(timezone.utc),
-        )
-        db.add(latest_import)
-        db.flush()
+    db.add(manual_import)
+    db.flush()
 
     txn = Transaction(
         id=uuid.uuid4(),
         folio_id=folio_id,
-        import_id=latest_import.id,
+        import_id=manual_import.id,
         type=TransactionType.OPENING_BALANCE,
         date=date_,
         amount=amount,
