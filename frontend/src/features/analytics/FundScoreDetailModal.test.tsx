@@ -11,12 +11,18 @@ const sampleScoreRow = {
   category_unavailable: false,
   insufficient_history: false,
   thin_category: false,
-  risk_adjusted_tier: 5,
+  risk_adjusted_tier: 5, // displayTier = 1
   cost_adjustment: "0.25",
-  final_score: "85.5",
+  final_score: "85.0", // displayScore 8.5
   return_percentile: "88.0",
   risk_percentile: "82.0",
   consistency_hit_rate: "80.0",
+  scheme_return: "0.22",
+  category_avg_return: "0.15",
+  downside_deviation: "0.025",
+  category_avg_downside_deviation: "0.03",
+  consistency_hits: 12,
+  consistency_total_windows: 15,
 };
 
 describe("FundScoreDetailModal (S20)", () => {
@@ -35,11 +41,14 @@ describe("FundScoreDetailModal (S20)", () => {
     );
 
     expect(screen.getByText("Parag Parikh Flexi Cap Fund")).toBeInTheDocument();
-    expect(screen.getByText("85.5")).toBeInTheDocument();
-    expect(screen.getByText("Tier 5 of 5")).toBeInTheDocument();
-    expect(screen.getByText("88.0%")).toBeInTheDocument();
-    expect(screen.getByText("82.0%")).toBeInTheDocument();
-    expect(screen.getByText("80.0%")).toBeInTheDocument();
+    expect(screen.getByText("How this fund compares to similar funds in its category.")).toBeInTheDocument();
+    expect(screen.getByText("8.5")).toBeInTheDocument();
+    expect(screen.getByText("Tier 1 of 5")).toBeInTheDocument();
+    expect(
+      screen.getByText("Scores well mainly due to strong long-term performance and low cost.")
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Watch-outs")).not.toBeInTheDocument();
+    expect(screen.queryByText("88.0%")).not.toBeInTheDocument();
   });
 
   it("fetches fund score from API when initialData is not supplied", async () => {

@@ -82,7 +82,7 @@ export function FundScoreDetailModal({
             {displayName}
           </DialogTitle>
           <DialogDescription className="text-xs text-[var(--color-text-secondary)]">
-            Comprehensive quality verdict relative to true SEBI category peers
+            How this fund compares to similar funds in its category.
           </DialogDescription>
         </DialogHeader>
 
