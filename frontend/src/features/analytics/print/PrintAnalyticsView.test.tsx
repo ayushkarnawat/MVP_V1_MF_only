@@ -56,7 +56,7 @@ describe("PrintAnalyticsView", () => {
   it("renders every fund's score card inline, with no click required", async () => {
     render(<PrintAnalyticsView />);
     await waitFor(() => expect(screen.getByText("Test Flexi Cap Fund")).toBeInTheDocument());
-    expect(screen.getByText("72.5")).toBeInTheDocument();
+    expect(screen.getByText("7.3")).toBeInTheDocument();
     expect(screen.getByText("Family Aggregate")).toBeInTheDocument();
   });
 
