@@ -16,6 +16,8 @@ import {
 
 export interface FundScoreCardProps {
   data: FundScoreRow;
+  /** A static PDF export can't click to expand an accordion — force both open. */
+  printMode?: boolean;
 }
 
 function parseNum(val: string | null | undefined): number | null {
@@ -24,8 +26,8 @@ function parseNum(val: string | null | undefined): number | null {
   return isNaN(num) ? null : num;
 }
 
-function formatRawFractionPercent(val: string | null): string {
-  return val === null ? "N/A" : `${toPercentString(val)}%`;
+function formatRawFractionPercent(val: string | null | undefined): string {
+  return val == null ? "N/A" : `${toPercentString(val)}%`;
 }
 
 const DOT_CLASS: Record<string, string> = {
@@ -92,11 +94,14 @@ function Accordion({
   title: string;
   children: ReactNode;
 }) {
+  const panelId = `fund-score-accordion-${title.replace(/\s+/g, "-").toLowerCase()}`;
   return (
     <div className="rounded-xl border border-[var(--color-border)] overflow-hidden">
       <button
         type="button"
         onClick={onToggle}
+        aria-expanded={open}
+        aria-controls={panelId}
         className="w-full flex items-center justify-between p-3.5 text-xs font-semibold text-[var(--color-ink)] bg-[var(--color-bg)]/40 hover:bg-[var(--color-bg)]/70 transition-colors"
       >
         <span>{title}</span>
@@ -105,7 +110,9 @@ function Accordion({
         />
       </button>
       {open && (
-        <div className="p-3.5 pt-3 text-xs space-y-2.5 border-t border-[var(--color-border)]">{children}</div>
+        <div id={panelId} className="p-3.5 pt-3 text-xs space-y-2.5 border-t border-[var(--color-border)]">
+          {children}
+        </div>
       )}
     </div>
   );
@@ -151,7 +158,7 @@ function EvidenceSection({ data }: { data: FundScoreRow }) {
         <EvidenceRow
           label="Rolling 12-month periods beaten"
           value={
-            data.consistency_hits !== null && data.consistency_total_windows !== null
+            data.consistency_hits != null && data.consistency_total_windows != null
               ? `${data.consistency_hits} of ${data.consistency_total_windows}`
               : "N/A"
           }
@@ -199,9 +206,9 @@ function MethodologySection({ costAdjNum }: { costAdjNum: number | null }) {
   );
 }
 
-export function FundScoreCard({ data }: FundScoreCardProps) {
-  const [evidenceOpen, setEvidenceOpen] = useState(false);
-  const [methodologyOpen, setMethodologyOpen] = useState(false);
+export function FundScoreCard({ data, printMode = false }: FundScoreCardProps) {
+  const [evidenceOpen, setEvidenceOpen] = useState(printMode);
+  const [methodologyOpen, setMethodologyOpen] = useState(printMode);
 
   if (data.category_unavailable) {
     return (

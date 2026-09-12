@@ -91,7 +91,7 @@ export function PrintAnalyticsView() {
           {payload.scoreSummary.funds.map((fund) => (
             <div key={fund.scheme_id} className="print-section rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
               <h3 className="font-display text-base font-bold text-[var(--color-ink)] mb-3">{fund.scheme_name}</h3>
-              <FundScoreCard data={fund} />
+              <FundScoreCard data={fund} printMode />
             </div>
           ))}
         </div>

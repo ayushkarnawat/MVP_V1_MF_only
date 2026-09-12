@@ -80,12 +80,14 @@ export interface FundScoreRow {
   return_percentile: string | null;
   risk_percentile: string | null;
   consistency_hit_rate: string | null;
-  scheme_return: string | null;
-  category_avg_return: string | null;
-  downside_deviation: string | null;
-  category_avg_downside_deviation: string | null;
-  consistency_hits: number | null;
-  consistency_total_windows: number | null;
+  // Optional (not just nullable): a score row cached before this field
+  // existed has these keys absent from the payload entirely, not null.
+  scheme_return?: string | null;
+  category_avg_return?: string | null;
+  downside_deviation?: string | null;
+  category_avg_downside_deviation?: string | null;
+  consistency_hits?: number | null;
+  consistency_total_windows?: number | null;
 }
 
 export interface PortfolioScoreSummary {

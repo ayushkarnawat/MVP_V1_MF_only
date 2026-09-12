@@ -82,4 +82,24 @@ describe("FundScoreCard", () => {
     render(<FundScoreCard data={{ ...baseRow, insufficient_history: true }} />);
     expect(screen.getByText("Insufficient Track Record")).toBeInTheDocument();
   });
+
+  it("renders evidence as N/A, not a crash, when a stale cached row is missing the raw-evidence keys entirely", () => {
+    const staleRow = { ...baseRow };
+    delete (staleRow as Partial<typeof staleRow>).scheme_return;
+    delete (staleRow as Partial<typeof staleRow>).category_avg_return;
+    delete (staleRow as Partial<typeof staleRow>).downside_deviation;
+    delete (staleRow as Partial<typeof staleRow>).category_avg_downside_deviation;
+    delete (staleRow as Partial<typeof staleRow>).consistency_hits;
+    delete (staleRow as Partial<typeof staleRow>).consistency_total_windows;
+
+    render(<FundScoreCard data={staleRow} />);
+    fireEvent.click(screen.getByText("See the evidence"));
+    expect(screen.getAllByText("N/A").length).toBeGreaterThan(0);
+  });
+
+  it("forces both accordions open in printMode, without needing a click", () => {
+    render(<FundScoreCard data={baseRow} printMode />);
+    expect(screen.getByText("18.40%")).toBeInTheDocument();
+    expect(screen.getByText(/45% of score/)).toBeInTheDocument();
+  });
 });
