@@ -87,14 +87,19 @@ function Accordion({
   open,
   onToggle,
   title,
+  idPrefix,
   children,
 }: {
   open: boolean;
   onToggle: () => void;
   title: string;
+  idPrefix: string;
   children: ReactNode;
 }) {
-  const panelId = `fund-score-accordion-${title.replace(/\s+/g, "-").toLowerCase()}`;
+  // idPrefix disambiguates when multiple FundScoreCards render on one page
+  // (e.g. the PDF export's per-fund list) — without it every card's
+  // accordion would share the same title-derived id.
+  const panelId = `fund-score-accordion-${idPrefix}-${title.replace(/\s+/g, "-").toLowerCase()}`;
   return (
     <div className="rounded-xl border border-[var(--color-border)] overflow-hidden">
       <button
@@ -319,7 +324,12 @@ export function FundScoreCard({ data, printMode = false }: FundScoreCardProps) {
         </div>
       )}
 
-      <Accordion open={evidenceOpen} onToggle={() => setEvidenceOpen((v) => !v)} title="See the evidence">
+      <Accordion
+        open={evidenceOpen}
+        onToggle={() => setEvidenceOpen((v) => !v)}
+        title="See the evidence"
+        idPrefix={data.scheme_id}
+      >
         <EvidenceSection data={data} />
       </Accordion>
 
@@ -327,6 +337,7 @@ export function FundScoreCard({ data, printMode = false }: FundScoreCardProps) {
         open={methodologyOpen}
         onToggle={() => setMethodologyOpen((v) => !v)}
         title="How we calculate this score"
+        idPrefix={data.scheme_id}
       >
         <MethodologySection costAdjNum={costAdjNum} />
       </Accordion>

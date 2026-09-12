@@ -102,4 +102,16 @@ describe("FundScoreCard", () => {
     expect(screen.getByText("18.40%")).toBeInTheDocument();
     expect(screen.getByText(/45% of score/)).toBeInTheDocument();
   });
+
+  it("gives each card's accordion panels a unique id, so multiple cards on one page (e.g. the PDF export) don't collide", () => {
+    const { container } = render(
+      <>
+        <FundScoreCard data={{ ...baseRow, scheme_id: "s-1" }} printMode />
+        <FundScoreCard data={{ ...baseRow, scheme_id: "s-2" }} printMode />
+      </>
+    );
+    const ids = Array.from(container.querySelectorAll("[id^='fund-score-accordion-']")).map((el) => el.id);
+    expect(ids.length).toBeGreaterThan(0);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
 });
