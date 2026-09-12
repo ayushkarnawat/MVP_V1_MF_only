@@ -17,6 +17,12 @@ const sampleScoreSummary: PortfolioScoreSummary = {
       return_percentile: "88.0",
       risk_percentile: "82.0",
       consistency_hit_rate: "80.0",
+      scheme_return: "0.22",
+      category_avg_return: "0.15",
+      downside_deviation: "0.025",
+      category_avg_downside_deviation: "0.03",
+      consistency_hits: 12,
+      consistency_total_windows: 15,
     },
     {
       scheme_id: "scheme-102",
@@ -30,6 +36,12 @@ const sampleScoreSummary: PortfolioScoreSummary = {
       return_percentile: null,
       risk_percentile: null,
       consistency_hit_rate: null,
+      scheme_return: null,
+      category_avg_return: null,
+      downside_deviation: null,
+      category_avg_downside_deviation: null,
+      consistency_hits: null,
+      consistency_total_windows: null,
     },
   ],
   weighted_score: "85.5",
@@ -47,7 +59,7 @@ describe("ScorerSection", () => {
     expect(screen.getByText("85.5")).toBeInTheDocument();
     expect(screen.getByText("82.0")).toBeInTheDocument();
     expect(screen.getByText("Parag Parikh Flexi Cap Fund")).toBeInTheDocument();
-    expect(screen.getByText("T5")).toBeInTheDocument();
+    expect(screen.getByText("T1")).toBeInTheDocument();
     expect(screen.getByText("Insufficient History")).toBeInTheDocument();
     expect(screen.getByText("Excluded Fund X")).toBeInTheDocument();
 

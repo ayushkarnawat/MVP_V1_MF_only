@@ -4,6 +4,7 @@ import { formatIndianCurrency } from "@/lib/decimal";
 import { cn } from "@/lib/utils";
 import { AlertCircle, ChevronRight, HelpCircle, Star } from "lucide-react";
 import type { PortfolioScoreSummary } from "./types";
+import { displayTierFromBackendTier } from "./fundScoreVerdicts";
 
 export interface ScorerSectionProps {
   scoreSummary: PortfolioScoreSummary | null;
@@ -144,6 +145,7 @@ export function ScorerSection({
             const riskPct = parseScoreNum(fund.risk_percentile);
             const consistencyPct = parseScoreNum(fund.consistency_hit_rate);
             const tier = fund.risk_adjusted_tier;
+            const displayTier = tier !== null ? displayTierFromBackendTier(tier) : null;
 
             const isUnavailable = fund.category_unavailable;
             const isInsufficient = fund.insufficient_history;
@@ -158,7 +160,7 @@ export function ScorerSection({
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-center gap-2.5">
                     <div className="h-8 w-8 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-center font-display font-bold text-xs text-[var(--color-accent)] shadow-2xs group-hover:scale-105 transition-transform">
-                      {tier !== null ? `T${tier}` : "—"}
+                      {displayTier !== null ? `T${displayTier}` : "—"}
                     </div>
                     <div>
                       <h3 className="font-display text-sm font-bold text-[var(--color-ink)] group-hover:text-[var(--color-accent)] transition-colors">
@@ -204,7 +206,7 @@ export function ScorerSection({
                         </div>
                       </div>
                       <Badge className="bg-[var(--color-accent)] text-white font-bold text-xs px-2.5 py-1 shadow-2xs">
-                        Tier {tier}
+                        Tier {displayTier}
                       </Badge>
                       <ChevronRight className="h-4 w-4 text-[var(--color-text-secondary)] group-hover:translate-x-0.5 transition-transform" />
                     </div>
