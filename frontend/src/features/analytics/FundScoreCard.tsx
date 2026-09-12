@@ -12,7 +12,16 @@ import {
   displayTierFromBackendTier,
   whatThisMeansForYou,
   type FactorKey,
+  type FactorAssessment,
+  type Verdict,
 } from "./fundScoreVerdicts";
+
+const VERDICT_LABEL: Record<Verdict, string> = {
+  excellent: "Excellent",
+  strong: "Strong",
+  weak: "Weak",
+  poor: "Poor",
+};
 
 export interface FundScoreCardProps {
   data: FundScoreRow;
@@ -48,10 +57,8 @@ function UnavailableNotice({ icon, title, body }: { icon: ReactNode; title: stri
   );
 }
 
-interface AssessedFactor {
+interface AssessedFactor extends FactorAssessment {
   key: FactorKey;
-  dotColor: "green" | "orange" | "red";
-  sentence: string;
 }
 
 function FactorGroup({ title, items }: { title: string; items: AssessedFactor[] }) {
@@ -74,7 +81,10 @@ function FactorGroup({ title, items }: { title: string; items: AssessedFactor[] 
             <span className={cn("h-2.5 w-2.5 rounded-full mt-1.5 flex-shrink-0", DOT_CLASS[item.dotColor])} />
             <div className="space-y-0.5">
               <span className="text-xs font-semibold text-[var(--color-ink)]">{FACTOR_LABELS[item.key]}</span>
-              <p className="text-[11px] text-[var(--color-text-secondary)] leading-relaxed">{item.sentence}</p>
+              <p className="text-[11px] text-[var(--color-text-secondary)] leading-relaxed">
+                <span className="font-semibold text-[var(--color-ink)]">{VERDICT_LABEL[item.verdict]}</span> —{" "}
+                {item.sentence}
+              </p>
             </div>
           </div>
         ))}
@@ -299,6 +309,38 @@ export function FundScoreCard({ data, printMode = false }: FundScoreCardProps) {
             </div>
           )}
         </div>
+        {displayTier !== null && (
+          <div className="space-y-1.5 pt-1">
+            <div className="flex justify-between text-[10px] text-[var(--color-text-secondary)] font-medium">
+              <span>Tier 1 (Top 20%)</span>
+              <span>Tier 3</span>
+              <span>Tier 5 (Lower)</span>
+            </div>
+            <div className="grid grid-cols-5 gap-1.5">
+              {[1, 2, 3, 4, 5].map((t) => {
+                const isActive = displayTier === t;
+                // displayTier is the flipped (1=best) convention, so a
+                // fund's segments fill from its own tier through Tier 5 —
+                // the mirror image of the old raw-backend-tier bar, which
+                // filled from Tier 1 through the fund's tier.
+                const isPassed = displayTier <= t;
+                return (
+                  <div
+                    key={t}
+                    className={cn(
+                      "h-2.5 rounded-full transition-all duration-300",
+                      isActive
+                        ? "bg-[var(--color-accent)] ring-2 ring-[var(--color-accent)]/30 ring-offset-1"
+                        : isPassed
+                          ? "bg-[var(--color-accent)]/50"
+                          : "bg-[var(--color-border)]"
+                    )}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        )}
         {whySentence && (
           <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed border-t border-[var(--color-border)]/60 pt-2.5">
             {whySentence}

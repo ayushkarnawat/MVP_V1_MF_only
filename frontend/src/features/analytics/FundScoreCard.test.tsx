@@ -47,6 +47,19 @@ describe("FundScoreCard", () => {
     expect(screen.queryByText("The 3 Core Methodology Ingredients")).not.toBeInTheDocument();
   });
 
+  it("renders each factor's verdict word inline next to its sentence", () => {
+    render(<FundScoreCard data={baseRow} />);
+    // return_percentile 70 and risk_percentile 65 -> "strong"; consistency_hit_rate 15 -> "poor"
+    expect(screen.getAllByText("Strong").length).toBe(2);
+    expect(screen.getByText("Poor")).toBeInTheDocument();
+  });
+
+  it("renders the flipped 5-segment tier progress bar under the tier badge", () => {
+    render(<FundScoreCard data={baseRow} />);
+    expect(screen.getByText("Tier 1 (Top 20%)")).toBeInTheDocument();
+    expect(screen.getByText("Tier 5 (Lower)")).toBeInTheDocument();
+  });
+
   it("renders the what-this-means-for-you block", () => {
     render(<FundScoreCard data={baseRow} />);
     expect(screen.getByText("What this means for you")).toBeInTheDocument();

@@ -90,7 +90,7 @@ describe("buildWhySentence", () => {
       costAdjustment: null,
     });
     expect(sentence).toBe(
-      "Performs roughly in line with similar funds, with strength in strong long-term performance balanced by weaker weaker downside protection."
+      "Performs roughly in line with similar funds, with strength in strong long-term performance balanced by weaker downside protection."
     );
   });
 });

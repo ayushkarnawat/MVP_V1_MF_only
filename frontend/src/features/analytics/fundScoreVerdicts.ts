@@ -111,7 +111,10 @@ export function buildWhySentence(params: {
   if (displayTier >= 4) {
     return `Held back mainly by ${WHY_PHRASES[weakest].weak}${costPenalty ? " and higher-than-average cost" : ""}.`;
   }
-  return `Performs roughly in line with similar funds, with strength in ${WHY_PHRASES[strongest].strong} balanced by weaker ${WHY_PHRASES[weakest].weak}.`;
+  // WHY_PHRASES[...].weak already reads as "weaker X" (or, for consistency,
+  // an equivalent weakness phrase) — an extra literal "weaker" prefix here
+  // produced "balanced by weaker weaker downside protection".
+  return `Performs roughly in line with similar funds, with strength in ${WHY_PHRASES[strongest].strong} balanced by ${WHY_PHRASES[weakest].weak}.`;
 }
 
 export function whatThisMeansForYou(displayTier: number): string {
