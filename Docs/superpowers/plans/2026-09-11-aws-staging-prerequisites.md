@@ -53,7 +53,25 @@ commands where the prior doc gave a plan-level description.
   the frontend migration, the dispatcher wiring, the account-deletion
   feature, and this session's PM-gap fixes. It does not match what's on
   `feat/enhanced-ui` today.
-- **Terraform has unapplied changes**, beyond the already-known Phase 4/5:
+- **Correction (2026-09-11, mid-execution):** the claim below that Phase 4/5
+  and the dispatcher task-def were "authored, not applied" was stale. A
+  `terraform plan` run during actual Step 4 execution showed
+  `module.backend.aws_ecs_task_definition.analytics_recompute`,
+  `module.backend.aws_lb_listener.https`, both `module.dns` ACM certs (+
+  validation), `module.frontend.aws_cloudfront_distribution.this`, and both
+  `module.dns.aws_route53_record` entries already present in Terraform
+  state (refreshed, not created) — i.e. **already applied**, likely via the
+  stray `tfplan-step7` file found in `infra/envs/staging` (dated
+  2026-09-11 03:24, predating this session's Step 4). Only the
+  `analytics_recompute_daily` job (from the same earlier apply) and the
+  brand-new `account_deletion_daily` job (from this session's code) were
+  still outstanding — confirmed via a fresh `terraform plan`: **3 to add, 1
+  to change (scheduler IAM policy, to include the new job's ARN), 0 to
+  destroy.** Applied cleanly. The bullet list immediately below is the
+  original pre-execution belief, left for context, but was inaccurate by
+  the time Step 4 actually ran.
+- **Terraform state as originally believed going into this session** (see
+  correction above — Phase 4/5 turned out to already be applied):
   - `infra/modules/backend`: a new ECS task definition + IAM task role for
     `EcsRunTaskDispatcher` (from `20a825e`) — authored, reviewed, not applied.
   - `infra/modules/scheduler`: 2 new jobs beyond the original 4
@@ -96,11 +114,49 @@ commands where the prior doc gave a plan-level description.
 
 ## 3. Command sequence
 
-Everything below is **[user-run]** — commands to execute yourself, given here
-for reference so each step doesn't need to be re-derived live. Placeholder
-values (`<...>`) should be pulled fresh via `terraform output` in
-`infra/envs/staging` rather than hardcoded from a prior session, since
-resource IDs can change across applies.
+Everything below is **[user-run]**. Every value that is stable across
+Terraform applies (account ID, region, VPC-level IDs, cluster/service names,
+DB name/username) is filled in for real below — no placeholder guessing.
+The handful of values that only exist *after* a given apply (the master
+password, Phase 4's bucket/distribution IDs, task-def revisions) are pulled
+live with an exact `terraform output`/`aws` command that stores them into a
+shell variable, so every command after it is still copy-paste, just chained.
+
+**Run Step 0 once per terminal session** (any terminal you use for Steps 2-7),
+then the rest of that terminal's commands can be pasted straight through.
+
+### Step 0 — Shared constants (paste once per terminal)
+
+```bash
+export REPO_ROOT="/mnt/d/Unifolio code"
+export AWS_ACCOUNT_ID=811364789032
+export AWS_REGION=ap-south-1
+export ECR_REPO="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/unifolio-staging-backend"
+export ECS_CLUSTER=unifolio-staging
+export ECS_SERVICE=unifolio-staging-backend
+export ALB_DNS=unifolio-staging-alb-958627457.ap-south-1.elb.amazonaws.com
+export BASTION_ID=i-0b67d40d9b58b7814
+export RDS_HOST=staging-rds.ctu88scmut9m.ap-south-1.rds.amazonaws.com
+export RDS_PORT=5432
+export DB_NAME=unifolio
+export DB_USER=unifolio
+```
+
+These are read from `infra/modules/database/main.tf` (`db_name`/`username =
+"unifolio"`) and `session.md`'s 2026-09-09 entry — they don't change across
+applies because none of Steps 4-7 touch networking/database/backend-identity
+resources, only add new ones. Re-verify any single value with
+`terraform output` in `infra/envs/staging` if you ever doubt it; it's the
+authoritative source, this is just a copy of it.
+
+`$REPO_ROOT` is a fixed path, used instead of a `$(git rev-parse
+--show-toplevel)` subshell in every step below — the latter only works if
+your shell's current directory is already somewhere inside the repo, which
+it usually isn't in a fresh terminal (this is what produced the `fatal: not
+a git repository` / `Invalid length for parameter SecretId` errors you hit —
+nothing was wrong with the AWS side, `git rev-parse` just silently returned
+empty because you were in `~`, so every path built from it collapsed to
+`/infra/envs/staging`).
 
 ### Step 1 — Push code, promote branches
 
@@ -117,50 +173,110 @@ current HEAD immediately before this step — the last confirmation is from
 
 ### Step 2 — Apply RDS schema migrations (0012, 0013, 0014)
 
-Via the same SSM bastion port-forward used for the original Phase 2 migration:
+**Terminal A** — open the SSM tunnel and leave it running (it blocks; don't
+Ctrl-C until Step 2 is fully done):
 
 ```bash
-aws ssm start-session --target <bastion-instance-id> \
+aws ssm start-session --target "$BASTION_ID" \
   --document-name AWS-StartPortForwardingSessionToRemoteHost \
-  --parameters '{"host":["<rds-endpoint>"],"portNumber":["5432"],"localPortNumber":["5433"]}'
+  --parameters "{\"host\":[\"$RDS_HOST\"],\"portNumber\":[\"$RDS_PORT\"],\"localPortNumber\":[\"5433\"]}"
 ```
 
-In a second terminal, fetch the master password safely:
+You should see `Waiting for connections...` — that means the tunnel is up.
+Leave this terminal open.
+
+**Terminal B** — run Step 0's constants block again (each terminal needs its
+own copy), then:
 
 ```bash
-export DB_PASSWORD=$(aws secretsmanager get-secret-value --secret-id <rds-secret-arn> \
+export MASTER_SECRET_ARN=$(terraform -chdir="$REPO_ROOT/infra/envs/staging" \
+  output -raw master_user_secret_arn)
+
+export DB_PASSWORD=$(aws secretsmanager get-secret-value --secret-id "$MASTER_SECRET_ARN" \
   --query SecretString --output text | python3 -c "import json,sys; print(json.load(sys.stdin)['password'])")
 ```
 
-Then from `backend/`, with the project `.venv` active:
+The password contains shell metacharacters (confirmed `$` in a prior
+rotation) — the `python3 -c` step above is mandatory, never substitute a
+literal `$DB_PASSWORD` value into a double-quoted string by hand.
+
+Then, from `backend/` with the project `.venv` active:
 
 ```bash
-export DATABASE_URL="postgresql+psycopg2://<db-user>:${DB_PASSWORD}@127.0.0.1:5433/<db-name>"
+cd "$REPO_ROOT/backend"
+source .venv/bin/activate
+export DATABASE_URL="postgresql+psycopg2://${DB_USER}:${DB_PASSWORD}@127.0.0.1:5433/${DB_NAME}"
 python -m alembic upgrade head
-python -m alembic current   # confirm 0014 (head)
+python -m alembic current   # must print "0014 (head)" — if it doesn't, stop here
 ```
+
+Once confirmed, go back to Terminal A and `Ctrl-C` the SSM session — it's
+only needed for this step.
 
 ### Step 3 — Rebuild & push the backend Docker image
 
-Only after confirming Docker Desktop WSL integration per §2:
+Only after confirming Docker Desktop WSL integration per §2 (run `docker
+info` first — if it errors instead of printing server info, fix WSL
+integration before continuing here, don't try to work around it).
 
 ```bash
-cd backend
+cd "$REPO_ROOT/backend"
 docker build -t unifolio-staging-backend .
-aws ecr get-login-password --region ap-south-1 | \
-  docker login --username AWS --password-stdin 811364789032.dkr.ecr.ap-south-1.amazonaws.com
-docker tag unifolio-staging-backend:latest \
-  811364789032.dkr.ecr.ap-south-1.amazonaws.com/unifolio-staging-backend:latest
-docker push 811364789032.dkr.ecr.ap-south-1.amazonaws.com/unifolio-staging-backend:latest
 ```
+
+**If this fails with `failed to xattr .pytest_tmp: permission denied`:**
+this is the known stuck-`.pytest_tmp` directory (WSL/drvfs permission lock,
+seen in prior sessions) — BuildKit stats every path in the build context
+before applying `.dockerignore`, so a permission-denied directory anywhere
+in `backend/` kills the build even though `.dockerignore` already excludes
+it. Fix (needs your password, not runnable non-interactively):
+
+```bash
+sudo rm -rf .pytest_tmp
+docker build -t unifolio-staging-backend .   # retry
+```
+
+`pytest.ini`'s `--basetemp` was moved to `/tmp/unifolio-backend-pytest`
+(outside the repo) this session specifically so this stops recurring on
+every future build — if you still hit this error after that change is in
+place, something else created a permission-locked path in `backend/`, don't
+assume it's the same directory.
+
+**Do not skip straight to `docker push` if the build step errored** — a
+failed `docker build` leaves the old `unifolio-staging-backend:latest` local
+image tag untouched, so `docker tag`/`docker push` will silently re-push the
+*old* image with no error, all layers reported "already exists." Only
+proceed once `docker build` itself prints a final success line.
+
+```bash
+aws ecr get-login-password --region "$AWS_REGION" | \
+  docker login --username AWS --password-stdin "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+docker tag unifolio-staging-backend:latest "${ECR_REPO}:latest"
+docker push "${ECR_REPO}:latest"
+```
+
+Sanity-check the pushed digest is actually new, not a repeat of a prior
+stale push:
+
+```bash
+docker images --no-trunc --format '{{.Repository}}:{{.Tag}} {{.ID}}' | grep unifolio-staging-backend
+```
+
+Compare the `Id` against the digest ECR reports after `docker push` — if
+you've hit this exact failure before, the old stale digest was
+`sha256:bd6ac1fe...`; the new one must differ.
 
 ### Step 4 — Apply Terraform (backend + scheduler changes, then Phase 4, then Phase 5)
 
 ```bash
-cd infra/envs/staging
+cd "$REPO_ROOT/infra/envs/staging"
 terraform init
 terraform plan -out=tfplan
 ```
+
+(There are stale `tfplan-bastion-fix`/`tfplan-step7` files from earlier
+sessions sitting in this directory — harmless, gitignored, and this command
+overwrites `tfplan` fresh. Ignore them, no cleanup needed.)
 
 Review the plan carefully before applying — expect **additive-only** changes:
 
@@ -179,30 +295,76 @@ consistent with the additive changes described above and needs review first.
 terraform apply "tfplan"
 ```
 
+Once it finishes, capture the values Steps 6-7 need (these only exist after
+this apply — Phase 4's bucket/distribution didn't exist before now):
+
+```bash
+export FRONTEND_BUCKET=$(terraform output -raw s3_bucket_name)
+export CLOUDFRONT_DIST_ID=$(terraform output -raw cloudfront_distribution_id)
+echo "bucket=$FRONTEND_BUCKET  distribution=$CLOUDFRONT_DIST_ID"
+```
+
+Both should print non-empty values — if either is blank, the apply didn't
+actually create the frontend module's resources; stop and check
+`terraform state list | grep module.frontend` before continuing.
+
 ### Step 5 — Force a fresh ECS deployment
 
 Picks up the new image (Step 3) and the dispatcher's new task-def env vars
 (Step 4):
 
 ```bash
-aws ecs update-service --cluster unifolio-staging \
-  --service unifolio-staging-backend --force-new-deployment
+aws ecs update-service --cluster "$ECS_CLUSTER" \
+  --service "$ECS_SERVICE" --force-new-deployment
 ```
 
-Verify with the same 4-check bar from the original Phase 3 push
-(`session.md`, 2026-09-09): ALB target-group health via
-`aws elbv2 describe-target-health`, clean `/ecs/staging-backend` logs, one
-real DB-touching request (e.g. `POST /auth/email-otp/request` with
-`OTP_DELIVERY_MODE=stub`), and `RUNNING` task with a stable `startedAt`.
+Wait ~1-2 minutes for the new task to start, then run the same 4-check bar
+from the original Phase 3 push (`session.md`, 2026-09-09) — commands, not
+just descriptions:
+
+```bash
+# 1. New task is RUNNING with a fresh, stable startedAt (re-run this once,
+#    ~30s apart, and confirm startedAt hasn't changed between the two runs)
+aws ecs describe-tasks --cluster "$ECS_CLUSTER" \
+  --tasks $(aws ecs list-tasks --cluster "$ECS_CLUSTER" --service-name "$ECS_SERVICE" --query 'taskArns[0]' --output text) \
+  --query 'tasks[0].{status:lastStatus,startedAt:startedAt,stoppedReason:stoppedReason}'
+
+# 2. ALB target group is healthy
+export TARGET_GROUP_ARN=$(aws elbv2 describe-target-groups \
+  --query "TargetGroups[?contains(TargetGroupName, 'unifolio-staging')].TargetGroupArn" --output text)
+aws elbv2 describe-target-health --target-group-arn "$TARGET_GROUP_ARN" \
+  --query 'TargetHealthDescriptions[*].TargetHealth.State'
+
+# 3. Logs are clean (Ctrl-C after a few lines once you've confirmed no errors)
+aws logs tail /ecs/staging-backend --since 5m --follow
+
+# 4. A real DB-touching request works end to end (stub OTP mode is safe — no real email sent)
+curl -s -X POST "http://$ALB_DNS/auth/email-otp/request" \
+  -H "Content-Type: application/json" -d '{"email":"smoke-test@unifolio.in"}'
+# expect: {"message":"OTP sent.","otp":"..."} — the presence of "otp" in the
+# response confirms OTP_DELIVERY_MODE=stub is still set, which is correct for staging.
+```
+
+If check 4 instead returns a redirect/empty body: Step 4's Phase 5 apply adds
+an HTTP→HTTPS listener redirect on this same ALB, so plain `http://` may now
+bounce. Retry with `curl -sk -L "https://$ALB_DNS/auth/email-otp/request" ...`
+(`-k` because the ALB's own AWS DNS name won't match the `staging-api.unifolio.in`
+ACM cert — that mismatch is expected here and not a bug; the real domain will
+match once you hit it via `https://staging-api.unifolio.in` after DNS propagates).
 
 ### Step 6 — Rebuild & upload the frontend
 
 ```bash
-cd frontend
+cd "$REPO_ROOT/frontend"
 VITE_API_BASE_URL=https://staging-api.unifolio.in npm run build
-aws s3 sync dist/ s3://<phase-4-bucket-name>/ --delete
-aws cloudfront create-invalidation --distribution-id <phase-4-distribution-id> --paths "/*"
+aws s3 sync dist/ "s3://${FRONTEND_BUCKET}/" --delete
+aws cloudfront create-invalidation --distribution-id "$CLOUDFRONT_DIST_ID" --paths "/*"
 ```
+
+(`$FRONTEND_BUCKET`/`$CLOUDFRONT_DIST_ID` come from Step 4's post-apply
+export — if this is a new terminal and they're not set, re-run
+`terraform output -raw s3_bucket_name` / `-raw cloudfront_distribution_id`
+from `infra/envs/staging` first.)
 
 No `VITE_GOOGLE_OAUTH_CLIENT_ID` — deliberately unset per the 2026-09-11
 scope decision (§1).
@@ -214,15 +376,44 @@ working after the `min()`/`max()` fix now riding along in Step 3's image).
 The 2 new ones need the same one-off confirmation before waiting on their
 first real cron fire:
 
+Both job families are named `<project>-<environment>-job-<slug>` (from
+`infra/modules/scheduler/main.tf`'s `local.jobs`) — ECS resolves the latest
+`ACTIVE` revision automatically when you pass the family name with no
+`:revision` suffix, so no ARN lookup is needed:
+
 ```bash
-aws ecs run-task --cluster unifolio-staging \
-  --task-definition <analytics-recompute-task-def-arn> --launch-type FARGATE \
-  --network-configuration "awsvpcConfiguration={subnets=[<subnet-ids>],securityGroups=[<sg-id>],assignPublicIp=DISABLED}"
-# repeat with the delete-expired-accounts task-def-arn
+export NETWORK_CONFIG=$(terraform -chdir="$REPO_ROOT/infra/envs/staging" \
+  output -json networking | python3 -c "
+import json, sys
+n = json.load(sys.stdin)
+subnets = ','.join(n['private_app_subnet_ids'])
+print(f\"awsvpcConfiguration={{subnets=[{subnets}],securityGroups=[{n['ecs_security_group_id']}],assignPublicIp=DISABLED}}\")
+")
+
+aws ecs run-task --cluster "$ECS_CLUSTER" \
+  --task-definition unifolio-staging-job-analytics-recompute-daily \
+  --launch-type FARGATE --network-configuration "$NETWORK_CONFIG"
+
+aws ecs run-task --cluster "$ECS_CLUSTER" \
+  --task-definition unifolio-staging-job-account-deletion-daily \
+  --launch-type FARGATE --network-configuration "$NETWORK_CONFIG"
 ```
 
-Then check `aws logs tail /ecs/staging-job-<slug>` for each to confirm a
-clean exit, not just a `RUNNING` state.
+Each `run-task` prints a `taskArn` — wait ~30-60s for the task to finish
+(Fargate jobs, not long-running services), then confirm a clean exit (not
+just `RUNNING`):
+
+```bash
+aws logs tail /ecs/staging-job-analytics-recompute-daily --since 5m
+aws logs tail /ecs/staging-job-account-deletion-daily --since 5m
+```
+
+Look for the job script's own completion log line and no traceback — a
+`STOPPED` status with `stoppedReason: Essential container in task exited`
+and exit code `0` (check via `aws ecs describe-tasks --cluster "$ECS_CLUSTER"
+--tasks <taskArn> --query 'tasks[0].containers[0].exitCode'`) confirms
+success; a non-zero exit code means the job failed and needs the log output
+read before retrying.
 
 ### Step 8 — Full smoke-test pass (Phase 6)
 
@@ -251,8 +442,9 @@ finalized yet.
   structured logging/error tracking): deferred, scoped separately once
   actually needed, per `AWS Readiness/aws-golive-readiness-report.md` §22
   Phase 7.
-- **Exact resource-ID placeholders** (`<bastion-instance-id>`,
-  `<rds-endpoint>`, `<rds-secret-arn>`, bucket/distribution IDs): deliberately
-  not hardcoded here from a prior session's values — pull fresh via
-  `terraform output` in `infra/envs/staging` at execution time, since IDs
-  can drift across applies.
+- **Resource IDs:** §3 now fills these in directly (bastion, RDS host, ECR
+  repo, ECS cluster/service, ALB DNS — all stable across the remaining
+  applies) rather than leaving them abstract. Only the handful that don't
+  exist yet at doc-write time (Phase 4's bucket/distribution, the master
+  password, task revisions) are pulled live via an exact command inline in
+  the relevant step — never re-typed from a prior session's stale value.
