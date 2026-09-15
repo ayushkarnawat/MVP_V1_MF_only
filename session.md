@@ -1,4 +1,4 @@
-# Session state — 2026-09-11 (updated)
+# Session state — 2026-09-12 (updated)
 
 Working notes for picking this project back up cold. Not a planning doc — see
 `Docs/superpowers/plans/` for those. This file tracks *where things stand*,
@@ -7,7 +7,61 @@ gets overwritten each session, and isn't meant to accumulate history.
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
 
-## Latest Session (2026-09-11): Investor 10-item feature batch complete, committed; AWS staging prerequisites doc drafted
+## Latest Session (2026-09-12): Fund Score card redesign implemented via subagent-driven-development, all 9 tasks + full-suite verification clean
+
+The Fund Score card redesign (spec `Docs/superpowers/specs/2026-09-11-fund-score-card-redesign-design.md`,
+plan `Docs/superpowers/plans/2026-09-11-fund-score-card-redesign.md`) is implemented:
+score out of 10 (display-only, backend still returns/stores the raw 0-100 value),
+reversed 1=best tier display convention everywhere it's shown, plain-English
+Strengths/Watch-outs verdicts replacing raw percentiles, a "why" sentence and a closing
+"what this means for you" suitability sentence, expandable "See the evidence" and "How
+we calculate this score" sections, and the "Transparent Methodology Commitment" box
+moved to the bottom. Executed as 9 tasks via `superpowers:subagent-driven-development`
+entirely in this session (no Codex) — full ledger at
+`.superpowers/sdd/2026-09-11-fund-score-card-redesign/progress.md`. Two escaped-defect/
+plan-gap fixes were needed along the way (Task 2's `FundScoreRow` fields lacked
+Pydantic defaults, breaking an unplanned test fixture; two other unplanned consumer
+test files — `AnalyticsView.test.tsx`, `PrintAnalyticsView.test.tsx` — needed the new
+fields added, and `PrintAnalyticsView.test.tsx` separately needed its stale raw-score
+assertion updated to the new `/10` format after Task 6 landed), all fixed directly as
+controller and logged as rulings. One cosmetic, non-blocking issue is flagged, not
+fixed: the approved spec's own middle-tier "why" sentence template double-states
+"weaker" (design doc line 221) — present in the spec before this work started, purely
+copy, no functional impact.
+
+Full suites re-run clean after the last fix: backend 650 passed/8 skipped, frontend
+454 passed across 80 files, `tsc -b --noEmit` clean.
+
+**Final whole-branch review (opus) completed and adjudicated.** 1 Critical + 5
+Important + 9 Minor findings. Fixed directly as controller: Critical #1 (stale
+precompute-cache rows missing new fields entirely, not null — `=== null` checks
+didn't catch `undefined`; switched to loose equality, marked the 6 new
+`FundScoreRow` fields optional), Important #2 (PDF export's `printMode` prop
+so evidence/methodology accordions render open in the print view, matching
+the existing `AllocationSection`/`BenchmarkSection` convention), Important #5
+(missing `aria-expanded`/`aria-controls` on the accordion buttons). A scoped
+re-review of that fix commit caught a new bug the aria-controls fix itself
+introduced — duplicate accordion panel ids across multiple `FundScoreCard`s
+on one page — fixed by keying the id off `data.scheme_id`. Important #3
+(5-segment tier progress bar dropped, not flipped) and #4 (computed verdict
+word never rendered) were real spec-vs-plan deviations (the plan's own Task 6
+JSX silently omitted both) — flagged to the user per CLAUDE.md rather than
+silently resolved either way. **User chose to restore both**, and also asked
+to fix the previously-flagged "weaker weaker" duplicate-word copy bug in
+`fundScoreVerdicts.ts`'s middle-tier why-sentence (present in the spec's own
+pseudocode, not just the implementation). All three fixed; full ledger detail
+in `.superpowers/sdd/2026-09-11-fund-score-card-redesign/progress.md`'s
+"Post-review fix round" section.
+
+**Still pending, deferred to the AWS/deployment phase per spec §8:** the
+precompute-cache backfill (a manual analytics-recompute re-run) needed so already-cached
+score summaries reflect the new raw-evidence fields — not done this session, since it
+requires the real ADR-006 ECS infra this repo doesn't have running yet.
+
+**Not yet done:** Step 4's manual browser smoke check (no browser tool in this
+environment — flagged as human-only, not fabricated as passed).
+
+## Previous Session (2026-09-11): Investor 10-item feature batch complete, committed; AWS staging prerequisites doc drafted
 
 Three small commits landed on `feat/enhanced-ui` first (pre-existing, unrelated to
 today's main thread): `83a3749` hides the Google sign-in button when no OAuth client id
@@ -557,6 +611,53 @@ short pointer only, per its own header note; this is the detail it points to.)*
    regression test proving a slow commit no longer starves the event loop. Full
    narrative: this file's "AMFI TER `ReadTimeout` root-caused..." section below (predates
    the fix — read as historical, not current state).
+9. **Phone-login OTP verify silently creates a new account for an unrecognized phone
+   number, instead of erroring like the email channel does.** Found by the user
+   2026-09-11 manually smoke-testing staging: logging in with a phone number that has no
+   matching account still goes through the OTP-send/verify flow and ends by creating a
+   brand-new account, rather than telling the user no account exists and directing them
+   to sign up.
+
+   Root cause, confirmed against the code: `backend/app/api/auth.py`'s
+   `verify_otp_route` (phone-OTP channel), in the branch that handles a verify call with
+   no `pending_token` (i.e. a plain login attempt, not part of an in-progress signup/
+   phone-gate flow) — `find_or_backfill_phone_identity` returning `None` falls straight
+   through to an unconditional new-`User` INSERT, per the branch's own comment ("Phone
+   never collision-checks... brand-new phone number always completes signup
+   immediately"). The equivalent email-OTP branch, `verify_email_otp`'s no-`pending_token`
+   path, already does the right thing: `find_identity_by_subject` returning `None` raises
+   a 401 ("No account found for that email — sign up instead.") instead of creating an
+   account. The two channels' identical-shaped branches have simply diverged.
+
+   Frontend-side, confirmed this is a clean single-sided gap, not a shared code path:
+   `Landing.tsx` only renders the "Continue with Phone" button in **login mode** (its
+   "Log In Experience" branch); signup mode offers email + Google only, with no direct
+   phone-signup entry point anywhere in the UI. So the phone no-`pending_token` verify
+   branch is *only* ever reached from a genuine login attempt — fixing it to 401 like
+   email can't break a legitimate phone-signup flow, because that flow doesn't exist.
+
+   **Also worth carrying forward for whoever picks this up**: even the email channel
+   doesn't fully match the UX the user described as ideal. Today, email's existence
+   check happens at **verify time** — the OTP is still requested and sent, and the user
+   still lands on the "enter your code" screen, before the 401 fires. The user's stated
+   expectation ("it shouldn't even go to this process of OTP... it should go back to the
+   sign up side") implies the check should happen at **request time**
+   (`/email-otp/request` / `/otp/request`), before any OTP is sent at all, for both
+   channels — not just bringing phone's verify-time behavior in line with email's
+   verify-time behavior. Moving the check to request time is a slightly larger change
+   (touches both `request_*` handlers, not just both `verify_*` handlers) and has one
+   real tradeoff worth surfacing to the user before building it: an unauthenticated
+   "does this identifier have an account" check at request time is a mild account-
+   enumeration surface (probeable without ever completing an OTP). Low stakes for this
+   product, but a deliberate tradeoff, not a free improvement.
+
+   **Explicitly deferred, not fixed, by user decision 2026-09-11**: the user judged this
+   redundant work right now, reasoning that once a real OTP provider is attached later,
+   invalid/nonexistent phone numbers will need to be handled as part of that integration
+   anyway — fixing the current stub-OTP behavior first would likely be thrown away or
+   reworked at that point. No code changed for this item; this write-up exists so the fix
+   (either the narrow phone-verify 401, or the broader request-time check for both
+   channels) can be picked up later without re-deriving the root cause from scratch.
 
 ## Two small post-merge bug fixes: AMFI TER concurrency, PDF export Allocation section (2026-08-24)
 

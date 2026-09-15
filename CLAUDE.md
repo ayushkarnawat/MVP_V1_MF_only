@@ -94,7 +94,11 @@ exists); an ARIA IDREF gap on the SIP tab switcher (accepted documented limitati
 ADR-006's actual EventBridge Scheduler + ECS Fargate Terraform (deferred until an AWS
 account/ECR/ECS cluster exist — the 4 job scripts themselves are done); the backend API
 domain naming decision (§19/§22 Phase 5); the AWS Terraform infra itself — region/domain/
-NAT decisions are now resolved (see above), so Phase 0/1 is unblocked and ready to start.
+NAT decisions are now resolved (see above), so Phase 0/1 is unblocked and ready to start;
+phone-OTP login silently creating a new account for an unrecognized phone number instead
+of erroring like email does (found on staging 2026-09-11, root-caused, explicitly
+deferred by user decision — see session.md item 9 for the fix direction and the
+account-enumeration tradeoff of the broader request-time-check version).
 
 **Resolved, dropped from this list:**
 - **2026-09-07**: NAT-approach/region/domain decisions that were blocking Terraform
