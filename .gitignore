@@ -51,8 +51,8 @@ dist/
 # baking one developer's hardcoded local binary path and localhost proxy
 # port into every clone). .claude/settings.json (shared project config,
 # e.g. enabledPlugins) stays tracked.
-.claude/settings.local.json
-.claude/.headroom_wrap_marker.json
+**/.claude/settings.local.json
+**/.claude/.headroom_wrap_marker.json
 package-lock.json
 scratch/
 Docs/superpowers/specs/2026-08-27-analytics-loading-state-mockups.html
