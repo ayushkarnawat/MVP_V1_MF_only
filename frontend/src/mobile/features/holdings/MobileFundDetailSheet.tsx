@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Badge } from "@/components/Badge";
 import { FundSignal } from "@/components/FundSignal";
 import { Button } from "@/components/ui/button";
-import { cn, toTitleCase } from "@/lib/utils";
+import { cn, formatDdMmYyyy, toTitleCase } from "@/lib/utils";
 import { X, ArrowDownRight, ArrowUpRight } from "lucide-react";
 import type { HoldingRow } from "@/features/dashboard/types";
 import { motion, useReducedMotion } from "motion/react";
@@ -213,7 +213,7 @@ export function MobileFundDetailSheet({
               <div className="flex items-center justify-between pt-2.5">
                 <span className="text-[var(--color-text-secondary)]">NAV Date</span>
                 <span className="text-[var(--color-text-secondary)]">
-                  {holding.current_nav_date}
+                  {formatDdMmYyyy(holding.current_nav_date)}
                 </span>
               </div>
             )}

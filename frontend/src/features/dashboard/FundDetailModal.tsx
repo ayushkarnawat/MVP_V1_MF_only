@@ -1,6 +1,6 @@
 import { Modal } from "../../components/Modal";
 import { Badge } from "../../components/Badge";
-import { toTitleCase } from "../../lib/utils";
+import { formatDdMmYyyy, toTitleCase } from "../../lib/utils";
 import { FundSignalGraph } from "../../components/FundSignal";
 import type { HoldingRow } from "./types";
 import styles from "./FundDetailModal.module.css";
@@ -96,7 +96,7 @@ export function FundDetailModal({
           {holding.current_nav_date && (
             <div className={styles.detailRow}>
               <span className={styles.detailLabel}>NAV Date</span>
-              <span className="type-caption">{holding.current_nav_date}</span>
+              <span className="type-caption">{formatDdMmYyyy(holding.current_nav_date)}</span>
             </div>
           )}
         </div>

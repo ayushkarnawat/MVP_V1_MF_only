@@ -13,3 +13,9 @@ export function toTitleCase(value: string): string {
   if (!value) return value;
   return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
 }
+
+/** Formats an ISO `YYYY-MM-DD` date string as `DD-MM-YYYY` (Indian convention). */
+export function formatDdMmYyyy(isoDate: string): string {
+  const [year, month, day] = isoDate.split("-");
+  return `${day}-${month}-${year}`;
+}
