@@ -165,7 +165,7 @@ def test_create_otp_request_throttle_is_per_identifier():
 def test_create_otp_request_email_channel_returns_raw_otp_in_stub_mode(monkeypatch):
     import app.services.auth.otp as otp_module
 
-    monkeypatch.setattr(otp_module.settings, "otp_delivery_mode", "stub")
+    monkeypatch.setattr(otp_module.settings, "email_delivery_mode", "stub")
     db = _session()
     request, raw_otp = create_otp_request(db, "person@example.com", channel="email")
 
@@ -180,7 +180,7 @@ def test_create_otp_request_email_channel_returns_raw_otp_in_stub_mode(monkeypat
 def test_create_otp_request_email_channel_hides_otp_and_dispatches_outside_stub_mode(monkeypatch):
     import app.services.auth.otp as otp_module
 
-    monkeypatch.setattr(otp_module.settings, "otp_delivery_mode", "postmark")
+    monkeypatch.setattr(otp_module.settings, "email_delivery_mode", "postmark")
     monkeypatch.setattr(otp_module.settings, "database_url", "sqlite:///:memory:")
 
     sent = {}
@@ -207,7 +207,7 @@ def test_create_otp_request_email_channel_raises_when_no_real_provider_configure
     # "sms" isn't a real email-provider mode either (same placeholder the
     # phone-channel tests above use) -- anything other than "stub" or
     # "postmark" has no EmailProvider behind it (email_provider.py).
-    monkeypatch.setattr(otp_module.settings, "otp_delivery_mode", "sms")
+    monkeypatch.setattr(otp_module.settings, "email_delivery_mode", "sms")
     monkeypatch.setattr(otp_module.settings, "database_url", "sqlite:///:memory:")
     db = _session()
 
@@ -223,7 +223,7 @@ def test_create_otp_request_email_channel_does_not_dispatch_in_stub_mode(monkeyp
     # Stub mode's "delivery" is the raw_otp echoed in the response, not a
     # second side channel -- mirrors how phone stub mode never dispatches
     # an SMS.
-    monkeypatch.setattr(otp_module.settings, "otp_delivery_mode", "stub")
+    monkeypatch.setattr(otp_module.settings, "email_delivery_mode", "stub")
     db = _session()
     with caplog.at_level("INFO"):
         create_otp_request(db, "person@example.com", channel="email")
@@ -282,7 +282,7 @@ def test_verify_otp_email_channel_rejects_unknown_email():
 def test_create_otp_request_email_channel_throttles_rapid_repeat_requests(monkeypatch):
     import app.services.auth.otp as otp_module
 
-    monkeypatch.setattr(otp_module.settings, "otp_delivery_mode", "stub")
+    monkeypatch.setattr(otp_module.settings, "email_delivery_mode", "stub")
     db = _session()
     create_otp_request(db, "person@example.com", channel="email")
 
@@ -309,3 +309,56 @@ def test_verify_otp_email_and_phone_channels_do_not_cross_match_the_same_string(
 
     with pytest.raises(OtpVerificationError, match="No pending"):
         verify_otp(db, "+919999999999", raw_otp, channel="email")
+
+
+def test_create_otp_request_refuses_stub_mode_in_production_for_email_channel(monkeypatch):
+    import app.services.auth.otp as otp_module
+
+    # Mirrors test_create_otp_request_refuses_stub_mode_in_production_even_with_sqlite
+    # above, but for the email channel's own (now-independent) setting.
+    monkeypatch.setattr(otp_module.settings, "email_delivery_mode", "stub")
+    monkeypatch.setattr(otp_module.settings, "database_url", "sqlite:///:memory:")
+    monkeypatch.setattr(otp_module.settings, "environment", "production")
+    db = _session()
+
+    with pytest.raises(RuntimeError, match="not allowed in production"):
+        create_otp_request(db, "person@example.com", channel="email")
+
+
+def test_phone_and_email_channels_use_independent_delivery_modes(monkeypatch):
+    """The actual point of this plan: OTP_DELIVERY_MODE (phone) and
+    EMAIL_DELIVERY_MODE (email) must not affect each other -- e.g. email can
+    be switched to a real provider while phone stays in dev-stub mode (until
+    a real SMS provider is added later), and vice versa."""
+    import app.services.auth.otp as otp_module
+
+    monkeypatch.setattr(otp_module.settings, "otp_delivery_mode", "stub")
+    monkeypatch.setattr(otp_module.settings, "email_delivery_mode", "postmark")
+    monkeypatch.setattr(otp_module.settings, "database_url", "sqlite:///:memory:")
+
+    sent = {}
+
+    class FakeProvider:
+        def send_email(self, to, subject, body):
+            sent["to"] = to
+
+    monkeypatch.setattr(otp_module, "get_email_provider", lambda: FakeProvider())
+    db = _session()
+
+    _, phone_raw_otp = create_otp_request(db, "+919999999999")
+    _, email_raw_otp = create_otp_request(db, "person@example.com", channel="email")
+
+    assert phone_raw_otp is not None  # phone stays in dev-echo stub mode
+    assert email_raw_otp is None  # email is "live" -- no echo
+    assert sent["to"] == "person@example.com"  # and actually dispatched via the real-provider path
+
+
+def test_conftest_forces_stub_delivery_modes_by_default():
+    """Proves the autouse fixture in conftest.py is active: even though this
+    test does zero monkeypatching itself, both delivery-mode settings must
+    read "stub" -- this is what protects every other test from a local
+    .env that has EMAIL_DELIVERY_MODE=postmark set permanently."""
+    from app.config import settings
+
+    assert settings.otp_delivery_mode == "stub"
+    assert settings.email_delivery_mode == "stub"
