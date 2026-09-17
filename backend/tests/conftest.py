@@ -25,6 +25,24 @@ def _enforce_sqlite_foreign_keys(engine):
         dbapi_connection.execute("PRAGMA foreign_keys=ON")
 
 
+@pytest.fixture(autouse=True)
+def _default_stub_delivery_mode(monkeypatch):
+    """Forces OTP_DELIVERY_MODE and EMAIL_DELIVERY_MODE back to "stub" before
+    every test, regardless of what a developer's local backend/.env has set
+    -- e.g. EMAIL_DELIVERY_MODE=postmark, left on permanently so the live
+    app sends real email. Without this, any test exercising the email or
+    phone channel without its own explicit monkeypatch would silently pick
+    up the real value and fire a real outbound call. A test that needs a
+    non-stub value still monkeypatches it explicitly in its own body --
+    that call runs after this fixture and simply overrides it for that one
+    test; pytest's monkeypatch teardown still restores the true original
+    value once the test ends."""
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "otp_delivery_mode", "stub")
+    monkeypatch.setattr(settings, "email_delivery_mode", "stub")
+
+
 @pytest.fixture()
 def db_session():
     """An isolated in-memory DB session for unit tests."""
