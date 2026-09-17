@@ -204,11 +204,10 @@ def test_create_otp_request_email_channel_hides_otp_and_dispatches_outside_stub_
 def test_create_otp_request_email_channel_raises_when_no_real_provider_configured(monkeypatch):
     import app.services.auth.otp as otp_module
 
-    # otp_delivery_mode='stub' is the only mode get_email_provider()
-    # currently knows how to serve (StubEmailProvider); anything else is
-    # "no real provider configured yet" (Postmark integration is a later,
-    # separate task per email_provider.py).
-    monkeypatch.setattr(otp_module.settings, "otp_delivery_mode", "postmark")
+    # "sms" isn't a real email-provider mode either (same placeholder the
+    # phone-channel tests above use) -- anything other than "stub" or
+    # "postmark" has no EmailProvider behind it (email_provider.py).
+    monkeypatch.setattr(otp_module.settings, "otp_delivery_mode", "sms")
     monkeypatch.setattr(otp_module.settings, "database_url", "sqlite:///:memory:")
     db = _session()
 
