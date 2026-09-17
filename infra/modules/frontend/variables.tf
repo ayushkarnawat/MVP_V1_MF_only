@@ -22,3 +22,9 @@ variable "acm_certificate_arn" {
   description = "ARN of the validated us-east-1 ACM certificate attached to CloudFront."
   type        = string
 }
+
+variable "cloudfront_function_arn" {
+  description = "Optional CloudFront Function ARN to associate on viewer-request (e.g. access-token gating). Null disables it, leaving the distribution's behavior unchanged."
+  type        = string
+  default     = null
+}

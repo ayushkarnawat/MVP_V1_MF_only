@@ -49,6 +49,14 @@ resource "aws_cloudfront_distribution" "this" {
         forward = "none"
       }
     }
+
+    dynamic "function_association" {
+      for_each = var.cloudfront_function_arn == null ? [] : [var.cloudfront_function_arn]
+      content {
+        event_type   = "viewer-request"
+        function_arn = function_association.value
+      }
+    }
   }
 
   # Private S3 origins return 403, not 404, for missing keys because CloudFront
