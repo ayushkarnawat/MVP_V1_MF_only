@@ -22,7 +22,7 @@ def test_stub_email_provider_does_not_raise(caplog):
 def test_get_email_provider_returns_stub_in_stub_mode(monkeypatch):
     import app.services.auth.email_provider as email_provider_module
 
-    monkeypatch.setattr(email_provider_module.settings, "otp_delivery_mode", "stub")
+    monkeypatch.setattr(email_provider_module.settings, "email_delivery_mode", "stub")
     provider = get_email_provider()
     assert isinstance(provider, StubEmailProvider)
 
@@ -30,7 +30,7 @@ def test_get_email_provider_returns_stub_in_stub_mode(monkeypatch):
 def test_get_email_provider_raises_outside_stub_mode(monkeypatch):
     import app.services.auth.email_provider as email_provider_module
 
-    monkeypatch.setattr(email_provider_module.settings, "otp_delivery_mode", "sms")
+    monkeypatch.setattr(email_provider_module.settings, "email_delivery_mode", "sms")
     with pytest.raises(NoEmailProviderConfiguredError, match="Postmark"):
         get_email_provider()
 
@@ -38,7 +38,7 @@ def test_get_email_provider_raises_outside_stub_mode(monkeypatch):
 def test_get_email_provider_returns_postmark_in_postmark_mode(monkeypatch):
     import app.services.auth.email_provider as email_provider_module
 
-    monkeypatch.setattr(email_provider_module.settings, "otp_delivery_mode", "postmark")
+    monkeypatch.setattr(email_provider_module.settings, "email_delivery_mode", "postmark")
     provider = get_email_provider()
     assert isinstance(provider, PostmarkEmailProvider)
 

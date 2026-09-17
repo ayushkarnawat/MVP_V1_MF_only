@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./unifolio_dev.db"
     test_database_url: str | None = None
     otp_delivery_mode: str = "stub"
+    email_delivery_mode: str = "stub"
     postmark_api_token: str = ""
     postmark_from_email: str = ""
     environment: str = "development"
