@@ -282,6 +282,72 @@ def test_cross_account_pan_match_blocks_import(
         )
 
 
+def test_cross_account_pan_match_blocks_import_even_with_override(
+    db_session, sample_user_and_member, monkeypatch
+):
+    """Fix 5 (2026-09-18 whole-branch review): confirmed_member_override=True
+    must NOT bypass the cross-account PAN hard block on create_cas_import's
+    call chain. Structurally it can't -- resolve_attribution raises
+    CrossAccountPanBlockedError before returning any AttributionDecision, so
+    enforce_attribution_confirmation (the function the override parameter
+    actually gates) never runs -- but nothing in either test file asserted
+    this before. Also confirms the flushed-but-uncommitted Import row from
+    the aborted attempt never becomes a durable write: rolling back (what
+    app.db.session.get_db's `finally: db.close()` does on every real request
+    when a handler doesn't commit) leaves zero Import rows behind."""
+    user, member = sample_user_and_member
+    now = datetime.now(timezone.utc)
+    other_user = User(id=uuid.uuid4(), phone_number="+919900000002", created_at=now)
+    db_session.add(other_user)
+    db_session.flush()
+    other_member = HouseholdMember(
+        id=uuid.uuid4(),
+        user_id=other_user.id,
+        name="Private Other Account",
+        relationship=Relationship.SELF,
+        created_at=now,
+        pan_encrypted=encrypt_pan("YYYYY8888Y"),
+        pan_lookup_hash=hash_pan("YYYYY8888Y"),
+    )
+    db_session.add(other_member)
+    db_session.commit()
+
+    parse_result = ParseResult(
+        investor=ParsedInvestor(
+            name="Different Investor Name",
+            email="investor@example.com",
+            pan_masked="Y*****8Y",
+            pan="YYYYY8888Y",
+        ),
+        schemes=[],
+        transactions=[],
+        raw_json="{}",
+    )
+    monkeypatch.setattr(
+        "app.services.import_.lifecycle_service.parse_cas_pdf_bytes",
+        lambda _bytes, _password: parse_result,
+    )
+
+    with pytest.raises(CrossAccountPanBlockedError):
+        asyncio.run(
+            create_cas_import(
+                db=db_session,
+                user_id=user.id,
+                household_member_id=member.id,
+                file_bytes=b"%PDF-1.4 statement",
+                filename="statement.pdf",
+                password="PASS",
+                confirmed_member_override=True,
+            )
+        )
+
+    # The blocked attempt's Import row was add()ed and flush()ed (visible
+    # within this still-open transaction) but never committed -- rolling
+    # back, as a real request's session teardown would, leaves no trace.
+    db_session.rollback()
+    assert db_session.query(Import).count() == 0
+
+
 def test_deduplication_fingerprint_skips_duplicates(db_session, sample_user_and_member, monkeypatch):
     user, member = sample_user_and_member
     fake_pdf = b"%PDF-1.4 statement"

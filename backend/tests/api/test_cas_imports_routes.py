@@ -255,6 +255,92 @@ def test_post_cas_imports_maps_member_mismatch_to_structured_409(
     assert create.await_args.kwargs["confirmed_member_override"] is True
 
 
+def test_post_cas_imports_blocks_cross_account_pan_reuse_without_leaking_other_account(
+    client, auth_headers_and_member, monkeypatch
+):
+    """Fix 5 (2026-09-18 whole-branch review): neither test file had any
+    route-level test asserting the cross_account_pan_blocked 409 actually
+    fires, that it doesn't leak the other account's member name/id, or that
+    no DB write results. Exercises the real create_cas_import/resolve_attribution
+    path end to end (only parse_cas_pdf_bytes is mocked, unlike the mismatch
+    tests above which mock create_cas_import itself)."""
+    headers, member_id, user_id = auth_headers_and_member
+
+    from app.db.session import get_db
+    from app.models.enums import Relationship
+    from app.models.imports import Import
+    from app.models.user import HouseholdMember, User
+    from app.services.import_.crypto import encrypt_pan, hash_pan
+
+    db_gen = client.app.dependency_overrides[get_db]()
+    db = next(db_gen)
+
+    # A member of a DIFFERENT account who already has this PAN on file.
+    other_user = User(
+        id=uuid.uuid4(),
+        phone_number="+919999999999",
+        email="other@example.com",
+        created_at=datetime.now(timezone.utc),
+    )
+    db.add(other_user)
+    db.flush()
+    other_member = HouseholdMember(
+        id=uuid.uuid4(),
+        user_id=other_user.id,
+        name="Someone Else Entirely",
+        relationship=Relationship.SELF,
+        created_at=datetime.now(timezone.utc),
+        pan_encrypted=encrypt_pan("ABCDE1234F"),
+        pan_lookup_hash=hash_pan("ABCDE1234F"),
+    )
+    db.add(other_member)
+    db.commit()
+    other_member_id = other_member.id
+    other_member_name = other_member.name
+
+    from app.services.import_.parser import ParsedInvestor, ParseResult
+
+    def mock_parse(pdf_bytes, password):
+        return ParseResult(
+            investor=ParsedInvestor(
+                name="Rajesh Kumar", email="rajesh.kumar@example.com",
+                pan_masked="ABCDE****F", pan="ABCDE1234F",
+            ),
+            schemes=[],
+            transactions=[],
+            raw_json='{"folios": []}',
+        )
+
+    monkeypatch.setattr("app.services.import_.lifecycle_service.parse_cas_pdf_bytes", mock_parse)
+
+    response = client.post(
+        "/cas-imports",
+        headers=headers,
+        data={
+            "password": "PASS",
+            "household_member_id": str(member_id),
+        },
+        files={"file": ("statement.pdf", b"%PDF-1.4 statement", "application/pdf")},
+    )
+
+    assert response.status_code == 409
+    body = response.json()
+    assert body["detail"]["code"] == "cross_account_pan_blocked"
+
+    # No leak: the other account's member name/id must not appear anywhere
+    # in the response body, structured or not.
+    body_text = response.text
+    assert other_member_name not in body_text
+    assert str(other_member_id) not in body_text
+
+    # No DB write: the Import row create_cas_import add()ed+flush()ed before
+    # hitting the block was never committed -- get_db's `finally: db.close()`
+    # rolls it back, so a fresh session sees none for this household member.
+    db_gen2 = client.app.dependency_overrides[get_db]()
+    db2 = next(db_gen2)
+    assert db2.query(Import).filter_by(household_member_id=member_id).count() == 0
+
+
 def test_retry_password_maps_member_mismatch_and_threads_override(
     client, auth_headers_and_member
 ):

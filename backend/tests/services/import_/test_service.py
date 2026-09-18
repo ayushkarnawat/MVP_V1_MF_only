@@ -14,7 +14,8 @@ from app.models.reference import Scheme
 from app.models.folio import Folio
 from app.models.transaction import Transaction
 from app.models.imports import Import, ImportStatus
-from app.services.import_.attribution import AttributionConfirmationRequiredError
+from app.services.import_.attribution import AttributionConfirmationRequiredError, CrossAccountPanBlockedError
+from app.services.import_.crypto import encrypt_pan, hash_pan
 from app.services.import_.parser import NormalizedTransaction, ParsedInvestor, ParsedScheme, ParseResult
 from app.services.import_.service import SchemeConfidenceError, build_import_preview, confirm_import
 from app.models.enums import PlanType, TransactionType
@@ -981,6 +982,54 @@ def test_confirm_import_returns_generic_cross_account_warning():
     # (see attribution.py's resolve_attribution / Task 5's redesign).
     assert result.warnings == []
     assert db.query(Import).one().status == ImportStatus.CONFIRMED
+
+
+def test_confirm_import_cross_account_pan_match_blocks_even_with_override():
+    """Fix 5 (2026-09-18 whole-branch review): neither test file had any
+    coverage proving confirmed_member_override=True can't bypass the
+    cross-account PAN hard block. It can't, structurally: resolve_attribution
+    raises CrossAccountPanBlockedError before returning any AttributionDecision
+    at all, so enforce_attribution_confirmation (the function the override
+    parameter actually gates) never even runs. This test exercises that
+    through the full confirm_import call chain, with the override explicitly
+    passed as True, and confirms zero DB writes result from the blocked
+    attempt."""
+    db = _session()
+    selected_member = _household_member(db)
+    other_user = User(id=uuid.uuid4(), phone_number="+919000000002", created_at=datetime.now(timezone.utc))
+    other_member = HouseholdMember(
+        id=uuid.uuid4(), user_id=other_user.id, name="Private Other Account",
+        relationship=Relationship.SELF, created_at=datetime.now(timezone.utc),
+        pan_encrypted=encrypt_pan("ZZZZZ9999Z"), pan_lookup_hash=hash_pan("ZZZZZ9999Z"),
+    )
+    db.add_all([other_user, other_member])
+    db.commit()
+
+    sample = _sample_parse_result()
+    parse_result_with_pan = ParseResult(
+        investor=ParsedInvestor(
+            name=sample.investor.name, email=sample.investor.email,
+            pan_masked=sample.investor.pan_masked, pan="ZZZZZ9999Z",
+        ),
+        schemes=sample.schemes, transactions=sample.transactions, raw_json=sample.raw_json,
+        parse_warnings=sample.parse_warnings, cas_type=sample.cas_type, file_type=sample.file_type,
+    )
+    preview = asyncio.run(
+        build_import_preview(parse_result_with_pan, "test.pdf", b"%PDF-1.4 fake", client=_mocked_client())
+    )
+
+    with pytest.raises(CrossAccountPanBlockedError):
+        confirm_import(
+            db,
+            preview.session_id,
+            selected_member.id,
+            scheme_confirmations=[],
+            user_id=selected_member.user_id,
+            confirmed_member_override=True,
+        )
+
+    assert db.query(Import).count() == 0
+    assert db.query(Transaction).count() == 0
 
 
 def test_confirm_import_returns_no_warning_without_cross_account_match():
