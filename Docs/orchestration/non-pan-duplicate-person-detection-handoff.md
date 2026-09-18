@@ -1,6 +1,9 @@
 # Handoff: non-pan-duplicate-person-detection
 
 **Status:** DONE (2026-09-03)
+
+**Superseded 2026-09-18:** the name/email/folio-based matching this doc describes was replaced by PAN-hash-based matching once ADR-004 was reopened. `detect_cross_account_duplicate` (built by this task) no longer exists — folded into `resolve_attribution`'s PAN-hash check, which now blocks a cross-account match outright instead of issuing an advisory warning. See `Docs/superpowers/specs/2026-09-18-pan-cas-attribution-design.md`.
+
 **Parent:** User instruction 2026-09-02 (see `CLAUDE.md` Session State) — the same real person must not silently end up entered twice (two CAS uploads, or two household members) — **without persisting PAN**, per this codebase's existing test-guarded rule (`tests/models/test_no_pan_field.py`, ADR-004). User's own framing: "it's okay if the statements don't need to be the same" (i.e. two *different* CAS statements for the same real person must still be catchable, not just byte-identical re-uploads) and this needs to be "extensive."
 **Dispatch mode:** User is running this directly in their own Codex CLI/app session (not via Claude's `codex:codex-rescue` Agent dispatch) — this doc is the source of truth both sides read; update `Status` here after Codex finishes and report back.
 

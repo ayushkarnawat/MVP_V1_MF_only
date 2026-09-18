@@ -4,7 +4,7 @@
 
 ## 2026-08-04 — Migration 0001: initial schema
 
-`0001_initial_schema` — every table from the Database Schema doc's v1.1: `users`, `household_members`, `imports`, `schemes`, `folios`, `transactions` (partitioned by `RANGE(date)`, yearly), `nav_history` (partitioned, yearly), `scheme_ter`, `scheme_aaum`, `benchmark_index_history`, `arn_directory`, `portfolio_snapshots`, `fund_scores`, `otp_requests`, `sessions`. `users.phone_number`: `UNIQUE NOT NULL` from day one. All money/units/NAV columns `NUMERIC`, never `FLOAT`. No PAN column anywhere; no raw-CAS-PDF table or column anywhere.
+`0001_initial_schema` — every table from the Database Schema doc's v1.1: `users`, `household_members`, `imports`, `schemes`, `folios`, `transactions` (partitioned by `RANGE(date)`, yearly), `nav_history` (partitioned, yearly), `scheme_ter`, `scheme_aaum`, `benchmark_index_history`, `arn_directory`, `portfolio_snapshots`, `fund_scores`, `otp_requests`, `sessions`. `users.phone_number`: `UNIQUE NOT NULL` from day one. All money/units/NAV columns `NUMERIC`, never `FLOAT`. PAN is now persisted on `household_members.pan_encrypted`/`pan_lookup_hash` (migration `0015`); the raw CAS PDF is retained 30 days then deleted, outside the primary DB. ADR-004 reopened 2026-09-18 — see Docs/superpowers/specs/2026-09-18-pan-cas-attribution-design.md.
 
 ## 2026-08-06 — Migration 0002: transaction dedupe constraint widened
 

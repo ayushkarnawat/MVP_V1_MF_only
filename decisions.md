@@ -248,3 +248,7 @@ Replaced generic vector artwork with bespoke hand-drawn illustrations sourced fr
 
 **Why:** Creates a cohesive, bespoke visual identity across the entire onboarding and authentication experience while strictly honoring the brand's monochrome-with-green-accent design philosophy.
 
+## 2026-09-18 — PAN persistence and CAS file retention (reopens 2026-07-22 decision)
+
+ADR-004's original "no PAN, no raw file, ever" is superseded. PAN is now stored encrypted per household member (attribution matching); the raw CAS PDF is retained 30 days then deleted. **Why:** name/email-based attribution was fragile (nicknames, similar family names) and couldn't detect the same PAN already tracked under a different account. See `Docs/superpowers/specs/2026-09-18-pan-cas-attribution-design.md`.
+

@@ -28,8 +28,12 @@ assumes this schema rather than re-deriving it.
    Ongoing Data Addition and PRD-03's Add Data entry point (ADR discussion), the schema
    models `imports` as a table a household member can have many of, not a flag on the
    member record.
-3. **No raw CAS PDF storage anywhere** — per ADR-004's final decision, there is no column
-   or table for the source document, only its parsed output.
+3. Raw CAS PDF and PAN are retained in bounded, encrypted form only — the
+   source PDF for 30 days (outside the primary DB, deleted after), and PAN
+   as `household_members.pan_encrypted` (AES-256-GCM) plus
+   `household_members.pan_lookup_hash` (HMAC-SHA256, for matching only).
+   Reopened from the original "never persisted" decision — see ADR-004 and
+   `Docs/superpowers/specs/2026-09-18-pan-cas-attribution-design.md`.
 4. **`NUMERIC`, never `FLOAT`, for all money/units/NAV fields** — per PRD-01's Decimal-
    math constraint, carried through literally into column types.
 5. **Family aggregate default (App Flow v1.1) is computed, not stored** — whether a
@@ -338,10 +342,10 @@ Foundational session record following successful auth verification.
 | Data | Classification | Handling |
 |---|---|---|
 | `transactions`, `folios`, `portfolio_snapshots` | Sensitive (financial) | Standard RDS encryption at rest; no special masking needed, these are the user's own numbers |
-| Parsed PAN (extracted from CAS investor info) | Highly sensitive | **Not persisted at all** — used transiently in memory during the active parse/review session for masked display (`ABCDE****F`), then discarded exactly like the source PDF. No PAN column exists anywhere in this schema. |
+| Parsed PAN | Highly sensitive | Persisted on `household_members.pan_encrypted` (AES-256-GCM, application-level envelope encryption) plus `pan_lookup_hash` (HMAC-SHA256, one-way, used only for equality matching). Never returned by any API — masked display (`ABCDE****F`) only. See ADR-004 (reopened 2026-09-18). |
 | `phone_number` | Sensitive (PII, also the auth credential) | Standard encryption at rest; rate-limit any lookup path |
 | Reference tables (`schemes`, `nav_history`, `scheme_ter`, etc.) | Public data | No special handling — this is all already-public AMFI/NSE data |
-| CAS PDF | N/A — not stored | Per ADR-004, confirmed final |
+| CAS PDF | Highly sensitive | Retained 30 days from upload for dispute/re-parse support, then deleted — local disk in dev, private SSE-KMS-encrypted S3 bucket with a Lifecycle expiry rule in production. Per ADR-004, reopened 2026-09-18. |
 
 ## Indexing Notes
 
@@ -371,6 +375,9 @@ Foundational session record following successful auth verification.
 Both items from the initial draft are resolved:
 - **PAN persistence**: not stored anywhere — confirmed transient-only, discarded like the
   source PDF (see Data Classification & Security).
+
+**Reopened 2026-09-18:** the "PAN persistence: not stored anywhere" resolution above was itself reopened — see ADR-004's 2026-09-18 update and `Docs/superpowers/specs/2026-09-18-pan-cas-attribution-design.md`. PAN is now stored, encrypted, per household member.
+
 - **`relationship` field shape**: fixed enum (`self`/`spouse`/`parent`/`child`/`sibling`/`other`)
   plus a free-text fallback label for `'other'` — structured enough for consistent
   family-grouping logic, flexible enough not to force awkward edge cases into the wrong

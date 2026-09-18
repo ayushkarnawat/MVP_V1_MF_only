@@ -55,7 +55,7 @@ step regardless of which method started signup.
 
 - `Decimal`, never `float`, for every money/units/NAV value anywhere in the
   system — a repeated, non-negotiable requirement.
-- No raw CAS PDF storage, ever. No PAN persistence, ever.
+- PAN and the raw CAS PDF are now persisted in bounded, encrypted form (ADR-004 reopened 2026-09-18) — PAN encrypted per household member for attribution matching, the PDF for 30 days for dispute/re-parse support. See Docs/superpowers/specs/2026-09-18-pan-cas-attribution-design.md.
 - Backend: one FastAPI monolith (four logical services: Auth, Import,
   Dashboard, Analytics — not four deployments). Frontend: one React 19 +
   Vite + TypeScript + Tailwind SPA, shadcn/ui component primitives already

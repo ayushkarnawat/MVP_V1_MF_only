@@ -374,25 +374,39 @@ permanently, unconditionally, per ADR-003.
   read on DPDP-Act implications — not something to casually reopen as an infrastructure
   afterthought.
 
-## Decision: CAS PDF Is Not Retained
+### Decision: CAS PDF and PAN Are Retained, Encrypted, Time-Bounded (supersedes the original ADR-004 decision, 2026-09-18)
 
-PRD-01's delete-after-parse rule (data extracted, source document discarded) stands as
-final: **the original CAS PDF is not stored anywhere — not in S3, not elsewhere.** This
-was weighed against retaining it (which would've enabled re-download and an audit
-trail) and resolved in favor of deletion:
+The original decision above (no PAN persistence, no raw CAS PDF storage) is
+superseded. As of 2026-09-18:
 
-- Minimizes stored PII — the parsed, structured data is everything the product actually
-  needs to function; the raw document (full PAN, original formatting) adds sensitive
-  surface area without a corresponding product need.
-- Cleaner compliance posture under India's DPDP Act — data-minimization principles
-  favor not retaining more than necessary, and this avoids the legal-review overhead
-  that retaining PAN-bearing documents would have required.
-- Consistent with the product's actual value proposition: the platform's value is the
-  structured portfolio data, analytics, and tracking — not document storage. A user who
-  wants their original CAS can always re-request it from CAMS/KFintech directly.
+- **PAN** is persisted per household member, encrypted at rest (AES-256-GCM
+  envelope encryption; see `backend/app/services/import_/crypto.py`), plus a
+  separate deterministic lookup hash (HMAC-SHA256) used for matching so the
+  application never needs to decrypt another household's PAN to check for a
+  duplicate. PAN is used server-side only, for attribution matching — it is
+  never returned by any API response (the masked form, `pan_masked`,
+  continues to be the only PAN-shaped value any client ever sees).
+- **The raw CAS PDF** is retained for 30 days from upload (for re-parsing and
+  dispute resolution), then deleted. It is stored outside the primary
+  database (locally on disk in development; a private, SSE-KMS-encrypted S3
+  bucket with a native Lifecycle expiry rule in production — see the
+  Production Mapping section of
+  `Docs/superpowers/specs/2026-09-18-pan-cas-attribution-design.md`).
 
-This decision does not change anything about portfolio, transaction, family, or user
-data — all of that persists permanently in Postgres regardless (ADR-003).
+**Why reopened:** PAN-based attribution eliminates the fragility of
+name/email matching (nicknames, transliteration, similar family names) and
+enables a hard block on a PAN already tracked under a different account —
+neither is possible without persisting PAN in some recoverable form.
+
+**DPDP-Act consideration:** the replacement design still minimizes exposure
+relative to the rejected alternative (indefinite plaintext retention): PAN is
+always encrypted at rest and never returned in plaintext by any API surface;
+the CAS file has a hard 30-day retention ceiling rather than indefinite
+storage. This reopening was done as a fresh, explicit decision — see
+`Docs/superpowers/specs/2026-09-18-pan-cas-attribution-design.md` — per this
+ADR's own original stated reopening requirement.
+
+**Status:** Accepted, 2026-09-18.
 
 ## Alternatives Considered
 
