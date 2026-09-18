@@ -24,15 +24,16 @@ from app.models.folio import Folio
 from app.models.imports import Import
 from app.models.reference import Scheme
 from app.models.transaction import Transaction
+from app.models.user import HouseholdMember
 from app.services.import_.attribution import (
     AttributionDecision,
     AttributionStatus,
-    CROSS_ACCOUNT_DUPLICATE_WARNING,
-    detect_cross_account_duplicate,
+    backfill_pan_if_missing,
     enforce_attribution_confirmation,
     resolve_attribution,
 )
 from app.services.import_.buffer_cache import get_pdf_buffer, remove_pdf_buffer, store_pdf_buffer
+from app.services.import_.file_storage import store_cas_file
 from app.services.import_.parser import ParseError, ParseResult, parse_cas_pdf_bytes, source_cas_type_from_file_type
 from app.services.import_.state_machine import transition_status
 
@@ -61,21 +62,6 @@ def validate_file_payload(file_bytes: bytes) -> None:
         raise FileTooLargeError("File too large. Maximum supported file size is 25MB.")
     if not file_bytes.startswith(b"%PDF-"):
         raise InvalidFileFormatError("PDF only — please upload a CAS statement in PDF format.")
-
-
-def _attach_cross_account_warning(
-    db: Session,
-    import_rec: Import,
-    user_id: uuid.UUID,
-    parse_result: ParseResult,
-) -> None:
-    """Attach an identity-free, response-only advisory without changing import flow."""
-    warning = detect_cross_account_duplicate(db, user_id, parse_result)
-    import_rec.parse_warnings = (
-        [CROSS_ACCOUNT_DUPLICATE_WARNING]
-        if warning is not None and warning.detected
-        else []
-    )
 
 
 def _commit_parsed_transactions(
@@ -243,7 +229,9 @@ async def create_cas_import(
         else attribution.resolved_member_id or household_member_id
     )
     import_rec.household_member_id = target_member_id
-    _attach_cross_account_warning(db, import_rec, user_id, parse_result)
+    target_member = db.query(HouseholdMember).filter_by(id=target_member_id).first()
+    backfill_pan_if_missing(db, target_member, parse_result)
+    store_cas_file(import_rec, user_id, file_bytes)
 
     # Commit transactions & deduplicate
     added, skipped = _commit_parsed_transactions(db, import_rec, parse_result, target_member_id)
@@ -304,7 +292,9 @@ def retry_cas_import_password(
         else attribution.resolved_member_id or import_rec.household_member_id
     )
     import_rec.household_member_id = target_member_id
-    _attach_cross_account_warning(db, import_rec, user_id, parse_result)
+    target_member = db.query(HouseholdMember).filter_by(id=target_member_id).first()
+    backfill_pan_if_missing(db, target_member, parse_result)
+    store_cas_file(import_rec, user_id, pdf_bytes)
 
     added, skipped = _commit_parsed_transactions(db, import_rec, parse_result, target_member_id)
 

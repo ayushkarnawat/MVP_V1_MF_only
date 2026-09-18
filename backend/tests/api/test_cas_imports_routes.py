@@ -6,6 +6,18 @@ import pytest
 from app.models.enums import AuthIdentityProvider, Relationship
 from app.models.user import HouseholdMember, User
 from app.services.auth.session import create_session
+from app.services.import_ import file_storage as file_storage_module
+
+
+@pytest.fixture(autouse=True)
+def isolate_cas_file_storage(tmp_path, monkeypatch):
+    """Prevent the success-path test below (which reaches store_cas_file via
+    the real upload+retry-password route) from writing to disk via the
+    module-level default_file_storage singleton -- same isolation Task 6
+    needed in test_service.py, since the singleton captures
+    settings.cas_file_storage_dir once at import time (monkeypatching the
+    setting itself would silently no-op)."""
+    monkeypatch.setattr(file_storage_module.default_file_storage, "_base_dir", tmp_path)
 
 
 def _member_mismatch_error():
@@ -114,12 +126,6 @@ def test_post_cas_imports_wrong_password_returns_password_required_and_allows_pa
         )
 
     monkeypatch.setattr("app.services.import_.lifecycle_service.parse_cas_pdf_bytes", mock_parse)
-    from app.services.import_.attribution import CrossAccountDuplicateWarning
-
-    monkeypatch.setattr(
-        "app.services.import_.lifecycle_service.detect_cross_account_duplicate",
-        lambda *args, **kwargs: CrossAccountDuplicateWarning(detected=True, reason="folio_match"),
-    )
 
     # 1. Initial upload with wrong password
     upload_res = client.post(
@@ -143,20 +149,25 @@ def test_post_cas_imports_wrong_password_returns_password_required_and_allows_pa
     assert status_res.status_code == 200
     assert status_res.json()["status"] == "password_required"
 
-    # 3. In-place password retry via PATCH /cas-imports/{id}/password
+    # 3. In-place password retry via PATCH /cas-imports/{id}/password.
+    # confirmed_member_override=True: this member has no PAN on file and no
+    # pre-existing folio, so real resolve_attribution would otherwise land on
+    # UNRECOGNIZED_MEMBER and require confirmation -- this test's intent is
+    # the wrong-password/retry flow, not attribution matching.
     patch_res = client.patch(
         f"/cas-imports/{import_id}/password",
         headers=headers,
-        json={"password": "CORRECT_PASS"},
+        json={"password": "CORRECT_PASS", "confirmed_member_override": True},
     )
     assert patch_res.status_code == 200
     patch_data = patch_res.json()
     assert patch_data["status"] == "import_successful"
     assert patch_data["new_transactions_count"] == 1
-    assert patch_data["parse_warnings"] == [
-        "This investment may already be tracked under a different Unifolio account. "
-        "If that's you, consider using that account instead."
-    ]
+    # parse_warnings is dead in response terms now that cross-account is a
+    # hard block (CrossAccountPanBlockedError) rather than an advisory --
+    # kept on the response schema per the plan's "known follow-up cleanup"
+    # but always empty since nothing writes it anymore.
+    assert patch_data["parse_warnings"] == []
 
     # 4. List import history via GET /household-members/{member_id}/cas-imports
     history_res = client.get(f"/household-members/{member_id}/cas-imports", headers=headers)
