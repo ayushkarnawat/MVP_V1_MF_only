@@ -26,7 +26,18 @@ class User(Base):
 
 class HouseholdMember(Base):
     __tablename__ = "household_members"
-    __table_args__ = (Index("ix_household_members_pan_lookup_hash", "pan_lookup_hash"),)
+    # unique=True: enforces the "one PAN, one household member, system-wide"
+    # invariant at the DB level, not just in application code, closing a
+    # TOCTOU race where two concurrent imports of the same PAN under
+    # different accounts could both see "no match" and both backfill
+    # (Fix 6, 2026-09-18 whole-branch review). Unique + nullable is safe on
+    # both SQLite and Postgres -- both allow multiple NULLs in a unique
+    # index, so members with no PAN backfilled yet don't collide with each
+    # other; only non-null hashes are constrained to be distinct, which is
+    # exactly the semantic this invariant needs.
+    __table_args__ = (
+        Index("ix_household_members_pan_lookup_hash", "pan_lookup_hash", unique=True),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
