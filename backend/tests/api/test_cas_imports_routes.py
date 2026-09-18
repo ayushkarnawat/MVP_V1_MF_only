@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import uuid
 from unittest.mock import patch
 
@@ -7,6 +7,7 @@ from app.models.enums import AuthIdentityProvider, Relationship
 from app.models.user import HouseholdMember, User
 from app.services.auth.session import create_session
 from app.services.import_ import file_storage as file_storage_module
+from app.services.import_.file_storage import CAS_FILE_RETENTION_DAYS, storage_key_for_import
 
 
 @pytest.fixture(autouse=True)
@@ -154,6 +155,7 @@ def test_post_cas_imports_wrong_password_returns_password_required_and_allows_pa
     # pre-existing folio, so real resolve_attribution would otherwise land on
     # UNRECOGNIZED_MEMBER and require confirmation -- this test's intent is
     # the wrong-password/retry flow, not attribution matching.
+    before = datetime.now(timezone.utc)
     patch_res = client.patch(
         f"/cas-imports/{import_id}/password",
         headers=headers,
@@ -168,6 +170,25 @@ def test_post_cas_imports_wrong_password_returns_password_required_and_allows_pa
     # kept on the response schema per the plan's "known follow-up cleanup"
     # but always empty since nothing writes it anymore.
     assert patch_data["parse_warnings"] == []
+
+    # Review finding (Task 7): this route test reaches retry_cas_import_password's
+    # real success path (nothing here mocks the service function itself) --
+    # verify store_cas_file's effect actually landed on the committed Import
+    # row, not just that the call didn't raise. Same check as
+    # test_lifecycle_service.py's unit-level assertion, exercised end-to-end
+    # through the HTTP route this time.
+    from app.db.session import get_db
+    from app.models.imports import Import
+
+    db_gen = client.app.dependency_overrides[get_db]()
+    db = next(db_gen)
+    imp = db.query(Import).filter_by(id=uuid.UUID(import_id)).one()
+    assert imp.file_reference == storage_key_for_import(user_id, imp.id)
+    expected_expiry = before + timedelta(days=CAS_FILE_RETENTION_DAYS)
+    actual_expiry = imp.file_expires_at
+    if actual_expiry.tzinfo is None:
+        actual_expiry = actual_expiry.replace(tzinfo=timezone.utc)
+    assert abs((actual_expiry - expected_expiry).total_seconds()) < 5
 
     # 4. List import history via GET /household-members/{member_id}/cas-imports
     history_res = client.get(f"/household-members/{member_id}/cas-imports", headers=headers)

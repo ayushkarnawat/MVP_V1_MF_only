@@ -1,5 +1,5 @@
 import asyncio
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 import uuid
 import pytest
@@ -16,6 +16,7 @@ from app.services.import_.attribution import (
 )
 from app.services.import_.crypto import encrypt_pan, hash_pan
 from app.services.import_ import file_storage as file_storage_module
+from app.services.import_.file_storage import CAS_FILE_RETENTION_DAYS, storage_key_for_import
 from app.services.import_.lifecycle_service import (
     FileTooLargeError,
     InvalidFileFormatError,
@@ -188,6 +189,7 @@ def test_retry_password_unlocks_and_completes_import(db_session, sample_user_and
     # flow, not attribution matching, and the member has no PAN on file, so
     # a real resolve_attribution call would otherwise land on
     # UNRECOGNIZED_MEMBER and require confirmation.
+    before = datetime.now(timezone.utc)
     updated_rec = retry_cas_import_password(
         db=db_session,
         import_id=import_rec.id,
@@ -202,6 +204,17 @@ def test_retry_password_unlocks_and_completes_import(db_session, sample_user_and
     assert updated_rec.household_member_id == member.id
     # Buffer cache should be wiped on success
     assert get_pdf_buffer(str(import_rec.id)) is None
+    # Review finding (Task 7): retry_cas_import_password's success path must
+    # actually wire store_cas_file, not just call it without effect --
+    # verify the committed Import row carries a file_reference in
+    # storage_key_for_import's format and a file_expires_at ~30 days out,
+    # matching test_service.py's identical check for the sync confirm path.
+    assert updated_rec.file_reference == storage_key_for_import(user.id, updated_rec.id)
+    expected_expiry = before + timedelta(days=CAS_FILE_RETENTION_DAYS)
+    actual_expiry = updated_rec.file_expires_at
+    if actual_expiry.tzinfo is None:
+        actual_expiry = actual_expiry.replace(tzinfo=timezone.utc)
+    assert abs((actual_expiry - expected_expiry).total_seconds()) < 5
 
 
 def test_cross_account_pan_match_blocks_import(
@@ -326,6 +339,7 @@ def test_deduplication_fingerprint_skips_duplicates(db_session, sample_user_and_
     # dedup fingerprinting, not attribution matching, and the member has no
     # PAN or pre-existing folio on file, so real resolve_attribution would
     # otherwise land on UNRECOGNIZED_MEMBER and require confirmation.
+    before = datetime.now(timezone.utc)
     rec1 = asyncio.run(create_cas_import(
         db=db_session,
         user_id=user.id,
@@ -338,6 +352,17 @@ def test_deduplication_fingerprint_skips_duplicates(db_session, sample_user_and_
     assert rec1.status == ImportStatus.IMPORT_SUCCESSFUL
     assert rec1.new_transactions_count == 1
     assert rec1.duplicate_transactions_count == 0
+    # Review finding (Task 7): create_cas_import's success path must actually
+    # wire store_cas_file, not just call it without effect -- verify the
+    # committed Import row carries a file_reference in
+    # storage_key_for_import's format and a file_expires_at ~30 days out,
+    # matching test_service.py's identical check for the sync confirm path.
+    assert rec1.file_reference == storage_key_for_import(user.id, rec1.id)
+    expected_expiry = before + timedelta(days=CAS_FILE_RETENTION_DAYS)
+    actual_expiry = rec1.file_expires_at
+    if actual_expiry.tzinfo is None:
+        actual_expiry = actual_expiry.replace(tzinfo=timezone.utc)
+    assert abs((actual_expiry - expected_expiry).total_seconds()) < 5
 
     # Second import containing txn1 (duplicate) + txn2 (new)
     parse_res_2 = ParseResult(
