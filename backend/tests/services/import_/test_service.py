@@ -14,10 +14,7 @@ from app.models.reference import Scheme
 from app.models.folio import Folio
 from app.models.transaction import Transaction
 from app.models.imports import Import, ImportStatus
-from app.services.import_.attribution import (
-    AttributionConfirmationRequiredError,
-    CROSS_ACCOUNT_DUPLICATE_WARNING,
-)
+from app.services.import_.attribution import AttributionConfirmationRequiredError
 from app.services.import_.parser import NormalizedTransaction, ParsedInvestor, ParsedScheme, ParseResult
 from app.services.import_.service import SchemeConfidenceError, build_import_preview, confirm_import
 from app.models.enums import PlanType, TransactionType
@@ -96,7 +93,7 @@ def _sample_parse_result():
 
 def test_build_import_preview_confident_amfi_match_needs_no_override():
     client = _mocked_client()
-    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", client=client))
+    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=client))
 
     assert preview.investor_name == "Test Investor"
     assert preview.pan_masked == "ABCDE****F"
@@ -146,7 +143,7 @@ def test_build_import_preview_resolves_schemes_concurrently():
     client.get_scheme_category.return_value = "Equity"
 
     preview = asyncio.run(build_import_preview(
-        _parse_result_with_schemes(*schemes), "test.pdf", client=client,
+        _parse_result_with_schemes(*schemes), "test.pdf", b"%PDF-1.4 fake", client=client,
     ))
 
     assert [scheme.name for scheme in preview.schemes] == ["First Fund", "Second Fund"]
@@ -178,7 +175,7 @@ def test_build_import_preview_preserves_input_order_when_resolution_finishes_out
     client.get_scheme_category.side_effect = category
 
     preview = asyncio.run(build_import_preview(
-        _parse_result_with_schemes(*schemes), "test.pdf", client=client,
+        _parse_result_with_schemes(*schemes), "test.pdf", b"%PDF-1.4 fake", client=client,
     ))
 
     assert [scheme.name for scheme in preview.schemes] == ["Slow First Fund", "Fast Second Fund"]
@@ -214,7 +211,7 @@ def test_build_import_preview_fails_whole_call_when_one_scheme_resolution_raises
     sessions_before = set(_preview_sessions)
     import pytest
     with pytest.raises(RuntimeError, match="mfapi.in blew up"):
-        asyncio.run(build_import_preview(_parse_result_with_schemes(*schemes), "test.pdf", client=client))
+        asyncio.run(build_import_preview(_parse_result_with_schemes(*schemes), "test.pdf", b"%PDF-1.4 fake", client=client))
 
     assert set(_preview_sessions) == sessions_before
 
@@ -223,7 +220,7 @@ def test_confirm_import_creates_scheme_folio_and_transaction():
     db = _session()
     member = _household_member(db)
     client = _mocked_client()
-    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", client=client))
+    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=client))
 
     result = _confirm_for_member(db, preview, member)
 
@@ -248,7 +245,7 @@ def test_confirm_import_creates_scheme_folio_and_transaction():
 def test_confirm_import_invalidates_member_holdings_cache_after_commit():
     db = _session()
     member = _household_member(db)
-    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", client=_mocked_client()))
+    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=_mocked_client()))
 
     def assert_commit_finished(_member_id):
         assert not db.in_transaction()
@@ -267,10 +264,10 @@ def test_confirm_import_deduped_on_reupload():
     member = _household_member(db)
     client = _mocked_client()
 
-    preview1 = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", client=client))
+    preview1 = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=client))
     _confirm_for_member(db, preview1, member)
 
-    preview2 = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", client=client))
+    preview2 = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=client))
     result2 = _confirm_for_member(db, preview2, member)
 
     assert result2.added == 0
@@ -301,7 +298,7 @@ def test_confirm_import_rejects_low_confidence_scheme_without_override():
     client.resolve_scheme = AsyncMock(return_value=(None, "pending"))
     client.get_scheme_category.return_value = None
 
-    preview = asyncio.run(build_import_preview(parse_result, "test.pdf", client=client))
+    preview = asyncio.run(build_import_preview(parse_result, "test.pdf", b"%PDF-1.4 fake", client=client))
     assert preview.schemes[0].match_status == "pending"
 
     import pytest
@@ -355,7 +352,7 @@ def test_confirm_import_rejection_writes_nothing_even_for_earlier_confident_sche
     client.resolve_scheme.side_effect = _resolve_scheme
     client.get_scheme_category.return_value = "Equity Scheme - Flexi Cap Fund"
 
-    preview = asyncio.run(build_import_preview(parse_result, "test.pdf", client=client))
+    preview = asyncio.run(build_import_preview(parse_result, "test.pdf", b"%PDF-1.4 fake", client=client))
 
     import pytest
     with pytest.raises(SchemeConfidenceError, match="requires an explicit AMFI code"):
@@ -402,7 +399,7 @@ def test_confirm_import_dedupes_same_key_transactions_within_one_upload():
         parse_warnings=[], cas_type="DETAILED", file_type="FileType.CAMS",
     )
 
-    preview = asyncio.run(build_import_preview(parse_result, "test.pdf", client=client))
+    preview = asyncio.run(build_import_preview(parse_result, "test.pdf", b"%PDF-1.4 fake", client=client))
     result = _confirm_for_member(db, preview, member)
 
     assert result.added == 1
@@ -444,7 +441,7 @@ def test_confirm_import_does_not_dedupe_across_different_transaction_types():
         parse_warnings=[], cas_type="DETAILED", file_type="FileType.CAMS",
     )
 
-    preview = asyncio.run(build_import_preview(parse_result, "test.pdf", client=client))
+    preview = asyncio.run(build_import_preview(parse_result, "test.pdf", b"%PDF-1.4 fake", client=client))
     result = _confirm_for_member(db, preview, member)
 
     assert result.added == 2
@@ -470,7 +467,7 @@ def test_confirm_import_rejects_pending_status_scheme_even_above_raw_threshold()
     )
     client.get_scheme_category.return_value = None
 
-    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", client=client))
+    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=client))
     assert preview.schemes[0].match_status == "pending"
     assert preview.schemes[0].match_confidence == 0.95
 
@@ -515,7 +512,7 @@ def test_confirm_import_separate_folios_for_same_scheme_via_different_distributo
         parse_warnings=[], cas_type="DETAILED", file_type="FileType.CAMS",
     )
 
-    preview = asyncio.run(build_import_preview(parse_result, "test.pdf", client=client))
+    preview = asyncio.run(build_import_preview(parse_result, "test.pdf", b"%PDF-1.4 fake", client=client))
     result = _confirm_for_member(db, preview, member)
 
     assert result.added == 2
@@ -536,7 +533,7 @@ def test_sweep_expired_sessions_removes_backdated_entries():
     from app.services.import_.service import _preview_sessions, _sweep_expired_sessions
 
     client = _mocked_client()
-    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", client=client))
+    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=client))
     assert preview.session_id in _preview_sessions
 
     # Backdate the session past the default 60-minute TTL.
@@ -557,7 +554,7 @@ def test_confirm_import_rejects_override_amfi_code_not_in_master_list():
 
     db = _session()
     member = _household_member(db)
-    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", client=_mocked_client()))
+    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=_mocked_client()))
     temp_id = preview.schemes[0].temp_id
 
     scheme_list = [{"schemeCode": "125497", "schemeName": "HDFC Flexi Cap Fund - Direct Plan - Growth"}]
@@ -579,7 +576,7 @@ def test_confirm_import_accepts_override_amfi_code_when_name_plausibly_matches()
 
     db = _session()
     member = _household_member(db)
-    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", client=_mocked_client()))
+    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=_mocked_client()))
     temp_id = preview.schemes[0].temp_id
 
     scheme_list = [{"schemeCode": "222222", "schemeName": "HDFC Flexi Cap Fund Direct Growth"}]
@@ -606,7 +603,7 @@ def test_confirm_import_persists_canonical_name_when_override_code_disagrees_wit
 
     db = _session()
     member = _household_member(db)
-    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", client=_mocked_client()))
+    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=_mocked_client()))
     temp_id = preview.schemes[0].temp_id
 
     scheme_list = [{"schemeCode": "222222", "schemeName": "SBI Bluechip Fund - Regular Plan - Growth"}]
@@ -631,7 +628,7 @@ def test_confirm_import_override_degrades_gracefully_when_master_list_not_cached
 
     db = _session()
     member = _household_member(db)
-    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", client=_mocked_client()))
+    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=_mocked_client()))
     temp_id = preview.schemes[0].temp_id
 
     with patch.object(mfapi_client, "_schemes", None):
@@ -654,7 +651,7 @@ def test_confirm_import_rejects_plan_type_override_contradicting_parsed_plan_nam
 
     db = _session()
     member = _household_member(db)
-    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", client=_mocked_client()))
+    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=_mocked_client()))
     temp_id = preview.schemes[0].temp_id
 
     import pytest
@@ -672,7 +669,7 @@ def test_confirm_import_accepts_plan_type_override_matching_parsed_plan_name():
 
     db = _session()
     member = _household_member(db)
-    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", client=_mocked_client()))
+    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=_mocked_client()))
     temp_id = preview.schemes[0].temp_id
 
     result = _confirm_for_member(
@@ -719,7 +716,7 @@ def test_confirm_import_does_not_reject_override_when_name_lacks_plan_designator
         raw_json='{"investor_info": {"name": "Test Investor"}, "folios": []}',
         parse_warnings=[], cas_type="DETAILED", file_type="FileType.CAMS",
     )
-    preview = asyncio.run(build_import_preview(parse_result, "test.pdf", client=_mocked_client()))
+    preview = asyncio.run(build_import_preview(parse_result, "test.pdf", b"%PDF-1.4 fake", client=_mocked_client()))
     temp_id = preview.schemes[0].temp_id
 
     result = _confirm_for_member(
@@ -762,7 +759,7 @@ def test_confirm_import_requires_attribution_confirmation_before_writing():
     )
     db.commit()
     preview = asyncio.run(
-        build_import_preview(_sample_parse_result(), "test.pdf", client=_mocked_client())
+        build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=_mocked_client())
     )
 
     with pytest.raises(AttributionConfirmationRequiredError) as exc_info:
@@ -809,7 +806,7 @@ def test_confirm_import_continue_override_keeps_selected_member_for_persistence(
     )
     db.commit()
     preview = asyncio.run(
-        build_import_preview(_sample_parse_result(), "test.pdf", client=_mocked_client())
+        build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=_mocked_client())
     )
 
     result = confirm_import(
@@ -857,7 +854,7 @@ def test_confirm_import_switch_override_uses_submitted_matched_member_for_persis
     )
     db.commit()
     preview = asyncio.run(
-        build_import_preview(_sample_parse_result(), "test.pdf", client=_mocked_client())
+        build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=_mocked_client())
     )
 
     with pytest.raises(AttributionConfirmationRequiredError):
@@ -919,7 +916,7 @@ def test_confirm_import_returns_generic_cross_account_warning():
     )
     db.commit()
     preview = asyncio.run(
-        build_import_preview(_sample_parse_result(), "test.pdf", client=_mocked_client())
+        build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=_mocked_client())
     )
 
     result = confirm_import(
@@ -931,8 +928,13 @@ def test_confirm_import_returns_generic_cross_account_warning():
         confirmed_member_override=True,
     )
 
-    assert result.warnings == [CROSS_ACCOUNT_DUPLICATE_WARNING]
-    assert "Private Other Account" not in " ".join(result.warnings)
+    # Cross-account collisions are now a hard block raised earlier by
+    # resolve_attribution (via a PAN match), not a post-hoc advisory warning
+    # -- this scenario (a folio owned by a different account) no longer
+    # produces anything observable here since folio-matching in
+    # resolve_attribution only ever looks within the caller's own household
+    # (see attribution.py's resolve_attribution / Task 5's redesign).
+    assert result.warnings == []
     assert db.query(Import).one().status == ImportStatus.CONFIRMED
 
 
@@ -940,7 +942,7 @@ def test_confirm_import_returns_no_warning_without_cross_account_match():
     db = _session()
     member = _household_member(db)
     preview = asyncio.run(
-        build_import_preview(_sample_parse_result(), "test.pdf", client=_mocked_client())
+        build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=_mocked_client())
     )
 
     result = confirm_import(
