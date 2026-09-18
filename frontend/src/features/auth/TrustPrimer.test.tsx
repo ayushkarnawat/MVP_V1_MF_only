@@ -12,10 +12,10 @@ describe("TrustPrimer", () => {
 
     // Feature bullet points must remain intact
     expect(screen.getByText("Read-only portfolio access")).toBeInTheDocument();
-    expect(screen.getByText("No raw CAS PDF storage")).toBeInTheDocument();
+    expect(screen.getByText("Your data, protected")).toBeInTheDocument();
 
     // Copy fix and regulatory anchor
-    expect(screen.getByText(/we process your cas to understand your holdings, then forget it/i)).toBeInTheDocument();
+    expect(screen.getByText(/your cas file is kept encrypted for 30 days for dispute resolution/i)).toBeInTheDocument();
     expect(screen.getByText(/account aggregator framework/i)).toBeInTheDocument();
 
     // Next action works
@@ -32,7 +32,7 @@ describe("TrustPrimer", () => {
     expect(screen.getByRole("heading", { level: 1, name: /we keep your insights, not your files\./i })).toBeInTheDocument();
 
     // Supporting CAS explanation copy with regulatory anchor
-    expect(screen.getByText(/we process your cas to understand your holdings, then forget it/i)).toBeInTheDocument();
+    expect(screen.getByText(/your cas file is kept encrypted for 30 days for dispute resolution/i)).toBeInTheDocument();
 
     // Skip button must NOT be present on privacy screen
     expect(screen.queryByRole("button", { name: /skip/i })).not.toBeInTheDocument();
