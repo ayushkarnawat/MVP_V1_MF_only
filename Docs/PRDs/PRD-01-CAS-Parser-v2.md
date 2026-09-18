@@ -227,8 +227,11 @@ the existing confidence-badge pattern rather than adding new UI surface area.
 ### Data Requirements
 - New columns/fields needed on the scheme-folio record: `plan_type`
   (`direct`/`regular`/`unclassified`), `arn_code` (nullable string, per folio).
-- PAN never logged; PDF password never stored; uploaded PDF deleted in a `finally` block
-  — all existing constraints, restated here because they apply directly to this extension.
+- PAN never logged; PDF password never stored; the temp file handed to the parsing
+  library is still deleted in a `finally` block, as before. Separately, a copy of the
+  uploaded CAS PDF is now retained for 30 days per ADR-004 (reopened 2026-09-18) — see
+  `Docs/superpowers/specs/2026-09-18-pan-cas-attribution-design.md` — so "uploaded PDF
+  deleted" no longer holds for the retained copy, only for the parse-time temp file.
 
 ## Dependencies & Risks
 

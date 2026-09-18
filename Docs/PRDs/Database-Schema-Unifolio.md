@@ -100,6 +100,8 @@ family-aggregate-default logic (Design Principle 5).
 | `relationship` | `ENUM('self','spouse','parent','child','sibling','other')` NOT NULL | Fixed enum, not free text — keeps family-grouping/analytics consistent (no "Wife" vs "spouse" vs "Spouse" fragmentation). `'self'` for the account holder. |
 | `relationship_other_label` | `VARCHAR` NULLABLE | Free-text only when `relationship = 'other'` — covers real cases (grandparent, in-law, etc.) without the enum sprawling |
 | `created_at` | `TIMESTAMPTZ` | |
+| `pan_encrypted` | `VARCHAR` NULLABLE | Added migration 0015 — AES-256-GCM envelope-encrypted PAN (nonce + ciphertext, base64), backfilled from the first import whose parsed CAS carries this member's PAN. Never returned by any API. See ADR-004 (reopened 2026-09-18) |
+| `pan_lookup_hash` | `VARCHAR` NULLABLE | Added migration 0015 — HMAC-SHA256 of the normalized PAN (one-way, deterministic), used only for equality matching during attribution so the app never needs to decrypt another household's PAN to check for a collision |
 
 Partial unique index on `(user_id) WHERE relationship = 'self'` (migration 0011) enforces
 at most one account-holder row per user; `create_household_member` also pre-checks this
@@ -127,11 +129,14 @@ Data Addition requirement.
 | `duplicate_transactions_count` | `INTEGER` NULLABLE | Populated on confirm, PRD-01 FR-9 |
 | `uploaded_at` | `TIMESTAMPTZ` NOT NULL | |
 | `confirmed_at` | `TIMESTAMPTZ` NULLABLE | |
+| `file_reference` | `VARCHAR` NULLABLE | Added migration 0015 — opaque storage key for the retained source CAS PDF (local-disk path in dev; S3 object key in production); `NULL` once expired/deleted |
+| `file_expires_at` | `TIMESTAMPTZ` NULLABLE | Added migration 0015 — set to upload time + 30 days on store; the expiry sweep (see `app/services/import_/file_storage.py::expire_stored_files`) deletes the underlying file and nulls both this and `file_reference` once past this timestamp |
 
 **Note on PAN**: the CAS PDF password is the user's PAN, but per PRD-01's constraint the
 *password itself* is never stored. The investor-info PAN parsed *from inside* the CAS
-(FR-2) is a separate question — see Open Questions below on whether/how it's persisted,
-since this wasn't fully pinned down at the PRD stage and matters for encryption design.
+(FR-2) is now persisted — encrypted, per household member, on `household_members.pan_encrypted`
+— per ADR-004, reopened 2026-09-18 (this is a reversal of the schema's original transient-only
+resolution; see Open Questions below and `Docs/superpowers/specs/2026-09-18-pan-cas-attribution-design.md`).
 
 ### `schemes` (reference data)
 Master scheme list — AMFI/`mfapi.in`-sourced, shared across all users, not duplicated
@@ -358,6 +363,12 @@ Foundational session record following successful auth verification.
 - `household_members(user_id) WHERE relationship = 'self'` (unique, migration 0011) —
   enforces one account-holder row per user; doubles as the existence check the
   application-layer 409 guard also performs before insert.
+- `ix_household_members_pan_lookup_hash` on `household_members(pan_lookup_hash)` (unique,
+  migration 0015) — supports the attribution lookup ("has any household member,
+  anywhere, already claimed this PAN?") and enforces the system-wide "one PAN, one
+  member" invariant at the database level; unique on a nullable column so the many
+  members with no PAN backfilled yet (`NULL`) don't collide with each other, while any
+  two non-null hashes are still guaranteed distinct.
 
 ## What This Document Doesn't Cover
 
@@ -375,13 +386,12 @@ Foundational session record following successful auth verification.
 Both items from the initial draft are resolved:
 - **PAN persistence**: not stored anywhere — confirmed transient-only, discarded like the
   source PDF (see Data Classification & Security).
-
-**Reopened 2026-09-18:** the "PAN persistence: not stored anywhere" resolution above was itself reopened — see ADR-004's 2026-09-18 update and `Docs/superpowers/specs/2026-09-18-pan-cas-attribution-design.md`. PAN is now stored, encrypted, per household member.
-
 - **`relationship` field shape**: fixed enum (`self`/`spouse`/`parent`/`child`/`sibling`/`other`)
   plus a free-text fallback label for `'other'` — structured enough for consistent
   family-grouping logic, flexible enough not to force awkward edge cases into the wrong
   bucket.
+
+**Reopened 2026-09-18:** the "PAN persistence: not stored anywhere" resolution above was itself reopened — see ADR-004's 2026-09-18 update and `Docs/superpowers/specs/2026-09-18-pan-cas-attribution-design.md`. PAN is now stored, encrypted, per household member.
 
 None remaining from this pass.
 
