@@ -19,7 +19,24 @@ from app.services.import_.parser import NormalizedTransaction, ParsedInvestor, P
 from app.services.import_.service import SchemeConfidenceError, build_import_preview, confirm_import
 from app.models.enums import PlanType, TransactionType
 from decimal import Decimal
-from datetime import date
+from datetime import date, timedelta
+
+import app.services.import_.file_storage as file_storage_module
+from app.services.import_.file_storage import CAS_FILE_RETENTION_DAYS, storage_key_for_import
+
+
+@pytest.fixture(autouse=True)
+def isolate_cas_file_storage(tmp_path, monkeypatch):
+    """confirm_import calls store_cas_file() with no `storage=` override, so it
+    always writes through the module-level `default_file_storage` singleton
+    (LocalFileStorage() constructed once at import time). Monkeypatching
+    settings.cas_file_storage_dir would NOT redirect it -- the singleton
+    already captured its base dir at construction, before any fixture runs.
+    Mutating the singleton's `_base_dir` attribute in place is the only thing
+    that actually reaches the object `store_cas_file`'s default parameter
+    refers to, so every test in this file writes under a fresh per-test
+    tmp_path instead of the real `var/cas_files/` project directory."""
+    monkeypatch.setattr(file_storage_module.default_file_storage, "_base_dir", tmp_path)
 
 
 def _session():
@@ -240,6 +257,34 @@ def test_confirm_import_creates_scheme_folio_and_transaction():
     # Fix 6: raw_parser_output must be the parsed structure itself (real JSON
     # for the JSONB column), not {"raw": "<escaped-json-string>"}.
     assert imp.raw_parser_output == {"investor_info": {"name": "Test Investor"}, "folios": []}
+
+
+def test_confirm_import_stores_cas_file_and_sets_expiry():
+    """Task 6 headline behavior: confirm_import must wire store_cas_file into
+    the real confirm flow, not just have it available as a helper. Verifies
+    the committed Import row actually carries a file_reference in
+    storage_key_for_import's format and a file_expires_at ~30 days out,
+    end-to-end through confirm_import (not by calling store_cas_file
+    directly, which test_file_storage.py already covers)."""
+    db = _session()
+    member = _household_member(db)
+    client = _mocked_client()
+    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=client))
+
+    before = datetime.now(timezone.utc)
+    _confirm_for_member(db, preview, member)
+
+    imp = db.query(Import).one()
+    assert imp.file_reference == storage_key_for_import(member.user_id, imp.id)
+    expected_expiry = before + timedelta(days=CAS_FILE_RETENTION_DAYS)
+    # sqlite's DateTime(timezone=True) round-trips as a naive datetime (UTC
+    # wall-clock value preserved, tzinfo dropped) once re-read via a fresh
+    # query -- reattach UTC before comparing, matching test_file_storage.py's
+    # same-process (never-requeried) comparison style otherwise.
+    actual_expiry = imp.file_expires_at
+    if actual_expiry.tzinfo is None:
+        actual_expiry = actual_expiry.replace(tzinfo=timezone.utc)
+    assert abs((actual_expiry - expected_expiry).total_seconds()) < 5
 
 
 def test_confirm_import_invalidates_member_holdings_cache_after_commit():
