@@ -26,6 +26,7 @@ class User(Base):
 
 class HouseholdMember(Base):
     __tablename__ = "household_members"
+    __table_args__ = (Index("ix_household_members_pan_lookup_hash", "pan_lookup_hash"),)
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
@@ -33,3 +34,5 @@ class HouseholdMember(Base):
     relationship: Mapped[Relationship] = mapped_column(enum_column(Relationship), nullable=False)
     relationship_other_label: Mapped[str | None] = mapped_column(String)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    pan_encrypted: Mapped[str | None] = mapped_column(String)
+    pan_lookup_hash: Mapped[str | None] = mapped_column(String)
