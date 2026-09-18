@@ -123,6 +123,7 @@ class ParsedInvestor:
     name: str | None
     email: str | None
     pan_masked: str | None
+    pan: str | None = None
 
 
 @dataclass
@@ -185,6 +186,7 @@ def _normalize_cas_data(data: CASData) -> ParseResult:
         name=investor_info.name if investor_info else None,
         email=investor_info.email if investor_info else None,
         pan_masked=mask_pan(pan),
+        pan=pan,
     )
 
     transactions: list[NormalizedTransaction] = []
