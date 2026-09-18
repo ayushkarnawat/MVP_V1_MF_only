@@ -23,13 +23,23 @@ class KeyProvider(Protocol):
     def lookup_pepper(self) -> bytes: ...
 
 
-def _decode_key(value: str, var_name: str) -> bytes:
+def decode_key(value: str, var_name: str) -> bytes:
+    """Decode and validate a base64-encoded 32-byte key. Raises RuntimeError
+    with a message naming `var_name` if unset or the wrong length. Exported
+    (not module-private) so app.main's startup fail-fast check can reuse this
+    exact validation instead of duplicating it -- see Fix 2 of the 2026-09-18
+    whole-branch review."""
     if not value:
         raise RuntimeError(f"{var_name} is not set.")
     key = base64.b64decode(value)
     if len(key) != 32:
         raise RuntimeError(f"{var_name} must decode to 32 bytes, got {len(key)}.")
     return key
+
+
+# Backwards-compatible private alias -- keeps existing internal call sites
+# below unchanged.
+_decode_key = decode_key
 
 
 class EnvVarKeyProvider:

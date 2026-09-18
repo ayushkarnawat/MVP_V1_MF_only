@@ -43,6 +43,32 @@ def _default_stub_delivery_mode(monkeypatch):
     monkeypatch.setattr(settings, "email_delivery_mode", "stub")
 
 
+# Fixed, valid base64-encoded 32-byte test values for PAN_ENCRYPTION_KEY /
+# PAN_LOOKUP_PEPPER -- generated once via os.urandom(32); not secrets, just
+# stand-ins that satisfy crypto.py's _decode_key length check so tests never
+# depend on a developer's or CI's shell environment happening to have real
+# values set. Two distinct values so a bug that swapped the two constants
+# would still be caught (using the same value for both would mask that).
+_TEST_PAN_ENCRYPTION_KEY = "7UMJtaHR2bypSVyQCiYW6jUd1ZEjneoe23nh7kDG3Sc="
+_TEST_PAN_LOOKUP_PEPPER = "FJrdkXb4DItLemwtT7lzt611BmNBmLY3ZVvEuk5POc4="
+
+
+@pytest.fixture(autouse=True)
+def _default_test_pan_keys(monkeypatch):
+    """Forces PAN_ENCRYPTION_KEY/PAN_LOOKUP_PEPPER to fixed valid test values
+    before every test, regardless of the shell environment -- both default to
+    "" in app.config.Settings, and crypto.py's _decode_key raises RuntimeError
+    on an empty/invalid value. Without this, a fresh clone or a CI run with no
+    .env gets RuntimeError on every test that touches PAN encryption/matching
+    (see Fix 2 of the 2026-09-18 whole-branch review). Same autouse pattern as
+    _default_stub_delivery_mode above; a test needing different keys still
+    monkeypatches over this in its own body."""
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "pan_encryption_key", _TEST_PAN_ENCRYPTION_KEY)
+    monkeypatch.setattr(settings, "pan_lookup_pepper", _TEST_PAN_LOOKUP_PEPPER)
+
+
 @pytest.fixture()
 def db_session():
     """An isolated in-memory DB session for unit tests."""
