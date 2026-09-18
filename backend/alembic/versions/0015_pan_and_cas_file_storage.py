@@ -14,14 +14,14 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column("household_members", sa.Column("pan_encrypted", sa.Text(), nullable=True))
-    op.add_column("household_members", sa.Column("pan_lookup_hash", sa.Text(), nullable=True))
+    op.add_column("household_members", sa.Column("pan_encrypted", sa.String(), nullable=True))
+    op.add_column("household_members", sa.Column("pan_lookup_hash", sa.String(), nullable=True))
     op.create_index(
         "ix_household_members_pan_lookup_hash",
         "household_members",
         ["pan_lookup_hash"],
     )
-    op.add_column("imports", sa.Column("file_reference", sa.Text(), nullable=True))
+    op.add_column("imports", sa.Column("file_reference", sa.String(), nullable=True))
     op.add_column("imports", sa.Column("file_expires_at", sa.DateTime(timezone=True), nullable=True))
 
 
