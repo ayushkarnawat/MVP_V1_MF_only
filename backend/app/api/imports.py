@@ -23,7 +23,7 @@ from app.services.analytics.recompute import (
 from app.services.dashboard.household_members import get_household_member_for_user
 from app.services.dashboard.nav import get_navs_on_or_before
 from app.services.dashboard.holdings import invalidate_holdings_cache
-from app.services.import_.attribution import AttributionConfirmationRequiredError
+from app.services.import_.attribution import AttributionConfirmationRequiredError, CrossAccountPanBlockedError
 from app.services.import_.coverage_gap import evaluate_folio_coverage_gaps
 from app.services.import_.lifecycle_service import (
     FileTooLargeError,
@@ -222,7 +222,7 @@ async def parse_import(
     except ParseError as exc:
         raise HTTPException(status_code=422, detail={"code": exc.code, "message": exc.message}) from exc
 
-    return await build_import_preview(parse_result, file.filename)
+    return await build_import_preview(parse_result, file.filename, pdf_bytes)
 
 #import confirmation
 @router.post("/confirm", response_model=ImportConfirmResponse)
@@ -268,6 +268,11 @@ def confirm_import_route(
                 ),
                 "matched_member_name": exc.attribution.matched_member_name,
             },
+        ) from exc
+    except CrossAccountPanBlockedError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "cross_account_pan_blocked", "message": str(exc)},
         ) from exc
     except SchemeConfidenceError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc

@@ -217,6 +217,22 @@ def test_normalize_cas_data_redacts_pan_from_raw_json():
     assert result.investor.pan_masked == "A********F"
 
 
+def test_normalize_cas_data_carries_raw_pan_alongside_masked():
+    """ParseResult.investor.pan carries the raw PAN in memory for attribution
+    matching, alongside the separately-masked pan_masked field. The raw PAN is
+    not persisted to raw_json (test_normalize_cas_data_redacts_pan_from_raw_json
+    verifies that separately)."""
+    data = _real_cas_data(
+        pan="ABCDE1234F",
+        txn_kwargs={"amount": Decimal("5000"), "units": Decimal("10"), "nav": Decimal("500")},
+    )
+
+    result = _normalize_cas_data(data)
+
+    assert result.investor.pan == "ABCDE1234F"
+    assert result.investor.pan_masked == "A********F"
+
+
 def test_normalize_cas_data_skips_transaction_missing_amount_and_warns():
     """Fix 3 regression: Transaction.amount/units/nav are NOT NULL downstream.
     A transaction line missing any of them must be excluded (not crash, not

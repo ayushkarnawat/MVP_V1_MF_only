@@ -49,6 +49,17 @@ def _identifier_filter(channel: Channel, identifier: str) -> dict[str, str]:
     return {"phone_number": identifier} if channel == "sms" else {"email": identifier}
 
 
+def _delivery_mode(channel: Channel) -> str:
+    """Phone/SMS and email each have their own independent delivery-mode
+    setting (OTP_DELIVERY_MODE / EMAIL_DELIVERY_MODE) so one channel can be
+    switched to a real provider without affecting the other -- e.g. email
+    live via Postmark while phone/SMS stays in dev-stub mode until a real
+    SMS provider is chosen and wired in later (same pattern as Postmark:
+    a new provider class behind this same setting, nothing here needs to
+    change when that happens)."""
+    return settings.email_delivery_mode if channel == "email" else settings.otp_delivery_mode
+
+
 def create_otp_request(
     db: DbSession, identifier: str, channel: Channel = "sms"
 ) -> tuple[OtpRequest, str | None]:
@@ -57,11 +68,13 @@ def create_otp_request(
     mode, for the API response to echo back; a real delivery mode returns
     None here and sends the code out-of-band instead (SMS provider for
     "sms", `get_email_provider().send_email(...)` for "email")."""
-    if settings.otp_delivery_mode == "stub" and settings.environment == "production":
+    delivery_mode = _delivery_mode(channel)
+    if delivery_mode == "stub" and settings.environment == "production":
         raise RuntimeError(
-            "otp_delivery_mode='stub' is not allowed in production — "
-            "this would leak real OTPs in the API response. "
-            "Set OTP_DELIVERY_MODE to a real delivery mode before deploying to production."
+            "Delivery mode 'stub' is not allowed in production for this "
+            "channel — this would leak real OTPs in the API response. Set "
+            "OTP_DELIVERY_MODE (phone) / EMAIL_DELIVERY_MODE (email) to a "
+            "real delivery mode before deploying to production."
         )
 
     recent = (
@@ -91,14 +104,14 @@ def create_otp_request(
     db.add(request)
     db.commit()
 
-    if channel == "email" and settings.otp_delivery_mode != "stub":
+    if channel == "email" and delivery_mode != "stub":
         get_email_provider().send_email(
             to=identifier,
             subject="Your Unifolio verification code",
             body=f"Your Unifolio verification code is {otp}. It expires in {OTP_TTL_MINUTES} minutes.",
         )
 
-    raw_otp = otp if settings.otp_delivery_mode == "stub" else None
+    raw_otp = otp if delivery_mode == "stub" else None
     return request, raw_otp
 
 

@@ -1,9 +1,16 @@
 """casparser wrapper, normalization, plan classification, error classification.
 
 Ported from CAS Parsers/mf-import/backend/app/parser.py (tightened per
-PRD-01 FR-5-8) and re-targeted at the monolith's TransactionType enum. Never
-persists PAN — pan_masked exists only for the transient parse-preview
-response (CLAUDE.md non-negotiable, ADR-004).
+PRD-01 FR-5-8) and re-targeted at the monolith's TransactionType enum.
+
+ADR-004 reopened 2026-09-18: PAN is now persisted, encrypted, per household
+member (see Docs/superpowers/specs/2026-09-18-pan-cas-attribution-design.md).
+`pan_masked` still exists on ParsedInvestor purely for the transient,
+display-only parse-preview response -- but the raw `pan` field is now also
+present on ParsedInvestor, and is precisely how the raw PAN reaches
+persistence via backfill_pan_if_missing for attribution matching. Do not
+read this docstring as "PAN is never persisted" -- that invariant no longer
+holds; see crypto.py for how it's encrypted at rest.
 """
 
 from __future__ import annotations
@@ -123,6 +130,7 @@ class ParsedInvestor:
     name: str | None
     email: str | None
     pan_masked: str | None
+    pan: str | None = None
 
 
 @dataclass
@@ -185,6 +193,7 @@ def _normalize_cas_data(data: CASData) -> ParseResult:
         name=investor_info.name if investor_info else None,
         email=investor_info.email if investor_info else None,
         pan_masked=mask_pan(pan),
+        pan=pan,
     )
 
     transactions: list[NormalizedTransaction] = []
@@ -236,9 +245,13 @@ def _normalize_cas_data(data: CASData) -> ParseResult:
                 transactions.append(norm)
                 scheme_map[key].transaction_count += 1
 
-    # PAN never leaves this function unmasked: raw_json is persisted verbatim
-    # into imports.raw_parser_output by confirm_import, so redact before
-    # serializing rather than relying on callers to scrub it later.
+    # Raw PAN never reaches raw_json specifically: raw_json is persisted
+    # verbatim into imports.raw_parser_output by confirm_import, so redact
+    # before serializing rather than relying on callers to scrub it later.
+    # This is narrower than "PAN never leaves this function unmasked" --
+    # since ADR-004 reopened 2026-09-18, the raw PAN does leave via
+    # investor.pan (ParsedInvestor above), which is intentional: it's how
+    # backfill_pan_if_missing reaches persistence for attribution matching.
     redacted = data.model_copy(deep=True)
     for f in redacted.folios:
         f.PAN = None

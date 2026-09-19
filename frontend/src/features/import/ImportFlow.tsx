@@ -5,6 +5,7 @@ import { ParsingIndicator } from "./ParsingIndicator";
 import { ReviewTable } from "./ReviewTable";
 import { ImportError } from "./ImportError";
 import { ImportConfirmed } from "./ImportConfirmed";
+import { CrossAccountBlockedDialog } from "./CrossAccountBlockedDialog";
 import { ApiError, confirmImport, parseImport } from "./api";
 import { clearCasResumeStep2 } from "./casResumeState";
 import { isTestEnv } from "@/lib/motion";
@@ -27,6 +28,7 @@ interface ImportFlowProps {
   ctaLabel?: string;
   onDone?: () => void;
   defaultTab?: "choice" | "request" | "upload" | "history" | "waiting";
+  onGoToHousehold?: () => void;
 }
 
 const GENERIC_NETWORK_ERROR: ParseErrorPayload = {
@@ -43,13 +45,14 @@ function toParseErrorPayload(err: unknown): ParseErrorPayload {
   return GENERIC_NETWORK_ERROR;
 }
 
-export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab }: ImportFlowProps) {
+export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab, onGoToHousehold }: ImportFlowProps) {
   const [step, setStep] = useState<Step>("upload");
   const [preview, setPreview] = useState<ImportPreviewResponse | null>(null);
   const [confirmResult, setConfirmResult] = useState<ImportConfirmResponse | null>(null);
   const [error, setError] = useState<ParseErrorPayload | null>(null);
   const [reviewNotice, setReviewNotice] = useState<string | null>(null);
   const [memberMismatch, setMemberMismatch] = useState<MemberMismatchConfirmation | null>(null);
+  const [crossAccountBlocked, setCrossAccountBlocked] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
 
   const shouldReduceMotion = useReducedMotion() || isTestEnv;
@@ -103,6 +106,8 @@ export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab }: 
             ...(payload as MemberMismatchErrorPayload),
             confirmations,
           });
+        } else if (err.status === 409 && payload.code === "cross_account_pan_blocked") {
+          setCrossAccountBlocked(payload.message);
         } else {
           setReviewNotice(
             err.status === 404
@@ -124,6 +129,14 @@ export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab }: 
 
   return (
     <div className="w-full min-h-full flex-1 flex flex-col justify-center items-center my-auto">
+      <CrossAccountBlockedDialog
+        isOpen={crossAccountBlocked !== null}
+        message={crossAccountBlocked ?? ""}
+        onBack={() => {
+          setCrossAccountBlocked(null);
+          onGoToHousehold?.();
+        }}
+      />
       <AnimatePresence mode="wait">
         {step === "upload" && (
           <motion.div

@@ -28,4 +28,6 @@ class Import(Base):
     uploaded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    file_reference: Mapped[str | None] = mapped_column(String)
+    file_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 

@@ -38,7 +38,7 @@ Backend suite grew 156 → 357 passing (2 skipped) across all five parts, verifi
 
 ## 2026-08-1X — CAS Import lifecycle redesign (intern-authored)
 
-`backend/app/services/import_/state_machine.py` — 11-state import lifecycle enforcing legal transitions; a buffer cache, lifecycle service, and member-attribution logic; coverage-gap detection and opening-balance resolution; a CAMS-portal mailback URL generator and pending-request lifecycle. New `OPENING_BALANCE` transaction type. Migration `0003_cas_import_lifecycle_and_coverage_gaps`. **Not yet independently reviewed by Claude Code** against CLAUDE.md's non-negotiables (Decimal-never-float, no PAN persistence) — passes the test suite, which is a distinct claim from "reviewed."
+`backend/app/services/import_/state_machine.py` — 11-state import lifecycle enforcing legal transitions; a buffer cache, lifecycle service, and member-attribution logic; coverage-gap detection and opening-balance resolution; a CAMS-portal mailback URL generator and pending-request lifecycle. New `OPENING_BALANCE` transaction type. Migration `0003_cas_import_lifecycle_and_coverage_gaps`. **Not yet independently reviewed by Claude Code** against CLAUDE.md's non-negotiables (Decimal-never-float; PAN now persisted encrypted per ADR-004 as reopened 2026-09-18 — see migration 0015 and Docs/superpowers/specs/2026-09-18-pan-cas-attribution-design.md) — passes the test suite, which is a distinct claim from "reviewed."
 
 ## 2026-08-13/14 — Dashboard load-time performance fixes
 

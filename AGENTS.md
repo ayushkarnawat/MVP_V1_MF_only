@@ -54,9 +54,7 @@ it was ported from no longer exists on this branch. `CAS Parsers/mf-import/front
   flag it explicitly rather than silently deviating.
 - **`Decimal`, never `float`**, for every money/units/NAV value. This is a repeated,
   explicit requirement across every PRD — a `float` anywhere in the money path is a bug.
-- **No raw CAS PDF storage, ever.** No PAN persistence, ever. Both are final decisions
-  (ADR-004, Database Schema) — don't add a "just in case" column or temp file that
-  outlives the parse.
+- PAN and the raw CAS PDF are now persisted in bounded, encrypted form (ADR-004 reopened 2026-09-18) — PAN encrypted per household member for attribution matching, the PDF for 30 days for dispute/re-parse support. See Docs/superpowers/specs/2026-09-18-pan-cas-attribution-design.md.
 - **Build for the schema that exists**, including `transactions`/`nav_history` partitioning
   and the reference-data vs. user-data separation — don't simplify the schema during
   implementation without flagging why first.

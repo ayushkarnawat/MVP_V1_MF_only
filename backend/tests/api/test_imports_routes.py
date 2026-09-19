@@ -3,9 +3,11 @@ from datetime import date
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from fastapi import BackgroundTasks
 
 from app.models.enums import TransactionType
+from app.services.import_ import file_storage as file_storage_module
 from app.services.import_.parser import (
     NormalizedTransaction,
     ParsedInvestor,
@@ -13,6 +15,17 @@ from app.services.import_.parser import (
     ParseError,
     ParseResult,
 )
+
+
+@pytest.fixture(autouse=True)
+def isolate_cas_file_storage(tmp_path, monkeypatch):
+    """Prevent test_parse_then_confirm_lands_a_transaction_in_the_real_db (the
+    only test here that reaches confirm_import's real success path) from
+    writing to disk via the module-level default_file_storage singleton --
+    same isolation Task 6/7 needed elsewhere, since the singleton captures
+    settings.cas_file_storage_dir once at import time (monkeypatching the
+    setting itself would silently no-op)."""
+    monkeypatch.setattr(file_storage_module.default_file_storage, "_base_dir", tmp_path)
 
 
 def _authed_headers(client, phone: str) -> dict[str, str]:

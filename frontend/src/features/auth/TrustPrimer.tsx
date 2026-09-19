@@ -79,7 +79,7 @@ export function TrustPrimer({
           </span>
         }
         customIllustration={<ShortStayPrivacyIllustration />}
-        subtext="We process your CAS to understand your holdings, then forget it. Your original file and PAN are never stored."
+        subtext="Your CAS file is kept encrypted for 30 days for dispute resolution, then deleted. Your PAN is stored encrypted and never shown in full."
         ctaLabel="Next"
         ctaIcon={<ArrowRight className="h-4 w-4" />}
         onCtaClick={onContinue}
@@ -165,11 +165,11 @@ export function TrustPrimer({
               </svg>
             </div>
             <span className="font-semibold text-xs sm:text-sm text-[var(--color-ink)]">
-              No raw CAS PDF storage
+              Your data, protected
             </span>
           </div>
           <p className="text-[11px] sm:text-xs text-[var(--color-text-secondary)] leading-snug sm:leading-relaxed pl-9.5">
-            We process your CAS to understand your holdings, then forget it. Your original file and PAN are never stored.
+            Your CAS file is kept encrypted for 30 days for dispute resolution, then deleted. Your PAN is stored encrypted and never shown in full.
           </p>
         </motion.div>
 

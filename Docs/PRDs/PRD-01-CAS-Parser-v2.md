@@ -136,14 +136,22 @@ once this PRD is approved.
   with a specific message directing the user to request a Detailed CAS.
 - FR-2: Extract investor info (name, email, PAN — masked as `ABCDE****F` in all UI and
   logs), folios, schemes (ISIN + AMFI code where present), and every transaction with
-  type, date, amount, units, NAV. **PAN is never persisted** — used transiently in memory
-  during the active parse/review session for masked display only, then discarded exactly
-  like the source PDF (confirmed, see Database Schema's Data Classification section —
-  no PAN column exists anywhere in the schema).
+  type, date, amount, units, NAV. PAN is persisted per household member (encrypted; see ADR-004 as reopened
+  2026-09-18) for attribution matching, and remains masked (`ABCDE****F`) in
+  every UI/log/API surface — the encrypted/hashed form is never returned to
+  any client.
 - FR-3: Map `casparser` transaction types to the existing canonical enum (`PURCHASE`,
   `PURCHASE_SIP`, `REDEMPTION`, `SWITCH_IN/OUT`, `DIVIDEND_PAYOUT/REINVEST`,
   `SEGREGATION`, `STT`, `STAMP_DUTY`, `MISC` catch-all preserving original description).
 - FR-4: Store full raw parser output as JSON on the import record for debugging.
+
+**Updated 2026-09-18:** attribution now matches by PAN (a deterministic
+lookup hash, never by decrypting), not by investor name/email. A PAN match
+within the same household auto-attributes with a disclaimer; a PAN match
+under a different Unifolio account blocks the import outright (no
+in-app override or merge). Folio-number+AMC reuse remains a fallback signal
+for the rare case where a CAS has no parseable PAN. See
+`Docs/superpowers/specs/2026-09-18-pan-cas-attribution-design.md`.
 
 #### Direct vs Regular Classification (new)
 - FR-5: For each scheme, classify as Direct or Regular using: (a) scheme name pattern
@@ -219,8 +227,11 @@ the existing confidence-badge pattern rather than adding new UI surface area.
 ### Data Requirements
 - New columns/fields needed on the scheme-folio record: `plan_type`
   (`direct`/`regular`/`unclassified`), `arn_code` (nullable string, per folio).
-- PAN never logged; PDF password never stored; uploaded PDF deleted in a `finally` block
-  — all existing constraints, restated here because they apply directly to this extension.
+- PAN never logged; PDF password never stored; the temp file handed to the parsing
+  library is still deleted in a `finally` block, as before. Separately, a copy of the
+  uploaded CAS PDF is now retained for 30 days per ADR-004 (reopened 2026-09-18) — see
+  `Docs/superpowers/specs/2026-09-18-pan-cas-attribution-design.md` — so "uploaded PDF
+  deleted" no longer holds for the retained copy, only for the parse-time temp file.
 
 ## Dependencies & Risks
 

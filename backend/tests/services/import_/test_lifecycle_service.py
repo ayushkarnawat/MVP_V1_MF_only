@@ -1,22 +1,22 @@
 import asyncio
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 import uuid
 import pytest
 
-from app.models.enums import ImportStatus, PlanType, Relationship, TransactionType
-from app.models.folio import Folio
+from app.models.enums import ImportStatus, Relationship, TransactionType
 from app.models.imports import Import
-from app.models.reference import Scheme
-from app.models.transaction import Transaction
 from app.models.user import HouseholdMember, User
 from app.services.import_.buffer_cache import get_pdf_buffer, store_pdf_buffer
 from app.services.import_.attribution import (
     AttributionConfirmationRequiredError,
     AttributionDecision,
     AttributionStatus,
-    CrossAccountDuplicateWarning,
+    CrossAccountPanBlockedError,
 )
+from app.services.import_.crypto import encrypt_pan, hash_pan
+from app.services.import_ import file_storage as file_storage_module
+from app.services.import_.file_storage import CAS_FILE_RETENTION_DAYS, storage_key_for_import
 from app.services.import_.lifecycle_service import (
     FileTooLargeError,
     InvalidFileFormatError,
@@ -30,6 +30,16 @@ from app.services.import_.parser import (
     ParsedScheme,
     ParseResult,
 )
+
+
+@pytest.fixture(autouse=True)
+def isolate_cas_file_storage(tmp_path, monkeypatch):
+    """Prevent tests that reach a real success path (store_cas_file) from
+    writing to disk via the module-level default_file_storage singleton —
+    same isolation Task 6 needed for the sync path's test_service.py, since
+    the singleton captures settings.cas_file_storage_dir once at import
+    time (monkeypatching the setting itself would silently no-op)."""
+    monkeypatch.setattr(file_storage_module.default_file_storage, "_base_dir", tmp_path)
 
 
 @pytest.fixture
@@ -162,10 +172,6 @@ def test_retry_password_unlocks_and_completes_import(db_session, sample_user_and
         )
 
     monkeypatch.setattr("app.services.import_.lifecycle_service.parse_cas_pdf_bytes", mock_parse)
-    monkeypatch.setattr(
-        "app.services.import_.lifecycle_service.detect_cross_account_duplicate",
-        lambda *args, **kwargs: CrossAccountDuplicateWarning(detected=True, reason="folio_match"),
-    )
 
     # Initial submission with wrong password
     import_rec = asyncio.run(create_cas_import(
@@ -178,29 +184,50 @@ def test_retry_password_unlocks_and_completes_import(db_session, sample_user_and
     ))
     assert import_rec.status == ImportStatus.PASSWORD_REQUIRED
 
-    # In-place password retry without re-uploading file
+    # In-place password retry without re-uploading file. Uses
+    # confirmed_member_override=True: this test's intent is the retry/parse
+    # flow, not attribution matching, and the member has no PAN on file, so
+    # a real resolve_attribution call would otherwise land on
+    # UNRECOGNIZED_MEMBER and require confirmation.
+    before = datetime.now(timezone.utc)
     updated_rec = retry_cas_import_password(
         db=db_session,
         import_id=import_rec.id,
         user_id=user.id,
         new_password="CORRECT_PASS",
+        confirmed_member_override=True,
     )
 
     assert updated_rec.status == ImportStatus.IMPORT_SUCCESSFUL
     assert updated_rec.new_transactions_count == 1
     assert updated_rec.duplicate_transactions_count == 0
     assert updated_rec.household_member_id == member.id
-    assert updated_rec.parse_warnings == [
-        "This investment may already be tracked under a different Unifolio account. "
-        "If that's you, consider using that account instead."
-    ]
     # Buffer cache should be wiped on success
     assert get_pdf_buffer(str(import_rec.id)) is None
+    # Review finding (Task 7): retry_cas_import_password's success path must
+    # actually wire store_cas_file, not just call it without effect --
+    # verify the committed Import row carries a file_reference in
+    # storage_key_for_import's format and a file_expires_at ~30 days out,
+    # matching test_service.py's identical check for the sync confirm path.
+    assert updated_rec.file_reference == storage_key_for_import(user.id, updated_rec.id)
+    expected_expiry = before + timedelta(days=CAS_FILE_RETENTION_DAYS)
+    actual_expiry = updated_rec.file_expires_at
+    if actual_expiry.tzinfo is None:
+        actual_expiry = actual_expiry.replace(tzinfo=timezone.utc)
+    assert abs((actual_expiry - expected_expiry).total_seconds()) < 5
 
 
-def test_cross_account_warning_does_not_block_new_import(
+def test_cross_account_pan_match_blocks_import(
     db_session, sample_user_and_member, monkeypatch
 ):
+    """Cross-account attribution is now a hard PAN block, not a
+    response-only advisory (attribution.py rewrite, Task 5). Folio-based
+    matching in resolve_attribution only ever looks within the caller's own
+    household now, so a same-folio-different-account scenario (this test's
+    old shape) is no longer observable here at all -- the only real
+    cross-account signal left is a PAN match to a member of a different
+    account, which raises CrossAccountPanBlockedError directly out of
+    create_cas_import (uncaught by its ParseError-only try/except)."""
     user, member = sample_user_and_member
     now = datetime.now(timezone.utc)
     other_user = User(
@@ -208,56 +235,32 @@ def test_cross_account_warning_does_not_block_new_import(
         phone_number="+919900000001",
         created_at=now,
     )
-    other_member = HouseholdMember(
-        id=uuid.uuid4(),
-        user_id=other_user.id,
-        name="Private Other Account",
-        relationship=Relationship.SELF,
-        created_at=now,
-    )
-    existing_scheme = Scheme(
-        id=uuid.uuid4(),
-        amfi_code="cross-account-existing",
-        name="Existing Fund",
-        amc_name="SBI Mutual Fund",
-        sebi_category="Equity",
-    )
     # Flush the user before adding the member: without an ORM relationship()
     # between User and HouseholdMember, the unit-of-work's insert ordering
     # doesn't follow add_all()'s list order, so a single flush can attempt
     # the FK-dependent insert first.
     db_session.add(other_user)
     db_session.flush()
-    db_session.add_all([other_member, existing_scheme])
-    db_session.flush()
-    db_session.add(
-        Folio(
-            id=uuid.uuid4(),
-            household_member_id=other_member.id,
-            scheme_id=existing_scheme.id,
-            folio_number="CROSS-ACCOUNT-123",
-            plan_type=PlanType.DIRECT,
-        )
+    other_member = HouseholdMember(
+        id=uuid.uuid4(),
+        user_id=other_user.id,
+        name="Private Other Account",
+        relationship=Relationship.SELF,
+        created_at=now,
+        pan_encrypted=encrypt_pan("ZZZZZ9999Z"),
+        pan_lookup_hash=hash_pan("ZZZZZ9999Z"),
     )
+    db_session.add(other_member)
     db_session.commit()
 
     parse_result = ParseResult(
         investor=ParsedInvestor(
             name="Different Investor Name",
             email="investor@example.com",
-            pan_masked="A*****1",
+            pan_masked="Z*****9Z",
+            pan="ZZZZZ9999Z",
         ),
-        schemes=[
-            ParsedScheme(
-                name="Freshly Parsed Fund",
-                isin=None,
-                amfi="cross-account-parsed",
-                scheme_type="Equity",
-                folio="CROSS-ACCOUNT-123",
-                amc="SBI Mutual Fund",
-                transaction_count=0,
-            )
-        ],
+        schemes=[],
         transactions=[],
         raw_json="{}",
     )
@@ -265,24 +268,84 @@ def test_cross_account_warning_does_not_block_new_import(
         "app.services.import_.lifecycle_service.parse_cas_pdf_bytes",
         lambda _bytes, _password: parse_result,
     )
-    import_rec = asyncio.run(
-        create_cas_import(
-            db=db_session,
-            user_id=user.id,
-            household_member_id=member.id,
-            file_bytes=b"%PDF-1.4 statement",
-            filename="statement.pdf",
-            password="PASS",
+
+    with pytest.raises(CrossAccountPanBlockedError):
+        asyncio.run(
+            create_cas_import(
+                db=db_session,
+                user_id=user.id,
+                household_member_id=member.id,
+                file_bytes=b"%PDF-1.4 statement",
+                filename="statement.pdf",
+                password="PASS",
+            )
         )
+
+
+def test_cross_account_pan_match_blocks_import_even_with_override(
+    db_session, sample_user_and_member, monkeypatch
+):
+    """Fix 5 (2026-09-18 whole-branch review): confirmed_member_override=True
+    must NOT bypass the cross-account PAN hard block on create_cas_import's
+    call chain. Structurally it can't -- resolve_attribution raises
+    CrossAccountPanBlockedError before returning any AttributionDecision, so
+    enforce_attribution_confirmation (the function the override parameter
+    actually gates) never runs -- but nothing in either test file asserted
+    this before. Also confirms the flushed-but-uncommitted Import row from
+    the aborted attempt never becomes a durable write: rolling back (what
+    app.db.session.get_db's `finally: db.close()` does on every real request
+    when a handler doesn't commit) leaves zero Import rows behind."""
+    user, member = sample_user_and_member
+    now = datetime.now(timezone.utc)
+    other_user = User(id=uuid.uuid4(), phone_number="+919900000002", created_at=now)
+    db_session.add(other_user)
+    db_session.flush()
+    other_member = HouseholdMember(
+        id=uuid.uuid4(),
+        user_id=other_user.id,
+        name="Private Other Account",
+        relationship=Relationship.SELF,
+        created_at=now,
+        pan_encrypted=encrypt_pan("YYYYY8888Y"),
+        pan_lookup_hash=hash_pan("YYYYY8888Y"),
+    )
+    db_session.add(other_member)
+    db_session.commit()
+
+    parse_result = ParseResult(
+        investor=ParsedInvestor(
+            name="Different Investor Name",
+            email="investor@example.com",
+            pan_masked="Y*****8Y",
+            pan="YYYYY8888Y",
+        ),
+        schemes=[],
+        transactions=[],
+        raw_json="{}",
+    )
+    monkeypatch.setattr(
+        "app.services.import_.lifecycle_service.parse_cas_pdf_bytes",
+        lambda _bytes, _password: parse_result,
     )
 
-    assert import_rec.status == ImportStatus.IMPORT_SUCCESSFUL
-    assert import_rec.household_member_id == member.id
-    assert import_rec.parse_warnings == [
-        "This investment may already be tracked under a different Unifolio account. "
-        "If that's you, consider using that account instead."
-    ]
-    assert "Private Other Account" not in " ".join(import_rec.parse_warnings)
+    with pytest.raises(CrossAccountPanBlockedError):
+        asyncio.run(
+            create_cas_import(
+                db=db_session,
+                user_id=user.id,
+                household_member_id=member.id,
+                file_bytes=b"%PDF-1.4 statement",
+                filename="statement.pdf",
+                password="PASS",
+                confirmed_member_override=True,
+            )
+        )
+
+    # The blocked attempt's Import row was add()ed and flush()ed (visible
+    # within this still-open transaction) but never committed -- rolling
+    # back, as a real request's session teardown would, leaves no trace.
+    db_session.rollback()
+    assert db_session.query(Import).count() == 0
 
 
 def test_deduplication_fingerprint_skips_duplicates(db_session, sample_user_and_member, monkeypatch):
@@ -338,7 +401,11 @@ def test_deduplication_fingerprint_skips_duplicates(db_session, sample_user_and_
 
     monkeypatch.setattr("app.services.import_.lifecycle_service.parse_cas_pdf_bytes", lambda b, p: parse_res_1)
 
-    # First import
+    # First import. confirmed_member_override=True: this test's intent is
+    # dedup fingerprinting, not attribution matching, and the member has no
+    # PAN or pre-existing folio on file, so real resolve_attribution would
+    # otherwise land on UNRECOGNIZED_MEMBER and require confirmation.
+    before = datetime.now(timezone.utc)
     rec1 = asyncio.run(create_cas_import(
         db=db_session,
         user_id=user.id,
@@ -346,10 +413,22 @@ def test_deduplication_fingerprint_skips_duplicates(db_session, sample_user_and_
         file_bytes=fake_pdf,
         filename="statement1.pdf",
         password="PASS",
+        confirmed_member_override=True,
     ))
     assert rec1.status == ImportStatus.IMPORT_SUCCESSFUL
     assert rec1.new_transactions_count == 1
     assert rec1.duplicate_transactions_count == 0
+    # Review finding (Task 7): create_cas_import's success path must actually
+    # wire store_cas_file, not just call it without effect -- verify the
+    # committed Import row carries a file_reference in
+    # storage_key_for_import's format and a file_expires_at ~30 days out,
+    # matching test_service.py's identical check for the sync confirm path.
+    assert rec1.file_reference == storage_key_for_import(user.id, rec1.id)
+    expected_expiry = before + timedelta(days=CAS_FILE_RETENTION_DAYS)
+    actual_expiry = rec1.file_expires_at
+    if actual_expiry.tzinfo is None:
+        actual_expiry = actual_expiry.replace(tzinfo=timezone.utc)
+    assert abs((actual_expiry - expected_expiry).total_seconds()) < 5
 
     # Second import containing txn1 (duplicate) + txn2 (new)
     parse_res_2 = ParseResult(
@@ -378,6 +457,7 @@ def test_deduplication_fingerprint_skips_duplicates(db_session, sample_user_and_
         file_bytes=fake_pdf,
         filename="statement2.pdf",
         password="PASS",
+        confirmed_member_override=True,
     ))
     assert rec2.status == ImportStatus.IMPORT_SUCCESSFUL
     assert rec2.new_transactions_count == 1  # only txn2 added

@@ -21,6 +21,7 @@ import { MobileRequestCamsView } from "./MobileRequestCamsView";
 import { MobileUploadForm } from "./MobileUploadForm";
 import { MobileReviewView } from "./MobileReviewView";
 import { MobileImportHistory } from "./MobileImportHistory";
+import { CrossAccountBlockedDialog } from "@/features/import/CrossAccountBlockedDialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -85,6 +86,7 @@ export function MobileImportView({
   const [error, setError] = useState<ParseErrorPayload | null>(null);
   const [reviewNotice, setReviewNotice] = useState<string | null>(null);
   const [memberMismatch, setMemberMismatch] = useState<MemberMismatchConfirmation | null>(null);
+  const [crossAccountBlocked, setCrossAccountBlocked] = useState<string | null>(null);
   const [dismissedWarnings, setDismissedWarnings] = useState<Set<string>>(new Set());
   const [confirming, setConfirming] = useState(false);
 
@@ -124,6 +126,7 @@ export function MobileImportView({
     setError(null);
     setReviewNotice(null);
     setMemberMismatch(null);
+    setCrossAccountBlocked(null);
     setDismissedWarnings(new Set());
     setConfirming(false);
   };
@@ -167,6 +170,8 @@ export function MobileImportView({
             ...(payload as MemberMismatchErrorPayload),
             confirmations,
           });
+        } else if (err.status === 409 && payload.code === "cross_account_pan_blocked") {
+          setCrossAccountBlocked(payload.message);
         } else {
           setReviewNotice(
             err.status === 404
@@ -204,6 +209,14 @@ export function MobileImportView({
   if (step === "review" && preview) {
     return (
       <div className="w-full max-w-md mx-auto">
+        <CrossAccountBlockedDialog
+          isOpen={crossAccountBlocked !== null}
+          message={crossAccountBlocked ?? ""}
+          onBack={() => {
+            setCrossAccountBlocked(null);
+            resetFlow();
+          }}
+        />
         {memberMismatch && (
           <div
             role="alert"

@@ -341,6 +341,35 @@ describe("MobileImportView", () => {
     expect(screen.queryByRole("button", { name: /switch to/i })).not.toBeInTheDocument();
   });
 
+  it("shows the cross-account-blocked popup and Back leaves the review screen", async () => {
+    vi.mocked(importApi.confirmImport).mockRejectedValueOnce(
+      new importApi.ApiError(409, {
+        code: "cross_account_pan_blocked",
+        message: "This PAN is already tracked under a different Unifolio account. Contact support if you believe this is a mistake.",
+      }),
+    );
+    await openEmptyReview();
+
+    fireEvent.click(screen.getByRole("button", { name: /confirm & import portfolio/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/already tracked under a different unifolio account/i)).toBeInTheDocument(),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /^back$/i }));
+
+    // resetFlow() returns to whichever view was active before review (here,
+    // the upload form itself, since openEmptyReview() got here via "upload")
+    // — not forced to the choice screen. The load-bearing assertions are that
+    // the popup is gone and the review screen (with its now-stale session) is
+    // no longer shown.
+    await waitFor(() => expect(screen.getByLabelText(/cas pdf/i)).toBeInTheDocument());
+    expect(screen.queryByText("Review CAS Import")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/already tracked under a different unifolio account/i),
+    ).not.toBeInTheDocument();
+  });
+
   it("renders member import history when History button is clicked", async () => {
     vi.mocked(importApi.getMemberImportHistory).mockResolvedValue([
       {

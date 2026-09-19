@@ -23,14 +23,15 @@ from app.models.folio import Folio
 from app.models.imports import Import, ImportStatus
 from app.models.reference import Scheme
 from app.models.transaction import Transaction
+from app.models.user import HouseholdMember
 from app.services.dashboard.holdings import invalidate_holdings_cache
 from app.services.import_.attribution import (
-    CROSS_ACCOUNT_DUPLICATE_WARNING,
-    detect_cross_account_duplicate,
+    backfill_pan_if_missing,
     enforce_attribution_confirmation,
     resolve_attribution,
 )
 from app.services.import_.enrich import MfApiClient, _normalize_name, mfapi_client
+from app.services.import_.file_storage import store_cas_file
 from app.services.import_.parser import ParseResult, source_cas_type_from_file_type
 from app.services.import_.schemas import (
     ImportConfirmResponse,
@@ -77,7 +78,7 @@ def _sweep_expired_sessions(ttl_minutes: int = SESSION_TTL_MINUTES) -> None:
 
 
 async def build_import_preview(
-    parse_result: ParseResult, filename: str, client: MfApiClient | None = None
+    parse_result: ParseResult, filename: str, pdf_bytes: bytes, client: MfApiClient | None = None
 ) -> ImportPreviewResponse:
     _sweep_expired_sessions()
     client = client or mfapi_client
@@ -122,7 +123,7 @@ async def build_import_preview(
 
     _preview_sessions[session_id] = {
         "created_at": datetime.now(timezone.utc),
-        "filename": filename, "parse_result": parse_result,
+        "filename": filename, "parse_result": parse_result, "pdf_bytes": pdf_bytes,
         "key_to_temp": key_to_temp,
         "scheme_previews": {s.temp_id: s for s in scheme_previews},
     }
@@ -160,6 +161,8 @@ def confirm_import(
         if confirmed_member_override
         else attribution.resolved_member_id or household_member_id
     )
+    target_member = db.get(HouseholdMember, target_member_id)
+    backfill_pan_if_missing(db, target_member, parse_result)
 
     previews: dict[str, SchemeMatchPreview] = session["scheme_previews"]
     key_to_temp = session["key_to_temp"]
@@ -344,20 +347,16 @@ def confirm_import(
 
     import_rec.new_transactions_count = added
     import_rec.duplicate_transactions_count = skipped
+    pdf_bytes = session["pdf_bytes"]
+    store_cas_file(import_rec, user_id, pdf_bytes)
     db.commit()
     invalidate_holdings_cache(target_member_id)
-
-    warnings: list[str] = []
-    cross_account = detect_cross_account_duplicate(db, user_id, parse_result)
-    if cross_account is not None and cross_account.detected:
-        warnings.append(CROSS_ACCOUNT_DUPLICATE_WARNING)
 
     del _preview_sessions[session_id]
     return ImportConfirmResponse(
         added=added,
         skipped=skipped,
         import_id=str(import_rec.id),
-        warnings=warnings,
     )
 
 

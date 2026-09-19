@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "./AuthContext";
-import { currentStep, goBack, goNext, initHistory, isSkipped, markAnswered, skipToNext } from "./onboardingHistory";
+import { currentStep, goBack, goBackTo, goNext, initHistory, isSkipped, markAnswered, skipToNext } from "./onboardingHistory";
 import type { HistoryState } from "./onboardingHistory";
 import { isOnboardingStep } from "./onboardingSteps";
 import type { OnboardingStep } from "./onboardingSteps";
@@ -55,6 +55,11 @@ export function OnboardingFlow({ isMobile = false }: OnboardingFlowProps) {
   const back = () => setHistory((h) => goBack(h));
   const skip = (next: OnboardingStep) => setHistory((h) => skipToNext(h, next));
   const showBack = history.cursor > 0;
+  // Escape hatch for a hard-stop error on the upload screens (e.g. a
+  // cross-account PAN block) — jumps straight back to the household choice
+  // regardless of how many steps deep the "Family Too" path has gone, rather
+  // than stepping back one screen at a time.
+  const backToHousehold = () => setHistory((h) => goBackTo(h, "q4_household"));
 
   const renderStep = () => {
     if (step === "q1_name") {
@@ -217,7 +222,7 @@ export function OnboardingFlow({ isMobile = false }: OnboardingFlowProps) {
       return (
         <div className="w-full min-h-dvh bg-[var(--color-bg)] flex flex-col justify-start items-center p-2 sm:p-6 lg:p-8 box-border">
           <div className="w-full max-w-[1600px] mx-auto">
-            <SoloCasUpload name={answers.name} />
+            <SoloCasUpload name={answers.name} onGoToHousehold={backToHousehold} />
           </div>
         </div>
       );
@@ -227,7 +232,7 @@ export function OnboardingFlow({ isMobile = false }: OnboardingFlowProps) {
       return (
         <div className="w-full min-h-dvh bg-[var(--color-bg)] flex flex-col justify-start items-center p-2 sm:p-6 lg:p-8 box-border">
           <div className="w-full max-w-[1600px] mx-auto">
-            <FamilyImportFlow selfName={answers.name} />
+            <FamilyImportFlow selfName={answers.name} onGoToHousehold={backToHousehold} />
           </div>
         </div>
       );

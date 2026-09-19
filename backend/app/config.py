@@ -7,10 +7,22 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./unifolio_dev.db"
     test_database_url: str | None = None
     otp_delivery_mode: str = "stub"
+    email_delivery_mode: str = "stub"
+    postmark_api_token: str = ""
+    postmark_from_email: str = ""
     environment: str = "development"
     frontend_base_url: str = "http://localhost:5173"
     google_oauth_client_id: str = ""
     allowed_origins: str = ""
+
+    # PAN encryption (ADR-004 reopened 2026-09-18). Dev/demo key source —
+    # production maps this to a Secrets Manager secret encrypted by the
+    # already-staged KMS key (infra/modules/security), injected the same
+    # way the RDS password already is. See
+    # Docs/superpowers/specs/2026-09-18-pan-cas-attribution-design.md.
+    pan_encryption_key: str = ""
+    pan_lookup_pepper: str = ""
+    cas_file_storage_dir: str = "var/cas_files"
 
     # ECS Fargate RunTask invocation for the analytics recompute dispatcher
     # (see Docs/superpowers/specs/2026-09-02-analytics-precompute-architecture-design.md).

@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import uuid
 from unittest.mock import patch
 
@@ -6,6 +6,19 @@ import pytest
 from app.models.enums import AuthIdentityProvider, Relationship
 from app.models.user import HouseholdMember, User
 from app.services.auth.session import create_session
+from app.services.import_ import file_storage as file_storage_module
+from app.services.import_.file_storage import CAS_FILE_RETENTION_DAYS, storage_key_for_import
+
+
+@pytest.fixture(autouse=True)
+def isolate_cas_file_storage(tmp_path, monkeypatch):
+    """Prevent the success-path test below (which reaches store_cas_file via
+    the real upload+retry-password route) from writing to disk via the
+    module-level default_file_storage singleton -- same isolation Task 6
+    needed in test_service.py, since the singleton captures
+    settings.cas_file_storage_dir once at import time (monkeypatching the
+    setting itself would silently no-op)."""
+    monkeypatch.setattr(file_storage_module.default_file_storage, "_base_dir", tmp_path)
 
 
 def _member_mismatch_error():
@@ -114,12 +127,6 @@ def test_post_cas_imports_wrong_password_returns_password_required_and_allows_pa
         )
 
     monkeypatch.setattr("app.services.import_.lifecycle_service.parse_cas_pdf_bytes", mock_parse)
-    from app.services.import_.attribution import CrossAccountDuplicateWarning
-
-    monkeypatch.setattr(
-        "app.services.import_.lifecycle_service.detect_cross_account_duplicate",
-        lambda *args, **kwargs: CrossAccountDuplicateWarning(detected=True, reason="folio_match"),
-    )
 
     # 1. Initial upload with wrong password
     upload_res = client.post(
@@ -143,20 +150,45 @@ def test_post_cas_imports_wrong_password_returns_password_required_and_allows_pa
     assert status_res.status_code == 200
     assert status_res.json()["status"] == "password_required"
 
-    # 3. In-place password retry via PATCH /cas-imports/{id}/password
+    # 3. In-place password retry via PATCH /cas-imports/{id}/password.
+    # confirmed_member_override=True: this member has no PAN on file and no
+    # pre-existing folio, so real resolve_attribution would otherwise land on
+    # UNRECOGNIZED_MEMBER and require confirmation -- this test's intent is
+    # the wrong-password/retry flow, not attribution matching.
+    before = datetime.now(timezone.utc)
     patch_res = client.patch(
         f"/cas-imports/{import_id}/password",
         headers=headers,
-        json={"password": "CORRECT_PASS"},
+        json={"password": "CORRECT_PASS", "confirmed_member_override": True},
     )
     assert patch_res.status_code == 200
     patch_data = patch_res.json()
     assert patch_data["status"] == "import_successful"
     assert patch_data["new_transactions_count"] == 1
-    assert patch_data["parse_warnings"] == [
-        "This investment may already be tracked under a different Unifolio account. "
-        "If that's you, consider using that account instead."
-    ]
+    # parse_warnings is dead in response terms now that cross-account is a
+    # hard block (CrossAccountPanBlockedError) rather than an advisory --
+    # kept on the response schema per the plan's "known follow-up cleanup"
+    # but always empty since nothing writes it anymore.
+    assert patch_data["parse_warnings"] == []
+
+    # Review finding (Task 7): this route test reaches retry_cas_import_password's
+    # real success path (nothing here mocks the service function itself) --
+    # verify store_cas_file's effect actually landed on the committed Import
+    # row, not just that the call didn't raise. Same check as
+    # test_lifecycle_service.py's unit-level assertion, exercised end-to-end
+    # through the HTTP route this time.
+    from app.db.session import get_db
+    from app.models.imports import Import
+
+    db_gen = client.app.dependency_overrides[get_db]()
+    db = next(db_gen)
+    imp = db.query(Import).filter_by(id=uuid.UUID(import_id)).one()
+    assert imp.file_reference == storage_key_for_import(user_id, imp.id)
+    expected_expiry = before + timedelta(days=CAS_FILE_RETENTION_DAYS)
+    actual_expiry = imp.file_expires_at
+    if actual_expiry.tzinfo is None:
+        actual_expiry = actual_expiry.replace(tzinfo=timezone.utc)
+    assert abs((actual_expiry - expected_expiry).total_seconds()) < 5
 
     # 4. List import history via GET /household-members/{member_id}/cas-imports
     history_res = client.get(f"/household-members/{member_id}/cas-imports", headers=headers)
@@ -221,6 +253,92 @@ def test_post_cas_imports_maps_member_mismatch_to_structured_409(
         "matched_member_name": "Priya Kumar",
     }
     assert create.await_args.kwargs["confirmed_member_override"] is True
+
+
+def test_post_cas_imports_blocks_cross_account_pan_reuse_without_leaking_other_account(
+    client, auth_headers_and_member, monkeypatch
+):
+    """Fix 5 (2026-09-18 whole-branch review): neither test file had any
+    route-level test asserting the cross_account_pan_blocked 409 actually
+    fires, that it doesn't leak the other account's member name/id, or that
+    no DB write results. Exercises the real create_cas_import/resolve_attribution
+    path end to end (only parse_cas_pdf_bytes is mocked, unlike the mismatch
+    tests above which mock create_cas_import itself)."""
+    headers, member_id, user_id = auth_headers_and_member
+
+    from app.db.session import get_db
+    from app.models.enums import Relationship
+    from app.models.imports import Import
+    from app.models.user import HouseholdMember, User
+    from app.services.import_.crypto import encrypt_pan, hash_pan
+
+    db_gen = client.app.dependency_overrides[get_db]()
+    db = next(db_gen)
+
+    # A member of a DIFFERENT account who already has this PAN on file.
+    other_user = User(
+        id=uuid.uuid4(),
+        phone_number="+919999999999",
+        email="other@example.com",
+        created_at=datetime.now(timezone.utc),
+    )
+    db.add(other_user)
+    db.flush()
+    other_member = HouseholdMember(
+        id=uuid.uuid4(),
+        user_id=other_user.id,
+        name="Someone Else Entirely",
+        relationship=Relationship.SELF,
+        created_at=datetime.now(timezone.utc),
+        pan_encrypted=encrypt_pan("ABCDE1234F"),
+        pan_lookup_hash=hash_pan("ABCDE1234F"),
+    )
+    db.add(other_member)
+    db.commit()
+    other_member_id = other_member.id
+    other_member_name = other_member.name
+
+    from app.services.import_.parser import ParsedInvestor, ParseResult
+
+    def mock_parse(pdf_bytes, password):
+        return ParseResult(
+            investor=ParsedInvestor(
+                name="Rajesh Kumar", email="rajesh.kumar@example.com",
+                pan_masked="ABCDE****F", pan="ABCDE1234F",
+            ),
+            schemes=[],
+            transactions=[],
+            raw_json='{"folios": []}',
+        )
+
+    monkeypatch.setattr("app.services.import_.lifecycle_service.parse_cas_pdf_bytes", mock_parse)
+
+    response = client.post(
+        "/cas-imports",
+        headers=headers,
+        data={
+            "password": "PASS",
+            "household_member_id": str(member_id),
+        },
+        files={"file": ("statement.pdf", b"%PDF-1.4 statement", "application/pdf")},
+    )
+
+    assert response.status_code == 409
+    body = response.json()
+    assert body["detail"]["code"] == "cross_account_pan_blocked"
+
+    # No leak: the other account's member name/id must not appear anywhere
+    # in the response body, structured or not.
+    body_text = response.text
+    assert other_member_name not in body_text
+    assert str(other_member_id) not in body_text
+
+    # No DB write: the Import row create_cas_import add()ed+flush()ed before
+    # hitting the block was never committed -- get_db's `finally: db.close()`
+    # rolls it back, so a fresh session sees none for this household member.
+    db_gen2 = client.app.dependency_overrides[get_db]()
+    db2 = next(db_gen2)
+    assert db2.query(Import).filter_by(household_member_id=member_id).count() == 0
 
 
 def test_retry_password_maps_member_mismatch_and_threads_override(
