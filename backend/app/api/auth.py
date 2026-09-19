@@ -75,7 +75,10 @@ def signup_email(body: SignupEmailBody, db: DbSession = Depends(get_db)):
         False,
         matched_user_id=None,
     )
-    _, raw_otp = create_otp_request(db, body.email, channel="email")
+    try:
+        _, raw_otp = create_otp_request(db, body.email, channel="email")
+    except OtpRequestThrottledError as exc:
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
     return EmailOtpRequiredResponse(
         email_otp_required=EmailOtpRequiredDetail(token=raw_token, prefill_email=body.email, otp=raw_otp)
     )

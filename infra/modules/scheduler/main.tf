@@ -4,21 +4,25 @@ locals {
       slug                = "nav-daily"
       command             = ["python", "scripts/jobs/refresh_nav_daily.py"]
       schedule_expression = "cron(0 6 * * ? *)"
+      task_role_arn       = null
     }
     benchmark_daily = {
       slug                = "benchmark-daily"
       command             = ["python", "scripts/jobs/refresh_benchmark_daily.py"]
       schedule_expression = "cron(0 6 * * ? *)"
+      task_role_arn       = null
     }
     ter_monthly = {
       slug                = "ter-monthly"
       command             = ["python", "scripts/jobs/refresh_ter_monthly.py"]
       schedule_expression = "cron(0 6 1 * ? *)"
+      task_role_arn       = null
     }
     aaum_quarterly = {
       slug                = "aaum-quarterly"
       command             = ["python", "scripts/jobs/refresh_aaum_quarterly.py"]
       schedule_expression = "cron(0 6 1 1,4,7,10 ? *)"
+      task_role_arn       = null
     }
     # Design doc's "Daily EventBridge Scheduler backstop" (analytics-precompute
     # spec) -- loops every household in one process run so NAV/market drift
@@ -32,6 +36,7 @@ locals {
       slug                = "analytics-recompute-daily"
       command             = ["python", "scripts/run_analytics_recompute.py", "--all"]
       schedule_expression = "cron(30 6 * * ? *)"
+      task_role_arn       = null
     }
     # Runs at 08:00 IST, clear of the 06:00 IST NAV/benchmark jobs and the
     # 06:30 IST analytics recompute backstop.
@@ -39,6 +44,19 @@ locals {
       slug                = "account-deletion-daily"
       command             = ["python", "scripts/jobs/delete_expired_accounts_daily.py"]
       schedule_expression = "cron(0 8 * * ? *)"
+      task_role_arn       = null
+    }
+    # DB-row cleanup (imports.file_reference/file_expires_at) to match S3's
+    # own 30-day lifecycle expiration (infra/modules/storage) -- was
+    # explicitly out of scope in the 2026-09-18 PAN/CAS design, addressed
+    # here (Docs/2026-09-19-cas-s3-postmark-secrets-infra.md gap #3). Needs
+    # backend_task's role, not just the execution role, because
+    # expire_stored_files() calls S3FileStorage.delete() at runtime.
+    cas_file_expiry_daily = {
+      slug                = "cas-file-expiry-daily"
+      command             = ["python", "-m", "app.scripts.expire_cas_files"]
+      schedule_expression = "cron(0 19 * * ? *)"
+      task_role_arn       = var.backend_task_role_arn
     }
   }
 }
@@ -59,6 +77,7 @@ resource "aws_ecs_task_definition" "jobs" {
   cpu                      = "512"
   memory                   = "1024"
   execution_role_arn       = var.ecs_task_execution_role_arn
+  task_role_arn            = each.value.task_role_arn
 
   container_definitions = jsonencode([
     {
@@ -71,7 +90,9 @@ resource "aws_ecs_task_definition" "jobs" {
         { name = "DB_USERNAME", value = "unifolio" },
         { name = "DB_HOST", value = var.db_address },
         { name = "DB_PORT", value = tostring(var.db_port) },
-        { name = "DB_NAME", value = var.db_name }
+        { name = "DB_NAME", value = var.db_name },
+        { name = "CAS_FILE_STORAGE_BACKEND", value = "s3" },
+        { name = "CAS_FILES_BUCKET_NAME", value = var.cas_files_bucket_name }
       ]
 
       secrets = [
@@ -123,6 +144,22 @@ data "aws_iam_policy_document" "scheduler" {
     effect    = "Allow"
     actions   = ["iam:PassRole"]
     resources = [var.ecs_task_execution_role_arn]
+
+    condition {
+      test     = "StringEquals"
+      variable = "iam:PassedToService"
+      values   = ["ecs-tasks.amazonaws.com"]
+    }
+  }
+
+  # cas_file_expiry_daily is the only job with a task_role_arn set -- ECS
+  # needs the scheduler role to be able to pass that role too, not just the
+  # shared execution role above.
+  statement {
+    sid       = "PassCasFileExpiryTaskRole"
+    effect    = "Allow"
+    actions   = ["iam:PassRole"]
+    resources = [var.backend_task_role_arn]
 
     condition {
       test     = "StringEquals"

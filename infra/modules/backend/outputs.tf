@@ -27,3 +27,8 @@ output "ecs_cluster_arn" {
   description = "ARN of the ECS cluster running the staging backend."
   value       = aws_ecs_cluster.this.arn
 }
+
+output "backend_task_role_arn" {
+  description = "ARN of the backend task role -- reused by the scheduled CAS-file expiry job so it can delete S3 objects without a second S3/KMS policy."
+  value       = aws_iam_role.backend_task.arn
+}

@@ -34,7 +34,11 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
-data "aws_iam_policy_document" "rds_master_secret_read" {
+# Renamed from rds_master_secret_read (Docs/2026-09-19-cas-s3-postmark-secrets-infra.md
+# Part A4a): this policy started out reading only the RDS master secret, but
+# now also covers the pan_keys and postmark_api_token secrets below, so the
+# old RDS-specific name no longer describes its scope.
+data "aws_iam_policy_document" "ecs_secrets_read" {
   statement {
     sid       = "ReadRDSMasterSecret"
     effect    = "Allow"
@@ -43,17 +47,24 @@ data "aws_iam_policy_document" "rds_master_secret_read" {
   }
 
   statement {
-    sid       = "DecryptRDSMasterSecret"
+    sid       = "ReadAppSecrets"
+    effect    = "Allow"
+    actions   = ["secretsmanager:GetSecretValue"]
+    resources = [var.pan_keys_secret_arn, var.postmark_api_token_secret_arn]
+  }
+
+  statement {
+    sid       = "DecryptSecretsWithSharedKey"
     effect    = "Allow"
     actions   = ["kms:Decrypt", "kms:DescribeKey"]
     resources = [var.kms_key_arn]
   }
 }
 
-resource "aws_iam_role_policy" "rds_master_secret_read" {
-  name   = "rds-master-secret-read"
+resource "aws_iam_role_policy" "ecs_secrets_read" {
+  name   = "ecs-secrets-read"
   role   = aws_iam_role.ecs_task_execution.id
-  policy = data.aws_iam_policy_document.rds_master_secret_read.json
+  policy = data.aws_iam_policy_document.ecs_secrets_read.json
 }
 
 # Distinct task definition for the analytics-recompute dispatcher
@@ -110,7 +121,7 @@ resource "aws_ecs_task_definition" "analytics_recompute" {
 
   depends_on = [
     aws_iam_role_policy_attachment.ecs_task_execution,
-    aws_iam_role_policy.rds_master_secret_read,
+    aws_iam_role_policy.ecs_secrets_read,
   ]
 }
 
@@ -162,6 +173,39 @@ resource "aws_iam_role_policy" "backend_task" {
   policy = data.aws_iam_policy_document.backend_task.json
 }
 
+# S3FileStorage (backend/app/services/import_/file_storage.py) runs inside
+# the request-serving container under this same task role -- CAS PDFs are
+# uploaded/read/deleted directly against the bucket, not through the
+# execution role (which only ECS itself uses to pull secrets/images).
+data "aws_iam_policy_document" "backend_task_cas_files" {
+  statement {
+    sid       = "ReadWriteCasFiles"
+    effect    = "Allow"
+    actions   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
+    resources = ["${var.cas_files_bucket_arn}/*"]
+  }
+
+  statement {
+    sid       = "ListCasFilesBucket"
+    effect    = "Allow"
+    actions   = ["s3:ListBucket"]
+    resources = [var.cas_files_bucket_arn]
+  }
+
+  statement {
+    sid       = "UseSharedKeyForCasFiles"
+    effect    = "Allow"
+    actions   = ["kms:GenerateDataKey", "kms:Decrypt", "kms:DescribeKey"]
+    resources = [var.kms_key_arn]
+  }
+}
+
+resource "aws_iam_role_policy" "backend_task_cas_files" {
+  name   = "backend-task-cas-files"
+  role   = aws_iam_role.backend_task.id
+  policy = data.aws_iam_policy_document.backend_task_cas_files.json
+}
+
 resource "aws_ecs_task_definition" "this" {
   family                   = local.name
   requires_compatibilities = ["FARGATE"]
@@ -189,7 +233,9 @@ resource "aws_ecs_task_definition" "this" {
         { name = "ENVIRONMENT", value = "staging" },
         { name = "ALLOWED_ORIGINS", value = "https://staging.unifolio.in" },
         { name = "FRONTEND_BASE_URL", value = "https://staging.unifolio.in" },
-        { name = "OTP_DELIVERY_MODE", value = "stub" },
+        { name = "OTP_DELIVERY_MODE", value = var.otp_delivery_mode },
+        { name = "EMAIL_DELIVERY_MODE", value = var.email_delivery_mode },
+        { name = "POSTMARK_FROM_EMAIL", value = var.postmark_from_email },
         { name = "GOOGLE_OAUTH_CLIENT_ID", value = var.google_oauth_client_id },
         { name = "DB_USERNAME", value = "unifolio" },
         { name = "DB_HOST", value = var.db_address },
@@ -200,13 +246,27 @@ resource "aws_ecs_task_definition" "this" {
         { name = "ECS_TASK_DEFINITION_ARN", value = aws_ecs_task_definition.analytics_recompute.arn },
         { name = "ECS_CONTAINER_NAME", value = "${var.environment}-analytics-recompute" },
         { name = "ECS_SUBNET_IDS", value = join(",", var.private_app_subnet_ids) },
-        { name = "ECS_SECURITY_GROUP_IDS", value = var.ecs_security_group_id }
+        { name = "ECS_SECURITY_GROUP_IDS", value = var.ecs_security_group_id },
+        { name = "CAS_FILE_STORAGE_BACKEND", value = "s3" },
+        { name = "CAS_FILES_BUCKET_NAME", value = var.cas_files_bucket_name }
       ]
 
       secrets = [
         {
           name      = "DB_PASSWORD"
           valueFrom = "${var.master_user_secret_arn}:password::"
+        },
+        {
+          name      = "PAN_ENCRYPTION_KEY"
+          valueFrom = "${var.pan_keys_secret_arn}:PAN_ENCRYPTION_KEY::"
+        },
+        {
+          name      = "PAN_LOOKUP_PEPPER"
+          valueFrom = "${var.pan_keys_secret_arn}:PAN_LOOKUP_PEPPER::"
+        },
+        {
+          name      = "POSTMARK_API_TOKEN"
+          valueFrom = var.postmark_api_token_secret_arn
         }
       ]
 
@@ -223,7 +283,8 @@ resource "aws_ecs_task_definition" "this" {
 
   depends_on = [
     aws_iam_role_policy_attachment.ecs_task_execution,
-    aws_iam_role_policy.rds_master_secret_read,
+    aws_iam_role_policy.ecs_secrets_read,
+    aws_iam_role_policy.backend_task_cas_files,
   ]
 }
 

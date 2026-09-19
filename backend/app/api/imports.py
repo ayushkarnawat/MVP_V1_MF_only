@@ -23,7 +23,11 @@ from app.services.analytics.recompute import (
 from app.services.dashboard.household_members import get_household_member_for_user
 from app.services.dashboard.nav import get_navs_on_or_before
 from app.services.dashboard.holdings import invalidate_holdings_cache
-from app.services.import_.attribution import AttributionConfirmationRequiredError, CrossAccountPanBlockedError
+from app.services.import_.attribution import (
+    AttributionConfirmationRequiredError,
+    CrossAccountPanBlockedError,
+    PanAlreadyAttributedError,
+)
 from app.services.import_.coverage_gap import evaluate_folio_coverage_gaps
 from app.services.import_.lifecycle_service import (
     FileTooLargeError,
@@ -273,6 +277,11 @@ def confirm_import_route(
         raise HTTPException(
             status_code=409,
             detail={"code": "cross_account_pan_blocked", "message": str(exc)},
+        ) from exc
+    except PanAlreadyAttributedError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "pan_already_attributed", "message": str(exc)},
         ) from exc
     except SchemeConfidenceError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc

@@ -271,6 +271,18 @@ def test_request_email_otp_resend_returns_a_new_code(client):
     assert response.status_code == 429
 
 
+def test_signup_email_resend_returns_429_not_500(client):
+    _signup(client, "signupresend@example.com")
+
+    # Immediate re-signup with the same email hits the same OTP throttle as
+    # /auth/email-otp/request -- this call site was missing the except clause
+    # (an uncaught OtpRequestThrottledError 500s with no CORS headers, which
+    # browsers then misreport as a CORS error instead of the real 429).
+    response = _signup(client, "signupresend@example.com")
+
+    assert response.status_code == 429
+
+
 def test_full_signup_flow_email_otp_then_phone_otp_creates_a_session(client):
     signup = _signup(client, "fullflow@example.com")
     detail = signup.json()["email_otp_required"]

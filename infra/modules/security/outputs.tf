@@ -7,3 +7,13 @@ output "kms_key_id" {
   description = "ID of the KMS key shared by RDS and Secrets Manager."
   value       = aws_kms_key.rds_and_secrets.key_id
 }
+
+output "pan_keys_secret_arn" {
+  description = "ARN of the Secrets Manager secret holding PAN_ENCRYPTION_KEY/PAN_LOOKUP_PEPPER."
+  value       = aws_secretsmanager_secret.pan_keys.arn
+}
+
+output "postmark_api_token_secret_arn" {
+  description = "ARN of the Secrets Manager secret holding the Postmark API token."
+  value       = aws_secretsmanager_secret.postmark_api_token.arn
+}

@@ -62,3 +62,13 @@ variable "ecs_security_group_id" {
   description = "Security group ID for the scheduled Fargate tasks."
   type        = string
 }
+
+variable "backend_task_role_arn" {
+  description = "ARN of the backend task role, reused by cas_file_expiry_daily so it can delete S3 objects."
+  type        = string
+}
+
+variable "cas_files_bucket_name" {
+  description = "Name of the S3 bucket storing CAS PDF files (infra/modules/storage)."
+  type        = string
+}

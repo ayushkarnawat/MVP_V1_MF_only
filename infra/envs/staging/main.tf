@@ -16,6 +16,10 @@ module "security" {
 
   environment = var.environment
   project     = var.project
+
+  pan_encryption_key = var.pan_encryption_key
+  pan_lookup_pepper  = var.pan_lookup_pepper
+  postmark_api_token = var.postmark_api_token
 }
 
 module "database" {
@@ -30,6 +34,15 @@ module "database" {
 
 module "ecr" {
   source = "../../modules/ecr"
+}
+
+module "storage" {
+  source = "../../modules/storage"
+
+  environment = var.environment
+  project     = var.project
+  kms_key_arn = module.security.kms_key_arn
+  account_id  = data.aws_caller_identity.current.account_id
 }
 
 data "aws_route53_zone" "primary" {
@@ -57,6 +70,14 @@ module "backend" {
   db_name                = module.database.db_name
   google_oauth_client_id = var.google_oauth_client_id
   acm_certificate_arn    = module.dns.backend_acm_certificate_arn
+
+  cas_files_bucket_name         = module.storage.bucket_name
+  cas_files_bucket_arn          = module.storage.bucket_arn
+  pan_keys_secret_arn           = module.security.pan_keys_secret_arn
+  postmark_api_token_secret_arn = module.security.postmark_api_token_secret_arn
+  otp_delivery_mode             = var.otp_delivery_mode
+  email_delivery_mode           = var.email_delivery_mode
+  postmark_from_email           = var.postmark_from_email
 }
 
 module "scheduler" {
@@ -76,6 +97,9 @@ module "scheduler" {
   db_name                     = module.database.db_name
   private_app_subnet_ids      = module.networking.private_app_subnet_ids
   ecs_security_group_id       = module.networking.ecs_security_group_id
+
+  backend_task_role_arn = module.backend.backend_task_role_arn
+  cas_files_bucket_name = module.storage.bucket_name
 }
 
 data "aws_caller_identity" "current" {}

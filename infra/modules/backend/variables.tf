@@ -84,3 +84,41 @@ variable "acm_certificate_arn" {
   description = "ARN of the validated ACM certificate attached to the ALB HTTPS listener."
   type        = string
 }
+
+variable "cas_files_bucket_name" {
+  description = "Name of the S3 bucket storing CAS PDF files (infra/modules/storage)."
+  type        = string
+}
+
+variable "cas_files_bucket_arn" {
+  description = "ARN of the S3 bucket storing CAS PDF files (infra/modules/storage)."
+  type        = string
+}
+
+variable "pan_keys_secret_arn" {
+  description = "ARN of the Secrets Manager secret holding PAN_ENCRYPTION_KEY/PAN_LOOKUP_PEPPER."
+  type        = string
+}
+
+variable "postmark_api_token_secret_arn" {
+  description = "ARN of the Secrets Manager secret holding the Postmark API token."
+  type        = string
+}
+
+variable "otp_delivery_mode" {
+  description = "OTP delivery mode. Stays \"stub\" until the Postmark Sender Signature is confirmed (Docs/2026-09-19-cas-s3-postmark-secrets-infra.md Part C), then flips to \"postmark\" via this var -- no code/image change needed for that cutover."
+  type        = string
+  default     = "stub"
+}
+
+variable "email_delivery_mode" {
+  description = "General email delivery mode (app/services/auth/email_provider.py). Same stub-until-Sender-Signature-confirmed cutover as otp_delivery_mode."
+  type        = string
+  default     = "stub"
+}
+
+variable "postmark_from_email" {
+  description = "Verified Postmark Sender Signature address emails are sent from. Must match the address confirmed in Part C before flipping *_delivery_mode to \"postmark\"."
+  type        = string
+  default     = ""
+}

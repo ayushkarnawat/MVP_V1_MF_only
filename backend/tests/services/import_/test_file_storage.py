@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime, timedelta, timezone
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -9,6 +10,8 @@ from app.models.user import User, HouseholdMember
 from app.services.import_.file_storage import (
     CAS_FILE_RETENTION_DAYS,
     LocalFileStorage,
+    S3FileStorage,
+    _build_default_file_storage,
     expire_stored_files,
     storage_key_for_import,
     store_cas_file,
@@ -128,3 +131,60 @@ def test_expire_stored_files_deletes_only_past_expiry_rows(db_session, storage):
     with pytest.raises(FileNotFoundError):
         storage.read("expired/file.pdf")
     assert storage.read("fresh/file.pdf") == b"new"
+
+
+@patch("app.services.import_.file_storage.boto3")
+def test_s3_storage_save_calls_put_object(mock_boto3):
+    mock_client = MagicMock()
+    mock_boto3.client.return_value = mock_client
+
+    storage = S3FileStorage(bucket_name="test-cas-bucket")
+    key = storage.save("some/key.pdf", b"%PDF-1.4 fake bytes")
+
+    assert key == "some/key.pdf"
+    mock_client.put_object.assert_called_once_with(
+        Bucket="test-cas-bucket", Key="some/key.pdf", Body=b"%PDF-1.4 fake bytes"
+    )
+
+
+@patch("app.services.import_.file_storage.boto3")
+def test_s3_storage_read_returns_object_body(mock_boto3):
+    mock_client = MagicMock()
+    mock_client.get_object.return_value = {"Body": MagicMock(read=lambda: b"pdf bytes")}
+    mock_boto3.client.return_value = mock_client
+
+    storage = S3FileStorage(bucket_name="test-cas-bucket")
+    assert storage.read("some/key.pdf") == b"pdf bytes"
+    mock_client.get_object.assert_called_once_with(Bucket="test-cas-bucket", Key="some/key.pdf")
+
+
+@patch("app.services.import_.file_storage.boto3")
+def test_s3_storage_delete_calls_delete_object(mock_boto3):
+    mock_client = MagicMock()
+    mock_boto3.client.return_value = mock_client
+
+    storage = S3FileStorage(bucket_name="test-cas-bucket")
+    storage.delete("some/key.pdf")
+
+    mock_client.delete_object.assert_called_once_with(Bucket="test-cas-bucket", Key="some/key.pdf")
+
+
+@patch("app.services.import_.file_storage.boto3")
+def test_factory_picks_s3_backend_from_settings(mock_boto3, monkeypatch):
+    from app.services.import_.file_storage import settings
+
+    monkeypatch.setattr(settings, "cas_file_storage_backend", "s3")
+    monkeypatch.setattr(settings, "cas_files_bucket_name", "test-cas-bucket")
+
+    storage = _build_default_file_storage()
+
+    assert isinstance(storage, S3FileStorage)
+    assert storage._bucket_name == "test-cas-bucket"
+
+
+def test_factory_defaults_to_local_backend(monkeypatch):
+    from app.services.import_.file_storage import settings
+
+    monkeypatch.setattr(settings, "cas_file_storage_backend", "local")
+
+    assert isinstance(_build_default_file_storage(), LocalFileStorage)

@@ -24,6 +24,13 @@ class Settings(BaseSettings):
     pan_lookup_pepper: str = ""
     cas_file_storage_dir: str = "var/cas_files"
 
+    # CAS file storage backend. "local" (default) writes to cas_file_storage_dir
+    # on disk -- fine for dev, but ephemeral on Fargate. Staging/prod set this
+    # to "s3" (infra/modules/storage) via CAS_FILE_STORAGE_BACKEND/
+    # CAS_FILES_BUCKET_NAME, injected the same way the other task-def env vars are.
+    cas_file_storage_backend: str = "local"
+    cas_files_bucket_name: str = ""
+
     # ECS Fargate RunTask invocation for the analytics recompute dispatcher
     # (see Docs/superpowers/specs/2026-09-02-analytics-precompute-architecture-design.md).
     # Empty defaults are deliberate for local dev. In staging these are

@@ -12,7 +12,11 @@ from app.models.imports import Import
 from app.models.user import User
 from app.services.auth.session import get_active_user
 from app.services.dashboard.household_members import get_household_member_for_user
-from app.services.import_.attribution import AttributionConfirmationRequiredError, CrossAccountPanBlockedError
+from app.services.import_.attribution import (
+    AttributionConfirmationRequiredError,
+    CrossAccountPanBlockedError,
+    PanAlreadyAttributedError,
+)
 from app.services.import_.lifecycle_service import (
     FileTooLargeError,
     InvalidFileFormatError,
@@ -135,6 +139,11 @@ async def upload_cas_import(
             status_code=409,
             detail={"code": "cross_account_pan_blocked", "message": str(exc)},
         ) from exc
+    except PanAlreadyAttributedError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "pan_already_attributed", "message": str(exc)},
+        ) from exc
     except InvalidFileFormatError as exc:
         raise HTTPException(status_code=400, detail={"code": "invalid_file", "message": str(exc)}) from exc
     except FileTooLargeError as exc:
@@ -200,6 +209,11 @@ def retry_password(
         raise HTTPException(
             status_code=409,
             detail={"code": "cross_account_pan_blocked", "message": str(exc)},
+        ) from exc
+    except PanAlreadyAttributedError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "pan_already_attributed", "message": str(exc)},
         ) from exc
     except SessionExpiredError as exc:
         raise HTTPException(status_code=410, detail={"code": "session_expired", "message": str(exc)}) from exc

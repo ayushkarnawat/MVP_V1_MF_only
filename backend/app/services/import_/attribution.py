@@ -64,6 +64,22 @@ CROSS_ACCOUNT_PAN_BLOCKED_MESSAGE = (
 )
 
 
+class PanAlreadyAttributedError(Exception):
+    """Raised by backfill_pan_if_missing when the confirmed member (picked via
+    confirmed_member_override, which lets the caller pick any household
+    member regardless of what resolve_attribution() already matched) isn't
+    who this PAN is actually on file for. Without this check the write hits
+    ix_household_members_pan_lookup_hash's unique index and surfaces as a
+    raw IntegrityError instead of a clean message (known edge case flagged
+    in the 2026-09-18 whole-branch review)."""
+
+
+PAN_ALREADY_ATTRIBUTED_MESSAGE = (
+    "This PAN is already on file for a different family member. "
+    "Contact support if you believe this is a mistake."
+)
+
+
 def enforce_attribution_confirmation(attribution: AttributionDecision, confirmed_override: bool) -> None:
     if attribution.requires_confirmation and not confirmed_override:
         raise AttributionConfirmationRequiredError(attribution)
@@ -185,5 +201,9 @@ def backfill_pan_if_missing(db: Session, member: HouseholdMember, parse_result: 
     pan = parse_result.investor.pan
     if not pan:
         return
+    pan_hash = hash_pan(pan)
+    existing = _find_member_by_pan_hash(db, pan_hash)
+    if existing is not None and existing.id != member.id:
+        raise PanAlreadyAttributedError(PAN_ALREADY_ATTRIBUTED_MESSAGE)
     member.pan_encrypted = encrypt_pan(pan)
-    member.pan_lookup_hash = hash_pan(pan)
+    member.pan_lookup_hash = pan_hash

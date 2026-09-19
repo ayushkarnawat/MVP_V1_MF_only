@@ -4,7 +4,7 @@
 
 **Goal:** wire up the two things needed to run the already-built PAN-persistence/CAS-file-storage feature and the Postmark email provider for real in AWS staging: a private S3 bucket for retained CAS files, and Secrets Manager entries for the PAN encryption keys and the Postmark API token — reusing the KMS key and IAM patterns already staged in this repo's Terraform, not inventing new ones.
 
-**Nothing in this plan has been applied yet.** No `.tfstate` exists for this environment (confirmed by its absence in the repo) — Phase 0/1 Terraform has never been run. This plan's Terraform changes land on top of that unapplied state, alongside everything else Phase 0/1 already defines.
+**Correction (2026-09-19, re-verified against real AWS, not assumed from the repo alone):** the original framing below — "no `.tfstate` exists, Phase 0/1 has never been run" — was true when this section was first drafted but is stale. Phase 0-3 Terraform (networking, security, database, ECR, backend) was applied on 2026-09-09 and is live in `ap-south-1` today: a real VPC, RDS instance, ECS cluster/service, and ALB are serving traffic. **Nothing in this plan's own additions (the storage/security/backend/scheduler changes below) has been applied yet** — confirmed this session via a read-only `terraform plan` against the real remote state, and by checking Secrets Manager/S3 directly (neither the new `pan-keys`/`postmark-api-token` secrets nor the `cas-files` bucket exist yet). This plan's changes land as an **incremental apply on top of the already-live environment**, not a from-scratch bootstrap — see Part D for the exact expected diff.
 
 **A correction worth knowing before you start:** the original framing of this work was "fix a KMS gap" on the ECS task's ability to decrypt secrets. On close inspection of the actual staged Terraform (`infra/modules/backend/main.tf`), that's only half true — the request-serving task's *execution role* (`aws_iam_role.ecs_task_execution`) already has `kms:Decrypt`/`kms:DescribeKey` on the shared KMS key (added for the RDS password), it's just scoped to reading the *RDS secret specifically*, not the two new secrets this plan adds. The real, more interesting gap is that the task's *runtime role* (`aws_iam_role.backend_task` — the one the app's own AWS SDK calls run as) currently has **zero** S3 or KMS permissions at all; it's only ever been granted `ecs:RunTask` for the analytics dispatcher. That's the role that needs new access, for a different reason (writing/reading S3 objects encrypted with the shared key), not the reason originally assumed.
 
@@ -69,7 +69,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "cas_files" {
   bucket = aws_s3_bucket.cas_files.id
 
   rule {
-    id     = "expire-cas-files-after-30-days"
+    id     = "expire-cas-files"
     status = "Enabled"
     filter {}
     expiration {
@@ -108,7 +108,7 @@ Create `infra/modules/storage/outputs.tf`:
 ```hcl
 output "bucket_name" {
   description = "Name of the private S3 bucket holding retained CAS files."
-  value       = aws_s3_bucket.cas_files.bucket
+  value       = aws_s3_bucket.cas_files.id
 }
 
 output "bucket_arn" {
@@ -137,8 +137,8 @@ resource "aws_secretsmanager_secret" "pan_keys" {
 resource "aws_secretsmanager_secret_version" "pan_keys" {
   secret_id = aws_secretsmanager_secret.pan_keys.id
   secret_string = jsonencode({
-    encryption_key = var.pan_encryption_key
-    lookup_pepper  = var.pan_lookup_pepper
+    PAN_ENCRYPTION_KEY = var.pan_encryption_key
+    PAN_LOOKUP_PEPPER  = var.pan_lookup_pepper
   })
 }
 
@@ -188,7 +188,7 @@ output "pan_keys_secret_arn" {
   value       = aws_secretsmanager_secret.pan_keys.arn
 }
 
-output "postmark_secret_arn" {
+output "postmark_api_token_secret_arn" {
   description = "ARN of the Secrets Manager secret holding the Postmark API token."
   value       = aws_secretsmanager_secret.postmark_api_token.arn
 }
@@ -204,13 +204,11 @@ Now resolve the stale comment this plan makes obsolete. In `infra/modules/securi
 with:
 
 ```hcl
-  # ecs_task_execution already has kms:Decrypt/kms:DescribeKey on this key
-  # (infra/modules/backend/main.tf, rds_master_secret_read) -- broad because
-  # it's scoped to the key ARN, not per-secret, so it already covers the new
-  # pan_keys/postmark_api_token secrets below without any change here.
-  # backend_task separately needs its own kms:GenerateDataKey/Decrypt grant
-  # to read/write SSE-KMS objects in the CAS-files S3 bucket -- see
-  # infra/modules/backend/main.tf's cas_files_access policy.
+  # Phase 3 granted the ECS task execution role kms:Decrypt, kms:GenerateDataKey,
+  # and kms:DescribeKey on this key ARN via
+  # infra/modules/backend's aws_iam_role_policy.ecs_secrets_read (renamed from
+  # rds_master_secret_read once its scope grew to cover the pan_keys and
+  # postmark_api_token secrets below, not just the RDS master secret).
 ```
 
 ### A3. New variables on `infra/modules/backend/variables.tf`
@@ -219,30 +217,45 @@ Add:
 
 ```hcl
 variable "pan_keys_secret_arn" {
-  description = "ARN of the Secrets Manager secret holding the PAN encryption key + lookup pepper."
+  description = "ARN of the Secrets Manager secret holding PAN_ENCRYPTION_KEY/PAN_LOOKUP_PEPPER."
   type        = string
 }
 
-variable "postmark_secret_arn" {
+variable "postmark_api_token_secret_arn" {
   description = "ARN of the Secrets Manager secret holding the Postmark API token."
   type        = string
 }
 
-variable "postmark_from_email" {
-  description = "Verified Postmark sender address (not secret -- see the runbook's manual Sender Signature step)."
-  type        = string
-}
-
 variable "cas_files_bucket_name" {
-  description = "Name of the S3 bucket holding retained CAS files."
+  description = "Name of the S3 bucket storing CAS PDF files (infra/modules/storage)."
   type        = string
 }
 
 variable "cas_files_bucket_arn" {
-  description = "ARN of the S3 bucket holding retained CAS files."
+  description = "ARN of the S3 bucket storing CAS PDF files (infra/modules/storage)."
   type        = string
 }
+
+variable "otp_delivery_mode" {
+  description = "OTP delivery mode. Stays \"stub\" until the Postmark Sender Signature is confirmed (Part C), then flips to \"postmark\" via this var -- no code/image change needed for that cutover."
+  type        = string
+  default     = "stub"
+}
+
+variable "email_delivery_mode" {
+  description = "General email delivery mode (app/services/auth/email_provider.py). Same stub-until-Sender-Signature-confirmed cutover as otp_delivery_mode."
+  type        = string
+  default     = "stub"
+}
+
+variable "postmark_from_email" {
+  description = "Verified Postmark Sender Signature address emails are sent from. Must match the address confirmed in Part C before flipping *_delivery_mode to \"postmark\"."
+  type        = string
+  default     = ""
+}
 ```
+
+**Deviation from the original plan, worth flagging explicitly:** the plan as first written hardcoded `EMAIL_DELIVERY_MODE = "postmark"` directly in A4c below (i.e. assumed Postmark would already be live by apply time) and never touched the pre-existing `OTP_DELIVERY_MODE` at all. The actual implementation instead makes **both** modes Terraform variables — this is still the right call even now that Postmark is confirmed working (2026-09-19: real test sends succeeded), because it means the cutover from `"stub"` to `"postmark"` never requires a code or image change, only a var value, regardless of when the Sender Signature happens to get (re)confirmed in the future. **Since the Sender Signature is already confirmed as of this update, there's no reason to default to `"stub"` and do a second follow-up apply** — Part D's Step 1 now exports `TF_VAR_otp_delivery_mode=postmark` / `TF_VAR_email_delivery_mode=postmark` directly, so the one apply in Step 5 goes live with real Postmark delivery immediately. The vars still default to `"stub"` in code (so a future re-apply without those exports set fails safe, not silently-live), but this run's actual values are `"postmark"`.
 
 ### A4. IAM + ECS task definition changes in `infra/modules/backend/main.tf`
 
@@ -263,7 +276,7 @@ data "aws_iam_policy_document" "ecs_secrets_read" {
     sid       = "ReadAppSecrets"
     effect    = "Allow"
     actions   = ["secretsmanager:GetSecretValue"]
-    resources = [var.pan_keys_secret_arn, var.postmark_secret_arn]
+    resources = [var.pan_keys_secret_arn, var.postmark_api_token_secret_arn]
   }
 
   statement {
@@ -299,7 +312,14 @@ data "aws_iam_policy_document" "backend_task_cas_files" {
   }
 
   statement {
-    sid       = "EncryptDecryptCasFiles"
+    sid       = "ListCasFilesBucket"
+    effect    = "Allow"
+    actions   = ["s3:ListBucket"]
+    resources = [var.cas_files_bucket_arn]
+  }
+
+  statement {
+    sid       = "UseSharedKeyForCasFiles"
     effect    = "Allow"
     actions   = ["kms:GenerateDataKey", "kms:Decrypt", "kms:DescribeKey"]
     resources = [var.kms_key_arn]
@@ -313,10 +333,11 @@ resource "aws_iam_role_policy" "backend_task_cas_files" {
 }
 ```
 
-**A4c. Add the new env vars + secrets to the request-serving task definition** — `aws_ecs_task_definition.this` only (not `analytics_recompute`, which never touches imports or sends email). In its `environment` list, add:
+**A4c. Add the new env vars + secrets to the request-serving task definition** — `aws_ecs_task_definition.this` only (not `analytics_recompute`, which never touches imports or sends email). In its `environment` list, add (also changing the pre-existing `OTP_DELIVERY_MODE` entry from a hardcoded `"stub"` literal to `var.otp_delivery_mode`, for the same var-based-cutover reason as `EMAIL_DELIVERY_MODE` — see the deviation note in A3):
 
 ```hcl
-        { name = "EMAIL_DELIVERY_MODE", value = "postmark" },
+        { name = "OTP_DELIVERY_MODE", value = var.otp_delivery_mode },
+        { name = "EMAIL_DELIVERY_MODE", value = var.email_delivery_mode },
         { name = "POSTMARK_FROM_EMAIL", value = var.postmark_from_email },
         { name = "CAS_FILE_STORAGE_BACKEND", value = "s3" },
         { name = "CAS_FILES_BUCKET_NAME", value = var.cas_files_bucket_name },
@@ -327,15 +348,15 @@ In its `secrets` list, alongside the existing `DB_PASSWORD` entry, add:
 ```hcl
         {
           name      = "PAN_ENCRYPTION_KEY"
-          valueFrom = "${var.pan_keys_secret_arn}:encryption_key::"
+          valueFrom = "${var.pan_keys_secret_arn}:PAN_ENCRYPTION_KEY::"
         },
         {
           name      = "PAN_LOOKUP_PEPPER"
-          valueFrom = "${var.pan_keys_secret_arn}:lookup_pepper::"
+          valueFrom = "${var.pan_keys_secret_arn}:PAN_LOOKUP_PEPPER::"
         },
         {
           name      = "POSTMARK_API_TOKEN"
-          valueFrom = var.postmark_secret_arn
+          valueFrom = var.postmark_api_token_secret_arn
         }
 ```
 
@@ -369,9 +390,9 @@ module "security" {
   environment = var.environment
   project     = var.project
 
-  pan_encryption_key  = var.pan_encryption_key
-  pan_lookup_pepper   = var.pan_lookup_pepper
-  postmark_api_token  = var.postmark_api_token
+  pan_encryption_key = var.pan_encryption_key
+  pan_lookup_pepper  = var.pan_lookup_pepper
+  postmark_api_token = var.postmark_api_token
 }
 ```
 
@@ -379,43 +400,104 @@ Add matching pass-through variables to `infra/envs/staging/variables.tf`:
 
 ```hcl
 variable "pan_encryption_key" {
-  type      = string
-  sensitive = true
+  description = "Base64-encoded 32-byte AES key for PAN envelope encryption. Supply via TF_VAR_pan_encryption_key -- never commit to a .tfvars file."
+  type        = string
+  sensitive   = true
 }
 
 variable "pan_lookup_pepper" {
-  type      = string
-  sensitive = true
+  description = "Base64-encoded 32-byte pepper for the PAN lookup-hash HMAC. Supply via TF_VAR_pan_lookup_pepper -- never commit to a .tfvars file."
+  type        = string
+  sensitive   = true
 }
 
 variable "postmark_api_token" {
-  type      = string
-  sensitive = true
+  description = "Postmark server API token for outbound OTP email. Supply via TF_VAR_postmark_api_token -- never commit to a .tfvars file."
+  type        = string
+  sensitive   = true
+}
+
+variable "otp_delivery_mode" {
+  type    = string
+  default = "stub"
+}
+
+variable "email_delivery_mode" {
+  type    = string
+  default = "stub"
 }
 
 variable "postmark_from_email" {
-  type = string
+  type    = string
+  default = ""
 }
 ```
 
 Update the `module "backend"` block to pass the new variables:
 
 ```hcl
-  pan_keys_secret_arn    = module.security.pan_keys_secret_arn
-  postmark_secret_arn    = module.security.postmark_secret_arn
-  postmark_from_email    = var.postmark_from_email
-  cas_files_bucket_name  = module.storage.bucket_name
-  cas_files_bucket_arn   = module.storage.bucket_arn
+  cas_files_bucket_name         = module.storage.bucket_name
+  cas_files_bucket_arn          = module.storage.bucket_arn
+  pan_keys_secret_arn           = module.security.pan_keys_secret_arn
+  postmark_api_token_secret_arn = module.security.postmark_api_token_secret_arn
+  otp_delivery_mode             = var.otp_delivery_mode
+  email_delivery_mode           = var.email_delivery_mode
+  postmark_from_email           = var.postmark_from_email
 ```
 
-Optionally add an output for visibility after apply:
+Update the `module "scheduler"` block to pass through the two new variables it needs for the CAS-file expiry job (see gap #3 below):
 
 ```hcl
-output "cas_files_bucket_name" {
-  description = "Name of the S3 bucket holding retained CAS files."
-  value       = module.storage.bucket_name
+  backend_task_role_arn = module.backend.backend_task_role_arn
+  cas_files_bucket_name = module.storage.bucket_name
+```
+
+This requires a new `backend_task_role_arn` output on `infra/modules/backend/outputs.tf`:
+
+```hcl
+output "backend_task_role_arn" {
+  description = "ARN of the backend task role -- reused by the scheduled CAS-file expiry job so it can delete S3 objects without a second S3/KMS policy."
+  value       = aws_iam_role.backend_task.arn
 }
 ```
+
+### A6. Schedule the CAS-file expiry sweep — `infra/modules/scheduler/`
+
+**This section did not exist in the original plan** — the 2026-09-18 PAN/CAS design explicitly deferred wiring `app/scripts/expire_cas_files.py` to a real scheduler ("out of scope for that pass"). Left undone, the S3 bucket's 30-day lifecycle rule (A1) would eventually delete objects, but the matching `imports.file_reference`/`file_expires_at` DB rows would never get cleaned up — a silent, permanent drift between Postgres and S3. Fixing that gap here.
+
+Add a new job to the `local.jobs` map in `infra/modules/scheduler/main.tf`:
+
+```hcl
+cas_file_expiry_daily = {
+  slug                = "cas-file-expiry-daily"
+  command             = ["python", "-m", "app.scripts.expire_cas_files"]
+  schedule_expression = "cron(0 19 * * ? *)"
+  task_role_arn       = var.backend_task_role_arn
+}
+```
+
+This is the first scheduled job that needs a `task_role_arn` at all (every existing job — `nav_daily`, `benchmark_daily`, `ter_monthly`, `aaum_quarterly`, `analytics_recompute_daily`, `account_deletion_daily` — only ever needed the shared execution role, since none of them make runtime AWS SDK calls). `expire_stored_files()` calls `S3FileStorage.delete()`, which needs real S3 permissions, so every job entry in the map now carries an explicit `task_role_arn` field (`null` for the six pre-existing jobs, `var.backend_task_role_arn` for this one) — reusing `backend_task`'s existing role rather than minting a new one, since it's already scoped to exactly the S3 + KMS actions this job needs (A4b).
+
+Because only one job sets a non-null `task_role_arn`, the scheduler's own IAM role needs an extra grant to be allowed to pass that role to ECS:
+
+```hcl
+  statement {
+    sid       = "PassCasFileExpiryTaskRole"
+    effect    = "Allow"
+    actions   = ["iam:PassRole"]
+    resources = [var.backend_task_role_arn]
+
+    condition {
+      test     = "StringEquals"
+      variable = "iam:PassedToService"
+      values   = ["ecs-tasks.amazonaws.com"]
+    }
+  }
+```
+
+Add `backend_task_role_arn` and `cas_files_bucket_name` to `infra/modules/scheduler/variables.tf` (plain `string`, no default), thread `task_role_arn = each.value.task_role_arn` onto `aws_ecs_task_definition.jobs`, and add `{ name = "CAS_FILE_STORAGE_BACKEND", value = "s3" }` / `{ name = "CAS_FILES_BUCKET_NAME", value = var.cas_files_bucket_name }` to every job's shared `environment` block (a harmless no-op for the jobs that don't touch S3). This env-var change is why the plan in Part D below shows **all six pre-existing job task definitions being replaced**, not just a new seventh one added — every job's container definition changes, forcing a new revision, even though only `cas_file_expiry_daily` actually uses the new values.
+
+**Also confirm the invocation matches**: `backend/app/scripts/expire_cas_files.py` already exists (written when the PAN/CAS design was implemented, just never scheduled) and is invoked as `python -m app.scripts.expire_cas_files` — matching the `command` above exactly, since the Dockerfile's `WORKDIR /app` + `COPY app ./app` makes `app` a top-level importable package inside the container.
 
 ---
 
@@ -533,53 +615,157 @@ Confirm Postmark's Sender Signature for the address that will be `postmark_from_
 3. Postmark emails a confirmation link to that address (it lands in the existing Microsoft 365 mailbox — no DNS/Route 53 change needed).
 4. Whoever owns that mailbox clicks the link. Signature shows "Confirmed."
 
-Do this before or after the Terraform apply — order doesn't matter, but emails won't actually send until it's done.
+**2026-09-19 update: done — two separate steps happened, not one.**
+
+**Step 1 (single Sender Signature):** confirmed `aditi.shanbhag@unifolio.in` via Postmark's email-click flow (`signatures.postmarkapp.com/confirm/success-first`) — this alone would only authorize that one address.
+
+**Step 2 (Domain Signature, done afterward):** added two DNS records to Route 53, verified via direct DNS lookup (not just trusting the Postmark dashboard):
+- DKIM TXT record: `20260917063050pm._domainkey.unifolio.in`
+- Return-Path CNAME: `pm-bounces.unifolio.in` → `pm.mtasv.net`
+
+Postmark's `account.postmarkapp.com/signature_domains/8114367` → DNS Settings page shows both as **Verified**, and — decisively — a third status card titled **"Send from any address," status Active**, reading: *"Excellent, your domain is verified! We enabled the ability to send from any email address on this domain when you added and verified a DKIM DNS record."* That card is Postmark's own statement that the grant is domain-wide, not address-locked; the `._domainkey` hostname itself is a domain-level DKIM key, not tied to one mailbox.
+
+Practical effect: `postmark_from_email` can be **any** address `@unifolio.in`.
+
+```
+TF_VAR_postmark_from_email="aditi.shanbhag@unifolio.in"
+```
+
+This deployment uses `aditi.shanbhag@unifolio.in` specifically (a real inbox someone owns), but that's a choice, not a constraint — any other `@unifolio.in` address works too, per Postmark's own "send from any address" confirmation. Part D's apply goes live with real Postmark delivery directly — no separate flip-and-reapply step (see the A3 deviation note above).
 
 ---
 
 ## Part D — Runbook
 
-**D1. Generate the two PAN key values locally** (32 random bytes each, base64-encoded):
+**Current real state, confirmed this session (not assumed):** Phase 0-3 Terraform (networking, security, database, ECR, backend) is already applied and live in `ap-south-1` — a real VPC, RDS instance, ECS cluster/service, and ALB exist, serving traffic today. This plan's changes are an **incremental apply on top of that live state**, not a from-scratch bootstrap. `terraform plan` (run read-only this session, not applied) against the real remote state shows **21 to add, 8 to change, 8 to destroy** — the 8 destroys are all old ECS task-definition revisions and one renamed IAM inline policy being replaced, never the RDS instance, VPC, or ECS cluster/service themselves. The backend's ECR `:latest` tag currently points at commit `b972e65` (pushed 2026-09-11) — 8 days and the entire PAN/CAS/Postmark/Fund-Score body of work stale relative to this branch's current `HEAD`, so a fresh image build/push is a real, necessary step here (gap #2), not a formality. Secrets Manager and S3 currently have none of this plan's new resources (`pan-keys`, `postmark-api-token` secrets, the `cas-files` bucket) — confirming Part A hasn't been applied yet.
+
+Six ordered steps, each with a reason it has to be in this position relative to the others:
+
+**D1. Generate the PAN key values and gather the other secrets, before touching Terraform.**
 
 ```bash
 python3 -c "import base64, os; print(base64.b64encode(os.urandom(32)).decode())"
 python3 -c "import base64, os; print(base64.b64encode(os.urandom(32)).decode())"
 ```
 
-Run it twice — the two outputs must be different values (one is the encryption key, one is the lookup pepper; reusing one key for both defeats the point of keeping them separate).
-
-**D2. Set the sensitive values as environment variables** in the shell that will run `terraform apply` — never write these into any `.tfvars` file:
+Run it twice — the two outputs must differ (one is `PAN_ENCRYPTION_KEY`, one is `PAN_LOOKUP_PEPPER`; reusing one value for both defeats the point of keeping them separate). Then, in the shell that will run every command below — **never write any of these to a `.tfvars` file**:
 
 ```bash
-export TF_VAR_pan_encryption_key="<first value from D1>"
-export TF_VAR_pan_lookup_pepper="<second value from D1>"
+export TF_VAR_pan_encryption_key="<first value above>"
+export TF_VAR_pan_lookup_pepper="<second value above>"
 export TF_VAR_postmark_api_token="<the real Postmark server API token>"
-export TF_VAR_postmark_from_email="<the address confirmed in Part C>"
+export TF_VAR_postmark_from_email="aditi.shanbhag@unifolio.in"
+export TF_VAR_otp_delivery_mode="postmark"
+export TF_VAR_email_delivery_mode="postmark"
 ```
 
-**D3. Apply:**
+Per the 2026-09-19 update to Part C, Postmark is going live in this apply, not a follow-up one — hence both delivery-mode vars are set to `"postmark"` here instead of left at their `"stub"` default.
+
+**D2. Run migrations `0012`→`0015` against the real RDS instance, before any new code that assumes the new schema goes live.** The real instance is currently at `0011` (confirmed `alembic current` during the 2026-09-09 apply session; nothing has migrated it since). Via the SSM bastion tunnel, the same pattern already used for the initial schema migration:
+
+```bash
+aws ssm start-session \
+  --target i-0b67d40d9b58b7814 \
+  --document-name AWS-StartPortForwardingSessionToRemoteHost \
+  --parameters '{"host":["staging-rds.ctu88scmut9m.ap-south-1.rds.amazonaws.com"],"portNumber":["5432"],"localPortNumber":["5433"]}'
+```
+
+In a second terminal, fetch the master password from Secrets Manager (route it through `os.environ`, never a literal string — the real password contains `$` characters that bash will silently mangle inside a double-quoted literal):
+
+```bash
+export PGPASSWORD=$(aws secretsmanager get-secret-value \
+  --secret-id "$(aws secretsmanager list-secrets --query "SecretList[?starts_with(Name, 'rds!db-')].Name" --output text)" \
+  --query SecretString --output text | python3 -c "import json,sys; print(json.load(sys.stdin)['password'])")
+
+cd backend
+DATABASE_URL="postgresql://unifolio:${PGPASSWORD}@localhost:5433/unifolio" .venv/bin/alembic upgrade head
+DATABASE_URL="postgresql://unifolio:${PGPASSWORD}@localhost:5433/unifolio" .venv/bin/alembic current   # confirm 0015 (head)
+```
+
+**D3. Build and push the current codebase's image to ECR, so the `:latest` tag stops pointing at 8-day-old code before anything redeploys against it.**
+
+```bash
+cd backend
+docker build -t unifolio-staging-backend .
+# If the build fails with "error from sender: failed to xattr .pytest_tmp: permission denied",
+# a stale backend/.pytest_tmp dir with broken 9p permissions is the cause even though
+# it's .dockerignore'd (BuildKit still stats every path during its context walk):
+#   sudo rm -rf .pytest_tmp
+# then re-run the build.
+
+aws ecr get-login-password --region ap-south-1 | \
+  docker login --username AWS --password-stdin 811364789032.dkr.ecr.ap-south-1.amazonaws.com
+
+docker tag unifolio-staging-backend:latest \
+  811364789032.dkr.ecr.ap-south-1.amazonaws.com/unifolio-staging-backend:latest
+docker push 811364789032.dkr.ecr.ap-south-1.amazonaws.com/unifolio-staging-backend:latest
+```
+
+Pushing doesn't redeploy anything by itself — the running ECS task keeps serving on the old image until D5 below.
+
+**D4. Apply the Terraform.**
 
 ```bash
 cd infra/envs/staging
-terraform init   # only needed the first time, or after adding the new module
+terraform init      # only needed the first time, or after adding the new storage module
 terraform plan
 ```
 
-Read the plan output. Expect to see: 1 new S3 bucket + its 4 sub-resources (public-access-block, versioning, encryption, lifecycle), 2 new Secrets Manager secrets + their 2 versions, 1 replaced `aws_iam_role_policy` (the rename in A4a — Terraform will show this as delete+create, not a destructive change to the role itself), 1 new `aws_iam_role_policy` (A4b), and an in-place update to both ECS task definitions (new revision, not destroyed). If the plan shows anything destroying the RDS database, the ECS cluster, or the VPC, **stop and don't apply** — nothing in this plan should touch those.
+Read the plan output. Expect (confirmed by an actual read-only `terraform plan` against the live remote state this session): **21 to add** (the new `module.storage` bucket + its 4 sub-resources, `module.security`'s 2 new secrets + 2 versions, the new `backend_task_cas_files` IAM policy, the new `cas_file_expiry_daily` scheduler job's log group/task def/schedule, the new `PassCasFileExpiryTaskRole` statement), **8 to change** (the ECS service's in-place update, the scheduler's own IAM role policy, and the 6 pre-existing schedule resources picking up their new task-def ARN), **8 to destroy** (the old `ecs_secrets_read`-renamed-from-`rds_master_secret_read` policy, the backend's old task-def revision, and 6 old scheduler-job task-def revisions — all replaced, not deleted-and-gone; ECS keeps every revision's history). **If the plan shows anything touching the RDS instance, VPC, ECS cluster, or ECS *service* resource being destroyed (as opposed to updated in-place) — stop and don't apply**, that's not this plan's doing.
 
 ```bash
 terraform apply
 ```
 
-**D4. Verify:**
+Applying updates `aws_ecs_service.this` to reference the new task-definition revision, which — combined with the fresh image pushed in D3 — triggers ECS to start rolling out the new deployment immediately. This is also true for all 6 pre-existing scheduler jobs (their task defs pick up the new `CAS_FILE_STORAGE_BACKEND`/`CAS_FILES_BUCKET_NAME` env vars — harmless for jobs that don't touch S3 — so every one of them gets a new revision even though only `cas_file_expiry_daily` needed the change; they only actually run at their next scheduled fire time, no immediate action).
 
-1. `terraform output cas_files_bucket_name` — confirm the bucket exists: `aws s3 ls s3://<that name>/` (should be empty right after creation).
-2. Confirm the ECS service redeployed with the new task definition revision (check the ECS console, or `aws ecs describe-services`).
-3. Do a real CAS import against the staging URL. Then:
-   ```bash
-   aws s3 ls s3://<cas-files-bucket-name>/ --recursive
-   ```
-   should show the uploaded file under a `<user_id>/<import_id>.pdf` key.
-4. Trigger a real OTP send (e.g. sign up with a real email) and confirm it actually arrives — this exercises the Postmark secret injection end-to-end, not just that the container booted.
+**D5. Watch the deployment live — this is the mitigation for the real risk in this apply, not an optional nicety.** `aws_ecs_service.this` runs with `deployment_minimum_healthy_percent = 0` / `deployment_maximum_percent = 100` (a deliberate, pre-existing tradeoff — `AWS Readiness/aws-golive-launch-blockers.md` requires stop-then-start deploys while the app relies on single-process in-memory state), which means the **old task is stopped before the new one is confirmed healthy** — there is a window with zero running tasks even on a normal deploy. Combine that with this plan's new PAN-key startup dependency: if `PAN_ENCRYPTION_KEY`/`PAN_LOOKUP_PEPPER` are wrong, missing, or the execution role can't read the new secrets (a typo in `TF_VAR_pan_encryption_key`, an IAM policy that didn't attach correctly), the new task can crash-loop on boot, and — because the old task is already gone — that's a full outage, not a degraded one, until someone notices and rolls back. So, immediately after `terraform apply` returns:
 
-**D5. If something's wrong:** `terraform apply` on this plan doesn't touch or replace the RDS instance, VPC, or ECS cluster, so a bad apply here is recoverable by fixing the Terraform and re-applying, or `terraform destroy -target=module.storage` to remove just the new bucket if it needs to be redone. Don't run a bare `terraform destroy` — that would tear down everything Phase 0/1 already defined, not just this plan's additions.
+```bash
+watch -n 5 'aws ecs describe-services --cluster unifolio-staging --services unifolio-staging-backend \
+  --query "services[0].{running:runningCount,desired:desiredCount,deployments:deployments[].{status:status,rolloutState:rolloutState}}"'
+```
+
+and in another terminal:
+
+```bash
+aws logs tail /ecs/staging-backend --follow
+curl -s https://staging-api.unifolio.in/health
+```
+
+Don't move on until `runningCount == desiredCount`, `rolloutState: COMPLETED`, and the logs show clean startup with no repeated crash/restart cycles. **If it's crash-looping:** roll back by re-pointing the service at the previous known-good task-definition revision (`aws ecs update-service --cluster unifolio-staging --service unifolio-staging-backend --task-definition unifolio-staging-backend:2` — revision `2` is the one confirmed healthy as of this session; check the actual previous revision number if more applies have landed since), then diagnose the secret/IAM issue with Terraform still applied (rolling back the service doesn't require `terraform destroy`).
+
+**D6. One-off job run, then full smoke tests.**
+
+Run the new expiry job once manually rather than waiting for its first 19:00 IST cron fire, to confirm it works before trusting it unattended:
+
+```bash
+aws ecs run-task --cluster unifolio-staging \
+  --task-definition unifolio-staging-job-cas-file-expiry-daily \
+  --launch-type FARGATE \
+  --network-configuration "awsvpcConfiguration={subnets=[<private-app-subnet-ids>],securityGroups=[<ecs-security-group-id>],assignPublicIp=DISABLED}"
+```
+
+(`terraform output` on `infra/envs/staging`'s `networking` output block has the exact subnet/security-group IDs.) Then:
+
+1. `terraform output cas_files_bucket_name` → `aws s3 ls s3://<that name>/` (empty right after creation).
+2. Do a real CAS import against `https://staging.unifolio.in`, then `aws s3 ls s3://<cas-files-bucket-name>/ --recursive` — confirm a `<user_id>/<import_id>.pdf` object exists.
+3. Exercise a real PAN encrypt/decrypt round-trip (an import containing a PAN; confirm the household-member record's PAN displays correctly after retrieval — proves the Secrets-Manager-sourced `PAN_ENCRYPTION_KEY`/`PAN_LOOKUP_PEPPER` are actually being read, not just present in the task def).
+4. Exercise the cross-account-PAN-block and override-mismatch paths live (the feature this whole plan exists to support in the first place — commits `6de6ea7`/`7e1e400`), not just in the test suite.
+5. OTP/email: `otp_delivery_mode`/`email_delivery_mode` are `"postmark"` from this apply (per D1's exports), so trigger a real sign-up directly and confirm the OTP email actually arrives, sent from `aditi.shanbhag@unifolio.in`. No separate flip-and-reapply step needed.
+6. Fund Score card and the NAV-date fix: open a portfolio with holdings, confirm the redesigned card renders (tier progress bar, inline verdict, factor groups) and dates show `DD-MM-YYYY`. This only proves anything if **D7 below actually ran** first — these are frontend changes; rebuilding the backend image (D3) does not ship them.
+
+**D7. Rebuild and deploy the frontend — a step this plan's earlier draft never covered.** Everything above (D1-D6) only rebuilds and redeploys the **backend**. `module.frontend`'s S3 bucket + CloudFront distribution are already live (confirmed this session), but nothing in D1-D6 pushes a new frontend build into that bucket — without this step, `staging.unifolio.in` keeps serving whatever static build was uploaded in the last manual deploy, regardless of what's on `HEAD` now (the Fund Score redesign, the NAV-date fix, and everything else merged into this branch since then). This is the same gap the 2026-09-11 prerequisites doc had as its own "Step 6" — this plan is folding it in properly this time.
+
+```bash
+cd "$REPO_ROOT/frontend"
+VITE_API_BASE_URL=https://staging-api.unifolio.in npm run build
+aws s3 sync dist/ "s3://$(terraform -chdir="$REPO_ROOT/infra/envs/staging" output -raw s3_bucket_name)/" --delete
+aws cloudfront create-invalidation \
+  --distribution-id "$(terraform -chdir="$REPO_ROOT/infra/envs/staging" output -raw cloudfront_distribution_id)" \
+  --paths "/*"
+```
+
+No `VITE_GOOGLE_OAUTH_CLIENT_ID` — deliberately left unset for staging, a pre-existing 2026-09-11 scope decision, unrelated to this push. CloudFront invalidation takes a couple of minutes to propagate; a hard-refresh (or wait) before checking item 6 above if the old build still appears to be serving.
+
+**If something's wrong:** this apply doesn't touch or replace the RDS instance, VPC, or ECS cluster, so a bad apply here is recoverable by fixing the Terraform and re-applying, or `terraform destroy -target=module.storage` to remove just the new bucket if it needs to be redone. Don't run a bare `terraform destroy` — that would tear down the entire live staging environment, not just this plan's additions.

@@ -12,6 +12,7 @@ from app.services.import_.attribution import (
     AttributionDecision,
     AttributionStatus,
     CrossAccountPanBlockedError,
+    PanAlreadyAttributedError,
     backfill_pan_if_missing,
     enforce_attribution_confirmation,
     resolve_attribution,
@@ -164,6 +165,22 @@ def test_backfill_no_ops_when_cas_has_no_pan(db_session, household_setup):
     backfill_pan_if_missing(db_session, member, _parse_result(pan=None))
     assert member.pan_lookup_hash is None
     assert member.pan_encrypted is None
+
+
+def test_backfill_onto_an_overridden_member_who_isnt_the_pan_owner_is_blocked(db_session, household_setup):
+    # Reproduces the known edge case: confirmed_member_override=True lets a
+    # caller pick a member other than the one resolve_attribution() already
+    # matched by PAN. Backfilling that PAN onto the wrong member used to hit
+    # ix_household_members_pan_lookup_hash's unique index and surface as a
+    # raw IntegrityError instead of this clean, catchable error.
+    wrong_member = household_setup["child"]
+    assert wrong_member.pan_lookup_hash is None
+
+    with pytest.raises(PanAlreadyAttributedError):
+        backfill_pan_if_missing(db_session, wrong_member, _parse_result(pan="BCDEF2222B"))
+
+    assert wrong_member.pan_lookup_hash is None
+    assert wrong_member.pan_encrypted is None
 
 
 def test_attribution_confirmation_gate_requires_an_explicit_override():
