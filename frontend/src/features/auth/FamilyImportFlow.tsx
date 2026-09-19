@@ -7,6 +7,7 @@ import { ParsingIndicator } from "../import/ParsingIndicator";
 import { ReviewTable } from "../import/ReviewTable";
 import { ImportError } from "../import/ImportError";
 import { ImportConfirmed } from "../import/ImportConfirmed";
+import { CrossAccountBlockedDialog } from "../import/CrossAccountBlockedDialog";
 import { ApiError, confirmImport, parseImport } from "../import/api";
 import type { ImportConfirmResponse, ImportPreviewResponse, ParseErrorPayload, SchemeConfirmation } from "../import/types";
 import { useAuth } from "./AuthContext";
@@ -16,6 +17,7 @@ import styles from "./onboarding.module.css";
 
 interface FamilyImportFlowProps {
   selfName: string;
+  onGoToHousehold?: () => void;
 }
 
 type Stage = "cards" | "own-choice" | "own-upload" | "queue" | "processing" | "done";
@@ -41,7 +43,7 @@ function toParseErrorPayload(err: unknown): ParseErrorPayload {
   return GENERIC_NETWORK_ERROR;
 }
 
-export function FamilyImportFlow({ selfName }: FamilyImportFlowProps) {
+export function FamilyImportFlow({ selfName, onGoToHousehold }: FamilyImportFlowProps) {
   const { updateMe } = useAuth();
   const [stage, setStage] = useState<Stage>("cards");
   const [familyMembers, setFamilyMembers] = useState<HouseholdMember[] | null>(null);
@@ -51,6 +53,7 @@ export function FamilyImportFlow({ selfName }: FamilyImportFlowProps) {
   const [processing, setProcessing] = useState<ProcessingState | null>(null);
   const [results, setResults] = useState<ImportConfirmResponse[]>([]);
   const [reviewNotice, setReviewNotice] = useState<string | null>(null);
+  const [crossAccountBlocked, setCrossAccountBlocked] = useState<string | null>(null);
   const [ownUploadError, setOwnUploadError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [selfMember, setSelfMember] = useState<HouseholdMember | null>(null);
@@ -122,10 +125,15 @@ export function FamilyImportFlow({ selfName }: FamilyImportFlowProps) {
       // review screen — keep the parsed preview rendered with an inline notice,
       // mirroring ImportFlow.handleConfirm.
       if (err instanceof ApiError && (err.status === 409 || err.status === 404)) {
+        const payload = toParseErrorPayload(err);
+        if (err.status === 409 && payload.code === "cross_account_pan_blocked") {
+          setCrossAccountBlocked(payload.message);
+          return;
+        }
         setReviewNotice(
           err.status === 404
             ? "This import session has expired. Please re-upload your CAS."
-            : toParseErrorPayload(err).message,
+            : payload.message,
         );
         return;
       }
@@ -241,6 +249,14 @@ export function FamilyImportFlow({ selfName }: FamilyImportFlowProps) {
       return (
         <>
           {reviewNotice && <p role="alert">{reviewNotice}</p>}
+          <CrossAccountBlockedDialog
+            isOpen={crossAccountBlocked !== null}
+            message={crossAccountBlocked ?? ""}
+            onBack={() => {
+              setCrossAccountBlocked(null);
+              onGoToHousehold?.();
+            }}
+          />
           <ReviewTable
             preview={processing.preview}
             confirming={confirming}

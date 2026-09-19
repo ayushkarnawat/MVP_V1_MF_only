@@ -90,6 +90,31 @@ describe("ImportFlow", () => {
     expect(screen.getByText(/review cas import/i)).toBeInTheDocument();
   });
 
+  it("shows the cross-account-blocked popup and routes Back through onGoToHousehold", async () => {
+    vi.mocked(api.parseImport).mockResolvedValue(EMPTY_PREVIEW);
+    vi.mocked(api.confirmImport).mockRejectedValue(
+      new ApiError(409, {
+        code: "cross_account_pan_blocked",
+        message: "This PAN is already tracked under a different Unifolio account. Contact support if you believe this is a mistake.",
+      }),
+    );
+    const handleGoToHousehold = vi.fn();
+
+    render(<ImportFlow householdMemberId="member-1" onGoToHousehold={handleGoToHousehold} />);
+    uploadAFile();
+    await waitFor(() => screen.getByRole("button", { name: /confirm import/i }));
+    fireEvent.click(screen.getByRole("button", { name: /confirm import/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/already tracked under a different unifolio account/i)).toBeInTheDocument(),
+    );
+    // Still on the review screen underneath the popup, not silently stuck with no feedback.
+    expect(screen.getByText(/review cas import/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /^back$/i }));
+    expect(handleGoToHousehold).toHaveBeenCalledTimes(1);
+  });
+
   it("switches to the matched member after a member-mismatch confirmation", async () => {
     vi.mocked(api.parseImport).mockResolvedValue(EMPTY_PREVIEW);
     vi.mocked(api.confirmImport)

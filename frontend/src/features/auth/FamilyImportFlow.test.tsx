@@ -48,13 +48,13 @@ function uploadFor(memberLabel: RegExp) {
   fireEvent.click(screen.getByRole("button", { name: /upload statement/i }));
 }
 
-function renderFlow() {
+function renderFlow(onGoToHousehold?: () => void) {
   vi.mocked(authApi.getMe).mockResolvedValue(ME);
   vi.mocked(authApi.updateMe).mockImplementation(async (body) => ({ ...ME, ...body }) as typeof ME);
   vi.mocked(authApi.listHouseholdMembers).mockResolvedValue(FAMILY);
   return render(
     <AuthProvider>
-      <FamilyImportFlow selfName="Ayush" />
+      <FamilyImportFlow selfName="Ayush" onGoToHousehold={onGoToHousehold} />
     </AuthProvider>,
   );
 }
@@ -209,6 +209,39 @@ describe("FamilyImportFlow", () => {
 
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(/expired/i));
     expect(screen.getByText(/review mom's cas import/i)).toBeInTheDocument();
+  });
+
+  it("shows the cross-account-blocked popup and routes Back through onGoToHousehold", async () => {
+    vi.mocked(importApi.parseImport).mockResolvedValue(EMPTY_PREVIEW);
+    vi.mocked(importApi.confirmImport).mockRejectedValueOnce(
+      new ApiError(409, {
+        code: "cross_account_pan_blocked",
+        message: "This PAN is already tracked under a different Unifolio account. Contact support if you believe this is a mistake.",
+      }),
+    );
+    const handleGoToHousehold = vi.fn();
+
+    renderFlow(handleGoToHousehold);
+    await waitFor(() => screen.getByText("Mom"));
+    uploadFor(/upload cas for mom/i);
+    await waitFor(() => screen.getAllByText(/uploaded/i));
+    fireEvent.click(screen.getByRole("button", { name: /skip for now.*dad/i }));
+    await waitFor(() => expect(screen.getByRole("button", { name: /^continue$/i })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
+    await waitFor(() => screen.getByText(/upload your own cas/i));
+    fireEvent.click(screen.getByRole("button", { name: /upload later/i }));
+    await waitFor(() => screen.getByRole("button", { name: /import now/i }));
+
+    fireEvent.click(screen.getByRole("button", { name: /import now/i }));
+    await waitFor(() => expect(screen.getByText(/review mom's cas import/i)).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: /confirm import/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/already tracked under a different unifolio account/i)).toBeInTheDocument(),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /^back$/i }));
+    expect(handleGoToHousehold).toHaveBeenCalledTimes(1);
   });
 
   it("shows a recoverable error when own-upload self-member setup fails", async () => {

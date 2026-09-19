@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   currentStep,
   goBack,
+  goBackTo,
   goNext,
   initHistory,
   isSkipped,
@@ -68,5 +69,34 @@ describe("onboarding history", () => {
     expect(isSkipped(state, "q2_investing")).toBe(true);
     state = markAnswered(state);
     expect(isSkipped(state, "q2_investing")).toBe(false);
+  });
+
+  it("goBackTo jumps straight to an earlier step regardless of how many steps deep the cursor is", () => {
+    let state = initHistory("q4_household");
+    state = goNext(state, "add_family");
+    state = goNext(state, "family_cas_upload");
+    state = goBackTo(state, "q4_household");
+    expect(currentStep(state)).toBe("q4_household");
+    // The forward path stays intact — this is a cursor move, not a truncation.
+    expect(state.order).toEqual(["q4_household", "add_family", "family_cas_upload"]);
+  });
+
+  it("goBackTo finds the last visit of a step that was seen more than once", () => {
+    let state = initHistory("q4_household");
+    state = goNext(state, "cas_upload");
+    state = goBack(state);
+    state = goNext(state, "add_family");
+    state = goNext(state, "family_cas_upload");
+    state = goBackTo(state, "q4_household");
+    expect(currentStep(state)).toBe("q4_household");
+    expect(state.order).toEqual(["q4_household", "add_family", "family_cas_upload"]);
+  });
+
+  it("goBackTo is a no-op when the target step was never visited", () => {
+    let state = initHistory("q4_household");
+    state = goNext(state, "add_family");
+    const before = state;
+    state = goBackTo(state, "parse_queue");
+    expect(state).toEqual(before);
   });
 });
