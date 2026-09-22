@@ -283,6 +283,64 @@ def test_signup_email_resend_returns_429_not_500(client):
     assert response.status_code == 429
 
 
+def test_request_email_otp_returns_502_not_500_when_send_fails(client, monkeypatch):
+    import app.api.auth as auth_module
+    from app.services.auth.email_provider import EmailSendError
+
+    def failing_create_otp_request(*args, **kwargs):
+        raise EmailSendError("boom")
+
+    monkeypatch.setattr(auth_module, "create_otp_request", failing_create_otp_request)
+
+    response = client.post("/auth/email-otp/request", json={"email": "failure@example.com"})
+
+    assert response.status_code == 502
+    assert response.json()["detail"]
+
+
+def test_signup_email_returns_502_not_500_when_send_fails(client, monkeypatch):
+    import app.api.auth as auth_module
+    from app.services.auth.email_provider import EmailSendError
+
+    def failing_create_otp_request(*args, **kwargs):
+        raise EmailSendError("boom")
+
+    monkeypatch.setattr(auth_module, "create_otp_request", failing_create_otp_request)
+
+    response = _signup(client, "sendfailure@example.com")
+
+    assert response.status_code == 502
+    assert response.json()["detail"]
+
+
+def test_request_contact_change_returns_502_not_500_when_send_fails(client, monkeypatch):
+    """Mirrors test_contact_change_routes.py's `_signup` pattern (phone-OTP
+    signup to get a Bearer session token) since /auth/contact-change/request
+    requires an authenticated user -- unlike the two email-only routes above."""
+    import app.api.auth as auth_module
+    from app.services.auth.email_provider import EmailSendError
+
+    otp = client.post("/auth/otp/request", json={"phone_number": "+919300000099"}).json()["otp"]
+    signup = client.post(
+        "/auth/otp/verify", json={"phone_number": "+919300000099", "otp": otp}
+    ).json()
+    headers = {"Authorization": f"Bearer {signup['session_token']}"}
+
+    def failing_create_otp_request(*args, **kwargs):
+        raise EmailSendError("boom")
+
+    monkeypatch.setattr(auth_module, "create_otp_request", failing_create_otp_request)
+
+    response = client.post(
+        "/auth/contact-change/request",
+        json={"channel": "email", "identifier": "contactchangefailure@example.com"},
+        headers=headers,
+    )
+
+    assert response.status_code == 502
+    assert response.json()["detail"]
+
+
 def test_full_signup_flow_email_otp_then_phone_otp_creates_a_session(client):
     signup = _signup(client, "fullflow@example.com")
     detail = signup.json()["email_otp_required"]

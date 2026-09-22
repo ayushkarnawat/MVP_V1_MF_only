@@ -20,6 +20,7 @@ from app.services.auth.identity import (
     resolve_new_verified_identity,
 )
 from app.services.auth.account_deletion import reactivate_account, schedule_account_deletion
+from app.services.auth.email_provider import EmailSendError
 from app.services.auth.google_oauth import GoogleTokenVerificationError, verify_google_id_token
 from app.services.auth.otp import OtpRequestThrottledError, OtpVerificationError, create_otp_request, verify_otp
 from app.services.auth.schemas import (
@@ -79,6 +80,8 @@ def signup_email(body: SignupEmailBody, db: DbSession = Depends(get_db)):
         _, raw_otp = create_otp_request(db, body.email, channel="email")
     except OtpRequestThrottledError as exc:
         raise HTTPException(status_code=429, detail=str(exc)) from exc
+    except EmailSendError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
     return EmailOtpRequiredResponse(
         email_otp_required=EmailOtpRequiredDetail(token=raw_token, prefill_email=body.email, otp=raw_otp)
     )
@@ -93,6 +96,8 @@ def request_email_otp(body: EmailOtpRequestBody, db: DbSession = Depends(get_db)
         _, raw_otp = create_otp_request(db, body.email, channel="email")
     except OtpRequestThrottledError as exc:
         raise HTTPException(status_code=429, detail=str(exc)) from exc
+    except EmailSendError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
     return OtpRequestResponse(message="OTP sent.", otp=raw_otp)
 
 
@@ -323,6 +328,8 @@ def request_contact_change(
         _, raw_otp = create_otp_request(db, body.identifier, channel=otp_channel)
     except OtpRequestThrottledError as exc:
         raise HTTPException(status_code=429, detail=str(exc)) from exc
+    except EmailSendError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
     return OtpRequestResponse(message="OTP sent.", otp=raw_otp)
 
 
