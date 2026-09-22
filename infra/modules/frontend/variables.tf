@@ -28,3 +28,9 @@ variable "cloudfront_function_arn" {
   type        = string
   default     = null
 }
+
+variable "additional_aliases" {
+  description = "Optional extra CloudFront aliases (SANs on the same cert), e.g. a www subdomain alongside the apex domain. Defaults to none."
+  type        = list(string)
+  default     = []
+}

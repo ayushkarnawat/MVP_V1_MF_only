@@ -3,7 +3,7 @@ import type { FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { OtpInput } from "@/components/ui/otp-input";
 import { ArrowLeft, ArrowRight, AlertCircle, Loader2, KeyRound } from "lucide-react";
-import { formatPhoneForDisplay } from "./validation";
+import { formatPhoneForDisplay, isAccountExistsError } from "./validation";
 
 
 import { AuthIllustration } from "./AuthIllustration";
@@ -22,6 +22,11 @@ interface OtpVerifyProps {
   onSubmit: (otp: string) => void;
   onResend: () => void;
   onBack?: () => void;
+  /** Shown as a "Log in" shortcut inside the error alert when the error is
+   * an "already exists" collision (Design Spec §1 phone-gate 409 for a
+   * phone number that belongs to a different account). Omit to fall back
+   * to plain error text with no shortcut. */
+  onGoToLogin?: () => void;
   submitting: boolean;
   error: string | null;
   devOtp: string | null;
@@ -33,6 +38,7 @@ export function OtpVerify({
   onSubmit,
   onResend,
   onBack,
+  onGoToLogin,
   submitting,
   error,
   devOtp,
@@ -116,12 +122,24 @@ export function OtpVerify({
 
       {/* 4. Error Alert */}
       {displayedError && (
-        <div
-          role="alert"
-          className="flex items-center gap-2.5 p-3.5 rounded-2xl bg-[color-mix(in_srgb,var(--color-negative)_10%,transparent)] border border-[color-mix(in_srgb,var(--color-negative)_25%,transparent)] text-xs text-[var(--color-negative)] font-medium font-body animate-in fade-in duration-150"
-        >
-          <AlertCircle className="h-4 w-4 flex-shrink-0" />
-          <span>{displayedError}</span>
+        <div className="space-y-2">
+          <div
+            role="alert"
+            className="flex items-center gap-2.5 p-3.5 rounded-2xl bg-[color-mix(in_srgb,var(--color-negative)_10%,transparent)] border border-[color-mix(in_srgb,var(--color-negative)_25%,transparent)] text-xs text-[var(--color-negative)] font-medium font-body animate-in fade-in duration-150"
+          >
+            <AlertCircle className="h-4 w-4 flex-shrink-0" />
+            <span className="flex-1">{displayedError}</span>
+          </div>
+          {onGoToLogin && isAccountExistsError(displayedError) && (
+            <button
+              type="button"
+              onClick={onGoToLogin}
+              className="w-full flex items-center justify-center gap-2 p-3 rounded-2xl bg-[#22C55E]/10 border border-[#22C55E]/30 text-xs font-bold text-[#22C55E] hover:bg-[#22C55E]/15 transition-colors cursor-pointer animate-in fade-in duration-150"
+            >
+              Log in instead
+              <ArrowRight className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
       )}
 

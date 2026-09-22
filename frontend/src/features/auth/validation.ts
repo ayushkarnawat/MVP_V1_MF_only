@@ -334,6 +334,16 @@ export function formatPhoneForDisplay(phone: string | null | undefined): string 
 
 
 /**
+ * True for the "an account with this email/phone number already exists"
+ * class of error (both channels use identical "already exists" wording,
+ * see signup_email/verify_otp_route on the backend) -- lets error-alert UI
+ * decide whether to offer a "Log in instead" shortcut.
+ */
+export function isAccountExistsError(message: string | null): boolean {
+  return !!message && /already exists/i.test(message);
+}
+
+/**
  * Formats API and authentication errors into clear, human-friendly messages.
  */
 export function formatAuthErrorMessage(err: unknown, fallback: string): string {
@@ -346,7 +356,7 @@ export function formatAuthErrorMessage(err: unknown, fallback: string): string {
     }
 
     if (status === 409) {
-      return "An account with this email already exists — log in instead.";
+      return "An account with this email already exists.";
     }
 
     if (status === 401) {

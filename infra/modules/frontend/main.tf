@@ -24,7 +24,7 @@ resource "aws_cloudfront_distribution" "this" {
   is_ipv6_enabled     = true
   default_root_object = "index.html"
   price_class         = "PriceClass_100"
-  aliases             = [var.domain_name]
+  aliases             = concat([var.domain_name], var.additional_aliases)
 
   origin {
     domain_name              = aws_s3_bucket.this.bucket_regional_domain_name

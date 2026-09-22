@@ -66,7 +66,7 @@ def _session_response(user_id, auth_method: AuthIdentityProvider, db: DbSession)
 def signup_email(body: SignupEmailBody, db: DbSession = Depends(get_db)):
     existing = find_identity_by_subject(db, AuthIdentityProvider.EMAIL_OTP, body.email)
     if existing is not None:
-        raise HTTPException(status_code=409, detail="An account with this email already exists — log in instead.")
+        raise HTTPException(status_code=409, detail="An account with this email already exists.")
 
     _, raw_token = create_pending_verification(
         db,
@@ -161,6 +161,27 @@ def verify_email_otp(body: EmailOtpVerifyBody, db: DbSession = Depends(get_db)):
 #otp authentication
 @router.post("/otp/request", response_model=OtpRequestResponse)
 def request_otp(body: OtpRequestBody, db: DbSession = Depends(get_db)):
+    # Same collision this route's own verify step already rejects (see
+    # verify_otp_route below) -- checked here too, before an OTP is even sent,
+    # so a fresh email signup's phone gate matches signup_email's own UX: the
+    # "already exists" error shows immediately on the number-entry screen
+    # instead of only after the caller types a code. Only applies to the
+    # EMAIL_OTP phone-gate case; other pending-token providers (e.g. Google
+    # linking a second method) legitimately proceed to send the OTP.
+    if body.pending_token:
+        try:
+            link_info = peek_pending_link_info(db, body.pending_token)
+        except PendingVerificationError as exc:
+            raise HTTPException(status_code=401, detail=str(exc)) from exc
+
+        if link_info.provider == AuthIdentityProvider.EMAIL_OTP:
+            existing = find_or_backfill_phone_identity(db, body.phone_number)
+            if existing is not None:
+                raise HTTPException(
+                    status_code=409,
+                    detail="An account with this phone number already exists.",
+                )
+
     try:
         _, raw_otp = create_otp_request(db, body.phone_number)
     except OtpRequestThrottledError as exc:
@@ -177,13 +198,35 @@ def verify_otp_route(body: OtpVerifyBody, db: DbSession = Depends(get_db)):
 
     if body.pending_token:
         try:
-            existing = find_or_backfill_phone_identity(db, body.phone_number)
-            if existing is not None:
-                user_id = attach_pending_identity(db, body.pending_token, existing.user_id)
-            else:
-                user_id = complete_phone_gate_signup(db, body.pending_token, body.phone_number)
+            link_info = peek_pending_link_info(db, body.pending_token)
         except PendingVerificationError as exc:
             raise HTTPException(status_code=401, detail=str(exc)) from exc
+
+        existing = find_or_backfill_phone_identity(db, body.phone_number)
+        if existing is not None:
+            if link_info.provider == AuthIdentityProvider.EMAIL_OTP:
+                # Fresh email signup's mandatory phone gate: signup_email
+                # already proved this email is brand-new (no existing
+                # identity), so a phone match here belongs to a DIFFERENT,
+                # unrelated account -- attaching would silently sign the
+                # caller into someone else's account. Mirrors signup_email's
+                # own already-exists 409. Other providers (e.g. Google) reach
+                # this same branch legitimately to link a second login
+                # method to an existing account they just proved they own
+                # via phone OTP -- left untouched, see peek_pending_link_info.
+                raise HTTPException(
+                    status_code=409,
+                    detail="An account with this phone number already exists.",
+                )
+            try:
+                user_id = attach_pending_identity(db, body.pending_token, existing.user_id)
+            except PendingVerificationError as exc:
+                raise HTTPException(status_code=401, detail=str(exc)) from exc
+        else:
+            try:
+                user_id = complete_phone_gate_signup(db, body.pending_token, body.phone_number)
+            except PendingVerificationError as exc:
+                raise HTTPException(status_code=401, detail=str(exc)) from exc
         return _session_response(user_id, AuthIdentityProvider.PHONE_OTP, db)
 
     # Phone uses find_or_backfill_phone_identity so a pre-0005-backfill `users`

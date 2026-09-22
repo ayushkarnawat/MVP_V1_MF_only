@@ -26,11 +26,14 @@ async function throwIfError(response: Response): Promise<void> {
   }
 }
 
-export async function requestOtp(phoneNumber: string): Promise<OtpRequestResponse> {
+export async function requestOtp(phoneNumber: string, pendingToken?: string): Promise<OtpRequestResponse> {
   const response = await fetch(`${API_BASE_URL}/auth/otp/request`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ phone_number: phoneNumber }),
+    body: JSON.stringify({
+      phone_number: phoneNumber,
+      ...(pendingToken ? { pending_token: pendingToken } : {}),
+    }),
   });
   await throwIfError(response);
   return (await response.json()) as OtpRequestResponse;

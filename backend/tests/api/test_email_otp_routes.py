@@ -375,3 +375,107 @@ def test_full_signup_flow_email_otp_then_phone_otp_creates_a_session(client):
     # onto the new identity, not just the pending record.
     assert identity.email == "fullflow@example.com"
     db.close()
+
+
+def test_phone_gate_rejects_a_phone_number_that_belongs_to_a_different_existing_account(client):
+    """A brand-new email signup's mandatory phone gate must not silently log
+    the caller into an unrelated existing account just because they typed
+    that account's phone number -- it must 409 like signup_email's own
+    already-exists check, not attach_pending_identity into someone else's
+    account."""
+    # An existing account, phone-only, created via a plain phone login/signup.
+    existing_otp_request = client.post("/auth/otp/request", json={"phone_number": "+919777777800"})
+    existing_otp = existing_otp_request.json()["otp"]
+    existing_signup = client.post(
+        "/auth/otp/verify", json={"phone_number": "+919777777800", "otp": existing_otp}
+    )
+    assert existing_signup.status_code == 200
+    existing_user_id = existing_signup.json()["user_id"]
+
+    # A different person signs up fresh with a new email, then hits the
+    # phone gate with the SAME phone number as the existing account above.
+    signup = _signup(client, "newperson@example.com")
+    detail = signup.json()["email_otp_required"]
+    verify_email = client.post(
+        "/auth/email-otp/verify",
+        json={"email": "newperson@example.com", "otp": detail["otp"], "pending_token": detail["token"]},
+    )
+    gate_token = verify_email.json()["phone_required"]["token"]
+
+    gate_otp_request = client.post("/auth/otp/request", json={"phone_number": "+919777777800"})
+    gate_otp = gate_otp_request.json()["otp"]
+    verify_phone = client.post(
+        "/auth/otp/verify",
+        json={"phone_number": "+919777777800", "otp": gate_otp, "pending_token": gate_token},
+    )
+
+    assert verify_phone.status_code == 409
+    assert "already exists" in verify_phone.json()["detail"]
+
+    # Existing account's email must be untouched -- no silent attach happened.
+    import uuid
+
+    from app.db.session import get_db
+    from app.models.user import User
+
+    db = next(client.app.dependency_overrides[get_db]())
+    existing_user = db.query(User).filter_by(id=uuid.UUID(existing_user_id)).one()
+    assert existing_user.email is None
+    db.close()
+
+
+def test_phone_gate_rejects_a_colliding_number_at_request_time_before_any_otp_is_sent(client):
+    """Same collision as the verify-time 409 above, but the phone gate should
+    surface it as soon as the number is typed -- at POST /auth/otp/request --
+    not only after the caller receives and re-types a code, matching
+    signup_email's own request-time already-exists check."""
+    existing_otp_request = client.post("/auth/otp/request", json={"phone_number": "+919777777900"})
+    existing_otp = existing_otp_request.json()["otp"]
+    existing_signup = client.post(
+        "/auth/otp/verify", json={"phone_number": "+919777777900", "otp": existing_otp}
+    )
+    assert existing_signup.status_code == 200
+
+    signup = _signup(client, "requesttimecollision@example.com")
+    detail = signup.json()["email_otp_required"]
+    verify_email = client.post(
+        "/auth/email-otp/verify",
+        json={
+            "email": "requesttimecollision@example.com",
+            "otp": detail["otp"],
+            "pending_token": detail["token"],
+        },
+    )
+    gate_token = verify_email.json()["phone_required"]["token"]
+
+    gate_otp_request = client.post(
+        "/auth/otp/request",
+        json={"phone_number": "+919777777900", "pending_token": gate_token},
+    )
+    assert gate_otp_request.status_code == 409
+    assert "already exists" in gate_otp_request.json()["detail"]
+    # No OTP sent for the rejected request.
+    assert gate_otp_request.json().get("otp") is None
+
+
+def test_phone_gate_still_sends_an_otp_at_request_time_for_a_genuinely_new_number(client):
+    """The request-time check must not become a false-positive block on an
+    ordinary brand-new phone gate signup."""
+    signup = _signup(client, "freshnumbergate@example.com")
+    detail = signup.json()["email_otp_required"]
+    verify_email = client.post(
+        "/auth/email-otp/verify",
+        json={
+            "email": "freshnumbergate@example.com",
+            "otp": detail["otp"],
+            "pending_token": detail["token"],
+        },
+    )
+    gate_token = verify_email.json()["phone_required"]["token"]
+
+    gate_otp_request = client.post(
+        "/auth/otp/request",
+        json={"phone_number": "+919777777901", "pending_token": gate_token},
+    )
+    assert gate_otp_request.status_code == 200
+    assert gate_otp_request.json()["otp"] is not None

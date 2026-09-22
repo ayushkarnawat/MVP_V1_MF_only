@@ -3,7 +3,7 @@ import type { FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, ArrowRight, Loader2, Mail, Phone } from "lucide-react";
 import { GoogleButton } from "./GoogleButton";
-import { validateEmail } from "./validation";
+import { isAccountExistsError, validateEmail } from "./validation";
 import { cn } from "@/lib/utils";
 import { HandDrawnUnderline } from "@/components/HandDrawnUnderline";
 
@@ -52,6 +52,12 @@ export function Landing({
     }
   };
 
+  const goToLogin = () => {
+    setValidationError(null);
+    setMode("login");
+    onModeChange?.("login");
+  };
+
   const handleSignupSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsTouched(true);
@@ -83,12 +89,24 @@ export function Landing({
 
       {/* 2. Server Authentication Error Alert */}
       {error && !validationError && (
-        <div
-          role="alert"
-          className="flex items-center gap-2.5 p-3.5 rounded-2xl bg-[color-mix(in_srgb,var(--color-negative)_10%,transparent)] border border-[color-mix(in_srgb,var(--color-negative)_25%,transparent)] text-xs text-[var(--color-negative)] font-medium font-body animate-in fade-in duration-150 mb-3.5"
-        >
-          <AlertCircle className="h-4 w-4 flex-shrink-0" />
-          <span>{error}</span>
+        <div className="space-y-2 mb-3.5">
+          <div
+            role="alert"
+            className="flex items-center gap-2.5 p-3.5 rounded-2xl bg-[color-mix(in_srgb,var(--color-negative)_10%,transparent)] border border-[color-mix(in_srgb,var(--color-negative)_25%,transparent)] text-xs text-[var(--color-negative)] font-medium font-body animate-in fade-in duration-150"
+          >
+            <AlertCircle className="h-4 w-4 flex-shrink-0" />
+            <span className="flex-1">{error}</span>
+          </div>
+          {isAccountExistsError(error) && (
+            <button
+              type="button"
+              onClick={goToLogin}
+              className="w-full flex items-center justify-center gap-2 p-3 rounded-2xl bg-[#22C55E]/10 border border-[#22C55E]/30 text-xs font-bold text-[#22C55E] hover:bg-[#22C55E]/15 transition-colors cursor-pointer animate-in fade-in duration-150"
+            >
+              Log in instead
+              <ArrowRight className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
       )}
 
@@ -153,11 +171,7 @@ export function Landing({
             <span>Already have an account? </span>
             <button
               type="button"
-              onClick={() => {
-                setValidationError(null);
-                setMode("login");
-                onModeChange?.("login");
-              }}
+              onClick={goToLogin}
               className="font-bold text-[#22C55E] hover:underline cursor-pointer transition-colors focus-visible:outline-none py-1"
             >
               <HandDrawnUnderline>Log in</HandDrawnUnderline>
