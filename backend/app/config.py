@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     email_delivery_mode: str = "stub"
     postmark_api_token: str = ""
     postmark_from_email: str = ""
+    ses_from_email: str = ""
     environment: str = "development"
     frontend_base_url: str = "http://localhost:5173"
     google_oauth_client_id: str = ""

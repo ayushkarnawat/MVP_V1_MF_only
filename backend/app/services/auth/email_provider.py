@@ -14,7 +14,9 @@ from __future__ import annotations
 import logging
 from typing import Protocol
 
+import boto3
 import httpx
+from botocore.exceptions import BotoCoreError, ClientError
 
 from app.config import settings
 
@@ -71,6 +73,35 @@ class PostmarkEmailProvider:
             response.raise_for_status()
         except httpx.HTTPError as exc:
             logger.error("PostmarkEmailProvider: send to %s failed: %s", to, exc)
+            raise EmailSendError("We couldn't send that email right now.") from exc
+
+
+class SesEmailProvider:
+    """Sends real email via Amazon SES's SendEmail API. Requires the sending
+    domain to be a verified SES identity (see
+    Docs/superpowers/plans/2026-09-21-ses-email-provider-migration.md Part 1)
+    -- SES rejects the send otherwise, at the account level, same as
+    PostmarkEmailProvider's Sender Signature requirement. Uses the ECS task's
+    IAM role for credentials (boto3's default credential chain) -- no static
+    access key, matching this codebase's existing boto3 usage in
+    services/analytics/dispatch.py and services/import_/file_storage.py."""
+
+    def send_email(self, to: str, subject: str, body: str) -> None:
+        if not settings.aws_region:
+            raise EmailSendError("Email delivery is not configured (missing AWS region).")
+
+        client = boto3.client("ses", region_name=settings.aws_region)
+        try:
+            client.send_email(
+                Source=settings.ses_from_email,
+                Destination={"ToAddresses": [to]},
+                Message={
+                    "Subject": {"Data": subject, "Charset": "UTF-8"},
+                    "Body": {"Text": {"Data": body, "Charset": "UTF-8"}},
+                },
+            )
+        except (BotoCoreError, ClientError) as exc:
+            logger.error("SesEmailProvider: send to %s failed: %s", to, exc)
             raise EmailSendError("We couldn't send that email right now.") from exc
 
 
