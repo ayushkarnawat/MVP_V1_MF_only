@@ -33,6 +33,7 @@ def normalize_email(value: object) -> object:
 
 class OtpRequestBody(BaseModel):
     phone_number: str
+    pending_token: str | None = None
 
 
 class OtpRequestResponse(BaseModel):

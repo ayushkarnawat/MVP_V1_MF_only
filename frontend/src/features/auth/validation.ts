@@ -356,7 +356,7 @@ export function formatAuthErrorMessage(err: unknown, fallback: string): string {
     }
 
     if (status === 409) {
-      return "An account with this email already exists — log in instead.";
+      return "An account with this email already exists.";
     }
 
     if (status === 401) {

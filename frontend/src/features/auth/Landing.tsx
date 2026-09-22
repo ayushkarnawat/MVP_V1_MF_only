@@ -89,19 +89,22 @@ export function Landing({
 
       {/* 2. Server Authentication Error Alert */}
       {error && !validationError && (
-        <div
-          role="alert"
-          className="flex items-center gap-2.5 p-3.5 rounded-2xl bg-[color-mix(in_srgb,var(--color-negative)_10%,transparent)] border border-[color-mix(in_srgb,var(--color-negative)_25%,transparent)] text-xs text-[var(--color-negative)] font-medium font-body animate-in fade-in duration-150 mb-3.5"
-        >
-          <AlertCircle className="h-4 w-4 flex-shrink-0" />
-          <span className="flex-1">{error}</span>
+        <div className="space-y-2 mb-3.5">
+          <div
+            role="alert"
+            className="flex items-center gap-2.5 p-3.5 rounded-2xl bg-[color-mix(in_srgb,var(--color-negative)_10%,transparent)] border border-[color-mix(in_srgb,var(--color-negative)_25%,transparent)] text-xs text-[var(--color-negative)] font-medium font-body animate-in fade-in duration-150"
+          >
+            <AlertCircle className="h-4 w-4 flex-shrink-0" />
+            <span className="flex-1">{error}</span>
+          </div>
           {isAccountExistsError(error) && (
             <button
               type="button"
               onClick={goToLogin}
-              className="font-bold underline underline-offset-2 hover:opacity-80 transition-opacity cursor-pointer flex-shrink-0"
+              className="w-full flex items-center justify-center gap-2 p-3 rounded-2xl bg-[#22C55E]/10 border border-[#22C55E]/30 text-xs font-bold text-[#22C55E] hover:bg-[#22C55E]/15 transition-colors cursor-pointer animate-in fade-in duration-150"
             >
               Log in instead
+              <ArrowRight className="h-3.5 w-3.5" />
             </button>
           )}
         </div>

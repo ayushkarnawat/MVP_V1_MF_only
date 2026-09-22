@@ -108,7 +108,7 @@ export function AuthEntryFlow({
     setSubmitting(true);
     setError(null);
     try {
-      const result = await requestOtp(phone);
+      const result = await requestOtp(phone, phoneGateToken ?? undefined);
       setIdentifier(phone);
       goToStep("otp");
       setDevOtp(result.otp);
@@ -306,6 +306,7 @@ export function AuthEntryFlow({
             phoneGatePrefillEmail={phoneGatePrefillEmail}
             onSubmit={handlePhoneSubmit}
             onBack={phoneGateToken ? undefined : () => goToStep("landing")}
+            onGoToLogin={phoneGateToken ? handleGoToLogin : undefined}
             submitting={submitting}
             error={error}
           />
