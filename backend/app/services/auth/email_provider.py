@@ -23,6 +23,16 @@ logger = logging.getLogger(__name__)
 POSTMARK_SEND_URL = "https://api.postmarkapp.com/email"
 
 
+class EmailSendError(RuntimeError):
+    """Raised when an email provider rejects or fails to send an OTP email.
+    Callers (otp.py, auth.py) catch this and return a clean error to the
+    caller instead of letting the underlying provider exception (an httpx or
+    boto3 error) escape uncaught -- an uncaught exception here crashes past
+    CORSMiddleware's normal response path, so the browser sees a stripped,
+    CORS-header-less 500 and misreports it as a network/CORS failure instead
+    of the real cause."""
+
+
 class EmailProvider(Protocol):
     def send_email(self, to: str, subject: str, body: str) -> None: ...
 
@@ -42,22 +52,26 @@ class PostmarkEmailProvider:
     level, not something this class validates itself."""
 
     def send_email(self, to: str, subject: str, body: str) -> None:
-        response = httpx.post(
-            POSTMARK_SEND_URL,
-            headers={
-                "Accept": "application/json",
-                "Content-Type": "application/json",
-                "X-Postmark-Server-Token": settings.postmark_api_token,
-            },
-            json={
-                "From": settings.postmark_from_email,
-                "To": to,
-                "Subject": subject,
-                "TextBody": body,
-            },
-            timeout=10.0,
-        )
-        response.raise_for_status()
+        try:
+            response = httpx.post(
+                POSTMARK_SEND_URL,
+                headers={
+                    "Accept": "application/json",
+                    "Content-Type": "application/json",
+                    "X-Postmark-Server-Token": settings.postmark_api_token,
+                },
+                json={
+                    "From": settings.postmark_from_email,
+                    "To": to,
+                    "Subject": subject,
+                    "TextBody": body,
+                },
+                timeout=10.0,
+            )
+            response.raise_for_status()
+        except httpx.HTTPError as exc:
+            logger.error("PostmarkEmailProvider: send to %s failed: %s", to, exc)
+            raise EmailSendError("We couldn't send that email right now.") from exc
 
 
 class NoEmailProviderConfiguredError(RuntimeError):

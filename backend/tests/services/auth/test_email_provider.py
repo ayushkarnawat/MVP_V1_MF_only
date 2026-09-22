@@ -68,7 +68,7 @@ def test_postmark_email_provider_sends_expected_request(monkeypatch):
     assert captured["json"]["TextBody"] == "123456"
 
 
-def test_postmark_email_provider_raises_on_error_response(monkeypatch):
+def test_postmark_email_provider_raises_email_send_error_on_error_response(monkeypatch):
     import app.services.auth.email_provider as email_provider_module
 
     monkeypatch.setattr(email_provider_module.settings, "postmark_api_token", "test-token")
@@ -79,5 +79,5 @@ def test_postmark_email_provider_raises_on_error_response(monkeypatch):
         return httpx.Response(422, request=request, json={"Message": "Invalid 'From' address"})
 
     with patch.object(email_provider_module.httpx, "post", side_effect=fake_post):
-        with pytest.raises(httpx.HTTPStatusError):
+        with pytest.raises(email_provider_module.EmailSendError):
             PostmarkEmailProvider().send_email(to="user@example.com", subject="s", body="b")
