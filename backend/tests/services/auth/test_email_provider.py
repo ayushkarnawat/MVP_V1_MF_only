@@ -127,3 +127,11 @@ def test_ses_email_provider_raises_when_region_unconfigured(monkeypatch):
     monkeypatch.setattr(email_provider_module.settings, "aws_region", "")
     with pytest.raises(email_provider_module.EmailSendError, match="not configured"):
         email_provider_module.SesEmailProvider().send_email(to="user@example.com", subject="s", body="b")
+
+
+def test_get_email_provider_returns_ses_in_ses_mode(monkeypatch):
+    import app.services.auth.email_provider as email_provider_module
+
+    monkeypatch.setattr(email_provider_module.settings, "email_delivery_mode", "ses")
+    provider = get_email_provider()
+    assert isinstance(provider, email_provider_module.SesEmailProvider)

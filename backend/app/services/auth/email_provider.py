@@ -114,9 +114,11 @@ def get_email_provider() -> EmailProvider:
         return StubEmailProvider()
     if settings.email_delivery_mode == "postmark":
         return PostmarkEmailProvider()
+    if settings.email_delivery_mode == "ses":
+        return SesEmailProvider()
     raise NoEmailProviderConfiguredError(
         f"No real EmailProvider is configured for EMAIL_DELIVERY_MODE={settings.email_delivery_mode!r}. "
-        "Set EMAIL_DELIVERY_MODE to 'postmark' (with POSTMARK_API_TOKEN and "
-        "POSTMARK_FROM_EMAIL set) to send real email via Postmark, or back "
-        "to 'stub' for local development."
+        "Set EMAIL_DELIVERY_MODE to 'postmark' or 'ses' (with the matching "
+        "provider settings configured) to send real email via Postmark or "
+        "Amazon SES, or back to 'stub' for local development."
     )
