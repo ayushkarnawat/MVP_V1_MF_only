@@ -92,6 +92,18 @@ export function AuthEntryFlow({
     goToStep("phone");
   };
 
+  // "Log in" shortcut from an "already exists" error (email signup 409,
+  // phone-gate 409) -- drops back to Landing in login mode rather than
+  // leaving the caller stuck on a dead-end signup step.
+  const handleGoToLogin = () => {
+    setAuthMode("login");
+    setPhoneGateToken(null);
+    setPhoneGatePrefillEmail(null);
+    setEmailOtpToken(null);
+    setEmailOtpEmail("");
+    goToStep("landing");
+  };
+
   const handlePhoneSubmit = async (phone: string) => {
     setSubmitting(true);
     setError(null);
@@ -306,6 +318,7 @@ export function AuthEntryFlow({
             onSubmit={handlePhoneOtpSubmit}
             onResend={() => goToStep("phone")}
             onBack={() => goToStep("phone")}
+            onGoToLogin={phoneGateToken ? handleGoToLogin : undefined}
             submitting={submitting}
             error={error}
             devOtp={devOtp}

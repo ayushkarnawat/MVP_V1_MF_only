@@ -3,7 +3,7 @@ import type { FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { OtpInput } from "@/components/ui/otp-input";
 import { ArrowLeft, ArrowRight, AlertCircle, Loader2, KeyRound } from "lucide-react";
-import { formatPhoneForDisplay } from "./validation";
+import { formatPhoneForDisplay, isAccountExistsError } from "./validation";
 
 
 import { AuthIllustration } from "./AuthIllustration";
@@ -22,6 +22,11 @@ interface OtpVerifyProps {
   onSubmit: (otp: string) => void;
   onResend: () => void;
   onBack?: () => void;
+  /** Shown as a "Log in" shortcut inside the error alert when the error is
+   * an "already exists" collision (Design Spec §1 phone-gate 409 for a
+   * phone number that belongs to a different account). Omit to fall back
+   * to plain error text with no shortcut. */
+  onGoToLogin?: () => void;
   submitting: boolean;
   error: string | null;
   devOtp: string | null;
@@ -33,6 +38,7 @@ export function OtpVerify({
   onSubmit,
   onResend,
   onBack,
+  onGoToLogin,
   submitting,
   error,
   devOtp,
@@ -121,7 +127,16 @@ export function OtpVerify({
           className="flex items-center gap-2.5 p-3.5 rounded-2xl bg-[color-mix(in_srgb,var(--color-negative)_10%,transparent)] border border-[color-mix(in_srgb,var(--color-negative)_25%,transparent)] text-xs text-[var(--color-negative)] font-medium font-body animate-in fade-in duration-150"
         >
           <AlertCircle className="h-4 w-4 flex-shrink-0" />
-          <span>{displayedError}</span>
+          <span className="flex-1">{displayedError}</span>
+          {onGoToLogin && isAccountExistsError(displayedError) && (
+            <button
+              type="button"
+              onClick={onGoToLogin}
+              className="font-bold underline underline-offset-2 hover:opacity-80 transition-opacity cursor-pointer flex-shrink-0"
+            >
+              Log in instead
+            </button>
+          )}
         </div>
       )}
 

@@ -4,6 +4,7 @@ import {
   validateIndianPhone,
   formatPhoneForDisplay,
   formatAuthErrorMessage,
+  isAccountExistsError,
 } from "./validation";
 import { ApiError } from "@/lib/apiClient";
 
@@ -218,5 +219,23 @@ describe("formatAuthErrorMessage", () => {
     expect(formatAuthErrorMessage(err, "fallback")).toBe(
       "Unable to connect to the server. Please check your internet connection.",
     );
+  });
+});
+
+describe("isAccountExistsError", () => {
+  it("is true for the email already-exists message", () => {
+    expect(isAccountExistsError("An account with this email already exists — log in instead.")).toBe(true);
+  });
+
+  it("is true for the phone already-exists message", () => {
+    expect(isAccountExistsError("An account with this phone number already exists — log in instead.")).toBe(true);
+  });
+
+  it("is false for unrelated errors", () => {
+    expect(isAccountExistsError("Incorrect OTP.")).toBe(false);
+  });
+
+  it("is false for null", () => {
+    expect(isAccountExistsError(null)).toBe(false);
   });
 });

@@ -3,7 +3,7 @@ import type { FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, ArrowRight, Loader2, Mail, Phone } from "lucide-react";
 import { GoogleButton } from "./GoogleButton";
-import { validateEmail } from "./validation";
+import { isAccountExistsError, validateEmail } from "./validation";
 import { cn } from "@/lib/utils";
 import { HandDrawnUnderline } from "@/components/HandDrawnUnderline";
 
@@ -52,6 +52,12 @@ export function Landing({
     }
   };
 
+  const goToLogin = () => {
+    setValidationError(null);
+    setMode("login");
+    onModeChange?.("login");
+  };
+
   const handleSignupSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsTouched(true);
@@ -88,7 +94,16 @@ export function Landing({
           className="flex items-center gap-2.5 p-3.5 rounded-2xl bg-[color-mix(in_srgb,var(--color-negative)_10%,transparent)] border border-[color-mix(in_srgb,var(--color-negative)_25%,transparent)] text-xs text-[var(--color-negative)] font-medium font-body animate-in fade-in duration-150 mb-3.5"
         >
           <AlertCircle className="h-4 w-4 flex-shrink-0" />
-          <span>{error}</span>
+          <span className="flex-1">{error}</span>
+          {isAccountExistsError(error) && (
+            <button
+              type="button"
+              onClick={goToLogin}
+              className="font-bold underline underline-offset-2 hover:opacity-80 transition-opacity cursor-pointer flex-shrink-0"
+            >
+              Log in instead
+            </button>
+          )}
         </div>
       )}
 
@@ -153,11 +168,7 @@ export function Landing({
             <span>Already have an account? </span>
             <button
               type="button"
-              onClick={() => {
-                setValidationError(null);
-                setMode("login");
-                onModeChange?.("login");
-              }}
+              onClick={goToLogin}
               className="font-bold text-[#22C55E] hover:underline cursor-pointer transition-colors focus-visible:outline-none py-1"
             >
               <HandDrawnUnderline>Log in</HandDrawnUnderline>

@@ -137,6 +137,41 @@ describe("AuthEntryFlow", () => {
     await waitFor(() => expect(api.getMe).toHaveBeenCalled());
   });
 
+  it("shows a Log in instead shortcut when the phone gate's number belongs to a different account", async () => {
+    vi.mocked(api.signupEmail).mockResolvedValue({
+      email_otp_required: { token: "email-gate-tok", prefill_email: "newperson@example.com", otp: "333444" },
+    });
+    vi.mocked(api.verifyEmailOtp).mockResolvedValue({
+      phone_required: { token: "gate-tok", prefill_email: "newperson@example.com" },
+    });
+    vi.mocked(api.requestOtp).mockResolvedValue({ message: "OTP sent.", otp: "111222" });
+    vi.mocked(api.verifyOtp).mockRejectedValue(
+      new ApiError(409, "An account with this phone number already exists — log in instead."),
+    );
+    renderFlow();
+    fillEmail("newperson@example.com");
+    fireEvent.click(screen.getByRole("button", { name: /^create account$/i }));
+    await waitFor(() => screen.getByText(/verify your email/i));
+    fireEvent.change(screen.getByLabelText(/verification code/i), { target: { value: "333444" } });
+    fireEvent.click(screen.getByRole("button", { name: /verify & continue/i }));
+    await waitFor(() => screen.getByText(/one more step/i));
+
+    fireEvent.change(screen.getByLabelText(/mobile number/i), { target: { value: "+919600000123" } });
+    fireEvent.click(screen.getByRole("button", { name: /send verification code/i }));
+    await waitFor(() => screen.getByLabelText(/verification code/i));
+    fireEvent.change(screen.getByLabelText(/verification code/i), { target: { value: "111222" } });
+    fireEvent.click(screen.getByRole("button", { name: /verify & continue/i }));
+
+    await waitFor(() => expect(screen.getByText(/already exists/i)).toBeInTheDocument());
+    const loginShortcut = screen.getByRole("button", { name: /log in instead/i });
+
+    fireEvent.click(loginShortcut);
+
+    // Dropped back to Landing in login mode, not stuck on the dead-end phone step.
+    await waitFor(() => expect(screen.getByText(/welcome back/i)).toBeInTheDocument());
+    expect(screen.queryByText(/already exists/i)).not.toBeInTheDocument();
+  });
+
   it("resends the email OTP via requestEmailOtp when Resend code is clicked on the email-OTP step", async () => {
     vi.mocked(api.signupEmail).mockResolvedValue({
       email_otp_required: { token: "email-gate-tok", prefill_email: "resend@example.com", otp: "111111" },
@@ -204,6 +239,21 @@ describe("AuthEntryFlow", () => {
     fireEvent.click(screen.getByRole("button", { name: /^create account$/i }));
 
     await waitFor(() => expect(screen.getByText(/already exists/i)).toBeInTheDocument());
+  });
+
+  it("shows a Log in instead shortcut on the email signup duplicate error", async () => {
+    vi.mocked(api.signupEmail).mockRejectedValue(
+      new ApiError(409, "An account with this email already exists — log in instead."),
+    );
+    renderFlow();
+    fillEmail("dup@example.com");
+    fireEvent.click(screen.getByRole("button", { name: /^create account$/i }));
+    await waitFor(() => expect(screen.getByText(/already exists/i)).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("button", { name: /log in instead/i }));
+
+    await waitFor(() => expect(screen.getByText(/welcome back/i)).toBeInTheDocument());
+    expect(screen.queryByText(/already exists/i)).not.toBeInTheDocument();
   });
 
   it("logs in via email OTP from Continue with Email button, no phone gate", async () => {

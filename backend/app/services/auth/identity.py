@@ -187,6 +187,7 @@ def _consume_pending_verification(db: DbSession, raw_token: str) -> PendingIdent
 class PendingLinkInfo(NamedTuple):
     matched_user_id: uuid.UUID | None
     email: str | None
+    provider: AuthIdentityProvider
 
 
 def peek_pending_link_info(db: DbSession, raw_token: str) -> PendingLinkInfo:
@@ -221,10 +222,21 @@ def peek_pending_link_info(db: DbSession, raw_token: str) -> PendingLinkInfo:
        *an* email collided with *some* account -- not that this request
        is proving control of that exact address).
 
+    3. For the phone-gate route specifically (verify_otp_route): whether a
+       phone number that already belongs to an existing account should be
+       attached to it (Google/other-provider pending records -- proving
+       ownership of an existing account's phone is a legitimate way to
+       link a second login method) or rejected as "already exists, log in
+       instead" (EMAIL_OTP pending records -- signup_email already proved
+       the typed email is brand-new, so a phone gate collision here means
+       the phone belongs to a DIFFERENT, unrelated account, not the
+       caller's own -- silently attaching would merge two unrelated
+       identities and surprise the caller with someone else's account).
+
     Does not mutate anything -- _consume_pending_verification only
     validates existence/expiry, it doesn't delete."""
     pending = _consume_pending_verification(db, raw_token)
-    return PendingLinkInfo(matched_user_id=pending.matched_user_id, email=pending.email)
+    return PendingLinkInfo(matched_user_id=pending.matched_user_id, email=pending.email, provider=pending.provider)
 
 
 def mark_pending_email_verified(
