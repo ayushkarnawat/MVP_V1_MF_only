@@ -57,3 +57,15 @@ variable "postmark_from_email" {
   type        = string
   default     = ""
 }
+
+variable "ses_from_email" {
+  description = "Verified SES identity address for the \"ses\" email delivery mode. Empty until Part 1 of the SES migration plan is done."
+  type        = string
+  default     = ""
+}
+
+variable "ses_identity_arn" {
+  description = "ARN of the SES domain identity for unifolio.in, once verified (Part 1 of the SES migration plan). Empty disables the backend task's SES IAM permission entirely."
+  type        = string
+  default     = ""
+}

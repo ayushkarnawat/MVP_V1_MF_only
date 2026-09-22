@@ -122,3 +122,15 @@ variable "postmark_from_email" {
   type        = string
   default     = ""
 }
+
+variable "ses_from_email" {
+  description = "Verified SES identity address emails are sent from once EMAIL_DELIVERY_MODE is set to \"ses\". Must belong to a domain verified in SES (see Docs/superpowers/plans/2026-09-21-ses-email-provider-migration.md Part 1)."
+  type        = string
+  default     = ""
+}
+
+variable "ses_identity_arn" {
+  description = "ARN of the verified SES domain identity the backend task role is allowed to send from, e.g. arn:aws:ses:<region>:<account_id>:identity/unifolio.in. Empty disables the backend task's SES IAM permission entirely (see Part 1 of the SES migration plan)."
+  type        = string
+  default     = ""
+}

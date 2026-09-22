@@ -78,6 +78,8 @@ module "backend" {
   otp_delivery_mode             = var.otp_delivery_mode
   email_delivery_mode           = var.email_delivery_mode
   postmark_from_email           = var.postmark_from_email
+  ses_from_email                = var.ses_from_email
+  ses_identity_arn              = var.ses_identity_arn
 }
 
 module "scheduler" {

@@ -206,6 +206,29 @@ resource "aws_iam_role_policy" "backend_task_cas_files" {
   policy = data.aws_iam_policy_document.backend_task_cas_files.json
 }
 
+# SesEmailProvider (backend/app/services/auth/email_provider.py) sends via the
+# SES API using this same task role -- no static AWS credentials, same pattern
+# as the S3/KMS access above. count=0 until ses_identity_arn is actually set,
+# so this module stays apply-safe before the SES domain identity exists
+# (Part 1 of the SES migration plan).
+data "aws_iam_policy_document" "backend_task_ses" {
+  count = var.ses_identity_arn == "" ? 0 : 1
+
+  statement {
+    sid       = "SendEmailViaSes"
+    effect    = "Allow"
+    actions   = ["ses:SendEmail", "ses:SendRawEmail"]
+    resources = [var.ses_identity_arn]
+  }
+}
+
+resource "aws_iam_role_policy" "backend_task_ses" {
+  count  = var.ses_identity_arn == "" ? 0 : 1
+  name   = "backend-task-ses-send"
+  role   = aws_iam_role.backend_task.id
+  policy = data.aws_iam_policy_document.backend_task_ses[0].json
+}
+
 resource "aws_ecs_task_definition" "this" {
   family                   = local.name
   requires_compatibilities = ["FARGATE"]
@@ -236,6 +259,7 @@ resource "aws_ecs_task_definition" "this" {
         { name = "OTP_DELIVERY_MODE", value = var.otp_delivery_mode },
         { name = "EMAIL_DELIVERY_MODE", value = var.email_delivery_mode },
         { name = "POSTMARK_FROM_EMAIL", value = var.postmark_from_email },
+        { name = "SES_FROM_EMAIL", value = var.ses_from_email },
         { name = "GOOGLE_OAUTH_CLIENT_ID", value = var.google_oauth_client_id },
         { name = "DB_USERNAME", value = "unifolio" },
         { name = "DB_HOST", value = var.db_address },
