@@ -353,6 +353,51 @@ def test_phone_and_email_channels_use_independent_delivery_modes(monkeypatch):
     assert sent["to"] == "person@example.com"  # and actually dispatched via the real-provider path
 
 
+def test_create_otp_request_does_not_persist_when_email_send_fails(monkeypatch):
+    import app.services.auth.otp as otp_module
+    from app.services.auth.email_provider import EmailSendError
+
+    monkeypatch.setattr(otp_module.settings, "email_delivery_mode", "postmark")
+
+    class FailingProvider:
+        def send_email(self, to, subject, body):
+            raise EmailSendError("boom")
+
+    monkeypatch.setattr(otp_module, "get_email_provider", lambda: FailingProvider())
+    db = _session()
+
+    with pytest.raises(EmailSendError):
+        create_otp_request(db, "failed-send@example.com", channel="email")
+
+    assert db.query(OtpRequest).filter_by(email="failed-send@example.com").first() is None
+
+
+def test_create_otp_request_allows_immediate_retry_after_a_failed_send(monkeypatch):
+    import app.services.auth.otp as otp_module
+    from app.services.auth.email_provider import EmailSendError
+
+    monkeypatch.setattr(otp_module.settings, "email_delivery_mode", "postmark")
+
+    attempt = {"count": 0}
+
+    class FlakyThenWorkingProvider:
+        def send_email(self, to, subject, body):
+            attempt["count"] += 1
+            if attempt["count"] == 1:
+                raise EmailSendError("boom")
+
+    monkeypatch.setattr(otp_module, "get_email_provider", lambda: FlakyThenWorkingProvider())
+    db = _session()
+
+    with pytest.raises(EmailSendError):
+        create_otp_request(db, "retry@example.com", channel="email")
+
+    # Immediately retrying (no 60s wait) must succeed, not raise
+    # OtpRequestThrottledError -- the failed first attempt persisted nothing.
+    request, raw_otp = create_otp_request(db, "retry@example.com", channel="email")
+    assert request is not None
+
+
 def test_conftest_forces_stub_delivery_modes_by_default():
     """Proves the autouse fixture in conftest.py is active: even though this
     test does zero monkeypatching itself, both delivery-mode settings must

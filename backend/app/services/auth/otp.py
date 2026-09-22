@@ -94,6 +94,17 @@ def create_otp_request(
             )
 
     otp = generate_otp()
+
+    if channel == "email" and delivery_mode != "stub":
+        # Attempt the real send BEFORE persisting anything: if this raises
+        # (EmailSendError), nothing is written to the DB, so a failed send
+        # never engages the resend throttle against the user's next attempt.
+        get_email_provider().send_email(
+            to=identifier,
+            subject="Your Unifolio verification code",
+            body=f"Your Unifolio verification code is {otp}. It expires in {OTP_TTL_MINUTES} minutes.",
+        )
+
     request = OtpRequest(
         phone_number=identifier if channel == "sms" else None,
         email=identifier if channel == "email" else None,
@@ -103,13 +114,6 @@ def create_otp_request(
     )
     db.add(request)
     db.commit()
-
-    if channel == "email" and delivery_mode != "stub":
-        get_email_provider().send_email(
-            to=identifier,
-            subject="Your Unifolio verification code",
-            body=f"Your Unifolio verification code is {otp}. It expires in {OTP_TTL_MINUTES} minutes.",
-        )
 
     raw_otp = otp if delivery_mode == "stub" else None
     return request, raw_otp
