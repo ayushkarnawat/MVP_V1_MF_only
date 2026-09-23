@@ -55,6 +55,23 @@ def test_ses_email_provider_sends_expected_request(monkeypatch):
     )
 
 
+def test_ses_email_provider_includes_html_body_when_provided(monkeypatch):
+    import app.services.auth.email_provider as email_provider_module
+
+    monkeypatch.setattr(email_provider_module.settings, "aws_region", "ap-south-1")
+    monkeypatch.setattr(email_provider_module.settings, "ses_from_email", "otp@unifolio.in")
+
+    mock_client = MagicMock()
+    with patch.object(email_provider_module.boto3, "client", return_value=mock_client):
+        email_provider_module.SesEmailProvider().send_email(
+            to="user@example.com", subject="Your code", body="123456", html_body="<p>123456</p>"
+        )
+
+    sent_body = mock_client.send_email.call_args.kwargs["Message"]["Body"]
+    assert sent_body["Text"] == {"Data": "123456", "Charset": "UTF-8"}
+    assert sent_body["Html"] == {"Data": "<p>123456</p>", "Charset": "UTF-8"}
+
+
 def test_ses_email_provider_raises_email_send_error_on_client_error(monkeypatch):
     import app.services.auth.email_provider as email_provider_module
 

@@ -21,6 +21,7 @@ from sqlalchemy.orm import Session as DbSession
 from app.config import settings
 from app.models.auth import OtpRequest
 from app.services.auth.email_provider import get_email_provider
+from app.services.auth.email_templates import otp_email_html
 
 OTP_LENGTH = 6
 OTP_TTL_MINUTES = 5
@@ -103,6 +104,7 @@ def create_otp_request(
             to=identifier,
             subject="Your Unifolio verification code",
             body=f"Your Unifolio verification code is {otp}. It expires in {OTP_TTL_MINUTES} minutes.",
+            html_body=otp_email_html(otp, OTP_TTL_MINUTES),
         )
 
     request = OtpRequest(

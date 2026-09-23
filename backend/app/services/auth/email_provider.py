@@ -31,14 +31,16 @@ class EmailSendError(RuntimeError):
 
 
 class EmailProvider(Protocol):
-    def send_email(self, to: str, subject: str, body: str) -> None: ...
+    def send_email(self, to: str, subject: str, body: str, html_body: str | None = None) -> None: ...
 
 
 class StubEmailProvider:
     """Logs instead of sending — mirrors how phone OTP behaves in stub mode
-    (see otp.py's per-channel _delivery_mode() helper)."""
+    (see otp.py's per-channel _delivery_mode() helper). Logs only the plain
+    body, not html_body -- dumping raw HTML into dev logs would be noise,
+    and the plain body already tells you what the email contains."""
 
-    def send_email(self, to: str, subject: str, body: str) -> None:
+    def send_email(self, to: str, subject: str, body: str, html_body: str | None = None) -> None:
         logger.info("StubEmailProvider: would send to=%s subject=%r body=%r", to, subject, body)
 
 
@@ -52,9 +54,13 @@ class SesEmailProvider:
     access key, matching this codebase's existing boto3 usage in
     services/analytics/dispatch.py and services/import_/file_storage.py."""
 
-    def send_email(self, to: str, subject: str, body: str) -> None:
+    def send_email(self, to: str, subject: str, body: str, html_body: str | None = None) -> None:
         if not settings.aws_region:
             raise EmailSendError("Email delivery is not configured (missing AWS region).")
+
+        message_body: dict[str, dict[str, str]] = {"Text": {"Data": body, "Charset": "UTF-8"}}
+        if html_body is not None:
+            message_body["Html"] = {"Data": html_body, "Charset": "UTF-8"}
 
         client = boto3.client("ses", region_name=settings.aws_region)
         try:
@@ -63,7 +69,7 @@ class SesEmailProvider:
                 Destination={"ToAddresses": [to]},
                 Message={
                     "Subject": {"Data": subject, "Charset": "UTF-8"},
-                    "Body": {"Text": {"Data": body, "Charset": "UTF-8"}},
+                    "Body": message_body,
                 },
             )
         except (BotoCoreError, ClientError) as exc:

@@ -186,7 +186,7 @@ def test_create_otp_request_email_channel_hides_otp_and_dispatches_outside_stub_
     sent = {}
 
     class FakeProvider:
-        def send_email(self, to, subject, body):
+        def send_email(self, to, subject, body, html_body=None):
             sent["to"] = to
             sent["subject"] = subject
             sent["body"] = body
@@ -199,6 +199,28 @@ def test_create_otp_request_email_channel_hides_otp_and_dispatches_outside_stub_
     assert raw_otp is None
     assert sent["to"] == "person@example.com"
     assert request.otp_hash != sent["body"]  # sanity: body isn't the raw hash
+
+
+def test_create_otp_request_email_channel_passes_html_body_containing_the_otp(monkeypatch):
+    import app.services.auth.otp as otp_module
+
+    monkeypatch.setattr(otp_module.settings, "email_delivery_mode", "ses")
+    monkeypatch.setattr(otp_module.settings, "database_url", "sqlite:///:memory:")
+    monkeypatch.setattr(otp_module, "generate_otp", lambda: "555555")
+
+    sent = {}
+
+    class FakeProvider:
+        def send_email(self, to, subject, body, html_body=None):
+            sent["html_body"] = html_body
+
+    monkeypatch.setattr(otp_module, "get_email_provider", lambda: FakeProvider())
+    db = _session()
+
+    create_otp_request(db, "person@example.com", channel="email")
+
+    assert sent["html_body"] is not None
+    assert "555555" in sent["html_body"]
 
 
 def test_create_otp_request_email_channel_raises_when_no_real_provider_configured(monkeypatch):
@@ -339,7 +361,7 @@ def test_phone_and_email_channels_use_independent_delivery_modes(monkeypatch):
     sent = {}
 
     class FakeProvider:
-        def send_email(self, to, subject, body):
+        def send_email(self, to, subject, body, html_body=None):
             sent["to"] = to
 
     monkeypatch.setattr(otp_module, "get_email_provider", lambda: FakeProvider())
@@ -360,7 +382,7 @@ def test_create_otp_request_does_not_persist_when_email_send_fails(monkeypatch):
     monkeypatch.setattr(otp_module.settings, "email_delivery_mode", "ses")
 
     class FailingProvider:
-        def send_email(self, to, subject, body):
+        def send_email(self, to, subject, body, html_body=None):
             raise EmailSendError("boom")
 
     monkeypatch.setattr(otp_module, "get_email_provider", lambda: FailingProvider())
@@ -381,7 +403,7 @@ def test_create_otp_request_allows_immediate_retry_after_a_failed_send(monkeypat
     attempt = {"count": 0}
 
     class FlakyThenWorkingProvider:
-        def send_email(self, to, subject, body):
+        def send_email(self, to, subject, body, html_body=None):
             attempt["count"] += 1
             if attempt["count"] == 1:
                 raise EmailSendError("boom")
