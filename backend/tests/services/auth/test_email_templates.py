@@ -32,6 +32,30 @@ def test_otp_email_html_logo_visibility_comes_only_from_the_stylesheet():
     assert "display" not in html.split("<body>")[1]
 
 
+def test_otp_email_html_wrap_has_a_max_width():
+    """Real-device regression (desktop Gmail webmail, 2026-09-23): `.wrap`
+    had no max-width, so on a wide reading pane the centered OTP number sat
+    far to the right of the left-aligned headline/note text above and below
+    it -- unconstrained width made "centered" mean "centered across the
+    whole wide pane", not "centered relative to the surrounding copy". A
+    max-width narrows that reference frame so the offset stays small on any
+    viewport, matching how it already looked fine on a phone-width screen."""
+    html = otp_email_html(otp="743820", ttl_minutes=5)
+    assert "max-width" in html
+
+
+def test_otp_email_html_declares_supported_color_schemes():
+    """Some clients (Gmail's app confirmed, 2026-09-23, real device --
+    inline-style fix alone did not resolve it) only trust an email's own
+    dark-mode CSS when these meta tags are present in <head>; without them,
+    a client can apply its own automatic color-inversion heuristic over the
+    email instead of evaluating the @media (prefers-color-scheme) block at
+    all, regardless of how correct that CSS is."""
+    html = otp_email_html(otp="743820", ttl_minutes=5)
+    assert '<meta name="color-scheme" content="light dark">' in html
+    assert '<meta name="supported-color-schemes" content="light dark">' in html
+
+
 def test_otp_email_html_builds_logo_urls_from_frontend_base_url(monkeypatch):
     import app.services.auth.email_templates as email_templates_module
 

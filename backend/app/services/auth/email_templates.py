@@ -30,13 +30,19 @@ def otp_email_html(otp: str, ttl_minutes: int) -> str:
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Without these, some clients (Gmail's app confirmed on a real device)
+     apply their own automatic color-inversion over the email instead of
+     evaluating the @media (prefers-color-scheme) block below at all --
+     this opts into "trust the email's own dark-mode CSS" explicitly. -->
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=DM+Sans:wght@500;700&display=swap">
 <style>
   /* Most inboxes (Gmail web/app, Outlook desktop) ignore this @font-face
      import and fall back to the system stack below -- Apple Mail and a
      few others are the exception. Harmless to include either way. */
   body {{ margin: 0; background: #FFFFFF; color: #111111; }}
-  .wrap {{ font-family: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 32px 24px; }}
+  .wrap {{ font-family: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 24px; }}
   .headline {{ font-size: 16px; line-height: 1.55; margin: 4px 0 26px; }}
   .code-pill {{ background: rgba(34,197,94,0.16); color: #15803D; font-weight: 700; padding: 1px 6px; border-radius: 4px; }}
   .otp-number {{ font-family: 'DM Sans', ui-monospace, "SF Mono", "Roboto Mono", Consolas, monospace; font-variant-numeric: tabular-nums; font-size: 40px; font-weight: 700; letter-spacing: 0.06em; text-align: center; margin: 8px 0 26px; }}
