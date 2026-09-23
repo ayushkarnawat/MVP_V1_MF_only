@@ -2,76 +2,22 @@
 
 **Source plan:** `Docs/superpowers/plans/2026-09-22-ses-cutover-and-postmark-removal.md`
 — read that first for full rationale; this doc is the step-by-step "what to actually
-type" companion, written once both of Part 3's prerequisites were confirmed:
+type" companion.
 
+**Both of Part 3's prerequisites are now satisfied — deploy can start:**
 - **SES production access: approved 2026-09-23.** Confirmed via AWS's email and the
   SES console (`ap-south-1`, "Production access granted", 50,000/day, 14/sec).
-- **Parts 1/2 merged to `feat/enhanced-ui`:** not yet — see Step 0 below.
+- **Parts 1/2 committed and pushed to `feat/enhanced-ui`: done 2026-09-23.** Two
+  commits — `18c13b4` (`refactor(auth): remove Postmark provider and update tests for
+  SES`) and `49fd1ae` (`refactor(infra): remove Postmark secrets and variables from
+  Terraform`) — both on `feat/enhanced-ui` and pushed to `origin`. Working tree is
+  clean.
 
 **Split across two machines**, per the existing project pattern (same as
 `ses-terraform-deploy-runbook.md`):
-- **Step 0** — this laptop (Aditi's), no AWS access needed, just git.
 - **Steps 1-4** — your manager's laptop (has Terraform/AWS CLI/Docker + AWS
-  credentials already set up per `ses-terraform-deploy-runbook.md` Step 0/1).
-
----
-
-## Step 0 — Commit and push Parts 1/2 (this laptop)
-
-Parts 1 and 2's code (14 files) is sitting reviewed and test-passing in the working
-tree but **not yet committed** — this is what Part 3's second prerequisite is waiting
-on. You said you'd commit this yourself, so these are the commands for that, not
-something already run:
-
-```bash
-cd "/mnt/c/Users/Dell/Desktop/MVP v1/MVP_V1_MF_only"
-git status --short   # sanity check: should show exactly these 14 files, nothing else
-```
-
-**Expected output:**
-```
- M backend/.env.example
- M backend/app/config.py
- M backend/app/services/auth/email_provider.py
- M backend/app/services/auth/otp.py
- M backend/tests/conftest.py
- M backend/tests/services/auth/test_email_provider.py
- M backend/tests/services/auth/test_otp.py
- M infra/envs/staging/main.tf
- M infra/envs/staging/variables.tf
- M infra/modules/backend/main.tf
- M infra/modules/backend/variables.tf
- M infra/modules/security/main.tf
- M infra/modules/security/outputs.tf
- M infra/modules/security/variables.tf
-```
-
-If anything else shows up, stop and check what it is before committing.
-
-```bash
-git add backend/.env.example backend/app/config.py \
-  backend/app/services/auth/email_provider.py backend/app/services/auth/otp.py \
-  backend/tests/conftest.py backend/tests/services/auth/test_email_provider.py \
-  backend/tests/services/auth/test_otp.py infra/envs/staging/main.tf \
-  infra/envs/staging/variables.tf infra/modules/backend/main.tf \
-  infra/modules/backend/variables.tf infra/modules/security/main.tf \
-  infra/modules/security/outputs.tf infra/modules/security/variables.tf
-
-git status --short   # confirm all 14 are now staged (M -> uppercase-first M/A in index column), nothing extra
-git commit -m "feat(auth): remove Postmark, cut email OTP over to SES-only
-
-Part 1/2 of Docs/superpowers/plans/2026-09-22-ses-cutover-and-postmark-removal.md.
-Deletes PostmarkEmailProvider and its Terraform/Secrets Manager resources
-entirely. No behavior change until Part 3 deploys email_delivery_mode=ses.
-
-Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
-
-git push origin feat/enhanced-ui
-```
-
-**Expected output:** a commit hash, then a push confirmation ending in
-`feat/enhanced-ui -> feat/enhanced-ui`. Once pushed, both of Part 3's prerequisites
-are satisfied and your manager can proceed.
+  credentials already set up per `ses-terraform-deploy-runbook.md` Step 0/1). This is
+  everything left to do — start here.
 
 ---
 
@@ -131,11 +77,12 @@ git checkout feat/enhanced-ui
 git pull
 ```
 **Expected output:** `Fast-forward` with a file-change summary that includes the 14
-files from Step 0 (plus anything else that landed on the branch since). Confirm with:
+files from Parts 1/2 (plus anything else that landed on the branch since — this doc
+included). Confirm with:
 ```bash
 git log --oneline -3
 ```
-— the commit from Step 0 should be at or near the top.
+should show `18c13b4` and `49fd1ae` (Parts 1 and 2) at or near the top.
 
 ```bash
 cd infra/envs/staging
