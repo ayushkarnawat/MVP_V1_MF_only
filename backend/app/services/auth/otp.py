@@ -53,8 +53,8 @@ def _delivery_mode(channel: Channel) -> str:
     """Phone/SMS and email each have their own independent delivery-mode
     setting (OTP_DELIVERY_MODE / EMAIL_DELIVERY_MODE) so one channel can be
     switched to a real provider without affecting the other -- e.g. email
-    live via Postmark while phone/SMS stays in dev-stub mode until a real
-    SMS provider is chosen and wired in later (same pattern as Postmark:
+    live via SES while phone/SMS stays in dev-stub mode until a real
+    SMS provider is chosen and wired in later (same pattern as SES:
     a new provider class behind this same setting, nothing here needs to
     change when that happens)."""
     return settings.email_delivery_mode if channel == "email" else settings.otp_delivery_mode

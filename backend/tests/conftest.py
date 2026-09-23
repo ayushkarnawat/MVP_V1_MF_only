@@ -29,7 +29,7 @@ def _enforce_sqlite_foreign_keys(engine):
 def _default_stub_delivery_mode(monkeypatch):
     """Forces OTP_DELIVERY_MODE and EMAIL_DELIVERY_MODE back to "stub" before
     every test, regardless of what a developer's local backend/.env has set
-    -- e.g. EMAIL_DELIVERY_MODE=postmark, left on permanently so the live
+    -- e.g. EMAIL_DELIVERY_MODE=ses, left on permanently so the live
     app sends real email. Without this, any test exercising the email or
     phone channel without its own explicit monkeypatch would silently pick
     up the real value and fire a real outbound call. A test that needs a

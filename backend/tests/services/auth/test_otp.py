@@ -180,7 +180,7 @@ def test_create_otp_request_email_channel_returns_raw_otp_in_stub_mode(monkeypat
 def test_create_otp_request_email_channel_hides_otp_and_dispatches_outside_stub_mode(monkeypatch):
     import app.services.auth.otp as otp_module
 
-    monkeypatch.setattr(otp_module.settings, "email_delivery_mode", "postmark")
+    monkeypatch.setattr(otp_module.settings, "email_delivery_mode", "ses")
     monkeypatch.setattr(otp_module.settings, "database_url", "sqlite:///:memory:")
 
     sent = {}
@@ -206,7 +206,7 @@ def test_create_otp_request_email_channel_raises_when_no_real_provider_configure
 
     # "sms" isn't a real email-provider mode either (same placeholder the
     # phone-channel tests above use) -- anything other than "stub" or
-    # "postmark" has no EmailProvider behind it (email_provider.py).
+    # "ses" has no EmailProvider behind it (email_provider.py).
     monkeypatch.setattr(otp_module.settings, "email_delivery_mode", "sms")
     monkeypatch.setattr(otp_module.settings, "database_url", "sqlite:///:memory:")
     db = _session()
@@ -333,7 +333,7 @@ def test_phone_and_email_channels_use_independent_delivery_modes(monkeypatch):
     import app.services.auth.otp as otp_module
 
     monkeypatch.setattr(otp_module.settings, "otp_delivery_mode", "stub")
-    monkeypatch.setattr(otp_module.settings, "email_delivery_mode", "postmark")
+    monkeypatch.setattr(otp_module.settings, "email_delivery_mode", "ses")
     monkeypatch.setattr(otp_module.settings, "database_url", "sqlite:///:memory:")
 
     sent = {}
@@ -357,7 +357,7 @@ def test_create_otp_request_does_not_persist_when_email_send_fails(monkeypatch):
     import app.services.auth.otp as otp_module
     from app.services.auth.email_provider import EmailSendError
 
-    monkeypatch.setattr(otp_module.settings, "email_delivery_mode", "postmark")
+    monkeypatch.setattr(otp_module.settings, "email_delivery_mode", "ses")
 
     class FailingProvider:
         def send_email(self, to, subject, body):
@@ -376,7 +376,7 @@ def test_create_otp_request_allows_immediate_retry_after_a_failed_send(monkeypat
     import app.services.auth.otp as otp_module
     from app.services.auth.email_provider import EmailSendError
 
-    monkeypatch.setattr(otp_module.settings, "email_delivery_mode", "postmark")
+    monkeypatch.setattr(otp_module.settings, "email_delivery_mode", "ses")
 
     attempt = {"count": 0}
 
@@ -402,7 +402,7 @@ def test_conftest_forces_stub_delivery_modes_by_default():
     """Proves the autouse fixture in conftest.py is active: even though this
     test does zero monkeypatching itself, both delivery-mode settings must
     read "stub" -- this is what protects every other test from a local
-    .env that has EMAIL_DELIVERY_MODE=postmark set permanently."""
+    .env that has EMAIL_DELIVERY_MODE=ses set permanently."""
     from app.config import settings
 
     assert settings.otp_delivery_mode == "stub"
