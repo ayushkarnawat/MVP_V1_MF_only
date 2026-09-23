@@ -132,12 +132,31 @@ docker push 811364789032.dkr.ecr.ap-south-1.amazonaws.com/unifolio-staging-backe
 Secrets Manager — not newly generated ones. This plan doesn't touch PAN handling at
 all, but Terraform will overwrite the `pan_keys` secret with whatever you export; a
 different value here would silently break decryption of every PAN already stored in
-staging's database. Pull these from wherever they're kept (the same source used for
-the original infra setup), don't regenerate them.
+staging's database.
+
+These values were never written to any file, doc, or commit — per
+`Docs/2026-09-19-cas-s3-postmark-secrets-infra.md` Part D1, they were generated once
+and exported only as shell `TF_VAR_*` vars for that one `terraform apply`, explicitly
+never saved to a `.tfvars` file. The only durable copy is the Secrets Manager secret
+Terraform created from them. Read it back and re-export, rather than trying to find
+them anywhere else:
 
 ```bash
-export TF_VAR_pan_encryption_key="<real value — from your existing secure source>"
-export TF_VAR_pan_lookup_pepper="<real value — from your existing secure source>"
+SECRET=$(aws secretsmanager get-secret-value \
+  --secret-id unifolio-staging-pan-keys \
+  --region ap-south-1 \
+  --query SecretString --output text)
+
+export TF_VAR_pan_encryption_key=$(echo "$SECRET" | python3 -c "import json,sys; print(json.load(sys.stdin)['PAN_ENCRYPTION_KEY'])")
+export TF_VAR_pan_lookup_pepper=$(echo "$SECRET" | python3 -c "import json,sys; print(json.load(sys.stdin)['PAN_LOOKUP_PEPPER'])")
+```
+This guarantees an exact match — `terraform plan` should then show **no diff at all**
+on the `pan_keys` secret (only the Postmark/SES changes below). **If the
+`get-secret-value` call fails ("secret not found")**, Part D of the 2026-09-19 plan was
+never actually applied to staging — stop and flag this rather than generating fresh
+keys on the spot; it's a bigger gap than this plan assumes.
+
+```bash
 export TF_VAR_otp_delivery_mode="stub"
 export TF_VAR_email_delivery_mode="ses"
 export TF_VAR_ses_from_email="no-reply@unifolio.in"
