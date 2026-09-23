@@ -31,8 +31,8 @@ resource "aws_kms_key" "rds_and_secrets" {
   # Phase 3 granted the ECS task execution role kms:Decrypt, kms:GenerateDataKey,
   # and kms:DescribeKey on this key ARN via
   # infra/modules/backend's aws_iam_role_policy.ecs_secrets_read (renamed from
-  # rds_master_secret_read once its scope grew to cover the pan_keys and
-  # postmark_api_token secrets below, not just the RDS master secret).
+  # rds_master_secret_read once its scope grew to cover the pan_keys
+  # secret below, not just the RDS master secret).
   tags = merge(local.common_tags, {
     Name = "${var.environment}-rds-secrets-cmk"
   })
@@ -58,15 +58,4 @@ resource "aws_secretsmanager_secret_version" "pan_keys" {
     PAN_ENCRYPTION_KEY = var.pan_encryption_key
     PAN_LOOKUP_PEPPER  = var.pan_lookup_pepper
   })
-}
-
-resource "aws_secretsmanager_secret" "postmark_api_token" {
-  name       = "${var.project}-${var.environment}-postmark-api-token"
-  kms_key_id = aws_kms_key.rds_and_secrets.arn
-  tags       = local.common_tags
-}
-
-resource "aws_secretsmanager_secret_version" "postmark_api_token" {
-  secret_id     = aws_secretsmanager_secret.postmark_api_token.id
-  secret_string = var.postmark_api_token
 }

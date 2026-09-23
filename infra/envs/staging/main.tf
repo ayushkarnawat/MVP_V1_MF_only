@@ -19,7 +19,6 @@ module "security" {
 
   pan_encryption_key = var.pan_encryption_key
   pan_lookup_pepper  = var.pan_lookup_pepper
-  postmark_api_token = var.postmark_api_token
 }
 
 module "database" {
@@ -71,15 +70,13 @@ module "backend" {
   google_oauth_client_id = var.google_oauth_client_id
   acm_certificate_arn    = module.dns.backend_acm_certificate_arn
 
-  cas_files_bucket_name         = module.storage.bucket_name
-  cas_files_bucket_arn          = module.storage.bucket_arn
-  pan_keys_secret_arn           = module.security.pan_keys_secret_arn
-  postmark_api_token_secret_arn = module.security.postmark_api_token_secret_arn
-  otp_delivery_mode             = var.otp_delivery_mode
-  email_delivery_mode           = var.email_delivery_mode
-  postmark_from_email           = var.postmark_from_email
-  ses_from_email                = var.ses_from_email
-  ses_identity_arn              = var.ses_identity_arn
+  cas_files_bucket_name = module.storage.bucket_name
+  cas_files_bucket_arn  = module.storage.bucket_arn
+  pan_keys_secret_arn   = module.security.pan_keys_secret_arn
+  otp_delivery_mode     = var.otp_delivery_mode
+  email_delivery_mode   = var.email_delivery_mode
+  ses_from_email        = var.ses_from_email
+  ses_identity_arn      = var.ses_identity_arn
 }
 
 module "scheduler" {

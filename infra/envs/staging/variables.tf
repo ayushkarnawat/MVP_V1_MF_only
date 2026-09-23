@@ -34,28 +34,16 @@ variable "pan_lookup_pepper" {
   sensitive   = true
 }
 
-variable "postmark_api_token" {
-  description = "Postmark server API token for outbound OTP email. Supply via TF_VAR_postmark_api_token -- never commit to a .tfvars file."
-  type        = string
-  sensitive   = true
-}
-
 variable "otp_delivery_mode" {
-  description = "OTP delivery mode passed to the backend task def. Stays \"stub\" until the Postmark Sender Signature is confirmed."
+  description = "Phone/SMS OTP delivery mode passed to the backend task def. Stays \"stub\" until a real SMS provider is chosen."
   type        = string
   default     = "stub"
 }
 
 variable "email_delivery_mode" {
-  description = "General email delivery mode passed to the backend task def. Stays \"stub\" until the Postmark Sender Signature is confirmed."
+  description = "General email delivery mode passed to the backend task def: \"stub\" or \"ses\"."
   type        = string
   default     = "stub"
-}
-
-variable "postmark_from_email" {
-  description = "Verified Postmark Sender Signature address. Set once Part C's confirmation is done."
-  type        = string
-  default     = ""
 }
 
 variable "ses_from_email" {

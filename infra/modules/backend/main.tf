@@ -36,7 +36,7 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution" {
 
 # Renamed from rds_master_secret_read (Docs/2026-09-19-cas-s3-postmark-secrets-infra.md
 # Part A4a): this policy started out reading only the RDS master secret, but
-# now also covers the pan_keys and postmark_api_token secrets below, so the
+# now also covers the pan_keys secret below, so the
 # old RDS-specific name no longer describes its scope.
 data "aws_iam_policy_document" "ecs_secrets_read" {
   statement {
@@ -50,7 +50,7 @@ data "aws_iam_policy_document" "ecs_secrets_read" {
     sid       = "ReadAppSecrets"
     effect    = "Allow"
     actions   = ["secretsmanager:GetSecretValue"]
-    resources = [var.pan_keys_secret_arn, var.postmark_api_token_secret_arn]
+    resources = [var.pan_keys_secret_arn]
   }
 
   statement {
@@ -258,7 +258,6 @@ resource "aws_ecs_task_definition" "this" {
         { name = "FRONTEND_BASE_URL", value = "https://staging.unifolio.in" },
         { name = "OTP_DELIVERY_MODE", value = var.otp_delivery_mode },
         { name = "EMAIL_DELIVERY_MODE", value = var.email_delivery_mode },
-        { name = "POSTMARK_FROM_EMAIL", value = var.postmark_from_email },
         { name = "SES_FROM_EMAIL", value = var.ses_from_email },
         { name = "GOOGLE_OAUTH_CLIENT_ID", value = var.google_oauth_client_id },
         { name = "DB_USERNAME", value = "unifolio" },
@@ -287,10 +286,6 @@ resource "aws_ecs_task_definition" "this" {
         {
           name      = "PAN_LOOKUP_PEPPER"
           valueFrom = "${var.pan_keys_secret_arn}:PAN_LOOKUP_PEPPER::"
-        },
-        {
-          name      = "POSTMARK_API_TOKEN"
-          valueFrom = var.postmark_api_token_secret_arn
         }
       ]
 

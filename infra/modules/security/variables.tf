@@ -27,9 +27,3 @@ variable "pan_lookup_pepper" {
   type        = string
   sensitive   = true
 }
-
-variable "postmark_api_token" {
-  description = "Postmark server API token for outbound OTP email. Supply via TF_VAR_postmark_api_token -- never commit to a .tfvars file."
-  type        = string
-  sensitive   = true
-}
