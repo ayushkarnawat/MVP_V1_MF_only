@@ -43,7 +43,8 @@ def otp_email_html(otp: str, ttl_minutes: int) -> str:
   .rule {{ height: 1px; border: none; background: #E5E5E5; margin: 0 0 22px; }}
   .note {{ font-size: 13.5px; line-height: 1.65; color: #374151; margin: 0; }}
   .disclaimer {{ font-size: 11.5px; line-height: 1.6; color: #6B7280; margin: 24px 0 0; }}
-  .logo-dark {{ display: none; }}
+  .logo-light {{ display: block; margin-bottom: 22px; }}
+  .logo-dark {{ display: none; margin-bottom: 22px; }}
   @media (prefers-color-scheme: dark) {{
     body {{ background: #0F0F0F !important; color: #F5F5F5 !important; }}
     .code-pill {{ color: #4ADE80 !important; }}
@@ -57,8 +58,8 @@ def otp_email_html(otp: str, ttl_minutes: int) -> str:
 </head>
 <body>
 <div class="wrap">
-  <img class="logo-light" src="{logo_light}" alt="Unifolio" height="22" style="display:block; margin-bottom:22px;">
-  <img class="logo-dark" src="{logo_dark}" alt="Unifolio" height="22" style="display:none; margin-bottom:22px;">
+  <img class="logo-light" src="{logo_light}" alt="Unifolio" height="22">
+  <img class="logo-dark" src="{logo_dark}" alt="Unifolio" height="22">
   <p class="headline">Your <span class="code-pill">verification code</span> to sign in to Unifolio is below.</p>
   <div class="otp-number">{safe_otp}</div>
   <hr class="rule">

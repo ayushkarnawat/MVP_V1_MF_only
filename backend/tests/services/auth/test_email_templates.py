@@ -20,6 +20,18 @@ def test_otp_email_html_escapes_html_special_characters_in_otp():
     assert "&lt;b&gt;123456&lt;/b&gt;" in html
 
 
+def test_otp_email_html_logo_visibility_comes_only_from_the_stylesheet():
+    """Real-device regression (Gmail Android app, 2026-09-23): an inline
+    style="display:..." directly on the <img> tag won over the stylesheet's
+    dark-mode !important override in Gmail's simplified CSS engine, leaving
+    the light-mode (dark-wordmark) logo stuck visible against a dark
+    background -- effectively invisible. Display must come only from the
+    .logo-light/.logo-dark classes, so there's nothing inline for the media
+    query to lose to."""
+    html = otp_email_html(otp="743820", ttl_minutes=5)
+    assert "display" not in html.split("<body>")[1]
+
+
 def test_otp_email_html_builds_logo_urls_from_frontend_base_url(monkeypatch):
     import app.services.auth.email_templates as email_templates_module
 
