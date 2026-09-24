@@ -1,4 +1,4 @@
-# Session state — 2026-09-12 (updated)
+# Session state — 2026-09-24
 
 Working notes for picking this project back up cold. Not a planning doc — see
 `Docs/superpowers/plans/` for those. This file tracks *where things stand*,
@@ -7,7 +7,38 @@ gets overwritten each session, and isn't meant to accumulate history.
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
 
-## Latest Session (2026-09-12): Fund Score card redesign implemented via subagent-driven-development, all 9 tasks + full-suite verification clean
+## Latest Session (2026-09-24): CAS import — PAN check moved to upload time; Confirm Import never prompts (UNCOMMITTED, awaiting user review)
+
+Fixes the staging bug where every first import on a fresh account showed "We couldn't
+match this statement to an existing family member" (and froze in the Family flow). Root
+cause: PAN-based attribution ran at Confirm, but a member's PAN was only stored *after*
+a confirm, so nothing could ever match on a first import.
+
+What changed (spec `Docs/superpowers/specs/2026-09-24-pan-at-upload-attribution-design.md`,
+plan `Docs/superpowers/plans/2026-09-24-pan-at-upload-attribution.md`, ledger
+`.superpowers/sdd/2026-09-24-pan-at-upload-attribution/progress.md`):
+- New `backend/app/services/import_/pan_claims.py` replaces `attribution.py` (deleted).
+  `/imports/parse` now takes `household_member_id` and claims the parsed PAN for that
+  member as *pending* (new column `household_members.pan_pending_until`, migration 0016);
+  conflicts return 409 `cross_account_pan_blocked` / `pan_belongs_to_other_member` /
+  `pan_mismatch_for_member` right after upload. `/imports/confirm` only finalizes — no
+  prompts, no `confirmed_member_override`. New `POST /imports/sessions/{id}/discard`.
+  `/cas-imports` claims permanently inline. PAN/CAS storage format unchanged.
+- Frontend: all "Continue anyway / Switch to" UI removed. Just Me/dashboard/mobile show the
+  existing Import blocked popup (cross-account) or a new "This PAN already exists" popup
+  at upload. Family shows "This PAN already exists" with Change CAS file / Skip.
+- Final review (fresh opus reviewer): 3 Important fixed (claim moved after mfapi
+  enrichment so SQLite's write lock isn't held across network calls; Family re-upload form
+  got a Back; lost unique-index race retries instead of 500ing), 7 minors deferred (listed
+  in the ledger).
+
+Verified fresh: backend 714 passed / 8 skipped; frontend 484 passed across all 82 files
+(the full run hits an unrelated WSL vitest worker-startup timeout on ~2 random files per
+run; those were re-run individually and pass); `tsc -b --noEmit` clean. Not yet done: the manual
+fresh-account check on a running app (plan Task 11 Step 6). Nothing committed — the user
+commits manually after review.
+
+## Previous Session (2026-09-12): Fund Score card redesign implemented via subagent-driven-development, all 9 tasks + full-suite verification clean
 
 The Fund Score card redesign (spec `Docs/superpowers/specs/2026-09-11-fund-score-card-redesign-design.md`,
 plan `Docs/superpowers/plans/2026-09-11-fund-score-card-redesign.md`) is implemented:
