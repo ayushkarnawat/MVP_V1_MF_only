@@ -25,10 +25,11 @@ from app.models.reference import Scheme
 from app.models.transaction import Transaction
 from app.models.user import HouseholdMember
 from app.services.dashboard.holdings import invalidate_holdings_cache
-from app.services.import_.attribution import (
-    backfill_pan_if_missing,
-    enforce_attribution_confirmation,
-    resolve_attribution,
+from app.db.session import commit_off_loop
+from app.services.import_.pan_claims import (
+    claim_pan_for_member,
+    confirm_pan_claim,
+    release_pending_pan_claim,
 )
 from app.services.import_.enrich import MfApiClient, _normalize_name, mfapi_client
 from app.services.import_.file_storage import store_cas_file
@@ -77,8 +78,21 @@ def _sweep_expired_sessions(ttl_minutes: int = SESSION_TTL_MINUTES) -> None:
         del _preview_sessions[sid]
 
 
+def _is_session_expired(session: dict[str, Any], ttl_minutes: int = SESSION_TTL_MINUTES) -> bool:
+    # Checked at confirm time too, not only swept on the next parse: a pending
+    # PAN claim lives PENDING_PAN_TTL (65 min), so a session must never be
+    # confirmable past its own 60-minute TTL.
+    return session["created_at"] < datetime.now(timezone.utc) - timedelta(minutes=ttl_minutes)
+
+
 async def build_import_preview(
-    parse_result: ParseResult, filename: str, pdf_bytes: bytes, client: MfApiClient | None = None
+    parse_result: ParseResult,
+    filename: str,
+    pdf_bytes: bytes,
+    client: MfApiClient | None = None,
+    *,
+    household_member_id: uuid.UUID | None = None,
+    user_id: uuid.UUID | None = None,
 ) -> ImportPreviewResponse:
     _sweep_expired_sessions()
     client = client or mfapi_client
@@ -124,6 +138,9 @@ async def build_import_preview(
     _preview_sessions[session_id] = {
         "created_at": datetime.now(timezone.utc),
         "filename": filename, "parse_result": parse_result, "pdf_bytes": pdf_bytes,
+        # Set by start_import_session (the only production caller); None only
+        # when tests build a preview directly.
+        "household_member_id": household_member_id, "user_id": user_id,
         "key_to_temp": key_to_temp,
         "scheme_previews": {s.temp_id: s for s in scheme_previews},
     }
@@ -137,6 +154,37 @@ async def build_import_preview(
     )
 
 
+async def start_import_session(
+    db: Session,
+    user_id: uuid.UUID,
+    member: HouseholdMember,
+    parse_result: ParseResult,
+    filename: str,
+    pdf_bytes: bytes,
+    client: MfApiClient | None = None,
+) -> ImportPreviewResponse:
+    """Upload-time step of the two-step import: builds the preview, then
+    claims the CAS's PAN for `member` as pending and commits. On a
+    PanConflictError the just-created session is dropped, so a conflict
+    leaves no session behind.
+
+    Preview first on purpose: a flushed-but-uncommitted claim holds SQLite's
+    write lock, and build_import_preview makes mfapi network calls (up to 30s
+    on a cold cache) -- claiming first would block every other writer for
+    that long."""
+    preview = await build_import_preview(
+        parse_result, filename, pdf_bytes, client,
+        household_member_id=member.id, user_id=user_id,
+    )
+    try:
+        claim_pan_for_member(db, member, parse_result.investor.pan, pending=True)
+    except Exception:
+        _preview_sessions.pop(preview.session_id, None)
+        raise
+    await commit_off_loop(db)
+    return preview
+
+
 def _resolve_category(mfapi_category: str | None, cas_scheme_type: str | None) -> str:
     return mfapi_category or cas_scheme_type or "Unclassified"
 
@@ -147,22 +195,25 @@ def confirm_import(
     household_member_id: uuid.UUID,
     scheme_confirmations: list[SchemeConfirmation],
     user_id: uuid.UUID,
-    confirmed_member_override: bool = False,
 ) -> ImportConfirmResponse:
     session = _preview_sessions.get(session_id)
-    if not session:
+    if session and _is_session_expired(session):
+        del _preview_sessions[session_id]
+        session = None
+    if (
+        not session
+        or session.get("user_id") not in (None, user_id)
+        or session.get("household_member_id") not in (None, household_member_id)
+    ):
         raise ValueError("Import session not found or expired.")
 
     parse_result: ParseResult = session["parse_result"]
-    attribution = resolve_attribution(db, user_id, household_member_id, parse_result)
-    enforce_attribution_confirmation(attribution, confirmed_member_override)
-    target_member_id = (
-        household_member_id
-        if confirmed_member_override
-        else attribution.resolved_member_id or household_member_id
-    )
+    # The member was fixed and the PAN checked at upload (start_import_session);
+    # confirm only finalizes. First write in this transaction on purpose --
+    # confirm_pan_claim's fallback path may roll back.
+    target_member_id = household_member_id
     target_member = db.get(HouseholdMember, target_member_id)
-    backfill_pan_if_missing(db, target_member, parse_result)
+    confirm_pan_claim(db, target_member, parse_result.investor.pan)
 
     previews: dict[str, SchemeMatchPreview] = session["scheme_previews"]
     key_to_temp = session["key_to_temp"]
@@ -358,6 +409,21 @@ def confirm_import(
         skipped=skipped,
         import_id=str(import_rec.id),
     )
+
+
+def discard_import_session(db: Session, session_id: str, user_id: uuid.UUID) -> None:
+    """Abandons a preview session on purpose (Back / reset / Cancel) and
+    releases its pending PAN claim. Idempotent; never touches another user's
+    session."""
+    session = _preview_sessions.get(session_id)
+    if session is None or session.get("user_id") != user_id:
+        return
+    del _preview_sessions[session_id]
+    member_id = session.get("household_member_id")
+    member = db.get(HouseholdMember, member_id) if member_id else None
+    if member is not None:
+        release_pending_pan_claim(member, session["parse_result"].investor.pan)
+        db.commit()
 
 
 def _map_source_cas_type(file_type: str) -> SourceCasType | None:

@@ -8,12 +8,7 @@ from app.models.enums import ImportStatus, Relationship, TransactionType
 from app.models.imports import Import
 from app.models.user import HouseholdMember, User
 from app.services.import_.buffer_cache import get_pdf_buffer, store_pdf_buffer
-from app.services.import_.attribution import (
-    AttributionConfirmationRequiredError,
-    AttributionDecision,
-    AttributionStatus,
-    CrossAccountPanBlockedError,
-)
+from app.services.import_.pan_claims import CrossAccountPanBlockedError, PanMismatchForMemberError
 from app.services.import_.crypto import encrypt_pan, hash_pan
 from app.services.import_ import file_storage as file_storage_module
 from app.services.import_.file_storage import CAS_FILE_RETENTION_DAYS, storage_key_for_import
@@ -184,18 +179,13 @@ def test_retry_password_unlocks_and_completes_import(db_session, sample_user_and
     ))
     assert import_rec.status == ImportStatus.PASSWORD_REQUIRED
 
-    # In-place password retry without re-uploading file. Uses
-    # confirmed_member_override=True: this test's intent is the retry/parse
-    # flow, not attribution matching, and the member has no PAN on file, so
-    # a real resolve_attribution call would otherwise land on
-    # UNRECOGNIZED_MEMBER and require confirmation.
+    # In-place password retry without re-uploading file.
     before = datetime.now(timezone.utc)
     updated_rec = retry_cas_import_password(
         db=db_session,
         import_id=import_rec.id,
         user_id=user.id,
         new_password="CORRECT_PASS",
-        confirmed_member_override=True,
     )
 
     assert updated_rec.status == ImportStatus.IMPORT_SUCCESSFUL
@@ -217,17 +207,10 @@ def test_retry_password_unlocks_and_completes_import(db_session, sample_user_and
     assert abs((actual_expiry - expected_expiry).total_seconds()) < 5
 
 
-def test_cross_account_pan_match_blocks_import(
+def test_cross_account_pan_blocks_one_step_import(
     db_session, sample_user_and_member, monkeypatch
 ):
-    """Cross-account attribution is now a hard PAN block, not a
-    response-only advisory (attribution.py rewrite, Task 5). Folio-based
-    matching in resolve_attribution only ever looks within the caller's own
-    household now, so a same-folio-different-account scenario (this test's
-    old shape) is no longer observable here at all -- the only real
-    cross-account signal left is a PAN match to a member of a different
-    account, which raises CrossAccountPanBlockedError directly out of
-    create_cas_import (uncaught by its ParseError-only try/except)."""
+    """A PAN held by another account is refused before anything commits."""
     user, member = sample_user_and_member
     now = datetime.now(timezone.utc)
     other_user = User(
@@ -280,72 +263,6 @@ def test_cross_account_pan_match_blocks_import(
                 password="PASS",
             )
         )
-
-
-def test_cross_account_pan_match_blocks_import_even_with_override(
-    db_session, sample_user_and_member, monkeypatch
-):
-    """Fix 5 (2026-09-18 whole-branch review): confirmed_member_override=True
-    must NOT bypass the cross-account PAN hard block on create_cas_import's
-    call chain. Structurally it can't -- resolve_attribution raises
-    CrossAccountPanBlockedError before returning any AttributionDecision, so
-    enforce_attribution_confirmation (the function the override parameter
-    actually gates) never runs -- but nothing in either test file asserted
-    this before. Also confirms the flushed-but-uncommitted Import row from
-    the aborted attempt never becomes a durable write: rolling back (what
-    app.db.session.get_db's `finally: db.close()` does on every real request
-    when a handler doesn't commit) leaves zero Import rows behind."""
-    user, member = sample_user_and_member
-    now = datetime.now(timezone.utc)
-    other_user = User(id=uuid.uuid4(), phone_number="+919900000002", created_at=now)
-    db_session.add(other_user)
-    db_session.flush()
-    other_member = HouseholdMember(
-        id=uuid.uuid4(),
-        user_id=other_user.id,
-        name="Private Other Account",
-        relationship=Relationship.SELF,
-        created_at=now,
-        pan_encrypted=encrypt_pan("YYYYY8888Y"),
-        pan_lookup_hash=hash_pan("YYYYY8888Y"),
-    )
-    db_session.add(other_member)
-    db_session.commit()
-
-    parse_result = ParseResult(
-        investor=ParsedInvestor(
-            name="Different Investor Name",
-            email="investor@example.com",
-            pan_masked="Y*****8Y",
-            pan="YYYYY8888Y",
-        ),
-        schemes=[],
-        transactions=[],
-        raw_json="{}",
-    )
-    monkeypatch.setattr(
-        "app.services.import_.lifecycle_service.parse_cas_pdf_bytes",
-        lambda _bytes, _password: parse_result,
-    )
-
-    with pytest.raises(CrossAccountPanBlockedError):
-        asyncio.run(
-            create_cas_import(
-                db=db_session,
-                user_id=user.id,
-                household_member_id=member.id,
-                file_bytes=b"%PDF-1.4 statement",
-                filename="statement.pdf",
-                password="PASS",
-                confirmed_member_override=True,
-            )
-        )
-
-    # The blocked attempt's Import row was add()ed and flush()ed (visible
-    # within this still-open transaction) but never committed -- rolling
-    # back, as a real request's session teardown would, leaves no trace.
-    db_session.rollback()
-    assert db_session.query(Import).count() == 0
 
 
 def test_deduplication_fingerprint_skips_duplicates(db_session, sample_user_and_member, monkeypatch):
@@ -401,10 +318,7 @@ def test_deduplication_fingerprint_skips_duplicates(db_session, sample_user_and_
 
     monkeypatch.setattr("app.services.import_.lifecycle_service.parse_cas_pdf_bytes", lambda b, p: parse_res_1)
 
-    # First import. confirmed_member_override=True: this test's intent is
-    # dedup fingerprinting, not attribution matching, and the member has no
-    # PAN or pre-existing folio on file, so real resolve_attribution would
-    # otherwise land on UNRECOGNIZED_MEMBER and require confirmation.
+    # First import.
     before = datetime.now(timezone.utc)
     rec1 = asyncio.run(create_cas_import(
         db=db_session,
@@ -413,7 +327,6 @@ def test_deduplication_fingerprint_skips_duplicates(db_session, sample_user_and_
         file_bytes=fake_pdf,
         filename="statement1.pdf",
         password="PASS",
-        confirmed_member_override=True,
     ))
     assert rec1.status == ImportStatus.IMPORT_SUCCESSFUL
     assert rec1.new_transactions_count == 1
@@ -457,163 +370,46 @@ def test_deduplication_fingerprint_skips_duplicates(db_session, sample_user_and_
         file_bytes=fake_pdf,
         filename="statement2.pdf",
         password="PASS",
-        confirmed_member_override=True,
     ))
     assert rec2.status == ImportStatus.IMPORT_SUCCESSFUL
     assert rec2.new_transactions_count == 1  # only txn2 added
     assert rec2.duplicate_transactions_count == 1  # txn1 skipped as duplicate
 
 
-def _confirmation_required_decision(member: HouseholdMember) -> AttributionDecision:
-    return AttributionDecision(
-        status=AttributionStatus.MISMATCH_CONFIRMATION_REQUIRED,
-        resolved_member_id=member.id,
-        matched_member_name=member.name,
-        requires_confirmation=True,
-        prompt_message="Confirm the matched family member.",
-    )
-
-
-def _empty_parse_result() -> ParseResult:
-    return ParseResult(
-        investor=ParsedInvestor(name="Parsed Investor", email=None, pan_masked=None),
-        schemes=[],
-        transactions=[],
-        raw_json="{}",
-    )
-
-
-def test_create_cas_import_requires_attribution_confirmation(
-    db_session, sample_user_and_member, monkeypatch
-):
+def test_one_step_import_stores_pan_permanently(db_session, sample_user_and_member, monkeypatch):
     user, member = sample_user_and_member
-    monkeypatch.setattr(
-        "app.services.import_.lifecycle_service.parse_cas_pdf_bytes",
-        lambda _bytes, _password: _empty_parse_result(),
+    parse_result = ParseResult(
+        investor=ParsedInvestor(name="Anyone", email=None, pan_masked="A*****1F", pan="ABCDE1234F"),
+        schemes=[], transactions=[], raw_json="{}",
     )
-    monkeypatch.setattr(
-        "app.services.import_.lifecycle_service.resolve_attribution",
-        lambda *_args, **_kwargs: _confirmation_required_decision(member),
-    )
+    monkeypatch.setattr("app.services.import_.lifecycle_service.parse_cas_pdf_bytes", lambda _b, _p: parse_result)
 
-    with pytest.raises(AttributionConfirmationRequiredError):
-        asyncio.run(
-            create_cas_import(
-                db=db_session,
-                user_id=user.id,
-                household_member_id=member.id,
-                file_bytes=b"%PDF-1.4 statement",
-                filename="statement.pdf",
-                password="PASS",
-            )
-        )
+    rec = asyncio.run(create_cas_import(
+        db=db_session, user_id=user.id, household_member_id=member.id,
+        file_bytes=b"%PDF-1.4 statement", filename="statement.pdf", password="PASS",
+    ))
+
+    assert rec.status == ImportStatus.IMPORT_SUCCESSFUL
+    db_session.refresh(member)
+    assert member.pan_lookup_hash == hash_pan("ABCDE1234F")
+    assert member.pan_pending_until is None
 
 
-def test_create_cas_import_accepts_attribution_confirmation_override(
-    db_session, sample_user_and_member, monkeypatch
-):
+def test_one_step_import_refuses_a_different_pan_for_the_member(db_session, sample_user_and_member, monkeypatch):
     user, member = sample_user_and_member
-    matched_member = HouseholdMember(
-        id=uuid.uuid4(),
-        user_id=user.id,
-        name="Matched Family Member",
-        relationship=Relationship.SPOUSE,
-        created_at=datetime.now(timezone.utc),
-    )
-    db_session.add(matched_member)
+    member.pan_encrypted = encrypt_pan("ABCDE1234F")
+    member.pan_lookup_hash = hash_pan("ABCDE1234F")
     db_session.commit()
-    monkeypatch.setattr(
-        "app.services.import_.lifecycle_service.parse_cas_pdf_bytes",
-        lambda _bytes, _password: _empty_parse_result(),
+    parse_result = ParseResult(
+        investor=ParsedInvestor(name="Anyone", email=None, pan_masked="Q*****8Y", pan="QWERT5678Y"),
+        schemes=[], transactions=[], raw_json="{}",
     )
-    monkeypatch.setattr(
-        "app.services.import_.lifecycle_service.resolve_attribution",
-        lambda *_args, **_kwargs: _confirmation_required_decision(matched_member),
-    )
+    monkeypatch.setattr("app.services.import_.lifecycle_service.parse_cas_pdf_bytes", lambda _b, _p: parse_result)
 
-    import_rec = asyncio.run(
-        create_cas_import(
-            db=db_session,
-            user_id=user.id,
-            household_member_id=member.id,
-            file_bytes=b"%PDF-1.4 statement",
-            filename="statement.pdf",
-            password="PASS",
-            confirmed_member_override=True,
-        )
-    )
-
-    assert import_rec.status == ImportStatus.IMPORT_SUCCESSFUL
-    assert import_rec.household_member_id == member.id
-
-
-def test_retry_cas_import_password_requires_attribution_confirmation(
-    db_session, sample_user_and_member, monkeypatch
-):
-    user, member = sample_user_and_member
-    import_rec = Import(
-        id=uuid.uuid4(),
-        household_member_id=member.id,
-        status=ImportStatus.PASSWORD_REQUIRED,
-        uploaded_at=datetime.now(timezone.utc),
-    )
-    db_session.add(import_rec)
-    db_session.commit()
-    store_pdf_buffer(str(import_rec.id), b"%PDF-1.4 cached")
-    monkeypatch.setattr(
-        "app.services.import_.lifecycle_service.parse_cas_pdf_bytes",
-        lambda _bytes, _password: _empty_parse_result(),
-    )
-    monkeypatch.setattr(
-        "app.services.import_.lifecycle_service.resolve_attribution",
-        lambda *_args, **_kwargs: _confirmation_required_decision(member),
-    )
-
-    with pytest.raises(AttributionConfirmationRequiredError):
-        retry_cas_import_password(
-            db=db_session,
-            import_id=import_rec.id,
-            user_id=user.id,
-            new_password="PASS",
-        )
-
-
-def test_retry_cas_import_password_accepts_attribution_confirmation_override(
-    db_session, sample_user_and_member, monkeypatch
-):
-    user, member = sample_user_and_member
-    matched_member = HouseholdMember(
-        id=uuid.uuid4(),
-        user_id=user.id,
-        name="Matched Family Member",
-        relationship=Relationship.SPOUSE,
-        created_at=datetime.now(timezone.utc),
-    )
-    import_rec = Import(
-        id=uuid.uuid4(),
-        household_member_id=member.id,
-        status=ImportStatus.PASSWORD_REQUIRED,
-        uploaded_at=datetime.now(timezone.utc),
-    )
-    db_session.add_all([matched_member, import_rec])
-    db_session.commit()
-    store_pdf_buffer(str(import_rec.id), b"%PDF-1.4 cached")
-    monkeypatch.setattr(
-        "app.services.import_.lifecycle_service.parse_cas_pdf_bytes",
-        lambda _bytes, _password: _empty_parse_result(),
-    )
-    monkeypatch.setattr(
-        "app.services.import_.lifecycle_service.resolve_attribution",
-        lambda *_args, **_kwargs: _confirmation_required_decision(matched_member),
-    )
-
-    updated_rec = retry_cas_import_password(
-        db=db_session,
-        import_id=import_rec.id,
-        user_id=user.id,
-        new_password="PASS",
-        confirmed_member_override=True,
-    )
-
-    assert updated_rec.status == ImportStatus.IMPORT_SUCCESSFUL
-    assert updated_rec.household_member_id == member.id
+    with pytest.raises(PanMismatchForMemberError):
+        asyncio.run(create_cas_import(
+            db=db_session, user_id=user.id, household_member_id=member.id,
+            file_bytes=b"%PDF-1.4 statement", filename="statement.pdf", password="PASS",
+        ))
+    db_session.rollback()
+    assert db_session.query(Import).count() == 0

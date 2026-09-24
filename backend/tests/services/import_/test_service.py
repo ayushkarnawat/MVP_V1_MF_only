@@ -14,10 +14,18 @@ from app.models.reference import Scheme
 from app.models.folio import Folio
 from app.models.transaction import Transaction
 from app.models.imports import Import, ImportStatus
-from app.services.import_.attribution import AttributionConfirmationRequiredError, CrossAccountPanBlockedError
+from app.services.import_.pan_claims import PENDING_PAN_TTL, PanBelongsToOtherMemberError
 from app.services.import_.crypto import encrypt_pan, hash_pan
 from app.services.import_.parser import NormalizedTransaction, ParsedInvestor, ParsedScheme, ParseResult
-from app.services.import_.service import SchemeConfidenceError, build_import_preview, confirm_import
+from app.services.import_.service import (
+    SESSION_TTL_MINUTES,
+    SchemeConfidenceError,
+    _preview_sessions,
+    build_import_preview,
+    confirm_import,
+    discard_import_session,
+    start_import_session,
+)
 from app.models.enums import PlanType, TransactionType
 from decimal import Decimal
 from datetime import date, timedelta
@@ -85,7 +93,6 @@ def _confirm_for_member(db, preview, member, scheme_confirmations=None):
         member.id,
         scheme_confirmations=scheme_confirmations or [],
         user_id=member.user_id,
-        confirmed_member_override=True,
     )
 
 
@@ -775,158 +782,6 @@ def test_confirm_import_does_not_reject_override_when_name_lacks_plan_designator
     assert folio.plan_type.value == "regular"
 
 
-def test_confirm_import_requires_attribution_confirmation_before_writing():
-    db = _session()
-    selected_member = _household_member(db)
-    matched_member = HouseholdMember(
-        id=uuid.uuid4(),
-        user_id=selected_member.user_id,
-        name="Existing Family Member",
-        relationship=Relationship.SPOUSE,
-        created_at=datetime.now(timezone.utc),
-    )
-    scheme = Scheme(
-        id=uuid.uuid4(),
-        amfi_code="125497",
-        name="HDFC Flexi Cap Fund - Direct Plan - Growth",
-        amc_name="HDFC AMC",
-        sebi_category="Equity",
-    )
-    db.add_all([matched_member, scheme])
-    db.flush()
-    db.add(
-        Folio(
-            id=uuid.uuid4(),
-            household_member_id=matched_member.id,
-            scheme_id=scheme.id,
-            folio_number="123/45",
-            plan_type=PlanType.DIRECT,
-        )
-    )
-    db.commit()
-    preview = asyncio.run(
-        build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=_mocked_client())
-    )
-
-    with pytest.raises(AttributionConfirmationRequiredError) as exc_info:
-        confirm_import(
-            db,
-            preview.session_id,
-            selected_member.id,
-            scheme_confirmations=[],
-            user_id=selected_member.user_id,
-        )
-
-    assert exc_info.value.attribution.resolved_member_id == matched_member.id
-    assert db.query(Import).count() == 0
-    assert db.query(Transaction).count() == 0
-
-
-def test_confirm_import_continue_override_keeps_selected_member_for_persistence():
-    db = _session()
-    selected_member = _household_member(db)
-    matched_member = HouseholdMember(
-        id=uuid.uuid4(),
-        user_id=selected_member.user_id,
-        name="Existing Family Member",
-        relationship=Relationship.SPOUSE,
-        created_at=datetime.now(timezone.utc),
-    )
-    scheme = Scheme(
-        id=uuid.uuid4(),
-        amfi_code="125497",
-        name="HDFC Flexi Cap Fund - Direct Plan - Growth",
-        amc_name="HDFC AMC",
-        sebi_category="Equity",
-    )
-    db.add_all([matched_member, scheme])
-    db.flush()
-    db.add(
-        Folio(
-            id=uuid.uuid4(),
-            household_member_id=matched_member.id,
-            scheme_id=scheme.id,
-            folio_number="123/45",
-            plan_type=PlanType.DIRECT,
-        )
-    )
-    db.commit()
-    preview = asyncio.run(
-        build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=_mocked_client())
-    )
-
-    result = confirm_import(
-        db,
-        preview.session_id,
-        selected_member.id,
-        scheme_confirmations=[],
-        user_id=selected_member.user_id,
-        confirmed_member_override=True,
-    )
-
-    assert result.added == 1
-    assert db.query(Import).one().household_member_id == selected_member.id
-    transaction = db.query(Transaction).one()
-    assert db.get(Folio, transaction.folio_id).household_member_id == selected_member.id
-
-
-def test_confirm_import_switch_override_uses_submitted_matched_member_for_persistence():
-    db = _session()
-    selected_member = _household_member(db)
-    matched_member = HouseholdMember(
-        id=uuid.uuid4(),
-        user_id=selected_member.user_id,
-        name="Existing Family Member",
-        relationship=Relationship.SPOUSE,
-        created_at=datetime.now(timezone.utc),
-    )
-    scheme = Scheme(
-        id=uuid.uuid4(),
-        amfi_code="125497",
-        name="HDFC Flexi Cap Fund - Direct Plan - Growth",
-        amc_name="HDFC AMC",
-        sebi_category="Equity",
-    )
-    db.add_all([matched_member, scheme])
-    db.flush()
-    db.add(
-        Folio(
-            id=uuid.uuid4(),
-            household_member_id=matched_member.id,
-            scheme_id=scheme.id,
-            folio_number="123/45",
-            plan_type=PlanType.DIRECT,
-        )
-    )
-    db.commit()
-    preview = asyncio.run(
-        build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=_mocked_client())
-    )
-
-    with pytest.raises(AttributionConfirmationRequiredError):
-        confirm_import(
-            db,
-            preview.session_id,
-            selected_member.id,
-            scheme_confirmations=[],
-            user_id=selected_member.user_id,
-        )
-
-    result = confirm_import(
-        db,
-        preview.session_id,
-        matched_member.id,
-        scheme_confirmations=[],
-        user_id=selected_member.user_id,
-        confirmed_member_override=True,
-    )
-
-    assert result.added == 1
-    assert db.query(Import).one().household_member_id == matched_member.id
-    transaction = db.query(Transaction).one()
-    assert db.get(Folio, transaction.folio_id).household_member_id == matched_member.id
-
-
 def test_confirm_import_returns_generic_cross_account_warning():
     db = _session()
     selected_member = _household_member(db)
@@ -971,65 +826,10 @@ def test_confirm_import_returns_generic_cross_account_warning():
         selected_member.id,
         scheme_confirmations=[],
         user_id=selected_member.user_id,
-        confirmed_member_override=True,
     )
 
-    # Cross-account collisions are now a hard block raised earlier by
-    # resolve_attribution (via a PAN match), not a post-hoc advisory warning
-    # -- this scenario (a folio owned by a different account) no longer
-    # produces anything observable here since folio-matching in
-    # resolve_attribution only ever looks within the caller's own household
-    # (see attribution.py's resolve_attribution / Task 5's redesign).
     assert result.warnings == []
     assert db.query(Import).one().status == ImportStatus.CONFIRMED
-
-
-def test_confirm_import_cross_account_pan_match_blocks_even_with_override():
-    """Fix 5 (2026-09-18 whole-branch review): neither test file had any
-    coverage proving confirmed_member_override=True can't bypass the
-    cross-account PAN hard block. It can't, structurally: resolve_attribution
-    raises CrossAccountPanBlockedError before returning any AttributionDecision
-    at all, so enforce_attribution_confirmation (the function the override
-    parameter actually gates) never even runs. This test exercises that
-    through the full confirm_import call chain, with the override explicitly
-    passed as True, and confirms zero DB writes result from the blocked
-    attempt."""
-    db = _session()
-    selected_member = _household_member(db)
-    other_user = User(id=uuid.uuid4(), phone_number="+919000000002", created_at=datetime.now(timezone.utc))
-    other_member = HouseholdMember(
-        id=uuid.uuid4(), user_id=other_user.id, name="Private Other Account",
-        relationship=Relationship.SELF, created_at=datetime.now(timezone.utc),
-        pan_encrypted=encrypt_pan("ZZZZZ9999Z"), pan_lookup_hash=hash_pan("ZZZZZ9999Z"),
-    )
-    db.add_all([other_user, other_member])
-    db.commit()
-
-    sample = _sample_parse_result()
-    parse_result_with_pan = ParseResult(
-        investor=ParsedInvestor(
-            name=sample.investor.name, email=sample.investor.email,
-            pan_masked=sample.investor.pan_masked, pan="ZZZZZ9999Z",
-        ),
-        schemes=sample.schemes, transactions=sample.transactions, raw_json=sample.raw_json,
-        parse_warnings=sample.parse_warnings, cas_type=sample.cas_type, file_type=sample.file_type,
-    )
-    preview = asyncio.run(
-        build_import_preview(parse_result_with_pan, "test.pdf", b"%PDF-1.4 fake", client=_mocked_client())
-    )
-
-    with pytest.raises(CrossAccountPanBlockedError):
-        confirm_import(
-            db,
-            preview.session_id,
-            selected_member.id,
-            scheme_confirmations=[],
-            user_id=selected_member.user_id,
-            confirmed_member_override=True,
-        )
-
-    assert db.query(Import).count() == 0
-    assert db.query(Transaction).count() == 0
 
 
 def test_confirm_import_returns_no_warning_without_cross_account_match():
@@ -1045,7 +845,167 @@ def test_confirm_import_returns_no_warning_without_cross_account_match():
         member.id,
         scheme_confirmations=[],
         user_id=member.user_id,
-        confirmed_member_override=True,
     )
 
     assert result.warnings == []
+
+
+from dataclasses import replace as _replace
+
+
+def _with_pan(parse_result, pan):
+    return _replace(parse_result, investor=_replace(parse_result.investor, pan=pan))
+
+
+def _db_member(db, *, name="Self", relationship=Relationship.SELF, user=None):
+    if user is None:
+        user = User(id=uuid.uuid4(), phone_number=f"+91{uuid.uuid4().int % 10**10:010d}",
+                    created_at=datetime.now(timezone.utc))
+        db.add(user)
+        db.flush()
+    member = HouseholdMember(id=uuid.uuid4(), user_id=user.id, name=name,
+                             relationship=relationship, created_at=datetime.now(timezone.utc))
+    db.add(member)
+    db.commit()
+    return member
+
+
+def _start(db, member, parse_result):
+    return asyncio.run(start_import_session(
+        db, member.user_id, member, parse_result, "cas.pdf", b"%PDF-1.4 fake", client=_mocked_client(),
+    ))
+
+
+def test_pending_pan_ttl_outlives_the_preview_session():
+    assert PENDING_PAN_TTL > timedelta(minutes=SESSION_TTL_MINUTES)
+
+
+def test_start_import_session_claims_pan_as_pending_and_binds_session(db_session):
+    member = _db_member(db_session)
+    preview = _start(db_session, member, _with_pan(_sample_parse_result(), "ABCDE1234F"))
+
+    db_session.refresh(member)
+    assert member.pan_lookup_hash == hash_pan("ABCDE1234F")
+    assert member.pan_pending_until is not None
+    session = _preview_sessions[preview.session_id]
+    assert session["household_member_id"] == member.id
+    assert session["user_id"] == member.user_id
+
+
+def test_start_import_session_conflict_creates_no_session(db_session):
+    me = _db_member(db_session)
+    spouse = _db_member(db_session, name="Priya", relationship=Relationship.SPOUSE,
+                        user=db_session.get(User, me.user_id))
+    spouse.pan_encrypted = encrypt_pan("BCDEF2222B")
+    spouse.pan_lookup_hash = hash_pan("BCDEF2222B")
+    db_session.commit()
+    before = set(_preview_sessions)
+
+    with pytest.raises(PanBelongsToOtherMemberError):
+        _start(db_session, me, _with_pan(_sample_parse_result(), "BCDEF2222B"))
+
+    assert set(_preview_sessions) == before
+    db_session.refresh(me)
+    assert me.pan_lookup_hash is None
+
+
+def test_fresh_account_first_import_confirms_straight_through(db_session):
+    # Regression for the 2026-09-23 staging bug: a brand-new member with no
+    # PAN and no folios, CAS name unrelated to the member name -> no prompt.
+    member = _db_member(db_session, name="Me")
+    preview = _start(db_session, member, _with_pan(_sample_parse_result(), "ABCDE1234F"))
+
+    result = confirm_import(db_session, preview.session_id, member.id, scheme_confirmations=[],
+                            user_id=member.user_id)
+
+    assert result.added == 1
+    db_session.refresh(member)
+    assert member.pan_lookup_hash == hash_pan("ABCDE1234F")
+    assert member.pan_pending_until is None
+
+
+def test_confirm_rejects_session_bound_to_another_member(db_session):
+    member = _db_member(db_session)
+    other = _db_member(db_session, name="Mom", relationship=Relationship.PARENT,
+                       user=db_session.get(User, member.user_id))
+    preview = _start(db_session, member, _sample_parse_result())
+
+    with pytest.raises(ValueError):
+        confirm_import(db_session, preview.session_id, other.id, scheme_confirmations=[],
+                       user_id=member.user_id)
+
+
+def test_confirm_rejects_expired_session(db_session):
+    member = _db_member(db_session)
+    preview = _start(db_session, member, _sample_parse_result())
+    _preview_sessions[preview.session_id]["created_at"] -= timedelta(minutes=SESSION_TTL_MINUTES + 1)
+
+    with pytest.raises(ValueError):
+        confirm_import(db_session, preview.session_id, member.id, scheme_confirmations=[],
+                       user_id=member.user_id)
+    assert preview.session_id not in _preview_sessions
+
+
+def test_discard_releases_pending_pan_and_drops_session(db_session):
+    member = _db_member(db_session)
+    preview = _start(db_session, member, _with_pan(_sample_parse_result(), "ABCDE1234F"))
+
+    discard_import_session(db_session, preview.session_id, member.user_id)
+
+    assert preview.session_id not in _preview_sessions
+    db_session.refresh(member)
+    assert member.pan_lookup_hash is None
+
+
+def test_discard_ignores_other_users_session(db_session):
+    member = _db_member(db_session)
+    preview = _start(db_session, member, _with_pan(_sample_parse_result(), "ABCDE1234F"))
+
+    discard_import_session(db_session, preview.session_id, uuid.uuid4())
+
+    assert preview.session_id in _preview_sessions
+    db_session.refresh(member)
+    assert member.pan_lookup_hash == hash_pan("ABCDE1234F")
+
+
+def test_discard_unknown_session_is_a_noop(db_session):
+    discard_import_session(db_session, "does-not-exist", uuid.uuid4())
+
+
+def test_confirm_after_sibling_session_discard_still_stores_pan(db_session):
+    # Review Focus 1: two review sessions for the same member + PAN.
+    member = _db_member(db_session)
+    first = _start(db_session, member, _with_pan(_sample_parse_result(), "ABCDE1234F"))
+    second = _start(db_session, member, _with_pan(_sample_parse_result(), "ABCDE1234F"))
+
+    discard_import_session(db_session, first.session_id, member.user_id)
+    confirm_import(db_session, second.session_id, member.id, scheme_confirmations=[],
+                   user_id=member.user_id)
+
+    db_session.refresh(member)
+    assert member.pan_lookup_hash == hash_pan("ABCDE1234F")
+    assert member.pan_pending_until is None
+
+
+def test_start_import_session_does_not_hold_the_claim_during_scheme_enrichment(db_session):
+    # Final review #1: on SQLite a flushed-but-uncommitted claim holds the DB
+    # write lock, so it must not sit open across the mfapi network calls in
+    # build_import_preview. The claim must happen after enrichment.
+    member = _db_member(db_session)
+    client = _mocked_client()
+    seen_during_enrichment = []
+
+    async def resolve_scheme(*_args, **_kwargs):
+        seen_during_enrichment.append(member.pan_lookup_hash)
+        from app.services.import_.enrich import SchemeMatch
+        return SchemeMatch(amfi_code="125497", scheme_name="HDFC Flexi Cap Fund - Direct Plan - Growth",
+                           confidence=1.0), "confirmed"
+
+    client.resolve_scheme.side_effect = resolve_scheme
+    asyncio.run(start_import_session(db_session, member.user_id, member,
+                                     _with_pan(_sample_parse_result(), "ABCDE1234F"),
+                                     "cas.pdf", b"%PDF-1.4 fake", client=client))
+
+    assert seen_during_enrichment == [None]
+    db_session.refresh(member)
+    assert member.pan_lookup_hash == hash_pan("ABCDE1234F")

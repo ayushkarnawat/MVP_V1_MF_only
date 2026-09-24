@@ -54,11 +54,11 @@ def test_parse_route_requires_auth(client):
 
 
 def test_parse_route_rejects_non_pdf(client):
-    headers = _authed_headers(client, "+919999999991")
+    headers, member_id = _authed_headers_and_member(client, "+919999999991")
     response = client.post(
         "/imports/parse",
         files={"file": ("notes.txt", b"hello", "text/plain")},
-        data={"password": "x"},
+        data={"password": "x", "household_member_id": member_id},
         headers=headers,
     )
     assert response.status_code == 400
@@ -66,12 +66,12 @@ def test_parse_route_rejects_non_pdf(client):
 
 
 def test_parse_route_rejects_spoofed_pdf_content(client):
-    headers = _authed_headers(client, "+919999999981")
+    headers, member_id = _authed_headers_and_member(client, "+919999999981")
     with patch("app.api.imports.parse_cas_pdf_bytes") as parser:
         response = client.post(
             "/imports/parse",
             files={"file": ("cas.pdf", b"not-a-pdf", "application/pdf")},
-            data={"password": "x"},
+            data={"password": "x", "household_member_id": member_id},
             headers=headers,
         )
 
@@ -81,7 +81,7 @@ def test_parse_route_rejects_spoofed_pdf_content(client):
 
 
 def test_parse_route_rejects_oversized_pdf(client):
-    headers = _authed_headers(client, "+919999999982")
+    headers, member_id = _authed_headers_and_member(client, "+919999999982")
     with (
         patch("app.services.import_.lifecycle_service.MAX_FILE_SIZE_BYTES", 8),
         patch("app.api.imports.parse_cas_pdf_bytes") as parser,
@@ -89,7 +89,7 @@ def test_parse_route_rejects_oversized_pdf(client):
         response = client.post(
             "/imports/parse",
             files={"file": ("cas.pdf", b"%PDF-too-large", "application/pdf")},
-            data={"password": "x"},
+            data={"password": "x", "household_member_id": member_id},
             headers=headers,
         )
 
@@ -99,7 +99,7 @@ def test_parse_route_rejects_oversized_pdf(client):
 
 
 def test_parse_route_surfaces_parse_error_as_422(client):
-    headers = _authed_headers(client, "+919999999992")
+    headers, member_id = _authed_headers_and_member(client, "+919999999992")
     with patch(
         "app.api.imports.parse_cas_pdf_bytes",
         side_effect=ParseError("wrong_password", "Incorrect PDF password."),
@@ -107,7 +107,7 @@ def test_parse_route_surfaces_parse_error_as_422(client):
         response = client.post(
             "/imports/parse",
             files={"file": ("cas.pdf", b"%PDF-fake", "application/pdf")},
-            data={"password": "wrong"},
+            data={"password": "wrong", "household_member_id": member_id},
             headers=headers,
         )
     assert response.status_code == 422
@@ -193,45 +193,6 @@ def test_confirm_route_409s_on_low_confidence_scheme_without_override(client):
             headers=headers,
         )
     assert response.status_code == 409
-
-
-def test_confirm_route_maps_member_mismatch_to_structured_409(client):
-    from app.services.import_.attribution import (
-        AttributionConfirmationRequiredError,
-        AttributionDecision,
-        AttributionStatus,
-    )
-
-    headers, member_id = _authed_headers_and_member(client, "+919999999980")
-    matched_member_id = uuid.uuid4()
-    decision = AttributionDecision(
-        status=AttributionStatus.MISMATCH_CONFIRMATION_REQUIRED,
-        resolved_member_id=matched_member_id,
-        matched_member_name="Priya Kumar",
-        requires_confirmation=True,
-        prompt_message="This statement matches Priya Kumar.",
-    )
-    with patch(
-        "app.api.imports.confirm_import",
-        side_effect=AttributionConfirmationRequiredError(decision),
-    ):
-        response = client.post(
-            "/imports/confirm",
-            json={
-                "session_id": "some-session",
-                "household_member_id": member_id,
-                "scheme_confirmations": [],
-            },
-            headers=headers,
-        )
-
-    assert response.status_code == 409
-    assert response.json()["detail"] == {
-        "code": "member_mismatch",
-        "message": "This statement matches Priya Kumar.",
-        "matched_member_id": str(matched_member_id),
-        "matched_member_name": "Priya Kumar",
-    }
 
 
 def test_confirm_route_schedules_nav_prefetch_after_successful_confirm():
@@ -489,7 +450,7 @@ def test_parse_then_confirm_lands_a_transaction_in_the_real_db(client, tmp_path)
         parse_response = client.post(
             "/imports/parse",
             files={"file": ("cas.pdf", b"%PDF-fake", "application/pdf")},
-            data={"password": "x"},
+            data={"password": "x", "household_member_id": member_id},
             headers=headers,
         )
         assert parse_response.status_code == 200
@@ -501,7 +462,6 @@ def test_parse_then_confirm_lands_a_transaction_in_the_real_db(client, tmp_path)
                     "session_id": session_id,
                     "household_member_id": member_id,
                     "scheme_confirmations": [],
-                    "confirmed_member_override": True,
                 },
             headers=headers,
         )
@@ -517,3 +477,101 @@ def test_parse_then_confirm_lands_a_transaction_in_the_real_db(client, tmp_path)
         assert db.query(Transaction).count() == 1
     finally:
         db.close()
+
+
+def _parse(client, headers, member_id, parse_result, cache_dir):
+    from app.services.import_.enrich import mfapi_client
+
+    async def _fake_get_json(_self, url):
+        if url.endswith("/latest"):
+            return {"meta": {"scheme_category": "Equity Scheme - Flexi Cap Fund"}}
+        return [{"schemeCode": "125497", "schemeName": "HDFC Flexi Cap Fund - Direct Plan - Growth"}]
+
+    with (
+        patch("app.api.imports.parse_cas_pdf_bytes", return_value=parse_result),
+        patch("app.services.import_.enrich.MfApiClient._get_json", new=_fake_get_json),
+        # Same isolation as test_parse_then_confirm_lands_a_transaction_in_the_real_db:
+        # keep the mfapi disk cache out of backend/.cache.
+        patch.object(mfapi_client, "cache_dir", cache_dir),
+        patch.object(mfapi_client, "_schemes", None),
+    ):
+        return client.post(
+            "/imports/parse",
+            files={"file": ("cas.pdf", b"%PDF-fake", "application/pdf")},
+            data={"password": "x", "household_member_id": member_id},
+            headers=headers,
+        )
+
+
+def _sample_with_pan(pan):
+    from dataclasses import replace
+
+    sample = _sample_parse_result()
+    return replace(sample, investor=replace(sample.investor, pan=pan))
+
+
+def test_parse_route_requires_household_member_id(client):
+    headers = _authed_headers(client, "+919999999971")
+    response = client.post(
+        "/imports/parse",
+        files={"file": ("cas.pdf", b"%PDF-fake", "application/pdf")},
+        data={"password": "x"},
+        headers=headers,
+    )
+    assert response.status_code == 422
+
+
+def test_parse_route_404s_for_another_users_member(client):
+    _, other_member_id = _authed_headers_and_member(client, "+919999999972")
+    headers = _authed_headers(client, "+919999999973")
+    response = client.post(
+        "/imports/parse",
+        files={"file": ("cas.pdf", b"%PDF-fake", "application/pdf")},
+        data={"password": "x", "household_member_id": other_member_id},
+        headers=headers,
+    )
+    assert response.status_code == 404
+
+
+def test_parse_route_maps_cross_account_pan_to_409_without_leaking(client, tmp_path):
+    headers_a, member_a = _authed_headers_and_member(client, "+919999999974")
+    assert _parse(client, headers_a, member_a, _sample_with_pan("ZZZZZ9999Z"), tmp_path).status_code == 200
+
+    headers_b, member_b = _authed_headers_and_member(client, "+919999999975")
+    response = _parse(client, headers_b, member_b, _sample_with_pan("ZZZZZ9999Z"), tmp_path)
+
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "cross_account_pan_blocked"
+    assert member_a not in response.text
+
+
+def test_parse_route_maps_same_account_pan_to_409(client, tmp_path):
+    headers, self_id = _authed_headers_and_member(client, "+919999999976")
+    mom_id = client.post(
+        "/household-members", json={"name": "Mom", "relationship": "parent"}, headers=headers,
+    ).json()["id"]
+    assert _parse(client, headers, self_id, _sample_with_pan("ABCDE1234F"), tmp_path).status_code == 200
+
+    response = _parse(client, headers, mom_id, _sample_with_pan("ABCDE1234F"), tmp_path)
+
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "pan_belongs_to_other_member"
+
+
+def test_discard_route_returns_204_and_frees_the_pan(client, tmp_path):
+    headers, self_id = _authed_headers_and_member(client, "+919999999977")
+    mom_id = client.post(
+        "/household-members", json={"name": "Mom", "relationship": "parent"}, headers=headers,
+    ).json()["id"]
+    session_id = _parse(client, headers, self_id, _sample_with_pan("ABCDE1234F"), tmp_path).json()["session_id"]
+
+    discard = client.post(f"/imports/sessions/{session_id}/discard", headers=headers)
+
+    assert discard.status_code == 204
+    # Freed: the same PAN can now be claimed for another member.
+    assert _parse(client, headers, mom_id, _sample_with_pan("ABCDE1234F"), tmp_path).status_code == 200
+
+
+def test_discard_route_is_idempotent_for_unknown_sessions(client):
+    headers = _authed_headers(client, "+919999999978")
+    assert client.post("/imports/sessions/nope/discard", headers=headers).status_code == 204

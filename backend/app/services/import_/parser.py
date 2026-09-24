@@ -8,7 +8,7 @@ member (see Docs/superpowers/specs/2026-09-18-pan-cas-attribution-design.md).
 `pan_masked` still exists on ParsedInvestor purely for the transient,
 display-only parse-preview response -- but the raw `pan` field is now also
 present on ParsedInvestor, and is precisely how the raw PAN reaches
-persistence via backfill_pan_if_missing for attribution matching. Do not
+persistence via pan_claims.claim_pan_for_member at upload time. Do not
 read this docstring as "PAN is never persisted" -- that invariant no longer
 holds; see crypto.py for how it's encrypted at rest.
 """
@@ -251,7 +251,7 @@ def _normalize_cas_data(data: CASData) -> ParseResult:
     # This is narrower than "PAN never leaves this function unmasked" --
     # since ADR-004 reopened 2026-09-18, the raw PAN does leave via
     # investor.pan (ParsedInvestor above), which is intentional: it's how
-    # backfill_pan_if_missing reaches persistence for attribution matching.
+    # pan_claims.claim_pan_for_member reaches persistence at upload time.
     redacted = data.model_copy(deep=True)
     for f in redacted.folios:
         f.PAN = None

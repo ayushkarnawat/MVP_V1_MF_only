@@ -2,7 +2,7 @@ import logging
 import uuid
 from datetime import date
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Response, UploadFile
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -23,11 +23,6 @@ from app.services.analytics.recompute import (
 from app.services.dashboard.household_members import get_household_member_for_user
 from app.services.dashboard.nav import get_navs_on_or_before
 from app.services.dashboard.holdings import invalidate_holdings_cache
-from app.services.import_.attribution import (
-    AttributionConfirmationRequiredError,
-    CrossAccountPanBlockedError,
-    PanAlreadyAttributedError,
-)
 from app.services.import_.coverage_gap import evaluate_folio_coverage_gaps
 from app.services.import_.lifecycle_service import (
     FileTooLargeError,
@@ -42,7 +37,13 @@ from app.services.import_.schemas import (
     ImportConfirmResponse,
     ImportPreviewResponse,
 )
-from app.services.import_.service import SchemeConfidenceError, build_import_preview, confirm_import #logic to process & confirm import
+from app.services.import_.pan_claims import PanConflictError
+from app.services.import_.service import (  # logic to process & confirm import
+    SchemeConfidenceError,
+    confirm_import,
+    discard_import_session,
+    start_import_session,
+)
 
 router = APIRouter(prefix="/imports", tags=["imports"])
 logger = logging.getLogger(__name__)
@@ -202,10 +203,24 @@ async def _prefetch_member_nav_history(household_member_id: uuid.UUID) -> None:
 async def parse_import(
     file: UploadFile = File(...),
     password: str = Form(...),
+    household_member_id: str = Form(...),
     user: User = Depends(get_active_user),
+    db: Session = Depends(get_db),
 ):
     if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail={"code": "invalid_file", "message": "Please upload a PDF file."})
+
+    try:
+        member_uuid = uuid.UUID(household_member_id)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400, detail={"code": "invalid_id", "message": "Invalid household_member_id."}
+        ) from exc
+    # Ownership gate: the PAN is claimed for this member at upload, so it
+    # must be one of the caller's own members (IDOR).
+    member = get_household_member_for_user(db, user.id, member_uuid)
+    if member is None:
+        raise HTTPException(status_code=404, detail="Household member not found.")
 
     pdf_bytes = await file.read()
     try:
@@ -226,7 +241,10 @@ async def parse_import(
     except ParseError as exc:
         raise HTTPException(status_code=422, detail={"code": exc.code, "message": exc.message}) from exc
 
-    return await build_import_preview(parse_result, file.filename, pdf_bytes)
+    try:
+        return await start_import_session(db, user.id, member, parse_result, file.filename, pdf_bytes)
+    except PanConflictError as exc:
+        raise HTTPException(status_code=409, detail={"code": exc.code, "message": exc.message}) from exc
 
 #import confirmation
 @router.post("/confirm", response_model=ImportConfirmResponse)
@@ -253,37 +271,22 @@ def confirm_import_route(
             household_member_id,
             body.scheme_confirmations,
             user_id=user.id,
-            confirmed_member_override=body.confirmed_member_override,
         )
         background_tasks.add_task(_prefetch_member_nav_history, household_member_id)
         if try_claim_recompute(db, user.id):
             background_tasks.add_task(_dispatch_recompute_and_release_claim_on_failure, user.id)
         return response
-    except AttributionConfirmationRequiredError as exc:
-        raise HTTPException(
-            status_code=409,
-            detail={
-                "code": "member_mismatch",
-                "message": str(exc),
-                "matched_member_id": (
-                    str(exc.attribution.resolved_member_id)
-                    if exc.attribution.resolved_member_id
-                    else None
-                ),
-                "matched_member_name": exc.attribution.matched_member_name,
-            },
-        ) from exc
-    except CrossAccountPanBlockedError as exc:
-        raise HTTPException(
-            status_code=409,
-            detail={"code": "cross_account_pan_blocked", "message": str(exc)},
-        ) from exc
-    except PanAlreadyAttributedError as exc:
-        raise HTTPException(
-            status_code=409,
-            detail={"code": "pan_already_attributed", "message": str(exc)},
-        ) from exc
     except SchemeConfidenceError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post("/sessions/{session_id}/discard", status_code=204)
+def discard_import_session_route(
+    session_id: str,
+    user: User = Depends(get_active_user),
+    db: Session = Depends(get_db),
+) -> Response:
+    discard_import_session(db, session_id, user.id)
+    return Response(status_code=204)

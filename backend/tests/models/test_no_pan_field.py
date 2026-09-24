@@ -46,8 +46,12 @@ def test_no_pan_shaped_column_on_non_household_member_models():
 
 def test_household_member_pan_columns_are_named_for_encrypted_or_hashed_storage_only():
     pan_columns = [c for c in HouseholdMember.__table__.columns.keys() if "pan" in c.lower()]
-    assert set(pan_columns) == {"pan_encrypted", "pan_lookup_hash"}, (
-        "HouseholdMember must expose exactly pan_encrypted and pan_lookup_hash for PAN — "
-        "a column named just 'pan' (or anything else PAN-shaped) would suggest plaintext "
-        "storage, which ADR-004 (as reopened) still forbids."
+    # pan_pending_until (2026-09-24) holds a timestamp, not PAN data: it marks
+    # an upload-time claim that becomes permanent on Confirm Import. See
+    # Docs/superpowers/specs/2026-09-24-pan-at-upload-attribution-design.md.
+    assert set(pan_columns) == {"pan_encrypted", "pan_lookup_hash", "pan_pending_until"}, (
+        "HouseholdMember must expose exactly pan_encrypted, pan_lookup_hash and "
+        "pan_pending_until for PAN — a column named just 'pan' (or anything else "
+        "PAN-shaped) would suggest plaintext storage, which ADR-004 (as reopened) "
+        "still forbids."
     )

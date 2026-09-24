@@ -12,11 +12,7 @@ from app.models.imports import Import
 from app.models.user import User
 from app.services.auth.session import get_active_user
 from app.services.dashboard.household_members import get_household_member_for_user
-from app.services.import_.attribution import (
-    AttributionConfirmationRequiredError,
-    CrossAccountPanBlockedError,
-    PanAlreadyAttributedError,
-)
+from app.services.import_.pan_claims import PanConflictError
 from app.services.import_.lifecycle_service import (
     FileTooLargeError,
     InvalidFileFormatError,
@@ -30,7 +26,6 @@ router = APIRouter(tags=["cas-imports"])
 
 class PasswordRetryRequest(BaseModel):
     password: str
-    confirmed_member_override: bool = False
 
 
 class AttributionUpdateRequest(BaseModel):
@@ -84,28 +79,12 @@ def _serialize_import_response(rec: Import) -> dict[str, Any]:
     }
 
 
-def _member_mismatch_detail(
-    exc: AttributionConfirmationRequiredError,
-) -> dict[str, str | None]:
-    return {
-        "code": "member_mismatch",
-        "message": str(exc),
-        "matched_member_id": (
-            str(exc.attribution.resolved_member_id)
-            if exc.attribution.resolved_member_id
-            else None
-        ),
-        "matched_member_name": exc.attribution.matched_member_name,
-    }
-
-
 @router.post("/cas-imports", status_code=status.HTTP_202_ACCEPTED, response_model=CASImportStatusResponse)
 async def upload_cas_import(
     file: UploadFile = File(...),
     password: str = Form(...),
     household_member_id: str = Form(...),
     source_tab: str = Form("upload"),
-    confirmed_member_override: bool = Form(False),
     user: User = Depends(get_active_user),
     db: Session = Depends(get_db),
 ):
@@ -127,22 +106,11 @@ async def upload_cas_import(
             filename=file.filename or "statement.pdf",
             password=password,
             source_tab=source_tab,
-            confirmed_member_override=confirmed_member_override,
         )
-    except AttributionConfirmationRequiredError as exc:
+    except PanConflictError as exc:
         raise HTTPException(
             status_code=409,
-            detail=_member_mismatch_detail(exc),
-        ) from exc
-    except CrossAccountPanBlockedError as exc:
-        raise HTTPException(
-            status_code=409,
-            detail={"code": "cross_account_pan_blocked", "message": str(exc)},
-        ) from exc
-    except PanAlreadyAttributedError as exc:
-        raise HTTPException(
-            status_code=409,
-            detail={"code": "pan_already_attributed", "message": str(exc)},
+            detail={"code": exc.code, "message": exc.message},
         ) from exc
     except InvalidFileFormatError as exc:
         raise HTTPException(status_code=400, detail={"code": "invalid_file", "message": str(exc)}) from exc
@@ -198,22 +166,11 @@ def retry_password(
             import_id=import_uuid,
             user_id=user.id,
             new_password=body.password,
-            confirmed_member_override=body.confirmed_member_override,
         )
-    except AttributionConfirmationRequiredError as exc:
+    except PanConflictError as exc:
         raise HTTPException(
             status_code=409,
-            detail=_member_mismatch_detail(exc),
-        ) from exc
-    except CrossAccountPanBlockedError as exc:
-        raise HTTPException(
-            status_code=409,
-            detail={"code": "cross_account_pan_blocked", "message": str(exc)},
-        ) from exc
-    except PanAlreadyAttributedError as exc:
-        raise HTTPException(
-            status_code=409,
-            detail={"code": "pan_already_attributed", "message": str(exc)},
+            detail={"code": exc.code, "message": exc.message},
         ) from exc
     except SessionExpiredError as exc:
         raise HTTPException(status_code=410, detail={"code": "session_expired", "message": str(exc)}) from exc

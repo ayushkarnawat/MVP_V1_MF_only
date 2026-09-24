@@ -21,24 +21,6 @@ def isolate_cas_file_storage(tmp_path, monkeypatch):
     monkeypatch.setattr(file_storage_module.default_file_storage, "_base_dir", tmp_path)
 
 
-def _member_mismatch_error():
-    from app.services.import_.attribution import (
-        AttributionConfirmationRequiredError,
-        AttributionDecision,
-        AttributionStatus,
-    )
-
-    return AttributionConfirmationRequiredError(
-        AttributionDecision(
-            status=AttributionStatus.MISMATCH_CONFIRMATION_REQUIRED,
-            resolved_member_id=uuid.uuid4(),
-            matched_member_name="Priya Kumar",
-            requires_confirmation=True,
-            prompt_message="This statement matches Priya Kumar.",
-        )
-    )
-
-
 @pytest.fixture
 def auth_headers_and_member(client):
     from app.db.session import get_db
@@ -151,24 +133,18 @@ def test_post_cas_imports_wrong_password_returns_password_required_and_allows_pa
     assert status_res.json()["status"] == "password_required"
 
     # 3. In-place password retry via PATCH /cas-imports/{id}/password.
-    # confirmed_member_override=True: this member has no PAN on file and no
-    # pre-existing folio, so real resolve_attribution would otherwise land on
-    # UNRECOGNIZED_MEMBER and require confirmation -- this test's intent is
-    # the wrong-password/retry flow, not attribution matching.
     before = datetime.now(timezone.utc)
     patch_res = client.patch(
         f"/cas-imports/{import_id}/password",
         headers=headers,
-        json={"password": "CORRECT_PASS", "confirmed_member_override": True},
+        json={"password": "CORRECT_PASS"},
     )
     assert patch_res.status_code == 200
     patch_data = patch_res.json()
     assert patch_data["status"] == "import_successful"
     assert patch_data["new_transactions_count"] == 1
-    # parse_warnings is dead in response terms now that cross-account is a
-    # hard block (CrossAccountPanBlockedError) rather than an advisory --
-    # kept on the response schema per the plan's "known follow-up cleanup"
-    # but always empty since nothing writes it anymore.
+    # parse_warnings is kept on the response schema but always empty:
+    # nothing writes it since the cross-account advisory was removed.
     assert patch_data["parse_warnings"] == []
 
     # Review finding (Task 7): this route test reaches retry_cas_import_password's
@@ -227,43 +203,11 @@ def test_post_cas_imports_summary_cas_transitions_validation_failed(client, auth
     assert "Summary CAS" in data["error_message"]
 
 
-def test_post_cas_imports_maps_member_mismatch_to_structured_409(
-    client, auth_headers_and_member
-):
-    headers, member_id, _user_id = auth_headers_and_member
-    error = _member_mismatch_error()
-
-    with patch("app.api.cas_imports.create_cas_import", side_effect=error) as create:
-        response = client.post(
-            "/cas-imports",
-            headers=headers,
-            data={
-                "password": "PASS",
-                "household_member_id": str(member_id),
-                "confirmed_member_override": "true",
-            },
-            files={"file": ("statement.pdf", b"%PDF-1.4 statement", "application/pdf")},
-        )
-
-    assert response.status_code == 409
-    assert response.json()["detail"] == {
-        "code": "member_mismatch",
-        "message": "This statement matches Priya Kumar.",
-        "matched_member_id": str(error.attribution.resolved_member_id),
-        "matched_member_name": "Priya Kumar",
-    }
-    assert create.await_args.kwargs["confirmed_member_override"] is True
-
-
 def test_post_cas_imports_blocks_cross_account_pan_reuse_without_leaking_other_account(
     client, auth_headers_and_member, monkeypatch
 ):
-    """Fix 5 (2026-09-18 whole-branch review): neither test file had any
-    route-level test asserting the cross_account_pan_blocked 409 actually
-    fires, that it doesn't leak the other account's member name/id, or that
-    no DB write results. Exercises the real create_cas_import/resolve_attribution
-    path end to end (only parse_cas_pdf_bytes is mocked, unlike the mismatch
-    tests above which mock create_cas_import itself)."""
+    """A PAN held by another account is refused with a 409 at upload, without
+    leaking that account and without writing anything."""
     headers, member_id, user_id = auth_headers_and_member
 
     from app.db.session import get_db
@@ -339,35 +283,3 @@ def test_post_cas_imports_blocks_cross_account_pan_reuse_without_leaking_other_a
     db_gen2 = client.app.dependency_overrides[get_db]()
     db2 = next(db_gen2)
     assert db2.query(Import).filter_by(household_member_id=member_id).count() == 0
-
-
-def test_retry_password_maps_member_mismatch_and_threads_override(
-    client, auth_headers_and_member
-):
-    from app.db.session import get_db
-    from app.models.imports import Import, ImportStatus
-
-    headers, member_id, _user_id = auth_headers_and_member
-    db_gen = client.app.dependency_overrides[get_db]()
-    db = next(db_gen)
-    import_rec = Import(
-        id=uuid.uuid4(),
-        household_member_id=member_id,
-        status=ImportStatus.PASSWORD_REQUIRED,
-        uploaded_at=datetime.now(timezone.utc),
-    )
-    db.add(import_rec)
-    db.commit()
-    error = _member_mismatch_error()
-
-    with patch("app.api.cas_imports.retry_cas_import_password", side_effect=error) as retry:
-        response = client.patch(
-            f"/cas-imports/{import_rec.id}/password",
-            headers=headers,
-            json={"password": "PASS", "confirmed_member_override": True},
-        )
-
-    assert response.status_code == 409
-    assert response.json()["detail"]["code"] == "member_mismatch"
-    assert response.json()["detail"]["matched_member_name"] == "Priya Kumar"
-    assert retry.call_args.kwargs["confirmed_member_override"] is True

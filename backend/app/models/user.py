@@ -47,3 +47,8 @@ class HouseholdMember(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     pan_encrypted: Mapped[str | None] = mapped_column(String)
     pan_lookup_hash: Mapped[str | None] = mapped_column(String)
+    # Non-null = the PAN above is a *pending* upload-time claim that becomes
+    # permanent on Confirm Import (set back to NULL) or is released on
+    # discard/expiry. NULL with a PAN set = permanent. See
+    # app/services/import_/pan_claims.py.
+    pan_pending_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

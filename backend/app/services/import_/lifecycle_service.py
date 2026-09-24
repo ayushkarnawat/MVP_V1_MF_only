@@ -3,7 +3,7 @@
 Handles:
 - Magic-byte & file size validation (FR-3).
 - Ephemeral encrypted buffer retention for password retries (FR-3).
-- Attribution resolution & confirmation gating (FR-4).
+- Upload-time PAN claim for the chosen member (pan_claims.py).
 - State transitions (FR-5).
 - 5-column composite fingerprint deduplication (FR-6).
 - Statement date range extraction (FR-9).
@@ -25,13 +25,7 @@ from app.models.imports import Import
 from app.models.reference import Scheme
 from app.models.transaction import Transaction
 from app.models.user import HouseholdMember
-from app.services.import_.attribution import (
-    AttributionDecision,
-    AttributionStatus,
-    backfill_pan_if_missing,
-    enforce_attribution_confirmation,
-    resolve_attribution,
-)
+from app.services.import_.pan_claims import claim_pan_for_member
 from app.services.import_.buffer_cache import get_pdf_buffer, remove_pdf_buffer, store_pdf_buffer
 from app.services.import_.file_storage import store_cas_file
 from app.services.import_.parser import ParseError, ParseResult, parse_cas_pdf_bytes, source_cas_type_from_file_type
@@ -181,7 +175,6 @@ async def create_cas_import(
     filename: str,
     password: str,
     source_tab: str = "upload",
-    confirmed_member_override: bool = False,
 ) -> Import:
     """Ingest a CAS PDF file, manage state transitions, parse, and commit."""
     validate_file_payload(file_bytes)
@@ -220,17 +213,12 @@ async def create_cas_import(
     import_rec.source_cas_type = _map_source_cas_type(parse_result.file_type)
     import_rec.raw_parser_output = json.loads(parse_result.raw_json)
 
-    # Attribution resolution
-    attribution = resolve_attribution(db, user_id, household_member_id, parse_result)
-    enforce_attribution_confirmation(attribution, confirmed_member_override)
-    target_member_id = (
-        household_member_id
-        if confirmed_member_override
-        else attribution.resolved_member_id or household_member_id
-    )
-    import_rec.household_member_id = target_member_id
-    target_member = db.query(HouseholdMember).filter_by(id=target_member_id).first()
-    backfill_pan_if_missing(db, target_member, parse_result)
+    # One-step path: the PAN is checked and claimed permanently right here,
+    # before any transaction is written. A PanConflictError propagates
+    # uncommitted and the route answers 409.
+    target_member_id = household_member_id
+    target_member = db.get(HouseholdMember, target_member_id)
+    claim_pan_for_member(db, target_member, parse_result.investor.pan, pending=False)
     store_cas_file(import_rec, user_id, file_bytes)
 
     # Commit transactions & deduplicate
@@ -251,7 +239,6 @@ def retry_cas_import_password(
     import_id: uuid.UUID,
     user_id: uuid.UUID,
     new_password: str,
-    confirmed_member_override: bool = False,
 ) -> Import:
     """In-place password retry against cached encrypted PDF buffer."""
     import_rec = db.query(Import).filter_by(id=import_id).first()
@@ -284,16 +271,9 @@ def retry_cas_import_password(
     import_rec.source_cas_type = _map_source_cas_type(parse_result.file_type)
     import_rec.raw_parser_output = json.loads(parse_result.raw_json)
 
-    attribution = resolve_attribution(db, user_id, import_rec.household_member_id, parse_result)
-    enforce_attribution_confirmation(attribution, confirmed_member_override)
-    target_member_id = (
-        import_rec.household_member_id
-        if confirmed_member_override
-        else attribution.resolved_member_id or import_rec.household_member_id
-    )
-    import_rec.household_member_id = target_member_id
-    target_member = db.query(HouseholdMember).filter_by(id=target_member_id).first()
-    backfill_pan_if_missing(db, target_member, parse_result)
+    target_member_id = import_rec.household_member_id
+    target_member = db.get(HouseholdMember, target_member_id)
+    claim_pan_for_member(db, target_member, parse_result.investor.pan, pending=False)
     store_cas_file(import_rec, user_id, pdf_bytes)
 
     added, skipped = _commit_parsed_transactions(db, import_rec, parse_result, target_member_id)

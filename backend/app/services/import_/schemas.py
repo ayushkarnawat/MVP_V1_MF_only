@@ -60,7 +60,6 @@ class ImportConfirmRequest(BaseModel):
     session_id: str
     household_member_id: str
     scheme_confirmations: list[SchemeConfirmation] = Field(default_factory=list)
-    confirmed_member_override: bool = False
 
 
 class ImportConfirmResponse(BaseModel):
