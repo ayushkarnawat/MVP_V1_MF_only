@@ -398,6 +398,12 @@ name/email matching (nicknames, transliteration, similar family names) and
 enables a hard block on a PAN already tracked under a different account —
 neither is possible without persisting PAN in some recoverable form.
 
+**Amended 2026-09-24:** attribution no longer runs at Confirm Import. The PAN is
+checked and claimed for the uploading member at upload time (pending until
+confirm, released on discard or after 65 minutes), and Confirm never prompts.
+Storage is unchanged apart from the new `household_members.pan_pending_until`.
+See `Docs/superpowers/specs/2026-09-24-pan-at-upload-attribution-design.md`.
+
 **DPDP-Act consideration:** the replacement design still minimizes exposure
 relative to the rejected alternative (indefinite plaintext retention): PAN is
 always encrypted at rest and never returned in plaintext by any API surface;

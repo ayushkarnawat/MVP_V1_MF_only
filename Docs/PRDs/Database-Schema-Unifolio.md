@@ -100,8 +100,9 @@ family-aggregate-default logic (Design Principle 5).
 | `relationship` | `ENUM('self','spouse','parent','child','sibling','other')` NOT NULL | Fixed enum, not free text — keeps family-grouping/analytics consistent (no "Wife" vs "spouse" vs "Spouse" fragmentation). `'self'` for the account holder. |
 | `relationship_other_label` | `VARCHAR` NULLABLE | Free-text only when `relationship = 'other'` — covers real cases (grandparent, in-law, etc.) without the enum sprawling |
 | `created_at` | `TIMESTAMPTZ` | |
-| `pan_encrypted` | `VARCHAR` NULLABLE | Added migration 0015 — AES-256-GCM envelope-encrypted PAN (nonce + ciphertext, base64), backfilled from the first import whose parsed CAS carries this member's PAN. Never returned by any API. See ADR-004 (reopened 2026-09-18) |
+| `pan_encrypted` | `VARCHAR` NULLABLE | Added migration 0015 — AES-256-GCM envelope-encrypted PAN (nonce + ciphertext, base64), written at upload time by the first import whose parsed CAS carries this member's PAN (pending until Confirm, see `pan_pending_until`). Never returned by any API. See ADR-004 (reopened 2026-09-18) |
 | `pan_lookup_hash` | `VARCHAR` NULLABLE | Added migration 0015 — HMAC-SHA256 of the normalized PAN (one-way, deterministic), used only for equality matching during attribution so the app never needs to decrypt another household's PAN to check for a collision |
+| `pan_pending_until` | `TIMESTAMPTZ` NULLABLE | Added migration 0016 — non-null = the PAN above is a pending upload-time claim (finalized on Confirm Import, released on discard or after 65 minutes). NULL with a PAN set = permanent. See `app/services/import_/pan_claims.py` |
 
 Partial unique index on `(user_id) WHERE relationship = 'self'` (migration 0011) enforces
 at most one account-holder row per user; `create_household_member` also pre-checks this

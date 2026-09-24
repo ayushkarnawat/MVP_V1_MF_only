@@ -67,6 +67,11 @@ One new Alembic migration adding these four columns (all nullable — no backfil
 
 ## Attribution algorithm (rewrite of `attribution.py`)
 
+> **Superseded 2026-09-24** by `2026-09-24-pan-at-upload-attribution-design.md`:
+> `attribution.py` was removed; the PAN check moved to upload time
+> (`pan_claims.py`) and Confirm Import no longer prompts. The rest of this
+> spec (PAN persistence, CAS file retention) still applies.
+
 New precedence in `resolve_attribution()`:
 1. **PAN hash match** — compute `pan_lookup_hash` from the parsed CAS's PAN (if present). Query all household members across the **entire system** for that hash.
    - Match is a member of the **same household** (same `user_id`) → `AUTO_MATCHED`, with `prompt_message` set to a disclaimer (e.g. "Matched to {name} by PAN — attaching this statement to their account.") shown alongside the auto-attribution, not blocking it.
