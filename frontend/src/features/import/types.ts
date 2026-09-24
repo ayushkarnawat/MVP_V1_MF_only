@@ -60,12 +60,6 @@ export interface ParseErrorPayload {
   message: string;
 }
 
-export interface MemberMismatchErrorPayload extends ParseErrorPayload {
-  code: "member_mismatch";
-  matched_member_id: string | null;
-  matched_member_name: string | null;
-}
-
 export type ImportLifecycleStatus =
   | "not_started"
   | "requesting_cas"

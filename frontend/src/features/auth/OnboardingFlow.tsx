@@ -232,7 +232,7 @@ export function OnboardingFlow({ isMobile = false }: OnboardingFlowProps) {
       return (
         <div className="w-full min-h-dvh bg-[var(--color-bg)] flex flex-col justify-start items-center p-2 sm:p-6 lg:p-8 box-border">
           <div className="w-full max-w-[1600px] mx-auto">
-            <FamilyImportFlow selfName={answers.name} onGoToHousehold={backToHousehold} />
+            <FamilyImportFlow selfName={answers.name} />
           </div>
         </div>
       );

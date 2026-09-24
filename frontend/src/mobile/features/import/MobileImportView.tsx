@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { listHouseholdMembers } from "@/features/auth/api";
-import { parseImport, confirmImport, ApiError } from "@/features/import/api";
+import { parseImport, confirmImport, discardImportSession, ApiError } from "@/features/import/api";
+import { PanConflictDialog } from "@/features/import/PanConflictDialog";
+import { getPanConflict } from "@/features/import/panConflict";
 import {
   hasCasResumeStep2,
   setCasResumeStep2,
@@ -10,7 +12,6 @@ import type { HouseholdMember } from "@/features/auth/types";
 import type {
   ImportPreviewResponse,
   ImportConfirmResponse,
-  MemberMismatchErrorPayload,
   ParseErrorPayload,
   SchemeConfirmation,
 } from "@/features/import/types";
@@ -45,10 +46,6 @@ export interface MobileImportViewProps {
 
 export type MobileImportViewMode = "choice" | "request" | "waiting" | "upload" | "history";
 type FlowStep = "flow" | "parsing" | "review" | "confirmed" | "error";
-
-type MemberMismatchConfirmation = MemberMismatchErrorPayload & {
-  confirmations: SchemeConfirmation[];
-};
 
 const GENERIC_NETWORK_ERROR: ParseErrorPayload = {
   code: "network_error",
@@ -85,7 +82,7 @@ export function MobileImportView({
   const [confirmResult, setConfirmResult] = useState<ImportConfirmResponse | null>(null);
   const [error, setError] = useState<ParseErrorPayload | null>(null);
   const [reviewNotice, setReviewNotice] = useState<string | null>(null);
-  const [memberMismatch, setMemberMismatch] = useState<MemberMismatchConfirmation | null>(null);
+  const [panConflict, setPanConflict] = useState<string | null>(null);
   const [crossAccountBlocked, setCrossAccountBlocked] = useState<string | null>(null);
   const [dismissedWarnings, setDismissedWarnings] = useState<Set<string>>(new Set());
   const [confirming, setConfirming] = useState(false);
@@ -119,66 +116,63 @@ export function MobileImportView({
   }, [selectedMemberId]);
 
   const resetFlow = () => {
+    if (preview) void discardImportSession(preview.session_id);
     clearCasResumeStep2(selectedMemberId);
     setStep("flow");
     setPreview(null);
     setConfirmResult(null);
     setError(null);
     setReviewNotice(null);
-    setMemberMismatch(null);
     setCrossAccountBlocked(null);
     setDismissedWarnings(new Set());
     setConfirming(false);
   };
 
   const handleUpload = async (file: File, password: string) => {
+    if (!selectedMemberId) return;
     clearCasResumeStep2(selectedMemberId);
     setStep("parsing");
     setError(null);
     try {
-      const result = await parseImport(file, password);
+      const result = await parseImport(file, password, selectedMemberId);
       setPreview(result);
       setStep("review");
     } catch (err) {
+      const conflict = getPanConflict(err);
+      if (conflict) {
+        // Nothing was stored server-side; back to the upload form under the popup.
+        setStep("flow");
+        setView("upload");
+        if (conflict.code === "cross_account_pan_blocked") {
+          setCrossAccountBlocked(conflict.message);
+        } else {
+          setPanConflict(conflict.message);
+        }
+        return;
+      }
       setError(toParseErrorPayload(err));
       setStep("error");
     }
   };
 
-  const submitConfirmation = async (
-    memberId: string,
-    confirmations: SchemeConfirmation[],
-    confirmedMemberOverride = false,
-  ) => {
-    if (!preview) return;
+  // Confirm never prompts: member and PAN were settled at upload.
+  const handleConfirm = async (confirmations: SchemeConfirmation[]) => {
+    if (!preview || !selectedMemberId) return;
     setConfirming(true);
     setReviewNotice(null);
-    setMemberMismatch(null);
     try {
-      const result = confirmedMemberOverride
-        ? await confirmImport(preview.session_id, memberId, confirmations, true)
-        : await confirmImport(preview.session_id, memberId, confirmations);
+      const result = await confirmImport(preview.session_id, selectedMemberId, confirmations);
       clearCasResumeStep2(selectedMemberId);
       setConfirmResult(result);
       setDismissedWarnings(new Set());
       setStep("confirmed");
     } catch (err) {
       if (err instanceof ApiError && (err.status === 409 || err.status === 404)) {
-        const payload = toParseErrorPayload(err);
-        if (err.status === 409 && payload.code === "member_mismatch") {
-          setMemberMismatch({
-            ...(payload as MemberMismatchErrorPayload),
-            confirmations,
-          });
-        } else if (err.status === 409 && payload.code === "cross_account_pan_blocked") {
-          setCrossAccountBlocked(payload.message);
-        } else {
-          setReviewNotice(
-            err.status === 404
-              ? "This import session has expired. Please re-upload your CAS."
-              : payload.message,
-          );
-        }
+        setReviewNotice(
+          err.status === 404
+            ? "This import session has expired. Please re-upload your CAS."
+            : toParseErrorPayload(err).message,
+        );
       } else {
         setError(toParseErrorPayload(err));
         setStep("error");
@@ -186,11 +180,6 @@ export function MobileImportView({
     } finally {
       setConfirming(false);
     }
-  };
-
-  const handleConfirm = (confirmations: SchemeConfirmation[]) => {
-    if (!selectedMemberId) return;
-    return submitConfirmation(selectedMemberId, confirmations);
   };
 
   const selectedMemberName =
@@ -209,58 +198,6 @@ export function MobileImportView({
   if (step === "review" && preview) {
     return (
       <div className="w-full max-w-md mx-auto">
-        <CrossAccountBlockedDialog
-          isOpen={crossAccountBlocked !== null}
-          message={crossAccountBlocked ?? ""}
-          onBack={() => {
-            setCrossAccountBlocked(null);
-            resetFlow();
-          }}
-        />
-        {memberMismatch && (
-          <div
-            role="alert"
-            className="mb-3 rounded-xl border border-[var(--color-warning)]/30 bg-[var(--color-warning)]/10 p-3 text-left"
-          >
-            <p className="text-xs font-medium text-[var(--color-ink)] m-0">
-              {memberMismatch.message}
-            </p>
-            <div className="mt-2 grid gap-2">
-              {memberMismatch.matched_member_id && (
-                <Button
-                  type="button"
-                  disabled={confirming}
-                  onClick={() =>
-                    void submitConfirmation(
-                      memberMismatch.matched_member_id!,
-                      memberMismatch.confirmations,
-                      true,
-                    )
-                  }
-                  className="h-10 rounded-xl bg-[var(--color-accent)] text-xs font-semibold text-white"
-                >
-                  Switch to {memberMismatch.matched_member_name ?? "matched member"}
-                </Button>
-              )}
-              <Button
-                type="button"
-                variant="outline"
-                disabled={confirming}
-                onClick={() =>
-                  selectedMemberId &&
-                  void submitConfirmation(
-                    selectedMemberId,
-                    memberMismatch.confirmations,
-                    true,
-                  )
-                }
-                className="h-10 rounded-xl text-xs font-semibold"
-              >
-                Continue anyway
-              </Button>
-            </div>
-          </div>
-        )}
         <MobileReviewView
           preview={preview}
           confirming={confirming}
@@ -392,6 +329,18 @@ export function MobileImportView({
           : "space-y-3.5 sm:space-y-4"
       )}
     >
+      <CrossAccountBlockedDialog
+        isOpen={crossAccountBlocked !== null}
+        message={crossAccountBlocked ?? ""}
+        onBack={() => setCrossAccountBlocked(null)}
+      />
+      <PanConflictDialog
+        isOpen={panConflict !== null}
+        message={panConflict ?? ""}
+        secondaryLabel="Cancel"
+        onChangeFile={() => setPanConflict(null)}
+        onSecondary={() => setPanConflict(null)}
+      />
       {/* Top Header with Member Selector & Subtle Secondary History Toggle */}
       <div className="flex items-center justify-between gap-2 flex-wrap px-0.5 flex-shrink-0">
         {/* Member Selector / Indicator */}

@@ -9,6 +9,7 @@ import {
   getHouseholdImportHistory,
   deleteHouseholdImport,
   parseImport,
+  discardImportSession,
   postOpeningBalance,
   requestCamsStatement,
   retryCasImportPassword,
@@ -27,7 +28,7 @@ describe("parseImport", () => {
     vi.stubGlobal("fetch", mockFetch);
 
     const file = new File(["pdf-bytes"], "cas.pdf", { type: "application/pdf" });
-    await parseImport(file, "secret");
+    await parseImport(file, "secret", "member-1");
 
     const [url, options] = mockFetch.mock.calls[0];
     expect(url).toContain("/imports/parse");
@@ -49,7 +50,7 @@ describe("parseImport", () => {
     );
 
     const file = new File(["pdf-bytes"], "cas.pdf", { type: "application/pdf" });
-    await expect(parseImport(file, "wrong")).rejects.toMatchObject({
+    await expect(parseImport(file, "wrong", "member-1")).rejects.toMatchObject({
       status: 422,
       payload: { code: "wrong_password", message: "Incorrect PDF password." },
     });
@@ -63,7 +64,7 @@ describe("parseImport", () => {
     vi.stubGlobal("fetch", mockFetch);
 
     const file = new File(["pdf-bytes"], "cas.pdf", { type: "application/pdf" });
-    await parseImport(file, "secret");
+    await parseImport(file, "secret", "member-1");
 
     const [, options] = mockFetch.mock.calls[0];
     expect((options.headers as Record<string, string>).Authorization).toBe("Bearer tok-abc");
@@ -92,19 +93,39 @@ describe("confirmImport", () => {
     expect(body.scheme_confirmations).toEqual([{ temp_id: "t1", amfi_code: "12345" }]);
   });
 
-  it("sends the explicit member-attribution override on a confirmation retry", async () => {
+  it("sends only session, member and confirmations on confirm", async () => {
     const mockFetch = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ added: 1, skipped: 0, import_id: "imp1", warnings: [] }), { status: 200 }),
     );
     vi.stubGlobal("fetch", mockFetch);
 
-    await confirmImport("sess1", "member-2", [], true);
+    await confirmImport("sess1", "member-2", []);
 
     const [, options] = mockFetch.mock.calls[0];
-    expect(JSON.parse(options.body as string)).toMatchObject({
+    expect(JSON.parse(options.body as string)).toEqual({
+      session_id: "sess1",
       household_member_id: "member-2",
-      confirmed_member_override: true,
+      scheme_confirmations: [],
     });
+  });
+
+  it("sends the household member id on parse", async () => {
+    const mockFetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ session_id: "s1" }), { status: 200 }));
+    vi.stubGlobal("fetch", mockFetch);
+
+    await parseImport(new File(["x"], "cas.pdf"), "pw", "member-7");
+
+    const [, options] = mockFetch.mock.calls[0];
+    expect((options.body as FormData).get("household_member_id")).toBe("member-7");
+  });
+
+  it("posts to the discard endpoint and swallows failures", async () => {
+    const mockFetch = vi.fn().mockRejectedValue(new TypeError("Failed to fetch"));
+    vi.stubGlobal("fetch", mockFetch);
+
+    await expect(discardImportSession("sess 1")).resolves.toBeUndefined();
+    expect(mockFetch.mock.calls[0][0]).toMatch(/\/imports\/sessions\/sess%201\/discard$/);
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: "POST" });
   });
 
   it("throws ApiError with a string payload on a 404", async () => {

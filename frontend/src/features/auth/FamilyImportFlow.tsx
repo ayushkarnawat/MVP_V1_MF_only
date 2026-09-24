@@ -7,7 +7,9 @@ import { ParsingIndicator } from "../import/ParsingIndicator";
 import { ReviewTable } from "../import/ReviewTable";
 import { ImportError } from "../import/ImportError";
 import { ImportConfirmed } from "../import/ImportConfirmed";
-import { CrossAccountBlockedDialog } from "../import/CrossAccountBlockedDialog";
+import { PanConflictDialog } from "../import/PanConflictDialog";
+import { UploadForm } from "../import/UploadForm";
+import { getPanConflict } from "../import/panConflict";
 import { ApiError, confirmImport, parseImport } from "../import/api";
 import type { ImportConfirmResponse, ImportPreviewResponse, ParseErrorPayload, SchemeConfirmation } from "../import/types";
 import { useAuth } from "./AuthContext";
@@ -17,16 +19,18 @@ import styles from "./onboarding.module.css";
 
 interface FamilyImportFlowProps {
   selfName: string;
-  onGoToHousehold?: () => void;
 }
 
 type Stage = "cards" | "own-choice" | "own-upload" | "queue" | "processing" | "done";
 
 interface ProcessingState {
   index: number;
-  status: "parsing" | "review" | "error";
+  // "conflict": the upload hit a PAN conflict (popup). "reupload": the user
+  // chose Change CAS file and is picking a new file for the same member.
+  status: "parsing" | "review" | "error" | "conflict" | "reupload";
   preview: ImportPreviewResponse | null;
   error: ParseErrorPayload | null;
+  conflictMessage?: string;
 }
 
 const GENERIC_NETWORK_ERROR: ParseErrorPayload = {
@@ -43,7 +47,7 @@ function toParseErrorPayload(err: unknown): ParseErrorPayload {
   return GENERIC_NETWORK_ERROR;
 }
 
-export function FamilyImportFlow({ selfName, onGoToHousehold }: FamilyImportFlowProps) {
+export function FamilyImportFlow({ selfName }: FamilyImportFlowProps) {
   const { updateMe } = useAuth();
   const [stage, setStage] = useState<Stage>("cards");
   const [familyMembers, setFamilyMembers] = useState<HouseholdMember[] | null>(null);
@@ -53,7 +57,6 @@ export function FamilyImportFlow({ selfName, onGoToHousehold }: FamilyImportFlow
   const [processing, setProcessing] = useState<ProcessingState | null>(null);
   const [results, setResults] = useState<ImportConfirmResponse[]>([]);
   const [reviewNotice, setReviewNotice] = useState<string | null>(null);
-  const [crossAccountBlocked, setCrossAccountBlocked] = useState<string | null>(null);
   const [ownUploadError, setOwnUploadError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [selfMember, setSelfMember] = useState<HouseholdMember | null>(null);
@@ -82,14 +85,26 @@ export function FamilyImportFlow({ selfName, onGoToHousehold }: FamilyImportFlow
 
   // Strictly sequential: one parse at a time — the next item only starts after
   // the current one is confirmed or skipped (the backend's preview-session
-  // store is not safe under concurrent parses).
-  const startParsing = async (index: number) => {
+  // store is not safe under concurrent parses). `upload` defaults to the
+  // queued item; Change CAS file passes the replacement explicitly because
+  // the queue state update hasn't landed yet when this runs.
+  const startParsing = async (index: number, upload: FamilyUpload = queue[index]) => {
     setReviewNotice(null);
     setProcessing({ index, status: "parsing", preview: null, error: null });
     try {
-      const preview = await parseImport(queue[index].file, queue[index].password);
+      const preview = await parseImport(upload.file, upload.password, upload.memberId);
       setProcessing({ index, status: "review", preview, error: null });
     } catch (err) {
+      const conflict = getPanConflict(err);
+      if (conflict) {
+        // Cross-account gets the same generic copy: never hint another account exists.
+        const conflictMessage =
+          conflict.code === "cross_account_pan_blocked"
+            ? `The statement you uploaded for ${upload.memberName} belongs to a PAN that's already in Unifolio. Please choose ${upload.memberName}'s own CAS.`
+            : conflict.message;
+        setProcessing({ index, status: "conflict", preview: null, error: null, conflictMessage });
+        return;
+      }
       setProcessing({ index, status: "error", preview: null, error: toParseErrorPayload(err) });
     }
   };
@@ -121,19 +136,14 @@ export function FamilyImportFlow({ selfName, onGoToHousehold }: FamilyImportFlow
       const result = await confirmImport(processing.preview.session_id, item.memberId, confirmations);
       advanceOrFinish([...results, result]);
     } catch (err) {
-      // 409 (needs an override) / 404 (session expired) are recoverable from the
-      // review screen — keep the parsed preview rendered with an inline notice,
-      // mirroring ImportFlow.handleConfirm.
+      // Confirm never prompts (member and PAN were settled at upload). Only a
+      // scheme needing an AMFI code (409) or an expired session (404) can
+      // land here; both keep the review screen with an inline notice.
       if (err instanceof ApiError && (err.status === 409 || err.status === 404)) {
-        const payload = toParseErrorPayload(err);
-        if (err.status === 409 && payload.code === "cross_account_pan_blocked") {
-          setCrossAccountBlocked(payload.message);
-          return;
-        }
         setReviewNotice(
           err.status === 404
             ? "This import session has expired. Please re-upload your CAS."
-            : payload.message,
+            : toParseErrorPayload(err).message,
         );
         return;
       }
@@ -151,6 +161,13 @@ export function FamilyImportFlow({ selfName, onGoToHousehold }: FamilyImportFlow
 
   const handleSkipFailedItem = () => {
     advanceOrFinish(results);
+  };
+
+  const handleReplacementUpload = (file: File, password: string) => {
+    if (!processing) return;
+    const replacement = { ...queue[processing.index], file, password };
+    setQueue((q) => q.map((u, i) => (i === processing.index ? replacement : u)));
+    void startParsing(processing.index, replacement);
   };
 
   const resolveSelfMember = async (): Promise<HouseholdMember> => {
@@ -245,18 +262,37 @@ export function FamilyImportFlow({ selfName, onGoToHousehold }: FamilyImportFlow
     if (processing.status === "parsing") {
       return <ParsingIndicator />;
     }
+    if (processing.status === "conflict") {
+      return (
+        <>
+          <p>{`${item.memberName}'s CAS`}</p>
+          <PanConflictDialog
+            isOpen
+            message={processing.conflictMessage ?? ""}
+            secondaryLabel={`Skip ${item.memberName} for now`}
+            onChangeFile={() => setProcessing({ ...processing, status: "reupload" })}
+            onSecondary={handleSkipFailedItem}
+          />
+        </>
+      );
+    }
+    if (processing.status === "reupload") {
+      return (
+        <>
+          <p>{`Choose ${item.memberName}'s CAS`}</p>
+          {/* Back returns to the PAN popup, whose Skip is the way out if the
+              user doesn't have the right statement to hand. */}
+          <UploadForm
+            onBack={() => setProcessing({ ...processing, status: "conflict" })}
+            onSubmit={handleReplacementUpload}
+          />
+        </>
+      );
+    }
     if (processing.status === "review" && processing.preview) {
       return (
         <>
           {reviewNotice && <p role="alert">{reviewNotice}</p>}
-          <CrossAccountBlockedDialog
-            isOpen={crossAccountBlocked !== null}
-            message={crossAccountBlocked ?? ""}
-            onBack={() => {
-              setCrossAccountBlocked(null);
-              onGoToHousehold?.();
-            }}
-          />
           <ReviewTable
             preview={processing.preview}
             confirming={confirming}

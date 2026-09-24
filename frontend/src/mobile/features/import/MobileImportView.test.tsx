@@ -14,6 +14,7 @@ vi.mock("@/features/import/api", () => ({
   cancelImportRequest: vi.fn(),
   parseImport: vi.fn(),
   confirmImport: vi.fn(),
+  discardImportSession: vi.fn(),
   getMemberImportHistory: vi.fn(),
   uploadCasImport: vi.fn(),
   ApiError: class ApiError extends Error {
@@ -190,7 +191,7 @@ describe("MobileImportView", () => {
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
-      expect(importApi.parseImport).toHaveBeenCalledWith(mockFile, "ABCDE1234F");
+      expect(importApi.parseImport).toHaveBeenCalledWith(mockFile, "ABCDE1234F", "m-1");
       expect(screen.getByText("Review CAS Import")).toBeInTheDocument();
       expect(screen.getByText("Parag Parikh Flexi Cap Fund Direct Growth")).toBeInTheDocument();
     });
@@ -271,103 +272,50 @@ describe("MobileImportView", () => {
     expect(handleDashboardNav).toHaveBeenCalledTimes(1);
   });
 
-  it("switches to the matched member after a member-mismatch confirmation", async () => {
-    vi.mocked(importApi.confirmImport)
-      .mockRejectedValueOnce(
-        new importApi.ApiError(409, {
-          code: "member_mismatch",
-          message: "This statement matches Pooja.",
-          matched_member_id: "m-2",
-          matched_member_name: "Pooja",
-        }),
-      )
-      .mockResolvedValueOnce({ added: 1, skipped: 0, import_id: "imp-2", warnings: [] });
-    await openEmptyReview();
-
-    fireEvent.click(screen.getByRole("button", { name: /confirm & import portfolio/i }));
-    fireEvent.click(await screen.findByRole("button", { name: /switch to pooja/i }));
-
-    await waitFor(() => expect(screen.getByText("Import Complete")).toBeInTheDocument());
-    expect(importApi.confirmImport).toHaveBeenNthCalledWith(
-      2,
-      "sess-mismatch",
-      "m-2",
-      [],
-      true,
-    );
-  });
-
-  it("continues with the selected member despite a different matched member", async () => {
-    vi.mocked(importApi.confirmImport)
-      .mockRejectedValueOnce(
-        new importApi.ApiError(409, {
-          code: "member_mismatch",
-          message: "This statement matches Pooja.",
-          matched_member_id: "m-2",
-          matched_member_name: "Pooja",
-        }),
-      )
-      .mockResolvedValueOnce({ added: 1, skipped: 0, import_id: "imp-1", warnings: [] });
-    await openEmptyReview();
-
-    fireEvent.click(screen.getByRole("button", { name: /confirm & import portfolio/i }));
-    expect(await screen.findByRole("button", { name: /switch to pooja/i })).toBeInTheDocument();
-    fireEvent.click(await screen.findByRole("button", { name: /continue anyway/i }));
-
-    await waitFor(() => expect(screen.getByText("Import Complete")).toBeInTheDocument());
-    expect(importApi.confirmImport).toHaveBeenNthCalledWith(
-      2,
-      "sess-mismatch",
-      "m-1",
-      [],
-      true,
-    );
-  });
-
-  it("only offers continue when no matched member is available", async () => {
-    vi.mocked(importApi.confirmImport).mockRejectedValueOnce(
-      new importApi.ApiError(409, {
-        code: "member_mismatch",
-        message: "We couldn't match this statement.",
-        matched_member_id: null,
-        matched_member_name: "Unknown Investor",
-      }),
-    );
-    await openEmptyReview();
-
-    fireEvent.click(screen.getByRole("button", { name: /confirm & import portfolio/i }));
-
-    expect(await screen.findByRole("button", { name: /continue anyway/i })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /switch to/i })).not.toBeInTheDocument();
-  });
-
-  it("shows the cross-account-blocked popup and Back leaves the review screen", async () => {
-    vi.mocked(importApi.confirmImport).mockRejectedValueOnce(
+  it("shows the cross-account-blocked popup right after upload, before any review", async () => {
+    vi.mocked(importApi.parseImport).mockRejectedValueOnce(
       new importApi.ApiError(409, {
         code: "cross_account_pan_blocked",
         message: "This PAN is already tracked under a different Unifolio account. Contact support if you believe this is a mistake.",
       }),
     );
-    await openEmptyReview();
-
-    fireEvent.click(screen.getByRole("button", { name: /confirm & import portfolio/i }));
+    render(<MobileImportView defaultMemberId="m-1" />);
+    fireEvent.click(await screen.findByRole("button", { name: /already have a statement/i }));
+    fireEvent.change(screen.getByLabelText(/cas pdf/i), {
+      target: { files: [new File(["pdf"], "statement.pdf", { type: "application/pdf" })] },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /upload statement/i }));
 
     await waitFor(() =>
       expect(screen.getByText(/already tracked under a different unifolio account/i)).toBeInTheDocument(),
     );
-
-    fireEvent.click(screen.getByRole("button", { name: /^back$/i }));
-
-    // resetFlow() returns to whichever view was active before review (here,
-    // the upload form itself, since openEmptyReview() got here via "upload")
-    // — not forced to the choice screen. The load-bearing assertions are that
-    // the popup is gone and the review screen (with its now-stale session) is
-    // no longer shown.
-    await waitFor(() => expect(screen.getByLabelText(/cas pdf/i)).toBeInTheDocument());
     expect(screen.queryByText("Review CAS Import")).not.toBeInTheDocument();
-    expect(
-      screen.queryByText(/already tracked under a different unifolio account/i),
-    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /^back$/i }));
+    await waitFor(() => expect(screen.getByLabelText(/cas pdf/i)).toBeInTheDocument());
+  });
+
+  it("shows the PAN-already-exists popup on a same-account conflict and returns to upload", async () => {
+    vi.mocked(importApi.parseImport).mockRejectedValueOnce(
+      new importApi.ApiError(409, { code: "pan_mismatch_for_member", message: "Please choose Ayush's own CAS." }),
+    );
+    render(<MobileImportView defaultMemberId="m-1" />);
+    fireEvent.click(await screen.findByRole("button", { name: /already have a statement/i }));
+    fireEvent.change(screen.getByLabelText(/cas pdf/i), {
+      target: { files: [new File(["pdf"], "statement.pdf", { type: "application/pdf" })] },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /upload statement/i }));
+
+    await waitFor(() => expect(screen.getByText("This PAN already exists")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: /change cas file/i }));
+    await waitFor(() => expect(screen.queryByText("This PAN already exists")).not.toBeInTheDocument());
+    expect(screen.getByLabelText(/cas pdf/i)).toBeInTheDocument();
+  });
+
+  it("confirms straight through and Cancel on review discards the session", async () => {
+    await openEmptyReview();
+    expect(screen.queryByRole("button", { name: /continue anyway/i })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
+    expect(importApi.discardImportSession).toHaveBeenCalledWith("sess-mismatch");
   });
 
   it("renders member import history when History button is clicked", async () => {

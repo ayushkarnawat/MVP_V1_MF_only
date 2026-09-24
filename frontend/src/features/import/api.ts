@@ -20,10 +20,16 @@ function authHeaders(): HeadersInit {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-export async function parseImport(file: File, password: string): Promise<ImportPreviewResponse> {
+export async function parseImport(
+  file: File,
+  password: string,
+  householdMemberId: string,
+): Promise<ImportPreviewResponse> {
   const formData = new FormData();
   formData.append("file", file);
   formData.append("password", password);
+  // The backend checks and claims the CAS's PAN for this member at upload.
+  formData.append("household_member_id", householdMemberId);
 
   const response = await fetch(`${API_BASE_URL}/imports/parse`, {
     method: "POST",
@@ -42,7 +48,6 @@ export async function confirmImport(
   sessionId: string,
   householdMemberId: string,
   schemeConfirmations: SchemeConfirmation[],
-  confirmedMemberOverride: boolean = false,
 ): Promise<ImportConfirmResponse> {
   const response = await fetch(`${API_BASE_URL}/imports/confirm`, {
     method: "POST",
@@ -51,7 +56,6 @@ export async function confirmImport(
       session_id: sessionId,
       household_member_id: householdMemberId,
       scheme_confirmations: schemeConfirmations,
-      confirmed_member_override: confirmedMemberOverride,
     }),
   });
 
@@ -65,6 +69,19 @@ export async function confirmImport(
   // cache TTL window.
   invalidateApiCache();
   return (await response.json()) as ImportConfirmResponse;
+}
+
+/** Best effort: releases a parsed-but-abandoned session's pending PAN. If
+ * this never reaches the server, the pending PAN expires on its own. */
+export async function discardImportSession(sessionId: string): Promise<void> {
+  try {
+    await fetch(`${API_BASE_URL}/imports/sessions/${encodeURIComponent(sessionId)}/discard`, {
+      method: "POST",
+      headers: authHeaders(),
+    });
+  } catch {
+    // Intentionally ignored -- see doc comment.
+  }
 }
 
 export async function uploadCasImport(

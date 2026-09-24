@@ -6,22 +6,19 @@ import { ReviewTable } from "./ReviewTable";
 import { ImportError } from "./ImportError";
 import { ImportConfirmed } from "./ImportConfirmed";
 import { CrossAccountBlockedDialog } from "./CrossAccountBlockedDialog";
-import { ApiError, confirmImport, parseImport } from "./api";
+import { ApiError, confirmImport, discardImportSession, parseImport } from "./api";
+import { PanConflictDialog } from "./PanConflictDialog";
+import { getPanConflict } from "./panConflict";
 import { clearCasResumeStep2 } from "./casResumeState";
 import { isTestEnv } from "@/lib/motion";
 import type {
   ImportConfirmResponse,
   ImportPreviewResponse,
-  MemberMismatchErrorPayload,
   ParseErrorPayload,
   SchemeConfirmation,
 } from "./types";
 
 type Step = "upload" | "parsing" | "review" | "error" | "confirmed";
-
-type MemberMismatchConfirmation = MemberMismatchErrorPayload & {
-  confirmations: SchemeConfirmation[];
-};
 
 interface ImportFlowProps {
   householdMemberId: string;
@@ -51,20 +48,23 @@ export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab, on
   const [confirmResult, setConfirmResult] = useState<ImportConfirmResponse | null>(null);
   const [error, setError] = useState<ParseErrorPayload | null>(null);
   const [reviewNotice, setReviewNotice] = useState<string | null>(null);
-  const [memberMismatch, setMemberMismatch] = useState<MemberMismatchConfirmation | null>(null);
+  const [panConflict, setPanConflict] = useState<string | null>(null);
+  // After a PAN conflict, re-mount the upload container straight on the
+  // upload form instead of the request/upload choice screen.
+  const [uploadTab, setUploadTab] = useState(defaultTab);
   const [crossAccountBlocked, setCrossAccountBlocked] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
 
   const shouldReduceMotion = useReducedMotion() || isTestEnv;
 
   const reset = () => {
+    if (preview) void discardImportSession(preview.session_id);
     clearCasResumeStep2(householdMemberId);
     setStep("upload");
     setPreview(null);
     setConfirmResult(null);
     setError(null);
     setReviewNotice(null);
-    setMemberMismatch(null);
     setConfirming(false);
   };
 
@@ -73,48 +73,46 @@ export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab, on
     setStep("parsing");
     setError(null);
     try {
-      const result = await parseImport(file, password);
+      const result = await parseImport(file, password, householdMemberId);
       setPreview(result);
       setStep("review");
     } catch (err) {
+      const conflict = getPanConflict(err);
+      if (conflict) {
+        // Nothing was stored server-side; go back to the upload form under the popup.
+        setUploadTab("upload");
+        setStep("upload");
+        if (conflict.code === "cross_account_pan_blocked") {
+          setCrossAccountBlocked(conflict.message);
+        } else {
+          setPanConflict(conflict.message);
+        }
+        return;
+      }
       setError(toParseErrorPayload(err));
       setStep("error");
     }
   };
 
-  const submitConfirmation = async (
-    memberId: string,
-    confirmations: SchemeConfirmation[],
-    confirmedMemberOverride = false,
-  ) => {
+  // Confirm never prompts: the member and PAN were settled at upload. The only
+  // recoverable failures left are a scheme needing an AMFI code (409) and an
+  // expired session (404).
+  const handleConfirm = async (confirmations: SchemeConfirmation[]) => {
     if (!preview) return;
     setConfirming(true);
     setReviewNotice(null);
-    setMemberMismatch(null);
     try {
-      const result = confirmedMemberOverride
-        ? await confirmImport(preview.session_id, memberId, confirmations, true)
-        : await confirmImport(preview.session_id, memberId, confirmations);
+      const result = await confirmImport(preview.session_id, householdMemberId, confirmations);
       clearCasResumeStep2(householdMemberId);
       setConfirmResult(result);
       setStep("confirmed");
     } catch (err) {
       if (err instanceof ApiError && (err.status === 409 || err.status === 404)) {
-        const payload = toParseErrorPayload(err);
-        if (err.status === 409 && payload.code === "member_mismatch") {
-          setMemberMismatch({
-            ...(payload as MemberMismatchErrorPayload),
-            confirmations,
-          });
-        } else if (err.status === 409 && payload.code === "cross_account_pan_blocked") {
-          setCrossAccountBlocked(payload.message);
-        } else {
-          setReviewNotice(
-            err.status === 404
-              ? "This import session has expired. Please re-upload your CAS."
-              : payload.message,
-          );
-        }
+        setReviewNotice(
+          err.status === 404
+            ? "This import session has expired. Please re-upload your CAS."
+            : toParseErrorPayload(err).message,
+        );
       } else {
         setError(toParseErrorPayload(err));
         setStep("error");
@@ -123,9 +121,6 @@ export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab, on
       setConfirming(false);
     }
   };
-
-  const handleConfirm = (confirmations: SchemeConfirmation[]) =>
-    submitConfirmation(householdMemberId, confirmations);
 
   return (
     <div className="w-full min-h-full flex-1 flex flex-col justify-center items-center my-auto">
@@ -136,6 +131,13 @@ export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab, on
           setCrossAccountBlocked(null);
           onGoToHousehold?.();
         }}
+      />
+      <PanConflictDialog
+        isOpen={panConflict !== null}
+        message={panConflict ?? ""}
+        secondaryLabel="Cancel"
+        onChangeFile={() => setPanConflict(null)}
+        onSecondary={() => setPanConflict(null)}
       />
       <AnimatePresence mode="wait">
         {step === "upload" && (
@@ -149,7 +151,7 @@ export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab, on
           >
             <TwoPathImportContainer
               memberId={householdMemberId}
-              defaultTab={defaultTab}
+              defaultTab={uploadTab}
               onUploadSubmit={handleUpload}
             />
           </motion.div>
@@ -178,48 +180,6 @@ export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab, on
             className="w-full"
           >
             {reviewNotice && <p role="alert">{reviewNotice}</p>}
-            {memberMismatch && (
-              <div
-                role="alert"
-                className="mb-4 rounded-2xl border border-[var(--color-warning)]/30 bg-[var(--color-warning)]/10 p-4 text-left"
-              >
-                <p className="type-body text-sm text-[var(--color-ink)] m-0">
-                  {memberMismatch.message}
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {memberMismatch.matched_member_id && (
-                    <button
-                      type="button"
-                      disabled={confirming}
-                      onClick={() =>
-                        void submitConfirmation(
-                          memberMismatch.matched_member_id!,
-                          memberMismatch.confirmations,
-                          true,
-                        )
-                      }
-                      className="rounded-xl bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
-                    >
-                      Switch to {memberMismatch.matched_member_name ?? "matched member"}
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    disabled={confirming}
-                    onClick={() =>
-                      void submitConfirmation(
-                        householdMemberId,
-                        memberMismatch.confirmations,
-                        true,
-                      )
-                    }
-                    className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm font-semibold text-[var(--color-ink)] disabled:opacity-50"
-                  >
-                    Continue anyway
-                  </button>
-                </div>
-              </div>
-            )}
             <ReviewTable
               preview={preview}
               confirming={confirming}

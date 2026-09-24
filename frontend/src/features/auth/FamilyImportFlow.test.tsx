@@ -48,16 +48,35 @@ function uploadFor(memberLabel: RegExp) {
   fireEvent.click(screen.getByRole("button", { name: /upload statement/i }));
 }
 
-function renderFlow(onGoToHousehold?: () => void) {
+function renderFlow() {
   vi.mocked(authApi.getMe).mockResolvedValue(ME);
   vi.mocked(authApi.updateMe).mockImplementation(async (body) => ({ ...ME, ...body }) as typeof ME);
   vi.mocked(authApi.listHouseholdMembers).mockResolvedValue(FAMILY);
   return render(
     <AuthProvider>
-      <FamilyImportFlow selfName="Ayush" onGoToHousehold={onGoToHousehold} />
+      <FamilyImportFlow selfName="Ayush" />
     </AuthProvider>,
   );
 }
+
+async function reachParsingWithMomAndDadQueued() {
+  renderFlow();
+  await waitFor(() => screen.getByText("Mom"));
+  uploadFor(/upload cas for mom/i);
+  await waitFor(() => screen.getAllByText(/uploaded/i));
+  uploadFor(/upload cas for dad/i);
+  await waitFor(() => expect(screen.getByRole("button", { name: /^continue$/i })).toBeEnabled());
+  fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
+  await waitFor(() => screen.getByText(/upload your own cas/i));
+  fireEvent.click(screen.getByRole("button", { name: /upload later/i }));
+  await waitFor(() => screen.getByRole("button", { name: /import now/i }));
+  fireEvent.click(screen.getByRole("button", { name: /import now/i }));
+}
+
+const PAN_EXISTS = new ApiError(409, {
+  code: "pan_belongs_to_other_member",
+  message: "The statement you uploaded for Mom belongs to a PAN that's already in Unifolio. Please choose Mom's own CAS.",
+});
 
 describe("FamilyImportFlow", () => {
   afterEach(() => {
@@ -137,6 +156,9 @@ describe("FamilyImportFlow", () => {
     expect(screen.getByText(/5 new transactions added, 1 duplicate skipped/i)).toBeInTheDocument();
     expect(importApi.confirmImport).toHaveBeenNthCalledWith(1, "s1", "mom", []);
     expect(importApi.confirmImport).toHaveBeenNthCalledWith(2, "s1", "dad", []);
+    expect(importApi.parseImport).toHaveBeenNthCalledWith(1, expect.any(File), "secret", "mom");
+    expect(importApi.parseImport).toHaveBeenNthCalledWith(2, expect.any(File), "secret", "dad");
+    expect(screen.queryByRole("button", { name: /continue anyway/i })).not.toBeInTheDocument();
   });
 
   it("retries the same item on Try again after a per-item parse failure", async () => {
@@ -211,37 +233,73 @@ describe("FamilyImportFlow", () => {
     expect(screen.getByText(/review mom's cas import/i)).toBeInTheDocument();
   });
 
-  it("shows the cross-account-blocked popup and routes Back through onGoToHousehold", async () => {
-    vi.mocked(importApi.parseImport).mockResolvedValue(EMPTY_PREVIEW);
-    vi.mocked(importApi.confirmImport).mockRejectedValueOnce(
-      new ApiError(409, {
-        code: "cross_account_pan_blocked",
-        message: "This PAN is already tracked under a different Unifolio account. Contact support if you believe this is a mistake.",
-      }),
-    );
-    const handleGoToHousehold = vi.fn();
+  it("shows PAN-already-exists (not a leak) for a cross-account PAN right after that member's upload", async () => {
+    vi.mocked(importApi.parseImport)
+      .mockRejectedValueOnce(
+        new ApiError(409, {
+          code: "cross_account_pan_blocked",
+          message: "This PAN is already tracked under a different Unifolio account. Contact support if you believe this is a mistake.",
+        }),
+      );
 
-    renderFlow(handleGoToHousehold);
-    await waitFor(() => screen.getByText("Mom"));
-    uploadFor(/upload cas for mom/i);
-    await waitFor(() => screen.getAllByText(/uploaded/i));
-    fireEvent.click(screen.getByRole("button", { name: /skip for now.*dad/i }));
-    await waitFor(() => expect(screen.getByRole("button", { name: /^continue$/i })).toBeEnabled());
-    fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
-    await waitFor(() => screen.getByText(/upload your own cas/i));
-    fireEvent.click(screen.getByRole("button", { name: /upload later/i }));
-    await waitFor(() => screen.getByRole("button", { name: /import now/i }));
+    await reachParsingWithMomAndDadQueued();
 
-    fireEvent.click(screen.getByRole("button", { name: /import now/i }));
+    await waitFor(() => expect(screen.getByText("This PAN already exists")).toBeInTheDocument());
+    expect(screen.getByText(/the statement you uploaded for mom belongs to a pan/i)).toBeInTheDocument();
+    expect(screen.queryByText(/different unifolio account/i)).not.toBeInTheDocument();
+    expect(importApi.confirmImport).not.toHaveBeenCalled();
+  });
+
+  it("Skip moves on from a PAN conflict to the next queued member", async () => {
+    vi.mocked(importApi.parseImport).mockRejectedValueOnce(PAN_EXISTS).mockResolvedValueOnce(EMPTY_PREVIEW);
+
+    await reachParsingWithMomAndDadQueued();
+    await waitFor(() => screen.getByText("This PAN already exists"));
+    fireEvent.click(screen.getByRole("button", { name: /skip mom for now/i }));
+
+    await waitFor(() => expect(screen.getByText(/review dad's cas import/i)).toBeInTheDocument());
+  });
+
+  it("Change CAS file re-uploads for the same member and then confirms straight through", async () => {
+    vi.mocked(importApi.parseImport)
+      .mockRejectedValueOnce(PAN_EXISTS)
+      .mockResolvedValueOnce(EMPTY_PREVIEW)
+      .mockResolvedValueOnce(EMPTY_PREVIEW);
+    vi.mocked(importApi.confirmImport).mockResolvedValueOnce({ added: 2, skipped: 0, import_id: "imp-mom", warnings: [] });
+
+    await reachParsingWithMomAndDadQueued();
+    await waitFor(() => screen.getByText("This PAN already exists"));
+    fireEvent.click(screen.getByRole("button", { name: /change cas file/i }));
+
+    const newFile = new File(["other-pdf"], "mom-real.pdf", { type: "application/pdf" });
+    await waitFor(() => screen.getByLabelText(/cas pdf/i));
+    fireEvent.change(screen.getByLabelText(/cas pdf/i), { target: { files: [newFile] } });
+    fireEvent.change(screen.getByLabelText(/pdf password/i), { target: { value: "moms-pw" } });
+    fireEvent.click(screen.getByRole("button", { name: /upload statement/i }));
+
     await waitFor(() => expect(screen.getByText(/review mom's cas import/i)).toBeInTheDocument());
+    expect(importApi.parseImport).toHaveBeenNthCalledWith(2, newFile, "moms-pw", "mom");
     fireEvent.click(screen.getByRole("button", { name: /confirm import/i }));
+    await waitFor(() => expect(screen.getByText(/review dad's cas import/i)).toBeInTheDocument());
+  });
 
-    await waitFor(() =>
-      expect(screen.getByText(/already tracked under a different unifolio account/i)).toBeInTheDocument(),
-    );
+  it("change CAS file with a wrong password lands on the per-item error screen", async () => {
+    vi.mocked(importApi.parseImport)
+      .mockRejectedValueOnce(PAN_EXISTS)
+      .mockRejectedValueOnce(new ApiError(422, { code: "wrong_password", message: "Incorrect PDF password." }));
 
-    fireEvent.click(screen.getByRole("button", { name: /^back$/i }));
-    expect(handleGoToHousehold).toHaveBeenCalledTimes(1);
+    await reachParsingWithMomAndDadQueued();
+    await waitFor(() => screen.getByText("This PAN already exists"));
+    fireEvent.click(screen.getByRole("button", { name: /change cas file/i }));
+    await waitFor(() => screen.getByLabelText(/cas pdf/i));
+    fireEvent.change(screen.getByLabelText(/cas pdf/i), {
+      target: { files: [new File(["x"], "mom.pdf", { type: "application/pdf" })] },
+    });
+    fireEvent.change(screen.getByLabelText(/pdf password/i), { target: { value: "bad" } });
+    fireEvent.click(screen.getByRole("button", { name: /upload statement/i }));
+
+    await waitFor(() => expect(screen.getByText(/incorrect pdf password/i)).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: /skip mom for now/i })).toBeInTheDocument();
   });
 
   it("shows a recoverable error when own-upload self-member setup fails", async () => {
@@ -305,4 +363,21 @@ describe("FamilyImportFlow", () => {
     resolveConfirm({ added: 1, skipped: 0, import_id: "imp-mom", warnings: [] });
     await waitFor(() => expect(screen.getByText(/import complete/i)).toBeInTheDocument());
   });
+
+  it("Change CAS file is not a dead end: Back returns to the popup, then Skip moves on", async () => {
+    // Final review #2: the re-upload form used to have no way out.
+    vi.mocked(importApi.parseImport).mockRejectedValueOnce(PAN_EXISTS).mockResolvedValueOnce(EMPTY_PREVIEW);
+
+    await reachParsingWithMomAndDadQueued();
+    await waitFor(() => screen.getByText("This PAN already exists"));
+    fireEvent.click(screen.getByRole("button", { name: /change cas file/i }));
+    await waitFor(() => screen.getByLabelText(/cas pdf/i));
+
+    fireEvent.click(screen.getByRole("button", { name: /back/i }));
+    await waitFor(() => expect(screen.getByText("This PAN already exists")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: /skip mom for now/i }));
+
+    await waitFor(() => expect(screen.getByText(/review dad's cas import/i)).toBeInTheDocument());
+  });
+
 });
