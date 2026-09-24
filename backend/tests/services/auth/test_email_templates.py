@@ -32,16 +32,14 @@ def test_otp_email_html_logo_visibility_comes_only_from_the_stylesheet():
     assert "display" not in html.split("<body>")[1]
 
 
-def test_otp_email_html_wrap_has_a_max_width():
-    """Real-device regression (desktop Gmail webmail, 2026-09-23): `.wrap`
-    had no max-width, so on a wide reading pane the centered OTP number sat
-    far to the right of the left-aligned headline/note text above and below
-    it -- unconstrained width made "centered" mean "centered across the
-    whole wide pane", not "centered relative to the surrounding copy". A
-    max-width narrows that reference frame so the offset stays small on any
-    viewport, matching how it already looked fine on a phone-width screen."""
+def test_otp_email_html_desktop_otp_positioning():
+    """Desktop view positions the OTP number to the left under the headline
+    via min-width media query, keeping mobile view centered and the overall
+    layout naturally left-aligned without container auto-centering."""
     html = otp_email_html(otp="743820", ttl_minutes=5)
-    assert "max-width" in html
+    assert "@media (min-width: 600px)" in html
+    assert "margin-left: 88px" in html
+    assert "margin: 0 auto" not in html
 
 
 def test_otp_email_html_declares_supported_color_schemes():

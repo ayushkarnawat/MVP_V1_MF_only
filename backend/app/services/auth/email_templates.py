@@ -42,7 +42,7 @@ def otp_email_html(otp: str, ttl_minutes: int) -> str:
      import and fall back to the system stack below -- Apple Mail and a
      few others are the exception. Harmless to include either way. */
   body {{ margin: 0; background: #FFFFFF; color: #111111; }}
-  .wrap {{ font-family: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 24px; }}
+  .wrap {{ font-family: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 32px 24px; }}
   .headline {{ font-size: 16px; line-height: 1.55; margin: 4px 0 26px; }}
   .code-pill {{ background: rgba(34,197,94,0.16); color: #15803D; font-weight: 700; padding: 1px 6px; border-radius: 4px; }}
   .otp-number {{ font-family: 'DM Sans', ui-monospace, "SF Mono", "Roboto Mono", Consolas, monospace; font-variant-numeric: tabular-nums; font-size: 40px; font-weight: 700; letter-spacing: 0.06em; text-align: center; margin: 8px 0 26px; }}
@@ -51,6 +51,9 @@ def otp_email_html(otp: str, ttl_minutes: int) -> str:
   .disclaimer {{ font-size: 11.5px; line-height: 1.6; color: #6B7280; margin: 24px 0 0; }}
   .logo-light {{ display: block; margin-bottom: 22px; }}
   .logo-dark {{ display: none; margin-bottom: 22px; }}
+  @media (min-width: 600px) {{
+    .otp-number {{ text-align: left; margin-left: 88px; }}
+  }}
   @media (prefers-color-scheme: dark) {{
     body {{ background: #0F0F0F !important; color: #F5F5F5 !important; }}
     .code-pill {{ color: #4ADE80 !important; }}
