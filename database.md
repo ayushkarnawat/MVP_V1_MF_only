@@ -38,3 +38,21 @@ Landing this migration also removed every OTP/session-related route's old direct
 - Enum state: `EMAIL_OTP` is active; `EMAIL_PASSWORD` remains defined in the DB enum as an unused benched value (since Postgres cannot cheaply drop enum values).
 - Schema is 100% clean, verified with `alembic upgrade head` and 449 passing tests.
 
+## 2026-09-02 — Migrations 0009-0011: compliance-audit fixes (F5/F3), Postgres JSON idiom
+
+- **`0009_scheme_ter_nullable_value`**: no schema-shape change beyond documenting `scheme_ter.ter_value`'s existing nullability as "checked, no match" rather than "not yet checked."
+- **`0010_widen_import_and_transaction_enums`**: widens the `importstatus` native Postgres enum and rebuilds the `transactions_type_check` CHECK constraint to include `opening_balance` — closes a real enum-drift gap (migration 0003 added the value to the ORM/SQLite CHECK but never to the Postgres-native enum type).
+- **`0011_household_members_one_self_row`**: partial unique index on `household_members(user_id) WHERE relationship = 'self'`, via `sqlite_where=`/`postgresql_where=` on one `op.create_index` call. A read-only check against the dev DB first confirmed zero existing violations, so no data-migration remediation was needed. Paired with a `DuplicateSelfMemberError` → 409 application guard.
+
+## 2026-09-10 — Migrations 0012/0013/0014: Analytics precompute, account deletion, recompute generation tracking
+
+- **`0012_analytics_sections`**: backing tables for the Analytics precompute contract (`GET /analytics/{scope}` replacing the 14 deleted per-section endpoints).
+- **`0013_account_deletion_grace_period`**: schema for the investor-batch account-deletion feature (5-day grace period + exit survey + household cascade).
+- **`0014_analytics_recompute_generation`**: generation/versioning column(s) so a stale precompute-cache row can be detected and invalidated rather than served forever.
+
+## 2026-09-18/24 — Migrations 0015/0016: PAN persistence, CAS file retention, upload-time PAN claims (ADR-004 reopened)
+
+- **`0015_pan_and_cas_file_storage`**: `household_members` gains `pan_encrypted` (AES-256-GCM envelope-encrypted, base64) and `pan_lookup_hash` (HMAC-SHA256, deterministic, for equality matching without decrypting another household's PAN) — the lookup-hash index was made `UNIQUE` in a same-day review fix (nullable-safe on both dialects; only non-null hashes are constrained distinct). `imports` gains `file_reference` (opaque storage key for the retained CAS PDF; local disk in dev, S3 in production) and `file_expires_at` (30 days from upload, swept by a manual CLI entry point). Supersedes the original ADR-004 "no PAN, no raw file" decision — see `decisions.md`.
+- **`0016_pending_pan_claims`**: `household_members.pan_pending_until` — non-null means the PAN above is an upload-time claim not yet finalized by Confirm Import (released on discard or after a 65-minute timeout). Moves the PAN check/claim from Confirm-time to upload-time; see `decisions.md`'s 2026-09-24 entry.
+
+`Database-Schema-Unifolio.md` stays synced through 0016 (checked current as of this pass).

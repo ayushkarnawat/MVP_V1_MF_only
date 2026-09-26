@@ -109,3 +109,43 @@ Updated `backend/app/main.py` `CORSMiddleware`:
 - Added `allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$"` alongside the standard origin list (`http://localhost:5173`, `http://localhost:5174`, `http://localhost:5175`, `http://localhost:3000`).
 - Prevents CORS preflight `OPTIONS` failure when the frontend dev server auto-allocates port 5174 or 5175.
 - Automated tests added to `backend/tests/test_health.py` covering multi-port preflight headers.
+
+## 2026-08-24/26 — AMFI TER concurrency lowered to 5; PDF export Allocation section fixed; `commit_off_loop` event-loop fix
+
+`_TER_FETCH_CONCURRENCY` 20→5 (AMFI's TER-page endpoint 429s above that). `AllocationSection.tsx` gained a `printMode` prop (mirroring `BenchmarkSection`'s existing pattern) and `AllocationDonut`/`PieSlice` gained a non-animated static render path, fixing the PDF export's donut/AMC-breakdown bugs. Root-caused a colleague's AMFI TER `ReadTimeout`s to event-loop starvation from a blocking `db.commit()` inside an `async def` (this backend's SQLAlchemy engine is fully synchronous, single worker) — added `commit_off_loop` (`asyncio.to_thread`) and rewired every reachable commit across 8 service files. Full detail: `log.md`.
+
+## 2026-09-02/03 — Compliance-audit remediation: N+1 fix, self-member uniqueness, PAN-based attribution v1
+
+`compute_holdings`'s per-folio `Transaction` query batched into one query across all folios (F7). `DuplicateSelfMemberError` 409 guard added to `create_household_member` (F3, migration 0011). ADR-006's 4 job-entrypoint scripts added (daily NAV refresh, monthly TER, quarterly AAUM, daily benchmark) plus `amfi_aaum_client.refresh_aaum_data` wired to a real caller (F4 piece a — the EventBridge/ECS Terraform itself stays deferred). NAV-unavailable degraded row shipped for holdings/allocation/aggregates (F8) — a held scheme with no obtainable NAV now shows a flagged row instead of silently vanishing. `attribution.py` gained a non-PAN duplicate-person design: same-user cross-household-member dedup via a `(folio_number, amc_name)` signal, plus an advisory-only `detect_cross_account_duplicate` check that never blocks or merges. Round 2 wired this into both parallel import backends (`service.py` and `lifecycle_service.py`) via a shared `enforce_attribution_confirmation` gate.
+
+## 2026-09-10 — Analytics precompute contract; account deletion; import history/delete
+
+`GET /analytics/{scope}` replaces the 14 per-section analytics routes, backed by migrations 0012/0014's precompute-cache tables with cold-start/recompute-generation tracking. Account deletion (5-day grace period, exit survey, household cascade, migration 0013), email/phone change via OTP, import history + delete-import, and several smaller dashboard additions (header XIRR, allocation sort toggle, AMC/asset-class drill-down) shipped as part of the investor 10-item batch.
+
+## 2026-09-12 — Fund Score API fields extended for the card redesign
+
+`FundScoreRow` gained new raw-evidence fields (kept optional/nullable so a stale precompute-cache row missing them entirely — not null — doesn't break the frontend's loose-equality checks). Score itself is unchanged server-side (raw 0-100); the /10 display and reversed tier convention are frontend-only.
+
+## 2026-09-17 — Real email delivery: PostmarkEmailProvider; independent `email_delivery_mode`
+
+First real (non-stub) `EmailProvider` implementation, `PostmarkEmailProvider`, added behind the existing protocol from the 2026-08-14 multi-method-auth design. `email_delivery_mode` split into its own setting, independent of phone/SMS's `otp_delivery_mode` — an autouse test fixture now guards every test against picking up a live local `.env` value for either.
+
+## 2026-09-18 — ADR-004 reopened: PAN persisted encrypted, CAS file retained; attribution rewritten to match by PAN
+
+New `backend/app/services/import_/crypto.py` (AES-256-GCM envelope encryption + HMAC-SHA256 lookup hash for PAN). New local CAS file storage with a 30-day expiry sweep (migration 0015). `ParsedInvestor` now carries the raw PAN through parsing for attribution matching. `attribution.py` rewritten: PAN match within the same household auto-attributes; a PAN already claimed by a different account raises `CrossAccountPanBlockedError`; falls back to folio+AMC matching when the CAS has no PAN; `backfill_pan_if_missing()` captures PAN on first successful match. Wired into both the sync confirm path and the async CAS-upload path. `tests/models/test_no_pan_field.py`'s guard broadened (not removed) to assert PAN only ever lives in the two new encrypted/hashed columns, on every mapped model.
+
+## 2026-09-19 — Cross-account PAN block surfaced as a popup instead of a silent freeze
+
+Family's CAS upload flow previously froze with no explanation when `CrossAccountPanBlockedError` fired; now surfaces an explicit "Import blocked" popup.
+
+## 2026-09-22 — Phone-gate collision fixed; SES email provider added; Postmark's send-failure path hardened
+
+Signup's phone gate no longer silently signs a caller into an unrelated existing account on a phone match — now a 409 "already exists, log in instead," matching email's behavior, checked at `otp/request` time instead of `otp/verify` time. `SesEmailProvider` added behind the existing `EmailProvider` abstraction (IAM-role `boto3` auth, no new secret store). Both Postmark and SES now raise a shared `EmailSendError` on any send failure, caught once per route and mapped to a `502` (was an unhandled `500`); a failed send no longer leaves behind a persisted `OtpRequest` row.
+
+## 2026-09-23 — Postmark provider removed entirely; HTML email templates added
+
+`PostmarkEmailProvider` and its Terraform secrets/variables deleted (SES is now the sole real provider) — a deliberate "don't keep it dormant" simplicity choice, not a cost-driven one (dormant cost would have been $0). Responsive HTML templates added for both the email-OTP-verification and email-OTP-signup emails, with unit tests; a desktop alignment bug in the template fixed the next day.
+
+## 2026-09-24 — PAN attribution moved from Confirm-time to upload-time
+
+`attribution.py` replaced by `backend/app/services/import_/pan_claims.py`. `/imports/parse` now takes `household_member_id` and claims the parsed PAN as *pending* for that member immediately (migration 0016's `pan_pending_until`); conflicts return a 409 (`cross_account_pan_blocked` / `pan_belongs_to_other_member` / `pan_mismatch_for_member`) right after upload rather than at Confirm. `/imports/confirm` only finalizes — no `confirmed_member_override`, no prompts. New `POST /imports/sessions/{id}/discard` releases an abandoned pending claim. `/cas-imports` claims permanently inline. Fix-round findings: the PAN claim was moved to *after* mfapi enrichment so SQLite's write lock isn't held across the network call; a lost unique-index race now retries instead of 500ing. **Known gap, not yet built** (drafted as a plan, no code written): a family CAS statement covering several people is only ever attributed to the *first* folio's PAN holder — `casparser` exposes PAN per-folio but folios carry no holder name, so a multi-person statement silently imports everyone's funds under one member. See `Docs/superpowers/plans/2026-09-24-per-pan-statement-splitting.md`.

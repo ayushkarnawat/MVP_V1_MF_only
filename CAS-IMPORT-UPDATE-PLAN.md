@@ -1,5 +1,16 @@
 # CAS Import Update Plan — Architecture, Schema & TDD Roadmap
 
+**Status note (added 2026-09-26): fully built, then further reworked past what this plan
+describes — read as historical, not current architecture.** All of FR-1 through FR-9
+below shipped (11-state lifecycle machine, coverage-gap detection, opening-balance
+resolution, dedup fingerprinting, import history, two-path CAS acquisition). The
+attribution engine this doc describes (`attribution.py`, name/email matching) was later
+deleted and replaced by PAN-based attribution (`pan_claims.py`), first at confirm-time
+(2026-09-03 compliance audit) and then at upload-time (2026-09-24) — see `session.md`,
+`log.md`, and `Docs/superpowers/specs/2026-09-24-pan-at-upload-attribution-design.md` for
+the current design. Left unedited below rather than rewritten, per this project's
+convention of not rewriting superseded plans in place.
+
 **Documents Analyzed:**
 - `Docs/PRDs/Updated-CAS-PRD.md` (supersedes/extends PRD-01/PRD-02)
 - `Docs/PRDs/Updated-CAS-App-Flow.md` (supersedes/extends prior app flow)

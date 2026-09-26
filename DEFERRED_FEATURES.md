@@ -1,7 +1,7 @@
 # Deferred / Not-Yet-Built Features — Unifolio
 
 Working tracker of everything the product docs have explicitly deferred, scoped out, or
-left unbuilt as of 2026-08-17. Pulled from `session.md`, `CLAUDE.md`, and
+left unbuilt as of 2026-09-26. Pulled from `session.md`, `CLAUDE.md`, and
 `Docs/PRDs/PRD-01` through `PRD-04` (plus the ADR and Migration Plan docs for
 infrastructure items). Not a planning doc — like `session.md`, this gets updated as
 scope moves, not accumulated as history. When an item here gets built, move it out
@@ -69,11 +69,13 @@ built**, so those are not listed here. What PRD-04 itself still defers:
 
 ## Appendix — related but not scope deferrals
 
-**Built, not yet independently reviewed** (see `CLAUDE.md` Session State): the CAS
-import lifecycle redesign (11-state state machine, coverage-gap detection,
-opening-balance resolution, CAMS mailback flow, and the matching frontend) — intern-authored,
-passes the full test suite, but has had no review pass against `Decimal`-never-`float`,
-no-PAN-persistence, and no-raw-CAS-storage the way Phase 3b's redesign got before merge.
+**Superseded note:** this entry previously said the CAS import lifecycle redesign was
+"built, not yet independently reviewed" and cited a "no-PAN-persistence, no-raw-CAS-storage"
+invariant to review it against. Both are stale as of 2026-09-26: PAN and the raw CAS file
+are now persisted (encrypted) per ADR-004's 2026-09-18 reopening (see `decisions.md`), and
+the lifecycle redesign has been through many review rounds since (compliance audit
+2026-09-02, PAN/CAS attribution rework 2026-09-18/19, upload-time PAN claims 2026-09-24 —
+see `log.md`). No open review gap remains here.
 
 **Known implementation gaps on already-shipped features** (see `CLAUDE.md`'s "Still
 open" list): a held scheme with no obtainable NAV silently disappearing from

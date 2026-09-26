@@ -122,7 +122,7 @@ The 11-state CAS import lifecycle state machine, coverage-gap detection, opening
 
 **Why:** explicit product decision, not derived from any convention (not alphabetical, not by expected usage frequency) — recorded so it isn't silently reshuffled later. Apple's slot stays reserved even while disabled, so the layout doesn't reflow once real Apple sign-in ships.
 
-## 2026-08-14 — Multi-method auth: Postmark confirmed as the email provider (SES-vs-Postmark question closed)
+## 2026-08-14 — Multi-method auth: Postmark confirmed as the email provider (SES-vs-Postmark question closed) — **Superseded 2026-09-22/23**, see the SES-switch entry near the end of this file
 
 **Why:** deliverability for a login-critical OTP outweighs Amazon SES's lower cost and AWS-infra alignment at this volume — settled definitively, not left as a recommendation. Wiring it up is still deferred (see the `EmailProvider`/Postmark-timing entry above), but *which* provider is no longer open.
 
@@ -251,4 +251,16 @@ Replaced generic vector artwork with bespoke hand-drawn illustrations sourced fr
 ## 2026-09-18 — PAN persistence and CAS file retention (reopens 2026-07-22 decision)
 
 ADR-004's original "no PAN, no raw file, ever" is superseded. PAN is now stored encrypted per household member (attribution matching); the raw CAS PDF is retained 30 days then deleted. **Why:** name/email-based attribution was fragile (nicknames, similar family names) and couldn't detect the same PAN already tracked under a different account. See `Docs/superpowers/specs/2026-09-18-pan-cas-attribution-design.md`.
+
+## 2026-09-24 — PAN attribution moved from Confirm-time to upload-time (amends the 2026-09-18 entry above)
+
+Amends, doesn't reverse, the entry above — same PAN storage, same matching rules, different point in the flow where the check/claim happens. **Why:** a member's PAN was only ever stored *after* a Confirm, so PAN-based attribution could never match on a first import — every fresh account's first upload showed a false "couldn't match this statement" error. `/imports/parse` now claims the PAN as pending immediately; Confirm Import never prompts. See `Docs/superpowers/specs/2026-09-24-pan-at-upload-attribution-design.md`.
+
+## 2026-09-22/23 — Email provider switched from Postmark to Amazon SES; Postmark removed entirely, not kept dormant
+
+Reverses the 2026-08-14 "Postmark confirmed" decision. `SesEmailProvider` added behind the existing `EmailProvider` abstraction (IAM-role auth via `boto3`, no new secret/token store — the abstraction built in 2026-08-14 paid for itself exactly as intended); Postmark's provider class, Terraform secrets/variables, and DNS records were then removed from the codebase entirely rather than kept as a dormant rollback path. **Why:** SES aligns with the AWS infra already being stood up for staging (IAM-role auth instead of a separately-managed API token) and removes a second email-sending surface to keep configured/secured; full comparison in `Docs/orchestration/email-provider-alternatives-comparison.md`. Keeping Postmark dormant would have cost $0 (free tier, no expiry) — removing it was a deliberate simplicity choice, not a cost-driven one. Phone/SMS OTP is unaffected, still `"stub"` in staging.
+
+## 2026-09-22 — Phone-gate collision now errors like email's, instead of silently logging in
+
+Signup's mandatory phone gate previously called `attach_pending_identity` unconditionally whenever the entered phone number matched an existing identity, silently completing the caller's signup as a sign-in to that unrelated existing account. **Why:** found as a live bug, not a design gap — brought in line with `signup_email`'s existing 409 "already exists — log in instead" behavior for a duplicate email, and moved the check from `otp/verify` to `otp/request` so it surfaces before the caller types a code, matching email's timing exactly.
 
