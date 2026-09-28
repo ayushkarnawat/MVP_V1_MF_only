@@ -3,7 +3,14 @@
 import pytest
 from pydantic import ValidationError
 
-from app.services.auth.schemas import OtpRequestBody, OtpVerifyBody, normalize_email
+from app.services.auth.schemas import (
+    EmailOtpRequestBody,
+    EmailRequiredDetail,
+    EmailRequiredResponse,
+    OtpRequestBody,
+    OtpVerifyBody,
+    normalize_email,
+)
 
 
 def test_normalize_email_strips_and_lowercases():
@@ -37,3 +44,34 @@ def test_otp_verify_body_requires_phone_number_and_otp():
         OtpVerifyBody(phone_number="+919999999999")
     with pytest.raises(ValidationError):
         OtpVerifyBody(otp="123456")
+
+
+def test_otp_verify_body_flow_defaults_to_none():
+    body = OtpVerifyBody(phone_number="+919999999999", otp="123456")
+    assert body.flow is None
+
+
+def test_otp_verify_body_accepts_signup_flow():
+    body = OtpVerifyBody(phone_number="+919999999999", otp="123456", flow="signup")
+    assert body.flow == "signup"
+
+
+def test_otp_verify_body_accepts_login_flow():
+    body = OtpVerifyBody(phone_number="+919999999999", otp="123456", flow="login")
+    assert body.flow == "login"
+
+
+def test_email_otp_request_body_pending_token_defaults_to_none():
+    body = EmailOtpRequestBody(email="person@example.com")
+    assert body.pending_token is None
+
+
+def test_email_otp_request_body_accepts_pending_token():
+    body = EmailOtpRequestBody(email="person@example.com", pending_token="tok")
+    assert body.pending_token == "tok"
+
+
+def test_email_required_response_shape():
+    response = EmailRequiredResponse(email_required=EmailRequiredDetail(token="tok", prefill_phone="+919999999999"))
+    assert response.email_required.token == "tok"
+    assert response.email_required.prefill_phone == "+919999999999"

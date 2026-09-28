@@ -45,6 +45,13 @@ class OtpVerifyBody(BaseModel):
     phone_number: str
     otp: str
     pending_token: str | None = None
+    # auth-flow-redesign FR-3/FR-8a (2026-09-28): disambiguates "signup" vs
+    # "login" ONLY when pending_token is absent (when present, the existing
+    # pending-token branch logic already knows what it's doing regardless
+    # of flow). Omitted entirely preserves the exact legacy behavior every
+    # existing test/internal caller relies on — see otp/verify's own
+    # docstring in api/auth.py for which branch that is.
+    flow: Literal["signup", "login"] | None = None
 
 
 class SignupEmailBody(BaseModel):
@@ -82,6 +89,15 @@ class PhoneRequiredResponse(BaseModel):
     phone_required: PhoneRequiredDetail
 
 
+class EmailRequiredDetail(BaseModel):
+    token: str
+    prefill_phone: str | None
+
+
+class EmailRequiredResponse(BaseModel):
+    email_required: EmailRequiredDetail
+
+
 class EmailOtpRequiredDetail(BaseModel):
     token: str
     prefill_email: str
@@ -94,6 +110,10 @@ class EmailOtpRequiredResponse(BaseModel):
 
 class EmailOtpRequestBody(BaseModel):
     email: str
+    # auth-flow-redesign FR-4 (2026-09-28): set only when this is the email
+    # step of a phone-first signup, attaching the email to the
+    # already-phone-verified pending record before the OTP is sent.
+    pending_token: str | None = None
 
     @field_validator("email", mode="before")
     @classmethod
