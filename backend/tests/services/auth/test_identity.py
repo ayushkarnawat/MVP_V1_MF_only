@@ -12,6 +12,7 @@ from app.models.enums import AuthIdentityProvider
 from app.models.user import User
 from app.services.auth.identity import (
     PendingVerificationError,
+    attach_email_to_pending,
     attach_pending_identity,
     complete_gated_signup,
     create_pending_verification,
@@ -631,3 +632,49 @@ def test_complete_gated_signup_does_not_persist_an_unverified_email_claim():
     assert user.email is None
     google_identity = db.query(AuthIdentity).filter_by(user_id=user_id, provider=AuthIdentityProvider.GOOGLE).one()
     assert google_identity.email is None
+
+
+def test_attach_email_to_pending_sets_email_on_a_phone_first_record():
+    db = _session()
+    _, raw_token = create_pending_verification(
+        db, AuthIdentityProvider.PHONE_OTP, "+919999999999", None, False, matched_user_id=None
+    )
+
+    pending = attach_email_to_pending(db, raw_token, "person@example.com")
+
+    assert pending.email == "person@example.com"
+
+
+def test_attach_email_to_pending_overwrites_a_previously_attached_email():
+    """Covers the abandon-and-retry-with-a-different-email case: the
+    pending record must reflect the LAST email actually entered, not the
+    first."""
+    db = _session()
+    _, raw_token = create_pending_verification(
+        db, AuthIdentityProvider.PHONE_OTP, "+919999999999", "typo@example.com", False, matched_user_id=None
+    )
+
+    pending = attach_email_to_pending(db, raw_token, "corrected@example.com")
+
+    assert pending.email == "corrected@example.com"
+
+
+def test_attach_email_to_pending_rejects_an_email_or_google_first_record():
+    db = _session()
+    _, raw_token = create_pending_verification(
+        db, AuthIdentityProvider.EMAIL_OTP, "person@example.com", "person@example.com", False, matched_user_id=None
+    )
+
+    with pytest.raises(PendingVerificationError, match="phone-first signup"):
+        attach_email_to_pending(db, raw_token, "person@example.com")
+
+
+def test_attach_email_to_pending_rejects_a_step_up_link_token():
+    db = _session()
+    existing = _user(db)
+    _, raw_token = create_pending_verification(
+        db, AuthIdentityProvider.PHONE_OTP, "+919999999999", None, False, matched_user_id=existing.id
+    )
+
+    with pytest.raises(PendingVerificationError, match="linking to an existing account"):
+        attach_email_to_pending(db, raw_token, "person@example.com")

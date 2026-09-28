@@ -268,6 +268,28 @@ def mark_pending_email_verified(
     return pending
 
 
+def attach_email_to_pending(db: DbSession, raw_token: str, email: str) -> PendingIdentityVerification:
+    """Phone-first signup's email step (FR-4): records which email the
+    caller is about to verify against an already-phone-verified pending
+    record, so complete_gated_signup can use it once the email OTP
+    succeeds. Only valid for a fresh phone-first pending record — never a
+    step-up link (matched_user_id set) or an email/Google-first record
+    (those set `email` at creation time via create_pending_verification,
+    not here). Overwrites any previously-attached email, so an abandon-
+    and-retry with a corrected address always reflects the last one
+    entered."""
+    pending = _consume_pending_verification(db, raw_token)
+    if pending.matched_user_id is not None:
+        raise PendingVerificationError(
+            "This verification is for linking to an existing account, not creating a new one."
+        )
+    if pending.provider != AuthIdentityProvider.PHONE_OTP:
+        raise PendingVerificationError("This verification token isn't for a phone-first signup.")
+    pending.email = email
+    db.commit()
+    return pending
+
+
 def complete_gated_signup(
     db: DbSession,
     raw_token: str,
