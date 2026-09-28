@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session as DbSession
 from app.models.auth import AuthIdentity, PendingIdentityVerification
 from app.models.enums import AuthIdentityProvider
 from app.models.user import User
+from app.services.auth.otp import delete_otp_requests_for_identifiers
 
 # Lower value = higher precedence. Design Spec §1: "Identity precedence:
 # Google > Email > Phone" — applied wherever only one identity can be
@@ -194,7 +195,7 @@ def peek_pending_link_info(db: DbSession, raw_token: str) -> PendingLinkInfo:
     """Read-only lookup of a pending token's matched_user_id AND the email
     it actually claims. Callers use both together, BEFORE calling
     attach_pending_identity/mark_pending_email_verified/
-    complete_phone_gate_signup (whichever actually consumes the token),
+    complete_gated_signup (whichever actually consumes the token),
     to decide:
 
     1. Which completion path is even eligible: matched_user_id set means
@@ -202,15 +203,16 @@ def peek_pending_link_info(db: DbSession, raw_token: str) -> PendingLinkInfo:
        resolve_new_verified_identity against an email that was ALREADY
        independently verified -- e.g. by Google); matched_user_id None
        means a fresh-signup token (created by signup_email for a
-       self-chosen email nobody has proven control of yet). Unlike
-       phone/Google, an EMAIL_OTP pending token's own provider_subject is
-       self-chosen with no ownership check at creation time (proof comes
-       later, via OTP) -- a matched_user_id IS NULL token must never be
-       attachable to an existing account found by looking up the email
-       the caller just separately proved control of: an attacker could
-       mint such a token for a victim's email, then attach it to their
-       OWN account by verifying their OWN unrelated OTP, pre-claiming the
-       victim's email before the victim ever proves mailbox control.
+       self-chosen email nobody has proven control of yet), consumed by
+       complete_gated_signup. Unlike phone/Google, an EMAIL_OTP pending
+       token's own provider_subject is self-chosen with no ownership check
+       at creation time (proof comes later, via OTP) -- a matched_user_id
+       IS NULL token must never be attachable to an existing account found
+       by looking up the email the caller just separately proved control
+       of: an attacker could mint such a token for a victim's email, then
+       attach it to their OWN account by verifying their OWN unrelated
+       OTP, pre-claiming the victim's email before the victim ever proves
+       mailbox control.
 
     2. For a matched_user_id-set link token specifically: whether the
        email the caller just OTP-verified is actually THE SAME email the
@@ -247,7 +249,7 @@ def mark_pending_email_verified(
     email_verified to True. Deliberately does NOT delete/consume the
     pending row -- it stays alive for the phone gate step that follows,
     exactly like the rest of the pending-token lifecycle where only
-    complete_phone_gate_signup/attach_pending_identity ever delete it.
+    complete_gated_signup/attach_pending_identity ever delete it.
 
     `verified_email` MUST be the email the OTP was actually just verified
     for -- otherwise a caller who owns a valid OTP for their OWN email
@@ -266,10 +268,26 @@ def mark_pending_email_verified(
     return pending
 
 
-def complete_phone_gate_signup(db: DbSession, raw_token: str, phone_number: str) -> uuid.UUID:
+def complete_gated_signup(
+    db: DbSession,
+    raw_token: str,
+    second_provider: AuthIdentityProvider,
+    second_provider_subject: str,
+) -> uuid.UUID:
     """Only for a brand-new-signup pending record (matched_user_id IS
-    NULL) — atomically creates the User plus both identities. Design Spec
-    §1's mandatory phone gate."""
+    NULL) — atomically creates the User plus both identities, whichever
+    order they were verified in. Design Spec §1's mandatory second-step
+    gate, generalized (auth-flow-redesign, 2026-09-28) to work symmetrically
+    in either direction: email/Google-first (pending.provider is
+    EMAIL_OTP/GOOGLE, second_provider is PHONE_OTP — today's existing
+    shape) or phone-first (pending.provider is PHONE_OTP, second_provider
+    is EMAIL_OTP — the new shape). `second_provider`/`second_provider_subject`
+    identify whichever identity is being verified RIGHT NOW to complete
+    signup; the pending record's own (provider, provider_subject) is
+    whichever identity was verified FIRST. Replaces the old
+    complete_phone_gate_signup, which hardcoded phone as the second
+    identity and email/Google as the pending one — safe only because
+    pending.provider was never PHONE_OTP under the old flow."""
     pending = _consume_pending_verification(db, raw_token)
     if pending.matched_user_id is not None:
         raise PendingVerificationError(
@@ -282,20 +300,51 @@ def complete_phone_gate_signup(db: DbSession, raw_token: str, phone_number: str)
     # AuthIdentity.email as proof of independent verified ownership
     # (kind="auto_link"), so storing an unverified claim here would let this
     # signup silently capture the real owner's later, genuinely-verified
-    # email-OTP signup. The pending record's own provider/provider_subject
-    # (the Google `sub`) is still recorded as-is — it isn't used by the
-    # email-based collision check at all. Design Spec §2 step 5 / §4.
-    verified_email = pending.email if pending.email_verified else None
+    # email-OTP signup. Design Spec §2 step 5 / §4.
+    #
+    # If the identity verified just now (second_provider) is itself the
+    # email leg, that email IS verified by definition — its own OTP just
+    # succeeded. This only matters for phone-first: pending.email_verified
+    # is never flipped for a PHONE_OTP pending record (mark_pending_email_verified
+    # is only ever called for the email/Google-first direction).
+    if second_provider == AuthIdentityProvider.EMAIL_OTP:
+        verified_email = second_provider_subject
+    else:
+        verified_email = pending.email if pending.email_verified else None
+
+    phone_number = (
+        second_provider_subject
+        if second_provider == AuthIdentityProvider.PHONE_OTP
+        else pending.provider_subject
+    )
+    second_identity_email = second_provider_subject if second_provider == AuthIdentityProvider.EMAIL_OTP else None
+    # The pending identity's own `email` column mirrors verified_email
+    # whenever that identity is even capable of carrying an email claim
+    # (EMAIL_OTP or GOOGLE) — this matches the ORIGINAL complete_phone_gate_signup,
+    # which unconditionally wrote `record_identity(..., pending.provider,
+    # pending.provider_subject, verified_email, ...)` for BOTH EMAIL_OTP and
+    # GOOGLE pending records (safe there because pending.provider was never
+    # PHONE_OTP). A narrower `verified_email if pending.provider == EMAIL_OTP
+    # else None` would silently regress the GOOGLE case: a verified Google
+    # identity's own `email` column would go from `verified_email` to
+    # always-None, breaking resolve_email_collision's auto_link detection
+    # for that identity later (see
+    # test_complete_gated_signup_sets_google_identity_email_when_verified).
+    # PHONE_OTP is excluded because a phone identity never carries an email
+    # claim by design (Design Spec §1/§4) — it's the only genuinely new
+    # value pending.provider can take now that phone-first signups exist.
+    pending_identity_email = None if pending.provider == AuthIdentityProvider.PHONE_OTP else verified_email
 
     now = datetime.now(timezone.utc)
     user = User(phone_number=phone_number, email=verified_email, created_at=now)
     db.add(user)
     db.flush()
-    record_identity(db, user.id, AuthIdentityProvider.PHONE_OTP, phone_number, None, now, commit=False)
+    record_identity(db, user.id, second_provider, second_provider_subject, second_identity_email, now, commit=False)
     record_identity(
-        db, user.id, pending.provider, pending.provider_subject, verified_email, now, commit=False
+        db, user.id, pending.provider, pending.provider_subject, pending_identity_email, now, commit=False
     )
     db.delete(pending)
+    delete_otp_requests_for_identifiers(db, phone_number=phone_number, email=verified_email, commit=False)
     db.commit()
     return user.id
 
@@ -320,7 +369,7 @@ def attach_pending_identity(db: DbSession, raw_token: str, resolved_user_id: uui
     if pending.matched_user_id is not None and pending.matched_user_id != resolved_user_id:
         raise PendingVerificationError("This verification token doesn't match the account you're linking to.")
 
-    # Same guard as complete_phone_gate_signup: an unverified email claim is
+    # Same guard as complete_gated_signup: an unverified email claim is
     # never denormalized onto an identity row, because that row would then
     # read as independently-verified ownership to resolve_email_collision.
     # (A §4 link_required record always carries email_verified=True, so this

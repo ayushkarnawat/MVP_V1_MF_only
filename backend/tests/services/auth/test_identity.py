@@ -7,13 +7,13 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 
 from app.db.base import Base
-from app.models.auth import AuthIdentity, PendingIdentityVerification
+from app.models.auth import AuthIdentity, OtpRequest, PendingIdentityVerification
 from app.models.enums import AuthIdentityProvider
 from app.models.user import User
 from app.services.auth.identity import (
     PendingVerificationError,
     attach_pending_identity,
-    complete_phone_gate_signup,
+    complete_gated_signup,
     create_pending_verification,
     find_identity_by_subject,
     find_or_backfill_phone_identity,
@@ -24,12 +24,19 @@ from app.services.auth.identity import (
     refresh_denormalized_email,
     resolve_email_collision,
 )
+from app.services.auth.otp import create_otp_request
 
 
 def _session():
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     return sessionmaker(autoflush=False, bind=engine)()
+
+
+# Base.metadata.create_all(engine) above has no `tables=` filter, so it
+# already creates every table including otp_requests -- this is just a
+# readability alias for tests that exercise the OTP-cleanup side effect.
+_session_with_otp_requests = _session
 
 
 def _user(db, phone="+919999999999") -> User:
@@ -131,13 +138,13 @@ def test_create_pending_verification_returns_findable_token():
     assert raw_token  # non-empty, returned exactly once
 
 
-def test_complete_phone_gate_signup_creates_user_with_both_identities():
+def test_complete_gated_signup_creates_user_with_both_identities():
     db = _session()
     _, raw_token = create_pending_verification(
         db, AuthIdentityProvider.GOOGLE, "g-sub-2", "new2@example.com", True, matched_user_id=None
     )
 
-    user_id = complete_phone_gate_signup(db, raw_token, "+919111111111")
+    user_id = complete_gated_signup(db, raw_token, AuthIdentityProvider.PHONE_OTP, "+919111111111")
 
     user = db.get(User, user_id)
     assert user is not None
@@ -147,7 +154,31 @@ def test_complete_phone_gate_signup_creates_user_with_both_identities():
     assert find_identity_by_subject(db, AuthIdentityProvider.GOOGLE, "g-sub-2") is not None
 
 
-def test_complete_phone_gate_signup_rejects_expired_token():
+def test_complete_gated_signup_sets_google_identity_email_when_verified():
+    """Regression guard: the ORIGINAL complete_phone_gate_signup
+    unconditionally wrote verified_email onto the pending identity's own
+    `email` column, for BOTH EMAIL_OTP and GOOGLE pending records (never
+    just EMAIL_OTP) -- because pending.provider was never PHONE_OTP under
+    the old flow. The generalized complete_gated_signup must preserve this
+    exact behavior for GOOGLE specifically, not narrow it to only the
+    EMAIL_OTP case, or a verified Google identity's `email` column would
+    silently regress to None and break resolve_email_collision's
+    auto_link detection for that identity later."""
+    db = _session()
+    _, raw_token = create_pending_verification(
+        db, AuthIdentityProvider.GOOGLE, "g-sub-verified", "verified@example.com", True, matched_user_id=None
+    )
+
+    complete_gated_signup(db, raw_token, AuthIdentityProvider.PHONE_OTP, "+919111111112")
+
+    google_identity = find_identity_by_subject(db, AuthIdentityProvider.GOOGLE, "g-sub-verified")
+    assert google_identity is not None
+    assert google_identity.email == "verified@example.com"
+    phone_identity = find_identity_by_subject(db, AuthIdentityProvider.PHONE_OTP, "+919111111112")
+    assert phone_identity.email is None
+
+
+def test_complete_gated_signup_rejects_expired_token():
     db = _session()
     pending, raw_token = create_pending_verification(
         db, AuthIdentityProvider.GOOGLE, "g-sub-3", "new3@example.com", True, matched_user_id=None
@@ -156,10 +187,10 @@ def test_complete_phone_gate_signup_rejects_expired_token():
     db.commit()
 
     with pytest.raises(PendingVerificationError, match="expired"):
-        complete_phone_gate_signup(db, raw_token, "+919222222222")
+        complete_gated_signup(db, raw_token, AuthIdentityProvider.PHONE_OTP, "+919222222222")
 
 
-def test_complete_phone_gate_signup_rejects_a_link_completion_token():
+def test_complete_gated_signup_rejects_a_link_completion_token():
     db = _session()
     existing_user = _user(db, phone="+919333333333")
     _, raw_token = create_pending_verification(
@@ -167,7 +198,7 @@ def test_complete_phone_gate_signup_rejects_a_link_completion_token():
     )
 
     with pytest.raises(PendingVerificationError, match="linking"):
-        complete_phone_gate_signup(db, raw_token, "+919444444444")
+        complete_gated_signup(db, raw_token, AuthIdentityProvider.PHONE_OTP, "+919444444444")
 
 
 def test_attach_pending_identity_links_to_the_matched_user():
@@ -228,7 +259,7 @@ def test_attach_pending_identity_allows_a_phone_gate_token_for_an_independently_
     assert existing_user.email == "z@example.com"  # denormalized from the new, verified Google identity
 
 
-def test_complete_phone_gate_signup_never_persists_an_unverified_email():
+def test_complete_gated_signup_never_persists_an_unverified_email():
     # Finding 1. resolve_email_collision treats ANY matching
     # AuthIdentity.email as proof of independent verified ownership, so
     # persisting an unverified Google `email` claim here would launder it into
@@ -240,7 +271,7 @@ def test_complete_phone_gate_signup_never_persists_an_unverified_email():
         db, AuthIdentityProvider.GOOGLE, "g-sub-unverified", "victim@example.com", False, matched_user_id=None
     )
 
-    user_id = complete_phone_gate_signup(db, raw_token, "+919000000010")
+    user_id = complete_gated_signup(db, raw_token, AuthIdentityProvider.PHONE_OTP, "+919000000010")
 
     user = db.get(User, user_id)
     assert user.email is None
@@ -257,7 +288,7 @@ def test_unverified_email_does_not_capture_a_later_genuine_signup():
     _, raw_token = create_pending_verification(
         db, AuthIdentityProvider.GOOGLE, "g-sub-attacker", "victim@example.com", False, matched_user_id=None
     )
-    complete_phone_gate_signup(db, raw_token, "+919000000011")
+    complete_gated_signup(db, raw_token, AuthIdentityProvider.PHONE_OTP, "+919000000011")
 
     collision = resolve_email_collision(db, "victim@example.com")
 
@@ -321,15 +352,16 @@ def test_find_or_backfill_phone_identity_returns_none_for_a_genuinely_new_number
     assert db.query(AuthIdentity).count() == 0
 
 
-def test_complete_phone_gate_signup_rolls_back_atomically_on_second_identity_failure():
-    # record_identity is called twice inside complete_phone_gate_signup
-    # (phone, then the originating Google/email identity) but must commit
-    # only once, as a single transaction — otherwise a failure on the
-    # second write leaves a durably-committed User+phone-identity behind
-    # with the (still-valid, still-undeleted) pending token, and a retry
-    # would create a second User row for the same phone number. Force the
-    # second write to fail via a pre-existing (provider, provider_subject)
-    # unique-constraint collision, and confirm nothing persists.
+def test_complete_gated_signup_rolls_back_atomically_on_second_identity_failure():
+    # record_identity is called twice inside complete_gated_signup
+    # (the second/completing identity, then the originating pending
+    # identity) but must commit only once, as a single transaction —
+    # otherwise a failure on the second write leaves a durably-committed
+    # User+phone-identity behind with the (still-valid, still-undeleted)
+    # pending token, and a retry would create a second User row for the
+    # same phone number. Force the second write to fail via a pre-existing
+    # (provider, provider_subject) unique-constraint collision, and
+    # confirm nothing persists.
     db = _session()
     other_user = _user(db, phone="+919000000099")
     now = datetime.now(timezone.utc)
@@ -340,7 +372,7 @@ def test_complete_phone_gate_signup_rolls_back_atomically_on_second_identity_fai
     )
 
     with pytest.raises(IntegrityError):
-        complete_phone_gate_signup(db, raw_token, "+919123456789")
+        complete_gated_signup(db, raw_token, AuthIdentityProvider.PHONE_OTP, "+919123456789")
 
     db.rollback()
 
@@ -403,7 +435,7 @@ def test_mark_pending_email_verified_sets_the_flag_without_consuming_the_pending
     result = mark_pending_email_verified(db, raw_token, "otpflow@example.com")
 
     assert result.email_verified is True
-    # Still present -- the phone gate step (complete_phone_gate_signup) is
+    # Still present -- the phone gate step (complete_gated_signup) is
     # what eventually deletes it, not this call.
     still_there = (
         db.query(PendingIdentityVerification).filter_by(id=pending.id).first()
@@ -497,7 +529,7 @@ def test_mark_pending_email_verified_rejects_a_mismatched_email():
     assert unchanged.email_verified is False
 
 
-def test_complete_phone_gate_signup_denormalizes_user_email_when_pending_email_was_verified():
+def test_complete_gated_signup_denormalizes_user_email_when_pending_email_was_verified():
     """User.email gets populated once email_verified genuinely flips to
     True via email-OTP verification, before the phone gate completes."""
     db = _session()
@@ -511,7 +543,91 @@ def test_complete_phone_gate_signup_denormalizes_user_email_when_pending_email_w
     )
     mark_pending_email_verified(db, raw_token, "denorm@example.com")
 
-    user_id = complete_phone_gate_signup(db, raw_token, "+919888888884")
+    user_id = complete_gated_signup(db, raw_token, AuthIdentityProvider.PHONE_OTP, "+919888888884")
 
     user = db.get(User, user_id)
     assert user.email == "denorm@example.com"
+
+
+def test_complete_gated_signup_email_first_direction_matches_today():
+    """The existing email/Google-first shape: pending.provider is
+    EMAIL_OTP, the second (completing) identity is PHONE_OTP."""
+    db = _session()
+    _, raw_token = create_pending_verification(
+        db, AuthIdentityProvider.EMAIL_OTP, "person@example.com", "person@example.com", True, matched_user_id=None
+    )
+
+    user_id = complete_gated_signup(db, raw_token, AuthIdentityProvider.PHONE_OTP, "+919999999999")
+
+    user = db.get(User, user_id)
+    assert user.phone_number == "+919999999999"
+    assert user.email == "person@example.com"
+    identities = db.query(AuthIdentity).filter_by(user_id=user_id).all()
+    assert {i.provider for i in identities} == {AuthIdentityProvider.PHONE_OTP, AuthIdentityProvider.EMAIL_OTP}
+    assert db.query(PendingIdentityVerification).count() == 0
+
+
+def test_complete_gated_signup_phone_first_direction():
+    """The new shape: pending.provider is PHONE_OTP, the second
+    (completing) identity is EMAIL_OTP."""
+    db = _session()
+    _, raw_token = create_pending_verification(
+        db, AuthIdentityProvider.PHONE_OTP, "+919999999999", "person@example.com", False, matched_user_id=None
+    )
+
+    user_id = complete_gated_signup(db, raw_token, AuthIdentityProvider.EMAIL_OTP, "person@example.com")
+
+    user = db.get(User, user_id)
+    assert user.phone_number == "+919999999999"
+    assert user.email == "person@example.com"
+    identities = db.query(AuthIdentity).filter_by(user_id=user_id).all()
+    assert {i.provider for i in identities} == {AuthIdentityProvider.PHONE_OTP, AuthIdentityProvider.EMAIL_OTP}
+    phone_identity = next(i for i in identities if i.provider == AuthIdentityProvider.PHONE_OTP)
+    email_identity = next(i for i in identities if i.provider == AuthIdentityProvider.EMAIL_OTP)
+    assert phone_identity.provider_subject == "+919999999999"
+    assert email_identity.provider_subject == "person@example.com"
+    assert email_identity.email == "person@example.com"
+    assert phone_identity.email is None
+
+
+def test_complete_gated_signup_rejects_a_step_up_link_token():
+    db = _session()
+    existing = _user(db)
+    _, raw_token = create_pending_verification(
+        db, AuthIdentityProvider.GOOGLE, "g-sub", "person@example.com", True, matched_user_id=existing.id
+    )
+
+    with pytest.raises(PendingVerificationError, match="linking to an existing account"):
+        complete_gated_signup(db, raw_token, AuthIdentityProvider.PHONE_OTP, "+919999999999")
+
+
+def test_complete_gated_signup_deletes_matching_otp_requests_by_value():
+    """FR-9 part 2, exercised end-to-end through the completion function."""
+    db = _session_with_otp_requests()
+    create_otp_request(db, "+919999999999")
+    create_otp_request(db, "person@example.com", channel="email")
+    _, raw_token = create_pending_verification(
+        db, AuthIdentityProvider.PHONE_OTP, "+919999999999", "person@example.com", False, matched_user_id=None
+    )
+
+    complete_gated_signup(db, raw_token, AuthIdentityProvider.EMAIL_OTP, "person@example.com")
+
+    assert db.query(OtpRequest).filter_by(phone_number="+919999999999").first() is None
+    assert db.query(OtpRequest).filter_by(email="person@example.com").first() is None
+
+
+def test_complete_gated_signup_does_not_persist_an_unverified_email_claim():
+    """Same guard complete_phone_gate_signup always had: an unverified
+    email claim (email_verified=False) is never written into
+    auth_identities.email or users.email."""
+    db = _session()
+    _, raw_token = create_pending_verification(
+        db, AuthIdentityProvider.GOOGLE, "g-sub", "unverified@example.com", False, matched_user_id=None
+    )
+
+    user_id = complete_gated_signup(db, raw_token, AuthIdentityProvider.PHONE_OTP, "+919999999999")
+
+    user = db.get(User, user_id)
+    assert user.email is None
+    google_identity = db.query(AuthIdentity).filter_by(user_id=user_id, provider=AuthIdentityProvider.GOOGLE).one()
+    assert google_identity.email is None
