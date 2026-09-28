@@ -74,6 +74,15 @@ export interface PhoneRequiredResponse {
   phone_required: PhoneRequiredDetail;
 }
 
+export interface EmailRequiredDetail {
+  token: string;
+  prefill_phone: string | null;
+}
+
+export interface EmailRequiredResponse {
+  email_required: EmailRequiredDetail;
+}
+
 export interface EmailOtpRequiredDetail {
   token: string;
   prefill_email: string;
@@ -84,7 +93,7 @@ export interface EmailOtpRequiredResponse {
   email_otp_required: EmailOtpRequiredDetail;
 }
 
-export type OtpVerifyResult = OtpVerifyResponse | LinkRequiredResponse | PhoneRequiredResponse;
+export type OtpVerifyResult = OtpVerifyResponse | LinkRequiredResponse | PhoneRequiredResponse | EmailRequiredResponse;
 
 export type EmailOtpVerifyResult = OtpVerifyResponse | PhoneRequiredResponse;
 
@@ -94,4 +103,8 @@ export function isLinkRequired(result: OtpVerifyResult): result is LinkRequiredR
 
 export function isPhoneRequired(result: OtpVerifyResult): result is PhoneRequiredResponse {
   return "phone_required" in result;
+}
+
+export function isEmailRequired(result: OtpVerifyResult): result is EmailRequiredResponse {
+  return "email_required" in result;
 }
