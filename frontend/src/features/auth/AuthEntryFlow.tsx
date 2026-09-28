@@ -15,7 +15,7 @@ import {
   verifyGoogleCredential,
   verifyOtp,
 } from "./api";
-import { isLinkRequired, isPhoneRequired } from "./types";
+import { isEmailRequired, isLinkRequired, isPhoneRequired } from "./types";
 import type { ExistingMethod } from "./types";
 import { useAuth } from "./AuthContext";
 import { formatAuthErrorMessage } from "./validation";
@@ -55,6 +55,16 @@ export function AuthEntryFlow({
   const [phoneGateToken, setPhoneGateToken] = useState<string | null>(null);
   const [phoneGatePrefillEmail, setPhoneGatePrefillEmail] = useState<string | null>(null);
 
+  // Phone-first email gate (auth-flow-redesign FR-3/FR-4, 2026-09-28): set
+  // when a phone verification returns email_required -- the mirror image
+  // of phoneGateToken/phoneGatePrefillEmail above, for the opposite
+  // direction.
+  const [emailGateToken, setEmailGateToken] = useState<string | null>(null);
+  // Captured for parity with phoneGatePrefillEmail but not yet rendered --
+  // EmailEntry's emailGate context has no prefill display (Task 11 didn't
+  // add one); write-only until/unless that's added.
+  const [, setEmailGatePrefillPhone] = useState<string | null>(null);
+
   // Inline email-OTP step (2026-08-17 remove-password-auth handoff spec §7):
   // shared by two flows, distinguished by emailOtpFlow. "signup": set when
   // signup_email returns email_otp_required -- runs BEFORE the phone gate,
@@ -64,7 +74,7 @@ export function AuthEntryFlow({
   // returns a session directly.
   const [emailOtpToken, setEmailOtpToken] = useState<string | null>(null);
   const [emailOtpEmail, setEmailOtpEmail] = useState<string>("");
-  const [emailOtpFlow, setEmailOtpFlow] = useState<"signup" | "login">("signup");
+  const [emailOtpFlow, setEmailOtpFlow] = useState<"signup" | "login" | "phone_first">("signup");
 
   // Account-linking state (Design Spec §4): set when a verification
   // returns link_required.
@@ -87,6 +97,13 @@ export function AuthEntryFlow({
 
   const handleSelectPhone = () => {
     setAuthMode("login");
+    setPhoneGateToken(null);
+    setPhoneGatePrefillEmail(null);
+    goToStep("phone");
+  };
+
+  const handleSignupPhoneStart = () => {
+    setAuthMode("signup");
     setPhoneGateToken(null);
     setPhoneGatePrefillEmail(null);
     goToStep("phone");
@@ -160,28 +177,44 @@ export function AuthEntryFlow({
     }
   };
 
+  const handleEmailGateSubmit = async (email: string) => {
+    setSubmitting(true);
+    setError(null);
+    try {
+      const result = await requestEmailOtp(email, emailGateToken ?? undefined);
+      setEmailOtpFlow("phone_first");
+      setEmailOtpEmail(email);
+      goToStep("email_otp");
+      setDevOtp(result.otp);
+    } catch (err) {
+      setError(errorMessage(err, "Couldn't send the code. Try again."));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleEmailOtpSubmit = async (otp: string) => {
     setSubmitting(true);
     setError(null);
     try {
-      const result = await verifyEmailOtp(emailOtpEmail, otp, emailOtpToken ?? undefined);
-      if (emailOtpFlow === "login") {
-        if (!("session_token" in result)) {
-          setError("Something unexpected happened. Please try again.");
-          return;
-        }
+      const result = await verifyEmailOtp(
+        emailOtpEmail,
+        otp,
+        emailOtpFlow === "phone_first" ? emailGateToken ?? undefined : emailOtpToken ?? undefined,
+      );
+      if ("session_token" in result) {
         await login(result.session_token);
         return;
       }
-      // Signup flow: success hands back the same PhoneRequiredResponse
-      // shape the phone gate already knows how to consume.
-      if (!("phone_required" in result)) {
-        setError("Something unexpected happened. Please try again.");
+      if ("phone_required" in result) {
+        // Only reachable for the email/Google-first direction -- phone-first's
+        // email step always completes signup directly (session_token above).
+        setPhoneGateToken(result.phone_required.token);
+        setPhoneGatePrefillEmail(result.phone_required.prefill_email);
+        goToStep("phone");
         return;
       }
-      setPhoneGateToken(result.phone_required.token);
-      setPhoneGatePrefillEmail(result.phone_required.prefill_email);
-      goToStep("phone");
+      setError("Something unexpected happened. Please try again.");
     } catch (err) {
       setError(errorMessage(err, "That code didn't work. Try again."));
     } finally {
@@ -193,7 +226,10 @@ export function AuthEntryFlow({
     setSubmitting(true);
     setError(null);
     try {
-      const result = await requestEmailOtp(emailOtpEmail);
+      const result = await requestEmailOtp(
+        emailOtpEmail,
+        emailOtpFlow === "phone_first" ? emailGateToken ?? undefined : undefined,
+      );
       setDevOtp(result.otp);
     } catch (err) {
       setError(errorMessage(err, "Couldn't resend the code. Try again."));
@@ -206,7 +242,19 @@ export function AuthEntryFlow({
     setSubmitting(true);
     setError(null);
     try {
-      const result = await verifyOtp(identifier, otp, phoneGateToken ?? undefined);
+      const result = await verifyOtp(
+        identifier,
+        otp,
+        phoneGateToken ?? undefined,
+        phoneGateToken ? undefined : authMode,
+      );
+      if (isEmailRequired(result)) {
+        setEmailOtpFlow("phone_first");
+        setEmailGateToken(result.email_required.token);
+        setEmailGatePrefillPhone(result.email_required.prefill_phone);
+        goToStep("email");
+        return;
+      }
       if (isLinkRequired(result) || isPhoneRequired(result)) {
         setError("Something unexpected happened. Please try again.");
         return;
@@ -239,6 +287,12 @@ export function AuthEntryFlow({
         goToStep("link_account");
         return;
       }
+      if (isEmailRequired(result)) {
+        // Google's backend path is unchanged by this redesign and never
+        // actually returns this -- narrows the shared OtpVerifyResult type.
+        setError("Something unexpected happened. Please try again.");
+        return;
+      }
       await login(result.session_token);
     } catch (err) {
       setError(errorMessage(err, "Google sign-in didn't work. Try again."));
@@ -258,7 +312,7 @@ export function AuthEntryFlow({
               setDevOtp(null);
               setAuthMode(newMode);
             }}
-            onSignup={handleEmailSignup}
+            onStartPhoneSignup={handleSignupPhoneStart}
             onSelectEmail={handleSelectEmail}
             onSelectPhone={handleSelectPhone}
             onGoogleCredential={handleGoogleCredential}
@@ -268,7 +322,15 @@ export function AuthEntryFlow({
         );
 
       case "email":
-        return (
+        return emailGateToken ? (
+          <EmailEntry
+            context="emailGate"
+            onSignup={handleEmailGateSubmit}
+            onLogin={handleEmailGateSubmit}
+            submitting={submitting}
+            error={error}
+          />
+        ) : (
           <EmailEntry
             context="login"
             onLogin={handleEmailLoginRequest}
@@ -287,7 +349,7 @@ export function AuthEntryFlow({
             onSubmit={handleEmailOtpSubmit}
             onResend={handleEmailOtpResend}
             onBack={() => {
-              if (emailOtpFlow === "login" || authMode === "login") {
+              if (emailOtpFlow === "login" || emailOtpFlow === "phone_first" || authMode === "login") {
                 goToStep("email");
               } else {
                 goToStep("landing");
@@ -376,20 +438,29 @@ export function AuthEntryFlow({
         return 0;
 
       case "email":
+        if (emailGateToken) {
+          return 2; // phone-first: landing(0) -> phone(1) -> email(2)
+        }
         return 1;
 
       case "email_otp":
+        if (emailOtpFlow === "phone_first") {
+          return 3;
+        }
         return emailOtpFlow === "signup" ? 1 : 2;
 
       case "phone":
         if (phoneGateToken) {
           return emailOtpEmail ? 2 : 1;
         }
-        return 1;
+        return 1; // phone-first's own first step
 
       case "otp":
         if (phoneGateToken) {
           return emailOtpEmail ? 3 : 2;
+        }
+        if (authMode === "signup" && !phoneGateToken) {
+          return 2; // phone-first: landing(0) -> phone(1) -> phone otp(2)
         }
         return 2;
 

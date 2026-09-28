@@ -6,7 +6,7 @@ import { EmailEntry } from "./EmailEntry";
 import { GoogleButton } from "./GoogleButton";
 import { AuthIllustration } from "./AuthIllustration";
 import { requestEmailOtp, requestOtp, verifyEmailOtp, verifyGoogleCredential, verifyOtp } from "./api";
-import { isLinkRequired, isPhoneRequired } from "./types";
+import { isEmailRequired, isLinkRequired, isPhoneRequired } from "./types";
 import type { ExistingMethod, OtpVerifyResponse } from "./types";
 import { ApiError } from "../../lib/apiClient";
 
@@ -59,7 +59,7 @@ export function LinkAccountPrompt({ matchedEmail, existingMethod, pendingToken, 
     setError(null);
     try {
       const result = await verifyOtp(identifier, otp, pendingToken);
-      if (isLinkRequired(result) || isPhoneRequired(result)) {
+      if (isLinkRequired(result) || isPhoneRequired(result) || isEmailRequired(result)) {
         setError("Something went wrong linking your account. Please try again.");
         return;
       }
@@ -108,7 +108,7 @@ export function LinkAccountPrompt({ matchedEmail, existingMethod, pendingToken, 
     setError(null);
     try {
       const result = await verifyGoogleCredential(idToken, pendingToken);
-      if (isLinkRequired(result) || isPhoneRequired(result)) {
+      if (isLinkRequired(result) || isPhoneRequired(result) || isEmailRequired(result)) {
         setError("Something went wrong linking your account. Please try again.");
         return;
       }
