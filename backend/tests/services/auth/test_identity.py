@@ -643,6 +643,9 @@ def test_attach_email_to_pending_sets_email_on_a_phone_first_record():
     pending = attach_email_to_pending(db, raw_token, "person@example.com")
 
     assert pending.email == "person@example.com"
+    still_there = db.query(PendingIdentityVerification).filter_by(id=pending.id).first()
+    assert still_there is not None
+    assert still_there.email == "person@example.com"
 
 
 def test_attach_email_to_pending_overwrites_a_previously_attached_email():
@@ -657,6 +660,9 @@ def test_attach_email_to_pending_overwrites_a_previously_attached_email():
     pending = attach_email_to_pending(db, raw_token, "corrected@example.com")
 
     assert pending.email == "corrected@example.com"
+    still_there = db.query(PendingIdentityVerification).filter_by(id=pending.id).first()
+    assert still_there is not None
+    assert still_there.email == "corrected@example.com"
 
 
 def test_attach_email_to_pending_rejects_an_email_or_google_first_record():
