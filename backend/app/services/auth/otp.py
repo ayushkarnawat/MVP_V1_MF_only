@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session as DbSession
 
 from app.config import settings
 from app.models.auth import OtpRequest
+from app.services.auth.device_info import RequestMetadata
 from app.services.auth.email_provider import get_email_provider
 from app.services.auth.email_templates import otp_email_html
 
@@ -27,6 +28,7 @@ OTP_LENGTH = 6
 OTP_TTL_MINUTES = 5
 MAX_ATTEMPTS = 5
 RESEND_THROTTLE_SECONDS = 60
+STALE_UNVERIFIED_RETENTION_DAYS = 30
 
 Channel = Literal["sms", "email"]
 
@@ -34,6 +36,7 @@ __all__ = [
     "OtpVerificationError",
     "OtpRequestThrottledError",
     "create_otp_request",
+    "delete_otp_requests_for_identifiers",
     "verify_otp",
 ]
 
@@ -62,13 +65,27 @@ def _delivery_mode(channel: Channel) -> str:
 
 
 def create_otp_request(
-    db: DbSession, identifier: str, channel: Channel = "sms"
+    db: DbSession,
+    identifier: str,
+    channel: Channel = "sms",
+    metadata: RequestMetadata | None = None,
 ) -> tuple[OtpRequest, str | None]:
-    """Creates and persists a new OtpRequest for either channel. Returns
+    """Creates or reuses an OtpRequest for either channel. Returns
     (request, raw_otp) — raw_otp is only non-None in dev-stub delivery
-    mode, for the API response to echo back; a real delivery mode returns
-    None here and sends the code out-of-band instead (SMS provider for
-    "sms", `get_email_provider().send_email(...)` for "email")."""
+    mode.
+
+    FR-9 (auth-flow-redesign, 2026-09-28), all application logic, no
+    scheduled job and no new table:
+    1. Resend/retry updates the existing unverified row instead of
+       inserting a new one (concurrency note: two near-simultaneous
+       resends can each read "no existing row" before either commits and
+       still produce two rows — an accepted limitation of this pass; a
+       real fix needs `SELECT ... FOR UPDATE`, out of scope here).
+    2. A 30-day sweep of unverified rows runs as a side effect of every
+       call, riding on ordinary traffic instead of a schedule.
+    3. See `delete_otp_requests_for_identifiers` below for the third part
+       (delete on signup completion), called from identity.py, not here.
+    """
     delivery_mode = _delivery_mode(channel)
     if delivery_mode == "stub" and settings.environment == "production":
         raise RuntimeError(
@@ -78,17 +95,27 @@ def create_otp_request(
             "real delivery mode before deploying to production."
         )
 
-    recent = (
+    now = datetime.now(timezone.utc)
+
+    # FR-9 part 3: opportunistic sweep, before the throttle lookup below so
+    # a just-swept stale row never masks a legitimate resend for the same
+    # identifier.
+    db.query(OtpRequest).filter(
+        OtpRequest.verified_at.is_(None),
+        OtpRequest.expires_at < now - timedelta(days=STALE_UNVERIFIED_RETENTION_DAYS),
+    ).delete(synchronize_session=False)
+
+    existing = (
         db.query(OtpRequest)
         .filter_by(verified_at=None, **_identifier_filter(channel, identifier))
         .order_by(OtpRequest.created_at.desc())
         .first()
     )
-    if recent is not None:
-        created_at = recent.created_at
+    if existing is not None:
+        created_at = existing.created_at
         if created_at.tzinfo is None:
             created_at = created_at.replace(tzinfo=timezone.utc)
-        seconds_since = (datetime.now(timezone.utc) - created_at).total_seconds()
+        seconds_since = (now - created_at).total_seconds()
         if seconds_since < RESEND_THROTTLE_SECONDS:
             raise OtpRequestThrottledError(
                 f"Please wait {int(RESEND_THROTTLE_SECONDS - seconds_since)}s before requesting another code."
@@ -107,18 +134,58 @@ def create_otp_request(
             html_body=otp_email_html(otp, OTP_TTL_MINUTES),
         )
 
-    request = OtpRequest(
-        phone_number=identifier if channel == "sms" else None,
-        email=identifier if channel == "email" else None,
-        otp_hash=_hash_otp(otp),
-        expires_at=datetime.now(timezone.utc) + timedelta(minutes=OTP_TTL_MINUTES),
-        created_at=datetime.now(timezone.utc),
-    )
-    db.add(request)
+    meta = metadata or RequestMetadata()
+
+    if existing is not None:
+        # FR-9 part 1: upsert on resend — same row, same id, not a new
+        # insert. Resets attempt_count to 0, matching today's de facto
+        # behavior (a resend already reset it, as a side effect of the old
+        # insert-always design).
+        request = existing
+        request.otp_hash = _hash_otp(otp)
+        request.expires_at = now + timedelta(minutes=OTP_TTL_MINUTES)
+        request.attempt_count = 0
+    else:
+        request = OtpRequest(
+            phone_number=identifier if channel == "sms" else None,
+            email=identifier if channel == "email" else None,
+            otp_hash=_hash_otp(otp),
+            expires_at=now + timedelta(minutes=OTP_TTL_MINUTES),
+            created_at=now,
+        )
+        db.add(request)
+
+    request.ip_address = meta.ip_address
+    request.user_agent = meta.user_agent
+    request.device_type = meta.device_type
+    request.os_family = meta.os_family
+    request.os_version = meta.os_version
+    request.browser_family = meta.browser_family
+    request.browser_version = meta.browser_version
+    request.device_id = meta.device_id
+
     db.commit()
 
     raw_otp = otp if delivery_mode == "stub" else None
     return request, raw_otp
+
+
+def delete_otp_requests_for_identifiers(
+    db: DbSession, *, phone_number: str | None, email: str | None, commit: bool = True
+) -> None:
+    """FR-9 part 2: on signup completion, deletes every otp_requests row
+    matching the now-verified phone/email — by value, not a foreign key.
+    otp_requests has never had a user_id column (most rows never
+    correspond to an account at all); this is the same value-match
+    reasoning applied at cleanup time. Called from
+    identity.complete_gated_signup, in the same transaction as the
+    pending_identity_verifications delete."""
+    if phone_number is not None:
+        db.query(OtpRequest).filter_by(phone_number=phone_number).delete()
+    if email is not None:
+        db.query(OtpRequest).filter_by(email=email).delete()
+    if commit:
+        db.commit()
 
 
 class OtpRequestThrottledError(Exception):

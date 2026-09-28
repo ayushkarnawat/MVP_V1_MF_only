@@ -6,7 +6,13 @@ from sqlalchemy.orm import sessionmaker
 
 from app.db.base import Base
 from app.models.auth import OtpRequest
-from app.services.auth.otp import MAX_ATTEMPTS, OtpVerificationError, create_otp_request, verify_otp
+from app.services.auth.otp import (
+    MAX_ATTEMPTS,
+    OtpVerificationError,
+    create_otp_request,
+    delete_otp_requests_for_identifiers,
+    verify_otp,
+)
 
 
 def _session():
@@ -429,3 +435,143 @@ def test_conftest_forces_stub_delivery_modes_by_default():
 
     assert settings.otp_delivery_mode == "stub"
     assert settings.email_delivery_mode == "stub"
+
+
+# --- FR-9 (auth-flow-redesign, 2026-09-28): retention -- upsert on resend,
+# 30-day sweep, delete-by-value helper ---
+
+from app.services.auth.device_info import RequestMetadata
+
+
+def test_create_otp_request_stores_provided_metadata():
+    db = _session()
+    meta = RequestMetadata(ip_address="203.0.113.5", user_agent="ua-string", device_type="mobile")
+
+    request, _ = create_otp_request(db, "+919999999999", metadata=meta)
+
+    assert request.ip_address == "203.0.113.5"
+    assert request.user_agent == "ua-string"
+    assert request.device_type == "mobile"
+
+
+def test_create_otp_request_defaults_metadata_to_none_when_omitted():
+    db = _session()
+
+    request, _ = create_otp_request(db, "+919999999999")
+
+    assert request.ip_address is None
+    assert request.device_id is None
+
+
+def test_create_otp_request_resend_updates_existing_row_instead_of_inserting(monkeypatch):
+    """FR-9 part 1: a resend after the throttle window must UPDATE the
+    existing unverified row, not insert a second one -- bounds repeat
+    attempts (typo, resend, ten retries) to one row per identifier."""
+    db = _session()
+    first, _ = create_otp_request(db, "+919999999999")
+    first_id = first.id
+    first.created_at = datetime.now(timezone.utc) - timedelta(seconds=61)
+    db.commit()
+
+    second, second_otp = create_otp_request(db, "+919999999999")
+
+    assert second.id == first_id  # same row, not a new insert
+    assert db.query(OtpRequest).filter_by(phone_number="+919999999999").count() == 1
+    verified = verify_otp(db, "+919999999999", second_otp)
+    assert verified.id == first_id
+
+
+def test_create_otp_request_resend_resets_attempt_count():
+    db = _session()
+    request, _ = create_otp_request(db, "+919999999999")
+    with pytest.raises(OtpVerificationError):
+        verify_otp(db, "+919999999999", "000000")
+    assert request.attempt_count == 1
+    request.created_at = datetime.now(timezone.utc) - timedelta(seconds=61)
+    db.commit()
+
+    resent, _ = create_otp_request(db, "+919999999999")
+
+    assert resent.attempt_count == 0
+
+
+def test_create_otp_request_resend_overwrites_metadata():
+    db = _session()
+    old_meta = RequestMetadata(device_type="mobile")
+    request, _ = create_otp_request(db, "+919999999999", metadata=old_meta)
+    request.created_at = datetime.now(timezone.utc) - timedelta(seconds=61)
+    db.commit()
+
+    new_meta = RequestMetadata(device_type="desktop")
+    resent, _ = create_otp_request(db, "+919999999999", metadata=new_meta)
+
+    assert resent.device_type == "desktop"
+
+
+def test_create_otp_request_sweeps_unverified_rows_older_than_30_days():
+    """FR-9 part 3: ordinary OTP-request traffic is the trigger -- no
+    scheduled job. A stale, never-verified row from a different identifier
+    is swept as a side effect of any otp_requests write."""
+    db = _session()
+    stale, _ = create_otp_request(db, "+918888888888")
+    stale.expires_at = datetime.now(timezone.utc) - timedelta(days=31)
+    db.commit()
+
+    create_otp_request(db, "+919999999999")  # unrelated call triggers the sweep
+
+    assert db.query(OtpRequest).filter_by(phone_number="+918888888888").first() is None
+
+
+def test_create_otp_request_sweep_does_not_touch_verified_rows():
+    db = _session()
+    old, raw_otp = create_otp_request(db, "+918888888888")
+    # NOTE (deviation from task-3-brief.md's literal test text): the brief
+    # also set old.expires_at to 31-days-stale HERE, before verify_otp --
+    # but verify_otp unconditionally rejects an already-expired OTP
+    # (test_verify_otp_rejects_expired_request, pre-existing/unchanged by
+    # this task), so that line made this test fail at verify_otp itself,
+    # never reaching the sweep assertion below. Removed as an evident
+    # copy/paste duplication of the next line (which is what the "re-set"
+    # comment already implies): expires_at must stay valid until after
+    # verification succeeds, and only then move 31 days into the past to
+    # set up the sweep check.
+    verify_otp(db, "+918888888888", raw_otp)
+    old.expires_at = datetime.now(timezone.utc) - timedelta(days=31)  # re-set after verify_otp's own commit
+    db.commit()
+
+    create_otp_request(db, "+919999999999")
+
+    assert db.query(OtpRequest).filter_by(phone_number="+918888888888").first() is not None
+
+
+def test_create_otp_request_sweep_does_not_touch_recent_unverified_rows():
+    db = _session()
+    recent, _ = create_otp_request(db, "+918888888888")
+
+    create_otp_request(db, "+919999999999")
+
+    assert db.query(OtpRequest).filter_by(phone_number="+918888888888").first() is not None
+
+
+def test_delete_otp_requests_for_identifiers_removes_matching_rows_by_value():
+    """FR-9 part 2: value match, not a foreign key -- otp_requests has
+    never had a user_id column."""
+    db = _session()
+    create_otp_request(db, "+919999999999")
+    create_otp_request(db, "person@example.com", channel="email")
+    create_otp_request(db, "+918888888888")  # a different identifier, must survive
+
+    delete_otp_requests_for_identifiers(db, phone_number="+919999999999", email="person@example.com")
+
+    assert db.query(OtpRequest).filter_by(phone_number="+919999999999").first() is None
+    assert db.query(OtpRequest).filter_by(email="person@example.com").first() is None
+    assert db.query(OtpRequest).filter_by(phone_number="+918888888888").first() is not None
+
+
+def test_delete_otp_requests_for_identifiers_handles_none_email():
+    db = _session()
+    create_otp_request(db, "+919999999999")
+
+    delete_otp_requests_for_identifiers(db, phone_number="+919999999999", email=None)
+
+    assert db.query(OtpRequest).filter_by(phone_number="+919999999999").first() is None
