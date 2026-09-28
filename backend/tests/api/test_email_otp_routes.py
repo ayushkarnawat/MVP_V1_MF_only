@@ -505,6 +505,110 @@ def test_phone_first_signup_end_to_end(client):
     assert body["session_token"]
 
 
+def test_email_gate_rejects_an_email_that_already_has_an_account_at_request_time(client):
+    """C2 fix (final review, 2026-09-28): mirrors
+    test_phone_gate_rejects_a_colliding_number_at_request_time_before_any_otp_is_sent
+    for the opposite direction -- the phone-first email step must reject an
+    already-claimed email before an OTP is even sent, not crash with a 500
+    once two EMAIL_OTP identities collide on the unique constraint, and not
+    silently create a second, duplicate account."""
+    existing_signup = _signup(client, "emailgatecollision@example.com")
+    existing_detail = existing_signup.json()["email_otp_required"]
+    existing_phone_gate = client.post(
+        "/auth/email-otp/verify",
+        json={
+            "email": "emailgatecollision@example.com",
+            "otp": existing_detail["otp"],
+            "pending_token": existing_detail["token"],
+        },
+    ).json()["phone_required"]
+    existing_gate_phone = "+919777788800"
+    existing_gate_otp = client.post(
+        "/auth/otp/request",
+        json={"phone_number": existing_gate_phone, "pending_token": existing_phone_gate["token"]},
+    ).json()["otp"]
+    completed = client.post(
+        "/auth/otp/verify",
+        json={
+            "phone_number": existing_gate_phone,
+            "otp": existing_gate_otp,
+            "pending_token": existing_phone_gate["token"],
+        },
+    )
+    assert completed.status_code == 200  # account (and its EMAIL_OTP identity) now fully exists
+
+    phone = "+919777788899"
+    phone_otp = client.post("/auth/otp/request", json={"phone_number": phone}).json()["otp"]
+    pending_token = client.post(
+        "/auth/otp/verify", json={"phone_number": phone, "otp": phone_otp, "flow": "signup"}
+    ).json()["email_required"]["token"]
+
+    gate_request = client.post(
+        "/auth/email-otp/request",
+        json={"email": "emailgatecollision@example.com", "pending_token": pending_token},
+    )
+
+    assert gate_request.status_code == 409
+    assert "already exists" in gate_request.json()["detail"]
+    assert gate_request.json().get("otp") is None
+
+
+def test_email_gate_returns_409_not_500_if_email_is_claimed_between_request_and_verify(client):
+    """Defense-in-depth for the C2 fix: the race window between
+    request_email_otp's up-front check and this verify call -- e.g. the
+    real owner completing their own signup for the same address in that
+    window. Must surface as 409, not an IntegrityError 500 from the
+    auth_identities unique constraint. The colliding identity is inserted
+    directly (not via a second HTTP signup) so this test isolates the race
+    itself rather than also exercising the otp_requests resend throttle for
+    the same email identifier."""
+    import uuid
+    from datetime import datetime, timezone
+
+    from app.db.session import get_db
+    from app.main import app
+    from app.models.auth import AuthIdentity
+    from app.models.enums import AuthIdentityProvider
+    from app.models.user import User
+
+    phone = "+919777788877"
+    phone_otp = client.post("/auth/otp/request", json={"phone_number": phone}).json()["otp"]
+    pending_token = client.post(
+        "/auth/otp/verify", json={"phone_number": phone, "otp": phone_otp, "flow": "signup"}
+    ).json()["email_required"]["token"]
+    email_otp = client.post(
+        "/auth/email-otp/request",
+        json={"email": "raceclaimed@example.com", "pending_token": pending_token},
+    ).json()["otp"]
+
+    override = app.dependency_overrides[get_db]
+    db = next(override())
+    now = datetime.now(timezone.utc)
+    other_user = User(id=uuid.uuid4(), phone_number="+919777788866", email="raceclaimed@example.com", created_at=now)
+    db.add(other_user)
+    db.flush()
+    db.add(
+        AuthIdentity(
+            user_id=other_user.id,
+            provider=AuthIdentityProvider.EMAIL_OTP,
+            provider_subject="raceclaimed@example.com",
+            email="raceclaimed@example.com",
+            identifier_verified_at=now,
+            created_at=now,
+            last_used_at=now,
+        )
+    )
+    db.commit()
+
+    response = client.post(
+        "/auth/email-otp/verify",
+        json={"email": "raceclaimed@example.com", "otp": email_otp, "pending_token": pending_token},
+    )
+
+    assert response.status_code == 409
+    assert "already exists" in response.json()["detail"]
+
+
 def test_phone_first_signup_deletes_otp_requests_on_completion(client):
     """Confirmed pattern: the `client` fixture overrides `get_db` with its
     own TestSessionLocal bound to the test engine (see conftest.py) --

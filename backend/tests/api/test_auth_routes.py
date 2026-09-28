@@ -504,6 +504,81 @@ def test_otp_verify_with_flow_signup_for_already_registered_phone_logs_in_instea
     assert "session_token" in response.json()
 
 
+def test_otp_request_rejects_a_phone_first_pending_token(client):
+    """I1 fix (final review, 2026-09-28): a phone-first pending_token (from
+    flow=signup) is only ever meant to complete via /auth/email-otp/request
+    -- passing it here would let the caller attach a second, unrelated
+    phone number to their own not-yet-created account, or (if the second
+    number already has an account) silently add it as a second PHONE_OTP
+    identity. Neither is a real vulnerability (the caller controls both
+    numbers), but it creates a several-phones-per-user state nothing else
+    in the system expects, and skips the mandatory email step entirely."""
+    phone_a = "+919666600001"
+    otp_a = client.post("/auth/otp/request", json={"phone_number": phone_a}).json()["otp"]
+    pending_token = client.post(
+        "/auth/otp/verify", json={"phone_number": phone_a, "otp": otp_a, "flow": "signup"}
+    ).json()["email_required"]["token"]
+
+    response = client.post(
+        "/auth/otp/request", json={"phone_number": "+919666600002", "pending_token": pending_token}
+    )
+
+    assert response.status_code == 401
+    assert response.json().get("otp") is None
+
+
+def test_otp_verify_rejects_a_phone_first_pending_token(client):
+    """Same misuse as above, at the verify step instead of the request
+    step -- covers a caller that skips /auth/otp/request's own guard by
+    calling /auth/otp/verify directly against an already-sent code for
+    the second number."""
+    phone_a = "+919666600003"
+    otp_a = client.post("/auth/otp/request", json={"phone_number": phone_a}).json()["otp"]
+    pending_token = client.post(
+        "/auth/otp/verify", json={"phone_number": phone_a, "otp": otp_a, "flow": "signup"}
+    ).json()["email_required"]["token"]
+
+    phone_b = "+919666600004"
+    otp_b = client.post("/auth/otp/request", json={"phone_number": phone_b}).json()["otp"]
+    response = client.post(
+        "/auth/otp/verify",
+        json={"phone_number": phone_b, "otp": otp_b, "pending_token": pending_token},
+    )
+
+    assert response.status_code == 401
+
+
+def test_google_oauth_rejects_a_phone_first_pending_token(client, monkeypatch):
+    """Same misuse via the Google route: a phone-first pending_token must
+    not be attachable to a Google identity either. Needs a genuine,
+    already-linked Google identity first (otherwise the route's own
+    not-linked-yet 401 would fire for an unrelated reason)."""
+    _mock_google_claims(monkeypatch, "g-sub-i1", "i1@example.com")
+    google_gate = client.post("/auth/oauth/google", json={"id_token": "fake"}).json()
+    linking_phone = "+919666600006"
+    linking_otp = client.post("/auth/otp/request", json={"phone_number": linking_phone}).json()["otp"]
+    client.post(
+        "/auth/otp/verify",
+        json={
+            "phone_number": linking_phone,
+            "otp": linking_otp,
+            "pending_token": google_gate["phone_required"]["token"],
+        },
+    )  # Google identity "g-sub-i1" now genuinely exists and is linked
+
+    phone_a = "+919666600005"
+    otp_a = client.post("/auth/otp/request", json={"phone_number": phone_a}).json()["otp"]
+    pending_token = client.post(
+        "/auth/otp/verify", json={"phone_number": phone_a, "otp": otp_a, "flow": "signup"}
+    ).json()["email_required"]["token"]
+
+    response = client.post(
+        "/auth/oauth/google", json={"id_token": "fake", "pending_token": pending_token}
+    )
+
+    assert response.status_code == 401
+
+
 def test_otp_verify_without_flow_or_pending_token_still_creates_a_user_unconditionally(client):
     """Legacy behavior, deliberately preserved — see this task's design
     note. This is NOT the redesigned frontend's behavior; it's what every

@@ -21,7 +21,20 @@ WINDOWS_CHROME_UA = (
 
 
 def test_get_client_ip_prefers_x_forwarded_for():
-    request = _request({"x-forwarded-for": "203.0.113.5, 10.0.0.1"}, client_host="10.0.0.1")
+    request = _request({"x-forwarded-for": "203.0.113.5"}, client_host="10.0.0.1")
+
+    assert get_client_ip(request) == "203.0.113.5"
+
+
+def test_get_client_ip_uses_the_last_entry_not_the_first(monkeypatch):
+    """I4 fix (final review, 2026-09-28): AWS ALB's default X-Forwarded-For
+    mode is APPEND, not replace -- if the client sends its own
+    X-Forwarded-For, the ALB keeps it and appends the real client IP at the
+    end. Taking the first entry (the old behavior) returns whatever the
+    client wrote, not the real IP. The last entry is the one the ALB
+    itself appended (single-hop deployment -- ECS tasks aren't reachable
+    directly, see this module's own docstring)."""
+    request = _request({"x-forwarded-for": "9.9.9.9, 203.0.113.5"}, client_host="10.0.0.1")
 
     assert get_client_ip(request) == "203.0.113.5"
 
@@ -34,6 +47,28 @@ def test_get_client_ip_falls_back_to_request_client_host_when_no_forwarded_heade
 
 def test_get_client_ip_returns_none_when_neither_is_available():
     request = _request({}, client_host=None)
+
+    assert get_client_ip(request) is None
+
+
+def test_get_client_ip_returns_none_for_a_malformed_forwarded_value():
+    """A client-controlled X-Forwarded-For value that isn't a real IP (a
+    hostname, garbage, an injected header fragment) must degrade to None,
+    not be stored as-is."""
+    request = _request({"x-forwarded-for": "not-an-ip"}, client_host="10.0.0.1")
+
+    assert get_client_ip(request) is None
+
+
+def test_get_client_ip_returns_none_for_a_value_too_long_for_the_column():
+    """ip_address is String(45) (max IPv6 literal length). A too-long
+    client-controlled value must never reach the DB column -- SQLite
+    doesn't enforce the length (which is how this slipped through
+    initially), but Postgres (staging/production) does and would 500 the
+    whole request on a DataError."""
+    request = _request(
+        {"x-forwarded-for": "unknown-proxy-hostname.corp.example.internal"}, client_host="10.0.0.1"
+    )
 
     assert get_client_ip(request) is None
 

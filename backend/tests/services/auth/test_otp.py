@@ -481,6 +481,26 @@ def test_create_otp_request_resend_updates_existing_row_instead_of_inserting(mon
     assert verified.id == first_id
 
 
+def test_create_otp_request_resend_reengages_throttle_for_the_next_resend(monkeypatch):
+    """C1 fix (final review, 2026-09-28): upsert-on-resend must reset
+    created_at, or the throttle -- measured from created_at -- never
+    engages again once the first 60s window has passed, letting every
+    later resend through immediately (a resend-flood / OTP-guessing
+    regression on the live SES email channel)."""
+    import app.services.auth.otp as otp_module
+
+    monkeypatch.setattr(otp_module.settings, "otp_delivery_mode", "stub")
+    db = _session()
+    first, _ = create_otp_request(db, "+919999999999")
+    first.created_at = datetime.now(timezone.utc) - timedelta(seconds=61)
+    db.commit()
+
+    create_otp_request(db, "+919999999999")  # accepted: past the throttle window
+
+    with pytest.raises(otp_module.OtpRequestThrottledError, match="wait"):
+        create_otp_request(db, "+919999999999")  # immediate resend -- must throttle again
+
+
 def test_create_otp_request_resend_resets_attempt_count():
     db = _session()
     request, _ = create_otp_request(db, "+919999999999")

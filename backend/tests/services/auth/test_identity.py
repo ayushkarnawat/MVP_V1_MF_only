@@ -11,6 +11,7 @@ from app.models.auth import AuthIdentity, OtpRequest, PendingIdentityVerificatio
 from app.models.enums import AuthIdentityProvider
 from app.models.user import User
 from app.services.auth.identity import (
+    EmailCollisionError,
     PendingVerificationError,
     attach_email_to_pending,
     attach_pending_identity,
@@ -589,6 +590,64 @@ def test_complete_gated_signup_phone_first_direction():
     assert email_identity.provider_subject == "person@example.com"
     assert email_identity.email == "person@example.com"
     assert phone_identity.email is None
+
+
+def test_complete_gated_signup_phone_first_rejects_email_with_existing_verified_identity():
+    """C2 fix (final review, 2026-09-28): phone-first's email step must run
+    the same collision check email/Google-first gets from
+    resolve_new_verified_identity BEFORE this function runs -- otherwise a
+    second account is created with a duplicate/already-claimed email,
+    invisibly to resolve_email_collision's assumptions. Case 1: another
+    account's verified identity (any provider) already carries this
+    email -- would otherwise 500 on the auth_identities unique constraint
+    once a second EMAIL_OTP identity insert is attempted."""
+    db = _session()
+    existing = _user(db, phone="+911111111111")
+    record_identity(db, existing.id, AuthIdentityProvider.EMAIL_OTP, "taken@example.com", "taken@example.com", datetime.now(timezone.utc))
+    _, raw_token = create_pending_verification(
+        db, AuthIdentityProvider.PHONE_OTP, "+919999999999", "taken@example.com", False, matched_user_id=None
+    )
+
+    with pytest.raises(EmailCollisionError, match="already exists"):
+        complete_gated_signup(db, raw_token, AuthIdentityProvider.EMAIL_OTP, "taken@example.com")
+
+    assert db.query(User).filter_by(phone_number="+919999999999").first() is None
+
+
+def test_complete_gated_signup_phone_first_rejects_email_matching_denormalized_user_email():
+    """Case 2: the email matches only a User.email denormalized field (no
+    independently-verified identity, e.g. an email typed at signup that was
+    never itself OTP-verified) -- resolve_email_collision's link_required
+    kind. Silently creating a second account here would let
+    resolve_email_collision's later `.first()` match either account."""
+    db = _session()
+    _user(db, phone="+911111111111")
+    other = db.query(User).filter_by(phone_number="+911111111111").one()
+    other.email = "denormalized@example.com"
+    db.commit()
+    _, raw_token = create_pending_verification(
+        db, AuthIdentityProvider.PHONE_OTP, "+919999999999", "denormalized@example.com", False, matched_user_id=None
+    )
+
+    with pytest.raises(EmailCollisionError, match="already exists"):
+        complete_gated_signup(db, raw_token, AuthIdentityProvider.EMAIL_OTP, "denormalized@example.com")
+
+    assert db.query(User).filter_by(phone_number="+919999999999").first() is None
+
+
+def test_complete_gated_signup_email_first_direction_is_unaffected_by_the_collision_guard():
+    """The collision guard is scoped to phone-first (pending.provider ==
+    PHONE_OTP, second_provider == EMAIL_OTP) only -- the email/Google-first
+    direction already had its collision check run earlier, by
+    resolve_new_verified_identity, before a pending token was ever minted."""
+    db = _session()
+    _, raw_token = create_pending_verification(
+        db, AuthIdentityProvider.EMAIL_OTP, "person@example.com", "person@example.com", True, matched_user_id=None
+    )
+
+    user_id = complete_gated_signup(db, raw_token, AuthIdentityProvider.PHONE_OTP, "+919999999999")
+
+    assert db.get(User, user_id) is not None
 
 
 def test_complete_gated_signup_rejects_a_step_up_link_token():

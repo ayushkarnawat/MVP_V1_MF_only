@@ -9,6 +9,7 @@ from app.models.enums import AuthIdentityProvider
 from app.models.user import User
 from app.services.auth.device_info import capture_request_metadata
 from app.services.auth.identity import (
+    EmailCollisionError,
     PendingVerificationError,
     attach_email_to_pending,
     attach_pending_identity,
@@ -19,6 +20,7 @@ from app.services.auth.identity import (
     mark_pending_email_verified,
     peek_pending_link_info,
     record_identity,
+    resolve_email_collision,
     resolve_new_verified_identity,
 )
 from app.services.auth.account_deletion import reactivate_account, schedule_account_deletion
@@ -97,6 +99,14 @@ def signup_email(body: SignupEmailBody, db: DbSession = Depends(get_db)):
 @router.post("/email-otp/request", response_model=OtpRequestResponse)
 def request_email_otp(body: EmailOtpRequestBody, request: Request, db: DbSession = Depends(get_db)):
     if body.pending_token:
+        # C2 fix (final review, 2026-09-28): same collision check
+        # signup_email/request_otp already run for their own directions --
+        # matches the request-time UX of the phone gate's own 409
+        # (test_phone_gate_rejects_a_colliding_number_at_request_time_before_any_otp_is_sent)
+        # instead of only surfacing at verify time via complete_gated_signup's
+        # own defensive check.
+        if resolve_email_collision(db, body.email).kind != "none":
+            raise HTTPException(status_code=409, detail="An account with this email already exists.")
         # FR-4: this is the email step of a phone-first signup -- attach the
         # email to the already-phone-verified pending record before sending
         # the code, so complete_gated_signup can use it once verified.
@@ -165,6 +175,12 @@ def verify_email_otp(body: EmailOtpVerifyBody, db: DbSession = Depends(get_db)):
                 )
             except PendingVerificationError as exc:
                 raise HTTPException(status_code=401, detail=str(exc)) from exc
+            except EmailCollisionError as exc:
+                # Belt-and-braces: request_email_otp already checked this
+                # before sending the code (C2 fix above) -- this only fires
+                # if the email was claimed elsewhere in the few minutes
+                # between that check and this verify.
+                raise HTTPException(status_code=409, detail=str(exc)) from exc
             return _session_response(user_id, AuthIdentityProvider.EMAIL_OTP, db)
 
         # Fresh signup (matched_user_id is None, provider is EMAIL_OTP or
@@ -201,6 +217,14 @@ def request_otp(body: OtpRequestBody, request: Request, db: DbSession = Depends(
         except PendingVerificationError as exc:
             raise HTTPException(status_code=401, detail=str(exc)) from exc
 
+        if link_info.provider == AuthIdentityProvider.PHONE_OTP:
+            # I1 fix (final review, 2026-09-28): a phone-first pending_token
+            # (from flow=signup) is only ever meant to complete via
+            # /auth/email-otp/request -- using it here would attach a
+            # second, unrelated phone number instead of the mandatory
+            # email step.
+            raise HTTPException(status_code=401, detail="Invalid or already-used verification token.")
+
         if link_info.provider == AuthIdentityProvider.EMAIL_OTP:
             existing = find_or_backfill_phone_identity(db, body.phone_number)
             if existing is not None:
@@ -231,6 +255,12 @@ def verify_otp_route(body: OtpVerifyBody, db: DbSession = Depends(get_db)):
             link_info = peek_pending_link_info(db, body.pending_token)
         except PendingVerificationError as exc:
             raise HTTPException(status_code=401, detail=str(exc)) from exc
+
+        if link_info.provider == AuthIdentityProvider.PHONE_OTP:
+            # I1 fix (final review, 2026-09-28): see request_otp's identical
+            # guard above -- a phone-first pending_token must only complete
+            # via the email gate, never a second phone number.
+            raise HTTPException(status_code=401, detail="Invalid or already-used verification token.")
 
         existing = find_or_backfill_phone_identity(db, body.phone_number)
         if existing is not None:
@@ -307,6 +337,17 @@ def google_oauth_route(body: GoogleAuthBody, db: DbSession = Depends(get_db)):
         raise HTTPException(status_code=401, detail=str(exc)) from exc
 
     if body.pending_token:
+        try:
+            link_info = peek_pending_link_info(db, body.pending_token)
+        except PendingVerificationError as exc:
+            raise HTTPException(status_code=401, detail=str(exc)) from exc
+
+        if link_info.provider == AuthIdentityProvider.PHONE_OTP:
+            # I1 fix (final review, 2026-09-28): see request_otp's identical
+            # guard -- a phone-first pending_token must only complete via
+            # the email gate, never attach to a Google identity.
+            raise HTTPException(status_code=401, detail="Invalid or already-used verification token.")
+
         existing = find_identity_by_subject(db, AuthIdentityProvider.GOOGLE, claims.sub)
         if existing is None:
             raise HTTPException(status_code=401, detail="This Google account isn't linked yet.")

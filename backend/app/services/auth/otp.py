@@ -145,6 +145,12 @@ def create_otp_request(
         request.otp_hash = _hash_otp(otp)
         request.expires_at = now + timedelta(minutes=OTP_TTL_MINUTES)
         request.attempt_count = 0
+        # Final-review fix (2026-09-28): the throttle above is measured from
+        # created_at. Without this reset, created_at stays pinned to the
+        # first-ever send, so once 60s have passed once, EVERY later resend
+        # for this identifier goes through immediately -- disabling both the
+        # resend throttle and the de-facto guess-rate limit it provides.
+        request.created_at = now
     else:
         request = OtpRequest(
             phone_number=identifier if channel == "sms" else None,

@@ -12,6 +12,7 @@ in otp.py is a property of the caller, not of this module.
 
 from __future__ import annotations
 
+import ipaddress
 from typing import NamedTuple
 
 from fastapi import Request
@@ -31,16 +32,34 @@ class RequestMetadata(NamedTuple):
 
 def get_client_ip(request: Request) -> str | None:
     """The backend sits behind an ALB (ADR-005) -- request.client.host is
-    the ALB's own internal IP, not the caller's. The ALB puts the real
-    client IP first in X-Forwarded-For (format: client, proxy1, proxy2...).
-    This header is trustworthy here specifically because ECS tasks aren't
-    reachable directly (all traffic is forced through the ALB) -- don't
-    reuse this helper in a deployment where the app is directly
-    internet-facing without re-checking that assumption."""
+    the ALB's own internal IP, not the caller's. AWS ALB's default
+    X-Forwarded-For mode is APPEND, not replace: if the client sends its
+    own X-Forwarded-For, the ALB keeps it and appends the real client IP at
+    the end (format: client-or-spoofed-value, ..., alb-appended-real-ip).
+    The LAST entry is the only one trustworthy here, and only because ECS
+    tasks aren't reachable directly (all traffic is forced through the
+    ALB) -- don't reuse this helper in a deployment where the app is
+    directly internet-facing, or behind more than one trusted hop, without
+    re-checking that assumption (final review fix, 2026-09-28; the
+    original version took the FIRST entry, which is exactly the one the
+    client controls).
+
+    Validated via ipaddress.ip_address() and returns None for anything that
+    isn't a real IP -- both because a client-controlled header should never
+    be trusted as-is, and because ip_address is String(45): an unvalidated
+    value that's merely long enough (a hostname, an injected fragment)
+    would raise a Postgres DataError and 500 the whole request on
+    staging/production (SQLite doesn't enforce the column length, which is
+    why this went unnoticed in tests)."""
     forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    return request.client.host if request.client else None
+    candidate = forwarded.split(",")[-1].strip() if forwarded else (request.client.host if request.client else None)
+    if candidate is None:
+        return None
+    try:
+        ipaddress.ip_address(candidate)
+    except ValueError:
+        return None
+    return candidate
 
 
 def capture_request_metadata(request: Request) -> RequestMetadata:

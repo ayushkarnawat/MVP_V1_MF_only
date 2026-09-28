@@ -172,6 +172,19 @@ class PendingVerificationError(Exception):
     not found, expired, or used for the wrong completion path."""
 
 
+class EmailCollisionError(Exception):
+    """Raised by complete_gated_signup's phone-first collision guard (final
+    review, 2026-09-28): the email/Google-first direction always runs
+    resolve_email_collision BEFORE a pending token is even minted
+    (resolve_new_verified_identity), so by the time complete_gated_signup
+    sees that pending record, "no collision" is already guaranteed. The
+    phone-first direction has no equivalent earlier checkpoint -- the email
+    is only attached (attach_email_to_pending) and never independently
+    verified until the email OTP succeeds right here -- so this function
+    must run the same check itself, for phone-first only, before creating a
+    second account under an email another account already owns."""
+
+
 def _consume_pending_verification(db: DbSession, raw_token: str) -> PendingIdentityVerification:
     token_hash = _hash_pending_token(raw_token)
     pending = db.query(PendingIdentityVerification).filter_by(token_hash=token_hash).first()
@@ -315,6 +328,14 @@ def complete_gated_signup(
         raise PendingVerificationError(
             "This verification is for linking to an existing account, not creating a new one."
         )
+    if second_provider == pending.provider:
+        # I1 fix (final review, 2026-09-28): belt-and-braces -- the routes
+        # already reject a same-provider pending_token before calling this
+        # (e.g. a phone-first token reused against a second phone number),
+        # but this function has its own callers and must not rely on that
+        # alone. Two identities of the same provider on one brand-new
+        # signup is never a valid shape here.
+        raise PendingVerificationError("Invalid or already-used verification token.")
 
     # An UNVERIFIED email claim (a Google account whose `email_verified` is
     # false) must never be persisted into either `users.email` or
@@ -333,6 +354,12 @@ def complete_gated_signup(
         verified_email = second_provider_subject
     else:
         verified_email = pending.email if pending.email_verified else None
+
+    if pending.provider == AuthIdentityProvider.PHONE_OTP and second_provider == AuthIdentityProvider.EMAIL_OTP:
+        # C2 fix (final review, 2026-09-28): see EmailCollisionError's
+        # docstring for why only this direction needs the check run here.
+        if resolve_email_collision(db, verified_email).kind != "none":
+            raise EmailCollisionError("An account with this email already exists.")
 
     phone_number = (
         second_provider_subject
