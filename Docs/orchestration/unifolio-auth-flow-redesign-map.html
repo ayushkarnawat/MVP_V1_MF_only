@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unifolio Auth Flow Redesign Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;600;700&family=Manrope:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --bg: #FCFCFC; --surface: #FFFFFF; --ink: #111111; --muted: #5C5C5C; --border: #E5E5E5;
+  --accent: #22C55E; --accent-ink: #15803D;
+  --warn: #B45309; --warn-bg: #FEF3C7;
+  --good: #15803D; --good-bg: #DCFCE7;
+  --bad: #B42318; --bad-bg: #FEE4E2;
+  --new: #0F766E; --new-bg: #CCFBF1;
+  --code-bg: #F4F6F5;
+  --diagram-bg: #FFFFFF;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0F0F0F; --surface: #1A1A1A; --ink: #F5F5F5; --muted: #A3A3A3; --border: #2A2A2A;
+    --accent: #22C55E; --accent-ink: #4ADE80;
+    --warn: #FCD34D; --warn-bg: #3A2A0A;
+    --good: #86EFAC; --good-bg: #0F2E1A;
+    --bad: #FDA29B; --bad-bg: #3B1512;
+    --new: #5EEAD4; --new-bg: #0E3B36;
+    --code-bg: #202322;
+    --diagram-bg: #161616;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0F0F0F; --surface: #1A1A1A; --ink: #F5F5F5; --muted: #A3A3A3; --border: #2A2A2A;
+  --accent: #22C55E; --accent-ink: #4ADE80;
+  --warn: #FCD34D; --warn-bg: #3A2A0A;
+  --good: #86EFAC; --good-bg: #0F2E1A;
+  --bad: #FDA29B; --bad-bg: #3B1512;
+  --new: #5EEAD4; --new-bg: #0E3B36;
+  --code-bg: #202322;
+  --diagram-bg: #161616;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font: 400 15px/1.6 "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+  padding-inline: 20px; padding-block: 40px 72px;
+}
+.wrap { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 56px; }
+h1, h2, h3 { font-family: "DM Sans", system-ui, sans-serif; text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(28px, 4.2vw, 38px); font-weight: 700; line-height: 1.15; }
+h2 { font-size: 22px; font-weight: 700; line-height: 1.3; }
+h3 { font-size: 16px; font-weight: 600; }
+p { margin: 0; max-width: 72ch; }
+ul, ol { margin: 0; padding-left: 20px; max-width: 72ch; display: flex; flex-direction: column; gap: 6px; }
+code, .mono { font-family: "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, monospace; font-size: 0.86em; }
+code { background: var(--code-bg); padding: 1px 6px; border-radius: 4px; overflow-wrap: anywhere; }
+a { color: var(--accent-ink); }
+.eyebrow { font: 600 12px/1 "Manrope", sans-serif; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent-ink); }
+header { display: flex; flex-direction: column; gap: 14px; }
+header .lede { font-size: 17px; color: var(--muted); }
+nav { display: flex; flex-wrap: wrap; gap: 8px; }
+nav a {
+  color: var(--ink); text-decoration: none; font-size: 13px; font-weight: 500;
+  border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px; background: var(--surface);
+}
+nav a:hover { border-color: var(--accent); }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+section { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 16px; }
+.section-head { display: flex; flex-direction: column; gap: 6px; }
+.section-head p { color: var(--muted); }
+.eyebrow-num { font: 600 11px/1 "JetBrains Mono", monospace; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; border: 1px solid; }
+.lg-db { background: #fff4d6; border-color: #b8860b !important; }
+.lg-create { background: #fde68a; border-color: #b45309 !important; }
+.lg-none { background: #ffd6d6; border-color: #c0392b !important; }
+.lg-new { background: #ccfbf1; border-color: #0f766e !important; }
+.diagram { background: var(--diagram-bg); border: 1px solid var(--border); border-radius: 14px; padding: 20px; overflow-x: auto; }
+.diagram pre.mermaid { margin: 0; background: transparent; display: flex; justify-content: center; min-width: min-content; }
+.callout { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; font-size: 14px; color: var(--muted); max-width: none; }
+.callout b { color: var(--ink); }
+.callout.warn { border-color: var(--warn); background: var(--warn-bg); color: var(--ink); }
+.callout.new { border-color: var(--new); background: var(--new-bg); color: var(--ink); }
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+th { font: 600 12px/1.3 "Manrope", sans-serif; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); background: var(--bg); white-space: nowrap; }
+.wide td:first-child { min-width: 150px; }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; }
+.fact { border-left: 3px solid var(--accent); padding: 4px 0 4px 14px; display: flex; flex-direction: column; gap: 4px; }
+.fact.new { border-left-color: var(--new); }
+.fact.warn { border-left-color: var(--warn); }
+.fact strong { font-family: "DM Sans", sans-serif; font-weight: 600; font-size: 15px; }
+.fact span { color: var(--muted); font-size: 14px; }
+.answer { border-left: 3px solid var(--accent); padding: 2px 0 2px 16px; display: flex; flex-direction: column; gap: 10px; }
+.answer > strong { font-family: "DM Sans", sans-serif; font-size: 16px; font-weight: 600; }
+footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--border); padding-top: 18px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <span class="eyebrow">Unifolio · MF MVP · Auth Flow Redesign</span>
+  <h1>Phone-first signup, the schema, and how cleanup actually works</h1>
+  <p class="lede">Same redesign as the written docs (schema changes, tables changed, PRD-05) — the flow, the ER diagram, and, new this pass, exactly how <code>otp_requests</code> stays bounded without any new AWS infrastructure.</p>
+  <nav aria-label="Sections">
+    <a href="#flow">Today vs. proposed flow</a>
+    <a href="#schema">Auth tables ER diagram</a>
+    <a href="#retention">otp_requests: connection &amp; cleanup</a>
+    <a href="#signals">Device/platform signals</a>
+    <a href="#decisions">Resolved &amp; open</a>
+  </nav>
+</header>
+
+<section id="flow">
+  <div class="section-head"><span class="eyebrow-num">01 · Before / after</span><h2>Today: entry-method-first, phone is the odd one out</h2><p>Email or Google both stage in a holding table and require phone as a mandatory second step. Phone alone skips that table — the root of the known silent-signup bug.</p></div>
+  <div class="legend">
+    <span><i class="lg-db"></i>Database write</span>
+    <span><i class="lg-create"></i>Key write (row created)</span>
+    <span><i class="lg-none"></i>Error / nothing written</span>
+  </div>
+  <div class="diagram"><pre class="mermaid">flowchart TD
+    A["Landing: Sign Up / Log In"] --&gt; B1["Email + OTP"]
+    A --&gt; B2["Google"]
+    A --&gt; B3["Phone + OTP"]
+    B1 --&gt; C[("INSERT pending_identity_verifications&lt;br/&gt;provider = email_otp or google")]
+    B2 --&gt; C
+    C --&gt; D["Phone OTP — mandatory 2nd step"]
+    D --&gt; E[("Single commit: INSERT users&lt;br/&gt;INSERT auth_identities x2&lt;br/&gt;DELETE pending_identity_verifications")]
+    B3 --&gt; F["Verified?"]
+    F --&gt;|Yes| G[("INSERT users + auth_identities x1&lt;br/&gt;unconditionally — no pending record,&lt;br/&gt;no collision check")]
+    class C db
+    class E,G create
+    classDef db fill:#fff4d6,stroke:#b8860b,color:#000
+    classDef create fill:#fde68a,stroke:#b45309,color:#000,stroke-width:2px</pre></div>
+  <p class="callout"><b>Where the known bug lives:</b> the phone-only branch (right side, red) never creates a <code>pending_identity_verifications</code> row and never checks for a collision — an unrecognized number completes signup immediately instead of erroring, the way the email path already does. See PRD-05's "Related Issue" for the full root-cause and fix.</p>
+
+  <div class="section-head" style="margin-top:8px"><span class="eyebrow-num">02 · Proposed</span><h2>New: one sequential path, phone first</h2><p>Phone verifies first and lands in the same holding table email/Google already use — just from the opposite side. Google keeps its existing path, hidden from the UI for now.</p></div>
+  <div class="diagram"><pre class="mermaid">flowchart TD
+    A["Phone entered"] --&gt;|"POST /auth/otp/request"| B{"Existing UNVERIFIED&lt;br/&gt;otp_requests row for this phone?"}
+    B --&gt;|"Yes, &lt; 60s old"| B1["429 'Please wait Ns'"]
+    B --&gt;|"No"| C[("INSERT otp_requests&lt;br/&gt;+ ip/UA/device columns")]
+    B --&gt;|"Yes, resend"| C2[("UPDATE same row — NEW&lt;br/&gt;no second row created")]
+    C --&gt; D
+    C2 --&gt; D["NEW: opportunistic sweep&lt;br/&gt;(see #retention)"]
+    D --&gt; E["SMS stub mode — code shown on screen&lt;br/&gt;no real provider wired in yet"]
+    E --&gt;|"POST /auth/otp/verify"| F{"Code valid?"}
+    F --&gt;|wrong| F1[("attempt_count + 1")]
+    F --&gt;|correct| G[("UPDATE otp_requests.verified_at&lt;br/&gt;INSERT pending_identity_verifications&lt;br/&gt;provider = phone_otp — newly allowed")]
+    G --&gt; H["Email entered"]
+    H --&gt;|"POST /auth/email-otp/request"| I[("otp_requests (email) —&lt;br/&gt;same upsert + sweep logic")]
+    I --&gt; L["AWS: SES SendEmail"]
+    L --&gt;|"POST /auth/email-otp/verify"| M{"Code valid?"}
+    M --&gt;|wrong| F1
+    M --&gt;|correct| N[("Single commit: INSERT users + auth_identities x2&lt;br/&gt;— completion fn needs a real code change, see PRD-05 §Integration Points —&lt;br/&gt;DELETE pending_identity_verifications by token&lt;br/&gt;NEW: DELETE otp_requests by phone/email VALUE")]
+    N --&gt; O["Onboarding"]
+    class C,C2,F1,G,I db
+    class N create
+    class B1 none
+    class L aws
+    classDef db fill:#fff4d6,stroke:#b8860b,color:#000
+    classDef create fill:#fde68a,stroke:#b45309,color:#000,stroke-width:2px
+    classDef none fill:#ffd6d6,stroke:#c0392b,color:#000
+    classDef aws fill:#ffe8cc,stroke:#d9730d,color:#000</pre></div>
+  <div class="facts">
+    <div class="fact"><strong>What stays identical</strong><span>OTP hashing, 5-min expiry, attempt lockout, the 10-min pending-token TTL — all unchanged.</span></div>
+    <div class="fact new"><strong>What's genuinely new</strong><span>Phone as the <em>first</em> leg into <code>pending_identity_verifications</code>, plus the retention mechanism in the next section.</span></div>
+    <div class="fact"><strong>Side effect</strong><span>A bare phone verification never completes signup alone anymore — the silent-signup bug's only caller disappears.</span></div>
+  </div>
+</section>
+
+<section id="schema">
+  <div class="section-head"><span class="eyebrow-num">03 · Schema</span><h2>Auth tables ER diagram</h2><p>Dashed line = related by value, no foreign key — same convention as the rest of the backend map. Teal notes mark what's new or changed this pass.</p></div>
+  <div class="legend">
+    <span><i class="lg-new"></i>New or changed this pass</span>
+  </div>
+  <div class="diagram"><pre class="mermaid">erDiagram
+    users ||--o{ auth_identities : "user_id FK"
+    users ||--o{ sessions : "user_id FK"
+    users |o--o{ pending_identity_verifications : "matched_user_id FK, nullable, step-up only"
+    otp_requests }o..o{ auth_identities : "no FK: same phone/email VALUE"
+    otp_requests }o..o{ users : "no FK: cleaned up by phone/email VALUE match, not a foreign key"
+
+    users {
+        uuid id PK
+        string phone_number UK "NOT NULL"
+        string email "nullable"
+    }
+    otp_requests {
+        uuid id PK
+        string phone_number "exactly one of phone/email"
+        string email "exactly one of phone/email"
+        string otp_hash "upserted on resend, NEW behavior"
+        timestamptz expires_at "+5 min; also the 30-day sweep clock"
+        timestamptz verified_at "NULL until correct code"
+        int attempt_count "resets on upsert-resend, NEW"
+        string ip_address "NEW, raw only"
+        string user_agent "NEW, raw"
+        string device_type "NEW, parsed"
+        string os_family "NEW, parsed"
+        string os_version "NEW, parsed"
+        string browser_family "NEW, parsed"
+        string browser_version "NEW, parsed"
+        string device_id "NEW"
+    }
+    pending_identity_verifications {
+        uuid id PK
+        enum provider "now allows phone_otp, NEW direction"
+        string provider_subject
+        string email
+        uuid matched_user_id FK "nullable, step-up only"
+        string token_hash
+        timestamptz expires_at "created + 10 min, UNCHANGED"
+    }
+    auth_identities {
+        uuid id PK
+        uuid user_id FK
+        enum provider "phone_otp, email_otp, google"
+        string provider_subject "UK with provider"
+    }
+    sessions {
+        uuid id PK
+        uuid user_id FK
+        string session_token_hash
+        timestamptz expires_at "created + 30 days"
+    }</pre></div>
+  <div class="tbl-wrap wide"><table><thead><tr><th>Table</th><th>Change</th><th>Note</th></tr></thead><tbody>
+    <tr><td><code>otp_requests</code></td><td>Altered</td><td>8 new nullable columns; 3 new application-logic behaviors (next section). No FK to <code>users</code> — never has been, still isn't.</td></tr>
+    <tr><td><code>pending_identity_verifications</code></td><td>Behavior change, no schema</td><td><code>provider</code> enum already allowed <code>phone_otp</code> as a DB value — the restriction was application-only.</td></tr>
+    <tr><td><code>users</code>, <code>auth_identities</code>, <code>sessions</code></td><td>Unchanged</td><td>Same shape, same rules.</td></tr>
+  </tbody></table></div>
+</section>
+
+<section id="retention">
+  <div class="section-head"><span class="eyebrow-num">04 · New this pass</span><h2><code>otp_requests</code>: how it connects to <code>users</code>, and how it stays bounded</h2><p>Not a foreign key — there's no <code>user_id</code> column, and none is being added. Three application-logic changes, zero new tables, zero AWS infrastructure.</p></div>
+
+  <div class="answer"><strong>How is it "connected" to <code>users</code>?</strong>
+    <p>It isn't, structurally. Every cleanup action below matches on the <code>phone_number</code>/<code>email</code> values already sitting in the row — the exact same reason this table has never had a foreign key to <code>users</code>: most rows never correspond to an account at all. This differs from how <code>pending_identity_verifications</code> gets deleted today (by a direct token reference to one specific row) — but the effect is the same shape: a synchronous, in-application delete, triggered by a real lifecycle event, not a scheduled job.</p>
+  </div>
+
+  <div class="diagram"><pre class="mermaid">flowchart LR
+    subgraph EVERY["Every OTP-request call — phone or email, signup or login"]
+        R1["Look up the existing unverified row&lt;br/&gt;for this identifier&lt;br/&gt;(same lookup the 60s resend-throttle&lt;br/&gt;check already runs)"] --&gt; R2{"Found?"}
+        R2 --&gt;|"Yes, &lt; 60s old"| R3["429 throttled, unchanged"]
+        R2 --&gt;|"Yes, &gt;= 60s old"| R4[("UPDATE existing row&lt;br/&gt;new hash · expires_at reset&lt;br/&gt;attempt_count reset&lt;br/&gt;NEW: upsert, not insert")]
+        R2 --&gt;|"No row exists"| R5[("INSERT new row, as today")]
+        R4 --&gt; R6
+        R5 --&gt; R6[("NEW: opportunistic sweep&lt;br/&gt;DELETE FROM otp_requests&lt;br/&gt;WHERE verified_at IS NULL&lt;br/&gt;AND expires_at &lt; now() - 30 days")]
+    end
+    subgraph SUCCESS["Signup completion — same transaction as the pending-row delete"]
+        S1["INSERT users + auth_identities&lt;br/&gt;DELETE pending_identity_verifications&lt;br/&gt;by token — unchanged"] --&gt; S2[("NEW: DELETE FROM otp_requests&lt;br/&gt;WHERE phone_number = :phone&lt;br/&gt;OR email = :email&lt;br/&gt;— value match, no FK")]
+    end
+    class R4,R5,R6,S2 db
+    class S1 create
+    class R3 none
+    classDef db fill:#fff4d6,stroke:#b8860b,color:#000
+    classDef create fill:#fde68a,stroke:#b45309,color:#000,stroke-width:2px
+    classDef none fill:#ffd6d6,stroke:#c0392b,color:#000</pre></div>
+
+  <h3>Lifecycle of one otp_requests row, updated</h3>
+  <div class="diagram"><pre class="mermaid">stateDiagram-v2
+    [*] --&gt; Waiting: no unverified row exists for this identifier — INSERT
+    Waiting: WAITING&lt;br/&gt;verified_at = NULL, attempt_count = 0
+    Waiting --&gt; Waiting: wrong code, attempt_count + 1
+    Waiting --&gt; Waiting: NEW — resend after 60s UPDATES this SAME row&lt;br/&gt;(new hash, expires_at reset, attempt_count reset)&lt;br/&gt;no second row created
+    Waiting --&gt; Verified: right code within 5 minutes
+    Verified: VERIFIED&lt;br/&gt;verified_at = time of success
+    Waiting --&gt; Expired: 5 minutes pass, never touched again
+    Expired: EXPIRED&lt;br/&gt;row unchanged, verify refuses it
+    Waiting --&gt; Locked: 5 wrong attempts
+    Locked: LOCKED&lt;br/&gt;row unchanged, verify refuses it
+    Verified --&gt; Deleted: NEW — this identifier completes a signup,&lt;br/&gt;same transaction as the users INSERT
+    Deleted: DELETED&lt;br/&gt;value match on phone/email, no FK
+    Verified --&gt; [*]: verified login, no signup completed —&lt;br/&gt;stays (lower priority, see facts below)
+    Expired --&gt; Purged: NEW — 30 days pass, never verified
+    Locked --&gt; Purged: NEW — 30 days pass, never verified
+    Purged: PURGED&lt;br/&gt;swept by the NEXT otp-request call anywhere&lt;br/&gt;in the system — no scheduled job
+    Deleted --&gt; [*]
+    Purged --&gt; [*]</pre></div>
+
+  <div class="callout new"><b>The 10-minute TTL is untouched.</b> Everything above is scoped to <code>otp_requests</code> only. <code>pending_identity_verifications</code>'s 10-minute token life and its delete-on-completion behavior are exactly what they were before this pass — no code path here reads or writes that table.</div>
+
+  <div class="facts">
+    <div class="fact new"><strong>Repeat attempts</strong><span>Bounded to one row per identifier while unverified — a typo, a resend, ten retries all update the same row.</span></div>
+    <div class="fact new"><strong>Completed signups</strong><span>Every historical attempt for that phone/email deleted immediately, the moment it becomes a real account.</span></div>
+    <div class="fact warn"><strong>Abandoned attempts</strong><span>Swept within 30 days of the last activity — <code>expires_at</code> doubles as the recency signal, since it's refreshed on every resend.</span></div>
+    <div class="fact"><strong>Verified logins (not a new signup)</strong><span>Left alone — that's an existing account's own already-known number, a smaller privacy concern than a stranger's wrong number.</span></div>
+  </div>
+</section>
+
+<section id="signals">
+  <div class="section-head"><span class="eyebrow-num">05 · Clarified this session</span><h2>What actually tells you "phone, tablet, Windows, or Mac"</h2><p>Neither MAC nor IP address answers that — even if MAC were obtainable, which it isn't from a browser.</p></div>
+  <div class="tbl-wrap wide"><table><thead><tr><th>Field</th><th>What it tells you</th><th>Reliability</th></tr></thead><tbody>
+    <tr><td><code>MAC address</code></td><td>Nothing — not obtainable from a browser at any step, and even if it were, it's a hardware network identifier, not a device/OS signal</td><td>N/A</td></tr>
+    <tr><td><code>ip_address</code></td><td>Network/geographic origin only (roughly which city/ISP) — stored raw only this pass, GeoIP parsing deferred</td><td>Country: high · city: low, especially on Indian mobile carriers' NAT'd IPs</td></tr>
+    <tr><td><code>user_agent</code> → parsed <code>device_type</code>/<code>os_family</code>/<code>browser_family</code></td><td><b>This is the field that answers the question.</b> Parsed once at write time via a standard library (Python <code>user-agents</code>)</td><td>High — standard practice for exactly this kind of analytics</td></tr>
+  </tbody></table></div>
+</section>
+
+<section id="decisions">
+  <div class="section-head"><span class="eyebrow-num">06 · Status</span><h2>Resolved this session, and what's still open</h2></div>
+  <div class="facts">
+    <div class="fact new"><strong>SMS provider — stub mode</strong><span>No SMS/OTP provider is wired in anywhere. Staying in <code>otp_delivery_mode="stub"</code>, same as today. Real SMS delivery is deferred; dev/functional testing is unaffected.</span></div>
+    <div class="fact new"><strong>Google — hidden, not removed</strong><span>Hidden from the signup screen, backend left fully intact, re-enabled later with a UI-only change.</span></div>
+    <div class="fact new"><strong>IP — raw only, for now</strong><span>GeoIP parsing (country/region/city/ISP) considered and deferred. Not a one-way door — the raw value is retained.</span></div>
+    <div class="fact new"><strong><code>otp_requests</code> retention — fixed, zero infra</strong><span>Upsert-on-resend, delete-on-completion, 30-day sweep for unverified rows. See §04 above.</span></div>
+  </div>
+  <div class="tbl-wrap wide"><table><thead><tr><th>Still open</th><th>Detail</th></tr></thead><tbody>
+    <tr><td>Abandoned <code>pending_identity_verifications</code> rows</td><td>Not cleaned up — no ordinary-traffic hook to piggyback a sweep on the way <code>otp_requests</code> has. Lower priority: one row per abandoned attempt, holding a hashed token rather than repeated PII.</td></tr>
+    <tr><td><code>AGENTS.md</code> stale doc line</td><td>Says AWS deployment happens once a migration checklist is met — stale, staging has been live since 2026-09-08/09. Unrelated to this redesign, worth a small separate fix.</td></tr>
+  </tbody></table></div>
+</section>
+
+<footer>
+  Companion to <code>Docs/PRDs/PRD-05-Auth-Flow-Redesign.md</code>, <code>Docs/superpowers/specs/2026-09-28-auth-flow-redesign-database-schema-changes.md</code>, and <code>...-tables-changed.md</code>. Diagram conventions match <code>Docs/orchestration/unifolio-backend-map.html</code>. This page is a visual aid only — the written docs are the source of truth for column-level detail and migration numbers.
+</footer>
+
+</div>
+<!-- Standalone copy: the claude.ai viewer draws Mermaid itself; a plain browser needs the library. -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script>
+  var dark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  mermaid.initialize({ startOnLoad: true, securityLevel: "strict", theme: dark ? "dark" : "default",
+    flowchart: { useMaxWidth: false }, sequence: { useMaxWidth: false }, er: { useMaxWidth: false }, state: { useMaxWidth: false } });
+</script>
+</body>
+</html>

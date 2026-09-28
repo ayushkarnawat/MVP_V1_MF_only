@@ -1,0 +1,1215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unifolio Backend Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;600;700&family=Manrope:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --bg: #FCFCFC; --surface: #FFFFFF; --ink: #111111; --muted: #5C5C5C; --border: #E5E5E5;
+  --accent: #22C55E; --accent-ink: #15803D;
+  --warn: #B45309; --warn-bg: #FEF3C7;
+  --good: #15803D; --good-bg: #DCFCE7;
+  --bad: #B42318; --bad-bg: #FEE4E2;
+  --aws: #B45309; --aws-bg: #FFEDD5;
+  --code-bg: #F4F6F5;
+  --diagram-bg: #FFFFFF;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0F0F0F; --surface: #1A1A1A; --ink: #F5F5F5; --muted: #A3A3A3; --border: #2A2A2A;
+    --accent: #22C55E; --accent-ink: #4ADE80;
+    --warn: #FCD34D; --warn-bg: #3A2A0A;
+    --good: #86EFAC; --good-bg: #0F2E1A;
+    --bad: #FDA29B; --bad-bg: #3B1512;
+    --aws: #FDBA74; --aws-bg: #3A230C;
+    --code-bg: #202322;
+    --diagram-bg: #161616;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0F0F0F; --surface: #1A1A1A; --ink: #F5F5F5; --muted: #A3A3A3; --border: #2A2A2A;
+  --accent: #22C55E; --accent-ink: #4ADE80;
+  --warn: #FCD34D; --warn-bg: #3A2A0A;
+  --good: #86EFAC; --good-bg: #0F2E1A;
+  --bad: #FDA29B; --bad-bg: #3B1512;
+  --aws: #FDBA74; --aws-bg: #3A230C;
+  --code-bg: #202322;
+  --diagram-bg: #161616;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font: 400 15px/1.6 "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+  padding-inline: 20px; padding-block: 40px 72px;
+}
+.wrap { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 64px; }
+h1, h2, h3 { font-family: "DM Sans", system-ui, sans-serif; text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(28px, 4.2vw, 38px); font-weight: 700; line-height: 1.15; }
+h2 { font-size: 22px; font-weight: 700; line-height: 1.3; }
+h3 { font-size: 16px; font-weight: 600; }
+p { margin: 0; max-width: 72ch; }
+ul, ol { margin: 0; padding-left: 20px; max-width: 72ch; display: flex; flex-direction: column; gap: 6px; }
+code, .mono { font-family: "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, monospace; font-size: 0.86em; }
+code { background: var(--code-bg); padding: 1px 6px; border-radius: 4px; overflow-wrap: anywhere; }
+a { color: var(--accent-ink); }
+.eyebrow { font: 600 12px/1 "Manrope", sans-serif; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent-ink); }
+header { display: flex; flex-direction: column; gap: 14px; }
+header .lede { font-size: 17px; color: var(--muted); }
+nav { display: flex; flex-direction: column; gap: 10px; }
+.navrow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.navrow b { font: 600 11px/1 "Manrope", sans-serif; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); min-width: 92px; }
+nav a {
+  color: var(--ink); text-decoration: none; font-size: 13px; font-weight: 500;
+  border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px; background: var(--surface);
+}
+nav a:hover { border-color: var(--accent); }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+section { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 16px; }
+.section-head { display: flex; flex-direction: column; gap: 6px; }
+.section-head p { color: var(--muted); }
+.qtags { display: flex; flex-wrap: wrap; gap: 6px; }
+.qtag { font: 600 11px/1 "JetBrains Mono", monospace; color: var(--accent-ink); background: var(--good-bg); border-radius: 4px; padding: 4px 7px; }
+.sub { display: flex; flex-direction: column; gap: 12px; }
+.answer { border-left: 3px solid var(--accent); padding: 2px 0 2px 16px; display: flex; flex-direction: column; gap: 10px; }
+.answer > strong { font-family: "DM Sans", sans-serif; font-size: 16px; font-weight: 600; }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; }
+.fact { border-left: 3px solid var(--accent); padding: 4px 0 4px 14px; display: flex; flex-direction: column; gap: 4px; }
+.fact strong { font-family: "DM Sans", sans-serif; font-weight: 600; font-size: 15px; }
+.fact span { color: var(--muted); font-size: 14px; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; border: 1px solid; }
+.lg-db { background: #fff4d6; border-color: #b8860b !important; }
+.lg-create { background: #fde68a; border-color: #b45309 !important; }
+.lg-none { background: #ffd6d6; border-color: #c0392b !important; }
+.lg-aws { background: #ffe8cc; border-color: #d9730d !important; }
+.lg-pop { background: #e8e8ff; border-color: #5b5bd6 !important; }
+.lg-br { background: #e6f7ea; border-color: #2e8b57 !important; }
+.diagram { background: var(--diagram-bg); border: 1px solid var(--border); border-radius: 14px; padding: 20px; overflow-x: auto; }
+.diagram pre.mermaid { margin: 0; background: transparent; display: flex; justify-content: center; min-width: min-content; }
+.callout { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; font-size: 14px; color: var(--muted); max-width: none; }
+.callout b { color: var(--ink); }
+.callout.warn { border-color: var(--warn); background: var(--warn-bg); color: var(--ink); }
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+th { font: 600 12px/1.3 "Manrope", sans-serif; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); background: var(--bg); white-space: nowrap; }
+td { min-width: 120px; }
+.wide td:first-child { min-width: 150px; }
+.pill { display: inline-block; font: 600 11px/1.4 "Manrope", sans-serif; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+.p-w { color: var(--warn); background: var(--warn-bg); }
+.p-g { color: var(--good); background: var(--good-bg); }
+.p-b { color: var(--bad); background: var(--bad-bg); }
+.p-a { color: var(--aws); background: var(--aws-bg); }
+.num { font-variant-numeric: tabular-nums; }
+footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--border); padding-top: 18px; display: flex; flex-direction: column; gap: 6px; }
+@media (max-width: 640px) { .navrow b { min-width: 100%; } }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <span class="eyebrow">Unifolio · MF MVP · backend, database and AWS</span>
+  <h1>Unifolio Backend Map</h1>
+  <p class="lede">Every user journey traced through the real code: which endpoint runs, which rows change, and what AWS is doing at that moment. Staging on AWS <code>ap-south-1</code> is the reference environment; production is planned on the same modules and not yet built.</p>
+  <nav aria-label="Sections">
+    <div class="navrow"><b>Start</b><a href="#index">Question index</a><a href="#aws">AWS at a glance</a><a href="#schema">Full ER diagram</a></div>
+    <div class="navrow"><b>Journeys</b><a href="#signup">Signup and OTP</a><a href="#login">Login</a><a href="#onboarding">Onboarding</a><a href="#upload">CAS upload + parsing</a><a href="#confirm">Review → Import</a><a href="#family">Three members</a><a href="#switch">Family ↔ member view</a></div>
+    <div class="navrow"><b>Data</b><a href="#pan">PAN columns</a><a href="#portfolio">Folios and holdings</a><a href="#plans">Direct / Regular</a><a href="#analytics">Analytics tables</a><a href="#jobs">Background jobs</a><a href="#apis">External APIs</a></div>
+    <div class="navrow"><b>Reference</b><a href="#errors">Errors</a><a href="#theory">Theory answers</a><a href="#gaps">Gaps found while tracing</a></div>
+  </nav>
+</header>
+
+<section id="index">
+  <div class="section-head"><div class="qtags"></div><h2>Question index</h2><p>All 28 questions, and the section that answers each. Journey questions get a diagram; the theory questions are answered in prose near the end.</p></div>
+  <div class="tbl-wrap "><table><thead><tr><th>#</th><th>Question</th><th>Answered in</th></tr></thead><tbody><tr><td><span class="mono">Q1</span></td><td>OTP request table workflow, flow by flow, with ER</td><td><a href="#signup">signup</a></td></tr><tr><td><span class="mono">Q2</span></td><td>User leaves right after an OTP is generated</td><td><a href="#signup">signup</a></td></tr><tr><td><span class="mono">Q3</span></td><td>How the pending verification row is deleted, and how the backend finds it</td><td><a href="#signup">signup</a></td></tr><tr><td><span class="mono">Q4</span></td><td>Why users.phone_number is unique and NOT NULL, and email is not</td><td><a href="#theory">theory</a></td></tr><tr><td><span class="mono">Q5</span></td><td>How every table connects</td><td><a href="#schema">schema</a></td></tr><tr><td><span class="mono">Q6</span></td><td>auth_identities.provider_subject and email</td><td><a href="#theory">theory</a></td></tr><tr><td><span class="mono">Q7</span></td><td>users ↔ household_members at signup and afterwards</td><td><a href="#onboarding">onboarding</a></td></tr><tr><td><span class="mono">Q8</span></td><td>Where pan_encrypted / pan_lookup_hash are generated; pending PAN ↔ household_members</td><td><a href="#pan">pan</a></td></tr><tr><td><span class="mono">Q9</span></td><td>Upload CAS → Review → Import complete: DB + AWS</td><td><a href="#confirm">confirm</a></td></tr><tr><td><span class="mono">Q10</span></td><td>Login only: tables hit, data touched</td><td><a href="#login">login</a></td></tr><tr><td><span class="mono">Q11</span></td><td>sessions.device_info</td><td><a href="#theory">theory</a></td></tr><tr><td><span class="mono">Q12</span></td><td>analytics_recompute_status in full</td><td><a href="#analytics">analytics</a></td></tr><tr><td><span class="mono">Q13</span></td><td>analytics_sections.scope_key</td><td><a href="#analytics">analytics</a></td></tr><tr><td><span class="mono">Q14</span></td><td>Family view → one member's view: what triggers the switch</td><td><a href="#switch">switch</a></td></tr><tr><td><span class="mono">Q15</span></td><td>Three members imported one by one: rows, links, S3</td><td><a href="#family">family</a></td></tr><tr><td><span class="mono">Q16</span></td><td>The imports table</td><td><a href="#theory">theory</a></td></tr><tr><td><span class="mono">Q17</span></td><td>How transactions are calculated / detected per folio (3 schemes)</td><td><a href="#portfolio">portfolio</a></td></tr><tr><td><span class="mono">Q18</span></td><td>portfolio_snapshots and household_members</td><td><a href="#portfolio">portfolio</a></td></tr><tr><td><span class="mono">Q19</span></td><td>When benchmark_index_history is filled</td><td><a href="#jobs">jobs</a></td></tr><tr><td><span class="mono">Q20</span></td><td>household_members → folios → schemes</td><td><a href="#portfolio">portfolio</a></td></tr><tr><td><span class="mono">Q21</span></td><td>Direct / Regular classification, overrides, future schemes</td><td><a href="#plans">plans</a></td></tr><tr><td><span class="mono">Q22</span></td><td>EventBridge flow for nav_history, scheme_ter, scheme_aaum</td><td><a href="#jobs">jobs</a></td></tr><tr><td><span class="mono">Q23</span></td><td>pan_pending_until</td><td><a href="#pan">pan</a></td></tr><tr><td><span class="mono">Q24</span></td><td>CAS upload + password: where it goes, CAS check, wrong password</td><td><a href="#upload">upload</a></td></tr><tr><td><span class="mono">Q25</span></td><td>PDF parsing system flow</td><td><a href="#upload">upload</a></td></tr><tr><td><span class="mono">Q26</span></td><td>Where the raw PAN lives before anything is written</td><td><a href="#theory">theory</a></td></tr><tr><td><span class="mono">Q27</span></td><td>External APIs: which, when, where their data is kept</td><td><a href="#apis">apis</a></td></tr><tr><td><span class="mono">Q28</span></td><td>Every error: message, where shown, next step</td><td><a href="#errors">errors</a></td></tr></tbody></table></div>
+</section>
+
+<section id="aws">
+  <div class="section-head"><div class="qtags"></div><h2>The system at a glance</h2><p>One browser, one API task, one database. Everything else is either a scheduled job, a file store, or an outbound call.</p></div>
+  <div class="legend">
+  <span><i class="lg-db"></i>Database write</span>
+  <span><i class="lg-create"></i>Key write (row created)</span>
+  <span><i class="lg-none"></i>Error / nothing written</span>
+  <span><i class="lg-aws"></i>AWS service involved</span>
+  <span><i class="lg-pop"></i>Popup</span>
+  <span><i class="lg-br"></i>Browser only</span>
+</div>
+  <div class="diagram"><pre class="mermaid">flowchart LR
+    U["User's browser"]
+    subgraph EDGE["DNS and CDN"]
+        R53["Route 53&lt;br/&gt;unifolio.in hosted zone"]
+        CF["CloudFront&lt;br/&gt;staging.unifolio.in"]
+    end
+    S3F[("S3: frontend bucket&lt;br/&gt;built React app, private")]
+    subgraph VPC["VPC 10.0.0.0/16 · ap-south-1 · 2 AZs"]
+        subgraph PUB["Public subnets"]
+            ALB["ALB :443&lt;br/&gt;staging-api.unifolio.in"]
+            NAT["fck-nat EC2&lt;br/&gt;all outbound internet"]
+            BAS["Bastion EC2&lt;br/&gt;SSM only, no SSH"]
+        end
+        subgraph APP["Private app subnets"]
+            API["ECS Fargate: backend task&lt;br/&gt;FastAPI · exactly 1 task · 0.5 vCPU / 2 GB&lt;br/&gt;RAM holds review sessions + caches"]
+            JOB["ECS Fargate: job tasks&lt;br/&gt;7 scheduled jobs + on-demand&lt;br/&gt;analytics recompute"]
+        end
+        subgraph DATA["Private data subnets"]
+            RDS[("RDS PostgreSQL 16&lt;br/&gt;db.t4g.small · encrypted")]
+        end
+    end
+    S3C[("S3: CAS files bucket&lt;br/&gt;SSE-KMS · deleted after 30 days")]
+    SM["Secrets Manager&lt;br/&gt;DB password · PAN keys"]
+    KMS["KMS key&lt;br/&gt;encrypts RDS, secrets, CAS bucket"]
+    EB["EventBridge Scheduler&lt;br/&gt;cron in Asia/Kolkata"]
+    SES["Amazon SES&lt;br/&gt;email OTP"]
+    CW["CloudWatch Logs"]
+    EXT["External APIs&lt;br/&gt;mfapi.in · AMFI · NSE · Google"]
+    U --&gt; R53
+    R53 --&gt; CF --&gt; S3F
+    U --&gt;|"API calls with Bearer token"| ALB --&gt; API
+    API --&gt;|"SQL :5432"| RDS
+    JOB --&gt;|"SQL :5432"| RDS
+    API --&gt;|"PutObject"| S3C
+    JOB --&gt;|"DeleteObject"| S3C
+    SM -.-&gt;|"injected as env vars at task start"| API
+    SM -.-&gt; JOB
+    KMS -.-&gt; RDS
+    KMS -.-&gt; S3C
+    EB --&gt;|"ecs:RunTask on schedule"| JOB
+    API --&gt;|"ecs:RunTask after an import"| JOB
+    API --&gt;|"SendEmail"| SES
+    API --&gt; NAT --&gt; EXT
+    JOB --&gt; NAT
+    API --&gt; CW
+    JOB --&gt; CW
+    BAS --&gt;|"psql / alembic"| RDS
+    class ALB,NAT,BAS,API,JOB,S3C,SM,KMS,EB,SES,CW,R53,CF,S3F aws
+    class RDS db
+    classDef db fill:#fff4d6,stroke:#b8860b,color:#000
+    classDef read fill:#eef2f7,stroke:#64748b,color:#000
+    classDef none fill:#ffd6d6,stroke:#c0392b,color:#000
+    classDef aws fill:#ffe8cc,stroke:#d9730d,color:#000
+    classDef popup fill:#e8e8ff,stroke:#5b5bd6,color:#000
+    classDef browser fill:#e6f7ea,stroke:#2e8b57,color:#000
+    classDef create fill:#fde68a,stroke:#b45309,color:#000,stroke-width:2px</pre></div>
+  <div class="tbl-wrap wide"><table><thead><tr><th>AWS piece</th><th>What it does for Unifolio</th><th>When it is involved</th></tr></thead><tbody><tr><td>Route 53</td><td>DNS for <code>unifolio.in</code>. <code>staging.unifolio.in</code> → CloudFront, <code>staging-api.unifolio.in</code> → ALB.</td><td>Every visit</td></tr><tr><td>CloudFront + S3 (frontend)</td><td>Serves the built React app from a private bucket.</td><td>Page load only. The API never goes through CloudFront.</td></tr><tr><td>ALB</td><td>HTTPS on 443, health-checks <code>/health</code>, forwards to the one backend task on port 8000.</td><td>Every API call</td></tr><tr><td>ECS Fargate backend task</td><td>The FastAPI app. <b>Exactly one task</b> (desired count 1) because review sessions, the password-retry buffer, the PDF-export payloads and several caches live in its RAM.</td><td>Every API call</td></tr><tr><td>ECS Fargate job tasks</td><td>Short-lived containers from the same image: 7 scheduled jobs, plus the analytics recompute the backend launches with <code>ecs:RunTask</code>.</td><td>Schedules and after each import</td></tr><tr><td>RDS PostgreSQL 16</td><td>All 20 tables. Private data subnets, encrypted with the KMS key, reachable only from ECS and the bastion.</td><td>Every read and write</td></tr><tr><td>S3 CAS bucket</td><td>Uploaded CAS PDFs at <code>{user_id}/{import_id}.pdf</code>, SSE-KMS, lifecycle rule deletes after 30 days.</td><td>Confirm Import; daily expiry job</td></tr><tr><td>Secrets Manager</td><td>RDS password and the two PAN keys, injected into the containers as environment variables when a task starts.</td><td>Task start</td></tr><tr><td>KMS</td><td>One customer key encrypting RDS storage, the secrets and the CAS bucket.</td><td>Implicit on every encrypted read/write</td></tr><tr><td>EventBridge Scheduler</td><td>Cron schedules in <code>Asia/Kolkata</code> that launch the job tasks.</td><td>06:00, 06:30, 08:00, 19:00 IST</td></tr><tr><td>SES</td><td>Sends email OTPs when <code>EMAIL_DELIVERY_MODE=ses</code>. SMS is still stub mode: the phone code is returned on screen.</td><td>Email OTP request</td></tr><tr><td>fck-nat (EC2)</td><td>Self-hosted NAT. Every outbound call from the private subnets leaves through it: mfapi.in, AMFI, NSE, Google, and AWS APIs (there are no VPC endpoints).</td><td>Any external or AWS API call</td></tr><tr><td>CloudWatch Logs</td><td>stdout of each task: <code>/ecs/staging-backend</code>, <code>/ecs/staging-analytics-recompute</code>, <code>/ecs/staging-job-*</code>.</td><td>Always</td></tr><tr><td>Bastion (SSM)</td><td>Operator access to RDS for <code>alembic upgrade</code> and <code>psql</code>, over an SSM port-forward. No SSH.</td><td>Deploys and debugging</td></tr></tbody></table></div>
+  <p class="callout"><b>Request path used everywhere below:</b> browser → Route 53 (<code>staging-api.unifolio.in</code>) → ALB :443 → ECS backend task :8000 → RDS :5432 inside the VPC. The session token is sent as <code>Authorization: Bearer …</code>; the backend hashes it and looks it up in <code>sessions</code> on every authenticated request. When a step below says “AWS: standard path”, this is what it means.</p>
+</section>
+
+<section id="schema">
+  <div class="section-head"><div class="qtags"><span class="qtag">Q5</span></div><h2>Full ER diagram: all 20 tables</h2><p>Built from the SQLAlchemy models in <code>backend/app/models/</code> at migration 0016. Dashed line = related by value, no foreign key.</p></div>
+  <div class="diagram"><pre class="mermaid">erDiagram
+    users ||--o{ household_members : "owns"
+    users ||--o{ auth_identities : "logs in with"
+    users ||--o{ sessions : "has"
+    users |o--o{ pending_identity_verifications : "matched_user_id (nullable)"
+    users ||--o| analytics_recompute_status : "has"
+    users ||--o{ analytics_sections : "has"
+    household_members |o--o{ analytics_sections : "member scope (nullable)"
+    household_members ||--o{ imports : "has"
+    household_members ||--o{ folios : "holds"
+    household_members ||--o{ portfolio_snapshots : "has"
+    schemes ||--o{ folios : "held as"
+    folios ||--o{ transactions : "contains"
+    imports ||--o{ transactions : "created"
+    schemes ||--o{ nav_history : "has"
+    schemes ||--o{ scheme_ter : "has"
+    schemes ||--o{ scheme_aaum : "has"
+    schemes ||--o{ fund_scores : "has"
+    folios }o..o| arn_directory : "arn_code lookup, no FK"
+
+    users {
+        uuid id PK
+        string phone_number UK "NOT NULL"
+        string email "nullable, copy of best identity email"
+        timestamptz created_at
+        string onboarding_step
+        timestamptz onboarding_completed_at
+        enum investor_type
+        enum primary_goal
+        bool pending_deletion
+        timestamptz deletion_scheduled_at
+    }
+    otp_requests {
+        uuid id PK
+        string phone_number "exactly one of phone/email"
+        string email "exactly one of phone/email"
+        string otp_hash "sha256 of the 6 digits"
+        timestamptz expires_at "created + 5 min"
+        timestamptz verified_at "NULL until correct code"
+        int attempt_count "max 5"
+        timestamptz created_at
+    }
+    pending_identity_verifications {
+        uuid id PK
+        enum provider "email_otp or google"
+        string provider_subject
+        string email
+        bool email_verified
+        uuid matched_user_id FK "NULL = new signup"
+        string token_hash "sha256 of browser token"
+        timestamptz expires_at "created + 10 min"
+        timestamptz created_at
+    }
+    auth_identities {
+        uuid id PK
+        uuid user_id FK
+        enum provider "phone_otp, email_otp, google"
+        string provider_subject "UK with provider"
+        string email "denormalized claim"
+        timestamptz identifier_verified_at
+        timestamptz created_at
+        timestamptz last_used_at
+    }
+    sessions {
+        uuid id PK
+        uuid user_id FK
+        string session_token_hash "sha256 of bearer token"
+        enum auth_method
+        timestamptz created_at
+        timestamptz expires_at "created + 30 days"
+        timestamptz last_active_at
+        string device_info "always NULL today"
+    }
+    household_members {
+        uuid id PK
+        uuid user_id FK
+        string name
+        enum relationship "one self per user"
+        string relationship_other_label
+        timestamptz created_at
+        string pan_encrypted "AES-256-GCM"
+        string pan_lookup_hash UK "HMAC-SHA256"
+        timestamptz pan_pending_until "NULL = permanent"
+    }
+    imports {
+        uuid id PK
+        uuid household_member_id FK
+        enum status
+        enum source_cas_type "cams or kfintech"
+        json raw_parser_output "PAN removed"
+        enum error_type
+        string error_code
+        string error_message
+        string source_tab
+        date statement_from_date
+        date statement_to_date
+        int new_transactions_count
+        int duplicate_transactions_count
+        timestamptz uploaded_at
+        timestamptz confirmed_at
+        timestamptz expires_at "CAMS request TTL"
+        string file_reference "S3 key"
+        timestamptz file_expires_at "+30 days"
+    }
+    folios {
+        uuid id PK
+        uuid household_member_id FK "UK with scheme + number"
+        uuid scheme_id FK
+        string folio_number
+        string arn_code
+        enum plan_type "direct, regular, unclassified"
+        bool has_coverage_gap
+        json coverage_gap_details
+    }
+    transactions {
+        uuid id PK "PK is id + date"
+        date date PK "yearly partition key"
+        uuid folio_id FK
+        uuid import_id FK
+        enum type "12 types"
+        numeric amount "14,2 unsigned"
+        numeric units "14,3 unsigned"
+        numeric nav "10,4"
+        string raw_description
+    }
+    portfolio_snapshots {
+        uuid household_member_id PK
+        date snapshot_month PK "month-end date"
+        numeric total_value "18,2"
+        timestamptz computed_at
+    }
+    schemes {
+        uuid id PK
+        string amfi_code UK
+        string isin
+        string name
+        string amc_name
+        string sebi_category
+        enum plan_name_variant "direct, regular, unresolved"
+    }
+    nav_history {
+        uuid scheme_id PK
+        date date PK
+        numeric nav "10,4"
+    }
+    scheme_ter {
+        uuid scheme_id PK
+        date reference_period PK "1st of month"
+        numeric ter_value "NULL = checked, no match"
+    }
+    scheme_aaum {
+        uuid scheme_id PK
+        date reference_period PK
+        numeric aaum_value "18,2"
+    }
+    fund_scores {
+        uuid scheme_id PK
+        timestamptz computed_at PK
+        int risk_adjusted_tier
+        numeric cost_adjustment
+        numeric final_score
+    }
+    benchmark_index_history {
+        enum index_name PK "4 Nifty indices"
+        date date PK
+        numeric value "12,2"
+    }
+    arn_directory {
+        string arn_code PK
+        string distributor_name
+        enum status
+        timestamptz last_checked_at
+    }
+    analytics_sections {
+        uuid user_id PK
+        string scope_key PK "combined or member id"
+        string section PK "7 names"
+        uuid household_member_id FK "NULL for combined"
+        json payload
+        timestamptz computed_at
+        timestamptz failed_at
+    }
+    analytics_recompute_status {
+        uuid user_id PK
+        timestamptz started_at "NULL = idle"
+        int generation "data version"
+    }
+    account_deletion_surveys {
+        uuid id PK
+        string reason
+        string feedback
+        timestamptz created_at "no FK, anonymous"
+    }</pre></div>
+  <h3>How the tables connect</h3>
+  <div class="tbl-wrap wide"><table><thead><tr><th>Group</th><th>Tables</th><th>How they connect</th></tr></thead><tbody><tr><td>Identity</td><td><code>users</code>, <code>auth_identities</code>, <code>sessions</code></td><td><code>auth_identities.user_id</code> and <code>sessions.user_id</code> → <code>users.id</code>. One user, many login methods, many sessions.</td></tr><tr><td>Before an account exists</td><td><code>otp_requests</code>, <code>pending_identity_verifications</code></td><td><code>otp_requests</code> has <b>no foreign key</b>; it is matched by the phone or email value. <code>pending_identity_verifications.matched_user_id</code> points at <code>users</code> only when linking a new login method to an existing account.</td></tr><tr><td>Household</td><td><code>household_members</code></td><td><code>user_id</code> → <code>users.id</code>. Every portfolio row hangs off a member, never directly off the user. PAN lives here.</td></tr><tr><td>Portfolio</td><td><code>imports</code>, <code>folios</code>, <code>transactions</code>, <code>portfolio_snapshots</code></td><td><code>imports</code>, <code>folios</code> and <code>portfolio_snapshots</code> → <code>household_members.id</code>. <code>transactions</code> → <code>folios.id</code> (which folio) and → <code>imports.id</code> (which upload created it). <code>folios.scheme_id</code> → <code>schemes.id</code>.</td></tr><tr><td>Reference data, shared by everyone</td><td><code>schemes</code>, <code>nav_history</code>, <code>scheme_ter</code>, <code>scheme_aaum</code>, <code>fund_scores</code>, <code>benchmark_index_history</code>, <code>arn_directory</code></td><td>No user or member column at all. <code>nav_history</code>, <code>scheme_ter</code>, <code>scheme_aaum</code>, <code>fund_scores</code> → <code>schemes.id</code>. <code>arn_directory</code> is looked up by <code>folios.arn_code</code> text, no FK. <code>benchmark_index_history</code> stands alone.</td></tr><tr><td>Analytics output</td><td><code>analytics_sections</code>, <code>analytics_recompute_status</code></td><td>Both keyed by <code>user_id</code> → <code>users.id</code>. <code>analytics_sections.household_member_id</code> is filled for member scopes, NULL for the combined scope.</td></tr><tr><td>Anonymous</td><td><code>account_deletion_surveys</code></td><td>Deliberately no FK, so exit feedback survives the account being deleted.</td></tr></tbody></table></div>
+  <div class="facts">
+    <div class="fact"><strong>The spine</strong><span><code>users</code> → <code>household_members</code> → <code>folios</code> → <code>transactions</code>, with <code>schemes</code> joining from the side.</span></div>
+    <div class="fact"><strong>User data vs market data</strong><span>Deleting an account deletes the spine. It never touches <code>schemes</code>, NAVs, TER, AAUM or benchmarks, which other users share.</span></div>
+    <div class="fact"><strong>Partitioned ledger</strong><span><code>transactions</code> is partitioned by year on Postgres, so its primary key is <code>(id, date)</code>.</span></div>
+    <div class="fact"><strong>Duplicate guard</strong><span>Unique <code>(folio_id, date, amount, units, type)</code> on <code>transactions</code>: re-uploading an overlapping CAS skips rows it already has.</span></div>
+  </div>
+</section>
+
+<section id="signup">
+  <div class="section-head"><div class="qtags"><span class="qtag">Q1</span><span class="qtag">Q2</span><span class="qtag">Q3</span></div><h2>Signup and the OTP tables</h2><p>Email first, then the mandatory phone step. No <code>users</code> row exists until the phone code is verified.</p></div>
+  <div class="legend">
+  <span><i class="lg-db"></i>Database write</span>
+  <span><i class="lg-create"></i>Key write (row created)</span>
+  <span><i class="lg-none"></i>Error / nothing written</span>
+  <span><i class="lg-aws"></i>AWS service involved</span>
+  <span><i class="lg-pop"></i>Popup</span>
+  <span><i class="lg-br"></i>Browser only</span>
+</div>
+  <div class="diagram"><pre class="mermaid">flowchart TD
+    A["Landing screen: sign up with email"] --&gt;|"POST /auth/signup/email"| B{"auth_identities already has an&lt;br/&gt;email_otp row for this email?"}
+    B --&gt;|Yes| B1["409 'An account with this email already exists.'&lt;br/&gt;nothing written"]
+    B --&gt;|No| C[("INSERT pending_identity_verifications&lt;br/&gt;provider = email_otp, email_verified = false&lt;br/&gt;matched_user_id = NULL&lt;br/&gt;token_hash = sha256(random token)&lt;br/&gt;expires_at = now + 10 min")]
+    C --&gt; D{"Unverified otp_requests row for this&lt;br/&gt;email created under 60 s ago?"}
+    D --&gt;|Yes| D1["429 'Please wait Ns before requesting another code.'"]
+    D --&gt;|No| E["AWS: backend task calls SES SendEmail&lt;br/&gt;through fck-nat (stub mode: code only logged&lt;br/&gt;and returned in the response)"]
+    E --&gt;|"SES error"| E1["502 'We couldn't send that email right now.'&lt;br/&gt;no otp row written"]
+    E --&gt;|"sent"| F[("INSERT otp_requests&lt;br/&gt;email = typed email, phone_number = NULL&lt;br/&gt;otp_hash = sha256(code), attempt_count = 0&lt;br/&gt;expires_at = now + 5 min, verified_at = NULL")]
+    F --&gt; G["Browser holds the raw pending token in memory&lt;br/&gt;Enter-the-code screen"]
+    G --&gt;|"POST /auth/email-otp/verify&lt;br/&gt;email + code + pending_token"| H{"Newest unverified row: not expired,&lt;br/&gt;attempts under 5, hash matches?"}
+    H --&gt;|"wrong code"| H1[("UPDATE otp_requests&lt;br/&gt;attempt_count + 1&lt;br/&gt;401 'Incorrect OTP.'")]
+    H --&gt;|"correct"| I[("UPDATE otp_requests SET verified_at = now&lt;br/&gt;UPDATE pending_identity_verifications&lt;br/&gt;SET email_verified = true")]
+    I --&gt; J["Phone number screen"]
+    J --&gt;|"POST /auth/otp/request + pending_token"| K{"Phone already belongs&lt;br/&gt;to an account?"}
+    K --&gt;|Yes| K1["409 'An account with this phone number already exists.'"]
+    K --&gt;|No| L[("INSERT otp_requests&lt;br/&gt;phone_number = typed number, email = NULL&lt;br/&gt;SMS is stub mode: code shown on screen")]
+    L --&gt;|"POST /auth/otp/verify&lt;br/&gt;phone + code + pending_token"| M{"Phone code valid?"}
+    M --&gt;|"wrong"| H1
+    M --&gt;|"correct"| N[("Commit 1: UPDATE otp_requests.verified_at&lt;br/&gt;Commit 2, atomic: INSERT users (phone, email)&lt;br/&gt;INSERT auth_identities phone_otp + email_otp&lt;br/&gt;DELETE the pending_identity_verifications row&lt;br/&gt;Commit 3: INSERT sessions")]
+    N --&gt; O["Onboarding Q1 to Q4"]
+    class C,F,H1,I,L db
+    class N create
+    class B1,D1,E1,K1 none
+    class E aws
+    class G browser
+    classDef db fill:#fff4d6,stroke:#b8860b,color:#000
+    classDef read fill:#eef2f7,stroke:#64748b,color:#000
+    classDef none fill:#ffd6d6,stroke:#c0392b,color:#000
+    classDef aws fill:#ffe8cc,stroke:#d9730d,color:#000
+    classDef popup fill:#e8e8ff,stroke:#5b5bd6,color:#000
+    classDef browser fill:#e6f7ea,stroke:#2e8b57,color:#000
+    classDef create fill:#fde68a,stroke:#b45309,color:#000,stroke-width:2px</pre></div>
+  <div class="tbl-wrap wide"><table><thead><tr><th>Step</th><th>Endpoint</th><th>Rows touched</th><th>AWS at this point</th></tr></thead><tbody><tr><td>1. Enter email</td><td><code>POST /auth/signup/email</code></td><td>INSERT <code>pending_identity_verifications</code>; INSERT <code>otp_requests</code> (email)</td><td>Standard path + SES <code>SendEmail</code> through fck-nat</td></tr><tr><td>2. Enter email code</td><td><code>POST /auth/email-otp/verify</code> with <code>pending_token</code></td><td>UPDATE <code>otp_requests.verified_at</code>; UPDATE <code>pending_identity_verifications.email_verified = true</code></td><td>Standard path</td></tr><tr><td>3. Enter phone</td><td><code>POST /auth/otp/request</code> with <code>pending_token</code></td><td>SELECT <code>auth_identities</code>/<code>users</code> for the phone; INSERT <code>otp_requests</code> (phone)</td><td>Standard path. No SMS provider yet: stub mode returns the code</td></tr><tr><td>4. Enter phone code</td><td><code>POST /auth/otp/verify</code> with <code>pending_token</code></td><td>UPDATE <code>otp_requests.verified_at</code>; INSERT <code>users</code>; INSERT 2 × <code>auth_identities</code>; DELETE <code>pending_identity_verifications</code>; INSERT <code>sessions</code></td><td>Standard path</td></tr></tbody></table></div>
+  <div class="sub">
+    <h3>The two holding tables and how they relate</h3>
+    <div class="diagram"><pre class="mermaid">erDiagram
+    users ||--o{ auth_identities : "user_id FK"
+    users ||--o{ sessions : "user_id FK"
+    users |o--o{ pending_identity_verifications : "matched_user_id FK, only when linking"
+    otp_requests }o..o{ auth_identities : "no FK: same phone or email VALUE"
+    otp_requests }o..o{ pending_identity_verifications : "no FK: same email VALUE"
+
+    otp_requests {
+        uuid id PK
+        string phone_number
+        string email
+        string otp_hash
+        timestamptz expires_at
+        timestamptz verified_at
+        int attempt_count
+    }
+    pending_identity_verifications {
+        uuid id PK
+        enum provider
+        string provider_subject
+        string email
+        bool email_verified
+        uuid matched_user_id FK
+        string token_hash
+        timestamptz expires_at
+    }
+    users {
+        uuid id PK
+        string phone_number UK
+        string email
+    }
+    auth_identities {
+        uuid id PK
+        uuid user_id FK
+        enum provider
+        string provider_subject
+        string email
+    }
+    sessions {
+        uuid id PK
+        uuid user_id FK
+        string session_token_hash
+        timestamptz expires_at
+    }</pre></div>
+    <div class="facts">
+      <div class="fact"><strong>otp_requests: one row per code sent</strong><span>Phone and email share the table; a check constraint forces exactly one of <code>phone_number</code>/<code>email</code>. Only a SHA-256 of the code is stored.</span></div>
+      <div class="fact"><strong>pending_identity_verifications: one row per signup attempt</strong><span>Remembers “this email is being signed up” across the email and phone steps, tied to a random token the browser holds.</span></div>
+      <div class="fact"><strong>Rules in code</strong><span>Code: 6 digits, 5 min life, 5 attempts, 60 s resend gap. Pending token: 10 min life.</span></div>
+    </div>
+  </div>
+  <div class="sub">
+    <h3>Lifecycle of one otp_requests row (Q1)</h3>
+    <div class="diagram"><pre class="mermaid">stateDiagram-v2
+    [*] --&gt; Waiting: request endpoint INSERTs the row
+    Waiting: WAITING&lt;br/&gt;verified_at = NULL, attempt_count = 0
+    Waiting --&gt; Waiting: wrong code, attempt_count + 1
+    Waiting --&gt; Verified: right code within 5 minutes
+    Verified: VERIFIED&lt;br/&gt;verified_at = time of success
+    Waiting --&gt; Expired: 5 minutes pass
+    Expired: EXPIRED&lt;br/&gt;row unchanged, verify refuses it
+    Waiting --&gt; Locked: 5 wrong attempts
+    Locked: LOCKED&lt;br/&gt;row unchanged, verify refuses it
+    Waiting --&gt; Superseded: Resend after 60 s adds a newer row
+    Superseded: SUPERSEDED&lt;br/&gt;verify always reads the newest unverified row
+    Verified --&gt; [*]: row kept, no cleanup job
+    Expired --&gt; [*]: row kept, no cleanup job
+    Locked --&gt; [*]: row kept, no cleanup job
+    Superseded --&gt; [*]: row kept, no cleanup job</pre></div>
+    <p>Verification always reads the <b>newest unverified</b> row for that phone or email (<code>otp.py: verify_otp</code>). A resend therefore makes older codes useless even if they have not expired. Rows are only ever deleted by the account hard-delete job, which removes every OTP row matching the deleted user's phone numbers and emails.</p>
+  </div>
+  <div class="sub">
+    <div class="answer"><strong>Q2 · The user generates an OTP and leaves</strong>
+      <p>Nothing is rolled back and nothing is cleaned up. The rows written so far stay in the database: they simply stop working once their time runs out. There is no scheduled job that deletes expired <code>otp_requests</code> or <code>pending_identity_verifications</code> rows, and no <code>users</code> row was ever created, so there is no half-made account to clean up.</p>
+    </div>
+    <div class="tbl-wrap wide"><table><thead><tr><th>Left at</th><th>Rows that exist</th><th>What happens to them</th><th>When the user comes back</th></tr></thead><tbody><tr><td>Right after an email code is sent</td><td><code>pending_identity_verifications</code> (unverified) + <code>otp_requests</code> (unverified)</td><td>Code dead after 5 min, pending token dead after 10 min. Both rows stay in the table.</td><td>Starts again from the email screen. <code>signup/email</code> makes a new pending row; a new code can be requested once the last one is 60 s old.</td></tr><tr><td>After the email code, before the phone</td><td>Pending row with <code>email_verified = true</code>; verified email OTP row</td><td>Pending row expires 10 min after it was created, not after the code.</td><td>Returning within 10 min in the same tab continues. Later: “This verification has expired. Please start over.”</td></tr><tr><td>After the phone code is sent</td><td>As above + an unverified phone <code>otp_requests</code> row</td><td>No <code>users</code> row exists yet.</td><td>Start over. No account was created.</td></tr></tbody></table></div>
+  </div>
+  <div class="answer"><strong>Q3 · How the pending row is deleted after the phone is verified</strong>
+    <p>The link is a <b>token</b>, not a user id. <code>POST /auth/signup/email</code> generates a random token, stores only its SHA-256 in <code>pending_identity_verifications.token_hash</code>, and returns the raw token to the browser once (<code>email_otp_required.token</code>). The browser sends it back as <code>pending_token</code> on every later call.</p>
+    <p>On the phone verify call, <code>complete_phone_gate_signup()</code> hashes that token, finds the one pending row whose <code>token_hash</code> matches, checks it is unexpired and has <code>matched_user_id = NULL</code>, then in a single commit: INSERTs the <code>users</code> row, INSERTs the <code>phone_otp</code> and <code>email_otp</code> identities, and DELETEs that exact pending row. The backend does not look at <code>users</code> to decide what to delete; the token is the pointer. If any part fails, the whole commit rolls back and the pending row survives.</p>
+    <p><code>otp_requests</code> rows are <b>not</b> deleted at signup. They stay with <code>verified_at</code> filled in.</p>
+  </div>
+</section>
+
+<section id="login">
+  <div class="section-head"><div class="qtags"><span class="qtag">Q10</span></div><h2>Login only</h2><p>Three entry points. All of them end in one new <code>sessions</code> row; the phone path has one known flaw.</p></div>
+  <div class="legend">
+  <span><i class="lg-db"></i>Database write</span>
+  <span><i class="lg-create"></i>Key write (row created)</span>
+  <span><i class="lg-none"></i>Error / nothing written</span>
+  <span><i class="lg-aws"></i>AWS service involved</span>
+  <span><i class="lg-pop"></i>Popup</span>
+  <span><i class="lg-br"></i>Browser only</span>
+</div>
+  <div class="diagram"><pre class="mermaid">flowchart TD
+    A["Log in screen"] --&gt; P["Phone"]
+    A --&gt; E["Email"]
+    A --&gt; G["Continue with Google"]
+    P --&gt;|"POST /auth/otp/request, no pending_token"| P1[("INSERT otp_requests (phone)&lt;br/&gt;no account check at this step")]
+    P1 --&gt;|"POST /auth/otp/verify"| P2{"Code valid?"}
+    P2 --&gt;|No| P2x[("UPDATE otp_requests attempt_count + 1&lt;br/&gt;401 shown under the code boxes")]
+    P2 --&gt;|Yes| P3[("UPDATE otp_requests.verified_at")]
+    P3 --&gt; P4{"auth_identities row with&lt;br/&gt;provider phone_otp, subject = phone?"}
+    P4 --&gt;|Yes| S
+    P4 --&gt;|"No, but users.phone_number matches"| P5[("INSERT auth_identities (self-heal for&lt;br/&gt;accounts created before migration 0005)")]
+    P5 --&gt; S
+    P4 --&gt;|"No account anywhere"| P6[("INSERT users + auth_identities&lt;br/&gt;KNOWN ISSUE: logs in as a brand-new account")]
+    P6 --&gt; S
+    E --&gt;|"POST /auth/email-otp/request"| E1["AWS: SES SendEmail via fck-nat"]
+    E1 --&gt;|"SES error"| E1x["502 'We couldn't send that email right now.'"]
+    E1 --&gt;|sent| E2[("INSERT otp_requests (email)&lt;br/&gt;sent even when no account exists")]
+    E2 --&gt;|"POST /auth/email-otp/verify, no pending_token"| E3{"Code valid?"}
+    E3 --&gt;|No| P2x
+    E3 --&gt;|Yes| E4[("UPDATE otp_requests.verified_at")]
+    E4 --&gt; E5{"auth_identities email_otp row&lt;br/&gt;for this email?"}
+    E5 --&gt;|No| E5x["401 'No account found for that email — sign up instead.'"]
+    E5 --&gt;|Yes| S
+    G --&gt;|"POST /auth/oauth/google with ID token"| G1["AWS: task fetches Google's public certs&lt;br/&gt;through fck-nat and verifies the token"]
+    G1 --&gt; G2{"auth_identities google row&lt;br/&gt;for this Google sub?"}
+    G2 --&gt;|Yes| S
+    G2 --&gt;|"No, but the verified email matches&lt;br/&gt;another identity"| G3[("INSERT auth_identities (google)&lt;br/&gt;UPDATE users.email · auto-link")]
+    G3 --&gt; S
+    G2 --&gt;|"No match at all"| G4[("INSERT pending_identity_verifications&lt;br/&gt;continues as a signup via the phone gate")]
+    S[("INSERT sessions&lt;br/&gt;session_token_hash = sha256(token)&lt;br/&gt;auth_method = method used&lt;br/&gt;expires_at = now + 30 days&lt;br/&gt;device_info = NULL")]
+    S --&gt; T["Browser stores token in localStorage&lt;br/&gt;GET /auth/me: SELECT sessions by hash, SELECT users&lt;br/&gt;onboarding done → dashboard, else resume at onboarding_step"]
+    class P1,P2x,P3,P5,E2,E4,G3,G4 db
+    class S,P6 create
+    class E1x,E5x none
+    class E1,G1 aws
+    class T browser
+    classDef db fill:#fff4d6,stroke:#b8860b,color:#000
+    classDef read fill:#eef2f7,stroke:#64748b,color:#000
+    classDef none fill:#ffd6d6,stroke:#c0392b,color:#000
+    classDef aws fill:#ffe8cc,stroke:#d9730d,color:#000
+    classDef popup fill:#e8e8ff,stroke:#5b5bd6,color:#000
+    classDef browser fill:#e6f7ea,stroke:#2e8b57,color:#000
+    classDef create fill:#fde68a,stroke:#b45309,color:#000,stroke-width:2px</pre></div>
+  <div class="tbl-wrap wide"><table><thead><tr><th>Table</th><th>What login does to it</th><th>Which method</th></tr></thead><tbody><tr><td><code>otp_requests</code></td><td>INSERT (code sent); UPDATE <code>attempt_count</code> on a wrong code; UPDATE <code>verified_at</code> on success</td><td>Phone and email login</td></tr><tr><td><code>auth_identities</code></td><td>SELECT by <code>(provider, provider_subject)</code>. INSERT only in two edge cases: the pre-0005 self-heal, or Google auto-link</td><td>All methods</td></tr><tr><td><code>users</code></td><td>SELECT (for <code>/auth/me</code> and onboarding state). INSERT only in the unknown-phone case</td><td>All methods</td></tr><tr><td><code>sessions</code></td><td>INSERT one row per login: token hash, method, 30-day expiry</td><td>All methods</td></tr><tr><td><code>pending_identity_verifications</code></td><td>INSERT only when a Google login turns out to be a new person</td><td>Google</td></tr><tr><td>Not touched</td><td><code>auth_identities.last_used_at</code> is not updated on login; <code>sessions.device_info</code> stays NULL; no household or portfolio table is read until the dashboard loads</td><td>—</td></tr></tbody></table></div>
+  <p class="callout"><b>AWS during login:</b> standard path for every call. Email login adds SES <code>SendEmail</code>; Google login adds an outbound HTTPS call to Google's certificate endpoint through fck-nat. After login, the browser stores the raw token in <code>localStorage</code> and every request carries it; the backend's <code>get_current_session()</code> SELECTs <code>sessions</code> by hash and rejects it after <code>expires_at</code>.</p>
+  <p class="callout warn"><b>Known issue, deferred by decision:</b> phone login with a number that has no account silently creates a new account instead of saying “no account found”, which email login does. See <code>session.md</code> item 9.</p>
+</section>
+
+<section id="onboarding">
+  <div class="section-head"><div class="qtags"><span class="qtag">Q7</span></div><h2>Onboarding: users and household_members</h2><p>The account exists from the phone step. Onboarding fills in <code>users</code> and creates one <code>household_members</code> row per person.</p></div>
+  <div class="legend">
+  <span><i class="lg-db"></i>Database write</span>
+  <span><i class="lg-create"></i>Key write (row created)</span>
+  <span><i class="lg-none"></i>Error / nothing written</span>
+  <span><i class="lg-aws"></i>AWS service involved</span>
+  <span><i class="lg-pop"></i>Popup</span>
+  <span><i class="lg-br"></i>Browser only</span>
+</div>
+  <div class="diagram"><pre class="mermaid">flowchart TD
+    A["Session created&lt;br/&gt;users row exists, no household_members yet"] --&gt; Q1["Q1 Name&lt;br/&gt;name kept in the browser only"]
+    Q1 --&gt;|"PATCH /auth/me"| W1[("UPDATE users.onboarding_step")]
+    W1 --&gt; Q2["Q2 Investing style"]
+    Q2 --&gt;|"PATCH /auth/me"| W2[("UPDATE users.investor_type, onboarding_step")]
+    W2 --&gt; Q3["Q3 Purpose"]
+    Q3 --&gt;|"PATCH /auth/me"| W3[("UPDATE users.primary_goal, onboarding_step")]
+    W3 --&gt; Q4{"Q4 Household"}
+    Q4 --&gt;|"Just me"| J[("POST /household-members&lt;br/&gt;INSERT household_members&lt;br/&gt;relationship = self, name = Q1 name&lt;br/&gt;all 3 PAN columns NULL")]
+    Q4 --&gt;|"Family too"| F[("POST /household-members once per person&lt;br/&gt;INSERT household_members&lt;br/&gt;spouse / parent / child / sibling / other")]
+    F --&gt; F2{"Upload your own CAS?"}
+    F2 --&gt;|"Upload now"| J2[("INSERT household_members relationship = self&lt;br/&gt;only if no self row exists yet")]
+    F2 --&gt;|"Later"| C
+    J --&gt; C["CAS import step, sections 6 and 7"]
+    J2 --&gt; C
+    C --&gt; Z[("PATCH /auth/me onboarding_completed = true&lt;br/&gt;UPDATE users.onboarding_completed_at = now&lt;br/&gt;first time only, never un-set")]
+    Z --&gt; D["Main dashboard"]
+    class W1,W2,W3,J,F,J2,Z db
+    class Q1 browser
+    classDef db fill:#fff4d6,stroke:#b8860b,color:#000
+    classDef read fill:#eef2f7,stroke:#64748b,color:#000
+    classDef none fill:#ffd6d6,stroke:#c0392b,color:#000
+    classDef aws fill:#ffe8cc,stroke:#d9730d,color:#000
+    classDef popup fill:#e8e8ff,stroke:#5b5bd6,color:#000
+    classDef browser fill:#e6f7ea,stroke:#2e8b57,color:#000
+    classDef create fill:#fde68a,stroke:#b45309,color:#000,stroke-width:2px</pre></div>
+  <div class="answer"><strong>Q7 · users and household_members</strong>
+    <ul>
+      <li><b>One to many.</b> <code>household_members.user_id</code> → <code>users.id</code>. A login (the user) manages several people's portfolios (the members).</li>
+      <li><b>The user's own name lives on the member.</b> <code>users</code> has no name column. The Q1 name becomes <code>household_members.name</code> of the <code>relationship = self</code> row, created on the “Just me” screen or when a family user chooses to upload their own CAS.</li>
+      <li><b>One self per user.</b> A partial unique index (migration 0011) allows only one <code>self</code> row per user; the API turns a second attempt into a 409.</li>
+      <li><b>Created only through <code>POST /household-members</code>.</b> There is no edit or delete endpoint for a member today. Members are removed only by the account hard-delete job.</li>
+      <li><b>Afterwards:</b> every dashboard and analytics read starts with <code>SELECT household_members WHERE user_id = me</code>, and every member-specific route first checks the member belongs to the caller (so one user can't read another's member by guessing its id).</li>
+    </ul>
+    <p><b>AWS:</b> standard path; each screen is one small <code>PATCH /auth/me</code> or <code>POST /household-members</code>.</p>
+  </div>
+</section>
+
+<section id="upload">
+  <div class="section-head"><div class="qtags"><span class="qtag">Q24</span><span class="qtag">Q25</span></div><h2>CAS upload, password, and parsing</h2><p>The whole of <code>POST /imports/parse</code>. The only database write in this step is the pending PAN, and only after the PDF has passed every check.</p></div>
+  <div class="legend">
+  <span><i class="lg-db"></i>Database write</span>
+  <span><i class="lg-create"></i>Key write (row created)</span>
+  <span><i class="lg-none"></i>Error / nothing written</span>
+  <span><i class="lg-aws"></i>AWS service involved</span>
+  <span><i class="lg-pop"></i>Popup</span>
+  <span><i class="lg-br"></i>Browser only</span>
+</div>
+  <div class="diagram"><pre class="mermaid">flowchart TD
+    A["Upload form: pick PDF, type password"] --&gt; B{"Browser checks: a .pdf chosen&lt;br/&gt;and under 25 MB?"}
+    B --&gt;|No| Bx["Red text under the file picker&lt;br/&gt;nothing sent"]
+    B --&gt;|Yes| C["'Parsing…' spinner&lt;br/&gt;POST /imports/parse, multipart: file, password, household_member_id&lt;br/&gt;HTTPS: Route 53 → ALB → backend task"]
+    C --&gt; D{"Valid session and&lt;br/&gt;account not pending deletion?"}
+    D --&gt;|No| Dx["401 or 403"]
+    D --&gt;|Yes| E{"Filename ends in .pdf?"}
+    E --&gt;|No| Ex["400 invalid_file 'Please upload a PDF file.'"]
+    E --&gt;|Yes| F{"household_member_id is&lt;br/&gt;one of this user's members?"}
+    F --&gt;|No| Fx["404 'Household member not found.'"]
+    F --&gt;|Yes| G{"Size ≤ 25 MB and bytes&lt;br/&gt;start with %PDF- ?"}
+    G --&gt;|"too big"| Gx1["413 file_too_large"]
+    G --&gt;|"not a PDF"| Gx2["400 invalid_file 'PDF only — please upload&lt;br/&gt;a CAS statement in PDF format.'"]
+    G --&gt;|OK| H["Write bytes to a temp file on the task's disk&lt;br/&gt;casparser.read_cas_pdf(path, password)&lt;br/&gt;temp file deleted in finally"]
+    H --&gt;|"cannot decrypt"| Hx1["422 wrong_password"]
+    H --&gt;|"no text layer"| Hx2["422 unreadable_pdf"]
+    H --&gt;|"a PDF but not a CAS"| Hx3["422 parse_failed"]
+    H --&gt;|"NSDL / CDSL statement"| Hx4["422 demat_cas"]
+    H --&gt;|"Summary CAS"| Hx5["422 summary_cas"]
+    Hx1 &amp; Hx2 &amp; Hx3 &amp; Hx4 &amp; Hx5 --&gt; Q["'Import failed' screen: message + Try again&lt;br/&gt;nothing in RDS, nothing in S3, password discarded"]
+    H --&gt;|"Detailed CAMS / KFintech CAS"| I["Normalise in task RAM: investor, schemes, transactions&lt;br/&gt;raw PAN kept on ParseResult.investor.pan&lt;br/&gt;raw_json built with every PAN set to None"]
+    I --&gt; J["AWS: fck-nat → mfapi.in&lt;br/&gt;scheme list + category per scheme"]
+    J --&gt; K["Review session saved in task RAM&lt;br/&gt;_preview_sessions, 60 min"]
+    K --&gt; L{"PAN check against&lt;br/&gt;household_members.pan_lookup_hash"}
+    L --&gt;|"conflict"| Lx["409 popup, session dropped&lt;br/&gt;nothing written"]
+    L --&gt;|OK| M[("UPDATE household_members&lt;br/&gt;pan_encrypted, pan_lookup_hash&lt;br/&gt;pan_pending_until = now + 65 min · COMMIT")]
+    M --&gt; N["200 preview JSON with masked PAN → Review screen"]
+    class Bx browser
+    class Dx,Ex,Fx,Gx1,Gx2,Hx1,Hx2,Hx3,Hx4,Hx5,Q none
+    class J aws
+    class Lx popup
+    class M db
+    classDef db fill:#fff4d6,stroke:#b8860b,color:#000
+    classDef read fill:#eef2f7,stroke:#64748b,color:#000
+    classDef none fill:#ffd6d6,stroke:#c0392b,color:#000
+    classDef aws fill:#ffe8cc,stroke:#d9730d,color:#000
+    classDef popup fill:#e8e8ff,stroke:#5b5bd6,color:#000
+    classDef browser fill:#e6f7ea,stroke:#2e8b57,color:#000
+    classDef create fill:#fde68a,stroke:#b45309,color:#000,stroke-width:2px</pre></div>
+  <div class="answer"><strong>Q24 · Where the password goes</strong>
+    <ul>
+      <li>Typed into the upload form, sent once as a multipart form field alongside the file, over HTTPS to the ALB (TLS ends there) and on to the ECS task.</li>
+      <li>In the task it is a local variable handed to <code>casparser.read_cas_pdf(temp_path, password)</code> to decrypt the PDF. That is its only use.</li>
+      <li><b>It is never stored or verified against anything.</b> No table has a password column, it is not logged, not kept in the review session, and not saved with the PDF. “Verified” means only that decryption succeeded.</li>
+      <li>The PDF is saved to S3 later, at Confirm, <b>as uploaded</b> (still password-protected).</li>
+    </ul>
+  </div>
+  <div class="answer"><strong>Q24 · How we know it is a CAS and not any PDF</strong>
+    <div class="tbl-wrap "><table><thead><tr><th>Where</th><th>Check</th><th>If it fails</th></tr></thead><tbody><tr><td>Browser</td><td>File type is .pdf and size ≤ 25 MB</td><td>Inline red text under the picker; nothing sent</td></tr><tr><td>API</td><td>Filename ends in <code>.pdf</code></td><td>400 <code>invalid_file</code></td></tr><tr><td>API</td><td>Member belongs to the caller</td><td>404</td></tr><tr><td>API</td><td>≤ 25 MB and first bytes are <code>%PDF-</code> (magic bytes, so a renamed .jpg is caught)</td><td>413 / 400</td></tr><tr><td>casparser</td><td>Password decrypts the PDF</td><td>422 <code>wrong_password</code></td></tr><tr><td>casparser</td><td>PDF has a text layer</td><td>422 <code>unreadable_pdf</code></td></tr><tr><td>casparser</td><td>Text is a CAMS/KFintech CAS it can read. A random PDF fails here</td><td>422 <code>parse_failed</code></td></tr><tr><td>Unifolio</td><td>Not an NSDL/CDSL demat CAS</td><td>422 <code>demat_cas</code></td></tr><tr><td>Unifolio</td><td>Detailed CAS, not a Summary CAS</td><td>422 <code>summary_cas</code></td></tr></tbody></table></div>
+  </div>
+  <div class="answer"><strong>Q24 · Wrong password</strong>
+    <p><code>casparser</code> raises; <code>classify_parse_error()</code> sees “password / decrypt / incorrect” in the message and returns 422 with code <code>wrong_password</code> and the text <i>“Incorrect PDF password. CAMS/KFintech CAS passwords are usually your PAN in uppercase.”</i> The browser swaps the spinner for the <b>“Import failed”</b> card showing that text and a <b>Try again</b> button, which returns to the upload form. In the family flow the same message appears on that member's card with <b>Try again</b> and <b>Skip for now</b>.</p>
+    <p><b>Database:</b> nothing written. <b>AWS:</b> standard path; the temp file on the task's disk is deleted; nothing reaches S3; one request line in CloudWatch.</p>
+  </div>
+  <div class="sub">
+    <h3>Q25 · Inside the parser</h3>
+    <div class="diagram"><pre class="mermaid">flowchart LR
+    A["PDF bytes + password&lt;br/&gt;request memory"] --&gt; B["NamedTemporaryFile&lt;br/&gt;on the task's ephemeral disk"]
+    B --&gt; C["casparser.read_cas_pdf&lt;br/&gt;decrypts, extracts text,&lt;br/&gt;detects statement type"]
+    C --&gt; D{"What came back?"}
+    D --&gt;|"exception"| X0["classify_parse_error:&lt;br/&gt;'password'/'decrypt' → wrong_password&lt;br/&gt;'image'/'scan'/'text' → unreadable_pdf&lt;br/&gt;else → parse_failed"]
+    D --&gt;|"NSDLCASData"| X1["demat_cas"]
+    D --&gt;|"CASData, SUMMARY"| X2["summary_cas"]
+    D --&gt;|"CASData, DETAILED"| E["_normalize_cas_data"]
+    E --&gt; E1["Investor: name, email&lt;br/&gt;PAN from the first folio&lt;br/&gt;mask_pan → A********Z"]
+    E --&gt; E2["Each folio × scheme:&lt;br/&gt;plan variant from the name&lt;br/&gt;ARN from the advisor field&lt;br/&gt;folio plan_type"]
+    E --&gt; E3["Each transaction:&lt;br/&gt;12 canonical types&lt;br/&gt;Decimal quantize, sign removed&lt;br/&gt;rows missing amount/units/NAV skipped + warning"]
+    E --&gt; E4["raw_json: full output&lt;br/&gt;with folio PAN = None"]
+    E1 &amp; E2 &amp; E3 &amp; E4 --&gt; F["ParseResult"]
+    F --&gt; G["build_import_preview:&lt;br/&gt;mfapi match per scheme&lt;br/&gt;ISIN → name ≥ 0.92 → fuzzy"]
+    G --&gt; H["Review session in RAM&lt;br/&gt;+ preview JSON"]
+    class X0,X1,X2 none
+    class G aws
+    classDef db fill:#fff4d6,stroke:#b8860b,color:#000
+    classDef read fill:#eef2f7,stroke:#64748b,color:#000
+    classDef none fill:#ffd6d6,stroke:#c0392b,color:#000
+    classDef aws fill:#ffe8cc,stroke:#d9730d,color:#000
+    classDef popup fill:#e8e8ff,stroke:#5b5bd6,color:#000
+    classDef browser fill:#e6f7ea,stroke:#2e8b57,color:#000
+    classDef create fill:#fde68a,stroke:#b45309,color:#000,stroke-width:2px</pre></div>
+    <p>Everything in this diagram happens in the ECS task's memory, apart from the temp file (seconds, then deleted) and the outbound mfapi.in calls. The result is a <code>ParseResult</code> object and a review session, not database rows.</p>
+  </div>
+</section>
+
+<section id="confirm">
+  <div class="section-head"><div class="qtags"><span class="qtag">Q9</span></div><h2>Upload CAS → Review → Import complete</h2><p>One upload, end to end, with every AWS hop. Confirm writes everything else in one transaction.</p></div>
+  <div class="diagram"><pre class="mermaid">sequenceDiagram
+    autonumber
+    actor U as User
+    participant FE as Browser (app served by CloudFront)
+    participant ALB as ALB (public subnet)
+    participant API as ECS backend task
+    participant MEM as Task RAM (review session)
+    participant EXT as mfapi.in (via fck-nat)
+    participant DB as RDS PostgreSQL
+    participant S3 as S3 CAS bucket
+    participant JOB as ECS recompute task
+    U-&gt;&gt;FE: Choose CAS + password, Upload
+    FE-&gt;&gt;ALB: POST /imports/parse
+    ALB-&gt;&gt;API: forward to port 8000
+    API-&gt;&gt;DB: SELECT sessions, users, household_members (auth + ownership)
+    API-&gt;&gt;API: validate, temp file, casparser, delete temp file
+    API-&gt;&gt;EXT: scheme list + category lookups
+    API-&gt;&gt;MEM: store ParseResult (raw PAN) + PDF bytes, 60 min
+    API-&gt;&gt;DB: SELECT household_members WHERE pan_lookup_hash = HMAC(PAN)
+    API-&gt;&gt;DB: UPDATE household_members pan_* (pending), COMMIT
+    API--&gt;&gt;FE: preview (masked PAN, schemes, transactions)
+    FE--&gt;&gt;U: Review screen
+    U-&gt;&gt;FE: Confirm Import
+    FE-&gt;&gt;ALB: POST /imports/confirm {session_id, member_id, scheme_confirmations}
+    ALB-&gt;&gt;API: forward
+    API-&gt;&gt;MEM: load session (same user + member, under 60 min)
+    API-&gt;&gt;DB: UPDATE household_members SET pan_pending_until = NULL
+    API-&gt;&gt;DB: INSERT imports (status confirmed, raw_parser_output)
+    API-&gt;&gt;DB: INSERT schemes (new amfi_code only), folios (new only)
+    API-&gt;&gt;DB: INSERT transactions (5-column duplicates skipped)
+    API-&gt;&gt;S3: PutObject {user_id}/{import_id}.pdf (SSE-KMS)
+    API-&gt;&gt;DB: imports.file_reference, file_expires_at +30 d, counts, COMMIT
+    API-&gt;&gt;MEM: delete session
+    API-&gt;&gt;DB: upsert analytics_recompute_status.started_at (claim)
+    API--&gt;&gt;FE: {added, skipped, import_id}
+    FE--&gt;&gt;U: Import complete
+    par background tasks after the response
+        API-&gt;&gt;EXT: full NAV history for this member's schemes
+        API-&gt;&gt;DB: INSERT nav_history ON CONFLICT DO NOTHING
+    and
+        API-&gt;&gt;JOB: ecs:RunTask run_analytics_recompute.py --household user_id
+        JOB-&gt;&gt;DB: UPSERT analytics_sections (7 sections × each scope)
+        JOB-&gt;&gt;DB: analytics_recompute_status.started_at = NULL
+    end</pre></div>
+  <div class="tbl-wrap wide"><table><thead><tr><th>Moment</th><th>Table</th><th>Change</th><th>AWS</th></tr></thead><tbody><tr><td>Upload accepted</td><td><code>household_members</code></td><td>UPDATE <code>pan_encrypted</code>, <code>pan_lookup_hash</code>, <code>pan_pending_until = now + 65 min</code></td><td>Task RAM holds the review session; mfapi.in via fck-nat</td></tr><tr><td>Review screen</td><td>none</td><td>Read-only. The browser holds the preview JSON</td><td>Nothing</td></tr><tr><td>Confirm</td><td><code>household_members</code></td><td>UPDATE <code>pan_pending_until = NULL</code> (PAN now permanent)</td><td>Standard path</td></tr><tr><td>Confirm</td><td><code>imports</code></td><td>INSERT: <code>status = confirmed</code>, <code>source_cas_type</code>, <code>raw_parser_output</code> (PAN removed), <code>uploaded_at</code>, <code>confirmed_at</code>, counts, <code>file_reference</code>, <code>file_expires_at</code></td><td>S3 PutObject (SSE-KMS) before the commit</td></tr><tr><td>Confirm</td><td><code>schemes</code></td><td>INSERT only for an <code>amfi_code</code> not seen before (name, ISIN, AMC, category from mfapi or CAS, <code>plan_name_variant</code>)</td><td>—</td></tr><tr><td>Confirm</td><td><code>folios</code></td><td>INSERT only for a new (member, scheme, folio number): <code>arn_code</code>, <code>plan_type</code></td><td>—</td></tr><tr><td>Confirm</td><td><code>transactions</code></td><td>INSERT each new row with <code>folio_id</code> + <code>import_id</code>; duplicates counted in <code>duplicate_transactions_count</code></td><td>—</td></tr><tr><td>Confirm (same request)</td><td><code>analytics_recompute_status</code></td><td>Upsert <code>started_at = now</code> if no recompute is running</td><td>—</td></tr><tr><td>After the response</td><td><code>nav_history</code></td><td>INSERT NAV history for the member's schemes</td><td>fck-nat → mfapi.in</td></tr><tr><td>After the response</td><td><code>analytics_sections</code></td><td>Recompute task UPSERTs 7 rows per scope, then clears <code>started_at</code></td><td><code>ecs:RunTask</code> launches a Fargate task in a private subnet; logs in <code>/ecs/staging-analytics-recompute</code></td></tr></tbody></table></div>
+  <div class="facts">
+    <div class="fact"><strong>Leaving at Review</strong><span>Only the pending PAN exists. “Try again / Cancel” calls <code>/imports/sessions/{id}/discard</code> and wipes it; closing the tab leaves it to expire after 65 min.</span></div>
+    <div class="fact"><strong>Why the task must stay single</strong><span>The review session lives in one task's RAM. A second task, or a redeploy between upload and confirm, gives “This import session has expired. Please re-upload your CAS.”</span></div>
+    <div class="fact"><strong>Dashboard after import</strong><span><code>confirmImport</code> clears the browser's GET cache and the backend clears its holdings cache for that member, so the next dashboard load is fresh.</span></div>
+  </div>
+</section>
+
+<section id="pan">
+  <div class="section-head"><div class="qtags"><span class="qtag">Q8</span><span class="qtag">Q23</span></div><h2>PAN columns on household_members</h2><p>Where the two PAN values are made, and how the pending flag works. <code>pan_pending_until</code> is a column on <code>household_members</code>, not a separate table.</p></div>
+  <div class="diagram"><pre class="mermaid">flowchart LR
+    TF["Terraform variables&lt;br/&gt;TF_VAR_pan_encryption_key&lt;br/&gt;TF_VAR_pan_lookup_pepper&lt;br/&gt;32 random bytes each"] --&gt; SM["Secrets Manager&lt;br/&gt;unifolio-staging-pan-keys&lt;br/&gt;KMS-encrypted"]
+    SM --&gt;|"ECS injects at container start"| ENV["Env vars in the backend task&lt;br/&gt;PAN_ENCRYPTION_KEY&lt;br/&gt;PAN_LOOKUP_PEPPER"]
+    CAS["Raw PAN from casparser&lt;br/&gt;first folio of the CAS"] --&gt; N["normalize_pan:&lt;br/&gt;strip spaces, uppercase"]
+    N --&gt; ENC["encrypt_pan: AES-256-GCM&lt;br/&gt;fresh 12-byte nonce&lt;br/&gt;base64(nonce + ciphertext)"]
+    N --&gt; HASH["hash_pan: HMAC-SHA256&lt;br/&gt;keyed with the pepper&lt;br/&gt;same PAN → same hex"]
+    ENV --&gt; ENC
+    ENV --&gt; HASH
+    ENC --&gt; C1[("household_members.pan_encrypted")]
+    HASH --&gt; C2[("household_members.pan_lookup_hash&lt;br/&gt;UNIQUE across all users")]
+    class TF,SM,ENV aws
+    class C1,C2 db
+    classDef db fill:#fff4d6,stroke:#b8860b,color:#000
+    classDef read fill:#eef2f7,stroke:#64748b,color:#000
+    classDef none fill:#ffd6d6,stroke:#c0392b,color:#000
+    classDef aws fill:#ffe8cc,stroke:#d9730d,color:#000
+    classDef popup fill:#e8e8ff,stroke:#5b5bd6,color:#000
+    classDef browser fill:#e6f7ea,stroke:#2e8b57,color:#000
+    classDef create fill:#fde68a,stroke:#b45309,color:#000,stroke-width:2px</pre></div>
+  <div class="answer"><strong>Q8 · Where they are generated</strong>
+    <p>Both are computed in <code>backend/app/services/import_/crypto.py</code>, called by <code>claim_pan_for_member()</code> in <code>pan_claims.py</code> during <code>POST /imports/parse</code>, after the PDF parsed and the preview was built. They are always written together, in one UPDATE on the member the file was uploaded for. The encryption key and the pepper come from the <code>unifolio-staging-pan-keys</code> secret; the app refuses to start outside development if either is missing or not 32 bytes.</p>
+    <p><b>Connecting “pending PAN” and household_members:</b> there is nothing to join. The pending state is the third column on the same row. <code>pan_pending_until</code> set = pending claim; NULL with a hash present = permanent; all three NULL = no PAN yet. The unique index on <code>pan_lookup_hash</code> counts a pending claim too, so no other member anywhere in Unifolio can take that PAN while someone's review screen is open.</p>
+  </div>
+  <div class="diagram"><pre class="mermaid">stateDiagram-v2
+    [*] --&gt; Empty: member created
+    Empty: EMPTY&lt;br/&gt;pan_encrypted NULL · pan_lookup_hash NULL · pan_pending_until NULL
+    Pending: PENDING&lt;br/&gt;pan_encrypted set · pan_lookup_hash set · pan_pending_until = upload + 65 min
+    Permanent: PERMANENT&lt;br/&gt;pan_encrypted set · pan_lookup_hash set · pan_pending_until NULL
+    Empty --&gt; Pending: POST /imports/parse accepted
+    Pending --&gt; Permanent: POST /imports/confirm
+    Pending --&gt; Empty: discard (Try again / Cancel)
+    Pending --&gt; Empty: 65 min passed, wiped next time anyone checks that PAN
+    Pending --&gt; Pending: same member uploads again, expiry refreshed
+    Permanent --&gt; Permanent: later imports of the same PAN
+    Empty --&gt; Permanent: one-step /cas-imports path (no review screen)</pre></div>
+  <div class="answer"><strong>Q23 · pan_pending_until</strong>
+    <ul>
+      <li><b>Set</b> to upload time + 65 minutes when <code>/imports/parse</code> claims a PAN.</li>
+      <li><b>Cleared to NULL</b> by Confirm Import, which is what makes the PAN permanent.</li>
+      <li><b>Why 65 and not 60:</b> the review session lives 60 minutes. The claim must outlive any session that can still be confirmed, so a confirm can never find its PAN already taken by someone else.</li>
+      <li><b>Expiry is lazy.</b> No job sweeps expired claims. An expired pending PAN is wiped the next time anyone uploads a CAS with that PAN (or the same member uploads again). Until then the encrypted value sits there, treated as free.</li>
+      <li><b>Discard</b> clears all three columns at once, but only if the claim is still pending and matches that session's PAN. A permanent PAN is never touched by discard.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="family">
+  <div class="section-head"><div class="qtags"><span class="qtag">Q15</span></div><h2>Three household members imported one after another</h2><p>Files are queued in the browser, then each member runs the same parse → review → confirm cycle in turn.</p></div>
+  <div class="legend">
+  <span><i class="lg-db"></i>Database write</span>
+  <span><i class="lg-create"></i>Key write (row created)</span>
+  <span><i class="lg-none"></i>Error / nothing written</span>
+  <span><i class="lg-aws"></i>AWS service involved</span>
+  <span><i class="lg-pop"></i>Popup</span>
+  <span><i class="lg-br"></i>Browser only</span>
+</div>
+  <div class="diagram"><pre class="mermaid">flowchart TD
+    A["Add Family Members screen&lt;br/&gt;INSERT household_members: Mom, Dad&lt;br/&gt;PAN columns NULL. Self NOT created yet"] --&gt; B["Family CAS cards: a file + password per member&lt;br/&gt;queued in the browser only, in the order attached"]
+    B --&gt;|"Continue"| C{"'Upload your own CAS?' screen"}
+    C --&gt;|"Upload later"| Q1["Parse Queue: Mom, Dad only&lt;br/&gt;Self stays uncreated for now"]
+    C --&gt;|"Upload now"| D[("resolveSelfMember():&lt;br/&gt;INSERT household_members (Self)&lt;br/&gt;if no self row exists yet")]
+    D --&gt; E["Own file appended to the END of the same queue"]
+    E --&gt; Q2["Parse Queue: Mom, Dad, Self&lt;br/&gt;(strict FIFO by array index)"]
+    Q1 --&gt; M1
+    Q2 --&gt; M1
+    M1["Member 1 in the queue (e.g. Mom): parse → review → confirm"] --&gt; W1[("Mom: pan_* permanent&lt;br/&gt;import 1 (member = Mom)&lt;br/&gt;folios (member = Mom), transactions (import 1)")]
+    W1 --&gt; S1["S3: {user_id}/{import1}.pdf"]
+    W1 --&gt; R1["First claim for this household: succeeds → RunTask recompute 1"]
+    R1 --&gt; M2["Member 2 (e.g. Dad): parse → review → confirm"]
+    M2 --&gt; W2[("Dad: pan_* permanent&lt;br/&gt;import 2, folios (member = Dad)&lt;br/&gt;transactions (import 2)")]
+    W2 --&gt; S2["S3: {user_id}/{import2}.pdf"]
+    W2 --&gt; R2{"Recompute 1 still running?"}
+    R2 --&gt;|"Yes: claim refused, no new task"| M3
+    R2 --&gt;|"No: claim → RunTask 2"| M3
+    M3["Self, only if 'Upload now' was chosen —&lt;br/&gt;always last in the queue: parse → review → confirm"] --&gt; W3[("Self: pan_* permanent&lt;br/&gt;import 3 (member = Self)&lt;br/&gt;folios (member = Self), transactions (import 3)")]
+    W3 --&gt; S3["S3: {user_id}/{import3}.pdf"]
+    W3 --&gt; Z["Import complete · Get my first score"]
+    class B,Q1,Q2 browser
+    class W1,W2,W3,D db
+    class S1,S2,S3,R1 aws
+    classDef db fill:#fff4d6,stroke:#b8860b,color:#000
+    classDef read fill:#eef2f7,stroke:#64748b,color:#000
+    classDef none fill:#ffd6d6,stroke:#c0392b,color:#000
+    classDef aws fill:#ffe8cc,stroke:#d9730d,color:#000
+    classDef popup fill:#e8e8ff,stroke:#5b5bd6,color:#000
+    classDef browser fill:#e6f7ea,stroke:#2e8b57,color:#000
+    classDef create fill:#fde68a,stroke:#b45309,color:#000,stroke-width:2px</pre></div>
+  <div class="tbl-wrap wide"><table><thead><tr><th>Table / store</th><th>Rows after all 3</th><th>How it relates to household_members</th></tr></thead><tbody><tr><td><code>household_members</code></td><td>3</td><td>Self, Mom, Dad. Each ends with its own permanent <code>pan_lookup_hash</code> (unique across Unifolio)</td></tr><tr><td><code>imports</code></td><td>3</td><td>One per confirmed upload, each with <code>household_member_id</code> of that member and its own S3 key</td></tr><tr><td><code>folios</code></td><td>one per (member, scheme, folio number)</td><td>If Mom and Dad both hold the same fund, that is 2 folio rows pointing at 1 scheme row</td></tr><tr><td><code>schemes</code></td><td>shared</td><td>Created the first time any user imports that <code>amfi_code</code>; reused after that</td></tr><tr><td><code>transactions</code></td><td>per folio</td><td>Each row points to its folio (so to its member) and to the import that created it</td></tr><tr><td><code>nav_history</code></td><td>shared</td><td>Per scheme, filled after each confirm and by the daily job</td></tr><tr><td><code>portfolio_snapshots</code></td><td>per member per month</td><td>Created later, the first time the value-over-time chart is opened</td></tr><tr><td><code>analytics_sections</code></td><td>28</td><td>7 sections × (combined + 3 members)</td></tr><tr><td><code>analytics_recompute_status</code></td><td>1</td><td>One per user, not per member</td></tr><tr><td>S3 CAS bucket</td><td>3 objects</td><td><code>{user_id}/{import_id}.pdf</code>, deleted by S3 after 30 days; the 19:00 IST job NULLs <code>imports.file_reference</code></td></tr></tbody></table></div>
+  <p class="callout"><b>Why order matters:</b> the queue is exactly the order files were attached in, and Self's own upload — if chosen at all — is always appended to the <i>end</i> of that same queue, never the start. Mom's PAN becomes permanent before Dad's file is even parsed; if Dad's slot holds Mom's statement by mistake, Dad's upload is refused with the “This PAN already exists” popup. If "Upload later" is chosen instead on the "Upload your own CAS?" screen, Self's <code>household_members</code> row isn't created at all yet, and Self's own import happens as a separate, later action. <b>Analytics timing:</b> each confirm tries to claim a recompute; a claim made while one is still running is refused, so no second task starts. The running task reads the database scope by scope, so the combined numbers can miss a member confirmed mid-run until the 06:30 IST daily recompute or a Retry.</p>
+</section>
+
+<section id="portfolio">
+  <div class="section-head"><div class="qtags"><span class="qtag">Q17</span><span class="qtag">Q18</span><span class="qtag">Q20</span></div><h2>household_members → folios → schemes → transactions</h2><p>Transactions come from the CAS. Everything shown on the dashboard is calculated from them, per folio, at read time.</p></div>
+  <div class="diagram"><pre class="mermaid">erDiagram
+    household_members ||--o{ folios : "household_member_id"
+    schemes ||--o{ folios : "scheme_id"
+    folios ||--o{ transactions : "folio_id"
+    imports ||--o{ transactions : "import_id"
+    household_members ||--o{ imports : "household_member_id"
+    household_members ||--o{ portfolio_snapshots : "household_member_id"
+    schemes ||--o{ nav_history : "scheme_id"
+
+    household_members {
+        uuid id PK
+        uuid user_id FK
+        string name
+    }
+    folios {
+        uuid id PK
+        uuid household_member_id FK
+        uuid scheme_id FK
+        string folio_number
+        enum plan_type
+        bool has_coverage_gap
+    }
+    schemes {
+        uuid id PK
+        string amfi_code UK
+        string name
+        string sebi_category
+        enum plan_name_variant
+    }
+    transactions {
+        uuid id PK
+        date date PK
+        uuid folio_id FK
+        uuid import_id FK
+        enum type
+        numeric amount
+        numeric units
+        numeric nav
+    }
+    portfolio_snapshots {
+        uuid household_member_id PK
+        date snapshot_month PK
+        numeric total_value
+    }
+    nav_history {
+        uuid scheme_id PK
+        date date PK
+        numeric nav
+    }</pre></div>
+  <div class="answer"><strong>Q20 · How the three connect</strong>
+    <p>A <b>scheme</b> is a fund (one row per AMFI code, shared by everyone). A <b>folio</b> is one member's account in one scheme at one AMC, identified by (member, scheme, folio number). A member holding two schemes under one folio number has two folio rows; the same scheme under two folio numbers is also two rows. Transactions hang off folios. To show a member's portfolio the backend reads that member's folios, joins each to its scheme, and processes each folio's transactions.</p>
+  </div>
+  <div class="answer"><strong>Q17 · How transactions are “calculated” for a member with 3 schemes</strong>
+    <p>They are not calculated from the folio table. Transactions are <b>read off the CAS</b> by casparser, one row per line of the statement, and saved at Confirm against their folio. The calculations run the other way: from each folio's transactions the backend works out units held, cost, gains, value, XIRR, SIPs and coverage gaps, every time the dashboard asks (with a 15-minute in-memory cache).</p>
+    <ol>
+      <li><b>Detect:</b> casparser types each line (purchase, SIP, redemption, switch, dividend, STT, stamp duty…); Unifolio maps those to 12 types and stores amounts and units unsigned. The type alone says which way units moved.</li>
+      <li><b>De-duplicate:</b> a line whose (folio, date, amount, units, type) already exists is skipped.</li>
+      <li><b>Holdings (FIFO):</b> purchases, SIPs, switch-ins and dividend reinvestments add lots; redemptions and switch-outs consume the oldest lots first. What is left gives units and cost; consumed lots give realised gain.</li>
+      <li><b>Value:</b> units × latest NAV from <code>nav_history</code> (fetched from mfapi.in if today's is missing).</li>
+      <li><b>SIP detection:</b> a folio is an active SIP if it has any <code>purchase_sip</code> and is not fully redeemed; the next date is projected from the pattern.</li>
+      <li><b>Coverage gap:</b> replaying units in date order, if the running total dips below zero the statement is missing earlier history.</li>
+    </ol>
+    <p><b>Illustrative example</b> (made-up numbers, one member, 3 schemes):</p>
+    <div class="tbl-wrap wide"><table><thead><tr><th>Folio</th><th>Transactions from the CAS</th><th>Worked out</th><th>Value</th><th>Also</th></tr></thead><tbody><tr><td>HDFC Flexi Cap – Direct – Growth (folio 1234/56)</td><td>3 × SIP ₹5,000 at NAV 100, 125, 125</td><td>50 + 40 + 40 = 130 units, cost ₹15,000</td><td>NAV 150 → ₹19,500</td><td>Active SIP (has <code>purchase_sip</code>, not fully redeemed)</td></tr><tr><td>Axis Bluechip – Regular – Growth (folio 8899)</td><td>Buy ₹10,000 at 50; redeem 50 units at 60</td><td>FIFO: 50 of the 200 units leave, realised gain 50 × (60 − 50) = ₹500; 150 units left, cost ₹7,500</td><td>NAV 55 → ₹8,250</td><td>No SIP</td></tr><tr><td>SBI Liquid – Direct (folio 7788)</td><td>Statement starts with a redemption of 10 units</td><td>Running units go negative</td><td>0 until fixed</td><td><code>has_coverage_gap = true</code>, deficit 10 units; user can add an opening balance</td></tr></tbody></table></div>
+  </div>
+  <div class="answer"><strong>Q18 · portfolio_snapshots</strong>
+    <p>One row per member per month-end: <code>(household_member_id, snapshot_month)</code> → <code>total_value</code>. It is a cache for the value-over-time chart so month-end values aren't recalculated from every transaction on every load. It links to <code>household_members</code> only; the family chart sums the members' rows.</p>
+    <p><b>When rows are written:</b> lazily, on <code>GET /household-members/{id}/snapshots</code> or the aggregate version. For each month-end from the member's first transaction to today that has no row yet, the backend replays FIFO up to that date, multiplies by the NAV on or before that date, and INSERTs the row. A month where any NAV is unavailable is skipped, not stored as a wrong number, so it is retried next time. Rows are never recomputed once stored, and only the account hard-delete removes them.</p>
+  </div>
+</section>
+
+<section id="plans">
+  <div class="section-head"><div class="qtags"><span class="qtag">Q21</span></div><h2>Direct and Regular plans</h2><p>Two columns carry this: <code>schemes.plan_name_variant</code> (what the fund's name says) and <code>folios.plan_type</code> (what this holding is treated as).</p></div>
+  <div class="diagram"><pre class="mermaid">flowchart TD
+    A["Scheme name from the CAS&lt;br/&gt;e.g. 'HDFC Flexi Cap Fund - Direct Plan - Growth'"] --&gt; B{"Name contains DIRECT,&lt;br/&gt;REGULAR, both, or neither?"}
+    B --&gt;|"DIRECT only"| V1["plan_name_variant = direct"]
+    B --&gt;|"REGULAR only"| V2["plan_name_variant = regular"]
+    B --&gt;|"both / neither"| V3["plan_name_variant = unresolved"]
+    V1 --&gt; C{"CAS shows a real ARN&lt;br/&gt;(ARN-12345 / INA…)?"}
+    C --&gt;|No| P1["folio plan_type = direct"]
+    C --&gt;|"Yes, contradiction"| P3["folio plan_type = unclassified"]
+    V2 --&gt; P2["folio plan_type = regular"]
+    V3 --&gt; P3
+    P1 &amp; P2 &amp; P3 --&gt; R["Review screen shows the plan type&lt;br/&gt;user may override it"]
+    R --&gt;|"override contradicts a literal&lt;br/&gt;'Direct Plan' / 'Regular Plan' in the name"| X["409 on confirm"]
+    R --&gt;|"confirm"| W1[("New folio: plan_type = override or computed value&lt;br/&gt;Existing folio: left unchanged")]
+    R --&gt;|"confirm"| W2[("New scheme only: schemes.plan_name_variant&lt;br/&gt;= name-derived variant, never the override")]
+    class W1,W2 db
+    class X none
+    classDef db fill:#fff4d6,stroke:#b8860b,color:#000
+    classDef read fill:#eef2f7,stroke:#64748b,color:#000
+    classDef none fill:#ffd6d6,stroke:#c0392b,color:#000
+    classDef aws fill:#ffe8cc,stroke:#d9730d,color:#000
+    classDef popup fill:#e8e8ff,stroke:#5b5bd6,color:#000
+    classDef browser fill:#e6f7ea,stroke:#2e8b57,color:#000
+    classDef create fill:#fde68a,stroke:#b45309,color:#000,stroke-width:2px</pre></div>
+  <div class="answer"><strong>Q21 · Answers</strong>
+    <ul>
+      <li><b>From the name:</b> <code>classify_plan_from_name()</code> upper-cases the scheme name and looks for the words DIRECT and REGULAR. Exactly one → that variant. Both or neither → <code>unresolved</code>.</li>
+      <li><b>Names without either word</b> (older funds, ETFs, some FoFs): <code>plan_name_variant = unresolved</code> and <code>plan_type = unclassified</code>. We never guess. A direct-named scheme that shows a real distributor ARN is also <code>unclassified</code>, because the two signals disagree. Unresolved schemes are left out of the TER matching, since we can't know whether the Direct or Regular expense ratio applies.</li>
+      <li><b>User override on the review screen</b> is sent as <code>plan_type_override</code>. It updates <b>only <code>folios.plan_type</code>, and only when that folio is being created by this import</b>. An existing folio keeps its value. <code>schemes.plan_name_variant</code> is never changed by an override.</li>
+      <li><b>Guard:</b> if the name contains the literal phrase “Direct Plan” or “Regular Plan” and the override says the opposite, Confirm returns 409.</li>
+      <li><b>A similar scheme in future:</b> nothing is learned from overrides. A new AMFI code gets a new <code>schemes</code> row classified by the same name rule. The same AMFI code reuses the existing row. A new folio is classified from its own name and ARN. So a scheme whose name never says Direct or Regular stays unclassified until someone overrides it for that folio.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="switch">
+  <div class="section-head"><div class="qtags"><span class="qtag">Q14</span></div><h2>Switching from the family view to one member</h2><p>Nothing in the database changes. The switch is React state in the browser; the backend just receives a different URL.</p></div>
+  <div class="diagram"><pre class="mermaid">sequenceDiagram
+    actor U as User
+    participant FE as Browser (MainDashboardFlow state)
+    participant API as ECS backend task
+    participant DB as RDS
+    Note over FE: viewMode = aggregate (Family view)
+    FE-&gt;&gt;API: GET /household/aggregate/holdings (+ allocation, sips, cash-flow, snapshots)
+    API-&gt;&gt;DB: SELECT household_members WHERE user_id = me → Self, Mom, Dad
+    API-&gt;&gt;DB: SELECT folios + transactions for all 3 member ids
+    API--&gt;&gt;FE: combined holdings + members[] with has_data flags
+    FE-&gt;&gt;API: GET /analytics/combined
+    API-&gt;&gt;DB: SELECT analytics_sections WHERE user_id = me AND scope_key = 'combined'
+    API--&gt;&gt;FE: 7 precomputed sections
+    U-&gt;&gt;FE: Per Member → Mom
+    Note over FE: viewMode = member, selectedMemberId = Mom's id&lt;br/&gt;React state only, nothing is saved
+    FE-&gt;&gt;API: GET /household-members/{mom_id}/holdings (+ allocation, sips, cash-flow, snapshots)
+    API-&gt;&gt;DB: SELECT household_members WHERE id = mom_id AND user_id = me (ownership)
+    API-&gt;&gt;DB: SELECT folios + transactions for [mom_id]
+    API--&gt;&gt;FE: Mom's holdings only
+    FE-&gt;&gt;API: GET /analytics/{mom_id}
+    API-&gt;&gt;DB: ownership check, then SELECT analytics_sections WHERE scope_key = mom_id
+    API--&gt;&gt;FE: 7 sections (browser polls every 3 s until all have settled)</pre></div>
+  <div class="answer"><strong>Q14 · What triggers the shift</strong>
+    <ul>
+      <li><b>Trigger:</b> the view toggle sets <code>viewMode</code> from <code>aggregate</code> to <code>member</code> and <code>selectedMemberId</code> to that member's id in <code>MainDashboardFlow.tsx</code>. Nothing is saved; a page reload starts on the family view again.</li>
+      <li><b>Main dashboard:</b> family view calls <code>/household/aggregate/…</code>; member view calls <code>/household-members/{id}/…</code>. Both run the <b>same</b> compute functions; the only difference is the list of member ids passed in (all three vs one). The aggregate response also carries a <code>members</code> list so a member with no import yet shows as a placeholder.</li>
+      <li><b>Analytics:</b> family view reads <code>GET /analytics/combined</code>; member view reads <code>GET /analytics/{member_id}</code>. Both are plain row lookups in <code>analytics_sections</code> by <code>scope_key</code>. Nothing is computed live, because the recompute task already wrote a row set for every scope.</li>
+      <li><b>Writes that can still happen on a read:</b> <code>nav_history</code> if today's NAV is missing, <code>portfolio_snapshots</code> for months not yet cached, <code>arn_directory</code> the first time an ARN is looked up, and a recompute claim if a scope has no analytics rows at all.</li>
+      <li><b>AWS:</b> standard path; only the NAV/ARN fetches go out through fck-nat.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="analytics">
+  <div class="section-head"><div class="qtags"><span class="qtag">Q12</span><span class="qtag">Q13</span></div><h2>The analytics tables</h2><p>The Analytics dashboard never computes on request. A separate Fargate task fills <code>analytics_sections</code>; <code>analytics_recompute_status</code> stops two of those tasks running for the same household.</p></div>
+  <div class="answer"><strong>Q12 · analytics_recompute_status, fully</strong>
+    <p>One row per user (the household), three columns:</p>
+    <ul>
+      <li><code>user_id</code>: primary key and FK to <code>users</code>. A household-level fact, because one recompute run writes every scope at once.</li>
+      <li><code>started_at</code>: NULL means idle. A timestamp means a run has been claimed or is running. A claim older than <b>2 hours</b> is treated as a crashed run and can be taken over.</li>
+      <li><code>generation</code>: a counter for “the household's data changed underneath you”. The worker notes it at the start, and before writing each section it re-reads it with <code>SELECT … FOR UPDATE</code>. If it changed, the worker stops without writing, so it can't put back numbers from deleted data. It is bumped by deleting an import and by the account hard-delete, in the same transaction as the delete. A new import does not bump it; it starts a fresh recompute instead.</li>
+    </ul>
+    <p><b>Who claims a run:</b> Confirm Import; <code>GET /analytics/{scope}</code> when that scope has no rows; the Retry button; the daily 06:30 IST <code>--all</code> job (which claims per user). All go through <code>try_claim_recompute()</code>, a single atomic upsert that only succeeds if <code>started_at</code> is NULL or stale. If the claim succeeds but ECS can't place the task, the claim is released straight away.</p>
+  </div>
+  <div class="diagram"><pre class="mermaid">stateDiagram-v2
+    [*] --&gt; NoRow
+    NoRow: NO ROW&lt;br/&gt;user has never triggered a recompute
+    Idle: IDLE&lt;br/&gt;started_at = NULL
+    Running: RUNNING&lt;br/&gt;started_at = claim time
+    NoRow --&gt; Running: first claim INSERTs the row
+    NoRow --&gt; Idle: generation bump INSERTs with started_at NULL
+    Idle --&gt; Running: claim, via GET with no rows, Retry, import confirm, or the daily backstop
+    Running --&gt; Running: another claim is refused while under 2 h old
+    Running --&gt; Idle: worker finishes, finally sets started_at NULL
+    Running --&gt; Idle: RunTask could not place a task, claim released
+    Running --&gt; Running: crashed worker, a new claim wins once 2 h have passed
+    Idle --&gt; Idle: import deleted or account deleted, generation + 1
+    Running --&gt; Running: import deleted mid-run, generation + 1, worker stops writing</pre></div>
+  <div class="answer"><strong>Q13 · scope_key</strong>
+    <p>Which view a row belongs to: the literal string <code>combined</code> for the family view, or the member's UUID as text for a member view. It is part of the primary key <code>(user_id, scope_key, section)</code>. A string is used instead of the nullable <code>household_member_id</code> because Postgres treats every NULL as different from every other NULL, so a NULL can't make “the one combined row per section” unique. <code>household_member_id</code> is still filled for member scopes (NULL for combined) so a future member-delete feature has something to cascade on.</p>
+    <p>Rows per household = 7 sections × (1 + number of members). A section that fails keeps its last good payload and gets <code>failed_at</code>; one that has never succeeded has no row, which the page shows as loading.</p>
+    <div class="tbl-wrap "><table><thead><tr><th>section</th><th>What it holds</th></tr></thead><tbody><tr><td><code>allocation</code></td><td>SEBI category and AMC split</td></tr><tr><td><code>ter</code></td><td>Holding-weighted expense ratio</td></tr><tr><td><code>ter_direct_regular</code></td><td>Cost of Regular plans vs their Direct twins</td></tr><tr><td><code>benchmark</code></td><td>Portfolio XIRR vs 4 Nifty indices</td></tr><tr><td><code>benchmark_funds</code></td><td>Each fund vs its category's index</td></tr><tr><td><code>category_ranking</code></td><td>Each fund's rank within its SEBI category</td></tr><tr><td><code>score</code></td><td>Unifolio fund scores rolled up</td></tr></tbody></table></div>
+  </div>
+</section>
+
+<section id="jobs">
+  <div class="section-head"><div class="qtags"><span class="qtag">Q19</span><span class="qtag">Q22</span></div><h2>Background jobs: EventBridge → ECS → reference tables</h2><p>Seven schedules, each launching a one-off Fargate task from the same image as the API. They share the RDS password secret and write to the shared reference tables.</p></div>
+  <div class="legend">
+  <span><i class="lg-db"></i>Database write</span>
+  <span><i class="lg-create"></i>Key write (row created)</span>
+  <span><i class="lg-none"></i>Error / nothing written</span>
+  <span><i class="lg-aws"></i>AWS service involved</span>
+  <span><i class="lg-pop"></i>Popup</span>
+  <span><i class="lg-br"></i>Browser only</span>
+</div>
+  <div class="diagram"><pre class="mermaid">flowchart LR
+    EB["EventBridge Scheduler&lt;br/&gt;timezone Asia/Kolkata&lt;br/&gt;each job = 1 Fargate task&lt;br/&gt;0.5 vCPU / 1 GB, :latest image"]
+    EB --&gt;|"06:00 daily"| J1["refresh_nav_daily.py"]
+    EB --&gt;|"06:00 daily"| J2["refresh_benchmark_daily.py"]
+    EB --&gt;|"06:00 on the 1st"| J3["refresh_ter_monthly.py"]
+    EB --&gt;|"06:00 on 1 Jan, Apr, Jul, Oct"| J4["refresh_aaum_quarterly.py"]
+    EB --&gt;|"06:30 daily"| J5["run_analytics_recompute.py --all"]
+    EB --&gt;|"08:00 daily"| J6["delete_expired_accounts_daily.py"]
+    EB --&gt;|"19:00 daily"| J7["app.scripts.expire_cas_files"]
+    J1 --&gt;|"GET /mf/{amfi_code} for each held scheme&lt;br/&gt;skipped if a NAV ≤ 3 days old exists"| X1["api.mfapi.in"]
+    J1 --&gt; T1[("nav_history&lt;br/&gt;INSERT ON CONFLICT DO NOTHING")]
+    J2 --&gt;|"POST getHistoricaldatatabletoString&lt;br/&gt;4 indices, last 10 years"| X2["niftyindices.com"]
+    J2 --&gt; T2[("benchmark_index_history&lt;br/&gt;INSERT dates not yet stored")]
+    J3 --&gt;|"populate-ter-month, then every&lt;br/&gt;page of the TER feed, 5 at a time"| X3["amfiindia.com TER API"]
+    J3 --&gt; T3[("scheme_ter&lt;br/&gt;fuzzy name match ≥ 0.55&lt;br/&gt;D_TER or R_TER by plan variant")]
+    J4 --&gt;|"financial years → periods → rows"| X4["amfiindia.com AAUM API"]
+    J4 --&gt; T4[("scheme_aaum&lt;br/&gt;matched by AMFI code")]
+    J5 --&gt; T5[("analytics_sections&lt;br/&gt;analytics_recompute_status")]
+    J6 --&gt; T6[("hard-delete users 5 days after&lt;br/&gt;they asked, with all their rows")]
+    J7 --&gt; T7[("imports.file_reference = NULL&lt;br/&gt;where file_expires_at passed")]
+    J7 --&gt; S3["S3 DeleteObject"]
+    class EB,J1,J2,J3,J4,J5,J6,J7,S3 aws
+    class T1,T2,T3,T4,T5,T6,T7 db
+    classDef db fill:#fff4d6,stroke:#b8860b,color:#000
+    classDef read fill:#eef2f7,stroke:#64748b,color:#000
+    classDef none fill:#ffd6d6,stroke:#c0392b,color:#000
+    classDef aws fill:#ffe8cc,stroke:#d9730d,color:#000
+    classDef popup fill:#e8e8ff,stroke:#5b5bd6,color:#000
+    classDef browser fill:#e6f7ea,stroke:#2e8b57,color:#000
+    classDef create fill:#fde68a,stroke:#b45309,color:#000,stroke-width:2px</pre></div>
+  <div class="diagram"><pre class="mermaid">erDiagram
+    schemes ||--o{ nav_history : "scheme_id"
+    schemes ||--o{ scheme_ter : "scheme_id"
+    schemes ||--o{ scheme_aaum : "scheme_id"
+    schemes ||--o{ folios : "scheme_id"
+    schemes {
+        uuid id PK
+        string amfi_code UK "join key for AAUM"
+        string name "join key for TER, fuzzy"
+        enum plan_name_variant "picks D_TER or R_TER"
+    }
+    nav_history {
+        uuid scheme_id PK
+        date date PK
+        numeric nav
+    }
+    scheme_ter {
+        uuid scheme_id PK
+        date reference_period PK
+        numeric ter_value "NULL = no usable TER"
+    }
+    scheme_aaum {
+        uuid scheme_id PK
+        date reference_period PK
+        numeric aaum_value
+    }
+    folios {
+        uuid id PK
+        uuid scheme_id FK "decides which schemes are 'held'"
+    }
+    benchmark_index_history {
+        enum index_name PK
+        date date PK
+        numeric value
+    }</pre></div>
+  <div class="tbl-wrap wide"><table><thead><tr><th>Table</th><th>Scheduled refresh</th><th>Also refreshed on demand by</th></tr></thead><tbody><tr><td><code>nav_history</code></td><td>06:00 IST daily job (held schemes only)</td><td>After every Confirm (that member's schemes); dashboard reads when today's NAV isn't cached; snapshots; fund NAV graph; analytics recompute (whole category peer groups)</td></tr><tr><td><code>benchmark_index_history</code></td><td>06:00 IST daily job, last 10 years × 4 indices</td><td>Inside the analytics recompute task, when the stored dates don't cover the range a benchmark calculation needs</td></tr><tr><td><code>scheme_ter</code></td><td>06:00 IST on the 1st of each month</td><td>Inside the analytics recompute task, when a held scheme has no row for the current month (at most once per 15-minute window)</td></tr><tr><td><code>scheme_aaum</code></td><td>06:00 IST on 1 Jan / Apr / Jul / Oct</td><td>None: job only</td></tr></tbody></table></div>
+  <div class="answer"><strong>Q19 · Is benchmark_index_history filled when the user opens Analytics, or by AWS jobs?</strong>
+    <p>By AWS, in two ways, and never by opening the page. Opening Analytics runs <code>GET /analytics/{scope}</code>, which only reads <code>analytics_sections</code>. The benchmark table is filled by (1) the <b>06:00 IST daily EventBridge job</b> <code>refresh_benchmark_daily.py</code>, and (2) the <b>analytics recompute Fargate task</b>, which calls <code>ensure_index_history_fresh()</code> and fetches from niftyindices.com only if the stored dates don't already cover what it needs. Opening the page can indirectly cause (2), when that scope has no rows yet and a recompute is dispatched.</p>
+  </div>
+  <div class="answer"><strong>Q22 · The three reference refreshes in AWS terms</strong>
+    <ol>
+      <li>EventBridge Scheduler fires at the cron time (<code>Asia/Kolkata</code>) using its own IAM role, which may only <code>ecs:RunTask</code> these task definitions and pass the execution role.</li>
+      <li>ECS starts a Fargate task (0.5 vCPU / 1 GB) in a private app subnet with the ECS security group; the execution role pulls the image from ECR and the DB password from Secrets Manager.</li>
+      <li>The script calls the external API through fck-nat: mfapi.in for NAV, AMFI's TER feed, AMFI's AAUM feed.</li>
+      <li>It writes to RDS: <code>nav_history</code> by <code>scheme_id</code> (skip-if-exists), <code>scheme_ter</code> by fuzzy scheme-name match with the Direct or Regular column picked by <code>plan_name_variant</code> (NULL row = “checked, no usable TER”), <code>scheme_aaum</code> by exact AMFI code.</li>
+      <li>Logs go to <code>/ecs/staging-job-&lt;name&gt;</code> (7-day retention) and the task exits. Any fetch failure logs a warning and keeps the old data.</li>
+    </ol>
+  </div>
+</section>
+
+<section id="apis">
+  <div class="section-head"><div class="qtags"><span class="qtag">Q27</span></div><h2>External APIs</h2><p>Every outbound call leaves the private subnet through fck-nat. None of them is called from the browser.</p></div>
+  <div class="tbl-wrap wide"><table><thead><tr><th>API</th><th>Triggered when</th><th>Where the result is kept</th></tr></thead><tbody><tr><td>mfapi.in <code>/mf</code> (all ~37k schemes)</td><td><code>/imports/parse</code>, to match each CAS scheme to an AMFI code</td><td>Task RAM + a file cache on the task's disk for 24 h. Not in the DB. The match result is kept in the review session, then becomes <code>schemes.amfi_code</code> at Confirm</td></tr><tr><td>mfapi.in <code>/mf/{code}/latest</code></td><td><code>/imports/parse</code>, once per matched scheme</td><td>File cache 24 h; the category is saved to <code>schemes.sebi_category</code> when a new scheme is created</td></tr><tr><td>mfapi.in <code>/mf/{code}</code> (full NAV history)</td><td>After Confirm; dashboard reads; snapshots; fund graph; analytics recompute; 06:00 job</td><td><code>nav_history</code>, shared by all users</td></tr><tr><td>AMFI TER feed</td><td>Monthly job; recompute when current-month TER is missing</td><td><code>scheme_ter</code></td></tr><tr><td>AMFI AAUM feed</td><td>Quarterly job only</td><td><code>scheme_aaum</code></td></tr><tr><td>AMFI distributor search (ARN)</td><td>Distributor comparison on the dashboard, once per ARN ever</td><td><code>arn_directory</code>, never re-fetched once stored</td></tr><tr><td>niftyindices.com history</td><td>06:00 job; recompute when dates aren't covered</td><td><code>benchmark_index_history</code></td></tr><tr><td>Google certificates</td><td><code>/auth/oauth/google</code></td><td>Nothing; used to verify the ID token in memory</td></tr><tr><td>Amazon SES</td><td>Email OTP request (signup, login, contact change)</td><td>Nothing; only the code's hash in <code>otp_requests</code></td></tr><tr><td>CAMS portal</td><td>“Request from CAMS” opens CAMS in the user's browser</td><td>No server call. <code>/cas-imports/request</code> writes an <code>imports</code> row with <code>status = waiting_for_user</code>, <code>expires_at</code> +48 h</td></tr></tbody></table></div>
+  <p class="callout"><b>“Stored in that session”:</b> the only per-user session holding API data is the import review session in the task's RAM. It keeps each scheme's suggested AMFI code, confidence and category until Confirm or 60 minutes. Everything else lands in shared reference tables, so the second user who holds a fund gets it from the database without another call. Every client degrades quietly: a failed call keeps what is cached, and during parsing an mfapi.in outage marks schemes as “pending” for manual matching instead of failing the upload.</p>
+</section>
+
+<section id="errors">
+  <div class="section-head"><div class="qtags"><span class="qtag">Q28</span></div><h2>Every error the user can hit</h2><p>Text is quoted from the code. “client” = produced by the frontend, not the API. All API errors reach the browser as the JSON <code>detail</code> of the response.</p></div>
+  <h3>Signup, login, account</h3>
+  <div class="tbl-wrap wide"><table><thead><tr><th>Status</th><th>Message</th><th>Where it shows</th><th>Next step</th></tr></thead><tbody><tr><td>409</td><td>An account with this email already exists.</td><td>Red text on the sign-up email screen</td><td>“Log in” shortcut</td></tr><tr><td>409</td><td>An account with this phone number already exists.</td><td>Phone step of signup</td><td>“Log in” shortcut</td></tr><tr><td>429</td><td>Please wait Ns before requesting another code.</td><td>Under the field / code screen</td><td>Wait, then resend</td></tr><tr><td>502</td><td>We couldn't send that email right now.</td><td>Email or code screen</td><td>Try again later</td></tr><tr><td>401</td><td>Incorrect OTP.</td><td>Code screen</td><td>Retype</td></tr><tr><td>401</td><td>OTP has expired. Request a new one.</td><td>Code screen</td><td>Resend</td></tr><tr><td>401</td><td>Too many incorrect attempts. Request a new OTP.</td><td>Code screen</td><td>Resend</td></tr><tr><td>401</td><td>No pending OTP request for this identifier.</td><td>Code screen</td><td>Request a code</td></tr><tr><td>401</td><td>This verification has expired. Please start over.</td><td>Code or phone screen in signup</td><td>Restart signup</td></tr><tr><td>401</td><td>Invalid or already-used verification token.</td><td>Signup steps</td><td>Restart signup</td></tr><tr><td>401</td><td>This verification code doesn't match this signup.</td><td>Signup code screen</td><td>Use the code sent to that email</td></tr><tr><td>401</td><td>No account found for that email — sign up instead.</td><td>Email login code screen</td><td>Switch to sign up</td></tr><tr><td>401</td><td>This Google account isn't linked yet.</td><td>Link-account prompt</td><td>Use the existing method</td></tr><tr><td>client</td><td>Something unexpected happened. Please try again.</td><td>Auth screens</td><td>Retry</td></tr><tr><td>client</td><td>Unable to connect to the server. Please check your internet connection.</td><td>Auth screens</td><td>Retry</td></tr><tr><td>5xx</td><td>Something went wrong on our servers. Please try again in a moment.</td><td>Auth screens (when no detail text)</td><td>Retry</td></tr><tr><td>401</td><td>Invalid or expired session. / Missing or malformed Authorization header.</td><td>Not shown: app start clears the token</td><td>Sign-in screen</td></tr><tr><td>403</td><td>Account is pending deletion. Reactivate it to continue.</td><td>Pending-deletion screen</td><td>Reactivate button</td></tr><tr><td>409</td><td>Account deletion is already scheduled.</td><td>Profile</td><td>—</td></tr><tr><td>409</td><td>That email / phone is already linked to another account.</td><td>Contact change in Profile</td><td>Use another</td></tr><tr><td>409</td><td>This user already has a 'self' household member.</td><td>Add family members</td><td>—</td></tr></tbody></table></div>
+  <h3>CAS upload, PAN check, review</h3>
+  <div class="tbl-wrap wide"><table><thead><tr><th>Status</th><th>Message</th><th>Where it shows</th><th>Next step</th></tr></thead><tbody><tr><td>client</td><td>Please choose a valid PDF file (.pdf) · This file is too large. Maximum supported file size is 25MB. · Please select a PDF file to upload.</td><td>Under the file picker</td><td>Pick another file</td></tr><tr><td>400</td><td>Please upload a PDF file. / PDF only — please upload a CAS statement in PDF format.</td><td>“Import failed” card</td><td>Try again → upload form</td></tr><tr><td>413</td><td>File too large. Maximum supported file size is 25MB.</td><td>“Import failed” card</td><td>Try again</td></tr><tr><td>422</td><td>Incorrect PDF password. CAMS/KFintech CAS passwords are usually your PAN in uppercase.</td><td>“Import failed” card (family: member card)</td><td>Try again / Skip for now</td></tr><tr><td>422</td><td>PDF appears scanned or unreadable. Download the original email PDF, not a photo/scan.</td><td>“Import failed” card</td><td>Try again</td></tr><tr><td>422</td><td>This is a Summary CAS. Request a Detailed CAS from camsonline.com → Statements → CAS.</td><td>“Import failed” card</td><td>Get a Detailed CAS</td></tr><tr><td>422</td><td>This appears to be an NSDL/CDSL demat CAS. Equity/demat statements aren't supported in this version.</td><td>“Import failed” card</td><td>Use the CAMS/KFintech CAS</td></tr><tr><td>422</td><td>parse_failed: casparser's own message, up to 500 characters</td><td>“Import failed” card</td><td>Try again</td></tr><tr><td>client</td><td>Couldn't reach the server. Check your connection and try again.</td><td>“Import failed” card</td><td>Try again</td></tr><tr><td>409</td><td>This PAN is already tracked under a different Unifolio account. Contact support if you believe this is a mistake.</td><td>“Import blocked” popup</td><td>Back → household step</td></tr><tr><td>409</td><td>The statement you uploaded for {name} belongs to a PAN that's already in Unifolio. Please choose {name}'s own CAS.</td><td>“This PAN already exists” popup</td><td>Change CAS file / Cancel (family: Skip)</td></tr><tr><td>409</td><td>This statement's PAN doesn't match {name}'s. Please choose {name}'s own CAS.</td><td>“This PAN already exists” popup</td><td>Change CAS file / Cancel</td></tr><tr><td>409</td><td>Scheme 'X' requires an explicit AMFI code override (match confidence 0.xx below 0.92).</td><td>Red line above the review table</td><td>Enter the AMFI code, confirm again</td></tr><tr><td>409</td><td>Override AMFI code 'X' for scheme 'Y' was not found in AMFI's scheme master list.</td><td>Red line above the review table</td><td>Fix the code</td></tr><tr><td>409</td><td>Plan-type override 'direct' for scheme 'Y' contradicts its CAS-parsed plan name ('regular').</td><td>Red line above the review table</td><td>Undo the override</td></tr><tr><td>404</td><td>This import session has expired. Please re-upload your CAS.</td><td>Red line above the review table</td><td>Upload again</td></tr><tr><td>404</td><td>Import not found.</td><td>Import history delete</td><td>Refresh</td></tr></tbody></table></div>
+  <h3>Dashboard and Analytics</h3>
+  <div class="tbl-wrap wide"><table><thead><tr><th>Status</th><th>Message</th><th>Where it shows</th><th>Next step</th></tr></thead><tbody><tr><td>any</td><td>Dashboard Unavailable + the error text</td><td>Main dashboard empty state</td><td>Try Again reloads the page</td></tr><tr><td>data</td><td>Excludes N holdings with unavailable NAV</td><td>Under the allocation chart; the holding is flagged in the table</td><td>Resolves when mfapi.in has the NAV</td></tr><tr><td>data</td><td>Coverage gap on a folio</td><td>Holdings / import screens</td><td>Add an opening balance</td></tr><tr><td>any</td><td>Unable to load Analytics Dashboard + the error text</td><td>Analytics page</td><td>Reload</td></tr><tr><td>data</td><td>Some sections failed to compute.</td><td>Banner on Analytics</td><td>Retry (<code>POST /analytics/{scope}/retry</code>)</td></tr><tr><td>data</td><td>Category Unavailable · Insufficient Track Record · Score Unavailable / Insufficient History</td><td>Badges on ranking and score cards</td><td>None; data-driven</td></tr><tr><td>500</td><td>Failed to generate PDF export.</td><td>Under Download PDF</td><td>Try again</td></tr><tr><td>400</td><td>scope must be "combined" or a household member id.</td><td>Analytics API</td><td>—</td></tr><tr><td>404</td><td>Household member not found. / Scheme not found.</td><td>Member-scoped views</td><td>Back</td></tr></tbody></table></div>
+  <p class="callout"><b>Common rule:</b> every error on an upload leaves the database and S3 untouched except the PAN-conflict case (also untouched: the popup appears before anything is written). The only errors that write a row are a wrong OTP (<code>attempt_count + 1</code>) and a failed analytics section (<code>failed_at</code>).</p>
+</section>
+
+<section id="theory">
+  <div class="section-head"><div class="qtags"><span class="qtag">Q4</span><span class="qtag">Q6</span><span class="qtag">Q11</span><span class="qtag">Q16</span><span class="qtag">Q26</span></div><h2>Theory answers</h2><p>The questions that are about design choices rather than a flow.</p></div>
+  <div class="answer"><strong>Q4 · Why users.phone_number is unique and NOT NULL, and email is nullable and not unique</strong>
+    <ul>
+      <li><b>Phone is the account's root identity.</b> The signup screen only offers Email or Google (<code>Landing.tsx</code>, signup mode) — there is no "sign up with phone" button. Every signup ends with the same mandatory phone step, so a <code>users</code> row without a phone can't exist by design, and NOT NULL states that in the schema.</li>
+      <li><b>Unique</b> makes “one account per phone number” a database rule, not just an app check. Two signups racing with the same number can't both succeed; the second INSERT fails. The phone login path also relies on it to find the account (<code>find_or_backfill_phone_identity</code>).</li>
+      <li><b>Email is optional by design, but only one real path leaves it NULL today:</b> a Google account whose email Google itself hasn't verified is stored with no email (a deliberate security choice, not a gap). A phone-only <code>users</code> row can also exist with no email — but only via the "Continue with Phone" button on the <b>Login</b> screen, when the number typed there has never signed up before. That is the same bug already flagged at Q10 (an unrecognized phone silently creates an account instead of saying "no account found"), not an intended second signup path.</li>
+      <li><b><code>users.email</code> is a copy, not the source of truth.</b> It is refreshed from the highest-priority login identity that has an email (Google, then email OTP). The real uniqueness for email logins is the unique <code>(provider, provider_subject)</code> on <code>auth_identities</code>, where <code>provider_subject</code> is the email.</li>
+      <li><b>Why not make email the key:</b> it is missing for some users; it can change (contact change, linking Google); and one person can legitimately have the same email on a Google identity and an email-OTP identity. A unique key on the copy would break those cases without protecting anything <code>auth_identities</code> doesn't already protect.</li>
+      <li><b>Related tables:</b> <code>auth_identities</code> holds a <code>phone_otp</code> row whose <code>provider_subject</code> equals <code>users.phone_number</code>; <code>otp_requests</code> is matched by the same phone or email value (no FK); <code>pending_identity_verifications</code> carries the email during signup; the account hard-delete gathers every phone and email to delete the matching OTP rows. Changing phone in Profile updates both <code>users.phone_number</code> and that identity row.</li>
+    </ul>
+  </div>
+  <div class="answer"><strong>Q6 · auth_identities.provider_subject and email</strong>
+    <p><code>provider_subject</code> is the identifier the login method vouches for: the phone number for <code>phone_otp</code>, the email address for <code>email_otp</code>, and Google's <code>sub</code> (its permanent account id, not the email) for <code>google</code>. <code>(provider, provider_subject)</code> is unique, so one Google account or one email can belong to only one Unifolio user. Login looks identities up by exactly this pair.</p>
+    <p><code>email</code> is the verified email that identity carries: NULL for phone, the address for email OTP, Google's email only if Google marked it verified. It is used for two things: detecting that a new Google login is the same person as an existing email account (auto-link, or ask to confirm), and computing <code>users.email</code>. An unverified email is never written here, so nobody can claim someone else's address.</p>
+  </div>
+  <div class="answer"><strong>Q11 · sessions.device_info</strong>
+    <p>A free-text column meant to hold the device or browser a session was created from, for a future “your active sessions” list or suspicious-login checks. <code>create_session()</code> accepts it, but no caller passes it, so today it is <b>always NULL</b>. The other session columns: <code>session_token_hash</code> (SHA-256 of the bearer token, which is never stored), <code>auth_method</code> (the method that completed this login), <code>expires_at</code> (+30 days), <code>last_active_at</code> (set at creation; only <code>/auth/session/refresh</code> moves it, and the frontend doesn't call it).</p>
+  </div>
+  <div class="answer"><strong>Q16 · The imports table</strong>
+    <p>One row per import event for a household member. It records where transactions came from (<code>transactions.import_id</code> is NOT NULL), feeds Import History, and holds the evidence: <code>raw_parser_output</code> (the full parsed CAS with PAN removed) and <code>file_reference</code> (the S3 key of the PDF, 30 days). Columns: status and error fields, <code>source_cas_type</code> (cams/kfintech), <code>source_tab</code>, statement dates, new vs duplicate counts, <code>uploaded_at</code>, <code>confirmed_at</code>, <code>expires_at</code> (CAMS request deadline), <code>file_expires_at</code>. Deleting an import deletes its transactions, deletes folios left empty, re-checks coverage gaps, bumps the analytics generation and clears that household's analytics rows.</p>
+    <div class="tbl-wrap wide"><table><thead><tr><th>Path</th><th>Endpoints</th><th>When a row is written, and its statuses</th></tr></thead><tbody><tr><td>Two-step (what the app uses)</td><td><code>/imports/parse</code> → <code>/imports/confirm</code></td><td>Only at Confirm, with <code>status = confirmed</code>. Failed or abandoned uploads leave no row</td></tr><tr><td>One-step</td><td><code>/cas-imports</code> + <code>PATCH …/password</code></td><td>At upload, <code>upload_started</code> → <code>password_required</code> / <code>validation_failed</code> / <code>import_failed</code> / <code>processing</code> → <code>import_successful</code>. The current screens don't use it</td></tr><tr><td>Request from CAMS</td><td><code>/cas-imports/request</code></td><td><code>waiting_for_user</code> with <code>expires_at</code> +48 h; <code>expired</code> on cancel</td></tr><tr><td>Opening balance</td><td><code>POST /folios/{id}/opening-balance</code></td><td>A marker row, <code>import_successful</code>, count 1, because every transaction must point at an import</td></tr></tbody></table></div>
+  </div>
+  <div class="answer"><strong>Q26 · Where the raw PAN is while the CAS is only in memory</strong>
+    <p>In the ECS backend task's RAM, inside the review session: <code>_preview_sessions[session_id]["parse_result"].investor.pan</code> (<code>service.py</code>). The PDF bytes, which also have the PAN printed in them, sit in the same session. It stays there until Confirm, discard, a PAN conflict, or 60 minutes. It is not in the database in plain form, not in <code>imports.raw_parser_output</code> (redacted before serialising), not in any API response (only the masked form, e.g. <code>A********Z</code>), and not in logs. The only other copy is the uploaded PDF in a temp file on the task's disk for the seconds casparser takes. Once the upload passes the PAN check, the PAN also exists in the database, as ciphertext plus HMAC.</p>
+  </div>
+</section>
+
+<section id="gaps">
+  <div class="section-head"><div class="qtags"></div><h2>Gaps found while tracing</h2><p>Not fixed, not part of the questions. Listed so the walkthrough matches what the code really does today.</p></div>
+  <div class="tbl-wrap wide"><table><thead><tr><th>What</th><th>Where</th><th>Effect</th></tr></thead><tbody><tr><td>Phone login with an unknown number creates an account</td><td><code>api/auth.py</code> verify_otp_route</td><td>Known; deferred by decision (session.md item 9)</td></tr><tr><td>Email login sends a code even when no account exists; the error comes only after the code is typed</td><td><code>api/auth.py</code> request_email_otp</td><td>UX / enumeration trade-off</td></tr><tr><td>No cleanup of expired <code>otp_requests</code> and <code>pending_identity_verifications</code></td><td>no job exists</td><td>Rows grow forever</td></tr><tr><td><code>auth_identities.last_used_at</code> never updated on login</td><td>login paths</td><td>Column is misleading</td></tr><tr><td><code>sessions.device_info</code> always NULL; <code>last_active_at</code> never refreshed</td><td><code>create_session</code>, frontend</td><td>Sessions hard-expire 30 days after login</td></tr><tr><td>The two-step Confirm doesn't set <code>statement_from_date</code>/<code>statement_to_date</code> or run coverage-gap checks; only the one-step path does</td><td><code>service.py</code> confirm_import</td><td>Import History dates blank; gaps not flagged after a normal import</td></tr><tr><td>Plan-type override ignored for a folio that already exists</td><td><code>service.py</code> confirm_import</td><td>Re-import can't correct a plan type</td></tr><tr><td>A confirm during a running recompute doesn't queue another</td><td><code>try_claim_recompute</code></td><td>Combined analytics can lag until 06:30 IST or Retry</td></tr><tr><td><code>portfolio_snapshots</code> never invalidated when an import is deleted or older transactions arrive</td><td><code>snapshots.py</code>, import delete</td><td>Value-over-time chart can show stale months</td></tr><tr><td>Member “has data” counts only <code>status = confirmed</code> imports</td><td><code>aggregate.py</code> _has_data</td><td>One-step imports wouldn't count</td></tr></tbody></table></div>
+</section>
+
+<footer>
+  <span>Traced from the code on branch <span class="mono">feat/enhanced-ui</span> at <span class="mono">bdfa2ba</span> (26 Sep 2026): <span class="mono">backend/app/models</span>, <span class="mono">api/</span>, <span class="mono">services/</span>, <span class="mono">scripts/</span>, <span class="mono">infra/</span> (staging env), and the frontend auth, import, dashboard and analytics features.</span>
+  <span>Companion pages: PAN Storage Map (upload-time PAN detail) and <span class="mono">Docs/investigations/2026-09-23-schema-and-user-journey-review</span> (pre-PAN-change baseline).</span>
+</footer>
+</div>
+<!-- Standalone copy: the claude.ai viewer draws Mermaid itself; a plain browser needs the library. -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script>
+  var dark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  mermaid.initialize({ startOnLoad: true, securityLevel: "strict", theme: dark ? "dark" : "default",
+    flowchart: { useMaxWidth: false }, sequence: { useMaxWidth: false }, er: { useMaxWidth: false }, state: { useMaxWidth: false } });
+</script>
+</body>
+</html>
