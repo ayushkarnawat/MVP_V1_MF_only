@@ -1,16 +1,18 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session as DbSession
 
 from app.db.session import get_db #dependency for database session
 from app.models.auth import AuthIdentity, Session as SessionModel
 from app.models.enums import AuthIdentityProvider
 from app.models.user import User
+from app.services.auth.device_info import capture_request_metadata
 from app.services.auth.identity import (
     PendingVerificationError,
+    attach_email_to_pending,
     attach_pending_identity,
-    complete_phone_gate_signup,
+    complete_gated_signup,
     create_pending_verification,
     find_identity_by_subject,
     find_or_backfill_phone_identity,
@@ -28,6 +30,8 @@ from app.services.auth.schemas import (
     EmailOtpRequiredDetail,
     EmailOtpRequiredResponse,
     EmailOtpVerifyBody,
+    EmailRequiredDetail,
+    EmailRequiredResponse,
     GoogleAuthBody,
     LinkRequiredDetail,
     LinkRequiredResponse,
@@ -91,9 +95,18 @@ def signup_email(body: SignupEmailBody, db: DbSession = Depends(get_db)):
 # §4/§5) -- replaces the link-based /email/confirm route entirely, and
 # /auth/login/email, not alongside either.
 @router.post("/email-otp/request", response_model=OtpRequestResponse)
-def request_email_otp(body: EmailOtpRequestBody, db: DbSession = Depends(get_db)):
+def request_email_otp(body: EmailOtpRequestBody, request: Request, db: DbSession = Depends(get_db)):
+    if body.pending_token:
+        # FR-4: this is the email step of a phone-first signup -- attach the
+        # email to the already-phone-verified pending record before sending
+        # the code, so complete_gated_signup can use it once verified.
+        try:
+            attach_email_to_pending(db, body.pending_token, body.email)
+        except PendingVerificationError as exc:
+            raise HTTPException(status_code=401, detail=str(exc)) from exc
+
     try:
-        _, raw_otp = create_otp_request(db, body.email, channel="email")
+        _, raw_otp = create_otp_request(db, body.email, channel="email", metadata=capture_request_metadata(request))
     except OtpRequestThrottledError as exc:
         raise HTTPException(status_code=429, detail=str(exc)) from exc
     except EmailSendError as exc:
@@ -141,10 +154,24 @@ def verify_email_otp(body: EmailOtpVerifyBody, db: DbSession = Depends(get_db)):
                 raise HTTPException(status_code=401, detail=str(exc)) from exc
             return _session_response(user_id, AuthIdentityProvider.EMAIL_OTP, db)
 
-        # Fresh signup (matched_user_id is None): flip the pending
-        # record's verified flag, hand off to the existing mandatory
-        # phone gate -- unchanged from today. Never eligible to attach to
-        # an existing account, no matter whose email it claims.
+        if link_info.provider == AuthIdentityProvider.PHONE_OTP:
+            # FR-5: phone-first signup's mandatory email gate -- email is
+            # the final step here, so this completes signup directly
+            # instead of flipping an intermediate flag and handing off to
+            # another step.
+            try:
+                user_id = complete_gated_signup(
+                    db, body.pending_token, AuthIdentityProvider.EMAIL_OTP, body.email
+                )
+            except PendingVerificationError as exc:
+                raise HTTPException(status_code=401, detail=str(exc)) from exc
+            return _session_response(user_id, AuthIdentityProvider.EMAIL_OTP, db)
+
+        # Fresh signup (matched_user_id is None, provider is EMAIL_OTP or
+        # GOOGLE): flip the pending record's verified flag, hand off to the
+        # existing mandatory phone gate -- unchanged from today. Never
+        # eligible to attach to an existing account, no matter whose email
+        # it claims.
         try:
             pending = mark_pending_email_verified(db, body.pending_token, body.email)
         except PendingVerificationError as exc:
@@ -160,7 +187,7 @@ def verify_email_otp(body: EmailOtpVerifyBody, db: DbSession = Depends(get_db)):
 
 #otp authentication
 @router.post("/otp/request", response_model=OtpRequestResponse)
-def request_otp(body: OtpRequestBody, db: DbSession = Depends(get_db)):
+def request_otp(body: OtpRequestBody, request: Request, db: DbSession = Depends(get_db)):
     # Same collision this route's own verify step already rejects (see
     # verify_otp_route below) -- checked here too, before an OTP is even sent,
     # so a fresh email signup's phone gate matches signup_email's own UX: the
@@ -183,13 +210,16 @@ def request_otp(body: OtpRequestBody, db: DbSession = Depends(get_db)):
                 )
 
     try:
-        _, raw_otp = create_otp_request(db, body.phone_number)
+        _, raw_otp = create_otp_request(db, body.phone_number, metadata=capture_request_metadata(request))
     except OtpRequestThrottledError as exc:
         raise HTTPException(status_code=429, detail=str(exc)) from exc
     return OtpRequestResponse(message="OTP sent.", otp=raw_otp)
 
 
-@router.post("/otp/verify", response_model=OtpVerifyResponse | LinkRequiredResponse | PhoneRequiredResponse)
+@router.post(
+    "/otp/verify",
+    response_model=OtpVerifyResponse | LinkRequiredResponse | PhoneRequiredResponse | EmailRequiredResponse,
+)
 def verify_otp_route(body: OtpVerifyBody, db: DbSession = Depends(get_db)):
     try:
         verify_otp(db, body.phone_number, body.otp)
@@ -224,20 +254,42 @@ def verify_otp_route(body: OtpVerifyBody, db: DbSession = Depends(get_db)):
                 raise HTTPException(status_code=401, detail=str(exc)) from exc
         else:
             try:
-                user_id = complete_phone_gate_signup(db, body.pending_token, body.phone_number)
+                user_id = complete_gated_signup(
+                    db, body.pending_token, AuthIdentityProvider.PHONE_OTP, body.phone_number
+                )
             except PendingVerificationError as exc:
                 raise HTTPException(status_code=401, detail=str(exc)) from exc
         return _session_response(user_id, AuthIdentityProvider.PHONE_OTP, db)
 
     # Phone uses find_or_backfill_phone_identity so a pre-0005-backfill `users`
     # row (identity row missing) logs in normally instead of falling through to
-    # the brand-new-signup INSERT below and violating users.phone_number UNIQUE.
+    # the branches below and violating users.phone_number UNIQUE.
     existing = find_or_backfill_phone_identity(db, body.phone_number)
     if existing is not None:
         return _session_response(existing.user_id, AuthIdentityProvider.PHONE_OTP, db)
 
-    # Phone never collision-checks (no email claim to collide with) —
-    # brand-new phone number always completes signup immediately.
+    if body.flow == "login":
+        raise HTTPException(status_code=401, detail="No account found for that phone number — sign up instead.")
+
+    if body.flow == "signup":
+        # FR-3 (auth-flow-redesign, 2026-09-28): phone verifies first now --
+        # stage a pending record and wait for email, instead of completing
+        # signup on the spot. This is what retires the old
+        # unconditional-creation bug for every caller that declares its
+        # flow explicitly (the redesigned frontend always does) -- see the
+        # flow-omitted legacy branch below for who's still exempt.
+        _, raw_token = create_pending_verification(
+            db, AuthIdentityProvider.PHONE_OTP, body.phone_number, None, False, matched_user_id=None
+        )
+        return EmailRequiredResponse(
+            email_required=EmailRequiredDetail(token=raw_token, prefill_phone=body.phone_number)
+        )
+
+    # Legacy path, flow omitted entirely (no pending_token either): every
+    # internal test fixture that uses a bare phone-verify call purely to
+    # obtain an authenticated session for unrelated tests lands here,
+    # unchanged. The redesigned frontend always sends an explicit flow;
+    # only an un-updated caller reaches this branch.
     now = datetime.now(timezone.utc)
     user = User(phone_number=body.phone_number, created_at=now)
     db.add(user)

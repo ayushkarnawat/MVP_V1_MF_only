@@ -479,3 +479,59 @@ def test_phone_gate_still_sends_an_otp_at_request_time_for_a_genuinely_new_numbe
     )
     assert gate_otp_request.status_code == 200
     assert gate_otp_request.json()["otp"] is not None
+
+
+def test_phone_first_signup_end_to_end(client):
+    """The full new flow: phone verifies first, then email, then the
+    account exists with both identities."""
+    phone = "+919777788888"
+    phone_otp = client.post("/auth/otp/request", json={"phone_number": phone}).json()["otp"]
+    phone_result = client.post(
+        "/auth/otp/verify", json={"phone_number": phone, "otp": phone_otp, "flow": "signup"}
+    ).json()
+    pending_token = phone_result["email_required"]["token"]
+
+    email_otp = client.post(
+        "/auth/email-otp/request", json={"email": "phonefirst@example.com", "pending_token": pending_token}
+    ).json()["otp"]
+
+    response = client.post(
+        "/auth/email-otp/verify",
+        json={"email": "phonefirst@example.com", "otp": email_otp, "pending_token": pending_token},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["session_token"]
+
+
+def test_phone_first_signup_deletes_otp_requests_on_completion(client):
+    """Confirmed pattern: the `client` fixture overrides `get_db` with its
+    own TestSessionLocal bound to the test engine (see conftest.py) --
+    `app.db.session.SessionLocal` is bound to the *production* engine and
+    would silently query the wrong database here. Reach the test database
+    through the override itself, exactly as
+    tests/api/test_analytics_route.py's `_seed_section` helper already
+    does."""
+    from app.db.session import get_db
+    from app.main import app
+    from app.models.auth import OtpRequest
+
+    phone = "+919777799999"
+    phone_otp = client.post("/auth/otp/request", json={"phone_number": phone}).json()["otp"]
+    pending_token = client.post(
+        "/auth/otp/verify", json={"phone_number": phone, "otp": phone_otp, "flow": "signup"}
+    ).json()["email_required"]["token"]
+    email_otp = client.post(
+        "/auth/email-otp/request", json={"email": "cleanup@example.com", "pending_token": pending_token}
+    ).json()["otp"]
+
+    client.post(
+        "/auth/email-otp/verify",
+        json={"email": "cleanup@example.com", "otp": email_otp, "pending_token": pending_token},
+    )
+
+    override = app.dependency_overrides[get_db]
+    db = next(override())
+    assert db.query(OtpRequest).filter_by(phone_number=phone).first() is None
+    assert db.query(OtpRequest).filter_by(email="cleanup@example.com").first() is None

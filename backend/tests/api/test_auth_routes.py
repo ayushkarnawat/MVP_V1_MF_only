@@ -436,3 +436,83 @@ def test_phone_gated_signup_session_records_phone_otp_as_the_auth_method(client,
 
     assert len(sessions) == 1
     assert sessions[0].auth_method == AuthIdentityProvider.PHONE_OTP
+
+
+def test_otp_verify_with_flow_signup_for_new_phone_returns_email_required(client):
+    phone = "+919444444444"
+    otp = client.post("/auth/otp/request", json={"phone_number": phone}).json()["otp"]
+
+    response = client.post(
+        "/auth/otp/verify", json={"phone_number": phone, "otp": otp, "flow": "signup"}
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert "email_required" in body
+    assert body["email_required"]["token"]
+    assert body["email_required"]["prefill_phone"] == phone
+
+
+def test_otp_verify_with_flow_login_for_unknown_phone_returns_401(client):
+    phone = "+919333322222"
+    otp = client.post("/auth/otp/request", json={"phone_number": phone}).json()["otp"]
+
+    response = client.post(
+        "/auth/otp/verify", json={"phone_number": phone, "otp": otp, "flow": "login"}
+    )
+
+    assert response.status_code == 401
+    assert "sign up instead" in response.json()["detail"]
+
+
+def test_otp_verify_with_flow_login_for_known_phone_logs_in(client):
+    """A phone that already completed the full phone-first flow (see
+    test_email_otp_routes.py for that full path) still logs in normally
+    with flow=login."""
+    phone = "+919222211111"
+    otp1 = client.post("/auth/otp/request", json={"phone_number": phone}).json()["otp"]
+    signup_result = client.post(
+        "/auth/otp/verify", json={"phone_number": phone, "otp": otp1, "flow": "signup"}
+    ).json()
+    email_token = signup_result["email_required"]["token"]
+    email_otp = client.post(
+        "/auth/email-otp/request", json={"email": "known@example.com", "pending_token": email_token}
+    ).json()["otp"]
+    first_session = client.post(
+        "/auth/email-otp/verify", json={"email": "known@example.com", "otp": email_otp, "pending_token": email_token}
+    ).json()
+
+    otp2 = client.post("/auth/otp/request", json={"phone_number": phone}).json()["otp"]
+    response = client.post("/auth/otp/verify", json={"phone_number": phone, "otp": otp2, "flow": "login"})
+
+    assert response.status_code == 200
+    assert response.json()["user_id"] == first_session["user_id"]
+
+
+def test_otp_verify_with_flow_signup_for_already_registered_phone_logs_in_instead_of_erroring(client):
+    """Review Focus: someone who forgot they already have an account
+    shouldn't be blocked -- the number proves nothing malicious, so
+    flow=signup gracefully logs them in rather than erroring."""
+    phone = "+919111133333"
+    otp1 = client.post("/auth/otp/request", json={"phone_number": phone}).json()["otp"]
+    client.post("/auth/otp/verify", json={"phone_number": phone, "otp": otp1})  # legacy path creates the account
+    otp2 = client.post("/auth/otp/request", json={"phone_number": phone}).json()["otp"]
+
+    response = client.post("/auth/otp/verify", json={"phone_number": phone, "otp": otp2, "flow": "signup"})
+
+    assert response.status_code == 200
+    assert "session_token" in response.json()
+
+
+def test_otp_verify_without_flow_or_pending_token_still_creates_a_user_unconditionally(client):
+    """Legacy behavior, deliberately preserved — see this task's design
+    note. This is NOT the redesigned frontend's behavior; it's what every
+    other route test's auth-setup boilerplate (and any un-updated caller)
+    still gets."""
+    phone = "+919111100000"
+    otp = client.post("/auth/otp/request", json={"phone_number": phone}).json()["otp"]
+
+    response = client.post("/auth/otp/verify", json={"phone_number": phone, "otp": otp})
+
+    assert response.status_code == 200
+    assert "session_token" in response.json()
