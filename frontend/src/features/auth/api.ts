@@ -1,4 +1,5 @@
 import { API_BASE_URL, ApiError, parseErrorDetail } from "../../lib/apiClient";
+import { getOrCreateDeviceId } from "./deviceId";
 import { getToken } from "./session";
 import type {
   EmailOtpRequiredResponse,
@@ -29,7 +30,7 @@ async function throwIfError(response: Response): Promise<void> {
 export async function requestOtp(phoneNumber: string, pendingToken?: string): Promise<OtpRequestResponse> {
   const response = await fetch(`${API_BASE_URL}/auth/otp/request`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "X-Device-Id": getOrCreateDeviceId() },
     body: JSON.stringify({
       phone_number: phoneNumber,
       ...(pendingToken ? { pending_token: pendingToken } : {}),
@@ -49,11 +50,14 @@ export async function signupEmail(email: string): Promise<EmailOtpRequiredRespon
   return (await response.json()) as EmailOtpRequiredResponse;
 }
 
-export async function requestEmailOtp(email: string): Promise<OtpRequestResponse> {
+export async function requestEmailOtp(email: string, pendingToken?: string): Promise<OtpRequestResponse> {
   const response = await fetch(`${API_BASE_URL}/auth/email-otp/request`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email }),
+    headers: { "Content-Type": "application/json", "X-Device-Id": getOrCreateDeviceId() },
+    body: JSON.stringify({
+      email,
+      ...(pendingToken ? { pending_token: pendingToken } : {}),
+    }),
   });
   await throwIfError(response);
   return (await response.json()) as OtpRequestResponse;
@@ -81,6 +85,7 @@ export async function verifyOtp(
   phoneNumber: string,
   otp: string,
   pendingToken?: string,
+  flow?: "signup" | "login",
 ): Promise<OtpVerifyResult> {
   const response = await fetch(`${API_BASE_URL}/auth/otp/verify`, {
     method: "POST",
@@ -89,6 +94,7 @@ export async function verifyOtp(
       phone_number: phoneNumber,
       otp,
       ...(pendingToken ? { pending_token: pendingToken } : {}),
+      ...(flow ? { flow } : {}),
     }),
   });
   await throwIfError(response);
