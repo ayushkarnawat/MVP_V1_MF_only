@@ -12,8 +12,11 @@ import { AuthIllustration } from "./AuthIllustration";
 interface EmailEntryProps {
   /** "login": direct email login from landing. "link": step-up re-authentication
     * against an account that already exists. "primary": legacy entry point with
-    * both actions. Defaults to "login". */
-  context?: "primary" | "login" | "link";
+    * both actions. "emailGate": completing the mandatory email step after a
+    * phone-first signup — different copy, no "Log in instead" button
+    * (auth-flow-redesign FR-4, 2026-09-28), mirroring PhoneEntry's
+    * "phoneGate" context for the opposite direction. Defaults to "login". */
+  context?: "primary" | "login" | "link" | "emailGate";
   onSignup?: (email: string) => void;
   onLogin: (email: string) => void;
   onBack?: () => void;
@@ -27,6 +30,7 @@ export function EmailEntry({ context = "login", onSignup, onLogin, onBack, submi
   const [isTouched, setIsTouched] = useState(false);
 
   const isLoginOnly = context === "login" || context === "link";
+  const isEmailGate = context === "emailGate";
 
   const handleEmailChange = (value: string) => {
     setEmail(value);
@@ -92,8 +96,13 @@ export function EmailEntry({ context = "login", onSignup, onLogin, onBack, submi
 
         <div>
           <h1 className="font-display font-bold text-[30px] xs:text-[32px] sm:text-[36px] text-[var(--color-ink)] tracking-tight leading-[1.08]">
-            {isLoginOnly ? "Log in with email" : "Continue with email"}
+            {isEmailGate ? "One more step" : isLoginOnly ? "Log in with email" : "Continue with email"}
           </h1>
+          {isEmailGate && (
+            <p className="text-[13px] sm:text-[14px] text-[#5C5C5C] dark:text-[#A3A3A3] font-normal leading-relaxed pt-2">
+              Verify your email to finish creating your account.
+            </p>
+          )}
         </div>
       </motion.div>
 
