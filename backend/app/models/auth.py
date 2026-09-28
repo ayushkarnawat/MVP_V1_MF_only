@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, UniqueConstraint, Uuid
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -21,6 +21,17 @@ class OtpRequest(Base):
     verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    # Auth-flow-redesign FR-2/FR-9 (migration 0017): device/platform
+    # analytics, not fraud prevention -- see the schema doc's §1 purpose
+    # note for why these fields, not IP/MAC, answer "what device."
+    ip_address: Mapped[str | None] = mapped_column(String(45))
+    user_agent: Mapped[str | None] = mapped_column(Text)
+    device_type: Mapped[str | None] = mapped_column(String)
+    os_family: Mapped[str | None] = mapped_column(String)
+    os_version: Mapped[str | None] = mapped_column(String)
+    browser_family: Mapped[str | None] = mapped_column(String)
+    browser_version: Mapped[str | None] = mapped_column(String)
+    device_id: Mapped[str | None] = mapped_column(String)
 
 
 class AuthIdentity(Base):

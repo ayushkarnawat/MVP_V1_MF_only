@@ -127,3 +127,50 @@ def test_otp_request_supports_email_channel():
     fetched = db.query(OtpRequest).filter_by(email="a@example.com").one()
     assert fetched.email == "a@example.com"
     assert fetched.phone_number is None
+
+
+def test_otp_request_metadata_columns_default_to_none():
+    db = _session()
+    request = OtpRequest(
+        phone_number="+919999999999",
+        otp_hash="hash",
+        expires_at=datetime.now(timezone.utc),
+        created_at=datetime.now(timezone.utc),
+    )
+    db.add(request)
+    db.commit()
+
+    assert request.ip_address is None
+    assert request.user_agent is None
+    assert request.device_type is None
+    assert request.os_family is None
+    assert request.os_version is None
+    assert request.browser_family is None
+    assert request.browser_version is None
+    assert request.device_id is None
+
+
+def test_otp_request_metadata_columns_persist_when_set():
+    db = _session()
+    request = OtpRequest(
+        phone_number="+919999999999",
+        otp_hash="hash",
+        expires_at=datetime.now(timezone.utc),
+        created_at=datetime.now(timezone.utc),
+        ip_address="203.0.113.5",
+        user_agent="Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X)",
+        device_type="mobile",
+        os_family="iOS",
+        os_version="17.5",
+        browser_family="Mobile Safari",
+        browser_version="17.5",
+        device_id="a1b2c3d4-0000-0000-0000-000000000000",
+    )
+    db.add(request)
+    db.commit()
+    db.refresh(request)
+
+    assert request.ip_address == "203.0.113.5"
+    assert request.device_type == "mobile"
+    assert request.os_family == "iOS"
+    assert request.device_id == "a1b2c3d4-0000-0000-0000-000000000000"
