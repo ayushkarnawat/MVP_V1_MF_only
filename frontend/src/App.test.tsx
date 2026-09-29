@@ -20,7 +20,7 @@ describe("App", () => {
   it("shows Landing when there is no stored session on desktop viewport", async () => {
     render(<App />);
 
-    await waitFor(() => expect(screen.getByRole("button", { name: /create account/i })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("button", { name: /get otp/i })).toBeInTheDocument());
   });
 
   it("shows MobileLandingPage when there is no stored session on mobile viewport and transitions to AuthEntryFlow", async () => {
@@ -130,6 +130,6 @@ describe("App", () => {
 
     render(<App />);
 
-    await waitFor(() => expect(screen.getByRole("button", { name: /create account/i })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("button", { name: /get otp/i })).toBeInTheDocument());
   });
 });

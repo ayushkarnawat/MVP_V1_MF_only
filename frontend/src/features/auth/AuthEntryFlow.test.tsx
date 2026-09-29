@@ -50,13 +50,25 @@ describe("AuthEntryFlow", () => {
 
   it("switches to Log in view with Continue with Google, Email, and Phone (no Apple)", async () => {
     renderFlow();
-    await waitFor(() => expect(screen.getByTestId("google-button-container")).toBeInTheDocument());
+    // Signup mode (default) shows the phone input directly on Landing now
+    // (no separate CTA click, no Google button) -- wait for that instead.
+    await waitFor(() => expect(screen.getByRole("button", { name: /get otp/i })).toBeInTheDocument());
 
     fireEvent.click(screen.getByRole("button", { name: /^log in$/i }));
 
+    await waitFor(() => expect(screen.getByTestId("google-button-container")).toBeInTheDocument());
     expect(screen.queryByRole("button", { name: /continue with apple/i })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /continue with email/i })).toBeEnabled();
     expect(screen.getByRole("button", { name: /continue with phone/i })).toBeEnabled();
+  });
+
+  it("shows the phone number input and Get OTP directly on the signup screen, no intermediate click", async () => {
+    renderFlow();
+
+    expect(screen.getByText(/create your account/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/mobile number/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /get otp/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /continue with phone/i })).not.toBeInTheDocument();
   });
 
   it("moves from phone entry to OTP verify after a successful request", async () => {
@@ -86,74 +98,105 @@ describe("AuthEntryFlow", () => {
     fireEvent.change(screen.getByLabelText(/verification code/i), { target: { value: "654321" } });
     fireEvent.click(screen.getByRole("button", { name: /verify & continue/i }));
 
-    await waitFor(() => expect(api.verifyOtp).toHaveBeenCalledWith("+919999999999", "654321", undefined));
+    await waitFor(() => expect(api.verifyOtp).toHaveBeenCalledWith("+919999999999", "654321", undefined, "login"));
     await waitFor(() => expect(api.getMe).toHaveBeenCalled());
   });
 
-  it("signs up directly with email from the Landing form, transitioning to the inline email-OTP step", async () => {
-    vi.mocked(api.signupEmail).mockResolvedValue({
-      email_otp_required: { token: "email-gate-tok", prefill_email: "newsignup@example.com", otp: "555444" },
-    });
-    renderFlow();
-    fillEmail("newsignup@example.com");
-    fireEvent.click(screen.getByRole("button", { name: /^create account$/i }));
+  // The two tests that used to live here -- "signs up directly with email
+  // from the Landing form" and "completes signup, verifies the email OTP,
+  // then the phone gate" -- exercised Landing's signup-mode email form,
+  // which Task 12 (auth-flow-redesign, 2026-09-28) removed entirely in
+  // favor of the phone-first CTA below. Their entry point no longer exists
+  // in the UI; "completes the phone-first signup" is the direct successor,
+  // and "does not show the confirm-your-email acknowledgment for a Google
+  // signup's phone gate" further down still covers the mandatory
+  // phone-gate-after-signup shape via the surviving Google entry point.
 
-    await waitFor(() => expect(api.signupEmail).toHaveBeenCalledWith("newsignup@example.com"));
-    await waitFor(() => expect(screen.getByText(/verify your email/i)).toBeInTheDocument());
-    expect(screen.getByText(/555444/)).toBeInTheDocument();
-  });
-
-  it("completes signup, verifies the email OTP, then the phone gate, and logs in", async () => {
-    vi.mocked(api.signupEmail).mockResolvedValue({
-      email_otp_required: { token: "email-gate-tok", prefill_email: "confirmme@example.com", otp: "333444" },
+  it("completes the phone-first signup: phone OTP, email gate, email OTP, then logs in", async () => {
+    vi.mocked(api.requestOtp).mockResolvedValue({ message: "OTP sent.", otp: "111111" });
+    vi.mocked(api.verifyOtp).mockResolvedValue({
+      email_required: { token: "phone-first-tok", prefill_phone: "+919555555555" },
     });
-    vi.mocked(api.verifyEmailOtp).mockResolvedValue({
-      phone_required: { token: "gate-tok", prefill_email: "confirmme@example.com" },
-    });
-    vi.mocked(api.requestOtp).mockResolvedValue({ message: "OTP sent.", otp: "111222" });
-    vi.mocked(api.verifyOtp).mockResolvedValue(NORMAL_SESSION);
+    vi.mocked(api.requestEmailOtp).mockResolvedValue({ message: "OTP sent.", otp: "222222" });
+    vi.mocked(api.verifyEmailOtp).mockResolvedValue(NORMAL_SESSION);
     vi.mocked(api.getMe).mockResolvedValue(ME_RESPONSE);
     renderFlow();
-    fillEmail("confirmme@example.com");
-    fireEvent.click(screen.getByRole("button", { name: /^create account$/i }));
-    await waitFor(() => screen.getByText(/verify your email/i));
 
-    fireEvent.change(screen.getByLabelText(/verification code/i), { target: { value: "333444" } });
+    fireEvent.change(screen.getByLabelText(/mobile number/i), { target: { value: "+919555555555" } });
+    fireEvent.click(screen.getByRole("button", { name: /get otp/i }));
+    await waitFor(() => screen.getByLabelText(/verification code/i));
+    fireEvent.change(screen.getByLabelText(/verification code/i), { target: { value: "111111" } });
     fireEvent.click(screen.getByRole("button", { name: /verify & continue/i }));
 
     await waitFor(() =>
-      expect(api.verifyEmailOtp).toHaveBeenCalledWith("confirmme@example.com", "333444", "email-gate-tok"),
+      expect(api.verifyOtp).toHaveBeenCalledWith("+919555555555", "111111", undefined, "signup"),
     );
     await waitFor(() => screen.getByText(/one more step/i));
-    expect(screen.getByText(/finish creating your account for confirmme@example\.com/i)).toBeInTheDocument();
+    expect(screen.getByText(/verify your email to finish creating your account/i)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^back$/i })).not.toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText(/mobile number/i), { target: { value: "+919111111112" } });
-    fireEvent.click(screen.getByRole("button", { name: /send verification code/i }));
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: "phonefirst@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: /send code/i }));
+
+    await waitFor(() =>
+      expect(api.requestEmailOtp).toHaveBeenCalledWith("phonefirst@example.com", "phone-first-tok"),
+    );
     await waitFor(() => screen.getByLabelText(/verification code/i));
-    fireEvent.change(screen.getByLabelText(/verification code/i), { target: { value: "111222" } });
+    fireEvent.change(screen.getByLabelText(/verification code/i), { target: { value: "222222" } });
     fireEvent.click(screen.getByRole("button", { name: /verify & continue/i }));
 
+    await waitFor(() =>
+      expect(api.verifyEmailOtp).toHaveBeenCalledWith("phonefirst@example.com", "222222", "phone-first-tok"),
+    );
     await waitFor(() => expect(api.getMe).toHaveBeenCalled());
   });
 
-  it("shows a Log in instead shortcut when the phone gate's number belongs to a different account", async () => {
-    vi.mocked(api.signupEmail).mockResolvedValue({
-      email_otp_required: { token: "email-gate-tok", prefill_email: "newperson@example.com", otp: "333444" },
+  it("recovers to Landing (not stuck) when the phone-first email gate's token has expired", async () => {
+    vi.mocked(api.requestOtp).mockResolvedValue({ message: "OTP sent.", otp: "111111" });
+    vi.mocked(api.verifyOtp).mockResolvedValue({
+      email_required: { token: "expired-tok", prefill_phone: "+919555555556" },
     });
-    vi.mocked(api.verifyEmailOtp).mockResolvedValue({
+    vi.mocked(api.requestEmailOtp).mockRejectedValue(
+      new ApiError(401, "This verification has expired. Please start over."),
+    );
+    renderFlow();
+    fireEvent.change(screen.getByLabelText(/mobile number/i), { target: { value: "+919555555556" } });
+    fireEvent.click(screen.getByRole("button", { name: /get otp/i }));
+    await waitFor(() => screen.getByLabelText(/verification code/i));
+    fireEvent.change(screen.getByLabelText(/verification code/i), { target: { value: "111111" } });
+    fireEvent.click(screen.getByRole("button", { name: /verify & continue/i }));
+    await waitFor(() => screen.getByText(/one more step/i));
+
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: "stuck@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: /send code/i }));
+
+    // Not stuck on the gate screen forever -- dropped back to Landing with the error shown.
+    await waitFor(() => expect(screen.getByText(/expired/i)).toBeInTheDocument());
+    expect(screen.queryByText(/one more step/i)).not.toBeInTheDocument();
+
+    // The stale gate token doesn't leak into an unrelated later flow.
+    fireEvent.click(screen.getByRole("button", { name: /^log in$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /continue with email/i }));
+    expect(screen.getByText(/log in with email/i)).toBeInTheDocument();
+    expect(screen.queryByText(/one more step/i)).not.toBeInTheDocument();
+  });
+
+  it("shows a Log in instead shortcut when the phone gate's number belongs to a different account", async () => {
+    vi.mocked(api.verifyGoogleCredential).mockResolvedValue({
       phone_required: { token: "gate-tok", prefill_email: "newperson@example.com" },
     });
     vi.mocked(api.requestOtp).mockResolvedValue({ message: "OTP sent.", otp: "111222" });
     vi.mocked(api.verifyOtp).mockRejectedValue(
       new ApiError(409, "An account with this phone number already exists — log in instead."),
     );
+    window.google = { accounts: { id: { initialize: vi.fn(), renderButton: vi.fn() } } };
     renderFlow();
-    fillEmail("newperson@example.com");
-    fireEvent.click(screen.getByRole("button", { name: /^create account$/i }));
-    await waitFor(() => screen.getByText(/verify your email/i));
-    fireEvent.change(screen.getByLabelText(/verification code/i), { target: { value: "333444" } });
-    fireEvent.click(screen.getByRole("button", { name: /verify & continue/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^log in$/i }));
+    const script = document.head.querySelector("script")!;
+    fireEvent.load(script);
+    await waitFor(() => expect(window.google!.accounts.id.initialize).toHaveBeenCalled());
+    const { callback } = vi.mocked(window.google!.accounts.id.initialize).mock.calls[0][0];
+    await callback({ credential: "fake-id-token" });
     await waitFor(() => screen.getByText(/one more step/i));
 
     fireEvent.change(screen.getByLabelText(/mobile number/i), { target: { value: "+919600000123" } });
@@ -172,37 +215,12 @@ describe("AuthEntryFlow", () => {
     expect(screen.queryByText(/already exists/i)).not.toBeInTheDocument();
   });
 
-  it("resends the email OTP via requestEmailOtp when Resend code is clicked on the email-OTP step", async () => {
-    vi.mocked(api.signupEmail).mockResolvedValue({
-      email_otp_required: { token: "email-gate-tok", prefill_email: "resend@example.com", otp: "111111" },
-    });
-    vi.mocked(api.requestEmailOtp).mockResolvedValue({ message: "OTP sent.", otp: "222222" });
-    renderFlow();
-    fillEmail("resend@example.com");
-    fireEvent.click(screen.getByRole("button", { name: /^create account$/i }));
-    await waitFor(() => screen.getByText(/verify your email/i));
-
-    fireEvent.click(screen.getByRole("button", { name: /resend code/i }));
-
-    await waitFor(() => expect(api.requestEmailOtp).toHaveBeenCalledWith("resend@example.com"));
-    await waitFor(() => expect(screen.getByText(/222222/)).toBeInTheDocument());
-  });
-
-  it("shows an inline error when the email OTP code is wrong", async () => {
-    vi.mocked(api.signupEmail).mockResolvedValue({
-      email_otp_required: { token: "email-gate-tok", prefill_email: "wrongcode@example.com", otp: "999999" },
-    });
-    vi.mocked(api.verifyEmailOtp).mockRejectedValue(new ApiError(401, "Incorrect OTP."));
-    renderFlow();
-    fillEmail("wrongcode@example.com");
-    fireEvent.click(screen.getByRole("button", { name: /^create account$/i }));
-    await waitFor(() => screen.getByText(/verify your email/i));
-
-    fireEvent.change(screen.getByLabelText(/verification code/i), { target: { value: "000000" } });
-    fireEvent.click(screen.getByRole("button", { name: /verify & continue/i }));
-
-    await waitFor(() => expect(screen.getByText(/incorrect otp/i)).toBeInTheDocument());
-  });
+  // "resends the email OTP..." and "shows an inline error when the email
+  // OTP code is wrong" used to live here, both driven by the now-removed
+  // Landing signup email form. OtpVerify's inline-error and resend
+  // rendering are shared, generic behavior already exercised by surviving
+  // tests below ("shows the backend's own message...", the phone-first
+  // tests above) through their own still-reachable entry points.
 
   it("does not show the confirm-your-email acknowledgment for a Google signup's phone gate", async () => {
     vi.mocked(api.verifyGoogleCredential).mockResolvedValue({
@@ -213,12 +231,18 @@ describe("AuthEntryFlow", () => {
     vi.mocked(api.getMe).mockResolvedValue(ME_RESPONSE);
     window.google = { accounts: { id: { initialize: vi.fn(), renderButton: vi.fn() } } };
     renderFlow();
+    // Google's button only renders in Login mode now (Task 12 hid it from
+    // signup) -- this still exercises a brand-new Google identity's
+    // mandatory phone gate; the response mock, not the visible mode,
+    // decides that it's a "signup".
+    fireEvent.click(screen.getByRole("button", { name: /^log in$/i }));
     const script = document.head.querySelector("script")!;
     fireEvent.load(script);
     await waitFor(() => expect(window.google!.accounts.id.initialize).toHaveBeenCalled());
     const { callback } = vi.mocked(window.google!.accounts.id.initialize).mock.calls[0][0];
     await callback({ credential: "fake-id-token" });
     await waitFor(() => screen.getByText(/one more step/i));
+    expect(screen.getByText(/finish creating your account for g@example\.com/i)).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText(/mobile number/i), { target: { value: "+919111111111" } });
     fireEvent.click(screen.getByRole("button", { name: /send verification code/i }));
@@ -230,31 +254,12 @@ describe("AuthEntryFlow", () => {
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
-  it("shows an inline error when email signup fails", async () => {
-    vi.mocked(api.signupEmail).mockRejectedValue(
-      new ApiError(409, "An account with this email already exists — log in instead."),
-    );
-    renderFlow();
-    fillEmail("dup@example.com");
-    fireEvent.click(screen.getByRole("button", { name: /^create account$/i }));
-
-    await waitFor(() => expect(screen.getByText(/already exists/i)).toBeInTheDocument());
-  });
-
-  it("shows a Log in instead shortcut on the email signup duplicate error", async () => {
-    vi.mocked(api.signupEmail).mockRejectedValue(
-      new ApiError(409, "An account with this email already exists — log in instead."),
-    );
-    renderFlow();
-    fillEmail("dup@example.com");
-    fireEvent.click(screen.getByRole("button", { name: /^create account$/i }));
-    await waitFor(() => expect(screen.getByText(/already exists/i)).toBeInTheDocument());
-
-    fireEvent.click(screen.getByRole("button", { name: /log in instead/i }));
-
-    await waitFor(() => expect(screen.getByText(/welcome back/i)).toBeInTheDocument());
-    expect(screen.queryByText(/already exists/i)).not.toBeInTheDocument();
-  });
+  // "shows an inline error when email signup fails" and "shows a Log in
+  // instead shortcut on the email signup duplicate error" used to live
+  // here, both driven by the removed Landing signup email form's own
+  // direct 409. The "Log in instead" shortcut pattern itself is still
+  // covered above (phone-gate collision, via Google) and below
+  // (email-login's own duplicate-error path).
 
   it("logs in via email OTP from Continue with Email button, no phone gate", async () => {
     vi.mocked(api.requestEmailOtp).mockResolvedValue({ message: "OTP sent.", otp: "777888" });
@@ -300,6 +305,7 @@ describe("AuthEntryFlow", () => {
     });
     window.google = { accounts: { id: { initialize: vi.fn(), renderButton: vi.fn() } } };
     renderFlow();
+    fireEvent.click(screen.getByRole("button", { name: /^log in$/i }));
     const script = document.head.querySelector("script")!;
     fireEvent.load(script);
     await waitFor(() => expect(window.google!.accounts.id.initialize).toHaveBeenCalled());
@@ -315,6 +321,7 @@ describe("AuthEntryFlow", () => {
     vi.mocked(api.getMe).mockResolvedValue(ME_RESPONSE);
     window.google = { accounts: { id: { initialize: vi.fn(), renderButton: vi.fn() } } };
     renderFlow();
+    fireEvent.click(screen.getByRole("button", { name: /^log in$/i }));
     const script = document.head.querySelector("script")!;
     fireEvent.load(script);
     await waitFor(() => expect(window.google!.accounts.id.initialize).toHaveBeenCalled());
@@ -331,6 +338,7 @@ describe("AuthEntryFlow", () => {
     });
     window.google = { accounts: { id: { initialize: vi.fn(), renderButton: vi.fn() } } };
     renderFlow();
+    fireEvent.click(screen.getByRole("button", { name: /^log in$/i }));
     const script = document.head.querySelector("script")!;
     fireEvent.load(script);
     await waitFor(() => expect(window.google!.accounts.id.initialize).toHaveBeenCalled());
@@ -343,7 +351,7 @@ describe("AuthEntryFlow", () => {
 
   it("does not render theme toggle on auth entry screen (appears from Dashboard onwards)", async () => {
     renderFlow();
-    await waitFor(() => expect(screen.getByTestId("google-button-container")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("button", { name: /get otp/i })).toBeInTheDocument());
 
     expect(screen.queryByRole("button", { name: /toggle.*theme/i })).not.toBeInTheDocument();
   });
@@ -396,20 +404,11 @@ describe("AuthEntryFlow", () => {
     expect(screen.getByRole("button", { name: /continue with phone/i })).toBeInTheDocument();
   });
 
-  it("clears previous signup error immediately when switching to Log in mode", async () => {
-    vi.mocked(api.signupEmail).mockRejectedValue(
-      new ApiError(409, "An account with this email already exists — log in instead."),
-    );
-    renderFlow();
-    fillEmail("dup@example.com");
-    fireEvent.click(screen.getByRole("button", { name: /^create account$/i }));
-
-    await waitFor(() => expect(screen.getByText(/already exists/i)).toBeInTheDocument());
-
-    fireEvent.click(screen.getByRole("button", { name: /^log in$/i }));
-
-    await waitFor(() => expect(screen.queryByText(/already exists/i)).not.toBeInTheDocument());
-  });
+  // "clears previous signup error immediately when switching to Log in
+  // mode" used to live here, driven by the removed Landing signup email
+  // form's 409. onModeChange's error-clearing is generic (fires the same
+  // way regardless of which error is showing) and is still verified below
+  // for the opposite direction.
 
   it("clears previous login error immediately when switching to Sign up mode", async () => {
     vi.mocked(api.verifyGoogleCredential).mockRejectedValue(

@@ -344,6 +344,19 @@ export function isAccountExistsError(message: string | null): boolean {
 }
 
 /**
+ * True for a dead pending_identity_verifications token -- not found,
+ * already used, or past its 10-minute TTL (see
+ * identity.py's _consume_pending_verification). I2 fix (final review,
+ * 2026-09-28): without detecting this, a caller stuck on a gate screen
+ * (emailGate/phoneGate) with an expired token has no way back -- these two
+ * exact messages are the only ones from _consume_pending_verification that
+ * mean "this token is dead, start over" rather than "wrong code, retry".
+ */
+export function isExpiredVerificationError(message: string | null): boolean {
+  return !!message && /verification has expired|invalid or already-used verification token/i.test(message);
+}
+
+/**
  * Formats API and authentication errors into clear, human-friendly messages.
  */
 export function formatAuthErrorMessage(err: unknown, fallback: string): string {

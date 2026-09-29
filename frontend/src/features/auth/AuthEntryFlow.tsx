@@ -18,7 +18,7 @@ import {
 import { isEmailRequired, isLinkRequired, isPhoneRequired } from "./types";
 import type { ExistingMethod } from "./types";
 import { useAuth } from "./AuthContext";
-import { formatAuthErrorMessage } from "./validation";
+import { formatAuthErrorMessage, isExpiredVerificationError } from "./validation";
 
 type Step = AuthStep;
 
@@ -90,6 +90,8 @@ export function AuthEntryFlow({
     setAuthMode("login");
     setPhoneGateToken(null);
     setPhoneGatePrefillEmail(null);
+    setEmailGateToken(null);
+    setEmailGatePrefillPhone(null);
     setEmailOtpToken(null);
     setEmailOtpEmail("");
     goToStep("email");
@@ -99,13 +101,8 @@ export function AuthEntryFlow({
     setAuthMode("login");
     setPhoneGateToken(null);
     setPhoneGatePrefillEmail(null);
-    goToStep("phone");
-  };
-
-  const handleSignupPhoneStart = () => {
-    setAuthMode("signup");
-    setPhoneGateToken(null);
-    setPhoneGatePrefillEmail(null);
+    setEmailGateToken(null);
+    setEmailGatePrefillPhone(null);
     goToStep("phone");
   };
 
@@ -116,9 +113,29 @@ export function AuthEntryFlow({
     setAuthMode("login");
     setPhoneGateToken(null);
     setPhoneGatePrefillEmail(null);
+    setEmailGateToken(null);
+    setEmailGatePrefillPhone(null);
     setEmailOtpToken(null);
     setEmailOtpEmail("");
     goToStep("landing");
+  };
+
+  // I2 fix (final review, 2026-09-28): a dead pending_identity_verifications
+  // token (expired, or already used) previously left the caller stuck on
+  // the gate screen forever -- neither gate screen has a Back button
+  // (Design Spec §1's mandatory-step intent), and the existing "Log in
+  // instead" shortcuts only fire for an *account-exists* error, not an
+  // expired token. Drops back to Landing with the message still shown,
+  // mirroring LinkAccountPrompt's own recovery pattern below.
+  const handleVerificationExpired = (message: string) => {
+    setPhoneGateToken(null);
+    setPhoneGatePrefillEmail(null);
+    setEmailGateToken(null);
+    setEmailGatePrefillPhone(null);
+    setEmailOtpToken(null);
+    setEmailOtpEmail("");
+    goToStep("landing");
+    setError(message);
   };
 
   const handlePhoneSubmit = async (phone: string) => {
@@ -134,6 +151,20 @@ export function AuthEntryFlow({
     } finally {
       setSubmitting(false);
     }
+  };
+
+  // Landing's own phone input, signup mode (2026-09-29 follow-up): submits
+  // straight from Landing -- no separate "Continue with phone" click, no
+  // intermediate "phone" step. Clears any stale gate tokens from an earlier
+  // abandoned attempt before requesting the code, same as the old
+  // handleSignupPhoneStart did before navigating.
+  const handleSignupPhoneSubmit = (phone: string) => {
+    setAuthMode("signup");
+    setPhoneGateToken(null);
+    setPhoneGatePrefillEmail(null);
+    setEmailGateToken(null);
+    setEmailGatePrefillPhone(null);
+    return handlePhoneSubmit(phone);
   };
 
   const handleEmailSignup = async (email: string) => {
@@ -187,7 +218,12 @@ export function AuthEntryFlow({
       goToStep("email_otp");
       setDevOtp(result.otp);
     } catch (err) {
-      setError(errorMessage(err, "Couldn't send the code. Try again."));
+      const message = errorMessage(err, "Couldn't send the code. Try again.");
+      if (isExpiredVerificationError(message)) {
+        handleVerificationExpired(message);
+        return;
+      }
+      setError(message);
     } finally {
       setSubmitting(false);
     }
@@ -216,7 +252,12 @@ export function AuthEntryFlow({
       }
       setError("Something unexpected happened. Please try again.");
     } catch (err) {
-      setError(errorMessage(err, "That code didn't work. Try again."));
+      const message = errorMessage(err, "That code didn't work. Try again.");
+      if (isExpiredVerificationError(message)) {
+        handleVerificationExpired(message);
+        return;
+      }
+      setError(message);
     } finally {
       setSubmitting(false);
     }
@@ -312,7 +353,7 @@ export function AuthEntryFlow({
               setDevOtp(null);
               setAuthMode(newMode);
             }}
-            onStartPhoneSignup={handleSignupPhoneStart}
+            onSubmitPhone={handleSignupPhoneSubmit}
             onSelectEmail={handleSelectEmail}
             onSelectPhone={handleSelectPhone}
             onGoogleCredential={handleGoogleCredential}
@@ -439,7 +480,11 @@ export function AuthEntryFlow({
 
       case "email":
         if (emailGateToken) {
-          return 2; // phone-first: landing(0) -> phone(1) -> email(2)
+          // I6 fix (final review, 2026-09-28): was 2, colliding with
+          // phone-first's own "otp" step below -- the indicator never
+          // moved between phone-OTP and the email gate. Distinct index:
+          // phone(0) -> phone otp(1) -> email gate(2) -> email otp(3).
+          return 2;
         }
         return 1;
 
@@ -453,16 +498,17 @@ export function AuthEntryFlow({
         if (phoneGateToken) {
           return emailOtpEmail ? 2 : 1;
         }
-        return 1; // phone-first's own first step
+        // Defensive fallback only: Landing's own phone input (2026-09-29
+        // follow-up) submits straight to handlePhoneSubmit without ever
+        // navigating to this step for phone-first signup, so step is never
+        // actually "phone" here in signup mode without a phoneGateToken.
+        return 0;
 
       case "otp":
         if (phoneGateToken) {
           return emailOtpEmail ? 3 : 2;
         }
-        if (authMode === "signup" && !phoneGateToken) {
-          return 2; // phone-first: landing(0) -> phone(1) -> phone otp(2)
-        }
-        return 2;
+        return 1; // phone-first's own OTP step (reached directly from Landing)
 
       case "link_account":
         return 3;

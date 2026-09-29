@@ -1,8 +1,10 @@
 import { useState } from "react";
+import type { FormEvent } from "react";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, ArrowRight, Mail, Phone } from "lucide-react";
+import { AlertCircle, ArrowRight, Loader2, Mail, Phone } from "lucide-react";
 import { GoogleButton } from "./GoogleButton";
-import { isAccountExistsError } from "./validation";
+import { cn } from "@/lib/utils";
+import { isAccountExistsError, validateIndianPhone } from "./validation";
 import { HandDrawnUnderline } from "@/components/HandDrawnUnderline";
 
 import { AuthIllustration } from "./AuthIllustration";
@@ -10,7 +12,7 @@ import { AuthIllustration } from "./AuthIllustration";
 interface LandingProps {
   initialMode?: "login" | "signup";
   onModeChange?: (mode: "login" | "signup") => void;
-  onStartPhoneSignup: () => void;
+  onSubmitPhone: (phoneNumber: string) => void;
   onSelectEmail: () => void;
   onSelectPhone: () => void;
   onGoogleCredential: (idToken: string) => void;
@@ -21,7 +23,7 @@ interface LandingProps {
 export function Landing({
   initialMode = "signup",
   onModeChange,
-  onStartPhoneSignup,
+  onSubmitPhone,
   onSelectEmail,
   onSelectPhone,
   onGoogleCredential,
@@ -30,14 +32,41 @@ export function Landing({
 }: LandingProps) {
   // Mode state initialized from prop to preserve auth context on back navigation
   const [mode, setMode] = useState<"login" | "signup">(initialMode);
-  // Signup mode no longer collects email input; nothing sets this. Kept as a
-  // constant (rather than removed) so the shared error-alert guard below
-  // doesn't need a mode-specific branch.
-  const validationError: string | null = null;
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [isTouched, setIsTouched] = useState(false);
 
   const goToLogin = () => {
     setMode("login");
     onModeChange?.("login");
+  };
+
+  const handlePhoneChange = (value: string) => {
+    setPhoneNumber(value);
+    if (isTouched || validationError) {
+      const res = validateIndianPhone(value);
+      setValidationError(res.isValid ? null : res.error);
+    }
+  };
+
+  const handlePhoneBlur = () => {
+    setIsTouched(true);
+    if (phoneNumber.trim().length > 0) {
+      const res = validateIndianPhone(phoneNumber);
+      setValidationError(res.isValid ? null : res.error);
+    }
+  };
+
+  const handlePhoneSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsTouched(true);
+    const res = validateIndianPhone(phoneNumber);
+    if (!res.isValid) {
+      setValidationError(res.error);
+      return;
+    }
+    setValidationError(null);
+    onSubmitPhone(res.normalized);
   };
 
   return (
@@ -83,20 +112,71 @@ export function Landing({
       {/* 3. Form Content */}
       {mode === "signup" ? (
         /* Sign Up Experience (Default) -- phone-first, sequential
-           (auth-flow-redesign, 2026-09-28): a single CTA into the existing
-           phone step, no email input and no Google button on this screen.
-           Google's backend path is untouched, just not offered here. */
+           (auth-flow-redesign, 2026-09-28; merged onto Landing directly per
+           2026-09-29 follow-up): the phone number input and its submit
+           action live right here, no separate "Continue with phone" click
+           and no intermediate screen -- no email input and no Google button
+           on this screen either. Google's backend path is untouched, just
+           not offered here. */
         <div key="signup-mode" className="space-y-4 animate-in fade-in duration-200">
-          <Button
-            type="button"
-            onClick={onStartPhoneSignup}
-            disabled={submitting}
-            aria-label="Continue with phone"
-            className="w-full h-14 sm:h-[58px] px-8 rounded-full font-bold text-[15px] sm:text-base bg-[#22C55E] hover:bg-[#22C55E]/90 dark:bg-[#22C55E] dark:hover:bg-[#22C55E]/90 text-white shadow-xl shadow-[#22C55E]/25 dark:shadow-[#22C55E]/20 active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2.5 border border-[#22C55E]/40 min-h-[52px]"
-          >
-            <span>Continue with phone</span>
-            <ArrowRight className="h-4.5 w-4.5" />
-          </Button>
+          <form onSubmit={handlePhoneSubmit} noValidate className="space-y-3.5">
+            <div className="space-y-1.5">
+              <label htmlFor="signup-phone-input" className="text-xs font-semibold text-[var(--color-ink)] block font-body">
+                Mobile number
+              </label>
+              <div
+                className={cn(
+                  "flex items-center rounded-2xl bg-white/90 dark:bg-[var(--color-surface)] border border-[var(--color-border)] transition-all h-13 sm:h-14 min-h-[50px] sm:min-h-[54px] shadow-xs",
+                  validationError
+                    ? "border-[var(--color-negative)] focus-within:border-[var(--color-negative)] focus-within:ring-2 focus-within:ring-[var(--color-negative)]/20"
+                    : "focus-within:border-[#22C55E] focus-within:ring-2 focus-within:ring-[#22C55E]/20",
+                )}
+              >
+                <div className="px-3.5 sm:px-4 flex items-center gap-1.5 border-r border-[var(--color-border)] text-xs font-medium text-[var(--color-ink)] select-none bg-[var(--color-surface)]/50 h-full rounded-l-2xl flex-shrink-0">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">IN</span>
+                  <span className="font-semibold">+91</span>
+                </div>
+                <input
+                  id="signup-phone-input"
+                  type="tel"
+                  placeholder="98765 43210"
+                  value={phoneNumber}
+                  onChange={(event) => handlePhoneChange(event.target.value)}
+                  onBlur={handlePhoneBlur}
+                  className="flex-1 min-w-0 bg-transparent px-3.5 text-sm text-[var(--color-ink)] placeholder:text-[#5C5C5C]/50 dark:placeholder:text-[#A3A3A3]/50 focus:outline-none focus:ring-0 focus:border-transparent outline-none border-none shadow-none font-mono rounded-r-2xl"
+                  autoFocus
+                />
+              </div>
+              {/* Direct Inline Field Validation Error */}
+              {validationError && (
+                <div
+                  role="alert"
+                  className="flex items-center gap-1.5 text-xs text-[var(--color-negative)] font-medium font-body pt-0.5 animate-in fade-in duration-150"
+                >
+                  <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
+                  <span>{validationError}</span>
+                </div>
+              )}
+            </div>
+
+            <Button
+              type="submit"
+              disabled={submitting || !phoneNumber.trim()}
+              className="w-full h-14 sm:h-[58px] px-8 rounded-full font-bold text-[15px] sm:text-base bg-[#22C55E] hover:bg-[#22C55E]/90 dark:bg-[#22C55E] dark:hover:bg-[#22C55E]/90 text-white shadow-xl shadow-[#22C55E]/25 dark:shadow-[#22C55E]/20 active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2.5 border border-[#22C55E]/40 min-h-[52px] mt-2"
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="h-4.5 w-4.5 animate-spin" />
+                  <span>Sending...</span>
+                </>
+              ) : (
+                <>
+                  <span>Get OTP</span>
+                  <ArrowRight className="h-4.5 w-4.5" />
+                </>
+              )}
+            </Button>
+          </form>
 
           {/* Toggle Helper Link */}
           <div className="text-center text-xs text-[#5C5C5C] dark:text-[#A3A3A3] pt-1.5 font-body">
