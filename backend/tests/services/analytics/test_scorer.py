@@ -58,7 +58,10 @@ def _seed_monthly_nav(db, scheme, months, start_nav=Decimal("10"), monthly_growt
     without constructing 5 years of daily rows in a test."""
     nav = start_nav
     for i in range(months, 0, -1):
-        row_date = _TODAY.replace(year=_TODAY.year - (i // 12), month=((_TODAY.month - 1 - (i % 12)) % 12) + 1)
+        year = _TODAY.year - (i // 12)
+        month = ((_TODAY.month - 1 - (i % 12)) % 12) + 1
+        day = min(_TODAY.day, 28)
+        row_date = _TODAY.replace(year=year, month=month, day=day)
         db.add(NavHistory(scheme_id=scheme.id, date=row_date, nav=nav))
         nav *= Decimal(1) + monthly_growth
     db.commit()
