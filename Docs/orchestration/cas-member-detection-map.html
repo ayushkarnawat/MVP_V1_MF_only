@@ -1,0 +1,827 @@
+<title>CAS Member Detection Map</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;600;700&family=Manrope:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --bg: #FCFCFC; --surface: #FFFFFF; --ink: #111111; --muted: #5C5C5C; --border: #E5E5E5;
+  --accent: #22C55E; --accent-ink: #15803D;
+  --warn: #B45309; --warn-bg: #FEF3C7;
+  --good: #15803D; --good-bg: #DCFCE7;
+  --bad: #B42318; --bad-bg: #FEE4E2;
+  --aws: #B45309; --aws-bg: #FFEDD5;
+  --code-bg: #F4F6F5;
+  --diagram-bg: #FFFFFF;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0F0F0F; --surface: #1A1A1A; --ink: #F5F5F5; --muted: #A3A3A3; --border: #2A2A2A;
+    --accent: #22C55E; --accent-ink: #4ADE80;
+    --warn: #FCD34D; --warn-bg: #3A2A0A;
+    --good: #86EFAC; --good-bg: #0F2E1A;
+    --bad: #FDA29B; --bad-bg: #3B1512;
+    --aws: #FDBA74; --aws-bg: #3A230C;
+    --code-bg: #202322;
+    --diagram-bg: #161616;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0F0F0F; --surface: #1A1A1A; --ink: #F5F5F5; --muted: #A3A3A3; --border: #2A2A2A;
+  --accent: #22C55E; --accent-ink: #4ADE80;
+  --warn: #FCD34D; --warn-bg: #3A2A0A;
+  --good: #86EFAC; --good-bg: #0F2E1A;
+  --bad: #FDA29B; --bad-bg: #3B1512;
+  --aws: #FDBA74; --aws-bg: #3A230C;
+  --code-bg: #202322;
+  --diagram-bg: #161616;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font: 400 15px/1.6 "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+  padding-inline: 20px; padding-block: 40px 72px;
+}
+.wrap { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 64px; }
+h1, h2, h3 { font-family: "DM Sans", system-ui, sans-serif; text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(28px, 4.2vw, 38px); font-weight: 700; line-height: 1.15; }
+h2 { font-size: 22px; font-weight: 700; line-height: 1.3; }
+h3 { font-size: 16px; font-weight: 600; }
+p { margin: 0; max-width: 72ch; }
+ul, ol { margin: 0; padding-left: 20px; max-width: 72ch; display: flex; flex-direction: column; gap: 6px; }
+code, .mono { font-family: "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, monospace; font-size: 0.86em; }
+code { background: var(--code-bg); padding: 1px 6px; border-radius: 4px; overflow-wrap: anywhere; }
+a { color: var(--accent-ink); }
+.eyebrow { font: 600 12px/1 "Manrope", sans-serif; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent-ink); }
+header { display: flex; flex-direction: column; gap: 14px; }
+header .lede { font-size: 17px; color: var(--muted); }
+nav { display: flex; flex-direction: column; gap: 10px; }
+.navrow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.navrow b { font: 600 11px/1 "Manrope", sans-serif; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); min-width: 92px; }
+nav a {
+  color: var(--ink); text-decoration: none; font-size: 13px; font-weight: 500;
+  border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px; background: var(--surface);
+}
+nav a:hover { border-color: var(--accent); }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+section { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 16px; }
+.section-head { display: flex; flex-direction: column; gap: 6px; }
+.section-head p { color: var(--muted); }
+.qtags { display: flex; flex-wrap: wrap; gap: 6px; }
+.qtag { font: 600 11px/1 "JetBrains Mono", monospace; color: var(--accent-ink); background: var(--good-bg); border-radius: 4px; padding: 4px 7px; }
+.sub { display: flex; flex-direction: column; gap: 12px; }
+.answer { border-left: 3px solid var(--accent); padding: 2px 0 2px 16px; display: flex; flex-direction: column; gap: 10px; }
+.answer > strong { font-family: "DM Sans", sans-serif; font-size: 16px; font-weight: 600; }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; }
+.fact { border-left: 3px solid var(--accent); padding: 4px 0 4px 14px; display: flex; flex-direction: column; gap: 4px; }
+.fact strong { font-family: "DM Sans", sans-serif; font-weight: 600; font-size: 15px; }
+.fact span { color: var(--muted); font-size: 14px; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; border: 1px solid; }
+.lg-db { background: #fff4d6; border-color: #b8860b !important; }
+.lg-create { background: #fde68a; border-color: #b45309 !important; }
+.lg-none { background: #ffd6d6; border-color: #c0392b !important; }
+.lg-aws { background: #ffe8cc; border-color: #d9730d !important; }
+.lg-pop { background: #e8e8ff; border-color: #5b5bd6 !important; }
+.lg-br { background: #e6f7ea; border-color: #2e8b57 !important; }
+.diagram { background: var(--diagram-bg); border: 1px solid var(--border); border-radius: 14px; padding: 20px; overflow-x: auto; }
+.diagram pre.mermaid { margin: 0; background: transparent; display: flex; justify-content: center; min-width: min-content; }
+.callout { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; font-size: 14px; color: var(--muted); max-width: none; }
+.callout b { color: var(--ink); }
+.callout.warn { border-color: var(--warn); background: var(--warn-bg); color: var(--ink); }
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+th { font: 600 12px/1.3 "Manrope", sans-serif; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); background: var(--bg); white-space: nowrap; }
+td { min-width: 120px; }
+.wide td:first-child { min-width: 150px; }
+.pill { display: inline-block; font: 600 11px/1.4 "Manrope", sans-serif; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+.p-w { color: var(--warn); background: var(--warn-bg); }
+.p-g { color: var(--good); background: var(--good-bg); }
+.p-b { color: var(--bad); background: var(--bad-bg); }
+.p-a { color: var(--aws); background: var(--aws-bg); }
+.num { font-variant-numeric: tabular-nums; }
+footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--border); padding-top: 18px; display: flex; flex-direction: column; gap: 6px; }
+@media (max-width: 640px) { .navrow b { min-width: 100%; } }
+
+.p-n { color: #4338CA; background: #E8E8FF; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .p-n { color: #C7C7FF; background: #25254A; } }
+:root[data-theme="dark"] .p-n { color: #C7C7FF; background: #25254A; }
+.mocks { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 16px; }
+.mock { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 6px 24px rgba(0,0,0,0.06); }
+.mock .tag { font: 600 11px/1 "JetBrains Mono", monospace; color: var(--muted); }
+.mock h4 { margin: 0; font: 700 16px/1.3 "DM Sans", sans-serif; }
+.mock p { font-size: 13.5px; color: var(--muted); }
+.mock .field { border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; font-size: 13px; color: var(--muted); background: var(--bg); }
+.mock .field b { color: var(--ink); font-weight: 600; }
+.mock .ctas { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.mock .btn { font: 600 13px/1 "Manrope", sans-serif; border-radius: 999px; padding: 9px 14px; border: 1px solid var(--border); color: var(--ink); background: var(--surface); }
+.mock .btn.pri { background: var(--accent); border-color: var(--accent); color: #062b14; }
+.mock ul { padding-left: 18px; font-size: 13.5px; gap: 3px; }
+.ribbon { border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; display: flex; justify-content: space-between; gap: 10px; font-size: 13px; background: var(--bg); flex-wrap: wrap; }
+.ribbon b { font-family: "DM Sans", sans-serif; }
+.ribbon.open { border-color: var(--accent); }
+.ribbon.done { opacity: 0.75; }
+.steps { counter-reset: s; list-style: none; padding-left: 0; }
+.steps li { counter-increment: s; position: relative; padding-left: 34px; }
+.steps li::before { content: counter(s); position: absolute; left: 0; top: 1px; width: 22px; height: 22px; border-radius: 999px; background: var(--good-bg); color: var(--accent-ink); font: 700 12px/22px "DM Sans", sans-serif; text-align: center; }
+
+.estate { display: grid; grid-template-columns: minmax(270px, 360px) 1fr; gap: 18px; align-items: start; border-top: 1px solid var(--border); padding-top: 18px; }
+.estate .meta { display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
+.estate .meta b { font-family: "DM Sans", sans-serif; }
+.estate .meta ul { font-size: 14px; }
+.eid { font: 600 12px/1 "JetBrains Mono", monospace; color: var(--accent-ink); }
+.mock .err { border: 1px solid var(--bad); background: var(--bad-bg); color: var(--ink); border-radius: 10px; padding: 8px 10px; font-size: 13px; }
+.mock .row { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; flex-wrap: wrap; }
+.mock .row.grey { opacity: 0.55; }
+.mock .link { color: var(--accent-ink); font-weight: 600; font-size: 12.5px; }
+.group-h { font: 700 13px/1 "Manrope", sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-top: 8px; }
+pre.code { background: var(--code-bg); border-radius: 12px; padding: 14px 16px; overflow-x: auto; font: 13px/1.55 "JetBrains Mono", ui-monospace, Consolas, monospace; margin: 0; }
+@media (max-width: 720px) { .estate { grid-template-columns: 1fr; } }
+</style>
+<div class="wrap">
+<header>
+  <span class="eyebrow">Unifolio · MF MVP · CAS import redesign · proposal v2, no code</span>
+  <h1>CAS Member Detection Map</h1>
+  <p class="lede">One statement, every holder in it. People are found by PAN first and by name only where a folio has no PAN, reviewed in their own ribbon, and unlocked on the dashboard once the user adds relationship and PAN. v2 answers your eight questions, adds a catalogue of every warning and error, and applies your decisions.</p>
+  <nav aria-label="Sections">
+    <div class="navrow"><b>Start</b><a href="#qa">Your questions</a><a href="#read">Read first</a><a href="#r6">R6 in detail</a><a href="#brief">In brief</a><a href="#screens">Before / after</a></div>
+    <div class="navrow"><b>Detection</b><a href="#detect">How people are found</a><a href="#fallbacks">Fallbacks</a><a href="#names">Name check</a></div>
+    <div class="navrow"><b>Flow</b><a href="#flow">End-to-end</a><a href="#flowdb">End-to-end + DB</a><a href="#sequence">AWS + Q8</a></div>
+    <div class="navrow"><b>Parts</b><a href="#p1">1 Name</a><a href="#p2">2 Upload entry</a><a href="#p3">3 Parse</a><a href="#p4">4 People popup</a><a href="#p5">5 Ribbons</a><a href="#p6">6 Unlock</a></div>
+    <div class="navrow"><b>States</b><a href="#situations">S1 · S2 · S3</a><a href="#errors">Warnings + errors</a><a href="#crossacct">Cross-account</a><a href="#more">Scenarios</a><a href="#m9">M9</a><a href="#m11">M11</a><a href="#m16">M16</a><a href="#m17">M17</a><a href="#unlocked">Unlocked is permanent</a></div>
+    <div class="navrow"><b>Data</b><a href="#data">Per step</a><a href="#schema">Schema + ER</a><a href="#tables">Tables</a><a href="#lifecycle">Lifecycle</a><a href="#api">API</a><a href="#frontend">Frontend</a></div>
+    <div class="navrow"><b>Decide</b><a href="#input">Decisions</a><a href="#deferred">Deferred</a><a href="#order">Build order</a></div>
+  </nav>
+</header>
+<section id="qa">
+  <div class="section-head"><div class="qtags"></div><h2>Your questions answered</h2><p>Short answers here. Each links to the section with the full detail.</p></div>
+  <div class="tbl-wrap wide"><table><thead><tr><th>#</th><th>Question</th><th>Answer</th><th>Detail</th></tr></thead><tbody><tr><td><span class='mono'>Q1</span></td><td>How is every person found: PAN, name, or both?</td><td>Both, in a fixed order. <b>PAN first</b>: folios with the same PAN are one person. <b>Name second, only for folios with no PAN</b>: they join the PAN group whose holder name matches, or form their own name-only person. If the file has only your PAN and some folios with no PAN in another name, that other name becomes a person with <i>(PAN not on statement)</i>. If the other people are only nominees or joint holders, nobody else is detected, because they hold nothing.</td><td><a href="#detect">open</a></td></tr><tr><td><span class='mono'>Q2</span></td><td>Detected PAN vs the PAN typed at unlock</td><td>Correct. The PAN seen on the statement is kept aside. If the typed PAN matches, the member unlocks. If not, the popup shows an inline error (L3): <i>This PAN doesn’t match your statement. Your statement shows Ramesh Sharma’s PAN as BX******8L. Check the PAN and try again.</i> There is no override. A person with no PAN on the statement has nothing to compare, so the typed PAN is accepted after the format and uniqueness checks, and a later statement verifies it.</td><td><a href="#errors">open</a></td></tr><tr><td><span class='mono'>Q3</span></td><td>Every warning and error, with popup, options and ways out</td><td>New section: 28 states, grouped by where they happen.</td><td><a href="#errors">open</a></td></tr><tr><td><span class='mono'>Q4</span></td><td>A detected person who already has their own Unifolio account</td><td>Five options compared. Recommended: include their funds from this statement in the family total, keep their own dashboard locked, and later add “Ask for access”. Nothing is moved or copied from their account.</td><td><a href="#crossacct">open</a></td></tr><tr><td><span class='mono'>Q5</span></td><td>R6 in more detail</td><td>Each conflicting PRD line, quoted, with what it says, why it conflicts and the amendment.</td><td><a href="#r6">open</a></td></tr><tr><td><span class='mono'>Q6</span></td><td>Fallbacks when the folio header can’t be read</td><td>Seven fallbacks, from another folio of the same PAN down to “assign these funds yourself”. Names are always editable.</td><td><a href="#fallbacks">open</a></td></tr><tr><td><span class='mono'>Q7</span></td><td>The name check function</td><td>Step-by-step algorithm, pseudo-code, return value, where it is called, and a larger example table.</td><td><a href="#names">open</a></td></tr><tr><td><span class='mono'>Q8</span></td><td>Why NAV backfill and analytics recompute run after Confirm imports</td><td>They are triggered by the Confirm commit, not by the S3 upload. They run after the response is sent, so the user doesn’t wait. Without them the Analytics tab shows “computing” until the 06:30 IST daily job.</td><td><a href="#q8">open</a></td></tr></tbody></table></div>
+</section><section id="read">
+  <div class="section-head"><div class="qtags"></div><h2>Read first: where the request meets the code</h2><p>Eight points where what you described runs into how CAS files, casparser or our current rules work.</p></div>
+  <div class="tbl-wrap wide"><table><thead><tr><th>#</th><th>What</th><th>What the code and the file really do</th><th>Position taken</th></tr></thead><tbody><tr><td class='mono'>R1</td><td>Names per person are not parsed today</td><td>casparser 1.3.0 returns one name per statement (<code>InvestorInfo.name</code>, the addressee), a <code>PAN</code> on every folio, and <code>nominees</code> (names only) on every scheme. The holder name under each folio header isn’t extracted. <code>parser.py:191</code> reads the PAN from the first folio only.</td><td>Group folios by PAN; read each folio’s holder name with a new text pass. Test on a real multi-PAN family CAS first.</td></tr><tr><td class='mono'>R2</td><td>Nominees hold nothing</td><td>A nominee only receives units if the holder dies. No folios, no holdings, no PAN in the CAS.</td><td>Only people who hold folios are detected.</td></tr><tr><td class='mono'>R3</td><td>Joint holders are not separate owners</td><td>A joint folio sits under its first holder’s PAN.</td><td>Holdings go to the first holder.</td></tr><tr><td class='mono'>R4</td><td>Detected people’s PAN is in the file</td><td>Every folio of a detected person carries their PAN.</td><td>Claimed PAN stays empty. The PAN seen on the file goes into <code>detected_pan_encrypted</code> / <code>detected_pan_hash</code>, used only to check the PAN typed at unlock.</td></tr><tr><td class='mono'>R5</td><td>Cross-account PANs</td><td>Today one PAN belongs to one member across Unifolio.</td><td>Checked read-only at upload. Handling: see <a href="#crossacct">Cross-account people</a>.</td></tr><tr><td class='mono'>R6</td><td>PRDs say one upload = one member</td><td>Four places in three PRDs.</td><td>Detail in <a href="#r6">R6 in detail</a>.</td></tr><tr><td class='mono'>R7</td><td>Overlaps two drafts</td><td><code>multi-person-cas-import.html</code> and the 24 Sep per-PAN splitting plan.</td><td>This design replaces both; their per-folio PAN parsing is reused.</td></tr><tr><td class='mono'>R8</td><td>Migration number</td><td><code>0017_otp_request_metadata.py</code> exists.</td><td>This change is migration <b>0018</b>.</td></tr></tbody></table></div>
+</section><section id="r6">
+  <div class="section-head"><div class="qtags"><span class="qtag">Q5</span><span class="qtag">R6</span></div><h2>R6 in detail: the PRD lines this change contradicts</h2><p>Per CLAUDE.md a PRD conflict is raised, not silently resolved. These are the exact lines, what each assumes, and the amendment this design needs before it is built.</p></div>
+  <div class="tbl-wrap wide"><table><thead><tr><th>Doc and line</th><th>What it says today</th><th>Why this design conflicts</th><th>Proposed amendment</th></tr></thead><tbody><tr><td><code>Updated-CAS-PRD.md:222</code> (FR-3 business rules)</td><td>“A single file upload is scoped to a single family member per import attempt.”</td><td>One upload now creates imports for every person in the file.</td><td>“A single file upload may cover several family members. Folios are attributed per PAN at upload, and the user reviews each person before one combined commit.”</td></tr><tr><td><code>Updated-CAS-PRD.md:279–300</code> (FR-4 Family Member Attribution)</td><td>Attribution by matching the “password” in the CAS against values on file; a CAS with several of them prompts the user to attribute each folio group; no fuzzy matching.</td><td>Same spirit (per-group attribution) but the mechanism changes: PAN grouping plus a name check. The rule “no fuzzy or partial matching” clashes with name grouping for folios that have no PAN.</td><td>Keep “exact match only” for PAN. Allow name matching only to label people and to place no-PAN folios, and require the user to see those folios, marked “matched by name”, in the ribbon before Confirm imports.</td></tr><tr><td>FR-4 wording itself</td><td>The FR-4 text reads “password field”, “10-character alphanumeric password string”.</td><td>This looks like a global replace of <i>PAN</i> with <i>password</i> at some point; it describes PAN matching.</td><td>Fix the wording back to PAN while amending.</td></tr><tr><td><code>PRD-02-Signup-Onboarding.md:281–284</code> (Q4 Household), FR-6 (line 233), US-2 (line 85)</td><td>“Just you, or tracking for family too?” with a Family too branch into adding members; family setup is a P0 onboarding step.</td><td>Q4 and the Family too branch are removed; the family is built from the statement.</td><td>Replace Q4 with: “Household members are detected from the first CAS. Relationship and PAN are collected when the user first opens that member.” Move US-2 to that detection.</td></tr><tr><td><code>PRD-01-CAS-Parser-v2.md:175</code> (FR-9)</td><td><code>/imports/parse</code> returns a preview with no DB writes, called once per file, each tagged to one member.</td><td>Already partly outdated: since migration 0016 parse writes Me’s pending PAN. Now one call also covers several members.</td><td>“Parse returns a preview listing every person found. Its only write is the pending PAN claim for the self member.”</td></tr><tr><td><code>App-Flow-Unifolio.md:33–34, 75–76, 122–124</code></td><td>Screens S6 → S7 (Add Family Members) / S8 (CAS Upload) branching on Just me / Family too.</td><td>S7 leaves onboarding; S6 goes straight to S8.</td><td>Redraw the onboarding flow; add the people popup, ribbon review and member unlock screens.</td></tr></tbody></table></div>
+</section><section id="brief">
+  <div class="section-head"><div class="qtags"></div><h2>The change in brief</h2><p>Six parts, in the order the user meets them.</p></div>
+  <div class="facts"><div class="fact"><strong>1 · Name as per PAN</strong><span>The name screen keeps “What should we call you?” and asks for the name exactly as on the PAN card. If the first statement’s name only partly matches, U1 says so before review and takes the statement’s name.</span></div><div class="fact"><strong>2 · No household question</strong><span>Privacy page → Request from CAMS / I already have a statement → upload form.</span></div><div class="fact"><strong>3 · Detect every holder</strong><span>PAN groups first, name only for folios with no PAN. The group matching the onboarding name is Me.</span></div><div class="fact"><strong>4 · “We found N people”</strong><span>Me first, then everyone else, each with a masked PAN or “PAN not on statement”. Continue.</span></div><div class="fact"><strong>5 · Ribbons, then Confirm imports</strong><span>One ribbon per person with the ReviewTable inside; Confirm imports writes all of it in one transaction.</span></div><div class="fact"><strong>6 · Unlock on the dashboard</strong><span>Consolidated view first. Opening a detected person asks for relationship and PAN; Cancel asks before going back.</span></div></div>
+</section><section id="screens">
+  <div class="section-head"><div class="qtags"></div><h2>Screens: before and after</h2><p>Grey dashed boxes leave the onboarding path. Purple boxes are new popups or screens.</p></div>
+  <div class="diagram"><pre class="mermaid">flowchart TB
+    subgraph BEFORE["Today"]
+        a1["Q1 What should we call you?"] --&gt; a2["Q2 · Q3"] --&gt; a3["Privacy / security page"]
+        a3 --&gt; a4["Q4 Just me or Family too?"]
+        a4 --&gt;|"Just me"| a5["Request from CAMS / I already have a statement"]
+        a4 --&gt;|"Family too"| a6["Add Family Members"] --&gt; a7["Family CAS cards + parse queue"] --&gt; a8["Review per member"]
+        a5 --&gt; a9["Upload form"] --&gt; a10["Review (self)"]
+        a8 --&gt; a11["Import complete → Dashboard"]
+        a10 --&gt; a11
+    end
+    subgraph AFTER["Proposed"]
+        b1["Q1 What should we call you?&lt;br/&gt;name as per PAN"] --&gt; b2["Q2 · Q3"] --&gt; b3["Privacy / security page"]
+        b3 --&gt; b5["Request from CAMS / I already have a statement"] --&gt; b6["Upload form"]
+        b6 --&gt; b7["NEW We found N people"] --&gt; b8["NEW ribbon review"] --&gt; b9["Confirm imports"]
+        b9 --&gt; b10["Import complete → Dashboard, consolidated"]
+        b10 --&gt; b12["NEW relationship + PAN popup&lt;br/&gt;before a detected person’s dashboard"]
+    end
+    class a4,a6,a7 gone
+    class b7,b8,b12 popup
+    classDef db fill:#fff4d6,stroke:#b8860b,color:#000
+    classDef read fill:#eef2f7,stroke:#64748b,color:#000
+    classDef none fill:#ffd6d6,stroke:#c0392b,color:#000
+    classDef aws fill:#ffe8cc,stroke:#d9730d,color:#000
+    classDef popup fill:#e8e8ff,stroke:#5b5bd6,color:#000
+    classDef browser fill:#e6f7ea,stroke:#2e8b57,color:#000
+    classDef create fill:#fde68a,stroke:#b45309,color:#000,stroke-width:2px
+    classDef gone fill:#f1f5f9,stroke:#94a3b8,color:#475569,stroke-dasharray:4 3</pre></div>
+</section><section id="detect">
+  <div class="section-head"><div class="qtags"><span class="qtag">Q1</span></div><h2>How people are found in one CAS</h2><p>PAN decides who is who. The name labels people, finds Me, and places folios that have no PAN.</p></div>
+  <div class="diagram"><pre class="mermaid">flowchart TD
+    A["Every folio in the CAS"] --&gt; B{"PAN printed&lt;br/&gt;on the folio?"}
+    B --&gt;|"Yes"| C["Put it in that PAN’s group&lt;br/&gt;one PAN = one person"]
+    B --&gt;|"No"| D{"Holder name readable?"}
+    D --&gt;|"Yes"| E{"compare_names with the&lt;br/&gt;holder names of every PAN group"}
+    E --&gt;|"exact / variant with one group"| E1["Join that group&lt;br/&gt;folio marked 'matched by name'"]
+    E --&gt;|"no match"| E2{"Another no-PAN folio&lt;br/&gt;with a matching name?"}
+    E2 --&gt;|"Yes"| E3["Same name-only person"]
+    E2 --&gt;|"No"| E4["New name-only person&lt;br/&gt;(PAN not on statement)"]
+    D --&gt;|"No"| U["Unassigned funds&lt;br/&gt;user picks the owner in the popup"]
+    C --&gt; G["Name each PAN group&lt;br/&gt;see Fallbacks"]
+    E1 &amp; E3 &amp; E4 &amp; G --&gt; H{"Which person is Me?"}
+    H --&gt; H1["1. the group with self’s permanent PAN"]
+    H --&gt; H2["2. first import: holder name matches onboarding name"]
+    H --&gt; H3["3. two candidates → Which one is you? (U3)"]
+    H --&gt; H4["4. no match → name mismatch popup (U2)"]
+    H1 &amp; H2 --&gt; I["Everyone else = detected people"]
+    class A,C,G,I read
+    class E1,E3,E4 browser
+    class U,H3,H4 popup
+    classDef db fill:#fff4d6,stroke:#b8860b,color:#000
+    classDef read fill:#eef2f7,stroke:#64748b,color:#000
+    classDef none fill:#ffd6d6,stroke:#c0392b,color:#000
+    classDef aws fill:#ffe8cc,stroke:#d9730d,color:#000
+    classDef popup fill:#e8e8ff,stroke:#5b5bd6,color:#000
+    classDef browser fill:#e6f7ea,stroke:#2e8b57,color:#000
+    classDef create fill:#fde68a,stroke:#b45309,color:#000,stroke-width:2px
+    classDef gone fill:#f1f5f9,stroke:#94a3b8,color:#475569,stroke-dasharray:4 3</pre></div><div class="diagram"><pre class="mermaid">flowchart LR
+    PDF["Family CAS&lt;br/&gt;addressed to ADITI SHARMA"] --&gt; F1["HDFC · PAN ABCPS1234K&lt;br/&gt;ADITI SHARMA"]
+    PDF --&gt; F2["SBI · PAN ABCPS1234K&lt;br/&gt;ADITI SHARMA"]
+    PDF --&gt; F3["Axis · PAN BXQPS5678L&lt;br/&gt;RAMESH SHARMA"]
+    PDF --&gt; F4["Franklin · no PAN&lt;br/&gt;ADITI SHARMA"]
+    PDF --&gt; F5["UTI · no PAN&lt;br/&gt;MEERA SHARMA"]
+    PDF --&gt; F6["Nominee names only"]
+    F1 &amp; F2 --&gt; P1["Aditi Sharma (Me)&lt;br/&gt;AB******4K · 3 funds"]
+    F4 -.-&gt;|"matched by name"| P1
+    F3 --&gt; P2["Ramesh Sharma&lt;br/&gt;BX******8L · 1 fund"]
+    F5 --&gt; P3["Meera Sharma&lt;br/&gt;(PAN not on statement) · 1 fund"]
+    F6 -.-&gt; X["not a person"]
+    class P1 create
+    class P2,P3 browser
+    class F1,F2,F3,F4,F5 db
+    class F6,X gone
+    classDef db fill:#fff4d6,stroke:#b8860b,color:#000
+    classDef read fill:#eef2f7,stroke:#64748b,color:#000
+    classDef none fill:#ffd6d6,stroke:#c0392b,color:#000
+    classDef aws fill:#ffe8cc,stroke:#d9730d,color:#000
+    classDef popup fill:#e8e8ff,stroke:#5b5bd6,color:#000
+    classDef browser fill:#e6f7ea,stroke:#2e8b57,color:#000
+    classDef create fill:#fde68a,stroke:#b45309,color:#000,stroke-width:2px
+    classDef gone fill:#f1f5f9,stroke:#94a3b8,color:#475569,stroke-dasharray:4 3</pre></div><div class="answer"><strong>The case you asked about: only one PAN in the file</strong><p><b>If the other people are nominees or joint holders</b>, the file has one person, Me. They hold no funds of their own, so nothing is detected and the review shows a single ribbon (decision I1).</p><p><b>If there really are folios in another person’s name with no PAN</b> (very old folios, PAN-exempt investments), each distinct name becomes a name-only person, shown as <i>Meera Sharma (PAN not on statement)</i>. They have no detected PAN, so at unlock the typed PAN is checked only for format and uniqueness, then saved as <code>pan_source = user_entered</code>, unverified. The next statement that shows that PAN verifies it, or raises S3 if it differs.</p><p><b>Why folios matched by name are marked:</b> FR-4 forbids fuzzy attribution, so any fund placed by name carries a “matched by name” tag in its ribbon, and the user sees it before Confirm imports. They can move it to another person there.</p></div>
+</section><section id="fallbacks">
+  <div class="section-head"><div class="qtags"><span class="qtag">Q6</span><span class="qtag">M22</span></div><h2>Fallbacks when the folio header can’t be read</h2><p>Tried in this order for each person. At every level the name stays editable in the people popup, the unlock popup and, later, the member’s profile.</p></div>
+  <ol class="steps"><li><b>Another folio of the same PAN.</b> A person usually has several folios; use the first one whose holder line is readable.</li><li><b>Me’s own name.</b> If the group is Me (self’s PAN is known), use the onboarding name.</li><li><b>The addressee name.</b> Only when the file has a single PAN group, so it can’t land on the wrong person.</li><li><b>A placeholder.</b> <i>Person 2 · BX******8L</i>, with a required <b>Add a name</b> field in the people popup. Continue stays disabled until every placeholder has a name (state U9).</li><li><b>No PAN and no name.</b> The fund goes to “Funds we couldn’t match” in the people popup, with a person picker per fund, defaulting to Me (state U10).</li><li><b>Two people end up with the same name.</b> Both keep the name; the masked PAN, or “PAN not on statement”, is always shown next to it.</li><li><b>Log it.</b> Every fallback beyond level 1 writes a parse warning (no PAN, no name in the log) so we can add layouts to the parser.</li></ol><div class="tbl-wrap wide"><table><thead><tr><th>Where the name can be edited</th><th>Recorded as</th></tr></thead><tbody><tr><td>People popup (pencil next to each name, required for placeholders)</td><td>Kept in the session; written at Confirm imports with <code>name_source = user_entered</code></td></tr><tr><td>Unlock popup (name field above relationship)</td><td><code>household_member_name_changes</code>, reason <code>user_edit</code></td></tr><tr><td>Member profile, later</td><td>Same</td></tr></tbody></table></div>
+</section><section id="flow">
+  <div class="section-head"><div class="qtags"></div><h2>End-to-end flow</h2><p>The whole journey, screen by screen. Error states are named by their catalogue id (U, C, L, A, D).</p></div>
+  <div class="legend">
+  <span><i class="lg-db"></i>Database write</span>
+  <span><i class="lg-create"></i>Key write (row created)</span>
+  <span><i class="lg-none"></i>Error / nothing written</span>
+  <span><i class="lg-aws"></i>AWS service involved</span>
+  <span><i class="lg-pop"></i>Popup</span>
+  <span><i class="lg-br"></i>Browser only</span>
+</div><div class="diagram"><pre class="mermaid">flowchart TD
+    A["Q1 What should we call you?&lt;br/&gt;name as per PAN"] --&gt; B["Q2 · Q3"] --&gt; C["Privacy / security page"]
+    C --&gt; D["Request from CAMS / I already have a statement"]
+    D --&gt;|"Request from CAMS"| D1["Waiting for CAS email"] --&gt; E
+    D --&gt;|"I already have a statement"| E["Upload form"]
+    E --&gt; F["Parsing"]
+    F --&gt;|"bad file / password"| G1["U11 Import failed · Try again"] --&gt; E
+    F --&gt; H["People found by PAN, then name"]
+    H --&gt;|"first import, no name matches"| S2["U2 name is different&lt;br/&gt;Use this name / Upload a different file"]
+    S2 --&gt;|"Upload a different file"| E
+    H --&gt;|"two could be Me"| U3["U3 Which one is you?"]
+    H --&gt;|"name partly differs&lt;br/&gt;(first upload or Add data)"| S1["U1 name slightly different · Continue"]
+    H --&gt;|"Add data, typed PAN differs"| S3["U4 which PAN is correct?"]
+    S3 --&gt;|"The one I entered"| E
+    H --&gt;|"file is only a locked person"| U6["U6 Add their details first"]
+    S2 &amp; U3 &amp; S1 &amp; S3 &amp; U6 --&gt; K
+    H --&gt;|"all clear"| K["We found 4 people&lt;br/&gt;Aditi Sharma (Me) AB******4K · Ramesh BX******8L&lt;br/&gt;Meera (PAN not on statement) · Kiran greyed (other account)"]
+    K --&gt; L["Ribbons: Click to review Ramesh Sharma’s holdings (2 unresolved holdings)"]
+    L --&gt; L1["ReviewTable · Confirm collapses the ribbon"] --&gt; L
+    L --&gt;|"all reviewed"| M["Confirm imports"]
+    M --&gt;|"error"| C1["C1 couldn’t finish · Try again"]
+    M --&gt;|"session gone"| C2["C2 review expired · Upload again"] --&gt; E
+    M --&gt; N["Import complete"] --&gt; O["Dashboard, consolidated"]
+    O --&gt; P["Member dropdown"]
+    P --&gt;|"a detected person"| R["Relationship + PAN popup"]
+    R --&gt;|"valid"| Q2["Their dashboard"]
+    R --&gt;|"L2 · L3 · L4 · L5"| R
+    R --&gt;|"Cancel"| R2["L6 Skip adding details?&lt;br/&gt;Enter details / Back to dashboard"]
+    R2 --&gt;|"Enter details"| R
+    R2 --&gt;|"Back to dashboard"| O
+    class A,E,F,H,L,L1,O,P browser
+    class S1,S2,S3,U3,U6,K,R,R2 popup
+    class G1,C1,C2 none
+    class M create
+    classDef db fill:#fff4d6,stroke:#b8860b,color:#000
+    classDef read fill:#eef2f7,stroke:#64748b,color:#000
+    classDef none fill:#ffd6d6,stroke:#c0392b,color:#000
+    classDef aws fill:#ffe8cc,stroke:#d9730d,color:#000
+    classDef popup fill:#e8e8ff,stroke:#5b5bd6,color:#000
+    classDef browser fill:#e6f7ea,stroke:#2e8b57,color:#000
+    classDef create fill:#fde68a,stroke:#b45309,color:#000,stroke-width:2px
+    classDef gone fill:#f1f5f9,stroke:#94a3b8,color:#475569,stroke-dasharray:4 3</pre></div>
+</section><section id="flowdb">
+  <div class="section-head"><div class="qtags"></div><h2>End-to-end flow with every database write</h2><p>Until Confirm imports, the only database write is Me’s pending PAN (and a self rename in U2). Detected people get their rows at Confirm imports.</p></div>
+  <div class="legend">
+  <span><i class="lg-db"></i>Database write</span>
+  <span><i class="lg-create"></i>Key write (row created)</span>
+  <span><i class="lg-none"></i>Error / nothing written</span>
+  <span><i class="lg-aws"></i>AWS service involved</span>
+  <span><i class="lg-pop"></i>Popup</span>
+  <span><i class="lg-br"></i>Browser only</span>
+</div><div class="diagram"><pre class="mermaid">flowchart TD
+    A["Q1 · Q2 · Q3"] --&gt;|"PATCH /auth/me"| A1[("UPDATE users onboarding fields")]
+    A1 --&gt; C["Privacy page · Continue"]
+    C --&gt;|"POST /household-members"| C1[("INSERT household_members&lt;br/&gt;self, name = Q1 name, origin = onboarding&lt;br/&gt;name_source = user_entered, details_completed_at = now")]
+    C1 --&gt; E["POST /imports/parse"]
+    E --&gt; E1["Task RAM: casparser, PAN groups, name-only people,&lt;br/&gt;holder names, mfapi.in via fck-nat"]
+    E1 --&gt; E2["Read-only checks: compare_names for Me,&lt;br/&gt;HMAC of every detected PAN vs pan_lookup_hash&lt;br/&gt;and detected_pan_hash in this account"]
+    E2 --&gt;|"U2 Use this name"| X2[("UPDATE self name, name_source = cas&lt;br/&gt;INSERT household_member_name_changes")]
+    X2 --&gt; F
+    E2 --&gt; F[("claim_pan_for_member(self)&lt;br/&gt;pan_* pending 65 min, unchanged")]
+    F --&gt; G["200 preview: people[], unresolved counts"]
+    G --&gt; H["People popup · ribbons (browser only)"]
+    H --&gt;|"POST /imports/confirm"| J[("ONE TRANSACTION&lt;br/&gt;self PAN permanent, pan_source = cas, pan_verified_at&lt;br/&gt;INSERT household_members per new person:&lt;br/&gt;origin = cas_detected, relationship NULL, details_completed_at NULL&lt;br/&gt;lock_reason = details_needed or pan_on_other_account&lt;br/&gt;detected_pan_encrypted / hash (NULL for name-only)&lt;br/&gt;INSERT imports x N, one upload_group_id&lt;br/&gt;INSERT schemes (new), folios, transactions")]
+    J --&gt; K["S3 PutObject user_id/upload_group_id.pdf"]
+    K --&gt; L[("recompute claim → ecs:RunTask&lt;br/&gt;NAV backfill in the backend task")]
+    L --&gt; M["Dashboard"]
+    M --&gt;|"POST /household-members/id/details"| P[("UPDATE relationship, PAN permanent,&lt;br/&gt;pan_source, pan_verified_at, details_completed_at,&lt;br/&gt;lock_reason = NULL, detected_pan_* = NULL")]
+    class A1,X2,F,L,P db
+    class C1,J create
+    class K aws
+    class H popup
+    class E1,E2 read
+    classDef db fill:#fff4d6,stroke:#b8860b,color:#000
+    classDef read fill:#eef2f7,stroke:#64748b,color:#000
+    classDef none fill:#ffd6d6,stroke:#c0392b,color:#000
+    classDef aws fill:#ffe8cc,stroke:#d9730d,color:#000
+    classDef popup fill:#e8e8ff,stroke:#5b5bd6,color:#000
+    classDef browser fill:#e6f7ea,stroke:#2e8b57,color:#000
+    classDef create fill:#fde68a,stroke:#b45309,color:#000,stroke-width:2px
+    classDef gone fill:#f1f5f9,stroke:#94a3b8,color:#475569,stroke-dasharray:4 3</pre></div>
+</section><section id="sequence">
+  <div class="section-head"><div class="qtags"></div><h2>The same flow through AWS</h2><p>One upload of a four-person CAS.</p></div>
+  <div class="diagram"><pre class="mermaid">sequenceDiagram
+    autonumber
+    actor U as User
+    participant FE as Browser
+    participant API as ECS backend task
+    participant MEM as Task RAM
+    participant DB as RDS PostgreSQL
+    participant S3 as S3 CAS bucket
+    participant JOB as ECS recompute task
+    U-&gt;&gt;FE: Upload CAS + password
+    FE-&gt;&gt;API: POST /imports/parse
+    API-&gt;&gt;MEM: session with people[], raw PANs in RAM only, 60 min
+    API-&gt;&gt;DB: read-only name and PAN checks
+    API-&gt;&gt;DB: UPDATE self pan_* pending, COMMIT
+    API--&gt;&gt;FE: preview with people[]
+    U-&gt;&gt;FE: Continue, ribbons, Confirm imports
+    FE-&gt;&gt;API: POST /imports/confirm with people[]
+    API-&gt;&gt;DB: BEGIN, members, imports x4, folios, transactions
+    API-&gt;&gt;S3: PutObject once (SSE-KMS)
+    API-&gt;&gt;DB: file_reference on all 4 rows, COMMIT
+    API-&gt;&gt;DB: claim analytics_recompute_status
+    API--&gt;&gt;FE: per-person counts
+    par after the response
+    API-&gt;&gt;API: NAV backfill for new schemes (background task)
+    and
+    API-&gt;&gt;JOB: ecs:RunTask recompute, combined + member scopes
+    end
+    U-&gt;&gt;FE: Dashboard, pick Ramesh (locked)
+    FE--&gt;&gt;U: Details popup, relationship + PAN
+    U-&gt;&gt;FE: Continue
+    FE-&gt;&gt;API: POST /household-members/ramesh_id/details
+    API-&gt;&gt;DB: ownership check, HMAC(PAN) vs detected_pan_hash
+    API-&gt;&gt;DB: uniqueness check on pan_lookup_hash (this account + Unifolio)
+    API-&gt;&gt;DB: UPDATE relationship, pan_*, details_completed_at, lock_reason NULL, COMMIT
+    API--&gt;&gt;FE: 200, member unlocked
+    FE-&gt;&gt;API: GET /household-members/ramesh_id/holdings (+ allocation, sips, snapshots)
+    FE-&gt;&gt;API: GET /analytics/ramesh_id
+    API-&gt;&gt;DB: SELECT analytics_sections WHERE scope_key = ramesh_id
+    API--&gt;&gt;FE: Ramesh's dashboard</pre></div><h3 id="q8">Q8 · Why NAV backfill and recompute run at this point</h3><div class="facts"><div class="fact"><strong>Triggered by the Confirm commit, not by S3</strong><span>The S3 PutObject is just part of that same Confirm. Both jobs start because new transactions now exist.</span></div><div class="fact"><strong>They don’t slow the user down</strong><span>Both run after the “Import complete” response is sent. NAV backfill is a background task inside the backend task; the recompute is a separate short-lived Fargate task.</span></div><div class="fact"><strong>NAV backfill: helpful, not strictly required</strong><span>Holdings fetch today’s NAV on demand if missing, but the value-over-time chart, XIRR history and month-end snapshots need past NAVs. Without the backfill the first dashboard visit is slower and some charts are empty until the 06:00 IST NAV job.</span></div><div class="fact"><strong>Recompute: required for the Analytics tab</strong><span>Analytics only reads precomputed <code>analytics_sections</code>. Without it the tab shows “computing” until the 06:30 IST daily job, or until its own on-visit claim.</span></div><div class="fact"><strong>One run for everyone</strong><span>One claim covers the combined scope plus every member scope, so four people in one file still start one task.</span></div><div class="fact"><strong>Could we defer it?</strong><span>Yes: the on-visit claim already exists. Recommend keeping the trigger at Confirm, because the first visit to Analytics usually comes seconds later.</span></div></div>
+</section><section id="p1">
+  <div class="section-head"><div class="qtags"><span class="qtag">Part 1</span></div><h2>Part 1 · Name as per PAN</h2><p>Same heading as today. Only the sub-copy, label and placeholder change.</p></div>
+  <div class="mocks"><div class="mock"><span class="tag">Q1Name.tsx · today</span><h4>What should we call you?</h4><p>We’ll use this to personalize your mutual fund summaries, portfolio reports, and tax statements</p><div class='field'>Your Name</div></div><div class="mock"><span class="tag">Q1Name.tsx · proposed</span><h4>What should we call you?</h4><p>Type your name exactly as it is printed on your PAN card.</p><div class='field'><b>Full name as per PAN</b></div><p>Initials are fine if your PAN card uses them.</p></div></div><div class="tbl-wrap wide"><table><thead><tr><th>Layer</th><th>Change</th><th>Detail</th></tr></thead><tbody><tr><td>Frontend</td><td><span class="pill p-w">CHANGED</span></td><td><code>Q1Name.tsx</code> sub-copy, label and placeholder (placeholder: <i>Full name as per PAN</i>). Same in the mobile screen.</td></tr><tr><td>Frontend + backend</td><td><span class="pill p-n">NEW</span></td><td>Validation: letters, spaces, dots, apostrophes; 2 to 85 characters.</td></tr><tr><td>Backend</td><td><span class="pill p-w">CHANGED</span></td><td>The self member is created when the user leaves the privacy page (Q4 is gone).</td></tr></tbody></table></div>
+</section><section id="p2">
+  <div class="section-head"><div class="qtags"><span class="qtag">Part 2</span></div><h2>Part 2 · Straight from the privacy page to upload</h2><p>The Just me / Family too question and the Family too branch leave onboarding.</p></div>
+  <div class="tbl-wrap wide"><table><thead><tr><th>File / value</th><th>Change</th><th>Detail</th></tr></thead><tbody><tr><td><code>OnboardingFlow.tsx</code>, <code>onboardingSteps.ts</code>, <code>onboardingHistory.ts</code></td><td><span class="pill p-w">CHANGED</span></td><td><code>trust_primer</code> → <code>cas_upload</code>; household steps removed.</td></tr><tr><td><code>SoloCasUpload.tsx</code></td><td><span class="pill p-w">CHANGED</span></td><td>No back-link to the household question.</td></tr><tr><td><code>Q4Household</code>, <code>AddFamilyMembers</code>, <code>FamilyCasUpload</code>, <code>UploadMyCas</code>, <code>ParseQueue</code>, <code>FamilyImportFlow</code></td><td><span class="pill p-b">REMOVED</span></td><td>Removed, after moving the relationship list to a shared module for Part 6.</td></tr><tr><td>Existing data</td><td><span class="pill p-g">UNCHANGED</span></td><td>Not migrated: the database is wiped before testing (M20).</td></tr></tbody></table></div>
+</section><section id="p3">
+  <div class="section-head"><div class="qtags"><span class="qtag">Part 3</span></div><h2>Part 3 · Parsing</h2><p>Everything here runs in the task’s memory. Detection rules are in <a href="#detect">How people are found</a>.</p></div>
+  <div class="tbl-wrap wide"><table><thead><tr><th>Piece</th><th>Change</th><th>Detail</th></tr></thead><tbody><tr><td><code>parser.py</code></td><td><span class="pill p-w">CHANGED</span></td><td>PAN per folio; <code>ParsedPerson</code> (key, raw PAN or none, masked PAN, name, name source, folio list, matched-by-name flags); <code>ParseResult.people[]</code> and <code>unassigned[]</code>.</td></tr><tr><td>PAN privacy (rules kept)</td><td><span class="pill p-g">UNCHANGED</span></td><td>Raw PANs of every person live only in the task’s RAM review session. <code>raw_parser_output</code> (one per person now) is written with every PAN set to None. API responses carry masked PANs only; PANs are never logged. At rest the only forms are <code>pan_encrypted</code> / <code>detected_pan_encrypted</code> (AES-256-GCM) and the two HMAC hashes.</td></tr><tr><td><code>parser.py mask_pan</code></td><td><span class="pill p-w">CHANGED</span></td><td>First two and last two characters: <code>BX******8L</code>. Changes every masked PAN in the app, including today’s review screen and PAN popups.</td></tr><tr><td>Holder-name pass</td><td><span class="pill p-n">NEW</span></td><td>Reads the line after each <code>Folio No:</code> header; fallbacks in <a href="#fallbacks">Fallbacks</a>.</td></tr><tr><td><code>name_match.py</code></td><td><span class="pill p-n">NEW</span></td><td><code>compare_names</code>; see <a href="#names">Name check</a>.</td></tr><tr><td><code>pan_claims.py</code></td><td><span class="pill p-w">CHANGED</span></td><td>New read-only <code>classify_detected_pan()</code> → new / existing member / locked member / other account.</td></tr><tr><td><code>/cas-imports</code> one-step path</td><td><span class="pill p-w">CHANGED</span></td><td>Routed through the same parse → people → ribbons → confirm pipeline (M18). No path imports without people detection.</td></tr></tbody></table></div>
+</section><section id="p4">
+  <div class="section-head"><div class="qtags"><span class="qtag">Part 4</span></div><h2>Part 4 · The “We found N people” popup</h2><p>Browser only: nothing is written when it opens or when Continue is clicked.</p></div>
+  <div class="mocks"><div class="mock"><span class="tag">PeopleFoundDialog.tsx</span><h4>We found 4 people in your statement</h4><p>We’ll sort the funds by each person’s PAN, so everyone gets their own portfolio.</p><div class='row'><span><b>Aditi Sharma (Me)</b> · AB******4K</span><span>3 funds</span></div><div class='row'><span>Ramesh Sharma ✎ · BX******8L</span><span>1 fund</span></div><div class='row'><span>Meera Sharma ✎ · (PAN not on statement)</span><span>1 fund</span></div><div class='row grey'><span>Kiran Sharma · DL******6N (already on another Unifolio account)</span><span class='link'>Include in family total</span></div><div class="ctas"><span class="btn pri">Continue</span></div></div><div class="mock"><span class="tag">Rules</span><ul><li>Me first, labelled (Me).</li><li>With a PAN: masked, first two and last two characters.</li><li>Without a PAN: <i>(PAN not on statement)</i> in place of the masked PAN.</li><li>Pencil = edit name; placeholders must be named (U9).</li><li>Other-account people greyed with the reason, plus <b>Include in family total</b> (see <a href="#crossacct">Cross-account people</a>).</li><li>Already a member here: “already in your family”. Locked member: “details needed”.</li><li>Only Me in the file: no popup, one ribbon (I1).</li></ul></div></div>
+</section><section id="p5">
+  <div class="section-head"><div class="qtags"><span class="qtag">Part 5</span></div><h2>Part 5 · Ribbon review and Confirm imports</h2><p>Unchanged from the approved version, with the new masking and the matched-by-name tag.</p></div>
+  <div class="mocks"><div class="mock"><span class="tag">MemberRibbonReview.tsx</span><h4>Review your import</h4><div class="ribbon done"><b>✓ Aditi Sharma (Me)</b><span>Reviewed · 3 funds · 1 matched by name</span></div><div class="ribbon open"><b>Ramesh Sharma</b><span>Click to review Ramesh Sharma's holdings (2 unresolved holdings)</span></div><div class="field">ReviewTable for Ramesh · <b>Confirm</b></div><div class="ribbon"><b>Meera Sharma</b><span>Click to review Meera Sharma's holdings (0 unresolved holdings)</span></div><div class="ctas"><span class="btn pri">Confirm imports</span><span class="btn">Cancel</span></div></div><div class="mock"><span class="tag">Behaviour</span><ul><li>Collapsed at start, one open at a time.</li><li>Unresolved = funds with <code>plan_type = unclassified</code>; the count updates live.</li><li>Ribbon Confirm only collapses and marks it reviewed.</li><li>Confirm imports is enabled when every ribbon is reviewed (I11) and sends one request.</li><li>A “matched by name” fund has a <b>Move to…</b> person picker.</li><li>A failure rolls everything back (C1).</li><li>Reopening a reviewed ribbon keeps its choices.</li><li>People not imported (left out under U8) get no ribbon.</li></ul></div></div><div class="diagram"><pre class="mermaid">stateDiagram-v2
+    [*] --&gt; Collapsed: review screen opens
+    Collapsed: COLLAPSED&lt;br/&gt;name + unresolved count
+    Open: OPEN&lt;br/&gt;ReviewTable for this person
+    Reviewed: REVIEWED&lt;br/&gt;collapsed, tick, choices kept
+    Collapsed --&gt; Open: click ribbon
+    Open --&gt; Reviewed: Confirm
+    Open --&gt; Collapsed: click header again
+    Reviewed --&gt; Open: click to change
+    Reviewed --&gt; [*]: Confirm imports, all ribbons reviewed</pre></div><div class="tbl-wrap wide"><table><thead><tr><th>Moment</th><th>Request</th><th>Rows</th></tr></thead><tbody><tr><td>Ribbon Confirm</td><td>none</td><td>none (React state)</td></tr><tr><td>Confirm imports</td><td><code>POST /imports/confirm</code> with <code>{session_id, people: [{person_key, name?, include?, scheme_confirmations[], moved_funds[]}]}</code></td><td>One transaction: self PAN permanent; a locked <code>household_members</code> row per new person; one <code>imports</code> row per person sharing <code>upload_group_id</code>; <code>schemes</code> (new), <code>folios</code>, <code>transactions</code> per person; one S3 object; recompute claim</td></tr><tr><td>A failure mid-transaction</td><td>same</td><td>Everything rolls back, the session stays, Confirm imports can be pressed again (C1). No half-imported family.</td></tr><tr><td>Import complete screen</td><td>none</td><td>Totals per person (added / skipped)</td></tr></tbody></table></div>
+</section><section id="p6">
+  <div class="section-head"><div class="qtags"><span class="qtag">Part 6</span></div><h2>Part 6 · Dashboard: consolidated first, unlock per person</h2><p>Relationship is a dropdown; Other reveals a text field. The unlock popup’s errors are L1–L8 in the catalogue.</p></div>
+  <div class="diagram"><pre class="mermaid">flowchart TD
+    A["Dashboard, viewMode = aggregate"] --&gt; B["Member dropdown: everyone,&lt;br/&gt;locked people with a lock icon"]
+    B --&gt;|"complete member"| C["Their dashboard"]
+    B --&gt;|"lock_reason = details_needed"| D["MemberDetailsDialog"]
+    B --&gt;|"lock_reason = pan_on_other_account"| X["L8 info popup · OK"] --&gt; A
+    D --&gt; D1{"Relationship chosen?&lt;br/&gt;Other → label typed?&lt;br/&gt;PAN format ok?"}
+    D1 --&gt;|"No"| L12["L1 / L2 inline"] --&gt; D
+    D1 --&gt;|"Yes"| F["POST /household-members/id/details"]
+    F --&gt;|"differs from statement"| L3["L3 inline error"] --&gt; D
+    F --&gt;|"PAN on another member here"| L4["L4 Merge into Dad? / Check the PAN"]
+    L4 --&gt;|"Check the PAN"| D
+    L4 --&gt;|"Merge"| MG[("merge, see M11")] --&gt; A
+    F --&gt;|"PAN on another account"| L5["L5 own Unifolio account · OK"]
+    L5 --&gt; L5a[("relationship saved,&lt;br/&gt;lock_reason = pan_on_other_account")] --&gt; A
+    F --&gt;|"OK"| H[("UPDATE relationship, PAN permanent,&lt;br/&gt;details_completed_at, lock_reason NULL")] --&gt; C2["Their dashboard"]
+    D --&gt;|"Cancel"| I["L6 Skip adding details?"]
+    I --&gt;|"Enter details"| D
+    I --&gt;|"Back to dashboard"| A
+    class A,B,C,C2 browser
+    class D,I,L4,L5,X popup
+    class L12,L3 none
+    class H,MG,L5a db
+    classDef db fill:#fff4d6,stroke:#b8860b,color:#000
+    classDef read fill:#eef2f7,stroke:#64748b,color:#000
+    classDef none fill:#ffd6d6,stroke:#c0392b,color:#000
+    classDef aws fill:#ffe8cc,stroke:#d9730d,color:#000
+    classDef popup fill:#e8e8ff,stroke:#5b5bd6,color:#000
+    classDef browser fill:#e6f7ea,stroke:#2e8b57,color:#000
+    classDef create fill:#fde68a,stroke:#b45309,color:#000,stroke-width:2px
+    classDef gone fill:#f1f5f9,stroke:#94a3b8,color:#475569,stroke-dasharray:4 3</pre></div><div class="mocks"><div class="mock"><span class="tag">MemberDetailsDialog.tsx</span><h4>Add Ramesh Sharma’s details</h4><p>To see Ramesh Sharma’s dashboard, add how they are related to you and their PAN.</p><div class='field'><b>Name</b> · Ramesh Sharma ✎</div><div class='field'><b>Relationship</b> ▾ Spouse · Parent · Child · Sibling · Other</div><div class='field'><b>How are you related?</b> · shown only for Other</div><div class='field'><b>PAN</b></div><div class="ctas"><span class="btn pri">Continue</span><span class="btn">Cancel</span></div></div><div class="mock"><span class="tag">ConfirmLeaveDialog.tsx</span><h4>Skip adding Ramesh Sharma’s details?</h4><p>You can’t open Ramesh Sharma’s dashboard until these details are added. You can add them any time by picking Ramesh Sharma from the member list.</p><div class="ctas"><span class="btn pri">Enter details</span><span class="btn">Back to dashboard</span></div></div></div><div class="tbl-wrap wide"><table><thead><tr><th>Piece</th><th>Change</th><th>Detail</th></tr></thead><tbody><tr><td><code>NavigationShell.tsx</code></td><td><span class="pill p-w">CHANGED</span></td><td>Everyone in the dropdown; lock icon; picking a locked member opens the right popup instead of switching view.</td></tr><tr><td><code>MainDashboardFlow.tsx</code></td><td><span class="pill p-w">CHANGED</span></td><td>Dialog state; typed values survive Cancel → Enter details; the same flow every time.</td></tr><tr><td>Add data member picker</td><td><span class="pill p-w">CHANGED</span></td><td>Locked members shown disabled with “Add details first”; clicking opens the unlock popup (A1, decision I5).</td></tr><tr><td><code>POST /household-members/{id}/details</code></td><td><span class="pill p-n">NEW</span></td><td>{name?, relationship, relationship_other_label (required when Other), pan}. Repeatable: if the member is already unlocked with this same PAN, it returns 200 (a retry after a timeout never errors).</td></tr><tr><td>Editing an unlocked member</td><td><span class="pill p-n">NEW</span></td><td>Same endpoint, update-only mode: a conflict returns an error (L9) and the old values stay. It never writes <code>lock_reason</code> or clears <code>details_completed_at</code>.</td></tr><tr><td>Unlocked is permanent</td><td><span class="pill p-n">NEW</span></td><td>Once unlocked, a member is never locked again. See <a href='#unlocked'>Unlocked is permanent</a>.</td></tr><tr><td>After a successful unlock</td><td><span class="pill p-w">CHANGED</span></td><td>The browser's saved GET responses are cleared (as Confirm imports already does), so the lock icon disappears without a refresh.</td></tr><tr><td>Member-scope reads</td><td><span class="pill p-w">CHANGED</span></td><td>403 <code>member_details_required</code> while locked (I12).</td></tr></tbody></table></div>
+</section><section id="situations">
+  <div class="section-head"><div class="qtags"><span class="qtag">S1</span><span class="qtag">S2</span><span class="qtag">S3</span></div><h2>Your three situations</h2><p>Approved as designed; masking updated. Full popups and ways out are U1, U2 and U4 in the catalogue. The flowchart shows how every upload-time popup connects.</p></div>
+  <div class="diagram"><pre class="mermaid">flowchart TD
+    A["POST /imports/parse succeeded&lt;br/&gt;people[] built in RAM"] --&gt; P{"PAN popups needed?&lt;br/&gt;(U5 · U6 · U7)"}
+    P --&gt;|"yes"| P1["PAN popup first"] --&gt; B
+    P --&gt;|"no"| B{"First upload after onboarding?&lt;br/&gt;(self has no permanent PAN)"}
+    B --&gt;|"yes"| C{"compare_names(onboarding name,&lt;br/&gt;every person in the file)"}
+    C --&gt;|"exact, one person"| OK["People popup → review"]
+    C --&gt;|"variant, one person"| V1["U1 · Continue&lt;br/&gt;name updated at Confirm"] --&gt; OK
+    C --&gt;|"two candidates"| U3["U3 Which one is you?"] --&gt; OK
+    C --&gt;|"mismatch everywhere"| S2["U2 · 409 self_name_mismatch&lt;br/&gt;session kept, nothing written"]
+    S2 --&gt;|"Use this name"| S2a[("UPDATE self name, name_source = cas&lt;br/&gt;INSERT name change row&lt;br/&gt;claim self PAN pending")] --&gt; OK
+    S2 --&gt;|"Upload a different file"| X["discard · upload form"]
+    B --&gt;|"no: Add data for member M"| D{"Find M in the file:&lt;br/&gt;1. M.pan_lookup_hash&lt;br/&gt;2. M.detected_pan_hash&lt;br/&gt;3. name match"}
+    D --&gt;|"not found"| U5["U5 M isn't in this statement"]
+    D --&gt;|"found"| E{"M's PAN vs the file"}
+    E --&gt;|"same PAN"| N{"compare_names(M.name, file name)"}
+    E --&gt;|"differs, M's PAN typed at unlock (unverified)"| S3["U4 · 409 member_pan_mismatch&lt;br/&gt;both PANs masked"]
+    E --&gt;|"differs, M's PAN verified from a statement"| U5
+    S3 --&gt;|"The one I entered"| X
+    S3 --&gt;|"The one on this statement"| S3c{"CAS PAN on another account?"}
+    S3c --&gt;|"yes"| U12["U12 can't switch · member stays unlocked"] --&gt; X
+    S3c --&gt;|"no"| S3b[("release old claim,&lt;br/&gt;claim CAS PAN pending&lt;br/&gt;pan_source = cas at Confirm")] --&gt; N
+    N --&gt;|"exact"| OK
+    N --&gt;|"variant, file has more of the name"| S1["U1 · Continue&lt;br/&gt;name updated at Confirm"] --&gt; OK
+    N --&gt;|"variant, file has same or less (I9)"| OK
+    N --&gt;|"mismatch"| M8["M8: Update the name? / Keep mine"] --&gt; OK
+    class P1,V1,U3,S2,S3,S1,M8,U5,U12 popup
+    class S2a,S3b db
+    class X none
+    class OK browser
+    classDef db fill:#fff4d6,stroke:#b8860b,color:#000
+    classDef read fill:#eef2f7,stroke:#64748b,color:#000
+    classDef none fill:#ffd6d6,stroke:#c0392b,color:#000
+    classDef aws fill:#ffe8cc,stroke:#d9730d,color:#000
+    classDef popup fill:#e8e8ff,stroke:#5b5bd6,color:#000
+    classDef browser fill:#e6f7ea,stroke:#2e8b57,color:#000
+    classDef create fill:#fde68a,stroke:#b45309,color:#000,stroke-width:2px
+    classDef gone fill:#f1f5f9,stroke:#94a3b8,color:#475569,stroke-dasharray:4 3</pre></div><div class="tbl-wrap wide"><table><thead><tr><th>Situation</th><th>State</th><th>When the change is written</th></tr></thead><tbody><tr><td>S1 name slightly different (first upload after onboarding, and Add data)</td><td><a href='#errors'>U1</a></td><td>At Confirm imports</td></tr><tr><td>S2 name completely different (first import)</td><td><a href='#errors'>U2</a></td><td>Immediately on Use this name; nothing on Upload a different file</td></tr><tr><td>S3 typed PAN differs from the CAS (Add data)</td><td><a href='#errors'>U4</a></td><td>Claim now on The one on this statement; nothing on The one I entered</td></tr></tbody></table></div>
+</section><section id="errors">
+  <div class="section-head"><div class="qtags"><span class="qtag">Q2</span><span class="qtag">Q3</span><span class="qtag">I3</span></div><h2>Every warning and error</h2><p>28 states. Each shows when it happens, the popup, what each option does, how the user gets out, and what is written. Copy uses the new masking (first two and last two characters).</p></div>
+  <div class="group-h">After upload · shown where today's PAN popups appear</div><div class="estate"><div class="mock"><span class="tag">NameVariantNotice</span><h4>The name on this statement is a little different</h4><p>This statement says <b>AYUSH KUMAR KARNAWAT</b>. We have <b>Ayush Karnawat</b>. We’ll update the name to match your statement.</p><div class="ctas"><span class="btn pri">Continue</span></div></div><div class="meta"><span class="eid">U1</span><b>Name slightly different (S1)</b>
+<div><b>When:</b> Two cases, same popup, same place: after the upload is parsed and just before the people popup and review, where today’s same-PAN popups appear. <b>(1) First upload after onboarding:</b> the person matched as Me has a name that only partly matches the onboarding name (copy: <i>This statement says AYUSH KUMAR KARNAWAT. You entered Ayush Karnawat. We’ll update your name to match your statement.</i>). <b>(2) Add data or any later upload:</b> the member’s PAN matches, <code>compare_names</code> = variant <b>and the statement has more of the name than we have</b> (copy as shown). If it has the same or less, no popup and our name is kept (I9). If a PAN popup is also needed on the same upload, the PAN popup shows first, then this one.</div><div><b>Options:</b><ul><li><b>Continue</b> → people popup; rename happens at Confirm imports</li><li><b>Close (×)</b> → cancels the import: session discarded, back to the upload form</li></ul></div>
+<div><b>Ways out:</b> Continue, or close to cancel. The name can be edited later from the member’s profile.</div><div><b>Database:</b> None now. At Confirm: <code>name</code>, <code>name_source = cas</code>, <code>name_updated_at</code>, a <code>household_member_name_changes</code> row.</div></div></div><div class="estate"><div class="mock"><span class="tag">NameMismatchDialog · 409 self_name_mismatch</span><h4>This statement is in a different name</h4><p>You entered <b>Ayush Karnawat</b>, but this statement belongs to <b>ROHAN MEHTA</b>.</p><div class='field'><b>Your name as per PAN</b> · ROHAN MEHTA</div><div class="ctas"><span class="btn pri">Use this name</span><span class="btn">Upload a different file</span></div></div><div class="meta"><span class="eid">U2</span><b>Name completely different on the first import (S2)</b>
+<div><b>When:</b> First import; no person in the file has a name compatible with the onboarding name.</div><div><b>Options:</b><ul><li><b>Use this name</b> → the typed name must still match the statement (else inline: “This name doesn’t match the statement”); self renamed, PAN claimed, people popup</li><li><b>Upload a different file</b> → session discarded, upload form</li></ul></div>
+<div><b>Ways out:</b> Either button. Closing = Upload a different file. Nothing is stored in the database or S3 before Confirm imports.</div><div><b>Database:</b> Use this name: UPDATE self name + name change row, then the pending PAN claim. Otherwise none.</div></div></div><div class="estate"><div class="mock"><span class="tag">WhichIsYouDialog</span><h4>Which one is you?</h4><div class='row'><span>◉ Aditi Sharma · AB******4K</span></div><div class='row'><span>○ Arjun Sharma · AR******2P</span></div><div class="ctas"><span class="btn pri">Continue</span><span class="btn">None of these</span></div></div><div class="meta"><span class="eid">U3</span><b>Two people could be you (M7)</b>
+<div><b>When:</b> The onboarding name is compatible with more than one person, with no exact match to break the tie.</div><div><b>Options:</b><ul><li><b>Continue</b> → that person becomes Me; PAN claimed; people popup</li><li><b>None of these</b> → goes to U2</li></ul></div>
+<div><b>Ways out:</b> Pick one, or None of these.</div><div><b>Database:</b> Continue: pending PAN claim for self.</div></div></div><div class="estate"><div class="mock"><span class="tag">PanMismatchDialog · 409 member_pan_mismatch</span><h4>This PAN doesn’t match what you entered</h4><p>You entered <b>BX******8L</b> for Ramesh Sharma earlier. This statement shows <b>BX******9M</b>. Which one is correct?</p><div class="ctas"><span class="btn">The one I entered (BX******8L)</span><span class="btn pri">The one on this statement (BX******9M)</span></div></div><div class="meta"><span class="eid">U4</span><b>PAN you entered doesn’t match the statement (S3)</b>
+<div><b>When:</b> Add data for a member whose PAN was typed at unlock (<code>pan_source = user_entered</code>, unverified); the statement shows a different PAN for them.</div><div><b>Options:</b><ul><li><b>The one I entered</b> → session discarded; upload form with “Upload a statement that shows BX******8L for Ramesh Sharma”</li><li><b>The one on this statement</b> → old claim released, CAS PAN claimed (pending), people popup. If that PAN is on another Unifolio account → U12; the member stays unlocked with the PAN they had</li></ul></div>
+<div><b>Ways out:</b> Either button. Closing = The one I entered. A PAN already verified from a statement doesn’t get this choice: see U5.</div><div><b>Database:</b> Second option: Ramesh’s <code>pan_encrypted</code>, <code>pan_lookup_hash</code>, <code>pan_pending_until</code>; at Confirm <code>pan_source = cas</code>, <code>pan_verified_at</code>.</div></div></div><div class="estate"><div class="mock"><span class="tag">MemberNotInFileDialog</span><h4>Ramesh Sharma isn’t in this statement</h4><p>This statement doesn’t show Ramesh Sharma’s PAN (BX******8L). It has Aditi Sharma (Me) and Sunita Sharma.</p><div class="ctas"><span class="btn pri">Import for these people</span><span class="btn">Upload a different file</span></div></div><div class="meta"><span class="eid">U5</span><b>The member you picked isn’t in this statement</b>
+<div><b>When:</b> Add data for a member whose PAN is verified, and the file has no one with that PAN (today’s <code>pan_mismatch_for_member</code>, reworded).</div><div><b>Options:</b><ul><li><b>Import for these people</b> → people popup with the people actually found</li><li><b>Upload a different file</b> → session discarded</li></ul></div>
+<div><b>Ways out:</b> Either button.</div><div><b>Database:</b> None until Confirm imports.</div></div></div><div class="estate"><div class="mock"><span class="tag">AddDetailsFirstDialog</span><h4>Add Ramesh Sharma’s details first</h4><p>This statement is only Ramesh Sharma’s. Add his relationship and PAN before importing his statement.</p><div class="ctas"><span class="btn pri">Add details now</span><span class="btn">Upload a different file</span></div></div><div class="meta"><span class="eid">U6</span><b>The statement is only a locked person’s (M9)</b>
+<div><b>When:</b> Every fund in the file belongs to a member who is still locked.</div><div><b>Options:</b><ul><li><b>Add details now</b> → unlock popup on top (L1–L5 apply); on success, continue to the people popup with the same session</li><li><b>Upload a different file</b> → session discarded</li></ul></div>
+<div><b>Ways out:</b> Either button. Closing = Upload a different file.</div><div><b>Database:</b> Add details now: the unlock write (Part 6).</div></div></div><div class="estate"><div class="mock"><span class="tag">CrossAccountBlockedDialog</span><h4>This statement belongs to another Unifolio account</h4><p>Kiran Sharma already tracks these funds in their own Unifolio account.</p><div class="ctas"><span class="btn pri">Include in family total</span><span class="btn">Upload a different file</span></div></div><div class="meta"><span class="eid">U7</span><b>The whole statement is another Unifolio account’s</b>
+<div><b>When:</b> Every PAN in the file is claimed by another account (today’s “Import blocked”).</div><div><b>Options:</b><ul><li><b>Include in family total</b> → one ribbon; imported as a locked member with <code>lock_reason = pan_on_other_account</code> (option B)</li><li><b>Upload a different file</b> → session discarded</li></ul></div>
+<div><b>Ways out:</b> Either button.</div><div><b>Database:</b> Include: same rows as a detected member, no PAN claim.</div></div></div><div class="estate"><div class="mock"><span class="tag">PeopleFoundDialog row</span><h4>Kiran Sharma</h4><div class='row grey'><span>DL******6N (already on another Unifolio account)</span></div><div class='row'><span class='link'>Include in family total</span></div></div><div class="meta"><span class="eid">U8</span><b>Someone in the file is on another account (M3)</b>
+<div><b>When:</b> A multi-person file where one person’s PAN is claimed elsewhere. A row state in the people popup, not a separate popup.</div><div><b>Options:</b><ul><li><b>Include in family total</b> → row turns normal, gets a ribbon, note “Their own dashboard stays with their account”</li><li><b>Leave it</b> → their funds are not imported; everyone else continues</li></ul></div>
+<div><b>Ways out:</b> Toggle either way until Continue.</div><div><b>Database:</b> Included: detected member row with <code>lock_reason = pan_on_other_account</code>.</div></div></div><div class="estate"><div class="mock"><span class="tag">PeopleFoundDialog row</span><h4>Person 2 · BX******8L</h4><div class='field'><b>Add a name</b></div><p>We couldn’t read this name from the statement.</p></div><div class="meta"><span class="eid">U9</span><b>A name couldn’t be read (M22)</b>
+<div><b>When:</b> A person reached fallback level 4.</div><div><b>Options:</b><ul><li><b>Type a name</b> → Continue becomes available</li></ul></div>
+<div><b>Ways out:</b> Type a name. Every name in the popup can also be edited with the pencil.</div><div><b>Database:</b> Written at Confirm imports.</div></div></div><div class="estate"><div class="mock"><span class="tag">PeopleFoundDialog section</span><h4>2 funds we couldn’t match to anyone</h4><div class='row'><span>UTI Nifty 50 Index</span><span>Owner ▾ Aditi Sharma (Me)</span></div></div><div class="meta"><span class="eid">U10</span><b>Funds we couldn’t match to anyone</b>
+<div><b>When:</b> A folio with no PAN and no readable name.</div><div><b>Options:</b><ul><li><b>Pick an owner</b> → the fund moves into that person’s ribbon, tagged “assigned by you”</li></ul></div>
+<div><b>Ways out:</b> Default is Me, so Continue always works.</div><div><b>Database:</b> Written at Confirm imports.</div></div></div><div class="estate"><div class="mock"><span class="tag">ImportError (today)</span><h4>Import failed</h4><p>Incorrect PDF password. CAMS/KFintech CAS passwords are usually your PAN in uppercase.</p><div class="ctas"><span class="btn pri">Try again</span></div></div><div class="meta"><span class="eid">U11</span><b>File or password problems (unchanged)</b>
+<div><b>When:</b> Wrong password, scanned PDF, not a CAS, demat CAS, summary CAS, too large.</div><div><b>Options:</b><ul><li><b>Try again</b> → upload form</li></ul></div>
+<div><b>Ways out:</b> Try again.</div><div><b>Database:</b> None.</div></div></div><div class="estate"><div class="mock"><span class="tag">PanOnOtherAccountDialog · 409 statement_pan_on_other_account</span><h4>We can’t switch Ramesh Sharma to this PAN</h4><p><b>BX******9M</b> is already on another Unifolio account, so we can’t move Ramesh Sharma to it. Keep <b>BX******8L</b>, or upload a different file.</p><div class="ctas"><span class="btn pri">Keep the one I entered</span><span class="btn">Upload a different file</span></div></div><div class="meta"><span class="eid">U12</span><b>The statement’s PAN is on another Unifolio account (after U4)</b>
+<div><b>When:</b> In U4 the user picked <b>The one on this statement</b>, but that PAN is already claimed by another account. The member is unlocked, so they stay unlocked.</div><div><b>Options:</b><ul><li><b>Keep the one I entered</b> → session discarded; Ramesh keeps BX******8L and stays unlocked</li><li><b>Upload a different file</b> → session discarded; upload form</li></ul></div>
+<div><b>Ways out:</b> Either button. Closing = Keep the one I entered.</div><div><b>Database:</b> None. The old claim is only released after the new one succeeds, in the same transaction.</div></div></div><div class="estate"><div class="mock"><span class="tag">SamePersonDialog · 200 with possible_same_person</span><h4>Is this Ramesh Sharma?</h4><p>You entered <b>BX******8L</b> for Ramesh Sharma. This statement shows <b>RAMESH SHARMA</b> with <b>BX******9M</b>.</p><div class="ctas"><span class="btn pri">Yes, use BX******9M</span><span class="btn">No, this is someone else</span></div></div><div class="meta"><span class="eid">U13</span><b>Is this the same person? (during any upload)</b>
+<div><b>When:</b> Someone was unlocked with a typed PAN that no statement has verified yet, and a statement uploaded for anyone shows a person with a matching name under a different PAN.</div><div><b>Options:</b><ul><li><b>Yes, use BX******9M</b> → same as U4’s second option for Ramesh (U12 if that PAN is taken); his funds from this file go to him; he stays unlocked</li><li><b>No, this is someone else</b> → a new locked person is created as usual</li></ul></div>
+<div><b>Ways out:</b> Either button. Stops a duplicate locked copy of an unlocked person from appearing.</div><div><b>Database:</b> Yes: Ramesh’s claimed PAN replaced at Confirm imports. No: a new detected member at Confirm imports.</div></div></div><div class="group-h">Review and confirm</div><div class="estate"><div class="mock"><span class="tag">ConfirmFailedDialog</span><h4>We couldn’t finish the import</h4><p>Nothing was saved. Your review choices are still here.</p><div class="ctas"><span class="btn pri">Try again</span><span class="btn">Cancel import</span></div></div><div class="meta"><span class="eid">C1</span><b>Confirm imports failed</b>
+<div><b>When:</b> Any server error inside the Confirm transaction.</div><div><b>Options:</b><ul><li><b>Try again</b> → resends the same request</li><li><b>Cancel import</b> → C3</li></ul></div>
+<div><b>Ways out:</b> Try again, or cancel.</div><div><b>Database:</b> Rolled back: nothing written.</div></div></div><div class="estate"><div class="mock"><span class="tag">SessionExpiredDialog · 410 session_expired</span><h4>This review has expired</h4><p>Reviews stay open for 60 minutes. Nothing was saved. Upload the statement again to continue.</p><div class="ctas"><span class="btn pri">Upload again</span></div></div><div class="meta"><span class="eid">C2</span><b>Review expired or the server restarted (M16)</b>
+<div><b>When:</b> More than 60 minutes since upload, or a redeploy emptied the task’s memory.</div><div><b>Options:</b><ul><li><b>Upload again</b> → upload form; Me’s pending PAN is refreshed on the next upload</li></ul></div>
+<div><b>Ways out:</b> Upload again. A banner at 55 minutes warns first: “Your review closes in 5 minutes. Confirm imports to save it.”</div><div><b>Database:</b> None.</div></div></div><div class="estate"><div class="mock"><span class="tag">CancelImportDialog</span><h4>Cancel this import?</h4><p>Your review choices for 4 people will be lost.</p><div class="ctas"><span class="btn pri">Keep reviewing</span><span class="btn">Cancel import</span></div></div><div class="meta"><span class="eid">C3</span><b>Cancel the import</b>
+<div><b>When:</b> Cancel on the ribbon screen, or closing the people popup.</div><div><b>Options:</b><ul><li><b>Keep reviewing</b> → back where they were</li><li><b>Cancel import</b> → <code>/discard</code>; pending PAN released; upload form</li></ul></div>
+<div><b>Ways out:</b> Either button.</div><div><b>Database:</b> Cancel: self pending PAN cleared.</div></div></div><div class="group-h">Unlock popup (I3)</div><div class="estate"><div class="mock"><span class="tag">MemberDetailsDialog inline</span><h4>Add Ramesh Sharma’s details</h4><div class='err'>Choose a relationship.</div><div class='err'>Type how you’re related.</div><div class='err'>Enter Ramesh Sharma’s PAN.</div></div><div class="meta"><span class="eid">L1</span><b>Missing fields</b>
+<div><b>When:</b> Continue clicked with a field empty.</div><div><b>Options:</b><ul><li><b>Fill the field</b> → error clears as they type</li></ul></div>
+<div><b>Ways out:</b> Fill it, or Cancel (L6).</div><div><b>Database:</b> None.</div></div></div><div class="estate"><div class="mock"><span class="tag">MemberDetailsDialog inline</span><h4>Add Ramesh Sharma’s details</h4><div class='err'>Enter a valid PAN: 5 letters, 4 digits, then 1 letter.</div></div><div class="meta"><span class="eid">L2</span><b>PAN format wrong</b>
+<div><b>When:</b> Not 5 letters, 4 digits, 1 letter (checked in the browser and on the server).</div><div><b>Options:</b><ul><li><b>Fix the PAN</b> → Continue again</li></ul></div>
+<div><b>Ways out:</b> Fix, or Cancel (L6).</div><div><b>Database:</b> None. Server returns 422 <code>invalid_pan_format</code>.</div></div></div><div class="estate"><div class="mock"><span class="tag">MemberDetailsDialog inline · 409 detected_pan_mismatch</span><h4>Add Ramesh Sharma’s details</h4><div class='err'><b>This PAN doesn’t match your statement.</b> Your statement shows Ramesh Sharma’s PAN as BX******8L. Check the PAN and try again.</div></div><div class="meta"><span class="eid">L3</span><b>PAN doesn’t match the statement (Q2)</b>
+<div><b>When:</b> The person has a detected PAN and the typed one is different.</div><div><b>Options:</b><ul><li><b>Fix the PAN</b> → Continue again</li></ul></div>
+<div><b>Ways out:</b> Fix, or Cancel (L6). No override (I4).</div><div><b>Database:</b> None.</div></div></div><div class="estate"><div class="mock"><span class="tag">PossibleDuplicateDialog · 409 pan_belongs_to_other_member</span><h4>This PAN is already on Dad</h4><p>Ramesh Sharma and Dad may be the same person. Merging moves Ramesh Sharma’s 2 funds into Dad and removes Ramesh Sharma from your family list.</p><div class="ctas"><span class="btn pri">Merge into Dad</span><span class="btn">Check the PAN</span></div></div><div class="meta"><span class="eid">L4</span><b>PAN already on another member here (M11)</b>
+<div><b>When:</b> Only possible for a name-only person (no detected PAN): the typed PAN is already Dad’s.</div><div><b>Options:</b><ul><li><b>Merge into Dad</b> → merge (see M11); dashboard shows Dad</li><li><b>Check the PAN</b> → back to the details form</li></ul></div>
+<div><b>Ways out:</b> Merge, or check the PAN, or Cancel (L6).</div><div><b>Database:</b> Merge: see M11 flow.</div></div></div><div class="estate"><div class="mock"><span class="tag">OtherAccountDialog · 409 cross_account_pan_blocked</span><h4>Ramesh Sharma has his own Unifolio account</h4><p>His funds stay in your family total. His own dashboard stays with his account.</p><div class="ctas"><span class="btn pri">OK</span></div></div><div class="meta"><span class="eid">L5</span><b>PAN is on another Unifolio account (M12)</b>
+<div><b>When:</b> Typed PAN matches the statement but is claimed by another account (they signed up after this import).</div><div><b>Options:</b><ul><li><b>OK</b> → relationship saved; member stays locked with <code>lock_reason = pan_on_other_account</code>; consolidated dashboard</li></ul></div>
+<div><b>Ways out:</b> OK. Later: “Ask for access” (option C, deferred).</div><div><b>Database:</b> UPDATE relationship, lock_reason.</div></div></div><div class="estate"><div class="mock"><span class="tag">ConfirmLeaveDialog</span><h4>Skip adding Ramesh Sharma’s details?</h4><p>You can’t open Ramesh Sharma’s dashboard until these details are added. You can add them any time by picking Ramesh Sharma from the member list.</p><div class="ctas"><span class="btn pri">Enter details</span><span class="btn">Back to dashboard</span></div></div><div class="meta"><span class="eid">L6</span><b>Cancel the unlock</b>
+<div><b>When:</b> Cancel in the details popup.</div><div><b>Options:</b><ul><li><b>Enter details</b> → details popup with typed values kept</li><li><b>Back to dashboard</b> → consolidated view; same flow next time</li></ul></div>
+<div><b>Ways out:</b> Either button.</div><div><b>Database:</b> None.</div></div></div><div class="estate"><div class="mock"><span class="tag">MemberDetailsDialog inline</span><h4>Add Ramesh Sharma’s details</h4><div class='err'>We couldn’t save these details. Try again.</div></div><div class="meta"><span class="eid">L7</span><b>Couldn’t save the details</b>
+<div><b>When:</b> Network or server error.</div><div><b>Options:</b><ul><li><b>Continue</b> → retries</li></ul></div>
+<div><b>Ways out:</b> Retry, or Cancel (L6).</div><div><b>Database:</b> None.</div></div></div><div class="estate"><div class="mock"><span class="tag">OtherAccountDialog</span><h4>Kiran Sharma has their own Unifolio account</h4><p>Their funds are included in your family total. Their own dashboard stays with their account.</p><div class="ctas"><span class="btn pri">OK</span></div></div><div class="meta"><span class="eid">L8</span><b>Picking a person who is on another account</b>
+<div><b>When:</b> Member with <code>lock_reason = pan_on_other_account</code> chosen from the dropdown.</div><div><b>Options:</b><ul><li><b>OK</b> → consolidated view</li></ul></div>
+<div><b>Ways out:</b> OK.</div><div><b>Database:</b> None.</div></div></div><div class="estate"><div class="mock"><span class="tag">EditMemberDialog inline</span><h4>Edit Ramesh Sharma’s details</h4><div class='err'>This PAN is already on another Unifolio account. Ramesh Sharma’s PAN hasn’t changed.</div></div><div class="meta"><span class="eid">L9</span><b>Editing an unlocked member’s details</b>
+<div><b>When:</b> The user changes an unlocked member’s relationship or PAN later, and the new PAN is taken or invalid.</div><div><b>Options:</b><ul><li><b>Fix the PAN</b> → save again</li><li><b>Cancel</b> → nothing changes</li></ul></div>
+<div><b>Ways out:</b> Fix or cancel. The member stays unlocked either way.</div><div><b>Database:</b> None on error.</div></div></div><div class="group-h">Add data and Import History</div><div class="estate"><div class="mock"><span class="tag">Add data picker</span><h4>Importing for</h4><div class='row'><span>Aditi Sharma (Me)</span></div><div class='row grey'><span>🔒 Ramesh Sharma</span><span class='link'>Add details first</span></div></div><div class="meta"><span class="eid">A1</span><b>Add data for a locked person (M9, I5)</b>
+<div><b>When:</b> The Add data member picker.</div><div><b>Options:</b><ul><li><b>Add details first</b> → unlock popup; on success the picker selects Ramesh</li></ul></div>
+<div><b>Ways out:</b> Add details, or pick someone else.</div><div><b>Database:</b> Unlock write only.</div></div></div><div class="estate"><div class="mock"><span class="tag">DeleteImportDialog</span><h4>Delete this statement’s funds?</h4><div class='row'><span>◉ Only Ramesh Sharma’s funds from this statement</span></div><div class='row'><span>○ Everyone in this statement (4 people)</span></div><p>Meera Sharma has no other data and will be removed from your family.</p><div class="ctas"><span class="btn pri">Delete</span><span class="btn">Keep</span></div></div><div class="meta"><span class="eid">D1</span><b>Delete one import (M17)</b>
+<div><b>When:</b> Delete on a statement in Import History that covered several people.</div><div><b>Options:</b><ul><li><b>Delete</b> → per the choice; see M17 flows</li><li><b>Keep</b> → nothing</li></ul></div>
+<div><b>Ways out:</b> Either button.</div><div><b>Database:</b> See M17.</div></div></div><div class="estate"><div class="mock"><span class="tag">DeletePortfolioDialog</span><h4>Delete all of Ramesh Sharma’s funds?</h4><p>This removes his funds from all 2 statements. Other people’s funds stay.</p><div class='row'><span>☐ Also remove Ramesh Sharma from my family</span></div><p>If you remove him and later upload a statement with Ramesh Sharma again, you’ll need to add his details again.</p><div class="ctas"><span class="btn pri">Delete</span><span class="btn">Keep</span></div></div><div class="meta"><span class="eid">D2</span><b>Delete a member’s whole portfolio (M17)</b>
+<div><b>When:</b> Delete from a member’s menu.</div><div><b>Options:</b><ul><li><b>Delete</b> → see M17 flows</li><li><b>Keep</b> → nothing</li></ul></div>
+<div><b>Ways out:</b> Either button.</div><div><b>Database:</b> See M17.</div></div></div>
+</section><section id="crossacct">
+  <div class="section-head"><div class="qtags"><span class="qtag">Q4</span><span class="qtag">M3</span><span class="qtag">M12</span><span class="qtag">I7</span></div><h2>Cross-account people</h2><p>A person in this user’s statement already has their PAN on another Unifolio account. That happens at upload (M3) or after the import, at unlock (M12).</p></div>
+  <div class="tbl-wrap wide"><table><thead><tr><th>Option</th><th>What happens</th><th>Data</th><th>Consent and privacy</th><th>Effort</th><th>Verdict</th></tr></thead><tbody><tr><td>A · Exclude</td><td>Greyed in the popup, funds not imported.</td><td>Nothing stored.</td><td>Safest.</td><td>None (today)</td><td>Default if the user doesn’t choose to include</td></tr><tr><td>B · Include in family total</td><td>Funds from <b>this statement</b> are imported under a locked member. Counted in the consolidated view; their own dashboard stays locked.</td><td>Normal member rows; PAN kept only as <code>detected_pan_hash</code>, never claimed; <code>lock_reason = pan_on_other_account</code>. Nothing is read from the other account.</td><td>The user already holds this statement (it came to their email). No data crosses accounts.</td><td>Small</td><td><b>Chosen (I7)</b></td></tr><tr><td>C · Ask for access</td><td>User taps “Ask for access”; the other account’s owner gets an email and approves. Then their member shows live, read-only, here.</td><td>New <code>member_access_grants</code> table (owner member, viewer user, status, granted_at, revoked_at). Data stays in one place.</td><td>Explicit consent; revocable.</td><td>Large (email, approvals, shared reads, analytics scopes across users)</td><td>Deferred, possible later addition</td></tr><tr><td>D · Move their member here</td><td>The member and its rows change owner.</td><td>UPDATE <code>household_members.user_id</code> and everything under it.</td><td>Needs the other owner’s consent; they lose the data.</td><td>Medium</td><td>Not recommended</td></tr><tr><td>E · Copy from their account</td><td>Their holdings are duplicated into this account.</td><td>Duplicate rows that go stale.</td><td>Reads another user’s data.</td><td>Medium</td><td>Not recommended</td></tr></tbody></table></div><div class="diagram"><pre class="mermaid">flowchart TD
+    A["Detected PAN is claimed by another account"] --&gt; B{"When?"}
+    B --&gt;|"at upload (M3)"| C["People popup row greyed&lt;br/&gt;(already on another Unifolio account)"]
+    C --&gt;|"Leave it"| C1["not imported (A)"]
+    C --&gt;|"Include in family total"| C2[("B: locked member,&lt;br/&gt;lock_reason = pan_on_other_account")]
+    B --&gt;|"after import, at unlock (M12)"| D["L5 · OK"]
+    D --&gt; D1[("B: relationship saved,&lt;br/&gt;lock_reason = pan_on_other_account")]
+    C2 &amp; D1 --&gt; E["In consolidated view · dropdown shows L8 · later: Ask for access (C)"]
+    E --&gt; F{"Other account deletes itself&lt;br/&gt;or releases the PAN?"}
+    F --&gt;|"yes, checked lazily at dashboard load"| G[("lock_reason = details_needed&lt;br/&gt;unlock popup works normally&lt;br/&gt;(only ever a never-unlocked member)")]
+    class C,D,E popup
+    class C1 none
+    class C2,D1,G db
+    classDef db fill:#fff4d6,stroke:#b8860b,color:#000
+    classDef read fill:#eef2f7,stroke:#64748b,color:#000
+    classDef none fill:#ffd6d6,stroke:#c0392b,color:#000
+    classDef aws fill:#ffe8cc,stroke:#d9730d,color:#000
+    classDef popup fill:#e8e8ff,stroke:#5b5bd6,color:#000
+    classDef browser fill:#e6f7ea,stroke:#2e8b57,color:#000
+    classDef create fill:#fde68a,stroke:#b45309,color:#000,stroke-width:2px
+    classDef gone fill:#f1f5f9,stroke:#94a3b8,color:#475569,stroke-dasharray:4 3</pre></div>
+</section><section id="more">
+  <div class="section-head"><div class="qtags"></div><h2>Scenarios</h2><p>Approved scenarios are marked DECIDED; the ones you changed are marked CHANGED and have a flow below.</p></div>
+  <div class="tbl-wrap wide"><table><thead><tr><th>#</th><th>Scenario</th><th>What we do</th><th>Status</th></tr></thead><tbody><tr><td><span class='mono'>M1</span></td><td>Only Me in the file</td><td>No popup; one ribbon.</td><td><span class="pill p-g">DECIDED</span></td></tr><tr><td><span class='mono'>M2</span></td><td>Detected PAN is already a member here</td><td>Funds attach to that member; “already in your family”; U1 name check.</td><td><span class="pill p-g">DECIDED</span></td></tr><tr><td><span class='mono'>M3</span></td><td>Detected PAN on another account</td><td>Greyed with the reason, plus <b>Include in family total</b> (option B). See <a href='#crossacct'>Cross-account people</a> and U8.</td><td><span class="pill p-w">CHANGED</span></td></tr><tr><td><span class='mono'>M4</span></td><td>Folio with no PAN</td><td>Joins the matching name, else a name-only person; tagged “matched by name”.</td><td><span class="pill p-g">DECIDED</span></td></tr><tr><td><span class='mono'>M5</span></td><td>Minor’s folio</td><td>Deferred (I6).</td><td><span class="pill p-w">DEFERRED</span></td></tr><tr><td><span class='mono'>M6</span></td><td>Same or similar names</td><td>Masked PAN or “PAN not on statement” always shown.</td><td><span class="pill p-g">DECIDED</span></td></tr><tr><td><span class='mono'>M7</span></td><td>Two people could be Me</td><td>U3 Which one is you?</td><td><span class="pill p-g">DECIDED</span></td></tr><tr><td><span class='mono'>M8</span></td><td>PAN matches, name completely different</td><td>Ask: “Update Priya Sharma to PRIYA KARNAWAT?” Update / Keep mine.</td><td><span class="pill p-g">DECIDED</span></td></tr><tr><td><span class='mono'>M9</span></td><td>Upload for a locked person</td><td>Not allowed. See flow below.</td><td><span class="pill p-w">CHANGED</span></td></tr><tr><td><span class='mono'>M10</span></td><td>Typed PAN differs from statement</td><td>L3 inline error, no override.</td><td><span class="pill p-g">DECIDED</span></td></tr><tr><td><span class='mono'>M11</span></td><td>Typed PAN already on another member here</td><td>L4 with a merge. See flow below.</td><td><span class="pill p-w">CHANGED</span></td></tr><tr><td><span class='mono'>M12</span></td><td>PAN claimed by another account after import</td><td>L5: not unlocked, not removed, not moved; stays in the family total. See <a href='#crossacct'>Cross-account people</a>.</td><td><span class="pill p-w">CHANGED</span></td></tr><tr><td><span class='mono'>M13</span></td><td>Same family CAS uploaded again</td><td>Everyone matched by PAN; transactions de-duplicated.</td><td><span class="pill p-g">DECIDED</span></td></tr><tr><td><span class='mono'>M14</span></td><td>New family PAN in a later CAS</td><td>New locked person, same popup and ribbons.</td><td><span class="pill p-g">DECIDED</span></td></tr><tr><td><span class='mono'>M15</span></td><td>User leaves mid-review</td><td>Only Me’s pending PAN, expires after 65 min.</td><td><span class="pill p-g">DECIDED</span></td></tr><tr><td><span class='mono'>M16</span></td><td>Session expired / redeploy</td><td>C2. See flow below.</td><td><span class="pill p-w">CHANGED</span></td></tr><tr><td><span class='mono'>M17</span></td><td>Deleting an import</td><td>One person, everyone in the file, or a member’s whole portfolio. See flows below.</td><td><span class="pill p-w">CHANGED</span></td></tr><tr><td><span class='mono'>M18</span></td><td>One-step <code>/cas-imports</code> path</td><td>Not allowed to bypass detection; routed through parse → people → ribbons → confirm.</td><td><span class="pill p-w">CHANGED</span></td></tr><tr><td><span class='mono'>M19</span></td><td>Request from CAMS</td><td>Same flow once uploaded.</td><td><span class="pill p-g">DECIDED</span></td></tr><tr><td><span class='mono'>M20</span></td><td>Accounts from before this change</td><td>Removed: the database is wiped before testing, so no backfill is needed.</td><td><span class="pill p-b">REMOVED</span></td></tr><tr><td><span class='mono'>M21</span></td><td>Users mid-onboarding on removed steps</td><td>Also moot after the wipe; the frontend simply no longer has those steps.</td><td><span class="pill p-w">CHANGED</span></td></tr><tr><td><span class='mono'>M22</span></td><td>Holder line unreadable</td><td>Fallbacks plus an editable name (U9). See <a href='#fallbacks'>Fallbacks</a>.</td><td><span class="pill p-w">CHANGED</span></td></tr></tbody></table></div>
+</section><section id="m9">
+  <div class="section-head"><div class="qtags"><span class="qtag">M9</span><span class="qtag">I5</span></div><h2>M9 · Uploads and locked people</h2><p>A locked person can’t be the target of an upload. When their PAN turns up inside someone else’s statement, the funds still attach to them.</p></div>
+  <div class="diagram"><pre class="mermaid">flowchart TD
+    A["Add data"] --&gt; B{"Target member locked?"}
+    B --&gt;|"yes"| A1["A1: disabled, Add details first → unlock popup"]
+    B --&gt;|"no"| C["Upload + parse"]
+    C --&gt; D{"Locked person’s PAN&lt;br/&gt;(detected_pan_hash) in this file?"}
+    D --&gt;|"no"| OK["normal flow"]
+    D --&gt;|"yes, with other people"| E["People popup: Ramesh Sharma (details needed)&lt;br/&gt;ribbon as usual"]
+    E --&gt; E1[("Confirm: funds attach to the existing locked member&lt;br/&gt;no new member, still locked")]
+    D --&gt;|"yes, and nobody else"| U6["U6 Add Ramesh Sharma’s details first"]
+    U6 --&gt;|"Add details now"| UL["unlock popup"] --&gt; OK
+    U6 --&gt;|"Upload a different file"| X["discard"]
+    class A1,U6,E popup
+    class E1 db
+    class X none
+    classDef db fill:#fff4d6,stroke:#b8860b,color:#000
+    classDef read fill:#eef2f7,stroke:#64748b,color:#000
+    classDef none fill:#ffd6d6,stroke:#c0392b,color:#000
+    classDef aws fill:#ffe8cc,stroke:#d9730d,color:#000
+    classDef popup fill:#e8e8ff,stroke:#5b5bd6,color:#000
+    classDef browser fill:#e6f7ea,stroke:#2e8b57,color:#000
+    classDef create fill:#fde68a,stroke:#b45309,color:#000,stroke-width:2px
+    classDef gone fill:#f1f5f9,stroke:#94a3b8,color:#475569,stroke-dasharray:4 3</pre></div>
+</section><section id="m11">
+  <div class="section-head"><div class="qtags"><span class="qtag">M11</span></div><h2>M11 · Duplicate person and the merge</h2><p>Only a name-only person can collide at unlock: a person with a detected PAN is matched at upload, and a wrong PAN is stopped by L3. So the merge is offered in L4 only. A general merge tool (any two members, from settings) is deferred.</p></div>
+  <div class="diagram"><pre class="mermaid">flowchart TD
+    A["Unlock Meera (name-only), typed PAN = Dad’s PAN"] --&gt; B["L4 This PAN is already on Dad"]
+    B --&gt;|"Check the PAN"| C["details form"]
+    B --&gt;|"Merge into Dad"| D[("ONE TRANSACTION&lt;br/&gt;for each of Meera’s folios:&lt;br/&gt;Dad has the same scheme + folio number → move transactions&lt;br/&gt;into Dad’s folio, 5-column duplicates dropped, folio deleted&lt;br/&gt;else UPDATE folios.household_member_id = Dad&lt;br/&gt;UPDATE imports.household_member_id = Dad&lt;br/&gt;DELETE portfolio_snapshots for Meera and Dad&lt;br/&gt;DELETE analytics_sections for Meera’s scope&lt;br/&gt;INSERT household_member_merges (audit)&lt;br/&gt;DELETE household_members Meera&lt;br/&gt;bump analytics generation")]
+    D --&gt; E["recompute claim → Dad’s dashboard"]
+    class B popup
+    class D db
+    classDef db fill:#fff4d6,stroke:#b8860b,color:#000
+    classDef read fill:#eef2f7,stroke:#64748b,color:#000
+    classDef none fill:#ffd6d6,stroke:#c0392b,color:#000
+    classDef aws fill:#ffe8cc,stroke:#d9730d,color:#000
+    classDef popup fill:#e8e8ff,stroke:#5b5bd6,color:#000
+    classDef browser fill:#e6f7ea,stroke:#2e8b57,color:#000
+    classDef create fill:#fde68a,stroke:#b45309,color:#000,stroke-width:2px
+    classDef gone fill:#f1f5f9,stroke:#94a3b8,color:#475569,stroke-dasharray:4 3</pre></div><div class="tbl-wrap wide"><table><thead><tr><th>New table</th><th>Columns</th></tr></thead><tbody><tr><td><code>household_member_merges</code></td><td>id, user_id, kept_member_id, removed_member_id, removed_member_name, folios_moved, transactions_dropped, merged_at</td></tr></tbody></table></div>
+</section><section id="m16">
+  <div class="section-head"><div class="qtags"><span class="qtag">M16</span></div><h2>M16 · Review session expiry and redeploys</h2><p>The review lives in the single backend task’s memory for 60 minutes. Me’s pending PAN lives in the database for 65.</p></div>
+  <div class="diagram"><pre class="mermaid">flowchart TD
+    A["Upload at t = 0&lt;br/&gt;session in RAM, self PAN pending until t + 65"] --&gt; B["User reviews"]
+    B --&gt;|"t = 55 min"| W["Banner: Your review closes in 5 minutes"]
+    B --&gt; C{"Confirm imports pressed"}
+    C --&gt;|"before t = 60, same task"| OK[("normal Confirm")]
+    C --&gt;|"after t = 60"| X["410 session_expired → C2"]
+    C --&gt;|"task restarted (deploy / crash)"| X
+    X --&gt; U["Upload again"]
+    U --&gt; P{"Self pending claim still there?"}
+    P --&gt;|"yes (t under 65)"| P1[("claim refreshed for the same member")]
+    P --&gt;|"no"| P2[("fresh claim")]
+    P1 &amp; P2 --&gt; R["new session, people popup again&lt;br/&gt;ribbon choices are not kept"]
+    B --&gt;|"tab closed"| T["nothing more happens;&lt;br/&gt;claim wiped lazily after t + 65"]
+    class W,X popup
+    class OK,P1,P2 db
+    classDef db fill:#fff4d6,stroke:#b8860b,color:#000
+    classDef read fill:#eef2f7,stroke:#64748b,color:#000
+    classDef none fill:#ffd6d6,stroke:#c0392b,color:#000
+    classDef aws fill:#ffe8cc,stroke:#d9730d,color:#000
+    classDef popup fill:#e8e8ff,stroke:#5b5bd6,color:#000
+    classDef browser fill:#e6f7ea,stroke:#2e8b57,color:#000
+    classDef create fill:#fde68a,stroke:#b45309,color:#000,stroke-width:2px
+    classDef gone fill:#f1f5f9,stroke:#94a3b8,color:#475569,stroke-dasharray:4 3</pre></div><div class="diagram"><pre class="mermaid">sequenceDiagram
+    actor U as User
+    participant FE as Browser
+    participant API as ECS task (new after deploy)
+    participant DB as RDS
+    U-&gt;&gt;FE: Confirm imports
+    FE-&gt;&gt;API: POST /imports/confirm session_id
+    API-&gt;&gt;API: session_id not in RAM
+    API--&gt;&gt;FE: 410 session_expired
+    FE--&gt;&gt;U: C2 This review has expired
+    U-&gt;&gt;FE: Upload again
+    FE-&gt;&gt;API: POST /imports/parse
+    API-&gt;&gt;DB: claim_pan_for_member refreshes the pending claim
+    API--&gt;&gt;FE: new preview</pre></div>
+</section><section id="m17">
+  <div class="section-head"><div class="qtags"><span class="qtag">M17</span><span class="qtag">I8</span></div><h2>M17 · Deleting imports</h2><p>Three kinds of delete. None deletes a file while another person’s funds still come from it.</p></div>
+  <div class="diagram"><pre class="mermaid">flowchart TD
+    A["Import History, grouped by statement"] --&gt; B{"Choice"}
+    B --&gt;|"Only Ramesh from this statement"| P1[("DELETE transactions WHERE import_id = Ramesh’s row&lt;br/&gt;DELETE Ramesh’s folios left with no transactions&lt;br/&gt;DELETE that imports row")]
+    P1 --&gt; P2{"Other rows still use the S3 file?"}
+    P2 --&gt;|"yes"| P3["S3 object kept"]
+    P2 --&gt;|"no"| P4["S3 DeleteObject"]
+    B --&gt;|"Everyone in this statement"| Q1[("DELETE every row in the upload_group&lt;br/&gt;with their transactions and emptied folios")] --&gt; P4
+    B --&gt;|"Ramesh’s whole portfolio (member menu)"| R1[("DELETE all Ramesh’s imports, folios, transactions&lt;br/&gt;across statements")] --&gt; P2
+    P3 &amp; P4 --&gt; M{"A member left with no data?"}
+    M --&gt;|"locked detected member"| M1[("DELETE household_members row&lt;br/&gt;(they existed only because of the file)")]
+    M --&gt;|"complete member, or Also remove ticked"| M2["kept, unless Also remove is ticked"]
+    M --&gt;|"Me"| M3["self member and PAN always kept"]
+    M1 &amp; M2 &amp; M3 --&gt; Z[("DELETE portfolio_snapshots of affected members&lt;br/&gt;DELETE their analytics_sections&lt;br/&gt;bump analytics generation → recompute")]
+    class A,B popup
+    class P1,Q1,R1,M1,Z db
+    class P4 aws
+    classDef db fill:#fff4d6,stroke:#b8860b,color:#000
+    classDef read fill:#eef2f7,stroke:#64748b,color:#000
+    classDef none fill:#ffd6d6,stroke:#c0392b,color:#000
+    classDef aws fill:#ffe8cc,stroke:#d9730d,color:#000
+    classDef popup fill:#e8e8ff,stroke:#5b5bd6,color:#000
+    classDef browser fill:#e6f7ea,stroke:#2e8b57,color:#000
+    classDef create fill:#fde68a,stroke:#b45309,color:#000,stroke-width:2px
+    classDef gone fill:#f1f5f9,stroke:#94a3b8,color:#475569,stroke-dasharray:4 3</pre></div><div class="tbl-wrap wide"><table><thead><tr><th>Case</th><th>Rows</th><th>S3</th><th>Members</th></tr></thead><tbody><tr><td>One person from one statement</td><td>That person’s import row, its transactions, their emptied folios</td><td>Kept while other rows reference it</td><td>Locked person with nothing left is removed</td></tr><tr><td>Everyone in one statement</td><td>All rows of the group</td><td>Deleted</td><td>Locked people with nothing left removed; complete members kept</td></tr><tr><td>A member’s whole portfolio</td><td>All their rows everywhere</td><td>Each file deleted only when no other row references it</td><td>Kept unless Also remove is ticked</td></tr><tr><td>Me’s funds</td><td>As above</td><td>As above</td><td>Self row and its PAN always kept</td></tr><tr><td>Fixes a known gap</td><td>Today <code>portfolio_snapshots</code> aren’t cleared on delete (backend map, Gaps)</td><td>—</td><td>Cleared here for every affected member</td></tr></tbody></table></div>
+</section><section id="names">
+  <div class="section-head"><div class="qtags"><span class="qtag">Q7</span></div><h2>The name check: compare_names</h2><p>One pure function in <code>services/import_/name_match.py</code>. It never looks at PAN and never writes anything.</p></div>
+  <pre class="code">HONORIFICS = {MR, MRS, MS, MISS, DR, SHRI, SMT, KUM, MASTER, LATE}
+WEAK = {KUMAR, KUMARI, DEVI, BAI, BHAI, BEN, BEGUM}   # never enough alone
+
+def normalise(name):
+    name = uppercase(name); replace . , ' - with space; collapse spaces
+    return [t for t in name.split() if t not in HONORIFICS]
+
+def same_token(a, b):
+    if a == b: return True
+    if len(a) == 1: return b.startswith(a)          # initial A ~ AYUSH
+    if len(b) == 1: return a.startswith(b)
+    if min(len(a), len(b)) &gt;= 5 and edit_distance(a, b) &lt;= 1:
+        return True                                  # AAYUSH ~ AYUSH, MOHAMMAD ~ MOHAMMED
+    return False
+
+def compare_names(a, b) -&gt; {result, shared, reason}:
+    ta, tb = normalise(a), normalise(b)
+    if sorted(ta) == sorted(tb): return exact
+    short, long = sorter of (ta, tb) by length
+    every short token matched to a different long token by same_token?
+        and at least one matched pair is a full, non-WEAK token?
+        -&gt; variant
+    else -&gt; mismatch</pre><div class="tbl-wrap wide"><table><thead><tr><th>Called from</th><th>Question it answers</th><th>What each result does</th></tr></thead><tbody><tr><td>Finding Me (first import)</td><td>Is this person the one who signed up?</td><td>exact → Me · variant → Me + U1 notice · mismatch everywhere → U2 · several → U3</td></tr><tr><td>Later uploads for a member (S1)</td><td>Is the name on the statement the same person as ours?</td><td>exact → nothing · variant with more tokens in the file → U1 · variant with the same or fewer tokens → nothing, our name kept (I9) · mismatch with matching PAN → M8</td></tr><tr><td>No-PAN folios</td><td>Which person does this folio belong to?</td><td>exact / variant with exactly one person → join, tagged “matched by name” · else a name-only person</td></tr><tr><td>U2 “Use this name”</td><td>Is the typed name the statement’s name?</td><td>mismatch → inline error</td></tr></tbody></table></div><div class="tbl-wrap wide"><table><thead><tr><th>A</th><th>B</th><th>Result</th><th>Why</th></tr></thead><tbody><tr><td>Ayush Karnawat</td><td>AYUSH KARNAWAT</td><td><span class='pill p-g'>exact</span></td><td>same tokens</td></tr><tr><td>Karnawat Ayush</td><td>AYUSH KARNAWAT</td><td><span class='pill p-g'>exact</span></td><td>order ignored</td></tr><tr><td>Mr. Ayush Karnawat</td><td>AYUSH KARNAWAT</td><td><span class='pill p-g'>exact</span></td><td>honorific dropped</td></tr><tr><td>Ayush Karnawat</td><td>AYUSH KUMAR KARNAWAT</td><td><span class='pill p-w'>variant</span></td><td>middle name added</td></tr><tr><td>Ayush</td><td>AYUSH KARNAWAT</td><td><span class='pill p-w'>variant</span></td><td>first name only</td></tr><tr><td>A K Karnawat</td><td>AYUSH KUMAR KARNAWAT</td><td><span class='pill p-w'>variant</span></td><td>initials</td></tr><tr><td>Aayush Karnawat</td><td>AYUSH KARNAWAT</td><td><span class='pill p-w'>variant</span></td><td>one-letter spelling difference</td></tr><tr><td>Kumar</td><td>RAMESH KUMAR</td><td><span class='pill p-b'>mismatch</span></td><td>only a weak token shared</td></tr><tr><td>Ramesh Kumar</td><td>SURESH KUMAR</td><td><span class='pill p-b'>mismatch</span></td><td>first names differ</td></tr><tr><td>Priya Sharma</td><td>PRIYA KARNAWAT</td><td><span class='pill p-b'>mismatch</span></td><td>surname differs (M8 if PAN matches)</td></tr><tr><td>Ayush Karnawat</td><td>ROHAN MEHTA</td><td><span class='pill p-b'>mismatch</span></td><td>nothing shared (U2)</td></tr></tbody></table></div>
+</section><section id="data">
+  <div class="section-head"><div class="qtags"></div><h2>Data added at each step</h2><p>First import of the four-person example.</p></div>
+  <div class="tbl-wrap wide"><table><thead><tr><th>Step</th><th>Screen</th><th>Endpoint</th><th>Task RAM</th><th>Database</th><th>S3</th></tr></thead><tbody><tr><td>1</td><td>Q1–Q3</td><td><code>PATCH /auth/me</code></td><td>—</td><td><code>users</code> onboarding fields</td><td>—</td></tr><tr><td>2</td><td>Privacy page</td><td><code>POST /household-members</code></td><td>—</td><td>Self member</td><td>—</td></tr><tr><td>3</td><td>Upload</td><td><code>POST /imports/parse</code></td><td>people[], raw PANs, PDF bytes, 60 min</td><td>Self PAN pending 65 min</td><td>—</td></tr><tr><td>3a</td><td>U2 Use this name</td><td><code>resolve-name</code></td><td>—</td><td>Self name + name change row</td><td>—</td></tr><tr><td>4</td><td>People popup, ribbons</td><td>none</td><td>unchanged</td><td>—</td><td>—</td></tr><tr><td>5</td><td>Confirm imports</td><td><code>POST /imports/confirm</code></td><td>session deleted</td><td>Self PAN permanent; detected members (locked); imports × N; schemes, folios, transactions</td><td>1 object</td></tr><tr><td>6</td><td>After the response</td><td>background</td><td>—</td><td><code>nav_history</code>, <code>analytics_sections</code></td><td>—</td></tr><tr><td>7</td><td>Unlock</td><td><code>POST /household-members/{id}/details</code></td><td>—</td><td>Relationship, PAN permanent, details_completed_at, lock_reason NULL</td><td>—</td></tr></tbody></table></div>
+</section><section id="schema">
+  <div class="section-head"><div class="qtags"></div><h2>Schema changes · migration 0018</h2><p>No backfill: the database is wiped before testing (M20).</p></div>
+  <div class="diagram"><pre class="mermaid">erDiagram
+    users ||--o{ household_members : "owns"
+    users ||--o{ household_member_merges : "NEW"
+    household_members ||--o{ imports : "has"
+    household_members ||--o{ folios : "holds"
+    household_members ||--o{ household_member_name_changes : "NEW"
+    imports |o--o{ household_members : "NEW detected_from_import_id"
+    imports ||--o{ transactions : "created"
+    folios ||--o{ transactions : "contains"
+    schemes ||--o{ folios : "held as"
+    household_members {
+        uuid id PK
+        uuid user_id FK
+        string name "name as per PAN"
+        enum relationship "CHANGED nullable while locked"
+        string relationship_other_label "required when other"
+        enum origin "NEW onboarding, manual, cas_detected"
+        enum name_source "NEW user_entered, cas"
+        timestamptz name_updated_at "NEW"
+        timestamptz details_completed_at "NEW NULL means locked"
+        enum lock_reason "NEW details_needed, pan_on_other_account"
+        uuid detected_from_import_id FK "NEW"
+        string pan_encrypted "claimed PAN"
+        string pan_lookup_hash UK "unique across Unifolio"
+        timestamptz pan_pending_until
+        enum pan_source "NEW cas, user_entered"
+        timestamptz pan_verified_at "NEW"
+        string detected_pan_encrypted "NEW NULL for name-only people"
+        string detected_pan_hash "NEW indexed, not unique"
+    }
+    household_member_name_changes {
+        uuid id PK "NEW TABLE"
+        uuid household_member_id FK
+        string old_name
+        string new_name
+        enum reason "cas_variant, user_corrected_to_cas, user_edit"
+        uuid import_id FK "nullable"
+        timestamptz changed_at
+    }
+    household_member_merges {
+        uuid id PK "NEW TABLE"
+        uuid user_id FK
+        uuid kept_member_id
+        uuid removed_member_id
+        string removed_member_name
+        int folios_moved
+        int transactions_dropped
+        timestamptz merged_at
+    }
+    imports {
+        uuid id PK
+        uuid household_member_id FK
+        json raw_parser_output "CHANGED this person only"
+        uuid upload_group_id "NEW"
+        string file_reference "CHANGED shared within a group"
+    }
+    folios {
+        uuid id PK
+        uuid household_member_id FK
+        uuid scheme_id FK
+        enum plan_type
+    }
+    transactions {
+        uuid id PK
+        date date PK
+        uuid folio_id FK
+        uuid import_id FK
+    }
+    schemes {
+        uuid id PK
+        string amfi_code UK
+    }</pre></div><div class="tbl-wrap wide"><table><thead><tr><th>Constraint / index</th><th>Change</th><th>Why</th></tr></thead><tbody><tr><td><code>ck_member_relationship_when_complete</code></td><td><span class="pill p-n">NEW</span></td><td>relationship may be NULL only while locked (<code>details_completed_at IS NULL</code>).</td></tr><tr><td><code>ck_member_other_label</code></td><td><span class="pill p-n">NEW</span></td><td><code>relationship = 'other'</code> requires <code>relationship_other_label</code>.</td></tr><tr><td><code>ck_member_lock_reason</code></td><td><span class="pill p-n">NEW</span></td><td><code>lock_reason</code> is NULL exactly when <code>details_completed_at</code> is set.</td></tr><tr><td><code>ck_member_detected_pan_pair</code></td><td><span class="pill p-n">NEW</span></td><td>Both detected PAN columns NULL or both set.</td></tr><tr><td><code>ix_member_user_detected_pan_hash</code></td><td><span class="pill p-n">NEW</span></td><td>Non-unique on <code>(user_id, detected_pan_hash)</code>.</td></tr><tr><td><code>ix_imports_upload_group_id</code></td><td><span class="pill p-n">NEW</span></td><td>Import History grouping and delete.</td></tr><tr><td><code>ix_household_members_pan_lookup_hash</code></td><td><span class="pill p-g">UNCHANGED</span></td><td>Still unique.</td></tr><tr><td><code>trg_member_never_relock</code></td><td><span class="pill p-n">NEW</span></td><td>Database trigger on UPDATE of <code>household_members</code>: rejects clearing <code>details_completed_at</code> once set, and rejects setting <code>lock_reason</code> on a row whose <code>details_completed_at</code> is set. A future bug can't lock an unlocked member.</td></tr><tr><td>Enums</td><td><span class="pill p-n">NEW</span></td><td><code>member_origin</code> (onboarding, manual, cas_detected), <code>member_name_source</code> (user_entered, cas), <code>member_pan_source</code> (cas, user_entered), <code>member_lock_reason</code> (details_needed, pan_on_other_account), <code>name_change_reason</code> (cas_variant, user_corrected_to_cas, user_edit). <code>relationship</code> values unchanged.</td></tr><tr><td>File expiry job (19:00 IST)</td><td><span class="pill p-w">CHANGED</span></td><td>When the shared S3 object expires, NULL <code>file_reference</code> on <b>every</b> import row of that <code>upload_group_id</code>, not just one.</td></tr><tr><td>Account hard-delete job</td><td><span class="pill p-w">CHANGED</span></td><td>Also deletes <code>household_member_name_changes</code> and <code>household_member_merges</code>; deletes each shared S3 object once, however many import rows point at it.</td></tr><tr><td>Backfill</td><td><span class="pill p-b">REMOVED</span></td><td>Not needed (database wiped).</td></tr></tbody></table></div>
+</section><section id="tables">
+  <div class="section-head"><div class="qtags"></div><h2>Tables changed</h2><p>Every table this work touches.</p></div>
+  <div class="tbl-wrap wide"><table><thead><tr><th>Table</th><th>Status</th><th>What changes</th></tr></thead><tbody><tr><td><code>household_members</code></td><td><span class="pill p-w">CHANGED</span></td><td>11 new columns, relationship nullable, 4 checks, 1 index.</td></tr><tr><td><code>household_member_name_changes</code></td><td><span class="pill p-n">NEW</span></td><td>Rename audit (U1, U2, M8, user edits).</td></tr><tr><td><code>household_member_merges</code></td><td><span class="pill p-n">NEW</span></td><td>Merge audit (M11).</td></tr><tr><td><code>imports</code></td><td><span class="pill p-w">CHANGED</span></td><td><code>upload_group_id</code>; per-person <code>raw_parser_output</code>; shared file key.</td></tr><tr><td><code>folios</code>, <code>transactions</code></td><td><span class="pill p-w">CHANGED</span></td><td>Columns unchanged; merge and per-person delete move or remove rows.</td></tr><tr><td><code>portfolio_snapshots</code>, <code>analytics_sections</code></td><td><span class="pill p-w">CHANGED</span></td><td>Cleared for affected members on delete and merge.</td></tr><tr><td><code>users</code>, <code>schemes</code>, reference tables</td><td><span class="pill p-g">UNCHANGED</span></td><td>—</td></tr><tr><td>Task RAM session</td><td><span class="pill p-w">CHANGED</span></td><td>people[], unassigned funds, resolution state.</td></tr><tr><td>S3</td><td><span class="pill p-w">CHANGED</span></td><td><code>{user_id}/{upload_group_id}.pdf</code>; deleted only when no row references it.</td></tr></tbody></table></div>
+</section><section id="unlocked">
+  <div class="section-head"><div class="qtags"><span class="qtag">I15</span></div><h2>Unlocked is permanent</h2><p>Once a member’s details are added, they are never locked again. Every path that writes to a member was checked against this rule.</p></div>
+  <div class="tbl-wrap wide"><table><thead><tr><th>#</th><th>Path</th><th>Risk before the fix</th><th>What happens now</th></tr></thead><tbody><tr><td>1</td><td>U4 “The one on this statement”, and that PAN is on another account</td><td>Member pushed into “on another account”</td><td>U12: PAN not switched, member stays unlocked</td></tr><tr><td>2</td><td>Editing an unlocked member’s details later</td><td>Unlock logic could set a lock reason on conflict</td><td>Update-only mode; conflict shows L9, old values stay</td></tr><tr><td>3</td><td>Retrying the unlock after a timeout</td><td>Second call errors with “PAN already taken” by the same member</td><td>Repeatable: same PAN on an unlocked member returns 200</td></tr><tr><td>4</td><td>Removed with Also remove, then the statement is uploaded again</td><td>Looks like a relock</td><td>A new member by design; D2 says so before deleting</td></tr><tr><td>5</td><td>Unverified typed PAN, then a statement shows the same name with another PAN in someone else’s upload</td><td>A duplicate locked copy appears</td><td>U13 asks “Is this Ramesh Sharma?” before creating anyone</td></tr><tr><td>6</td><td>Stale browser data right after unlock</td><td>Lock icon still shown</td><td>Saved GET responses cleared on success</td></tr></tbody></table></div><div class="tbl-wrap wide"><table><thead><tr><th>Checked and safe</th><th>Why</th></tr></thead><tbody><tr><td>Another account claiming their PAN later</td><td>After unlock the PAN is claimed permanently; the unique index stops anyone else</td></tr><tr><td>U1 / I9 name updates, later statements</td><td>Change the name or add funds only</td></tr><tr><td>Deleting all their funds</td><td>Member stays unlocked and empty</td></tr><tr><td>Merge (M11)</td><td>Only a locked person is merged away; the kept member stays unlocked</td></tr><tr><td>Other account releasing a PAN</td><td>Only moves a never-unlocked person from “on another account” to “details needed”</td></tr><tr><td>Self member</td><td>Created unlocked; nothing changes that</td></tr><tr><td>Analytics still computing</td><td>Dashboard opens and shows “computing”; it isn’t locked</td></tr></tbody></table></div><div class="callout"><b>Enforced in the database:</b> <code>trg_member_never_relock</code> rejects any update that clears <code>details_completed_at</code> or sets <code>lock_reason</code> on an unlocked member.</div>
+</section><section id="lifecycle">
+  <div class="section-head"><div class="qtags"></div><h2>Lifecycle of a detected member</h2><p>COMPLETE has no way back to a locked state: its only exit is removal, when the user ticks Also remove from my family.</p></div>
+  <div class="diagram"><pre class="mermaid">stateDiagram-v2
+    [*] --&gt; Locked: Confirm imports
+    [*] --&gt; OtherAccount: Confirm imports, included via U7 or U8
+    Locked: LOCKED&lt;br/&gt;lock_reason = details_needed&lt;br/&gt;consolidated view only
+    OtherAccount: ON ANOTHER ACCOUNT&lt;br/&gt;lock_reason = pan_on_other_account&lt;br/&gt;consolidated view only
+    Complete: COMPLETE&lt;br/&gt;relationship + claimed PAN&lt;br/&gt;own dashboard
+    Locked --&gt; Complete: unlock, PAN ok
+    Locked --&gt; OtherAccount: unlock hits L5
+    Locked --&gt; Merged: unlock hits L4, Merge
+    Merged: MERGED&lt;br/&gt;row deleted, funds on the kept member
+    OtherAccount --&gt; Locked: other account releases the PAN
+    Locked --&gt; Removed: delete leaves no data
+    Removed: REMOVED
+    Complete --&gt; Complete: later statements, U1 renames, U4 / U13 PAN change, L9 edits, deletes
+    Complete --&gt; Removed: delete with Also remove from my family
+    Merged --&gt; [*]
+    Removed --&gt; [*]</pre></div>
+</section><section id="api">
+  <div class="section-head"><div class="qtags"></div><h2>API changes</h2><p>Auth and ownership checks as today.</p></div>
+  <div class="tbl-wrap wide"><table><thead><tr><th>Endpoint</th><th>Status</th><th>Request → response</th></tr></thead><tbody><tr><td><code>POST /imports/parse</code></td><td><span class="pill p-w">CHANGED</span></td><td>200 adds <code>people[]</code>, <code>unassigned[]</code>, <code>name_check</code>. 409s: <code>self_name_mismatch</code>, <code>member_pan_mismatch</code>, <code>member_not_in_file</code>, <code>locked_member_only</code>, <code>which_is_self</code>. Session kept.</td></tr><tr><td><code>POST /imports/sessions/{id}/resolve-name</code></td><td><span class="pill p-n">NEW</span></td><td>U2.</td></tr><tr><td><code>POST /imports/sessions/{id}/resolve-self</code></td><td><span class="pill p-n">NEW</span></td><td>U3: {person_key}.</td></tr><tr><td><code>POST /imports/sessions/{id}/resolve-pan</code></td><td><span class="pill p-n">NEW</span></td><td>U4.</td></tr><tr><td><code>POST /imports/sessions/{id}/discard</code></td><td><span class="pill p-g">UNCHANGED</span></td><td>U2, U4, U5, U6, U7, C3.</td></tr><tr><td><code>POST /imports/confirm</code></td><td><span class="pill p-w">CHANGED</span></td><td>{session_id, people: [{person_key, name?, include?, scheme_confirmations[], moved_funds[]}]}; 410 <code>session_expired</code>. The old single-member body is still accepted for a one-person file.</td></tr><tr><td><code>POST /cas-imports</code></td><td><span class="pill p-w">CHANGED</span></td><td>Routed through the same pipeline (M18).</td></tr><tr><td><code>POST /household-members/{id}/details</code></td><td><span class="pill p-n">NEW</span></td><td>L1–L7 codes; repeatable (same PAN on an unlocked member → 200); update-only once unlocked, errors as L9, never locks.</td></tr><tr><td><code>POST /imports/sessions/{id}/resolve-pan</code> conflict</td><td><span class="pill p-w">CHANGED</span></td><td>409 <code>statement_pan_on_other_account</code> (U12); old claim kept.</td></tr><tr><td><code>POST /imports/sessions/{id}/resolve-same-person</code></td><td><span class="pill p-n">NEW</span></td><td>U13: {person_key, member_id, same: true|false}.</td></tr><tr><td><code>POST /household-members/{id}/merge-into/{target_id}</code></td><td><span class="pill p-n">NEW</span></td><td>M11.</td></tr><tr><td><code>GET /imports</code> (Import History)</td><td><span class="pill p-w">CHANGED</span></td><td>Grouped by <code>upload_group_id</code>: one entry per statement with its per-person rows.</td></tr><tr><td><code>DELETE /imports/{id}</code></td><td><span class="pill p-w">CHANGED</span></td><td>?scope=person|group.</td></tr><tr><td><code>DELETE /household-members/{id}/portfolio</code></td><td><span class="pill p-n">NEW</span></td><td>?remove_member=true|false.</td></tr><tr><td><code>POST /household-members</code></td><td><span class="pill p-w">CHANGED</span></td><td>Name validation (Part 1); sets <code>origin</code>, <code>name_source = user_entered</code>, <code>details_completed_at = now</code>.</td></tr><tr><td>Aggregate and member reads</td><td><span class="pill p-w">CHANGED</span></td><td><code>members[]</code> adds <code>origin</code>, <code>details_required</code>, <code>lock_reason</code>, <code>pan_masked</code> (null for name-only people); member reads 403 <code>member_details_required</code> while locked.</td></tr></tbody></table></div>
+</section><section id="frontend">
+  <div class="section-head"><div class="qtags"></div><h2>Frontend changes</h2><p>Web first; every item has a mobile twin.</p></div>
+  <div class="tbl-wrap wide"><table><thead><tr><th>File</th><th>Status</th><th>Change</th></tr></thead><tbody><tr><td><code>Q1Name.tsx</code></td><td><span class="pill p-w">CHANGED</span></td><td>Part 1 copy.</td></tr><tr><td>Onboarding flow files</td><td><span class="pill p-w">CHANGED</span></td><td>Household steps removed.</td></tr><tr><td>Family onboarding components</td><td><span class="pill p-b">REMOVED</span></td><td>Removed after extracting the relationship list.</td></tr><tr><td><code>ImportFlow.tsx</code></td><td><span class="pill p-w">CHANGED</span></td><td>Situation popups → people popup → ribbons → confirm; 55-minute banner.</td></tr><tr><td><code>PeopleFoundDialog</code>, <code>MemberRibbonReview</code></td><td><span class="pill p-n">NEW</span></td><td>Parts 4 and 5, U8–U10.</td></tr><tr><td><code>NameVariantNotice</code>, <code>NameMismatchDialog</code>, <code>WhichIsYouDialog</code>, <code>PanMismatchDialog</code>, <code>MemberNotInFileDialog</code>, <code>AddDetailsFirstDialog</code></td><td><span class="pill p-n">NEW</span></td><td>U1–U6.</td></tr><tr><td><code>ConfirmFailedDialog</code>, <code>SessionExpiredDialog</code>, <code>CancelImportDialog</code></td><td><span class="pill p-n">NEW</span></td><td>C1–C3.</td></tr><tr><td><code>MemberDetailsDialog</code>, <code>ConfirmLeaveDialog</code>, <code>PossibleDuplicateDialog</code>, <code>OtherAccountDialog</code></td><td><span class="pill p-n">NEW</span></td><td>Part 6, L1–L8.</td></tr><tr><td><code>DeleteImportDialog</code>, <code>DeletePortfolioDialog</code>, <code>ImportHistoryList</code></td><td><span class="pill p-n">NEW</span></td><td>M17.</td></tr><tr><td>Dashboard nav, Add data picker</td><td><span class="pill p-w">CHANGED</span></td><td>Locked people, A1.</td></tr><tr><td><code>PanOnOtherAccountDialog</code>, <code>SamePersonDialog</code>, <code>EditMemberDialog</code></td><td><span class="pill p-n">NEW</span></td><td>U12, U13, L9.</td></tr><tr><td><code>MainDashboardFlow.tsx</code> unlock success</td><td><span class="pill p-w">CHANGED</span></td><td>Clears saved GET responses, then opens the member.</td></tr><tr><td><code>ReviewTable.tsx</code></td><td><span class="pill p-w">CHANGED</span></td><td>Takes one person’s schemes and reports its unresolved count up to the ribbon.</td></tr><tr><td><code>panConflict.ts</code></td><td><span class="pill p-w">CHANGED</span></td><td>Recognises the new 409 codes: <code>self_name_mismatch</code>, <code>member_pan_mismatch</code>, <code>member_not_in_file</code>, <code>locked_member_only</code>, <code>which_is_self</code>, plus 410 <code>session_expired</code>.</td></tr><tr><td><code>PanConflictDialog.tsx</code>, <code>CrossAccountBlockedDialog.tsx</code></td><td><span class="pill p-w">CHANGED</span></td><td>Reworded and extended for U5 and U7 (Include in family total).</td></tr><tr><td><code>ImportConfirmed.tsx</code></td><td><span class="pill p-w">CHANGED</span></td><td>Totals per person.</td></tr><tr><td><code>features/import/api.ts</code>, <code>features/dashboard/api.ts</code>, <code>types.ts</code></td><td><span class="pill p-w">CHANGED</span></td><td>New request and response types, new endpoints (resolve-*, details, merge, portfolio delete).</td></tr><tr><td>Every masked PAN</td><td><span class="pill p-w">CHANGED</span></td><td>First two + last two characters (from <code>mask_pan</code>).</td></tr></tbody></table></div>
+</section><section id="input">
+  <div class="section-head"><div class="qtags"></div><h2>Decisions</h2><p>Your 29 and 30 Sep answers applied. Nothing is open.</p></div>
+  <div class="tbl-wrap wide"><table><thead><tr><th>#</th><th>Question</th><th>Decision</th><th>Status</th></tr></thead><tbody><tr><td><span class='mono'>I1</span></td><td>One-person file: popup?</td><td>No popup, one ribbon.</td><td><span class="pill p-g">DECIDED</span></td></tr><tr><td><span class='mono'>I2</span></td><td>Nominees</td><td>Ignored.</td><td><span class="pill p-g">DECIDED</span></td></tr><tr><td><span class='mono'>I3</span></td><td>Keep the detected PAN aside</td><td>Yes. Unlock errors: L1–L8.</td><td><span class="pill p-g">DECIDED</span></td></tr><tr><td><span class='mono'>I4</span></td><td>Typed PAN differs from statement</td><td>Hard error, no override (L3).</td><td><span class="pill p-g">DECIDED</span></td></tr><tr><td><span class='mono'>I5</span></td><td>Upload for a locked person</td><td>Not allowed (A1, U6, M9).</td><td><span class="pill p-g">DECIDED</span></td></tr><tr><td><span class='mono'>I6</span></td><td>Minors</td><td>Later.</td><td><span class="pill p-w">DEFERRED</span></td></tr><tr><td><span class='mono'>I7</span></td><td>Person later found on another account</td><td>Option B: include their funds from this statement in the family total; their own dashboard stays locked. Option C (Ask for access) stays deferred.</td><td><span class="pill p-g">DECIDED</span></td></tr><tr><td><span class='mono'>I8</span></td><td>Deleting from a shared file</td><td>One person, everyone, or a member’s whole portfolio (M17).</td><td><span class="pill p-g">DECIDED</span></td></tr><tr><td><span class='mono'>I9</span></td><td>S1 when the new statement has less of the name</td><td>Option (b): update only when the new statement has more of the name; otherwise keep ours and show no popup.</td><td><span class="pill p-g">DECIDED</span></td></tr><tr><td><span class='mono'>I10</span></td><td>Partial name match on the first import</td><td>U1 shows on the first upload too, before the people popup, and the statement’s name is taken at Confirm imports.</td><td><span class="pill p-g">DECIDED</span></td></tr><tr><td><span class='mono'>I11</span></td><td>All ribbons reviewed before Confirm imports</td><td>Yes.</td><td><span class="pill p-g">DECIDED</span></td></tr><tr><td><span class='mono'>I12</span></td><td>Server-side lock</td><td>Yes.</td><td><span class="pill p-g">DECIDED</span></td></tr><tr><td><span class='mono'>I13</span></td><td>Cross-account check at upload</td><td>Yes.</td><td><span class="pill p-g">DECIDED</span></td></tr><tr><td><span class='mono'>I14</span></td><td>PRD amendments</td><td>Yes, see R6 in detail.</td><td><span class="pill p-g">DECIDED</span></td></tr><tr><td><span class='mono'>I15</span></td><td>Can an unlocked member be locked again?</td><td>Never. See Unlocked is permanent; enforced by a database trigger.</td><td><span class="pill p-g">DECIDED</span></td></tr><tr><td><span class='mono'>I16</span></td><td>Deletion logic</td><td>Kept as designed in M17.</td><td><span class="pill p-g">DECIDED</span></td></tr></tbody></table></div><div class="answer"><strong>I9 · Decided: a name only gets more complete</strong><p>When a later statement shows a partial match (variant) for a member, the name is replaced only if the statement has <b>more</b> name tokens than we have. Same or fewer tokens: our name stays and no popup is shown. This applies to every existing member found in any upload, not only the one being uploaded for.</p><ol class='steps'><li>First statement: <b>Ayush Karnawat</b>.</li><li>Add data for Ayush with <b>AYUSH ANAND KARNAWAT</b>: more tokens, U1 shows, name becomes <b>Ayush Anand Karnawat</b> at Confirm imports.</li><li>Add data for Dad; his statement also has Ayush's folios as <b>AYUSH KARNAWAT</b>: funds go to Ayush by PAN, fewer tokens, no popup, name stays <b>Ayush Anand Karnawat</b>.</li></ol></div>
+</section><section id="deferred">
+  <div class="section-head"><div class="qtags"></div><h2>Deferred</h2><p>Not in this build. Worth adding to <code>DEFERRED_FEATURES.md</code> when this is approved.</p></div>
+  <div class="tbl-wrap wide"><table><thead><tr><th>Item</th><th>From</th><th>Why later</th></tr></thead><tbody><tr><td>Minors' folios (guardian PAN, minor as own person, PAN optional for Child)</td><td>M5, I6</td><td>Needs real minor-folio fixtures and a relationship rule.</td></tr><tr><td>Ask for access to another account’s member (option C)</td><td>M3, M12, I7</td><td>Needs email approval flow and cross-user reads.</td></tr><tr><td>General merge tool for any two members</td><td>M11</td><td>L4 covers the case this flow creates.</td></tr></tbody></table></div>
+</section><section id="order">
+  <div class="section-head"><div class="qtags"></div><h2>Suggested build order</h2><p>Unchanged in shape; new states slot into steps 4, 7 and 8.</p></div>
+  <ol class="steps"><li><b>Fixtures.</b> Real multi-PAN family CAS (CAMS, KFintech), folios with no PAN, an unreadable header.</li><li><b>Parser, fallbacks, <code>compare_names</code>, <code>mask_pan</code> change.</b></li><li><b>Migration 0018.</b></li><li><b>Upload API</b> with U1–U10 codes and the resolve endpoints; one-step path routed (M18).</li><li><b>Confirm API</b>, multi-person, one transaction, 410 expiry.</li><li><b>Onboarding frontend.</b></li><li><b>Import frontend</b>: U, C states, people popup, ribbons.</li><li><b>Dashboard</b>: unlock, L states, cross-account, merge, A1.</li><li><b>Delete</b> (M17) and jobs.</li><li><b>Mobile, PRD amendments, docs.</b></li></ol>
+</section>
+<footer>
+  <span>v2, 29 Sep 2026, against branch <span class="mono">feat/enhanced-ui</span> at <span class="mono">7e8e2b4</span>. v1 (28 Sep) was the first draft; decisions from the 29 Sep review are applied.</span>
+  <span>Companion pages: Unifolio Backend Map, PAN Storage Map. Supersedes <span class="mono">multi-person-cas-import.html</span> and the 24 Sep per-PAN splitting plan once approved.</span>
+</footer>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script>
+  if (!document.querySelector("pre.mermaid[data-processed]")) {
+    var dark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    mermaid.initialize({ startOnLoad: true, securityLevel: "strict", theme: dark ? "dark" : "default",
+      flowchart: { useMaxWidth: false }, sequence: { useMaxWidth: false }, er: { useMaxWidth: false }, state: { useMaxWidth: false } });
+  }
+</script>
