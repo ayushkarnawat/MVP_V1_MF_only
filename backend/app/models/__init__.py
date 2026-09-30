@@ -6,6 +6,7 @@ from app.models import (  # noqa: F401
     auth,
     folio,
     imports,
+    member_history,
     reference,
     snapshot,
     transaction,

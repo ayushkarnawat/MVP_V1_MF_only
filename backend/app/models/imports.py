@@ -30,4 +30,7 @@ class Import(Base):
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     file_reference: Mapped[str | None] = mapped_column(String)
     file_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # One per uploaded CAS file: a family statement produces one Import row
+    # per detected person, all sharing this id (and the one S3 object).
+    upload_group_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, index=True)
 

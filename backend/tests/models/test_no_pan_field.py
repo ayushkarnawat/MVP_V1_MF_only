@@ -49,9 +49,16 @@ def test_household_member_pan_columns_are_named_for_encrypted_or_hashed_storage_
     # pan_pending_until (2026-09-24) holds a timestamp, not PAN data: it marks
     # an upload-time claim that becomes permanent on Confirm Import. See
     # Docs/superpowers/specs/2026-09-24-pan-at-upload-attribution-design.md.
-    assert set(pan_columns) == {"pan_encrypted", "pan_lookup_hash", "pan_pending_until"}, (
-        "HouseholdMember must expose exactly pan_encrypted, pan_lookup_hash and "
-        "pan_pending_until for PAN — a column named just 'pan' (or anything else "
+    # 2026-09-29 (CAS member detection, 0018): pan_source/pan_verified_at are
+    # provenance metadata, not PAN data; detected_pan_* hold the PAN a locked
+    # detected person was found with, encrypted/hashed like pan_encrypted/
+    # pan_lookup_hash.
+    assert set(pan_columns) == {
+        "pan_encrypted", "pan_lookup_hash", "pan_pending_until", "pan_source",
+        "pan_verified_at", "detected_pan_encrypted", "detected_pan_hash",
+    }, (
+        "HouseholdMember must expose exactly the expected encrypted/hashed PAN "
+        "columns plus PAN metadata — a column named just 'pan' (or anything else "
         "PAN-shaped) would suggest plaintext storage, which ADR-004 (as reopened) "
         "still forbids."
     )

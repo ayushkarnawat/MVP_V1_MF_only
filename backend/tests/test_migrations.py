@@ -459,3 +459,132 @@ def test_remove_password_auth_migration_round_trip(tmp_path, monkeypatch):
     tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     assert "password_reset_tokens" not in tables
     conn.close()
+
+
+def test_0018_backfills_preexisting_members_as_unlocked(tmp_path, monkeypatch):
+    """Staging has household_members rows from before 0018. Without a backfill
+    the lock CHECK constraints reject them (details_completed_at NULL with
+    lock_reason NULL) and the upgrade fails on Postgres."""
+    import sqlite3
+
+    db_path = tmp_path / "member_backfill.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+
+    up_to_0017 = _alembic("upgrade", "0017")
+    assert up_to_0017.returncode == 0, up_to_0017.stderr
+
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        "INSERT INTO users (id, phone_number, created_at) VALUES ('u1', '+919800000018', '2026-09-01 10:00:00.000000')"
+    )
+    conn.executemany(
+        "INSERT INTO household_members"
+        " (id, user_id, name, relationship, created_at, pan_encrypted, pan_lookup_hash, pan_pending_until)"
+        " VALUES (?, 'u1', ?, ?, ?, ?, ?, ?)",
+        [
+            # Self with a permanent PAN claimed from a CAS.
+            ("m_self", "Asha Rao", "self", "2026-09-01 10:00:00.000000", "enc1", "hash1", None),
+            # Spouse with no PAN.
+            ("m_spouse", "Ravi Rao", "spouse", "2026-09-02 11:00:00.000000", None, None, None),
+            # Child with a still-pending claim: not a verified PAN yet.
+            ("m_child", "Kiran Rao", "child", "2026-09-03 12:00:00.000000", "enc3", "hash3", "2026-09-03 13:05:00.000000"),
+        ],
+    )
+    conn.commit()
+    conn.close()
+
+    upgrade = _alembic("upgrade", "head")
+    assert upgrade.returncode == 0, upgrade.stderr
+
+    conn = sqlite3.connect(db_path)
+    rows = {
+        r[0]: r[1:]
+        for r in conn.execute(
+            "SELECT id, origin, name_source, details_completed_at, lock_reason, pan_source, pan_verified_at"
+            " FROM household_members"
+        )
+    }
+    conn.close()
+
+    assert rows["m_self"] == ("onboarding", "user_entered", "2026-09-01 10:00:00.000000", None, "cas", "2026-09-01 10:00:00.000000")
+    assert rows["m_spouse"] == ("manual", "user_entered", "2026-09-02 11:00:00.000000", None, None, None)
+    assert rows["m_child"] == ("manual", "user_entered", "2026-09-03 12:00:00.000000", None, None, None)
+
+
+def test_0018_upgrade_creates_trigger_and_downgrade_removes_it(tmp_path, monkeypatch):
+    """0018 (CAS member detection): the never-relock trigger must survive the
+    batch rebuild of household_members (batch mode drops triggers on SQLite,
+    so 0018 creates it after the batch block), and the pre-existing indexes
+    on household_members must survive the rebuild too."""
+    import sqlite3
+
+    db_path = tmp_path / "member_detection.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+
+    upgrade = _alembic("upgrade", "head")
+    assert upgrade.returncode == 0, upgrade.stderr
+
+    def _objects(kind):
+        conn = sqlite3.connect(db_path)
+        names = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type=?", (kind,))}
+        conn.close()
+        return names
+
+    assert "trg_member_never_relock" in _objects("trigger")
+    assert {"household_member_name_changes", "household_member_merges"}.issubset(_objects("table"))
+    indexes = _objects("index")
+    assert {
+        "ix_member_user_detected_pan_hash",
+        "ix_imports_upload_group_id",
+        "ix_household_members_pan_lookup_hash",
+        "ix_household_members_one_self_per_user",
+    }.issubset(indexes)
+
+    conn = sqlite3.connect(db_path)
+    # The batch rebuild must keep 0011's partial WHERE clause, otherwise the
+    # index would allow only one household member per user.
+    self_index_sql = conn.execute(
+        "SELECT sql FROM sqlite_master WHERE name='ix_household_members_one_self_per_user'"
+    ).fetchone()[0]
+    assert "WHERE" in self_index_sql.upper()
+    fk_targets = {row[2] for row in conn.execute("PRAGMA foreign_key_list(household_members)")}
+    assert "imports" in fk_targets  # F3: FK must exist on SQLite, not be skipped
+
+    # Exercise the migration's own frozen trigger copy (the model tests only
+    # cover the create_all copy from app/db/member_trigger_sql.py).
+    conn.execute(
+        "INSERT INTO users (id, phone_number, created_at) VALUES ('u0018', '+919800001818', '2026-09-29 10:00:00.000000')"
+    )
+    conn.execute(
+        "INSERT INTO household_members (id, user_id, name, relationship, created_at, details_completed_at)"
+        " VALUES ('m0018', 'u0018', 'Asha Rao', 'spouse', '2026-09-29 10:00:00.000000', '2026-09-29 10:00:00.000000')"
+    )
+    conn.commit()
+    with pytest.raises(sqlite3.IntegrityError, match="member_already_unlocked"):
+        conn.execute(
+            "UPDATE household_members SET details_completed_at = NULL, lock_reason = 'details_needed'"
+            " WHERE id = 'm0018'"
+        )
+    conn.rollback()
+    conn.execute("DELETE FROM household_members")
+    conn.execute("DELETE FROM users")
+    conn.commit()
+    conn.close()
+
+    downgrade = _alembic("downgrade", "0017")
+    assert downgrade.returncode == 0, downgrade.stderr
+
+    assert "trg_member_never_relock" not in _objects("trigger")
+    tables = _objects("table")
+    assert "household_member_name_changes" not in tables
+    assert "household_member_merges" not in tables
+    conn = sqlite3.connect(db_path)
+    member_columns = {row[1] for row in conn.execute("PRAGMA table_info(household_members)")}
+    import_columns = {row[1] for row in conn.execute("PRAGMA table_info(imports)")}
+    conn.close()
+    assert "details_completed_at" not in member_columns
+    assert "upload_group_id" not in import_columns
+
+    re_upgrade = _alembic("upgrade", "head")
+    assert re_upgrade.returncode == 0, re_upgrade.stderr
+    assert "trg_member_never_relock" in _objects("trigger")

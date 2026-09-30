@@ -26,6 +26,33 @@ class Relationship(str, enum.Enum):
     OTHER = "other"
 
 
+class MemberOrigin(str, enum.Enum):
+    ONBOARDING = "onboarding"
+    MANUAL = "manual"
+    CAS_DETECTED = "cas_detected"
+
+
+class MemberNameSource(str, enum.Enum):
+    USER_ENTERED = "user_entered"
+    CAS = "cas"
+
+
+class MemberPanSource(str, enum.Enum):
+    CAS = "cas"
+    USER_ENTERED = "user_entered"
+
+
+class MemberLockReason(str, enum.Enum):
+    DETAILS_NEEDED = "details_needed"
+    PAN_ON_OTHER_ACCOUNT = "pan_on_other_account"
+
+
+class NameChangeReason(str, enum.Enum):
+    CAS_VARIANT = "cas_variant"
+    USER_CORRECTED_TO_CAS = "user_corrected_to_cas"
+    USER_EDIT = "user_edit"
+
+
 class ImportStatus(str, enum.Enum):
     PENDING = "pending"
     CONFIRMED = "confirmed"
