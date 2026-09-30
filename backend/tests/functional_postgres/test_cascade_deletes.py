@@ -135,24 +135,36 @@ def test_hard_delete_expired_accounts_cascades_cleanly_on_postgres(postgres_url,
     ])
     db.commit()
 
-    deleted = hard_delete_expired_accounts(db, now=now)
+    # Plain values, captured before the delete: after it, reading an
+    # attribute off an ORM object whose row is gone raises ObjectDeletedError
+    # (commit expires every attribute, and the refresh finds no row).
+    user_id, member_id, import_id = user.id, member.id, import_record.id
+    phone_number, scheme_id = user.phone_number, scheme.id
 
-    assert deleted == 1
-    assert db.query(User).filter_by(id=user.id).count() == 0
-    assert db.query(HouseholdMember).filter_by(user_id=user.id).count() == 0
-    assert db.query(AuthIdentity).filter_by(user_id=user.id).count() == 0
-    assert db.query(SessionModel).filter_by(user_id=user.id).count() == 0
-    assert db.query(PendingIdentityVerification).filter_by(matched_user_id=user.id).count() == 0
-    assert db.query(Transaction).filter_by(import_id=import_record.id).count() == 0
-    assert db.query(Import).filter_by(household_member_id=member.id).count() == 0
-    assert db.query(Folio).filter_by(household_member_id=member.id).count() == 0
-    assert db.query(PortfolioSnapshot).filter_by(household_member_id=member.id).count() == 0
-    assert db.query(AnalyticsSection).filter_by(user_id=user.id).count() == 0
-    assert db.query(AnalyticsRecomputeStatus).filter_by(user_id=user.id).count() == 0
-    assert db.query(OtpRequest).filter_by(phone_number=user.phone_number).count() == 0
-    assert db.query(AccountDeletionSurvey).count() == 1
-    assert db.query(Scheme).filter_by(id=scheme.id).count() == 1
-    db.close()
+    try:
+        deleted = hard_delete_expired_accounts(db, now=now)
+
+        assert deleted == 1
+        assert db.query(User).filter_by(id=user_id).count() == 0
+        assert db.query(HouseholdMember).filter_by(user_id=user_id).count() == 0
+        assert db.query(AuthIdentity).filter_by(user_id=user_id).count() == 0
+        assert db.query(SessionModel).filter_by(user_id=user_id).count() == 0
+        assert db.query(PendingIdentityVerification).filter_by(matched_user_id=user_id).count() == 0
+        assert db.query(Transaction).filter_by(import_id=import_id).count() == 0
+        assert db.query(Import).filter_by(household_member_id=member_id).count() == 0
+        assert db.query(Folio).filter_by(household_member_id=member_id).count() == 0
+        assert db.query(PortfolioSnapshot).filter_by(household_member_id=member_id).count() == 0
+        assert db.query(AnalyticsSection).filter_by(user_id=user_id).count() == 0
+        assert db.query(AnalyticsRecomputeStatus).filter_by(user_id=user_id).count() == 0
+        assert db.query(OtpRequest).filter_by(phone_number=phone_number).count() == 0
+        assert db.query(AccountDeletionSurvey).count() == 1
+        assert db.query(Scheme).filter_by(id=scheme_id).count() == 1
+    finally:
+        # Always release the connection: a failed assertion otherwise leaves it
+        # idle-in-transaction holding locks, and the next test's
+        # `alembic downgrade base` blocks on them forever (seen 2026-09-30).
+        db.close()
+        db.get_bind().dispose()
 
 
 def test_delete_household_import_cascades_cleanly_on_postgres(postgres_url, monkeypatch):
@@ -161,6 +173,8 @@ def test_delete_household_import_cascades_cleanly_on_postgres(postgres_url, monk
     it round-trips against a real server too."""
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
+
+    from fastapi import BackgroundTasks
 
     from app.api.imports import delete_household_import
     from app.models.analytics import AnalyticsRecomputeStatus, AnalyticsSection
@@ -217,13 +231,24 @@ def test_delete_household_import_cascades_cleanly_on_postgres(postgres_url, monk
     db.add(AnalyticsRecomputeStatus(user_id=user.id, started_at=now, generation=1))
     db.commit()
 
-    response = delete_household_import(import_id=import_record.id, user=user, db=db)
+    # Same reason as the test above: capture plain values before the delete.
+    user_id, import_id, folio_id = user.id, import_record.id, folio.id
 
-    assert response.deleted_transactions_count == 1
-    assert db.query(Transaction).filter_by(import_id=import_record.id).count() == 0
-    assert db.query(Import).filter_by(id=import_record.id).count() == 0
-    assert db.query(Folio).filter_by(id=folio.id).count() == 0
-    assert db.query(AnalyticsSection).filter_by(user_id=user.id).count() == 0
-    status = db.query(AnalyticsRecomputeStatus).filter_by(user_id=user.id).one()
-    assert status.generation == 2
-    db.close()
+    try:
+        # The route gained a BackgroundTasks param after this test was written
+        # (analytics recompute dispatch); a bare instance never runs its tasks,
+        # which is fine -- this test checks the synchronous deletes only.
+        response = delete_household_import(
+            import_id=import_id, background_tasks=BackgroundTasks(), user=user, db=db
+        )
+
+        assert response.deleted_transactions_count == 1
+        assert db.query(Transaction).filter_by(import_id=import_id).count() == 0
+        assert db.query(Import).filter_by(id=import_id).count() == 0
+        assert db.query(Folio).filter_by(id=folio_id).count() == 0
+        assert db.query(AnalyticsSection).filter_by(user_id=user_id).count() == 0
+        status = db.query(AnalyticsRecomputeStatus).filter_by(user_id=user_id).one()
+        assert status.generation == 2
+    finally:
+        db.close()
+        db.get_bind().dispose()
