@@ -15,7 +15,7 @@ from app.models.reference import Scheme
 from app.models.snapshot import PortfolioSnapshot
 from app.models.transaction import Transaction
 from app.models.user import HouseholdMember, User
-from app.services.dashboard.snapshots import get_snapshots
+from app.services.dashboard.snapshots import get_snapshots, invalidate_member_snapshots
 
 
 def _session():
@@ -147,3 +147,16 @@ def test_get_snapshots_returns_empty_for_member_with_no_transactions():
     member = _household_member(db)
     rows = asyncio.run(get_snapshots(db, [member.id]))
     assert rows == []
+
+
+def test_invalidate_member_snapshots_deletes_only_those_members():
+    db = _session()
+    a, b = _household_member(db), _household_member(db)
+    for m in (a, b):
+        db.add(PortfolioSnapshot(household_member_id=m.id, snapshot_month=date(2024, 1, 31), total_value=Decimal("1"), computed_at=datetime.now(timezone.utc)))
+    db.commit()
+
+    assert invalidate_member_snapshots(db, [a.id]) == 1
+    db.commit()
+    assert [s.household_member_id for s in db.query(PortfolioSnapshot).all()] == [b.id]
+    assert invalidate_member_snapshots(db, []) == 0

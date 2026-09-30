@@ -10,8 +10,12 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session as DbSession
 
-from app.models.enums import Relationship
+from app.models.enums import MemberNameSource, MemberOrigin, Relationship
 from app.models.user import HouseholdMember
+from app.services.dashboard.schemas import HouseholdMemberResponse
+from app.services.import_.crypto import decrypt_pan
+from app.services.import_.name_match import validate_person_name
+from app.services.import_.parser import mask_pan
 
 
 class DuplicateSelfMemberError(Exception):
@@ -28,6 +32,7 @@ def create_household_member(
     relationship: Relationship,
     relationship_other_label: str | None = None,
 ) -> HouseholdMember:
+    name = validate_person_name(name)  # InvalidPersonNameError -> 422 invalid_name
     if relationship == Relationship.SELF:
         existing_self = (
             db.query(HouseholdMember)
@@ -45,6 +50,10 @@ def create_household_member(
         relationship=relationship,
         relationship_other_label=relationship_other_label,
         created_at=datetime.now(timezone.utc),
+        origin=MemberOrigin.ONBOARDING if relationship == Relationship.SELF else MemberOrigin.MANUAL,
+        name_source=MemberNameSource.USER_ENTERED,
+        details_completed_at=datetime.now(timezone.utc),
+        lock_reason=None,
     )
     db.add(member)
     db.commit()
@@ -68,3 +77,17 @@ def get_household_member_for_user(
     member that exists but belongs to a different user, same as one that
     doesn't exist at all, so callers can't distinguish the two."""
     return db.query(HouseholdMember).filter_by(id=member_id, user_id=user_id).first()
+
+
+def member_to_response(m: HouseholdMember) -> HouseholdMemberResponse:
+    encrypted = m.pan_encrypted or m.detected_pan_encrypted
+    return HouseholdMemberResponse(
+        id=str(m.id),
+        name=m.name,
+        relationship=m.relationship,
+        relationship_other_label=m.relationship_other_label,
+        origin=m.origin.value,
+        lock_reason=m.lock_reason.value if m.lock_reason else None,
+        details_required=m.is_locked,
+        pan_masked=mask_pan(decrypt_pan(encrypted)) if encrypted else None,
+    )

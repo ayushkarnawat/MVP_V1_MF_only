@@ -198,3 +198,62 @@ def test_hard_delete_removes_expired_household_and_preserves_anonymous_survey(db
     assert generation_bumped is True
     assert db_session.query(AccountDeletionSurvey).count() == 1
     assert db_session.query(Scheme).count() == 1
+
+
+def test_hard_delete_removes_audit_rows_and_each_file_once(db_session):
+    import uuid
+
+    from app.models.enums import ImportStatus, NameChangeReason, Relationship
+    from app.models.imports import Import
+    from app.models.member_history import HouseholdMemberMerge, HouseholdMemberNameChange
+    from app.models.user import HouseholdMember
+
+    now = datetime(2026, 9, 20, 8, 0, tzinfo=timezone.utc)
+    user = User(phone_number="+919100000077", created_at=now - timedelta(days=30),
+                pending_deletion=True, deletion_scheduled_at=now - timedelta(seconds=1))
+    db_session.add(user)
+    db_session.flush()
+    members = [
+        HouseholdMember(user_id=user.id, name=n, relationship=r, created_at=user.created_at)
+        for n, r in (("Me", Relationship.SELF), ("Sp", Relationship.SPOUSE))
+    ]
+    db_session.add_all(members)
+    db_session.flush()
+    group = uuid.uuid4()
+    imports = [
+        Import(household_member_id=m.id, status=ImportStatus.CONFIRMED, uploaded_at=now,
+               upload_group_id=group, file_reference="u/shared.pdf", file_expires_at=now)
+        for m in members
+    ]
+    imports.append(Import(household_member_id=members[0].id, status=ImportStatus.CONFIRMED, uploaded_at=now,
+                          file_reference="u/solo.pdf", file_expires_at=now))
+    db_session.add_all(imports)
+    db_session.flush()
+    db_session.add_all([
+        HouseholdMemberNameChange(household_member_id=members[1].id, old_name="a", new_name="b",
+                                  reason=NameChangeReason.USER_EDIT, import_id=imports[1].id, changed_at=now),
+        HouseholdMemberMerge(user_id=user.id, kept_member_id=members[0].id, removed_member_id=uuid.uuid4(),
+                             removed_member_name="Gone", folios_moved=1, transactions_dropped=0, merged_at=now),
+    ])
+    db_session.commit()
+
+    deleted_refs: list[str] = []
+
+    class Recorder:
+        def save(self, key, data):  # pragma: no cover
+            return key
+
+        def read(self, reference):  # pragma: no cover
+            return b""
+
+        def delete(self, reference):
+            # Called only after the rows are committed away.
+            assert db_session.query(Import).count() == 0
+            deleted_refs.append(reference)
+
+    assert hard_delete_expired_accounts(db_session, now=now, storage=Recorder()) == 1
+
+    assert sorted(deleted_refs) == ["u/shared.pdf", "u/solo.pdf"]
+    assert db_session.query(HouseholdMemberNameChange).count() == 0
+    assert db_session.query(HouseholdMemberMerge).count() == 0
+    assert db_session.query(HouseholdMember).count() == 0

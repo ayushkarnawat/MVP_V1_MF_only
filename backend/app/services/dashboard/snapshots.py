@@ -130,3 +130,16 @@ async def get_snapshots(db: Session, household_member_ids: list[uuid.UUID]) -> l
                 )
             )
     return rows
+
+
+def invalidate_member_snapshots(db: Session, household_member_ids: list[uuid.UUID]) -> int:
+    """Drops the cached month-end values of these members so the next request
+    recomputes them (data under them changed: a merge, a deletion). Does not
+    commit -- callers persist it atomically with the change that made it stale."""
+    if not household_member_ids:
+        return 0
+    return (
+        db.query(PortfolioSnapshot)
+        .filter(PortfolioSnapshot.household_member_id.in_(household_member_ids))
+        .delete(synchronize_session=False)
+    )

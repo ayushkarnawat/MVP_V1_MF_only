@@ -16,8 +16,15 @@ class HouseholdMemberCreate(BaseModel):
 class HouseholdMemberResponse(BaseModel):
     id: str
     name: str
-    relationship: Relationship
+    # F10: NULL while a CAS-detected member is locked (details not added yet).
+    relationship: Relationship | None
     relationship_other_label: str | None
+    origin: str = "manual"
+    # Set while the member is locked (CAS-detected, details not added yet).
+    lock_reason: str | None = None
+    details_required: bool = False
+    # First two + last two of the claimed PAN, else the detected PAN; never raw.
+    pan_masked: str | None = None
 
 
 class HoldingRow(BaseModel):

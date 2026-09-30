@@ -2,7 +2,7 @@ import uuid
 from datetime import date
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session as DbSession
 
 from app.db.session import get_db
@@ -30,9 +30,22 @@ from app.services.dashboard.xirr import calculate_dashboard_xirr
 from app.services.dashboard.household_members import (
     DuplicateSelfMemberError,
     create_household_member,
-    get_household_member_for_user,
     list_household_members,
+    member_to_response,
 )
+from app.services.dashboard.member_details import (
+    MemberDetailsError,
+    MemberDetailsRequest,
+    complete_member_details,
+    refresh_other_account_locks,
+    require_unlocked_member,
+)
+from app.api.imports import claim_and_dispatch_recompute
+from app.services.import_.deletion import ImportNotFoundError, delete_member_portfolio
+from app.services.import_.schemas import DeleteImportResponse
+from app.services.dashboard.member_merge import merge_member_into
+from app.services.import_.name_match import InvalidPersonNameError
+from app.services.import_.pan_claims import PanConflictError
 
 #validate requests & structure api responses
 from app.services.dashboard.schemas import (
@@ -87,26 +100,77 @@ def create_member(
         )
     except DuplicateSelfMemberError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
-    return HouseholdMemberResponse(
-        id=str(member.id),
-        name=member.name,
-        relationship=member.relationship,
-        relationship_other_label=member.relationship_other_label,
-    )
+    except InvalidPersonNameError as exc:
+        raise HTTPException(status_code=422, detail={"code": exc.code, "message": exc.message}) from exc
+    return member_to_response(member)
 
 #return household members
 @router.get("/household-members", response_model=list[HouseholdMemberResponse])
 def list_members(user: User = Depends(get_active_user), db: DbSession = Depends(get_db)):
-    members = list_household_members(db, user.id)
-    return [
-        HouseholdMemberResponse(
-            id=str(m.id),
-            name=m.name,
-            relationship=m.relationship,
-            relationship_other_label=m.relationship_other_label,
-        )
-        for m in members
-    ]
+    refresh_other_account_locks(db, user.id)
+    return [member_to_response(m) for m in list_household_members(db, user.id)]
+
+
+# Plain `def` (threadpool): this route commits, and a db.commit() inside an
+# async def would freeze the event loop (bb5225f).
+@router.post("/household-members/{member_id}/details", response_model=HouseholdMemberResponse)
+def submit_member_details(
+    member_id: uuid.UUID,
+    body: MemberDetailsRequest,
+    user: User = Depends(get_active_user),
+    db: DbSession = Depends(get_db),
+):
+    try:
+        member = complete_member_details(db, user.id, member_id, body)
+    except MemberDetailsError as exc:
+        detail = {"code": exc.code, "message": exc.message}
+        if exc.details:
+            detail["details"] = exc.details
+        raise HTTPException(status_code=exc.status_code, detail=detail) from exc
+    except PanConflictError as exc:
+        raise HTTPException(status_code=409, detail={"code": exc.code, "message": exc.message}) from exc
+    except InvalidPersonNameError as exc:
+        raise HTTPException(status_code=422, detail={"code": exc.code, "message": exc.message}) from exc
+    return member_to_response(member)
+
+# Plain `def` (threadpool): commits (F31 / bb5225f).
+@router.post("/household-members/{member_id}/merge-into/{target_id}")
+def merge_household_member(
+    member_id: uuid.UUID,
+    target_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
+    user: User = Depends(get_active_user),
+    db: DbSession = Depends(get_db),
+):
+    try:
+        result = merge_member_into(db, user.id, member_id, target_id)
+    except MemberDetailsError as exc:
+        raise HTTPException(
+            status_code=exc.status_code, detail={"code": exc.code, "message": exc.message}
+        ) from exc
+    claim_and_dispatch_recompute(db, user.id, background_tasks)
+    return {"folios_moved": result.folios_moved, "transactions_dropped": result.transactions_dropped}
+
+
+@router.delete("/household-members/{member_id}/portfolio", response_model=DeleteImportResponse)
+def delete_household_member_portfolio(
+    member_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
+    remove_member: bool = False,
+    user: User = Depends(get_active_user),
+    db: DbSession = Depends(get_db),
+):
+    try:
+        result = delete_member_portfolio(db, user.id, member_id, remove_member)
+    except ImportNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Household member not found.") from exc
+    claim_and_dispatch_recompute(db, user.id, background_tasks)
+    return DeleteImportResponse(
+        deleted_transactions_count=result.deleted_transactions_count,
+        removed_member_ids=[str(m) for m in result.removed_member_ids],
+        deleted_file=result.deleted_file,
+    )
+
 
 #individual member dashboard
 @router.get("/household-members/{member_id}/holdings", response_model=MemberHoldingsResponse)
@@ -115,8 +179,7 @@ async def get_member_holdings(
     user: User = Depends(get_active_user),
     db: DbSession = Depends(get_db),
 ):
-    if get_household_member_for_user(db, user.id, member_id) is None:
-        raise HTTPException(status_code=404, detail="Household member not found.")
+    require_unlocked_member(db, user.id, member_id)
     holdings = await compute_holdings(db, [member_id])
     xirr_summary = calculate_dashboard_xirr(db, [member_id], holdings)
     return MemberHoldingsResponse(
@@ -135,8 +198,7 @@ async def get_member_distributor_comparison(
     user: User = Depends(get_active_user),
     db: DbSession = Depends(get_db),
 ):
-    if get_household_member_for_user(db, user.id, member_id) is None:
-        raise HTTPException(status_code=404, detail="Household member not found.")
+    require_unlocked_member(db, user.id, member_id)
     return await compute_distributor_comparison(db, [member_id])
 
 
@@ -146,8 +208,7 @@ async def get_member_allocation(
     user: User = Depends(get_active_user),
     db: DbSession = Depends(get_db),
 ):
-    if get_household_member_for_user(db, user.id, member_id) is None:
-        raise HTTPException(status_code=404, detail="Household member not found.")
+    require_unlocked_member(db, user.id, member_id)
     return await compute_allocation(db, [member_id])
 
 
@@ -157,8 +218,7 @@ def get_member_sips(
     user: User = Depends(get_active_user),
     db: DbSession = Depends(get_db),
 ):
-    if get_household_member_for_user(db, user.id, member_id) is None:
-        raise HTTPException(status_code=404, detail="Household member not found.")
+    require_unlocked_member(db, user.id, member_id)
     return compute_active_sips(db, [member_id])
 
 
@@ -170,8 +230,7 @@ def get_member_sips_monthly(
     user: User = Depends(get_active_user),
     db: DbSession = Depends(get_db),
 ):
-    if get_household_member_for_user(db, user.id, member_id) is None:
-        raise HTTPException(status_code=404, detail="Household member not found.")
+    require_unlocked_member(db, user.id, member_id)
     today = date.today()
     return compute_sips_for_month(db, [member_id], year or today.year, month or today.month)
 
@@ -182,8 +241,7 @@ def get_member_cash_flow(
     user: User = Depends(get_active_user),
     db: DbSession = Depends(get_db),
 ):
-    if get_household_member_for_user(db, user.id, member_id) is None:
-        raise HTTPException(status_code=404, detail="Household member not found.")
+    require_unlocked_member(db, user.id, member_id)
     return compute_cash_flow(db, [member_id])
 
 
@@ -193,8 +251,7 @@ async def get_member_snapshots(
     user: User = Depends(get_active_user),
     db: DbSession = Depends(get_db),
 ):
-    if get_household_member_for_user(db, user.id, member_id) is None:
-        raise HTTPException(status_code=404, detail="Household member not found.")
+    require_unlocked_member(db, user.id, member_id)
     return await get_snapshots(db, [member_id])
 
 #aggregate dashboard

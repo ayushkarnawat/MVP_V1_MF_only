@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
@@ -10,10 +11,14 @@ from app.models.auth import AuthIdentity, OtpRequest, PendingIdentityVerificatio
 from app.models.enums import AuthIdentityProvider
 from app.models.folio import Folio
 from app.models.imports import Import
+from app.models.member_history import HouseholdMemberMerge, HouseholdMemberNameChange
 from app.models.snapshot import PortfolioSnapshot
 from app.models.transaction import Transaction
 from app.models.user import HouseholdMember, User
 from app.services.analytics.recompute import bump_recompute_generation
+from app.services.import_.file_storage import FileStorage, default_file_storage
+
+logger = logging.getLogger(__name__)
 
 DELETION_GRACE_PERIOD = timedelta(days=5)
 
@@ -47,7 +52,9 @@ def reactivate_account(db: Session, user: User) -> None:
     db.commit()
 
 
-def hard_delete_expired_accounts(db: Session, *, now: datetime | None = None) -> int:
+def hard_delete_expired_accounts(
+    db: Session, *, now: datetime | None = None, storage: FileStorage = default_file_storage
+) -> int:
     cutoff = now or datetime.now(timezone.utc)
     expired_users = (
         db.query(User)
@@ -59,12 +66,23 @@ def hard_delete_expired_accounts(db: Session, *, now: datetime | None = None) ->
         .all()
     )
 
+    file_references: set[str] = set()
     for user in expired_users:
         # Make an already-running analytics worker stale in the same
         # transaction that removes the household graph.
         bump_recompute_generation(db, user.id)
         member_ids = [row[0] for row in db.query(HouseholdMember.id).filter_by(user_id=user.id).all()]
         if member_ids:
+            file_references.update(
+                ref
+                for (ref,) in db.query(Import.file_reference)
+                .filter(Import.household_member_id.in_(member_ids), Import.file_reference.isnot(None))
+                .distinct()
+                .all()
+            )
+            db.query(HouseholdMemberNameChange).filter(
+                HouseholdMemberNameChange.household_member_id.in_(member_ids)
+            ).delete(synchronize_session=False)
             import_ids = [row[0] for row in db.query(Import.id).filter(Import.household_member_id.in_(member_ids)).all()]
             if import_ids:
                 db.query(Transaction).filter(Transaction.import_id.in_(import_ids)).delete(synchronize_session=False)
@@ -77,6 +95,7 @@ def hard_delete_expired_accounts(db: Session, *, now: datetime | None = None) ->
             )
             db.query(Folio).filter(Folio.household_member_id.in_(member_ids)).delete(synchronize_session=False)
 
+        db.query(HouseholdMemberMerge).filter_by(user_id=user.id).delete(synchronize_session=False)
         db.query(AnalyticsSection).filter_by(user_id=user.id).delete(synchronize_session=False)
         db.query(AnalyticsRecomputeStatus).filter_by(user_id=user.id).delete(synchronize_session=False)
         db.query(PendingIdentityVerification).filter_by(matched_user_id=user.id).delete(synchronize_session=False)
@@ -105,4 +124,13 @@ def hard_delete_expired_accounts(db: Session, *, now: datetime | None = None) ->
         db.delete(user)
 
     db.commit()
+    # After commit (F15): a failed commit must not leave rows pointing at
+    # deleted objects. One delete per distinct file -- a family CAS is shared
+    # by several Import rows. A failure is logged, not raised: the account is
+    # already gone and the bucket's 30-day lifecycle rule reaps the object.
+    for reference in sorted(file_references):
+        try:
+            storage.delete(reference)
+        except Exception:
+            logger.exception("Could not delete stored CAS file %s during account deletion", reference)
     return len(expired_users)
