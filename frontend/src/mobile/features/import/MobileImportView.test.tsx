@@ -33,10 +33,10 @@ const RESULT: ImportConfirmResponse = {
   people: [{ person_key: "me", member_id: "m-1", name: "Ayush", import_id: "imp-final-1", added: 8, skipped: 0 }],
 };
 
-/** Opens the only ribbon and confirms it (nothing unresolved). */
+/** Checks the only ribbon (nothing unresolved) is already confirmed. */
 function reviewRibbon(name: string) {
-  fireEvent.click(screen.getByRole("button", { name: new RegExp(`Click to review ${name}’s holdings`) }));
-  fireEvent.click(screen.getByRole("button", { name: /^confirm$/i }));
+  // Staging-QA 3b: a ribbon with nothing to resolve confirms itself; no click needed.
+  expect(screen.getByRole("button", { name: new RegExp(`^${name}.*Confirmed`) })).toBeInTheDocument();
 }
 
 async function uploadFile() {
@@ -183,8 +183,8 @@ describe("MobileImportView", () => {
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
 
     await screen.findByText("Review your import");
-    expect(screen.getByRole("button", { name: /Click to review Aditi Sharma \(Me\)|Click to review Aditi Sharma’s holdings/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Click to review Ramesh Sharma’s holdings/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Aditi Sharma \(Me\)/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Ramesh Sharma/ })).toBeInTheDocument();
   });
 
   it("completes review and confirmation, clears resume state, and displays success screen with navigation CTA", async () => {
@@ -304,7 +304,7 @@ describe("MobileImportView", () => {
     await waitFor(() => {
       expect(importApi.getMemberImportHistory).toHaveBeenCalledWith("m-1");
       expect(screen.getByText("Past Statement Imports")).toBeInTheDocument();
-      expect(screen.getByText(/2015-01-01 → 2025-01-01/i)).toBeInTheDocument();
+      expect(screen.getByText(/1 Jan 2015 – 1 Jan 2025/i)).toBeInTheDocument();
       expect(screen.getByText("+42")).toBeInTheDocument();
     });
   });

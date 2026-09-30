@@ -151,4 +151,14 @@ describe("ReviewTable", () => {
     expect(screen.getByText("(PAN not on statement)")).toBeInTheDocument();
     expect(screen.queryByText("Not found in CAS")).not.toBeInTheDocument();
   });
+
+  it("embedded mode caps the grid at 3 columns and drops the page padding", () => {
+    const { container } = render(
+      <ReviewTable preview={buildPreview()} schemes={[scheme("a")]} confirming={false} onConfirm={vi.fn()} hideConfirm hideHeader embedded />,
+    );
+    const grid = container.querySelector(".grid.grid-cols-1");
+    expect(grid?.className).toContain("lg:grid-cols-3");
+    expect(grid?.className).not.toContain("xl:grid-cols-4");
+    expect((container.firstChild as HTMLElement).className).not.toContain("lg:px-8");
+  });
 });

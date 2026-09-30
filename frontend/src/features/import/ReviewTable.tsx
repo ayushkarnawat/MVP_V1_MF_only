@@ -55,6 +55,8 @@ interface ReviewTableProps {
   /** People a matched-by-name fund can move to. */
   moveTargets?: PersonPreview[];
   onMove?: (tempId: string, personKey: string) => void;
+  /** Inside a member ribbon: the window-width breakpoints are wrong there, so cap columns and drop page padding. */
+  embedded?: boolean;
 }
 
 interface OverrideState {
@@ -86,6 +88,7 @@ export function ReviewTable({
   assignedByYou = [],
   moveTargets = [],
   onMove,
+  embedded = false,
 }: ReviewTableProps) {
   const allSchemes = schemesProp ?? preview.schemes;
   const [overrides, setOverrides] = useState<Record<string, OverrideState>>({});
@@ -214,7 +217,8 @@ export function ReviewTable({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
       className={cn(
-        "w-full min-w-0 mx-auto space-y-3 sm:space-y-6 text-left box-border relative pb-28 sm:pb-24 px-1.5 sm:px-6 lg:px-8 transition-all duration-300",
+        "w-full min-w-0 mx-auto space-y-3 sm:space-y-6 text-left box-border relative transition-all duration-300",
+        embedded ? "px-0 pb-4" : "px-1.5 sm:px-6 lg:px-8 pb-28 sm:pb-24",
         effectiveLayoutMode === "grid" ? "max-w-[1600px]" : "max-w-5xl"
       )}
     >
@@ -401,7 +405,12 @@ export function ReviewTable({
         </div>
       ) : layoutMode === "grid" ? (
         /* GRID VIEW (3-4 Columns) */
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5 lg:gap-6">
+        <div
+          className={cn(
+            "grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-5",
+            embedded ? "lg:grid-cols-3" : "md:grid-cols-3 xl:grid-cols-4 lg:gap-6",
+          )}
+        >
           {filteredSchemes.map((scheme) => {
             const override = overrides[scheme.temp_id] ?? { amfiCode: "", planType: "" };
             const needsAmfi = needsAmfiOverride(scheme.match_status);
@@ -420,8 +429,11 @@ export function ReviewTable({
               >
                 <div className="space-y-2 sm:space-y-3">
                   {/* Top Bar: Folio Badge + Status Pill */}
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[9px] sm:text-[10px] font-semibold uppercase px-2 py-0.5 sm:px-2.5 rounded-md sm:rounded-lg bg-[var(--color-bg)] text-[var(--color-text-secondary)] border border-[var(--color-border)]">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span
+                      title={`Folio: ${scheme.folio}`}
+                      className="whitespace-nowrap min-w-0 max-w-full truncate text-[9px] sm:text-[10px] font-semibold uppercase px-2 py-0.5 sm:px-2.5 rounded-md sm:rounded-lg bg-[var(--color-bg)] text-[var(--color-text-secondary)] border border-[var(--color-border)]"
+                    >
                       Folio: {scheme.folio}
                     </span>
 
@@ -508,7 +520,7 @@ export function ReviewTable({
                           id={`amfi-input-${scheme.temp_id}`}
                           aria-label="AMFI Code"
                           type="text"
-                          placeholder="Enter 6-digit AMFI code"
+                          placeholder="6-digit AMFI code"
                           value={override.amfiCode}
                           onChange={(event) =>
                             updateOverride(scheme.temp_id, { amfiCode: event.target.value })
@@ -650,7 +662,7 @@ export function ReviewTable({
                           id={`amfi-input-list-${scheme.temp_id}`}
                           aria-label="AMFI Code"
                           type="text"
-                          placeholder="Enter 6-digit AMFI code"
+                          placeholder="6-digit AMFI code"
                           value={override.amfiCode}
                           onChange={(event) =>
                             updateOverride(scheme.temp_id, { amfiCode: event.target.value })

@@ -94,7 +94,13 @@ export function MemberRibbonReview({
     });
   };
 
-  const allReviewed = shown.length > 0 && shown.every((p) => reviewed.has(p.person_key));
+  const countFor = (key: string) =>
+    unresolved[key] ?? (schemesByPerson[key] ?? []).filter(startsUnresolved).length;
+  // Decided 30 Sep (staging QA 3b): nothing to resolve = confirmed, even with
+  // funds matched by name. The header keeps the name-match count visible,
+  // since nobody has to open this ribbon any more.
+  const isConfirmed = (key: string) => reviewed.has(key) || countFor(key) === 0;
+  const allReviewed = shown.length > 0 && shown.every((p) => isConfirmed(p.person_key));
 
   const handleConfirmImports = () => {
     const body: PersonConfirmation[] = shown.map((p) => {
@@ -126,7 +132,7 @@ export function MemberRibbonReview({
   };
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-4 px-1.5 text-left sm:px-6">
+    <div className="mx-auto w-full max-w-6xl space-y-4 px-1.5 text-left sm:px-6">
       <h1 className="font-display text-lg font-bold tracking-tight text-[var(--color-ink)] sm:text-3xl">
         Review your import
       </h1>
@@ -138,8 +144,8 @@ export function MemberRibbonReview({
           const name = edits.names[key]?.trim() || p.name;
           const label = p.is_me ? `${name} (Me)` : name;
           const isOpen = openKey === key;
-          const isReviewed = reviewed.has(key);
-          const count = unresolved[key] ?? schemes.filter(startsUnresolved).length;
+          const count = countFor(key);
+          const isReviewed = isConfirmed(key);
           const matched = p.matched_by_name_temp_ids.filter(
             (t) => schemes.some((s) => s.temp_id === t) && !(t in moved),
           );
@@ -160,11 +166,16 @@ export function MemberRibbonReview({
                 {isReviewed && <CheckCircle2 aria-hidden="true" className="h-4 w-4 shrink-0 text-[var(--color-positive)]" />}
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-semibold text-[var(--color-ink)]">
-                    {isReviewed ? `✓ ${label}` : label}
+                    {label}
+                    {isReviewed && (
+                      <span className="ml-2 inline-flex rounded-full bg-[color-mix(in_srgb,var(--color-positive)_12%,transparent)] px-2 py-0.5 text-[10px] font-bold uppercase text-[var(--color-positive)]">
+                        Confirmed
+                      </span>
+                    )}
                   </span>
                   <span className="block text-xs text-[var(--color-text-secondary)]">
                     {isReviewed
-                      ? `Reviewed · ${fundCount(schemes.length)}${matched.length > 0 ? ` · ${matched.length} matched by name` : ""}`
+                      ? `Confirmed · ${fundCount(schemes.length)}${matched.length > 0 ? ` · ${matched.length} matched by name` : ""}`
                       : `Click to review ${name}’s holdings (${count} unresolved holdings)`}
                   </span>
                 </span>
@@ -182,6 +193,7 @@ export function MemberRibbonReview({
                   onConfirm={() => undefined}
                   hideConfirm
                   hideHeader
+                  embedded
                   investorName={name}
                   panMasked={p.pan_masked}
                   matchedByName={matched}
@@ -194,14 +206,14 @@ export function MemberRibbonReview({
                 <div className="flex justify-end">
                   <Button
                     type="button"
-                    disabled={count > 0}
+                    disabled={isReviewed || count > 0}
                     onClick={() => {
                       setReviewed((r) => new Set(r).add(key));
                       setOpenKey(null);
                     }}
                     className="rounded-xl bg-[var(--color-accent)] px-5 text-white"
                   >
-                    Confirm
+                    {isReviewed ? "Confirmed" : "Confirm"}
                   </Button>
                 </div>
               </div>

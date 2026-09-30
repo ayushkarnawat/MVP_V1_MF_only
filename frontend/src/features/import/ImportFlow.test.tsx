@@ -36,10 +36,10 @@ const RESULT: ImportConfirmResponse = {
   people: [{ person_key: "me", member_id: "m1", name: "Aditi Sharma", import_id: "imp1", added: 3, skipped: 1 }],
 };
 
-/** Opens a ribbon, confirms it (when nothing is unresolved) and returns. */
+/** Checks a ribbon with nothing unresolved is already confirmed. */
 function reviewRibbon(name: string) {
-  fireEvent.click(screen.getByRole("button", { name: new RegExp(`Click to review ${name}’s holdings`) }));
-  fireEvent.click(screen.getByRole("button", { name: /^confirm$/i }));
+  // Staging-QA 3b: a ribbon with nothing to resolve confirms itself; no click needed.
+  expect(screen.getByRole("button", { name: new RegExp(`^${name}.*Confirmed`) })).toBeInTheDocument();
 }
 
 async function reachSingleReview() {
@@ -57,7 +57,7 @@ describe("ImportFlow", () => {
   it("goes from upload straight to one ribbon when the file has only Me (I1), with no popup", async () => {
     await reachSingleReview();
     expect(screen.queryByText(/we found/i)).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Click to review Aditi Sharma’s holdings \(0 unresolved holdings\)/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Aditi Sharma \(Me\).*Confirmed · / })).toBeInTheDocument();
   });
 
   it("moves to the error screen on a ParseError", async () => {
@@ -116,7 +116,6 @@ describe("ImportFlow", () => {
     await waitFor(() => screen.getByText("Review your import"));
     const confirmImports = screen.getByRole("button", { name: "Confirm imports" });
     reviewRibbon("Aditi Sharma");
-    expect(confirmImports).toBeDisabled();
     reviewRibbon("Ramesh Sharma");
     expect(confirmImports).toBeEnabled();
     fireEvent.click(confirmImports);
@@ -305,8 +304,8 @@ describe("ImportFlow", () => {
 
     // Already chosen at U7, so the review has both ribbons rather than none.
     await waitFor(() => screen.getByText("Review your import"));
-    expect(screen.getByRole("button", { name: /Click to review Kiran Sharma/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Click to review Meera Sharma/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Kiran Sharma/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Meera Sharma/ })).toBeInTheDocument();
   });
 
   it.each(["pan_belongs_to_other_member", "pan_mismatch_for_member"])(

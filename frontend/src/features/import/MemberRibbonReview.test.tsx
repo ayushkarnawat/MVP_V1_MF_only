@@ -9,6 +9,10 @@ const collapsed = (el: HTMLElement) => el.closest("[hidden]") !== null;
 const ribbon = (name: string, n: number) =>
   screen.getByRole("button", { name: new RegExp(`Click to review ${name}’s holdings \\(${n} unresolved holdings\\)`) });
 
+// Header of any ribbon, whatever its state: its accessible name starts with the person's label.
+const header = (name: string) =>
+  screen.getByRole("button", { name: new RegExp(`^${name.replace(/[()]/g, "\\$&")}`) });
+
 async function pickDirect(index: number) {
   const combos = screen.getAllByRole("combobox", { name: /plan type/i });
   fireEvent.keyDown(combos[index], { key: "ArrowDown" });
@@ -33,13 +37,36 @@ function renderRibbons(props: Partial<React.ComponentProps<typeof MemberRibbonRe
 }
 
 describe("MemberRibbonReview", () => {
-  it("starts collapsed with the ribbon copy and Confirm imports disabled", () => {
+  it("auto-confirms a member with nothing to resolve; others still need review", () => {
     renderRibbons();
     expect(screen.getByText("Review your import")).toBeInTheDocument();
-    expect(ribbon("Aditi Sharma", 0)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Aditi Sharma \(Me\).*Confirmed · 1 fund/ })).toBeInTheDocument();
     expect(ribbon("Ramesh Sharma", 2)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Confirm imports" })).toBeDisabled();
     expect(screen.queryByRole("button", { name: /^confirm$/i })).not.toBeInTheDocument();
+  });
+
+  it("a member whose only issue was resolved confirms itself, including a matched-by-name fund", async () => {
+    renderRibbons();
+    fireEvent.click(ribbon("Ramesh Sharma", 2));
+    await pickDirect(0);
+    await pickDirect(1);
+    expect(await screen.findByRole("button", { name: /Ramesh Sharma.*Confirmed · 2 funds · 1 matched by name/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirm imports" })).toBeEnabled();
+  });
+
+  it("Confirm imports sends every member's confirmations without opening clean ribbons", () => {
+    const p = familyPreview({
+      schemes: [scheme("m1", { person_key: "me" }), scheme("r1", { person_key: "ramesh" })],
+      people: [
+        person("me", "Aditi Sharma", { is_me: true, status: "me" }),
+        person("ramesh", "Ramesh Sharma", { unresolved_count: 0 }),
+      ],
+    });
+    const { onConfirmImports } = renderRibbons({ preview: p, people: p.people });
+    fireEvent.click(screen.getByRole("button", { name: "Confirm imports" }));
+    expect(onConfirmImports).toHaveBeenCalledTimes(1);
+    expect(onConfirmImports.mock.calls[0][0].map((x: { person_key: string }) => x.person_key)).toEqual(["me", "ramesh"]);
   });
 
   it("the unresolved count updates live as holdings are resolved", async () => {
@@ -52,8 +79,8 @@ describe("MemberRibbonReview", () => {
 
   it("opens one ribbon at a time", () => {
     renderRibbons();
-    fireEvent.click(ribbon("Aditi Sharma", 0));
-    expect(screen.getByRole("button", { name: /^confirm$/i })).toBeInTheDocument();
+    fireEvent.click(header("Aditi Sharma (Me)"));
+    expect(screen.getByRole("button", { name: /^confirmed$/i })).toBeDisabled();
     fireEvent.click(ribbon("Ramesh Sharma", 2));
     expect(screen.getAllByRole("button", { name: /^confirm$/i })).toHaveLength(1);
     expect(collapsed(screen.getByText("Fund m1"))).toBe(true);
@@ -66,20 +93,17 @@ describe("MemberRibbonReview", () => {
     expect(screen.getByRole("button", { name: /^confirm$/i })).toBeDisabled();
   });
 
-  it("enables Confirm imports only when every ribbon is reviewed, then sends one request", async () => {
+  it("enables Confirm imports once every ribbon is confirmed, then sends one request", async () => {
     const { onConfirmImports } = renderRibbons();
     const confirmImports = screen.getByRole("button", { name: "Confirm imports" });
 
-    fireEvent.click(ribbon("Aditi Sharma", 0));
-    fireEvent.click(screen.getByRole("button", { name: /^confirm$/i }));
-    expect(screen.getByText("Reviewed · 1 fund")).toBeInTheDocument();
+    expect(screen.getByText("Confirmed · 1 fund")).toBeInTheDocument();
     expect(confirmImports).toBeDisabled();
 
     fireEvent.click(ribbon("Ramesh Sharma", 2));
     await pickDirect(0);
     await pickDirect(1);
-    fireEvent.click(screen.getByRole("button", { name: /^confirm$/i }));
-    expect(screen.getByText("Reviewed · 2 funds · 1 matched by name")).toBeInTheDocument();
+    expect(screen.getByText("Confirmed · 2 funds · 1 matched by name")).toBeInTheDocument();
     expect(confirmImports).toBeEnabled();
 
     fireEvent.click(confirmImports);
@@ -109,11 +133,9 @@ describe("MemberRibbonReview", () => {
     expect(screen.getAllByRole("combobox", { name: /plan type/i })[0]).toHaveTextContent(/direct/i);
   });
 
-  it("a reviewed ribbon can be reopened to change it", () => {
+  it("a confirmed ribbon can still be opened to look through it", () => {
     renderRibbons();
-    fireEvent.click(ribbon("Aditi Sharma", 0));
-    fireEvent.click(screen.getByRole("button", { name: /^confirm$/i }));
-    fireEvent.click(screen.getByRole("button", { name: /Aditi Sharma \(Me\)/ }));
+    fireEvent.click(header("Aditi Sharma (Me)"));
     expect(collapsed(screen.getByText("Fund m1"))).toBe(false);
   });
 
@@ -133,8 +155,6 @@ describe("MemberRibbonReview", () => {
       />,
     );
     expect(screen.queryByText(/Kiran/)).not.toBeInTheDocument();
-    fireEvent.click(ribbon("Aditi Sharma", 0));
-    fireEvent.click(screen.getByRole("button", { name: /^confirm$/i }));
     fireEvent.click(screen.getByRole("button", { name: "Confirm imports" }));
     expect(onConfirmImports.mock.calls[0][0]).toEqual([
       { person_key: "me", scheme_confirmations: [] },
@@ -157,10 +177,7 @@ describe("MemberRibbonReview", () => {
         onCancel={vi.fn()} confirming={false}
       />,
     );
-    for (const name of ["Aditi Sharma", "Kiran Sharma"]) {
-      fireEvent.click(ribbon(name, 0));
-      fireEvent.click(screen.getByRole("button", { name: /^confirm$/i }));
-    }
+    expect(header("Kiran Sharma")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Confirm imports" }));
     expect(onConfirmImports.mock.calls[0][0][1]).toEqual({
       person_key: "kiran", include: true, scheme_confirmations: [],
@@ -204,14 +221,10 @@ describe("MemberRibbonReview", () => {
         edits={{ names: {}, includes: {}, owners: { u1: "ramesh" } }}
       />,
     );
-    fireEvent.click(ribbon("Ramesh Sharma", 0));
+    fireEvent.click(header("Ramesh Sharma"));
     expect(screen.getByText("UTI Nifty 50 Index")).toBeInTheDocument();
     expect(screen.getByText("assigned by you")).toBeInTheDocument();
     fireEvent.change(screen.getByRole("combobox", { name: /move fund r2 to/i }), { target: { value: "me" } });
-    for (const name of ["Aditi Sharma", "Ramesh Sharma"]) {
-      fireEvent.click(screen.getByRole("button", { name: new RegExp(`Click to review ${name}’s holdings`) }));
-      fireEvent.click(screen.getByRole("button", { name: /^confirm$/i }));
-    }
     fireEvent.click(screen.getByRole("button", { name: "Confirm imports" }));
     expect(onConfirmImports.mock.calls[0][1]).toEqual({ u1: "ramesh", r2: "me" });
   });
@@ -233,10 +246,6 @@ describe("MemberRibbonReview", () => {
         onCancel={vi.fn()} confirming={false}
       />,
     );
-    for (const name of ["Aditi Sharma", "Ramesh Sharma"]) {
-      fireEvent.click(screen.getByRole("button", { name: new RegExp(`Click to review ${name}’s holdings`) }));
-      fireEvent.click(screen.getByRole("button", { name: /^confirm$/i }));
-    }
     fireEvent.click(screen.getByRole("button", { name: "Confirm imports" }));
     // The default owner (Me) is sent, so the server never has to guess its own default.
     expect(onConfirmImports.mock.calls[0][1]).toEqual({ u1: "me" });
@@ -256,10 +265,6 @@ describe("MemberRibbonReview", () => {
         nameAnswers={{ me: true }}
       />,
     );
-    for (const name of ["Aditi Sharma", "Ramesh K Sharma"]) {
-      fireEvent.click(ribbon(name, 0));
-      fireEvent.click(screen.getByRole("button", { name: /^confirm$/i }));
-    }
     fireEvent.click(screen.getByRole("button", { name: "Confirm imports" }));
     expect(onConfirmImports.mock.calls[0][0]).toEqual([
       { person_key: "me", accept_name_update: true, scheme_confirmations: [] },
