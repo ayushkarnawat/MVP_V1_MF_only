@@ -43,31 +43,87 @@ git pull
 git status --short          # expected: empty
 git log --oneline -1 -- backend/alembic/versions/0018_cas_member_detection.py
 grep -c "Backfill" backend/alembic/versions/0018_cas_member_detection.py   # expected: 1 or more
+grep -c -e "background_tasks=BackgroundTasks()" -e "user_id, member_id, import_id" \
+  backend/tests/functional_postgres/test_cascade_deletes.py                  # expected: 2
 ```
-**Expected:** `git log` prints the commit that added 0018, and `grep` finds the
-**backfill**. If `grep` prints `0`, the 2026-09-30 backfill fix wasn't committed:
-**stop**. Without it, `alembic upgrade` fails on staging (see Step 4).
+**Expected:** `git log` prints the commit that added 0018, and the first `grep` finds the
+**backfill**. If it prints `0`, the 2026-09-30 backfill fix wasn't committed: **stop**.
+Without it, `alembic upgrade` fails on staging (see Step 4).
 
-### 0b. Run the Postgres-only tests once (they have never run anywhere)
+The second `grep` checks for the Postgres test fix (commit `d2e9bc4`, see 0b). If it prints
+`0`, this checkout is older than that commit: re-run `git pull`. Don't hand-edit the file,
+because this step needs `git status` to stay empty.
+
+### 0b. Run the Postgres-only tests once (they had never run anywhere before 2026-09-30)
 
 The implementation was built on a machine without Docker, so the tests for 0018's
-Postgres behaviour have never actually run: enum types, the never-relock trigger, and the
+Postgres behaviour had never actually run: enum types, the never-relock trigger, and the
 backfill against existing rows. This laptop has Docker, so it's a two-minute check that
 catches a bad migration before it reaches staging's RDS.
 
 ```bash
+docker compose down                  # fresh database: the container has no data volume
 docker compose up -d postgres        # local test Postgres on localhost:5433
+docker compose ps                    # wait until the postgres line says "healthy" (~10 s)
 cd backend
 python3 -m venv .venv 2>/dev/null; .venv/bin/pip install -q -r requirements.txt
 TEST_DATABASE_URL=postgresql+psycopg2://unifolio:unifolio@localhost:5433/unifolio_test \
-  .venv/bin/python -m pytest -q -m postgres tests/functional_postgres
+  timeout 600 .venv/bin/python -m pytest -v --tb=short -m postgres tests/functional_postgres
 cd ..
 docker compose stop postgres
 ```
-**Expected:** all selected tests pass, including
-`test_0018_backfills_preexisting_members_on_postgres` and
-`test_0018_round_trip_and_never_relock_trigger_on_postgres`. **Any failure: stop and
-send me the output.** Don't run the migration on staging.
+**Expected:** 9 tests, each printed with `PASSED`, ending in `9 passed in Ns` (N is roughly
+30–90). Verified on 2026-09-30 against a real Postgres 16.9 (runs of 33 s and 52 s).
+- `test_member_detection_postgres.py`: **the two that matter for this release** are
+  `test_0018_round_trip_and_never_relock_trigger_on_postgres` and
+  `test_0018_backfills_preexisting_members_on_postgres`
+- `test_partitioning.py`: 5 tests
+- `test_cascade_deletes.py`: 2 tests
+
+**Expected output** (a real run, paths adjusted to this laptop):
+```
+============================= test session starts ==============================
+platform linux -- Python 3.14.x, pytest-9.0.x, pluggy-1.6.0 -- /mnt/d/Unifolio code/backend/.venv/bin/python
+rootdir: /mnt/d/Unifolio code/backend
+configfile: pytest.ini
+plugins: anyio-4.x.x
+collecting ... collected 9 items
+
+tests/functional_postgres/test_cascade_deletes.py::test_hard_delete_expired_accounts_cascades_cleanly_on_postgres PASSED [ 11%]
+tests/functional_postgres/test_cascade_deletes.py::test_delete_household_import_cascades_cleanly_on_postgres PASSED [ 22%]
+tests/functional_postgres/test_member_detection_postgres.py::test_0018_round_trip_and_never_relock_trigger_on_postgres PASSED [ 33%]
+tests/functional_postgres/test_member_detection_postgres.py::test_0018_backfills_preexisting_members_on_postgres PASSED [ 44%]
+tests/functional_postgres/test_partitioning.py::test_transactions_and_nav_history_are_partitioned PASSED [ 55%]
+tests/functional_postgres/test_partitioning.py::test_transaction_orm_insert_round_trips_on_partitioned_table PASSED [ 66%]
+tests/functional_postgres/test_partitioning.py::test_enum_drift_values_are_writable_after_migration PASSED [ 77%]
+tests/functional_postgres/test_partitioning.py::test_upsert_nav_history_is_conflict_safe_on_postgres PASSED [ 88%]
+tests/functional_postgres/test_partitioning.py::test_household_members_one_self_row_per_user_on_postgres PASSED [100%]
+
+============================== 9 passed in 52.45s ==============================
+```
+The header lines (Python/pytest/plugin versions, paths) and the timing can differ. What
+must match: `collected 9 items`, all 9 test names, every one `PASSED`, and the final
+`9 passed` line. A warnings summary between the test lines and the final line is fine.
+
+**Any failure: stop and send me the full output.** Don't run the migration on staging.
+
+**If the output is different:**
+- **`9 skipped`:** the tests didn't run, so this isn't a pass. `TEST_DATABASE_URL=...` has
+  to be on the same command line as `pytest`, exactly as written above.
+- **`connection refused` / `could not connect`:** Postgres isn't healthy yet. Re-check
+  `docker compose ps` and re-run.
+- **One `F` in `test_cascade_deletes.py` with `ObjectDeletedError`, then no progress for
+  minutes:** this checkout is older than commit `d2e9bc4`. The first run on 2026-09-30 hit
+  exactly this: two stale tests (never run before) failed, and the failed test left a
+  database connection open holding locks, so the next test's `alembic downgrade base`
+  waited on it forever. Press Ctrl+C, run `git pull`, redo the 0a `grep` check, and repeat
+  0b from `docker compose down`.
+- **Stuck with no progress for more than 2 minutes on the current code:** don't wait for
+  the 10-minute timeout. In a second terminal, run this and send me the output:
+  ```bash
+  docker compose exec postgres psql -U unifolio -d unifolio_test -c \
+    "select pid, state, wait_event_type, left(query, 100) from pg_stat_activity where datname = 'unifolio_test';"
+  ```
 
 ### 0c. Optional: full suites
 
