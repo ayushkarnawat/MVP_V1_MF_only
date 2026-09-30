@@ -113,3 +113,8 @@ ADR-006's job above ships); and the SIP Upcoming/This Month tab switcher's incom
 ARIA `aria-controls` IDREF pairing (inactive tab points at a not-yet-rendered
 `tabpanel` id) — a Low finding accepted per the model-orchestration skill's stopping
 heuristic rather than restructuring to always-mounted dual panels.
+
+
+## Added 2026-09-30 (staging QA fixes)
+
+- **Migration 0021 — drop `users.primary_goal`.** Ship one release after 0019 is live on every ECS task. First re-backfill `primary_goals` from `primary_goal` where `primary_goals IS NULL` (old tasks write only the old column during the rollout), then drop the column and `DROP TYPE IF EXISTS primarygoal` on Postgres, and remove the dual write in `auth.py update_me`. Downgrade keeps one goal per user.

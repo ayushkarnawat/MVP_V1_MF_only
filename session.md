@@ -1,4 +1,4 @@
-# Session state — 2026-09-29
+# Session state — 2026-09-30
 
 Working notes for picking this project back up cold. Not a planning doc — see
 `Docs/superpowers/plans/` for those. This file tracks *where things stand*,
@@ -12,23 +12,44 @@ detail lives in `log.md`.
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
 
-## Latest (2026-09-29): CAS member detection — built, UNCOMMITTED, awaiting user review
+## Latest (2026-09-30): staging QA fixes — built, UNCOMMITTED, awaiting user review
 
-Branch `feat/enhanced-ui`, working tree only. One CAS upload detects every person in the
-file; the user sees a "We found N people" popup, reviews one ribbon per person, and
-presses one Confirm imports; detected members stay locked on the dashboard until the user
-gives relationship and PAN (unlock). Family setup left onboarding.
+Branch `feat/enhanced-ui`, working tree only (the user commits manually). Fixes the six
+issues from the user's staging test of the auth redesign and CAS member detection.
+Findings + decisions: `Docs/orchestration/2026-09-30-staging-qa-findings-map.html`
+(published as an artifact). Plan: `Docs/superpowers/plans/2026-09-30-staging-qa-fixes.md`.
+Decisions: `decisions.md` 2026-09-30. Code: `backend.md` / `database.md` 2026-09-30.
 
-- Spec: `Docs/orchestration/cas-member-detection-map.html` (decisions I1-I16). Plan:
-  `Docs/superpowers/plans/2026-09-29-cas-member-detection.md`. Ledger, preflight findings
-  and per-task reports: `.superpowers/sdd/2026-09-29-cas-member-detection/`.
-- Tasks 1-20 done (Task 19, mobile twins, was in review when Task 20 ran). Migration
-  `0018`; endpoints and modules in `backend.md`; decisions and spec deviations in
-  `decisions.md`; PRD amendments applied (Updated-CAS-PRD, PRD-01, PRD-02, App-Flow v1.3,
-  Database-Schema v1.6); new deferrals in `DEFERRED_FEATURES.md`.
-- Per-task reviews were clean; the final whole-change opus review is the last gate.
+1. Sign-up with a registered phone → 409 before any code; Log In with an unknown
+   phone/email → 404 before any code (closes item 9 below).
+2. Onboarding goal is multi-select → `users.primary_goals` (migration 0019, expand phase;
+   0021 contract step is in `DEFERRED_FEATURES.md`).
+3. Ribbon grid capped at 3 columns inside ribbons; 0-unresolved ribbons confirm themselves.
+4. Wrong PAN at unlock → popup (statement's PAN / upload a different statement).
+5. Duplicate Kavita → name-only people attach by exact name; PAN person vs name-only member
+   is asked; the PAN-bearing duplicate can now be merged.
+6. Statement period now written at Confirm; migration 0020 backfills old imports.
 
-Open items for this change are listed under "Still open" below.
+**Staging retest (walk the user's six reports):**
+1. Sign up with a registered number: "already exists" + Log in instead, no code sent. Log
+   in with an unknown number: "No account found" + Sign up instead.
+2. Q3 accepts several goals; Continue saves them.
+3. A clean member's ribbon shows Confirmed without being opened; the grid shows 3 unclipped
+   cards.
+4. A wrong PAN at unlock opens the popup; both options work.
+5. Replaying the 4-upload Kavita sequence leaves one Kavita; existing staging duplicates can
+   be merged from the unlock popup.
+6. Import history shows statement periods, including old imports after 0020.
+
+**Open for this change:**
+- Migrations 0019/0020 never run on Postgres (no TEST_DATABASE_URL); run
+  `tests/functional_postgres` once before deploying.
+- No browser visual QA of the ribbon grid at desktop or phone width.
+- `Docs/orchestration/qa-fixtures/` and `.superpowers/sdd/` were deleted mid-session by
+  something outside the session. The fixture tests now skip unless `UNIFOLIO_QA_FIXTURES`
+  points at the synthetic PDFs.
+- The session's diff snapshots put every untracked file (including the real statement
+  `CAS 10 Yr.pdf`) into `.git` as unreferenced objects; `git gc --prune=now` removes them.
 
 ## Still open, carried forward from earlier phases, not yet revisited
 
@@ -163,7 +184,7 @@ short pointer only, per its own header note; this is the detail it points to.)*
    deferred to the infra-authoring phase. An AWS account, ECR repo, and ECS cluster now
    all exist in staging (since 2026-09-08/09) so this is no longer blocked on
    infrastructure existing — it's just not been picked up yet.
-9. **Phone-login OTP verify silently creates a new account for an unrecognized phone
+9. **RESOLVED 2026-09-30 (staging QA fix 1): unknown numbers/emails are now rejected at request time on Log In, and registered numbers on Sign Up.** Original note: **Phone-login OTP verify silently creates a new account for an unrecognized phone
    number, instead of erroring like the email channel does.** Found by the user
    2026-09-11 manually smoke-testing staging: logging in with a phone number that has no
    matching account still goes through the OTP-send/verify flow and ends by creating a

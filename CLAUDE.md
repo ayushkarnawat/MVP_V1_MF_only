@@ -68,7 +68,7 @@ trimmed), `backend.md`/`database.md` (backend/schema changes only), `decisions.m
 `Docs/orchestration/delegation-log.md`. Deferred/not-yet-built features:
 `DEFERRED_FEATURES.md`.)*
 
-**Latest (2026-09-29):** CAS member detection built, uncommitted, awaiting review — see `session.md`'s "Latest".
+**Latest (2026-09-30):** staging QA fixes (auth sign-up/login checks, multi-select goal, ribbon auto-confirm, L3 popup, duplicate-member fixes, statement period) built, uncommitted, awaiting review — see `session.md`'s "Latest". CAS member detection (2026-09-29) is committed.
 
 **Previous (2026-09-24):** CAS import PAN check moved from Confirm-time to upload-time
 (`pan_claims.py` replaces `attribution.py`; migration `0016`) — fixes every first import
@@ -92,10 +92,9 @@ revisiting now, not just a hypothetical future follow-up); an ARIA IDREF gap on 
 tab switcher (accepted documented limitation); ADR-006's actual EventBridge Scheduler +
 ECS Fargate Terraform (the AWS account/ECR/ECS cluster this was blocked on now exist as
 of 2026-09-08/09 — no longer infra-blocked, just not yet picked up; the 4 job scripts
-themselves are done); the backend API domain naming decision (§19/§22 Phase 5); phone-OTP
-login silently creating a new account for an unrecognized phone number instead of
-erroring like email does (found on staging 2026-09-11, root-caused, explicitly deferred
-by user decision, re-confirmed still present 2026-09-26 — see session.md item 9).
+themselves are done); the backend API domain naming decision (§19/§22 Phase 5). (The phone-OTP "unknown number
+silently creates an account" item is fixed by the 2026-09-30 staging QA fixes, pending
+their staging deploy; see session.md item 9.)
 
 **Resolved, dropped from this list:**
 - **2026-09-24**: the PAN-attribution-timing bug and the "still uncommitted" tracking

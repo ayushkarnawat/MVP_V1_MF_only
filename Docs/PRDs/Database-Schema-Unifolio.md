@@ -84,7 +84,8 @@ The account holder — phone-number-authenticated, per PRD-02's auth decision.
 | `onboarding_step` | `VARCHAR` NULLABLE | For resume, per PRD-02 FR-8; null once complete |
 | `onboarding_completed_at` | `TIMESTAMPTZ` NULLABLE | |
 | `investor_type` | `ENUM('self_directed','advisor_assisted','mixed','beginner')` NULLABLE | Q2 answer, PRD-02 FR-4 — personalization only, never advice input |
-| `primary_goal` | `ENUM('consolidated_view','understand_holdings','family_management','performance_comparison')` NULLABLE | Q3 answer, PRD-02 FR-5 |
+| `primary_goal` | `ENUM('consolidated_view','understand_holdings','family_management','performance_comparison')` NULLABLE | Q3 answer, PRD-02 FR-5. **Deprecated 2026-09-30**: dual-written (first goal) until migration 0021 drops it |
+| `primary_goals` | `JSONB` (Postgres) / `JSON` (SQLite) NULLABLE, CHECK `ck_users_primary_goals_allowed` (Postgres: array of 1–4 items, each one of the four goal values) | Q3 answers, multi-select (migration 0019, 2026-09-30) |
 
 ### `household_members`
 One row per person whose portfolio is tracked — **including the primary account holder**
@@ -159,7 +160,7 @@ Data Addition requirement.
 | `error_code` | `VARCHAR` NULLABLE | Added migration 0003 — machine-readable failure code alongside `error_type`, for lifecycle-state error surfacing |
 | `error_message` | `VARCHAR` NULLABLE | Added migration 0003 — human-readable failure detail |
 | `source_tab` | `VARCHAR` NULLABLE | Added migration 0003 — which CAS-request UI tab/flow this import originated from |
-| `statement_from_date` | `DATE` NULLABLE | Added migration 0003 — CAS statement period start |
+| `statement_from_date` | `DATE` NULLABLE | Added migration 0003 — CAS statement period start. Written at Confirm and backfilled for older rows since migration 0020 (2026-09-30); before that nothing wrote it |
 | `statement_to_date` | `DATE` NULLABLE | Added migration 0003 — CAS statement period end |
 | `expires_at` | `TIMESTAMPTZ` NULLABLE | Added migration 0003 — lifecycle-state expiry (e.g. an unconfirmed CAS request going stale) |
 | `new_transactions_count` | `INTEGER` NULLABLE | Populated on confirm, PRD-01 FR-9 |
@@ -451,3 +452,4 @@ None remaining from this pass.
 | 1.4 | 2026-09-02 | Claude (PM partner) | Reconciled against migrations 0003, 0007-0010 (this doc had gone stale by 3-4 migrations, caught by the sqlite-postgres-migration-compliance-audit): `imports.status` widened to the full 14-value lifecycle enum, added `imports.error_code`/`error_message`/`source_tab`/`statement_from_date`/`statement_to_date`/`expires_at`; added `folios.has_coverage_gap`/`coverage_gap_details`; `transactions.type` gained `opening_balance` (and noted it's a `VARCHAR`+CHECK column on Postgres, never a native enum type); `scheme_ter.ter_value` made nullable with a documented meaning; dropped `password_reset_tokens` and `email_confirmation_tokens` entirely (removed by migrations 0007/0008) and `password_hash`/`email_confirmed_at` from `auth_identities`/`pending_identity_verifications` (removed by 0008); documented `otp_requests.email` and its exactly-one-identifier CHECK (added back by 0007) |
 | 1.5 | 2026-09-02 | Claude (PM partner) | F3 (compliance audit): `household_members` gained a partial unique index on `(user_id) WHERE relationship = 'self'` (migration 0011), enforcing one account-holder row per user — a gap this doc had never specified even before the code caught up; documented in both the `household_members` entity and Indexing Notes |
 | 1.6 | 2026-09-29 | Claude | CAS member detection (migration 0018): `household_members` gained `origin`, `name_source`, `name_updated_at`, `details_completed_at`, `lock_reason`, `pan_source`, `pan_verified_at`, `detected_pan_encrypted`, `detected_pan_hash`, `detected_from_import_id`, and `relationship` became nullable; 4 CHECK constraints and the never-relock trigger; `imports.upload_group_id`; new audit tables `household_member_name_changes` and `household_member_merges`. Postgres enum type names follow the codebase convention (`memberorigin`, `membernamesource`, `memberpansource`, `memberlockreason`, `namechangereason`), not the spec's snake_case. Also supersedes the migration-0016 sync note: doc is current through 0018. |
+| 1.7 | 2026-09-30 | Claude | Staging QA fixes: `users.primary_goals` (0019, JSONB + CHECK on Postgres; `primary_goal` deprecated, dropped by the pending 0021); `imports.statement_from_date`/`statement_to_date` are now written at Confirm and backfilled by data migration 0020. No other schema change: the duplicate-member fixes reuse `household_members.detected_pan_*` and `household_member_merges`. Current through 0020. |

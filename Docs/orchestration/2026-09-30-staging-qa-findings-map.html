@@ -1,0 +1,602 @@
+<title>Staging QA Findings Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: same system as cas-member-detection-map / auth-flow-redesign-map — one reading column, one section per reported issue, a summary grid up top and a consolidated change list at the end. */
+:root {
+  --bg: #FCFCFC; --surface: #FFFFFF; --ink: #111111; --muted: #5C5C5C; --border: #E5E5E5;
+  --accent: #22C55E; --accent-ink: #15803D;
+  --warn: #B45309; --warn-bg: #FEF3C7;
+  --good: #15803D; --good-bg: #DCFCE7;
+  --bad: #B42318; --bad-bg: #FEE4E2;
+  --info: #1D4ED8; --info-bg: #DBEAFE;
+  --code-bg: #F4F6F5;
+  --font-display: "DM Sans", system-ui, sans-serif;
+  --font-body: "Manrope", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0F0F0F; --surface: #1A1A1A; --ink: #F5F5F5; --muted: #A3A3A3; --border: #2A2A2A;
+    --accent: #22C55E; --accent-ink: #4ADE80;
+    --warn: #FCD34D; --warn-bg: #3A2A0A;
+    --good: #86EFAC; --good-bg: #0F2E1A;
+    --bad: #FDA29B; --bad-bg: #3B1512;
+    --info: #93C5FD; --info-bg: #13233F;
+    --code-bg: #202322;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0F0F0F; --surface: #1A1A1A; --ink: #F5F5F5; --muted: #A3A3A3; --border: #2A2A2A;
+  --accent: #22C55E; --accent-ink: #4ADE80;
+  --warn: #FCD34D; --warn-bg: #3A2A0A;
+  --good: #86EFAC; --good-bg: #0F2E1A;
+  --bad: #FDA29B; --bad-bg: #3B1512;
+  --info: #93C5FD; --info-bg: #13233F;
+  --code-bg: #202322;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.6; padding-inline: 16px; padding-block: 0 64px; }
+.wrap { max-width: 980px; margin: 0 auto; display: flex; flex-direction: column; gap: 56px; }
+h1, h2, h3, h4 { font-family: var(--font-display); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(28px, 4.5vw, 40px); line-height: 1.1; }
+h2 { font-size: 24px; line-height: 1.2; }
+h3 { font-size: 17px; }
+h4 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; }
+p { margin: 0; max-width: 70ch; }
+code, .mono { font-family: var(--font-mono); font-size: 0.85em; }
+code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+a { color: var(--accent-ink); }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+header.top { padding-top: 40px; display: flex; flex-direction: column; gap: 12px; }
+.eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+.lede { color: var(--muted); font-size: 16px; }
+nav.toc { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 8px; }
+nav.toc a { font-size: 13px; text-decoration: none; border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; color: var(--ink); background: var(--surface); }
+nav.toc a:hover { border-color: var(--accent); }
+
+.pill { display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.pill.bug { color: var(--bad); background: var(--bad-bg); }
+.pill.gap { color: var(--warn); background: var(--warn-bg); }
+.pill.ok { color: var(--good); background: var(--good-bg); }
+.pill.feat { color: var(--info); background: var(--info-bg); }
+.layers { display: flex; flex-wrap: wrap; gap: 4px; }
+.layer { font-family: var(--font-mono); font-size: 11px; border: 1px solid var(--border); border-radius: 4px; padding: 0 5px; color: var(--muted); }
+.layer.on { color: var(--ink); border-color: var(--ink); }
+
+.table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { font-family: var(--font-display); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 600; background: var(--code-bg); }
+tr:last-child td { border-bottom: 0; }
+td.num { font-variant-numeric: tabular-nums; font-family: var(--font-display); font-weight: 700; }
+
+section.issue { display: flex; flex-direction: column; gap: 20px; scroll-margin-top: 16px; }
+.issue-head { display: flex; flex-direction: column; gap: 8px; border-top: 2px solid var(--ink); padding-top: 16px; }
+.issue-head .meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.issue-no { font-family: var(--font-mono); font-size: 13px; color: var(--muted); }
+
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.grid2 > * { min-width: 0; }
+.block { display: flex; flex-direction: column; gap: 8px; }
+.callout { border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+.callout.cause { background: var(--bad-bg); }
+.callout.cause h4 { color: var(--bad); }
+.callout.design { background: var(--good-bg); }
+.callout.design h4 { color: var(--good); }
+.callout.decide { background: var(--warn-bg); }
+.callout.decide h4 { color: var(--warn); }
+.callout p, .callout li { color: var(--ink); }
+
+ul.fix { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+ul.fix li { display: grid; grid-template-columns: 44px 1fr; gap: 10px; align-items: baseline; }
+ul.fix li > div { min-width: 0; }
+.tag { font-family: var(--font-mono); font-size: 11px; font-weight: 500; text-align: center; border-radius: 4px; padding: 1px 0; }
+.tag.fe { background: var(--info-bg); color: var(--info); }
+.tag.be { background: var(--good-bg); color: var(--good); }
+.tag.db { background: var(--warn-bg); color: var(--warn); }
+.tag.doc { background: var(--code-bg); color: var(--muted); }
+ul.plain { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+
+.diagram { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; overflow-x: auto; }
+.diagram .cap { font-size: 12px; color: var(--muted); padding-bottom: 6px; }
+pre.mermaid { margin: 0; background: transparent; font-size: 13px; }
+
+.math { font-family: var(--font-mono); font-size: 13px; background: var(--code-bg); border-radius: 8px; padding: 12px 14px; overflow-x: auto; white-space: pre; line-height: 1.7; }
+.evidence td:first-child { white-space: nowrap; }
+.kav { font-variant-numeric: tabular-nums; }
+.new-row td { background: var(--bad-bg); }
+footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--border); padding-top: 16px; }
+</style>
+
+<div class="wrap">
+
+<header class="top">
+  <span class="eyebrow">Unifolio · MF MVP · Staging QA · 30 Sep 2026</span>
+  <h1>Six things found testing auth + CAS member detection</h1>
+  <p class="lede">For each report: what you saw, what the code is actually doing, the root cause with file and line, and the proposed fix split by frontend, backend and database. Nothing here is built yet. Decisions that need your call are marked in amber.</p>
+  <nav class="toc" aria-label="Sections">
+    <a href="#summary">Summary</a>
+    <a href="#i1">1 · Sign-up with a registered number</a>
+    <a href="#i2">2 · Multi-select goal</a>
+    <a href="#i3">3 · Ribbon grid + auto-confirm</a>
+    <a href="#i4">4 · PAN mismatch popup</a>
+    <a href="#i5">5 · Duplicate Kavita</a>
+    <a href="#i6">6 · Statement period</a>
+    <a href="#changes">All changes</a>
+    <a href="#decisions">Your decisions</a>
+  </nav>
+</header>
+
+<!-- ============================================================ SUMMARY -->
+<section id="summary" class="block">
+  <h2>Summary</h2>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>#</th><th>Report</th><th>Verdict</th><th>Layers</th><th>Size</th></tr></thead>
+      <tbody>
+        <tr><td class="num">1</td><td>Sign-up with an already-registered phone number logs you in instead of erroring</td><td><span class="pill bug">Bug · regression</span></td><td><div class="layers"><span class="layer on">FE</span><span class="layer on">BE</span><span class="layer">DB</span></div></td><td>Small</td></tr>
+        <tr><td class="num">2</td><td>"What brings you to Unifolio" should allow several answers</td><td><span class="pill feat">Change request</span></td><td><div class="layers"><span class="layer on">FE</span><span class="layer on">BE</span><span class="layer on">DB</span></div></td><td>Small–medium</td></tr>
+        <tr><td class="num">3a</td><td>Per-member grid on the review screen is cramped and overflowing</td><td><span class="pill bug">Bug · layout</span></td><td><div class="layers"><span class="layer on">FE</span><span class="layer">BE</span><span class="layer">DB</span></div></td><td>Small</td></tr>
+        <tr><td class="num">3b</td><td>Members with nothing to resolve should be confirmed automatically</td><td><span class="pill feat">Change request</span></td><td><div class="layers"><span class="layer on">FE</span><span class="layer">BE</span><span class="layer">DB</span></div></td><td>Small</td></tr>
+        <tr><td class="num">4</td><td>Wrong PAN at unlock shows an inline error, not a popup</td><td><span class="pill feat">Was as designed · now a change request</span></td><td><div class="layers"><span class="layer on">FE</span><span class="layer on">BE</span><span class="layer">DB</span></div></td><td>Small</td></tr>
+        <tr><td class="num">5</td><td>Kavita added again and again across uploads</td><td><span class="pill bug">Bug · 3 causes</span></td><td><div class="layers"><span class="layer on">FE</span><span class="layer on">BE</span><span class="layer">DB</span></div></td><td>Medium</td></tr>
+        <tr><td class="num">6</td><td>Import history never shows the statement period</td><td><span class="pill gap">Bug · older gap</span></td><td><div class="layers"><span class="layer">FE</span><span class="layer on">BE</span><span class="layer on">DB</span></div></td><td>Small</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Issue 5 was reproduced locally against the real <code>family_cas_1.pdf</code> / <code>family_cas_2.pdf</code> fixtures with your exact upload order; the numbers in that section come from that run. Database changes: migration <code>0019</code> adds a column for issue 2 and backfills statement dates for issue 6; a later migration <code>0020</code> removes the old goal column once the new code is fully live.</p>
+</section>
+
+<!-- ============================================================ ISSUE 1 -->
+<section id="i1" class="issue">
+  <div class="issue-head">
+    <span class="issue-no">Issue 1</span>
+    <h2>Sign-up with a registered number logs you straight in</h2>
+    <div class="meta"><span class="pill bug">Bug · regression from the phone-first redesign</span></div>
+  </div>
+
+  <div class="grid2">
+    <div class="block">
+      <h4>What you saw</h4>
+      <p>You created an account in an incognito tab, then opened a normal tab and signed up again with the same phone number. You got the code, verified it, and landed on the upload steps with no "this number already has an account" message.</p>
+    </div>
+    <div class="block">
+      <h4>Why it "used to work"</h4>
+      <p>Before 28 Sep, sign-up started with <strong>email</strong>. The phone number was entered later, at the phone step, which carries a <code>pending_token</code>. That path checks for an existing number <em>before</em> sending the code and returns a 409. The redesign moved phone to the first step, where there's no <code>pending_token</code>, so that check never runs.</p>
+    </div>
+  </div>
+
+  <div class="diagram">
+    <div class="cap">What happens today when Sign Up is used with a number that already has an account</div>
+<pre class="mermaid">
+flowchart TD
+  A["Sign Up · phone entered"] -->|"POST /auth/otp/request<br/>no pending_token, no flow field"| B["No existence check here<br/>(only runs when pending_token is from an email signup)"]
+  B --> C[("INSERT / UPSERT otp_requests")]
+  C --> D["Code entered"]
+  D -->|"POST /auth/otp/verify<br/>flow = signup"| E{"Number already has an identity?<br/>checked FIRST, line 297"}
+  E -->|"yes"| F[("Session created for the<br/>EXISTING account")]
+  F --> G["Routed as a returning user →<br/>upload steps (no import confirmed yet)"]
+  E -->|"no"| H{"flow == signup?<br/>line 304, never reached for you"}
+  H --> I["pending_identity_verifications<br/>→ email step"]
+  classDef bad fill:#fee4e2,stroke:#b42318,color:#000
+  classDef db fill:#fff4d6,stroke:#b8860b,color:#000
+  class E,F bad
+  class C db
+</pre>
+  </div>
+
+  <div class="callout cause">
+    <h4>Root cause</h4>
+    <p><code>backend/app/api/auth.py:297</code> — in <code>verify_otp_route</code>, the "number already exists → log in" shortcut runs <strong>before</strong> the <code>flow == "signup"</code> branch at line 304. So a sign-up with a known number is silently treated as a login. On top of that, <code>OtpRequestBody</code> (<code>services/auth/schemas.py:35</code>) has no <code>flow</code> field, so <code>request_otp</code> (<code>auth.py:206</code>) can't reject the number before sending the code the way the old phone step did. PRD-05 FR-1 to FR-3 describe the new-number path only; the known-number case was left out of the spec.</p>
+    <p>Landing on upload steps is correct for a logged-in user who hasn't confirmed an import yet. The routing isn't wrong; getting logged in at all is.</p>
+  </div>
+
+  <div class="diagram">
+    <div class="cap">Proposed</div>
+<pre class="mermaid">
+flowchart TD
+  A["Sign Up · phone entered"] -->|"POST /auth/otp/request<br/>flow = signup (NEW field)"| B{"Number already has an identity?"}
+  B -->|"yes"| X["409 phone_already_registered<br/>'An account with this number already exists. Log in instead.'<br/>nothing written, no code sent"]
+  X --> L["Existing 'Log in' shortcut button<br/>→ Landing in login mode, number prefilled"]
+  B -->|"no"| C[("otp_requests, unchanged")]
+  C -->|"POST /auth/otp/verify flow = signup"| E{"Identity exists?<br/>(race: registered in between)"}
+  E -->|"yes"| X
+  E -->|"no"| P["pending_identity_verifications → email step, unchanged"]
+  classDef bad fill:#fee4e2,stroke:#b42318,color:#000
+  classDef db fill:#fff4d6,stroke:#b8860b,color:#000
+  classDef ok fill:#dcfce7,stroke:#15803d,color:#000
+  class X bad
+  class C db
+  class L,P ok
+</pre>
+  </div>
+
+  <div class="block">
+    <h3>Fix</h3>
+    <ul class="fix">
+      <li><span class="tag be">BE</span><div>Add <code>flow: "signup" | "login" | None</code> to <code>OtpRequestBody</code>. In <code>request_otp</code>, when there's no <code>pending_token</code> and <code>flow == "signup"</code>, call <code>find_or_backfill_phone_identity</code>; if it finds one, return <code>409 {code: "phone_already_registered"}</code> before any <code>otp_requests</code> write.</div></li>
+      <li><span class="tag be">BE</span><div>In <code>verify_otp_route</code>'s no-<code>pending_token</code> branch, check <code>flow == "signup"</code> before the login shortcut, and return the same 409 if the identity exists. This covers the case where someone registers the number between request and verify. <code>flow == "login"</code> and flow-omitted (legacy test callers) keep today's behavior.</div></li>
+      <li><span class="tag fe">FE</span><div><code>features/auth/api.ts:32</code> <code>requestOtp</code> sends <code>flow</code>. <code>AuthEntryFlow.tsx</code> already has a "Log in" shortcut for the email and phone-step 409s (around line 109). Wire the new 409 code to that same shortcut and prefill the number.</div></li>
+      <li><span class="tag db">DB</span><div>None.</div></li>
+      <li><span class="tag doc">Tests</span><div>API tests in <code>test_auth_routes.py</code>: sign-up request with a known number → 409 and no <code>otp_requests</code> row; sign-up verify with a known number → 409 and no session; login unaffected. One frontend test for the shortcut.</div></li>
+    </ul>
+  </div>
+
+  <div class="callout design">
+    <h4>Decided 30 Sep: the matching login-side check ships too</h4>
+    <p>Log In with an unknown number or email is also rejected at request time, before a code is sent. Both <code>/auth/otp/request</code> and <code>/auth/email-otp/request</code> get <code>flow = "login"</code>. With no identity found, they return <code>404 {code: "account_not_found"}</code> ("No account found for that number. Sign up instead.") and write nothing. The existing verify-time 401s stay as a backstop. This closes <code>session.md</code> item 9. You accepted the tradeoff: anyone can check whether a number has an account without receiving a code. The existing 60-second resend throttle limits how fast that can be probed.</p>
+    <ul class="fix">
+      <li><span class="tag be">BE</span><div><code>request_otp</code> / <code>request_email_otp</code>: when there's no <code>pending_token</code> and <code>flow == "login"</code>, look up the identity and return 404 before calling <code>create_otp_request</code>. Leaving <code>flow</code> out keeps today's behavior for the internal test callers.</div></li>
+      <li><span class="tag fe">FE</span><div>Log In sends <code>flow: "login"</code> on both request calls. The 404 shows under the input with a "Sign up instead" shortcut, the same pattern as the sign-up 409.</div></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============================================================ ISSUE 2 -->
+<section id="i2" class="issue">
+  <div class="issue-head">
+    <span class="issue-no">Issue 2</span>
+    <h2>"What brings you to Unifolio" as a multiple choice</h2>
+    <div class="meta"><span class="pill feat">Change request</span></div>
+  </div>
+
+  <div class="grid2">
+    <div class="block">
+      <h4>Today</h4>
+      <p><code>Q3Purpose.tsx</code> is single-select: tapping an option saves it and moves straight to the next step (<code>OnboardingFlow.tsx:122</code> → <code>updateMe({ primary_goal })</code>). It's stored in one enum column, <code>users.primary_goal</code>, created in migration <code>0001</code>. The only reader is <code>GET /auth/me</code>; no analytics or dashboard code uses it.</p>
+    </div>
+    <div class="block">
+      <h4>Options offered</h4>
+      <ul class="plain">
+        <li>Consolidated portfolio view · <code>consolidated_view</code></li>
+        <li>Understand true performance · <code>understand_holdings</code></li>
+        <li>Family wealth tracking · <code>family_management</code></li>
+        <li>Compare distributor fees · <code>performance_comparison</code></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="block">
+    <h3>Where to store several answers</h3>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Option</th><th>What it is</th><th>Verdict</th></tr></thead>
+        <tbody>
+          <tr><td><strong>A. New column on <code>users</code></strong></td><td><code>users.primary_goals</code>, a JSON array of the enum values, e.g. <code>["consolidated_view","family_management"]</code>. <code>JSONB</code> on Postgres with a check constraint limiting it to the four values. Backfilled from <code>primary_goal</code>; the old column and its enum type are dropped in a later migration. No new table.</td><td><span class="pill ok">Decided 30 Sep</span></td></tr>
+          <tr><td>B. New table <code>user_primary_goals</code></td><td>One row per (user, goal), FK to <code>users</code>, unique pair. Easier "how many users picked X" SQL, but a whole table and cascade-delete wiring for four checkboxes. Postgres can already count inside a JSON array.</td><td>Not worth it</td></tr>
+          <tr><td>C. Keep the single column</td><td>Store only the first pick. Loses data.</td><td>No</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="block">
+    <h3>Fix</h3>
+    <ul class="fix">
+      <li><span class="tag db">DB</span><div><strong>Migration <code>0019</code> (expand):</strong> add <code>users.primary_goals</code> as <code>JSONB NULL</code> on Postgres and <code>JSON NULL</code> on SQLite (<code>sa.JSON().with_variant(JSONB(), "postgresql")</code>). Backfill with <code>jsonb_build_array(primary_goal::text)</code> on Postgres and <code>json_array(primary_goal)</code> on SQLite, <code>WHERE primary_goal IS NOT NULL</code>. On Postgres only, add <code>CHECK (primary_goals IS NULL OR (jsonb_typeof(primary_goals) = 'array' AND jsonb_array_length(primary_goals) BETWEEN 1 AND 4 AND primary_goals &lt;@ '["consolidated_view","understand_holdings","family_management","performance_comparison"]'::jsonb))</code>. SQLite relies on the API validation. <code>users.primary_goal</code> stays in place, untouched. The downgrade drops the new column and constraint, with no data loss because the old column still exists.</div></li>
+      <li><span class="tag db">DB</span><div><strong>Migration <code>0020</code> (contract), shipped in a later release</strong> once every ECS task runs the new code: drop <code>users.primary_goal</code> and <code>DROP TYPE primarygoal</code> on Postgres. The downgrade recreates both and fills <code>primary_goal</code> from the first list element, so it keeps only one goal per user.</div></li>
+      <li><span class="tag be">BE</span><div><code>models/user.py</code>: add <code>primary_goals</code> mapped as <code>JSON().with_variant(JSONB(), "postgresql")</code>, next to <code>primary_goal</code> (line 32), which stays mapped until <code>0020</code>. <code>UpdateMeBody</code> / <code>MeResponse</code> (<code>schemas.py:150,161</code>) use <code>primary_goals: list[PrimaryGoal] | None</code>, deduplicated, 1–4 items, enum-validated.</div></li>
+      <li><span class="tag be">BE</span><div>Between <code>0019</code> and <code>0020</code>, <code>PATCH /me</code> (<code>auth.py:541</code>) <strong>writes both</strong>: <code>primary_goals</code> = the list, <code>primary_goal</code> = its first item. An older task still serving traffic during a rolling deploy then reads a valid value. <code>GET /me</code> (<code>auth.py:401</code>) reads <code>primary_goals</code> only. The code always assigns a new list rather than changing it in place (<code>.append</code> isn't saved without <code>MutableList</code>). The dual write is removed with <code>0020</code>.</div></li>
+      <li><span class="tag doc">Tests</span><div>Migration test: backfill turns <code>'family_management'</code> into <code>["family_management"]</code> and leaves NULL as NULL. Postgres functional test (<code>functional_postgres</code>): the check rejects <code>["foo"]</code>, <code>[]</code> and a non-array. API tests: <code>PATCH /me</code> writes both columns and <code>GET /me</code> returns the list.</div></li>
+      <li><span class="tag fe">FE</span><div><code>Q3Purpose.tsx</code>: options become toggles (<code>role="checkbox"</code>, <code>aria-checked</code>) with a check mark, plus a <strong>Continue</strong> button that stays disabled until at least one is picked. Skip still works. Heading helper text: "Pick all that apply." <code>OnboardingFlow.tsx</code> state changes from <code>primaryGoal</code> to <code>primaryGoals: PrimaryGoal[]</code> and saves on Continue, not on tap. Update the <code>types.ts</code> <code>Me</code> type. Mobile uses the same component (<code>isMobile</code>), so it gets the change too.</div></li>
+      <li><span class="tag doc">Docs</span><div>PRD-02 onboarding question spec, <code>Database-Schema-Unifolio.md</code> → v1.7, <code>database.md</code>.</div></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============================================================ ISSUE 3 -->
+<section id="i3" class="issue">
+  <div class="issue-head">
+    <span class="issue-no">Issue 3</span>
+    <h2>Review screen: ribbon grid layout, and auto-confirming clean members</h2>
+    <div class="meta"><span class="pill bug">3a · layout bug</span><span class="pill feat">3b · change request</span></div>
+  </div>
+
+  <h3>3a · Why the grid is cramped</h3>
+  <p>The fund-card grid in <code>ReviewTable.tsx:404</code> picks its column count from the <strong>browser window</strong> width (<code>sm:2 · md:3 · xl:4</code>). That was fine when ReviewTable filled the page. Inside a ribbon it sits in a much narrower box, but on a desktop window it still gets 4 columns:</p>
+  <div class="math">MemberRibbonReview container  max-w-4xl            896px
+ − its side padding           sm:px-6          −  48
+ − ribbon panel padding       sm:p-4           −  32
+ − ReviewTable's own padding  lg:px-8          −  64   ← page padding, applied again inside the ribbon
+ = grid width                                    752px
+ − 3 gaps                     lg:gap-6         −  72
+ ÷ 4 columns (xl:grid-cols-4, window ≥ 1280px)
+ = about 170px per card</div>
+  <p>At about 170px, the card's top row (<code>ReviewTable.tsx:423</code>, a non-wrapping flex row) can't fit the folio chip and the "Action needed" pill. The folio number wraps onto three lines ("FOLIO: / 11223344 / / 0") and the pill, which is <code>flex-shrink-0</code>, sticks out past the card border. That's what your screenshot shows. Scheme names clip to "ABC Bluechip…", and the AMFI placeholder clips too.</p>
+
+  <ul class="fix">
+    <li><span class="tag fe">FE</span><div>Add an <code>embedded</code> prop to ReviewTable, set by MemberRibbonReview. When it's on, drop the page-level side padding and cap the grid at <code>grid-cols-1 sm:grid-cols-2 lg:grid-cols-3</code>. A true container query would be cleaner, but Tailwind 3.4 here doesn't have the container-queries plugin, so a prop avoids adding a dependency.</div></li>
+    <li><span class="tag fe">FE</span><div>Widen the review container from <code>max-w-4xl</code> to <code>max-w-6xl</code> (<code>MemberRibbonReview.tsx:129</code>). At 1152px that gives 3 cards of about 330px each.</div></li>
+    <li><span class="tag fe">FE</span><div>Harden the card itself so it can't overflow at any width: top row gets <code>flex-wrap</code>, folio chip gets <code>whitespace-nowrap min-w-0 truncate</code> with the full folio in <code>title</code>, and the AMFI placeholder gets shortened to "6-digit AMFI code".</div></li>
+    <li><span class="tag doc">Check</span><div>The phone ribbon view (<code>MobileReviewView.tsx</code>) reuses this component and is already an open QA item (<code>session.md</code> item 3). Check it at 400px after the change.</div></li>
+  </ul>
+
+  <h3>3b · Auto-confirm members with nothing to resolve</h3>
+  <div class="grid2">
+    <div class="block">
+      <h4>Today</h4>
+      <p>A ribbon counts as reviewed only after you open it and press its Confirm (<code>MemberRibbonReview.tsx:49</code> starts <code>reviewed</code> empty; line 197 enables Confirm only at 0 unresolved). "Confirm imports" stays disabled until every ribbon is reviewed. A member whose funds are all matched and classified still needs open → scroll → Confirm.</p>
+    </div>
+    <div class="block">
+      <h4>Proposed</h4>
+      <p>A ribbon counts as confirmed on its own when it has <strong>0 unresolved funds</strong>. This includes ribbons with funds "matched by name" or "assigned by you". The closed ribbon shows a green <span class="pill ok">Confirmed</span> badge, and the line under the name keeps the name-match count visible, e.g. "Confirmed · 3 funds · 1 matched by name". It can still be opened to look through the holdings, and the Confirm button inside shows as already done. Ribbons with unresolved funds work exactly as today.</p>
+    </div>
+  </div>
+
+  <div class="callout design">
+    <h4>Decided 30 Sep: auto-confirm "matched by name" ribbons too</h4>
+    <p>A ribbon auto-confirms whenever it has 0 unresolved funds, even if some funds were placed by name. The user can still open any confirmed ribbon to check its holdings and use "Move to…". This amends the member-detection spec, which required any name-matched fund to be <em>seen</em> before Confirm imports (FR-4 note; map §"Why folios matched by name are marked"). After the change, the name-match count on the closed ribbon header is what makes these funds visible. The spec note and PRD-01 get updated to match. Name notices (M8, "Update the name?") don't affect this: they're answered in the people popup before the ribbons appear.</p>
+  </div>
+
+  <ul class="fix">
+    <li><span class="tag fe">FE</span><div>In <code>MemberRibbonReview.tsx</code>, compute <code>autoConfirmed = count === 0</code> and <code>isReviewed = reviewed.has(key) || autoConfirmed</code>. No new state. A "Move to…" that changes a ribbon's funds re-evaluates on its own. ReviewTable stays mounted while hidden, so its confirmations still reach the Confirm-imports payload without the ribbon being opened. The closed-ribbon header gets the badge and always shows the "N matched by name" count when there is one (today it only appears after a manual Confirm).</div></li>
+    <li><span class="tag be">BE</span><div>None. <code>/imports/confirm</code> already takes everyone in one request and re-validates each fund server-side (<code>confirm_people._validate_schemes</code>).</div></li>
+    <li><span class="tag doc">Tests</span><div><code>MemberRibbonReview.test.tsx</code>: a member with 0 unresolved is confirmed without being opened, including one with a matched-by-name fund, whose header shows the count; a member with 1 unresolved is not; Confirm imports is enabled when everyone is clean.</div></li>
+  </ul>
+</section>
+
+<!-- ============================================================ ISSUE 4 -->
+<section id="i4" class="issue">
+  <div class="issue-head">
+    <span class="issue-no">Issue 4</span>
+    <h2>Wrong PAN at unlock becomes a popup with two choices</h2>
+    <div class="meta"><span class="pill feat">Change request · decided 30 Sep</span></div>
+  </div>
+
+  <div class="grid2">
+    <div class="block">
+      <h4>Today (as designed)</h4>
+      <p><strong>L3</strong> in the map: an inline error in <code>MemberDetailsDialog</code>, backend <code>409 detected_pan_mismatch</code> (<code>member_details.py:80</code>), with no way forward except retyping the PAN or Cancel (decisions I4, M10). Your screenshot is this state.</p>
+    </div>
+    <div class="block">
+      <h4>Decided</h4>
+      <p>Replace the inline error with a popup modelled on <strong>U4</strong> (<code>PanMismatchDialog</code>), the one used when an <em>Add data</em> statement disagrees with a PAN you typed earlier. The user chooses between the statement's PAN and a different statement. The typed PAN is still never saved when it differs from the statement, so "no override" (I4) still holds.</p>
+    </div>
+  </div>
+
+  <div class="block">
+    <h4>The popup</h4>
+    <div class="table-scroll">
+      <table>
+        <tbody>
+          <tr><th>Title</th><td>This PAN doesn’t match your statement</td></tr>
+          <tr><th>Body</th><td>You entered <code>LC******6R</code> for Rohan Shanbhag. The statement you uploaded shows <code>BN******8L</code>. Which one is correct?</td></tr>
+          <tr><th>Option 1</th><td><strong>The one on the statement (BN******8L)</strong>. Unlocks Rohan with the statement's PAN, using the relationship already chosen in the form.</td></tr>
+          <tr><th>Option 2</th><td><strong>The one I entered (LC******6R)</strong>, subtitle "Upload a different statement". Nothing is saved, Rohan stays locked, and the popup closes onto the upload form.</td></tr>
+          <tr><th>Way out</th><td>Close (×) returns to the details form with the PAN still editable, which also covers a plain typo.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Both PANs are shown masked only. The typed one is masked in the browser. The statement's one comes masked from the 409, as it does today.</p>
+  </div>
+
+  <div class="diagram">
+    <div class="cap">Unlock with a mismatched PAN, proposed</div>
+<pre class="mermaid">
+flowchart TD
+  A["Unlock form: relationship + PAN · Continue"] -->|"POST /household-members/id/details"| B{"Typed PAN = detected PAN?"}
+  B -->|"yes"| OK[("unchanged: PAN permanent, relationship saved, unlocked")]
+  B -->|"no"| P["NEW popup · 409 detected_pan_mismatch<br/>both PANs masked"]
+  P -->|"The one on the statement"| U["POST /details again<br/>use_detected_pan = true, no PAN typed"]
+  U --> C{"usual checks on the detected PAN<br/>L4 on another member here? L5 on another account?"}
+  C -->|"clear"| OK
+  C -->|"L4 / L5"| L["existing L4 / L5 popups"]
+  P -->|"The one I entered · upload a different statement"| X["nothing written · member stays locked<br/>→ upload form"]
+  P -->|"Close"| A
+  classDef db fill:#fff4d6,stroke:#b8860b,color:#000
+  classDef q fill:#dbeafe,stroke:#1d4ed8,color:#000
+  classDef none fill:#fee4e2,stroke:#b42318,color:#000
+  class OK db
+  class P,U q
+  class X none
+</pre>
+  </div>
+
+  <div class="block">
+    <h3>Fix</h3>
+    <ul class="fix">
+      <li><span class="tag be">BE</span><div><code>MemberDetailsRequest</code> (<code>member_details.py:128</code>): <code>pan</code> becomes optional and a new <code>use_detected_pan: bool = False</code> is added. The browser only ever has the <em>masked</em> statement PAN, so it can't resend the real one; the server has to use its own. When the flag is set, <code>complete_member_details</code> decrypts <code>detected_pan_encrypted</code> and continues exactly as if that PAN had been typed, so the L4 / L5 checks still apply. The flag is rejected with 422 unless the member is locked and has a statement-detected PAN (not name-only). Sending both <code>pan</code> and the flag is also a 422.</div></li>
+      <li><span class="tag be">BE</span><div><code>DetectedPanMismatchError</code>: <code>details</code> keeps <code>detected_pan_masked</code>. The message is no longer shown as-is, since the popup builds its own copy.</div></li>
+      <li><span class="tag fe">FE</span><div>New <code>DetectedPanMismatchDialog</code>, built from <code>PanMismatchDialog</code>'s layout and button style so the two read as one pattern. <code>MemberDetailsDialog</code> opens it on <code>detected_pan_mismatch</code> instead of setting the inline error. Option 1 resubmits with <code>use_detected_pan: true</code> plus the chosen relationship and name. Option 2 closes both dialogs and opens the upload form. The desktop and mobile unlock screens both use it.</div></li>
+      <li><span class="tag db">DB</span><div>None. Option 1 writes the same columns a matching typed PAN writes today.</div></li>
+      <li><span class="tag doc">Docs</span><div>Member-detection map: L3 becomes a popup, and I4 / M10 are reworded to "no override: choose the statement's PAN or a different statement". PRD-01 matches.</div></li>
+      <li><span class="tag doc">Tests</span><div>API: <code>use_detected_pan</code> unlocks with the detected PAN; it's rejected on a name-only member; L4 / L5 still fire through it. FE: the mismatch opens the popup; each option does what's listed above.</div></li>
+    </ul>
+  </div>
+
+  <div class="callout decide">
+    <h4>Follow-up to confirm: where "upload a different statement" goes</h4>
+    <p>The map's rule M9 says you can't upload data <em>for</em> a locked person, so option 2 can't open "Add data for Rohan". Proposed: it opens the normal upload form, with the new statement's people detected as usual. Rohan's funds from the earlier statement stay under the locked Rohan until you delete that import in Import history. Nothing is removed automatically. If you'd rather option 2 also offer to remove Rohan's funds from the earlier statement, that's one more step in the popup.</p>
+  </div>
+</section>
+
+<!-- ============================================================ ISSUE 5 -->
+<section id="i5" class="issue">
+  <div class="issue-head">
+    <span class="issue-no">Issue 5</span>
+    <h2>Kavita added again on each upload</h2>
+    <div class="meta"><span class="pill bug">Bug · 3 causes, reproduced locally</span></div>
+  </div>
+
+  <p>In <code>family_cas_1.pdf</code> Kavita's Tata folio has <strong>no PAN</strong>, so she's a "name-only" person. In <code>family_cas_2.pdf</code> the same folio shows PAN <code>BN******1M</code>. The system identifies people by PAN only. It never connects a name-only Kavita to a PAN-bearing Kavita, and never connects a name-only Kavita to one that already exists.</p>
+
+  <div class="block">
+    <h4>Local reproduction (real fixture PDFs, your order: file 1 → unlock Rohan → Add data for Rohan with file 2 → file 1 → file 2)</h4>
+    <div class="table-scroll evidence">
+      <table>
+        <thead><tr><th>Upload</th><th>Kavita classified as</th><th>Household afterwards</th></tr></thead>
+        <tbody>
+          <tr><td>1 · file 1 (first import)</td><td><code>new</code>, PAN not on statement</td><td class="kav">Kavita #1 · locked · no PAN of any kind</td></tr>
+          <tr class="new-row"><td>2 · file 2 (Add data for Rohan)</td><td><code>new</code>, PAN BN******1M</td><td class="kav">+ Kavita #2 · locked · detected PAN <em>(cause B)</em><br/>(Aarav is also added, correctly: new PAN)</td></tr>
+          <tr class="new-row"><td>3 · file 1 again</td><td><code>new</code>, PAN not on statement</td><td class="kav">+ Kavita #3 · locked · no PAN <em>(cause A)</em></td></tr>
+          <tr><td>4 · file 2 again</td><td><code>locked_member</code> → Kavita #2</td><td class="kav">no change · 3 Kavitas</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>You ended with 3 Kavitas, and so did the local run. Locally, the third came from the file-1 re-upload (cause A) and the file-2 re-upload attached to #2. You recorded it the other way around. Both causes below are real either way, and the fix covers both. If you still have the staging account, <code>household_members.detected_pan_hash</code> on each Kavita row will show which upload made which.</p>
+  </div>
+
+  <div class="diagram">
+    <div class="cap">How each detected person is classified today (<code>people_resolution.plan_people</code>, re-checked at Confirm by <code>confirm_people._resolve_member</code>)</div>
+<pre class="mermaid">
+flowchart TD
+  P["Person found in statement"] --> Q{"PAN on statement?"}
+  Q -->|"yes"| R{"classify_detected_pan:<br/>PAN on a member here? detected PAN on a locked member here?"}
+  R -->|"yes"| E["attach to that member ✓"]
+  R -->|"no"| U13{"U13: unlocked member, same name,<br/>with a TYPED PAN?"}
+  U13 -->|"yes"| SP["'Same person?' prompt"]
+  U13 -->|"no · name-only members are never checked"| NB["NEW locked member<br/>cause B"]
+  Q -->|"no"| NA["NEW locked member, always<br/>no lookup of any kind<br/>cause A"]
+  classDef bad fill:#fee4e2,stroke:#b42318,color:#000
+  classDef ok fill:#dcfce7,stroke:#15803d,color:#000
+  class NA,NB bad
+  class E ok
+</pre>
+  </div>
+
+  <div class="callout cause">
+    <h4>Root causes</h4>
+    <p><strong>A · A name-only person is always new.</strong> <code>people_resolution.py:111-113</code> only looks anything up <code>if p.pan</code>. A PAN-less person skips straight to <code>status = "new"</code>, and <code>confirm_people.py:419</code> <code>_resolve_member</code> re-checks by PAN only. Every upload of file 1 creates another Kavita.</p>
+    <p><strong>B · A new PAN never checks for a name-only member with the same name.</strong> The U13 "same person?" check (<code>people_resolution.py:127</code>) only looks at <em>unlocked</em> members with a <em>typed</em> PAN. The name-only Kavita #1 fails both conditions, so file 2 creates Kavita #2 beside her.</p>
+    <p><strong>C · The cleanup path is a trap.</strong> Verified in the same run. Unlock Kavita #1 (name-only) with her real PAN: accepted, and the PAN is claimed on #1. Then open Kavita #2: <code>409 pan_belongs_to_other_member</code> with <code>can_merge: false</code>, because <code>member_details.py:195</code> allows a merge only when the <em>source</em> is name-only, and #2 has a detected PAN. Kavita #2 and her fund are stuck locked with no way out. Kavita #3 is offered a merge, but the popup copy reads "Kavita Shanbhag and Kavita Shanbhag may be the same person."</p>
+  </div>
+
+  <div class="diagram">
+    <div class="cap">Proposed classification</div>
+<pre class="mermaid">
+flowchart TD
+  P["Person found in statement"] --> Q{"PAN on statement?"}
+  Q -->|"yes"| R{"PAN / detected PAN match here?"}
+  R -->|"yes"| E["attach ✓ (unchanged)"]
+  R -->|"no"| N1{"NEW: a name-only member here<br/>with an exact / variant name match?"}
+  N1 -->|"exactly one"| SP2["'Is this the Kavita you already have?'<br/>(reuse the U13 SamePersonDialog)"]
+  SP2 -->|"Yes"| LINK[("attach + write detected_pan_hash /<br/>detected_pan_encrypted on that member at Confirm")]
+  SP2 -->|"No"| NEWP["new locked member"]
+  N1 -->|"none"| U13["existing U13 check → else new"]
+  Q -->|"no"| N2{"NEW: an existing member here<br/>with an exact name match?"}
+  N2 -->|"exactly one"| ATT["attach to that member<br/>funds tagged 'matched by name' in the ribbon, movable"]
+  N2 -->|"none, or several"| NEWN["new name-only member (today's behavior)"]
+  classDef ok fill:#dcfce7,stroke:#15803d,color:#000
+  classDef db fill:#fff4d6,stroke:#b8860b,color:#000
+  classDef q fill:#dbeafe,stroke:#1d4ed8,color:#000
+  class E,ATT ok
+  class LINK db
+  class N1,N2,SP2 q
+</pre>
+  </div>
+
+  <div class="block">
+    <h3>Fix</h3>
+    <ul class="fix">
+      <li><span class="tag be">BE</span><div><strong>Cause A.</strong> In <code>plan_people</code>, a person with no PAN (and a readable name) looks for household members whose name is an <em>exact</em> match via <code>compare_names</code>. One match → plan <code>existing_member</code> / <code>locked_member</code> for that member, and every fund goes into <code>matched_by_name</code> so the ribbon tags it and "Move to…" works. Zero or several matches → today's behavior. Mirror the same lookup in <code>_resolve_member</code> so Confirm re-checks it.</div></li>
+      <li><span class="tag be">BE</span><div><strong>Cause B.</strong> For a PAN person who would be <code>new</code>, look for a <em>name-only</em> member (<code>detected_pan_hash IS NULL AND pan_lookup_hash IS NULL</code>) with an exact or variant name. One match → set <code>same_person_member_id</code> so the existing <code>SamePersonPrompt</code> / resolve-same-person endpoint asks. On "Yes", Confirm attaches to that member and writes <code>detected_pan_encrypted</code> / <code>detected_pan_hash</code> (locked member), so later uploads match by PAN from then on. Needs one new branch in the same-person resolver, since U13 today assumes a typed PAN.</div></li>
+      <li><span class="tag be">BE</span><div><strong>Cause C.</strong> In <code>complete_member_details</code>: (1) when the typed PAN equals a <em>locked</em> member's <code>detected_pan_hash</code> here, raise the L4 merge offer instead of accepting; (2) allow <code>can_merge</code> when <em>either</em> side is name-only, always merging the name-only one into the PAN-bearing one. <code>member_merge.merge_member_into</code> already de-duplicates transactions.</div></li>
+      <li><span class="tag fe">FE</span><div><code>PossibleDuplicateDialog</code>: when the names are identical, tell the two apart ("Kavita Shanbhag · PAN not on statement · 1 fund" vs "Kavita Shanbhag · BN******1M · 1 fund") instead of repeating the name. <code>SamePersonDialog</code> copy for the name-only case (no "PAN you entered" line).</div></li>
+      <li><span class="tag db">DB</span><div>No schema change. Uses existing <code>household_members.detected_pan_*</code> columns and the existing <code>household_member_merges</code> table. For your staging account, the duplicates can be cleared with the fixed merge, or by deleting and recreating the test account.</div></li>
+      <li><span class="tag doc">Tests</span><div>Add your exact 4-upload sequence as a route test on the two fixture PDFs, asserting one Kavita throughout. Add unit tests for each new branch, including "two members named Kavita" (no auto-attach).</div></li>
+    </ul>
+  </div>
+
+  <div class="callout design">
+    <h4>Decided 30 Sep</h4>
+    <p><strong>(1) Name-only → existing member (cause A):</strong> attach automatically on an exact name match, with the "matched by name" tag on its funds. Because of issue 3's decision, that ribbon still auto-confirms, and the closed header shows the name-match count. Several possible matches → a new member, as today. <strong>(2) PAN person → name-only member (cause B):</strong> always ask, with a popup, because it permanently attaches a PAN to someone.</p>
+  </div>
+
+  <div class="block">
+    <h4>Cause B popup (reuses the U13 <code>SamePersonDialog</code>, new name-only wording)</h4>
+    <div class="table-scroll">
+      <table>
+        <tbody>
+          <tr><th>Title</th><td>Is this the Kavita Shanbhag you already have?</td></tr>
+          <tr><th>Body</th><td>This statement shows <strong>Kavita Shanbhag</strong> with PAN <code>BN******1M</code>. Your family list already has <strong>Kavita Shanbhag</strong> · PAN not on statement · 1 fund.</td></tr>
+          <tr><th>Option 1</th><td><strong>Yes, same person</strong>. Her funds from this statement join the existing Kavita, and the PAN is saved on her as the statement-detected PAN when you press Confirm imports.</td></tr>
+          <tr><th>Option 2</th><td><strong>No, add as a new person</strong>. A separate locked member, as today.</td></tr>
+          <tr><th>When</th><td>After the "We found N people" popup and before the ribbons, in the existing prompt queue (<code>/imports/sessions/{id}/resolve-same-person</code>). One popup per matching person.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ ISSUE 6 -->
+<section id="i6" class="issue">
+  <div class="issue-head">
+    <span class="issue-no">Issue 6</span>
+    <h2>Statement period missing from import history</h2>
+    <div class="meta"><span class="pill gap">Older gap, not from member detection</span></div>
+  </div>
+
+  <div class="callout cause">
+    <h4>Root cause</h4>
+    <p>The frontend is fine: <code>ImportHistorySection.tsx:100</code> shows "01 Apr 2025 – 30 Sep 2025" when both dates exist, and "Statement period unavailable" otherwise. The API passes them through (<code>api/imports.py:79-80</code>). But <strong>no code path ever writes</strong> <code>imports.statement_from_date</code> / <code>statement_to_date</code> (<code>models/imports.py:24-25</code>). They're only read, since the history feature landed in <code>fafbad1</code>. <code>confirm_people.py:248</code> builds <code>Import(...)</code> without them, and so do <code>cams_portal.py:63</code> and <code>coverage_gap.py:138</code>. <code>ParseResult</code> has no field for the period either, though casparser returns it: <code>{"from_": "01-Apr-2025", "to": "30-Sep-2025"}</code> for <code>family_cas_1.pdf</code>.</p>
+  </div>
+
+  <div class="block">
+    <h3>Fix</h3>
+    <ul class="fix">
+      <li><span class="tag be">BE</span><div><code>parser.py</code>: add <code>statement_from</code> / <code>statement_to: date | None</code> to <code>ParseResult</code>, parsed from casparser's <code>statement_period</code> with the existing <code>_parse_date</code>. A missing or unreadable period gives <code>None</code>, never an error.</div></li>
+      <li><span class="tag be">BE</span><div><code>confirm_people._confirm_claimed</code>: set both dates on every per-person <code>Import</code> row of the upload. Same in the single-member <code>confirm_import</code> path and <code>cams_portal</code> if it parses a statement.</div></li>
+      <li><span class="tag db">DB</span><div>Migration <code>0019</code> data step (no schema change): for rows with null dates, read <code>raw_parser_output → statement_period</code>. Every confirmed import already stores it, because <code>_person_raw_output</code> keeps the top-level keys. Accept both <code>from_</code> and <code>from</code> key spellings. Existing staging imports, yours included, get their periods back.</div></li>
+      <li><span class="tag fe">FE</span><div>Desktop needs nothing. Mobile (<code>MobileImportHistory.tsx:200</code>) prints raw ISO dates with "→"; switch it to the shared <code>formatDate</code> so both match.</div></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============================================================ CHANGES -->
+<section id="changes" class="block">
+  <h2>All changes in one place</h2>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Layer</th><th>File / object</th><th>Change</th><th>Issue</th></tr></thead>
+      <tbody>
+        <tr><td><span class="tag db">DB</span></td><td><code>alembic/versions/0019_…</code></td><td>Add <code>users.primary_goals</code> (JSONB on Postgres / JSON on SQLite) + Postgres containment check, backfill from <code>primary_goal</code></td><td>2</td></tr>
+        <tr><td><span class="tag db">DB</span></td><td><code>alembic/versions/0020_…</code> (later release)</td><td>Drop <code>users.primary_goal</code> + Postgres type <code>primarygoal</code>; remove the dual write</td><td>2</td></tr>
+        <tr><td><span class="tag db">DB</span></td><td>same migration</td><td>Data backfill of <code>imports.statement_from_date / _to_date</code> from <code>raw_parser_output</code></td><td>6</td></tr>
+        <tr><td><span class="tag be">BE</span></td><td><code>api/auth.py</code>, <code>services/auth/schemas.py</code></td><td><code>flow</code> on phone and email OTP requests; sign-up 409 and login 404 at request time; sign-up 409 at verify; <code>primary_goals</code> list on <code>/me</code></td><td>1, 2</td></tr>
+        <tr><td><span class="tag be">BE</span></td><td><code>models/user.py</code></td><td><code>primary_goals</code> column mapping (old column kept until <code>0020</code>)</td><td>2</td></tr>
+        <tr><td><span class="tag be">BE</span></td><td><code>import_/people_resolution.py</code></td><td>Name-only → existing member lookup; PAN person → name-only member same-person check</td><td>5</td></tr>
+        <tr><td><span class="tag be">BE</span></td><td><code>import_/confirm_people.py</code>, <code>import_/service.py</code></td><td>Same lookups at Confirm; write detected PAN on "Yes"; write statement dates</td><td>5, 6</td></tr>
+        <tr><td><span class="tag be">BE</span></td><td><code>dashboard/member_details.py</code></td><td>Detected-PAN duplicate → L4 merge; <code>can_merge</code> when either side is name-only</td><td>5</td></tr>
+        <tr><td><span class="tag be">BE</span></td><td><code>import_/parser.py</code></td><td>Statement period on <code>ParseResult</code></td><td>6</td></tr>
+        <tr><td><span class="tag fe">FE</span></td><td><code>features/auth/api.ts</code>, <code>AuthEntryFlow.tsx</code></td><td>Send <code>flow</code>; new 409 → "Log in" shortcut</td><td>1</td></tr>
+        <tr><td><span class="tag fe">FE</span></td><td><code>Q3Purpose.tsx</code>, <code>OnboardingFlow.tsx</code>, <code>types.ts</code></td><td>Multi-select + Continue</td><td>2</td></tr>
+        <tr><td><span class="tag fe">FE</span></td><td><code>ReviewTable.tsx</code>, <code>MemberRibbonReview.tsx</code></td><td><code>embedded</code> grid, wider container, card hardening, auto-confirm + badge</td><td>3</td></tr>
+        <tr><td><span class="tag fe">FE</span></td><td><code>PossibleDuplicateDialog</code>, <code>SamePersonDialog</code></td><td>Same-name disambiguation copy; name-only "Is this the Kavita you already have?" variant</td><td>5</td></tr>
+        <tr><td><span class="tag be">BE</span></td><td><code>dashboard/member_details.py</code></td><td><code>use_detected_pan</code> on the unlock request</td><td>4</td></tr>
+        <tr><td><span class="tag fe">FE</span></td><td>New <code>DetectedPanMismatchDialog</code>, <code>MemberDetailsDialog</code></td><td>L3 popup replaces the inline error</td><td>4</td></tr>
+        <tr><td><span class="tag fe">FE</span></td><td><code>MobileImportHistory.tsx</code></td><td>Shared date formatting</td><td>6</td></tr>
+        <tr><td><span class="tag doc">Docs</span></td><td>PRD-05, PRD-02, member-detection map / PRD-01, Database-Schema v1.7, <code>backend.md</code>, <code>database.md</code>, <code>decisions.md</code></td><td>Sign-up known-number rule; multi-goal; auto-confirm rule; name-only matching rules</td><td>all</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============================================================ DECISIONS -->
+<section id="decisions" class="block">
+  <h2>Decisions</h2>
+  <p>All settled on 30 Sep. 4a is the one follow-up still open.</p>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>#</th><th>Question</th><th>Recommendation</th></tr></thead>
+      <tbody>
+        <tr><td class="num">1</td><td>Also check Log In with an unknown number at request time, before sending a code (session.md item 9)?</td><td><strong>Decided 30 Sep:</strong> yes, same release, for phone and email</td></tr>
+        <tr><td class="num">2</td><td>Multi-goal storage: JSON column on <code>users</code>, or a new table?</td><td><strong>Decided 30 Sep:</strong> JSON column (JSONB + check on Postgres), old column dropped in a later migration</td></tr>
+        <tr><td class="num">3</td><td>Auto-confirm ribbons that have "matched by name" funds, or keep manual Confirm for those?</td><td><strong>Decided 30 Sep:</strong> auto-confirm them too; the spec FR-4 note is amended</td></tr>
+        <tr><td class="num">4</td><td>Keep L3 inline, or make it a popup?</td><td><strong>Decided 30 Sep:</strong> popup modelled on U4 (the statement's PAN, or upload a different statement)</td></tr>
+        <tr><td class="num">4a</td><td>Where "upload a different statement" goes, and whether it offers to remove the earlier funds</td><td>Normal upload form; nothing removed automatically</td></tr>
+        <tr><td class="num">5</td><td>Name-only person, exact name match to an existing member: attach automatically or ask?</td><td><strong>Decided 30 Sep:</strong> automatic, with the "matched by name" tag</td></tr>
+        <tr><td class="num">6</td><td>PAN person, name matches a name-only member: attach automatically or ask?</td><td><strong>Decided 30 Sep:</strong> ask, with a popup</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<footer>
+  Companion to <code>Docs/orchestration/cas-member-detection-map.html</code> and <code>unifolio-auth-flow-redesign-map.html</code>. File and line references are against branch <code>feat/enhanced-ui</code> at <code>744774d</code>. Issue 5 was reproduced with a throwaway test outside the repo; nothing in the repo was changed.
+</footer>
+
+</div>

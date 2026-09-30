@@ -242,3 +242,16 @@ One CAS upload now detects every person in the file (PAN groups first, name only
 - **Frontend (Tasks 14-19):** Q4/family-add onboarding screens deleted (`AddFamilyMembers`, `FamilyCasUpload`, `FamilyImportFlow`, `ParseQueue`, `Q4Household`, `UploadMyCas`); name-as-per-PAN copy; people popup; ribbon review; locked-member UI and unlock/edit popup; grouped Import History and delete dialogs; mobile twins.
 - **PRD amendments (Task 20):** applied the spec's R6 table to `Updated-CAS-PRD.md` (FR-3 rule, FR-4 restored from "password" to PAN plus the name-matching rule), `PRD-02` (US-2, FR-6, Q4 removed), `PRD-01` (FR-9), `App-Flow-Unifolio.md` (v1.3; S6/S7/S24-S26 struck, S5 goes to S8, new screens); `Database-Schema-Unifolio.md` to v1.6. `DEFERRED_FEATURES.md` gained minors' folios, Ask for access (option C) and a general merge tool. Decisions and spec deviations in `decisions.md`.
 - **Verified before the docs pass:** per-task reviews clean (ledger). **Not verified:** `functional_postgres` tests never run (no Docker in WSL); holder-name extraction only on synthetic CAMS/KFintech lines; mobile ribbon review has had no phone visual QA. Nothing committed; the user reviews and commits.
+
+
+## 2026-09-30 — Staging QA fixes (auth + CAS member detection), uncommitted
+
+The user tested the auth redesign and member detection on staging and reported six issues. Diagnosed into `Docs/orchestration/2026-09-30-staging-qa-findings-map.html` (the duplicate-Kavita bug reproduced locally with the synthetic fixture PDFs: three causes), decided with the user, planned in `Docs/superpowers/plans/2026-09-30-staging-qa-fixes.md`, and built: Tasks 1-2 by Claude subagents with per-task reviews, Tasks 3-11 natively in-session (user's switch), TDD throughout.
+
+- **Auth:** `flow` on both OTP-request routes; sign-up 409 / login 404 at request time; sign-up 409 at verify.
+- **Onboarding:** multi-select goal; migration 0019 (`users.primary_goals`, expand phase).
+- **Import review:** embedded 3-column ribbon grid, auto-confirm at 0 unresolved (amends the FR-4 note).
+- **Unlock:** L3 popup with `use_detected_pan`.
+- **People resolution:** exact-name attach for PAN-less people, asked same-person link for PAN people matching a name-only member, widened merge rule.
+- **Import history:** statement period written at Confirm; migration 0020 backfill.
+- **Not verified:** Postgres (0019 CHECK / JSONB, 0020 on JSONB); browser visual QA. Mid-session, `Docs/orchestration/qa-fixtures/` and `.superpowers/sdd/` were deleted by something outside the session.

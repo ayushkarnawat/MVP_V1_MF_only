@@ -66,3 +66,12 @@ Landing this migration also removed every OTP/session-related route's old direct
 - **Not verified on Postgres**: `tests/functional_postgres` was never run (no Docker in WSL). Run it once against a local Postgres before merge.
 
 `Database-Schema-Unifolio.md` is synced through 0018 (v1.6).
+
+
+## 2026-09-30 — Migrations 0019, 0020 (staging QA fixes)
+
+- **`0019_user_primary_goals`** (expand phase): `users.primary_goals` — JSONB on Postgres with CHECK `ck_users_primary_goals_allowed` (array of 1–4 items, contained in the four allowed goals; written as a CASE so a scalar fails the CHECK instead of raising), JSON on SQLite. Backfilled from `primary_goal`; `primary_goal` is kept for rolling deploys. **Not run on Postgres** (no TEST_DATABASE_URL).
+- **`0020_import_statement_period_backfill`** (data only): fills `imports.statement_from_date` / `statement_to_date` from `raw_parser_output.statement_period` (`from_` or `from`, `DD-Mon-YYYY` or ISO); unreadable rows stay NULL. Downgrade is a no-op.
+- **Pending, later release — `0021`:** re-backfill `primary_goals` from `primary_goal` for rows old tasks wrote during the rollout, then drop `users.primary_goal` and the `primarygoal` enum type.
+
+`Database-Schema-Unifolio.md` synced through 0020 (v1.7).

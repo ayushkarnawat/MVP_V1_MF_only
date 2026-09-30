@@ -272,6 +272,10 @@ target range without a separate HNI-branded question.
 
 **Q3 — Purpose (light-touch goal capture, not a financial plan)**
 > "What brings you to Unifolio?"
+
+*Amended 2026-09-30 (staging QA): multi-select. "Pick all that apply"; answers save on
+Continue (disabled until at least one is picked), Skip still works. Stored as
+`users.primary_goals`. See `Docs/orchestration/2026-09-30-staging-qa-findings-map.html`.*
 - "See all my mutual funds in one place"
 - "Actually understand what I'm invested in" (signals analytics-dashboard-eager users)
 - "Managing investments for my family, not just myself" (signals family-setup-eager users
