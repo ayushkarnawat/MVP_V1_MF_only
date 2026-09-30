@@ -1,6 +1,7 @@
 import { API_BASE_URL, ApiError, invalidateApiCache, parseErrorDetail } from "../../lib/apiClient";
 import { getToken } from "../auth/session";
 import type {
+  AcknowledgeCode,
   CASImportStatusResponse,
   CoverageGapItem,
   ImportConfirmResponse,
@@ -8,6 +9,7 @@ import type {
   OpeningBalancePayload,
   OpeningBalanceResponse,
   ParseErrorPayload,
+  PersonConfirmation,
   SchemeConfirmation,
   HouseholdImportHistoryItem,
   DeleteImportResponse,
@@ -71,6 +73,69 @@ export async function confirmImport(
   return (await response.json()) as ImportConfirmResponse;
 }
 
+async function postSession(
+  sessionId: string,
+  action: string,
+  body: Record<string, unknown>,
+): Promise<ImportPreviewResponse> {
+  const response = await fetch(`${API_BASE_URL}/imports/sessions/${encodeURIComponent(sessionId)}/${action}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new ApiError(response.status, (await parseErrorDetail(response)) as ParseErrorPayload | string);
+  }
+  return (await response.json()) as ImportPreviewResponse;
+}
+
+/** U2: the user's typed name for the person on the statement. */
+export function resolveName(sessionId: string, name: string): Promise<ImportPreviewResponse> {
+  return postSession(sessionId, "resolve-name", { name });
+}
+
+/** U3: pick which statement person is Me; null = "None of these". */
+export function resolveSelf(sessionId: string, personKey: string | null): Promise<ImportPreviewResponse> {
+  return postSession(sessionId, "resolve-self", { person_key: personKey });
+}
+
+/** U4/U13: use the statement's PAN for the member. */
+export function resolvePan(sessionId: string): Promise<ImportPreviewResponse> {
+  return postSession(sessionId, "resolve-pan", { choice: "statement" });
+}
+
+export function resolveSamePerson(
+  sessionId: string,
+  personKey: string,
+  memberId: string,
+  same: boolean,
+): Promise<ImportPreviewResponse> {
+  return postSession(sessionId, "resolve-same-person", { person_key: personKey, member_id: memberId, same });
+}
+
+export function acknowledgePrompt(sessionId: string, code: AcknowledgeCode): Promise<ImportPreviewResponse> {
+  return postSession(sessionId, "acknowledge", { code });
+}
+
+/** Confirms the review with per-person choices. `movedFunds` is temp_id -> person_key
+ * (top-level, matching the backend body). A repeat call gets 410 session_expired. */
+export async function confirmPeopleImport(
+  sessionId: string,
+  people: PersonConfirmation[],
+  movedFunds: Record<string, string> = {},
+): Promise<ImportConfirmResponse> {
+  const response = await fetch(`${API_BASE_URL}/imports/confirm`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ session_id: sessionId, people, moved_funds: movedFunds }),
+  });
+  if (!response.ok) {
+    throw new ApiError(response.status, (await parseErrorDetail(response)) as ParseErrorPayload | string);
+  }
+  invalidateApiCache();
+  return (await response.json()) as ImportConfirmResponse;
+}
+
 /** Best effort: releases a parsed-but-abandoned session's pending PAN. If
  * this never reaches the server, the pending PAN expires on its own. */
 export async function discardImportSession(sessionId: string): Promise<void> {
@@ -84,52 +149,10 @@ export async function discardImportSession(sessionId: string): Promise<void> {
   }
 }
 
-export async function uploadCasImport(
-  file: File,
-  password: string,
-  householdMemberId: string,
-  sourceTab: string = "upload",
-): Promise<CASImportStatusResponse> {
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("password", password);
-  formData.append("household_member_id", householdMemberId);
-  formData.append("source_tab", sourceTab);
-
-  const response = await fetch(`${API_BASE_URL}/cas-imports`, {
-    method: "POST",
-    headers: authHeaders(),
-    body: formData,
-  });
-
-  if (!response.ok) {
-    throw new ApiError(response.status, (await parseErrorDetail(response)) as ParseErrorPayload | string);
-  }
-
-  return (await response.json()) as CASImportStatusResponse;
-}
-
 export async function getCasImportStatus(importId: string): Promise<CASImportStatusResponse> {
   const response = await fetch(`${API_BASE_URL}/cas-imports/${importId}`, {
     method: "GET",
     headers: authHeaders(),
-  });
-
-  if (!response.ok) {
-    throw new ApiError(response.status, (await parseErrorDetail(response)) as ParseErrorPayload | string);
-  }
-
-  return (await response.json()) as CASImportStatusResponse;
-}
-
-export async function retryCasImportPassword(
-  importId: string,
-  password: string,
-): Promise<CASImportStatusResponse> {
-  const response = await fetch(`${API_BASE_URL}/cas-imports/${importId}/password`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json", ...authHeaders() },
-    body: JSON.stringify({ password }),
   });
 
   if (!response.ok) {
@@ -160,11 +183,30 @@ export async function getHouseholdImportHistory(): Promise<HouseholdImportHistor
   return (await response.json()) as HouseholdImportHistoryItem[];
 }
 
-export async function deleteHouseholdImport(importId: string): Promise<DeleteImportResponse> {
-  const response = await fetch(`${API_BASE_URL}/imports/${importId}`, {
+export async function deleteHouseholdImport(
+  importId: string,
+  scope: "person" | "group" = "person",
+): Promise<DeleteImportResponse> {
+  const response = await fetch(`${API_BASE_URL}/imports/${importId}?scope=${scope}`, {
     method: "DELETE",
     headers: authHeaders(),
   });
+  if (!response.ok) {
+    throw new ApiError(response.status, await parseErrorDetail(response));
+  }
+  invalidateApiCache();
+  return (await response.json()) as DeleteImportResponse;
+}
+
+/** Deletes all of a member's funds; removeMember also removes the member row. */
+export async function deleteMemberPortfolio(
+  memberId: string,
+  removeMember: boolean,
+): Promise<DeleteImportResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/household-members/${memberId}/portfolio?remove_member=${removeMember}`,
+    { method: "DELETE", headers: authHeaders() },
+  );
   if (!response.ok) {
     throw new ApiError(response.status, await parseErrorDetail(response));
   }

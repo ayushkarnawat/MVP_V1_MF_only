@@ -46,6 +46,22 @@ export function ImportConfirmed({
         </p>
       </div>
 
+      {(result.people?.length ?? 0) > 1 && (
+        <ul className="m-0 w-full max-w-lg list-none space-y-2 p-0 text-left">
+          {result.people.map((person) => (
+            <li
+              key={person.person_key}
+              className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm"
+            >
+              <span className="font-semibold text-[var(--color-ink)]">{person.name}</span>
+              <span className="text-[var(--color-text-secondary)] tabular-nums">
+                {`${person.added} added${person.skipped > 0 ? `, ${person.skipped} skipped` : ""}`}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+
       {result.warnings
         .filter((warning) => !dismissedWarnings.has(warning))
         .map((warning) => (

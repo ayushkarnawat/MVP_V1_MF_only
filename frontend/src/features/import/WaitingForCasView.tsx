@@ -2,25 +2,21 @@ import { useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { UploadForm } from "./UploadForm";
-import { cancelImportRequest, uploadCasImport } from "./api";
-import type { CASImportStatusResponse } from "./types";
+import { cancelImportRequest } from "./api";
 import { Clock, AlertTriangle, Loader2, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface WaitingForCasViewProps {
   importId: string;
-  memberId: string;
   onCancelled: () => void;
-  onUploadSubmit?: (file: File, password: string) => void;
-  onUploadReceived?: (res: CASImportStatusResponse) => void;
+  // Required: every upload goes through the parse -> review flow (M18).
+  onUploadSubmit: (file: File, password: string) => void;
 }
 
 export function WaitingForCasView({
   importId,
-  memberId,
   onCancelled,
   onUploadSubmit,
-  onUploadReceived,
 }: WaitingForCasViewProps) {
   const [isCancelling, setIsCancelling] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,18 +36,9 @@ export function WaitingForCasView({
     }
   };
 
-  const handleUpload = async (file: File, password: string) => {
+  const handleUpload = (file: File, password: string) => {
     setError(null);
-    if (onUploadSubmit) {
-      onUploadSubmit(file, password);
-      return;
-    }
-    try {
-      const res = await uploadCasImport(file, password, memberId, "request");
-      onUploadReceived?.(res);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Upload failed. Please try again.");
-    }
+    onUploadSubmit(file, password);
   };
 
   return (

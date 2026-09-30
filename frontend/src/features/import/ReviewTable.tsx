@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
-import type { ImportPreviewResponse, SchemeConfirmation } from "./types";
+import type { ImportPreviewResponse, PersonPreview, SchemeConfirmation, SchemeMatchPreview } from "./types";
+import { panOrPlaceholder } from "./prompts/copy";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +35,26 @@ interface ReviewTableProps {
   confirming: boolean;
   onConfirm: (confirmations: SchemeConfirmation[]) => void;
   memberName?: string;
+  /** The funds to review; defaults to every scheme in the preview. A ribbon passes one person's funds. */
+  schemes?: SchemeMatchPreview[];
+  /** Fires with the live count of funds that still need an AMFI code or a plan type. */
+  onUnresolvedCountChange?: (count: number) => void;
+  /** Fires whenever the scheme confirmations change (a ribbon reads them without a Confirm click). */
+  onConfirmationsChange?: (confirmations: SchemeConfirmation[]) => void;
+  /** Hides the sticky Confirm bar; the ribbon has its own Confirm. */
+  hideConfirm?: boolean;
+  /** Hides the page heading when the table sits inside a ribbon. */
+  hideHeader?: boolean;
+  /** Overrides for the summary cards, so a ribbon shows its person rather than the file's first investor. */
+  investorName?: string;
+  panMasked?: string | null;
+  /** temp_ids of funds placed by name only (FR-4): tagged, and movable. */
+  matchedByName?: string[];
+  /** temp_ids of funds the user placed (U10 owner pick or Move to). */
+  assignedByYou?: string[];
+  /** People a matched-by-name fund can move to. */
+  moveTargets?: PersonPreview[];
+  onMove?: (tempId: string, personKey: string) => void;
 }
 
 interface OverrideState {
@@ -49,7 +70,24 @@ function needsPlanTypeOverride(planType: string): boolean {
   return planType === "unclassified";
 }
 
-export function ReviewTable({ preview, confirming, onConfirm, memberName }: ReviewTableProps) {
+export function ReviewTable({
+  preview,
+  confirming,
+  onConfirm,
+  memberName,
+  schemes: schemesProp,
+  onUnresolvedCountChange,
+  onConfirmationsChange,
+  hideConfirm = false,
+  hideHeader = false,
+  investorName,
+  panMasked,
+  matchedByName = [],
+  assignedByYou = [],
+  moveTargets = [],
+  onMove,
+}: ReviewTableProps) {
+  const allSchemes = schemesProp ?? preview.schemes;
   const [overrides, setOverrides] = useState<Record<string, OverrideState>>({});
   const [activeTab, setActiveTab] = useState<"all" | "direct" | "regular">("all");
   const [layoutMode, setLayoutMode] = useState<"grid" | "list">(() => {
@@ -74,43 +112,89 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
     });
   };
 
-  const allResolved = preview.schemes.every((scheme) => {
+  const isUnresolved = (scheme: SchemeMatchPreview) => {
     const override = overrides[scheme.temp_id];
-    if (needsAmfiOverride(scheme.match_status) && !override?.amfiCode?.trim()) {
-      return false;
-    }
-    if (needsPlanTypeOverride(scheme.plan_type) && !override?.planType) {
-      return false;
-    }
-    return true;
-  });
+    if (needsAmfiOverride(scheme.match_status) && !override?.amfiCode?.trim()) return true;
+    if (needsPlanTypeOverride(scheme.plan_type) && !override?.planType) return true;
+    return false;
+  };
+  const unresolvedCount = allSchemes.filter(isUnresolved).length;
+  const allResolved = unresolvedCount === 0;
 
-  const handleConfirm = () => {
-    const confirmations: SchemeConfirmation[] = preview.schemes
-      .filter((scheme) => overrides[scheme.temp_id])
-      .map((scheme) => {
-        const override = overrides[scheme.temp_id];
-        const confirmation: SchemeConfirmation = { temp_id: scheme.temp_id };
-        if (override.amfiCode?.trim()) {
-          confirmation.amfi_code = override.amfiCode.trim();
-        }
-        if (override.planType) {
-          confirmation.plan_type_override = override.planType;
-        }
-        return confirmation;
-      });
-    onConfirm(confirmations);
+  const confirmations = useMemo<SchemeConfirmation[]>(
+    () =>
+      allSchemes
+        .filter((scheme) => overrides[scheme.temp_id])
+        .map((scheme) => {
+          const override = overrides[scheme.temp_id];
+          const confirmation: SchemeConfirmation = { temp_id: scheme.temp_id };
+          if (override.amfiCode?.trim()) {
+            confirmation.amfi_code = override.amfiCode.trim();
+          }
+          if (override.planType) {
+            confirmation.plan_type_override = override.planType;
+          }
+          return confirmation;
+        }),
+    [allSchemes, overrides],
+  );
+
+  // Report upward by value, not identity: the parent re-renders with fresh
+  // arrays every time, and re-firing on each one would loop.
+  const countCb = useRef(onUnresolvedCountChange);
+  const confirmationsCb = useRef(onConfirmationsChange);
+  useEffect(() => {
+    countCb.current = onUnresolvedCountChange;
+    confirmationsCb.current = onConfirmationsChange;
+  });
+  useEffect(() => {
+    countCb.current?.(unresolvedCount);
+  }, [unresolvedCount]);
+  const confirmationsKey = JSON.stringify(confirmations);
+  useEffect(() => {
+    confirmationsCb.current?.(JSON.parse(confirmationsKey) as SchemeConfirmation[]);
+  }, [confirmationsKey]);
+
+  const handleConfirm = () => onConfirm(confirmations);
+
+  // FR-4 tags and the "Move to…" picker for funds placed by name.
+  const renderPlacement = (scheme: SchemeMatchPreview) => {
+    const byName = matchedByName.includes(scheme.temp_id);
+    const byYou = assignedByYou.includes(scheme.temp_id);
+    if (!byName && !byYou) return null;
+    return (
+      <div className="flex flex-wrap items-center gap-2 pt-0.5">
+        <Badge variant="neutral" className="text-[9px] sm:text-[10px]">
+          {byYou ? "assigned by you" : "matched by name"}
+        </Badge>
+        {byName && !byYou && onMove && moveTargets.length > 0 && (
+          <select
+            aria-label={`Move ${scheme.name} to…`}
+            value=""
+            onChange={(event) => event.target.value && onMove(scheme.temp_id, event.target.value)}
+            className="h-8 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-2 text-xs"
+          >
+            <option value="">Move to…</option>
+            {moveTargets.map((target) => (
+              <option key={target.person_key} value={target.person_key}>
+                {target.name}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+    );
   };
 
-  const getEffectivePlanType = (scheme: (typeof preview.schemes)[0]) => {
+  const getEffectivePlanType = (scheme: SchemeMatchPreview) => {
     const override = overrides[scheme.temp_id];
     return override?.planType || scheme.plan_type;
   };
 
-  const directSchemes = preview.schemes.filter((s) => getEffectivePlanType(s) === "direct");
-  const regularSchemes = preview.schemes.filter((s) => getEffectivePlanType(s) === "regular");
+  const directSchemes = allSchemes.filter((s) => getEffectivePlanType(s) === "direct");
+  const regularSchemes = allSchemes.filter((s) => getEffectivePlanType(s) === "regular");
 
-  const filteredSchemes = preview.schemes.filter((scheme) => {
+  const filteredSchemes = allSchemes.filter((scheme) => {
     if (activeTab === "direct") {
       return getEffectivePlanType(scheme) === "direct";
     }
@@ -120,9 +204,7 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
     return true;
   });
 
-  const needsAttentionCount = preview.schemes.filter(
-    (s) => needsAmfiOverride(s.match_status) || needsPlanTypeOverride(s.plan_type)
-  ).length;
+  const needsAttentionCount = unresolvedCount;
 
   const effectiveLayoutMode = layoutMode === "list" ? "list" : "grid";
 
@@ -137,6 +219,7 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
       )}
     >
       {/* 1. Header Section */}
+      {!hideHeader && (
       <div className="space-y-0.5 sm:space-y-1">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2 pr-14 sm:pr-0">
           <div className="space-y-0.5">
@@ -153,6 +236,7 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
           Verify parsed mutual fund schemes and resolve any missing classifications before committing to your portfolio.
         </p>
       </div>
+      )}
 
       {/* 2. Investor & Import Summary Cards (Grid) */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 lg:gap-5">
@@ -163,7 +247,7 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
             <span>Investor</span>
           </div>
           <p className="font-semibold text-xs sm:text-sm text-[var(--color-ink)] truncate">
-            {preview.investor_name ?? "Not found in CAS"}
+            {investorName ?? preview.investor_name ?? "Not found in CAS"}
           </p>
         </div>
 
@@ -174,7 +258,7 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
             <span>PAN Number</span>
           </div>
           <p className="font-semibold text-xs sm:text-sm text-[var(--color-ink)] font-mono">
-            {preview.pan_masked ?? "Not found in CAS"}
+            {panOrPlaceholder(panMasked !== undefined ? panMasked : preview.pan_masked)}
           </p>
         </div>
 
@@ -185,7 +269,7 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
             <span>Transactions</span>
           </div>
           <p className="font-bold text-xs sm:text-sm text-[var(--color-ink)] tabular-nums">
-            {preview.transaction_count} found
+            {schemesProp ? allSchemes.reduce((sum, s) => sum + s.transaction_count, 0) : preview.transaction_count} found
           </p>
         </div>
 
@@ -196,7 +280,7 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
             <span>Funds / Folios</span>
           </div>
           <p className="font-bold text-xs sm:text-sm text-[var(--color-ink)] tabular-nums">
-            {preview.schemes.length} scheme{preview.schemes.length !== 1 ? "s" : ""}
+            {allSchemes.length} scheme{allSchemes.length !== 1 ? "s" : ""}
           </p>
         </div>
       </div>
@@ -217,7 +301,7 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
           >
             <span className="truncate">All Schemes</span>
             <span className="px-1.5 py-0.2 sm:py-0.5 rounded-md text-[9px] sm:text-[10px] font-mono bg-white/20 dark:bg-black/20">
-              {preview.schemes.length}
+              {allSchemes.length}
             </span>
           </button>
 
@@ -259,7 +343,7 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
 
         <div className="flex items-center justify-between sm:justify-end gap-3 flex-wrap w-full sm:w-auto">
           <span className="text-[11px] sm:text-xs text-[var(--color-text-secondary)]">
-            Showing {filteredSchemes.length} of {preview.schemes.length} scheme{preview.schemes.length !== 1 ? "s" : ""}
+            Showing {filteredSchemes.length} of {allSchemes.length} scheme{allSchemes.length !== 1 ? "s" : ""}
           </span>
 
           {/* A/B Layout Mode Switcher (Desktop Only) */}
@@ -408,6 +492,8 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
                       </span>
                     </div>
                   )}
+
+                  {renderPlacement(scheme)}
                 </div>
 
                 {/* Interactive Classification / Override Form Controls */}
@@ -550,6 +636,8 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
                   </div>
                 )}
 
+                {renderPlacement(scheme)}
+
                 {/* Interactive Classification / Override Form Controls */}
                 {needsAttention && (
                   <div className="pt-2.5 sm:pt-3 border-t border-[var(--color-border)]/60 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs">
@@ -604,6 +692,7 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
       )}
 
       {/* 5. STICKY BOTTOM ACTION FOOTER BAR */}
+      {!hideConfirm && (
       <div className="sticky bottom-3 sm:bottom-4 z-30 w-full p-3 sm:p-5 rounded-xl sm:rounded-2xl bg-[var(--color-surface)]/95 backdrop-blur-md border border-[var(--color-border)] shadow-xl flex items-center justify-between gap-3 sm:gap-4 flex-wrap box-border mt-3 sm:mt-6">
         <div className="space-y-0.5 min-w-0 flex-1">
           <div className="flex items-center gap-1.5 sm:gap-2">
@@ -642,6 +731,7 @@ export function ReviewTable({ preview, confirming, onConfirm, memberName }: Revi
           )}
         </Button>
       </div>
+      )}
     </motion.div>
   );
 }

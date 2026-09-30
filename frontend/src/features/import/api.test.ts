@@ -8,12 +8,17 @@ import {
   getMemberImportHistory,
   getHouseholdImportHistory,
   deleteHouseholdImport,
+  deleteMemberPortfolio,
+  resolveName,
+  resolveSelf,
+  resolvePan,
+  resolveSamePerson,
+  acknowledgePrompt,
+  confirmPeopleImport,
   parseImport,
   discardImportSession,
   postOpeningBalance,
   requestCamsStatement,
-  retryCasImportPassword,
-  uploadCasImport,
 } from "./api";
 
 describe("parseImport", () => {
@@ -154,31 +159,9 @@ describe("confirmImport", () => {
   });
 });
 
-describe("uploadCasImport & lifecycle methods", () => {
+describe("cas-import lifecycle methods", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
-  });
-
-  it("uploadCasImport sends file, password, memberId, and sourceTab", async () => {
-    const mockRes = {
-      import_id: "imp-123",
-      household_member_id: "m-1",
-      status: "upload_started",
-      uploaded_at: "2026-08-10T12:00:00Z",
-    };
-    const mockFetch = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify(mockRes), { status: 202 }),
-    );
-    vi.stubGlobal("fetch", mockFetch);
-
-    const file = new File(["pdf"], "cas.pdf", { type: "application/pdf" });
-    const res = await uploadCasImport(file, "secret", "m-1", "upload");
-
-    expect(res.import_id).toBe("imp-123");
-    expect(res.status).toBe("upload_started");
-    const [url, options] = mockFetch.mock.calls[0];
-    expect(url).toContain("/cas-imports");
-    expect(options.method).toBe("POST");
   });
 
   it("getCasImportStatus queries status by import_id", async () => {
@@ -197,27 +180,6 @@ describe("uploadCasImport & lifecycle methods", () => {
     expect(res.status).toBe("processing");
     const [url] = mockFetch.mock.calls[0];
     expect(url).toContain("/cas-imports/imp-123");
-  });
-
-  it("retryCasImportPassword sends PATCH with new password", async () => {
-    const mockRes = {
-      import_id: "imp-123",
-      household_member_id: "m-1",
-      status: "import_successful",
-      new_transactions_count: 5,
-      uploaded_at: "2026-08-10T12:00:00Z",
-    };
-    const mockFetch = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify(mockRes), { status: 200 }),
-    );
-    vi.stubGlobal("fetch", mockFetch);
-
-    const res = await retryCasImportPassword("imp-123", "new_secret");
-    expect(res.status).toBe("import_successful");
-    const [url, options] = mockFetch.mock.calls[0];
-    expect(url).toContain("/cas-imports/imp-123/password");
-    expect(options.method).toBe("PATCH");
-    expect(JSON.parse(options.body as string)).toEqual({ password: "new_secret" });
   });
 
   it("getMemberImportHistory returns list of historical imports", async () => {
@@ -252,7 +214,7 @@ describe("uploadCasImport & lifecycle methods", () => {
     expect(await getHouseholdImportHistory()).toEqual(history);
     expect(await deleteHouseholdImport("imp-1")).toEqual({ deleted_transactions_count: 3 });
     expect(mockFetch.mock.calls[0][0]).toContain("/imports/history");
-    expect(mockFetch.mock.calls[1][0]).toContain("/imports/imp-1");
+    expect(mockFetch.mock.calls[1][0]).toContain("/imports/imp-1?scope=person");
     expect(mockFetch.mock.calls[1][1].method).toBe("DELETE");
   });
 
@@ -349,3 +311,56 @@ describe("uploadCasImport & lifecycle methods", () => {
   });
 });
 
+
+describe("session resolve and people-confirm calls", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  function stub(body: unknown = {}, status = 200) {
+    const mockFetch = vi.fn().mockImplementation(async () => new Response(JSON.stringify(body), { status }));
+    vi.stubGlobal("fetch", mockFetch);
+    return mockFetch;
+  }
+
+  it.each([
+    ["resolve-name", () => resolveName("s 1", "Ayush"), { name: "Ayush" }],
+    ["resolve-self", () => resolveSelf("s 1", null), { person_key: null }],
+    ["resolve-pan", () => resolvePan("s 1"), { choice: "statement" }],
+    ["resolve-same-person", () => resolveSamePerson("s 1", "p1", "m2", false), { person_key: "p1", member_id: "m2", same: false }],
+    ["acknowledge", () => acknowledgePrompt("s 1", "member_not_in_file"), { code: "member_not_in_file" }],
+  ])("POSTs %s with the documented body", async (action, call, body) => {
+    const mockFetch = stub();
+    await call();
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toContain(`/imports/sessions/s%201/${action}`);
+    expect(options.method).toBe("POST");
+    expect(JSON.parse(options.body as string)).toEqual(body);
+  });
+
+  it("throws ApiError with the 409 payload from a resolve call", async () => {
+    stub({ detail: { code: "which_is_self", message: "m" } }, 409);
+    await expect(resolveSelf("s1", "p1")).rejects.toMatchObject({ status: 409 });
+  });
+
+  it("confirmPeopleImport sends people and top-level moved_funds", async () => {
+    const mockFetch = stub({ added: 1, skipped: 0, import_id: "i", warnings: [], people: [] });
+    await confirmPeopleImport("s1", [{ person_key: "p1", scheme_confirmations: [] }], { t1: "p2" });
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toContain("/imports/confirm");
+    expect(JSON.parse(options.body as string)).toEqual({
+      session_id: "s1",
+      people: [{ person_key: "p1", scheme_confirmations: [] }],
+      moved_funds: { t1: "p2" },
+    });
+  });
+
+  it("deleteHouseholdImport passes the group scope and deleteMemberPortfolio the remove flag", async () => {
+    const mockFetch = stub({ deleted_transactions_count: 0, removed_member_ids: [], deleted_file: false });
+    await deleteHouseholdImport("imp-1", "group");
+    await deleteMemberPortfolio("m-1", true);
+    expect(mockFetch.mock.calls[0][0]).toContain("/imports/imp-1?scope=group");
+    expect(mockFetch.mock.calls[1][0]).toContain("/household-members/m-1/portfolio?remove_member=true");
+    expect(mockFetch.mock.calls[1][1].method).toBe("DELETE");
+  });
+});

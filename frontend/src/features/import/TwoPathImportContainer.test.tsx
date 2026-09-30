@@ -171,4 +171,31 @@ describe("TwoPathImportContainer", () => {
 
     expect(screen.getByRole("heading", { name: /how would you like to bring in your statement/i })).toBeInTheDocument();
   });
+
+  it("waiting view hands the file to the review flow", async () => {
+    setCasResumeStep2("m-1");
+    const onUploadSubmit = vi.fn();
+    vi.spyOn(api, "requestCamsStatement").mockResolvedValue({
+      import_id: "imp-req-1",
+      household_member_id: "m-1",
+      status: "waiting_for_user",
+      cams_url: "https://www.camsonline.com/cas",
+      expires_at: "2026-08-12T12:00:00Z",
+    });
+    vi.stubGlobal("open", vi.fn());
+    localStorage.clear();
+
+    render(<TwoPathImportContainer memberId="m-1" onUploadSubmit={onUploadSubmit} />);
+    fireEvent.click(screen.getByRole("button", { name: /request from cams/i }));
+    fireEvent.click(screen.getByRole("button", { name: /request statement on cams/i }));
+    await screen.findByText(/waiting for cams email/i);
+    fireEvent.click(screen.getByRole("button", { name: /already got the email\? upload it now/i }));
+
+    const file = new File(["pdf"], "cas.pdf", { type: "application/pdf" });
+    fireEvent.change(screen.getByLabelText(/CAS PDF/i), { target: { files: [file] } });
+    fireEvent.change(screen.getByLabelText(/PDF Password/i), { target: { value: "pw" } });
+    fireEvent.click(screen.getByRole("button", { name: /Upload Statement/i }));
+
+    expect(onUploadSubmit).toHaveBeenCalledWith(file, "pw", "request");
+  });
 });

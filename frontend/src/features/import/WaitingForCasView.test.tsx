@@ -29,9 +29,8 @@ describe("WaitingForCasView", () => {
     render(
       <WaitingForCasView
         importId="imp-req-1"
-        memberId="m-1"
         onCancelled={onCancelled}
-        onUploadReceived={vi.fn()}
+        onUploadSubmit={vi.fn()}
       />
     );
 
@@ -52,7 +51,6 @@ describe("WaitingForCasView", () => {
     render(
       <WaitingForCasView
         importId="imp-req-1"
-        memberId="m-1"
         onCancelled={vi.fn()}
         onUploadSubmit={onUploadSubmit}
       />
@@ -78,5 +76,12 @@ describe("WaitingForCasView", () => {
     fireEvent.click(submitBtn);
 
     expect(onUploadSubmit).toHaveBeenCalledWith(mockFile, "SECRET123");
+  });
+
+  it("requires onUploadSubmit so there is no one-step upload fallback", () => {
+    // Type-level guard: omitting the prop must be a compile error (M18).
+    // @ts-expect-error onUploadSubmit is required
+    const el = <WaitingForCasView importId="i" onCancelled={vi.fn()} />;
+    expect(el).toBeTruthy();
   });
 });

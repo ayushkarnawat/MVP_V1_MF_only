@@ -9,7 +9,6 @@ import {
   setCasResumeStep2,
   clearCasResumeStep2,
 } from "./casResumeState";
-import type { CASImportStatusResponse } from "./types";
 import { cn } from "@/lib/utils";
 import { History, ArrowLeft } from "lucide-react";
 
@@ -19,14 +18,12 @@ export interface TwoPathImportContainerProps {
   memberId: string;
   defaultTab?: "request" | "upload" | "history" | "choice" | "waiting";
   onUploadSubmit: (file: File, password: string, sourceTab: string) => void;
-  onUploadReceived?: (res: CASImportStatusResponse) => void;
 }
 
 export function TwoPathImportContainer({
   memberId,
   defaultTab,
   onUploadSubmit,
-  onUploadReceived,
 }: TwoPathImportContainerProps) {
   const [view, setView] = useState<ImportView>(() => {
     if (defaultTab === "history") return "history";
@@ -119,17 +116,12 @@ export function TwoPathImportContainer({
         {view === "waiting" && (
           <WaitingForCasView
             importId={pendingImportId || "pending-import"}
-            memberId={memberId}
             onCancelled={() => {
               clearCasResumeStep2(memberId);
               setPendingImportId(null);
               setView("choice");
             }}
             onUploadSubmit={(file, password) => handleUploadSubmit(file, password, "request")}
-            onUploadReceived={(res) => {
-              clearCasResumeStep2(memberId);
-              onUploadReceived?.(res);
-            }}
           />
         )}
 

@@ -1,146 +1,62 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { TwoPathImportContainer } from "./TwoPathImportContainer";
 import { ParsingIndicator } from "./ParsingIndicator";
-import { ReviewTable } from "./ReviewTable";
 import { ImportError } from "./ImportError";
 import { ImportConfirmed } from "./ImportConfirmed";
-import { CrossAccountBlockedDialog } from "./CrossAccountBlockedDialog";
-import { ApiError, confirmImport, discardImportSession, parseImport } from "./api";
-import { PanConflictDialog } from "./PanConflictDialog";
-import { getPanConflict } from "./panConflict";
-import { clearCasResumeStep2 } from "./casResumeState";
+import { MemberRibbonReview } from "./MemberRibbonReview";
+import { ReviewExpiryBanner } from "./ReviewExpiryBanner";
+import { useImportOrchestration } from "./useImportOrchestration";
 import { isTestEnv } from "@/lib/motion";
-import type {
-  ImportConfirmResponse,
-  ImportPreviewResponse,
-  ParseErrorPayload,
-  SchemeConfirmation,
-} from "./types";
-
-type Step = "upload" | "parsing" | "review" | "error" | "confirmed";
 
 interface ImportFlowProps {
   householdMemberId: string;
   ctaLabel?: string;
   onDone?: () => void;
   defaultTab?: "choice" | "request" | "upload" | "history" | "waiting";
-  onGoToHousehold?: () => void;
+  /** U6: renders the unlock popup for a member who needs details before importing; call onDone when unlocked. */
+  renderMemberDetails?: (memberId: string, onDone: () => void) => ReactNode;
 }
 
-const GENERIC_NETWORK_ERROR: ParseErrorPayload = {
-  code: "network_error",
-  message: "Couldn't reach the server. Check your connection and try again.",
-};
-
-function toParseErrorPayload(err: unknown): ParseErrorPayload {
-  if (err instanceof ApiError) {
-    // ApiError.payload is `unknown`; the import API only ever throws ParseErrorPayload | string.
-    const payload = err.payload as ParseErrorPayload | string;
-    return typeof payload === "string" ? { code: "error", message: payload } : payload;
-  }
-  return GENERIC_NETWORK_ERROR;
-}
-
-export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab, onGoToHousehold }: ImportFlowProps) {
-  const [step, setStep] = useState<Step>("upload");
-  const [preview, setPreview] = useState<ImportPreviewResponse | null>(null);
-  const [confirmResult, setConfirmResult] = useState<ImportConfirmResponse | null>(null);
-  const [error, setError] = useState<ParseErrorPayload | null>(null);
-  const [reviewNotice, setReviewNotice] = useState<string | null>(null);
-  const [panConflict, setPanConflict] = useState<string | null>(null);
-  // After a PAN conflict, re-mount the upload container straight on the
-  // upload form instead of the request/upload choice screen.
+export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab, renderMemberDetails }: ImportFlowProps) {
+  const {
+    flow, uploadMessage, edits, nameAnswers, confirming, reviewPeople, setCancelOpen,
+    cancelImport, upload, runConfirm, dialogs,
+  } = useImportOrchestration(householdMemberId, renderMemberDetails);
+  const { stage, preview, confirmResult, error } = flow;
+  // After a discard, re-mount the upload container straight on the upload form
+  // instead of the request/upload choice screen.
   const [uploadTab, setUploadTab] = useState(defaultTab);
-  const [crossAccountBlocked, setCrossAccountBlocked] = useState<string | null>(null);
-  const [confirming, setConfirming] = useState(false);
 
   const shouldReduceMotion = useReducedMotion() || isTestEnv;
 
-  const reset = () => {
-    if (preview) void discardImportSession(preview.session_id);
-    clearCasResumeStep2(householdMemberId);
-    setStep("upload");
-    setPreview(null);
-    setConfirmResult(null);
-    setError(null);
-    setReviewNotice(null);
-    setConfirming(false);
-  };
-
   const handleUpload = async (file: File, password: string) => {
-    clearCasResumeStep2(householdMemberId);
-    setStep("parsing");
-    setError(null);
-    try {
-      const result = await parseImport(file, password, householdMemberId);
-      setPreview(result);
-      setStep("review");
-    } catch (err) {
-      const conflict = getPanConflict(err);
-      if (conflict) {
-        // Nothing was stored server-side; go back to the upload form under the popup.
-        setUploadTab("upload");
-        setStep("upload");
-        if (conflict.code === "cross_account_pan_blocked") {
-          setCrossAccountBlocked(conflict.message);
-        } else {
-          setPanConflict(conflict.message);
-        }
-        return;
-      }
-      setError(toParseErrorPayload(err));
-      setStep("error");
-    }
+    // Whatever sends the user back to the upload screen (a discard, an expiry, a
+    // failed parse), they should land on the form they just used, not the choice screen.
+    setUploadTab("upload");
+    await upload(file, password);
   };
 
-  // Confirm never prompts: the member and PAN were settled at upload. The only
-  // recoverable failures left are a scheme needing an AMFI code (409) and an
-  // expired session (404).
-  const handleConfirm = async (confirmations: SchemeConfirmation[]) => {
-    if (!preview) return;
-    setConfirming(true);
-    setReviewNotice(null);
-    try {
-      const result = await confirmImport(preview.session_id, householdMemberId, confirmations);
-      clearCasResumeStep2(householdMemberId);
-      setConfirmResult(result);
-      setStep("confirmed");
-    } catch (err) {
-      if (err instanceof ApiError && (err.status === 409 || err.status === 404)) {
-        setReviewNotice(
-          err.status === 404
-            ? "This import session has expired. Please re-upload your CAS."
-            : toParseErrorPayload(err).message,
-        );
-      } else {
-        setError(toParseErrorPayload(err));
-        setStep("error");
-      }
-    } finally {
-      setConfirming(false);
-    }
-  };
+  const view =
+    stage === "upload" || stage === "prompt"
+      ? "upload"
+      : stage === "notices" || stage === "people"
+        ? "waiting"
+        : stage;
+  const showRibbons = stage === "review" && preview !== null;
 
   return (
     <div className="w-full min-h-full flex-1 flex flex-col justify-center items-center my-auto">
-      <CrossAccountBlockedDialog
-        isOpen={crossAccountBlocked !== null}
-        message={crossAccountBlocked ?? ""}
-        onBack={() => {
-          setCrossAccountBlocked(null);
-          onGoToHousehold?.();
-        }}
-      />
-      <PanConflictDialog
-        isOpen={panConflict !== null}
-        message={panConflict ?? ""}
-        secondaryLabel="Cancel"
-        onChangeFile={() => setPanConflict(null)}
-        onSecondary={() => setPanConflict(null)}
-      />
+      {dialogs}
+
+      {(stage === "people" || stage === "review") && preview && (
+        <div className="w-full px-4 pb-3">
+          <ReviewExpiryBanner key={preview.session_id} expiresAt={preview.expires_at} />
+        </div>
+      )}
+
       <AnimatePresence mode="wait">
-        {step === "upload" && (
+        {view === "upload" && (
           <motion.div
             key="upload"
             initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
@@ -149,6 +65,11 @@ export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab, on
             transition={{ duration: 0.2 }}
             className="w-full flex-1 flex flex-col justify-center items-center my-auto"
           >
+            {uploadMessage && (
+              <p role="status" className="mb-3 max-w-md text-center text-sm text-[var(--color-ink)]">
+                {uploadMessage}
+              </p>
+            )}
             <TwoPathImportContainer
               memberId={householdMemberId}
               defaultTab={uploadTab}
@@ -157,7 +78,7 @@ export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab, on
           </motion.div>
         )}
 
-        {step === "parsing" && (
+        {view === "parsing" && (
           <motion.div
             key="parsing"
             initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.98 }}
@@ -170,7 +91,7 @@ export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab, on
           </motion.div>
         )}
 
-        {step === "review" && preview && (
+        {view === "review" && showRibbons && preview && (
           <motion.div
             key="review"
             initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
@@ -179,16 +100,20 @@ export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab, on
             transition={{ duration: 0.2 }}
             className="w-full"
           >
-            {reviewNotice && <p role="alert">{reviewNotice}</p>}
-            <ReviewTable
+            <MemberRibbonReview
+              key={preview.session_id}
               preview={preview}
+              people={reviewPeople}
+              edits={edits}
+              nameAnswers={nameAnswers}
               confirming={confirming}
-              onConfirm={handleConfirm}
+              onConfirmImports={(people, moved) => void runConfirm(people, moved)}
+              onCancel={() => setCancelOpen(true)}
             />
           </motion.div>
         )}
 
-        {step === "error" && (
+        {view === "error" && (
           <motion.div
             key="error"
             initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.98 }}
@@ -197,11 +122,14 @@ export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab, on
             transition={{ duration: 0.2 }}
             className="w-full flex-1 flex flex-col justify-center items-center my-auto min-h-[calc(100dvh-3rem)] sm:min-h-[520px]"
           >
-            <ImportError error={error ?? GENERIC_NETWORK_ERROR} onRetry={reset} />
+            <ImportError
+              error={{ code: "error", message: error ?? "Couldn't reach the server. Check your connection and try again." }}
+              onRetry={() => void cancelImport()}
+            />
           </motion.div>
         )}
 
-        {step === "confirmed" && confirmResult && (
+        {view === "confirmed" && confirmResult && (
           <motion.div
             key="confirmed"
             initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
@@ -213,7 +141,13 @@ export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab, on
             <ImportConfirmed
               result={confirmResult}
               ctaLabel={ctaLabel}
-              onImportAnother={onDone ?? reset}
+              onImportAnother={
+                onDone ??
+                (() => {
+                  setUploadTab(defaultTab);
+                  void cancelImport();
+                })
+              }
             />
           </motion.div>
         )}
