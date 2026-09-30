@@ -3,7 +3,7 @@ import uuid
 
 import pytest
 
-from app.models.enums import Relationship
+from app.models.enums import MemberLockReason, Relationship
 from app.models.user import HouseholdMember, User
 from app.services.import_ import pan_claims
 from app.services.import_.crypto import decrypt_pan, encrypt_pan, hash_pan
@@ -13,6 +13,7 @@ from app.services.import_.pan_claims import (
     PanBelongsToOtherMemberError,
     PanMismatchForMemberError,
     claim_pan_for_member,
+    classify_detected_pan,
     confirm_pan_claim,
     release_pending_pan_claim,
 )
@@ -243,3 +244,67 @@ def test_confirm_survives_an_integrity_error_from_the_fallback_claim(db_session,
     monkeypatch.setattr(pan_claims, "claim_pan_for_member", boom)
     confirm_pan_claim(db_session, member, "ABCDE1234F")  # must not raise
     assert member.pan_lookup_hash is None
+
+
+# --- classify_detected_pan (read-only; F7 order) ---------------------------
+
+
+def test_classify_detected_pan_new(db_session):
+    user = _user(db_session)
+    assert classify_detected_pan(db_session, user.id, "ABCDE1234F", now=NOW) == ("new", None)
+
+
+def test_classify_detected_pan_existing_member(db_session):
+    user = _user(db_session)
+    member = _member(db_session, user, pan="ABCDE1234F")
+    assert classify_detected_pan(db_session, user.id, "abcde 1234f", now=NOW) == (
+        "existing_member", member.id,
+    )
+
+
+def test_classify_detected_pan_locked_member(db_session):
+    user = _user(db_session)
+    locked = HouseholdMember(
+        id=uuid.uuid4(), user_id=user.id, name="Dad", created_at=NOW,
+        details_completed_at=None, lock_reason=MemberLockReason.DETAILS_NEEDED,
+        detected_pan_encrypted=encrypt_pan("ABCDE1234F"), detected_pan_hash=hash_pan("ABCDE1234F"),
+    )
+    db_session.add(locked)
+    db_session.commit()
+    assert classify_detected_pan(db_session, user.id, "ABCDE1234F", now=NOW) == (
+        "locked_member", locked.id,
+    )
+
+
+def test_classify_detected_pan_other_account(db_session):
+    _member(db_session, _user(db_session), pan="ABCDE1234F")
+    me = _user(db_session)
+    assert classify_detected_pan(db_session, me.id, "ABCDE1234F", now=NOW) == ("other_account", None)
+
+
+def test_classify_locked_member_beats_other_account(db_session):
+    # F7 / spec M9: a locked member here still attaches after another account
+    # claimed the same PAN.
+    other = _user(db_session)
+    _member(db_session, other, pan="ABCDE1234F")
+    user = _user(db_session)
+    locked = HouseholdMember(
+        id=uuid.uuid4(), user_id=user.id, name="Dad", created_at=NOW,
+        details_completed_at=None, lock_reason=MemberLockReason.DETAILS_NEEDED,
+        detected_pan_encrypted=encrypt_pan("ABCDE1234F"), detected_pan_hash=hash_pan("ABCDE1234F"),
+    )
+    db_session.add(locked)
+    db_session.commit()
+    assert classify_detected_pan(db_session, user.id, "ABCDE1234F", now=NOW) == (
+        "locked_member", locked.id,
+    )
+
+
+def test_classify_detected_pan_expired_pending_claim_counts_as_new(db_session):
+    user = _user(db_session)
+    _member(db_session, user, pan="ABCDE1234F", pending_until=NOW - timedelta(minutes=1))
+    other = _user(db_session)
+    assert classify_detected_pan(db_session, user.id, "ABCDE1234F", now=NOW) == ("new", None)
+    assert classify_detected_pan(db_session, other.id, "ABCDE1234F", now=NOW) == ("new", None)
+    # read-only: the expired claim is not cleared
+    assert db_session.query(HouseholdMember).filter_by(pan_lookup_hash=hash_pan("ABCDE1234F")).count() == 1

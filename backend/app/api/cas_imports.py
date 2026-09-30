@@ -3,23 +3,16 @@
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.models.imports import Import
-from app.models.user import User
+from app.models.user import HouseholdMember, User
 from app.services.auth.session import get_active_user
 from app.services.dashboard.household_members import get_household_member_for_user
-from app.services.import_.pan_claims import PanConflictError
-from app.services.import_.lifecycle_service import (
-    FileTooLargeError,
-    InvalidFileFormatError,
-    SessionExpiredError,
-    create_cas_import,
-    retry_cas_import_password,
-)
+from app.services.dashboard.member_details import require_unlocked_member
 
 router = APIRouter(tags=["cas-imports"])
 
@@ -79,45 +72,17 @@ def _serialize_import_response(rec: Import) -> dict[str, Any]:
     }
 
 
-@router.post("/cas-imports", status_code=status.HTTP_202_ACCEPTED, response_model=CASImportStatusResponse)
-async def upload_cas_import(
-    file: UploadFile = File(...),
-    password: str = Form(...),
-    household_member_id: str = Form(...),
-    source_tab: str = Form("upload"),
-    user: User = Depends(get_active_user),
-    db: Session = Depends(get_db),
-):
-    try:
-        member_uuid = uuid.UUID(household_member_id)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail={"code": "invalid_id", "message": "Invalid household_member_id."}) from exc
+_REVIEW_REQUIRED = {
+    "code": "review_required",
+    "message": "Upload this statement through the review screen.",
+}
 
-    if get_household_member_for_user(db, user.id, member_uuid) is None:
-        raise HTTPException(status_code=404, detail="Household member not found.")
 
-    pdf_bytes = await file.read()
-    try:
-        import_rec = await create_cas_import(
-            db=db,
-            user_id=user.id,
-            household_member_id=member_uuid,
-            file_bytes=pdf_bytes,
-            filename=file.filename or "statement.pdf",
-            password=password,
-            source_tab=source_tab,
-        )
-    except PanConflictError as exc:
-        raise HTTPException(
-            status_code=409,
-            detail={"code": exc.code, "message": exc.message},
-        ) from exc
-    except InvalidFileFormatError as exc:
-        raise HTTPException(status_code=400, detail={"code": "invalid_file", "message": str(exc)}) from exc
-    except FileTooLargeError as exc:
-        raise HTTPException(status_code=413, detail={"code": "file_too_large", "message": str(exc)}) from exc
-
-    return _serialize_import_response(import_rec)
+# M18: no path may import a CAS without people detection. The route stays (rather
+# than 404) so old clients get a clear answer; it never reads the upload.
+@router.post("/cas-imports", status_code=status.HTTP_409_CONFLICT)
+async def upload_cas_import(user: User = Depends(get_active_user)):
+    raise HTTPException(status_code=409, detail=_REVIEW_REQUIRED)
 
 
 @router.get("/cas-imports/{import_id}", response_model=CASImportStatusResponse)
@@ -160,24 +125,8 @@ def retry_password(
     if get_household_member_for_user(db, user.id, import_rec.household_member_id) is None:
         raise HTTPException(status_code=403, detail="Access denied to this import record.")
 
-    try:
-        updated_rec = retry_cas_import_password(
-            db=db,
-            import_id=import_uuid,
-            user_id=user.id,
-            new_password=body.password,
-        )
-    except PanConflictError as exc:
-        raise HTTPException(
-            status_code=409,
-            detail={"code": exc.code, "message": exc.message},
-        ) from exc
-    except SessionExpiredError as exc:
-        raise HTTPException(status_code=410, detail={"code": "session_expired", "message": str(exc)}) from exc
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-    return _serialize_import_response(updated_rec)
+    # M18: password retry parsed and committed without people detection.
+    raise HTTPException(status_code=409, detail=_REVIEW_REQUIRED)
 
 
 @router.get("/household-members/{member_id}/cas-imports", response_model=list[CASImportStatusResponse])
@@ -191,8 +140,7 @@ def list_member_import_history(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Invalid member_id.") from exc
 
-    if get_household_member_for_user(db, user.id, member_uuid) is None:
-        raise HTTPException(status_code=404, detail="Household member not found.")
+    require_unlocked_member(db, user.id, member_uuid)
 
     history = (
         db.query(Import)
@@ -241,8 +189,7 @@ def list_member_coverage_gaps(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Invalid member_id.") from exc
 
-    if get_household_member_for_user(db, user.id, member_uuid) is None:
-        raise HTTPException(status_code=404, detail="Household member not found.")
+    require_unlocked_member(db, user.id, member_uuid)
 
     from app.models.folio import Folio
     from app.models.reference import Scheme
@@ -286,6 +233,17 @@ def post_opening_balance(
     from decimal import Decimal
     from app.models.folio import Folio
     from app.services.import_.coverage_gap import create_opening_balance
+
+    # A locked member's folio is not writable from a side door (same gate as the
+    # member-scope reads). Unknown/foreign folios fall through to the existing 400.
+    owned = (
+        db.query(Folio.household_member_id)
+        .join(HouseholdMember, Folio.household_member_id == HouseholdMember.id)
+        .filter(Folio.id == folio_uuid, HouseholdMember.user_id == user.id)
+        .first()
+    )
+    if owned is not None:
+        require_unlocked_member(db, user.id, owned[0])
 
     try:
         units_dec = Decimal(body.units)
@@ -335,6 +293,8 @@ def request_cams_statement(
         raise HTTPException(status_code=400, detail="Invalid household_member_id.") from exc
 
     from app.services.import_.cams_portal import initiate_cams_request
+
+    require_unlocked_member(db, user.id, member_uuid)
 
     try:
         import_rec, cams_url = initiate_cams_request(db, user.id, member_uuid)

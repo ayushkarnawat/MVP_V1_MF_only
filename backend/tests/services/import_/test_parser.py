@@ -1,6 +1,7 @@
 from decimal import Decimal
 from unittest.mock import MagicMock
 
+import pytest
 from casparser.enums import CASFileType, FileType
 from casparser.enums import TransactionType as CasTxnType
 from casparser.types import CASData, Folio, InvestorInfo, Scheme, SchemeValuation, StatementPeriod, TransactionData
@@ -15,12 +16,12 @@ from app.services.import_.parser import (
 )
 
 
-def test_mask_pan():
-    assert mask_pan("ABCDE1234F") == "A********F"
-    assert mask_pan(None) is None
-    assert mask_pan("") == ""
-    assert mask_pan("A") == "*"
-    assert mask_pan("AB") == "**"
+@pytest.mark.parametrize(
+    "pan, masked",
+    [("BXQPS5678L", "BX******8L"), ("ABCD", "****"), ("A", "*"), ("AB", "**"), (None, None), ("", "")],
+)
+def test_mask_pan_shows_first_two_and_last_two(pan, masked):
+    assert mask_pan(pan) == masked
 
 
 def test_normalize_txn_type_maps_to_monolith_enum():
@@ -214,7 +215,7 @@ def test_normalize_cas_data_redacts_pan_from_raw_json():
     result = _normalize_cas_data(data)
 
     assert "ABCDE1234F" not in result.raw_json
-    assert result.investor.pan_masked == "A********F"
+    assert result.investor.pan_masked == "AB******4F"
 
 
 def test_normalize_cas_data_carries_raw_pan_alongside_masked():
@@ -230,7 +231,7 @@ def test_normalize_cas_data_carries_raw_pan_alongside_masked():
     result = _normalize_cas_data(data)
 
     assert result.investor.pan == "ABCDE1234F"
-    assert result.investor.pan_masked == "A********F"
+    assert result.investor.pan_masked == "AB******4F"
 
 
 def test_normalize_cas_data_skips_transaction_missing_amount_and_warns():
@@ -247,3 +248,52 @@ def test_normalize_cas_data_skips_transaction_missing_amount_and_warns():
     assert result.transactions == []
     assert len(result.parse_warnings) == 1
     assert "missing amount, units, or NAV" in result.parse_warnings[0]
+
+
+def test_parse_cas_pdf_bytes_fills_people_and_person_keys(monkeypatch):
+    import casparser
+
+    from app.services.import_ import parser as parser_mod
+    from app.services.import_.parser import parse_cas_pdf_bytes
+
+    data = _real_cas_data(
+        pan="ABCDE1234F",
+        txn_kwargs={"amount": Decimal("5000"), "units": Decimal("10"), "nav": Decimal("500")},
+    )
+    monkeypatch.setattr(casparser, "read_cas_pdf", lambda path, pw: data)
+    data.folios[0].amc = "HDFC AMC Mutual Fund"
+    lines = ["HDFC AMC Mutual Fund", "Folio No: 123 / 45 PAN: ABCDE1234F", "TEST INVESTOR"]
+    monkeypatch.setattr(parser_mod, "read_pdf_lines", lambda path, pw: lines)
+    result = parse_cas_pdf_bytes(b"%PDF", "pw")
+
+    assert [p.key for p in result.people] == ["p1"]
+    assert result.people[0].name == "TEST INVESTOR" and result.people[0].name_source == "holder_line"
+    assert result.people[0].pan_masked == "AB******4F"
+    assert result.unassigned_folio_keys == []
+    assert result.schemes and all(s.person_key == "p1" for s in result.schemes)
+    assert result.transactions and all(t.person_key == "p1" for t in result.transactions)
+    assert "ABCDE1234F" not in result.raw_json
+
+
+def test_normalize_without_lines_empty_pan_and_no_name_is_unassigned():
+    data = _real_cas_data(pan="", txn_kwargs={"amount": Decimal("5"), "units": Decimal("1"), "nav": Decimal("5")})
+    result = _normalize_cas_data(data)
+    # no PAN and no readable name -> unassigned, schemes carry no person key
+    assert result.people == [] and len(result.unassigned_folio_keys) == 1
+    assert result.schemes[0].person_key is None
+
+
+def test_normalize_same_folio_number_two_amcs_and_empty_pan():
+    data = _real_cas_data(pan="ABCDE1234F", txn_kwargs={"amount": Decimal("5"), "units": Decimal("1"), "nav": Decimal("5")})
+    other = data.model_copy(deep=True).folios[0]
+    other.amc = "Axis Mutual Fund"
+    other.PAN = ""  # casparser's "no PAN on header"
+    data.folios[0].amc = "HDFC Mutual Fund"
+    data.folios.append(other)
+    lines = ["HDFC Mutual Fund", "Folio No: 123 / 45 PAN: ABCDE1234F", "ADITI SHARMA",
+             "Axis Mutual Fund", "Folio No: 123 / 45", "MEERA SHARMA"]
+    result = _normalize_cas_data(data, lines)
+    by_amc = {s.amc: s.person_key for s in result.schemes}
+    assert by_amc == {"HDFC Mutual Fund": "p1", "Axis Mutual Fund": "p2"}
+    assert {t.amc: t.person_key for t in result.transactions} == by_amc
+    assert [(p.key, p.pan) for p in result.people] == [("p1", "ABCDE1234F"), ("p2", None)]

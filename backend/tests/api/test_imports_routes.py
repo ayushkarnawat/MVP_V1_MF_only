@@ -16,6 +16,9 @@ from app.services.import_.parser import (
     ParseResult,
 )
 
+# Moved to import_helpers.py (Task 6) so test_imports_people_routes.py shares them.
+from .import_helpers import _authed_headers, _authed_headers_and_member, _parse
+
 
 @pytest.fixture(autouse=True)
 def isolate_cas_file_storage(tmp_path, monkeypatch):
@@ -26,22 +29,6 @@ def isolate_cas_file_storage(tmp_path, monkeypatch):
     settings.cas_file_storage_dir once at import time (monkeypatching the
     setting itself would silently no-op)."""
     monkeypatch.setattr(file_storage_module.default_file_storage, "_base_dir", tmp_path)
-
-
-def _authed_headers(client, phone: str) -> dict[str, str]:
-    otp = client.post("/auth/otp/request", json={"phone_number": phone}).json()["otp"]
-    token = client.post("/auth/otp/verify", json={"phone_number": phone, "otp": otp}).json()["session_token"]
-    return {"Authorization": f"Bearer {token}"}
-
-
-def _authed_headers_and_member(client, phone: str) -> tuple[dict[str, str], str]:
-    headers = _authed_headers(client, phone)
-    member = client.post(
-        "/household-members",
-        json={"name": "Self", "relationship": "self"},
-        headers=headers,
-    ).json()
-    return headers, member["id"]
 
 
 def test_parse_route_requires_auth(client):
@@ -122,14 +109,17 @@ def test_confirm_route_requires_auth(client):
     assert response.status_code == 401
 
 
-def test_confirm_route_404s_on_unknown_session(client):
+def test_confirm_route_410s_on_unknown_session(client):
+    # Task 7 (C2): an unknown or expired review is 410 session_expired, not
+    # the old 404 (renamed from test_confirm_route_404s_on_unknown_session).
     headers, member_id = _authed_headers_and_member(client, "+919999999993")
     response = client.post(
         "/imports/confirm",
         json={"session_id": "does-not-exist", "household_member_id": member_id, "scheme_confirmations": []},
         headers=headers,
     )
-    assert response.status_code == 404
+    assert response.status_code == 410
+    assert response.json()["detail"] == {"code": "session_expired", "message": "This review has expired"}
 
 
 def test_confirm_route_400s_on_malformed_household_member_id(client):
@@ -479,30 +469,6 @@ def test_parse_then_confirm_lands_a_transaction_in_the_real_db(client, tmp_path)
         db.close()
 
 
-def _parse(client, headers, member_id, parse_result, cache_dir):
-    from app.services.import_.enrich import mfapi_client
-
-    async def _fake_get_json(_self, url):
-        if url.endswith("/latest"):
-            return {"meta": {"scheme_category": "Equity Scheme - Flexi Cap Fund"}}
-        return [{"schemeCode": "125497", "schemeName": "HDFC Flexi Cap Fund - Direct Plan - Growth"}]
-
-    with (
-        patch("app.api.imports.parse_cas_pdf_bytes", return_value=parse_result),
-        patch("app.services.import_.enrich.MfApiClient._get_json", new=_fake_get_json),
-        # Same isolation as test_parse_then_confirm_lands_a_transaction_in_the_real_db:
-        # keep the mfapi disk cache out of backend/.cache.
-        patch.object(mfapi_client, "cache_dir", cache_dir),
-        patch.object(mfapi_client, "_schemes", None),
-    ):
-        return client.post(
-            "/imports/parse",
-            files={"file": ("cas.pdf", b"%PDF-fake", "application/pdf")},
-            data={"password": "x", "household_member_id": member_id},
-            headers=headers,
-        )
-
-
 def _sample_with_pan(pan):
     from dataclasses import replace
 
@@ -540,36 +506,60 @@ def test_parse_route_maps_cross_account_pan_to_409_without_leaking(client, tmp_p
     headers_b, member_b = _authed_headers_and_member(client, "+919999999975")
     response = _parse(client, headers_b, member_b, _sample_with_pan("ZZZZZ9999Z"), tmp_path)
 
+    # Task 6 (F30): Me is found in the file by name, and Me's PAN is another
+    # account's -> still today's 409 with the review session dropped.
     assert response.status_code == 409
     assert response.json()["detail"]["code"] == "cross_account_pan_blocked"
     assert member_a not in response.text
 
 
 def test_parse_route_maps_same_account_pan_to_409(client, tmp_path):
+    # Rewritten for Task 6 (F21). Before people detection, uploading self's
+    # own CAS "for Mom" was 409 pan_belongs_to_other_member. Now the file's
+    # person is recognised as Me by PAN, and the prompt is that Mom isn't in
+    # this statement (U5, session kept); acknowledging it imports the
+    # statement for the people actually in it, i.e. attaches it to Me.
     headers, self_id = _authed_headers_and_member(client, "+919999999976")
     mom_id = client.post(
         "/household-members", json={"name": "Mom", "relationship": "parent"}, headers=headers,
     ).json()["id"]
-    assert _parse(client, headers, self_id, _sample_with_pan("ABCDE1234F"), tmp_path).status_code == 200
+    first = _parse(client, headers, self_id, _sample_with_pan("ABCDE1234F"), tmp_path)
+    assert first.status_code == 200
+    confirm = client.post(
+        "/imports/confirm",
+        json={"session_id": first.json()["session_id"], "household_member_id": self_id, "scheme_confirmations": []},
+        headers=headers,
+    )
+    assert confirm.status_code == 200
 
     response = _parse(client, headers, mom_id, _sample_with_pan("ABCDE1234F"), tmp_path)
 
     assert response.status_code == 409
-    assert response.json()["detail"]["code"] == "pan_belongs_to_other_member"
+    detail = response.json()["detail"]
+    assert detail["code"] == "member_not_in_file"
+    ack = client.post(
+        f"/imports/sessions/{detail['session_id']}/acknowledge", json={"code": "member_not_in_file"},
+        headers=headers,
+    )
+    assert ack.status_code == 200
+    me = ack.json()["people"][0]
+    assert me["is_me"] is True and me["member_id"] == self_id
 
 
 def test_discard_route_returns_204_and_frees_the_pan(client, tmp_path):
+    # Rewritten for Task 6 (F21): the second upload used to go "for Mom" in
+    # the same account, which is now U5 (Mom isn't in the file) regardless of
+    # the claim. "Freed" is checked where it matters instead: another
+    # account can now claim the PAN (it would be cross_account_pan_blocked
+    # if the discarded session still held it).
     headers, self_id = _authed_headers_and_member(client, "+919999999977")
-    mom_id = client.post(
-        "/household-members", json={"name": "Mom", "relationship": "parent"}, headers=headers,
-    ).json()["id"]
     session_id = _parse(client, headers, self_id, _sample_with_pan("ABCDE1234F"), tmp_path).json()["session_id"]
 
     discard = client.post(f"/imports/sessions/{session_id}/discard", headers=headers)
 
     assert discard.status_code == 204
-    # Freed: the same PAN can now be claimed for another member.
-    assert _parse(client, headers, mom_id, _sample_with_pan("ABCDE1234F"), tmp_path).status_code == 200
+    headers_b, self_b = _authed_headers_and_member(client, "+919999999979")
+    assert _parse(client, headers_b, self_b, _sample_with_pan("ABCDE1234F"), tmp_path).status_code == 200
 
 
 def test_discard_route_is_idempotent_for_unknown_sessions(client):

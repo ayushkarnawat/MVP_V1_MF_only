@@ -44,7 +44,7 @@ class SchemeMatch:
     category: str | None = None
 
 
-def _normalize_name(name: str) -> str:
+def normalize_name(name: str) -> str:
     s = name.upper()
     s = re.sub(r"\([^)]*\)", "", s)
     s = re.sub(r"[^A-Z0-9 ]", " ", s)
@@ -99,11 +99,11 @@ class MfApiClient:
             return data
 
     def fuzzy_match_scheme(self, scheme_name: str, scheme_list: list[dict[str, Any]]) -> SchemeMatch | None:
-        norm_query = _normalize_name(scheme_name)
+        norm_query = normalize_name(scheme_name)
         best: SchemeMatch | None = None
         for item in scheme_list:
             name = item.get("schemeName") or item.get("scheme_name") or ""
-            norm_name = _normalize_name(name)
+            norm_name = normalize_name(name)
             # SequenceMatcher("", "").ratio() is 1.0 -- a blank/punctuation-only
             # name must never "confirm" a match.
             ratio = SequenceMatcher(None, norm_query, norm_name).ratio() if norm_query and norm_name else 0.0
@@ -121,7 +121,7 @@ class MfApiClient:
         for a lookup the preview step already paid for."""
         return self._schemes
 
-    def _canonical_name_for_code(self, amfi_code: str, scheme_list: list[dict[str, Any]]) -> str | None:
+    def canonical_name_for_code(self, amfi_code: str, scheme_list: list[dict[str, Any]]) -> str | None:
         for item in scheme_list:
             code = str(item.get("schemeCode") or item.get("scheme_code") or "")
             if code == amfi_code:
@@ -171,12 +171,12 @@ class MfApiClient:
             return None, "pending"
 
         if amfi_from_cas:
-            canonical_name = self._canonical_name_for_code(amfi_from_cas, scheme_list)
+            canonical_name = self.canonical_name_for_code(amfi_from_cas, scheme_list)
             if canonical_name is not None:
                 if isin and isin in self._canonical_isins_for_code(amfi_from_cas, scheme_list):
                     return SchemeMatch(amfi_code=amfi_from_cas, scheme_name=scheme_name, confidence=1.0), "confirmed"
-                norm_query = _normalize_name(scheme_name)
-                norm_canonical = _normalize_name(canonical_name)
+                norm_query = normalize_name(scheme_name)
+                norm_canonical = normalize_name(canonical_name)
                 # SequenceMatcher("", "").ratio() is 1.0 -- a name that
                 # normalizes to nothing (blank/punctuation-only) must not be
                 # treated as a perfect match.

@@ -76,7 +76,7 @@ def test_delete_import_removes_only_its_transactions_and_invalidates_analytics(c
     response = client.delete(f"/imports/{deleted_import_id}", headers=headers)
 
     assert response.status_code == 200
-    assert response.json() == {"deleted_transactions_count": 1}
+    assert response.json() == {"deleted_transactions_count": 1, "removed_member_ids": [], "deleted_file": False}
     db.expire_all()
     assert db.query(Transaction).filter_by(import_id=deleted_import_id).count() == 0
     assert db.query(Transaction).filter_by(import_id=retained_import_id).count() == 1
@@ -164,4 +164,49 @@ def test_delete_import_rejects_another_households_import(client):
     response = client.delete(f"/imports/{imports[2].id}", headers=headers)
     assert response.status_code == 404
     assert db.get(Import, imports[2].id) is not None
+    db.close()
+
+
+def test_history_items_carry_group_fields(client):
+    db, _user, imports, headers = _seed_households(client)
+    group = uuid.uuid4()
+    for rec in imports[:2]:
+        rec.upload_group_id = group
+    db.commit()
+
+    rows = {r["import_id"]: r for r in client.get("/imports/history", headers=headers).json()}
+
+    first = rows[str(imports[0].id)]
+    assert first["upload_group_id"] == str(group)
+    assert first["member_name"] == "A"
+    assert first["group_people_count"] == 2
+    assert rows[str(imports[1].id)]["member_name"] == "B"
+    db.close()
+
+
+def test_delete_scope_group_and_member_portfolio_routes(client):
+    db, _user, imports, headers = _seed_households(client)
+    group = uuid.uuid4()
+    for rec in imports[:2]:
+        rec.upload_group_id = group
+    db.commit()
+    keep_id, gone_id = imports[0].id, imports[1].id
+    member_b = imports[1].household_member_id
+
+    bad = client.delete(f"/imports/{keep_id}?scope=bogus", headers=headers)
+    assert bad.status_code == 422
+
+    portfolio = client.delete(f"/household-members/{member_b}/portfolio?remove_member=true", headers=headers)
+    assert portfolio.status_code == 200
+    assert portfolio.json()["removed_member_ids"] == [str(member_b)]
+    db.expire_all()
+    assert db.get(Import, gone_id) is None and db.get(Import, keep_id) is not None
+
+    missing = client.delete(f"/household-members/{member_b}/portfolio", headers=headers)
+    assert missing.status_code == 404
+
+    group_delete = client.delete(f"/imports/{keep_id}?scope=group", headers=headers)
+    assert group_delete.status_code == 200
+    db.expire_all()
+    assert db.get(Import, keep_id) is None
     db.close()

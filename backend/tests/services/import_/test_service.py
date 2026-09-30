@@ -31,7 +31,7 @@ from decimal import Decimal
 from datetime import date, timedelta
 
 import app.services.import_.file_storage as file_storage_module
-from app.services.import_.file_storage import CAS_FILE_RETENTION_DAYS, storage_key_for_import
+from app.services.import_.file_storage import CAS_FILE_RETENTION_DAYS, storage_key_for_upload_group
 
 
 @pytest.fixture(autouse=True)
@@ -283,7 +283,9 @@ def test_confirm_import_stores_cas_file_and_sets_expiry():
     _confirm_for_member(db, preview, member)
 
     imp = db.query(Import).one()
-    assert imp.file_reference == storage_key_for_import(member.user_id, imp.id)
+    # Task 8/9: one stored file per upload group, keyed by the group id.
+    assert imp.upload_group_id is not None
+    assert imp.file_reference == storage_key_for_upload_group(member.user_id, imp.upload_group_id)
     expected_expiry = before + timedelta(days=CAS_FILE_RETENTION_DAYS)
     # sqlite's DateTime(timezone=True) round-trips as a naive datetime (UTC
     # wall-clock value preserved, tzinfo dropped) once re-read via a fresh
@@ -304,7 +306,8 @@ def test_confirm_import_invalidates_member_holdings_cache_after_commit():
         assert not db.in_transaction()
 
     with patch(
-        "app.services.import_.service.invalidate_holdings_cache",
+        # Task 9: confirm's writes (and the cache invalidation) moved to confirm_people.
+        "app.services.import_.confirm_people.invalidate_holdings_cache",
         side_effect=assert_commit_finished,
     ) as invalidate:
         _confirm_for_member(db, preview, member)
@@ -857,7 +860,9 @@ def _with_pan(parse_result, pan):
     return _replace(parse_result, investor=_replace(parse_result.investor, pan=pan))
 
 
-def _db_member(db, *, name="Self", relationship=Relationship.SELF, user=None):
+def _db_member(db, *, name="Test Investor", relationship=Relationship.SELF, user=None):
+    # Default name = the sample CAS's holder, so a first upload finds Me by
+    # name (Task 6 people detection) rather than raising U2.
     if user is None:
         user = User(id=uuid.uuid4(), phone_number=f"+91{uuid.uuid4().int % 10**10:010d}",
                     created_at=datetime.now(timezone.utc))
@@ -911,15 +916,26 @@ def test_start_import_session_conflict_creates_no_session(db_session):
 
 def test_fresh_account_first_import_confirms_straight_through(db_session):
     # Regression for the 2026-09-23 staging bug: a brand-new member with no
-    # PAN and no folios, CAS name unrelated to the member name -> no prompt.
-    member = _db_member(db_session, name="Me")
-    preview = _start(db_session, member, _with_pan(_sample_parse_result(), "ABCDE1234F"))
+    # PAN and no folios must be able to import their first CAS.
+    # Rewritten for Task 6/7 (F21): a CAS name unrelated to the onboarding
+    # name is now U2 (self_name_mismatch, session kept, nothing claimed), and
+    # "Use this name" then lets the same review confirm straight through.
+    from app.services.import_.service import ImportPromptError, resolve_name
 
+    member = _db_member(db_session, name="Me")
+    with pytest.raises(ImportPromptError) as prompt:
+        _start(db_session, member, _with_pan(_sample_parse_result(), "ABCDE1234F"))
+    assert prompt.value.code == "self_name_mismatch"
+    db_session.refresh(member)
+    assert member.pan_lookup_hash is None
+
+    preview = resolve_name(db_session, prompt.value.session_id, member.user_id, "Test Investor")
     result = confirm_import(db_session, preview.session_id, member.id, scheme_confirmations=[],
                             user_id=member.user_id)
 
     assert result.added == 1
     db_session.refresh(member)
+    assert member.name == "Test Investor"
     assert member.pan_lookup_hash == hash_pan("ABCDE1234F")
     assert member.pan_pending_until is None
 

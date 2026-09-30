@@ -27,6 +27,14 @@ from casparser.types import CASData, NSDLCASData
 
 from app.core.decimal_utils import quantize_amount, quantize_nav, quantize_units, to_decimal
 from app.models.enums import TransactionType
+from app.services.import_.people import (
+    ParsedPerson,
+    extract_folio_holders,
+    folio_key,
+    group_people,
+    name_warnings,
+    read_pdf_lines,
+)
 
 CAS_TO_CANONICAL: dict[str, TransactionType] = {
     "PURCHASE": TransactionType.PURCHASE,
@@ -63,9 +71,11 @@ def _as_arn_code(raw_advisor: str | None) -> str | None:
 def mask_pan(pan: str | None) -> str | None:
     if not pan:
         return pan
-    if len(pan) < 3:
+    # First two + last two, so a household can tell two similar PANs apart.
+    # Under 5 chars there is nothing to hide between them: mask all.
+    if len(pan) < 5:
         return "*" * len(pan)
-    return f"{pan[0]}{'*' * (len(pan) - 2)}{pan[-1]}"
+    return f"{pan[:2]}{'*' * (len(pan) - 4)}{pan[-2:]}"
 
 
 def normalize_txn_type(raw: str | CasTxnType) -> TransactionType:
@@ -123,6 +133,7 @@ class NormalizedTransaction:
     amount: Decimal | None
     units: Decimal | None
     nav: Decimal | None
+    person_key: str | None = None
 
 
 @dataclass
@@ -145,6 +156,7 @@ class ParsedScheme:
     arn_code: str | None = None
     plan_name_variant: str = "unresolved"
     plan_type: str = "unclassified"
+    person_key: str | None = None
 
 
 @dataclass
@@ -156,6 +168,8 @@ class ParseResult:
     parse_warnings: list[str] = field(default_factory=list)
     cas_type: str = "DETAILED"
     file_type: str = "UNKNOWN"
+    people: list[ParsedPerson] = field(default_factory=list)
+    unassigned_folio_keys: list[tuple[str, str]] = field(default_factory=list)
 
 
 class ParseError(Exception):
@@ -180,7 +194,7 @@ def classify_parse_error(exc: Exception) -> ParseError:
     return ParseError("parse_failed", str(exc)[:500])
 
 
-def _normalize_cas_data(data: CASData) -> ParseResult:
+def _normalize_cas_data(data: CASData, lines: list[str] | None = None) -> ParseResult:
     if data.cas_type == CASFileType.SUMMARY or str(data.cas_type).upper() == "SUMMARY":
         raise ParseError(
             "summary_cas",
@@ -196,11 +210,30 @@ def _normalize_cas_data(data: CASData) -> ParseResult:
         pan=pan,
     )
 
+    # People: folios keyed by (amc, folio_key) like casparser itself. casparser
+    # gives PAN="" for a header without a PAN; that means "no PAN" (None).
+    # `lines` is optional: without them no holder names are read.
+    holders = extract_folio_holders(lines) if lines else {}
+    folio_ids: list[tuple[tuple[str, str], str | None]] = []
+    seen_ids: set[tuple[str, str]] = set()
+    for f in data.folios:
+        fid = (f.amc, folio_key(f.folio))
+        if fid not in seen_ids:
+            seen_ids.add(fid)
+            folio_ids.append((fid, f.PAN or None))
+    addressee = investor_info.name if investor_info and isinstance(investor_info.name, str) else None
+    people, unassigned = group_people(folio_ids, holders, addressee)
+    person_of: dict[tuple[str, str], str] = {
+        fid: p.key for p in people for fid in p.folio_keys
+    }
+
     transactions: list[NormalizedTransaction] = []
     scheme_map: dict[tuple[str, str, str], ParsedScheme] = {}
     parse_warnings: list[str] = list(data.parse_warnings or [])
+    parse_warnings.extend(name_warnings(people))
 
     for folio in data.folios:
+        pkey = person_of.get((folio.amc, folio_key(folio.folio)))
         for scheme in folio.schemes:
             key = (folio.folio, folio.amc, scheme.scheme)
             if key not in scheme_map:
@@ -217,6 +250,7 @@ def _normalize_cas_data(data: CASData) -> ParseResult:
                     arn_code=arn_code,
                     plan_name_variant=name_variant,
                     plan_type=classify_folio_plan_type(name_variant, arn_code),
+                    person_key=pkey,
                 )
             for txn in scheme.transactions:
                 # casparser genuinely allows amount/units/nav to be None on some
@@ -241,6 +275,7 @@ def _normalize_cas_data(data: CASData) -> ParseResult:
                     isin=scheme.isin, amfi=scheme.amfi, scheme_type=scheme.type,
                     txn_date=_parse_date(txn.date), txn_type=normalize_txn_type(txn.type),
                     description=txn.description, amount=amount, units=units, nav=nav,
+                    person_key=pkey,
                 )
                 transactions.append(norm)
                 scheme_map[key].transaction_count += 1
@@ -265,6 +300,8 @@ def _normalize_cas_data(data: CASData) -> ParseResult:
         parse_warnings=parse_warnings,
         cas_type=str(data.cas_type),
         file_type=str(data.file_type),
+        people=people,
+        unassigned_folio_keys=unassigned,
     )
 
 
@@ -278,8 +315,15 @@ def parse_cas_pdf_bytes(pdf_bytes: bytes, password: str) -> ParseResult:
         tmp.write(pdf_bytes)
         tmp_path = tmp.name
 
+    lines: list[str] | None = None
     try:
         result = casparser.read_cas_pdf(tmp_path, password)
+        try:
+            # Holder names come from the raw text lines; failure here must not
+            # fail the import, people just fall back to placeholders/addressee.
+            lines = read_pdf_lines(tmp_path, password)
+        except Exception:
+            lines = None
     except Exception as exc:
         raise classify_parse_error(exc) from exc
     finally:
@@ -293,4 +337,4 @@ def parse_cas_pdf_bytes(pdf_bytes: bytes, password: str) -> ParseResult:
     if not isinstance(result, CASData):
         raise ParseError("parse_failed", "Unexpected parser output type.")
 
-    return _normalize_cas_data(result)
+    return _normalize_cas_data(result, lines)
