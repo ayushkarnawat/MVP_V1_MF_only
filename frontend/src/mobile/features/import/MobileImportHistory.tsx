@@ -11,6 +11,7 @@ import type { CASImportStatusResponse, HouseholdImportHistoryItem } from "@/feat
 import { DeleteImportDialog, type DeleteScope } from "@/features/profile/DeleteImportDialog";
 import { DeletePortfolioDialog } from "@/features/profile/DeletePortfolioDialog";
 import { statementsFor } from "@/features/profile/HouseholdMembersSection";
+import { formatDate } from "@/features/profile/ImportHistorySection";
 import { groupKey, removalNames } from "@/features/profile/historyGroups";
 import { PromptDialog } from "@/features/import/prompts/PromptDialog";
 import { PRIMARY_BTN, SECONDARY_BTN } from "@/features/import/prompts/copy";
@@ -197,7 +198,7 @@ export function MobileImportHistory({ memberId, onMembersChanged }: MobileImport
           const isSuccess = item.status === "import_successful";
           const dateRange =
             item.statement_from_date && item.statement_to_date
-              ? `${item.statement_from_date} → ${item.statement_to_date}`
+              ? `${formatDate(item.statement_from_date)} – ${formatDate(item.statement_to_date)}`
               : `Uploaded ${new Date(item.uploaded_at).toLocaleDateString()}`;
 
           return (

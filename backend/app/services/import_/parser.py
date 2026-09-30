@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime
 
 from decimal import Decimal
 
@@ -119,6 +119,23 @@ def _parse_date(value: str | date) -> date:
     return date.fromisoformat(str(value)[:10])
 
 
+def parse_statement_date(value: object) -> date | None:
+    """casparser's statement_period dates ("01-Apr-2025"), ISO strings, or
+    dates. Anything else is None: a missing or unreadable period must never
+    fail an import (staging-QA fix 6)."""
+    if isinstance(value, date):
+        return value
+    if not isinstance(value, str) or not value.strip():
+        return None
+    # Slice to each format's own length so a trailing time ("…T00:00") is ignored.
+    for fmt, width in (("%d-%b-%Y", 11), ("%Y-%m-%d", 10)):
+        try:
+            return datetime.strptime(value.strip()[:width], fmt).date()
+        except ValueError:
+            continue
+    return None
+
+
 @dataclass
 class NormalizedTransaction:
     folio: str
@@ -170,6 +187,8 @@ class ParseResult:
     file_type: str = "UNKNOWN"
     people: list[ParsedPerson] = field(default_factory=list)
     unassigned_folio_keys: list[tuple[str, str]] = field(default_factory=list)
+    statement_from: date | None = None
+    statement_to: date | None = None
 
 
 class ParseError(Exception):
@@ -302,6 +321,8 @@ def _normalize_cas_data(data: CASData, lines: list[str] | None = None) -> ParseR
         file_type=str(data.file_type),
         people=people,
         unassigned_folio_keys=unassigned,
+        statement_from=parse_statement_date(getattr(data.statement_period, "from_", None)),
+        statement_to=parse_statement_date(getattr(data.statement_period, "to", None)),
     )
 
 

@@ -588,3 +588,72 @@ def test_0018_upgrade_creates_trigger_and_downgrade_removes_it(tmp_path, monkeyp
     re_upgrade = _alembic("upgrade", "head")
     assert re_upgrade.returncode == 0, re_upgrade.stderr
     assert "trg_member_never_relock" in _objects("trigger")
+
+
+def test_0019_backfills_primary_goals_and_keeps_old_column(tmp_path, monkeypatch):
+    import json
+    import sqlite3
+
+    db_path = tmp_path / "goals.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    assert _alembic("upgrade", "0018").returncode == 0
+    conn = sqlite3.connect(db_path)
+    conn.executemany(
+        "INSERT INTO users (id, phone_number, created_at, primary_goal) VALUES (?, ?, '2026-09-01 10:00:00.000000', ?)",
+        [("u1", "+919800000191", "family_management"), ("u2", "+919800000192", None)],
+    )
+    conn.commit()
+    conn.close()
+
+    up = _alembic("upgrade", "0019")
+    assert up.returncode == 0, up.stderr
+    conn = sqlite3.connect(db_path)
+    rows = dict(conn.execute("SELECT id, primary_goals FROM users"))
+    old = dict(conn.execute("SELECT id, primary_goal FROM users"))
+    conn.close()
+    assert json.loads(rows["u1"]) == ["family_management"]
+    assert rows["u2"] is None
+    assert old["u1"] == "family_management"  # contract phase (0021) drops it, not 0019
+
+    down = _alembic("downgrade", "0018")
+    assert down.returncode == 0, down.stderr
+
+
+def test_0020_backfills_statement_period_from_raw_parser_output(tmp_path, monkeypatch):
+    """Staging-QA fix 6: no import path ever wrote the statement dates; they
+    are recovered from raw_parser_output's statement_period."""
+    import sqlite3
+
+    db_path = tmp_path / "period.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    up_0019 = _alembic("upgrade", "0019")
+    assert up_0019.returncode == 0, up_0019.stderr
+    conn = sqlite3.connect(db_path)
+    conn.execute("INSERT INTO users (id, phone_number, created_at) VALUES ('u1', '+919800002001', '2026-09-01 10:00:00.000000')")
+    conn.execute(
+        "INSERT INTO household_members (id, user_id, name, relationship, created_at, details_completed_at, origin, name_source)"
+        " VALUES ('m1', 'u1', 'A', 'self', '2026-09-01 10:00:00.000000', '2026-09-01 10:00:00.000000', 'onboarding', 'user_entered')"
+    )
+    rows = [
+        ("i1", '{"statement_period": {"from_": "01-Apr-2025", "to": "30-Sep-2025"}}'),
+        ("i2", '{"statement_period": {"from": "01-Oct-2025", "to": "31-Dec-2025"}}'),
+        ("i3", '{"folios": []}'),
+        ("i4", "not json"),
+    ]
+    for iid, raw in rows:
+        conn.execute(
+            "INSERT INTO imports (id, household_member_id, status, uploaded_at, raw_parser_output)"
+            " VALUES (?, 'm1', 'import_successful', '2026-09-01 10:00:00.000000', ?)", (iid, raw),
+        )
+    conn.commit()
+    conn.close()
+
+    up = _alembic("upgrade", "0020")
+    assert up.returncode == 0, up.stderr
+    conn = sqlite3.connect(db_path)
+    got = {r[0]: r[1:] for r in conn.execute("SELECT id, statement_from_date, statement_to_date FROM imports")}
+    conn.close()
+    assert got["i1"] == ("2025-04-01", "2025-09-30")
+    assert got["i2"] == ("2025-10-01", "2025-12-31")
+    assert got["i3"] == (None, None)
+    assert got["i4"] == (None, None)

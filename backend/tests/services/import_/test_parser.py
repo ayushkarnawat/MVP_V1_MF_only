@@ -297,3 +297,40 @@ def test_normalize_same_folio_number_two_amcs_and_empty_pan():
     assert by_amc == {"HDFC Mutual Fund": "p1", "Axis Mutual Fund": "p2"}
     assert {t.amc: t.person_key for t in result.transactions} == by_amc
     assert [(p.key, p.pan) for p in result.people] == [("p1", "ABCDE1234F"), ("p2", None)]
+
+
+# ------------------------------------------------ statement period (staging-QA fix 6)
+
+from datetime import date as _date
+from pathlib import Path
+
+from app.services.import_.parser import parse_cas_pdf_bytes, parse_statement_date
+
+import os
+
+# Untracked synthetic CAS PDFs; UNIFOLIO_QA_FIXTURES points elsewhere.
+_FIXTURES = Path(os.environ.get(
+    "UNIFOLIO_QA_FIXTURES",
+    Path(__file__).resolve().parents[4] / "Docs/orchestration/qa-fixtures/synthetic-cas",
+))
+
+
+def test_parse_statement_date_formats():
+    assert parse_statement_date("01-Apr-2025") == _date(2025, 4, 1)
+    assert parse_statement_date("2025-04-01") == _date(2025, 4, 1)
+    assert parse_statement_date(_date(2025, 4, 1)) == _date(2025, 4, 1)
+
+
+def test_unreadable_period_gives_none():
+    for bad in (None, "", "April 2025", "31-Foo-2025", 12):
+        assert parse_statement_date(bad) is None
+
+
+@pytest.mark.skipif(not (_FIXTURES / "family_cas_1.pdf").exists(), reason="synthetic CAS fixtures not on disk")
+def test_fixture_statement_period_is_parsed():
+    result = parse_cas_pdf_bytes((_FIXTURES / "family_cas_1.pdf").read_bytes(), "MF@123")
+    assert (result.statement_from, result.statement_to) == (_date(2025, 4, 1), _date(2025, 9, 30))
+
+
+def test_parse_statement_date_accepts_an_iso_datetime():
+    assert parse_statement_date("2025-04-01T00:00:00") == _date(2025, 4, 1)

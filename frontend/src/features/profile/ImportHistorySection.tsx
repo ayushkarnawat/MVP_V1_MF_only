@@ -17,7 +17,7 @@ interface ImportHistorySectionProps {
   onChanged?: () => void;
 }
 
-const formatDate = (value: string) => new Intl.DateTimeFormat("en-GB", {
+export const formatDate = (value: string) => new Intl.DateTimeFormat("en-GB", {
   day: "numeric",
   month: "short",
   year: "numeric",
