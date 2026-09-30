@@ -6,6 +6,14 @@ import {
 import { listHouseholdMembers } from "@/features/auth/api";
 import type { HoldingRow } from "@/features/dashboard/types";
 import type { HouseholdMember } from "@/features/auth/types";
+import { invalidateApiCache } from "@/lib/apiClient";
+import {
+  ADD_DETAILS_FIRST,
+  LockedMemberDialogs,
+  firstOpenMember,
+  isMemberLocked,
+  memberLabel,
+} from "../members/LockedMember";
 import { MobileHoldingCardSummary } from "./MobileHoldingCardSummary";
 import { MobileFundDetailView } from "./MobileFundDetailView";
 import { MobileDistributorComparisonView } from "./MobileDistributorComparisonView";
@@ -28,6 +36,8 @@ export function MobileHoldingsView({
   const [viewMode, setViewMode] = useState<"aggregate" | "member">("aggregate");
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [members, setMembers] = useState<HouseholdMember[]>([]);
+  // F39: the locked person the user picked; opens the unlock popup / L8 instead of loading their data.
+  const [lockedPickId, setLockedPickId] = useState<string | null>(null);
   const [holdings, setHoldings] = useState<HoldingRow[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedHolding, setSelectedHolding] = useState<HoldingRow | null>(null);
@@ -42,7 +52,7 @@ export function MobileHoldingsView({
       .then((data) => {
         if (isMounted && data.length > 0) {
           setMembers(data);
-          setSelectedMemberId(data[0].id);
+          setSelectedMemberId(firstOpenMember(data).id);
         }
       })
       .catch(() => { });
@@ -93,6 +103,35 @@ export function MobileHoldingsView({
       isMounted = false;
     };
   }, [viewMode, selectedMemberId]);
+
+  const handleMemberPick = (id: string) => {
+    const picked = members.find((m) => m.id === id);
+    if (picked && isMemberLocked(picked)) setLockedPickId(id);
+    else setSelectedMemberId(id);
+  };
+
+  const reloadMembers = async () => {
+    invalidateApiCache();
+    try {
+      setMembers(await listHouseholdMembers());
+    } catch {
+      // Keep the list we have.
+    }
+  };
+
+  const lockedDialogs = (
+    <LockedMemberDialogs
+      member={members.find((m) => m.id === lockedPickId) ?? null}
+      onClose={() => setLockedPickId(null)}
+      onOtherAccount={() => void reloadMembers()}
+      onUnlocked={async (unlocked) => {
+        await reloadMembers();
+        setLockedPickId(null);
+        setViewMode("member");
+        setSelectedMemberId(unlocked.id);
+      }}
+    />
+  );
 
   const hasFamily = members.length > 1;
 
@@ -189,18 +228,20 @@ export function MobileHoldingsView({
               </button>
             </div>
 
+            {lockedDialogs}
+
             {/* Member Dropdown Picker (if in per-member mode) */}
             {viewMode === "member" && members.length > 0 && (
               <div className="relative">
                 <select
                   value={selectedMemberId || ""}
-                  onChange={(e) => setSelectedMemberId(e.target.value)}
+                  onChange={(e) => handleMemberPick(e.target.value)}
                   className="w-full appearance-none pl-3 pr-8 py-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-xs font-semibold text-[var(--color-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] cursor-pointer shadow-2xs"
                   aria-label="Select household member"
                 >
                   {members.map((m) => (
                     <option key={m.id} value={m.id}>
-                      {m.name} ({m.relationship})
+                      {memberLabel(m)}{m.lock_reason !== "pan_on_other_account" && isMemberLocked(m) ? ` · ${ADD_DETAILS_FIRST}` : ""}
                     </option>
                   ))}
                 </select>
@@ -272,18 +313,20 @@ export function MobileHoldingsView({
             </button>
           </div>
 
+          {lockedDialogs}
+
           {/* Member Picker */}
           {viewMode === "member" && members.length > 0 && (
             <div className="relative">
               <select
                 value={selectedMemberId || ""}
-                onChange={(e) => setSelectedMemberId(e.target.value)}
+                onChange={(e) => handleMemberPick(e.target.value)}
                 className="w-full appearance-none pl-3 pr-8 py-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-xs font-semibold text-[var(--color-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] cursor-pointer shadow-2xs"
                 aria-label="Select household member"
               >
                 {members.map((m) => (
                   <option key={m.id} value={m.id}>
-                    {m.name} ({m.relationship})
+                    {memberLabel(m)}{m.lock_reason !== "pan_on_other_account" && isMemberLocked(m) ? ` · ${ADD_DETAILS_FIRST}` : ""}
                   </option>
                 ))}
               </select>

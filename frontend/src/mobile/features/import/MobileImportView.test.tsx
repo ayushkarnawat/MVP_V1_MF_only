@@ -1,32 +1,50 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { MobileImportView } from "./MobileImportView";
+import { MobileImportHistory } from "./MobileImportHistory";
 import * as authApi from "@/features/auth/api";
 import * as importApi from "@/features/import/api";
 import { setCasResumeStep2, hasCasResumeStep2 } from "@/features/import/casResumeState";
+import { familyPreview, preview, scheme } from "@/features/import/testFixtures";
+import type { ImportConfirmResponse } from "@/features/import/types";
 
 vi.mock("@/features/auth/api", () => ({
   listHouseholdMembers: vi.fn(),
 }));
 
-vi.mock("@/features/import/api", () => ({
-  requestCamsStatement: vi.fn(),
-  cancelImportRequest: vi.fn(),
-  parseImport: vi.fn(),
-  confirmImport: vi.fn(),
-  discardImportSession: vi.fn(),
-  getMemberImportHistory: vi.fn(),
-  uploadCasImport: vi.fn(),
-  ApiError: class ApiError extends Error {
-    status: number;
-    payload: unknown;
-    constructor(status: number, payload: unknown) {
-      super(typeof payload === "string" ? payload : "API error");
-      this.status = status;
-      this.payload = payload;
-    }
-  },
-}));
+vi.mock("@/features/import/api", async () => {
+  const actual = await vi.importActual<typeof import("@/features/import/api")>("@/features/import/api");
+  return {
+    ...actual,
+    requestCamsStatement: vi.fn(),
+    cancelImportRequest: vi.fn(),
+    parseImport: vi.fn(),
+    confirmPeopleImport: vi.fn(),
+    discardImportSession: vi.fn(),
+    getMemberImportHistory: vi.fn(),
+    getHouseholdImportHistory: vi.fn(),
+    deleteHouseholdImport: vi.fn(),
+    deleteMemberPortfolio: vi.fn(),
+  };
+});
+
+const RESULT: ImportConfirmResponse = {
+  added: 8, skipped: 0, import_id: "imp-final-1", warnings: [], upload_group_id: null,
+  people: [{ person_key: "me", member_id: "m-1", name: "Ayush", import_id: "imp-final-1", added: 8, skipped: 0 }],
+};
+
+/** Opens the only ribbon and confirms it (nothing unresolved). */
+function reviewRibbon(name: string) {
+  fireEvent.click(screen.getByRole("button", { name: new RegExp(`Click to review ${name}’s holdings`) }));
+  fireEvent.click(screen.getByRole("button", { name: /^confirm$/i }));
+}
+
+async function uploadFile() {
+  fireEvent.click(await screen.findByRole("button", { name: /already have a statement/i }));
+  const file = new File(["pdf"], "statement.pdf", { type: "application/pdf" });
+  fireEvent.change(screen.getByLabelText(/cas pdf/i), { target: { files: [file] } });
+  fireEvent.click(screen.getByRole("button", { name: /upload statement/i }));
+}
 
 describe("MobileImportView", () => {
   const mockMembers = [
@@ -35,7 +53,11 @@ describe("MobileImportView", () => {
       user_id: "u-1",
       name: "Ayush",
       relationship: "self",
-      pan_masked: "ABCDE1234F",
+      relationship_other_label: null,
+      origin: "self",
+      lock_reason: null,
+      details_required: false,
+      pan_masked: "AB******4F",
       email: "ayush@example.com",
       created_at: "2026-01-01T00:00:00Z",
     },
@@ -44,6 +66,10 @@ describe("MobileImportView", () => {
       user_id: "u-1",
       name: "Pooja",
       relationship: "spouse",
+      relationship_other_label: null,
+      origin: "manual",
+      lock_reason: null,
+      details_required: false,
       pan_masked: null,
       email: null,
       created_at: "2026-01-01T00:00:00Z",
@@ -55,28 +81,14 @@ describe("MobileImportView", () => {
     vi.clearAllMocks();
     vi.mocked(authApi.listHouseholdMembers).mockResolvedValue(mockMembers as any);
     vi.mocked(importApi.getMemberImportHistory).mockResolvedValue([]);
+    vi.mocked(importApi.getHouseholdImportHistory).mockResolvedValue([]);
   });
 
-  async function openEmptyReview() {
-    vi.mocked(importApi.parseImport).mockResolvedValue({
-      session_id: "sess-mismatch",
-      filename: "statement.pdf",
-      investor_email: null,
-      cas_type: "detailed",
-      file_type: "pdf",
-      transactions: [],
-      investor_name: "Pooja",
-      pan_masked: "ABCDE1234F",
-      transaction_count: 0,
-      parse_warnings: [],
-      schemes: [],
-    });
+  async function openReview() {
+    vi.mocked(importApi.parseImport).mockResolvedValue(preview({ session_id: "sess-mismatch", schemes: [scheme("s1", { person_key: "me" })] }));
     render(<MobileImportView defaultMemberId="m-1" />);
-    fireEvent.click(await screen.findByRole("button", { name: /already have a statement/i }));
-    const file = new File(["pdf"], "statement.pdf", { type: "application/pdf" });
-    fireEvent.change(screen.getByLabelText(/cas pdf/i), { target: { files: [file] } });
-    fireEvent.click(screen.getByRole("button", { name: /upload statement/i }));
-    await screen.findByText("Review CAS Import");
+    await uploadFile();
+    await screen.findByText("Review your import");
   }
 
   it("renders entry choice screen with both options and navigates into Request view", async () => {
@@ -139,101 +151,47 @@ describe("MobileImportView", () => {
   });
 
   it("switches to Upload view and parses statement with password", async () => {
-    vi.mocked(importApi.parseImport).mockResolvedValue({
-      session_id: "sess-99",
-      filename: "cas_statement.pdf",
-      investor_email: null,
-      cas_type: "detailed",
-      file_type: "pdf",
-      transactions: [],
-      investor_name: "Ayush",
-      pan_masked: "ABCDE1234F",
-      transaction_count: 14,
-      parse_warnings: [],
-      schemes: [
-        {
-          temp_id: "sch-1",
-          name: "Parag Parikh Flexi Cap Fund Direct Growth",
-          isin: null,
-          folio: "12345/0",
-          amc: "PPFAS",
-          amfi_code: "122639",
-          suggested_amfi_code: null,
-          suggested_name: null,
-          match_confidence: 1.0,
-          match_status: "confirmed",
-          plan_type: "direct",
-          category: null,
-          transaction_count: 14,
-        },
-      ],
-    });
+    vi.mocked(importApi.parseImport).mockResolvedValue(
+      preview({ session_id: "sess-99", schemes: [scheme("sch-1", { name: "Parag Parikh Flexi Cap Fund Direct Growth", person_key: "me" })] }),
+    );
 
     render(<MobileImportView defaultMemberId="m-1" />);
 
-    const uploadChoice = await screen.findByRole("button", { name: /already have a statement/i });
-    fireEvent.click(uploadChoice);
-
+    fireEvent.click(await screen.findByRole("button", { name: /already have a statement/i }));
     expect(screen.getByRole("heading", { level: 3, name: /upload your statement/i })).toBeInTheDocument();
 
-    const fileInput = screen.getByLabelText(/CAS PDF/i);
-    const mockFile = new File(["dummy pdf content"], "cas_statement.pdf", {
-      type: "application/pdf",
-    });
-
-    fireEvent.change(fileInput, { target: { files: [mockFile] } });
+    const mockFile = new File(["dummy pdf content"], "cas_statement.pdf", { type: "application/pdf" });
+    fireEvent.change(screen.getByLabelText(/CAS PDF/i), { target: { files: [mockFile] } });
     expect(screen.getByText("cas_statement.pdf")).toBeInTheDocument();
-
-    const passwordInput = screen.getByLabelText(/PDF Password/i);
-    fireEvent.change(passwordInput, { target: { value: "ABCDE1234F" } });
-
-    const submitBtn = screen.getByRole("button", { name: /Upload Statement/i });
-    fireEvent.click(submitBtn);
+    fireEvent.change(screen.getByLabelText(/PDF Password/i), { target: { value: "ABCDE1234F" } });
+    fireEvent.click(screen.getByRole("button", { name: /Upload Statement/i }));
 
     await waitFor(() => {
       expect(importApi.parseImport).toHaveBeenCalledWith(mockFile, "ABCDE1234F", "m-1");
-      expect(screen.getByText("Review CAS Import")).toBeInTheDocument();
-      expect(screen.getByText("Parag Parikh Flexi Cap Fund Direct Growth")).toBeInTheDocument();
+      expect(screen.getByText("Review your import")).toBeInTheDocument();
     });
+  });
+
+  it("reaches the member ribbons through the people popup for a two-person statement", async () => {
+    vi.mocked(importApi.parseImport).mockResolvedValue(
+      familyPreview({ schemes: [scheme("m1", { person_key: "me" }), scheme("r1", { person_key: "ramesh" })] }),
+    );
+    render(<MobileImportView defaultMemberId="m-1" />);
+    await uploadFile();
+
+    expect(await screen.findByText("We found 2 people in your statement")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+
+    await screen.findByText("Review your import");
+    expect(screen.getByRole("button", { name: /Click to review Aditi Sharma \(Me\)|Click to review Aditi Sharma’s holdings/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Click to review Ramesh Sharma’s holdings/ })).toBeInTheDocument();
   });
 
   it("completes review and confirmation, clears resume state, and displays success screen with navigation CTA", async () => {
     setCasResumeStep2("m-1");
-
-    vi.mocked(importApi.parseImport).mockResolvedValue({
-      session_id: "sess-100",
-      filename: "statement.pdf",
-      investor_email: null,
-      cas_type: "detailed",
-      file_type: "pdf",
-      transactions: [],
-      investor_name: "Ayush",
-      pan_masked: "ABCDE1234F",
-      transaction_count: 8,
-      parse_warnings: [],
-      schemes: [
-        {
-          temp_id: "sch-1",
-          name: "HDFC Nifty 50 Index Fund Direct Growth",
-          isin: null,
-          folio: "998877/1",
-          amc: "HDFC Mutual Fund",
-          amfi_code: "119062",
-          suggested_amfi_code: null,
-          suggested_name: null,
-          match_confidence: 1.0,
-          match_status: "confirmed",
-          plan_type: "direct",
-          category: null,
-          transaction_count: 8,
-        },
-      ],
-    });
-
-    vi.mocked(importApi.confirmImport).mockResolvedValue({
-      added: 8,
-      skipped: 0,
-      import_id: "imp-final-1",
+    vi.mocked(importApi.parseImport).mockResolvedValue(preview({ session_id: "sess-100", schemes: [scheme("s1", { person_key: "me" })] }));
+    vi.mocked(importApi.confirmPeopleImport).mockResolvedValue({
+      ...RESULT,
       warnings: [
         "This investment may already be tracked under a different Unifolio account. If that's you, consider using that account instead.",
       ],
@@ -242,54 +200,44 @@ describe("MobileImportView", () => {
     const handleDashboardNav = vi.fn();
     render(<MobileImportView defaultMemberId="m-1" onNavigateDashboard={handleDashboardNav} />);
 
-    const fileInput = await screen.findByLabelText(/CAS PDF/i);
-    const mockFile = new File(["pdf"], "statement.pdf", { type: "application/pdf" });
-    fireEvent.change(fileInput, { target: { files: [mockFile] } });
+    fireEvent.change(await screen.findByLabelText(/CAS PDF/i), {
+      target: { files: [new File(["pdf"], "statement.pdf", { type: "application/pdf" })] },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Upload Statement/i }));
+    await screen.findByText("Review your import");
 
-    const submitBtn = screen.getByRole("button", { name: /Upload Statement/i });
-    fireEvent.click(submitBtn);
-
-    await screen.findByText("Review CAS Import");
-
-    const confirmBtn = screen.getByRole("button", { name: /Confirm & Import Portfolio/i });
-    fireEvent.click(confirmBtn);
+    reviewRibbon("Aditi Sharma");
+    fireEvent.click(screen.getByRole("button", { name: "Confirm imports" }));
 
     await waitFor(() => {
-      expect(importApi.confirmImport).toHaveBeenCalledWith("sess-100", "m-1", []);
+      expect(importApi.confirmPeopleImport).toHaveBeenCalledWith("sess-100", [{ person_key: "me", scheme_confirmations: [] }], {});
       expect(screen.getByText("Import Complete")).toBeInTheDocument();
       expect(screen.getByText(/8 new transactions added/i)).toBeInTheDocument();
-      expect(screen.getByRole("status")).toHaveTextContent(
-        /may already be tracked under a different Unifolio account/i,
-      );
+      expect(screen.getByRole("status")).toHaveTextContent(/may already be tracked under a different Unifolio account/i);
       expect(hasCasResumeStep2("m-1")).toBe(false);
     });
 
     fireEvent.click(screen.getByRole("button", { name: /dismiss warning/i }));
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
-
-    const dashBtn = screen.getByRole("button", { name: /Go to Dashboard/i });
-    fireEvent.click(dashBtn);
+    fireEvent.click(screen.getByRole("button", { name: /Go to Dashboard/i }));
     expect(handleDashboardNav).toHaveBeenCalledTimes(1);
   });
 
-  it("shows the cross-account-blocked popup right after upload, before any review", async () => {
+  it("shows the cross-account popup right after upload, before any review", async () => {
     vi.mocked(importApi.parseImport).mockRejectedValueOnce(
       new importApi.ApiError(409, {
         code: "cross_account_pan_blocked",
-        message: "This PAN is already tracked under a different Unifolio account. Contact support if you believe this is a mistake.",
+        message: "This PAN is already tracked under a different Unifolio account.",
+        details: { people: ["Ayush"] },
       }),
     );
     render(<MobileImportView defaultMemberId="m-1" />);
-    fireEvent.click(await screen.findByRole("button", { name: /already have a statement/i }));
-    fireEvent.change(screen.getByLabelText(/cas pdf/i), {
-      target: { files: [new File(["pdf"], "statement.pdf", { type: "application/pdf" })] },
-    });
-    fireEvent.click(screen.getByRole("button", { name: /upload statement/i }));
+    await uploadFile();
 
-    await waitFor(() =>
-      expect(screen.getByText(/already tracked under a different unifolio account/i)).toBeInTheDocument(),
-    );
-    expect(screen.queryByText("Review CAS Import")).not.toBeInTheDocument();
+    // Session-less 409 (F30 hard block): the legacy block, with no dead Include button.
+    expect(await screen.findByText("This PAN is already tracked under a different Unifolio account.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /include in family total/i })).not.toBeInTheDocument();
+    expect(screen.queryByText("Review your import")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /^back$/i }));
     await waitFor(() => expect(screen.getByLabelText(/cas pdf/i)).toBeInTheDocument());
   });
@@ -299,11 +247,7 @@ describe("MobileImportView", () => {
       new importApi.ApiError(409, { code: "pan_mismatch_for_member", message: "Please choose Ayush's own CAS." }),
     );
     render(<MobileImportView defaultMemberId="m-1" />);
-    fireEvent.click(await screen.findByRole("button", { name: /already have a statement/i }));
-    fireEvent.change(screen.getByLabelText(/cas pdf/i), {
-      target: { files: [new File(["pdf"], "statement.pdf", { type: "application/pdf" })] },
-    });
-    fireEvent.click(screen.getByRole("button", { name: /upload statement/i }));
+    await uploadFile();
 
     await waitFor(() => expect(screen.getByText("This PAN already exists")).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: /change cas file/i }));
@@ -311,11 +255,27 @@ describe("MobileImportView", () => {
     expect(screen.getByLabelText(/cas pdf/i)).toBeInTheDocument();
   });
 
-  it("confirms straight through and Cancel on review discards the session", async () => {
-    await openEmptyReview();
-    expect(screen.queryByRole("button", { name: /continue anyway/i })).not.toBeInTheDocument();
+  it("Cancel on review asks first, then discards the session", async () => {
+    await openReview();
     fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
-    expect(importApi.discardImportSession).toHaveBeenCalledWith("sess-mismatch");
+    expect(importApi.discardImportSession).not.toHaveBeenCalled();
+    fireEvent.click(await screen.findByRole("button", { name: /cancel import/i }));
+    await waitFor(() => expect(importApi.discardImportSession).toHaveBeenCalledWith("sess-mismatch"));
+  });
+
+  it("shows a locked family member as locked and opens the unlock popup instead of selecting them", async () => {
+    vi.mocked(authApi.listHouseholdMembers).mockResolvedValue([
+      mockMembers[0],
+      { ...mockMembers[1], name: "Ramesh Sharma", relationship: null, origin: "cas", lock_reason: "details_needed", details_required: true },
+    ] as any);
+    render(<MobileImportView defaultMemberId="m-1" />);
+
+    const chip = await screen.findByRole("button", { name: /Ramesh Sharma/ });
+    expect(chip).not.toHaveTextContent("(null)");
+    expect(chip).toHaveTextContent(/add details first/i);
+    fireEvent.click(chip);
+    expect(await screen.findByText("Add Ramesh Sharma’s details")).toBeInTheDocument();
+    expect(chip).not.toHaveAttribute("aria-pressed", "true");
   });
 
   it("renders member import history when History button is clicked", async () => {
@@ -346,6 +306,80 @@ describe("MobileImportView", () => {
       expect(screen.getByText("Past Statement Imports")).toBeInTheDocument();
       expect(screen.getByText(/2015-01-01 → 2025-01-01/i)).toBeInTheDocument();
       expect(screen.getByText("+42")).toBeInTheDocument();
+    });
+  });
+  describe("import history deletion (D1)", () => {
+    const histRow = (over: object) => ({
+      import_id: "i1", household_member_id: "m-1", source_cas_type: "cams", status: "import_successful",
+      statement_from_date: "2015-01-01", statement_to_date: "2025-01-01", new_transactions_count: 4,
+      duplicate_transactions_count: 0, uploaded_at: "2026-02-01T10:00:00Z", error_code: null, error_message: null,
+      confirmed_at: null, ...over,
+    });
+    const householdRow = (over: object) => ({
+      import_id: "i1", household_member_id: "m-1", uploaded_at: "2026-02-01T10:00:00Z", statement_from_date: "2015-01-01",
+      statement_to_date: "2025-01-01", status: "import_successful", new_transactions_count: 4, upload_group_id: "g1",
+      member_name: "Ayush", group_people_count: 2, ...over,
+    });
+
+    it("offers only-this-person or everyone for a statement that covered several people", async () => {
+      vi.mocked(importApi.getMemberImportHistory).mockResolvedValue([histRow({})] as any);
+      vi.mocked(importApi.getHouseholdImportHistory).mockResolvedValue([
+        householdRow({}), householdRow({ import_id: "i2", household_member_id: "m-2", member_name: "Pooja" }),
+      ] as any);
+      vi.mocked(importApi.deleteHouseholdImport).mockResolvedValue({ deleted_transactions_count: 4, removed_member_ids: [], deleted_file: false });
+
+      render(<MobileImportView defaultMemberId="m-1" defaultTab="history" />);
+      fireEvent.click(await screen.findByRole("button", { name: /delete import from/i }));
+
+      const dialog = await screen.findByRole("dialog", { name: "Delete this statement’s funds?" });
+      fireEvent.click(within(dialog).getByLabelText("Everyone in this statement (2 people)"));
+      fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
+      await waitFor(() => expect(importApi.deleteHouseholdImport).toHaveBeenCalledWith("i1", "group"));
+      await waitFor(() => expect(screen.queryByText("+4")).not.toBeInTheDocument());
+    });
+  });
+  it("does not preselect a locked defaultMemberId", async () => {
+    vi.mocked(authApi.listHouseholdMembers).mockResolvedValue([
+      mockMembers[0],
+      { ...mockMembers[1], name: "Ramesh Sharma", relationship: null, origin: "cas", lock_reason: "details_needed", details_required: true },
+    ] as any);
+    vi.mocked(importApi.parseImport).mockResolvedValue(preview({ schemes: [scheme("s1", { person_key: "me" })] }));
+    render(<MobileImportView defaultMemberId="m-2" defaultTab="upload" />);
+    await screen.findByRole("button", { name: /Ramesh Sharma/ });
+    fireEvent.change(screen.getByLabelText(/cas pdf/i), { target: { files: [new File(["pdf"], "s.pdf", { type: "application/pdf" })] } });
+    fireEvent.click(screen.getByRole("button", { name: /upload statement/i }));
+    await waitFor(() => expect(importApi.parseImport).toHaveBeenCalledWith(expect.any(File), "", "m-1"));
+  });
+
+  describe("delete all funds (D2)", () => {
+    const setup = async (onMembersChanged?: () => void) => {
+      vi.mocked(importApi.getMemberImportHistory).mockResolvedValue([{
+        import_id: "i1", household_member_id: "m-1", source_cas_type: "cams", status: "import_successful",
+        statement_from_date: "2015-01-01", statement_to_date: "2025-01-01", new_transactions_count: 4,
+        duplicate_transactions_count: 0, uploaded_at: "2026-02-01T10:00:00Z", error_code: null, error_message: null, confirmed_at: null,
+      }] as any);
+      vi.mocked(importApi.getHouseholdImportHistory).mockResolvedValue([
+        { import_id: "i1", household_member_id: "m-2", uploaded_at: "2026-02-01T10:00:00Z", statement_from_date: null, statement_to_date: null, status: "import_successful", new_transactions_count: 4, upload_group_id: "g1", member_name: "Pooja", group_people_count: 1 },
+      ] as any);
+      vi.mocked(importApi.deleteMemberPortfolio).mockResolvedValue({ deleted_transactions_count: 4, removed_member_ids: ["m-2"], deleted_file: false });
+      render(<MobileImportHistory memberId="m-2" onMembersChanged={onMembersChanged} />);
+      fireEvent.click(await screen.findByRole("button", { name: "Delete all funds" }));
+      return await screen.findByRole("dialog", { name: "Delete all of Pooja’s funds?" });
+    };
+
+    it("sends removeMember true when ticked and reports the change", async () => {
+      const changed = vi.fn();
+      const dialog = await setup(changed);
+      fireEvent.click(within(dialog).getByLabelText("Also remove Pooja from my family"));
+      fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
+      await waitFor(() => expect(importApi.deleteMemberPortfolio).toHaveBeenCalledWith("m-2", true));
+      await waitFor(() => expect(changed).toHaveBeenCalledWith(["m-2"]));
+    });
+
+    it("sends removeMember false by default", async () => {
+      const dialog = await setup();
+      fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
+      await waitFor(() => expect(importApi.deleteMemberPortfolio).toHaveBeenCalledWith("m-2", false));
     });
   });
 });

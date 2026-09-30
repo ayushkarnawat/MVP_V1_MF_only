@@ -13,6 +13,15 @@ import type {
   FamilyMemberStatus,
 } from "@/features/dashboard/types";
 import type { HouseholdMember } from "@/features/auth/types";
+import { invalidateApiCache } from "@/lib/apiClient";
+import { Lock } from "lucide-react";
+import {
+  ADD_DETAILS_FIRST,
+  LockedMemberDialogs,
+  firstOpenMember,
+  isMemberLocked,
+  memberLabel,
+} from "../members/LockedMember";
 import type { CoverageGapItem } from "@/features/import/types";
 import { AllocationDonut } from "@/components/AllocationDonut";
 import { Badge } from "@/components/Badge";
@@ -59,6 +68,8 @@ export function MobileDashboardView({
   const [viewMode, setViewMode] = useState<"aggregate" | "member">("aggregate");
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [members, setMembers] = useState<HouseholdMember[]>([]);
+  // F39: the locked person the user picked; opens the unlock popup / L8 instead of loading their data.
+  const [lockedPickId, setLockedPickId] = useState<string | null>(null);
   const [holdings, setHoldings] = useState<HoldingRow[]>([]);
   const [membersStatus, setMembersStatus] = useState<FamilyMemberStatus[]>([]);
   const [allocation, setAllocation] = useState<AllocationSummary | null>(null);
@@ -85,7 +96,7 @@ export function MobileDashboardView({
       .then((data) => {
         if (isMounted && data.length > 0) {
           setMembers(data);
-          setSelectedMemberId(data[0].id);
+          setSelectedMemberId(firstOpenMember(data).id);
         }
       })
       .catch(() => { });
@@ -194,6 +205,35 @@ export function MobileDashboardView({
     };
   }, [holdings]);
 
+  const handleMemberPick = (id: string) => {
+    const picked = members.find((m) => m.id === id);
+    if (picked && isMemberLocked(picked)) setLockedPickId(id);
+    else setSelectedMemberId(id);
+  };
+
+  const reloadMembers = async () => {
+    invalidateApiCache();
+    try {
+      setMembers(await listHouseholdMembers());
+    } catch {
+      // Keep the list we have.
+    }
+  };
+
+  const lockedDialogs = (
+    <LockedMemberDialogs
+      member={members.find((m) => m.id === lockedPickId) ?? null}
+      onClose={() => setLockedPickId(null)}
+      onOtherAccount={() => void reloadMembers()}
+      onUnlocked={async (unlocked) => {
+        await reloadMembers();
+        setLockedPickId(null);
+        setViewMode("member");
+        setSelectedMemberId(unlocked.id);
+      }}
+    />
+  );
+
   const hasFamily = members.length > 1;
   const isPositiveGain = totals.profitVal >= 0;
 
@@ -300,11 +340,13 @@ export function MobileDashboardView({
               </button>
             </div>
 
+            {lockedDialogs}
+
             {/* Member Dropdown Picker (if in per-member mode) */}
             {viewMode === "member" && members.length > 0 && (
               <Select
                 value={selectedMemberId || undefined}
-                onValueChange={setSelectedMemberId}
+                onValueChange={handleMemberPick}
               >
                 <SelectTrigger
                   className="w-full h-10 gap-1.5 rounded-full border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-xs font-medium text-[var(--color-text-secondary)] [&>span]:line-clamp-1"
@@ -314,8 +356,14 @@ export function MobileDashboardView({
                 </SelectTrigger>
                 <SelectContent>
                   {members.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>
-                      {m.name} ({m.relationship})
+                    <SelectItem key={m.id} value={m.id} className={isMemberLocked(m) ? "opacity-60" : undefined}>
+                      <span className="inline-flex items-center gap-1.5">
+                        {isMemberLocked(m) && <Lock className="h-3 w-3 shrink-0" aria-hidden="true" />}
+                        {memberLabel(m)}
+                        {m.lock_reason !== "pan_on_other_account" && isMemberLocked(m) && (
+                          <span className="text-[11px] text-[var(--color-text-secondary)]">{ADD_DETAILS_FIRST}</span>
+                        )}
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -428,11 +476,13 @@ export function MobileDashboardView({
             </button>
           </div>
 
+          {lockedDialogs}
+
           {/* Member Dropdown Picker (if in per-member mode) */}
           {viewMode === "member" && members.length > 0 && (
             <Select
               value={selectedMemberId || undefined}
-              onValueChange={setSelectedMemberId}
+              onValueChange={handleMemberPick}
             >
               <SelectTrigger
                 className="w-full h-10 gap-1.5 rounded-full border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-xs font-medium text-[var(--color-text-secondary)] [&>span]:line-clamp-1"
@@ -442,8 +492,14 @@ export function MobileDashboardView({
               </SelectTrigger>
               <SelectContent>
                 {members.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>
-                    {m.name} ({m.relationship})
+                  <SelectItem key={m.id} value={m.id} className={isMemberLocked(m) ? "opacity-60" : undefined}>
+                    <span className="inline-flex items-center gap-1.5">
+                      {isMemberLocked(m) && <Lock className="h-3 w-3 shrink-0" aria-hidden="true" />}
+                      {memberLabel(m)}
+                      {m.lock_reason !== "pan_on_other_account" && isMemberLocked(m) && (
+                        <span className="text-[11px] text-[var(--color-text-secondary)]">{ADD_DETAILS_FIRST}</span>
+                      )}
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>

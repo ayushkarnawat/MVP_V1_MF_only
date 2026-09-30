@@ -1,28 +1,27 @@
 import { useState, useEffect } from "react";
 import { listHouseholdMembers } from "@/features/auth/api";
-import { parseImport, confirmImport, discardImportSession, ApiError } from "@/features/import/api";
-import { PanConflictDialog } from "@/features/import/PanConflictDialog";
-import { getPanConflict } from "@/features/import/panConflict";
+import { MemberDetailsDialog } from "@/features/dashboard/members/MemberDetailsDialog";
+import { invalidateApiCache } from "@/lib/apiClient";
 import {
   hasCasResumeStep2,
   setCasResumeStep2,
   clearCasResumeStep2,
 } from "@/features/import/casResumeState";
 import type { HouseholdMember } from "@/features/auth/types";
-import type {
-  ImportPreviewResponse,
-  ImportConfirmResponse,
-  ParseErrorPayload,
-  SchemeConfirmation,
-} from "@/features/import/types";
 import { ImportPathChoice } from "@/features/import/ImportPathChoice";
 import { WaitingForCasView } from "@/features/import/WaitingForCasView";
 import { ParsingIndicator } from "@/features/import/ParsingIndicator";
+import { useImportOrchestration } from "@/features/import/useImportOrchestration";
 import { MobileRequestCamsView } from "./MobileRequestCamsView";
 import { MobileUploadForm } from "./MobileUploadForm";
 import { MobileReviewView } from "./MobileReviewView";
 import { MobileImportHistory } from "./MobileImportHistory";
-import { CrossAccountBlockedDialog } from "@/features/import/CrossAccountBlockedDialog";
+import {
+  ADD_DETAILS_FIRST,
+  LockedMemberDialogs,
+  firstOpenMember,
+  isMemberLocked,
+} from "../members/LockedMember";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -35,6 +34,7 @@ import {
   UploadCloud,
   ArrowLeft,
   AlertTriangle,
+  Lock,
   X,
 } from "lucide-react";
 
@@ -45,20 +45,6 @@ export interface MobileImportViewProps {
 }
 
 export type MobileImportViewMode = "choice" | "request" | "waiting" | "upload" | "history";
-type FlowStep = "flow" | "parsing" | "review" | "confirmed" | "error";
-
-const GENERIC_NETWORK_ERROR: ParseErrorPayload = {
-  code: "network_error",
-  message: "Couldn't reach the server. Check your connection and try again.",
-};
-
-function toParseErrorPayload(err: unknown): ParseErrorPayload {
-  if (err instanceof ApiError) {
-    const payload = err.payload as ParseErrorPayload | string;
-    return typeof payload === "string" ? { code: "error", message: payload } : payload;
-  }
-  return GENERIC_NETWORK_ERROR;
-}
 
 export function MobileImportView({
   onNavigateDashboard,
@@ -77,15 +63,31 @@ export function MobileImportView({
   });
   const [pendingImportId, setPendingImportId] = useState<string | null>(null);
 
-  const [step, setStep] = useState<FlowStep>("flow");
-  const [preview, setPreview] = useState<ImportPreviewResponse | null>(null);
-  const [confirmResult, setConfirmResult] = useState<ImportConfirmResponse | null>(null);
-  const [error, setError] = useState<ParseErrorPayload | null>(null);
-  const [reviewNotice, setReviewNotice] = useState<string | null>(null);
-  const [panConflict, setPanConflict] = useState<string | null>(null);
-  const [crossAccountBlocked, setCrossAccountBlocked] = useState<string | null>(null);
   const [dismissedWarnings, setDismissedWarnings] = useState<Set<string>>(new Set());
-  const [confirming, setConfirming] = useState(false);
+  // A1: a locked person picked in the member chips opens the unlock popup / L8.
+  const [lockedPickId, setLockedPickId] = useState<string | null>(null);
+
+  const {
+    flow, uploadMessage, edits, nameAnswers, confirming, reviewPeople, setCancelOpen,
+    cancelImport, upload, runConfirm, dialogs: orchestrationDialogs,
+  } = useImportOrchestration(selectedMemberId ?? "", (memberId, onDone) => {
+    // U6 "Add details now": unlock in place, then let the import carry on.
+    const target = members.find((m) => m.id === memberId);
+    if (!target) return null;
+    return (
+      <MemberDetailsDialog
+        member={target}
+        onUnlocked={async () => {
+          await reloadMembers();
+          onDone();
+        }}
+        onCancel={() => void resetFlow()}
+        onOtherAccount={() => void resetFlow()}
+      />
+    );
+  });
+  const { stage, preview, confirmResult } = flow;
+  const error = flow.error;
 
   /* Load household members */
   useEffect(() => {
@@ -93,7 +95,12 @@ export function MobileImportView({
       .then((data) => {
         if (data && data.length > 0) {
           setMembers(data);
-          setSelectedMemberId((prev) => prev ?? defaultMemberId ?? data[0].id);
+          setSelectedMemberId((prev) => {
+            // A locked person can't be imported for (I5): fall back to someone who can.
+            const wanted = prev ?? defaultMemberId;
+            const found = data.find((m) => m.id === wanted);
+            return found && !isMemberLocked(found) ? found.id : wanted && !found ? wanted : firstOpenMember(data).id;
+          });
         }
       })
       .catch(() => {});
@@ -115,102 +122,85 @@ export function MobileImportView({
     return () => window.removeEventListener("focus", handleFocus);
   }, [selectedMemberId]);
 
-  const resetFlow = () => {
-    if (preview) void discardImportSession(preview.session_id);
-    clearCasResumeStep2(selectedMemberId);
-    setStep("flow");
-    setPreview(null);
-    setConfirmResult(null);
-    setError(null);
-    setReviewNotice(null);
-    setCrossAccountBlocked(null);
+  const reloadMembers = async (): Promise<HouseholdMember[]> => {
+    invalidateApiCache();
+    try {
+      const fresh = await listHouseholdMembers();
+      setMembers(fresh);
+      return fresh;
+    } catch {
+      // Keep the list we have.
+      return members;
+    }
+  };
+
+  const resetFlow = async () => {
     setDismissedWarnings(new Set());
-    setConfirming(false);
+    await cancelImport();
   };
 
   const handleUpload = async (file: File, password: string) => {
     if (!selectedMemberId) return;
-    clearCasResumeStep2(selectedMemberId);
-    setStep("parsing");
-    setError(null);
-    try {
-      const result = await parseImport(file, password, selectedMemberId);
-      setPreview(result);
-      setStep("review");
-    } catch (err) {
-      const conflict = getPanConflict(err);
-      if (conflict) {
-        // Nothing was stored server-side; back to the upload form under the popup.
-        setStep("flow");
-        setView("upload");
-        if (conflict.code === "cross_account_pan_blocked") {
-          setCrossAccountBlocked(conflict.message);
-        } else {
-          setPanConflict(conflict.message);
-        }
-        return;
-      }
-      setError(toParseErrorPayload(err));
-      setStep("error");
-    }
-  };
-
-  // Confirm never prompts: member and PAN were settled at upload.
-  const handleConfirm = async (confirmations: SchemeConfirmation[]) => {
-    if (!preview || !selectedMemberId) return;
-    setConfirming(true);
-    setReviewNotice(null);
-    try {
-      const result = await confirmImport(preview.session_id, selectedMemberId, confirmations);
-      clearCasResumeStep2(selectedMemberId);
-      setConfirmResult(result);
-      setDismissedWarnings(new Set());
-      setStep("confirmed");
-    } catch (err) {
-      if (err instanceof ApiError && (err.status === 409 || err.status === 404)) {
-        setReviewNotice(
-          err.status === 404
-            ? "This import session has expired. Please re-upload your CAS."
-            : toParseErrorPayload(err).message,
-        );
-      } else {
-        setError(toParseErrorPayload(err));
-        setStep("error");
-      }
-    } finally {
-      setConfirming(false);
-    }
+    // Whatever sends the user back to the upload screen, they land on the form they just used.
+    setView("upload");
+    await upload(file, password);
   };
 
   const selectedMemberName =
     members.find((m) => m.id === selectedMemberId)?.name ?? "Self";
 
+  // Dialogs shared by every screen.
+  const flowDialogs = (
+    <>
+      {orchestrationDialogs}
+      <LockedMemberDialogs
+        member={members.find((m) => m.id === lockedPickId) ?? null}
+        onClose={() => setLockedPickId(null)}
+        onOtherAccount={() => void reloadMembers()}
+        onUnlocked={async (unlocked) => {
+          await reloadMembers();
+          setLockedPickId(null);
+          setSelectedMemberId(unlocked.id);
+        }}
+      />
+    </>
+  );
+
   /* 1. Parsing Indicator Screen */
-  if (step === "parsing") {
+  if (stage === "parsing") {
     return (
       <div className="w-full flex-1 flex flex-col justify-center items-center min-h-[calc(100dvh-7rem)] sm:min-h-[500px] my-auto">
+        {flowDialogs}
         <ParsingIndicator />
       </div>
     );
   }
 
   /* 2. Review Screen */
-  if (step === "review" && preview) {
+  if (stage === "review" && preview) {
     return (
       <div className="w-full max-w-md mx-auto">
+        {flowDialogs}
         <MobileReviewView
           preview={preview}
+          people={reviewPeople}
+          edits={edits}
+          nameAnswers={nameAnswers}
           confirming={confirming}
-          onConfirm={handleConfirm}
-          onCancel={resetFlow}
-          reviewNotice={reviewNotice}
+          onConfirmImports={(people, moved) => void runConfirm(people, moved)}
+          onCancel={() => setCancelOpen(true)}
         />
       </div>
     );
   }
 
+  /* 2b. Name notices and the people popup sit over a blank screen while the user answers them. */
+  if (stage === "notices" || stage === "people") {
+    return <div className="w-full min-h-[50vh]">{flowDialogs}</div>;
+  }
+
   /* 3. Confirmed Success Screen */
-  if (step === "confirmed" && confirmResult) {
+  if (stage === "confirmed" && confirmResult) {
     const addedText = `${confirmResult.added} new transaction${confirmResult.added === 1 ? "" : "s"} added`;
     const skippedText =
       confirmResult.skipped > 0
@@ -278,7 +268,7 @@ export function MobileImportView({
 
             <Button
               variant="outline"
-              onClick={resetFlow}
+              onClick={() => void resetFlow()}
               className="w-full h-13 sm:h-13.5 rounded-full border border-[var(--color-border)] bg-transparent hover:bg-black/5 dark:hover:bg-white/5 text-[var(--color-ink)] text-xs sm:text-sm font-bold gap-2 cursor-pointer active:scale-[0.98] transition-all min-h-[48px]"
             >
               <UploadCloud className="h-4 w-4" />
@@ -291,7 +281,7 @@ export function MobileImportView({
   }
 
   /* 4. Error Screen */
-  if (step === "error") {
+  if (stage === "error") {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-6 space-y-4 animate-in fade-in duration-200">
         <div className="h-12 w-12 rounded-2xl bg-[color-mix(in_srgb,var(--color-negative)_12%,transparent)] text-[var(--color-negative)] flex items-center justify-center">
@@ -303,12 +293,12 @@ export function MobileImportView({
             Import Failed
           </h3>
           <p className="text-xs text-[#5C5C5C] dark:text-[#A3A3A3] leading-relaxed">
-            {error?.message || "We were unable to parse your statement. Please try again."}
+            {error || "We were unable to parse your statement. Please try again."}
           </p>
         </div>
 
         <Button
-          onClick={resetFlow}
+          onClick={() => void resetFlow()}
           className="h-11 px-6 rounded-full bg-[#22C55E] hover:bg-[#22C55E]/90 dark:bg-[#22C55E] dark:hover:bg-[#22C55E]/90 text-white font-bold text-xs gap-2 min-h-[44px] active:scale-95 shadow-md shadow-[#22C55E]/20 border-none mx-auto"
         >
           <RefreshCw className="h-4 w-4" />
@@ -329,18 +319,7 @@ export function MobileImportView({
           : "space-y-3.5 sm:space-y-4"
       )}
     >
-      <CrossAccountBlockedDialog
-        isOpen={crossAccountBlocked !== null}
-        message={crossAccountBlocked ?? ""}
-        onBack={() => setCrossAccountBlocked(null)}
-      />
-      <PanConflictDialog
-        isOpen={panConflict !== null}
-        message={panConflict ?? ""}
-        secondaryLabel="Cancel"
-        onChangeFile={() => setPanConflict(null)}
-        onSecondary={() => setPanConflict(null)}
-      />
+      {flowDialogs}
       {/* Top Header with Member Selector & Subtle Secondary History Toggle */}
       <div className="flex items-center justify-between gap-2 flex-wrap px-0.5 flex-shrink-0">
         {/* Member Selector / Indicator */}
@@ -351,6 +330,11 @@ export function MobileImportView({
                 key={m.id}
                 type="button"
                 onClick={() => {
+                  // A1: a locked person can't be imported for until their details are added.
+                  if (isMemberLocked(m)) {
+                    setLockedPickId(m.id);
+                    return;
+                  }
                   setSelectedMemberId(m.id);
                   setPendingImportId(null);
                 }}
@@ -361,8 +345,11 @@ export function MobileImportView({
                     : "bg-white/80 dark:bg-[var(--color-surface)] text-[#5C5C5C] dark:text-[#A3A3A3] border border-[var(--color-border)] hover:text-[var(--color-ink)]"
                 )}
               >
-                <User className="h-3 w-3" />
+                {isMemberLocked(m) ? <Lock className="h-3 w-3" aria-hidden="true" /> : <User className="h-3 w-3" />}
                 <span>{m.name}</span>
+                {isMemberLocked(m) && m.lock_reason !== "pan_on_other_account" && (
+                  <span className="font-normal opacity-80">{ADD_DETAILS_FIRST}</span>
+                )}
               </button>
             ))}
           </div>
@@ -424,7 +411,6 @@ export function MobileImportView({
         {view === "waiting" && (
           <WaitingForCasView
             importId={pendingImportId || "pending-import"}
-            memberId={activeMemberId ?? ""}
             onCancelled={() => {
               if (activeMemberId) clearCasResumeStep2(activeMemberId);
               setPendingImportId(null);
@@ -432,6 +418,12 @@ export function MobileImportView({
             }}
             onUploadSubmit={handleUpload}
           />
+        )}
+
+        {view === "upload" && uploadMessage && (
+          <p role="status" className="mb-3 max-w-md text-center text-xs text-[var(--color-ink)]">
+            {uploadMessage}
+          </p>
         )}
 
         {view === "upload" && (
@@ -451,7 +443,14 @@ export function MobileImportView({
               <ArrowLeft className="h-3.5 w-3.5" />
               <span>Back to import</span>
             </button>
-            <MobileImportHistory memberId={activeMemberId} />
+            <MobileImportHistory
+              memberId={activeMemberId}
+              onMembersChanged={async (removed) => {
+                const rest = await reloadMembers();
+                // The viewed person was removed with their last data: fall back to someone who is left.
+                if (removed.includes(activeMemberId) && rest.length > 0) setSelectedMemberId(firstOpenMember(rest).id);
+              }}
+            />
           </div>
         )}
       </div>

@@ -602,4 +602,41 @@ describe("MobileDashboardView", () => {
 
     expect(handleNavigateImport).toHaveBeenCalledWith("m-2");
   });
+  describe("locked family members (F39)", () => {
+    const locked = (over: object) => ({
+      id: "m-2", name: "Ramesh Sharma", relationship: null, relationship_other_label: null, origin: "cas",
+      lock_reason: "details_needed", details_required: true, pan_masked: "BX******8L", ...over,
+    });
+    const me = { id: "m-1", name: "Ayush", relationship: "self", relationship_other_label: null, origin: "self", lock_reason: null, details_required: false, pan_masked: null };
+
+    async function openPicker() {
+      vi.mocked(dashboardApi.getAggregateHoldings).mockResolvedValue({ holdings: [], members: [] } as any);
+      vi.mocked(dashboardApi.getAggregateAllocation).mockResolvedValue({ members: [], allocation: { by_asset_class: [], by_amc: [], total_value: "0.00" } } as any);
+      vi.mocked(dashboardApi.getMemberHoldings).mockResolvedValue([]);
+      vi.mocked(dashboardApi.getMemberAllocation).mockResolvedValue({ by_asset_class: [], by_amc: [], total_value: "0.00" } as any);
+      render(<MobileDashboardView />);
+      fireEvent.click(await screen.findByRole("button", { name: "Per Member" }));
+      const trigger = await screen.findByLabelText("Select household member");
+      fireEvent.keyDown(trigger, { key: "ArrowDown" });
+    }
+
+    it("shows a locked person as locked, never as (null), and opens the unlock popup instead of loading their data", async () => {
+      vi.mocked(authApi.listHouseholdMembers).mockResolvedValue([me, locked({})] as any);
+      await openPicker();
+      const option = await screen.findByRole("option", { name: /ramesh sharma/i });
+      expect(option).not.toHaveTextContent("(null)");
+      expect(option).toHaveTextContent(/add details first/i);
+      fireEvent.click(option);
+      expect(await screen.findByText("Add Ramesh Sharma’s details")).toBeInTheDocument();
+      expect(dashboardApi.getMemberHoldings).not.toHaveBeenCalledWith("m-2", expect.anything());
+      expect(dashboardApi.getMemberHoldings).not.toHaveBeenCalledWith("m-2");
+    });
+
+    it("explains a person who is on another account (L8) instead of opening the unlock form", async () => {
+      vi.mocked(authApi.listHouseholdMembers).mockResolvedValue([me, locked({ name: "Kiran Sharma", lock_reason: "pan_on_other_account", details_required: false })] as any);
+      await openPicker();
+      fireEvent.click(await screen.findByRole("option", { name: /kiran sharma/i }));
+      expect(await screen.findByText("Kiran Sharma has their own Unifolio account")).toBeInTheDocument();
+    });
+  });
 });

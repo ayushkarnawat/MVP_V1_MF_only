@@ -1,7 +1,20 @@
 import { useEffect, useState } from "react";
-import { getMemberImportHistory } from "@/features/import/api";
-import type { CASImportStatusResponse } from "@/features/import/types";
-import { FileText, AlertCircle, RefreshCw, Layers } from "lucide-react";
+import {
+  deleteHouseholdImport,
+  deleteMemberPortfolio,
+  getHouseholdImportHistory,
+  getMemberImportHistory,
+} from "@/features/import/api";
+import { listHouseholdMembers } from "@/features/auth/api";
+import type { HouseholdMember } from "@/features/auth/types";
+import type { CASImportStatusResponse, HouseholdImportHistoryItem } from "@/features/import/types";
+import { DeleteImportDialog, type DeleteScope } from "@/features/profile/DeleteImportDialog";
+import { DeletePortfolioDialog } from "@/features/profile/DeletePortfolioDialog";
+import { statementsFor } from "@/features/profile/HouseholdMembersSection";
+import { groupKey, removalNames } from "@/features/profile/historyGroups";
+import { PromptDialog } from "@/features/import/prompts/PromptDialog";
+import { PRIMARY_BTN, SECONDARY_BTN } from "@/features/import/prompts/copy";
+import { FileText, AlertCircle, RefreshCw, Layers, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { motion, useReducedMotion } from "motion/react";
@@ -10,10 +23,19 @@ import { listContainerVariants, listItemVariants, isTestEnv } from "@/lib/motion
 export interface MobileImportHistoryProps {
   memberId: string;
   onRefresh?: () => void;
+  /** After a delete: members may have been removed. `removedMemberIds` lists who is gone. */
+  onMembersChanged?: (removedMemberIds: string[]) => void;
 }
 
-export function MobileImportHistory({ memberId }: MobileImportHistoryProps) {
+export function MobileImportHistory({ memberId, onMembersChanged }: MobileImportHistoryProps) {
   const [history, setHistory] = useState<CASImportStatusResponse[]>([]);
+  // The household-wide list carries the statement grouping (F26) that the per-member list lacks.
+  const [household, setHousehold] = useState<HouseholdImportHistoryItem[]>([]);
+  const [members, setMembers] = useState<HouseholdMember[]>([]);
+  const [deleting, setDeleting] = useState<CASImportStatusResponse | null>(null);
+  const [portfolioOpen, setPortfolioOpen] = useState(false);
+  const [deletePending, setDeletePending] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const shouldReduceMotion = useReducedMotion() || isTestEnv;
@@ -35,6 +57,60 @@ export function MobileImportHistory({ memberId }: MobileImportHistoryProps) {
   useEffect(() => {
     fetchHistory();
   }, [memberId]);
+
+  // Best effort: without the grouping every import is deleted on its own (person scope).
+  useEffect(() => {
+    let active = true;
+    getHouseholdImportHistory().then((rows) => active && setHousehold(rows)).catch(() => undefined);
+    listHouseholdMembers().then((rows) => active && setMembers(rows)).catch(() => undefined);
+    return () => { active = false; };
+  }, [memberId]);
+
+  const householdRow = (importId: string) => household.find((h) => h.import_id === importId);
+  const closeDialogs = () => {
+    setDeleting(null);
+    setPortfolioOpen(false);
+    setDeleteError(null);
+  };
+
+  const runDelete = async (item: CASImportStatusResponse, scope: DeleteScope) => {
+    setDeletePending(true);
+    setDeleteError(null);
+    try {
+      const res = await deleteHouseholdImport(item.import_id, scope);
+      const row = householdRow(item.import_id);
+      const gone = new Set(
+        scope === "group" && row ? household.filter((h) => groupKey(h) === groupKey(row)).map((h) => h.import_id) : [item.import_id],
+      );
+      setHistory((rows) => rows.filter((r) => !gone.has(r.import_id)));
+      setHousehold((rows) => rows.filter((r) => !gone.has(r.import_id)));
+      closeDialogs();
+      onMembersChanged?.(res.removed_member_ids);
+    } catch {
+      setDeleteError("Could not delete this import. Please try again.");
+    } finally {
+      setDeletePending(false);
+    }
+  };
+
+  const runDeletePortfolio = async (removeMember: boolean) => {
+    setDeletePending(true);
+    setDeleteError(null);
+    try {
+      const res = await deleteMemberPortfolio(memberId, removeMember);
+      setHistory([]);
+      setHousehold((rows) => rows.filter((r) => r.household_member_id !== memberId));
+      closeDialogs();
+      onMembersChanged?.(res.removed_member_ids);
+    } catch {
+      setDeleteError("Could not delete these funds. Please try again.");
+    } finally {
+      setDeletePending(false);
+    }
+  };
+
+  const deletingRow = deleting ? householdRow(deleting.import_id) : undefined;
+  const thisMember = members.find((m) => m.id === memberId);
 
   if (isLoading) {
     return (
@@ -97,6 +173,19 @@ export function MobileImportHistory({ memberId }: MobileImportHistoryProps) {
           {history.length} record{history.length !== 1 ? "s" : ""}
         </span>
       </div>
+      {thisMember && (
+        <button
+          type="button"
+          onClick={() => {
+            setDeleteError(null);
+            setPortfolioOpen(true);
+          }}
+          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[11px] font-semibold text-[var(--color-negative)] min-h-[32px]"
+        >
+          <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+          Delete all funds
+        </button>
+      )}
 
       <motion.div
         variants={listContainerVariants}
@@ -131,6 +220,17 @@ export function MobileImportHistory({ memberId }: MobileImportHistoryProps) {
                   </div>
                 </div>
 
+                <button
+                  type="button"
+                  aria-label={`Delete import from ${new Date(item.uploaded_at).toLocaleDateString()}`}
+                  onClick={() => {
+                    setDeleteError(null);
+                    setDeleting(item);
+                  }}
+                  className="rounded-lg p-1.5 text-[var(--color-negative)] flex-shrink-0 min-h-[32px] min-w-[32px] flex items-center justify-center"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
                 <span
                   className={cn(
                     "text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize flex-shrink-0",
@@ -167,6 +267,47 @@ export function MobileImportHistory({ memberId }: MobileImportHistoryProps) {
           );
         })}
       </motion.div>
+      {deleting && deletingRow && deletingRow.group_people_count > 1 && (
+        <DeleteImportDialog
+          key={deleting.import_id}
+          item={deletingRow}
+          willRemove={removalNames(deletingRow, household, members)}
+          pending={deletePending}
+          error={deleteError}
+          onKeep={closeDialogs}
+          onDelete={(scope) => void runDelete(deleting, scope)}
+        />
+      )}
+      {deleting && !(deletingRow && deletingRow.group_people_count > 1) && (
+        <PromptDialog
+          isOpen
+          title="Delete this import?"
+          body={`This removes ${deleting.new_transactions_count ?? 0} transactions tied to this import from your holdings.`}
+          onClose={closeDialogs}
+          footer={
+            <>
+              <button type="button" onClick={closeDialogs} disabled={deletePending} className={SECONDARY_BTN}>
+                Keep
+              </button>
+              <button type="button" onClick={() => void runDelete(deleting, "person")} disabled={deletePending} className={PRIMARY_BTN}>
+                Delete
+              </button>
+            </>
+          }
+        >
+          {deleteError && <p role="alert" className="text-sm text-[var(--color-negative)]">{deleteError}</p>}
+        </PromptDialog>
+      )}
+      {portfolioOpen && thisMember && (
+        <DeletePortfolioDialog
+          member={thisMember}
+          statementsCount={statementsFor(memberId, household)}
+          pending={deletePending}
+          error={deleteError}
+          onKeep={closeDialogs}
+          onDelete={(removeMember) => void runDeletePortfolio(removeMember)}
+        />
+      )}
     </div>
   );
 }

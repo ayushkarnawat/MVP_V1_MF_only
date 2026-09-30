@@ -208,4 +208,34 @@ describe("MobileHoldingsView", () => {
       expect(screen.getByText("DISTRIBUTOR COMPARISON")).toBeInTheDocument();
     });
   });
+  describe("locked family members (F39)", () => {
+    const me = { id: "m-1", name: "Ayush", relationship: "self", relationship_other_label: null, origin: "self", lock_reason: null, details_required: false, pan_masked: null };
+    const ramesh = { id: "m-2", name: "Ramesh Sharma", relationship: null, relationship_other_label: null, origin: "cas", lock_reason: "details_needed", details_required: true, pan_masked: "BX******8L" };
+
+    async function openPicker(members: object[]) {
+      vi.mocked(authApi.listHouseholdMembers).mockResolvedValue(members as any);
+      vi.mocked(dashboardApi.getAggregateHoldings).mockResolvedValue({ holdings: [], members: [] } as any);
+      vi.mocked(dashboardApi.getMemberHoldings).mockResolvedValue([]);
+      render(<MobileHoldingsView />);
+      fireEvent.click(await screen.findByRole("button", { name: "Per Member" }));
+      return (await screen.findByLabelText("Select household member")) as HTMLSelectElement;
+    }
+
+    it("marks a locked person and opens the unlock popup instead of switching to them", async () => {
+      const picker = await openPicker([me, ramesh]);
+      const option = screen.getByRole("option", { name: /ramesh sharma/i });
+      expect(option).not.toHaveTextContent("(null)");
+      expect(option).toHaveTextContent(/add details first/i);
+      fireEvent.change(picker, { target: { value: "m-2" } });
+      expect(await screen.findByText("Add Ramesh Sharma’s details")).toBeInTheDocument();
+      expect(picker.value).toBe("m-1");
+      expect(dashboardApi.getMemberHoldings).not.toHaveBeenCalledWith("m-2");
+    });
+
+    it("explains a person on another account (L8)", async () => {
+      const picker = await openPicker([me, { ...ramesh, name: "Kiran Sharma", lock_reason: "pan_on_other_account", details_required: false }]);
+      fireEvent.change(picker, { target: { value: "m-2" } });
+      expect(await screen.findByText("Kiran Sharma has their own Unifolio account")).toBeInTheDocument();
+    });
+  });
 });
