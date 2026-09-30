@@ -172,3 +172,89 @@ def test_plan_without_me_key_has_no_me(db_session):
     _member(db_session, user, "Aditi Sharma", pan="AAAPA1111A")
     plans = plan_people(db_session, user.id, [_person("p1", "DAD", "BBBPB2222B")], None)
     assert plans[0].status == "new"
+
+
+# ------------------------------------------- name-only person (staging-QA fix 5A)
+
+def _locked(db, user, name):
+    return _member(db, user, name, relationship=None, details_completed_at=None,
+                   lock_reason=MemberLockReason.DETAILS_NEEDED)
+
+
+def test_plan_name_only_person_attaches_to_exact_name_member(db_session):
+    user = _user(db_session)
+    _member(db_session, user, "Aditi Shanbhag")
+    kavita = _locked(db_session, user, "Kavita Shanbhag")
+    plans = plan_people(db_session, user.id, [_person("p3", "Kavita Shanbhag")], None)
+    assert (plans[0].status, plans[0].member_id, plans[0].matched_by_name) == ("locked_member", kavita.id, True)
+
+
+def test_plan_name_only_person_attaches_to_unlocked_member_as_existing(db_session):
+    user = _user(db_session)
+    kavita = _member(db_session, user, "Kavita Shanbhag", relationship=Relationship.PARENT)
+    plans = plan_people(db_session, user.id, [_person("p3", "KAVITA SHANBHAG")], None)
+    assert (plans[0].status, plans[0].member_id, plans[0].matched_by_name) == ("existing_member", kavita.id, True)
+
+
+def test_plan_name_only_person_variant_name_stays_new(db_session):
+    user = _user(db_session)
+    _member(db_session, user, "Kavita Shanbhag", relationship=Relationship.PARENT)
+    plans = plan_people(db_session, user.id, [_person("p3", "K Shanbhag")], None)
+    assert (plans[0].status, plans[0].member_id) == ("new", None)
+
+
+def test_two_exact_matches_stay_new(db_session):
+    user = _user(db_session)
+    _member(db_session, user, "Kavita Shanbhag", relationship=Relationship.PARENT)
+    _member(db_session, user, "Kavita Shanbhag", relationship=Relationship.SIBLING)
+    plans = plan_people(db_session, user.id, [_person("p3", "Kavita Shanbhag")], None)
+    assert (plans[0].status, plans[0].member_id) == ("new", None)
+
+
+def test_placeholder_name_never_attaches(db_session):
+    user = _user(db_session)
+    _member(db_session, user, "Person 3", relationship=Relationship.PARENT)
+    plans = plan_people(db_session, user.id, [_person("p3", "Person 3", needs_name=True)], None)
+    assert plans[0].status == "new"
+
+
+# ------------------------------ PAN person vs name-only member (staging-QA fix 5B)
+
+def test_plan_pan_person_flags_name_only_member_as_possible_same(db_session):
+    user = _user(db_session)
+    kavita = _locked(db_session, user, "Kavita Shanbhag")
+    plans = plan_people(db_session, user.id, [_person("p3", "Kavita Shanbhag", "BNZPK4321M")], None)
+    assert (plans[0].status, plans[0].member_id, plans[0].same_person_member_id) == ("new", None, kavita.id)
+
+
+def test_two_name_only_matches_no_prompt(db_session):
+    user = _user(db_session)
+    for rel in (Relationship.PARENT, Relationship.SIBLING):
+        _member(db_session, user, "Kavita Shanbhag", relationship=rel)
+    plans = plan_people(db_session, user.id, [_person("p3", "Kavita Shanbhag", "BNZPK4321M")], None)
+    assert plans[0].same_person_member_id is None
+
+
+def test_member_with_a_detected_pan_is_not_name_only(db_session):
+    user = _user(db_session)
+    _member(db_session, user, "Kavita Shanbhag", relationship=None, details_completed_at=None,
+            lock_reason=MemberLockReason.DETAILS_NEEDED,
+            detected_pan_encrypted=encrypt_pan("ZZZPZ9999Z"), detected_pan_hash=hash_pan("ZZZPZ9999Z"))
+    plans = plan_people(db_session, user.id, [_person("p3", "Kavita Shanbhag", "BNZPK4321M")], None)
+    assert plans[0].same_person_member_id is None
+
+
+def test_name_lookups_never_match_the_self_member(db_session):
+    """Final review I-2 / F11: Me is found by PAN (or resolve_self), never by
+    these name lookups."""
+    user = _user(db_session)
+    _member(db_session, user, "Aditi Shanbhag", pan="AAAPA1111A")
+    plans = plan_people(db_session, user.id, [_person("p9", "Aditi Shanbhag")], None)
+    assert (plans[0].status, plans[0].member_id) == ("new", None)
+
+
+def test_pan_person_is_not_asked_about_a_pan_free_self_member(db_session):
+    user = _user(db_session)
+    _member(db_session, user, "Aditi Shanbhag")
+    plans = plan_people(db_session, user.id, [_person("p9", "Aditi Shanbhag", "BNZPS1234K")], None)
+    assert plans[0].same_person_member_id is None

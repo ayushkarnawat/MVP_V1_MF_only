@@ -21,10 +21,12 @@ interface LockedMemberDialogsProps {
   onClose: () => void;
   /** L5: relationship saved but the member stays locked; lets the parent reload. */
   onOtherAccount?: () => void;
+  /** L3 "The one I entered": open the upload screen. Without it, the popup just closes. */
+  onUploadDifferent?: () => void;
 }
 
 /** Mobile twin of the desktop dropdown behaviour: unlock popup (I3), or L8 for a person on another account. */
-export function LockedMemberDialogs({ member, onUnlocked, onClose, onOtherAccount }: LockedMemberDialogsProps) {
+export function LockedMemberDialogs({ member, onUnlocked, onClose, onOtherAccount, onUploadDifferent }: LockedMemberDialogsProps) {
   if (!member) return null;
   if (member.lock_reason === "pan_on_other_account") {
     return <OtherAccountDialog isOpen memberName={member.name} variant="picked" onOk={onClose} />;
@@ -35,6 +37,7 @@ export function LockedMemberDialogs({ member, onUnlocked, onClose, onOtherAccoun
       member={member}
       onUnlocked={onUnlocked}
       onCancel={onClose}
+      onUploadDifferent={onUploadDifferent}
       onOtherAccount={() => {
         onClose();
         onOtherAccount?.();

@@ -24,6 +24,7 @@ from app.models.enums import (
     NameChangeReason,
     Relationship,
 )
+from app.models.folio import Folio
 from app.models.member_history import HouseholdMemberNameChange
 from app.models.user import HouseholdMember
 from app.db.session import commit_off_loop
@@ -48,6 +49,7 @@ from app.services.import_.people_resolution import (
     PersonPlan,
     SelfMatch,
     has_permanent_pan,
+    has_no_pan,
     plan_name_update,
     plan_people,
 )
@@ -278,6 +280,8 @@ async def start_import_session(
         me_choice=None,
         u3_declined=False,
         same_person_declined=set(),
+        # person_key -> member_id: "Yes, same person" for a locked name-only member (5B).
+        same_person_linked={},
         ready=False,
     )
     try:
@@ -595,7 +599,9 @@ def _advance(db: Session, session_id: str) -> ImportPreviewResponse:
         target = db.get(HouseholdMember, session["household_member_id"])
         person = _person(session, target_key)
         for i, plan in enumerate(plans):
-            if plan.person_key == target_key and plan.member_id is None:
+            # The upload's own target wins over a 5A exact-name attach elsewhere:
+            # the user said whose data this is (final-review I-1).
+            if plan.person_key == target_key and (plan.member_id is None or plan.matched_by_name):
                 # Name-only person matched to the upload's target member.
                 plans[i] = PersonPlan(
                     target_key, "existing_member", target.id,
@@ -603,6 +609,16 @@ def _advance(db: Session, session_id: str) -> ImportPreviewResponse:
                     "none" if person.needs_name else plan_name_update(target.name, person.name),
                     target.name, None,
                 )
+    linked: dict[str, uuid.UUID] = session.setdefault("same_person_linked", {})
+    for i, plan in enumerate(plans):
+        member = db.get(HouseholdMember, linked[plan.person_key]) if plan.person_key in linked else None
+        if member is not None and plan.member_id is None:
+            # Staging-QA fix 5B: "Yes, same person" for a locked name-only member.
+            person = _person(session, plan.person_key)
+            plans[i] = PersonPlan(
+                plan.person_key, "locked_member" if member.is_locked else "existing_member", member.id,
+                person.name, plan_name_update(member.name, person.name), member.name, None,
+            )
     session["me_key"] = me_key
     session["people_plan"] = plans
     session["ready"] = True
@@ -636,7 +652,10 @@ def _preview_response(db: Session, session: dict[str, Any]) -> ImportPreviewResp
             member_id=str(plan.member_id) if plan.member_id else None,
             fund_count=len(schemes),
             unresolved_count=sum(1 for s in schemes if s.plan_type == "unclassified"),
-            matched_by_name_temp_ids=[temp_id(s) for s in schemes if (s.amc, folio_key(s.folio)) in by_name],
+            matched_by_name_temp_ids=[
+                temp_id(s) for s in schemes
+                if plan.matched_by_name or (s.amc, folio_key(s.folio)) in by_name
+            ],
         ))
         if plan.name_update in ("update", "ask"):
             notices.append(NameNotice(
@@ -646,10 +665,14 @@ def _preview_response(db: Session, session: dict[str, Any]) -> ImportPreviewResp
             ))
         if plan.same_person_member_id and person.key not in declined:
             member = db.get(HouseholdMember, plan.same_person_member_id)
+            name_only = has_no_pan(member)
             same_prompts.append(SamePersonPrompt(
                 person_key=person.key, member_id=str(member.id), member_name=member.name,
-                entered_pan_masked=_masked_member_pan(member) or "",
+                entered_pan_masked="" if name_only else (_masked_member_pan(member) or ""),
                 statement_pan_masked=person.pan_masked or "",
+                kind="name_only" if name_only else "typed_pan",
+                member_fund_count=db.query(Folio).filter(Folio.household_member_id == member.id).count(),
+                statement_name=person.name,
             ))
     return base.model_copy(update={
         "people": previews,
@@ -801,8 +824,10 @@ def resolve_pan(db: Session, session_id: str, user_id: uuid.UUID) -> ImportPrevi
 def resolve_same_person(
     db: Session, session_id: str, user_id: uuid.UUID, person_key: str, member_id: str, same: bool
 ) -> ImportPreviewResponse:
-    """U13: same=True maps the person to the member with the U4 PAN switch
-    (U12 on conflict); same=False leaves them a new person."""
+    """U13 (typed PAN): same=True switches the member to the statement PAN
+    (U4, U12 on conflict). Name-only member (staging-QA 5B): same=True links
+    the person to them -- a locked one gets the PAN as its detected PAN at
+    Confirm, an unlocked one a pending claim. same=False leaves them new."""
     session = _live_session(db, session_id, user_id)
     if not session.get("ready"):
         return _finish(db, session_id)  # an earlier prompt is still open
@@ -822,6 +847,18 @@ def resolve_same_person(
         session["same_person_declined"].add(person_key)
         return _finish(db, session_id)
     member = db.get(HouseholdMember, plan.same_person_member_id)
+    if has_no_pan(member):
+        person = _person(session, person_key)
+        if member.is_locked:
+            session.setdefault("same_person_linked", {})[person_key] = member.id
+        else:
+            try:
+                claim_pan_for_member(db, member, person.pan, pending=True)
+            except PanConflictError:
+                db.commit()
+                raise
+            _record_claim(session, member.id, person.pan)
+        return _finish(db, session_id)
     try:
         _switch_or_u12(db, session, member, _person(session, person_key))
     except (ImportPromptError, PanConflictError):

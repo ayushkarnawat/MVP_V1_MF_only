@@ -166,6 +166,11 @@ export function MainDashboardFlow() {
           member={detailsMember}
           onUnlocked={handleUnlocked}
           onCancel={() => setDetailsForId(null)}
+          onUploadDifferent={() => {
+            // M9 blocks uploads *for* a locked member: open the normal upload.
+            setDetailsForId(null);
+            handleAddDataTrigger();
+          }}
           onOtherAccount={() => {
             setDetailsForId(null);
             setViewMode("aggregate");
@@ -288,6 +293,7 @@ export function MainDashboardFlow() {
                     }}
                     onCancel={() => setIsAddingData(false)}
                     onOtherAccount={() => setIsAddingData(false)}
+                    onUploadDifferent={() => setIsAddingData(false)}
                   />
                 );
               }}

@@ -40,6 +40,37 @@ class PersonPlan:
     name_update: NameUpdate
     current_name: str | None
     same_person_member_id: uuid.UUID | None
+    # Staging-QA fix 5A: attached by exact name, not PAN. Every fund of this
+    # person is shown "matched by name" and can be moved (FR-4).
+    matched_by_name: bool = False
+
+
+def find_member_by_exact_name(members: list[HouseholdMember], name: str) -> HouseholdMember | None:
+    """Exactly one member whose name is an exact compare_names match, else
+    None. Two same-named members never attach: guessing wrong is worse than
+    a duplicate the user can merge. Me is never a candidate (F11: Me is found
+    by PAN or by resolve_self, not by these name lookups)."""
+    hits = [
+        m for m in members
+        if m.relationship != Relationship.SELF and compare_names(name, m.name).result == "exact"
+    ]
+    return hits[0] if len(hits) == 1 else None
+
+
+def has_no_pan(member: HouseholdMember) -> bool:
+    """No PAN of any kind: never on a statement, never typed or claimed."""
+    return member.detected_pan_hash is None and member.pan_lookup_hash is None
+
+
+def find_name_only_member(members: list[HouseholdMember], name: str) -> HouseholdMember | None:
+    """Exactly one member with no PAN of any kind (never on a statement, never
+    typed) whose name is an exact or variant match. Such a member is what a
+    PAN-less statement created; a later statement with a PAN may be them."""
+    hits = [
+        m for m in members
+        if m.relationship != Relationship.SELF and has_no_pan(m) and compare_names(name, m.name).result in ("exact", "variant")
+    ]
+    return hits[0] if len(hits) == 1 else None
 
 
 def has_permanent_pan(member: HouseholdMember) -> bool:
@@ -121,6 +152,15 @@ def plan_people(
             plans.append(PersonPlan(p.key, status, member.id, name, update, member.name, None))
             continue
 
+        if not p.pan and not p.needs_name:
+            named = find_member_by_exact_name(members, p.name)
+            if named is not None:
+                plans.append(PersonPlan(
+                    p.key, "locked_member" if named.is_locked else "existing_member", named.id,
+                    p.name, plan_name_update(named.name, p.name), named.name, None, matched_by_name=True,
+                ))
+                continue
+
         same: uuid.UUID | None = None
         if status == "new" and p.pan and not p.needs_name:
             new_hash = hash_pan(p.pan)
@@ -139,5 +179,10 @@ def plan_people(
                 ),
                 None,
             )
+            if same is None:
+                # Staging-QA fix 5B: a PAN-less member this person may be
+                # (their earlier statement had no PAN). Asked, never assumed.
+                named = find_name_only_member(members, p.name)
+                same = named.id if named is not None else None
         plans.append(PersonPlan(p.key, status, None, p.name, "none", None, same))
     return plans

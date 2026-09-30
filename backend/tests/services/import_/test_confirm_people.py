@@ -750,3 +750,37 @@ def test_post_commit_failure_keeps_file_and_does_not_reinsert_session(db_session
     assert db_session.query(Import).count() == 3  # committed
     assert storage.deleted == []  # committed rows still reference the file
     assert preview.session_id not in _preview_sessions  # a second press stays 410
+
+
+def test_confirm_writes_the_statement_period_on_every_import(db_session):
+    """Staging-QA fix 6: imports.statement_from_date/_to_date were never written."""
+    from datetime import date
+
+    me = _member(db_session, _user(db_session), "Aditi Sharma")
+    parsed = _family()
+    parsed.statement_from, parsed.statement_to = date(2025, 4, 1), date(2025, 9, 30)
+    preview = _start(db_session, me, parsed)
+
+    _confirm(db_session, preview, me.user_id)
+
+    imports = db_session.query(Import).all()
+    assert imports and all(
+        (i.statement_from_date, i.statement_to_date) == (date(2025, 4, 1), date(2025, 9, 30)) for i in imports
+    )
+
+
+def test_confirm_reclassifies_name_only_person_by_exact_name(db_session):
+    """Staging-QA fix 5A: a same-named member created after this review was
+    built (another tab's confirm) is attached at Confirm, not duplicated."""
+    from app.services.import_.confirm_people import _resolve_member
+    from app.services.import_.people import ParsedPerson
+    from app.services.import_.people_resolution import PersonPlan
+
+    user = _user(db_session)
+    person = ParsedPerson(key="p3", pan=None, pan_masked=None, name="Kavita Shanbhag", name_source="holder_line",
+                          needs_name=False, folio_keys=[("Tata Mutual Fund", "12705694/27")], matched_by_name=[])
+    plan = PersonPlan("p3", "new", None, "Kavita Shanbhag", "none", None, None)
+    kavita = _member(db_session, user, "Kavita Shanbhag", relationship=None, details_completed_at=None,
+                     lock_reason=MemberLockReason.DETAILS_NEEDED)
+    work = _resolve_member(db_session, user.id, person, plan, PersonConfirmation(person_key="p3"), [])
+    assert work.member_id == kavita.id

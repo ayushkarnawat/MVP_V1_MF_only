@@ -55,7 +55,7 @@ from app.services.import_.parser import (
     source_cas_type_from_file_type,
 )
 from app.services.import_.people import ParsedPerson, folio_key
-from app.services.import_.people_resolution import PersonPlan, plan_name_update
+from app.services.import_.people_resolution import PersonPlan, find_member_by_exact_name, has_no_pan, plan_name_update
 from app.services.import_.schemas import (
     ImportConfirmResponse,
     PersonConfirmation,
@@ -245,11 +245,27 @@ def _confirm_claimed(
     me_import_id: str | None = None
     for work in works:
         member, created = _member_for(db, work, user_id, now)
+        if (
+            not created and work.person is not None and work.person.pan and member.is_locked
+            and member.detected_pan_hash not in (None, hash_pan(work.person.pan))
+        ):
+            # Another tab's confirm linked this member to a different PAN
+            # after this review was built (final-review M-1).
+            raise ConfirmInvalidError(f"{member.name} changed during this review. Upload the statement again.")
+        if (
+            not created and work.person is not None and work.person.pan
+            and member.is_locked and has_no_pan(member)
+        ):
+            # Staging-QA fix 5B: a name-only locked member the user said is
+            # this statement's person. From now on uploads match them by PAN.
+            member.detected_pan_encrypted = encrypt_pan(work.person.pan)
+            member.detected_pan_hash = hash_pan(work.person.pan)
         import_rec = Import(
             id=uuid.uuid4(), household_member_id=member.id, status=ImportStatus.CONFIRMED,
             source_cas_type=source_cas_type,
             raw_parser_output=_person_raw_output(parse_result.raw_json, set(work.scheme_keys)),
             uploaded_at=now, confirmed_at=now, upload_group_id=upload_group_id,
+            statement_from_date=parse_result.statement_from, statement_to_date=parse_result.statement_to,
         )
         db.add(import_rec)
         db.flush()
@@ -369,6 +385,7 @@ def _fund_owners(
     parse_result: ParseResult = session["parse_result"]
     key_to_temp: dict[SchemeKey, str] = session["key_to_temp"]
     scheme_of = {key_to_temp[(s.folio, s.amc, s.name)]: s for s in parse_result.schemes}
+    plans_by_key: dict[str, PersonPlan] = {pl.person_key: pl for pl in session["people_plan"]}
 
     for temp_id, target in moved_funds.items():
         scheme = scheme_of.get(temp_id)
@@ -378,6 +395,8 @@ def _fund_owners(
         # moved: a PAN identifies its owner.
         movable = scheme.person_key is None or (
             (scheme.amc, folio_key(scheme.folio)) in set(persons[scheme.person_key].matched_by_name)
+            # Staging-QA 5A: a whole person attached by exact name.
+            or plans_by_key[scheme.person_key].matched_by_name
         )
         if not movable:
             raise ConfirmInvalidError("Only funds matched by name can be moved.")
@@ -431,6 +450,13 @@ def _resolve_member(
                         f"{plan.name} is now on another Unifolio account. Upload the statement again."
                     )
                 lock_reason = MemberLockReason.PAN_ON_OTHER_ACCOUNT
+        if member_id is None and not person.pan and not person.needs_name:
+            # Staging-QA 5A, same rule as plan_people: a same-named member
+            # created by another tab's confirm is attached, not duplicated.
+            members = db.query(HouseholdMember).filter(HouseholdMember.user_id == user_id).all()
+            named = find_member_by_exact_name(members, person.name)
+            if named is not None:
+                member_id, lock_reason = named.id, None
         if member_id is None and person.needs_name and not conf.name:
             raise ConfirmInvalidError("Add a name for everyone before importing.")
     return _PersonWork(person.key, person, plan, conf, member_id, lock_reason, scheme_keys)

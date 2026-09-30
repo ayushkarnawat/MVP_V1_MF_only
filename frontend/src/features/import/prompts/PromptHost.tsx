@@ -107,6 +107,8 @@ export function PromptHost({
           enteredPanMasked={activeSame.entered_pan_masked}
           statementPanMasked={activeSame.statement_pan_masked}
           statementName={statementName}
+          kind={activeSame.kind}
+          memberFundCount={activeSame.member_fund_count}
           onYes={() =>
             onResolve({ kind: "samePerson", personKey: activeSame.person_key, memberId: activeSame.member_id, same: true })
           }

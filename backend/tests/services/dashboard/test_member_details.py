@@ -131,14 +131,15 @@ def test_unlock_pan_on_other_member_offers_merge_only_for_name_only(db_session):
     )
     assert db_session.get(HouseholdMember, name_only.id).is_locked
 
-    # A person WITH a detected PAN typing the same PAN as the detected one
-    # while another member already holds it: no merge offered.
+    # Staging-QA 5C (2026-09-30): a person WITH a detected PAN equal to the
+    # PAN another member already holds is provably the same person -- merge
+    # offered (it used to be refused, stranding the duplicate locked).
     u3 = _user(db_session, "+913")
     _claimed(db_session, u3, "Dad", PAN)
     detected_member = _locked(db_session, u3, "Ramesh", detected=PAN)
     with pytest.raises(PanOnOtherMemberError) as e2:
         complete_member_details(db_session, u3.id, detected_member.id, _req(PAN))
-    assert e2.value.can_merge is False
+    assert e2.value.can_merge is True
 
 
 def test_unlock_pan_on_other_account_saves_relationship_and_stays_locked(db_session):

@@ -2,7 +2,14 @@ import { useState } from "react";
 import { mergeMemberInto } from "../../auth/api";
 import type { HouseholdMember } from "../../auth/types";
 import { ConfirmLeaveDialog } from "./ConfirmLeaveDialog";
-import { DetailsFormDialog, SAVE_FAILED_MESSAGE, useDetailsForm, type DuplicateInfo } from "./memberDetailsForm";
+import { DetectedPanMismatchDialog } from "./DetectedPanMismatchDialog";
+import {
+  DetailsFormDialog,
+  SAVE_FAILED_MESSAGE,
+  useDetailsForm,
+  type DuplicateInfo,
+  type SubmitOutcome,
+} from "./memberDetailsForm";
 import { OtherAccountDialog } from "./OtherAccountDialog";
 import { PossibleDuplicateDialog } from "./PossibleDuplicateDialog";
 
@@ -14,21 +21,25 @@ export interface MemberDetailsDialogProps {
   onCancel: () => void;
   /** L5 saved the relationship but the member stays locked; lets the parent reload. */
   onOtherAccount?: () => void;
+  /** L3 "The one I entered": nothing saved; open the upload form. Falls back to onCancel. */
+  onUploadDifferent?: () => void;
 }
 
-type Stage = "form" | "leave" | "duplicate" | "other";
+type Stage = "form" | "leave" | "duplicate" | "other" | "mismatch";
 
 // Unlock popup (I3). One component owns every stage so typed values survive
 // Cancel -> Enter details (L6) and Check the PAN (L4).
-export function MemberDetailsDialog({ member, onUnlocked, onCancel, onOtherAccount }: MemberDetailsDialogProps) {
+export function MemberDetailsDialog({
+  member, onUnlocked, onCancel, onOtherAccount, onUploadDifferent,
+}: MemberDetailsDialogProps) {
   const form = useDetailsForm(member, "unlock");
   const [stage, setStage] = useState<Stage>("form");
   const [duplicate, setDuplicate] = useState<DuplicateInfo | null>(null);
   const [merging, setMerging] = useState(false);
   const [mergeError, setMergeError] = useState<string | null>(null);
+  const [mismatch, setMismatch] = useState<{ entered: string; statement: string } | null>(null);
 
-  const onContinue = async () => {
-    const outcome = await form.submit();
+  const handleOutcome = (outcome: SubmitOutcome | null) => {
     if (!outcome) return;
     if (outcome.kind === "ok") onUnlocked(outcome.member);
     else if (outcome.kind === "duplicate") {
@@ -36,7 +47,13 @@ export function MemberDetailsDialog({ member, onUnlocked, onCancel, onOtherAccou
       setMergeError(null);
       setStage("duplicate");
     } else if (outcome.kind === "otherAccount") setStage("other");
+    else if (outcome.kind === "detectedMismatch") {
+      setMismatch({ entered: outcome.enteredPanMasked, statement: outcome.statementPanMasked });
+      setStage("mismatch");
+    }
   };
+
+  const onContinue = async () => handleOutcome(await form.submit());
 
   const onMerge = async () => {
     if (!duplicate) return;
@@ -77,10 +94,26 @@ export function MemberDetailsDialog({ member, onUnlocked, onCancel, onOtherAccou
           memberName={member.name}
           otherMemberName={duplicate.otherMemberName}
           fundCount={duplicate.sourceFundCount}
+          sourcePanLabel={duplicate.sourcePanLabel}
           merging={merging}
           error={mergeError}
           onMerge={onMerge}
           onCheckPan={() => setStage("form")}
+        />
+      )}
+      {mismatch && (
+        <DetectedPanMismatchDialog
+          isOpen={stage === "mismatch"}
+          memberName={member.name}
+          enteredPanMasked={mismatch.entered}
+          statementPanMasked={mismatch.statement}
+          submitting={form.submitting}
+          onClose={() => setStage("form")}
+          onKeepEntered={() => (onUploadDifferent ?? onCancel)()}
+          onUseStatement={async () => {
+            setStage("form");
+            handleOutcome(await form.submit({ useDetectedPan: true }));
+          }}
         />
       )}
       <OtherAccountDialog

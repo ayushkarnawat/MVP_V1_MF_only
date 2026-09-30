@@ -69,6 +69,12 @@ class InvalidMemberDetailsError(MemberDetailsError):
     code = "invalid_relationship"
 
 
+class InvalidPanChoiceError(InvalidMemberDetailsError):
+    """Neither or both of `pan` / `use_detected_pan`, or no statement PAN to use."""
+
+    code = "invalid_member_details"
+
+
 class InvalidPanFormatError(MemberDetailsError):
     status_code = 422
     code = "invalid_pan_format"
@@ -99,6 +105,7 @@ class PanOnOtherMemberError(MemberDetailsError):
         can_merge: bool,
         source_member_name: str = "This person",
         source_fund_count: int = 0,
+        source_pan_label: str = "PAN not on statement",
     ):
         if can_merge:
             message = (
@@ -117,6 +124,8 @@ class PanOnOtherMemberError(MemberDetailsError):
                 "other_member_name": other_member_name,
                 "can_merge": can_merge,
                 "source_fund_count": source_fund_count,
+                # Staging-QA 5C: tells two same-named people apart in the popup.
+                "source_pan_label": source_pan_label,
             },
         )
         self.other_member_id = other_member_id
@@ -129,7 +138,11 @@ class MemberDetailsRequest(BaseModel):
     name: str | None = None
     relationship: Relationship
     relationship_other_label: str | None = None
-    pan: str
+    pan: str | None = None
+    # Staging-QA fix 4 (2026-09-30): "The one on the statement" in the L3
+    # popup. The browser only ever sees the masked detected PAN, so the server
+    # uses its own stored copy.
+    use_detected_pan: bool = False
 
 
 def _holder(db: DbSession, pan_hash: str, exclude_id: uuid.UUID, now: datetime) -> HouseholdMember | None:
@@ -173,13 +186,20 @@ def complete_member_details(
         raise InvalidMemberDetailsError("Your own details are edited from your profile.")
     label = _validate_relationship(body)
     new_name = validate_person_name(body.name) if body.name is not None else None
-    pan = normalise_pan_input(body.pan)
-    if not _PAN_RE.match(pan):
-        raise InvalidPanFormatError()
+    locked = member.is_locked
+    if (body.pan is None) == (not body.use_detected_pan):
+        raise InvalidPanChoiceError("Enter a PAN, or use the one on the statement.")
+    if body.use_detected_pan:
+        if not locked or member.detected_pan_encrypted is None or is_name_only(member):
+            raise InvalidPanChoiceError("There’s no statement PAN to use for this person.")
+        pan = decrypt_pan(member.detected_pan_encrypted)
+    else:
+        pan = normalise_pan_input(body.pan)
+        if not _PAN_RE.match(pan):
+            raise InvalidPanFormatError()
 
     now = datetime.now(timezone.utc)
     pan_hash = hash_pan(pan)
-    locked = member.is_locked
     # F34 provenance: a person whose only PAN is one the user typed (L5 on a
     # name-only person) is still "name-only": nothing on a statement to verify
     # against, so an L5 typo can be corrected.
@@ -192,11 +212,19 @@ def complete_member_details(
     already_mine = member.pan_lookup_hash == pan_hash
     holder = None if already_mine else _holder(db, pan_hash, member.id, now)
     if holder is not None and holder.user_id == user_id:
-        can_merge = locked and name_only
+        # Staging-QA fix 5C: a locked duplicate whose statement PAN is exactly
+        # the holder's PAN is provably the same person, so it can merge too
+        # (before, only a name-only source could, which stranded it).
+        same_pan = member.detected_pan_hash is not None and member.detected_pan_hash == holder.pan_lookup_hash
+        can_merge = locked and (name_only or same_pan)
         fund_count = db.query(Folio).filter(Folio.household_member_id == member.id).count()
         raise PanOnOtherMemberError(
             holder.id, holder.name, can_merge,
             source_member_name=member.name, source_fund_count=fund_count,
+            source_pan_label=(
+                mask_pan(decrypt_pan(member.detected_pan_encrypted))
+                if member.detected_pan_encrypted else "PAN not on statement"
+            ),
         )
     if holder is not None:  # another account
         if not locked:

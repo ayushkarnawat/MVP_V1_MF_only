@@ -59,6 +59,10 @@ export interface SamePersonPrompt {
   member_name: string;
   entered_pan_masked: string;
   statement_pan_masked: string;
+  /** Staging-QA 5B: "name_only" = a PAN-less member this statement's person may be. */
+  kind?: "typed_pan" | "name_only";
+  member_fund_count?: number;
+  statement_name?: string;
 }
 
 export interface ImportPreviewResponse {

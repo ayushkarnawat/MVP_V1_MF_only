@@ -8,6 +8,9 @@ export interface SamePersonDialogProps {
   statementPanMasked: string | null;
   /** The name as the statement prints it; falls back to the member's name in capitals. */
   statementName?: string;
+  /** "name_only" (staging-QA 5B): the member has no PAN at all, so there's no typed PAN to compare. */
+  kind?: "typed_pan" | "name_only";
+  memberFundCount?: number;
   onYes: () => void;
   /** Also the way out of ×. */
   onNo: () => void;
@@ -21,10 +24,33 @@ export function SamePersonDialog({
   enteredPanMasked,
   statementPanMasked,
   statementName,
+  kind = "typed_pan",
+  memberFundCount = 0,
   onYes,
   onNo,
 }: SamePersonDialogProps) {
   const statement = panOrPlaceholder(statementPanMasked);
+  if (kind === "name_only") {
+    const funds = `${memberFundCount} fund${memberFundCount === 1 ? "" : "s"}`;
+    return (
+      <PromptDialog
+        isOpen={isOpen}
+        title={`Is this the ${memberName} you already have?`}
+        body={`This statement shows ${statementName ?? memberName} with PAN ${statement}. Your family list already has ${memberName} · PAN not on statement · ${funds}.`}
+        onClose={onNo}
+        footer={
+          <>
+            <button type="button" onClick={onNo} className={SECONDARY_BTN}>
+              No, add as a new person
+            </button>
+            <button type="button" onClick={onYes} className={PRIMARY_BTN}>
+              Yes, same person
+            </button>
+          </>
+        }
+      />
+    );
+  }
   return (
     <PromptDialog
       isOpen={isOpen}

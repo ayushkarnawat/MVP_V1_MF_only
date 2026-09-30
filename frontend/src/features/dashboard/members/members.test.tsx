@@ -87,18 +87,58 @@ describe("MemberDetailsDialog", () => {
     });
   });
 
-  it("L3: detected PAN mismatch shows the masked hint", async () => {
-    vi.mocked(authApi.completeMemberDetails).mockRejectedValue(
-      apiError(409, "detected_pan_mismatch", "m", { detected_pan_masked: "BX******8L" }),
-    );
+  // Staging-QA decision 4 (2026-09-30): L3 is a popup, modelled on U4.
+  const mismatch = () => apiError(409, "detected_pan_mismatch", "m", { detected_pan_masked: "BX******8L" });
+
+  it("L3: a mismatched PAN opens the popup with both PANs masked, no inline error", async () => {
+    vi.mocked(authApi.completeMemberDetails).mockRejectedValueOnce(mismatch());
     setup();
-    fill("spouse", "ABCDE1234F");
+    fill("spouse", "LCWPK3816R");
     cont();
+    expect(await screen.findByText("This PAN doesn’t match your statement")).toBeInTheDocument();
     expect(
-      await screen.findByText(
-        "This PAN doesn’t match your statement. Your statement shows Ramesh Sharma’s PAN as BX******8L. Check the PAN and try again.",
+      screen.getByText(
+        "You entered LC******6R for Ramesh Sharma. The statement you uploaded shows BX******8L. Which one is correct?",
       ),
     ).toBeInTheDocument();
+    expect(screen.queryByText(/Check the PAN and try again/)).toBeNull();
+  });
+
+  it("L3: 'The one on the statement' resubmits with use_detected_pan and no typed PAN", async () => {
+    vi.mocked(authApi.completeMemberDetails)
+      .mockRejectedValueOnce(mismatch())
+      .mockResolvedValueOnce({ ...locked, relationship: "spouse", lock_reason: null, details_required: false });
+    const { onUnlocked } = setup();
+    fill("spouse", "LCWPK3816R");
+    cont();
+    fireEvent.click(await screen.findByRole("button", { name: "The one on the statement (BX******8L)" }));
+    await waitFor(() => expect(onUnlocked).toHaveBeenCalled());
+    const second = vi.mocked(authApi.completeMemberDetails).mock.calls[1][1];
+    expect(second).toEqual(expect.objectContaining({ relationship: "spouse", use_detected_pan: true }));
+    expect(second).not.toHaveProperty("pan");
+  });
+
+  it("L3: 'The one I entered' saves nothing and asks for a different statement", async () => {
+    vi.mocked(authApi.completeMemberDetails).mockRejectedValueOnce(mismatch());
+    const onUploadDifferent = vi.fn();
+    render(
+      <MemberDetailsDialog member={locked} onUnlocked={vi.fn()} onCancel={vi.fn()} onUploadDifferent={onUploadDifferent} />,
+    );
+    fill("spouse", "LCWPK3816R");
+    cont();
+    fireEvent.click(await screen.findByRole("button", { name: /The one I entered \(LC\*\*\*\*\*\*6R\)/ }));
+    expect(onUploadDifferent).toHaveBeenCalledTimes(1);
+    expect(authApi.completeMemberDetails).toHaveBeenCalledTimes(1);
+  });
+
+  it("L3: closing the popup returns to the form with the PAN still typed", async () => {
+    vi.mocked(authApi.completeMemberDetails).mockRejectedValueOnce(mismatch());
+    setup();
+    fill("spouse", "LCWPK3816R");
+    cont();
+    await screen.findByText("This PAN doesn’t match your statement");
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(await screen.findByDisplayValue("LCWPK3816R")).toBeInTheDocument();
   });
 
   it("L7: generic failure", async () => {
@@ -126,6 +166,26 @@ describe("MemberDetailsDialog", () => {
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Check the PAN" }));
     expect(await screen.findByLabelText("PAN")).toHaveValue("ABCDE1234F");
+  });
+
+  it("L4: the duplicate popup tells two same-named people apart (staging-QA 5C)", async () => {
+    vi.mocked(authApi.completeMemberDetails).mockRejectedValueOnce(
+      apiError(409, "pan_belongs_to_other_member", "m", {
+        other_member_id: "k1", other_member_name: "Kavita Shanbhag", can_merge: true,
+        source_fund_count: 1, source_pan_label: "BN******1M",
+      }),
+    );
+    render(
+      <MemberDetailsDialog member={{ ...locked, name: "Kavita Shanbhag" }} onUnlocked={vi.fn()} onCancel={vi.fn()} />,
+    );
+    fill("parent", "BNZPK4321M");
+    cont();
+    expect(
+      await screen.findByText(
+        "Kavita Shanbhag (BN******1M, 1 fund) and Kavita Shanbhag (already on your dashboard) may be the same person. Merging moves the 1 fund into the one on your dashboard and removes the duplicate.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Merge them" })).toBeInTheDocument();
   });
 
   it("L4: Merge into Dad calls mergeMemberInto and reports the target", async () => {

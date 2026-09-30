@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from app.models.analytics import AnalyticsSection
-from app.models.enums import Relationship
+from app.models.enums import MemberPanSource, Relationship
 from app.models.folio import Folio
 from app.models.imports import Import
 from app.models.member_history import HouseholdMemberMerge, HouseholdMemberNameChange
@@ -49,10 +49,13 @@ def merge_member_into(
     target = db.query(HouseholdMember).filter_by(id=target_id, user_id=user_id).first()
     if source is None or target is None:
         raise MemberNotFoundError()
+    # Staging-QA fix 5C: a locked source whose statement PAN is the target's
+    # PAN is provably the same person, even though it isn't name-only.
+    same_pan = source.detected_pan_hash is not None and source.detected_pan_hash == target.pan_lookup_hash
     if (
         source.id == target.id
         or not source.is_locked
-        or not is_name_only(source)
+        or not (is_name_only(source) or same_pan)
         or source.relationship == Relationship.SELF
     ):
         raise MergeNotAllowedError()
@@ -110,6 +113,10 @@ def merge_member_into(
     source.detected_from_import_id = None
     db.flush()
     db.delete(source)
+    if same_pan and target.pan_source == MemberPanSource.USER_ENTERED:
+        # The merged statement shows the PAN the user typed: it's verified now.
+        target.pan_source = MemberPanSource.CAS
+        target.pan_verified_at = datetime.now(timezone.utc)
     bump_recompute_generation(db, user_id)
     db.commit()
     # After commit (see delete_household_import's note on cache races).

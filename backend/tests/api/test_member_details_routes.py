@@ -152,3 +152,125 @@ def test_write_side_doors_are_403_for_a_locked_member(client):
     assert r.status_code == 403 and r.json()["detail"]["code"] == "member_details_required"
     r = client.post("/cas-imports/request", json={"household_member_id": mid}, headers=h)
     assert r.status_code == 403 and r.json()["detail"]["code"] == "member_details_required"
+
+
+# ---------------------------------------------- use_detected_pan (staging-QA fix 4)
+
+def test_use_detected_pan_unlocks_with_the_statement_pan(client):
+    from app.models.enums import MemberPanSource
+
+    h = _headers(client, "+919811200001")
+    _, mid = _add_locked(client, h)
+    r = client.post(f"/household-members/{mid}/details",
+                    json={"relationship": "parent", "use_detected_pan": True}, headers=h)
+    assert r.status_code == 200, r.text
+    assert r.json()["lock_reason"] is None
+    got = _db().get(HouseholdMember, uuid.UUID(mid))
+    assert got.pan_lookup_hash == hash_pan(PAN)
+    assert got.pan_source == MemberPanSource.CAS and got.pan_verified_at is not None
+
+
+def test_use_detected_pan_rejected_for_a_name_only_member(client):
+    h = _headers(client, "+919811200002")
+    _, mid = _add_locked(client, h, detected=None)
+    r = client.post(f"/household-members/{mid}/details",
+                    json={"relationship": "parent", "use_detected_pan": True}, headers=h)
+    assert r.status_code == 422 and r.json()["detail"]["code"] == "invalid_member_details"
+
+
+def test_pan_and_use_detected_pan_together_is_422(client):
+    h = _headers(client, "+919811200003")
+    _, mid = _add_locked(client, h)
+    r = client.post(f"/household-members/{mid}/details",
+                    json={"relationship": "parent", "pan": PAN, "use_detected_pan": True}, headers=h)
+    assert r.status_code == 422 and r.json()["detail"]["code"] == "invalid_member_details"
+
+
+def test_neither_pan_nor_flag_is_422(client):
+    h = _headers(client, "+919811200004")
+    _, mid = _add_locked(client, h)
+    r = client.post(f"/household-members/{mid}/details", json={"relationship": "parent"}, headers=h)
+    assert r.status_code == 422 and r.json()["detail"]["code"] == "invalid_member_details"
+
+
+def test_use_detected_pan_still_raises_l4_when_pan_is_on_another_member(client):
+    h = _headers(client, "+919811200005")
+    _, mid = _add_locked(client, h)
+    db = _db()
+    uid = db.get(HouseholdMember, uuid.UUID(mid)).user_id
+    now = datetime.now(timezone.utc)
+    db.add(HouseholdMember(
+        user_id=uid, name="Dad", relationship=Relationship.PARENT, created_at=now, details_completed_at=now,
+        origin=MemberOrigin.MANUAL, name_source=MemberNameSource.USER_ENTERED,
+        pan_encrypted=encrypt_pan(PAN), pan_lookup_hash=hash_pan(PAN),
+    ))
+    db.commit()
+    r = client.post(f"/household-members/{mid}/details",
+                    json={"relationship": "parent", "use_detected_pan": True}, headers=h)
+    assert r.status_code == 409 and r.json()["detail"]["code"] == "pan_belongs_to_other_member"
+
+
+# ------------------------------------ duplicate Kavita merge (staging-QA fix 5C)
+
+KAVITA_PAN = "BNZPK4321M"
+
+
+def _kavita_pair(client, h):
+    """#1 name-only locked, #2 locked with a detected PAN; same user, same name."""
+    me = client.post("/household-members", json={"name": "Aditi Shanbhag", "relationship": "self"}, headers=h).json()
+    db = _db()
+    uid = db.get(HouseholdMember, uuid.UUID(me["id"])).user_id
+    now = datetime.now(timezone.utc)
+    common = dict(user_id=uid, name="Kavita Shanbhag", relationship=None, created_at=now,
+                  origin=MemberOrigin.CAS_DETECTED, name_source=MemberNameSource.CAS,
+                  details_completed_at=None, lock_reason=MemberLockReason.DETAILS_NEEDED)
+    one = HouseholdMember(**common)
+    two = HouseholdMember(**common, detected_pan_encrypted=encrypt_pan(KAVITA_PAN), detected_pan_hash=hash_pan(KAVITA_PAN))
+    db.add_all([one, two])
+    db.commit()
+    return one.id, two.id
+
+
+def test_order_a_name_only_first_then_pan_bearing_can_merge(client):
+    from app.models.enums import MemberPanSource
+
+    h = _headers(client, "+919811400001")
+    one, two = _kavita_pair(client, h)
+    first = client.post(f"/household-members/{one}/details", json={"relationship": "parent", "pan": KAVITA_PAN}, headers=h)
+    assert first.status_code == 200, first.text
+    r = client.post(f"/household-members/{two}/details", json={"relationship": "parent", "pan": KAVITA_PAN}, headers=h)
+    assert r.status_code == 409
+    d = r.json()["detail"]["details"]
+    assert d["can_merge"] is True and d["other_member_id"] == str(one) and d["source_pan_label"] == "BN******1M"
+    m = client.post(f"/household-members/{two}/merge-into/{one}", headers=h)
+    assert m.status_code == 200, m.text
+    got = _db().get(HouseholdMember, one)
+    assert got.pan_source == MemberPanSource.CAS and got.pan_verified_at is not None  # the statement confirmed it
+
+
+def test_order_b_pan_bearing_first_then_name_only_can_merge(client):
+    h = _headers(client, "+919811400002")
+    one, two = _kavita_pair(client, h)
+    first = client.post(f"/household-members/{two}/details", json={"relationship": "parent", "pan": KAVITA_PAN}, headers=h)
+    assert first.status_code == 200, first.text
+    r = client.post(f"/household-members/{one}/details", json={"relationship": "parent", "pan": KAVITA_PAN}, headers=h)
+    d = r.json()["detail"]["details"]
+    assert d["can_merge"] is True and d["source_pan_label"] == "PAN not on statement"
+    assert client.post(f"/household-members/{one}/merge-into/{two}", headers=h).status_code == 200
+
+
+def test_locked_member_with_a_different_detected_pan_still_cannot_merge(client):
+    h = _headers(client, "+919811400003")
+    one, _ = _kavita_pair(client, h)
+    assert client.post(f"/household-members/{one}/details",
+                       json={"relationship": "parent", "pan": KAVITA_PAN}, headers=h).status_code == 200
+    db = _db()
+    three = HouseholdMember(
+        user_id=db.get(HouseholdMember, one).user_id, name="Kavita S", relationship=None,
+        created_at=datetime.now(timezone.utc), origin=MemberOrigin.CAS_DETECTED, name_source=MemberNameSource.CAS,
+        details_completed_at=None, lock_reason=MemberLockReason.DETAILS_NEEDED,
+        detected_pan_encrypted=encrypt_pan("ZZZPZ9999Z"), detected_pan_hash=hash_pan("ZZZPZ9999Z"),
+    )
+    db.add(three)
+    db.commit()
+    assert client.post(f"/household-members/{three.id}/merge-into/{one}", headers=h).status_code == 409

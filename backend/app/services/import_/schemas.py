@@ -66,8 +66,14 @@ class SamePersonPrompt(BaseModel):
     person_key: str
     member_id: str
     member_name: str
+    # "" for kind="name_only": that member has no PAN at all.
     entered_pan_masked: str
     statement_pan_masked: str
+    # Staging-QA fix 5B: "typed_pan" = U13 (member's typed PAN differs);
+    # "name_only" = a PAN-less member this statement's person may be.
+    kind: Literal["typed_pan", "name_only"] = "typed_pan"
+    member_fund_count: int = 0
+    statement_name: str = ""
 
 
 class ImportPromptDetail(BaseModel):

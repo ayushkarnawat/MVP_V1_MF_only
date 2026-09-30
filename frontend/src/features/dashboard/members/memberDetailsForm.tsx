@@ -25,10 +25,13 @@ export interface DuplicateInfo {
   otherMemberId: string;
   otherMemberName: string;
   sourceFundCount: number;
+  /** Masked detected PAN or "PAN not on statement": tells same-named people apart. */
+  sourcePanLabel: string;
 }
 
 export type SubmitOutcome =
   | { kind: "ok"; member: HouseholdMember }
+  | { kind: "detectedMismatch"; enteredPanMasked: string; statementPanMasked: string }
   | { kind: "error"; message: string }
   | { kind: "duplicate"; info: DuplicateInfo }
   | { kind: "otherAccount" };
@@ -43,12 +46,16 @@ export function initialValues(member: HouseholdMember): DetailsValues {
   };
 }
 
+/** Same shape as the backend's mask_pan: first 2 and last 2 characters. */
+export const maskPan = (pan: string) => (pan.length === 10 ? `${pan.slice(0, 2)}******${pan.slice(8)}` : pan);
+
 /** L1 / L2 and the name rule, before anything is sent. Returns null when fine. */
-export function validateValues(values: DetailsValues, memberName: string): string | null {
+export function validateValues(values: DetailsValues, memberName: string, skipPan = false): string | null {
   const nameError = validatePersonName(values.name);
   if (nameError) return nameError;
   if (!values.relationship) return "Choose a relationship.";
   if (values.relationship === "other" && !values.label.trim()) return "Type how you’re related.";
+  if (skipPan) return null;
   const pan = normalisePan(values.pan);
   if (!pan) return `Enter ${memberName}’s PAN.`;
   if (!PAN_RE.test(pan)) return INVALID_PAN_MESSAGE;
@@ -70,13 +77,14 @@ export async function submitDetails(
   member: HouseholdMember,
   values: DetailsValues,
   mode: "unlock" | "edit",
+  opts?: { useDetectedPan?: boolean },
 ): Promise<SubmitOutcome> {
   try {
     const saved = await completeMemberDetails(member.id, {
       name: values.name.replace(/\s+/g, " ").trim(),
       relationship: values.relationship as FormRelationship,
       relationship_other_label: values.relationship === "other" ? values.label.trim() : null,
-      pan: normalisePan(values.pan),
+      ...(opts?.useDetectedPan ? { use_detected_pan: true } : { pan: normalisePan(values.pan) }),
     });
     return { kind: "ok", member: saved };
   } catch (err) {
@@ -90,8 +98,9 @@ export async function submitDetails(
         return { kind: "error", message: p.message ?? SAVE_FAILED_MESSAGE };
       case "detected_pan_mismatch":
         return {
-          kind: "error",
-          message: `This PAN doesn’t match your statement. Your statement shows ${member.name}’s PAN as ${String(d.detected_pan_masked ?? "")}. Check the PAN and try again.`,
+          kind: "detectedMismatch",
+          enteredPanMasked: maskPan(normalisePan(values.pan)),
+          statementPanMasked: String(d.detected_pan_masked ?? ""),
         };
       case "pan_belongs_to_other_member":
         if (d.can_merge === true && mode === "unlock") {
@@ -101,6 +110,7 @@ export async function submitDetails(
               otherMemberId: String(d.other_member_id),
               otherMemberName: String(d.other_member_name),
               sourceFundCount: Number(d.source_fund_count ?? 0),
+              sourcePanLabel: String(d.source_pan_label ?? "PAN not on statement"),
             },
           };
         }
@@ -232,15 +242,15 @@ export function useDetailsForm(member: HouseholdMember, mode: "unlock" | "edit")
     if (error) setError(null); // L1: the error clears as they type
   };
 
-  const submit = async (): Promise<SubmitOutcome | null> => {
-    const invalid = validateValues(values, member.name);
+  const submit = async (opts?: { useDetectedPan?: boolean }): Promise<SubmitOutcome | null> => {
+    const invalid = validateValues(values, member.name, opts?.useDetectedPan);
     if (invalid) {
       setError(invalid);
       return null;
     }
     setSubmitting(true);
     setError(null);
-    const outcome = await submitDetails(member, values, mode);
+    const outcome = await submitDetails(member, values, mode, opts);
     setSubmitting(false);
     if (outcome.kind === "error") setError(outcome.message);
     return outcome;

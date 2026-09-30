@@ -225,6 +225,10 @@ export function MobileDashboardView({
       member={members.find((m) => m.id === lockedPickId) ?? null}
       onClose={() => setLockedPickId(null)}
       onOtherAccount={() => void reloadMembers()}
+      onUploadDifferent={() => {
+        setLockedPickId(null);
+        onNavigateImport?.();
+      }}
       onUnlocked={async (unlocked) => {
         await reloadMembers();
         setLockedPickId(null);

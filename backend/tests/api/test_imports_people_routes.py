@@ -3,8 +3,11 @@ upload-time prompt queue, and the resolve endpoints answer each prompt."""
 
 from __future__ import annotations
 
+import os
 import uuid
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -332,6 +335,7 @@ def test_parse_same_person_prompt_listed(client, tmp_path):
     assert resp.json()["same_person_prompts"] == [{
         "person_key": "p2", "member_id": ramesh_id, "member_name": "Ramesh Sharma",
         "entered_pan_masked": "BX******8L", "statement_pan_masked": "BX******9M",
+        "kind": "typed_pan", "member_fund_count": 0, "statement_name": "RAMESH SHARMA",
     }]
 
 
@@ -698,3 +702,232 @@ def test_household_members_lists_locked_detected_member_with_null_relationship(c
     assert resp.status_code == 200, resp.text
     ramesh = next(m for m in resp.json() if m["name"] == "RAMESH SHARMA")
     assert ramesh["relationship"] is None
+
+
+# --------------------------------- real-fixture family replay (staging-QA fix 5)
+
+# The synthetic family CAS PDFs (Docs/orchestration/qa-fixtures/synthetic-cas,
+# untracked). UNIFOLIO_QA_FIXTURES points elsewhere; without the files these
+# replay tests skip rather than fail.
+FIX = Path(os.environ.get(
+    "UNIFOLIO_QA_FIXTURES",
+    Path(__file__).resolve().parents[3] / "Docs/orchestration/qa-fixtures/synthetic-cas",
+))
+needs_fixtures = pytest.mark.skipif(
+    not (FIX / "family_cas_1.pdf").exists(), reason="synthetic family CAS fixtures not on disk"
+)
+
+
+def _parse_real(client, h, member_id, fname, tmp_path):
+    from app.services.import_.enrich import mfapi_client
+
+    async def fake(_self, url):
+        if url.endswith("/latest"):
+            return {"meta": {"scheme_category": "Equity Scheme - Flexi Cap Fund"}}
+        return []
+
+    with (
+        patch("app.services.import_.enrich.MfApiClient._get_json", new=fake),
+        patch.object(mfapi_client, "cache_dir", tmp_path),
+        patch.object(mfapi_client, "_schemes", None),
+    ):
+        return client.post(
+            "/imports/parse",
+            files={"file": (fname, (FIX / fname).read_bytes(), "application/pdf")},
+            data={"password": "MF@123", "household_member_id": member_id},
+            headers=h,
+        )
+
+
+def _answer_same_person(client, h, prev, same=True):
+    for sp in prev.get("same_person_prompts", []):
+        r = client.post(f"/imports/sessions/{prev['session_id']}/resolve-same-person",
+                        json={"person_key": sp["person_key"], "member_id": sp["member_id"], "same": same},
+                        headers=h)
+        assert r.status_code == 200, r.text
+        prev = r.json()
+    return prev
+
+
+def _confirm_all(client, h, prev):
+    confs = []
+    for s in prev["schemes"]:
+        c = {"temp_id": s["temp_id"]}
+        if s["match_status"] != "confirmed":
+            c["amfi_code"] = "125497"
+        if s["plan_type"] == "unclassified":
+            c["plan_type"] = "direct"
+        confs.append(c)
+    people = [
+        {"person_key": p["person_key"],
+         "scheme_confirmations": [c for c in confs if any(
+             s["temp_id"] == c["temp_id"] and s["person_key"] == p["person_key"] for s in prev["schemes"])],
+         **({"include": True} if p["status"] == "other_account" else {})}
+        for p in prev["people"]
+    ]
+    moved = {s["temp_id"]: prev["people"][0]["person_key"] for s in prev["schemes"] if s["person_key"] is None}
+    r = client.post("/imports/confirm",
+                    json={"session_id": prev["session_id"], "people": people, "moved_funds": moved}, headers=h)
+    assert r.status_code == 200, r.text
+
+
+def _kavitas(user_id):
+    db = _test_db()
+    return db.query(HouseholdMember).filter_by(user_id=user_id, name="Kavita Shanbhag").count()
+
+
+@needs_fixtures
+def test_kavita_is_never_duplicated_across_family_uploads(client, tmp_path):
+    """The user's staging sequence: file 1, unlock Rohan, then Add data for
+    Rohan with file 2, file 1, file 2. Kavita has no PAN in file 1 and a PAN
+    in file 2; she must stay one member throughout."""
+    h, me_id = _authed_headers_and_member(client, "+919811300001", name="Aditi Shanbhag")
+    uid = _user_id(me_id)
+    first = _parse_real(client, h, me_id, "family_cas_1.pdf", tmp_path)
+    assert first.status_code == 200, first.text
+    _confirm_all(client, h, first.json())
+    assert _kavitas(uid) == 1
+    db = _test_db()
+    rohan = db.query(HouseholdMember).filter_by(user_id=uid, name="Rohan Shanbhag").one()
+    unlock = client.post(f"/household-members/{rohan.id}/details",
+                         json={"relationship": "parent", "pan": "BNZPS5678L"}, headers=h)
+    assert unlock.status_code == 200, unlock.text
+    for fname in ("family_cas_2.pdf", "family_cas_1.pdf", "family_cas_2.pdf"):
+        r = _parse_real(client, h, str(rohan.id), fname, tmp_path)
+        assert r.status_code == 200, r.text
+        _confirm_all(client, h, _answer_same_person(client, h, r.json()))
+        assert _kavitas(uid) == 1, fname
+
+
+@needs_fixtures
+def test_file_1_reupload_does_not_duplicate_the_name_only_member(client, tmp_path):
+    """Cause A alone: re-uploading the PAN-less statement attaches Kavita by exact name."""
+    h, me_id = _authed_headers_and_member(client, "+919811300004", name="Aditi Shanbhag")
+    uid = _user_id(me_id)
+    _confirm_all(client, h, _parse_real(client, h, me_id, "family_cas_1.pdf", tmp_path).json())
+    prev = _parse_real(client, h, me_id, "family_cas_1.pdf", tmp_path).json()
+    kav = next(p for p in prev["people"] if p["name"] == "Kavita Shanbhag")
+    assert kav["status"] == "locked_member"
+    assert kav["matched_by_name_temp_ids"]  # tagged in the ribbon (FR-4)
+    _confirm_all(client, h, prev)
+    assert _kavitas(uid) == 1
+
+
+@needs_fixtures
+def test_name_only_same_person_prompt_and_yes_links_detected_pan(client, tmp_path):
+    h, me_id = _authed_headers_and_member(client, "+919811300002", name="Aditi Shanbhag")
+    uid = _user_id(me_id)
+    _confirm_all(client, h, _parse_real(client, h, me_id, "family_cas_1.pdf", tmp_path).json())
+    prev = _parse_real(client, h, me_id, "family_cas_2.pdf", tmp_path).json()
+    [sp] = [p for p in prev["same_person_prompts"] if p["kind"] == "name_only"]
+    assert sp["member_name"] == "Kavita Shanbhag" and sp["entered_pan_masked"] == ""
+    assert sp["member_fund_count"] == 1 and sp["statement_name"] == "Kavita Shanbhag"
+    prev = _answer_same_person(client, h, prev, same=True)
+    assert prev["same_person_prompts"] == []
+    _confirm_all(client, h, prev)
+    db = _test_db()
+    [k] = db.query(HouseholdMember).filter_by(user_id=uid, name="Kavita Shanbhag").all()
+    assert k.detected_pan_hash == hash_pan("BNZPK4321M") and k.is_locked
+
+
+@needs_fixtures
+def test_name_only_same_person_no_creates_a_new_member(client, tmp_path):
+    h, me_id = _authed_headers_and_member(client, "+919811300003", name="Aditi Shanbhag")
+    uid = _user_id(me_id)
+    _confirm_all(client, h, _parse_real(client, h, me_id, "family_cas_1.pdf", tmp_path).json())
+    prev = _answer_same_person(
+        client, h, _parse_real(client, h, me_id, "family_cas_2.pdf", tmp_path).json(), same=False
+    )
+    _confirm_all(client, h, prev)
+    db = _test_db()
+    assert db.query(HouseholdMember).filter_by(user_id=uid, name="Kavita Shanbhag").count() == 2
+
+
+# ------------------------ final-review fixes (synthetic, no fixture PDFs needed)
+
+KAVITA_PAN = "BNZPK4321M"
+
+
+def _family_with_kavita(kavita_pan):
+    return family_result([
+        {"name": "ADITI SHARMA", "pan": ADITI_PAN},
+        {"name": "KAVITA SHARMA", "pan": kavita_pan},
+    ])
+
+
+def _confirm_raw(client, h, prev):
+    people = [{"person_key": p["person_key"], "scheme_confirmations": []} for p in prev["people"]]
+    return client.post("/imports/confirm", json={"session_id": prev["session_id"], "people": people}, headers=h)
+
+
+def _kavita_rows(uid):
+    db = _test_db()
+    return db.query(HouseholdMember).filter_by(user_id=uid, name="Kavita Sharma").all()
+
+
+def test_5b_locked_name_only_member_yes_links_detected_pan(client, tmp_path):
+    h, me_id = _authed_headers_and_member(client, "+919811500001", name="Aditi Sharma")
+    _set_pan(me_id, ADITI_PAN)
+    uid = _user_id(me_id)
+    kavita_id = _add_member(uid, "Kavita Sharma", locked=True)
+    prev = _parse(client, h, me_id, _family_with_kavita(KAVITA_PAN), tmp_path).json()
+    [sp] = prev["same_person_prompts"]
+    assert (sp["kind"], sp["member_id"], sp["entered_pan_masked"]) == ("name_only", kavita_id, "")
+    prev = _post(client, h, prev["session_id"], "resolve-same-person",
+                 {"person_key": sp["person_key"], "member_id": kavita_id, "same": True}).json()
+    assert prev["same_person_prompts"] == []
+    p = next(x for x in prev["people"] if x["person_key"] == sp["person_key"])
+    assert (p["status"], p["member_id"]) == ("locked_member", kavita_id)
+    assert _confirm_raw(client, h, prev).status_code == 200
+    [k] = _kavita_rows(uid)
+    assert k.detected_pan_hash == hash_pan(KAVITA_PAN) and k.is_locked
+
+
+def test_5b_unlocked_pan_free_member_yes_claims_the_pan(client, tmp_path):
+    h, me_id = _authed_headers_and_member(client, "+919811500002", name="Aditi Sharma")
+    _set_pan(me_id, ADITI_PAN)
+    uid = _user_id(me_id)
+    kavita_id = _add_member(uid, "Kavita Sharma")  # unlocked, relationship parent, no PAN
+    prev = _parse(client, h, me_id, _family_with_kavita(KAVITA_PAN), tmp_path).json()
+    [sp] = prev["same_person_prompts"]
+    prev = _post(client, h, prev["session_id"], "resolve-same-person",
+                 {"person_key": sp["person_key"], "member_id": kavita_id, "same": True}).json()
+    assert _confirm_raw(client, h, prev).status_code == 200
+    [k] = _kavita_rows(uid)
+    assert k.pan_lookup_hash == hash_pan(KAVITA_PAN) and k.pan_pending_until is None
+
+
+def test_5b_two_sessions_linking_one_member_with_different_pans_second_is_refused(client, tmp_path):
+    """M-1: both tabs answered Yes for the same PAN-less Kavita, with different
+    statement PANs. The first confirm writes its PAN; the second must not
+    attach a different PAN's funds to her."""
+    h, me_id = _authed_headers_and_member(client, "+919811500003", name="Aditi Sharma")
+    _set_pan(me_id, ADITI_PAN)
+    uid = _user_id(me_id)
+    kavita_id = _add_member(uid, "Kavita Sharma", locked=True)
+    sessions = []
+    for pan in (KAVITA_PAN, "BNZPK9999Z"):
+        prev = _parse(client, h, me_id, _family_with_kavita(pan), tmp_path).json()
+        [sp] = prev["same_person_prompts"]
+        sessions.append(_post(client, h, prev["session_id"], "resolve-same-person",
+                              {"person_key": sp["person_key"], "member_id": kavita_id, "same": True}).json())
+    assert _confirm_raw(client, h, sessions[0]).status_code == 200
+    second = _confirm_raw(client, h, sessions[1])
+    assert second.status_code == 422, second.text
+    [k] = _kavita_rows(uid)
+    assert k.detected_pan_hash == hash_pan(KAVITA_PAN)
+
+
+def test_upload_target_beats_an_exact_name_match_elsewhere(client, tmp_path):
+    """I-1: Add data for "K Sharma"; the statement's PAN-less KAVITA SHARMA is
+    found as that target by name, so an exact-name member elsewhere must not
+    take her funds."""
+    h, me_id = _authed_headers_and_member(client, "+919811500004", name="Aditi Sharma")
+    _set_pan(me_id, ADITI_PAN)
+    uid = _user_id(me_id)
+    target_id = _add_member(uid, "K Sharma")
+    _add_member(uid, "Kavita Sharma", relationship=Relationship.SIBLING)
+    resp = _parse(client, h, target_id, _family_with_kavita(None), tmp_path)
+    assert resp.status_code == 200, resp.text
+    p = next(x for x in resp.json()["people"] if x["name"].upper() == "KAVITA SHARMA")
+    assert p["member_id"] == target_id
