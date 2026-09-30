@@ -1,108 +1,46 @@
-# Session state — 2026-09-26
+# Session state — 2026-09-29
 
 Working notes for picking this project back up cold. Not a planning doc — see
 `Docs/superpowers/plans/` for those. This file tracks *where things stand*,
 gets overwritten each session, and isn't meant to accumulate history — the
-permanent, append-only record of everything that's happened is `log.md`
-(session-by-session), `backend.md`/`database.md` (backend/schema changes
-only), and `decisions.md` (product/technical decisions). This file used to
-duplicate all of that inline going back to Phase 0; trimmed 2026-09-26 down to
-pointers, since `log.md` now has the full history backfilled and is the
-authoritative place for it.
+permanent, append-only record is `log.md` (session-by-session),
+`backend.md`/`database.md` (backend/schema changes only), and `decisions.md`.
+Earlier "Latest" sections (2026-09-24 PAN-at-upload, the 2026-09-15..24 backfill, the
+2026-09-07..12 condensed sessions) were dropped from here on 2026-09-29; their full
+detail lives in `log.md`.
 
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
 
-## Latest (2026-09-24): CAS import PAN check moved to upload time — committed, not uncommitted
+## Latest (2026-09-29): CAS member detection — built, UNCOMMITTED, awaiting user review
 
-Fixes the staging bug where every first import on a fresh account showed "We couldn't
-match this statement to an existing family member" (and froze in the Family flow). Root
-cause: PAN-based attribution ran at Confirm, but a member's PAN was only stored *after*
-a confirm, so nothing could ever match on a first import.
+Branch `feat/enhanced-ui`, working tree only. One CAS upload detects every person in the
+file; the user sees a "We found N people" popup, reviews one ribbon per person, and
+presses one Confirm imports; detected members stay locked on the dashboard until the user
+gives relationship and PAN (unlock). Family setup left onboarding.
 
-What changed (spec `Docs/superpowers/specs/2026-09-24-pan-at-upload-attribution-design.md`,
-plan `Docs/superpowers/plans/2026-09-24-pan-at-upload-attribution.md`):
-- New `backend/app/services/import_/pan_claims.py` replaces `attribution.py` (deleted).
-  `/imports/parse` now takes `household_member_id` and claims the parsed PAN for that
-  member as *pending* (new column `household_members.pan_pending_until`, migration 0016);
-  conflicts return 409 `cross_account_pan_blocked` / `pan_belongs_to_other_member` /
-  `pan_mismatch_for_member` right after upload. `/imports/confirm` only finalizes — no
-  prompts, no `confirmed_member_override`. New `POST /imports/sessions/{id}/discard`.
-  `/cas-imports` claims permanently inline. PAN/CAS storage format unchanged.
-- Frontend: all "Continue anyway / Switch to" UI removed. Just Me/dashboard/mobile show the
-  existing Import blocked popup (cross-account) or a new "This PAN already exists" popup
-  at upload. Family shows "This PAN already exists" with Change CAS file / Skip.
-- Final review (fresh opus reviewer): 3 Important fixed (claim moved after mfapi
-  enrichment so SQLite's write lock isn't held across network calls; Family re-upload form
-  got a Back; lost unique-index race retries instead of 500ing), 7 minors deferred.
+- Spec: `Docs/orchestration/cas-member-detection-map.html` (decisions I1-I16). Plan:
+  `Docs/superpowers/plans/2026-09-29-cas-member-detection.md`. Ledger, preflight findings
+  and per-task reports: `.superpowers/sdd/2026-09-29-cas-member-detection/`.
+- Tasks 1-20 done (Task 19, mobile twins, was in review when Task 20 ran). Migration
+  `0018`; endpoints and modules in `backend.md`; decisions and spec deviations in
+  `decisions.md`; PRD amendments applied (Updated-CAS-PRD, PRD-01, PRD-02, App-Flow v1.3,
+  Database-Schema v1.6); new deferrals in `DEFERRED_FEATURES.md`.
+- Per-task reviews were clean; the final whole-change opus review is the last gate.
 
-Verified fresh: backend 714 passed / 8 skipped; frontend 484 passed across all 82 files;
-`tsc -b --noEmit` clean. **Correcting this file's own prior entry:** this was previously
-logged here as "UNCOMMITTED, awaiting user review" — that was stale by the time this pass
-started. `git log`/`git status` confirm it's fully committed (`11f7dfc`, `b8d88a8`,
-`b8901e4`, `bdfa2ba`), working tree clean. A draft plan for per-PAN statement splitting
-(family CAS statements only attribute to the first folio's PAN holder today — a known,
-not-yet-built gap) exists at `Docs/superpowers/plans/2026-09-24-per-pan-statement-splitting.md`,
-not yet built.
-
-## Previously undocumented gap (2026-09-15 → 2026-09-23), now backfilled into `log.md`
-
-This file went stale for about nine days/~50 commits before this pass — none of the
-below existed anywhere in `session.md`, `log.md`, `backend.md`, or `database.md` until
-this pass added it. Full detail for each is in `log.md`'s dated entries; short version:
-
-- **2026-09-16**: Knowledge-graph refresh, codebase-analysis metadata added.
-- **2026-09-17**: Real email-OTP delivery via `PostmarkEmailProvider` (first real
-  `EmailProvider` implementation), independent per-channel delivery mode kept
-  (`EMAIL_DELIVERY_MODE` vs `OTP_DELIVERY_MODE`); docs-viewer infra; audit/architecture
-  doc batch.
-- **2026-09-18**: ADR-004 reopened — PAN now persisted (encrypted, per household member)
-  and the raw CAS PDF retained 30 days, superseding the original "no PAN, no raw file,
-  ever" decision. See `decisions.md`'s 2026-09-18 entry and
-  `Docs/superpowers/specs/2026-09-18-pan-cas-attribution-design.md`.
-- **2026-09-19**: Cross-account PAN block surfaced as a UI popup instead of a silent
-  freeze; CAS S3 storage + Postmark infra Terraform; PAN/CAS/secrets technical docs.
-- **2026-09-22**: Phone-gate collision now errors like email's instead of silently
-  logging in (a different bug than Still-Open item 9 below); SES email provider added
-  behind the existing `EmailProvider` abstraction; marketing-site Terraform.
-- **2026-09-23**: Postmark removed entirely (code + Terraform) — SES is now the only
-  email provider, not kept dormant (see `decisions.md`'s SES-reversal entry); QA
-  schema/journey review; HTML OTP email templates.
-- **2026-09-24**: PAN check moved to upload time (see "Latest" above).
-
-## Recent sessions before the gap (2026-09-07 → 2026-09-12) — condensed, full detail in `log.md`
-
-- **2026-09-12**: Fund Score card redesign (score /10 display, reversed tier convention,
-  plain-English verdicts, expandable evidence/methodology sections) — built via
-  `subagent-driven-development`, 9 tasks, whole-branch review (1 Critical + 5 Important +
-  9 Minor, all adjudicated/fixed), full suites clean. Precompute-cache backfill and a
-  manual browser smoke check both explicitly deferred (AWS/ECS infra not live yet at the
-  time; no browser tool in this environment).
-- **2026-09-11**: Investor 10-item feature batch (Profile page, account deletion w/
-  5-day grace period, email/phone change via OTP, theme toggle, import history/delete,
-  header XIRR, allocation sort, AMC/asset-class drill-down, decimal-formatting fix) — 3
-  review rounds + a PM/tech-lead gap pass, committed. AWS staging prerequisites/runbook
-  doc drafted (`Docs/superpowers/plans/2026-09-11-aws-staging-prerequisites.md`).
-- **2026-09-10**: Analytics dashboard frontend migrated onto the single precompute
-  contract (`GET /analytics/{scope}`) for both desktop and mobile.
-- **2026-09-08/09**: Terraform Phases 1-3 applied to a real AWS account — staging VPC,
-  RDS Postgres, ECS cluster/service, ALB all live in `ap-south-1`. ECS image push +
-  `alembic upgrade head` against real RDS both done and verified. Phase 4 (frontend
-  S3+CloudFront) authored/reviewed, not yet applied at the time; Phase 5 (ACM/Route
-  53/HTTPS) drafted, not dispatched. A real AWS IAM key was briefly pasted into chat and
-  committed to this file in plaintext — rotated and the offending commit rewritten
-  before it was ever pushed; never write a live credential into a tracked file again,
-  redact to `<redacted>` or reference the IAM user/key name only.
-- **2026-09-07**: AWS account created, `ap-south-1` confirmed, `unifolio.in` cut over to
-  Route 53 (Microsoft 365 mail records preserved), `app.unifolio.in`/`staging.unifolio.in`
-  domain architecture decided, staging networking set to use fck-nat over a managed NAT
-  Gateway.
-
-Everything before 2026-09-07 (Phase 0 through the 2026-08-27 mobile-UI-polish session,
-the AMFI TER event-loop-starvation fix, the compliance-audit remediation rounds, etc.) is
-in `log.md`, not duplicated here — see that file's dated entries for the full narrative.
+Open items for this change are listed under "Still open" below.
 
 ## Still open, carried forward from earlier phases, not yet revisited
+
+**Open, specific to the CAS member detection change (2026-09-29):**
+1. `backend/tests/functional_postgres` was never run (no Docker in WSL). Run it once
+   against a local Postgres (covers migration 0018, the Postgres trigger, enum types).
+2. Holder-name extraction (`parser.py`) was verified only on synthetic CAMS/KFintech
+   lines; no real PDFs were on disk (plan Task 4 Step 6 skipped). Test with real
+   multi-PAN family CAS files from both RTAs before trusting it.
+3. The mobile ribbon review reuses the desktop styling as-is and needs phone visual QA.
+4. Nothing is committed. The user reviews the working tree and commits manually.
+
 
 *(Moved here from `CLAUDE.md` 2026-08-24 — that file's Session State section is a
 short pointer only, per its own header note; this is the detail it points to.)*

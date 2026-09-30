@@ -63,7 +63,7 @@ CAS Import should feel like a single, guided task — "get your holdings into Un
 
 1. Users don't know that a CAS must be requested from CAMS/KFintech before it can be uploaded — the single largest source of "I clicked upload and nothing happened" confusion.
 2. CAS PDFs are always password-protected, and the required password is not obvious to first-time investors.
-3. A household may hold multiple passwords across CAMS accounts; a wrongly-attributed import silently corrupts another family member's data.
+3. A household may hold multiple PANs across CAMS accounts; a wrongly-attributed import silently corrupts another family member's data.
 4. A CAS only reports transactions within the requested date range — holdings that predate the range and were partially redeemed inside it will net incorrectly unless the gap is detected and handled.
 5. Users have no visibility into whether a re-upload will duplicate existing data, or which date ranges are already covered for a given family member.
 6. A "Summary" CAS (holdings only, no transaction history) looks superficially valid but cannot support transaction-level features like XIRR — this failure needs a specific, actionable error rather than a generic parse failure.
@@ -219,7 +219,7 @@ Maintain the CAMS field-name mapping in a single owned config file with a last-v
 **Business Rules:**
 - Validation order is fixed: file-type check → password/decryption → structural CAS validation → parse. Each stage must fail fast and independently reportable.
 - The raw uploaded PDF and its password are never retained beyond the parse operation; the password is discarded immediately after the unlock attempt and is never logged, at any log level.
-- A single file upload is scoped to a single family member per import attempt.
+- A single file upload may cover several family members. Folios are attributed per PAN at upload, and the user reviews each person before one combined commit. *(Amended 2026-09-29, CAS member detection; was: "scoped to a single family member per import attempt".)*
 
 **Validation Rules:**
 - File type: must be `application/pdf` by magic-byte inspection, not filename extension alone.
@@ -280,54 +280,54 @@ Run PDF parsing in an isolated worker or queue-consumed job, never inline in the
 
 **Purpose:** Ensure every imported CAS is correctly and unambiguously associated with the right family member, preventing cross-member data corruption.
 
-**Description:** Attribution is resolved primarily by matching the password embedded in the parsed CAS against password values already on file for family members in the household. If the parsed password matches a known family member, the import proceeds against that member with a visible confirmation. If it doesn't match, or the CAS contains multiple passwords (a well-documented CAMS/KFintech behavior for linked accounts), the user is explicitly prompted to confirm or select the correct family member before the import is committed.
+**Description:** Attribution is resolved primarily by matching the PAN embedded in the parsed CAS against PAN values already on file for family members in the household. If the parsed PAN matches a known family member, the import proceeds against that member with a visible confirmation. If it doesn't match, or the CAS contains multiple PANs (a well-documented CAMS/KFintech behavior for linked accounts), the user is explicitly prompted to confirm or select the correct family member before the import is committed.
 
 **User Story:** As a household administrator, I want Unifolio to confirm which family member a CAS belongs to, so I never accidentally attribute one person's data to another.
 
 **Acceptance Criteria:**
-- Before an import is committed, the system displays the resolved family member and requires explicit confirmation if the password match is not a clean single match.
-- If the currently-selected family member (context the user was in when they started the import) does not match the parsed password, a confirmation dialog is shown: "This looks like [Name]'s statement — import here for [Name] instead?"
-- A CAS containing multiple distinct passwords prompts the user to attribute each covered folio group to the correct family member, or to import only the subset matching the currently selected member.
-- An unrecognized password (no match to any existing family member) prompts an "Add new family member" fallback flow rather than blocking the import outright.
+- Before an import is committed, the system displays the resolved family member and requires explicit confirmation if the PAN match is not a clean single match.
+- If the currently-selected family member (context the user was in when they started the import) does not match the parsed PAN, a confirmation dialog is shown: "This looks like [Name]'s statement — import here for [Name] instead?"
+- A CAS containing multiple distinct PANs prompts the user to attribute each covered folio group to the correct family member, or to import only the subset matching the currently selected member.
+- An unrecognized PAN (no match to any existing family member) prompts an "Add new family member" fallback flow rather than blocking the import outright.
 
 **Business Rules:**
-- No import may be committed to a family member's ledger without either a clean automatic password match or explicit user confirmation.
-- password matching is exact-match only; no fuzzy or partial matching is permitted, given the correctness stakes.
+- No import may be committed to a family member's ledger without either a clean automatic PAN match or explicit user confirmation.
+- PAN matching is exact-match only; no fuzzy or partial matching is permitted, given the correctness stakes. Name matching is allowed only to label people and to place folios that carry no PAN, and the user must see those folios, marked "matched by name", in the ribbon before Confirm imports. *(Amended 2026-09-29, CAS member detection.)*
 
-**Validation Rules:** Parsed password must be a well-formed 10-character alphanumeric password string before matching is attempted; malformed password extraction is treated as a parse-quality issue and routed to manual selection.
+**Validation Rules:** Parsed PAN must be a well-formed 10-character alphanumeric PAN before matching is attempted; malformed PAN extraction is treated as a parse-quality issue and routed to manual selection.
 
-**Dependencies:** Family member profile data (password field); the CAS parser's password-extraction output.
+**Dependencies:** Family member profile data (PAN field); the CAS parser's PAN-extraction output.
 
 **Permissions:** Requires edit access to all family members being considered for attribution (i.e., the acting user must have household-level access, not just single-member access).
 
 **Edge Cases:**
-- A family member has no password on file yet (newly added, incomplete profile) — treated as "unrecognized," routed to manual confirmation/profile completion.
-- Two family members share a password in the system due to a data-entry error — surfaced as a data-integrity warning, not silently resolved.
-- A CAS covers a minor's folios linked to a parent's email/password — treated as a multi-password case requiring explicit per-folio attribution.
+- A family member has no PAN on file yet (newly added, incomplete profile) — treated as "unrecognized," routed to manual confirmation/profile completion.
+- Two family members share a PAN in the system due to a data-entry error — surfaced as a data-integrity warning, not silently resolved.
+- A CAS covers a minor's folios linked to a parent's email/PAN — treated as a multi-PAN case requiring explicit per-folio attribution.
 
 **Failure Cases:** Ambiguous or unmatched attribution that the user abandons without resolving — the import remains uncommitted (see Recovery Behaviour).
 
 **Recovery Behaviour:** An unresolved attribution does not commit any data; the import can be resumed later from the import's status view, re-entering the attribution step without needing to re-upload the file (as long as the underlying file/parse result is still within its retention window).
 
 **Success Metrics:**
-- Rate of imports requiring manual attribution confirmation (leading indicator of multi-password household complexity).
-- Rate of user-corrected auto-attributions (measures false-positive risk of the password-match heuristic).
+- Rate of imports requiring manual attribution confirmation (leading indicator of multi-PAN household complexity).
+- Rate of user-corrected auto-attributions (measures false-positive risk of the PAN-match heuristic).
 
 **Analytics Events:** `cas_attribution_auto_matched {family_member_id}`, `cas_attribution_confirmation_shown`, `cas_attribution_manual_selected`, `cas_attribution_mismatch_corrected`.
 
 **Notifications:** None beyond in-flow confirmation UI.
 
-**Performance Requirements:** Attribution resolution (password match lookup) completes in under 1 second following successful parse.
+**Performance Requirements:** Attribution resolution (PAN match lookup) completes in under 1 second following successful parse.
 
-**Security Requirements:** password values used for matching must be compared using values decrypted only in-memory at match time, consistent with the password encryption-at-rest policy defined in FR-3 and 03-Stocks-PRD.md's equivalent requirement.
+**Security Requirements:** PAN values used for matching must be compared using values decrypted only in-memory at match time, consistent with the PAN encryption-at-rest policy defined in FR-3 and 03-Stocks-PRD.md's equivalent requirement.
 
 **Accessibility Requirements:** The attribution confirmation dialog must trap focus appropriately, be dismissible via keyboard (Escape), and clearly label both the detected name and the action being confirmed.
 
-**Audit Requirements:** Every attribution decision (auto-matched or manually confirmed/corrected) must be logged with actor, family member, password-match method, and timestamp — this is the audit trail that answers "why did this data end up under this family member" if ever disputed.
+**Audit Requirements:** Every attribution decision (auto-matched or manually confirmed/corrected) must be logged with actor, family member, PAN-match method, and timestamp — this is the audit trail that answers "why did this data end up under this family member" if ever disputed.
 
 ### Recommended implementation
 
-Treat password-in-parsed-document as the primary signal, but never auto-commit without a visible confirmation step when there is any ambiguity — a multi-password CAS or an unmatched password. Silent misattribution is a single-bug trust failure in a household financial product and is cheap to prevent with one confirmation dialog.
+Treat PAN-in-parsed-document as the primary signal, but never auto-commit without a visible confirmation step when there is any ambiguity — a multi-PAN CAS or an unmatched PAN. Silent misattribution is a single-bug trust failure in a household financial product and is cheap to prevent with one confirmation dialog.
 
 ---
 

@@ -149,3 +149,26 @@ Signup's phone gate no longer silently signs a caller into an unrelated existing
 ## 2026-09-24 — PAN attribution moved from Confirm-time to upload-time
 
 `attribution.py` replaced by `backend/app/services/import_/pan_claims.py`. `/imports/parse` now takes `household_member_id` and claims the parsed PAN as *pending* for that member immediately (migration 0016's `pan_pending_until`); conflicts return a 409 (`cross_account_pan_blocked` / `pan_belongs_to_other_member` / `pan_mismatch_for_member`) right after upload rather than at Confirm. `/imports/confirm` only finalizes — no `confirmed_member_override`, no prompts. New `POST /imports/sessions/{id}/discard` releases an abandoned pending claim. `/cas-imports` claims permanently inline. Fix-round findings: the PAN claim was moved to *after* mfapi enrichment so SQLite's write lock isn't held across the network call; a lost unique-index race now retries instead of 500ing. **Known gap, not yet built** (drafted as a plan, no code written): a family CAS statement covering several people is only ever attributed to the *first* folio's PAN holder — `casparser` exposes PAN per-folio but folios carry no holder name, so a multi-person statement silently imports everyone's funds under one member. See `Docs/superpowers/plans/2026-09-24-per-pan-statement-splitting.md`.
+
+## 2026-09-29 — CAS member detection backend (Tasks 1-13; uncommitted at time of writing)
+
+Spec: `Docs/orchestration/cas-member-detection-map.html`. Plan: `Docs/superpowers/plans/2026-09-29-cas-member-detection.md`. Schema: migration `0018` (see `database.md`).
+
+**Import flow changes (`backend/app/api/imports.py`):**
+- `POST /imports/parse` now returns a preview listing every person found (`people[]`, `unassigned[]`, name check). Its only write is the pending PAN claim for the self member; `household_member_id` is the upload target. A cross-account PAN can 409 `cross_account_pan_blocked` with the session kept (U7/U8).
+- `POST /imports/confirm` accepts `people: [{person_key, name?, include?, scheme_confirmations[], moved_funds[]}]` (plus `session_id`); the old single-member body (`household_member_id` + `scheme_confirmations`) is still accepted for a one-person file. One transaction for the whole file; one recompute claim for the household. An expired/locked session is now 410 `session_expired` (previously 404).
+- New session-scoped prompt routes, all plain `def` and returning the refreshed preview: `POST /imports/sessions/{id}/resolve-name`, `/resolve-self`, `/resolve-pan`, `/resolve-same-person`, and `/acknowledge` (a deviation from the spec, see `decisions.md`). `POST /imports/sessions/{id}/discard` unchanged.
+- `GET /imports/history` stays a flat list, now with `upload_group_id`, `member_name`, `group_people_count`; the frontend groups by `upload_group_id` (spec deviation F26).
+- `DELETE /imports/{import_id}?scope=person|group` (default `person`); response `DeleteImportResponse` gained `removed_member_ids` and `deleted_file`.
+
+**Member routes (`backend/app/api/dashboard.py`):**
+- `POST /household-members/{member_id}/details` — unlock (relationship, name, PAN; L1-L8 error codes) and later edits (L9). 409 on PAN conflicts, 422 on validation.
+- `POST /household-members/{member_id}/merge-into/{target_id}` — merge a name-only detected member into another; returns `{folios_moved, transactions_dropped}`.
+- `DELETE /household-members/{member_id}/portfolio?remove_member=bool` — delete a member's whole portfolio (M17).
+- Member-scoped reads and the analytics export/pdf member scope are server-side gated: a locked member answers 403 `member_details_required` (I12).
+
+**`POST /cas-imports`** (`backend/app/api/cas_imports.py`) no longer imports anything; it answers 409 `review_required` so no path skips people detection (M18). Hard-delete file removal lives in the expired-account job `hard_delete_expired_accounts` (via `account_deletion.py`), not in the `/account` route itself; it now also deletes stored CAS files.
+
+**New modules:** `services/import_/{name_match,people,people_resolution,confirm_people,deletion}.py`, `services/dashboard/{member_details,member_merge}.py`, `models/member_history.py`, `db/member_trigger_sql.py`. `pan_claims.py`, `parser.py` (holder-name extraction), `file_storage.py` (group-level PDF sharing/cleanup) and `service.py` extended.
+
+**Verification caveats:** `tests/functional_postgres` never run (no Docker in WSL); holder-name extraction validated only on synthetic CAMS/KFintech lines (no real PDFs on disk).

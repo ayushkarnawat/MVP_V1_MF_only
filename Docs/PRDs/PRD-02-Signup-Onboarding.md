@@ -82,7 +82,7 @@ onboarding "ends."
 | ID | User Story | Priority |
 |----|-----------|----------|
 | US-1 | As a new user, I want to understand immediately that my data is safe and read-only before I'm asked to share anything | P0 |
-| US-2 | As a new user, I want to set up my household/family structure as part of getting started, not as an afterthought buried in settings | P0 |
+| US-2 | As a new user, I want my household members detected from my first CAS, not typed in by hand during onboarding *(Amended 2026-09-29, CAS member detection; was: set up household/family structure as part of getting started)* | P0 |
 | US-3 | As a new user, I want the onboarding to feel quick and purposeful, not like a long form | P0 |
 | US-4 | As an HNI user, I want the experience to feel premium and serious, not like a mobile game with badges and confetti | P0 |
 | US-5 | As a new user, I want my first CAS import to feel like the payoff of onboarding, not a separate chore afterward | P0 |
@@ -230,8 +230,8 @@ directly with the goal of a frictionless first step. See the Authentication sect
   below) and is used for later dashboard personalization only, never advice generation.
 - FR-5: Capture primary goals at a light-touch level (not a full financial plan) — informs
   future dashboard framing only.
-- FR-6: Family/household setup as a core onboarding step: add members, define
-  relationship, indicate whether each member's own CAS will be imported now or later.
+- FR-6: Household members are detected from the first CAS. Relationship and PAN are collected when the user first opens that member. *(Amended 2026-09-29, CAS member detection; superseded text follows.)* ~~Family/household setup as a core onboarding step: add members, define
+  relationship, indicate whether each member's own CAS will be imported now or later.~~
 - FR-7: Every step must be skippable or deferrable except the ones required to reach the
   CAS import step — nothing blocks a user from getting to their portfolio.
 - FR-7a **(added v1.3):** Skippable means genuinely revisitable, not a one-way door — a
@@ -278,12 +278,12 @@ target range without a separate HNI-branded question.
   — can pre-select "yes" on Q4 below)
 - "Compare how my funds are really performing" (signals benchmark/XIRR-eager users)
 
-**Q4 — Household (branches into family setup, not a yes/no dead end)**
-> "Just you, or tracking for family too?"
-- "Just me" → straight to "Upload your own CAS?" (see Closing step below)
-- "Family too" → add-member flow (name, relationship, whether their CAS will be added
-  now or later), **then the Family CAS Upload flow (added v1.3, see below)** before the
-  closing step
+**Q4 — Household (REMOVED 2026-09-29, CAS member detection)**
+Household members are detected from the first CAS. Relationship and PAN are collected
+when the user first opens that member. The "Just you, or tracking for family too?" question
+and the "Family too" add-member / Family CAS Upload branch no longer exist; Q3 (Purpose)
+now leads to the privacy page and then straight to the CAS upload. The name question
+(Q1) now asks for the name exactly as on the PAN card.
 
 **Closing step — the payoff, not a fifth question**
 > "Let's bring in your first portfolio." → CAS upload (PRD-01). For a solo user this is

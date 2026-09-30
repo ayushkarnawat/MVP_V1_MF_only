@@ -264,3 +264,38 @@ Reverses the 2026-08-14 "Postmark confirmed" decision. `SesEmailProvider` added 
 
 Signup's mandatory phone gate previously called `attach_pending_identity` unconditionally whenever the entered phone number matched an existing identity, silently completing the caller's signup as a sign-in to that unrelated existing account. **Why:** found as a live bug, not a design gap — brought in line with `signup_email`'s existing 409 "already exists — log in instead" behavior for a duplicate email, and moved the check from `otp/verify` to `otp/request` so it surfaces before the caller types a code, matching email's timing exactly.
 
+
+## 2026-09-29 — CAS member detection: decisions I1-I16 and implementation rulings
+
+Spec: `Docs/orchestration/cas-member-detection-map.html` (decisions table). Nothing was left open in the spec; the rulings below were taken during implementation where the spec or plan was silent or conflicted.
+
+**Spec decisions I1-I16:** I1 one-person file shows no popup, one ribbon. I2 nominees ignored. I3 the detected PAN is kept aside until unlock; unlock errors L1-L8. I4 a typed PAN that differs from the statement is a hard error, no override (L3). I5 no upload for a locked person (A1, U6, M9). I6 minors deferred. I7 a person later found on another account: option B (their funds from this statement count in the family total, their own dashboard stays locked); option C "Ask for access" deferred. I8 deleting from a shared file: one person, everyone, or a member's whole portfolio (M17). I9 a name only gets more complete (updated only when the new statement has more name tokens; otherwise ours stays, no popup). I10 partial name match on the first import shows U1 before the people popup; the statement's name is taken at Confirm imports. I11 all ribbons reviewed before Confirm imports. I12 server-side lock. I13 cross-account check at upload. I14 PRD amendments (applied 2026-09-29, see `Docs/PRDs/`). I15 unlocked is permanent, enforced by a database trigger. I16 deletion logic as designed in M17.
+
+**Deviations from the spec (recorded, all adopted):**
+- `POST /imports/sessions/{id}/acknowledge` added; not in the spec's API table. It exists so every prompt (U5/U6/U7) is answered the same way and returns the preview.
+- U7 and U8 reuse the code `cross_account_pan_blocked` with the session kept.
+- An expired review session is 410 on `/imports/confirm` too (was 404).
+- D2 ("Also remove from my family") sits on the profile page, and is hidden for Me (M17: self is never removed).
+- `/cas-imports` answers 409 `review_required` instead of being removed (M18).
+- F26: Import History stays a flat API list with group fields; the frontend groups by `upload_group_id` (spec says grouped). Cost if wrong: move grouping server-side later.
+- F37: spec copy using he/his/him is rendered as they/their (the spec's own L8 pattern), since gender is unknown for detected people.
+- F17: curly apostrophe used in all UI copy per the spec; normalised to `'` before name validation and matching (backend and frontend).
+- Postgres enum type names follow the codebase convention (`memberorigin` ...), not the spec's snake_case.
+- `ParsedPerson.folio_keys` / `unassigned_folio_keys` are `(amc, folio_key)` tuples (RAM session, no JSON), so cross-AMC folio-number collisions are safe.
+- Ribbon copy stays plural-only, "({n} unresolved holdings)" (spec verbatim, grammar for 1 accepted). Live unresolved count uses ReviewTable's blocking rule (needs AMFI code or plan type), broader than the backend's unclassified-only count.
+- Unlock/edit form shared between both (`memberDetailsForm.tsx`); L9 edit requires re-typing the PAN because the raw PAN is never returned.
+
+**Technical rulings:**
+- The U4/U13 PAN switch holds the old PAN only in RAM (F6). A server restart mid-review leaves the member with the pending new PAN, which lapses after 65 minutes; accepted for MVP.
+- Holder-name filter rejects scheme-ish words rather than requiring all caps; a person whose name contains such a word falls back to an editable placeholder.
+- First upload for a non-self target runs both the target checks (U5/U4) and the self-by-name checks (U2/U3).
+- Confirm `include=False` is valid only for people already on another account (U8); a person newly on another account at confirm time is a 422 until re-upload (race, rare); `moved_funds` accepted only for matched-by-name/unassigned funds.
+- Parallel confirms of the same family CAS can duplicate name-only people (no hash to match); the M11 merge covers it. A confirm during an in-flight resolve on the same session is 410.
+- A group PDF saved before commit is cleaned up if the commit fails (no orphaned S3 object).
+- F34: a name-only person's PAN typed at L5 stays `pan_source = user_entered`, unverified at unlock; unlock skips L3 for it. Merge eligibility and L4 `can_merge` treat `user_entered` PANs as name-only.
+- Same-account non-merge L4 copy "This PAN is already on {other}." and the "Dad" example interpolate the member name (spec silent on the former).
+- U1 ask-mode (M8) copy is from the spec's M8 row ("Update X to Y?", Update / Keep mine).
+- Mobile history delete falls back to person scope if the household-wide list fetch fails; mobile reuses the desktop ribbon styling (needs phone QA).
+- No back control from the upload screen to the privacy page (final-review ruling): the privacy step is a one-way onboarding gate, so upload offers no way back to it.
+- Analytics export and PDF routes are gated by `require_unlocked_member` on member scope, like the other analytics member-scope routes: a locked member's analytics cannot be exported (final-review ruling). `POST /folios/{id}/opening-balance` and `POST /cas-imports/request` are gated the same way.
+- New committing routes are plain `def` (or use `commit_off_loop` if async), per the `bb5225f` event-loop rule.

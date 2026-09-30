@@ -68,7 +68,9 @@ trimmed), `backend.md`/`database.md` (backend/schema changes only), `decisions.m
 `Docs/orchestration/delegation-log.md`. Deferred/not-yet-built features:
 `DEFERRED_FEATURES.md`.)*
 
-**Latest (2026-09-24):** CAS import PAN check moved from Confirm-time to upload-time
+**Latest (2026-09-29):** CAS member detection built, uncommitted, awaiting review — see `session.md`'s "Latest".
+
+**Previous (2026-09-24):** CAS import PAN check moved from Confirm-time to upload-time
 (`pan_claims.py` replaces `attribution.py`; migration `0016`) — fixes every first import
 on a fresh account failing to match a family member. Fully committed
 (`11f7dfc`/`b8d88a8`/`b8901e4`/`bdfa2ba`), not uncommitted as this section previously

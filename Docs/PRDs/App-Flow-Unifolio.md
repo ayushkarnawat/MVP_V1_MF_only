@@ -29,9 +29,9 @@ why.
 | S3 | Q1 — Name | Onboarding (PRD-02) | After S2; revisitable via back-nav per FR-7a |
 | S4 | Q2 — Investing Behavior | Onboarding (PRD-02) | After S3; skippable/revisitable per FR-7/FR-7a |
 | S5 | Q3 — Purpose | Onboarding (PRD-02) | After S4; skippable/revisitable per FR-7/FR-7a |
-| S6 | Q4 — Household | Onboarding (PRD-02) | After S5 |
-| S7 | Add Family Member(s) | Onboarding (PRD-02) | From S6 if "Family too" |
-| S8 | CAS Upload | Import (PRD-01) | From S6 ("Just me") or S25 ("Family too", added v1.2); also from S16 (ongoing) |
+| S6 | ~~Q4 — Household~~ (removed 2026-09-29, CAS member detection) | Onboarding (PRD-02) | Was: after S5. Household members are now detected from the first CAS |
+| S7 | ~~Add Family Member(s)~~ (left onboarding 2026-09-29) | Onboarding (PRD-02) | Was: from S6 if "Family too". Members are now detected from the CAS and unlocked from the dashboard |
+| S8 | CAS Upload | Import (PRD-01) | From the privacy/security page (S5 -> S8 directly, amended 2026-09-29); also from S16 (ongoing). New after S8/S9: "We found N people" popup, ribbon review (one ribbon per person, then Confirm imports), and the member unlock screen (relationship + PAN) when a detected person is first opened |
 | S9 | Import Parsing (loading) | Import (PRD-01) | From S8 |
 | S10 | Import Review | Import (PRD-01) | From S9 on success |
 | S11 | Import Error | Import (PRD-01) | From S9 on failure (wrong password / scanned / wrong CAS type / generic) |
@@ -47,9 +47,9 @@ why.
 | S21 | Empty State — No Holdings Yet | Main Dashboard (PRD-03) | Reached instead of S13/S14 if no import completed |
 | S22 | Family Member Placeholder | Main Dashboard (PRD-03) | Within S14, per member with no CAS yet |
 | S23 | Landing (Sign Up / Log In) | Onboarding (PRD-02) | **App launch, no session (added v1.2)** — the true first screen, supersedes S0 in that role; both buttons lead to S0 |
-| S24 | Family CAS Upload | Import (PRD-01) / Onboarding (PRD-02) | **Added v1.2.** From S7, once family setup is done — one independent upload card per member added at S7 |
-| S25 | Upload My CAS? (Now / Later) | Onboarding (PRD-02) | **Added v1.2.** From S24, once every member's card is Uploaded or explicitly skipped |
-| S26 | Parse Queue | Import (PRD-01) / Onboarding (PRD-02) | **Added v1.2.** From S25 ("Later"), or after S8/S9 completes a queued upload reached via S24/S25 ("Now") — lists every queued-but-not-yet-parsed file with a single "Parse Files" action |
+| S24 | ~~Family CAS Upload~~ (removed 2026-09-29, CAS member detection) | Import (PRD-01) / Onboarding (PRD-02) | **Added v1.2.** From S7, once family setup is done — one independent upload card per member added at S7 |
+| S25 | ~~Upload My CAS? (Now / Later)~~ (removed 2026-09-29) | Onboarding (PRD-02) | **Added v1.2.** From S24, once every member's card is Uploaded or explicitly skipped |
+| S26 | ~~Parse Queue~~ (removed 2026-09-29) | Import (PRD-01) / Onboarding (PRD-02) | **Added v1.2.** From S25 ("Later"), or after S8/S9 completes a queued upload reached via S24/S25 ("Now") — lists every queued-but-not-yet-parsed file with a single "Parse Files" action |
 
 ## Primary Flow
 
@@ -71,17 +71,12 @@ flowchart TD
     S2 --> S3["Q1 - Name"]
     S3 --> S4["Q2 - Investing Behavior"]
     S4 --> S5["Q3 - Purpose"]
-    S5 --> S6["Q4 - Household"]
-    S6 -- "Just me" --> S8["CAS Upload"]
-    S6 -- "Family too" --> S7["Add Family Members"]
-    S7 --> S24["Family CAS Upload"]
-    S24 --> S25["Upload My CAS? Now/Later"]
-    S25 -- "Upload Now" --> S8
-    S25 -- "Upload Later" --> S26["Parse Queue"]
+    S5 --> S8["CAS Upload"]
+    S8 --> P1["NEW: We found N people popup"]
+    P1 --> P2["NEW: ribbon review, then Confirm imports"]
+    P2 --> P3["NEW: member unlock (relationship + PAN) on first open"]
 
-    S8 -- "solo path (S6): parse immediately" --> S9["Import Parsing"]
-    S8 -- "family path (S25): add to queue, per FR-12" --> S26
-    S26 -- "Parse Files" --> S9
+    S8 -- "parse immediately (S24-S26 removed 2026-09-29)" --> S9["Import Parsing"]
     S9 -- success --> S10["Import Review"]
     S9 -- failure --> S11["Import Error"]
     S11 -- retry --> S8
@@ -119,12 +114,9 @@ flowchart TD
     Q2 -- "advisor-assisted" --> Q3
     Q2 -- "mix of both" --> Q3
     Q2 -- "just getting started" --> Q3["Q3: What brings you to Unifolio?"]
-    Q3 --> Q4["Q4: Just you, or tracking for family too?"]
-    Q4 -- "Just me" --> Import["CAS Upload (S8, solo)"]
-    Q4 -- "Family too" --> Fam["Add Family Members (S7)"]
-    Fam --> FamLoop{"Add another member?"}
-    FamLoop -- Yes --> Fam
-    FamLoop -- No --> FamCas["Family CAS Upload (S24) — see dedicated sub-flow below"]
+    Q3 --> Import["CAS Upload (S8) — members detected from the statement"]
+    Import --> People["NEW: We found N people popup"] --> Ribbons["NEW: ribbon review, Confirm imports"]
+    Ribbons --> Unlock["NEW: member unlock on first open (relationship + PAN)"]
 ```
 
 *Note: per PRD-02 FR-7/FR-7a, every step here is resumable and (aside from Q4's family
@@ -276,3 +268,4 @@ None remaining from this pass.
 | 1.0 | 2026-07-22 | Claude (PM partner) | Initial draft |
 | 1.1 | 2026-07-22 | Claude (PM partner) | Default landing resolved to family aggregate (S14) for users with family set up, per-member (S13) as fallback for those without; S17 entry point confirmed as-drawn. Primary Flow diagram updated accordingly. |
 | 1.2 | 2026-08-05 | Claude (PM partner), from team brainstorm relayed by Ayush | Added S23 (Landing: Sign Up/Log In) as the true first screen; added S24 (Family CAS Upload), S25 (Upload My CAS? Now/Later), S26 (Parse Queue) per PRD-02 v1.3's Family CAS Upload flow; updated Screen Inventory, Primary Flow diagram, and Onboarding Questionnaire sub-flow accordingly; added a new Family CAS Upload sub-flow diagram; added onboarding back-navigation note to Navigation Shell per FR-7a; added per-item status row to Screen States; updated Traceability for PRD-02 US-2 |
+| 1.3 | 2026-09-29 | Claude, CAS member detection | Onboarding flow redrawn: Q4 (S6), Add Family Members (S7) and S24-S26 removed; S5 goes straight to S8. Added the "We found N people" popup, ribbon review with Confirm imports, and the member unlock screen. The older Family CAS Upload sub-flow diagram below is superseded. |

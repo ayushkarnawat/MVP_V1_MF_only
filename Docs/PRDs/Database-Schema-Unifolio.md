@@ -1,8 +1,8 @@
 ---
 artifact: database-schema
-version: "1.5"
+version: "1.6"
 created: 2026-07-22
-updated: 2026-09-02
+updated: 2026-09-29
 status: draft
 product: Unifolio
 target: "AWS RDS for PostgreSQL (ADR-003)"
@@ -97,16 +97,52 @@ family-aggregate-default logic (Design Principle 5).
 | `id` | `UUID` PK | |
 | `user_id` | `UUID` FK → `users.id` NOT NULL | Household owner (who's logged in) |
 | `name` | `VARCHAR` NOT NULL | |
-| `relationship` | `ENUM('self','spouse','parent','child','sibling','other')` NOT NULL | Fixed enum, not free text — keeps family-grouping/analytics consistent (no "Wife" vs "spouse" vs "Spouse" fragmentation). `'self'` for the account holder. |
+| `relationship` | `ENUM('self','spouse','parent','child','sibling','other')` NULLABLE | Made nullable by migration 0018 (a detected person has no relationship until unlocked; CHECK `ck_member_relationship_when_complete` requires it once `details_completed_at` is set). Previously NOT NULL.  Fixed enum, not free text — keeps family-grouping/analytics consistent (no "Wife" vs "spouse" vs "Spouse" fragmentation). `'self'` for the account holder. |
 | `relationship_other_label` | `VARCHAR` NULLABLE | Free-text only when `relationship = 'other'` — covers real cases (grandparent, in-law, etc.) without the enum sprawling |
 | `created_at` | `TIMESTAMPTZ` | |
 | `pan_encrypted` | `VARCHAR` NULLABLE | Added migration 0015 — AES-256-GCM envelope-encrypted PAN (nonce + ciphertext, base64), written at upload time by the first import whose parsed CAS carries this member's PAN (pending until Confirm, see `pan_pending_until`). Never returned by any API. See ADR-004 (reopened 2026-09-18) |
 | `pan_lookup_hash` | `VARCHAR` NULLABLE | Added migration 0015 — HMAC-SHA256 of the normalized PAN (one-way, deterministic), used only for equality matching during attribution so the app never needs to decrypt another household's PAN to check for a collision |
+| `origin` | `ENUM('onboarding','manual','cas_detected')` NOT NULL DEFAULT `'manual'` | Added migration 0018 — how the member row came to exist |
+| `name_source` | `ENUM('user_entered','cas')` NOT NULL DEFAULT `'user_entered'` | Added migration 0018 — provenance of `name`; a name only ever gets more complete (I9) |
+| `name_updated_at` | `TIMESTAMPTZ` NULLABLE | Added migration 0018 |
+| `details_completed_at` | `TIMESTAMPTZ` NULLABLE | Added migration 0018 — NULL = locked (detected person whose relationship/PAN have not been collected); set = unlocked. **Unlocked is permanent**: a trigger (below) rejects any update that would clear it or set `lock_reason` again (I15) |
+| `lock_reason` | `ENUM('details_needed','pan_on_other_account')` NULLABLE | Added migration 0018 — set exactly when `details_completed_at` is NULL (CHECK `ck_member_lock_reason`) |
+| `pan_source` | `ENUM('cas','user_entered')` NULLABLE | Added migration 0018 — provenance of the stored PAN; a user-typed PAN stays `user_entered` / unverified |
+| `pan_verified_at` | `TIMESTAMPTZ` NULLABLE | Added migration 0018 |
+| `detected_pan_encrypted` | `VARCHAR` NULLABLE | Added migration 0018 — the PAN detected on the statement, held aside (encrypted, same scheme as `pan_encrypted`) until unlock compares it with the typed PAN (L3, I3/I4). Cleared on unlock |
+| `detected_pan_hash` | `VARCHAR` NULLABLE | Added migration 0018 — lookup hash of the above; CHECK `ck_member_detected_pan_pair` keeps the two columns null together. Non-unique index `ix_member_user_detected_pan_hash (user_id, detected_pan_hash)` |
+| `detected_from_import_id` | `UUID` FK → `imports.id` ON DELETE SET NULL, NULLABLE | Added migration 0018 |
 | `pan_pending_until` | `TIMESTAMPTZ` NULLABLE | Added migration 0016 — non-null = the PAN above is a pending upload-time claim (finalized on Confirm Import, released on discard or after 65 minutes). NULL with a PAN set = permanent. See `app/services/import_/pan_claims.py` |
+
+**Migration 0018 CHECK constraints and trigger** (CAS member detection): `ck_member_relationship_when_complete` (`relationship IS NOT NULL OR details_completed_at IS NULL`), `ck_member_other_label`, `ck_member_lock_reason` (locked iff `lock_reason` set), `ck_member_detected_pan_pair`. Trigger `trg_member_never_relock` (SQLite `BEFORE UPDATE`; Postgres function `member_never_relock()`) aborts with `member_already_unlocked` on any update that would re-lock an unlocked member.
 
 Partial unique index on `(user_id) WHERE relationship = 'self'` (migration 0011) enforces
 at most one account-holder row per user; `create_household_member` also pre-checks this
 and returns 409 rather than surfacing a raw constraint violation.
+
+### `household_member_name_changes` (audit)
+Added migration 0018. One row per change to a member's name.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | `UUID` PK | |
+| `household_member_id` | `UUID` FK → `household_members.id` ON DELETE CASCADE NOT NULL | |
+| `old_name` / `new_name` | `VARCHAR` NOT NULL | |
+| `reason` | `ENUM('cas_variant','user_corrected_to_cas','user_edit')` NOT NULL | |
+| `import_id` | `UUID` FK → `imports.id` ON DELETE SET NULL, NULLABLE | |
+| `changed_at` | `TIMESTAMPTZ` NOT NULL | |
+
+### `household_member_merges` (audit)
+Added migration 0018. One row per merge of a name-only detected member into another (M11). Deliberately no FKs to the two member ids so the record survives the removed member's deletion.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | `UUID` PK | |
+| `user_id` | `UUID` FK → `users.id` NOT NULL | |
+| `kept_member_id` / `removed_member_id` | `UUID` NOT NULL | |
+| `removed_member_name` | `VARCHAR` NOT NULL | |
+| `folios_moved` / `transactions_dropped` | `INTEGER` NOT NULL | |
+| `merged_at` | `TIMESTAMPTZ` NOT NULL | |
 
 ### `imports`
 A single CAS upload-and-confirm event — repeatable per member, per PRD-01's Ongoing
@@ -131,6 +167,7 @@ Data Addition requirement.
 | `uploaded_at` | `TIMESTAMPTZ` NOT NULL | |
 | `confirmed_at` | `TIMESTAMPTZ` NULLABLE | |
 | `file_reference` | `VARCHAR` NULLABLE | Added migration 0015 — opaque storage key for the retained source CAS PDF (local-disk path in dev; S3 object key in production); `NULL` once expired/deleted |
+| `upload_group_id` | `UUID` NULLABLE, indexed (`ix_imports_upload_group_id`) | Added migration 0018 — shared by every per-person `imports` row created from one multi-person upload; drives grouped Import History and group-scope delete |
 | `file_expires_at` | `TIMESTAMPTZ` NULLABLE | Added migration 0015 — set to upload time + 30 days on store; the expiry sweep (see `app/services/import_/file_storage.py::expire_stored_files`) deletes the underlying file and nulls both this and `file_reference` once past this timestamp |
 
 **Note on PAN**: the CAS PDF password is the user's PAN, but per PRD-01's constraint the
@@ -413,3 +450,4 @@ None remaining from this pass.
 | 1.3 | 2026-08-17 | Claude (PM partner) | Updated for multi-method auth (migrations 0004-0006): added `auth_identities`, `pending_identity_verifications`, `password_reset_tokens`, `email_confirmation_tokens`; added `sessions.auth_method`; narrowed `otp_requests` back to phone-only; updated `users.phone_number` and ERD to reflect `auth_identities` as auth source of truth |
 | 1.4 | 2026-09-02 | Claude (PM partner) | Reconciled against migrations 0003, 0007-0010 (this doc had gone stale by 3-4 migrations, caught by the sqlite-postgres-migration-compliance-audit): `imports.status` widened to the full 14-value lifecycle enum, added `imports.error_code`/`error_message`/`source_tab`/`statement_from_date`/`statement_to_date`/`expires_at`; added `folios.has_coverage_gap`/`coverage_gap_details`; `transactions.type` gained `opening_balance` (and noted it's a `VARCHAR`+CHECK column on Postgres, never a native enum type); `scheme_ter.ter_value` made nullable with a documented meaning; dropped `password_reset_tokens` and `email_confirmation_tokens` entirely (removed by migrations 0007/0008) and `password_hash`/`email_confirmed_at` from `auth_identities`/`pending_identity_verifications` (removed by 0008); documented `otp_requests.email` and its exactly-one-identifier CHECK (added back by 0007) |
 | 1.5 | 2026-09-02 | Claude (PM partner) | F3 (compliance audit): `household_members` gained a partial unique index on `(user_id) WHERE relationship = 'self'` (migration 0011), enforcing one account-holder row per user — a gap this doc had never specified even before the code caught up; documented in both the `household_members` entity and Indexing Notes |
+| 1.6 | 2026-09-29 | Claude | CAS member detection (migration 0018): `household_members` gained `origin`, `name_source`, `name_updated_at`, `details_completed_at`, `lock_reason`, `pan_source`, `pan_verified_at`, `detected_pan_encrypted`, `detected_pan_hash`, `detected_from_import_id`, and `relationship` became nullable; 4 CHECK constraints and the never-relock trigger; `imports.upload_group_id`; new audit tables `household_member_name_changes` and `household_member_merges`. Postgres enum type names follow the codebase convention (`memberorigin`, `membernamesource`, `memberpansource`, `memberlockreason`, `namechangereason`), not the spec's snake_case. Also supersedes the migration-0016 sync note: doc is current through 0018. |

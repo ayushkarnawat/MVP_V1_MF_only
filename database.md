@@ -56,3 +56,13 @@ Landing this migration also removed every OTP/session-related route's old direct
 - **`0016_pending_pan_claims`**: `household_members.pan_pending_until` — non-null means the PAN above is an upload-time claim not yet finalized by Confirm Import (released on discard or after a 65-minute timeout). Moves the PAN check/claim from Confirm-time to upload-time; see `decisions.md`'s 2026-09-24 entry.
 
 `Database-Schema-Unifolio.md` stays synced through 0016 (checked current as of this pass).
+
+## 2026-09-29 — Migration 0018: CAS member detection (uncommitted at time of writing)
+
+- **`0018_cas_member_detection`**: `household_members` gains `origin`, `name_source` (both NOT NULL with server defaults `manual` / `user_entered`), `name_updated_at`, `details_completed_at`, `lock_reason`, `pan_source`, `pan_verified_at`, `detected_pan_encrypted`, `detected_pan_hash`, `detected_from_import_id` (FK to `imports`, `ON DELETE SET NULL`); `relationship` becomes nullable. Four CHECK constraints (`ck_member_relationship_when_complete`, `ck_member_other_label`, `ck_member_lock_reason`, `ck_member_detected_pan_pair`) and index `ix_member_user_detected_pan_hash (user_id, detected_pan_hash)`. `imports` gains `upload_group_id` (indexed). New audit tables `household_member_name_changes` and `household_member_merges`.
+- **Never-relock trigger** `trg_member_never_relock` (SQLite trigger; Postgres function `member_never_relock()` plus trigger) rejects any update that clears `details_completed_at` or sets `lock_reason` on an unlocked member (I15). Created after the batch block because the SQLite batch rebuild drops triggers; SQL is a frozen copy of `app/db/member_trigger_sql.py`.
+- **Postgres specifics**: the four `household_members` enum types are created explicitly (`op.add_column` does not emit `CREATE TYPE`) and named by the codebase convention (`memberorigin`, `membernamesource`, `memberpansource`, `memberlockreason`, `namechangereason`), not the spec's snake_case. On SQLite, the nullability change, CHECKs and the FK go through one `batch_alter_table` (plain `add_column` silently skips the FK).
+- **No backfill**: the DB is wiped before testing (M20); the CHECKs would reject pre-existing member rows. Downgrade assumes no locked members.
+- **Not verified on Postgres**: `tests/functional_postgres` was never run (no Docker in WSL). Run it once against a local Postgres before merge.
+
+`Database-Schema-Unifolio.md` is synced through 0018 (v1.6).

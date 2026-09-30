@@ -172,12 +172,11 @@ for the rare case where a CAS has no parseable PAN. See
   one value — this is required for the future "which distributor performs better" analytics.
 
 #### Review & Confirm Flow
-- FR-9: `/api/imports/parse` returns a preview (no DB writes) with scheme-level confidence
-  scores for AMFI matches and direct/regular classification. Called once per file — per
-  PRD-02 v1.3's Family CAS Upload flow, a batch "Parse Files" action on the frontend calls
-  this endpoint once per queued file, sequentially, each tagged to its own
-  `household_member_id`; this endpoint itself has no batch/multi-file mode (added v1.3
-  cross-reference).
+- FR-9: `/api/imports/parse` returns a preview listing every person found in the file, with
+  scheme-level confidence scores for AMFI matches and direct/regular classification. Its
+  only write is the pending PAN claim for the self member. *(Amended 2026-09-29, CAS member
+  detection; was: "no DB writes", called once per file and tagged to one
+  `household_member_id`. The Family CAS Upload batch "Parse Files" flow was removed.)*
 - FR-10: User must confirm before `/api/imports/confirm` persists anything. Low-confidence
   AMFI matches (<0.92) and `unclassified` direct/regular results block silent confirm —
   each requires an explicit user choice.

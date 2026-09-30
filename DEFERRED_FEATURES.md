@@ -38,6 +38,14 @@ answer "what's not done yet" even though they aren't scope deferrals.
 | Advisor/CA-assisted onboarding (bulk client setup) | PRD-02 §Future Considerations | Not built | Deferred until the target-customer question (Product Context doc §7) is resolved | TBD |
 | PIN/biometric return-login (FR-2a) + full Auth/Security policy (rate-limiting, lockout, device management) | PRD-02 Open Questions; Database Schema `otp_requests`/`sessions` notes | Foundational schema only — login functions at MVP without it | Explicitly deferred to a dedicated Auth/Security PRD; the schema hooks (`attempt_count`, `device_info`) exist so this can be layered on later without a migration | TBD |
 
+## CAS Member Detection (2026-09-29)
+
+| Feature | Spec Source | Status | Deferred Reason | Priority |
+|---|---|---|---|---|
+| Minors' folios (folios held on behalf of a minor, typically under a guardian's PAN) | `Docs/orchestration/cas-member-detection-map.html` M5 / decision I6 | Not built | Explicitly decided "Later"; detection treats every PAN group as an adult person | Later |
+| "Ask for access" to another account's member (option C — request access when a detected person already lives on a different Unifolio account) | Same spec, decision I7 | Not built | Option B shipped instead (their funds from this statement count in the family total; their own dashboard stays locked to their account) | Later |
+| General member merge tool (merging arbitrary members). Only name-only detected members can be merged today | Same spec, M11 | Partly built (name-only merge only) | Scoped to the duplicate-person case that detection itself creates; a general tool needs its own design | Later |
+
 ## PRD-03 — Main Dashboard
 
 | Feature | Spec Source | Status | Deferred Reason | Priority |
