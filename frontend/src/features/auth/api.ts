@@ -29,13 +29,18 @@ async function throwIfError(response: Response): Promise<void> {
   }
 }
 
-export async function requestOtp(phoneNumber: string, pendingToken?: string): Promise<OtpRequestResponse> {
+export async function requestOtp(
+  phoneNumber: string,
+  pendingToken?: string,
+  flow?: "signup" | "login",
+): Promise<OtpRequestResponse> {
   const response = await fetch(`${API_BASE_URL}/auth/otp/request`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-Device-Id": getOrCreateDeviceId() },
     body: JSON.stringify({
       phone_number: phoneNumber,
       ...(pendingToken ? { pending_token: pendingToken } : {}),
+      ...(flow ? { flow } : {}),
     }),
   });
   await throwIfError(response);
@@ -52,13 +57,14 @@ export async function signupEmail(email: string): Promise<EmailOtpRequiredRespon
   return (await response.json()) as EmailOtpRequiredResponse;
 }
 
-export async function requestEmailOtp(email: string, pendingToken?: string): Promise<OtpRequestResponse> {
+export async function requestEmailOtp(email: string, pendingToken?: string, flow?: "login"): Promise<OtpRequestResponse> {
   const response = await fetch(`${API_BASE_URL}/auth/email-otp/request`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-Device-Id": getOrCreateDeviceId() },
     body: JSON.stringify({
       email,
       ...(pendingToken ? { pending_token: pendingToken } : {}),
+      ...(flow ? { flow } : {}),
     }),
   });
   await throwIfError(response);

@@ -130,3 +130,27 @@ def test_0018_backfills_preexisting_members_on_postgres(postgres_url, monkeypatc
     finally:
         engine.dispose()
         _alembic("downgrade", "base")
+
+
+def test_0019_primary_goals_check_constraint_on_postgres(postgres_url, monkeypatch):
+    from sqlalchemy import create_engine, text
+    from sqlalchemy.exc import IntegrityError
+
+    monkeypatch.setenv("DATABASE_URL", postgres_url)
+    _alembic("downgrade", "base")
+    assert _alembic("upgrade", "head").returncode == 0
+    engine = create_engine(postgres_url)
+    # pending_deletion has a server default (0013), so no extra NOT NULL columns.
+    insert = (
+        "INSERT INTO users (id, phone_number, created_at, primary_goals) "
+        "VALUES (gen_random_uuid(), :phone, now(), CAST(:goals AS jsonb))"
+    )
+    try:
+        with engine.begin() as conn:
+            conn.execute(text(insert), {"phone": "+919800001901", "goals": '["family_management"]'})
+        for i, bad in enumerate(('["foo"]', "[]", '"family_management"')):
+            with pytest.raises(IntegrityError):
+                with engine.begin() as conn:
+                    conn.execute(text(insert), {"phone": f"+91980000191{i}", "goals": bad})
+    finally:
+        engine.dispose()

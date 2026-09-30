@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session as DbSession
 
 from app.db.session import get_db #dependency for database session
 from app.models.auth import AuthIdentity, Session as SessionModel
-from app.models.enums import AuthIdentityProvider
+from app.models.enums import AuthIdentityProvider, PrimaryGoal
 from app.models.user import User
 from app.services.auth.device_info import capture_request_metadata
 from app.services.auth.identity import (
@@ -114,6 +114,8 @@ def request_email_otp(body: EmailOtpRequestBody, request: Request, db: DbSession
             attach_email_to_pending(db, body.pending_token, body.email)
         except PendingVerificationError as exc:
             raise HTTPException(status_code=401, detail=str(exc)) from exc
+    elif body.flow == "login" and find_identity_by_subject(db, AuthIdentityProvider.EMAIL_OTP, body.email) is None:
+        raise HTTPException(status_code=404, detail="No account found for that email — sign up instead.")
 
     try:
         _, raw_otp = create_otp_request(db, body.email, channel="email", metadata=capture_request_metadata(request))
@@ -232,6 +234,14 @@ def request_otp(body: OtpRequestBody, request: Request, db: DbSession = Depends(
                     status_code=409,
                     detail="An account with this phone number already exists.",
                 )
+    elif body.flow is not None:
+        existing = find_or_backfill_phone_identity(db, body.phone_number)
+        if body.flow == "signup" and existing is not None:
+            raise HTTPException(status_code=409, detail="An account with this phone number already exists.")
+        if body.flow == "login" and existing is None:
+            raise HTTPException(
+                status_code=404, detail="No account found for that phone number — sign up instead."
+            )
 
     try:
         _, raw_otp = create_otp_request(db, body.phone_number, metadata=capture_request_metadata(request))
@@ -296,6 +306,10 @@ def verify_otp_route(body: OtpVerifyBody, db: DbSession = Depends(get_db)):
     # the branches below and violating users.phone_number UNIQUE.
     existing = find_or_backfill_phone_identity(db, body.phone_number)
     if existing is not None:
+        if body.flow == "signup":
+            # Belt-and-braces for request_otp's own check: the number was
+            # registered between request and verify. Never log in on sign-up.
+            raise HTTPException(status_code=409, detail="An account with this phone number already exists.")
         return _session_response(existing.user_id, AuthIdentityProvider.PHONE_OTP, db)
 
     if body.flow == "login":
@@ -398,7 +412,7 @@ def _me_response(user: User) -> MeResponse:
         onboarding_step=user.onboarding_step,
         onboarding_completed=user.onboarding_completed_at is not None,
         investor_type=user.investor_type,
-        primary_goal=user.primary_goal,
+        primary_goals=user.primary_goals,
         pending_deletion=user.pending_deletion,
         deletion_scheduled_at=deletion_scheduled_at,
     )
@@ -538,8 +552,10 @@ def update_me(
         user.onboarding_step = body.onboarding_step
     if body.investor_type is not None:
         user.investor_type = body.investor_type
-    if body.primary_goal is not None:
-        user.primary_goal = body.primary_goal
+    if body.primary_goals is not None:
+        goals = [g.value for g in body.primary_goals]
+        user.primary_goals = goals
+        user.primary_goal = PrimaryGoal(goals[0])  # dual write until 0021
     # First-completion-wins: onboarding_completed=false is not a supported
     # "un-complete" action, only forward marking is needed (PRD-02 has no
     # revert-to-onboarding flow once done).

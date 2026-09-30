@@ -12,7 +12,7 @@ vi.mock("./api", async () => {
 
 const BASE_ME: MeResponse = {
   user_id: "u1", phone_number: "+919999999999", email: null,
-  onboarding_step: null, onboarding_completed: false, investor_type: null, primary_goal: null,
+  onboarding_step: null, onboarding_completed: false, investor_type: null, primary_goals: null,
 };
 
 function renderFlow() {
@@ -41,7 +41,8 @@ describe("OnboardingFlow", () => {
     fireEvent.click(screen.getByRole("button", { name: /mostly on my own/i }));
 
     await waitFor(() => expect(screen.getByText(/what brings you to unifolio/i)).toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: /consolidated portfolio view/i }));
+    fireEvent.click(screen.getByRole("checkbox", { name: /consolidated portfolio view/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
 
     await waitFor(() => expect(screen.getByRole("heading", { level: 1, name: /we keep your insights, not your files\./i })).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: /^next$/i }));
@@ -98,7 +99,7 @@ describe("OnboardingFlow", () => {
     );
   });
 
-  it("persists the Q3 answer to the backend via updateMe", async () => {
+  async function goToQ3() {
     renderFlow();
     await waitFor(() => screen.getByLabelText(/full name as per pan/i));
     fireEvent.change(screen.getByLabelText(/full name as per pan/i), { target: { value: "Ayush" } });
@@ -106,11 +107,28 @@ describe("OnboardingFlow", () => {
     await waitFor(() => screen.getByText(/how are you investing right now/i));
     fireEvent.click(screen.getByRole("button", { name: /mostly on my own/i }));
     await waitFor(() => screen.getByText(/what brings you to unifolio/i));
+  }
 
-    fireEvent.click(screen.getByRole("button", { name: /consolidated portfolio view/i }));
-
+  it("Q3 lets the user pick several goals and saves them on Continue", async () => {
+    await goToQ3();
+    const cont = screen.getByRole("button", { name: "Continue" });
+    expect(cont).toBeDisabled();
+    fireEvent.click(screen.getByRole("checkbox", { name: /Consolidated portfolio view/ }));
+    fireEvent.click(screen.getByRole("checkbox", { name: /Family wealth tracking/ }));
+    expect(screen.getByRole("checkbox", { name: /Family wealth tracking/ })).toHaveAttribute("aria-checked", "true");
+    expect(api.updateMe).not.toHaveBeenCalledWith(expect.objectContaining({ primary_goals: expect.anything() }));
+    fireEvent.click(cont);
     await waitFor(() =>
-      expect(api.updateMe).toHaveBeenCalledWith(expect.objectContaining({ primary_goal: "consolidated_view" })),
+      expect(api.updateMe).toHaveBeenCalledWith({ primary_goals: ["consolidated_view", "family_management"] }),
     );
+  });
+
+  it("Q3 toggling an option twice unselects it", async () => {
+    await goToQ3();
+    const opt = screen.getByRole("checkbox", { name: /Compare distributor fees/ });
+    fireEvent.click(opt);
+    fireEvent.click(opt);
+    expect(opt).toHaveAttribute("aria-checked", "false");
+    expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
   });
 });

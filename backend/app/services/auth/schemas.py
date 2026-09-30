@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
 
 from app.models.enums import AuthIdentityProvider, InvestorType, PrimaryGoal
 
@@ -34,6 +34,10 @@ def normalize_email(value: object) -> object:
 class OtpRequestBody(BaseModel):
     phone_number: str
     pending_token: str | None = None
+    # Staging-QA fix 1 (2026-09-30): with no pending_token, "signup" rejects a
+    # registered number and "login" an unknown one BEFORE a code is sent.
+    # Omitted = legacy behaviour (internal test callers).
+    flow: Literal["signup", "login"] | None = None
 
 
 class OtpRequestResponse(BaseModel):
@@ -114,6 +118,9 @@ class EmailOtpRequestBody(BaseModel):
     # step of a phone-first signup, attaching the email to the
     # already-phone-verified pending record before the OTP is sent.
     pending_token: str | None = None
+    # Staging-QA fix 1: only "login" exists here -- email sign-up starts at
+    # /auth/signup/email, and the phone-first email step carries pending_token.
+    flow: Literal["login"] | None = None
 
     @field_validator("email", mode="before")
     @classmethod
@@ -147,8 +154,27 @@ class SessionRefreshResponse(BaseModel):
 class UpdateMeBody(BaseModel):
     onboarding_step: str | None = None
     investor_type: InvestorType | None = None
+    primary_goals: list[PrimaryGoal] | None = None
+    # Legacy single goal from a frontend built before 2026-09-30 (still cached
+    # during a rollout): folded into primary_goals so it isn't silently dropped.
     primary_goal: PrimaryGoal | None = None
     onboarding_completed: bool | None = None
+
+    @model_validator(mode="after")
+    def _fold_legacy_goal(self) -> "UpdateMeBody":
+        if self.primary_goals is None and self.primary_goal is not None:
+            self.primary_goals = [self.primary_goal]
+        return self
+
+    @field_validator("primary_goals")
+    @classmethod
+    def _dedupe_goals(cls, value: list[PrimaryGoal] | None) -> list[PrimaryGoal] | None:
+        if value is None:
+            return None
+        unique = list(dict.fromkeys(value))
+        if not 1 <= len(unique) <= 4:
+            raise ValueError("Pick between 1 and 4 goals.")
+        return unique
 
 
 class MeResponse(BaseModel):
@@ -158,7 +184,7 @@ class MeResponse(BaseModel):
     onboarding_step: str | None
     onboarding_completed: bool
     investor_type: InvestorType | None
-    primary_goal: PrimaryGoal | None
+    primary_goals: list[PrimaryGoal] | None
     pending_deletion: bool
     deletion_scheduled_at: datetime | None
 

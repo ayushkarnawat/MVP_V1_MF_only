@@ -489,10 +489,11 @@ def test_otp_verify_with_flow_login_for_known_phone_logs_in(client):
     assert response.json()["user_id"] == first_session["user_id"]
 
 
-def test_otp_verify_with_flow_signup_for_already_registered_phone_logs_in_instead_of_erroring(client):
-    """Review Focus: someone who forgot they already have an account
-    shouldn't be blocked -- the number proves nothing malicious, so
-    flow=signup gracefully logs them in rather than erroring."""
+def test_otp_verify_with_flow_signup_for_already_registered_phone_is_409(client):
+    """Staging-QA fix 1 (2026-09-30) supersedes the earlier "log them in
+    gracefully" behaviour: sign-up with a registered number must error, never
+    silently log in. (The request step rejects first; the code is issued via
+    the legacy no-flow path here to reach verify's own belt-and-braces check.)"""
     phone = "+919111133333"
     otp1 = client.post("/auth/otp/request", json={"phone_number": phone}).json()["otp"]
     client.post("/auth/otp/verify", json={"phone_number": phone, "otp": otp1})  # legacy path creates the account
@@ -500,8 +501,8 @@ def test_otp_verify_with_flow_signup_for_already_registered_phone_logs_in_instea
 
     response = client.post("/auth/otp/verify", json={"phone_number": phone, "otp": otp2, "flow": "signup"})
 
-    assert response.status_code == 200
-    assert "session_token" in response.json()
+    assert response.status_code == 409
+    assert "session_token" not in response.json()
 
 
 def test_otp_request_rejects_a_phone_first_pending_token(client):
@@ -591,3 +592,123 @@ def test_otp_verify_without_flow_or_pending_token_still_creates_a_user_unconditi
 
     assert response.status_code == 200
     assert "session_token" in response.json()
+
+
+# --- Staging-QA fix 1 (2026-09-30): sign-up/login checks at code-request time ---
+
+from app.models.auth import OtpRequest
+
+
+def _register_phone(client, phone):
+    # Flow-omitted legacy verify: creates the account directly (auth.py legacy branch).
+    otp = client.post("/auth/otp/request", json={"phone_number": phone}).json()["otp"]
+    assert client.post("/auth/otp/verify", json={"phone_number": phone, "otp": otp}).status_code == 200
+
+
+def _otp_rows(phone):
+    from app.db.session import get_db
+    from app.main import app
+    db = next(app.dependency_overrides[get_db]())
+    return db.query(OtpRequest).filter(OtpRequest.phone_number == phone).count()
+
+
+def test_signup_request_with_a_registered_phone_is_409_and_sends_nothing(client):
+    _register_phone(client, "+919811100001")
+    before = _otp_rows("+919811100001")
+    r = client.post("/auth/otp/request", json={"phone_number": "+919811100001", "flow": "signup"})
+    assert r.status_code == 409
+    assert r.json()["detail"] == "An account with this phone number already exists."
+    assert _otp_rows("+919811100001") == before
+
+
+def test_signup_verify_with_a_registered_phone_is_409_not_a_login(client):
+    # The number gets registered between request and verify (another tab):
+    # the request passes, but verify must refuse instead of logging in.
+    from datetime import datetime, timezone
+    from app.db.session import get_db
+    from app.main import app
+    from app.models.enums import AuthIdentityProvider
+    from app.models.user import User
+    from app.services.auth.identity import record_identity
+
+    otp = client.post("/auth/otp/request", json={"phone_number": "+919811100002", "flow": "signup"}).json()["otp"]
+    db = next(app.dependency_overrides[get_db]())
+    now = datetime.now(timezone.utc)
+    user = User(phone_number="+919811100002", created_at=now)
+    db.add(user)
+    db.flush()
+    record_identity(db, user.id, AuthIdentityProvider.PHONE_OTP, "+919811100002", None, now)
+    db.commit()
+    r = client.post("/auth/otp/verify", json={"phone_number": "+919811100002", "otp": otp, "flow": "signup"})
+    assert r.status_code == 409
+    assert "session_token" not in r.json()
+
+
+def test_login_request_with_an_unknown_phone_is_404_and_sends_nothing(client):
+    r = client.post("/auth/otp/request", json={"phone_number": "+919811100004", "flow": "login"})
+    assert r.status_code == 404
+    assert r.json()["detail"] == "No account found for that phone number — sign up instead."
+    assert _otp_rows("+919811100004") == 0
+
+
+def test_login_request_with_a_registered_phone_still_sends(client):
+    _register_phone(client, "+919811100005")
+    r = client.post("/auth/otp/request", json={"phone_number": "+919811100005", "flow": "login"})
+    assert r.status_code == 200
+
+
+def test_request_without_flow_keeps_legacy_behaviour(client):
+    r = client.post("/auth/otp/request", json={"phone_number": "+919811100006"})
+    assert r.status_code == 200
+
+
+def _goal_headers(client, phone):
+    token = _signup_via_phone(client, phone)["session_token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
+def test_patch_me_saves_goal_list_and_dual_writes_first_item(client):
+    headers = _goal_headers(client, "+919811100010")
+    r = client.patch("/auth/me", json={"primary_goals": ["family_management", "consolidated_view"]}, headers=headers)
+    assert r.status_code == 200
+    assert r.json()["primary_goals"] == ["family_management", "consolidated_view"]
+    from app.models.user import User
+
+    db = _db(client)
+    user = db.query(User).filter_by(phone_number="+919811100010").one()
+    assert user.primary_goal.value == "family_management"  # old tasks during a rolling deploy read this
+
+
+def test_patch_me_dedupes_goals_and_rejects_bad_values(client):
+    headers = _goal_headers(client, "+919811100011")
+    ok = client.patch("/auth/me", json={"primary_goals": ["family_management", "family_management"]}, headers=headers)
+    assert ok.json()["primary_goals"] == ["family_management"]
+    assert client.patch("/auth/me", json={"primary_goals": ["foo"]}, headers=headers).status_code == 422
+    assert client.patch("/auth/me", json={"primary_goals": []}, headers=headers).status_code == 422
+
+
+def test_patch_me_accepts_legacy_single_primary_goal(client):
+    """Go-live audit R3: an old cached frontend still sends primary_goal
+    during the rollout; it must be saved, not silently dropped."""
+    headers = _goal_headers(client, "+919811100012")
+    r = client.patch("/auth/me", json={"primary_goal": "family_management"}, headers=headers)
+    assert r.status_code == 200
+    assert r.json()["primary_goals"] == ["family_management"]
+
+
+def test_user_created_without_goals_stores_sql_null(client):
+    """Go-live audit R4: None must be SQL NULL, not JSON null — Postgres's
+    ck_users_primary_goals_allowed rejects a JSON null."""
+    from datetime import datetime, timezone
+
+    import sqlalchemy as sa
+
+    from app.db.session import get_db
+    from app.main import app
+    from app.models.user import User
+
+    db = next(app.dependency_overrides[get_db]())
+    db.add(User(phone_number="+919811100013", created_at=datetime.now(timezone.utc), primary_goals=None))
+    db.commit()
+    raw = db.execute(sa.text("SELECT primary_goals IS NULL FROM users WHERE phone_number = '+919811100013'")).scalar()
+    assert raw == 1

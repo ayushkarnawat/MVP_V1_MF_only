@@ -30,7 +30,7 @@ function renderFlow() {
 const NORMAL_SESSION = { session_token: "tok-1", user_id: "u1", onboarding_step: null, onboarding_completed: false };
 const ME_RESPONSE = {
   user_id: "u1", phone_number: "+919999999999", email: null,
-  onboarding_step: null, onboarding_completed: false, investor_type: null, primary_goal: null,
+  onboarding_step: null, onboarding_completed: false, investor_type: null, primary_goals: null,
 };
 
 function fillEmail(email: string) {
@@ -271,7 +271,7 @@ describe("AuthEntryFlow", () => {
     fillEmail("existing@example.com");
     fireEvent.click(screen.getByRole("button", { name: /send code/i }));
 
-    await waitFor(() => expect(api.requestEmailOtp).toHaveBeenCalledWith("existing@example.com"));
+    await waitFor(() => expect(api.requestEmailOtp).toHaveBeenCalledWith("existing@example.com", undefined, "login"));
     await waitFor(() => screen.getByLabelText(/verification code/i));
 
     fireEvent.change(screen.getByLabelText(/verification code/i), { target: { value: "777888" } });
@@ -429,6 +429,51 @@ describe("AuthEntryFlow", () => {
     fireEvent.click(screen.getByRole("button", { name: /^sign up$/i }));
 
     await waitFor(() => expect(screen.queryByText(/google sign-in failed/i)).not.toBeInTheDocument());
+  });
+
+  // Staging-QA fix 1 (2026-09-30): sign-up/login checks at code-request time.
+  it("sign-up sends flow=signup and a 409 offers Log in instead", async () => {
+    vi.mocked(api.requestOtp).mockRejectedValue(new ApiError(409, "An account with this phone number already exists."));
+    renderFlow();
+
+    fireEvent.change(screen.getByLabelText(/mobile number/i), { target: { value: "+919811100001" } });
+    fireEvent.click(screen.getByRole("button", { name: /get otp/i }));
+
+    await screen.findByText("An account with this phone number already exists.");
+    expect(api.requestOtp).toHaveBeenCalledWith("+919811100001", undefined, "signup");
+    expect(screen.getByRole("button", { name: /log in instead/i })).toBeInTheDocument();
+  });
+
+  it("login with an unknown number offers Sign up instead", async () => {
+    vi.mocked(api.requestOtp).mockRejectedValue(
+      new ApiError(404, "No account found for that phone number — sign up instead."),
+    );
+    renderFlow();
+    fireEvent.click(screen.getByRole("button", { name: /^log in$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /continue with phone/i }));
+
+    fireEvent.change(screen.getByLabelText(/mobile number/i), { target: { value: "+919811100004" } });
+    fireEvent.click(screen.getByRole("button", { name: /send verification code/i }));
+
+    await screen.findByText(/No account found for that phone number/);
+    expect(api.requestOtp).toHaveBeenCalledWith("+919811100004", undefined, "login");
+    fireEvent.click(screen.getByRole("button", { name: /sign up instead/i }));
+    expect(await screen.findByText(/create your account/i)).toBeInTheDocument();
+  });
+
+  it("resend keeps the login flow for an email login", async () => {
+    vi.mocked(api.requestEmailOtp).mockResolvedValue({ message: "OTP sent.", otp: "123456" });
+    renderFlow();
+    fireEvent.click(screen.getByRole("button", { name: /^log in$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /continue with email/i }));
+    fillEmail("a@b.com");
+    fireEvent.click(screen.getByRole("button", { name: /send code/i }));
+    await waitFor(() => screen.getByLabelText(/verification code/i));
+
+    fireEvent.click(screen.getByRole("button", { name: /resend/i }));
+
+    await waitFor(() => expect(vi.mocked(api.requestEmailOtp).mock.calls.length).toBe(2));
+    expect(vi.mocked(api.requestEmailOtp).mock.calls.at(-1)).toEqual(["a@b.com", undefined, "login"]);
   });
 });
 

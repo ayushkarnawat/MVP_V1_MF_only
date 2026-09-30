@@ -343,6 +343,11 @@ export function isAccountExistsError(message: string | null): boolean {
   return !!message && /already exists/i.test(message);
 }
 
+/** True for the login-time "no account found … sign up instead" errors (phone and email). */
+export function isNoAccountError(message: string | null): boolean {
+  return !!message && /no account found/i.test(message);
+}
+
 /**
  * True for a dead pending_identity_verifications token -- not found,
  * already used, or past its 10-minute TTL (see

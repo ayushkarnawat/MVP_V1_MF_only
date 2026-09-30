@@ -53,7 +53,7 @@ describe("App", () => {
     localStorage.setItem("unifolio_session_token", "tok-1");
     const incompleteMe = {
       user_id: "u1", phone_number: "+919999999999", email: null,
-      onboarding_step: "q1_name", onboarding_completed: false, investor_type: null, primary_goal: null,
+      onboarding_step: "q1_name", onboarding_completed: false, investor_type: null, primary_goals: null,
     };
     vi.mocked(api.getMe).mockResolvedValue(incompleteMe);
     vi.mocked(api.updateMe).mockResolvedValue(incompleteMe);
@@ -67,7 +67,7 @@ describe("App", () => {
     localStorage.setItem("unifolio_session_token", "tok-1");
     vi.mocked(api.getMe).mockResolvedValue({
       user_id: "u1", phone_number: "+919999999999", email: null,
-      onboarding_step: null, onboarding_completed: true, investor_type: null, primary_goal: null,
+      onboarding_step: null, onboarding_completed: true, investor_type: null, primary_goals: null,
     });
 
     render(<App />);
@@ -79,7 +79,7 @@ describe("App", () => {
     localStorage.setItem("unifolio_session_token", "tok-pending");
     vi.mocked(api.getMe).mockResolvedValue({
       user_id: "u1", phone_number: "+919999999999", email: null,
-      onboarding_step: null, onboarding_completed: true, investor_type: null, primary_goal: null,
+      onboarding_step: null, onboarding_completed: true, investor_type: null, primary_goals: null,
       pending_deletion: true, deletion_scheduled_at: "2026-09-16T08:00:00+00:00",
     });
 
@@ -93,7 +93,7 @@ describe("App", () => {
     localStorage.setItem("unifolio_session_token", "tok-1");
     vi.mocked(api.getMe).mockResolvedValue({
       user_id: "u1", phone_number: "+919999999999", email: null,
-      onboarding_step: null, onboarding_completed: true, investor_type: null, primary_goal: null,
+      onboarding_step: null, onboarding_completed: true, investor_type: null, primary_goals: null,
     });
 
     // Mock mobile matchMedia

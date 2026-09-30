@@ -15,13 +15,13 @@ import type { InvestorType, PrimaryGoal } from "./types";
 export interface OnboardingAnswers {
   name: string;
   investorType: InvestorType | null;
-  primaryGoal: PrimaryGoal | null;
+  primaryGoals: PrimaryGoal[];
 }
 
 const INITIAL_ANSWERS: OnboardingAnswers = {
   name: "",
   investorType: null,
-  primaryGoal: null,
+  primaryGoals: [],
 };
 
 function resumeStep(step: string | null | undefined): OnboardingStep {
@@ -116,24 +116,24 @@ export function OnboardingFlow({ isMobile = false }: OnboardingFlowProps) {
           isMobile
           currentStepIndex={2}
           totalSteps={5}
-          selectedValue={answers.primaryGoal}
+          selectedValues={answers.primaryGoals}
           onBack={back}
           onSkip={() => skip("trust_primer")}
-          onSelect={(primaryGoal) => {
-            void updateMe({ primary_goal: primaryGoal });
-            setAnswers((a) => ({ ...a, primaryGoal }));
+          onContinue={(primaryGoals) => {
+            void updateMe({ primary_goals: primaryGoals });
+            setAnswers((a) => ({ ...a, primaryGoals }));
             advance("trust_primer");
           }}
         />
       ) : (
         <OnboardingCardStack history={history} currentStepIndex={2} totalSteps={5}>
           <Q3Purpose
-            selectedValue={answers.primaryGoal}
+            selectedValues={answers.primaryGoals}
             onBack={back}
             onSkip={() => skip("trust_primer")}
-            onSelect={(primaryGoal) => {
-              void updateMe({ primary_goal: primaryGoal });
-              setAnswers((a) => ({ ...a, primaryGoal }));
+            onContinue={(primaryGoals) => {
+              void updateMe({ primary_goals: primaryGoals });
+              setAnswers((a) => ({ ...a, primaryGoals }));
               advance("trust_primer");
             }}
           />

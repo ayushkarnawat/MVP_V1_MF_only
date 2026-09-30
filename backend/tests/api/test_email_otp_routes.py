@@ -639,3 +639,14 @@ def test_phone_first_signup_deletes_otp_requests_on_completion(client):
     db = next(override())
     assert db.query(OtpRequest).filter_by(phone_number=phone).first() is None
     assert db.query(OtpRequest).filter_by(email="cleanup@example.com").first() is None
+
+
+def test_email_login_request_with_an_unknown_email_is_404(client):
+    r = client.post("/auth/email-otp/request", json={"email": "nobody@example.com", "flow": "login"})
+    assert r.status_code == 404
+    assert r.json()["detail"] == "No account found for that email — sign up instead."
+
+
+def test_email_request_without_flow_is_unchanged(client):
+    r = client.post("/auth/email-otp/request", json={"email": "nobody2@example.com"})
+    assert r.status_code == 200

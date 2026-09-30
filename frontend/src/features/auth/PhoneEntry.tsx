@@ -4,7 +4,7 @@ import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, AlertCircle, Loader2 } from "lucide-react";
 import { staggerContainerVariants, staggerItemVariants } from "@/lib/motion";
-import { isAccountExistsError, validateIndianPhone } from "./validation";
+import { isAccountExistsError, isNoAccountError, validateIndianPhone } from "./validation";
 import { cn } from "@/lib/utils";
 
 import { AuthIllustration } from "./AuthIllustration";
@@ -22,6 +22,9 @@ interface PhoneEntryProps {
    * number that belongs to a different account). Omit to fall back to
    * plain error text with no shortcut. */
   onGoToLogin?: () => void;
+  /** Shown as a "Sign up instead" shortcut below the error alert when a
+   * login attempt hits "no account found" for this number. */
+  onGoToSignup?: () => void;
   submitting: boolean;
   error: string | null;
 }
@@ -32,6 +35,7 @@ export function PhoneEntry({
   onSubmit,
   onBack,
   onGoToLogin,
+  onGoToSignup,
   submitting,
   error,
 }: PhoneEntryProps) {
@@ -173,6 +177,16 @@ export function PhoneEntry({
               className="w-full flex items-center justify-center gap-2 p-3 rounded-2xl bg-[#22C55E]/10 border border-[#22C55E]/30 text-xs font-bold text-[#22C55E] hover:bg-[#22C55E]/15 transition-colors cursor-pointer animate-in fade-in duration-150"
             >
               Log in instead
+              <ArrowRight className="h-3.5 w-3.5" />
+            </button>
+          )}
+          {onGoToSignup && isNoAccountError(error) && (
+            <button
+              type="button"
+              onClick={onGoToSignup}
+              className="w-full flex items-center justify-center gap-2 p-3 rounded-2xl bg-[#22C55E]/10 border border-[#22C55E]/30 text-xs font-bold text-[#22C55E] hover:bg-[#22C55E]/15 transition-colors cursor-pointer animate-in fade-in duration-150"
+            >
+              Sign up instead
               <ArrowRight className="h-3.5 w-3.5" />
             </button>
           )}

@@ -25,7 +25,7 @@ export interface MeResponse {
   onboarding_step: string | null;
   onboarding_completed: boolean;
   investor_type: InvestorType | null;
-  primary_goal: PrimaryGoal | null;
+  primary_goals: PrimaryGoal[] | null;
   pending_deletion?: boolean;
   deletion_scheduled_at?: string | null;
 }
@@ -42,7 +42,7 @@ export type ContactChangeChannel = "email" | "phone";
 export interface UpdateMeBody {
   onboarding_step?: string;
   investor_type?: InvestorType;
-  primary_goal?: PrimaryGoal;
+  primary_goals?: PrimaryGoal[];
   onboarding_completed?: boolean;
 }
 
@@ -64,7 +64,9 @@ export interface MemberDetailsBody {
   name?: string;
   relationship: Exclude<Relationship, "self">;
   relationship_other_label?: string | null;
-  pan: string;
+  pan?: string;
+  /** Staging-QA fix 4: unlock with the PAN the statement showed (the server holds it). */
+  use_detected_pan?: boolean;
 }
 
 export interface MergeMemberResult {

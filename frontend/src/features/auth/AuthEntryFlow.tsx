@@ -120,6 +120,14 @@ export function AuthEntryFlow({
     goToStep("landing");
   };
 
+  // "Sign up instead" shortcut from a login-time "no account found" error.
+  const handleGoToSignup = () => {
+    setAuthMode("signup");
+    setEmailOtpToken(null);
+    setEmailOtpEmail("");
+    goToStep("landing");
+  };
+
   // I2 fix (final review, 2026-09-28): a dead pending_identity_verifications
   // token (expired, or already used) previously left the caller stuck on
   // the gate screen forever -- neither gate screen has a Back button
@@ -142,7 +150,7 @@ export function AuthEntryFlow({
     setSubmitting(true);
     setError(null);
     try {
-      const result = await requestOtp(phone, phoneGateToken ?? undefined);
+      const result = await requestOtp(phone, phoneGateToken ?? undefined, phoneGateToken ? undefined : authMode);
       setIdentifier(phone);
       goToStep("otp");
       setDevOtp(result.otp);
@@ -192,7 +200,7 @@ export function AuthEntryFlow({
     setSubmitting(true);
     setError(null);
     try {
-      const result = await requestEmailOtp(email);
+      const result = await requestEmailOtp(email, undefined, "login");
       setAuthMode("login");
       // No pending record at all for a login attempt -- verify below is
       // told which flow this is via emailOtpFlow, not by token presence.
@@ -270,6 +278,7 @@ export function AuthEntryFlow({
       const result = await requestEmailOtp(
         emailOtpEmail,
         emailOtpFlow === "phone_first" ? emailGateToken ?? undefined : undefined,
+        emailOtpFlow === "login" ? "login" : undefined,
       );
       setDevOtp(result.otp);
     } catch (err) {
@@ -376,6 +385,7 @@ export function AuthEntryFlow({
             context="login"
             onLogin={handleEmailLoginRequest}
             onSignup={handleEmailSignup}
+            onGoToSignup={handleGoToSignup}
             onBack={() => goToStep("landing")}
             submitting={submitting}
             error={error}
@@ -410,6 +420,7 @@ export function AuthEntryFlow({
             onSubmit={handlePhoneSubmit}
             onBack={phoneGateToken ? undefined : () => goToStep("landing")}
             onGoToLogin={phoneGateToken ? handleGoToLogin : undefined}
+            onGoToSignup={phoneGateToken ? undefined : handleGoToSignup}
             submitting={submitting}
             error={error}
           />

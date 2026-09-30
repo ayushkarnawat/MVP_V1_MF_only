@@ -4,7 +4,7 @@ import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import { staggerContainerVariants, staggerItemVariants } from "@/lib/motion";
-import { validateEmail } from "./validation";
+import { isNoAccountError, validateEmail } from "./validation";
 import { cn } from "@/lib/utils";
 
 import { AuthIllustration } from "./AuthIllustration";
@@ -20,11 +20,14 @@ interface EmailEntryProps {
   onSignup?: (email: string) => void;
   onLogin: (email: string) => void;
   onBack?: () => void;
+  /** Shown as a "Sign up instead" shortcut below the error alert when a
+   * login attempt hits "no account found" for this email. */
+  onGoToSignup?: () => void;
   submitting: boolean;
   error: string | null;
 }
 
-export function EmailEntry({ context = "login", onSignup, onLogin, onBack, submitting, error }: EmailEntryProps) {
+export function EmailEntry({ context = "login", onSignup, onLogin, onBack, onGoToSignup, submitting, error }: EmailEntryProps) {
   const [email, setEmail] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isTouched, setIsTouched] = useState(false);
@@ -142,12 +145,24 @@ export function EmailEntry({ context = "login", onSignup, onLogin, onBack, submi
 
       {/* 3. Server Authentication Error Alert */}
       {error && !validationError && (
-        <div
-          role="alert"
-          className="flex items-center gap-2.5 p-3.5 rounded-2xl bg-[color-mix(in_srgb,var(--color-negative)_10%,transparent)] border border-[color-mix(in_srgb,var(--color-negative)_25%,transparent)] text-xs text-[var(--color-negative)] font-medium font-body animate-in fade-in duration-150"
-        >
-          <AlertCircle className="h-4 w-4 flex-shrink-0" />
-          <span>{error}</span>
+        <div className="space-y-2">
+          <div
+            role="alert"
+            className="flex items-center gap-2.5 p-3.5 rounded-2xl bg-[color-mix(in_srgb,var(--color-negative)_10%,transparent)] border border-[color-mix(in_srgb,var(--color-negative)_25%,transparent)] text-xs text-[var(--color-negative)] font-medium font-body animate-in fade-in duration-150"
+          >
+            <AlertCircle className="h-4 w-4 flex-shrink-0" />
+            <span>{error}</span>
+          </div>
+          {onGoToSignup && isNoAccountError(error) && (
+            <button
+              type="button"
+              onClick={onGoToSignup}
+              className="w-full flex items-center justify-center gap-2 p-3 rounded-2xl bg-[#22C55E]/10 border border-[#22C55E]/30 text-xs font-bold text-[#22C55E] hover:bg-[#22C55E]/15 transition-colors cursor-pointer animate-in fade-in duration-150"
+            >
+              Sign up instead
+              <ArrowRight className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
       )}
 

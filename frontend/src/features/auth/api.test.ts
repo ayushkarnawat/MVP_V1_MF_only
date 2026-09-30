@@ -61,7 +61,7 @@ describe("auth api", () => {
         JSON.stringify({
           user_id: "u1", phone_number: "+919999999999", email: null,
           onboarding_step: "q2_investing", onboarding_completed: false,
-          investor_type: null, primary_goal: null,
+          investor_type: null, primary_goals: null,
         }),
         { status: 200 },
       ),
@@ -83,7 +83,7 @@ describe("auth api", () => {
         JSON.stringify({
           user_id: "u1", phone_number: "+919999999999", email: null,
           onboarding_step: "q3_purpose", onboarding_completed: false,
-          investor_type: "self_directed", primary_goal: null,
+          investor_type: "self_directed", primary_goals: null,
         }),
         { status: 200 },
       ),
@@ -271,5 +271,23 @@ describe("auth api", () => {
     expect(JSON.parse(mockFetch.mock.calls[0][1].body as string)).toEqual({ relationship: "parent", pan: "BXQPS5678L" });
     expect(mockFetch.mock.calls[1][0]).toContain("/household-members/m2/merge-into/m1");
     expect(merged.folios_moved).toBe(2);
+  });
+
+  it("requestOtp sends flow when given", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ message: "OTP sent.", otp: "1" }), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    await requestOtp("+919800000000", undefined, "signup");
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ phone_number: "+919800000000", flow: "signup" });
+  });
+
+  it("requestEmailOtp sends flow when given", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ message: "OTP sent.", otp: "1" }), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    await requestEmailOtp("a@b.com", undefined, "login");
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ email: "a@b.com", flow: "login" });
   });
 });
