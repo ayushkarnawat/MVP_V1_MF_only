@@ -43,6 +43,8 @@ describe("ImportConfirmed", () => {
           warnings: [
             "This investment may already be tracked under a different Unifolio account. If that's you, consider using that account instead.",
           ],
+          people: [],
+          upload_group_id: null,
         }}
         onImportAnother={vi.fn()}
       />,

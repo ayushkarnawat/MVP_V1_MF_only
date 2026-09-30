@@ -65,8 +65,8 @@ describe("MainDashboardFlow", () => {
 
   it("records tab changes in browser history and restores Dashboard on Back", async () => {
     vi.mocked(authApi.getHouseholdMembers).mockResolvedValue([
-      { id: "m-1", name: "Alice", relationship: "self", relationship_other_label: null },
-      { id: "m-2", name: "Bob", relationship: "spouse", relationship_other_label: null },
+      { id: "m-1", name: "Alice", relationship: "self", relationship_other_label: null, origin: "onboarding", lock_reason: null, details_required: false, pan_masked: null },
+      { id: "m-2", name: "Bob", relationship: "spouse", relationship_other_label: null, origin: "manual", lock_reason: null, details_required: false, pan_masked: null },
     ]);
     vi.mocked(dashboardApi.getAggregateHoldings).mockResolvedValue({ members: [], holdings: [] });
     vi.mocked(dashboardApi.getAggregateAllocation).mockResolvedValue({
@@ -91,7 +91,7 @@ describe("MainDashboardFlow", () => {
 
   it("opens Profile as a history-backed tab with account controls", async () => {
     vi.mocked(authApi.getHouseholdMembers).mockResolvedValue([
-      { id: "m-1", name: "Alice", relationship: "self", relationship_other_label: null },
+      { id: "m-1", name: "Alice", relationship: "self", relationship_other_label: null, origin: "onboarding", lock_reason: null, details_required: false, pan_masked: null },
     ]);
     vi.mocked(dashboardApi.getMemberHoldings).mockResolvedValue([]);
     vi.mocked(dashboardApi.getMemberAllocation).mockResolvedValue({
@@ -119,8 +119,8 @@ describe("MainDashboardFlow", () => {
 
   it("fetches household members and defaults landing view", async () => {
     vi.mocked(authApi.getHouseholdMembers).mockResolvedValue([
-      { id: "m-1", name: "Alice", relationship: "self", relationship_other_label: null },
-      { id: "m-2", name: "Bob", relationship: "spouse", relationship_other_label: null },
+      { id: "m-1", name: "Alice", relationship: "self", relationship_other_label: null, origin: "onboarding", lock_reason: null, details_required: false, pan_masked: null },
+      { id: "m-2", name: "Bob", relationship: "spouse", relationship_other_label: null, origin: "manual", lock_reason: null, details_required: false, pan_masked: null },
     ]);
 
     vi.mocked(dashboardApi.getAggregateHoldings).mockResolvedValue({
@@ -152,7 +152,7 @@ describe("MainDashboardFlow", () => {
 
   it("renders exactly one theme toggle on the Add Data screen", async () => {
     vi.mocked(authApi.getHouseholdMembers).mockResolvedValue([
-      { id: "m-1", name: "Alice", relationship: "self", relationship_other_label: null },
+      { id: "m-1", name: "Alice", relationship: "self", relationship_other_label: null, origin: "onboarding", lock_reason: null, details_required: false, pan_masked: null },
     ]);
 
     vi.mocked(dashboardApi.getMemberHoldings).mockResolvedValue([]);

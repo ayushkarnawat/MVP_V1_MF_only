@@ -129,8 +129,13 @@ must match: `collected 9 items`, all 9 test names, every one `PASSED`, and the f
 
 ```bash
 (cd backend && .venv/bin/python -m pytest -q | tail -2)       # expected 963 passed, 10 skipped
-(cd frontend && npm ci && npx tsc --noEmit && npx vitest run | tail -4)
+(cd frontend && npm ci && npx tsc -b && npx vitest run | tail -4)
 ```
+Use `npx tsc -b`, not `npx tsc --noEmit`. The root `tsconfig.json` only references the
+real configs, so `tsc --noEmit` checks nothing and always passes. `tsc -b` is what
+`npm run build` runs in Step 6, so this is the check that catches a build-breaking type
+error early. It also type-checks the test files: on 2026-09-30, stale test fixtures
+failed Step 6's build exactly this way.
 
 ---
 
@@ -310,16 +315,33 @@ EventBridge run picks up the new code automatically. No action needed.
 
 ## Step 6 — Build and publish the frontend
 
+Run it as **two blocks**, and only start the second once the first has succeeded. The
+`&&` stops at the first failure. On 2026-09-30 these were run as separate lines: the build
+failed, but `s3 sync --delete` and the invalidation ran anyway and published a stale
+`dist/`.
+
+**6a. Build (nothing leaves the laptop yet):**
 ```bash
-cd "$REPO_ROOT/frontend"
-npm ci
-VITE_API_BASE_URL=https://staging-api.unifolio.in npm run build
-aws s3 sync dist/ "s3://$(terraform -chdir="$REPO_ROOT/infra/envs/staging" output -raw s3_bucket_name)/" --delete
+cd "$REPO_ROOT/frontend" && \
+  rm -rf dist && \
+  npm ci && \
+  VITE_API_BASE_URL=https://staging-api.unifolio.in npm run build && \
+  test -f dist/index.html && echo "BUILD OK"
+```
+**Expected:** the last line is `BUILD OK`. `rm -rf dist` ensures an old build can never be
+uploaded by mistake. Before `BUILD OK`, Vite prints a block of plugin timings (`Measured
+inside the callback...`). That's informational, not an error.
+- **No `BUILD OK`, or `error TS...` lines:** stop. Don't run 6b. Send me the output.
+- `npm ci` reporting "N vulnerabilities" is a routine audit notice. It doesn't block the build.
+
+**6b. Publish (only after `BUILD OK`):**
+```bash
+aws s3 sync dist/ "s3://$(terraform -chdir="$REPO_ROOT/infra/envs/staging" output -raw s3_bucket_name)/" --delete && \
 aws cloudfront create-invalidation \
   --distribution-id "$(terraform -chdir="$REPO_ROOT/infra/envs/staging" output -raw cloudfront_distribution_id)" \
   --paths "/*"
 ```
-**Expected:** build succeeds, the sync lists uploads/deletes, and the invalidation returns an
+**Expected:** the sync lists `upload:` and `delete:` lines, and the invalidation returns an
 `Id` with `Status: InProgress`. It takes a few minutes, so hard-refresh before testing.
 No `VITE_GOOGLE_OAUTH_CLIENT_ID` (deliberately unset for staging, unchanged).
 

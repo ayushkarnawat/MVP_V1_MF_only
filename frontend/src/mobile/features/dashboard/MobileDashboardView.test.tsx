@@ -473,8 +473,8 @@ describe("MobileDashboardView", () => {
 
   it("does not trap the user when switching to a member with 0 holdings in Per Member view", async () => {
     vi.mocked(authApi.listHouseholdMembers).mockResolvedValue([
-      { id: "m-1", name: "Ayush", relationship: "self", relationship_other_label: null },
-      { id: "m-2", name: "Spouse", relationship: "spouse", relationship_other_label: null },
+      { id: "m-1", name: "Ayush", relationship: "self", relationship_other_label: null, origin: "onboarding", lock_reason: null, details_required: false, pan_masked: null },
+      { id: "m-2", name: "Spouse", relationship: "spouse", relationship_other_label: null, origin: "manual", lock_reason: null, details_required: false, pan_masked: null },
     ]);
 
     // Member 1 has data, Member 2 has 0 holdings
