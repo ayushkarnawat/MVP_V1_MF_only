@@ -4,6 +4,8 @@ import { ThemeToggle } from "../../components/ThemeToggle";
 import { Modal } from "../../components/Modal";
 import type { AccountDeletionReason, ContactChangeChannel, OtpRequestResponse } from "../auth/types";
 import type { DeleteImportResponse, HouseholdImportHistoryItem } from "../import/types";
+import type { HouseholdMember } from "../auth/types";
+import { HouseholdMembersSection } from "./HouseholdMembersSection";
 import { ImportHistorySection } from "./ImportHistorySection";
 
 interface ProfileViewProps {
@@ -15,7 +17,11 @@ interface ProfileViewProps {
   requestContactChange?: (channel: ContactChangeChannel, identifier: string) => Promise<OtpRequestResponse>;
   verifyContactChange?: (channel: ContactChangeChannel, identifier: string, otp: string) => Promise<void>;
   loadImportHistory?: () => Promise<HouseholdImportHistoryItem[]>;
-  deleteImport?: (importId: string) => Promise<DeleteImportResponse>;
+  deleteImport?: (importId: string, scope?: "person" | "group") => Promise<DeleteImportResponse>;
+  loadMembers?: () => Promise<HouseholdMember[]>;
+  deletePortfolio?: (memberId: string, removeMember: boolean) => Promise<DeleteImportResponse>;
+  /** After a D1/D2 delete: members may have been removed, so the page's member list needs reloading. */
+  onMembersChanged?: () => void;
 }
 
 const DELETION_REASONS: Array<{ value: AccountDeletionReason; label: string }> = [
@@ -36,7 +42,13 @@ export function ProfileView({
   verifyContactChange,
   loadImportHistory,
   deleteImport,
+  loadMembers,
+  deletePortfolio,
+  onMembersChanged,
 }: ProfileViewProps) {
+  // Each section remounts (re-fetches) when the other one deleted something it shows.
+  const [historyVersion, setHistoryVersion] = useState(0);
+  const [membersVersion, setMembersVersion] = useState(0);
   const [deletionStep, setDeletionStep] = useState<"closed" | "survey" | "confirm">("closed");
   const [deletionReason, setDeletionReason] = useState<AccountDeletionReason | null>(null);
   const [feedback, setFeedback] = useState("");
@@ -141,7 +153,27 @@ export function ProfileView({
         </div>
       </section>
 
-      <ImportHistorySection loadImportHistory={loadImportHistory} deleteImport={deleteImport} />
+      <HouseholdMembersSection
+        key={`members-${membersVersion}`}
+        loadMembers={loadMembers}
+        loadImportHistory={loadImportHistory}
+        deletePortfolio={deletePortfolio}
+        onChanged={() => {
+          setHistoryVersion((v) => v + 1);
+          onMembersChanged?.();
+        }}
+      />
+
+      <ImportHistorySection
+        key={`history-${historyVersion}`}
+        loadImportHistory={loadImportHistory}
+        deleteImport={deleteImport}
+        loadMembers={loadMembers}
+        onChanged={() => {
+          setMembersVersion((v) => v + 1);
+          onMembersChanged?.();
+        }}
+      />
 
       <button
         type="button"

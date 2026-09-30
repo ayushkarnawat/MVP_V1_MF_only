@@ -7,13 +7,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { CircleUserRound } from "lucide-react";
+import { CircleUserRound, Lock } from "lucide-react";
 import { ThemeToggle } from "../../components/ThemeToggle";
 import { UnifolioLogo } from "@/components/UnifolioLogo";
 
 export interface MemberOption {
   id: string;
   name: string;
+  // A CAS-detected member stays locked until their details are added (or while
+  // their PAN lives on another Unifolio account).
+  locked: boolean;
+  lockReason: "details_needed" | "pan_on_other_account" | null;
 }
 
 export interface NavigationShellProps {
@@ -22,6 +26,7 @@ export interface NavigationShellProps {
   members: MemberOption[];
   onViewModeChange: (mode: "aggregate" | "member") => void;
   onMemberSelect: (memberId: string) => void;
+  onLockedMemberSelect: (memberId: string) => void;
   onAddData: () => void;
   activeTab?: "dashboard" | "analytics" | "profile";
   onTabChange?: (tab: "dashboard" | "analytics" | "profile") => void;
@@ -34,12 +39,20 @@ export function NavigationShell({
   members,
   onViewModeChange,
   onMemberSelect,
+  onLockedMemberSelect,
   onAddData,
   activeTab = "dashboard",
   onTabChange,
   children,
 }: NavigationShellProps) {
   const hasFamily = members.length > 1;
+  // Locked members must be reachable from Family Combined too (their popup opens
+  // there without switching view), so the picker shows whenever one exists.
+  const hasLocked = members.some((m) => m.locked);
+  const handleMemberPick = (memberId: string) => {
+    if (members.find((m) => m.id === memberId)?.locked) onLockedMemberSelect(memberId);
+    else onMemberSelect(memberId);
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-[var(--color-bg)] text-[var(--color-ink)] transition-colors duration-300">
@@ -116,11 +129,11 @@ export function NavigationShell({
               )}
 
               {/* Member Dropdown Selector (when in member view) */}
-              {viewMode === "member" && members.length > 0 && (
+              {(viewMode === "member" || hasLocked) && members.length > 0 && (
                 <div className="flex-1 sm:flex-initial min-w-[130px]">
                   <Select
-                    value={selectedMemberId || undefined}
-                    onValueChange={onMemberSelect}
+                    value={viewMode === "member" ? selectedMemberId || undefined : undefined}
+                    onValueChange={handleMemberPick}
                   >
                     <SelectTrigger
                       className="h-8 w-full sm:w-auto min-w-[130px] gap-1.5 rounded-full border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1 text-xs font-medium text-[var(--color-text-secondary)] [&>span]:line-clamp-1"
@@ -131,7 +144,10 @@ export function NavigationShell({
                     <SelectContent>
                       {members.map((m) => (
                         <SelectItem key={m.id} value={m.id}>
-                          {m.name}
+                          <span className="inline-flex items-center gap-1.5">
+                            {m.locked && <Lock className="h-3 w-3 shrink-0" aria-hidden="true" />}
+                            {m.name}
+                          </span>
                         </SelectItem>
                       ))}
                     </SelectContent>

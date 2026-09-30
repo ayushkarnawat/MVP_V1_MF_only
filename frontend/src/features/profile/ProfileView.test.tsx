@@ -128,7 +128,7 @@ describe("ProfileView", () => {
         new_transactions_count: 12,
       },
     ]);
-    const deleteImport = vi.fn().mockResolvedValue({ deleted_transactions_count: 12 });
+    const deleteImport = vi.fn().mockResolvedValue({ deleted_transactions_count: 12, removed_member_ids: [], deleted_file: true });
     render(
       <ProfileView
         name="Alice"
@@ -149,7 +149,7 @@ describe("ProfileView", () => {
     expect(screen.getByText(/Analytics will recompute in the background/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Delete import" }));
 
-    expect(deleteImport).toHaveBeenCalledWith("import-1");
+    expect(deleteImport).toHaveBeenCalledWith("import-1", "person");
     expect(await screen.findByText("No imports yet.")) .toBeInTheDocument();
   });
 
