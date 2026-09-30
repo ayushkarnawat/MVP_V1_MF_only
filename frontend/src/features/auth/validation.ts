@@ -396,3 +396,20 @@ export function formatAuthErrorMessage(err: unknown, fallback: string): string {
 
   return fallback;
 }
+
+const PERSON_NAME_CHARS_RE = /^[A-Za-z .']+$/;
+
+/**
+ * Mirrors backend validate_person_name (name_match.py): curly apostrophes
+ * (iOS/macOS smart punctuation types D’Souza) count as ', whitespace is
+ * collapsed, then letters/spaces/dots/apostrophes only, 2 to 85 chars.
+ * Returns the error message, or null when valid.
+ */
+export function validatePersonName(raw: string): string | null {
+  const name = raw.replace(/[’‘]/g, "'").split(/\s+/).filter(Boolean).join(" ");
+  if (!name) return "Enter your name as per PAN.";
+  // At least one letter: ".." / "'." pass the charset but are not names.
+  if (!PERSON_NAME_CHARS_RE.test(name) || !/[A-Za-z]/.test(name)) return "Use letters, spaces, dots and apostrophes only.";
+  if (name.length < 2 || name.length > 85) return "Name must be 2 to 85 characters.";
+  return null;
+}

@@ -43,11 +43,11 @@ describe("onboarding history", () => {
   it("goNext with a different step after going back truncates and replaces the tail", () => {
     let state = initHistory("trust_primer");
     state = goNext(state, "q1_name");
-    state = goNext(state, "q4_household");
+    state = goNext(state, "q3_purpose");
     state = goBack(state);
-    state = goNext(state, "add_family");
-    expect(currentStep(state)).toBe("add_family");
-    expect(state.order).toEqual(["trust_primer", "q1_name", "add_family"]);
+    state = goNext(state, "cas_upload");
+    expect(currentStep(state)).toBe("cas_upload");
+    expect(state.order).toEqual(["trust_primer", "q1_name", "cas_upload"]);
   });
 
   it("goBack at the first step is a no-op", () => {
@@ -72,31 +72,31 @@ describe("onboarding history", () => {
   });
 
   it("goBackTo jumps straight to an earlier step regardless of how many steps deep the cursor is", () => {
-    let state = initHistory("q4_household");
-    state = goNext(state, "add_family");
-    state = goNext(state, "family_cas_upload");
-    state = goBackTo(state, "q4_household");
-    expect(currentStep(state)).toBe("q4_household");
+    let state = initHistory("q2_investing");
+    state = goNext(state, "q3_purpose");
+    state = goNext(state, "trust_primer");
+    state = goBackTo(state, "q2_investing");
+    expect(currentStep(state)).toBe("q2_investing");
     // The forward path stays intact — this is a cursor move, not a truncation.
-    expect(state.order).toEqual(["q4_household", "add_family", "family_cas_upload"]);
+    expect(state.order).toEqual(["q2_investing", "q3_purpose", "trust_primer"]);
   });
 
   it("goBackTo finds the last visit of a step that was seen more than once", () => {
-    let state = initHistory("q4_household");
+    let state = initHistory("q2_investing");
     state = goNext(state, "cas_upload");
     state = goBack(state);
-    state = goNext(state, "add_family");
-    state = goNext(state, "family_cas_upload");
-    state = goBackTo(state, "q4_household");
-    expect(currentStep(state)).toBe("q4_household");
-    expect(state.order).toEqual(["q4_household", "add_family", "family_cas_upload"]);
+    state = goNext(state, "q3_purpose");
+    state = goNext(state, "trust_primer");
+    state = goBackTo(state, "q2_investing");
+    expect(currentStep(state)).toBe("q2_investing");
+    expect(state.order).toEqual(["q2_investing", "q3_purpose", "trust_primer"]);
   });
 
   it("goBackTo is a no-op when the target step was never visited", () => {
-    let state = initHistory("q4_household");
-    state = goNext(state, "add_family");
+    let state = initHistory("q2_investing");
+    state = goNext(state, "q3_purpose");
     const before = state;
-    state = goBackTo(state, "parse_queue");
+    state = goBackTo(state, "done");
     expect(state).toEqual(before);
   });
 });

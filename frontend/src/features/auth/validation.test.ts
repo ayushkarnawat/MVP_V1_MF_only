@@ -5,6 +5,7 @@ import {
   formatPhoneForDisplay,
   formatAuthErrorMessage,
   isAccountExistsError,
+  validatePersonName,
 } from "./validation";
 import { ApiError } from "@/lib/apiClient";
 
@@ -237,5 +238,30 @@ describe("isAccountExistsError", () => {
 
   it("is false for null", () => {
     expect(isAccountExistsError(null)).toBe(false);
+  });
+});
+
+describe("validatePersonName", () => {
+  it("accepts names with letters, spaces, dots and apostrophes", () => {
+    for (const ok of ["Ayush Karnawat", "S.K. Rao", "Mohd. Ali", "D'Souza", "D’Souza", "  Ramesh   Sharma  ", "Jo"]) {
+      expect(validatePersonName(ok)).toBeNull();
+    }
+  });
+
+  it("rejects empty input", () => {
+    expect(validatePersonName("   ")).toBe("Enter your name as per PAN.");
+  });
+
+  it("rejects disallowed characters", () => {
+    expect(validatePersonName("Ayush1")).toBe("Use letters, spaces, dots and apostrophes only.");
+    expect(validatePersonName("A-B")).toBe("Use letters, spaces, dots and apostrophes only.");
+    expect(validatePersonName("..")).toBe("Use letters, spaces, dots and apostrophes only.");
+    expect(validatePersonName("'.")).toBe("Use letters, spaces, dots and apostrophes only.");
+  });
+
+  it("enforces 2 to 85 characters after whitespace collapse", () => {
+    expect(validatePersonName("A")).toBe("Name must be 2 to 85 characters.");
+    expect(validatePersonName("A".repeat(86))).toBe("Name must be 2 to 85 characters.");
+    expect(validatePersonName("A".repeat(85))).toBeNull();
   });
 });

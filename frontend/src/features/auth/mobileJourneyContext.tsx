@@ -11,10 +11,7 @@ export type MobileJourneyStep =
   | "onboarding_q2_investing"
   | "onboarding_q3_purpose"
   | "onboarding_trust_primer"
-  | "onboarding_q4_household"
-  | "onboarding_add_family"
-  | "onboarding_cas_upload"
-  | "onboarding_family_cas_upload";
+  | "onboarding_cas_upload";
 
 export interface CameraCoordinates {
   x: number;
@@ -140,10 +137,7 @@ export const JOURNEY_COORDINATES: Record<MobileJourneyStep, CameraCoordinates> =
   onboarding_q2_investing: { x: 0, y: 0, scale: 1.0, rotate: 0 },
   onboarding_q3_purpose: { x: 0, y: 0, scale: 1.0, rotate: 0 },
   onboarding_trust_primer: { x: 0, y: 0, scale: 1.0, rotate: 0 },
-  onboarding_q4_household: { x: 0, y: 0, scale: 1.0, rotate: 0 },
-  onboarding_add_family: { x: 0, y: 0, scale: 1.0, rotate: 0 },
   onboarding_cas_upload: { x: 0, y: 0, scale: 1.0, rotate: 0 },
-  onboarding_family_cas_upload: { x: 0, y: 0, scale: 1.0, rotate: 0 },
 };
 
 export interface MobileJourneyContextValue {

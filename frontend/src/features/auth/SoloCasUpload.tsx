@@ -6,10 +6,9 @@ import { Loader2 } from "lucide-react";
 
 interface SoloCasUploadProps {
   name: string;
-  onGoToHousehold?: () => void;
 }
 
-export function SoloCasUpload({ name, onGoToHousehold }: SoloCasUploadProps) {
+export function SoloCasUpload({ name }: SoloCasUploadProps) {
   const { updateMe } = useAuth();
   const [memberId, setMemberId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -86,7 +85,6 @@ export function SoloCasUpload({ name, onGoToHousehold }: SoloCasUploadProps) {
       householdMemberId={memberId}
       ctaLabel="Get my first score"
       onDone={handleDone}
-      onGoToHousehold={onGoToHousehold}
     />
   );
 }

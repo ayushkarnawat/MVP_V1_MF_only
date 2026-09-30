@@ -1,10 +1,12 @@
-import { API_BASE_URL, ApiError, parseErrorDetail } from "../../lib/apiClient";
+import { API_BASE_URL, ApiError, invalidateApiCache, parseErrorDetail } from "../../lib/apiClient";
 import { getOrCreateDeviceId } from "./deviceId";
 import { getToken } from "./session";
 import type {
   EmailOtpRequiredResponse,
   EmailOtpVerifyResult,
   HouseholdMember,
+  MemberDetailsBody,
+  MergeMemberResult,
   MeResponse,
   OtpRequestResponse,
   OtpVerifyResult,
@@ -158,6 +160,29 @@ export async function listHouseholdMembers(): Promise<HouseholdMember[]> {
 }
 
 export const getHouseholdMembers = listHouseholdMembers;
+
+/** Unlocks a CAS-detected member (relationship + typed PAN). */
+export async function completeMemberDetails(memberId: string, body: MemberDetailsBody): Promise<HouseholdMember> {
+  const response = await fetch(`${API_BASE_URL}/household-members/${memberId}/details`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(body),
+  });
+  await throwIfError(response);
+  invalidateApiCache();
+  return (await response.json()) as HouseholdMember;
+}
+
+/** Merges a manually added member (no detected PAN) into a detected one. */
+export async function mergeMemberInto(sourceId: string, targetId: string): Promise<MergeMemberResult> {
+  const response = await fetch(`${API_BASE_URL}/household-members/${sourceId}/merge-into/${targetId}`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+  await throwIfError(response);
+  invalidateApiCache();
+  return (await response.json()) as MergeMemberResult;
+}
 
 export async function requestAccountDeletion(
   reason: AccountDeletionReason,

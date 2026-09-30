@@ -6,12 +6,7 @@ export const ONBOARDING_STEPS = [
   "q1_name",
   "q2_investing",
   "q3_purpose",
-  "q4_household",
-  "add_family",
   "cas_upload",
-  "family_cas_upload",
-  "upload_my_cas",
-  "parse_queue",
   "done",
 ] as const;
 
@@ -31,12 +26,7 @@ export function getStepIndex(step: OnboardingStep): number {
       return 2;
     case "trust_primer":
       return 3;
-    case "q4_household":
-    case "add_family":
     case "cas_upload":
-    case "family_cas_upload":
-    case "upload_my_cas":
-    case "parse_queue":
       return 4;
     default:
       return 0;

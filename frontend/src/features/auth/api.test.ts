@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  completeMemberDetails,
   createHouseholdMember,
+  mergeMemberInto,
   getMe,
   listHouseholdMembers,
   requestEmailOtp,
@@ -253,5 +255,21 @@ describe("auth api", () => {
     expect(url).toContain("/auth/oauth/google");
     expect(JSON.parse(options.body as string)).toEqual({ id_token: "fake-id-token" });
     expect("phone_required" in result).toBe(true);
+  });
+
+  it("completeMemberDetails posts the details body and mergeMemberInto posts to the merge route", async () => {
+    setToken("tok-abc");
+    const mockFetch = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: "m1", name: "Ramesh" }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ folios_moved: 2, transactions_dropped: 0 }), { status: 200 }));
+    vi.stubGlobal("fetch", mockFetch);
+
+    await completeMemberDetails("m1", { relationship: "parent", pan: "BXQPS5678L" });
+    const merged = await mergeMemberInto("m2", "m1");
+
+    expect(mockFetch.mock.calls[0][0]).toContain("/household-members/m1/details");
+    expect(JSON.parse(mockFetch.mock.calls[0][1].body as string)).toEqual({ relationship: "parent", pan: "BXQPS5678L" });
+    expect(mockFetch.mock.calls[1][0]).toContain("/household-members/m2/merge-into/m1");
+    expect(merged.folios_moved).toBe(2);
   });
 });

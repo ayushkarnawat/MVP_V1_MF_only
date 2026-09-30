@@ -30,11 +30,11 @@ describe("OnboardingFlow", () => {
     vi.clearAllMocks();
   });
 
-  it("starts at Name (Q1) and walks forward through Investing -> Goal -> Privacy/Trust -> Household", async () => {
+  it("starts at Name (Q1) and walks forward through Investing -> Goal -> Privacy/Trust -> CAS upload", async () => {
     renderFlow();
-    await waitFor(() => expect(screen.getByLabelText(/your name/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByLabelText(/full name as per pan/i)).toBeInTheDocument());
 
-    fireEvent.change(screen.getByLabelText(/your name/i), { target: { value: "Ayush" } });
+    fireEvent.change(screen.getByLabelText(/full name as per pan/i), { target: { value: "Ayush" } });
     fireEvent.click(screen.getByRole("button", { name: /^next$/i }));
 
     await waitFor(() => expect(screen.getByText(/how are you investing right now/i)).toBeInTheDocument());
@@ -46,31 +46,34 @@ describe("OnboardingFlow", () => {
     await waitFor(() => expect(screen.getByRole("heading", { level: 1, name: /we keep your insights, not your files\./i })).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: /^next$/i }));
 
-    await waitFor(() => expect(screen.getByText(/just you, or tracking for family too/i)).toBeInTheDocument());
+    // continue from privacy page goes straight to upload: no household question
+    await waitFor(() => expect(screen.getByText(/setting up your profile/i)).toBeInTheDocument());
+    expect(screen.queryByText(/just me/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/just you, or tracking for family too/i)).not.toBeInTheDocument();
   });
 
   it("supports Back navigation from Q2 to Q1 with the answer preserved", async () => {
     renderFlow();
-    await waitFor(() => screen.getByLabelText(/your name/i));
-    fireEvent.change(screen.getByLabelText(/your name/i), { target: { value: "Ayush" } });
+    await waitFor(() => screen.getByLabelText(/full name as per pan/i));
+    fireEvent.change(screen.getByLabelText(/full name as per pan/i), { target: { value: "Ayush" } });
     fireEvent.click(screen.getByRole("button", { name: /^next$/i }));
     await waitFor(() => screen.getByText(/how are you investing right now/i));
 
     fireEvent.click(screen.getByRole("button", { name: /^back$/i }));
 
-    await waitFor(() => expect(screen.getByLabelText(/your name/i)).toHaveValue("Ayush"));
+    await waitFor(() => expect(screen.getByLabelText(/full name as per pan/i)).toHaveValue("Ayush"));
   });
 
   it("does not render a skip button on the Name (Q1) screen", async () => {
     renderFlow();
-    await waitFor(() => screen.getByLabelText(/your name/i));
+    await waitFor(() => screen.getByLabelText(/full name as per pan/i));
     expect(screen.queryByRole("button", { name: /^skip$/i })).not.toBeInTheDocument();
   });
 
   it("skipping Q2 still allows reaching it again via Back later", async () => {
     renderFlow();
-    await waitFor(() => screen.getByLabelText(/your name/i));
-    fireEvent.change(screen.getByLabelText(/your name/i), { target: { value: "Ayush" } });
+    await waitFor(() => screen.getByLabelText(/full name as per pan/i));
+    fireEvent.change(screen.getByLabelText(/full name as per pan/i), { target: { value: "Ayush" } });
     fireEvent.click(screen.getByRole("button", { name: /^next$/i }));
     await waitFor(() => screen.getByText(/how are you investing right now/i));
 
@@ -83,8 +86,8 @@ describe("OnboardingFlow", () => {
 
   it("persists the Q2 answer to the backend via updateMe", async () => {
     renderFlow();
-    await waitFor(() => screen.getByLabelText(/your name/i));
-    fireEvent.change(screen.getByLabelText(/your name/i), { target: { value: "Ayush" } });
+    await waitFor(() => screen.getByLabelText(/full name as per pan/i));
+    fireEvent.change(screen.getByLabelText(/full name as per pan/i), { target: { value: "Ayush" } });
     fireEvent.click(screen.getByRole("button", { name: /^next$/i }));
     await waitFor(() => screen.getByText(/how are you investing right now/i));
 
@@ -97,8 +100,8 @@ describe("OnboardingFlow", () => {
 
   it("persists the Q3 answer to the backend via updateMe", async () => {
     renderFlow();
-    await waitFor(() => screen.getByLabelText(/your name/i));
-    fireEvent.change(screen.getByLabelText(/your name/i), { target: { value: "Ayush" } });
+    await waitFor(() => screen.getByLabelText(/full name as per pan/i));
+    fireEvent.change(screen.getByLabelText(/full name as per pan/i), { target: { value: "Ayush" } });
     fireEvent.click(screen.getByRole("button", { name: /^next$/i }));
     await waitFor(() => screen.getByText(/how are you investing right now/i));
     fireEvent.click(screen.getByRole("button", { name: /mostly on my own/i }));

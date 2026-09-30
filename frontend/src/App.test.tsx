@@ -60,7 +60,7 @@ describe("App", () => {
 
     render(<App />);
 
-    await waitFor(() => expect(screen.getByLabelText(/your name/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByLabelText(/full name as per pan/i)).toBeInTheDocument());
   });
 
   it("shows DashboardPlaceholder when the session is valid and onboarding is complete on desktop viewport", async () => {

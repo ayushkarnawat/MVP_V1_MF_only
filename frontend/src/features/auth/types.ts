@@ -49,8 +49,27 @@ export interface UpdateMeBody {
 export interface HouseholdMember {
   id: string;
   name: string;
-  relationship: Relationship;
+  // null while a CAS-detected member is locked (details not added yet).
+  relationship: Relationship | null;
   relationship_other_label: string | null;
+  origin: string;
+  // Set while the member is locked; the unlock popup collects the details.
+  lock_reason: string | null;
+  details_required: boolean;
+  // First two + last two characters of the PAN, never the raw value.
+  pan_masked: string | null;
+}
+
+export interface MemberDetailsBody {
+  name?: string;
+  relationship: Exclude<Relationship, "self">;
+  relationship_other_label?: string | null;
+  pan: string;
+}
+
+export interface MergeMemberResult {
+  folios_moved: number;
+  transactions_dropped: number;
 }
 
 export type ExistingMethod = "phone" | "email" | "google";

@@ -32,9 +32,7 @@ export function goBack(state: HistoryState): HistoryState {
 // Jumps directly to the last time `step` was visited, rather than stepping
 // back one entry at a time — used for a hard-stop escape hatch (e.g. a
 // cross-account PAN block on the CAS upload screen) that needs to land on a
-// specific earlier screen regardless of how many steps deep the user is
-// (the "Family Too" path visits several steps between q4_household and the
-// upload screen, so a plain goBack() wouldn't reliably land there).
+// specific earlier screen regardless of how many steps deep the user is.
 export function goBackTo(state: HistoryState, step: OnboardingStep): HistoryState {
   const index = state.order.lastIndexOf(step);
   if (index === -1) {

@@ -4,6 +4,7 @@ import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { User, ArrowLeft, ArrowRight } from "lucide-react";
 import { MobileOnboardingScreen } from "./MobileOnboardingScreen";
+import { validatePersonName } from "./validation";
 import {
   MOTION_EASING,
   MOTION_EASING_FLOAT,
@@ -65,13 +66,27 @@ export function Q1Name({
   totalSteps = 5,
 }: Q1NameProps) {
   const [name, setName] = useState(value);
+  const [error, setError] = useState<string | null>(null);
+
+  // Validation runs on submit (not per keystroke) so the message doesn't
+  // flash while the user is still typing; the CTA stays disabled when empty.
+  const submitName = () => {
+    const message = validatePersonName(name);
+    if (message) {
+      setError(message);
+      return;
+    }
+    setError(null);
+    // Same collapsed-space form validatePersonName checked.
+    onSubmit(name.split(/\s+/).filter(Boolean).join(" "));
+  };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (name.trim()) {
-      onSubmit(name);
-    }
+    submitName();
   };
+
+  const subtext = "Type your name exactly as it is printed on your PAN card.";
 
   const nameInputContent = (
     <div className="space-y-1.5 text-left relative">
@@ -79,7 +94,7 @@ export function Q1Name({
         htmlFor="name-input"
         className="text-xs font-semibold text-[var(--color-ink)] block font-body"
       >
-        Your Name
+        Full name as per PAN
       </label>
       <div className="relative flex items-center rounded-2xl bg-white/90 dark:bg-[var(--color-surface)] border border-[var(--color-border)] focus-within:border-[#22C55E] focus-within:ring-2 focus-within:ring-[#22C55E]/20 transition-all duration-200 overflow-hidden h-13 sm:h-14 min-h-[50px] sm:min-h-[54px] px-4 gap-3 shadow-xs">
         <div className="h-7 w-7 rounded-lg bg-[#22C55E]/10 text-[#22C55E] flex items-center justify-center flex-shrink-0">
@@ -89,16 +104,29 @@ export function Q1Name({
           id="name-input"
           type="text"
           value={name}
-          placeholder="Your Name"
+          placeholder="Full name as per PAN"
           autoComplete="name"
           autoCorrect="off"
           autoCapitalize="words"
           spellCheck="false"
-          onChange={(event) => setName(event.target.value)}
+          onChange={(event) => {
+            setName(event.target.value);
+            if (error) setError(null);
+          }}
+          aria-invalid={error ? true : undefined}
           className="flex-1 min-w-0 bg-transparent text-sm font-medium text-[var(--color-ink)] placeholder:text-[#5C5C5C]/50 dark:placeholder:text-[#A3A3A3]/50 focus:outline-none focus:ring-0 focus:border-none border-none outline-none ring-0 shadow-none appearance-none selection:bg-[#22C55E]/20 selection:text-[var(--color-ink)] caret-[#22C55E]"
           autoFocus
         />
       </div>
+      {error ? (
+        <p role="alert" className="text-xs font-medium text-[var(--color-negative)]">
+          {error}
+        </p>
+      ) : (
+        <p className="text-xs text-[var(--color-text-secondary)]">
+          Initials are fine if your PAN card uses them.
+        </p>
+      )}
     </div>
   );
 
@@ -111,12 +139,10 @@ export function Q1Name({
           onBack={onBack}
           title="What should we call you?"
           customIllustration={<NameIllustration />}
-          subtext="We'll use this to personalize your mutual fund summaries, portfolio reports, and tax statements"
+          subtext={subtext}
           ctaLabel="Next"
           ctaDisabled={!name.trim()}
-          onCtaClick={() => {
-            if (name.trim()) onSubmit(name);
-          }}
+          onCtaClick={submitName}
           ctaIcon={<ArrowRight className="h-4 w-4" />}
         >
           {nameInputContent}
@@ -145,7 +171,7 @@ export function Q1Name({
           What should we call you?
         </h1>
         <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
-          We'll use this to personalize your mutual fund summaries, portfolio reports, and tax statements
+          {subtext}
         </p>
       </motion.div>
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "./AuthContext";
-import { currentStep, goBack, goBackTo, goNext, initHistory, isSkipped, markAnswered, skipToNext } from "./onboardingHistory";
+import { currentStep, goBack, goNext, initHistory, isSkipped, markAnswered, skipToNext } from "./onboardingHistory";
 import type { HistoryState } from "./onboardingHistory";
 import { isOnboardingStep } from "./onboardingSteps";
 import type { OnboardingStep } from "./onboardingSteps";
@@ -8,25 +8,20 @@ import { TrustPrimer } from "./TrustPrimer";
 import { Q1Name } from "./Q1Name";
 import { Q2Investing } from "./Q2Investing";
 import { Q3Purpose } from "./Q3Purpose";
-import { Q4Household } from "./Q4Household";
 import { OnboardingCardStack } from "./OnboardingCardStack";
-import { AddFamilyMembers } from "./AddFamilyMembers";
 import { SoloCasUpload } from "./SoloCasUpload";
-import { FamilyImportFlow } from "./FamilyImportFlow";
-import type { HouseholdMember, InvestorType, PrimaryGoal } from "./types";
+import type { InvestorType, PrimaryGoal } from "./types";
 
 export interface OnboardingAnswers {
   name: string;
   investorType: InvestorType | null;
   primaryGoal: PrimaryGoal | null;
-  familyMembers: HouseholdMember[];
 }
 
 const INITIAL_ANSWERS: OnboardingAnswers = {
   name: "",
   investorType: null,
   primaryGoal: null,
-  familyMembers: [],
 };
 
 function resumeStep(step: string | null | undefined): OnboardingStep {
@@ -55,11 +50,6 @@ export function OnboardingFlow({ isMobile = false }: OnboardingFlowProps) {
   const back = () => setHistory((h) => goBack(h));
   const skip = (next: OnboardingStep) => setHistory((h) => skipToNext(h, next));
   const showBack = history.cursor > 0;
-  // Escape hatch for a hard-stop error on the upload screens (e.g. a
-  // cross-account PAN block) — jumps straight back to the household choice
-  // regardless of how many steps deep the "Family Too" path has gone, rather
-  // than stepping back one screen at a time.
-  const backToHousehold = () => setHistory((h) => goBackTo(h, "q4_household"));
 
   const renderStep = () => {
     if (step === "q1_name") {
@@ -158,63 +148,15 @@ export function OnboardingFlow({ isMobile = false }: OnboardingFlowProps) {
           currentStepIndex={3}
           totalSteps={5}
           onBack={back}
-          onContinue={() => advance("q4_household")}
+          onContinue={() => advance("cas_upload")}
         />
       ) : (
         <OnboardingCardStack history={history} currentStepIndex={3} totalSteps={5}>
           <TrustPrimer
             onBack={back}
-            onContinue={() => advance("q4_household")}
+            onContinue={() => advance("cas_upload")}
           />
         </OnboardingCardStack>
-      );
-    }
-
-    if (step === "q4_household") {
-      return isMobile ? (
-        <Q4Household
-          isMobile
-          currentStepIndex={4}
-          totalSteps={5}
-          onBack={back}
-          onSkip={() => skip("cas_upload")}
-          onChooseSolo={() => advance("cas_upload")}
-          onChooseFamily={() => advance("add_family")}
-        />
-      ) : (
-        <OnboardingCardStack history={history} currentStepIndex={4} totalSteps={5}>
-          <Q4Household
-            onBack={back}
-            onChooseSolo={() => advance("cas_upload")}
-            onChooseFamily={() => advance("add_family")}
-          />
-        </OnboardingCardStack>
-      );
-    }
-
-    if (step === "add_family") {
-      return isMobile ? (
-        <AddFamilyMembers
-          isMobile
-          currentStepIndex={4}
-          totalSteps={5}
-          members={answers.familyMembers}
-          onMembersChange={(familyMembers) => setAnswers((a) => ({ ...a, familyMembers }))}
-          onBack={back}
-          onSkip={() => skip("family_cas_upload")}
-          onContinue={() => advance("family_cas_upload")}
-        />
-      ) : (
-        <div className="min-h-dvh w-full bg-[var(--color-bg)] flex flex-col justify-center items-center p-3.5 sm:p-6 lg:p-8 box-border overflow-y-auto">
-          <div className="w-full max-w-lg mx-auto my-auto">
-            <AddFamilyMembers
-              members={answers.familyMembers}
-              onMembersChange={(familyMembers) => setAnswers((a) => ({ ...a, familyMembers }))}
-              onBack={back}
-              onContinue={() => advance("family_cas_upload")}
-            />
-          </div>
-        </div>
       );
     }
 
@@ -222,17 +164,7 @@ export function OnboardingFlow({ isMobile = false }: OnboardingFlowProps) {
       return (
         <div className="w-full min-h-dvh bg-[var(--color-bg)] flex flex-col justify-start items-center p-2 sm:p-6 lg:p-8 box-border">
           <div className="w-full max-w-[1600px] mx-auto">
-            <SoloCasUpload name={answers.name} onGoToHousehold={backToHousehold} />
-          </div>
-        </div>
-      );
-    }
-
-    if (step === "family_cas_upload" || step === "upload_my_cas" || step === "parse_queue") {
-      return (
-        <div className="w-full min-h-dvh bg-[var(--color-bg)] flex flex-col justify-start items-center p-2 sm:p-6 lg:p-8 box-border">
-          <div className="w-full max-w-[1600px] mx-auto">
-            <FamilyImportFlow selfName={answers.name} />
+            <SoloCasUpload name={answers.name} />
           </div>
         </div>
       );
