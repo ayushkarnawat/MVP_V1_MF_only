@@ -283,7 +283,15 @@ resource "aws_instance" "bastion" {
   # `terraform plan` shows a bastion replace. A jump box doesn't need to
   # chase the latest AMI; replace deliberately (untaint this lifecycle rule)
   # if a security-patch refresh is ever actually wanted.
+  #
+  # associate_public_ip_address: a stopped instance has no public IP at all
+  # (non-EIP public IPs are released on stop, reassigned fresh on start) --
+  # Terraform reads that as drift against this config's `true` and proposes
+  # a pointless replace any time `plan` runs while the bastion happens to be
+  # stopped, which is most of the time under Scenario A's "stopped by
+  # default" bastion policy (Docs/2026-09-29-aws-staging-cost-analysis-and-
+  # reduction-plan.md §7.2). Ignored for the same reason as ami above.
   lifecycle {
-    ignore_changes = [ami]
+    ignore_changes = [ami, associate_public_ip_address]
   }
 }

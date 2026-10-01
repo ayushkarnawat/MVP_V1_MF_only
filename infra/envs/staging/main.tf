@@ -99,6 +99,15 @@ module "scheduler" {
 
   backend_task_role_arn = module.backend.backend_task_role_arn
   cas_files_bucket_name = module.storage.bucket_name
+
+  ecs_cluster_name    = module.backend.ecs_cluster_name
+  ecs_service_name    = module.backend.ecs_service_name
+  ecs_service_arn     = module.backend.ecs_service_arn
+  db_instance_id      = module.database.db_instance_id
+  db_instance_arn     = module.database.db_instance_arn
+  fck_nat_instance_id = module.networking.fck_nat_instance_id
+  account_id          = data.aws_caller_identity.current.account_id
+  alert_emails        = var.alert_emails
 }
 
 data "aws_caller_identity" "current" {}

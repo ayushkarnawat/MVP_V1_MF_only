@@ -72,3 +72,47 @@ variable "cas_files_bucket_name" {
   description = "Name of the S3 bucket storing CAS PDF files (infra/modules/storage)."
   type        = string
 }
+
+# Night-stop automation (Scenario A, 9PM-5AM IST) -- not part of the existing
+# local.jobs RunTask pattern above, since these call ecs:UpdateService /
+# rds:Stop-StartDBInstance / ec2:Stop-StartInstances directly via EventBridge
+# Scheduler "universal targets" rather than launching a task.
+variable "ecs_cluster_name" {
+  description = "Name of the ECS cluster running the staging backend (for ecs:UpdateService calls)."
+  type        = string
+}
+
+variable "ecs_service_name" {
+  description = "Name of the ECS service running the staging backend (for ecs:UpdateService calls)."
+  type        = string
+}
+
+variable "ecs_service_arn" {
+  description = "ARN of the ECS service running the staging backend, for scoping the scheduler IAM policy."
+  type        = string
+}
+
+variable "db_instance_id" {
+  description = "RDS instance identifier (staging-rds), for rds:Stop/StartDBInstance calls."
+  type        = string
+}
+
+variable "db_instance_arn" {
+  description = "ARN of the RDS instance, for scoping the scheduler IAM policy."
+  type        = string
+}
+
+variable "fck_nat_instance_id" {
+  description = "EC2 instance ID of the fck-nat appliance, for ec2:Stop/StartInstances calls."
+  type        = string
+}
+
+variable "account_id" {
+  description = "AWS account ID, for constructing the fck-nat EC2 instance ARN."
+  type        = string
+}
+
+variable "alert_emails" {
+  description = "Email addresses subscribed to the RDS-availability SNS topic."
+  type        = list(string)
+}

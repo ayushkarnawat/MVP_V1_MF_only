@@ -205,3 +205,139 @@ resource "aws_scheduler_schedule" "jobs" {
 
   depends_on = [aws_iam_role_policy.scheduler]
 }
+
+# Scenario A night-stop automation (9PM-5AM IST, Docs/2026-09-29-aws-staging-
+# cost-analysis-and-reduction-plan.md §4/§7). Dependency-ordered: backend
+# depends on both RDS and fck-nat, so it stops first/starts last. 6 plain
+# EventBridge Scheduler rules via AWS-SDK "universal targets" -- no Lambda,
+# since each step is a single fixed API call with no branching logic needed.
+locals {
+  night_stop_jobs = {
+    stop_backend = {
+      schedule_expression = "cron(0 21 * * ? *)" # 9:00 PM IST
+      target_arn          = "arn:aws:scheduler:::aws-sdk:ecs:updateService"
+      input = jsonencode({
+        Cluster      = var.ecs_cluster_name
+        Service      = var.ecs_service_name
+        DesiredCount = 0
+      })
+    }
+    stop_rds = {
+      schedule_expression = "cron(5 21 * * ? *)" # 9:05 PM IST
+      target_arn          = "arn:aws:scheduler:::aws-sdk:rds:stopDBInstance"
+      input = jsonencode({
+        DbInstanceIdentifier = var.db_instance_id
+      })
+    }
+    stop_fck_nat = {
+      schedule_expression = "cron(10 21 * * ? *)" # 9:10 PM IST
+      target_arn          = "arn:aws:scheduler:::aws-sdk:ec2:stopInstances"
+      input = jsonencode({
+        InstanceIds = [var.fck_nat_instance_id]
+      })
+    }
+    start_rds = {
+      schedule_expression = "cron(45 4 * * ? *)" # 4:45 AM IST
+      target_arn          = "arn:aws:scheduler:::aws-sdk:rds:startDBInstance"
+      input = jsonencode({
+        DbInstanceIdentifier = var.db_instance_id
+      })
+    }
+    start_fck_nat = {
+      schedule_expression = "cron(50 4 * * ? *)" # 4:50 AM IST
+      target_arn          = "arn:aws:scheduler:::aws-sdk:ec2:startInstances"
+      input = jsonencode({
+        InstanceIds = [var.fck_nat_instance_id]
+      })
+    }
+    start_backend = {
+      schedule_expression = "cron(58 4 * * ? *)" # 4:58 AM IST -- after RDS/fck-nat have had ~8-13 min to come up
+      target_arn          = "arn:aws:scheduler:::aws-sdk:ecs:updateService"
+      input = jsonencode({
+        Cluster      = var.ecs_cluster_name
+        Service      = var.ecs_service_name
+        DesiredCount = 1
+      })
+    }
+  }
+}
+
+data "aws_iam_policy_document" "night_stop_scheduler" {
+  statement {
+    sid       = "StopStartBackendService"
+    effect    = "Allow"
+    actions   = ["ecs:UpdateService"]
+    resources = [var.ecs_service_arn]
+  }
+
+  statement {
+    sid       = "StopStartRds"
+    effect    = "Allow"
+    actions   = ["rds:StopDBInstance", "rds:StartDBInstance"]
+    resources = [var.db_instance_arn]
+  }
+
+  statement {
+    sid       = "StopStartFckNat"
+    effect    = "Allow"
+    actions   = ["ec2:StopInstances", "ec2:StartInstances"]
+    resources = ["arn:aws:ec2:${var.aws_region}:${var.account_id}:instance/${var.fck_nat_instance_id}"]
+  }
+}
+
+resource "aws_iam_role_policy" "night_stop_scheduler" {
+  name   = "night-stop-start"
+  role   = aws_iam_role.scheduler.id
+  policy = data.aws_iam_policy_document.night_stop_scheduler.json
+}
+
+resource "aws_scheduler_schedule" "night_stop" {
+  for_each = local.night_stop_jobs
+
+  name                         = "${var.project}-${var.environment}-night-${each.key}"
+  schedule_expression          = each.value.schedule_expression
+  schedule_expression_timezone = "Asia/Kolkata"
+
+  flexible_time_window {
+    mode = "OFF"
+  }
+
+  target {
+    arn      = each.value.target_arn
+    role_arn = aws_iam_role.scheduler.arn
+    input    = each.value.input
+  }
+
+  depends_on = [aws_iam_role_policy.night_stop_scheduler]
+}
+
+# RDS-availability safety net (plan doc §7.1 note): the originally proposed
+# "CloudWatch alarm on DBInstanceStatus" doesn't actually exist as a
+# CloudWatch metric -- RDS publishes CPUUtilization/connections/storage/etc,
+# not instance status, to CloudWatch. The correct native (zero-Lambda)
+# primitive for "tell me if the night-stop RDS restart is slow or fails" is
+# an RDS event subscription: it fires on real state transitions (including
+# a late "available" event if boot overruns the 4:45-4:58 AM window, and any
+# start failure), which is a stronger real-world signal than a fixed-deadline
+# poll would have been anyway.
+resource "aws_sns_topic" "ops_alerts" {
+  name = "${var.project}-${var.environment}-ops-alerts"
+}
+
+resource "aws_sns_topic_subscription" "ops_alerts_email" {
+  for_each = toset(var.alert_emails)
+
+  topic_arn = aws_sns_topic.ops_alerts.arn
+  protocol  = "email"
+  endpoint  = each.value
+}
+
+resource "aws_db_event_subscription" "rds_availability" {
+  name      = "${var.project}-${var.environment}-rds-availability"
+  sns_topic = aws_sns_topic.ops_alerts.arn
+
+  source_type = "db-instance"
+  source_ids  = [var.db_instance_id]
+
+  event_categories = ["availability", "failure"]
+}

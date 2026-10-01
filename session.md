@@ -12,9 +12,47 @@ Earlier "Latest" sections (2026-09-30 staging QA fixes, 2026-09-24 PAN-at-upload
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
 
-## Latest (2026-10-01): staging DB-access tooling, no app code changed
+## Latest (2026-10-01): AWS staging cost-reduction (Scenario A) applied and verified healthy
 
-No implementation work this session — DB-access setup, repeated staging wipes, and two
+Full narrative: `log.md`'s 2026-10-01 (cont'd) entry. Decisions: `decisions.md`'s
+2026-10-01 entry.
+
+- Executed `Docs/2026-09-29-aws-staging-cost-analysis-and-reduction-plan.md`'s Scenario A:
+  ECS backend task memory 2048→1024MB, ECR lifecycle rule (keep last 10 tagged images), 6
+  EventBridge night-stop schedules (RDS/backend/`fck-nat` stop 9PM, start 5AM IST), an RDS
+  event subscription + SNS ops-alerts topic, and a frontend maintenance banner for the
+  stop window. Applied via `terraform apply` (13 added, 1 changed, 2 destroyed, run by the
+  user per the standing constraint — Claude writes/validates Terraform, never applies).
+  **$91.78/mo → $68.46/mo (-25%).**
+- Two real bugs caught and fixed before apply, not just reviewed: (1) `terraform.tfvars`
+  was missing `email_delivery_mode`, which would have silently reverted live SES email
+  delivery back to `"stub"` on this apply — a pre-existing gap, not introduced this
+  session. (2) The bastion showed a forced replace in `plan` — investigated in detail per
+  the user's explicit request (CloudTrail history, live instance state) and root-caused to
+  a Terraform/AWS reporting quirk: a stopped EC2 instance always reports no public IP
+  (non-EIP IPs release on stop), which Terraform reads as drift against
+  `associate_public_ip_address = true`. Zero actual historical drift. Fixed via
+  `lifecycle.ignore_changes` in `infra/modules/networking/main.tf`.
+- Post-apply, did a full read-only health check of every changed component (ECS, ECR,
+  RDS, bastion, all 6 schedules, SNS, RDS event subscription) per the user's explicit
+  request. Found one scare that resolved itself: the ECS backend showed 0 running tasks
+  for ~6 minutes post-deployment, which looked like a stuck rollout — root-caused to
+  normal Fargate ENI/image-pull latency plus querying the wrong service name
+  (`staging-backend` vs. the real `unifolio-staging-backend`), not an actual problem.
+  Confirmed healthy via a direct `GET https://.../health` → 200 against the ALB.
+- **Scenario B (RDS `db.t4g.small`→`micro`, a further ~$10/mo) explicitly held off** by
+  user decision — Scenario A already lands inside the $65-70/mo target with zero database
+  risk; Scenario B's 1GB-RAM downsize carries a real (if probably low) OOM/swap risk
+  against a live database with real beta-tester data.
+- While verifying, found and fixed a second stale-doc issue unrelated to this session's
+  own work: `CLAUDE.md`'s "Still open" list called ADR-006's EventBridge+ECS batch-job
+  Terraform "not yet picked up" — confirmed via `aws scheduler list-schedules` that all 7
+  of those schedules are actually `ENABLED` and have been live since an earlier session.
+  Corrected in `CLAUDE.md`.
+
+## Previous (2026-10-01, earlier session): staging DB-access tooling, no app code changed
+
+No implementation work that session — DB-access setup, repeated staging wipes, and two
 diagnoses. Full detail: `log.md`'s 2026-10-01 entry.
 
 - Staging RDS access via an SSM port-forwarding tunnel (through the SSM-only bastion) +
@@ -29,7 +67,7 @@ diagnoses. Full detail: `log.md`'s 2026-10-01 entry.
   member's first-ever CAS import after a DB wipe hits a dead end with no way to proceed.
   The fix is bounded: mirror `ImportFlow.tsx`'s `memberMismatch` state + buttons into
   `FamilyImportFlow.tsx`'s `handleConfirm`/render for the `review` stage. Not yet built —
-  pick this up first in the next session.
+  pick this up first in a future session.
 - Progressed (not resolved) the 10-year CAS statement value-discrepancy investigation —
   confirmed no Unifolio code branches on statement year-span, narrowed suspicion to
   `casparser`'s page/fund-boundary detection, still unconfirmed. Handoff doc for a

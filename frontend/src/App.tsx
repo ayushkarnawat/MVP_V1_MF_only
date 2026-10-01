@@ -8,6 +8,7 @@ import { MobileLandingPage } from "./mobile/features/landing/MobileLandingPage";
 import { MobileJourneyContext } from "./features/auth/mobileJourneyContext";
 import type { MobileJourneyStep } from "./features/auth/mobileJourneyContext";
 import { PendingDeletionScreen } from "./features/profile/PendingDeletionScreen";
+import { MaintenanceBanner } from "./components/core/maintenance-banner";
 
 function useIsMobileViewport(breakpoint = 768) {
   const [isMobile, setIsMobile] = useState(() => {
@@ -125,6 +126,7 @@ function MainApp() {
 function App() {
   return (
     <AuthProvider>
+      <MaintenanceBanner />
       <MainApp />
     </AuthProvider>
   );

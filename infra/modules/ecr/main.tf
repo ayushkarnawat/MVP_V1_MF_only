@@ -24,6 +24,24 @@ resource "aws_ecr_lifecycle_policy" "this" {
         action = {
           type = "expire"
         }
+      },
+      {
+        # No-op today (only ~5 static milestone tags exist). Becomes load-bearing
+        # once CI/CD (task #20) starts tagging per-commit and tag count grows
+        # unboundedly -- this rule only applies to tagStatus=tagged (see 14-day
+        # rule above for untagged cleanup, which already bounds the real driver
+        # of growth: duplicate manifests from repeated pushes to "latest").
+        rulePriority = 2
+        description  = "Keep only the 10 most recently pushed tagged images"
+        selection = {
+          tagStatus      = "tagged"
+          tagPatternList = ["*"]
+          countType      = "imageCountMoreThan"
+          countNumber    = 10
+        }
+        action = {
+          type = "expire"
+        }
       }
     ]
   })

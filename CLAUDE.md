@@ -68,7 +68,21 @@ trimmed), `backend.md`/`database.md` (backend/schema changes only), `decisions.m
 `Docs/orchestration/delegation-log.md`. Deferred/not-yet-built features:
 `DEFERRED_FEATURES.md`.)*
 
-**Latest (2026-10-01):** no code changes this session — DB-access tooling and
+**Latest (2026-10-01):** AWS staging cost-reduction (Scenario A,
+`Docs/2026-09-29-aws-staging-cost-analysis-and-reduction-plan.md`) applied and verified
+healthy: ECS backend task memory 2048→1024MB, ECR keep-last-10-tagged lifecycle rule, 6
+EventBridge night-stop schedules (RDS/backend/`fck-nat` stop at 9PM, start 5AM IST), an
+RDS event subscription + SNS ops-alerts topic (2 email subs, `PendingConfirmation`
+pending click-through), and a frontend maintenance banner for the stop window. $91.78/mo
+→ $68.46/mo (-25%). Also fixed a pre-existing `terraform.tfvars` gap that would have
+silently reverted live SES email delivery back to stub mode on this apply, and a bastion
+`associate_public_ip_address` false-positive replace (Terraform/AWS quirk: a stopped
+instance always reports no public IP, read as drift; fixed via `lifecycle.ignore_changes`
+in `infra/modules/networking/main.tf`, zero actual historical drift per CloudTrail).
+Scenario B (RDS `small`→`micro`, a further -$10/mo) explicitly held off per user decision
+— see `decisions.md`. Full narrative: `log.md`'s 2026-10-01 (cont'd) entry.
+
+**Previous (2026-10-01, earlier session):** no code changes — DB-access tooling and
 investigation only. Staging RDS access via SSM-tunnel + `psql`/DBeaver was set up and
 used to repeatedly wipe all user-domain data (reference/platform tables untouched) for
 stakeholder-facing fresh-signup rounds; that wipe is now a self-serve script,
@@ -104,14 +118,19 @@ undocumented gap" section, `log.md`'s dated entries, `decisions.md`.
 `HoldingsTable.tsx` field reference; a non-index-seek-bounded SQLite scan in
 `category_ranking.py` (Postgres has been live in staging since 2026-09-09 — worth
 revisiting now, not just a hypothetical future follow-up); an ARIA IDREF gap on the SIP
-tab switcher (accepted documented limitation); ADR-006's actual EventBridge Scheduler +
-ECS Fargate Terraform (the AWS account/ECR/ECS cluster this was blocked on now exist as
-of 2026-09-08/09 — no longer infra-blocked, just not yet picked up; the 4 job scripts
-themselves are done); the backend API domain naming decision (§19/§22 Phase 5). (The phone-OTP "unknown number
-silently creates an account" item is fixed by the 2026-09-30 staging QA fixes, pending
-their staging deploy; see session.md item 9.)
+tab switcher (accepted documented limitation); the backend API domain naming decision
+(§19/§22 Phase 5); `FamilyImportFlow.tsx`'s missing `member_mismatch` override-retry UI
+(found 2026-10-01); the 10-year CAS statement value-discrepancy investigation (handoff
+doc written 2026-10-01, not yet resolved). (The phone-OTP "unknown number silently
+creates an account" item is fixed by the 2026-09-30 staging QA fixes, pending their
+staging deploy; see session.md item 9.)
 
 **Resolved, dropped from this list:**
+- **2026-10-01**: ADR-006's EventBridge Scheduler + ECS Fargate Terraform was listed here
+  as "not yet picked up" — stale. Confirmed live via `aws scheduler list-schedules`: all 7
+  batch-job schedules (daily NAV/benchmark, monthly TER, quarterly AAUM, daily account-
+  deletion/analytics-recompute/CAS-file-expiry) are `ENABLED` in AWS, applied in an earlier
+  session than this doc previously reflected.
 - **2026-09-24**: the PAN-attribution-timing bug and the "still uncommitted" tracking
   gap — see "Latest" above.
 - **2026-09-18**: the ADR-004 "no PAN persistence" constraint — superseded by design, see

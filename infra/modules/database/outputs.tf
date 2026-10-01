@@ -22,3 +22,13 @@ output "master_user_secret_arn" {
   description = "ARN of the RDS-managed Secrets Manager secret for the master user."
   value       = aws_db_instance.this.master_user_secret[0].secret_arn
 }
+
+output "db_instance_arn" {
+  description = "ARN of the RDS instance, for scoping scheduler IAM policies."
+  value       = aws_db_instance.this.arn
+}
+
+output "db_instance_id" {
+  description = "RDS instance identifier (staging-rds), for scheduler stop/start API calls."
+  value       = aws_db_instance.this.identifier
+}

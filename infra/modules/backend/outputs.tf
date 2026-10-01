@@ -32,3 +32,8 @@ output "backend_task_role_arn" {
   description = "ARN of the backend task role -- reused by the scheduled CAS-file expiry job so it can delete S3 objects without a second S3/KMS policy."
   value       = aws_iam_role.backend_task.arn
 }
+
+output "ecs_service_arn" {
+  description = "ARN of the ECS service running the staging backend, for scoping scheduler IAM policies."
+  value       = aws_ecs_service.this.id
+}

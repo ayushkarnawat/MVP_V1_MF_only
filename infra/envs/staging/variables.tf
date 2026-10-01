@@ -57,3 +57,9 @@ variable "ses_identity_arn" {
   type        = string
   default     = ""
 }
+
+variable "alert_emails" {
+  description = "Email addresses subscribed to the RDS-availability SNS topic (Scenario A night-stop safety net)."
+  type        = list(string)
+  default     = ["ayush.karnawat@unifolio.in", "siddharth.surve@unifolio.in"]
+}
