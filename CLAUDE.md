@@ -60,7 +60,7 @@ instead. See `docs/agents/domain.md`.
 
 ## Session State
 
-*(Updated 2026-09-26. This section is a one-line current-status pointer, not a log —
+*(Updated 2026-10-01. This section is a one-line current-status pointer, not a log —
 do not append session narrative here again. Full current status: `session.md` at repo
 root, overwritten each session. Full permanent history: `log.md` (append-only, never
 trimmed), `backend.md`/`database.md` (backend/schema changes only), `decisions.md`
@@ -68,7 +68,9 @@ trimmed), `backend.md`/`database.md` (backend/schema changes only), `decisions.m
 `Docs/orchestration/delegation-log.md`. Deferred/not-yet-built features:
 `DEFERRED_FEATURES.md`.)*
 
-**Latest (2026-10-01):** consent, onboarding and profile changes built, uncommitted, awaiting review (the 2026-09-30 staging QA fixes are committed) — see `session.md`'s "Latest"; no new secret or Terraform change needed (deploy guide: `Docs/orchestration/2026-10-01-consent-release-deploy-guide.md`). CAS member detection (2026-09-29) is committed.
+**Latest (2026-10-01):** consent, onboarding and profile changes committed on `feat/enhanced-ui` (no new secret or Terraform change needed; deploy guide: `Docs/orchestration/2026-10-01-consent-release-deploy-guide.md`). Also added staging DB wipe script `scripts/clean-staging-db.sh`, documented 10-year CAS parsing discrepancy handoff (`Docs/investigations/2026-10-01-cas-10-year-parsing-discrepancy-handoff.md`), and confirmed previous phases (2026-09-29 CAS member detection, 2026-09-30 staging QA fixes) are fully committed.
+
+**Previous (2026-09-30):** staging QA fixes (auth sign-up/login checks, multi-select goal, ribbon auto-confirm, L3 popup, duplicate-member fixes, statement period) — confirmed committed (`c404c2f`/`1ace61c`/`3541ef4`/`1cf9f35`/`d52bab6`). CAS member detection (2026-09-29) is also committed.
 
 **Previous (2026-09-24):** CAS import PAN check moved from Confirm-time to upload-time
 (`pan_claims.py` replaces `attribution.py`; migration `0016`) — fixes every first import

@@ -5,31 +5,30 @@ Working notes for picking this project back up cold. Not a planning doc — see
 gets overwritten each session, and isn't meant to accumulate history — the
 permanent, append-only record is `log.md` (session-by-session),
 `backend.md`/`database.md` (backend/schema changes only), and `decisions.md`.
-Earlier "Latest" sections (2026-09-24 PAN-at-upload, the 2026-09-15..24 backfill, the
-2026-09-07..12 condensed sessions) were dropped from here on 2026-09-29; their full
-detail lives in `log.md`.
+Earlier "Latest" sections (2026-09-30 staging QA fixes, 2026-09-24 PAN-at-upload, the
+2026-09-15..24 backfill, the 2026-09-07..12 condensed sessions) were dropped from here on
+2026-10-01; their full detail lives in `log.md`.
 
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
 
-## Latest (2026-10-01): consent, onboarding and profile changes — built, UNCOMMITTED, awaiting user review
+## Latest (2026-10-01): consent, onboarding and profile changes + staging DB tooling
 
-Branch `feat/enhanced-ui`, working tree only (the user commits manually). The
-2026-09-30 staging QA fixes are already committed (1ace61c..d52bab6). Plan:
-`Docs/orchestration/2026-10-01-onboarding-consent-profile-changes-plan.md` (decisions
-Q1-QF at the bottom); `decisions.md` 2026-10-01; code in `backend.md` / `database.md`
-2026-10-01.
+Branch `feat/enhanced-ui`. Consent, onboarding, and profile changes are now committed on this branch (along with staging DB-access tooling and 10-year CAS parsing investigation handoff). Plan: `Docs/superpowers/plans/2026-10-01-consent-onboarding-profile.md` and `Docs/orchestration/2026-10-01-onboarding-consent-profile-changes-plan.md`.
 
 1. Onboarding privacy screen removed; name saved at the name step (self member created
    then, provisional until the CAS); `/auth/me` has `self_name` and `consent_outdated`.
 2. "Why choose? All of it." goal shortcut (stores all 4); `scripts/report_onboarding_goals.py`.
 3. Name and PAN come from the CAS: unlock is relationship-only (PAN only if the statement
    had none); `PATCH /household-members/{id}` edits relationship/phone/email; 422
-   `field_not_editable` / `name_not_editable`. Supersedes L1/L2/L3/L9 and the popup rename.
+   `field_not_editable` / `name_not_editable`.
 4. Consent: migrations 0021 (member phone/email) and 0022 (`consent_records`, append-only
    triggers, `consent_snapshot`); `/legal/*`; sign-up/upload/CAMS/reactivate consent;
    placeholder legal texts; `scripts/consent_trail.py`.
 5. OTP email: no logo, green text. Profile restructured into 5 sections.
+6. Staging DB wipe script: `scripts/clean-staging-db.sh` — resolves bastion/RDS endpoint dynamically, wipes user-domain data cleanly in one FK-safe transaction for testing rounds.
+7. Progressed 10-year CAS statement value-discrepancy investigation; handoff doc at `Docs/investigations/2026-10-01-cas-10-year-parsing-discrepancy-handoff.md`.
+8. Confirmed that both the 2026-09-29 CAS member detection build and 2026-09-30 staging QA fixes are committed.
 
 **Before deploying:** no new secret and no `terraform apply` — the consent IP-hash key
 is derived from the existing `PAN_LOOKUP_PEPPER` (decision 2026-10-01). Follow
@@ -45,8 +44,7 @@ then migrate, push the backend image, publish the frontend).
   on the lawyer (`DEFERRED_FEATURES.md`). The old "0021" primary_goal drop is now 0023.
 - The 2026-09-30 retest list (staging QA fixes) still applies once deployed: it is Step 7 of
   `Docs/orchestration/2026-09-30-staging-qa-fixes-deploy-guide.md`.
-- The SDD run created unreferenced snapshot objects in `.git`; `git gc --prune=now` clears
-  them (harmless otherwise).
+- `FamilyImportFlow.tsx` confirm handler `member_mismatch` 409 handling diagnosed (needs override-retry UI like `ImportFlow.tsx`).
 
 ## Still open, carried forward from earlier phases, not yet revisited
 
@@ -57,7 +55,12 @@ then migrate, push the backend image, publish the frontend).
    lines; no real PDFs were on disk (plan Task 4 Step 6 skipped). Test with real
    multi-PAN family CAS files from both RTAs before trusting it.
 3. The mobile ribbon review reuses the desktop styling as-is and needs phone visual QA.
-4. Nothing is committed. The user reviews the working tree and commits manually.
+4. **Corrected 2026-10-01**: this work is in fact committed (`af92286`..`b40f52b`), not
+   uncommitted as this line previously said.
+
+**New, specific to this session (2026-10-01):**
+1. `FamilyImportFlow.tsx`'s missing `member_mismatch` override-retry UI (see "Latest"
+   above) — diagnosed, not fixed.
 
 
 *(Moved here from `CLAUDE.md` 2026-08-24 — that file's Session State section is a
