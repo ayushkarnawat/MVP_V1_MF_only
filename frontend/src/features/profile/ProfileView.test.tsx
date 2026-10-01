@@ -1,27 +1,75 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ProfileView } from "./ProfileView";
+import { DOCS } from "../legal/testFixtures";
+
+vi.mock("../legal/api", async () => {
+  const actual = await vi.importActual<typeof import("../legal/api")>("../legal/api");
+  return { ...actual, getLegalDocuments: vi.fn(), getMyConsents: vi.fn() };
+});
+import { getLegalDocuments, getMyConsents } from "../legal/api";
 
 describe("ProfileView", () => {
-  it("keeps logout above the final danger zone and invokes logout", () => {
-    const logout = vi.fn();
-    render(
-      <ProfileView
-        name="Alice"
-        email="alice@example.com"
-        phoneNumber="+919999999999"
-        logout={logout}
-      />,
-    );
-
-    const logoutButton = screen.getByRole("button", { name: /logout/i });
-    const dangerZone = screen.getByText("Danger Zone");
-    expect(
-      logoutButton.compareDocumentPosition(dangerZone) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    fireEvent.click(logoutButton);
-    expect(logout).toHaveBeenCalledOnce();
+  it("shows the five sections and Account Info by default", () => {
+    render(<ProfileView name="Alice" email="alice@example.com" phoneNumber="+919999999999" logout={vi.fn()} />);
+    const nav = screen.getByRole("navigation", { name: "Profile sections" });
+    expect(within(nav).getAllByRole("button").map((b) => b.textContent)).toEqual([
+      "Account Info", "Family Members", "Import History", "Terms of Service", "Logout",
+    ]);
+    expect(within(nav).getByRole("button", { name: "Account Info" })).toHaveAttribute("aria-current", "page");
+    expect(within(nav).getByRole("button", { name: "Family Members" })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("heading", { level: 2, name: "Account Info" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Import History" })).not.toBeInTheDocument();
     expect(screen.getAllByLabelText("Toggle theme")).toHaveLength(1);
+  });
+
+  it("delete account lives in Account Info", () => {
+    render(<ProfileView name="Alice" email="alice@example.com" phoneNumber="+919999999999" logout={vi.fn()} />);
+    expect(screen.getByRole("button", { name: /delete account/i })).toBeInTheDocument();
+    expect(screen.queryByText("Danger Zone")).not.toBeInTheDocument();
+  });
+
+  it("logout calls logout", () => {
+    const logout = vi.fn();
+    render(<ProfileView name="Alice" email="alice@example.com" phoneNumber="+919999999999" logout={logout} />);
+    fireEvent.click(screen.getByRole("button", { name: /logout/i }));
+    expect(logout).toHaveBeenCalledOnce();
+  });
+
+  it("switching to Terms of Service lists the three documents with agreement dates", async () => {
+    vi.mocked(getLegalDocuments).mockResolvedValue(DOCS);
+    vi.mocked(getMyConsents).mockResolvedValue([
+      { document_type: "terms_of_service", document_version: "tos-placeholder-2026-10-01", recorded_at: "2026-10-02T10:00:00Z" },
+    ]);
+    render(<ProfileView name="Alice" email="alice@example.com" phoneNumber="+919999999999" logout={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Terms of Service" }));
+    expect(screen.getByRole("button", { name: "Terms of Service" })).toHaveAttribute("aria-current", "page");
+    expect(await screen.findByText("You agreed to version tos-placeholder-2026-10-01 on 2 Oct 2026")).toBeInTheDocument();
+    expect(screen.getByText("Terms & Conditions")).toBeInTheDocument();
+    expect(screen.getByText("Privacy Policy")).toBeInTheDocument();
+    expect(screen.getByText("PAN Disclaimer")).toBeInTheDocument();
+    expect(screen.getAllByText("Not agreed yet")).toHaveLength(2);
+    fireEvent.click(screen.getByRole("button", { name: "View Privacy Policy" }));
+    expect(await screen.findByRole("dialog", { name: "Privacy Policy" })).toBeInTheDocument();
+  });
+
+  it("Terms of Service shows a retryable message, not 'Not agreed yet', when agreements fail to load", async () => {
+    vi.mocked(getLegalDocuments).mockResolvedValue(DOCS);
+    vi.mocked(getMyConsents).mockClear();
+    vi.mocked(getMyConsents)
+      .mockRejectedValueOnce(new Error("network"))
+      .mockResolvedValueOnce([
+        { document_type: "terms_of_service", document_version: "tos-placeholder-2026-10-01", recorded_at: "2026-10-02T10:00:00Z" },
+      ]);
+    render(<ProfileView name="Alice" email="alice@example.com" phoneNumber="+919999999999" logout={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Terms of Service" }));
+    expect(await screen.findByText(/We couldn’t load your agreements\./)).toBeInTheDocument();
+    expect(screen.queryByText("Not agreed yet")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "View Privacy Policy" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(await screen.findByText("You agreed to version tos-placeholder-2026-10-01 on 2 Oct 2026")).toBeInTheDocument();
+    expect(screen.queryByText(/We couldn’t load your agreements/)).not.toBeInTheDocument();
+    expect(getMyConsents).toHaveBeenCalledTimes(2);
   });
 
   it("collects one exit reason then shows the single five-day confirmation", async () => {
@@ -140,8 +188,8 @@ describe("ProfileView", () => {
       />,
     );
 
+    fireEvent.click(screen.getByRole("button", { name: "Import History" }));
     expect(await screen.findByText("1 Apr 2025 – 31 Mar 2026")).toBeInTheDocument();
-    expect(screen.getByText("12 transactions")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Delete import from 10 Sep 2026" }));
 
     expect(screen.getByText("This removes 12 transactions tied to this import from your holdings.")).toBeInTheDocument();
@@ -161,6 +209,7 @@ describe("ProfileView", () => {
     }]);
     const deleteImport = vi.fn().mockRejectedValue(new Error("network"));
     render(<ProfileView name="Alice" email="alice@example.com" phoneNumber="+919999999999" logout={vi.fn()} loadImportHistory={loadImportHistory} deleteImport={deleteImport} />);
+    fireEvent.click(screen.getByRole("button", { name: "Import History" }));
     await screen.findByText("1 Apr 2025 – 31 Mar 2026");
     fireEvent.click(screen.getByRole("button", { name: "Delete import from 10 Sep 2026" }));
     fireEvent.click(screen.getByRole("button", { name: "Delete import" }));

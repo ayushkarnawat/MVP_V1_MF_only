@@ -1,15 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
-import { Trash2 } from "lucide-react";
 import { getHouseholdMembers } from "../auth/api";
 import type { HouseholdMember } from "../auth/types";
 import { deleteMemberPortfolio, getHouseholdImportHistory } from "../import/api";
 import type { DeleteImportResponse, HouseholdImportHistoryItem } from "../import/types";
+import { EditMemberDialog } from "../dashboard/members/EditMemberDialog";
+import { MemberDetailsDialog } from "../dashboard/members/MemberDetailsDialog";
 import { DeletePortfolioDialog } from "./DeletePortfolioDialog";
+import { FamilyMemberCard } from "./FamilyMemberCard";
 
 interface HouseholdMembersSectionProps {
   loadMembers?: () => Promise<HouseholdMember[]>;
   loadImportHistory?: () => Promise<HouseholdImportHistoryItem[]>;
   deletePortfolio?: (memberId: string, removeMember: boolean) => Promise<DeleteImportResponse>;
+  /** The account holder's contact, shown read-only on the self card. */
+  accountPhone?: string;
+  accountEmail?: string | null;
   /** Called after a portfolio was deleted, so the page can refresh anything that shows members or funds. */
   onChanged?: () => void;
 }
@@ -25,6 +30,8 @@ export function HouseholdMembersSection({
   loadMembers = getHouseholdMembers,
   loadImportHistory = getHouseholdImportHistory,
   deletePortfolio = deleteMemberPortfolio,
+  accountPhone,
+  accountEmail,
   onChanged,
 }: HouseholdMembersSectionProps) {
   const [members, setMembers] = useState<HouseholdMember[]>([]);
@@ -32,6 +39,8 @@ export function HouseholdMembersSection({
   // If the history can't load the statement count is unknown; never show it as 0.
   const [historyFailed, setHistoryFailed] = useState(false);
   const [selected, setSelected] = useState<HouseholdMember | null>(null);
+  const [editing, setEditing] = useState<HouseholdMember | null>(null);
+  const [completing, setCompleting] = useState<HouseholdMember | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -67,32 +76,58 @@ export function HouseholdMembersSection({
 
   return (
     <section className="space-y-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-xs sm:p-6">
-      <h2 className="font-display text-lg font-semibold">Family members</h2>
+      <h2 className="font-display text-lg font-semibold">Family Members</h2>
       {historyFailed && (
         <p role="alert" className="text-sm text-[var(--color-negative)]">
           Could not load your statements, so deleting funds is unavailable right now. Please try again later.
         </p>
       )}
-      <div className="divide-y divide-[var(--color-border)]">
+      <div className="space-y-3">
         {members.map((m) => (
-          <div key={m.id} className="flex items-center gap-4 py-3 first:pt-1 last:pb-1">
-            <p className="min-w-0 flex-1 truncate text-sm font-semibold">{m.name}</p>
-            <button
-              type="button"
-              aria-label={`Delete all funds for ${m.name}`}
-              disabled={historyFailed}
-              onClick={() => {
-                setError(null);
-                setSelected(m);
-              }}
-              className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold text-[var(--color-negative)] disabled:opacity-50 hover:bg-[color-mix(in_srgb,var(--color-negative)_10%,transparent)]"
-            >
-              <Trash2 className="h-4 w-4" aria-hidden="true" />
-              Delete all funds
-            </button>
-          </div>
+          <FamilyMemberCard
+            key={m.id}
+            member={m}
+            accountPhone={accountPhone}
+            accountEmail={accountEmail}
+            deleteDisabled={historyFailed}
+            onEdit={() => setEditing(m)}
+            onCompleteDetails={() => setCompleting(m)}
+            onDeleteFunds={() => {
+              setError(null);
+              setSelected(m);
+            }}
+          />
         ))}
       </div>
+      {editing && (
+        <EditMemberDialog
+          key={editing.id}
+          member={editing}
+          onCancel={() => setEditing(null)}
+          onSaved={(saved) => {
+            setMembers((rows) => rows.map((r) => (r.id === saved.id ? saved : r)));
+            setEditing(null);
+            onChanged?.();
+          }}
+        />
+      )}
+      {completing && (
+        <MemberDetailsDialog
+          key={completing.id}
+          member={completing}
+          onCancel={() => setCompleting(null)}
+          onOtherAccount={() => {
+            setCompleting(null);
+            void load().catch(() => undefined);
+            onChanged?.();
+          }}
+          onUnlocked={() => {
+            setCompleting(null);
+            void load().catch(() => undefined);
+            onChanged?.();
+          }}
+        />
+      )}
       {selected && (
         <DeletePortfolioDialog
           member={selected}

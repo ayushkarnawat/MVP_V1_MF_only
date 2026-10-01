@@ -7,6 +7,7 @@ import type { DeleteImportResponse, HouseholdImportHistoryItem } from "../import
 import type { HouseholdMember } from "../auth/types";
 import { HouseholdMembersSection } from "./HouseholdMembersSection";
 import { ImportHistorySection } from "./ImportHistorySection";
+import { TermsSection } from "./TermsSection";
 
 interface ProfileViewProps {
   name: string;
@@ -23,6 +24,15 @@ interface ProfileViewProps {
   /** After a D1/D2 delete: members may have been removed, so the page's member list needs reloading. */
   onMembersChanged?: () => void;
 }
+
+type ProfileSection = "account" | "family" | "imports" | "terms";
+
+const SECTIONS: Array<{ id: ProfileSection; label: string }> = [
+  { id: "account", label: "Account Info" },
+  { id: "family", label: "Family Members" },
+  { id: "imports", label: "Import History" },
+  { id: "terms", label: "Terms of Service" },
+];
 
 const DELETION_REASONS: Array<{ value: AccountDeletionReason; label: string }> = [
   { value: "not_using_enough", label: "Not using it enough" },
@@ -46,6 +56,7 @@ export function ProfileView({
   deletePortfolio,
   onMembersChanged,
 }: ProfileViewProps) {
+  const [section, setSection] = useState<ProfileSection>("account");
   // Each section remounts (re-fetches) when the other one deleted something it shows.
   const [historyVersion, setHistoryVersion] = useState(0);
   const [membersVersion, setMembersVersion] = useState(0);
@@ -130,8 +141,39 @@ export function ProfileView({
       setContactSubmitting(false);
     }
   };
+  const nav = (
+    <nav
+      aria-label="Profile sections"
+      className="flex gap-1 overflow-x-auto md:flex-col md:overflow-visible"
+    >
+      {SECTIONS.map((item) => (
+        <button
+          key={item.id}
+          type="button"
+          aria-current={section === item.id ? "page" : undefined}
+          onClick={() => setSection(item.id)}
+          className={`shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-left text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] ${
+            section === item.id
+              ? "bg-[var(--color-surface)] text-[var(--color-ink)] shadow-xs"
+              : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface)]"
+          }`}
+        >
+          {item.label}
+        </button>
+      ))}
+      <button
+        type="button"
+        onClick={logout}
+        className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] md:mt-3 md:rounded-none md:border-t md:border-[var(--color-border)] md:pt-4"
+      >
+        <LogOut className="h-4 w-4" />
+        Logout
+      </button>
+    </nav>
+  );
+
   return (
-    <div className="mx-auto max-w-3xl space-y-8">
+    <div className="mx-auto max-w-5xl space-y-6">
       <div>
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-text-secondary)]">
           Account
@@ -139,65 +181,73 @@ export function ProfileView({
         <h1 className="font-display text-2xl font-bold tracking-tight">Profile</h1>
       </div>
 
-      <section className="space-y-5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-xs sm:p-6">
-        <h2 className="font-display text-lg font-semibold">Account Info</h2>
-        <AccountRow icon={<UserRound className="h-4 w-4" />} label="Name" value={name} />
-        <AccountRow icon={<Mail className="h-4 w-4" />} label="Email" value={email ?? "Not added"} action="Change" onAction={() => openContactChange("email")} />
-        <AccountRow icon={<Phone className="h-4 w-4" />} label="Phone" value={phoneNumber} action="Change" onAction={() => openContactChange("phone")} />
-        <div className="flex items-center justify-between border-t border-[var(--color-border)] pt-4">
-          <div>
-            <p className="text-sm font-semibold">Appearance</p>
-            <p className="text-xs text-[var(--color-text-secondary)]">Choose light or dark mode.</p>
-          </div>
-          <ThemeToggle />
+      <div className="grid gap-6 md:grid-cols-[14rem_minmax(0,1fr)] md:items-start">
+        {nav}
+        <div className="min-w-0 space-y-6">
+          {section === "account" && (
+            <>
+              <section className="space-y-5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-xs sm:p-6">
+                <h2 className="font-display text-lg font-semibold">Account Info</h2>
+                <AccountRow icon={<UserRound className="h-4 w-4" />} label="Name" value={name} />
+                <AccountRow icon={<Mail className="h-4 w-4" />} label="Email" value={email ?? "Not added"} action="Change" onAction={() => openContactChange("email")} />
+                <AccountRow icon={<Phone className="h-4 w-4" />} label="Phone" value={phoneNumber} action="Change" onAction={() => openContactChange("phone")} />
+                <div className="flex items-center justify-between border-t border-[var(--color-border)] pt-4">
+                  <div>
+                    <p className="text-sm font-semibold">Appearance</p>
+                    <p className="text-xs text-[var(--color-text-secondary)]">Choose light or dark mode.</p>
+                  </div>
+                  <ThemeToggle />
+                </div>
+              </section>
+
+              <section className="space-y-3 rounded-xl border border-[var(--color-negative)]/60 bg-[color-mix(in_srgb,var(--color-negative)_5%,var(--color-surface))] p-5 sm:p-6">
+                <h3 className="font-display text-lg font-semibold text-[var(--color-negative)]">Delete account</h3>
+                <p className="text-sm text-[var(--color-text-secondary)]">
+                  Permanently remove your account and household data after a five-day grace period.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setDeletionStep("survey")}
+                  className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-negative)] px-4 py-2 text-sm font-semibold text-[var(--color-negative)] transition-colors hover:bg-[color-mix(in_srgb,var(--color-negative)_10%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-negative)]"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete Account
+                </button>
+              </section>
+            </>
+          )}
+
+          {section === "family" && (
+            <HouseholdMembersSection
+              key={`members-${membersVersion}`}
+              loadMembers={loadMembers}
+              loadImportHistory={loadImportHistory}
+              deletePortfolio={deletePortfolio}
+              accountPhone={phoneNumber}
+              accountEmail={email}
+              onChanged={() => {
+                setHistoryVersion((v) => v + 1);
+                onMembersChanged?.();
+              }}
+            />
+          )}
+
+          {section === "imports" && (
+            <ImportHistorySection
+              key={`history-${historyVersion}`}
+              loadImportHistory={loadImportHistory}
+              deleteImport={deleteImport}
+              loadMembers={loadMembers}
+              onChanged={() => {
+                setMembersVersion((v) => v + 1);
+                onMembersChanged?.();
+              }}
+            />
+          )}
+
+          {section === "terms" && <TermsSection />}
         </div>
-      </section>
-
-      <HouseholdMembersSection
-        key={`members-${membersVersion}`}
-        loadMembers={loadMembers}
-        loadImportHistory={loadImportHistory}
-        deletePortfolio={deletePortfolio}
-        onChanged={() => {
-          setHistoryVersion((v) => v + 1);
-          onMembersChanged?.();
-        }}
-      />
-
-      <ImportHistorySection
-        key={`history-${historyVersion}`}
-        loadImportHistory={loadImportHistory}
-        deleteImport={deleteImport}
-        loadMembers={loadMembers}
-        onChanged={() => {
-          setMembersVersion((v) => v + 1);
-          onMembersChanged?.();
-        }}
-      />
-
-      <button
-        type="button"
-        onClick={logout}
-        className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm font-semibold transition-colors hover:bg-[var(--color-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
-      >
-        <LogOut className="h-4 w-4" />
-        Logout
-      </button>
-
-      <section className="space-y-3 rounded-xl border border-[var(--color-negative)]/60 bg-[color-mix(in_srgb,var(--color-negative)_5%,var(--color-surface))] p-5 sm:p-6">
-        <h2 className="font-display text-lg font-semibold text-[var(--color-negative)]">Danger Zone</h2>
-        <p className="text-sm text-[var(--color-text-secondary)]">
-          Permanently remove your account and household data after a five-day grace period.
-        </p>
-        <button
-          type="button"
-          onClick={() => setDeletionStep("survey")}
-          className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-negative)] px-4 py-2 text-sm font-semibold text-[var(--color-negative)] transition-colors hover:bg-[color-mix(in_srgb,var(--color-negative)_10%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-negative)]"
-        >
-          <Trash2 className="h-4 w-4" />
-          Delete Account
-        </button>
-      </section>
+      </div>
 
       <Modal
         isOpen={deletionStep !== "closed"}
