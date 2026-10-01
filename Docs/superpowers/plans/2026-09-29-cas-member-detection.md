@@ -8,6 +8,8 @@
 
 **Tech Stack:** FastAPI + SQLAlchemy 2 + Alembic (SQLite dev, Postgres 16 staging), casparser 1.3.0, pytest; React + Vite + TypeScript, shadcn/Radix UI, Vitest + Testing Library.
 
+> **Superseded 2026-10-01 (partly):** rules L1/L2 (typed PAN at unlock), L3 (detected-PAN mismatch), L9 (edit name/PAN of an unlocked member) and the people-popup rename (U9) no longer apply. Name and PAN now come from the CAS; unlock is relationship-only (PAN only when the statement had none). See `decisions.md` 2026-10-01. The text below is kept for history.
+
 **Spec:** `Docs/orchestration/cas-member-detection-map.html` (artifact v7, https://claude.ai/artifact/MbEcNvyHmxcAz1PnvuAP7r). State ids (U1–U13, C1–C3, L1–L9, A1, D1–D2), scenario ids (M1–M22) and decision ids (I1–I16) below refer to that page.
 
 ## Global Constraints

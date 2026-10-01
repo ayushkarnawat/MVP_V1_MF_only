@@ -1,0 +1,683 @@
+<title>Consent &amp; Profile Change Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: same system as staging-qa-findings-map — one reading column, one section per change, before/after panels, decisions in amber. */
+:root {
+  --bg: #FCFCFC; --surface: #FFFFFF; --ink: #111111; --muted: #5C5C5C; --border: #E5E5E5;
+  --accent: #22C55E; --accent-ink: #15803D;
+  --warn: #B45309; --warn-bg: #FEF3C7;
+  --good: #15803D; --good-bg: #DCFCE7;
+  --bad: #B42318; --bad-bg: #FEE4E2;
+  --info: #1D4ED8; --info-bg: #DBEAFE;
+  --code-bg: #F4F6F5;
+  --font-display: "DM Sans", system-ui, sans-serif;
+  --font-body: "Manrope", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0F0F0F; --surface: #1A1A1A; --ink: #F5F5F5; --muted: #A3A3A3; --border: #2A2A2A;
+    --accent: #22C55E; --accent-ink: #4ADE80;
+    --warn: #FCD34D; --warn-bg: #3A2A0A;
+    --good: #86EFAC; --good-bg: #0F2E1A;
+    --bad: #FDA29B; --bad-bg: #3B1512;
+    --info: #93C5FD; --info-bg: #13233F;
+    --code-bg: #202322;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0F0F0F; --surface: #1A1A1A; --ink: #F5F5F5; --muted: #A3A3A3; --border: #2A2A2A;
+  --accent: #22C55E; --accent-ink: #4ADE80;
+  --warn: #FCD34D; --warn-bg: #3A2A0A;
+  --good: #86EFAC; --good-bg: #0F2E1A;
+  --bad: #FDA29B; --bad-bg: #3B1512;
+  --info: #93C5FD; --info-bg: #13233F;
+  --code-bg: #202322;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.6; padding-inline: 16px; padding-block: 0 64px; }
+.wrap { max-width: 980px; margin: 0 auto; display: flex; flex-direction: column; gap: 56px; }
+h1, h2, h3, h4 { font-family: var(--font-display); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(28px, 4.5vw, 40px); line-height: 1.1; }
+h2 { font-size: 24px; line-height: 1.2; }
+h3 { font-size: 17px; }
+h4 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; }
+p { margin: 0; max-width: 70ch; }
+code, .mono { font-family: var(--font-mono); font-size: 0.85em; }
+code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+a { color: var(--accent-ink); }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+header.top { padding-top: 40px; display: flex; flex-direction: column; gap: 12px; }
+.eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+.lede { color: var(--muted); font-size: 16px; }
+nav.toc { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 8px; }
+nav.toc a { font-size: 13px; text-decoration: none; border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; color: var(--ink); background: var(--surface); }
+nav.toc a:hover { border-color: var(--accent); }
+
+.pill { display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.pill.bug { color: var(--bad); background: var(--bad-bg); }
+.pill.gap { color: var(--warn); background: var(--warn-bg); }
+.pill.ok { color: var(--good); background: var(--good-bg); }
+.pill.feat { color: var(--info); background: var(--info-bg); }
+.layers { display: flex; flex-wrap: wrap; gap: 4px; }
+.layer { font-family: var(--font-mono); font-size: 11px; border: 1px solid var(--border); border-radius: 4px; padding: 0 5px; color: var(--muted); }
+.layer.on { color: var(--ink); border-color: var(--ink); }
+
+.table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { font-family: var(--font-display); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 600; background: var(--code-bg); }
+tr:last-child td { border-bottom: 0; }
+td.num { font-variant-numeric: tabular-nums; font-family: var(--font-display); font-weight: 700; }
+
+section.issue { display: flex; flex-direction: column; gap: 20px; scroll-margin-top: 16px; }
+.issue-head { display: flex; flex-direction: column; gap: 8px; border-top: 2px solid var(--ink); padding-top: 16px; }
+.issue-head .meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.issue-no { font-family: var(--font-mono); font-size: 13px; color: var(--muted); }
+
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.grid2 > * { min-width: 0; }
+.block { display: flex; flex-direction: column; gap: 8px; }
+.callout { border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+.callout.cause { background: var(--bad-bg); }
+.callout.cause h4 { color: var(--bad); }
+.callout.design { background: var(--good-bg); }
+.callout.design h4 { color: var(--good); }
+.callout.decide { background: var(--warn-bg); }
+.callout.decide h4 { color: var(--warn); }
+.callout p, .callout li { color: var(--ink); }
+
+ul.fix { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+ul.fix li { display: grid; grid-template-columns: 44px 1fr; gap: 10px; align-items: baseline; }
+ul.fix li > div { min-width: 0; }
+.tag { font-family: var(--font-mono); font-size: 11px; font-weight: 500; text-align: center; border-radius: 4px; padding: 1px 0; }
+.tag.fe { background: var(--info-bg); color: var(--info); }
+.tag.be { background: var(--good-bg); color: var(--good); }
+.tag.db { background: var(--warn-bg); color: var(--warn); }
+.tag.doc { background: var(--code-bg); color: var(--muted); }
+ul.plain { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+
+.diagram { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; overflow-x: auto; }
+.diagram .cap { font-size: 12px; color: var(--muted); padding-bottom: 6px; }
+pre.mermaid { margin: 0; background: transparent; font-size: 13px; }
+
+.math { font-family: var(--font-mono); font-size: 13px; background: var(--code-bg); border-radius: 8px; padding: 12px 14px; overflow-x: auto; white-space: pre; line-height: 1.7; }
+.evidence td:first-child { white-space: nowrap; }
+.kav { font-variant-numeric: tabular-nums; }
+.new-row td { background: var(--bad-bg); }
+footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--border); padding-top: 16px; }
+</style>
+<style>
+.ba { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.ba > div { min-width: 0; border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; background: var(--surface); display: flex; flex-direction: column; gap: 8px; }
+.ba .lbl { font-family: var(--font-display); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+.ba .before .lbl { color: var(--bad); }
+.ba .after .lbl { color: var(--good); }
+.ba .after { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+.where { font-family: var(--font-mono); font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.mock { border: 1px solid var(--border); border-radius: 12px; background: var(--surface); display: grid; grid-template-columns: 190px 1fr; overflow: hidden; }
+.mock nav { background: var(--code-bg); padding: 12px; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.mock nav span { padding: 6px 10px; border-radius: 8px; color: var(--muted); }
+.mock nav span.on { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: inset 2px 0 0 var(--accent); }
+.mock nav span.out { margin-top: auto; border-top: 1px solid var(--border); border-radius: 0; padding-top: 10px; }
+.mock .pane { padding: 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; font-size: 13px; }
+.field { display: grid; grid-template-columns: 110px 1fr auto; gap: 8px; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+.field:last-child { border-bottom: 0; }
+.field .k { color: var(--muted); font-size: 12px; }
+.lock { font-size: 11px; color: var(--muted); font-family: var(--font-mono); }
+.edit { font-size: 11px; color: var(--accent-ink); font-weight: 700; }
+@media (max-width: 560px) { .mock { grid-template-columns: 1fr; } .mock nav { flex-direction: row; flex-wrap: wrap; } .mock nav span.out { margin-top: 0; border-top: 0; padding-top: 6px; } .field { grid-template-columns: 90px 1fr auto; } }
+.check { display: flex; gap: 10px; align-items: flex-start; border: 1px dashed var(--border); border-radius: 10px; padding: 12px 14px; font-size: 13px; background: var(--surface); }
+.box { flex: 0 0 16px; height: 16px; border: 1.5px solid var(--ink); border-radius: 4px; margin-top: 2px; }
+.check a { text-decoration: underline; }
+.email { border: 1px solid var(--border); border-radius: 10px; padding: 16px; background: var(--surface); font-size: 14px; display: flex; flex-direction: column; gap: 8px; }
+.email .otp { font-family: var(--font-display); font-size: 28px; font-weight: 700; letter-spacing: 0.06em; font-variant-numeric: tabular-nums; }
+.pillhl { background: rgba(34,197,94,0.16); color: var(--accent-ink); font-weight: 700; padding: 1px 6px; border-radius: 4px; }
+.greentext { color: var(--accent-ink); font-weight: 700; }
+.logo-ph { font-family: var(--font-display); font-weight: 700; font-size: 13px; color: var(--muted); border: 1px dashed var(--border); border-radius: 6px; padding: 2px 8px; align-self: flex-start; text-decoration: line-through; }
+.goal { display: flex; flex-direction: column; gap: 6px; }
+.goal div { border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; font-size: 13px; display: flex; justify-content: space-between; gap: 8px; background: var(--surface); }
+.goal div.all { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
+.goal small { color: var(--muted); display: block; font-size: 12px; }
+.steps { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; }
+.steps span { border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px; background: var(--surface); }
+.steps span.gone { text-decoration: line-through; color: var(--bad); border-color: var(--bad); background: var(--bad-bg); }
+.steps i { color: var(--muted); font-style: normal; }
+ol.order { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; counter-reset: o; }
+ol.order li { counter-increment: o; display: grid; grid-template-columns: 36px 1fr; gap: 12px; align-items: start; border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; background: var(--surface); }
+ol.order li::before { content: counter(o); font-family: var(--font-display); font-weight: 700; font-size: 20px; color: var(--accent-ink); }
+ol.order li > div { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.resolved td:last-child { color: var(--good); font-weight: 600; }
+</style>
+
+<div class="wrap">
+
+<header class="top">
+  <span class="eyebrow">Unifolio · MF MVP · Change plan · 1 Oct 2026</span>
+  <h1>Consent, onboarding and Profile changes</h1>
+  <p class="lede">The plan for the seven changes you asked for. For each one: what the user sees today, what they'll see after, which files change, and how it gets built. Nothing is built yet. All decisions are answered (see the end). Points still waiting on your lawyer are in amber. The same plan as text is in <code>Docs/orchestration/2026-10-01-onboarding-consent-profile-changes-plan.md</code>.</p>
+  <nav class="toc" aria-label="Sections">
+    <a href="#summary">Summary</a>
+    <a href="#a">A · Privacy screen</a>
+    <a href="#b">B · Consent</a>
+    <a href="#c">C · Goal question</a>
+    <a href="#h">H · Name &amp; PAN from CAS</a>
+    <a href="#e">E · Profile</a>
+    <a href="#f">F · OTP email</a>
+    <a href="#order">Build order</a>
+    <a href="#decisions">Decisions</a>
+  </nav>
+</header>
+
+<!-- ============================================================ SUMMARY -->
+<section id="summary" class="block">
+  <h2>Summary</h2>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Change</th><th>What it is</th><th>Layers</th><th>Size</th><th>Risk</th></tr></thead>
+      <tbody>
+        <tr><td class="num">A</td><td>Remove the privacy screen from onboarding, save the name when entered, and resume at the first missing answer</td><td><div class="layers"><span class="layer on">FE</span><span class="layer on">BE</span><span class="layer">DB</span></div></td><td>S</td><td><span class="pill ok">Low</span></td></tr>
+        <tr><td class="num">B</td><td>T&amp;C and Privacy links at sign-up, a PAN disclaimer at upload, and a consent record that can't be edited</td><td><div class="layers"><span class="layer on">FE</span><span class="layer on">BE</span><span class="layer on">DB</span></div></td><td>L</td><td><span class="pill bug">High</span></td></tr>
+        <tr><td class="num">C</td><td>"All of the above" on the goal question, plus a goals report script</td><td><div class="layers"><span class="layer on">FE</span><span class="layer on">BE</span><span class="layer">DB</span></div></td><td>S</td><td><span class="pill ok">Low</span></td></tr>
+        <tr><td class="num">D+H</td><td>Name and PAN always come from the CAS and can't be edited anywhere (includes removing the pencil from the "N people found" popup)</td><td><div class="layers"><span class="layer on">FE</span><span class="layer on">BE</span><span class="layer">DB</span></div></td><td>M</td><td><span class="pill gap">Medium</span></td></tr>
+        <tr><td class="num">E</td><td>Profile reorganised into 5 sections, with family members editable except name and PAN</td><td><div class="layers"><span class="layer on">FE</span><span class="layer on">BE</span><span class="layer on">DB</span></div></td><td>M–L</td><td><span class="pill gap">Medium</span></td></tr>
+        <tr><td class="num">F</td><td>OTP email: no green highlight and no logo</td><td><div class="layers"><span class="layer">FE</span><span class="layer on">BE</span><span class="layer">DB</span></div></td><td>XS</td><td><span class="pill ok">Low</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="where">FE = frontend · BE = backend · DB = database migration</p>
+</section>
+
+<!-- ============================================================ A -->
+<section id="a" class="issue">
+  <div class="issue-head">
+    <div class="meta"><span class="issue-no">A</span><span class="pill feat">Onboarding</span><span class="pill ok">Decided</span></div>
+    <h2>Remove the privacy screen from onboarding</h2>
+    <p>The "We keep your insights, not your files" screen goes entirely, including the Account Aggregator line, which isn't accurate because the app uses CAS upload, not AA. Its two true messages (CAS kept encrypted for 30 days, PAN stored encrypted) move into the PAN disclaimer on the upload page.</p>
+  </div>
+  <div class="ba">
+    <div class="before">
+      <span class="lbl">Today · 5 steps</span>
+      <div class="steps"><span>Name</span><i>→</i><span>Investing</span><i>→</i><span>What brings you</span><i>→</i><span class="gone">Privacy screen</span><i>→</i><span>Upload CAS</span></div>
+    </div>
+    <div class="after">
+      <span class="lbl">After · 4 steps</span>
+      <div class="steps"><span>Name</span><i>→</i><span>Investing</span><i>→</i><span>What brings you</span><i>→</i><span>Upload CAS + PAN disclaimer</span></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="block">
+      <h4>What changes</h4>
+      <ul class="fix">
+        <li><span class="tag fe">FE</span><div>Remove <code>trust_primer</code> from <code>onboardingSteps.ts</code>. The progress bar goes from 5 steps to 4.</div></li>
+        <li><span class="tag fe">FE</span><div><code>OnboardingFlow.tsx</code>: "What brings you" continues straight to Upload, and Back from Upload goes to "What brings you".</div></li>
+        <li><span class="tag fe">FE</span><div>Delete <code>TrustPrimer.tsx</code>, its test, and its illustrations (after checking nothing else uses them).</div></li>
+      </ul>
+    </div>
+    <div class="callout cause">
+      <h4>Found while planning: the name is never saved</h4>
+      <p>The name step keeps the name only in the browser. It reaches the server at Upload, when your member record is created. Anyone who leaves and comes back after the name step loses it and ends up named <b>"Me"</b>. This is an existing bug.</p>
+      <p><b>Fix:</b> save the name as soon as it's entered (create your member record right then). <code>/me</code> reports it, so resume can check it.</p>
+    </div>
+  </div>
+
+  <div class="diagram">
+    <div class="cap">Users returning who stopped on the privacy screen go to the first question whose answer is missing, or straight to Upload if everything was saved</div>
+<pre class="mermaid">
+flowchart LR
+  R["Returns with<br/>step = trust_primer"] --> N{"Name saved?"}
+  N -- "no" --> Q1["Name question"]
+  N -- "yes" --> I{"Investing<br/>answer saved?"}
+  I -- "no" --> Q2["Investing question"]
+  I -- "yes" --> G{"Goals saved?"}
+  G -- "no" --> Q3["What brings you"]
+  G -- "yes" --> UP["Upload CAS"]
+</pre>
+  </div>
+
+  <div class="grid2">
+    <div class="block">
+      <h4>How the rule is applied</h4>
+      <ul class="fix">
+        <li><span class="tag fe">FE</span><div>The <b>name check runs on every resume</b>. The name step has no Skip, so a missing name always means it was never saved.</div></li>
+        <li><span class="tag fe">FE</span><div>The <b>investing and goal checks run only for privacy-screen users</b>, once. After that they carry a normal step and are never re-checked.</div></li>
+        <li><span class="tag fe">FE</span><div>Questions shown on resume open with the saved answer already selected (today they open blank).</div></li>
+        <li><span class="tag be">BE</span><div><code>GET /me</code> gains <code>self_name</code>. No database change.</div></li>
+      </ul>
+    </div>
+    <div class="callout design">
+      <h4>Decided · QF</h4>
+      <p>A privacy-screen user who <b>deliberately skipped</b> investing or "What brings you" is asked once more, because a skip looks the same as an answer that wasn't saved. <b>Accepted.</b> It's one re-ask, and they can skip again.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ B -->
+<section id="b" class="issue">
+  <div class="issue-head">
+    <div class="meta"><span class="issue-no">B</span><span class="pill feat">Legal</span><span class="pill bug">Highest risk</span></div>
+    <h2>Consent at sign-up and upload, with a record that can't be edited</h2>
+    <p>Three consents are recorded: Terms &amp; Conditions and Privacy Policy at sign-up, and the PAN disclaimer at every upload. Each is a ticked box, written to the database alongside the account or the upload, and checked on the server so it can't be skipped.</p>
+  </div>
+
+  <div class="ba">
+    <div class="before">
+      <span class="lbl">Sign-up today</span>
+      <p>Phone, email or Google, with no mention of terms or privacy anywhere. Nothing is recorded.</p>
+    </div>
+    <div class="after">
+      <span class="lbl">Sign-up after</span>
+      <div class="check"><span class="box"></span><span>I agree to the <a>Terms &amp; Conditions</a> and <a>Privacy Policy</a></span></div>
+      <p class="where">Sign-up mode only, above the Continue and Google buttons. Both stay disabled until it's ticked. The links open a modal with placeholder text for now.</p>
+    </div>
+  </div>
+  <div class="ba">
+    <div class="before">
+      <span class="lbl">Upload today</span>
+      <p>Pick a file, enter the password, upload. A family CAS carries other people's PANs, and nothing records that the user was allowed to share them.</p>
+    </div>
+    <div class="after">
+      <span class="lbl">Upload after (all 3 upload screens + CAMS request)</span>
+      <div class="check"><span class="box"></span><span>I confirm I'm authorised to share this statement, including the PAN and holdings of any family members in it. Unifolio stores PANs encrypted, never shows them in full, keeps the CAS file encrypted for 30 days for dispute resolution, and only reads your data. It can never buy, sell or move anything.</span></div>
+      <p class="where">Draft wording. The lawyer reviews it.</p>
+    </div>
+  </div>
+
+  <div class="diagram">
+    <div class="cap">How one consent gets recorded: the account (or upload) and the consent rows are saved together, so one can't exist without the other</div>
+<pre class="mermaid">
+flowchart LR
+  U["User ticks box<br/>and continues"] --> FE["Browser sends<br/>doc type + version"]
+  FE --> S{"Server checks:<br/>is this the current version?"}
+  S -- "missing or old" --> R["422 consent_required<br/>nothing is created"]
+  S -- "valid" --> A
+  subgraph TX["One database transaction"]
+    direction TB
+    A["Create user<br/>or start import"] --> C["Write consent rows<br/>server stamps time, hash,<br/>IP (shortened), device"]
+  end
+  C --> OK["Both saved,<br/>or neither"]
+</pre>
+  </div>
+
+  <div class="grid2">
+    <div class="block">
+      <h4>The new table: <code>consent_records</code></h4>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Column</th><th>Holds</th></tr></thead>
+          <tbody>
+            <tr><td><code>user_id</code></td><td>Internal account ID. Never a PAN, phone or email.</td></tr>
+            <tr><td><code>action</code></td><td><code>given</code> or <code>withdrawn</code></td></tr>
+            <tr><td><code>purpose_code</code></td><td>What the consent is for (table on the right)</td></tr>
+            <tr><td><code>document_type</code></td><td>Terms, Privacy, or PAN disclaimer</td></tr>
+            <tr><td><code>document_version</code></td><td>e.g. <code>tos-2026-10-15</code></td></tr>
+            <tr><td><code>document_sha256</code></td><td>Fingerprint of the exact text shown</td></tr>
+            <tr><td><code>recorded_at</code></td><td>Server time, never the phone's clock</td></tr>
+            <tr><td><code>surface</code></td><td>Which screen: sign-up via phone, email or Google; upload; reactivate…</td></tr>
+            <tr><td><code>ip_truncated</code> + <code>ip_hmac</code></td><td>Shortened IP plus a keyed hash, never the full IP</td></tr>
+            <tr><td><code>user_agent</code>, <code>device_id</code></td><td>Browser and device</td></tr>
+            <tr><td><code>import_id</code></td><td>PAN disclaimer only: which upload</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="block">
+      <h4>Purposes (the lawyer confirms the list)</h4>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Document</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td>T&amp;C</td><td><code>service_agreement</code></td></tr>
+            <tr><td>Privacy</td><td><code>account_and_authentication</code>: phone/email for login and OTP</td></tr>
+            <tr><td>Privacy</td><td><code>portfolio_tracking_analytics</code>: dashboards and analytics</td></tr>
+            <tr><td>PAN disclaimer</td><td><code>cas_pan_processing</code>: read PANs, assign funds to family, block the same PAN on two accounts, keep the CAS 30 days</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>One tick writes one row per purpose. If a new document version changes a purpose, the old consent stops counting and the user is asked again.</p>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="callout design">
+      <h4>Why the record holds up</h4>
+      <ul class="plain">
+        <li><b>Can't be edited.</b> A database trigger rejects every UPDATE and DELETE. Changes are always new rows.</li>
+        <li><b>The server stamps it.</b> The browser only says "I accepted version X". The server checks X is current and adds the time, fingerprint, IP and device itself.</li>
+        <li><b>Saved together.</b> No account or upload exists without its consent rows.</li>
+        <li><b>Checked on the server.</b> Hiding the checkbox in the browser gets a 422.</li>
+        <li><b>Easy to pull.</b> <code>scripts/consent_trail.py --user …</code> prints the full history for a lawyer.</li>
+      </ul>
+    </div>
+    <div class="callout design">
+      <h4>What I changed after the external review</h4>
+      <ul class="plain">
+        <li><b>User ID:</b> it's no longer a foreign key. Otherwise account deletion would try to edit consent rows, the no-edits rule would block it, and the deletion would fail.</li>
+        <li><b>IP:</b> stored shortened plus a keyed hash, never in full.</li>
+        <li><b>Given/withdrawn:</b> added. Withdrawing adds a row.</li>
+        <li><b>Purpose:</b> added, with Unifolio's real purposes in place of the review's credit-check examples.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="diagram">
+    <div class="cap">One user's consent over time. The latest row for each purpose is their current state.</div>
+<pre class="mermaid">
+flowchart LR
+  G1["Sign-up<br/>given (v-placeholder)"] --> G2["Real docs published<br/>re-consent: given (v1)"]
+  G2 --> W["Schedules deletion<br/>withdrawn (all purposes)"]
+  W -- "reactivates within 5 days,<br/>ticks box again" --> G3["given (v1)<br/>surface = reactivate"]
+  W -- "5 days pass" --> D["Account hard-deleted<br/>consent rows: see Q6"]
+</pre>
+  </div>
+
+  <div class="grid2">
+    <div class="block">
+      <h4>Where the documents live</h4>
+      <ul class="fix">
+        <li><span class="tag be">BE</span><div>Files in <code>backend/app/legal/</code>, plus a registry of type, version and purposes. <code>GET /legal/documents</code> serves the current text, so what users see is exactly what was fingerprinted.</div></li>
+        <li><span class="tag be">BE</span><div>Version <code>placeholder-2026-10-01</code> for now. When the lawyers sign off, you send the files, I swap them in and bump the version. No code change.</div></li>
+        <li><span class="tag fe">FE</span><div>Re-consent modal: <code>GET /me</code> reports outdated consents, and a blocking "We've updated our Terms" modal appears. This is needed because everyone signing up before then will have agreed to placeholder text.</div></li>
+        <li><span class="tag db">DB</span><div>New migration for <code>consent_records</code> plus the no-edits trigger.</div></li>
+      </ul>
+    </div>
+    <div class="callout design">
+      <h4>Decided</h4>
+      <ul class="plain">
+        <li><b>Q2</b> <b>Unticked checkbox</b>, not "by continuing you agree".</li>
+        <li><b>Q3</b> PAN disclaimer on <b>every upload</b>.</li>
+        <li><b>Q4</b> Also on the <b>CAMS-request</b> path.</li>
+        <li><b>Q5</b> Re-consent is <b>built now</b>.</li>
+        <li><b>Q6</b> Consent rows are <b>never deleted, for now</b>: not by account deletion and not by any job. Retention to be set with your lawyer.</li>
+        <li><b>Q11</b> <b>No "withdraw consent" control for now</b>. To be discussed with your lawyer. The automatic rows on deletion and reactivation are still recorded.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ C -->
+<section id="c" class="issue">
+  <div class="issue-head">
+    <div class="meta"><span class="issue-no">C</span><span class="pill feat">Onboarding</span><span class="pill ok">Low risk</span></div>
+    <h2>"All of the above" on What brings you to Unifolio</h2>
+    <p>A fifth row that ticks all four goals at once. It's saved as the four goals, so nothing changes in the database.</p>
+  </div>
+  <div class="ba">
+    <div class="before">
+      <span class="lbl">Today</span>
+      <div class="goal">
+        <div><span>Consolidated portfolio view</span></div>
+        <div><span>Understand true performance</span></div>
+        <div><span>Family wealth tracking</span></div>
+        <div><span>Compare distributor fees</span></div>
+      </div>
+    </div>
+    <div class="after">
+      <span class="lbl">After</span>
+      <div class="goal">
+        <div><span>Consolidated portfolio view</span><span>✓</span></div>
+        <div><span>Understand true performance</span><span>✓</span></div>
+        <div><span>Family wealth tracking</span><span>✓</span></div>
+        <div><span>Compare distributor fees</span><span>✓</span></div>
+        <div class="all"><span><b>Why choose? All of it.</b><small>The full picture, the true returns, the whole family, the fine print.</small></span><span>✓</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="block">
+      <h4>What changes</h4>
+      <ul class="fix">
+        <li><span class="tag fe">FE</span><div><code>Q3Purpose.tsx</code>: tapping it ticks all four. Unticking any one unticks it, and ticking all four by hand lights it up.</div></li>
+        <li><span class="tag be">BE</span><div><code>scripts/report_onboarding_goals.py</code> (read-only, run when needed): count and % per goal, how many picked all four, how many skipped, an optional date range, and a CSV export.</div></li>
+      </ul>
+    </div>
+    <div class="callout design">
+      <h4>Decided</h4>
+      <ul class="plain">
+        <li><b>Q7</b> Saved as the four goals, not a separate value.</li>
+        <li><b>Wording:</b> "Why choose? All of it."</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ H -->
+<section id="h" class="issue">
+  <div class="issue-head">
+    <div class="meta"><span class="issue-no">D + H</span><span class="pill feat">Whole app</span><span class="pill gap">Medium risk</span></div>
+    <h2>Name and PAN always come from the CAS</h2>
+    <p>Your rule: users can edit anything about a member except name and PAN. Both follow the CAS, everywhere in the app. Removing the pencil from the "N people found" popup (D) is one part of this.</p>
+  </div>
+
+  <div class="diagram">
+    <div class="cap">Where a member's name and PAN come from after the change</div>
+<pre class="mermaid">
+flowchart LR
+  CAS["CAS statement"] -->|"name + PAN"| M["Member record"]
+  NEW["Newer CAS<br/>(spelling variant)"] -->|"updates name"| M
+  USER["User"] -->|"relationship, phone, email"| M
+  USER -. "name or PAN edit<br/>422 field_not_editable" .-x M
+</pre>
+  </div>
+
+  <h4>The six places a name or PAN can be typed today</h4>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Screen</th><th>Today</th><th>After</th></tr></thead>
+      <tbody>
+        <tr><td>Onboarding "What's your name?"<br/><span class="where">Q1Name.tsx</span></td><td>Typed name becomes your member name</td><td>A temporary name, replaced by the CAS name on first import (QA)</td></tr>
+        <tr><td>"This statement is in a different name"<br/><span class="where">NameMismatchDialog.tsx</span></td><td>Editable text box, prefilled with the CAS name</td><td>"This statement is in X's name. Is that you?" with [Yes, that's me] or [Upload a different file]. No text box.</td></tr>
+        <tr><td>"N people found" popup<br/><span class="where">PeopleFoundDialog.tsx</span></td><td>Pencil to rename anyone</td><td>Pencil removed. Names are read-only.</td></tr>
+        <tr><td>Unlock a detected member<br/><span class="where">MemberDetailsDialog / memberDetailsForm</span></td><td>Name editable, PAN typed and checked</td><td><b>Relationship dropdown only.</b> Name and masked PAN shown read-only. If the statement has no PAN for this person, a PAN field is added (only case where PAN is typed).</td></tr>
+        <tr><td>Edit member (dashboard)<br/><span class="where">EditMemberDialog.tsx</span></td><td>Edits name, PAN and relationship</td><td>Relationship, phone and email only</td></tr>
+        <tr><td>Profile → Family Members<br/><span class="where">new, section E</span></td><td>—</td><td>Name and PAN read-only from the start</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="ba">
+    <div class="after">
+      <span class="lbl">Unlock popup · PAN on the statement (most members)</span>
+      <div class="field"><span class="k">Name</span><span>Kavita Sharma</span><span class="lock">from CAS</span></div>
+      <div class="field"><span class="k">PAN</span><span class="mono">AB******4F</span><span class="lock">from CAS</span></div>
+      <div class="field"><span class="k">Relationship</span><span>Choose… ▾</span><span class="edit">Required</span></div>
+    </div>
+    <div class="after">
+      <span class="lbl">Unlock popup · no PAN on the statement</span>
+      <div class="field"><span class="k">Name</span><span>Rohan Sharma</span><span class="lock">from CAS</span></div>
+      <div class="field"><span class="k">PAN</span><span class="mono">_ _ _ _ _ _ _ _ _ _</span><span class="edit">Type it</span></div>
+      <div class="field"><span class="k">Relationship</span><span>Choose… ▾</span><span class="edit">Required</span></div>
+    </div>
+  </div>
+  <p class="where">Example members, for illustration. A typed PAN goes through the existing format, duplicate-member and other-account checks.</p>
+
+  <div class="grid2">
+    <div class="block">
+      <h4>Enforced on the server too</h4>
+      <ul class="fix">
+        <li><span class="tag be">BE</span><div><code>MemberDetailsRequest</code> stops accepting <code>name</code>. <code>pan</code> is accepted only when the member has no PAN on the statement, and is otherwise rejected (422). <code>DetectedPanMismatchDialog</code> and its server branch are removed, since they can no longer be reached.</div></li>
+        <li><span class="tag be">BE</span><div>The user-rename paths in <code>member_details.py:252</code> and <code>confirm_people.py:549</code> are removed, except for QB.</div></li>
+        <li><span class="tag be">BE</span><div><code>resolve-name</code> ignores any typed name and uses the statement's.</div></li>
+        <li><span class="tag doc">DOC</span><div>Mark rules L1/L2/L9/U9 as superseded in the member-detection spec, and record the new rule in <code>decisions.md</code>.</div></li>
+      </ul>
+    </div>
+    <div class="callout design">
+      <h4>Decided</h4>
+      <ul class="plain">
+        <li><b>QA</b> Onboarding name kept as a temporary name until the CAS replaces it.</li>
+        <li><b>QB</b> No readable name on the statement: one-time name, replaced by a later CAS.</li>
+        <li><b>QC</b> No PAN on the statement: stays empty everywhere, <b>except the unlock popup</b>, which shows a PAN field for these members only. Once saved it's read-only, and a later CAS with their PAN takes over.</li>
+        <li><b>QD</b> Typed PAN at unlock is <b>dropped</b>. The unlock popup is the <b>relationship dropdown only</b>.</li>
+        <li><b>QE</b> No migration for already-typed names and PANs. The next CAS overwrites them.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ E -->
+<section id="e" class="issue">
+  <div class="issue-head">
+    <div class="meta"><span class="issue-no">E</span><span class="pill feat">Profile</span><span class="pill gap">Medium risk</span></div>
+    <h2>Profile, reorganised into five sections</h2>
+    <p>A section menu on the left (a row of tabs on phones). Delete Account moves into Account Info. Family members become editable except name and PAN.</p>
+  </div>
+
+  <div class="ba">
+    <div class="before">
+      <span class="lbl">Today, one long page</span>
+      <ul class="plain">
+        <li>Account Info: name, email, phone, theme</li>
+        <li>Family members: name + "Delete all funds"</li>
+        <li>Import History, with transaction counts</li>
+        <li>Logout button</li>
+        <li>Danger Zone: Delete Account</li>
+      </ul>
+    </div>
+    <div class="after">
+      <span class="lbl">After, Family Members open</span>
+      <div class="mock" aria-label="Mock of the new Profile layout">
+        <nav>
+          <span>Account Info</span>
+          <span class="on">Family Members</span>
+          <span>Import History</span>
+          <span>Terms of Service</span>
+          <span class="out">Logout</span>
+        </nav>
+        <div class="pane">
+          <b>Kavita Sharma</b>
+          <div class="field"><span class="k">Name</span><span>Kavita Sharma</span><span class="lock">from CAS</span></div>
+          <div class="field"><span class="k">PAN</span><span class="mono">AB******4F</span><span class="lock">from CAS</span></div>
+          <div class="field"><span class="k">Relationship</span><span>Mother</span><span class="edit">Edit</span></div>
+          <div class="field"><span class="k">Phone</span><span>Not added</span><span class="edit">Add</span></div>
+          <div class="field"><span class="k">Email</span><span>Not added</span><span class="edit">Add</span></div>
+        </div>
+      </div>
+      <p class="where">Example member, for illustration</p>
+    </div>
+  </div>
+
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Section</th><th>Contents</th><th>Work</th></tr></thead>
+      <tbody>
+        <tr><td><b>Account Info</b></td><td>The account holder's name, email (Change), phone (Change), theme, and <b>Delete Account</b> (same 5-day grace flow)</td><td><span class="tag fe">FE</span> move existing pieces</td></tr>
+        <tr><td><b>Family Members</b></td><td>One card per member. Name and PAN read-only from the CAS. Relationship, phone and email editable. "Delete all funds" stays.</td><td><span class="tag fe">FE</span> <span class="tag be">BE</span> <span class="tag db">DB</span></td></tr>
+        <tr><td><b>Import History</b></td><td>Same as today, with the "N transactions" / "N txns" counts removed</td><td><span class="tag fe">FE</span> 2 lines</td></tr>
+        <tr><td><b>Terms of Service</b></td><td>T&amp;C, Privacy Policy and PAN disclaimer (same modal as sign-up), plus "You accepted v__ on __"</td><td><span class="tag fe">FE</span> reads B's data</td></tr>
+        <tr><td><b>Logout</b></td><td>Last menu item</td><td><span class="tag fe">FE</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="grid2">
+    <div class="block">
+      <h4>Backend for Family Members</h4>
+      <ul class="fix">
+        <li><span class="tag db">DB</span><div>Two nullable columns on the <b>existing</b> <code>household_members</code> table: <code>phone_number</code>, <code>email</code>. No new table.</div></li>
+        <li><span class="tag be">BE</span><div><code>PATCH /household-members/{id}</code> accepts relationship, phone and email only. Name or PAN gets a 422.</div></li>
+        <li><span class="tag fe">FE</span><div>Locked (detected) members show "Complete details", which opens the existing unlock flow.</div></li>
+      </ul>
+    </div>
+    <div class="callout design">
+      <h4>Decided</h4>
+      <ul class="plain">
+        <li><b>Q8</b> Member phone and email are contact details only, with no OTP.</li>
+        <li><b>Q9</b> Your own card shows the account phone and email read-only ("change in Account Info").</li>
+        <li>The "delete this import?" confirmation keeps its transaction count.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ F -->
+<section id="f" class="issue">
+  <div class="issue-head">
+    <div class="meta"><span class="issue-no">F</span><span class="pill feat">Email</span><span class="pill ok">Low risk</span></div>
+    <h2>OTP email: green text only, no logo</h2>
+  </div>
+  <div class="ba">
+    <div class="before">
+      <span class="lbl">Today</span>
+      <div class="email">
+        <span class="logo-ph">Unifolio logo</span>
+        <span>Your <span class="pillhl">verification code</span> to sign in to Unifolio is below.</span>
+        <span class="otp">482 913</span>
+      </div>
+    </div>
+    <div class="after">
+      <span class="lbl">After</span>
+      <div class="email">
+        <span>Your <span class="greentext">verification code</span> to sign in to Unifolio is below.</span>
+        <span class="otp">482 913</span>
+      </div>
+    </div>
+  </div>
+  <ul class="fix">
+    <li><span class="tag be">BE</span><div><code>services/auth/email_templates.py</code>: remove the highlight background from <code>.code-pill</code> but keep the green bold text (both themes). Delete the two logo images and their CSS. Update the template tests.</div></li>
+  </ul>
+</section>
+
+<!-- ============================================================ ORDER -->
+<section id="order" class="block">
+  <h2>Build order and how each step gets checked</h2>
+  <ol class="order">
+    <li><div><h3>F · OTP email</h3><p>A single template edit plus tests. Delegated, with a normal review.</p></div></li>
+    <li><div><h3>A · Remove the privacy screen</h3><p>Includes saving the name at the name step and the resume rule (first missing answer, else Upload), with a test for each branch. Delegated, with a normal review.</p></div></li>
+    <li><div><h3>C · "All of the above" + goals script</h3><p>Delegated, with a normal review.</p></div></li>
+    <li><div><h3>D + H · Name and PAN from the CAS</h3><p>Goes before E because the member form depends on it. I design the server checks myself, and it gets the adversarial review.</p></div></li>
+    <li><div><h3>B · Consent</h3><p>The riskiest piece. I design the table, trigger and transaction myself. Tests cover rejection on every sign-up and upload path, the trigger blocking edits, and rollback when either write fails. Full adversarial review.</p></div></li>
+    <li><div><h3>E · Profile</h3><p>Uses B (Terms of Service section) and H (read-only fields).</p></div></li>
+  </ol>
+  <div class="callout design">
+    <h4>Testing: affected tests only</h4>
+    <p>The full frontend and backend test suites are not run. Each step runs only the test files for the code it touches, plus its new tests. For example, F runs only <code>test_email_templates.py</code>. The Profile step runs only the four Profile test files and the member routes. The plan lists the exact files for every step, and the step's list grows if the change reaches further. Never the whole suite. A quick type-check still runs per frontend step. The Postgres-only tests run only for the name/PAN and consent steps, where database constraints and the no-edits trigger are what's being tested.</p>
+  </div>
+  <p>After the build: update <code>database.md</code>, <code>backend.md</code>, <code>decisions.md</code>, the PRDs, <code>session.md</code> and <code>log.md</code>. Nothing gets committed; you commit. One housekeeping note: migration number 0021 is already reserved for dropping the old goal column, so whichever ships first takes it.</p>
+</section>
+
+<!-- ============================================================ DECISIONS -->
+<section id="decisions" class="block">
+  <h2>Decisions</h2>
+  <p>All answered on 1 Oct 2026. Nothing is blocking the build.</p>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>#</th><th>Question</th><th>Decision</th></tr></thead>
+      <tbody class="resolved">
+        <tr><td class="num">Q1</td><td>Remove the privacy screen and the AA line?</td><td>Removed</td></tr>
+        <tr><td class="num">Q2</td><td>Checkbox, or "By continuing you agree"?</td><td>Unticked checkbox</td></tr>
+        <tr><td class="num">Q3</td><td>PAN disclaimer on every upload?</td><td>Every upload</td></tr>
+        <tr><td class="num">Q4</td><td>Disclaimer on the CAMS request too?</td><td>Yes</td></tr>
+        <tr><td class="num">Q5</td><td>Build re-consent now?</td><td>Yes</td></tr>
+        <tr><td class="num">Q6</td><td>Keep consent rows after account deletion?</td><td>Never delete, for now (lawyer to set retention)</td></tr>
+        <tr><td class="num">Q7</td><td>Store "all of the above" as its own value?</td><td>No, it's all four goals</td></tr>
+        <tr><td class="num">—</td><td>Wording for "all of the above"</td><td>"Why choose? All of it."</td></tr>
+        <tr><td class="num">Q8</td><td>Member phone and email are contact details only?</td><td>Yes</td></tr>
+        <tr><td class="num">Q9</td><td>Own card shows account phone and email read-only?</td><td>Yes</td></tr>
+        <tr><td class="num">Q10</td><td>Can PAN be edited?</td><td>Never, and name neither, except QC at unlock</td></tr>
+        <tr><td class="num">Q11</td><td>"Withdraw consent" control?</td><td>Not now (lawyer)</td></tr>
+        <tr><td class="num">QA</td><td>Keep onboarding name as a temporary name?</td><td>Yes</td></tr>
+        <tr><td class="num">QB</td><td>One-time name for unnamed people?</td><td>Yes</td></tr>
+        <tr><td class="num">QC</td><td>No PAN on the statement?</td><td>Empty, except a PAN field in the unlock popup</td></tr>
+        <tr><td class="num">QD</td><td>Typed PAN at unlock?</td><td>Dropped. Relationship dropdown only.</td></tr>
+        <tr><td class="num">QE</td><td>No migration for already-typed names and PANs?</td><td>Yes</td></tr>
+        <tr><td class="num">QF</td><td>Privacy-screen users who skipped get re-asked once?</td><td>Accepted</td></tr>
+        <tr><td class="num">—</td><td>Transaction count in the delete-import confirmation</td><td>Kept</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="callout decide">
+    <h4>Please confirm one interpretation</h4>
+    <p>Your answer "Q3: don't delete at all for now, we'll discuss with our lawyer" fits <b>Q6</b> (consent records after account deletion), so it's recorded there. Q3 takes the recommendation: the disclaimer on every upload.</p>
+  </div>
+  <div class="callout decide">
+    <h4>Waiting on your lawyer (not blocking the build)</h4>
+    <p>Final T&amp;C and Privacy text, the PAN disclaimer wording, the purpose list, the consent retention period (Q6), and the withdraw-consent design (Q11).</p>
+  </div>
+</section>
+
+<footer>Unifolio · prepared 1 Oct 2026 · plan only, nothing built · text version: Docs/orchestration/2026-10-01-onboarding-consent-profile-changes-plan.md</footer>
+</div>

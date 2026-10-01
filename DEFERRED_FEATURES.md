@@ -117,4 +117,11 @@ heuristic rather than restructuring to always-mounted dual panels.
 
 ## Added 2026-09-30 (staging QA fixes)
 
-- **Migration 0021 — drop `users.primary_goal`.** Ship one release after 0019 is live on every ECS task. First re-backfill `primary_goals` from `primary_goal` where `primary_goals IS NULL` (old tasks write only the old column during the rollout), then drop the column and `DROP TYPE IF EXISTS primarygoal` on Postgres, and remove the dual write in `auth.py update_me`. Downgrade keeps one goal per user.
+- **Migration 0023 — drop `users.primary_goal`** (renumbered from "0021" on 2026-10-01 because 0021/0022 shipped the member contact fields and consent table). Ship one release after 0019 is live on every ECS task. First re-backfill `primary_goals` from `primary_goal` where `primary_goals IS NULL` (old tasks write only the old column during the rollout), then drop the column and `DROP TYPE IF EXISTS primarygoal` on Postgres, and remove the dual write in `auth.py update_me`. Downgrade keeps one goal per user.
+
+
+## Added 2026-10-01 (consent, onboarding and profile changes)
+
+- **Consent retention job (awaiting lawyer, Q6).** `consent_records` rows are kept forever, including after account hard-delete, and the append-only triggers block deletion. A purge job needs the retention period plus a trigger bypass design.
+- **Withdraw-consent control (awaiting lawyer, Q11).** No UI to withdraw consent. The only `withdrawn` rows are the automatic ones written when account deletion is scheduled.
+- **Replace placeholder legal texts (awaiting lawyer).** `backend/app/services/legal/documents/*.md` are placeholders (versions `*-placeholder-2026-10-01`). Replacing them with final T&C, Privacy and PAN disclaimer text bumps the version and re-asks every user once.

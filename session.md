@@ -1,4 +1,4 @@
-# Session state — 2026-09-30
+# Session state — 2026-10-01
 
 Working notes for picking this project back up cold. Not a planning doc — see
 `Docs/superpowers/plans/` for those. This file tracks *where things stand*,
@@ -12,44 +12,41 @@ detail lives in `log.md`.
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
 
-## Latest (2026-09-30): staging QA fixes — built, UNCOMMITTED, awaiting user review
+## Latest (2026-10-01): consent, onboarding and profile changes — built, UNCOMMITTED, awaiting user review
 
-Branch `feat/enhanced-ui`, working tree only (the user commits manually). Fixes the six
-issues from the user's staging test of the auth redesign and CAS member detection.
-Findings + decisions: `Docs/orchestration/2026-09-30-staging-qa-findings-map.html`
-(published as an artifact). Plan: `Docs/superpowers/plans/2026-09-30-staging-qa-fixes.md`.
-Decisions: `decisions.md` 2026-09-30. Code: `backend.md` / `database.md` 2026-09-30.
+Branch `feat/enhanced-ui`, working tree only (the user commits manually). The
+2026-09-30 staging QA fixes are already committed (1ace61c..d52bab6). Plan:
+`Docs/orchestration/2026-10-01-onboarding-consent-profile-changes-plan.md` (decisions
+Q1-QF at the bottom); `decisions.md` 2026-10-01; code in `backend.md` / `database.md`
+2026-10-01.
 
-1. Sign-up with a registered phone → 409 before any code; Log In with an unknown
-   phone/email → 404 before any code (closes item 9 below).
-2. Onboarding goal is multi-select → `users.primary_goals` (migration 0019, expand phase;
-   0021 contract step is in `DEFERRED_FEATURES.md`).
-3. Ribbon grid capped at 3 columns inside ribbons; 0-unresolved ribbons confirm themselves.
-4. Wrong PAN at unlock → popup (statement's PAN / upload a different statement).
-5. Duplicate Kavita → name-only people attach by exact name; PAN person vs name-only member
-   is asked; the PAN-bearing duplicate can now be merged.
-6. Statement period now written at Confirm; migration 0020 backfills old imports.
+1. Onboarding privacy screen removed; name saved at the name step (self member created
+   then, provisional until the CAS); `/auth/me` has `self_name` and `consent_outdated`.
+2. "Why choose? All of it." goal shortcut (stores all 4); `scripts/report_onboarding_goals.py`.
+3. Name and PAN come from the CAS: unlock is relationship-only (PAN only if the statement
+   had none); `PATCH /household-members/{id}` edits relationship/phone/email; 422
+   `field_not_editable` / `name_not_editable`. Supersedes L1/L2/L3/L9 and the popup rename.
+4. Consent: migrations 0021 (member phone/email) and 0022 (`consent_records`, append-only
+   triggers, `consent_snapshot`); `/legal/*`; sign-up/upload/CAMS/reactivate consent;
+   placeholder legal texts; `scripts/consent_trail.py`.
+5. OTP email: no logo, green text. Profile restructured into 5 sections.
 
-**Staging retest (walk the user's six reports):**
-1. Sign up with a registered number: "already exists" + Log in instead, no code sent. Log
-   in with an unknown number: "No account found" + Sign up instead.
-2. Q3 accepts several goals; Continue saves them.
-3. A clean member's ribbon shows Confirmed without being opened; the grid shows 3 unclipped
-   cards.
-4. A wrong PAN at unlock opens the popup; both options work.
-5. Replaying the 4-upload Kavita sequence leaves one Kavita; existing staging duplicates can
-   be merged from the unlock popup.
-6. Import history shows statement periods, including old imports after 0020.
+**Before deploying:** no new secret and no `terraform apply` — the consent IP-hash key
+is derived from the existing `PAN_LOOKUP_PEPPER` (decision 2026-10-01). Follow
+`Docs/orchestration/2026-10-01-consent-release-deploy-guide.md` (Postgres tests first,
+then migrate, push the backend image, publish the frontend).
 
 **Open for this change:**
-- Migrations 0019/0020 never run on Postgres (no TEST_DATABASE_URL); run
-  `tests/functional_postgres` once before deploying.
-- No browser visual QA of the ribbon grid at desktop or phone width.
-- `Docs/orchestration/qa-fixtures/` and `.superpowers/sdd/` were deleted mid-session by
-  something outside the session. The fixture tests now skip unless `UNIFOLIO_QA_FIXTURES`
-  points at the synthetic PDFs.
-- The session's diff snapshots put every untracked file (including the real statement
-  `CAS 10 Yr.pdf`) into `.git` as unreferenced objects; `git gc --prune=now` removes them.
+- `tests/functional_postgres` (cascade deletes, consent trigger, migrations 0019-0022 on
+  Postgres) could not be run: no Postgres available. Run it once before deploying.
+- Family-CAS fixture-backed tests skip (fixtures absent; set `UNIFOLIO_QA_FIXTURES`).
+- No browser visual QA of the new onboarding/profile screens.
+- Legal texts are placeholders; retention (Q6), withdraw-consent (Q11) and final text wait
+  on the lawyer (`DEFERRED_FEATURES.md`). The old "0021" primary_goal drop is now 0023.
+- The 2026-09-30 retest list (staging QA fixes) still applies once deployed: it is Step 7 of
+  `Docs/orchestration/2026-09-30-staging-qa-fixes-deploy-guide.md`.
+- The SDD run created unreferenced snapshot objects in `.git`; `git gc --prune=now` clears
+  them (harmless otherwise).
 
 ## Still open, carried forward from earlier phases, not yet revisited
 

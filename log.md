@@ -255,3 +255,27 @@ The user tested the auth redesign and member detection on staging and reported s
 - **People resolution:** exact-name attach for PAN-less people, asked same-person link for PAN people matching a name-only member, widened merge rule.
 - **Import history:** statement period written at Confirm; migration 0020 backfill.
 - **Not verified:** Postgres (0019 CHECK / JSONB, 0020 on JSONB); browser visual QA. Mid-session, `Docs/orchestration/qa-fixtures/` and `.superpowers/sdd/` were deleted by something outside the session.
+
+
+## 2026-10-01 — Consent, onboarding and profile changes, uncommitted
+
+Planned from the user's change list and decided Q1–QF (`Docs/orchestration/2026-10-01-onboarding-consent-profile-changes-plan.md`, `decisions.md`), built in 13 tasks, uncommitted on `feat/enhanced-ui`, awaiting review.
+
+- **Onboarding:** privacy screen removed; name saved at the name step (self member created then, provisional until the first CAS); `/auth/me` gains `self_name` and `consent_outdated`; "Why choose? All of it." goal shortcut; `report_onboarding_goals.py`.
+- **Consent:** migration 0022 `consent_records` (append-only triggers, no FKs, truncated IP + HMAC) and `pending_identity_verifications.consent_snapshot`; `/legal/*`; sign-up, upload, CAMS and reactivate consent; placeholder legal texts; `consent_trail.py`; new env var `CONSENT_IP_HMAC_KEY` (must be provisioned before deploy).
+- **Members:** name and PAN come from the CAS; unlock is relationship only (PAN only if the statement had none); `PATCH /household-members/{id}`; migration 0021 member phone/email. Supersedes L1/L2/L3/L9 and the popup rename.
+- **Profile** restructured into 5 sections; OTP email logo removed.
+- **Not verified:** Postgres-only tests (`functional_postgres`) not run; family-CAS fixture-backed tests skip. Detail: `backend.md`, `database.md`, `session.md`.
+
+## 2026-10-01 (later) — consent IP-hash key derived from PAN_LOOKUP_PEPPER
+
+Dropped the separate `CONSENT_IP_HMAC_KEY` secret. The IP hash in `consent_records` now
+uses a key derived from the existing `PAN_LOOKUP_PEPPER` with a fixed label
+(`unifolio/consent-ip-hmac/v1`), so the release needs no new secret and no `terraform apply`
+(the apply would have rewritten the shared pan-keys secret JSON — a risk to stored PANs).
+Trade-off: rotating the pepper changes future IP hashes; matching an old row's IP needs the
+old pepper. Uncommitted, awaiting review.
+
+Same pass: full backend (1079) and frontend (682) suites, production build, lint, fresh and
+real-data (dev DB copy) migrations, and a live-API end-to-end run all green; fixed a stale
+service-level test and a pre-existing conditional-hook crash in `MobileFundDetailSheet.tsx`.
