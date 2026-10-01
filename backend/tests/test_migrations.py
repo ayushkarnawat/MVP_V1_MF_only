@@ -493,7 +493,7 @@ def test_0018_backfills_preexisting_members_as_unlocked(tmp_path, monkeypatch):
     conn.commit()
     conn.close()
 
-    upgrade = _alembic("upgrade", "head")
+    upgrade = _alembic("upgrade", "0022")  # 0023 drops the lock columns/trigger
     assert upgrade.returncode == 0, upgrade.stderr
 
     conn = sqlite3.connect(db_path)
@@ -521,7 +521,7 @@ def test_0018_upgrade_creates_trigger_and_downgrade_removes_it(tmp_path, monkeyp
     db_path = tmp_path / "member_detection.db"
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
 
-    upgrade = _alembic("upgrade", "head")
+    upgrade = _alembic("upgrade", "0022")  # 0023 drops the lock columns/trigger
     assert upgrade.returncode == 0, upgrade.stderr
 
     def _objects(kind):
@@ -585,7 +585,7 @@ def test_0018_upgrade_creates_trigger_and_downgrade_removes_it(tmp_path, monkeyp
     assert "details_completed_at" not in member_columns
     assert "upload_group_id" not in import_columns
 
-    re_upgrade = _alembic("upgrade", "head")
+    re_upgrade = _alembic("upgrade", "0022")  # 0023 drops the lock columns/trigger
     assert re_upgrade.returncode == 0, re_upgrade.stderr
     assert "trg_member_never_relock" in _objects("trigger")
 
@@ -733,3 +733,123 @@ def test_0022_creates_append_only_consent_records_and_downgrade_removes_it(tmp_p
         assert "consent_snapshot" not in pending_cols
     finally:
         conn.close()
+
+
+def test_0023_drops_lock_and_promotes_detected_pans(tmp_path, monkeypatch):
+    import sqlite3
+
+    db_path = tmp_path / "profile.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    assert _alembic("upgrade", "0022").returncode == 0
+    conn = sqlite3.connect(db_path)
+    try:
+        conn.execute("INSERT INTO users (id, phone_number, created_at, pending_deletion) VALUES ('u1', '+919800000001', '2026-10-01', 0)")
+        rows = [
+            # locked, details_needed, statement PAN -> promoted
+            ("m1", "Ramesh", "2026-10-01 10:00", "enc-a", "hash-a", "details_needed", "cas"),
+            # locked, other account -> stays detected, pan_conflict set
+            ("m2", "Vikram", "2026-10-01 10:01", "enc-b", "hash-b", "pan_on_other_account", "cas"),
+        ]
+        for mid, name, created, enc, h, reason, src in rows:
+            conn.execute(
+                "INSERT INTO household_members (id, user_id, name, created_at, origin, name_source,"
+                " details_completed_at, lock_reason, detected_pan_encrypted, detected_pan_hash, pan_source)"
+                " VALUES (?, 'u1', ?, ?, 'cas_detected', 'cas', NULL, ?, ?, ?, ?)",
+                (mid, name, created, reason, enc, h, src),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+    up = _alembic("upgrade", "0023")
+    assert up.returncode == 0, up.stderr
+    conn = sqlite3.connect(db_path)
+    try:
+        cols = {r[1] for r in conn.execute("PRAGMA table_info(household_members)")}
+        assert "details_completed_at" not in cols and "lock_reason" not in cols and "pan_conflict" in cols
+        got = {r[0]: r[1:] for r in conn.execute(
+            "SELECT id, pan_encrypted, pan_lookup_hash, detected_pan_hash, pan_conflict, pan_verified_at IS NOT NULL"
+            " FROM household_members")}
+        assert got["m1"] == ("enc-a", "hash-a", None, None, 1)
+        assert got["m2"] == (None, None, "hash-b", "other_account", 0)
+        triggers = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='trigger'")}
+        assert "trg_member_never_relock" not in triggers
+    finally:
+        conn.close()
+    down = _alembic("downgrade", "0022")
+    assert down.returncode == 0, down.stderr
+
+
+def test_0023_backfill_promotes_only_earliest_duplicate(tmp_path, monkeypatch):
+    import sqlite3
+
+    db_path = tmp_path / "dupes.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    assert _alembic("upgrade", "0022").returncode == 0
+    conn = sqlite3.connect(db_path)
+    try:
+        conn.execute("INSERT INTO users (id, phone_number, created_at, pending_deletion) VALUES ('u1', '+919800000001', '2026-10-01', 0)")
+        for mid, created in (("first", "2026-10-01 09:00"), ("second", "2026-10-01 09:30")):
+            conn.execute(
+                "INSERT INTO household_members (id, user_id, name, created_at, origin, name_source,"
+                " details_completed_at, lock_reason, detected_pan_encrypted, detected_pan_hash, pan_source)"
+                " VALUES (?, 'u1', 'Ramesh', ?, 'cas_detected', 'cas', NULL, 'details_needed', 'enc', 'same-hash', 'cas')",
+                (mid, created),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+    up = _alembic("upgrade", "0023")
+    assert up.returncode == 0, up.stderr
+    conn = sqlite3.connect(db_path)
+    try:
+        got = {r[0]: (r[1], r[2]) for r in conn.execute(
+            "SELECT id, pan_lookup_hash, detected_pan_hash FROM household_members")}
+    finally:
+        conn.close()
+    assert got["first"] == ("same-hash", None)
+    assert got["second"] == (None, "same-hash")  # left for a merge; never a unique-index crash
+
+
+def test_0023_marks_locked_row_whose_pan_another_user_holds_as_conflict(tmp_path, monkeypatch):
+    import sqlite3
+
+    db_path = tmp_path / "cross.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    assert _alembic("upgrade", "0022").returncode == 0
+    conn = sqlite3.connect(db_path)
+    try:
+        for uid, phone in (("u1", "+919800000001"), ("u2", "+919800000002")):
+            conn.execute(
+                "INSERT INTO users (id, phone_number, created_at, pending_deletion) VALUES (?, ?, '2026-10-01', 0)",
+                (uid, phone),
+            )
+        # u2's own (unlocked) Self already holds the PAN.
+        conn.execute(
+            "INSERT INTO household_members (id, user_id, name, relationship, created_at, origin, name_source,"
+            " details_completed_at, lock_reason, pan_encrypted, pan_lookup_hash, pan_source)"
+            " VALUES ('holder', 'u2', 'Vikram', 'self', '2026-10-01 08:00', 'onboarding', 'cas',"
+            " '2026-10-01 08:00', NULL, 'enc-x', 'hash-x', 'cas')"
+        )
+        # u1's locked details_needed row found the same PAN on a statement.
+        conn.execute(
+            "INSERT INTO household_members (id, user_id, name, created_at, origin, name_source,"
+            " details_completed_at, lock_reason, detected_pan_encrypted, detected_pan_hash, pan_source)"
+            " VALUES ('locked', 'u1', 'Vikram', '2026-10-01 09:00', 'cas_detected', 'cas',"
+            " NULL, 'details_needed', 'enc-x', 'hash-x', 'cas')"
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    up = _alembic("upgrade", "0023")
+    assert up.returncode == 0, up.stderr
+    conn = sqlite3.connect(db_path)
+    try:
+        got = {r[0]: r[1:] for r in conn.execute(
+            "SELECT id, pan_conflict, detected_pan_encrypted, detected_pan_hash, pan_lookup_hash"
+            " FROM household_members")}
+    finally:
+        conn.close()
+    assert got["locked"] == ("other_account", "enc-x", "hash-x", None)
+    assert got["holder"] == (None, None, None, "hash-x")

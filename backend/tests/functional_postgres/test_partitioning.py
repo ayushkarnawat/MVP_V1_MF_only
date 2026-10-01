@@ -169,12 +169,9 @@ def test_enum_drift_values_are_writable_after_migration(postgres_url, monkeypatc
                 (user_id, "+919000000010", now),
             )
             cur.execute(
-                # details_completed_at: raw SQL bypasses HouseholdMember's
-                # F1 __init__ default, and 0018's ck_member_lock_reason
-                # rejects a row with neither it nor lock_reason set.
-                "INSERT INTO household_members (id, user_id, name, relationship, created_at, details_completed_at) "
-                "VALUES (%s, %s, %s, %s, %s, %s)",
-                (member_id, user_id, "Enum Test", "self", now, now),
+                "INSERT INTO household_members (id, user_id, name, relationship, created_at) "
+                "VALUES (%s, %s, %s, %s, %s)",
+                (member_id, user_id, "Enum Test", "self", now),
             )
             cur.execute(
                 "INSERT INTO schemes (id, amfi_code, name, amc_name, sebi_category) "

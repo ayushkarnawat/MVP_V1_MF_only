@@ -35,6 +35,10 @@ class MemberOrigin(str, enum.Enum):
 class MemberNameSource(str, enum.Enum):
     USER_ENTERED = "user_entered"
     CAS = "cas"
+    # Edited in the Complete profile popup; a later CAS applies the normal CAS
+    # name rules (mismatch asks, longer variant updates), never the silent
+    # replace used for user_entered.
+    USER_EDITED = "user_edited"
 
 
 class MemberPanSource(str, enum.Enum):
@@ -42,9 +46,16 @@ class MemberPanSource(str, enum.Enum):
     USER_ENTERED = "user_entered"
 
 
+# Removed in Task 2 of the 2026-10-01 profile-completion plan; no column uses it.
 class MemberLockReason(str, enum.Enum):
     DETAILS_NEEDED = "details_needed"
     PAN_ON_OTHER_ACCOUNT = "pan_on_other_account"
+
+
+class MemberPanConflict(str, enum.Enum):
+    # The CAS (or a typed) PAN is held by another Unifolio account, so it
+    # can't take the unique pan_lookup_hash here; kept in detected_pan_*.
+    OTHER_ACCOUNT = "other_account"
 
 
 class NameChangeReason(str, enum.Enum):

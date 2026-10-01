@@ -31,12 +31,11 @@ def _alembic(*args):
     )
 
 
-def test_0018_round_trip_and_never_relock_trigger_on_postgres(postgres_url, monkeypatch):
+def test_0018_round_trip_and_0023_drops_never_relock_trigger_on_postgres(postgres_url, monkeypatch):
     from sqlalchemy import create_engine, text
-    from sqlalchemy.exc import DatabaseError
     from sqlalchemy.orm import sessionmaker
 
-    from app.models.enums import MemberLockReason, Relationship
+    from app.models.enums import Relationship
     from app.models.user import HouseholdMember, User
 
     monkeypatch.setenv("DATABASE_URL", postgres_url)
@@ -49,7 +48,13 @@ def test_0018_round_trip_and_never_relock_trigger_on_postgres(postgres_url, monk
         with engine.connect() as conn:
             types = set(conn.execute(text("SELECT typname FROM pg_type")).scalars())
             assert {"memberorigin", "membernamesource", "memberpansource",
-                    "memberlockreason", "namechangereason"}.issubset(types)
+                    "memberpanconflict", "namechangereason"}.issubset(types)
+            # 0023 removed the lock: its enum type and trigger are gone.
+            assert "memberlockreason" not in types
+            trg = conn.execute(text(
+                "SELECT count(*) FROM pg_trigger WHERE tgname = 'trg_member_never_relock'"
+            )).scalar()
+            assert trg == 0
 
         now = datetime.now(timezone.utc)
         db = sessionmaker(bind=engine)()
@@ -60,11 +65,9 @@ def test_0018_round_trip_and_never_relock_trigger_on_postgres(postgres_url, monk
                                  relationship=Relationship.SPOUSE, created_at=now)
         db.add(member)
         db.commit()
-        member.details_completed_at = None
-        member.lock_reason = MemberLockReason.DETAILS_NEEDED
-        with pytest.raises(DatabaseError, match="member_already_unlocked"):
-            db.commit()
-        db.rollback()
+        # No lock any more: an ordinary edit (relationship to NULL) is allowed.
+        member.relationship = None
+        db.commit()
         db.close()
     finally:
         engine.dispose()
@@ -119,13 +122,13 @@ def test_0018_backfills_preexisting_members_on_postgres(postgres_url, monkeypatc
         with engine.connect() as conn:
             rows = conn.execute(
                 text(
-                    "SELECT relationship::text, origin::text, details_completed_at IS NOT NULL,"
-                    " lock_reason, pan_source::text FROM household_members ORDER BY name"
+                    "SELECT relationship::text, origin::text, pan_conflict::text,"
+                    " pan_source::text FROM household_members ORDER BY name"
                 )
             ).all()
         assert [tuple(r) for r in rows] == [
-            ("self", "onboarding", True, None, "cas"),
-            ("spouse", "manual", True, None, None),
+            ("self", "onboarding", None, "cas"),
+            ("spouse", "manual", None, None),
         ]
     finally:
         engine.dispose()
