@@ -53,7 +53,7 @@ export function OnboardingCardStack({
   children,
   className = "",
   currentStepIndex,
-  totalSteps = 5,
+  totalSteps = 4,
 }: OnboardingCardStackProps) {
   const step = currentStep(history);
   const prevCursorRef = useRef(history.cursor);

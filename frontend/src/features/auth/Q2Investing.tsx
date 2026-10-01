@@ -110,7 +110,7 @@ export function Q2Investing({
   onSelect,
   isMobile = false,
   currentStepIndex = 1,
-  totalSteps = 5,
+  totalSteps = 4,
 }: Q2InvestingProps) {
   const choicesContent = (
     <motion.div

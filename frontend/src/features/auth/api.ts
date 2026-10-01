@@ -1,11 +1,13 @@
 import { API_BASE_URL, ApiError, invalidateApiCache, parseErrorDetail } from "../../lib/apiClient";
 import { getOrCreateDeviceId } from "./deviceId";
 import { getToken } from "./session";
+import type { AcceptedDocument } from "../legal/types";
 import type {
   EmailOtpRequiredResponse,
   EmailOtpVerifyResult,
   HouseholdMember,
   MemberDetailsBody,
+  MemberUpdateBody,
   MergeMemberResult,
   MeResponse,
   OtpRequestResponse,
@@ -47,11 +49,11 @@ export async function requestOtp(
   return (await response.json()) as OtpRequestResponse;
 }
 
-export async function signupEmail(email: string): Promise<EmailOtpRequiredResponse> {
+export async function signupEmail(email: string, accepted?: AcceptedDocument[]): Promise<EmailOtpRequiredResponse> {
   const response = await fetch(`${API_BASE_URL}/auth/signup/email`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email }),
+    headers: { "Content-Type": "application/json", "X-Device-Id": getOrCreateDeviceId() },
+    body: JSON.stringify({ email, ...(accepted ? { accepted_documents: accepted } : {}) }),
   });
   await throwIfError(response);
   return (await response.json()) as EmailOtpRequiredResponse;
@@ -94,15 +96,17 @@ export async function verifyOtp(
   otp: string,
   pendingToken?: string,
   flow?: "signup" | "login",
+  accepted?: AcceptedDocument[],
 ): Promise<OtpVerifyResult> {
   const response = await fetch(`${API_BASE_URL}/auth/otp/verify`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "X-Device-Id": getOrCreateDeviceId() },
     body: JSON.stringify({
       phone_number: phoneNumber,
       otp,
       ...(pendingToken ? { pending_token: pendingToken } : {}),
       ...(flow ? { flow } : {}),
+      ...(accepted ? { accepted_documents: accepted } : {}),
     }),
   });
   await throwIfError(response);
@@ -112,13 +116,15 @@ export async function verifyOtp(
 export async function verifyGoogleCredential(
   idToken: string,
   pendingToken?: string,
+  accepted?: AcceptedDocument[],
 ): Promise<OtpVerifyResult> {
   const response = await fetch(`${API_BASE_URL}/auth/oauth/google`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "X-Device-Id": getOrCreateDeviceId() },
     body: JSON.stringify({
       id_token: idToken,
       ...(pendingToken ? { pending_token: pendingToken } : {}),
+      ...(accepted ? { accepted_documents: accepted } : {}),
     }),
   });
   await throwIfError(response);
@@ -179,6 +185,18 @@ export async function completeMemberDetails(memberId: string, body: MemberDetail
   return (await response.json()) as HouseholdMember;
 }
 
+/** Edits an unlocked member's relationship, phone and email (name and PAN are never editable). */
+export async function updateMember(memberId: string, body: MemberUpdateBody): Promise<HouseholdMember> {
+  const response = await fetch(`${API_BASE_URL}/household-members/${memberId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(body),
+  });
+  await throwIfError(response);
+  invalidateApiCache();
+  return (await response.json()) as HouseholdMember;
+}
+
 /** Merges a manually added member (no detected PAN) into a detected one. */
 export async function mergeMemberInto(sourceId: string, targetId: string): Promise<MergeMemberResult> {
   const response = await fetch(`${API_BASE_URL}/household-members/${sourceId}/merge-into/${targetId}`, {
@@ -203,10 +221,11 @@ export async function requestAccountDeletion(
   return (await response.json()) as MeResponse;
 }
 
-export async function reactivateAccount(): Promise<MeResponse> {
+export async function reactivateAccount(accepted: AcceptedDocument[]): Promise<MeResponse> {
   const response = await fetch(`${API_BASE_URL}/auth/reactivate`, {
     method: "POST",
-    headers: authHeaders(),
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ accepted_documents: accepted }),
   });
   await throwIfError(response);
   return (await response.json()) as MeResponse;

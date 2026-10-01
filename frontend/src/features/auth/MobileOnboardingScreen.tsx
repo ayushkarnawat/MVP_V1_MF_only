@@ -16,7 +16,7 @@ import {
 
 export interface MobileOnboardingScreenProps {
   currentStepIndex: number; // 0-indexed
-  totalSteps?: number; // default 5
+  totalSteps?: number; // default 4
   onBack?: () => void;
   onSkip?: () => void;
   title: ReactNode;
@@ -32,7 +32,7 @@ export interface MobileOnboardingScreenProps {
 
 export function MobileOnboardingScreen({
   currentStepIndex,
-  totalSteps = 5,
+  totalSteps = 4,
   onBack,
   onSkip,
   title,

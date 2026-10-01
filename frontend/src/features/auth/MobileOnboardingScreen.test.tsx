@@ -11,7 +11,7 @@ describe("MobileOnboardingScreen", () => {
     render(
       <MobileOnboardingScreen
         currentStepIndex={1}
-        totalSteps={5}
+        totalSteps={4}
         onBack={onBack}
         onSkip={onSkip}
         title="Test Headline Title"
@@ -27,7 +27,7 @@ describe("MobileOnboardingScreen", () => {
     // 1. Top bar elements
     expect(screen.getByRole("button", { name: /back/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /skip/i })).toBeInTheDocument();
-    expect(screen.getByLabelText("Step 2 of 5")).toBeInTheDocument();
+    expect(screen.getByLabelText("Step 2 of 4")).toBeInTheDocument();
 
     // 2. Headline
     expect(screen.getByRole("heading", { level: 1, name: /test headline title/i })).toBeInTheDocument();
@@ -59,7 +59,7 @@ describe("MobileOnboardingScreen", () => {
     render(
       <MobileOnboardingScreen
         currentStepIndex={0}
-        totalSteps={5}
+        totalSteps={4}
         title="Disabled CTA Test"
         ctaLabel="Continue"
         onCtaClick={vi.fn()}

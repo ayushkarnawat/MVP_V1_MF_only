@@ -5,7 +5,7 @@ import type { HistoryState } from "./onboardingHistory";
 
 describe("OnboardingCardStack", () => {
   const baseHistory: HistoryState = {
-    order: ["trust_primer", "q1_name", "q2_investing"],
+    order: ["cas_upload", "q1_name", "q2_investing"],
     cursor: 0,
     skipped: new Set(),
   };
@@ -17,7 +17,7 @@ describe("OnboardingCardStack", () => {
       </OnboardingCardStack>
     );
 
-    expect(screen.getByLabelText("Step 4 of 5")).toBeInTheDocument();
+    expect(screen.getByLabelText("Step 4 of 4")).toBeInTheDocument();
     expect(screen.getByTestId("front-card-content")).toBeInTheDocument();
     const placeholders = screen.getAllByTestId("card-stack-placeholder");
     expect(placeholders).toHaveLength(2);
