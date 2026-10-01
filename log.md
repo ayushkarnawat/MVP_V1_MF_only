@@ -234,7 +234,9 @@ Postmark provider class, Terraform secrets/variables, and DNS all removed rather
 Fixed a staging bug where every first import on a fresh account showed "we couldn't match this statement to an existing family member" and froze the Family flow — root cause: PAN-based attribution ran at Confirm, but a member's PAN was only ever stored *after* a confirm, so nothing could match on a first import. New `backend/app/services/import_/pan_claims.py` replaces `attribution.py`: `/imports/parse` now claims the parsed PAN for the uploading member as *pending* (`household_members.pan_pending_until`, migration `0016`), with conflicts (409s) returned right after upload instead of at Confirm; `/imports/confirm` only finalizes, no prompts; a new `POST /imports/sessions/{id}/discard` releases an abandoned claim. Frontend: all "Continue anyway / Switch to" UI removed in favor of upfront blocked-import popups. Final review (fresh reviewer): 3 Important fixed (claim moved after mfapi enrichment so SQLite's write lock isn't held across a network call; a Back button on Family's re-upload form; a lost unique-index race now retries instead of 500ing), 7 minors deferred. Backend 714/8 skipped, frontend 484 across 82 files, `tsc` clean. Cosmetic OTP-email desktop-alignment fix landed same day. A follow-on gap was identified and drafted as a plan, **not implemented**: a family CAS statement covering several people only ever reads the *first* folio's PAN (`casparser` exposes PAN per-folio, but folios carry no holder name) — everyone else's funds silently land under that one member. Plan: `Docs/superpowers/plans/2026-09-24-per-pan-statement-splitting.md` (status: draft, no code written).
 
 
-## 2026-09-29 — CAS member detection built (Tasks 1-20), uncommitted, on `feat/enhanced-ui`
+## 2026-09-29 — CAS member detection built (Tasks 1-20), on `feat/enhanced-ui`
+
+**Correction added 2026-10-01**: confirmed via `git log` as committed (`af92286`..`b40f52b`, the full CAS-member-detection commit run) — not uncommitted as this entry originally said.
 
 One CAS upload now detects every person in the file (PAN groups first, name only for no-PAN folios), shows a "We found N people" popup, a ribbon-per-person review with one combined Confirm imports, and locks detected members on the dashboard until the user supplies relationship and PAN (unlock). Spec `Docs/orchestration/cas-member-detection-map.html`; plan `Docs/superpowers/plans/2026-09-29-cas-member-detection.md`; implementation ledger `.superpowers/sdd/2026-09-29-cas-member-detection/progress.md`.
 
@@ -244,7 +246,9 @@ One CAS upload now detects every person in the file (PAN groups first, name only
 - **Verified before the docs pass:** per-task reviews clean (ledger). **Not verified:** `functional_postgres` tests never run (no Docker in WSL); holder-name extraction only on synthetic CAMS/KFintech lines; mobile ribbon review has had no phone visual QA. Nothing committed; the user reviews and commits.
 
 
-## 2026-09-30 — Staging QA fixes (auth + CAS member detection), uncommitted
+## 2026-09-30 — Staging QA fixes (auth + CAS member detection)
+
+**Correction added 2026-10-01**: confirmed via `git log` as committed (`1ace61c`/`c404c2f`/`3541ef4`/`1cf9f35`/`d52bab6`) — not uncommitted as this entry originally said.
 
 The user tested the auth redesign and member detection on staging and reported six issues. Diagnosed into `Docs/orchestration/2026-09-30-staging-qa-findings-map.html` (the duplicate-Kavita bug reproduced locally with the synthetic fixture PDFs: three causes), decided with the user, planned in `Docs/superpowers/plans/2026-09-30-staging-qa-fixes.md`, and built: Tasks 1-2 by Claude subagents with per-task reviews, Tasks 3-11 natively in-session (user's switch), TDD throughout.
 
@@ -255,3 +259,13 @@ The user tested the auth redesign and member detection on staging and reported s
 - **People resolution:** exact-name attach for PAN-less people, asked same-person link for PAN people matching a name-only member, widened merge rule.
 - **Import history:** statement period written at Confirm; migration 0020 backfill.
 - **Not verified:** Postgres (0019 CHECK / JSONB, 0020 on JSONB); browser visual QA. Mid-session, `Docs/orchestration/qa-fixtures/` and `.superpowers/sdd/` were deleted by something outside the session.
+
+## 2026-10-01 — Staging DB-access tooling; FamilyImportFlow bug found; CAS 10-year handoff written
+
+No application code changed. Set up repeatable staging RDS access (SSM port-forwarding tunnel through the SSM-only bastion, `psql`/DBeaver on the other end) and used it to wipe all user-domain data for several rounds of stakeholder fresh-signup testing, confirming via before/after counts that reference/platform tables (`schemes`, `nav_history`, `scheme_ter`, `scheme_aaum`, `benchmark_index_history`, `arn_directory`, `fund_scores`) were never touched. That wipe is now `scripts/clean-staging-db.sh` — resolves the bastion/RDS endpoint/Secrets Manager ARN dynamically (no hardcoded IDs), runs the delete in one FK-safe transaction, and prints before/after counts — so it no longer needs a live session each time.
+
+Diagnosed two user-reported issues against `attribution.py`: the "we couldn't match this statement to an existing family member" prompt on a fresh account's first import is expected behavior (no PAN/folio to match against yet), not a bug. But the missing "Continue anyway" button when the same prompt fires for a family member (vs. "Just Me") is a real, confirmed bug: `frontend/src/features/auth/FamilyImportFlow.tsx`'s `handleConfirm` only branches on `cross_account_pan_blocked` and falls through to a plain, button-less notice for `member_mismatch`, unlike `frontend/src/features/import/ImportFlow.tsx`, which has the full `memberMismatch` state + "Continue anyway"/"Switch to X" UI. Confirmed via `backend/app/api/imports.py` and `cas_imports.py` that both routes emit an identical 409 payload regardless of status, so the gap is purely frontend. Not fixed this session — diagnosed and scoped only.
+
+Revisited the still-open 10-year CAS statement value-discrepancy item from `2026-09-23-schema-and-user-journey-review.md` §5: re-confirmed via grep that no Unifolio code branches on statement year-span, so the likely cause remains the third-party `casparser` library's page/fund-boundary detection — still unconfirmed, no new evidence gathered this session (no real multi-year test file was available; a stakeholder's actual 7yr/10yr pair couldn't be used for this). Wrote `Docs/investigations/2026-10-01-cas-10-year-parsing-discrepancy-handoff.md` so a dedicated session can pick this up with a real file (the user's own sparse 10-year statement) without re-deriving this context.
+
+Corrected stale documentation: `CLAUDE.md`, `session.md`, and this log previously described the 2026-09-29 CAS member detection work and the 2026-09-30 QA fixes as uncommitted/awaiting review; `git log` confirms both are fully committed (`af92286`..`b40f52b` and `1ace61c`..`d52bab6` respectively).

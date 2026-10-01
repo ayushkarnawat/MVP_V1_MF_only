@@ -1,55 +1,43 @@
-# Session state — 2026-09-30
+# Session state — 2026-10-01
 
 Working notes for picking this project back up cold. Not a planning doc — see
 `Docs/superpowers/plans/` for those. This file tracks *where things stand*,
 gets overwritten each session, and isn't meant to accumulate history — the
 permanent, append-only record is `log.md` (session-by-session),
 `backend.md`/`database.md` (backend/schema changes only), and `decisions.md`.
-Earlier "Latest" sections (2026-09-24 PAN-at-upload, the 2026-09-15..24 backfill, the
-2026-09-07..12 condensed sessions) were dropped from here on 2026-09-29; their full
-detail lives in `log.md`.
+Earlier "Latest" sections (2026-09-30 staging QA fixes, 2026-09-24 PAN-at-upload, the
+2026-09-15..24 backfill, the 2026-09-07..12 condensed sessions) were dropped from here on
+2026-10-01; their full detail lives in `log.md`.
 
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
 
-## Latest (2026-09-30): staging QA fixes — built, UNCOMMITTED, awaiting user review
+## Latest (2026-10-01): staging DB-access tooling, no app code changed
 
-Branch `feat/enhanced-ui`, working tree only (the user commits manually). Fixes the six
-issues from the user's staging test of the auth redesign and CAS member detection.
-Findings + decisions: `Docs/orchestration/2026-09-30-staging-qa-findings-map.html`
-(published as an artifact). Plan: `Docs/superpowers/plans/2026-09-30-staging-qa-fixes.md`.
-Decisions: `decisions.md` 2026-09-30. Code: `backend.md` / `database.md` 2026-09-30.
+No implementation work this session — DB-access setup, repeated staging wipes, and two
+diagnoses. Full detail: `log.md`'s 2026-10-01 entry.
 
-1. Sign-up with a registered phone → 409 before any code; Log In with an unknown
-   phone/email → 404 before any code (closes item 9 below).
-2. Onboarding goal is multi-select → `users.primary_goals` (migration 0019, expand phase;
-   0021 contract step is in `DEFERRED_FEATURES.md`).
-3. Ribbon grid capped at 3 columns inside ribbons; 0-unresolved ribbons confirm themselves.
-4. Wrong PAN at unlock → popup (statement's PAN / upload a different statement).
-5. Duplicate Kavita → name-only people attach by exact name; PAN person vs name-only member
-   is asked; the PAN-bearing duplicate can now be merged.
-6. Statement period now written at Confirm; migration 0020 backfills old imports.
-
-**Staging retest (walk the user's six reports):**
-1. Sign up with a registered number: "already exists" + Log in instead, no code sent. Log
-   in with an unknown number: "No account found" + Sign up instead.
-2. Q3 accepts several goals; Continue saves them.
-3. A clean member's ribbon shows Confirmed without being opened; the grid shows 3 unclipped
-   cards.
-4. A wrong PAN at unlock opens the popup; both options work.
-5. Replaying the 4-upload Kavita sequence leaves one Kavita; existing staging duplicates can
-   be merged from the unlock popup.
-6. Import history shows statement periods, including old imports after 0020.
-
-**Open for this change:**
-- Migrations 0019/0020 never run on Postgres (no TEST_DATABASE_URL); run
-  `tests/functional_postgres` once before deploying.
-- No browser visual QA of the ribbon grid at desktop or phone width.
-- `Docs/orchestration/qa-fixtures/` and `.superpowers/sdd/` were deleted mid-session by
-  something outside the session. The fixture tests now skip unless `UNIFOLIO_QA_FIXTURES`
-  points at the synthetic PDFs.
-- The session's diff snapshots put every untracked file (including the real statement
-  `CAS 10 Yr.pdf`) into `.git` as unreferenced objects; `git gc --prune=now` removes them.
+- Staging RDS access via an SSM port-forwarding tunnel (through the SSM-only bastion) +
+  `psql`/DBeaver, used for several full user-domain wipes during stakeholder fresh-signup
+  testing rounds. Now a self-serve script: `scripts/clean-staging-db.sh` — resolves the
+  bastion/RDS endpoint/Secrets Manager ARN dynamically, deletes in one FK-safe
+  transaction, prints before/after counts, leaves reference/platform tables untouched.
+- **New, unfixed bug found:** `frontend/src/features/auth/FamilyImportFlow.tsx`'s
+  `handleConfirm` never checks for the `member_mismatch` 409 code and has no
+  override-retry UI — unlike `frontend/src/features/import/ImportFlow.tsx`, which has the
+  full `memberMismatch` state + "Continue anyway"/"Switch to X" buttons. Every family
+  member's first-ever CAS import after a DB wipe hits a dead end with no way to proceed.
+  The fix is bounded: mirror `ImportFlow.tsx`'s `memberMismatch` state + buttons into
+  `FamilyImportFlow.tsx`'s `handleConfirm`/render for the `review` stage. Not yet built —
+  pick this up first in the next session.
+- Progressed (not resolved) the 10-year CAS statement value-discrepancy investigation —
+  confirmed no Unifolio code branches on statement year-span, narrowed suspicion to
+  `casparser`'s page/fund-boundary detection, still unconfirmed. Handoff doc for a
+  dedicated session: `Docs/investigations/2026-10-01-cas-10-year-parsing-discrepancy-handoff.md`.
+- Corrected stale status: the 2026-09-29 CAS member detection build and the 2026-09-30
+  staging QA fixes were both marked "uncommitted" in this file, `CLAUDE.md`, and `log.md`
+  — confirmed via `git log` that both are in fact fully committed. Fixed in all three
+  places this session.
 
 ## Still open, carried forward from earlier phases, not yet revisited
 
@@ -60,7 +48,12 @@ Decisions: `decisions.md` 2026-09-30. Code: `backend.md` / `database.md` 2026-09
    lines; no real PDFs were on disk (plan Task 4 Step 6 skipped). Test with real
    multi-PAN family CAS files from both RTAs before trusting it.
 3. The mobile ribbon review reuses the desktop styling as-is and needs phone visual QA.
-4. Nothing is committed. The user reviews the working tree and commits manually.
+4. **Corrected 2026-10-01**: this work is in fact committed (`af92286`..`b40f52b`), not
+   uncommitted as this line previously said.
+
+**New, specific to this session (2026-10-01):**
+1. `FamilyImportFlow.tsx`'s missing `member_mismatch` override-retry UI (see "Latest"
+   above) — diagnosed, not fixed.
 
 
 *(Moved here from `CLAUDE.md` 2026-08-24 — that file's Session State section is a

@@ -60,7 +60,7 @@ instead. See `docs/agents/domain.md`.
 
 ## Session State
 
-*(Updated 2026-09-26. This section is a one-line current-status pointer, not a log —
+*(Updated 2026-10-01. This section is a one-line current-status pointer, not a log —
 do not append session narrative here again. Full current status: `session.md` at repo
 root, overwritten each session. Full permanent history: `log.md` (append-only, never
 trimmed), `backend.md`/`database.md` (backend/schema changes only), `decisions.md`
@@ -68,7 +68,22 @@ trimmed), `backend.md`/`database.md` (backend/schema changes only), `decisions.m
 `Docs/orchestration/delegation-log.md`. Deferred/not-yet-built features:
 `DEFERRED_FEATURES.md`.)*
 
-**Latest (2026-09-30):** staging QA fixes (auth sign-up/login checks, multi-select goal, ribbon auto-confirm, L3 popup, duplicate-member fixes, statement period) built, uncommitted, awaiting review — see `session.md`'s "Latest". CAS member detection (2026-09-29) is committed.
+**Latest (2026-10-01):** no code changes this session — DB-access tooling and
+investigation only. Staging RDS access via SSM-tunnel + `psql`/DBeaver was set up and
+used to repeatedly wipe all user-domain data (reference/platform tables untouched) for
+stakeholder-facing fresh-signup rounds; that wipe is now a self-serve script,
+`scripts/clean-staging-db.sh`, so this no longer needs a live session each time. A real,
+unfixed frontend bug was found: `FamilyImportFlow.tsx`'s confirm handler never checks for
+the `member_mismatch` 409 code and has no override-retry UI (unlike `ImportFlow.tsx`,
+which does) — every family member's first-ever CAS import after a DB wipe hits a dead
+end with no way to proceed. Not yet fixed — see "Still open" below. Also progressed the
+10-year CAS statement value-discrepancy investigation: confirmed via grep that no
+Unifolio code branches on statement year-span, narrowed the likely cause to the
+third-party `casparser` library's page/fund-boundary detection, and wrote a handoff doc,
+`Docs/investigations/2026-10-01-cas-10-year-parsing-discrepancy-handoff.md`, so this can
+be picked up in a dedicated session with a real test file.
+
+**Previous (2026-09-30):** staging QA fixes (auth sign-up/login checks, multi-select goal, ribbon auto-confirm, L3 popup, duplicate-member fixes, statement period) — confirmed committed (`c404c2f`/`1ace61c`/`3541ef4`/`1cf9f35`/`d52bab6`), not uncommitted as this section previously said. CAS member detection (2026-09-29) is also committed.
 
 **Previous (2026-09-24):** CAS import PAN check moved from Confirm-time to upload-time
 (`pan_claims.py` replaces `attribution.py`; migration `0016`) — fixes every first import
