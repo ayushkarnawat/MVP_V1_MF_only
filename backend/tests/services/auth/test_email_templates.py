@@ -20,16 +20,11 @@ def test_otp_email_html_escapes_html_special_characters_in_otp():
     assert "&lt;b&gt;123456&lt;/b&gt;" in html
 
 
-def test_otp_email_html_logo_visibility_comes_only_from_the_stylesheet():
-    """Real-device regression (Gmail Android app, 2026-09-23): an inline
-    style="display:..." directly on the <img> tag won over the stylesheet's
-    dark-mode !important override in Gmail's simplified CSS engine, leaving
-    the light-mode (dark-wordmark) logo stuck visible against a dark
-    background -- effectively invisible. Display must come only from the
-    .logo-light/.logo-dark classes, so there's nothing inline for the media
-    query to lose to."""
+def test_otp_email_html_has_no_logo():
     html = otp_email_html(otp="743820", ttl_minutes=5)
-    assert "display" not in html.split("<body>")[1]
+    assert "<img" not in html
+    assert "unifolio-logo" not in html
+    assert "logo-light" not in html and "logo-dark" not in html
 
 
 def test_otp_email_html_desktop_otp_positioning():
@@ -54,10 +49,18 @@ def test_otp_email_html_declares_supported_color_schemes():
     assert '<meta name="supported-color-schemes" content="light dark">' in html
 
 
-def test_otp_email_html_builds_logo_urls_from_frontend_base_url(monkeypatch):
-    import app.services.auth.email_templates as email_templates_module
-
-    monkeypatch.setattr(email_templates_module.settings, "frontend_base_url", "https://staging.unifolio.in")
+def test_verification_code_is_green_text_without_a_highlight():
     html = otp_email_html(otp="743820", ttl_minutes=5)
-    assert "https://staging.unifolio.in/brand/unifolio-logo-light.png" in html
-    assert "https://staging.unifolio.in/brand/unifolio-logo-dark.png" in html
+    assert '<span class="code-pill">verification code</span>' in html
+    pill_rule = html.split(".code-pill {")[1].split("}")[0]
+    assert "color: #15803D" in pill_rule
+    assert "background" not in pill_rule
+    assert "padding" not in pill_rule
+    # Dark mode keeps the lighter green text.
+    assert ".code-pill {{" not in html  # sanity: no unescaped template braces
+    assert "color: #4ADE80" in html
+
+
+def test_body_has_no_inline_display_styles():
+    html = otp_email_html(otp="743820", ttl_minutes=5)
+    assert "display" not in html.split("<body>")[1]
