@@ -2,13 +2,20 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi, afterEach } from "vitest";
 import { RequestCamsPath } from "./RequestCamsPath";
 import * as api from "./api";
+import { DOCS } from "../legal/testFixtures";
+
+vi.mock("../legal/api", async () => {
+  const actual = await vi.importActual<typeof import("../legal/api")>("../legal/api");
+  const { DOCS } = await import("../legal/testFixtures");
+  return { ...actual, getLegalDocuments: vi.fn(async () => DOCS) };
+});
 
 describe("RequestCamsPath", () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it("renders steps, reference card, back button, and initiates CAMS request on button click", async () => {
+  it("request is disabled until ticked and sends the version; renders steps, reference card, back button, and initiates CAMS request on button click", async () => {
     const mockOpen = vi.fn();
     vi.stubGlobal("open", mockOpen);
 
@@ -49,10 +56,15 @@ describe("RequestCamsPath", () => {
 
     // Verify CTA and submission
     const requestBtn = screen.getByRole("button", { name: /request statement on cams/i });
+    expect(requestBtn).toBeDisabled();
+    const box = await screen.findByRole("checkbox");
+    await waitFor(() => expect(box).toBeEnabled());
+    fireEvent.click(box);
+    expect(requestBtn).toBeEnabled();
     fireEvent.click(requestBtn);
 
     await waitFor(() => {
-      expect(api.requestCamsStatement).toHaveBeenCalledWith("m-1");
+      expect(api.requestCamsStatement).toHaveBeenCalledWith("m-1", DOCS[2].version);
       expect(mockOpen).toHaveBeenCalledWith(
         "https://www.camsonline.com/Investors/Statements/Consolidated-Account-Statement",
         "_blank"

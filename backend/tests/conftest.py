@@ -69,6 +69,18 @@ def _default_test_pan_keys(monkeypatch):
     monkeypatch.setattr(settings, "pan_lookup_pepper", _TEST_PAN_LOOKUP_PEPPER)
 
 
+@pytest.fixture(autouse=True)
+def _enable_legacy_unflowed_phone_signup(monkeypatch):
+    """~16 test files mint a session with a bare, flow-less phone verify
+    (the legacy branch of /auth/otp/verify). That branch is off by default
+    (settings.legacy_unflowed_phone_signup=False) in every deployed
+    environment; turn it on for tests. A test checking the refusal sets it
+    back to False in its own body."""
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "legacy_unflowed_phone_signup", True)
+
+
 @pytest.fixture()
 def db_session():
     """An isolated in-memory DB session for unit tests."""

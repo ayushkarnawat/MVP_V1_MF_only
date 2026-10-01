@@ -417,6 +417,7 @@ export function MobileImportView({
               setView("choice");
             }}
             onUploadSubmit={handleUpload}
+            surface="mobile_upload"
           />
         )}
 

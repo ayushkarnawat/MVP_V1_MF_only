@@ -11,6 +11,7 @@ import {
 } from "./casResumeState";
 import { cn } from "@/lib/utils";
 import { History, ArrowLeft } from "lucide-react";
+import type { UploadSurface } from "@/features/legal/panDisclaimerStore";
 
 export type ImportView = "choice" | "request" | "waiting" | "upload" | "history";
 
@@ -18,12 +19,15 @@ export interface TwoPathImportContainerProps {
   memberId: string;
   defaultTab?: "request" | "upload" | "history" | "choice" | "waiting";
   onUploadSubmit: (file: File, password: string, sourceTab: string) => void;
+  /** Onboarding passes "onboarding_upload"; defaults to the in-app import surface. */
+  surface?: UploadSurface;
 }
 
 export function TwoPathImportContainer({
   memberId,
   defaultTab,
   onUploadSubmit,
+  surface,
 }: TwoPathImportContainerProps) {
   const [view, setView] = useState<ImportView>(() => {
     if (defaultTab === "history") return "history";
@@ -122,11 +126,13 @@ export function TwoPathImportContainer({
               setView("choice");
             }}
             onUploadSubmit={(file, password) => handleUploadSubmit(file, password, "request")}
+            surface={surface}
           />
         )}
 
         {view === "upload" && (
           <UploadForm
+            surface={surface}
             onBack={() => setView("choice")}
             onSubmit={(file, password) => handleUploadSubmit(file, password, "upload")}
           />

@@ -135,6 +135,21 @@ def test_hard_delete_expired_accounts_cascades_cleanly_on_postgres(postgres_url,
     ])
     db.commit()
 
+    # Task 9 / Q6: consent rows have no FK and append-only triggers; a
+    # hard-delete must leave them in place (a cascade would abort on the
+    # trigger) -- proven here against real Postgres triggers.
+    from app.models.consent import ConsentRecord
+    from app.models.enums import ConsentAction, ConsentDocumentType
+    from app.services.legal.consent import ConsentEvidence, record_consent
+    from app.services.legal.registry import current_document
+
+    record_consent(
+        db, user_id=user.id, documents=[current_document(ConsentDocumentType.TERMS_OF_SERVICE)],
+        action=ConsentAction.GIVEN, surface="signup_phone",
+        evidence=ConsentEvidence(None, None, None, None), recorded_at=now,
+    )
+    db.commit()
+
     # Plain values, captured before the delete: after it, reading an
     # attribute off an ORM object whose row is gone raises ObjectDeletedError
     # (commit expires every attribute, and the refresh finds no row).
@@ -159,6 +174,7 @@ def test_hard_delete_expired_accounts_cascades_cleanly_on_postgres(postgres_url,
         assert db.query(OtpRequest).filter_by(phone_number=phone_number).count() == 0
         assert db.query(AccountDeletionSurvey).count() == 1
         assert db.query(Scheme).filter_by(id=scheme_id).count() == 1
+        assert db.query(ConsentRecord).filter_by(user_id=user_id).count() == 1
     finally:
         # Always release the connection: a failed assertion otherwise leaves it
         # idle-in-transaction holding locks, and the next test's

@@ -1,7 +1,8 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, Uuid
+from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, Uuid
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -78,6 +79,15 @@ class PendingIdentityVerification(Base):
     token_hash: Mapped[str] = mapped_column(String, nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    # Consent core (Task 8, migration 0022): the T&C + Privacy agreement
+    # captured at the FIRST sign-up step -- {"documents": [{document_type,
+    # document_version}], "captured_at": iso, "surface": str, "evidence":
+    # {ip_truncated, ip_hmac, user_agent, device_id}}. complete_gated_signup
+    # turns it into consent_records rows in the same transaction that creates
+    # the user. NULL on link/step-up records, which never create an account.
+    consent_snapshot: Mapped[dict | None] = mapped_column(
+        JSON(none_as_null=True).with_variant(JSONB(none_as_null=True), "postgresql")
+    )
 
 
 class Session(Base):

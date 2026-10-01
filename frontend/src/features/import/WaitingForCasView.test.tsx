@@ -3,6 +3,19 @@ import { describe, expect, it, vi, afterEach } from "vitest";
 import { WaitingForCasView } from "./WaitingForCasView";
 import * as api from "./api";
 
+vi.mock("../legal/api", async () => {
+  const actual = await vi.importActual<typeof import("../legal/api")>("../legal/api");
+  const { DOCS } = await import("../legal/testFixtures");
+  return { ...actual, getLegalDocuments: vi.fn(async () => DOCS) };
+});
+
+/** Ticks the PAN disclaimer once the legal documents have loaded. */
+async function tickDisclaimer() {
+  const box = await screen.findByRole("checkbox");
+  await waitFor(() => expect(box).toBeEnabled());
+  fireEvent.click(box);
+}
+
 describe("WaitingForCasView", () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -73,6 +86,7 @@ describe("WaitingForCasView", () => {
     fireEvent.change(passwordInput, { target: { value: "SECRET123" } });
 
     const submitBtn = screen.getByRole("button", { name: /Upload Statement/i });
+    await tickDisclaimer();
     fireEvent.click(submitBtn);
 
     expect(onUploadSubmit).toHaveBeenCalledWith(mockFile, "SECRET123");

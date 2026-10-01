@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import * as api from "./features/auth/api";
@@ -9,6 +9,13 @@ import * as api from "./features/auth/api";
 vi.mock("./features/auth/api", async () => {
   const actual = await vi.importActual<typeof import("./features/auth/api")>("./features/auth/api");
   return { ...actual, getMe: vi.fn(), updateMe: vi.fn(), listHouseholdMembers: vi.fn().mockResolvedValue([]) };
+});
+
+// The sign-up Landing now loads the legal documents; stub them so no real fetch fires.
+vi.mock("./features/legal/api", async () => {
+  const actual = await vi.importActual<typeof import("./features/legal/api")>("./features/legal/api");
+  const { DOCS } = await import("./features/legal/testFixtures");
+  return { ...actual, getLegalDocuments: vi.fn(async () => DOCS) };
 });
 
 describe("App", () => {
@@ -53,7 +60,7 @@ describe("App", () => {
     localStorage.setItem("unifolio_session_token", "tok-1");
     const incompleteMe = {
       user_id: "u1", phone_number: "+919999999999", email: null,
-      onboarding_step: "q1_name", onboarding_completed: false, investor_type: null, primary_goals: null,
+      onboarding_step: "q1_name", onboarding_completed: false, investor_type: null, primary_goals: null, self_name: null, consent_outdated: [],
     };
     vi.mocked(api.getMe).mockResolvedValue(incompleteMe);
     vi.mocked(api.updateMe).mockResolvedValue(incompleteMe);
@@ -67,7 +74,7 @@ describe("App", () => {
     localStorage.setItem("unifolio_session_token", "tok-1");
     vi.mocked(api.getMe).mockResolvedValue({
       user_id: "u1", phone_number: "+919999999999", email: null,
-      onboarding_step: null, onboarding_completed: true, investor_type: null, primary_goals: null,
+      onboarding_step: null, onboarding_completed: true, investor_type: null, primary_goals: null, self_name: null, consent_outdated: [],
     });
 
     render(<App />);
@@ -75,11 +82,41 @@ describe("App", () => {
     await waitFor(() => expect(screen.getByText(/welcome to unifolio/i)).toBeInTheDocument());
   });
 
+  it("outdated consent blocks the dashboard until agreed", async () => {
+    localStorage.setItem("unifolio_session_token", "tok-1");
+    const base = {
+      user_id: "u1", phone_number: "+919999999999", email: null,
+      onboarding_step: null, onboarding_completed: true, investor_type: null, primary_goals: null, self_name: null,
+    };
+    vi.mocked(api.getMe)
+      .mockResolvedValueOnce({ ...base, consent_outdated: ["terms_of_service", "privacy_policy"] })
+      .mockResolvedValue({ ...base, consent_outdated: [] });
+    const legal = await import("./features/legal/api");
+    const submit = vi.spyOn(legal, "submitReconsent").mockResolvedValue({ consent_outdated: [] });
+
+    render(<App />);
+
+    expect(await screen.findByText("We’ve updated our Terms")).toBeInTheDocument();
+    const agree = screen.getByRole("button", { name: "Agree" });
+    expect(agree).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
+    const box = screen.getByRole("checkbox");
+    await waitFor(() => expect(box).toBeEnabled());
+    fireEvent.click(box);
+    fireEvent.click(agree);
+
+    await waitFor(() => expect(screen.queryByText("We’ve updated our Terms")).not.toBeInTheDocument());
+    expect(submit).toHaveBeenCalledWith([
+      { document_type: "terms_of_service", document_version: "tos-placeholder-2026-10-01" },
+      { document_type: "privacy_policy", document_version: "privacy-placeholder-2026-10-01" },
+    ]);
+  });
+
   it("gates a pending-deletion session to the reactivation screen", async () => {
     localStorage.setItem("unifolio_session_token", "tok-pending");
     vi.mocked(api.getMe).mockResolvedValue({
       user_id: "u1", phone_number: "+919999999999", email: null,
-      onboarding_step: null, onboarding_completed: true, investor_type: null, primary_goals: null,
+      onboarding_step: null, onboarding_completed: true, investor_type: null, primary_goals: null, self_name: null, consent_outdated: [],
       pending_deletion: true, deletion_scheduled_at: "2026-09-16T08:00:00+00:00",
     });
 
@@ -93,7 +130,7 @@ describe("App", () => {
     localStorage.setItem("unifolio_session_token", "tok-1");
     vi.mocked(api.getMe).mockResolvedValue({
       user_id: "u1", phone_number: "+919999999999", email: null,
-      onboarding_step: null, onboarding_completed: true, investor_type: null, primary_goals: null,
+      onboarding_step: null, onboarding_completed: true, investor_type: null, primary_goals: null, self_name: null, consent_outdated: [],
     });
 
     // Mock mobile matchMedia

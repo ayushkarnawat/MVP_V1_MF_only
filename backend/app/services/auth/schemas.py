@@ -4,6 +4,7 @@ from typing import Literal
 from pydantic import BaseModel, field_validator, model_validator
 
 from app.models.enums import AuthIdentityProvider, InvestorType, PrimaryGoal
+from app.services.legal.consent import AcceptedDocument
 
 PROVIDER_TO_METHOD_LABEL: dict[AuthIdentityProvider, str] = {
     AuthIdentityProvider.PHONE_OTP: "phone",
@@ -56,10 +57,15 @@ class OtpVerifyBody(BaseModel):
     # existing test/internal caller relies on — see otp/verify's own
     # docstring in api/auth.py for which branch that is.
     flow: Literal["signup", "login"] | None = None
+    # Consent core (Task 8): T&C + Privacy agreed on the sign-up screen.
+    # Required (current versions) only for flow="signup"; ignored otherwise.
+    accepted_documents: list[AcceptedDocument] | None = None
 
 
 class SignupEmailBody(BaseModel):
     email: str
+    # Consent core (Task 8): required -- this is a sign-up's first step.
+    accepted_documents: list[AcceptedDocument] | None = None
 
     @field_validator("email", mode="before")
     @classmethod
@@ -145,6 +151,9 @@ class EmailOtpVerifyBody(BaseModel):
 class GoogleAuthBody(BaseModel):
     id_token: str
     pending_token: str | None = None
+    # Consent core (Task 8): required only when this Google identity turns
+    # out to be a brand-new account (phone_required); logins/links ignore it.
+    accepted_documents: list[AcceptedDocument] | None = None
 
 
 class SessionRefreshResponse(BaseModel):
@@ -187,6 +196,10 @@ class MeResponse(BaseModel):
     primary_goals: list[PrimaryGoal] | None
     pending_deletion: bool
     deletion_scheduled_at: datetime | None
+    self_name: str | None = None
+    # Sign-up documents (T&C / Privacy) without a current GIVEN row --
+    # non-empty means the client must ask the user to agree again.
+    consent_outdated: list[str] = []
 
 
 DeletionReason = Literal[
@@ -196,6 +209,10 @@ DeletionReason = Literal[
     "data_or_trust_concern",
     "other",
 ]
+
+
+class ReactivateBody(BaseModel):
+    accepted_documents: list[AcceptedDocument]
 
 
 class AccountDeletionBody(BaseModel):

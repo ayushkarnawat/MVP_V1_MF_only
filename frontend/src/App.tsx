@@ -7,6 +7,7 @@ import { MobileRoot } from "./mobile/MobileRoot";
 import { MobileLandingPage } from "./mobile/features/landing/MobileLandingPage";
 import { MobileJourneyContext } from "./features/auth/mobileJourneyContext";
 import type { MobileJourneyStep } from "./features/auth/mobileJourneyContext";
+import { ReconsentGate } from "./features/legal/ReconsentGate";
 import { PendingDeletionScreen } from "./features/profile/PendingDeletionScreen";
 
 function useIsMobileViewport(breakpoint = 768) {
@@ -107,7 +108,11 @@ function MainApp() {
       return <MobileInitialFlow authInitialMode={authInitialMode} />;
     }
 
-    return <MobileRoot />;
+    return (
+      <ReconsentGate>
+        <MobileRoot />
+      </ReconsentGate>
+    );
   }
 
   // 2. Desktop Web Initial Flow (Untouched)
@@ -119,7 +124,11 @@ function MainApp() {
     return <OnboardingFlow isMobile={false} />;
   }
 
-  return <DashboardPlaceholder />;
+  return (
+    <ReconsentGate>
+      <DashboardPlaceholder />
+    </ReconsentGate>
+  );
 }
 
 function App() {

@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { setPanDisclaimer } from "../legal/panDisclaimerStore";
 import {
   ApiError,
   cancelImportRequest,
@@ -41,6 +42,30 @@ describe("parseImport", () => {
     const body = options.body as FormData;
     expect(body.get("file")).toBe(file);
     expect(body.get("password")).toBe("secret");
+  });
+
+  it("parseImport sends the disclaimer version and surface", async () => {
+    const mockFetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ session_id: "s1" }), { status: 200 }));
+    vi.stubGlobal("fetch", mockFetch);
+    setPanDisclaimer("pan-v1", "onboarding_upload");
+    await parseImport(new File(["x"], "cas.pdf"), "pw", "member-1");
+    const [, options] = mockFetch.mock.calls[0];
+    expect((options.body as FormData).get("pan_disclaimer_version")).toBe("pan-v1");
+    expect(options.headers["X-Upload-Surface"]).toBe("onboarding_upload");
+    setPanDisclaimer(null);
+  });
+
+  it("retry keeps disclaimer", async () => {
+    const mockFetch = vi.fn().mockImplementation(async () => new Response(JSON.stringify({ session_id: "s1" }), { status: 200 }));
+    vi.stubGlobal("fetch", mockFetch);
+    setPanDisclaimer("pan-v1", "import_upload");
+    await parseImport(new File(["x"], "cas.pdf"), "pw", "member-1");
+    await parseImport(new File(["x"], "cas.pdf"), "pw", "member-1");
+    for (const [, options] of mockFetch.mock.calls) {
+      expect((options.body as FormData).get("pan_disclaimer_version")).toBe("pan-v1");
+      expect(options.headers["X-Upload-Surface"]).toBe("import_upload");
+    }
+    setPanDisclaimer(null);
   });
 
   it("throws ApiError with the structured payload on a 422", async () => {
@@ -283,10 +308,11 @@ describe("cas-import lifecycle methods", () => {
     );
     vi.stubGlobal("fetch", mockFetch);
 
-    const res = await requestCamsStatement("m-1");
+    const res = await requestCamsStatement("m-1", "pan-v1");
     expect(res.status).toBe("waiting_for_user");
     expect(res.cams_url).toContain("camsonline");
     const [url, options] = mockFetch.mock.calls[0];
+    expect(JSON.parse(options.body as string)).toEqual({ household_member_id: "m-1", pan_disclaimer_version: "pan-v1" });
     expect(url).toContain("/cas-imports/request");
     expect(options.method).toBe("POST");
   });

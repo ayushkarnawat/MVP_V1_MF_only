@@ -9,7 +9,7 @@ if sys.platform == "win32":
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import analytics, auth, cas_imports, dashboard, imports
+from app.api import analytics, auth, cas_imports, dashboard, imports, legal
 from app.config import settings
 from app.services.analytics.pdf_export import start_browser, stop_browser
 from app.services.import_.crypto import decode_key
@@ -99,6 +99,7 @@ app.include_router(imports.router)
 app.include_router(cas_imports.router)
 app.include_router(dashboard.router)
 app.include_router(analytics.router)
+app.include_router(legal.router)
 
 
 @app.get("/health")

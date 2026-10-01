@@ -8,7 +8,7 @@ from sqlalchemy import or_
 from app.models.account_deletion import AccountDeletionSurvey
 from app.models.analytics import AnalyticsRecomputeStatus, AnalyticsSection
 from app.models.auth import AuthIdentity, OtpRequest, PendingIdentityVerification, Session as SessionModel
-from app.models.enums import AuthIdentityProvider
+from app.models.enums import AuthIdentityProvider, ConsentAction
 from app.models.folio import Folio
 from app.models.imports import Import
 from app.models.member_history import HouseholdMemberMerge, HouseholdMemberNameChange
@@ -17,6 +17,8 @@ from app.models.transaction import Transaction
 from app.models.user import HouseholdMember, User
 from app.services.analytics.recompute import bump_recompute_generation
 from app.services.import_.file_storage import FileStorage, default_file_storage
+from app.services.legal.consent import ConsentEvidence, record_consent
+from app.services.legal.registry import current_documents
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +32,7 @@ def schedule_account_deletion(
     reason: str,
     feedback: str | None = None,
     now: datetime | None = None,
+    evidence: ConsentEvidence | None = None,
 ) -> datetime:
     requested_at = now or datetime.now(timezone.utc)
     scheduled_at = requested_at + DELETION_GRACE_PERIOD
@@ -42,11 +45,26 @@ def schedule_account_deletion(
     )
     user.pending_deletion = True
     user.deletion_scheduled_at = scheduled_at
+    # Scheduling deletion withdraws every purpose, for every document type --
+    # including ones this user never consented to (a legacy account, or one
+    # that never uploaded a CAS). Those extra WITHDRAWN rows are harmless and
+    # keep the trail uniform: every deletion request reads the same way.
+    record_consent(
+        db,
+        user_id=user.id,
+        documents=list(current_documents().values()),
+        action=ConsentAction.WITHDRAWN,
+        surface="account_deletion",
+        evidence=evidence or ConsentEvidence(ip_truncated=None, ip_hmac=None, user_agent=None, device_id=None),
+        recorded_at=requested_at,
+    )
     db.commit()
     return scheduled_at
 
 
 def reactivate_account(db: Session, user: User) -> None:
+    # The caller may have added consent rows to this session first; this
+    # commit lands them atomically with the reactivation.
     user.pending_deletion = False
     user.deletion_scheduled_at = None
     db.commit()

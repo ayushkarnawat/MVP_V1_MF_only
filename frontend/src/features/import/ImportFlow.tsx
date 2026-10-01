@@ -8,6 +8,7 @@ import { MemberRibbonReview } from "./MemberRibbonReview";
 import { ReviewExpiryBanner } from "./ReviewExpiryBanner";
 import { useImportOrchestration } from "./useImportOrchestration";
 import { isTestEnv } from "@/lib/motion";
+import type { UploadSurface } from "@/features/legal/panDisclaimerStore";
 
 interface ImportFlowProps {
   householdMemberId: string;
@@ -16,9 +17,11 @@ interface ImportFlowProps {
   defaultTab?: "choice" | "request" | "upload" | "history" | "waiting";
   /** U6: renders the unlock popup for a member who needs details before importing; call onDone when unlocked. */
   renderMemberDetails?: (memberId: string, onDone: () => void) => ReactNode;
+  /** Which screen the upload came from, for the PAN disclaimer record. */
+  surface?: UploadSurface;
 }
 
-export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab, renderMemberDetails }: ImportFlowProps) {
+export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab, renderMemberDetails, surface }: ImportFlowProps) {
   const {
     flow, uploadMessage, edits, nameAnswers, confirming, reviewPeople, setCancelOpen,
     cancelImport, upload, runConfirm, dialogs,
@@ -74,6 +77,7 @@ export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab, re
               memberId={householdMemberId}
               defaultTab={uploadTab}
               onUploadSubmit={handleUpload}
+              surface={surface}
             />
           </motion.div>
         )}

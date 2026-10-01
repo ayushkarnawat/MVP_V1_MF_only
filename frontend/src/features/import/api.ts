@@ -1,5 +1,6 @@
 import { API_BASE_URL, ApiError, invalidateApiCache, parseErrorDetail } from "../../lib/apiClient";
 import { getToken } from "../auth/session";
+import { currentPanDisclaimer } from "../legal/panDisclaimerStore";
 import type {
   AcknowledgeCode,
   CASImportStatusResponse,
@@ -33,9 +34,13 @@ export async function parseImport(
   // The backend checks and claims the CAS's PAN for this member at upload.
   formData.append("household_member_id", householdMemberId);
 
+  // Set by <PanDisclaimer> while ticked; the server rejects (422) without it.
+  const disclaimer = currentPanDisclaimer();
+  if (disclaimer) formData.append("pan_disclaimer_version", disclaimer.version);
+
   const response = await fetch(`${API_BASE_URL}/imports/parse`, {
     method: "POST",
-    headers: authHeaders(),
+    headers: { ...authHeaders(), ...(disclaimer ? { "X-Upload-Surface": disclaimer.surface } : {}) },
     body: formData,
   });
 
@@ -253,6 +258,7 @@ export async function postOpeningBalance(
 
 export async function requestCamsStatement(
   householdMemberId: string,
+  panDisclaimerVersion: string,
 ): Promise<{
   import_id: string;
   household_member_id: string;
@@ -263,7 +269,7 @@ export async function requestCamsStatement(
   const response = await fetch(`${API_BASE_URL}/cas-imports/request`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders() },
-    body: JSON.stringify({ household_member_id: householdMemberId }),
+    body: JSON.stringify({ household_member_id: householdMemberId, pan_disclaimer_version: panDisclaimerVersion }),
   });
 
   if (!response.ok) {

@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from app.models.user import User
 from app.services.auth.account_deletion import (
+    DELETION_GRACE_PERIOD,
     hard_delete_expired_accounts,
     reactivate_account,
     schedule_account_deletion,
@@ -257,3 +258,77 @@ def test_hard_delete_removes_audit_rows_and_each_file_once(db_session):
     assert db_session.query(HouseholdMemberNameChange).count() == 0
     assert db_session.query(HouseholdMemberMerge).count() == 0
     assert db_session.query(HouseholdMember).count() == 0
+
+
+# ---------------------------------------------- Task 9: consent rows on deletion
+
+
+def test_schedule_deletion_writes_withdrawn_rows(db_session):
+    from app.models.consent import ConsentRecord
+    from app.models.enums import ConsentAction
+    from app.services.legal.consent import ConsentEvidence
+
+    now = datetime(2026, 10, 1, 8, 0, tzinfo=timezone.utc)
+    user = User(phone_number="+919100000091", created_at=now)
+    db_session.add(user)
+    db_session.commit()
+    evidence = ConsentEvidence(ip_truncated="203.0.113.0", ip_hmac="h" * 64, user_agent="ua", device_id="dev")
+
+    schedule_account_deletion(db_session, user, reason="other", now=now, evidence=evidence)
+
+    rows = db_session.query(ConsentRecord).filter_by(user_id=user.id).all()
+    assert {r.action for r in rows} == {ConsentAction.WITHDRAWN}
+    assert {r.purpose_code.value for r in rows} == {
+        "service_agreement",
+        "account_and_authentication",
+        "portfolio_tracking_analytics",
+        "cas_pan_processing",
+    }
+    assert {r.surface for r in rows} == {"account_deletion"}
+    assert {r.ip_truncated for r in rows} == {"203.0.113.0"}
+
+
+def test_schedule_deletion_without_evidence_still_writes_withdrawn_rows(db_session):
+    from app.models.consent import ConsentRecord
+
+    now = datetime(2026, 10, 1, 8, 0, tzinfo=timezone.utc)
+    user = User(phone_number="+919100000092", created_at=now)
+    db_session.add(user)
+    db_session.commit()
+
+    schedule_account_deletion(db_session, user, reason="other", now=now)
+
+    rows = db_session.query(ConsentRecord).filter_by(user_id=user.id).all()
+    assert len(rows) == 4
+    assert {r.ip_truncated for r in rows} == {None}
+
+
+def test_hard_delete_keeps_consent_rows(db_session):
+    from app.models.consent import ConsentRecord
+    from app.models.enums import ConsentAction, ConsentDocumentType
+    from app.services.legal.consent import ConsentEvidence, record_consent
+    from app.services.legal.registry import current_document
+
+    now = datetime(2026, 10, 1, 8, 0, tzinfo=timezone.utc)
+    user = User(phone_number="+919100000093", created_at=now)
+    db_session.add(user)
+    db_session.flush()
+    uid = user.id
+    record_consent(
+        db_session,
+        user_id=uid,
+        documents=[current_document(ConsentDocumentType.TERMS_OF_SERVICE)],
+        action=ConsentAction.GIVEN,
+        surface="signup_phone",
+        evidence=ConsentEvidence(None, None, None, None),
+        recorded_at=now,
+    )
+    db_session.commit()
+
+    schedule_account_deletion(db_session, user, reason="other", now=now)
+    deleted = hard_delete_expired_accounts(db_session, now=now + DELETION_GRACE_PERIOD + timedelta(seconds=1))
+
+    assert deleted == 1
+    assert db_session.query(User).filter_by(id=uid).first() is None
+    assert db_session.query(ConsentRecord).filter_by(user_id=uid).count() >= 1
+    assert db_session.query(ConsentRecord).filter_by(user_id=uid, action=ConsentAction.GIVEN).count() == 1

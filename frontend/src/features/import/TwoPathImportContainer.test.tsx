@@ -4,6 +4,19 @@ import { TwoPathImportContainer } from "./TwoPathImportContainer";
 import { setCasResumeStep2, hasCasResumeStep2 } from "./casResumeState";
 import * as api from "./api";
 
+vi.mock("../legal/api", async () => {
+  const actual = await vi.importActual<typeof import("../legal/api")>("../legal/api");
+  const { DOCS } = await import("../legal/testFixtures");
+  return { ...actual, getLegalDocuments: vi.fn(async () => DOCS) };
+});
+
+/** Ticks the PAN disclaimer once the legal documents have loaded. */
+async function tickDisclaimer() {
+  const box = await screen.findByRole("checkbox");
+  await waitFor(() => expect(box).toBeEnabled());
+  fireEvent.click(box);
+}
+
 describe("TwoPathImportContainer", () => {
   beforeEach(() => {
     localStorage.clear();
@@ -101,10 +114,11 @@ describe("TwoPathImportContainer", () => {
     fireEvent.click(screen.getByRole("button", { name: /request from cams/i }));
 
     const requestBtn = screen.getByRole("button", { name: /request statement on cams/i });
+    await tickDisclaimer();
     fireEvent.click(requestBtn);
 
     await waitFor(() => {
-      expect(api.requestCamsStatement).toHaveBeenCalledWith("m-1");
+      expect(api.requestCamsStatement).toHaveBeenCalledWith("m-1", expect.any(String));
       expect(mockOpen).toHaveBeenCalledWith("https://www.camsonline.com/cas", "_blank");
       expect(hasCasResumeStep2("m-1")).toBe(true);
     });
@@ -135,7 +149,7 @@ describe("TwoPathImportContainer", () => {
     expect(screen.getByRole("heading", { name: /upload your statement/i })).toBeInTheDocument();
   });
 
-  it("clears resume state on upload submission so subsequent flow starts at choice view", () => {
+  it("clears resume state on upload submission so subsequent flow starts at choice view", async () => {
     setCasResumeStep2("m-1");
     const onUploadSubmit = vi.fn();
 
@@ -154,6 +168,7 @@ describe("TwoPathImportContainer", () => {
     fireEvent.change(passwordInput, { target: { value: "pass123" } });
 
     const submitBtn = screen.getByRole("button", { name: /upload statement/i });
+    await tickDisclaimer();
     fireEvent.click(submitBtn);
 
     expect(onUploadSubmit).toHaveBeenCalled();
@@ -187,6 +202,7 @@ describe("TwoPathImportContainer", () => {
 
     render(<TwoPathImportContainer memberId="m-1" onUploadSubmit={onUploadSubmit} />);
     fireEvent.click(screen.getByRole("button", { name: /request from cams/i }));
+    await tickDisclaimer();
     fireEvent.click(screen.getByRole("button", { name: /request statement on cams/i }));
     await screen.findByText(/waiting for cams email/i);
     fireEvent.click(screen.getByRole("button", { name: /already got the email\? upload it now/i }));
@@ -194,6 +210,7 @@ describe("TwoPathImportContainer", () => {
     const file = new File(["pdf"], "cas.pdf", { type: "application/pdf" });
     fireEvent.change(screen.getByLabelText(/CAS PDF/i), { target: { files: [file] } });
     fireEvent.change(screen.getByLabelText(/PDF Password/i), { target: { value: "pw" } });
+    await tickDisclaimer();
     fireEvent.click(screen.getByRole("button", { name: /Upload Statement/i }));
 
     expect(onUploadSubmit).toHaveBeenCalledWith(file, "pw", "request");

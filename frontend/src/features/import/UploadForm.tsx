@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { ImportFileProgressList } from "./ImportFileProgressList";
 import { OnboardingIllustration } from "@/features/auth/OnboardingIllustration";
 import { cn } from "@/lib/utils";
+import { PanDisclaimer } from "@/features/legal/PanDisclaimer";
+import type { UploadSurface } from "@/features/legal/panDisclaimerStore";
 import {
   UploadCloud,
   Lock,
@@ -18,9 +20,12 @@ import {
 export interface UploadFormProps {
   onBack?: () => void;
   onSubmit: (file: File, password: string) => void;
+  /** Only the onboarding path overrides this. */
+  surface?: UploadSurface;
 }
 
-export function UploadForm({ onBack, onSubmit }: UploadFormProps) {
+export function UploadForm({ onBack, onSubmit, surface = "import_upload" }: UploadFormProps) {
+  const [disclaimerChecked, setDisclaimerChecked] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -202,9 +207,12 @@ export function UploadForm({ onBack, onSubmit }: UploadFormProps) {
         </div>
       </div>
 
+      <PanDisclaimer checked={disclaimerChecked} onChange={setDisclaimerChecked} surface={surface} />
+
       {/* Submit Button */}
       <Button
         type="submit"
+        disabled={!disclaimerChecked}
         className="w-full h-11 sm:h-12 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs sm:text-sm shadow-xs gap-2 cursor-pointer active:scale-[0.99] transition-all min-h-[44px]"
       >
         <UploadCloud className="h-4 w-4" />

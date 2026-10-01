@@ -41,6 +41,21 @@ def _session():
 _session_with_otp_requests = _session
 
 
+def _consent_snapshot(surface="signup_google"):
+    """A valid pending-record consent snapshot (Task 8): complete_gated_signup
+    refuses to create an account without one."""
+    from app.models.enums import ConsentDocumentType
+    from app.services.legal.consent import AcceptedDocument, ConsentEvidence, snapshot_for_signup
+    from app.services.legal.registry import current_document
+
+    accepted = [
+        AcceptedDocument(document_type=t, document_version=current_document(t).version)
+        for t in (ConsentDocumentType.TERMS_OF_SERVICE, ConsentDocumentType.PRIVACY_POLICY)
+    ]
+    evidence = ConsentEvidence(ip_truncated="10.0.0.0", ip_hmac="h" * 64, user_agent="pytest", device_id="dev-unit")
+    return snapshot_for_signup(accepted, surface, evidence)
+
+
 def _user(db, phone="+919999999999") -> User:
     user = User(id=uuid.uuid4(), phone_number=phone, created_at=datetime.now(timezone.utc))
     db.add(user)
@@ -143,7 +158,8 @@ def test_create_pending_verification_returns_findable_token():
 def test_complete_gated_signup_creates_user_with_both_identities():
     db = _session()
     _, raw_token = create_pending_verification(
-        db, AuthIdentityProvider.GOOGLE, "g-sub-2", "new2@example.com", True, matched_user_id=None
+        db, AuthIdentityProvider.GOOGLE, "g-sub-2", "new2@example.com", True, matched_user_id=None,
+        consent_snapshot=_consent_snapshot(),
     )
 
     user_id = complete_gated_signup(db, raw_token, AuthIdentityProvider.PHONE_OTP, "+919111111111")
@@ -168,7 +184,8 @@ def test_complete_gated_signup_sets_google_identity_email_when_verified():
     auto_link detection for that identity later."""
     db = _session()
     _, raw_token = create_pending_verification(
-        db, AuthIdentityProvider.GOOGLE, "g-sub-verified", "verified@example.com", True, matched_user_id=None
+        db, AuthIdentityProvider.GOOGLE, "g-sub-verified", "verified@example.com", True, matched_user_id=None,
+        consent_snapshot=_consent_snapshot(),
     )
 
     complete_gated_signup(db, raw_token, AuthIdentityProvider.PHONE_OTP, "+919111111112")
@@ -183,7 +200,8 @@ def test_complete_gated_signup_sets_google_identity_email_when_verified():
 def test_complete_gated_signup_rejects_expired_token():
     db = _session()
     pending, raw_token = create_pending_verification(
-        db, AuthIdentityProvider.GOOGLE, "g-sub-3", "new3@example.com", True, matched_user_id=None
+        db, AuthIdentityProvider.GOOGLE, "g-sub-3", "new3@example.com", True, matched_user_id=None,
+        consent_snapshot=_consent_snapshot(),
     )
     pending.expires_at = datetime.now(timezone.utc) - timedelta(minutes=1)
     db.commit()
@@ -270,7 +288,8 @@ def test_complete_gated_signup_never_persists_an_unverified_email():
     # the actual hijack this prevents.
     db = _session()
     _, raw_token = create_pending_verification(
-        db, AuthIdentityProvider.GOOGLE, "g-sub-unverified", "victim@example.com", False, matched_user_id=None
+        db, AuthIdentityProvider.GOOGLE, "g-sub-unverified", "victim@example.com", False, matched_user_id=None,
+        consent_snapshot=_consent_snapshot(),
     )
 
     user_id = complete_gated_signup(db, raw_token, AuthIdentityProvider.PHONE_OTP, "+919000000010")
@@ -288,7 +307,8 @@ def test_unverified_email_does_not_capture_a_later_genuine_signup():
     # same address must NOT auto-link into the attacker's account.
     db = _session()
     _, raw_token = create_pending_verification(
-        db, AuthIdentityProvider.GOOGLE, "g-sub-attacker", "victim@example.com", False, matched_user_id=None
+        db, AuthIdentityProvider.GOOGLE, "g-sub-attacker", "victim@example.com", False, matched_user_id=None,
+        consent_snapshot=_consent_snapshot(),
     )
     complete_gated_signup(db, raw_token, AuthIdentityProvider.PHONE_OTP, "+919000000011")
 
@@ -370,7 +390,8 @@ def test_complete_gated_signup_rolls_back_atomically_on_second_identity_failure(
     record_identity(db, other_user.id, AuthIdentityProvider.GOOGLE, "g-sub-dup", "dup@example.com", now)
 
     _, raw_token = create_pending_verification(
-        db, AuthIdentityProvider.GOOGLE, "g-sub-dup", "new@example.com", True, matched_user_id=None
+        db, AuthIdentityProvider.GOOGLE, "g-sub-dup", "new@example.com", True, matched_user_id=None,
+        consent_snapshot=_consent_snapshot(),
     )
 
     with pytest.raises(IntegrityError):
@@ -541,7 +562,7 @@ def test_complete_gated_signup_denormalizes_user_email_when_pending_email_was_ve
         "denorm@example.com",
         "denorm@example.com",
         False,
-        matched_user_id=None,
+        matched_user_id=None, consent_snapshot=_consent_snapshot(),
     )
     mark_pending_email_verified(db, raw_token, "denorm@example.com")
 
@@ -556,7 +577,8 @@ def test_complete_gated_signup_email_first_direction_matches_today():
     EMAIL_OTP, the second (completing) identity is PHONE_OTP."""
     db = _session()
     _, raw_token = create_pending_verification(
-        db, AuthIdentityProvider.EMAIL_OTP, "person@example.com", "person@example.com", True, matched_user_id=None
+        db, AuthIdentityProvider.EMAIL_OTP, "person@example.com", "person@example.com", True, matched_user_id=None,
+        consent_snapshot=_consent_snapshot(),
     )
 
     user_id = complete_gated_signup(db, raw_token, AuthIdentityProvider.PHONE_OTP, "+919999999999")
@@ -574,7 +596,8 @@ def test_complete_gated_signup_phone_first_direction():
     (completing) identity is EMAIL_OTP."""
     db = _session()
     _, raw_token = create_pending_verification(
-        db, AuthIdentityProvider.PHONE_OTP, "+919999999999", "person@example.com", False, matched_user_id=None
+        db, AuthIdentityProvider.PHONE_OTP, "+919999999999", "person@example.com", False, matched_user_id=None,
+        consent_snapshot=_consent_snapshot(),
     )
 
     user_id = complete_gated_signup(db, raw_token, AuthIdentityProvider.EMAIL_OTP, "person@example.com")
@@ -605,7 +628,8 @@ def test_complete_gated_signup_phone_first_rejects_email_with_existing_verified_
     existing = _user(db, phone="+911111111111")
     record_identity(db, existing.id, AuthIdentityProvider.EMAIL_OTP, "taken@example.com", "taken@example.com", datetime.now(timezone.utc))
     _, raw_token = create_pending_verification(
-        db, AuthIdentityProvider.PHONE_OTP, "+919999999999", "taken@example.com", False, matched_user_id=None
+        db, AuthIdentityProvider.PHONE_OTP, "+919999999999", "taken@example.com", False, matched_user_id=None,
+        consent_snapshot=_consent_snapshot(),
     )
 
     with pytest.raises(EmailCollisionError, match="already exists"):
@@ -626,7 +650,8 @@ def test_complete_gated_signup_phone_first_rejects_email_matching_denormalized_u
     other.email = "denormalized@example.com"
     db.commit()
     _, raw_token = create_pending_verification(
-        db, AuthIdentityProvider.PHONE_OTP, "+919999999999", "denormalized@example.com", False, matched_user_id=None
+        db, AuthIdentityProvider.PHONE_OTP, "+919999999999", "denormalized@example.com", False, matched_user_id=None,
+        consent_snapshot=_consent_snapshot(),
     )
 
     with pytest.raises(EmailCollisionError, match="already exists"):
@@ -642,7 +667,8 @@ def test_complete_gated_signup_email_first_direction_is_unaffected_by_the_collis
     resolve_new_verified_identity, before a pending token was ever minted."""
     db = _session()
     _, raw_token = create_pending_verification(
-        db, AuthIdentityProvider.EMAIL_OTP, "person@example.com", "person@example.com", True, matched_user_id=None
+        db, AuthIdentityProvider.EMAIL_OTP, "person@example.com", "person@example.com", True, matched_user_id=None,
+        consent_snapshot=_consent_snapshot(),
     )
 
     user_id = complete_gated_signup(db, raw_token, AuthIdentityProvider.PHONE_OTP, "+919999999999")
@@ -667,7 +693,8 @@ def test_complete_gated_signup_deletes_matching_otp_requests_by_value():
     create_otp_request(db, "+919999999999")
     create_otp_request(db, "person@example.com", channel="email")
     _, raw_token = create_pending_verification(
-        db, AuthIdentityProvider.PHONE_OTP, "+919999999999", "person@example.com", False, matched_user_id=None
+        db, AuthIdentityProvider.PHONE_OTP, "+919999999999", "person@example.com", False, matched_user_id=None,
+        consent_snapshot=_consent_snapshot(),
     )
 
     complete_gated_signup(db, raw_token, AuthIdentityProvider.EMAIL_OTP, "person@example.com")
@@ -682,7 +709,8 @@ def test_complete_gated_signup_does_not_persist_an_unverified_email_claim():
     auth_identities.email or users.email."""
     db = _session()
     _, raw_token = create_pending_verification(
-        db, AuthIdentityProvider.GOOGLE, "g-sub", "unverified@example.com", False, matched_user_id=None
+        db, AuthIdentityProvider.GOOGLE, "g-sub", "unverified@example.com", False, matched_user_id=None,
+        consent_snapshot=_consent_snapshot(),
     )
 
     user_id = complete_gated_signup(db, raw_token, AuthIdentityProvider.PHONE_OTP, "+919999999999")
@@ -743,3 +771,70 @@ def test_attach_email_to_pending_rejects_a_step_up_link_token():
 
     with pytest.raises(PendingVerificationError, match="linking to an existing account"):
         attach_email_to_pending(db, raw_token, "person@example.com")
+
+
+def test_complete_gated_signup_requires_a_consent_snapshot():
+    from app.services.legal.consent import ConsentRequiredError
+
+    db = _session()
+    _, raw_token = create_pending_verification(
+        db, AuthIdentityProvider.GOOGLE, "g-sub-noconsent", "noconsent@example.com", True, matched_user_id=None
+    )
+
+    with pytest.raises(ConsentRequiredError) as exc:
+        complete_gated_signup(db, raw_token, AuthIdentityProvider.PHONE_OTP, "+919100500001")
+
+    assert exc.value.missing == ["terms_of_service", "privacy_policy"]
+    db.rollback()
+    assert db.query(User).filter_by(phone_number="+919100500001").first() is None
+    assert find_identity_by_subject(db, AuthIdentityProvider.GOOGLE, "g-sub-noconsent") is None
+
+
+def test_complete_gated_signup_writes_consent_rows_in_the_same_transaction():
+    from app.models.consent import ConsentRecord
+
+    db = _session()
+    snapshot = _consent_snapshot("signup_google")
+    _, raw_token = create_pending_verification(
+        db, AuthIdentityProvider.GOOGLE, "g-sub-consent", "consent@example.com", True,
+        matched_user_id=None, consent_snapshot=snapshot,
+    )
+
+    user_id = complete_gated_signup(db, raw_token, AuthIdentityProvider.PHONE_OTP, "+919100500002")
+
+    rows = db.query(ConsentRecord).filter_by(user_id=user_id).all()
+    assert len(rows) == 3
+    assert {r.surface for r in rows} == {"signup_google"}
+    assert {r.device_id for r in rows} == {"dev-unit"}
+    captured = datetime.fromisoformat(snapshot["captured_at"]).replace(tzinfo=None)
+    assert all(r.recorded_at.replace(tzinfo=None) == captured for r in rows)
+
+
+def test_complete_gated_signup_rejects_a_snapshot_whose_versions_went_stale():
+    from app.services.legal.consent import ConsentRequiredError
+
+    db = _session()
+    snapshot = _consent_snapshot()
+    snapshot["documents"][0]["document_version"] = "tos-old"
+    _, raw_token = create_pending_verification(
+        db, AuthIdentityProvider.GOOGLE, "g-sub-stale", "stale@example.com", True,
+        matched_user_id=None, consent_snapshot=snapshot,
+    )
+
+    with pytest.raises(ConsentRequiredError) as exc:
+        complete_gated_signup(db, raw_token, AuthIdentityProvider.PHONE_OTP, "+919100500003")
+    assert exc.value.missing == ["terms_of_service"]
+    db.rollback()
+    assert db.query(User).filter_by(phone_number="+919100500003").first() is None
+
+
+def test_discard_pending_verification_removes_the_row():
+    from app.services.auth.identity import discard_pending_verification
+
+    db = _session()
+    _, raw_token = create_pending_verification(
+        db, AuthIdentityProvider.GOOGLE, "g-sub-discard", "discard@example.com", True, matched_user_id=None
+    )
+    discard_pending_verification(db, raw_token)
+    assert db.query(PendingIdentityVerification).filter_by(provider_subject="g-sub-discard").count() == 0
+    discard_pending_verification(db, raw_token)  # unknown token: no-op

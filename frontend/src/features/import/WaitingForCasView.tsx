@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { UploadForm } from "./UploadForm";
+import type { UploadSurface } from "@/features/legal/panDisclaimerStore";
 import { cancelImportRequest } from "./api";
 import { Clock, AlertTriangle, Loader2, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -11,12 +12,14 @@ interface WaitingForCasViewProps {
   onCancelled: () => void;
   // Required: every upload goes through the parse -> review flow (M18).
   onUploadSubmit: (file: File, password: string) => void;
+  surface?: UploadSurface;
 }
 
 export function WaitingForCasView({
   importId,
   onCancelled,
   onUploadSubmit,
+  surface,
 }: WaitingForCasViewProps) {
   const [isCancelling, setIsCancelling] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -118,7 +121,7 @@ export function WaitingForCasView({
               className="overflow-hidden border-t border-[var(--color-border)]/60"
             >
               <div className="p-2 sm:p-4">
-                <UploadForm onSubmit={handleUpload} />
+                <UploadForm onSubmit={handleUpload} surface={surface} />
               </div>
             </motion.div>
           )}

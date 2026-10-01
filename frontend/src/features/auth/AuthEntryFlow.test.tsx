@@ -4,6 +4,24 @@ import { AuthEntryFlow } from "./AuthEntryFlow";
 import { AuthProvider } from "./AuthContext";
 import * as api from "./api";
 import { ApiError } from "../../lib/apiClient";
+import { getLegalDocuments } from "../legal/api";
+import { DOCS } from "../legal/testFixtures";
+
+vi.mock("../legal/api", async () => {
+  const actual = await vi.importActual<typeof import("../legal/api")>("../legal/api");
+  return { ...actual, getLegalDocuments: vi.fn() };
+});
+
+const ACCEPTED = [
+  { document_type: "terms_of_service", document_version: "tos-placeholder-2026-10-01" },
+  { document_type: "privacy_policy", document_version: "privacy-placeholder-2026-10-01" },
+];
+
+async function tickConsent() {
+  const box = await screen.findByRole("checkbox", { name: /I agree to the/ });
+  await waitFor(() => expect(box).toBeEnabled());
+  fireEvent.click(box);
+}
 
 vi.mock("./api", async () => {
   const actual = await vi.importActual<typeof import("./api")>("./api");
@@ -30,7 +48,7 @@ function renderFlow() {
 const NORMAL_SESSION = { session_token: "tok-1", user_id: "u1", onboarding_step: null, onboarding_completed: false };
 const ME_RESPONSE = {
   user_id: "u1", phone_number: "+919999999999", email: null,
-  onboarding_step: null, onboarding_completed: false, investor_type: null, primary_goals: null,
+  onboarding_step: null, onboarding_completed: false, investor_type: null, primary_goals: null, self_name: null, consent_outdated: [],
 };
 
 function fillEmail(email: string) {
@@ -39,6 +57,7 @@ function fillEmail(email: string) {
 
 describe("AuthEntryFlow", () => {
   beforeEach(() => {
+    vi.mocked(getLegalDocuments).mockResolvedValue(DOCS);
     vi.stubEnv("VITE_GOOGLE_OAUTH_CLIENT_ID", "test-client-id.apps.googleusercontent.com");
   });
 
@@ -123,13 +142,14 @@ describe("AuthEntryFlow", () => {
     renderFlow();
 
     fireEvent.change(screen.getByLabelText(/mobile number/i), { target: { value: "+919555555555" } });
+    await tickConsent();
     fireEvent.click(screen.getByRole("button", { name: /get otp/i }));
     await waitFor(() => screen.getByLabelText(/verification code/i));
     fireEvent.change(screen.getByLabelText(/verification code/i), { target: { value: "111111" } });
     fireEvent.click(screen.getByRole("button", { name: /verify & continue/i }));
 
     await waitFor(() =>
-      expect(api.verifyOtp).toHaveBeenCalledWith("+919555555555", "111111", undefined, "signup"),
+      expect(api.verifyOtp).toHaveBeenCalledWith("+919555555555", "111111", undefined, "signup", ACCEPTED),
     );
     await waitFor(() => screen.getByText(/one more step/i));
     expect(screen.getByText(/verify your email to finish creating your account/i)).toBeInTheDocument();
@@ -161,6 +181,7 @@ describe("AuthEntryFlow", () => {
     );
     renderFlow();
     fireEvent.change(screen.getByLabelText(/mobile number/i), { target: { value: "+919555555556" } });
+    await tickConsent();
     fireEvent.click(screen.getByRole("button", { name: /get otp/i }));
     await waitFor(() => screen.getByLabelText(/verification code/i));
     fireEvent.change(screen.getByLabelText(/verification code/i), { target: { value: "111111" } });
@@ -437,6 +458,7 @@ describe("AuthEntryFlow", () => {
     renderFlow();
 
     fireEvent.change(screen.getByLabelText(/mobile number/i), { target: { value: "+919811100001" } });
+    await tickConsent();
     fireEvent.click(screen.getByRole("button", { name: /get otp/i }));
 
     await screen.findByText("An account with this phone number already exists.");
@@ -474,6 +496,108 @@ describe("AuthEntryFlow", () => {
 
     await waitFor(() => expect(vi.mocked(api.requestEmailOtp).mock.calls.length).toBe(2));
     expect(vi.mocked(api.requestEmailOtp).mock.calls.at(-1)).toEqual(["a@b.com", undefined, "login"]);
+  });
+
+  // Consent (Task 10).
+  async function googleCallback(credential: string) {
+    window.google = { accounts: { id: { initialize: vi.fn(), renderButton: vi.fn() } } };
+    fireEvent.click(screen.getByRole("button", { name: /^log in$/i }));
+    fireEvent.load(document.head.querySelector("script")!);
+    await waitFor(() => expect(window.google!.accounts.id.initialize).toHaveBeenCalled());
+    const { callback } = vi.mocked(window.google!.accounts.id.initialize).mock.calls[0][0];
+    await callback({ credential });
+  }
+
+  async function reachSignupOtp(phone: string) {
+    fireEvent.change(screen.getByLabelText(/mobile number/i), { target: { value: phone } });
+    await tickConsent();
+    fireEvent.click(screen.getByRole("button", { name: /get otp/i }));
+    await waitFor(() => screen.getByLabelText(/verification code/i));
+    fireEvent.change(screen.getByLabelText(/verification code/i), { target: { value: "111111" } });
+    fireEvent.click(screen.getByRole("button", { name: /verify & continue/i }));
+  }
+
+  it("sign-up Get OTP is disabled until the box is ticked", async () => {
+    renderFlow();
+    fireEvent.change(screen.getByLabelText(/mobile number/i), { target: { value: "+919555555557" } });
+    expect(screen.getByRole("button", { name: /get otp/i })).toBeDisabled();
+    await tickConsent();
+    expect(screen.getByRole("button", { name: /get otp/i })).toBeEnabled();
+  });
+
+  it("login mode shows no consent checkbox", async () => {
+    renderFlow();
+    fireEvent.click(screen.getByRole("button", { name: /^log in$/i }));
+    await waitFor(() => screen.getByTestId("google-button-container"));
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+  });
+
+  it("phone sign-up verify sends accepted documents", async () => {
+    vi.mocked(api.requestOtp).mockResolvedValue({ message: "OTP sent.", otp: "111111" });
+    vi.mocked(api.verifyOtp).mockResolvedValue(NORMAL_SESSION);
+    vi.mocked(api.getMe).mockResolvedValue(ME_RESPONSE);
+    renderFlow();
+    await reachSignupOtp("+919555555558");
+    await waitFor(() =>
+      expect(api.verifyOtp).toHaveBeenCalledWith("+919555555558", "111111", undefined, "signup", ACCEPTED),
+    );
+  });
+
+  it("google new account asks for consent then retries", async () => {
+    vi.mocked(api.verifyGoogleCredential)
+      .mockRejectedValueOnce(new ApiError(422, { code: "consent_required", message: "x", missing: [] }))
+      .mockResolvedValueOnce(NORMAL_SESSION);
+    vi.mocked(api.getMe).mockResolvedValue(ME_RESPONSE);
+    renderFlow();
+    await googleCallback("g-token");
+
+    await screen.findByText("Create your Unifolio account");
+    expect(screen.getByText("It looks like you’re new here.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^continue$/i })).toBeDisabled();
+    await tickConsent();
+    fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
+
+    await waitFor(() => expect(api.verifyGoogleCredential).toHaveBeenCalledTimes(2));
+    expect(vi.mocked(api.verifyGoogleCredential).mock.calls[1]).toEqual(["g-token", undefined, ACCEPTED]);
+    await waitFor(() => expect(api.getMe).toHaveBeenCalled());
+  });
+
+  it("google consent step: Back returns to Landing", async () => {
+    vi.mocked(api.verifyGoogleCredential).mockRejectedValue(new ApiError(422, { code: "consent_required", message: "x" }));
+    renderFlow();
+    await googleCallback("g-token");
+    await screen.findByText("Create your Unifolio account");
+    fireEvent.click(screen.getByRole("button", { name: /^back$/i }));
+    expect(await screen.findByRole("button", { name: /continue with email/i })).toBeInTheDocument();
+  });
+
+  it("google stale version refetches, unticks and shows the updated-terms message", async () => {
+    vi.mocked(api.verifyGoogleCredential)
+      .mockRejectedValueOnce(new ApiError(422, { code: "consent_required", message: "x" }))
+      .mockRejectedValueOnce(new ApiError(422, { code: "consent_required", message: "x" }));
+    renderFlow();
+    await googleCallback("g-token");
+    await screen.findByText("Create your Unifolio account");
+    await tickConsent();
+    vi.mocked(getLegalDocuments).mockClear();
+    fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
+
+    await screen.findByText("Our terms were just updated. Please review and tick the box again.");
+    expect(getLegalDocuments).toHaveBeenCalledWith(true);
+    expect(screen.getByRole("checkbox")).not.toBeChecked();
+  });
+
+  it("R9: consent_required at the final phone sign-up step restarts sign-up", async () => {
+    vi.mocked(api.requestOtp).mockResolvedValue({ message: "OTP sent.", otp: "111111" });
+    vi.mocked(api.verifyOtp).mockRejectedValue(new ApiError(422, { code: "consent_required", message: "x" }));
+    renderFlow();
+    await reachSignupOtp("+919555555559");
+
+    await screen.findByText("Our terms were just updated. Please review and tick the box again.");
+    expect(getLegalDocuments).toHaveBeenCalledWith(true);
+    expect(screen.getByText(/create your account/i)).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: /I agree to the/ })).not.toBeChecked();
+    expect(screen.getByRole("button", { name: /get otp/i })).toBeDisabled();
   });
 });
 

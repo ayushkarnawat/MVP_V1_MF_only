@@ -3,11 +3,13 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session as DbSession
 
+from app.api.legal import CONSENT_CONTINUE_MESSAGE
 from app.db.session import get_db #dependency for database session
 from app.models.auth import AuthIdentity, Session as SessionModel
-from app.models.enums import AuthIdentityProvider, PrimaryGoal
-from app.models.user import User
+from app.models.enums import AuthIdentityProvider, ConsentAction, ConsentDocumentType, PrimaryGoal, Relationship
+from app.models.user import HouseholdMember, User
 from app.services.auth.device_info import capture_request_metadata
+from app.config import settings
 from app.services.auth.identity import (
     EmailCollisionError,
     PendingVerificationError,
@@ -15,6 +17,7 @@ from app.services.auth.identity import (
     attach_pending_identity,
     complete_gated_signup,
     create_pending_verification,
+    discard_pending_verification,
     find_identity_by_subject,
     find_or_backfill_phone_identity,
     mark_pending_email_verified,
@@ -39,6 +42,7 @@ from app.services.auth.schemas import (
     LinkRequiredResponse,
     MeResponse,
     OtpRequestBody,
+    ReactivateBody,
     OtpRequestResponse,
     OtpVerifyBody,
     OtpVerifyResponse,
@@ -53,8 +57,29 @@ from app.services.auth.schemas import (
     ContactChangeVerifyBody,
 ) #to validate api requests
 from app.services.auth.session import create_session, get_active_user, get_current_session, get_current_user, refresh_session
+from app.services.legal.consent import (
+    SIGNUP_DOCUMENTS,
+    ConsentRequiredError,
+    evidence_from_request,
+    outdated_documents,
+    record_consent,
+    snapshot_for_signup,
+    validate_accepted,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+_SIGNUP_CONSENT_MESSAGE = "Agree to the Terms & Conditions and Privacy Policy to create your account."
+
+
+def _consent_http(exc: ConsentRequiredError, message: str = _SIGNUP_CONSENT_MESSAGE) -> HTTPException:
+    # Sign-up paths use the sign-up wording (the default) rather than the
+    # generic "latest version of: ..." text ConsentRequiredError carries;
+    # reactivation passes the "to continue" copy. `missing` says exactly which.
+    return HTTPException(
+        status_code=422,
+        detail={"code": exc.code, "message": message, "missing": exc.missing},
+    )
 
 
 def _session_response(user_id, auth_method: AuthIdentityProvider, db: DbSession) -> OtpVerifyResponse:
@@ -69,10 +94,17 @@ def _session_response(user_id, auth_method: AuthIdentityProvider, db: DbSession)
 
 
 @router.post("/signup/email", response_model=EmailOtpRequiredResponse)
-def signup_email(body: SignupEmailBody, db: DbSession = Depends(get_db)):
+def signup_email(body: SignupEmailBody, request: Request, db: DbSession = Depends(get_db)):
     existing = find_identity_by_subject(db, AuthIdentityProvider.EMAIL_OTP, body.email)
     if existing is not None:
         raise HTTPException(status_code=409, detail="An account with this email already exists.")
+
+    try:
+        consent_snapshot = snapshot_for_signup(
+            body.accepted_documents, "signup_email", evidence_from_request(request)
+        )
+    except ConsentRequiredError as exc:
+        raise _consent_http(exc) from exc
 
     _, raw_token = create_pending_verification(
         db,
@@ -81,6 +113,7 @@ def signup_email(body: SignupEmailBody, db: DbSession = Depends(get_db)):
         body.email,
         False,
         matched_user_id=None,
+        consent_snapshot=consent_snapshot,
     )
     try:
         _, raw_otp = create_otp_request(db, body.email, channel="email")
@@ -177,6 +210,8 @@ def verify_email_otp(body: EmailOtpVerifyBody, db: DbSession = Depends(get_db)):
                 )
             except PendingVerificationError as exc:
                 raise HTTPException(status_code=401, detail=str(exc)) from exc
+            except ConsentRequiredError as exc:
+                raise _consent_http(exc) from exc
             except EmailCollisionError as exc:
                 # Belt-and-braces: request_email_otp already checked this
                 # before sending the code (C2 fix above) -- this only fires
@@ -254,7 +289,7 @@ def request_otp(body: OtpRequestBody, request: Request, db: DbSession = Depends(
     "/otp/verify",
     response_model=OtpVerifyResponse | LinkRequiredResponse | PhoneRequiredResponse | EmailRequiredResponse,
 )
-def verify_otp_route(body: OtpVerifyBody, db: DbSession = Depends(get_db)):
+def verify_otp_route(body: OtpVerifyBody, request: Request, db: DbSession = Depends(get_db)):
     try:
         verify_otp(db, body.phone_number, body.otp)
     except OtpVerificationError as exc:
@@ -299,6 +334,8 @@ def verify_otp_route(body: OtpVerifyBody, db: DbSession = Depends(get_db)):
                 )
             except PendingVerificationError as exc:
                 raise HTTPException(status_code=401, detail=str(exc)) from exc
+            except ConsentRequiredError as exc:
+                raise _consent_http(exc) from exc
         return _session_response(user_id, AuthIdentityProvider.PHONE_OTP, db)
 
     # Phone uses find_or_backfill_phone_identity so a pre-0005-backfill `users`
@@ -322,8 +359,15 @@ def verify_otp_route(body: OtpVerifyBody, db: DbSession = Depends(get_db)):
         # unconditional-creation bug for every caller that declares its
         # flow explicitly (the redesigned frontend always does) -- see the
         # flow-omitted legacy branch below for who's still exempt.
+        try:
+            consent_snapshot = snapshot_for_signup(
+                body.accepted_documents, "signup_phone", evidence_from_request(request)
+            )
+        except ConsentRequiredError as exc:
+            raise _consent_http(exc) from exc
         _, raw_token = create_pending_verification(
-            db, AuthIdentityProvider.PHONE_OTP, body.phone_number, None, False, matched_user_id=None
+            db, AuthIdentityProvider.PHONE_OTP, body.phone_number, None, False, matched_user_id=None,
+            consent_snapshot=consent_snapshot,
         )
         return EmailRequiredResponse(
             email_required=EmailRequiredDetail(token=raw_token, prefill_phone=body.phone_number)
@@ -334,6 +378,13 @@ def verify_otp_route(body: OtpVerifyBody, db: DbSession = Depends(get_db)):
     # obtain an authenticated session for unrelated tests lands here,
     # unchanged. The redesigned frontend always sends an explicit flow;
     # only an un-updated caller reaches this branch.
+    if not settings.legacy_unflowed_phone_signup:
+        # A deployed client always sends `flow`; this bypass (no consent, no
+        # email step) exists only so test fixtures can mint sessions. Off in
+        # every deployed environment, on in tests via conftest.
+        raise HTTPException(
+            status_code=400, detail={"code": "flow_required", "message": "Update the app and try again."}
+        )
     now = datetime.now(timezone.utc)
     user = User(phone_number=body.phone_number, created_at=now)
     db.add(user)
@@ -344,7 +395,7 @@ def verify_otp_route(body: OtpVerifyBody, db: DbSession = Depends(get_db)):
 
 
 @router.post("/oauth/google", response_model=OtpVerifyResponse | LinkRequiredResponse | PhoneRequiredResponse)
-def google_oauth_route(body: GoogleAuthBody, db: DbSession = Depends(get_db)):
+def google_oauth_route(body: GoogleAuthBody, request: Request, db: DbSession = Depends(get_db)):
     try:
         claims = verify_google_id_token(body.id_token)
     except GoogleTokenVerificationError as exc:
@@ -375,7 +426,32 @@ def google_oauth_route(body: GoogleAuthBody, db: DbSession = Depends(get_db)):
     if existing is not None:
         return _session_response(existing.user_id, AuthIdentityProvider.GOOGLE, db)
 
-    resolution = resolve_new_verified_identity(db, AuthIdentityProvider.GOOGLE, claims.sub, claims.email, claims.email_verified)
+    # Consent is only needed if this turns out to be a brand-new account
+    # (phone_required), which resolve_new_verified_identity decides -- and it
+    # also mints that pending token. So: build the snapshot up front when the
+    # client sent documents, but defer any refusal until we know the outcome;
+    # an auto-link login or a link_required step-up must not be blocked by
+    # missing/stale sign-up consent.
+    consent_snapshot = None
+    consent_error = ConsentRequiredError(
+        [ConsentDocumentType.TERMS_OF_SERVICE.value, ConsentDocumentType.PRIVACY_POLICY.value]
+    )
+    if body.accepted_documents is not None:
+        try:
+            consent_snapshot = snapshot_for_signup(
+                body.accepted_documents, "signup_google", evidence_from_request(request)
+            )
+        except ConsentRequiredError as exc:
+            consent_error = exc
+
+    resolution = resolve_new_verified_identity(
+        db, AuthIdentityProvider.GOOGLE, claims.sub, claims.email, claims.email_verified,
+        consent_snapshot=consent_snapshot,
+    )
+    if resolution.kind == "phone_required" and consent_snapshot is None:
+        # Don't leave the just-minted, never-handed-out pending row behind.
+        discard_pending_verification(db, resolution.pending_token)
+        raise _consent_http(consent_error)
     if resolution.kind == "login":
         return _session_response(resolution.user_id, AuthIdentityProvider.GOOGLE, db)
     if resolution.kind == "link_required":
@@ -401,10 +477,15 @@ def refresh_session_route(
     return SessionRefreshResponse(expires_at=refreshed.expires_at.isoformat())
 
 #current user endpoints
-def _me_response(user: User) -> MeResponse:
+def _me_response(user: User, db: DbSession) -> MeResponse:
     deletion_scheduled_at = user.deletion_scheduled_at
     if deletion_scheduled_at is not None and deletion_scheduled_at.tzinfo is None:
         deletion_scheduled_at = deletion_scheduled_at.replace(tzinfo=timezone.utc)
+    self_member = (
+        db.query(HouseholdMember)
+        .filter_by(user_id=user.id, relationship=Relationship.SELF)
+        .first()
+    )
     return MeResponse(
         user_id=str(user.id),
         phone_number=user.phone_number,
@@ -415,33 +496,56 @@ def _me_response(user: User) -> MeResponse:
         primary_goals=user.primary_goals,
         pending_deletion=user.pending_deletion,
         deletion_scheduled_at=deletion_scheduled_at,
+        self_name=self_member.name if self_member else None,
+        consent_outdated=[t.value for t in outdated_documents(db, user.id, SIGNUP_DOCUMENTS)],
     )
 
 
 @router.get("/me", response_model=MeResponse)
-def get_me(user: User = Depends(get_current_user)):
-    return _me_response(user)
+def get_me(user: User = Depends(get_current_user), db: DbSession = Depends(get_db)):
+    return _me_response(user, db)
 
 
 @router.post("/account-deletion", response_model=MeResponse)
 def request_account_deletion(
     body: AccountDeletionBody,
+    request: Request,
     user: User = Depends(get_active_user),
     db: DbSession = Depends(get_db),
 ):
     if user.pending_deletion:
         raise HTTPException(status_code=409, detail="Account deletion is already scheduled.")
-    schedule_account_deletion(db, user, reason=body.reason, feedback=body.feedback)
-    return _me_response(user)
+    schedule_account_deletion(
+        db, user, reason=body.reason, feedback=body.feedback, evidence=evidence_from_request(request)
+    )
+    return _me_response(user, db)
 
 
 @router.post("/reactivate", response_model=MeResponse)
 def reactivate_account_route(
+    body: ReactivateBody,
+    request: Request,
     user: User = Depends(get_current_user),
     db: DbSession = Depends(get_db),
 ):
-    reactivate_account(db, user)
-    return _me_response(user)
+    if not user.pending_deletion:
+        raise HTTPException(status_code=409, detail="Account deletion isn’t scheduled.")
+    # Scheduling deletion wrote WITHDRAWN rows for every purpose, so coming
+    # back means agreeing to the current T&C + Privacy again.
+    try:
+        documents = validate_accepted(body.accepted_documents, SIGNUP_DOCUMENTS)
+    except ConsentRequiredError as exc:
+        raise _consent_http(exc, CONSENT_CONTINUE_MESSAGE) from exc
+    record_consent(
+        db,
+        user_id=user.id,
+        documents=documents,
+        action=ConsentAction.GIVEN,
+        surface="reactivate",
+        evidence=evidence_from_request(request),
+    )
+    reactivate_account(db, user)  # its commit lands the GIVEN rows too
+    return _me_response(user, db)
 
 
 def _contact_provider(channel: str) -> AuthIdentityProvider:
@@ -539,7 +643,7 @@ def verify_contact_change(
     else:
         user.phone_number = body.identifier
     db.commit()
-    return _me_response(user)
+    return _me_response(user, db)
 
 
 @router.patch("/me", response_model=MeResponse)
@@ -563,4 +667,4 @@ def update_me(
         user.onboarding_completed_at = datetime.now(timezone.utc)
     db.commit()
 
-    return _me_response(user)
+    return _me_response(user, db)
