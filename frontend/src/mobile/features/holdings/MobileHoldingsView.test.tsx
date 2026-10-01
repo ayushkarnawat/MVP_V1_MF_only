@@ -209,8 +209,8 @@ describe("MobileHoldingsView", () => {
     });
   });
   describe("locked family members (F39)", () => {
-    const me = { id: "m-1", name: "Ayush", relationship: "self", relationship_other_label: null, origin: "self", lock_reason: null, details_required: false, pan_masked: null };
-    const ramesh = { id: "m-2", name: "Ramesh Sharma", relationship: null, relationship_other_label: null, origin: "cas", lock_reason: "details_needed", details_required: true, pan_masked: "BX******8L" };
+    const me = { id: "m-1", name: "Ayush", relationship: "self", relationship_other_label: null, origin: "self", lock_reason: null, details_required: false, pan_masked: null, phone_number: null, email: null, pan_on_statement: false, name_from_statement: false };
+    const ramesh = { id: "m-2", name: "Ramesh Sharma", relationship: null, relationship_other_label: null, origin: "cas", lock_reason: "details_needed", details_required: true, pan_masked: "BX******8L", phone_number: null, email: null, pan_on_statement: false, name_from_statement: false };
 
     async function openPicker(members: object[]) {
       vi.mocked(authApi.listHouseholdMembers).mockResolvedValue(members as any);

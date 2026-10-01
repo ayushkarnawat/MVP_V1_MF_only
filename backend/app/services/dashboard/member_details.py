@@ -14,16 +14,12 @@ from sqlalchemy.orm import Session as DbSession
 
 from app.models.enums import (
     MemberLockReason,
-    MemberNameSource,
     MemberPanSource,
-    NameChangeReason,
     Relationship,
 )
 from app.models.folio import Folio
-from app.models.member_history import HouseholdMemberNameChange
 from app.models.user import HouseholdMember
 from app.services.import_.crypto import decrypt_pan, encrypt_pan, hash_pan, normalize_pan
-from app.services.import_.name_match import validate_person_name
 from app.services.import_.pan_claims import (
     CrossAccountPanBlockedError,
     is_expired_pending,
@@ -69,10 +65,12 @@ class InvalidMemberDetailsError(MemberDetailsError):
     code = "invalid_relationship"
 
 
-class InvalidPanChoiceError(InvalidMemberDetailsError):
-    """Neither or both of `pan` / `use_detected_pan`, or no statement PAN to use."""
+class FieldNotEditableError(MemberDetailsError):
+    """2026-10-01 rule: name and PAN come from the CAS. Also raised for the
+    old L9 "edit an unlocked member" use of /details, which moved to PATCH."""
 
-    code = "invalid_member_details"
+    status_code = 422
+    code = "field_not_editable"
 
 
 class InvalidPanFormatError(MemberDetailsError):
@@ -81,18 +79,6 @@ class InvalidPanFormatError(MemberDetailsError):
 
     def __init__(self):
         super().__init__(INVALID_PAN_MESSAGE)
-
-
-class DetectedPanMismatchError(MemberDetailsError):
-    code = "detected_pan_mismatch"
-
-    def __init__(self, detected_pan_masked: str, member_name: str = "This person"):
-        super().__init__(
-            "This PAN doesn’t match your statement. Your statement shows "
-            f"{member_name}’s PAN as {detected_pan_masked}. Check the PAN and try again.",
-            {"detected_pan_masked": detected_pan_masked},
-        )
-        self.detected_pan_masked = detected_pan_masked
 
 
 class PanOnOtherMemberError(MemberDetailsError):
@@ -135,13 +121,14 @@ class PanOnOtherMemberError(MemberDetailsError):
 
 
 class MemberDetailsRequest(BaseModel):
-    name: str | None = None
     relationship: Relationship
     relationship_other_label: str | None = None
     pan: str | None = None
-    # Staging-QA fix 4 (2026-09-30): "The one on the statement" in the L3
-    # popup. The browser only ever sees the masked detected PAN, so the server
-    # uses its own stored copy.
+    # 2026-10-01 rule: name and PAN come from the CAS. Kept as fields only so a
+    # caller sending them gets a clear 422 instead of being silently ignored.
+    name: str | None = None
+    # Old clients (pre-2026-10-01) may still send this during a rollout; the
+    # statement PAN is now always used, so it is accepted and ignored.
     use_detected_pan: bool = False
 
 
@@ -184,31 +171,33 @@ def complete_member_details(
         raise MemberNotFoundError()
     if member.relationship == Relationship.SELF:
         raise InvalidMemberDetailsError("Your own details are edited from your profile.")
+    if not member.is_locked:
+        raise FieldNotEditableError("Edit this person from Profile → Family Members.")
+    if body.name is not None:
+        raise FieldNotEditableError("Names come from your statement and can’t be changed.")
     label = _validate_relationship(body)
-    new_name = validate_person_name(body.name) if body.name is not None else None
-    locked = member.is_locked
-    if (body.pan is None) == (not body.use_detected_pan):
-        raise InvalidPanChoiceError("Enter a PAN, or use the one on the statement.")
-    if body.use_detected_pan:
-        if not locked or member.detected_pan_encrypted is None or is_name_only(member):
-            raise InvalidPanChoiceError("There’s no statement PAN to use for this person.")
+    locked = True
+    # F34 provenance: a person whose only PAN is one the user typed (L5 on a
+    # name-only person) is still "name-only": nothing on a statement to verify
+    # against, so an L5 typo can be corrected.
+    name_only = is_name_only(member)
+    if not name_only:
+        # Statement PAN: always the one the CAS showed (decision QD).
+        if body.pan is not None:
+            raise FieldNotEditableError("This PAN comes from your statement and can’t be changed.")
         pan = decrypt_pan(member.detected_pan_encrypted)
     else:
+        # No PAN on the statement: the only place a PAN is typed (decision QC).
+        if body.pan is None:
+            raise InvalidMemberDetailsError(f"Enter {member.name}’s PAN.")
         pan = normalise_pan_input(body.pan)
         if not _PAN_RE.match(pan):
             raise InvalidPanFormatError()
 
     now = datetime.now(timezone.utc)
     pan_hash = hash_pan(pan)
-    # F34 provenance: a person whose only PAN is one the user typed (L5 on a
-    # name-only person) is still "name-only": nothing on a statement to verify
-    # against, so an L5 typo can be corrected.
-    name_only = is_name_only(member)
 
-    # ---- checks first; nothing below the writes may raise on the unlocked path
-    if locked and not name_only and pan_hash != member.detected_pan_hash:
-        raise DetectedPanMismatchError(mask_pan(decrypt_pan(member.detected_pan_encrypted)), member.name)
-
+    # ---- checks first
     already_mine = member.pan_lookup_hash == pan_hash
     holder = None if already_mine else _holder(db, pan_hash, member.id, now)
     if holder is not None and holder.user_id == user_id:
@@ -245,16 +234,6 @@ def complete_member_details(
     # ---- writes
     member.relationship = body.relationship
     member.relationship_other_label = label
-    if new_name is not None and new_name != member.name:
-        db.add(
-            HouseholdMemberNameChange(
-                household_member_id=member.id, old_name=member.name, new_name=new_name,
-                reason=NameChangeReason.USER_EDIT, changed_at=now,
-            )
-        )
-        member.name = new_name
-        member.name_source = MemberNameSource.USER_ENTERED
-        member.name_updated_at = now
 
     if not already_mine:
         matches_detected = locked and not name_only and member.detected_pan_hash == pan_hash

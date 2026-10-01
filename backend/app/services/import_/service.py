@@ -761,16 +761,16 @@ def _switch_or_u12(db: Session, session: dict[str, Any], member: HouseholdMember
 
 
 @_serialised
-def resolve_name(db: Session, session_id: str, user_id: uuid.UUID, name: str) -> ImportPreviewResponse:
-    """U2 "Use this name": the typed name must match the statement's person;
-    self is renamed right away (spec S2), then the queue continues."""
+def resolve_name(db: Session, session_id: str, user_id: uuid.UUID, name: str | None = None) -> ImportPreviewResponse:
+    """U2: self is renamed right away to the statement's name (spec S2), then
+    the queue continues. `name` is accepted from old clients and ignored."""
     session = _live_session(db, session_id, user_id)
     current = next_prompt(db, session)
     if current is None or current.code != "self_name_mismatch":
         return _finish(db, session_id)
-    clean = validate_person_name(name)
-    if compare_names(clean, current.details["statement_name"]).result == "mismatch":
-        raise NameNotOnStatementError(NAME_NOT_ON_STATEMENT_MESSAGE)
+    # 2026-10-01 rule (names come from the CAS): U2 is now "Is that you? Yes",
+    # so the statement name is always used and any typed name is ignored.
+    clean = validate_person_name(current.details["statement_name"])
     self_member = _self_member(db, user_id)
     now = datetime.now(timezone.utc)
     db.add(HouseholdMemberNameChange(

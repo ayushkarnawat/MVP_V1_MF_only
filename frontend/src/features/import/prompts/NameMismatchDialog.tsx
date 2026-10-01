@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { PromptDialog } from "./PromptDialog";
 import { PRIMARY_BTN, SECONDARY_BTN } from "./copy";
 
@@ -14,6 +13,7 @@ export interface NameMismatchDialogProps {
 }
 
 // U2: first import, no person in the file is compatible with the onboarding name.
+// The name comes from the statement and is never typed here: the user only confirms it is them.
 export function NameMismatchDialog({
   isOpen,
   enteredName,
@@ -22,17 +22,16 @@ export function NameMismatchDialog({
   onUseName,
   onUploadDifferent,
 }: NameMismatchDialogProps) {
-  const [name, setName] = useState(statementName);
   return (
     <PromptDialog
       isOpen={isOpen}
-      title="This statement is in a different name"
-      body={`You entered ${enteredName}, but this statement belongs to ${statementName}.`}
+      title={`This statement is in ${statementName}’s name`}
+      body={`You entered ${enteredName}. Is that you?`}
       onClose={onUploadDifferent}
       footer={
         <>
-          <button type="button" onClick={() => onUseName(name)} className={PRIMARY_BTN}>
-            Use this name
+          <button type="button" onClick={() => onUseName(statementName)} className={PRIMARY_BTN}>
+            Yes, that’s me
           </button>
           <button type="button" onClick={onUploadDifferent} className={SECONDARY_BTN}>
             Upload a different file
@@ -40,15 +39,6 @@ export function NameMismatchDialog({
         </>
       }
     >
-      <label className="block text-sm font-medium text-[var(--color-ink)]">
-        Your name as per PAN
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm"
-        />
-      </label>
       {error && (
         <p role="alert" className="text-sm text-red-600">
           {error}

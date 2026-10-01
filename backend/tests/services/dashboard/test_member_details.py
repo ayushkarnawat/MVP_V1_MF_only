@@ -8,14 +8,13 @@ from app.models.enums import (
     MemberNameSource,
     MemberOrigin,
     MemberPanSource,
-    NameChangeReason,
     Relationship,
 )
 from app.models.member_history import HouseholdMemberNameChange
 from app.models.user import HouseholdMember, User
 from app.services.dashboard.household_members import create_household_member
 from app.services.dashboard.member_details import (
-    DetectedPanMismatchError,
+    FieldNotEditableError,
     InvalidMemberDetailsError,
     InvalidPanFormatError,
     MemberDetailsRequest,
@@ -64,7 +63,9 @@ def _claimed(db, user, name, pan):
     return m
 
 
-def _req(pan=PAN, **kw):
+def _req(pan=None, **kw):
+    # 2026-10-01: a statement-PAN member is unlocked with no `pan` (QD); only
+    # a name-only member gets a typed one (QC), so callers pass it explicitly.
     kw.setdefault("relationship", Relationship.PARENT)
     return MemberDetailsRequest(pan=pan, **kw)
 
@@ -89,14 +90,14 @@ def test_unlock_with_matching_pan_completes_member(db_session):
 
 def test_unlock_normalises_lowercase_spaced_pan(db_session):
     u = _user(db_session, "+911")
-    m = _locked(db_session, u)
+    m = _locked(db_session, u, detected=None)  # QC: only a name-only member takes a typed PAN
     out = complete_member_details(db_session, u.id, m.id, _req("bxqps 5678l"))
     assert out.pan_lookup_hash == hash_pan(PAN)
 
 
 def test_unlock_bad_format_is_422(db_session):
     u = _user(db_session, "+911")
-    m = _locked(db_session, u)
+    m = _locked(db_session, u, detected=None)  # QC: only a name-only member takes a typed PAN
     with pytest.raises(InvalidPanFormatError) as e:
         complete_member_details(db_session, u.id, m.id, _req("12345"))
     assert e.value.code == "invalid_pan_format"
@@ -104,13 +105,24 @@ def test_unlock_bad_format_is_422(db_session):
     assert db_session.get(HouseholdMember, m.id).is_locked
 
 
-def test_unlock_detected_mismatch_is_409_with_masked_hint(db_session):
+def test_unlock_typed_pan_on_a_statement_pan_member_is_not_editable(db_session):
+    # Replaces the L3 detected_pan_mismatch test: a typed PAN is now refused
+    # outright when the statement has one (QD).
     u = _user(db_session, "+911")
     m = _locked(db_session, u)
-    with pytest.raises(DetectedPanMismatchError) as e:
+    with pytest.raises(FieldNotEditableError) as e:
         complete_member_details(db_session, u.id, m.id, _req(OTHER_PAN))
-    assert e.value.details == {"detected_pan_masked": "BX******8L"}
+    assert e.value.code == "field_not_editable" and e.value.status_code == 422
     assert PAN not in e.value.message
+    assert db_session.get(HouseholdMember, m.id).is_locked
+
+
+def test_unlock_name_only_member_without_pan_is_422(db_session):
+    u = _user(db_session, "+911")
+    m = _locked(db_session, u, "Meera Sharma", detected=None)
+    with pytest.raises(InvalidMemberDetailsError) as e:
+        complete_member_details(db_session, u.id, m.id, _req())
+    assert e.value.message == "Enter Meera Sharma’s PAN."
     assert db_session.get(HouseholdMember, m.id).is_locked
 
 
@@ -138,7 +150,7 @@ def test_unlock_pan_on_other_member_offers_merge_only_for_name_only(db_session):
     _claimed(db_session, u3, "Dad", PAN)
     detected_member = _locked(db_session, u3, "Ramesh", detected=PAN)
     with pytest.raises(PanOnOtherMemberError) as e2:
-        complete_member_details(db_session, u3.id, detected_member.id, _req(PAN))
+        complete_member_details(db_session, u3.id, detected_member.id, _req())
     assert e2.value.can_merge is True
 
 
@@ -163,7 +175,7 @@ def test_l5_for_name_only_person_stores_typed_pan_as_detected(db_session):
     _claimed(db_session, other_user, "Ramesh", PAN)
     m = _locked(db_session, u, detected=None)
     with pytest.raises(CrossAccountPanBlockedError) as exc:
-        complete_member_details(db_session, u.id, m.id, _req())
+        complete_member_details(db_session, u.id, m.id, _req(PAN))
     assert exc.value.message == (
         "Ramesh Sharma has their own Unifolio account. Their funds are included in your family "
         "total. Their own dashboard stays with their account."
@@ -179,7 +191,7 @@ def test_l5_for_name_only_person_stores_typed_pan_as_detected(db_session):
 def test_unlock_name_only_person_is_user_entered_unverified(db_session):
     u = _user(db_session, "+911")
     m = _locked(db_session, u, "Meera Sharma", detected=None)
-    out = complete_member_details(db_session, u.id, m.id, _req())
+    out = complete_member_details(db_session, u.id, m.id, _req(PAN))
     assert out.pan_source == MemberPanSource.USER_ENTERED
     assert out.pan_verified_at is None
     assert not out.is_locked
@@ -206,29 +218,32 @@ def test_details_refused_on_self_member(db_session):
         complete_member_details(db_session, u.id, me.id, _req())
 
 
-def test_name_edit_logs_user_edit(db_session):
+def test_name_in_details_is_not_editable(db_session):
+    # 2026-10-01: names come from the CAS; /details no longer renames.
     u = _user(db_session, "+911")
     m = _locked(db_session, u)
-    out = complete_member_details(db_session, u.id, m.id, _req(name="Ramesh K Sharma"))
-    assert out.name == "Ramesh K Sharma"
-    assert out.name_source == MemberNameSource.USER_ENTERED
-    rows = db_session.query(HouseholdMemberNameChange).all()
-    assert [(r.old_name, r.new_name, r.reason) for r in rows] == [
-        ("Ramesh Sharma", "Ramesh K Sharma", NameChangeReason.USER_EDIT)
-    ]
-    with pytest.raises(InvalidPersonNameError):
-        complete_member_details(db_session, u.id, m.id, _req(name="R2"))
+    for name in ("Ramesh K Sharma", "R2"):
+        with pytest.raises(FieldNotEditableError):
+            complete_member_details(db_session, u.id, m.id, _req(name=name))
+    db_session.expire_all()
+    row = db_session.get(HouseholdMember, m.id)
+    assert row.name == "Ramesh Sharma" and row.is_locked
+    assert db_session.query(HouseholdMemberNameChange).count() == 0
 
 
-def test_retry_same_pan_on_unlocked_member_is_200(db_session):
+def test_details_on_unlocked_member_is_not_editable(db_session):
+    # L9 via /details is gone (2026-10-01); relationship edits move to PATCH.
     u = _user(db_session, "+911")
     m = _locked(db_session, u)
     first = complete_member_details(db_session, u.id, m.id, _req())
     completed_at = first.details_completed_at
-    again = complete_member_details(db_session, u.id, m.id, _req("bxqps5678l"))
-    assert again.details_completed_at == completed_at
-    assert again.lock_reason is None
-    assert again.pan_source == MemberPanSource.CAS
+    with pytest.raises(FieldNotEditableError) as e:
+        complete_member_details(db_session, u.id, m.id, _req())
+    assert e.value.message == "Edit this person from Profile → Family Members."
+    db_session.expire_all()
+    row = db_session.get(HouseholdMember, m.id)
+    assert row.details_completed_at == completed_at
+    assert row.pan_source == MemberPanSource.CAS
 
 
 def test_edit_unlocked_member_conflict_changes_nothing_and_stays_unlocked(db_session):
@@ -238,7 +253,8 @@ def test_edit_unlocked_member_conflict_changes_nothing_and_stays_unlocked(db_ses
     m = _locked(db_session, u)
     first = complete_member_details(db_session, u.id, m.id, _req())
     completed_at = first.details_completed_at
-    with pytest.raises(CrossAccountPanBlockedError):
+    # 2026-10-01: /details on an unlocked member is refused before any check.
+    with pytest.raises(FieldNotEditableError):
         complete_member_details(
             db_session, u.id, m.id, _req(OTHER_PAN, relationship=Relationship.CHILD)
         )
@@ -250,9 +266,8 @@ def test_edit_unlocked_member_conflict_changes_nothing_and_stays_unlocked(db_ses
     assert row.details_completed_at == completed_at
     # same-account conflict
     _claimed(db_session, u, "Dad", "QWERT1234Y")
-    with pytest.raises(PanOnOtherMemberError) as e:
+    with pytest.raises(FieldNotEditableError):
         complete_member_details(db_session, u.id, m.id, _req("QWERT1234Y"))
-    assert e.value.can_merge is False
     db_session.expire_all()
     assert db_session.get(HouseholdMember, m.id).pan_lookup_hash == hash_pan(PAN)
 
@@ -312,7 +327,7 @@ def _l5_name_only(db):
     holder = _claimed(db, other, "Ramesh", PAN)
     m = _locked(db, u, detected=None)
     with pytest.raises(CrossAccountPanBlockedError):
-        complete_member_details(db, u.id, m.id, _req())
+        complete_member_details(db, u.id, m.id, _req(PAN))
     holder.pan_lookup_hash = None
     holder.pan_encrypted = None
     db.commit()
@@ -321,7 +336,7 @@ def _l5_name_only(db):
 
 def test_unlock_after_l5_same_typed_pan_stays_user_entered_unverified(db_session):
     u, m = _l5_name_only(db_session)
-    out = complete_member_details(db_session, u.id, m.id, _req())
+    out = complete_member_details(db_session, u.id, m.id, _req(PAN))
     assert not out.is_locked
     assert out.pan_source == MemberPanSource.USER_ENTERED
     assert out.pan_verified_at is None
@@ -343,11 +358,9 @@ def test_unlocked_edit_name_and_pan_conflict_writes_nothing(db_session):
     _claimed(db_session, other, "Someone", OTHER_PAN)
     m = _locked(db_session, u)
     complete_member_details(db_session, u.id, m.id, _req())
-    with pytest.raises(CrossAccountPanBlockedError) as exc:
+    # 2026-10-01: /details on an unlocked member is refused (L9 moves to PATCH).
+    with pytest.raises(FieldNotEditableError):
         complete_member_details(db_session, u.id, m.id, _req(OTHER_PAN, name="Ramesh K Sharma"))
-    assert exc.value.message == (
-        "This PAN is already on another Unifolio account. Ramesh Sharma\u2019s PAN hasn\u2019t changed."
-    )
     db_session.expire_all()
     assert db_session.get(HouseholdMember, m.id).name == "Ramesh Sharma"
     assert db_session.query(HouseholdMemberNameChange).count() == 0

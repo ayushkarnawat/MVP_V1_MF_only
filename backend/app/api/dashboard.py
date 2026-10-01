@@ -40,6 +40,7 @@ from app.services.dashboard.member_details import (
     refresh_other_account_locks,
     require_unlocked_member,
 )
+from app.services.dashboard.member_update import MemberUpdateRequest, update_member
 from app.api.imports import claim_and_dispatch_recompute
 from app.services.import_.deletion import ImportNotFoundError, delete_member_portfolio
 from app.services.import_.schemas import DeleteImportResponse
@@ -132,6 +133,25 @@ def submit_member_details(
     except InvalidPersonNameError as exc:
         raise HTTPException(status_code=422, detail={"code": exc.code, "message": exc.message}) from exc
     return member_to_response(member)
+
+# Plain `def` (threadpool): commits (bb5225f).
+@router.patch("/household-members/{member_id}", response_model=HouseholdMemberResponse)
+def patch_household_member(
+    member_id: uuid.UUID,
+    body: MemberUpdateRequest,
+    user: User = Depends(get_active_user),
+    db: DbSession = Depends(get_db),
+):
+    require_unlocked_member(db, user.id, member_id)
+    try:
+        member = update_member(db, user.id, member_id, body)
+    except MemberDetailsError as exc:
+        detail = {"code": exc.code, "message": exc.message}
+        if exc.details:
+            detail["details"] = exc.details
+        raise HTTPException(status_code=exc.status_code, detail=detail) from exc
+    return member_to_response(member)
+
 
 # Plain `def` (threadpool): commits (F31 / bb5225f).
 @router.post("/household-members/{member_id}/merge-into/{target_id}")

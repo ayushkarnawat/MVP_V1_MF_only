@@ -17,7 +17,7 @@ from app.services.import_.parser import (
 )
 
 # Moved to import_helpers.py (Task 6) so test_imports_people_routes.py shares them.
-from .import_helpers import _authed_headers, _authed_headers_and_member, _parse
+from .import_helpers import PAN_DISCLAIMER_VERSION, _authed_headers, _authed_headers_and_member, _parse, _test_db
 
 
 @pytest.fixture(autouse=True)
@@ -94,7 +94,7 @@ def test_parse_route_surfaces_parse_error_as_422(client):
         response = client.post(
             "/imports/parse",
             files={"file": ("cas.pdf", b"%PDF-fake", "application/pdf")},
-            data={"password": "wrong", "household_member_id": member_id},
+            data={"password": "wrong", "household_member_id": member_id, "pan_disclaimer_version": PAN_DISCLAIMER_VERSION},
             headers=headers,
         )
     assert response.status_code == 422
@@ -440,7 +440,7 @@ def test_parse_then_confirm_lands_a_transaction_in_the_real_db(client, tmp_path)
         parse_response = client.post(
             "/imports/parse",
             files={"file": ("cas.pdf", b"%PDF-fake", "application/pdf")},
-            data={"password": "x", "household_member_id": member_id},
+            data={"password": "x", "household_member_id": member_id, "pan_disclaimer_version": PAN_DISCLAIMER_VERSION},
             headers=headers,
         )
         assert parse_response.status_code == 200
@@ -565,3 +565,121 @@ def test_discard_route_returns_204_and_frees_the_pan(client, tmp_path):
 def test_discard_route_is_idempotent_for_unknown_sessions(client):
     headers = _authed_headers(client, "+919999999978")
     assert client.post("/imports/sessions/nope/discard", headers=headers).status_code == 204
+
+
+# ---------------------------------------------- Task 9: PAN-disclaimer consent at upload
+
+def _consent_rows(user_id):
+    from app.models.consent import ConsentRecord
+
+    db = _test_db()
+    try:
+        return db.query(ConsentRecord).filter_by(user_id=user_id).order_by(ConsentRecord.recorded_at).all()
+    finally:
+        db.close()
+
+
+def _user_id(client, headers):
+    return uuid.UUID(client.get("/auth/me", headers=headers).json()["user_id"])
+
+
+def test_parse_without_disclaimer_is_422_and_records_nothing(client):
+    headers, member_id = _authed_headers_and_member(client, "+919999999901")
+    with patch("app.api.imports.parse_cas_pdf_bytes") as parser:
+        response = client.post(
+            "/imports/parse",
+            files={"file": ("cas.pdf", b"%PDF-fake", "application/pdf")},
+            data={"password": "x", "household_member_id": member_id},
+            headers=headers,
+        )
+        stale = client.post(
+            "/imports/parse",
+            files={"file": ("cas.pdf", b"%PDF-fake", "application/pdf")},
+            data={"password": "x", "household_member_id": member_id, "pan_disclaimer_version": "pan-old"},
+            headers=headers,
+        )
+
+    for r in (response, stale):
+        assert r.status_code == 422
+        detail = r.json()["detail"]
+        assert detail["code"] == "consent_required"
+        assert detail["message"] == "Tick the box to confirm you\u2019re authorised to share this statement."
+        assert detail["missing"] == ["pan_disclaimer"]
+    parser.assert_not_called()
+    assert _consent_rows(_user_id(client, headers)) == []
+
+
+def test_parse_records_the_disclaimer_before_parsing(client):
+    import hashlib
+
+    headers, member_id = _authed_headers_and_member(client, "+919999999902")
+    pdf_bytes = b"%PDF-fake-wrong-password"
+    with patch(
+        "app.api.imports.parse_cas_pdf_bytes",
+        side_effect=ParseError("wrong_password", "Incorrect PDF password."),
+    ):
+        response = client.post(
+            "/imports/parse",
+            files={"file": ("cas.pdf", pdf_bytes, "application/pdf")},
+            data={"password": "wrong", "household_member_id": member_id, "pan_disclaimer_version": PAN_DISCLAIMER_VERSION},
+            headers=headers,
+        )
+
+    assert response.status_code == 422
+    assert response.json()["detail"]["code"] == "wrong_password"
+    rows = _consent_rows(_user_id(client, headers))
+    assert len(rows) == 1
+    row = rows[0]
+    assert row.document_type.value == "pan_disclaimer"
+    assert row.purpose_code.value == "cas_pan_processing"
+    assert row.action.value == "given"
+    assert row.document_version == PAN_DISCLAIMER_VERSION
+    assert row.surface == "import_upload"
+    assert row.related_file_sha256 == hashlib.sha256(pdf_bytes).hexdigest()
+
+
+def test_parse_upload_surface_header(client):
+    headers, member_id = _authed_headers_and_member(client, "+919999999903")
+    with patch(
+        "app.api.imports.parse_cas_pdf_bytes",
+        side_effect=ParseError("wrong_password", "Incorrect PDF password."),
+    ):
+        for surface in ("onboarding_upload", "weird", "mobile_upload"):
+            r = client.post(
+                "/imports/parse",
+                files={"file": ("cas.pdf", b"%PDF-fake", "application/pdf")},
+                data={"password": "x", "household_member_id": member_id, "pan_disclaimer_version": PAN_DISCLAIMER_VERSION},
+                headers={**headers, "X-Upload-Surface": surface},
+            )
+            assert r.status_code == 422
+
+    surfaces = [row.surface for row in _consent_rows(_user_id(client, headers))]
+    assert sorted(surfaces) == sorted(["onboarding_upload", "import_upload", "mobile_upload"])
+
+
+def test_parse_consent_row_stores_truncated_and_hmac_ip_never_raw(client):
+    # End to end through the real request path: the ALB-style X-Forwarded-For
+    # (last hop) that device_info.get_client_ip honours becomes the client IP.
+    from app.models.consent import ConsentRecord
+    from app.services.legal.consent import ip_hmac
+
+    headers, member_id = _authed_headers_and_member(client, "+919999999904")
+    with patch(
+        "app.api.imports.parse_cas_pdf_bytes",
+        side_effect=ParseError("wrong_password", "Incorrect PDF password."),
+    ):
+        r = client.post(
+            "/imports/parse",
+            files={"file": ("cas.pdf", b"%PDF-fake", "application/pdf")},
+            data={"password": "x", "household_member_id": member_id, "pan_disclaimer_version": PAN_DISCLAIMER_VERSION},
+            headers={**headers, "X-Forwarded-For": "203.0.113.7", "X-Device-Id": "dev-1"},
+        )
+    assert r.status_code == 422
+
+    (row,) = _consent_rows(_user_id(client, headers))
+    assert row.ip_truncated == "203.0.113.0"
+    assert row.ip_hmac == ip_hmac("203.0.113.7")
+    assert row.device_id == "dev-1"
+    for column in ConsentRecord.__table__.columns:
+        value = getattr(row, column.key)
+        assert "203.0.113.7" not in str(value), column.key

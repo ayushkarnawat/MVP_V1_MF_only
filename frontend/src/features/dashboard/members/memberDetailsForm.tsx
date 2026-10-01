@@ -3,7 +3,6 @@ import { ApiError } from "../../../lib/apiClient";
 import { completeMemberDetails } from "../../auth/api";
 import { RELATIONSHIP_OPTIONS } from "../../auth/relationships";
 import type { HouseholdMember, Relationship } from "../../auth/types";
-import { validatePersonName } from "../../auth/validation";
 import { PRIMARY_BTN, SECONDARY_BTN } from "../../import/prompts/copy";
 import { PromptDialog } from "../../import/prompts/PromptDialog";
 
@@ -15,7 +14,6 @@ const PAN_RE = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
 type FormRelationship = Exclude<Relationship, "self">;
 
 export interface DetailsValues {
-  name: string;
   relationship: FormRelationship | "";
   label: string;
   pan: string;
@@ -31,7 +29,6 @@ export interface DuplicateInfo {
 
 export type SubmitOutcome =
   | { kind: "ok"; member: HouseholdMember }
-  | { kind: "detectedMismatch"; enteredPanMasked: string; statementPanMasked: string }
   | { kind: "error"; message: string }
   | { kind: "duplicate"; info: DuplicateInfo }
   | { kind: "otherAccount" };
@@ -39,7 +36,6 @@ export type SubmitOutcome =
 export function initialValues(member: HouseholdMember): DetailsValues {
   const rel = member.relationship;
   return {
-    name: member.name,
     relationship: rel && rel !== "self" ? rel : "",
     label: member.relationship_other_label ?? "",
     pan: "",
@@ -50,14 +46,13 @@ export function initialValues(member: HouseholdMember): DetailsValues {
 export const maskPan = (pan: string) => (pan.length === 10 ? `${pan.slice(0, 2)}******${pan.slice(8)}` : pan);
 
 /** L1 / L2 and the name rule, before anything is sent. Returns null when fine. */
-export function validateValues(values: DetailsValues, memberName: string, skipPan = false): string | null {
-  const nameError = validatePersonName(values.name);
-  if (nameError) return nameError;
+export function validateValues(values: DetailsValues, member: HouseholdMember): string | null {
   if (!values.relationship) return "Choose a relationship.";
   if (values.relationship === "other" && !values.label.trim()) return "Type how you’re related.";
-  if (skipPan) return null;
+  // Name and PAN come from the statement; only a member with no statement PAN may type one.
+  if (member.pan_on_statement) return null;
   const pan = normalisePan(values.pan);
-  if (!pan) return `Enter ${memberName}’s PAN.`;
+  if (!pan) return `Enter ${member.name}’s PAN.`;
   if (!PAN_RE.test(pan)) return INVALID_PAN_MESSAGE;
   return null;
 }
@@ -77,14 +72,12 @@ export async function submitDetails(
   member: HouseholdMember,
   values: DetailsValues,
   mode: "unlock" | "edit",
-  opts?: { useDetectedPan?: boolean },
 ): Promise<SubmitOutcome> {
   try {
     const saved = await completeMemberDetails(member.id, {
-      name: values.name.replace(/\s+/g, " ").trim(),
       relationship: values.relationship as FormRelationship,
       relationship_other_label: values.relationship === "other" ? values.label.trim() : null,
-      ...(opts?.useDetectedPan ? { use_detected_pan: true } : { pan: normalisePan(values.pan) }),
+      ...(member.pan_on_statement ? {} : { pan: normalisePan(values.pan) }),
     });
     return { kind: "ok", member: saved };
   } catch (err) {
@@ -95,13 +88,8 @@ export async function submitDetails(
         return { kind: "error", message: INVALID_PAN_MESSAGE };
       case "invalid_name":
       case "invalid_relationship":
+      case "field_not_editable":
         return { kind: "error", message: p.message ?? SAVE_FAILED_MESSAGE };
-      case "detected_pan_mismatch":
-        return {
-          kind: "detectedMismatch",
-          enteredPanMasked: maskPan(normalisePan(values.pan)),
-          statementPanMasked: String(d.detected_pan_masked ?? ""),
-        };
       case "pan_belongs_to_other_member":
         if (d.can_merge === true && mode === "unlock") {
           return {
@@ -139,10 +127,35 @@ interface FormDialogProps {
   onChange: (next: DetailsValues) => void;
   error: string | null;
   submitting: boolean;
-  panPlaceholder?: string;
+  member: HouseholdMember;
+  /** Edit dialog: extra fields rendered after Relationship (replaces the PAN input). */
+  extraFields?: React.ReactNode;
+  /** True when the unlock popup must ask for a PAN (none on the statement). */
+  showPanInput?: boolean;
   onContinue: () => void;
   onCancel: () => void;
   submitLabel?: string;
+}
+
+/** Name and PAN come from the statement and are never editable: shown as plain text. */
+export function MemberSummary({ member }: { member: HouseholdMember }) {
+  return (
+    <dl className="m-0 space-y-2 rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm">
+      <div>
+        <dt className="text-xs text-[var(--color-text-secondary)]">Name</dt>
+        <dd className="m-0 font-medium text-[var(--color-ink)]">
+          {member.name}
+          {member.name_from_statement && (
+            <span className="ml-2 text-xs font-normal text-[var(--color-text-secondary)]">from your statement</span>
+          )}
+        </dd>
+      </div>
+      <div>
+        <dt className="text-xs text-[var(--color-text-secondary)]">PAN</dt>
+        <dd className="m-0 font-mono text-[var(--color-ink)]">{member.pan_masked ?? "Not on your statement"}</dd>
+      </div>
+    </dl>
+  );
 }
 
 /** The shared form for the unlock popup and the L9 edit popup. */
@@ -175,15 +188,7 @@ export function DetailsFormDialog(props: FormDialogProps) {
           if (!props.submitting) props.onContinue();
         }}
       >
-        <label className="block text-sm font-medium text-[var(--color-ink)]">
-          Name
-          <input
-            className={`${FIELD} mt-1`}
-            value={values.name}
-            onChange={(e) => set({ name: e.target.value })}
-            autoComplete="off"
-          />
-        </label>
+        <MemberSummary member={props.member} />
         <label className="block text-sm font-medium text-[var(--color-ink)]">
           Relationship
           <select
@@ -210,17 +215,19 @@ export function DetailsFormDialog(props: FormDialogProps) {
             />
           </label>
         )}
-        <label className="block text-sm font-medium text-[var(--color-ink)]">
-          PAN
-          <input
-            className={`${FIELD} mt-1 uppercase`}
-            value={values.pan}
-            onChange={(e) => set({ pan: e.target.value })}
-            placeholder={props.panPlaceholder}
-            autoComplete="off"
-            maxLength={14}
-          />
-        </label>
+        {props.showPanInput && (
+          <label className="block text-sm font-medium text-[var(--color-ink)]">
+            PAN
+            <input
+              className={`${FIELD} mt-1 uppercase`}
+              value={values.pan}
+              onChange={(e) => set({ pan: e.target.value })}
+              autoComplete="off"
+              maxLength={14}
+            />
+          </label>
+        )}
+        {props.extraFields}
         {props.error && (
           <p role="alert" className="text-sm text-[var(--color-negative,#b91c1c)]">
             {props.error}
@@ -242,15 +249,15 @@ export function useDetailsForm(member: HouseholdMember, mode: "unlock" | "edit")
     if (error) setError(null); // L1: the error clears as they type
   };
 
-  const submit = async (opts?: { useDetectedPan?: boolean }): Promise<SubmitOutcome | null> => {
-    const invalid = validateValues(values, member.name, opts?.useDetectedPan);
+  const submit = async (): Promise<SubmitOutcome | null> => {
+    const invalid = validateValues(values, member);
     if (invalid) {
       setError(invalid);
       return null;
     }
     setSubmitting(true);
     setError(null);
-    const outcome = await submitDetails(member, values, mode, opts);
+    const outcome = await submitDetails(member, values, mode);
     setSubmitting(false);
     if (outcome.kind === "error") setError(outcome.message);
     return outcome;

@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 import uuid
 
-from app.models.enums import MemberLockReason, MemberPanSource, Relationship
+from app.models.enums import MemberLockReason, MemberNameSource, MemberPanSource, Relationship
 from app.models.user import HouseholdMember, User
 from app.services.import_.crypto import encrypt_pan, hash_pan
 from app.services.import_.people import ParsedPerson
@@ -95,14 +95,18 @@ def test_plan_existing_member_longer_name_updates(db_session):
 
 def test_plan_existing_member_shorter_name_is_kept(db_session):
     user = _user(db_session)
-    dad = _member(db_session, user, "Ayush Anand Karnawat", pan="BBBPB2222B", relationship=Relationship.PARENT)
+    # I9 applies to a CAS-sourced name only (2026-10-01 QE).
+    dad = _member(db_session, user, "Ayush Anand Karnawat", pan="BBBPB2222B", relationship=Relationship.PARENT,
+                  name_source=MemberNameSource.CAS)
     plans = plan_people(db_session, user.id, [_person("p1", "AYUSH KARNAWAT", "BBBPB2222B")], None)
     assert (plans[0].member_id, plans[0].name_update) == (dad.id, "none")
 
 
 def test_plan_pan_match_name_mismatch_asks(db_session):
     user = _user(db_session)
-    _member(db_session, user, "Ayush Karnawat", pan="BBBPB2222B", relationship=Relationship.PARENT)
+    # M8 "ask" applies to a CAS-sourced name only (2026-10-01 QE).
+    _member(db_session, user, "Ayush Karnawat", pan="BBBPB2222B", relationship=Relationship.PARENT,
+            name_source=MemberNameSource.CAS)
     plans = plan_people(db_session, user.id, [_person("p1", "ROHAN MEHTA", "BBBPB2222B")], None)
     assert plans[0].name_update == "ask"
 
@@ -258,3 +262,65 @@ def test_pan_person_is_not_asked_about_a_pan_free_self_member(db_session):
     _member(db_session, user, "Aditi Shanbhag")
     plans = plan_people(db_session, user.id, [_person("p9", "Aditi Shanbhag", "BNZPS1234K")], None)
     assert plans[0].same_person_member_id is None
+
+
+# ------------------------- 2026-10-01 QB/QE: a typed name yields to the CAS
+
+
+def test_plan_user_entered_member_with_a_different_name_updates_not_asks(db_session):
+    # Preview must agree with confirm, which always replaces a USER_ENTERED
+    # name with the statement's: "update", never an "ask" the user can decline.
+    user = _user(db_session)
+    _member(db_session, user, "Priya Sharma", pan="BBBPB2222B", relationship=Relationship.PARENT,
+            name_source=MemberNameSource.USER_ENTERED)
+    plans = plan_people(db_session, user.id, [_person("p1", "PRIYA KARNAWAT", "BBBPB2222B")], None)
+    assert plans[0].name_update == "update"
+
+
+def test_plan_user_entered_longer_name_still_updates(db_session):
+    # I9 ("keep the longer stored name") only protects a CAS-sourced name.
+    user = _user(db_session)
+    _member(db_session, user, "Ayush Anand Karnawat", pan="BBBPB2222B", relationship=Relationship.PARENT,
+            name_source=MemberNameSource.USER_ENTERED)
+    plans = plan_people(db_session, user.id, [_person("p1", "AYUSH KARNAWAT", "BBBPB2222B")], None)
+    assert plans[0].name_update == "update"
+
+
+def test_plan_user_entered_same_name_recased_is_none(db_session):
+    user = _user(db_session)
+    _member(db_session, user, "Priya Sharma", pan="BBBPB2222B", relationship=Relationship.PARENT,
+            name_source=MemberNameSource.USER_ENTERED)
+    plans = plan_people(db_session, user.id, [_person("p1", "PRIYA SHARMA", "BBBPB2222B")], None)
+    assert plans[0].name_update == "none"
+
+
+def test_plan_cas_named_member_mismatch_still_asks(db_session):
+    user = _user(db_session)
+    _member(db_session, user, "Priya Sharma", pan="BBBPB2222B", relationship=Relationship.PARENT,
+            name_source=MemberNameSource.CAS)
+    plans = plan_people(db_session, user.id, [_person("p1", "PRIYA KARNAWAT", "BBBPB2222B")], None)
+    assert plans[0].name_update == "ask"
+
+
+def test_plan_user_entered_exact_name_match_is_none(db_session):
+    # Name-matched (5A) member: same rule as a PAN match; an exact match
+    # normalises equal, so nothing to rename.
+    user = _user(db_session)
+    kavita = _member(db_session, user, "Kavita  Shanbhag", relationship=Relationship.PARENT,
+                     name_source=MemberNameSource.USER_ENTERED)
+    plans = plan_people(db_session, user.id, [_person("p3", "KAVITA SHANBHAG")], None)
+    assert (plans[0].member_id, plans[0].name_update) == (kavita.id, "none")
+
+
+def test_plan_me_with_permanent_pan_and_user_entered_name_updates(db_session):
+    user = _user(db_session)
+    _member(db_session, user, "Ayush Kumar Karnawat", pan="AAAPA1111A", name_source=MemberNameSource.USER_ENTERED)
+    plans = plan_people(db_session, user.id, [_person("p1", "AYUSH KARNAWAT", "AAAPA1111A")], "p1")
+    assert (plans[0].status, plans[0].name_update) == ("me", "update")
+
+
+def test_plan_me_with_permanent_pan_and_cas_name_keeps_i9(db_session):
+    user = _user(db_session)
+    _member(db_session, user, "Ayush Kumar Karnawat", pan="AAAPA1111A", name_source=MemberNameSource.CAS)
+    plans = plan_people(db_session, user.id, [_person("p1", "AYUSH KARNAWAT", "AAAPA1111A")], "p1")
+    assert (plans[0].status, plans[0].name_update) == ("me", "none")

@@ -62,18 +62,10 @@ describe("PeopleFoundDialog", () => {
     expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
   });
 
-  it("the pencil edits a name and reports only the edit", () => {
-    const { onContinue } = renderDialog();
-    fireEvent.click(screen.getByRole("button", { name: /edit name for ramesh sharma/i }));
-    const input = screen.getByRole("textbox", { name: /name for ramesh sharma/i });
-    fireEvent.change(input, { target: { value: "Ramesh K Sharma" } });
-    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
-    expect(onContinue).toHaveBeenCalledWith({ names: { ramesh: "Ramesh K Sharma" }, includes: {}, owners: {} });
-  });
-
-  it("has no pencil for Me or for a person on another account", () => {
-    renderDialog({ people: [me, kiran] });
-    expect(screen.queryByRole("button", { name: /edit name/i })).not.toBeInTheDocument();
+  it("named people have no edit pencil", () => {
+    renderDialog();
+    expect(screen.queryByRole("button", { name: /edit name/i })).toBeNull();
+    expect(screen.queryByRole("textbox", { name: /name for ramesh sharma/i })).toBeNull();
   });
 
   it("greys out an other-account person and lets the user include them (U8)", () => {

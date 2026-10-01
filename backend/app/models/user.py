@@ -85,6 +85,9 @@ class HouseholdMember(Base):
     # Nullable only while locked (ck_member_relationship_when_complete).
     relationship: Mapped[Relationship | None] = mapped_column(enum_column(Relationship))
     relationship_other_label: Mapped[str | None] = mapped_column(String)
+    # Contact details only: unverified (no OTP) and not unique (decision Q8).
+    phone_number: Mapped[str | None] = mapped_column(String)
+    email: Mapped[str | None] = mapped_column(String)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     pan_encrypted: Mapped[str | None] = mapped_column(String)
     pan_lookup_hash: Mapped[str | None] = mapped_column(String)

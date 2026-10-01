@@ -9,6 +9,7 @@ import { ApiError } from "../../lib/apiClient";
 vi.mock("../auth/api", () => ({
   getHouseholdMembers: vi.fn(),
   completeMemberDetails: vi.fn(),
+  updateMember: vi.fn(),
   mergeMemberInto: vi.fn(),
 }));
 
@@ -65,8 +66,8 @@ describe("MainDashboardFlow", () => {
 
   it("records tab changes in browser history and restores Dashboard on Back", async () => {
     vi.mocked(authApi.getHouseholdMembers).mockResolvedValue([
-      { id: "m-1", name: "Alice", relationship: "self", relationship_other_label: null, origin: "onboarding", lock_reason: null, details_required: false, pan_masked: null },
-      { id: "m-2", name: "Bob", relationship: "spouse", relationship_other_label: null, origin: "manual", lock_reason: null, details_required: false, pan_masked: null },
+      { id: "m-1", name: "Alice", relationship: "self", relationship_other_label: null, origin: "onboarding", lock_reason: null, details_required: false, pan_masked: null, phone_number: null, email: null, pan_on_statement: false, name_from_statement: false },
+      { id: "m-2", name: "Bob", relationship: "spouse", relationship_other_label: null, origin: "manual", lock_reason: null, details_required: false, pan_masked: null, phone_number: null, email: null, pan_on_statement: false, name_from_statement: false },
     ]);
     vi.mocked(dashboardApi.getAggregateHoldings).mockResolvedValue({ members: [], holdings: [] });
     vi.mocked(dashboardApi.getAggregateAllocation).mockResolvedValue({
@@ -91,7 +92,7 @@ describe("MainDashboardFlow", () => {
 
   it("opens Profile as a history-backed tab with account controls", async () => {
     vi.mocked(authApi.getHouseholdMembers).mockResolvedValue([
-      { id: "m-1", name: "Alice", relationship: "self", relationship_other_label: null, origin: "onboarding", lock_reason: null, details_required: false, pan_masked: null },
+      { id: "m-1", name: "Alice", relationship: "self", relationship_other_label: null, origin: "onboarding", lock_reason: null, details_required: false, pan_masked: null, phone_number: null, email: null, pan_on_statement: false, name_from_statement: false },
     ]);
     vi.mocked(dashboardApi.getMemberHoldings).mockResolvedValue([]);
     vi.mocked(dashboardApi.getMemberAllocation).mockResolvedValue({
@@ -106,21 +107,21 @@ describe("MainDashboardFlow", () => {
     fireEvent.click(screen.getByRole("button", { name: /profile/i }));
 
     expect(await screen.findByRole("heading", { name: "Profile" })).toBeInTheDocument();
-    expect(screen.getByText("Account Info")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Account Info" })).toBeInTheDocument();
     expect(screen.getByText("Alice")).toBeInTheDocument();
     expect(screen.getByText("alice@example.com")).toBeInTheDocument();
     expect(screen.getByText("+919999999999")).toBeInTheDocument();
-    expect(screen.getByText("Import History")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Import History" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /logout/i })).toBeInTheDocument();
-    expect(screen.getByText("Danger Zone")).toBeInTheDocument();
+    expect(screen.queryByText("Danger Zone")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /delete account/i })).toBeInTheDocument();
     expect(window.history.state).toMatchObject({ unifolioTab: "profile" });
   });
 
   it("fetches household members and defaults landing view", async () => {
     vi.mocked(authApi.getHouseholdMembers).mockResolvedValue([
-      { id: "m-1", name: "Alice", relationship: "self", relationship_other_label: null, origin: "onboarding", lock_reason: null, details_required: false, pan_masked: null },
-      { id: "m-2", name: "Bob", relationship: "spouse", relationship_other_label: null, origin: "manual", lock_reason: null, details_required: false, pan_masked: null },
+      { id: "m-1", name: "Alice", relationship: "self", relationship_other_label: null, origin: "onboarding", lock_reason: null, details_required: false, pan_masked: null, phone_number: null, email: null, pan_on_statement: false, name_from_statement: false },
+      { id: "m-2", name: "Bob", relationship: "spouse", relationship_other_label: null, origin: "manual", lock_reason: null, details_required: false, pan_masked: null, phone_number: null, email: null, pan_on_statement: false, name_from_statement: false },
     ]);
 
     vi.mocked(dashboardApi.getAggregateHoldings).mockResolvedValue({
@@ -152,7 +153,7 @@ describe("MainDashboardFlow", () => {
 
   it("renders exactly one theme toggle on the Add Data screen", async () => {
     vi.mocked(authApi.getHouseholdMembers).mockResolvedValue([
-      { id: "m-1", name: "Alice", relationship: "self", relationship_other_label: null, origin: "onboarding", lock_reason: null, details_required: false, pan_masked: null },
+      { id: "m-1", name: "Alice", relationship: "self", relationship_other_label: null, origin: "onboarding", lock_reason: null, details_required: false, pan_masked: null, phone_number: null, email: null, pan_on_statement: false, name_from_statement: false },
     ]);
 
     vi.mocked(dashboardApi.getMemberHoldings).mockResolvedValue([]);
@@ -180,9 +181,9 @@ describe("MainDashboardFlow", () => {
   });
 
   describe("locked members", () => {
-    const base = { relationship_other_label: null, origin: "cas_detected", pan_masked: "BX******8L" };
+    const base = { relationship_other_label: null, origin: "cas_detected", pan_masked: "BX******8L", phone_number: null, email: null, pan_on_statement: true, name_from_statement: true };
     const lockedMembers = [
-      { id: "m-1", name: "Alice", relationship: "self", relationship_other_label: null, origin: "onboarding", lock_reason: null, details_required: false, pan_masked: null },
+      { id: "m-1", name: "Alice", relationship: "self", relationship_other_label: null, origin: "onboarding", lock_reason: null, details_required: false, pan_masked: null, phone_number: null, email: null, pan_on_statement: false, name_from_statement: false },
       { ...base, id: "m-2", name: "Ramesh Sharma", relationship: null, lock_reason: "details_needed", details_required: true },
       { ...base, id: "m-3", name: "Kiran Sharma", relationship: "sibling", lock_reason: "pan_on_other_account", details_required: true },
     ];
@@ -231,7 +232,6 @@ describe("MainDashboardFlow", () => {
         lockedMembers[2],
       ] as never);
       fireEvent.change(screen.getByLabelText("Relationship"), { target: { value: "spouse" } });
-      fireEvent.change(screen.getByLabelText("PAN"), { target: { value: "BXQPS5678L" } });
       fireEvent.click(screen.getByRole("button", { name: "Continue" }));
       await waitFor(() => expect(dashboardApi.getMemberHoldings).toHaveBeenCalledWith("m-2", expect.anything()));
       expect(screen.getByRole("button", { name: "Per Member", hidden: true }).className).toContain("font-semibold");
@@ -267,7 +267,7 @@ describe("MainDashboardFlow", () => {
 
     it("U6 merge: import re-targets to the merge target and onDone is not called", async () => {
       // Only the locked m-2 exists, so Add data targets m-2.
-      vi.mocked(authApi.getHouseholdMembers).mockResolvedValue([lockedMembers[1]] as never);
+      vi.mocked(authApi.getHouseholdMembers).mockResolvedValue([{ ...lockedMembers[1], pan_masked: null, pan_on_statement: false }] as never);
       vi.mocked(authApi.completeMemberDetails).mockRejectedValue(
         new ApiError(409, {
           code: "pan_belongs_to_other_member",
@@ -291,21 +291,21 @@ describe("MainDashboardFlow", () => {
       expect(importDone).not.toHaveBeenCalled();
     });
 
-    it("L9: can_merge=false shows the inline 'already on X' error", async () => {
+    it("L9: a PATCH 422 shows the server message inline", async () => {
       vi.mocked(authApi.getHouseholdMembers).mockResolvedValue([
         lockedMembers[0],
         { ...lockedMembers[1], relationship: "spouse", lock_reason: null, details_required: false },
       ] as never);
-      vi.mocked(authApi.completeMemberDetails).mockRejectedValue(
-        new ApiError(409, { code: "pan_belongs_to_other_member", message: "x", details: { other_member_id: "m-1", other_member_name: "Alice", can_merge: false, source_fund_count: 0 } }),
+      vi.mocked(authApi.updateMember).mockRejectedValue(
+        new ApiError(422, { code: "invalid_email", message: "Enter a valid email address." }),
       );
       render(<MainDashboardFlow />);
       fireEvent.click(await screen.findByRole("button", { name: "Per Member" }));
       await pick(/Ramesh Sharma/);
       fireEvent.click(await screen.findByRole("button", { name: "Edit details" }));
-      fireEvent.change(await screen.findByLabelText("PAN"), { target: { value: "BXQPS5678L" } });
+      fireEvent.change(await screen.findByLabelText("Email"), { target: { value: "bad" } });
       fireEvent.click(screen.getByRole("button", { name: "Save" }));
-      expect(await screen.findByText("This PAN is already on Alice.")).toBeInTheDocument();
+      expect(await screen.findByText("Enter a valid email address.")).toBeInTheDocument();
     });
   });
 });

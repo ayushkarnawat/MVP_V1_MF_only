@@ -46,7 +46,7 @@ from app.services.dashboard.holdings import invalidate_holdings_cache
 from app.services.import_.crypto import encrypt_pan, hash_pan
 from app.services.import_.enrich import mfapi_client, normalize_name
 from app.services.import_ import file_storage
-from app.services.import_.name_match import normalise_name, validate_person_name
+from app.services.import_.name_match import NameNotEditableError, normalise_name, validate_person_name
 from app.services.import_.pan_claims import classify_detected_pan, confirm_pan_claim
 from app.services.import_.parser import (
     NormalizedTransaction,
@@ -517,6 +517,10 @@ def _member_for(
     assert person is not None  # a pre-people session always has a target member
     clean = validate_person_name(conf.name) if conf.name is not None else None
     edited = clean is not None and _is_edit(clean, person.name)
+    if edited and not person.needs_name:
+        # 2026-10-01 rule, same as _apply_name_choice: a new person the
+        # statement names keeps the CAS name; only U9 people are typed (QB).
+        raise NameNotEditableError("Names come from your statement and can’t be changed.")
     member = HouseholdMember(
         id=uuid.uuid4(), user_id=user_id,
         name=clean if edited else person.name,
@@ -546,9 +550,18 @@ def _apply_name_choice(
         # re-cased) is not an edit, else I9's "keep the longer stored name"
         # is bypassed.
         if _is_edit(clean, plan.name):
+            # 2026-10-01 rule: only a person the statement couldn't name (U9)
+            # gets a typed name; everyone else keeps the CAS name.
+            if not person.needs_name:
+                raise NameNotEditableError("Names come from your statement and can’t be changed.")
             _rename(db, member, clean, NameChangeReason.USER_EDIT, MemberNameSource.USER_ENTERED, import_rec, now)
             return
     if person.needs_name:
+        return
+    if member.name_source == MemberNameSource.USER_ENTERED and _is_edit(person.name, member.name):
+        # QB/QE: a typed name is provisional; the first statement that has a
+        # readable name for this person replaces it.
+        _rename(db, member, person.name, NameChangeReason.USER_CORRECTED_TO_CAS, MemberNameSource.CAS, import_rec, now)
         return
     # The plan's own verdict holds for the member it was made for (it knows
     # Me's first-upload rule, I10); a re-classified member gets a fresh one.

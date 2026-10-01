@@ -106,7 +106,9 @@ class ImportPreviewResponse(BaseModel):
 
 
 class ResolveNameRequest(BaseModel):
-    name: str
+    # 2026-10-01: ignored; resolve-name always uses the statement's name.
+    # Kept optional so old clients that still send it keep working.
+    name: str | None = None
 
 
 class ResolveSelfRequest(BaseModel):

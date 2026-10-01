@@ -22,7 +22,7 @@ from app.services.import_ import file_storage as file_storage_module
 from app.services.import_.crypto import encrypt_pan, hash_pan
 from app.services.import_.service import _preview_sessions
 
-from .import_helpers import _authed_headers_and_member, _parse, _test_db, family_result
+from .import_helpers import PAN_DISCLAIMER_VERSION, _authed_headers_and_member, _parse, _test_db, family_result
 
 ADITI_PAN = "ABCDE1234K"
 ARJUN_PAN = "ARJUN5432P"
@@ -367,30 +367,18 @@ def test_resolve_name_renames_self_logs_change_and_returns_preview(client, tmp_p
     me = resp.json()["people"][0]
     assert me["is_me"] is True and me["member_id"] == self_id
     member = _member(self_id)
-    assert member.name == "Rohan Mehta"
+    # 2026-10-01: the statement's name is always used, whatever is typed.
+    assert member.name == "ROHAN MEHTA"
     assert member.name_source == MemberNameSource.CAS and member.name_updated_at is not None
     assert member.pan_lookup_hash == hash_pan(ADITI_PAN) and member.pan_pending_until is not None
     db = _test_db()
     try:
         change = db.query(HouseholdMemberNameChange).one()
         assert (change.old_name, change.new_name, change.reason) == (
-            "Ayush Karnawat", "Rohan Mehta", NameChangeReason.USER_CORRECTED_TO_CAS,
+            "Ayush Karnawat", "ROHAN MEHTA", NameChangeReason.USER_CORRECTED_TO_CAS,
         )
     finally:
         db.close()
-
-
-def test_resolve_name_rejects_a_name_not_on_the_statement(client, tmp_path):
-    headers, self_id, sid = _u2_session(client, tmp_path, "+919800000102")
-
-    resp = _post(client, headers, sid, "resolve-name", {"name": "Ayush Karnawat"})
-    assert resp.status_code == 422
-    assert _detail(resp) == {"code": "name_not_on_statement", "message": "This name doesn’t match the statement"}
-
-    bad = _post(client, headers, sid, "resolve-name", {"name": "R0han"})
-    assert bad.status_code == 422 and _detail(bad)["code"] == "invalid_name"
-    assert _member(self_id).name == "Ayush Karnawat"
-    assert sid in _preview_sessions
 
 
 def _u3_session(client, tmp_path, phone):
@@ -734,7 +722,8 @@ def _parse_real(client, h, member_id, fname, tmp_path):
         return client.post(
             "/imports/parse",
             files={"file": (fname, (FIX / fname).read_bytes(), "application/pdf")},
-            data={"password": "MF@123", "household_member_id": member_id},
+            data={"password": "MF@123", "household_member_id": member_id,
+                  "pan_disclaimer_version": PAN_DISCLAIMER_VERSION},
             headers=h,
         )
 
@@ -789,8 +778,11 @@ def test_kavita_is_never_duplicated_across_family_uploads(client, tmp_path):
     assert _kavitas(uid) == 1
     db = _test_db()
     rohan = db.query(HouseholdMember).filter_by(user_id=uid, name="Rohan Shanbhag").one()
-    unlock = client.post(f"/household-members/{rohan.id}/details",
-                         json={"relationship": "parent", "pan": "BNZPS5678L"}, headers=h)
+    # 2026-10-01 (QC/QD): a PAN is typed only when the statement had none.
+    body = {"relationship": "parent"}
+    if rohan.detected_pan_hash is None:
+        body["pan"] = "BNZPS5678L"
+    unlock = client.post(f"/household-members/{rohan.id}/details", json=body, headers=h)
     assert unlock.status_code == 200, unlock.text
     for fname in ("family_cas_2.pdf", "family_cas_1.pdf", "family_cas_2.pdf"):
         r = _parse_real(client, h, str(rohan.id), fname, tmp_path)
@@ -931,3 +923,92 @@ def test_upload_target_beats_an_exact_name_match_elsewhere(client, tmp_path):
     assert resp.status_code == 200, resp.text
     p = next(x for x in resp.json()["people"] if x["name"].upper() == "KAVITA SHARMA")
     assert p["member_id"] == target_id
+
+
+# ------------------------------- 2026-10-01: name and PAN come from the CAS (QB/QE)
+
+
+def test_renaming_a_cas_named_person_is_422(client, tmp_path):
+    headers, self_id, sid = _family_session(client, tmp_path, "+919800300001")
+
+    resp = client.post("/imports/confirm", json={
+        "session_id": sid, "people": [{"person_key": "p1"}, {"person_key": "p2", "name": "Different Person"}],
+    }, headers=headers)
+
+    assert resp.status_code == 422, resp.text
+    assert _detail(resp)["code"] == "name_not_editable"
+    assert sid in _preview_sessions  # rolled back; the review can be confirmed again
+
+
+def test_renaming_a_cas_named_existing_member_is_422(client, tmp_path):
+    headers, self_id, sid = _family_session(client, tmp_path, "+919800300002")
+
+    resp = client.post("/imports/confirm", json={
+        "session_id": sid, "people": [{"person_key": "p1", "name": "Somebody Else"}, {"person_key": "p2"}],
+    }, headers=headers)
+
+    assert resp.status_code == 422 and _detail(resp)["code"] == "name_not_editable"
+    assert _member(self_id).name == "Aditi Sharma"
+
+
+def test_needs_name_person_can_be_named_once(client, tmp_path):
+    from app.models.enums import MemberNameSource
+
+    headers, self_id = _authed_headers_and_member(client, "+919800300003", name="Aditi Sharma")
+    resp = _parse(client, headers, self_id, family_result([
+        {"name": "ADITI SHARMA", "pan": ADITI_PAN},
+        {"name": None, "pan": RAMESH_STMT, "needs_name": True},
+    ], addressee="ADITI SHARMA"), tmp_path)
+    assert resp.status_code == 200, resp.text
+
+    done = client.post("/imports/confirm", json={
+        "session_id": resp.json()["session_id"],
+        "people": [{"person_key": "p1"}, {"person_key": "p2", "name": "Ramesh Sharma"}],
+    }, headers=headers)
+
+    assert done.status_code == 200, done.text
+    ramesh = _member(done.json()["people"][1]["member_id"])
+    assert ramesh.name == "Ramesh Sharma" and ramesh.name_source == MemberNameSource.USER_ENTERED
+
+
+def test_user_entered_name_is_replaced_by_the_statement_name(client, tmp_path):
+    from app.models.enums import MemberNameSource, NameChangeReason
+    from app.models.member_history import HouseholdMemberNameChange
+
+    headers, self_id = _authed_headers_and_member(client, "+919800300004", name="Aditi Sharma")
+    _set_pan(self_id, ADITI_PAN)
+    ramesh_id = _add_member(_user_id(self_id), "Ramu Uncle")  # name_source defaults to USER_ENTERED
+    _set_pan(ramesh_id, RAMESH_STMT)
+    assert _member(ramesh_id).name_source == MemberNameSource.USER_ENTERED
+    resp = _parse(client, headers, self_id, family_result([
+        {"name": "ADITI SHARMA", "pan": ADITI_PAN},
+        {"name": "RAMESH SHARMA", "pan": RAMESH_STMT},
+    ], addressee="ADITI SHARMA"), tmp_path)
+    assert resp.status_code == 200, resp.text
+
+    done = client.post("/imports/confirm", json={
+        "session_id": resp.json()["session_id"], "people": [{"person_key": "p1"}, {"person_key": "p2"}],
+    }, headers=headers)
+
+    assert done.status_code == 200, done.text
+    ramesh = _member(ramesh_id)
+    assert ramesh.name == "RAMESH SHARMA" and ramesh.name_source == MemberNameSource.CAS
+    db = _test_db()
+    try:
+        change = db.query(HouseholdMemberNameChange).filter_by(household_member_id=uuid.UUID(ramesh_id)).one()
+        assert change.reason == NameChangeReason.USER_CORRECTED_TO_CAS
+    finally:
+        db.close()
+
+
+@pytest.mark.parametrize("body", [{}, {"name": "anything"}])
+def test_resolve_name_uses_the_statement_name(client, tmp_path, body):
+    from app.models.enums import MemberNameSource
+
+    headers, self_id, sid = _u2_session(client, tmp_path, "+919800300005")
+
+    resp = _post(client, headers, sid, "resolve-name", body)
+
+    assert resp.status_code == 200, resp.text
+    member = _member(self_id)
+    assert member.name == "ROHAN MEHTA" and member.name_source == MemberNameSource.CAS

@@ -63,21 +63,19 @@ describe("U1 NameVariantNotice", () => {
 });
 
 describe("U2 NameMismatchDialog", () => {
-  it("prefills the statement name, sends the typed name, shows the inline error", () => {
+  it("name mismatch asks is that you, with no text box", () => {
     const onUseName = vi.fn();
     const onUploadDifferent = vi.fn();
     render(
-      <NameMismatchDialog isOpen enteredName="Ayush Karnawat" statementName="ROHAN MEHTA"
+      <NameMismatchDialog isOpen enteredName="Ayush Karnawat" statementName="Ramesh Sharma"
         error="This name doesn’t match the statement" onUseName={onUseName} onUploadDifferent={onUploadDifferent} />,
     );
-    expect(screen.getByText("This statement is in a different name")).toBeInTheDocument();
-    expect(screen.getByText("You entered Ayush Karnawat, but this statement belongs to ROHAN MEHTA.")).toBeInTheDocument();
+    expect(screen.queryByRole("textbox")).toBeNull();
+    expect(screen.getByText("This statement is in Ramesh Sharma’s name")).toBeInTheDocument();
+    expect(screen.getByText(/Is that you\?/)).toBeInTheDocument();
     expect(screen.getByRole("alert")).toHaveTextContent("This name doesn’t match the statement");
-    const input = screen.getByLabelText("Your name as per PAN");
-    expect(input).toHaveValue("ROHAN MEHTA");
-    fireEvent.change(input, { target: { value: "ROHAN M MEHTA" } });
-    click("Use this name");
-    expect(onUseName).toHaveBeenCalledWith("ROHAN M MEHTA");
+    click("Yes, that’s me");
+    expect(onUseName).toHaveBeenCalledWith("Ramesh Sharma");
     click("Upload a different file");
     close();
     expect(onUploadDifferent).toHaveBeenCalledTimes(2);
@@ -293,7 +291,7 @@ describe("PromptHost", () => {
       <PromptHost onResolve={onResolve}
         prompt={p("self_name_mismatch", { entered_name: "A B", statement_name: "C D" })} />,
     );
-    click("Use this name");
+    click("Yes, that’s me");
     expect(onResolve).toHaveBeenLastCalledWith({ kind: "name", name: "C D" });
     rerender(
       <PromptHost onResolve={onResolve}

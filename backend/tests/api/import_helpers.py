@@ -7,7 +7,7 @@ from datetime import date
 from decimal import Decimal
 from unittest.mock import patch
 
-from app.models.enums import TransactionType
+from app.models.enums import ConsentDocumentType, TransactionType
 from app.services.import_.parser import (
     NormalizedTransaction,
     ParsedInvestor,
@@ -16,8 +16,11 @@ from app.services.import_.parser import (
     mask_pan,
 )
 from app.services.import_.people import ParsedPerson, folio_key
+from app.services.legal.registry import current_document
 
 SCHEME_NAME = "HDFC Flexi Cap Fund - Direct Plan - Growth"
+# Task 9: /imports/parse refuses an upload without the current PAN disclaimer.
+PAN_DISCLAIMER_VERSION = current_document(ConsentDocumentType.PAN_DISCLAIMER).version
 
 
 def _authed_headers(client, phone: str) -> dict[str, str]:
@@ -56,7 +59,11 @@ def _parse(client, headers, member_id, parse_result, cache_dir):
         return client.post(
             "/imports/parse",
             files={"file": ("cas.pdf", b"%PDF-fake", "application/pdf")},
-            data={"password": "x", "household_member_id": member_id},
+            data={
+                "password": "x",
+                "household_member_id": member_id,
+                "pan_disclaimer_version": PAN_DISCLAIMER_VERSION,
+            },
             headers=headers,
         )
 
