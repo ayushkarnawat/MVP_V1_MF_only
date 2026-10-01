@@ -30,8 +30,8 @@ why.
 | S4 | Q2 — Investing Behavior | Onboarding (PRD-02) | After S3; skippable/revisitable per FR-7/FR-7a |
 | S5 | Q3 — Purpose | Onboarding (PRD-02) | After S4; skippable/revisitable per FR-7/FR-7a |
 | S6 | ~~Q4 — Household~~ (removed 2026-09-29, CAS member detection) | Onboarding (PRD-02) | Was: after S5. Household members are now detected from the first CAS |
-| S7 | ~~Add Family Member(s)~~ (left onboarding 2026-09-29) | Onboarding (PRD-02) | Was: from S6 if "Family too". Members are now detected from the CAS and unlocked from the dashboard |
-| S8 | CAS Upload | Import (PRD-01) | From the privacy/security page (S5 -> S8 directly, amended 2026-09-29); also from S16 (ongoing). New after S8/S9: "We found N people" popup, ribbon review (one ribbon per person, then Confirm imports), and the member unlock screen (relationship + PAN) when a detected person is first opened |
+| S7 | ~~Add Family Member(s)~~ (left onboarding 2026-09-29) | Onboarding (PRD-02) | Was: from S6 if "Family too". Members are now detected from the CAS and open directly; a profile nudge offers the Complete profile popup (2026-10-01) |
+| S8 | CAS Upload | Import (PRD-01) | From the privacy/security page (S5 -> S8 directly, amended 2026-09-29); also from S16 (ongoing). New after S8/S9: "We found N people" popup, ribbon review (one ribbon per person, then Confirm imports), and, for a detected person, a direct open with a profile nudge and the Complete profile popup (no unlock screen, 2026-10-01) |
 | S9 | Import Parsing (loading) | Import (PRD-01) | From S8 |
 | S10 | Import Review | Import (PRD-01) | From S9 on success |
 | S11 | Import Error | Import (PRD-01) | From S9 on failure (wrong password / scanned / wrong CAS type / generic) |
@@ -74,7 +74,7 @@ flowchart TD
     S5 --> S8["CAS Upload"]
     S8 --> P1["NEW: We found N people popup"]
     P1 --> P2["NEW: ribbon review, then Confirm imports"]
-    P2 --> P3["NEW: member unlock (relationship + PAN) on first open"]
+    P2 --> P3["NEW: member opens directly; profile nudge + Complete profile popup"]
 
     S8 -- "parse immediately (S24-S26 removed 2026-09-29)" --> S9["Import Parsing"]
     S9 -- success --> S10["Import Review"]
@@ -116,7 +116,7 @@ flowchart TD
     Q2 -- "just getting started" --> Q3["Q3: What brings you to Unifolio?"]
     Q3 --> Import["CAS Upload (S8) — members detected from the statement"]
     Import --> People["NEW: We found N people popup"] --> Ribbons["NEW: ribbon review, Confirm imports"]
-    Ribbons --> Unlock["NEW: member unlock on first open (relationship + PAN)"]
+    Ribbons --> Unlock["NEW: member opens directly; profile nudge + Complete profile popup"]
 ```
 
 *Note: per PRD-02 FR-7/FR-7a, every step here is resumable and (aside from Q4's family
@@ -269,3 +269,4 @@ None remaining from this pass.
 | 1.1 | 2026-07-22 | Claude (PM partner) | Default landing resolved to family aggregate (S14) for users with family set up, per-member (S13) as fallback for those without; S17 entry point confirmed as-drawn. Primary Flow diagram updated accordingly. |
 | 1.2 | 2026-08-05 | Claude (PM partner), from team brainstorm relayed by Ayush | Added S23 (Landing: Sign Up/Log In) as the true first screen; added S24 (Family CAS Upload), S25 (Upload My CAS? Now/Later), S26 (Parse Queue) per PRD-02 v1.3's Family CAS Upload flow; updated Screen Inventory, Primary Flow diagram, and Onboarding Questionnaire sub-flow accordingly; added a new Family CAS Upload sub-flow diagram; added onboarding back-navigation note to Navigation Shell per FR-7a; added per-item status row to Screen States; updated Traceability for PRD-02 US-2 |
 | 1.3 | 2026-09-29 | Claude, CAS member detection | Onboarding flow redrawn: Q4 (S6), Add Family Members (S7) and S24-S26 removed; S5 goes straight to S8. Added the "We found N people" popup, ribbon review with Confirm imports, and the member unlock screen. The older Family CAS Upload sub-flow diagram below is superseded. |
+| 1.4 | 2026-10-01 | Claude, member profile completion | Detected members no longer unlock on first open: the dashboard opens directly, with a profile nudge and the Complete profile popup (name, PAN, relationship, phone, email; none required except PAN when the CAS had none) and a red banner when the PAN is on another account |

@@ -195,3 +195,13 @@ Spec: `Docs/orchestration/cas-member-detection-map.html`. Plan: `Docs/superpower
 - **Scripts:** `backend/scripts/report_onboarding_goals.py` (goal report; "Why choose? All of it." is a UI shortcut that stores all 4 goals — Q7), `backend/scripts/consent_trail.py` (print a user's consent rows).
 - **OTP email:** logo removed, green text instead of a highlight.
 - **Verification caveats:** `functional_postgres` tests not run (no Postgres); family-CAS fixture-backed tests skip (fixtures absent).
+
+## 2026-10-01 — Member profile completion (replaces the detected-member lock)
+
+Plan `Docs/superpowers/plans/2026-10-01-member-profile-completion.md`; spec `Docs/orchestration/member-profile-completion-map.html`. Built subagent-driven in 10 tasks (Tasks 1-2 committed as `0a0152a`..`3a4852e`; the rest uncommitted at the time of writing).
+
+- **New route:** `PUT /household-members/{id}/profile` (plain `def`, `member_profile.py`: `MemberProfileRequest`, `save_member_profile`). Optional name, PAN, relationship, phone, email. 422 `pan_required` (nothing written) when the member has no PAN of any kind and none is typed; 409 on a duplicate PAN with `can_merge` (merge only for `origin=cas_detected` sources); a PAN another account holds is saved as `pan_conflict`, not rejected. Self: phone/email read-only (from `users`), relationship fixed, only the name editable.
+- **Removed:** `POST /household-members/{id}/details` and `PATCH /household-members/{id}` (`member_update.py` deleted, `complete_member_details` and `MemberLockReason` gone); the 403 `member_details_required` read gate (`require_unlocked_member` replaced by `require_member`, 404 only); the import prompts tied to the lock.
+- **Response shape:** `HouseholdMemberResponse` drops `lock_reason`, `details_required`, `pan_on_statement`; gains `missing_profile_fields`, `completion_percent` (5 fields x 20%, computed on read, `profile_completion.py`), `pan_editable`, `pan_conflict`, `removed_with_last_import`. `GET /household-members` runs `refresh_pan_conflicts` (promotes a released other-account PAN, survives a lost unique-index race).
+- **Import:** Confirm saves each detected member's name and PAN through `store_detected_pan` (same encryption/columns as Self's); no upload-time PAN reservation for non-Self members (Add data included), so an other-account PAN starts the review and becomes `pan_conflict`. A popup-edited name (`name_source=user_edited`) follows the normal CAS name rules on later imports. Deleting a detected member's last import keeps the member once it has profile data.
+- **Verification caveats:** migration 0023's Postgres paths unverified (`functional_postgres` skipped, no `TEST_DATABASE_URL`); run before deploy. Not deployed.

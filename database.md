@@ -85,3 +85,11 @@ Landing this migration also removed every OTP/session-related route's old direct
 - **`pending_identity_verifications.consent_snapshot`**: the sign-up consent the user accepted is held here until the OTP verifies, then written as `consent_records` rows.
 - **Not verified on Postgres**: `tests/functional_postgres` (cascade deletes, trigger test) could not be run — no Postgres available in the session. Run once before merge.
 - Pending, now numbered **0023**: drop `users.primary_goal` (see `DEFERRED_FEATURES.md`; it was reserved as "0021").
+
+## 2026-10-01 — Migration 0023: member profile completion
+
+`0023_member_profile_completion` (down_revision `0022`) — written and tested on SQLite only; not yet applied anywhere. Postgres paths unverified (`functional_postgres` skipped, no `TEST_DATABASE_URL`): run before deploy.
+- `household_members`: drops `details_completed_at`, `lock_reason`, `ck_member_relationship_when_complete`, `ck_member_lock_reason` and the never-relock trigger (SQLite `trg_member_never_relock` / Postgres `member_never_relock()`). Adds `pan_conflict` (`memberpanconflict`, `other_account`) with CHECK `ck_member_pan_conflict_has_pan`. `MemberNameSource` gains `user_edited`.
+- **Backfill:** a locked row's `detected_pan_*` is copied into `pan_encrypted` / `pan_lookup_hash` (`pan_source='cas'`, verified now), only for the earliest row per hash and only when no row already holds that hash; rows whose PAN another account holds (and later same-account duplicates) keep `detected_pan_*` and are flagged `pan_conflict='other_account'`.
+- Downgrade restores the columns and trigger from a frozen SQL copy.
+- The deferred `users.primary_goal` drop is renumbered 0023 -> **0024** (`DEFERRED_FEATURES.md`).

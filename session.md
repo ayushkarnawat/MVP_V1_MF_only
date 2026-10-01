@@ -12,43 +12,36 @@ Earlier "Latest" sections (2026-09-30 staging QA fixes, 2026-09-24 PAN-at-upload
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
 
-## Latest (2026-10-01): AWS staging cost-reduction (Scenario A) applied and verified healthy
+## Latest (2026-10-01): Member profile completion built (Tasks 3-10 uncommitted, not deployed)
 
-Full narrative: `log.md`'s 2026-10-01 (cont'd) entry. Decisions: `decisions.md`'s
-2026-10-01 entry.
+Full narrative: `log.md`'s "Member profile completion built" entry. Decisions: `decisions.md`'s
+2026-10-01 "Member profile completion" entry. Plan: `Docs/superpowers/plans/2026-10-01-member-profile-completion.md`;
+spec: `Docs/orchestration/member-profile-completion-map.html`. Ledger (all rulings, deferred minors):
+`.superpowers/sdd/2026-10-01-member-profile-completion/progress.md`.
 
-- Executed `Docs/2026-09-29-aws-staging-cost-analysis-and-reduction-plan.md`'s Scenario A:
-  ECS backend task memory 2048→1024MB, ECR lifecycle rule (keep last 10 tagged images), 6
-  EventBridge night-stop schedules (RDS/backend/`fck-nat` stop 9PM, start 5AM IST), an RDS
-  event subscription + SNS ops-alerts topic, and a frontend maintenance banner for the
-  stop window. Applied via `terraform apply` (13 added, 1 changed, 2 destroyed, run by the
-  user per the standing constraint — Claude writes/validates Terraform, never applies).
-  **$91.78/mo → $68.46/mo (-25%).**
-- Two real bugs caught and fixed before apply, not just reviewed: (1) `terraform.tfvars`
-  was missing `email_delivery_mode`, which would have silently reverted live SES email
-  delivery back to `"stub"` on this apply — a pre-existing gap, not introduced this
-  session. (2) The bastion showed a forced replace in `plan` — investigated in detail per
-  the user's explicit request (CloudTrail history, live instance state) and root-caused to
-  a Terraform/AWS reporting quirk: a stopped EC2 instance always reports no public IP
-  (non-EIP IPs release on stop), which Terraform reads as drift against
-  `associate_public_ip_address = true`. Zero actual historical drift. Fixed via
-  `lifecycle.ignore_changes` in `infra/modules/networking/main.tf`.
-- Post-apply, did a full read-only health check of every changed component (ECS, ECR,
-  RDS, bastion, all 6 schedules, SNS, RDS event subscription) per the user's explicit
-  request. Found one scare that resolved itself: the ECS backend showed 0 running tasks
-  for ~6 minutes post-deployment, which looked like a stuck rollout — root-caused to
-  normal Fargate ENI/image-pull latency plus querying the wrong service name
-  (`staging-backend` vs. the real `unifolio-staging-backend`), not an actual problem.
-  Confirmed healthy via a direct `GET https://.../health` → 200 against the ALB.
-- **Scenario B (RDS `db.t4g.small`→`micro`, a further ~$10/mo) explicitly held off** by
-  user decision — Scenario A already lands inside the $65-70/mo target with zero database
-  risk; Scenario B's 1GB-RAM downsize carries a real (if probably low) OOM/swap risk
-  against a live database with real beta-tester data.
-- While verifying, found and fixed a second stale-doc issue unrelated to this session's
-  own work: `CLAUDE.md`'s "Still open" list called ADR-006's EventBridge+ECS batch-job
-  Terraform "not yet picked up" — confirmed via `aws scheduler list-schedules` that all 7
-  of those schedules are actually `ENABLED` and have been live since an earlier session.
-  Corrected in `CLAUDE.md`.
+- The detected-member lock is gone. Detected members open directly; a profile nudge, dropdown % and
+  the Complete profile popup (`PUT /household-members/{id}/profile`) collect name, PAN,
+  relationship, phone and email (5 x 20%, computed on read). PAN on another account shows a red banner
+  and a second warning on Save (`pan_conflict`, max 80%). Name and PAN are saved at Confirm like Self's;
+  no upload-time PAN reservation for non-Self members. Name is editable (`name_source=user_edited`).
+- Migration `0023_member_profile_completion` (drops `details_completed_at`/`lock_reason`/trigger, adds
+  `pan_conflict`, backfills detected PANs). The deferred `primary_goal` drop is now 0024.
+- All 10 tasks implemented. Tasks 1-2 are committed (`0a0152a`, `3268765`, `696ac1f`, `3a4852e`); the
+  Task 2 fix round and Tasks 3-10 are **uncommitted** in the working tree (user commits manually). Nothing is deployed. Final whole-branch review (Opus) done: one fix wave (stuck
+  `refresh_pan_conflicts` on same-hash conflict rows, rename cache invalidation, "Change in Account Info"
+  now renders only with a callback — so not on mobile, plus minors), scoped re-review clean. Parked: rare
+  Add-data dead end with a typed conflict PAN (M-3), Self no-PAN nudge copy (M-8), no UI path to merge two
+  same-PAN conflict rows. Ledger: `.superpowers/sdd/2026-10-01-member-profile-completion/progress.md`.
+- **Postgres verified (2026-10-01, later):** all of `tests/functional_postgres` (11 passed, covers 0018-0023)
+  ran against a throwaway local Postgres 16.2, plus a scratch 0022→0023→0022→0023 round trip with the
+  backfill data shapes (promote, duplicate, cross-user, other-account) — all OK. One test fix:
+  `test_member_detection_postgres.py` round-trip test now deletes its NULL-relationship rows before
+  downgrading below 0018 (0018's downgrade restores `relationship NOT NULL`).
+- **Not verified:** no test covers "Add data" for a name-only member whose statement PAN another account already holds (the review now starts and Confirm stores it as `pan_conflict`, no 409); no browser visual QA; only affected test files were run per
+  task, no full suites.
+- `.ua/knowledge-graph.json` is still stale (as of `35fedd3`); re-run `/understand` incrementally.
+- Prior "Latest" (AWS staging cost-reduction Scenario A, applied and verified, $91.78 -> $68.46/mo,
+  Scenario B held off): see `log.md`'s 2026-10-01 (cont'd) entry and `decisions.md`.
 
 ## Previous (2026-10-01, earlier session): staging DB-access tooling, no app code changed
 
@@ -102,8 +95,8 @@ specifically — the consent IP-hash key is derived from the existing `PAN_LOOKU
 (Postgres tests first, then migrate, push the backend image, publish the frontend).
 
 **Open for this change:**
-- `tests/functional_postgres` (cascade deletes, consent trigger, migrations 0019-0022 on
-  Postgres) could not be run: no Postgres available. Run it once before deploying.
+- `tests/functional_postgres` (cascade deletes, consent trigger, migrations 0019-0023 on
+  Postgres): now run, 11 passed (2026-10-01, local Postgres 16.2).
 - Family-CAS fixture-backed tests skip (fixtures absent; set `UNIFOLIO_QA_FIXTURES`).
 - No browser visual QA of the new onboarding/profile screens.
 - Legal texts are placeholders; retention (Q6), withdraw-consent (Q11) and final text wait
@@ -115,8 +108,7 @@ specifically — the consent IP-hash key is derived from the existing `PAN_LOOKU
 ## Still open, carried forward from earlier phases, not yet revisited
 
 **Open, specific to the CAS member detection change (2026-09-29):**
-1. `backend/tests/functional_postgres` was never run (no Docker in WSL). Run it once
-   against a local Postgres (covers migration 0018, the Postgres trigger, enum types).
+1. `backend/tests/functional_postgres`: now run, 11 passed on a local Postgres 16.2 (2026-10-01).
 2. Holder-name extraction (`parser.py`) was verified only on synthetic CAMS/KFintech
    lines; no real PDFs were on disk (plan Task 4 Step 6 skipped). Test with real
    multi-PAN family CAS files from both RTAs before trusting it.
