@@ -20,7 +20,7 @@ from app.services.import_.pan_claims import classify_detected_pan
 from app.services.import_.people import ParsedPerson
 
 SelfKind = Literal["pan", "exact", "variant", "ambiguous", "mismatch", "absent"]
-PersonStatus = Literal["me", "new", "existing_member", "locked_member", "other_account"]
+PersonStatus = Literal["me", "new", "existing_member", "other_account"]
 NameUpdate = Literal["none", "update", "ask"]
 
 
@@ -170,7 +170,7 @@ def plan_people(
             named = find_member_by_exact_name(members, p.name)
             if named is not None:
                 plans.append(PersonPlan(
-                    p.key, "locked_member" if named.is_locked else "existing_member", named.id,
+                    p.key, "existing_member", named.id,
                     p.name, plan_member_name_update(named, p.name), named.name, None, matched_by_name=True,
                 ))
                 continue
@@ -178,14 +178,13 @@ def plan_people(
         same: uuid.UUID | None = None
         if status == "new" and p.pan and not p.needs_name:
             new_hash = hash_pan(p.pan)
-            # U13: a typed, never-verified PAN on an unlocked member with the
-            # same person's name -- probably the same human, ask the user.
+            # U13: a typed, never-verified PAN on a member with the same
+            # person's name -- probably the same human, ask the user.
             same = next(
                 (
                     m.id
                     for m in members
-                    if not m.is_locked
-                    and m.pan_source == MemberPanSource.USER_ENTERED
+                    if m.pan_source == MemberPanSource.USER_ENTERED
                     and m.pan_verified_at is None
                     and m.pan_lookup_hash is not None
                     and m.pan_lookup_hash != new_hash

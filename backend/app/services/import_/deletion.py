@@ -13,7 +13,7 @@ from typing import Literal
 from sqlalchemy.orm import Session
 
 from app.models.analytics import AnalyticsSection
-from app.models.enums import MemberOrigin, Relationship
+from app.models.enums import Relationship
 from app.models.folio import Folio
 from app.models.imports import Import
 from app.models.member_history import HouseholdMemberNameChange
@@ -21,6 +21,7 @@ from app.models.transaction import Transaction
 from app.models.user import HouseholdMember
 from app.services.analytics.recompute import bump_recompute_generation
 from app.services.dashboard.holdings import invalidate_holdings_cache
+from app.services.dashboard.profile_completion import removed_with_last_import
 from app.services.dashboard.snapshots import invalidate_member_snapshots
 from app.services.import_.coverage_gap import evaluate_folio_coverage_gaps
 from app.services.import_.file_storage import FileStorage, default_file_storage, release_file_if_unreferenced
@@ -97,9 +98,8 @@ def _delete_imports(
         left = db.query(Import.id).filter(Import.household_member_id == member_id).first() is not None
         if left:
             continue
-        # A detected person exists only because of a statement; a completed
-        # member is the user's own record and stays unless asked to go.
-        if member_id in remove_member_ids or (member.is_locked and member.origin == MemberOrigin.CAS_DETECTED):
+        # An untouched detected member exists only because of a statement (M17).
+        if member_id in remove_member_ids or removed_with_last_import(member):
             _remove_member(db, member)
             removed.append(member_id)
 

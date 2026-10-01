@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 import uuid
 
-from app.models.enums import MemberLockReason, MemberNameSource, MemberPanSource, Relationship
+from app.models.enums import MemberNameSource, MemberOrigin, MemberPanConflict, MemberPanSource, Relationship
 from app.models.user import HouseholdMember, User
 from app.services.import_.crypto import encrypt_pan, hash_pan
 from app.services.import_.people import ParsedPerson
@@ -111,14 +111,17 @@ def test_plan_pan_match_name_mismatch_asks(db_session):
     assert plans[0].name_update == "ask"
 
 
-def test_plan_locked_member_and_other_account(db_session):
+def test_plan_pan_conflict_member_and_other_account(db_session):
+    # A member whose PAN another account holds keeps it in detected_pan_*
+    # (pan_conflict) and still attaches as an existing member (F7).
     user = _user(db_session)
-    locked = HouseholdMember(
+    conflict = HouseholdMember(
         id=uuid.uuid4(), user_id=user.id, name="Ramesh Sharma", created_at=NOW,
-        details_completed_at=None, lock_reason=MemberLockReason.DETAILS_NEEDED,
+        origin=MemberOrigin.CAS_DETECTED, name_source=MemberNameSource.CAS, pan_source=MemberPanSource.CAS,
         detected_pan_encrypted=encrypt_pan("CCCPC3333C"), detected_pan_hash=hash_pan("CCCPC3333C"),
+        pan_conflict=MemberPanConflict.OTHER_ACCOUNT,
     )
-    db_session.add(locked)
+    db_session.add(conflict)
     _member(db_session, _user(db_session), "Stranger", pan="DDDPD4444D")
     db_session.commit()
     plans = plan_people(
@@ -127,7 +130,7 @@ def test_plan_locked_member_and_other_account(db_session):
          _person("p3", "NEW PERSON", "EEEPE5555E")],
         None,
     )
-    assert (plans[0].status, plans[0].member_id, plans[0].name_update) == ("locked_member", locked.id, "update")
+    assert (plans[0].status, plans[0].member_id, plans[0].name_update) == ("existing_member", conflict.id, "update")
     assert (plans[1].status, plans[1].member_id) == ("other_account", None)
     assert (plans[2].status, plans[2].member_id, plans[2].name_update) == ("new", None, "none")
 
@@ -180,20 +183,19 @@ def test_plan_without_me_key_has_no_me(db_session):
 
 # ------------------------------------------- name-only person (staging-QA fix 5A)
 
-def _locked(db, user, name):
-    return _member(db, user, name, relationship=None, details_completed_at=None,
-                   lock_reason=MemberLockReason.DETAILS_NEEDED)
+def _detected(db, user, name):
+    return _member(db, user, name, relationship=None, origin=MemberOrigin.CAS_DETECTED)
 
 
 def test_plan_name_only_person_attaches_to_exact_name_member(db_session):
     user = _user(db_session)
     _member(db_session, user, "Aditi Shanbhag")
-    kavita = _locked(db_session, user, "Kavita Shanbhag")
+    kavita = _detected(db_session, user, "Kavita Shanbhag")
     plans = plan_people(db_session, user.id, [_person("p3", "Kavita Shanbhag")], None)
-    assert (plans[0].status, plans[0].member_id, plans[0].matched_by_name) == ("locked_member", kavita.id, True)
+    assert (plans[0].status, plans[0].member_id, plans[0].matched_by_name) == ("existing_member", kavita.id, True)
 
 
-def test_plan_name_only_person_attaches_to_unlocked_member_as_existing(db_session):
+def test_plan_name_only_person_attaches_to_user_added_member_as_existing(db_session):
     user = _user(db_session)
     kavita = _member(db_session, user, "Kavita Shanbhag", relationship=Relationship.PARENT)
     plans = plan_people(db_session, user.id, [_person("p3", "KAVITA SHANBHAG")], None)
@@ -226,7 +228,7 @@ def test_placeholder_name_never_attaches(db_session):
 
 def test_plan_pan_person_flags_name_only_member_as_possible_same(db_session):
     user = _user(db_session)
-    kavita = _locked(db_session, user, "Kavita Shanbhag")
+    kavita = _detected(db_session, user, "Kavita Shanbhag")
     plans = plan_people(db_session, user.id, [_person("p3", "Kavita Shanbhag", "BNZPK4321M")], None)
     assert (plans[0].status, plans[0].member_id, plans[0].same_person_member_id) == ("new", None, kavita.id)
 
@@ -241,8 +243,8 @@ def test_two_name_only_matches_no_prompt(db_session):
 
 def test_member_with_a_detected_pan_is_not_name_only(db_session):
     user = _user(db_session)
-    _member(db_session, user, "Kavita Shanbhag", relationship=None, details_completed_at=None,
-            lock_reason=MemberLockReason.DETAILS_NEEDED,
+    _member(db_session, user, "Kavita Shanbhag", relationship=None, origin=MemberOrigin.CAS_DETECTED,
+            pan_source=MemberPanSource.CAS, pan_conflict=MemberPanConflict.OTHER_ACCOUNT,
             detected_pan_encrypted=encrypt_pan("ZZZPZ9999Z"), detected_pan_hash=hash_pan("ZZZPZ9999Z"))
     plans = plan_people(db_session, user.id, [_person("p3", "Kavita Shanbhag", "BNZPK4321M")], None)
     assert plans[0].same_person_member_id is None

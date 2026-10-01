@@ -3,7 +3,7 @@ import uuid
 
 import pytest
 
-from app.models.enums import MemberLockReason, Relationship
+from app.models.enums import MemberPanConflict, MemberPanSource, Relationship
 from app.models.user import HouseholdMember, User
 from app.services.import_ import pan_claims
 from app.services.import_.crypto import decrypt_pan, encrypt_pan, hash_pan
@@ -262,42 +262,10 @@ def test_classify_detected_pan_existing_member(db_session):
     )
 
 
-def test_classify_detected_pan_locked_member(db_session):
-    user = _user(db_session)
-    locked = HouseholdMember(
-        id=uuid.uuid4(), user_id=user.id, name="Dad", created_at=NOW,
-        details_completed_at=None, lock_reason=MemberLockReason.DETAILS_NEEDED,
-        detected_pan_encrypted=encrypt_pan("ABCDE1234F"), detected_pan_hash=hash_pan("ABCDE1234F"),
-    )
-    db_session.add(locked)
-    db_session.commit()
-    assert classify_detected_pan(db_session, user.id, "ABCDE1234F", now=NOW) == (
-        "locked_member", locked.id,
-    )
-
-
 def test_classify_detected_pan_other_account(db_session):
     _member(db_session, _user(db_session), pan="ABCDE1234F")
     me = _user(db_session)
     assert classify_detected_pan(db_session, me.id, "ABCDE1234F", now=NOW) == ("other_account", None)
-
-
-def test_classify_locked_member_beats_other_account(db_session):
-    # F7 / spec M9: a locked member here still attaches after another account
-    # claimed the same PAN.
-    other = _user(db_session)
-    _member(db_session, other, pan="ABCDE1234F")
-    user = _user(db_session)
-    locked = HouseholdMember(
-        id=uuid.uuid4(), user_id=user.id, name="Dad", created_at=NOW,
-        details_completed_at=None, lock_reason=MemberLockReason.DETAILS_NEEDED,
-        detected_pan_encrypted=encrypt_pan("ABCDE1234F"), detected_pan_hash=hash_pan("ABCDE1234F"),
-    )
-    db_session.add(locked)
-    db_session.commit()
-    assert classify_detected_pan(db_session, user.id, "ABCDE1234F", now=NOW) == (
-        "locked_member", locked.id,
-    )
 
 
 def test_classify_detected_pan_expired_pending_claim_counts_as_new(db_session):
@@ -308,3 +276,83 @@ def test_classify_detected_pan_expired_pending_claim_counts_as_new(db_session):
     assert classify_detected_pan(db_session, other.id, "ABCDE1234F", now=NOW) == ("new", None)
     # read-only: the expired claim is not cleared
     assert db_session.query(HouseholdMember).filter_by(pan_lookup_hash=hash_pan("ABCDE1234F")).count() == 1
+
+
+# 2026-10-01 member profile completion: the file has no `user` / `other_user`
+# fixtures, so these build both accounts with the module's `_user` helper.
+def test_store_detected_pan_uses_selfs_encrypted_unique_columns(db_session):
+    from app.services.import_.pan_claims import store_detected_pan
+    user = _user(db_session)
+    m = _member(db_session, user, name="Ramesh Sharma", relationship=None)
+    result = store_detected_pan(db_session, m, "ABCPS1234K", now=datetime.now(timezone.utc))
+    db_session.flush()
+    assert result == "stored"
+    assert m.pan_encrypted != "ABCPS1234K" and decrypt_pan(m.pan_encrypted) == "ABCPS1234K"
+    assert m.pan_lookup_hash == hash_pan("ABCPS1234K")
+    assert m.pan_pending_until is None and m.pan_source == MemberPanSource.CAS and m.pan_verified_at is not None
+    assert m.detected_pan_hash is None and m.pan_conflict is None
+
+
+def test_store_detected_pan_held_by_other_account_goes_to_detected_columns(db_session):
+    from app.services.import_.pan_claims import store_detected_pan
+    user, other_user = _user(db_session), _user(db_session)
+    _member(db_session, other_user, name="Vikram", pan="ABCPS1234K")  # permanent holder elsewhere
+    m = _member(db_session, user, name="Vikram Kapoor", relationship=None)
+    assert store_detected_pan(db_session, m, "ABCPS1234K", now=datetime.now(timezone.utc)) == "other_account"
+    db_session.flush()
+    assert m.pan_lookup_hash is None
+    assert decrypt_pan(m.detected_pan_encrypted) == "ABCPS1234K"
+    assert m.pan_conflict == MemberPanConflict.OTHER_ACCOUNT and m.pan_source == MemberPanSource.CAS
+
+
+def test_store_detected_pan_held_by_same_account_member_raises(db_session):
+    from app.services.import_.pan_claims import store_detected_pan
+    user = _user(db_session)
+    _member(db_session, user, name="Ayush", pan="ABCPS1234K")
+    m = _member(db_session, user, name="Ramesh Sharma", relationship=None)
+    with pytest.raises(PanBelongsToOtherMemberError):
+        store_detected_pan(db_session, m, "ABCPS1234K", now=datetime.now(timezone.utc))
+
+
+def test_store_detected_pan_clears_an_expired_pending_claim(db_session):
+    from app.services.import_.pan_claims import store_detected_pan
+    user = _user(db_session)
+    stale = _member(db_session, _user(db_session), pan="ABCPS1234K", pending_until=NOW - timedelta(minutes=1))
+    m = _member(db_session, user, name="Ramesh Sharma", relationship=None)
+    assert store_detected_pan(db_session, m, "ABCPS1234K", now=NOW) == "stored"
+    db_session.flush()
+    assert stale.pan_lookup_hash is None and m.pan_lookup_hash == hash_pan("ABCPS1234K")
+
+
+def test_classify_detected_pan_conflict_member_is_existing_member(db_session):
+    user, other_user = _user(db_session), _user(db_session)
+    _member(db_session, other_user, name="Vikram", pan="ABCPS1234K")
+    m = _member(db_session, user, name="Vikram Kapoor", relationship=None)
+    m.detected_pan_encrypted = encrypt_pan("ABCPS1234K")
+    m.detected_pan_hash = hash_pan("ABCPS1234K")
+    m.pan_source = MemberPanSource.CAS
+    m.pan_conflict = MemberPanConflict.OTHER_ACCOUNT
+    db_session.flush()
+    assert classify_detected_pan(db_session, user.id, "ABCPS1234K") == ("existing_member", m.id)
+
+
+def test_store_detected_pan_frees_an_expired_claim_before_taking_the_index(db_session):
+    # Both rows persistent: SQLAlchemy orders same-table UPDATEs by primary
+    # key, so a member that sorts first would take the unique index while
+    # the expired claim still sits on it unless the clear is flushed first.
+    from app.services.import_.pan_claims import store_detected_pan
+    stale = _member(db_session, _user(db_session), pan="ABCPS1234K", pending_until=NOW - timedelta(minutes=1))
+    stale_id = stale.id
+    user = _user(db_session)
+    m = HouseholdMember(id=uuid.UUID(int=1), user_id=user.id, name="Kavita", relationship=None, created_at=NOW)
+    db_session.add(m)
+    db_session.commit()
+    db_session.execute(
+        HouseholdMember.__table__.update().where(HouseholdMember.id == stale_id)
+        .values(id=uuid.UUID(int=2**128 - 1))
+    )
+    db_session.commit()
+    db_session.expire_all()
+    assert store_detected_pan(db_session, m, "ABCPS1234K", now=NOW) == "stored"
+    db_session.flush()
+    assert m.pan_lookup_hash == hash_pan("ABCPS1234K")

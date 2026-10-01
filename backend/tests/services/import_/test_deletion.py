@@ -6,7 +6,7 @@ import pytest
 
 from app.models.analytics import AnalyticsRecomputeStatus, AnalyticsSection
 from app.models.enums import (
-    ImportStatus, MemberLockReason, MemberOrigin, PlanType, Relationship, TransactionType,
+    ImportStatus, MemberOrigin, PlanType, Relationship, TransactionType,
 )
 from app.models.folio import Folio
 from app.models.imports import Import
@@ -39,23 +39,22 @@ class FakeStorage:
 
 
 def _world(db):
-    """Self + a locked detected person + a complete (unlocked) person, all in
+    """Self + an untouched detected person + a complete person, all in
     one upload group sharing one file; one fund each."""
     user = User(id=uuid.uuid4(), phone_number="+919700000001", created_at=NOW)
     db.add(user)
     db.flush()
     me = HouseholdMember(user_id=user.id, name="Me", relationship=Relationship.SELF, created_at=NOW,
                          pan_encrypted=encrypt_pan("ABCDE1234F"), pan_lookup_hash=hash_pan("ABCDE1234F"))
-    locked = HouseholdMember(
-        user_id=user.id, name="Locked One", relationship=None, created_at=NOW,
-        origin=MemberOrigin.CAS_DETECTED, details_completed_at=None,
-        lock_reason=MemberLockReason.DETAILS_NEEDED,
+    detected = HouseholdMember(
+        user_id=user.id, name="Detected One", relationship=None, created_at=NOW,
+        origin=MemberOrigin.CAS_DETECTED,
     )
     complete = HouseholdMember(user_id=user.id, name="Complete One", relationship=Relationship.SPOUSE, created_at=NOW)
-    db.add_all([me, locked, complete])
+    db.add_all([me, detected, complete])
     db.flush()
-    world = {"user": user, "me": me, "locked": locked, "complete": complete, "imports": {}, "folios": {}}
-    for key, member in (("me", me), ("locked", locked), ("complete", complete)):
+    world = {"user": user, "me": me, "detected": detected, "complete": complete, "imports": {}, "folios": {}}
+    for key, member in (("me", me), ("detected", detected), ("complete", complete)):
         imp = Import(
             household_member_id=member.id, status=ImportStatus.CONFIRMED, uploaded_at=NOW,
             upload_group_id=GROUP, file_reference=REF, file_expires_at=NOW,
@@ -91,7 +90,7 @@ def test_delete_person_scope_keeps_other_people_and_the_file(db_session):
 def test_delete_group_scope_removes_all_rows_and_the_file(db_session):
     w = _world(db_session)
     storage = FakeStorage()
-    locked_id = w["locked"].id
+    detected_id = w["detected"].id
     result = delete_import(db_session, w["user"].id, w["imports"]["me"].id, "group", storage)
 
     assert result.deleted_transactions_count == 3
@@ -99,15 +98,15 @@ def test_delete_group_scope_removes_all_rows_and_the_file(db_session):
     assert db_session.query(Import).count() == 0
     assert db_session.query(Transaction).count() == 0
     assert db_session.query(Folio).count() == 0
-    assert result.removed_member_ids == [locked_id]
+    assert result.removed_member_ids == [detected_id]
 
 
-def test_delete_removes_locked_member_left_empty_keeps_complete_member(db_session):
+def test_delete_removes_untouched_detected_member_left_empty_keeps_complete_member(db_session):
     w = _world(db_session)
-    locked_id = w["locked"].id
-    r1 = delete_import(db_session, w["user"].id, w["imports"]["locked"].id, "person", FakeStorage())
-    assert r1.removed_member_ids == [locked_id]
-    assert db_session.get(HouseholdMember, locked_id) is None
+    detected_id = w["detected"].id
+    r1 = delete_import(db_session, w["user"].id, w["imports"]["detected"].id, "person", FakeStorage())
+    assert r1.removed_member_ids == [detected_id]
+    assert db_session.get(HouseholdMember, detected_id) is None
     r2 = delete_import(db_session, w["user"].id, w["imports"]["complete"].id, "person", FakeStorage())
     assert r2.removed_member_ids == []
     assert db_session.get(HouseholdMember, w["complete"].id) is not None
@@ -205,3 +204,50 @@ def test_delete_member_portfolio_with_no_imports(db_session):
     assert kept.removed_member_ids == [] and db_session.get(HouseholdMember, empty_id) is not None
     gone = delete_member_portfolio(db_session, w["user"].id, empty_id, remove_member=True, storage=FakeStorage())
     assert gone.removed_member_ids == [empty_id] and db_session.get(HouseholdMember, empty_id) is None
+
+
+def _one_detected_member_with_one_import(db, relationship):
+    """Self-contained (not _world, which Task 2 rewrites): a CAS-detected
+    member with a single import and one fund."""
+    user = User(id=uuid.uuid4(), phone_number="+919700000099", created_at=NOW)
+    db.add(user)
+    db.flush()
+    member = HouseholdMember(
+        user_id=user.id, name="Detected One", relationship=relationship, created_at=NOW,
+        origin=MemberOrigin.CAS_DETECTED,
+    )
+    db.add(member)
+    db.flush()
+    imp = Import(
+        household_member_id=member.id, status=ImportStatus.CONFIRMED, uploaded_at=NOW,
+        upload_group_id=uuid.uuid4(), file_reference="u/detected.pdf", file_expires_at=NOW,
+    )
+    scheme = Scheme(amfi_code=f"D-det-{uuid.uuid4().hex[:4]}", name="det", amc_name="AMC", sebi_category="Equity")
+    db.add_all([imp, scheme])
+    db.flush()
+    folio = Folio(household_member_id=member.id, scheme_id=scheme.id, folio_number="det", plan_type=PlanType.DIRECT)
+    db.add(folio)
+    db.flush()
+    db.add(Transaction(
+        folio_id=folio.id, import_id=imp.id, type=TransactionType.PURCHASE, date=date(2024, 1, 1),
+        amount=Decimal("100.00"), units=Decimal("1.000"), nav=Decimal("100.0000"),
+    ))
+    db.commit()
+    return user, member, imp
+
+
+def test_delete_keeps_detected_member_with_profile_data(db_session):
+    # Review Focus 5: a relationship is profile data, so the member stays.
+    user, member, imp = _one_detected_member_with_one_import(db_session, Relationship.CHILD)
+    member_id = member.id
+    result = delete_import(db_session, user.id, imp.id, "person", FakeStorage())
+    assert result.removed_member_ids == []
+    assert db_session.get(HouseholdMember, member_id) is not None
+
+
+def test_delete_removes_untouched_detected_member(db_session):
+    user, member, imp = _one_detected_member_with_one_import(db_session, None)
+    member_id = member.id
+    result = delete_import(db_session, user.id, imp.id, "person", FakeStorage())
+    assert result.removed_member_ids == [member_id]
+    assert db_session.get(HouseholdMember, member_id) is None

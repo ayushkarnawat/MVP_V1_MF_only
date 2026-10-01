@@ -50,6 +50,7 @@ from app.services.import_.people_resolution import (
     SelfMatch,
     has_permanent_pan,
     has_no_pan,
+    plan_member_name_update,
     plan_name_update,
     plan_people,
 )
@@ -246,7 +247,7 @@ async def start_import_session(
     """Upload-time step of the two-step import: builds the preview, detects
     the people in it, then walks the prompt queue (next_prompt). A prompt
     raises ImportPromptError and keeps the RAM session so a resolve endpoint
-    can answer it (except member_details_required, I5). Only once no prompt
+    can answer it. Only once no prompt
     remains are PAN claims made -- pending -- and committed.
 
     Preview first on purpose: a flushed-but-uncommitted claim holds SQLite's
@@ -257,9 +258,6 @@ async def start_import_session(
         # Commit the sweep's restores now: holding them flushed across the
         # enrichment network calls below would hold SQLite's write lock.
         await commit_off_loop(db)
-    if member.is_locked:
-        # I5: never a review session for a locked target.
-        raise _details_required(member)
 
     parse_result = _ensure_people(parse_result)
     preview = await build_import_preview(
@@ -280,7 +278,7 @@ async def start_import_session(
         me_choice=None,
         u3_declined=False,
         same_person_declined=set(),
-        # person_key -> member_id: "Yes, same person" for a locked name-only member (5B).
+        # person_key -> member_id: "Yes, same person" for a name-only member (5B).
         same_person_linked={},
         ready=False,
     )
@@ -358,13 +356,6 @@ def _masked_member_pan(member: HouseholdMember) -> str | None:
     return mask_pan(decrypt_pan(member.pan_encrypted))
 
 
-def _details_required(member: HouseholdMember) -> ImportPromptError:
-    return ImportPromptError(
-        "member_details_required", f"Add {member.name}’s details first", None,
-        {"member_id": str(member.id), "member_name": member.name},
-    )
-
-
 def _self_match(session: dict[str, Any], self_member: HouseholdMember) -> SelfMatch:
     if session.get("me_choice") and _is_first_upload(self_member):
         return SelfMatch("exact", session["me_choice"], [session["me_choice"]])
@@ -402,7 +393,7 @@ def _find_target(
     db: Session, user_id: uuid.UUID, target: HouseholdMember, people: list[ParsedPerson], *, is_self: bool
 ) -> tuple[str, str | None]:
     """Spec flowchart "Find M in the file": M.pan_lookup_hash, then
-    M.detected_pan_hash, then a name match. Returns (outcome, person_key),
+    M.detected_pan_hash (a pan-conflict member), then a name match. Returns (outcome, person_key),
     outcome in found / found_by_name / pan_mismatch / not_found."""
     now = datetime.now(timezone.utc)
     hashes = {p.key: hash_pan(p.pan) for p in people if p.pan}
@@ -424,7 +415,7 @@ def _find_target(
         if p.pan:
             status, member_id = classify_detected_pan(db, user_id, p.pan)
             # A person whose PAN already identifies someone else here is not M.
-            if status in ("existing_member", "locked_member") and member_id != target.id:
+            if status == "existing_member" and member_id != target.id:
                 continue
         result = compare_names(target.name, p.name).result
         if result == "exact":
@@ -453,16 +444,12 @@ def next_prompt(db: Session, session: dict[str, Any]) -> ImportPromptError | Non
     target = db.get(HouseholdMember, session["household_member_id"])
     if target is None:
         raise SessionExpiredError(SESSION_EXPIRED_MESSAGE)
-    # 1. I5
-    if target.is_locked:
-        return _details_required(target)
-
     self_member = _self_member(db, user_id)
     first_upload = _is_first_upload(self_member)
     is_self_target = self_member is not None and target.id == self_member.id
     session["target_person_key"] = None
     session["target_mismatch_key"] = None
-    # 2-3. Add data for M. (The first upload for self finds Me by name below.)
+    # 1-2. Add data for M. (The first upload for self finds Me by name below.)
     if not (is_self_target and first_upload):
         outcome, key = _find_target(db, user_id, target, people, is_self=is_self_target)
         if outcome in ("found", "found_by_name"):
@@ -487,16 +474,10 @@ def next_prompt(db: Session, session: dict[str, Any]) -> ImportPromptError | Non
                 },
             )
 
-    # 4-5. Whole-file checks: every fund is a locked member's / another account's.
+    # 3. Whole-file check: every fund is another account's.
     whole_file = bool(people) and not parse_result.unassigned_folio_keys and all(p.pan for p in people)
     if whole_file:
         statuses = [classify_detected_pan(db, user_id, p.pan) for p in people]
-        if all(status == "locked_member" for status, _ in statuses):
-            locked = db.get(HouseholdMember, statuses[0][1])
-            return ImportPromptError(
-                "locked_member_only", f"Add {locked.name}’s details first", sid,
-                {"member_id": str(locked.id), "member_name": locked.name},
-            )
         if all(status == "other_account" for status, _ in statuses) and "cross_account_pan_blocked" not in resolved:
             # F30: if Me is one of them, the self claim in _advance raises
             # today's session-dropping 409 instead of offering U7.
@@ -506,7 +487,7 @@ def next_prompt(db: Session, session: dict[str, Any]) -> ImportPromptError | Non
                     {"people": [p.name for p in people]},
                 )
 
-    # 6-7. First upload: find Me by name.
+    # 4-5. First upload: find Me by name.
     if first_upload:
         match = _self_match(session, self_member)
         if match.kind == "mismatch":
@@ -613,11 +594,11 @@ def _advance(db: Session, session_id: str) -> ImportPreviewResponse:
     for i, plan in enumerate(plans):
         member = db.get(HouseholdMember, linked[plan.person_key]) if plan.person_key in linked else None
         if member is not None and plan.member_id is None:
-            # Staging-QA fix 5B: "Yes, same person" for a locked name-only member.
+            # Staging-QA fix 5B: "Yes, same person" for a name-only member.
             person = _person(session, plan.person_key)
             plans[i] = PersonPlan(
-                plan.person_key, "locked_member" if member.is_locked else "existing_member", member.id,
-                person.name, plan_name_update(member.name, person.name), member.name, None,
+                plan.person_key, "existing_member", member.id,
+                person.name, plan_member_name_update(member, person.name), member.name, None,
             )
     session["me_key"] = me_key
     session["people_plan"] = plans
@@ -826,8 +807,8 @@ def resolve_same_person(
 ) -> ImportPreviewResponse:
     """U13 (typed PAN): same=True switches the member to the statement PAN
     (U4, U12 on conflict). Name-only member (staging-QA 5B): same=True links
-    the person to them -- a locked one gets the PAN as its detected PAN at
-    Confirm, an unlocked one a pending claim. same=False leaves them new."""
+    the person to them; the PAN is saved at Confirm (store_detected_pan),
+    never reserved here. same=False leaves them new."""
     session = _live_session(db, session_id, user_id)
     if not session.get("ready"):
         return _finish(db, session_id)  # an earlier prompt is still open
@@ -848,16 +829,9 @@ def resolve_same_person(
         return _finish(db, session_id)
     member = db.get(HouseholdMember, plan.same_person_member_id)
     if has_no_pan(member):
-        person = _person(session, person_key)
-        if member.is_locked:
-            session.setdefault("same_person_linked", {})[person_key] = member.id
-        else:
-            try:
-                claim_pan_for_member(db, member, person.pan, pending=True)
-            except PanConflictError:
-                db.commit()
-                raise
-            _record_claim(session, member.id, person.pan)
+        # 5B: linked now, PAN saved at confirm (store_detected_pan), never
+        # reserved at upload -- the same rule for every non-Self member.
+        session.setdefault("same_person_linked", {})[person_key] = member.id
         return _finish(db, session_id)
     try:
         _switch_or_u12(db, session, member, _person(session, person_key))
@@ -869,12 +843,10 @@ def resolve_same_person(
 
 @_serialised
 def acknowledge_prompt(db: Session, session_id: str, user_id: uuid.UUID, code: str) -> ImportPreviewResponse:
-    """U5 "Import for these people", U7 "Include in family total", and U6
-    after the unlock popup. U6 is never marked answered: it is re-checked, so
-    it continues only once the member really is unlocked."""
+    """U5 "Import for these people" and U7 "Include in family total"."""
     session = _live_session(db, session_id, user_id)
     current = next_prompt(db, session)
-    if current is not None and current.code == code and code != "locked_member_only":
+    if current is not None and current.code == code:
         session["resolved_codes"].add(code)
     return _finish(db, session_id)
 

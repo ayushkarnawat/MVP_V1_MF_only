@@ -1,14 +1,16 @@
 """Confirm imports for every person in a statement, in one transaction (Task 9).
 
 Spec Part 5 + "End-to-end flow with every database write": pending PAN claims
-become permanent, a locked household_members row is created per new person,
+become permanent, a cas_detected household_members row is created per new person,
 and one imports row per included person is written under a shared
 upload_group_id and one stored CAS file. Any failure rolls everything back
 and puts the review session back, so Confirm imports can be pressed again
 (C1 "No half-imported family").
 
 Raw PANs are read from the RAM session only to re-classify people and to
-fill detected_pan_encrypted / detected_pan_hash; they never reach a response,
+store them. New detected members get their PAN at confirm in pan_encrypted /
+pan_lookup_hash (store_detected_pan), like Self's; only a PAN another account
+holds goes to detected_pan_* with pan_conflict. They never reach a response,
 a log line or raw_parser_output.
 """
 
@@ -27,7 +29,6 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from app.models.enums import (
-    MemberLockReason,
     MemberNameSource,
     MemberOrigin,
     MemberPanSource,
@@ -43,11 +44,16 @@ from app.models.reference import Scheme
 from app.models.transaction import Transaction
 from app.models.user import HouseholdMember
 from app.services.dashboard.holdings import invalidate_holdings_cache
-from app.services.import_.crypto import encrypt_pan, hash_pan
+from app.services.import_.crypto import hash_pan
 from app.services.import_.enrich import mfapi_client, normalize_name
 from app.services.import_ import file_storage
 from app.services.import_.name_match import NameNotEditableError, normalise_name, validate_person_name
-from app.services.import_.pan_claims import classify_detected_pan, confirm_pan_claim
+from app.services.import_.pan_claims import (
+    PanBelongsToOtherMemberError,
+    classify_detected_pan,
+    confirm_pan_claim,
+    store_detected_pan,
+)
 from app.services.import_.parser import (
     NormalizedTransaction,
     ParsedScheme,
@@ -55,7 +61,12 @@ from app.services.import_.parser import (
     source_cas_type_from_file_type,
 )
 from app.services.import_.people import ParsedPerson, folio_key
-from app.services.import_.people_resolution import PersonPlan, find_member_by_exact_name, has_no_pan, plan_name_update
+from app.services.import_.people_resolution import (
+    PersonPlan,
+    find_member_by_exact_name,
+    has_no_pan,
+    plan_member_name_update,
+)
 from app.services.import_.schemas import (
     ImportConfirmResponse,
     PersonConfirmation,
@@ -104,8 +115,7 @@ class _PersonWork:
     person: ParsedPerson | None
     plan: PersonPlan | None
     conf: PersonConfirmation
-    member_id: uuid.UUID | None  # None -> a new locked member is created
-    lock_reason: MemberLockReason | None = None
+    member_id: uuid.UUID | None  # None -> a new detected member is created
     scheme_keys: list[SchemeKey] = field(default_factory=list)
 
 
@@ -245,21 +255,22 @@ def _confirm_claimed(
     me_import_id: str | None = None
     for work in works:
         member, created = _member_for(db, work, user_id, now)
-        if (
-            not created and work.person is not None and work.person.pan and member.is_locked
-            and member.detected_pan_hash not in (None, hash_pan(work.person.pan))
-        ):
-            # Another tab's confirm linked this member to a different PAN
-            # after this review was built (final-review M-1).
-            raise ConfirmInvalidError(f"{member.name} changed during this review. Upload the statement again.")
-        if (
-            not created and work.person is not None and work.person.pan
-            and member.is_locked and has_no_pan(member)
-        ):
-            # Staging-QA fix 5B: a name-only locked member the user said is
-            # this statement's person. From now on uploads match them by PAN.
-            member.detected_pan_encrypted = encrypt_pan(work.person.pan)
-            member.detected_pan_hash = hash_pan(work.person.pan)
+        if not created and work.person is not None and work.person.pan:
+            pan_hash = hash_pan(work.person.pan)
+            if has_no_pan(member):
+                # Staging-QA fix 5B: a name-only member the user said is this
+                # statement's person. Their PAN is saved now, at confirm, the
+                # same way as a new detected member's (decision A).
+                try:
+                    store_detected_pan(db, member, work.person.pan, now=now)
+                except PanBelongsToOtherMemberError:
+                    raise ConfirmInvalidError(
+                        f"{member.name} changed during this review. Upload the statement again."
+                    ) from None
+            elif pan_hash not in (member.pan_lookup_hash, member.detected_pan_hash):
+                # Another tab's confirm gave this member a different PAN after
+                # this review was built (final-review M-1).
+                raise ConfirmInvalidError(f"{member.name} changed during this review. Upload the statement again.")
         import_rec = Import(
             id=uuid.uuid4(), household_member_id=member.id, status=ImportStatus.CONFIRMED,
             source_cas_type=source_cas_type,
@@ -362,7 +373,7 @@ def _plan_works(
         ]
         if not scheme_keys:
             if plan.member_id is None:
-                continue  # every fund moved away: no empty locked person
+                continue  # every fund moved away: no empty detected person
             # An existing member with nothing left would get a 0-transaction
             # Import in their history; keep it only if nothing else is imported.
             emptied.append((person, plan, conf))
@@ -433,15 +444,12 @@ def _resolve_member(
     member_id = plan.member_id
     if member_id is not None and db.get(HouseholdMember, member_id) is None:
         member_id = None  # deleted during the review: re-classify below
-    lock_reason: MemberLockReason | None = None
     if member_id is None:
-        lock_reason = MemberLockReason.DETAILS_NEEDED
         if person.pan:
             status, found = classify_detected_pan(db, user_id, person.pan)
-            if status in ("existing_member", "locked_member"):
-                # A detected-hash hit attaches even if that member has since
-                # been unlocked; nothing here ever re-locks anyone (I15).
-                member_id, lock_reason = found, None
+            if status == "existing_member":
+                # A PAN or detected-hash (pan-conflict) hit attaches.
+                member_id = found
             elif status == "other_account":
                 if plan.status != "other_account":
                     # Claimed elsewhere after the review was built: the user
@@ -449,17 +457,16 @@ def _resolve_member(
                     raise ConfirmInvalidError(
                         f"{plan.name} is now on another Unifolio account. Upload the statement again."
                     )
-                lock_reason = MemberLockReason.PAN_ON_OTHER_ACCOUNT
         if member_id is None and not person.pan and not person.needs_name:
             # Staging-QA 5A, same rule as plan_people: a same-named member
             # created by another tab's confirm is attached, not duplicated.
             members = db.query(HouseholdMember).filter(HouseholdMember.user_id == user_id).all()
             named = find_member_by_exact_name(members, person.name)
             if named is not None:
-                member_id, lock_reason = named.id, None
+                member_id = named.id
         if member_id is None and person.needs_name and not conf.name:
             raise ConfirmInvalidError("Add a name for everyone before importing.")
-    return _PersonWork(person.key, person, plan, conf, member_id, lock_reason, scheme_keys)
+    return _PersonWork(person.key, person, plan, conf, member_id, scheme_keys)
 
 
 # ------------------------------------------------------------------ claims
@@ -528,11 +535,14 @@ def _member_for(
         origin=MemberOrigin.CAS_DETECTED,
         # F32: a name typed in the people popup is the user's, not the CAS's.
         name_source=MemberNameSource.USER_ENTERED if edited else MemberNameSource.CAS,
-        details_completed_at=None,  # locked (explicit None, see HouseholdMember.__init__)
-        lock_reason=work.lock_reason,
-        detected_pan_encrypted=encrypt_pan(person.pan) if person.pan else None,
-        detected_pan_hash=hash_pan(person.pan) if person.pan else None,
     )
+    if person.pan:
+        try:
+            store_detected_pan(db, member, person.pan, now=now)
+        except PanBelongsToOtherMemberError:
+            raise ConfirmInvalidError(
+                f"{person.name} changed during this review. Upload the statement again."
+            ) from None
     db.add(member)
     db.flush()
     return member, True
@@ -565,7 +575,7 @@ def _apply_name_choice(
         return
     # The plan's own verdict holds for the member it was made for (it knows
     # Me's first-upload rule, I10); a re-classified member gets a fresh one.
-    kind = plan.name_update if plan.member_id == member.id else plan_name_update(member.name, person.name)
+    kind = plan.name_update if plan.member_id == member.id else plan_member_name_update(member, person.name)
     if kind == "update":
         _rename(db, member, person.name, NameChangeReason.CAS_VARIANT, MemberNameSource.CAS, import_rec, now)
     elif kind == "ask" and conf.accept_name_update:

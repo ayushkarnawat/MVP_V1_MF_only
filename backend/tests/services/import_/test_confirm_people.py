@@ -17,7 +17,6 @@ from sqlalchemy.orm import sessionmaker
 
 import app.services.import_.file_storage as file_storage_module
 from app.models.enums import (
-    MemberLockReason,
     MemberNameSource,
     MemberOrigin,
     MemberPanSource,
@@ -111,7 +110,7 @@ def _detected(db, user_id) -> list[HouseholdMember]:
 # ----------------------------------------------------------------- happy path
 
 
-def test_confirm_family_cas_creates_locked_members_and_grouped_imports(db_session):
+def test_confirm_family_cas_creates_detected_members_and_grouped_imports(db_session):
     me = _member(db_session, _user(db_session), "Aditi Sharma")
     preview = _start(db_session, me, _family())
 
@@ -121,10 +120,8 @@ def test_confirm_family_cas_creates_locked_members_and_grouped_imports(db_sessio
     assert [m.name for m in detected] == ["MEERA SHARMA", "RAMESH SHARMA"]
     for m in detected:
         assert m.relationship is None
-        assert m.details_completed_at is None
-        assert m.lock_reason == MemberLockReason.DETAILS_NEEDED
         assert m.name_source == MemberNameSource.CAS
-        assert m.pan_lookup_hash is None  # a locked person never holds the unique PAN claim
+        assert m.pan_conflict is None
     imports = db_session.query(Import).all()
     assert len(imports) == 3
     assert len({i.upload_group_id for i in imports}) == 1
@@ -132,7 +129,8 @@ def test_confirm_family_cas_creates_locked_members_and_grouped_imports(db_sessio
     assert len({i.file_reference for i in imports}) == 1
     assert imports[0].file_reference == f"{me.user_id}/{imports[0].upload_group_id}.pdf"
     ramesh = next(m for m in detected if m.name == "RAMESH SHARMA")
-    assert ramesh.detected_pan_hash == hash_pan(RAMESH_PAN)
+    assert ramesh.pan_lookup_hash == hash_pan(RAMESH_PAN)  # 2026-10-01: the real PAN, like Self's
+    assert ramesh.detected_pan_hash is None
     ramesh_import = next(i for i in imports if i.household_member_id == ramesh.id)
     assert ramesh.detected_from_import_id == ramesh_import.id
 
@@ -161,7 +159,7 @@ def test_confirm_name_only_person_has_no_detected_pan(db_session):
     meera = next(m for m in _detected(db_session, me.user_id) if m.name == "MEERA SHARMA")
     assert meera.detected_pan_encrypted is None
     assert meera.detected_pan_hash is None
-    assert meera.lock_reason == MemberLockReason.DETAILS_NEEDED
+    assert meera.pan_lookup_hash is None and meera.pan_source is None
 
 
 # ------------------------------------------------------ Review Focus 1 / F5
@@ -224,7 +222,7 @@ def test_concurrent_second_confirm_is_410_while_first_is_running(db_session, mon
 # ---------------------------------------------------------- Review Focus 2
 
 
-def test_parallel_session_confirm_attaches_to_existing_locked_member(db_session):
+def test_parallel_session_confirm_attaches_to_existing_detected_member(db_session):
     me = _member(db_session, _user(db_session), "Aditi Sharma")
     two = family_result([
         {"name": "ADITI SHARMA", "pan": ADITI_PAN},
@@ -248,7 +246,7 @@ def test_parallel_session_confirm_attaches_to_existing_locked_member(db_session)
 
 
 def _add_data_session(db, stored_name, statement_name, *, member_kwargs=None):
-    """Self has a permanent PAN (not a first upload); Ramesh is an unlocked
+    """Self has a permanent PAN (not a first upload); Ramesh is a
     member with a permanent PAN; the statement names Ramesh differently."""
     user = _user(db)
     me = _member(db, user, "Aditi Sharma", pan=ADITI_PAN)
@@ -368,7 +366,7 @@ def test_confirm_recased_name_echo_is_not_an_edit(db_session):
         PersonConfirmation(person_key="p3"),
     ])
 
-    ramesh = next(m for m in _detected(db_session, me.user_id) if m.detected_pan_hash == hash_pan(RAMESH_PAN))
+    ramesh = next(m for m in _detected(db_session, me.user_id) if m.pan_lookup_hash == hash_pan(RAMESH_PAN))
     assert ramesh.name_source == MemberNameSource.CAS
     db_session.refresh(me)
     assert me.name == "Aditi Sharma"
@@ -569,27 +567,6 @@ def _kiran_elsewhere(db):
     _member(db, other, "Kiran Sharma", pan=KIRAN_PAN)
 
 
-def test_confirm_included_other_account_person_is_locked_pan_on_other_account(db_session):
-    _kiran_elsewhere(db_session)
-    me = _member(db_session, _user(db_session), "Aditi Sharma")
-    pr = family_result([
-        {"name": "ADITI SHARMA", "pan": ADITI_PAN},
-        {"name": "KIRAN SHARMA", "pan": KIRAN_PAN},
-    ], addressee="ADITI SHARMA")
-    preview = _start(db_session, me, pr)
-    assert next(p for p in preview.people if p.person_key == "p2").status == "other_account"
-
-    result = _confirm(db_session, preview, me.user_id, [
-        PersonConfirmation(person_key="p1"), PersonConfirmation(person_key="p2", include=True),
-    ])
-
-    kiran = _detected(db_session, me.user_id)[0]
-    assert kiran.lock_reason == MemberLockReason.PAN_ON_OTHER_ACCOUNT
-    assert kiran.detected_pan_hash == hash_pan(KIRAN_PAN)
-    assert kiran.pan_lookup_hash is None
-    assert len(result.people) == 2
-
-
 def test_confirm_excluded_other_account_person_is_not_imported(db_session):
     _kiran_elsewhere(db_session)
     me = _member(db_session, _user(db_session), "Aditi Sharma")
@@ -787,7 +764,82 @@ def test_confirm_reclassifies_name_only_person_by_exact_name(db_session):
     person = ParsedPerson(key="p3", pan=None, pan_masked=None, name="Kavita Shanbhag", name_source="holder_line",
                           needs_name=False, folio_keys=[("Tata Mutual Fund", "12705694/27")], matched_by_name=[])
     plan = PersonPlan("p3", "new", None, "Kavita Shanbhag", "none", None, None)
-    kavita = _member(db_session, user, "Kavita Shanbhag", relationship=None, details_completed_at=None,
-                     lock_reason=MemberLockReason.DETAILS_NEEDED)
+    kavita = _member(db_session, user, "Kavita Shanbhag", relationship=None, origin=MemberOrigin.CAS_DETECTED)
     work = _resolve_member(db_session, user.id, person, plan, PersonConfirmation(person_key="p3"), [])
     assert work.member_id == kavita.id
+
+
+# ------------------------- 2026-10-01 member profile completion: no lock, real PAN
+
+
+def test_confirm_creates_detected_member_with_real_pan_and_no_lock(db_session):
+    from app.services.import_.crypto import decrypt_pan
+
+    me = _member(db_session, _user(db_session), "Aditi Sharma")
+    two = family_result([
+        {"name": "ADITI SHARMA", "pan": ADITI_PAN},
+        {"name": "RAMESH SHARMA", "pan": RAMESH_PAN},
+    ], addressee="ADITI SHARMA")
+    preview = _start(db_session, me, two)
+
+    _confirm(db_session, preview, me.user_id)
+
+    [ramesh] = _detected(db_session, me.user_id)
+    assert ramesh.origin == MemberOrigin.CAS_DETECTED
+    assert ramesh.relationship is None
+    assert decrypt_pan(ramesh.pan_encrypted) == RAMESH_PAN
+    assert ramesh.pan_lookup_hash == hash_pan(RAMESH_PAN)
+    assert ramesh.pan_source == MemberPanSource.CAS
+    assert ramesh.pan_conflict is None
+
+
+def test_confirm_other_account_person_gets_pan_conflict(db_session):
+    from app.models.enums import MemberPanConflict
+    from app.services.import_.crypto import decrypt_pan
+
+    _kiran_elsewhere(db_session)
+    me = _member(db_session, _user(db_session), "Aditi Sharma")
+    pr = family_result([
+        {"name": "ADITI SHARMA", "pan": ADITI_PAN},
+        {"name": "KIRAN SHARMA", "pan": KIRAN_PAN},
+    ], addressee="ADITI SHARMA")
+    preview = _start(db_session, me, pr)
+
+    result = _confirm(db_session, preview, me.user_id, [
+        PersonConfirmation(person_key="p1"), PersonConfirmation(person_key="p2", include=True),
+    ])
+
+    assert len(result.people) == 2
+    [kiran] = _detected(db_session, me.user_id)
+    assert kiran.pan_lookup_hash is None
+    assert kiran.pan_conflict == MemberPanConflict.OTHER_ACCOUNT
+    assert kiran.detected_pan_hash == hash_pan(KIRAN_PAN)
+    assert decrypt_pan(kiran.detected_pan_encrypted) == KIRAN_PAN
+
+
+def test_confirm_same_person_link_writes_real_pan(db_session):
+    """5B, decision A: "Yes, same person" for a name-only member writes no PAN
+    at upload; Confirm saves it in pan_encrypted / pan_lookup_hash."""
+    from app.services.import_.service import resolve_same_person
+
+    user = _user(db_session)
+    me = _member(db_session, user, "Aditi Sharma", pan=ADITI_PAN)
+    kavita = _member(db_session, user, "Kavita Sharma", relationship=Relationship.PARENT)
+    preview = _start(db_session, me, family_result([
+        {"name": "ADITI SHARMA", "pan": ADITI_PAN},
+        {"name": "KAVITA SHARMA", "pan": KIRAN_PAN},
+    ], addressee="ADITI SHARMA"))
+    [sp] = preview.same_person_prompts
+    assert sp.member_id == str(kavita.id) and sp.kind == "name_only"
+
+    preview = resolve_same_person(db_session, preview.session_id, user.id, sp.person_key, str(kavita.id), True)
+    db_session.refresh(kavita)
+    assert kavita.pan_lookup_hash is None  # nothing reserved at upload
+    assert kavita.detected_pan_hash is None
+
+    _confirm(db_session, preview, user.id)
+
+    db_session.refresh(kavita)
+    assert kavita.pan_lookup_hash == hash_pan(KIRAN_PAN)
+    assert kavita.pan_pending_until is None and kavita.pan_source == MemberPanSource.CAS
+    assert kavita.pan_conflict is None

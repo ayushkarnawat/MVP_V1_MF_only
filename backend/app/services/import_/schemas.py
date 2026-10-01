@@ -78,7 +78,7 @@ class SamePersonPrompt(BaseModel):
 
 class ImportPromptDetail(BaseModel):
     """The 409 `detail` body of an upload-time prompt. `session_id` is None
-    when the prompt ended the review (member_details_required, F30)."""
+    when the prompt ended the review (F30)."""
 
     code: str
     message: str
@@ -127,7 +127,7 @@ class ResolveSamePersonRequest(BaseModel):
 
 
 class AcknowledgeRequest(BaseModel):
-    code: Literal["member_not_in_file", "locked_member_only", "cross_account_pan_blocked"]
+    code: Literal["member_not_in_file", "cross_account_pan_blocked"]
 
 
 class SchemeConfirmation(BaseModel):

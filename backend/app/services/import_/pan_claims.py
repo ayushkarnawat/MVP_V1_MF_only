@@ -23,7 +23,7 @@ from typing import Literal
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.models.enums import MemberPanSource
+from app.models.enums import MemberPanConflict, MemberPanSource
 from app.models.user import HouseholdMember
 from app.services.import_.crypto import encrypt_pan, hash_pan
 
@@ -183,6 +183,44 @@ def confirm_pan_claim(db: Session, member: HouseholdMember, pan: str | None) -> 
         )
 
 
+def store_detected_pan(
+    db: Session, member: HouseholdMember, pan: str, *, now: datetime
+) -> Literal["stored", "other_account"]:
+    """Confirm-time PAN for a CAS-detected member (2026-10-01): the same
+    encrypt_pan / hash_pan and the same unique columns as Self's claim, made
+    permanent at once (no upload-time reservation, decision A). A PAN
+    another account holds can't take the unique index; it is kept, still
+    encrypted, in detected_pan_* with pan_conflict set. Flushes only to free
+    an expired claim (below); the confirm transaction flushes and commits."""
+    pan_hash = hash_pan(pan)
+    rows = db.query(HouseholdMember).filter(HouseholdMember.pan_lookup_hash == pan_hash).all()
+    live = [r for r in rows if r.id != member.id and not is_expired_pending(r, now)]
+    member.pan_source = MemberPanSource.CAS
+    if any(r.user_id != member.user_id for r in live):
+        member.detected_pan_encrypted = encrypt_pan(pan)
+        member.detected_pan_hash = pan_hash
+        member.pan_conflict = MemberPanConflict.OTHER_ACCOUNT
+        return "other_account"
+    if live:
+        raise PanBelongsToOtherMemberError(f"This PAN is already on {live[0].name}.")
+    stale = [r for r in rows if r.id != member.id]
+    if stale:
+        for r in stale:
+            _clear_pan(r)  # an expired pending claim still occupies the unique index
+        # Flushed on its own: SQLAlchemy orders same-table UPDATEs by primary
+        # key, so in one flush a persistent `member` that sorts first would
+        # take the unique index before the stale row lets go of it.
+        db.flush()
+    member.pan_encrypted = encrypt_pan(pan)
+    member.pan_lookup_hash = pan_hash
+    member.pan_pending_until = None
+    member.pan_verified_at = now
+    member.detected_pan_encrypted = None
+    member.detected_pan_hash = None
+    member.pan_conflict = None
+    return "stored"
+
+
 def release_pending_pan_claim(member: HouseholdMember, pan: str | None) -> None:
     """Drops this member's *pending* claim for `pan`. A permanent PAN, or a
     pending claim for a different PAN, is left alone."""
@@ -277,7 +315,7 @@ def restore_pan_snapshot(
     db.flush()
 
 
-DetectedPanStatus = Literal["new", "existing_member", "locked_member", "other_account"]
+DetectedPanStatus = Literal["new", "existing_member", "other_account"]
 
 
 def classify_detected_pan(
@@ -288,8 +326,9 @@ def classify_detected_pan(
     Read-only: deliberately does not reuse `_holder_of`, which clears expired
     claims and flushes. An expired pending claim is simply ignored (= new).
     Order matters (F7, spec M9): this account's own PAN, then this account's
-    locked member, and only then another account -- a locked member here must
-    keep attaching even after another account later claimed the same PAN.
+    member whose PAN is held elsewhere (pan_conflict, kept in detected_pan_hash)
+    -- such a member keeps attaching even after another account claimed the
+    same PAN (F7) -- and only then another account.
     The other account's member id is never returned.
     """
     now = now or datetime.now(timezone.utc)
@@ -303,14 +342,14 @@ def classify_detected_pan(
     mine = next((m for m in holders if m.user_id == user_id), None)
     if mine is not None:
         return "existing_member", mine.id
-    locked = (
+    conflict = (
         db.query(HouseholdMember)
         .filter(HouseholdMember.user_id == user_id, HouseholdMember.detected_pan_hash == pan_hash)
         .order_by(HouseholdMember.created_at)
         .first()
     )
-    if locked is not None:
-        return "locked_member", locked.id
+    if conflict is not None:
+        return "existing_member", conflict.id
     if holders:
         return "other_account", None
     return "new", None

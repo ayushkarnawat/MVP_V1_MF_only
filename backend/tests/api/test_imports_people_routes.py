@@ -12,8 +12,8 @@ from unittest.mock import patch
 import pytest
 
 from app.models.enums import (
-    MemberLockReason,
     MemberOrigin,
+    MemberPanConflict,
     MemberPanSource,
     Relationship,
 )
@@ -71,20 +71,24 @@ def _set_pan(member_id: str, pan: str, *, source: MemberPanSource = MemberPanSou
         db.close()
 
 
-def _add_member(user_id: uuid.UUID, name: str, *, locked: bool = False, detected_pan: str | None = None,
-                relationship: Relationship | None = Relationship.PARENT) -> str:
+def _add_member(user_id: uuid.UUID, name: str, *, detected: bool = False, detected_pan: str | None = None,
+                conflict: bool = False, relationship: Relationship | None = Relationship.PARENT) -> str:
+    """detected=True: a CAS-detected member (relationship NULL). detected_pan:
+    the statement's PAN, stored like Confirm stores it (2026-10-01) -- in
+    pan_encrypted / pan_lookup_hash, or with conflict=True (held by another
+    account) in detected_pan_* with pan_conflict."""
     db = _test_db()
     try:
-        kwargs = {}
-        if locked:
-            kwargs = dict(
-                relationship=None, origin=MemberOrigin.CAS_DETECTED, details_completed_at=None,
-                lock_reason=MemberLockReason.DETAILS_NEEDED,
-            )
+        if detected or detected_pan:
+            kwargs = dict(relationship=None, origin=MemberOrigin.CAS_DETECTED)
         else:
             kwargs = dict(relationship=relationship)
-        if detected_pan:
-            kwargs.update(detected_pan_encrypted=encrypt_pan(detected_pan), detected_pan_hash=hash_pan(detected_pan))
+        if detected_pan and conflict:
+            kwargs.update(detected_pan_encrypted=encrypt_pan(detected_pan), detected_pan_hash=hash_pan(detected_pan),
+                          pan_source=MemberPanSource.CAS, pan_conflict=MemberPanConflict.OTHER_ACCOUNT)
+        elif detected_pan:
+            kwargs.update(pan_encrypted=encrypt_pan(detected_pan), pan_lookup_hash=hash_pan(detected_pan),
+                          pan_source=MemberPanSource.CAS, pan_verified_at=datetime.now(timezone.utc))
         m = HouseholdMember(id=uuid.uuid4(), user_id=user_id, name=name,
                             created_at=datetime.now(timezone.utc), **kwargs)
         db.add(m)
@@ -204,18 +208,20 @@ def test_parse_ambiguous_self_is_409_which_is_self(client, tmp_path):
     assert detail["session_id"] in _preview_sessions
 
 
-def test_parse_for_locked_member_is_rejected(client, tmp_path):
+def test_parse_for_detected_member_starts_a_review(client, tmp_path):
+    # 2026-10-01: replaces test_parse_for_locked_member_is_rejected -- a
+    # detected member is never locked, so Add data for them is a normal review.
     headers, self_id = _authed_headers_and_member(client, "+919800000006", name="Aditi Sharma")
-    locked_id = _add_member(_user_id(self_id), "RAMESH SHARMA", locked=True, detected_pan=RAMESH_STMT)
-    before = set(_preview_sessions)
+    _set_pan(self_id, ADITI_PAN)  # not a first upload, so U2 doesn't ask about Me
+    detected_id = _add_member(_user_id(self_id), "RAMESH SHARMA", detected_pan=RAMESH_STMT)
 
-    resp = _parse(client, headers, locked_id, family_result([{"name": "RAMESH SHARMA", "pan": RAMESH_STMT}]), tmp_path)
+    resp = _parse(client, headers, detected_id, family_result([{"name": "RAMESH SHARMA", "pan": RAMESH_STMT}]), tmp_path)
 
-    assert resp.status_code == 409
-    detail = _detail(resp)
-    assert detail["code"] == "member_details_required"
-    assert detail["session_id"] is None
-    assert set(_preview_sessions) == before  # I5: session dropped
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["session_id"] in _preview_sessions
+    [p] = body["people"]
+    assert (p["status"], p["member_id"]) == ("existing_member", detected_id)
 
 
 def test_parse_member_not_in_file(client, tmp_path):
@@ -258,20 +264,6 @@ def test_parse_member_pan_mismatch_for_unverified_typed_pan(client, tmp_path):
         "member_name": "Ramesh Sharma", "entered_pan_masked": "BX******8L", "statement_pan_masked": "BX******9M",
     }
     assert RAMESH_TYPED not in resp.text and RAMESH_STMT not in resp.text
-
-
-def test_parse_locked_member_only(client, tmp_path):
-    headers, self_id = _authed_headers_and_member(client, "+919800000009", name="Aditi Sharma")
-    locked_id = _add_member(_user_id(self_id), "RAMESH SHARMA", locked=True, detected_pan=RAMESH_STMT)
-
-    resp = _parse(client, headers, self_id, family_result([{"name": "RAMESH SHARMA", "pan": RAMESH_STMT}]), tmp_path)
-
-    assert resp.status_code == 409
-    detail = _detail(resp)
-    assert detail["code"] == "locked_member_only"
-    assert detail["message"] == "Add RAMESH SHARMA’s details first"
-    assert detail["details"] == {"member_id": locked_id, "member_name": "RAMESH SHARMA"}
-    assert detail["session_id"] in _preview_sessions
 
 
 def test_parse_whole_file_other_account(client, tmp_path):
@@ -467,7 +459,6 @@ def test_resolve_pan_other_account_is_u12_and_member_unchanged(client, tmp_path)
         "member_name": "Ramesh Sharma", "entered_pan_masked": "BX******8L", "statement_pan_masked": "BX******9M",
     }
     ramesh = _member(ramesh_id)
-    assert ramesh.details_completed_at is not None
     assert ramesh.pan_lookup_hash == hash_pan(RAMESH_TYPED) and ramesh.pan_pending_until is None
     assert other_self not in resp.text
 
@@ -532,36 +523,6 @@ def test_acknowledge_member_not_in_file_returns_preview(client, tmp_path):
 
     assert resp.status_code == 200, resp.text
     assert resp.json()["people"][0]["is_me"] is True
-
-
-def test_acknowledge_locked_member_only_after_unlock_continues(client, tmp_path):
-    headers, self_id = _authed_headers_and_member(client, "+919800000114", name="Aditi Sharma")
-    _set_pan(self_id, ADITI_PAN)
-    locked_id = _add_member(_user_id(self_id), "RAMESH SHARMA", locked=True, detected_pan=RAMESH_STMT)
-    resp = _parse(client, headers, self_id, family_result([{"name": "RAMESH SHARMA", "pan": RAMESH_STMT}]), tmp_path)
-    assert _detail(resp)["code"] == "member_not_in_file"  # Add data for self; Me isn't in it
-    sid = _detail(resp)["session_id"]
-    u6 = _post(client, headers, sid, "acknowledge", {"code": "member_not_in_file"})
-    assert _detail(u6)["code"] == "locked_member_only"
-
-    still = _post(client, headers, sid, "acknowledge", {"code": "locked_member_only"})
-    assert still.status_code == 409 and _detail(still)["code"] == "locked_member_only"
-
-    db = _test_db()  # the unlock write (Task 11's /details), done directly here
-    try:
-        m = db.get(HouseholdMember, uuid.UUID(locked_id))
-        m.relationship = Relationship.PARENT
-        m.details_completed_at = datetime.now(timezone.utc)
-        m.lock_reason = None
-        m.pan_encrypted, m.pan_lookup_hash = encrypt_pan(RAMESH_STMT), hash_pan(RAMESH_STMT)
-        m.detected_pan_encrypted = m.detected_pan_hash = None
-        db.commit()
-    finally:
-        db.close()
-
-    resp = _post(client, headers, sid, "acknowledge", {"code": "locked_member_only"})
-    assert resp.status_code == 200, resp.text
-    assert resp.json()["people"][0]["member_id"] == locked_id
 
 
 def test_session_routes_return_410_when_expired(client, tmp_path):
@@ -678,8 +639,8 @@ def test_confirm_route_prefetches_nav_for_every_imported_member(client, tmp_path
     assert prefetched == {p["member_id"] for p in resp.json()["people"]}
 
 
-def test_household_members_lists_locked_detected_member_with_null_relationship(client, tmp_path):
-    # F10: detected members have relationship NULL until unlocked (T11).
+def test_household_members_lists_detected_member_with_null_relationship(client, tmp_path):
+    # F10: detected members have relationship NULL until the user adds one.
     headers, _, sid = _family_session(client, tmp_path, "+919800000205")
     assert client.post("/imports/confirm", json={
         "session_id": sid, "people": [{"person_key": "p1"}, {"person_key": "p2"}],
@@ -690,6 +651,7 @@ def test_household_members_lists_locked_detected_member_with_null_relationship(c
     assert resp.status_code == 200, resp.text
     ramesh = next(m for m in resp.json() if m["name"] == "RAMESH SHARMA")
     assert ramesh["relationship"] is None
+    assert ramesh["profile_completion"] == 40
 
 
 # --------------------------------- real-fixture family replay (staging-QA fix 5)
@@ -767,8 +729,9 @@ def _kavitas(user_id):
 
 @needs_fixtures
 def test_kavita_is_never_duplicated_across_family_uploads(client, tmp_path):
-    """The user's staging sequence: file 1, unlock Rohan, then Add data for
-    Rohan with file 2, file 1, file 2. Kavita has no PAN in file 1 and a PAN
+    """The user's staging sequence: file 1, then Add data for Rohan with
+    file 2, file 1, file 2 (2026-10-01: no unlock step, detected members are
+    never locked). Kavita has no PAN in file 1 and a PAN
     in file 2; she must stay one member throughout."""
     h, me_id = _authed_headers_and_member(client, "+919811300001", name="Aditi Shanbhag")
     uid = _user_id(me_id)
@@ -778,12 +741,6 @@ def test_kavita_is_never_duplicated_across_family_uploads(client, tmp_path):
     assert _kavitas(uid) == 1
     db = _test_db()
     rohan = db.query(HouseholdMember).filter_by(user_id=uid, name="Rohan Shanbhag").one()
-    # 2026-10-01 (QC/QD): a PAN is typed only when the statement had none.
-    body = {"relationship": "parent"}
-    if rohan.detected_pan_hash is None:
-        body["pan"] = "BNZPS5678L"
-    unlock = client.post(f"/household-members/{rohan.id}/details", json=body, headers=h)
-    assert unlock.status_code == 200, unlock.text
     for fname in ("family_cas_2.pdf", "family_cas_1.pdf", "family_cas_2.pdf"):
         r = _parse_real(client, h, str(rohan.id), fname, tmp_path)
         assert r.status_code == 200, r.text
@@ -799,7 +756,7 @@ def test_file_1_reupload_does_not_duplicate_the_name_only_member(client, tmp_pat
     _confirm_all(client, h, _parse_real(client, h, me_id, "family_cas_1.pdf", tmp_path).json())
     prev = _parse_real(client, h, me_id, "family_cas_1.pdf", tmp_path).json()
     kav = next(p for p in prev["people"] if p["name"] == "Kavita Shanbhag")
-    assert kav["status"] == "locked_member"
+    assert kav["status"] == "existing_member"
     assert kav["matched_by_name_temp_ids"]  # tagged in the ribbon (FR-4)
     _confirm_all(client, h, prev)
     assert _kavitas(uid) == 1
@@ -819,7 +776,7 @@ def test_name_only_same_person_prompt_and_yes_links_detected_pan(client, tmp_pat
     _confirm_all(client, h, prev)
     db = _test_db()
     [k] = db.query(HouseholdMember).filter_by(user_id=uid, name="Kavita Shanbhag").all()
-    assert k.detected_pan_hash == hash_pan("BNZPK4321M") and k.is_locked
+    assert k.pan_lookup_hash == hash_pan("BNZPK4321M") and k.pan_conflict is None
 
 
 @needs_fixtures
@@ -857,11 +814,11 @@ def _kavita_rows(uid):
     return db.query(HouseholdMember).filter_by(user_id=uid, name="Kavita Sharma").all()
 
 
-def test_5b_locked_name_only_member_yes_links_detected_pan(client, tmp_path):
+def test_5b_name_only_detected_member_yes_links_pan_at_confirm(client, tmp_path):
     h, me_id = _authed_headers_and_member(client, "+919811500001", name="Aditi Sharma")
     _set_pan(me_id, ADITI_PAN)
     uid = _user_id(me_id)
-    kavita_id = _add_member(uid, "Kavita Sharma", locked=True)
+    kavita_id = _add_member(uid, "Kavita Sharma", detected=True)
     prev = _parse(client, h, me_id, _family_with_kavita(KAVITA_PAN), tmp_path).json()
     [sp] = prev["same_person_prompts"]
     assert (sp["kind"], sp["member_id"], sp["entered_pan_masked"]) == ("name_only", kavita_id, "")
@@ -869,24 +826,12 @@ def test_5b_locked_name_only_member_yes_links_detected_pan(client, tmp_path):
                  {"person_key": sp["person_key"], "member_id": kavita_id, "same": True}).json()
     assert prev["same_person_prompts"] == []
     p = next(x for x in prev["people"] if x["person_key"] == sp["person_key"])
-    assert (p["status"], p["member_id"]) == ("locked_member", kavita_id)
-    assert _confirm_raw(client, h, prev).status_code == 200
-    [k] = _kavita_rows(uid)
-    assert k.detected_pan_hash == hash_pan(KAVITA_PAN) and k.is_locked
-
-
-def test_5b_unlocked_pan_free_member_yes_claims_the_pan(client, tmp_path):
-    h, me_id = _authed_headers_and_member(client, "+919811500002", name="Aditi Sharma")
-    _set_pan(me_id, ADITI_PAN)
-    uid = _user_id(me_id)
-    kavita_id = _add_member(uid, "Kavita Sharma")  # unlocked, relationship parent, no PAN
-    prev = _parse(client, h, me_id, _family_with_kavita(KAVITA_PAN), tmp_path).json()
-    [sp] = prev["same_person_prompts"]
-    prev = _post(client, h, prev["session_id"], "resolve-same-person",
-                 {"person_key": sp["person_key"], "member_id": kavita_id, "same": True}).json()
+    assert (p["status"], p["member_id"]) == ("existing_member", kavita_id)
+    assert _member(kavita_id).pan_lookup_hash is None  # decision A: nothing reserved at upload
     assert _confirm_raw(client, h, prev).status_code == 200
     [k] = _kavita_rows(uid)
     assert k.pan_lookup_hash == hash_pan(KAVITA_PAN) and k.pan_pending_until is None
+    assert k.detected_pan_hash is None and k.pan_conflict is None
 
 
 def test_5b_two_sessions_linking_one_member_with_different_pans_second_is_refused(client, tmp_path):
@@ -896,7 +841,7 @@ def test_5b_two_sessions_linking_one_member_with_different_pans_second_is_refuse
     h, me_id = _authed_headers_and_member(client, "+919811500003", name="Aditi Sharma")
     _set_pan(me_id, ADITI_PAN)
     uid = _user_id(me_id)
-    kavita_id = _add_member(uid, "Kavita Sharma", locked=True)
+    kavita_id = _add_member(uid, "Kavita Sharma", detected=True)
     sessions = []
     for pan in (KAVITA_PAN, "BNZPK9999Z"):
         prev = _parse(client, h, me_id, _family_with_kavita(pan), tmp_path).json()
@@ -907,7 +852,7 @@ def test_5b_two_sessions_linking_one_member_with_different_pans_second_is_refuse
     second = _confirm_raw(client, h, sessions[1])
     assert second.status_code == 422, second.text
     [k] = _kavita_rows(uid)
-    assert k.detected_pan_hash == hash_pan(KAVITA_PAN)
+    assert k.pan_lookup_hash == hash_pan(KAVITA_PAN)
 
 
 def test_upload_target_beats_an_exact_name_match_elsewhere(client, tmp_path):
