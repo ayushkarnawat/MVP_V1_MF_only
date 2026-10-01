@@ -336,7 +336,7 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--borde
         </ul></td></tr>
       <tr><td>6</td><td>Dashboard with the new %, success state, or the other-account warning</td><td>response of step 5</td><td>—</td></tr>
       <tr><td>7</td><td>Account → Family members</td><td><code>GET /household-members</code></td><td>Read only. Same row, same %.</td></tr>
-      <tr><td>Later</td><td>A new CAS with a different name</td><td><code>POST /imports/parse</code></td><td>The existing name-mismatch prompt fires. A user-edited name is no longer overwritten without asking.</td></tr>
+      <tr><td>Later</td><td>A new CAS with a different name</td><td><code>POST /imports/parse</code></td><td>The current name rules apply, the same as for a CAS name: a mismatch asks, a longer variant updates, a shorter one is kept.</td></tr>
     </tbody>
   </table></div>
 </section>
@@ -380,7 +380,7 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--borde
     <thead><tr><th>Migration 0023</th><th>Why</th></tr></thead>
     <tbody>
       <tr><td>Drop <code>details_completed_at</code>, the relationship-required-when-unlocked CHECK, and the <code>trg_member_never_relock</code> trigger</td><td>Nothing is locked any more, and relationship is optional</td></tr>
-      <tr><td>Add the <code>user_edited</code> value to <code>name_source</code></td><td>Marks a popup edit, so a later CAS asks instead of silently replacing the name. Onboarding names stay <code>user_entered</code> and are still replaced.</td></tr>
+      <tr><td>Add the <code>user_edited</code> value to <code>name_source</code></td><td>Marks a popup edit, so a later CAS applies the normal name rules instead of the silent replace used for onboarding names, which stay <code>user_entered</code>.</td></tr>
       <tr><td>Rename <code>lock_reason</code> → <code>pan_conflict</code>; drop the <code>details_needed</code> value</td><td>The only value left is the other-account case, which drives the banner</td></tr>
       <tr><td>Backfill: move each existing detected PAN into <code>pan_encrypted</code> / <code>pan_lookup_hash</code>, unless another account holds it</td><td>Staging already has locked members</td></tr>
     </tbody>
@@ -397,7 +397,7 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--borde
       <tr><td><code>require_unlocked_member</code></td><td><span class="pill p-b">REMOVED</span></td><td>Removed from every member-scoped read in the dashboard, analytics and CAS-import routes.</td></tr>
       <tr><td><code>PUT /household-members/{id}/profile</code></td><td><span class="pill p-n">NEW</span></td><td>Replaces <code>POST …/details</code> and <code>PATCH …/{id}</code>. All fields optional. PAN is required only when the member has none, and rejected when the CAS supplied one. Self: name and relationship only.</td></tr>
       <tr><td><code>GET /household-members</code></td><td><span class="pill p-w">CHANGED</span></td><td>Adds <code>profile_completion</code>, <code>missing_fields</code> and <code>pan_conflict</code>. Drops <code>details_required</code> and <code>lock_reason</code>.</td></tr>
-      <tr><td><code>plan_name_update</code></td><td><span class="pill p-w">CHANGED</span></td><td>A user-entered name now gets the name-mismatch prompt instead of being silently replaced by the CAS name.</td></tr>
+      <tr><td><code>plan_name_update</code></td><td><span class="pill p-w">CHANGED</span></td><td>A popup-edited name (<code>user_edited</code>) follows the current CAS name rules. Only onboarding names (<code>user_entered</code>) are still replaced silently.</td></tr>
       <tr><td>Import prompts</td><td><span class="pill p-b">REMOVED</span></td><td><code>member_details_required</code> and <code>locked_member_only</code>.</td></tr>
       <tr><td>Merge (<code>/merge-into</code>)</td><td><span class="pill p-w">CHANGED</span></td><td>Today the source member must be locked. The new rule: the source is a detected member whose CAS had no PAN.</td></tr>
       <tr><td>Popups</td><td><span class="pill p-w">CHANGED</span></td><td><code>MemberDetailsDialog</code> and <code>EditMemberDialog</code> are merged into <code>CompleteProfileDialog</code>. <code>ConfirmLeaveDialog</code> stays, with new copy. <code>OtherAccountDialog</code> becomes the post-Save warning.</td></tr>
@@ -413,7 +413,7 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--borde
     <div class="done"><strong>Name and PAN timing</strong><span>Saved at Confirm imports, alongside Self’s permanent PAN. Relationship, phone and email are saved only on popup Save.</span></div>
     <div class="done"><strong>A · No PAN reservation at upload for detected members</strong><span>Their PAN is saved only at Confirm imports. Upload still checks each detected PAN against other accounts. If another account takes the PAN during the review, Confirm treats it as the other-account case.</span></div>
     <div class="done"><strong>Relationship</strong><span>Optional. Nothing in the popup is required, except PAN for members whose CAS had none.</span></div>
-    <div class="done"><strong>Q1 · Editable name</strong><span>Allowed. A later CAS with a different name raises the existing name-mismatch prompt. This replaces the 1 Oct “names can’t be edited” rule.</span></div>
+    <div class="done"><strong>Q1 · Editable name</strong><span>Allowed. On a later CAS, an edited name goes through the same checks as today: a completely different name shows the name-mismatch prompt, a longer variant updates automatically, and a shorter variant is kept. This replaces the 1 Oct “names can’t be edited” rule.</span></div>
     <div class="done"><strong>Q2 · Members whose CAS had no PAN</strong><span>PAN is editable, required, and counts toward the %.</span></div>
     <div class="done"><strong>Q3 · PAN on another account</strong><span>The dashboard opens, with a clearly visible red banner. A Save shows a second warning.</span></div>
     <div class="done"><strong>Q4 · Self</strong><span>Self has a % too. In your own popup, phone and email are read-only, with a “Change in Account Info” link.</span></div>

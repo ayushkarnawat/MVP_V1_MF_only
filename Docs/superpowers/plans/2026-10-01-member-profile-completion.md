@@ -44,7 +44,7 @@
 **Profile rules (spec, "Decided")**
 - **Five fields, 20% each:** name, PAN, relationship, phone, email. The % is computed on every read and never stored.
 - **Nothing in the popup is required,** except PAN for a member with no PAN of any kind (Q2).
-- **Name is editable** (Q1). A popup edit sets `name_source='user_edited'`. A later CAS with a different name then asks, through the existing name-mismatch "ask", instead of silently replacing the name.
+- **Name is editable** (Q1). A popup edit sets `name_source='user_edited'`. On a later CAS, an edited name follows **exactly the current name rules for CAS-sourced names** (`plan_name_update`): a completely different name gets the existing mismatch "ask" (M8), a longer variant updates (I9), and a shorter or equal variant changes nothing. The only thing `user_edited` changes is that the name is never put through the onboarding/U9 "provisional, replace silently" rule that `user_entered` names get.
 - **Self** (Q4): phone and email are read-only in the popup and come from `users`; relationship is always Self; PAN comes from the CAS. Only Self's name can be edited.
 - **PAN on another account** (Q3): the dashboard opens with a clearly visible red banner, and every Save that leaves `pan_conflict` set shows a second warning popup. The PAN never counts, so the highest possible % is 80.
 - **Exit** always asks "Skip completing {name}’s profile?" (Q5).
@@ -53,7 +53,7 @@
 
 1. **Two locked duplicate rows of one user that share the same detected PAN** (allowed today by the non-unique index). The 0023 backfill must promote only the earliest row per hash into the unique `pan_lookup_hash`, or the migration dies on the unique index. Covered by a Task 1 migration test (`test_0023_backfill_promotes_only_earliest_duplicate`).
 2. **The other account releases a conflicting PAN later.** On the next `GET /household-members`, the member's detected PAN is promoted to the real columns and the banner disappears. If the unique index was taken again in between, the GET must not 500. Covered by Task 1 (`test_refresh_promotes_released_conflict_pan`, `test_refresh_survives_lost_race`).
-3. **A later CAS for a member whose name was edited in the popup.** The import must show the existing name "ask" and keep the edited name unless the user accepts. Onboarding (`user_entered`) names must still be replaced silently. Covered by Task 4 (`test_user_edited_name_asks`, `test_user_entered_name_still_updates`).
+3. **A later CAS for a member whose name was edited in the popup.** It must get the same treatment as a CAS-sourced name today: a mismatch asks (and keeps the edited name unless the user accepts), a longer variant updates, and a shorter variant is kept. Onboarding (`user_entered`) names must still be replaced silently. Covered by Task 4 (`test_user_edited_name_follows_cas_rules`, `test_user_entered_name_still_updates`).
 4. **Saving the popup for a member with no PAN and leaving PAN blank.** The response is 422 `pan_required` and nothing is written, not even phone or email. Covered by Task 3 (`test_name_only_member_requires_pan_and_writes_nothing`).
 5. **Deleting the last import of a detected member the user has already started filling in** (relationship or phone set). The member must stay; only an untouched detected member is removed. Covered by Task 1 (`test_delete_keeps_detected_member_with_profile_data`) and by the frontend `removed_with_last_import` test in Task 8.
 
@@ -205,7 +205,7 @@ Expected: FAIL. `alembic upgrade 0023` errors because the revision doesn't exist
 
 - [ ] **Step 3: Enums and model**
 
-In `backend/app/models/enums.py`, add `USER_EDITED = "user_edited"` to `MemberNameSource`. Leave a comment that it means "edited in the Complete profile popup; a later CAS asks before replacing it". After `MemberLockReason`, add:
+In `backend/app/models/enums.py`, add `USER_EDITED = "user_edited"` to `MemberNameSource`. Leave a comment that it means "edited in the Complete profile popup; a later CAS applies the normal CAS name rules (mismatch asks, longer variant updates), never the silent replace used for user_entered". After `MemberLockReason`, add:
 
 ```python
 class MemberPanConflict(str, enum.Enum):
@@ -1080,7 +1080,7 @@ from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session as DbSession
 
-from app.models.enums import MemberNameSource, MemberPanConflict, MemberPanSource, NameChangeReason, Relationship
+from app.models.enums import MemberNameSource, MemberOrigin, MemberPanConflict, MemberPanSource, NameChangeReason, Relationship
 from app.models.folio import Folio
 from app.models.member_history import HouseholdMemberNameChange
 from app.models.user import HouseholdMember
@@ -1195,7 +1195,9 @@ def save_member_profile(
         if holder is not None and holder.user_id == user_id:
             fund_count = db.query(Folio).filter(Folio.household_member_id == member.id).count()
             raise PanOnOtherMemberError(
-                holder.id, holder.name, can_merge=True,
+                holder.id, holder.name,
+                # Same rule as merge_member_into: only a detected member can be merged away.
+                can_merge=member.origin == MemberOrigin.CAS_DETECTED,
                 source_member_name=member.name, source_fund_count=fund_count,
                 source_pan_label="PAN not on statement",
             )
@@ -1286,7 +1288,7 @@ Expected: all PASS.
 
 ---
 
-### Task 4: A name edited in the popup isn't silently overwritten by a later CAS
+### Task 4: A name edited in the popup follows the current CAS name rules on a later upload
 
 **Files:**
 - Modify: `backend/app/services/import_/people_resolution.py:113-122` (`plan_member_name_update`)
@@ -1295,17 +1297,19 @@ Expected: all PASS.
 
 **Interfaces:**
 - Consumes: `MemberNameSource.USER_EDITED` (Task 1); `plan_member_name_update` wired into confirm (Task 2).
-- Produces: `plan_member_name_update(member, statement) -> "none" | "update" | "ask"`. A `USER_EDITED` member gets `"ask"` on any normalised difference, and `"none"` otherwise.
+- Produces: `plan_member_name_update(member, statement) -> "none" | "update" | "ask"`. A `USER_EDITED` member goes through `plan_name_update(member.name, statement)`, the same as a `CAS` member: mismatch → `"ask"`, longer variant → `"update"`, otherwise `"none"`.
 
 - [ ] **Step 1: Write the failing tests**
 
 In `test_people_resolution.py`:
 
 ```python
-def test_user_edited_name_asks():
-    m = HouseholdMember(name="Ramesh K Sharma", name_source=MemberNameSource.USER_EDITED)
-    assert plan_member_name_update(m, "RAMESH KUMAR SHARMA") == "ask"
-    assert plan_member_name_update(m, "ramesh k  sharma") == "none"
+def test_user_edited_name_follows_cas_rules():
+    m = HouseholdMember(name="Ramesh Sharma", name_source=MemberNameSource.USER_EDITED)
+    assert plan_member_name_update(m, "Suresh Patel") == "ask"               # M8 mismatch
+    assert plan_member_name_update(m, "Ramesh Kumar Sharma") == "update"     # I9 longer variant
+    assert plan_member_name_update(m, "Ramesh") == "none"                    # shorter variant kept
+    assert plan_member_name_update(m, "ramesh  sharma") == "none"
 
 
 def test_user_entered_name_still_updates():
@@ -1314,12 +1318,13 @@ def test_user_entered_name_still_updates():
 ```
 
 In `test_confirm_people.py`:
-- `test_confirm_keeps_user_edited_name_unless_accepted`. A member whose name was edited (name `"Ramesh K Sharma"`, `USER_EDITED`) appears in a confirm whose statement name is `"Ramesh Kumar Sharma"`. With `accept_name_update` left out, the name is unchanged afterwards. With `accept_name_update=True`, the name becomes the CAS name and `name_source == CAS`.
+- `test_confirm_user_edited_name_mismatch_kept_unless_accepted`. A member whose name was edited (`"Ramesh Sharma"`, `USER_EDITED`) appears in a confirm whose statement name is a mismatch (`"Suresh Patel"`). With `accept_name_update` left out, the name is unchanged afterwards. With `accept_name_update=True`, the name becomes the CAS name and `name_source == CAS`.
+- `test_confirm_user_edited_name_longer_variant_updates`. The same member and the statement name `"Ramesh Kumar Sharma"`. After confirm, the name is the CAS name with `name_source == CAS`, and a `cas_variant` name-change row exists. This is the same as today for a CAS-sourced name.
 
 - [ ] **Step 2: Run them to make sure they fail**
 
 Run: `python3 -m pytest tests/services/import_/test_people_resolution.py -k "user_edited or user_entered" tests/services/import_/test_confirm_people.py -k user_edited -q`
-Expected: FAIL. `plan_member_name_update` treats `USER_EDITED` like `CAS`, which gives a variant `"update"`.
+Expected: these may already PASS, because the current code falls through to `plan_name_update` for any non-`USER_ENTERED` source. That's fine. The tests pin the behaviour, so a later change can't quietly route `USER_EDITED` into the silent-replace branch. If any fails, fix the code in Step 3.
 
 - [ ] **Step 3: Implement**
 
@@ -1327,18 +1332,15 @@ Expected: FAIL. `plan_member_name_update` treats `USER_EDITED` like `CAS`, which
 def plan_member_name_update(member: HouseholdMember, statement: str) -> NameUpdate:
     """2026-10-01 QB/QE: a USER_ENTERED name (onboarding / U9) is provisional
     and confirm always replaces it with the statement's, so the preview says
-    "update". A USER_EDITED name (typed in the Complete profile popup, Q1)
-    is the user's deliberate choice: any difference is an "ask" (M8), never
-    a silent rename. CAS-sourced names keep the variant/ask/I9 rules."""
-    same = normalise_name(statement) == normalise_name(member.name)
+    "update". Every other name -- CAS-sourced, or USER_EDITED in the Complete
+    profile popup (Q1, user ruling 2026-10-01) -- follows the same
+    variant/ask/I9 rules: mismatch asks (M8), a longer variant updates (I9)."""
     if member.name_source == MemberNameSource.USER_ENTERED:
-        return "none" if same else "update"
-    if member.name_source == MemberNameSource.USER_EDITED:
-        return "none" if same else "ask"
+        return "update" if normalise_name(statement) != normalise_name(member.name) else "none"
     return plan_name_update(member.name, statement)
 ```
 
-In `_apply_name_choice`, check that the auto-replace branch tests `== MemberNameSource.USER_ENTERED` only, which it does at `:562`. Its comment gains `(not USER_EDITED: that asks, via plan_member_name_update)`. Then check the `me` branch of `plan_people` (`:136-140`): a `USER_EDITED` Self with a permanent PAN goes through `plan_member_name_update` and so gets `"ask"`. No code change is needed there; add one Self case to the people-resolution test, `test_user_edited_self_asks`.
+In `_apply_name_choice`, check that the auto-replace branch tests `== MemberNameSource.USER_ENTERED` only, which it does at `:562`. Its comment gains `(not USER_EDITED: that follows the CAS rules via plan_member_name_update)`. Then check the `me` branch of `plan_people` (`:136-140`): a `USER_EDITED` Self with a permanent PAN goes through `plan_member_name_update` and so follows the same rules. No code change is needed there. Add one Self case to the people-resolution test, `test_user_edited_self_follows_cas_rules`: a mismatch gives `"ask"` and a longer variant gives `"update"`.
 
 - [ ] **Step 4: Run Task 4's tests**
 
@@ -2049,7 +2051,7 @@ Expected: the tests PASS, and `tsc` is clean. Every call site from Tasks 5–8 i
   - A detected member's name and PAN are saved at Confirm imports, encrypted and stored like Self's.
   - There is no upload-time PAN reservation for detected members (A).
   - Relationship, phone and email are optional and saved on popup Save.
-  - Name is editable (Q1). This **supersedes the morning's "names can't be edited" rule** for the popup. Popup edits are `user_edited` and are asked about, not overwritten, on a later CAS.
+  - Name is editable (Q1). This **supersedes the morning's "names can't be edited" rule** for the popup. Popup edits are `user_edited`, and a later CAS treats them with the existing name rules (mismatch asks, longer variant updates), the same as a CAS-sourced name.
   - Q2, Q3, Q4 and Q5 as in the spec.
   - Link the artifact.
 - [ ] **Step 2: PRDs.**
@@ -2087,7 +2089,7 @@ Expected: the tests PASS, and `tsc` is clean. Every call site from Tasks 5–8 i
   - Decided Q1: Task 3 and Task 4. Q2: Task 3 and Task 6. Q3: Tasks 1, 3, 6 and 7. Q4: Task 3 and Task 6. Q5: Task 6. A: Task 2.
   - User requirement "encrypted like Self's": Global Constraints, `store_detected_pan`, and the tests in Task 2 and Task 3 that assert `decrypt_pan(pan_encrypted) == PAN` and `pan_lookup_hash == hash_pan(PAN)`.
 - **Spec deviations, flagged for the reviewer:**
-  - The ER diagram didn't name the new `MemberNameSource.USER_EDITED` value. Q1's "ask instead of overwrite" needs it, because `user_entered` already means "provisional, replace silently" for onboarding and U9 names.
+  - The ER diagram didn't name the new `MemberNameSource.USER_EDITED` value. It's needed because `user_entered` already means "provisional, replace silently" for onboarding and U9 names, and a popup edit must instead follow the normal CAS name rules.
   - `removed_with_last_import` is a response field the spec didn't list. The frontend's deletion warning needs the same rule as the backend.
   - The migration number is 0023, not 0022, because 0022 is the consent table.
 - **Placeholder scan.** Clean. A few steps tell the implementer to match a real helper signature or fixture (`_member`, `ApiError`, how the user's phone and email are passed). Those are verify-against-code instructions, not missing content.
