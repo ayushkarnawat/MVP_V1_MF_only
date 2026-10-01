@@ -34,8 +34,11 @@ export function SoloCasUpload({ name }: SoloCasUploadProps) {
 
     async function resolveSelfMember() {
       try {
-        // List-then-create: there's no PATCH /household-members, so a reload
-        // mid-onboarding must reuse the existing "self" row, not duplicate it.
+        // The self member is normally created at the onboarding name step now
+        // (2026-10-01), so this reuses it. The create below is only a fallback
+        // for sessions that reach upload without one. List-then-create: a
+        // reload mid-onboarding must reuse the existing "self" row, not
+        // duplicate it.
         const existing = await listHouseholdMembers();
         const self = existing.find((member) => member.relationship === "self");
         const member = self ?? (await createHouseholdMember(name.trim() || "Me", "self"));
@@ -84,6 +87,7 @@ export function SoloCasUpload({ name }: SoloCasUploadProps) {
     <ImportFlow
       householdMemberId={memberId}
       ctaLabel="Get my first score"
+      surface="onboarding_upload"
       onDone={handleDone}
     />
   );

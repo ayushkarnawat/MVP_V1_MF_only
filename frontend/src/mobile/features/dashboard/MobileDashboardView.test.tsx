@@ -473,8 +473,8 @@ describe("MobileDashboardView", () => {
 
   it("does not trap the user when switching to a member with 0 holdings in Per Member view", async () => {
     vi.mocked(authApi.listHouseholdMembers).mockResolvedValue([
-      { id: "m-1", name: "Ayush", relationship: "self", relationship_other_label: null, origin: "onboarding", lock_reason: null, details_required: false, pan_masked: null },
-      { id: "m-2", name: "Spouse", relationship: "spouse", relationship_other_label: null, origin: "manual", lock_reason: null, details_required: false, pan_masked: null },
+      { id: "m-1", name: "Ayush", relationship: "self", relationship_other_label: null, origin: "onboarding", lock_reason: null, details_required: false, pan_masked: null, phone_number: null, email: null, pan_on_statement: false, name_from_statement: false },
+      { id: "m-2", name: "Spouse", relationship: "spouse", relationship_other_label: null, origin: "manual", lock_reason: null, details_required: false, pan_masked: null, phone_number: null, email: null, pan_on_statement: false, name_from_statement: false },
     ]);
 
     // Member 1 has data, Member 2 has 0 holdings
@@ -605,9 +605,9 @@ describe("MobileDashboardView", () => {
   describe("locked family members (F39)", () => {
     const locked = (over: object) => ({
       id: "m-2", name: "Ramesh Sharma", relationship: null, relationship_other_label: null, origin: "cas",
-      lock_reason: "details_needed", details_required: true, pan_masked: "BX******8L", ...over,
+      lock_reason: "details_needed", details_required: true, pan_masked: "BX******8L", phone_number: null, email: null, pan_on_statement: false, name_from_statement: false, ...over,
     });
-    const me = { id: "m-1", name: "Ayush", relationship: "self", relationship_other_label: null, origin: "self", lock_reason: null, details_required: false, pan_masked: null };
+    const me = { id: "m-1", name: "Ayush", relationship: "self", relationship_other_label: null, origin: "self", lock_reason: null, details_required: false, pan_masked: null, phone_number: null, email: null, pan_on_statement: false, name_from_statement: false };
 
     async function openPicker() {
       vi.mocked(dashboardApi.getAggregateHoldings).mockResolvedValue({ holdings: [], members: [] } as any);

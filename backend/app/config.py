@@ -23,6 +23,13 @@ class Settings(BaseSettings):
     pan_lookup_pepper: str = ""
     cas_file_storage_dir: str = "var/cas_files"
 
+    # /auth/otp/verify with no `flow` and no pending_token used to create a
+    # phone-only account on the spot, with no consent and no email step. Every
+    # deployed client sends `flow`, so this stays False everywhere real; the
+    # test suite flips it on (conftest autouse) only so fixtures can keep
+    # minting sessions with a bare phone verify.
+    legacy_unflowed_phone_signup: bool = False
+
     # CAS file storage backend. "local" (default) writes to cas_file_storage_dir
     # on disk -- fine for dev, but ephemeral on Fargate. Staging/prod set this
     # to "s3" (infra/modules/storage) via CAS_FILE_STORAGE_BACKEND/

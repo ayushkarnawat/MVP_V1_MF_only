@@ -1,15 +1,21 @@
 import { useState } from "react";
 import { RotateCcw } from "lucide-react";
+import { acceptedFor, isConsentRequired } from "../legal/api";
+import type { AcceptedDocument } from "../legal/types";
+import { ConsentCheckbox } from "../legal/ConsentCheckbox";
+import { useLegalDocuments } from "../legal/useLegalDocuments";
 
 export function PendingDeletionScreen({
   deletionScheduledAt,
   reactivate,
 }: {
   deletionScheduledAt: string;
-  reactivate: () => Promise<void>;
+  reactivate: (accepted: AcceptedDocument[]) => Promise<void>;
 }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [consent, setConsent] = useState(false);
+  const { docs, error: docsError, refetch } = useLegalDocuments();
   const deletionDate = new Intl.DateTimeFormat("en-IN", {
     day: "numeric",
     month: "long",
@@ -27,20 +33,38 @@ export function PendingDeletionScreen({
         <p className="text-sm leading-6 text-[var(--color-text-secondary)]">
           Your account is scheduled for deletion on <strong className="text-[var(--color-ink)]">{deletionDate}</strong>.
         </p>
+        <div className="mx-auto w-fit text-left">
+          <ConsentCheckbox
+            checked={consent}
+            onChange={setConsent}
+            docs={docs}
+            types={["terms_of_service", "privacy_policy"]}
+            label="reactivate"
+            loadError={docsError}
+            onRetry={() => void refetch()}
+          />
+        </div>
         <button
           type="button"
-          disabled={pending}
+          disabled={pending || !consent || !docs}
           onClick={async () => {
             setPending(true);
             setError(null);
             try {
-              await reactivate();
-            } catch {
-              setError("Could not reactivate your account. Please try again.");
+              await reactivate(acceptedFor(docs ?? [], ["terms_of_service", "privacy_policy"]));
+            } catch (err) {
+              if (isConsentRequired(err)) {
+                // Terms changed since this page loaded: pick up the new versions and re-ask.
+                await refetch();
+                setConsent(false);
+                setError("Our terms were just updated. Please review and tick the box again.");
+              } else {
+                setError("Could not reactivate your account. Please try again.");
+              }
               setPending(false);
             }
           }}
-          className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-white hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2"
+          className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-white hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <RotateCcw className="h-4 w-4" />
           {pending ? "Reactivating…" : "Reactivate"}

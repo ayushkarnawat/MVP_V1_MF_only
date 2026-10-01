@@ -17,13 +17,15 @@ interface PromptDialogProps {
   onClose: () => void;
   children?: ReactNode;
   footer: ReactNode;
+  /** Hide the × for blocking dialogs where closing must not be offered. Default false. */
+  hideClose?: boolean;
 }
 
 // Shared shell for the upload-time and review dialogs (U1-U7, U12, U13, C1-C3).
-export function PromptDialog({ isOpen, title, body, onClose, children, footer }: PromptDialogProps) {
+export function PromptDialog({ isOpen, title, body, onClose, children, footer, hideClose = false }: PromptDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" hideClose={hideClose}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {body !== undefined && <DialogDescription>{body}</DialogDescription>}

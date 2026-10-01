@@ -130,6 +130,24 @@ class AuthIdentityProvider(str, enum.Enum):
     EMAIL_PASSWORD = "email_password"  # kept, unused going forward — Postgres enums can't cheaply drop a value (remove-password-auth handoff spec §2)
 
 
+class ConsentDocumentType(str, enum.Enum):
+    TERMS_OF_SERVICE = "terms_of_service"
+    PRIVACY_POLICY = "privacy_policy"
+    PAN_DISCLAIMER = "pan_disclaimer"
+
+
+class ConsentAction(str, enum.Enum):
+    GIVEN = "given"
+    WITHDRAWN = "withdrawn"
+
+
+class ConsentPurpose(str, enum.Enum):
+    SERVICE_AGREEMENT = "service_agreement"
+    ACCOUNT_AND_AUTHENTICATION = "account_and_authentication"
+    PORTFOLIO_TRACKING_ANALYTICS = "portfolio_tracking_analytics"
+    CAS_PAN_PROCESSING = "cas_pan_processing"
+
+
 def enum_column(enum_cls: type[enum.Enum]) -> Enum:
     """SQLAlchemy Enum that persists the member's lowercase ``.value``.
 

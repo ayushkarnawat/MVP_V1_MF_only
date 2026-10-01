@@ -18,7 +18,20 @@ vi.mock("./api", async () => {
   };
 });
 
-function uploadAFile() {
+vi.mock("../legal/api", async () => {
+  const actual = await vi.importActual<typeof import("../legal/api")>("../legal/api");
+  const { DOCS } = await import("../legal/testFixtures");
+  return { ...actual, getLegalDocuments: vi.fn(async () => DOCS) };
+});
+
+/** Ticks the PAN disclaimer once the legal documents have loaded. */
+async function tickDisclaimer() {
+  const box = await screen.findByRole("checkbox");
+  await waitFor(() => expect(box).toBeEnabled());
+  fireEvent.click(box);
+}
+
+async function uploadAFile() {
   const uploadChoice = screen.queryByRole("button", { name: /already have a statement/i });
   if (uploadChoice) fireEvent.click(uploadChoice);
   const uploadTab = screen.queryByRole("tab", { name: /upload existing statement/i });
@@ -26,6 +39,7 @@ function uploadAFile() {
   const file = new File(["pdf-bytes"], "cas.pdf", { type: "application/pdf" });
   fireEvent.change(screen.getByLabelText(/cas pdf/i), { target: { files: [file] } });
   fireEvent.change(screen.getByLabelText(/pdf password/i), { target: { value: "secret" } });
+  await tickDisclaimer();
   fireEvent.click(screen.getByRole("button", { name: /upload/i }));
 }
 
@@ -45,7 +59,7 @@ function reviewRibbon(name: string) {
 async function reachSingleReview() {
   vi.mocked(api.parseImport).mockResolvedValue(SINGLE());
   render(<ImportFlow householdMemberId="member-1" />);
-  uploadAFile();
+  await uploadAFile();
   await waitFor(() => screen.getByText("Review your import"));
 }
 
@@ -65,14 +79,14 @@ describe("ImportFlow", () => {
       new ApiError(422, { code: "wrong_password", message: "Incorrect PDF password." }),
     );
     render(<ImportFlow householdMemberId="member-1" />);
-    uploadAFile();
+    await uploadAFile();
     await waitFor(() => expect(screen.getByText(/incorrect pdf password/i)).toBeInTheDocument());
   });
 
   it("shows a generic message on a network failure", async () => {
     vi.mocked(api.parseImport).mockRejectedValue(new TypeError("Failed to fetch"));
     render(<ImportFlow householdMemberId="member-1" />);
-    uploadAFile();
+    await uploadAFile();
     await waitFor(() => expect(screen.getByText(/couldn't reach the server/i)).toBeInTheDocument());
   });
 
@@ -107,7 +121,7 @@ describe("ImportFlow", () => {
       ],
     });
     render(<ImportFlow householdMemberId="member-1" />);
-    uploadAFile();
+    await uploadAFile();
 
     await waitFor(() => screen.getByText("We found 2 people in your statement"));
     expect(api.confirmPeopleImport).not.toHaveBeenCalled();
@@ -144,7 +158,7 @@ describe("ImportFlow", () => {
     );
     vi.mocked(api.confirmPeopleImport).mockResolvedValue(RESULT);
     render(<ImportFlow householdMemberId="member-1" />);
-    uploadAFile();
+    await uploadAFile();
     await waitFor(() => screen.getByText("We found 2 people in your statement"));
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     await waitFor(() => screen.getByText("Review your import"));
@@ -163,7 +177,7 @@ describe("ImportFlow", () => {
       preview({ expires_at: new Date(Date.now() + 3 * 60 * 1000).toISOString() }),
     );
     render(<ImportFlow householdMemberId="member-1" />);
-    uploadAFile();
+    await uploadAFile();
     await waitFor(() => screen.getByText("Review your import"));
     expect(screen.getByText("Your review closes in 5 minutes. Confirm imports to save it.")).toBeInTheDocument();
   });
@@ -242,7 +256,7 @@ describe("ImportFlow", () => {
   it("closing the people popup asks C3 before cancelling", async () => {
     vi.mocked(api.parseImport).mockResolvedValue(familyPreview());
     render(<ImportFlow householdMemberId="member-1" />);
-    uploadAFile();
+    await uploadAFile();
     await waitFor(() => screen.getByText("We found 2 people in your statement"));
     fireEvent.click(screen.getByRole("button", { name: /close/i }));
     await waitFor(() => screen.getByText("Cancel this import?"));
@@ -266,7 +280,7 @@ describe("ImportFlow", () => {
     );
     vi.mocked(api.confirmPeopleImport).mockResolvedValue(RESULT);
     render(<ImportFlow householdMemberId="member-1" />);
-    uploadAFile();
+    await uploadAFile();
     await waitFor(() => screen.getByRole("button", { name: /include in family total/i }));
     fireEvent.click(screen.getByRole("button", { name: /include in family total/i }));
 
@@ -296,7 +310,7 @@ describe("ImportFlow", () => {
       }),
     );
     render(<ImportFlow householdMemberId="member-1" />);
-    uploadAFile();
+    await uploadAFile();
     await waitFor(() => screen.getByRole("button", { name: /include in family total/i }));
     fireEvent.click(screen.getByRole("button", { name: /include in family total/i }));
     await waitFor(() => screen.getByText("We found 2 people in your statement"));
@@ -315,7 +329,7 @@ describe("ImportFlow", () => {
         new ApiError(409, { code, message: "Please choose Self's own CAS." }),
       );
       render(<ImportFlow householdMemberId="member-1" />);
-      uploadAFile();
+      await uploadAFile();
 
       await waitFor(() => expect(screen.getByText("This PAN already exists")).toBeInTheDocument());
       fireEvent.click(screen.getByRole("button", { name: /change cas file/i }));
@@ -334,7 +348,7 @@ describe("ImportFlow", () => {
       }),
     );
     render(<ImportFlow householdMemberId="member-1" />);
-    uploadAFile();
+    await uploadAFile();
     await waitFor(() => screen.getByText("This PAN doesn’t match what you entered"));
     fireEvent.click(screen.getByRole("button", { name: /the one i entered/i }));
 
@@ -357,7 +371,7 @@ describe("ImportFlow", () => {
       }),
     );
     render(<ImportFlow householdMemberId="member-1" />);
-    uploadAFile();
+    await uploadAFile();
     await waitFor(() => screen.getByText("This PAN doesn’t match what you entered"));
     fireEvent.click(screen.getByRole("button", { name: /the one on this statement/i }));
     await waitFor(() => screen.getByText("We can’t switch Ramesh Sharma to this PAN"));
@@ -379,14 +393,14 @@ describe("ImportFlow", () => {
       });
     vi.mocked(api.parseImport).mockResolvedValueOnce(withNotice("s1")).mockResolvedValueOnce(withNotice("s2"));
     render(<ImportFlow householdMemberId="member-1" />);
-    uploadAFile();
+    await uploadAFile();
     await waitFor(() => screen.getByText("The name on this statement is a little different"));
     // × = cancel: discards and returns to the upload form.
     fireEvent.click(screen.getByRole("button", { name: /close/i }));
     await waitFor(() => expect(api.discardImportSession).toHaveBeenCalledWith("s1"));
     await waitFor(() => screen.getByLabelText(/cas pdf/i));
 
-    uploadAFile();
+    await uploadAFile();
     await waitFor(() => screen.getByText("The name on this statement is a little different"));
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     await waitFor(() => screen.getByText("Review your import"));
@@ -403,7 +417,7 @@ describe("ImportFlow", () => {
     );
     vi.mocked(api.confirmPeopleImport).mockResolvedValue(RESULT);
     render(<ImportFlow householdMemberId="member-1" />);
-    uploadAFile();
+    await uploadAFile();
     await waitFor(() => screen.getByRole("button", { name: "Update" }));
     fireEvent.click(screen.getByRole("button", { name: "Update" }));
     await waitFor(() => screen.getByText("Review your import"));
@@ -431,7 +445,7 @@ describe("ImportFlow", () => {
     vi.mocked(api.confirmPeopleImport).mockResolvedValue(RESULT);
     const onDone = vi.fn();
     render(<ImportFlow householdMemberId="member-1" ctaLabel="Continue" onDone={onDone} />);
-    uploadAFile();
+    await uploadAFile();
     await waitFor(() => screen.getByText("Review your import"));
     reviewRibbon("Aditi Sharma");
     fireEvent.click(screen.getByRole("button", { name: "Confirm imports" }));

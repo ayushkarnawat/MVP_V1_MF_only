@@ -1,0 +1,437 @@
+<title>Member Profile Completion Map</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;600;700&family=Manrope:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column; diagrams and tables scroll inside their own boxes. Same tokens as CAS Member Detection Map. */
+:root {
+  --bg: #FCFCFC; --surface: #FFFFFF; --ink: #111111; --muted: #5C5C5C; --border: #E5E5E5;
+  --accent: #22C55E; --accent-ink: #15803D; --gold: #A16207; --gold-bg: #FEF9C3;
+  --warn: #B45309; --warn-bg: #FEF3C7; --good: #15803D; --good-bg: #DCFCE7;
+  --bad: #B42318; --bad-bg: #FEE4E2; --new: #4338CA; --new-bg: #E8E8FF;
+  --code-bg: #F4F6F5; --diagram-bg: #FFFFFF; --track: #E7ECE9; --faded: #F1F3F2; --faded-ink: #8A8F8C;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0F0F0F; --surface: #1A1A1A; --ink: #F5F5F5; --muted: #A3A3A3; --border: #2A2A2A;
+    --accent: #22C55E; --accent-ink: #4ADE80; --gold: #FACC15; --gold-bg: #3A3108;
+    --warn: #FCD34D; --warn-bg: #3A2A0A; --good: #86EFAC; --good-bg: #0F2E1A;
+    --bad: #FDA29B; --bad-bg: #3B1512; --new: #C7C7FF; --new-bg: #25254A;
+    --code-bg: #202322; --diagram-bg: #161616; --track: #2C302E; --faded: #222524; --faded-ink: #7C817E;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0F0F0F; --surface: #1A1A1A; --ink: #F5F5F5; --muted: #A3A3A3; --border: #2A2A2A;
+  --accent: #22C55E; --accent-ink: #4ADE80; --gold: #FACC15; --gold-bg: #3A3108;
+  --warn: #FCD34D; --warn-bg: #3A2A0A; --good: #86EFAC; --good-bg: #0F2E1A;
+  --bad: #FDA29B; --bad-bg: #3B1512; --new: #C7C7FF; --new-bg: #25254A;
+  --code-bg: #202322; --diagram-bg: #161616; --track: #2C302E; --faded: #222524; --faded-ink: #7C817E;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 400 15px/1.6 "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif; padding-inline: 20px; padding-block: 40px 72px; }
+.wrap { max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; gap: 56px; }
+h1, h2, h3, h4 { font-family: "DM Sans", system-ui, sans-serif; text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(28px, 4.2vw, 36px); font-weight: 700; line-height: 1.15; }
+h2 { font-size: 22px; font-weight: 700; line-height: 1.3; }
+p { margin: 0; max-width: 72ch; }
+ul, ol { margin: 0; padding-left: 20px; max-width: 72ch; display: flex; flex-direction: column; gap: 6px; }
+code, .mono { font-family: "JetBrains Mono", ui-monospace, Consolas, monospace; font-size: 0.86em; }
+code { background: var(--code-bg); padding: 1px 6px; border-radius: 4px; overflow-wrap: anywhere; }
+.eyebrow { font: 600 12px/1 "Manrope", sans-serif; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent-ink); }
+header { display: flex; flex-direction: column; gap: 14px; }
+header .lede { font-size: 17px; color: var(--muted); }
+nav { display: flex; flex-wrap: wrap; gap: 8px; }
+nav a { color: var(--ink); text-decoration: none; font-size: 13px; font-weight: 500; border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px; background: var(--surface); }
+nav a:hover { border-color: var(--accent); }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+section { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 16px; }
+.section-head { display: flex; flex-direction: column; gap: 6px; }
+.section-head p { color: var(--muted); }
+.ba { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.ba > div { border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; background: var(--surface); display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.ba h3 { font-size: 15px; font-weight: 600; }
+.ba .before h3 { color: var(--bad); }
+.ba .after h3 { color: var(--accent-ink); }
+.ba ul { font-size: 14px; }
+.diagram { background: var(--diagram-bg); border: 1px solid var(--border); border-radius: 14px; padding: 20px; overflow-x: auto; }
+.diagram pre.mermaid { margin: 0; background: transparent; display: flex; justify-content: center; min-width: min-content; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; border: 1px solid; }
+.lg-br { background: #e6f7ea; border-color: #2e8b57; } .lg-pop { background: #e8e8ff; border-color: #5b5bd6; }
+.lg-db { background: #fff4d6; border-color: #b8860b; } .lg-ok { background: #fef9c3; border-color: #a16207; }
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+th { font: 600 12px/1.3 "Manrope", sans-serif; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); background: var(--code-bg); }
+td.n { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+.pill { display: inline-block; font: 600 11px/1.4 "Manrope", sans-serif; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+.p-w { color: var(--warn); background: var(--warn-bg); } .p-g { color: var(--good); background: var(--good-bg); }
+.p-b { color: var(--bad); background: var(--bad-bg); } .p-n { color: var(--new); background: var(--new-bg); }
+.callout { border: 1px solid var(--warn); background: var(--warn-bg); border-radius: 12px; padding: 14px 16px; font-size: 14px; max-width: none; }
+
+/* Screen mocks */
+.mocks { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 16px; }
+.mock { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 6px 24px rgba(0,0,0,0.06); min-width: 0; }
+.mock .tag { font: 600 11px/1 "JetBrains Mono", monospace; color: var(--muted); }
+.mock h4 { font: 700 16px/1.3 "DM Sans", sans-serif; }
+.mock p { font-size: 13.5px; color: var(--muted); }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field label { font-size: 12px; font-weight: 600; color: var(--ink); }
+.field label em { color: var(--bad); font-style: normal; }
+.field .in { border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; font-size: 13px; background: var(--bg); color: var(--ink); display: flex; justify-content: space-between; gap: 8px; }
+.field .in.ph { color: var(--muted); }
+.field .in.locked { background: var(--faded); color: var(--faded-ink); border-style: dashed; }
+.field small { font-size: 11.5px; color: var(--muted); }
+.ctas { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; margin-top: 4px; }
+.btn { font: 600 13px/1 "Manrope", sans-serif; border-radius: 999px; padding: 9px 16px; border: 1px solid var(--border); color: var(--ink); background: var(--surface); }
+.btn.pri { background: var(--accent); border-color: var(--accent); color: #062b14; }
+
+/* The nudge: ring around the initials + a chip that reads as a task, not a badge */
+.member-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px; border-radius: 12px; background: var(--bg); border: 1px solid var(--border); }
+.ring { --p: 40; width: 44px; height: 44px; border-radius: 50%; flex: none; display: grid; place-items: center;
+  background: conic-gradient(var(--gold) calc(var(--p) * 1%), var(--track) 0); }
+.ring span { width: 36px; height: 36px; border-radius: 50%; background: var(--surface); display: grid; place-items: center; font: 700 13px/1 "DM Sans", sans-serif; }
+.ring.full { background: conic-gradient(var(--accent) 100%, var(--track) 0); }
+.who { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.who b { font: 700 15px/1.2 "DM Sans", sans-serif; }
+.who small { font-size: 12px; color: var(--muted); }
+.nudge { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--gold); background: var(--gold-bg); color: var(--ink); border-radius: 999px; padding: 6px 12px 6px 8px; font-size: 12.5px; font-weight: 600; }
+.nudge .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 0 var(--gold); animation: pulse 1.8s ease-out infinite; }
+.nudge .go { color: var(--gold); }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--gold) 60%, transparent); } 100% { box-shadow: 0 0 0 8px transparent; } }
+@media (prefers-reduced-motion: reduce) { .nudge .dot { animation: none; } }
+.steps { display: flex; gap: 4px; }
+.steps i { flex: 1; height: 4px; border-radius: 2px; background: var(--track); }
+.steps i.on { background: var(--gold); }
+
+/* Success state */
+.success { align-items: center; text-align: center; padding: 28px 18px; }
+.success .big { width: 76px; height: 76px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(var(--accent) 100%, var(--track) 0); }
+.success .big span { width: 66px; height: 66px; border-radius: 50%; background: var(--surface); display: grid; place-items: center; }
+.success svg { width: 30px; height: 30px; stroke: var(--accent-ink); fill: none; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.success h4 { font-size: 19px; }
+.success .meta { font: 500 11px/1 "JetBrains Mono", monospace; letter-spacing: 0.06em; color: var(--muted); text-transform: uppercase; }
+
+.qs { display: flex; flex-direction: column; gap: 12px; }
+.q { border-left: 3px solid var(--warn); padding: 2px 0 2px 14px; display: flex; flex-direction: column; gap: 4px; }
+.q strong { font-family: "DM Sans", sans-serif; font-size: 15px; }
+.q span { color: var(--muted); font-size: 14px; max-width: 80ch; }
+.q .rec { color: var(--ink); }
+footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--border); padding-top: 16px; }
+.banner { display: flex; gap: 12px; align-items: flex-start; border: 1px solid var(--bad); background: var(--bad-bg); color: var(--ink); border-radius: 12px; padding: 12px 14px; font-size: 13.5px; }
+.banner b { display: block; font-family: "DM Sans", sans-serif; font-size: 14px; }
+.banner .ic { flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--bad); color: var(--bg); display: grid; place-items: center; font: 700 13px/1 "DM Sans", sans-serif; }
+.err { border: 1px solid var(--bad); background: var(--bad-bg); color: var(--ink); border-radius: 10px; padding: 8px 10px; font-size: 13px; }
+.done { border-left: 3px solid var(--accent); padding: 2px 0 2px 14px; display: flex; flex-direction: column; gap: 4px; }
+.done strong { font-family: "DM Sans", sans-serif; font-size: 15px; }
+.done span { color: var(--muted); font-size: 14px; max-width: 80ch; }
+</style>
+
+<div class="wrap">
+<header>
+  <span class="eyebrow">Proposal v2 · not built</span>
+  <h1>Member Profile Completion Map</h1>
+  <p class="lede">Detected family members are no longer locked. Their name and PAN are saved with the import, the same as yours. Their dashboards open straight away, and a progress nudge next to their name asks you to fill in the rest.</p>
+  <nav>
+    <a href="#change">The change</a><a href="#when">When data is saved</a><a href="#flow">Flow</a><a href="#screens">Popups and screens</a>
+    <a href="#score">How % is counted</a><a href="#writes">Data written</a><a href="#er">ER diagram</a>
+    <a href="#api">Code changes</a><a href="#decided">Decided</a>
+  </nav>
+</header>
+
+<section id="change">
+  <div class="section-head"><h2>The change</h2></div>
+  <div class="ba">
+    <div class="before"><h3>Today</h3><ul>
+      <li>Confirm imports saves a detected member’s PAN in a separate “detected” slot. It only becomes their real PAN when you unlock them.</li>
+      <li>Picking a detected member opens the <b>“Add Ramesh’s details”</b> unlock popup. Their dashboard and analytics stay closed (403) until you choose a relationship.</li>
+      <li>Phone and email can only be added later, through Edit.</li>
+      <li>Name is read-only and always comes from the CAS.</li>
+    </ul></div>
+    <div class="after"><h3>Proposed</h3><ul>
+      <li>Confirm imports saves a detected member’s name and <b>real PAN</b> at the same step where your own PAN becomes permanent.</li>
+      <li>Picking any member opens their dashboard and analytics. <b>No lock, no unlock popup.</b></li>
+      <li>A ring and a “40% complete · Finish profile” chip sit next to their name until the profile reaches 100%.</li>
+      <li>One popup: name (editable), PAN (greyed), relationship, phone and email, all optional. Exit asks before closing.</li>
+      <li>Each Save writes only what you entered. At 100% you see a short success state, then the dashboard.</li>
+      <li>The same data shows in Account → Family members, for you and every member.</li>
+    </ul></div>
+  </div>
+</section>
+
+<section id="when">
+  <div class="section-head"><h2>When data is saved</h2><p>Name and PAN are saved with the import. Everything else is saved only when you press Save in the popup.</p></div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Moment</th><th>Self</th><th>Detected member</th></tr></thead>
+    <tbody>
+      <tr><td>Onboarding</td><td>Name (typed), phone or email (login)</td><td>—</td></tr>
+      <tr><td>Upload <code>POST /imports/parse</code></td><td>PAN reserved for 65 min (pending claim). Name variant fixed if you choose to.</td><td>Nothing written. Same as today.</td></tr>
+      <tr><td>Confirm imports <code>POST /imports/confirm</code></td><td>PAN made permanent. Name variant applied.</td><td><span class="pill p-w">CHANGED</span> Row created with <b>name</b> and the <b>real PAN</b>, encrypted and stored exactly like Self’s (<code>encrypt_pan</code> → <code>pan_encrypted</code>, <code>hash_pan</code> → the unique <code>pan_lookup_hash</code>, <code>pan_source = cas</code>, <code>pan_verified_at</code>). No lock.</td></tr>
+      <tr><td>Complete profile popup → Save</td><td>Relationship is always Self. Phone and email are changed in Account Info.</td><td><span class="pill p-n">NEW</span> Only the fields entered: relationship, phone, email, name edit. Also PAN for members whose CAS had none.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="flow">
+  <div class="section-head"><h2>Flow</h2><p>Same on the main dashboard, analytics, and mobile.</p></div>
+  <div class="legend"><span><i class="lg-br"></i>Screen</span><span><i class="lg-pop"></i>Popup</span><span><i class="lg-db"></i>Database write</span><span><i class="lg-ok"></i>Success state</span></div>
+  <div class="diagram"><pre class="mermaid">flowchart TD
+    U["Upload CAS → review → Confirm imports"] --> UW[("Self PAN permanent<br/>detected members: name + real PAN")]
+    UW --> A["Consolidated view"]
+    A --> B["Pick a member"]
+    B --> C["Member dashboard / analytics opens<br/>(no lock check)"]
+    C --> X{"PAN on another<br/>Unifolio account?"}
+    X -->|"yes"| XB["Red banner under the name:<br/>This PAN is on another account"]
+    X -->|"no"| D{"Profile 100%?"}
+    XB --> E
+    D -->|"yes"| Z["Normal view, no chip"]
+    D -->|"no"| E["Ring + chip next to name:<br/>40% complete · Finish profile →"]
+    E -->|"click chip"| F["Complete profile popup<br/>name · PAN · relationship · phone · email"]
+    F -->|"Exit"| K["Skip completing Ramesh’s profile?"]
+    K -->|"Keep editing"| F
+    K -->|"Skip for now"| E
+    F -->|"Save, no-PAN member, PAN empty"| F1["Inline: Enter Ramesh’s PAN"] --> F
+    F -->|"Save"| W[("UPDATE household_members<br/>only the fields entered")]
+    W -->|"PAN on another account"| XW["Warning popup:<br/>Details saved, profile can’t be completed"] --> E
+    W --> G{"Now 100%?"}
+    G -->|"no"| E2["Dashboard, chip shows new %"]
+    G -->|"yes"| S["Success state<br/>Ramesh’s profile is complete"]
+    S -->|"Back to dashboard"| Z
+    class A,B,C,Z,E,E2,U,XB browser
+    class F,F1,K,XW popup
+    class W,UW db
+    class S ok
+    classDef browser fill:#e6f7ea,stroke:#2e8b57,color:#000
+    classDef popup fill:#e8e8ff,stroke:#5b5bd6,color:#000
+    classDef db fill:#fff4d6,stroke:#b8860b,color:#000
+    classDef ok fill:#fef9c3,stroke:#a16207,color:#000</pre></div>
+</section>
+
+<section id="screens">
+  <div class="section-head"><h2>Popups and screens</h2><p>Example member: Ramesh Sharma, found in your CAS with a PAN. The pulsing dot stops for people who turn off motion.</p></div>
+  <div class="mocks">
+    <div class="mock">
+      <span class="tag">1 · Member header · dashboard + analytics</span>
+      <div class="member-bar">
+        <div class="ring" style="--p:40"><span>RS</span></div>
+        <div class="who"><b>Ramesh Sharma</b><small>₹14,82,310 · 6 funds</small></div>
+        <span class="nudge"><i class="dot"></i>40% complete · Finish profile <span class="go">→</span></span>
+      </div>
+      <p>The whole chip is the button. The ring fills as fields are added.</p>
+    </div>
+    <div class="mock">
+      <span class="tag">2 · Member dropdown</span>
+      <div class="member-bar"><div class="ring full"><span>AS</span></div><div class="who"><b>Aditi Sharma</b><small>Self</small></div></div>
+      <div class="member-bar"><div class="ring" style="--p:40"><span>RS</span></div><div class="who"><b>Ramesh Sharma</b><small>40% complete</small></div></div>
+      <p>The lock icon and “Add details first” are removed. Every member can be picked.</p>
+    </div>
+    <div class="mock">
+      <span class="tag">3 · Complete profile popup</span>
+      <h4>Complete Ramesh’s profile</h4>
+      <div class="steps"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></div>
+      <div class="field"><label for="m-name">Name</label><div class="in" id="m-name">Ramesh Sharma <span>✎</span></div><small>From your CAS. You can correct it.</small></div>
+      <div class="field"><label>PAN</label><div class="in locked">ABCPS••••K <span>🔒</span></div><small>From your CAS. Can’t be changed.</small></div>
+      <div class="field"><label>Relationship</label><div class="in ph">Choose ▾ <span>Spouse · Parent · Child · Sibling · Other</span></div></div>
+      <div class="field"><label>Phone number</label><div class="in ph">+91</div></div>
+      <div class="field"><label>Email address</label><div class="in ph">name@example.com</div></div>
+      <div class="ctas"><span class="btn">Exit</span><span class="btn pri">Save</span></div>
+    </div>
+    <div class="mock">
+      <span class="tag">3b · Same popup, CAS had no PAN</span>
+      <h4>Complete Sunita’s profile</h4>
+      <div class="field"><label>Name</label><div class="in">Sunita Sharma <span>✎</span></div></div>
+      <div class="field"><label>PAN <em>*</em></label><div class="in ph">ABCDE1234F</div><small>Your CAS didn’t include Sunita’s PAN.</small></div>
+      <div class="err">Enter Sunita’s PAN to save.</div>
+      <p>PAN is the only required field, and only for these members. A typed PAN goes through the existing checks for duplicates and for other accounts.</p>
+      <div class="ctas"><span class="btn">Exit</span><span class="btn pri">Save</span></div>
+    </div>
+    <div class="mock">
+      <span class="tag">4 · Exit → skip confirmation</span>
+      <h4>Skip completing Ramesh’s profile?</h4>
+      <p>Anything you typed won’t be saved. You can finish it any time from the chip next to Ramesh’s name.</p>
+      <div class="ctas"><span class="btn">Skip for now</span><span class="btn pri">Keep editing</span></div>
+    </div>
+    <div class="mock">
+      <span class="tag">5 · After a partial save</span>
+      <div class="member-bar">
+        <div class="ring" style="--p:80"><span>RS</span></div>
+        <div class="who"><b>Ramesh Sharma</b><small>Parent</small></div>
+        <span class="nudge"><i class="dot"></i>80% complete · Add email <span class="go">→</span></span>
+      </div>
+      <p>When one field is left, the chip names it.</p>
+    </div>
+    <div class="mock success">
+      <span class="tag">6 · Success state (at 100%)</span>
+      <div class="big"><span><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></div>
+      <h4>Ramesh’s profile is complete</h4>
+      <p>Their details are saved and show in Account → Family members.</p>
+      <span class="meta">Name · PAN · Relationship · Phone · Email</span>
+      <div class="ctas" style="justify-content:center"><span class="btn pri">Back to dashboard</span></div>
+    </div>
+    <div class="mock">
+      <span class="tag">7 · PAN on another account · dashboard</span>
+      <div class="member-bar">
+        <div class="ring" style="--p:20"><span>VK</span></div>
+        <div class="who"><b>Vikram Kapoor</b><small>₹3,10,450 · 2 funds</small></div>
+        <span class="nudge"><i class="dot"></i>20% complete · Finish profile <span class="go">→</span></span>
+      </div>
+      <div class="banner"><span class="ic">!</span><div><b>Vikram’s PAN is on another Unifolio account</b>You can see their funds here, but their profile can’t be completed on your account. Contact support if this is a mistake.</div></div>
+    </div>
+    <div class="mock">
+      <span class="tag">8 · PAN on another account · after Save</span>
+      <h4>Vikram’s details are saved</h4>
+      <div class="banner"><span class="ic">!</span><div><b>Their profile can’t be completed here</b>Vikram’s PAN is already tracked under another Unifolio account, so it can’t be added to yours. Their relationship, phone and email are saved.</div></div>
+      <div class="ctas"><span class="btn pri">OK</span></div>
+    </div>
+    <div class="mock">
+      <span class="tag">9 · Account → Family members</span>
+      <div class="member-bar"><div class="ring full"><span>AS</span></div><div class="who"><b>Aditi Sharma · Self</b><small>PAN ABCPS••••A · +91 98•••••210 · aditi@…</small></div></div>
+      <div class="member-bar"><div class="ring" style="--p:80"><span>RS</span></div><div class="who"><b>Ramesh Sharma · Parent</b><small>PAN ABCPS••••K · +91 98•••••114 · no email</small></div><span class="nudge"><i class="dot"></i>80% · Finish <span class="go">→</span></span></div>
+      <p>Each card shows its %. “Complete details” and “Edit” become one button that opens the same popup. In your own popup, phone and email are read-only, with a “Change in Account Info” link.</p>
+    </div>
+  </div>
+</section>
+
+<section id="score">
+  <div class="section-head"><h2>How the % is counted</h2><p>Five fields at 20% each. Worked out from the row each time it’s read, never stored.</p></div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Field</th><th>Counts when</th><th>With PAN on CAS</th><th>No PAN on CAS</th><th>PAN on another account</th></tr></thead>
+    <tbody>
+      <tr><td>Name</td><td>always set</td><td class="n">20%</td><td class="n">20%</td><td class="n">20%</td></tr>
+      <tr><td>PAN</td><td><code>pan_encrypted</code> set on this account</td><td class="n">20%</td><td class="n">0% until typed</td><td class="n">never</td></tr>
+      <tr><td>Relationship</td><td><code>relationship</code> set</td><td class="n">0%</td><td class="n">0%</td><td class="n">0%</td></tr>
+      <tr><td>Phone</td><td><code>phone_number</code> set</td><td class="n">0%</td><td class="n">0%</td><td class="n">0%</td></tr>
+      <tr><td>Email</td><td><code>email</code> set</td><td class="n">0%</td><td class="n">0%</td><td class="n">0%</td></tr>
+      <tr><td><b>Starts at</b></td><td></td><td class="n">40%</td><td class="n">20%</td><td class="n">20%</td></tr>
+      <tr><td><b>Highest possible</b></td><td></td><td class="n">100%</td><td class="n">100%</td><td class="n">80%</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="writes">
+  <div class="section-head"><h2>Data written at each step</h2></div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Step</th><th>Screen / popup</th><th>Endpoint</th><th>Database</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Upload</td><td><code>POST /imports/parse</code></td><td>Self PAN pending, as today. Nothing for detected people.</td></tr>
+      <tr><td>2</td><td>Confirm imports</td><td><code>POST /imports/confirm</code></td><td>
+        Self PAN permanent, as today. Each new detected member gets one <code>household_members</code> row:
+        <ul>
+          <li><code>name</code>, <code>name_source = cas</code>, <code>origin = cas_detected</code>, <code>relationship = NULL</code></li>
+          <li><code>pan_encrypted</code>, <code>pan_lookup_hash</code>, <code>pan_source = cas</code>, <code>pan_verified_at = now</code></li>
+          <li>PAN held on another account: PAN goes in <code>detected_pan_*</code> instead, and <code>pan_conflict = other_account</code></li>
+        </ul></td></tr>
+      <tr><td>3</td><td>Consolidated view, then a member</td><td><code>GET /household-members</code>, member GETs</td><td>Read only. The response adds <code>profile_completion</code> and <code>missing_fields</code>. There is no more 403.</td></tr>
+      <tr><td>4</td><td>Popup → Exit → Skip for now</td><td>none</td><td>—</td></tr>
+      <tr><td>5</td><td>Popup → Save</td><td><code>PUT /household-members/{id}/profile</code></td><td>
+        One row. Only the fields entered are written:
+        <ul>
+          <li><code>relationship</code> (+ <code>relationship_other_label</code> for Other)</li>
+          <li><code>phone_number</code>, <code>email</code></li>
+          <li>Name changed: <code>name</code>, <code>name_source = user_edited</code>, <code>name_updated_at</code>, plus one <code>household_member_name_changes</code> row (<code>user_edit</code>)</li>
+          <li>No-PAN member: typed PAN in <code>pan_encrypted</code> / <code>pan_lookup_hash</code>, <code>pan_source = user_entered</code></li>
+        </ul></td></tr>
+      <tr><td>6</td><td>Dashboard with the new %, success state, or the other-account warning</td><td>response of step 5</td><td>—</td></tr>
+      <tr><td>7</td><td>Account → Family members</td><td><code>GET /household-members</code></td><td>Read only. Same row, same %.</td></tr>
+      <tr><td>Later</td><td>A new CAS with a different name</td><td><code>POST /imports/parse</code></td><td>The existing name-mismatch prompt fires. A user-edited name is no longer overwritten without asking.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="er">
+  <div class="section-head"><h2>ER diagram</h2><p>No new tables. The popup’s fields already exist on <code>household_members</code>; phone and email were added in 0021. One migration, 0023 (0022 is the consent table), removes the lock and renames one column.</p></div>
+  <div class="diagram"><pre class="mermaid">erDiagram
+    users ||--o{ household_members : "owns"
+    household_members ||--o{ household_member_name_changes : "name edits"
+    household_members ||--o{ folios : "holds"
+    users {
+        uuid id PK
+        string phone_number "Self phone, OTP-verified"
+        string email "Self email"
+    }
+    household_members {
+        uuid id PK
+        uuid user_id FK
+        string name "Confirm, then editable in popup"
+        enum name_source "NEW value user_edited after a popup edit"
+        string pan_encrypted "CHANGED written at Confirm"
+        string pan_lookup_hash UK "CHANGED written at Confirm"
+        enum pan_source "cas or user_entered"
+        string detected_pan_encrypted "CHANGED other-account PAN only"
+        string detected_pan_hash "CHANGED other-account PAN only"
+        enum pan_conflict "RENAMED from lock_reason, other_account"
+        enum relationship "optional, popup"
+        string relationship_other_label "required for Other"
+        string phone_number "optional, popup"
+        string email "optional, popup"
+        timestamptz details_completed_at "DROPPED"
+    }
+    household_member_name_changes {
+        uuid id PK
+        uuid household_member_id FK
+        string old_name
+        string new_name
+        enum reason "user_edit"
+    }</pre></div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Migration 0023</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>Drop <code>details_completed_at</code>, the relationship-required-when-unlocked CHECK, and the <code>trg_member_never_relock</code> trigger</td><td>Nothing is locked any more, and relationship is optional</td></tr>
+      <tr><td>Add the <code>user_edited</code> value to <code>name_source</code></td><td>Marks a popup edit, so a later CAS asks instead of silently replacing the name. Onboarding names stay <code>user_entered</code> and are still replaced.</td></tr>
+      <tr><td>Rename <code>lock_reason</code> → <code>pan_conflict</code>; drop the <code>details_needed</code> value</td><td>The only value left is the other-account case, which drives the banner</td></tr>
+      <tr><td>Backfill: move each existing detected PAN into <code>pan_encrypted</code> / <code>pan_lookup_hash</code>, unless another account holds it</td><td>Staging already has locked members</td></tr>
+    </tbody>
+  </table></div>
+  <p style="color:var(--muted)">Why there’s no <code>profile_completion</code> column: the % is a count of five fields on the same row, and a stored copy could fall out of step with it.</p>
+</section>
+
+<section id="api">
+  <div class="section-head"><h2>Code changes</h2></div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Piece</th><th>Change</th><th>Detail</th></tr></thead>
+    <tbody>
+      <tr><td><code>confirm_people._member_for</code></td><td><span class="pill p-w">CHANGED</span></td><td>Writes the real PAN claim at Confirm, the same way Self’s claim is made permanent.</td></tr>
+      <tr><td><code>require_unlocked_member</code></td><td><span class="pill p-b">REMOVED</span></td><td>Removed from every member-scoped read in the dashboard, analytics and CAS-import routes.</td></tr>
+      <tr><td><code>PUT /household-members/{id}/profile</code></td><td><span class="pill p-n">NEW</span></td><td>Replaces <code>POST …/details</code> and <code>PATCH …/{id}</code>. All fields optional. PAN is required only when the member has none, and rejected when the CAS supplied one. Self: name and relationship only.</td></tr>
+      <tr><td><code>GET /household-members</code></td><td><span class="pill p-w">CHANGED</span></td><td>Adds <code>profile_completion</code>, <code>missing_fields</code> and <code>pan_conflict</code>. Drops <code>details_required</code> and <code>lock_reason</code>.</td></tr>
+      <tr><td><code>plan_name_update</code></td><td><span class="pill p-w">CHANGED</span></td><td>A user-entered name now gets the name-mismatch prompt instead of being silently replaced by the CAS name.</td></tr>
+      <tr><td>Import prompts</td><td><span class="pill p-b">REMOVED</span></td><td><code>member_details_required</code> and <code>locked_member_only</code>.</td></tr>
+      <tr><td>Merge (<code>/merge-into</code>)</td><td><span class="pill p-w">CHANGED</span></td><td>Today the source member must be locked. The new rule: the source is a detected member whose CAS had no PAN.</td></tr>
+      <tr><td>Popups</td><td><span class="pill p-w">CHANGED</span></td><td><code>MemberDetailsDialog</code> and <code>EditMemberDialog</code> are merged into <code>CompleteProfileDialog</code>. <code>ConfirmLeaveDialog</code> stays, with new copy. <code>OtherAccountDialog</code> becomes the post-Save warning.</td></tr>
+      <tr><td><code>ProfileNudge</code>, <code>PanConflictBanner</code>, <code>ProfileCompleteSuccess</code></td><td><span class="pill p-n">NEW</span></td><td>Shown on the dashboard, analytics, mobile and Account cards.</td></tr>
+      <tr><td><code>MainDashboardFlow</code>, <code>NavigationShell</code>, mobile <code>LockedMember</code></td><td><span class="pill p-w">CHANGED</span></td><td>Lock checks removed. The default member choice no longer skips anyone.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="decided">
+  <div class="section-head"><h2>Decided (1 Oct review)</h2></div>
+  <div class="qs">
+    <div class="done"><strong>Name and PAN timing</strong><span>Saved at Confirm imports, alongside Self’s permanent PAN. Relationship, phone and email are saved only on popup Save.</span></div>
+    <div class="done"><strong>A · No PAN reservation at upload for detected members</strong><span>Their PAN is saved only at Confirm imports. Upload still checks each detected PAN against other accounts. If another account takes the PAN during the review, Confirm treats it as the other-account case.</span></div>
+    <div class="done"><strong>Relationship</strong><span>Optional. Nothing in the popup is required, except PAN for members whose CAS had none.</span></div>
+    <div class="done"><strong>Q1 · Editable name</strong><span>Allowed. A later CAS with a different name raises the existing name-mismatch prompt. This replaces the 1 Oct “names can’t be edited” rule.</span></div>
+    <div class="done"><strong>Q2 · Members whose CAS had no PAN</strong><span>PAN is editable, required, and counts toward the %.</span></div>
+    <div class="done"><strong>Q3 · PAN on another account</strong><span>The dashboard opens, with a clearly visible red banner. A Save shows a second warning.</span></div>
+    <div class="done"><strong>Q4 · Self</strong><span>Self has a % too. In your own popup, phone and email are read-only, with a “Change in Account Info” link.</span></div>
+    <div class="done"><strong>Q5 · Weighting and Exit</strong><span>20% per field. Exit asks “Skip completing Ramesh’s profile?” first.</span></div>
+  </div>
+</section>
+
+
+
+<footer>v2, 1 Oct 2026, against <span class="mono">feat/enhanced-ui</span> with uncommitted changes. v1 was the first draft; v2 applies your answers; open questions are all closed. Implementation plan: Docs/superpowers/plans/2026-10-01-member-profile-completion.md. Companion: CAS Member Detection Map, whose Part 6 (unlock per person) this replaces once approved.</footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script>
+  if (!document.querySelector("pre.mermaid[data-processed]")) {
+    var t = document.documentElement.getAttribute("data-theme");
+    var dark = t ? t === "dark" : (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    mermaid.initialize({ startOnLoad: true, securityLevel: "strict", theme: dark ? "dark" : "default",
+      flowchart: { useMaxWidth: false }, er: { useMaxWidth: false } });
+  }
+</script>

@@ -72,6 +72,16 @@ Landing this migration also removed every OTP/session-related route's old direct
 
 - **`0019_user_primary_goals`** (expand phase): `users.primary_goals` — JSONB on Postgres with CHECK `ck_users_primary_goals_allowed` (array of 1–4 items, contained in the four allowed goals; written as a CASE so a scalar fails the CHECK instead of raising), JSON on SQLite. Backfilled from `primary_goal`; `primary_goal` is kept for rolling deploys. **Not run on Postgres** (no TEST_DATABASE_URL).
 - **`0020_import_statement_period_backfill`** (data only): fills `imports.statement_from_date` / `statement_to_date` from `raw_parser_output.statement_period` (`from_` or `from`, `DD-Mon-YYYY` or ISO); unreadable rows stay NULL. Downgrade is a no-op.
-- **Pending, later release — `0021`:** re-backfill `primary_goals` from `primary_goal` for rows old tasks wrote during the rollout, then drop `users.primary_goal` and the `primarygoal` enum type.
+- **Pending, later release — `0023`** (was reserved as "0021"): re-backfill `primary_goals` from `primary_goal` for rows old tasks wrote during the rollout, then drop `users.primary_goal` and the `primarygoal` enum type.
 
 `Database-Schema-Unifolio.md` synced through 0020 (v1.7).
+
+
+## 2026-10-01 — Migrations 0021, 0022 (consent, onboarding and profile changes) — uncommitted, awaiting review
+
+- **`0021_member_contact_fields`**: `household_members.phone_number` and `email` (nullable strings; contact info only, unverified — Q8). Self member shows the account phone/email read-only (Q9). No backfill (QE).
+- **`0022_consent_records`**: new table `consent_records` (append-only audit trail): `id`, `user_id`, `action` (given/withdrawn), `purpose_code`, `document_type` (tos/privacy/pan_disclaimer), `document_version`, `document_sha256`, `recorded_at`, `surface`, `ip_truncated` (IPv4 /24, IPv6 /48), `ip_hmac` (HMAC-SHA256 under a key derived from `PAN_LOOKUP_PEPPER` with a fixed label; raw IPs are never stored), `user_agent`, `device_id`, `related_import_id`, `related_file_sha256`. Index on `(user_id, purpose_code, recorded_at)`. **Deliberately no foreign keys**, so a user hard-delete neither cascades into nor is blocked by these rows; per Q6 they are kept indefinitely (no retention job).
+- **Append-only triggers**: SQLite `trg_consent_no_update` / `trg_consent_no_delete`; Postgres function `consent_records_append_only()` plus trigger `trg_consent_append_only` (BEFORE UPDATE OR DELETE). SQL is a frozen copy of `app/db/consent_trigger_sql.py`. The model also attaches the triggers via `after_create` so `create_all` test DBs get them.
+- **`pending_identity_verifications.consent_snapshot`**: the sign-up consent the user accepted is held here until the OTP verifies, then written as `consent_records` rows.
+- **Not verified on Postgres**: `tests/functional_postgres` (cascade deletes, trigger test) could not be run — no Postgres available in the session. Run once before merge.
+- Pending, now numbered **0023**: drop `users.primary_goal` (see `DEFERRED_FEATURES.md`; it was reserved as "0021").

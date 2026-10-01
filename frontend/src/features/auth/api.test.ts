@@ -12,6 +12,7 @@ import {
   verifyEmailOtp,
   verifyGoogleCredential,
   verifyOtp,
+  reactivateAccount,
 } from "./api";
 import { clearToken, setToken } from "./session";
 
@@ -289,5 +290,42 @@ describe("auth api", () => {
     vi.stubGlobal("fetch", fetchMock);
     await requestEmailOtp("a@b.com", undefined, "login");
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ email: "a@b.com", flow: "login" });
+  });
+
+  const ACCEPTED = [
+    { document_type: "terms_of_service" as const, document_version: "tos-placeholder-2026-10-01" },
+    { document_type: "privacy_policy" as const, document_version: "privacy-placeholder-2026-10-01" },
+  ];
+
+  it("sends accepted_documents and X-Device-Id on signupEmail, verifyOtp and verifyGoogleCredential", async () => {
+    const mockFetch = vi.fn().mockImplementation(
+      async () => new Response(JSON.stringify({ session_token: "t" }), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", mockFetch);
+
+    await signupEmail("a@b.com", ACCEPTED);
+    await verifyOtp("+919999999999", "123456", undefined, "signup", ACCEPTED);
+    await verifyGoogleCredential("id-tok", undefined, ACCEPTED);
+
+    for (const [, options] of mockFetch.mock.calls) {
+      expect(JSON.parse(options.body as string).accepted_documents).toEqual(ACCEPTED);
+      expect((options.headers as Record<string, string>)["X-Device-Id"]).toBeTruthy();
+    }
+  });
+
+  it("omits accepted_documents when none are given", async () => {
+    const mockFetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ session_token: "t" }), { status: 200 }));
+    vi.stubGlobal("fetch", mockFetch);
+    await verifyOtp("+919999999999", "123456", undefined, "login");
+    expect(JSON.parse(mockFetch.mock.calls[0][1].body as string)).not.toHaveProperty("accepted_documents");
+  });
+
+  it("reactivateAccount posts accepted_documents", async () => {
+    const mockFetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ user_id: "u" }), { status: 200 }));
+    vi.stubGlobal("fetch", mockFetch);
+    await reactivateAccount(ACCEPTED);
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toContain("/auth/reactivate");
+    expect(JSON.parse(options.body as string)).toEqual({ accepted_documents: ACCEPTED });
   });
 });

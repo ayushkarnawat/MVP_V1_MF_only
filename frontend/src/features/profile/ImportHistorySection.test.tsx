@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ImportHistorySection } from "./ImportHistorySection";
 import type { HouseholdImportHistoryItem } from "../import/types";
@@ -14,7 +14,7 @@ function row(over: Partial<HouseholdImportHistoryItem>): HouseholdImportHistoryI
 
 const member = (id: string, name: string, locked: boolean): HouseholdMember => ({
   id, name, relationship: locked ? null : "self", relationship_other_label: null, origin: "cas",
-  lock_reason: locked ? "details_needed" : null, details_required: locked, pan_masked: null,
+  lock_reason: locked ? "details_needed" : null, details_required: locked, pan_masked: null, phone_number: null, email: null, pan_on_statement: false, name_from_statement: false,
 });
 
 const FAMILY = [
@@ -87,5 +87,21 @@ describe("ImportHistorySection", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Delete import from 10 Sep 2026" }));
     fireEvent.click(screen.getByRole("button", { name: "Delete import" }));
     await waitFor(() => expect(deleteImport).toHaveBeenCalledWith("i1", "person"));
+  });
+
+  it("rows don’t show transaction counts", async () => {
+    render(<ImportHistorySection loadImportHistory={vi.fn().mockResolvedValue(FAMILY)} />);
+    await screen.findByText("Ramesh Sharma");
+    expect(screen.queryByText(/txns|transactions/)).toBeNull();
+    cleanup();
+    render(<ImportHistorySection loadImportHistory={vi.fn().mockResolvedValue([row({ group_people_count: 1, upload_group_id: null })])} />);
+    await screen.findByText("1 Apr 2025 – 31 Mar 2026");
+    expect(screen.queryByText(/txns|transactions/)).toBeNull();
+  });
+
+  it("delete confirmation still mentions transactions", async () => {
+    render(<ImportHistorySection loadImportHistory={vi.fn().mockResolvedValue([row({ group_people_count: 1, upload_group_id: null })])} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Delete import from 10 Sep 2026" }));
+    expect(screen.getByText("This removes 5 transactions tied to this import from your holdings.")).toBeInTheDocument();
   });
 });

@@ -1,26 +1,38 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { OnboardingFlow } from "./OnboardingFlow";
-import { AuthProvider } from "./AuthContext";
+import { OnboardingFlow, resumeStep } from "./OnboardingFlow";
+import { AuthProvider, useAuth } from "./AuthContext";
 import * as api from "./api";
+import { clearToken, setToken } from "./session";
 import type { MeResponse } from "./types";
 
 vi.mock("./api", async () => {
   const actual = await vi.importActual<typeof import("./api")>("./api");
-  return { ...actual, getMe: vi.fn(), updateMe: vi.fn() };
+  return { ...actual, getMe: vi.fn(), updateMe: vi.fn(), createHouseholdMember: vi.fn() };
 });
 
 const BASE_ME: MeResponse = {
   user_id: "u1", phone_number: "+919999999999", email: null,
   onboarding_step: null, onboarding_completed: false, investor_type: null, primary_goals: null,
+  self_name: null, consent_outdated: [],
 };
 
-function renderFlow() {
-  vi.mocked(api.getMe).mockResolvedValue(BASE_ME);
-  vi.mocked(api.updateMe).mockImplementation(async (body) => ({ ...BASE_ME, ...body }) as MeResponse);
+// App.tsx mounts the flow only once /auth/me has loaded; mirror that so the
+// resume initialisers see the real `me`.
+function LoadedFlow() {
+  const { loading } = useAuth();
+  return loading ? null : <OnboardingFlow />;
+}
+
+function renderFlow(me: MeResponse = BASE_ME) {
+  vi.mocked(api.getMe).mockResolvedValue(me);
+  vi.mocked(api.updateMe).mockImplementation(async (body) => ({ ...me, ...body }) as MeResponse);
+  vi.mocked(api.createHouseholdMember).mockImplementation(async (name) => ({
+    id: "self-1", name, relationship: "self", relationship_other_label: null, origin: "onboarding", lock_reason: null, details_required: false, pan_masked: null, phone_number: null, email: null, pan_on_statement: false, name_from_statement: false,
+  }));
   return render(
     <AuthProvider>
-      <OnboardingFlow />
+      <LoadedFlow />
     </AuthProvider>,
   );
 }
@@ -28,9 +40,10 @@ function renderFlow() {
 describe("OnboardingFlow", () => {
   afterEach(() => {
     vi.clearAllMocks();
+    clearToken();
   });
 
-  it("starts at Name (Q1) and walks forward through Investing -> Goal -> Privacy/Trust -> CAS upload", async () => {
+  it("starts at Name (Q1) and walks forward through Investing -> Goal -> CAS upload (no privacy screen)", async () => {
     renderFlow();
     await waitFor(() => expect(screen.getByLabelText(/full name as per pan/i)).toBeInTheDocument());
 
@@ -44,11 +57,9 @@ describe("OnboardingFlow", () => {
     fireEvent.click(screen.getByRole("checkbox", { name: /consolidated portfolio view/i }));
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
 
-    await waitFor(() => expect(screen.getByRole("heading", { level: 1, name: /we keep your insights, not your files\./i })).toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: /^next$/i }));
-
-    // continue from privacy page goes straight to upload: no household question
+    // Q3 Continue goes straight to upload: no privacy screen, no household question
     await waitFor(() => expect(screen.getByText(/setting up your profile/i)).toBeInTheDocument());
+    expect(screen.queryByText(/not your files/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/just me/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/just you, or tracking for family too/i)).not.toBeInTheDocument();
   });
@@ -130,5 +141,77 @@ describe("OnboardingFlow", () => {
     fireEvent.click(opt);
     expect(opt).toHaveAttribute("aria-checked", "false");
     expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
+  });
+
+  it("name step saves the self member before moving on", async () => {
+    renderFlow();
+    await waitFor(() => screen.getByLabelText(/full name as per pan/i));
+    fireEvent.change(screen.getByLabelText(/full name as per pan/i), { target: { value: "Asha Rao" } });
+    fireEvent.click(screen.getByRole("button", { name: /^next$/i }));
+    await waitFor(() => screen.getByText(/how are you investing right now/i));
+    expect(api.createHouseholdMember).toHaveBeenCalledWith("Asha Rao", "self");
+  });
+
+  it("stays on the name step and shows an alert when saving the name fails", async () => {
+    renderFlow();
+    vi.mocked(api.createHouseholdMember).mockRejectedValue(new Error("boom"));
+    await waitFor(() => screen.getByLabelText(/full name as per pan/i));
+    fireEvent.change(screen.getByLabelText(/full name as per pan/i), { target: { value: "Asha Rao" } });
+    fireEvent.click(screen.getByRole("button", { name: /^next$/i }));
+    await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
+    expect(screen.queryByText(/how are you investing right now/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^next$/i })).not.toBeDisabled();
+  });
+
+  it("back to the name step and changing it renames via a second create call", async () => {
+    renderFlow();
+    await waitFor(() => screen.getByLabelText(/full name as per pan/i));
+    fireEvent.change(screen.getByLabelText(/full name as per pan/i), { target: { value: "Ravi" } });
+    fireEvent.click(screen.getByRole("button", { name: /^next$/i }));
+    await waitFor(() => screen.getByText(/how are you investing right now/i));
+    fireEvent.click(screen.getByRole("button", { name: /^back$/i }));
+    await waitFor(() => expect(screen.getByLabelText(/full name as per pan/i)).toHaveValue("Ravi"));
+    fireEvent.change(screen.getByLabelText(/full name as per pan/i), { target: { value: "Ravi Kumar" } });
+    fireEvent.click(screen.getByRole("button", { name: /^next$/i }));
+    await waitFor(() => expect(api.createHouseholdMember).toHaveBeenLastCalledWith("Ravi Kumar", "self"));
+    expect(api.createHouseholdMember).toHaveBeenCalledTimes(2);
+  });
+
+  it("resumed questions show the saved answers", async () => {
+    setToken("t"); // AuthProvider only loads /auth/me when a token is stored
+    renderFlow({ ...BASE_ME, onboarding_step: "q2_investing", self_name: "Asha", investor_type: "self_directed" });
+    await waitFor(() => screen.getByText(/how are you investing right now/i));
+    expect(screen.getByRole("button", { name: /mostly on my own/i })).toHaveClass("bg-[#22C55E]/[0.08]");
+    expect(screen.getByRole("button", { name: /^through an advisor/i })).not.toHaveClass("bg-[#22C55E]/[0.08]");
+  });
+});
+
+const baseMe: MeResponse = {
+  user_id: "u", phone_number: "+91", email: null, onboarding_completed: false, onboarding_step: null,
+  investor_type: null, primary_goals: null, pending_deletion: false, deletion_scheduled_at: null, self_name: null, consent_outdated: [],
+};
+
+describe("resumeStep", () => {
+  it("trust_primer with nothing saved goes to the name step", () => {
+    expect(resumeStep({ ...baseMe, onboarding_step: "trust_primer" })).toBe("q1_name");
+  });
+  it("trust_primer with only a name goes to investing", () => {
+    expect(resumeStep({ ...baseMe, onboarding_step: "trust_primer", self_name: "Asha" })).toBe("q2_investing");
+  });
+  it("trust_primer with name and investing goes to the goal question", () => {
+    expect(resumeStep({ ...baseMe, onboarding_step: "trust_primer", self_name: "Asha", investor_type: "self_directed" })).toBe("q3_purpose");
+  });
+  it("trust_primer with everything saved goes to upload", () => {
+    expect(resumeStep({ ...baseMe, onboarding_step: "trust_primer", self_name: "Asha", investor_type: "self_directed", primary_goals: ["family_management"] })).toBe("cas_upload");
+  });
+  it("any step past the name without a saved name goes back to the name step", () => {
+    expect(resumeStep({ ...baseMe, onboarding_step: "cas_upload" })).toBe("q1_name");
+    expect(resumeStep({ ...baseMe, onboarding_step: "q3_purpose" })).toBe("q1_name");
+  });
+  it("a normal step with a saved name is kept, even if a skipped answer is null", () => {
+    expect(resumeStep({ ...baseMe, onboarding_step: "cas_upload", self_name: "Asha" })).toBe("cas_upload");
+  });
+  it("no step starts at the name step", () => {
+    expect(resumeStep({ ...baseMe, onboarding_step: null })).toBe("q1_name");
   });
 });

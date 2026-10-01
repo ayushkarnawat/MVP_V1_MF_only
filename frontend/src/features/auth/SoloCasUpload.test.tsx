@@ -1,9 +1,16 @@
 import { StrictMode } from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SoloCasUpload } from "./SoloCasUpload";
 import { AuthProvider } from "./AuthContext";
 import * as api from "./api";
+import { currentPanDisclaimer } from "../legal/panDisclaimerStore";
+
+vi.mock("../legal/api", async () => {
+  const actual = await vi.importActual<typeof import("../legal/api")>("../legal/api");
+  const { DOCS } = await import("../legal/testFixtures");
+  return { ...actual, getLegalDocuments: vi.fn(async () => DOCS) };
+});
 
 vi.mock("./api", async () => {
   const actual = await vi.importActual<typeof import("./api")>("./api");
@@ -28,7 +35,7 @@ describe("SoloCasUpload", () => {
   it("creates a self household member when none exists yet, then renders ImportFlow", async () => {
     vi.mocked(api.listHouseholdMembers).mockResolvedValue([]);
     vi.mocked(api.createHouseholdMember).mockResolvedValue({
-      id: "self-1", name: "Ayush", relationship: "self", relationship_other_label: null, origin: "onboarding", lock_reason: null, details_required: false, pan_masked: null,
+      id: "self-1", name: "Ayush", relationship: "self", relationship_other_label: null, origin: "onboarding", lock_reason: null, details_required: false, pan_masked: null, phone_number: null, email: null, pan_on_statement: false, name_from_statement: false,
     });
 
     renderSolo("Ayush");
@@ -37,9 +44,23 @@ describe("SoloCasUpload", () => {
     expect(api.createHouseholdMember).toHaveBeenCalledWith("Ayush", "self");
   });
 
+  it("onboarding upload uses onboarding_upload", async () => {
+    vi.mocked(api.listHouseholdMembers).mockResolvedValue([
+      { id: "self-1", name: "Ayush", relationship: "self", relationship_other_label: null, origin: "onboarding", lock_reason: null, details_required: false, pan_masked: null, phone_number: null, email: null, pan_on_statement: false, name_from_statement: false },
+    ]);
+
+    renderSolo("Ayush");
+
+    fireEvent.click(await screen.findByRole("button", { name: /already have a statement|upload/i }));
+    const box = await screen.findByRole("checkbox");
+    await waitFor(() => expect(box).toBeEnabled());
+    fireEvent.click(box);
+    expect(currentPanDisclaimer()?.surface).toBe("onboarding_upload");
+  });
+
   it("reuses an existing self household member instead of creating a duplicate", async () => {
     vi.mocked(api.listHouseholdMembers).mockResolvedValue([
-      { id: "self-1", name: "Ayush", relationship: "self", relationship_other_label: null, origin: "onboarding", lock_reason: null, details_required: false, pan_masked: null },
+      { id: "self-1", name: "Ayush", relationship: "self", relationship_other_label: null, origin: "onboarding", lock_reason: null, details_required: false, pan_masked: null, phone_number: null, email: null, pan_on_statement: false, name_from_statement: false },
     ]);
 
     renderSolo("Ayush");
@@ -51,7 +72,7 @@ describe("SoloCasUpload", () => {
   it("falls back to a default name when none was given", async () => {
     vi.mocked(api.listHouseholdMembers).mockResolvedValue([]);
     vi.mocked(api.createHouseholdMember).mockResolvedValue({
-      id: "self-1", name: "Me", relationship: "self", relationship_other_label: null, origin: "onboarding", lock_reason: null, details_required: false, pan_masked: null,
+      id: "self-1", name: "Me", relationship: "self", relationship_other_label: null, origin: "onboarding", lock_reason: null, details_required: false, pan_masked: null, phone_number: null, email: null, pan_on_statement: false, name_from_statement: false,
     });
 
     renderSolo("");
@@ -62,7 +83,7 @@ describe("SoloCasUpload", () => {
   it("creates only one self household member under StrictMode's double-invoked mount effect", async () => {
     vi.mocked(api.listHouseholdMembers).mockResolvedValue([]);
     vi.mocked(api.createHouseholdMember).mockResolvedValue({
-      id: "self-1", name: "Ayush", relationship: "self", relationship_other_label: null, origin: "onboarding", lock_reason: null, details_required: false, pan_masked: null,
+      id: "self-1", name: "Ayush", relationship: "self", relationship_other_label: null, origin: "onboarding", lock_reason: null, details_required: false, pan_masked: null, phone_number: null, email: null, pan_on_statement: false, name_from_statement: false,
     });
 
     render(

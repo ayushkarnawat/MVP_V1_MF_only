@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session as DbSession
 
-from app.models.enums import MemberNameSource, MemberOrigin, Relationship
+from app.models.enums import MemberNameSource, MemberOrigin, MemberPanSource, Relationship
 from app.models.user import HouseholdMember
 from app.services.dashboard.schemas import HouseholdMemberResponse
 from app.services.import_.crypto import decrypt_pan
@@ -40,6 +40,17 @@ def create_household_member(
             .first()
         )
         if existing_self is not None:
+            # 2026-10-01 (decision QA): the onboarding name is provisional
+            # until the first CAS gives the real one. Going Back to the name
+            # step and changing it renames the same row instead of failing.
+            if (
+                existing_self.name_source == MemberNameSource.USER_ENTERED
+                and existing_self.pan_lookup_hash is None
+            ):
+                existing_self.name = name
+                existing_self.name_updated_at = datetime.now(timezone.utc)
+                db.commit()
+                return existing_self
             raise DuplicateSelfMemberError(
                 "This user already has a 'self' household member."
             )
@@ -90,4 +101,12 @@ def member_to_response(m: HouseholdMember) -> HouseholdMemberResponse:
         lock_reason=m.lock_reason.value if m.lock_reason else None,
         details_required=m.is_locked,
         pan_masked=mask_pan(decrypt_pan(encrypted)) if encrypted else None,
+        phone_number=m.phone_number,
+        email=m.email,
+        pan_on_statement=(
+            m.is_locked
+            and m.detected_pan_hash is not None
+            and m.pan_source != MemberPanSource.USER_ENTERED
+        ),
+        name_from_statement=m.name_source == MemberNameSource.CAS,
     )

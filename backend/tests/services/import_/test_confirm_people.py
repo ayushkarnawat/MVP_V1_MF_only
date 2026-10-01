@@ -32,6 +32,7 @@ from app.services.import_ import confirm_people
 from app.services.import_.confirm_people import ConfirmInvalidError, confirm_people_import
 from app.services.import_.crypto import encrypt_pan, hash_pan
 from app.services.import_.lifecycle_service import SessionExpiredError
+from app.services.import_.name_match import NameNotEditableError
 from app.services.import_.schemas import PersonConfirmation
 from app.services.import_.service import _preview_sessions, confirm_import, start_import_session
 from tests.api.import_helpers import SCHEME_NAME, family_result
@@ -259,8 +260,13 @@ def _add_data_session(db, stored_name, statement_name, *, member_kwargs=None):
     return me, ramesh, _start(db, me, pr)
 
 
+# 2026-10-01 (QB/QE): a USER_ENTERED name is always replaced by the CAS name,
+# so the variant/ask/I9 rules below are only reachable for a CAS-sourced name.
+_CAS_NAMED = {"name_source": MemberNameSource.CAS}
+
+
 def test_confirm_applies_update_notice_and_logs_name_change(db_session):
-    me, ramesh, preview = _add_data_session(db_session, "Ramesh Sharma", "RAMESH KUMAR SHARMA")
+    me, ramesh, preview = _add_data_session(db_session, "Ramesh Sharma", "RAMESH KUMAR SHARMA", member_kwargs=_CAS_NAMED)
     assert [n.kind for n in preview.name_notices] == ["update"]
 
     _confirm(db_session, preview, me.user_id)
@@ -280,7 +286,7 @@ def test_confirm_applies_update_notice_and_logs_name_change(db_session):
 def test_confirm_keeps_longer_stored_name(db_session):
     # I9: the statement has fewer tokens -- keep ours, even when the client
     # echoes the displayed statement name back as `name`.
-    me, ramesh, preview = _add_data_session(db_session, "Ramesh Kumar Sharma", "RAMESH SHARMA")
+    me, ramesh, preview = _add_data_session(db_session, "Ramesh Kumar Sharma", "RAMESH SHARMA", member_kwargs=_CAS_NAMED)
 
     _confirm(db_session, preview, me.user_id, [
         PersonConfirmation(person_key="p1"),
@@ -293,7 +299,7 @@ def test_confirm_keeps_longer_stored_name(db_session):
 
 
 def test_confirm_ask_renames_only_when_accepted(db_session):
-    me, ramesh, preview = _add_data_session(db_session, "Priya Sharma", "PRIYA KARNAWAT")
+    me, ramesh, preview = _add_data_session(db_session, "Priya Sharma", "PRIYA KARNAWAT", member_kwargs=_CAS_NAMED)
     assert [n.kind for n in preview.name_notices] == ["ask"]
 
     _confirm(db_session, preview, me.user_id, [
@@ -307,7 +313,7 @@ def test_confirm_ask_renames_only_when_accepted(db_session):
 
 
 def test_confirm_ask_not_accepted_keeps_name(db_session):
-    me, ramesh, preview = _add_data_session(db_session, "Priya Sharma", "PRIYA KARNAWAT")
+    me, ramesh, preview = _add_data_session(db_session, "Priya Sharma", "PRIYA KARNAWAT", member_kwargs=_CAS_NAMED)
 
     _confirm(db_session, preview, me.user_id)
 
@@ -316,37 +322,38 @@ def test_confirm_ask_not_accepted_keeps_name(db_session):
     assert db_session.query(HouseholdMemberNameChange).count() == 0
 
 
-def test_confirm_popup_name_edits(db_session):
-    # F32: an edited name on a new person is user_entered; on an existing
-    # member it is a rename logged as user_edit.
-    me, ramesh, preview = _add_data_session(db_session, "Ramesh Sharma", "RAMESH SHARMA")
-    session = _preview_sessions[preview.session_id]
-    assert session  # sanity
+def test_confirm_popup_name_edit_of_a_cas_named_member_is_refused(db_session):
+    # 2026-10-01: names come from the CAS; only U9 needs_name people may be
+    # typed (QB). Was F32's "rename logged as user_edit".
+    me, ramesh, preview = _add_data_session(db_session, "Ramesh Sharma", "RAMESH SHARMA", member_kwargs=_CAS_NAMED)
 
-    _confirm(db_session, preview, me.user_id, [
-        PersonConfirmation(person_key="p1"),
-        PersonConfirmation(person_key="p2", name="Ramesh K. Sharma"),
-    ])
+    with pytest.raises(NameNotEditableError) as e:
+        _confirm(db_session, preview, me.user_id, [
+            PersonConfirmation(person_key="p1"),
+            PersonConfirmation(person_key="p2", name="Ramesh K. Sharma"),
+        ])
 
+    assert e.value.code == "name_not_editable"
     db_session.refresh(ramesh)
-    assert ramesh.name == "Ramesh K. Sharma"
-    assert ramesh.name_source == MemberNameSource.USER_ENTERED
-    assert db_session.query(HouseholdMemberNameChange).one().reason == NameChangeReason.USER_EDIT
+    assert ramesh.name == "Ramesh Sharma"
+    assert db_session.query(HouseholdMemberNameChange).count() == 0
+    assert preview.session_id in _preview_sessions  # C1: can be confirmed again
 
 
-def test_confirm_new_person_edited_name_is_user_entered(db_session):
+def test_confirm_new_person_edited_name_is_refused(db_session):
+    # 2026-10-01: a new person the statement names keeps the CAS name (was
+    # F32's "edited name on a new person is user_entered").
     me = _member(db_session, _user(db_session), "Aditi Sharma")
     preview = _start(db_session, me, _family())
 
-    _confirm(db_session, preview, me.user_id, [
-        PersonConfirmation(person_key="p1"),
-        PersonConfirmation(person_key="p2", name="Ramesh K Sharma"),
-        PersonConfirmation(person_key="p3"),
-    ])
+    with pytest.raises(NameNotEditableError):
+        _confirm(db_session, preview, me.user_id, [
+            PersonConfirmation(person_key="p1"),
+            PersonConfirmation(person_key="p2", name="Ramesh K Sharma"),
+            PersonConfirmation(person_key="p3"),
+        ])
 
-    ramesh = next(m for m in _detected(db_session, me.user_id) if m.detected_pan_hash == hash_pan(RAMESH_PAN))
-    assert ramesh.name == "Ramesh K Sharma"
-    assert ramesh.name_source == MemberNameSource.USER_ENTERED
+    assert _detected(db_session, me.user_id) == []  # rolled back
     assert db_session.query(HouseholdMemberNameChange).count() == 0
 
 

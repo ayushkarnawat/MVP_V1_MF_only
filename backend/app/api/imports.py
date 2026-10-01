@@ -1,3 +1,4 @@
+import hashlib
 import logging
 import uuid
 from datetime import date
@@ -5,16 +6,17 @@ from datetime import date
 from collections.abc import Callable
 from typing import Literal
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Response, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Request, Response, UploadFile
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.db.session import SessionLocal, get_db
+from app.db.session import SessionLocal, commit_off_loop, get_db
 from app.models.folio import Folio
 from app.models.imports import Import
 from app.models.transaction import Transaction
 from app.models.analytics import AnalyticsSection
 from app.models.reference import NavHistory, Scheme
+from app.models.enums import ConsentAction, ConsentDocumentType
 from app.models.user import HouseholdMember, User
 from app.services.auth.session import get_active_user
 from app.services.analytics.dispatch import dispatcher
@@ -51,6 +53,14 @@ from app.services.import_.schemas import (
     ResolveSelfRequest,
 )
 from app.services.import_.pan_claims import PanConflictError
+from app.services.legal.consent import (
+    UPLOAD_DOCUMENTS,
+    AcceptedDocument,
+    ConsentRequiredError,
+    evidence_from_request,
+    record_consent,
+    validate_accepted,
+)
 from app.services.import_.service import (  # logic to process & confirm import
     SESSION_EXPIRED_MESSAGE,
     ImportPromptError,
@@ -225,12 +235,35 @@ def _run_resolve(call: Callable[[], ImportPreviewResponse]) -> ImportPreviewResp
         raise HTTPException(status_code=422, detail={"code": exc.code, "message": exc.message}) from exc
 
 
+PAN_DISCLAIMER_CONSENT_MESSAGE = "Tick the box to confirm you’re authorised to share this statement."
+_UPLOAD_SURFACES = frozenset({"onboarding_upload", "import_upload", "mobile_upload"})
+
+
+def validate_pan_disclaimer(version: str | None):
+    """The PAN disclaimer at its current version, else 422 consent_required.
+    Shared with the CAMS-request route (cas_imports.py)."""
+    accepted = (
+        [AcceptedDocument(document_type=ConsentDocumentType.PAN_DISCLAIMER, document_version=version)]
+        if version
+        else []
+    )
+    try:
+        return validate_accepted(accepted, UPLOAD_DOCUMENTS)
+    except ConsentRequiredError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={"code": exc.code, "message": PAN_DISCLAIMER_CONSENT_MESSAGE, "missing": exc.missing},
+        ) from exc
+
+
 #parsing & review
 @router.post("/parse", response_model=ImportPreviewResponse)
 async def parse_import(
+    request: Request,
     file: UploadFile = File(...),
     password: str = Form(...),
     household_member_id: str = Form(...),
+    pan_disclaimer_version: str = Form(None),
     user: User = Depends(get_active_user),
     db: Session = Depends(get_db),
 ):
@@ -262,6 +295,22 @@ async def parse_import(
             status_code=413,
             detail={"code": "file_too_large", "message": str(exc)},
         ) from exc
+
+    # Consent precedes processing: recorded and committed before the PDF is
+    # opened, so the row stays even when parsing then fails (wrong password,
+    # unsupported file) -- the user did authorise sharing this file.
+    documents = validate_pan_disclaimer(pan_disclaimer_version)
+    surface = request.headers.get("x-upload-surface")
+    record_consent(
+        db,
+        user_id=user.id,
+        documents=documents,
+        action=ConsentAction.GIVEN,
+        surface=surface if surface in _UPLOAD_SURFACES else "import_upload",
+        evidence=evidence_from_request(request),
+        related_file_sha256=hashlib.sha256(pdf_bytes).hexdigest(),
+    )
+    await commit_off_loop(db)
 
     try:
         parse_result = parse_cas_pdf_bytes(pdf_bytes, password)

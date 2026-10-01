@@ -8,6 +8,8 @@ import { isAccountExistsError, validateIndianPhone } from "./validation";
 import { HandDrawnUnderline } from "@/components/HandDrawnUnderline";
 
 import { AuthIllustration } from "./AuthIllustration";
+import { ConsentCheckbox } from "../legal/ConsentCheckbox";
+import type { LegalDocument } from "../legal/types";
 
 interface LandingProps {
   initialMode?: "login" | "signup";
@@ -18,6 +20,11 @@ interface LandingProps {
   onGoogleCredential: (idToken: string) => void;
   error: string | null;
   submitting: boolean;
+  consentChecked: boolean;
+  onConsentChange: (v: boolean) => void;
+  legalDocs: LegalDocument[] | null;
+  legalLoadError?: boolean;
+  onLegalRetry?: () => void;
 }
 
 export function Landing({
@@ -29,6 +36,11 @@ export function Landing({
   onGoogleCredential,
   error,
   submitting,
+  consentChecked,
+  onConsentChange,
+  legalDocs,
+  legalLoadError,
+  onLegalRetry,
 }: LandingProps) {
   // Mode state initialized from prop to preserve auth context on back navigation
   const [mode, setMode] = useState<"login" | "signup">(initialMode);
@@ -159,9 +171,18 @@ export function Landing({
               )}
             </div>
 
+            <ConsentCheckbox
+              checked={consentChecked}
+              onChange={onConsentChange}
+              docs={legalDocs}
+              types={["terms_of_service", "privacy_policy"]}
+              loadError={legalLoadError}
+              onRetry={onLegalRetry}
+            />
+
             <Button
               type="submit"
-              disabled={submitting || !phoneNumber.trim()}
+              disabled={submitting || !phoneNumber.trim() || !consentChecked}
               className="w-full h-14 sm:h-[58px] px-8 rounded-full font-bold text-[15px] sm:text-base bg-[#22C55E] hover:bg-[#22C55E]/90 dark:bg-[#22C55E] dark:hover:bg-[#22C55E]/90 text-white shadow-xl shadow-[#22C55E]/25 dark:shadow-[#22C55E]/20 active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2.5 border border-[#22C55E]/40 min-h-[52px] mt-2"
             >
               {submitting ? (

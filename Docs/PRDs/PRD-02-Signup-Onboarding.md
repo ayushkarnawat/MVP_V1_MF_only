@@ -286,7 +286,7 @@ Continue (disabled until at least one is picked), Skip still works. Stored as
 Household members are detected from the first CAS. Relationship and PAN are collected
 when the user first opens that member. The "Just you, or tracking for family too?" question
 and the "Family too" add-member / Family CAS Upload branch no longer exist; Q3 (Purpose)
-now leads to the privacy page and then straight to the CAS upload. The name question
+now leads to the privacy page and then straight to the CAS upload. [Updated 2026-10-01: the privacy page / trust primer is removed; Q3 leads straight to the CAS upload, and the name is saved at the name step and stays provisional until the first CAS.] The name question
 (Q1) now asks for the name exactly as on the PAN card.
 
 **Closing step — the payoff, not a fifth question**

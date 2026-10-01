@@ -657,3 +657,79 @@ def test_0020_backfills_statement_period_from_raw_parser_output(tmp_path, monkey
     assert got["i2"] == ("2025-10-01", "2025-12-31")
     assert got["i3"] == (None, None)
     assert got["i4"] == (None, None)
+
+
+def test_0021_adds_and_removes_member_contact_columns(tmp_path, monkeypatch):
+    import sqlite3
+
+    db_path = tmp_path / "contact.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    assert _alembic("upgrade", "0020").returncode == 0
+
+    def cols():
+        conn = sqlite3.connect(db_path)
+        try:
+            return {r[1]: r[3] for r in conn.execute("PRAGMA table_info(household_members)")}
+        finally:
+            conn.close()
+
+    assert "phone_number" not in cols()
+    up = _alembic("upgrade", "0021")
+    assert up.returncode == 0, up.stderr
+    c = cols()
+    assert c["phone_number"] == 0 and c["email"] == 0  # present, nullable
+    down = _alembic("downgrade", "0020")
+    assert down.returncode == 0, down.stderr
+    c = cols()
+    assert "phone_number" not in c and "email" not in c
+    conn = sqlite3.connect(db_path)
+    try:
+        triggers = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='trigger'")}
+    finally:
+        conn.close()
+    assert "trg_member_never_relock" in triggers  # batch rebuild must not lose it
+
+
+def test_0022_creates_append_only_consent_records_and_downgrade_removes_it(tmp_path, monkeypatch):
+    import sqlite3
+
+    db_path = tmp_path / "consent.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    up = _alembic("upgrade", "0022")
+    assert up.returncode == 0, up.stderr
+
+    conn = sqlite3.connect(db_path)
+    try:
+        cols = {r[1]: r[3] for r in conn.execute("PRAGMA table_info(consent_records)")}
+        assert cols["user_id"] == 1 and cols["ip_truncated"] == 0 and cols["related_import_id"] == 0
+        assert "ip_address" not in cols  # raw IPs are never stored
+        triggers = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='trigger'")}
+        assert {"trg_consent_no_update", "trg_consent_no_delete"}.issubset(triggers)
+        indexes = {r[1] for r in conn.execute("PRAGMA index_list(consent_records)")}
+        assert "ix_consent_records_user_purpose_recorded" in indexes
+        pending_cols = {r[1]: r[3] for r in conn.execute("PRAGMA table_info(pending_identity_verifications)")}
+        assert pending_cols["consent_snapshot"] == 0  # Task 8: present, nullable
+        conn.execute(
+            "INSERT INTO consent_records (id, user_id, action, purpose_code, document_type,"
+            " document_version, document_sha256, recorded_at, surface)"
+            " VALUES ('a', 'u', 'given', 'service_agreement', 'terms_of_service', 'v', 'h',"
+            " '2026-10-01', 's')"
+        )
+        conn.commit()
+        with pytest.raises(sqlite3.DatabaseError, match="consent_records_append_only"):
+            conn.execute("UPDATE consent_records SET surface = 'x'")
+        with pytest.raises(sqlite3.DatabaseError, match="consent_records_append_only"):
+            conn.execute("DELETE FROM consent_records")
+    finally:
+        conn.close()
+
+    down = _alembic("downgrade", "0021")
+    assert down.returncode == 0, down.stderr
+    conn = sqlite3.connect(db_path)
+    try:
+        tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        assert "consent_records" not in tables
+        pending_cols = {r[1] for r in conn.execute("PRAGMA table_info(pending_identity_verifications)")}
+        assert "consent_snapshot" not in pending_cols
+    finally:
+        conn.close()

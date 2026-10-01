@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { Q1Name } from "./Q1Name";
 
@@ -41,4 +41,16 @@ describe.each([
     expect(onSubmit).toHaveBeenCalledWith("Ramesh K Sharma");
   });
 
+
+  it("disables Next while an async submit is pending, then shows an alert if it rejects", async () => {
+    let reject!: (e: Error) => void;
+    const onSubmit = vi.fn(() => new Promise<void>((_, r) => { reject = r; }));
+    render(<Q1Name value="" onSubmit={onSubmit} isMobile={isMobile} />);
+    fireEvent.change(screen.getByLabelText("Full name as per PAN"), { target: { value: "Asha Rao" } });
+    fireEvent.click(screen.getByRole("button", { name: /^next$/i }));
+    await waitFor(() => expect(screen.getByRole("button", { name: /^next$/i })).toBeDisabled());
+    reject(new Error("Could not save"));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Could not save"));
+    expect(screen.getByRole("button", { name: /^next$/i })).not.toBeDisabled();
+  });
 });

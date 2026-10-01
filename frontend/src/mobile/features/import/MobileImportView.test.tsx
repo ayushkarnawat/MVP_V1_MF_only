@@ -7,6 +7,21 @@ import * as importApi from "@/features/import/api";
 import { setCasResumeStep2, hasCasResumeStep2 } from "@/features/import/casResumeState";
 import { familyPreview, preview, scheme } from "@/features/import/testFixtures";
 import type { ImportConfirmResponse } from "@/features/import/types";
+import { DOCS } from "@/features/legal/testFixtures";
+import { currentPanDisclaimer } from "@/features/legal/panDisclaimerStore";
+
+vi.mock("@/features/legal/api", async () => {
+  const actual = await vi.importActual<typeof import("@/features/legal/api")>("@/features/legal/api");
+  const { DOCS } = await import("@/features/legal/testFixtures");
+  return { ...actual, getLegalDocuments: vi.fn(async () => DOCS) };
+});
+
+/** Ticks the PAN disclaimer once the documents have loaded. */
+async function tickDisclaimer() {
+  const box = await screen.findByRole("checkbox");
+  await waitFor(() => expect(box).toBeEnabled());
+  fireEvent.click(box);
+}
 
 vi.mock("@/features/auth/api", () => ({
   listHouseholdMembers: vi.fn(),
@@ -43,6 +58,7 @@ async function uploadFile() {
   fireEvent.click(await screen.findByRole("button", { name: /already have a statement/i }));
   const file = new File(["pdf"], "statement.pdf", { type: "application/pdf" });
   fireEvent.change(screen.getByLabelText(/cas pdf/i), { target: { files: [file] } });
+  await tickDisclaimer();
   fireEvent.click(screen.getByRole("button", { name: /upload statement/i }));
 }
 
@@ -127,10 +143,11 @@ describe("MobileImportView", () => {
     const requestBtn = await screen.findByRole("button", {
       name: /request statement on cams/i,
     });
+    await tickDisclaimer();
     fireEvent.click(requestBtn);
 
     await waitFor(() => {
-      expect(importApi.requestCamsStatement).toHaveBeenCalledWith("m-1");
+      expect(importApi.requestCamsStatement).toHaveBeenCalledWith("m-1", DOCS[2].version);
       expect(windowOpenSpy).toHaveBeenCalledWith("https://www.camsonline.com/cas", "_blank");
       expect(hasCasResumeStep2("m-1")).toBe(true);
     });
@@ -138,6 +155,17 @@ describe("MobileImportView", () => {
     // Waiting view is now shown
     expect(screen.getByText(/waiting for cams email/i)).toBeInTheDocument();
     expect(screen.getByText(/already got the email\? upload it now/i)).toBeInTheDocument();
+  });
+
+  it("mobile upload shows the disclaimer with mobile_upload surface", async () => {
+    render(<MobileImportView defaultMemberId="m-1" defaultTab="upload" />);
+
+    const submit = screen.getByRole("button", { name: /upload statement/i });
+    expect(submit).toBeDisabled();
+    expect(await screen.findByText(/I confirm I am authorised to share this statement/)).toBeInTheDocument();
+    await tickDisclaimer();
+    expect(submit).toBeEnabled();
+    expect(currentPanDisclaimer()).toEqual({ version: DOCS[2].version, surface: "mobile_upload" });
   });
 
   it("automatically resumes at Upload view when returning to MobileImportView with resume state", async () => {
@@ -164,7 +192,8 @@ describe("MobileImportView", () => {
     fireEvent.change(screen.getByLabelText(/CAS PDF/i), { target: { files: [mockFile] } });
     expect(screen.getByText("cas_statement.pdf")).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText(/PDF Password/i), { target: { value: "ABCDE1234F" } });
-    fireEvent.click(screen.getByRole("button", { name: /Upload Statement/i }));
+    await tickDisclaimer();
+    fireEvent.click(screen.getByRole("button", { name: /upload statement/i }));
 
     await waitFor(() => {
       expect(importApi.parseImport).toHaveBeenCalledWith(mockFile, "ABCDE1234F", "m-1");
@@ -203,7 +232,8 @@ describe("MobileImportView", () => {
     fireEvent.change(await screen.findByLabelText(/CAS PDF/i), {
       target: { files: [new File(["pdf"], "statement.pdf", { type: "application/pdf" })] },
     });
-    fireEvent.click(screen.getByRole("button", { name: /Upload Statement/i }));
+    await tickDisclaimer();
+    fireEvent.click(screen.getByRole("button", { name: /upload statement/i }));
     await screen.findByText("Review your import");
 
     reviewRibbon("Aditi Sharma");
@@ -347,6 +377,7 @@ describe("MobileImportView", () => {
     render(<MobileImportView defaultMemberId="m-2" defaultTab="upload" />);
     await screen.findByRole("button", { name: /Ramesh Sharma/ });
     fireEvent.change(screen.getByLabelText(/cas pdf/i), { target: { files: [new File(["pdf"], "s.pdf", { type: "application/pdf" })] } });
+    await tickDisclaimer();
     fireEvent.click(screen.getByRole("button", { name: /upload statement/i }));
     await waitFor(() => expect(importApi.parseImport).toHaveBeenCalledWith(expect.any(File), "", "m-1"));
   });

@@ -1,11 +1,12 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import * as authApi from "../auth/api";
 import { HouseholdMembersSection } from "./HouseholdMembersSection";
 import type { HouseholdImportHistoryItem } from "../import/types";
 import type { HouseholdMember } from "../auth/types";
 
 const member = (id: string, name: string, relationship: HouseholdMember["relationship"]): HouseholdMember => ({
-  id, name, relationship, relationship_other_label: null, origin: "cas", lock_reason: null, details_required: false, pan_masked: null,
+  id, name, relationship, relationship_other_label: null, origin: "cas", lock_reason: null, details_required: false, pan_masked: null, phone_number: null, email: null, pan_on_statement: false, name_from_statement: false,
 });
 
 const history = (id: string, memberId: string, group: string): HouseholdImportHistoryItem => ({
@@ -74,5 +75,54 @@ describe("HouseholdMembersSection", () => {
     render(<HouseholdMembersSection loadMembers={vi.fn().mockResolvedValue(MEMBERS)} loadImportHistory={vi.fn().mockRejectedValue(new Error("x"))} />);
     expect(await screen.findByRole("alert")).toHaveTextContent(/could not load your statements/i);
     expect(screen.getByRole("button", { name: "Delete all funds for Ramesh Sharma" })).toBeDisabled();
+  });
+
+  it("member card shows name and PAN read-only and edits relationship/phone/email", async () => {
+    const ramesh: HouseholdMember = {
+      ...member("m2", "Ramesh Sharma", "parent"), pan_masked: "AB******8L", name_from_statement: true, phone_number: "+919811111111", email: "r@example.com",
+    };
+    const updateMember = vi.spyOn(authApi, "updateMember").mockResolvedValue({ ...ramesh, phone_number: "+919822222222" });
+    const onChanged = vi.fn();
+    render(<HouseholdMembersSection loadMembers={vi.fn().mockResolvedValue([member("m1", "Aditi Sharma", "self"), ramesh])} loadImportHistory={vi.fn().mockResolvedValue([])} onChanged={onChanged} />);
+    const card = await screen.findByRole("article", { name: "Ramesh Sharma" });
+    expect(within(card).getByText("AB******8L")).toBeInTheDocument();
+    expect(within(card).getByText("from your statement")).toBeInTheDocument();
+    expect(within(card).getByText("Parent")).toBeInTheDocument();
+    expect(within(card).getByText("+919811111111")).toBeInTheDocument();
+    expect(within(card).getByText("r@example.com")).toBeInTheDocument();
+
+    fireEvent.click(within(card).getByRole("button", { name: "Edit Ramesh Sharma" }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.change(within(dialog).getByDisplayValue("+919811111111"), { target: { value: "+919822222222" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(updateMember).toHaveBeenCalledWith("m2", expect.objectContaining({ relationship: "parent", phone_number: "+919822222222", email: "r@example.com" })));
+    expect(await screen.findByText("+919822222222")).toBeInTheDocument();
+    expect(onChanged).toHaveBeenCalled();
+  });
+
+  it("an unnamed PAN reads Not on your statement and locked members offer Complete details", async () => {
+    const locked: HouseholdMember = { ...member("m3", "Locked Person", "parent"), relationship: null, lock_reason: "details_needed", details_required: true };
+    render(<HouseholdMembersSection loadMembers={vi.fn().mockResolvedValue([locked])} loadImportHistory={vi.fn().mockResolvedValue([])} />);
+    const card = await screen.findByRole("article", { name: "Locked Person" });
+    expect(within(card).getByText("Not on your statement")).toBeInTheDocument();
+    expect(within(card).queryByRole("button", { name: /^Edit/ })).not.toBeInTheDocument();
+    fireEvent.click(within(card).getByRole("button", { name: "Complete details" }));
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("self card shows account contact read-only", async () => {
+    render(
+      <HouseholdMembersSection
+        loadMembers={vi.fn().mockResolvedValue(MEMBERS)}
+        loadImportHistory={vi.fn().mockResolvedValue([])}
+        accountPhone="+919999999999"
+        accountEmail="aditi@example.com"
+      />,
+    );
+    const card = await screen.findByRole("article", { name: "Aditi Sharma" });
+    expect(within(card).getByText("+919999999999")).toBeInTheDocument();
+    expect(within(card).getByText("aditi@example.com")).toBeInTheDocument();
+    expect(within(card).getByText("Change in Account Info")).toBeInTheDocument();
+    expect(within(card).queryByRole("button", { name: /^Edit/ })).not.toBeInTheDocument();
   });
 });

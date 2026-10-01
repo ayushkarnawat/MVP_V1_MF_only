@@ -77,6 +77,41 @@ diagnoses. Full detail: `log.md`'s 2026-10-01 entry.
   — confirmed via `git log` that both are in fact fully committed. Fixed in all three
   places this session.
 
+## Previous (2026-10-01, consent/onboarding/profile session, merged from a parallel branch push): consent, onboarding and profile changes + staging DB tooling
+
+Branch `feat/enhanced-ui`. Consent, onboarding, and profile changes committed on this branch (along with staging DB-access tooling and the 10-year CAS parsing investigation handoff, both superseded/incorporated above). Plan: `Docs/superpowers/plans/2026-10-01-consent-onboarding-profile.md` and `Docs/orchestration/2026-10-01-onboarding-consent-profile-changes-plan.md`.
+
+1. Onboarding privacy screen removed; name saved at the name step (self member created
+   then, provisional until the CAS); `/auth/me` has `self_name` and `consent_outdated`.
+2. "Why choose? All of it." goal shortcut (stores all 4); `scripts/report_onboarding_goals.py`.
+3. Name and PAN come from the CAS: unlock is relationship-only (PAN only if the statement
+   had none); `PATCH /household-members/{id}` edits relationship/phone/email; 422
+   `field_not_editable` / `name_not_editable`.
+4. Consent: migrations 0021 (member phone/email) and 0022 (`consent_records`, append-only
+   triggers, `consent_snapshot`); `/legal/*`; sign-up/upload/CAMS/reactivate consent;
+   placeholder legal texts; `scripts/consent_trail.py`.
+5. OTP email: no logo, green text. Profile restructured into 5 sections.
+6. Staging DB wipe script: `scripts/clean-staging-db.sh` — resolves bastion/RDS endpoint dynamically, wipes user-domain data cleanly in one FK-safe transaction for testing rounds.
+7. Progressed 10-year CAS statement value-discrepancy investigation; handoff doc at `Docs/investigations/2026-10-01-cas-10-year-parsing-discrepancy-handoff.md`.
+8. Confirmed that both the 2026-09-29 CAS member detection build and 2026-09-30 staging QA fixes are committed.
+
+**Before deploying:** no new secret and no `terraform apply` needed for *this* change
+specifically — the consent IP-hash key is derived from the existing `PAN_LOOKUP_PEPPER`
+(decision 2026-10-01). (Scenario A above did separately need, and has already had, a real
+`terraform apply`.) Follow `Docs/orchestration/2026-10-01-consent-release-deploy-guide.md`
+(Postgres tests first, then migrate, push the backend image, publish the frontend).
+
+**Open for this change:**
+- `tests/functional_postgres` (cascade deletes, consent trigger, migrations 0019-0022 on
+  Postgres) could not be run: no Postgres available. Run it once before deploying.
+- Family-CAS fixture-backed tests skip (fixtures absent; set `UNIFOLIO_QA_FIXTURES`).
+- No browser visual QA of the new onboarding/profile screens.
+- Legal texts are placeholders; retention (Q6), withdraw-consent (Q11) and final text wait
+  on the lawyer (`DEFERRED_FEATURES.md`). The old "0021" primary_goal drop is now 0023.
+- The 2026-09-30 retest list (staging QA fixes) still applies once deployed: it is Step 7 of
+  `Docs/orchestration/2026-09-30-staging-qa-fixes-deploy-guide.md`.
+- `FamilyImportFlow.tsx` confirm handler `member_mismatch` 409 handling diagnosed (needs override-retry UI like `ImportFlow.tsx`).
+
 ## Still open, carried forward from earlier phases, not yet revisited
 
 **Open, specific to the CAS member detection change (2026-09-29):**

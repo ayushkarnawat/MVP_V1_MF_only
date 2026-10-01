@@ -102,6 +102,36 @@ def test_pending_identity_verification_round_trip():
     fetched = db.query(PendingIdentityVerification).filter_by(token_hash="deadbeef").one()
     assert fetched.matched_user_id is None
     assert fetched.email_verified is True
+    assert fetched.consent_snapshot is None
+
+
+def test_pending_identity_verification_persists_a_consent_snapshot():
+    db = _session()
+    now = datetime.now(timezone.utc)
+    snapshot = {
+        "documents": [{"document_type": "terms_of_service", "document_version": "v1"}],
+        "captured_at": now.isoformat(),
+        "surface": "signup_email",
+        "evidence": {"ip_truncated": None, "ip_hmac": None, "user_agent": "ua", "device_id": "d"},
+    }
+    db.add(
+        PendingIdentityVerification(
+            provider=AuthIdentityProvider.EMAIL_OTP,
+            provider_subject="snap@example.com",
+            email="snap@example.com",
+            email_verified=False,
+            matched_user_id=None,
+            token_hash="snaphash",
+            expires_at=now + timedelta(minutes=10),
+            created_at=now,
+            consent_snapshot=snapshot,
+        )
+    )
+    db.commit()
+    db.expire_all()
+
+    fetched = db.query(PendingIdentityVerification).filter_by(token_hash="snaphash").one()
+    assert fetched.consent_snapshot == snapshot
 
 
 def test_otp_request_round_trip():

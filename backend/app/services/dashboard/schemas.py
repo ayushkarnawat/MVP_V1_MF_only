@@ -25,6 +25,11 @@ class HouseholdMemberResponse(BaseModel):
     details_required: bool = False
     # First two + last two of the claimed PAN, else the detected PAN; never raw.
     pan_masked: str | None = None
+    phone_number: str | None = None
+    email: str | None = None
+    # Locked with a statement PAN: the unlock popup shows no PAN field.
+    pan_on_statement: bool = False
+    name_from_statement: bool = False
 
 
 class HoldingRow(BaseModel):

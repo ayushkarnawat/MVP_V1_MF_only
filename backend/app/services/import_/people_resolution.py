@@ -12,10 +12,10 @@ from typing import Literal
 
 from sqlalchemy.orm import Session
 
-from app.models.enums import MemberPanSource, Relationship
+from app.models.enums import MemberNameSource, MemberPanSource, Relationship
 from app.models.user import HouseholdMember
 from app.services.import_.crypto import hash_pan
-from app.services.import_.name_match import compare_names, has_more_tokens
+from app.services.import_.name_match import compare_names, has_more_tokens, normalise_name
 from app.services.import_.pan_claims import classify_detected_pan
 from app.services.import_.people import ParsedPerson
 
@@ -111,6 +111,17 @@ def plan_name_update(current: str, statement: str) -> NameUpdate:
     return "none"
 
 
+def plan_member_name_update(member: HouseholdMember, statement: str) -> NameUpdate:
+    """2026-10-01 QB/QE: a USER_ENTERED name is provisional and confirm
+    (`_apply_name_choice`) always replaces it with the statement's, so the
+    preview says "update" too -- never an "ask" whose answer would be
+    ignored, nor I9's "keep the longer stored name". Same normalisation as
+    confirm's `_is_edit`. CAS-sourced names keep the variant/ask/I9 rules."""
+    if member.name_source == MemberNameSource.USER_ENTERED:
+        return "update" if normalise_name(statement) != normalise_name(member.name) else "none"
+    return plan_name_update(member.name, statement)
+
+
 def plan_people(
     db: Session, user_id: uuid.UUID, people: list[ParsedPerson], me_key: str | None
 ) -> list[PersonPlan]:
@@ -121,8 +132,11 @@ def plan_people(
     plans: list[PersonPlan] = []
     for p in people:
         if me_key is not None and p.key == me_key and self_member is not None:
-            if has_permanent_pan(self_member):
-                update = plan_name_update(self_member.name, p.name)
+            if has_permanent_pan(self_member) or self_member.name_source == MemberNameSource.USER_ENTERED:
+                # A USER_ENTERED Me (QA's onboarding name) follows QE on any
+                # upload; on a first upload that agrees with I10 anyway (an
+                # exact match normalises equal, a variant is an update).
+                update = plan_member_name_update(self_member, p.name)
             else:
                 # I10: first upload, Me's typed name vs the statement's.
                 # Only a variant is a rename; a mismatch can't get here
@@ -147,7 +161,7 @@ def plan_people(
             member = by_id.get(member_id) if member_id else None
 
         if member is not None:
-            update = "none" if p.needs_name else plan_name_update(member.name, p.name)
+            update = "none" if p.needs_name else plan_member_name_update(member, p.name)
             name = member.name if p.needs_name else p.name
             plans.append(PersonPlan(p.key, status, member.id, name, update, member.name, None))
             continue
@@ -157,7 +171,7 @@ def plan_people(
             if named is not None:
                 plans.append(PersonPlan(
                     p.key, "locked_member" if named.is_locked else "existing_member", named.id,
-                    p.name, plan_name_update(named.name, p.name), named.name, None, matched_by_name=True,
+                    p.name, plan_member_name_update(named, p.name), named.name, None, matched_by_name=True,
                 ))
                 continue
 

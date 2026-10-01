@@ -25,7 +25,7 @@ why.
 |---|---|---|---|
 | S0 | Phone Entry | Onboarding (PRD-02) | From S23 |
 | S1 | OTP Verify | Onboarding (PRD-02) | From S0 |
-| S2 | Trust Primer | Onboarding (PRD-02) | First login only, after S1 |
+| S2 | ~~Trust Primer~~ (removed 2026-10-01; consent is now a checkbox at sign-up) | Onboarding (PRD-02) | Was: first login only, after S1 |
 | S3 | Q1 — Name | Onboarding (PRD-02) | After S2; revisitable via back-nav per FR-7a |
 | S4 | Q2 — Investing Behavior | Onboarding (PRD-02) | After S3; skippable/revisitable per FR-7/FR-7a |
 | S5 | Q3 — Purpose | Onboarding (PRD-02) | After S4; skippable/revisitable per FR-7/FR-7a |

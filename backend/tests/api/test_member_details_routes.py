@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 
 from app.db.session import get_db
 from app.main import app
-from app.models.enums import MemberLockReason, MemberNameSource, MemberOrigin, Relationship
+from app.models.enums import MemberLockReason, MemberNameSource, MemberOrigin, MemberPanSource, Relationship
 from app.models.user import HouseholdMember, User
 from app.services.import_.crypto import encrypt_pan, hash_pan
 
@@ -43,7 +43,7 @@ def test_details_route_unlocks_and_response_has_masked_pan(client):
     h = _headers(client, "+919100000001")
     _, mid = _add_locked(client, h)
     r = client.post(f"/household-members/{mid}/details",
-                    json={"relationship": "parent", "pan": "bxqps 5678l"}, headers=h)
+                    json={"relationship": "parent"}, headers=h)
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["details_required"] is False
@@ -56,19 +56,28 @@ def test_details_route_errors(client):
     h = _headers(client, "+919100000002")
     _, mid = _add_locked(client, h)
     url = f"/household-members/{mid}/details"
-    r = client.post(url, json={"relationship": "parent", "pan": "abc"}, headers=h)
-    assert r.status_code == 422 and r.json()["detail"]["code"] == "invalid_pan_format"
+    # 2026-10-01 (QD): a typed PAN on a statement-PAN member is refused
+    # outright; the old L3 detected_pan_mismatch branch is gone.
     r = client.post(url, json={"relationship": "parent", "pan": "ABCDE1234F"}, headers=h)
-    assert r.status_code == 409
-    d = r.json()["detail"]
-    assert d["code"] == "detected_pan_mismatch"
-    assert d["details"]["detected_pan_masked"] == "BX******8L"
-    assert "BX******8L" in d["message"]
-    r = client.post(url, json={"relationship": "self", "pan": PAN}, headers=h)
+    assert r.status_code == 422 and r.json()["detail"]["code"] == "field_not_editable"
+    r = client.post(url, json={"relationship": "self"}, headers=h)
     assert r.status_code == 422
     r = client.post(f"/household-members/{uuid.uuid4()}/details",
-                    json={"relationship": "parent", "pan": PAN}, headers=h)
+                    json={"relationship": "parent"}, headers=h)
     assert r.status_code == 404
+    # Format check still runs for a name-only member (QC), the one typed-PAN case.
+    db = _db()
+    uid = db.get(HouseholdMember, uuid.UUID(mid)).user_id
+    name_only = HouseholdMember(
+        user_id=uid, name="Meera Sharma", relationship=None, created_at=datetime.now(timezone.utc),
+        origin=MemberOrigin.CAS_DETECTED, name_source=MemberNameSource.CAS,
+        details_completed_at=None, lock_reason=MemberLockReason.DETAILS_NEEDED,
+    )
+    db.add(name_only)
+    db.commit()
+    r = client.post(f"/household-members/{name_only.id}/details",
+                    json={"relationship": "parent", "pan": "abc"}, headers=h)
+    assert r.status_code == 422 and r.json()["detail"]["code"] == "invalid_pan_format"
 
 
 def test_details_route_cross_account_is_409_and_saves_relationship(client):
@@ -83,7 +92,7 @@ def test_details_route_cross_account_is_409_and_saves_relationship(client):
     db.commit()
     db.close()
     r = client.post(f"/household-members/{mid}/details",
-                    json={"relationship": "sibling", "pan": PAN}, headers=h1)
+                    json={"relationship": "sibling"}, headers=h1)
     assert r.status_code == 409
     assert r.json()["detail"]["code"] == "cross_account_pan_blocked"
     members = {m["id"]: m for m in client.get("/household-members", headers=h1).json()}
@@ -105,7 +114,7 @@ def test_member_routes_403_while_locked_and_aggregate_includes_them(client):
     assert client.get("/household/aggregate/holdings", headers=h).status_code == 200
     # unlocked -> 200
     client.post(f"/household-members/{mid}/details",
-                json={"relationship": "parent", "pan": PAN}, headers=h)
+                json={"relationship": "parent"}, headers=h)
     assert client.get(f"/household-members/{mid}/holdings", headers=h).status_code == 200
 
 
@@ -155,6 +164,8 @@ def test_write_side_doors_are_403_for_a_locked_member(client):
 
 
 # ---------------------------------------------- use_detected_pan (staging-QA fix 4)
+# 2026-10-01: the flag is accepted and ignored (old clients during a rollout);
+# the statement PAN is always used, so these still pass unchanged.
 
 def test_use_detected_pan_unlocks_with_the_statement_pan(client):
     from app.models.enums import MemberPanSource
@@ -168,29 +179,6 @@ def test_use_detected_pan_unlocks_with_the_statement_pan(client):
     got = _db().get(HouseholdMember, uuid.UUID(mid))
     assert got.pan_lookup_hash == hash_pan(PAN)
     assert got.pan_source == MemberPanSource.CAS and got.pan_verified_at is not None
-
-
-def test_use_detected_pan_rejected_for_a_name_only_member(client):
-    h = _headers(client, "+919811200002")
-    _, mid = _add_locked(client, h, detected=None)
-    r = client.post(f"/household-members/{mid}/details",
-                    json={"relationship": "parent", "use_detected_pan": True}, headers=h)
-    assert r.status_code == 422 and r.json()["detail"]["code"] == "invalid_member_details"
-
-
-def test_pan_and_use_detected_pan_together_is_422(client):
-    h = _headers(client, "+919811200003")
-    _, mid = _add_locked(client, h)
-    r = client.post(f"/household-members/{mid}/details",
-                    json={"relationship": "parent", "pan": PAN, "use_detected_pan": True}, headers=h)
-    assert r.status_code == 422 and r.json()["detail"]["code"] == "invalid_member_details"
-
-
-def test_neither_pan_nor_flag_is_422(client):
-    h = _headers(client, "+919811200004")
-    _, mid = _add_locked(client, h)
-    r = client.post(f"/household-members/{mid}/details", json={"relationship": "parent"}, headers=h)
-    assert r.status_code == 422 and r.json()["detail"]["code"] == "invalid_member_details"
 
 
 def test_use_detected_pan_still_raises_l4_when_pan_is_on_another_member(client):
@@ -238,7 +226,7 @@ def test_order_a_name_only_first_then_pan_bearing_can_merge(client):
     one, two = _kavita_pair(client, h)
     first = client.post(f"/household-members/{one}/details", json={"relationship": "parent", "pan": KAVITA_PAN}, headers=h)
     assert first.status_code == 200, first.text
-    r = client.post(f"/household-members/{two}/details", json={"relationship": "parent", "pan": KAVITA_PAN}, headers=h)
+    r = client.post(f"/household-members/{two}/details", json={"relationship": "parent"}, headers=h)
     assert r.status_code == 409
     d = r.json()["detail"]["details"]
     assert d["can_merge"] is True and d["other_member_id"] == str(one) and d["source_pan_label"] == "BN******1M"
@@ -251,7 +239,7 @@ def test_order_a_name_only_first_then_pan_bearing_can_merge(client):
 def test_order_b_pan_bearing_first_then_name_only_can_merge(client):
     h = _headers(client, "+919811400002")
     one, two = _kavita_pair(client, h)
-    first = client.post(f"/household-members/{two}/details", json={"relationship": "parent", "pan": KAVITA_PAN}, headers=h)
+    first = client.post(f"/household-members/{two}/details", json={"relationship": "parent"}, headers=h)
     assert first.status_code == 200, first.text
     r = client.post(f"/household-members/{one}/details", json={"relationship": "parent", "pan": KAVITA_PAN}, headers=h)
     d = r.json()["detail"]["details"]
@@ -274,3 +262,67 @@ def test_locked_member_with_a_different_detected_pan_still_cannot_merge(client):
     db.add(three)
     db.commit()
     assert client.post(f"/household-members/{three.id}/merge-into/{one}", headers=h).status_code == 409
+
+
+def test_self_create_renames_provisional_self(client):
+    h = _headers(client, "+919100100001")
+    first = client.post("/household-members", json={"name": "Ravi", "relationship": "self"}, headers=h)
+    again = client.post("/household-members", json={"name": "Ravi Kumar", "relationship": "self"}, headers=h)
+    assert first.status_code == 200 and again.status_code == 200
+    assert again.json()["id"] == first.json()["id"]
+    assert again.json()["name"] == "Ravi Kumar"
+
+
+def test_self_create_is_409_once_self_has_a_cas_pan(client):
+    h = _headers(client, "+919100100002")
+    me = client.post("/household-members", json={"name": "Ravi", "relationship": "self"}, headers=h).json()
+    db = _db()
+    m = db.get(HouseholdMember, uuid.UUID(me["id"]))
+    m.pan_encrypted, m.pan_lookup_hash = encrypt_pan(PAN), hash_pan(PAN)
+    db.commit(); db.close()
+    r = client.post("/household-members", json={"name": "Someone Else", "relationship": "self"}, headers=h)
+    assert r.status_code == 409
+
+
+# ------------------------------- 2026-10-01: name and PAN come from the CAS (QC/QD)
+
+def test_unlock_with_statement_pan_needs_only_relationship(client):
+    h = _headers(client, "+919100200001")
+    _, mid = _add_locked(client, h)
+    r = client.post(f"/household-members/{mid}/details", json={"relationship": "parent"}, headers=h)
+    assert r.status_code == 200, r.text
+    assert r.json()["pan_masked"] == "BX******8L" and r.json()["details_required"] is False
+    db = _db(); m = db.get(HouseholdMember, uuid.UUID(mid))
+    assert m.pan_lookup_hash == hash_pan(PAN) and m.pan_source == MemberPanSource.CAS and m.pan_verified_at is not None
+
+
+def test_unlock_rejects_a_typed_pan_when_the_statement_has_one(client):
+    h = _headers(client, "+919100200002")
+    _, mid = _add_locked(client, h)
+    r = client.post(f"/household-members/{mid}/details", json={"relationship": "parent", "pan": PAN}, headers=h)
+    assert r.status_code == 422 and r.json()["detail"]["code"] == "field_not_editable"
+
+
+def test_unlock_without_statement_pan_requires_a_typed_pan(client):
+    h = _headers(client, "+919100200003")
+    _, mid = _add_locked(client, h, detected=None)
+    assert client.post(f"/household-members/{mid}/details", json={"relationship": "parent"}, headers=h).status_code == 422
+    r = client.post(f"/household-members/{mid}/details", json={"relationship": "parent", "pan": "abcde1234f"}, headers=h)
+    assert r.status_code == 200 and r.json()["pan_masked"] == "AB******4F"
+    db = _db(); m = db.get(HouseholdMember, uuid.UUID(mid))
+    assert m.pan_source == MemberPanSource.USER_ENTERED
+
+
+def test_unlock_rejects_a_name(client):
+    h = _headers(client, "+919100200004")
+    _, mid = _add_locked(client, h)
+    r = client.post(f"/household-members/{mid}/details", json={"relationship": "parent", "name": "New Name"}, headers=h)
+    assert r.status_code == 422 and r.json()["detail"]["code"] == "field_not_editable"
+
+
+def test_details_on_an_unlocked_member_is_422(client):
+    h = _headers(client, "+919100200005")
+    _, mid = _add_locked(client, h)
+    client.post(f"/household-members/{mid}/details", json={"relationship": "parent"}, headers=h)
+    r = client.post(f"/household-members/{mid}/details", json={"relationship": "sibling"}, headers=h)
+    assert r.status_code == 422 and r.json()["detail"]["code"] == "field_not_editable"

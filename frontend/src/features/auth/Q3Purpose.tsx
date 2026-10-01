@@ -108,6 +108,8 @@ const OPTIONS: PurposeOption[] = [
   },
 ];
 
+export const ALL_GOALS: PrimaryGoal[] = OPTIONS.map((o) => o.value);
+
 export function Q3Purpose({
   selectedValues,
   onBack,
@@ -115,9 +117,12 @@ export function Q3Purpose({
   onContinue,
   isMobile = false,
   currentStepIndex = 2,
-  totalSteps = 5,
+  totalSteps = 4,
 }: Q3PurposeProps) {
   const [picked, setPicked] = useState<PrimaryGoal[]>(selectedValues);
+  const allPicked = ALL_GOALS.every((g) => picked.includes(g));
+  // "Why choose? All of it." is purely a UI shortcut: it saves the four real goal values, no fifth value (decision Q7).
+  const toggleAll = () => setPicked(allPicked ? [] : [...ALL_GOALS]);
   const toggle = (v: PrimaryGoal) => setPicked((p) => (p.includes(v) ? p.filter((x) => x !== v) : [...p, v]));
 
   const choicesContent = (
@@ -194,6 +199,54 @@ export function Q3Purpose({
           </motion.button>
         );
       })}
+      <motion.button
+        key="all_of_it"
+        variants={onboardingOptionItemVariants}
+        whileHover={{ x: 2, transition: { duration: 0.18, ease: MOTION_EASING_SMOOTH } }}
+        whileTap={{ scale: 0.99 }}
+        type="button"
+        role="checkbox"
+        aria-checked={allPicked}
+        className={cn(
+          "w-full py-3 sm:py-3.5 px-2.5 sm:px-3 rounded-xl flex items-center gap-3.5 text-left transition-all duration-150 cursor-pointer group select-none min-h-[50px] border-t border-[var(--color-border)]/60 mt-1 pt-1",
+          allPicked
+            ? "bg-[#22C55E]/[0.08] dark:bg-[#22C55E]/[0.12]"
+            : "hover:bg-black/[0.025] dark:hover:bg-white/[0.035]"
+        )}
+        onClick={toggleAll}
+      >
+        <div
+          className={cn(
+            "h-9 w-9 sm:h-10 sm:w-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-150",
+            allPicked
+              ? "bg-[#22C55E]/20 text-[#22C55E]"
+              : "bg-[#22C55E]/10 text-[var(--color-ink)] group-hover:bg-[#22C55E]/15 group-hover:text-[#22C55E]"
+          )}
+        >
+          <Check className="h-5 w-5" />
+        </div>
+        <div className="flex-1 min-w-0 space-y-0.5">
+          <strong
+            className={cn(
+              "block font-display font-bold text-xs sm:text-[13.5px] transition-colors",
+              allPicked ? "text-[#22C55E]" : "text-[var(--color-ink)] group-hover:text-[#22C55E]"
+            )}
+          >
+            Why choose? All of it.
+          </strong>
+          <span className="block text-[11px] sm:text-xs text-[#5C5C5C] dark:text-[#A3A3A3] leading-snug font-normal">
+            The full picture, the true returns, the whole family, the fine print.
+          </span>
+        </div>
+        <div
+          className={cn(
+            "h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-150",
+            allPicked ? "bg-[#22C55E]/15 text-[#22C55E]" : "text-[#5C5C5C]/50 dark:text-[#A3A3A3]/50"
+          )}
+        >
+          {allPicked ? <Check className="h-4 w-4" /> : null}
+        </div>
+      </motion.button>
     </motion.div>
   );
 

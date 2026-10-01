@@ -4,13 +4,13 @@ import { currentStep, goBack, goNext, initHistory, isSkipped, markAnswered, skip
 import type { HistoryState } from "./onboardingHistory";
 import { isOnboardingStep } from "./onboardingSteps";
 import type { OnboardingStep } from "./onboardingSteps";
-import { TrustPrimer } from "./TrustPrimer";
 import { Q1Name } from "./Q1Name";
 import { Q2Investing } from "./Q2Investing";
 import { Q3Purpose } from "./Q3Purpose";
 import { OnboardingCardStack } from "./OnboardingCardStack";
 import { SoloCasUpload } from "./SoloCasUpload";
-import type { InvestorType, PrimaryGoal } from "./types";
+import { createHouseholdMember } from "./api";
+import type { InvestorType, MeResponse, PrimaryGoal } from "./types";
 
 export interface OnboardingAnswers {
   name: string;
@@ -18,14 +18,25 @@ export interface OnboardingAnswers {
   primaryGoals: PrimaryGoal[];
 }
 
-const INITIAL_ANSWERS: OnboardingAnswers = {
-  name: "",
-  investorType: null,
-  primaryGoals: [],
-};
-
-function resumeStep(step: string | null | undefined): OnboardingStep {
-  return isOnboardingStep(step) && step !== "done" ? step : "q1_name";
+// 2026-10-01: the privacy screen ("trust_primer") is gone. Users who stopped
+// on it resume at their first unsaved answer (name -> investing -> goals),
+// else Upload. The name check runs for every resume: the name step has no
+// Skip, so a missing name always means it was never saved. The investing and
+// goal checks run only for the old trust_primer value, because a skipped
+// question also saves null and would otherwise be re-asked on every return
+// (decision QF accepts one re-ask for those users).
+export function resumeStep(me: MeResponse | null | undefined): OnboardingStep {
+  const step = me?.onboarding_step;
+  if (step === "trust_primer") {
+    if (!me?.self_name) return "q1_name";
+    if (!me.investor_type) return "q2_investing";
+    if (!me.primary_goals || me.primary_goals.length === 0) return "q3_purpose";
+    return "cas_upload";
+  }
+  if (!isOnboardingStep(step) || step === "done") return "q1_name";
+  const pastName = step === "q2_investing" || step === "q3_purpose" || step === "cas_upload";
+  if (pastName && !me?.self_name) return "q1_name";
+  return step;
 }
 
 interface OnboardingFlowProps {
@@ -34,8 +45,12 @@ interface OnboardingFlowProps {
 
 export function OnboardingFlow({ isMobile = false }: OnboardingFlowProps) {
   const { me, updateMe } = useAuth();
-  const [history, setHistory] = useState<HistoryState>(() => initHistory(resumeStep(me?.onboarding_step)));
-  const [answers, setAnswers] = useState<OnboardingAnswers>(INITIAL_ANSWERS);
+  const [history, setHistory] = useState<HistoryState>(() => initHistory(resumeStep(me)));
+  const [answers, setAnswers] = useState<OnboardingAnswers>(() => ({
+    name: me?.self_name ?? "",
+    investorType: me?.investor_type ?? null,
+    primaryGoals: me?.primary_goals ?? [],
+  }));
 
   const step = currentStep(history);
 
@@ -51,29 +66,32 @@ export function OnboardingFlow({ isMobile = false }: OnboardingFlowProps) {
   const skip = (next: OnboardingStep) => setHistory((h) => skipToNext(h, next));
   const showBack = history.cursor > 0;
 
+  // Saved here, not at upload, so a user who leaves after the name step
+  // resumes with a self member. A rejection propagates to Q1Name, which keeps
+  // the step in place and shows the error.
+  const submitName = async (name: string) => {
+    await createHouseholdMember(name, "self");
+    setAnswers((a) => ({ ...a, name }));
+    advance("q2_investing");
+  };
+
   const renderStep = () => {
     if (step === "q1_name") {
       return isMobile ? (
         <Q1Name
           isMobile
           currentStepIndex={0}
-          totalSteps={5}
+          totalSteps={4}
           value={answers.name}
           onBack={showBack ? back : undefined}
-          onSubmit={(name) => {
-            setAnswers((a) => ({ ...a, name }));
-            advance("q2_investing");
-          }}
+          onSubmit={submitName}
         />
       ) : (
-        <OnboardingCardStack history={history} currentStepIndex={0} totalSteps={5}>
+        <OnboardingCardStack history={history} currentStepIndex={0} totalSteps={4}>
           <Q1Name
             value={answers.name}
             onBack={showBack ? back : undefined}
-            onSubmit={(name) => {
-              setAnswers((a) => ({ ...a, name }));
-              advance("q2_investing");
-            }}
+            onSubmit={submitName}
           />
         </OnboardingCardStack>
       );
@@ -84,7 +102,7 @@ export function OnboardingFlow({ isMobile = false }: OnboardingFlowProps) {
         <Q2Investing
           isMobile
           currentStepIndex={1}
-          totalSteps={5}
+          totalSteps={4}
           selectedValue={answers.investorType}
           onBack={back}
           onSkip={() => skip("q3_purpose")}
@@ -95,7 +113,7 @@ export function OnboardingFlow({ isMobile = false }: OnboardingFlowProps) {
           }}
         />
       ) : (
-        <OnboardingCardStack history={history} currentStepIndex={1} totalSteps={5}>
+        <OnboardingCardStack history={history} currentStepIndex={1} totalSteps={4}>
           <Q2Investing
             selectedValue={answers.investorType}
             onBack={back}
@@ -115,46 +133,27 @@ export function OnboardingFlow({ isMobile = false }: OnboardingFlowProps) {
         <Q3Purpose
           isMobile
           currentStepIndex={2}
-          totalSteps={5}
+          totalSteps={4}
           selectedValues={answers.primaryGoals}
           onBack={back}
-          onSkip={() => skip("trust_primer")}
+          onSkip={() => skip("cas_upload")}
           onContinue={(primaryGoals) => {
             void updateMe({ primary_goals: primaryGoals });
             setAnswers((a) => ({ ...a, primaryGoals }));
-            advance("trust_primer");
+            advance("cas_upload");
           }}
         />
       ) : (
-        <OnboardingCardStack history={history} currentStepIndex={2} totalSteps={5}>
+        <OnboardingCardStack history={history} currentStepIndex={2} totalSteps={4}>
           <Q3Purpose
             selectedValues={answers.primaryGoals}
             onBack={back}
-            onSkip={() => skip("trust_primer")}
+            onSkip={() => skip("cas_upload")}
             onContinue={(primaryGoals) => {
               void updateMe({ primary_goals: primaryGoals });
               setAnswers((a) => ({ ...a, primaryGoals }));
-              advance("trust_primer");
+              advance("cas_upload");
             }}
-          />
-        </OnboardingCardStack>
-      );
-    }
-
-    if (step === "trust_primer") {
-      return isMobile ? (
-        <TrustPrimer
-          isMobile
-          currentStepIndex={3}
-          totalSteps={5}
-          onBack={back}
-          onContinue={() => advance("cas_upload")}
-        />
-      ) : (
-        <OnboardingCardStack history={history} currentStepIndex={3} totalSteps={5}>
-          <TrustPrimer
-            onBack={back}
-            onContinue={() => advance("cas_upload")}
           />
         </OnboardingCardStack>
       );

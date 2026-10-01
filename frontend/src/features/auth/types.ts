@@ -26,6 +26,12 @@ export interface MeResponse {
   onboarding_completed: boolean;
   investor_type: InvestorType | null;
   primary_goals: PrimaryGoal[] | null;
+  // The self member's name (null before the name step is submitted); lets a
+  // resumed onboarding session pre-fill and skip the name step.
+  self_name: string | null;
+  // Legal document types whose accepted version is behind the current one (the
+  // re-consent gate shows while non-empty).
+  consent_outdated: string[];
   pending_deletion?: boolean;
   deletion_scheduled_at?: string | null;
 }
@@ -58,15 +64,25 @@ export interface HouseholdMember {
   details_required: boolean;
   // First two + last two characters of the PAN, never the raw value.
   pan_masked: string | null;
+  phone_number: string | null;
+  email: string | null;
+  // True only for a locked member whose statement carried a PAN (then the PAN is read-only).
+  pan_on_statement: boolean;
+  name_from_statement: boolean;
 }
 
+/** Unlock-only: name never travels; `pan` only when the statement had none. */
 export interface MemberDetailsBody {
-  name?: string;
   relationship: Exclude<Relationship, "self">;
   relationship_other_label?: string | null;
   pan?: string;
-  /** Staging-QA fix 4: unlock with the PAN the statement showed (the server holds it). */
-  use_detected_pan?: boolean;
+}
+
+export interface MemberUpdateBody {
+  relationship?: Exclude<Relationship, "self">;
+  relationship_other_label?: string | null;
+  phone_number?: string | null;
+  email?: string | null;
 }
 
 export interface MergeMemberResult {

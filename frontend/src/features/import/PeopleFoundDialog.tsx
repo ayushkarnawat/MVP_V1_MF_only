@@ -1,12 +1,11 @@
 import { useMemo, useState } from "react";
-import { Pencil } from "lucide-react";
 import { PromptDialog } from "./prompts/PromptDialog";
 import { OTHER_ACCOUNT_DASHBOARD_NOTE, PRIMARY_BTN, panOrPlaceholder } from "./prompts/copy";
 import type { PersonPreview, SchemeMatchPreview } from "./types";
 
 /** What the people popup collected; nothing is written until Confirm imports. */
 export interface PeopleEdits {
-  /** person_key -> typed or edited name (only people whose name was changed or named). */
+  /** person_key -> typed name (only people with no readable name that were named). */
   names: Record<string, string>;
   /** person_key -> U8 "Include in family total" (only people on another account). */
   includes: Record<string, boolean>;
@@ -33,7 +32,6 @@ const fundCount = (n: number) => `${n} fund${n === 1 ? "" : "s"}`;
 export function PeopleFoundDialog({ people, unassigned, onContinue, onCancel, initialIncludes }: PeopleFoundDialogProps) {
   const ordered = useMemo(() => [...people].sort((a, b) => Number(b.is_me) - Number(a.is_me)), [people]);
   const [names, setNames] = useState<Record<string, string>>({});
-  const [editing, setEditing] = useState<Set<string>>(new Set());
   // U8: a person on another account is left out until the user opts them in.
   const [includes, setIncludes] = useState<Record<string, boolean>>(initialIncludes ?? {});
   const [owners, setOwners] = useState<Record<string, string>>({});
@@ -54,8 +52,8 @@ export function PeopleFoundDialog({ people, unassigned, onContinue, onCancel, in
     const outNames: Record<string, string> = {};
     for (const p of ordered) {
       const typed = names[p.person_key]?.trim();
-      // A cleared field on an already-named person just keeps the original name.
-      if (typed && (p.needs_name || typed !== p.name)) outNames[p.person_key] = typed;
+      // Names come from the statement; only a person with no readable name may be named here.
+      if (p.needs_name && typed) outNames[p.person_key] = typed;
     }
     const outIncludes: Record<string, boolean> = {};
     for (const p of ordered) if (isOther(p)) outIncludes[p.person_key] = includes[p.person_key] === true;
@@ -84,7 +82,7 @@ export function PeopleFoundDialog({ people, unassigned, onContinue, onCancel, in
         {ordered.map((p) => {
           const other = isOther(p);
           const included = isIn(p);
-          const showInput = p.needs_name || editing.has(p.person_key);
+          const showInput = p.needs_name;
           const grey = other && !included;
           return (
             <li
@@ -97,7 +95,7 @@ export function PeopleFoundDialog({ people, unassigned, onContinue, onCancel, in
                     type="text"
                     aria-label={`Name for ${p.name}`}
                     placeholder="Add a name"
-                    value={names[p.person_key] ?? (p.needs_name ? "" : p.name)}
+                    value={names[p.person_key] ?? ""}
                     onChange={(e) => setNames((n) => ({ ...n, [p.person_key]: e.target.value }))}
                     className="h-8 min-w-0 flex-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-2 text-sm"
                   />
@@ -105,16 +103,6 @@ export function PeopleFoundDialog({ people, unassigned, onContinue, onCancel, in
                   <span className="font-semibold text-[var(--color-ink)]">{displayName(p)}</span>
                 )}
                 {p.is_me && <span className="text-[var(--color-text-secondary)]">(Me)</span>}
-                {!p.is_me && !other && !showInput && (
-                  <button
-                    type="button"
-                    aria-label={`Edit name for ${p.name}`}
-                    onClick={() => setEditing((s) => new Set(s).add(p.person_key))}
-                    className="rounded p-1 text-[var(--color-text-secondary)] hover:text-[var(--color-ink)]"
-                  >
-                    <Pencil aria-hidden="true" className="h-3.5 w-3.5" />
-                  </button>
-                )}
                 <span aria-hidden="true">·</span>
                 <span className="font-mono text-xs">{panOrPlaceholder(p.pan_masked)}</span>
                 {other && (

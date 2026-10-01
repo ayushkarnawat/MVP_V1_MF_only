@@ -18,7 +18,7 @@ const ME: MeResponse = {
   onboarding_step: "q2_investing",
   onboarding_completed: false,
   investor_type: null,
-  primary_goals: null,
+  primary_goals: null, self_name: null, consent_outdated: [],
 };
 
 describe("AuthContext", () => {

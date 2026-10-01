@@ -7,6 +7,7 @@ from sqlalchemy.orm import sessionmaker
 from app.db.base import Base
 from app.models.enums import Relationship
 from app.models.user import HouseholdMember, User
+from app.services.import_.crypto import encrypt_pan, hash_pan
 import pytest
 
 from app.services.dashboard.household_members import (
@@ -66,10 +67,25 @@ def test_list_household_members_returns_only_this_users_members():
 def test_create_household_member_rejects_second_self_row():
     db = _session()
     user = _user(db)
-    create_household_member(db, user.id, "Ayush", Relationship.SELF)
+    me = create_household_member(db, user.id, "Ayush", Relationship.SELF)
+    # A self row with no CAS PAN yet is provisional and gets renamed (decision
+    # QA); once a statement has given it a PAN, a second self is refused.
+    me.pan_encrypted, me.pan_lookup_hash = encrypt_pan("BXQPS5678L"), hash_pan("BXQPS5678L")
+    db.commit()
 
     with pytest.raises(DuplicateSelfMemberError):
         create_household_member(db, user.id, "Ayush Again", Relationship.SELF)
+
+
+def test_create_household_member_renames_a_provisional_self_row():
+    db = _session()
+    user = _user(db)
+    first = create_household_member(db, user.id, "Ayush", Relationship.SELF)
+
+    again = create_household_member(db, user.id, "Ayush Karnawat", Relationship.SELF)
+
+    assert again.id == first.id and again.name == "Ayush Karnawat"
+    assert db.query(HouseholdMember).filter_by(user_id=user.id).count() == 1
 
 
 def test_create_household_member_allows_self_row_per_distinct_user():
@@ -81,3 +97,17 @@ def test_create_household_member_allows_self_row_per_distinct_user():
     member_b = create_household_member(db, user_b.id, "Someone Else", Relationship.SELF)
 
     assert member_b.relationship == Relationship.SELF
+
+
+def test_create_household_member_rejects_second_self_when_name_came_from_the_cas():
+    # Only a typed (provisional) name is renamed; a CAS-named self is final.
+    from app.models.enums import MemberNameSource
+
+    db = _session()
+    user = _user(db)
+    me = create_household_member(db, user.id, "Ayush", Relationship.SELF)
+    me.name_source = MemberNameSource.CAS
+    db.commit()
+
+    with pytest.raises(DuplicateSelfMemberError):
+        create_household_member(db, user.id, "Ayush Again", Relationship.SELF)

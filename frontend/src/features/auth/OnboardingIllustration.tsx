@@ -2,7 +2,6 @@ import { motion } from "motion/react";
 import { MOTION_EASING, MOTION_EASING_FLOAT } from "@/lib/motion";
 
 export type IllustrationVariant =
-  | "trust"
   | "name"
   | "investing"
   | "purpose"
@@ -19,7 +18,6 @@ interface OnboardingIllustrationProps {
 }
 
 const ALT_TEXTS: Record<IllustrationVariant, string> = {
-  trust: "Bank-grade vault and data security illustration",
   name: "Interactive portfolio dashboard illustration",
   investing: "Multi-asset compounding and growth illustration",
   purpose: "Financial goals and milestone roadmap illustration",

@@ -91,7 +91,6 @@ export function ImportHistorySection({
         {groups.map((group) => {
           const first = group[0];
           const multi = group.length > 1;
-          const transactionCount = group.reduce((sum, r) => sum + (r.new_transactions_count ?? 0), 0);
           return (
             <div key={groupKey(first)} className="py-4 first:pt-1 last:pb-1">
               <div className="flex items-start gap-4">
@@ -102,7 +101,7 @@ export function ImportHistorySection({
                       : "Statement period unavailable"}
                   </p>
                   <p className="text-xs text-[var(--color-text-secondary)]">
-                    Imported {formatDate(first.uploaded_at)} · {first.status.replaceAll("_", " ")} · <span>{transactionCount} transaction{transactionCount === 1 ? "" : "s"}</span>
+                    Imported {formatDate(first.uploaded_at)} · {first.status.replaceAll("_", " ")}
                   </p>
                 </div>
                 {!multi && (
@@ -124,7 +123,6 @@ export function ImportHistorySection({
                   {group.map((item) => (
                     <li key={item.import_id} className="flex items-center gap-3 pl-3 text-xs">
                       <span className="min-w-0 flex-1 truncate font-medium">{item.member_name}</span>
-                      <span className="text-[var(--color-text-secondary)]">{item.new_transactions_count ?? 0} txns</span>
                       <button
                         type="button"
                         aria-label={`Delete ${item.member_name}’s funds from the ${formatDate(item.uploaded_at)} import`}

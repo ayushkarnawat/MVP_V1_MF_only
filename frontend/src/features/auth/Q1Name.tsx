@@ -18,7 +18,9 @@ import {
 interface Q1NameProps {
   value: string;
   onBack?: () => void;
-  onSubmit: (name: string) => void;
+  // May be async: the flow saves the self member here, so the step stays
+  // disabled while that runs and shows an error if it fails.
+  onSubmit: (name: string) => void | Promise<void>;
   isMobile?: boolean;
   currentStepIndex?: number;
   totalSteps?: number;
@@ -63,14 +65,16 @@ export function Q1Name({
   onSubmit,
   isMobile = false,
   currentStepIndex = 0,
-  totalSteps = 5,
+  totalSteps = 4,
 }: Q1NameProps) {
   const [name, setName] = useState(value);
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   // Validation runs on submit (not per keystroke) so the message doesn't
   // flash while the user is still typing; the CTA stays disabled when empty.
-  const submitName = () => {
+  const submitName = async () => {
+    if (saving) return;
     const message = validatePersonName(name);
     if (message) {
       setError(message);
@@ -78,12 +82,19 @@ export function Q1Name({
     }
     setError(null);
     // Same collapsed-space form validatePersonName checked.
-    onSubmit(name.split(/\s+/).filter(Boolean).join(" "));
+    setSaving(true);
+    try {
+      await onSubmit(name.split(/\s+/).filter(Boolean).join(" "));
+    } catch (err) {
+      setError(err instanceof Error && err.message ? err.message : "We couldn’t save your name. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    submitName();
+    void submitName();
   };
 
   const subtext = "Type your name exactly as it is printed on your PAN card.";
@@ -141,8 +152,8 @@ export function Q1Name({
           customIllustration={<NameIllustration />}
           subtext={subtext}
           ctaLabel="Next"
-          ctaDisabled={!name.trim()}
-          onCtaClick={submitName}
+          ctaDisabled={!name.trim() || saving}
+          onCtaClick={() => void submitName()}
           ctaIcon={<ArrowRight className="h-4 w-4" />}
         >
           {nameInputContent}
@@ -199,7 +210,7 @@ export function Q1Name({
           <Button
             variant="primary"
             type="submit"
-            disabled={!name.trim()}
+            disabled={!name.trim() || saving}
             className="h-11 sm:h-12 px-6 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs sm:text-sm shadow-xs gap-2 cursor-pointer transition-all min-h-[44px] sm:min-h-[48px]"
           >
             <span>Next</span>

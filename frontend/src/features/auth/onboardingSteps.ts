@@ -2,7 +2,6 @@ export const ONBOARDING_STEPS = [
   "landing",
   "phone",
   "otp",
-  "trust_primer",
   "q1_name",
   "q2_investing",
   "q3_purpose",
@@ -24,10 +23,8 @@ export function getStepIndex(step: OnboardingStep): number {
       return 1;
     case "q3_purpose":
       return 2;
-    case "trust_primer":
-      return 3;
     case "cas_upload":
-      return 4;
+      return 3;
     default:
       return 0;
   }

@@ -16,9 +16,17 @@ from typing import Literal, NamedTuple
 from sqlalchemy.orm import Session as DbSession
 
 from app.models.auth import AuthIdentity, PendingIdentityVerification
-from app.models.enums import AuthIdentityProvider
+from app.models.enums import AuthIdentityProvider, ConsentAction, ConsentDocumentType
 from app.models.user import User
 from app.services.auth.otp import delete_otp_requests_for_identifiers
+from app.services.legal.consent import (
+    SIGNUP_DOCUMENTS,
+    AcceptedDocument,
+    ConsentEvidence,
+    ConsentRequiredError,
+    record_consent,
+    validate_accepted,
+)
 
 # Lower value = higher precedence. Design Spec §1: "Identity precedence:
 # Google > Email > Phone" — applied wherever only one identity can be
@@ -149,6 +157,7 @@ def create_pending_verification(
     email: str | None,
     email_verified: bool,
     matched_user_id: uuid.UUID | None,
+    consent_snapshot: dict | None = None,
 ) -> tuple[PendingIdentityVerification, str]:
     raw_token = secrets.token_urlsafe(PENDING_VERIFICATION_TOKEN_BYTES)
     now = datetime.now(timezone.utc)
@@ -161,10 +170,22 @@ def create_pending_verification(
         token_hash=_hash_pending_token(raw_token),
         expires_at=now + timedelta(minutes=PENDING_VERIFICATION_TTL_MINUTES),
         created_at=now,
+        consent_snapshot=consent_snapshot,
     )
     db.add(pending)
     db.commit()
     return pending, raw_token
+
+
+def discard_pending_verification(db: DbSession, raw_token: str) -> None:
+    """Deletes a just-minted pending record the caller has decided not to
+    hand out (google_oauth_route refusing a new account that came without
+    sign-up consent), so a refused attempt leaves no orphan row. Unknown
+    token: no-op."""
+    pending = db.query(PendingIdentityVerification).filter_by(token_hash=_hash_pending_token(raw_token)).first()
+    if pending is not None:
+        db.delete(pending)
+        db.commit()
 
 
 class PendingVerificationError(Exception):
@@ -337,6 +358,23 @@ def complete_gated_signup(
         # signup is never a valid shape here.
         raise PendingVerificationError("Invalid or already-used verification token.")
 
+    # Consent core (Task 8): a brand-new account is only created with the
+    # T&C + Privacy agreement captured at the first sign-up step. Checked
+    # before anything is written, so a refusal creates nothing.
+    snapshot = pending.consent_snapshot
+    if snapshot is None:
+        raise ConsentRequiredError(
+            [ConsentDocumentType.TERMS_OF_SERVICE.value, ConsentDocumentType.PRIVACY_POLICY.value]
+        )
+    # Re-validated against the CURRENT versions: if a document was re-versioned
+    # between the first step and now, the user agreed to old text and must
+    # re-agree. Extremely rare -- needs the pending TTL window to span a
+    # legal-document deploy -- but recording a stale version as current
+    # consent would be wrong.
+    consent_documents = validate_accepted(
+        [AcceptedDocument(**d) for d in snapshot["documents"]], SIGNUP_DOCUMENTS
+    )
+
     # An UNVERIFIED email claim (a Google account whose `email_verified` is
     # false) must never be persisted into either `users.email` or
     # `auth_identities.email`: resolve_email_collision treats ANY matching
@@ -391,6 +429,17 @@ def complete_gated_signup(
     record_identity(db, user.id, second_provider, second_provider_subject, second_identity_email, now, commit=False)
     record_identity(
         db, user.id, pending.provider, pending.provider_subject, pending_identity_email, now, commit=False
+    )
+    # Same transaction as the user + identities (record_consent never
+    # commits): either the account exists with its consent rows, or neither.
+    record_consent(
+        db,
+        user_id=user.id,
+        documents=consent_documents,
+        action=ConsentAction.GIVEN,
+        surface=snapshot["surface"],
+        evidence=ConsentEvidence(**snapshot["evidence"]),
+        recorded_at=datetime.fromisoformat(snapshot["captured_at"]),
     )
     db.delete(pending)
     delete_otp_requests_for_identifiers(db, phone_number=phone_number, email=verified_email, commit=False)
@@ -458,11 +507,14 @@ def resolve_new_verified_identity(
     provider_subject: str,
     email: str | None,
     email_verified: bool,
+    consent_snapshot: dict | None = None,
 ) -> IdentityResolution:
     """For a Google or email-OTP identity with NO existing auth_identities
     row yet (caller has already checked find_identity_by_subject returns
     None). Runs the Design Spec §4 collision check and returns exactly
-    what the route needs to respond."""
+    what the route needs to respond. `consent_snapshot` is stored only on
+    the phone_required (brand-new account) pending record; login/link
+    outcomes never need sign-up consent."""
     email_for_collision = email if email_verified else None
 
     if email_for_collision is not None:
@@ -486,6 +538,7 @@ def resolve_new_verified_identity(
             )
 
     _, raw_token = create_pending_verification(
-        db, provider, provider_subject, email, email_verified, matched_user_id=None
+        db, provider, provider_subject, email, email_verified, matched_user_id=None,
+        consent_snapshot=consent_snapshot,
     )
     return IdentityResolution("phone_required", None, raw_token, None, None, email_for_collision)

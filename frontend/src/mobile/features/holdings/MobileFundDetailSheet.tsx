@@ -30,6 +30,9 @@ export function MobileFundDetailSheet({
     };
   }, [isOpen]);
 
+  // Hooks must run on every render, before the closed-sheet early return.
+  const shouldReduceMotion = useReducedMotion() || isTestEnv;
+
   if (!isOpen || !holding) return null;
 
   const navUnavailable = holding.nav_unavailable === true;
@@ -41,7 +44,6 @@ export function MobileFundDetailSheet({
   const isPositive = profit !== null && profit >= 0;
   const returnPct = !navUnavailable && invested > 0 ? (profit! / invested) * 100 : null;
 
-  const shouldReduceMotion = useReducedMotion() || isTestEnv;
 
   return (
     <div

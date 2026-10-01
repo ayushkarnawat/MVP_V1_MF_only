@@ -82,6 +82,17 @@ in `infra/modules/networking/main.tf`, zero actual historical drift per CloudTra
 Scenario B (RDS `small`→`micro`, a further -$10/mo) explicitly held off per user decision
 — see `decisions.md`. Full narrative: `log.md`'s 2026-10-01 (cont'd) entry.
 
+**Previous (2026-10-01, consent/onboarding/profile session, merged from a parallel
+branch push):** consent, onboarding and profile changes committed on `feat/enhanced-ui`
+(no new secret or Terraform change needed; deploy guide:
+`Docs/orchestration/2026-10-01-consent-release-deploy-guide.md`) — onboarding privacy
+screen removed with name saved at the name step, "All of it." goal shortcut, name/PAN
+sourced from the CAS with relationship-only unlock, append-only consent records
+(migrations `0021`/`0022`) gating sign-up/upload/CAMS/reactivate, and a 5-section Profile
+restructure. Not yet independently re-verified by this doc's author — see `session.md`'s
+equivalent section for the open items (`functional_postgres` not run, no browser visual
+QA) carried over from that session.
+
 **Previous (2026-10-01, earlier session):** no code changes — DB-access tooling and
 investigation only. Staging RDS access via SSM-tunnel + `psql`/DBeaver was set up and
 used to repeatedly wipe all user-domain data (reference/platform tables untouched) for
@@ -97,7 +108,7 @@ third-party `casparser` library's page/fund-boundary detection, and wrote a hand
 `Docs/investigations/2026-10-01-cas-10-year-parsing-discrepancy-handoff.md`, so this can
 be picked up in a dedicated session with a real test file.
 
-**Previous (2026-09-30):** staging QA fixes (auth sign-up/login checks, multi-select goal, ribbon auto-confirm, L3 popup, duplicate-member fixes, statement period) — confirmed committed (`c404c2f`/`1ace61c`/`3541ef4`/`1cf9f35`/`d52bab6`), not uncommitted as this section previously said. CAS member detection (2026-09-29) is also committed.
+**Previous (2026-09-30):** staging QA fixes (auth sign-up/login checks, multi-select goal, ribbon auto-confirm, L3 popup, duplicate-member fixes, statement period) — confirmed committed (`c404c2f`/`1ace61c`/`3541ef4`/`1cf9f35`/`d52bab6`). CAS member detection (2026-09-29) is also committed.
 
 **Previous (2026-09-24):** CAS import PAN check moved from Confirm-time to upload-time
 (`pan_claims.py` replaces `attribution.py`; migration `0016`) — fixes every first import

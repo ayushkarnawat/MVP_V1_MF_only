@@ -3,6 +3,8 @@ import { motion } from "motion/react";
 import { requestCamsStatement } from "./api";
 import { setCasResumeStep2 } from "./casResumeState";
 import { Button } from "@/components/ui/button";
+import { PanDisclaimer } from "@/features/legal/PanDisclaimer";
+import { useLegalDocuments } from "@/features/legal/useLegalDocuments";
 import {
   ExternalLink,
   AlertTriangle,
@@ -22,14 +24,18 @@ export function RequestCamsPath({
   onBack,
   onRequestInitiated,
 }: RequestCamsPathProps) {
+  const [disclaimerChecked, setDisclaimerChecked] = useState(false);
+  const { docs } = useLegalDocuments();
+  const panVersion = docs?.find((d) => d.document_type === "pan_disclaimer")?.version ?? null;
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleRequest = async () => {
+    if (!panVersion) return;
     setIsLoading(true);
     setError(null);
     try {
-      const result = await requestCamsStatement(memberId);
+      const result = await requestCamsStatement(memberId, panVersion);
       setCasResumeStep2(memberId);
       window.open(result.cams_url, "_blank");
       onRequestInitiated(result.import_id, result.expires_at);
@@ -155,11 +161,15 @@ export function RequestCamsPath({
         </motion.div>
       )}
 
+      <motion.div variants={staggerItemVariants}>
+        <PanDisclaimer checked={disclaimerChecked} onChange={setDisclaimerChecked} surface="import_upload" />
+      </motion.div>
+
       {/* Action Button */}
       <motion.div variants={staggerItemVariants} className="pt-1">
         <Button
           onClick={handleRequest}
-          disabled={isLoading}
+          disabled={isLoading || !disclaimerChecked || !panVersion}
           className="w-full h-12 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs sm:text-sm shadow-xs gap-2 cursor-pointer active:scale-[0.99] transition-all min-h-[48px]"
           type="button"
         >

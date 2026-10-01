@@ -3,16 +3,19 @@
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from app.api.imports import validate_pan_disclaimer
 from app.db.session import get_db
+from app.models.enums import ConsentAction
 from app.models.imports import Import
 from app.models.user import HouseholdMember, User
 from app.services.auth.session import get_active_user
 from app.services.dashboard.household_members import get_household_member_for_user
 from app.services.dashboard.member_details import require_unlocked_member
+from app.services.legal.consent import evidence_from_request, record_consent
 
 router = APIRouter(tags=["cas-imports"])
 
@@ -43,6 +46,9 @@ class CASImportStatusResponse(BaseModel):
 
 class CAMSInitiateRequest(BaseModel):
     household_member_id: str
+    # Optional in the schema so a missing value is the 422 consent_required
+    # (with the disclaimer copy), not a generic pydantic validation error.
+    pan_disclaimer_version: str | None = None
 
 
 class CAMSInitiateResponse(BaseModel):
@@ -284,6 +290,7 @@ def post_opening_balance(
 @router.post("/cas-imports/request", status_code=status.HTTP_201_CREATED, response_model=CAMSInitiateResponse)
 def request_cams_statement(
     body: CAMSInitiateRequest,
+    request: Request,
     user: User = Depends(get_active_user),
     db: Session = Depends(get_db),
 ):
@@ -295,11 +302,27 @@ def request_cams_statement(
     from app.services.import_.cams_portal import initiate_cams_request
 
     require_unlocked_member(db, user.id, member_uuid)
+    # Validated before any import row exists; recorded after, so the row can
+    # carry the import id.
+    documents = validate_pan_disclaimer(body.pan_disclaimer_version)
 
     try:
         import_rec, cams_url = initiate_cams_request(db, user.id, member_uuid)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    # initiate_cams_request commits on its own, so this is a second commit
+    # right after it (plain `def` route: a direct commit is fine here).
+    record_consent(
+        db,
+        user_id=user.id,
+        documents=documents,
+        action=ConsentAction.GIVEN,
+        surface="cams_request",
+        evidence=evidence_from_request(request),
+        related_import_id=import_rec.id,
+    )
+    db.commit()
 
     return CAMSInitiateResponse(
         import_id=str(import_rec.id),

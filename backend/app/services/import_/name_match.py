@@ -41,6 +41,14 @@ class InvalidPersonNameError(ValueError):
         self.message = message
 
 
+class NameNotEditableError(InvalidPersonNameError):
+    """2026-10-01 rule: names come from the CAS. Typing a different name for a
+    person the statement already names is refused (only U9 `needs_name`
+    people may be named by hand, decision QB)."""
+
+    code = "name_not_editable"
+
+
 def normalise_name(name: str) -> list[str]:
     cleaned = _SEPARATORS_RE.sub(" ", name.translate(_CURLY_APOSTROPHES).upper())
     return [t for t in cleaned.split() if t not in HONORIFICS]

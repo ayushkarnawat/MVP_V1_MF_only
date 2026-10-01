@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import type { AcceptedDocument } from "../legal/types";
 import type { ReactNode } from "react";
 import {
   getMe,
@@ -18,8 +19,10 @@ interface AuthContextValue {
   login: (token: string) => Promise<void>;
   logout: () => void;
   updateMe: (body: UpdateMeBody) => Promise<void>;
+  /** Re-fetches `me` (e.g. after re-consent clears consent_outdated). */
+  refreshMe: () => Promise<void>;
   requestAccountDeletion: (reason: AccountDeletionReason, feedback?: string) => Promise<void>;
-  reactivateAccount: () => Promise<void>;
+  reactivateAccount: (accepted: AcceptedDocument[]) => Promise<void>;
   requestContactChange: (channel: ContactChangeChannel, identifier: string) => Promise<OtpRequestResponse>;
   verifyContactChange: (channel: ContactChangeChannel, identifier: string, otp: string) => Promise<void>;
 }
@@ -83,12 +86,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setMe(updated);
   };
 
+  const refreshMe = async () => {
+    setMe(await getMe());
+  };
+
   const requestAccountDeletion = async (reason: AccountDeletionReason, feedback?: string) => {
     setMe(await apiRequestAccountDeletion(reason, feedback));
   };
 
-  const reactivateAccount = async () => {
-    setMe(await apiReactivateAccount());
+  const reactivateAccount = async (accepted: AcceptedDocument[]) => {
+    setMe(await apiReactivateAccount(accepted));
   };
 
   const requestContactChange = (channel: ContactChangeChannel, identifier: string) =>
@@ -106,6 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       login,
       logout,
       updateMe,
+      refreshMe,
       requestAccountDeletion,
       reactivateAccount,
       requestContactChange,

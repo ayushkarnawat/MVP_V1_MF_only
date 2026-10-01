@@ -6,10 +6,19 @@ spec §3). Mirrors the shape of the deleted test_email_confirmation_routes.py.
 
 from app.models.auth import AuthIdentity, PendingIdentityVerification
 from app.models.enums import AuthIdentityProvider
+from app.models.enums import ConsentDocumentType as T
+from app.services.legal.registry import current_document
+
+
+def _consent():
+    return [
+        {"document_type": t.value, "document_version": current_document(t).version}
+        for t in (T.TERMS_OF_SERVICE, T.PRIVACY_POLICY)
+    ]
 
 
 def _signup(client, email="otproute@example.com"):
-    return client.post("/auth/signup/email", json={"email": email})
+    return client.post("/auth/signup/email", json={"email": email, "accepted_documents": _consent()})
 
 
 def test_signup_email_returns_email_otp_required(client):
@@ -487,7 +496,7 @@ def test_phone_first_signup_end_to_end(client):
     phone = "+919777788888"
     phone_otp = client.post("/auth/otp/request", json={"phone_number": phone}).json()["otp"]
     phone_result = client.post(
-        "/auth/otp/verify", json={"phone_number": phone, "otp": phone_otp, "flow": "signup"}
+        "/auth/otp/verify", json={"phone_number": phone, "otp": phone_otp, "flow": "signup", "accepted_documents": _consent()}
     ).json()
     pending_token = phone_result["email_required"]["token"]
 
@@ -540,7 +549,7 @@ def test_email_gate_rejects_an_email_that_already_has_an_account_at_request_time
     phone = "+919777788899"
     phone_otp = client.post("/auth/otp/request", json={"phone_number": phone}).json()["otp"]
     pending_token = client.post(
-        "/auth/otp/verify", json={"phone_number": phone, "otp": phone_otp, "flow": "signup"}
+        "/auth/otp/verify", json={"phone_number": phone, "otp": phone_otp, "flow": "signup", "accepted_documents": _consent()}
     ).json()["email_required"]["token"]
 
     gate_request = client.post(
@@ -574,7 +583,7 @@ def test_email_gate_returns_409_not_500_if_email_is_claimed_between_request_and_
     phone = "+919777788877"
     phone_otp = client.post("/auth/otp/request", json={"phone_number": phone}).json()["otp"]
     pending_token = client.post(
-        "/auth/otp/verify", json={"phone_number": phone, "otp": phone_otp, "flow": "signup"}
+        "/auth/otp/verify", json={"phone_number": phone, "otp": phone_otp, "flow": "signup", "accepted_documents": _consent()}
     ).json()["email_required"]["token"]
     email_otp = client.post(
         "/auth/email-otp/request",
@@ -624,7 +633,7 @@ def test_phone_first_signup_deletes_otp_requests_on_completion(client):
     phone = "+919777799999"
     phone_otp = client.post("/auth/otp/request", json={"phone_number": phone}).json()["otp"]
     pending_token = client.post(
-        "/auth/otp/verify", json={"phone_number": phone, "otp": phone_otp, "flow": "signup"}
+        "/auth/otp/verify", json={"phone_number": phone, "otp": phone_otp, "flow": "signup", "accepted_documents": _consent()}
     ).json()["email_required"]["token"]
     email_otp = client.post(
         "/auth/email-otp/request", json={"email": "cleanup@example.com", "pending_token": pending_token}
@@ -650,3 +659,50 @@ def test_email_login_request_with_an_unknown_email_is_404(client):
 def test_email_request_without_flow_is_unchanged(client):
     r = client.post("/auth/email-otp/request", json={"email": "nobody2@example.com"})
     assert r.status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# Task 8 (consent core B2): email-first sign-up captures T&C + Privacy
+# consent at its first step and records it when the account is created.
+
+
+def test_email_signup_without_consent_is_422(client):
+    r = client.post("/auth/signup/email", json={"email": "noconsent@example.com"})
+    assert r.status_code == 422
+    assert r.json()["detail"]["code"] == "consent_required"
+    assert r.json()["detail"]["missing"] == ["terms_of_service", "privacy_policy"]
+    from app.db.session import get_db
+
+    db = next(client.app.dependency_overrides[get_db]())
+    assert db.query(PendingIdentityVerification).filter_by(provider_subject="noconsent@example.com").count() == 0
+    db.close()
+
+
+def test_email_signup_records_consent_on_completion(client):
+    import uuid
+
+    from app.models.consent import ConsentRecord
+
+    email = "consentflow@example.com"
+    detail = client.post(
+        "/auth/signup/email",
+        json={"email": email, "accepted_documents": _consent()},
+        headers={"X-Device-Id": "dev-email"},
+    ).json()["email_otp_required"]
+    gate_token = client.post(
+        "/auth/email-otp/verify", json={"email": email, "otp": detail["otp"], "pending_token": detail["token"]}
+    ).json()["phone_required"]["token"]
+    phone = "+919777700901"
+    phone_otp = client.post("/auth/otp/request", json={"phone_number": phone, "pending_token": gate_token}).json()["otp"]
+    s = client.post(
+        "/auth/otp/verify", json={"phone_number": phone, "otp": phone_otp, "pending_token": gate_token}
+    ).json()
+
+    from app.db.session import get_db
+
+    db = next(client.app.dependency_overrides[get_db]())
+    rows = db.query(ConsentRecord).filter(ConsentRecord.user_id == uuid.UUID(s["user_id"])).all()
+    assert len(rows) == 3
+    assert {r.surface for r in rows} == {"signup_email"}
+    assert {r.device_id for r in rows} == {"dev-email"}
+    db.close()
