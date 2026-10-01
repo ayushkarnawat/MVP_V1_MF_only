@@ -35,12 +35,12 @@ describe("PeopleFoundDialog", () => {
     expect(screen.getByText("(PAN not on statement)")).toBeInTheDocument();
   });
 
-  it("tags existing members and locked members", () => {
+  it("tags existing members", () => {
     renderDialog({
-      people: [me, person("a", "Existing One", { status: "existing_member" }), person("b", "Locked One", { status: "locked_member" })],
+      people: [me, person("a", "Existing One", { status: "existing_member" })],
     });
     expect(screen.getByText("already in your family")).toBeInTheDocument();
-    expect(screen.getByText("details needed")).toBeInTheDocument();
+    expect(screen.queryByText("details needed")).toBeNull();
   });
 
   it("blocks Continue until a placeholder person is named (U9)", () => {

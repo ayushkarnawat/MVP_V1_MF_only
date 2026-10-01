@@ -14,7 +14,7 @@ function row(over: Partial<HouseholdImportHistoryItem>): HouseholdImportHistoryI
 
 const member = (id: string, name: string, locked: boolean): HouseholdMember => ({
   id, name, relationship: locked ? null : "self", relationship_other_label: null, origin: "cas",
-  lock_reason: locked ? "details_needed" : null, details_required: locked, pan_masked: null, phone_number: null, email: null, pan_on_statement: false, name_from_statement: false,
+  pan_masked: null, phone_number: null, email: null, name_from_statement: false, pan_conflict: null, pan_editable: false, profile_completion: locked ? 40 : 100, missing_fields: locked ? ["relationship"] : [], removed_with_last_import: locked,
 });
 
 const FAMILY = [
@@ -45,13 +45,32 @@ describe("ImportHistorySection", () => {
     const dialog = await screen.findByRole("dialog", { name: "Delete this statement’s funds?" });
     expect(within(dialog).getByLabelText("Only Ramesh Sharma’s funds from this statement")).toBeChecked();
     expect(within(dialog).getByLabelText("Everyone in this statement (2 people)")).not.toBeChecked();
-    // Ramesh is locked and has no other statement, so he goes with it.
+    // removed_with_last_import is set and Ramesh has no other statement, so he goes with it.
     expect(within(dialog).getByText("Ramesh Sharma has no other data and will be removed from your family.")).toBeInTheDocument();
 
     fireEvent.click(within(dialog).getByLabelText("Everyone in this statement (2 people)"));
     fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
     await waitFor(() => expect(deleteImport).toHaveBeenCalledWith("i2", "group"));
     expect(await screen.findByText("No imports yet.")).toBeInTheDocument();
+  });
+
+  it("removal names come from removed_with_last_import", async () => {
+    const run = async (flag: boolean) => {
+      const { unmount } = render(
+        <ImportHistorySection
+          loadImportHistory={vi.fn().mockResolvedValue(FAMILY)}
+          loadMembers={vi.fn().mockResolvedValue([member("m1", "Aditi Sharma", false), { ...member("m2", "Ramesh Sharma", true), removed_with_last_import: flag }])}
+        />,
+      );
+      await screen.findByText("Ramesh Sharma");
+      fireEvent.click(screen.getByRole("button", { name: "Delete Ramesh Sharma’s funds from the 10 Sep 2026 import" }));
+      const dialog = await screen.findByRole("dialog", { name: "Delete this statement’s funds?" });
+      const present = within(dialog).queryByText("Ramesh Sharma has no other data and will be removed from your family.") !== null;
+      unmount();
+      return present;
+    };
+    expect(await run(true)).toBe(true);
+    expect(await run(false)).toBe(false);
   });
 
   it("D1: Only-this-person sends person scope and leaves the others listed", async () => {

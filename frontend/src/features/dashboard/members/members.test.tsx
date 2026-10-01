@@ -1,273 +1,220 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../../../lib/apiClient";
-import * as authApi from "../../auth/api";
+import { mergeMemberInto, updateMemberProfile } from "../../auth/api";
 import type { HouseholdMember } from "../../auth/types";
-import { EditMemberDialog } from "./EditMemberDialog";
-import { MemberDetailsDialog } from "./MemberDetailsDialog";
-import { OtherAccountDialog } from "./OtherAccountDialog";
+import { CompleteProfileDialog } from "./CompleteProfileDialog";
 
 vi.mock("../../auth/api", () => ({
-  completeMemberDetails: vi.fn(),
+  updateMemberProfile: vi.fn(),
   mergeMemberInto: vi.fn(),
-  updateMember: vi.fn(),
 }));
 
-const locked: HouseholdMember = {
-  id: "m-2",
-  name: "Ramesh Sharma",
-  relationship: null,
-  relationship_other_label: null,
-  origin: "cas_detected",
-  lock_reason: "details_needed",
-  details_required: true,
-  pan_masked: "BX******8L",
-  phone_number: null,
-  email: null,
-  pan_on_statement: true,
-  name_from_statement: true,
-};
+const member = (over: Partial<HouseholdMember> = {}): HouseholdMember => ({
+  id: "m-r", name: "Ramesh Sharma", relationship: null, relationship_other_label: null, origin: "cas_detected",
+  pan_masked: "AB******4K", phone_number: null, email: null, name_from_statement: true,
+  pan_conflict: null, pan_editable: false, profile_completion: 40,
+  missing_fields: ["relationship", "phone_number", "email"], removed_with_last_import: true, ...over,
+});
 
-// A CAS person whose statement carried no PAN: the unlock popup asks for it.
-const noPan: HouseholdMember = { ...locked, name: "Meera Rao", pan_masked: null, pan_on_statement: false };
+const noPan = (over: Partial<HouseholdMember> = {}) =>
+  member({ pan_masked: null, pan_editable: true, profile_completion: 20, missing_fields: ["pan", "relationship", "phone_number", "email"], ...over });
 
-function apiError(status: number, code: string, message = "x", details?: Record<string, unknown>) {
-  return new ApiError(status, { code, message, ...(details ? { details } : {}) });
+const dupError = (details: Record<string, unknown>) =>
+  new ApiError(409, { code: "pan_belongs_to_other_member", message: "x", details: { can_merge: true, ...details } });
+
+const type = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
+const click = (name: string | RegExp) => fireEvent.click(screen.getByRole("button", { name }));
+
+function setup(m: HouseholdMember, extra: Partial<React.ComponentProps<typeof CompleteProfileDialog>> = {}) {
+  const props = { onSaved: vi.fn(), onMerged: vi.fn(), onClose: vi.fn() };
+  render(<CompleteProfileDialog member={m} {...props} {...extra} />);
+  return props;
 }
 
-function setup(member: HouseholdMember = noPan) {
-  const onUnlocked = vi.fn();
-  const onCancel = vi.fn();
-  render(<MemberDetailsDialog member={member} onUnlocked={onUnlocked} onCancel={onCancel} />);
-  return { onUnlocked, onCancel };
-}
-
-function fill(rel: string, pan: string) {
-  fireEvent.change(screen.getByLabelText("Relationship"), { target: { value: rel } });
-  fireEvent.change(screen.getByLabelText("PAN"), { target: { value: pan } });
-}
-
-const cont = () => fireEvent.click(screen.getByRole("button", { name: "Continue" }));
-
-describe("MemberDetailsDialog", () => {
+describe("CompleteProfileDialog", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("shows the title and the label field only for Other", () => {
-    setup();
-    expect(screen.getByText("Add Meera Rao’s details")).toBeInTheDocument();
-    expect(screen.queryByLabelText("How are you related?")).toBeNull();
-    fireEvent.change(screen.getByLabelText("Relationship"), { target: { value: "other" } });
-    expect(screen.getByLabelText("How are you related?")).toBeInTheDocument();
+  it("shows the CAS PAN greyed and read-only, name editable, relationship optional", () => {
+    setup(member());
+    expect(screen.getByRole("heading", { name: "Complete Ramesh Sharma’s profile" })).toBeInTheDocument();
+    const pan = screen.getByLabelText("PAN");
+    expect(pan).toHaveValue("AB******4K");
+    expect(pan).toHaveAttribute("readonly");
+    expect(screen.getByLabelText("Name")).not.toHaveAttribute("readonly");
+    expect(screen.getByLabelText("Relationship")).not.toBeRequired();
+    expect(screen.getByText("From your CAS. Can’t be changed.")).toBeInTheDocument();
   });
 
-  it("L1: missing fields", () => {
-    setup();
-    cont();
-    expect(screen.getByText("Choose a relationship.")).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("Relationship"), { target: { value: "other" } });
-    cont();
-    expect(screen.getByText("Type how you’re related.")).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("How are you related?"), { target: { value: "Cousin" } });
-    expect(screen.queryByText("Type how you’re related.")).toBeNull();
-    cont();
-    expect(screen.getByText("Enter Meera Rao’s PAN.")).toBeInTheDocument();
-    expect(authApi.completeMemberDetails).not.toHaveBeenCalled();
+  it("Save sends only changed fields and reports the saved member", async () => {
+    vi.mocked(updateMemberProfile).mockResolvedValue(member({ relationship: "parent", profile_completion: 60 }));
+    const { onSaved, onClose } = setup(member());
+    type("Relationship", "parent");
+    click("Save");
+    await waitFor(() => expect(onClose).toHaveBeenCalled()); // below 100%: straight back to the dashboard
+    expect(updateMemberProfile).toHaveBeenCalledWith("m-r", { relationship: "parent", relationship_other_label: null });
+    expect(onSaved).toHaveBeenCalled();
   });
 
-  it("L2: bad PAN format", () => {
-    setup();
-    fill("spouse", "ABC");
-    cont();
+  it("member with no PAN: PAN is a required input and Save is blocked until typed", () => {
+    setup(noPan());
+    click("Save");
+    expect(screen.getByText("Enter Ramesh Sharma’s PAN to save.")).toBeInTheDocument();
+    expect(updateMemberProfile).not.toHaveBeenCalled();
+  });
+
+  it("rejects a malformed PAN before sending", () => {
+    setup(noPan());
+    type("PAN", "abc");
+    click("Save");
     expect(screen.getByText("Enter a valid PAN: 5 letters, 4 digits, then 1 letter.")).toBeInTheDocument();
+    expect(updateMemberProfile).not.toHaveBeenCalled();
   });
 
-  it("normalises the PAN and unlocks on success", async () => {
-    vi.mocked(authApi.completeMemberDetails).mockResolvedValue({ ...noPan, relationship: "spouse", lock_reason: null });
-    const { onUnlocked } = setup();
-    fill("spouse", "bxqps 5678l");
-    cont();
-    await waitFor(() => expect(onUnlocked).toHaveBeenCalled());
-    expect(authApi.completeMemberDetails).toHaveBeenCalledWith("m-2", {
-      relationship: "spouse",
-      relationship_other_label: null,
-      pan: "BXQPS5678L",
-    });
+  it("Other relationship needs a label", () => {
+    setup(member());
+    type("Relationship", "other");
+    click("Save");
+    expect(screen.getByText("Type how you’re related.")).toBeInTheDocument();
   });
 
-  it("unlock with a statement PAN shows name and PAN read-only and a relationship dropdown only", async () => {
-    vi.mocked(authApi.completeMemberDetails).mockResolvedValue({ ...locked, relationship: "parent", lock_reason: null });
-    const { onUnlocked } = setup(locked);
-    expect(screen.queryByRole("textbox", { name: "Name" })).toBeNull();
-    expect(screen.queryByRole("textbox", { name: "PAN" })).toBeNull();
-    expect(screen.getAllByText("Ramesh Sharma").length).toBeGreaterThan(0);
-    expect(screen.getByText("BX******8L")).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("Relationship"), { target: { value: "parent" } });
-    cont();
-    await waitFor(() => expect(onUnlocked).toHaveBeenCalled());
-    expect(authApi.completeMemberDetails).toHaveBeenCalledWith("m-2", { relationship: "parent", relationship_other_label: null });
-    expect(vi.mocked(authApi.completeMemberDetails).mock.calls[0][1]).not.toHaveProperty("pan");
-  });
-
-  it("unlock without a statement PAN shows a PAN field", async () => {
-    vi.mocked(authApi.completeMemberDetails).mockResolvedValue({ ...noPan, relationship: "spouse", lock_reason: null });
-    setup();
-    expect(screen.getByRole("textbox", { name: "PAN" })).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("Relationship"), { target: { value: "spouse" } });
-    cont();
-    expect(screen.getByText("Enter Meera Rao’s PAN.")).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("PAN"), { target: { value: "abcde1234f" } });
-    cont();
-    await waitFor(() => expect(authApi.completeMemberDetails).toHaveBeenCalled());
-    expect(authApi.completeMemberDetails).toHaveBeenCalledWith("m-2", {
-      relationship: "spouse", relationship_other_label: null, pan: "ABCDE1234F",
-    });
-  });
-
-  it("field_not_editable shows the server message", async () => {
-    vi.mocked(authApi.completeMemberDetails).mockRejectedValue(
-      apiError(422, "field_not_editable", "Edit this person from Profile → Family Members."),
-    );
-    setup(locked);
-    fireEvent.change(screen.getByLabelText("Relationship"), { target: { value: "parent" } });
-    cont();
-    expect(await screen.findByText("Edit this person from Profile → Family Members.")).toBeInTheDocument();
-  });
-
-  it("L7: generic failure", async () => {
-    vi.mocked(authApi.completeMemberDetails).mockRejectedValue(new Error("network"));
-    setup();
-    fill("spouse", "ABCDE1234F");
-    cont();
+  it("shows a server error inline and stays open", async () => {
+    vi.mocked(updateMemberProfile).mockRejectedValue(new ApiError(500, { code: "boom", message: "x" }));
+    const { onClose } = setup(member());
+    type("Email address", "r@example.com");
+    click("Save");
     expect(await screen.findByText("We couldn’t save these details. Try again.")).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
   });
 
-  it("L4: duplicate popup uses source_fund_count, Check the PAN returns with values kept", async () => {
-    vi.mocked(authApi.completeMemberDetails).mockRejectedValue(
-      apiError(409, "pan_belongs_to_other_member", "m", {
-        other_member_id: "m-1", other_member_name: "Dad", can_merge: true, source_fund_count: 2,
-      }),
+  it("Exit asks to skip; Keep editing keeps typed values", () => {
+    const { onClose } = setup(member());
+    type("Email address", "r@example.com");
+    click("Exit");
+    expect(screen.getByRole("heading", { name: "Skip completing Ramesh Sharma’s profile?" })).toBeInTheDocument();
+    click("Keep editing");
+    expect(screen.getByLabelText("Email address")).toHaveValue("r@example.com");
+    click("Exit");
+    click("Skip for now");
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("reaching 100% shows the success state", async () => {
+    vi.mocked(updateMemberProfile).mockResolvedValue(member({ profile_completion: 100, missing_fields: [] }));
+    setup(member({ profile_completion: 80, missing_fields: ["email"] }));
+    type("Email address", "r@example.com");
+    click("Save");
+    expect(await screen.findByText("Ramesh Sharma’s profile is complete")).toBeInTheDocument();
+  });
+
+  it("a save that leaves pan_conflict set shows the warning popup", async () => {
+    vi.mocked(updateMemberProfile).mockResolvedValue(member({ pan_conflict: "other_account" }));
+    const { onClose } = setup(member({ pan_conflict: "other_account" }));
+    type("Phone number", "9800000002");
+    click("Save");
+    expect(await screen.findByRole("heading", { name: "Ramesh Sharma’s details are saved" })).toBeInTheDocument();
+    expect(screen.getByText("Their profile can’t be completed here")).toBeInTheDocument();
+    click("OK");
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("a duplicate PAN offers the merge and reports the target", async () => {
+    vi.mocked(updateMemberProfile).mockRejectedValue(
+      dupError({ other_member_id: "m-d", other_member_name: "Dad", source_fund_count: 2, source_pan_label: "PAN not on statement" }),
     );
-    setup();
-    fill("spouse", "ABCDE1234F");
-    cont();
+    vi.mocked(mergeMemberInto).mockResolvedValue({ folios_moved: 2, transactions_dropped: 0 });
+    const { onMerged } = setup(noPan());
+    type("PAN", "abcps1234k");
+    click("Save");
     expect(await screen.findByText("This PAN is already on Dad")).toBeInTheDocument();
+    expect(updateMemberProfile).toHaveBeenCalledWith("m-r", { pan: "ABCPS1234K" });
+    fireEvent.click(await screen.findByRole("button", { name: /merge/i }));
+    await waitFor(() => expect(onMerged).toHaveBeenCalledWith("m-d"));
+    expect(mergeMemberInto).toHaveBeenCalledWith("m-r", "m-d");
+  });
+
+  it("duplicate popup uses source_fund_count; Check the PAN returns with values kept", async () => {
+    vi.mocked(updateMemberProfile).mockRejectedValue(dupError({ other_member_id: "m-1", other_member_name: "Dad", source_fund_count: 2 }));
+    setup(noPan());
+    type("PAN", "ABCDE1234F");
+    click("Save");
     expect(
-      screen.getByText(
-        "Meera Rao and Dad may be the same person. Merging moves Meera Rao’s 2 funds into Dad and removes Meera Rao from your family list.",
-      ),
+      await screen.findByText("Ramesh Sharma and Dad may be the same person. Merging moves Ramesh Sharma’s 2 funds into Dad and removes Ramesh Sharma from your family list."),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Check the PAN" }));
+    click("Check the PAN");
     expect(await screen.findByLabelText("PAN")).toHaveValue("ABCDE1234F");
   });
 
-  it("L4: the duplicate popup tells two same-named people apart (staging-QA 5C)", async () => {
-    vi.mocked(authApi.completeMemberDetails).mockRejectedValueOnce(
-      apiError(409, "pan_belongs_to_other_member", "m", {
-        other_member_id: "k1", other_member_name: "Kavita Shanbhag", can_merge: true,
-        source_fund_count: 1, source_pan_label: "BN******1M",
-      }),
+  it("the duplicate popup tells two same-named people apart", async () => {
+    vi.mocked(updateMemberProfile).mockRejectedValue(
+      dupError({ other_member_id: "k1", other_member_name: "Kavita Shanbhag", source_fund_count: 1, source_pan_label: "BN******1M" }),
     );
-    render(
-      <MemberDetailsDialog member={{ ...noPan, name: "Kavita Shanbhag" }} onUnlocked={vi.fn()} onCancel={vi.fn()} />,
-    );
-    fill("parent", "BNZPK4321M");
-    cont();
+    setup(noPan({ name: "Kavita Shanbhag" }));
+    type("PAN", "BNZPK4321M");
+    click("Save");
     expect(
-      await screen.findByText(
-        "Kavita Shanbhag (BN******1M, 1 fund) and Kavita Shanbhag (already on your dashboard) may be the same person. Merging moves the 1 fund into the one on your dashboard and removes the duplicate.",
-      ),
+      await screen.findByText("Kavita Shanbhag (BN******1M, 1 fund) and Kavita Shanbhag (already on your dashboard) may be the same person. Merging moves the 1 fund into the one on your dashboard and removes the duplicate."),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Merge them" })).toBeInTheDocument();
   });
 
-  it("L4: Merge into Dad calls mergeMemberInto and reports the target", async () => {
-    vi.mocked(authApi.completeMemberDetails).mockRejectedValue(
-      apiError(409, "pan_belongs_to_other_member", "m", {
-        other_member_id: "m-1", other_member_name: "Dad", can_merge: true, source_fund_count: 1,
-      }),
-    );
-    vi.mocked(authApi.mergeMemberInto).mockResolvedValue({ folios_moved: 1, transactions_dropped: 0 });
-    const { onUnlocked } = setup();
-    fill("spouse", "ABCDE1234F");
-    cont();
-    fireEvent.click(await screen.findByRole("button", { name: "Merge into Dad" }));
-    await waitFor(() => expect(onUnlocked).toHaveBeenCalledWith({ id: "m-1", name: "Dad" }));
-    expect(authApi.mergeMemberInto).toHaveBeenCalledWith("m-2", "m-1");
+  it("a failed merge shows an error and does not report a merge", async () => {
+    vi.mocked(updateMemberProfile).mockRejectedValue(dupError({ other_member_id: "m-d", other_member_name: "Dad", source_fund_count: 1 }));
+    vi.mocked(mergeMemberInto).mockRejectedValue(new Error("nope"));
+    const { onMerged } = setup(noPan());
+    type("PAN", "ABCPS1234K");
+    click("Save");
+    fireEvent.click(await screen.findByRole("button", { name: /merge/i }));
+    expect(await screen.findByText("We couldn’t save these details. Try again.")).toBeInTheDocument();
+    expect(onMerged).not.toHaveBeenCalled();
   });
 
-  it("L5: cross-account PAN shows the own-account popup", async () => {
-    vi.mocked(authApi.completeMemberDetails).mockRejectedValue(apiError(409, "cross_account_pan_blocked"));
-    const { onCancel } = setup();
-    fill("spouse", "ABCDE1234F");
-    cont();
-    expect(await screen.findByText("Meera Rao has their own Unifolio account")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "OK" }));
-    expect(onCancel).toHaveBeenCalled();
+  it("cross_account_pan_blocked shows an inline error", async () => {
+    vi.mocked(updateMemberProfile).mockRejectedValue(new ApiError(409, { code: "cross_account_pan_blocked", message: "x" }));
+    setup(noPan());
+    type("PAN", "ABCPS1234K");
+    click("Save");
+    expect(await screen.findByText("This PAN is already tracked under a different Unifolio account.")).toBeInTheDocument();
   });
 
-  it("L6: Cancel asks to confirm; Enter details restores typed values; Back to dashboard leaves", () => {
-    const { onCancel } = setup();
-    fill("other", "ABCDE1234F");
-    fireEvent.change(screen.getByLabelText("How are you related?"), { target: { value: "Cousin" } });
-    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-    expect(screen.getByText("Skip adding Meera Rao’s details?")).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "You can’t open Meera Rao’s dashboard until these details are added. You can add them any time by picking Meera Rao from the member list.",
-      ),
-    ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Enter details" }));
-    expect(screen.getByLabelText("PAN")).toHaveValue("ABCDE1234F");
-    expect(screen.getByLabelText("How are you related?")).toHaveValue("Cousin");
-    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-    fireEvent.click(screen.getByRole("button", { name: "Back to dashboard" }));
-    expect(onCancel).toHaveBeenCalled();
-  });
-});
-
-describe("OtherAccountDialog L8", () => {
-  it("uses they/their copy", () => {
-    render(<OtherAccountDialog isOpen memberName="Kiran Sharma" variant="picked" onOk={vi.fn()} />);
-    expect(screen.getByText("Kiran Sharma has their own Unifolio account")).toBeInTheDocument();
-    expect(
-      screen.getByText("Their funds are included in your family total. Their own dashboard stays with their account."),
-    ).toBeInTheDocument();
-  });
-});
-
-describe("EditMemberDialog L9", () => {
-  const unlocked: HouseholdMember = {
-    ...locked, relationship: "spouse", lock_reason: null, details_required: false,
-    phone_number: "+919876543210", email: "r@example.com",
-  };
-
-  it("edit dialog changes relationship, phone and email through updateMember", async () => {
-    vi.mocked(authApi.updateMember).mockResolvedValue({ ...unlocked, relationship: "parent", phone_number: "+919812345678", email: "new@example.com" });
-    const onSaved = vi.fn();
-    render(<EditMemberDialog member={unlocked} onSaved={onSaved} onCancel={vi.fn()} />);
-    expect(screen.getByText("Edit Ramesh Sharma’s details")).toBeInTheDocument();
-    expect(screen.queryByRole("textbox", { name: "Name" })).toBeNull();
-    expect(screen.queryByRole("textbox", { name: "PAN" })).toBeNull();
-    expect(screen.getByText("BX******8L")).toBeInTheDocument();
-    expect(screen.getByLabelText("Phone")).toHaveValue("+919876543210");
-    expect(screen.getByLabelText("Email")).toHaveValue("r@example.com");
-    fireEvent.change(screen.getByLabelText("Relationship"), { target: { value: "parent" } });
-    fireEvent.change(screen.getByLabelText("Phone"), { target: { value: "+919812345678" } });
-    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "new@example.com" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
-    await waitFor(() => expect(onSaved).toHaveBeenCalled());
-    expect(authApi.updateMember).toHaveBeenCalledWith("m-2", {
-      relationship: "parent", relationship_other_label: null,
-      phone_number: "+919812345678", email: "new@example.com",
-    });
+  it("Self: phone and email are read-only with a link to Account Info", () => {
+    const onChangeInAccountInfo = vi.fn();
+    setup(member({ relationship: "self" }), { accountPhone: "+919800000001", accountEmail: null, onChangeInAccountInfo });
+    expect(screen.getByLabelText("Phone number")).toHaveAttribute("readonly");
+    expect(screen.getByLabelText("Phone number")).toHaveValue("+919800000001");
+    expect(screen.queryByLabelText("Relationship")).not.toBeInTheDocument();
+    click("Change in Account Info");
+    expect(onChangeInAccountInfo).toHaveBeenCalledTimes(1);
   });
 
-  it("shows a 422 message inline and stays open", async () => {
-    vi.mocked(authApi.updateMember).mockRejectedValue(apiError(422, "invalid_phone", "Enter a valid phone number."));
-    const onSaved = vi.fn();
-    render(<EditMemberDialog member={unlocked} onSaved={onSaved} onCancel={vi.fn()} />);
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
-    expect(await screen.findByText("Enter a valid phone number.")).toBeInTheDocument();
-    expect(onSaved).not.toHaveBeenCalled();
+  it("Self without an Account Info callback shows no Change in Account Info link", () => {
+    setup(member({ relationship: "self" }), { accountPhone: "+919800000001", accountEmail: null });
+    expect(screen.queryByText("Change in Account Info")).toBeNull();
+  });
+
+  it("the PAN input is aria-required only when the member has no PAN", () => {
+    setup(noPan());
+    expect(screen.getByLabelText("PAN")).toHaveAttribute("aria-required", "true");
+  });
+
+  it("an editable conflict PAN is not aria-required", () => {
+    setup(noPan({ pan_masked: "AB******4K", pan_conflict: "other_account" }));
+    expect(screen.getByLabelText("PAN")).not.toHaveAttribute("aria-required");
+  });
+
+  it("the warning after a rename names the member by the saved name", async () => {
+    vi.mocked(updateMemberProfile).mockResolvedValue(member({ name: "Ramesh K Sharma", pan_conflict: "other_account" }));
+    setup(member({ pan_conflict: "other_account" }));
+    type("Name", "Ramesh K Sharma");
+    click("Save");
+    expect(await screen.findByRole("heading", { name: "Ramesh K Sharma’s details are saved" })).toBeInTheDocument();
+  });
+
+  it("Self: Save sends only the name, never phone or email", async () => {
+    vi.mocked(updateMemberProfile).mockResolvedValue(member({ relationship: "self", name: "Aditi S", profile_completion: 60 }));
+    setup(member({ relationship: "self" }), { accountPhone: "+919800000001", accountEmail: "a@b.com" });
+    type("Name", "Aditi S");
+    click("Save");
+    await waitFor(() => expect(updateMemberProfile).toHaveBeenCalledWith("m-r", { name: "Aditi S" }));
   });
 });

@@ -29,6 +29,22 @@ describe("ProfileView", () => {
     expect(screen.queryByText("Danger Zone")).not.toBeInTheDocument();
   });
 
+  it("Change in Account Info on the Self card switches to the Account Info section", async () => {
+    const self = {
+      id: "m1", name: "Alice", relationship: "self", relationship_other_label: null, origin: "cas", pan_masked: null,
+      phone_number: null, email: null, name_from_statement: false, pan_conflict: null, pan_editable: false,
+      profile_completion: 100, missing_fields: [], removed_with_last_import: false,
+    } as const;
+    render(
+      <ProfileView name="Alice" email="alice@example.com" phoneNumber="+919999999999" logout={vi.fn()}
+        loadMembers={vi.fn().mockResolvedValue([self])} loadImportHistory={vi.fn().mockResolvedValue([])} />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Family Members" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Change in Account Info" }));
+    expect(screen.getByRole("button", { name: "Account Info" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("heading", { level: 2, name: "Account Info" })).toBeInTheDocument();
+  });
+
   it("logout calls logout", () => {
     const logout = vi.fn();
     render(<ProfileView name="Alice" email="alice@example.com" phoneNumber="+919999999999" logout={logout} />);

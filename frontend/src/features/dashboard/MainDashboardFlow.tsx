@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { NavigationShell, type MemberOption } from "./NavigationShell";
 import { DashboardView } from "./DashboardView";
 import { AnalyticsView } from "../analytics/AnalyticsView";
@@ -8,9 +8,9 @@ import { clearCasResumeStep2 } from "../import/casResumeState";
 import { getHouseholdMembers } from "../auth/api";
 import type { HouseholdMember } from "../auth/types";
 import { invalidateApiCache } from "../../lib/apiClient";
-import { EditMemberDialog } from "./members/EditMemberDialog";
-import { MemberDetailsDialog } from "./members/MemberDetailsDialog";
-import { OtherAccountDialog } from "./members/OtherAccountDialog";
+import { CompleteProfileDialog } from "./members/CompleteProfileDialog";
+import { PanConflictBanner } from "./members/PanConflictBanner";
+import { ProfileNudge } from "./members/ProfileNudge";
 import { useAuth } from "../auth/AuthContext";
 import { ThemeToggle } from "../../components/ThemeToggle";
 import {
@@ -20,17 +20,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../components/ui/select";
-import { ArrowLeft, Lock, Pencil, ShieldCheck, User } from "lucide-react";
+import { ArrowLeft, Pencil, ShieldCheck, User } from "lucide-react";
 
 function toMemberOption(m: HouseholdMember, hasPhone: boolean): MemberOption {
-  const lockReason = (m.lock_reason ?? (m.details_required ? "details_needed" : null)) as MemberOption["lockReason"];
   const label =
     m.relationship === "self"
       ? hasPhone ? `${m.name || "Self"} (Me)` : "Self"
       : m.relationship
         ? `${m.name} (${m.relationship})`
-        : m.name; // locked, relationship not chosen yet
-  return { id: m.id, name: label, locked: lockReason !== null, lockReason };
+        : m.name; // detected member, relationship not chosen yet
+  return { id: m.id, name: label, completion: m.profile_completion };
 }
 
 type MainTab = "dashboard" | "analytics" | "profile";
@@ -39,11 +38,8 @@ export function MainDashboardFlow() {
   const { me, logout, requestAccountDeletion, requestContactChange, verifyContactChange } = useAuth();
   const [members, setMembers] = useState<MemberOption[]>([]);
   const [rawMembers, setRawMembers] = useState<HouseholdMember[]>([]);
-  // Unlock popup (I3), the L8 info popup and the L9 edit popup, opened from the
-  // member dropdown / Add data picker / member header.
-  const [detailsForId, setDetailsForId] = useState<string | null>(null);
-  const [otherAccountForId, setOtherAccountForId] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  // The Complete profile popup, opened from the nudge / Edit profile button.
+  const [profileFor, setProfileFor] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"aggregate" | "member">("aggregate");
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<MainTab>(() => {
@@ -66,8 +62,7 @@ export function MainDashboardFlow() {
         setRawMembers(data);
         setMembers(data.map((m) => toMemberOption(m, Boolean(me?.phone_number))));
 
-        // Never default the per-member view to a locked person: their reads are 403.
-        const firstOpen = data.find((m) => !m.lock_reason && !m.details_required) ?? data[0];
+        const firstOpen = data[0];
         if (data.length > 1) {
           setViewMode("aggregate");
           setSelectedMemberId(firstOpen.id);
@@ -119,23 +114,6 @@ export function MainDashboardFlow() {
     }
   };
 
-  const handleUnlocked = async (unlocked: { id: string }) => {
-    invalidateApiCache();
-    await refreshMembers();
-    setDetailsForId(null);
-    setViewMode("member");
-    setSelectedMemberId(unlocked.id);
-    if (isAddingData) setTargetAddMemberId(unlocked.id);
-  };
-
-  // Picking a locked person never switches the view: details_needed opens the
-  // unlock popup, pan_on_other_account explains why there is no dashboard (L8).
-  const handleLockedMemberSelect = (memberId: string) => {
-    const option = members.find((m) => m.id === memberId);
-    if (option?.lockReason === "pan_on_other_account") setOtherAccountForId(memberId);
-    else setDetailsForId(memberId);
-  };
-
   const handleMemberSelect = (memberId: string) => {
     setSelectedMemberId(memberId);
     setViewMode("member");
@@ -150,57 +128,30 @@ export function MainDashboardFlow() {
   const targetMemberName = members.find((m) => m.id === targetAddMemberId)?.name;
 
   const rawById = (id: string | null) => (id ? rawMembers.find((m) => m.id === id) : undefined);
-  const detailsMember = rawById(detailsForId);
-  const otherAccountMember = rawById(otherAccountForId);
-  const editingMember = rawById(editingId);
   const selectedRaw = rawById(selectedMemberId);
-  const canEditSelected =
-    viewMode === "member" && !!selectedRaw && !selectedRaw.lock_reason && !selectedRaw.details_required &&
-    selectedRaw.relationship !== null && selectedRaw.relationship !== "self";
+  const profileMember = rawById(profileFor);
+  const canEditSelected = viewMode === "member" && !!selectedRaw;
 
-  const memberDialogs = (
-    <>
-      {detailsMember && (
-        <MemberDetailsDialog
-          key={detailsMember.id}
-          member={detailsMember}
-          onUnlocked={handleUnlocked}
-          onCancel={() => setDetailsForId(null)}
-          onUploadDifferent={() => {
-            // M9 blocks uploads *for* a locked member: open the normal upload.
-            setDetailsForId(null);
-            handleAddDataTrigger();
-          }}
-          onOtherAccount={() => {
-            setDetailsForId(null);
-            setViewMode("aggregate");
-            void refreshMembers();
-          }}
-        />
-      )}
-      {otherAccountMember && (
-        <OtherAccountDialog
-          isOpen
-          memberName={otherAccountMember.name}
-          variant="picked"
-          onOk={() => {
-            setOtherAccountForId(null);
-            setViewMode("aggregate");
-          }}
-        />
-      )}
-      {editingMember && (
-        <EditMemberDialog
-          key={editingMember.id}
-          member={editingMember}
-          onSaved={() => {
-            setEditingId(null);
-            void refreshMembers();
-          }}
-          onCancel={() => setEditingId(null)}
-        />
-      )}
-    </>
+  // Stable identity so the popup's own callbacks don't reset on every parent render.
+  const closeProfile = useCallback(() => setProfileFor(null), []);
+
+  const memberDialogs = profileMember && (
+    <CompleteProfileDialog
+      key={profileMember.id}
+      member={profileMember}
+      accountPhone={me?.phone_number ?? null}
+      accountEmail={me?.email ?? null}
+      // A rename changes names inside cached holdings responses too (final review I-2).
+      onSaved={() => { invalidateApiCache(); void refreshMembers(); }}
+      onMerged={async (targetId) => {
+        invalidateApiCache();
+        await refreshMembers();
+        setSelectedMemberId(targetId);
+        setProfileFor(null);
+      }}
+      onClose={closeProfile}
+      onChangeInAccountInfo={() => { setProfileFor(null); handleTabChange("profile"); }}
+    />
   );
 
   if (isAddingData) {
@@ -225,11 +176,7 @@ export function MainDashboardFlow() {
               {addDataAllowsMemberChoice && members.length > 0 ? (
                 <Select
                   value={targetAddMemberId ?? undefined}
-                  onValueChange={(value) => {
-                    // A1: locked people are listed but can't be picked; clicking one opens the unlock popup.
-                    if (members.find((m) => m.id === value)?.locked) setDetailsForId(value);
-                    else setTargetAddMemberId(value);
-                  }}
+                  onValueChange={setTargetAddMemberId}
                 >
                   <SelectTrigger
                     className="h-8 w-auto min-w-[160px] gap-1.5 rounded-full border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1 text-xs font-medium text-[var(--color-text-secondary)] [&>span]:line-clamp-1"
@@ -240,18 +187,7 @@ export function MainDashboardFlow() {
                   </SelectTrigger>
                   <SelectContent>
                     {members.map((m) => (
-                      <SelectItem
-                        key={m.id}
-                        value={m.id}
-                        aria-disabled={m.locked ? "true" : undefined}
-                        className={m.locked ? "opacity-60" : undefined}
-                      >
-                        <span className="inline-flex items-center gap-1.5">
-                          {m.locked && <Lock className="h-3 w-3 shrink-0" aria-hidden="true" />}
-                          {m.name}
-                          {m.locked && <span className="text-[11px] text-[var(--color-text-secondary)]">Add details first</span>}
-                        </span>
-                      </SelectItem>
+                      <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -277,26 +213,6 @@ export function MainDashboardFlow() {
               householdMemberId={targetAddMemberId}
               ctaLabel="Back to Dashboard"
               onDone={() => setIsAddingData(false)}
-              renderMemberDetails={(memberId, onDone) => {
-                // U6 "Add details now": unlock in place, then let ImportFlow carry on.
-                const target = rawById(memberId);
-                if (!target) return null;
-                return (
-                  <MemberDetailsDialog
-                    member={target}
-                    onUnlocked={async (unlocked) => {
-                      invalidateApiCache();
-                      await refreshMembers();
-                      // After an L4 merge the source member is gone: import for the merge target instead.
-                      if (unlocked.id !== memberId) setTargetAddMemberId(unlocked.id);
-                      else onDone();
-                    }}
-                    onCancel={() => setIsAddingData(false)}
-                    onOtherAccount={() => setIsAddingData(false)}
-                    onUploadDifferent={() => setIsAddingData(false)}
-                  />
-                );
-              }}
             />
           )}
 
@@ -317,7 +233,6 @@ export function MainDashboardFlow() {
       members={members}
       onViewModeChange={setViewMode}
       onMemberSelect={handleMemberSelect}
-      onLockedMemberSelect={handleLockedMemberSelect}
       onAddData={() => handleAddDataTrigger()}
       activeTab={activeTab}
       onTabChange={handleTabChange}
@@ -325,16 +240,20 @@ export function MainDashboardFlow() {
       {/* Visual accessibility banner & App.test.tsx backward compatibility header */}
       <h1 style={{ display: "none" }}>Welcome to Unifolio</h1>
       {memberDialogs}
-      {activeTab === "dashboard" && canEditSelected && selectedRaw && (
-        <div className="flex justify-end -mt-2 mb-3">
-          <button
-            type="button"
-            onClick={() => setEditingId(selectedRaw.id)}
-            className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] hover:bg-[var(--color-bg)] cursor-pointer"
-          >
-            <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
-            Edit details
-          </button>
+      {activeTab !== "profile" && canEditSelected && selectedRaw && (
+        <div className="-mt-2 mb-3 flex flex-col gap-2">
+          {selectedRaw.pan_conflict && <PanConflictBanner memberName={selectedRaw.name} />}
+          <div className="flex items-center justify-end gap-2">
+            {selectedRaw.profile_completion < 100 ? (
+              <ProfileNudge member={selectedRaw} onOpen={() => setProfileFor(selectedRaw.id)} />
+            ) : (
+              <button type="button" onClick={() => setProfileFor(selectedRaw.id)}
+                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] hover:bg-[var(--color-bg)] cursor-pointer">
+                <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                Edit profile
+              </button>
+            )}
+          </div>
         </div>
       )}
       {activeTab === "dashboard" ? (

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { TwoPathImportContainer } from "./TwoPathImportContainer";
 import { ParsingIndicator } from "./ParsingIndicator";
@@ -15,17 +15,15 @@ interface ImportFlowProps {
   ctaLabel?: string;
   onDone?: () => void;
   defaultTab?: "choice" | "request" | "upload" | "history" | "waiting";
-  /** U6: renders the unlock popup for a member who needs details before importing; call onDone when unlocked. */
-  renderMemberDetails?: (memberId: string, onDone: () => void) => ReactNode;
   /** Which screen the upload came from, for the PAN disclaimer record. */
   surface?: UploadSurface;
 }
 
-export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab, renderMemberDetails, surface }: ImportFlowProps) {
+export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab, surface }: ImportFlowProps) {
   const {
     flow, uploadMessage, edits, nameAnswers, confirming, reviewPeople, setCancelOpen,
     cancelImport, upload, runConfirm, dialogs,
-  } = useImportOrchestration(householdMemberId, renderMemberDetails);
+  } = useImportOrchestration(householdMemberId);
   const { stage, preview, confirmResult, error } = flow;
   // After a discard, re-mount the upload container straight on the upload form
   // instead of the request/upload choice screen.

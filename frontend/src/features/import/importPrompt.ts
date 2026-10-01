@@ -2,10 +2,8 @@ import { ApiError } from "./api";
 import type { ImportPrompt, ImportPromptCode } from "./types";
 
 const PROMPT_CODES_409: readonly string[] = [
-  "member_details_required",
   "member_pan_mismatch",
   "member_not_in_file",
-  "locked_member_only",
   "cross_account_pan_blocked",
   "statement_pan_on_other_account",
   "self_name_mismatch",

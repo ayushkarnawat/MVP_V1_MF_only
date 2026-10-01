@@ -1,6 +1,8 @@
 import { Trash2 } from "lucide-react";
 import { RELATIONSHIP_OPTIONS } from "../auth/relationships";
 import type { HouseholdMember } from "../auth/types";
+import { SECONDARY_BTN } from "../import/prompts/copy";
+import { ProfileNudge } from "../dashboard/members/ProfileNudge";
 
 interface FamilyMemberCardProps {
   member: HouseholdMember;
@@ -8,17 +10,19 @@ interface FamilyMemberCardProps {
   accountPhone?: string;
   accountEmail?: string | null;
   deleteDisabled: boolean;
-  onEdit: () => void;
-  onCompleteDetails: () => void;
+  onOpenProfile: () => void;
+  /** Self only: takes the user to the Account Info section. */
+  onChangeInAccountInfo?: () => void;
   onDeleteFunds: () => void;
 }
 
 const NOT_ADDED = "Not added";
+const NOT_SET = "Not set";
 
 function relationshipText(m: HouseholdMember): string {
   if (m.relationship === "self") return "Me";
   if (m.relationship === "other") return m.relationship_other_label?.trim() || "Other";
-  return RELATIONSHIP_OPTIONS.find((o) => o.value === m.relationship)?.label ?? NOT_ADDED;
+  return RELATIONSHIP_OPTIONS.find((o) => o.value === m.relationship)?.label ?? NOT_SET;
 }
 
 function Field({ label, value, caption }: { label: string; value: string; caption?: string }) {
@@ -32,10 +36,9 @@ function Field({ label, value, caption }: { label: string; value: string; captio
 }
 
 export function FamilyMemberCard({
-  member: m, accountPhone, accountEmail, deleteDisabled, onEdit, onCompleteDetails, onDeleteFunds,
+  member: m, accountPhone, accountEmail, deleteDisabled, onOpenProfile, onChangeInAccountInfo, onDeleteFunds,
 }: FamilyMemberCardProps) {
   const isSelf = m.relationship === "self";
-  const locked = !!m.lock_reason || m.details_required;
   const phone = isSelf ? accountPhone || NOT_ADDED : m.phone_number || NOT_ADDED;
   const email = isSelf ? accountEmail || NOT_ADDED : m.email || NOT_ADDED;
 
@@ -43,32 +46,24 @@ export function FamilyMemberCard({
     <article aria-label={m.name} className="space-y-4 rounded-lg border border-[var(--color-border)] p-4">
       <dl className="grid gap-4 sm:grid-cols-2">
         <Field label="Name" value={m.name} caption={m.name_from_statement ? "from your statement" : undefined} />
-        <Field label="PAN" value={m.pan_masked ?? "Not on your statement"} />
-        {!locked && <Field label="Relationship" value={relationshipText(m)} />}
+        <Field label="PAN" value={m.pan_masked ?? "Not on your statement"} caption={m.pan_conflict ? "On another Unifolio account" : undefined} />
+        <Field label="Relationship" value={relationshipText(m)} />
         <Field label="Phone" value={phone} />
         <Field label="Email" value={email} />
       </dl>
       <div className="flex flex-wrap items-center gap-3">
-        {isSelf ? (
-          <span className="text-xs text-[var(--color-text-secondary)]">Change in Account Info</span>
-        ) : locked ? (
+        {isSelf && onChangeInAccountInfo && (
           <button
             type="button"
-            onClick={onCompleteDetails}
-            className="text-sm font-semibold text-[var(--color-accent)] hover:underline"
+            onClick={onChangeInAccountInfo}
+            className="text-xs font-semibold text-[var(--color-accent)] hover:underline"
           >
-            Complete details
-          </button>
-        ) : (
-          <button
-            type="button"
-            aria-label={`Edit ${m.name}`}
-            onClick={onEdit}
-            className="text-sm font-semibold text-[var(--color-accent)] hover:underline"
-          >
-            Edit
+            Change in Account Info
           </button>
         )}
+        {m.profile_completion < 100
+          ? <ProfileNudge member={m} onOpen={onOpenProfile} variant="compact" />
+          : <button type="button" onClick={onOpenProfile} className={SECONDARY_BTN}>Edit profile</button>}
         <button
           type="button"
           aria-label={`Delete all funds for ${m.name}`}

@@ -121,10 +121,8 @@ export interface ImportConfirmResponse {
 
 /** Every 409 an upload-time call can raise, plus the 410 session_expired. */
 export type ImportPromptCode =
-  | "member_details_required"
   | "member_pan_mismatch"
   | "member_not_in_file"
-  | "locked_member_only"
   | "cross_account_pan_blocked"
   | "statement_pan_on_other_account"
   | "self_name_mismatch"
@@ -135,12 +133,12 @@ export type ImportPromptCode =
   | "session_expired";
 
 /** Prompts the user can acknowledge via POST .../acknowledge. */
-export type AcknowledgeCode = "member_not_in_file" | "locked_member_only" | "cross_account_pan_blocked";
+export type AcknowledgeCode = "member_not_in_file" | "cross_account_pan_blocked";
 
 export interface ImportPrompt {
   code: ImportPromptCode;
   message: string;
-  /** null when the prompt ended the review (member_details_required, session_expired). */
+  /** null when the prompt ended the review (session_expired). */
   sessionId: string | null;
   details: Record<string, unknown>;
 }

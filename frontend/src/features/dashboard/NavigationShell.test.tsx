@@ -12,8 +12,8 @@ describe("NavigationShell", () => {
   });
 
   const sampleMembers = [
-    { id: "m-1", name: "Alice (Self)", locked: false, lockReason: null },
-    { id: "m-2", name: "Bob (Spouse)", locked: false, lockReason: null },
+    { id: "m-1", name: "Alice (Self)", completion: 100 },
+    { id: "m-2", name: "Bob (Spouse)", completion: 100 },
   ];
 
   it("renders header, logo mark, and enabled Analytics nav item", () => {
@@ -24,7 +24,6 @@ describe("NavigationShell", () => {
         members={sampleMembers}
         onViewModeChange={vi.fn()}
         onMemberSelect={vi.fn()}
-        onLockedMemberSelect={vi.fn()}
         onAddData={vi.fn()}
       >
         <div>Content</div>
@@ -47,7 +46,6 @@ describe("NavigationShell", () => {
         members={sampleMembers}
         onViewModeChange={vi.fn()}
         onMemberSelect={vi.fn()}
-        onLockedMemberSelect={vi.fn()}
         onAddData={vi.fn()}
         onTabChange={handleTabChange}
       >
@@ -68,7 +66,6 @@ describe("NavigationShell", () => {
         members={sampleMembers}
         onViewModeChange={handleViewModeChange}
         onMemberSelect={vi.fn()}
-        onLockedMemberSelect={vi.fn()}
         onAddData={vi.fn()}
       >
         <div>Content</div>
@@ -88,7 +85,6 @@ describe("NavigationShell", () => {
         members={sampleMembers}
         onViewModeChange={vi.fn()}
         onMemberSelect={vi.fn()}
-        onLockedMemberSelect={vi.fn()}
         onAddData={vi.fn()}
         onTabChange={handleTabChange}
       >
@@ -101,20 +97,18 @@ describe("NavigationShell", () => {
     expect(handleTabChange).toHaveBeenCalledWith("profile");
   });
 
-  it("shows a lock icon on locked members and routes their pick to onLockedMemberSelect", async () => {
+  it("no member shows a lock icon; every pick calls onMemberSelect, with % shown while incomplete", async () => {
     const onMemberSelect = vi.fn();
-    const onLockedMemberSelect = vi.fn();
     render(
       <NavigationShell
-        viewMode="aggregate"
+        viewMode="member"
         selectedMemberId="m-1"
         members={[
-          { id: "m-1", name: "Alice (Me)", locked: false, lockReason: null },
-          { id: "m-3", name: "Ramesh Sharma", locked: true, lockReason: "details_needed" },
+          { id: "m-1", name: "Alice (Me)", completion: 100 },
+          { id: "m-3", name: "Ramesh Sharma", completion: 40 },
         ]}
         onViewModeChange={vi.fn()}
         onMemberSelect={onMemberSelect}
-        onLockedMemberSelect={onLockedMemberSelect}
         onAddData={vi.fn()}
       >
         <div>Content</div>
@@ -122,10 +116,11 @@ describe("NavigationShell", () => {
     );
 
     fireEvent.keyDown(screen.getByLabelText("Select household member"), { key: "ArrowDown" });
-    const locked = await screen.findByRole("option", { name: /Ramesh Sharma/ });
-    expect(locked.querySelector("svg")).not.toBeNull();
-    fireEvent.click(locked);
-    expect(onLockedMemberSelect).toHaveBeenCalledWith("m-3");
-    expect(onMemberSelect).not.toHaveBeenCalled();
+    const option = await screen.findByRole("option", { name: /Ramesh Sharma/ });
+    expect(option.querySelector("svg.lucide-lock")).toBeNull();
+    expect(option).toHaveTextContent("40%");
+    expect(screen.getByRole("option", { name: /Alice/ })).not.toHaveTextContent("%");
+    fireEvent.click(option);
+    expect(onMemberSelect).toHaveBeenCalledWith("m-3");
   });
 });

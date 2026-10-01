@@ -6,8 +6,7 @@ import type {
   EmailOtpRequiredResponse,
   EmailOtpVerifyResult,
   HouseholdMember,
-  MemberDetailsBody,
-  MemberUpdateBody,
+  MemberProfileBody,
   MergeMemberResult,
   MeResponse,
   OtpRequestResponse,
@@ -173,22 +172,10 @@ export async function listHouseholdMembers(): Promise<HouseholdMember[]> {
 
 export const getHouseholdMembers = listHouseholdMembers;
 
-/** Unlocks a CAS-detected member (relationship + typed PAN). */
-export async function completeMemberDetails(memberId: string, body: MemberDetailsBody): Promise<HouseholdMember> {
-  const response = await fetch(`${API_BASE_URL}/household-members/${memberId}/details`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...authHeaders() },
-    body: JSON.stringify(body),
-  });
-  await throwIfError(response);
-  invalidateApiCache();
-  return (await response.json()) as HouseholdMember;
-}
-
-/** Edits an unlocked member's relationship, phone and email (name and PAN are never editable). */
-export async function updateMember(memberId: string, body: MemberUpdateBody): Promise<HouseholdMember> {
-  const response = await fetch(`${API_BASE_URL}/household-members/${memberId}`, {
-    method: "PATCH",
+/** Saves the Complete profile popup (name, relationship, phone, email, PAN) for a member. */
+export async function updateMemberProfile(memberId: string, body: MemberProfileBody): Promise<HouseholdMember> {
+  const response = await fetch(`${API_BASE_URL}/household-members/${memberId}/profile`, {
+    method: "PUT",
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(body),
   });

@@ -1,9 +1,8 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CrossAccountBlockedDialog } from "../CrossAccountBlockedDialog";
 import { PanConflictDialog } from "../PanConflictDialog";
 import type { ImportPrompt, NameNotice, PersonPreview, SamePersonPrompt } from "../types";
 import type { PromptAction } from "../useImportFlow";
-import { AddDetailsFirstDialog } from "./AddDetailsFirstDialog";
 import { MemberNotInFileDialog } from "./MemberNotInFileDialog";
 import { NameMismatchDialog } from "./NameMismatchDialog";
 import { NameVariantNotice } from "./NameVariantNotice";
@@ -18,15 +17,13 @@ import { uploadStatementShowingMessage } from "./copy";
  * What the host reports. Everything from useImportFlow's PromptAction passes
  * through unchanged (feed it to resolve()); the extra kinds are for the parent:
  * - discard.uploadMessage: U4 "The one I entered" — show it on the upload form.
- * - reupload: C2 "Upload again", or U6 after details were added and the session was already gone.
- * - addDetails: U6 "Add details now" when no renderMemberDetails was supplied.
+ * - reupload: C2 "Upload again".
  * - noticeAnswers: every name notice is answered (true = update the name); dismiss the notices stage.
  */
 export type HostAction =
   | Exclude<PromptAction, { kind: "discard" }>
   | { kind: "discard"; uploadMessage?: string }
   | { kind: "reupload" }
-  | { kind: "addDetails"; memberId: string }
   | { kind: "noticesDone"; nameAnswers: Record<string, boolean> };
 
 export interface PromptHostProps {
@@ -39,8 +36,6 @@ export interface PromptHostProps {
   people?: PersonPreview[];
   /** Inline error for U2 (e.g. “This name doesn’t match the statement”). */
   error?: string | null;
-  /** U6: renders Task 18's unlock popup; call onDone once the member is unlocked. */
-  renderMemberDetails?: (memberId: string, onDone: () => void) => ReactNode;
   onResolve: (action: HostAction) => void;
 }
 
@@ -53,12 +48,10 @@ export function PromptHost({
   samePersonPrompts = [],
   people = [],
   error = null,
-  renderMemberDetails,
   onResolve,
 }: PromptHostProps) {
   const [noticeIdx, setNoticeIdx] = useState(0);
   const [answers, setAnswers] = useState<Record<string, boolean>>({});
-  const [detailsFor, setDetailsFor] = useState<string | null>(null);
   const doneFired = useRef(false);
 
   const activeNotice = notices[noticeIdx];
@@ -179,31 +172,6 @@ export function PromptHost({
           onUploadDifferent={() => discard()}
         />
       );
-    case "locked_member_only":
-    case "member_details_required": {
-      const memberId = str(d.member_id);
-      // locked_member_only keeps the session, so acknowledging continues to the
-      // people popup; member_details_required ended it, so the user re-uploads.
-      const afterUnlock = () => {
-        setDetailsFor(null);
-        if (prompt.code === "locked_member_only") onResolve({ kind: "acknowledge", code: "locked_member_only" });
-        else onResolve({ kind: "reupload" });
-      };
-      return (
-        <>
-          <AddDetailsFirstDialog
-            isOpen={detailsFor === null}
-            memberName={str(d.member_name)}
-            onAddDetails={() => {
-              if (renderMemberDetails) setDetailsFor(memberId);
-              else onResolve({ kind: "addDetails", memberId });
-            }}
-            onUploadDifferent={() => discard()}
-          />
-          {detailsFor !== null && renderMemberDetails?.(detailsFor, afterUnlock)}
-        </>
-      );
-    }
     case "cross_account_pan_blocked":
       return (
         <CrossAccountBlockedDialog

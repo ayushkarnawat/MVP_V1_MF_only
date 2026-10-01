@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { PeopleFoundDialog, NO_EDITS, type PeopleEdits } from "./PeopleFoundDialog";
 import { PromptHost, type HostAction } from "./prompts/PromptHost";
 import { ConfirmFailedDialog } from "./prompts/ConfirmFailedDialog";
@@ -27,10 +27,7 @@ function otherAccountIncludes(people: PersonPreview[]): Record<string, boolean> 
  * the review edits, cancel/confirm handling and the dialogs. Each view keeps only
  * its own layout.
  */
-export function useImportOrchestration(
-  householdMemberId: string,
-  renderMemberDetails?: (memberId: string, onDone: () => void) => ReactNode,
-) {
+export function useImportOrchestration(householdMemberId: string) {
   const flow = useImportFlow(householdMemberId);
   const { stage, preview, prompt, error } = flow;
   // U4 "The one I entered": what the upload form asks the user to upload next.
@@ -75,8 +72,6 @@ export function useImportOrchestration(
         void cancelImport().then(() => action.uploadMessage && setUploadMessage(action.uploadMessage));
         return;
       case "reupload":
-      case "addDetails":
-        // addDetails without an unlock popup: the upload has to start over after details are added.
         void cancelImport();
         return;
       case "noticesDone":
@@ -118,7 +113,6 @@ export function useImportOrchestration(
           samePersonPrompts={stage === "notices" ? preview?.same_person_prompts : undefined}
           people={preview?.people}
           error={error}
-          renderMemberDetails={renderMemberDetails}
           onResolve={handleHostAction}
         />
       )}

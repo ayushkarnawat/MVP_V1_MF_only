@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { listHouseholdMembers } from "@/features/auth/api";
-import { MemberDetailsDialog } from "@/features/dashboard/members/MemberDetailsDialog";
 import { invalidateApiCache } from "@/lib/apiClient";
 import {
   hasCasResumeStep2,
@@ -16,12 +15,6 @@ import { MobileRequestCamsView } from "./MobileRequestCamsView";
 import { MobileUploadForm } from "./MobileUploadForm";
 import { MobileReviewView } from "./MobileReviewView";
 import { MobileImportHistory } from "./MobileImportHistory";
-import {
-  ADD_DETAILS_FIRST,
-  LockedMemberDialogs,
-  firstOpenMember,
-  isMemberLocked,
-} from "../members/LockedMember";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -34,7 +27,6 @@ import {
   UploadCloud,
   ArrowLeft,
   AlertTriangle,
-  Lock,
   X,
 } from "lucide-react";
 
@@ -64,28 +56,11 @@ export function MobileImportView({
   const [pendingImportId, setPendingImportId] = useState<string | null>(null);
 
   const [dismissedWarnings, setDismissedWarnings] = useState<Set<string>>(new Set());
-  // A1: a locked person picked in the member chips opens the unlock popup / L8.
-  const [lockedPickId, setLockedPickId] = useState<string | null>(null);
 
   const {
     flow, uploadMessage, edits, nameAnswers, confirming, reviewPeople, setCancelOpen,
     cancelImport, upload, runConfirm, dialogs: orchestrationDialogs,
-  } = useImportOrchestration(selectedMemberId ?? "", (memberId, onDone) => {
-    // U6 "Add details now": unlock in place, then let the import carry on.
-    const target = members.find((m) => m.id === memberId);
-    if (!target) return null;
-    return (
-      <MemberDetailsDialog
-        member={target}
-        onUnlocked={async () => {
-          await reloadMembers();
-          onDone();
-        }}
-        onCancel={() => void resetFlow()}
-        onOtherAccount={() => void resetFlow()}
-      />
-    );
-  });
+  } = useImportOrchestration(selectedMemberId ?? "");
   const { stage, preview, confirmResult } = flow;
   const error = flow.error;
 
@@ -96,10 +71,9 @@ export function MobileImportView({
         if (data && data.length > 0) {
           setMembers(data);
           setSelectedMemberId((prev) => {
-            // A locked person can't be imported for (I5): fall back to someone who can.
             const wanted = prev ?? defaultMemberId;
             const found = data.find((m) => m.id === wanted);
-            return found && !isMemberLocked(found) ? found.id : wanted && !found ? wanted : firstOpenMember(data).id;
+            return found ? found.id : wanted ? wanted : data[0].id;
           });
         }
       })
@@ -150,21 +124,7 @@ export function MobileImportView({
     members.find((m) => m.id === selectedMemberId)?.name ?? "Self";
 
   // Dialogs shared by every screen.
-  const flowDialogs = (
-    <>
-      {orchestrationDialogs}
-      <LockedMemberDialogs
-        member={members.find((m) => m.id === lockedPickId) ?? null}
-        onClose={() => setLockedPickId(null)}
-        onOtherAccount={() => void reloadMembers()}
-        onUnlocked={async (unlocked) => {
-          await reloadMembers();
-          setLockedPickId(null);
-          setSelectedMemberId(unlocked.id);
-        }}
-      />
-    </>
-  );
+  const flowDialogs = <>{orchestrationDialogs}</>;
 
   /* 1. Parsing Indicator Screen */
   if (stage === "parsing") {
@@ -330,11 +290,6 @@ export function MobileImportView({
                 key={m.id}
                 type="button"
                 onClick={() => {
-                  // A1: a locked person can't be imported for until their details are added.
-                  if (isMemberLocked(m)) {
-                    setLockedPickId(m.id);
-                    return;
-                  }
                   setSelectedMemberId(m.id);
                   setPendingImportId(null);
                 }}
@@ -345,11 +300,8 @@ export function MobileImportView({
                     : "bg-white/80 dark:bg-[var(--color-surface)] text-[#5C5C5C] dark:text-[#A3A3A3] border border-[var(--color-border)] hover:text-[var(--color-ink)]"
                 )}
               >
-                {isMemberLocked(m) ? <Lock className="h-3 w-3" aria-hidden="true" /> : <User className="h-3 w-3" />}
+                <User className="h-3 w-3" />
                 <span>{m.name}</span>
-                {isMemberLocked(m) && m.lock_reason !== "pan_on_other_account" && (
-                  <span className="font-normal opacity-80">{ADD_DETAILS_FIRST}</span>
-                )}
               </button>
             ))}
           </div>
@@ -449,7 +401,7 @@ export function MobileImportView({
               onMembersChanged={async (removed) => {
                 const rest = await reloadMembers();
                 // The viewed person was removed with their last data: fall back to someone who is left.
-                if (removed.includes(activeMemberId) && rest.length > 0) setSelectedMemberId(firstOpenMember(rest).id);
+                if (removed.includes(activeMemberId) && rest.length > 0) setSelectedMemberId(rest[0].id);
               }}
             />
           </div>

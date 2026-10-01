@@ -28,7 +28,7 @@ function renderFlow(me: MeResponse = BASE_ME) {
   vi.mocked(api.getMe).mockResolvedValue(me);
   vi.mocked(api.updateMe).mockImplementation(async (body) => ({ ...me, ...body }) as MeResponse);
   vi.mocked(api.createHouseholdMember).mockImplementation(async (name) => ({
-    id: "self-1", name, relationship: "self", relationship_other_label: null, origin: "onboarding", lock_reason: null, details_required: false, pan_masked: null, phone_number: null, email: null, pan_on_statement: false, name_from_statement: false,
+    id: "self-1", name, relationship: "self", relationship_other_label: null, origin: "onboarding", pan_masked: null, phone_number: null, email: null, name_from_statement: false, pan_conflict: null, pan_editable: false, profile_completion: 100, missing_fields: [], removed_with_last_import: false,
   }));
   return render(
     <AuthProvider>

@@ -71,8 +71,6 @@ describe("MobileImportView", () => {
       relationship: "self",
       relationship_other_label: null,
       origin: "self",
-      lock_reason: null,
-      details_required: false,
       pan_masked: "AB******4F",
       email: "ayush@example.com",
       created_at: "2026-01-01T00:00:00Z",
@@ -84,8 +82,6 @@ describe("MobileImportView", () => {
       relationship: "spouse",
       relationship_other_label: null,
       origin: "manual",
-      lock_reason: null,
-      details_required: false,
       pan_masked: null,
       email: null,
       created_at: "2026-01-01T00:00:00Z",
@@ -293,19 +289,19 @@ describe("MobileImportView", () => {
     await waitFor(() => expect(importApi.discardImportSession).toHaveBeenCalledWith("sess-mismatch"));
   });
 
-  it("shows a locked family member as locked and opens the unlock popup instead of selecting them", async () => {
+  it("detected members are selectable targets", async () => {
     vi.mocked(authApi.listHouseholdMembers).mockResolvedValue([
       mockMembers[0],
-      { ...mockMembers[1], name: "Ramesh Sharma", relationship: null, origin: "cas", lock_reason: "details_needed", details_required: true },
+      { ...mockMembers[1], name: "Ramesh Sharma", relationship: null, origin: "cas" },
     ] as any);
     render(<MobileImportView defaultMemberId="m-1" />);
 
     const chip = await screen.findByRole("button", { name: /Ramesh Sharma/ });
     expect(chip).not.toHaveTextContent("(null)");
-    expect(chip).toHaveTextContent(/add details first/i);
+    expect(chip).not.toHaveTextContent(/add details first/i);
     fireEvent.click(chip);
-    expect(await screen.findByText("Add Ramesh Sharma’s details")).toBeInTheDocument();
-    expect(chip).not.toHaveAttribute("aria-pressed", "true");
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(chip.className).toContain("bg-[#22C55E]");
   });
 
   it("renders member import history when History button is clicked", async () => {
@@ -368,10 +364,10 @@ describe("MobileImportView", () => {
       await waitFor(() => expect(screen.queryByText("+4")).not.toBeInTheDocument());
     });
   });
-  it("does not preselect a locked defaultMemberId", async () => {
+  it("a detected defaultMemberId is preselected", async () => {
     vi.mocked(authApi.listHouseholdMembers).mockResolvedValue([
       mockMembers[0],
-      { ...mockMembers[1], name: "Ramesh Sharma", relationship: null, origin: "cas", lock_reason: "details_needed", details_required: true },
+      { ...mockMembers[1], name: "Ramesh Sharma", relationship: null, origin: "cas" },
     ] as any);
     vi.mocked(importApi.parseImport).mockResolvedValue(preview({ schemes: [scheme("s1", { person_key: "me" })] }));
     render(<MobileImportView defaultMemberId="m-2" defaultTab="upload" />);
@@ -379,7 +375,7 @@ describe("MobileImportView", () => {
     fireEvent.change(screen.getByLabelText(/cas pdf/i), { target: { files: [new File(["pdf"], "s.pdf", { type: "application/pdf" })] } });
     await tickDisclaimer();
     fireEvent.click(screen.getByRole("button", { name: /upload statement/i }));
-    await waitFor(() => expect(importApi.parseImport).toHaveBeenCalledWith(expect.any(File), "", "m-1"));
+    await waitFor(() => expect(importApi.parseImport).toHaveBeenCalledWith(expect.any(File), "", "m-2"));
   });
 
   describe("delete all funds (D2)", () => {

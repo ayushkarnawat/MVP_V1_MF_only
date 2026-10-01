@@ -109,7 +109,6 @@ export function PeopleFoundDialog({ people, unassigned, onContinue, onCancel, in
                   <span className="text-xs text-[var(--color-text-secondary)]">(already on another Unifolio account)</span>
                 )}
                 {p.status === "existing_member" && <Tag>already in your family</Tag>}
-                {p.status === "locked_member" && <Tag>details needed</Tag>}
                 <span className="ml-auto text-xs text-[var(--color-text-secondary)]">{fundCount(p.fund_count)}</span>
               </div>
               {p.needs_name && !names[p.person_key]?.trim() && (

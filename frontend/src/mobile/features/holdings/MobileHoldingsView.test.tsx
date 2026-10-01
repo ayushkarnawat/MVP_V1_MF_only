@@ -208,9 +208,9 @@ describe("MobileHoldingsView", () => {
       expect(screen.getByText("DISTRIBUTOR COMPARISON")).toBeInTheDocument();
     });
   });
-  describe("locked family members (F39)", () => {
-    const me = { id: "m-1", name: "Ayush", relationship: "self", relationship_other_label: null, origin: "self", lock_reason: null, details_required: false, pan_masked: null, phone_number: null, email: null, pan_on_statement: false, name_from_statement: false };
-    const ramesh = { id: "m-2", name: "Ramesh Sharma", relationship: null, relationship_other_label: null, origin: "cas", lock_reason: "details_needed", details_required: true, pan_masked: "BX******8L", phone_number: null, email: null, pan_on_statement: false, name_from_statement: false };
+  describe("detected family members", () => {
+    const me = { id: "m-1", name: "Ayush", relationship: "self", relationship_other_label: null, origin: "self", pan_masked: null, phone_number: null, email: null, name_from_statement: false, pan_conflict: null, pan_editable: false, profile_completion: 100, missing_fields: [], removed_with_last_import: false };
+    const ramesh = { id: "m-2", name: "Ramesh Sharma", relationship: null, relationship_other_label: null, origin: "cas", pan_masked: "BX******8L", phone_number: null, email: null, name_from_statement: false, pan_conflict: null, pan_editable: false, profile_completion: 100, missing_fields: [], removed_with_last_import: false };
 
     async function openPicker(members: object[]) {
       vi.mocked(authApi.listHouseholdMembers).mockResolvedValue(members as any);
@@ -221,21 +221,15 @@ describe("MobileHoldingsView", () => {
       return (await screen.findByLabelText("Select household member")) as HTMLSelectElement;
     }
 
-    it("marks a locked person and opens the unlock popup instead of switching to them", async () => {
+    it("every member is selectable; no Add details first suffix", async () => {
       const picker = await openPicker([me, ramesh]);
       const option = screen.getByRole("option", { name: /ramesh sharma/i });
       expect(option).not.toHaveTextContent("(null)");
-      expect(option).toHaveTextContent(/add details first/i);
+      expect(option).not.toHaveTextContent(/add details first/i);
       fireEvent.change(picker, { target: { value: "m-2" } });
-      expect(await screen.findByText("Add Ramesh Sharma’s details")).toBeInTheDocument();
-      expect(picker.value).toBe("m-1");
-      expect(dashboardApi.getMemberHoldings).not.toHaveBeenCalledWith("m-2");
-    });
-
-    it("explains a person on another account (L8)", async () => {
-      const picker = await openPicker([me, { ...ramesh, name: "Kiran Sharma", lock_reason: "pan_on_other_account", details_required: false }]);
-      fireEvent.change(picker, { target: { value: "m-2" } });
-      expect(await screen.findByText("Kiran Sharma has their own Unifolio account")).toBeInTheDocument();
+      await waitFor(() => expect(vi.mocked(dashboardApi.getMemberHoldings).mock.calls.some((c) => c[0] === "m-2")).toBe(true));
+      expect(picker.value).toBe("m-2");
+      expect(screen.queryByRole("dialog")).toBeNull();
     });
   });
 });

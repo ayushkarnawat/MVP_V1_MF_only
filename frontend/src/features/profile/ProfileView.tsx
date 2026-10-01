@@ -225,6 +225,7 @@ export function ProfileView({
               deletePortfolio={deletePortfolio}
               accountPhone={phoneNumber}
               accountEmail={email}
+              onChangeInAccountInfo={() => setSection("account")}
               onChanged={() => {
                 setHistoryVersion((v) => v + 1);
                 onMembersChanged?.();

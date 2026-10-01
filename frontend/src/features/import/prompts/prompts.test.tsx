@@ -1,6 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { AddDetailsFirstDialog } from "./AddDetailsFirstDialog";
 import { CancelImportDialog } from "./CancelImportDialog";
 import { ConfirmFailedDialog } from "./ConfirmFailedDialog";
 import { MemberNotInFileDialog } from "./MemberNotInFileDialog";
@@ -144,22 +143,6 @@ describe("U5 MemberNotInFileDialog", () => {
     click("Import for these people");
     expect(onImport).toHaveBeenCalledTimes(1);
     click("Upload a different file");
-    expect(onUpload).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe("U6 AddDetailsFirstDialog", () => {
-  it("uses they/their and both CTAs; × uploads a different file", () => {
-    const onAdd = vi.fn();
-    const onUpload = vi.fn();
-    render(<AddDetailsFirstDialog isOpen memberName="Ramesh Sharma" onAddDetails={onAdd} onUploadDifferent={onUpload} />);
-    expect(screen.getByText("Add Ramesh Sharma’s details first")).toBeInTheDocument();
-    expect(screen.getByText(
-      "This statement is only Ramesh Sharma’s. Add their relationship and PAN before importing their statement.",
-    )).toBeInTheDocument();
-    click("Add details now");
-    expect(onAdd).toHaveBeenCalledTimes(1);
-    close();
     expect(onUpload).toHaveBeenCalledTimes(1);
   });
 });
@@ -324,18 +307,6 @@ describe("PromptHost", () => {
     render(<PromptHost onResolve={onResolve} prompt={{ ...p("cross_account_pan_blocked", {}, null), message: "Already on another account." }} />);
     expect(screen.queryByRole("button", { name: "Include in family total" })).toBeNull();
     expect(screen.getByText("Already on another account.")).toBeInTheDocument();
-  });
-
-  it("locked_member_only: Add details now opens renderMemberDetails; onDone acknowledges", () => {
-    const onResolve = vi.fn();
-    render(
-      <PromptHost onResolve={onResolve}
-        prompt={p("locked_member_only", { member_id: "m1", member_name: "Ramesh Sharma" })}
-        renderMemberDetails={(id, done) => <button onClick={done}>{`unlock ${id}`}</button>} />,
-    );
-    click("Add details now");
-    click("unlock m1");
-    expect(onResolve).toHaveBeenLastCalledWith({ kind: "acknowledge", code: "locked_member_only" });
   });
 
   it("statement_pan_on_other_account discards", () => {

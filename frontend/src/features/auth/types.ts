@@ -52,37 +52,37 @@ export interface UpdateMeBody {
   onboarding_completed?: boolean;
 }
 
+export type ProfileField = "pan" | "relationship" | "phone_number" | "email";
+
 export interface HouseholdMember {
   id: string;
   name: string;
-  // null while a CAS-detected member is locked (details not added yet).
+  // null until chosen in the Complete profile popup (optional).
   relationship: Relationship | null;
   relationship_other_label: string | null;
   origin: string;
-  // Set while the member is locked; the unlock popup collects the details.
-  lock_reason: string | null;
-  details_required: boolean;
   // First two + last two characters of the PAN, never the raw value.
   pan_masked: string | null;
   phone_number: string | null;
   email: string | null;
-  // True only for a locked member whose statement carried a PAN (then the PAN is read-only).
-  pan_on_statement: boolean;
   name_from_statement: boolean;
+  // Set when this member's PAN is held by another Unifolio account.
+  pan_conflict: "other_account" | null;
+  // The popup's PAN box is a typed field (member has no PAN of any kind).
+  pan_editable: boolean;
+  profile_completion: number;
+  missing_fields: ProfileField[];
+  // Deleting this member's last import also removes them.
+  removed_with_last_import: boolean;
 }
 
-/** Unlock-only: name never travels; `pan` only when the statement had none. */
-export interface MemberDetailsBody {
-  relationship: Exclude<Relationship, "self">;
+export interface MemberProfileBody {
+  name?: string;
+  relationship?: Exclude<Relationship, "self"> | null;
   relationship_other_label?: string | null;
+  phone_number?: string;
+  email?: string;
   pan?: string;
-}
-
-export interface MemberUpdateBody {
-  relationship?: Exclude<Relationship, "self">;
-  relationship_other_label?: string | null;
-  phone_number?: string | null;
-  email?: string | null;
 }
 
 export interface MergeMemberResult {

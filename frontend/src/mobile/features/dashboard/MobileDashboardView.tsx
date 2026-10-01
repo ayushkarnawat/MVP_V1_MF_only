@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   getAggregateHoldings,
   getAggregateAllocation,
@@ -14,14 +14,11 @@ import type {
 } from "@/features/dashboard/types";
 import type { HouseholdMember } from "@/features/auth/types";
 import { invalidateApiCache } from "@/lib/apiClient";
-import { Lock } from "lucide-react";
-import {
-  ADD_DETAILS_FIRST,
-  LockedMemberDialogs,
-  firstOpenMember,
-  isMemberLocked,
-  memberLabel,
-} from "../members/LockedMember";
+import { useAuth } from "@/features/auth/AuthContext";
+import { CompleteProfileDialog } from "@/features/dashboard/members/CompleteProfileDialog";
+import { PanConflictBanner } from "@/features/dashboard/members/PanConflictBanner";
+import { ProfileNudge } from "@/features/dashboard/members/ProfileNudge";
+import { memberLabel } from "../members/memberLabel";
 import type { CoverageGapItem } from "@/features/import/types";
 import { AllocationDonut } from "@/components/AllocationDonut";
 import { Badge } from "@/components/Badge";
@@ -68,8 +65,8 @@ export function MobileDashboardView({
   const [viewMode, setViewMode] = useState<"aggregate" | "member">("aggregate");
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [members, setMembers] = useState<HouseholdMember[]>([]);
-  // F39: the locked person the user picked; opens the unlock popup / L8 instead of loading their data.
-  const [lockedPickId, setLockedPickId] = useState<string | null>(null);
+  const { me } = useAuth();
+  const [profileFor, setProfileFor] = useState<string | null>(null);
   const [holdings, setHoldings] = useState<HoldingRow[]>([]);
   const [membersStatus, setMembersStatus] = useState<FamilyMemberStatus[]>([]);
   const [allocation, setAllocation] = useState<AllocationSummary | null>(null);
@@ -96,7 +93,7 @@ export function MobileDashboardView({
       .then((data) => {
         if (isMounted && data.length > 0) {
           setMembers(data);
-          setSelectedMemberId(firstOpenMember(data).id);
+          setSelectedMemberId(data[0].id);
         }
       })
       .catch(() => { });
@@ -205,12 +202,6 @@ export function MobileDashboardView({
     };
   }, [holdings]);
 
-  const handleMemberPick = (id: string) => {
-    const picked = members.find((m) => m.id === id);
-    if (picked && isMemberLocked(picked)) setLockedPickId(id);
-    else setSelectedMemberId(id);
-  };
-
   const reloadMembers = async () => {
     invalidateApiCache();
     try {
@@ -220,22 +211,33 @@ export function MobileDashboardView({
     }
   };
 
-  const lockedDialogs = (
-    <LockedMemberDialogs
-      member={members.find((m) => m.id === lockedPickId) ?? null}
-      onClose={() => setLockedPickId(null)}
-      onOtherAccount={() => void reloadMembers()}
-      onUploadDifferent={() => {
-        setLockedPickId(null);
-        onNavigateImport?.();
+  // Stable identity so the popup's own callbacks don't reset on every parent render.
+  const closeProfile = useCallback(() => setProfileFor(null), []);
+  const selected = members.find((m) => m.id === selectedMemberId);
+  const profileMember = members.find((m) => m.id === profileFor);
+
+  // No "Change in Account Info" navigation: mobile has no account/profile screen to open.
+  const profileDialog = profileMember && (
+    <CompleteProfileDialog
+      key={profileMember.id}
+      member={profileMember}
+      accountPhone={me?.phone_number ?? null}
+      accountEmail={me?.email ?? null}
+      onSaved={() => void reloadMembers()}
+      onMerged={(id) => {
+        void reloadMembers();
+        setSelectedMemberId(id);
+        setProfileFor(null);
       }}
-      onUnlocked={async (unlocked) => {
-        await reloadMembers();
-        setLockedPickId(null);
-        setViewMode("member");
-        setSelectedMemberId(unlocked.id);
-      }}
+      onClose={closeProfile}
     />
+  );
+
+  const profileNudge = viewMode === "member" && selected && (
+    <div className="mt-2 flex flex-col gap-2">
+      {selected.pan_conflict && <PanConflictBanner memberName={selected.name} />}
+      <ProfileNudge member={selected} onOpen={() => setProfileFor(selected.id)} />
+    </div>
   );
 
   const hasFamily = members.length > 1;
@@ -344,13 +346,13 @@ export function MobileDashboardView({
               </button>
             </div>
 
-            {lockedDialogs}
+            {profileDialog}
 
             {/* Member Dropdown Picker (if in per-member mode) */}
             {viewMode === "member" && members.length > 0 && (
               <Select
                 value={selectedMemberId || undefined}
-                onValueChange={handleMemberPick}
+                onValueChange={setSelectedMemberId}
               >
                 <SelectTrigger
                   className="w-full h-10 gap-1.5 rounded-full border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-xs font-medium text-[var(--color-text-secondary)] [&>span]:line-clamp-1"
@@ -360,19 +362,14 @@ export function MobileDashboardView({
                 </SelectTrigger>
                 <SelectContent>
                   {members.map((m) => (
-                    <SelectItem key={m.id} value={m.id} className={isMemberLocked(m) ? "opacity-60" : undefined}>
-                      <span className="inline-flex items-center gap-1.5">
-                        {isMemberLocked(m) && <Lock className="h-3 w-3 shrink-0" aria-hidden="true" />}
-                        {memberLabel(m)}
-                        {m.lock_reason !== "pan_on_other_account" && isMemberLocked(m) && (
-                          <span className="text-[11px] text-[var(--color-text-secondary)]">{ADD_DETAILS_FIRST}</span>
-                        )}
-                      </span>
+                    <SelectItem key={m.id} value={m.id}>
+                      {memberLabel(m)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             )}
+            {profileNudge}
           </div>
         )}
 
@@ -480,13 +477,13 @@ export function MobileDashboardView({
             </button>
           </div>
 
-          {lockedDialogs}
+          {profileDialog}
 
           {/* Member Dropdown Picker (if in per-member mode) */}
           {viewMode === "member" && members.length > 0 && (
             <Select
               value={selectedMemberId || undefined}
-              onValueChange={handleMemberPick}
+              onValueChange={setSelectedMemberId}
             >
               <SelectTrigger
                 className="w-full h-10 gap-1.5 rounded-full border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-xs font-medium text-[var(--color-text-secondary)] [&>span]:line-clamp-1"
@@ -496,19 +493,14 @@ export function MobileDashboardView({
               </SelectTrigger>
               <SelectContent>
                 {members.map((m) => (
-                  <SelectItem key={m.id} value={m.id} className={isMemberLocked(m) ? "opacity-60" : undefined}>
-                    <span className="inline-flex items-center gap-1.5">
-                      {isMemberLocked(m) && <Lock className="h-3 w-3 shrink-0" aria-hidden="true" />}
-                      {memberLabel(m)}
-                      {m.lock_reason !== "pan_on_other_account" && isMemberLocked(m) && (
-                        <span className="text-[11px] text-[var(--color-text-secondary)]">{ADD_DETAILS_FIRST}</span>
-                      )}
-                    </span>
+                  <SelectItem key={m.id} value={m.id}>
+                    {memberLabel(m)}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           )}
+          {profileNudge}
         </motion.div>
       )}
 

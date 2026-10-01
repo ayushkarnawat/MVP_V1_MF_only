@@ -3,10 +3,8 @@ import { ApiError } from "./api";
 import { getImportPrompt } from "./importPrompt";
 
 const CODES = [
-  "member_details_required",
   "member_pan_mismatch",
   "member_not_in_file",
-  "locked_member_only",
   "cross_account_pan_blocked",
   "statement_pan_on_other_account",
   "self_name_mismatch",
@@ -21,10 +19,10 @@ describe("getImportPrompt", () => {
     expect(getImportPrompt(err)).toEqual({ code, message: "m", sessionId: "s1", details: { a: 1 } });
   });
 
-  it("defaults sessionId to null and details to {} (member_details_required drops the session)", () => {
-    const err = new ApiError(409, { code: "member_details_required", message: "m", session_id: null });
+  it("defaults sessionId to null and details to {} (a session-less 409)", () => {
+    const err = new ApiError(409, { code: "cross_account_pan_blocked", message: "m", session_id: null });
     expect(getImportPrompt(err)).toEqual({
-      code: "member_details_required",
+      code: "cross_account_pan_blocked",
       message: "m",
       sessionId: null,
       details: {},

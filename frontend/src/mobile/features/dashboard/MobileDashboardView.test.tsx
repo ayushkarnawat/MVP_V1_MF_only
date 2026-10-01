@@ -28,6 +28,12 @@ vi.mock("@/features/import/api", () => ({
 
 vi.mock("@/features/auth/api", () => ({
   listHouseholdMembers: vi.fn().mockResolvedValue([]),
+  updateMemberProfile: vi.fn(),
+  mergeMemberInto: vi.fn(),
+}));
+
+vi.mock("@/features/auth/AuthContext", () => ({
+  useAuth: () => ({ me: { phone_number: "+919800000001", email: "ayush@example.com" } }),
 }));
 
 describe("MobileDashboardView", () => {
@@ -473,8 +479,8 @@ describe("MobileDashboardView", () => {
 
   it("does not trap the user when switching to a member with 0 holdings in Per Member view", async () => {
     vi.mocked(authApi.listHouseholdMembers).mockResolvedValue([
-      { id: "m-1", name: "Ayush", relationship: "self", relationship_other_label: null, origin: "onboarding", lock_reason: null, details_required: false, pan_masked: null, phone_number: null, email: null, pan_on_statement: false, name_from_statement: false },
-      { id: "m-2", name: "Spouse", relationship: "spouse", relationship_other_label: null, origin: "manual", lock_reason: null, details_required: false, pan_masked: null, phone_number: null, email: null, pan_on_statement: false, name_from_statement: false },
+      { id: "m-1", name: "Ayush", relationship: "self", relationship_other_label: null, origin: "onboarding", pan_masked: null, phone_number: null, email: null, name_from_statement: false, pan_conflict: null, pan_editable: false, profile_completion: 100, missing_fields: [], removed_with_last_import: false },
+      { id: "m-2", name: "Spouse", relationship: "spouse", relationship_other_label: null, origin: "manual", pan_masked: null, phone_number: null, email: null, name_from_statement: false, pan_conflict: null, pan_editable: false, profile_completion: 100, missing_fields: [], removed_with_last_import: false },
     ]);
 
     // Member 1 has data, Member 2 has 0 holdings
@@ -602,14 +608,16 @@ describe("MobileDashboardView", () => {
 
     expect(handleNavigateImport).toHaveBeenCalledWith("m-2");
   });
-  describe("locked family members (F39)", () => {
-    const locked = (over: object) => ({
-      id: "m-2", name: "Ramesh Sharma", relationship: null, relationship_other_label: null, origin: "cas",
-      lock_reason: "details_needed", details_required: true, pan_masked: "BX******8L", phone_number: null, email: null, pan_on_statement: false, name_from_statement: false, ...over,
-    });
-    const me = { id: "m-1", name: "Ayush", relationship: "self", relationship_other_label: null, origin: "self", lock_reason: null, details_required: false, pan_masked: null, phone_number: null, email: null, pan_on_statement: false, name_from_statement: false };
+  describe("profile completion (mobile)", () => {
+    const base = {
+      relationship_other_label: null, origin: "cas", phone_number: null, email: null, name_from_statement: false,
+      pan_conflict: null, pan_editable: false, removed_with_last_import: false,
+    };
+    const me = { ...base, id: "m-1", name: "Ayush", relationship: "self", origin: "self", pan_masked: "AB******4F", profile_completion: 100, missing_fields: [] };
+    const ramesh = { ...base, id: "m-2", name: "Ramesh Sharma", relationship: null, pan_masked: "BX******8L", profile_completion: 40, missing_fields: ["relationship", "phone_number", "email"] };
 
-    async function openPicker() {
+    async function pickRamesh(members: object[], name: RegExp = /ramesh sharma/i) {
+      vi.mocked(authApi.listHouseholdMembers).mockResolvedValue(members as any);
       vi.mocked(dashboardApi.getAggregateHoldings).mockResolvedValue({ holdings: [], members: [] } as any);
       vi.mocked(dashboardApi.getAggregateAllocation).mockResolvedValue({ members: [], allocation: { by_asset_class: [], by_amc: [], total_value: "0.00" } } as any);
       vi.mocked(dashboardApi.getMemberHoldings).mockResolvedValue([]);
@@ -618,25 +626,47 @@ describe("MobileDashboardView", () => {
       fireEvent.click(await screen.findByRole("button", { name: "Per Member" }));
       const trigger = await screen.findByLabelText("Select household member");
       fireEvent.keyDown(trigger, { key: "ArrowDown" });
+      const option = await screen.findByRole("option", { name });
+      expect(option).not.toHaveTextContent("(null)");
+      expect(option).not.toHaveTextContent(/add details first/i);
+      fireEvent.click(option);
     }
 
-    it("shows a locked person as locked, never as (null), and opens the unlock popup instead of loading their data", async () => {
-      vi.mocked(authApi.listHouseholdMembers).mockResolvedValue([me, locked({})] as any);
-      await openPicker();
-      const option = await screen.findByRole("option", { name: /ramesh sharma/i });
-      expect(option).not.toHaveTextContent("(null)");
-      expect(option).toHaveTextContent(/add details first/i);
-      fireEvent.click(option);
-      expect(await screen.findByText("Add Ramesh Sharma’s details")).toBeInTheDocument();
-      expect(dashboardApi.getMemberHoldings).not.toHaveBeenCalledWith("m-2", expect.anything());
-      expect(dashboardApi.getMemberHoldings).not.toHaveBeenCalledWith("m-2");
+    it("picking a detected member loads their data", async () => {
+      await pickRamesh([me, ramesh]);
+      await waitFor(() => expect(dashboardApi.getMemberHoldings).toHaveBeenCalledWith("m-2", expect.anything()));
+      expect(screen.queryByRole("dialog")).toBeNull();
     });
 
-    it("explains a person who is on another account (L8) instead of opening the unlock form", async () => {
-      vi.mocked(authApi.listHouseholdMembers).mockResolvedValue([me, locked({ name: "Kiran Sharma", lock_reason: "pan_on_other_account", details_required: false })] as any);
-      await openPicker();
-      fireEvent.click(await screen.findByRole("option", { name: /kiran sharma/i }));
-      expect(await screen.findByText("Kiran Sharma has their own Unifolio account")).toBeInTheDocument();
+    it("shows the nudge under the member picker and opens Complete profile", async () => {
+      await pickRamesh([me, ramesh]);
+      fireEvent.click(await screen.findByText(/40% complete/));
+      expect(await screen.findByRole("heading", { name: "Complete Ramesh Sharma’s profile" })).toBeInTheDocument();
+    });
+
+    it("saving reloads members and the dialog keeps showing its own success stage", async () => {
+      vi.mocked(authApi.updateMemberProfile).mockResolvedValue({ ...ramesh, relationship: "spouse", profile_completion: 100, missing_fields: [] } as any);
+      await pickRamesh([me, ramesh]);
+      fireEvent.click(await screen.findByText(/40% complete/));
+      await screen.findByRole("heading", { name: "Complete Ramesh Sharma’s profile" });
+      const calls = vi.mocked(authApi.listHouseholdMembers).mock.calls.length;
+      fireEvent.change(screen.getByLabelText("Phone number"), { target: { value: "9800000002" } });
+      fireEvent.click(screen.getByRole("button", { name: "Save" }));
+      await waitFor(() => expect(vi.mocked(authApi.listHouseholdMembers).mock.calls.length).toBeGreaterThan(calls));
+      // onSaved fires before the dialog's own stage; reloading must not unmount it.
+      expect(await screen.findByRole("heading", { name: "Ramesh Sharma’s profile is complete" })).toBeInTheDocument();
+    });
+
+    it("Self's popup has no Change in Account Info link: mobile has nowhere to send it", async () => {
+      await pickRamesh([{ ...me, profile_completion: 60, missing_fields: ["pan", "email"] }, ramesh], /ayush/i);
+      fireEvent.click(await screen.findByText(/60% complete/));
+      expect(await screen.findByRole("heading", { name: "Complete Ayush’s profile" })).toBeInTheDocument();
+      expect(screen.queryByText("Change in Account Info")).toBeNull();
+    });
+
+    it("pan conflict member shows the red banner", async () => {
+      await pickRamesh([me, { ...ramesh, pan_conflict: "other_account" }]);
+      expect(await screen.findByRole("alert")).toHaveTextContent("PAN is on another Unifolio account");
     });
   });
 });

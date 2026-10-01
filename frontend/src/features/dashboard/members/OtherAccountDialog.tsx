@@ -4,28 +4,28 @@ import { PromptDialog } from "../../import/prompts/PromptDialog";
 export interface OtherAccountDialogProps {
   isOpen: boolean;
   memberName: string;
-  /** "unlock" = L5 (after Continue), "picked" = L8 (picked from the dropdown). */
-  variant: "unlock" | "picked";
   onOk: () => void;
 }
 
-// L5 / L8 (F37: they/their instead of the spec's he/his).
-export function OtherAccountDialog({ isOpen, memberName, variant, onOk }: OtherAccountDialogProps) {
-  const body =
-    variant === "unlock"
-      ? "Their funds stay in your family total. Their own dashboard stays with their account."
-      : "Their funds are included in your family total. Their own dashboard stays with their account.";
+// Spec mock 8: shown after every Save that leaves the PAN on another account (Q3).
+export function OtherAccountDialog({ isOpen, memberName, onOk }: OtherAccountDialogProps) {
   return (
     <PromptDialog
       isOpen={isOpen}
-      title={`${memberName} has their own Unifolio account`}
-      body={body}
+      title={`${memberName}’s details are saved`}
       onClose={onOk}
       footer={
         <button type="button" onClick={onOk} className={PRIMARY_BTN}>
           OK
         </button>
       }
-    />
+    >
+      <div role="alert" className="rounded-lg border border-[var(--color-negative,#b91c1c)] px-3 py-2 text-sm text-[var(--color-ink)]">
+        <p className="m-0 font-semibold text-[var(--color-negative,#b91c1c)]">Their profile can’t be completed here</p>
+        <p className="m-0 mt-1">
+          {`${memberName}’s PAN is already tracked under another Unifolio account, so it can’t be added to yours. Their relationship, phone and email are saved.`}
+        </p>
+      </div>
+    </PromptDialog>
   );
 }

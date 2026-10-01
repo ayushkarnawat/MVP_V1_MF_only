@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { getHouseholdMembers } from "../auth/api";
 import type { HouseholdMember } from "../auth/types";
 import { deleteMemberPortfolio, getHouseholdImportHistory } from "../import/api";
 import type { DeleteImportResponse, HouseholdImportHistoryItem } from "../import/types";
-import { EditMemberDialog } from "../dashboard/members/EditMemberDialog";
-import { MemberDetailsDialog } from "../dashboard/members/MemberDetailsDialog";
+import { CompleteProfileDialog } from "../dashboard/members/CompleteProfileDialog";
 import { DeletePortfolioDialog } from "./DeletePortfolioDialog";
 import { FamilyMemberCard } from "./FamilyMemberCard";
 
@@ -17,6 +16,8 @@ interface HouseholdMembersSectionProps {
   accountEmail?: string | null;
   /** Called after a portfolio was deleted, so the page can refresh anything that shows members or funds. */
   onChanged?: () => void;
+  /** Self's "Change in Account Info": the page switches to its Account Info section. */
+  onChangeInAccountInfo?: () => void;
 }
 
 /** How many statements a member's funds come from: rows of one upload group count once. */
@@ -33,14 +34,14 @@ export function HouseholdMembersSection({
   accountPhone,
   accountEmail,
   onChanged,
+  onChangeInAccountInfo,
 }: HouseholdMembersSectionProps) {
   const [members, setMembers] = useState<HouseholdMember[]>([]);
   const [history, setHistory] = useState<HouseholdImportHistoryItem[]>([]);
   // If the history can't load the statement count is unknown; never show it as 0.
   const [historyFailed, setHistoryFailed] = useState(false);
   const [selected, setSelected] = useState<HouseholdMember | null>(null);
-  const [editing, setEditing] = useState<HouseholdMember | null>(null);
-  const [completing, setCompleting] = useState<HouseholdMember | null>(null);
+  const [profileFor, setProfileFor] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -61,6 +62,13 @@ export function HouseholdMembersSection({
     [loadMembers, loadImportHistory],
   );
 
+  // Stable identity: the success popup's 2.5 s timer restarts whenever its onDone changes,
+  // and onSaved re-renders this section (final review M-4).
+  const closeProfile = useCallback(() => {
+    setProfileFor(null);
+    onChanged?.();
+  }, [onChanged]);
+
   useEffect(() => {
     let active = true;
     load().catch(() => active && setMembers([]));
@@ -68,6 +76,7 @@ export function HouseholdMembersSection({
   }, [load]);
 
   if (members.length === 0) return null;
+  const profileMember = members.find((m) => m.id === profileFor) ?? null;
 
   const close = () => {
     setSelected(null);
@@ -90,8 +99,8 @@ export function HouseholdMembersSection({
             accountPhone={accountPhone}
             accountEmail={accountEmail}
             deleteDisabled={historyFailed}
-            onEdit={() => setEditing(m)}
-            onCompleteDetails={() => setCompleting(m)}
+            onOpenProfile={() => setProfileFor(m.id)}
+            onChangeInAccountInfo={onChangeInAccountInfo}
             onDeleteFunds={() => {
               setError(null);
               setSelected(m);
@@ -99,33 +108,17 @@ export function HouseholdMembersSection({
           />
         ))}
       </div>
-      {editing && (
-        <EditMemberDialog
-          key={editing.id}
-          member={editing}
-          onCancel={() => setEditing(null)}
-          onSaved={(saved) => {
-            setMembers((rows) => rows.map((r) => (r.id === saved.id ? saved : r)));
-            setEditing(null);
-            onChanged?.();
-          }}
-        />
-      )}
-      {completing && (
-        <MemberDetailsDialog
-          key={completing.id}
-          member={completing}
-          onCancel={() => setCompleting(null)}
-          onOtherAccount={() => {
-            setCompleting(null);
-            void load().catch(() => undefined);
-            onChanged?.();
-          }}
-          onUnlocked={() => {
-            setCompleting(null);
-            void load().catch(() => undefined);
-            onChanged?.();
-          }}
+      {profileMember && (
+        <CompleteProfileDialog
+          key={profileMember.id}
+          member={profileMember}
+          accountPhone={accountPhone}
+          accountEmail={accountEmail}
+          onChangeInAccountInfo={onChangeInAccountInfo}
+          // Never unmount from onSaved: the dialog still shows its own warning/success stage.
+          onSaved={(saved) => setMembers((ms) => ms.map((x) => (x.id === saved.id ? saved : x)))}
+          onMerged={() => { setProfileFor(null); void load().catch(() => undefined); onChanged?.(); }}
+          onClose={closeProfile}
         />
       )}
       {selected && (
