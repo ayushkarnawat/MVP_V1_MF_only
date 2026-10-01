@@ -23,6 +23,16 @@ describe("MobileFundDetailSheet", () => {
     today_gain: "15.00",
   };
 
+  it("opens after first rendering closed without a hook-order crash", () => {
+    // Regression: a hook below the closed-sheet early return crashed React
+    // ("Rendered more hooks than during the previous render") on open.
+    const { rerender } = render(
+      <MobileFundDetailSheet isOpen={false} holding={sampleHolding} onClose={vi.fn()} />
+    );
+    rerender(<MobileFundDetailSheet isOpen holding={sampleHolding} onClose={vi.fn()} />);
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
   it("does not render when isOpen is false", () => {
     render(
       <MobileFundDetailSheet
