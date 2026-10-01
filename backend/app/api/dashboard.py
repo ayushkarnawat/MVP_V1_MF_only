@@ -37,8 +37,8 @@ from app.services.dashboard.member_details import (
     MemberDetailsError,
     MemberDetailsRequest,
     complete_member_details,
-    refresh_other_account_locks,
-    require_unlocked_member,
+    refresh_pan_conflicts,
+    require_member,
 )
 from app.services.dashboard.member_update import MemberUpdateRequest, update_member
 from app.api.imports import claim_and_dispatch_recompute
@@ -103,13 +103,13 @@ def create_member(
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except InvalidPersonNameError as exc:
         raise HTTPException(status_code=422, detail={"code": exc.code, "message": exc.message}) from exc
-    return member_to_response(member)
+    return member_to_response(member, user)
 
 #return household members
 @router.get("/household-members", response_model=list[HouseholdMemberResponse])
 def list_members(user: User = Depends(get_active_user), db: DbSession = Depends(get_db)):
-    refresh_other_account_locks(db, user.id)
-    return [member_to_response(m) for m in list_household_members(db, user.id)]
+    refresh_pan_conflicts(db, user.id)
+    return [member_to_response(m, user) for m in list_household_members(db, user.id)]
 
 
 # Plain `def` (threadpool): this route commits, and a db.commit() inside an
@@ -132,7 +132,7 @@ def submit_member_details(
         raise HTTPException(status_code=409, detail={"code": exc.code, "message": exc.message}) from exc
     except InvalidPersonNameError as exc:
         raise HTTPException(status_code=422, detail={"code": exc.code, "message": exc.message}) from exc
-    return member_to_response(member)
+    return member_to_response(member, user)
 
 # Plain `def` (threadpool): commits (bb5225f).
 @router.patch("/household-members/{member_id}", response_model=HouseholdMemberResponse)
@@ -142,7 +142,7 @@ def patch_household_member(
     user: User = Depends(get_active_user),
     db: DbSession = Depends(get_db),
 ):
-    require_unlocked_member(db, user.id, member_id)
+    require_member(db, user.id, member_id)
     try:
         member = update_member(db, user.id, member_id, body)
     except MemberDetailsError as exc:
@@ -150,7 +150,7 @@ def patch_household_member(
         if exc.details:
             detail["details"] = exc.details
         raise HTTPException(status_code=exc.status_code, detail=detail) from exc
-    return member_to_response(member)
+    return member_to_response(member, user)
 
 
 # Plain `def` (threadpool): commits (F31 / bb5225f).
@@ -199,7 +199,7 @@ async def get_member_holdings(
     user: User = Depends(get_active_user),
     db: DbSession = Depends(get_db),
 ):
-    require_unlocked_member(db, user.id, member_id)
+    require_member(db, user.id, member_id)
     holdings = await compute_holdings(db, [member_id])
     xirr_summary = calculate_dashboard_xirr(db, [member_id], holdings)
     return MemberHoldingsResponse(
@@ -218,7 +218,7 @@ async def get_member_distributor_comparison(
     user: User = Depends(get_active_user),
     db: DbSession = Depends(get_db),
 ):
-    require_unlocked_member(db, user.id, member_id)
+    require_member(db, user.id, member_id)
     return await compute_distributor_comparison(db, [member_id])
 
 
@@ -228,7 +228,7 @@ async def get_member_allocation(
     user: User = Depends(get_active_user),
     db: DbSession = Depends(get_db),
 ):
-    require_unlocked_member(db, user.id, member_id)
+    require_member(db, user.id, member_id)
     return await compute_allocation(db, [member_id])
 
 
@@ -238,7 +238,7 @@ def get_member_sips(
     user: User = Depends(get_active_user),
     db: DbSession = Depends(get_db),
 ):
-    require_unlocked_member(db, user.id, member_id)
+    require_member(db, user.id, member_id)
     return compute_active_sips(db, [member_id])
 
 
@@ -250,7 +250,7 @@ def get_member_sips_monthly(
     user: User = Depends(get_active_user),
     db: DbSession = Depends(get_db),
 ):
-    require_unlocked_member(db, user.id, member_id)
+    require_member(db, user.id, member_id)
     today = date.today()
     return compute_sips_for_month(db, [member_id], year or today.year, month or today.month)
 
@@ -261,7 +261,7 @@ def get_member_cash_flow(
     user: User = Depends(get_active_user),
     db: DbSession = Depends(get_db),
 ):
-    require_unlocked_member(db, user.id, member_id)
+    require_member(db, user.id, member_id)
     return compute_cash_flow(db, [member_id])
 
 
@@ -271,7 +271,7 @@ async def get_member_snapshots(
     user: User = Depends(get_active_user),
     db: DbSession = Depends(get_db),
 ):
-    require_unlocked_member(db, user.id, member_id)
+    require_member(db, user.id, member_id)
     return await get_snapshots(db, [member_id])
 
 #aggregate dashboard

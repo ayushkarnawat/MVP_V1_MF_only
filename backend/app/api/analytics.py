@@ -23,7 +23,7 @@ from app.services.analytics.schemas import (
 )
 from app.services.analytics.scorer import compute_fund_score
 from app.services.auth.session import get_active_user
-from app.services.dashboard.member_details import require_unlocked_member
+from app.services.dashboard.member_details import require_member
 
 router = APIRouter(prefix="/analytics", tags=["analytics"]) #for analytics related endpoints
 
@@ -61,7 +61,7 @@ def get_analytics_scope(
             raise HTTPException(
                 status_code=400, detail='scope must be "combined" or a household member id.'
             ) from exc
-        require_unlocked_member(db, user.id, member_uuid)
+        require_member(db, user.id, member_uuid)
         # Canonicalize: rows are stored under str(member.id) (_upsert_section),
         # but uuid.UUID() accepts non-canonical spellings (uppercase,
         # hyphenless) that would otherwise miss the row lookup below.
@@ -103,7 +103,7 @@ def retry_analytics_scope(
             raise HTTPException(
                 status_code=400, detail='scope must be "combined" or a household member id.'
             ) from exc
-        require_unlocked_member(db, user.id, member_uuid)
+        require_member(db, user.id, member_uuid)
 
     dispatched = try_claim_recompute(db, user.id)
     if dispatched and not dispatcher.dispatch(user.id):
@@ -121,7 +121,7 @@ async def export_analytics_pdf(
     if body.scope == "member":
         if body.member_id is None:
             raise HTTPException(status_code=404, detail="Household member not found.")
-        require_unlocked_member(db, user.id, body.member_id)
+        require_member(db, user.id, body.member_id)
 
     token = store_export_payload(body.payload)
     try:

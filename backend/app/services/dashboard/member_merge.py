@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from app.models.analytics import AnalyticsSection
-from app.models.enums import MemberPanSource, Relationship
+from app.models.enums import MemberOrigin, MemberPanSource, Relationship
 from app.models.folio import Folio
 from app.models.imports import Import
 from app.models.member_history import HouseholdMemberMerge, HouseholdMemberNameChange
@@ -49,12 +49,19 @@ def merge_member_into(
     target = db.query(HouseholdMember).filter_by(id=target_id, user_id=user_id).first()
     if source is None or target is None:
         raise MemberNotFoundError()
-    # Staging-QA fix 5C: a locked source whose statement PAN is the target's
-    # PAN is provably the same person, even though it isn't name-only.
+    # Staging-QA fix 5C: a source whose statement PAN is the target's PAN is
+    # provably the same person, even though it isn't name-only. Since 0023 a
+    # statement PAN sits in detected_pan_* only on a pan_conflict row or a
+    # backfill leftover (a duplicate of an already-promoted PAN), so this is
+    # reachable only for those.
     same_pan = source.detected_pan_hash is not None and source.detected_pan_hash == target.pan_lookup_hash
+    # M11: only a CAS-detected source with no statement PAN (or one that is
+    # the target's) can be merged away. The origin check replaces the old
+    # lock check -- locked members were always CAS-detected -- so manual
+    # and onboarding members are never merged away.
     if (
         source.id == target.id
-        or not source.is_locked
+        or source.origin != MemberOrigin.CAS_DETECTED
         or not (is_name_only(source) or same_pan)
         or source.relationship == Relationship.SELF
     ):

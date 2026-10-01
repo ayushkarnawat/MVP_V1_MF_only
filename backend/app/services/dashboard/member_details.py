@@ -22,6 +22,7 @@ from app.models.user import HouseholdMember
 from app.services.import_.crypto import decrypt_pan, encrypt_pan, hash_pan, normalize_pan
 from app.services.import_.pan_claims import (
     CrossAccountPanBlockedError,
+    _clear_pan,
     is_expired_pending,
 )
 from app.services.import_.parser import mask_pan
@@ -157,10 +158,9 @@ def _validate_relationship(body: MemberDetailsRequest) -> str | None:
 
 
 def is_name_only(member: HouseholdMember) -> bool:
-    """F34 provenance: no statement-detected PAN, or a PAN the user typed
-    (L5). Such a person has nothing on a statement to verify against, so it may
-    be corrected (L5 typo) or merged into another member (M11)."""
-    return member.detected_pan_hash is None or member.pan_source == MemberPanSource.USER_ENTERED
+    """F34 provenance: no PAN from a statement (none at all, or one the user
+    typed). Such a person can be merged into another member (M11)."""
+    return member.pan_source != MemberPanSource.CAS
 
 
 def complete_member_details(
@@ -256,47 +256,55 @@ def complete_member_details(
     return member
 
 
-def refresh_other_account_locks(db: DbSession, user_id: uuid.UUID) -> int:
-    """Lazy: a member locked as pan_on_other_account goes back to
-    details_needed once the other account no longer holds that PAN."""
+def refresh_pan_conflicts(db: DbSession, user_id: uuid.UUID) -> int:
+    """Lazy (Review Focus 2): once no live claim holds a conflicting PAN, it
+    moves into this member's unique PAN columns, the same storage as any
+    other PAN, and the banner goes. Any live holder keeps the conflict --
+    the other account's, or one in this user's own account (left for a
+    merge, never silently moved)."""
     now = datetime.now(timezone.utc)
     rows = (
         db.query(HouseholdMember)
-        .filter(
-            HouseholdMember.user_id == user_id,
-            HouseholdMember.lock_reason == MemberLockReason.PAN_ON_OTHER_ACCOUNT,
-            HouseholdMember.detected_pan_hash.isnot(None),
-        )
+        .filter(HouseholdMember.user_id == user_id, HouseholdMember.pan_conflict.isnot(None))
         .all()
     )
-    flipped = 0
+    promoted = 0
     for m in rows:
-        held = (
-            db.query(HouseholdMember)
-            .filter(
-                HouseholdMember.pan_lookup_hash == m.detected_pan_hash,
-                HouseholdMember.user_id != user_id,
-            )
-            .all()
-        )
-        if not any(not is_expired_pending(h, now) for h in held):
-            m.lock_reason = MemberLockReason.DETAILS_NEEDED
-            flipped += 1
-    if flipped:
-        db.commit()
-    return flipped
+        held = db.query(HouseholdMember).filter(HouseholdMember.pan_lookup_hash == m.detected_pan_hash).all()
+        if any(not is_expired_pending(h, now) for h in held):
+            continue
+        for stale in held:  # an expired pending claim still occupies the index
+            _clear_pan(stale)
+            # _clear_pan leaves these; with no PAN left they would misreport
+            # the row as having a statement / verified PAN.
+            stale.pan_source = None
+            stale.pan_verified_at = None
+        if held:
+            # The unit of work orders UPDATEs by primary key, so without this
+            # flush the claim below can run before the stale row lets go of
+            # the hash and hit the unique index.
+            db.flush()
+        m.pan_encrypted, m.pan_lookup_hash = m.detected_pan_encrypted, m.detected_pan_hash
+        m.pan_pending_until = None
+        m.pan_verified_at = now if m.pan_source == MemberPanSource.CAS else None
+        m.detected_pan_encrypted = m.detected_pan_hash = None
+        m.pan_conflict = None
+        promoted += 1
+    if promoted:
+        try:
+            db.commit()
+        except IntegrityError:
+            # Someone took the PAN between the read and the commit: keep the
+            # conflict for now; the next list call re-checks.
+            db.rollback()
+            return 0
+    return promoted
 
 
-def require_unlocked_member(db: DbSession, user_id: uuid.UUID, member_id: uuid.UUID) -> HouseholdMember:
+def require_member(db: DbSession, user_id: uuid.UUID, member_id: uuid.UUID) -> HouseholdMember:
+    """Ownership only. There is no lock any more: every member's
+    dashboard opens (profile-completion spec)."""
     member = db.query(HouseholdMember).filter_by(id=member_id, user_id=user_id).first()
     if member is None:
         raise HTTPException(status_code=404, detail="Household member not found.")
-    if member.is_locked:
-        raise HTTPException(
-            status_code=403,
-            detail={
-                "code": "member_details_required",
-                "message": f"Add {member.name}’s details to see their dashboard.",
-            },
-        )
     return member

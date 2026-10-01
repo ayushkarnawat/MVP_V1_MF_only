@@ -113,34 +113,44 @@ def test_patch_other_users_member_is_404(client):
     assert client.patch(f"/household-members/{m['id']}", json={"relationship": "sibling"}, headers=b).status_code == 404
 
 
-def test_patch_locked_member_is_403_and_flags_reflect_statement_pan(client):
+def test_detected_member_with_cas_pan_is_patchable_and_reports_profile_fields(client):
     import uuid
     from datetime import datetime, timezone
     from app.db.session import get_db
     from app.main import app
-    from app.models.enums import MemberLockReason, MemberNameSource, MemberOrigin
+    from app.models.enums import MemberNameSource, MemberOrigin, MemberPanSource
     from app.models.user import HouseholdMember
     from app.services.import_.crypto import encrypt_pan, hash_pan
     h = _authed_headers(client, "+919100300010")
     me = client.post("/household-members", json={"name": "Asha Rao", "relationship": "self"}, headers=h).json()
     db = next(app.dependency_overrides[get_db]())
     uid = db.get(HouseholdMember, uuid.UUID(me["id"])).user_id
-    locked = HouseholdMember(
+    detected = HouseholdMember(
         user_id=uid, name="Ramesh Sharma", relationship=None, created_at=datetime.now(timezone.utc),
         origin=MemberOrigin.CAS_DETECTED, name_source=MemberNameSource.CAS,
-        details_completed_at=None, lock_reason=MemberLockReason.DETAILS_NEEDED,
-        detected_pan_encrypted=encrypt_pan("ABCDE1234F"), detected_pan_hash=hash_pan("ABCDE1234F"),
+        pan_encrypted=encrypt_pan("ABCDE1234F"), pan_lookup_hash=hash_pan("ABCDE1234F"),
+        pan_source=MemberPanSource.CAS,
     )
-    db.add(locked)
+    db.add(detected)
     db.commit()
-    mid = str(locked.id)
-    assert client.patch(f"/household-members/{mid}", json={"relationship": "sibling"}, headers=h).status_code == 403
+    mid = str(detected.id)
     row = next(m for m in client.get("/household-members", headers=h).json() if m["id"] == mid)
-    assert row["pan_on_statement"] is True and row["name_from_statement"] is True
+    assert row["pan_editable"] is False and row["profile_completion"] == 40
+    assert row["missing_fields"] == ["relationship", "phone_number", "email"]
+    assert row["name_from_statement"] is True and row["pan_conflict"] is None
+    assert row["removed_with_last_import"] is True
+    assert row["pan_masked"] is not None
+    for gone in ("lock_reason", "details_required", "pan_on_statement"):
+        assert gone not in row
+    # No lock any more: a detected member is editable straight away.
+    resp = client.patch(f"/household-members/{mid}", json={"relationship": "sibling"}, headers=h)
+    assert resp.status_code == 200
+    assert resp.json()["profile_completion"] == 60
+    assert resp.json()["removed_with_last_import"] is False
 
 
 def test_member_response_has_statement_flags(client):
     h = _authed_headers(client, "+919100300008")
     m = _family(client, h)
-    assert m["pan_on_statement"] is False and m["name_from_statement"] is False
+    assert m["pan_editable"] is True and m["name_from_statement"] is False
     assert m["phone_number"] is None and m["email"] is None

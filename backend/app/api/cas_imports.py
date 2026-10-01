@@ -14,7 +14,7 @@ from app.models.imports import Import
 from app.models.user import HouseholdMember, User
 from app.services.auth.session import get_active_user
 from app.services.dashboard.household_members import get_household_member_for_user
-from app.services.dashboard.member_details import require_unlocked_member
+from app.services.dashboard.member_details import require_member
 from app.services.legal.consent import evidence_from_request, record_consent
 
 router = APIRouter(tags=["cas-imports"])
@@ -146,7 +146,7 @@ def list_member_import_history(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Invalid member_id.") from exc
 
-    require_unlocked_member(db, user.id, member_uuid)
+    require_member(db, user.id, member_uuid)
 
     history = (
         db.query(Import)
@@ -195,7 +195,7 @@ def list_member_coverage_gaps(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Invalid member_id.") from exc
 
-    require_unlocked_member(db, user.id, member_uuid)
+    require_member(db, user.id, member_uuid)
 
     from app.models.folio import Folio
     from app.models.reference import Scheme
@@ -249,7 +249,7 @@ def post_opening_balance(
         .first()
     )
     if owned is not None:
-        require_unlocked_member(db, user.id, owned[0])
+        require_member(db, user.id, owned[0])
 
     try:
         units_dec = Decimal(body.units)
@@ -301,7 +301,7 @@ def request_cams_statement(
 
     from app.services.import_.cams_portal import initiate_cams_request
 
-    require_unlocked_member(db, user.id, member_uuid)
+    require_member(db, user.id, member_uuid)
     # Validated before any import row exists; recorded after, so the row can
     # carry the import id.
     documents = validate_pan_disclaimer(body.pan_disclaimer_version)

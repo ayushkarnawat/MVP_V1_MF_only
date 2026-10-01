@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -16,20 +17,23 @@ class HouseholdMemberCreate(BaseModel):
 class HouseholdMemberResponse(BaseModel):
     id: str
     name: str
-    # F10: NULL while a CAS-detected member is locked (details not added yet).
+    # NULL until chosen in the Complete profile popup (optional).
     relationship: Relationship | None
     relationship_other_label: str | None
     origin: str = "manual"
-    # Set while the member is locked (CAS-detected, details not added yet).
-    lock_reason: str | None = None
-    details_required: bool = False
-    # First two + last two of the claimed PAN, else the detected PAN; never raw.
+    # First two + last two of the PAN (claimed, else the other-account one); never raw.
     pan_masked: str | None = None
     phone_number: str | None = None
     email: str | None = None
-    # Locked with a statement PAN: the unlock popup shows no PAN field.
-    pan_on_statement: bool = False
     name_from_statement: bool = False
+    # Set when this member's PAN is held by another Unifolio account (Q3 banner).
+    pan_conflict: Literal["other_account"] | None = None
+    # The Complete profile popup's PAN box is a typed field (Q2), not a greyed one.
+    pan_editable: bool = False
+    profile_completion: int = 0
+    missing_fields: list[str] = []
+    # Deleting this member's last import also removes them (untouched detected member).
+    removed_with_last_import: bool = False
 
 
 class HoldingRow(BaseModel):

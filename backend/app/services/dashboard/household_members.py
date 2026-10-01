@@ -10,8 +10,14 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session as DbSession
 
-from app.models.enums import MemberNameSource, MemberOrigin, MemberPanSource, Relationship
-from app.models.user import HouseholdMember
+from app.models.enums import MemberNameSource, MemberOrigin, Relationship
+from app.models.user import HouseholdMember, User
+from app.services.dashboard.profile_completion import (
+    completion_percent,
+    missing_profile_fields,
+    pan_editable,
+    removed_with_last_import,
+)
 from app.services.dashboard.schemas import HouseholdMemberResponse
 from app.services.import_.crypto import decrypt_pan
 from app.services.import_.name_match import validate_person_name
@@ -63,8 +69,6 @@ def create_household_member(
         created_at=datetime.now(timezone.utc),
         origin=MemberOrigin.ONBOARDING if relationship == Relationship.SELF else MemberOrigin.MANUAL,
         name_source=MemberNameSource.USER_ENTERED,
-        details_completed_at=datetime.now(timezone.utc),
-        lock_reason=None,
     )
     db.add(member)
     db.commit()
@@ -90,23 +94,26 @@ def get_household_member_for_user(
     return db.query(HouseholdMember).filter_by(id=member_id, user_id=user_id).first()
 
 
-def member_to_response(m: HouseholdMember) -> HouseholdMemberResponse:
+def member_to_response(m: HouseholdMember, user: User | None = None) -> HouseholdMemberResponse:
     encrypted = m.pan_encrypted or m.detected_pan_encrypted
+    missing = missing_profile_fields(
+        m,
+        account_phone=user.phone_number if user is not None else None,
+        account_email=user.email if user is not None else None,
+    )
     return HouseholdMemberResponse(
         id=str(m.id),
         name=m.name,
         relationship=m.relationship,
         relationship_other_label=m.relationship_other_label,
         origin=m.origin.value,
-        lock_reason=m.lock_reason.value if m.lock_reason else None,
-        details_required=m.is_locked,
         pan_masked=mask_pan(decrypt_pan(encrypted)) if encrypted else None,
         phone_number=m.phone_number,
         email=m.email,
-        pan_on_statement=(
-            m.is_locked
-            and m.detected_pan_hash is not None
-            and m.pan_source != MemberPanSource.USER_ENTERED
-        ),
         name_from_statement=m.name_source == MemberNameSource.CAS,
+        pan_conflict=m.pan_conflict.value if m.pan_conflict else None,
+        pan_editable=pan_editable(m),
+        profile_completion=completion_percent(missing),
+        missing_fields=missing,
+        removed_with_last_import=removed_with_last_import(m),
     )

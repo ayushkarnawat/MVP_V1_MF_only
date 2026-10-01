@@ -1,9 +1,10 @@
 from datetime import datetime, timezone
 
 from app.db.session import get_db
-from app.models.enums import AuthIdentityProvider, MemberLockReason, Relationship
+from app.models.enums import AuthIdentityProvider, MemberOrigin, MemberPanSource, Relationship
 from app.models.user import HouseholdMember, User
 from app.services.auth.session import create_session
+from app.services.import_.crypto import encrypt_pan, hash_pan
 
 
 def test_merge_route_merges_and_returns_counts(client):
@@ -12,10 +13,16 @@ def test_merge_route_merges_and_returns_counts(client):
     user = User(phone_number="+919500000001", created_at=now)
     db.add(user)
     db.flush()
-    target = HouseholdMember(user_id=user.id, name="Ramesh Kumar Sharma", relationship=Relationship.PARENT, created_at=now)
+    # The target holds a statement PAN, so merging it into the name-only
+    # source is refused (M11) while the reverse is allowed.
+    target = HouseholdMember(
+        user_id=user.id, name="Ramesh Kumar Sharma", relationship=Relationship.PARENT, created_at=now,
+        pan_encrypted=encrypt_pan("AAAPZ1234C"), pan_lookup_hash=hash_pan("AAAPZ1234C"),
+        pan_source=MemberPanSource.CAS,
+    )
     source = HouseholdMember(
         user_id=user.id, name="Ramesh Sharma", relationship=None, created_at=now,
-        details_completed_at=None, lock_reason=MemberLockReason.DETAILS_NEEDED,
+        origin=MemberOrigin.CAS_DETECTED,
     )
     db.add_all([target, source])
     _, token = create_session(db, user.id, auth_method=AuthIdentityProvider.PHONE_OTP)

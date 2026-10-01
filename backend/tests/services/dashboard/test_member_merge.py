@@ -6,7 +6,7 @@ import pytest
 
 from app.models.analytics import AnalyticsSection
 from app.models.enums import (
-    MemberPanSource, ImportStatus, MemberLockReason, MemberOrigin, PlanType, Relationship, TransactionType,
+    MemberPanSource, ImportStatus, MemberOrigin, PlanType, Relationship, TransactionType,
 )
 from app.models.folio import Folio
 from app.models.imports import Import
@@ -38,8 +38,9 @@ def _target(db, user):
 def _source(db, user, detected=False):
     m = HouseholdMember(
         user_id=user.id, name="Ramesh Sharma", relationship=None, created_at=NOW,
-        origin=MemberOrigin.CAS_DETECTED, details_completed_at=None,
-        lock_reason=MemberLockReason.DETAILS_NEEDED,
+        origin=MemberOrigin.CAS_DETECTED,
+        # A statement PAN is recorded as pan_source=cas (is_name_only reads it).
+        pan_source=MemberPanSource.CAS if detected else None,
         detected_pan_encrypted=encrypt_pan("BXQPS5678L") if detected else None,
         detected_pan_hash=hash_pan("BXQPS5678L") if detected else None,
     )
@@ -135,15 +136,19 @@ def test_merge_refuses_member_with_detected_pan(db_session):
     assert db.get(HouseholdMember, source.id) is not None
 
 
-def test_merge_refuses_unlocked_source(db_session):
+def test_merge_refuses_source_with_statement_pan(db_session):
     db = db_session
     user = _user(db)
     target = _target(db, user)
-    unlocked = HouseholdMember(user_id=user.id, name="Other", relationship=Relationship.SPOUSE, created_at=NOW)
-    db.add(unlocked)
+    with_pan = HouseholdMember(
+        user_id=user.id, name="Other", relationship=Relationship.SPOUSE, created_at=NOW,
+        pan_encrypted=encrypt_pan("AAAPZ1234C"), pan_lookup_hash=hash_pan("AAAPZ1234C"),
+        pan_source=MemberPanSource.CAS,
+    )
+    db.add(with_pan)
     db.commit()
     with pytest.raises(MergeNotAllowedError):
-        merge_member_into(db, user.id, unlocked.id, target.id)
+        merge_member_into(db, user.id, with_pan.id, target.id)
     with pytest.raises(MergeNotAllowedError):
         merge_member_into(db, user.id, target.id, target.id)
 
@@ -157,14 +162,14 @@ def test_merge_refuses_target_of_another_user(db_session):
     assert db.get(HouseholdMember, source.id) is not None
 
 
-def test_merge_keeps_target_unlocked(db_session):
+def test_merge_keeps_target_relationship(db_session):
     db = db_session
     user = _user(db)
     target, source = _target(db, user), _source(db, user)
     merge_member_into(db, user.id, source.id, target.id)
     db.expire_all()
     kept = db.get(HouseholdMember, target.id)
-    assert not kept.is_locked and kept.relationship == Relationship.PARENT
+    assert kept.relationship == Relationship.PARENT
 
 
 def test_merge_allows_source_whose_pan_was_typed_by_the_user(db_session):
@@ -173,6 +178,31 @@ def test_merge_allows_source_whose_pan_was_typed_by_the_user(db_session):
     target, source = _target(db, user), _source(db, user, detected=True)
     source.pan_source = MemberPanSource.USER_ENTERED
     db.commit()
+    source_id = source.id
+    merge_member_into(db, user.id, source.id, target.id)
+    db.expire_all()
+    assert db.get(HouseholdMember, source_id) is None
+
+
+def test_merge_refuses_manual_source_even_without_pan(db_session):
+    # Controller ruling (fix round 1): the origin check replaces the lock
+    # check, so a manual or onboarding member is never merged away.
+    db = db_session
+    user = _user(db)
+    target = _target(db, user)
+    manual = HouseholdMember(user_id=user.id, name="Ramesh Sharma", relationship=None, created_at=NOW,
+                             origin=MemberOrigin.MANUAL)
+    db.add(manual)
+    db.commit()
+    with pytest.raises(MergeNotAllowedError):
+        merge_member_into(db, user.id, manual.id, target.id)
+    assert db.get(HouseholdMember, manual.id) is not None
+
+
+def test_merge_allows_cas_detected_name_only_source(db_session):
+    db = db_session
+    user = _user(db)
+    target, source = _target(db, user), _source(db, user)
     source_id = source.id
     merge_member_into(db, user.id, source.id, target.id)
     db.expire_all()

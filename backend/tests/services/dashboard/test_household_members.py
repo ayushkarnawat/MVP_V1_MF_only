@@ -111,3 +111,146 @@ def test_create_household_member_rejects_second_self_when_name_came_from_the_cas
 
     with pytest.raises(DuplicateSelfMemberError):
         create_household_member(db, user.id, "Ayush Again", Relationship.SELF)
+
+
+def test_list_returns_profile_fields_for_self_using_account_contact(client):
+    from app.db.session import get_db
+
+    phone = "+919100400001"
+    otp = client.post("/auth/otp/request", json={"phone_number": phone}).json()["otp"]
+    token = client.post("/auth/otp/verify", json={"phone_number": phone, "otp": otp}).json()["session_token"]
+    h = {"Authorization": f"Bearer {token}"}
+    me = client.post("/household-members", json={"name": "Asha Rao", "relationship": "self"}, headers=h).json()
+    db = next(client.app.dependency_overrides[get_db]())
+    member = db.get(HouseholdMember, uuid.UUID(me["id"]))
+    member.pan_encrypted, member.pan_lookup_hash = encrypt_pan("BXQPS5678L"), hash_pan("BXQPS5678L")
+    user = db.get(User, member.user_id)
+    user.email = "asha@example.com"  # Self's phone/email live on users
+    db.commit()
+    db.close()
+
+    row = next(m for m in client.get("/household-members", headers=h).json() if m["id"] == me["id"])
+    assert row["missing_fields"] == []
+    assert row["profile_completion"] == 100
+    assert row["pan_editable"] is False
+
+
+def test_refresh_promotes_released_conflict_pan():
+    from app.models.enums import MemberNameSource, MemberOrigin, MemberPanConflict, MemberPanSource
+    from app.services.dashboard.member_details import refresh_pan_conflicts
+    from app.services.import_.crypto import decrypt_pan
+
+    db = _session()
+    user = _user(db)
+    pan = "BXQPS5678L"
+    m = HouseholdMember(
+        user_id=user.id, name="Vikram Rao", created_at=datetime.now(timezone.utc),
+        origin=MemberOrigin.CAS_DETECTED, name_source=MemberNameSource.CAS,
+        detected_pan_hash=hash_pan(pan), detected_pan_encrypted=encrypt_pan(pan),
+        pan_source=MemberPanSource.CAS, pan_conflict=MemberPanConflict.OTHER_ACCOUNT,
+    )
+    db.add(m)
+    db.commit()
+
+    assert refresh_pan_conflicts(db, user.id) == 1
+    db.expire_all()
+    assert m.pan_lookup_hash == hash_pan(pan)
+    assert decrypt_pan(m.pan_encrypted) == pan
+    assert m.pan_conflict is None
+    assert m.detected_pan_hash is None
+    assert m.pan_verified_at is not None
+
+
+def test_refresh_survives_lost_race(monkeypatch):
+    from sqlalchemy.exc import IntegrityError
+
+    from app.models.enums import MemberOrigin, MemberPanConflict, MemberPanSource
+    from app.services.dashboard.member_details import refresh_pan_conflicts
+
+    db = _session()
+    user = _user(db)
+    pan = "BXQPS5678L"
+    m = HouseholdMember(
+        user_id=user.id, name="Vikram Rao", created_at=datetime.now(timezone.utc),
+        origin=MemberOrigin.CAS_DETECTED,
+        detected_pan_hash=hash_pan(pan), detected_pan_encrypted=encrypt_pan(pan),
+        pan_source=MemberPanSource.CAS, pan_conflict=MemberPanConflict.OTHER_ACCOUNT,
+    )
+    db.add(m)
+    db.commit()
+
+    calls = {"n": 0}
+    real_commit = db.commit
+
+    def flaky_commit():
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise IntegrityError("UPDATE household_members", {}, Exception("unique"))
+        return real_commit()
+
+    monkeypatch.setattr(db, "commit", flaky_commit)
+    assert refresh_pan_conflicts(db, user.id) == 0
+    db.expire_all()
+    assert m.pan_conflict == MemberPanConflict.OTHER_ACCOUNT  # kept for the next list call
+    assert m.pan_lookup_hash is None
+
+
+@pytest.mark.parametrize("conflict_id_lower", [True, False])
+def test_refresh_promotes_when_holder_is_expired_pending_in_either_id_order(conflict_id_lower):
+    # SQLAlchemy orders UPDATEs on one table by primary key; the claim must
+    # not run before the stale holder releases the hash, whichever id is lower.
+    from datetime import timedelta
+
+    from app.models.enums import MemberOrigin, MemberPanConflict, MemberPanSource
+    from app.services.dashboard.member_details import refresh_pan_conflicts
+    from app.services.import_.crypto import decrypt_pan
+
+    low = uuid.UUID("00000000-0000-0000-0000-000000000001")
+    high = uuid.UUID("ffffffff-ffff-ffff-ffff-ffffffffffff")
+    conflict_id, stale_id = (low, high) if conflict_id_lower else (high, low)
+
+    db = _session()
+    user, other = _user(db), _user(db, "+919888888888")
+    pan = "BXQPS5678L"
+    now = datetime.now(timezone.utc)
+    stale = HouseholdMember(
+        id=stale_id, user_id=other.id, name="Someone", relationship=Relationship.SELF, created_at=now,
+        pan_encrypted=encrypt_pan(pan), pan_lookup_hash=hash_pan(pan),
+        pan_pending_until=now - timedelta(hours=1), pan_source=MemberPanSource.CAS, pan_verified_at=now,
+    )
+    m = HouseholdMember(
+        id=conflict_id, user_id=user.id, name="Vikram Rao", created_at=now,
+        origin=MemberOrigin.CAS_DETECTED,
+        detected_pan_hash=hash_pan(pan), detected_pan_encrypted=encrypt_pan(pan),
+        pan_source=MemberPanSource.CAS, pan_conflict=MemberPanConflict.OTHER_ACCOUNT,
+    )
+    db.add_all([stale, m])
+    db.commit()
+
+    assert refresh_pan_conflicts(db, user.id) == 1
+    db.expire_all()
+    assert m.pan_lookup_hash == hash_pan(pan) and decrypt_pan(m.pan_encrypted) == pan
+    assert m.pan_conflict is None and m.detected_pan_hash is None
+    assert stale.pan_lookup_hash is None and stale.pan_encrypted is None and stale.pan_pending_until is None
+    assert stale.pan_source is None and stale.pan_verified_at is None
+
+
+def test_refresh_keeps_conflict_while_holder_is_live():
+    from app.models.enums import MemberOrigin, MemberPanConflict, MemberPanSource
+    from app.services.dashboard.member_details import refresh_pan_conflicts
+
+    db = _session()
+    user, other = _user(db), _user(db, "+919888888888")
+    pan = "BXQPS5678L"
+    now = datetime.now(timezone.utc)
+    db.add(HouseholdMember(user_id=other.id, name="Someone", relationship=Relationship.SELF, created_at=now,
+                           pan_encrypted=encrypt_pan(pan), pan_lookup_hash=hash_pan(pan)))
+    m = HouseholdMember(
+        user_id=user.id, name="Vikram Rao", created_at=now, origin=MemberOrigin.CAS_DETECTED,
+        detected_pan_hash=hash_pan(pan), detected_pan_encrypted=encrypt_pan(pan),
+        pan_source=MemberPanSource.CAS, pan_conflict=MemberPanConflict.OTHER_ACCOUNT,
+    )
+    db.add(m)
+    db.commit()
+    assert refresh_pan_conflicts(db, user.id) == 0
+    assert m.pan_conflict == MemberPanConflict.OTHER_ACCOUNT
