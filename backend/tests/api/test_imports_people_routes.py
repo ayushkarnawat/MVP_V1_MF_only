@@ -224,6 +224,70 @@ def test_parse_for_detected_member_starts_a_review(client, tmp_path):
     assert (p["status"], p["member_id"]) == ("existing_member", detected_id)
 
 
+def _folio_count(member_id: str) -> int:
+    from app.models.folio import Folio
+
+    db = _test_db()
+    try:
+        return db.query(Folio).filter(Folio.household_member_id == uuid.UUID(member_id)).count()
+    finally:
+        db.close()
+
+
+def test_add_data_for_name_only_detected_member_saves_pan_only_at_confirm(client, tmp_path):
+    # Fix round 1, decision A: Add data for a name-only (non-Self) member must
+    # not reserve their PAN at upload; Confirm stores it via store_detected_pan.
+    from app.services.import_.crypto import decrypt_pan
+
+    h, me_id = _authed_headers_and_member(client, "+919811600001", name="Aditi Sharma")
+    _set_pan(me_id, ADITI_PAN)
+    ramesh_id = _add_member(_user_id(me_id), "RAMESH SHARMA", detected=True)
+
+    resp = _parse(client, h, ramesh_id, family_result([
+        {"name": "ADITI SHARMA", "pan": ADITI_PAN},
+        {"name": "RAMESH SHARMA", "pan": RAMESH_STMT},
+    ]), tmp_path)
+
+    assert resp.status_code == 200, resp.text
+    prev = resp.json()
+    p = next(x for x in prev["people"] if x["name"].upper() == "RAMESH SHARMA")
+    assert (p["status"], p["member_id"]) == ("existing_member", ramesh_id)
+    m = _member(ramesh_id)
+    assert m.pan_lookup_hash is None and m.pan_encrypted is None and m.pan_pending_until is None
+
+    assert _confirm_raw(client, h, prev).status_code == 200
+    m = _member(ramesh_id)
+    assert m.pan_lookup_hash == hash_pan(RAMESH_STMT) and decrypt_pan(m.pan_encrypted) == RAMESH_STMT
+    assert m.pan_source == MemberPanSource.CAS and m.pan_pending_until is None and m.pan_conflict is None
+    assert _folio_count(ramesh_id) > 0
+
+
+def test_add_data_for_pan_conflict_member_starts_a_review_and_attaches(client, tmp_path):
+    # Fix round 1: Add data for a member whose statement PAN another account
+    # holds (pan_conflict) used to hit the upload-time claim and 409.
+    _, kiran_self = _authed_headers_and_member(client, "+919811600002", name="Ramesh Sharma")
+    _set_pan(kiran_self, RAMESH_STMT)  # the other account holds Ramesh's PAN
+    h, me_id = _authed_headers_and_member(client, "+919811600003", name="Aditi Sharma")
+    _set_pan(me_id, ADITI_PAN)
+    ramesh_id = _add_member(_user_id(me_id), "RAMESH SHARMA", detected_pan=RAMESH_STMT, conflict=True)
+
+    resp = _parse(client, h, ramesh_id, family_result([
+        {"name": "ADITI SHARMA", "pan": ADITI_PAN},
+        {"name": "RAMESH SHARMA", "pan": RAMESH_STMT},
+    ]), tmp_path)
+
+    assert resp.status_code == 200, resp.text
+    prev = resp.json()
+    p = next(x for x in prev["people"] if x["name"].upper() == "RAMESH SHARMA")
+    assert (p["status"], p["member_id"]) == ("existing_member", ramesh_id)
+
+    assert _confirm_raw(client, h, prev).status_code == 200
+    m = _member(ramesh_id)
+    assert m.pan_conflict == MemberPanConflict.OTHER_ACCOUNT
+    assert m.pan_lookup_hash is None and m.detected_pan_hash == hash_pan(RAMESH_STMT)
+    assert _folio_count(ramesh_id) > 0
+
+
 def test_parse_member_not_in_file(client, tmp_path):
     headers, self_id = _authed_headers_and_member(client, "+919800000007", name="Aditi Sharma")
     _set_pan(self_id, ADITI_PAN)

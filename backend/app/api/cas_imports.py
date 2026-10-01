@@ -240,8 +240,9 @@ def post_opening_balance(
     from app.models.folio import Folio
     from app.services.import_.coverage_gap import create_opening_balance
 
-    # A locked member's folio is not writable from a side door (same gate as the
-    # member-scope reads). Unknown/foreign folios fall through to the existing 400.
+    # Only the user's own members' folios are writable here (same require_member
+    # gate as the member-scope reads). Unknown/foreign folios fall through to the
+    # existing 400.
     owned = (
         db.query(Folio.household_member_id)
         .join(HouseholdMember, Folio.household_member_id == HouseholdMember.id)

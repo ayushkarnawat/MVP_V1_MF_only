@@ -112,11 +112,13 @@ def plan_name_update(current: str, statement: str) -> NameUpdate:
 
 
 def plan_member_name_update(member: HouseholdMember, statement: str) -> NameUpdate:
-    """2026-10-01 QB/QE: a USER_ENTERED name is provisional and confirm
-    (`_apply_name_choice`) always replaces it with the statement's, so the
-    preview says "update" too -- never an "ask" whose answer would be
+    """2026-10-01 QB/QE: a USER_ENTERED name (onboarding / U9) is provisional
+    and confirm (`_apply_name_choice`) always replaces it with the statement's,
+    so the preview says "update" too -- never an "ask" whose answer would be
     ignored, nor I9's "keep the longer stored name". Same normalisation as
-    confirm's `_is_edit`. CAS-sourced names keep the variant/ask/I9 rules."""
+    confirm's `_is_edit`. Every other name -- CAS-sourced, or USER_EDITED in
+    the Complete profile popup (Q1, user ruling 2026-10-01) -- follows the
+    same variant/ask/I9 rules: mismatch asks (M8), a longer variant updates (I9)."""
     if member.name_source == MemberNameSource.USER_ENTERED:
         return "update" if normalise_name(statement) != normalise_name(member.name) else "none"
     return plan_name_update(member.name, statement)

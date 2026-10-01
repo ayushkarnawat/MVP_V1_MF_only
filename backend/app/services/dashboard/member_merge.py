@@ -1,5 +1,6 @@
-"""Merge a name-only duplicate (locked, no detected PAN) into an existing
-member (spec M11). One transaction; the caller-visible commit happens here."""
+"""Merge a CAS-detected duplicate into an existing member (spec M11): one
+with no statement PAN, or one whose statement PAN is the target's. One
+transaction; the caller-visible commit happens here."""
 
 from __future__ import annotations
 
@@ -53,12 +54,16 @@ def merge_member_into(
     # provably the same person, even though it isn't name-only. Since 0023 a
     # statement PAN sits in detected_pan_* only on a pan_conflict row or a
     # backfill leftover (a duplicate of an already-promoted PAN), so this is
-    # reachable only for those.
-    same_pan = source.detected_pan_hash is not None and source.detected_pan_hash == target.pan_lookup_hash
+    # reachable only for those. The target's own conflict PAN counts too:
+    # refresh_pan_conflicts leaves a same-hash pair as conflicts for a merge
+    # (final review I-1), and neither PAN is editable.
+    same_pan = source.detected_pan_hash is not None and source.detected_pan_hash in (
+        target.pan_lookup_hash,
+        target.detected_pan_hash,
+    )
     # M11: only a CAS-detected source with no statement PAN (or one that is
-    # the target's) can be merged away. The origin check replaces the old
-    # lock check -- locked members were always CAS-detected -- so manual
-    # and onboarding members are never merged away.
+    # the target's) can be merged away. The origin check means manual and
+    # onboarding members are never merged away.
     if (
         source.id == target.id
         or source.origin != MemberOrigin.CAS_DETECTED

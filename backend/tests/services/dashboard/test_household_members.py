@@ -254,3 +254,83 @@ def test_refresh_keeps_conflict_while_holder_is_live():
     db.commit()
     assert refresh_pan_conflicts(db, user.id) == 0
     assert m.pan_conflict == MemberPanConflict.OTHER_ACCOUNT
+
+
+def _conflict(user_id, name, pan, created_at, member_id=None):
+    from app.models.enums import MemberOrigin, MemberPanConflict, MemberPanSource
+
+    return HouseholdMember(
+        id=member_id or uuid.uuid4(), user_id=user_id, name=name, created_at=created_at,
+        origin=MemberOrigin.CAS_DETECTED,
+        detected_pan_hash=hash_pan(pan), detected_pan_encrypted=encrypt_pan(pan),
+        pan_source=MemberPanSource.CAS, pan_conflict=MemberPanConflict.OTHER_ACCOUNT,
+    )
+
+
+def test_refresh_same_hash_pair_promotes_one_and_does_not_block_others():
+    # Final review I-1: autoflush=False hid row 1's promotion from row 2's
+    # holder query, both claimed the hash, the commit failed, and nothing --
+    # not even the unrelated row -- was ever promoted.
+    from app.models.enums import MemberPanConflict
+    from app.services.dashboard.member_details import refresh_pan_conflicts
+
+    db = _session()
+    user = _user(db)
+    now = datetime.now(timezone.utc)
+    a = _conflict(user.id, "Vikram Rao", "BXQPS5678L", now)
+    b = _conflict(user.id, "Vikram R", "BXQPS5678L", now)
+    c = _conflict(user.id, "Meera Rao", "CXQPS1234M", now)
+    db.add_all([a, b, c])
+    db.commit()
+
+    assert refresh_pan_conflicts(db, user.id) == 2
+    db.expire_all()
+    assert c.pan_conflict is None and c.pan_lookup_hash == hash_pan("CXQPS1234M")
+    pair = [a, b]
+    promoted = [m for m in pair if m.pan_conflict is None]
+    kept = [m for m in pair if m.pan_conflict is not None]
+    assert len(promoted) == 1 and len(kept) == 1
+    assert promoted[0].pan_lookup_hash == hash_pan("BXQPS5678L")
+    assert kept[0].pan_conflict == MemberPanConflict.OTHER_ACCOUNT
+    assert kept[0].detected_pan_hash == hash_pan("BXQPS5678L") and kept[0].pan_lookup_hash is None
+    # Stable: a second pass promotes nothing more and doesn't raise.
+    assert refresh_pan_conflicts(db, user.id) == 0
+
+
+def test_refresh_lost_race_at_inner_flush_does_not_raise(monkeypatch):
+    # Final review I-1, second path: the flush that releases an expired
+    # holder ran outside the try, so a lost race 500'd GET /household-members.
+    from datetime import timedelta
+
+    from sqlalchemy.exc import IntegrityError
+
+    from app.models.enums import MemberPanConflict, MemberPanSource
+    from app.services.dashboard.member_details import refresh_pan_conflicts
+
+    db = _session()
+    user, other = _user(db), _user(db, "+919888888888")
+    now = datetime.now(timezone.utc)
+    pan = "BXQPS5678L"
+    stale = HouseholdMember(
+        user_id=other.id, name="Someone", relationship=Relationship.SELF, created_at=now,
+        pan_encrypted=encrypt_pan(pan), pan_lookup_hash=hash_pan(pan),
+        pan_pending_until=now - timedelta(hours=1), pan_source=MemberPanSource.CAS, pan_verified_at=now,
+    )
+    m = _conflict(user.id, "Vikram Rao", pan, now)
+    db.add_all([stale, m])
+    db.commit()
+
+    calls = {"n": 0}
+    real_flush = db.flush
+
+    def flaky_flush(*args, **kwargs):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise IntegrityError("UPDATE household_members", {}, Exception("unique"))
+        return real_flush(*args, **kwargs)
+
+    monkeypatch.setattr(db, "flush", flaky_flush)
+    assert refresh_pan_conflicts(db, user.id) == 0
+    monkeypatch.undo()
+    db.expire_all()
+    assert m.pan_conflict == MemberPanConflict.OTHER_ACCOUNT and m.pan_lookup_hash is None

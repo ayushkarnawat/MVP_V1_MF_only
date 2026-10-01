@@ -68,6 +68,11 @@ def test_0018_round_trip_and_0023_drops_never_relock_trigger_on_postgres(postgre
         # No lock any more: an ordinary edit (relationship to NULL) is allowed.
         member.relationship = None
         db.commit()
+        # Pre-0018 relationship is NOT NULL, so 0018's downgrade can't run while a
+        # NULL-relationship row exists. Remove the test rows before going below it.
+        db.delete(member)
+        db.delete(user)
+        db.commit()
         db.close()
     finally:
         engine.dispose()

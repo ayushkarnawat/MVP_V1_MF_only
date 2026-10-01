@@ -320,6 +320,44 @@ def test_confirm_ask_not_accepted_keeps_name(db_session):
     assert db_session.query(HouseholdMemberNameChange).count() == 0
 
 
+_USER_EDITED = {"name_source": MemberNameSource.USER_EDITED}
+
+
+def test_confirm_user_edited_name_mismatch_kept_unless_accepted(db_session):
+    me, ramesh, preview = _add_data_session(db_session, "Ramesh Sharma", "SURESH PATEL", member_kwargs=_USER_EDITED)
+    assert [n.kind for n in preview.name_notices] == ["ask"]
+
+    _confirm(db_session, preview, me.user_id)
+    db_session.refresh(ramesh)
+    assert ramesh.name == "Ramesh Sharma"
+    assert ramesh.name_source == MemberNameSource.USER_EDITED
+    assert db_session.query(HouseholdMemberNameChange).count() == 0
+
+
+def test_confirm_user_edited_name_mismatch_accepted_takes_cas_name(db_session):
+    me, ramesh, preview = _add_data_session(db_session, "Ramesh Sharma", "SURESH PATEL", member_kwargs=_USER_EDITED)
+    _confirm(db_session, preview, me.user_id, [
+        PersonConfirmation(person_key="p1"),
+        PersonConfirmation(person_key="p2", accept_name_update=True),
+    ])
+    db_session.refresh(ramesh)
+    assert ramesh.name == "SURESH PATEL"
+    assert ramesh.name_source == MemberNameSource.CAS
+
+
+def test_confirm_user_edited_name_longer_variant_updates(db_session):
+    me, ramesh, preview = _add_data_session(db_session, "Ramesh Sharma", "RAMESH KUMAR SHARMA", member_kwargs=_USER_EDITED)
+    assert [n.kind for n in preview.name_notices] == ["update"]
+
+    _confirm(db_session, preview, me.user_id)
+
+    db_session.refresh(ramesh)
+    assert ramesh.name == "RAMESH KUMAR SHARMA"
+    assert ramesh.name_source == MemberNameSource.CAS
+    change = db_session.query(HouseholdMemberNameChange).filter_by(household_member_id=ramesh.id).one()
+    assert change.reason == NameChangeReason.CAS_VARIANT
+
+
 def test_confirm_popup_name_edit_of_a_cas_named_member_is_refused(db_session):
     # 2026-10-01: names come from the CAS; only U9 needs_name people may be
     # typed (QB). Was F32's "rename logged as user_edit".

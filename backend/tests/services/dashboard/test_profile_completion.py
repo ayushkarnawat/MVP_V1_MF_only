@@ -50,4 +50,7 @@ def test_removed_with_last_import_only_when_untouched():
     assert removed_with_last_import(_m(relationship=Relationship.CHILD)) is False
     assert removed_with_last_import(_m(phone_number="+919800000002")) is False
     assert removed_with_last_import(_m(name_source=MemberNameSource.USER_EDITED)) is False
+    # Final review M-2: a typed PAN (the one required popup field) counts too.
+    assert removed_with_last_import(_m(pan_source=MemberPanSource.USER_ENTERED)) is False
+    assert removed_with_last_import(_m(pan_source=MemberPanSource.CAS, pan_lookup_hash="h")) is True
     assert removed_with_last_import(_m(origin=MemberOrigin.MANUAL)) is False

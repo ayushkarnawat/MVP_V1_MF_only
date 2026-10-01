@@ -563,13 +563,13 @@ def _advance(db: Session, session_id: str) -> ImportPreviewResponse:
             if me.pan:
                 claim_pan_for_member(db, self_member, me.pan, pending=True)
                 _record_claim(session, self_member.id, me.pan)
-        if target_key and target_key != me_key:
-            target = db.get(HouseholdMember, session["household_member_id"])
-            person = _person(session, target_key)
-            if person.pan and target.pan_lookup_hash is None:
-                # M found by name and had no PAN yet: today's upload-time claim.
-                claim_pan_for_member(db, target, person.pan, pending=True)
-                _record_claim(session, target.id, person.pan)
+        # No upload-time claim for an "Add data" target (fix round 1, decision A):
+        # a non-Self member's PAN is never reserved at upload. Confirm's 5B
+        # branch stores it (store_detected_pan) -- a name-only M gets it in
+        # pan_lookup_hash; a PAN another account holds goes to detected_pan_*
+        # with pan_conflict, so Add data for a pan-conflict M no longer 409s.
+        # A Self target needs nothing here: it is Me (claimed above) or already
+        # has a permanent PAN.
     except PanConflictError:
         # F30: keeps today's behaviour -- 409 with the session dropped.
         _drop_session(db, session_id)

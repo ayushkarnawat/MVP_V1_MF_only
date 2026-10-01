@@ -5,7 +5,7 @@ from app.models.enums import MemberNameSource, MemberOrigin, MemberPanConflict, 
 from app.models.user import HouseholdMember, User
 from app.services.import_.crypto import encrypt_pan, hash_pan
 from app.services.import_.people import ParsedPerson
-from app.services.import_.people_resolution import plan_people, resolve_self
+from app.services.import_.people_resolution import plan_member_name_update, plan_people, resolve_self
 
 NOW = datetime(2026, 9, 29, 12, 0, tzinfo=timezone.utc)
 
@@ -326,3 +326,25 @@ def test_plan_me_with_permanent_pan_and_cas_name_keeps_i9(db_session):
     _member(db_session, user, "Ayush Kumar Karnawat", pan="AAAPA1111A", name_source=MemberNameSource.CAS)
     plans = plan_people(db_session, user.id, [_person("p1", "AYUSH KARNAWAT", "AAAPA1111A")], "p1")
     assert (plans[0].status, plans[0].name_update) == ("me", "none")
+
+
+def test_user_edited_name_follows_cas_rules():
+    m = HouseholdMember(name="Ramesh Sharma", name_source=MemberNameSource.USER_EDITED)
+    assert plan_member_name_update(m, "Suresh Patel") == "ask"               # M8 mismatch
+    assert plan_member_name_update(m, "Ramesh Kumar Sharma") == "update"     # I9 longer variant
+    assert plan_member_name_update(m, "Ramesh") == "none"                    # shorter variant kept
+    assert plan_member_name_update(m, "ramesh  sharma") == "none"
+
+
+def test_user_entered_name_still_updates():
+    m = HouseholdMember(name="Ramesh", name_source=MemberNameSource.USER_ENTERED)
+    assert plan_member_name_update(m, "Ramesh Sharma") == "update"
+
+
+def test_user_edited_self_follows_cas_rules(db_session):
+    user = _user(db_session)
+    _member(db_session, user, "Ayush Karnawat", pan="AAAPA1111A", name_source=MemberNameSource.USER_EDITED)
+    mismatch = plan_people(db_session, user.id, [_person("p1", "SURESH PATEL", "AAAPA1111A")], "p1")
+    assert (mismatch[0].status, mismatch[0].name_update) == ("me", "ask")
+    longer = plan_people(db_session, user.id, [_person("p1", "AYUSH KUMAR KARNAWAT", "AAAPA1111A")], "p1")
+    assert (longer[0].status, longer[0].name_update) == ("me", "update")

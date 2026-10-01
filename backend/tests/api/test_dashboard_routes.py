@@ -55,65 +55,66 @@ def test_create_household_member_rejects_second_self_row(client):
     assert response.status_code == 409
 
 
-# ---- Task 5 (2026-10-01): PATCH /household-members/{id} -------------------
+# ---- PUT /household-members/{id}/profile (replaces PATCH) -------------------
 
 def _family(client, h):
     return client.post("/household-members", json={"name": "Meera Rao", "relationship": "parent"}, headers=h).json()
 
 
-def test_patch_member_updates_relationship_phone_email(client):
+def test_put_profile_member_updates_relationship_phone_email(client):
     h = _authed_headers(client, "+919100300001")
     client.post("/household-members", json={"name": "Asha Rao", "relationship": "self"}, headers=h)
     m = _family(client, h)
-    r = client.patch(f"/household-members/{m['id']}", json={"relationship": "sibling", "phone_number": "9876543210", "email": "meera@example.com"}, headers=h)
+    r = client.put(f"/household-members/{m['id']}/profile", json={"relationship": "sibling", "phone_number": "9876543210", "email": "meera@example.com", "pan": "ABCPS1234K"}, headers=h)
     assert r.status_code == 200, r.text
     b = r.json()
     assert b["relationship"] == "sibling" and b["phone_number"] == "+919876543210" and b["email"] == "meera@example.com"
 
 
-def test_patch_member_rejects_name_and_pan(client):
+def test_put_profile_member_edits_name_and_rejects_a_bad_one(client):
     h = _authed_headers(client, "+919100300002")
     m = _family(client, h)
-    for body in ({"name": "X"}, {"pan": "ABCDE1234F"}):
-        r = client.patch(f"/household-members/{m['id']}", json=body, headers=h)
-        assert r.status_code == 422 and r.json()["detail"]["code"] == "field_not_editable"
+    ok = client.put(f"/household-members/{m['id']}/profile", json={"name": "Meera K Rao", "pan": "ABCPS1234K"}, headers=h)
+    assert ok.status_code == 200 and ok.json()["name"] == "Meera K Rao"
+    bad = client.put(f"/household-members/{m['id']}/profile", json={"name": "R2D2"}, headers=h)
+    assert bad.status_code == 422 and bad.json()["detail"]["code"] == "invalid_name"
 
 
-def test_patch_self_rejects_relationship_and_contact(client):
+def test_put_profile_self_rejects_relationship_and_contact(client):
     h = _authed_headers(client, "+919100300003")
     me = client.post("/household-members", json={"name": "Asha Rao", "relationship": "self"}, headers=h).json()
-    assert client.patch(f"/household-members/{me['id']}", json={"relationship": "parent"}, headers=h).status_code == 422
-    r = client.patch(f"/household-members/{me['id']}", json={"phone_number": "9876543210"}, headers=h)
+    assert client.put(f"/household-members/{me['id']}/profile", json={"relationship": "parent"}, headers=h).status_code == 422
+    r = client.put(f"/household-members/{me['id']}/profile", json={"phone_number": "9876543210"}, headers=h)
     assert r.status_code == 422 and r.json()["detail"]["code"] == "field_not_editable"
 
 
-def test_patch_member_clears_email_with_empty_string(client):
+def test_put_profile_member_clears_email_with_empty_string(client):
     h = _authed_headers(client, "+919100300004")
     m = _family(client, h)
-    client.patch(f"/household-members/{m['id']}", json={"email": "a@b.co"}, headers=h)
-    assert client.patch(f"/household-members/{m['id']}", json={"email": ""}, headers=h).json()["email"] is None
+    client.put(f"/household-members/{m['id']}/profile", json={"email": "a@b.co", "pan": "ABCPS1234K"}, headers=h)
+    assert client.put(f"/household-members/{m['id']}/profile", json={"email": ""}, headers=h).json()["email"] is None
 
 
-def test_patch_member_bad_phone_and_email_are_422(client):
+def test_put_profile_member_bad_phone_and_email_are_422(client):
     h = _authed_headers(client, "+919100300005")
     m = _family(client, h)
-    assert client.patch(f"/household-members/{m['id']}", json={"phone_number": "12"}, headers=h).status_code == 422
-    assert client.patch(f"/household-members/{m['id']}", json={"email": "not-an-email"}, headers=h).status_code == 422
+    assert client.put(f"/household-members/{m['id']}/profile", json={"phone_number": "12"}, headers=h).status_code == 422
+    assert client.put(f"/household-members/{m['id']}/profile", json={"email": "not-an-email"}, headers=h).status_code == 422
 
 
-def test_patch_relationship_self_is_422(client):
+def test_put_profile_relationship_self_is_422(client):
     h = _authed_headers(client, "+919100300009")
     m = _family(client, h)
-    assert client.patch(f"/household-members/{m['id']}", json={"relationship": "self"}, headers=h).status_code == 422
+    assert client.put(f"/household-members/{m['id']}/profile", json={"relationship": "self"}, headers=h).status_code == 422
 
 
-def test_patch_other_users_member_is_404(client):
+def test_put_profile_other_users_member_is_404(client):
     a = _authed_headers(client, "+919100300006"); b = _authed_headers(client, "+919100300007")
     m = _family(client, a)
-    assert client.patch(f"/household-members/{m['id']}", json={"relationship": "sibling"}, headers=b).status_code == 404
+    assert client.put(f"/household-members/{m['id']}/profile", json={"relationship": "sibling"}, headers=b).status_code == 404
 
 
-def test_detected_member_with_cas_pan_is_patchable_and_reports_profile_fields(client):
+def test_detected_member_with_cas_pan_is_editable_and_reports_profile_fields(client):
     import uuid
     from datetime import datetime, timezone
     from app.db.session import get_db
@@ -143,7 +144,7 @@ def test_detected_member_with_cas_pan_is_patchable_and_reports_profile_fields(cl
     for gone in ("lock_reason", "details_required", "pan_on_statement"):
         assert gone not in row
     # No lock any more: a detected member is editable straight away.
-    resp = client.patch(f"/household-members/{mid}", json={"relationship": "sibling"}, headers=h)
+    resp = client.put(f"/household-members/{mid}/profile", json={"relationship": "sibling"}, headers=h)
     assert resp.status_code == 200
     assert resp.json()["profile_completion"] == 60
     assert resp.json()["removed_with_last_import"] is False

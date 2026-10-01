@@ -207,3 +207,27 @@ def test_merge_allows_cas_detected_name_only_source(db_session):
     merge_member_into(db, user.id, source.id, target.id)
     db.expire_all()
     assert db.get(HouseholdMember, source_id) is None
+
+
+@pytest.mark.parametrize("target_holds", ["pan_lookup_hash", "detected_pan_hash"])
+def test_merge_allows_statement_pan_source_matching_target_pan(db_session, target_holds):
+    # Final review I-1: a same-hash conflict pair (one promoted by
+    # refresh_pan_conflicts, or both still conflicts) must be mergeable.
+    from app.models.enums import MemberPanConflict
+
+    db = db_session
+    user = _user(db)
+    target, source = _target(db, user), _source(db, user, detected=True)
+    source.pan_conflict = MemberPanConflict.OTHER_ACCOUNT
+    if target_holds == "pan_lookup_hash":
+        target.pan_encrypted, target.pan_lookup_hash = encrypt_pan("BXQPS5678L"), hash_pan("BXQPS5678L")
+    else:
+        target.detected_pan_encrypted = encrypt_pan("BXQPS5678L")
+        target.detected_pan_hash = hash_pan("BXQPS5678L")
+        target.pan_conflict = MemberPanConflict.OTHER_ACCOUNT
+    target.pan_source = MemberPanSource.CAS
+    db.commit()
+    source_id = source.id
+    merge_member_into(db, user.id, source.id, target.id)
+    db.expire_all()
+    assert db.get(HouseholdMember, source_id) is None

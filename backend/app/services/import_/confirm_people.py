@@ -267,6 +267,9 @@ def _confirm_claimed(
                     raise ConfirmInvalidError(
                         f"{member.name} changed during this review. Upload the statement again."
                     ) from None
+            # A pan_conflict member (PAN in detected_pan_hash) is not re-claimed
+            # here: refresh_pan_conflicts promotes it once the other account
+            # releases the PAN.
             elif pan_hash not in (member.pan_lookup_hash, member.detected_pan_hash):
                 # Another tab's confirm gave this member a different PAN after
                 # this review was built (final-review M-1).
@@ -570,7 +573,8 @@ def _apply_name_choice(
         return
     if member.name_source == MemberNameSource.USER_ENTERED and _is_edit(person.name, member.name):
         # QB/QE: a typed name is provisional; the first statement that has a
-        # readable name for this person replaces it.
+        # readable name for this person replaces it. (Not USER_EDITED: a
+        # profile-popup name follows the CAS rules via plan_member_name_update.)
         _rename(db, member, person.name, NameChangeReason.USER_CORRECTED_TO_CAS, MemberNameSource.CAS, import_rec, now)
         return
     # The plan's own verdict holds for the member it was made for (it knows

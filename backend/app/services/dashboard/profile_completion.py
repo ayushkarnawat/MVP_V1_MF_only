@@ -50,11 +50,13 @@ def pan_editable(m: HouseholdMember) -> bool:
 def removed_with_last_import(m: HouseholdMember) -> bool:
     """M17 without locks: a detected member the user never touched exists
     only because of a statement, so it leaves with its last import. Any
-    profile data (relationship, phone, email, an edited name) keeps it."""
+    profile data (relationship, phone, email, an edited name, a PAN the user
+    typed) keeps it."""
     return (
         m.origin == MemberOrigin.CAS_DETECTED
         and m.relationship is None
         and not m.phone_number
         and not m.email
         and m.name_source != MemberNameSource.USER_EDITED
+        and m.pan_source != MemberPanSource.USER_ENTERED
     )

@@ -81,13 +81,14 @@ def upgrade() -> None:
     # A still-locked details_needed row whose PAN another account already
     # holds can't be promoted either: mark it as a conflict too, so it keeps
     # detected_pan_* and shows the banner instead of looking PAN-less.
-    op.execute(
+    mark_cross_account_conflicts = (
         f"UPDATE household_members SET pan_conflict = 'other_account'{cast} "
         "WHERE detected_pan_hash IS NOT NULL AND pan_conflict IS NULL AND pan_lookup_hash IS NULL"
         " AND EXISTS (SELECT 1 FROM household_members h4"
         "             WHERE h4.pan_lookup_hash = household_members.detected_pan_hash"
         "               AND h4.user_id <> household_members.user_id)"
     )
+    op.execute(mark_cross_account_conflicts)
     src_cast = "::memberpansource" if _pg() else ""
     op.execute(
         "UPDATE household_members SET "
@@ -108,6 +109,9 @@ def upgrade() -> None:
         "           WHERE h3.detected_pan_hash = household_members.detected_pan_hash"
         "           ORDER BY h3.created_at, h3.id LIMIT 1)"
     )
+    # Again, now that the promotion has a holder: another user's leftover
+    # row with the same hash would otherwise look PAN-less (final review M-1).
+    op.execute(mark_cross_account_conflicts)
 
     with op.batch_alter_table("household_members") as batch:
         batch.drop_constraint("ck_member_relationship_when_complete", type_="check")

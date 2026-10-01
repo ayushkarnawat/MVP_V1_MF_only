@@ -35,12 +35,10 @@ from app.services.dashboard.household_members import (
 )
 from app.services.dashboard.member_details import (
     MemberDetailsError,
-    MemberDetailsRequest,
-    complete_member_details,
     refresh_pan_conflicts,
     require_member,
 )
-from app.services.dashboard.member_update import MemberUpdateRequest, update_member
+from app.services.dashboard.member_profile import MemberProfileRequest, save_member_profile
 from app.api.imports import claim_and_dispatch_recompute
 from app.services.import_.deletion import ImportNotFoundError, delete_member_portfolio
 from app.services.import_.schemas import DeleteImportResponse
@@ -112,17 +110,16 @@ def list_members(user: User = Depends(get_active_user), db: DbSession = Depends(
     return [member_to_response(m, user) for m in list_household_members(db, user.id)]
 
 
-# Plain `def` (threadpool): this route commits, and a db.commit() inside an
-# async def would freeze the event loop (bb5225f).
-@router.post("/household-members/{member_id}/details", response_model=HouseholdMemberResponse)
-def submit_member_details(
+# Plain `def` (threadpool): commits (bb5225f).
+@router.put("/household-members/{member_id}/profile", response_model=HouseholdMemberResponse)
+def put_member_profile(
     member_id: uuid.UUID,
-    body: MemberDetailsRequest,
+    body: MemberProfileRequest,
     user: User = Depends(get_active_user),
     db: DbSession = Depends(get_db),
 ):
     try:
-        member = complete_member_details(db, user.id, member_id, body)
+        member = save_member_profile(db, user.id, member_id, body)
     except MemberDetailsError as exc:
         detail = {"code": exc.code, "message": exc.message}
         if exc.details:
@@ -132,24 +129,6 @@ def submit_member_details(
         raise HTTPException(status_code=409, detail={"code": exc.code, "message": exc.message}) from exc
     except InvalidPersonNameError as exc:
         raise HTTPException(status_code=422, detail={"code": exc.code, "message": exc.message}) from exc
-    return member_to_response(member, user)
-
-# Plain `def` (threadpool): commits (bb5225f).
-@router.patch("/household-members/{member_id}", response_model=HouseholdMemberResponse)
-def patch_household_member(
-    member_id: uuid.UUID,
-    body: MemberUpdateRequest,
-    user: User = Depends(get_active_user),
-    db: DbSession = Depends(get_db),
-):
-    require_member(db, user.id, member_id)
-    try:
-        member = update_member(db, user.id, member_id, body)
-    except MemberDetailsError as exc:
-        detail = {"code": exc.code, "message": exc.message}
-        if exc.details:
-            detail["details"] = exc.details
-        raise HTTPException(status_code=exc.status_code, detail=detail) from exc
     return member_to_response(member, user)
 
 

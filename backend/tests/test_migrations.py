@@ -789,12 +789,18 @@ def test_0023_backfill_promotes_only_earliest_duplicate(tmp_path, monkeypatch):
     conn = sqlite3.connect(db_path)
     try:
         conn.execute("INSERT INTO users (id, phone_number, created_at, pending_deletion) VALUES ('u1', '+919800000001', '2026-10-01', 0)")
-        for mid, created in (("first", "2026-10-01 09:00"), ("second", "2026-10-01 09:30")):
+        conn.execute("INSERT INTO users (id, phone_number, created_at, pending_deletion) VALUES ('u2', '+919800000002', '2026-10-01', 0)")
+        for mid, uid, created in (
+            ("first", "u1", "2026-10-01 09:00"),
+            ("second", "u1", "2026-10-01 09:30"),
+            # Final review M-1: another user's leftover with the same hash.
+            ("cross", "u2", "2026-10-01 10:00"),
+        ):
             conn.execute(
                 "INSERT INTO household_members (id, user_id, name, created_at, origin, name_source,"
                 " details_completed_at, lock_reason, detected_pan_encrypted, detected_pan_hash, pan_source)"
-                " VALUES (?, 'u1', 'Ramesh', ?, 'cas_detected', 'cas', NULL, 'details_needed', 'enc', 'same-hash', 'cas')",
-                (mid, created),
+                " VALUES (?, ?, 'Ramesh', ?, 'cas_detected', 'cas', NULL, 'details_needed', 'enc', 'same-hash', 'cas')",
+                (mid, uid, created),
             )
         conn.commit()
     finally:
@@ -803,12 +809,15 @@ def test_0023_backfill_promotes_only_earliest_duplicate(tmp_path, monkeypatch):
     assert up.returncode == 0, up.stderr
     conn = sqlite3.connect(db_path)
     try:
-        got = {r[0]: (r[1], r[2]) for r in conn.execute(
-            "SELECT id, pan_lookup_hash, detected_pan_hash FROM household_members")}
+        got = {r[0]: (r[1], r[2], r[3]) for r in conn.execute(
+            "SELECT id, pan_lookup_hash, detected_pan_hash, pan_conflict FROM household_members")}
     finally:
         conn.close()
-    assert got["first"] == ("same-hash", None)
-    assert got["second"] == (None, "same-hash")  # left for a merge; never a unique-index crash
+    assert got["first"] == ("same-hash", None, None)
+    # left for a merge; never a unique-index crash
+    assert got["second"] == (None, "same-hash", None)
+    # The PAN is now on u1's account: flagged, not left looking PAN-less.
+    assert got["cross"] == (None, "same-hash", "other_account")
 
 
 def test_0023_marks_locked_row_whose_pan_another_user_holds_as_conflict(tmp_path, monkeypatch):
