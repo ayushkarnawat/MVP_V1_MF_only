@@ -62,7 +62,7 @@ _CURRENT: dict[ConsentDocumentType, LegalDocument] = {
     ),
     ConsentDocumentType.PAN_DISCLAIMER: _load(
         ConsentDocumentType.PAN_DISCLAIMER,
-        "pan-disclaimer-placeholder-2026-10-01",
+        "pan-disclaimer-placeholder-2026-10-05",
         "PAN disclaimer",
         (ConsentPurpose.CAS_PAN_PROCESSING,),
     ),

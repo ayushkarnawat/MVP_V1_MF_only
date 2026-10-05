@@ -91,12 +91,12 @@ describe("helpers", () => {
 });
 
 describe("PanDisclaimer", () => {
-  it("shows the disclaimer without the title line and opens the full document", async () => {
+  it("shows only the disclaimer sentence: no title, no placeholder note, no full-document link", async () => {
     render(<PanDisclaimer checked={false} onChange={vi.fn()} surface="import_upload" />);
     expect(await screen.findByText("I confirm I am authorised to share this statement.")).toBeInTheDocument();
     expect(screen.queryByText("# PAN disclaimer")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /read the full pan disclaimer/i }));
-    expect(screen.getByRole("dialog")).toHaveTextContent("PAN Disclaimer");
+    expect(screen.queryByText(/being finalised/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /read the full pan disclaimer/i })).not.toBeInTheDocument();
   });
 
   it("registers the version when ticked and clears it on unmount", async () => {

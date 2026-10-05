@@ -44,7 +44,7 @@ export function ConsentCheckbox({ checked, onChange, docs, types, label = "signu
           checked={checked}
           disabled={docs === null}
           onChange={(e) => onChange(e.target.checked)}
-          className="mt-0.5 h-4 w-4 flex-shrink-0 cursor-pointer accent-[#22C55E]"
+          className="mt-0.5 flex-shrink-0"
         />
         <label htmlFor={id} className="text-[13px] leading-5 text-[#5C5C5C] dark:text-[#A3A3A3]">
           I agree to the {types.includes("terms_of_service") && link("terms_of_service", "Terms & Conditions")}

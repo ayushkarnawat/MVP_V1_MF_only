@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { LegalDocumentModal } from "./LegalDocumentModal";
+import { useEffect } from "react";
 import { setPanDisclaimer } from "./panDisclaimerStore";
 import type { UploadSurface } from "./panDisclaimerStore";
 import { useLegalDocuments } from "./useLegalDocuments";
@@ -7,8 +6,9 @@ import { useLegalDocuments } from "./useLegalDocuments";
 const LINK_CLASS =
   "font-semibold text-[#22C55E] hover:underline cursor-pointer focus-visible:outline-none focus-visible:underline";
 
-// The document starts with a "# " title line; the rest (placeholder note plus
-// the disclaimer sentence) is shown as the checkbox text, one paragraph per block.
+// The document starts with a "# " title line; the rest is shown as the checkbox
+// text, one paragraph per block. A "> " note (e.g. a lawyer-review placeholder)
+// is not part of what the user agrees to here, so it's dropped.
 function disclaimerParagraphs(content: string): string[] {
   const blocks = content
     .split(/\n\s*\n/)
@@ -19,7 +19,7 @@ function disclaimerParagraphs(content: string): string[] {
     blocks.shift();
     if (rest) blocks.unshift(rest);
   }
-  return blocks.map((b) => (b.startsWith("> ") ? b.slice(2) : b));
+  return blocks.filter((b) => !b.startsWith("> "));
 }
 
 interface PanDisclaimerProps {
@@ -30,7 +30,6 @@ interface PanDisclaimerProps {
 
 export function PanDisclaimer({ checked, onChange, surface }: PanDisclaimerProps) {
   const { docs, error, refetch } = useLegalDocuments();
-  const [open, setOpen] = useState(false);
   const doc = docs?.find((d) => d.document_type === "pan_disclaimer") ?? null;
   const version = doc?.version ?? null;
 
@@ -50,7 +49,7 @@ export function PanDisclaimer({ checked, onChange, surface }: PanDisclaimerProps
           checked={checked}
           disabled={doc === null}
           onChange={(e) => onChange(e.target.checked)}
-          className="mt-0.5 h-4 w-4 flex-shrink-0 cursor-pointer accent-[#22C55E]"
+          className="mt-0.5 flex-shrink-0"
         />
         <label htmlFor={`pan-disclaimer-${surface}`} className="space-y-1 text-[13px] leading-5 text-[#5C5C5C] dark:text-[#A3A3A3]">
           {doc ? (
@@ -64,11 +63,6 @@ export function PanDisclaimer({ checked, onChange, surface }: PanDisclaimerProps
           )}
         </label>
       </div>
-      {doc && (
-        <button type="button" className={`${LINK_CLASS} pl-6 text-xs`} onClick={() => setOpen(true)}>
-          Read the full PAN disclaimer
-        </button>
-      )}
       {error && (
         <p role="alert" className="text-xs text-[var(--color-negative)]">
           Couldn’t load the disclaimer. Check your connection and try again.{" "}
@@ -77,7 +71,6 @@ export function PanDisclaimer({ checked, onChange, surface }: PanDisclaimerProps
           </button>
         </p>
       )}
-      <LegalDocumentModal doc={open ? doc : null} onClose={() => setOpen(false)} />
     </div>
   );
 }

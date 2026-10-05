@@ -5,9 +5,9 @@ import { DOCS } from "../legal/testFixtures";
 
 vi.mock("../legal/api", async () => {
   const actual = await vi.importActual<typeof import("../legal/api")>("../legal/api");
-  return { ...actual, getLegalDocuments: vi.fn(), getMyConsents: vi.fn() };
+  return { ...actual, getLegalDocuments: vi.fn() };
 });
-import { getLegalDocuments, getMyConsents } from "../legal/api";
+import { getLegalDocuments } from "../legal/api";
 
 describe("ProfileView", () => {
   it("shows the five sections and Account Info by default", () => {
@@ -52,40 +52,18 @@ describe("ProfileView", () => {
     expect(logout).toHaveBeenCalledOnce();
   });
 
-  it("switching to Terms of Service lists the three documents with agreement dates", async () => {
+  it("switching to Terms of Service lists the three documents without agreement subtext", async () => {
     vi.mocked(getLegalDocuments).mockResolvedValue(DOCS);
-    vi.mocked(getMyConsents).mockResolvedValue([
-      { document_type: "terms_of_service", document_version: "tos-placeholder-2026-10-01", recorded_at: "2026-10-02T10:00:00Z" },
-    ]);
     render(<ProfileView name="Alice" email="alice@example.com" phoneNumber="+919999999999" logout={vi.fn()} />);
     fireEvent.click(screen.getByRole("button", { name: "Terms of Service" }));
     expect(screen.getByRole("button", { name: "Terms of Service" })).toHaveAttribute("aria-current", "page");
-    expect(await screen.findByText("You agreed to version tos-placeholder-2026-10-01 on 2 Oct 2026")).toBeInTheDocument();
-    expect(screen.getByText("Terms & Conditions")).toBeInTheDocument();
+    expect(await screen.findByText("Terms & Conditions")).toBeInTheDocument();
     expect(screen.getByText("Privacy Policy")).toBeInTheDocument();
     expect(screen.getByText("PAN Disclaimer")).toBeInTheDocument();
-    expect(screen.getAllByText("Not agreed yet")).toHaveLength(2);
+    expect(screen.queryByText(/You agreed to version/)).not.toBeInTheDocument();
+    expect(screen.queryByText("Not agreed yet")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "View Privacy Policy" }));
     expect(await screen.findByRole("dialog", { name: "Privacy Policy" })).toBeInTheDocument();
-  });
-
-  it("Terms of Service shows a retryable message, not 'Not agreed yet', when agreements fail to load", async () => {
-    vi.mocked(getLegalDocuments).mockResolvedValue(DOCS);
-    vi.mocked(getMyConsents).mockClear();
-    vi.mocked(getMyConsents)
-      .mockRejectedValueOnce(new Error("network"))
-      .mockResolvedValueOnce([
-        { document_type: "terms_of_service", document_version: "tos-placeholder-2026-10-01", recorded_at: "2026-10-02T10:00:00Z" },
-      ]);
-    render(<ProfileView name="Alice" email="alice@example.com" phoneNumber="+919999999999" logout={vi.fn()} />);
-    fireEvent.click(screen.getByRole("button", { name: "Terms of Service" }));
-    expect(await screen.findByText(/We couldn’t load your agreements\./)).toBeInTheDocument();
-    expect(screen.queryByText("Not agreed yet")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "View Privacy Policy" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
-    expect(await screen.findByText("You agreed to version tos-placeholder-2026-10-01 on 2 Oct 2026")).toBeInTheDocument();
-    expect(screen.queryByText(/We couldn’t load your agreements/)).not.toBeInTheDocument();
-    expect(getMyConsents).toHaveBeenCalledTimes(2);
   });
 
   it("collects one exit reason then shows the single five-day confirmation", async () => {
