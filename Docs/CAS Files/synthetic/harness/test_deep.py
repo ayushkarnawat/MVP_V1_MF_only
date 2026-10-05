@@ -62,7 +62,7 @@ def cas_truth(fn):
                     for lot in lots:
                         if rem <= 0: break
                         take = min(lot[0], rem)
-                        if ty != "GIFT_OUT": realized += take * (nav - lot[1])
+                        if ty != "GIFT_OUT" and nav is not None: realized += take * (nav - lot[1])  # no price = unit conversion, not a sale
                         lot[0] -= take; rem -= take
                 elif ty == "DIVIDEND_PAYOUT":
                     payouts += 1
@@ -155,7 +155,7 @@ def test_deep(client):
         user = db.query(User).first()
         asyncio.run(recompute_household_analytics(db, user.id))
         a = client.get("/analytics/combined", headers=headers)
-        out["analytics"] = {"status": a.status_code, "body": a.text[:4000]}
+        out["analytics"] = {"status": a.status_code, "body": a.json() if a.status_code == 200 else a.text[:2000]}
       except Exception as e:
         import traceback
         out["analytics"] = f"EXC {type(e).__name__}: {str(e)[:300]} " + traceback.format_exc()[-800:]
