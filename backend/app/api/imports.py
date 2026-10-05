@@ -16,7 +16,7 @@ from app.models.imports import Import
 from app.models.transaction import Transaction
 from app.models.analytics import AnalyticsSection
 from app.models.reference import NavHistory, Scheme
-from app.models.enums import ConsentAction, ConsentDocumentType
+from app.models.enums import ConsentAction, ConsentDocumentType, ImportStatus
 from app.models.user import HouseholdMember, User
 from app.services.auth.session import get_active_user
 from app.services.analytics.dispatch import dispatcher
@@ -96,6 +96,9 @@ def _history_item(import_record: Import, member_name: str, group_people_count: i
     )
 
 
+_CAMS_PLACEHOLDER_STATUSES = (ImportStatus.REQUESTING_CAS, ImportStatus.WAITING_FOR_USER, ImportStatus.EXPIRED)
+
+
 @router.get("/history", response_model=list[HouseholdImportHistoryItem])
 def list_household_import_history(
     user: User = Depends(get_active_user),
@@ -105,6 +108,10 @@ def list_household_import_history(
         db.query(Import, HouseholdMember.name)
         .join(HouseholdMember, HouseholdMember.id == Import.household_member_id)
         .filter(HouseholdMember.user_id == user.id)
+        # A CAMS request (WAITING_FOR_USER, or EXPIRED once abandoned/cancelled) is a
+        # placeholder for a statement CAMS will email later, not an import: no file,
+        # no period, no transactions. It showed up as "Statement period unavailable".
+        .filter(Import.status.notin_(_CAMS_PLACEHOLDER_STATUSES))
         .order_by(Import.uploaded_at.desc())
         .all()
     )

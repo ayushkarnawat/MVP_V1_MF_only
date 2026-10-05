@@ -93,3 +93,21 @@ def cancel_pending_request(
     db.commit()
     db.refresh(import_rec)
     return import_rec
+
+
+def expire_stale_cams_requests(db: Session, now: datetime | None = None) -> int:
+    """Moves CAMS-request placeholders whose 48-hour window has passed to
+    EXPIRED. Until this ran, only the manual cancel endpoint did that, so an
+    abandoned request stayed WAITING_FOR_USER forever. Runs from the daily
+    CAS-file-expiry job. Returns how many were expired."""
+    now = now or datetime.now(timezone.utc)
+    stale = (
+        db.query(Import)
+        .filter(Import.status == ImportStatus.WAITING_FOR_USER, Import.expires_at < now)
+        .all()
+    )
+    for import_rec in stale:
+        import_rec.status = transition_status(import_rec.status, ImportStatus.EXPIRED)
+    if stale:
+        db.commit()
+    return len(stale)

@@ -7,6 +7,7 @@ this pass — see Docs/superpowers/specs/2026-09-18-pan-cas-attribution-design.m
 "Explicitly out of scope").
 """
 from app.db.session import SessionLocal
+from app.services.import_.cams_portal import expire_stale_cams_requests
 from app.services.import_.file_storage import expire_stored_files
 
 
@@ -15,6 +16,9 @@ def main() -> None:
     try:
         deleted_count = expire_stored_files(db)
         print(f"Expired {deleted_count} CAS file(s).")
+        # Same daily job: abandoned CAMS requests (no file, never uploaded) expire too.
+        expired_requests = expire_stale_cams_requests(db)
+        print(f"Expired {expired_requests} stale CAMS request(s).")
     finally:
         db.close()
 

@@ -52,6 +52,25 @@ def test_household_import_history_lists_all_and_only_owned_member_imports(client
     db.close()
 
 
+def test_household_import_history_hides_cams_request_placeholders(client):
+    """A CAMS request (waiting, or expired/cancelled) is not a statement: no file,
+    no period, no transactions. It used to show as 'Statement period unavailable'."""
+    db, _user, imports, headers = _seed_households(client)
+    now = datetime.now(timezone.utc)
+    member_id = imports[0].household_member_id
+    db.add_all([
+        Import(household_member_id=member_id, status=status, source_tab="request", uploaded_at=now, expires_at=now)
+        for status in (ImportStatus.WAITING_FOR_USER, ImportStatus.REQUESTING_CAS, ImportStatus.EXPIRED)
+    ])
+    db.commit()
+
+    response = client.get("/imports/history", headers=headers)
+
+    assert response.status_code == 200
+    assert {row["import_id"] for row in response.json()} == {str(imports[0].id), str(imports[1].id)}
+    db.close()
+
+
 def test_delete_import_removes_only_its_transactions_and_invalidates_analytics(client):
     db, user, imports, headers = _seed_households(client)
     scheme = Scheme(amfi_code="TEST-IMPORT-DELETE", name="Test", amc_name="AMC", sebi_category="Equity")

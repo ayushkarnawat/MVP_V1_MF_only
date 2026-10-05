@@ -7,6 +7,7 @@ from app.models.user import HouseholdMember, User
 from app.services.import_.cams_portal import (
     build_cams_mailback_url,
     cancel_pending_request,
+    expire_stale_cams_requests,
     initiate_cams_request,
 )
 
@@ -75,3 +76,21 @@ def test_cancel_pending_request_transitions_to_expired(db_session, member_setup)
     )
 
     assert cancelled.status == ImportStatus.EXPIRED
+
+
+def test_expire_stale_cams_requests_expires_only_requests_past_their_window(db_session, member_setup):
+    from datetime import timedelta
+
+    user, member = member_setup["user"], member_setup["member"]
+    stale, _ = initiate_cams_request(db=db_session, user_id=user.id, household_member_id=member.id)
+    now = datetime.now(timezone.utc)
+
+    # Still inside the 48-hour window: untouched.
+    assert expire_stale_cams_requests(db_session, now=now) == 0
+    assert stale.status == ImportStatus.WAITING_FOR_USER
+
+    # Past it: expired, and a second run finds nothing more to do.
+    assert expire_stale_cams_requests(db_session, now=now + timedelta(hours=49)) == 1
+    db_session.refresh(stale)
+    assert stale.status == ImportStatus.EXPIRED
+    assert expire_stale_cams_requests(db_session, now=now + timedelta(hours=49)) == 0
