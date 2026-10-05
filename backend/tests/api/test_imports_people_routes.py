@@ -1010,6 +1010,27 @@ def test_user_entered_name_is_replaced_by_the_statement_name(client, tmp_path):
         db.close()
 
 
+@pytest.mark.parametrize("statement_name", ["ADITI SHANBHAG-RAO", "ADITI SHANBHAG (HUF)", "ADITI & ROHAN SHANBHAG"])
+def test_resolve_name_accepts_statement_names_the_typed_name_rules_reject(client, tmp_path, statement_name):
+    """'Yes, that's me' used to 422 (invalid_name) on a hyphen, bracket or '&' in the
+    statement's own name, so the popup never moved on."""
+    from app.models.enums import MemberNameSource
+
+    headers, self_id = _authed_headers_and_member(client, "+919800300011", name="Rohan Mehta")
+    resp = _parse(client, headers, self_id, family_result([{"name": statement_name, "pan": ADITI_PAN}]), tmp_path)
+    assert resp.status_code == 409 and _detail(resp)["code"] == "self_name_mismatch"
+    sid = _detail(resp)["session_id"]
+
+    resp = _post(client, headers, sid, "resolve-name", {"name": statement_name})
+
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["people"][0]["is_me"] is True
+    member = _member(self_id)
+    assert member.name == statement_name and member.name_source == MemberNameSource.CAS
+    done = client.post("/imports/confirm", json={"session_id": sid, "people": [{"person_key": "p1"}]}, headers=headers)
+    assert done.status_code == 200, done.text
+
+
 @pytest.mark.parametrize("body", [{}, {"name": "anything"}])
 def test_resolve_name_uses_the_statement_name(client, tmp_path, body):
     from app.models.enums import MemberNameSource

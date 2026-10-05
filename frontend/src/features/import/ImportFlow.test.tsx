@@ -14,6 +14,7 @@ vi.mock("./api", async () => {
     confirmPeopleImport: vi.fn(),
     discardImportSession: vi.fn(),
     resolvePan: vi.fn(),
+    resolveName: vi.fn(),
     acknowledgePrompt: vi.fn(),
   };
 });
@@ -263,6 +264,23 @@ describe("ImportFlow", () => {
     expect(screen.getByText("Your review choices for 2 people will be lost.")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Cancel import" }));
     await waitFor(() => expect(api.discardImportSession).toHaveBeenCalledWith("s1"));
+  });
+
+  it("U2: 'Yes, that’s me' on a different statement name moves on to the review", async () => {
+    vi.mocked(api.parseImport).mockRejectedValue(
+      new ApiError(409, {
+        code: "self_name_mismatch", message: "This statement is in a different name",
+        session_id: "s1", details: { entered_name: "Aditi Rao", statement_name: "Aditi Sharma" },
+      }),
+    );
+    vi.mocked(api.resolveName).mockResolvedValue(SINGLE());
+    render(<ImportFlow householdMemberId="member-1" />);
+    await uploadAFile();
+    fireEvent.click(await screen.findByRole("button", { name: "Yes, that’s me" }));
+
+    await waitFor(() => screen.getByText("Review your import"));
+    expect(api.resolveName).toHaveBeenCalledWith("s1", "Aditi Sharma");
+    expect(screen.queryByRole("button", { name: "Yes, that’s me" })).not.toBeInTheDocument();
   });
 
   it("U7: a statement wholly on another account can be included, giving one ribbon", async () => {

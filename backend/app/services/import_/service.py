@@ -42,7 +42,7 @@ from app.services.import_.crypto import decrypt_pan, hash_pan
 from app.services.import_.enrich import MfApiClient, mfapi_client
 # F22: the one SessionExpiredError (already mapped to 410 by /cas-imports).
 from app.services.import_.lifecycle_service import SessionExpiredError
-from app.services.import_.name_match import compare_names, validate_person_name
+from app.services.import_.name_match import InvalidPersonNameError, compare_names, validate_person_name
 from app.services.import_.parser import ParseResult, mask_pan
 from app.services.import_.people import ParsedPerson, folio_key
 from app.services.import_.people_resolution import (
@@ -751,7 +751,17 @@ def resolve_name(db: Session, session_id: str, user_id: uuid.UUID, name: str | N
         return _finish(db, session_id)
     # 2026-10-01 rule (names come from the CAS): U2 is now "Is that you? Yes",
     # so the statement name is always used and any typed name is ignored.
-    clean = validate_person_name(current.details["statement_name"])
+    raw = current.details["statement_name"]
+    try:
+        clean = validate_person_name(raw)
+    except InvalidPersonNameError:
+        # The typed-name charset (letters, spaces, dots, apostrophes) is for names
+        # people type. This name is the statement's own, and a hyphen, bracket or
+        # "&" in it ("SHANBHAG-RAO", "(HUF)") used to 422 here, so "Yes, that's me"
+        # could never move on. Use it as printed, as everywhere else a CAS name is stored.
+        clean = " ".join(raw.split())[:85]
+        if not clean:
+            raise
     self_member = _self_member(db, user_id)
     now = datetime.now(timezone.utc)
     db.add(HouseholdMemberNameChange(

@@ -56,6 +56,8 @@ def test_household_member_pan_columns_are_named_for_encrypted_or_hashed_storage_
     assert set(pan_columns) == {
         "pan_encrypted", "pan_lookup_hash", "pan_pending_until", "pan_source",
         "pan_verified_at", "detected_pan_encrypted", "detected_pan_hash",
+        # Migration 0023: a flag ('other_account'), not PAN data.
+        "pan_conflict",
     }, (
         "HouseholdMember must expose exactly the expected encrypted/hashed PAN "
         "columns plus PAN metadata — a column named just 'pan' (or anything else "
