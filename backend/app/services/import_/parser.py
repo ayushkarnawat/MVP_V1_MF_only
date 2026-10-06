@@ -53,6 +53,16 @@ CAS_TO_CANONICAL: dict[str, TransactionType] = {
 
 SOURCE_CAS_TYPE_MAP = {"CAMS": "cams", "KFINTECH": "kfintech"}
 
+SchemeKey = tuple[str, str, str]
+
+
+def scheme_key(folio: str, amc: str, isin: str | None, name: str) -> SchemeKey:
+    return folio, amc, isin or name
+
+
+def _optional_decimal(value: object) -> Decimal | None:
+    return to_decimal(value) if isinstance(value, (str, Decimal, int)) else None
+
 # casparser's Scheme.advisor is captured raw from a CAS statement's
 # "(Advisor: ...)" annotation and only narrowed to an actual ARN-xxxx/INAxxxx
 # code when that pattern is found inside it — some AMC/RTA templates print a
@@ -151,6 +161,12 @@ class NormalizedTransaction:
     units: Decimal | None
     nav: Decimal | None
     person_key: str | None = None
+    balance: Decimal | None = None
+    conversion_from_opening: bool = False
+
+    @property
+    def key(self) -> SchemeKey:
+        return scheme_key(self.folio, self.amc, self.isin, self.scheme_name)
 
 
 @dataclass
@@ -174,6 +190,15 @@ class ParsedScheme:
     plan_name_variant: str = "unresolved"
     plan_type: str = "unclassified"
     person_key: str | None = None
+    open_units: Decimal = Decimal("0")
+    close_units: Decimal | None = None
+    valuation_cost: Decimal | None = None
+    valuation_nav: Decimal | None = None
+    valuation_date: date | None = None
+
+    @property
+    def key(self) -> SchemeKey:
+        return scheme_key(self.folio, self.amc, self.isin, self.name)
 
 
 @dataclass
@@ -198,19 +223,122 @@ class ParseError(Exception):
         super().__init__(message)
 
 
-def classify_parse_error(exc: Exception) -> ParseError:
-    msg = str(exc).lower()
-    if "password" in msg or "decrypt" in msg or "incorrect" in msg:
-        return ParseError(
-            "wrong_password",
-            "Incorrect PDF password. CAMS/KFintech CAS passwords are usually your PAN in uppercase.",
-        )
-    if "image" in msg or "scan" in msg or "extract" in msg or "text" in msg:
-        return ParseError(
-            "unreadable_pdf",
-            "PDF appears scanned or unreadable. Download the original email PDF, not a photo/scan.",
-        )
+from casparser.exceptions import CASParseError, IncorrectPasswordError
+import pypdfium2
+
+_UNKNOWN_ISSUER = "could not identify the cas issuer"
+MESSAGES = {
+    "wrong_password": "That password didn’t open the file. It’s usually your PAN in capitals, or the password you set when requesting the CAS.",
+    "scanned_pdf": "We can’t read this PDF. It looks like a scan or a photo, so there’s no text in it to read. Download the statement again from CAMS or KFintech as a PDF; don’t print or scan it.",
+    "damaged_pdf": "This file looks incomplete. Download it again.",
+    "unknown_issuer": "This isn’t a CAMS or KFintech statement. Download your Consolidated Account Statement from CAMS or KFintech.",
+}
+
+
+def classify_parse_error(exc: Exception, *, has_text: bool = True) -> ParseError:
+    """#22: by exception type, never by keywords in the message (the old rule
+    sent any message containing "text" to "scanned")."""
+    if isinstance(exc, IncorrectPasswordError):
+        return ParseError("wrong_password", MESSAGES["wrong_password"])
+    if isinstance(exc, CASParseError) and _UNKNOWN_ISSUER in str(exc).lower():
+        code = "unknown_issuer" if has_text else "scanned_pdf"
+        return ParseError(code, MESSAGES[code])
+    pending = [(exc, 0)]
+    seen: set[int] = set()
+    while pending:
+        link, depth = pending.pop()
+        if id(link) in seen or depth >= 5:
+            continue
+        seen.add(id(link))
+        if isinstance(link, pypdfium2.PdfiumError):
+            code = "wrong_password" if "password" in str(link).lower() else "damaged_pdf"
+            return ParseError(code, MESSAGES[code])
+        if link.__context__ is not None:
+            pending.append((link.__context__, depth + 1))
+        if link.__cause__ is not None:
+            pending.append((link.__cause__, depth + 1))
+    if isinstance(exc, CASParseError) and "pdfium" in str(exc).lower():
+        code = "wrong_password" if "password" in str(exc).lower() else "damaged_pdf"
+        return ParseError(code, MESSAGES[code])
     return ParseError("parse_failed", str(exc)[:500])
+
+
+def _has_text_layer(path: str, password: str) -> bool:
+    try:
+        doc = pypdfium2.PdfDocument(path, password=password)
+    except Exception:
+        return True  # can't tell; don't claim "scanned"
+    try:
+        for i in range(min(len(doc), 3)):
+            if doc[i].get_textpage().get_text_range().strip():
+                return True
+        return False
+    finally:
+        doc.close()
+
+
+_CONVERSION_TYPES = {"SWITCH_OUT", "SWITCH_OUT_MERGER", "SWITCH_IN", "SWITCH_IN_MERGER"}
+
+
+def _is_conversion(raw_type: str, description: str) -> bool:
+    key = str(raw_type).split(".")[-1].upper()
+    return key in _CONVERSION_TYPES or any(label in (description or "").lower() for label in ("face value", "merger"))
+
+
+def _fifo_cost(rows: list[NormalizedTransaction], opening_units: Decimal, consume: Decimal) -> tuple[Decimal, bool]:
+    """Cost of `consume` units taken FIFO from this scheme's lots before the
+    conversion. Returns (cost, from_opening): from_opening is True when any
+    consumed unit is from the opening lot, whose cost is only known after
+    opening_balance prices it (preview time)."""
+    lots: list[list[Decimal]] = [[opening_units, Decimal("-1")]] if opening_units > 0 else []
+    for r in rows:
+        if r.txn_type in (TransactionType.PURCHASE, TransactionType.PURCHASE_SIP, TransactionType.SWITCH_IN,
+                          TransactionType.DIVIDEND_REINVEST):
+            lots.append([r.units, r.nav])
+        elif r.txn_type in (TransactionType.REDEMPTION, TransactionType.SWITCH_OUT):
+            rem = r.units
+            while rem > 0 and lots:
+                take = min(lots[0][0], rem); lots[0][0] -= take; rem -= take
+                if lots[0][0] == 0: lots.pop(0)
+    cost, from_opening, rem = Decimal("0"), False, consume
+    while rem > 0 and lots:
+        take = min(lots[0][0], rem)
+        if lots[0][1] < 0:
+            from_opening = True
+        else:
+            cost += take * lots[0][1]
+        lots[0][0] -= take; rem -= take
+        if lots[0][0] == 0: lots.pop(0)
+    return cost, from_opening
+
+
+
+def _pair_conversions(amountless, transactions, scheme_map, parse_warnings):
+    for group_key in sorted(amountless, key=lambda k: k[1]):
+        group = amountless[group_key]
+        outs = [t for t, units, raw_type in group if units < 0]
+        ins = [t for t, units, raw_type in group if units > 0]
+        if len(group) == 2 and len(outs) == len(ins) == 1:
+            out, incoming = outs[0], ins[0]
+            before = sorted(
+                [t for t in transactions if t.key == out.key and t.txn_date < out.txn_date],
+                key=lambda t: t.txn_date,
+            )
+            cost, from_opening = _fifo_cost(before, scheme_map[out.key].open_units, out.units)
+            for row, kind in ((out, TransactionType.SWITCH_OUT), (incoming, TransactionType.SWITCH_IN)):
+                row.txn_type = kind
+                row.amount = Decimal("0.00") if from_opening else quantize_amount(cost)
+                row.nav = Decimal("0.0000") if from_opening or not row.units else quantize_nav(cost / row.units)
+                row.conversion_from_opening = from_opening
+                transactions.append(row)
+                scheme_map[row.key].transaction_count += 1
+        else:
+            for row, units, raw_type in group:
+                parse_warnings.append(
+                    f"Skipped transaction on {row.txn_date} for {row.scheme_name} (folio {row.folio}): "
+                    f"missing amount, units, or NAV — {row.description}"
+                )
+    transactions.sort(key=lambda t: t.txn_date)
 
 
 def _normalize_cas_data(data: CASData, lines: list[str] | None = None) -> ParseResult:
@@ -247,14 +375,15 @@ def _normalize_cas_data(data: CASData, lines: list[str] | None = None) -> ParseR
     }
 
     transactions: list[NormalizedTransaction] = []
-    scheme_map: dict[tuple[str, str, str], ParsedScheme] = {}
+    scheme_map: dict[SchemeKey, ParsedScheme] = {}
+    amountless: dict[tuple[str, date], list[tuple[NormalizedTransaction, Decimal, str]]] = {}
     parse_warnings: list[str] = list(data.parse_warnings or [])
     parse_warnings.extend(name_warnings(people))
 
     for folio in data.folios:
         pkey = person_of.get((folio.amc, folio_key(folio.folio)))
         for scheme in folio.schemes:
-            key = (folio.folio, folio.amc, scheme.scheme)
+            key = scheme_key(folio.folio, folio.amc, scheme.isin, scheme.scheme)
             if key not in scheme_map:
                 name_variant = classify_plan_from_name(scheme.scheme)
                 arn_code = _as_arn_code(getattr(scheme, "advisor", None))
@@ -270,6 +399,11 @@ def _normalize_cas_data(data: CASData, lines: list[str] | None = None) -> ParseR
                     plan_name_variant=name_variant,
                     plan_type=classify_folio_plan_type(name_variant, arn_code),
                     person_key=pkey,
+                    open_units=_optional_decimal(getattr(scheme, "open", None)) or Decimal("0"),
+                    close_units=_optional_decimal(getattr(scheme, "close", None)),
+                    valuation_cost=_optional_decimal(getattr(scheme.valuation, "cost", None)),
+                    valuation_nav=_optional_decimal(getattr(scheme.valuation, "nav", None)),
+                    valuation_date=parse_statement_date(getattr(scheme.valuation, "date", None)),
                 )
             for txn in scheme.transactions:
                 # casparser genuinely allows amount/units/nav to be None on some
@@ -284,10 +418,24 @@ def _normalize_cas_data(data: CASData, lines: list[str] | None = None) -> ParseR
                 units = abs(quantize_units(to_decimal(txn.units))) if txn.units is not None else None
                 nav = quantize_nav(to_decimal(txn.nav)) if txn.nav is not None else None
                 if amount is None or units is None or nav is None:
-                    parse_warnings.append(
-                        f"Skipped transaction on {txn.date} for {scheme.scheme} (folio {folio.folio}): "
-                        f"missing amount, units, or NAV — {txn.description}"
-                    )
+                    if amount is None and nav is None and units is not None and _is_conversion(txn.type, txn.description):
+                        candidate = NormalizedTransaction(
+                            folio=folio.folio, amc=folio.amc, scheme_name=scheme.scheme,
+                            isin=scheme.isin, amfi=scheme.amfi, scheme_type=scheme.type,
+                            txn_date=_parse_date(txn.date), txn_type=normalize_txn_type(txn.type),
+                            description=txn.description, amount=amount, units=units, nav=nav,
+                            person_key=pkey,
+                            balance=quantize_units(_optional_decimal(getattr(txn, "balance", None)))
+                            if _optional_decimal(getattr(txn, "balance", None)) is not None else None,
+                        )
+                        amountless.setdefault((folio.amc, candidate.txn_date), []).append(
+                            (candidate, to_decimal(txn.units), str(txn.type)))
+                        continue
+                    if normalize_txn_type(txn.type) not in (TransactionType.STAMP_DUTY, TransactionType.STT):
+                        parse_warnings.append(
+                            f"Skipped transaction on {txn.date} for {scheme.scheme} (folio {folio.folio}): "
+                            f"missing amount, units, or NAV — {txn.description}"
+                        )
                     continue
                 norm = NormalizedTransaction(
                     folio=folio.folio, amc=folio.amc, scheme_name=scheme.scheme,
@@ -295,9 +443,13 @@ def _normalize_cas_data(data: CASData, lines: list[str] | None = None) -> ParseR
                     txn_date=_parse_date(txn.date), txn_type=normalize_txn_type(txn.type),
                     description=txn.description, amount=amount, units=units, nav=nav,
                     person_key=pkey,
+                    balance=quantize_units(_optional_decimal(txn.balance))
+                    if _optional_decimal(getattr(txn, "balance", None)) is not None else None,
                 )
                 transactions.append(norm)
                 scheme_map[key].transaction_count += 1
+
+    _pair_conversions(amountless, transactions, scheme_map, parse_warnings)
 
     # Raw PAN never reaches raw_json specifically: raw_json is persisted
     # verbatim into imports.raw_parser_output by confirm_import, so redact
@@ -313,7 +465,8 @@ def _normalize_cas_data(data: CASData, lines: list[str] | None = None) -> ParseR
 
     return ParseResult(
         investor=investor,
-        schemes=list(scheme_map.values()),
+        schemes=[s for s in scheme_map.values()
+                 if s.open_units != 0 or s.close_units not in (None, 0) or s.transaction_count != 0],
         transactions=transactions,
         raw_json=raw_json,
         parse_warnings=parse_warnings,
@@ -327,8 +480,7 @@ def _normalize_cas_data(data: CASData, lines: list[str] | None = None) -> ParseR
 
 
 def parse_cas_pdf_bytes(pdf_bytes: bytes, password: str) -> ParseResult:
-    """Parse CAS PDF from bytes; temp file deleted after parsing — no raw
-    CAS PDF storage, ever (CLAUDE.md non-negotiable)."""
+    """Parse CAS bytes and delete the temporary parsing file afterwards."""
     import tempfile
     from pathlib import Path
 
@@ -342,18 +494,18 @@ def parse_cas_pdf_bytes(pdf_bytes: bytes, password: str) -> ParseResult:
         try:
             # Holder names come from the raw text lines; failure here must not
             # fail the import, people just fall back to placeholders/addressee.
-            lines = read_pdf_lines(tmp_path, password)
+            lines = read_pdf_lines(pdf_bytes, password)  # PDFium bytes input avoids a Windows file lock.
         except Exception:
             lines = None
     except Exception as exc:
-        raise classify_parse_error(exc) from exc
+        raise classify_parse_error(exc, has_text=_has_text_layer(tmp_path, password)) from exc
     finally:
         Path(tmp_path).unlink(missing_ok=True)
 
     if isinstance(result, NSDLCASData):
         raise ParseError(
             "demat_cas",
-            "This appears to be an NSDL/CDSL demat CAS. Equity/demat statements aren't supported in this version.",
+            "Demat statements aren’t supported yet; use the CAMS/KFintech CAS.",
         )
     if not isinstance(result, CASData):
         raise ParseError("parse_failed", "Unexpected parser output type.")

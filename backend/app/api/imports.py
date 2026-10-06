@@ -36,7 +36,7 @@ from app.services.import_.lifecycle_service import (
     validate_file_payload,
 )
 from app.services.import_.deletion import ImportNotFoundError, delete_import
-from app.services.import_.confirm_people import ConfirmInvalidError, confirm_people_import
+from app.services.import_.confirm_people import AlreadyImportedError, ConfirmInvalidError, confirm_people_import
 from app.services.import_.name_match import InvalidPersonNameError
 from app.services.import_.parser import ParseError, parse_cas_pdf_bytes #parsing logic
 from app.services.import_.schemas import (
@@ -268,7 +268,7 @@ def validate_pan_disclaimer(version: str | None):
 async def parse_import(
     request: Request,
     file: UploadFile = File(...),
-    password: str = Form(...),
+    password: str = Form(""),
     household_member_id: str = Form(...),
     pan_disclaimer_version: str = Form(None),
     user: User = Depends(get_active_user),
@@ -381,6 +381,8 @@ def confirm_import_route(
         raise _prompt_http(exc) from exc
     except PanConflictError as exc:
         raise HTTPException(status_code=409, detail={"code": exc.code, "message": exc.message}) from exc
+    except AlreadyImportedError as exc:
+        raise HTTPException(409, {"code": exc.code, "message": exc.message}) from exc
     except SchemeConfidenceError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except (ConfirmInvalidError, InvalidPersonNameError) as exc:

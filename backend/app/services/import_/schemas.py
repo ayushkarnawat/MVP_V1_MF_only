@@ -25,6 +25,7 @@ class SchemeMatchPreview(BaseModel):
     plan_type: str
     category: str | None = None
     person_key: str | None = None
+    opening_units: str | None = None
 
 
 class TransactionPreview(BaseModel):

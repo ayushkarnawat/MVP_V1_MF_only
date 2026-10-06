@@ -9,7 +9,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.models.enums import ImportStatus, TransactionType
+from app.models.enums import CostSource, TransactionOrigin, ImportStatus, TransactionType
 from app.models.folio import Folio
 from app.models.imports import Import
 from app.models.transaction import Transaction
@@ -157,6 +157,7 @@ def create_opening_balance(
         units=units,
         nav=nav,
         raw_description="Manual Opening Balance Entry",
+        origin=TransactionOrigin.MANUAL, cost_source=CostSource.MANUAL,
     )
     db.add(txn)
     db.flush()

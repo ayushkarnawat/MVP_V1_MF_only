@@ -3,7 +3,7 @@ from decimal import Decimal
 import uuid
 import pytest
 
-from app.models.enums import PlanType, Relationship, TransactionType
+from app.models.enums import CostSource, PlanType, Relationship, TransactionOrigin, TransactionType
 from app.models.folio import Folio
 from app.models.imports import Import, ImportStatus
 from app.models.reference import Scheme
@@ -183,6 +183,8 @@ def test_manual_opening_balance_resolves_coverage_gap(db_session, folio_setup):
     )
 
     assert created_txn.type == TransactionType.OPENING_BALANCE
+    assert created_txn.origin == TransactionOrigin.MANUAL
+    assert created_txn.cost_source == CostSource.MANUAL
     assert created_txn.import_id != import_rec.id
     manual_import = db_session.get(Import, created_txn.import_id)
     assert manual_import is not None

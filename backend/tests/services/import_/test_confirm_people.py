@@ -5,14 +5,17 @@ confirm_import adapter."""
 from __future__ import annotations
 
 import asyncio
+import copy
 import json
 import threading
 import uuid
 from dataclasses import replace
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
+from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
+from sqlalchemy import event
 from sqlalchemy.orm import sessionmaker
 
 import app.services.import_.file_storage as file_storage_module
@@ -28,7 +31,7 @@ from app.models.imports import Import
 from app.models.member_history import HouseholdMemberNameChange
 from app.models.user import HouseholdMember, User
 from app.services.import_ import confirm_people
-from app.services.import_.confirm_people import ConfirmInvalidError, confirm_people_import
+from app.services.import_.confirm_people import AlreadyImportedError, ConfirmInvalidError, confirm_people_import
 from app.services.import_.crypto import encrypt_pan, hash_pan
 from app.services.import_.lifecycle_service import SessionExpiredError
 from app.services.import_.name_match import NameNotEditableError
@@ -229,7 +232,11 @@ def test_parallel_session_confirm_attaches_to_existing_detected_member(db_sessio
         {"name": "RAMESH SHARMA", "pan": RAMESH_PAN},
     ], addressee="ADITI SHARMA")
     first = _start(db_session, me, two)
-    second = _start(db_session, me, two)
+    extended = copy.deepcopy(two)
+    template = next(t for t in extended.transactions if t.person_key == "p2")
+    extended.transactions.append(replace(template, txn_date=date(2024, 2, 1)))
+    next(s for s in extended.schemes if s.person_key == "p2").transaction_count += 1
+    second = _start(db_session, me, extended)
     assert next(p for p in second.people if p.person_key == "p2").status == "new"
 
     _confirm(db_session, first, me.user_id)
@@ -239,7 +246,62 @@ def test_parallel_session_confirm_attaches_to_existing_detected_member(db_sessio
     assert len(rameshes) == 1
     ramesh_result = next(p for p in result.people if p.person_key == "p2")
     assert ramesh_result.member_id == str(rameshes[0].id)
-    assert result.added == 0 and result.skipped == 2
+    assert result.added == 1 and result.skipped == 2
+
+
+def test_parallel_session_identical_statement_is_already_imported(db_session):
+    me = _member(db_session, _user(db_session), "Aditi Sharma")
+    two = family_result([
+        {"name": "ADITI SHARMA", "pan": ADITI_PAN},
+        {"name": "RAMESH SHARMA", "pan": RAMESH_PAN},
+    ], addressee="ADITI SHARMA")
+    first = _start(db_session, me, two)
+    second = _start(db_session, me, two)
+    _confirm(db_session, first, me.user_id)
+
+    with pytest.raises(AlreadyImportedError):
+        _confirm(db_session, second, me.user_id)
+
+    rameshes = [m for m in _detected(db_session, me.user_id) if m.name == "RAMESH SHARMA"]
+    assert len(rameshes) == 1
+
+
+def test_statement_with_schemes_but_no_transactions_is_not_already_imported(db_session):
+    me = _member(db_session, _user(db_session), "Aditi Sharma", pan=ADITI_PAN)
+    statement = family_result([{"name": "ADITI SHARMA", "pan": ADITI_PAN}])
+    statement.transactions = []
+    statement.schemes[0].transaction_count = 0
+    result = _confirm(db_session, _start(db_session, me, statement), me.user_id)
+    assert result.added == 0
+    assert db_session.query(Import).count() == 1
+
+
+def test_all_rows_exist_looks_up_scheme_and_folio_once_per_key(db_session):
+    me = _member(db_session, _user(db_session), "Aditi Sharma", pan=ADITI_PAN)
+    statement = family_result([{"name": "ADITI SHARMA", "pan": ADITI_PAN}])
+    statement.transactions.append(replace(statement.transactions[0], txn_date=date(2024, 2, 1)))
+    statement.schemes[0].transaction_count = 2
+    _confirm(db_session, _start(db_session, me, statement), me.user_id)
+    preview = _start(db_session, me, statement)
+    session = _preview_sessions[preview.session_id]
+    keys = list(session["key_to_temp"])
+    queries = []
+
+    def capture(conn, cursor, sql, parameters, context, executemany):
+        queries.append(sql.lower())
+
+    engine = db_session.get_bind()
+    event.listen(engine, "before_cursor_execute", capture)
+    try:
+        assert confirm_people._all_rows_exist(
+            db_session, [SimpleNamespace(member_id=me.id, scheme_keys=keys)],
+            confirm_people._transactions_by_scheme(statement.transactions),
+            session["scheme_previews"], session["key_to_temp"], {},
+        )
+    finally:
+        event.remove(engine, "before_cursor_execute", capture)
+    assert sum("from schemes" in sql for sql in queries) == 1
+    assert sum("from folios" in sql for sql in queries) == 1
 
 
 # ------------------------------------------------------------------- names
@@ -524,7 +586,7 @@ def test_confirm_raw_parser_output_has_only_that_persons_folios_and_no_pan(db_se
         "folios": [
             # A raw PAN planted on purpose: confirm must null every folio PAN
             # even if an upstream redaction ever regresses.
-            {"folio": s.folio, "amc": s.amc, "PAN": RAMESH_PAN, "schemes": [{"scheme": s.name, "transactions": []}]}
+            {"folio": s.folio, "amc": s.amc, "PAN": RAMESH_PAN, "schemes": [{"scheme": s.name, "isin": s.isin, "transactions": []}]}
             for s in pr.schemes
         ],
     }
@@ -881,3 +943,158 @@ def test_confirm_same_person_link_writes_real_pan(db_session):
     assert kavita.pan_lookup_hash == hash_pan(KIRAN_PAN)
     assert kavita.pan_pending_until is None and kavita.pan_source == MemberPanSource.CAS
     assert kavita.pan_conflict is None
+
+
+from datetime import date
+from decimal import Decimal
+from unittest.mock import patch
+
+from app.models.enums import CostSource, TransactionOrigin, TransactionType
+from app.models.transaction import Transaction
+
+
+def _solo(*, open_units="0", start, cost="0", rows=()):
+    """One person, one fund (folio 1001/1): opening `open_units` at `start`,
+    then `rows` = [(date, units)] purchases at NAV 50."""
+    result = family_result([{"name": "ADITI SHARMA", "pan": ADITI_PAN}])
+    scheme, tmpl = result.schemes[0], result.transactions[0]
+    scheme.open_units, scheme.valuation_cost = Decimal(open_units), Decimal(cost)
+    scheme.valuation_nav = Decimal("50")
+    result.statement_from = start
+    result.transactions = [
+        replace(tmpl, txn_date=d, units=Decimal(u), nav=Decimal("50.0000"), amount=Decimal(u) * 50)
+        for d, u in rows
+    ]
+    scheme.transaction_count = len(result.transactions)
+    return result
+
+
+def _upload(db, me, result):
+    with patch("app.services.import_.service._fetch_nav_history", new=AsyncMock(return_value=None)):
+        preview = _start(db, me, result)
+    return _confirm(db, preview, me.user_id)
+
+
+def _openings(db):
+    return db.query(Transaction).filter_by(origin=TransactionOrigin.CAS_OPENING).all()
+
+
+def test_fund_with_only_opening_balance_is_saved(db_session):
+    me = _member(db_session, _user(db_session), "Aditi Sharma")
+    response = _upload(db_session, me, _solo(open_units="7251.691", cost="362584.55", start=date(2016, 1, 1)))
+    [row] = _openings(db_session)
+    assert row.type == TransactionType.OPENING_BALANCE and row.date == date(2016, 1, 1)
+    assert row.units == Decimal("7251.691") and row.cost_source == CostSource.CAS_COST
+    assert response.added == 1
+
+
+def test_opening_rule_skips_when_real_rows_before_start(db_session):
+    me = _member(db_session, _user(db_session), "Aditi Sharma")
+    _upload(db_session, me, _solo(start=date(2006, 1, 1), rows=[(date(2006, 2, 1), "100")]))      # 20-year
+    # A new FY row keeps this from being "already imported" (phase 1's rule).
+    _upload(db_session, me, _solo(open_units="100", cost="5000", start=date(2026, 4, 1),
+                                  rows=[(date(2026, 5, 1), "1")]))                                  # FY
+    assert _openings(db_session) == []
+
+
+def test_opening_rule_longer_statement_replaces_and_removes(db_session):
+    me = _member(db_session, _user(db_session), "Aditi Sharma")
+    _upload(db_session, me, _solo(open_units="100", cost="5000", start=date(2026, 4, 1)))          # FY first
+    assert len(_openings(db_session)) == 1
+    _upload(db_session, me, _solo(start=date(2006, 1, 1), rows=[(date(2006, 2, 1), "100")]))      # 20-year, open 0
+    assert _openings(db_session) == []
+
+
+def test_opening_rule_earlier_start_replaces(db_session):
+    me = _member(db_session, _user(db_session), "Aditi Sharma")
+    _upload(db_session, me, _solo(open_units="100", cost="5000", start=date(2026, 4, 1)))
+    _upload(db_session, me, _solo(open_units="60", cost="3000", start=date(2016, 1, 1),
+                                  rows=[(date(2020, 1, 1), "40")]))
+    [row] = _openings(db_session)
+    assert row.date == date(2016, 1, 1) and row.units == Decimal("60")
+
+
+def test_manual_opening_row_is_never_replaced(db_session):
+    me = _member(db_session, _user(db_session), "Aditi Sharma")
+    _upload(db_session, me, _solo(start=date(2026, 4, 1), rows=[(date(2026, 5, 1), "1")]))
+    folio = db_session.query(Folio).one()
+    imp = db_session.query(Import).one()
+    db_session.add(Transaction(id=uuid.uuid4(), folio_id=folio.id, import_id=imp.id, type=TransactionType.OPENING_BALANCE,
+                               date=date(2015, 1, 1), amount=Decimal("100"), units=Decimal("10"), nav=Decimal("10"),
+                               origin=TransactionOrigin.MANUAL, cost_source=CostSource.MANUAL))
+    db_session.commit()
+    _upload(db_session, me, _solo(open_units="60", cost="3000", start=date(2016, 1, 1),
+                                  rows=[(date(2020, 1, 1), "1")]))
+    assert db_session.query(Transaction).filter_by(origin=TransactionOrigin.MANUAL).count() == 1
+
+
+def test_opening_rule_new_lot_prevents_all_existing_rows_rejection(db_session):
+    me = _member(db_session, _user(db_session), "Aditi Sharma")
+    _upload(db_session, me, _solo(start=date(2006, 1, 1), rows=[(date(2020, 1, 1), "40")]))
+    result = _upload(db_session, me, _solo(open_units="60", cost="5000", start=date(2016, 1, 1),
+                                         rows=[(date(2020, 1, 1), "40")]))
+    assert result.added == 1 and result.skipped == 1
+    assert _openings(db_session)[0].units == Decimal("60")
+
+
+def test_opening_rule_dry_run_replacement_writes_nothing(db_session):
+    from app.services.import_.opening_balance import OpeningLot
+    me = _member(db_session, _user(db_session), "Aditi Sharma")
+    _upload(db_session, me, _solo(open_units="100", cost="5000", start=date(2026, 4, 1)))
+    old = _openings(db_session)[0]
+    lot = OpeningLot(Decimal("60"), date(2016, 1, 1), Decimal("50"), Decimal("3000"), CostSource.CAS_COST)
+    verdict = confirm_people._apply_opening_rule(db_session, db_session.query(Folio).one(), lot,
+                                               lot.start, None, dry_run=True)
+    assert verdict == "replaced"
+    assert _openings(db_session) == [old]
+    assert old.date == date(2026, 4, 1)
+    assert not db_session.new and not db_session.dirty and not db_session.deleted
+
+
+def test_opening_rule_longer_statement_removes_opening_even_when_rows_exist(db_session):
+    me = _member(db_session, _user(db_session), "Aditi Sharma")
+    _upload(db_session, me, _solo(open_units="100", cost="5500", start=date(2016, 1, 1),
+                                 rows=[(date(2020, 1, 1), "10")]))
+    result = _upload(db_session, me, _solo(start=date(2006, 1, 1), rows=[(date(2020, 1, 1), "10")]))
+    assert result.added == 0 and result.skipped == 1
+    assert _openings(db_session) == []
+
+
+
+def test_opening_rule_reports_removal_when_earlier_history_blocks_replacement(db_session):
+    from app.services.import_.confirm_people import _apply_opening_rule
+    from app.services.import_.opening_balance import OpeningLot
+    from app.services.dashboard.holdings import _process_folio_lots
+    me = _member(db_session, _user(db_session), "Aditi Sharma")
+    _upload(db_session, me, _solo(open_units="100", cost="5500", start=date(2026, 4, 1),
+                                rows=[(date(2026, 5, 1), "10")]))
+    folio = db_session.query(Folio).one()
+    imp = db_session.query(Import).one()
+    # Seed earlier saved history directly: uploading it would remove the FY
+    # opening before the ten-year confirm whose dry run is under test.
+    earlier = Transaction(id=uuid.uuid4(), folio_id=folio.id, import_id=imp.id,
+        type=TransactionType.PURCHASE, date=date(2010, 1, 1), units=Decimal("100"),
+        amount=Decimal("5000"), nav=Decimal("50"), origin=TransactionOrigin.CAS_ROW)
+    db_session.add(earlier)
+    db_session.commit()
+    lot = OpeningLot(Decimal("100"), date(2016, 1, 1), Decimal("50"), Decimal("5000"), CostSource.CAS_COST)
+    before = [row.id for row in _openings(db_session)]
+    assert _apply_opening_rule(db_session, folio, lot, lot.start, None, dry_run=True) == "removed"
+    assert [row.id for row in _openings(db_session)] == before
+    assert not db_session.new and not db_session.dirty and not db_session.deleted
+    statement = _solo(open_units="100", cost="5500", start=date(2016, 1, 1),
+                      rows=[(date(2026, 5, 1), "10")])
+    statement.schemes[0].close_units = Decimal("110.000")
+    verdicts = []
+    def capture(*args, **kwargs):
+        verdict = _apply_opening_rule(*args, **kwargs)
+        verdicts.append((kwargs.get("dry_run", False), verdict))
+        return verdict
+    with patch("app.services.import_.confirm_people._apply_opening_rule", side_effect=capture):
+        response = _upload(db_session, me, statement)
+    assert response.added == 0 and response.skipped == 1
+    assert (True, "removed") in verdicts and (False, "removed") in verdicts
+    assert _openings(db_session) == []
+    assert db_session.get(Transaction, (earlier.id, earlier.date)) is not None
+    rows = db_session.query(Transaction).filter_by(folio_id=folio.id).order_by(Transaction.date).all()
+    assert _process_folio_lots(rows)[0] == statement.schemes[0].close_units

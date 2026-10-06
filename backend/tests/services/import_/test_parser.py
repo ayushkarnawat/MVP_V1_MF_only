@@ -334,3 +334,225 @@ def test_fixture_statement_period_is_parsed():
 
 def test_parse_statement_date_accepts_an_iso_datetime():
     assert parse_statement_date("2025-04-01T00:00:00") == _date(2025, 4, 1)
+
+
+import pypdfium2
+from casparser.exceptions import CASParseError, IncorrectPasswordError
+
+from app.services.import_.parser import classify_parse_error
+
+
+def test_incorrect_password_maps_to_wrong_password():
+    assert classify_parse_error(IncorrectPasswordError("bad")).code == "wrong_password"
+
+
+def test_pdfium_error_maps_to_damaged_pdf():
+    assert classify_parse_error(pypdfium2.PdfiumError("Data format error")).code == "damaged_pdf"
+
+
+def test_unknown_issuer_with_text_maps_to_unknown_issuer():
+    exc = CASParseError("Could not identify the CAS issuer. Supported issuers are CAMS, KFintech, NSDL, and CDSL.")
+    assert classify_parse_error(exc, has_text=True).code == "unknown_issuer"
+
+
+def test_scanned_pdf_maps_to_scanned_pdf():
+    exc = CASParseError("Could not identify the CAS issuer. Supported issuers are CAMS, KFintech, NSDL, and CDSL.")
+    err = classify_parse_error(exc, has_text=False)
+    assert err.code == "scanned_pdf"
+    assert "NSDL" not in err.message
+
+
+def test_unrelated_text_error_is_not_scanned():
+    # The old keyword rule mapped any message containing "text" to unreadable.
+    assert classify_parse_error(ValueError("bad text encoding in row 3")).code == "parse_failed"
+
+
+def test_parse_error_on_error_pdfs():
+    from pathlib import Path
+    from app.services.import_.parser import ParseError, parse_cas_pdf_bytes
+    errors = Path(__file__).resolve().parents[4] / "Docs" / "CAS Files" / "synthetic" / "errors"
+    if not errors.exists():
+        pytest.skip("synthetic error PDFs not generated (Task 0)")
+    expected = {"err_scanned.pdf": "scanned_pdf", "err_truncated.pdf": "damaged_pdf"}
+    for name, code in expected.items():
+        with pytest.raises(ParseError) as info:
+            parse_cas_pdf_bytes((errors / name).read_bytes(), "MF@123")
+        assert info.value.code == code, name
+
+
+def test_skipped_stamp_duty_rows_do_not_warn():
+    txn = MagicMock(date="2024-01-01", description="*** Stamp Duty ***", amount="0.25", units=None,
+                    nav=None, type="STAMP_DUTY_TAX")
+    scheme = MagicMock(scheme="X Fund - Direct Plan - Growth", isin="INF1", amfi="1", type="EQUITY",
+                       advisor=None, transactions=[txn])
+    folio = MagicMock(folio="1/1", amc="X", PAN="ABCDE1234F", schemes=[scheme])
+    data = MagicMock(cas_type=CASFileType.DETAILED, file_type=FileType.CAMS,
+                     investor_info=MagicMock(email="t@example.com"), folios=[folio], parse_warnings=[])
+    data.model_dump_json.return_value = "{}"
+    assert not any("Stamp" in w for w in _normalize_cas_data(data).parse_warnings)
+
+
+@pytest.mark.parametrize("message,code", [("Data format error", "damaged_pdf"), ("Incorrect password", "wrong_password")])
+def test_wrapped_pdfium_error_is_classified(message, code):
+    try:
+        raise CASParseError("opening failed") from pypdfium2.PdfiumError(message)
+    except CASParseError as exc:
+        assert classify_parse_error(exc).code == code
+
+
+def test_bare_pdfium_cas_error_is_damaged_pdf():
+    exc = CASParseError("Unhandled error while opening PDF: PDFium: Data format error")
+    assert classify_parse_error(exc).code == "damaged_pdf"
+
+
+def test_synthetic_parse_releases_temp_pdf():
+    from pathlib import Path
+    from app.services.import_.parser import parse_cas_pdf_bytes
+    pdf = Path(__file__).resolve().parents[4] / "Docs/CAS Files/synthetic/p3_FY.pdf"
+    result = parse_cas_pdf_bytes(pdf.read_bytes(), "MF@123")
+    assert result.schemes
+
+
+def _scheme(name, isin, txns, open_="0", close="0", cost="0", nav="10", vdate="2026-10-05"):
+    return MagicMock(scheme=name, isin=isin, amfi=None, type="DEBT", advisor=None, transactions=txns,
+                     open=open_, close=close, valuation=MagicMock(cost=cost, nav=nav, date=vdate))
+
+
+def _t(d, desc, amount, units, nav, type_, balance=None):
+    return MagicMock(date=d, description=desc, amount=amount, units=units, nav=nav, type=type_, balance=balance)
+
+
+def _data(*schemes, folio="9/9", amc="HDFC Mutual Fund"):
+    f = MagicMock(folio=folio, amc=amc, PAN="ABCDE1234F", schemes=list(schemes))
+    d = MagicMock(cas_type=CASFileType.DETAILED, file_type=FileType.CAMS,
+                  investor_info=MagicMock(email="t@example.com"), folios=[f], parse_warnings=[])
+    d.model_dump_json.return_value = "{}"
+    return d
+
+
+def test_same_name_two_isins_stay_separate():
+    old = _scheme("HDFC Liquid Fund - Growth", "INF179KB1HK0", [_t("2010-01-04", "Purchase", "1000", "100", "10", "PURCHASE")], close="0")
+    new = _scheme("HDFC Liquid Fund - Growth", "INF179KB1HP9", [], open_="5", close="5")
+    result = _normalize_cas_data(_data(old, new))
+    assert {s.isin for s in result.schemes} == {"INF179KB1HK0", "INF179KB1HP9"}
+
+
+def test_scheme_keeps_open_close_and_valuation():
+    s = _scheme("X Fund - Direct Plan - Growth", "INF1", [], open_="7251.691", close="7251.691", cost="512000", nav="128.30")
+    [parsed] = _normalize_cas_data(_data(s)).schemes
+    assert parsed.open_units == Decimal("7251.691")
+    assert parsed.close_units == Decimal("7251.691")
+    assert parsed.valuation_cost == Decimal("512000")
+    assert parsed.valuation_nav == Decimal("128.30")
+
+
+def test_empty_scheme_is_dropped():
+    s = _scheme("Dead Fund - Growth", "INF0", [], open_="0", close="0")
+    assert _normalize_cas_data(_data(s)).schemes == []
+
+
+def test_face_value_conversion_moves_cost():
+    old = _scheme("HDFC Liquid Fund - Growth", "INF_OLD", [
+        _t("2010-01-04", "Purchase", "958000", "95800", "10", "PURCHASE"),
+        _t("2012-03-12", "Face Value Change - Units Debited", None, "-95800", None, "MISC"),
+    ], close="0")
+    new = _scheme("HDFC Liquid Fund - Growth", "INF_NEW", [
+        _t("2012-03-12", "Face Value Change - Units Credited", None, "829.43", None, "MISC"),
+    ], close="829.43")
+    result = _normalize_cas_data(_data(old, new))
+    by_isin = {t.isin: t for t in result.transactions if t.txn_date.isoformat() == "2012-03-12"}
+    assert by_isin["INF_OLD"].txn_type == TransactionType.SWITCH_OUT
+    assert by_isin["INF_NEW"].txn_type == TransactionType.SWITCH_IN
+    assert by_isin["INF_OLD"].amount == by_isin["INF_NEW"].amount == Decimal("958000.00")
+    assert by_isin["INF_NEW"].units == Decimal("829.430")
+
+
+def test_merger_without_amount_is_paired_across_folio_schemes():
+    a = _scheme("Old Small Cap - Direct Plan - Growth", "INF_A", [
+        _t("2015-01-01", "Purchase", "1000", "100", "10", "PURCHASE"),
+        _t("2018-06-01", "Switch-Out - Merger", None, "-100", None, "SWITCH_OUT_MERGER"),
+    ])
+    b = _scheme("New Small Cap - Direct Plan - Growth", "INF_B", [
+        _t("2018-06-01", "Switch-In - Merger", None, "80", None, "SWITCH_IN_MERGER"),
+    ], close="80")
+    tx = {t.isin: t for t in _normalize_cas_data(_data(a, b)).transactions if t.txn_date.isoformat() == "2018-06-01"}
+    assert tx["INF_A"].amount == tx["INF_B"].amount == Decimal("1000.00")
+    assert tx["INF_B"].nav == Decimal("12.5000")
+
+
+def test_conversion_from_opening_lot_is_marked():
+    old = _scheme("HDFC Liquid Fund - Growth", "INF_OLD", [
+        _t("2016-03-12", "Face Value Change - Units Debited", None, "-95800", None, "MISC"),
+    ], open_="95800", close="0")
+    new = _scheme("HDFC Liquid Fund - Growth", "INF_NEW", [
+        _t("2016-03-12", "Face Value Change - Units Credited", None, "829.43", None, "MISC"),
+    ], close="829.43")
+    tx = [t for t in _normalize_cas_data(_data(old, new)).transactions if t.txn_date.isoformat() == "2016-03-12"]
+    assert len(tx) == 2
+    assert all(t.conversion_from_opening for t in tx) and all(t.amount == 0 for t in tx)
+
+
+def test_conversion_balance_is_quantized():
+    old = _scheme("Old Fund - Growth", "INF_OLD", [
+        _t("2015-01-01", "Purchase", "1000", "100", "10", "PURCHASE"),
+        _t("2018-06-01", "Switch-Out - Merger", None, "-100", None, "SWITCH_OUT_MERGER", "0.0004"),
+    ])
+    new = _scheme("New Fund - Growth", "INF_NEW", [
+        _t("2018-06-01", "Switch-In - Merger", None, "80", None, "SWITCH_IN_MERGER", "80.1234"),
+    ], close="80")
+    rows = [t for t in _normalize_cas_data(_data(old, new)).transactions if t.txn_date.isoformat() == "2018-06-01"]
+    assert len(rows) == 2
+    assert {t.isin: t.balance for t in rows} == {"INF_OLD": Decimal("0.000"), "INF_NEW": Decimal("80.123")}
+
+
+@pytest.mark.parametrize("label", ["Face Value Change", "Merger"])
+def test_conversion_description_pairs_redemption_and_purchase(label):
+    old = _scheme("Old Fund - Growth", "INF_OLD", [
+        _t("2015-01-01", "Purchase", "1000", "100", "10", "PURCHASE"),
+        _t("2018-06-01", f"{label} - Units Debited", None, "-100", None, "REDEMPTION"),
+    ])
+    new = _scheme("New Fund - Growth", "INF_NEW", [
+        _t("2018-06-01", f"{label} - Units Credited", None, "80", None, "PURCHASE"),
+    ], close="80")
+    result = _normalize_cas_data(_data(old, new))
+    paired = {t.isin: t for t in result.transactions if t.txn_date.isoformat() == "2018-06-01"}
+    assert set(paired) == {"INF_OLD", "INF_NEW"}
+    assert paired["INF_OLD"].txn_type == TransactionType.SWITCH_OUT
+    assert paired["INF_NEW"].txn_type == TransactionType.SWITCH_IN
+    assert paired["INF_OLD"].amount == paired["INF_NEW"].amount == Decimal("1000.00")
+
+
+def test_face_value_redemption_with_amount_stays_redemption():
+    s = _scheme("Fund - Growth", "INF1", [
+        _t("2018-06-01", "face value redemption", "1000", "-100", "10", "REDEMPTION"),
+    ])
+    [row] = _normalize_cas_data(_data(s)).transactions
+    assert row.txn_type == TransactionType.REDEMPTION
+    assert row.amount == Decimal("1000.00") and not row.conversion_from_opening
+
+
+def test_two_face_value_out_legs_are_skipped_with_warning():
+    old = _scheme("Old Fund - Growth", "INF_OLD", [
+        _t("2018-06-01", "Face Value Change - Units Debited", None, "-100", None, "REDEMPTION"),
+        _t("2018-06-01", "Face Value Change - Units Debited", None, "-50", None, "REDEMPTION"),
+    ])
+    new = _scheme("New Fund - Growth", "INF_NEW", [
+        _t("2018-06-01", "Face Value Change - Units Credited", None, "80", None, "PURCHASE"),
+    ], close="80")
+    result = _normalize_cas_data(_data(old, new))
+    assert result.transactions == []
+    warnings = [w for w in result.parse_warnings if "Skipped transaction" in w]
+    assert len(warnings) == 3
+    assert all("missing amount, units, or NAV" in warning for warning in warnings)
+
+
+def test_conversion_with_amount_but_missing_nav_is_skipped():
+    old = _scheme("Old Fund - Growth", "INF_OLD", [
+        _t("2018-06-01", "face value", "1000", "-100", None, "SWITCH_OUT"),
+    ])
+    new = _scheme("New Fund - Growth", "INF_NEW", [
+        _t("2018-06-01", "face value", None, "80", None, "SWITCH_IN"),
+    ], close="80")
+    result = _normalize_cas_data(_data(old, new))
+    assert result.transactions == []
+    assert len([w for w in result.parse_warnings if "Skipped transaction" in w]) == 2

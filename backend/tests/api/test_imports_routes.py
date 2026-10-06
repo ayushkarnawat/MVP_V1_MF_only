@@ -683,3 +683,16 @@ def test_parse_consent_row_stores_truncated_and_hmac_ip_never_raw(client):
     for column in ConsentRecord.__table__.columns:
         value = getattr(row, column.key)
         assert "203.0.113.7" not in str(value), column.key
+
+
+from app.services.import_.parser import ParseError
+def test_parse_accepts_empty_password_field(client, tmp_path):
+    headers, member_id = _authed_headers_and_member(client, "+919800000201")
+    with patch("app.api.imports.parse_cas_pdf_bytes", side_effect=ParseError("wrong_password", "x")):
+        r = client.post(
+            "/imports/parse",
+            files={"file": ("cas.pdf", b"%PDF-fake", "application/pdf")},
+            data={"password": "", "household_member_id": member_id, "pan_disclaimer_version": PAN_DISCLAIMER_VERSION},
+            headers=headers,
+        )
+    assert r.status_code == 422 and r.json()["detail"]["code"] == "wrong_password"

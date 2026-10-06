@@ -27,6 +27,8 @@ from app.services.import_.service import (
     start_import_session,
 )
 from app.models.enums import PlanType, TransactionType
+from app.models.enums import CostSource
+from dataclasses import replace
 from decimal import Decimal
 from datetime import date, timedelta
 
@@ -127,6 +129,38 @@ def test_build_import_preview_confident_amfi_match_needs_no_override():
     assert preview.schemes[0].match_confidence == 1.0
     assert preview.schemes[0].plan_type == "direct"
     assert preview.transaction_count == 1
+
+
+def test_build_preview_prices_opening_lots():
+    result = _sample_parse_result()
+    result.transactions = []
+    scheme = result.schemes[0]
+    scheme.open_units, scheme.valuation_cost = Decimal("100"), Decimal("4000")
+    result.statement_from = date(2016, 1, 1)
+    with patch("app.services.import_.service._fetch_nav_history", new=AsyncMock(
+        return_value=[(date(2015, 1, 1), Decimal("30")), (date(2015, 12, 31), Decimal("45"))],
+    )):
+        preview = asyncio.run(build_import_preview(result, "cas.pdf", b"%PDF", _mocked_client()))
+    lot = _preview_sessions[preview.session_id]["opening_lots"][preview.schemes[0].temp_id]
+    assert lot.cost_source == CostSource.CAS_COST and lot.nav == Decimal("40.0000")
+    assert preview.schemes[0].opening_units == "100"
+
+
+def test_build_preview_keys_schemes_by_isin():
+    result = _sample_parse_result()
+    result.schemes.append(replace(result.schemes[0], isin="INF456"))
+    preview = asyncio.run(build_import_preview(result, "cas.pdf", b"%PDF", _mocked_client()))
+    assert len({s.temp_id for s in preview.schemes}) == 2
+    keys = _preview_sessions[preview.session_id]["key_to_temp"]
+    assert set(keys) == {("123/45", "HDFC AMC", "INF123"), ("123/45", "HDFC AMC", "INF456")}
+
+
+def test_build_preview_missing_start_warns_and_skips_opening_lots():
+    result = _sample_parse_result()
+    result.schemes[0].open_units = Decimal("100")
+    preview = asyncio.run(build_import_preview(result, "cas.pdf", b"%PDF", _mocked_client()))
+    assert _preview_sessions[preview.session_id]["opening_lots"] == {}
+    assert "Statement start date not found; earlier holdings couldn’t be added." in preview.parse_warnings
 
 
 def _parse_result_with_schemes(*schemes):
@@ -324,10 +358,9 @@ def test_confirm_import_deduped_on_reupload():
     _confirm_for_member(db, preview1, member)
 
     preview2 = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=client))
-    result2 = _confirm_for_member(db, preview2, member)
-
-    assert result2.added == 0
-    assert result2.skipped == 1
+    from app.services.import_.confirm_people import AlreadyImportedError
+    with pytest.raises(AlreadyImportedError):
+        _confirm_for_member(db, preview2, member)
     assert db.query(Transaction).count() == 1
 
 

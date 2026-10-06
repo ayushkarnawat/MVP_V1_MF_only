@@ -22,9 +22,9 @@ import re
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from difflib import SequenceMatcher
-from typing import Any
+from typing import Any, Literal
 
 from sqlalchemy.orm import Session
 
@@ -36,6 +36,9 @@ from app.models.enums import (
     PlanNameVariant,
     PlanType,
     SourceCasType,
+    CostSource,
+    TransactionOrigin,
+    TransactionType,
 )
 from app.models.folio import Folio
 from app.models.imports import Import, ImportStatus
@@ -59,7 +62,10 @@ from app.services.import_.parser import (
     ParsedScheme,
     ParseResult,
     source_cas_type_from_file_type,
+    SchemeKey,
+    scheme_key,
 )
+from app.services.import_.opening_balance import OpeningLot
 from app.services.import_.people import ParsedPerson, folio_key
 from app.services.import_.people_resolution import (
     PersonPlan,
@@ -92,7 +98,12 @@ logger = logging.getLogger(__name__)
 
 _PLAN_DESIGNATOR_RE = re.compile(r"\b(DIRECT|REGULAR)\s+PLAN\b")
 
-SchemeKey = tuple[str, str, str]  # (folio, amc, scheme name), as key_to_temp
+
+
+class AlreadyImportedError(Exception):
+    """Every row of this statement is already saved for the same people (#22)."""
+    code = "already_imported"
+    message = "This statement was already imported."
 
 
 class ConfirmInvalidError(Exception):
@@ -181,6 +192,16 @@ def _confirm(
         response, touched = _confirm_claimed(
             db, session, user_id, to_request, household_member_id, legacy_confirmations or [], stored
         )
+    except AlreadyImportedError:
+        from app.services.import_.service import _release_session_claims
+
+        try:
+            db.rollback()
+            _release_session_claims(db, session)
+            db.commit()
+        finally:
+            return_confirmed_session(session_id, session, lock, keep=False)
+        raise
     except BaseException:
         # C1: nothing half-written, and the review can be confirmed again.
         if "committed" in stored:
@@ -230,7 +251,7 @@ def _confirm_claimed(
     if request is None:
         works = [_PersonWork(
             None, None, None, PersonConfirmation(person_key="", scheme_confirmations=legacy_confirmations),
-            target_member_id, scheme_keys=[(s.folio, s.amc, s.name) for s in parse_result.schemes],
+            target_member_id, scheme_keys=[s.key for s in parse_result.schemes],
         )]
     else:
         people, moved_funds = request
@@ -239,8 +260,14 @@ def _confirm_claimed(
     overrides = {c.temp_id: c for w in works for c in w.conf.scheme_confirmations}
     txns_of = _transactions_by_scheme(parse_result.transactions)
     included_txns = [t for w in works for k in w.scheme_keys for t in txns_of.get(k, [])]
-    parsed_scheme_by_key = {(s.folio, s.amc, s.name): s for s in parse_result.schemes}
+    parsed_scheme_by_key = {s.key: s for s in parse_result.schemes}
     _validate_schemes(included_txns, previews, key_to_temp, overrides, parsed_scheme_by_key)
+
+    _reject_changed_pans(db, works)
+
+    if all(w.member_id is not None for w in works) and _all_rows_exist(db, works, txns_of, previews, key_to_temp, overrides,
+            session.get("opening_lots", {}), parse_result.statement_from):
+        raise AlreadyImportedError()
 
     # 2. F14: every PAN claim is made permanent before any other write --
     # confirm_pan_claim's lost-race path does a full db.rollback().
@@ -292,6 +319,7 @@ def _confirm_claimed(
         txns = [t for k in work.scheme_keys for t in txns_of.get(k, [])]
         added, skipped = _write_person_rows(
             db, member, import_rec, schemes, txns, overrides, previews=previews, key_to_temp=key_to_temp,
+            opening_lots=session.get("opening_lots", {}), statement_from=parse_result.statement_from,
         )
         import_rec.new_transactions_count = added
         import_rec.duplicate_transactions_count = skipped
@@ -320,6 +348,7 @@ def _confirm_claimed(
         import_id=me_import_id or results[0].import_id,
         people=results,
         upload_group_id=str(upload_group_id),
+        warnings=[w for w in parse_result.parse_warnings if "stamp" not in w.lower() and "stt" not in w.lower()],
     )
     touched = list(dict.fromkeys(uuid.UUID(r.member_id) for r in results))
     return response, touched
@@ -371,8 +400,8 @@ def _plan_works(
     for key, conf in included.items():
         person, plan = persons[key], plans[key]
         scheme_keys = [
-            (s.folio, s.amc, s.name) for s in parse_result.schemes
-            if owners.get(key_to_temp[(s.folio, s.amc, s.name)]) == key
+            s.key for s in parse_result.schemes
+            if owners.get(key_to_temp[s.key]) == key
         ]
         if not scheme_keys:
             if plan.member_id is None:
@@ -398,7 +427,7 @@ def _fund_owners(
     """temp_id -> the person_key its fund lands on (None: not imported)."""
     parse_result: ParseResult = session["parse_result"]
     key_to_temp: dict[SchemeKey, str] = session["key_to_temp"]
-    scheme_of = {key_to_temp[(s.folio, s.amc, s.name)]: s for s in parse_result.schemes}
+    scheme_of = {key_to_temp[s.key]: s for s in parse_result.schemes}
     plans_by_key: dict[str, PersonPlan] = {pl.person_key: pl for pl in session["people_plan"]}
 
     for temp_id, target in moved_funds.items():
@@ -625,7 +654,7 @@ def _person_raw_output(raw_json: str, scheme_keys: set[SchemeKey]) -> dict[str, 
     for f in folios:
         schemes = [
             s for s in f.get("schemes", [])
-            if (f.get("folio"), f.get("amc"), s.get("scheme")) in scheme_keys
+            if scheme_key(f.get("folio"), f.get("amc"), s.get("isin"), s.get("scheme")) in scheme_keys
         ]
         if schemes:
             kept.append({**f, "schemes": schemes, **({"PAN": None} if "PAN" in f else {})})
@@ -639,7 +668,7 @@ def _person_raw_output(raw_json: str, scheme_keys: set[SchemeKey]) -> dict[str, 
 def _transactions_by_scheme(txns: list[NormalizedTransaction]) -> dict[SchemeKey, list[NormalizedTransaction]]:
     out: dict[SchemeKey, list[NormalizedTransaction]] = {}
     for t in txns:
-        out.setdefault((t.folio, t.amc, t.scheme_name), []).append(t)
+        out.setdefault(t.key, []).append(t)
     return out
 
 
@@ -663,7 +692,7 @@ def _validate_schemes(
     zero DB writes."""
     seen_temp_ids: set[str] = set()
     for norm in txns:
-        temp_id = key_to_temp[(norm.folio, norm.amc, norm.scheme_name)]
+        temp_id = key_to_temp[norm.key]
         if temp_id in seen_temp_ids:
             continue
         seen_temp_ids.add(temp_id)
@@ -704,7 +733,7 @@ def _validate_schemes(
         # correct in the first place) — a plan_type_override that contradicts
         # it is almost certainly a client-side error, not a real correction.
         if override and override.plan_type_override:
-            parsed_scheme = parsed_scheme_by_key.get((norm.folio, norm.amc, norm.scheme_name))
+            parsed_scheme = parsed_scheme_by_key.get(norm.key)
             variant = parsed_scheme.plan_name_variant if parsed_scheme else None
             designator_match = _PLAN_DESIGNATOR_RE.search(preview.name.upper()) if preview.name else None
             anchored_variant = designator_match.group(1).lower() if designator_match else None
@@ -719,6 +748,108 @@ def _validate_schemes(
                 )
 
 
+def _apply_opening_rule(
+    db: Session, folio: Folio, lot: OpeningLot | None, statement_from: date | None,
+    import_rec: Import | None, *, dry_run: bool = False,
+) -> Literal["written", "replaced", "skipped", "removed", "none"]:
+    existing = db.query(Transaction).filter_by(
+        folio_id=folio.id, origin=TransactionOrigin.CAS_OPENING,
+    ).first()
+    deleted = existing is not None and statement_from is not None and existing.date > statement_from
+    if deleted:
+        if not dry_run:
+            db.delete(existing)
+            db.flush()
+        existing = None
+    if lot is None:
+        return "removed" if deleted else "none"
+    if existing is not None:
+        return "skipped"
+    earlier = db.query(Transaction.id).filter(
+        Transaction.folio_id == folio.id,
+        Transaction.origin.in_((TransactionOrigin.CAS_ROW, TransactionOrigin.MANUAL)),
+        Transaction.date < statement_from,
+    ).first()
+    if earlier:
+        return "removed" if deleted else "skipped"
+    if not dry_run:
+        db.add(Transaction(
+            id=uuid.uuid4(), folio_id=folio.id, import_id=import_rec.id,
+            type=TransactionType.OPENING_BALANCE, date=lot.start,
+            units=lot.units, amount=lot.amount, nav=lot.nav,
+            origin=TransactionOrigin.CAS_OPENING, cost_source=lot.cost_source,
+            raw_description=f"Opening balance from CAS ({lot.start})",
+        ))
+        db.flush()
+    return "replaced" if deleted else "written"
+
+
+def _folio_for(db, member, parsed_scheme, preview, override, scheme_cache, folio_cache):
+    member_id = member.id
+    amfi_code = (override.amfi_code if override and override.amfi_code else None) or preview.suggested_amfi_code
+
+    if amfi_code not in scheme_cache:
+        existing = db.query(Scheme).filter_by(amfi_code=amfi_code).first()
+        if existing:
+            scheme_cache[amfi_code] = existing
+        else:
+            plan_name_variant = parsed_scheme.plan_name_variant if parsed_scheme else None
+
+            # DATA-001: when an override's amfi_code is genuinely
+            # different from what CAS parsing implies, the persisted
+            # Scheme.name must describe THAT code, not blindly carry over
+            # the original CAS-parsed name — otherwise a legitimate
+            # manual correction still produces a Scheme row whose name
+            # doesn't match its own amfi_code.
+            scheme_name = parsed_scheme.name
+            if override and override.amfi_code:
+                scheme_list = mfapi_client.cached_scheme_list()
+                canonical_name = (
+                    mfapi_client.canonical_name_for_code(override.amfi_code, scheme_list)
+                    if scheme_list is not None
+                    else None
+                )
+                if canonical_name is not None:
+                    similarity = SequenceMatcher(
+                        None, normalize_name(parsed_scheme.name), normalize_name(canonical_name)
+                    ).ratio()
+                    if similarity < CONFIDENCE_THRESHOLD:
+                        scheme_name = canonical_name
+
+            new_scheme = Scheme(
+                id=uuid.uuid4(), amfi_code=amfi_code, isin=parsed_scheme.isin, name=scheme_name,
+                amc_name=parsed_scheme.amc, sebi_category=_resolve_category(preview.category, parsed_scheme.scheme_type),
+                plan_name_variant=PlanNameVariant(plan_name_variant) if plan_name_variant else None,
+            )
+            db.add(new_scheme)
+            db.flush()
+            scheme_cache[amfi_code] = new_scheme
+
+    scheme = scheme_cache[amfi_code]
+    cache_key = (member_id, scheme.id, parsed_scheme.folio)
+    if cache_key not in folio_cache:
+        existing_folio = (
+            db.query(Folio)
+            .filter_by(household_member_id=member_id, scheme_id=scheme.id, folio_number=parsed_scheme.folio)
+            .first()
+        )
+        if existing_folio:
+            folio_cache[cache_key] = existing_folio
+        else:
+            plan_type = (override.plan_type_override if override and override.plan_type_override else preview.plan_type)
+            arn_code = parsed_scheme.arn_code
+            new_folio = Folio(
+                id=uuid.uuid4(), household_member_id=member_id, scheme_id=scheme.id,
+                folio_number=parsed_scheme.folio, arn_code=arn_code, plan_type=PlanType(plan_type),
+            )
+            db.add(new_folio)
+            db.flush()
+            folio_cache[cache_key] = new_folio
+
+    folio = folio_cache[cache_key]
+    return folio
+
+
 def _write_person_rows(
     db: Session,
     member: HouseholdMember,
@@ -729,88 +860,29 @@ def _write_person_rows(
     *,
     previews: dict[str, SchemeMatchPreview],
     key_to_temp: dict[SchemeKey, str],
+    opening_lots: dict[str, OpeningLot] | None = None,
+    statement_from: date | None = None,
 ) -> tuple[int, int]:
     """Get-or-create schemes and this member's folios, then add this person's
     transactions, de-duplicated. Returns (added, skipped). Validation already
     ran (_validate_schemes)."""
-    parsed_scheme_by_key = {(s.folio, s.amc, s.name): s for s in schemes}
-    member_id = member.id
     scheme_cache: dict[str, Scheme] = {}
     folio_cache: dict[tuple[uuid.UUID, uuid.UUID, str], Folio] = {}
     added_keys: set[tuple] = set()
     added = 0
     skipped = 0
 
+    folios_by_key = {}
+    for parsed_scheme in schemes:
+        temp_id = key_to_temp[parsed_scheme.key]
+        folio = _folio_for(db, member, parsed_scheme, previews[temp_id], confirmations.get(temp_id),
+                           scheme_cache, folio_cache)
+        folios_by_key[parsed_scheme.key] = folio
+        verdict = _apply_opening_rule(db, folio, (opening_lots or {}).get(temp_id), statement_from, import_rec)
+        if verdict in ("written", "replaced"):
+            added += 1
     for norm in txns:
-        temp_id = key_to_temp[(norm.folio, norm.amc, norm.scheme_name)]
-        preview = previews[temp_id]
-        override = confirmations.get(temp_id)
-
-        amfi_code = (override.amfi_code if override and override.amfi_code else None) or preview.suggested_amfi_code
-
-        if amfi_code not in scheme_cache:
-            existing = db.query(Scheme).filter_by(amfi_code=amfi_code).first()
-            if existing:
-                scheme_cache[amfi_code] = existing
-            else:
-                parsed_scheme = parsed_scheme_by_key.get((norm.folio, norm.amc, norm.scheme_name))
-                plan_name_variant = parsed_scheme.plan_name_variant if parsed_scheme else None
-
-                # DATA-001: when an override's amfi_code is genuinely
-                # different from what CAS parsing implies, the persisted
-                # Scheme.name must describe THAT code, not blindly carry over
-                # the original CAS-parsed name — otherwise a legitimate
-                # manual correction still produces a Scheme row whose name
-                # doesn't match its own amfi_code.
-                scheme_name = norm.scheme_name
-                if override and override.amfi_code:
-                    scheme_list = mfapi_client.cached_scheme_list()
-                    canonical_name = (
-                        mfapi_client.canonical_name_for_code(override.amfi_code, scheme_list)
-                        if scheme_list is not None
-                        else None
-                    )
-                    if canonical_name is not None:
-                        similarity = SequenceMatcher(
-                            None, normalize_name(norm.scheme_name), normalize_name(canonical_name)
-                        ).ratio()
-                        if similarity < CONFIDENCE_THRESHOLD:
-                            scheme_name = canonical_name
-
-                new_scheme = Scheme(
-                    id=uuid.uuid4(), amfi_code=amfi_code, isin=norm.isin, name=scheme_name,
-                    amc_name=norm.amc, sebi_category=_resolve_category(preview.category, norm.scheme_type),
-                    plan_name_variant=PlanNameVariant(plan_name_variant) if plan_name_variant else None,
-                )
-                db.add(new_scheme)
-                db.flush()
-                scheme_cache[amfi_code] = new_scheme
-
-        scheme = scheme_cache[amfi_code]
-        cache_key = (member_id, scheme.id, norm.folio)
-        if cache_key not in folio_cache:
-            existing_folio = (
-                db.query(Folio)
-                .filter_by(household_member_id=member_id, scheme_id=scheme.id, folio_number=norm.folio)
-                .first()
-            )
-            if existing_folio:
-                folio_cache[cache_key] = existing_folio
-            else:
-                plan_type = (override.plan_type_override if override and override.plan_type_override else preview.plan_type)
-                arn_code = next(
-                    (s.arn_code for s in schemes if s.folio == norm.folio and s.amc == norm.amc and s.name == norm.scheme_name),
-                    None,
-                )
-                new_folio = Folio(
-                    id=uuid.uuid4(), household_member_id=member_id, scheme_id=scheme.id,
-                    folio_number=norm.folio, arn_code=arn_code, plan_type=PlanType(plan_type),
-                )
-                db.add(new_folio)
-                db.flush()
-                folio_cache[cache_key] = new_folio
-
-        folio = folio_cache[cache_key]
+        folio = folios_by_key[norm.key]
         dedupe_key = (folio.id, norm.txn_date, norm.amount, norm.units, norm.txn_type)
         # Session with autoflush=False (matches production, see db/session.py)
         # doesn't flush pending db.add()s before this query runs, so a DB
@@ -835,10 +907,53 @@ def _write_person_rows(
             Transaction(
                 id=uuid.uuid4(), folio_id=folio.id, import_id=import_rec.id, type=norm.txn_type,
                 date=norm.txn_date, amount=norm.amount, units=norm.units, nav=norm.nav,
-                raw_description=norm.description,
+                raw_description=norm.description, origin=TransactionOrigin.CAS_ROW,
             )
         )
         added_keys.add(dedupe_key)
         added += 1
 
     return added, skipped
+
+
+def _all_rows_exist(db, works, txns_of, previews, key_to_temp, overrides,
+                    opening_lots=None, statement_from=None) -> bool:
+    checked = 0
+    folios = {}
+    for w in works:
+        for key in w.scheme_keys:
+            cache_key = (w.member_id, key)
+            temp_id = key_to_temp[key]
+            if cache_key not in folios:
+                override = overrides.get(temp_id)
+                code = (override.amfi_code if override and override.amfi_code else None) or previews[temp_id].suggested_amfi_code
+                scheme = db.query(Scheme).filter_by(amfi_code=code).first()
+                folios[cache_key] = scheme and db.query(Folio).filter_by(
+                    household_member_id=w.member_id, scheme_id=scheme.id, folio_number=key[0]).first()
+            folio = folios[cache_key]
+            lot = (opening_lots or {}).get(temp_id)
+            if lot is not None and folio is None:
+                return False
+            if folio is not None and _apply_opening_rule(
+                db, folio, lot, statement_from, None, dry_run=True,
+            ) in ("written", "replaced", "removed"):
+                return False
+            for t in txns_of.get(key, []):
+                checked += 1
+                if folio is None or db.query(Transaction.id).filter_by(
+                        folio_id=folio.id, date=t.txn_date, amount=t.amount, units=t.units, type=t.txn_type).first() is None:
+                    return False
+    return checked > 0
+
+
+
+def _reject_changed_pans(db: Session, works: list[_PersonWork]) -> None:
+    """A concurrent PAN change wins over duplicate detection; read-only."""
+    for work in works:
+        if work.member_id is None or work.person is None or not work.person.pan:
+            continue
+        member = db.get(HouseholdMember, work.member_id)
+        if member is not None and not has_no_pan(member) and hash_pan(work.person.pan) not in (
+            member.pan_lookup_hash, member.detected_pan_hash,
+        ):
+            raise ConfirmInvalidError(f"{member.name} changed during this review. Upload the statement again.")

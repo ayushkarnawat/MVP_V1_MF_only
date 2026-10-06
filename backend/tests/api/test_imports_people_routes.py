@@ -913,8 +913,24 @@ def test_5b_two_sessions_linking_one_member_with_different_pans_second_is_refuse
         sessions.append(_post(client, h, prev["session_id"], "resolve-same-person",
                               {"person_key": sp["person_key"], "member_id": kavita_id, "same": True}).json())
     assert _confirm_raw(client, h, sessions[0]).status_code == 200
+    from app.models.imports import Import
+    db = _test_db()
+    before_count = db.query(Import).count()
+    def pan_state():
+        member = _member(kavita_id)
+        return tuple(getattr(member, name) for name in (
+            "pan_encrypted", "pan_lookup_hash", "pan_pending_until", "pan_source", "pan_verified_at",
+            "detected_pan_encrypted", "detected_pan_hash", "pan_conflict",
+        ))
+    before_pan = pan_state()
+    db.close()
     second = _confirm_raw(client, h, sessions[1])
     assert second.status_code == 422, second.text
+    assert second.json()["detail"]["code"] == "confirm_invalid"
+    db = _test_db()
+    assert db.query(Import).count() == before_count
+    db.close()
+    assert pan_state() == before_pan
     [k] = _kavita_rows(uid)
     assert k.pan_lookup_hash == hash_pan(KAVITA_PAN)
 
@@ -1042,3 +1058,40 @@ def test_resolve_name_uses_the_statement_name(client, tmp_path, body):
     assert resp.status_code == 200, resp.text
     member = _member(self_id)
     assert member.name == "ROHAN MEHTA" and member.name_source == MemberNameSource.CAS
+
+
+def _sample_parse_result():
+    return family_result([{"name": "Test Investor", "pan": "ABCDE1234F"}])
+
+def _confirm_body(preview):
+    return {"session_id": preview["session_id"], "people": [{"person_key": p["person_key"]} for p in preview["people"]]}
+
+def test_second_upload_of_same_statement_is_already_imported(client, tmp_path):
+    headers, member_id = _authed_headers_and_member(client, "+919800000301")
+    first = _parse(client, headers, member_id, _sample_parse_result(), tmp_path).json()
+    assert client.post("/imports/confirm", json=_confirm_body(first), headers=headers).status_code == 200
+    from app.models.imports import Import
+    from app.models.transaction import Transaction
+    from app.models.user import HouseholdMember
+    def counts():
+        db = _test_db()
+        try:
+            return (db.query(Import).count(), db.query(Transaction).count(), db.query(HouseholdMember).count())
+        finally:
+            db.close()
+    before = counts()
+    second = _parse(client, headers, member_id, _sample_parse_result(), tmp_path).json()
+    r = client.post("/imports/confirm", json=_confirm_body(second), headers=headers)
+    assert r.status_code == 409 and r.json()["detail"]["code"] == "already_imported"
+    assert counts() == before
+    assert _member(member_id).pan_pending_until is None
+    assert client.post("/imports/confirm", json=_confirm_body(second), headers=headers).status_code == 410
+
+
+def test_confirm_returns_real_parse_warnings(client, tmp_path):
+    headers, member_id = _authed_headers_and_member(client, "+919800000302")
+    result = _sample_parse_result()
+    result.parse_warnings = ["Balance mismatch for folio 1/1"]
+    preview = _parse(client, headers, member_id, result, tmp_path).json()
+    body = client.post("/imports/confirm", json=_confirm_body(preview), headers=headers).json()
+    assert body["warnings"] == ["Balance mismatch for folio 1/1"]

@@ -16,6 +16,8 @@ from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
+import httpx
+
 from sqlalchemy.orm import Session
 
 from app.models.enums import (
@@ -44,6 +46,8 @@ from app.services.import_.enrich import MfApiClient, mfapi_client
 from app.services.import_.lifecycle_service import SessionExpiredError
 from app.services.import_.name_match import InvalidPersonNameError, compare_names, validate_person_name
 from app.services.import_.parser import ParseResult, mask_pan
+from app.services.dashboard.nav import _fetch_nav_history
+from app.services.import_.opening_balance import price_opening_lot, apply_opening_cost_to_conversions
 from app.services.import_.people import ParsedPerson, folio_key
 from app.services.import_.people_resolution import (
     PersonPlan,
@@ -188,7 +192,7 @@ async def build_import_preview(
 
     for scheme, (match, status, category) in zip(parse_result.schemes, resolutions, strict=True):
         temp_id = uuid.uuid4().hex[:12]
-        key_to_temp[(scheme.folio, scheme.amc, scheme.name)] = temp_id
+        key_to_temp[scheme.key] = temp_id
 
         scheme_previews.append(
             SchemeMatchPreview(
@@ -200,8 +204,38 @@ async def build_import_preview(
                 transaction_count=scheme.transaction_count, plan_type=scheme.plan_type,
                 category=category or scheme.scheme_type,
                 person_key=scheme.person_key,
+                opening_units=str(scheme.open_units) if scheme.open_units > 0 else None,
             )
         )
+
+    opening_lots = {}
+    opening_schemes = [s for s in parse_result.schemes if s.open_units > 0]
+    if opening_schemes and parse_result.statement_from is None:
+        warning = "Statement start date not found; earlier holdings couldn’t be added."
+        if warning not in parse_result.parse_warnings:
+            parse_result.parse_warnings.append(warning)
+    elif opening_schemes:
+        async def fetch(scheme):
+            preview = next(p for p in scheme_previews if p.temp_id == key_to_temp[scheme.key])
+            if not preview.suggested_amfi_code:
+                return None
+            try:
+                return await _fetch_nav_history(preview.suggested_amfi_code)
+            except httpx.HTTPError:
+                return None
+
+        histories = await asyncio.gather(*(fetch(s) for s in opening_schemes))
+        for scheme, history in zip(opening_schemes, histories, strict=True):
+            txns = [t for t in parse_result.transactions if t.key == scheme.key]
+            lot = price_opening_lot(scheme, txns, parse_result.statement_from, history)
+            opening_lots[key_to_temp[scheme.key]] = lot
+            partners = {}
+            for index, row in enumerate(txns):
+                if row.conversion_from_opening and row.txn_type.value == "switch_out":
+                    partners[index] = next(t for t in parse_result.transactions
+                        if t.conversion_from_opening and t.txn_type.value == "switch_in"
+                        and t.amc == row.amc and t.txn_date == row.txn_date)
+            apply_opening_cost_to_conversions(lot, txns, partners)
 
     txn_previews = [
         TransactionPreview(
@@ -223,6 +257,7 @@ async def build_import_preview(
         "household_member_id": household_member_id, "user_id": user_id,
         "key_to_temp": key_to_temp,
         "scheme_previews": {s.temp_id: s for s in scheme_previews},
+        "opening_lots": opening_lots,
     }
 
     return ImportPreviewResponse(
@@ -616,7 +651,7 @@ def _preview_response(db: Session, session: dict[str, Any]) -> ImportPreviewResp
     declined: set[str] = session["same_person_declined"]
 
     def temp_id(s) -> str:
-        return key_to_temp[(s.folio, s.amc, s.name)]
+        return key_to_temp[s.key]
 
     previews: list[PersonPreview] = []
     notices: list[NameNotice] = []
