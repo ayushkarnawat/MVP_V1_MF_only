@@ -124,6 +124,10 @@ class TransactionType(str, enum.Enum):
     STAMP_DUTY = "stamp_duty"
     MISC = "misc"
     OPENING_BALANCE = "opening_balance"
+    REVERSAL = "reversal"
+    GIFT_IN = "gift_in"
+    GIFT_OUT = "gift_out"
+    BONUS = "bonus"
 
 
 class BenchmarkIndex(str, enum.Enum):

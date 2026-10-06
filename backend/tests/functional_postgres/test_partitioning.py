@@ -179,9 +179,9 @@ def test_enum_drift_values_are_writable_after_migration(postgres_url, monkeypatc
                 (scheme_id, "enum-test-001", "Enum Test Fund", "Test AMC", "Test Category"),
             )
             cur.execute(
-                "INSERT INTO folios (id, household_member_id, scheme_id, folio_number, plan_type) "
-                "VALUES (%s, %s, %s, %s, %s)",
-                (folio_id, member_id, scheme_id, "enum-test-folio", "unclassified"),
+                "INSERT INTO folios (id, household_member_id, scheme_id, folio_number, folio_key, plan_type) "
+                "VALUES (%s, %s, %s, %s, %s, %s)",
+                (folio_id, member_id, scheme_id, "enum-test-folio", "enum-test-folio", "unclassified"),
             )
 
             for import_id, status in zip(import_ids, new_import_statuses, strict=True):
@@ -332,3 +332,26 @@ def test_origin_column_exists_on_every_partition(postgres_url, monkeypatch):
                     "WHERE inhparent = 'transactions'::regclass")
         partitions = {r[0] for r in cur.fetchall()}
     assert tables >= {"transactions"} | partitions
+
+
+def test_0026_type_check_accepts_new_values_and_twins(postgres_url, monkeypatch):
+    import uuid
+    from datetime import datetime, timezone
+    monkeypatch.setenv("DATABASE_URL", postgres_url)
+    result = subprocess.run([sys.executable, "-m", "alembic", "upgrade", "head"],
+                            cwd=BACKEND_DIR, capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    user, member, scheme, folio, imp = [str(uuid.uuid4()) for _ in range(5)]
+    now = datetime.now(timezone.utc)
+    with psycopg2.connect(_psycopg2_url(postgres_url)) as conn, conn.cursor() as cur:
+        cur.execute("INSERT INTO users (id, phone_number, created_at) VALUES (%s,%s,%s)", (user, "+91" + uuid.uuid4().hex[:10], now))
+        cur.execute("INSERT INTO household_members (id,user_id,name,relationship,created_at,origin,name_source) VALUES (%s,%s,'A','self',%s,'onboarding','user_entered')", (member,user,now))
+        cur.execute("INSERT INTO schemes (id,amfi_code,name,amc_name,sebi_category) VALUES (%s,%s,'X','A','E')", (scheme,uuid.uuid4().hex[:12]))
+        cur.execute("INSERT INTO folios (id,household_member_id,scheme_id,folio_number,folio_key,plan_type,has_coverage_gap) VALUES (%s,%s,%s,'1/1','1/1','direct',false)", (folio,member,scheme))
+        cur.execute("INSERT INTO imports (id,household_member_id,status,uploaded_at) VALUES (%s,%s,'confirmed',%s)", (imp,member,now))
+        for occ in (1,2):
+            cur.execute("INSERT INTO transactions (id,date,folio_id,import_id,type,amount,units,nav,occurrence,origin) VALUES (gen_random_uuid(),'2021-01-05',%s,%s,'purchase_sip',1,1,1,%s,'cas_row')", (folio,imp,occ))
+        for ty in ("reversal","gift_in","gift_out","bonus"):
+            cur.execute("INSERT INTO transactions (id,date,folio_id,import_id,type,amount,units,nav,origin) VALUES (gen_random_uuid(),'2022-01-05',%s,%s,%s,1,1,1,'cas_row')", (folio,imp,ty))
+        cur.execute("SELECT COUNT(*) FROM transactions WHERE folio_id=%s", (folio,))
+        assert cur.fetchone()[0] == 6

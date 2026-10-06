@@ -11,5 +11,6 @@ from app.models import (  # noqa: F401
     reference,
     snapshot,
     transaction,
+    transaction_import,
     user,
 )

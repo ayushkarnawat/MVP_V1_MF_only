@@ -2,7 +2,7 @@ import uuid
 from datetime import date as date_
 from decimal import Decimal
 
-from sqlalchemy import ForeignKey, Numeric, PrimaryKeyConstraint, String, UniqueConstraint, Uuid
+from sqlalchemy import ForeignKey, Numeric, PrimaryKeyConstraint, SmallInteger, String, UniqueConstraint, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -17,12 +17,11 @@ class Transaction(Base):
     __tablename__ = "transactions"
     __table_args__ = (
         PrimaryKeyConstraint("id", "date"),
-        # Must stay in lockstep with migration 0002 (NEW_CONSTRAINT_NAME) and
-        # confirm_import's dedupe_key/filter_by — all three define the same
-        # 5-column dedupe identity.
+        # Occurrence separates genuine identical rows; keep in lockstep with
+        # migration 0026 and confirm_people's balance/occurrence matcher.
         UniqueConstraint(
-            "folio_id", "date", "amount", "units", "type",
-            name="uq_transactions_folio_date_amount_units_type",
+            "folio_id", "date", "amount", "units", "type", "occurrence",
+            name="uq_transactions_folio_date_amount_units_type_occ",
         ),
     )
 
@@ -41,3 +40,6 @@ class Transaction(Base):
         server_default=TransactionOrigin.CAS_ROW.value,
     )
     cost_source: Mapped[CostSource | None] = mapped_column(enum_column(CostSource))
+
+    balance_units: Mapped[Decimal | None] = mapped_column(Numeric(18, 3))
+    occurrence: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=1, server_default="1")

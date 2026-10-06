@@ -84,7 +84,7 @@ def test_transaction_dedupe_constraint_includes_type_after_upgrade(tmp_path, mon
         return set()
 
     conn = sqlite3.connect(db_path)
-    assert _unique_constraint_columns(conn) == {"folio_id", "date", "amount", "units", "type"}
+    assert _unique_constraint_columns(conn) == {"folio_id", "date", "amount", "units", "type", "occurrence"}
     conn.close()
 
     downgrade = subprocess.run(
@@ -909,3 +909,207 @@ def test_0025_adds_origin_and_cost_source_and_backfills_manual(tmp_path, monkeyp
     assert conn.execute("SELECT COUNT(*) FROM transactions WHERE id = 'cas-opening'").fetchone()[0] == 0
     assert conn.execute("SELECT COUNT(*) FROM transactions").fetchone()[0] == 2
     conn.close()
+
+
+def test_0026_twin_rows_allowed_with_occurrence(tmp_path, monkeypatch):
+    import sqlite3
+    db_path = tmp_path / "twins.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    assert _alembic("upgrade", "0025").returncode == 0
+    conn = sqlite3.connect(db_path)
+    ts = "2026-09-01 10:00:00.000000"
+    conn.execute("INSERT INTO users (id, phone_number, created_at) VALUES ('u1', '+919800002601', ?)", (ts,))
+    conn.execute("INSERT INTO household_members (id, user_id, name, relationship, created_at, origin, name_source)"
+                 " VALUES ('m1', 'u1', 'A', 'self', ?, 'onboarding', 'user_entered')", (ts,))
+    conn.execute("INSERT INTO schemes (id, amfi_code, name, amc_name, sebi_category) VALUES ('s1', '1', 'X', 'A', 'E')")
+    conn.execute("INSERT INTO folios (id, household_member_id, scheme_id, folio_number, plan_type, has_coverage_gap)"
+                 " VALUES ('f1', 'm1', 's1', '1/1', 'direct', 0)")
+    conn.execute("INSERT INTO imports (id, household_member_id, status, uploaded_at) VALUES ('i1', 'm1', 'confirmed', ?)", (ts,))
+    conn.execute("INSERT INTO transactions (id, date, folio_id, import_id, type, amount, units, nav) "
+                 "VALUES ('t1', '2021-01-05', 'f1', 'i1', 'purchase_sip', 14999.25, 131.342, 114.2)")
+    conn.commit(); conn.close()
+
+    up = _alembic("upgrade", "0026")
+    assert up.returncode == 0, up.stderr
+    conn = sqlite3.connect(db_path)
+    assert conn.execute("SELECT occurrence, balance_units FROM transactions WHERE id='t1'").fetchone() == (1, None)
+    conn.execute("INSERT INTO transactions (id, date, folio_id, import_id, type, amount, units, nav, occurrence, origin) "
+                 "VALUES ('t2', '2021-01-05', 'f1', 'i1', 'purchase_sip', 14999.25, 131.342, 114.2, 2, 'cas_row')")
+    conn.commit()
+    with pytest.raises(sqlite3.IntegrityError):
+        conn.execute("INSERT INTO transactions (id, date, folio_id, import_id, type, amount, units, nav, occurrence, origin) "
+                     "VALUES ('t3', '2021-01-05', 'f1', 'i1', 'purchase_sip', 14999.25, 131.342, 114.2, 2, 'cas_row')")
+    conn.close()
+    down = _alembic("downgrade", "0025")
+    assert down.returncode == 0, down.stderr
+
+
+def test_0027_merges_duplicate_folios_without_duplicate_rows(tmp_path, monkeypatch):
+    """#4/#5: "4400918 / 3" and "4400918/3" become one folio; a row both
+    contain is kept once and keeps a link to each import that held it."""
+    import sqlite3
+    db_path = tmp_path / "folkey.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    assert _alembic("upgrade", "0026").returncode == 0
+    conn = sqlite3.connect(db_path)
+    ts = "2026-09-01 10:00:00.000000"
+    conn.execute("INSERT INTO users (id, phone_number, created_at) VALUES ('u1', '+919800002701', ?)", (ts,))
+    conn.execute("INSERT INTO household_members (id, user_id, name, relationship, created_at, origin, name_source)"
+                 " VALUES ('m1', 'u1', 'A', 'self', ?, 'onboarding', 'user_entered')", (ts,))
+    conn.execute("INSERT INTO schemes (id, amfi_code, name, amc_name, sebi_category) VALUES ('s1', '1', 'X', 'A', 'E')")
+    for fid, num in (("fa", "4400918 / 3"), ("fb", "4400918/3")):
+        conn.execute("INSERT INTO folios (id, household_member_id, scheme_id, folio_number, plan_type, has_coverage_gap)"
+                     " VALUES (?, 'm1', 's1', ?, 'regular', 0)", (fid, num))
+    for iid in ("i10", "ifY"):
+        conn.execute("INSERT INTO imports (id, household_member_id, status, uploaded_at) VALUES (?, 'm1', 'confirmed', ?)", (iid, ts))
+    ins = ("INSERT INTO transactions (id, date, folio_id, import_id, type, amount, units, nav, origin, occurrence)"
+           " VALUES (?, ?, ?, ?, 'purchase_sip', 1000, 10, 100, 'cas_row', 1)")
+    conn.execute(ins, ("t1", "2025-05-05", "fa", "i10"))
+    conn.execute(ins, ("t2", "2026-05-05", "fa", "i10"))
+    conn.execute(ins, ("t3", "2026-05-05", "fb", "ifY"))   # same row as t2
+    conn.execute(ins, ("t4", "2026-06-05", "fb", "ifY"))
+    conn.commit(); conn.close()
+
+    up = _alembic("upgrade", "0027")
+    assert up.returncode == 0, up.stderr
+    conn = sqlite3.connect(db_path)
+    folios = conn.execute("SELECT id, folio_key FROM folios").fetchall()
+    assert len(folios) == 1 and folios[0][1] == "4400918/3"
+    kept = folios[0][0]
+    rows = conn.execute("SELECT id, date FROM transactions WHERE folio_id = ? ORDER BY date", (kept,)).fetchall()
+    assert [r[1] for r in rows] == ["2025-05-05", "2026-05-05", "2026-06-05"]
+    links = conn.execute("SELECT transaction_id, import_id FROM transaction_imports").fetchall()
+    surviving_may = next(r[0] for r in rows if r[1] == "2026-05-05")
+    assert {i for t, i in links if t == surviving_may} == {"i10", "ifY"}
+    assert len(links) == 4
+    with pytest.raises(sqlite3.IntegrityError):   # new unique key on (member, scheme, folio_key)
+        conn.execute("INSERT INTO folios (id, household_member_id, scheme_id, folio_number, folio_key, plan_type, has_coverage_gap)"
+                     " VALUES ('fc', 'm1', 's1', '4400918  /3', '4400918/3', 'regular', 0)")
+    conn.close()
+    down = _alembic("downgrade", "0026")
+    assert down.returncode == 0, down.stderr
+
+
+def test_0027_merge_keeps_at_most_one_valid_cas_opening(tmp_path, monkeypatch):
+    """Review HIGH 2: the FY folio ("X / 1") holds a CAS opening at 2025-04-01;
+    the 10-year folio ("X/1") has real rows since 2016. After the merge the
+    FY opening must be gone (history before it exists); with two openings and
+    no earlier rows, only the earliest stays."""
+    import sqlite3
+    db_path = tmp_path / "openmerge.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    assert _alembic("upgrade", "0026").returncode == 0
+    conn = sqlite3.connect(db_path)
+    ts = "2026-09-01 10:00:00.000000"
+    conn.execute("INSERT INTO users (id, phone_number, created_at) VALUES ('u1', '+919800002702', ?)", (ts,))
+    conn.execute("INSERT INTO household_members (id, user_id, name, relationship, created_at, origin, name_source)"
+                 " VALUES ('m1', 'u1', 'A', 'self', ?, 'onboarding', 'user_entered')", (ts,))
+    conn.execute("INSERT INTO schemes (id, amfi_code, name, amc_name, sebi_category) VALUES ('s1', '1', 'X', 'A', 'E')")
+    conn.execute("INSERT INTO schemes (id, amfi_code, name, amc_name, sebi_category) VALUES ('s2', '2', 'Y', 'A', 'E')")
+    folios = (("fa", "s1", "X / 1"), ("fb", "s1", "X/1"), ("fc", "s2", "Y / 1"), ("fd", "s2", "Y/1"))
+    for fid, sid, num in folios:
+        conn.execute("INSERT INTO folios (id, household_member_id, scheme_id, folio_number, plan_type, has_coverage_gap)"
+                     " VALUES (?, 'm1', ?, ?, 'regular', 0)", (fid, sid, num))
+    conn.execute("INSERT INTO imports (id, household_member_id, status, uploaded_at) VALUES ('i1', 'm1', 'confirmed', ?)", (ts,))
+    ins = ("INSERT INTO transactions (id, date, folio_id, import_id, type, amount, units, nav, origin, occurrence)"
+           " VALUES (?, ?, ?, 'i1', ?, 1000, ?, 10, ?, 1)")
+    # scheme 1: FY opening (fa) + 10-year history (fb, more rows → kept)
+    conn.execute(ins, ("o1", "2025-04-01", "fa", "opening_balance", 100, "cas_opening"))
+    conn.execute(ins, ("r1", "2016-05-05", "fb", "purchase", 100, "cas_row"))
+    conn.execute(ins, ("r2", "2017-05-05", "fb", "purchase", 5, "cas_row"))
+    # scheme 2: two openings, no real rows before either → keep only the earliest
+    conn.execute(ins, ("o2", "2025-04-01", "fc", "opening_balance", 30, "cas_opening"))
+    conn.execute(ins, ("o3", "2021-04-01", "fd", "opening_balance", 20, "cas_opening"))
+    conn.execute(ins, ("r3", "2025-06-01", "fd", "purchase", 1, "cas_row"))
+    conn.commit(); conn.close()
+
+    up = _alembic("upgrade", "0027")
+    assert up.returncode == 0, up.stderr
+    conn = sqlite3.connect(db_path)
+    openings = conn.execute("SELECT t.id FROM transactions t WHERE t.origin = 'cas_opening'").fetchall()
+    assert [o[0] for o in openings] == ["o3"]
+    assert conn.execute("SELECT count(*) FROM transaction_imports WHERE transaction_id IN ('o1', 'o2')").fetchone()[0] == 0
+    conn.close()
+
+
+def test_0027_backfills_links_from_each_imports_stored_cas_output(tmp_path, monkeypatch):
+    """Review MEDIUM 3: before 0027 a row only remembered its first writer.
+    The FY import (written first) owns the FY-period rows; the 10-year import
+    uploaded later also contains them. 0027 must link those rows to the
+    10-year import too, so deleting FY afterwards keeps them."""
+    import json
+    import sqlite3
+    db_path = tmp_path / "linkfill.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    assert _alembic("upgrade", "0026").returncode == 0
+    conn = sqlite3.connect(db_path)
+    ts = "2026-09-01 10:00:00.000000"
+    conn.execute("INSERT INTO users (id, phone_number, created_at) VALUES ('u1', '+919800002703', ?)", (ts,))
+    conn.execute("INSERT INTO household_members (id, user_id, name, relationship, created_at, origin, name_source)"
+                 " VALUES ('m1', 'u1', 'A', 'self', ?, 'onboarding', 'user_entered')", (ts,))
+    conn.execute("INSERT INTO schemes (id, amfi_code, isin, name, amc_name, sebi_category)"
+                 " VALUES ('s1', '100', 'INF1', 'X Fund - Direct - Growth', 'A', 'E')")
+    conn.execute("INSERT INTO folios (id, household_member_id, scheme_id, folio_number, plan_type, has_coverage_gap)"
+                 " VALUES ('f1', 'm1', 's1', 'X / 1', 'direct', 0)")
+    raw = lambda: json.dumps({"folios": [{"folio": "X/1", "amc": "A", "schemes": [
+        {"scheme": "X Fund - Direct - Growth", "isin": "INF1", "amfi": "100"}]}]})
+    conn.execute("INSERT INTO imports (id, household_member_id, status, uploaded_at, raw_parser_output,"
+                 " statement_from_date, statement_to_date) VALUES ('ify', 'm1', 'confirmed', ?, ?, '2025-04-01', '2026-03-31')",
+                 (ts, raw()))
+    conn.execute("INSERT INTO imports (id, household_member_id, status, uploaded_at, raw_parser_output,"
+                 " statement_from_date, statement_to_date) VALUES ('i10', 'm1', 'confirmed', ?, ?, '2016-04-01', '2026-03-31')",
+                 (ts, raw()))
+    conn.execute("INSERT INTO imports (id, household_member_id, status, uploaded_at, raw_parser_output,"
+                 " statement_from_date, statement_to_date) VALUES ('iother', 'm1', 'confirmed', ?, ?, '2016-04-01', '2026-03-31')",
+                 (ts, json.dumps({"folios": [{"folio": "Z/9", "amc": "A", "schemes": []}]})))
+    ins = ("INSERT INTO transactions (id, date, folio_id, import_id, type, amount, units, nav, origin, occurrence)"
+           " VALUES (?, ?, 'f1', ?, 'purchase', 1000, 10, 100, ?, 1)")
+    conn.execute(ins, ("t_fy", "2025-06-01", "ify", "cas_row"))      # written by FY, also in the 10-year file
+    conn.execute(ins, ("t_old", "2018-06-01", "i10", "cas_row"))     # only in the 10-year file
+    conn.execute(ins, ("t_man", "2025-07-01", "ify", "manual"))      # manual rows aren't on any CAS
+    conn.commit(); conn.close()
+
+    up = _alembic("upgrade", "0027")
+    assert up.returncode == 0, up.stderr
+    conn = sqlite3.connect(db_path)
+    links = {}
+    for tid, iid in conn.execute("SELECT transaction_id, import_id FROM transaction_imports"):
+        links.setdefault(tid, set()).add(iid)
+    conn.close()
+    assert links["t_fy"] == {"ify", "i10"}
+    assert links["t_old"] == {"i10"}
+    assert links["t_man"] == {"ify"}
+
+
+def test_0027_backfill_skips_ambiguous_name_only_matches(tmp_path, monkeypatch):
+    """Review L1: two schemes in one folio key whose names normalise the same
+    (no isin/amfi to tell them apart) get no extra links from a name match."""
+    import json
+    import sqlite3
+    db_path = tmp_path / "ambig.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    assert _alembic("upgrade", "0026").returncode == 0
+    conn = sqlite3.connect(db_path)
+    ts = "2026-09-01 10:00:00.000000"
+    conn.execute("INSERT INTO users (id, phone_number, created_at) VALUES ('u1', '+919800002704', ?)", (ts,))
+    conn.execute("INSERT INTO household_members (id, user_id, name, relationship, created_at, origin, name_source)"
+                 " VALUES ('m1', 'u1', 'A', 'self', ?, 'onboarding', 'user_entered')", (ts,))
+    conn.execute("INSERT INTO schemes (id, amfi_code, name, amc_name, sebi_category) VALUES ('sg', '1', 'X Fund (Growth)', 'A', 'E')")
+    conn.execute("INSERT INTO schemes (id, amfi_code, name, amc_name, sebi_category) VALUES ('si', '2', 'X Fund (IDCW)', 'A', 'E')")
+    for fid, sid in (("fg", "sg"), ("fi", "si")):
+        conn.execute("INSERT INTO folios (id, household_member_id, scheme_id, folio_number, plan_type, has_coverage_gap)"
+                     " VALUES (?, 'm1', ?, 'X/1', 'direct', 0)", (fid, sid))
+    raw = json.dumps({"folios": [{"folio": "X/1", "amc": "A", "schemes": [{"scheme": "X Fund (Growth)"}]}]})
+    for iid in ("i1", "i2"):
+        conn.execute("INSERT INTO imports (id, household_member_id, status, uploaded_at, raw_parser_output,"
+                     " statement_from_date, statement_to_date) VALUES (?, 'm1', 'confirmed', ?, ?, '2020-01-01', '2026-01-01')",
+                     (iid, ts, raw))
+    conn.execute("INSERT INTO transactions (id, date, folio_id, import_id, type, amount, units, nav, origin, occurrence)"
+                 " VALUES ('ti', '2021-01-01', 'fi', 'i1', 'purchase', 1, 1, 1, 'cas_row', 1)")
+    conn.commit(); conn.close()
+    up = _alembic("upgrade", "0027")
+    assert up.returncode == 0, up.stderr
+    conn = sqlite3.connect(db_path)
+    assert {r[0] for r in conn.execute("SELECT import_id FROM transaction_imports WHERE transaction_id = 'ti'")} == {"i1"}
+    conn.close()
+
