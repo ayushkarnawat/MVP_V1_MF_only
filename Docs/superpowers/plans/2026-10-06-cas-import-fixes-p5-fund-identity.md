@@ -14,6 +14,26 @@
 
 **Spec:** `Docs/investigations/2026-10-05-cas-import-fix-plan-final.html` #7 and #8 (the "Is a daily scheme master actually correct and required?" analysis; option D decided 6 Oct; closed funds decided 5 Oct). Master index Global Constraints apply.
 
+## Changes since this plan was written (2026-10-06, read first; binding)
+
+Phases 3–4 changed interfaces this plan touches. Where a step below conflicts with this block, this block wins:
+1. **Folios are found by `folio_key`.** `confirm_people._folio_for` already looks folios up by `normalise_folio_key(parsed_scheme.folio)`. Task 4's closed-fund scheme creation must keep going through `_folio_for` (it creates the folio with `folio_key`) and must not query by `folio_number`.
+2. **`_all_rows_exist` and `_folio_for` look the Scheme up by `amfi_code`.** A closed CAS-only fund has `amfi_code = NULL`, so Task 4 must resolve the scheme from the session's `Identification` in **both** places: `scheme_id`, or the CAS-only lookup by `(isin, source=cas_only)` / `(name, amc_name, source=cas_only)`. Otherwise "already imported" and folio creation break for closed funds. Add a test: re-uploading a statement whose only fund is a closed fund raises `AlreadyImportedError`, and adds no duplicate scheme or folio.
+3. **Rows are matched with `_match_rows` and linked in `transaction_imports`.** Nothing in this phase may write transactions any other way.
+4. **Lot arithmetic only via `app/services/lot_rules.py`.**
+5. **Migration number:** this phase's migration is `0028_scheme_master_and_plan_verified` with `down_revision = "0027"` (unchanged from the index).
+6. **Test helpers that exist now** (`backend/tests/services/import_/test_confirm_people.py`):
+   - `_solo(open_units=…, start=…, cost=…, rows=[(date, units[, balance])])` builds a one-fund `ParseResult` with a casparser-shaped `raw_json`.
+   - `_upload(db, me, result)` patches `app.services.import_.service._fetch_nav_history` and confirms.
+
+   If identification uses a different NAV-fetch seam, keep that patch target working, or update `_upload` in one place.
+7. **Carry-overs 5 and 7 are acceptance criteria for this phase.** In Task 3 add identification tests for:
+   - **Franklin:** a main fund `INF090I01HG7`/`118530` and its segregated portfolio `INF090I01UD7`/`147989` under one folio must resolve to **two different schemes**; the segregated one is a master row if NAVAll has it, otherwise a closed/CAS-only fund.
+   - **Unifund:** a fund with an ISIN not in the master and 0 units must import as a closed fund under its CAS name, never matched to another AMC's scheme.
+
+   The Task 5 checkpoint must show both `kfin_pk_10yr` Franklin rows and the p20 Unifund row as `match` (or the Unifund row as a correctly-named closed fund with 0 units both sides).
+8. **Postgres is mandatory** for Task 1 and Task 5 (see the handoff doc's carry-over 6).
+
 ## Global Constraints
 
 See the master index. Additionally:
