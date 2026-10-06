@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Analytics PDF — Visual Map · Unifolio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,500&family=Manrope:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #f7f6f3;
+    --surface: #ffffff;
+    --ink: #1c1b19;
+    --muted: #6b6760;
+    --border: #e4e0d8;
+    --accent: #1d6f5c;
+    --accent-ink: #ffffff;
+    --warn: #8a4b06;
+    --warn-bg: #fdf1dd;
+    --good: #156b3a;
+    --good-bg: #e4f5e9;
+    --bad: #9f2a2a;
+    --bad-bg: #fbe8e6;
+    --new: #0f5f72;
+    --new-bg: #e2f3f6;
+    --code-bg: #f1efe9;
+    --diagram-bg: #fbfaf7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #15140f;
+      --surface: #1e1d18;
+      --ink: #efece3;
+      --muted: #a39d8f;
+      --border: #332f26;
+      --accent: #4fc9ab;
+      --accent-ink: #0c1e18;
+      --warn: #e3a94a;
+      --warn-bg: #352407;
+      --good: #6bd99a;
+      --good-bg: #0f2a1a;
+      --bad: #ef8b85;
+      --bad-bg: #351212;
+      --new: #6fd7ec;
+      --new-bg: #0b2b32;
+      --code-bg: #26241c;
+      --diagram-bg: #1a1813;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "DM Sans", system-ui, sans-serif;
+    line-height: 1.55;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 48px 24px 96px; display: flex; flex-direction: column; gap: 56px; }
+  header { display: flex; flex-direction: column; gap: 10px; border-bottom: 1px solid var(--border); padding-bottom: 28px; }
+  .eyebrow { font-family: "JetBrains Mono", monospace; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+  h1 { font-family: "Manrope", sans-serif; font-weight: 800; font-size: 34px; margin: 0; letter-spacing: -.01em; }
+  .lede { color: var(--muted); max-width: 760px; font-size: 15.5px; }
+  nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  nav a {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 6px 12px;
+    text-decoration: none;
+  }
+  nav a:hover { border-color: var(--accent); color: var(--accent); }
+  section { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 20px; }
+  .section-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .eyebrow-num {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+    color: var(--accent-ink);
+    background: var(--accent);
+    border-radius: 6px;
+    padding: 3px 8px;
+  }
+  h2 { font-family: "Manrope", sans-serif; font-size: 22px; margin: 0; }
+  .section-head p { margin: 4px 0 0; color: var(--muted); font-size: 14px; max-width: 680px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12.5px; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .sw-built { background: var(--good); }
+  .sw-partial { background: var(--warn); }
+  .sw-missing { background: var(--bad); }
+  .sw-engine { background: var(--new); }
+  .diagram {
+    background: var(--diagram-bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    overflow-x: auto;
+  }
+  .callout { border: 1px solid var(--border); border-left: 4px solid var(--accent); background: var(--surface); border-radius: 10px; padding: 14px 16px; font-size: 14px; }
+  .callout.warn { border-left-color: var(--warn); background: var(--warn-bg); }
+  .callout.new { border-left-color: var(--new); background: var(--new-bg); }
+  .callout b { font-weight: 700; }
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+  .fact { border: 1px solid var(--border); background: var(--surface); border-radius: 12px; padding: 14px 16px; font-size: 13.5px; }
+  .fact .k { font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .fact .v { font-size: 15px; font-weight: 600; margin-top: 3px; }
+  .fact.new { border-color: var(--new); background: var(--new-bg); }
+  .fact.warn { border-color: var(--warn); background: var(--warn-bg); }
+  .tbl-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; background: var(--surface); }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { font-family: "JetBrains Mono", monospace; font-size: 11px; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); background: var(--code-bg); }
+  tr:last-child td { border-bottom: none; }
+  code { font-family: "JetBrains Mono", monospace; font-size: 12.5px; background: var(--code-bg); border-radius: 4px; padding: 1px 5px; }
+
+  /* attribute cards */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+  .card { border: 1px solid var(--border); background: var(--surface); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; }
+  .card-top { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid var(--border); }
+  .card-id { font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--muted); }
+  .status-pill { font-family: "JetBrains Mono", monospace; font-size: 10.5px; border-radius: 999px; padding: 3px 9px; font-weight: 600; }
+  .status-pill.built { background: var(--good-bg); color: var(--good); }
+  .status-pill.partial { background: var(--warn-bg); color: var(--warn); }
+  .status-pill.missing { background: var(--bad-bg); color: var(--bad); }
+  .card-body { padding: 14px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+  .card-title { font-weight: 700; font-size: 14.5px; }
+  .card-section { color: var(--muted); font-size: 11.5px; font-family: "JetBrains Mono", monospace; text-transform: uppercase; }
+  .mock { background: var(--code-bg); border: 1px dashed var(--border); border-radius: 10px; padding: 10px; font-size: 11.5px; color: var(--muted); }
+  .bar-row { display: flex; align-items: center; gap: 6px; margin: 4px 0; }
+  .bar-label { width: 72px; font-size: 10.5px; flex-shrink: 0; }
+  .bar-track { flex: 1; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; background: var(--accent); border-radius: 4px; }
+  .donut {
+    width: 64px; height: 64px; border-radius: 50%; margin: 0 auto;
+    background: conic-gradient(var(--accent) 0% 39%, #c9a94f 39% 74%, #8a6fd4 74% 96%, var(--border) 96% 100%);
+    position: relative;
+  }
+  .donut::after { content: ""; position: absolute; inset: 14px; border-radius: 50%; background: var(--code-bg); }
+  .heat { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; }
+  .heat div { aspect-ratio: 1; border-radius: 2px; }
+  .card-foot { padding: 10px 14px; border-top: 1px solid var(--border); font-size: 11.5px; color: var(--muted); }
+  .dep { font-family: "JetBrains Mono", monospace; font-size: 10.5px; color: var(--new); }
+
+  footer { border-top: 1px solid var(--border); padding-top: 24px; font-size: 13px; color: var(--muted); }
+  footer a { color: var(--accent); }
+  .mermaid { font-family: "DM Sans", sans-serif !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Unifolio · Orchestration · 2026-10-06</div>
+  <h1>Analytics PDF — Visual Map</h1>
+  <p class="lede">
+    One picture of how the stakeholder Analytics Requirements PDF's 15 attributes connect to
+    today's codebase: data flow, database schema (existing vs. proposed), dashboard structure,
+    and a build-status card per attribute with a lightweight mockup of its intended look. Pairs
+    with the prose companion,
+    <code>2026-10-06-analytics-pdf-deep-understanding.md</code>, and the scorecard,
+    <code>2026-10-06-analytics-pdf-attribute-gap-analysis.md</code>.
+  </p>
+  <nav>
+    <a href="#flow">Data flow</a>
+    <a href="#schema">Schema</a>
+    <a href="#dashboard">Dashboard structure</a>
+    <a href="#cards">Attribute cards</a>
+    <a href="#conflicts">Open conflicts</a>
+  </nav>
+</header>
+
+<section id="flow">
+  <div class="section-head">
+    <span class="eyebrow-num">01</span>
+    <div>
+      <h2>End-to-end data flow</h2>
+      <p>Where each attribute's inputs come from today, what's genuinely new, and the one shared
+      engine (section 00 of the PDF) that most of the new attributes read from instead of each
+      computing their own version of "what does this client hold."</p>
+    </div>
+  </div>
+  <div class="legend">
+    <span><i class="sw-built"></i> Already ingested / built</span>
+    <span><i class="sw-missing"></i> Net-new ingestion or computation required</span>
+    <span><i class="sw-engine"></i> Shared look-through engine (not yet built)</span>
+    <span><i class="sw-partial"></i> Built, but on a conflicting formula/data basis</span>
+  </div>
+  <div class="diagram">
+    <pre class="mermaid">
+flowchart TB
+    subgraph EXIST["Already ingested today"]
+      direction TB
+      AMFI_NAV["AMFI daily NAV file"] --> NAVH[("nav_history")]
+      AMFI_TER["AMFI TER disclosures"] --> TERT[("scheme_ter")]
+      AMFI_AAUM["AMFI AAUM disclosures"] --> AAUMT[("scheme_aaum")]
+      NSE_IDX["NSE/BSE index data — price return"] --> BENCHT[("benchmark_index_history")]
+      RTA["CAMS / KFintech CAS statements"] --> TXN[("transactions, folios")]
+    end
+
+    subgraph NEEDED["Net-new ingestion this PDF requires"]
+      direction TB
+      AMC_DISC["40+ AMC monthly portfolio disclosures<br/>no single aggregated feed"] --> FH[("fund_holdings — NEW")]
+      AMFI_CAP["AMFI half-yearly market-cap list"] --> MCC[("market_cap_classification — NEW")]
+      STOCK_VENDOR["Stock P/E, P/B, sector<br/>OPEN: free in-house source TBD"] --> SM[("stock_master — NEW")]
+      FACTSHEETS["Scheme factsheets / SID"] --> FM[("fund_managers — NEW")]
+      ADMIN["Admin-curated scenario dates"] --> SCN[("scenario_events — NEW")]
+    end
+
+    FH --> ENGINE{{"00 · Look-through engine<br/>Σ(fund weight × stock weight)<br/>NOT YET BUILT"}}
+    TXN --> ENGINE
+    MCC --> ENGINE
+
+    ENGINE --> A02["02 Cap allocation"]
+    ENGINE --> A06["06 Stock holdings"]
+    ENGINE --> A10["10 Overlap"]
+    ENGINE --> A13["13 Asset allocation"]
+    ENGINE --> A15["15 P/E, P/B"]
+    SM --> A15
+
+    TXN --> A01["01 XIRR"]
+    TXN --> A14["14 Invest / withdraw"]
+    TERT --> A07["07 Portfolio TER"]
+    NAVH --> A08["08 Category comparison"]
+    NAVH --> A09["09 Fund ranking"]
+    NAVH --> A11["11 Drawdown scenarios"]
+    BENCHT --> A12["12 Benchmark comparison"]
+    FM --> A04["04 Manager allocation"]
+    SCN --> A11
+
+    classDef built fill:#DCFCE7,stroke:#15803D,color:#111
+    classDef partial fill:#FEF3C7,stroke:#B45309,color:#111
+    classDef missing fill:#FEE4E2,stroke:#B42318,color:#111
+    classDef engine fill:#CCFBF1,stroke:#0F766E,color:#111,stroke-width:2px
+    class A01,A07,A08 built
+    class A09,A12,A14 partial
+    class A02,A06,A10,A13,A15,A04,A11 missing
+    class ENGINE engine
+    </pre>
+  </div>
+  <div class="callout new">
+    <b>Why section 00 is one box, not six:</b> the PDF explicitly asks for the look-through
+    calculation — <code>Σ (fund weight in portfolio × security weight in that fund)</code> — to be
+    built once as a shared service. Attributes 02, 06, 10, 13 and 15 are different slices/filters
+    of the same per-client stock table, not five separate computations.
+  </div>
+</section>
+
+<section id="schema">
+  <div class="section-head">
+    <span class="eyebrow-num">02</span>
+    <div>
+      <h2>Schema — existing vs. proposed</h2>
+      <p>Real table names/columns from <code>Docs/PRDs/Database-Schema-Unifolio.md</code>, with
+      five proposed new tables for the look-through engine and two smaller attribute-specific
+      tables. Nothing here is fabricated as "existing" — anything labelled NEW does not exist in
+      the codebase today.</p>
+    </div>
+  </div>
+  <div class="legend">
+    <span><i class="sw-built"></i> Existing table</span>
+    <span><i class="sw-missing"></i> Proposed new table</span>
+  </div>
+  <div class="diagram">
+    <pre class="mermaid">
+erDiagram
+    SCHEMES ||--o{ FOLIOS : "held via"
+    FOLIOS ||--o{ TRANSACTIONS : "has"
+    SCHEMES ||--o{ NAV_HISTORY : "priced by"
+    SCHEMES ||--o{ SCHEME_TER : "disclosed TER"
+    SCHEMES ||--o{ SCHEME_AAUM : "disclosed AAUM"
+    SCHEMES ||--o{ FUND_HOLDINGS : "discloses"
+    FUND_HOLDINGS }o--|| STOCK_MASTER : "references ISIN"
+    STOCK_MASTER ||--o{ MARKET_CAP_CLASSIFICATION : "ranked by"
+    SCHEMES ||--o{ FUND_MANAGERS : "managed by"
+
+    SCHEMES {
+      uuid id PK
+      string amfi_code
+      string isin
+      string name
+      string amc_name
+      string sebi_category
+      string plan_name_variant
+    }
+    FOLIOS {
+      uuid id PK
+      uuid household_member_id FK
+      uuid scheme_id FK
+      string folio_number
+      string arn_code
+      string plan_type
+      bool has_coverage_gap
+    }
+    TRANSACTIONS {
+      uuid id PK
+      uuid folio_id FK
+      uuid import_id FK
+      enum type
+      date date
+      decimal amount
+      decimal units
+      decimal nav
+    }
+    NAV_HISTORY {
+      uuid scheme_id FK
+      date date
+      decimal nav
+    }
+    SCHEME_TER {
+      uuid scheme_id FK
+      string reference_period
+      decimal ter_value
+    }
+    SCHEME_AAUM {
+      uuid scheme_id FK
+      string reference_period
+      decimal aaum_value
+    }
+    FUND_HOLDINGS {
+      uuid scheme_id FK
+      string isin
+      date disclosure_date
+      decimal weight_pct
+      decimal market_value
+      enum asset_type
+    }
+    STOCK_MASTER {
+      string isin PK
+      string name
+      string sector
+      decimal pe
+      decimal pb
+      date as_of_date
+    }
+    MARKET_CAP_CLASSIFICATION {
+      string isin FK
+      int rank
+      date effective_date
+    }
+    FUND_MANAGERS {
+      uuid scheme_id FK
+      string manager_name
+      string role
+      date start_date
+      date end_date
+    }
+    </pre>
+  </div>
+  <div class="facts">
+    <div class="fact"><div class="k">Existing, unchanged</div><div class="v">schemes · folios · transactions · nav_history · scheme_ter · scheme_aaum · benchmark_index_history · fund_scores</div></div>
+    <div class="fact new"><div class="k">New — look-through core</div><div class="v">fund_holdings · stock_master · market_cap_classification</div></div>
+    <div class="fact new"><div class="k">New — small, independent</div><div class="v">fund_managers (04) · scenario_events (11)</div></div>
+    <div class="fact warn"><div class="k">Match key</div><div class="v">ISIN only — never match securities by name across AMC disclosures</div></div>
+  </div>
+</section>
+
+<section id="dashboard">
+  <div class="section-head">
+    <span class="eyebrow-num">03</span>
+    <div>
+      <h2>PDF's recommended dashboard structure vs. today's frontend</h2>
+      <p>The PDF groups all 15 attributes into 5 sections plus global controls. Today's
+      <code>AnalyticsView.tsx</code> is a flatter list of sections — reorganizing the shell is a
+      small, low-risk frontend task independent of any new backend data.</p>
+    </div>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>PDF section</th><th>Attributes</th><th>Current frontend</th></tr>
+      <tr><td>1 · Portfolio Snapshot</td><td>01, 07, 15</td><td>XIRR on dashboard header + <code>TerSection.tsx</code>; no unified snapshot strip; no P/E·P/B</td></tr>
+      <tr><td>2 · Portfolio Composition</td><td>02, 03, 04, 05, 13</td><td><code>AllocationSection.tsx</code> covers 03/05 only (category/AMC toggle)</td></tr>
+      <tr><td>3 · Performance</td><td>01, 08, 09, 12</td><td><code>BenchmarkSection.tsx</code>, <code>CategoryRankingSection.tsx</code>, <code>ScorerSection.tsx</code> / <code>FundScoreCard.tsx</code></td></tr>
+      <tr><td>4 · Risk &amp; Concentration</td><td>10, 11</td><td>nothing built</td></tr>
+      <tr><td>5 · Cash Flow &amp; Behaviour</td><td>14</td><td>unconfirmed — may live on Main Dashboard (PRD-03) instead</td></tr>
+      <tr><td>+ Global controls</td><td>date range, family/PAN filter, actual-vs-back-tested toggle, PDF export</td><td><code>pdf_export.py</code> exists; family/PAN filtering exists elsewhere; actual-vs-back-tested toggle is new</td></tr>
+    </table>
+  </div>
+</section>
+
+<section id="cards">
+  <div class="section-head">
+    <span class="eyebrow-num">04</span>
+    <div>
+      <h2>Attribute cards — status + mockup</h2>
+      <p>All 15 PDF attributes (plus 00, the engine). Each card: build status today, a
+      lightweight CSS sketch of the PDF's "how to show it" visual, its look-through dependency,
+      and the current codebase location if one exists.</p>
+    </div>
+  </div>
+  <div class="legend">
+    <span><i class="sw-built"></i> Built, matches spec</span>
+    <span><i class="sw-partial"></i> Built, conflicting formula/data</span>
+    <span><i class="sw-missing"></i> Not built</span>
+  </div>
+
+  <div class="card-grid">
+
+    <div class="card">
+      <div class="card-top"><span class="card-id">00</span><span class="status-pill missing">not built</span></div>
+      <div class="card-body">
+        <div class="card-title">Look-through engine</div>
+        <div class="card-section">foundation — not a dashboard widget</div>
+        <div class="mock">Σ (fund weight × stock weight) → one shared per-client stock table, consumed by 02/06/10/13/15</div>
+      </div>
+      <div class="card-foot">Dependency: <span class="dep">needs fund_holdings + market_cap_classification</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-top"><span class="card-id">01 · Snapshot</span><span class="status-pill built">built</span></div>
+      <div class="card-body">
+        <div class="card-title">Portfolio XIRR</div>
+        <div class="card-section">how to show it</div>
+        <div class="mock">Big number tile: <b>6.64% XIRR</b> vs ₹30,000 absolute gain (20.0%) — annotated "time-weighted, not simple return"</div>
+      </div>
+      <div class="card-foot"><code>xirr.py</code> · Newton-Raphson, pooled cash flows</div>
+    </div>
+
+    <div class="card">
+      <div class="card-top"><span class="card-id">02 · Composition</span><span class="status-pill missing">not built</span></div>
+      <div class="card-body">
+        <div class="card-title">Large / Mid / Small Cap</div>
+        <div class="card-section">how to show it</div>
+        <div class="donut"></div>
+        <div class="mock">Donut: Large 39% · Mid 35% · Small 22.5% · Other 3.5%, vs Nifty 500 comparison strip</div>
+      </div>
+      <div class="card-foot">Dependency: <span class="dep">look-through + AMFI cap list</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-top"><span class="card-id">03 · Composition</span><span class="status-pill built">built</span></div>
+      <div class="card-body">
+        <div class="card-title">AMC allocation</div>
+        <div class="card-section">how to show it</div>
+        <div class="bar-row"><span class="bar-label">SBI MF</span><div class="bar-track"><div class="bar-fill" style="width:25%"></div></div></div>
+        <div class="bar-row"><span class="bar-label">HDFC MF</span><div class="bar-track"><div class="bar-fill" style="width:20%"></div></div></div>
+        <div class="bar-row"><span class="bar-label">Others</span><div class="bar-track"><div class="bar-fill" style="width:22%"></div></div></div>
+      </div>
+      <div class="card-foot"><code>allocation.py</code>'s <code>by_amc</code> · <code>AllocationSection.tsx</code> toggle</div>
+    </div>
+
+    <div class="card">
+      <div class="card-top"><span class="card-id">04 · Composition</span><span class="status-pill missing">not built</span></div>
+      <div class="card-body">
+        <div class="card-title">Fund manager allocation</div>
+        <div class="card-section">how to show it</div>
+        <div class="bar-row"><span class="bar-label">Mgr A</span><div class="bar-track"><div class="bar-fill" style="width:55%;background:var(--bad)"></div></div></div>
+        <div class="bar-row"><span class="bar-label">Mgr B</span><div class="bar-track"><div class="bar-fill" style="width:35%"></div></div></div>
+        <div class="mock">Red bar past 25% concentration threshold; "Manager A runs 3 of 9 funds (28%)"</div>
+      </div>
+      <div class="card-foot">No look-through needed — <span class="dep">needs factsheet manager data only</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-top"><span class="card-id">05 · Composition</span><span class="status-pill built">built</span></div>
+      <div class="card-body">
+        <div class="card-title">Category allocation</div>
+        <div class="card-section">how to show it</div>
+        <div class="bar-row"><span class="bar-label">Flexi Cap</span><div class="bar-track"><div class="bar-fill" style="width:42%"></div></div></div>
+        <div class="bar-row"><span class="bar-label">Hybrid</span><div class="bar-track"><div class="bar-fill" style="width:18%"></div></div></div>
+      </div>
+      <div class="card-foot"><code>allocation.py</code>'s <code>by_category</code> · default tab</div>
+    </div>
+
+    <div class="card">
+      <div class="card-top"><span class="card-id">06 · Composition</span><span class="status-pill missing">not built</span></div>
+      <div class="card-body">
+        <div class="card-title">Overall stock holdings</div>
+        <div class="card-section">how to show it — "heart of the product"</div>
+        <div class="bar-row"><span class="bar-label">Reliance</span><div class="bar-track"><div class="bar-fill" style="width:65%"></div></div></div>
+        <div class="bar-row"><span class="bar-label">HDFC Bk</span><div class="bar-track"><div class="bar-fill" style="width:48%"></div></div></div>
+        <div class="mock">Stacked bars = contribution per fund; drill-down to fund list per stock</div>
+      </div>
+      <div class="card-foot">Dependency: <span class="dep">look-through engine, ISIN-matched</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-top"><span class="card-id">07 · Snapshot</span><span class="status-pill built">built</span></div>
+      <div class="card-body">
+        <div class="card-title">Total expense ratio</div>
+        <div class="card-section">how to show it</div>
+        <div class="mock">3 tiles: <b>1.20% TER</b> · <b>₹59,800/yr</b> · highest-cost fund — "already deducted from NAV daily"</div>
+      </div>
+      <div class="card-foot"><code>ter.py</code> + <code>amfi_ter_client.py</code> · AUM-weighted</div>
+    </div>
+
+    <div class="card">
+      <div class="card-top"><span class="card-id">08 · Performance</span><span class="status-pill built">built</span></div>
+      <div class="card-body">
+        <div class="card-title">Category average comparison</div>
+        <div class="card-section">how to show it</div>
+        <div class="mock">Fund row + category-average row underneath, green above / red below — flips for TER &amp; volatility (lower = green)</div>
+      </div>
+      <div class="card-foot">"Category ranking" — <code>category_ranking.py</code></div>
+    </div>
+
+    <div class="card">
+      <div class="card-top"><span class="card-id">09 · Performance</span><span class="status-pill partial">conflict</span></div>
+      <div class="card-body">
+        <div class="card-title">Mutual fund ranking</div>
+        <div class="card-section">how to show it</div>
+        <div class="mock">"2nd of 32 Large Cap funds · Score 67.5/100" + "How is this calculated?" transparency link</div>
+      </div>
+      <div class="card-foot">PDF: 5-factor 25/25/20/15/15 · Live Scorer v1: 45/30/25 + TER nudge · Scorer v2: 11-component (unbuilt)</div>
+    </div>
+
+    <div class="card">
+      <div class="card-top"><span class="card-id">10 · Risk</span><span class="status-pill missing">not built</span></div>
+      <div class="card-body">
+        <div class="card-title">Portfolio overlap</div>
+        <div class="card-section">how to show it</div>
+        <div class="heat">
+          <div style="background:var(--bad)"></div><div style="background:var(--warn)"></div><div style="background:var(--border)"></div><div style="background:var(--good-bg)"></div><div style="background:var(--border)"></div>
+          <div style="background:var(--warn)"></div><div style="background:var(--bad)"></div><div style="background:var(--warn)"></div><div style="background:var(--border)"></div><div style="background:var(--good-bg)"></div>
+        </div>
+        <div class="mock">Fund × fund heatmap, darker = more overlap (40%+ bold) + "top 10 stocks = 38% of portfolio"</div>
+      </div>
+      <div class="card-foot">Dependency: <span class="dep">reads same table as 06</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-top"><span class="card-id">11 · Risk</span><span class="status-pill missing">not built</span></div>
+      <div class="card-body">
+        <div class="card-title">Drawdown — scenario analysis</div>
+        <div class="card-section">how to show it</div>
+        <div class="mock">Value-of-₹100 line (portfolio vs Nifty), trough/recovery annotated + scenario table (COVID crash, rate hikes, FPI correction) · "Back-tested" tag</div>
+      </div>
+      <div class="card-foot">No look-through needed — <span class="dep">needs admin scenario_events table only</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-top"><span class="card-id">12 · Performance</span><span class="status-pill partial">conflict</span></div>
+      <div class="card-body">
+        <div class="card-title">Historical returns + benchmark</div>
+        <div class="card-section">how to show it</div>
+        <div class="mock">Bar chart, 1M–5Y + since-inception, visual style switches absolute → CAGR at the 1Y mark</div>
+      </div>
+      <div class="card-foot">PDF wants TRI; live uses price-return NSE indices, labelled "(Price Return)" — see <code>tri-benchmark-deferred-plan.md</code></div>
+    </div>
+
+    <div class="card">
+      <div class="card-top"><span class="card-id">13 · Composition</span><span class="status-pill missing">not built</span></div>
+      <div class="card-body">
+        <div class="card-title">Asset allocation (look-through)</div>
+        <div class="card-section">how to show it</div>
+        <div class="donut"></div>
+        <div class="mock">Two-ring donut: inner = asset class (Equity/Debt/Gold/Cash), outer = equity cap split — entry point into attribute 02</div>
+      </div>
+      <div class="card-foot">Dependency: <span class="dep">look-through, incl. non-equity line items</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-top"><span class="card-id">14 · Cash Flow</span><span class="status-pill partial">partial</span></div>
+      <div class="card-body">
+        <div class="card-title">Investment &amp; withdrawal analysis</div>
+        <div class="card-section">how to show it</div>
+        <div class="mock">5 tiles (invested / withdrawn / net / current / gain) + monthly bar chart with net-investment overlay + SIP tracker</div>
+      </div>
+      <div class="card-foot"><code>transactions</code> type enum already matches PDF's classification table — dedicated screen unconfirmed</div>
+    </div>
+
+    <div class="card">
+      <div class="card-top"><span class="card-id">15 · Snapshot</span><span class="status-pill missing">not built</span></div>
+      <div class="card-body">
+        <div class="card-title">Portfolio P/E and P/B</div>
+        <div class="card-section">how to show it</div>
+        <div class="bar-row"><span class="bar-label">Portfolio</span><div class="bar-track"><div class="bar-fill" style="width:75%"></div></div></div>
+        <div class="bar-row"><span class="bar-label">Nifty 50</span><div class="bar-track"><div class="bar-fill" style="width:68%"></div></div></div>
+        <div class="mock">"~10% more expensive on earnings than Nifty 50" — harmonic-mean P/E, excludes loss-makers</div>
+      </div>
+      <div class="card-foot">Dependency: <span class="dep">look-through + per-stock P/E·P/B source (open question)</span></div>
+    </div>
+
+  </div>
+</section>
+
+<section id="conflicts">
+  <div class="section-head">
+    <span class="eyebrow-num">05</span>
+    <div>
+      <h2>Open conflicts (not resolved in this doc)</h2>
+      <p>Carried from the scorecard doc, shown here against the diagram for context. Resolution
+      happens after both visual artifacts are reviewed.</p>
+    </div>
+  </div>
+  <div class="facts">
+    <div class="fact warn"><div class="k">Ranking formula</div><div class="v">PDF's 5-factor 25/25/20/15/15 vs. live Scorer v1 (45/30/25 + TER nudge) vs. approved Scorer v2 (11-component, unbuilt)</div></div>
+    <div class="fact warn"><div class="k">Benchmark basis</div><div class="v">PDF assumes TRI; live ships price-return, labelled honestly — plus a different benchmark list (Nifty 50/500/BSE100/500 vs. live Nifty 50/500/LargeMidcap250/Midcap150)</div></div>
+    <div class="fact warn"><div class="k">Stock P/E · P/B · sector source</div><div class="v">PDF's own data-inputs table names an "exchange / market data vendor" — tension with the in-house-only rule</div></div>
+    <div class="fact"><div class="k">First spike candidate</div><div class="v">Survey AMC monthly portfolio-disclosure formats (40+ AMCs) before committing to the look-through engine's ingestion design</div></div>
+  </div>
+</section>
+
+<footer>
+  Companion docs: <code>Docs/orchestration/2026-10-06-analytics-pdf-deep-understanding.md</code>
+  (full per-attribute prose understanding) and
+  <code>Docs/orchestration/2026-10-06-analytics-pdf-attribute-gap-analysis.md</code> (scorecard +
+  open questions). Source spec: <code>Docs/Unifolio_MF_Portfolio_Analytics_Requirements.pdf</code>.
+</footer>
+
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script>
+  const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: isDark ? 'dark' : 'neutral',
+    themeVariables: {
+      fontFamily: 'DM Sans, sans-serif',
+      primaryColor: isDark ? '#1e1d18' : '#fbfaf7',
+      primaryBorderColor: isDark ? '#332f26' : '#e4e0d8',
+      lineColor: isDark ? '#a39d8f' : '#6b6760'
+    },
+    er: { useMaxWidth: true }
+  });
+</script>
+</body>
+</html>
