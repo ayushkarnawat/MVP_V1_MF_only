@@ -346,16 +346,15 @@ parameters → composite 67.5/100.
 bottom half of category shown red, scores 70+ green / 40-69 neutral / under 40 red, plus a "How
 is this calculated?" link exposing the exact weights used.
 
-**Codebase reality: 🟡 built, but a different formula — flagged as an open question in the
-companion gap-analysis doc, not silently resolved here.** Live Scorer v1 (`scorer.py`) uses
-`45% Return / 30% Downside-Risk / 25% Consistency` with a ±0.25 TER nudge and 5-tier bands — a
-genuinely different shape of formula (3 weighted buckets with a nudge, vs. this PDF's 5 flat
-weighted percentiles). The already-approved-but-unbuilt Scorer v2 is an 11-component formula,
-different again. All three exist on paper now. This PDF's version is noticeably *simpler* than
-either of the other two — worth figuring out whether that's because it's meant as an
-illustrative/example formula standing in for "whatever the real scorer is," or whether it's
-meant literally. Doesn't change that today's actual Scorer v1 would need to change its weighting
-shape entirely (not just its numbers) to match this PDF's formula literally.
+**Codebase reality: ⬜ not built — independent net-new feature, not a Scorer conflict (corrected
+2026-10-06).** This was originally mis-framed here as a three-way formula conflict against
+Scorer v1/v2. Confirmed by Ayush: this attribute's 5-factor formula is a separate, independent
+feature modeled on open peer-ranking methodology (AdvisorKhoj/MoneyControl-style), performance-
+driven and fund-vs-fund — it has nothing to do with the Scorer, which is Unifolio's own
+proprietary fund-quality score. Scorer v1 (`scorer.py`, live) is unaffected; Scorer v2
+(11-component, approved) stays on hold until all 11 components have real data, independent of
+this PDF. Build 09 net-new, literally on this formula — no reconciliation needed because there
+was never one formula to reconcile three ways. See `decisions.md`'s 2026-10-06 entry.
 
 ---
 
@@ -442,15 +441,20 @@ absolute, shown side by side to make the distinction concrete).
 styling (>1Y) within the same chart, so the viewer isn't misled into comparing an absolute number
 against an annualized one at a glance.
 
-**Codebase reality: 🟡 built, but on a different benchmark-return basis — flagged as an open
-question, not silently resolved.** `benchmark.py` + `nse_indices_client.py` + `BenchmarkSection.tsx`
-already compute this shape of comparison, but on **price-return** NSE index data, not TRI — a
-deliberate, documented decision (`tri-benchmark-deferred-plan.md`), shipped with an honest
-"(Price Return)" label rather than silently passing off a price index as a total-return one.
-This PDF treats TRI as a given input rather than an open feasibility question. The benchmark
-list also differs slightly: this PDF wants Nifty 50/500/BSE 100/BSE 500; the live benchmark
+**Codebase reality: 🟡 built on price-return; TRI sourcing now confirmed feasible, not yet
+built (resolved 2026-10-06).** `benchmark.py` + `nse_indices_client.py` + `BenchmarkSection.tsx`
+compute this shape of comparison on **price-return** NSE index data today, shipped with an honest
+"(Price Return)" label (`tri-benchmark-deferred-plan.md`'s 2026-08-19 deferral). Per Ayush's
+explicit request for "a complete deep dive," TRI sourcing was reopened and resolved: a free,
+reachable sibling NSE endpoint (`POST .../BackPage/getTotalReturnIndexString`) serves real TRI
+data for all 4 existing benchmark indices, live-verified including a historical economic-content
+spot-check — see `Docs/investigations/2026-10-06-tri-sourcing-feasibility-confirmed.md`. This is
+now a small, well-scoped build (a `series_type` schema field + a second fetch function mirroring
+the existing one), not an open feasibility question — **still open: whether to build it now as
+part of this PDF's work, or schedule it separately**, a sequencing call only. The benchmark list
+also still differs slightly: this PDF wants Nifty 50/500/BSE 100/BSE 500; the live benchmark
 mapping (per `decisions.md`) is Nifty 50/500/LargeMidcap250/Midcap150 — two different benchmark
-families, not just a TRI-vs-price difference.
+families, not just a TRI-vs-price difference, unaffected by the TRI resolution above.
 
 ---
 
@@ -507,16 +511,16 @@ current value / absolute gain), a monthly bar chart with a net-investment line o
 monthly/yearly, tap a bar for transactions), plus SIP analysis (active SIPs, total monthly SIP
 amount, missed instalments).
 
-**Codebase reality: 🟡 partially built, location/shape unconfirmed.** The existing `transactions`
-table already carries exactly the type enum needed (`purchase`, `purchase_sip`, `redemption`,
-`switch_in`, `switch_out`, `dividend_payout`, `dividend_reinvest`, per
-`Database-Schema-Unifolio.md`) — so the underlying data model already matches this PDF's
-classification table almost one-to-one. What's unconfirmed is whether a dedicated screen
-implementing *this exact* portfolio-vs-fund-level distinction (switches ignored at portfolio
-level, counted at fund level) exists on the Analytics dashboard specifically, versus living as a
-simpler cash-flow view on the Main Dashboard (PRD-03) without that distinction. Worth a direct
-code check before scoping, since this could be "already basically done, move it" or "needs real
-new logic," and those are very different amounts of work.
+**Codebase reality: 🟡 confirmed real gap, not just "location unconfirmed" (checked `cash_flow.py`
+directly, 2026-10-06).** The existing `transactions` table already carries exactly the type enum
+needed (`purchase`, `purchase_sip`, `redemption`, `switch_in`, `switch_out`, `dividend_payout`,
+`dividend_reinvest`, per `Database-Schema-Unifolio.md`) — so the underlying data model already
+matches this PDF's classification table almost one-to-one. But `cash_flow.py` (PRD-03, Main
+Dashboard) itself only tracks `purchase`/`purchase_sip` as debit and `redemption`/
+`dividend_payout` as credit — **switches are entirely excluded, not even at fund level** as this
+PDF's table requires, there is no SWP handling, no monthly/yearly roll-up, no SIP-miss tracking,
+and no 5-tile summary. This is a genuine new Analytics-section build against the PDF's exact
+classification table, not a relocation of already-correct logic.
 
 ---
 
@@ -587,12 +591,12 @@ flowchart TB
     ENGINE --> A15
 
     TXN --> A01["01 XIRR ✅"]
-    TXN --> A14["14 Invest/withdraw 🟡"]
+    TXN --> A14["14 Invest/withdraw 🟡 (confirmed gap)"]
     TERT --> A07["07 Portfolio TER ✅"]
     NAVH --> A08["08 Category comparison ✅"]
-    NAVH --> A09["09 Fund ranking 🟡 (formula conflict)"]
+    NAVH --> A09["09 Fund ranking ⬜ (net-new, own formula)"]
     NAVH --> A11["11 Drawdown scenarios ⬜"]
-    BENCHT --> A12["12 Benchmark comparison 🟡 (TRI conflict)"]
+    BENCHT --> A12["12 Benchmark comparison 🟡 (TRI feasible, unbuilt)"]
     FM --> A04["04 Manager allocation ⬜"]
     SCN --> A11
 

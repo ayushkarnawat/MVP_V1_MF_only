@@ -1,7 +1,9 @@
 # Analytics PDF × Current Codebase — Attribute-by-Attribute Gap Analysis
 
 **Date:** 2026-10-06
-**Status:** Understanding pass — no build decisions made yet, this is the input to planning
+**Status:** Understanding pass — four open questions below are now resolved (2026-10-06, see
+`decisions.md`'s "Analytics PDF open questions (4 of 4 answered)" entry); build-order planning
+itself has not started.
 **Source spec:** `Docs/Unifolio_MF_Portfolio_Analytics_Requirements.pdf` ("Mutual Fund Portfolio
 Analytics" PRD, v1.0, Sept 2026, stakeholder-authored) — **this is now the analytics build
 target**, superseding the scope (not necessarily every formula) of `Docs/PRD-04-MF-Analytics-Dashboard.md`
@@ -60,17 +62,17 @@ authors agree it should not be attempted first — but it does need to be built 
 | 06 | Overall stock holdings (look-through) | Σ(fund weight × stock weight), matched by ISIN | ⬜ Not built | — | **Yes** |
 | 07 | Total expense ratio — portfolio level | AUM-weighted TER across holdings | ✅ Built | `ter.py`, `amfi_ter_client.py`, `TerSection.tsx` | No |
 | 08 | Category average comparison | Fund metric vs. category average, like-for-like (Direct/Direct, Regular/Regular), sectoral vs. index | ✅ Built (as "category ranking") | `category_ranking.py`, `CategoryRankingSection.tsx` | No |
-| 09 | Mutual fund ranking | Peer rank + composite score: **0.25×3Y + 0.25×5Y + 0.20×cat-relative + 0.15×low-vol + 0.15×low-TER** | 🟡 Built differently — **formula conflict, see Open Questions** | `scorer.py` (Scorer v1: 45% Return / 30% Downside-Risk / 25% Consistency) | No |
+| 09 | Mutual fund ranking | Peer rank + composite score: **0.25×3Y + 0.25×5Y + 0.20×cat-relative + 0.15×low-vol + 0.15×low-TER** | ⬜ Not built — **independent net-new feature, not a Scorer conflict (resolved 2026-10-06)** | — (Scorer v1 lives at `scorer.py`, unrelated) | No |
 | 10 | Portfolio overlap | Σ min(weight in A, weight in B) per stock pair, matched by ISIN, symmetric | ⬜ Not built | — | **Yes** |
 | 11 | Drawdown — scenario analysis | Replay current holdings through historical crash windows; actual vs. back-tested modes | ⬜ Not built | — | No (needs NAV history + an admin-configurable scenario-date table, not stock-level data) |
-| 12 | Historical returns + benchmark comparison | Absolute (≤1Y) / CAGR (>1Y) vs. **TRI** benchmarks (Nifty 50/500, BSE 100/500) | 🟡 Built differently — **TRI conflict, see Open Questions** | `benchmark.py`, `nse_indices_client.py`, `BenchmarkSection.tsx` (currently price-return, honestly labeled) | No |
+| 12 | Historical returns + benchmark comparison | Absolute (≤1Y) / CAGR (>1Y) vs. **TRI** benchmarks (Nifty 50/500, BSE 100/500) | 🟡 Built on price-return — **TRI sourcing confirmed feasible 2026-10-06, implementation not started** | `benchmark.py`, `nse_indices_client.py`, `BenchmarkSection.tsx` (currently price-return, honestly labeled); TRI feasibility: `Docs/investigations/2026-10-06-tri-sourcing-feasibility-confirmed.md` | No |
 | 13 | Asset allocation within MF portfolio | Σ(fund weight × fund's % in equity/debt/gold/cash), from fund's actual portfolio not its category | ⬜ Not built | — | **Yes** (for the equity/debt/gold/cash split itself; category-level proxy is not what the PDF asks for) |
-| 14 | Investment & withdrawal analysis | Classify transactions (purchase/SIP=invest, redemption/SWP/IDCW=withdraw, switch/STP=ignore at portfolio level), monthly/yearly roll-up | 🟡 Partially built | Dashboard cash-flow views exist on PRD-03 (Main Dashboard); not confirmed as a dedicated Analytics-section screen with this exact classification table | No |
-| 15 | Portfolio P/E and P/B | Harmonic mean: `1 ÷ Σ(wᵢ ÷ P/Eᵢ)`, equity-only, loss-makers excluded | ⬜ Not built | — | **Yes**, plus a new data need: per-stock P/E and P/B (see Open Questions — this is the one PDF data input that explicitly names "market data vendor") |
+| 14 | Investment & withdrawal analysis | Classify transactions (purchase/SIP=invest, redemption/SWP/IDCW=withdraw, switch/STP=ignore at portfolio level), monthly/yearly roll-up | 🟡 Confirmed real gap (checked `cash_flow.py` directly, 2026-10-06) | `cash_flow.py` lives on PRD-03 (Main Dashboard): only purchase/SIP as debit, redemption/dividend as credit; switches entirely excluded (not even fund-level), no SWP handling, no monthly/yearly roll-up, no 5-tile summary | No |
+| 15 | Portfolio P/E and P/B | Harmonic mean: `1 ÷ Σ(wᵢ ÷ P/Eᵢ)`, equity-only, loss-makers excluded | ⬜ Not built | — | **Yes**, plus a new data need: per-stock P/E and P/B — **resolved 2026-10-06: build free in-house (NSE/BSE scraping + AMC factsheets), no paid vendor** |
 
-**Scorecard: 5 of 15 fully built as specified, 2 built but with a formula/data conflict against
-the PDF, 1 partially built on the wrong dashboard, 7 not built at all (6 of those 7 blocked on
-the look-through engine).**
+**Scorecard: 5 of 15 fully built as specified, 1 (12) built on price-return with TRI now a
+confirmed-feasible but unbuilt upgrade, 1 (14) confirmed as a real gap on the wrong dashboard, 8
+not built at all (6 of those 8 blocked on the look-through engine, 09 and 11 are not).**
 
 ---
 
@@ -94,18 +96,26 @@ the look-through engine).**
    Independent of the look-through engine (already built or buildable without it):
    01 XIRR ✅ · 03 AMC alloc ✅ · 04 Manager alloc (new data, no look-through) ·
    05 Category alloc ✅ · 07 TER ✅ · 08 Category comparison ✅ ·
-   09 Ranking (formula conflict only) · 11 Drawdown scenarios (NAV history only) ·
-   12 Benchmark (TRI-source conflict only) · 14 Investment/withdrawal (dashboard-boundary only)
+   09 Ranking (independent net-new, own 5-factor formula) · 11 Drawdown scenarios (NAV history only) ·
+   12 Benchmark (TRI sourcing confirmed feasible, build not started) · 14 Investment/withdrawal (dashboard-boundary, confirmed real gap)
 ```
 
 The practical read: **9 of the 15 attributes have nothing to do with the look-through engine.**
-Of those 9, 5 are done, 2 have a conflict to resolve (formula/TRI — small, discrete decisions),
-1 needs new but simple data (fund-manager names/roles), and 1 needs relocating/reshaping from
-PRD-03 to PRD-04. Only 6 attributes are genuinely blocked on the big infrastructure project.
+Of those 9, 5 are done, 1 (12) needs a small well-scoped TRI build, 1 (09) is a net-new feature on
+its own formula, 1 (04) needs new but simple data (fund-manager names/roles), 1 (11) is
+computation+UI only, and 1 (14) needs relocating/reshaping from PRD-03 to PRD-04. Only 6
+attributes are genuinely blocked on the big infrastructure project.
 
 ---
 
 ## 3. Synthesis — four buckets
+
+**Revised 2026-10-06:** bucket B (below) was originally framed as "three conflicts to resolve."
+All three are now resolved (see §4) and none turned out to be a real formula/data conflict —
+09 was a misreading (it was never in conflict with anything), 12 is a confirmed-feasible small
+build, and 14 is a confirmed real gap, not an unconfirmed one. Kept as its own bucket below since
+these three still aren't "done" or "straightforward new," but the bucket's old name/framing no
+longer applies.
 
 ### A. Already done, matches the PDF spec, don't redo
 - 01 Portfolio XIRR
@@ -114,20 +124,22 @@ PRD-03 to PRD-04. Only 6 attributes are genuinely blocked on the big infrastruct
 - 07 Total expense ratio (portfolio level)
 - 08 Category average comparison
 
-### B. Built, but needs rework to match this PDF exactly (conflicts to resolve first)
-- **09 Mutual fund ranking** — Scorer v1's formula (45/30/25) ≠ the PDF's formula (25/25/20/15/15)
-  ≠ the approved-but-unbuilt Scorer v2 (11-component). Three different formulas now exist across
-  three documents. Need a decision: does this PDF's formula replace Scorer v1 outright, get
-  reconciled with the already-approved Scorer v2, or is the PDF's version illustrative/simplified
-  and the real target is still Scorer v2?
-- **12 Historical returns + benchmark comparison** — PDF assumes TRI benchmark data is simply
-  available; `tri-benchmark-deferred-plan.md` already recorded that true TRI sourcing is an open
-  feasibility question (no confirmed free TRI feed), and price-return was shipped instead with
-  an honest label. This PDF either needs that feasibility question resolved first, or needs to
-  accept the same "(Price Return)" labeling it didn't ask for.
-- **14 Investment & withdrawal analysis** — exists but on the wrong dashboard (Main Dashboard /
-  PRD-03) with an unconfirmed transaction-classification match to the PDF's exact table. Needs
-  verification against PRD-03's actual implementation, not assumed as "build from scratch."
+### B. Resolved this session, each its own small scoped task (not conflicts)
+- **09 Mutual fund ranking** — **not a Scorer conflict.** Confirmed by Ayush: this is an
+  independent, open-methodology-inspired (AdvisorKhoj/MoneyControl-style) peer-ranking feature on
+  its own 5-factor formula (25/25/20/15/15), performance-driven, fund-vs-fund. The Scorer (v1 live,
+  v2 approved-but-on-hold pending all 11 components having real data) is a separate, unrelated
+  feature — no reconciliation needed. Build 09 net-new on the PDF's formula directly.
+- **12 Historical returns + benchmark comparison** — TRI sourcing reopened per Ayush's request for
+  a full deep dive, and resolved: a free, reachable sibling NSE endpoint serves real TRI data for
+  all 4 benchmark indices (`Docs/investigations/2026-10-06-tri-sourcing-feasibility-confirmed.md`).
+  Small, well-scoped build (schema `series_type` field + a second fetch function). **Still open:
+  implement now as part of this PDF's work, or schedule separately** — a sequencing call, not a
+  feasibility one.
+- **14 Investment & withdrawal analysis** — confirmed (by reading `cash_flow.py` directly) to be a
+  real gap, not just "unconfirmed": lives on PRD-03, excludes switches/SWP entirely, no monthly/
+  yearly roll-up, no 5-tile summary. Needs a genuine new Analytics-section build matching the PDF's
+  exact classification table, not a relocation of existing code.
 
 ### C. Net-new, no look-through dependency — straightforward adds
 - **04 Fund manager allocation** — needs a new data source (manager names/roles/tenure per
@@ -144,38 +156,39 @@ PRD-03 to PRD-04. Only 6 attributes are genuinely blocked on the big infrastruct
 - 06 Overall stock holdings
 - 10 Portfolio overlap
 - 13 Asset allocation within MF portfolio (equity/debt/gold/cash split)
-- 15 Portfolio P/E and P/B
+- 15 Portfolio P/E and P/B — stock-level P/E, P/B source resolved: free in-house NSE/BSE
+  scraping + AMC factsheets, no paid vendor (see §4)
 
 ---
 
-## 4. Open questions before planning (need your call, not silently resolved)
+## 4. Open questions — all 4 answered 2026-10-06
 
-1. **Ranking formula (09):** which of the three formulas (PDF's 5-factor, live Scorer v1, approved
-   Scorer v2) is the actual target? This affects whether 09 is "done," "needs a tweak," or "needs
-   the whole Scorer v2 project."
-2. **TRI sourcing (12):** does adopting this PDF mean committing to solving true TRI sourcing now
-   (revisiting `tri-benchmark-deferred-plan.md`'s feasibility question), or is price-return with
-   labeling still acceptable and the PDF's "use TRI" line is aspirational?
-3. **Stock-level P/E, P/B, sector data (15, and feeds 06's sector cut):** the PDF's own data-inputs
-   table names "Exchange / market data vendor" as the source for this — which is precisely the kind
-   of paid third-party feed the in-house-only rule rules out. Free alternatives exist (scrape
-   NSE/BSE company-fundamentals pages, parse data out of AMC-published factsheets, or build P/E
-   from raw financials) but all are more engineering work than a vendor API, and accuracy/upkeep
-   risk is real for a product whose stated bar (per `Analytics-Dashboard-Formula-Implementation-Review.md`)
-   is "100% accuracy." This is the one spot where "in-house, no external APIs" and "build this PDF
-   attribute" are in the most tension — worth deciding the acceptable approach before scoping 15.
-4. **Portfolio-disclosure ingestion format survey:** per the existing feasibility doc, this should
-   be the first spike regardless of which attributes get prioritized, since it's the piece "most
-   likely to blow up in scope" (40+ AMCs, inconsistent monthly PDF/Excel formats, no single
-   aggregated public feed). Worth doing before committing to a build order for bucket D.
+Full record: `decisions.md`'s "2026-10-06 — Analytics PDF open questions (4 of 4 answered)" entry.
+
+1. **Ranking formula (09) — answered.** Not a three-way conflict; the PDF's formula is 09's own,
+   independent of Scorer v1/v2 entirely. Build it as-is.
+2. **TRI sourcing (12) — answered.** Reopened per explicit request, deep-dive investigation done,
+   confirmed free and reachable. `Docs/investigations/2026-10-06-tri-sourcing-feasibility-confirmed.md`.
+   Sequencing (now vs. separate ticket) still open.
+3. **Stock-level P/E, P/B, sector data (15, and feeds 06's sector cut) — answered.** Build free
+   in-house (NSE/BSE scraping, AMC factsheets), accepting the extra engineering/upkeep cost to stay
+   within the in-house-only rule. No paid vendor exception.
+4. **Portfolio-disclosure ingestion format survey — answered, started.** First-pass spike complete:
+   `Docs/investigations/2026-10-06-amc-portfolio-disclosure-format-survey.md`. Headline finding:
+   it's a SEBI-prescribed format (ISIN, Industry, Quantity, Market Value, **% to NAV** all
+   regulatorily mandated), not 40+ ad hoc inventions — substantially de-risks the look-through
+   engine's core data-quality question. Still open: no single aggregated cross-AMC feed (~40
+   separate fetches) and file URLs not yet confirmed machine-fetchable (JS-rendered pages) —
+   "spike 2" (pull/diff 8-10 real AMC files) is the recommended next step, not yet done.
 
 ---
 
 ## 5. What I'd suggest, pending your steer
 
-Given the interdependency map, the lowest-risk path is: resolve the three small conflicts in
-bucket B first (cheap decisions, no new infra), ship bucket C's two straightforward adds next
-(real value, no blocking dependency), and treat bucket D as its own project starting with the
-AMC-disclosure-format survey spike — because every attribute in that bucket (and Scorer v2's
-PE/PB component, and your "Correlation X-Ray"/"Holdings News Feed" ideas) depends on getting that
-one data pipeline right, so it's worth derisking before committing to a timeline for any of them.
+With bucket B's three items now resolved rather than open, the lowest-risk path is: ship bucket
+B's three small scoped tasks (09 net-new, 12's TRI build, 14's real Analytics-section build) and
+bucket C's two straightforward adds first (all independent, no blocking dependency), and treat
+bucket D as its own project starting with AMC-disclosure survey "spike 2" (pull/diff 8-10 real
+files) — because every attribute in that bucket (and Scorer v2's PE/PB component, and your
+"Correlation X-Ray"/"Holdings News Feed" ideas) depends on getting that one data pipeline right,
+so it's worth derisking before committing to a timeline for any of them.

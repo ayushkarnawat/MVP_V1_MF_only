@@ -381,3 +381,40 @@ Implement the fixes tested so far first; the areas not yet tested run at fixed c
 - **Real KFintech CAS + stakeholders' own files:** part of the phase 7 gate. The review screen is removed only when Import health is all ✓ on every synthetic file and upload order **and** on 1–2 real KFintech statements. The synthetic KFintech layout may miss real quirks; this is the main residual risk. Needs files from the user.
 - **Real NSDL/CDSL CAS:** anytime, low priority (only checks #22's message).
 - **Fund scores / category ranking vs independent data:** later, with #24. **Staging timing run:** later, with #19.
+
+## 2026-10-06 — Analytics PDF open questions (4 of 4 answered)
+
+Source: `Docs/orchestration/2026-10-06-analytics-pdf-attribute-gap-analysis.md` §4. Full
+cross-reference: `Docs/orchestration/2026-10-06-analytics-pdf-deep-understanding.md`,
+`Docs/orchestration/2026-10-06-analytics-pdf-visual-map.html`.
+
+- **Attribute 09 (Mutual Fund Ranking) is NOT the Scorer, and was never really in conflict with
+  it — correcting this session's own earlier framing.** Per Ayush: attribute 09's formula
+  (PDF's 5-factor 25/25/20/15/15) is a separate, independent feature modeled on open peer-ranking
+  sites (AdvisorKhoj/MoneyControl-style), performance-driven and fund-vs-fund. The Scorer
+  (Unifolio's own proprietary fund-quality score) is a completely different, unrelated feature.
+  **Scorer v2 (11-component, approved but unbuilt) stays on hold** until all 11 of its components
+  have real data behind them — not reprioritized by this PDF. **Build attribute 09 as its own new
+  feature**, literally on the PDF's 5-factor formula, independent of Scorer v1/v2 entirely; no
+  formula reconciliation needed because there was never one formula to reconcile.
+- **Attribute 12 (TRI benchmark sourcing): reopened and resolved — free and reachable.** Deep-dive
+  investigation (`Docs/investigations/2026-10-06-tri-sourcing-feasibility-confirmed.md`) found and
+  live-verified a sibling NSE endpoint (`POST .../BackPage/getTotalReturnIndexString`) serving real
+  TRI data for all 4 existing benchmark indices, free, no new auth, economically validated against
+  a known historical value. This is now a small, well-scoped build (schema `series_type` field +
+  a second fetch function), not an open research question. **Not yet decided: whether to build it
+  now as part of this PDF's work, or schedule it separately** — a sequencing call, left open.
+- **Attribute 15 (stock P/E, P/B, sector): build free in-house, no paid vendor exception.** Scrape
+  NSE/BSE company-fundamentals pages and/or parse AMC-published factsheets, accepting the extra
+  engineering/upkeep cost to stay within the in-house-only rule. Scoped as part of the look-through
+  engine's ingestion work, not a separate vendor contract.
+- **AMC portfolio-disclosure format survey: started now, first pass complete.** Finding
+  (`Docs/investigations/2026-10-06-amc-portfolio-disclosure-format-survey.md`): the monthly
+  disclosure is a **SEBI-prescribed format** (confirmed via SEBI's own Master Circular formats
+  document), not 40+ ad hoc AMC inventions — core fields (ISIN, Industry, Quantity, Market Value,
+  **% to NAV**) are regulatorily mandated, and `% to NAV` is exactly the "security weight inside
+  fund" term the look-through formula (PDF section 00) needs, pre-computed by the AMC. What's
+  still genuinely unresolved: no single aggregated cross-AMC feed (~40 separate monthly fetches,
+  likely per-AMC adapters), and real file download links weren't confirmed machine-fetchable yet
+  (JS-rendered AMC pages) — spike 2 (pull and diff 8-10 real files) is the recommended next step,
+  not yet done.

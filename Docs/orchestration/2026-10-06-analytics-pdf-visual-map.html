@@ -168,7 +168,7 @@
     <a href="#schema">Schema</a>
     <a href="#dashboard">Dashboard structure</a>
     <a href="#cards">Attribute cards</a>
-    <a href="#conflicts">Open conflicts</a>
+    <a href="#conflicts">Open questions (resolved)</a>
   </nav>
 </header>
 
@@ -186,7 +186,7 @@
     <span><i class="sw-built"></i> Already ingested / built</span>
     <span><i class="sw-missing"></i> Net-new ingestion or computation required</span>
     <span><i class="sw-engine"></i> Shared look-through engine (not yet built)</span>
-    <span><i class="sw-partial"></i> Built, but on a conflicting formula/data basis</span>
+    <span><i class="sw-partial"></i> Built on a different basis — confirmed gap or feasible upgrade, not a conflict</span>
   </div>
   <div class="diagram">
     <pre class="mermaid">
@@ -235,8 +235,8 @@ flowchart TB
     classDef missing fill:#FEE4E2,stroke:#B42318,color:#111
     classDef engine fill:#CCFBF1,stroke:#0F766E,color:#111,stroke-width:2px
     class A01,A07,A08 built
-    class A09,A12,A14 partial
-    class A02,A06,A10,A13,A15,A04,A11 missing
+    class A12,A14 partial
+    class A02,A06,A10,A13,A15,A04,A11,A09 missing
     class ENGINE engine
     </pre>
   </div>
@@ -392,7 +392,7 @@ erDiagram
   </div>
   <div class="legend">
     <span><i class="sw-built"></i> Built, matches spec</span>
-    <span><i class="sw-partial"></i> Built, conflicting formula/data</span>
+    <span><i class="sw-partial"></i> Built on a different basis, confirmed gap/upgrade</span>
     <span><i class="sw-missing"></i> Not built</span>
   </div>
 
@@ -497,13 +497,13 @@ erDiagram
     </div>
 
     <div class="card">
-      <div class="card-top"><span class="card-id">09 · Performance</span><span class="status-pill partial">conflict</span></div>
+      <div class="card-top"><span class="card-id">09 · Performance</span><span class="status-pill missing">net-new</span></div>
       <div class="card-body">
         <div class="card-title">Mutual fund ranking</div>
         <div class="card-section">how to show it</div>
         <div class="mock">"2nd of 32 Large Cap funds · Score 67.5/100" + "How is this calculated?" transparency link</div>
       </div>
-      <div class="card-foot">PDF: 5-factor 25/25/20/15/15 · Live Scorer v1: 45/30/25 + TER nudge · Scorer v2: 11-component (unbuilt)</div>
+      <div class="card-foot">Independent feature on its own 5-factor formula (25/25/20/15/15), not a Scorer conflict — Scorer v1/v2 unrelated, resolved 2026-10-06</div>
     </div>
 
     <div class="card">
@@ -531,13 +531,13 @@ erDiagram
     </div>
 
     <div class="card">
-      <div class="card-top"><span class="card-id">12 · Performance</span><span class="status-pill partial">conflict</span></div>
+      <div class="card-top"><span class="card-id">12 · Performance</span><span class="status-pill partial">TRI feasible, unbuilt</span></div>
       <div class="card-body">
         <div class="card-title">Historical returns + benchmark</div>
         <div class="card-section">how to show it</div>
         <div class="mock">Bar chart, 1M–5Y + since-inception, visual style switches absolute → CAGR at the 1Y mark</div>
       </div>
-      <div class="card-foot">PDF wants TRI; live uses price-return NSE indices, labelled "(Price Return)" — see <code>tri-benchmark-deferred-plan.md</code></div>
+      <div class="card-foot">Live uses price-return NSE indices, labelled "(Price Return)" — free TRI endpoint confirmed reachable 2026-10-06, small build not yet scheduled, see <code>tri-sourcing-feasibility-confirmed.md</code></div>
     </div>
 
     <div class="card">
@@ -552,13 +552,13 @@ erDiagram
     </div>
 
     <div class="card">
-      <div class="card-top"><span class="card-id">14 · Cash Flow</span><span class="status-pill partial">partial</span></div>
+      <div class="card-top"><span class="card-id">14 · Cash Flow</span><span class="status-pill partial">confirmed gap</span></div>
       <div class="card-body">
         <div class="card-title">Investment &amp; withdrawal analysis</div>
         <div class="card-section">how to show it</div>
         <div class="mock">5 tiles (invested / withdrawn / net / current / gain) + monthly bar chart with net-investment overlay + SIP tracker</div>
       </div>
-      <div class="card-foot"><code>transactions</code> type enum already matches PDF's classification table — dedicated screen unconfirmed</div>
+      <div class="card-foot"><code>transactions</code> type enum matches the PDF, but <code>cash_flow.py</code> (PRD-03) excludes switches/SWP entirely, no roll-up, no tiles — confirmed real gap 2026-10-06</div>
     </div>
 
     <div class="card">
@@ -580,16 +580,17 @@ erDiagram
   <div class="section-head">
     <span class="eyebrow-num">05</span>
     <div>
-      <h2>Open conflicts (not resolved in this doc)</h2>
-      <p>Carried from the scorecard doc, shown here against the diagram for context. Resolution
-      happens after both visual artifacts are reviewed.</p>
+      <h2>Open questions — all 4 answered 2026-10-06</h2>
+      <p>Previously framed as unresolved conflicts; full record in <code>decisions.md</code>'s
+      "Analytics PDF open questions (4 of 4 answered)" entry. One sequencing call remains open
+      (flagged below), the rest are resolved.</p>
     </div>
   </div>
   <div class="facts">
-    <div class="fact warn"><div class="k">Ranking formula</div><div class="v">PDF's 5-factor 25/25/20/15/15 vs. live Scorer v1 (45/30/25 + TER nudge) vs. approved Scorer v2 (11-component, unbuilt)</div></div>
-    <div class="fact warn"><div class="k">Benchmark basis</div><div class="v">PDF assumes TRI; live ships price-return, labelled honestly — plus a different benchmark list (Nifty 50/500/BSE100/500 vs. live Nifty 50/500/LargeMidcap250/Midcap150)</div></div>
-    <div class="fact warn"><div class="k">Stock P/E · P/B · sector source</div><div class="v">PDF's own data-inputs table names an "exchange / market data vendor" — tension with the in-house-only rule</div></div>
-    <div class="fact"><div class="k">First spike candidate</div><div class="v">Survey AMC monthly portfolio-disclosure formats (40+ AMCs) before committing to the look-through engine's ingestion design</div></div>
+    <div class="fact"><div class="k">Ranking formula (09)</div><div class="v">Not a conflict — independent net-new feature on its own 5-factor formula, unrelated to Scorer v1/v2. Scorer v2 stays on hold pending all 11 components.</div></div>
+    <div class="fact warn"><div class="k">Benchmark basis (12)</div><div class="v">TRI sourcing confirmed free &amp; reachable via a sibling NSE endpoint (deep-dive done per explicit request) — small, well-scoped build. <b>Still open:</b> build now vs. schedule separately (sequencing only, not feasibility).</div></div>
+    <div class="fact"><div class="k">Stock P/E · P/B · sector source (15)</div><div class="v">Resolved: build free in-house (NSE/BSE scraping + AMC factsheets), no paid-vendor exception.</div></div>
+    <div class="fact"><div class="k">AMC disclosure format survey</div><div class="v">Spike 1 done: SEBI-prescribed format confirmed (ISIN, Industry, Quantity, Market Value, % to NAV regulatorily mandated) — not 40+ ad hoc formats. Still open: no single aggregated feed, file URLs not yet confirmed machine-fetchable — spike 2 (pull/diff 8-10 real files) recommended next.</div></div>
   </div>
 </section>
 
