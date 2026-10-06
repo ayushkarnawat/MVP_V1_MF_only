@@ -65,7 +65,7 @@ authors agree it should not be attempted first — but it does need to be built 
 | 09 | Mutual fund ranking | Peer rank + composite score: **0.25×3Y + 0.25×5Y + 0.20×cat-relative + 0.15×low-vol + 0.15×low-TER** | ⬜ Not built — **independent net-new feature, not a Scorer conflict (resolved 2026-10-06)** | — (Scorer v1 lives at `scorer.py`, unrelated) | No |
 | 10 | Portfolio overlap | Σ min(weight in A, weight in B) per stock pair, matched by ISIN, symmetric | ⬜ Not built | — | **Yes** |
 | 11 | Drawdown — scenario analysis | Replay current holdings through historical crash windows; actual vs. back-tested modes | ⬜ Not built | — | No (needs NAV history + an admin-configurable scenario-date table, not stock-level data) |
-| 12 | Historical returns + benchmark comparison | Absolute (≤1Y) / CAGR (>1Y) vs. **TRI** benchmarks (Nifty 50/500, BSE 100/500) | 🟡 Built on price-return — **TRI sourcing confirmed feasible 2026-10-06, implementation not started** | `benchmark.py`, `nse_indices_client.py`, `BenchmarkSection.tsx` (currently price-return, honestly labeled); TRI feasibility: `Docs/investigations/2026-10-06-tri-sourcing-feasibility-confirmed.md` | No |
+| 12 | Historical returns + benchmark comparison | Absolute (≤1Y) / CAGR (>1Y) vs. **TRI** benchmarks (Nifty 50/500, BSE 100/500) | 🟡 Built on price-return — **TRI sourcing confirmed feasible 2026-10-06, implementation not started** | `benchmark.py`, `nse_indices_client.py`, `BenchmarkSection.tsx` (currently price-return, honestly labeled); TRI feasibility: `Docs/analytics/investigations/2026-10-06-tri-sourcing-feasibility-confirmed.md` | No |
 | 13 | Asset allocation within MF portfolio | Σ(fund weight × fund's % in equity/debt/gold/cash), from fund's actual portfolio not its category | ⬜ Not built | — | **Yes** (for the equity/debt/gold/cash split itself; category-level proxy is not what the PDF asks for) |
 | 14 | Investment & withdrawal analysis | Classify transactions (purchase/SIP=invest, redemption/SWP/IDCW=withdraw, switch/STP=ignore at portfolio level), monthly/yearly roll-up | 🟡 Confirmed real gap (checked `cash_flow.py` directly, 2026-10-06) | `cash_flow.py` lives on PRD-03 (Main Dashboard): only purchase/SIP as debit, redemption/dividend as credit; switches entirely excluded (not even fund-level), no SWP handling, no monthly/yearly roll-up, no 5-tile summary | No |
 | 15 | Portfolio P/E and P/B | Harmonic mean: `1 ÷ Σ(wᵢ ÷ P/Eᵢ)`, equity-only, loss-makers excluded | ⬜ Not built | — | **Yes**, plus a new data need: per-stock P/E and P/B — **resolved 2026-10-06: build free in-house (NSE/BSE scraping + AMC factsheets), no paid vendor** |
@@ -132,14 +132,18 @@ longer applies.
   feature — no reconciliation needed. Build 09 net-new on the PDF's formula directly.
 - **12 Historical returns + benchmark comparison** — TRI sourcing reopened per Ayush's request for
   a full deep dive, and resolved: a free, reachable sibling NSE endpoint serves real TRI data for
-  all 4 benchmark indices (`Docs/investigations/2026-10-06-tri-sourcing-feasibility-confirmed.md`).
+  all 4 benchmark indices (`Docs/analytics/investigations/2026-10-06-tri-sourcing-feasibility-confirmed.md`).
   Small, well-scoped build (schema `series_type` field + a second fetch function). **Still open:
   implement now as part of this PDF's work, or schedule separately** — a sequencing call, not a
   feasibility one.
 - **14 Investment & withdrawal analysis** — confirmed (by reading `cash_flow.py` directly) to be a
   real gap, not just "unconfirmed": lives on PRD-03, excludes switches/SWP entirely, no monthly/
-  yearly roll-up, no 5-tile summary. Needs a genuine new Analytics-section build matching the PDF's
-  exact classification table, not a relocation of existing code.
+  yearly roll-up, no 5-tile summary. **Reclassified by Ayush, 2026-10-06: this is bucket-D-adjacent
+  net-new work, not a small "verify and move" task** — despite having no look-through dependency
+  (it reads `transactions` directly), the actual build is a full new Analytics-section screen with
+  new classification logic, a new roll-up/aggregation path, and SIP-miss tracking — comparable in
+  size to a bucket D item, not a bucket C-sized add. Sequenced with bucket D's planning effort for
+  that reason, even though it has no technical dependency on the look-through engine.
 
 ### C. Net-new, no look-through dependency — straightforward adds
 - **04 Fund manager allocation** — needs a new data source (manager names/roles/tenure per
@@ -168,13 +172,13 @@ Full record: `decisions.md`'s "2026-10-06 — Analytics PDF open questions (4 of
 1. **Ranking formula (09) — answered.** Not a three-way conflict; the PDF's formula is 09's own,
    independent of Scorer v1/v2 entirely. Build it as-is.
 2. **TRI sourcing (12) — answered.** Reopened per explicit request, deep-dive investigation done,
-   confirmed free and reachable. `Docs/investigations/2026-10-06-tri-sourcing-feasibility-confirmed.md`.
+   confirmed free and reachable. `Docs/analytics/investigations/2026-10-06-tri-sourcing-feasibility-confirmed.md`.
    Sequencing (now vs. separate ticket) still open.
 3. **Stock-level P/E, P/B, sector data (15, and feeds 06's sector cut) — answered.** Build free
    in-house (NSE/BSE scraping, AMC factsheets), accepting the extra engineering/upkeep cost to stay
    within the in-house-only rule. No paid vendor exception.
 4. **Portfolio-disclosure ingestion format survey — answered, started.** First-pass spike complete:
-   `Docs/investigations/2026-10-06-amc-portfolio-disclosure-format-survey.md`. Headline finding:
+   `Docs/analytics/investigations/2026-10-06-amc-portfolio-disclosure-format-survey.md`. Headline finding:
    it's a SEBI-prescribed format (ISIN, Industry, Quantity, Market Value, **% to NAV** all
    regulatorily mandated), not 40+ ad hoc inventions — substantially de-risks the look-through
    engine's core data-quality question. Still open: no single aggregated cross-AMC feed (~40

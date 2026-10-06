@@ -3,9 +3,9 @@
 **Date:** 2026-10-06
 **Source:** `Docs/Unifolio_MF_Portfolio_Analytics_Requirements.pdf` — stakeholder-authored,
 Sept 2026, "For build." **This is the analytics build target**, not the current state.
-**Companion docs:** `Docs/orchestration/2026-10-06-analytics-pdf-attribute-gap-analysis.md`
+**Companion docs:** `Docs/analytics/2026-10-06-analytics-pdf-attribute-gap-analysis.md`
 (the scorecard/open-questions doc from the first pass) and
-`Docs/orchestration/2026-10-06-analytics-pdf-visual-map.html` (the visual/diagram companion
+`Docs/analytics/artifacts/2026-10-06-analytics-pdf-visual-map.html` (the visual/diagram companion
 to this doc).
 **Purpose:** go deep enough into every formula, definition, example and UI intent in the PDF
 that planning conversations can reference *this* doc instead of re-reading the PDF, while
@@ -448,7 +448,7 @@ compute this shape of comparison on **price-return** NSE index data today, shipp
 explicit request for "a complete deep dive," TRI sourcing was reopened and resolved: a free,
 reachable sibling NSE endpoint (`POST .../BackPage/getTotalReturnIndexString`) serves real TRI
 data for all 4 existing benchmark indices, live-verified including a historical economic-content
-spot-check — see `Docs/investigations/2026-10-06-tri-sourcing-feasibility-confirmed.md`. This is
+spot-check — see `Docs/analytics/investigations/2026-10-06-tri-sourcing-feasibility-confirmed.md`. This is
 now a small, well-scoped build (a `series_type` schema field + a second fetch function mirroring
 the existing one), not an open feasibility question — **still open: whether to build it now as
 part of this PDF's work, or schedule it separately**, a sequencing call only. The benchmark list

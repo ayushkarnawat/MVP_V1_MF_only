@@ -6,7 +6,7 @@ P0.3 entry for the underlying investigation this plan responds to).
 
 **2026-10-06 update:** the reachability/economic-content questions below (steps 1-3 of "what a
 real fix requires") are now answered — see
-`Docs/investigations/2026-10-06-tri-sourcing-feasibility-confirmed.md`. TRI data is confirmed
+`Docs/analytics/investigations/2026-10-06-tri-sourcing-feasibility-confirmed.md`. TRI data is confirmed
 free and reachable via a sibling NSE endpoint. Steps 4-5 (schema change, replay-logic
 re-verification) are still open implementation work; not yet scheduled.
 

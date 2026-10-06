@@ -7,7 +7,7 @@ spot-checked. Not exhaustive (did not individually crawl all 40+ AMC websites); 
 second pass (pulling and diffing 8-10 real AMC files column-by-column) is still recommended
 before writing the parser.
 **Triggered by:** Open Question #4 from
-`Docs/orchestration/2026-10-06-analytics-pdf-attribute-gap-analysis.md` — "kick off the
+`Docs/analytics/2026-10-06-analytics-pdf-attribute-gap-analysis.md` — "kick off the
 AMC-disclosure-ingestion-format survey as the first spike," decided 2026-10-06.
 **Why this matters:** this is the data input the look-through engine (PDF section 00) needs —
 the single biggest gap blocking 6 of the PDF's 15 attributes (02, 06, 10, 13, 15, plus 00 itself).

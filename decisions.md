@@ -384,9 +384,9 @@ Implement the fixes tested so far first; the areas not yet tested run at fixed c
 
 ## 2026-10-06 — Analytics PDF open questions (4 of 4 answered)
 
-Source: `Docs/orchestration/2026-10-06-analytics-pdf-attribute-gap-analysis.md` §4. Full
-cross-reference: `Docs/orchestration/2026-10-06-analytics-pdf-deep-understanding.md`,
-`Docs/orchestration/2026-10-06-analytics-pdf-visual-map.html`.
+Source: `Docs/analytics/2026-10-06-analytics-pdf-attribute-gap-analysis.md` §4. Full
+cross-reference: `Docs/analytics/2026-10-06-analytics-pdf-deep-understanding.md`,
+`Docs/analytics/artifacts/2026-10-06-analytics-pdf-visual-map.html`.
 
 - **Attribute 09 (Mutual Fund Ranking) is NOT the Scorer, and was never really in conflict with
   it — correcting this session's own earlier framing.** Per Ayush: attribute 09's formula
@@ -398,7 +398,7 @@ cross-reference: `Docs/orchestration/2026-10-06-analytics-pdf-deep-understanding
   feature**, literally on the PDF's 5-factor formula, independent of Scorer v1/v2 entirely; no
   formula reconciliation needed because there was never one formula to reconcile.
 - **Attribute 12 (TRI benchmark sourcing): reopened and resolved — free and reachable.** Deep-dive
-  investigation (`Docs/investigations/2026-10-06-tri-sourcing-feasibility-confirmed.md`) found and
+  investigation (`Docs/analytics/investigations/2026-10-06-tri-sourcing-feasibility-confirmed.md`) found and
   live-verified a sibling NSE endpoint (`POST .../BackPage/getTotalReturnIndexString`) serving real
   TRI data for all 4 existing benchmark indices, free, no new auth, economically validated against
   a known historical value. This is now a small, well-scoped build (schema `series_type` field +
@@ -409,7 +409,7 @@ cross-reference: `Docs/orchestration/2026-10-06-analytics-pdf-deep-understanding
   engineering/upkeep cost to stay within the in-house-only rule. Scoped as part of the look-through
   engine's ingestion work, not a separate vendor contract.
 - **AMC portfolio-disclosure format survey: started now, first pass complete.** Finding
-  (`Docs/investigations/2026-10-06-amc-portfolio-disclosure-format-survey.md`): the monthly
+  (`Docs/analytics/investigations/2026-10-06-amc-portfolio-disclosure-format-survey.md`): the monthly
   disclosure is a **SEBI-prescribed format** (confirmed via SEBI's own Master Circular formats
   document), not 40+ ad hoc AMC inventions — core fields (ISIN, Industry, Quantity, Market Value,
   **% to NAV**) are regulatorily mandated, and `% to NAV` is exactly the "security weight inside
