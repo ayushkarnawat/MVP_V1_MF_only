@@ -6,7 +6,7 @@ closes the first unconfirmed question in `Docs/orchestration/tri-benchmark-defer
 ("Does NSE's endpoint this codebase already uses even serve a TRI series?" → **yes**, via a
 sibling endpoint, same host, same auth-free access, no paid NSE data product needed).
 **Triggered by:** re-opening Open Question #2 from
-`Docs/orchestration/2026-10-06-analytics-pdf-attribute-gap-analysis.md` (attribute 12, Historical
+`Docs/analytics/2026-10-06-analytics-pdf-attribute-gap-analysis.md` (attribute 12, Historical
 Returns + Benchmark Comparison) during analytics-PDF planning — user asked for "a complete deep
 dive on TRI sourcing" rather than defaulting to keep-as-is.
 **Supersedes:** the open "reachability" question in `tri-benchmark-deferred-plan.md` (steps 1-3
