@@ -21,3 +21,18 @@ def _fresh_http_client(monkeypatch):
 def _fresh_nav_client(monkeypatch):
     import app.services.dashboard.nav as nav
     monkeypatch.setattr(nav, "_get_nav_http_client", lambda: _httpx.AsyncClient(timeout=30))
+
+@_pytest.fixture(autouse=True)
+def _mfapi_outage(monkeypatch):
+    # MFAPI_BLOCKED=1: every api.mfapi.in request fails as in an outage, so a
+    # scenario shows what the import does on the scheme master and cached data
+    # alone (Phase 5 checkpoint; repeated at the Phase 7 gate).
+    import os
+    if os.environ.get("MFAPI_BLOCKED") != "1":
+        return
+    real_send = _httpx.AsyncClient.send
+    async def send(self, request, *a, **k):
+        if request.url.host == "api.mfapi.in":
+            raise _httpx.ConnectError("mfapi.in blocked by harness", request=request)
+        return await real_send(self, request, *a, **k)
+    monkeypatch.setattr(_httpx.AsyncClient, "send", send)

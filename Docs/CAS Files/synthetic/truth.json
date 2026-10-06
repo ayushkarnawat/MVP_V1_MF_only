@@ -2386,5 +2386,373 @@
    }
   ],
   "total_value": "199998422.83"
+ },
+ "fam_FY.pdf": {
+  "persona": "p20",
+  "window": "FY",
+  "from": "2026-04-01",
+  "investor": "VIKRAM ANAND MEHTA",
+  "funds": [
+   {
+    "member": "VIKRAM ANAND MEHTA",
+    "folio": "1047392 / 12",
+    "isin": "INF179K01608",
+    "fund": "HDFC Flexi Cap Fund - Growth Option",
+    "open": "4218.085",
+    "close": "4218.085",
+    "value": "8231251.21",
+    "cost": "1030675.38",
+    "rows": 0
+   },
+   {
+    "member": "VIKRAM ANAND MEHTA",
+    "folio": "2215508",
+    "isin": "INF109K01BL4",
+    "fund": "ICICI Prudential Bluechip Fund - Growth",
+    "open": "91797.558",
+    "close": "91797.558",
+    "value": "9326631.89",
+    "cost": "354502.50",
+    "rows": 0
+   },
+   {
+    "member": "VIKRAM ANAND MEHTA",
+    "folio": "3310557",
+    "isin": "INF846K01164",
+    "fund": "Axis Bluechip Fund - Regular Growth",
+    "open": "167992.811",
+    "close": "169763.685",
+    "value": "9615415.12",
+    "cost": "3222689.25",
+    "rows": 12
+   },
+   {
+    "member": "VIKRAM ANAND MEHTA",
+    "folio": "1047392 / 12",
+    "isin": "INF179K01822",
+    "fund": "HDFC Balanced Advantage Fund - Regular Plan - IDCW Reinvestment",
+    "open": "363011.298",
+    "close": "363011.298",
+    "value": "12458547.75",
+    "cost": "8963874.98",
+    "rows": 0
+   },
+   {
+    "member": "VIKRAM ANAND MEHTA",
+    "folio": "1047392 / 12",
+    "isin": "INF179K01UT0",
+    "fund": "HDFC Flexi Cap Fund - Direct Plan - Growth Option",
+    "open": "34146.563",
+    "close": "34304.385",
+    "value": "73757240.71",
+    "cost": "17708466.73",
+    "rows": 12
+   },
+   {
+    "member": "VIKRAM ANAND MEHTA",
+    "folio": "5570012",
+    "isin": "INF879O01027",
+    "fund": "Parag Parikh Flexi Cap Fund - Direct Plan Growth",
+    "open": "432826.229",
+    "close": "439004.391",
+    "value": "38745166.64",
+    "cost": "11375159.20",
+    "rows": 24
+   },
+   {
+    "member": "VIKRAM ANAND MEHTA",
+    "folio": "4400918 / 3",
+    "isin": "INF204K01H36",
+    "fund": "Nippon India Index Fund - Nifty 50 Plan - Direct Plan Growth Plan - Growth Option",
+    "open": "279568.027",
+    "close": "289300.787",
+    "value": "11984661.19",
+    "cost": "6898401.23",
+    "rows": 12
+   },
+   {
+    "member": "VIKRAM ANAND MEHTA",
+    "folio": "5570099",
+    "isin": "INF879O01027",
+    "fund": "Parag Parikh Flexi Cap Fund - Direct Plan Growth",
+    "open": "199703.675",
+    "close": "199703.675",
+    "value": "17625227.27",
+    "cost": "5371250.00",
+    "rows": 0
+   },
+   {
+    "member": "VIKRAM ANAND MEHTA",
+    "folio": "7781230",
+    "isin": "INF917K01HD4",
+    "fund": "HSBC Value Fund - Direct Plan - Growth",
+    "open": "149107.899",
+    "close": "149107.899",
+    "value": "18254281.05",
+    "cost": "9810822.58",
+    "rows": 0
+   },
+   {
+    "member": "NEHA RAJESH KULKARNI",
+    "folio": "8812001",
+    "isin": "INF846K01DP8",
+    "fund": "Axis Bluechip Fund - Direct Growth",
+    "open": "535099.204",
+    "close": "541999.101",
+    "value": "35674380.83",
+    "cost": "13723318.50",
+    "rows": 12
+   },
+   {
+    "member": "NEHA RAJESH KULKARNI",
+    "folio": "5590112",
+    "isin": "INF879O01027",
+    "fund": "Parag Parikh Flexi Cap Fund - Direct Plan Growth",
+    "open": "809173.566",
+    "close": "822189.116",
+    "value": "72563862.59",
+    "cost": "25074745.50",
+    "rows": 24
+   },
+   {
+    "member": "NEHA RAJESH KULKARNI",
+    "folio": "1050001 / 71",
+    "isin": "INF179K01822",
+    "fund": "HDFC Balanced Advantage Fund - Regular Plan - IDCW Reinvestment",
+    "open": "119110.797",
+    "close": "119110.797",
+    "value": "4087882.55",
+    "cost": "2715750.00",
+    "rows": 0
+   },
+   {
+    "member": "NEHA RAJESH KULKARNI",
+    "folio": "6600123 / 45",
+    "isin": "INF740KA1504",
+    "fund": "DSP Equity Savings Fund - Dir - Growth",
+    "open": "203120.764",
+    "close": "203120.764",
+    "value": "5062785.04",
+    "cost": "2172600.00",
+    "rows": 0
+   },
+   {
+    "member": "NEHA RAJESH KULKARNI",
+    "folio": "4400777",
+    "isin": "INF204K01H36",
+    "fund": "Nippon India Index Fund - Nifty 50 Plan - Direct Plan Growth Plan - Growth Option",
+    "open": "492407.513",
+    "close": "508810.739",
+    "value": "21078146.32",
+    "cost": "11948892.75",
+    "rows": 12
+   },
+   {
+    "member": "NEHA RAJESH KULKARNI",
+    "folio": "2219987",
+    "isin": "INF109K016L0",
+    "fund": "ICICI Prudential Bluechip Fund - Direct Plan - Growth",
+    "open": "102726.610",
+    "close": "102726.610",
+    "value": "11535171.04",
+    "cost": "3621000.00",
+    "rows": 0
+   }
+  ],
+  "total_value": "350000651.20"
+ },
+ "fam_noname_FY.pdf": {
+  "persona": "p20",
+  "window": "FY",
+  "from": "2026-04-01",
+  "investor": "VIKRAM ANAND MEHTA",
+  "funds": [
+   {
+    "member": "VIKRAM ANAND MEHTA",
+    "folio": "1047392 / 12",
+    "isin": "INF179K01608",
+    "fund": "HDFC Flexi Cap Fund - Growth Option",
+    "open": "4218.085",
+    "close": "4218.085",
+    "value": "8231251.21",
+    "cost": "1030675.38",
+    "rows": 0
+   },
+   {
+    "member": "VIKRAM ANAND MEHTA",
+    "folio": "2215508",
+    "isin": "INF109K01BL4",
+    "fund": "ICICI Prudential Bluechip Fund - Growth",
+    "open": "91797.558",
+    "close": "91797.558",
+    "value": "9326631.89",
+    "cost": "354502.50",
+    "rows": 0
+   },
+   {
+    "member": "VIKRAM ANAND MEHTA",
+    "folio": "3310557",
+    "isin": "INF846K01164",
+    "fund": "Axis Bluechip Fund - Regular Growth",
+    "open": "167992.811",
+    "close": "169763.685",
+    "value": "9615415.12",
+    "cost": "3222689.25",
+    "rows": 12
+   },
+   {
+    "member": "VIKRAM ANAND MEHTA",
+    "folio": "1047392 / 12",
+    "isin": "INF179K01822",
+    "fund": "HDFC Balanced Advantage Fund - Regular Plan - IDCW Reinvestment",
+    "open": "363011.298",
+    "close": "363011.298",
+    "value": "12458547.75",
+    "cost": "8963874.98",
+    "rows": 0
+   },
+   {
+    "member": "VIKRAM ANAND MEHTA",
+    "folio": "1047392 / 12",
+    "isin": "INF179K01UT0",
+    "fund": "HDFC Flexi Cap Fund - Direct Plan - Growth Option",
+    "open": "34146.563",
+    "close": "34304.385",
+    "value": "73757240.71",
+    "cost": "17708466.73",
+    "rows": 12
+   },
+   {
+    "member": "VIKRAM ANAND MEHTA",
+    "folio": "5570012",
+    "isin": "INF879O01027",
+    "fund": "Parag Parikh Flexi Cap Fund - Direct Plan Growth",
+    "open": "432826.229",
+    "close": "439004.391",
+    "value": "38745166.64",
+    "cost": "11375159.20",
+    "rows": 24
+   },
+   {
+    "member": "VIKRAM ANAND MEHTA",
+    "folio": "4400918 / 3",
+    "isin": "INF204K01H36",
+    "fund": "Nippon India Index Fund - Nifty 50 Plan - Direct Plan Growth Plan - Growth Option",
+    "open": "279568.027",
+    "close": "289300.787",
+    "value": "11984661.19",
+    "cost": "6898401.23",
+    "rows": 12
+   },
+   {
+    "member": "VIKRAM ANAND MEHTA",
+    "folio": "5570099",
+    "isin": "INF879O01027",
+    "fund": "Parag Parikh Flexi Cap Fund - Direct Plan Growth",
+    "open": "199703.675",
+    "close": "199703.675",
+    "value": "17625227.27",
+    "cost": "5371250.00",
+    "rows": 0
+   },
+   {
+    "member": "VIKRAM ANAND MEHTA",
+    "folio": "7781230",
+    "isin": "INF917K01HD4",
+    "fund": "HSBC Value Fund - Direct Plan - Growth",
+    "open": "149107.899",
+    "close": "149107.899",
+    "value": "18254281.05",
+    "cost": "9810822.58",
+    "rows": 0
+   },
+   {
+    "member": "ISHA MOHAN VERMA",
+    "folio": "5599001",
+    "isin": "INF879O01027",
+    "fund": "Parag Parikh Flexi Cap Fund - Direct Plan Growth",
+    "open": "12480.230",
+    "close": "13914.421",
+    "value": "1228043.66",
+    "cost": "897705.00",
+    "rows": 12
+   },
+   {
+    "member": "ISHA MOHAN VERMA",
+    "folio": "4401001",
+    "isin": "INF204K01H36",
+    "fund": "Nippon India Index Fund - Nifty 50 Plan - Direct Plan Growth Plan - Growth Option",
+    "open": "10256.405",
+    "close": "11762.639",
+    "value": "487282.61",
+    "cost": "398980.00",
+    "rows": 12
+   },
+   {
+    "member": "ISHA MOHAN VERMA",
+    "folio": "2219001",
+    "isin": "INF109K016L0",
+    "fund": "ICICI Prudential Bluechip Fund - Direct Plan - Growth",
+    "open": "2534.961",
+    "close": "2534.961",
+    "value": "284650.77",
+    "cost": "199490.02",
+    "rows": 0
+   }
+  ],
+  "total_value": "201998399.87"
+ },
+ "p3u_FY.pdf": {
+  "persona": "p3u",
+  "window": "FY",
+  "from": "2026-04-01",
+  "investor": "ISHA MOHAN VERMA",
+  "funds": [
+   {
+    "member": "ISHA MOHAN VERMA",
+    "folio": "5599001",
+    "isin": "INF879O01027",
+    "fund": "Parag Parikh Flexi Cap Fund - Direct Plan Growth",
+    "open": "11884.684",
+    "close": "13250.437",
+    "value": "1169442.49",
+    "cost": "854867.25",
+    "rows": 12
+   },
+   {
+    "member": "ISHA MOHAN VERMA",
+    "folio": "4401001",
+    "isin": "INF204K01H36",
+    "fund": "Nippon India Index Fund - Nifty 50 Plan - Direct Plan Growth Plan - Growth Option",
+    "open": "9766.987",
+    "close": "11201.346",
+    "value": "464030.32",
+    "cost": "379941.20",
+    "rows": 12
+   },
+   {
+    "member": "ISHA MOHAN VERMA",
+    "folio": "2219001",
+    "isin": "INF109K016L0",
+    "fund": "ICICI Prudential Bluechip Fund - Direct Plan - Growth",
+    "open": "2413.994",
+    "close": "2413.994",
+    "value": "271067.39",
+    "cost": "189970.50",
+    "rows": 0
+   },
+   {
+    "member": "ISHA MOHAN VERMA",
+    "folio": "7700001",
+    "isin": "INF000Z01ZZ9",
+    "fund": "Zephyr Emerging Opportunities Fund - Direct Plan - Growth",
+    "open": "21164.625",
+    "close": "21164.625",
+    "value": "495463.87",
+    "cost": "379941.00",
+    "rows": 0
+   }
+  ],
+  "total_value": "2400004.07"
  }
 }
