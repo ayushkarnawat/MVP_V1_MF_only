@@ -332,3 +332,8 @@ Frontend (`DashboardView.test.tsx`):
   noted for completeness.
 - This is an explicitly flagged deviation from PRD-03 FR-6 (see PRD-03 note
   below) — not a silent resolution of the conflict.
+
+
+## Superseded 2026-10-06
+
+SIPs are grouped into exact-amount series; multiple instalments in a month are parallel SIPs. A series is active while its folio holds units and at most three instalments have been missed. Missed instalments equal the calendar-month difference minus one, floored at zero. The reference is the latest confirmed statement end linked to the folio, falling back to today. Stopped series are returned only on request and never project monthly instalments; their actual past instalments remain visible. Each parallel monthly instalment has its own row and a 1-based instalment number.

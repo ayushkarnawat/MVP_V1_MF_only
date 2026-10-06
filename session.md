@@ -1,4 +1,4 @@
-# Session state — 2026-10-01
+# Session state — 2026-10-06
 
 Working notes for picking this project back up cold. Not a planning doc — see
 `Docs/superpowers/plans/` for those. This file tracks *where things stand*,
@@ -12,7 +12,26 @@ Earlier "Latest" sections (2026-09-30 staging QA fixes, 2026-09-24 PAN-at-upload
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
 
-## Latest (2026-10-01): Member profile completion built (Tasks 3-10 uncommitted, not deployed)
+## Latest (2026-10-06): CAS import fixes — Phases 1–6 + Phase 7 prep built, local gate passed; review screen still in (uncommitted, not deployed)
+
+Full narrative: `log.md`'s 2026-10-05/06 entry. Decisions: `decisions.md` (2026-10-06 entries). Plans: `Docs/superpowers/plans/2026-10-06-cas-import-fixes-*.md`. Round-by-round record and every open/closed carry-over: `Docs/orchestration/cas-import-fixes-handoff.md`. Numbers: `Docs/orchestration/2026-10-06-cas-import-baseline.md` ("Phase 7 gate — FINAL").
+
+- **Everything before staging is done.** That means Phases 1–6 and Phase 7 Tasks 2 and 4, migrations 0025–0029 (Postgres round-trip OK), the synthetic gate (46 scenarios × 2 modes), two real CAMS statements, independent reviews, and docs. **The review screen is still in, on purpose:** the user wants it removed only after staging and their screenshots. The removal was built and then restored; `confirmBody.ts` and `UnidentifiedFundsDialog.tsx` are prepared and unused.
+- **Left, all on or after staging:**
+  1. The user commits (nothing is committed) and reviews PRD-01 v1.5 (the FR-5 amendment only).
+  2. Wipe staging with `scripts/clean-staging-db.sh` (user's go-ahead).
+  3. Deploy; migrations 0025–0029 run on deploy.
+  4. Run `scripts/jobs/refresh_scheme_master_daily.py` once as a one-off ECS task, and confirm the `scheme-master-daily` schedule is ENABLED.
+  5. Upload a synthetic file and the two real files, plus **1–2 real KFintech statements** (not yet tested anywhere). Import health must be all ✓.
+  6. The C1–C14 frontend checklist screenshots (Phase 6 Task 12 Step 3).
+  7. Phase 1 Task 10 Step 3 (staging Import health check).
+  8. After the user confirms the gate: Phase 7 Task 3 (remove the review screen, wiring in the prepared pieces) and its PRD-01 FR-10 / App-Flow edits.
+- **Harness:** `Docs/CAS Files/synthetic/harness/`. `test_deep.py` takes `SEQ` / `MASTER_FILE` / `SNAP` / `MFAPI_BLOCKED`. `test_real_check.py` runs real files and prints counts only.
+- **Stale items closed:**
+  - `FamilyImportFlow.tsx`'s `member_mismatch` gap: that component was removed in `0fbafe5`.
+  - The 10-year CAS discrepancy: root-caused (opening balance never saved) and fixed.
+
+## Previous (2026-10-01): Member profile completion built (Tasks 3-10 uncommitted, not deployed)
 
 Full narrative: `log.md`'s "Member profile completion built" entry. Decisions: `decisions.md`'s
 2026-10-01 "Member profile completion" entry. Plan: `Docs/superpowers/plans/2026-10-01-member-profile-completion.md`;

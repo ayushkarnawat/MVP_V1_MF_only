@@ -418,3 +418,22 @@ cross-reference: `Docs/analytics/2026-10-06-analytics-pdf-deep-understanding.md`
   likely per-AMC adapters), and real file download links weren't confirmed machine-fetchable yet
   (JS-rendered AMC pages) — spike 2 (pull and diff 8-10 real files) is the recommended next step,
   not yet done.
+
+## 2026-10-06 — CAS import: three Phase 6/7 calls (user: "go with your recommendations")
+
+- **A held fund in no fund list imports as an "unlisted fund".** Before, a held fund missing from the AMFI master with no candidate to pick blocked the whole upload (and the planned fallback dialog would have been a dead end). Now it imports as a CAS-only fund valued at the NAV the statement prints, with a "Statement price" badge. Every CAS-only fund, closed or held, also keeps the prices its statements print as its price history, so monthly history no longer leaves such funds out (this also closes the earlier "partial months for merged-away funds" follow-up). A held fund that *does* have candidates still asks; the fallback dialog's "Not listed" imports it as unlisted. Rejected: skipping the fund (the dashboard would no longer equal the statement).
+- **Stamp duty doesn't split a SIP.** From 1 July 2020 the 0.005% stamp duty lowers each instalment slightly. SIP amounts within 0.01% (at least ₹0.05) are now one SIP, and the series shows its latest amount. Rejected: adding the stamp-duty row back before grouping (depends on every layout printing that row the same way).
+- **The TER "Save ~x% per year with Direct" line is dropped.** It compared two different groups of funds, so it wasn't a saving. Per-fund savings (same fund, Direct vs Regular) stay in Distributor Comparison. A ₹ total of those per-fund savings can come later.
+- **Privacy note on statement prices (review L4, accepted):** a CAS-only fund's stored prices are shared reference data (`nav_history`, keyed by scheme and date, no user id). The prices are public facts, but their *dates* are the dates on one user's statement rows, so another holder of the same unlisted fund could see that someone transacted on those dates. They aren't deleted with an import or account. Accepted for MVP (no user link, no amounts or units); revisit with the DPDP retention review (ADR-004).
+
+## 2026-10-06 — Phase 7 gate: local part passed; review screen stays until after staging
+
+- **Local gate result:** every synthetic statement and upload order (46 scenarios, also with mfapi.in down) and two real stakeholder CAMS statements reconcile with zero funds needing review.
+- **The Import Review screen stays (user, 2026-10-06):** "Do not remove the review screen … We will stage first then we will give you the screenshots … and then you can remove it." The removal (Task 3) was briefly built and then restored the same day. Its prepared, tested pieces `features/import/confirmBody.ts` and `UnidentifiedFundsDialog.tsx` stay in the tree, unused.
+- **Order from here:**
+  1. Staging: wipe (user's OK), deploy, a scheme-master one-off load.
+  2. Upload real statements (including KFintech) with the review screen still present. Import health must be all ✓.
+  3. The C1–C14 screenshots.
+  4. The user confirms the gate.
+  5. Then Task 3 (the removal) and the PRD-01 FR-10 / App-Flow edits.
+- **Staging data:** reset with `scripts/clean-staging-db.sh` (the plan's default; no real users). Needs the user's go-ahead. `backend/scripts/reclassify_folio_plans.py` exists for any environment whose data is kept.

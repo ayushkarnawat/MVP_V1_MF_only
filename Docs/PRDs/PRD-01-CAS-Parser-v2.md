@@ -1,8 +1,8 @@
 ---
 artifact: prd
-version: "1.4"
+version: "1.5"
 created: 2026-07-22
-updated: 2026-08-05
+updated: 2026-10-06
 status: draft
 product: Unifolio
 module: MF Import (CAS Parser v2)
@@ -160,6 +160,12 @@ for the rare case where a CAS has no parseable PAN. See
   for Regular. Where the two signals disagree, flag as `unclassified` and surface for user
   confirmation — never silently guess, consistent with the AMFI-match confidence pattern
   already in use for scheme resolution.
+  *(Amended 2026-10-06, CAS import fixes Phase 5/7: the plan comes from AMFI's own scheme
+  master — the fund is identified by ISIN against the daily-refreshed AMFI list, and its
+  Direct/Regular plan is AMFI's. The scheme name decides only when the master has no plan;
+  an adviser's ARN never decides the plan (adviser-held Direct folios are common). Nothing
+  is stored as `unclassified` any more: a plan that can't be confirmed is Regular with
+  `plan_verified = false`.)*
 - FR-6: Persist the classification (`direct` / `regular` / `unclassified`) per scheme-folio on
   the import record so it's available to the dashboard without recomputation.
 
@@ -180,6 +186,10 @@ for the rare case where a CAS has no parseable PAN. See
 - FR-10: User must confirm before `/api/imports/confirm` persists anything. Low-confidence
   AMFI matches (<0.92) and `unclassified` direct/regular results block silent confirm —
   each requires an explicit user choice.
+  *(Pending, 2026-10-06: the review screen's removal (CAS import fixes Phase 7 Task 3) is
+  planned but **not done**. It waits for staging: real statements, including KFintech, show
+  Import health all ✓, the C1–C14 checks pass, and the user confirms the gate. The synthetic
+  gate and two real CAMS statements already pass locally. Until then this FR stands as written.)*
 - FR-11: `/api/imports/confirm` reports `"N new, M duplicates skipped"` on every import.
 
 #### Error Handling
@@ -248,7 +258,7 @@ the existing confidence-badge pattern rather than adding new UI surface area.
 |------|------------|--------|------------|
 | "100% accuracy" target (stated in product planning) isn't achievable for fuzzy AMFI matching or Direct/Regular classification in every edge case | High | Medium | Redefine "100%" as: 100% *surfaced* (nothing silently wrong) rather than 100% *auto-correct* — flagged as an open question below, needs your sign-off on the distinction |
 | KFintech CAS field layout differs enough from CAMS that Direct/Regular or ARN capture logic silently fails on one format | Medium | Medium | Test against both formats before calling this done; if a KFintech fixture isn't available, ship CAMS-verified and flag KFintech as best-effort until a fixture arrives |
-| Scheme names without a reliable Direct/Regular naming convention (some AMCs are inconsistent) | Medium | Low | `unclassified` fallback with user confirmation, per FR-5, prevents silent misclassification |
+| Scheme names without a reliable Direct/Regular naming convention (some AMCs are inconsistent) | Medium | Low | ~~`unclassified` fallback with user confirmation~~ 2026-10-06: the plan comes from the AMFI master (FR-5 amendment); the name only decides when the master has none |
 
 ## Timeline & Milestones
 
@@ -304,3 +314,4 @@ list below, since the original requirements were accurate as written.
 | 1.2 | 2026-07-22 | Claude (PM partner) | Added Ongoing Data Addition as an explicit v1 scope item (import is recurring, not onboarding-only); noted in ADR-004 that PDF retention (vs. current delete-after-parse) is now an open decision pending Ayush's call, not yet changed |
 | 1.3 | 2026-07-22 | Claude (PM partner) | FR-2 clarified: PAN confirmed never persisted (transient use only), resolved via Database Schema's open question |
 | 1.4 | 2026-08-05 | Claude (PM partner), from team brainstorm relayed by Ayush | FR-9 cross-referenced to PRD-02 v1.3's Family CAS Upload batch-parse flow: this endpoint is still called once per file, sequentially, tagged per `household_member_id` — no batch/multi-file mode added here, the queueing/sequencing lives entirely in the frontend per PRD-02 |
+| 1.5 | 2026-10-06 | Claude (orchestrator), CAS import fixes Phases 5–7 | FR-5 amended: the plan comes from the AMFI master; the ARN never decides it; no stored `unclassified`. FR-10 is unchanged for now: the review screen's removal is pending until after staging (see the note under FR-10). |

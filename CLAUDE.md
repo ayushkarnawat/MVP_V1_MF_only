@@ -60,7 +60,7 @@ instead. See `docs/agents/domain.md`.
 
 ## Session State
 
-*(Updated 2026-10-01. This section is a one-line current-status pointer, not a log —
+*(Updated 2026-10-06. This section is a one-line current-status pointer, not a log —
 do not append session narrative here again. Full current status: `session.md` at repo
 root, overwritten each session. Full permanent history: `log.md` (append-only, never
 trimmed), `backend.md`/`database.md` (backend/schema changes only), `decisions.md`
@@ -68,7 +68,9 @@ trimmed), `backend.md`/`database.md` (backend/schema changes only), `decisions.m
 `Docs/orchestration/delegation-log.md`. Deferred/not-yet-built features:
 `DEFERRED_FEATURES.md`.)*
 
-**Latest (2026-10-01):** AWS staging cost-reduction (Scenario A,
+**Latest (2026-10-06):** CAS import fixes Phases 1–6 and Phase 7 prep built and independently reviewed (uncommitted, not deployed); the local gate passed (46 synthetic scenarios × normal/mfapi-blocked + 2 real CAMS statements: every fund matches, zero review items). The Import Review screen stays until after staging (user decision). Left: staging wipe/deploy/scheme-master load, a real KFintech statement and the C1–C14 checklist, then the review-screen removal — see `session.md`'s 2026-10-06 section.
+
+**Previous (2026-10-01):** AWS staging cost-reduction (Scenario A,
 `Docs/2026-09-29-aws-staging-cost-analysis-and-reduction-plan.md`) applied and verified
 healthy: ECS backend task memory 2048→1024MB, ECR keep-last-10-tagged lifecycle rule, 6
 EventBridge night-stop schedules (RDS/backend/`fck-nat` stop at 9PM, start 5AM IST), an
@@ -130,9 +132,9 @@ undocumented gap" section, `log.md`'s dated entries, `decisions.md`.
 `category_ranking.py` (Postgres has been live in staging since 2026-09-09 — worth
 revisiting now, not just a hypothetical future follow-up); an ARIA IDREF gap on the SIP
 tab switcher (accepted documented limitation); the backend API domain naming decision
-(§19/§22 Phase 5); `FamilyImportFlow.tsx`'s missing `member_mismatch` override-retry UI
-(found 2026-10-01); the 10-year CAS statement value-discrepancy investigation (handoff
-doc written 2026-10-01, not yet resolved). (The phone-OTP "unknown number silently
+(§19/§22 Phase 5). (2026-10-06: the `FamilyImportFlow.tsx` `member_mismatch` item is
+moot — the component was removed in `0fbafe5`; the 10-year CAS value discrepancy is
+root-caused and fixed by the CAS import fixes.) (The phone-OTP "unknown number silently
 creates an account" item is fixed by the 2026-09-30 staging QA fixes, pending their
 staging deploy; see session.md item 9.)
 

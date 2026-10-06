@@ -299,3 +299,27 @@ Executed `Docs/superpowers/plans/2026-10-01-member-profile-completion.md` (spec 
 - **Controller rulings during execution:** `MemberLockReason` deleted in Task 3, not Task 2; merge only for `origin=cas_detected` sources; the 0023 backfill flags other-account-held rows as `pan_conflict`; "Add data" never reserves a non-Self target's PAN at upload (stored at Confirm; other-account PAN starts the review and becomes `pan_conflict` instead of a 409); `@testing-library/user-event` is not installed so tests use `fireEvent`; "Change in Account Info" navigates to Profile -> Account Info on desktop via a new optional `onChangeInAccountInfo` prop; mobile has no account screen, so the link is pending the final review (render only when the prop is supplied).
 - **Not verified:** no test covers "Add data" for a name-only member whose statement PAN another account already holds (the review now starts and Confirm stores it as `pan_conflict`, no 409); migration 0023 Postgres paths (`functional_postgres` skipped, no `TEST_DATABASE_URL`) must run before deploy; no browser visual QA. Per-task tests were the affected files only. Final whole-branch review pending. Deferred minors are in the ledger `.superpowers/sdd/2026-10-01-member-profile-completion/progress.md`.
 - Docs updated: PRDs (App Flow, Database Schema), `DEFERRED_FEATURES.md` (`primary_goal` drop now 0024), supersession notes on the 2026-09-29 plan and CAS member detection map.
+
+## 2026-10-05/06 — CAS import fixes: Phases 1–6 + Phase 7 prep built, local gate passed (uncommitted, not deployed)
+
+Goal: the dashboard equals the CAS for every lookback and upload order, then remove the Import Review screen. Plan: `Docs/superpowers/plans/2026-10-06-cas-import-fixes-00-index.md` (p1–p7). Phases 1, 2, 5 and 6A were built by Codex (manual relay); 3, 4, 6B and 7 by the orchestrator when Codex was out of quota. Every phase had a fresh independent reviewer, and every finding was fixed or explicitly accepted. Full per-round record: `Docs/orchestration/cas-import-fixes-handoff.md` (Round log, carry-overs 1–23) and `Docs/orchestration/delegation-log.md`. Numbers: `Docs/orchestration/2026-10-06-cas-import-baseline.md` (sections "After phase 2" … "Phase 7 gate — FINAL").
+
+What changed:
+- **Rows:** the CAS opening balance is saved, which was the root cause of the 10-year value gap. Also twin rows, reversal/gift/bonus/segregation types, the folio key, import links, delete-by-links with opening restore, and fund identity from the daily AMFI master by ISIN, with the plan from AMFI and never from the ARN.
+- **Numbers:** realised gains for sold funds, XIRR with switch legs, SIPs with the 3-missed rule, twins and the stamp-duty tolerance, monthly history on its own page (bulk, partial months flagged), hero realised/today's gain, honest distributor/TER labels, small display fixes, and review sessions that survive a restart.
+- **Phase 7:**
+  - a demat-statement error message;
+  - `needs_review`/candidates on the preview;
+  - unlisted held funds valued at the statement's NAV, with every CAS-only fund keeping its statement prices as its price history;
+  - the reclassify script for kept data;
+  - PRD-01 v1.5 (FR-5).
+  - The review-screen removal (Task 3) was built, then restored the same day on the user's instruction: it waits until after staging and the user's screenshots. The prepared `confirmBody.ts` and `UnidentifiedFundsDialog.tsx` stay, unused.
+
+Gate:
+- 46 synthetic scenarios × normal/mfapi-blocked: all funds match, zero review items; the only non-passes are the 2 by-design empty delete orders.
+- 2 real CAMS stakeholder statements, alone, in both orders, blocked and repeated: all funds match, zero review items.
+- Postgres migration round-trip and `functional_postgres` pass.
+
+Carry-over 16 (p20 XIRR gap) turned out to be a harness bug (a reinvestment ISIN missing from the truth's NAV lookup); the app was not tuned.
+
+Not done (needs staging): a real KFintech statement, the C1–C14 frontend checklist, the staging wipe, the deploy, loading the scheme master once, then (after the user confirms the gate) the review-screen removal and its PRD-01 FR-10 / App-Flow edits.

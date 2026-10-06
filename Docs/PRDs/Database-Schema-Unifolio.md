@@ -1,8 +1,8 @@
 ---
 artifact: database-schema
-version: "1.6"
+version: "1.9"
 created: 2026-07-22
-updated: 2026-09-29
+updated: 2026-10-06
 status: draft
 product: Unifolio
 target: "AWS RDS for PostgreSQL (ADR-003)"
@@ -55,6 +55,8 @@ erDiagram
     HOUSEHOLD_MEMBERS ||--o{ FOLIOS : "holds"
     IMPORTS ||--o{ TRANSACTIONS : "introduces"
     FOLIOS ||--o{ TRANSACTIONS : "contains"
+    IMPORTS ||--o{ TRANSACTION_IMPORTS : "linked to every row it contained"
+    TRANSACTIONS ||--o{ TRANSACTION_IMPORTS : "linked from"
     SCHEMES ||--o{ FOLIOS : "held via"
     SCHEMES ||--o{ NAV_HISTORY : "has"
     SCHEMES ||--o{ SCHEME_TER : "has"
@@ -154,7 +156,7 @@ Data Addition requirement.
 |---|---|---|
 | `id` | `UUID` PK | |
 | `household_member_id` | `UUID` FK → `household_members.id` NOT NULL | |
-| `status` | `ENUM('pending','confirmed','failed','not_started','requesting_cas','waiting_for_user','upload_started','password_required','validation_failed','processing','retry_pending','import_successful','import_failed','expired')` NOT NULL | Widened from the original 3-value set (migration 0003) to the full lifecycle-state machine (Updated-CAS-PRD FR-5); `pending`/`confirmed`/`failed` remain as legacy values, not removed — Postgres enums can't cheaply drop a value |
+| `status` | `ENUM('pending','confirmed','failed','not_started','requesting_cas','waiting_for_user','upload_started','password_required','validation_failed','processing','retry_pending','import_successful','import_failed','expired','previewing')` NOT NULL | Widened from the original 3-value set (migration 0003) to the full lifecycle-state machine (Updated-CAS-PRD FR-5); `pending`/`confirmed`/`failed` remain as legacy values, not removed — Postgres enums can't cheaply drop a value. `previewing` added migration 0029 (`ALTER TYPE importstatus ADD VALUE`): an in-progress review session persisted as a transient `imports` row; `processing` (already in the set) doubles as the claimed-for-confirm state of such a row. Migration 0029's downgrade deletes `previewing` rows but Postgres keeps the enum value |
 | `source_cas_type` | `ENUM('cams','kfintech')` NULLABLE | Set once parsing succeeds |
 | `raw_parser_output` | `JSONB` NULLABLE | Full `casparser` output, per PRD-01 FR-4, for debugging — not the source PDF |
 | `error_type` | `ENUM('wrong_password','scanned_pdf','wrong_cas_type','generic')` NULLABLE | Populated on failure, drives PRD-01 FR-12–14's specific messaging |
@@ -171,6 +173,7 @@ Data Addition requirement.
 | `file_reference` | `VARCHAR` NULLABLE | Added migration 0015 — opaque storage key for the retained source CAS PDF (local-disk path in dev; S3 object key in production); `NULL` once expired/deleted |
 | `upload_group_id` | `UUID` NULLABLE, indexed (`ix_imports_upload_group_id`) | Added migration 0018 — shared by every per-person `imports` row created from one multi-person upload; drives grouped Import History and group-scope delete |
 | `file_expires_at` | `TIMESTAMPTZ` NULLABLE | Added migration 0015 — set to upload time + 30 days on store; the expiry sweep (see `app/services/import_/file_storage.py::expire_stored_files`) deletes the underlying file and nulls both this and `file_reference` once past this timestamp |
+| `preview_state` | `TEXT` NULLABLE | Added migration 0029 — encrypted (`encrypt_bytes`, same envelope as PAN) JSON of the in-progress review session while `status` is `previewing`/`processing`; written through by `app/services/import_/preview_store.py` so a review survives a deploy, crash or the nightly stop. `expires_at` carries the session TTL. `NULL` on every real (confirmed/failed) import |
 
 **Note on PAN**: the CAS PDF password is the user's PAN, but per PRD-01's constraint the
 *password itself* is never stored. The investor-info PAN parsed *from inside* the CAS
@@ -179,18 +182,22 @@ Data Addition requirement.
 resolution; see Open Questions below and `Docs/superpowers/specs/2026-09-18-pan-cas-attribution-design.md`).
 
 ### `schemes` (reference data)
-Master scheme list — AMFI/`mfapi.in`-sourced, shared across all users, not duplicated
-per household.
+Master scheme list — the AMFI `NAVAll` master (refreshed daily by `scripts/jobs/refresh_scheme_master_daily.py`, `app/services/analytics/scheme_master.py`), shared across all users, not duplicated per household. Funds that appear on a CAS but not in the AMFI master (closed/merged) get a `cas_only` row so folios never orphan.
 
 | Column | Type | Notes |
 |---|---|---|
 | `id` | `UUID` PK | |
-| `amfi_code` | `VARCHAR` UNIQUE NOT NULL | |
-| `isin` | `VARCHAR` NULLABLE | Not all schemes have one uniformly populated |
+| `amfi_code` | `VARCHAR` UNIQUE NULLABLE | Nullable since migration 0028 — `cas_only` (closed-fund) schemes have no AMFI code; the UNIQUE constraint stays (multiple NULLs allowed). Migration 0028's downgrade refuses to run while any NULL row exists |
+| `isin` | `VARCHAR` NULLABLE, indexed (`ix_schemes_isin`) | Not all schemes have one uniformly populated; index added migration 0028 |
+| `isin_reinvest` | `VARCHAR` NULLABLE, indexed (`ix_schemes_isin_reinvest`) | Added migration 0028 — the AMFI master's second ISIN (dividend reinvestment), so a CAS printing either ISIN identifies the scheme |
+| `base_name` | `VARCHAR` NULLABLE | Added migration 0028 — scheme name with plan/option words stripped; with `amc_name` forms `ix_schemes_amc_base` (sibling-plan lookup for direct/regular classification) |
 | `name` | `VARCHAR` NOT NULL | |
 | `amc_name` | `VARCHAR` NOT NULL | PRD-04 FR-1 (AMC allocation) |
 | `sebi_category` | `VARCHAR` NOT NULL | PRD-04 FR-2/FR-3 (category allocation, ranking) |
 | `plan_name_variant` | `ENUM('direct','regular','unresolved')` NULLABLE | Scheme-name-pattern signal feeding PRD-01 FR-5, distinct from the per-folio classification below |
+| `plan_type` | `ENUM('direct','regular')` NULLABLE | Added migration 0028 (Postgres type `schemeplantype`; `VARCHAR(16)` on SQLite) — plan from the AMFI master's plan column, else the scheme name; authoritative input to `identify.classify_plan` |
+| `is_active` | `BOOLEAN` NOT NULL DEFAULT `true` | Added migration 0028 — `false` once a scheme drops out of the daily AMFI master (history and CAS-only identities are preserved, never deleted) |
+| `source` | `ENUM('amfi','casparser','cas_only')` NOT NULL DEFAULT `'amfi'` | Added migration 0028 (Postgres type `schemesource`) — where the row came from |
 
 ### `folios`
 A specific holding: one household member's position in one scheme, via one folio
@@ -204,10 +211,12 @@ distributors — see PRD-03 FR-11).
 | `scheme_id` | `UUID` FK → `schemes.id` NOT NULL | |
 | `folio_number` | `VARCHAR` NOT NULL | |
 | `arn_code` | `VARCHAR` NULLABLE | PRD-01 FR-7/FR-8 — captured per folio, not collapsed across folios |
-| `plan_type` | `ENUM('direct','regular','unclassified')` NOT NULL DEFAULT `'unclassified'` | Resolved per PRD-01 FR-5/FR-6, combining `schemes.plan_name_variant` and this folio's `arn_code` presence |
+| `folio_key` | `VARCHAR` NOT NULL | Added migration 0027 — `folio_number` with all whitespace stripped (CAMS and KFintech print one folio with and without spaces around "/"). Python default derives it from `folio_number`; migration 0027 backfilled it and merged same-member/scheme/key duplicate folios (most rows kept; twin rows' import links moved) |
+| `plan_type` | `ENUM('direct','regular','unclassified')` NOT NULL DEFAULT `'unclassified'` | Resolved per PRD-01 FR-5/FR-6, combining `schemes.plan_name_variant` and this folio's `arn_code` presence. Since the CAS-import fixes, import-time classification comes from the scheme (`schemes.plan_type`, else name) via `identify.classify_plan` and is no longer left `unclassified` |
+| `plan_verified` | `BOOLEAN` NOT NULL DEFAULT `false` | Added migration 0028 — whether the plan was established from the AMFI master/name (or NAV check) rather than guessed |
 | `has_coverage_gap` | `BOOLEAN` NOT NULL DEFAULT `false` | Added migration 0003 — flags a folio with a detected transaction-history coverage gap (Updated-CAS-PRD FR-7) |
 | `coverage_gap_details` | `JSONB` NULLABLE | Added migration 0003 — detail payload for the flagged gap |
-| UNIQUE | `(household_member_id, scheme_id, folio_number)` | Prevents duplicate folio rows on re-import |
+| UNIQUE | `(household_member_id, scheme_id, folio_key)` (`uq_folio_member_scheme_key`) | Prevents duplicate folio rows on re-import. Replaced `uq_folio_member_scheme_number` on `folio_number` in migration 0027 so spacing differences can no longer create a second folio |
 
 ### `transactions`
 Every parsed transaction line — the ledger everything else (holdings, XIRR, cash flow,
@@ -215,21 +224,39 @@ SIP detection) is computed from. **Partitioned by `RANGE (date)`, yearly**, from
 launch — not deferred. Postgres requires the partition key in every unique constraint on
 a partitioned table, which is why `id` alone can no longer be the sole primary key (see
 below); the dedupe constraint already includes `date` so it partitions cleanly as-is.
+Since migration 0027 every import that contained a row is also recorded in `transaction_imports`; `import_id` below is only the first writer.
 
 | Column | Type | Notes |
 |---|---|---|
 | `id` | `UUID` | Generated, not globally unique alone once partitioned — see composite PK |
 | `folio_id` | `UUID` FK → `folios.id` NOT NULL | |
 | `import_id` | `UUID` FK → `imports.id` NOT NULL | Which import introduced this row — enables audit/debugging without needing the source PDF |
-| `type` | `ENUM('purchase','purchase_sip','redemption','switch_in','switch_out','dividend_payout','dividend_reinvest','segregation','stt','stamp_duty','misc','opening_balance')` NOT NULL | Per PRD-01 FR-3; `opening_balance` added migration 0003 (Updated-CAS-PRD FR-7's coverage-gap opening-balance row). On Postgres this column is `VARCHAR` + `CHECK (type IN (...))`, not a native enum type — migration 0001's `_create_transactions_postgres()` deliberately avoids a separate `CREATE TYPE` lifecycle for the partitioned table; the CHECK constraint was widened for `opening_balance` by migration 0010, not 0003 (0003's own attempted `ALTER TYPE` for this column was dead code, since no native type ever existed here) |
+| `type` | `ENUM('purchase','purchase_sip','redemption','switch_in','switch_out','dividend_payout','dividend_reinvest','segregation','stt','stamp_duty','misc','opening_balance','reversal','gift_in','gift_out','bonus')` NOT NULL | Per PRD-01 FR-3; `reversal`, `gift_in`, `gift_out`, `bonus` added migration 0026 (the CHECK was rebuilt on Postgres; the native `transactiontype` type, if present, gets `ADD VALUE`). `segregation` already existed; `opening_balance` added migration 0003 (Updated-CAS-PRD FR-7's coverage-gap opening-balance row). On Postgres this column is `VARCHAR` + `CHECK (type IN (...))`, not a native enum type — migration 0001's `_create_transactions_postgres()` deliberately avoids a separate `CREATE TYPE` lifecycle for the partitioned table; the CHECK constraint was widened for `opening_balance` by migration 0010, not 0003 (0003's own attempted `ALTER TYPE` for this column was dead code, since no native type ever existed here) |
 | `date` | `DATE` NOT NULL | Partition key |
 | `amount` | `NUMERIC(14,2)` NOT NULL | |
 | `units` | `NUMERIC(14,3)` NOT NULL | |
 | `nav` | `NUMERIC(10,4)` NOT NULL | |
 | `raw_description` | `VARCHAR` NULLABLE | Preserves original text for `misc`-typed rows, per PRD-01 FR-3 |
+| `origin` | `VARCHAR(16)` NOT NULL DEFAULT `'cas_row'`, CHECK `IN ('cas_row','cas_opening','manual')` | Added migration 0025 — `cas_opening` is the opening-balance row synthesised from a CAS's opening units; `manual` is the user-entered OpeningBalanceModal row (migration 0025 marked every pre-existing `opening_balance` row `manual`). The earliest-statement rule replaces only `cas_opening` rows, never `manual` ones |
+| `cost_source` | `VARCHAR(16)` NULLABLE, CHECK `IS NULL OR IN ('cas_cost','nav_on_start','manual')` | Added migration 0025 — how an opening-balance row's cost was derived (CAS valuation cost, NAV on the statement start date, or user-entered); `NULL` for ordinary rows |
+| `balance_units` | `NUMERIC(18,3)` NULLABLE | Added migration 0026 — the CAS's running unit balance printed after this row; `NULL` for legacy rows and rows without one. Used by confirm's balance/occurrence matcher to tell genuine identical same-day rows from overlap duplicates (existing rows are healed on overlap) |
+| `occurrence` | `SMALLINT` NOT NULL DEFAULT `1` | Added migration 0026 — 1-based index separating genuinely identical same-day rows (twins) inside the dedupe key |
 | PRIMARY KEY | `(id, date)` | Composite because `date` (the partition key) must be part of every unique index on a partitioned table — `id` alone remains the practical row identifier for foreign-key references from elsewhere if ever needed |
-| UNIQUE | `(folio_id, date, amount, units, type)` | **The dedupe key** — PRD-01 FR-9, PRD-03's re-upload edge case. Already includes `date`, so it partitions cleanly with no redesign needed. (`type` added v1.2: `amount`/`units` are stored as positive magnitudes, so a same-day purchase and redemption of equal size would otherwise collide and one be dropped as a false duplicate) |
+| UNIQUE | `(folio_id, date, amount, units, type, occurrence)` (`uq_transactions_folio_date_amount_units_type_occ`) | **The dedupe key** — PRD-01 FR-9, PRD-03's re-upload edge case. Already includes `date`, so it partitions cleanly with no redesign needed. (`type` added v1.2: `amount`/`units` are stored as positive magnitudes, so a same-day purchase and redemption of equal size would otherwise collide and one be dropped as a false duplicate. `occurrence` added v1.9, migration 0026: two genuine identical same-day rows no longer collapse into one. Replaced `uq_transactions_folio_date_amount_units_type`) |
 | Partitions | `transactions_2020` ... `transactions_2026`, `transactions_default` | Yearly range partitions; a `DEFAULT` partition catches anything outside the defined ranges (e.g., a very old transaction from a long-held fund) rather than failing the insert — new yearly partitions get added routinely as time passes, a small recurring ops task rather than a redesign |
+
+### `transaction_imports`
+Link table: every import whose statement contained a given transaction row. `transactions.import_id` keeps only the *first* writer (NOT NULL), so without this table deleting one of two overlapping imports would either drop rows the other still needs or leave rows behind. Deleting an import removes only the rows no other import holds (`app/services/import_/deletion.py`), then `opening_restore.py` rebuilds opening balances from the remaining statements. Added migration 0027.
+
+| Column | Type | Notes |
+|---|---|---|
+| `transaction_id` | `UUID` NOT NULL | Part of the composite FK to `transactions` |
+| `transaction_date` | `DATE` NOT NULL | Partition key — the FK to `transactions(id, date)` must be composite because `transactions` is `RANGE`-partitioned on Postgres (FKs to partitioned tables need Postgres 12+; staging runs 16). `ON DELETE CASCADE` |
+| `import_id` | `UUID` FK → `imports.id` NOT NULL, `ON DELETE CASCADE` | |
+| PRIMARY KEY | `(transaction_id, import_id)` | |
+| INDEX | `ix_transaction_imports_import_id` on `(import_id)` | Supports "which rows does this import hold" during delete |
+
+Migration 0027 seeded one link per existing row (its `import_id`) and then added links for every `cas_row` row inside an import's statement period for folios listed in that import's stored `raw_parser_output`.
 
 ### `nav_history` (reference data)
 NAV per scheme per date — covers the *full scheme universe*, not just what any user
@@ -289,6 +316,10 @@ per PRD-03 FR-8, so this table can be populated retroactively, not just going fo
 | `snapshot_month` | `DATE` | Stored as the month's last day |
 | `total_value` | `NUMERIC(18,2)` NOT NULL | |
 | `computed_at` | `TIMESTAMPTZ` | |
+| `invested_value` | `NUMERIC(18,2)` NULLABLE | Added migration 0029 — FIFO cost of the units held at month end; `NULL` on rows written before 0029 |
+| `is_partial` | `BOOLEAN` NOT NULL DEFAULT `false` | Added migration 0029 — `true` when at least one held scheme had no NAV on or before the month end, so `total_value` omits it; partial months are recomputed on the next read |
+| `missing_scheme_ids` | `JSONB` NULLABLE (generic `JSON` on SQLite) | Added migration 0029 — list of `schemes.id` (as strings) missing a NAV that month; `NULL` when complete. Resolved to names at read time |
+| `data_version` | `BIGINT` NOT NULL DEFAULT `0` | Added migration 0029 — epoch milliseconds of the member's latest confirmed import `confirmed_at` at compute time; a snapshot older than the current version is stale and rebuilt |
 | PRIMARY KEY | `(household_member_id, snapshot_month)` | |
 
 ### `fund_scores` (reference data — fund-level, not per-user)
@@ -409,6 +440,8 @@ Foundational session record following successful auth verification.
   member" invariant at the database level; unique on a nullable column so the many
   members with no PAN backfilled yet (`NULL`) don't collide with each other, while any
   two non-null hashes are still guaranteed distinct.
+- `ix_transaction_imports_import_id` on `transaction_imports(import_id)` (migration 0027) — import delete/restore lookups.
+- `ix_schemes_isin`, `ix_schemes_isin_reinvest`, `ix_schemes_amc_base` on `schemes` (migration 0028) — fund identification by either ISIN and sibling-plan lookup.
 
 ## What This Document Doesn't Cover
 
@@ -455,3 +488,4 @@ None remaining from this pass.
 | 1.6 | 2026-09-29 | Claude | CAS member detection (migration 0018): `household_members` gained `origin`, `name_source`, `name_updated_at`, `details_completed_at`, `lock_reason`, `pan_source`, `pan_verified_at`, `detected_pan_encrypted`, `detected_pan_hash`, `detected_from_import_id`, and `relationship` became nullable; 4 CHECK constraints and the never-relock trigger; `imports.upload_group_id`; new audit tables `household_member_name_changes` and `household_member_merges`. Postgres enum type names follow the codebase convention (`memberorigin`, `membernamesource`, `memberpansource`, `memberlockreason`, `namechangereason`), not the spec's snake_case. Also supersedes the migration-0016 sync note: doc is current through 0018. |
 | 1.7 | 2026-09-30 | Claude | Staging QA fixes: `users.primary_goals` (0019, JSONB + CHECK on Postgres; `primary_goal` deprecated, dropped by the pending 0021); `imports.statement_from_date`/`statement_to_date` are now written at Confirm and backfilled by data migration 0020. No other schema change: the duplicate-member fixes reuse `household_members.detected_pan_*` and `household_member_merges`. Current through 0020. |
 | 1.8 | 2026-10-01 | Claude | Member profile completion (migration 0023): `household_members` lost `details_completed_at` / `lock_reason` (detected-member lock removed); gained `pan_conflict`; `name_source` gained `user_edited`; `detected_pan_*` now holds only a PAN another account holds |
+| 1.9 | 2026-10-06 | Claude | CAS import fixes (migrations 0025-0029): `transactions` gained `origin`, `cost_source` (0025), `balance_units`, `occurrence` and four type values `reversal`/`gift_in`/`gift_out`/`bonus`, dedupe key now includes `occurrence` (0026); `folios.folio_key` with new unique key `(household_member_id, scheme_id, folio_key)` and new `transaction_imports` link table (0027); `schemes` master columns `isin_reinvest`, `base_name`, `plan_type`, `is_active`, `source`, nullable `amfi_code`, plus `folios.plan_verified` (0028); `portfolio_snapshots.invested_value`/`is_partial`/`missing_scheme_ids`/`data_version`, `imports.preview_state` and `imports.status` value `previewing` (0029). Current through 0029 (0024 is reserved for the deferred `users.primary_goal` drop; 0025 chains from 0023). |
