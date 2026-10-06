@@ -26,7 +26,7 @@ describe("FundDetailModal", () => {
     amc_name: "PPFAS Mutual Fund",
     household_member_id: "m-1",
     household_member_name: "Ayush",
-    plan_type: "DIRECT",
+    plan_type: "direct",
     units_held: "150.2500000",
     average_nav: "42.5000000",
     current_nav: "65.8000000",
@@ -55,6 +55,16 @@ describe("FundDetailModal", () => {
     expect(screen.getByText("150.25")).toBeInTheDocument();
     expect(screen.getByText("₹42.50")).toBeInTheDocument();
     expect(screen.getByText("₹65.80")).toBeInTheDocument();
+  });
+
+  it("shows the opening-lot facts and the approximate-cost tag", () => {
+    render(<FundDetailModal isOpen onClose={() => {}} holding={{ ...sampleHolding,
+      opening_lot: { units: "7251.691", since: "2016-01-01", cost_source: "nav_on_start" },
+    }} />);
+    expect(screen.getByText("incl. 7,251.691 units from before 1 Jan 2016")).toBeInTheDocument();
+    expect(screen.getByText("held since at least 1 Jan 2016")).toBeInTheDocument();
+    expect(screen.getByText("cost approximate")).toBeInTheDocument();
+    expect(screen.queryByText(/Bought ~/)).not.toBeInTheDocument();
   });
 
   it("no longer renders a Compare Distributors trigger — moved to the Holdings section header", () => {
@@ -110,4 +120,12 @@ describe("FundDetailModal", () => {
     expect(screen.getByText("₹6,386")).toBeInTheDocument();
     expect(screen.queryAllByText(/^₹0$/)).toHaveLength(0);
   });
+  it("separates unrealised gain and total return including realised", () => {
+    render(<FundDetailModal isOpen onClose={vi.fn()} holding={{ ...sampleHolding, unrealized_gain: "2000", current_profit_total: "3500" }} />);
+    expect(screen.getByText("Unrealised gain")).toBeInTheDocument();
+    expect(screen.getByText("Total return incl. realised")).toBeInTheDocument();
+    expect(screen.getByText(/₹2,000/)).toBeInTheDocument();
+    expect(screen.getByText(/₹3,500/)).toBeInTheDocument();
+  });
+
 });

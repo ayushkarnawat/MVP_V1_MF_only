@@ -1,3 +1,4 @@
+vi.mock("../dev/useDevToolsEnabled", () => ({ useDevToolsEnabled: () => false }));
 import { act, render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { MainDashboardFlow } from "./MainDashboardFlow";
@@ -23,8 +24,8 @@ vi.mock("./api", () => ({
 }));
 
 vi.mock("../import/ImportFlow", () => ({
-  ImportFlow: ({ householdMemberId }: { householdMemberId: string }) => (
-    <div data-testid="import-for">{householdMemberId}</div>
+  ImportFlow: ({ householdMemberId, onDone }: { householdMemberId: string; onDone?: (notice?: { text: string; details?: string[] }) => void }) => (
+    <div data-testid="import-for">{householdMemberId}<button onClick={() => onDone?.({ text: "This statement was already imported" })}>Close duplicate import</button></div>
   ),
 }));
 
@@ -281,3 +282,17 @@ describe("MainDashboardFlow", () => {
     });
   });
 });
+
+ it("shows and dismisses the dashboard notice after a duplicate import closes", async () => {
+    vi.mocked(authApi.getHouseholdMembers).mockResolvedValue([{ id: "m-1", name: "Alice", relationship: "self", origin: "onboarding", profile_completion: 100, missing_fields: [] }] as any);
+    vi.mocked(dashboardApi.getMemberHoldings).mockResolvedValue([]);
+    vi.mocked(dashboardApi.getMemberAllocation).mockResolvedValue({ by_asset_class: [], by_amc: [], total_value: "0.00" });
+    render(<MainDashboardFlow />);
+    await screen.findByText("No Holdings Found");
+    fireEvent.click(screen.getByRole("button", { name: "Analytics" }));
+    fireEvent.click(screen.getByRole("button", { name: "+ Add Data" }));
+    fireEvent.click(await screen.findByText("Close duplicate import"));
+    expect(await screen.findByText("This statement was already imported")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss import notice" }));
+    expect(screen.queryByText("This statement was already imported")).not.toBeInTheDocument();
+ });

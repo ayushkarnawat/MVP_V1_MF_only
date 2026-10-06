@@ -1,3 +1,4 @@
+import { ImportHealth } from "../dev/ImportHealth";
 import { useState, useEffect, useCallback } from "react";
 import { NavigationShell, type MemberOption } from "./NavigationShell";
 import { DashboardView } from "./DashboardView";
@@ -42,10 +43,12 @@ export function MainDashboardFlow() {
   const [profileFor, setProfileFor] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"aggregate" | "member">("aggregate");
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  const [devPage, setDevPage] = useState(false);
   const [activeTab, setActiveTab] = useState<MainTab>(() => {
     const historyTab = window.history.state?.unifolioTab;
     return historyTab === "analytics" || historyTab === "profile" ? historyTab : "dashboard";
   });
+  const [importNotice, setImportNotice] = useState<{ text: string; details?: string[] } | null>(null);
   const [isAddingData, setIsAddingData] = useState(false);
   const [targetAddMemberId, setTargetAddMemberId] = useState<string | null>(null);
   // True only when Add Data was reached from Family Combined view via the
@@ -101,6 +104,7 @@ export function MainDashboardFlow() {
       "",
       window.location.href,
     );
+    setDevPage(false);
     setActiveTab(tab);
   };
 
@@ -120,6 +124,7 @@ export function MainDashboardFlow() {
   };
 
   const handleAddDataTrigger = (memberId?: string) => {
+    setImportNotice(null);
     setAddDataAllowsMemberChoice(!memberId && viewMode === "aggregate");
     setTargetAddMemberId(memberId || selectedMemberId);
     setIsAddingData(true);
@@ -212,7 +217,11 @@ export function MainDashboardFlow() {
               key={targetAddMemberId}
               householdMemberId={targetAddMemberId}
               ctaLabel="Back to Dashboard"
-              onDone={() => setIsAddingData(false)}
+              onDone={(notice) => {
+                setImportNotice(notice ?? null);
+                if (notice) handleTabChange("dashboard");
+                setIsAddingData(false);
+              }}
             />
           )}
 
@@ -256,8 +265,9 @@ export function MainDashboardFlow() {
           </div>
         </div>
       )}
-      {activeTab === "dashboard" ? (
+      {devPage ? <ImportHealth memberId={viewMode === "member" ? selectedMemberId ?? undefined : undefined} onBack={() => setDevPage(false)} /> : activeTab === "dashboard" ? (
         <DashboardView
+          importNotice={importNotice} onDismissImportNotice={() => setImportNotice(null)}
           viewMode={viewMode}
           memberId={selectedMemberId}
           onAddDataForMember={handleAddDataTrigger}
@@ -271,6 +281,7 @@ export function MainDashboardFlow() {
         />
       ) : (
         <ProfileView
+          onOpenImportHealth={() => setDevPage(true)}
           name={members.find((member) => member.name.endsWith("(Me)"))?.name.replace(/\s*\(Me\)$/, "") ?? "Account holder"}
           email={me?.email ?? null}
           phoneNumber={me?.phone_number ?? ""}

@@ -1,3 +1,4 @@
+import { useDevToolsEnabled } from "../dev/useDevToolsEnabled";
 import { useRef, useState } from "react";
 import { LogOut, Mail, Phone, Trash2, UserRound } from "lucide-react";
 import { ThemeToggle } from "../../components/ThemeToggle";
@@ -23,6 +24,7 @@ interface ProfileViewProps {
   deletePortfolio?: (memberId: string, removeMember: boolean) => Promise<DeleteImportResponse>;
   /** After a D1/D2 delete: members may have been removed, so the page's member list needs reloading. */
   onMembersChanged?: () => void;
+  onOpenImportHealth?: () => void;
 }
 
 type ProfileSection = "account" | "family" | "imports" | "terms";
@@ -55,7 +57,9 @@ export function ProfileView({
   loadMembers,
   deletePortfolio,
   onMembersChanged,
+  onOpenImportHealth,
 }: ProfileViewProps) {
+  const devToolsEnabled = useDevToolsEnabled();
   const [section, setSection] = useState<ProfileSection>("account");
   // Each section remounts (re-fetches) when the other one deleted something it shows.
   const [historyVersion, setHistoryVersion] = useState(0);
@@ -247,6 +251,7 @@ export function ProfileView({
           )}
 
           {section === "terms" && <TermsSection />}
+          {devToolsEnabled && <button type="button" onClick={onOpenImportHealth}>Import health <span className="text-xs text-[var(--color-warning)]">STAGING</span></button>}
         </div>
       </div>
 

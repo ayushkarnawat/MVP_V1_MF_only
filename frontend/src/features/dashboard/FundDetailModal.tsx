@@ -1,6 +1,7 @@
+import { PlanBadge } from "@/features/dashboard/PlanBadge";
 import { Modal } from "../../components/Modal";
 import { Badge } from "../../components/Badge";
-import { formatDdMmYyyy, toTitleCase } from "../../lib/utils";
+import { formatDdMmYyyy } from "../../lib/utils";
 import { FundSignalGraph } from "../../components/FundSignal";
 import type { HoldingRow } from "./types";
 import styles from "./FundDetailModal.module.css";
@@ -24,6 +25,10 @@ export function FundDetailModal({
   const currentValue = navUnavailable ? null : parseFloat(holding.current_value || "0");
   const profit = navUnavailable ? null : parseFloat(holding.current_profit_total || "0");
   const isPositive = profit !== null && profit >= 0;
+  const opening = holding.opening_lot;
+  const openingDate = opening ? new Date(`${opening.since}T00:00:00Z`).toLocaleDateString("en-GB", {
+    day: "numeric", month: "short", year: "numeric", timeZone: "UTC",
+  }) : null;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Fund Details">
@@ -31,9 +36,7 @@ export function FundDetailModal({
         <div className={styles.headerArea}>
           <div className={styles.titleRow}>
             <h3 className={`type-h2 ${styles.schemeName}`}>{holding.scheme_name}</h3>
-            <Badge variant={holding.plan_type === "DIRECT" ? "positive" : "neutral"}>
-              {toTitleCase(holding.plan_type)}
-            </Badge>
+            <PlanBadge planType={holding.plan_type} verified={holding.plan_verified} />
           </div>
           {holding.amc_name && (
             <p className={`type-caption ${styles.amcText}`}>{holding.amc_name}</p>
@@ -41,6 +44,12 @@ export function FundDetailModal({
         </div>
 
         <div className={styles.kpiGrid}>
+          <div className={styles.kpiCard}>
+            <span className={styles.kpiLabel}>Unrealised gain</span>
+            <span className={`type-data-large ${navUnavailable ? "" : Number(holding.unrealized_gain) >= 0 ? styles.positiveText : styles.negativeText}`}>
+              {navUnavailable || holding.unrealized_gain === null ? "—" : `₹${formatCurrency(Number(holding.unrealized_gain))}`}
+            </span>
+          </div>
           <div className={styles.kpiCard}>
             <span className={styles.kpiLabel}>Current Value</span>
             <span className={`type-data-large ${styles.kpiVal}`}>
@@ -50,13 +59,14 @@ export function FundDetailModal({
 
           <div className={styles.kpiCard}>
             <span className={styles.kpiLabel}>Invested Amount</span>
+            {opening?.cost_source === "nav_on_start" && <Badge variant="warning">cost approximate</Badge>}
             <span className={`type-data-large ${styles.kpiVal}`}>
               ₹{formatCurrency(invested)}
             </span>
           </div>
 
           <div className={styles.kpiCard}>
-            <span className={styles.kpiLabel}>Total Return</span>
+            <span className={styles.kpiLabel}>Total return incl. realised</span>
             {profit === null ? (
               <span className={`type-data-large ${styles.kpiVal}`}>—</span>
             ) : (
@@ -78,6 +88,10 @@ export function FundDetailModal({
             <span className={styles.detailLabel}>Units Held</span>
             <span className="type-data">{formatDecimal(holding.units_held)}</span>
           </div>
+          {opening && <>
+            <p className="type-caption">incl. {new Intl.NumberFormat("en-IN", { maximumFractionDigits: 3 }).format(Number(opening.units))} units from before {openingDate}</p>
+            <p className="type-caption">held since at least {openingDate}</p>
+          </>}
           <div className={styles.detailRow}>
             <span className={styles.detailLabel}>Average NAV</span>
             <span className="type-data">{holding.average_nav === null ? "—" : `₹${formatDecimal(holding.average_nav)}`}</span>

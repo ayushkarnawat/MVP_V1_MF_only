@@ -41,12 +41,26 @@ import { cn } from "@/lib/utils";
 import { ArrowUpRight, ArrowDownRight, ArrowUpDown, User, Users, AlertTriangle, BarChart2 } from "lucide-react";
 
 export interface DashboardViewProps {
+  importNotice?: { text: string; details?: string[] } | null;
+  onDismissImportNotice?: () => void;
   viewMode: "aggregate" | "member";
   memberId: string | null;
   onAddDataForMember?: (memberId?: string) => void;
 }
 
-export function DashboardView({
+export function DashboardView(props: DashboardViewProps) {
+  const { importNotice, onDismissImportNotice } = props;
+  return <>
+    {importNotice && <div role="status" className="mb-4 rounded-xl border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 p-3 text-sm">
+      <p>{importNotice.text}</p>
+      {importNotice.details?.map((detail, index) => <p key={index}>{detail}</p>)}
+      <button type="button" aria-label="Dismiss import notice" onClick={onDismissImportNotice}>Dismiss</button>
+    </div>}
+    <DashboardViewContent {...props} />
+  </>;
+}
+
+function DashboardViewContent({
   viewMode,
   memberId,
   onAddDataForMember,
@@ -211,38 +225,13 @@ export function DashboardView({
 
   /* Portfolio Totals using exact decimal arithmetic */
   const totals = useMemo(() => {
-    const currentVal = allocation
-      ? parseFloat(allocation.total_value || "0")
-      : 0;
-
-    // Invested principal is FIFO-derived and always known, even for a degraded
-    // (nav_unavailable) holding — only NAV-dependent figures below need filtering.
-    const investedVal = parseFloat(
-      sumDecimalStrings(holdings.map((h) => h.amount_invested))
-    );
-    const valuedHoldings = holdings.filter((h) => !h.nav_unavailable);
-    const profitVal = parseFloat(
-      sumDecimalStrings(
-        valuedHoldings.map((h) => h.unrealized_gain || h.current_profit_total || "0")
-      )
-    );
-    // gainPercentage must divide by the same (valued-only) population that
-    // produced profitVal — dividing by all-holdings investedVal understates
-    // the return by diluting it with an unvalued holding's principal.
-    const valuedInvestedVal = parseFloat(
-      sumDecimalStrings(valuedHoldings.map((h) => h.amount_invested))
-    );
-
-    const gainPercentage =
-      valuedInvestedVal > 0 ? (profitVal / valuedInvestedVal) * 100 : 0;
-
-    return {
-      currentVal,
-      investedVal,
-      profitVal,
-      gainPercentage,
-    };
-  }, [holdings, allocation]);
+  const valued = displayedHoldings.filter((h) => !h.nav_unavailable);
+  const currentVal = parseFloat(sumDecimalStrings(valued.map((h) => h.current_value || "0")));
+  const investedVal = parseFloat(sumDecimalStrings(valued.map((h) => h.amount_invested)));
+  const profitVal = parseFloat(sumDecimalStrings(valued.map((h) => h.unrealized_gain || "0")));
+  const gainPercentage = investedVal > 0 ? (profitVal / investedVal) * 100 : 0;
+  return { currentVal, investedVal, profitVal, gainPercentage, excludedCount: displayedHoldings.length - valued.length };
+}, [displayedHoldings]);
 
   if (loading) {
     return (
@@ -307,17 +296,12 @@ export function DashboardView({
           {/* Main Portfolio Stat */}
           <div className="flex flex-col space-y-1">
             <span className="text-[11px] font-semibold tracking-wider text-[var(--color-text-secondary)] uppercase">
-              Total Portfolio Value
+              {viewMode === "aggregate" && holdingsMemberFilter === "all" ? "Family total" : displayedHoldings[0]?.household_member_name ?? "Total Portfolio Value"}
             </span>
             <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-[var(--color-ink)] tabular-nums type-display">
               ₹{formatIndianCurrency(totals.currentVal)}
             </h1>
-            {!!allocation?.nav_unavailable_count && (
-              <span className="text-xs text-[var(--color-text-secondary)]">
-                Excludes {allocation.nav_unavailable_count} holding
-                {allocation.nav_unavailable_count === 1 ? "" : "s"} with unavailable NAV
-              </span>
-            )}
+            {totals.excludedCount > 0 && <span className="text-xs text-[var(--color-text-secondary)]">{totals.excludedCount} funds without a price aren’t included</span>}
           </div>
 
           {/* Secondary Stats Flow */}
@@ -335,7 +319,7 @@ export function DashboardView({
             {/* Total Gain or Loss */}
             <div className="flex flex-col space-y-0.5">
               <span className="text-xs text-[var(--color-text-secondary)] font-medium">
-                {isPositiveGain ? "Total Gain" : "Total Loss"}
+                {isPositiveGain ? "Unrealised gain" : "Unrealised loss"}
               </span>
               <span
                 className={cn(
@@ -706,10 +690,7 @@ export function DashboardView({
         <HoldingsTable
           holdings={displayedHoldings}
           showMemberName={viewMode === "aggregate"}
-          onSelectScheme={(schemeId) => {
-            const h = displayedHoldings.find((row) => row.scheme_id === schemeId);
-            if (h) setSelectedHolding(h);
-          }}
+          onSelectHolding={(row) => setSelectedHolding(row)}
         />
       </section>
 

@@ -1,3 +1,5 @@
+export type PlanType = "direct" | "regular" | "unclassified";
+
 export interface HoldingRow {
   scheme_id: string;
   scheme_name: string;
@@ -5,7 +7,8 @@ export interface HoldingRow {
   asset_class?: string;
   household_member_id: string;
   household_member_name: string;
-  plan_type: "DIRECT" | "REGULAR" | "UNKNOWN";
+  plan_type: PlanType;
+  plan_verified?: boolean;
   units_held: string;
   average_nav: string;
   current_nav: string | null;
@@ -19,6 +22,11 @@ export interface HoldingRow {
   nav_unavailable?: boolean;
   category?: string;
   stale_nav?: boolean;
+  opening_lot?: {
+    units: string;
+    since: string;
+    cost_source: "cas_cost" | "nav_on_start" | "manual";
+  } | null;
 }
 
 export interface AllocationItem {

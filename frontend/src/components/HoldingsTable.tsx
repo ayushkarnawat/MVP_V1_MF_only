@@ -1,17 +1,20 @@
+import type { PlanType, HoldingRow } from "@/features/dashboard/types";
+import { PlanBadge } from "@/features/dashboard/PlanBadge";
 import { useState } from "react";
 import { Badge } from "./Badge";
 import { FundSignal } from "./FundSignal";
 import { Input } from "@/components/ui/input";
-import { cn, toTitleCase } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { ArrowDown, ArrowUp, ArrowUpDown, Search } from "lucide-react";
 
 export interface HoldingRowData {
   scheme_id: string;
   scheme_name: string;
   amc_name?: string;
-  household_member_id?: string;
-  household_member_name?: string;
-  plan_type: string; // "DIRECT" | "REGULAR" | "UNKNOWN"
+  household_member_id: string;
+  household_member_name: string;
+  plan_type: PlanType;
+  plan_verified?: boolean;
   units_held: string;
   average_nav: string;
   current_nav: string | null;
@@ -29,13 +32,13 @@ export interface HoldingRowData {
 
 export interface HoldingsTableProps {
   holdings: HoldingRowData[];
-  onSelectScheme?: (schemeId: string) => void;
+  onSelectHolding?: (row: HoldingRow) => void;
   showMemberName?: boolean;
 }
 
 export function HoldingsTable({
   holdings,
-  onSelectScheme,
+  onSelectHolding,
   showMemberName = false,
 }: HoldingsTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -184,7 +187,7 @@ export function HoldingsTable({
                 <tr
                   key={row.scheme_id + (row.household_member_id || "") + row.plan_type}
                   className="block lg:table-row p-3.5 sm:p-4 lg:p-0 hover:bg-[var(--color-bg)]/80 transition-colors duration-150 cursor-pointer group"
-                  onClick={() => onSelectScheme?.(row.scheme_id)}
+                  onClick={() => onSelectHolding?.(row)}
                 >
                   {/* Signal */}
                   <td className="inline-block lg:table-cell py-1 lg:py-3 px-0 lg:px-3 text-left lg:text-center align-middle mr-2 lg:mr-0">
@@ -223,13 +226,7 @@ export function HoldingsTable({
                   <td className="block lg:table-cell py-1 lg:py-3 px-0 lg:px-3 align-middle my-1 lg:my-0">
                     <div className="flex justify-between lg:block items-center">
                       <span className="lg:hidden text-[11px] font-medium text-[var(--color-text-secondary)]">Plan:</span>
-                      <Badge
-                        variant={
-                          row.plan_type === "DIRECT" ? "positive" : "neutral"
-                        }
-                      >
-                        {toTitleCase(row.plan_type || "UNKNOWN")}
-                      </Badge>
+                      <PlanBadge planType={row.plan_type} verified={row.plan_verified} />
                     </div>
                   </td>
 

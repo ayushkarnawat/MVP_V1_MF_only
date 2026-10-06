@@ -6,6 +6,7 @@ import * as importApi from "../import/api";
 
 vi.mock("./api", () => ({
   getMemberHoldings: vi.fn(),
+  getFundNavHistory: vi.fn().mockResolvedValue({ scheme_id: "same", period: "1Y", requested_period: "1Y", clamped: false, points: [], overall_return_pct: null }),
   getMemberAllocation: vi.fn(),
   getMemberSips: vi.fn(),
   getMemberSipsMonthly: vi.fn(),
@@ -66,7 +67,7 @@ describe("DashboardView", () => {
   it("shows lifetime XIRR by default and switches to current-holdings XIRR via the toggle", async () => {
     vi.mocked(api.getMemberHoldings).mockResolvedValue(Object.assign([{
         scheme_id: "scheme-xirr", scheme_name: "XIRR Fund", amc_name: "AMC",
-        household_member_id: "m-1", household_member_name: "John", plan_type: "DIRECT" as const,
+        household_member_id: "m-1", household_member_name: "John", plan_type: "direct" as const,
         units_held: "10.000", average_nav: "10.00", current_nav: "20.00",
         amount_invested: "100.00", current_value: "200.00", current_profit_total: "100.00",
         realized_gain: "0.00", unrealized_gain: "100.00", today_gain: "0.00",
@@ -90,12 +91,12 @@ describe("DashboardView", () => {
   });
 
   it.each([
-    ["10.00", "Total Gain"],
-    ["-10.00", "Total Loss"],
+    ["10.00", "Unrealised gain"],
+    ["-10.00", "Unrealised loss"],
   ])("labels a portfolio profit of %s as %s", async (profit, expectedLabel) => {
     vi.mocked(api.getMemberHoldings).mockResolvedValue([{
       scheme_id: "scheme-sign", scheme_name: "Sign Fund", amc_name: "AMC",
-      household_member_id: "m-1", household_member_name: "John", plan_type: "DIRECT",
+      household_member_id: "m-1", household_member_name: "John", plan_type: "direct",
       units_held: "1.000", average_nav: "100.00", current_nav: "100.00",
       amount_invested: "100.00", current_value: "100.00", current_profit_total: profit,
       realized_gain: "0.00", unrealized_gain: profit, today_gain: "0.00",
@@ -115,7 +116,7 @@ describe("DashboardView", () => {
   it("reverses the already-fetched allocation when sort direction is toggled", async () => {
     vi.mocked(api.getMemberHoldings).mockResolvedValue([{
       scheme_id: "large", scheme_name: "Large Fund", amc_name: "Large AMC",
-      household_member_id: "m-1", household_member_name: "John", plan_type: "DIRECT",
+      household_member_id: "m-1", household_member_name: "John", plan_type: "direct",
       units_held: "1.000", average_nav: "300.00", current_nav: "300.00",
       amount_invested: "300.00", current_value: "300.00", current_profit_total: "0.00",
       realized_gain: "0.00", unrealized_gain: "0.00", today_gain: "0.00",
@@ -141,13 +142,13 @@ describe("DashboardView", () => {
     vi.mocked(api.getMemberHoldings).mockResolvedValue([
       {
         scheme_id: "equity", scheme_name: "Equity Fund", amc_name: "Alpha AMC", asset_class: "Equity",
-        household_member_id: "m-1", household_member_name: "John", plan_type: "DIRECT",
+        household_member_id: "m-1", household_member_name: "John", plan_type: "direct",
         units_held: "2.000", average_nav: "50.00", current_nav: "60.00", amount_invested: "100.00",
         current_value: "120.00", current_profit_total: "20.00", realized_gain: "0.00", unrealized_gain: "20.00", today_gain: "0.00",
       },
       {
         scheme_id: "debt", scheme_name: "Debt Fund", amc_name: "Beta AMC", asset_class: "Debt",
-        household_member_id: "m-1", household_member_name: "John", plan_type: "DIRECT",
+        household_member_id: "m-1", household_member_name: "John", plan_type: "direct",
         units_held: "1.000", average_nav: "80.00", current_nav: "80.00", amount_invested: "80.00",
         current_value: "80.00", current_profit_total: "0.00", realized_gain: "0.00", unrealized_gain: "0.00", today_gain: "0.00",
       },
@@ -194,7 +195,7 @@ describe("DashboardView", () => {
         amc_name: "HDFC Mutual Fund",
         household_member_id: "m-1",
         household_member_name: "John",
-        plan_type: "DIRECT",
+        plan_type: "direct",
         units_held: "100.00",
         average_nav: "50.00",
         current_nav: "75.00",
@@ -215,7 +216,7 @@ describe("DashboardView", () => {
     render(<DashboardView viewMode="member" memberId="m-1" />);
 
     await waitFor(() => {
-      expect(screen.getByText("Total Portfolio Value")).toBeInTheDocument();
+      expect(screen.getByText("John")).toBeInTheDocument();
       // The fixture's single holding equals the portfolio total, so "₹7,500"
       // legitimately appears more than once (hero, donut center, donut
       // legend, table cell) — assert presence, not uniqueness.
@@ -232,7 +233,7 @@ describe("DashboardView", () => {
         scheme_name: "Valued Fund",
         household_member_id: "m-1",
         household_member_name: "John",
-        plan_type: "DIRECT",
+        plan_type: "direct",
         units_held: "100.00",
         average_nav: "50.00",
         current_nav: "75.00",
@@ -248,7 +249,7 @@ describe("DashboardView", () => {
         scheme_name: "NAV Missing Fund",
         household_member_id: "m-1",
         household_member_name: "John",
-        plan_type: "DIRECT",
+        plan_type: "direct",
         units_held: "80.00",
         average_nav: "50.00",
         current_nav: null,
@@ -271,12 +272,11 @@ describe("DashboardView", () => {
 
     render(<DashboardView viewMode="member" memberId="m-1" />);
 
-    // Invested principal is FIFO-derived and known regardless of NAV availability,
-    // so it must include the degraded holding's amount_invested (5000 + 4000).
+    // All hero figures exclude the unpriced holding (4000 invested).
     const investedLabel = await screen.findByText("Total Invested");
-    expect(within(investedLabel.parentElement!).getByText("₹9,000")).toBeInTheDocument();
+    expect(within(investedLabel.parentElement!).getByText("₹5,000")).toBeInTheDocument();
 
-    expect(screen.getByText(/excludes 1 holding with unavailable NAV/i)).toBeInTheDocument();
+    expect(screen.getByText("1 funds without a price aren’t included")).toBeInTheDocument();
   });
 
   it("renders S22 placeholder for family member without CAS data in aggregate view", async () => {
@@ -291,7 +291,7 @@ describe("DashboardView", () => {
           scheme_name: "Axis Long Term Equity",
           household_member_id: "m-1",
           household_member_name: "Alice",
-          plan_type: "DIRECT",
+          plan_type: "direct",
           units_held: "50.00",
           average_nav: "60.00",
           current_nav: "80.00",
@@ -333,7 +333,7 @@ describe("DashboardView", () => {
         amc_name: "HDFC Mutual Fund",
         household_member_id: "m-1",
         household_member_name: "John",
-        plan_type: "DIRECT",
+        plan_type: "direct",
         units_held: "100.00",
         average_nav: "50.00",
         current_nav: "75.00",
@@ -380,7 +380,7 @@ describe("DashboardView", () => {
       holdings: [
         {
           scheme_id: "scheme-A", scheme_name: "Alice Fund", household_member_id: "m-1", household_member_name: "Alice",
-          plan_type: "DIRECT", units_held: "50.00", average_nav: "60.00", current_nav: "80.00",
+          plan_type: "direct", units_held: "50.00", average_nav: "60.00", current_nav: "80.00",
           amount_invested: "3000.00", current_value: "4000.00", current_profit_total: "1000.00",
           realized_gain: "0.00", unrealized_gain: "1000.00", today_gain: "20.00",
         },
@@ -421,13 +421,13 @@ describe("DashboardView", () => {
       holdings: [
         {
           scheme_id: "scheme-A", scheme_name: "Alice Fund", household_member_id: "m-1", household_member_name: "Alice",
-          plan_type: "DIRECT", units_held: "50.00", average_nav: "60.00", current_nav: "80.00",
+          plan_type: "direct", units_held: "50.00", average_nav: "60.00", current_nav: "80.00",
           amount_invested: "3000.00", current_value: "4000.00", current_profit_total: "1000.00",
           realized_gain: "0.00", unrealized_gain: "1000.00", today_gain: "20.00",
         },
         {
           scheme_id: "scheme-B", scheme_name: "Bob Fund", household_member_id: "m-2", household_member_name: "Bob",
-          plan_type: "DIRECT", units_held: "50.00", average_nav: "60.00", current_nav: "80.00",
+          plan_type: "direct", units_held: "50.00", average_nav: "60.00", current_nav: "80.00",
           amount_invested: "3000.00", current_value: "4000.00", current_profit_total: "1000.00",
           realized_gain: "0.00", unrealized_gain: "1000.00", today_gain: "20.00",
         },
@@ -484,7 +484,7 @@ describe("DashboardView", () => {
         amc_name: "HDFC Mutual Fund",
         household_member_id: "m-1",
         household_member_name: "John",
-        plan_type: "DIRECT",
+        plan_type: "direct",
         units_held: "100.00",
         average_nav: "50.00",
         current_nav: "75.00",
@@ -552,7 +552,7 @@ describe("DashboardView", () => {
         amc_name: "HDFC Mutual Fund",
         household_member_id: "m-1",
         household_member_name: "John",
-        plan_type: "DIRECT",
+        plan_type: "direct",
         units_held: "100.00",
         average_nav: "50.00",
         current_nav: "75.00",
@@ -586,7 +586,7 @@ describe("DashboardView", () => {
         amc_name: "HDFC Mutual Fund",
         household_member_id: "m-1",
         household_member_name: "John",
-        plan_type: "DIRECT",
+        plan_type: "direct",
         units_held: "100.00",
         average_nav: "50.00",
         current_nav: "75.00",
@@ -658,7 +658,7 @@ describe("DashboardView", () => {
         amc_name: "HDFC Mutual Fund",
         household_member_id: "m-1",
         household_member_name: "John",
-        plan_type: "DIRECT",
+        plan_type: "direct",
         units_held: "100.00",
         average_nav: "50.00",
         current_nav: "75.00",
@@ -712,5 +712,44 @@ describe("DashboardView", () => {
     // rolls it), so asserting on year alone is date-dependent and wrong.
     expect(`${callArgs[1]}-${callArgs[2]}`).not.toBe(`${firstCallArgs[1]}-${firstCallArgs[2]}`);
   });
+  function holding(overrides: Partial<import("./types").HoldingRow> = {}): import("./types").HoldingRow {
+    return { scheme_id: "same", scheme_name: "PPFAS Test Fund", amc_name: "AMC", household_member_id: "neha", household_member_name: "Neha", plan_type: "direct", units_held: "5", average_nav: "20", current_nav: "24", amount_invested: "100", current_value: "120", current_profit_total: "20", realized_gain: "0", unrealized_gain: "20", today_gain: "0", ...overrides };
+  }
+  function mockHoldings(rows: import("./types").HoldingRow[], aggregate = false) {
+    const allocation = { by_asset_class: [], by_amc: [], total_value: "999" };
+    vi.mocked(api.getMemberHoldings).mockResolvedValue(rows);
+    vi.mocked(api.getMemberAllocation).mockResolvedValue(allocation);
+    if (aggregate) {
+      const members = [{ id: "neha", name: "Neha", has_data: true }, { id: "vikram", name: "Vikram", has_data: true }];
+      vi.mocked(api.getAggregateHoldings).mockResolvedValue({ holdings: rows, members });
+      vi.mocked(api.getAggregateAllocation).mockResolvedValue({ allocation, members });
+    }
+  }
+  it("hero value, invested and gain use the same valued holdings", async () => {
+    mockHoldings([holding(), holding({ scheme_id: "unpriced", nav_unavailable: true, current_value: null, amount_invested: "50", unrealized_gain: null })]);
+    render(<DashboardView viewMode="member" memberId="neha" />);
+    expect(await screen.findByRole("heading", { level: 1 })).toHaveTextContent("₹120");
+    expect(screen.getByText("Total Invested").parentElement).toHaveTextContent("₹100");
+    expect(screen.getByText("Unrealised gain")).toBeInTheDocument();
+    expect(screen.getByText("1 funds without a price aren’t included")).toBeInTheDocument();
+  });
+  it("opens the clicked member’s fund when two members hold the same scheme", async () => {
+    mockHoldings([holding(), holding({ household_member_id: "vikram", household_member_name: "Vikram", units_held: "9" })], true);
+    render(<DashboardView memberId="m1" viewMode="aggregate" />);
+    const funds = await screen.findAllByText("PPFAS Test Fund");
+    fireEvent.click(funds[1].closest("tr")!);
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText("Units Held").parentElement).toHaveTextContent("9");
+  });
+  it("member filter changes the hero, not just the list", async () => {
+    mockHoldings([holding({ current_value: "100", amount_invested: "90", unrealized_gain: "10" }), holding({ household_member_id: "vikram", household_member_name: "Vikram", current_value: "300", amount_invested: "200", unrealized_gain: "100" })], true);
+    render(<DashboardView memberId="m1" viewMode="aggregate" />);
+    const filter = await screen.findByRole("combobox", { name: "Filter holdings by family member" });
+    fireEvent.click(filter);
+    fireEvent.click(await screen.findByRole("option", { name: "Neha" }));
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("₹100");
+    expect(screen.getByText("Total Invested").parentElement).toHaveTextContent("₹90");
+  });
+
 });
 

@@ -8,7 +8,9 @@ describe("HoldingsTable", () => {
       scheme_id: "scheme-1",
       scheme_name: "Parag Parikh Flexi Cap Fund",
       amc_name: "PPFAS Mutual Fund",
-      plan_type: "DIRECT",
+      household_member_id: "m1",
+      household_member_name: "Neha",
+      plan_type: "direct" as const,
       units_held: "125.45",
       average_nav: "45.20",
       current_nav: "68.50",
@@ -28,12 +30,12 @@ describe("HoldingsTable", () => {
     expect(screen.getByText("₹8,593")).toBeInTheDocument();
   });
 
-  it("triggers onSelectScheme callback when a row is clicked", () => {
+  it("triggers onSelectHolding callback when a row is clicked", () => {
     const handleSelect = vi.fn();
-    render(<HoldingsTable holdings={sampleHoldings} onSelectScheme={handleSelect} />);
-    
+    render(<HoldingsTable holdings={sampleHoldings} onSelectHolding={handleSelect} />);
+
     fireEvent.click(screen.getByText("Parag Parikh Flexi Cap Fund"));
-    expect(handleSelect).toHaveBeenCalledWith("scheme-1");
+    expect(handleSelect).toHaveBeenCalledWith(sampleHoldings[0]);
   });
 
   it("renders different plan types without a duplicate React key warning", () => {
@@ -47,7 +49,7 @@ describe("HoldingsTable", () => {
             {
               ...sampleHoldings[0],
               household_member_id: "member-1",
-              plan_type: "REGULAR",
+              plan_type: "regular",
               units_held: "50.00",
             },
           ]}

@@ -6,14 +6,14 @@ import { AllocationDrilldownModal } from "./AllocationDrilldownModal";
 const holdings: HoldingRow[] = [
   {
     scheme_id: "one", scheme_name: "Matching Fund", amc_name: "Alpha AMC", asset_class: "Equity",
-    household_member_id: "m-1", household_member_name: "Alice", plan_type: "DIRECT",
+    household_member_id: "m-1", household_member_name: "Alice", plan_type: "direct",
     units_held: "12.345", average_nav: "26.2900000", current_nav: "30.1000",
     amount_invested: "324.00", current_value: "371.00", current_profit_total: "47.00",
     realized_gain: "0.00", unrealized_gain: "47.00", today_gain: "1.00",
   },
   {
     scheme_id: "two", scheme_name: "Other Fund", amc_name: "Beta AMC", asset_class: "Debt",
-    household_member_id: "m-1", household_member_name: "Alice", plan_type: "DIRECT",
+    household_member_id: "m-1", household_member_name: "Alice", plan_type: "direct",
     units_held: "5.000", average_nav: "10.00", current_nav: "11.00",
     amount_invested: "50.00", current_value: "55.00", current_profit_total: "5.00",
     realized_gain: "0.00", unrealized_gain: "5.00", today_gain: "0.00",
