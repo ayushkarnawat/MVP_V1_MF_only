@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.models.enums import ArnStatus, PlanType, Relationship, TransactionType
 
@@ -43,6 +43,9 @@ class OpeningLotInfo(BaseModel):
 
 
 class HoldingRow(BaseModel):
+    stale_nav: bool = False
+    # A fund in no master (CAS-only): valued at the NAV its statement printed.
+    price_from_statement: bool = False
     scheme_id: str
     scheme_name: str
     amc_name: str
@@ -50,6 +53,7 @@ class HoldingRow(BaseModel):
     household_member_id: str
     household_member_name: str
     plan_type: PlanType
+    plan_verified: bool = True
     units_held: str
     average_nav: str | None
     current_nav: str | None
@@ -65,6 +69,7 @@ class HoldingRow(BaseModel):
 
 
 class DistributorSchemeBreakdown(BaseModel):
+    annual_ter_saving: str | None = None
     scheme_id: str
     scheme_name: str
     household_member_id: str
@@ -79,6 +84,8 @@ class DistributorSchemeBreakdown(BaseModel):
 
 
 class DistributorPortfolioRow(BaseModel):
+    plan_type: Literal["direct", "regular"] | None = None
+    nav_unavailable_schemes: list[str] = Field(default_factory=list)
     arn_code: str | None
     distributor_name: str | None
     arn_status: ArnStatus | None
@@ -111,9 +118,16 @@ class SipRow(BaseModel):
     sip_date: date
     sip_amount: str
     next_due_date: date
+    series_count: int = 1
+    status: Literal["active", "stopped"] = "active"
+
+
+class SipSummary(BaseModel):
+    total_monthly: str
 
 
 class SipMonthlyRow(BaseModel):
+    instalment: int = 1
     scheme_id: str
     scheme_name: str
     household_member_id: str
@@ -133,6 +147,9 @@ class CashFlowEntry(BaseModel):
 
 
 class SnapshotRow(BaseModel):
+    invested_value: str | None = None
+    is_partial: bool = False
+    missing_scheme_names: list[str] = Field(default_factory=list)
     household_member_id: str
     household_member_name: str
     snapshot_month: date
@@ -145,7 +162,23 @@ class MemberStatus(BaseModel):
     has_data: bool
 
 
+class RealizedFund(BaseModel):
+    scheme_id: str
+    scheme_name: str
+    household_member_id: str
+    household_member_name: str
+    plan_type: PlanType
+    realized_gain: str
+    fully_sold: bool
+
+
+class RealizedSummary(BaseModel):
+    total: str
+    funds: list[RealizedFund]
+
+
 class AggregateHoldingsResponse(BaseModel):
+    realized_summary: RealizedSummary
     members: list[MemberStatus]
     holdings: list[HoldingRow]
     lifetime_xirr: str | None = None
@@ -153,6 +186,7 @@ class AggregateHoldingsResponse(BaseModel):
 
 
 class MemberHoldingsResponse(BaseModel):
+    realized_summary: RealizedSummary
     holdings: list[HoldingRow]
     lifetime_xirr: str | None
     current_holdings_xirr: str | None

@@ -36,6 +36,7 @@ def test_member_holdings_response_includes_xirr_summary(client):
     assert response.status_code == 200
     assert response.json() == {
         "holdings": [],
+        "realized_summary": {"total": "0.00", "funds": []},
         "lifetime_xirr": None,
         "current_holdings_xirr": None,
     }

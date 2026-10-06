@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
+from fastapi import BackgroundTasks
 
 from app.models.analytics import AnalyticsSection
 from app.models.enums import MemberOrigin, MemberPanSource, Relationship
@@ -17,12 +18,13 @@ from app.models.imports import Import
 from app.models.member_history import HouseholdMemberMerge, HouseholdMemberNameChange
 from app.models.transaction import Transaction
 from app.models.transaction_import import TransactionImport
+from app.services.import_.preview_store import PREVIEW_STATUSES, discard_member_reviews
 from app.services.import_.opening_restore import normalise_cas_openings
 from app.models.user import HouseholdMember
 from app.services.analytics.recompute import bump_recompute_generation
 from app.services.dashboard.holdings import invalidate_holdings_cache
 from app.services.dashboard.member_details import MemberDetailsError, MemberNotFoundError, is_name_only
-from app.services.dashboard.snapshots import invalidate_member_snapshots
+from app.services.dashboard.snapshots import invalidate_member_snapshots, rebuild_member_snapshots
 from app.services.import_.coverage_gap import evaluate_folio_coverage_gaps
 
 
@@ -47,7 +49,8 @@ def _txn_key(t: Transaction) -> tuple:
 
 
 def merge_member_into(
-    db: Session, user_id: uuid.UUID, source_id: uuid.UUID, target_id: uuid.UUID
+    db: Session, user_id: uuid.UUID, source_id: uuid.UUID, target_id: uuid.UUID,
+    *, background_tasks: BackgroundTasks | None = None,
 ) -> MergeResult:
     source = db.query(HouseholdMember).filter_by(id=source_id, user_id=user_id).first()
     target = db.query(HouseholdMember).filter_by(id=target_id, user_id=user_id).first()
@@ -118,7 +121,8 @@ def merge_member_into(
         normalise_cas_openings(db, db.get(Folio, folio_id))
         evaluate_folio_coverage_gaps(db, folio_id)
 
-    db.query(Import).filter(Import.household_member_id == source.id).update(
+    discard_member_reviews(db, [source.id])
+    db.query(Import).filter(Import.household_member_id == source.id, Import.status.notin_(PREVIEW_STATUSES)).update(
         {Import.household_member_id: target.id}, synchronize_session=False
     )
     invalidate_member_snapshots(db, [source.id, target.id])
@@ -149,4 +153,6 @@ def merge_member_into(
     # After commit (see delete_household_import's note on cache races).
     invalidate_holdings_cache(source_id)
     invalidate_holdings_cache(target_id)
+    if background_tasks is not None:
+        background_tasks.add_task(rebuild_member_snapshots, target_id)
     return MergeResult(folios_moved=folios_moved, transactions_dropped=dropped)

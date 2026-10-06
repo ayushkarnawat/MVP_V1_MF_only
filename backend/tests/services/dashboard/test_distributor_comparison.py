@@ -148,7 +148,7 @@ def test_compute_distributor_comparison_rolls_up_scheme_breakdowns_by_arn_with_k
     assert Decimal(row_b.current_profit_total) == Decimal("1000.00")
 
     row_c = by_arn[None]
-    assert row_c.distributor_name is None
+    assert row_c.distributor_name == "Direct Plan (No Broker)"
     assert row_c.arn_status is None
     assert Decimal(row_c.current_profit_total) == Decimal("450.00")
 
@@ -266,12 +266,8 @@ def test_compute_distributor_comparison_keeps_distributor_row_when_every_scheme_
     assert Decimal(row.current_value) == Decimal("0")
 
 
-def test_compute_distributor_comparison_includes_fully_redeemed_distributor_group():
-    """Deliberate divergence from holdings.py: a scheme group with zero
-    units held (fully redeemed through that ARN) still appears here, since
-    this view compares historical performance across distributors, not just
-    what's currently held. holdings.py.compute_holdings would drop this row
-    entirely (units_held == 0); this function must not."""
+def test_compute_distributor_comparison_omits_fully_redeemed_distributor_group():
+    """Fully sold folios are omitted under Phase 6 Task 7."""
     import asyncio
 
     db = _session()
@@ -295,14 +291,7 @@ def test_compute_distributor_comparison_includes_fully_redeemed_distributor_grou
     ):
         rows = asyncio.run(compute_distributor_comparison(db, [member.id]))
 
-    assert len(rows) == 1
-    row = rows[0]
-    assert len(row.schemes) == 1
-    assert row.schemes[0].units_held == "0"
-    assert row.schemes[0].average_nav is None
-    assert Decimal(row.realized_gain) == Decimal("1000.00")  # 100*(60-50)
-    assert Decimal(row.current_profit_total) == Decimal("1000.00")
-
+    assert rows == []
 
 def test_compute_distributor_comparison_returns_empty_for_member_with_no_folios():
     import asyncio
@@ -445,3 +434,46 @@ def test_compute_distributor_comparison_invalidated_by_holdings_cache_generation
         second = asyncio.run(compute_distributor_comparison(db, [member.id]))
 
     assert Decimal(second[0].current_value) != Decimal(first[0].current_value)
+
+
+import asyncio
+import pytest
+from app.models.enums import SchemePlanType
+from app.models.reference import SchemeTer
+
+
+@pytest.mark.parametrize("regular_ter,expected", [("1.71","1.32"),("0.20",None)])
+def test_no_arn_plan_buckets_and_regular_sibling_saving(regular_ter, expected):
+    db = _session()
+    member = _household_member(db)
+    direct = _scheme(db, "Test Fund Direct")
+    regular = _scheme(db, "Test Fund Regular")
+    direct.base_name = regular.base_name = "Test Fund"
+    direct.plan_type = SchemePlanType.DIRECT
+    regular.plan_type = SchemePlanType.REGULAR
+    df = _folio(db, member, direct, "D", None)
+    rf = _folio(db, member, regular, "R", None)
+    rf.plan_type = PlanType.REGULAR
+    for scheme, ter in [(direct,"0.39"),(regular,regular_ter)]:
+        db.add(SchemeTer(scheme_id=scheme.id, reference_period=date(2026,9,1), ter_value=Decimal(ter)))
+    db.commit()
+    for f in (df,rf):
+        _txn(db,f,TransactionType.PURCHASE,date(2024,1,1),Decimal("100"),Decimal("10"),Decimal("10"))
+    with patch("app.services.dashboard.distributor_comparison.get_navs_on_or_before", _mock_nav_batch({direct.id:(Decimal("20"),date.today()), regular.id:(Decimal("20"),date.today())})):
+        rows = asyncio.run(compute_distributor_comparison(db,[member.id]))
+    assert len(rows) == 2
+    by_plan = {row.plan_type:row for row in rows}
+    assert by_plan["regular"].distributor_name == "Regular"
+    assert by_plan["direct"].schemes[0].annual_ter_saving == expected
+    assert by_plan["regular"].schemes[0].annual_ter_saving is None
+
+
+def test_nav_unavailable_scheme_is_named():
+    db = _session()
+    member = _household_member(db)
+    scheme = _scheme(db, "Missing NAV Fund")
+    folio = _folio(db,member,scheme,"A",None)
+    _txn(db,folio,TransactionType.PURCHASE,date(2024,1,1),Decimal("100"),Decimal("10"),Decimal("10"))
+    with patch("app.services.dashboard.distributor_comparison.get_navs_on_or_before",_mock_nav_batch({scheme.id:None})):
+        [row] = asyncio.run(compute_distributor_comparison(db,[member.id]))
+    assert row.nav_unavailable_schemes == ["Missing NAV Fund"]

@@ -307,3 +307,15 @@ def test_merge_drops_source_opening_when_target_has_earlier_history(db_session):
     assert db.query(Transaction).filter_by(folio_id=t_folio.id, origin=TransactionOrigin.CAS_OPENING).count() == 0
     assert db.query(Transaction).filter_by(folio_id=t_folio.id).count() == 1
 
+
+
+
+def test_merge_drops_source_review_instead_of_repointing_it(db_session):
+    from tests.services.import_.test_deletion import _preview_for
+    from app.services.import_.service import _preview_sessions
+    user = _user(db_session)
+    source,target = _source(db_session,user),_target(db_session,user)
+    sid = _preview_for(db_session,source)
+    merge_member_into(db_session,user.id,source.id,target.id)
+    assert db_session.get(Import,uuid.UUID(sid)) is None
+    assert sid not in _preview_sessions

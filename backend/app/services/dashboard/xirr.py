@@ -18,6 +18,8 @@ from app.services.dashboard.schemas import HoldingRow
 # its value and a gift given is money taken out, so neither distorts XIRR.
 _XIRR_DEBIT_TYPES = _DEBIT_TYPES | {TransactionType.GIFT_IN}
 _RELEVANT_TYPES = _XIRR_DEBIT_TYPES | _CREDIT_TYPES | {TransactionType.GIFT_OUT}
+_FUND_DEBIT_TYPES = _XIRR_DEBIT_TYPES | {TransactionType.SWITCH_IN}
+_FUND_RELEVANT_TYPES = _RELEVANT_TYPES | {TransactionType.SWITCH_IN, TransactionType.SWITCH_OUT}
 
 
 @dataclass(frozen=True)
@@ -64,7 +66,7 @@ def calculate_dashboard_xirr(
         .join(Folio, Folio.id == Transaction.folio_id)
         .filter(
             Folio.household_member_id.in_(household_member_ids),
-            Transaction.type.in_(_RELEVANT_TYPES),
+            Transaction.type.in_(_FUND_RELEVANT_TYPES),
         )
         .order_by(Transaction.date, Transaction.id)
         .all()
@@ -96,6 +98,6 @@ def calculate_dashboard_xirr(
         Decimal("0"),
     )
     return DashboardXirrSummary(
-        lifetime_xirr=xirr_string(portfolio_xirr(transactions, lifetime_value)),
-        current_holdings_xirr=xirr_string(portfolio_xirr(current_transactions, current_value)) if current_transactions else None,
+        lifetime_xirr=xirr_string(portfolio_xirr([t for t in transactions if t.type in _RELEVANT_TYPES], lifetime_value)),
+        current_holdings_xirr=xirr_string(portfolio_xirr(current_transactions, current_value, frozenset({TransactionType.SWITCH_IN}))) if current_transactions else None,
     )

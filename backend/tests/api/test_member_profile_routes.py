@@ -138,3 +138,13 @@ def test_detected_member_reads_are_200(client):
     for path in ("holdings", "sips", "allocation", "cash-flow", "snapshots"):
         assert client.get(f"/household-members/{mid}/{path}", headers=h).status_code == 200, path
     assert client.get(f"/analytics/{mid}", headers=h).status_code == 200
+
+
+import pytest
+from unittest.mock import AsyncMock
+
+@pytest.fixture(autouse=True)
+def snapshot_background_test_db(monkeypatch):
+    from .import_helpers import _test_db
+    monkeypatch.setattr("app.services.dashboard.snapshots.SessionLocal", _test_db)
+    monkeypatch.setattr("app.services.dashboard.snapshots.warm_nav_history", AsyncMock())

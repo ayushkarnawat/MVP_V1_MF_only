@@ -696,3 +696,78 @@ def test_compute_holdings_processes_same_date_reversal_after_its_purchase():
     assert rows[0].units_held == "10.000"
     assert Decimal(rows[0].amount_invested) == Decimal("1000.00")
 
+
+
+def test_holdings_plan_verified_requires_every_folio():
+    import asyncio
+    db = _session()
+    member, scheme = _household_member(db), _scheme(db)
+    first, second = _folio(db, member, scheme), _folio(db, member, scheme, folio_number="456/78")
+    first.plan_verified, second.plan_verified = True, False
+    for folio in (first, second):
+        _persisted_txn(db, folio, TransactionType.PURCHASE, date(2024, 1, 1), Decimal("100"), Decimal("10"), Decimal("10"))
+    db.commit()
+    with patch("app.services.dashboard.holdings.get_navs_on_or_before", new=_mock_nav_batch(None)):
+        [holding] = asyncio.run(compute_holdings(db, [member.id]))
+    assert holding.plan_verified is False
+
+
+def test_fifo_state_incremental_matches_batch():
+    from app.services.dashboard.holdings import FifoState
+    txns = [
+        _txn(TransactionType.PURCHASE, date(2024, 1, 1), Decimal("5000.00"), Decimal("100.000"), Decimal("50.0000")),
+        _txn(TransactionType.REDEMPTION, date(2024, 6, 1), Decimal("3000.00"), Decimal("50.000"), Decimal("60.0000")),
+    ]
+    state = FifoState()
+    state.apply(txns[0])
+    assert (state.units, state.cost) == (Decimal("100.000"), Decimal("5000.00"))
+    state.apply(txns[1])
+    assert (state.units, state.cost, state.realized_gain) == _process_folio_lots(txns)
+
+
+def test_realized_summary_includes_zero_unit_folios():
+    from app.services.dashboard.holdings import compute_realized_summary
+    db = _session()
+    member = _household_member(db)
+    sold = _scheme(db, "Franklin Low Duration", amfi_code="1001")
+    held = _scheme(db, "PPFAS Flexi Cap", amfi_code="1002")
+    f1, f2 = _folio(db, member, sold), _folio(db, member, held, folio_number="9/9")
+    for folio, kind, amount, units, nav in [
+        (f1, TransactionType.PURCHASE, "1000", "100", "10"),
+        (f1, TransactionType.REDEMPTION, "800", "100", "8"),
+        (f2, TransactionType.PURCHASE, "1000", "100", "10"),
+        (f2, TransactionType.REDEMPTION, "750", "50", "15"),
+    ]:
+        _persisted_txn(db, folio, kind, date(2019 if kind == TransactionType.PURCHASE else 2021, 1, 1),
+                       Decimal(amount), Decimal(units), Decimal(nav))
+    summary = compute_realized_summary(db, [member.id])
+    by_name = {f.scheme_name: f for f in summary.funds}
+    assert Decimal(by_name["Franklin Low Duration"].realized_gain) == Decimal("-200")
+    assert by_name["Franklin Low Duration"].fully_sold
+    assert Decimal(by_name["PPFAS Flexi Cap"].realized_gain) == Decimal("250")
+    assert not by_name["PPFAS Flexi Cap"].fully_sold
+    assert Decimal(summary.total) == Decimal("50")
+
+
+
+def test_nav_six_days_old_is_stale():
+    import asyncio
+    from datetime import timedelta
+    db = _session()
+    member = _household_member(db)
+    folio = _folio(db, member, _scheme(db))
+    _persisted_txn(db, folio, TransactionType.PURCHASE, date(2024,1,1), Decimal("100"), Decimal("10"), Decimal("10"))
+    with patch("app.services.dashboard.holdings.get_navs_on_or_before", _mock_nav_batch((Decimal("20"), date.today()-timedelta(days=6)))):
+        [row] = asyncio.run(compute_holdings(db,[member.id]))
+    assert row.stale_nav is True
+
+
+def test_realized_summary_uses_amount_half_up_rounding():
+    from app.services.dashboard.holdings import compute_realized_summary
+    db = _session()
+    member = _household_member(db)
+    folio = _folio(db,member,_scheme(db))
+    _persisted_txn(db,folio,TransactionType.PURCHASE,date(2024,1,1),Decimal("1"),Decimal("1"),Decimal("1"))
+    _persisted_txn(db,folio,TransactionType.REDEMPTION,date(2024,2,1),Decimal("1.01"),Decimal("1"),Decimal("1.0050"))
+    summary = compute_realized_summary(db,[member.id])
+    assert summary.total == summary.funds[0].realized_gain == "0.01"

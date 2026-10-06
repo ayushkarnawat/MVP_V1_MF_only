@@ -1,12 +1,8 @@
-"""Active-SIP detection and cadence projection.
+"""Monthly SIP series, active through three missed instalments.
 
-A SIP is "active" if the folio has at least one PURCHASE_SIP transaction,
-ever, and the folio is not fully redeemed. There is deliberately no
-recency cutoff: once detected, a SIP keeps projecting its next due date
-forward indefinitely, regardless of gaps in the transaction history. See
-Docs/superpowers/specs/2026-08-18-active-sips-cadence-redesign-design.md
-for the product rationale (supersedes PRD-03 FR-6's original 40-day
-window).
+Recency is measured against the folio's latest confirmed statement end,
+falling back to today. Amounts distinguish series, within a small tolerance
+(stamp duty, decided 6 Oct); twins remain parallel.
 """
 
 from __future__ import annotations
@@ -15,11 +11,15 @@ import calendar
 import uuid
 from collections import defaultdict
 from datetime import date
+from dataclasses import dataclass
+from decimal import Decimal
 
-from sqlalchemy import case
+from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
-from app.models.enums import TransactionType
+from app.models.enums import TransactionType, ImportStatus
+from app.models.imports import Import
+from app.models.transaction_import import TransactionImport
 from app.models.folio import Folio
 from app.models.reference import Scheme
 from app.models.transaction import Transaction
@@ -88,108 +88,124 @@ def _schemes_by_id(db: Session, folios: list[Folio]) -> dict[uuid.UUID, Scheme]:
     return {s.id: s for s in schemes}
 
 
-def compute_active_sips(db: Session, household_member_ids: list[uuid.UUID]) -> list[SipRow]:
+@dataclass(frozen=True)
+class SipSeries:
+    amount: Decimal          # the latest instalment's amount
+    parallel: int
+    last_date: date
+    first_date: date
+    amounts: frozenset = frozenset()  # every amount this series was paid at
+
+
+def _same_sip(a: Decimal, b: Decimal) -> bool:
+    """From 1 July 2020 a 0.005% stamp duty is taken from each instalment
+    (53,712.50 -> 53,709.81), so one SIP's amount shifts slightly. Amounts
+    within 0.01% (at least Rs 0.05, for paisa rounding) are one SIP; clearly
+    different amounts stay separate series (decided 6 Oct)."""
+    return abs(a - b) <= max(max(a, b) * Decimal("0.0001"), Decimal("0.05"))
+
+
+def sip_series(transactions: list[Transaction]) -> list[SipSeries]:
+    grouped = defaultdict(list)
+    for txn in transactions:
+        if txn.type == TransactionType.PURCHASE_SIP:
+            grouped[txn.amount].append(txn.date)
+    clusters: list[list[Decimal]] = []
+    for amount in sorted(grouped):
+        # Compared with the series' first amount, so small steps can't chain
+        # two different SIPs together (review L6).
+        if clusters and _same_sip(clusters[-1][0], amount):
+            clusters[-1].append(amount)
+        else:
+            clusters.append([amount])
+    out = []
+    for cluster in clusters:
+        dated = [(day, amount) for amount in cluster for day in grouped[amount]]
+        counts = defaultdict(int)
+        for day, _ in dated:
+            counts[day.year, day.month] += 1
+        last_day = max(day for day, _ in dated)
+        latest = max(amount for day, amount in dated if day == last_day)
+        out.append(SipSeries(latest, max(counts.values()), last_day, min(day for day, _ in dated),
+                             frozenset(cluster)))
+    return out
+
+
+def missed_instalments(last_date: date, reference: date) -> int:
+    return max(0, (reference.year-last_date.year)*12 + reference.month-last_date.month-1)
+
+
+def _references(db: Session, folios: list[Folio]) -> dict[uuid.UUID, date]:
+    if not folios:
+        return {}
+    return dict(db.query(Transaction.folio_id, func.max(Import.statement_to_date))
+                .join(TransactionImport, (TransactionImport.transaction_id == Transaction.id)
+                      & (TransactionImport.transaction_date == Transaction.date))
+                .join(Import, Import.id == TransactionImport.import_id)
+                .filter(Transaction.folio_id.in_([f.id for f in folios]),
+                        Import.status == ImportStatus.CONFIRMED)
+                .group_by(Transaction.folio_id).all())
+
+
+def compute_active_sips(db: Session, household_member_ids: list[uuid.UUID], *,
+                        include_stopped: bool = False) -> list[SipRow]:
     if not household_member_ids:
         return []
-
-    members = {
-        m.id: m
-        for m in db.query(HouseholdMember).filter(HouseholdMember.id.in_(household_member_ids)).all()
-    }
+    members = {m.id:m for m in db.query(HouseholdMember).filter(HouseholdMember.id.in_(household_member_ids)).all()}
     folios = db.query(Folio).filter(Folio.household_member_id.in_(household_member_ids)).all()
     by_folio = _folio_transactions_by_id(db, folios)
     schemes = _schemes_by_id(db, folios)
-    today = date.today()
-
-    rows: list[SipRow] = []
+    references = _references(db, folios)
+    rows = []
     for folio in folios:
         transactions = by_folio.get(folio.id, [])
-        sip_txns = [t for t in transactions if t.type == TransactionType.PURCHASE_SIP]
-        if not sip_txns:
-            continue
-
-        units_held, _, _ = _process_folio_lots(transactions)
-        if units_held <= 0:
-            continue
-
-        latest = sip_txns[-1]  # transactions is chronologically ordered
-        scheme = schemes[folio.scheme_id]
-        rows.append(
-            SipRow(
-                scheme_id=str(scheme.id),
-                scheme_name=scheme.name,
-                household_member_id=str(folio.household_member_id),
-                household_member_name=members[folio.household_member_id].name,
-                sip_date=latest.date,
-                sip_amount=str(latest.amount),
-                next_due_date=_next_due_on_or_after(latest.date, today),
-            )
-        )
+        units, _, _ = _process_folio_lots(transactions)
+        for series in sip_series(transactions):
+            active = units > 0 and missed_instalments(series.last_date, references.get(folio.id) or date.today()) <= 3
+            if not active and not include_stopped:
+                continue
+            scheme = schemes[folio.scheme_id]
+            rows.append(SipRow(scheme_id=str(scheme.id), scheme_name=scheme.name,
+                               household_member_id=str(folio.household_member_id),
+                               household_member_name=members[folio.household_member_id].name,
+                               sip_date=series.last_date, sip_amount=f"{series.amount:.2f}",
+                               next_due_date=_next_due_on_or_after(series.last_date, date.today()),
+                               series_count=series.parallel, status="active" if active else "stopped"))
     return rows
 
 
-def compute_sips_for_month(
-    db: Session, household_member_ids: list[uuid.UUID], year: int, month: int
-) -> list[SipMonthlyRow]:
+def compute_sips_for_month(db: Session, household_member_ids: list[uuid.UUID], year: int, month: int) -> list[SipMonthlyRow]:
     if not household_member_ids:
         return []
-
-    members = {
-        m.id: m
-        for m in db.query(HouseholdMember).filter(HouseholdMember.id.in_(household_member_ids)).all()
-    }
+    members = {m.id:m for m in db.query(HouseholdMember).filter(HouseholdMember.id.in_(household_member_ids)).all()}
     folios = db.query(Folio).filter(Folio.household_member_id.in_(household_member_ids)).all()
     by_folio = _folio_transactions_by_id(db, folios)
     schemes = _schemes_by_id(db, folios)
-
-    rows: list[SipMonthlyRow] = []
+    references = _references(db, folios)
+    rows = []
+    counts = defaultdict(int)
     for folio in folios:
         transactions = by_folio.get(folio.id, [])
-        sip_txns = [t for t in transactions if t.type == TransactionType.PURCHASE_SIP]
-        if not sip_txns:
-            continue
-
-        first_txn = sip_txns[0]
-        latest_txn = sip_txns[-1]
-        actual = next(
-            (t for t in reversed(sip_txns) if t.date.year == year and t.date.month == month),
-            None,
-        )
+        units, _, _ = _process_folio_lots(transactions)
         scheme = schemes[folio.scheme_id]
-        member_name = members[folio.household_member_id].name
-
-        if actual is not None:
-            rows.append(
-                SipMonthlyRow(
-                    scheme_id=str(scheme.id),
-                    scheme_name=scheme.name,
-                    household_member_id=str(folio.household_member_id),
-                    household_member_name=member_name,
-                    date=actual.date,
-                    amount=str(actual.amount),
-                )
-            )
-            continue
-
-        units_held, _, _ = _process_folio_lots(transactions)
-        if units_held <= 0:
-            # Redeemed, and no real transaction landed in this month —
-            # never fabricate a projected row for a dead folio.
-            continue
-
-        if (year, month) < (first_txn.date.year, first_txn.date.month):
-            continue
-
-        months_diff = (year - latest_txn.date.year) * 12 + (month - latest_txn.date.month)
-        projected_date = _add_months_clamped(latest_txn.date, months_diff)
-        rows.append(
-            SipMonthlyRow(
-                scheme_id=str(scheme.id),
-                scheme_name=scheme.name,
-                household_member_id=str(folio.household_member_id),
-                household_member_name=member_name,
-                date=projected_date,
-                amount=str(latest_txn.amount),
-            )
-        )
+        for series in sip_series(transactions):
+            actual = [t for t in transactions if t.type == TransactionType.PURCHASE_SIP
+                      and t.amount in series.amounts and (t.date.year,t.date.month) == (year,month)]
+            # A month already paid shows what was paid then (stamp duty can make
+            # it differ slightly from the series' latest amount).
+            dates = [(t.date, t.amount) for t in actual]
+            if not dates:
+                if units <= 0 or missed_instalments(series.last_date, references.get(folio.id) or date.today()) > 3:
+                    continue
+                if (year,month) < (series.first_date.year,series.first_date.month):
+                    continue
+                offset = (year-series.last_date.year)*12 + month-series.last_date.month
+                dates = [(_add_months_clamped(series.last_date, offset), series.amount)] * series.parallel
+            for day, amount in dates:
+                key = (scheme.id, folio.household_member_id, day, amount)
+                counts[key] += 1
+                rows.append(SipMonthlyRow(scheme_id=str(scheme.id), scheme_name=scheme.name,
+                                          household_member_id=str(folio.household_member_id),
+                                          household_member_name=members[folio.household_member_id].name,
+                                          date=day, amount=f"{amount:.2f}", instalment=counts[key]))
     return rows

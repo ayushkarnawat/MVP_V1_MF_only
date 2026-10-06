@@ -13,10 +13,7 @@ introduces the per-folio N+1 query pattern that compute_holdings still has.
 That pre-existing pattern is deliberately left untouched in holdings.py —
 see the design spec's Scope section for why.
 
-Unlike holdings.py, a (scheme, member, ARN) group with zero units held
-(e.g. fully redeemed through one distributor) is still included, not
-dropped — this view compares performance across distributors, including
-ones you've since fully exited, not just what's currently held.
+Fully sold folios are omitted; NAV-less held schemes are named in their row.
 """
 
 from __future__ import annotations
@@ -33,7 +30,8 @@ from sqlalchemy import case
 from sqlalchemy.orm import Session
 
 from app.models.folio import Folio
-from app.models.reference import Scheme
+from app.models.enums import PlanType, SchemePlanType
+from app.models.reference import Scheme, SchemeTer
 from app.models.transaction import Transaction
 from app.models.user import HouseholdMember
 from app.services.dashboard.arn_lookup import resolve_arn
@@ -134,90 +132,79 @@ async def compute_distributor_comparison(
     for txn in transactions:
         txns_by_folio[txn.folio_id].append(txn)
 
-    grouped: dict[tuple[str | None, uuid.UUID, uuid.UUID], list[Folio]] = defaultdict(list)
+    grouped = defaultdict(list)
+    folio_states = {}
     for folio in folios:
-        grouped[(folio.arn_code, folio.scheme_id, folio.household_member_id)].append(folio)
-
-    scheme_ids = {scheme_id for _, scheme_id, _ in grouped}
-    schemes = {s.id: s for s in db.query(Scheme).filter(Scheme.id.in_(scheme_ids)).all()}
-
-    on_date = date.today()
-    nav_results = await get_navs_on_or_before(db, [(schemes[sid], on_date) for sid in scheme_ids])
-
-    # Pre-seed every distinct ARN so a distributor whose every scheme
-    # misses NAV still produces a row with an empty breakdown, instead of
-    # silently vanishing entirely (see design spec's Error Handling
-    # section).
-    breakdowns_by_arn: dict[str | None, list[DistributorSchemeBreakdown]] = {
-        arn_code: [] for arn_code, _, _ in grouped
-    }
-
-    for (arn_code, scheme_id, member_id), group_folios in grouped.items():
+        state = _process_folio_lots(txns_by_folio[folio.id])
+        if state[0] <= 0:
+            continue
+        folio_states[folio.id] = state
+        plan = folio.plan_type.value if folio.plan_type in (PlanType.DIRECT, PlanType.REGULAR) else None
+        bucket = (folio.arn_code, plan if folio.arn_code is None else None)
+        grouped[(bucket, folio.scheme_id, folio.household_member_id)].append(folio)
+    if not grouped:
+        _publish_if_current([])
+        return []
+    scheme_ids = {sid for _,sid,_ in grouped}
+    schemes = {s.id:s for s in db.query(Scheme).filter(Scheme.id.in_(scheme_ids)).all()}
+    amcs = {s.amc_name for s in schemes.values()}
+    bases = {s.base_name for s in schemes.values() if s.base_name}
+    siblings = db.query(Scheme).filter(Scheme.amc_name.in_(amcs), Scheme.base_name.in_(bases),
+                                      Scheme.plan_type == SchemePlanType.REGULAR).order_by(Scheme.amfi_code, Scheme.id).all() if bases else []
+    sibling_of = {}
+    for sibling in siblings:
+        sibling_of.setdefault((sibling.amc_name,sibling.base_name), sibling.id)
+    ters = {}
+    for ter in db.query(SchemeTer).filter(SchemeTer.scheme_id.in_(scheme_ids | {s.id for s in siblings})).order_by(SchemeTer.reference_period.desc()).all():
+        ters.setdefault(ter.scheme_id, ter.ter_value)
+    nav_results = await get_navs_on_or_before(db, [(schemes[sid],date.today()) for sid in scheme_ids])
+    breakdowns = {bucket:[] for bucket,_,_ in grouped}
+    missing = {bucket:set() for bucket in breakdowns}
+    plans = {bucket:set() for bucket in breakdowns}
+    for (bucket,scheme_id,member_id), group_folios in grouped.items():
+        scheme = schemes[scheme_id]
+        plans[bucket].update(f.plan_type.value for f in group_folios)
         nav_result = nav_results.get(scheme_id)
         if nav_result is None:
+            missing[bucket].add(scheme.name)
             continue
-        current_nav, _current_nav_date = nav_result
-
-        total_units = Decimal("0")
-        total_cost = Decimal("0")
-        total_realized = Decimal("0")
-        for folio in group_folios:
-            units_held, cost_basis, realized_gain = _process_folio_lots(txns_by_folio[folio.id])
-            total_units += units_held
-            total_cost += cost_basis
-            total_realized += realized_gain
-
-        current_value = total_units * current_nav
-        unrealized_gain = current_value - total_cost
-        current_profit_total = total_realized + unrealized_gain
-        average_nav = (total_cost / total_units) if total_units else None
-        scheme = schemes[scheme_id]
-
-        breakdowns_by_arn[arn_code].append(
-            DistributorSchemeBreakdown(
-                scheme_id=str(scheme_id),
-                scheme_name=scheme.name,
-                household_member_id=str(member_id),
-                household_member_name=members[member_id].name,
-                units_held=str(total_units),
-                average_nav=str(average_nav) if average_nav is not None else None,
-                amount_invested=str(total_cost),
-                current_value=str(current_value),
-                current_profit_total=str(current_profit_total),
-                realized_gain=str(total_realized),
-                unrealized_gain=str(unrealized_gain),
-            )
-        )
-
-    rows: list[DistributorPortfolioRow] = []
-    for arn_code, schemes_breakdown in breakdowns_by_arn.items():
+        current_nav,_ = nav_result
+        units = sum((folio_states[f.id][0] for f in group_folios), Decimal(0))
+        cost = sum((folio_states[f.id][1] for f in group_folios), Decimal(0))
+        realized = sum((folio_states[f.id][2] for f in group_folios), Decimal(0))
+        value = units * current_nav
+        saving = None
+        if all(f.plan_type == PlanType.DIRECT for f in group_folios):
+            own_ter = ters.get(scheme_id)
+            sibling_ter = ters.get(sibling_of.get((scheme.amc_name,scheme.base_name)))
+            if own_ter is not None and sibling_ter is not None and sibling_ter > own_ter:
+                saving = f"{sibling_ter-own_ter:.2f}"
+        breakdowns[bucket].append(DistributorSchemeBreakdown(
+            scheme_id=str(scheme_id), scheme_name=scheme.name, household_member_id=str(member_id),
+            household_member_name=members[member_id].name, units_held=str(units), average_nav=str(cost/units),
+            amount_invested=str(cost), current_value=str(value), current_profit_total=str(realized+value-cost),
+            realized_gain=str(realized), unrealized_gain=str(value-cost), annual_ter_saving=saving))
+    rows = []
+    for bucket, items in breakdowns.items():
+        arn_code, no_arn_plan = bucket
         distributor_name = None
         arn_status = None
+        plan = next(iter(plans[bucket])) if len(plans[bucket]) == 1 else None
+        if plan not in ("direct","regular"):
+            plan = None
         if arn_code is not None:
-            resolved = await resolve_arn(db, arn_code)
+            resolved = await resolve_arn(db,arn_code)
             if resolved is not None:
-                distributor_name = resolved.distributor_name
-                arn_status = resolved.status
-
-        amount_invested = sum((Decimal(b.amount_invested) for b in schemes_breakdown), Decimal("0"))
-        current_value = sum((Decimal(b.current_value) for b in schemes_breakdown), Decimal("0"))
-        realized_gain = sum((Decimal(b.realized_gain) for b in schemes_breakdown), Decimal("0"))
-        unrealized_gain = sum((Decimal(b.unrealized_gain) for b in schemes_breakdown), Decimal("0"))
-        current_profit_total = sum((Decimal(b.current_profit_total) for b in schemes_breakdown), Decimal("0"))
-
-        rows.append(
-            DistributorPortfolioRow(
-                arn_code=arn_code,
-                distributor_name=distributor_name,
-                arn_status=arn_status,
-                amount_invested=str(amount_invested),
-                current_value=str(current_value),
-                current_profit_total=str(current_profit_total),
-                realized_gain=str(realized_gain),
-                unrealized_gain=str(unrealized_gain),
-                schemes=schemes_breakdown,
-            )
-        )
+                distributor_name,arn_status = resolved.distributor_name,resolved.status
+        elif no_arn_plan == "regular":
+            distributor_name = "Regular"
+        elif no_arn_plan == "direct":
+            distributor_name = "Direct Plan (No Broker)"
+        totals = {field:str(sum((Decimal(getattr(item,field)) for item in items),Decimal(0)))
+                  for field in ("amount_invested","current_value","current_profit_total","realized_gain","unrealized_gain")}
+        rows.append(DistributorPortfolioRow(arn_code=arn_code, distributor_name=distributor_name,
+                                            arn_status=arn_status, plan_type=plan, schemes=items,
+                                            nav_unavailable_schemes=sorted(missing[bucket]), **totals))
 
     _publish_if_current(rows)
     return rows

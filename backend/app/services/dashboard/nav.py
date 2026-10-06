@@ -149,6 +149,11 @@ async def get_nav_on_or_before(
     immaterial) and have already warmed the cache via `warm_nav_history`,
     where forcing a live re-fetch would just re-download data fetched
     moments ago."""
+    if scheme.amfi_code is None:
+        # A CAS-only fund has no feed: its prices are the ones its statements
+        # printed (confirm_people._store_statement_prices).
+        cached = _latest_cached_on_or_before(db, scheme.id, on_date)
+        return (cached.nav, cached.date) if cached else None
     cached = _latest_cached_on_or_before(db, scheme.id, on_date)
     have_trustworthy_cache = cached is not None and (
         allow_stale_today or cached.date == on_date or on_date != date.today()
@@ -196,7 +201,7 @@ async def warm_nav_history(db: Session, schemes: Iterable[Scheme]) -> None:
     household recompute, or two households' recomputes minutes apart)
     re-fetch the entire category universe's NAV history from the network
     every time."""
-    unique = {scheme.id: scheme for scheme in schemes}
+    unique = {scheme.id: scheme for scheme in schemes if scheme.amfi_code is not None}
 
     fresh_ids = _fresh_scheme_ids(db, unique.keys())
     to_fetch = {scheme_id: scheme for scheme_id, scheme in unique.items() if scheme_id not in fresh_ids}
@@ -249,6 +254,11 @@ async def get_navs_on_or_before(
     # A synchronous SQLAlchemy Session is not coroutine-safe: all reads stay
     # outside gather and execute in this sequential loop.
     for scheme, on_date in scheme_date_pairs:
+        if scheme.amfi_code is None:
+            # CAS-only fund: only the prices its statements printed.
+            cached = _latest_cached_on_or_before(db, scheme.id, on_date)
+            results[scheme.id] = (cached.nav, cached.date) if cached else None
+            continue
         cached = _latest_cached_on_or_before(db, scheme.id, on_date)
         trustworthy = cached is not None and (cached.date == on_date or on_date != date.today())
         if trustworthy:

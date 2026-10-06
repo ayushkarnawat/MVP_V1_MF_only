@@ -457,3 +457,16 @@ def test_upsert_nav_history_is_conflict_safe_across_sessions(tmp_path):
     verify_db = sessions()
     from app.models.reference import NavHistory
     assert verify_db.query(NavHistory).filter_by(scheme_id=scheme_id).count() == 1
+
+
+def test_closed_scheme_has_no_borrowed_nav(db_session):
+    import asyncio
+    from app.services.dashboard.nav import get_navs_on_or_before
+    from app.models.enums import SchemeSource
+    closed = Scheme(amfi_code=None, name="Closed", amc_name="A", sebi_category="E",
+                    source=SchemeSource.CAS_ONLY, is_active=False)
+    db_session.add(closed); db_session.flush()
+    with patch("app.services.dashboard.nav._fetch_nav_history", new=AsyncMock(return_value=[])) as fetch:
+        assert asyncio.run(get_nav_on_or_before(db_session, closed, date.today())) is None
+        assert asyncio.run(get_navs_on_or_before(db_session, [(closed, date.today())]))[closed.id] is None
+    fetch.assert_not_called()
