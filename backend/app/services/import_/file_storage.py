@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models.imports import Import
+from app.services.import_.preview_store import PREVIEW_STATUSES
 
 CAS_FILE_RETENTION_DAYS = 30
 
@@ -124,7 +125,7 @@ def release_file_if_unreferenced(
     """Delete the stored object only when no Import row still points at it
     (a group file outlives any single member's import). Returns True if deleted."""
     still_referenced = (
-        db.query(Import.id).filter(Import.file_reference == file_reference).first() is not None
+        db.query(Import.id).filter(Import.file_reference == file_reference, Import.status.notin_(PREVIEW_STATUSES)).first() is not None
     )
     if still_referenced:
         return False
@@ -139,7 +140,7 @@ def expire_stored_files(db: Session, storage: FileStorage = default_file_storage
     now = datetime.now(timezone.utc)
     expired = (
         db.query(Import)
-        .filter(Import.file_reference.isnot(None), Import.file_expires_at < now)
+        .filter(Import.file_reference.isnot(None), Import.file_expires_at < now, Import.status.notin_(PREVIEW_STATUSES))
         .all()
     )
     references = {import_rec.file_reference for import_rec in expired}

@@ -41,29 +41,33 @@ def _authed_headers_and_member(client, phone: str, name: str = "Test Investor") 
     return headers, member["id"]
 
 
+def seed_master_scheme(db):
+    from app.models.reference import Scheme
+    from app.models.enums import SchemePlanType, PlanNameVariant
+    existing = db.query(Scheme).filter_by(amfi_code="125497").first()
+    if existing is None:
+        existing = Scheme(amfi_code="125497", isin="INF123", name=SCHEME_NAME,
+                          base_name="HDFC Flexi Cap Fund", plan_type=SchemePlanType.DIRECT,
+                          plan_name_variant=PlanNameVariant.DIRECT, amc_name="HDFC AMC",
+                          sebi_category="Equity Scheme - Flexi Cap Fund")
+        db.add(existing)
+        db.commit()
+    return existing
+
+
 def _parse(client, headers, member_id, parse_result, cache_dir):
-    from app.services.import_.enrich import mfapi_client
-
-    async def _fake_get_json(_self, url):
-        if url.endswith("/latest"):
-            return {"meta": {"scheme_category": "Equity Scheme - Flexi Cap Fund"}}
-        return [{"schemeCode": "125497", "schemeName": SCHEME_NAME}]
-
+    from unittest.mock import AsyncMock
+    db = _test_db()
+    seed_master_scheme(db)
     with (
         patch("app.api.imports.parse_cas_pdf_bytes", return_value=parse_result),
-        patch("app.services.import_.enrich.MfApiClient._get_json", new=_fake_get_json),
-        # Keep the mfapi disk cache out of backend/.cache.
-        patch.object(mfapi_client, "cache_dir", cache_dir),
-        patch.object(mfapi_client, "_schemes", None),
+        patch("app.services.import_.service._fetch_nav_history", new=AsyncMock(return_value=None)),
     ):
         return client.post(
             "/imports/parse",
             files={"file": ("cas.pdf", b"%PDF-fake", "application/pdf")},
-            data={
-                "password": "x",
-                "household_member_id": member_id,
-                "pan_disclaimer_version": PAN_DISCLAIMER_VERSION,
-            },
+            data={"password": "x", "household_member_id": member_id,
+                  "pan_disclaimer_version": PAN_DISCLAIMER_VERSION},
             headers=headers,
         )
 

@@ -359,6 +359,16 @@ def test_unknown_issuer_with_text_maps_to_unknown_issuer():
     assert classify_parse_error(exc, has_text=True).code == "unknown_issuer"
 
 
+def test_unparseable_nsdl_statement_maps_to_demat_cas():
+    # Phase 7 gate (errors/err_nsdl.pdf): casparser recognises an NSDL/CDSL
+    # statement but can't read it; the user must get the demat message, not
+    # casparser's internals.
+    exc = CASParseError("Could not extract investor info from NSDL/CDSL CAS PDF. Expected a `CAS ID:` / `NSDL ID:` marker")
+    err = classify_parse_error(exc, has_text=True)
+    assert err.code == "demat_cas"
+    assert "CAS ID" not in err.message
+
+
 def test_scanned_pdf_maps_to_scanned_pdf():
     exc = CASParseError("Could not identify the CAS issuer. Supported issuers are CAMS, KFintech, NSDL, and CDSL.")
     err = classify_parse_error(exc, has_text=False)
@@ -590,6 +600,14 @@ def test_reversal_maps_to_reversal():
     [row] = _one(_t("2020-02-07", "SIP Purchase - Reversal", "-5000", "-43.21", "115.71", "REVERSAL"))
     assert row.txn_type == TransactionType.REVERSAL and row.units == Decimal("43.210")
     assert row.amount == Decimal("5000.00")
+
+
+def test_only_a_nav_the_cas_printed_is_marked_printed():
+    # 6 Oct re-review: a reversal's NAV derived as amount/units is not a price
+    # the statement printed, so it must not become a CAS-only fund's price.
+    [printed] = _one(_t("2020-02-07", "SIP Purchase - Reversal", "-5000", "-43.21", "115.71", "REVERSAL"))
+    [derived] = _one(_t("2020-02-07", "SIP Purchase - Reversal", "-5000", "-43.21", None, "REVERSAL"))
+    assert printed.nav_printed is True and derived.nav_printed is False
 
 
 def test_reversal_without_nav_derives_it():

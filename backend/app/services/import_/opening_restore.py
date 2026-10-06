@@ -20,7 +20,7 @@ from decimal import Decimal
 from sqlalchemy.orm import Session
 
 from app.core.decimal_utils import quantize_units, to_decimal
-from app.models.enums import ImportStatus, TransactionOrigin
+from app.models.enums import ImportStatus, SchemeSource, TransactionOrigin
 from app.models.folio import Folio, normalise_folio_key
 from app.models.imports import Import
 from app.models.reference import NavHistory, Scheme
@@ -142,7 +142,11 @@ def restore_openings(
                 .order_by(Transaction.date, Transaction.id)
                 .all()
             ]
-            series = [(r.date, r.nav) for r in db.query(NavHistory).filter_by(scheme_id=scheme.id).all()]
+            # A CAS-only fund's history is a few statement prices, too sparse
+            # for the plausibility check; like the preview path, it gets none
+            # and the CAS cost stands (6 Oct review M4).
+            series = [] if scheme.source == SchemeSource.CAS_ONLY else [
+                (r.date, r.nav) for r in db.query(NavHistory).filter_by(scheme_id=scheme.id).all()]
             lot = price_opening_lot(parsed, in_period, start, series or None)
         if _apply_opening_rule(db, folio, lot, start, imp) in ("written", "replaced"):
             written += 1

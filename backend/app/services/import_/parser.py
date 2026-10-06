@@ -176,6 +176,10 @@ class NormalizedTransaction:
     # #3: a gift row the CAS printed without a NAV; priced at preview time
     # from the fund's NAV history (service.build_import_preview).
     needs_price: bool = False
+    # False when the NAV was computed here (a conversion leg's cost basis, a
+    # gift priced from history), not printed by the CAS: only printed NAVs
+    # become a CAS-only fund's price history (6 Oct review M3).
+    nav_printed: bool = True
 
     @property
     def key(self) -> SchemeKey:
@@ -245,6 +249,7 @@ MESSAGES = {
     "scanned_pdf": "We can’t read this PDF. It looks like a scan or a photo, so there’s no text in it to read. Download the statement again from CAMS or KFintech as a PDF; don’t print or scan it.",
     "damaged_pdf": "This file looks incomplete. Download it again.",
     "unknown_issuer": "This isn’t a CAMS or KFintech statement. Download your Consolidated Account Statement from CAMS or KFintech.",
+    "demat_cas": "Demat statements aren’t supported yet; use the CAMS/KFintech CAS.",
 }
 
 
@@ -256,6 +261,9 @@ def classify_parse_error(exc: Exception, *, has_text: bool = True) -> ParseError
     if isinstance(exc, CASParseError) and _UNKNOWN_ISSUER in str(exc).lower():
         code = "unknown_issuer" if has_text else "scanned_pdf"
         return ParseError(code, MESSAGES[code])
+    if isinstance(exc, CASParseError) and "nsdl/cdsl" in str(exc).lower():
+        # casparser knew it was a demat statement but couldn't read it.
+        return ParseError("demat_cas", MESSAGES["demat_cas"])
     pending = [(exc, 0)]
     seen: set[int] = set()
     while pending:
@@ -329,6 +337,7 @@ def _pair_conversions(amountless, transactions, scheme_map, parse_warnings):
                 row.amount = Decimal("0.00") if from_opening else quantize_amount(cost)
                 row.nav = Decimal("0.0000") if from_opening or not row.units else quantize_nav(cost / row.units)
                 row.conversion_from_opening = from_opening
+                row.nav_printed = False
                 transactions.append(row)
                 scheme_map[row.key].transaction_count += 1
         else:
@@ -463,6 +472,7 @@ def _normalize_cas_data(data: CASData, lines: list[str] | None = None) -> ParseR
                         amountless.setdefault((folio.amc, candidate.txn_date), []).append(
                             (candidate, to_decimal(txn.units), str(txn.type)))
                         continue
+                    printed_nav = nav  # what casparser read, before any derivation
                     kept = _retain(txn.type, txn.description, amount, units, nav)
                     if kept is None:
                         if _raw_key(txn.type) not in _SILENT_TAX_TYPES:
@@ -472,7 +482,10 @@ def _normalize_cas_data(data: CASData, lines: list[str] | None = None) -> ParseR
                             )
                         continue
                     ttype, amount, units, nav, needs_price = kept
+                    # A derived NAV (a reversal's amount/units) isn't a printed price.
+                    nav_printed = printed_nav is not None and nav == printed_nav
                 else:
+                    nav_printed = nav is not None
                     ttype, needs_price = normalize_txn_type(txn.type), False
                     if ttype == TransactionType.PURCHASE and amount == 0 and "bonus" in (txn.description or "").lower():
                         ttype = TransactionType.BONUS
@@ -481,7 +494,7 @@ def _normalize_cas_data(data: CASData, lines: list[str] | None = None) -> ParseR
                     isin=scheme.isin, amfi=scheme.amfi, scheme_type=scheme.type,
                     txn_date=_parse_date(txn.date), txn_type=ttype,
                     description=txn.description, amount=amount, units=units, nav=nav,
-                    person_key=pkey, needs_price=needs_price,
+                    person_key=pkey, needs_price=needs_price, nav_printed=nav_printed,
                     balance=quantize_units(_optional_decimal(txn.balance))
                     if _optional_decimal(getattr(txn, "balance", None)) is not None else None,
                 )
@@ -544,7 +557,7 @@ def parse_cas_pdf_bytes(pdf_bytes: bytes, password: str) -> ParseResult:
     if isinstance(result, NSDLCASData):
         raise ParseError(
             "demat_cas",
-            "Demat statements aren’t supported yet; use the CAMS/KFintech CAS.",
+            MESSAGES["demat_cas"],
         )
     if not isinstance(result, CASData):
         raise ParseError("parse_failed", "Unexpected parser output type.")

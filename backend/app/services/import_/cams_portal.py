@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.models.enums import ImportStatus
 from app.models.imports import Import
+from app.services.import_.preview_store import PREVIEW_STATUSES
 from app.models.user import HouseholdMember
 from app.services.import_.state_machine import transition_status
 
@@ -83,7 +84,7 @@ def cancel_pending_request(
     import_rec = (
         db.query(Import)
         .join(HouseholdMember, Import.household_member_id == HouseholdMember.id)
-        .filter(Import.id == import_id, HouseholdMember.user_id == user_id)
+        .filter(Import.id == import_id, HouseholdMember.user_id == user_id, Import.status.notin_(PREVIEW_STATUSES))
         .first()
     )
     if not import_rec:

@@ -70,8 +70,8 @@ def cas_closings(raw: dict | None) -> list[dict]:
 
 
 def _same_scheme(entry: dict, scheme: Scheme) -> bool:
-    if entry.get("isin") and scheme.isin:
-        return entry["isin"] == scheme.isin
+    if entry.get("isin") and (scheme.isin or scheme.isin_reinvest):
+        return entry["isin"] in {scheme.isin, scheme.isin_reinvest}
     if entry.get("amfi") and scheme.amfi_code:
         return str(entry["amfi"]) == scheme.amfi_code
     return normalize_name(entry.get("scheme") or "") == normalize_name(scheme.name)

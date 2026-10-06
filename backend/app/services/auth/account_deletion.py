@@ -11,6 +11,7 @@ from app.models.auth import AuthIdentity, OtpRequest, PendingIdentityVerificatio
 from app.models.enums import AuthIdentityProvider, ConsentAction
 from app.models.folio import Folio
 from app.models.imports import Import
+from app.services.import_.preview_store import PREVIEW_STATUSES, discard_member_reviews
 from app.models.member_history import HouseholdMemberMerge, HouseholdMemberNameChange
 from app.models.snapshot import PortfolioSnapshot
 from app.models.transaction import Transaction
@@ -91,17 +92,18 @@ def hard_delete_expired_accounts(
         bump_recompute_generation(db, user.id)
         member_ids = [row[0] for row in db.query(HouseholdMember.id).filter_by(user_id=user.id).all()]
         if member_ids:
+            discard_member_reviews(db, member_ids)
             file_references.update(
                 ref
                 for (ref,) in db.query(Import.file_reference)
-                .filter(Import.household_member_id.in_(member_ids), Import.file_reference.isnot(None))
+                .filter(Import.household_member_id.in_(member_ids), Import.file_reference.isnot(None), Import.status.notin_(PREVIEW_STATUSES))
                 .distinct()
                 .all()
             )
             db.query(HouseholdMemberNameChange).filter(
                 HouseholdMemberNameChange.household_member_id.in_(member_ids)
             ).delete(synchronize_session=False)
-            import_ids = [row[0] for row in db.query(Import.id).filter(Import.household_member_id.in_(member_ids)).all()]
+            import_ids = [row[0] for row in db.query(Import.id).filter(Import.household_member_id.in_(member_ids), Import.status.notin_(PREVIEW_STATUSES)).all()]
             if import_ids:
                 db.query(Transaction).filter(Transaction.import_id.in_(import_ids)).delete(synchronize_session=False)
             db.query(Import).filter(Import.household_member_id.in_(member_ids)).delete(synchronize_session=False)

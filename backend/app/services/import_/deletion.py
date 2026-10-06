@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 from sqlalchemy.orm import Session
+from fastapi import BackgroundTasks
 
 from app.models.analytics import AnalyticsSection
 from app.models.enums import Relationship
@@ -23,7 +24,8 @@ from app.models.user import HouseholdMember
 from app.services.analytics.recompute import bump_recompute_generation
 from app.services.dashboard.holdings import invalidate_holdings_cache
 from app.services.dashboard.profile_completion import removed_with_last_import
-from app.services.dashboard.snapshots import invalidate_member_snapshots
+from app.services.dashboard.snapshots import invalidate_member_snapshots, rebuild_member_snapshots
+from app.services.import_.preview_store import PREVIEW_STATUSES, discard_member_reviews
 from app.services.import_.coverage_gap import evaluate_folio_coverage_gaps
 from app.services.import_.opening_restore import restore_openings
 from app.services.import_.file_storage import FileStorage, default_file_storage, release_file_if_unreferenced
@@ -46,6 +48,7 @@ class DeleteResult:
 
 def _remove_member(db: Session, member: HouseholdMember) -> None:
     member_id = member.id
+    discard_member_reviews(db, [member_id])
     db.query(Folio).filter(Folio.household_member_id == member_id).delete(synchronize_session=False)
     db.query(HouseholdMemberNameChange).filter(
         HouseholdMemberNameChange.household_member_id == member_id
@@ -66,6 +69,7 @@ def _delete_imports(
     *,
     remove_member_ids: set[uuid.UUID],
     storage: FileStorage,
+    background_tasks: BackgroundTasks | None = None,
 ) -> DeleteResult:
     import_ids = [i.id for i in imports]
     member_ids = list(dict.fromkeys(i.household_member_id for i in imports))
@@ -130,11 +134,14 @@ def _delete_imports(
         member = db.get(HouseholdMember, member_id)
         if member is None or member.relationship == Relationship.SELF:
             continue  # self is never removed, and its PAN is left alone
-        left = db.query(Import.id).filter(Import.household_member_id == member_id).first() is not None
+        left = db.query(Import.id).filter(Import.household_member_id == member_id, Import.status.notin_(PREVIEW_STATUSES)).first() is not None
         if left:
             continue
         # An untouched detected member exists only because of a statement (M17).
         if member_id in remove_member_ids or removed_with_last_import(member):
+            discard_member_reviews(db, [member_id])
+            if member_id not in remove_member_ids and not removed_with_last_import(member):
+                continue
             _remove_member(db, member)
             removed.append(member_id)
 
@@ -150,6 +157,8 @@ def _delete_imports(
     # a pre-delete result under the new generation) and the stored files.
     for member_id in member_ids:
         invalidate_holdings_cache(member_id)
+        if background_tasks is not None and member_id not in removed:
+            background_tasks.add_task(rebuild_member_snapshots, member_id)
     deleted_file = False
     for reference in references:
         try:
@@ -166,10 +175,11 @@ def delete_import(
     import_id: uuid.UUID,
     scope: DeleteScope,
     storage: FileStorage = default_file_storage,
+    *, background_tasks: BackgroundTasks | None = None,
 ) -> DeleteResult:
     owned = db.query(Import).join(HouseholdMember, HouseholdMember.id == Import.household_member_id).filter(
         HouseholdMember.user_id == user_id
-    )
+    ).filter(Import.status.notin_(PREVIEW_STATUSES))
     target = owned.filter(Import.id == import_id).first()
     if target is None:
         raise ImportNotFoundError()
@@ -177,7 +187,7 @@ def delete_import(
         imports = owned.filter(Import.upload_group_id == target.upload_group_id).all()
     else:
         imports = [target]
-    return _delete_imports(db, user_id, imports, remove_member_ids=set(), storage=storage)
+    return _delete_imports(db, user_id, imports, remove_member_ids=set(), storage=storage, background_tasks=background_tasks)
 
 
 def delete_member_portfolio(
@@ -186,11 +196,12 @@ def delete_member_portfolio(
     member_id: uuid.UUID,
     remove_member: bool,
     storage: FileStorage = default_file_storage,
+    *, background_tasks: BackgroundTasks | None = None,
 ) -> DeleteResult:
     member = db.query(HouseholdMember).filter_by(id=member_id, user_id=user_id).first()
     if member is None:
         raise ImportNotFoundError()
-    imports = db.query(Import).filter(Import.household_member_id == member_id).all()
+    imports = db.query(Import).filter(Import.household_member_id == member_id, Import.status.notin_(PREVIEW_STATUSES)).all()
     if not imports:
         # Nothing imported: still honour remove_member for a non-self member.
         result = DeleteResult(0)
@@ -203,5 +214,5 @@ def delete_member_portfolio(
             result.removed_member_ids = [member_id]
         return result
     return _delete_imports(
-        db, user_id, imports, remove_member_ids={member_id} if remove_member else set(), storage=storage
+        db, user_id, imports, remove_member_ids={member_id} if remove_member else set(), storage=storage, background_tasks=background_tasks
     )

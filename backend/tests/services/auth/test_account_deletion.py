@@ -332,3 +332,19 @@ def test_hard_delete_keeps_consent_rows(db_session):
     assert db_session.query(User).filter_by(id=uid).first() is None
     assert db_session.query(ConsentRecord).filter_by(user_id=uid).count() >= 1
     assert db_session.query(ConsentRecord).filter_by(user_id=uid, action=ConsentAction.GIVEN).count() == 1
+
+
+
+def test_hard_delete_discards_member_review_and_memory(db_session):
+    import uuid
+    from tests.services.import_.test_deletion import _world, _preview_for, FakeStorage
+    from app.services.import_.service import _preview_sessions
+    from app.models.imports import Import
+    w = _world(db_session)
+    sid = _preview_for(db_session,w["me"])
+    w["user"].pending_deletion = True
+    w["user"].deletion_scheduled_at = datetime.now(timezone.utc)-timedelta(days=1)
+    db_session.commit()
+    assert hard_delete_expired_accounts(db_session,storage=FakeStorage()) == 1
+    assert sid not in _preview_sessions
+    assert db_session.get(Import,uuid.UUID(sid)) is None

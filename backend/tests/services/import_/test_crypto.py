@@ -71,3 +71,17 @@ def test_env_var_key_provider_rejects_wrong_length_key(monkeypatch):
     monkeypatch.setattr("app.services.import_.crypto.settings.pan_encryption_key", short_key)
     with pytest.raises(RuntimeError, match="32 bytes"):
         EnvVarKeyProvider().encryption_key()
+
+
+
+def test_encrypt_bytes_preserves_arbitrary_binary_and_rejects_tampering():
+    from app.services.import_.crypto import encrypt_bytes, decrypt_bytes
+    import base64
+    import pytest
+    from cryptography.exceptions import InvalidTag
+    raw = b"abc de\x00\xff %PDF lower-case"
+    token = encrypt_bytes(raw)
+    assert decrypt_bytes(token) == raw
+    changed = bytearray(base64.b64decode(token)); changed[-1] ^= 1
+    with pytest.raises(InvalidTag):
+        decrypt_bytes(base64.b64encode(changed).decode("ascii"))

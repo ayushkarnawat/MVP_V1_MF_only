@@ -23,7 +23,6 @@ import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
-from difflib import SequenceMatcher
 from typing import Any, Literal
 
 from sqlalchemy.orm import Session
@@ -35,6 +34,7 @@ from app.models.enums import (
     NameChangeReason,
     PlanNameVariant,
     PlanType,
+    SchemeSource, SchemePlanType,
     SourceCasType,
     CostSource,
     TransactionOrigin,
@@ -43,13 +43,16 @@ from app.models.enums import (
 from app.models.folio import Folio, normalise_folio_key
 from app.models.imports import Import, ImportStatus
 from app.models.member_history import HouseholdMemberNameChange
-from app.models.reference import Scheme
+from app.models.reference import NavHistory, Scheme
 from app.models.transaction import Transaction
 from app.models.transaction_import import TransactionImport
 from app.models.user import HouseholdMember
 from app.services.dashboard.holdings import invalidate_holdings_cache
+from app.services.dashboard.snapshots import invalidate_member_snapshots
+from app.services.import_ import preview_store
+from app.services.import_.lifecycle_service import SessionExpiredError
 from app.services.import_.crypto import hash_pan
-from app.services.import_.enrich import mfapi_client, normalize_name
+from app.services.import_.identify import Identification, classify_plan
 from app.services.import_ import file_storage
 from app.services.import_.name_match import NameNotEditableError, normalise_name, validate_person_name
 from app.services.import_.pan_claims import (
@@ -82,6 +85,7 @@ from app.services.import_.schemas import (
     SchemeMatchPreview,
 )
 from app.services.import_.service import (
+    SESSION_EXPIRED_MESSAGE,
     CONFIDENCE_THRESHOLD,
     SchemeConfidenceError,
     claim_session_for_confirm,
@@ -199,6 +203,7 @@ def _confirm(
         try:
             db.rollback()
             _release_session_claims(db, session)
+            preview_store.delete(db, session_id)
             db.commit()
         finally:
             return_confirmed_session(session_id, session, lock, keep=False)
@@ -262,17 +267,26 @@ def _confirm_claimed(
     txns_of = _transactions_by_scheme(parse_result.transactions)
     included_txns = [t for w in works for k in w.scheme_keys for t in txns_of.get(k, [])]
     parsed_scheme_by_key = {s.key: s for s in parse_result.schemes}
-    _validate_schemes(included_txns, previews, key_to_temp, overrides, parsed_scheme_by_key)
+    _validate_schemes(included_txns, previews, key_to_temp, overrides, parsed_scheme_by_key, db=db, identifications=session.get("identifications", {}))
 
     _reject_changed_pans(db, works)
 
     if all(w.member_id is not None for w in works) and _all_rows_exist(db, works, txns_of, previews, key_to_temp, overrides,
-            session.get("opening_lots", {}), parse_result.statement_from):
+            session.get("opening_lots", {}), parse_result.statement_from,
+            identifications=session.get("identifications", {}), parsed_schemes=parsed_scheme_by_key):
         raise AlreadyImportedError()
 
     # 2. F14: every PAN claim is made permanent before any other write --
     # confirm_pan_claim's lost-race path does a full db.rollback().
     _finalise_pan_claims(db, session, target_member_id)
+    # A lost PAN race can roll back the initial claim. Reclaim before writes;
+    # PostgreSQL waits for an intervening worker, then sees its delete/rollback.
+    claimed = db.query(Import).filter(
+        Import.id == uuid.UUID(session["session_id"]),
+        Import.status.in_((ImportStatus.PREVIEWING, ImportStatus.PROCESSING)),
+    ).update({Import.status:ImportStatus.PROCESSING}, synchronize_session=False)
+    if claimed != 1:
+        raise SessionExpiredError(SESSION_EXPIRED_MESSAGE)
 
     # 3. Writes.
     now = datetime.now(timezone.utc)
@@ -322,7 +336,7 @@ def _confirm_claimed(
         added, skipped = _write_person_rows(
             db, member, import_rec, schemes, txns, overrides, previews=previews, key_to_temp=key_to_temp,
             opening_lots=session.get("opening_lots", {}), statement_from=parse_result.statement_from,
-            match_warnings=match_warnings,
+            match_warnings=match_warnings, identifications=session.get("identifications", {}),
         )
         import_rec.new_transactions_count = added
         import_rec.duplicate_transactions_count = skipped
@@ -339,6 +353,8 @@ def _confirm_claimed(
     stored["reference"] = file_storage.store_group_cas_file(
         imports, user_id, upload_group_id, session["pdf_bytes"], storage=file_storage.default_file_storage,
     )
+    preview_store.delete(db, session["session_id"])
+    invalidate_member_snapshots(db, [uuid.UUID(r.member_id) for r in results])
     db.commit()
     # Committed Import rows now reference the file: from here on nothing may
     # delete it, and the review must not be put back for another confirm.
@@ -691,6 +707,7 @@ def _validate_schemes(
     key_to_temp: dict[SchemeKey, str],
     overrides: dict[str, SchemeConfirmation],
     parsed_scheme_by_key: dict[SchemeKey, ParsedScheme],
+    *, db: Session, identifications: dict[str, Identification],
 ) -> None:
     """Every referenced scheme is validated up front -- a rejection here makes
     zero DB writes."""
@@ -708,27 +725,21 @@ def _validate_schemes(
         # "pending" must never be silently confirmed just because its score
         # happens to clear this function's own copy of the threshold.
         confident = preview.match_status == "confirmed" or bool(override and override.amfi_code)
-        if not amfi_code or not confident:
+        ident = identifications.get(temp_id)
+        identified = ident is not None and (
+            ident.status in ("verified", "closed", "unlisted")
+            or (ident.status == "ask" and bool(override and override.unlisted))
+        )
+        if not identified and (not amfi_code or not confident):
             raise SchemeConfidenceError(
                 f"Scheme '{preview.name}' requires an explicit AMFI code override (match confidence "
                 f"{preview.match_confidence:.2f} below {CONFIDENCE_THRESHOLD})."
             )
 
-        # DATA-001: an override.amfi_code used to be trusted at full confidence
-        # with zero cross-check — a code that doesn't exist at all in AMFI's
-        # own master list is a data-entry error, not a legitimate correction.
-        # Only checked when the master list is already cached this process
-        # (populated by the preceding build_import_preview call); a fresh
-        # process with nothing cached degrades to trusting the override, same
-        # as before this fix, rather than blocking the confirm on a lookup
-        # this synchronous function can't perform itself.
-        if override and override.amfi_code:
-            scheme_list = mfapi_client.cached_scheme_list()
-            if scheme_list is not None and mfapi_client.canonical_name_for_code(override.amfi_code, scheme_list) is None:
-                raise SchemeConfidenceError(
-                    f"Override AMFI code '{override.amfi_code}' for scheme '{preview.name}' was not found "
-                    "in AMFI's scheme master list."
-                )
+        if override and override.amfi_code and db.query(Scheme).filter_by(amfi_code=override.amfi_code).first() is None:
+            raise SchemeConfidenceError(
+                f"Override AMFI code '{override.amfi_code}' for scheme '{preview.name}' was not found in AMFI's scheme master list."
+            )
 
         # Combined fix for CLAUDE.md's "no server-side 409 backstop on
         # plan-type override" gap: the scheme's own CAS-parsed name is an
@@ -790,48 +801,53 @@ def _apply_opening_rule(
     return "replaced" if deleted else "written"
 
 
-def _folio_for(db, member, parsed_scheme, preview, override, scheme_cache, folio_cache):
+def _identified_scheme(db, parsed, ident, override=None, *, create=False):
+    if override and override.amfi_code:
+        return db.query(Scheme).filter_by(amfi_code=override.amfi_code).first()
+    if ident is None:
+        return None
+    if ident.scheme_id is not None:
+        return db.get(Scheme, ident.scheme_id)
+    as_unlisted = ident.status == "unlisted" or (ident.status == "ask" and bool(override and override.unlisted))
+    if ident.status != "closed" and not as_unlisted:
+        return None
+    query = db.query(Scheme).filter_by(source=SchemeSource.CAS_ONLY)
+    query = query.filter_by(isin=parsed.isin) if parsed.isin else query.filter_by(name=parsed.name, amc_name=parsed.amc)
+    scheme = query.first()
+    if scheme is None and create:
+        scheme = Scheme(id=uuid.uuid4(), amfi_code=None, isin=parsed.isin, name=parsed.name,
+                        amc_name=parsed.amc, sebi_category=ident.category, source=SchemeSource.CAS_ONLY,
+                        is_active=as_unlisted, plan_type=SchemePlanType(ident.plan_type))
+        db.add(scheme)
+        db.flush()
+    return scheme
+
+
+def _folio_for(db, member, parsed_scheme, preview, override, scheme_cache, folio_cache, identification=None,
+               rows=None):
     member_id = member.id
-    amfi_code = (override.amfi_code if override and override.amfi_code else None) or preview.suggested_amfi_code
-
-    if amfi_code not in scheme_cache:
-        existing = db.query(Scheme).filter_by(amfi_code=amfi_code).first()
-        if existing:
-            scheme_cache[amfi_code] = existing
-        else:
-            plan_name_variant = parsed_scheme.plan_name_variant if parsed_scheme else None
-
-            # DATA-001: when an override's amfi_code is genuinely
-            # different from what CAS parsing implies, the persisted
-            # Scheme.name must describe THAT code, not blindly carry over
-            # the original CAS-parsed name — otherwise a legitimate
-            # manual correction still produces a Scheme row whose name
-            # doesn't match its own amfi_code.
-            scheme_name = parsed_scheme.name
-            if override and override.amfi_code:
-                scheme_list = mfapi_client.cached_scheme_list()
-                canonical_name = (
-                    mfapi_client.canonical_name_for_code(override.amfi_code, scheme_list)
-                    if scheme_list is not None
-                    else None
-                )
-                if canonical_name is not None:
-                    similarity = SequenceMatcher(
-                        None, normalize_name(parsed_scheme.name), normalize_name(canonical_name)
-                    ).ratio()
-                    if similarity < CONFIDENCE_THRESHOLD:
-                        scheme_name = canonical_name
-
-            new_scheme = Scheme(
-                id=uuid.uuid4(), amfi_code=amfi_code, isin=parsed_scheme.isin, name=scheme_name,
-                amc_name=parsed_scheme.amc, sebi_category=_resolve_category(preview.category, parsed_scheme.scheme_type),
-                plan_name_variant=PlanNameVariant(plan_name_variant) if plan_name_variant else None,
-            )
-            db.add(new_scheme)
-            db.flush()
-            scheme_cache[amfi_code] = new_scheme
-
-    scheme = scheme_cache[amfi_code]
+    # "Not listed" for a fund an earlier statement filed under an AMFI scheme
+    # (the user picked a code then): that folio, with its confirmed plan kept,
+    # and no new CAS-only fund. Only on this explicit answer: other CAS-only
+    # funds never look for a listed folio (removal-snapshot review 1, 6, 7).
+    if identification is not None and identification.status == "ask" and override and override.unlisted:
+        listed = _listed_folio_holding(db, member_id, normalise_folio_key(parsed_scheme.folio), rows or [])
+        if listed is not None:
+            return listed
+    cache_id = (identification.scheme_id if identification else None,
+                override.amfi_code if override and override.amfi_code else None,
+                parsed_scheme.isin or (parsed_scheme.name, parsed_scheme.amc))
+    if cache_id not in scheme_cache:
+        scheme_cache[cache_id] = _identified_scheme(db, parsed_scheme, identification, override, create=True)
+    scheme = scheme_cache[cache_id]
+    if scheme is None:
+        raise SchemeConfidenceError(f"Scheme '{preview.name}' requires an explicit AMFI code override.")
+    chosen_plan = preview.plan_type
+    if override and override.amfi_code:
+        chosen_plan = classify_plan(scheme, False, parsed_scheme.name)[0]
+    if override and override.plan_type_override:
+        chosen_plan = override.plan_type_override
+    chosen_verified = bool(override and (override.amfi_code or override.plan_type_override)) or preview.plan_verified
     # #4: match on the folio key, so "4400918 / 3" and "4400918/3" are one folio.
     key = normalise_folio_key(parsed_scheme.folio)
     cache_key = (member_id, scheme.id, key)
@@ -841,20 +857,69 @@ def _folio_for(db, member, parsed_scheme, preview, override, scheme_cache, folio
             .filter_by(household_member_id=member_id, scheme_id=scheme.id, folio_key=key)
             .first()
         )
+        if existing_folio is None and scheme.source != SchemeSource.CAS_ONLY:
+            existing_folio = _repoint_cas_only_folio(db, member_id, key, parsed_scheme, scheme)
         if existing_folio:
             folio_cache[cache_key] = existing_folio
         else:
-            plan_type = (override.plan_type_override if override and override.plan_type_override else preview.plan_type)
+            plan_type = chosen_plan
             arn_code = parsed_scheme.arn_code
             new_folio = Folio(
                 id=uuid.uuid4(), household_member_id=member_id, scheme_id=scheme.id,
                 folio_number=parsed_scheme.folio, folio_key=key, arn_code=arn_code, plan_type=PlanType(plan_type),
+                plan_verified=chosen_verified,
             )
             db.add(new_folio)
             db.flush()
             folio_cache[cache_key] = new_folio
 
     folio = folio_cache[cache_key]
+    folio.plan_type = PlanType(chosen_plan)
+    folio.plan_verified = chosen_verified
+    return folio
+
+
+def _cas_only_folio(db, member_id, key, parsed_scheme):
+    """This member's folio of the same fund (by the statement's ISIN) that an
+    earlier import stored as CAS-only (unlisted or closed)."""
+    if not parsed_scheme.isin:
+        return None
+    return (
+        db.query(Folio).join(Scheme, Scheme.id == Folio.scheme_id)
+        .filter(Folio.household_member_id == member_id, Folio.folio_key == key,
+                Scheme.source == SchemeSource.CAS_ONLY, Scheme.isin == parsed_scheme.isin)
+        .first()
+    )
+
+
+def _listed_folio_holding(db, member_id, key, rows):
+    """The reverse of _repoint_cas_only_folio: "Not listed" for a fund an
+    earlier statement already filed under an AMFI scheme (the user picked a
+    code then). The folio whose saved rows this statement repeats is that
+    fund: one folio number holds several funds, so the number alone can't
+    tell (6 Oct re-review)."""
+    if not rows:
+        return None
+    candidates = (
+        db.query(Folio).join(Scheme, Scheme.id == Folio.scheme_id)
+        .filter(Folio.household_member_id == member_id, Folio.folio_key == key,
+                Scheme.source != SchemeSource.CAS_ONLY)
+        .all()
+    )
+    for folio in candidates:
+        if _match_rows(db, folio.id, rows, dry_run=True).matched:
+            return folio
+    return None
+
+
+def _repoint_cas_only_folio(db, member_id, key, parsed_scheme, scheme):
+    """An unlisted fund that has since joined the AMFI master (an NFO, a late
+    feed): its folio moves to the master scheme, so the next statement matches
+    its rows instead of adding them again in a second folio (review H1)."""
+    folio = _cas_only_folio(db, member_id, key, parsed_scheme)
+    if folio is not None:
+        folio.scheme_id = scheme.id
+        db.flush()
     return folio
 
 
@@ -871,6 +936,7 @@ def _write_person_rows(
     opening_lots: dict[str, OpeningLot] | None = None,
     statement_from: date | None = None,
     match_warnings: list[str] | None = None,
+    identifications: dict[str, Identification] | None = None,
 ) -> tuple[int, int]:
     """Get-or-create schemes and this member's folios, then add this person's
     transactions, de-duplicated. Returns (added, skipped). Validation already
@@ -881,11 +947,14 @@ def _write_person_rows(
     skipped = 0
 
     folios_by_key = {}
+    prices_written: set[tuple[uuid.UUID, date]] = set()
     for parsed_scheme in schemes:
         temp_id = key_to_temp[parsed_scheme.key]
         folio = _folio_for(db, member, parsed_scheme, previews[temp_id], confirmations.get(temp_id),
-                           scheme_cache, folio_cache)
+                           scheme_cache, folio_cache, (identifications or {}).get(temp_id),
+                           rows=[t for t in txns if t.key == parsed_scheme.key])
         folios_by_key[parsed_scheme.key] = folio
+        _store_statement_prices(db, folio.scheme_id, parsed_scheme, txns, prices_written)
         verdict = _apply_opening_rule(db, folio, (opening_lots or {}).get(temp_id), statement_from, import_rec)
         if verdict in ("written", "replaced"):
             added += 1
@@ -910,6 +979,35 @@ def _write_person_rows(
             added += 1
 
     return added, skipped
+
+
+def _store_statement_prices(db: Session, scheme_id: uuid.UUID, parsed: ParsedScheme,
+                            txns: list[NormalizedTransaction], written: set[tuple[uuid.UUID, date]]) -> None:
+    """A CAS-only fund (in no master: unlisted, or closed and merged away) has
+    no NAV feed, so the prices the statement prints are its price history:
+    each row's NAV (>0; bonus/segregation rows carry 0, which is a cost, not a
+    price) and the closing valuation NAV (a real 0 is kept: a written-off
+    fund). Existing dates are left alone. Decided 6 Oct."""
+    scheme = db.get(Scheme, scheme_id)
+    if scheme is None or scheme.source != SchemeSource.CAS_ONLY:
+        return
+    prices: dict[date, Decimal] = {}
+    for t in txns:
+        if t.key == parsed.key and t.nav_printed and t.nav is not None and t.nav > 0:
+            prices.setdefault(t.txn_date, t.nav)
+    if parsed.valuation_date is not None and parsed.valuation_nav is not None:
+        prices[parsed.valuation_date] = parsed.valuation_nav
+    values = [{"scheme_id": scheme_id, "date": day, "nav": nav} for day, nav in prices.items()
+              if (scheme_id, day) not in written]
+    if not values:
+        return
+    written.update((scheme_id, v["date"]) for v in values)
+    # ON CONFLICT DO NOTHING: two people's (or two users') confirms of the
+    # same CAS-only fund can store the same date concurrently (review L1).
+    from app.services.dashboard.nav import _NAV_UPSERT_INSERT_BUILDERS
+    insert = _NAV_UPSERT_INSERT_BUILDERS[db.get_bind().dialect.name]
+    db.execute(insert(NavHistory).values(values).on_conflict_do_nothing(
+        index_elements=[NavHistory.scheme_id, NavHistory.date]))
 
 
 @dataclass
@@ -1004,7 +1102,7 @@ def _match_rows(
 
 
 def _all_rows_exist(db, works, txns_of, previews, key_to_temp, overrides,
-                    opening_lots=None, statement_from=None) -> bool:
+                    opening_lots=None, statement_from=None, *, identifications=None, parsed_schemes=None) -> bool:
     checked = 0
     folios = {}
     for w in works:
@@ -1014,9 +1112,22 @@ def _all_rows_exist(db, works, txns_of, previews, key_to_temp, overrides,
             if cache_key not in folios:
                 override = overrides.get(temp_id)
                 code = (override.amfi_code if override and override.amfi_code else None) or previews[temp_id].suggested_amfi_code
-                scheme = db.query(Scheme).filter_by(amfi_code=code).first()
+                ident = (identifications or {}).get(temp_id)
+                parsed = (parsed_schemes or {}).get(key)
+                scheme = _identified_scheme(db, parsed, ident, override) if ident is not None else db.query(Scheme).filter_by(amfi_code=code).first()
                 folios[cache_key] = scheme and db.query(Folio).filter_by(
                     household_member_id=w.member_id, scheme_id=scheme.id, folio_key=normalise_folio_key(key[0])).first()
+                if folios[cache_key] is None and ident is not None and ident.status == "ask" \
+                        and override and override.unlisted:
+                    folios[cache_key] = _listed_folio_holding(
+                        db, w.member_id, normalise_folio_key(key[0]), txns_of.get(key, []))
+                if scheme is not None and scheme.source != SchemeSource.CAS_ONLY and folios[cache_key] is None \
+                        and parsed is not None and _cas_only_folio(db, w.member_id, normalise_folio_key(key[0]), parsed):
+                    return False  # moves to the master scheme: not "already imported" (H1)
+                if scheme is not None and scheme.source == SchemeSource.CAS_ONLY and parsed is not None \
+                        and parsed.valuation_date is not None and parsed.valuation_nav is not None \
+                        and db.get(NavHistory, (scheme.id, parsed.valuation_date)) is None:
+                    return False  # a newer statement price to store (review M1)
             folio = folios[cache_key]
             lot = (opening_lots or {}).get(temp_id)
             if lot is not None and folio is None:

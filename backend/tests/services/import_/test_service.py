@@ -27,7 +27,8 @@ from app.services.import_.service import (
     start_import_session,
 )
 from app.models.enums import PlanType, TransactionType
-from app.models.enums import CostSource
+from app.models.enums import CostSource, SchemePlanType
+from tests.api.import_helpers import seed_master_scheme
 from dataclasses import replace
 from decimal import Decimal
 from datetime import date, timedelta
@@ -48,6 +49,7 @@ def isolate_cas_file_storage(tmp_path, monkeypatch):
     refers to, so every test in this file writes under a fresh per-test
     tmp_path instead of the real `var/cas_files/` project directory."""
     monkeypatch.setattr(file_storage_module.default_file_storage, "_base_dir", tmp_path)
+    monkeypatch.setattr("app.services.import_.service._fetch_nav_history", AsyncMock(return_value=None))
 
 
 def _session():
@@ -73,22 +75,32 @@ def _household_member(db):
     return member
 
 
-def _mocked_client(category: str | None = "Equity Scheme - Flexi Cap Fund"):
-    """AsyncMock's child attributes are themselves unconfigured AsyncMocks —
-    resolve_scheme must be explicitly configured or `await client.resolve_scheme(...)`
-    returns a bare mock instead of the (match, status) tuple callers expect."""
-    from app.services.import_.enrich import SchemeMatch
+def _mocked_client(category=None):
+    """Compatibility argument; master identification never consults it."""
+    return object()
 
-    client = AsyncMock()
-    client.resolve_scheme.return_value = (
-        SchemeMatch(amfi_code="125497", scheme_name="HDFC Flexi Cap Fund - Direct Plan - Growth", confidence=1.0),
-        "confirmed",
-    )
-    client.get_scheme_category.return_value = category
-    return client
+
+def _persist_preview(db, preview, member=None):
+    """Give a pre-people preview a real owner and persisted atomic-claim row."""
+    from app.services.import_ import preview_store
+    member = member or _household_member(db)
+    session = _preview_sessions[preview.session_id]
+    session["household_member_id"],session["user_id"] = member.id,member.user_id
+    preview_store.save(db,session)
+    db.commit()
+    return member
+
+
+def _assert_only_preview_remains(db, preview):
+    row = db.query(Import).one()
+    assert row.id == uuid.UUID(preview.session_id)
+    assert row.status == ImportStatus.PREVIEWING and row.preview_state is not None
+    assert db.query(Transaction).count() == 0
 
 
 def _confirm_for_member(db, preview, member, scheme_confirmations=None):
+    if db.get(Import, uuid.UUID(preview.session_id)) is None:
+        _persist_preview(db, preview, member)
     return confirm_import(
         db,
         preview.session_id,
@@ -119,8 +131,11 @@ def _sample_parse_result():
 
 
 def test_build_import_preview_confident_amfi_match_needs_no_override():
+
+    db = _session()
+    seed_master_scheme(db)
     client = _mocked_client()
-    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=client))
+    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=client, db=db))
 
     assert preview.investor_name == "Test Investor"
     assert preview.pan_masked == "ABCDE****F"
@@ -132,6 +147,9 @@ def test_build_import_preview_confident_amfi_match_needs_no_override():
 
 
 def test_build_preview_prices_opening_lots():
+
+    db = _session()
+    seed_master_scheme(db)
     result = _sample_parse_result()
     result.transactions = []
     scheme = result.schemes[0]
@@ -140,25 +158,31 @@ def test_build_preview_prices_opening_lots():
     with patch("app.services.import_.service._fetch_nav_history", new=AsyncMock(
         return_value=[(date(2015, 1, 1), Decimal("30")), (date(2015, 12, 31), Decimal("45"))],
     )):
-        preview = asyncio.run(build_import_preview(result, "cas.pdf", b"%PDF", _mocked_client()))
+        preview = asyncio.run(build_import_preview(result, "cas.pdf", b"%PDF", _mocked_client(), db=db))
     lot = _preview_sessions[preview.session_id]["opening_lots"][preview.schemes[0].temp_id]
     assert lot.cost_source == CostSource.CAS_COST and lot.nav == Decimal("40.0000")
     assert preview.schemes[0].opening_units == "100"
 
 
 def test_build_preview_keys_schemes_by_isin():
+
+    db = _session()
+    seed_master_scheme(db)
     result = _sample_parse_result()
     result.schemes.append(replace(result.schemes[0], isin="INF456"))
-    preview = asyncio.run(build_import_preview(result, "cas.pdf", b"%PDF", _mocked_client()))
+    preview = asyncio.run(build_import_preview(result, "cas.pdf", b"%PDF", _mocked_client(), db=db))
     assert len({s.temp_id for s in preview.schemes}) == 2
     keys = _preview_sessions[preview.session_id]["key_to_temp"]
     assert set(keys) == {("123/45", "HDFC AMC", "INF123"), ("123/45", "HDFC AMC", "INF456")}
 
 
 def test_build_preview_missing_start_warns_and_skips_opening_lots():
+
+    db = _session()
+    seed_master_scheme(db)
     result = _sample_parse_result()
     result.schemes[0].open_units = Decimal("100")
-    preview = asyncio.run(build_import_preview(result, "cas.pdf", b"%PDF", _mocked_client()))
+    preview = asyncio.run(build_import_preview(result, "cas.pdf", b"%PDF", _mocked_client(), db=db))
     assert _preview_sessions[preview.session_id]["opening_lots"] == {}
     assert "Statement start date not found; earlier holdings couldn’t be added." in preview.parse_warnings
 
@@ -180,106 +204,85 @@ def _parsed_scheme(name: str, amfi: str, folio: str):
     )
 
 
+def _identification_fixture(db, name, code, folio):
+    parsed = _parsed_scheme(name, code, folio)
+    parsed.valuation_date, parsed.valuation_nav = date(2026, 10, 5), Decimal("10")
+    db.add(Scheme(amfi_code=code, isin=parsed.isin, name=f"Resolved {name}",
+                  amc_name=parsed.amc, sebi_category=f"Category {code}", plan_type=SchemePlanType.DIRECT))
+    db.commit()
+    return parsed
+
+
 def test_build_import_preview_resolves_schemes_concurrently():
-    from app.services.import_.enrich import SchemeMatch
+    db = _session()
+    schemes = [_identification_fixture(db, "First Fund", "100001", "1"),
+               _identification_fixture(db, "Second Fund", "100002", "2")]
+    both_started, started = asyncio.Event(), set()
 
-    schemes = (
-        _parsed_scheme("First Fund", "100001", "folio-1"),
-        _parsed_scheme("Second Fund", "100002", "folio-2"),
-    )
-    client = AsyncMock()
-    both_resolutions_started = asyncio.Event()
-    started: set[str] = set()
-
-    async def resolve(name, amfi, isin=None):
-        started.add(amfi)
+    async def fetch(code):
+        started.add(code)
         if len(started) == 2:
-            both_resolutions_started.set()
-        await asyncio.wait_for(both_resolutions_started.wait(), timeout=1)
-        return SchemeMatch(amfi_code=amfi, scheme_name=name, confidence=1.0), "confirmed"
+            both_started.set()
+        await asyncio.wait_for(both_started.wait(), timeout=1)
+        return [(date(2026, 10, 5), Decimal("10"))]
 
-    client.resolve_scheme.side_effect = resolve
-    client.get_scheme_category.return_value = "Equity"
+    with patch("app.services.import_.service._fetch_nav_history", new=fetch):
+        preview = asyncio.run(build_import_preview(_parse_result_with_schemes(*schemes), "test.pdf", b"%PDF", db=db))
+    assert started == {"100001", "100002"}
+    assert [p.name for p in preview.schemes] == ["First Fund", "Second Fund"]
 
-    preview = asyncio.run(build_import_preview(
-        _parse_result_with_schemes(*schemes), "test.pdf", b"%PDF-1.4 fake", client=client,
-    ))
 
-    assert [scheme.name for scheme in preview.schemes] == ["First Fund", "Second Fund"]
 
 
 def test_build_import_preview_preserves_input_order_when_resolution_finishes_out_of_order():
-    from app.services.import_.enrich import SchemeMatch
+    db = _session()
+    schemes = [_identification_fixture(db, "Slow First Fund", "100001", "1"),
+               _identification_fixture(db, "Fast Second Fund", "100002", "2")]
+    second_finished, finished = asyncio.Event(), []
 
-    schemes = (
-        _parsed_scheme("Slow First Fund", "100001", "folio-1"),
-        _parsed_scheme("Fast Second Fund", "100002", "folio-2"),
-    )
-    client = AsyncMock()
-    second_finished = asyncio.Event()
-
-    async def resolve(name, amfi, isin=None):
-        if amfi == "100001":
+    async def fetch(code):
+        if code == "100001":
             await asyncio.wait_for(second_finished.wait(), timeout=1)
-            confidence = 0.93
         else:
-            confidence = 0.99
             second_finished.set()
-        return SchemeMatch(amfi_code=amfi, scheme_name=f"Resolved {name}", confidence=confidence), "confirmed"
+        finished.append(code)
+        return [(date(2026, 10, 5), Decimal("10"))]
 
-    async def category(amfi):
-        return f"Category {amfi}"
+    with patch("app.services.import_.service._fetch_nav_history", new=fetch):
+        preview = asyncio.run(build_import_preview(_parse_result_with_schemes(*schemes), "test.pdf", b"%PDF", db=db))
+    assert finished == ["100002", "100001"]
+    assert [p.name for p in preview.schemes] == ["Slow First Fund", "Fast Second Fund"]
+    assert [p.suggested_name for p in preview.schemes] == ["Resolved Slow First Fund", "Resolved Fast Second Fund"]
+    assert [p.category for p in preview.schemes] == ["Category 100001", "Category 100002"]
 
-    client.resolve_scheme.side_effect = resolve
-    client.get_scheme_category.side_effect = category
 
-    preview = asyncio.run(build_import_preview(
-        _parse_result_with_schemes(*schemes), "test.pdf", b"%PDF-1.4 fake", client=client,
-    ))
-
-    assert [scheme.name for scheme in preview.schemes] == ["Slow First Fund", "Fast Second Fund"]
-    assert [scheme.suggested_name for scheme in preview.schemes] == [
-        "Resolved Slow First Fund", "Resolved Fast Second Fund",
-    ]
-    assert [scheme.category for scheme in preview.schemes] == ["Category 100001", "Category 100002"]
 
 
 def test_build_import_preview_fails_whole_call_when_one_scheme_resolution_raises():
-    """Concurrent resolution via asyncio.gather must preserve the old
-    sequential loop's contract: an unexpected error from any single scheme's
-    resolve_scheme/get_scheme_category fails the whole preview call and
-    leaves no partial session behind, exactly like the old loop (which
-    likewise never caught these exceptions and would abort partway)."""
-    from app.services.import_.service import _preview_sessions
+    db = _session()
+    schemes = [_identification_fixture(db, "Good Fund", "100001", "1"),
+               _identification_fixture(db, "Bad Fund", "100002", "2")]
 
-    schemes = (
-        _parsed_scheme("Good Fund", "100001", "folio-1"),
-        _parsed_scheme("Bad Fund", "100002", "folio-2"),
-    )
-    client = AsyncMock()
-
-    async def resolve(name, amfi, isin=None):
-        if amfi == "100002":
+    async def fetch(code):
+        if code == "100002":
             raise RuntimeError("mfapi.in blew up")
-        from app.services.import_.enrich import SchemeMatch
-        return SchemeMatch(amfi_code=amfi, scheme_name=name, confidence=1.0), "confirmed"
+        return [(date(2026, 10, 5), Decimal("10"))]
 
-    client.resolve_scheme.side_effect = resolve
-    client.get_scheme_category.return_value = "Equity"
+    before = set(_preview_sessions)
+    with patch("app.services.import_.service._fetch_nav_history", new=fetch), pytest.raises(RuntimeError, match="mfapi.in blew up"):
+        asyncio.run(build_import_preview(_parse_result_with_schemes(*schemes), "test.pdf", b"%PDF", db=db))
+    assert set(_preview_sessions) == before
 
-    sessions_before = set(_preview_sessions)
-    import pytest
-    with pytest.raises(RuntimeError, match="mfapi.in blew up"):
-        asyncio.run(build_import_preview(_parse_result_with_schemes(*schemes), "test.pdf", b"%PDF-1.4 fake", client=client))
 
-    assert set(_preview_sessions) == sessions_before
 
 
 def test_confirm_import_creates_scheme_folio_and_transaction():
+
     db = _session()
+    seed_master_scheme(db)
     member = _household_member(db)
     client = _mocked_client()
-    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=client))
+    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=client, db=db))
 
     result = _confirm_for_member(db, preview, member)
 
@@ -308,10 +311,12 @@ def test_confirm_import_stores_cas_file_and_sets_expiry():
     storage_key_for_import's format and a file_expires_at ~30 days out,
     end-to-end through confirm_import (not by calling store_cas_file
     directly, which test_file_storage.py already covers)."""
+
     db = _session()
+    seed_master_scheme(db)
     member = _household_member(db)
     client = _mocked_client()
-    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=client))
+    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=client, db=db))
 
     before = datetime.now(timezone.utc)
     _confirm_for_member(db, preview, member)
@@ -332,9 +337,11 @@ def test_confirm_import_stores_cas_file_and_sets_expiry():
 
 
 def test_confirm_import_invalidates_member_holdings_cache_after_commit():
+
     db = _session()
+    seed_master_scheme(db)
     member = _household_member(db)
-    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=_mocked_client()))
+    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=_mocked_client(), db=db))
 
     def assert_commit_finished(_member_id):
         assert not db.in_transaction()
@@ -350,14 +357,16 @@ def test_confirm_import_invalidates_member_holdings_cache_after_commit():
 
 
 def test_confirm_import_deduped_on_reupload():
+
     db = _session()
+    seed_master_scheme(db)
     member = _household_member(db)
     client = _mocked_client()
 
-    preview1 = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=client))
+    preview1 = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=client, db=db))
     _confirm_for_member(db, preview1, member)
 
-    preview2 = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=client))
+    preview2 = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=client, db=db))
     from app.services.import_.confirm_people import AlreadyImportedError
     with pytest.raises(AlreadyImportedError):
         _confirm_for_member(db, preview2, member)
@@ -365,29 +374,30 @@ def test_confirm_import_deduped_on_reupload():
 
 
 def test_confirm_import_rejects_low_confidence_scheme_without_override():
+    # 6 Oct: a held fund with nothing to offer imports as "unlisted"; one that
+    # has a candidate (same AMC and base name as a master fund) still asks.
+
     from app.services.import_.parser import NormalizedTransaction, ParsedScheme
 
     db = _session()
+    seed_master_scheme(db)
     member = _household_member(db)
     txn = NormalizedTransaction(
-        folio="1", amc="X AMC", scheme_name="Ambiguous Fund", isin=None, amfi=None,
+        folio="1", amc="HDFC AMC", scheme_name="HDFC Flexi Cap Fund - Growth", isin=None, amfi=None,
         scheme_type="EQUITY", txn_date=date(2024, 1, 1), txn_type=TransactionType.PURCHASE,
         description="Purchase", amount=Decimal("1000.00"), units=Decimal("5.000"), nav=Decimal("200.0000"),
     )
     scheme = ParsedScheme(
-        name="Ambiguous Fund", isin=None, amfi=None, scheme_type="EQUITY", folio="1", amc="X AMC",
-        transaction_count=1, arn_code=None, plan_name_variant="unresolved", plan_type="unclassified",
+        name="HDFC Flexi Cap Fund - Growth", isin=None, amfi=None, scheme_type="EQUITY", folio="1", amc="HDFC AMC",
+        transaction_count=1, close_units=Decimal("5"), arn_code=None, plan_name_variant="unresolved", plan_type="unclassified",
     )
     parse_result = ParseResult(
         investor=ParsedInvestor(name=None, email=None, pan_masked=None), schemes=[scheme],
         transactions=[txn], raw_json="{}", parse_warnings=[], cas_type="DETAILED", file_type="FileType.CAMS",
     )
     client = AsyncMock()
-    client.get_scheme_list = AsyncMock(return_value=[])
-    client.resolve_scheme = AsyncMock(return_value=(None, "pending"))
-    client.get_scheme_category.return_value = None
 
-    preview = asyncio.run(build_import_preview(parse_result, "test.pdf", b"%PDF-1.4 fake", client=client))
+    preview = asyncio.run(build_import_preview(parse_result, "test.pdf", b"%PDF-1.4 fake", client=client, db=db))
     assert preview.schemes[0].match_status == "pending"
 
     import pytest
@@ -396,11 +406,13 @@ def test_confirm_import_rejects_low_confidence_scheme_without_override():
 
 
 def test_confirm_import_rejection_writes_nothing_even_for_earlier_confident_scheme():
+    # 6 Oct: a held fund with nothing to offer imports as "unlisted"; one that
+    # has a candidate (same AMC and base name as a master fund) still asks.
     """Fix 2 regression: confirm_import validates every referenced scheme
     before writing anything. A mix of one confident scheme (which used to get
     flushed to the session before the loop reached the low-confidence one)
     and one low-confidence scheme must leave zero rows in every table."""
-    from app.services.import_.enrich import SchemeMatch
+
 
     confident_txn = NormalizedTransaction(
         folio="123/45", amc="HDFC AMC", scheme_name="HDFC Flexi Cap Fund - Direct Plan - Growth",
@@ -414,13 +426,13 @@ def test_confirm_import_rejection_writes_nothing_even_for_earlier_confident_sche
         arn_code=None, plan_name_variant="direct", plan_type="direct",
     )
     ambiguous_txn = NormalizedTransaction(
-        folio="1", amc="X AMC", scheme_name="Ambiguous Fund", isin=None, amfi=None,
+        folio="1", amc="HDFC AMC", scheme_name="HDFC Flexi Cap Fund - Growth", isin=None, amfi=None,
         scheme_type="EQUITY", txn_date=date(2024, 1, 1), txn_type=TransactionType.PURCHASE,
         description="Purchase", amount=Decimal("1000.00"), units=Decimal("5.000"), nav=Decimal("200.0000"),
     )
     ambiguous_scheme = ParsedScheme(
-        name="Ambiguous Fund", isin=None, amfi=None, scheme_type="EQUITY", folio="1", amc="X AMC",
-        transaction_count=1, arn_code=None, plan_name_variant="unresolved", plan_type="unclassified",
+        name="HDFC Flexi Cap Fund - Growth", isin=None, amfi=None, scheme_type="EQUITY", folio="1", amc="HDFC AMC",
+        transaction_count=1, close_units=Decimal("5"), arn_code=None, plan_name_variant="unresolved", plan_type="unclassified",
     )
     parse_result = ParseResult(
         investor=ParsedInvestor(name="Test Investor", email="t@example.com", pan_masked="ABCDE****F"),
@@ -429,6 +441,7 @@ def test_confirm_import_rejection_writes_nothing_even_for_earlier_confident_sche
     )
 
     db = _session()
+    seed_master_scheme(db)
     member = _household_member(db)
 
     client = AsyncMock()
@@ -438,17 +451,15 @@ def test_confirm_import_rejection_writes_nothing_even_for_earlier_confident_sche
             return SchemeMatch(amfi_code="125497", scheme_name=name, confidence=1.0), "confirmed"
         return None, "pending"
 
-    client.resolve_scheme.side_effect = _resolve_scheme
-    client.get_scheme_category.return_value = "Equity Scheme - Flexi Cap Fund"
 
-    preview = asyncio.run(build_import_preview(parse_result, "test.pdf", b"%PDF-1.4 fake", client=client))
+    preview = asyncio.run(build_import_preview(parse_result, "test.pdf", b"%PDF-1.4 fake", client=client, db=db))
 
     import pytest
     with pytest.raises(SchemeConfidenceError, match="requires an explicit AMFI code"):
         _confirm_for_member(db, preview, member)
 
-    assert db.query(Import).count() == 0
-    assert db.query(Scheme).count() == 0
+    _assert_only_preview_remains(db, preview)
+    assert db.query(Scheme).count() == 1  # the existing master is unchanged
     assert db.query(Folio).count() == 0
     assert db.query(Transaction).count() == 0
 
@@ -460,7 +471,9 @@ def test_confirm_import_keeps_same_key_transactions_within_one_upload():
     Fix 1 failure — both rows used to pass the duplicate check and then blow
     up the unique constraint at commit, because the session's autoflush=False
     hides the first db.add() from the second row's query."""
+
     db = _session()
+    seed_master_scheme(db)
     member = _household_member(db)
     client = _mocked_client()
 
@@ -487,7 +500,7 @@ def test_confirm_import_keeps_same_key_transactions_within_one_upload():
         parse_warnings=[], cas_type="DETAILED", file_type="FileType.CAMS",
     )
 
-    preview = asyncio.run(build_import_preview(parse_result, "test.pdf", b"%PDF-1.4 fake", client=client))
+    preview = asyncio.run(build_import_preview(parse_result, "test.pdf", b"%PDF-1.4 fake", client=client, db=db))
     result = _confirm_for_member(db, preview, member)
 
     # #2 (2026-10-06): identical rows inside one statement are genuine twins
@@ -506,7 +519,9 @@ def test_confirm_import_does_not_dedupe_across_different_transaction_types():
     fix normalized both to positive magnitudes, they could — and the
     second one would be silently dropped as a false duplicate. Both must
     now be inserted; only `type` distinguishes them here."""
+
     db = _session()
+    seed_master_scheme(db)
     member = _household_member(db)
     client = _mocked_client()
 
@@ -533,7 +548,7 @@ def test_confirm_import_does_not_dedupe_across_different_transaction_types():
         parse_warnings=[], cas_type="DETAILED", file_type="FileType.CAMS",
     )
 
-    preview = asyncio.run(build_import_preview(parse_result, "test.pdf", b"%PDF-1.4 fake", client=client))
+    preview = asyncio.run(build_import_preview(parse_result, "test.pdf", b"%PDF-1.4 fake", client=client, db=db))
     result = _confirm_for_member(db, preview, member)
 
     assert result.added == 2
@@ -544,35 +559,32 @@ def test_confirm_import_does_not_dedupe_across_different_transaction_types():
 
 
 def test_confirm_import_rejects_pending_status_scheme_even_above_raw_threshold():
-    """Fix 2 regression: 0.95 confidence clears CONFIDENCE_THRESHOLD (0.92) as
-    a raw number, but resolve_scheme labels [0.92, 0.98) "pending" — shown to
-    the user in the preview as needs-review. confirm_import must gate on that
-    same match_status, not recompute its own confidence comparison, or a
-    scheme the preview called "pending" gets silently written."""
-    from app.services.import_.enrich import SchemeMatch
-
     db = _session()
+    # 6 Oct: a held fund with nothing to offer imports as "unlisted"; one that
+    # has a candidate (same AMC and base name as a master fund) still asks.
+    seed_master_scheme(db)
     member = _household_member(db)
-    client = AsyncMock()
-    client.resolve_scheme = AsyncMock(
-        return_value=(SchemeMatch(amfi_code="999999", scheme_name="Some Fund", confidence=0.95), "pending")
-    )
-    client.get_scheme_category.return_value = None
-
-    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=client))
-    assert preview.schemes[0].match_status == "pending"
-    assert preview.schemes[0].match_confidence == 0.95
-
-    import pytest
+    result = _sample_parse_result()
+    result.schemes[0].isin, result.schemes[0].amfi = "INF_UNKNOWN", None
+    result.schemes[0].close_units = Decimal("10")
+    result.transactions[0].isin = "INF_UNKNOWN"
+    preview = asyncio.run(build_import_preview(result, "test.pdf", b"%PDF", db=db))
+    preview.schemes[0].match_confidence = 0.95
+    assert preview.schemes[0].match_status == "pending" and preview.schemes[0].match_confidence == 0.95
     with pytest.raises(SchemeConfidenceError):
         _confirm_for_member(db, preview, member)
+    _assert_only_preview_remains(db, preview)
+
+
 
 
 def test_confirm_import_separate_folios_for_same_scheme_via_different_distributors():
     """FR-8: two folios holding the same scheme name via two different
     distributors (two different ARN codes) each get their own Folio row with
     their own arn_code, sharing one Scheme row — not merged."""
+
     db = _session()
+    seed_master_scheme(db)
     member = _household_member(db)
     client = _mocked_client()
 
@@ -604,7 +616,7 @@ def test_confirm_import_separate_folios_for_same_scheme_via_different_distributo
         parse_warnings=[], cas_type="DETAILED", file_type="FileType.CAMS",
     )
 
-    preview = asyncio.run(build_import_preview(parse_result, "test.pdf", b"%PDF-1.4 fake", client=client))
+    preview = asyncio.run(build_import_preview(parse_result, "test.pdf", b"%PDF-1.4 fake", client=client, db=db))
     result = _confirm_for_member(db, preview, member)
 
     assert result.added == 2
@@ -620,12 +632,15 @@ def test_confirm_import_separate_folios_for_same_scheme_via_different_distributo
 def test_sweep_expired_sessions_removes_backdated_entries():
     """Fix 5: _preview_sessions must not grow forever — an abandoned preview
     older than the TTL is swept on the next build_import_preview call."""
+
+    db = _session()
+    seed_master_scheme(db)
     from datetime import timedelta
 
     from app.services.import_.service import _preview_sessions, _sweep_expired_sessions
 
     client = _mocked_client()
-    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=client))
+    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=client, db=db))
     assert preview.session_id in _preview_sessions
 
     # Backdate the session past the default 60-minute TTL.
@@ -641,46 +656,45 @@ def test_confirm_import_rejects_override_amfi_code_not_in_master_list():
     unconditionally with no cross-check. A code that doesn't even exist in
     AMFI's own master list is a data-entry error, not a legitimate
     correction -- must be rejected (409) rather than silently accepted."""
-    from app.services.import_.enrich import mfapi_client
+
     from app.services.import_.schemas import SchemeConfirmation
 
     db = _session()
+    seed_master_scheme(db)
     member = _household_member(db)
-    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=_mocked_client()))
+    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=_mocked_client(), db=db))
     temp_id = preview.schemes[0].temp_id
 
-    scheme_list = [{"schemeCode": "125497", "schemeName": "HDFC Flexi Cap Fund - Direct Plan - Growth"}]
-    with patch.object(mfapi_client, "_schemes", scheme_list):
-        import pytest
-        with pytest.raises(SchemeConfidenceError, match="was not found in AMFI"):
-            _confirm_for_member(
-                db, preview, member,
-                scheme_confirmations=[SchemeConfirmation(temp_id=temp_id, amfi_code="999999")],
-            )
+    import pytest
+    with pytest.raises(SchemeConfidenceError, match="was not found in AMFI"):
+        _confirm_for_member(
+            db, preview, member,
+            scheme_confirmations=[SchemeConfirmation(temp_id=temp_id, amfi_code="999999")],
+        )
 
 
 def test_confirm_import_accepts_override_amfi_code_when_name_plausibly_matches():
     """A genuinely found override code paired with a plausibly-matching name
-    is accepted, and the CAS-parsed name is kept as-is (no unnecessary
-    rewrite when the pairing is already trustworthy)."""
-    from app.services.import_.enrich import mfapi_client
+    is accepted, and the existing master name is retained."""
+
     from app.services.import_.schemas import SchemeConfirmation
 
     db = _session()
+    seed_master_scheme(db)
     member = _household_member(db)
-    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=_mocked_client()))
+    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=_mocked_client(), db=db))
     temp_id = preview.schemes[0].temp_id
 
-    scheme_list = [{"schemeCode": "222222", "schemeName": "HDFC Flexi Cap Fund Direct Growth"}]
-    with patch.object(mfapi_client, "_schemes", scheme_list):
-        result = _confirm_for_member(
-            db, preview, member,
-            scheme_confirmations=[SchemeConfirmation(temp_id=temp_id, amfi_code="222222")],
-        )
+    db.add(Scheme(amfi_code="222222", name='HDFC Flexi Cap Fund Direct Growth', amc_name="A", sebi_category="EQUITY", plan_type=SchemePlanType.REGULAR))
+    db.commit()
+    result = _confirm_for_member(
+        db, preview, member,
+        scheme_confirmations=[SchemeConfirmation(temp_id=temp_id, amfi_code="222222")],
+    )
 
     assert result.added == 1
     scheme = db.query(Scheme).filter_by(amfi_code="222222").one()
-    assert scheme.name == "HDFC Flexi Cap Fund - Direct Plan - Growth"
+    assert scheme.name == 'HDFC Flexi Cap Fund Direct Growth'
 
 
 def test_confirm_import_persists_canonical_name_when_override_code_disagrees_with_cas_name():
@@ -690,48 +704,40 @@ def test_confirm_import_persists_canonical_name_when_override_code_disagrees_wit
     match its code. When the override code's real (master-list) name is NOT
     plausibly similar to the CAS-parsed name, the canonical name must be
     persisted instead."""
-    from app.services.import_.enrich import mfapi_client
+
     from app.services.import_.schemas import SchemeConfirmation
 
     db = _session()
+    seed_master_scheme(db)
     member = _household_member(db)
-    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=_mocked_client()))
+    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=_mocked_client(), db=db))
     temp_id = preview.schemes[0].temp_id
 
-    scheme_list = [{"schemeCode": "222222", "schemeName": "SBI Bluechip Fund - Regular Plan - Growth"}]
-    with patch.object(mfapi_client, "_schemes", scheme_list):
-        result = _confirm_for_member(
-            db, preview, member,
-            scheme_confirmations=[SchemeConfirmation(temp_id=temp_id, amfi_code="222222")],
-        )
+    db.add(Scheme(amfi_code="222222", name='SBI Bluechip Fund - Regular Plan - Growth', amc_name="A", sebi_category="EQUITY", plan_type=SchemePlanType.REGULAR))
+    db.commit()
+    result = _confirm_for_member(
+        db, preview, member,
+        scheme_confirmations=[SchemeConfirmation(temp_id=temp_id, amfi_code="222222")],
+    )
 
     assert result.added == 1
     scheme = db.query(Scheme).filter_by(amfi_code="222222").one()
     assert scheme.name == "SBI Bluechip Fund - Regular Plan - Growth"
 
+    assert db.query(Folio).one().plan_type == PlanType.REGULAR
 
 def test_confirm_import_override_degrades_gracefully_when_master_list_not_cached():
-    """A fresh process (master list never fetched this session, e.g. every
-    scheme in the CAS already carried a confirmed AMFI code) has nothing to
-    cross-check an override against -- must not block the confirm, and keeps
-    the pre-fix behavior (CAS-parsed name) rather than erroring out."""
-    from app.services.import_.enrich import mfapi_client
+    # Remote caches are irrelevant: a missing local-master code is always rejected.
     from app.services.import_.schemas import SchemeConfirmation
-
     db = _session()
+    seed_master_scheme(db)
     member = _household_member(db)
-    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=_mocked_client()))
-    temp_id = preview.schemes[0].temp_id
+    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF", db=db))
+    with pytest.raises(SchemeConfidenceError, match="was not found in AMFI"):
+        _confirm_for_member(db, preview, member, [SchemeConfirmation(temp_id=preview.schemes[0].temp_id, amfi_code="333333")])
+    _assert_only_preview_remains(db, preview)
 
-    with patch.object(mfapi_client, "_schemes", None):
-        result = _confirm_for_member(
-            db, preview, member,
-            scheme_confirmations=[SchemeConfirmation(temp_id=temp_id, amfi_code="333333")],
-        )
 
-    assert result.added == 1
-    scheme = db.query(Scheme).filter_by(amfi_code="333333").one()
-    assert scheme.name == "HDFC Flexi Cap Fund - Direct Plan - Growth"
 
 
 def test_confirm_import_rejects_plan_type_override_contradicting_parsed_plan_name():
@@ -739,11 +745,13 @@ def test_confirm_import_rejects_plan_type_override_contradicting_parsed_plan_nam
     override" gap: the sample scheme's own CAS-parsed name unambiguously says
     "Direct Plan" (plan_name_variant="direct"). An override claiming
     "regular" contradicts that unambiguous signal and must be rejected."""
+
     from app.services.import_.schemas import SchemeConfirmation
 
     db = _session()
+    seed_master_scheme(db)
     member = _household_member(db)
-    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=_mocked_client()))
+    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=_mocked_client(), db=db))
     temp_id = preview.schemes[0].temp_id
 
     import pytest
@@ -757,11 +765,13 @@ def test_confirm_import_rejects_plan_type_override_contradicting_parsed_plan_nam
 def test_confirm_import_accepts_plan_type_override_matching_parsed_plan_name():
     """Sanity check: an override that agrees with the CAS-parsed plan name is
     never rejected by the new backstop."""
+
     from app.services.import_.schemas import SchemeConfirmation
 
     db = _session()
+    seed_master_scheme(db)
     member = _household_member(db)
-    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=_mocked_client()))
+    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=_mocked_client(), db=db))
     temp_id = preview.schemes[0].temp_id
 
     result = _confirm_for_member(
@@ -783,9 +793,11 @@ def test_confirm_import_does_not_reject_override_when_name_lacks_plan_designator
     signal as an unambiguous veto over a legitimate override -- it only
     fires when the scheme's own name contains the standard SEBI-mandated
     "Direct Plan"/"Regular Plan" phrase matching plan_name_variant."""
+
     from app.services.import_.schemas import SchemeConfirmation
 
     db = _session()
+    seed_master_scheme(db)
     member = _household_member(db)
     # "Direct" appears in the base name, not as a "Direct Plan" designator --
     # plan_name_variant is forced to "direct" here exactly as
@@ -808,7 +820,7 @@ def test_confirm_import_does_not_reject_override_when_name_lacks_plan_designator
         raw_json='{"investor_info": {"name": "Test Investor"}, "folios": []}',
         parse_warnings=[], cas_type="DETAILED", file_type="FileType.CAMS",
     )
-    preview = asyncio.run(build_import_preview(parse_result, "test.pdf", b"%PDF-1.4 fake", client=_mocked_client()))
+    preview = asyncio.run(build_import_preview(parse_result, "test.pdf", b"%PDF-1.4 fake", client=_mocked_client(), db=db))
     temp_id = preview.schemes[0].temp_id
 
     result = _confirm_for_member(
@@ -822,7 +834,9 @@ def test_confirm_import_does_not_reject_override_when_name_lacks_plan_designator
 
 
 def test_confirm_import_returns_generic_cross_account_warning():
+
     db = _session()
+    seed_master_scheme(db)
     selected_member = _household_member(db)
     other_user = User(
         id=uuid.uuid4(),
@@ -836,13 +850,7 @@ def test_confirm_import_returns_generic_cross_account_warning():
         relationship=Relationship.SELF,
         created_at=datetime.now(timezone.utc),
     )
-    scheme = Scheme(
-        id=uuid.uuid4(),
-        amfi_code="125497",
-        name="HDFC Flexi Cap Fund - Direct Plan - Growth",
-        amc_name="HDFC AMC",
-        sebi_category="Equity",
-    )
+    scheme = db.query(Scheme).filter_by(amfi_code="125497").one()
     db.add_all([other_user, other_member, scheme])
     db.flush()
     db.add(
@@ -856,9 +864,10 @@ def test_confirm_import_returns_generic_cross_account_warning():
     )
     db.commit()
     preview = asyncio.run(
-        build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=_mocked_client())
+        build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=_mocked_client(), db=db)
     )
 
+    _persist_preview(db, preview, selected_member)
     result = confirm_import(
         db,
         preview.session_id,
@@ -872,12 +881,15 @@ def test_confirm_import_returns_generic_cross_account_warning():
 
 
 def test_confirm_import_returns_no_warning_without_cross_account_match():
+
     db = _session()
+    seed_master_scheme(db)
     member = _household_member(db)
     preview = asyncio.run(
-        build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=_mocked_client())
+        build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=_mocked_client(), db=db)
     )
 
+    _persist_preview(db, preview, member)
     result = confirm_import(
         db,
         preview.session_id,
@@ -912,6 +924,7 @@ def _db_member(db, *, name="Test Investor", relationship=Relationship.SELF, user
 
 
 def _start(db, member, parse_result):
+    seed_master_scheme(db)
     return asyncio.run(start_import_session(
         db, member.user_id, member, parse_result, "cas.pdf", b"%PDF-1.4 fake", client=_mocked_client(),
     ))
@@ -1040,32 +1053,29 @@ def test_confirm_after_sibling_session_discard_still_stores_pan(db_session):
 
 
 def test_start_import_session_does_not_hold_the_claim_during_scheme_enrichment(db_session):
-    # Final review #1: on SQLite a flushed-but-uncommitted claim holds the DB
-    # write lock, so it must not sit open across the mfapi network calls in
-    # build_import_preview. The claim must happen after enrichment.
     member = _db_member(db_session)
-    client = _mocked_client()
-    seen_during_enrichment = []
+    seed_master_scheme(db_session)
+    seen = []
+    result = _with_pan(_sample_parse_result(), "ABCDE1234F")
+    result.schemes[0].valuation_date, result.schemes[0].valuation_nav = date(2026, 10, 5), Decimal("10")
 
-    async def resolve_scheme(*_args, **_kwargs):
-        seen_during_enrichment.append(member.pan_lookup_hash)
-        from app.services.import_.enrich import SchemeMatch
-        return SchemeMatch(amfi_code="125497", scheme_name="HDFC Flexi Cap Fund - Direct Plan - Growth",
-                           confidence=1.0), "confirmed"
+    async def fetch(code):
+        seen.append(member.pan_lookup_hash)
+        return None
 
-    client.resolve_scheme.side_effect = resolve_scheme
-    asyncio.run(start_import_session(db_session, member.user_id, member,
-                                     _with_pan(_sample_parse_result(), "ABCDE1234F"),
-                                     "cas.pdf", b"%PDF-1.4 fake", client=client))
+    with patch("app.services.import_.service._fetch_nav_history", new=fetch):
+        asyncio.run(start_import_session(db_session, member.user_id, member, result, "cas.pdf", b"%PDF"))
+    assert seen == [None]
 
-    assert seen_during_enrichment == [None]
-    db_session.refresh(member)
-    assert member.pan_lookup_hash == hash_pan("ABCDE1234F")
+
 
 
 def test_gift_row_priced_from_nav_history_at_preview():
     """#3: a GIFT_IN the CAS printed without a NAV is priced at the fund's NAV
     on the gift date (decided 5 Oct)."""
+
+    db = _session()
+    seed_master_scheme(db)
     from dataclasses import replace as _replace
     from datetime import date as _date
     from decimal import Decimal as _D
@@ -1079,24 +1089,23 @@ def test_gift_row_priced_from_nav_history_at_preview():
     result.transactions = [_replace(tmpl, txn_type=_TT.GIFT_IN, txn_date=_date(2021, 4, 1), units=_D("1500.000"),
                                     amount=_D("0.00"), nav=_D("0.0000"), needs_price=True)]
     client = AsyncMock()
-    from app.services.import_.enrich import SchemeMatch
-    client.resolve_scheme.return_value = (SchemeMatch(amfi_code="125497", scheme_name=tmpl.scheme_name, confidence=1.0), "confirmed")
-    client.get_scheme_category.return_value = "Equity"
     with _patch("app.services.import_.service._fetch_nav_history",
                 new=_AsyncMock(return_value=[(_date(2021, 3, 31), _D("20")), (_date(2021, 4, 2), _D("21"))])):
-        preview = asyncio.run(build_import_preview(result, "cas.pdf", b"%PDF", client))
+        preview = asyncio.run(build_import_preview(result, "cas.pdf", b"%PDF", client, db=db))
     gift = _preview_sessions[preview.session_id]["parse_result"].transactions[0]
     assert gift.nav == _D("20.0000") and gift.amount == _D("30000.00") and not gift.needs_price
 
 
 def test_gift_row_without_history_warns_and_stays_zero():
+
+    db = _session()
+    seed_master_scheme(db)
     from dataclasses import replace as _replace
     from datetime import date as _date
     from decimal import Decimal as _D
     from unittest.mock import AsyncMock as _AsyncMock, patch as _patch
 
     from app.models.enums import TransactionType as _TT
-    from app.services.import_.enrich import SchemeMatch
     from tests.api.import_helpers import family_result as _family_result
 
     result = _family_result([{"name": "ADITI SHARMA", "pan": "ABCDE1234K"}])
@@ -1104,9 +1113,244 @@ def test_gift_row_without_history_warns_and_stays_zero():
     result.transactions = [_replace(tmpl, txn_type=_TT.GIFT_IN, txn_date=_date(2021, 4, 1), units=_D("1.000"),
                                     amount=_D("0.00"), nav=_D("0.0000"), needs_price=True)]
     client = AsyncMock()
-    client.resolve_scheme.return_value = (SchemeMatch(amfi_code="125497", scheme_name=tmpl.scheme_name, confidence=1.0), "confirmed")
-    client.get_scheme_category.return_value = "Equity"
     with _patch("app.services.import_.service._fetch_nav_history", new=_AsyncMock(return_value=None)):
-        preview = asyncio.run(build_import_preview(result, "cas.pdf", b"%PDF", client))
+        preview = asyncio.run(build_import_preview(result, "cas.pdf", b"%PDF", client, db=db))
     assert any("No price found for a gift" in w for w in preview.parse_warnings)
 
+
+
+def test_mfapi_outage_does_not_make_isin_funds_pending(db_session):
+    import httpx
+    from app.models.enums import SchemePlanType
+    db_session.add(Scheme(amfi_code="125497", isin="INF123", name="HDFC Flexi Cap Fund - Direct Plan - Growth",
+                         plan_type=SchemePlanType.DIRECT, amc_name="HDFC AMC", sebi_category="EQUITY"))
+    db_session.commit()
+    with patch("app.services.import_.service._fetch_nav_history", new=AsyncMock(side_effect=httpx.ConnectError("down"))):
+        preview = asyncio.run(build_import_preview(_sample_parse_result(), "cas.pdf", b"%PDF", db=db_session))
+    assert preview.schemes[0].match_status == "confirmed" and preview.schemes[0].identified_by == "isin"
+
+
+def test_preview_shares_one_nav_fetch_for_identification_opening_and_gift():
+    db = _session()
+    seed_master_scheme(db)
+    result = _sample_parse_result()
+    scheme = result.schemes[0]
+    scheme.open_units = Decimal("10")
+    scheme.valuation_date, scheme.valuation_nav = date(2026, 10, 5), Decimal("30")
+    result.statement_from = date(2021, 4, 1)
+    result.transactions[0] = replace(result.transactions[0], txn_type=TransactionType.GIFT_IN,
+                                     txn_date=date(2021, 4, 1), needs_price=True, amount=Decimal("0"), nav=Decimal("0"))
+    with patch("app.services.import_.service._fetch_nav_history", new=AsyncMock(return_value=[
+        (date(2021, 3, 31), Decimal("20")), (date(2026, 10, 5), Decimal("30")),
+    ])) as fetch:
+        preview = asyncio.run(build_import_preview(result, "cas.pdf", b"%PDF", client=object(), db=db))
+    fetch.assert_awaited_once_with("125497")
+    assert preview.schemes[0].identified_by == "isin"
+    assert result.transactions[0].nav == Decimal("20")
+    assert _preview_sessions[preview.session_id]["opening_lots"][preview.schemes[0].temp_id].nav == Decimal("20")
+
+
+def test_needs_review_only_when_a_held_fund_has_candidates_to_choose_from():
+    # Phase 7 Task 2 + the 6 Oct decision: a held fund in no master and with
+    # nothing to offer imports as "unlisted" (no question); a held fund with
+    # candidates is the one case that asks; a closed unknown fund never asks.
+    db = _session()
+    seed_master_scheme(db)  # "HDFC Flexi Cap Fund", HDFC AMC
+    result = _sample_parse_result()
+    result.schemes[0].close_units = Decimal("10")
+    unknown_held = ParsedScheme(
+        name="Zephyr Emerging Opportunities Fund - Direct Plan - Growth", isin="INF000Z01ZZ9", amfi=None,
+        scheme_type="EQUITY", folio="7700001", amc="Zephyr Mutual Fund", transaction_count=0,
+        arn_code=None, plan_name_variant="direct", plan_type="direct", close_units=Decimal("5"),
+    )
+    result.schemes.append(unknown_held)
+
+    def preview_for(r):
+        with patch("app.services.import_.service._fetch_nav_history", new=AsyncMock(return_value=None)):
+            return asyncio.run(build_import_preview(r, "cas.pdf", b"%PDF", db=db))
+
+    unlisted = preview_for(result)
+    assert [s.identification for s in unlisted.schemes] == ["verified", "unlisted"]
+    assert unlisted.schemes[1].match_status == "confirmed"
+    assert unlisted.needs_review is False
+
+    # Same AMC and base name as the master scheme, but an unknown ISIN: one candidate.
+    unknown_held.name, unknown_held.amc = "HDFC Flexi Cap Fund - Regular Plan - Growth", "HDFC AMC"
+    unknown_held.isin = "INF999X01ZZ9"
+    ask = preview_for(result)
+    assert ask.schemes[1].identification == "ask"
+    assert [c.amfi_code for c in ask.schemes[1].candidates] == ["125497"]
+    assert ask.needs_review is True
+
+    unknown_held.close_units = Decimal("0")
+    assert preview_for(result).needs_review is False
+
+
+def _unlisted_parse_result(name="Zephyr Emerging Opportunities Fund - Direct Plan - Growth",
+                           isin="INF000Z01ZZ9", amc="Zephyr Mutual Fund"):
+    txn = NormalizedTransaction(
+        folio="7700001", amc=amc, scheme_name=name, isin=isin, amfi=None, scheme_type="EQUITY",
+        txn_date=date(2024, 5, 6), txn_type=TransactionType.PURCHASE, description="Purchase",
+        amount=Decimal("2000.00"), units=Decimal("100.000"), nav=Decimal("20.0000"),
+    )
+    scheme = ParsedScheme(
+        name=name, isin=isin, amfi=None, scheme_type="EQUITY", folio="7700001", amc=amc, transaction_count=1,
+        arn_code=None, plan_name_variant="direct", plan_type="direct", close_units=Decimal("100"),
+        valuation_nav=Decimal("23.4100"), valuation_date=date(2026, 10, 5),
+    )
+    return ParseResult(
+        investor=ParsedInvestor(name="Test Investor", email="t@example.com", pan_masked="ABCDE****F"),
+        schemes=[scheme], transactions=[txn],
+        raw_json='{"investor_info": {"name": "Test Investor"}, "folios": []}',
+        parse_warnings=[], cas_type="DETAILED", file_type="FileType.CAMS",
+    )
+
+
+def test_unlisted_held_fund_imports_with_the_statement_prices():
+    # Decided 6 Oct: a held fund in no master is imported, valued at the NAV the
+    # statement prints, and the dashboard says the price is from the statement.
+    from app.models.enums import SchemeSource
+    from app.models.reference import NavHistory
+    from app.services.dashboard.holdings import compute_holdings
+    db = _session()
+    member = _household_member(db)
+    with patch("app.services.import_.service._fetch_nav_history", new=AsyncMock(return_value=None)):
+        preview = asyncio.run(build_import_preview(_unlisted_parse_result(), "cas.pdf", b"%PDF", db=db))
+    assert preview.needs_review is False
+    result = _confirm_for_member(db, preview, member)
+    assert result.added == 1
+    scheme = db.query(Scheme).filter_by(isin="INF000Z01ZZ9").one()
+    assert scheme.source == SchemeSource.CAS_ONLY and scheme.amfi_code is None
+    prices = {(n.date, n.nav) for n in db.query(NavHistory).filter_by(scheme_id=scheme.id)}
+    assert prices == {(date(2024, 5, 6), Decimal("20.0000")), (date(2026, 10, 5), Decimal("23.4100"))}
+    [row] = asyncio.run(compute_holdings(db, [member.id]))
+    assert Decimal(row.current_value) == Decimal("2341.00")
+    assert row.price_from_statement is True and row.nav_unavailable is False
+
+
+def test_not_listed_choice_imports_a_held_fund_as_unlisted():
+    # The fallback dialog's "Not listed" for a held fund that has candidates.
+    from app.models.enums import SchemeSource
+    from app.services.import_.service import SchemeConfirmation
+    db = _session()
+    seed_master_scheme(db)
+    member = _household_member(db)
+    parse = _unlisted_parse_result(name="HDFC Flexi Cap Fund - Regular Plan - Growth", isin="INF999X01ZZ9", amc="HDFC AMC")
+    with patch("app.services.import_.service._fetch_nav_history", new=AsyncMock(return_value=None)):
+        preview = asyncio.run(build_import_preview(parse, "cas.pdf", b"%PDF", db=db))
+    assert preview.needs_review is True
+    temp_id = preview.schemes[0].temp_id
+    result = _confirm_for_member(db, preview, member, [SchemeConfirmation(temp_id=temp_id, unlisted=True)])
+    assert result.added == 1
+    assert db.query(Scheme).filter_by(isin="INF999X01ZZ9").one().source == SchemeSource.CAS_ONLY
+
+
+def _import_unlisted(db, member, parse):
+    with patch("app.services.import_.service._fetch_nav_history", new=AsyncMock(return_value=None)):
+        preview = asyncio.run(build_import_preview(parse, "cas.pdf", b"%PDF", db=db))
+    return _confirm_for_member(db, preview, member)
+
+
+def test_unlisted_fund_joining_the_master_is_not_counted_twice():
+    # 6B-decisions review H1: an NFO imported as unlisted, then added to the
+    # AMFI master; the next statement must move the folio, not add a second one.
+    from app.models.enums import SchemeSource
+    db = _session()
+    member = _household_member(db)
+    _import_unlisted(db, member, _unlisted_parse_result())
+    master = Scheme(id=uuid.uuid4(), amfi_code="999001", isin="INF000Z01ZZ9",
+                    name="Zephyr Emerging Opportunities Fund - Direct Plan - Growth", base_name="Zephyr Emerging Opportunities Fund",
+                    plan_type=SchemePlanType.DIRECT, amc_name="Zephyr Mutual Fund", sebi_category="Equity Scheme - Mid Cap Fund",
+                    source=SchemeSource.AMFI)
+    db.add(master)
+    db.commit()
+    later = _unlisted_parse_result()
+    later.transactions.append(_replace(later.transactions[0], txn_date=date(2024, 6, 6), amount=Decimal("2100.00"),
+                                       units=Decimal("100.000"), nav=Decimal("21.0000")))
+    later.schemes[0].close_units, later.schemes[0].transaction_count = Decimal("200"), 2
+    result = _import_unlisted(db, member, later)
+    folios = db.query(Folio).filter_by(household_member_id=member.id).all()
+    assert len(folios) == 1 and folios[0].scheme_id == master.id
+    assert result.added == 1 and db.query(Transaction).count() == 2
+
+
+def test_same_statement_with_a_newer_valuation_refreshes_an_unlisted_price():
+    # Review M1: a re-downloaded statement with no new rows must still update
+    # the unlisted fund's price, not answer "already imported".
+    from app.models.reference import NavHistory
+    db = _session()
+    member = _household_member(db)
+    _import_unlisted(db, member, _unlisted_parse_result())
+    again = _unlisted_parse_result()
+    again.schemes[0].valuation_date, again.schemes[0].valuation_nav = date(2026, 11, 5), Decimal("24.0000")
+    _import_unlisted(db, member, again)
+    scheme = db.query(Scheme).filter_by(isin="INF000Z01ZZ9").one()
+    assert db.get(NavHistory, (scheme.id, date(2026, 11, 5))).nav == Decimal("24.0000")
+
+
+def test_unlisted_fund_has_no_todays_gain():
+    # Review M2: the move since the previous statement price isn't today's.
+    from app.services.dashboard.holdings import compute_holdings
+    db = _session()
+    member = _household_member(db)
+    _import_unlisted(db, member, _unlisted_parse_result())
+    [row] = asyncio.run(compute_holdings(db, [member.id]))
+    assert Decimal(row.today_gain) == 0
+
+
+def test_only_printed_navs_become_statement_prices():
+    # Review M3: a conversion leg's NAV is a cost basis the parser computed.
+    from app.models.reference import NavHistory
+    db = _session()
+    member = _household_member(db)
+    parse = _unlisted_parse_result()
+    parse.transactions[0].nav_printed = False
+    _import_unlisted(db, member, parse)
+    scheme = db.query(Scheme).filter_by(isin="INF000Z01ZZ9").one()
+    assert {n.date for n in db.query(NavHistory).filter_by(scheme_id=scheme.id)} == {date(2026, 10, 5)}
+
+
+def test_not_listed_after_a_code_was_picked_keeps_one_folio():
+    # 6 Oct re-review: the reverse of H1. The first statement's fund was given
+    # an AMFI code; a later one says "Not listed": still the same folio.
+    from app.services.import_.service import SchemeConfirmation
+    db = _session()
+    seed_master_scheme(db)
+    member = _household_member(db)
+    parse = _unlisted_parse_result(name="HDFC Flexi Cap Fund - Regular Plan - Growth", isin="INF999X01ZZ9", amc="HDFC AMC")
+    with patch("app.services.import_.service._fetch_nav_history", new=AsyncMock(return_value=None)):
+        first = asyncio.run(build_import_preview(parse, "cas.pdf", b"%PDF", db=db))
+    _confirm_for_member(db, first, member, [SchemeConfirmation(temp_id=first.schemes[0].temp_id, amfi_code="125497")])
+    later = _unlisted_parse_result(name="HDFC Flexi Cap Fund - Regular Plan - Growth", isin="INF999X01ZZ9", amc="HDFC AMC")
+    later.transactions.append(_replace(later.transactions[0], txn_date=date(2024, 6, 6), amount=Decimal("2100.00"),
+                                       units=Decimal("100.000"), nav=Decimal("21.0000")))
+    later.schemes[0].close_units, later.schemes[0].transaction_count = Decimal("200"), 2
+    with patch("app.services.import_.service._fetch_nav_history", new=AsyncMock(return_value=None)):
+        second = asyncio.run(build_import_preview(later, "cas.pdf", b"%PDF", db=db))
+    result = _confirm_for_member(db, second, member, [SchemeConfirmation(temp_id=second.schemes[0].temp_id, unlisted=True)])
+    assert db.query(Folio).filter_by(household_member_id=member.id).count() == 1
+    assert result.added == 1 and db.query(Transaction).count() == 2
+
+
+def test_not_listed_reuse_keeps_the_confirmed_plan_and_identical_reupload_is_already_imported():
+    # Review of the removal snapshot, findings 1-2: reusing the AMFI folio via
+    # "Not listed" must not overwrite its confirmed plan, and the same
+    # statement again is "already imported".
+    from app.services.import_.confirm_people import AlreadyImportedError
+    from app.services.import_.service import SchemeConfirmation
+    db = _session()
+    seed_master_scheme(db)  # 125497 is a Direct master scheme
+    member = _household_member(db)
+    parse = lambda: _unlisted_parse_result(name="HDFC Flexi Cap Fund - Growth", isin="INF999X01ZZ9", amc="HDFC AMC")
+    with patch("app.services.import_.service._fetch_nav_history", new=AsyncMock(return_value=None)):
+        first = asyncio.run(build_import_preview(parse(), "cas.pdf", b"%PDF", db=db))
+    _confirm_for_member(db, first, member, [SchemeConfirmation(temp_id=first.schemes[0].temp_id, amfi_code="125497")])
+    folio = db.query(Folio).one()
+    assert (folio.plan_type.value, folio.plan_verified) == ("direct", True)
+    with patch("app.services.import_.service._fetch_nav_history", new=AsyncMock(return_value=None)):
+        again = asyncio.run(build_import_preview(parse(), "cas.pdf", b"%PDF", db=db))
+    with pytest.raises(AlreadyImportedError):
+        _confirm_for_member(db, again, member, [SchemeConfirmation(temp_id=again.schemes[0].temp_id, unlisted=True)])
+    db.refresh(folio)
+    assert (folio.plan_type.value, folio.plan_verified) == ("direct", True)
+    assert db.query(Scheme).filter_by(isin="INF999X01ZZ9").count() == 0

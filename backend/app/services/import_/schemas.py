@@ -10,6 +10,11 @@ from pydantic import BaseModel, Field
 from app.models.enums import PlanType
 
 
+class SchemeCandidate(BaseModel):
+    amfi_code: str
+    name: str
+
+
 class SchemeMatchPreview(BaseModel):
     temp_id: str
     name: str
@@ -26,6 +31,11 @@ class SchemeMatchPreview(BaseModel):
     category: str | None = None
     person_key: str | None = None
     opening_units: str | None = None
+    identification: Literal["verified", "closed", "unlisted", "ask"] = "ask"
+    plan_verified: bool = False
+    identified_by: str = "none"
+    # Phase 7: master schemes the fallback dialog offers for an `ask` fund.
+    candidates: list[SchemeCandidate] = Field(default_factory=list)
 
 
 class TransactionPreview(BaseModel):
@@ -103,6 +113,9 @@ class ImportPreviewResponse(BaseModel):
     unassigned_temp_ids: list[str] = Field(default_factory=list)
     name_notices: list[NameNotice] = Field(default_factory=list)
     same_person_prompts: list[SamePersonPrompt] = Field(default_factory=list)
+    # Phase 7: true only when a fund still held can't be identified; the only
+    # case the import has to ask about once the review screen is gone.
+    needs_review: bool = False
     expires_at: datetime  # session created_at + SESSION_TTL_MINUTES
 
 
@@ -135,6 +148,9 @@ class SchemeConfirmation(BaseModel):
     temp_id: str
     amfi_code: str | None = None
     plan_type_override: PlanType | None = None
+    # Phase 7 fallback dialog, "Not listed": import a held fund that has
+    # candidates as an unlisted fund valued at the statement's NAV.
+    unlisted: bool = False
 
 
 class PersonConfirmation(BaseModel):

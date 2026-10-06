@@ -1,9 +1,8 @@
 """Import Service orchestration: parse preview (no DB writes) and confirm
 (persists). Implements PRD-01 FR-9-FR-11.
 
-In-memory preview sessions are a deliberate, prototype-carried
-simplification (ponytail: single-process only; move to a DB-backed or
-Redis-backed session store if a multi-instance deploy needs this later).
+Review sessions are encrypted in imports and cached in memory. Confirm claims
+the persisted row atomically, so a restart cannot duplicate a confirm.
 """
 
 from __future__ import annotations
@@ -20,6 +19,9 @@ from typing import Any
 import httpx
 
 from sqlalchemy.orm import Session
+from app.models.imports import Import
+from app.models.enums import ImportStatus
+from app.services.import_ import preview_store
 
 from app.models.enums import (
     MemberNameSource,
@@ -42,7 +44,7 @@ from app.services.import_.pan_claims import (
     switch_pan_claim,
 )
 from app.services.import_.crypto import decrypt_pan, hash_pan
-from app.services.import_.enrich import MfApiClient, mfapi_client
+from app.services.import_.enrich import MfApiClient
 # F22: the one SessionExpiredError (already mapped to 410 by /cas-imports).
 from app.services.import_.lifecycle_service import SessionExpiredError
 from app.services.import_.name_match import InvalidPersonNameError, compare_names, validate_person_name
@@ -69,11 +71,13 @@ from app.services.import_.schemas import (
     PersonPreview,
     SamePersonPrompt,
     SchemeConfirmation,
+    SchemeCandidate,
     SchemeMatchPreview,
     TransactionPreview,
 )
 
 _preview_sessions: dict[str, dict[str, Any]] = {}
+_claimed_sessions: set[str] = set()
 # F5: guards every insert/pop on _preview_sessions. Each session also carries
 # its own "lock": the resolve routes and discard hold it for their whole
 # request (so a double-pressed resolve runs once, then sees its prompt
@@ -141,22 +145,36 @@ def _sweep_expired_sessions(ttl_minutes: int = SESSION_TTL_MINUTES, db: Session 
     member on the switched pending PAN, which then expires to no PAN at all.
     """
     cutoff = datetime.now(timezone.utc) - timedelta(minutes=ttl_minutes)
-    evicted: list[dict[str, Any]] = []
+    evicted = {}
     with _sessions_lock:
         for sid, session in list(_preview_sessions.items()):
             if session["created_at"] >= cutoff:
                 continue
             lock = session.get("lock")
             if lock is not None and lock.locked():
-                continue  # a request is working on it right now; next sweep
+                continue
             if db is None and session.get("pan_restore"):
                 continue
-            del _preview_sessions[sid]
-            evicted.append(session)
+            if db is not None:
+                status = db.query(Import.status).filter(Import.id == uuid.UUID(sid)).scalar()
+                if status == ImportStatus.PROCESSING:
+                    continue
+            evicted[sid] = _preview_sessions.pop(sid)
     if db is None:
         return False
-    for session in evicted:
-        _release_session_claims(db, session)
+    expired_rows = db.query(Import).filter(Import.status == ImportStatus.PREVIEWING,
+                                          Import.expires_at <= datetime.now(timezone.utc)).all()
+    for row in expired_rows:
+        sid = row.id.hex
+        with _sessions_lock:
+            cached = _preview_sessions.get(sid)
+            if cached is not None and cached.get("lock") is not None and cached["lock"].locked():
+                continue
+            _preview_sessions.pop(sid, None)
+        evicted.setdefault(sid, preview_store.read_state(row))
+    for sid,session in evicted.items():
+        _release_session_claims(db,session)
+        preview_store.delete(db,sid)
     return bool(evicted)
 
 
@@ -187,6 +205,7 @@ def _price_gift_rows(parse_result: ParseResult, histories: dict) -> None:
             )
             continue
         t.nav = quantize_nav(nav)
+        t.nav_printed = False
         t.amount = quantize_amount(t.units * t.nav)
         t.needs_price = False
 
@@ -199,40 +218,48 @@ async def build_import_preview(
     *,
     household_member_id: uuid.UUID | None = None,
     user_id: uuid.UUID | None = None,
+    db: Session | None = None,
 ) -> ImportPreviewResponse:
     _sweep_expired_sessions()
-    client = client or mfapi_client
+    # client kept for callers; identification uses the local AMFI master + _fetch_nav_history.
+    if db is None:
+        raise ValueError("A database session is required for scheme identification.")
     session_id = uuid.uuid4().hex
 
     scheme_previews: list[SchemeMatchPreview] = []
     key_to_temp: dict[tuple[str, str, str], str] = {}
 
-    async def resolve(scheme):
-        match, status = await client.resolve_scheme(scheme.name, scheme.amfi, scheme.isin)
-        category = None
-        if match and match.amfi_code:
-            category = await client.get_scheme_category(match.amfi_code)
-        return match, status, category
+    from app.services.import_.identify import identify_scheme
 
-    resolutions = await asyncio.gather(*(resolve(scheme) for scheme in parse_result.schemes))
+    nav_tasks = {}
 
-    for scheme, (match, status, category) in zip(parse_result.schemes, resolutions, strict=True):
+    async def fetch_once(code):
+        async def fetch():
+            try:
+                return await _fetch_nav_history(code)
+            except httpx.HTTPError:
+                return None
+        if code not in nav_tasks:
+            nav_tasks[code] = asyncio.create_task(fetch())
+        return await nav_tasks[code]
+
+    identifications = {}
+    resolutions = await asyncio.gather(*(identify_scheme(db, scheme, fetch_once) for scheme in parse_result.schemes))
+    for scheme, ident in zip(parse_result.schemes, resolutions, strict=True):
         temp_id = uuid.uuid4().hex[:12]
         key_to_temp[scheme.key] = temp_id
-
-        scheme_previews.append(
-            SchemeMatchPreview(
-                temp_id=temp_id, name=scheme.name, isin=scheme.isin, amfi_code=scheme.amfi,
-                suggested_amfi_code=match.amfi_code if match else None,
-                suggested_name=match.scheme_name if match else None,
-                match_confidence=match.confidence if match else 0.0,
-                match_status=status, folio=scheme.folio, amc=scheme.amc,
-                transaction_count=scheme.transaction_count, plan_type=scheme.plan_type,
-                category=category or scheme.scheme_type,
-                person_key=scheme.person_key,
-                opening_units=str(scheme.open_units) if scheme.open_units > 0 else None,
-            )
-        )
+        identifications[temp_id] = ident
+        scheme_previews.append(SchemeMatchPreview(
+            temp_id=temp_id, name=scheme.name, isin=scheme.isin, amfi_code=scheme.amfi,
+            suggested_amfi_code=ident.amfi_code, suggested_name=ident.name,
+            match_confidence=1.0 if ident.status != "ask" else 0.0,
+            match_status="confirmed" if ident.status != "ask" else "pending",
+            folio=scheme.folio, amc=scheme.amc, transaction_count=scheme.transaction_count,
+            plan_type=ident.plan_type, category=ident.category, person_key=scheme.person_key,
+            opening_units=str(scheme.open_units) if scheme.open_units > 0 else None,
+            identification=ident.status, plan_verified=ident.plan_verified, identified_by=ident.identified_by,
+            candidates=[SchemeCandidate(amfi_code=code, name=name) for code, name in ident.candidates],
+        ))
 
     opening_lots = {}
     opening_schemes = [s for s in parse_result.schemes if s.open_units > 0]
@@ -251,7 +278,7 @@ async def build_import_preview(
         if not preview.suggested_amfi_code:
             return None
         try:
-            return await _fetch_nav_history(preview.suggested_amfi_code)
+            return await fetch_once(preview.suggested_amfi_code)
         except httpx.HTTPError:
             return None
 
@@ -293,7 +320,9 @@ async def build_import_preview(
         "household_member_id": household_member_id, "user_id": user_id,
         "key_to_temp": key_to_temp,
         "scheme_previews": {s.temp_id: s for s in scheme_previews},
+        "identifications": identifications,
         "opening_lots": opening_lots,
+        "nav_histories": histories,
     }
 
     return ImportPreviewResponse(
@@ -302,6 +331,10 @@ async def build_import_preview(
         pan_masked=parse_result.investor.pan_masked, schemes=scheme_previews, transactions=txn_previews,
         transaction_count=len(txn_previews), parse_warnings=parse_result.parse_warnings,
         cas_type=parse_result.cas_type, file_type=parse_result.file_type,
+        needs_review=any(
+            ident.status == "ask" and scheme.close_units not in (None, 0)
+            for scheme, ident in zip(parse_result.schemes, resolutions, strict=True)
+        ),
         expires_at=created_at + timedelta(minutes=SESSION_TTL_MINUTES),
     )
 
@@ -333,7 +366,7 @@ async def start_import_session(
     parse_result = _ensure_people(parse_result)
     preview = await build_import_preview(
         parse_result, filename, pdf_bytes, client,
-        household_member_id=member.id, user_id=user_id,
+        household_member_id=member.id, user_id=user_id, db=db,
     )
     _preview_sessions[preview.session_id].update(
         base_preview=preview,
@@ -610,6 +643,7 @@ def _drop_session(db: Session, session_id: str) -> None:
         session = _preview_sessions.pop(session_id, None)
     if session is not None:
         _release_session_claims(db, session)
+    preview_store.delete(db, session_id)
 
 
 def _advance(db: Session, session_id: str) -> ImportPreviewResponse:
@@ -621,6 +655,8 @@ def _advance(db: Session, session_id: str) -> ImportPreviewResponse:
     if prompt is not None:
         if prompt.session_id is None:
             _drop_session(db, session_id)
+        else:
+            preview_store.save(db, session)
         raise prompt
 
     user_id = session["user_id"]
@@ -674,7 +710,9 @@ def _advance(db: Session, session_id: str) -> ImportPreviewResponse:
     session["me_key"] = me_key
     session["people_plan"] = plans
     session["ready"] = True
-    return _preview_response(db, session)
+    response = _preview_response(db, session)
+    preview_store.save(db, session)
+    return response
 
 
 def _preview_response(db: Session, session: dict[str, Any]) -> ImportPreviewResponse:
@@ -743,6 +781,20 @@ def _preview_response(db: Session, session: dict[str, Any]) -> ImportPreviewResp
 # ---------------------------------------------------------------------------
 
 
+def _cached_session(db: Session, session_id: str) -> dict[str, Any] | None:
+    with _sessions_lock:
+        if session_id in _claimed_sessions:
+            return None
+        cached = _preview_sessions.get(session_id)
+    if cached is not None:
+        return cached
+    restored = preview_store.load(db, session_id)
+    if restored is None:
+        return None
+    with _sessions_lock:
+        return _preview_sessions.setdefault(session_id, restored)
+
+
 def _session_lock(session_id: str) -> threading.Lock | None:
     with _sessions_lock:
         session = _preview_sessions.get(session_id)
@@ -759,6 +811,7 @@ def _serialised(fn):
 
     @functools.wraps(fn)
     def wrapper(db: Session, session_id: str, *args, **kwargs):
+        _cached_session(db, session_id)
         lock = _session_lock(session_id)
         if lock is None:
             return fn(db, session_id, *args, **kwargs)
@@ -769,11 +822,16 @@ def _serialised(fn):
 
 
 def _live_session(db: Session, session_id: str, user_id: uuid.UUID) -> dict[str, Any]:
+    with _sessions_lock:
+        if session_id in _claimed_sessions:
+            raise SessionExpiredError(SESSION_EXPIRED_MESSAGE)
     if _sweep_expired_sessions(db=db):
         db.commit()
-    session = _preview_sessions.get(session_id)
+    session = _cached_session(db, session_id)
     # Another user's id gets the same 410 as an unknown one: no existence leak.
     if session is None or session.get("user_id") != user_id or "resolved_codes" not in session:
+        raise SessionExpiredError(SESSION_EXPIRED_MESSAGE)
+    if db.query(Import.status).filter(Import.id == uuid.UUID(session_id)).scalar() != ImportStatus.PREVIEWING:
         raise SessionExpiredError(SESSION_EXPIRED_MESSAGE)
     if _is_session_expired(session):
         # The sweep above skips a session whose lock is held -- ours, here.
@@ -877,6 +935,7 @@ def resolve_pan(db: Session, session_id: str, user_id: uuid.UUID) -> ImportPrevi
     try:
         _switch_or_u12(db, session, target, _person(session, session["target_mismatch_key"]))
     except (ImportPromptError, PanConflictError):
+        preview_store.save(db, session)
         db.commit()
         raise
     return _finish(db, session_id)
@@ -917,6 +976,7 @@ def resolve_same_person(
     try:
         _switch_or_u12(db, session, member, _person(session, person_key))
     except (ImportPromptError, PanConflictError):
+        preview_store.save(db, session)
         db.commit()
         raise
     return _finish(db, session_id)
@@ -947,8 +1007,12 @@ def claim_session_for_confirm(
     a second set of members and imports. The caller must hand it back with
     return_confirmed_session -- re-inserted on failure (C1 "Try again"),
     dropped after commit."""
+    with _sessions_lock:
+        if session_id in _claimed_sessions:
+            raise SessionExpiredError(SESSION_EXPIRED_MESSAGE)
     if _sweep_expired_sessions(db=db):
         db.commit()
+    _cached_session(db, session_id)
     lock = _session_lock(session_id)
     if lock is None or not lock.acquire(blocking=False):
         raise SessionExpiredError(SESSION_EXPIRED_MESSAGE)
@@ -976,7 +1040,13 @@ def claim_session_for_confirm(
             except (ImportPromptError, PanConflictError):
                 db.commit()
                 raise
+        claimed = db.query(Import).filter(Import.id == uuid.UUID(session_id),
+                                          Import.status == ImportStatus.PREVIEWING).update(
+                                              {Import.status:ImportStatus.PROCESSING}, synchronize_session=False)
+        if claimed != 1:
+            raise SessionExpiredError(SESSION_EXPIRED_MESSAGE)
         with _sessions_lock:
+            _claimed_sessions.add(session_id)
             _preview_sessions.pop(session_id, None)
     except BaseException:
         lock.release()
@@ -994,6 +1064,8 @@ def return_confirmed_session(
             with _sessions_lock:
                 _preview_sessions.setdefault(session_id, session)
     finally:
+        with _sessions_lock:
+            _claimed_sessions.discard(session_id)
         lock.release()
 
 
@@ -1018,7 +1090,11 @@ def discard_import_session(db: Session, session_id: str, user_id: uuid.UUID) -> 
     """Abandons a preview session on purpose (Back / reset / Cancel, and
     every "Upload a different file") and releases all its pending PAN claims.
     Idempotent; never touches another user's session."""
+    with _sessions_lock:
+        if session_id in _claimed_sessions:
+            return
     swept = _sweep_expired_sessions(db=db)
+    _cached_session(db, session_id)
     with _sessions_lock:
         session = _preview_sessions.get(session_id)
         if session is not None and session.get("user_id") == user_id:
@@ -1031,4 +1107,5 @@ def discard_import_session(db: Session, session_id: str, user_id: uuid.UUID) -> 
         return
     # Releases every pending claim and restores switched PANs (F6).
     _release_session_claims(db, session)
+    preview_store.delete(db, session_id)
     db.commit()
