@@ -1,9 +1,10 @@
+import { PlanBadge } from "@/features/dashboard/PlanBadge";
 import { useState, useMemo, useRef, useLayoutEffect, useEffect } from "react";
 import type { KeyboardEvent, PointerEvent } from "react";
 import { Badge } from "@/components/Badge";
 import { FundSignal } from "@/components/FundSignal";
 import { Skeleton } from "@/components/Skeleton";
-import { cn, toTitleCase } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import {
   ChevronLeft,
   ArrowDownRight,
@@ -106,11 +107,15 @@ export function MobileFundDetailView({
   }
 
   const navUnavailable = holding.nav_unavailable === true;
+  const opening = holding.opening_lot;
+  const openingDate = opening ? new Date(`${opening.since}T00:00:00Z`).toLocaleDateString("en-GB", {
+    day: "numeric", month: "short", year: "numeric", timeZone: "UTC",
+  }) : null;
   const invested = parseFloat(holding.amount_invested || "0");
   const currentValue = navUnavailable ? null : parseFloat(holding.current_value || "0");
-  const profit = navUnavailable
+  const profit = navUnavailable || holding.unrealized_gain === null
     ? null
-    : parseFloat(holding.unrealized_gain || holding.current_profit_total || "0");
+    : parseFloat(holding.unrealized_gain);
   const isPositive = profit !== null && profit >= 0;
   const totalReturnPct = !navUnavailable && invested > 0 ? (profit! / invested) * 100 : null;
   useEffect(() => {
@@ -245,11 +250,7 @@ export function MobileFundDetailView({
             </div>
             <div className="flex flex-col min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <Badge
-                  variant={holding.plan_type === "DIRECT" ? "positive" : "neutral"}
-                >
-                  {toTitleCase(holding.plan_type || "UNKNOWN")}
-                </Badge>
+                <PlanBadge planType={holding.plan_type} verified={holding.plan_verified} />
                 {holding.household_member_name && (
                   <span className="text-[11px] font-medium text-[var(--color-text-secondary)] px-2 py-0.5 rounded-md bg-[var(--color-bg)] border border-[var(--color-border)]">
                     {holding.household_member_name}
@@ -267,6 +268,7 @@ export function MobileFundDetailView({
             </div>
           </div>
 
+<div className="col-span-2 flex justify-between gap-3 p-3 text-sm"><span>Total return incl. realised</span><span className="tabular-nums">{navUnavailable || holding.current_profit_total === null ? "—" : `₹${formatCurrency(Number(holding.current_profit_total))}`}</span></div>
           <div className="pt-3 border-t border-[var(--color-border)]/60 flex items-end justify-between gap-3">
             <div>
               <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--color-text-secondary)] block">
@@ -279,7 +281,7 @@ export function MobileFundDetailView({
 
             <div className="flex flex-col items-end">
               <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--color-text-secondary)] block">
-                Gain / Loss
+                Unrealised gain
               </span>
               {profit === null || totalReturnPct === null ? (
                 <span className="font-display text-sm font-bold text-[var(--color-ink)] mt-0.5">—</span>
@@ -471,11 +473,7 @@ export function MobileFundDetailView({
 
             <div className="flex items-center justify-between py-2.5">
               <span className="text-[var(--color-text-secondary)]">Plan</span>
-              <Badge
-                variant={holding.plan_type === "DIRECT" ? "positive" : "neutral"}
-              >
-                {toTitleCase(holding.plan_type)}
-              </Badge>
+              <PlanBadge planType={holding.plan_type} verified={holding.plan_verified} />
             </div>
 
             <div className="flex items-center justify-between py-2.5">
@@ -491,6 +489,10 @@ export function MobileFundDetailView({
                 {formatNumber(holding.units_held, 3)}
               </span>
             </div>
+            {opening && <div className="py-2.5 text-[var(--color-text-secondary)] space-y-1">
+              <p>incl. {formatNumber(opening.units, 3)} units from before {openingDate}</p>
+              <p>held since at least {openingDate}</p>
+            </div>}
 
             <div className="flex items-center justify-between py-2.5">
               <span className="text-[var(--color-text-secondary)]">Avg NAV</span>
@@ -517,6 +519,7 @@ export function MobileFundDetailView({
 
             <div className="flex items-center justify-between py-2.5">
               <span className="text-[var(--color-text-secondary)]">Invested</span>
+              {opening?.cost_source === "nav_on_start" && <Badge variant="warning">cost approximate</Badge>}
               <span className="font-semibold text-[var(--color-ink)] tabular-nums">
                 ₹{formatCurrency(invested)}
               </span>

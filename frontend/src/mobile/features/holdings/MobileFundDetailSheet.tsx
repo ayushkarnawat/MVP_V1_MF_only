@@ -1,8 +1,9 @@
+import { PlanBadge } from "@/features/dashboard/PlanBadge";
 import { useEffect } from "react";
 import { Badge } from "@/components/Badge";
 import { FundSignal } from "@/components/FundSignal";
 import { Button } from "@/components/ui/button";
-import { cn, formatDdMmYyyy, toTitleCase } from "@/lib/utils";
+import { cn, formatDdMmYyyy } from "@/lib/utils";
 import { X, ArrowDownRight, ArrowUpRight } from "lucide-react";
 import type { HoldingRow } from "@/features/dashboard/types";
 import { motion, useReducedMotion } from "motion/react";
@@ -38,9 +39,9 @@ export function MobileFundDetailSheet({
   const navUnavailable = holding.nav_unavailable === true;
   const invested = parseFloat(holding.amount_invested || "0");
   const currentValue = navUnavailable ? null : parseFloat(holding.current_value || "0");
-  const profit = navUnavailable
+  const profit = navUnavailable || holding.unrealized_gain === null
     ? null
-    : parseFloat(holding.unrealized_gain || holding.current_profit_total || "0");
+    : parseFloat(holding.unrealized_gain);
   const isPositive = profit !== null && profit >= 0;
   const returnPct = !navUnavailable && invested > 0 ? (profit! / invested) * 100 : null;
 
@@ -92,11 +93,7 @@ export function MobileFundDetailSheet({
             </div>
             <div className="flex flex-col min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <Badge
-                  variant={holding.plan_type === "DIRECT" ? "positive" : "neutral"}
-                >
-                  {toTitleCase(holding.plan_type || "UNKNOWN")}
-                </Badge>
+                <PlanBadge planType={holding.plan_type} verified={holding.plan_verified} />
                 {holding.household_member_name && (
                   <span className="text-[11px] font-medium text-[var(--color-text-secondary)] px-2 py-0.5 rounded-md bg-[var(--color-bg)] border border-[var(--color-border)]">
                     {holding.household_member_name}
@@ -139,10 +136,11 @@ export function MobileFundDetailSheet({
               </span>
             </div>
 
+<div className="col-span-2 flex justify-between gap-3 p-3 text-sm"><span>Total return incl. realised</span><span className="tabular-nums">{navUnavailable || holding.current_profit_total === null ? "—" : `₹${formatCurrency(Number(holding.current_profit_total))}`}</span></div>
             {/* Total Return Span 2 */}
             <div className="col-span-2 p-3.5 rounded-2xl bg-[var(--color-bg)] border border-[var(--color-border)] flex items-center justify-between">
               <span className="text-[11px] text-[var(--color-text-secondary)] font-medium">
-                Total Gain / Loss
+                Unrealised gain
               </span>
               {profit === null || returnPct === null ? (
                 <span className="font-display text-base font-bold text-[var(--color-ink)]">—</span>

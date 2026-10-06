@@ -10,9 +10,9 @@ vi.mock("../features/auth/AuthContext", () => ({
 }));
 
 vi.mock("./features/dashboard/MobileDashboardView", () => ({
-  MobileDashboardView: ({ onDetailViewToggle }: { onDetailViewToggle?: (isOpen: boolean) => void }) => (
+  MobileDashboardView: ({ onDetailViewToggle, importNotice, onDismissImportNotice }: { onDetailViewToggle?: (isOpen: boolean) => void; importNotice?: { text: string }; onDismissImportNotice?: () => void }) => (
     <div data-testid="mobile-dashboard-view">
-      <span>Dashboard View Content</span>
+      <span>Dashboard View Content</span>{importNotice && <div>{importNotice.text}<button onClick={onDismissImportNotice}>Dismiss import notice</button></div>}
       <button onClick={() => onDetailViewToggle?.(true)}>Open Details</button>
       <button onClick={() => onDetailViewToggle?.(false)}>Close Details</button>
     </div>
@@ -28,9 +28,9 @@ vi.mock("./features/analytics/MobileAnalyticsView", () => ({
 }));
 
 vi.mock("./features/import/MobileImportView", () => ({
-  MobileImportView: () => (
+  MobileImportView: ({ onNavigateDashboard }: { onNavigateDashboard?: (notice?: { text: string; details?: string[] }) => void }) => (
     <div data-testid="mobile-import-view">
-      <span>Import View Content</span>
+      <span>Import View Content</span><button onClick={() => onNavigateDashboard?.({ text: "This statement was already imported" })}>Close duplicate import</button>
     </div>
   ),
 }));
@@ -228,3 +228,13 @@ describe("MobileAppShell & MobileRoot", () => {
     expect(mockLogout).toHaveBeenCalledTimes(1);
   });
 });
+
+ it("shows and dismisses the dashboard notice after a duplicate import closes", () => {
+    vi.mocked(authContext.useAuth).mockReturnValue({ loading: false, logout: vi.fn() } as any);
+    render(<MobileRoot />);
+    fireEvent.click(screen.getByRole("button", { name: "Import" }));
+    fireEvent.click(screen.getByText("Close duplicate import"));
+    expect(screen.getByText("This statement was already imported")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss import notice" }));
+    expect(screen.queryByText("This statement was already imported")).not.toBeInTheDocument();
+ });

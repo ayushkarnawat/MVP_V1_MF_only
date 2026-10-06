@@ -10,6 +10,7 @@ import { LogOut } from "lucide-react";
 
 export function MobileRoot() {
   const { loading, logout } = useAuth();
+  const [importNotice, setImportNotice] = useState<{ text: string; details?: string[] } | null>(null);
   const [activeTab, setActiveTab] = useState<MobileTab>("dashboard");
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [importTargetMemberId, setImportTargetMemberId] = useState<string | undefined>(undefined);
@@ -30,6 +31,7 @@ export function MobileRoot() {
   );
 
   const handleTabChange = (tab: MobileTab) => {
+    if (tab === "import") setImportNotice(null);
     setIsDetailOpen(false);
     setActiveTab(tab);
   };
@@ -56,6 +58,7 @@ export function MobileRoot() {
     >
       {activeTab === "dashboard" && (
         <MobileDashboardView
+          importNotice={importNotice} onDismissImportNotice={() => setImportNotice(null)}
           onNavigateImport={handleNavigateImport}
           onDetailViewToggle={setIsDetailOpen}
         />
@@ -65,7 +68,7 @@ export function MobileRoot() {
 
       {activeTab === "import" && (
         <MobileImportView
-          onNavigateDashboard={() => handleTabChange("dashboard")}
+          onNavigateDashboard={(notice) => { setImportNotice(notice ?? null); handleTabChange("dashboard"); }}
           defaultMemberId={importTargetMemberId}
         />
       )}

@@ -10,7 +10,7 @@ describe("MobileHoldingCardSummary", () => {
     amc_name: "Axis Mutual Fund",
     household_member_id: "m-1",
     household_member_name: "Ayush",
-    plan_type: "DIRECT",
+    plan_type: "direct",
     units_held: "123.456",
     average_nav: "45.50",
     current_nav: "60.00",
@@ -33,7 +33,7 @@ describe("MobileHoldingCardSummary", () => {
   it("shows a Regular plan-type badge and a stale-NAV badge when the holding is REGULAR with a stale NAV", () => {
     const staleRegularHolding: HoldingRow = {
       ...baseHolding,
-      plan_type: "REGULAR",
+      plan_type: "regular",
       stale_nav: true,
     };
 

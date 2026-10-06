@@ -43,6 +43,18 @@ describe("MobileDashboardView", () => {
     vi.mocked(authApi.listHouseholdMembers).mockResolvedValue([]);
   });
 
+
+  it("renders the dismissible dashboard notice above an empty portfolio", async () => {
+    vi.mocked(dashboardApi.getAggregateHoldings).mockResolvedValue({ holdings: [], members: [] });
+    vi.mocked(dashboardApi.getAggregateAllocation).mockResolvedValue({ members: [], allocation: { by_asset_class: [], by_amc: [], total_value: "0.00" } });
+    const dismiss = vi.fn();
+    render(<MobileDashboardView importNotice={{ text: "This statement was already imported" }} onDismissImportNotice={dismiss} />);
+    expect(screen.getByText("This statement was already imported")).toBeVisible();
+    await screen.findByText("No Holdings Found");
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss import notice" }));
+    expect(dismiss).toHaveBeenCalledTimes(1);
+  });
+
   it("renders S21 Empty State when portfolio has 0 holdings", async () => {
     vi.mocked(dashboardApi.getAggregateHoldings).mockResolvedValue({
       holdings: [],
@@ -74,7 +86,7 @@ describe("MobileDashboardView", () => {
           amc_name: "HDFC Mutual Fund",
           household_member_id: "m-1",
           household_member_name: "Ayush",
-          plan_type: "DIRECT",
+          plan_type: "direct",
           units_held: "100.00",
           average_nav: "50.00",
           current_nav: "75.00",
@@ -91,7 +103,7 @@ describe("MobileDashboardView", () => {
           amc_name: "PPFAS Mutual Fund",
           household_member_id: "m-1",
           household_member_name: "Ayush",
-          plan_type: "DIRECT",
+          plan_type: "direct",
           units_held: "50.00",
           average_nav: "60.00",
           current_nav: "90.00",
@@ -123,7 +135,7 @@ describe("MobileDashboardView", () => {
     render(<MobileDashboardView />);
 
     await waitFor(() => {
-      expect(screen.getByText("Total Portfolio Value")).toBeInTheDocument();
+      expect(screen.getByText("Family total")).toBeInTheDocument();
       expect(screen.getByText("Portfolio Allocation")).toBeInTheDocument();
       expect(screen.getByText("HDFC Top 100 Fund")).toBeInTheDocument();
       expect(screen.getByText("Parag Parikh Flexi Cap Fund")).toBeInTheDocument();
@@ -146,7 +158,7 @@ describe("MobileDashboardView", () => {
           scheme_name: "Valued Fund",
           household_member_id: "m-1",
           household_member_name: "Ayush",
-          plan_type: "DIRECT",
+          plan_type: "direct",
           units_held: "100.00",
           average_nav: "50.00",
           current_nav: "75.00",
@@ -162,7 +174,7 @@ describe("MobileDashboardView", () => {
           scheme_name: "NAV Missing Fund",
           household_member_id: "m-1",
           household_member_name: "Ayush",
-          plan_type: "DIRECT",
+          plan_type: "direct",
           units_held: "80.00",
           average_nav: "50.00",
           current_nav: null,
@@ -190,12 +202,11 @@ describe("MobileDashboardView", () => {
 
     render(<MobileDashboardView />);
 
-    // Invested principal is FIFO-derived and known regardless of NAV availability,
-    // so it must include the degraded holding's amount_invested (5000 + 4000).
+    // All hero figures exclude the unpriced holding (4000 invested).
     const investedLabel = await screen.findByText("Total Invested");
-    expect(within(investedLabel.parentElement!).getByText("₹9,000")).toBeInTheDocument();
+    expect(within(investedLabel.parentElement!).getByText("₹5,000")).toBeInTheDocument();
 
-    expect(screen.getByText(/excludes 1 holding with unavailable NAV/i)).toBeInTheDocument();
+    expect(screen.getByText("1 funds without a price aren’t included")).toBeInTheDocument();
   });
 
   it("opens the portfolio-wide distributor comparison from the embedded Holdings header", async () => {
@@ -207,7 +218,7 @@ describe("MobileDashboardView", () => {
           amc_name: "HDFC Mutual Fund",
           household_member_id: "m-1",
           household_member_name: "Ayush",
-          plan_type: "DIRECT",
+          plan_type: "direct",
           units_held: "100.00",
           average_nav: "50.00",
           current_nav: "75.00",
@@ -259,7 +270,7 @@ describe("MobileDashboardView", () => {
           amc_name: "HDFC Mutual Fund",
           household_member_id: "m-1",
           household_member_name: "Ayush",
-          plan_type: "DIRECT",
+          plan_type: "direct",
           units_held: "100.00",
           average_nav: "50.00",
           current_nav: "75.00",
@@ -276,7 +287,7 @@ describe("MobileDashboardView", () => {
           amc_name: "PPFAS Mutual Fund",
           household_member_id: "m-2",
           household_member_name: "Spouse",
-          plan_type: "DIRECT",
+          plan_type: "direct",
           units_held: "50.00",
           average_nav: "60.00",
           current_nav: "90.00",
@@ -350,7 +361,7 @@ describe("MobileDashboardView", () => {
           amc_name: "HDFC Mutual Fund",
           household_member_id: "m-1",
           household_member_name: "Ayush",
-          plan_type: "DIRECT",
+          plan_type: "direct",
           units_held: "100.00",
           average_nav: "50.00",
           current_nav: "75.00",
@@ -399,7 +410,7 @@ describe("MobileDashboardView", () => {
           amc_name: "HDFC Mutual Fund",
           household_member_id: "m-1",
           household_member_name: "Ayush",
-          plan_type: "DIRECT",
+          plan_type: "direct",
           units_held: "100.00",
           average_nav: "50.00",
           current_nav: "75.00",
@@ -416,7 +427,7 @@ describe("MobileDashboardView", () => {
           amc_name: "PPFAS Mutual Fund",
           household_member_id: "m-1",
           household_member_name: "Ayush",
-          plan_type: "DIRECT",
+          plan_type: "direct",
           units_held: "50.00",
           average_nav: "60.00",
           current_nav: "90.00",
@@ -464,7 +475,7 @@ describe("MobileDashboardView", () => {
 
     // Tap Back button to return to Dashboard
     fireEvent.click(screen.getByLabelText("Back to holdings"));
-    expect(screen.getByText("Total Portfolio Value")).toBeInTheDocument();
+    expect(screen.getByText("Family total")).toBeInTheDocument();
 
     // Scroll down again and tap the second holding
     parentContainer.scrollTop = 400;
@@ -493,7 +504,7 @@ describe("MobileDashboardView", () => {
             amc_name: "HDFC Mutual Fund",
             household_member_id: "m-1",
             household_member_name: "Ayush",
-            plan_type: "DIRECT",
+            plan_type: "direct",
             units_held: "100.00",
             average_nav: "50.00",
             current_nav: "75.00",
@@ -567,7 +578,7 @@ describe("MobileDashboardView", () => {
           amc_name: "HDFC Mutual Fund",
           household_member_id: "m-1",
           household_member_name: "Ayush",
-          plan_type: "DIRECT",
+          plan_type: "direct",
           units_held: "100.00",
           average_nav: "50.00",
           current_nav: "75.00",
@@ -669,4 +680,13 @@ describe("MobileDashboardView", () => {
       expect(await screen.findByRole("alert")).toHaveTextContent("PAN is on another Unifolio account");
     });
   });
+  it("hero excludes unpriced holdings from value and invested", async () => {
+    const base = { scheme_id: "s1", scheme_name: "Known", household_member_id: "m1", household_member_name: "Neha", plan_type: "direct" as const, units_held: "1", average_nav: "100", current_nav: "120", amount_invested: "100", current_value: "120", current_profit_total: "20", realized_gain: "0", unrealized_gain: "20", today_gain: "0" };
+    vi.mocked(dashboardApi.getAggregateHoldings).mockResolvedValue({ holdings: [base, { ...base, scheme_id: "s2", scheme_name: "Unpriced", amount_invested: "50", nav_unavailable: true, current_nav: null, current_value: null, unrealized_gain: null }], members: [] });
+    vi.mocked(dashboardApi.getAggregateAllocation).mockResolvedValue({ allocation: { by_asset_class: [], by_amc: [], total_value: "999" }, members: [] });
+    render(<MobileDashboardView />);
+    expect(await screen.findByRole("heading", { level: 1 })).toHaveTextContent("₹120");
+    expect(screen.getByText("Total Invested").parentElement).toHaveTextContent("₹100");
+  });
+
 });

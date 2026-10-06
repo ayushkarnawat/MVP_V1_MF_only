@@ -103,6 +103,54 @@ describe("MobileImportView", () => {
     await screen.findByText("Review your import");
   }
 
+  it("keeps the file on a wrong password retry", async () => {
+    vi.mocked(importApi.parseImport).mockRejectedValue(new importApi.ApiError(422, { code: "wrong_password", message: "That password didn’t open the file." }));
+    render(<MobileImportView defaultMemberId="m-1" />);
+    await uploadFile();
+    await screen.findByText("That password didn’t open the file.");
+    expect(screen.getByText("statement.pdf")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Upload Statement" })).toBeEnabled();
+  });
+
+
+  it("closes a duplicate review with the generic dashboard notice", async () => {
+    vi.mocked(importApi.parseImport).mockResolvedValue(preview({ schemes: [scheme("s1", { person_key: "me" })] }));
+    vi.mocked(importApi.confirmPeopleImport).mockRejectedValue(new importApi.ApiError(409, { code: "already_imported", message: "This statement was already imported" }));
+    const onNavigateDashboard = vi.fn();
+    render(<MobileImportView defaultMemberId="m-1" onNavigateDashboard={onNavigateDashboard} />);
+    await uploadFile();
+    await screen.findByText("Review your import");
+    fireEvent.click(screen.getByRole("button", { name: "Confirm imports" }));
+    await waitFor(() => expect(onNavigateDashboard).toHaveBeenCalledWith({ text: "This statement was already imported" }));
+    expect(onNavigateDashboard).toHaveBeenCalledTimes(1);
+  });
+
+
+  it("keeps the waiting upload file for a wrong password retry", async () => {
+    let rejectParse!: (error: unknown) => void;
+    vi.mocked(importApi.parseImport).mockReturnValue(new Promise((_, reject) => { rejectParse = reject; }));
+    render(<MobileImportView defaultMemberId="m-1" defaultTab="waiting" />);
+    fireEvent.click(screen.getByRole("button", { name: /already got the email/i }));
+    const file = new File(["pdf"], "waiting.pdf", { type: "application/pdf" });
+    fireEvent.change(screen.getByLabelText("CAS PDF"), { target: { files: [file] } });
+    await tickDisclaimer();
+    fireEvent.click(screen.getByRole("button", { name: "Upload Statement" }));
+    await screen.findByText("Importing Mutual Fund Statement");
+    expect(screen.queryByRole("button", { name: "Upload Statement" })).not.toBeInTheDocument();
+    rejectParse(new importApi.ApiError(422, { code: "wrong_password", message: "That password didn’t open the file." }));
+    await screen.findByText("That password didn’t open the file.");
+    expect(screen.getByText("waiting.pdf")).toBeInTheDocument();
+  });
+
+
+  it("opens the existing CAMS request path from a scanned PDF error", async () => {
+    vi.mocked(importApi.parseImport).mockRejectedValue(new importApi.ApiError(422, { code: "scanned_pdf", message: "We can’t read this PDF." }));
+    render(<MobileImportView defaultMemberId="m-1" />);
+    await uploadFile();
+    fireEvent.click(await screen.findByRole("button", { name: "Request CAS from CAMS" }));
+    await screen.findByRole("heading", { name: "Request from CAMS" });
+  });
+
   it("renders entry choice screen with both options and navigates into Request view", async () => {
     render(<MobileImportView />);
 

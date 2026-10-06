@@ -1,3 +1,4 @@
+import { sumDecimalStrings } from "@/lib/decimal";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   getAggregateHoldings,
@@ -53,12 +54,26 @@ import { staggerContainerVariants, staggerItemVariants } from "@/lib/motion";
 const ASSET_CLASS_ORDER = ["Equity", "Hybrid", "Other"];
 
 export interface MobileDashboardViewProps {
+  importNotice?: { text: string; details?: string[] } | null;
+  onDismissImportNotice?: () => void;
   onNavigateAnalytics?: () => void;
   onNavigateImport?: (memberId?: string) => void;
   onDetailViewToggle?: (isOpen: boolean) => void;
 }
 
-export function MobileDashboardView({
+export function MobileDashboardView(props: MobileDashboardViewProps) {
+  const { importNotice, onDismissImportNotice } = props;
+  return <>
+    {importNotice && <div role="status" className="mb-4 rounded-xl border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 p-3 text-sm">
+      <p>{importNotice.text}</p>
+      {importNotice.details?.map((detail, index) => <p key={index}>{detail}</p>)}
+      <button type="button" aria-label="Dismiss import notice" onClick={onDismissImportNotice}>Dismiss</button>
+    </div>}
+    <MobileDashboardViewContent {...props} />
+  </>;
+}
+
+function MobileDashboardViewContent({
   onNavigateImport,
   onDetailViewToggle,
 }: MobileDashboardViewProps) {
@@ -173,34 +188,15 @@ export function MobileDashboardView({
   }, [viewMode, selectedMemberId]);
 
   /* Calculate summary totals */
+  const memberHoldings = useMemo(() => holdingsMemberFilter === "all" ? holdings : holdings.filter((h) => h.household_member_id === holdingsMemberFilter), [holdings, holdingsMemberFilter]);
   const totals = useMemo(() => {
-    let currentVal = 0;
-    let investedVal = 0;
-    let valuedInvestedVal = 0;
-    let profitVal = 0;
-
-    for (const h of holdings) {
-      // Invested principal is FIFO-derived and always known, even for a degraded
-      // (nav_unavailable) holding — only NAV-dependent figures need to skip it.
-      investedVal += parseFloat(h.amount_invested) || 0;
-      if (h.nav_unavailable) continue;
-      valuedInvestedVal += parseFloat(h.amount_invested) || 0;
-      currentVal += parseFloat(h.current_value || "0") || 0;
-      profitVal += parseFloat(h.unrealized_gain || h.current_profit_total || "0") || 0;
-    }
-
-    // gainPercentage must divide by the same (valued-only) population that
-    // produced profitVal — dividing by all-holdings investedVal understates
-    // the return by diluting it with an unvalued holding's principal.
-    const gainPercentage = valuedInvestedVal > 0 ? (profitVal / valuedInvestedVal) * 100 : 0;
-
-    return {
-      currentVal,
-      investedVal,
-      profitVal,
-      gainPercentage,
-    };
-  }, [holdings]);
+  const valued = memberHoldings.filter((h) => !h.nav_unavailable);
+  const currentVal = parseFloat(sumDecimalStrings(valued.map((h) => h.current_value || "0")));
+  const investedVal = parseFloat(sumDecimalStrings(valued.map((h) => h.amount_invested)));
+  const profitVal = parseFloat(sumDecimalStrings(valued.map((h) => h.unrealized_gain || "0")));
+  const gainPercentage = investedVal > 0 ? (profitVal / investedVal) * 100 : 0;
+  return { currentVal, investedVal, profitVal, gainPercentage, excludedCount: memberHoldings.length - valued.length };
+}, [memberHoldings]);
 
   const reloadMembers = async () => {
     invalidateApiCache();
@@ -244,10 +240,7 @@ export function MobileDashboardView({
   const isPositiveGain = totals.profitVal >= 0;
 
   const filteredHoldings = useMemo(() => {
-    const byMember =
-      holdingsMemberFilter === "all"
-        ? holdings
-        : holdings.filter((h) => h.household_member_id === holdingsMemberFilter);
+    const byMember = memberHoldings;
     if (!searchTerm.trim()) return byMember;
     const q = searchTerm.toLowerCase();
     return byMember.filter(
@@ -255,7 +248,7 @@ export function MobileDashboardView({
         h.scheme_name.toLowerCase().includes(q) ||
         (h.amc_name && h.amc_name.toLowerCase().includes(q))
     );
-  }, [holdings, searchTerm, holdingsMemberFilter]);
+  }, [memberHoldings, searchTerm]);
 
   const handleSelectHolding = (item: HoldingRow | null) => {
     setSelectedHolding(item);
@@ -528,17 +521,12 @@ export function MobileDashboardView({
         className="p-4 sm:p-5 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs"
       >
         <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)] block">
-          Total Portfolio Value
+          {viewMode === "aggregate" && holdingsMemberFilter === "all" ? "Family total" : memberHoldings[0]?.household_member_name ?? "Total Portfolio Value"}
         </span>
         <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-[var(--color-ink)] tabular-nums mt-1">
           ₹{formatCurrency(totals.currentVal)}
         </h1>
-        {!!allocation?.nav_unavailable_count && (
-          <span className="text-[11px] text-[var(--color-text-secondary)]">
-            Excludes {allocation.nav_unavailable_count} holding
-            {allocation.nav_unavailable_count === 1 ? "" : "s"} with unavailable NAV
-          </span>
-        )}
+        {totals.excludedCount > 0 && <span className="text-xs text-[var(--color-text-secondary)]">{totals.excludedCount} funds without a price aren’t included</span>}
 
         <div className="flex items-center justify-between gap-3 mt-4 pt-3 border-t border-[var(--color-border)]/60 text-xs">
           <div className="flex flex-col">
@@ -552,7 +540,7 @@ export function MobileDashboardView({
 
           <div className="flex flex-col items-end">
             <span className="text-[11px] text-[var(--color-text-secondary)] font-medium">
-              Total Gain / Loss
+              {isPositiveGain ? "Unrealised gain" : "Unrealised loss"}
             </span>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span

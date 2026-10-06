@@ -1,7 +1,7 @@
+import { PlanBadge } from "@/features/dashboard/PlanBadge";
 import { FundSignal } from "@/components/FundSignal";
 import { Badge } from "@/components/ui/badge";
 import { ChevronRight } from "lucide-react";
-import { toTitleCase } from "@/lib/utils";
 import type { HoldingRow } from "@/features/dashboard/types";
 import { motion, useReducedMotion } from "motion/react";
 import { isTestEnv } from "@/lib/motion";
@@ -62,9 +62,7 @@ export function MobileHoldingCardSummary({
                   {holding.household_member_name}
                 </span>
               )}
-              <Badge variant={holding.plan_type === "DIRECT" ? "positive" : "neutral"}>
-                {toTitleCase(holding.plan_type || "UNKNOWN")}
-              </Badge>
+              <PlanBadge planType={holding.plan_type} verified={holding.plan_verified} />
               {navUnavailable ? (
                 <Badge variant="warning">NAV unavailable</Badge>
               ) : (

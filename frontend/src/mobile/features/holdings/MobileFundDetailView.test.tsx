@@ -25,7 +25,7 @@ describe("MobileFundDetailView", () => {
     amc_name: "Axis Mutual Fund",
     household_member_id: "m-1",
     household_member_name: "Ayush",
-    plan_type: "DIRECT",
+    plan_type: "direct",
     units_held: "123.456",
     average_nav: "45.50",
     current_nav: "60.00",
@@ -42,6 +42,17 @@ describe("MobileFundDetailView", () => {
   beforeEach(() => {
     vi.mocked(getFundNavHistory).mockReset();
     vi.mocked(getFundNavHistory).mockResolvedValue(historyResponse);
+  });
+
+  it("shows opening-lot units, held-since date and approximate cost", async () => {
+    render(<MobileFundDetailView onBack={() => {}} holding={{ ...sampleHolding,
+      opening_lot: { units: "7251.691", since: "2016-01-01", cost_source: "nav_on_start" },
+    }} />);
+    expect(screen.getByText("incl. 7,251.691 units from before 1 Jan 2016")).toBeInTheDocument();
+    expect(screen.getByText("held since at least 1 Jan 2016")).toBeInTheDocument();
+    expect(screen.getByText("cost approximate")).toBeInTheDocument();
+    expect(screen.queryByText(/Bought ~/)).not.toBeInTheDocument();
+    await screen.findByText("31.87%");
   });
 
   it("renders full holding financial breakdown and performance chart", async () => {
@@ -316,4 +327,10 @@ describe("MobileFundDetailView", () => {
     expect(screen.getByText("HDFC Top 100 Fund")).toBeInTheDocument();
     document.body.removeChild(parentContainer);
   });
+  it("never substitutes total return for missing unrealised gain", () => {
+    render(<MobileFundDetailView onBack={vi.fn()} holding={{ ...sampleHolding, unrealized_gain: null, current_profit_total: "987654" }} />);
+    const label = screen.getByText("Unrealised gain");
+    expect(label.parentElement?.textContent).not.toContain("9,87,654");
+  });
+
 });

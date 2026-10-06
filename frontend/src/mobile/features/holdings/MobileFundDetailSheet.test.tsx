@@ -10,7 +10,7 @@ describe("MobileFundDetailSheet", () => {
     amc_name: "Axis Mutual Fund",
     household_member_id: "m-1",
     household_member_name: "Ayush",
-    plan_type: "DIRECT",
+    plan_type: "direct",
     units_held: "123.456",
     average_nav: "45.50",
     current_nav: "60.00",
@@ -62,7 +62,8 @@ describe("MobileFundDetailSheet", () => {
     expect(screen.getByText("Ayush")).toBeInTheDocument();
     expect(screen.getByText("Current Value")).toBeInTheDocument();
     expect(screen.getByText("Invested Amount")).toBeInTheDocument();
-    expect(screen.getByText("Total Gain / Loss")).toBeInTheDocument();
+    expect(screen.getByText("Unrealised gain")).toBeInTheDocument();
+    expect(screen.getByText("Total return incl. realised")).toBeInTheDocument();
     expect(screen.getByText("Units Held")).toBeInTheDocument();
     expect(screen.getByText("123.456")).toBeInTheDocument();
     expect(screen.getByText("Average NAV")).toBeInTheDocument();
@@ -100,4 +101,10 @@ describe("MobileFundDetailSheet", () => {
     expect(screen.getByText("₹5,617")).toBeInTheDocument();
     expect(screen.queryAllByText(/^₹0(?:\.00)?$/)).toHaveLength(0);
   });
+  it("never substitutes total return for missing unrealised gain", () => {
+    render(<MobileFundDetailSheet isOpen onClose={vi.fn()} holding={{ ...sampleHolding, unrealized_gain: null, current_profit_total: "987654" }} />);
+    const label = screen.getByText("Unrealised gain");
+    expect(label.parentElement?.textContent).not.toContain("9,87,654");
+  });
+
 });

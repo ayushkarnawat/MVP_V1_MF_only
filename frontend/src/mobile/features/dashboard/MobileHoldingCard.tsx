@@ -1,3 +1,4 @@
+import { PlanBadge } from "@/features/dashboard/PlanBadge";
 import { FundSignal } from "@/components/FundSignal";
 import { Badge } from "@/components/Badge";
 import { cn } from "@/lib/utils";
@@ -61,11 +62,7 @@ export function MobileHoldingCard({
         </div>
 
         <div className="flex items-center gap-1 flex-shrink-0">
-          <Badge
-            variant={holding.plan_type === "DIRECT" ? "positive" : "neutral"}
-          >
-            {holding.plan_type || "UNKNOWN"}
-          </Badge>
+          <PlanBadge planType={holding.plan_type} verified={holding.plan_verified} />
           <ChevronRight className="h-4 w-4 text-[var(--color-text-secondary)] opacity-40 ml-0.5" />
         </div>
       </div>

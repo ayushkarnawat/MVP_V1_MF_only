@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 
 export interface MobileUploadFormProps {
+  passwordError?: string;
+  serverFileError?: string;
   onBack?: () => void;
   onSubmit: (file: File, password: string) => void;
   isLoading?: boolean;
@@ -24,6 +26,8 @@ export interface MobileUploadFormProps {
 }
 
 export function MobileUploadForm({
+  passwordError,
+  serverFileError,
   onBack,
   onSubmit,
   isLoading = false,
@@ -167,13 +171,13 @@ export function MobileUploadForm({
       </div>
 
       {/* File Validation Error */}
-      {fileError && (
+      {(fileError || serverFileError) && (
         <div
           role="alert"
           className="flex items-center gap-2 p-2.5 rounded-xl bg-[color-mix(in_srgb,var(--color-negative)_12%,transparent)] border border-[color-mix(in_srgb,var(--color-negative)_30%,transparent)] text-xs text-[var(--color-negative)] font-medium"
         >
           <AlertCircle className="h-4 w-4 flex-shrink-0" />
-          <span>{fileError}</span>
+          <span>{fileError || serverFileError}</span>
         </div>
       )}
 
@@ -190,6 +194,8 @@ export function MobileUploadForm({
           <Input
             id="mobile-cas-password"
             aria-label="PDF Password"
+            aria-invalid={Boolean(passwordError)}
+            aria-describedby={passwordError ? "mobile-password-error" : undefined}
             type={showPassword ? "text" : "password"}
             placeholder="Enter password if protected"
             value={password}
@@ -210,6 +216,8 @@ export function MobileUploadForm({
           </button>
         </div>
       </div>
+
+      {passwordError && <p id="mobile-password-error" role="alert" className="text-xs text-[var(--color-negative)]">{passwordError}</p>}
 
       <PanDisclaimer checked={disclaimerChecked} onChange={setDisclaimerChecked} surface="mobile_upload" />
 

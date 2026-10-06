@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { listHouseholdMembers } from "@/features/auth/api";
 import { invalidateApiCache } from "@/lib/apiClient";
 import {
@@ -12,6 +12,7 @@ import { WaitingForCasView } from "@/features/import/WaitingForCasView";
 import { ParsingIndicator } from "@/features/import/ParsingIndicator";
 import { useImportOrchestration } from "@/features/import/useImportOrchestration";
 import { MobileRequestCamsView } from "./MobileRequestCamsView";
+import { ImportError } from "@/features/import/ImportError";
 import { MobileUploadForm } from "./MobileUploadForm";
 import { MobileReviewView } from "./MobileReviewView";
 import { MobileImportHistory } from "./MobileImportHistory";
@@ -21,8 +22,6 @@ import {
   History,
   User,
   CheckCircle2,
-  AlertCircle,
-  RefreshCw,
   LayoutDashboard,
   UploadCloud,
   ArrowLeft,
@@ -31,7 +30,7 @@ import {
 } from "lucide-react";
 
 export interface MobileImportViewProps {
-  onNavigateDashboard?: () => void;
+  onNavigateDashboard?: (notice?: { text: string; details?: string[] }) => void;
   defaultTab?: "request" | "upload" | "history" | "choice" | "waiting";
   defaultMemberId?: string;
 }
@@ -63,6 +62,15 @@ export function MobileImportView({
   } = useImportOrchestration(selectedMemberId ?? "");
   const { stage, preview, confirmResult } = flow;
   const error = flow.error;
+
+  const duplicateClosed = useRef(false);
+  useEffect(() => {
+    if (stage !== "confirmed") duplicateClosed.current = false;
+    if (stage === "confirmed" && flow.errorCode === "already_imported" && !duplicateClosed.current) {
+      duplicateClosed.current = true;
+      onNavigateDashboard?.({ text: "This statement was already imported" });
+    }
+  }, [stage, flow.errorCode, onNavigateDashboard]);
 
   /* Load household members */
   useEffect(() => {
@@ -116,7 +124,7 @@ export function MobileImportView({
   const handleUpload = async (file: File, password: string) => {
     if (!selectedMemberId) return;
     // Whatever sends the user back to the upload screen, they land on the form they just used.
-    setView("upload");
+    if (view !== "waiting") setView("upload");
     await upload(file, password);
   };
 
@@ -126,6 +134,8 @@ export function MobileImportView({
   // Dialogs shared by every screen.
   const flowDialogs = <>{orchestrationDialogs}</>;
 
+  const activeMemberId = selectedMemberId || members[0]?.id || null;
+  const renderStage = () => {
   /* 1. Parsing Indicator Screen */
   if (stage === "parsing") {
     return (
@@ -242,40 +252,18 @@ export function MobileImportView({
 
   /* 4. Error Screen */
   if (stage === "error") {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-6 space-y-4 animate-in fade-in duration-200">
-        <div className="h-12 w-12 rounded-2xl bg-[color-mix(in_srgb,var(--color-negative)_12%,transparent)] text-[var(--color-negative)] flex items-center justify-center">
-          <AlertCircle className="h-6 w-6" />
-        </div>
-
-        <div className="space-y-1.5 max-w-xs">
-          <h3 className="font-display font-bold text-base text-[var(--color-ink)]">
-            Import Failed
-          </h3>
-          <p className="text-xs text-[#5C5C5C] dark:text-[#A3A3A3] leading-relaxed">
-            {error || "We were unable to parse your statement. Please try again."}
-          </p>
-        </div>
-
-        <Button
-          onClick={() => void resetFlow()}
-          className="h-11 px-6 rounded-full bg-[#22C55E] hover:bg-[#22C55E]/90 dark:bg-[#22C55E] dark:hover:bg-[#22C55E]/90 text-white font-bold text-xs gap-2 min-h-[44px] active:scale-95 shadow-md shadow-[#22C55E]/20 border-none mx-auto"
-        >
-          <RefreshCw className="h-4 w-4" />
-          <span>Try Again</span>
-        </Button>
-      </div>
-    );
+    return <ImportError code={flow.errorCode ?? "parse_failed"} message={error ?? "Import failed"}
+      onUploadAnother={() => void resetFlow()}
+      onRequestCas={() => void resetFlow().then(() => setView("request"))} />;
   }
 
-  const activeMemberId = selectedMemberId || members[0]?.id || null;
 
   return (
     <div
       className={cn(
-        "flex flex-col text-left box-border w-full flex-1",
-        view === "choice" || view === "upload"
-          ? "min-h-[calc(100dvh-7rem)] sm:min-h-0 justify-between sm:justify-start space-y-2 sm:space-y-4 my-auto"
+        "flex flex-col text-left box-border w-full",
+        view === "choice"
+          ? "flex-1 min-h-[calc(100dvh-7rem)] sm:min-h-0 justify-between sm:justify-start space-y-2 sm:space-y-4 my-auto"
           : "space-y-3.5 sm:space-y-4"
       )}
     >
@@ -360,30 +348,10 @@ export function MobileImportView({
           />
         )}
 
-        {view === "waiting" && (
-          <WaitingForCasView
-            importId={pendingImportId || "pending-import"}
-            onCancelled={() => {
-              if (activeMemberId) clearCasResumeStep2(activeMemberId);
-              setPendingImportId(null);
-              setView("choice");
-            }}
-            onUploadSubmit={handleUpload}
-            surface="mobile_upload"
-          />
-        )}
-
-        {view === "upload" && uploadMessage && (
+        {(view === "upload" || view === "waiting") && uploadMessage && (
           <p role="status" className="mb-3 max-w-md text-center text-xs text-[var(--color-ink)]">
             {uploadMessage}
           </p>
-        )}
-
-        {view === "upload" && (
-          <MobileUploadForm
-            onBack={() => setView("choice")}
-            onSubmit={handleUpload}
-          />
         )}
 
         {view === "history" && activeMemberId && (
@@ -409,4 +377,29 @@ export function MobileImportView({
       </div>
     </div>
   );
+  };
+  return <>
+    {renderStage()}
+    {view === "waiting" && ["upload", "prompt", "parsing"].includes(stage) && <div hidden={stage === "parsing"} className="w-full max-w-md mx-auto">
+          <WaitingForCasView
+            passwordError={flow.errorCode === "wrong_password" ? error ?? undefined : undefined}
+            serverFileError={flow.errorCode && ["file_too_large", "unsupported_file", "invalid_file"].includes(flow.errorCode) ? error ?? undefined : undefined}
+            importId={pendingImportId || "pending-import"}
+            onCancelled={() => {
+              if (activeMemberId) clearCasResumeStep2(activeMemberId);
+              setPendingImportId(null);
+              setView("choice");
+            }}
+            onUploadSubmit={handleUpload}
+            surface="mobile_upload"
+          />
+    </div>}
+
+    {view === "upload" && ["upload", "prompt", "parsing"].includes(stage) && <div hidden={stage === "parsing"} className="w-full max-w-md mx-auto">
+      <MobileUploadForm onBack={view === "upload" ? () => setView("choice") : undefined} onSubmit={handleUpload}
+        passwordError={flow.errorCode === "wrong_password" ? error ?? undefined : undefined}
+        serverFileError={flow.errorCode && ["file_too_large", "unsupported_file", "invalid_file"].includes(flow.errorCode) ? error ?? undefined : undefined} />
+    </div>}
+  </>;
+
 }
