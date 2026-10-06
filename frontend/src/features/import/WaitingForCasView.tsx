@@ -8,6 +8,8 @@ import { Clock, AlertTriangle, Loader2, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface WaitingForCasViewProps {
+  passwordError?: string;
+  serverFileError?: string;
   importId: string;
   onCancelled: () => void;
   // Required: every upload goes through the parse -> review flow (M18).
@@ -16,6 +18,7 @@ interface WaitingForCasViewProps {
 }
 
 export function WaitingForCasView({
+  passwordError, serverFileError,
   importId,
   onCancelled,
   onUploadSubmit,
@@ -121,7 +124,7 @@ export function WaitingForCasView({
               className="overflow-hidden border-t border-[var(--color-border)]/60"
             >
               <div className="p-2 sm:p-4">
-                <UploadForm onSubmit={handleUpload} surface={surface} />
+                <UploadForm onSubmit={handleUpload} surface={surface} passwordError={passwordError} serverFileError={serverFileError} />
               </div>
             </motion.div>
           )}

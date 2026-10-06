@@ -4,6 +4,12 @@ import { TwoPathImportContainer } from "./TwoPathImportContainer";
 import { setCasResumeStep2, hasCasResumeStep2 } from "./casResumeState";
 import * as api from "./api";
 
+// jsdom cannot complete the height animation; keep the waiting disclosure visible.
+vi.mock("motion/react", async () => {
+  const actual = await vi.importActual<typeof import("motion/react")>("motion/react");
+  return { ...actual, useReducedMotion: () => true };
+});
+
 vi.mock("../legal/api", async () => {
   const actual = await vi.importActual<typeof import("../legal/api")>("../legal/api");
   const { DOCS } = await import("../legal/testFixtures");
@@ -215,4 +221,15 @@ describe("TwoPathImportContainer", () => {
 
     expect(onUploadSubmit).toHaveBeenCalledWith(file, "pw", "request");
   });
+  it("forwards a password error to the waiting upload without losing the file", () => {
+    const onUploadSubmit = vi.fn();
+    const { rerender } = render(<TwoPathImportContainer memberId="m-1" defaultTab="waiting" onUploadSubmit={onUploadSubmit} />);
+    fireEvent.click(screen.getByRole("button", { name: /already got the email/i }));
+    const file = new File(["pdf"], "waiting.pdf", { type: "application/pdf" });
+    fireEvent.change(screen.getByLabelText("CAS PDF"), { target: { files: [file] } });
+    rerender(<TwoPathImportContainer memberId="m-1" defaultTab="waiting" onUploadSubmit={onUploadSubmit} errorCode="wrong_password" error="That password didn’t open the file." />);
+    expect(screen.getByText("waiting.pdf")).toBeInTheDocument();
+    expect(screen.getByText("That password didn’t open the file.")).toBeVisible();
+  });
+
 });

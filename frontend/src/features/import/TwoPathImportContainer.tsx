@@ -16,6 +16,9 @@ import type { UploadSurface } from "@/features/legal/panDisclaimerStore";
 export type ImportView = "choice" | "request" | "waiting" | "upload" | "history";
 
 export interface TwoPathImportContainerProps {
+  error?: string | null;
+  errorCode?: string | null;
+  requestCasVersion?: number;
   memberId: string;
   defaultTab?: "request" | "upload" | "history" | "choice" | "waiting";
   onUploadSubmit: (file: File, password: string, sourceTab: string) => void;
@@ -24,6 +27,7 @@ export interface TwoPathImportContainerProps {
 }
 
 export function TwoPathImportContainer({
+  error, errorCode, requestCasVersion = 0,
   memberId,
   defaultTab,
   onUploadSubmit,
@@ -53,6 +57,10 @@ export function TwoPathImportContainer({
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
   }, [memberId]);
+
+  useEffect(() => {
+    if (requestCasVersion > 0) setView("request");
+  }, [requestCasVersion]);
 
   const handleRequestInitiated = (id: string) => {
     setPendingImportId(id);
@@ -119,6 +127,8 @@ export function TwoPathImportContainer({
 
         {view === "waiting" && (
           <WaitingForCasView
+            passwordError={errorCode === "wrong_password" ? error ?? undefined : undefined}
+            serverFileError={errorCode && ["file_too_large", "unsupported_file", "invalid_file"].includes(errorCode) ? error ?? undefined : undefined}
             importId={pendingImportId || "pending-import"}
             onCancelled={() => {
               clearCasResumeStep2(memberId);
@@ -132,6 +142,8 @@ export function TwoPathImportContainer({
 
         {view === "upload" && (
           <UploadForm
+            passwordError={errorCode === "wrong_password" ? error ?? undefined : undefined}
+            serverFileError={errorCode && ["file_too_large", "unsupported_file", "invalid_file"].includes(errorCode) ? error ?? undefined : undefined}
             surface={surface}
             onBack={() => setView("choice")}
             onSubmit={(file, password) => handleUploadSubmit(file, password, "upload")}

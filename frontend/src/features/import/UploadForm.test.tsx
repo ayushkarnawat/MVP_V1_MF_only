@@ -89,3 +89,15 @@ describe("UploadForm", () => {
     expect(currentPanDisclaimer()).toBeNull();
   });
 });
+
+// UploadForm.test.tsx
+it("keeps the file after wrong_password", async () => {
+  const onSubmit = vi.fn();
+  const { rerender } = render(<UploadForm onSubmit={onSubmit} />);
+  const file = new File(["%PDF"], "cas.pdf", { type: "application/pdf" });
+  // @testing-library/user-event is not installed: use fireEvent like the existing tests.
+  fireEvent.change(screen.getByLabelText("CAS PDF"), { target: { files: [file] } });
+  rerender(<UploadForm onSubmit={onSubmit} passwordError="That password didn’t open the file." />);
+  expect(screen.getByText("cas.pdf")).toBeInTheDocument();
+  expect(screen.getByText(/didn’t open the file/)).toBeInTheDocument();
+});

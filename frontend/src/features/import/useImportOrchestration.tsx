@@ -45,6 +45,10 @@ export function useImportOrchestration(householdMemberId: string) {
     if (stage === "confirmed") clearCasResumeStep2(householdMemberId);
   }, [stage, householdMemberId]);
 
+  useEffect(() => {
+    if (stage === "upload" && flow.errorCode === "session_expired") setUploadMessage(error);
+  }, [stage, flow.errorCode, error]);
+
   const cancelImport = async () => {
     clearCasResumeStep2(householdMemberId);
     setCancelOpen(false);

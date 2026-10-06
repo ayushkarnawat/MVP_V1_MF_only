@@ -75,13 +75,15 @@ describe("ImportFlow", () => {
     expect(screen.getByRole("button", { name: /^Aditi Sharma \(Me\).*Confirmed · / })).toBeInTheDocument();
   });
 
-  it("moves to the error screen on a ParseError", async () => {
+  it("keeps the selected file for a wrong password retry", async () => {
     vi.mocked(api.parseImport).mockRejectedValue(
       new ApiError(422, { code: "wrong_password", message: "Incorrect PDF password." }),
     );
     render(<ImportFlow householdMemberId="member-1" />);
     await uploadAFile();
     await waitFor(() => expect(screen.getByText(/incorrect pdf password/i)).toBeInTheDocument());
+    expect(screen.getByText("cas.pdf")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Upload Statement" })).toBeEnabled();
   });
 
   it("shows a generic message on a network failure", async () => {
@@ -229,7 +231,7 @@ describe("ImportFlow", () => {
     await waitFor(() => expect(screen.getByLabelText(/cas pdf/i)).toBeInTheDocument());
   });
 
-  it("C2: a 410 session_expired on confirm shows the expiry popup and Upload again returns to upload", async () => {
+  it("C2: a 410 session_expired returns to upload with a banner", async () => {
     vi.mocked(api.confirmPeopleImport).mockRejectedValue(
       new ApiError(410, { code: "session_expired", message: "expired" }),
     );
@@ -237,9 +239,8 @@ describe("ImportFlow", () => {
     reviewRibbon("Aditi Sharma");
     fireEvent.click(screen.getByRole("button", { name: "Confirm imports" }));
 
-    await waitFor(() => screen.getByText("This review has expired"));
+    await waitFor(() => screen.getByText("Your upload timed out. Please upload again."));
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Upload again" }));
     await waitFor(() => expect(screen.getByLabelText(/cas pdf/i)).toBeInTheDocument());
   });
 
@@ -471,4 +472,41 @@ describe("ImportFlow", () => {
     fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
     expect(onDone).toHaveBeenCalled();
   });
+  it("closes an already imported review with the generic dashboard notice", async () => {
+    vi.mocked(api.parseImport).mockResolvedValue(SINGLE());
+    vi.mocked(api.confirmPeopleImport).mockRejectedValue(new ApiError(409, { code: "already_imported", message: "This statement was already imported" }));
+    const onDone = vi.fn();
+    render(<ImportFlow householdMemberId="member-1" onDone={onDone} />);
+    await uploadAFile();
+    await screen.findByText("Review your import");
+    fireEvent.click(screen.getByRole("button", { name: "Confirm imports" }));
+    await waitFor(() => expect(onDone).toHaveBeenCalledWith({ text: "This statement was already imported" }));
+    expect(onDone).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps a waiting upload hidden during parsing and preserves its password retry", async () => {
+    let rejectParse!: (error: unknown) => void;
+    vi.mocked(api.parseImport).mockReturnValue(new Promise((_, reject) => { rejectParse = reject; }));
+    render(<ImportFlow householdMemberId="member-1" defaultTab="waiting" />);
+    fireEvent.click(screen.getByRole("button", { name: /already got the email/i }));
+    const file = new File(["pdf"], "waiting.pdf", { type: "application/pdf" });
+    fireEvent.change(screen.getByLabelText("CAS PDF"), { target: { files: [file] } });
+    await tickDisclaimer();
+    fireEvent.click(screen.getByRole("button", { name: "Upload Statement" }));
+    await screen.findByText("Importing Mutual Fund Statement");
+    expect(screen.queryByRole("button", { name: "Upload Statement" })).not.toBeInTheDocument();
+    rejectParse(new ApiError(422, { code: "wrong_password", message: "That password didn’t open the file." }));
+    await screen.findByText("That password didn’t open the file.");
+    expect(screen.getByText("waiting.pdf")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Upload Statement" })).toBeEnabled();
+  });
+
+  it("opens the existing CAMS request path from a scanned PDF error", async () => {
+    vi.mocked(api.parseImport).mockRejectedValue(new ApiError(422, { code: "scanned_pdf", message: "We can’t read this PDF." }));
+    render(<ImportFlow householdMemberId="member-1" />);
+    await uploadAFile();
+    fireEvent.click(await screen.findByRole("button", { name: "Request CAS from CAMS" }));
+    await screen.findByRole("heading", { name: "Request from CAMS" });
+  });
+
 });

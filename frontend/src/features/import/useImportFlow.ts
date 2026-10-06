@@ -38,6 +38,14 @@ export type PromptAction =
   | { kind: "acknowledge"; code: AcknowledgeCode }
   | { kind: "discard" };
 
+const INLINE_CODES = new Set(["wrong_password", "file_too_large", "unsupported_file", "invalid_file"]);
+function errorCodeOf(err: unknown): string | null {
+  if (err instanceof ApiError && err.payload && typeof err.payload === "object" && "code" in err.payload) {
+    return String((err.payload as { code: unknown }).code);
+  }
+  return null;
+}
+
 const NETWORK_ERROR = "Couldn't reach the server. Check your connection and try again.";
 
 function errorMessage(err: unknown): string {
@@ -72,6 +80,7 @@ export function useImportFlow(householdMemberId: string) {
   const [preview, setPreview] = useState<ImportPreviewResponse | null>(null);
   const [prompt, setPrompt] = useState<ImportPrompt | null>(null);
   const [confirmResult, setConfirmResult] = useState<ImportConfirmResponse | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   // The live session id, kept in a ref so resolve()/cancel() see the value a
   // just-finished upload set without waiting for a re-render.
@@ -87,17 +96,42 @@ export function useImportFlow(householdMemberId: string) {
     setPreview(next);
     setPrompt(null);
     setError(null);
+    setErrorCode(null);
     setStage(stageForPreview(next));
   }, []);
 
   // Any call can answer with the next 409 prompt or a 410 session_expired.
   const handleFailure = useCallback((err: unknown) => {
     if (confirmedRef.current) return;
+    const code = errorCodeOf(err);
+    setErrorCode(code);
+    if (code === "session_expired" || (err instanceof ApiError && err.status === 410)) {
+      sessionRef.current = null;
+      setPreview(null);
+      setPrompt(null);
+      setError("Your upload timed out. Please upload again.");
+      setErrorCode("session_expired");
+      setStage("upload");
+      return;
+    }
+    if (code === "already_imported") {
+      sessionRef.current = null;
+      confirmedRef.current = true;
+      setError("This statement was already imported");
+      setStage("confirmed");
+      return;
+    }
+    if (code && INLINE_CODES.has(code)) {
+      setError(errorMessage(err));
+      setStage("upload");
+      return;
+    }
     const next = getImportPrompt(err);
     if (next) {
       if (next.sessionId) sessionRef.current = next.sessionId;
       setPrompt(next);
       setError(null);
+      setErrorCode(null);
       setStage("prompt");
       return;
     }
@@ -112,6 +146,7 @@ export function useImportFlow(householdMemberId: string) {
     setPrompt(null);
     setConfirmResult(null);
     setError(null);
+    setErrorCode(null);
     setConfirmRejected(false);
     setStage("upload");
   }, []);
@@ -120,6 +155,7 @@ export function useImportFlow(householdMemberId: string) {
     async (file: File, password: string) => {
       setStage("parsing");
       setError(null);
+      setErrorCode(null);
       try {
         showPreview(await parseImport(file, password, householdMemberId));
       } catch (err) {
@@ -144,6 +180,7 @@ export function useImportFlow(householdMemberId: string) {
       const sessionId = sessionRef.current;
       if (!sessionId) return;
       setError(null);
+      setErrorCode(null);
       try {
         let next: ImportPreviewResponse;
         switch (action.kind) {
@@ -182,6 +219,7 @@ export function useImportFlow(householdMemberId: string) {
       if (!sessionId || confirmingRef.current || confirmedRef.current) return;
       confirmingRef.current = true;
       setError(null);
+      setErrorCode(null);
       setConfirmRejected(false);
       try {
         const result = await confirmPeopleImport(sessionId, people, movedFunds);
@@ -190,7 +228,7 @@ export function useImportFlow(householdMemberId: string) {
         setConfirmResult(result);
         setStage("confirmed");
       } catch (err) {
-        if (getImportPrompt(err)) {
+        if (getImportPrompt(err) || errorCodeOf(err) === "already_imported") {
           handleFailure(err);
         } else {
           // 5xx/network: stay on review with the message so the user can retry (C1).
@@ -218,5 +256,5 @@ export function useImportFlow(householdMemberId: string) {
     });
   }, [preview]);
 
-  return { stage, preview, prompt, confirmResult, error, confirmRejected, upload, resolve, confirm, cancel, dismissNotice };
+  return { stage, preview, prompt, confirmResult, error, errorCode, confirmRejected, upload, resolve, confirm, cancel, dismissNotice };
 }

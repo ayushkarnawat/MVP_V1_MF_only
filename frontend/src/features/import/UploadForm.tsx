@@ -18,13 +18,15 @@ import {
 } from "lucide-react";
 
 export interface UploadFormProps {
+  passwordError?: string;
+  serverFileError?: string;
   onBack?: () => void;
   onSubmit: (file: File, password: string) => void;
   /** Only the onboarding path overrides this. */
   surface?: UploadSurface;
 }
 
-export function UploadForm({ onBack, onSubmit, surface = "import_upload" }: UploadFormProps) {
+export function UploadForm({ passwordError, serverFileError, onBack, onSubmit, surface = "import_upload" }: UploadFormProps) {
   const [disclaimerChecked, setDisclaimerChecked] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [password, setPassword] = useState("");
@@ -163,13 +165,13 @@ export function UploadForm({ onBack, onSubmit, surface = "import_upload" }: Uplo
       </div>
 
       {/* File Validation Error */}
-      {fileError && (
+      {(fileError || serverFileError) && (
         <div
           role="alert"
           className="flex items-center gap-2 p-3 rounded-xl bg-[color-mix(in_srgb,var(--color-negative)_12%,transparent)] border border-[color-mix(in_srgb,var(--color-negative)_30%,transparent)] text-xs text-[var(--color-negative)] font-medium"
         >
           <AlertCircle className="h-4 w-4 flex-shrink-0" />
-          <span>{fileError}</span>
+          <span>{fileError || serverFileError}</span>
         </div>
       )}
 
@@ -186,6 +188,8 @@ export function UploadForm({ onBack, onSubmit, surface = "import_upload" }: Uplo
           <Input
             id="cas-password-input"
             aria-label="PDF Password"
+            aria-invalid={Boolean(passwordError)}
+            aria-describedby={passwordError ? "password-error" : undefined}
             type={showPassword ? "text" : "password"}
             placeholder="Enter PDF password if protected"
             value={password}
@@ -206,6 +210,8 @@ export function UploadForm({ onBack, onSubmit, surface = "import_upload" }: Uplo
           </button>
         </div>
       </div>
+
+      {passwordError && <p id="password-error" role="alert" className="text-xs text-[var(--color-negative)]">{passwordError}</p>}
 
       <PanDisclaimer checked={disclaimerChecked} onChange={setDisclaimerChecked} surface={surface} />
 

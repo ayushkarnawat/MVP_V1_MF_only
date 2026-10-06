@@ -142,7 +142,7 @@ describe("useImportFlow", () => {
     expect(result.current.stage).toBe("people");
   });
 
-  it("turns a 410 on confirm into a session_expired prompt", async () => {
+  it("returns a 410 on confirm to upload with an expiry banner", async () => {
     vi.mocked(api.parseImport).mockResolvedValue(preview());
     vi.mocked(api.confirmPeopleImport).mockRejectedValue(
       new ApiError(410, { code: "session_expired", message: "This review has expired" }),
@@ -154,8 +154,9 @@ describe("useImportFlow", () => {
     await act(async () => {
       await result.current.confirm([]);
     });
-    expect(result.current.stage).toBe("prompt");
-    expect(result.current.prompt?.code).toBe("session_expired");
+    expect(result.current.stage).toBe("upload");
+    expect(result.current.prompt).toBeNull();
+    expect(result.current.error).toBe("Your upload timed out. Please upload again.");
   });
 
   it("dispatches each PromptAction to its api function", async () => {
@@ -221,13 +222,13 @@ describe("useImportFlow", () => {
     expect(result.current.preview).toBeNull();
   });
 
-  it("surfaces a non-prompt failure as an error stage", async () => {
+  it("places a not-PDF failure inline on upload", async () => {
     vi.mocked(api.parseImport).mockRejectedValue(new ApiError(400, { code: "invalid_file", message: "Please upload a PDF file." }));
     const { result } = renderHook(() => useImportFlow("m1"));
     await act(async () => {
       await result.current.upload(FILE, "");
     });
-    expect(result.current.stage).toBe("error");
+    expect(result.current.stage).toBe("upload");
     expect(result.current.error).toBe("Please upload a PDF file.");
   });
 
@@ -270,4 +271,28 @@ describe("useImportFlow", () => {
     });
     expect(result.current.stage).toBe("confirmed");
   });
+});
+
+it("wrong_password returns to upload with errorCode", async () => {
+  vi.mocked(api.parseImport).mockRejectedValue(new ApiError(422, { code: "wrong_password", message: "m" }));
+  const { result } = renderHook(() => useImportFlow("m1"));
+  await act(() => result.current.upload(FILE, "bad"));
+  expect(result.current.stage).toBe("upload");
+  expect(result.current.errorCode).toBe("wrong_password");
+});
+it("expired upload returns to upload with timeout banner", async () => {
+  vi.mocked(api.parseImport).mockRejectedValue(new ApiError(410, { code: "session_expired", message: "expired" }));
+  const { result } = renderHook(() => useImportFlow("m1"));
+  await act(() => result.current.upload(FILE, "pw"));
+  expect(result.current.stage).toBe("upload");
+  expect(result.current.error).toBe("Your upload timed out. Please upload again.");
+});
+it("duplicate confirm leaves review with already_imported notice", async () => {
+  vi.mocked(api.parseImport).mockResolvedValue(preview());
+  vi.mocked(api.confirmPeopleImport).mockRejectedValue(new ApiError(409, { code: "already_imported", message: "This statement was already imported." }));
+  const { result } = renderHook(() => useImportFlow("m1"));
+  await act(() => result.current.upload(FILE, "pw"));
+  await act(() => result.current.confirm([]));
+  expect(result.current.stage).toBe("confirmed");
+  expect(result.current.errorCode).toBe("already_imported");
 });
