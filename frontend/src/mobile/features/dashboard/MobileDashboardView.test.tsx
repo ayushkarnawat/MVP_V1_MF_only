@@ -10,6 +10,8 @@ vi.mock("@/features/dashboard/api", () => ({
   getAggregateAllocation: vi.fn(),
   getMemberHoldings: vi.fn(),
   getMemberAllocation: vi.fn(),
+  getMemberSips: vi.fn().mockResolvedValue([]),
+  getAggregateSips: vi.fn().mockResolvedValue({ members: [], sips: [] }),
   getAggregateDistributorComparison: vi.fn(),
   getMemberDistributorComparison: vi.fn(),
   getFundNavHistory: vi.fn().mockResolvedValue({
@@ -20,6 +22,11 @@ vi.mock("@/features/dashboard/api", () => ({
     points: [],
     overall_return_pct: null,
   }),
+}));
+
+vi.mock("@/features/history/HistoryView", () => ({
+  HistoryView: ({ viewMode, memberName }: { viewMode: string; memberName?: string }) =>
+    <div>History test view ({viewMode}){memberName ? ` for ${memberName}` : ""}</div>,
 }));
 
 vi.mock("@/features/import/api", () => ({
@@ -690,3 +697,80 @@ describe("MobileDashboardView", () => {
   });
 
 });
+
+describe("MobileDashboardView — Phase 6 (#9, #11, #12, #14, #18)", () => {
+  const row = { scheme_id: "s", scheme_name: "Some Fund", amc_name: "AMC", household_member_id: "m-1", household_member_name: "John",
+    plan_type: "direct" as const, units_held: "5", average_nav: "20", current_nav: "24", amount_invested: "100", current_value: "120",
+    current_profit_total: "20", realized_gain: "0", unrealized_gain: "20", today_gain: "120" };
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(importApi.getMemberCoverageGaps).mockResolvedValue([]);
+    vi.mocked(authApi.listHouseholdMembers).mockResolvedValue([]);
+    vi.mocked(dashboardApi.getAggregateAllocation).mockResolvedValue({ members: [], allocation: { by_asset_class: [], by_amc: [], total_value: "120" } });
+    vi.mocked(dashboardApi.getAggregateSips).mockResolvedValue({ members: [], sips: [] });
+    vi.mocked(dashboardApi.getAggregateHoldings).mockResolvedValue({
+      holdings: [row], members: [{ id: "m-1", name: "John", has_data: true }],
+      lifetime_xirr: "0.1534", current_holdings_xirr: "0.1821", realized_summary: { total: "5000", funds: [] },
+    });
+  });
+
+  it("hero shows XIRR, realised and today’s gain", async () => {
+    render(<MobileDashboardView />);
+    expect(await screen.findByText("Realised gain")).toBeInTheDocument();
+    expect(screen.getByText("Realised gain").parentElement).toHaveTextContent("₹5,000");
+    expect(screen.getByText("Today’s gain").parentElement).toHaveTextContent("₹120");
+    expect(screen.getByText("XIRR").parentElement).toHaveTextContent("15.34%");
+  });
+
+  it("today’s gain leaves out funds whose NAV is stale", async () => {
+    vi.mocked(dashboardApi.getAggregateHoldings).mockResolvedValue({
+      holdings: [row, { ...row, scheme_id: "w", scheme_name: "Written Off", today_gain: "-469646", stale_nav: true }],
+      members: [{ id: "m-1", name: "John", has_data: true }],
+      lifetime_xirr: "0.1534", current_holdings_xirr: "0.1821", realized_summary: { total: "5000", funds: [] },
+    });
+    render(<MobileDashboardView />);
+    expect(await screen.findByText("Today’s gain")).toBeInTheDocument();
+    expect(screen.getByText("Today’s gain").parentElement).toHaveTextContent("₹120");
+  });
+
+  it("with one member picked, XIRR shows a dash and History opens that member", async () => {
+    vi.mocked(dashboardApi.getAggregateHoldings).mockResolvedValue({
+      holdings: [row, { ...row, scheme_id: "t", scheme_name: "Spouse Fund", household_member_id: "m-2", household_member_name: "Spouse" }],
+      members: [{ id: "m-1", name: "John", has_data: true }, { id: "m-2", name: "Spouse", has_data: true }],
+      lifetime_xirr: "0.1534", current_holdings_xirr: "0.1821", realized_summary: { total: "5000", funds: [] },
+    });
+    render(<MobileDashboardView />);
+    expect(await screen.findByText("Spouse Fund")).toBeInTheDocument();
+    expect(screen.getByText("XIRR").parentElement).toHaveTextContent("15.34%");
+    fireEvent.keyDown(screen.getByLabelText("Filter holdings by family member"), { key: "ArrowDown" });
+    fireEvent.click(await screen.findByRole("option", { name: "Spouse" }));
+    await waitFor(() => expect(screen.getByText("XIRR").parentElement).toHaveTextContent("—"));
+    fireEvent.click(screen.getByRole("button", { name: "History ›" }));
+    // The household list is empty in this suite, so the name must come from
+    // the holdings' member status list.
+    expect(screen.getByText("History test view (member) for Spouse")).toBeInTheDocument();
+  });
+
+  it("the value card opens history full screen and Back returns", async () => {
+    const toggle = vi.fn();
+    render(<MobileDashboardView onDetailViewToggle={toggle} />);
+    fireEvent.click(await screen.findByRole("button", { name: "History ›" }));
+    expect(screen.getByText("History test view (aggregate)")).toBeInTheDocument();
+    expect(toggle).toHaveBeenLastCalledWith(true);
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    expect(screen.queryByText("History test view (aggregate)")).not.toBeInTheDocument();
+    expect(toggle).toHaveBeenLastCalledWith(false);
+  });
+
+  it("lists upcoming SIPs with twin count and monthly total", async () => {
+    vi.mocked(dashboardApi.getAggregateSips).mockResolvedValue({ members: [], sips: [
+      { scheme_id: "s", scheme_name: "Twin Fund", household_member_id: "m-1", household_member_name: "John",
+        sip_date: "2026-09-05", sip_amount: "42968.00", next_due_date: "2026-10-05", series_count: 2, status: "active" },
+    ] });
+    render(<MobileDashboardView />);
+    const section = await screen.findByTestId("mobile-upcoming-sips");
+    expect(within(section).getByText(/× 2/)).toBeInTheDocument();
+    expect(within(section).getByText(/Monthly SIP total ₹85,936/)).toBeInTheDocument();
+  });
+});
+

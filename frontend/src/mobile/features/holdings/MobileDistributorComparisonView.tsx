@@ -6,6 +6,7 @@ import { cn, toTitleCase } from "@/lib/utils";
 import { formatIndianCurrency } from "@/lib/decimal";
 import { getAggregateDistributorComparison, getMemberDistributorComparison } from "@/features/dashboard/api";
 import type { DistributorPortfolioRow } from "@/features/dashboard/types";
+import { distributorChannel, distributorLabel } from "@/features/dashboard/distributorChannel";
 import { motion, useReducedMotion } from "motion/react";
 import { pageTransition, listContainerVariants, listItemVariants, isTestEnv } from "@/lib/motion";
 
@@ -139,7 +140,8 @@ export function MobileDistributorComparisonView({
           >
             {rows.map((row, idx) => {
               const key = rowKey(row, idx);
-              const isDirect = !row.arn_code;
+              const channel = distributorChannel(row);
+              const isDirect = channel !== "arn";
               const isPositive = !isGainNegative(row.unrealized_gain);
               const isExpanded = expanded.has(key);
 
@@ -165,9 +167,7 @@ export function MobileDistributorComparisonView({
                         />
                         <div className="min-w-0">
                           <span className="text-sm font-semibold text-[var(--color-ink)] truncate block">
-                            {isDirect
-                              ? "Direct Plan (No Broker)"
-                              : row.distributor_name || "Regular Broker"}
+                            {distributorLabel(row)}
                           </span>
                           {!isDirect && (
                             <span className="text-[11px] text-[var(--color-text-secondary)] tabular-nums">
@@ -177,7 +177,9 @@ export function MobileDistributorComparisonView({
                         </div>
                       </div>
 
-                      {isDirect ? (
+                      {channel === "regular-no-arn" ? (
+                        <Badge variant="neutral">Regular</Badge>
+                      ) : isDirect ? (
                         <Badge variant="positive">Direct</Badge>
                       ) : row.arn_status === "ACTIVE" ? (
                         <Badge variant="positive">{toTitleCase(row.arn_status)}</Badge>
@@ -223,6 +225,12 @@ export function MobileDistributorComparisonView({
                     </div>
                   </button>
 
+                  {(row.nav_unavailable_schemes?.length ?? 0) > 0 && (
+                    <p className="px-4 pb-3 text-[11px] text-[var(--color-text-secondary)]">
+                      Not compared (no NAV): {row.nav_unavailable_schemes!.join(", ")}
+                    </p>
+                  )}
+
                   {isExpanded && (
                     <div className="border-t border-[var(--color-border)]/60 divide-y divide-[var(--color-border)]/40">
                       {row.schemes.map((scheme) => {
@@ -242,9 +250,14 @@ export function MobileDistributorComparisonView({
                                 </span>
                               )}
                             </div>
+                            {scheme.annual_ter_saving && (
+                              <p className="text-[11px] font-medium text-[var(--color-positive)]">
+                                Saves {scheme.annual_ter_saving}% a year vs Regular
+                              </p>
+                            )}
                             <div className="flex items-center justify-between text-[11px] text-[var(--color-text-secondary)]">
                               <span>
-                                {scheme.units_held} units @ ₹{scheme.average_nav ?? "—"}
+                                {scheme.units_held} units @ {scheme.average_nav === null ? "—" : `₹${scheme.average_nav}`}
                               </span>
                               <span
                                 className={

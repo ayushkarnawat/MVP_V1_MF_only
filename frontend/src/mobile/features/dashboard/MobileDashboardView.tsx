@@ -1,10 +1,12 @@
-import { sumDecimalStrings } from "@/lib/decimal";
+import { sumDecimalStrings, toPercentString } from "@/lib/decimal";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   getAggregateHoldings,
   getAggregateAllocation,
   getMemberHoldings,
   getMemberAllocation,
+  getMemberSips,
+  getAggregateSips,
 } from "@/features/dashboard/api";
 import { getMemberCoverageGaps } from "@/features/import/api";
 import { listHouseholdMembers } from "@/features/auth/api";
@@ -12,6 +14,8 @@ import type {
   HoldingRow,
   AllocationSummary,
   FamilyMemberStatus,
+  RealizedSummary,
+  SipRow,
 } from "@/features/dashboard/types";
 import type { HouseholdMember } from "@/features/auth/types";
 import { invalidateApiCache } from "@/lib/apiClient";
@@ -26,6 +30,7 @@ import { Badge } from "@/components/Badge";
 import { MobileHoldingCardSummary } from "../holdings/MobileHoldingCardSummary";
 import { MobileFundDetailView } from "../holdings/MobileFundDetailView";
 import { MobileDistributorComparisonView } from "../holdings/MobileDistributorComparisonView";
+import { MobileHistoryView } from "../history/MobileHistoryView";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -51,7 +56,7 @@ import { staggerContainerVariants, staggerItemVariants } from "@/lib/motion";
 
 // Mobile-only legend/segment order for "By Asset Class" — web keeps the
 // backend's natural array order.
-const ASSET_CLASS_ORDER = ["Equity", "Hybrid", "Other"];
+const ASSET_CLASS_ORDER = ["Equity", "Debt", "Hybrid", "Other"];
 
 export interface MobileDashboardViewProps {
   importNotice?: { text: string; details?: string[] } | null;
@@ -98,6 +103,10 @@ function MobileDashboardViewContent({
   }, [viewMode]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedHolding, setSelectedHolding] = useState<HoldingRow | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const [realized, setRealized] = useState<RealizedSummary | null>(null);
+  const [lifetimeXirr, setLifetimeXirr] = useState<string | null>(null);
+  const [sips, setSips] = useState<SipRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -125,6 +134,14 @@ function MobileDashboardViewContent({
     setLoading(true);
     setError(null);
     setCoverageGaps([]);
+    setSips([]);
+
+    // Non-blocking: the SIP list is a secondary section and must not hold up
+    // or fail the hero/holdings render.
+    const sipsPromise = viewMode === "aggregate"
+      ? getAggregateSips(controller.signal).then((r) => r.sips)
+      : selectedMemberId ? getMemberSips(selectedMemberId, controller.signal) : null;
+    sipsPromise?.then((rows) => { if (isMounted) setSips(rows ?? []); }).catch(() => { });
 
     const fetchData = async () => {
       try {
@@ -136,6 +153,8 @@ function MobileDashboardViewContent({
           if (isMounted) {
             setHoldings(holdingsRes.holdings);
             setMembersStatus(holdingsRes.members);
+            setRealized(holdingsRes.realized_summary ?? null);
+            setLifetimeXirr(holdingsRes.lifetime_xirr ?? null);
             setAllocation(allocationRes.allocation);
             setCoverageGaps([]);
             setLoading(false);
@@ -147,6 +166,8 @@ function MobileDashboardViewContent({
           ]);
           if (isMounted) {
             setHoldings(holdingsRes);
+            setRealized(holdingsRes.realized_summary ?? null);
+            setLifetimeXirr(holdingsRes.lifetime_xirr ?? null);
             setAllocation(allocationRes);
             setLoading(false);
           }
@@ -164,6 +185,8 @@ function MobileDashboardViewContent({
         } else {
           if (isMounted) {
             setHoldings([]);
+            setRealized(null);
+            setLifetimeXirr(null);
             setMembersStatus([]);
             setAllocation(null);
             setCoverageGaps([]);
@@ -195,8 +218,30 @@ function MobileDashboardViewContent({
   const investedVal = parseFloat(sumDecimalStrings(valued.map((h) => h.amount_invested)));
   const profitVal = parseFloat(sumDecimalStrings(valued.map((h) => h.unrealized_gain || "0")));
   const gainPercentage = investedVal > 0 ? (profitVal / investedVal) * 100 : 0;
-  return { currentVal, investedVal, profitVal, gainPercentage, excludedCount: memberHoldings.length - valued.length };
-}, [memberHoldings]);
+  // A stale NAV's last move isn't today's (a written-off fund would show its
+  // whole value as lost every day) — 6B review #3.
+  const todayGain = parseFloat(sumDecimalStrings(valued.filter((h) => !h.stale_nav).map((h) => h.today_gain || "0")));
+  // #9/#14: realised gains include fully sold funds, so they come from the
+  // realised summary, narrowed by the same member filter as the list.
+  const realizedFunds = (realized?.funds ?? []).filter(
+    (f) => holdingsMemberFilter === "all" || f.household_member_id === holdingsMemberFilter,
+  );
+  const realizedVal = holdingsMemberFilter === "all" && realized
+    ? parseFloat(realized.total)
+    : parseFloat(sumDecimalStrings(realizedFunds.map((f) => f.realized_gain)));
+  return { currentVal, investedVal, profitVal, gainPercentage, todayGain, realizedVal, excludedCount: memberHoldings.length - valued.length };
+}, [memberHoldings, realized, holdingsMemberFilter]);
+
+  // #11: twin SIPs are `series_count` parallel SIPs of the same amount.
+  const shownSips = useMemo(
+    () => sips.filter((s) => (s.status ?? "active") === "active"
+      && (holdingsMemberFilter === "all" || s.household_member_id === holdingsMemberFilter)),
+    [sips, holdingsMemberFilter],
+  );
+  const monthlySipTotal = useMemo(
+    () => parseFloat(sumDecimalStrings(shownSips.map((s) => (parseFloat(s.sip_amount) * (s.series_count ?? 1)).toFixed(2)))),
+    [shownSips],
+  );
 
   const reloadMembers = async () => {
     invalidateApiCache();
@@ -254,6 +299,24 @@ function MobileDashboardViewContent({
     setSelectedHolding(item);
     onDetailViewToggle?.(item !== null);
   };
+
+  const handleToggleHistory = (open: boolean) => {
+    setShowHistory(open);
+    onDetailViewToggle?.(open);
+  };
+
+  if (showHistory) {
+    return (
+      <MobileHistoryView
+        viewMode={holdingsMemberFilter !== "all" ? "member" : viewMode}
+        memberId={holdingsMemberFilter !== "all" ? holdingsMemberFilter : selectedMemberId}
+        memberName={holdingsMemberFilter !== "all"
+          ? (membersStatus.find((m) => m.id === holdingsMemberFilter) ?? members.find((m) => m.id === holdingsMemberFilter))?.name
+          : selected?.name}
+        onBack={() => handleToggleHistory(false)}
+      />
+    );
+  }
 
   /* Dedicated Full-Screen Fund Details View */
   if (selectedHolding) {
@@ -572,7 +635,46 @@ function MobileDashboardViewContent({
             </div>
           </div>
         </div>
+
+        <div className="grid grid-cols-3 gap-2 mt-3 text-xs">
+          {/* The XIRR is the whole household's; with one member picked in the
+              list it would mix scopes with the figures beside it (6B review #6). */}
+          <HeroStat label="XIRR" value={lifetimeXirr === null || holdingsMemberFilter !== "all" ? "—" : `${toPercentString(lifetimeXirr)}%`} />
+          <HeroStat label="Realised gain" value={signedRupees(totals.realizedVal)} />
+          <HeroStat label="Today’s gain" value={signedRupees(totals.todayGain)} />
+        </div>
+        <button
+          type="button"
+          onClick={() => handleToggleHistory(true)}
+          className="mt-3 w-full text-left text-xs font-semibold text-[var(--color-accent)] cursor-pointer"
+        >
+          History ›
+        </button>
       </motion.section>
+
+      {shownSips.length > 0 && (
+        <motion.section
+          variants={staggerItemVariants}
+          data-testid="mobile-upcoming-sips"
+          className="p-4 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-2xs space-y-2"
+        >
+          <span className="text-xs font-semibold text-[var(--color-ink)]">Upcoming SIPs</span>
+          <ul className="space-y-1.5">
+            {shownSips.map((sip) => (
+              <li key={`${sip.scheme_id}-${sip.household_member_id}-${sip.sip_amount}-${sip.sip_date}`} className="flex items-center justify-between gap-2 text-xs">
+                <span className="truncate text-[var(--color-ink)]">{sip.scheme_name}</span>
+                <span className="flex-shrink-0 tabular-nums text-[var(--color-text-secondary)]">
+                  ₹{formatCurrency(parseFloat(sip.sip_amount))}
+                  {(sip.series_count ?? 1) > 1 ? ` × ${sip.series_count}` : ""}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="pt-2 border-t border-[var(--color-border)]/60 text-xs font-semibold text-[var(--color-ink)]">
+            Monthly SIP total ₹{formatCurrency(monthlySipTotal)}
+          </p>
+        </motion.section>
+      )}
 
       {/* 2. S22: Pending Family Imports Strip */}
       {membersStatus.some((m) => !m.has_data) && (
@@ -757,6 +859,19 @@ function MobileDashboardViewContent({
       />
     </motion.div>
   );
+}
+
+function HeroStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col">
+      <span className="text-[11px] text-[var(--color-text-secondary)] font-medium">{label}</span>
+      <span className="font-semibold tabular-nums text-[var(--color-ink)] mt-0.5">{value}</span>
+    </div>
+  );
+}
+
+function signedRupees(val: number): string {
+  return `${val < 0 ? "−" : ""}₹${formatCurrency(Math.abs(val))}`;
 }
 
 function formatCurrency(val: number): string {
