@@ -27,6 +27,7 @@ from casparser.types import CASData, NSDLCASData
 
 from app.core.decimal_utils import quantize_amount, quantize_nav, quantize_units, to_decimal
 from app.models.enums import TransactionType
+from app.services.lot_rules import apply_lot_rules
 from app.services.import_.people import (
     ParsedPerson,
     extract_folio_holders,
@@ -49,7 +50,16 @@ CAS_TO_CANONICAL: dict[str, TransactionType] = {
     "SEGREGATION": TransactionType.SEGREGATION,
     "STT_TAX": TransactionType.STT,
     "STAMP_DUTY_TAX": TransactionType.STAMP_DUTY,
+    # #3: these used to fall through to MISC and be ignored.
+    "REVERSAL": TransactionType.REVERSAL,
+    "GIFT_IN": TransactionType.GIFT_IN,
+    "GIFT_OUT": TransactionType.GIFT_OUT,
+    "TDS_TAX": TransactionType.MISC,
+    "UNKNOWN": TransactionType.MISC,
 }
+
+# Informational tax rows: skipped silently when they carry no units.
+_SILENT_TAX_TYPES = {"STAMP_DUTY_TAX", "STT_TAX", "TDS_TAX"}
 
 SOURCE_CAS_TYPE_MAP = {"CAMS": "cams", "KFINTECH": "kfintech"}
 
@@ -163,6 +173,9 @@ class NormalizedTransaction:
     person_key: str | None = None
     balance: Decimal | None = None
     conversion_from_opening: bool = False
+    # #3: a gift row the CAS printed without a NAV; priced at preview time
+    # from the fund's NAV history (service.build_import_preview).
+    needs_price: bool = False
 
     @property
     def key(self) -> SchemeKey:
@@ -287,30 +300,16 @@ def _is_conversion(raw_type: str, description: str) -> bool:
 
 def _fifo_cost(rows: list[NormalizedTransaction], opening_units: Decimal, consume: Decimal) -> tuple[Decimal, bool]:
     """Cost of `consume` units taken FIFO from this scheme's lots before the
-    conversion. Returns (cost, from_opening): from_opening is True when any
-    consumed unit is from the opening lot, whose cost is only known after
-    opening_balance prices it (preview time)."""
-    lots: list[list[Decimal]] = [[opening_units, Decimal("-1")]] if opening_units > 0 else []
+    conversion, replaying rows with the shared lot rules (lot_rules.py).
+    Returns (cost, from_opening): from_opening is True when any consumed unit
+    is from the opening lot, whose cost is only known after opening_balance
+    prices it (preview time)."""
+    lots: list[list] = [[opening_units, Decimal("0"), True]] if opening_units > 0 else []
     for r in rows:
-        if r.txn_type in (TransactionType.PURCHASE, TransactionType.PURCHASE_SIP, TransactionType.SWITCH_IN,
-                          TransactionType.DIVIDEND_REINVEST):
-            lots.append([r.units, r.nav])
-        elif r.txn_type in (TransactionType.REDEMPTION, TransactionType.SWITCH_OUT):
-            rem = r.units
-            while rem > 0 and lots:
-                take = min(lots[0][0], rem); lots[0][0] -= take; rem -= take
-                if lots[0][0] == 0: lots.pop(0)
-    cost, from_opening, rem = Decimal("0"), False, consume
-    while rem > 0 and lots:
-        take = min(lots[0][0], rem)
-        if lots[0][1] < 0:
-            from_opening = True
-        else:
-            cost += take * lots[0][1]
-        lots[0][0] -= take; rem -= take
-        if lots[0][0] == 0: lots.pop(0)
-    return cost, from_opening
-
+        apply_lot_rules(lots, r.txn_type, r.units, r.nav, lambda u, n: [u, n, False])
+    pieces = apply_lot_rules(lots, TransactionType.SWITCH_OUT, consume, Decimal("0"), lambda u, n: [u, n, False])
+    cost = sum((take * lot[1] for lot, take in pieces if not lot[2]), Decimal("0"))
+    return cost, any(lot[2] for lot, _ in pieces)
 
 
 def _pair_conversions(amountless, transactions, scheme_map, parse_warnings):
@@ -339,6 +338,39 @@ def _pair_conversions(amountless, transactions, scheme_map, parse_warnings):
                     f"missing amount, units, or NAV — {row.description}"
                 )
     transactions.sort(key=lambda t: t.txn_date)
+
+
+def _raw_key(raw_type) -> str:
+    return str(raw_type).split(".")[-1].upper()
+
+
+def _retain(
+    raw_type, description: str, amount: Decimal | None, units: Decimal | None, nav: Decimal | None,
+) -> tuple[TransactionType, Decimal, Decimal, Decimal, bool] | None:
+    """#3: rows casparser gives without amount, units or NAV that still mean
+    something. Returns (type, amount, units, nav, needs_price), or None to
+    skip. Conversion legs are handled before this (phase 2 pairing)."""
+    key = _raw_key(raw_type)
+    desc = (description or "").lower()
+    zero_amt, zero_nav = Decimal("0.00"), Decimal("0.0000")
+    if key == "DIVIDEND_PAYOUT" and amount is not None and units is None:
+        return TransactionType.DIVIDEND_PAYOUT, amount, Decimal("0.000"), zero_nav, False
+    if units is None:
+        return None
+    # Only a unit-adding row can be a bonus (review finding 4): a gift-out or
+    # reversal whose description mentions "bonus" keeps its own meaning.
+    if "bonus" in desc and key in ("PURCHASE", "MISC", "UNKNOWN") and (amount is None or amount == 0):
+        return TransactionType.BONUS, zero_amt, units, zero_nav, False
+    if key == "SEGREGATION":
+        return TransactionType.SEGREGATION, amount or zero_amt, units, nav or zero_nav, False
+    if key in ("GIFT_IN", "GIFT_OUT"):
+        ttype = CAS_TO_CANONICAL[key]
+        if nav is not None:
+            return ttype, quantize_amount(units * nav), units, nav, False
+        return ttype, zero_amt, units, zero_nav, True
+    if key == "REVERSAL" and amount is not None and units:
+        return TransactionType.REVERSAL, amount, units, quantize_nav(amount / units), False
+    return None
 
 
 def _normalize_cas_data(data: CASData, lines: list[str] | None = None) -> ParseResult:
@@ -431,18 +463,25 @@ def _normalize_cas_data(data: CASData, lines: list[str] | None = None) -> ParseR
                         amountless.setdefault((folio.amc, candidate.txn_date), []).append(
                             (candidate, to_decimal(txn.units), str(txn.type)))
                         continue
-                    if normalize_txn_type(txn.type) not in (TransactionType.STAMP_DUTY, TransactionType.STT):
-                        parse_warnings.append(
-                            f"Skipped transaction on {txn.date} for {scheme.scheme} (folio {folio.folio}): "
-                            f"missing amount, units, or NAV — {txn.description}"
-                        )
-                    continue
+                    kept = _retain(txn.type, txn.description, amount, units, nav)
+                    if kept is None:
+                        if _raw_key(txn.type) not in _SILENT_TAX_TYPES:
+                            parse_warnings.append(
+                                f"Skipped transaction on {txn.date} for {scheme.scheme} (folio {folio.folio}): "
+                                f"missing amount, units, or NAV — {txn.description}"
+                            )
+                        continue
+                    ttype, amount, units, nav, needs_price = kept
+                else:
+                    ttype, needs_price = normalize_txn_type(txn.type), False
+                    if ttype == TransactionType.PURCHASE and amount == 0 and "bonus" in (txn.description or "").lower():
+                        ttype = TransactionType.BONUS
                 norm = NormalizedTransaction(
                     folio=folio.folio, amc=folio.amc, scheme_name=scheme.scheme,
                     isin=scheme.isin, amfi=scheme.amfi, scheme_type=scheme.type,
-                    txn_date=_parse_date(txn.date), txn_type=normalize_txn_type(txn.type),
+                    txn_date=_parse_date(txn.date), txn_type=ttype,
                     description=txn.description, amount=amount, units=units, nav=nav,
-                    person_key=pkey,
+                    person_key=pkey, needs_price=needs_price,
                     balance=quantize_units(_optional_decimal(txn.balance))
                     if _optional_decimal(getattr(txn, "balance", None)) is not None else None,
                 )

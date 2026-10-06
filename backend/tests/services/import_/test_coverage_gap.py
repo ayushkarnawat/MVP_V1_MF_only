@@ -189,7 +189,35 @@ def test_manual_opening_balance_resolves_coverage_gap(db_session, folio_setup):
     manual_import = db_session.get(Import, created_txn.import_id)
     assert manual_import is not None
     assert manual_import.new_transactions_count == 1
+    from app.models.transaction_import import TransactionImport
+    [link] = db_session.query(TransactionImport).filter_by(transaction_id=created_txn.id).all()
+    assert link.import_id == manual_import.id
     assert manual_import.statement_from_date is None
     assert manual_import.statement_to_date is None
     assert folio.has_coverage_gap is False
     assert folio.coverage_gap_details is None
+
+
+def test_gift_out_beyond_holdings_flags_coverage_gap(db_session, folio_setup):
+    from app.services.import_.coverage_gap import evaluate_folio_coverage_gaps
+    folio, imp = folio_setup["folio"], folio_setup["import_rec"]
+    for type_, day, units in ((TransactionType.PURCHASE, date(2020, 1, 1), "10.000"),
+                              (TransactionType.GIFT_OUT, date(2021, 1, 1), "15.000")):
+        db_session.add(Transaction(id=uuid.uuid4(), folio_id=folio.id, import_id=imp.id, type=type_, date=day,
+                                   amount=Decimal("100.00"), units=Decimal(units), nav=Decimal("10.0000")))
+    db_session.commit()
+    gap = evaluate_folio_coverage_gaps(db_session, folio.id)
+    assert gap is not None and gap["deficit_units"] == "5.000"
+
+
+def test_bonus_counts_as_inflow_for_coverage(db_session, folio_setup):
+    from app.services.import_.coverage_gap import evaluate_folio_coverage_gaps
+    folio, imp = folio_setup["folio"], folio_setup["import_rec"]
+    for type_, day, units in ((TransactionType.PURCHASE, date(2020, 1, 1), "10.000"),
+                              (TransactionType.BONUS, date(2020, 6, 1), "10.000"),
+                              (TransactionType.REDEMPTION, date(2021, 1, 1), "20.000")):
+        db_session.add(Transaction(id=uuid.uuid4(), folio_id=folio.id, import_id=imp.id, type=type_, date=day,
+                                   amount=Decimal("100.00"), units=Decimal(units), nav=Decimal("10.0000")))
+    db_session.commit()
+    assert evaluate_folio_coverage_gaps(db_session, folio.id) is None
+

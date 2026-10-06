@@ -13,6 +13,7 @@ from app.models.enums import CostSource, TransactionOrigin, ImportStatus, Transa
 from app.models.folio import Folio
 from app.models.imports import Import
 from app.models.transaction import Transaction
+from app.models.transaction_import import TransactionImport
 from app.models.user import HouseholdMember
 
 UNIT_INFLOW_TYPES = {
@@ -21,11 +22,16 @@ UNIT_INFLOW_TYPES = {
     TransactionType.SWITCH_IN,
     TransactionType.DIVIDEND_REINVEST,
     TransactionType.OPENING_BALANCE,
+    TransactionType.GIFT_IN,
+    TransactionType.BONUS,
+    TransactionType.SEGREGATION,
 }
 
 UNIT_OUTFLOW_TYPES = {
     TransactionType.REDEMPTION,
     TransactionType.SWITCH_OUT,
+    TransactionType.GIFT_OUT,
+    TransactionType.REVERSAL,
 }
 
 
@@ -160,6 +166,7 @@ def create_opening_balance(
         origin=TransactionOrigin.MANUAL, cost_source=CostSource.MANUAL,
     )
     db.add(txn)
+    db.add(TransactionImport(transaction_id=txn.id, transaction_date=txn.date, import_id=manual_import.id))
     db.flush()
 
     # Re-evaluate coverage gap

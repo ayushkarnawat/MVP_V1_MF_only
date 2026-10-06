@@ -4,12 +4,14 @@ from datetime import date
 from decimal import Decimal
 
 from app.core.decimal_utils import quantize_amount, quantize_nav
-from app.models.enums import CostSource, TransactionType
+from app.models.enums import CostSource
 from app.services.import_.parser import NormalizedTransaction, ParsedScheme
 
-_IN = {TransactionType.PURCHASE, TransactionType.PURCHASE_SIP,
-       TransactionType.SWITCH_IN, TransactionType.DIVIDEND_REINVEST}
-_OUT = {TransactionType.REDEMPTION, TransactionType.SWITCH_OUT}
+from app.services.lot_rules import apply_lot_rules
+
+
+def _in_period_lot(units: Decimal, nav: Decimal) -> list:
+    return [units, nav, False]
 
 
 @dataclass(frozen=True)
@@ -21,18 +23,14 @@ class OpeningLot:
     cost_source: CostSource
 
 
-def _consume(lots, units):
+def _split(pieces) -> tuple[Decimal, Decimal]:
+    """(opening units, known in-period cost) of the lots a removal consumed."""
     opening, cost = Decimal("0"), Decimal("0")
-    while units > 0 and lots:
-        take = min(units, lots[0][0])
-        if lots[0][2]:
+    for lot, take in pieces:
+        if lot[2]:
             opening += take
         else:
-            cost += take * lots[0][1]
-        lots[0][0] -= take
-        units -= take
-        if lots[0][0] == 0:
-            lots.pop(0)
+            cost += take * lot[1]
     return opening, cost
 
 
@@ -44,10 +42,7 @@ def price_opening_lot(
         return None
     lots = [[scheme.open_units, Decimal("0"), True]]
     for row in sorted(txns, key=lambda t: t.txn_date):
-        if row.txn_type in _IN:
-            lots.append([row.units, row.nav, False])
-        elif row.txn_type in _OUT:
-            _consume(lots, row.units)
+        apply_lot_rules(lots, row.txn_type, row.units, row.nav, _in_period_lot)
     remaining = sum((u for u, n, opening in lots if opening), Decimal("0"))
     held_cost = sum((u * n for u, n, opening in lots if not opening), Decimal("0"))
     series = sorted(nav_series or [])
@@ -70,10 +65,9 @@ def apply_opening_cost_to_conversions(
 ) -> None:
     lots = [[lot.units, lot.nav, True]]
     for index, row in sorted(enumerate(txns), key=lambda item: item[1].txn_date):
-        if row.txn_type in _IN:
-            lots.append([row.units, row.nav, False])
-        elif row.txn_type in _OUT:
-            opening, known_cost = _consume(lots, row.units)
+        pieces = apply_lot_rules(lots, row.txn_type, row.units, row.nav, _in_period_lot)
+        if pieces:
+            opening, known_cost = _split(pieces)
             if row.conversion_from_opening:
                 amount = quantize_amount(opening * lot.nav + known_cost)
                 incoming = partner[index]

@@ -30,6 +30,10 @@ def test_normalize_txn_type_maps_to_monolith_enum():
     assert normalize_txn_type("STT_TAX") == TransactionType.STT
     assert normalize_txn_type("STAMP_DUTY_TAX") == TransactionType.STAMP_DUTY
     assert normalize_txn_type("UNKNOWN_TYPE") == TransactionType.MISC
+    assert normalize_txn_type("REVERSAL") == TransactionType.REVERSAL
+    assert normalize_txn_type("GIFT_IN") == TransactionType.GIFT_IN
+    assert normalize_txn_type("GIFT_OUT") == TransactionType.GIFT_OUT
+    assert normalize_txn_type("TDS_TAX") == TransactionType.MISC
 
 
 def test_classify_plan_from_name_direct():
@@ -556,3 +560,90 @@ def test_conversion_with_amount_but_missing_nav_is_skipped():
     result = _normalize_cas_data(_data(old, new))
     assert result.transactions == []
     assert len([w for w in result.parse_warnings if "Skipped transaction" in w]) == 2
+
+
+# ---- Phase 3 (#3): every row type, direction kept ----
+
+
+def _one(t):
+    return _normalize_cas_data(_data(_scheme("X Fund - Direct Plan - Growth", "INF1", [t], close="1"))).transactions
+
+
+def test_payout_row_kept_with_zero_units():
+    [row] = _one(_t("2022-03-01", "IDCW Paid", "2500", None, None, "DIVIDEND_PAYOUT"))
+    assert row.txn_type == TransactionType.DIVIDEND_PAYOUT
+    assert row.units == 0 and row.nav == 0 and row.amount == Decimal("2500.00")
+
+
+def test_bonus_row_kept_at_zero_cost():
+    [row] = _one(_t("2018-06-01", "Bonus Units Allotted", None, "444.000", None, "PURCHASE"))
+    assert row.txn_type == TransactionType.BONUS and row.amount == 0 and row.nav == 0
+    assert row.units == Decimal("444.000")
+
+
+def test_bonus_row_with_zero_amount_and_price_is_bonus():
+    [row] = _one(_t("2018-06-01", "BONUS", "0", "10.000", "0", "PURCHASE"))
+    assert row.txn_type == TransactionType.BONUS
+
+
+def test_reversal_maps_to_reversal():
+    [row] = _one(_t("2020-02-07", "SIP Purchase - Reversal", "-5000", "-43.21", "115.71", "REVERSAL"))
+    assert row.txn_type == TransactionType.REVERSAL and row.units == Decimal("43.210")
+    assert row.amount == Decimal("5000.00")
+
+
+def test_reversal_without_nav_derives_it():
+    [row] = _one(_t("2020-02-07", "Reversal", "-5000", "-50.000", None, "REVERSAL"))
+    assert row.txn_type == TransactionType.REVERSAL and row.nav == Decimal("100.0000")
+
+
+def test_gift_without_nav_needs_price():
+    [row] = _one(_t("2021-04-01", "Gift - Units Credited", None, "1500.000", None, "GIFT_IN"))
+    assert row.txn_type == TransactionType.GIFT_IN and row.needs_price
+    assert row.amount == 0 and row.nav == 0
+
+
+def test_gift_with_nav_is_priced_from_cas():
+    [row] = _one(_t("2021-04-01", "Gift - Units Debited", None, "-10.000", "20.5", "GIFT_OUT"))
+    assert row.txn_type == TransactionType.GIFT_OUT and not row.needs_price
+    assert row.amount == Decimal("205.00") and row.units == Decimal("10.000")
+
+
+def test_segregation_kept():
+    [row] = _one(_t("2020-01-24", "Segregated Portfolio Allotment", None, "1200.000", None, "SEGREGATION"))
+    assert row.txn_type == TransactionType.SEGREGATION and row.units == Decimal("1200.000")
+    assert row.amount == 0 and row.nav == 0
+
+
+def test_tds_without_units_is_silent():
+    result = _normalize_cas_data(_data(_scheme("X Fund", "INF1", [_t("2022-03-01", "TDS", "12", None, None, "TDS_TAX")], close="1")))
+    assert result.transactions == []
+    assert not any("TDS" in w for w in result.parse_warnings)
+
+
+def test_unknown_amountless_row_still_warns():
+    result = _normalize_cas_data(_data(_scheme("X Fund", "INF1", [_t("2022-03-01", "Odd row", None, "5", None, "MISC")], close="1")))
+    assert result.transactions == []
+    assert any("Odd row" in w for w in result.parse_warnings)
+
+
+def test_conversion_cost_skips_a_bounced_sip_lot():
+    # review finding 2: buy 40 @125 (bounced), buy 10 @100, then convert 10 units → cost 1,000, not 1,250
+    old = _scheme("Old Fund - Direct Plan - Growth", "INF_A", [
+        _t("2015-01-01", "SIP Purchase", "5000", "40", "125", "PURCHASE_SIP"),
+        _t("2015-01-05", "SIP Purchase - Reversal", "-5000", "-40", "125", "REVERSAL"),
+        _t("2015-02-01", "Purchase", "1000", "10", "100", "PURCHASE"),
+        _t("2018-06-01", "Switch-Out - Merger", None, "-10", None, "SWITCH_OUT_MERGER"),
+    ])
+    new = _scheme("New Fund - Direct Plan - Growth", "INF_B", [
+        _t("2018-06-01", "Switch-In - Merger", None, "8", None, "SWITCH_IN_MERGER"),
+    ], close="8")
+    tx = {t.isin: t for t in _normalize_cas_data(_data(old, new)).transactions if t.txn_date.isoformat() == "2018-06-01"}
+    assert tx["INF_A"].amount == tx["INF_B"].amount == Decimal("1000.00")
+
+
+def test_bonus_description_on_a_reversal_is_not_bonus():
+    # review finding 4: the bonus rule applies to unit-adding rows only
+    [row] = _one(_t("2019-01-01", "Bonus units gifted", None, "-5.000", None, "GIFT_OUT"))
+    assert row.txn_type == TransactionType.GIFT_OUT and row.needs_price
+

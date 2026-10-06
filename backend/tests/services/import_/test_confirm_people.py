@@ -955,17 +955,27 @@ from app.models.transaction import Transaction
 
 def _solo(*, open_units="0", start, cost="0", rows=()):
     """One person, one fund (folio 1001/1): opening `open_units` at `start`,
-    then `rows` = [(date, units)] purchases at NAV 50."""
+    then `rows` = [(date, units)] or [(date, units, balance)] purchases at NAV 50."""
     result = family_result([{"name": "ADITI SHARMA", "pan": ADITI_PAN}])
     scheme, tmpl = result.schemes[0], result.transactions[0]
     scheme.open_units, scheme.valuation_cost = Decimal(open_units), Decimal(cost)
     scheme.valuation_nav = Decimal("50")
     result.statement_from = start
-    result.transactions = [
-        replace(tmpl, txn_date=d, units=Decimal(u), nav=Decimal("50.0000"), amount=Decimal(u) * 50)
-        for d, u in rows
-    ]
+    result.transactions = []
+    for d, u, *bal in rows:
+        result.transactions.append(replace(
+            tmpl, txn_date=d, units=Decimal(u), nav=Decimal("50.0000"), amount=Decimal(u) * 50,
+            balance=Decimal(bal[0]) if bal and bal[0] is not None else None,
+        ))
     scheme.transaction_count = len(result.transactions)
+    # casparser-shaped raw output for this fund, so restore-opening (#5) can
+    # read its opening units and CAS cost back from imports.raw_parser_output.
+    result.raw_json = json.dumps({"folios": [{"folio": scheme.folio, "amc": scheme.amc, "PAN": None, "schemes": [{
+        "scheme": scheme.name, "isin": scheme.isin, "amfi": scheme.amfi, "open": str(open_units),
+        "close": str(Decimal(open_units) + sum((Decimal(r[1]) for r in rows), Decimal("0"))),
+        "valuation": {"date": "2026-10-05", "nav": "50", "value": "0", "cost": str(cost)},
+        "transactions": [],
+    }]}]})
     return result
 
 
@@ -1098,3 +1108,124 @@ def test_opening_rule_reports_removal_when_earlier_history_blocks_replacement(db
     assert db_session.get(Transaction, (earlier.id, earlier.date)) is not None
     rows = db_session.query(Transaction).filter_by(folio_id=folio.id).order_by(Transaction.date).all()
     assert _process_folio_lots(rows)[0] == statement.schemes[0].close_units
+
+
+# ---- Phase 3 (#2): twin same-day rows, balance + occurrence matcher ----
+
+
+def test_twin_rows_saved_then_reupload_adds_nothing(db_session):
+    me = _member(db_session, _user(db_session), "Aditi Sharma")
+    twins = [(date(2021, 1, 5), "131.342", "1092.978"), (date(2021, 1, 5), "131.342", "1224.320")]
+    first = _upload(db_session, me, _solo(start=date(2021, 1, 1), rows=twins))
+    assert first.added == 2
+    assert sorted(t.occurrence for t in db_session.query(Transaction).all()) == [1, 2]
+    with pytest.raises(confirm_people.AlreadyImportedError):
+        _upload(db_session, me, _solo(start=date(2021, 1, 1), rows=twins))
+    assert db_session.query(Transaction).count() == 2
+
+
+def test_null_balance_row_is_matched_and_healed(db_session):
+    me = _member(db_session, _user(db_session), "Aditi Sharma")
+    _upload(db_session, me, _solo(start=date(2021, 1, 1), rows=[(date(2021, 1, 5), "10", None)]))
+    assert db_session.query(Transaction).one().balance_units is None
+    _upload(db_session, me, _solo(start=date(2021, 1, 1),
+                                  rows=[(date(2021, 1, 5), "10", "10"), (date(2021, 2, 5), "10", "20")]))
+    rows = db_session.query(Transaction).order_by(Transaction.date).all()
+    assert len(rows) == 2 and rows[0].balance_units == Decimal("10.000")
+
+
+def test_legacy_single_row_plus_twin_upload_adds_only_the_twin(db_session):
+    me = _member(db_session, _user(db_session), "Aditi Sharma")
+    _upload(db_session, me, _solo(start=date(2021, 1, 1), rows=[(date(2021, 1, 5), "10", None)]))
+    twins = [(date(2021, 1, 5), "10", "10"), (date(2021, 1, 5), "10", "20")]
+    assert _upload(db_session, me, _solo(start=date(2021, 1, 1), rows=twins)).added == 1
+    assert sorted(t.occurrence for t in db_session.query(Transaction).all()) == [1, 2]
+
+
+def test_overlapping_lookbacks_add_only_new_rows(db_session):
+    me = _member(db_session, _user(db_session), "Aditi Sharma")
+    a = [(date(2021, 1, 5), "10", "10"), (date(2021, 2, 5), "10", "20")]
+    b = a + [(date(2021, 3, 5), "10", "30")]
+    _upload(db_session, me, _solo(start=date(2021, 1, 1), rows=a))
+    assert _upload(db_session, me, _solo(start=date(2021, 1, 1), rows=b)).added == 1
+
+
+def test_rows_without_balance_are_counted(db_session):
+    me = _member(db_session, _user(db_session), "Aditi Sharma")
+    one = [(date(2021, 1, 5), "10")]
+    two = one + [(date(2021, 1, 5), "10")]
+    _upload(db_session, me, _solo(start=date(2021, 1, 1), rows=one))
+    assert _upload(db_session, me, _solo(start=date(2021, 1, 1), rows=two)).added == 1
+
+
+def test_already_imported_dry_run_fills_no_balances(db_session):
+    """Phase 3 review: the dry run behind AlreadyImportedError must not heal
+    NULL balances (it writes nothing)."""
+    me = _member(db_session, _user(db_session), "Aditi Sharma")
+    _upload(db_session, me, _solo(start=date(2021, 1, 1), rows=[(date(2021, 1, 5), "10", None)]))
+    with pytest.raises(confirm_people.AlreadyImportedError):
+        _upload(db_session, me, _solo(start=date(2021, 1, 1), rows=[(date(2021, 1, 5), "10", "10")]))
+    db_session.expire_all()
+    assert db_session.query(Transaction).one().balance_units is None
+
+
+def test_balance_mismatch_on_overlap_warns(db_session):
+    """Phase 3 review finding 5 (guard): an overlapping upload whose balances
+    don't match the saved ones (with the same date/amount/units/type) is
+    inserted, but the confirm response says so."""
+    me = _member(db_session, _user(db_session), "Aditi Sharma")
+    _upload(db_session, me, _solo(start=date(2021, 1, 1), rows=[(date(2021, 1, 5), "10", "10")]))
+    response = _upload(db_session, me, _solo(start=date(2021, 1, 1),
+                                             rows=[(date(2021, 1, 5), "10", "11"), (date(2021, 2, 5), "10", "21")]))
+    assert any("running balance" in w for w in response.warnings)
+
+
+# ---- Phase 4 (#4): folio key ----
+
+
+def test_same_folio_spelled_two_ways_is_one_folio(db_session):
+    me = _member(db_session, _user(db_session), "Aditi Sharma")
+    a = _solo(start=date(2021, 1, 1), rows=[(date(2021, 1, 5), "10", "10")])
+    a.schemes[0].folio = "1001 / 1"
+    a.transactions[0].folio = "1001 / 1"
+    _upload(db_session, me, a)
+    b = _solo(start=date(2021, 1, 1), rows=[(date(2021, 1, 5), "10", "10"), (date(2021, 2, 5), "10", "20")])
+    _upload(db_session, me, b)                    # family_result's own spelling "1001/1"
+    assert db_session.query(Folio).count() == 1
+    assert db_session.query(Transaction).count() == 2
+
+
+# ---- Phase 4 (#5): every row in a file is linked to its import ----
+
+
+def _links_of(db, txn):
+    from app.models.transaction_import import TransactionImport
+    return {l.import_id for l in db.query(TransactionImport).filter_by(transaction_id=txn.id)}
+
+
+def test_overlapping_import_links_the_rows_it_contains(db_session):
+    me = _member(db_session, _user(db_session), "Aditi Sharma")
+    rows = [(date(2021, 1, 5), "10", "10"), (date(2021, 2, 5), "10", "20")]
+    first = _upload(db_session, me, _solo(start=date(2021, 1, 1), rows=rows[:1]))
+    second = _upload(db_session, me, _solo(start=date(2021, 1, 1), rows=rows))
+    jan = db_session.query(Transaction).filter_by(date=date(2021, 1, 5)).one()
+    feb = db_session.query(Transaction).filter_by(date=date(2021, 2, 5)).one()
+    assert _links_of(db_session, jan) == {uuid.UUID(first.import_id), uuid.UUID(second.import_id)}
+    assert _links_of(db_session, feb) == {uuid.UUID(second.import_id)}
+
+
+def test_rows_matched_by_count_are_linked(db_session):
+    me = _member(db_session, _user(db_session), "Aditi Sharma")
+    one = [(date(2021, 1, 5), "10")]
+    first = _upload(db_session, me, _solo(start=date(2021, 1, 1), rows=one))
+    second = _upload(db_session, me, _solo(start=date(2021, 1, 1), rows=one + [(date(2021, 3, 5), "5")]))
+    jan = db_session.query(Transaction).filter_by(date=date(2021, 1, 5)).one()
+    assert _links_of(db_session, jan) == {uuid.UUID(first.import_id), uuid.UUID(second.import_id)}
+
+
+def test_opening_row_is_linked_to_its_import(db_session):
+    me = _member(db_session, _user(db_session), "Aditi Sharma")
+    response = _upload(db_session, me, _solo(open_units="100", cost="5000", start=date(2026, 4, 1)))
+    [opening] = _openings(db_session)
+    assert _links_of(db_session, opening) == {uuid.UUID(response.import_id)}
+

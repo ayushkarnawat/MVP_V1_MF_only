@@ -40,11 +40,12 @@ from app.models.enums import (
     TransactionOrigin,
     TransactionType,
 )
-from app.models.folio import Folio
+from app.models.folio import Folio, normalise_folio_key
 from app.models.imports import Import, ImportStatus
 from app.models.member_history import HouseholdMemberNameChange
 from app.models.reference import Scheme
 from app.models.transaction import Transaction
+from app.models.transaction_import import TransactionImport
 from app.models.user import HouseholdMember
 from app.services.dashboard.holdings import invalidate_holdings_cache
 from app.services.import_.crypto import hash_pan
@@ -280,6 +281,7 @@ def _confirm_claimed(
     results: list[PersonConfirmResult] = []
     imports: list[Import] = []
     me_import_id: str | None = None
+    match_warnings: list[str] = []
     for work in works:
         member, created = _member_for(db, work, user_id, now)
         if not created and work.person is not None and work.person.pan:
@@ -320,6 +322,7 @@ def _confirm_claimed(
         added, skipped = _write_person_rows(
             db, member, import_rec, schemes, txns, overrides, previews=previews, key_to_temp=key_to_temp,
             opening_lots=session.get("opening_lots", {}), statement_from=parse_result.statement_from,
+            match_warnings=match_warnings,
         )
         import_rec.new_transactions_count = added
         import_rec.duplicate_transactions_count = skipped
@@ -348,7 +351,8 @@ def _confirm_claimed(
         import_id=me_import_id or results[0].import_id,
         people=results,
         upload_group_id=str(upload_group_id),
-        warnings=[w for w in parse_result.parse_warnings if "stamp" not in w.lower() and "stt" not in w.lower()],
+        warnings=[w for w in parse_result.parse_warnings if "stamp" not in w.lower() and "stt" not in w.lower()]
+        + match_warnings,
     )
     touched = list(dict.fromkeys(uuid.UUID(r.member_id) for r in results))
     return response, touched
@@ -773,13 +777,15 @@ def _apply_opening_rule(
     if earlier:
         return "removed" if deleted else "skipped"
     if not dry_run:
-        db.add(Transaction(
+        opening = Transaction(
             id=uuid.uuid4(), folio_id=folio.id, import_id=import_rec.id,
             type=TransactionType.OPENING_BALANCE, date=lot.start,
             units=lot.units, amount=lot.amount, nav=lot.nav,
             origin=TransactionOrigin.CAS_OPENING, cost_source=lot.cost_source,
             raw_description=f"Opening balance from CAS ({lot.start})",
-        ))
+        )
+        db.add(opening)
+        db.add(TransactionImport(transaction_id=opening.id, transaction_date=opening.date, import_id=import_rec.id))
         db.flush()
     return "replaced" if deleted else "written"
 
@@ -826,11 +832,13 @@ def _folio_for(db, member, parsed_scheme, preview, override, scheme_cache, folio
             scheme_cache[amfi_code] = new_scheme
 
     scheme = scheme_cache[amfi_code]
-    cache_key = (member_id, scheme.id, parsed_scheme.folio)
+    # #4: match on the folio key, so "4400918 / 3" and "4400918/3" are one folio.
+    key = normalise_folio_key(parsed_scheme.folio)
+    cache_key = (member_id, scheme.id, key)
     if cache_key not in folio_cache:
         existing_folio = (
             db.query(Folio)
-            .filter_by(household_member_id=member_id, scheme_id=scheme.id, folio_number=parsed_scheme.folio)
+            .filter_by(household_member_id=member_id, scheme_id=scheme.id, folio_key=key)
             .first()
         )
         if existing_folio:
@@ -840,7 +848,7 @@ def _folio_for(db, member, parsed_scheme, preview, override, scheme_cache, folio
             arn_code = parsed_scheme.arn_code
             new_folio = Folio(
                 id=uuid.uuid4(), household_member_id=member_id, scheme_id=scheme.id,
-                folio_number=parsed_scheme.folio, arn_code=arn_code, plan_type=PlanType(plan_type),
+                folio_number=parsed_scheme.folio, folio_key=key, arn_code=arn_code, plan_type=PlanType(plan_type),
             )
             db.add(new_folio)
             db.flush()
@@ -862,13 +870,13 @@ def _write_person_rows(
     key_to_temp: dict[SchemeKey, str],
     opening_lots: dict[str, OpeningLot] | None = None,
     statement_from: date | None = None,
+    match_warnings: list[str] | None = None,
 ) -> tuple[int, int]:
     """Get-or-create schemes and this member's folios, then add this person's
     transactions, de-duplicated. Returns (added, skipped). Validation already
     ran (_validate_schemes)."""
     scheme_cache: dict[str, Scheme] = {}
     folio_cache: dict[tuple[uuid.UUID, uuid.UUID, str], Folio] = {}
-    added_keys: set[tuple] = set()
     added = 0
     skipped = 0
 
@@ -881,39 +889,118 @@ def _write_person_rows(
         verdict = _apply_opening_rule(db, folio, (opening_lots or {}).get(temp_id), statement_from, import_rec)
         if verdict in ("written", "replaced"):
             added += 1
+    rows_by_folio: dict[uuid.UUID, list[NormalizedTransaction]] = {}
     for norm in txns:
-        folio = folios_by_key[norm.key]
-        dedupe_key = (folio.id, norm.txn_date, norm.amount, norm.units, norm.txn_type)
-        # Session with autoflush=False (matches production, see db/session.py)
-        # doesn't flush pending db.add()s before this query runs, so a DB
-        # lookup alone can't see rows added earlier in THIS same loop — two
-        # same-day, same-amount/units rows (e.g. SIP installments, stamp
-        # duty/STT sharing a date) would both pass the check and then blow up
-        # the UniqueConstraint at commit. Track this call's own adds in memory
-        # too.
-        if dedupe_key in added_keys:
-            skipped += 1
-            continue
-        dup = (
-            db.query(Transaction)
-            .filter_by(folio_id=folio.id, date=norm.txn_date, amount=norm.amount, units=norm.units, type=norm.txn_type)
-            .first()
-        )
-        if dup:
-            skipped += 1
-            continue
-
-        db.add(
-            Transaction(
-                id=uuid.uuid4(), folio_id=folio.id, import_id=import_rec.id, type=norm.txn_type,
+        rows_by_folio.setdefault(folios_by_key[norm.key].id, []).append(norm)
+    pending: dict[tuple, list[tuple[Decimal | None, int]]] = {}
+    for folio_id, rows in rows_by_folio.items():
+        match = _match_rows(db, folio_id, rows, pending, warnings=match_warnings)
+        skipped += len(rows) - len(match.inserts)
+        for saved in match.matched:
+            _link(db, saved, import_rec.id)
+        for norm, occurrence in match.inserts:
+            txn = Transaction(
+                id=uuid.uuid4(), folio_id=folio_id, import_id=import_rec.id, type=norm.txn_type,
                 date=norm.txn_date, amount=norm.amount, units=norm.units, nav=norm.nav,
                 raw_description=norm.description, origin=TransactionOrigin.CAS_ROW,
+                balance_units=norm.balance, occurrence=occurrence,
             )
-        )
-        added_keys.add(dedupe_key)
-        added += 1
+            db.add(txn)
+            db.add(TransactionImport(transaction_id=txn.id, transaction_date=txn.date, import_id=import_rec.id))
+            added += 1
 
     return added, skipped
+
+
+@dataclass
+class MatchResult:
+    """_match_rows' verdict for one folio: rows to insert (with occurrence) and
+    the saved rows the file also contains (they get a link to this import, #5)."""
+    inserts: list[tuple[NormalizedTransaction, int]] = field(default_factory=list)
+    matched: list[Transaction] = field(default_factory=list)
+
+
+def _link(db: Session, txn: Transaction, import_id: uuid.UUID) -> None:
+    """#5: record that `import_id` contains this row (idempotent)."""
+    if db.get(TransactionImport, (txn.id, import_id)) is None:
+        db.add(TransactionImport(transaction_id=txn.id, transaction_date=txn.date, import_id=import_id))
+
+
+def _match_rows(
+    db: Session,
+    folio_id: uuid.UUID,
+    rows: list[NormalizedTransaction],
+    pending: dict[tuple, list[tuple[Decimal | None, int]]] | None = None,
+    *,
+    dry_run: bool = False,
+    warnings: list[str] | None = None,
+) -> MatchResult:
+    """#2: which incoming rows of one folio must be inserted, each with its
+    occurrence number. Rows match on (date, amount, units, type) plus the CAS
+    running balance, which is identical across overlapping statements, so two
+    genuine same-day twins (different balances) are both kept while a
+    re-upload adds nothing. A saved row with no balance (pre-0026 data) matches
+    by count and gets the balance filled in. Rows without a balance are
+    matched by count: file has k copies, database m → insert k − m.
+    `pending` carries rows inserted earlier in the same confirm (autoflush is
+    off, so the query below can't see them)."""
+    pending = {} if pending is None else pending
+    groups: dict[tuple, list[NormalizedTransaction]] = {}
+    for r in rows:
+        groups.setdefault((r.txn_date, r.amount, r.units, r.txn_type), []).append(r)
+    result = MatchResult()
+    for (on, amount, units, ttype), incoming in groups.items():
+        saved = (
+            db.query(Transaction)
+            .filter(
+                Transaction.folio_id == folio_id, Transaction.date == on, Transaction.amount == amount,
+                Transaction.units == units, Transaction.type == ttype,
+                Transaction.origin != TransactionOrigin.CAS_OPENING,
+            )
+            .all()
+        )
+        pkey = (folio_id, on, amount, units, ttype)
+        already = pending.setdefault(pkey, [])
+        top = max([t.occurrence for t in saved] + [occ for _, occ in already], default=0)
+        to_insert: list[NormalizedTransaction] = []
+        if all(r.balance is not None for r in incoming):
+            used: set[int] = set()
+            pending_balances = [bal for bal, _ in already]
+            for r in incoming:
+                exact = next((i for i, t in enumerate(saved) if i not in used and t.balance_units == r.balance), None)
+                if exact is None:
+                    exact = next((i for i, t in enumerate(saved) if i not in used and t.balance_units is None), None)
+                    if exact is not None and not dry_run:
+                        saved[exact].balance_units = r.balance
+                if exact is not None:
+                    used.add(exact)
+                    result.matched.append(saved[exact])
+                elif r.balance in pending_balances:
+                    pending_balances.remove(r.balance)
+                else:
+                    to_insert.append(r)
+            # Review finding 5 (guard): saved rows with the same date, amount,
+            # units and type exist but their running balances differ, so these
+            # are added as new. Either genuine extra rows or two statements
+            # disagreeing on the balance — say so instead of staying silent.
+            unused_with_balance = any(
+                i not in used and t.balance_units is not None for i, t in enumerate(saved)
+            )
+            if to_insert and unused_with_balance and warnings is not None:
+                warnings.append(
+                    f"{len(to_insert)} row(s) on {on} ({units} units) didn’t match the saved rows’ running "
+                    "balance and were added as new; check Import health for this fund."
+                )
+        else:
+            known = len(saved) + len(already)
+            to_insert = incoming[known:] if len(incoming) > known else []
+            result.matched.extend(saved[: len(incoming)])
+        for r in to_insert:
+            top += 1
+            result.inserts.append((r, top))
+            if not dry_run:
+                already.append((r.balance, top))
+    return result
 
 
 def _all_rows_exist(db, works, txns_of, previews, key_to_temp, overrides,
@@ -929,7 +1016,7 @@ def _all_rows_exist(db, works, txns_of, previews, key_to_temp, overrides,
                 code = (override.amfi_code if override and override.amfi_code else None) or previews[temp_id].suggested_amfi_code
                 scheme = db.query(Scheme).filter_by(amfi_code=code).first()
                 folios[cache_key] = scheme and db.query(Folio).filter_by(
-                    household_member_id=w.member_id, scheme_id=scheme.id, folio_number=key[0]).first()
+                    household_member_id=w.member_id, scheme_id=scheme.id, folio_key=normalise_folio_key(key[0])).first()
             folio = folios[cache_key]
             lot = (opening_lots or {}).get(temp_id)
             if lot is not None and folio is None:
@@ -938,11 +1025,10 @@ def _all_rows_exist(db, works, txns_of, previews, key_to_temp, overrides,
                 db, folio, lot, statement_from, None, dry_run=True,
             ) in ("written", "replaced", "removed"):
                 return False
-            for t in txns_of.get(key, []):
-                checked += 1
-                if folio is None or db.query(Transaction.id).filter_by(
-                        folio_id=folio.id, date=t.txn_date, amount=t.amount, units=t.units, type=t.txn_type).first() is None:
-                    return False
+            rows = txns_of.get(key, [])
+            checked += len(rows)
+            if rows and (folio is None or _match_rows(db, folio.id, rows, dry_run=True).inserts):
+                return False
     return checked > 0
 
 

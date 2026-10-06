@@ -13,7 +13,8 @@ import functools
 import threading
 import uuid
 from dataclasses import replace
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
+from decimal import Decimal
 from typing import Any
 
 import httpx
@@ -45,6 +46,7 @@ from app.services.import_.enrich import MfApiClient, mfapi_client
 # F22: the one SessionExpiredError (already mapped to 410 by /cas-imports).
 from app.services.import_.lifecycle_service import SessionExpiredError
 from app.services.import_.name_match import InvalidPersonNameError, compare_names, validate_person_name
+from app.core.decimal_utils import quantize_amount, quantize_nav
 from app.services.import_.parser import ParseResult, mask_pan
 from app.services.dashboard.nav import _fetch_nav_history
 from app.services.import_.opening_balance import price_opening_lot, apply_opening_cost_to_conversions
@@ -165,6 +167,30 @@ def _is_session_expired(session: dict[str, Any], ttl_minutes: int = SESSION_TTL_
     return session["created_at"] < datetime.now(timezone.utc) - timedelta(minutes=ttl_minutes)
 
 
+def _nav_on_or_before(series: list[tuple[date, Decimal]] | None, on: date) -> Decimal | None:
+    best = None
+    for d, nav in series or []:
+        if d <= on and (best is None or d > best[0]):
+            best = (d, nav)
+    return best[1] if best else None
+
+
+def _price_gift_rows(parse_result: ParseResult, histories: dict) -> None:
+    """Gift cost = the fund's NAV on the gift date (decided 5 Oct, #3)."""
+    for t in parse_result.transactions:
+        if not t.needs_price:
+            continue
+        nav = _nav_on_or_before(histories.get(t.key), t.txn_date)
+        if nav is None:
+            parse_result.parse_warnings.append(
+                f"No price found for a gift on {t.txn_date} ({t.scheme_name}); its cost is shown as ₹0."
+            )
+            continue
+        t.nav = quantize_nav(nav)
+        t.amount = quantize_amount(t.units * t.nav)
+        t.needs_price = False
+
+
 async def build_import_preview(
     parse_result: ParseResult,
     filename: str,
@@ -214,28 +240,38 @@ async def build_import_preview(
         warning = "Statement start date not found; earlier holdings couldn’t be added."
         if warning not in parse_result.parse_warnings:
             parse_result.parse_warnings.append(warning)
-    elif opening_schemes:
-        async def fetch(scheme):
-            preview = next(p for p in scheme_previews if p.temp_id == key_to_temp[scheme.key])
-            if not preview.suggested_amfi_code:
-                return None
-            try:
-                return await _fetch_nav_history(preview.suggested_amfi_code)
-            except httpx.HTTPError:
-                return None
+        opening_schemes = []
+    # #3: gift rows the CAS printed without a NAV are priced from the same
+    # NAV history fetch as the opening lots (one fetch per fund, network only).
+    needs_price_keys = {t.key for t in parse_result.transactions if t.needs_price}
+    priced_schemes = [s for s in parse_result.schemes if s in opening_schemes or s.key in needs_price_keys]
 
-        histories = await asyncio.gather(*(fetch(s) for s in opening_schemes))
-        for scheme, history in zip(opening_schemes, histories, strict=True):
-            txns = [t for t in parse_result.transactions if t.key == scheme.key]
-            lot = price_opening_lot(scheme, txns, parse_result.statement_from, history)
-            opening_lots[key_to_temp[scheme.key]] = lot
-            partners = {}
-            for index, row in enumerate(txns):
-                if row.conversion_from_opening and row.txn_type.value == "switch_out":
-                    partners[index] = next(t for t in parse_result.transactions
-                        if t.conversion_from_opening and t.txn_type.value == "switch_in"
-                        and t.amc == row.amc and t.txn_date == row.txn_date)
-            apply_opening_cost_to_conversions(lot, txns, partners)
+    async def fetch(scheme):
+        preview = next(p for p in scheme_previews if p.temp_id == key_to_temp[scheme.key])
+        if not preview.suggested_amfi_code:
+            return None
+        try:
+            return await _fetch_nav_history(preview.suggested_amfi_code)
+        except httpx.HTTPError:
+            return None
+
+    histories = dict(zip(
+        [s.key for s in priced_schemes],
+        await asyncio.gather(*(fetch(s) for s in priced_schemes)),
+        strict=True,
+    ))
+    for scheme in opening_schemes:
+        txns = [t for t in parse_result.transactions if t.key == scheme.key]
+        lot = price_opening_lot(scheme, txns, parse_result.statement_from, histories.get(scheme.key))
+        opening_lots[key_to_temp[scheme.key]] = lot
+        partners = {}
+        for index, row in enumerate(txns):
+            if row.conversion_from_opening and row.txn_type.value == "switch_out":
+                partners[index] = next(t for t in parse_result.transactions
+                    if t.conversion_from_opening and t.txn_type.value == "switch_in"
+                    and t.amc == row.amc and t.txn_date == row.txn_date)
+        apply_opening_cost_to_conversions(lot, txns, partners)
+    _price_gift_rows(parse_result, histories)
 
     txn_previews = [
         TransactionPreview(

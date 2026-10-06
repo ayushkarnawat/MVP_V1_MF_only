@@ -268,3 +268,58 @@ def test_delete_household_import_cascades_cleanly_on_postgres(postgres_url, monk
     finally:
         db.close()
         db.get_bind().dispose()
+
+
+def test_0027_merges_duplicate_folios_and_cascades_links_on_postgres(postgres_url, monkeypatch):
+    """#4/#5 on a real partitioned Postgres: the 0027 duplicate-folio merge
+    with real UUIDs, the composite FK to transactions (id, date), and link
+    rows cascading when their transaction or import is deleted."""
+    import psycopg2
+
+    monkeypatch.setenv("DATABASE_URL", postgres_url)
+    subprocess.run([sys.executable, "-m", "alembic", "downgrade", "base"], cwd=BACKEND_DIR, capture_output=True, text=True)
+    up = subprocess.run([sys.executable, "-m", "alembic", "upgrade", "0026"], cwd=BACKEND_DIR, capture_output=True, text=True)
+    assert up.returncode == 0, up.stderr
+    raw = postgres_url.replace("postgresql+psycopg2://", "postgresql://", 1)
+    u, m, s1, fa, fb, i10, ify = (str(uuid.uuid4()) for _ in range(7))
+    t1, t2, t3, t4 = (str(uuid.uuid4()) for _ in range(4))
+    with psycopg2.connect(raw) as conn, conn.cursor() as cur:
+        cur.execute("INSERT INTO users (id, phone_number, created_at) VALUES (%s, '+919800002799', now())", (u,))
+        cur.execute("INSERT INTO household_members (id, user_id, name, relationship, created_at, origin, name_source) "
+                    "VALUES (%s, %s, 'A', 'self', now(), 'onboarding', 'user_entered')", (m, u))
+        cur.execute("INSERT INTO schemes (id, amfi_code, name, amc_name, sebi_category) VALUES (%s, 'PG27', 'X', 'A', 'E')", (s1,))
+        for fid, num in ((fa, "4400918 / 3"), (fb, "4400918/3")):
+            cur.execute("INSERT INTO folios (id, household_member_id, scheme_id, folio_number, plan_type, has_coverage_gap) "
+                        "VALUES (%s, %s, %s, %s, 'regular', false)", (fid, m, s1, num))
+        for iid in (i10, ify):
+            cur.execute("INSERT INTO imports (id, household_member_id, status, uploaded_at) VALUES (%s, %s, 'confirmed', now())", (iid, m))
+        for tid, day, fid, iid in ((t1, "2025-05-05", fa, i10), (t2, "2026-05-05", fa, i10),
+                                   (t3, "2026-05-05", fb, ify), (t4, "2026-06-05", fb, ify)):
+            cur.execute("INSERT INTO transactions (id, date, folio_id, import_id, type, amount, units, nav, origin, occurrence) "
+                        "VALUES (%s, %s, %s, %s, 'purchase_sip', 1000, 10, 100, 'cas_row', 1)", (tid, day, fid, iid))
+    up = subprocess.run([sys.executable, "-m", "alembic", "upgrade", "head"], cwd=BACKEND_DIR, capture_output=True, text=True)
+    assert up.returncode == 0, up.stderr
+    with psycopg2.connect(raw) as conn, conn.cursor() as cur:
+        cur.execute("SELECT id::text, folio_key FROM folios WHERE household_member_id = %s", (m,))
+        folios = cur.fetchall()
+        assert len(folios) == 1 and folios[0][1] == "4400918/3"
+        cur.execute("SELECT count(*) FROM transactions WHERE folio_id = %s", (folios[0][0],))
+        assert cur.fetchone()[0] == 3
+        cur.execute("SELECT count(*) FROM transaction_imports ti JOIN transactions t ON t.id = ti.transaction_id "
+                    "WHERE t.date = '2026-05-05' AND t.folio_id = %s", (folios[0][0],))
+        assert cur.fetchone()[0] == 2
+        # cascades
+        cur.execute("SELECT id::text FROM transactions WHERE folio_id = %s AND date = '2025-05-05'", (folios[0][0],))
+        lone = cur.fetchone()[0]
+        cur.execute("DELETE FROM transactions WHERE id = %s", (lone,))
+        cur.execute("SELECT count(*) FROM transaction_imports WHERE transaction_id = %s", (lone,))
+        assert cur.fetchone()[0] == 0
+        # an import that only holds links (no row has it as its owner) cascades its links away
+        extra = str(uuid.uuid4())
+        cur.execute("INSERT INTO imports (id, household_member_id, status, uploaded_at) VALUES (%s, %s, 'confirmed', now())", (extra, m))
+        cur.execute("SELECT id::text, date FROM transactions WHERE folio_id = %s AND date = '2026-06-05'", (folios[0][0],))
+        tid, tdate = cur.fetchone()
+        cur.execute("INSERT INTO transaction_imports (transaction_id, transaction_date, import_id) VALUES (%s, %s, %s)", (tid, tdate, extra))
+        cur.execute("DELETE FROM imports WHERE id = %s", (extra,))
+        cur.execute("SELECT count(*) FROM transaction_imports WHERE import_id = %s", (extra,))
+        assert cur.fetchone()[0] == 0

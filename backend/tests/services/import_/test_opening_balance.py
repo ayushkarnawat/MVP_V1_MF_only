@@ -68,3 +68,35 @@ def test_apply_opening_cost_to_conversion_prices_both_legs():
     assert outgoing.nav == Decimal("10.0000")
     assert incoming.nav == (Decimal("958000") / Decimal("829.43")).quantize(Decimal("0.0001"))
     assert not outgoing.conversion_from_opening and not incoming.conversion_from_opening
+
+
+# ---- Phase 3 review fix: opening cost knows the new row types ----
+
+# SERIES spans 20–85 before START, so plausible costs here are 20..85 per unit.
+
+
+def test_gift_out_reduces_remaining_opening_units():
+    # opening 100 units, CAS cost of what's still held 2,500, 50 units gifted away:
+    # the remaining 50 opening units cost 2,500 → 50.0000/unit (not 25 if the gift were ignored)
+    txns = [_t(date(2020, 1, 1), TransactionType.GIFT_OUT, "50.000", "60")]
+    lot = price_opening_lot(_s("100", "2500"), txns, START, SERIES)
+    assert lot.cost_source == CostSource.CAS_COST and lot.nav == Decimal("50.0000")
+
+
+def test_bounced_sip_is_not_counted_as_held_cost():
+    # 1,000 opening units; a 40-unit SIP at 125 that bounces. CAS cost of holdings = 60,000.
+    # Bounced SIP removed → (60,000 − 0) / 1,000 = 60.0000 (ignoring it gave 55)
+    txns = [_t(date(2020, 1, 7), TransactionType.PURCHASE_SIP, "40.000", "125"),
+            _t(date(2020, 1, 10), TransactionType.REVERSAL, "40.000", "125")]
+    lot = price_opening_lot(_s("1000", "60000"), txns, START, SERIES)
+    assert lot.cost_source == CostSource.CAS_COST and lot.nav == Decimal("60.0000")
+
+
+def test_bonus_and_gift_in_lots_are_held_cost():
+    # 100 opening units; 100 bonus units (cost 0); 10 units gifted in at 50 (cost 500).
+    # CAS cost 5,500 → opening cost (5,500 − 0 − 500) / 100 = 50.0000
+    txns = [_t(date(2018, 1, 1), TransactionType.BONUS, "100.000", "0"),
+            _t(date(2019, 1, 1), TransactionType.GIFT_IN, "10.000", "50")]
+    lot = price_opening_lot(_s("100", "5500"), txns, START, SERIES)
+    assert lot.cost_source == CostSource.CAS_COST and lot.nav == Decimal("50.0000")
+

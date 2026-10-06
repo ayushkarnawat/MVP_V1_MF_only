@@ -18,12 +18,14 @@ from app.models.folio import Folio
 from app.models.imports import Import
 from app.models.member_history import HouseholdMemberNameChange
 from app.models.transaction import Transaction
+from app.models.transaction_import import TransactionImport
 from app.models.user import HouseholdMember
 from app.services.analytics.recompute import bump_recompute_generation
 from app.services.dashboard.holdings import invalidate_holdings_cache
 from app.services.dashboard.profile_completion import removed_with_last_import
 from app.services.dashboard.snapshots import invalidate_member_snapshots
 from app.services.import_.coverage_gap import evaluate_folio_coverage_gaps
+from app.services.import_.opening_restore import restore_openings
 from app.services.import_.file_storage import FileStorage, default_file_storage, release_file_if_unreferenced
 
 logger = logging.getLogger(__name__)
@@ -69,14 +71,47 @@ def _delete_imports(
     member_ids = list(dict.fromkeys(i.household_member_id for i in imports))
     references = list(dict.fromkeys(i.file_reference for i in imports if i.file_reference))
 
-    folio_ids = [
-        folio_id
-        for (folio_id,) in db.query(Transaction.folio_id)
-        .filter(Transaction.import_id.in_(import_ids)).distinct().all()
-    ]
-    deleted_count = (
-        db.query(Transaction).filter(Transaction.import_id.in_(import_ids)).delete(synchronize_session=False)
-    )
+    # #5: a row goes only when no remaining import contains it. Rows with no
+    # links at all (written before 0027's backfill, or by old test fixtures)
+    # are judged by their owner, as before.
+    affected_ids = {
+        tid for (tid,) in db.query(TransactionImport.transaction_id)
+        .filter(TransactionImport.import_id.in_(import_ids)).distinct().all()
+    } | {tid for (tid,) in db.query(Transaction.id).filter(Transaction.import_id.in_(import_ids)).all()}
+    db.query(TransactionImport).filter(TransactionImport.import_id.in_(import_ids)).delete(synchronize_session=False)
+    db.flush()
+    orphans: list[Transaction] = []
+    folio_ids: list[uuid.UUID] = []
+    ids = list(affected_ids)
+    # One query per chunk, not one per row (review: ~2,000 rows for a 10-year
+    # file). Chunked to stay under SQLite's bound-parameter limit.
+    survivor_of: dict[uuid.UUID, uuid.UUID] = {}
+    txns: list[Transaction] = []
+    for i in range(0, len(ids), 500):
+        chunk = ids[i:i + 500]
+        for tid, iid in (
+            db.query(TransactionImport.transaction_id, TransactionImport.import_id)
+            .filter(TransactionImport.transaction_id.in_(chunk))
+            .order_by(TransactionImport.transaction_id, TransactionImport.import_id)
+            .all()
+        ):
+            survivor_of.setdefault(tid, iid)   # smallest import id: deterministic
+        txns.extend(db.query(Transaction).filter(Transaction.id.in_(chunk)).all())
+    for txn in txns:
+        if txn.folio_id not in folio_ids:
+            folio_ids.append(txn.folio_id)
+        survivor = survivor_of.get(txn.id)
+        if survivor is None:
+            orphans.append(txn)
+        elif txn.import_id in import_ids:
+            txn.import_id = survivor   # import_id is NOT NULL: point at a survivor
+    deleted_count = len(orphans)
+    for txn in orphans:
+        db.delete(txn)
+    db.flush()
+    # The remaining statements may need their opening balance back (#5).
+    restore_openings(db, folio_ids, exclude_import_ids=import_ids)
+    db.flush()
     for folio_id in folio_ids:
         folio = db.get(Folio, folio_id)
         if folio is None:

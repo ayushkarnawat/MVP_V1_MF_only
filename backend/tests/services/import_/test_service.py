@@ -453,14 +453,13 @@ def test_confirm_import_rejection_writes_nothing_even_for_earlier_confident_sche
     assert db.query(Transaction).count() == 0
 
 
-def test_confirm_import_dedupes_same_key_transactions_within_one_upload():
-    """Fix 1 regression: two transactions sharing (folio, date, amount, units)
-    within the SAME confirm_import call (e.g. same-day SIP installments, or a
-    stamp-duty/STT row sharing date/amount/units with another row) must be
-    deduped, not both inserted and left to blow up the UniqueConstraint at
-    commit. A DB-only dedupe check misses this because the real session's
-    autoflush=False means the first db.add() isn't visible to the second
-    row's query yet — confirm_import must also track keys added in-memory."""
+def test_confirm_import_keeps_same_key_transactions_within_one_upload():
+    """Two transactions sharing (folio, date, amount, units, type) within the
+    SAME confirm (e.g. same-day SIP instalments) are genuine twins since #2:
+    both are kept, numbered by `occurrence`. This still guards the original
+    Fix 1 failure — both rows used to pass the duplicate check and then blow
+    up the unique constraint at commit, because the session's autoflush=False
+    hides the first db.add() from the second row's query."""
     db = _session()
     member = _household_member(db)
     client = _mocked_client()
@@ -491,9 +490,13 @@ def test_confirm_import_dedupes_same_key_transactions_within_one_upload():
     preview = asyncio.run(build_import_preview(parse_result, "test.pdf", b"%PDF-1.4 fake", client=client))
     result = _confirm_for_member(db, preview, member)
 
-    assert result.added == 1
-    assert result.skipped == 1
-    assert db.query(Transaction).count() == 1
+    # #2 (2026-10-06): identical rows inside one statement are genuine twins
+    # (e.g. two same-day SIPs). Both are kept, numbered by `occurrence`, and
+    # the commit must not hit the unique constraint.
+    assert result.added == 2
+    assert result.skipped == 0
+    db.commit()
+    assert sorted(t.occurrence for t in db.query(Transaction).all()) == [1, 2]
 
 
 def test_confirm_import_does_not_dedupe_across_different_transaction_types():
@@ -1058,3 +1061,52 @@ def test_start_import_session_does_not_hold_the_claim_during_scheme_enrichment(d
     assert seen_during_enrichment == [None]
     db_session.refresh(member)
     assert member.pan_lookup_hash == hash_pan("ABCDE1234F")
+
+
+def test_gift_row_priced_from_nav_history_at_preview():
+    """#3: a GIFT_IN the CAS printed without a NAV is priced at the fund's NAV
+    on the gift date (decided 5 Oct)."""
+    from dataclasses import replace as _replace
+    from datetime import date as _date
+    from decimal import Decimal as _D
+    from unittest.mock import AsyncMock as _AsyncMock, patch as _patch
+
+    from app.models.enums import TransactionType as _TT
+    from tests.api.import_helpers import family_result as _family_result
+
+    result = _family_result([{"name": "ADITI SHARMA", "pan": "ABCDE1234K"}])
+    tmpl = result.transactions[0]
+    result.transactions = [_replace(tmpl, txn_type=_TT.GIFT_IN, txn_date=_date(2021, 4, 1), units=_D("1500.000"),
+                                    amount=_D("0.00"), nav=_D("0.0000"), needs_price=True)]
+    client = AsyncMock()
+    from app.services.import_.enrich import SchemeMatch
+    client.resolve_scheme.return_value = (SchemeMatch(amfi_code="125497", scheme_name=tmpl.scheme_name, confidence=1.0), "confirmed")
+    client.get_scheme_category.return_value = "Equity"
+    with _patch("app.services.import_.service._fetch_nav_history",
+                new=_AsyncMock(return_value=[(_date(2021, 3, 31), _D("20")), (_date(2021, 4, 2), _D("21"))])):
+        preview = asyncio.run(build_import_preview(result, "cas.pdf", b"%PDF", client))
+    gift = _preview_sessions[preview.session_id]["parse_result"].transactions[0]
+    assert gift.nav == _D("20.0000") and gift.amount == _D("30000.00") and not gift.needs_price
+
+
+def test_gift_row_without_history_warns_and_stays_zero():
+    from dataclasses import replace as _replace
+    from datetime import date as _date
+    from decimal import Decimal as _D
+    from unittest.mock import AsyncMock as _AsyncMock, patch as _patch
+
+    from app.models.enums import TransactionType as _TT
+    from app.services.import_.enrich import SchemeMatch
+    from tests.api.import_helpers import family_result as _family_result
+
+    result = _family_result([{"name": "ADITI SHARMA", "pan": "ABCDE1234K"}])
+    tmpl = result.transactions[0]
+    result.transactions = [_replace(tmpl, txn_type=_TT.GIFT_IN, txn_date=_date(2021, 4, 1), units=_D("1.000"),
+                                    amount=_D("0.00"), nav=_D("0.0000"), needs_price=True)]
+    client = AsyncMock()
+    client.resolve_scheme.return_value = (SchemeMatch(amfi_code="125497", scheme_name=tmpl.scheme_name, confidence=1.0), "confirmed")
+    client.get_scheme_category.return_value = "Equity"
+    with _patch("app.services.import_.service._fetch_nav_history", new=_AsyncMock(return_value=None)):
+        preview = asyncio.run(build_import_preview(result, "cas.pdf", b"%PDF", client))
+    assert any("No price found for a gift" in w for w in preview.parse_warnings)
+
