@@ -6,6 +6,7 @@ import { Skeleton } from "../../components/Skeleton";
 import { cn, toTitleCase } from "../../lib/utils";
 import { getAggregateDistributorComparison, getMemberDistributorComparison } from "./api";
 import type { DistributorPortfolioRow } from "./types";
+import { distributorChannel, distributorLabel } from "./distributorChannel";
 import { formatDecimal, formatIndianCurrency } from "../../lib/decimal";
 import styles from "./DistributorComparisonModal.module.css";
 
@@ -108,7 +109,8 @@ export function DistributorComparisonModal({
               <tbody>
                 {rows.map((row, idx) => {
                   const key = rowKey(row, idx);
-                  const isDirect = !row.arn_code;
+                  const channel = distributorChannel(row);
+                  const isDirect = channel !== "arn";
                   const isPositive = !isGainNegative(row.unrealized_gain);
                   const isExpanded = expanded.has(key);
 
@@ -137,17 +139,22 @@ export function DistributorComparisonModal({
                         <td>
                           <div className={styles.distributorNameCell}>
                             <span className={`type-body-medium ${styles.nameText}`}>
-                              {isDirect
-                                ? "Direct Plan (No Broker)"
-                                : row.distributor_name || "Regular Broker"}
+                              {distributorLabel(row)}
                             </span>
+                            {(row.nav_unavailable_schemes?.length ?? 0) > 0 && (
+                              <span className="type-caption">
+                                Not compared (no NAV): {row.nav_unavailable_schemes!.join(", ")}
+                              </span>
+                            )}
                           </div>
                         </td>
                         <td className="type-data">
                           {isDirect ? "—" : row.arn_code}
                         </td>
                         <td>
-                          {isDirect ? (
+                          {channel === "regular-no-arn" ? (
+                            <Badge variant="neutral">Regular</Badge>
+                          ) : isDirect ? (
                             <Badge variant="positive">Direct</Badge>
                           ) : row.arn_status === "ACTIVE" ? (
                             <Badge variant="positive">{toTitleCase(row.arn_status)}</Badge>
@@ -178,6 +185,11 @@ export function DistributorComparisonModal({
                               <td colSpan={2}>
                                 <div className={styles.breakdownScheme}>
                                   <span className="type-body">{scheme.scheme_name}</span>
+                                  {scheme.annual_ter_saving && (
+                                    <span className={`type-caption ${styles.positiveText}`}>
+                                      Saves {scheme.annual_ter_saving}% a year vs Regular
+                                    </span>
+                                  )}
                                   {viewMode === "aggregate" && (
                                     <span className={`type-caption ${styles.breakdownMemberName}`}>
                                       {scheme.household_member_name}

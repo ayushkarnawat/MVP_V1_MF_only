@@ -22,6 +22,8 @@ export interface HoldingRow {
   nav_unavailable?: boolean;
   category?: string;
   stale_nav?: boolean;
+  /** A fund in no fund list, valued at the NAV its statement printed. */
+  price_from_statement?: boolean;
   opening_lot?: {
     units: string;
     since: string;
@@ -50,6 +52,9 @@ export interface SipRow {
   sip_date: string;
   sip_amount: string;
   next_due_date: string;
+  /** Parallel SIPs of this amount in this folio (twin SIPs, #11). */
+  series_count?: number;
+  status?: "active" | "stopped";
 }
 
 export interface SipMonthlyRow {
@@ -59,6 +64,8 @@ export interface SipMonthlyRow {
   household_member_name: string;
   date: string;
   amount: string;
+  /** 1..k among identical fund/member/date/amount rows (twin instalments). */
+  instalment?: number;
 }
 
 export interface CashFlowEntry {
@@ -76,6 +83,25 @@ export interface SnapshotRow {
   household_member_name: string;
   snapshot_month: string;
   total_value: string;
+  invested_value?: string | null;
+  is_partial?: boolean;
+  missing_scheme_names?: string[];
+}
+
+export interface RealizedFund {
+  scheme_id: string;
+  scheme_name: string;
+  household_member_id: string;
+  household_member_name: string;
+  plan_type: PlanType;
+  realized_gain: string;
+  fully_sold: boolean;
+}
+
+/** Realised gains of every fund, including fully sold ones (#9). */
+export interface RealizedSummary {
+  total: string;
+  funds: RealizedFund[];
 }
 
 export interface FamilyMemberStatus {
@@ -89,17 +115,20 @@ export interface AggregateHoldingsResponse {
   holdings: HoldingRow[];
   lifetime_xirr?: string | null;
   current_holdings_xirr?: string | null;
+  realized_summary?: RealizedSummary;
 }
 
 export interface MemberHoldingsResponse {
   holdings: HoldingRow[];
   lifetime_xirr: string | null;
   current_holdings_xirr: string | null;
+  realized_summary?: RealizedSummary;
 }
 
 export type MemberHoldingsRows = HoldingRow[] & {
   lifetime_xirr?: string | null;
   current_holdings_xirr?: string | null;
+  realized_summary?: RealizedSummary;
 };
 
 export interface AggregateAllocationResponse {
@@ -139,6 +168,8 @@ export interface DistributorSchemeBreakdown {
   current_profit_total: string;
   realized_gain: string;
   unrealized_gain: string;
+  /** Regular sibling TER − this Direct fund's TER, percentage points; null unless positive (#17). */
+  annual_ter_saving?: string | null;
 }
 
 export interface DistributorPortfolioRow {
@@ -151,6 +182,9 @@ export interface DistributorPortfolioRow {
   realized_gain: string;
   unrealized_gain: string;
   schemes: DistributorSchemeBreakdown[];
+  /** Splits the no-ARN bucket into Direct and Regular (#17). */
+  plan_type?: PlanType | null;
+  nav_unavailable_schemes?: string[];
 }
 
 export interface AggregateDistributorComparisonResponse {

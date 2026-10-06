@@ -1,8 +1,8 @@
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { diffDecimalStrings, formatIndianCurrency } from "@/lib/decimal";
+import { formatRupeesOrDash } from "@/lib/decimal";
 import { cn } from "@/lib/utils";
-import { AlertCircle, ArrowDownRight, Layers, Percent, TrendingDown } from "lucide-react";
+import { AlertCircle, Layers, Percent, TrendingDown } from "lucide-react";
 import type { DirectRegularTerComparison, WeightedTerSummary } from "./types";
 
 export interface TerSectionProps {
@@ -104,7 +104,7 @@ export function TerSection({
           <div className="mt-4 pt-3 border-t border-[var(--color-border)]/60 text-[11px] text-[var(--color-text-secondary)] flex items-center justify-between">
             <span>Portfolio Coverage</span>
             <span className="font-medium text-[var(--color-ink)] tabular-nums">
-              ₹{formatIndianCurrency(ter?.covered_value || "0")} / ₹{formatIndianCurrency(ter?.total_value || "0")}
+              {formatRupeesOrDash(ter?.covered_value)} / {formatRupeesOrDash(ter?.total_value)}
             </span>
           </div>
         </div>
@@ -138,7 +138,7 @@ export function TerSection({
           <div className="mt-4 pt-3 border-t border-[var(--color-border)]/60 text-[11px] text-[var(--color-text-secondary)] flex items-center justify-between">
             <span>Direct Value</span>
             <span className="font-medium text-[var(--color-ink)] tabular-nums">
-              ₹{formatIndianCurrency(comparison?.direct?.total_value || "0")}
+              {formatRupeesOrDash(comparison?.direct?.total_value)}
             </span>
           </div>
         </div>
@@ -172,7 +172,7 @@ export function TerSection({
           <div className="mt-4 pt-3 border-t border-[var(--color-border)]/60 text-[11px] text-[var(--color-text-secondary)] flex items-center justify-between">
             <span>Regular Value</span>
             <span className="font-medium text-[var(--color-ink)] tabular-nums">
-              ₹{formatIndianCurrency(comparison?.regular?.total_value || "0")}
+              {formatRupeesOrDash(comparison?.regular?.total_value)}
             </span>
           </div>
         </div>
@@ -185,16 +185,9 @@ export function TerSection({
             <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">
               Direct vs. Regular Fee Comparison
             </h3>
-            {comparison?.direct?.weighted_ter && comparison?.regular?.weighted_ter && (
-              <div className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--color-positive)]">
-                <ArrowDownRight className="h-3.5 w-3.5" />
-                <span>
-                  Save ~{Number(
-                    diffDecimalStrings(comparison.regular.weighted_ter, comparison.direct.weighted_ter)
-                  ).toFixed(2)}% per year with Direct
-                </span>
-              </div>
-            )}
+            {/* #17 (decided 6 Oct): no "Save ~x%" line. The Direct and Regular
+                groups hold different funds, so the gap between their averages
+                isn't a saving; per-fund savings are in Distributor Comparison. */}
           </div>
 
           {/* Comparative Bars */}

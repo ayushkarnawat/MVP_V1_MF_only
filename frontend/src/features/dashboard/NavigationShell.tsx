@@ -25,8 +25,8 @@ export interface NavigationShellProps {
   onViewModeChange: (mode: "aggregate" | "member") => void;
   onMemberSelect: (memberId: string) => void;
   onAddData: () => void;
-  activeTab?: "dashboard" | "analytics" | "profile";
-  onTabChange?: (tab: "dashboard" | "analytics" | "profile") => void;
+  activeTab?: "dashboard" | "history" | "analytics" | "profile";
+  onTabChange?: (tab: "dashboard" | "history" | "analytics" | "profile") => void;
   children: React.ReactNode;
 }
 
@@ -68,6 +68,19 @@ export function NavigationShell({
                   onClick={() => onTabChange?.("dashboard")}
                 >
                   Dashboard
+                </button>
+
+                <button
+                  className={cn(
+                    "inline-flex items-center px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors cursor-pointer",
+                    activeTab === "history"
+                      ? "bg-[var(--color-bg)] text-[var(--color-ink)] border border-[var(--color-border)] shadow-xs font-semibold"
+                      : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] border border-transparent"
+                  )}
+                  type="button"
+                  onClick={() => onTabChange?.("history")}
+                >
+                  History
                 </button>
 
                 <button

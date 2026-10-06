@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatIndianCurrency } from "@/lib/decimal";
+import { formatRupeesOrDash } from "@/lib/decimal";
 import { cn } from "@/lib/utils";
 import { AlertCircle, ChevronRight, HelpCircle, Star } from "lucide-react";
 import type { PortfolioScoreSummary } from "./types";
@@ -100,7 +100,7 @@ export function ScorerSection({
         <div className="text-right text-xs text-[var(--color-text-secondary)] self-start sm:self-auto border-t sm:border-t-0 pt-2 sm:pt-0 border-[var(--color-border)]/60">
           <span>Scored Value Coverage:</span>
           <span className="font-semibold text-[var(--color-ink)] block tabular-nums">
-            ₹{formatIndianCurrency(scoreSummary?.covered_value ?? "0")} / ₹{formatIndianCurrency(scoreSummary?.total_value ?? "0")}
+            {formatRupeesOrDash(scoreSummary?.covered_value)} / {formatRupeesOrDash(scoreSummary?.total_value)}
           </span>
         </div>
       </div>

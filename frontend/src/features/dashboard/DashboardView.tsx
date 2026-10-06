@@ -36,7 +36,9 @@ import type {
   FamilyMemberStatus,
   SipRow,
   SipMonthlyRow,
+  RealizedSummary,
 } from "./types";
+import { SoldFundsSection } from "./SoldFundsSection";
 import { cn } from "@/lib/utils";
 import { ArrowUpRight, ArrowDownRight, ArrowUpDown, User, Users, AlertTriangle, BarChart2 } from "lucide-react";
 
@@ -46,6 +48,8 @@ export interface DashboardViewProps {
   viewMode: "aggregate" | "member";
   memberId: string | null;
   onAddDataForMember?: (memberId?: string) => void;
+  /** #12: opens the Portfolio history page. */
+  onOpenHistory?: () => void;
 }
 
 export function DashboardView(props: DashboardViewProps) {
@@ -64,10 +68,18 @@ function DashboardViewContent({
   viewMode,
   memberId,
   onAddDataForMember,
+  onOpenHistory,
 }: DashboardViewProps) {
   const [holdings, setHoldings] = useState<HoldingRow[]>([]);
   const [allocation, setAllocation] = useState<AllocationSummary | null>(null);
-  const [sips, setSips] = useState<SipRow[]>([]);
+  // Tagged with the view/member they were fetched for, so a member switch
+  // never shows the previous member's SIPs while the new ones load (6B
+  // re-review #1); the stopped-SIP toggle keeps the scope, so no flicker.
+  const [sipState, setSipState] = useState<{ scope: string; rows: SipRow[] }>({ scope: "", rows: [] });
+  const sipScope = `${viewMode}:${memberId ?? ""}`;
+  const sips = useMemo(() => (sipState.scope === sipScope ? sipState.rows : []), [sipState, sipScope]);
+  const [realized, setRealized] = useState<RealizedSummary | null>(null);
+  const [showStoppedSips, setShowStoppedSips] = useState(false);
   const [membersStatus, setMembersStatus] = useState<FamilyMemberStatus[]>([]);
   const [coverageGaps, setCoverageGaps] = useState<CoverageGapItem[]>([]);
   const [selectedGap, setSelectedGap] = useState<CoverageGapItem | null>(null);
@@ -109,32 +121,30 @@ function DashboardViewContent({
     const fetchData = async () => {
       try {
         if (viewMode === "aggregate") {
-          const [holdingsRes, allocationRes, sipsRes] = await Promise.all([
+          const [holdingsRes, allocationRes] = await Promise.all([
             getAggregateHoldings(controller.signal),
             getAggregateAllocation(controller.signal),
-            getAggregateSips(controller.signal),
           ]);
           if (isMounted) {
             setHoldings(holdingsRes.holdings);
+            setRealized(holdingsRes.realized_summary ?? null);
             setXirrSummary({ lifetime: holdingsRes.lifetime_xirr ?? null, current: holdingsRes.current_holdings_xirr ?? null });
             setMembersStatus(holdingsRes.members);
             setAllocation(allocationRes.allocation);
-            setSips(sipsRes.sips);
             setCoverageGaps([]);
             setLoading(false);
           }
         } else if (memberId) {
-          const [holdingsRes, allocationRes, sipsRes] = await Promise.all([
+          const [holdingsRes, allocationRes] = await Promise.all([
             getMemberHoldings(memberId, controller.signal),
             getMemberAllocation(memberId, controller.signal),
-            getMemberSips(memberId, controller.signal),
           ]);
           if (isMounted) {
             setHoldings(holdingsRes);
+            setRealized(holdingsRes.realized_summary ?? null);
             setXirrSummary({ lifetime: holdingsRes.lifetime_xirr ?? null, current: holdingsRes.current_holdings_xirr ?? null });
             setMembersStatus([]);
             setAllocation(allocationRes);
-            setSips(sipsRes);
             setLoading(false);
           }
 
@@ -152,7 +162,6 @@ function DashboardViewContent({
             setHoldings([]);
             setMembersStatus([]);
             setAllocation(null);
-            setSips([]);
             setCoverageGaps([]);
             setLoading(false);
           }
@@ -175,6 +184,26 @@ function DashboardViewContent({
       controller.abort();
     };
   }, [viewMode, memberId]);
+
+  // The SIP list loads on its own, so "Show stopped SIPs" refetches only the
+  // SIPs and never blanks the dashboard behind a skeleton (6B review #1).
+  useEffect(() => {
+    let isMounted = true;
+    const controller = new AbortController();
+    const scope = `${viewMode}:${memberId ?? ""}`;
+    const load = viewMode === "aggregate"
+      ? getAggregateSips(controller.signal, showStoppedSips).then((r) => r.sips)
+      : memberId ? getMemberSips(memberId, controller.signal, showStoppedSips) : Promise.resolve([]);
+    load
+      .then((rows) => { if (isMounted) setSipState({ scope, rows: rows ?? [] }); })
+      .catch((err: unknown) => {
+        if (isMounted && !(err instanceof DOMException && err.name === "AbortError")) setSipState({ scope, rows: [] });
+      });
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
+  }, [viewMode, memberId, showStoppedSips]);
 
   // Lazy — fetches only when the "This Month" tab is opened or the month is
   // navigated, never as part of the initial page-load Promise.all above.
@@ -230,8 +259,28 @@ function DashboardViewContent({
   const investedVal = parseFloat(sumDecimalStrings(valued.map((h) => h.amount_invested)));
   const profitVal = parseFloat(sumDecimalStrings(valued.map((h) => h.unrealized_gain || "0")));
   const gainPercentage = investedVal > 0 ? (profitVal / investedVal) * 100 : 0;
-  return { currentVal, investedVal, profitVal, gainPercentage, excludedCount: displayedHoldings.length - valued.length };
-}, [displayedHoldings]);
+  // A stale NAV's last move isn't today's (a written-off fund would show its
+  // whole value as lost every day) — 6B review #3.
+  const todayGain = parseFloat(sumDecimalStrings(valued.filter((h) => !h.stale_nav).map((h) => h.today_gain || "0")));
+  // #9/#14: realised gains include fully sold funds, so they come from the
+  // realised summary, narrowed by the same member filter as the list.
+  const realizedFunds = (realized?.funds ?? []).filter(
+    (f) => holdingsMemberFilter === "all" || f.household_member_id === holdingsMemberFilter,
+  );
+  const realizedVal = holdingsMemberFilter === "all" && realized
+    ? parseFloat(realized.total)
+    : parseFloat(sumDecimalStrings(realizedFunds.map((f) => f.realized_gain)));
+  return { currentVal, investedVal, profitVal, gainPercentage, todayGain, realizedVal, excludedCount: displayedHoldings.length - valued.length };
+}, [displayedHoldings, realized, holdingsMemberFilter]);
+
+  // #11: twin SIPs are `series_count` parallel SIPs of the same amount.
+  const monthlySipTotal = useMemo(
+    () => sumDecimalStrings(
+      sips.filter((s) => (s.status ?? "active") === "active")
+        .map((s) => (parseFloat(s.sip_amount) * (s.series_count ?? 1)).toFixed(2)),
+    ),
+    [sips],
+  );
 
   if (loading) {
     return (
@@ -302,6 +351,12 @@ function DashboardViewContent({
               ₹{formatIndianCurrency(totals.currentVal)}
             </h1>
             {totals.excludedCount > 0 && <span className="text-xs text-[var(--color-text-secondary)]">{totals.excludedCount} funds without a price aren’t included</span>}
+            {onOpenHistory && (
+              <button type="button" onClick={onOpenHistory}
+                className="self-start text-xs font-semibold text-[var(--color-accent)] hover:underline cursor-pointer">
+                View history →
+              </button>
+            )}
           </div>
 
           {/* Secondary Stats Flow */}
@@ -335,6 +390,24 @@ function DashboardViewContent({
                   <ArrowDownRight className="h-4 w-4 mr-0.5" />
                 )}
                 ₹{formatIndianCurrency(Math.abs(totals.profitVal))}
+              </span>
+            </div>
+
+            {/* Realised gain (incl. fully sold funds, #9/#14) */}
+            <div className="flex flex-col space-y-0.5">
+              <span className="text-xs text-[var(--color-text-secondary)] font-medium">Realised gain</span>
+              <span className={cn("font-display text-lg sm:text-xl font-semibold tabular-nums type-data-large",
+                totals.realizedVal >= 0 ? "text-[var(--color-positive)]" : "text-[var(--color-negative)]")}>
+                {totals.realizedVal < 0 ? "−" : ""}₹{formatIndianCurrency(Math.abs(totals.realizedVal))}
+              </span>
+            </div>
+
+            {/* Today’s gain (#14) */}
+            <div className="flex flex-col space-y-0.5">
+              <span className="text-xs text-[var(--color-text-secondary)] font-medium">Today’s gain</span>
+              <span className={cn("font-display text-lg sm:text-xl font-semibold tabular-nums type-data-large",
+                totals.todayGain >= 0 ? "text-[var(--color-positive)]" : "text-[var(--color-negative)]")}>
+                {totals.todayGain < 0 ? "−" : ""}₹{formatIndianCurrency(Math.abs(totals.todayGain))}
               </span>
             </div>
 
@@ -576,7 +649,7 @@ function DashboardViewContent({
             )}
             {sipTab === "upcoming" && upcomingSips.map((sip) => (
               <div
-                key={sip.scheme_id + sip.household_member_id}
+                key={`${sip.scheme_id}-${sip.household_member_id}-${sip.sip_amount}-${sip.sip_date}-${sip.status ?? "active"}`}
                 className="flex items-center justify-between gap-4 px-4 py-3"
               >
                 <div className="flex flex-col min-w-0">
@@ -599,10 +672,23 @@ function DashboardViewContent({
                   </span>
                   <span className="text-sm font-semibold text-[var(--color-ink)] tabular-nums">
                     ₹{formatIndianCurrency(sip.sip_amount)}
+                    {(sip.series_count ?? 1) > 1 ? ` × ${sip.series_count}` : ""}
                   </span>
+                  {sip.status === "stopped" && <Badge variant="warning">Stopped</Badge>}
                 </div>
               </div>
             ))}
+            {sipTab === "upcoming" && (
+              <div className="flex items-center justify-between gap-4 px-4 py-3 text-xs text-[var(--color-text-secondary)]">
+                {upcomingSips.some((s) => (s.status ?? "active") === "active")
+                  ? <span className="font-semibold text-[var(--color-ink)]">Monthly SIP total ₹{formatIndianCurrency(monthlySipTotal)}</span>
+                  : <span />}
+                <button type="button" onClick={() => setShowStoppedSips((v) => !v)}
+                  className="font-semibold text-[var(--color-accent)] hover:underline cursor-pointer">
+                  {showStoppedSips ? "Hide stopped SIPs" : "Show stopped SIPs"}
+                </button>
+              </div>
+            )}
             {sipTab === "month" && monthlySipsLoading && (
               <div className="px-4 py-6 text-center text-sm text-[var(--color-text-secondary)]">
                 Loading…
@@ -617,7 +703,7 @@ function DashboardViewContent({
               !monthlySipsLoading &&
               monthlySips.map((sip) => (
                 <div
-                  key={sip.scheme_id + sip.household_member_id}
+                  key={`${sip.scheme_id}-${sip.household_member_id}-${sip.date}-${sip.amount}-${sip.instalment ?? 1}`}
                   className="flex items-center justify-between gap-4 px-4 py-3"
                 >
                   <div className="flex flex-col min-w-0">
@@ -693,6 +779,8 @@ function DashboardViewContent({
           onSelectHolding={(row) => setSelectedHolding(row)}
         />
       </section>
+
+      <SoldFundsSection summary={realized} memberId={holdingsMemberFilter === "all" ? undefined : holdingsMemberFilter} />
 
       {/* S15: Fund Detail Modal */}
       <FundDetailModal
