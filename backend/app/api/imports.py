@@ -28,6 +28,7 @@ from app.services.analytics.recompute import (
 from app.services.dashboard.household_members import get_household_member_for_user
 from app.services.dashboard.nav import get_navs_on_or_before
 from app.services.dashboard.holdings import invalidate_holdings_cache
+from app.services.dashboard.snapshots import rebuild_member_snapshots
 from app.services.import_.coverage_gap import evaluate_folio_coverage_gaps
 from app.services.import_.lifecycle_service import (
     FileTooLargeError,
@@ -35,6 +36,7 @@ from app.services.import_.lifecycle_service import (
     SessionExpiredError,
     validate_file_payload,
 )
+from app.services.import_.preview_store import PREVIEW_STATUSES
 from app.services.import_.deletion import ImportNotFoundError, delete_import
 from app.services.import_.confirm_people import AlreadyImportedError, ConfirmInvalidError, confirm_people_import
 from app.services.import_.name_match import InvalidPersonNameError
@@ -111,7 +113,7 @@ def list_household_import_history(
         # A CAMS request (WAITING_FOR_USER, or EXPIRED once abandoned/cancelled) is a
         # placeholder for a statement CAMS will email later, not an import: no file,
         # no period, no transactions. It showed up as "Statement period unavailable".
-        .filter(Import.status.notin_(_CAMS_PLACEHOLDER_STATUSES))
+        .filter(Import.status.notin_(_CAMS_PLACEHOLDER_STATUSES), Import.status.notin_(PREVIEW_STATUSES))
         .order_by(Import.uploaded_at.desc())
         .all()
     )
@@ -143,7 +145,7 @@ def delete_household_import(
     db: Session = Depends(get_db),
 ):
     try:
-        result = delete_import(db, user.id, import_id, scope)
+        result = delete_import(db, user.id, import_id, scope, background_tasks=background_tasks)
     except ImportNotFoundError as exc:
         raise HTTPException(status_code=404, detail="Import not found.") from exc
     claim_and_dispatch_recompute(db, user.id, background_tasks)
@@ -370,6 +372,7 @@ def confirm_import_route(
         member_ids = [uuid.UUID(p.member_id) for p in response.people] or [household_member_id]
         for member_id in dict.fromkeys(member_ids):
             background_tasks.add_task(_prefetch_member_nav_history, member_id)
+            background_tasks.add_task(rebuild_member_snapshots, member_id)
         # One recompute claim for the whole household.
         if try_claim_recompute(db, user.id):
             background_tasks.add_task(_dispatch_recompute_and_release_claim_on_failure, user.id)

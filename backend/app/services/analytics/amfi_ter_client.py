@@ -41,9 +41,10 @@ from difflib import SequenceMatcher
 
 import httpx
 from sqlalchemy.orm import Session
+from sqlalchemy import or_, and_
 
 from app.db.session import commit_off_loop
-from app.models.enums import PlanNameVariant
+from app.models.enums import PlanNameVariant, SchemePlanType
 from app.models.reference import Scheme, SchemeTer
 
 logger = logging.getLogger(__name__)
@@ -307,14 +308,22 @@ async def refresh_ter_data(db: Session) -> bool:
     month_num, year_num = month.split("-")
     reference_period = date(int(year_num), int(month_num), 1)
 
-    schemes = db.query(Scheme).filter(Scheme.plan_name_variant.in_(_RESOLVED_PLAN_VARIANTS)).all()
+    schemes = db.query(Scheme).filter(or_(
+        Scheme.plan_type.in_((SchemePlanType.DIRECT, SchemePlanType.REGULAR)),
+        and_(Scheme.plan_type.is_(None), Scheme.plan_name_variant.in_(_RESOLVED_PLAN_VARIANTS)),
+    )).all()
     for scheme in schemes:
-        match = _best_match(scheme.name, latest_by_name)
+        exact = [row for name,row in latest_by_name.items()
+                 if scheme.base_name and _normalize_scheme_name(name) == _normalize_scheme_name(scheme.base_name)]
+        # The live feed has MF_ID only. Exact branded base names take priority;
+        # ambiguous normalized names retain the existing fuzzy fallback.
+        match = (exact[0], 1.0) if len(exact) == 1 else _best_match(scheme.name, latest_by_name)
         if match is None or match[1] < MIN_MATCH_CONFIDENCE:
             _mark_checked_no_match(db, scheme.id, reference_period)
             continue
         row, _confidence = match
-        raw_value = row["R_TER"] if scheme.plan_name_variant == PlanNameVariant.REGULAR else row["D_TER"]
+        plan = scheme.plan_type or scheme.plan_name_variant
+        raw_value = row["R_TER"] if plan.value == "regular" else row["D_TER"]
         if raw_value in (None, ""):
             _mark_checked_no_match(db, scheme.id, reference_period)
             continue

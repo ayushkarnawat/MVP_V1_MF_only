@@ -49,15 +49,12 @@ from app.services.dashboard.aggregate import get_member_statuses
 from app.services.dashboard.holdings import compute_holdings
 from app.services.dashboard.household_members import list_household_members
 from app.services.dashboard.schemas import HoldingRow
-from app.services.dashboard.xirr import _RELEVANT_TYPES as _XIRR_RELEVANT_TYPES, _XIRR_DEBIT_TYPES
+from app.services.dashboard.xirr import _RELEVANT_TYPES as _XIRR_RELEVANT_TYPES, _XIRR_DEBIT_TYPES, _FUND_RELEVANT_TYPES
 from app.services.dashboard.xirr import portfolio_xirr as _portfolio_xirr
 
 # Same flow sets as the dashboard XIRR (gifts valued, #3).
 _RELEVANT_TYPES = _XIRR_RELEVANT_TYPES
-_fund_level_transaction_types = _RELEVANT_TYPES | {
-    TransactionType.SWITCH_IN,
-    TransactionType.SWITCH_OUT,
-}
+
 
 
 def _investment_transactions(db: Session, household_member_ids: list[uuid.UUID]) -> list[Transaction]:
@@ -86,7 +83,7 @@ def _fund_level_transactions(db: Session, household_member_ids: list[uuid.UUID])
         return []
     return (
         db.query(Transaction)
-        .filter(Transaction.folio_id.in_(folio_ids), Transaction.type.in_(_fund_level_transaction_types))
+        .filter(Transaction.folio_id.in_(folio_ids), Transaction.type.in_(_FUND_RELEVANT_TYPES))
         .order_by(Transaction.date, Transaction.id)
         .all()
     )

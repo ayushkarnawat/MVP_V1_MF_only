@@ -11,6 +11,7 @@ from app.api.imports import validate_pan_disclaimer
 from app.db.session import get_db
 from app.models.enums import ConsentAction
 from app.models.imports import Import
+from app.services.import_.preview_store import PREVIEW_STATUSES
 from app.models.user import HouseholdMember, User
 from app.services.auth.session import get_active_user
 from app.services.dashboard.household_members import get_household_member_for_user
@@ -102,7 +103,7 @@ def get_cas_import_status(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Invalid import_id.") from exc
 
-    import_rec = db.query(Import).filter_by(id=import_uuid).first()
+    import_rec = db.query(Import).filter_by(id=import_uuid).filter(Import.status.notin_(PREVIEW_STATUSES)).first()
     if not import_rec:
         raise HTTPException(status_code=404, detail="Import not found.")
 
@@ -124,7 +125,7 @@ def retry_password(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Invalid import_id.") from exc
 
-    import_rec = db.query(Import).filter_by(id=import_uuid).first()
+    import_rec = db.query(Import).filter_by(id=import_uuid).filter(Import.status.notin_(PREVIEW_STATUSES)).first()
     if not import_rec:
         raise HTTPException(status_code=404, detail="Import not found.")
 
@@ -151,6 +152,7 @@ def list_member_import_history(
     history = (
         db.query(Import)
         .filter_by(household_member_id=member_uuid)
+        .filter(Import.status.notin_(PREVIEW_STATUSES))
         .order_by(Import.uploaded_at.desc())
         .all()
     )
