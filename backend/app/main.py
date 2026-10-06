@@ -101,6 +101,10 @@ app.include_router(dashboard.router)
 app.include_router(analytics.router)
 app.include_router(legal.router)
 
+from app.api.dev_health import register_dev_routes  # noqa: E402
+
+register_dev_routes(app, settings.environment)
+
 
 @app.get("/health")
 def health() -> dict[str, str]:
