@@ -1,6 +1,6 @@
 """Deep check of everything the dashboard derives from an import, against an
 independent truth computed straight from the CAS rows (casparser). Run one
-scenario per process: SEQ=a.pdf,b.pdf OUT=x.json [SNAP=1] [DELETE_FIRST=1]."""
+scenario per process: SEQ=a.pdf,b.pdf OUT=x.json [SNAP=1] [DELETE_FIRST=1 | DELETE_LAST=1]."""
 import asyncio, json, os, time, uuid
 from collections import defaultdict
 from datetime import date, timedelta
@@ -16,6 +16,7 @@ SEQ = os.environ["SEQ"].split(",")
 OUT = os.environ["OUT"]
 SNAP = os.environ.get("SNAP") == "1"
 DELETE_FIRST = os.environ.get("DELETE_FIRST") == "1"
+DELETE_LAST = os.environ.get("DELETE_LAST") == "1"   # Phase 4: delete the last upload
 T = lambda t: str(t.type).split(".")[-1]
 
 
@@ -124,11 +125,12 @@ def test_deep(client):
     members = client.get("/household-members", headers=headers).json()
     out = {"seq": SEQ, "log": log, "timing": timing, "snaps_after": snaps_after, "members": [(m["name"], m["id"]) for m in members]}
 
-    if DELETE_FIRST:
+    if DELETE_FIRST or DELETE_LAST:
         hist = client.get("/imports/history", headers=headers).json()
-        first = sorted(hist, key=lambda h: h.get("uploaded_at") or "")[0]
-        d = client.delete(f"/imports/{first['import_id']}", headers=headers)
-        out["delete"] = {"status": d.status_code, "body": d.text[:300]}
+        ordered = sorted(hist, key=lambda h: h.get("uploaded_at") or "")
+        target = ordered[0] if DELETE_FIRST else ordered[-1]
+        d = client.delete(f"/imports/{target['import_id']}", headers=headers)
+        out["delete"] = {"status": d.status_code, "which": "first" if DELETE_FIRST else "last", "body": d.text[:300]}
 
     db = _test_db()
     from app.services.import_.reconciliation import reconcile_members

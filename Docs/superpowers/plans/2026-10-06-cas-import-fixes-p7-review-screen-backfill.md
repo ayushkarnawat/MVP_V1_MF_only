@@ -161,6 +161,7 @@ Default (decided in the artifact, phase 8 "or wipe staging"): staging has no rea
 
 For any environment whose data must be kept, the reclassify script:
 - For every folio: run phase 5's `identify_scheme` against the folio's scheme (using the scheme's ISIN and the latest import's CAS NAV from `raw_parser_output`), set `plan_type` and `plan_verified`; never write `unclassified`.
+- **Legacy bonus rows (Phase 3 review finding 3):** before Phase 3, a bonus row the CAS printed with amount 0.00 was saved as `purchase` (amount 0, nav 0); the parser now saves it as `bonus`, and `type` is part of the duplicate key, so re-uploading over kept data would add a `bonus` row beside the old `purchase` row and double those units. The script converts every `purchase` row with `amount = 0` and "bonus" in `raw_description` to `bonus` before any re-upload. (Not needed when staging is wiped.)
 - Invalidate every member's snapshots and holdings cache.
 - Prints counts; `--dry-run` prints without writing.
 - Opening balances / twin rows / row types for kept data are fixed by re-uploading the user's statements (the matcher heals NULL balances and the opening rule fills gaps); the script prints, per member, "re-upload recommended" when the phase 1 reconciliation shows any non-✓ folio.

@@ -380,3 +380,46 @@ The initial network-restricted px_14yr run overflowed in **member lifetime XIRR*
 The first restricted-network outputs with zero valuations were discarded. Network-enabled runs were used for all totals above. A temporary pytest observer outside the repo exported persisted units, opening counts, cached holding prices and synthetic XIRR flow summaries. An observer UUID conversion error was corrected and affected scenarios rerun; no application or harness source change was needed for that instrumentation. JSON/log outputs remain under the Windows TEMP directory as p2_<scenario>.json/.log.
 
 Postgres functional tests: SKIPPED (TEST_DATABASE_URL unset). SQLite migration upgrade/downgrade passed. Phase 1 staging Import health checkpoint remains pending — needs user, carried to the Phase 7 gate.
+
+## After phase 3 (2026-10-06, run by the orchestrator in WSL; Codex hit its usage limit after Task 1)
+
+Primary check: reconciliation status per fund (app units = CAS closing units). With the CAS's own NAV on both sides, a unit match is a value match (carry-over 4). Postgres 16.2: migrations 0025/0026 upgrade → downgrade 0025 → upgrade clean; `tests/functional_postgres` 13 passed.
+
+| Scenario | match / differ / no_CAS | Phase 2 → Phase 3 |
+|---|---|---|
+| p20_20yr | 11 / 0 / 1 | twin-SIP + bonus rows fixed |
+| p20_10yr | 10 / 0 / 1 | twin-SIP fixed |
+| p20_7yr | 9 / 0 / 1 | twin-SIP fixed |
+| p20_3yr | 9 / 0 / 0 | twin-SIP fixed |
+| p20_1yr | 9 / 0 / 0 | twin-SIP fixed |
+| p20_FY | 9 / 0 / 0 | twin-SIP fixed |
+| p10_10yr | 6 / 0 / 0 | all match |
+| p10_FY | 6 / 0 / 0 | all match |
+| p7_7yr | 5 / 0 / 0 | bounced SIPs + gift now match |
+| kfin_p7_7yr | 5 / 0 / 0 | same as CAMS layout |
+| p3_FY | 3 / 0 / 0 | unchanged |
+| oldcams_p20_20yr | 11 / 0 / 1 | as p20_20yr |
+| fam_10yr | 16 / 0 / 1 | all differ rows fixed |
+| px_14yr | 10 / 0 / 1 | unchanged (Phase 2 fix holds) |
+| p20_FY → p20_20yr | 11 / 0 / 1 | identical to p20_20yr |
+| p20_20yr → p20_FY | 11 / 0 / 1 | second confirm 409 already_imported (correct) |
+| p20_FY → p20_FY_altfolio | 13 / 0 / 0 | reconciliation matches by folio_key; the duplicated-folio value overstatement remains (Phase 4) |
+| kfin_pk_10yr | 3 / **1** / 0 | **newly exposed, owned by Phase 5** (below) |
+
+**Known exceptions**
+- **Unifund → UTI** `no_cas_data` (0 units, ₹0): unchanged, owned by Phase 5 (carry-over 5).
+- **Franklin Low Duration segregated portfolio (kfin_pk_10yr):** the CAS lists the side pocket as its own fund (ISIN INF090I01UD7, AMFI 147989, 423,983.118 units). Today's mfapi-based matcher files it under the main Franklin fund's code (118530, #8 wrong identity). Until Phase 3 its SEGREGATION units weren't counted, so the error was invisible; Phase 3 counts them (decided), so the main Franklin folio now shows +423,983.118 units, valued at the main fund's NAV. Units across the two lines are right; the attribution is wrong. Owned by Phase 5 (ISIN-first identity), carry-over 8. Not deployed between phases, so it exists only in the in-progress code.
+
+## After phase 4 (2026-10-06, orchestrator in WSL)
+
+Postgres 16.2: 0027 upgrade → downgrade 0026 → upgrade clean; `tests/functional_postgres` 14 passed (incl. the 0027 duplicate-folio merge with real UUIDs and link cascades on the partitioned table).
+
+| Scenario | match / differ / no_CAS | Note |
+|---|---|---|
+| p20_FY → p20_FY_altfolio | 9 / 0 / 0 | one folio per fund; second upload 409 already_imported; live value equals a single FY upload (was ~₹30.7 Cr double count) |
+| p20_FY → p20_20yr, delete FY | 11 / 0 / 1 | 20-year rows covering the FY period kept |
+| p20_FY → p20_20yr, delete 20-year | 9 / 0 / 0 | FY opening balance restored automatically |
+| p20_10yr → p20_20yr, delete 20-year | 10 / 0 / 1 | 10-year opening restored |
+| all 17 earlier scenarios | unchanged from phase 3 | no regressions |
+
+Known exceptions unchanged (Phase 5): Unifund→UTI `no_cas_data`; Franklin segregated portfolio (+423,983.118 on the main Franklin folio in kfin_pk_10yr).

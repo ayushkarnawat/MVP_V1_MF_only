@@ -389,7 +389,7 @@ def test_reversal_cancels_its_purchase():
         _txn(TransactionType.REVERSAL, date(2020, 2, 10), Decimal("5000.00"), Decimal("40.000"), Decimal("125.0000")),
     ]
     units, cost, realized = _process_folio_lots(txns)
-    assert units == Decimal("43.210") and cost == Decimal("5000.00") and realized == 0
+    assert units == Decimal("43.210") and cost == Decimal("4999.8291") and realized == 0   # cost = units × NAV (corrected 2026-10-06)
 
 
 def test_bonus_lot_has_zero_cost():
