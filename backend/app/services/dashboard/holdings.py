@@ -18,6 +18,7 @@ from sqlalchemy import case
 from sqlalchemy.orm import Session
 
 from app.models.enums import CostSource, PlanType, TransactionOrigin, TransactionType
+from app.services.lot_rules import LOT_ADDING_TYPES, LOT_CONSUMING_TYPES, LOT_SELLING_TYPES, apply_lot_rules
 from app.models.folio import Folio
 from app.models.reference import Scheme
 from app.models.transaction import Transaction
@@ -26,8 +27,9 @@ from app.services.dashboard.nav import get_nav_on_or_before, get_navs_on_or_befo
 from app.services.dashboard.schemas import HoldingRow, OpeningLotInfo
 from app.services.dashboard.allocation_labels import asset_class_bucket
 
-_LOT_ADDING_TYPES = {TransactionType.PURCHASE, TransactionType.PURCHASE_SIP, TransactionType.SWITCH_IN, TransactionType.DIVIDEND_REINVEST, TransactionType.OPENING_BALANCE}
-_LOT_CONSUMING_TYPES = {TransactionType.REDEMPTION, TransactionType.SWITCH_OUT}
+# Single source of the lot rules (Phase 3 review): see app/services/lot_rules.py.
+_LOT_ADDING_TYPES = LOT_ADDING_TYPES
+_LOT_CONSUMING_TYPES = LOT_CONSUMING_TYPES
 
 # Deliberately process-local: this avoids duplicate dashboard computations in
 # the MVP and is not intended to coordinate cache state across app instances.
@@ -79,38 +81,26 @@ def peek_cached_holdings(household_member_ids: list[uuid.UUID]) -> list[HoldingR
         return entry.rows
 
 
-@dataclass
-class _Lot:
-    units: Decimal
-    nav: Decimal
-
-
 def _process_folio_lots(transactions: list[Transaction]) -> tuple[Decimal, Decimal, Decimal]:
     """Returns (units_held, cost_basis, realized_gain) for one folio's
     transaction history, in FIFO order. `transactions` must already be
     sorted chronologically by the caller.
 
-    STT/stamp_duty/misc/segregation transactions have no effect here — a
-    stated simplification, see the design spec's Open Items."""
-    lots: list[_Lot] = []
+    STT/stamp_duty/misc transactions have no effect here — a stated
+    simplification, see the design spec's Open Items. A REVERSAL (bounced SIP,
+    #3) cancels the most recent earlier lot with exactly its units, else takes
+    that many units from the newest lots; GIFT_OUT takes units FIFO. Neither
+    creates a realised gain."""
+    lots: list[list] = []
     realized_gain = Decimal("0")
 
     for txn in transactions:
-        if txn.type in _LOT_ADDING_TYPES:
-            lots.append(_Lot(units=txn.units, nav=txn.nav))
-        elif txn.type in _LOT_CONSUMING_TYPES:
-            remaining = txn.units
-            while remaining > 0 and lots:
-                lot = lots[0]
-                take = min(lot.units, remaining)
-                realized_gain += take * (txn.nav - lot.nav)
-                lot.units -= take
-                remaining -= take
-                if lot.units == 0:
-                    lots.pop(0)
+        pieces = apply_lot_rules(lots, txn.type, txn.units, txn.nav, lambda u, n: [u, n])
+        if txn.type in LOT_SELLING_TYPES:
+            realized_gain += sum((take * (txn.nav - lot[1]) for lot, take in pieces), Decimal("0"))
 
-    units_held = sum((lot.units for lot in lots), Decimal("0"))
-    cost_basis = sum((lot.units * lot.nav for lot in lots), Decimal("0"))
+    units_held = sum((lot[0] for lot in lots), Decimal("0"))
+    cost_basis = sum((lot[0] * lot[1] for lot in lots), Decimal("0"))
     return units_held, cost_basis, realized_gain
 
 

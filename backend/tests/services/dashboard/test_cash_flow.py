@@ -110,3 +110,31 @@ def test_entries_are_ordered_by_date():
 
     entries = compute_cash_flow(db, [member.id])
     assert [e.date for e in entries] == [date(2024, 1, 1), date(2024, 3, 1)]
+
+
+def test_payout_is_inflow():
+    db = _session()
+    member = _household_member(db)
+    txn = _txn(db, _folio(db, member), TransactionType.DIVIDEND_PAYOUT, date(2022, 3, 1), Decimal("2500.00"))
+    txn.units, txn.nav = Decimal("0"), Decimal("0")
+    db.commit()
+    [entry] = compute_cash_flow(db, [member.id])
+    assert entry.direction == "credit" and entry.amount == "2500.00"
+
+
+def test_reversal_is_credit():
+    db = _session()
+    member = _household_member(db)
+    _txn(db, _folio(db, member), TransactionType.REVERSAL, date(2020, 2, 10), Decimal("5000.00"))
+    [entry] = compute_cash_flow(db, [member.id])
+    assert entry.direction == "credit"
+
+
+def test_gifts_are_not_cash():
+    db = _session()
+    member = _household_member(db)
+    folio = _folio(db, member)
+    _txn(db, folio, TransactionType.GIFT_IN, date(2021, 4, 1), Decimal("30000.00"))
+    _txn(db, folio, TransactionType.GIFT_OUT, date(2022, 4, 1), Decimal("100.00"))
+    assert compute_cash_flow(db, [member.id]) == []
+

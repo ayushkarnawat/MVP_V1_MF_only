@@ -83,3 +83,25 @@ def test_dashboard_xirr_with_only_opening_lot_is_positive(db_session):
     holding = _holding(scheme.id, member.id).model_copy(update={"current_value": "200000.00"})
     result = calculate_dashboard_xirr(db_session, [member.id], [holding])
     assert result.lifetime_xirr is not None and Decimal(result.lifetime_xirr) > 0
+
+
+def test_gift_in_counts_as_invested(db_session):
+    now = datetime.now(timezone.utc)
+    user = User(phone_number="+919500000003", created_at=now)
+    db_session.add(user)
+    db_session.flush()
+    member = HouseholdMember(user_id=user.id, name="Investor", relationship=Relationship.SELF, created_at=now)
+    scheme = Scheme(amfi_code="XIRR-GIFT", name="Gift Fund", amc_name="AMC", sebi_category="Equity")
+    db_session.add_all([member, scheme])
+    db_session.flush()
+    folio = Folio(household_member_id=member.id, scheme_id=scheme.id, folio_number="G", plan_type=PlanType.DIRECT)
+    imp = Import(household_member_id=member.id, status=ImportStatus.CONFIRMED, uploaded_at=now)
+    db_session.add_all([folio, imp])
+    db_session.flush()
+    db_session.add(Transaction(folio_id=folio.id, import_id=imp.id, type=TransactionType.GIFT_IN,
+                               date=date(2020, 1, 1), amount=Decimal("10000.00"), units=Decimal("1000"), nav=Decimal("10")))
+    db_session.commit()
+    holding = _holding(scheme.id, member.id).model_copy(update={"current_value": "20000.00"})
+    result = calculate_dashboard_xirr(db_session, [member.id], [holding])
+    assert result.lifetime_xirr is not None and Decimal(result.lifetime_xirr) > 0
+

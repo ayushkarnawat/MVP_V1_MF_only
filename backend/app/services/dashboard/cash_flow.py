@@ -20,7 +20,9 @@ from app.models.user import HouseholdMember
 from app.services.dashboard.schemas import CashFlowEntry
 
 _DEBIT_TYPES = {TransactionType.PURCHASE, TransactionType.PURCHASE_SIP, TransactionType.OPENING_BALANCE}
-_CREDIT_TYPES = {TransactionType.REDEMPTION, TransactionType.DIVIDEND_PAYOUT}
+# REVERSAL: a bounced SIP's money comes back (#3). Gifts are not cash and
+# stay out of this list; XIRR values them separately (xirr.py).
+_CREDIT_TYPES = {TransactionType.REDEMPTION, TransactionType.DIVIDEND_PAYOUT, TransactionType.REVERSAL}
 
 
 def compute_cash_flow(db: Session, household_member_ids: list[uuid.UUID]) -> list[CashFlowEntry]:

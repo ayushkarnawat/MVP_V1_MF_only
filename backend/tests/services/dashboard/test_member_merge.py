@@ -70,10 +70,10 @@ def _folio(db, member, scheme, number):
     return f
 
 
-def _txn(db, folio, imp, day, amount="100.00"):
+def _txn(db, folio, imp, day, amount="100.00", occurrence=1):
     db.add(Transaction(
         folio_id=folio.id, import_id=imp.id, type=TransactionType.PURCHASE, date=day,
-        amount=Decimal(amount), units=Decimal("1.000"), nav=Decimal(amount),
+        amount=Decimal(amount), units=Decimal("1.000"), nav=Decimal(amount), occurrence=occurrence,
     ))
     db.commit()
 
@@ -231,3 +231,79 @@ def test_merge_allows_statement_pan_source_matching_target_pan(db_session, targe
     merge_member_into(db, user.id, source.id, target.id)
     db.expire_all()
     assert db.get(HouseholdMember, source_id) is None
+
+
+def test_merge_keeps_twin_rows(db_session):
+    """#2: two genuine same-day rows (occurrence 1 and 2) must both survive a
+    merge; only a row with the same occurrence is a duplicate."""
+    db = db_session
+    user = _user(db)
+    target, source = _target(db, user), _source(db, user)
+    t_imp, s_imp = _imp(db, target), _imp(db, source)
+    s1 = _scheme(db, "S1")
+    t_folio = _folio(db, target, s1, "F1")
+    _txn(db, t_folio, t_imp, date(2024, 1, 1), occurrence=1)
+    s_same = _folio(db, source, s1, "F1")
+    _txn(db, s_same, s_imp, date(2024, 1, 1), occurrence=1)   # duplicate of the target's row
+    _txn(db, s_same, s_imp, date(2024, 1, 1), occurrence=2)   # its twin: new to the target
+
+    result = merge_member_into(db, user.id, source.id, target.id)
+
+    assert result.transactions_dropped == 1
+    db.expire_all()
+    rows = db.query(Transaction).filter_by(folio_id=t_folio.id).all()
+    assert sorted(t.occurrence for t in rows) == [1, 2]
+
+
+def test_merge_matches_folios_by_key_and_moves_links_of_dropped_duplicates(db_session):
+    """#4/#5: source "123 / 45" and target "123/45" are one folio; a row both
+    hold is kept once and its links (one per import) all end up on the kept row."""
+    from app.models.transaction_import import TransactionImport
+
+    db = db_session
+    user = _user(db)
+    target, source = _target(db, user), _source(db, user)
+    t_imp, s_imp = _imp(db, target), _imp(db, source)
+    s1 = _scheme(db, "S1")
+    t_folio = _folio(db, target, s1, "123/45")
+    s_folio = _folio(db, source, s1, "123 / 45")
+    _txn(db, t_folio, t_imp, date(2024, 1, 1))
+    _txn(db, s_folio, s_imp, date(2024, 1, 1))     # same row as the target's
+    for folio, imp in ((t_folio, t_imp), (s_folio, s_imp)):
+        row = db.query(Transaction).filter_by(folio_id=folio.id).one()
+        db.add(TransactionImport(transaction_id=row.id, transaction_date=row.date, import_id=imp.id))
+    db.commit()
+
+    result = merge_member_into(db, user.id, source.id, target.id)
+
+    assert result.transactions_dropped == 1
+    db.expire_all()
+    assert db.query(Folio).count() == 1
+    kept = db.query(Transaction).filter_by(folio_id=t_folio.id).one()
+    assert {l.import_id for l in db.query(TransactionImport).filter_by(transaction_id=kept.id)} == {t_imp.id, s_imp.id}
+
+
+def test_merge_drops_source_opening_when_target_has_earlier_history(db_session):
+    """Review (Medium): merging a source folio that carries a CAS opening into
+    a target folio with real rows before it must not double-count units."""
+    from app.models.enums import TransactionOrigin
+
+    db = db_session
+    user = _user(db)
+    target, source = _target(db, user), _source(db, user)
+    t_imp, s_imp = _imp(db, target), _imp(db, source)
+    s1 = _scheme(db, "S1")
+    t_folio = _folio(db, target, s1, "X/1")
+    s_folio = _folio(db, source, s1, "X / 1")
+    _txn(db, t_folio, t_imp, date(2016, 5, 5))
+    db.add(Transaction(folio_id=s_folio.id, import_id=s_imp.id, type=TransactionType.OPENING_BALANCE,
+                       date=date(2025, 4, 1), amount=Decimal("5000"), units=Decimal("100"), nav=Decimal("50"),
+                       origin=TransactionOrigin.CAS_OPENING))
+    db.commit()
+
+    merge_member_into(db, user.id, source.id, target.id)
+
+    db.expire_all()
+    assert db.query(Transaction).filter_by(folio_id=t_folio.id, origin=TransactionOrigin.CAS_OPENING).count() == 0
+    assert db.query(Transaction).filter_by(folio_id=t_folio.id).count() == 1
+

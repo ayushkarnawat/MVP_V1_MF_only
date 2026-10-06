@@ -621,3 +621,78 @@ def test_compute_holdings_combines_opening_facts_across_folios():
         [row] = asyncio.run(compute_holdings(db, [member.id]))
     assert row.units_held == "300.000"
     assert row.opening_lot.model_dump() == {"units": "300.000", "since": date(2016, 1, 1), "cost_source": "nav_on_start"}
+
+
+# ---- Phase 3 (#3): new row types in FIFO ----
+
+
+def test_reversal_cancels_its_purchase():
+    txns = [
+        _txn(TransactionType.PURCHASE_SIP, date(2020, 1, 7), Decimal("5000.00"), Decimal("43.210"), Decimal("115.7100")),
+        _txn(TransactionType.PURCHASE_SIP, date(2020, 2, 7), Decimal("5000.00"), Decimal("40.000"), Decimal("125.0000")),
+        _txn(TransactionType.REVERSAL, date(2020, 2, 10), Decimal("5000.00"), Decimal("40.000"), Decimal("125.0000")),
+    ]
+    units, cost, realized = _process_folio_lots(txns)
+    # cost = units × NAV (corrected 2026-10-06)
+    assert units == Decimal("43.210") and cost == Decimal("4999.8291") and realized == 0
+
+
+def test_reversal_without_matching_lot_consumes_newest_without_gain():
+    txns = [
+        _txn(TransactionType.PURCHASE, date(2020, 1, 1), Decimal("1000.00"), Decimal("10.000"), Decimal("100.0000")),
+        _txn(TransactionType.PURCHASE, date(2020, 2, 1), Decimal("2200.00"), Decimal("20.000"), Decimal("110.0000")),
+        _txn(TransactionType.REVERSAL, date(2020, 3, 1), Decimal("550.00"), Decimal("5.000"), Decimal("110.0000")),
+    ]
+    units, cost, realized = _process_folio_lots(txns)
+    assert units == Decimal("25.000") and realized == 0
+    assert cost == Decimal("10.000") * 100 + Decimal("15.000") * 110
+
+
+def test_bonus_lot_has_zero_cost():
+    txns = [
+        _txn(TransactionType.PURCHASE, date(2015, 1, 1), Decimal("1000.00"), Decimal("100.000"), Decimal("10.0000")),
+        _txn(TransactionType.BONUS, date(2016, 1, 1), Decimal("0"), Decimal("100.000"), Decimal("0")),
+        _txn(TransactionType.REDEMPTION, date(2020, 1, 1), Decimal("6000.00"), Decimal("150.000"), Decimal("40.0000")),
+    ]
+    units, cost, realized = _process_folio_lots(txns)
+    assert units == Decimal("50.000") and cost == Decimal("0")
+    assert realized == Decimal("100.000") * 30 + Decimal("50.000") * 40
+
+
+def test_gift_in_adds_lot_and_gift_out_has_no_realised_gain():
+    txns = [
+        _txn(TransactionType.GIFT_IN, date(2015, 1, 1), Decimal("1000.00"), Decimal("100.000"), Decimal("10.0000")),
+        _txn(TransactionType.GIFT_OUT, date(2020, 1, 1), Decimal("1600.00"), Decimal("40.000"), Decimal("40.0000")),
+    ]
+    units, cost, realized = _process_folio_lots(txns)
+    assert units == Decimal("60.000") and cost == Decimal("600.000") and realized == 0
+
+
+def test_segregation_units_are_counted():
+    txns = [_txn(TransactionType.SEGREGATION, date(2020, 1, 24), Decimal("0"), Decimal("1200.000"), Decimal("0"))]
+    units, cost, realized = _process_folio_lots(txns)
+    assert units == Decimal("1200.000") and cost == 0
+
+
+def test_compute_holdings_processes_same_date_reversal_after_its_purchase():
+    """Phase 3 review: a same-day REVERSAL must sort after the purchase it
+    cancels, whatever the insertion order (it's in _LOT_CONSUMING_TYPES)."""
+    import asyncio
+
+    db = _session()
+    member = _household_member(db)
+    folio = _folio(db, member, _scheme(db))
+    same_date = date(2024, 3, 5)
+    _persisted_txn(db, folio, TransactionType.PURCHASE, date(2024, 1, 5), Decimal("1000.00"), Decimal("10.000"), Decimal("100.0000"))
+    _persisted_txn(db, folio, TransactionType.REVERSAL, same_date, Decimal("5000.00"), Decimal("40.000"), Decimal("125.0000"))
+    _persisted_txn(db, folio, TransactionType.PURCHASE_SIP, same_date, Decimal("5000.00"), Decimal("40.000"), Decimal("125.0000"))
+
+    with patch(
+        "app.services.dashboard.holdings.get_navs_on_or_before",
+        new=_mock_nav_batch((Decimal("130.0000"), date(2024, 6, 1))),
+    ), patch("app.services.dashboard.holdings.get_previous_nav_from_cache", return_value=None):
+        rows = asyncio.run(compute_holdings(db, [member.id]))
+
+    assert rows[0].units_held == "10.000"
+    assert Decimal(rows[0].amount_invested) == Decimal("1000.00")
+

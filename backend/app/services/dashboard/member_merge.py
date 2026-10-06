@@ -16,6 +16,8 @@ from app.models.folio import Folio
 from app.models.imports import Import
 from app.models.member_history import HouseholdMemberMerge, HouseholdMemberNameChange
 from app.models.transaction import Transaction
+from app.models.transaction_import import TransactionImport
+from app.services.import_.opening_restore import normalise_cas_openings
 from app.models.user import HouseholdMember
 from app.services.analytics.recompute import bump_recompute_generation
 from app.services.dashboard.holdings import invalidate_holdings_cache
@@ -39,8 +41,9 @@ class MergeResult:
 
 
 def _txn_key(t: Transaction) -> tuple:
-    # The same 5-column identity as uq_transactions_folio_date_amount_units_type.
-    return (t.date, t.amount, t.units, t.type)
+    # Same identity as uq_transactions_folio_date_amount_units_type_occ (0026):
+    # occurrence separates genuine same-day twins (#2).
+    return (t.date, t.amount, t.units, t.type, t.occurrence)
 
 
 def merge_member_into(
@@ -73,34 +76,46 @@ def merge_member_into(
         raise MergeNotAllowedError()
 
     target_folios = {
-        (f.scheme_id, f.folio_number): f
+        (f.scheme_id, f.folio_key): f
         for f in db.query(Folio).filter(Folio.household_member_id == target.id).all()
     }
     folios_moved = 0
     dropped = 0
     touched_target_folios: set[uuid.UUID] = set()
     for folio in db.query(Folio).filter(Folio.household_member_id == source.id).all():
-        twin = target_folios.get((folio.scheme_id, folio.folio_number))
+        twin = target_folios.get((folio.scheme_id, folio.folio_key))
         if twin is None:
             folio.household_member_id = target.id
             folios_moved += 1
             continue
         existing = {
-            _txn_key(t) for t in db.query(Transaction).filter(Transaction.folio_id == twin.id).all()
+            _txn_key(t): t for t in db.query(Transaction).filter(Transaction.folio_id == twin.id).all()
         }
         for txn in db.query(Transaction).filter(Transaction.folio_id == folio.id).all():
-            if _txn_key(txn) in existing:
+            kept = existing.get(_txn_key(txn))
+            if kept is not None:
+                # #5: the kept row now also belongs to every import that held
+                # the dropped duplicate, so deleting one of them stays safe.
+                held = {l.import_id for l in db.query(TransactionImport).filter_by(transaction_id=kept.id)}
+                for link in db.query(TransactionImport).filter_by(transaction_id=txn.id).all():
+                    if link.import_id not in held:
+                        db.add(TransactionImport(transaction_id=kept.id, transaction_date=kept.date, import_id=link.import_id))
+                        held.add(link.import_id)
+                    db.delete(link)
+                db.flush()
                 db.delete(txn)
                 dropped += 1
             else:
                 txn.folio_id = twin.id
-                existing.add(_txn_key(txn))
+                existing[_txn_key(txn)] = txn
         db.flush()
         db.delete(folio)
         touched_target_folios.add(twin.id)
         folios_moved += 1
     db.flush()
     for folio_id in touched_target_folios:
+        # Rows merged in may include the source's CAS opening (review).
+        normalise_cas_openings(db, db.get(Folio, folio_id))
         evaluate_folio_coverage_gaps(db, folio_id)
 
     db.query(Import).filter(Import.household_member_id == source.id).update(

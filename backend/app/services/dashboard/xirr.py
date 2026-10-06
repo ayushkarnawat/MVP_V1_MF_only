@@ -14,7 +14,10 @@ from app.services.analytics.xirr import xirr
 from app.services.dashboard.cash_flow import _CREDIT_TYPES, _DEBIT_TYPES
 from app.services.dashboard.schemas import HoldingRow
 
-_RELEVANT_TYPES = _DEBIT_TYPES | _CREDIT_TYPES
+# #3: a gift isn't cash, but for returns a gift received is money put in at
+# its value and a gift given is money taken out, so neither distorts XIRR.
+_XIRR_DEBIT_TYPES = _DEBIT_TYPES | {TransactionType.GIFT_IN}
+_RELEVANT_TYPES = _XIRR_DEBIT_TYPES | _CREDIT_TYPES | {TransactionType.GIFT_OUT}
 
 
 @dataclass(frozen=True)
@@ -27,7 +30,7 @@ def _signed_amount(
     transaction: Transaction,
     extra_debit_types: frozenset[TransactionType] = frozenset(),
 ) -> Decimal:
-    return -transaction.amount if transaction.type in (_DEBIT_TYPES | extra_debit_types) else transaction.amount
+    return -transaction.amount if transaction.type in (_XIRR_DEBIT_TYPES | extra_debit_types) else transaction.amount
 
 
 def portfolio_xirr(
