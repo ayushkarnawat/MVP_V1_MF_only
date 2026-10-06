@@ -1113,3 +1113,115 @@ def test_0027_backfill_skips_ambiguous_name_only_matches(tmp_path, monkeypatch):
     assert {r[0] for r in conn.execute("SELECT import_id FROM transaction_imports WHERE transaction_id = 'ti'")} == {"i1"}
     conn.close()
 
+
+
+def test_0028_scheme_master_columns_and_nullable_code(tmp_path, monkeypatch):
+    import sqlite3
+    db_path = tmp_path / "master.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    assert _alembic("upgrade", "0027").returncode == 0
+    conn = sqlite3.connect(db_path)
+    conn.execute("INSERT INTO schemes (id, amfi_code, name, amc_name, sebi_category) VALUES ('s1', '100001', 'X', 'A', 'E')")
+    conn.commit(); conn.close()
+    up = _alembic("upgrade", "0028")
+    assert up.returncode == 0, up.stderr
+    conn = sqlite3.connect(db_path)
+    assert conn.execute("SELECT source, is_active FROM schemes WHERE id='s1'").fetchone() == ("amfi", 1)
+    for scheme_id in ("s2", "s3"):
+        conn.execute("INSERT INTO schemes (id, amfi_code, name, amc_name, sebi_category, source, is_active) VALUES (?, NULL, 'Closed', 'A', 'E', 'cas_only', 0)", (scheme_id,))
+    assert "plan_verified" in {r[1] for r in conn.execute("PRAGMA table_info(folios)")}
+    assert {"ix_schemes_isin", "ix_schemes_isin_reinvest", "ix_schemes_amc_base"}.issubset({r[1] for r in conn.execute("PRAGMA index_list(schemes)")})
+    conn.commit(); conn.close()
+    down = _alembic("downgrade", "0027")
+    assert down.returncode != 0 and "downgrade would orphan" in down.stderr
+    conn = sqlite3.connect(db_path)
+    assert conn.execute("SELECT count(*) FROM schemes WHERE amfi_code IS NULL").fetchone()[0] == 2
+    conn.execute("DELETE FROM schemes WHERE amfi_code IS NULL")
+    conn.commit(); conn.close()
+    assert _alembic("downgrade", "0027").returncode == 0
+
+
+@pytest.mark.postgres
+def test_0028_postgres_master_nullable_code_and_native_enums(monkeypatch):
+    import os
+    import psycopg2
+    url = os.environ.get("TEST_DATABASE_URL")
+    if not url:
+        pytest.skip("TEST_DATABASE_URL unset")
+    monkeypatch.setenv("DATABASE_URL", url)
+    up = _alembic("upgrade", "head")
+    assert up.returncode == 0, up.stderr
+    conn = psycopg2.connect(url.replace("postgresql+psycopg2://", "postgresql://"))
+    with conn.cursor() as cur:
+        cur.execute("INSERT INTO schemes (id, amfi_code, name, amc_name, sebi_category, source, plan_type, is_active) VALUES (gen_random_uuid(), NULL, 'Closed PG test', 'A', 'E', 'cas_only', 'direct', false) RETURNING id")
+        scheme_id = cur.fetchone()[0]
+    conn.commit()
+    down = _alembic("downgrade", "0027")
+    assert down.returncode != 0 and "downgrade would orphan" in down.stderr
+    with conn.cursor() as cur:
+        cur.execute("SELECT source, plan_type, is_active FROM schemes WHERE id=%s", (scheme_id,))
+        assert cur.fetchone() == ("cas_only", "direct", False)
+        cur.execute("DELETE FROM schemes WHERE id=%s", (scheme_id,))
+    conn.commit(); conn.close()
+    down = _alembic("downgrade", "0027")
+    assert down.returncode == 0, down.stderr
+    assert _alembic("upgrade", "head").returncode == 0
+
+
+def test_0029_snapshot_fields_and_preview_sessions(tmp_path, monkeypatch):
+    import sqlite3
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path / 'phase6.db'}")
+    assert _alembic("upgrade", "0028").returncode == 0
+    result = _alembic("upgrade", "0029")
+    assert result.returncode == 0, result.stderr
+    conn = sqlite3.connect(tmp_path / "phase6.db")
+    assert {"invested_value", "is_partial", "missing_scheme_ids", "data_version"} <= {r[1] for r in conn.execute("PRAGMA table_info(portfolio_snapshots)")}
+    assert "preview_state" in {r[1] for r in conn.execute("PRAGMA table_info(imports)")}
+    conn.execute("INSERT INTO imports(id,household_member_id,status,uploaded_at,preview_state) VALUES('preview','member','previewing','2026-10-06','encrypted')")
+    conn.commit(); conn.close()
+    result = _alembic("downgrade", "0028")
+    assert result.returncode == 0, result.stderr
+    conn = sqlite3.connect(tmp_path / "phase6.db")
+    assert conn.execute("SELECT count(*) FROM imports WHERE id='preview'").fetchone()[0] == 0
+    assert "data_version" not in {r[1] for r in conn.execute("PRAGMA table_info(portfolio_snapshots)")}
+    assert "preview_state" not in {r[1] for r in conn.execute("PRAGMA table_info(imports)")}
+    conn.close()
+
+
+
+@pytest.mark.postgres
+def test_0029_postgres_snapshot_epoch_and_review_roundtrip(monkeypatch):
+    import os,uuid
+    import psycopg2
+    url = os.environ.get("TEST_DATABASE_URL")
+    if not url:
+        pytest.skip("TEST_DATABASE_URL unset")
+    monkeypatch.setenv("DATABASE_URL",url)
+    result = _alembic("upgrade","head")
+    assert result.returncode == 0,result.stderr
+    user,member,preview = (str(uuid.uuid4()) for _ in range(3))
+    conn = psycopg2.connect(url.replace("postgresql+psycopg2://","postgresql://",1))
+    with conn.cursor() as cur:
+        cur.execute("SELECT data_type FROM information_schema.columns WHERE table_name='portfolio_snapshots' AND column_name='data_version'")
+        assert cur.fetchone()[0] == "bigint"
+        cur.execute("SELECT data_type FROM information_schema.columns WHERE table_name='portfolio_snapshots' AND column_name='missing_scheme_ids'")
+        assert cur.fetchone()[0] == "jsonb"
+        cur.execute("INSERT INTO users(id,phone_number,created_at) VALUES(%s,%s,now())",(user,"+91"+str(uuid.uuid4().int % 10**10).zfill(10)))
+        cur.execute("INSERT INTO household_members(id,user_id,name,relationship,created_at) VALUES(%s,%s,'Snapshot test','self',now())",(member,user))
+        cur.execute("INSERT INTO imports(id,household_member_id,status,uploaded_at,preview_state) VALUES(%s,%s,'previewing',now(),'test ciphertext')",(preview,member))
+        cur.execute("INSERT INTO portfolio_snapshots(household_member_id,snapshot_month,total_value,computed_at,invested_value,is_partial,missing_scheme_ids,data_version) VALUES(%s,'2026-09-30',200,now(),100,true,'[\"missing\"]',1791288000123)",(member,))
+        cur.execute("SELECT invested_value,is_partial,missing_scheme_ids,data_version FROM portfolio_snapshots WHERE household_member_id=%s",(member,))
+        assert cur.fetchone() == (100,True,["missing"],1791288000123)
+    conn.commit();conn.close()
+    result = _alembic("downgrade","0028")
+    assert result.returncode == 0,result.stderr
+    result = _alembic("upgrade","head")
+    assert result.returncode == 0,result.stderr
+    conn = psycopg2.connect(url.replace("postgresql+psycopg2://","postgresql://",1))
+    with conn.cursor() as cur:
+        cur.execute("SELECT count(*) FROM imports WHERE id=%s",(preview,))
+        assert cur.fetchone()[0] == 0
+        cur.execute("DELETE FROM portfolio_snapshots WHERE household_member_id=%s",(member,))
+        cur.execute("DELETE FROM household_members WHERE id=%s",(member,))
+        cur.execute("DELETE FROM users WHERE id=%s",(user,))
+    conn.commit();conn.close()
