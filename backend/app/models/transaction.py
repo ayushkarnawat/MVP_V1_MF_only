@@ -6,7 +6,7 @@ from sqlalchemy import ForeignKey, Numeric, PrimaryKeyConstraint, String, Unique
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
-from app.models.enums import TransactionType, enum_column
+from app.models.enums import CostSource, TransactionOrigin, TransactionType, enum_column
 
 
 class Transaction(Base):
@@ -35,3 +35,9 @@ class Transaction(Base):
     units: Mapped[Decimal] = mapped_column(Numeric(14, 3), nullable=False)
     nav: Mapped[Decimal] = mapped_column(Numeric(10, 4), nullable=False)
     raw_description: Mapped[str | None] = mapped_column(String)
+    # The earliest-statement rule replaces only CAS openings, never manual lots.
+    origin: Mapped[TransactionOrigin] = mapped_column(
+        enum_column(TransactionOrigin), nullable=False, default=TransactionOrigin.CAS_ROW,
+        server_default=TransactionOrigin.CAS_ROW.value,
+    )
+    cost_source: Mapped[CostSource | None] = mapped_column(enum_column(CostSource))

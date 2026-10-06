@@ -315,3 +315,20 @@ def test_household_members_one_self_row_per_user_on_postgres(postgres_url, monke
 
     assert db.query(HouseholdMember).filter_by(user_id=user.id).count() == 2
     db.close()
+
+
+def test_origin_column_exists_on_every_partition(postgres_url, monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", postgres_url)
+    result = subprocess.run(
+        [sys.executable, "-m", "alembic", "upgrade", "head"],
+        cwd=BACKEND_DIR, capture_output=True, text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    with psycopg2.connect(_psycopg2_url(postgres_url)) as conn, conn.cursor() as cur:
+        cur.execute("SELECT DISTINCT table_name FROM information_schema.columns "
+                    "WHERE column_name = 'origin' AND table_name LIKE 'transactions%'")
+        tables = {r[0] for r in cur.fetchall()}
+        cur.execute("SELECT inhrelid::regclass::text FROM pg_inherits "
+                    "WHERE inhparent = 'transactions'::regclass")
+        partitions = {r[0] for r in cur.fetchall()}
+    assert tables >= {"transactions"} | partitions

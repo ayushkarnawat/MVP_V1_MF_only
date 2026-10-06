@@ -99,6 +99,18 @@ class PlanType(str, enum.Enum):
     UNCLASSIFIED = "unclassified"
 
 
+class TransactionOrigin(str, enum.Enum):
+    CAS_ROW = "cas_row"
+    CAS_OPENING = "cas_opening"
+    MANUAL = "manual"
+
+
+class CostSource(str, enum.Enum):
+    CAS_COST = "cas_cost"
+    NAV_ON_START = "nav_on_start"
+    MANUAL = "manual"
+
+
 class TransactionType(str, enum.Enum):
     PURCHASE = "purchase"
     PURCHASE_SIP = "purchase_sip"

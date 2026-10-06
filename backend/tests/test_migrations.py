@@ -862,3 +862,50 @@ def test_0023_marks_locked_row_whose_pan_another_user_holds_as_conflict(tmp_path
         conn.close()
     assert got["locked"] == ("other_account", "enc-x", "hash-x", None)
     assert got["holder"] == (None, None, None, "hash-x")
+
+
+def test_0025_adds_origin_and_cost_source_and_backfills_manual(tmp_path, monkeypatch):
+    import sqlite3, uuid
+    db_path = tmp_path / "origin.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    assert _alembic("upgrade", "0023").returncode == 0
+    conn = sqlite3.connect(db_path)
+    folio, imp = "f1", "i1"
+    ts = "2026-09-01 10:00:00.000000"
+    conn.execute("INSERT INTO users (id, phone_number, created_at) VALUES ('u1', '+919800002501', ?)", (ts,))
+    conn.execute(
+        "INSERT INTO household_members (id, user_id, name, relationship, created_at, origin, name_source)"
+        " VALUES ('m1', 'u1', 'A', 'self', ?, 'onboarding', 'user_entered')", (ts,)
+    )
+    conn.execute("INSERT INTO schemes (id, amfi_code, name, amc_name, sebi_category) VALUES ('s1', '100001', 'X', 'A', 'Equity')")
+    conn.execute(
+        "INSERT INTO folios (id, household_member_id, scheme_id, folio_number, plan_type, has_coverage_gap)"
+        " VALUES ('f1', 'm1', 's1', '1/1', 'direct', 0)"
+    )
+    conn.execute("INSERT INTO imports (id, household_member_id, status, uploaded_at) VALUES ('i1', 'm1', 'confirmed', ?)", (ts,))
+    conn.execute("INSERT INTO transactions (id, date, folio_id, import_id, type, amount, units, nav, raw_description) "
+                 "VALUES (?, '2020-01-01', ?, ?, 'opening_balance', 100, 10, 10, 'Manual Opening Balance Entry')",
+                 (str(uuid.uuid4()), folio, imp))
+    conn.execute("INSERT INTO transactions (id, date, folio_id, import_id, type, amount, units, nav, raw_description) "
+                 "VALUES (?, '2020-02-01', ?, ?, 'purchase', 100, 10, 10, 'Purchase')",
+                 (str(uuid.uuid4()), folio, imp))
+    conn.commit(); conn.close()
+
+    up = _alembic("upgrade", "0025")
+    assert up.returncode == 0, up.stderr
+    conn = sqlite3.connect(db_path)
+    rows = dict(conn.execute("SELECT type, origin FROM transactions").fetchall())
+    assert rows == {"opening_balance": "manual", "purchase": "cas_row"}
+    sources = dict(conn.execute("SELECT type, cost_source FROM transactions").fetchall())
+    assert sources == {"opening_balance": "manual", "purchase": None}
+    conn.execute("INSERT INTO transactions (id, date, folio_id, import_id, type, amount, units, nav, origin, cost_source) "
+                 "VALUES ('cas-opening', '2021-01-01', 'f1', 'i1', 'opening_balance', 200, 20, 10, 'cas_opening', 'cas_cost')")
+    conn.commit()
+    conn.close()
+    assert _alembic("downgrade", "0023").returncode == 0
+    conn = sqlite3.connect(db_path)
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(transactions)")}
+    assert "origin" not in columns and "cost_source" not in columns
+    assert conn.execute("SELECT COUNT(*) FROM transactions WHERE id = 'cas-opening'").fetchone()[0] == 0
+    assert conn.execute("SELECT COUNT(*) FROM transactions").fetchone()[0] == 2
+    conn.close()
