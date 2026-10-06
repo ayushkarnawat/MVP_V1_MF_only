@@ -42,7 +42,7 @@ answer "what's not done yet" even though they aren't scope deferrals.
 
 | Feature | Spec Source | Status | Deferred Reason | Priority |
 |---|---|---|---|---|
-| Minors' folios (folios held on behalf of a minor, typically under a guardian's PAN) | `Docs/orchestration/cas-member-detection-map.html` M5 / decision I6 | Not built | Explicitly decided "Later"; detection treats every PAN group as an adult person | Later |
+| Minors' folios (folios held on behalf of a minor, typically under a guardian's PAN) | `Docs/orchestration/cas-member-detection-map.html` M5 / decision I6; detection rule and test file in `Docs/investigations/2026-10-06-cas-import-deferred-items.md` §5 (CAS import fix plan #25) | Not built | Explicitly decided "Later"; detection treats every PAN group as an adult person, so a "(MINOR)" folio shows under the guardian. Re-confirmed as documented-only on 2026-10-06; the product question (separate member vs under guardian) is still open | Later |
 | "Ask for access" to another account's member (option C — request access when a detected person already lives on a different Unifolio account) | Same spec, decision I7 | Not built | Option B shipped instead (their funds from this statement count in the family total; their own dashboard stays locked to their account) | Later |
 | General member merge tool (merging arbitrary members). Only name-only detected members can be merged today | Same spec, M11 | Partly built (name-only merge only) | Scoped to the duplicate-person case that detection itself creates; a general tool needs its own design | Later |
 
@@ -125,3 +125,17 @@ heuristic rather than restructuring to always-mounted dual panels.
 - **Consent retention job (awaiting lawyer, Q6).** `consent_records` rows are kept forever, including after account hard-delete, and the append-only triggers block deletion. A purge job needs the retention period plus a trigger bypass design.
 - **Withdraw-consent control (awaiting lawyer, Q11).** No UI to withdraw consent. The only `withdrawn` rows are the automatic ones written when account deletion is scheduled.
 - **Replace placeholder legal texts (awaiting lawyer).** `backend/app/services/legal/documents/*.md` are placeholders (versions `*-placeholder-2026-10-01`). Replacing them with final T&C, Privacy and PAN disclaimer text bumps the version and re-asks every user once.
+
+
+## Added 2026-10-06 (CAS import fix plan — documented, not built in this pass)
+
+Full detail for every row: `Docs/investigations/2026-10-06-cas-import-deferred-items.md`.
+Parent plan: `Docs/investigations/2026-10-05-cas-import-fix-plan-final.html` (#n = issue number there). Minors (#25) is the existing row under "CAS Member Detection" above.
+
+| Feature | Spec Source | Status | Deferred Reason | Priority |
+|---|---|---|---|---|
+| Approximate purchase date for opening-balance lots ("Bought ~ Mar 2014"), plus `transactions.est_acquired_on` | Deferred-items doc §1 (part of #1) | Not built. #1's opening balance and hybrid cost are in this pass; the fund screen shows only "units from before [start date]" | User decision 2026-10-06: nice-to-have on top of the value fix | After the fix-plan pass |
+| CAS parse off the event loop (`asyncio.to_thread`), plus a staging timing run uploading the synthetic files one by one | Deferred-items doc §2 (#19) | Not built. Parse blocks the single uvicorn worker ~11 s for a 20-year file | User decision 2026-10-06: only one person tests staging today | Before real multi-user traffic |
+| Short-term / long-term capital gains report | Deferred-items doc §3 (#20) | Not built. casparser's `CapitalGainsReport` works only on full-history files (`IncompleteCASError` otherwise) | User decision 2026-10-05: new feature; depends on #1–#3 | After the fix-plan pass |
+| Analytics data fixes: category-label split, debt-fund benchmark rule, TER matched by AMFI code (43% coverage today) | Deferred-items doc §4 (#24) | Not built | User decision 2026-10-06; #8's AMFI master (in this pass) makes it small | After the fix-plan pass |
+

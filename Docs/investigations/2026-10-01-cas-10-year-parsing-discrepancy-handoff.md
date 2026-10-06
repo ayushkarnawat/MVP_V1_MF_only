@@ -4,6 +4,16 @@
 **Status:** Open bug, not yet root-caused. This doc exists so a new session can
 pick this up cold, without re-deriving the prior investigation.
 
+> **Update 2026-10-05/06: root-caused. The conclusion in §2 below is superseded.**
+> casparser reads every statement correctly (opening + transactions = closing for every
+> fund, on the real and synthetic files). The wrong values come from **Unifolio's own import
+> code**, mainly because the CAS opening balance is never saved (`parser.py` loops
+> transactions only), plus 24 other issues. Full plan, decisions and fixes:
+> `Docs/investigations/2026-10-05-cas-import-fix-plan-final.html`
+> (https://claude.ai/artifact/Jwgw3go9zSz7MnRZkJtsuR). Deferred parts:
+> `Docs/investigations/2026-10-06-cas-import-deferred-items.md`. Synthetic test files and
+> harness: `Docs/CAS Files/synthetic/`. The original text below is kept as history.
+
 ---
 
 ## 1. The bug, in one line
