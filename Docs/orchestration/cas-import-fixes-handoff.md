@@ -1,9 +1,9 @@
 # Handoff: cas-import-fixes
-**Status:** OPEN — Phase 1 ready for Codex
+**Status:** IN_PROGRESS — Phases 1–2 reviewed; Phase 3 ready (needs Postgres)
 **Parent plan:** `Docs/superpowers/plans/2026-10-06-cas-import-fixes-00-index.md` (+ phase files `…-p1-…` to `…-p7-…`)
 **Spec:** `Docs/investigations/2026-10-05-cas-import-fix-plan-final.html` (v15) · decisions in `decisions.md` (2026-10-05/06 entries)
 **Orchestrator:** Claude Code (plans, reviews, rulings, checkpoints) · **Worker:** Codex (builds one phase per run, self-reviews, reports back)
-**Review baseline:** snapshot commit `d2ca49b09efb8752e3b93eaa83ee5456c3a4644b` (working tree before Codex starts; not on any branch). The orchestrator diffs against it — Codex doesn't need to do anything with it.
+**Review baselines:** `d2ca49b` (before Phase 1) · `e62dbd3` (after Phase 1, before fix round 1 + Phase 2) · `937fefa` (after Phase 2, before Phase 3). Snapshot commits, not on any branch; the orchestrator diffs against them — Codex doesn't need to do anything with them.
 
 ---
 
@@ -67,7 +67,13 @@ Implement the phase named in the prompt from `Docs/superpowers/plans/2026-10-06-
 
 ## Carry-overs (orchestrator adds items here between phases; Codex must honour every open one)
 
-*(none yet)*
+1. **[From Phase 1 review] `_all_rows_exist` (confirm_people.py)** must return **False when the statement has no transactions to check** (no vacuous "already imported"), and must look up each scheme/folio once per scheme key (cache), not once per row. Phase 2 extends it with the opening-balance rule's dry run (only verdicts `skipped`/`none` count as unchanged; `written`/`replaced`/`removed` mean not already imported, and a deletion followed by "history before S exists" reports `removed`); Phase 3 replaces its row check with `_match_rows(dry_run=True)`; Phase 4 switches the folio lookup to `folio_key`. Each of those phases keeps these two properties.
+2. **[From Phase 1] Generic dashboard notice** (`importNotice: {text, details?}` in `MainDashboardFlow.tsx` / `MobileRoot.tsx`) is the only notice mechanism; Phase 7's "N transactions added" must reuse it.
+3. **[From Phase 1] Windows line endings:** write files with LF endings (the repo's existing files are LF); don't convert files you only read.
+4. **[From Phase 2] Checkpoint value comparisons use the CAS's own valuation**: per fund, `app units × CAS printed NAV (valuation.nav)` vs `CAS closing units × CAS printed NAV`, tolerance ₹1. Units equality (reconciliation status) is the primary check. Live dashboard totals (today's mfapi NAVs) are reported separately and never used for pass/fail. Applies to every later checkpoint and the Phase 7 gate.
+5. **[From Phase 2 → must be cleared by the Phase 5 checkpoint]** The closed synthetic Unifund fund matched to a UTI scheme shows `no_cas_data` (0 units, 0 value) — wrong fund identity (#8). Phase 5 must import it as a closed CAS-only fund under its own name and the row must turn `match`.
+6. **[From Phase 2 review] Postgres is required from Phase 3 on.** Neither the orchestrator's WSL nor Codex's run had a Postgres. The user starts `docker compose up postgres` (repo root, Docker Desktop; port 5433) and sets `TEST_DATABASE_URL=postgresql+psycopg2://unifolio:unifolio@localhost:5433/unifolio_test`. Phase 3's run must first run `tests/functional_postgres/` in full on the Phase 2 code (covers migration 0025 on the partitioned table) before starting Task 1, and report it.
+7. **[Pending — needs user, carried to the Phase 7 gate]** Phase 1 Task 10 Step 3 (staging Import health check) — will be done when staging is deployed with later phases.
 
 ---
 
@@ -140,4 +146,5 @@ Run date/time: <…>    Environment: Windows / WSL    Python: <version>    Node:
 
 | Round | Phase | Result | Notes |
 |---|---|---|---|
-| — | — | — | — |
+| 1 | Phase 1 | All tasks done except Task 5 (1 test awaiting ruling) and Task 10 Step 3 (staging, needs user). Orchestrator re-ran affected tests in WSL: backend 223 passed / 1 failed (the open one) / 5 skipped; frontend 36 files, 311 passed; `tsc -b` clean. | Ruling: rewrite the parallel-session test (keep the attach coverage with a statement that has a new row; separate test for the identical statement → AlreadyImportedError). Finding [Med]: `_all_rows_exist` vacuous True on zero rows + N×3 queries on re-upload → fix round 1. Approved deviations accepted (PDFium chain, read-only PAN pre-check, supporting edits, generic notice, waiting path). Postgres skipped (no migrations this phase). |
+| 2 | Fix round 1 + Phase 2 | A1, A2 and Tasks 1–8 DONE. Orchestrator re-ran in WSL: affected set 340 passed/11 skipped; wider import/dashboard/api/analytics folders 942 passed/6 skipped; frontend 80 passed; tsc clean. Checkpoint: all p20 lookbacks value-match at CAS NAV except the two Phase 3 rows (twin SIPs #2, bonus #3); px_14yr ₹16.2 Cr → ₹3.0 Cr; FY↔20yr orders identical. | Approved deviations accepted (70.6042, SERIES 85, removed verdicts, face-value/merger by description, narrow XIRR guard, CAS-NAV checkpoint, Unifund→UTI exception owned by Phase 5). XIRR overflow cause was the blocked-network zero terminal value, not switches. **Postgres not run anywhere yet (0025 unverified on partitioned table) — carried as item 6.** |

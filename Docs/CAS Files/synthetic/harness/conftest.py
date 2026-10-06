@@ -1,5 +1,6 @@
 import sys, importlib.util
-B="/mnt/c/Users/Dell/Desktop/MVP v1/MVP_V1_MF_only/backend"
+from pathlib import Path
+B = str(Path(__file__).resolve().parents[4] / "backend")
 sys.path.insert(0, B); sys.path.insert(0, B+"/tests")
 spec=importlib.util.spec_from_file_location("backend_conftest", B+"/tests/conftest.py")
 m=importlib.util.module_from_spec(spec); spec.loader.exec_module(m)

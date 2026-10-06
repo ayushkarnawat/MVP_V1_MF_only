@@ -1,7 +1,7 @@
 """Deep check of everything the dashboard derives from an import, against an
 independent truth computed straight from the CAS rows (casparser). Run one
 scenario per process: SEQ=a.pdf,b.pdf OUT=x.json [SNAP=1] [DELETE_FIRST=1]."""
-import asyncio, json, os, time
+import asyncio, json, os, time, uuid
 from collections import defaultdict
 from datetime import date, timedelta
 from decimal import Decimal as D
@@ -9,7 +9,8 @@ from decimal import Decimal as D
 import casparser
 from api.import_helpers import _authed_headers_and_member, PAN_DISCLAIMER_VERSION, _test_db
 
-SYN = "/mnt/c/Users/Dell/Desktop/MVP v1/MVP_V1_MF_only/Docs/CAS Files/synthetic/"
+from pathlib import Path
+SYN = str(Path(__file__).resolve().parent.parent) + "/"
 TRUTH = json.load(open(SYN + "truth.json"))
 SEQ = os.environ["SEQ"].split(",")
 OUT = os.environ["OUT"]
@@ -130,6 +131,10 @@ def test_deep(client):
         out["delete"] = {"status": d.status_code, "body": d.text[:300]}
 
     db = _test_db()
+    from app.services.import_.reconciliation import reconcile_members
+    out["reconcile"] = [{"folio": row.folio_number, "scheme": row.scheme_name,
+                         "status": row.status, "diff_units": str(row.diff_units) if row.diff_units is not None else None}
+                        for row in reconcile_members(db, [uuid.UUID(m["id"]) for m in members])]
     from app.models.reference import Scheme, NavHistory
     sch = {str(s.id): s for s in db.query(Scheme).all()}
     per_member = {}

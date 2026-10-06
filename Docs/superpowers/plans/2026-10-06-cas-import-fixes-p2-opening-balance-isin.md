@@ -343,8 +343,12 @@ _CONVERSION_TYPES = {"SWITCH_OUT", "SWITCH_OUT_MERGER", "SWITCH_IN", "SWITCH_IN_
 
 
 def _is_conversion(raw_type: str, description: str) -> bool:
+    # Corrected 2026-10-06: casparser labels amount-less "Face Value Change"
+    # legs REDEMPTION/PURCHASE, so the description decides regardless of type.
+    # Only ever applied to rows already missing amount AND NAV.
     key = str(raw_type).split(".")[-1].upper()
-    return key in _CONVERSION_TYPES or (key in ("MISC", "UNKNOWN") and "face value" in (description or "").lower())
+    desc = (description or "").lower()
+    return key in _CONVERSION_TYPES or "face value" in desc or "merger" in desc
 
 
 def _fifo_cost(rows: list[NormalizedTransaction], opening_units: Decimal, consume: Decimal) -> tuple[Decimal, bool]:
@@ -441,13 +445,13 @@ def _t(d, type_, units, nav):
 
 
 START = date(2016, 1, 1)
-SERIES = [(date(2010, 1, 1), Decimal("20")), (date(2014, 3, 1), Decimal("70.6")), (date(2016, 1, 1), Decimal("90"))]
+SERIES = [(date(2010, 1, 1), Decimal("20")), (date(2014, 3, 1), Decimal("85")), (date(2016, 1, 1), Decimal("90"))]  # pre-start range 20–85 (corrected 2026-10-06)
 
 
 def test_cas_cost_when_no_in_period_activity():
     lot = price_opening_lot(_s("7251.691", "512000"), [], START, SERIES)
     assert lot.cost_source == CostSource.CAS_COST
-    assert lot.nav == Decimal("70.6040")       # 512000 / 7251.691
+    assert lot.nav == Decimal("70.6042")       # 512000 / 7251.691 = 70.60422… (corrected 2026-10-06)
     assert lot.units == Decimal("7251.691")
 
 
@@ -554,14 +558,14 @@ if lot is None: return "removed" if deleted else "none"
 if existing:                             # existing.date <= statement_from
     return "skipped"
 if any row of this folio with origin in (cas_row, manual) and date < statement_from:
-    return "skipped"                     # history before S already saved
+    return "removed" if deleted else "skipped"   # history before S already saved (corrected 2026-10-06)
 write OPENING_BALANCE(lot) with origin=cas_opening, import_id=import_rec.id
 return "replaced" if deleted else "written"
 ```
 
 - Folios are created for **every** scheme key in `work.scheme_keys` (so a fund with only an opening balance is saved), before the transaction loop. Move folio get-or-create into `_folio_for(db, member, scheme_key, ...)` used by both.
 - Opening rows count toward `added`. A "replaced"/"removed" old row is deleted with `db.delete(row)`; the import that wrote it keeps its other rows.
-- The phase-1 `_all_rows_exist` also returns False when the rule would write or replace an opening row (call the rule in a dry-run mode, `dry_run=True` returns the verdict without writing).
+- The phase-1 `_all_rows_exist` also returns False when the rule would change anything — verdict `written`, `replaced` or `removed` (call the rule in a dry-run mode, `dry_run=True` returns the verdict without writing; only `skipped`/`none` count as unchanged). Corrected 2026-10-06: `removed` was missing.
 
 - [ ] **Step 1: Write the failing tests** (append to `test_confirm_people.py`; they reuse its `_user`, `_member`, `_start`, `_confirm`, `ADITI_PAN` and `family_result`):
 

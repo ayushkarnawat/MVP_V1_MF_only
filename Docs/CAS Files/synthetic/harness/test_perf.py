@@ -4,7 +4,8 @@ import json, os, resource, time
 from sqlalchemy import event
 from api.import_helpers import _authed_headers_and_member, PAN_DISCLAIMER_VERSION
 
-SYN = "/mnt/c/Users/Dell/Desktop/MVP v1/MVP_V1_MF_only/Docs/CAS Files/synthetic/"
+from pathlib import Path
+SYN = str(Path(__file__).resolve().parent.parent) + "/"
 FN = os.environ["FN"]; OUT = os.environ["OUT"]
 TRUTH = json.load(open(SYN + "truth.json"))
 

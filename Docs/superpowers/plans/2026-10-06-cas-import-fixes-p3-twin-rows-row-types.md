@@ -295,7 +295,7 @@ else:  # no balance on some incoming row (manual-like or old parser data)
 occurrence of each insert = 1 + max(occurrence over saved rows with this key and inserts so far)
 ```
 
-Also in-memory: rows added earlier in the same `_write_person_rows` call count as `saved` (replaces `added_keys`). `_all_rows_exist` calls `_match_rows(..., dry_run=True)` and returns True only when nothing would be inserted (and phase 2's opening rule wouldn't write).
+Also in-memory: rows added earlier in the same `_write_person_rows` call count as `saved` (replaces `added_keys`). `_all_rows_exist` calls `_match_rows(..., dry_run=True)` and returns True only when nothing would be inserted **and** phase 2's opening rule would change nothing (dry-run verdict `skipped` or `none`; `written`, `replaced` and `removed` all mean "not already imported" — corrected 2026-10-06). Keep phase 1's zero-rows → False rule and the per-scheme-key cache.
 
 `build_import_preview`: collect schemes with any `needs_price` row; fetch their NAV series in the same `gather` as phase 2's opening-lot fetch; for each such row set `nav = NAV on or before the row date`, `amount = quantize_amount(units × nav)`, `needs_price=False`. No series → leave `amount=0, nav=0` and add warning "No price found for a gift on {date} ({fund}); its cost is shown as ₹0."
 
