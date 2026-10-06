@@ -8,7 +8,7 @@ throughout — no float conversion anywhere in this module.
 from __future__ import annotations
 
 from datetime import date
-from decimal import Decimal
+from decimal import Decimal, Overflow, InvalidOperation, DivisionByZero
 
 _MAX_ITERATIONS = 100
 _TOLERANCE = Decimal("0.0000001")
@@ -35,24 +35,27 @@ def xirr(cash_flows: list[tuple[date, Decimal]], guess: Decimal = Decimal("0.1")
     years_by_flow = [(Decimal((d - start_date).days) / _DAYS_PER_YEAR, amount) for d, amount in cash_flows]
     rate = guess
 
-    for _ in range(_MAX_ITERATIONS):
-        base = Decimal(1) + rate
-        if base <= 0:
-            return None
+    try:
+        for _ in range(_MAX_ITERATIONS):
+            base = Decimal(1) + rate
+            if base <= 0:
+                return None
 
-        f_value = Decimal("0")
-        f_prime = Decimal("0")
-        for years, amount in years_by_flow:
-            discount = base**years
-            f_value += amount / discount
-            if years != 0:
-                f_prime += -years * amount / (base ** (years + Decimal(1)))
+            f_value = Decimal("0")
+            f_prime = Decimal("0")
+            for years, amount in years_by_flow:
+                discount = base**years
+                f_value += amount / discount
+                if years != 0:
+                    f_prime += -years * amount / (base ** (years + Decimal(1)))
 
-        if f_prime == 0:
-            return None
-        new_rate = rate - f_value / f_prime
-        if abs(new_rate - rate) < _TOLERANCE:
-            return new_rate
-        rate = new_rate
+            if f_prime == 0:
+                return None
+            new_rate = rate - f_value / f_prime
+            if abs(new_rate - rate) < _TOLERANCE:
+                return new_rate
+            rate = new_rate
+    except (Overflow, InvalidOperation, DivisionByZero):
+        return None
 
     return None

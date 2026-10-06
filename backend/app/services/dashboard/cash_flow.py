@@ -1,5 +1,6 @@
 """Investment cash flow — computed entirely from parsed transactions, no
-new data source. Purchases/SIP debits as outflow, redemptions and dividend
+new data source. Purchases/SIP debits and opening balances as investment
+outflows (opening balances on statement start), redemptions and dividend
 payouts as inflow, per PRD-03 FR-7. switch_in/switch_out are intra-portfolio
 movements, not real cash entering or leaving the platform, and excluded —
 FR-7's own wording doesn't mention switches. stt/stamp_duty/misc/segregation
@@ -18,7 +19,7 @@ from app.models.transaction import Transaction
 from app.models.user import HouseholdMember
 from app.services.dashboard.schemas import CashFlowEntry
 
-_DEBIT_TYPES = {TransactionType.PURCHASE, TransactionType.PURCHASE_SIP}
+_DEBIT_TYPES = {TransactionType.PURCHASE, TransactionType.PURCHASE_SIP, TransactionType.OPENING_BALANCE}
 _CREDIT_TYPES = {TransactionType.REDEMPTION, TransactionType.DIVIDEND_PAYOUT}
 
 

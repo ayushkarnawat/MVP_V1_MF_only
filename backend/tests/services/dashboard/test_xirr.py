@@ -62,3 +62,24 @@ def test_dashboard_xirr_returns_nulls_without_investment_transactions(db_session
     result = calculate_dashboard_xirr(db_session, [], [])
     assert result.lifetime_xirr is None
     assert result.current_holdings_xirr is None
+
+
+def test_dashboard_xirr_with_only_opening_lot_is_positive(db_session):
+    now = datetime.now(timezone.utc)
+    user = User(phone_number="+919500000002", created_at=now)
+    db_session.add(user)
+    db_session.flush()
+    member = HouseholdMember(user_id=user.id, name="Investor", relationship=Relationship.SELF, created_at=now)
+    scheme = Scheme(amfi_code="XIRR-OPENING", name="Current Fund", amc_name="AMC", sebi_category="Equity")
+    db_session.add_all([member, scheme])
+    db_session.flush()
+    folio = Folio(household_member_id=member.id, scheme_id=scheme.id, folio_number="O", plan_type=PlanType.DIRECT)
+    imp = Import(household_member_id=member.id, status=ImportStatus.CONFIRMED, uploaded_at=now)
+    db_session.add_all([folio, imp])
+    db_session.flush()
+    db_session.add(Transaction(folio_id=folio.id, import_id=imp.id, type=TransactionType.OPENING_BALANCE,
+                               date=date(2016, 1, 1), amount=Decimal("100000.00"), units=Decimal("10000"), nav=Decimal("10")))
+    db_session.commit()
+    holding = _holding(scheme.id, member.id).model_copy(update={"current_value": "200000.00"})
+    result = calculate_dashboard_xirr(db_session, [member.id], [holding])
+    assert result.lifetime_xirr is not None and Decimal(result.lifetime_xirr) > 0

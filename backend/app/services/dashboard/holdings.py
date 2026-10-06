@@ -17,16 +17,16 @@ from decimal import Decimal
 from sqlalchemy import case
 from sqlalchemy.orm import Session
 
-from app.models.enums import PlanType, TransactionType
+from app.models.enums import CostSource, PlanType, TransactionOrigin, TransactionType
 from app.models.folio import Folio
 from app.models.reference import Scheme
 from app.models.transaction import Transaction
 from app.models.user import HouseholdMember
 from app.services.dashboard.nav import get_nav_on_or_before, get_navs_on_or_before, get_previous_nav_from_cache
-from app.services.dashboard.schemas import HoldingRow
+from app.services.dashboard.schemas import HoldingRow, OpeningLotInfo
 from app.services.dashboard.allocation_labels import asset_class_bucket
 
-_LOT_ADDING_TYPES = {TransactionType.PURCHASE, TransactionType.PURCHASE_SIP, TransactionType.SWITCH_IN, TransactionType.DIVIDEND_REINVEST}
+_LOT_ADDING_TYPES = {TransactionType.PURCHASE, TransactionType.PURCHASE_SIP, TransactionType.SWITCH_IN, TransactionType.DIVIDEND_REINVEST, TransactionType.OPENING_BALANCE}
 _LOT_CONSUMING_TYPES = {TransactionType.REDEMPTION, TransactionType.SWITCH_OUT}
 
 # Deliberately process-local: this avoids duplicate dashboard computations in
@@ -67,6 +67,16 @@ def invalidate_holdings_cache(household_member_id: uuid.UUID) -> None:
         _holdings_cache_generation[household_member_id] += 1
         for key in [key for key in _holdings_cache if household_member_id in key[0]]:
             del _holdings_cache[key]
+
+
+def peek_cached_holdings(household_member_ids: list[uuid.UUID]) -> list[HoldingRow] | None:
+    """Read today's cache without computing, evicting or extending it."""
+    cache_key = (tuple(sorted(household_member_ids)), date.today())
+    with _holdings_cache_lock:
+        entry = _holdings_cache.get(cache_key)
+        if entry is None or _holdings_cache_clock() - entry.cached_at > _HOLDINGS_CACHE_TTL_SECONDS:
+            return None
+        return entry.rows
 
 
 @dataclass
@@ -154,17 +164,27 @@ async def compute_holdings(db: Session, household_member_ids: list[uuid.UUID]) -
         transactions_by_folio[txn.folio_id].append(txn)
 
     computed: list[tuple[uuid.UUID, Scheme, PlanType, Decimal, Decimal, Decimal]] = []
+    opening_info = {}
     for (member_id, scheme_id, plan_type), member_folios in grouped.items():
         scheme = db.get(Scheme, scheme_id)
         total_units = Decimal("0")
         total_cost = Decimal("0")
         total_realized = Decimal("0")
+        openings = []
         for folio in member_folios:
             transactions = transactions_by_folio.get(folio.id, [])
             units_held, cost_basis, realized_gain = _process_folio_lots(transactions)
             total_units += units_held
             total_cost += cost_basis
             total_realized += realized_gain
+            openings.extend(t for t in transactions if t.origin == TransactionOrigin.CAS_OPENING)
+
+        if openings:
+            opening_info[(member_id, scheme_id, plan_type)] = OpeningLotInfo(
+                units=str(sum((t.units for t in openings), Decimal("0"))),
+                since=min(t.date for t in openings),
+                cost_source="nav_on_start" if any(t.cost_source == CostSource.NAV_ON_START for t in openings) else "cas_cost",
+            )
 
         if total_units == 0:
             continue
@@ -209,6 +229,7 @@ async def compute_holdings(db: Session, household_member_ids: list[uuid.UUID]) -
                     unrealized_gain=None,
                     today_gain=None,
                     nav_unavailable=True,
+                    opening_lot=opening_info.get((member_id, scheme.id, plan_type)),
                 )
             )
             continue
@@ -240,6 +261,7 @@ async def compute_holdings(db: Session, household_member_ids: list[uuid.UUID]) -
                 realized_gain=str(total_realized),
                 unrealized_gain=str(unrealized_gain),
                 today_gain=str(today_gain),
+                opening_lot=opening_info.get((member_id, scheme.id, plan_type)),
             )
         )
     # Delayed publication, weekends, and holidays are normal; cache the

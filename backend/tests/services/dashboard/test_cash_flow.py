@@ -58,6 +58,14 @@ def test_purchase_is_a_debit():
     assert entries[0].direction == "debit"
 
 
+def test_opening_balance_is_a_debit_on_statement_start():
+    db = _session()
+    member = _household_member(db)
+    _txn(db, _folio(db, member), TransactionType.OPENING_BALANCE, date(2016, 1, 1), Decimal("100000.00"))
+    [entry] = compute_cash_flow(db, [member.id])
+    assert entry.direction == "debit" and entry.date == date(2016, 1, 1)
+
+
 def test_redemption_is_a_credit():
     db = _session()
     member = _household_member(db)

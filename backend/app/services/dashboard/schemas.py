@@ -36,6 +36,12 @@ class HouseholdMemberResponse(BaseModel):
     removed_with_last_import: bool = False
 
 
+class OpeningLotInfo(BaseModel):
+    units: str
+    since: date
+    cost_source: Literal["cas_cost", "nav_on_start", "manual"]
+
+
 class HoldingRow(BaseModel):
     scheme_id: str
     scheme_name: str
@@ -55,6 +61,7 @@ class HoldingRow(BaseModel):
     unrealized_gain: str | None
     today_gain: str | None
     nav_unavailable: bool = False
+    opening_lot: OpeningLotInfo | None = None
 
 
 class DistributorSchemeBreakdown(BaseModel):

@@ -1,5 +1,6 @@
 import uuid
 import threading
+import time
 from datetime import date, datetime, timezone
 from decimal import Decimal
 from unittest.mock import AsyncMock, patch
@@ -8,12 +9,42 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.db.base import Base
-from app.models.enums import PlanType, Relationship, TransactionType
+from app.models.enums import CostSource, PlanType, Relationship, TransactionOrigin, TransactionType
 from app.models.folio import Folio
 from app.models.reference import Scheme
 from app.models.transaction import Transaction
 from app.models.user import HouseholdMember, User
 from app.services.dashboard.holdings import _process_folio_lots, compute_holdings, invalidate_holdings_cache
+from app.services.dashboard.holdings import _holdings_cache, _holdings_cache_lock, _HoldingsCacheEntry, peek_cached_holdings
+
+
+def test_peek_cached_holdings_returns_none_when_cold():
+    assert peek_cached_holdings([uuid.uuid4()]) is None
+
+
+def test_peek_cached_holdings_returns_rows_without_removing_them():
+    member_id = uuid.uuid4()
+    key = ((member_id,), date.today())
+    with _holdings_cache_lock:
+        _holdings_cache[key] = _HoldingsCacheEntry(rows=["sentinel"], cached_at=time.monotonic())
+    try:
+        assert peek_cached_holdings([member_id]) == ["sentinel"]
+        assert key in _holdings_cache
+    finally:
+        invalidate_holdings_cache(member_id)
+
+
+def test_peek_cached_holdings_does_not_evict_expired_entry():
+    member_id = uuid.uuid4()
+    key = ((member_id,), date.today())
+    entry = _HoldingsCacheEntry(rows=[], cached_at=time.monotonic() - 3600)
+    with _holdings_cache_lock:
+        _holdings_cache[key] = entry
+    try:
+        assert peek_cached_holdings([member_id]) is None
+        assert _holdings_cache[key] is entry
+    finally:
+        invalidate_holdings_cache(member_id)
 
 
 def _txn(type_, on_date, amount, units, nav) -> Transaction:
@@ -31,6 +62,33 @@ def test_process_folio_lots_simple_purchase_no_redemption():
     assert units_held == Decimal("100.000")
     assert cost_basis == Decimal("5000.00")
     assert realized_gain == Decimal("0")
+
+
+def test_process_folio_lots_counts_opening_balance():
+    txns = [
+        _txn(TransactionType.OPENING_BALANCE, date(2016, 1, 1), Decimal("512000.00"), Decimal("7251.691"), Decimal("70.6040")),
+        _txn(TransactionType.REDEMPTION, date(2020, 1, 1), Decimal("100000.00"), Decimal("1000.000"), Decimal("100.0000")),
+    ]
+    units, cost, realized = _process_folio_lots(txns)
+    assert units == Decimal("6251.691")
+    assert cost == Decimal("6251.691") * Decimal("70.6040")
+    assert realized == Decimal("1000.000") * (Decimal("100.0000") - Decimal("70.6040"))
+
+
+def test_compute_holdings_exposes_cas_opening_lot():
+    import asyncio
+    db = _session()
+    member = _household_member(db)
+    folio = _folio(db, member, _scheme(db))
+    opening = _persisted_txn(db, folio, TransactionType.OPENING_BALANCE, date(2016, 1, 1),
+                             Decimal("512000.00"), Decimal("7251.691"), Decimal("70.6042"))
+    opening.origin, opening.cost_source = TransactionOrigin.CAS_OPENING, CostSource.CAS_COST
+    db.commit()
+    with patch("app.services.dashboard.holdings.get_navs_on_or_before", new=_mock_nav_batch(None)):
+        [row] = asyncio.run(compute_holdings(db, [member.id]))
+    assert row.opening_lot.model_dump() == {
+        "units": "7251.691", "since": date(2016, 1, 1), "cost_source": "cas_cost",
+    }
 
 
 def test_process_folio_lots_fifo_partial_redemption_across_two_lots():
@@ -542,3 +600,24 @@ def test_late_compute_cannot_publish_after_import_invalidation():
         assert nav_lookup.await_count == 2
 
     asyncio.run(scenario())
+
+
+def test_compute_holdings_combines_opening_facts_across_folios():
+    import asyncio
+    db = _session()
+    member = _household_member(db)
+    scheme = _scheme(db)
+    for number, on_date, units, source in [
+        ("one", date(2018, 1, 1), "100", CostSource.CAS_COST),
+        ("two", date(2016, 1, 1), "200", CostSource.NAV_ON_START),
+    ]:
+        folio = _folio(db, member, scheme, folio_number=number)
+        row = _persisted_txn(db, folio, TransactionType.OPENING_BALANCE, on_date,
+                             Decimal(units) * 10, Decimal(units), Decimal("10"))
+        row.origin, row.cost_source = TransactionOrigin.CAS_OPENING, source
+        db.commit()
+    with patch("app.services.dashboard.holdings.get_navs_on_or_before", new=_mock_nav_batch((Decimal("60"), date.today()))), \
+         patch("app.services.dashboard.holdings.get_previous_nav_from_cache", return_value=None):
+        [row] = asyncio.run(compute_holdings(db, [member.id]))
+    assert row.units_held == "300.000"
+    assert row.opening_lot.model_dump() == {"units": "300.000", "since": date(2016, 1, 1), "cost_source": "nav_on_start"}

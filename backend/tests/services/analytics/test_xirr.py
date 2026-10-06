@@ -1,5 +1,5 @@
 from datetime import date
-from decimal import Decimal
+from decimal import Decimal, localcontext
 
 from app.services.analytics.xirr import xirr
 
@@ -55,3 +55,10 @@ def test_xirr_returns_none_when_all_cash_flows_are_inflows():
 
 def test_xirr_returns_none_for_empty_list():
     assert xirr([]) is None
+
+
+def test_xirr_extreme_two_sided_flow_returns_none_on_decimal_overflow():
+    flows = [(date(2000, 1, 1), Decimal("-1000")), (date(2026, 10, 6), Decimal("1E100"))]
+    with localcontext() as context:
+        context.Emax = 100
+        assert xirr(flows) is None
