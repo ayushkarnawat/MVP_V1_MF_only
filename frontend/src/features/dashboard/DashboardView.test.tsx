@@ -753,3 +753,135 @@ describe("DashboardView", () => {
 
 });
 
+describe("DashboardView — Phase 6 (#9, #11, #14)", () => {
+  function row(overrides: Partial<import("./types").HoldingRow> = {}): import("./types").HoldingRow {
+    return { scheme_id: "s", scheme_name: "Some Fund", amc_name: "AMC", household_member_id: "m-1", household_member_name: "John", plan_type: "direct", units_held: "5", average_nav: "20", current_nav: "24", amount_invested: "100", current_value: "120", current_profit_total: "20", realized_gain: "0", unrealized_gain: "20", today_gain: "120", ...overrides };
+  }
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(importApi.getMemberCoverageGaps).mockResolvedValue([]);
+    vi.mocked(api.getMemberSips).mockResolvedValue([]);
+    vi.mocked(api.getMemberSipsMonthly).mockResolvedValue([]);
+    vi.mocked(api.getMemberAllocation).mockResolvedValue({ by_asset_class: [], by_amc: [], total_value: "120" });
+  });
+
+  it("hero shows realised and today’s gain", async () => {
+    vi.mocked(api.getMemberHoldings).mockResolvedValue(Object.assign([row()], {
+      lifetime_xirr: null, current_holdings_xirr: null,
+      realized_summary: { total: "5000", funds: [] },
+    }));
+    render(<DashboardView viewMode="member" memberId="m-1" />);
+    expect(await screen.findByText("Realised gain")).toBeInTheDocument();
+    expect(screen.getByText("Realised gain").parentElement).toHaveTextContent("₹5,000");
+    expect(screen.getByText("Today’s gain").parentElement).toHaveTextContent("₹120");
+  });
+
+  it("twin SIPs show × 2 and count twice in the monthly total", async () => {
+    vi.mocked(api.getMemberHoldings).mockResolvedValue([row()]);
+    vi.mocked(api.getMemberSips).mockResolvedValue([
+      { scheme_id: "s", scheme_name: "Twin Fund", household_member_id: "m-1", household_member_name: "John",
+        sip_date: "2026-09-05", sip_amount: "42968.00", next_due_date: "2026-10-05", series_count: 2, status: "active" },
+    ]);
+    render(<DashboardView viewMode="member" memberId="m-1" />);
+    const section = await screen.findByTestId("upcoming-sips");
+    expect(within(section).getByText(/× 2/)).toBeInTheDocument();
+    expect(within(section).getByText(/Monthly SIP total ₹85,936/)).toBeInTheDocument();
+  });
+
+  it("monthly twin instalments render as two rows without key collisions", async () => {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.mocked(api.getMemberHoldings).mockResolvedValue([row()]);
+    vi.mocked(api.getMemberSips).mockResolvedValue([
+      { scheme_id: "s", scheme_name: "Twin Fund", household_member_id: "m-1", household_member_name: "John",
+        sip_date: "2026-09-05", sip_amount: "100.00", next_due_date: "2026-10-05", series_count: 2, status: "active" },
+    ]);
+    vi.mocked(api.getMemberSipsMonthly).mockResolvedValue([
+      { scheme_id: "s", scheme_name: "Twin Fund", household_member_id: "m-1", household_member_name: "John", date: "2026-10-05", amount: "100.00", instalment: 1 },
+      { scheme_id: "s", scheme_name: "Twin Fund", household_member_id: "m-1", household_member_name: "John", date: "2026-10-05", amount: "100.00", instalment: 2 },
+    ]);
+    render(<DashboardView viewMode="member" memberId="m-1" />);
+    await screen.findByTestId("upcoming-sips");
+    fireEvent.click(screen.getByRole("tab", { name: "This Month" }));
+    await waitFor(() => expect(screen.getAllByText("Twin Fund")).toHaveLength(2));
+    expect(errors.mock.calls.some((c) => String(c[0]).includes("same key"))).toBe(false);
+    errors.mockRestore();
+  });
+
+  it("show stopped SIPs refetches with include_stopped", async () => {
+    vi.mocked(api.getMemberHoldings).mockResolvedValue([row()]);
+    vi.mocked(api.getMemberSips).mockResolvedValue([
+      { scheme_id: "s", scheme_name: "Live Fund", household_member_id: "m-1", household_member_name: "John",
+        sip_date: "2026-09-05", sip_amount: "100.00", next_due_date: "2026-10-05", series_count: 1, status: "active" },
+    ]);
+    render(<DashboardView viewMode="member" memberId="m-1" />);
+    await screen.findByTestId("upcoming-sips");
+    fireEvent.click(screen.getByRole("button", { name: "Show stopped SIPs" }));
+    await waitFor(() => expect(api.getMemberSips).toHaveBeenLastCalledWith("m-1", expect.anything(), true));
+  });
+
+  it("toggling stopped SIPs refetches only the SIPs, keeping the holdings on screen", async () => {
+    vi.mocked(api.getMemberHoldings).mockResolvedValue([row()]);
+    render(<DashboardView viewMode="member" memberId="m-1" />);
+    await screen.findByTestId("upcoming-sips");
+    fireEvent.click(screen.getByRole("button", { name: "Show stopped SIPs" }));
+    await waitFor(() => expect(api.getMemberSips).toHaveBeenLastCalledWith("m-1", expect.anything(), true));
+    expect(api.getMemberHoldings).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("Some Fund")).toBeInTheDocument();
+  });
+
+  it("never shows the previous member's SIPs while the new member's are loading", async () => {
+    vi.mocked(api.getMemberHoldings).mockResolvedValue([row()]);
+    vi.mocked(api.getMemberSips).mockImplementation((id: string) => id === "m-1"
+      ? Promise.resolve([{ scheme_id: "s", scheme_name: "Alice SIP Fund", household_member_id: "m-1", household_member_name: "A",
+          sip_date: "2026-09-05", sip_amount: "100.00", next_due_date: "2026-10-05", series_count: 1, status: "active" as const }])
+      : new Promise(() => {}));
+    const { rerender } = render(<DashboardView viewMode="member" memberId="m-1" />);
+    expect(await screen.findByText("Alice SIP Fund")).toBeInTheDocument();
+    rerender(<DashboardView viewMode="member" memberId="m-2" />);
+    await screen.findByTestId("upcoming-sips");
+    expect(screen.queryByText("Alice SIP Fund")).not.toBeInTheDocument();
+  });
+
+  it("offers the stopped-SIP toggle even when no SIP is active", async () => {
+    vi.mocked(api.getMemberHoldings).mockResolvedValue([row()]);
+    vi.mocked(api.getMemberSips).mockResolvedValue([]);
+    render(<DashboardView viewMode="member" memberId="m-1" />);
+    await screen.findByTestId("upcoming-sips");
+    expect(await screen.findByRole("button", { name: "Show stopped SIPs" })).toBeInTheDocument();
+    expect(screen.queryByText(/Monthly SIP total/)).not.toBeInTheDocument();
+  });
+
+  it("stopped SIPs never count in the monthly total and keys stay unique", async () => {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.mocked(api.getMemberHoldings).mockResolvedValue([row()]);
+    vi.mocked(api.getMemberSips).mockResolvedValue([
+      { scheme_id: "s", scheme_name: "Live Fund", household_member_id: "m-1", household_member_name: "John",
+        sip_date: "2026-09-05", sip_amount: "100.00", next_due_date: "2026-10-05", series_count: 1, status: "active" },
+      { scheme_id: "s", scheme_name: "Live Fund", household_member_id: "m-1", household_member_name: "John",
+        sip_date: "2019-01-05", sip_amount: "100.00", next_due_date: "2026-10-05", series_count: 1, status: "stopped" },
+    ]);
+    render(<DashboardView viewMode="member" memberId="m-1" />);
+    const section = await screen.findByTestId("upcoming-sips");
+    expect(await within(section).findByText(/Monthly SIP total ₹100$/)).toBeInTheDocument();
+    expect(errors.mock.calls.some((c) => String(c[0]).includes("same key"))).toBe(false);
+    errors.mockRestore();
+  });
+
+  it("today’s gain leaves out funds whose NAV is stale", async () => {
+    vi.mocked(api.getMemberHoldings).mockResolvedValue([
+      row(), row({ scheme_id: "w", scheme_name: "Written Off", today_gain: "-469646", stale_nav: true }),
+    ]);
+    render(<DashboardView viewMode="member" memberId="m-1" />);
+    expect(await screen.findByText("Today’s gain")).toBeInTheDocument();
+    expect(screen.getByText("Today’s gain").parentElement).toHaveTextContent("₹120");
+  });
+
+  it("offers a link to the portfolio history", async () => {
+    const onOpenHistory = vi.fn();
+    vi.mocked(api.getMemberHoldings).mockResolvedValue([row()]);
+    render(<DashboardView viewMode="member" memberId="m-1" onOpenHistory={onOpenHistory} />);
+    fireEvent.click(await screen.findByRole("button", { name: "View history →" }));
+    expect(onOpenHistory).toHaveBeenCalled();
+  });
+});
+

@@ -83,3 +83,16 @@ def hash_pan(pan: str, key_provider: KeyProvider = default_key_provider) -> str:
         hashlib.sha256,
     )
     return digest.hexdigest()
+
+
+
+def encrypt_bytes(data: bytes, key_provider: KeyProvider = default_key_provider) -> str:
+    """Encrypt an arbitrary review blob without PAN normalization."""
+    nonce = os.urandom(12)
+    ciphertext = AESGCM(key_provider.encryption_key()).encrypt(nonce, data, None)
+    return base64.b64encode(nonce + ciphertext).decode("ascii")
+
+
+def decrypt_bytes(token: str, key_provider: KeyProvider = default_key_provider) -> bytes:
+    raw = base64.b64decode(token, validate=True)
+    return AESGCM(key_provider.encryption_key()).decrypt(raw[:12], raw[12:], None)

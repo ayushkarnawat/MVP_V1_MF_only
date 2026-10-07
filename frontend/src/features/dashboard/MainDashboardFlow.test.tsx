@@ -29,6 +29,10 @@ vi.mock("../import/ImportFlow", () => ({
   ),
 }));
 
+vi.mock("../history/HistoryView", () => ({
+  HistoryView: ({ viewMode }: { viewMode: string }) => <div>History test view ({viewMode})</div>,
+}));
+
 vi.mock("../analytics/AnalyticsView", () => ({
   AnalyticsView: () => <div>Analytics test view</div>,
 }));
@@ -77,6 +81,33 @@ describe("MainDashboardFlow", () => {
     });
 
     expect(await screen.findByText("No Holdings Found")).toBeInTheDocument();
+  });
+
+  it("opens the History tab and keeps it on Back/Forward", async () => {
+    vi.mocked(authApi.getHouseholdMembers).mockResolvedValue([
+      { id: "m-1", name: "Alice", relationship: "self", relationship_other_label: null, origin: "onboarding", pan_masked: null, phone_number: null, email: null, name_from_statement: false, pan_conflict: null, pan_editable: false, profile_completion: 100, missing_fields: [], removed_with_last_import: false },
+      { id: "m-2", name: "Bob", relationship: "spouse", relationship_other_label: null, origin: "manual", pan_masked: null, phone_number: null, email: null, name_from_statement: false, pan_conflict: null, pan_editable: false, profile_completion: 100, missing_fields: [], removed_with_last_import: false },
+    ]);
+    vi.mocked(dashboardApi.getAggregateHoldings).mockResolvedValue({ members: [], holdings: [] });
+    vi.mocked(dashboardApi.getAggregateAllocation).mockResolvedValue({
+      members: [],
+      allocation: { by_asset_class: [], by_amc: [], total_value: "0.00" },
+    });
+    render(<MainDashboardFlow />);
+    await screen.findByText("No Holdings Found");
+    fireEvent.click(screen.getByRole("button", { name: "History" }));
+    expect(screen.getByText("History test view (aggregate)")).toBeInTheDocument();
+    expect(window.history.state).toMatchObject({ unifolioTab: "history" });
+    // Back leaves History (the browser delivers the earlier entry's state)…
+    act(() => {
+      fireEvent.popState(window, { state: { unifolioTab: "dashboard" } });
+    });
+    expect(screen.queryByText("History test view (aggregate)")).not.toBeInTheDocument();
+    // …and Forward returns to it.
+    act(() => {
+      fireEvent.popState(window, { state: { unifolioTab: "history" } });
+    });
+    expect(screen.getByText("History test view (aggregate)")).toBeInTheDocument();
   });
 
   it("opens Profile as a history-backed tab with account controls", async () => {

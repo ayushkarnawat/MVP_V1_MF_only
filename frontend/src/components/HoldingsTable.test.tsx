@@ -90,3 +90,27 @@ describe("HoldingsTable", () => {
     expect(screen.queryByLabelText(/Fund Signal:/i)).not.toBeInTheDocument();
   });
 });
+
+describe("HoldingsTable — Phase 6 display (#18)", () => {
+  const row = {
+    scheme_id: "scheme-1", scheme_name: "Some Fund", amc_name: "AMC", household_member_id: "m1", household_member_name: "Neha",
+    plan_type: "direct" as const, units_held: "10", average_nav: "10", current_nav: "12", amount_invested: "100",
+    current_value: "120", current_profit_total: "20", realized_gain: "0", unrealized_gain: "20", today_gain: "1",
+  };
+
+  it("flags a stale NAV", () => {
+    render(<HoldingsTable holdings={[{ ...row, stale_nav: true }]} />);
+    expect(screen.getByText("stale")).toBeInTheDocument();
+  });
+
+  it("a fund priced from the statement says so instead of stale", () => {
+    render(<HoldingsTable holdings={[{ ...row, stale_nav: true, price_from_statement: true }]} />);
+    expect(screen.getByText("Statement price")).toBeInTheDocument();
+    expect(screen.queryByText("stale")).not.toBeInTheDocument();
+  });
+
+  it("labels the fund signal as since purchase", () => {
+    render(<HoldingsTable holdings={[row]} />);
+    expect(screen.getByRole("img", { name: /since purchase/ })).toBeInTheDocument();
+  });
+});

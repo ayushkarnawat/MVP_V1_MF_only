@@ -16,7 +16,7 @@ from app.models.imports import Import
 from app.services.dashboard.allocation import compute_allocation
 from app.services.dashboard.cash_flow import compute_cash_flow
 from app.services.dashboard.distributor_comparison import compute_distributor_comparison
-from app.services.dashboard.holdings import compute_holdings
+from app.services.dashboard.holdings import compute_holdings, compute_realized_summary
 from app.services.dashboard.xirr import calculate_dashboard_xirr
 from app.services.dashboard.household_members import list_household_members
 from app.services.dashboard.schemas import (
@@ -53,6 +53,7 @@ async def get_aggregate_holdings(db: Session, user_id: uuid.UUID) -> AggregateHo
     holdings = await compute_holdings(db, [m.id for m in members])
     xirr_summary = calculate_dashboard_xirr(db, [m.id for m in members], holdings)
     return AggregateHoldingsResponse(
+        realized_summary=compute_realized_summary(db, [m.id for m in members]),
         members=statuses,
         holdings=holdings,
         lifetime_xirr=xirr_summary.lifetime_xirr,
@@ -76,10 +77,10 @@ async def get_aggregate_allocation(db: Session, user_id: uuid.UUID) -> Aggregate
     return AggregateAllocationResponse(members=statuses, allocation=allocation)
 
 
-def get_aggregate_sips(db: Session, user_id: uuid.UUID) -> AggregateSipsResponse:
+def get_aggregate_sips(db: Session, user_id: uuid.UUID, *, include_stopped: bool = False) -> AggregateSipsResponse:
     members = list_household_members(db, user_id)
     statuses = get_member_statuses(db, user_id)
-    sips = compute_active_sips(db, [m.id for m in members])
+    sips = compute_active_sips(db, [m.id for m in members], include_stopped=include_stopped)
     return AggregateSipsResponse(members=statuses, sips=sips)
 
 

@@ -74,4 +74,5 @@ def apply_opening_cost_to_conversions(
                 for leg in (row, incoming):
                     leg.amount = amount
                     leg.nav = quantize_nav(amount / leg.units) if leg.units else Decimal("0.0000")
+                    leg.nav_printed = False
                     leg.conversion_from_opening = False

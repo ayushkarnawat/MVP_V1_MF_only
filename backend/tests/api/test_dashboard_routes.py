@@ -155,3 +155,96 @@ def test_member_response_has_statement_flags(client):
     m = _family(client, h)
     assert m["pan_editable"] is True and m["name_from_statement"] is False
     assert m["phone_number"] is None and m["email"] is None
+
+
+def test_holdings_routes_return_realized_summary(client):
+    headers = _authed_headers(client)
+    member = client.post("/household-members", json={"name": "Self", "relationship": "self"}, headers=headers).json()
+    for path in [f"/household-members/{member['id']}/holdings", "/household/aggregate/holdings"]:
+        response = client.get(path, headers=headers)
+        assert response.status_code == 200
+        assert response.json()["realized_summary"] == {"total": "0.00", "funds": []}
+
+
+import pytest
+from unittest.mock import AsyncMock
+
+@pytest.fixture(autouse=True)
+def snapshot_background_test_db(monkeypatch):
+    from .import_helpers import _test_db
+    monkeypatch.setattr("app.services.dashboard.snapshots.SessionLocal", _test_db)
+    monkeypatch.setattr("app.services.dashboard.snapshots.warm_nav_history", AsyncMock())
+
+
+
+def _calculation_folio(db, member, name, plan):
+    import uuid
+    from datetime import date,datetime,timezone
+    from decimal import Decimal
+    from app.models.enums import SchemePlanType,ImportStatus,TransactionType,PlanType
+    from app.models.reference import Scheme
+    from app.models.folio import Folio
+    from app.models.imports import Import
+    from app.models.transaction import Transaction
+    from app.models.transaction_import import TransactionImport
+    scheme = Scheme(id=uuid.uuid4(),amfi_code=uuid.uuid4().hex[:6],isin=uuid.uuid4().hex[:12],
+                    name=name,amc_name="Test AMC",sebi_category="E",base_name="Test Fund",plan_type=SchemePlanType(plan))
+    folio = Folio(id=uuid.uuid4(),household_member_id=member.id,scheme_id=scheme.id,
+                  folio_number=uuid.uuid4().hex[:6],plan_type=PlanType(plan))
+    imp = Import(id=uuid.uuid4(),household_member_id=member.id,status=ImportStatus.CONFIRMED,
+                 uploaded_at=datetime.now(timezone.utc),statement_to_date=date(2026,10,5))
+    db.add(scheme);db.flush()
+    db.add_all([folio,imp]);db.flush()
+    for occurrence in range(2):
+        txn = Transaction(id=uuid.uuid4(),folio_id=folio.id,import_id=imp.id,type=TransactionType.PURCHASE_SIP,
+                          date=date(2013,1,5),amount=Decimal("1000"),units=Decimal("10"),nav=Decimal("100"),occurrence=occurrence)
+        db.add(txn);db.flush()
+        db.add(TransactionImport(transaction_id=txn.id,transaction_date=txn.date,import_id=imp.id))
+    db.commit()
+    return scheme
+
+
+def test_sip_routes_include_stopped_only_on_request_and_keep_twins(client):
+    import uuid
+    from app.models.user import HouseholdMember
+    from .import_helpers import _test_db
+    headers = _authed_headers(client)
+    member = client.post("/household-members",json={"name":"Self","relationship":"self"},headers=headers).json()
+    db = _test_db()
+    _calculation_folio(db,db.get(HouseholdMember,uuid.UUID(member["id"])),"Test Direct","direct")
+    for path, wrapped in [(f"/household-members/{member['id']}/sips",False),("/household/aggregate/sips",True)]:
+        response = client.get(path,headers=headers)
+        assert response.status_code == 200
+        assert (response.json()["sips"] if wrapped else response.json()) == []
+        response = client.get(path+"?include_stopped=true",headers=headers)
+        assert response.status_code == 200
+        [row] = response.json()["sips"] if wrapped else response.json()
+        assert row["status"] == "stopped" and row["series_count"] == 2
+    response = client.get(f"/household-members/{member['id']}/sips/monthly?year=2013&month=1",headers=headers)
+    assert response.status_code == 200
+    assert [r["instalment"] for r in response.json()] == [1,2]
+
+
+def test_distributor_member_and_aggregate_expose_optional_plan_nav_and_saving(client,monkeypatch):
+    import uuid
+    from datetime import date
+    from decimal import Decimal
+    from app.models.user import HouseholdMember
+    from app.models.reference import SchemeTer
+    from .import_helpers import _test_db
+    headers = _authed_headers(client)
+    member = client.post("/household-members",json={"name":"Self","relationship":"self"},headers=headers).json()
+    db = _test_db();owner = db.get(HouseholdMember,uuid.UUID(member["id"]))
+    direct = _calculation_folio(db,owner,"Test Direct","direct")
+    regular = _calculation_folio(db,owner,"Test Regular","regular")
+    for scheme,ter in [(direct,"0.50"),(regular,"1.50")]:
+        db.add(SchemeTer(scheme_id=scheme.id,reference_period=date(2026,9,1),ter_value=Decimal(ter)))
+    db.commit()
+    monkeypatch.setattr("app.services.dashboard.distributor_comparison.get_navs_on_or_before",AsyncMock(return_value={direct.id:(Decimal("20"),date.today()),regular.id:None}))
+    for path,wrapped in [(f"/household-members/{member['id']}/distributor-comparison",False),("/household/aggregate/distributor-comparison",True)]:
+        response = client.get(path,headers=headers)
+        assert response.status_code == 200,response.text
+        rows = response.json()["rows"] if wrapped else response.json()
+        by_plan = {r["plan_type"]:r for r in rows}
+        assert by_plan["regular"]["nav_unavailable_schemes"] == ["Test Regular"]
+        assert by_plan["direct"]["schemes"][0]["annual_ter_saving"] == "1.00"

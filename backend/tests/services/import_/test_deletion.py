@@ -251,3 +251,55 @@ def test_delete_removes_untouched_detected_member(db_session):
     result = delete_import(db_session, user.id, imp.id, "person", FakeStorage())
     assert result.removed_member_ids == [member_id]
     assert db_session.get(HouseholdMember, member_id) is None
+
+
+
+def _preview_for(db,member,claims=()):
+    from app.services.import_ import preview_store
+    from app.services.import_.service import _preview_sessions
+    import threading
+    session = {"session_id":uuid.uuid4().hex,"household_member_id":member.id,"user_id":member.user_id,
+               "created_at":datetime.now(timezone.utc),"pending_claims":list(claims),"lock":threading.Lock()}
+    preview_store.save(db,session)
+    db.commit()
+    _preview_sessions[session["session_id"]] = session
+    return session["session_id"]
+
+
+def test_delete_last_detected_import_clears_review_and_releases_pending_pan(db_session,monkeypatch):
+    from datetime import timedelta
+    from app.services.import_ import service
+    w = _world(db_session)
+    detected = w["detected"];member_id = detected.id
+    pan = "BCDEF2222B"
+    detected.pan_encrypted = encrypt_pan(pan)
+    detected.pan_lookup_hash = hash_pan(pan)
+    detected.pan_pending_until = datetime.now(timezone.utc)+timedelta(minutes=65)
+    db_session.commit()
+    sid = _preview_for(db_session,detected,[(member_id,pan)])
+    real_release = service._release_session_claims
+    released = []
+    def checked_release(db,session):
+        real_release(db,session)
+        member = db.get(HouseholdMember,member_id)
+        released.append(member.pan_pending_until is None and member.pan_lookup_hash is None)
+    monkeypatch.setattr(service,"_release_session_claims",checked_release)
+    result = delete_import(db_session,w["user"].id,w["imports"]["detected"].id,"person",FakeStorage())
+    assert member_id in result.removed_member_ids
+    assert db_session.get(HouseholdMember,member_id) is None
+    assert db_session.get(Import,uuid.UUID(sid)) is None
+    assert sid not in service._preview_sessions
+    assert released == [True]
+
+
+def test_group_delete_never_selects_or_counts_a_preview(db_session):
+    from app.services.import_.service import _preview_sessions
+    w = _world(db_session)
+    sid = _preview_for(db_session,w["me"])
+    db_session.get(Import,uuid.UUID(sid)).upload_group_id = GROUP
+    db_session.commit()
+    result = delete_import(db_session,w["user"].id,w["imports"]["me"].id,"group",FakeStorage())
+    assert result.deleted_transactions_count == 3
+    assert db_session.query(Import).one().id == uuid.UUID(sid)
+    assert sid in _preview_sessions
+    _preview_sessions.pop(sid)

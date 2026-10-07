@@ -2,6 +2,7 @@ import type { PlanType, HoldingRow } from "@/features/dashboard/types";
 import { PlanBadge } from "@/features/dashboard/PlanBadge";
 import { useState } from "react";
 import { Badge } from "./Badge";
+import { navPriceBadge } from "@/features/dashboard/navPriceBadge";
 import { FundSignal } from "./FundSignal";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -27,6 +28,7 @@ export interface HoldingRowData {
   today_gain: string | null;
   nav_unavailable?: boolean;
   stale_nav?: boolean;
+  price_from_statement?: boolean;
   return_percentage_1y?: number;
 }
 
@@ -194,6 +196,7 @@ export function HoldingsTable({
                     {returnPct === null ? "—" : (
                       <FundSignal
                         returnPercentage={returnPct}
+                        period="since purchase"
                         schemeName={row.scheme_name}
                         size="sm"
                       />
@@ -256,11 +259,7 @@ export function HoldingsTable({
                         ) : (
                           <span>₹{formatNumber(row.current_nav!, 2)}</span>
                         )}
-                        {!navUnavailable && row.stale_nav && (
-                          <Badge variant="warning">
-                            stale
-                          </Badge>
-                        )}
+                        {!navUnavailable && (() => { const b = navPriceBadge(row); return b && <Badge variant={b.variant}>{b.label}</Badge>; })()}
                       </div>
                     </div>
                   </td>

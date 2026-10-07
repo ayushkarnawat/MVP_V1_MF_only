@@ -213,3 +213,10 @@ describe("FundSignalGraph", () => {
     await screen.findByText("Aug 25, 2026: +15.20%");
   });
 });
+
+describe("FundSignal period label (#18)", () => {
+  it("says since purchase when the caller asks for it", () => {
+    render(<FundSignal returnPercentage={12.5} period="since purchase" />);
+    expect(screen.getByRole("img")).toHaveAttribute("aria-label", expect.stringContaining("gain of 12.5% since purchase"));
+  });
+});

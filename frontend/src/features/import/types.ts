@@ -13,6 +13,9 @@ export interface SchemeMatchPreview {
   plan_type: string;
   category: string | null;
   person_key?: string | null;
+  /** Phase 7: "unlisted" = a held fund in no fund list, valued at the statement's NAV. */
+  identification?: "verified" | "closed" | "unlisted" | "ask";
+  candidates?: { amfi_code: string; name: string }[];
   fund_logo_url?: string | null;
   amc_logo_url?: string | null;
   logo_url?: string | null;
@@ -81,6 +84,8 @@ export interface ImportPreviewResponse {
   unassigned_temp_ids: string[];
   name_notices: NameNotice[];
   same_person_prompts: SamePersonPrompt[];
+  /** True only when a held fund has candidates to choose from (Phase 7). */
+  needs_review?: boolean;
   expires_at: string;
 }
 
@@ -88,6 +93,8 @@ export interface SchemeConfirmation {
   temp_id: string;
   amfi_code?: string;
   plan_type_override?: "direct" | "regular" | "unclassified";
+  /** Fallback dialog's "Not listed": import a held fund as an unlisted fund. */
+  unlisted?: boolean;
 }
 
 /** One person's choices from the people popup and their ribbon. */

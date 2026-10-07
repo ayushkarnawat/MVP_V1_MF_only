@@ -19,7 +19,8 @@ from __future__ import annotations
 import re
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from decimal import Decimal, InvalidOperation
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import httpx
@@ -28,7 +29,7 @@ from sqlalchemy.orm import Session
 from app.db.session import commit_off_loop
 from app.models.reference import Scheme
 
-NAV_ALL_URL = "https://www.amfiindia.com/spages/NAVAll.txt"
+NAV_ALL_URL = "https://portal.amfiindia.com/spages/NAVAll.txt"
 DEFAULT_CACHE_DIR = Path(__file__).resolve().parent.parent.parent.parent / ".cache" / "amfi_navall"
 NAV_ALL_TTL = timedelta(hours=24)
 _CATEGORY_HEADER_RE = re.compile(r"^(?:Open Ended|Close Ended|Interval Fund) Schemes\((.+)\)$")
@@ -41,6 +42,11 @@ class UniverseRow:
     name: str
     amc_name: str
     sebi_category: str
+    isin_reinvest: str | None = None
+    base_name: str | None = None
+    plan: str | None = None
+    nav: Decimal | None = None
+    nav_date: date | None = None
 
 
 def _cache_valid(path: Path, ttl: timedelta) -> bool:
@@ -89,12 +95,24 @@ def _parse_nav_all(text: str) -> list[UniverseRow]:
         if current_category is None or current_amc is None:
             continue
 
+        fields = [f.strip() for f in fields]
+        base_name = plan = None
         if len(fields) == 6:
             code, isin_growth, isin_reinvest, name, _nav, _date = fields
         else:
             code, isin_growth, isin_reinvest, base_name, plan, option, _nav, _date = fields
             name = f"{base_name} - {plan} - {option}"
         isin = isin_growth if isin_growth != "-" else (isin_reinvest if isin_reinvest != "-" else None)
+        try:
+            nav = Decimal(_nav) if _nav not in ("N.A.", "-", "") else None
+            if nav is not None and not nav.is_finite():
+                nav = None
+        except InvalidOperation:
+            nav = None
+        try:
+            nav_date = datetime.strptime(_date, "%d-%b-%Y").date()
+        except ValueError:
+            nav_date = None
         rows.append(
             UniverseRow(
                 amfi_code=code,
@@ -102,6 +120,8 @@ def _parse_nav_all(text: str) -> list[UniverseRow]:
                 name=name,
                 amc_name=current_amc,
                 sebi_category=current_category,
+                isin_reinvest=isin_reinvest if isin_reinvest not in ("-", "") else None,
+                base_name=base_name, plan=plan or None, nav=nav, nav_date=nav_date,
             )
         )
     return rows
@@ -144,6 +164,8 @@ class SchemeUniverseClient:
         except httpx.HTTPError:
             return []
 
+        from app.services.analytics.scheme_master import plan_type_for
+
         matched = [r for r in rows if r.sebi_category == sebi_category]
         if not matched:
             return []
@@ -165,6 +187,8 @@ class SchemeUniverseClient:
                     amc_name=row.amc_name,
                     sebi_category=row.sebi_category,
                     plan_name_variant=None,
+                    isin_reinvest=row.isin_reinvest, base_name=row.base_name,
+                    plan_type=plan_type_for(row),
                 )
                 db.add(scheme)
                 existing[row.amfi_code] = scheme

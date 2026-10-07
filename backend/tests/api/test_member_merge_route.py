@@ -39,3 +39,13 @@ def test_merge_route_merges_and_returns_counts(client):
     db.expire_all()
     assert db.get(HouseholdMember, source_id) is None
     db.close()
+
+
+import pytest
+from unittest.mock import AsyncMock
+
+@pytest.fixture(autouse=True)
+def snapshot_background_test_db(monkeypatch):
+    from .import_helpers import _test_db
+    monkeypatch.setattr("app.services.dashboard.snapshots.SessionLocal", _test_db)
+    monkeypatch.setattr("app.services.dashboard.snapshots.warm_nav_history", AsyncMock())

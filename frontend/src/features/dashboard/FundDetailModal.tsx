@@ -1,6 +1,7 @@
 import { PlanBadge } from "@/features/dashboard/PlanBadge";
 import { Modal } from "../../components/Modal";
 import { Badge } from "../../components/Badge";
+import { navPriceBadge } from "./navPriceBadge";
 import { formatDdMmYyyy } from "../../lib/utils";
 import { FundSignalGraph } from "../../components/FundSignal";
 import type { HoldingRow } from "./types";
@@ -102,9 +103,9 @@ export function FundDetailModal({
               {navUnavailable ? (
                 <Badge variant="warning">NAV unavailable</Badge>
               ) : (
-                <>₹{formatDecimal(holding.current_nav ?? "0")}</>
+                <>{holding.current_nav === null ? "—" : `₹${formatDecimal(holding.current_nav)}`}</>
               )}
-              {!navUnavailable && holding.stale_nav && <Badge variant="warning">stale</Badge>}
+              {!navUnavailable && (() => { const b = navPriceBadge(holding); return b && <Badge variant={b.variant}>{b.label}</Badge>; })()}
             </span>
           </div>
           {holding.current_nav_date && (

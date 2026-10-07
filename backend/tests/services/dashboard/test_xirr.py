@@ -105,3 +105,20 @@ def test_gift_in_counts_as_invested(db_session):
     result = calculate_dashboard_xirr(db_session, [member.id], [holding])
     assert result.lifetime_xirr is not None and Decimal(result.lifetime_xirr) > 0
 
+
+
+def test_current_holdings_xirr_counts_switch_in_cost():
+    from tests.services.dashboard.test_holdings import _session, _household_member, _scheme, _folio, _persisted_txn
+    db = _session(); member = _household_member(db)
+    liquid, midcap = _scheme(db, "Axis Liquid", "2001"), _scheme(db, "Axis Mid Cap", "2002")
+    fl, fm = _folio(db, member, liquid), _folio(db, member, midcap, "2/2")
+    for folio, kind, day, units, nav in [
+        (fl, TransactionType.PURCHASE, date(2020, 1, 1), "100", "1000"),
+        (fl, TransactionType.SWITCH_OUT, date(2020, 1, 2), "100", "1000"),
+        (fm, TransactionType.SWITCH_IN, date(2020, 1, 2), "1000", "100"),
+    ]:
+        _persisted_txn(db, folio, kind, day, Decimal("100000"), Decimal(units), Decimal(nav))
+    holding = _holding(midcap.id, member.id).model_copy(update={"units_held": "1000", "current_value": "200000"})
+    summary = calculate_dashboard_xirr(db, [member.id], [holding])
+    assert summary.current_holdings_xirr is not None
+    assert Decimal("0.09") < Decimal(summary.current_holdings_xirr) < Decimal("0.13")

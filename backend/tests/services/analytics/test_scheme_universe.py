@@ -1,3 +1,5 @@
+from datetime import date
+from decimal import Decimal
 import asyncio
 import uuid
 from unittest.mock import AsyncMock, patch
@@ -161,3 +163,21 @@ def test_disk_cache_read_write_for_nav_all(tmp_path):
         universe = asyncio.run(client2.get_category_universe(db, "Debt Scheme - Liquid Fund"))
         assert mock_fetch2.call_count == 0
     assert len(universe) == 1
+
+
+NAVALL_8 = """Scheme Code;ISIN Div Payout/ ISIN Growth;ISIN Div Reinvestment;Scheme Name;Plan;Option;Net Asset Value;Date
+
+Open Ended Schemes(Equity Scheme - Mid Cap Fund)
+
+Edelweiss Mutual Fund
+
+140228;INF754K01KO2;-;Edelweiss Mid Cap Fund;Direct Plan;Growth Option;128.3011;05-Oct-2026
+140225;INF754K01KN4;-;Edelweiss Mid Cap Fund;Regular Plan;Growth Option;108.5602;05-Oct-2026
+"""
+
+
+def test_parse_nav_all_keeps_plan_base_name_and_nav():
+    rows = _parse_nav_all(NAVALL_8)
+    d = next(r for r in rows if r.amfi_code == "140228")
+    assert d.plan == "Direct Plan" and d.base_name == "Edelweiss Mid Cap Fund"
+    assert d.nav == Decimal("128.3011") and d.nav_date == date(2026, 10, 5)

@@ -31,7 +31,7 @@ export function FundSignal({
   const colorClass = isPositive ? styles.positive : styles.negative;
   const ariaLabel = `${schemeName ? schemeName + " " : ""}Fund Signal: ${
     isPositive ? "gain" : "loss"
-  } of ${absReturn.toFixed(1)}% over ${period}`;
+  } of ${absReturn.toFixed(1)}% ${period.startsWith("since") ? period : `over ${period}`}`;
 
   return (
     <div className={`${styles.container} ${styles[size]}`} role="img" aria-label={ariaLabel}>

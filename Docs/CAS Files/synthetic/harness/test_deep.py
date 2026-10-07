@@ -86,17 +86,36 @@ def upload(client, headers, mid, fn, log, timing):
                     data={"password": "MF@123", "household_member_id": mid, "pan_disclaimer_version": PAN_DISCLAIMER_VERSION},
                     headers=headers)
     timing.append((fn, "parse", round(time.time() - t0, 1)))
+    if r.status_code == 409 and (r.json().get("detail") or {}).get("code") == "member_not_in_file":
+        # A family member's own statement uploaded from this account: the user
+        # picks "Import for these people" (MemberNotInFileDialog).
+        sid = r.json()["detail"]["session_id"]
+        log.append(f"prompt {fn}: member_not_in_file -> import for these people")
+        r = client.post(f"/imports/sessions/{sid}/acknowledge", json={"code": "member_not_in_file"}, headers=headers)
     if r.status_code != 200:
         log.append(f"PARSE {fn} -> {r.status_code} {r.text[:400]}"); return None
     p = r.json()
-    log.append({"file": fn, "people": [(x["name"], x["status"], x["fund_count"]) for x in p["people"]],
+    log.append({"file": fn, "people": [(x["name"], x["status"], x["fund_count"], bool(x.get("needs_name"))) for x in p["people"]],
+                "needs_review": p.get("needs_review"),
                 "review": [(s["name"][:50], s["match_status"], s["plan_type"]) for s in p["schemes"]
                            if s["match_status"] != "confirmed" or s["plan_type"] == "unclassified"]})
     confs = [{"temp_id": s["temp_id"], "amfi_code": s["suggested_amfi_code"]} for s in p["schemes"]
              if s["match_status"] != "confirmed" and s["suggested_amfi_code"]]
-    if len(p["people"]) > 1:
-        body = {"session_id": p["session_id"], "people": [
-            {"person_key": x["person_key"], "scheme_confirmations": confs if x["is_me"] else []} for x in p["people"]]}
+    if p["people"]:
+        # The same body the app sends (MemberRibbonReview.handleConfirmImports):
+        # one entry per person, a typed name where the popup asks for one (U9),
+        # and each fund's code override on its own person.
+        confs_by = defaultdict(list)
+        for s_ in p["schemes"]:
+            if s_["match_status"] != "confirmed" and s_["suggested_amfi_code"]:
+                confs_by[s_.get("person_key")].append({"temp_id": s_["temp_id"], "amfi_code": s_["suggested_amfi_code"]})
+        people_body = []
+        for x in p["people"]:
+            e = {"person_key": x["person_key"], "scheme_confirmations": confs_by.get(x["person_key"], [])}
+            if x.get("needs_name"):
+                e["name"] = "Meera Typed " + "ABCDEFGH"[int(x["person_key"][1:]) % 8]
+            people_body.append(e)
+        body = {"session_id": p["session_id"], "people": people_body}
     else:
         body = {"session_id": p["session_id"], "household_member_id": mid, "scheme_confirmations": confs}
     t0 = time.time()
@@ -109,7 +128,18 @@ def upload(client, headers, mid, fn, log, timing):
     return j
 
 
-def test_deep(client):
+def test_deep(client, monkeypatch):
+    # Snapshot background work must use the same isolated database as the routes.
+    from sqlalchemy.orm import sessionmaker
+    from app.services.dashboard import snapshots
+    with _test_db() as db:
+        monkeypatch.setattr(snapshots, "SessionLocal", sessionmaker(bind=db.get_bind()))
+        import app.api.imports as imports_api  # background tasks: never the .env database
+        monkeypatch.setattr(imports_api, "SessionLocal", sessionmaker(bind=db.get_bind()))
+    if os.environ.get("MASTER_FILE"):
+        from app.services.analytics.scheme_master import refresh_scheme_master
+        text = Path(os.environ["MASTER_FILE"]).read_text(encoding="utf-8")
+        asyncio.run(refresh_scheme_master(_test_db(), text))
     last = SEQ[-1]
     tr = TRUTH[last]
     headers, mid = _authed_headers_and_member(client, "+919811122299", name=tr["investor"])
@@ -137,6 +167,8 @@ def test_deep(client):
     out["reconcile"] = [{"folio": row.folio_number, "scheme": row.scheme_name,
                          "status": row.status, "diff_units": str(row.diff_units) if row.diff_units is not None else None}
                         for row in reconcile_members(db, [uuid.UUID(m["id"]) for m in members])]
+    if os.environ.get("MASTER_FILE"):
+        out["reconcile_all_match"] = bool(out["reconcile"]) and all(row["status"] == "match" for row in out["reconcile"])
     from app.models.reference import Scheme, NavHistory
     sch = {str(s.id): s for s in db.query(Scheme).all()}
     per_member = {}
@@ -191,6 +223,19 @@ def test_deep(client):
 
     # XIRR truth: terminal = CAS units x app's current NAV (isolates row errors from NAV source)
     navs = {isin: b["nav"] for isin, b in by_isin.items()}
+    # A CAS can print a scheme's reinvestment ISIN (AMFI master column 3) while
+    # the app stores the scheme under its primary ISIN (column 2). Without this
+    # the truth finds no NAV for that fund and drops it from the terminal value
+    # (Phase 6 Task 12, carry-over 16: p20/p10 HDFC BAF IDCW, INF179K01822).
+    if os.environ.get("MASTER_FILE"):
+        alias = {}
+        for line in Path(os.environ["MASTER_FILE"]).read_text(encoding="utf-8").splitlines():
+            parts = line.split(";")
+            if len(parts) > 3 and parts[1].startswith("INF") and parts[2].startswith("INF"):
+                alias[parts[2]] = parts[1]
+        for f_ in funds.values():
+            if f_["isin"] not in navs and alias.get(f_["isin"]) in navs:
+                navs[f_["isin"]] = navs[alias[f_["isin"]]]
     today = date.today()
     life, cur = [], []
     terminal = D(0)
@@ -222,7 +267,12 @@ def test_deep(client):
             if inst and inst[-1][0] < end - timedelta(days=40) and f["close"] > 0:
                 stopped_but_held.append((f["fund"][:40], label[:30], str(inst[-1][0])))
     out["sips"] = {"truth_active": active, "truth_stopped_but_units_held": stopped_but_held,
-                   "app": [(x["scheme_name"][:40], x["sip_amount"], x["sip_date"], x["next_due_date"]) for x in me["sips"]]}
+                   "app": [(x["scheme_name"][:40], x["sip_amount"], x["sip_date"], x["next_due_date"],
+                            x.get("series_count"), x.get("status")) for x in me["sips"]]}
+    out["realized_summary"] = me["holdings"].get("realized_summary")
+    mid_ = next(m["id"] for m in members if m["name"] == tr["investor"]) if any(m["name"] == tr["investor"] for m in members) else members[0]["id"]
+    out["sips_all"] = [(x["scheme_name"][:40], x["sip_amount"], x["sip_date"], x.get("series_count"), x.get("status"))
+                       for x in client.get(f"/household-members/{mid_}/sips?include_stopped=true", headers=headers).json()]
     out["payout_rows_in_cas"] = sum(f["payouts"] for f in funds.values())
     out["cashflow_types_app"] = me["cashflow_types"]
     out["gaps_app"] = me["gaps"]
@@ -233,6 +283,7 @@ def test_deep(client):
     if SNAP:
         snaps = client.get(f"/household-members/{mid}/snapshots", headers=headers).json()
         app_snap = {x["snapshot_month"]: D(x["total_value"]) for x in snaps}
+        out["snap_months"] = [(x["snapshot_month"], bool(x.get("is_partial"))) for x in snaps]
         isin_scheme = {s.isin: s for s in sch.values()}
         chk = {}
         for me_ in ("2016-12-31", "2020-12-31", "2023-12-31", "2026-04-30", "2026-08-31"):
@@ -251,3 +302,6 @@ def test_deep(client):
             chk[me_] = {"app": str(app_snap.get(me_)), "truth": str(round(tot, 2)), "truth_incomplete": missing}
         out["snapshot_check"] = chk
     json.dump(out, open(OUT, "w"), indent=1, default=str)
+    # Asserted after the dump, so a failing scenario still leaves its output.
+    if os.environ.get("MASTER_FILE"):
+        assert out["reconcile_all_match"], out["reconcile"]

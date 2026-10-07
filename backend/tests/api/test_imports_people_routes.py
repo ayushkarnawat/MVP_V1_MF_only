@@ -693,7 +693,7 @@ def test_confirm_route_prefetches_nav_for_every_imported_member(client, tmp_path
     from unittest.mock import patch
 
     headers, self_id, sid = _family_session(client, tmp_path, "+919800000204")
-    with patch("app.api.imports._prefetch_member_nav_history") as prefetch:
+    with patch("app.api.imports._prefetch_member_nav_history") as prefetch, patch("app.api.imports.rebuild_member_snapshots") as rebuild:
         resp = client.post("/imports/confirm", json={
             "session_id": sid, "people": [{"person_key": "p1"}, {"person_key": "p2"}],
         }, headers=headers)
@@ -701,6 +701,7 @@ def test_confirm_route_prefetches_nav_for_every_imported_member(client, tmp_path
     assert resp.status_code == 200, resp.text
     prefetched = {str(call.args[0]) for call in prefetch.call_args_list}
     assert prefetched == {p["member_id"] for p in resp.json()["people"]}
+    assert {str(call.args[0]) for call in rebuild.call_args_list} == prefetched
 
 
 def test_household_members_lists_detected_member_with_null_relationship(client, tmp_path):
@@ -1095,3 +1096,22 @@ def test_confirm_returns_real_parse_warnings(client, tmp_path):
     preview = _parse(client, headers, member_id, result, tmp_path).json()
     body = client.post("/imports/confirm", json=_confirm_body(preview), headers=headers).json()
     assert body["warnings"] == ["Balance mismatch for folio 1/1"]
+
+
+import pytest
+from unittest.mock import AsyncMock
+
+@pytest.fixture(autouse=True)
+def snapshot_background_test_db(monkeypatch):
+    from .import_helpers import _test_db
+    monkeypatch.setattr("app.services.dashboard.snapshots.SessionLocal", _test_db)
+    monkeypatch.setattr("app.services.dashboard.snapshots.warm_nav_history", AsyncMock())
+
+
+
+def test_pending_preview_is_absent_from_both_import_histories(client,tmp_path):
+    headers,self_id,sid = _family_session(client,tmp_path,"+919800000298")
+    for path in ("/imports/history",f"/household-members/{self_id}/cas-imports"):
+        response = client.get(path,headers=headers)
+        assert response.status_code == 200,response.text
+        assert response.json() == []

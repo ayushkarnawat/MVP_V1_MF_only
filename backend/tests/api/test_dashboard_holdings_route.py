@@ -30,6 +30,7 @@ def test_holdings_route_returns_empty_list_for_member_with_no_folios(client):
     assert response.status_code == 200
     assert response.json() == {
         "holdings": [],
+        "realized_summary": {"total": "0.00", "funds": []},
         "lifetime_xirr": None,
         "current_holdings_xirr": None,
     }

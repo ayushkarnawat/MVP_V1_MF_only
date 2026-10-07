@@ -22,7 +22,7 @@ from app.services.dashboard.aggregate import (
 from app.services.dashboard.allocation import compute_allocation
 from app.services.dashboard.cash_flow import compute_cash_flow #for individual
 from app.services.dashboard.distributor_comparison import compute_distributor_comparison
-from app.services.dashboard.holdings import compute_holdings
+from app.services.dashboard.holdings import compute_holdings, compute_realized_summary
 from app.services.dashboard.fund_detail import get_fund_nav_history
 from app.services.dashboard.xirr import calculate_dashboard_xirr
 
@@ -142,7 +142,7 @@ def merge_household_member(
     db: DbSession = Depends(get_db),
 ):
     try:
-        result = merge_member_into(db, user.id, member_id, target_id)
+        result = merge_member_into(db, user.id, member_id, target_id, background_tasks=background_tasks)
     except MemberDetailsError as exc:
         raise HTTPException(
             status_code=exc.status_code, detail={"code": exc.code, "message": exc.message}
@@ -160,7 +160,7 @@ def delete_household_member_portfolio(
     db: DbSession = Depends(get_db),
 ):
     try:
-        result = delete_member_portfolio(db, user.id, member_id, remove_member)
+        result = delete_member_portfolio(db, user.id, member_id, remove_member, background_tasks=background_tasks)
     except ImportNotFoundError as exc:
         raise HTTPException(status_code=404, detail="Household member not found.") from exc
     claim_and_dispatch_recompute(db, user.id, background_tasks)
@@ -182,6 +182,7 @@ async def get_member_holdings(
     holdings = await compute_holdings(db, [member_id])
     xirr_summary = calculate_dashboard_xirr(db, [member_id], holdings)
     return MemberHoldingsResponse(
+        realized_summary=compute_realized_summary(db, [member_id]),
         holdings=holdings,
         lifetime_xirr=xirr_summary.lifetime_xirr,
         current_holdings_xirr=xirr_summary.current_holdings_xirr,
@@ -214,11 +215,12 @@ async def get_member_allocation(
 @router.get("/household-members/{member_id}/sips", response_model=list[SipRow])
 def get_member_sips(
     member_id: uuid.UUID,
+    include_stopped: bool = False,
     user: User = Depends(get_active_user),
     db: DbSession = Depends(get_db),
 ):
     require_member(db, user.id, member_id)
-    return compute_active_sips(db, [member_id])
+    return compute_active_sips(db, [member_id], include_stopped=include_stopped)
 
 
 @router.get("/household-members/{member_id}/sips/monthly", response_model=list[SipMonthlyRow])
@@ -280,9 +282,10 @@ async def get_household_aggregate_allocation(
 
 @router.get("/household/aggregate/sips", response_model=AggregateSipsResponse)
 def get_household_aggregate_sips(
+    include_stopped: bool = False,
     user: User = Depends(get_active_user), db: DbSession = Depends(get_db)
 ):
-    return get_aggregate_sips(db, user.id)
+    return get_aggregate_sips(db, user.id, include_stopped=include_stopped)
 
 
 @router.get("/household/aggregate/sips/monthly", response_model=AggregateSipsMonthlyResponse)

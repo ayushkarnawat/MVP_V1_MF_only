@@ -71,3 +71,20 @@ def test_same_start_tie_is_deterministic(db_session):
     db_session.commit()
     ordered = _ordered_imports(db_session, me.id, excluded=set())
     assert [i.id for i in ordered][:2] == [ib.id, ia.id]
+
+
+def test_restore_finds_fund_by_reinvestment_isin(db_session):
+    from app.models.reference import Scheme
+    me = _member(db_session, _user(db_session), "Aditi Sharma")
+    fy = _upload(db_session, me, _solo(open_units="100", cost="5500", start=date(2023, 4, 1),
+                                     rows=[(date(2023, 6, 1), "10", "110")]))
+    longest = _upload(db_session, me, _solo(start=date(2015, 4, 1),
+                        rows=[(date(2015, 6, 1), "100", "100"), (date(2023, 6, 1), "10", "110")]))
+    scheme = db_session.query(Scheme).filter_by(isin="INF123").one()
+    scheme.isin_reinvest, scheme.isin = scheme.isin, "INF_PRIMARY"
+    db_session.commit()
+    delete_import(db_session, me.user_id, uuid.UUID(longest.import_id), "person")
+    restored = _opening(db_session)
+    assert restored.units == Decimal("100")
+    assert restored.date == date(2023, 4, 1)
+    assert restored.import_id == uuid.UUID(fy.import_id)

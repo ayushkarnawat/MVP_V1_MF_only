@@ -37,7 +37,7 @@ from app.services.import_.lifecycle_service import SessionExpiredError
 from app.services.import_.name_match import NameNotEditableError
 from app.services.import_.schemas import PersonConfirmation
 from app.services.import_.service import _preview_sessions, confirm_import, start_import_session
-from tests.api.import_helpers import SCHEME_NAME, family_result
+from tests.api.import_helpers import SCHEME_NAME, family_result, seed_master_scheme
 
 ADITI_PAN = "ABCDE1234K"
 RAMESH_PAN = "BXQPS5678L"
@@ -79,8 +79,10 @@ def _member(db, user, name, *, relationship=Relationship.SELF, pan=None, **kwarg
 
 
 def _start(db, member, parse_result):
+    if any(s.isin == "INF123" for s in parse_result.schemes):
+        seed_master_scheme(db)
     return asyncio.run(start_import_session(
-        db, member.user_id, member, parse_result, "cas.pdf", b"%PDF family", client=_mocked_client(),
+        db, member.user_id, member, parse_result, "cas.pdf", b"%PDF family",
     ))
 
 
@@ -539,7 +541,8 @@ def test_confirm_rolls_back_everything_on_failure(db_session, monkeypatch):
     with pytest.raises(RuntimeError):
         _confirm(db_session, preview, me.user_id)
 
-    assert db_session.query(Import).count() == 0
+    from tests.services.import_.test_service import _assert_only_preview_remains
+    _assert_only_preview_remains(db_session, preview)
     assert _detected(db_session, me.user_id) == []
     assert db_session.query(Folio).count() == 0
     assert preview.session_id in _preview_sessions  # C1: Try again works
@@ -623,7 +626,8 @@ def test_confirm_old_body_for_multi_person_file_is_invalid(db_session):
 
     with pytest.raises(ConfirmInvalidError):
         confirm_import(db_session, preview.session_id, me.id, scheme_confirmations=[], user_id=me.user_id)
-    assert db_session.query(Import).count() == 0
+    from tests.services.import_.test_service import _assert_only_preview_remains
+    _assert_only_preview_remains(db_session, preview)
     assert preview.session_id in _preview_sessions
 
 
@@ -656,7 +660,8 @@ def test_confirm_unknown_person_key_is_invalid(db_session):
 
     with pytest.raises(ConfirmInvalidError):
         _confirm(db_session, preview, me.user_id, _everyone(preview) + [PersonConfirmation(person_key="p9")])
-    assert db_session.query(Import).count() == 0
+    from tests.services.import_.test_service import _assert_only_preview_remains
+    _assert_only_preview_remains(db_session, preview)
 
 
 # ------------------------------------------------------- other account (U8)
@@ -790,7 +795,8 @@ def test_confirm_raises_when_pan_claims_never_settle(db_session, monkeypatch):
     with pytest.raises(RuntimeError):
         _confirm(db_session, preview, me.user_id)
 
-    assert db_session.query(Import).count() == 0
+    from tests.services.import_.test_service import _assert_only_preview_remains
+    _assert_only_preview_remains(db_session, preview)
     assert preview.session_id in _preview_sessions
 
 
@@ -1229,3 +1235,37 @@ def test_opening_row_is_linked_to_its_import(db_session):
     [opening] = _openings(db_session)
     assert _links_of(db_session, opening) == {uuid.UUID(response.import_id)}
 
+
+
+def test_closed_fund_is_saved_and_never_blocks(db_session):
+    from app.models.reference import Scheme
+    from app.models.enums import SchemeSource
+    me = _member(db_session, _user(db_session), "Aditi Sharma")
+    result = _solo(start=date(2010, 1, 1), rows=[(date(2010, 2, 1), "10")])
+    result.schemes[0].isin, result.schemes[0].close_units = "INF999X01ZZ9", Decimal("0")
+    result.schemes[0].name, result.schemes[0].amfi = "Unifund Small Cap Fund - Growth", None
+    for t in result.transactions:
+        t.isin = "INF999X01ZZ9"
+    result.transactions.append(replace(result.transactions[0], txn_date=date(2012, 1, 1), txn_type=TransactionType.REDEMPTION))
+    response = _upload(db_session, me, result)
+    scheme = db_session.query(Scheme).filter_by(isin="INF999X01ZZ9").one()
+    assert scheme.amfi_code is None and scheme.source == SchemeSource.CAS_ONLY
+    assert scheme.name == "Unifund Small Cap Fund - Growth" and response.added == 2
+    with pytest.raises(AlreadyImportedError):
+        _upload(db_session, me, result)
+    assert db_session.query(Scheme).count() == 1 and db_session.query(Folio).count() == 1
+
+
+def test_folio_gets_plan_verified_from_identification(db_session):
+    from app.models.reference import Scheme
+    from app.models.enums import SchemeSource, SchemePlanType, PlanType
+    me = _member(db_session, _user(db_session), "Aditi Sharma")
+    db_session.add(Scheme(amfi_code="125497", isin="INF123", name=SCHEME_NAME,
+                         base_name="HDFC Flexi Cap Fund", plan_type=SchemePlanType.DIRECT,
+                         amc_name="HDFC AMC", sebi_category="Equity Scheme - Flexi Cap Fund", source=SchemeSource.AMFI))
+    db_session.commit()
+    result = _solo(start=date(2024, 1, 1), rows=[(date(2024, 1, 2), "10")])
+    result.schemes[0].plan_type = "unclassified"
+    _upload(db_session, me, result)
+    folio = db_session.query(Folio).one()
+    assert folio.plan_type == PlanType.DIRECT and folio.plan_verified is True

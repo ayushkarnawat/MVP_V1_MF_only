@@ -1,6 +1,7 @@
 import { PlanBadge } from "@/features/dashboard/PlanBadge";
 import { useEffect } from "react";
 import { Badge } from "@/components/Badge";
+import { navPriceBadge } from "@/features/dashboard/navPriceBadge";
 import { FundSignal } from "@/components/FundSignal";
 import { Button } from "@/components/ui/button";
 import { cn, formatDdMmYyyy } from "@/lib/utils";
@@ -86,6 +87,7 @@ export function MobileFundDetailSheet({
               {returnPct !== null && (
                 <FundSignal
                   returnPercentage={returnPct}
+                  period="since purchase"
                   schemeName={holding.scheme_name}
                   size="md"
                 />
@@ -203,9 +205,7 @@ export function MobileFundDetailSheet({
                     ₹{formatNumber(holding.current_nav!, 2)}
                   </span>
                 )}
-                {!navUnavailable && holding.stale_nav && (
-                  <Badge variant="warning">stale</Badge>
-                )}
+                {!navUnavailable && (() => { const b = navPriceBadge(holding); return b && <Badge variant={b.variant}>{b.label}</Badge>; })()}
               </div>
             </div>
 

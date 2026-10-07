@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { BenchmarkSection } from "./BenchmarkSection";
+import { BenchmarkSection, formatXirrPercent } from "./BenchmarkSection";
 import type { PortfolioBenchmarkSummary, FundVsBenchmarkSummary } from "./types";
 
 // Backend XIRR values are raw decimal fractions (e.g. "0.1645" for 16.45%,
@@ -90,3 +90,12 @@ describe("BenchmarkSection", () => {
     expect(screen.getByText("Recent New Fund")).toBeInTheDocument();
   });
 });
+
+describe("formatXirrPercent (#18)", () => {
+  it("rounds rather than truncates", () => {
+    expect(formatXirrPercent("0.004499")).toBe("+0.45%");
+    expect(formatXirrPercent("-0.12345")).toBe("-12.35%");
+    expect(formatXirrPercent(null)).toBe("N/A");
+  });
+});
+

@@ -158,3 +158,19 @@ def test_delete_expired_accounts_daily_runs_hard_delete_service(db_session, monk
 
     assert calls == [db_session]
     assert "delete_expired_accounts_daily: deleted_accounts=3 success=True" in caplog.messages
+
+
+def test_refresh_scheme_master_daily_calls_refresh_and_logs_counts(db_session, monkeypatch, caplog):
+    from types import SimpleNamespace
+    job = _load_job("refresh_scheme_master_daily")
+    calls = []
+
+    async def refresh(db):
+        calls.append(db)
+        return SimpleNamespace(inserted=2, updated=3, deactivated=1, rows=5)
+
+    monkeypatch.setattr(job, "refresh_scheme_master", refresh)
+    caplog.set_level(logging.INFO)
+    asyncio.run(job.main_async(db_session))
+    assert calls == [db_session]
+    assert "refresh_scheme_master_daily: rows=5 inserted=2 updated=3 deactivated=1" in caplog.messages

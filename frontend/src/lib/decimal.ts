@@ -106,6 +106,11 @@ export function formatIndianCurrency(valStr: string | number): string {
   }).format(num);
 }
 
+/** #18: a missing value reads "—", never "₹0". */
+export function formatRupeesOrDash(valStr: string | null | undefined): string {
+  return valStr === null || valStr === undefined || valStr === "" ? "—" : `₹${formatIndianCurrency(valStr)}`;
+}
+
 /** Formats a backend Decimal string with fixed two-place, half-up rounding. */
 export function formatDecimal(value: string): string {
   const match = value.trim().match(/^([+-]?)(\d+)(?:\.(\d*))?$/);

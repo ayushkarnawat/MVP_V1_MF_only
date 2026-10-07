@@ -2,6 +2,7 @@ import { PlanBadge } from "@/features/dashboard/PlanBadge";
 import { useState, useMemo, useRef, useLayoutEffect, useEffect } from "react";
 import type { KeyboardEvent, PointerEvent } from "react";
 import { Badge } from "@/components/Badge";
+import { navPriceBadge } from "@/features/dashboard/navPriceBadge";
 import { FundSignal } from "@/components/FundSignal";
 import { Skeleton } from "@/components/Skeleton";
 import { cn } from "@/lib/utils";
@@ -243,6 +244,7 @@ export function MobileFundDetailView({
               {totalReturnPct !== null && (
                 <FundSignal
                   returnPercentage={totalReturnPct}
+                  period="since purchase"
                   schemeName={holding.scheme_name}
                   size="md"
                 />
@@ -511,9 +513,7 @@ export function MobileFundDetailView({
                     ₹{formatNumber(holding.current_nav!, 2)}
                   </span>
                 )}
-                {!navUnavailable && holding.stale_nav && (
-                  <Badge variant="warning">stale</Badge>
-                )}
+                {!navUnavailable && (() => { const b = navPriceBadge(holding); return b && <Badge variant={b.variant}>{b.label}</Badge>; })()}
               </div>
             </div>
 

@@ -208,8 +208,10 @@ def test_confirm_route_schedules_nav_prefetch_after_successful_confirm():
         result = confirm_import_route(body, background_tasks, user, request_db)
 
     assert result == response
-    assert len(background_tasks.tasks) == 2
-    prefetch_task, dispatch_task = background_tasks.tasks
+    assert len(background_tasks.tasks) == 3
+    prefetch_task, snapshot_task, dispatch_task = background_tasks.tasks
+    assert snapshot_task.func.__name__ == "rebuild_member_snapshots"
+    assert snapshot_task.args == (member_id,)
     assert prefetch_task.func.__name__ == "_prefetch_member_nav_history"
     assert prefetch_task.args == (member_id,)
     assert dispatch_task.args == (user.id,)
@@ -237,7 +239,7 @@ def test_confirm_route_does_not_dispatch_recompute_when_one_already_in_flight():
     ):
         confirm_import_route(body, background_tasks, user, request_db)
 
-    assert len(background_tasks.tasks) == 1
+    assert len(background_tasks.tasks) == 2
     assert background_tasks.tasks[0].func.__name__ == "_prefetch_member_nav_history"
 
 
@@ -696,3 +698,13 @@ def test_parse_accepts_empty_password_field(client, tmp_path):
             headers=headers,
         )
     assert r.status_code == 422 and r.json()["detail"]["code"] == "wrong_password"
+
+
+import pytest
+from unittest.mock import AsyncMock
+
+@pytest.fixture(autouse=True)
+def snapshot_background_test_db(monkeypatch):
+    from .import_helpers import _test_db
+    monkeypatch.setattr("app.services.dashboard.snapshots.SessionLocal", _test_db)
+    monkeypatch.setattr("app.services.dashboard.snapshots.warm_nav_history", AsyncMock())

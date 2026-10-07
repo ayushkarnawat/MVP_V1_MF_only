@@ -339,3 +339,16 @@ def test_release_file_only_when_no_row_references_it(db_session):
     db_session.flush()
     assert release_file_if_unreferenced(db_session, ref, storage=storage) is True
     assert storage.deleted == [ref]
+
+
+
+@pytest.mark.parametrize("status",[ImportStatus.PREVIEWING,ImportStatus.PROCESSING])
+def test_preview_status_never_keeps_a_stored_file_alive(db_session,status):
+    user,members = _user_with_members(db_session,1)
+    ref = f"{user.id}/{uuid.uuid4()}.pdf"
+    db_session.add(Import(id=uuid.uuid4(),household_member_id=members[0].id,status=status,
+                          uploaded_at=datetime.now(timezone.utc),file_reference=ref))
+    db_session.commit()
+    storage = _CountingStorage()
+    assert release_file_if_unreferenced(db_session,ref,storage) is True
+    assert storage.deleted == [ref]

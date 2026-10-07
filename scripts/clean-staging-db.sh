@@ -12,6 +12,13 @@
 # in this schema (checked across every model + migration), so order matters —
 # see Docs/investigations/2026-09-23-schema-and-user-journey-review.md §2 for
 # the dependency graph this order is derived from.
+#
+# 2026-10-06: household_member_merges (0018) points at users without a cascade,
+# so it is cleared before users. transaction_imports (0027) and
+# household_member_name_changes (0018) cascade from transactions/imports and
+# household_members. consent_records (0022) has no foreign key and is
+# append-only by design: its rows are kept (they stop pointing at a live user).
+# Works on any revision from 0018 to 0029.
 
 set -euo pipefail
 
@@ -66,6 +73,8 @@ CONN="host=127.0.0.1 port=${LOCAL_PORT} dbname=unifolio user=unifolio sslmode=re
 COUNT_QUERY="
 SELECT 'users' t, count(*) FROM users
 UNION ALL SELECT 'household_members', count(*) FROM household_members
+UNION ALL SELECT 'household_member_merges', count(*) FROM household_member_merges
+UNION ALL SELECT 'household_member_name_changes', count(*) FROM household_member_name_changes
 UNION ALL SELECT 'auth_identities', count(*) FROM auth_identities
 UNION ALL SELECT 'sessions', count(*) FROM sessions
 UNION ALL SELECT 'pending_identity_verifications', count(*) FROM pending_identity_verifications
@@ -108,6 +117,7 @@ DELETE FROM pending_identity_verifications;
 DELETE FROM otp_requests;
 DELETE FROM auth_identities;
 DELETE FROM household_members;
+DELETE FROM household_member_merges;
 DELETE FROM users;
 DELETE FROM account_deletion_surveys;
 COMMIT;

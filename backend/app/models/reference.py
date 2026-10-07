@@ -6,23 +6,30 @@ import uuid
 from datetime import date as date_, datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, Uuid
+from sqlalchemy import Boolean, Index, true, DateTime, ForeignKey, Integer, Numeric, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
-from app.models.enums import ArnStatus, BenchmarkIndex, PlanNameVariant, enum_column
+from app.models.enums import ArnStatus, BenchmarkIndex, PlanNameVariant, SchemeSource, SchemePlanType, enum_column
 
 
 class Scheme(Base):
     __tablename__ = "schemes"
+    __table_args__ = (Index("ix_schemes_amc_base", "amc_name", "base_name"),)
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    amfi_code: Mapped[str] = mapped_column(String, unique=True, nullable=False)
-    isin: Mapped[str | None] = mapped_column(String)
+    amfi_code: Mapped[str | None] = mapped_column(String, unique=True, nullable=True)
+    isin: Mapped[str | None] = mapped_column(String, index=True)
+    isin_reinvest: Mapped[str | None] = mapped_column(String, index=True)
+    base_name: Mapped[str | None] = mapped_column(String)
     name: Mapped[str] = mapped_column(String, nullable=False)
     amc_name: Mapped[str] = mapped_column(String, nullable=False)
     sebi_category: Mapped[str] = mapped_column(String, nullable=False)
     plan_name_variant: Mapped[PlanNameVariant | None] = mapped_column(enum_column(PlanNameVariant))
+    plan_type: Mapped[SchemePlanType | None] = mapped_column(enum_column(SchemePlanType))
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=true())
+    source: Mapped[SchemeSource] = mapped_column(enum_column(SchemeSource), nullable=False,
+                                               default=SchemeSource.AMFI, server_default="amfi")
 
 
 class NavHistory(Base):

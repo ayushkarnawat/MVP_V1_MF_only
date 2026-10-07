@@ -151,3 +151,14 @@ def test_nav_uses_exact_cas_date_and_scheme_without_fetching():
     db.add(NavHistory(scheme_id=scheme.id, date=date(2026, 10, 5), nav=Decimal("10.0000")))
     db.flush()
     assert reconcile_members(db, [member.id])[0].our_nav == Decimal("10.0000")
+
+
+def test_reinvestment_isin_reconciles_without_falling_back_to_code():
+    db = _db()
+    member, scheme, folio = _setup(db)
+    scheme.isin_reinvest = "INF000REINVEST"
+    imp = _import(db, member, _raw(folio.folio_number, scheme.name, scheme.isin_reinvest, "100.000"), date(2026, 10, 5))
+    _buy(db, folio, imp, "100.000")
+    assert reconcile_members(db, [member.id])[0].status == "match"
+    imp.raw_parser_output = _raw(folio.folio_number, scheme.name, "INF_WRONG", "100.000")
+    assert reconcile_members(db, [member.id])[0].status == "no_cas_data"

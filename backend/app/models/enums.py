@@ -59,6 +59,7 @@ class NameChangeReason(str, enum.Enum):
 
 
 class ImportStatus(str, enum.Enum):
+    PREVIEWING = "previewing"
     PENDING = "pending"
     CONFIRMED = "confirmed"
     FAILED = "failed"
@@ -167,6 +168,17 @@ class ConsentPurpose(str, enum.Enum):
     ACCOUNT_AND_AUTHENTICATION = "account_and_authentication"
     PORTFOLIO_TRACKING_ANALYTICS = "portfolio_tracking_analytics"
     CAS_PAN_PROCESSING = "cas_pan_processing"
+
+
+class SchemeSource(str, enum.Enum):
+    AMFI = "amfi"
+    CASPARSER = "casparser"
+    CAS_ONLY = "cas_only"
+
+
+class SchemePlanType(str, enum.Enum):
+    DIRECT = "direct"
+    REGULAR = "regular"
 
 
 def enum_column(enum_cls: type[enum.Enum]) -> Enum:

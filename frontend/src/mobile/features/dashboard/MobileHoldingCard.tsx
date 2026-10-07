@@ -1,6 +1,7 @@
 import { PlanBadge } from "@/features/dashboard/PlanBadge";
 import { FundSignal } from "@/components/FundSignal";
 import { Badge } from "@/components/Badge";
+import { navPriceBadge } from "@/features/dashboard/navPriceBadge";
 import { cn } from "@/lib/utils";
 import { ChevronRight } from "lucide-react";
 import type { HoldingRow } from "@/features/dashboard/types";
@@ -43,6 +44,7 @@ export function MobileHoldingCard({
             {returnPct !== null && (
               <FundSignal
                 returnPercentage={returnPct}
+                period="since purchase"
                 schemeName={holding.scheme_name}
                 size="sm"
               />
@@ -81,7 +83,7 @@ export function MobileHoldingCard({
           {navUnavailable ? (
             <Badge variant="warning">NAV unavailable</Badge>
           ) : (
-            holding.stale_nav && <Badge variant="warning">stale</Badge>
+            (() => { const b = navPriceBadge(holding); return b && <Badge variant={b.variant}>{b.label}</Badge>; })()
           )}
         </div>
 

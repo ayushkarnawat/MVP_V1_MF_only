@@ -2,6 +2,7 @@ import { ImportHealth } from "../dev/ImportHealth";
 import { useState, useEffect, useCallback } from "react";
 import { NavigationShell, type MemberOption } from "./NavigationShell";
 import { DashboardView } from "./DashboardView";
+import { HistoryView } from "../history/HistoryView";
 import { AnalyticsView } from "../analytics/AnalyticsView";
 import { ProfileView } from "../profile/ProfileView";
 import { ImportFlow } from "../import/ImportFlow";
@@ -33,7 +34,10 @@ function toMemberOption(m: HouseholdMember, hasPhone: boolean): MemberOption {
   return { id: m.id, name: label, completion: m.profile_completion };
 }
 
-type MainTab = "dashboard" | "analytics" | "profile";
+type MainTab = "dashboard" | "history" | "analytics" | "profile";
+const KNOWN_TABS: MainTab[] = ["dashboard", "history", "analytics", "profile"];
+const tabFromHistory = (value: unknown): MainTab =>
+  KNOWN_TABS.includes(value as MainTab) ? (value as MainTab) : "dashboard";
 
 export function MainDashboardFlow() {
   const { me, logout, requestAccountDeletion, requestContactChange, verifyContactChange } = useAuth();
@@ -45,8 +49,7 @@ export function MainDashboardFlow() {
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [devPage, setDevPage] = useState(false);
   const [activeTab, setActiveTab] = useState<MainTab>(() => {
-    const historyTab = window.history.state?.unifolioTab;
-    return historyTab === "analytics" || historyTab === "profile" ? historyTab : "dashboard";
+    return tabFromHistory(window.history.state?.unifolioTab);
   });
   const [importNotice, setImportNotice] = useState<{ text: string; details?: string[] } | null>(null);
   const [isAddingData, setIsAddingData] = useState(false);
@@ -90,8 +93,7 @@ export function MainDashboardFlow() {
     }
 
     const handlePopState = (event: PopStateEvent) => {
-      const historyTab = event.state?.unifolioTab;
-      setActiveTab(historyTab === "analytics" || historyTab === "profile" ? historyTab : "dashboard");
+      setActiveTab(tabFromHistory(event.state?.unifolioTab));
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
@@ -271,6 +273,13 @@ export function MainDashboardFlow() {
           viewMode={viewMode}
           memberId={selectedMemberId}
           onAddDataForMember={handleAddDataTrigger}
+          onOpenHistory={() => handleTabChange("history")}
+        />
+      ) : activeTab === "history" ? (
+        <HistoryView
+          viewMode={viewMode}
+          memberId={selectedMemberId}
+          memberName={rawMembers.find((m) => m.id === selectedMemberId)?.name}
         />
       ) : activeTab === "analytics" ? (
         <AnalyticsView

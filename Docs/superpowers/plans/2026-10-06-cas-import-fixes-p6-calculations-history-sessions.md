@@ -14,6 +14,18 @@
 
 **Spec:** `Docs/investigations/2026-10-05-cas-import-fix-plan-final.html` #9, #10, #11 (decided rule), #12 (separate page; desktop tab, mobile from dashboard — decided 6 Oct), #14, #17, #18, #23. Master index Global Constraints apply.
 
+## Changes since this plan was written (2026-10-06, read first; binding)
+
+Phases 3–5 changed interfaces this plan touches. Where a step below conflicts with this block, the block wins:
+1. **Lot arithmetic:** Task 2's `FifoState` wraps `app/services/lot_rules.apply_lot_rules` (holdings already uses it). Lots are `[units, nav]` lists. Don't re-list transaction types anywhere. `_process_folio_lots` keeps its return shape.
+2. **Snapshots (Task 6) and realised summaries (Task 3)** must replay every row type, including `opening_balance` (Phase 2), `reversal`/`gift_in`/`gift_out`/`bonus`/`segregation` (Phase 3), through the same rules. Load rows ordered exactly like `compute_holdings` (date, then `LOT_CONSUMING_TYPES` after adding types, then id).
+3. **SIP statement-end reference (Task 5):** `transaction_imports` exists (Phase 4). Use it to find the imports a folio's rows belong to, then take the max `statement_to_date`.
+4. **TER (Task 7) must also fix carry-over 13:** select schemes by `plan_type` (fallback `plan_name_variant`), pick `D_TER`/`R_TER` from it, then do this plan's base-name matching within the AMC. Required test: a master row with `plan_type=direct`, `plan_name_variant=NULL`, gets its TER.
+5. **Persisted sessions (Task 8):** the session now also holds `opening_lots` (`OpeningLot`), `identifications` (`identify.Identification`, including `nav_matched`) and per-preview NAV histories. `NormalizedTransaction` gained `balance`, `conversion_from_opening` and `needs_price`. `ParsedScheme` gained `open_units`, `close_units`, `valuation_cost`, `valuation_nav` and `valuation_date`. `preview_store.serialize/deserialize` must round-trip all of these. The round-trip test must cover a session built by today's `start_import_session` (with opening lots and identifications), not a hand-built dict.
+6. **Folios are matched by `folio_key`; rows by `_match_rows`, and every row is linked.** Nothing in this phase writes transactions another way.
+7. **Migration:** `0029_snapshot_fields_and_preview_sessions`, `down_revision = "0028"`. Postgres is mandatory (handoff carry-over 6).
+8. **Checkpoint (Task 12)** runs the harness with `MASTER_FILE` (handoff carry-over 14) so the results are reproducible.
+
 ## Global Constraints
 
 See the master index. Additionally:

@@ -318,3 +318,35 @@ def test_refresh_ter_data_returns_false_when_no_month_data_available():
     ):
         result = asyncio.run(refresh_ter_data(db))
     assert result is False
+
+
+from app.models.enums import SchemePlanType, SchemeSource
+
+
+def test_ter_matches_master_base_name_before_higher_ratio_fuzzy():
+    db = _session()
+    scheme = Scheme(id=uuid.uuid4(), amfi_code="140228", isin="INFTEST", name="Edelweiss Mid Cap Fund - Direct Plan - Growth Option",
+                    base_name="Edelweiss Mid Cap Fund", amc_name="Edelweiss Mutual Fund", sebi_category="E",
+                    plan_type=SchemePlanType.DIRECT, source=SchemeSource.AMFI, plan_name_variant=None)
+    db.add(scheme); db.commit()
+    rows = [{"Scheme_Name":"Edelweiss Mid Cap Fund", "MF_Name":"Edelweiss Mutual Fund",
+             "TER_Date":"2026-09-01T00:00:00.000Z", "D_TER":"0.39", "R_TER":"1.71"},
+            {"Scheme_Name":"Edelweiss Mid Cap Fund - Direct Plan - Growth Option", "MF_Name":"Wrong Mutual Fund",
+             "TER_Date":"2026-09-02T00:00:00.000Z", "D_TER":"9.99", "R_TER":"9.99"}]
+    with patch("app.services.analytics.amfi_ter_client._fetch_latest_ter_month", AsyncMock(return_value="09-2026")), patch("app.services.analytics.amfi_ter_client._fetch_ter_rows", AsyncMock(return_value=rows)):
+        assert asyncio.run(refresh_ter_data(db))
+    assert db.query(SchemeTer).filter_by(scheme_id=scheme.id).one().ter_value == Decimal("0.39")
+
+
+
+def test_ambiguous_normalized_base_name_falls_back_to_fuzzy():
+    db = _session()
+    scheme = _scheme(db, "HDFC Flexi Cap Fund Direct", PlanNameVariant.DIRECT)
+    scheme.base_name = "HDFC Flexi Cap Fund"
+    db.commit()
+    rows = [{"Scheme_Name":name, "TER_Date":"2026-09-01", "D_TER":"0.50", "R_TER":"1.50"}
+            for name in ["HDFC Flexi-Cap Fund", "HDFC Flexi Cap Fund"]]
+    from app.services.analytics.amfi_ter_client import _best_match
+    with patch("app.services.analytics.amfi_ter_client._fetch_latest_ter_month",AsyncMock(return_value="09-2026")), patch("app.services.analytics.amfi_ter_client._fetch_ter_rows",AsyncMock(return_value=rows)), patch("app.services.analytics.amfi_ter_client._best_match", wraps=_best_match) as fuzzy:
+        assert asyncio.run(refresh_ter_data(db))
+    fuzzy.assert_called_once()

@@ -34,7 +34,21 @@ that for tests only):
     SEQ=p20_20yr.pdf OUT=/tmp/out.json SNAP=1 python -m pytest "<path>/harness/test_deep.py" -q --rootdir "<path>/harness"
 
 `rundeep.sh` has the scenario list (paths in it point at the original scratchpad; edit `E`).
-Needs network (mfapi.in) for fund matching and NAVs.
+Set `MASTER_FILE` to a saved public AMFI NAVAll feed to seed the local scheme master
+before the first upload. `navall_2026-10-06.txt` is the feed downloaded on 6 October
+2026 from `https://portal.amfiindia.com/spages/NAVAll.txt`. Every later checkpoint
+uses this saved file. Fund identification uses the master; mfapi.in supplies NAV history.
+
+From `backend/` in Windows PowerShell:
+
+```powershell
+$env:MASTER_FILE = (Resolve-Path "../Docs/CAS Files/synthetic/navall_2026-10-06.txt").Path
+$env:SEQ = "kfin_pk_10yr.pdf"
+$env:OUT = Join-Path $env:TEMP "p6a_task0.json"
+.venv\Scripts\python.exe -m pytest "../Docs/CAS Files/synthetic/harness/test_deep.py" -q --rootdir "../Docs/CAS Files/synthetic/harness"
+```
+
+With `MASTER_FILE` set, the harness also asserts that all final reconciliation rows match.
 
 ## Layout variants and extra scenarios (added later on 2026-10-05)
 
@@ -45,6 +59,21 @@ Needs network (mfapi.in) for fund matching and NAVs.
 | `oldcams_p20_20yr.pdf` | Older CAMS template without the per-row Price column (`layouts.OldCamsBuilder`) |
 | `fam_10yr.pdf` | p20 + p10 consolidated into one family statement |
 | `p20_FY_altfolio.pdf` | p20 FY with folios printed "1047392/12" instead of "1047392 / 12" |
+
+## Phase 7 gate additions (2026-10-06)
+
+`gen_gate_scenarios.py` adds these without regenerating anything else (it only appends to `truth.json`):
+
+| File | What it tests |
+|---|---|
+| `fam_FY.pdf` | p20 + p10 family statement, FY window (order tests with `fam_10yr.pdf`) |
+| `fam_noname_FY.pdf` | p20 + p3 family statement whose p3 folios print no holder name: the people popup must ask for a name (U9), unless p3 is already a member (matched by PAN) |
+| `p3u_FY.pdf` | p3 plus one held fund (Zephyr, ISIN `INF000Z01ZZ9`) that is in no master: the one case that still needs a question (`needs_review`) |
+
+Harness switches and helpers:
+- `MFAPI_BLOCKED=1` makes every api.mfapi.in request fail (outage run).
+- `test_deep.py` confirms with the same people-based body the app sends (typed name where `needs_name`), answers the `member_not_in_file` prompt with "Import for these people", and writes its output before asserting.
+- `test_real_check.py` runs the user's own statements and prints counts only (see its docstring). Run it with `--tb=no`.
 
 `harness/test_perf.py` measures CPU seconds, DB query counts and peak memory per step
 (`FN=p20_20yr.pdf OUT=... python -m pytest .../harness/test_perf.py`).

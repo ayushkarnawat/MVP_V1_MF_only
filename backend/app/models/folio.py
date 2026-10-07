@@ -1,7 +1,7 @@
 import re
 import uuid
 
-from sqlalchemy import Boolean, ForeignKey, JSON, String, UniqueConstraint, Uuid
+from sqlalchemy import false, Boolean, ForeignKey, JSON, String, UniqueConstraint, Uuid
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -36,6 +36,7 @@ class Folio(Base):
     folio_key: Mapped[str] = mapped_column(String, nullable=False, default=_default_folio_key)
     arn_code: Mapped[str | None] = mapped_column(String)
     plan_type: Mapped[PlanType] = mapped_column(enum_column(PlanType), nullable=False, default=PlanType.UNCLASSIFIED)
+    plan_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default=false())
     has_coverage_gap: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     coverage_gap_details: Mapped[dict | None] = mapped_column(JSON().with_variant(postgresql.JSONB(), "postgresql"))
 

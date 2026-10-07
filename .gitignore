@@ -66,3 +66,7 @@ terraform.tfvars
 *.auto.tfvars
 tfplan
 tfplan-*
+
+# Real CAS statements (personal data: names, PANs, holdings). Never commit them.
+# Only the top level: the synthetic test files in Docs/CAS Files/synthetic/ stay tracked.
+/Docs/CAS Files/*.pdf

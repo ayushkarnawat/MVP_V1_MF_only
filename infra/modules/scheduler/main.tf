@@ -6,6 +6,12 @@ locals {
       schedule_expression = "cron(0 6 * * ? *)"
       task_role_arn       = null
     }
+    scheme_master_daily = {
+      slug                = "scheme-master-daily"
+      command             = ["python", "scripts/jobs/refresh_scheme_master_daily.py"]
+      schedule_expression = "cron(15 6 * * ? *)"
+      task_role_arn       = null
+    }
     benchmark_daily = {
       slug                = "benchmark-daily"
       command             = ["python", "scripts/jobs/refresh_benchmark_daily.py"]

@@ -74,4 +74,9 @@ describe("MobileHoldingCardSummary", () => {
     expect(screen.queryByText("₹0")).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/Fund Signal:/i)).not.toBeInTheDocument();
   });
+  it("a fund priced from the statement says so instead of stale", () => {
+    render(<MobileHoldingCardSummary holding={{ ...baseHolding, stale_nav: true, price_from_statement: true }} />);
+    expect(screen.getByText("Statement price")).toBeInTheDocument();
+    expect(screen.queryByText("stale")).not.toBeInTheDocument();
+  });
 });

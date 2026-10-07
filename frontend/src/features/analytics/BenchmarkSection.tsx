@@ -40,7 +40,7 @@ function parseXirrNumber(val: string | null): number | null {
   return isNaN(num) ? null : num * 100;
 }
 
-function formatXirrPercent(val: string | null): string {
+export function formatXirrPercent(val: string | null): string {
   if (val === null || val === undefined) return "N/A";
   const percent = toPercentString(val);
   const isZero = /^0(\.0+)?$/.test(percent);

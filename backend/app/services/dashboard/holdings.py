@@ -11,20 +11,21 @@ import time
 import uuid
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 
 from sqlalchemy import case
 from sqlalchemy.orm import Session
 
-from app.models.enums import CostSource, PlanType, TransactionOrigin, TransactionType
+from app.models.enums import CostSource, PlanType, SchemeSource, TransactionOrigin, TransactionType
 from app.services.lot_rules import LOT_ADDING_TYPES, LOT_CONSUMING_TYPES, LOT_SELLING_TYPES, apply_lot_rules
+from app.core.decimal_utils import quantize_amount
 from app.models.folio import Folio
 from app.models.reference import Scheme
 from app.models.transaction import Transaction
 from app.models.user import HouseholdMember
 from app.services.dashboard.nav import get_nav_on_or_before, get_navs_on_or_before, get_previous_nav_from_cache
-from app.services.dashboard.schemas import HoldingRow, OpeningLotInfo
+from app.services.dashboard.schemas import HoldingRow, OpeningLotInfo, RealizedFund, RealizedSummary
 from app.services.dashboard.allocation_labels import asset_class_bucket
 
 # Single source of the lot rules (Phase 3 review): see app/services/lot_rules.py.
@@ -81,53 +82,36 @@ def peek_cached_holdings(household_member_ids: list[uuid.UUID]) -> list[HoldingR
         return entry.rows
 
 
-def _process_folio_lots(transactions: list[Transaction]) -> tuple[Decimal, Decimal, Decimal]:
-    """Returns (units_held, cost_basis, realized_gain) for one folio's
-    transaction history, in FIFO order. `transactions` must already be
-    sorted chronologically by the caller.
+class FifoState:
+    """Incremental FIFO state for one folio, using the shared lot rules."""
 
-    STT/stamp_duty/misc transactions have no effect here — a stated
-    simplification, see the design spec's Open Items. A REVERSAL (bounced SIP,
-    #3) cancels the most recent earlier lot with exactly its units, else takes
-    that many units from the newest lots; GIFT_OUT takes units FIFO. Neither
-    creates a realised gain."""
-    lots: list[list] = []
-    realized_gain = Decimal("0")
+    def __init__(self) -> None:
+        self.lots: list[list] = []
+        self.realized_gain = Decimal("0")
 
-    for txn in transactions:
-        pieces = apply_lot_rules(lots, txn.type, txn.units, txn.nav, lambda u, n: [u, n])
+    def apply(self, txn: Transaction) -> None:
+        pieces = apply_lot_rules(self.lots, txn.type, txn.units, txn.nav, lambda u, n: [u, n])
         if txn.type in LOT_SELLING_TYPES:
-            realized_gain += sum((take * (txn.nav - lot[1]) for lot, take in pieces), Decimal("0"))
+            self.realized_gain += sum((take * (txn.nav - lot[1]) for lot, take in pieces), Decimal("0"))
 
-    units_held = sum((lot[0] for lot in lots), Decimal("0"))
-    cost_basis = sum((lot[0] * lot[1] for lot in lots), Decimal("0"))
-    return units_held, cost_basis, realized_gain
+    @property
+    def units(self) -> Decimal:
+        return sum((lot[0] for lot in self.lots), Decimal("0"))
+
+    @property
+    def cost(self) -> Decimal:
+        return sum((lot[0] * lot[1] for lot in self.lots), Decimal("0"))
 
 
-async def compute_holdings(db: Session, household_member_ids: list[uuid.UUID]) -> list[HoldingRow]:
-    if not household_member_ids:
-        return []
+def _process_folio_lots(transactions: list[Transaction]) -> tuple[Decimal, Decimal, Decimal]:
+    state = FifoState()
+    for txn in transactions:
+        state.apply(txn)
+    return state.units, state.cost, state.realized_gain
 
-    cache_key = (tuple(sorted(household_member_ids)), date.today())
-    with _holdings_cache_lock:
-        cached_entry = _holdings_cache.get(cache_key)
-        if cached_entry is not None:
-            cache_age = _holdings_cache_clock() - cached_entry.cached_at
-            if cache_age <= _HOLDINGS_CACHE_TTL_SECONDS:
-                return cached_entry.rows
-            del _holdings_cache[cache_key]
-        generation = tuple(_holdings_cache_generation[member_id] for member_id in cache_key[0])
 
-    members = {
-        m.id: m
-        for m in db.query(HouseholdMember).filter(HouseholdMember.id.in_(household_member_ids)).all()
-    }
-    folios = db.query(Folio).filter(Folio.household_member_id.in_(household_member_ids)).all()
-
-    grouped: dict[tuple[uuid.UUID, uuid.UUID, PlanType], list[Folio]] = defaultdict(list)
-    for folio in folios:
-        grouped[(folio.household_member_id, folio.scheme_id, folio.plan_type)].append(folio)
-
+def _load_folio_transactions(db: Session, household_member_ids: list[uuid.UUID]):
+    folios = db.query(Folio).filter(Folio.household_member_id.in_(household_member_ids)).all() if household_member_ids else []
     # Batched across all folios in one query instead of one query per folio —
     # the same fix already applied to the NAV lookup below. Global ordering
     # (date, consuming-after-adding, id) is preserved per-folio by grouping
@@ -152,10 +136,57 @@ async def compute_holdings(db: Session, household_member_ids: list[uuid.UUID]) -
     transactions_by_folio: dict[uuid.UUID, list[Transaction]] = defaultdict(list)
     for txn in all_transactions:
         transactions_by_folio[txn.folio_id].append(txn)
+    return folios, transactions_by_folio
+
+
+def compute_realized_summary(db: Session, household_member_ids: list[uuid.UUID]) -> RealizedSummary:
+    folios, by_folio = _load_folio_transactions(db, household_member_ids)
+    members = {m.id: m for m in db.query(HouseholdMember).filter(HouseholdMember.id.in_(household_member_ids)).all()} if household_member_ids else {}
+    schemes = {s.id: s for s in db.query(Scheme).filter(Scheme.id.in_({f.scheme_id for f in folios})).all()} if folios else {}
+    groups = defaultdict(lambda: [Decimal("0"), Decimal("0")])
+    for folio in folios:
+        units, _, gain = _process_folio_lots(by_folio.get(folio.id, []))
+        key = (folio.household_member_id, folio.scheme_id, folio.plan_type)
+        groups[key][0] += units
+        groups[key][1] += gain
+    funds = [RealizedFund(scheme_id=str(sid), scheme_name=schemes[sid].name,
+               household_member_id=str(mid), household_member_name=members[mid].name,
+               plan_type=plan, realized_gain=str(quantize_amount(gain)), fully_sold=units == 0)
+             for (mid, sid, plan), (units, gain) in groups.items() if gain != 0]
+    return RealizedSummary(total=str(quantize_amount(sum((gain for units, gain in groups.values()), Decimal("0")))), funds=funds)
+
+
+async def compute_holdings(db: Session, household_member_ids: list[uuid.UUID]) -> list[HoldingRow]:
+    if not household_member_ids:
+        return []
+
+    cache_key = (tuple(sorted(household_member_ids)), date.today())
+    with _holdings_cache_lock:
+        cached_entry = _holdings_cache.get(cache_key)
+        if cached_entry is not None:
+            cache_age = _holdings_cache_clock() - cached_entry.cached_at
+            if cache_age <= _HOLDINGS_CACHE_TTL_SECONDS:
+                return cached_entry.rows
+            del _holdings_cache[cache_key]
+        generation = tuple(_holdings_cache_generation[member_id] for member_id in cache_key[0])
+
+    members = {
+        m.id: m
+        for m in db.query(HouseholdMember).filter(HouseholdMember.id.in_(household_member_ids)).all()
+    }
+    folios, transactions_by_folio = _load_folio_transactions(db, household_member_ids)
+
+    grouped: dict[tuple[uuid.UUID, uuid.UUID, PlanType], list[Folio]] = defaultdict(list)
+    for folio in folios:
+        grouped[(folio.household_member_id, folio.scheme_id, folio.plan_type)].append(folio)
+
+
 
     computed: list[tuple[uuid.UUID, Scheme, PlanType, Decimal, Decimal, Decimal]] = []
     opening_info = {}
+    plan_verifications = {}
     for (member_id, scheme_id, plan_type), member_folios in grouped.items():
+        plan_verifications[(member_id, scheme_id, plan_type)] = all(f.plan_verified for f in member_folios)
         scheme = db.get(Scheme, scheme_id)
         total_units = Decimal("0")
         total_cost = Decimal("0")
@@ -208,6 +239,7 @@ async def compute_holdings(db: Session, household_member_ids: list[uuid.UUID]) -
                     household_member_id=str(member_id),
                     household_member_name=members[member_id].name,
                     plan_type=plan_type,
+                    plan_verified=plan_verifications[(member_id, scheme.id, plan_type)],
                     units_held=str(total_units),
                     average_nav=str(average_nav) if average_nav is not None else None,
                     current_nav=None,
@@ -231,6 +263,10 @@ async def compute_holdings(db: Session, household_member_ids: list[uuid.UUID]) -
         unrealized_gain = current_value - total_cost
         current_profit_total = total_realized + unrealized_gain
         today_gain = (current_nav - previous_nav) * total_units
+        if scheme.source == SchemeSource.CAS_ONLY:
+            # Statement prices are weeks apart: the move since the previous one
+            # isn't today's (6 Oct review M2).
+            today_gain = Decimal("0")
 
         rows.append(
             HoldingRow(
@@ -241,10 +277,13 @@ async def compute_holdings(db: Session, household_member_ids: list[uuid.UUID]) -
                 household_member_id=str(member_id),
                 household_member_name=members[member_id].name,
                 plan_type=plan_type,
+                plan_verified=plan_verifications[(member_id, scheme.id, plan_type)],
                 units_held=str(total_units),
                 average_nav=str(average_nav) if average_nav is not None else None,
                 current_nav=str(current_nav),
                 current_nav_date=current_nav_date,
+                stale_nav=current_nav_date < date.today() - timedelta(days=4),
+                price_from_statement=scheme.source == SchemeSource.CAS_ONLY,
                 amount_invested=str(total_cost),
                 current_value=str(current_value),
                 current_profit_total=str(current_profit_total),

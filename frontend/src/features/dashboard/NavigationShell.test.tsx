@@ -123,4 +123,19 @@ describe("NavigationShell", () => {
     fireEvent.click(option);
     expect(onMemberSelect).toHaveBeenCalledWith("m-3");
   });
+
+  it("shows History between Dashboard and Analytics and switches to it", () => {
+    const onTabChange = vi.fn();
+    render(
+      <NavigationShell viewMode="aggregate" selectedMemberId={null} members={sampleMembers}
+        onViewModeChange={vi.fn()} onMemberSelect={vi.fn()} onAddData={vi.fn()} onTabChange={onTabChange}>
+        <div>Content</div>
+      </NavigationShell>
+    );
+    const nav = screen.getByRole("navigation", { name: "Main Navigation" });
+    const labels = Array.from(nav.querySelectorAll("button")).map((b) => b.textContent);
+    expect(labels).toEqual(["Dashboard", "History", "Analytics"]);
+    fireEvent.click(screen.getByRole("button", { name: "History" }));
+    expect(onTabChange).toHaveBeenCalledWith("history");
+  });
 });

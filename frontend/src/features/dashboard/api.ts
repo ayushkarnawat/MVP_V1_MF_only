@@ -44,6 +44,7 @@ export async function getMemberHoldings(memberId: string, signal?: AbortSignal):
   return Object.assign(response.holdings, {
     lifetime_xirr: response.lifetime_xirr,
     current_holdings_xirr: response.current_holdings_xirr,
+    realized_summary: response.realized_summary,
   });
 }
 
@@ -52,8 +53,9 @@ export async function getMemberAllocation(memberId: string, signal?: AbortSignal
   return res.json();
 }
 
-export async function getMemberSips(memberId: string, signal?: AbortSignal): Promise<SipRow[]> {
-  const res = await authFetch(`/household-members/${memberId}/sips`, { signal });
+export async function getMemberSips(memberId: string, signal?: AbortSignal, includeStopped = false): Promise<SipRow[]> {
+  const query = includeStopped ? "?include_stopped=true" : "";
+  const res = await authFetch(`/household-members/${memberId}/sips${query}`, { signal });
   return res.json();
 }
 
@@ -106,8 +108,9 @@ export async function getAggregateAllocation(signal?: AbortSignal): Promise<Aggr
   return res.json();
 }
 
-export async function getAggregateSips(signal?: AbortSignal): Promise<AggregateSipsResponse> {
-  const res = await authFetch(`/household/aggregate/sips`, { signal });
+export async function getAggregateSips(signal?: AbortSignal, includeStopped = false): Promise<AggregateSipsResponse> {
+  const query = includeStopped ? "?include_stopped=true" : "";
+  const res = await authFetch(`/household/aggregate/sips${query}`, { signal });
   return res.json();
 }
 

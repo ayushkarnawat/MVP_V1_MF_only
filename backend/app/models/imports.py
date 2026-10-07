@@ -1,7 +1,7 @@
 import uuid
 from datetime import date as date_, datetime
 
-from sqlalchemy import JSON, Date, DateTime, ForeignKey, Integer, String, Uuid
+from sqlalchemy import JSON, Date, DateTime, ForeignKey, Integer, String, Text, Uuid
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -34,3 +34,4 @@ class Import(Base):
     # per detected person, all sharing this id (and the one S3 object).
     upload_group_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, index=True)
 
+    preview_state: Mapped[str | None] = mapped_column(Text)

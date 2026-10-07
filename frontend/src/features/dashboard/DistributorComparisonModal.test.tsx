@@ -130,3 +130,35 @@ describe("DistributorComparisonModal", () => {
     });
   });
 });
+
+describe("DistributorComparisonModal — plan_type labels and TER saving (#17)", () => {
+  const regularNoArn: DistributorPortfolioRow = {
+    arn_code: null, distributor_name: "Regular", arn_status: null, plan_type: "regular",
+    amount_invested: "100", current_value: "120", current_profit_total: "20", realized_gain: "0", unrealized_gain: "20",
+    schemes: [], nav_unavailable_schemes: [],
+  };
+  const directWithSaving: DistributorPortfolioRow = {
+    arn_code: null, distributor_name: "Direct Plan (No Broker)", arn_status: null, plan_type: "direct",
+    amount_invested: "100", current_value: "120", current_profit_total: "20", realized_gain: "0", unrealized_gain: "20",
+    nav_unavailable_schemes: ["Unpriced Fund"],
+    schemes: [{ scheme_id: "s-9", scheme_name: "Cheap Direct Fund", household_member_id: "m-1", household_member_name: "Ayush",
+      units_held: "1", average_nav: "100", amount_invested: "100", current_value: "120", current_profit_total: "20",
+      realized_gain: "0", unrealized_gain: "20", annual_ter_saving: "0.85" }],
+  };
+
+  it("a regular folio without ARN is not called Direct", async () => {
+    vi.mocked(api.getMemberDistributorComparison).mockResolvedValue([regularNoArn]);
+    render(<DistributorComparisonModal isOpen={true} onClose={vi.fn()} viewMode="member" memberId="m-1" />);
+    expect(await screen.findByText("Regular (no ARN on statement)")).toBeInTheDocument();
+    expect(screen.queryByText(/Direct Plan \(No Broker\)/)).not.toBeInTheDocument();
+    expect(screen.queryByText("Direct")).not.toBeInTheDocument();
+  });
+
+  it("shows the per-fund TER saving and the funds not compared", async () => {
+    vi.mocked(api.getMemberDistributorComparison).mockResolvedValue([directWithSaving]);
+    render(<DistributorComparisonModal isOpen={true} onClose={vi.fn()} viewMode="member" memberId="m-1" />);
+    expect(await screen.findByText(/Not compared \(no NAV\): Unpriced Fund/)).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Direct Plan (No Broker)"));
+    expect(await screen.findByText(/Saves 0.85% a year vs Regular/)).toBeInTheDocument();
+  });
+});

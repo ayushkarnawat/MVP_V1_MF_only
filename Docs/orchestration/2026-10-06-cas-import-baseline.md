@@ -423,3 +423,267 @@ Postgres 16.2: 0027 upgrade → downgrade 0026 → upgrade clean; `tests/functio
 | all 17 earlier scenarios | unchanged from phase 3 | no regressions |
 
 Known exceptions unchanged (Phase 5): Unifund→UTI `no_cas_data`; Franklin segregated portfolio (+423,983.118 on the main Franklin folio in kfin_pk_10yr).
+
+## After phase 5 (2026-10-06, Codex on Windows)
+
+Migration 0028: Postgres 16.2 upgrade head → downgrade 0027 → upgrade head clean; full `tests/functional_postgres` **14 passed, no skips**. SQLite and Postgres nullable-code / downgrade-refusal tests also pass. Final affected-test run: **362 passed, 4 skipped** (missing optional synthetic family fixtures), plus **32 passed** for health/merge/deletion routes and services. No full backend suite was run.
+
+AMFI master loaded into an isolated local SQLite dev DB under `%TEMP%/cas-fixes-p5-dev.db` using the daily job and the fresh portal NAVAll feed: **14,356 rows**, first run **14,356 inserted / 0 updated / 0 deactivated**; second run **0 inserted / 0 updated / 0 deactivated**. Each harness process seeds that master into its fresh test DB. No real CAS files or the user's dev database were used.
+
+All **21 scenarios pass twice**: normal network and mfapi.in blocked (42 successful runs). The blocked run uses the proxy plus a temporary HTTP transport guard rejecting api.mfapi.in requests. No production fetcher was replaced. Every preview is confirmed; no plan is unclassified. Every final reconciliation row is `match`; values at the CAS's printed NAV differ by **₹0** wherever a printed NAV is available. Every immediate repeat confirm returns **409 already_imported**. No scenario's match count decreases versus Phase 4. The table includes all final rows, including closed funds.
+
+| Scenario | Normal match / differ / no_CAS | Blocked match / differ / no_CAS | Live dashboard total (₹) — not used for pass/fail |
+|---|---|---|---|
+| p20_20yr | 12 / 0 / 0 | 12 / 0 / 0 | 200767882.2409798 |
+| p20_10yr | 11 / 0 / 0 | 11 / 0 / 0 | 200767882.2409798 |
+| p20_7yr | 10 / 0 / 0 | 10 / 0 / 0 | 200767882.2409798 |
+| p20_3yr | 9 / 0 / 0 | 9 / 0 / 0 | 200767882.2409798 |
+| p20_1yr | 9 / 0 / 0 | 9 / 0 / 0 | 200767882.2409798 |
+| p20_FY | 9 / 0 / 0 | 9 / 0 / 0 | 200767882.2409798 |
+| p10_10yr | 6 / 0 / 0 | 6 / 0 / 0 | 150757781.2550799 |
+| p10_FY | 6 / 0 / 0 | 6 / 0 / 0 | 150757781.2550799 |
+| p7_7yr | 5 / 0 / 0 | 5 / 0 / 0 | 120369886.6048974 |
+| kfin_p7_7yr | 5 / 0 / 0 | 5 / 0 / 0 | 120369886.6048974 |
+| p3_FY | 3 / 0 / 0 | 3 / 0 / 0 | 2010871.5239829 |
+| oldcams_p20_20yr | 12 / 0 / 0 | 12 / 0 / 0 | 200767882.2409798 |
+| fam_10yr | 17 / 0 / 0 | 17 / 0 / 0 | 351525663.4960597 |
+| px_14yr | 11 / 0 / 0 | 11 / 0 / 0 | 30077695.0701948 |
+| kfin_pk_10yr | 5 / 0 / 0 | 5 / 0 / 0 | 50317402.1815800 |
+| FY_20yr | 12 / 0 / 0 | 12 / 0 / 0 | 200767882.2409798 |
+| 20yr_FY | 12 / 0 / 0 | 12 / 0 / 0 | 200767882.2409798 |
+| FY_altfolio | 9 / 0 / 0 | 9 / 0 / 0 | 200767882.2409798 |
+| FY_20yr_delete_first | 12 / 0 / 0 | 12 / 0 / 0 | 200767882.2409798 |
+| FY_20yr_delete_last | 9 / 0 / 0 | 9 / 0 / 0 | 200767882.2409798 |
+| 10yr_20yr_delete_last | 11 / 0 / 0 | 11 / 0 / 0 | 200767882.2409798 |
+
+Blocked live dashboard totals are ₹0 because no NAV history is available in those fresh databases; this does not enter pass/fail. Unit equality and both sides valued at the same CAS printed NAV are the checks.
+
+**Identity acceptance criteria cleared.** Franklin main INF090I01HG7 / **118530** and segregated INF090I01UD7 / **147989** resolve to separate AMFI Scheme IDs in both runs. In kfin_pk_10yr the main row has app/CAS **0.000 units**, CAS NAV **29.6198**; the side pocket has app/CAS **423,983.118 units**, CAS NAV **0**, value **₹0**. Both reconcile `match`; the side pocket never borrows the main NAV. AMFI currently gives both codes the same displayed base name, but IDs/ISINs remain distinct.
+
+Unifund Small Cap Equity Fund - Direct Plan - Growth imports under its own CAS name as `source=cas_only`, AMFI code NULL, app/CAS **0 units**, value **₹0**, `match`; never UTI. The old HDFC Liquid ISIN INF179K01KG8 also imports as a closed CAS-only fund. Closed-only repeat tests prove no extra Scheme or Folio. Adviser-held Direct and DSP Dir/Reg rows are classified from the master/name rules; ARN never decides plan. Unknown closed plans may be Regular with plan_verified=False; they do not become unclassified or block import.
+
+**Orchestrator rulings applied.** Exact master ISIN (primary or reinvestment) always verifies, identified_by=isin. Identification retains `nav_matched` True/False/None; mismatch cannot redirect or block that fund. In px_14yr (1 Oct), HDFC Liquid printed **5531.7426** vs mfapi **5529.1083**, and JioBlackRock printed **10.0081** vs mfapi **9.5259** now verify; the strict NAV fingerprint still applies without an ISIN hit. Fixtures and tolerances were not changed. Existing Import health NAV checks compare cached exact-date NAV with the printed CAS NAV independently of units. Reconciliation and restore-on-delete now accept either master ISIN, without falling back to code/name on an ISIN mismatch. Migration 0027's frozen matcher was left alone.
+
+**Daily jobs against the changed schemes table** (all exited 0, once each after master load):
+
+| Job | Seconds | Persisted result / check |
+|---|---:|---|
+| refresh_nav_daily | 1.24 | 0 held schemes / 0 fetches / 0 NAV rows; held-folio join verified, no fetch for all 14,356 master rows |
+| refresh_benchmark_daily | 3.76 | 4 indices succeeded; 9,908 benchmark history rows |
+| refresh_ter_monthly | 13.69 | 0 TER rows; master plan_name_variant remains NULL as planned |
+| refresh_aaum_quarterly | 32.75 | 8,569 AAUM rows |
+| run_analytics_recompute | 1.11 | 0 households / 0 analytics sections |
+| delete_expired_accounts_daily | 1.77 | 0 deleted accounts |
+| app.scripts.expire_cas_files | 1.38 | 0 expired PDFs / 0 stale CAMS requests |
+
+The isolated dev DB intentionally had no households/imports: the NAV, recompute and cleanup runs therefore verify startup/schema compatibility and empty-input behavior. Held-scheme NAV and deletion paths are exercised by affected tests and the synthetic harness, not by those empty daily jobs.
+
+Scheduler change matches the plan's existing job-block formatting. **terraform fmt -check / validate: pending — orchestrator runs in WSL** (user ruling; neither apply nor plan run).
+
+Self-review fixed: code overrides inheriting the original preview's plan; CAS-only identities changing to verified on repeat; reinvestment-ISIN reconciliation/restore mismatch; Windows edit-helper text encoding damage. Superseded checkpoint attempts exposed these issues; the final numbers above come from fresh successful runs. A temporary outage-wrapper setup error was fixed before rerunning the blocked scenarios. No Phase 6 work started.
+
+## After phase 6 (2026-10-06, orchestrator in WSL — Task 12 checkpoint, Steps 1–2)
+
+**Postgres (local test server, never staging):** `alembic upgrade head` → `downgrade 0028` → `upgrade head` clean (0029 down and up); `tests/functional_postgres` 14 passed.
+
+**Synthetic, all 21 scenarios** (`MASTER_FILE=navall_2026-10-06.txt`, `SNAP=1`, outputs `/tmp/p6/p6_*.json`): every scenario passes, and every reconciliation row is `match`. Snapshot months: p20 20-year 247, p10 128, pk 125, px 175, p7 92; FY-then-20 has 247 months with no near-zero recent month.
+
+| Scenario | Lifetime XIRR app / truth | Current XIRR app / truth | Snapshot months off truth |
+|---|---|---|---|
+| p20_20yr | 14.67 / 14.67 | 15.47 / 15.47 | 0 |
+| oldcams_p20_20yr | 14.67 / 14.67 | 15.47 / 15.47 | 0 |
+| fy_then_20 (+ delete first) | 14.67 / 14.67 | 15.47 / 15.47 | 0 |
+| p10_10yr | 14.53 / 14.54 | 14.53 / 14.54 | 0 |
+| p7_7yr, kfin_p7_7yr | 11.18 / 11.19 | 11.18 / 11.19 | 0 |
+| kfin_pk_10yr | 12.48 / 12.49 | 15.16 / 15.17 | 0 |
+| px_14yr | 11.82 / 11.83 | 12.98 / 18.62 (truth limit, below) | 0 |
+
+The truth is only valid when every opening balance is 0. On FY, 1yr, 3yr and 7yr files, on p20_10yr and on fam (multi-member), and after delete-last, it reports the solver cap or another file's numbers. Those rows are not checks. Units still all match.
+
+**Carry-over 16 (p20 XIRR gap): resolved, harness bug, no app change.** The app's and the truth's cash-flow lists were diffed per fund and date for p20_20yr. Totals are identical (−₹4,33,28,582.05). All per-date differences are switch/merger legs that cancel on the same day, plus HDFC Balanced Advantage IDCW, which the CAS prints under its reinvestment ISIN `INF179K01822` and the app stores under the scheme's primary ISIN `INF179K01814` (AMFI 100120 lists both). The truth looked NAVs up by CAS ISIN, found none, and dropped 363,011 units (about ₹1.25 Cr) from its terminal value. `harness/test_deep.py` now resolves a reinvestment ISIN through the master; with that, truth = app exactly (above). Nothing in the app was tuned.
+
+**px_14yr current-holdings XIRR, truth-formula limit, no app change.** The truth keeps per-ISIN funds with units today. It drops (a) the ₹20,96,400 bought on HDFC Liquid's old ISIN `INF179K01KG8` (closed by conversion to `INF179KB1HK0`) and (b) the ₹6,98,800 invested in Unifund before its amount-less merger into HSBC Value. It keeps the later redemptions, so its current XIRR is inflated. The app carries that cost across the conversion and merger legs, which is the money that ended up in today's funds. Lifetime agrees (11.82 / 11.83).
+
+**App bug found and fixed (test-first): monthly history ignored a 0 NAV.** The Phase 6 bulk snapshot rewrite skipped `nav == 0` rows, so pk's Franklin segregated portfolio (written off to NAV 0 on 2020-07-20) kept its last NAV ₹1.1077 forever: about ₹4,69,646 too high in every month since. The dashboard (and the pre-6A code) values it at 0. Now `nav >= 0` is used; pk snapshot months off truth went 4 → 0. Test: `test_snapshots.py::test_written_off_fund_is_worth_zero_after_its_nav_drops_to_zero`.
+
+**Realised gains** (`realized_summary`):
+- pk: Franklin Low Duration ₹26,39,862.20 and Axis Liquid ₹8,96,314.17, both fully sold.
+- p20: sold funds Regular Savings ₹9,28,873.78, HDFC Liquid ₹20,17,039.48 and Unifund ₹65,88,072.58, ₹95.34 L in all (the plan's "≈₹96 L" was rounded). Total realised is ₹1,45,60,498.52.
+
+**SIPs:**
+- The 2013 HDFC Flexi Cap Regular SIP (₹21,485) is `stopped`.
+- Twins: p20 Parag Parikh ₹42,967.85 × 2, and p10 Parag Parikh ₹90,520.47 × 2.
+- **New finding, needs a decision (carry-over 19):** from July 2020 the 0.005% stamp duty reduces each instalment's invested amount (₹53,712.50 → ₹53,709.81). Under the decided rule "exact amounts distinguish series", one SIP therefore splits into an active series and a phantom `stopped` series ending 2020-06-05. Active SIPs, the monthly total and the calendar are right; only the opt-in "Show stopped SIPs" list shows the phantoms.
+
+**History cost:** first build for p20 (forced `rebuild_member_snapshots`) is 247 months in 0.28 s with 12 queries (targets under 10 s and under 200). `harness/test_perf.py` is stale: its confirm gets 409 because it doesn't seed the master or handle the people step. Its numbers weren't used.
+
+**Restart test:** parse p20_FY, clear `service._preview_sessions` (what a deploy, crash or 9 PM stop does), then confirm. Result: 200, 39 rows, 8 holdings, identical to the no-restart control.
+
+**Step 3 (staging + frontend checklist C1–C14): pending the user** (staging deploy and screenshots).
+
+## Phase 7 gate (2026-10-06, orchestrator in WSL) — Step 1 (synthetic): PASSED; Step 2 (real files on staging): pending the user
+
+**What ran:** every synthetic file on its own (30, including the three new gate files from `gen_gate_scenarios.py`) plus 16 upload orders. That covers every order Phase 7 Task 1 lists, plus family orders: own → family member's own → family statement, and family FY ↔ 10-year. Each scenario ran twice, normal and with mfapi.in blocked (`MFAPI_BLOCKED=1`): 96 runs with `MASTER_FILE`, `SNAP=1`. The harness now confirms with the same people-based request the app sends, and answers prompts as a user would.
+
+**Result:**
+- **43 of 46 scenarios pass in both modes:**
+  - every fund matches the CAS;
+  - zero funds need review, and none is `unclassified`;
+  - a name is asked only for the no-name family statement, and only when that person isn't already a member;
+  - no history gaps;
+  - reconciliation is identical with mfapi.in blocked.
+- **The other 3 behave as designed:**
+  - `p3u_FY`: the unknown held fund needs an answer.
+  - The two `p20_20yr,p20_FY` delete variants: FY is refused as already imported, so the only import is deleted and the account ends empty.
+
+**Partial months:**
+- With mfapi.in blocked, every month is partial (no NAV history). That's expected; it's flagged and never gapped.
+- Normally, p20/p10/px months are partial only while a CAS-only fund (not in any master, e.g. Unifund until its 2022 merger) was held. **Recommended follow-up, not done:** price such funds from the CAS rows' own NAVs.
+
+**Error files:** all 7 behave correctly. Six fail with a clear 4xx code; `err_unencrypted` is accepted (users may remove the password). Fixed: a demat (NSDL/CDSL) statement casparser can't read now returns `demat_cas` ("Demat statements aren’t supported yet…") instead of casparser's internal text (`parser.classify_parse_error`, test in `test_parser.py`).
+
+**Stale item closed:** `CLAUDE.md`'s open "`FamilyImportFlow.tsx` missing `member_mismatch` retry" no longer applies. That component and the `member_mismatch` code were removed in `0fbafe5`; family imports go through the people popup (scenarios above).
+
+**Design gap for Phase 7 Task 3 (needs a user decision):** for a held fund in no master, `identify_scheme` offers no candidates (p3u: `candidates == []`). The planned fallback dialog requires choosing a candidate for a held fund, so the user would be stuck. Options: import it as an unlisted fund valued at the CAS's printed NAV, or skip that fund.
+
+**Built ahead of the gate (additive, no screen removed):**
+- Task 2: `needs_review` and per-fund `candidates` on the preview (`test_service.py::test_needs_review_only_for_unidentified_held_funds`).
+- Task 4: `backend/scripts/reclassify_folio_plans.py` with `--dry-run` (3 tests).
+- `harness/test_real_check.py`, the counts-only check for real statements.
+
+| Scenario | Normal | mfapi blocked | Match | Review items | Names asked | History months / gaps | Note |
+|---|---|---|---|---|---|---|---|
+| `p20_10yr,p20_3yr,p20_20yr` | pass | pass | 12/12 | 0 | 0 | 247 / 0 | repeat = already imported |
+| `p20_20yr,p20_FY` | pass | pass | 12/12 | 0 | 0 | 247 / 0 | repeat = already imported |
+| `p20_20yr,p20_FY` (+delete) | FAIL | FAIL | 0/0 | 0 | 0 | 0 / 0 | repeat = already imported; delete first: 200; expected: FY refused as already imported, so the only import is deleted → empty |
+| `p20_20yr,p20_FY` (+delete) | FAIL | FAIL | 0/0 | 0 | 0 | 0 / 0 | repeat = already imported; delete last: 200; expected: FY refused as already imported, so the only import is deleted → empty |
+| `fam_10yr,fam_FY` | pass | pass | 17/17 | 0 | 0 | 129 / 0 | repeat = already imported |
+| `fam_10yr` | pass | pass | 17/17 | 0 | 0 | 129 / 0 |  |
+| `fam_FY` | pass | pass | 15/15 | 0 | 0 | 6 / 0 |  |
+| `fam_noname_FY` | pass | pass | 12/12 | 0 | 1 | 6 / 0 |  |
+| `fam_FY,fam_10yr` | pass | pass | 17/17 | 0 | 0 | 129 / 0 |  |
+| `p20_FY,p20_20yr` | pass | pass | 12/12 | 0 | 0 | 247 / 0 |  |
+| `p20_FY,p20_20yr` (+delete) | pass | pass | 12/12 | 0 | 0 | 247 / 0 | delete first: 200 |
+| `p20_FY,p20_20yr` (+delete) | pass | pass | 9/9 | 0 | 0 | 6 / 0 | delete last: 200 |
+| `p20_FY,p20_FY_altfolio` | pass | pass | 9/9 | 0 | 0 | 6 / 0 | repeat = already imported |
+| `kfin_p10_FY` | pass | pass | 6/6 | 0 | 0 | 6 / 0 |  |
+| `kfin_p7_7yr` | pass | pass | 5/5 | 0 | 0 | 92 / 0 |  |
+| `kfin_pk_10yr` | pass | pass | 5/5 | 0 | 0 | 125 / 0 |  |
+| `kfin_pk_1yr` | pass | pass | 3/3 | 0 | 0 | 12 / 0 |  |
+| `oldcams_p20_20yr` | pass | pass | 12/12 | 0 | 0 | 247 / 0 |  |
+| `p20_FY,p10_10yr,fam_10yr` | pass | pass | 17/17 | 0 | 0 | 129 / 0 | member_not_in_file → import for these people |
+| `p20_FY,p3_FY,fam_noname_FY` | pass | pass | 12/12 | 0 | 0 | 6 / 0 | repeat = already imported; member_not_in_file → import for these people |
+| `p10_10yr` | pass | pass | 6/6 | 0 | 0 | 128 / 0 |  |
+| `p10_1yr` | pass | pass | 6/6 | 0 | 0 | 12 / 0 |  |
+| `p10_3yr` | pass | pass | 6/6 | 0 | 0 | 36 / 0 |  |
+| `p10_7yr` | pass | pass | 6/6 | 0 | 0 | 93 / 0 |  |
+| `p10_FY` | pass | pass | 6/6 | 0 | 0 | 6 / 0 |  |
+| `p10_FY,p10_10yr` | pass | pass | 6/6 | 0 | 0 | 128 / 0 |  |
+| `p20_10yr` | pass | pass | 11/11 | 0 | 0 | 129 / 0 |  |
+| `p20_1yr` | pass | pass | 9/9 | 0 | 0 | 12 / 0 |  |
+| `p20_20yr` | pass | pass | 12/12 | 0 | 0 | 247 / 0 |  |
+| `p20_3yr` | pass | pass | 9/9 | 0 | 0 | 36 / 0 |  |
+| `p20_7yr` | pass | pass | 10/10 | 0 | 0 | 93 / 0 |  |
+| `p20_FY` | pass | pass | 9/9 | 0 | 0 | 6 / 0 |  |
+| `p20_FY_altfolio` | pass | pass | 9/9 | 0 | 0 | 6 / 0 |  |
+| `p20_20yr,fam_10yr` | pass | pass | 18/18 | 0 | 0 | 247 / 0 |  |
+| `p3_1yr` | pass | pass | 3/3 | 0 | 0 | 12 / 0 |  |
+| `p3_3yr` | pass | pass | 3/3 | 0 | 0 | 36 / 0 |  |
+| `p3_FY` | pass | pass | 3/3 | 0 | 0 | 6 / 0 |  |
+| `p3u_FY` | FAIL | FAIL | 0/0 | 1 | 0 | 0 / 0 | expected: unknown held fund needs an answer (confirm 409 override) |
+| `p7_1yr` | pass | pass | 5/5 | 0 | 0 | 12 / 0 |  |
+| `p7_3yr` | pass | pass | 5/5 | 0 | 0 | 36 / 0 |  |
+| `p7_7yr` | pass | pass | 5/5 | 0 | 0 | 92 / 0 |  |
+| `p7_FY` | pass | pass | 5/5 | 0 | 0 | 6 / 0 |  |
+| `kfin_pk_1yr,kfin_pk_10yr` | pass | pass | 5/5 | 0 | 0 | 125 / 0 |  |
+| `px_14yr` | pass | pass | 11/11 | 0 | 0 | 175 / 0 |  |
+| `px_FY` | pass | pass | 8/8 | 0 | 0 | 6 / 0 |  |
+| `px_FY,px_14yr` | pass | pass | 11/11 | 0 | 0 | 175 / 0 |  |
+
+**Still required before Task 3 (the removal):**
+- Step 2: real statements on staging (Import health all ✓, including 1–2 real KFintech files). The counts-only check can be run locally first.
+- Step 4: the user confirms the gate passed.
+
+## Phase 7 gate — FINAL (2026-10-06, after the three user decisions and their review fixes)
+
+This supersedes the table in "Phase 7 gate" above, which ran before the unlisted-fund, stamp-duty and TER changes.
+
+**Synthetic (Step 1): PASSED.**
+- 46 scenarios × normal / mfapi.in blocked = 92 runs.
+- 88 pass. The other 4 are the two `p20_20yr,p20_FY` delete variants in both modes, which end empty by design.
+- Every fund matches the CAS in every scenario.
+- **Zero funds need review anywhere.** `p3u_FY` now imports: its held fund is in no master and imports as unlisted.
+- No history gaps.
+- Reconciliation is identical with mfapi.in blocked.
+
+**Effect of storing statement prices** (CAS-only funds):
+- p20 partial months went from 178 to 24.
+- px went from 89 to 0.
+- The partial months that remain are periods where the statement prints no price for a CAS-only fund. Example: Unifund held through a 10-year window's opening balance until its 2022 merger, with no rows in between. They are flagged, never gapped.
+
+**Real statements (Step 2, local): PASSED.**
+- The user supplied two stakeholder files, both CAMS detailed statements of different investors: the "CP…2016–2026" file and the "10 Yr" file.
+- They ran through `harness/test_real_check.py` (counts only; nothing from the statements is recorded here). Each was run on its own, with mfapi.in blocked, and in both upload orders (the second person becomes a family member).
+
+| Run | Funds | Identified | Needs review | Reconciliation | History months / gaps |
+|---|---|---|---|---|---|
+| CP file | 4 | 4 verified | 0 | 4/4 match | 9 / 0 |
+| 10 Yr file | 13 | 13 verified | 0 | 13/13 match | 72 / 0 |
+| either order, both files | 17 | 17 verified | 0 | 17/17 match | 72 + 9 / 0 |
+| mfapi.in blocked (all of the above) | same | same | 0 | same | all months flagged partial (no feed), 0 gaps |
+| same file twice | — | — | — | second confirm 409 already_imported | — |
+
+**Not covered locally:**
+- **A real KFintech statement.** Both real files are CAMS. KFintech layouts are covered by the synthetic `kfin_*` files. Upload one real KFintech statement on staging.
+- **Staging Import health (C1–C14).** This happens after deploy.
+
+**The review screen stays (user, 2026-10-06).** The removal (Task 3) waits for staging and the user's screenshots. It was briefly built and then restored.
+
+| Scenario | Normal | mfapi blocked | Match | Review items | Names asked | History months / gaps / partial | Note |
+|---|---|---|---|---|---|---|---|
+| `p20_10yr,p20_3yr,p20_20yr` | pass | pass | 12/12 | 0 | 0 | 247 / 0 / 24 | repeat = already imported |
+| `p20_20yr,p20_FY` | pass | pass | 12/12 | 0 | 0 | 247 / 0 / 24 | repeat = already imported |
+| `p20_20yr,p20_FY` | FAIL | FAIL | 0/0 | 0 | 0 | 0 / 0 / 0 | repeat = already imported; delete first; by design: FY refused as already imported, so the only import is deleted → empty |
+| `p20_20yr,p20_FY` | FAIL | FAIL | 0/0 | 0 | 0 | 0 / 0 / 0 | repeat = already imported; delete last; by design: FY refused as already imported, so the only import is deleted → empty |
+| `fam_10yr,fam_FY` | pass | pass | 17/17 | 0 | 0 | 129 / 0 / 82 | repeat = already imported |
+| `fam_10yr` | pass | pass | 17/17 | 0 | 0 | 129 / 0 / 82 |  |
+| `fam_FY` | pass | pass | 15/15 | 0 | 0 | 6 / 0 / 0 |  |
+| `fam_noname_FY` | pass | pass | 12/12 | 0 | 1 | 6 / 0 / 0 |  |
+| `fam_FY,fam_10yr` | pass | pass | 17/17 | 0 | 0 | 129 / 0 / 82 |  |
+| `p20_FY,p20_20yr` | pass | pass | 12/12 | 0 | 0 | 247 / 0 / 24 |  |
+| `p20_FY,p20_20yr` | pass | pass | 12/12 | 0 | 0 | 247 / 0 / 24 | delete first |
+| `p20_FY,p20_20yr` | pass | pass | 9/9 | 0 | 0 | 6 / 0 / 0 | delete last |
+| `p20_FY,p20_FY_altfolio` | pass | pass | 9/9 | 0 | 0 | 6 / 0 / 0 | repeat = already imported |
+| `kfin_p10_FY` | pass | pass | 6/6 | 0 | 0 | 6 / 0 / 0 |  |
+| `kfin_p7_7yr` | pass | pass | 5/5 | 0 | 0 | 92 / 0 / 0 |  |
+| `kfin_pk_10yr` | pass | pass | 5/5 | 0 | 0 | 125 / 0 / 0 |  |
+| `kfin_pk_1yr` | pass | pass | 3/3 | 0 | 0 | 12 / 0 / 0 |  |
+| `oldcams_p20_20yr` | pass | pass | 12/12 | 0 | 0 | 247 / 0 / 24 |  |
+| `p20_FY,p10_10yr,fam_10yr` | pass | pass | 17/17 | 0 | 0 | 129 / 0 / 82 | family member’s own statement |
+| `p20_FY,p3_FY,fam_noname_FY` | pass | pass | 12/12 | 0 | 0 | 6 / 0 / 0 | repeat = already imported; family member’s own statement |
+| `p10_10yr` | pass | pass | 6/6 | 0 | 0 | 128 / 0 / 0 |  |
+| `p10_1yr` | pass | pass | 6/6 | 0 | 0 | 12 / 0 / 0 |  |
+| `p10_3yr` | pass | pass | 6/6 | 0 | 0 | 36 / 0 / 0 |  |
+| `p10_7yr` | pass | pass | 6/6 | 0 | 0 | 93 / 0 / 0 |  |
+| `p10_FY` | pass | pass | 6/6 | 0 | 0 | 6 / 0 / 0 |  |
+| `p10_FY,p10_10yr` | pass | pass | 6/6 | 0 | 0 | 128 / 0 / 0 |  |
+| `p20_10yr` | pass | pass | 11/11 | 0 | 0 | 129 / 0 / 82 |  |
+| `p20_1yr` | pass | pass | 9/9 | 0 | 0 | 12 / 0 / 0 |  |
+| `p20_20yr` | pass | pass | 12/12 | 0 | 0 | 247 / 0 / 24 |  |
+| `p20_3yr` | pass | pass | 9/9 | 0 | 0 | 36 / 0 / 0 |  |
+| `p20_7yr` | pass | pass | 10/10 | 0 | 0 | 93 / 0 / 46 |  |
+| `p20_FY` | pass | pass | 9/9 | 0 | 0 | 6 / 0 / 0 |  |
+| `p20_FY_altfolio` | pass | pass | 9/9 | 0 | 0 | 6 / 0 / 0 |  |
+| `p20_20yr,fam_10yr` | pass | pass | 18/18 | 0 | 0 | 247 / 0 / 24 |  |
+| `p3_1yr` | pass | pass | 3/3 | 0 | 0 | 12 / 0 / 0 |  |
+| `p3_3yr` | pass | pass | 3/3 | 0 | 0 | 36 / 0 / 0 |  |
+| `p3_FY` | pass | pass | 3/3 | 0 | 0 | 6 / 0 / 0 |  |
+| `p3u_FY` | pass | pass | 4/4 | 0 | 0 | 6 / 0 / 6 | unlisted held fund imports at the statement’s NAV |
+| `p7_1yr` | pass | pass | 5/5 | 0 | 0 | 12 / 0 / 0 |  |
+| `p7_3yr` | pass | pass | 5/5 | 0 | 0 | 36 / 0 / 0 |  |
+| `p7_7yr` | pass | pass | 5/5 | 0 | 0 | 92 / 0 / 0 |  |
+| `p7_FY` | pass | pass | 5/5 | 0 | 0 | 6 / 0 / 0 |  |
+| `kfin_pk_1yr,kfin_pk_10yr` | pass | pass | 5/5 | 0 | 0 | 125 / 0 / 0 |  |
+| `px_14yr` | pass | pass | 11/11 | 0 | 0 | 175 / 0 / 0 |  |
+| `px_FY` | pass | pass | 8/8 | 0 | 0 | 6 / 0 / 0 |  |
+| `px_FY,px_14yr` | pass | pass | 11/11 | 0 | 0 | 175 / 0 / 0 |  |
