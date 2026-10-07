@@ -1,4 +1,4 @@
-# Staging Deploy Guide — CAS import fixes (+ the 5 Oct small fixes)
+# Staging Deploy Guide — CAS import fixes (+ the 5 Oct small fixes + the 7 Oct changes)
 
 **One deploy that brings staging fully up to date** with branch `feat/enhanced-ui`.
 
@@ -11,7 +11,9 @@ Run it on **your manager's laptop**, as usual. It needs:
 - Staging's RDS, backend and NAT are stopped every night from 21:00 to 05:00 IST.
 - Scheduled jobs start their own tasks from the `:latest` image at 06:00, 06:15 (new), 06:30, 08:00 and 19:00 IST, so keep clear of those times.
 
-**Time:** about 75 minutes. Staging is **down for about 20 minutes**, from Step 5 to the end of Step 8.
+**The bastion is kept stopped.** Every database step goes through an SSM tunnel via the bastion, so Step 2 starts it first, and Step 13 stops it again at the end (the rollback path stops it too).
+
+**Time:** about 90 minutes. Staging is **down for about 20 minutes**, from Step 5 to the end of Step 8.
 
 **Nothing in this guide has been run against AWS yet.**
 - It was written from the repo, the earlier guides (`2026-09-30-staging-qa-fixes-deploy-guide.md`, `2026-10-01-consent-release-deploy-guide.md`) and the infra code.
@@ -27,8 +29,8 @@ Run it on **your manager's laptop**, as usual. It needs:
 - the 1 October consent / onboarding / profile release (`/legal/documents` answers, the new profile route exists, the old `/details` route is gone). That is migrations up to `0023`.
 
 **A. The 5 October small fixes** (committed after the 1 October deploy; staging still serves PAN disclaimer version `pan-disclaimer-placeholder-2026-10-01`, the repo has `…-2026-10-05`):
-- The PAN disclaimer text is simplified, with a new version. Every user is asked to tick it once more on their next upload. After the wipe in Step 6 everyone is new anyway.
-- The Profile terms section is cleaned up, and checkboxes are styled for light and dark mode.
+- The PAN disclaimer text is simplified, with a new version (`pan-disclaimer-placeholder-2026-10-05`). Its tick box is replaced by a line under Upload (E3 below).
+- The Profile terms section is cleaned up (no "You agreed to version…" lines), and checkboxes are styled for light and dark mode. The consent tick boxes themselves are gone in E3; the people-popup and delete-portfolio checkboxes keep the new style.
 - Statement names with special characters (a hyphen, brackets, "&") no longer block "Yes, that’s me".
 - Stale CAMS requests expire, and request placeholders are hidden from Import history.
 
@@ -53,7 +55,18 @@ Run it on **your manager's laptop**, as usual. It needs:
 - A clear message for demat (NSDL/CDSL) statements.
 - A staging-only **Import health** page (Profile → Import health).
 - **The Import Review screen is still there, on purpose.** It's removed only after this staging round passes and the screenshots are checked.
-- Migrations `0025`, `0026`, `0027`, `0028` and `0029`. There is no `0024`.
+- Migrations `0025`, `0026`, `0027`, `0028` and `0029`. There is no `0024`. (E adds `0030`, so this deploy migrates to `0030`.)
+
+**E. The 7 October changes** (plan page: https://claude.ai/artifact/UH899y4fhr6BbDdYE4Q9aU; `decisions.md` 2026-10-07):
+1. **Logout asks first:** "Log out of Unifolio?" with Cancel / Yes, log out (desktop Profile and the mobile header).
+2. **Sign-in email:** the highlighted words use the brand green `#22C55E`; "you can safely ignore this email" becomes "contact us at support@unifolio.in" (HTML and plain text).
+3. **Consent by continuing, no tick boxes:**
+   - Sign-up (Get OTP), new Google accounts (Continue), the "We’ve updated our Terms" prompt (Agree) and reactivation (Reactivate) show "By continuing, you agree to our Terms & Conditions and Privacy Policy". The links open new public pages, `/legal/terms` and `/legal/privacy`, in a new tab.
+   - The upload page shows "Your data is encrypted and safe with us." and, on the next line, "By continuing, you agree to our privacy policy."; the link opens the PAN disclaimer with an Ok button.
+   - **Phone sign-up consent is recorded at the Get OTP click** (it used to be at code verification). Migration **`0030`** adds one nullable column, `otp_requests.consent_snapshot`.
+   - **Request from CAMS records no consent** (no box, no line). The PAN consent is recorded only at upload.
+4. **Account deletion grace period is 30 days** (was 5).
+5. **Member dropdowns show the name only**: no "(relationship)", no "(Me)", no %.
 
 **C. One Terraform change.** A new daily job, `scheme-master-daily`, at 06:15 IST, loads AMFI's fund list.
 
@@ -67,17 +80,18 @@ Run it on **your manager's laptop**, as usual. It needs:
 |---|---|---|
 | 0 | Commit and push (Aditi) | up |
 | 1 | Pre-flight: Postgres-only tests on the laptop | up |
-| 2 | Connection values and the database tunnel | up |
+| 2 | Connection values, **start the bastion**, the database tunnel | up |
 | 3 | Which migration staging is on | up |
 | 4 | Build the new backend image and save rollback points (no push) | up |
 | 5 | Stop the backend | **down** |
 | 6 | Wipe the user data | down |
-| 7 | Migrate to `0029` | down |
+| 7 | Migrate to `0030` | down |
 | 8 | Push the image and start the new backend | down → **up** |
 | 9 | Publish the frontend | up |
 | 10 | Terraform: add the `scheme-master-daily` job | up |
 | 11 | Load AMFI's fund list once, now (and the TER job once) | up |
 | 12 | Checks | up |
+| 13 | **Stop the bastion** | up |
 
 ---
 
@@ -95,6 +109,7 @@ git status --short
 - `frontend/src/features/history/` (the whole folder) and `frontend/src/mobile/features/history/`
 - `frontend/src/features/dashboard/SoldFundsSection.tsx`, `distributorChannel.ts`, `navPriceBadge.ts`
 - the changed `scripts/clean-staging-db.sh` and `.gitignore`
+- the 7 October changes (E), already committed: check the pushed commit has `backend/alembic/versions/0030_otp_request_consent_snapshot.py`, `frontend/src/features/legal/ConsentNotice.tsx`, `frontend/src/features/legal/LegalPage.tsx` and `frontend/src/features/profile/LogoutConfirmDialog.tsx`, and no longer has `frontend/src/features/legal/ConsentCheckbox.tsx`
 - this guide
 
 **Never commit the real CAS statements.** `.gitignore` now ignores `Docs/CAS Files/*.pdf` (the top-level files only; the synthetic ones in `Docs/CAS Files/synthetic/` are fine to commit). Check:
@@ -115,12 +130,12 @@ Tell your manager that commit hash.
 ## Step 1 — Pre-flight on the laptop: Postgres-only tests
 
 These run the migrations and the Postgres-specific behaviour against a throwaway local Postgres:
-- migrations `0019` to `0029`;
+- migrations `0019` to `0030` (the round-trip tests upgrade to head, now `0030`);
 - the partitioned `transactions` table;
 - the consent triggers;
 - cascade deletes.
 
-They passed on 2026-10-06 (14 passed, Postgres 16.2). Re-run them on the exact commit you're deploying.
+They passed on 2026-10-06 (14 passed, Postgres 16.2), and `0030` was round-tripped (`0029 → 0030 → 0029 → 0030`) on Postgres 16.2 on 2026-10-07. Re-run them on the exact commit you're deploying.
 
 **1a.** Start Docker Desktop on Windows and wait for "Engine running". In WSL, Docker Desktop's WSL integration must be on (Settings → Resources → WSL integration).
 
@@ -157,7 +172,7 @@ docker compose stop postgres
 
 ---
 
-## Step 2 — Connection values and the database tunnel
+## Step 2 — Connection values, start the bastion, and the database tunnel
 
 These commands are read-only: `terraform init` and `terraform output` change nothing.
 ```bash
@@ -176,6 +191,31 @@ echo "$BASTION_ID $DB_HOST $DB_NAME"
 - then a bastion id (`i-...`), the `staging-rds....` hostname and `unifolio`.
 
 If the first command errors, fix the credentials first.
+
+**Start the bastion** (it's kept stopped; the tunnel below and the wipe script in Step 6 both go through it). Same terminal:
+```bash
+aws ec2 describe-instances --instance-ids "$BASTION_ID" \
+  --query "Reservations[0].Instances[0].State.Name" --output text
+aws ec2 start-instances --instance-ids "$BASTION_ID" \
+  --query "StartingInstances[0].CurrentState.Name" --output text
+aws ec2 wait instance-running --instance-ids "$BASTION_ID"
+echo "running; waiting for SSM..."
+until [ "$(aws ssm describe-instance-information \
+          --filters "Key=InstanceIds,Values=$BASTION_ID" \
+          --query "InstanceInformationList[0].PingStatus" --output text)" = "Online" ]; do
+  sleep 10
+done
+echo "bastion ready"
+```
+**Good looks like:**
+1. `stopped` (its normal state). `running` is fine too: someone started it already.
+2. `pending` (or `running` if it was already up).
+3. The wait returns within about a minute, then `running; waiting for SSM...`.
+4. `bastion ready`, usually 1–3 minutes after starting. The SSM agent needs a moment after boot.
+
+**If it isn't good:**
+- **The `until` loop runs for more than 5 minutes:** press Ctrl+C and check `aws ssm describe-instance-information --filters "Key=InstanceIds,Values=$BASTION_ID"`. An empty list means the agent hasn't registered yet: wait two more minutes and re-run the loop. Still nothing: send Aditi the output.
+- **`IncorrectInstanceState`:** the instance is `stopping`. Wait a minute and re-run the block.
 
 **Terminal A:** open the tunnel on local port **5434**.
 ```bash
@@ -213,7 +253,7 @@ export DATABASE_URL="postgresql://unifolio:$(python3 -c "import os,urllib.parse;
 
 The `INFO ... Context impl PostgresqlImpl.` line before it is normal.
 
-- **`0025` or higher:** stop and ask Aditi. Part of this deploy has already run.
+- **`0025` or higher (up to `0030`):** stop and ask Aditi. Part of this deploy has already run.
 - **Older than `0020`:** stop. An earlier deploy's migrations are missing. Send the output.
 
 ---
@@ -295,12 +335,12 @@ The script opens its own tunnel on port 5439 (Terminal A's 5434 tunnel is separa
 
 **If it isn't good:**
 - **Any `ERROR:` line before `COMMIT`:** the transaction rolled back, so nothing was deleted. Copy the error and send it. You can still continue with Steps 7–8: the migrations work on existing data too (they were tested on seeded data). The re-upload test in Step 12 then runs on top of old data, so tell Aditi.
-- **`Could not find a running 'staging-bastion' instance`:** the bastion is stopped. Start it with `aws ec2 start-instances --instance-ids "$BASTION_ID"`, wait one minute, and re-run.
+- **`Could not find a running 'staging-bastion' instance`:** the bastion isn't running (Step 2 should have started it). Re-run the **Start the bastion** block from Step 2, then re-run the script.
 - **`psql: command not found`:** run `sudo apt-get install -y postgresql-client`, then re-run.
 
 ---
 
-## Step 7 — Migrate to `0029` (Terminal B, tunnel still open in Terminal A)
+## Step 7 — Migrate to `0030` (Terminal B, tunnel still open in Terminal A)
 
 ```bash
 .venv/bin/alembic upgrade head
@@ -314,8 +354,9 @@ INFO  [alembic.runtime.migration] Running upgrade 0025 -> 0026, twin same-day ro
 INFO  [alembic.runtime.migration] Running upgrade 0026 -> 0027, folios.folio_key (+ duplicate merge) and transaction_imports (#4, #5)
 INFO  [alembic.runtime.migration] Running upgrade 0027 -> 0028, AMFI scheme master and verified folio plans.
 INFO  [alembic.runtime.migration] Running upgrade 0028 -> 0029, Snapshot history fields and encrypted review sessions.
+INFO  [alembic.runtime.migration] Running upgrade 0029 -> 0030, otp_requests.consent_snapshot: phone sign-up consent captured at "Get OTP"
 ```
-Then `0029 (head)`.
+Then `0030 (head)`.
 
 Going `0023 -> 0025` (skipping `0024`) is correct: `0024` is reserved for a deferred change.
 
@@ -332,6 +373,7 @@ with sa.create_engine(os.environ["DATABASE_URL"]).connect() as c:
     print("snapshot columns:", q(c, "SELECT count(*) FROM information_schema.columns WHERE table_name='portfolio_snapshots' AND column_name IN ('invested_value','is_partial','missing_scheme_ids','data_version')"))
     print("imports.preview_state:", q(c, "SELECT count(*) FROM information_schema.columns WHERE table_name='imports' AND column_name='preview_state'"))
     print("consent_records table:", q(c, "SELECT count(*) FROM information_schema.tables WHERE table_name='consent_records'"))
+    print("otp_requests.consent_snapshot:", q(c, "SELECT count(*) FROM information_schema.columns WHERE table_name='otp_requests' AND column_name='consent_snapshot'"))
     print("users left:", q(c, "SELECT count(*) FROM users"))
 EOF
 ```
@@ -344,6 +386,7 @@ scheme master columns: 5
 snapshot columns: 4
 imports.preview_state: 1
 consent_records table: 1
+otp_requests.consent_snapshot: 1
 users left: 0
 ```
 (`users left` is `0` only if Step 6 succeeded.)
@@ -383,7 +426,7 @@ aws logs tail /ecs/staging-backend --follow
 - `running` equals `desired`;
 - the logs show `Uvicorn running on ...` and `Application startup complete.`, with no traceback.
 
-**If the task keeps restarting:** a traceback about a missing column or table means the database isn't at `0029 (head)`. Re-check Step 7, or use the rollback.
+**If the task keeps restarting:** a traceback about a missing column or table (for example `otp_requests.consent_snapshot`) means the database isn't at `0030 (head)`. Re-check Step 7, or use the rollback.
 
 **Is the new code live?** These are read-only; no token is sent.
 ```bash
@@ -391,12 +434,15 @@ curl -s https://staging-api.unifolio.in/health
 curl -s https://staging-api.unifolio.in/legal/documents | head -c 200; echo
 curl -s -o /dev/null -w "%{http_code}\n" https://staging-api.unifolio.in/dev/status
 curl -s -o /dev/null -w "%{http_code}\n" -X PUT https://staging-api.unifolio.in/household-members/00000000-0000-0000-0000-000000000000/profile
+curl -s -X POST https://staging-api.unifolio.in/auth/otp/request -H "Content-Type: application/json" \
+  -d '{"phone_number":"+910000000001","flow":"signup","accepted_documents":[{"document_type":"terms_of_service","document_version":"old"}]}'; echo
 ```
 **Good looks like:**
 1. `{"status":"ok"}`.
 2. JSON that starts with the legal documents list (the 1 October release).
 3. `401`: the new staging-only `/dev` routes exist and need a login. A `404` means the old backend is still serving: wait for `COMPLETED` and retry.
 4. `401` or `403` (the 1 October profile route).
+5. A `422` with `"code":"consent_required"` and `"missing":["terms_of_service", ...]`: the new backend checks the Terms version at Get OTP (E3) and sends no code. `{"message":"OTP sent.", ...}` means the old backend is still serving: wait for `COMPLETED` and retry. (Phone OTP is in stub mode on staging and this number isn't registered, so nothing reaches anyone.)
 
 **The window ends here.** Go straight to Step 9: an old cached frontend breaks against the new backend (sign-up and upload get `422`).
 
@@ -535,12 +581,12 @@ Use an incognito window after a hard refresh. **Every account is new** (Step 6 w
 
 ### 12a. The 5 October small fixes
 
-1. **PAN disclaimer:** on the upload screen, the disclaimer text is the short version, and Upload stays blocked until it's ticked.
-2. **Checkboxes** look right in both light and dark mode (sign-up consent box, PAN disclaimer).
-3. **Profile → Terms** section shows the cleaned-up layout.
+1. **PAN disclaimer:** "privacy policy" on the upload screen (E3) opens the short disclaimer text.
+2. **Checkboxes** look right in both light and dark mode: "Include in family total" in the people popup and the box in the delete-portfolio dialog. (The consent tick boxes are gone, E3.)
+3. **Profile → Terms of Service** lists the three documents, each with a View button, and no "You agreed to version…" line.
 4. **Import history** shows no "requested" placeholder rows for CAMS requests.
 
-The 1 October checks (consent box at sign-up, five-section Profile, % complete nudge, Complete profile popup) were done at that deploy. A quick look while doing 12b is enough.
+The 1 October checks (five-section Profile, % complete nudge, Complete profile popup) were done at that deploy. A quick look while doing 12b is enough. Its sign-up consent box is replaced by E3.
 
 ### 12b. CAS import: real statements and Import health (the Phase 7 gate, Step 2)
 
@@ -622,15 +668,61 @@ On mobile (phone width, as in C7), repeat D1 (the Upcoming SIPs card shows the s
 
 Also check the **new Portfolio history page** (desktop: the History tab; mobile: "History ›" on the value card). It shows one point per month, a hollow dot for a partial month, and range chips (desktop 1Y/3Y/5Y/All, mobile 1Y/5Y/All).
 
+### 12e. The 7 October changes (E)
+
+Do these on desktop and at phone width (incognito, after a hard refresh), with a new phone number.
+
+| # | Do | Expected |
+|---|---|---|
+| E1 | Profile → **Logout**; then the mobile header's logout icon | A popup "Log out of Unifolio?" with Cancel and Yes, log out. **Cancel** closes it and you stay where you were; **Yes, log out** logs out. |
+| E2 | Sign up with a real email you can read; open the code email | "verification code" in green `#22C55E`; the note says "If you didn't request it, contact us at support@unifolio.in…"; no "safely ignore this email". |
+| E3a | Sign-up screen (phone) | **No tick box.** Under **Get OTP**: "By continuing, you agree to our Terms & Conditions and Privacy Policy." Get OTP works without ticking anything. |
+| E3b | Click **Terms & Conditions**, then **Privacy Policy** | Each opens in a **new tab** at `staging.unifolio.in/legal/terms` / `/legal/privacy` and shows the document, without logging in. |
+| E3c | Upload screen | No tick box. Under **Upload Statement**: "Your data is encrypted and safe with us." then "By continuing, you agree to our privacy policy." **privacy policy** opens the PAN disclaimer with an **Ok** button. Upload works without ticking. |
+| E3d | **Request from CAMS** screen | No box and no consent line; **Request statement on CAMS** works straight away. |
+| E4 | Profile → Preferences → **Delete account**, on a throwaway account | The copy says "30-day grace period" and "deleted in 30 days". After confirming, the pending-deletion screen shows a date **30 days** from today, with "By reactivating, you agree to…" above **Reactivate** (no box). Reactivate it afterwards. |
+| E5 | Dashboard → **Per Member**, open the member dropdown (needs a family statement, e.g. `fam_10yr` from 12c) | Names only, e.g. "Vikram Anand Mehta": no "(Me)", no "(spouse)", no %. The "N% complete" chip under the picker is still there. |
+
+**Database check for E3** (optional; tunnel and Terminal B as in Step 2), after the E3a sign-up is complete. Put that phone number in place of `+91XXXXXXXXXX`:
+```bash
+.venv/bin/python - <<'EOF'
+import os, sqlalchemy as sa
+with sa.create_engine(os.environ["DATABASE_URL"]).connect() as c:
+    print(c.execute(sa.text("""SELECT c.document_type::text, c.surface, c.recorded_at, u.created_at
+        FROM consent_records c JOIN users u ON u.id = c.user_id
+        WHERE u.phone_number = '+91XXXXXXXXXX' ORDER BY c.recorded_at""")).all())
+EOF
+```
+**Good looks like:** three rows (`terms_of_service`, `privacy_policy` twice), `surface` `signup_phone`, and every `recorded_at` **earlier** than `created_at`, by about the time it took to enter the code and verify the email: the consent is timed at the Get OTP click.
+
 ### 12d. Send to Aditi
 
 Send:
 - the 12b Import health screenshots;
 - the C1–C14 screenshots and D1/D2 (`D1-a` … `D1-d`, `D2-a`, `D2-b`);
+- which E1–E5 checks passed, with screenshots of E1, E3a, E3c and E5;
 - any failure, with the time it happened;
 - an `aws logs tail /ecs/staging-backend --since 30m` excerpt around any failure.
 
 Aditi then confirms the gate. **Only after that** is the review screen removed, in a later, separate deploy.
+
+---
+
+## Step 13 — Stop the bastion
+
+Do this once all the database work is finished: after the Step 11 and Step 12e database checks (or when you've decided to skip them). Close every tunnel first (Ctrl+C in Terminal A).
+```bash
+aws ec2 stop-instances --instance-ids "$BASTION_ID" \
+  --query "StoppingInstances[0].CurrentState.Name" --output text
+aws ec2 wait instance-stopped --instance-ids "$BASTION_ID"
+aws ec2 describe-instances --instance-ids "$BASTION_ID" \
+  --query "Reservations[0].Instances[0].State.Name" --output text
+```
+**Good looks like:** `stopping`, then (after up to a couple of minutes) `stopped`.
+
+If `$BASTION_ID` is empty in this terminal, re-run the values block at the top of Step 2 first.
+
+Need the database again later (a re-check, a rollback)? Start the bastion again with the Step 2 block, and stop it again afterwards.
 
 ---
 
@@ -645,7 +737,7 @@ The old image can't run on the new schema. A rollback is: stop the backend, down
 aws ecs update-service --cluster unifolio-staging --service unifolio-staging-backend \
   --desired-count 0 --query "service.desiredCount" --output text
 ```
-2. **Clear what blocks the downgrade.** Open the tunnel and Terminal B as in Step 2. `0028`'s downgrade refuses while any fund has no AMFI code, and the new code creates such funds for unlisted or closed CAS-only funds. Everything on staging is test data, so wipe again and remove those funds:
+2. **Clear what blocks the downgrade.** If you already stopped the bastion (Step 13), start it again with the Step 2 **Start the bastion** block. Then open the tunnel and Terminal B as in Step 2. `0028`'s downgrade refuses while any fund has no AMFI code, and the new code creates such funds for unlisted or closed CAS-only funds. Everything on staging is test data, so wipe again and remove those funds:
 ```bash
 cd "$REPO_ROOT" && ./scripts/clean-staging-db.sh
 cd "$REPO_ROOT/backend" && .venv/bin/python - <<'EOF'
@@ -662,7 +754,7 @@ EOF
 .venv/bin/alembic downgrade 0023
 .venv/bin/alembic current
 ```
-**Good looks like:** `Running downgrade 0029 -> 0028`, `0028 -> 0027`, `0027 -> 0026`, `0026 -> 0025` and `0025 -> 0023`, then `0023`. **Never go below `0023`:** the old (1 October) backend needs `0023`, and `0022`'s downgrade would drop the `consent_records` table and every consent collected.
+**Good looks like:** `Running downgrade 0030 -> 0029`, `0029 -> 0028`, `0028 -> 0027`, `0027 -> 0026`, `0026 -> 0025` and `0025 -> 0023`, then `0023`. **Never go below `0023`:** the old (1 October) backend needs `0023`, and `0022`'s downgrade would drop the `consent_records` table and every consent collected.
 4. **Put the old image back and start it:**
 ```bash
 MANIFEST=$(aws ecr batch-get-image --repository-name unifolio-staging-backend --region ap-south-1 \
@@ -680,6 +772,8 @@ aws s3 sync ~/staging-frontend-backup-$(date +%F)/ "s3://$(terraform -chdir="$RE
 aws cloudfront create-invalidation --distribution-id "$(terraform -chdir="$REPO_ROOT/infra/envs/staging" output -raw cloudfront_distribution_id)" --paths "/*"
 ```
 (If the backup folder has another date, use that folder's name.)
+
+6. **Stop the bastion** as in Step 13.
 
 ### Only the frontend looks broken
 
@@ -708,8 +802,9 @@ Its log goes to `/ecs/staging-job-nav-daily`: `aws logs tail /ecs/staging-job-na
   - what Step 3 showed (expected `0023`);
   - the Step 6 before/after counts;
   - the Step 11 `rows=` line;
-  - which Step 12 checks passed.
-- Aditi updates `session.md` and `CLAUDE.md` Session State to say the CAS import fixes (and, if applicable, the 1 October release) are live on staging.
+  - which Step 12 checks passed, including 12e;
+  - that the bastion is `stopped` again (Step 13).
+- Aditi updates `session.md` and `CLAUDE.md` Session State to say the CAS import fixes and the 7 October changes are live on staging.
 
 ---
 
@@ -722,4 +817,6 @@ Its log goes to `/ecs/staging-job-nav-daily`: `aws logs tail /ecs/staging-job-na
   - *no `requirements.txt`/`Dockerfile`/`package.json`/config change since the 2026-10-01 commit `892c85e`.*
 - *`scripts/clean-staging-db.sh` was updated the same day: it now clears `household_member_merges` (it points at `users` without a cascade and would have stopped the wipe) and shows two more counts. Syntax-checked; not yet run against AWS.*
 - *Local results: Postgres `tests/functional_postgres` 14 passed (0028↔0029 round trip clean); the synthetic gate (46 scenarios × normal/mfapi-blocked) and the two real CAMS statements pass. See `Docs/orchestration/2026-10-06-cas-import-baseline.md` "Phase 7 gate — FINAL".*
+- *Updated 2026-10-07 for the 7 October changes (E): migration `0030` (checked against `backend/alembic/versions/0030_otp_request_consent_snapshot.py`; round-tripped on local Postgres 16.2), the Get OTP `422 consent_required` check (from `request_otp` in `backend/app/api/auth.py`) and checks 12e. The affected backend tests and the 22 affected frontend test files pass; `tsc -b` clean. Not yet checked in a browser.*
+- *Updated 2026-10-07: the bastion is kept stopped, so Step 2 starts it (and waits for SSM `Online`) before the first tunnel, and Step 13 / the rollback stop it again.*
 - *No command in this guide has been run against AWS.*

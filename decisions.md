@@ -492,3 +492,14 @@ build effort for two config tables edited rarely, by one person, who already has
   4. The user confirms the gate.
   5. Then Task 3 (the removal) and the PRD-01 FR-10 / App-Flow edits.
 - **Staging data:** reset with `scripts/clean-staging-db.sh` (the plan's default; no real users). Needs the user's go-ahead. `backend/scripts/reclassify_folio_plans.py` exists for any environment whose data is kept.
+
+## 2026-10-07 — Logout confirmation, OTP email, consent by continuing, 30-day deletion grace, name-only member picker
+
+Reviewed on the plan page https://claude.ai/artifact/UH899y4fhr6BbDdYE4Q9aU (user decisions applied there).
+- **Logout** asks first ("Log out of Unifolio?", Cancel / Yes, log out), on desktop Profile and the mobile header.
+- **OTP email:** highlighted words use the brand green `#22C55E` (light and dark); "you can safely ignore this email" is replaced by "contact us at support@unifolio.in" (mailbox being set up).
+- **Consent by continuing:** no tick boxes. Sign-up ("Get OTP", Google "Continue"), re-consent ("Agree") and reactivation show "By continuing/…, you agree to our Terms & Conditions and Privacy Policy" with links to new public `/legal/terms` and `/legal/privacy` pages (new tab). The upload page shows "Your data is encrypted and safe with us." / "By continuing, you agree to our privacy policy.", where "privacy policy" opens the PAN disclaimer popup (Ok). Clicking the button is the consent.
+- **Phone sign-up consent is recorded at the "Get OTP" click**, not at OTP verify: the versions travel with `/auth/otp/request` and are held on the OTP row (migration 0030) until verify. Supersedes the 2026-10-01 verify-time capture for phone.
+- **CAMS request records no consent** (no box, no line); the PAN consent is recorded only at upload. Supersedes the 2026-10-01 `cams_request` consent.
+- **Account deletion grace: 30 days** (was 5). Accounts already pending keep their 5-day date.
+- **Member pickers show the name only** (no "(relationship)", no "(Me)", no %); the % stays on the "N% complete" chip and Family Members cards.
