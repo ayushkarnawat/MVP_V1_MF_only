@@ -69,5 +69,5 @@ variable "fck_nat_instance_type" {
 variable "bastion_instance_type" {
   description = "ARM-based instance type for the SSM-only bastion."
   type        = string
-  default     = "t4g.nano"
+  default     = "t4g.micro"
 }

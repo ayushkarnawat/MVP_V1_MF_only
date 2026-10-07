@@ -264,7 +264,10 @@ resource "aws_iam_instance_profile" "bastion" {
 resource "aws_instance" "bastion" {
   ami                         = data.aws_ami.amazon_linux_2023_arm64.id
   instance_type               = var.bastion_instance_type
-  subnet_id                   = aws_subnet.public[var.availability_zones[0]].id
+  # ap-south-1a was hitting recurring InsufficientInstanceCapacity for the
+  # whole t4g family on 2026-10-07; moved to the other AZ as a workaround.
+  # Switch back to [0] if 1b ever becomes the constrained one instead.
+  subnet_id                   = aws_subnet.public[var.availability_zones[1]].id
   associate_public_ip_address = true
   vpc_security_group_ids      = [aws_security_group.bastion.id]
   iam_instance_profile        = aws_iam_instance_profile.bastion.name

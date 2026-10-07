@@ -107,6 +107,11 @@ variable "fck_nat_instance_id" {
   type        = string
 }
 
+variable "bastion_instance_id" {
+  description = "EC2 instance ID of the SSM-only bastion, for the 9PM stop-only safety net (no auto-start -- on-demand access only)."
+  type        = string
+}
+
 variable "account_id" {
   description = "AWS account ID, for constructing the fck-nat EC2 instance ARN."
   type        = string

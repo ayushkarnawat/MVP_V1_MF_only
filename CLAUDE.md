@@ -60,7 +60,7 @@ instead. See `docs/agents/domain.md`.
 
 ## Session State
 
-*(Updated 2026-10-06. This section is a one-line current-status pointer, not a log —
+*(Updated 2026-10-07. This section is a one-line current-status pointer, not a log —
 do not append session narrative here again. Full current status: `session.md` at repo
 root, overwritten each session. Full permanent history: `log.md` (append-only, never
 trimmed), `backend.md`/`database.md` (backend/schema changes only), `decisions.md`
@@ -68,7 +68,14 @@ trimmed), `backend.md`/`database.md` (backend/schema changes only), `decisions.m
 `Docs/orchestration/delegation-log.md`. Deferred/not-yet-built features:
 `DEFERRED_FEATURES.md`.)*
 
-**Latest (2026-10-06):** CAS import fixes Phases 1–6 and Phase 7 prep built and independently reviewed (uncommitted, not deployed); the local gate passed (46 synthetic scenarios × normal/mfapi-blocked + 2 real CAMS statements: every fund matches, zero review items). The Import Review screen stays until after staging (user decision). Left: staging wipe/deploy/scheme-master load, a real KFintech statement and the C1–C14 checklist, then the review-screen removal — see `session.md`'s 2026-10-06 section.
+**Latest (2026-10-07):** staging bastion `InsufficientInstanceCapacity` (AZ-wide `t4g`-family
+shortage in `ap-south-1a`, confirmed via CloudTrail) fixed by moving the bastion to
+`ap-south-1b`; nano→micro alone hadn't fixed it. A 9PM-only stop schedule for the bastion
+(no auto-start) was bundled into the same targeted apply. Committed (5 infra files). Still
+open: whether to proceed with the separate `scheme_master_daily`/SNS deploy — see
+`session.md`'s 2026-10-07 section.
+
+**Previous (2026-10-06):** CAS import fixes Phases 1–6 and Phase 7 prep built and independently reviewed (uncommitted, not deployed); the local gate passed (46 synthetic scenarios × normal/mfapi-blocked + 2 real CAMS statements: every fund matches, zero review items). The Import Review screen stays until after staging (user decision). Left: staging wipe/deploy/scheme-master load, a real KFintech statement and the C1–C14 checklist, then the review-screen removal — see `session.md`'s 2026-10-06 section.
 
 **Previous (2026-10-01):** AWS staging cost-reduction (Scenario A,
 `Docs/2026-09-29-aws-staging-cost-analysis-and-reduction-plan.md`) applied and verified
