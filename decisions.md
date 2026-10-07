@@ -408,6 +408,61 @@ cross-reference: `Docs/analytics/2026-10-06-analytics-pdf-deep-understanding.md`
   NSE/BSE company-fundamentals pages and/or parse AMC-published factsheets, accepting the extra
   engineering/upkeep cost to stay within the in-house-only rule. Scoped as part of the look-through
   engine's ingestion work, not a separate vendor contract.
+## 2026-10-06 — Attribute 09 (fund ranking): "category-relative" parameter partially resolved, exact formula still pending
+
+Source: brainstorming session for Sub-project 1 (attribute 09 build), continued from the
+2026-10-06 Analytics PDF open-questions entry above. **Not a decision to implement from yet —
+Ayush was explicit: revisit this again before any Sub-project 1 implementation starts,
+specifically after further AdvisorKhoj/MoneyControl research, not treated as settled now.**
+
+- **What's confirmed:** the PDF's composite-score formula (`0.25×3Y + 0.25×5Y + 0.20×category-
+  relative + 0.15×low-volatility + 0.15×low-TER`) names "category-relative" as a fifth parameter
+  distinct from the 3Y/5Y return percentiles already in the formula. Per Ayush: it measures the
+  fund's return **against its own category average**, not a broad market index — "evaluates
+  whether a manager beats peers, not just the general market." This direction (category-average-
+  relative, not index-relative) is settled.
+- **What's still open:** the exact mechanics of that comparison. WebSearch research into
+  AdvisorKhoj/MoneyControl (the PDF's own stated methodology models) found AdvisorKhoj's
+  "Consistent Performers" ranking uses rolling returns plus *consistency of beating the category
+  average* via "a proprietary algorithm" (no published formula), and CRISIL's methodology (which
+  MoneyControl surfaces) uses mean-return-and-volatility across four overlapping 9/18/27/36-month
+  windows with weights 17.5/22.5/27.5/32.5% — neither is a direct, citable match for a single
+  "category-relative" percentile input. Three candidate mechanics remain undecided: (a) single-
+  period alpha (fund return − category average return), percentile-ranked; (b) consistency of
+  beating the category average across multiple periods (AdvisorKhoj-style); (c) a multi-period
+  overlapping-window weighted approach (CRISIL-style). Ayush: "even I am not sure... out of the
+  options... which it should be."
+- **Separately flagged, not blocking:** the ranked-fund table (PDF's "How to show it") displays
+  1Y/3Y/5Y rank columns, but the weighted composite formula only ever references 3Y/5Y — 1Y rank
+  needs computing for table display regardless of how "category-relative" is resolved; this is
+  not in dispute, just not yet built.
+- **Action before implementation:** re-examine AdvisorKhoj (advisorkhoj.com) and MoneyControl
+  (moneycontrol.com/mutual-funds) more closely for a citable "category-relative performance"
+  definition before picking (a)/(b)/(c) above, or decide to pick one as Unifolio's own judgment
+  call if no clean external precedent exists. Do not implement attribute 09's composite score
+  against any of the three candidates without this revisit.
+
+## 2026-10-06 — Sub-project 1 "admin-configurable" values: DB-backed, no admin UI
+
+Covers both attribute 09's ranking weights (25/25/20/15/15 default) and attribute 11's drawdown
+scenario-date table, both of which the PDF calls "admin-configurable." Checked: no admin role/
+permission system exists anywhere in the codebase today (no `is_admin`, no admin auth guard, no
+admin UI) — building one would be a first-ever admin surface, out of proportion to either
+attribute's actual feature scope.
+
+**Decided:** store both in real DB tables (not hardcoded Python constants), but with no edit UI —
+edited directly via the existing SSM-tunnel + `psql`/DBeaver access pattern (`scripts/clean-
+staging-db.sh`'s pattern for staging DB access), same as how staging data resets already happen
+without a UI. For attribute 11 specifically, this is paired with a documented "how to add a
+scenario" guide (fields, how to source/verify dates, worked example) so Ayush can add new
+scenarios correctly without needing a dev session each time — see the attribute-11 scenario-model
+entry below for what that guide needs to cover.
+
+Why DB-backed over hardcoded: Ayush found pure hardcoding "a little redundant" given values
+*will* change over time (new scenarios added, possibly weight tuning later) and a migration-only
+path means a full dev cycle for every tweak. Why no UI: a full admin screen is disproportionate
+build effort for two config tables edited rarely, by one person, who already has DB access.
+
 - **AMC portfolio-disclosure format survey: started now, first pass complete.** Finding
   (`Docs/analytics/investigations/2026-10-06-amc-portfolio-disclosure-format-survey.md`): the monthly
   disclosure is a **SEBI-prescribed format** (confirmed via SEBI's own Master Circular formats
