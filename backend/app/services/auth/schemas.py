@@ -39,6 +39,9 @@ class OtpRequestBody(BaseModel):
     # registered number and "login" an unknown one BEFORE a code is sent.
     # Omitted = legacy behaviour (internal test callers).
     flow: Literal["signup", "login"] | None = None
+    # 2026-10-07: a phone sign-up's T&C + Privacy agreement, made by clicking
+    # "Get OTP". Captured on the OTP row (0030); ignored for login / pending_token.
+    accepted_documents: list[AcceptedDocument] | None = None
 
 
 class OtpRequestResponse(BaseModel):

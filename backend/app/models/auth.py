@@ -33,6 +33,12 @@ class OtpRequest(Base):
     browser_family: Mapped[str | None] = mapped_column(String)
     browser_version: Mapped[str | None] = mapped_column(String)
     device_id: Mapped[str | None] = mapped_column(String)
+    # Migration 0030: the T&C + Privacy agreement made by a phone sign-up's
+    # "Get OTP" click (same shape as PendingIdentityVerification.consent_snapshot).
+    # Verify copies it onto the pending record, so consent is timed at the click.
+    consent_snapshot: Mapped[dict | None] = mapped_column(
+        JSON(none_as_null=True).with_variant(JSONB(none_as_null=True), "postgresql")
+    )
 
 
 class AuthIdentity(Base):

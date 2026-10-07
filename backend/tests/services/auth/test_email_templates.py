@@ -53,14 +53,20 @@ def test_verification_code_is_green_text_without_a_highlight():
     html = otp_email_html(otp="743820", ttl_minutes=5)
     assert '<span class="code-pill">verification code</span>' in html
     pill_rule = html.split(".code-pill {")[1].split("}")[0]
-    assert "color: #15803D" in pill_rule
+    assert "color: #22C55E" in pill_rule
     assert "background" not in pill_rule
     assert "padding" not in pill_rule
-    # Dark mode keeps the lighter green text.
+    # Brand green (#22C55E) in dark mode too.
     assert ".code-pill {{" not in html  # sanity: no unescaped template braces
-    assert "color: #4ADE80" in html
+    assert ".code-pill { color: #22C55E !important; }" in html
 
 
 def test_body_has_no_inline_display_styles():
     html = otp_email_html(otp="743820", ttl_minutes=5)
     assert "display" not in html.split("<body>")[1]
+
+
+def test_points_to_support_instead_of_ignore_this_email():
+    html = otp_email_html(otp="743820", ttl_minutes=5)
+    assert "safely ignore" not in html
+    assert "support@unifolio.in" in html

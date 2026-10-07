@@ -278,8 +278,24 @@ def request_otp(body: OtpRequestBody, request: Request, db: DbSession = Depends(
                 status_code=404, detail="No account found for that phone number — sign up instead."
             )
 
+    # Phone sign-up: clicking "Get OTP" is the T&C + Privacy agreement
+    # (2026-10-07), so it is validated and captured here, at the click, and
+    # held on the OTP row until verify. Stale/missing versions -> 422 now,
+    # before a code is sent. Older clients that send consent only at verify
+    # still work (verify falls back to its own accepted_documents).
+    consent_snapshot = None
+    if body.flow == "signup" and not body.pending_token and body.accepted_documents is not None:
+        try:
+            consent_snapshot = snapshot_for_signup(
+                body.accepted_documents, "signup_phone", evidence_from_request(request)
+            )
+        except ConsentRequiredError as exc:
+            raise _consent_http(exc) from exc
+
     try:
-        _, raw_otp = create_otp_request(db, body.phone_number, metadata=capture_request_metadata(request))
+        _, raw_otp = create_otp_request(
+            db, body.phone_number, metadata=capture_request_metadata(request), consent_snapshot=consent_snapshot
+        )
     except OtpRequestThrottledError as exc:
         raise HTTPException(status_code=429, detail=str(exc)) from exc
     return OtpRequestResponse(message="OTP sent.", otp=raw_otp)
@@ -291,7 +307,7 @@ def request_otp(body: OtpRequestBody, request: Request, db: DbSession = Depends(
 )
 def verify_otp_route(body: OtpVerifyBody, request: Request, db: DbSession = Depends(get_db)):
     try:
-        verify_otp(db, body.phone_number, body.otp)
+        otp_row = verify_otp(db, body.phone_number, body.otp)
     except OtpVerificationError as exc:
         raise HTTPException(status_code=401, detail=str(exc)) from exc
 
@@ -359,12 +375,16 @@ def verify_otp_route(body: OtpVerifyBody, request: Request, db: DbSession = Depe
         # unconditional-creation bug for every caller that declares its
         # flow explicitly (the redesigned frontend always does) -- see the
         # flow-omitted legacy branch below for who's still exempt.
-        try:
-            consent_snapshot = snapshot_for_signup(
-                body.accepted_documents, "signup_phone", evidence_from_request(request)
-            )
-        except ConsentRequiredError as exc:
-            raise _consent_http(exc) from exc
+        # Captured at the "Get OTP" click (request_otp above); verify-time
+        # accepted_documents is only the fallback for older clients.
+        consent_snapshot = otp_row.consent_snapshot
+        if consent_snapshot is None:
+            try:
+                consent_snapshot = snapshot_for_signup(
+                    body.accepted_documents, "signup_phone", evidence_from_request(request)
+                )
+            except ConsentRequiredError as exc:
+                raise _consent_http(exc) from exc
         _, raw_token = create_pending_verification(
             db, AuthIdentityProvider.PHONE_OTP, body.phone_number, None, False, matched_user_id=None,
             consent_snapshot=consent_snapshot,

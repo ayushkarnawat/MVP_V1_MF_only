@@ -87,44 +87,15 @@ def _consent_rows(client):
         db.close()
 
 
-def test_cams_request_needs_disclaimer(client, auth_setup):
-    from app.db.session import get_db
-    from app.models.imports import Import
-
+def test_cams_request_needs_no_consent_and_records_none(client, auth_setup):
+    """2026-10-07: requesting a CAS from CAMS records no PAN consent (that is
+    recorded at upload). With or without a version -- even a stale one from an
+    older client -- the request goes through and writes no consent row."""
     headers, member_id = auth_setup
-    missing = client.post("/cas-imports/request", headers=headers, json={"household_member_id": str(member_id)})
-    stale = client.post(
-        "/cas-imports/request",
-        headers=headers,
-        json={"household_member_id": str(member_id), "pan_disclaimer_version": "pan-old"},
-    )
-
-    for res in (missing, stale):
-        assert res.status_code == 422
-        detail = res.json()["detail"]
-        assert detail["code"] == "consent_required"
-        assert detail["missing"] == ["pan_disclaimer"]
+    for body in (
+        {"household_member_id": str(member_id)},
+        {"household_member_id": str(member_id), "pan_disclaimer_version": "pan-old"},
+    ):
+        res = client.post("/cas-imports/request", headers=headers, json=body)
+        assert res.status_code == 201, res.text
     assert _consent_rows(client) == []
-    db = next(client.app.dependency_overrides[get_db]())
-    try:
-        assert db.query(Import).count() == 0
-    finally:
-        db.close()
-
-
-def test_cams_request_records_disclaimer_with_import_id(client, auth_setup):
-    headers, member_id = auth_setup
-    res = client.post(
-        "/cas-imports/request",
-        headers=headers,
-        json={"household_member_id": str(member_id), "pan_disclaimer_version": PAN_DISCLAIMER_VERSION},
-    )
-    assert res.status_code == 201
-
-    (row,) = _consent_rows(client)
-    assert row.surface == "cams_request"
-    assert str(row.related_import_id) == res.json()["import_id"]
-    assert row.document_type.value == "pan_disclaimer"
-    assert row.purpose_code.value == "cas_pan_processing"
-    assert row.action.value == "given"
-    assert row.document_version == PAN_DISCLAIMER_VERSION

@@ -12,6 +12,10 @@ from __future__ import annotations
 
 from html import escape
 
+# Brand accent (#22C55E, the app's --color-accent) is used only on the bold
+# highlighted words: at normal text size it is too light on white to read.
+SUPPORT_EMAIL = "support@unifolio.in"
+
 
 def otp_email_html(otp: str, ttl_minutes: int) -> str:
     """Renders the OTP verification email's HTML body. `otp` is escaped even
@@ -40,7 +44,8 @@ def otp_email_html(otp: str, ttl_minutes: int) -> str:
   body {{ margin: 0; background: #FFFFFF; color: #111111; }}
   .wrap {{ font-family: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 32px 24px; }}
   .headline {{ font-size: 16px; line-height: 1.55; margin: 4px 0 26px; }}
-  .code-pill {{ color: #15803D; font-weight: 700; }}
+  .code-pill {{ color: #22C55E; font-weight: 700; }}
+  .support {{ color: #22C55E; font-weight: 700; text-decoration: none; }}
   .otp-number {{ font-family: 'DM Sans', ui-monospace, "SF Mono", "Roboto Mono", Consolas, monospace; font-variant-numeric: tabular-nums; font-size: 40px; font-weight: 700; letter-spacing: 0.06em; text-align: center; margin: 8px 0 26px; }}
   .rule {{ height: 1px; border: none; background: #E5E5E5; margin: 0 0 22px; }}
   .note {{ font-size: 13.5px; line-height: 1.65; color: #374151; margin: 0; }}
@@ -50,7 +55,8 @@ def otp_email_html(otp: str, ttl_minutes: int) -> str:
   }}
   @media (prefers-color-scheme: dark) {{
     body {{ background: #0F0F0F !important; color: #F5F5F5 !important; }}
-    .code-pill {{ color: #4ADE80 !important; }}
+    .code-pill {{ color: #22C55E !important; }}
+    .support {{ color: #22C55E !important; }}
     .rule {{ background: #2A2A2A !important; }}
     .note {{ color: #D4D4D4 !important; }}
     .disclaimer {{ color: #9CA3AF !important; }}
@@ -62,8 +68,8 @@ def otp_email_html(otp: str, ttl_minutes: int) -> str:
   <p class="headline">Your <span class="code-pill">verification code</span> to sign in to Unifolio is below.</p>
   <div class="otp-number">{safe_otp}</div>
   <hr class="rule">
-  <p class="note">This code expires in <b>{ttl_minutes} minutes</b>. If you didn't request it, you can safely ignore this email — no changes have been made to your account.</p>
-  <p class="disclaimer">This is an automated message from Unifolio. Please don't reply to this email.</p>
+  <p class="note">This code expires in <b>{ttl_minutes} minutes</b>. If you didn't request it, contact us at <a class="support" href="mailto:{SUPPORT_EMAIL}">{SUPPORT_EMAIL}</a> and we'll look into it.</p>
+  <p class="disclaimer">This is an automated message from Unifolio. Please don't reply to this email. For help, write to {SUPPORT_EMAIL}.</p>
 </div>
 </body>
 </html>

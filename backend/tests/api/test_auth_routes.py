@@ -791,6 +791,43 @@ def test_phone_first_signup_writes_consent_rows_with_the_account(client):
     db.close()
 
 
+def test_phone_signup_consent_is_captured_at_get_otp_and_timed_at_the_click(client):
+    """2026-10-07: clicking "Get OTP" is the agreement. The versions travel with
+    the OTP request, are checked there, and the consent rows written at account
+    creation carry the click time even though verify sends no consent."""
+    from datetime import datetime, timedelta, timezone
+
+    phone, email = "+919100400031", "c31@example.com"
+    req = client.post(
+        "/auth/otp/request",
+        json={"phone_number": phone, "flow": "signup", "accepted_documents": _consent()},
+        headers={"X-Device-Id": "dev-click", "User-Agent": "pytest-UA"},
+    )
+    assert req.status_code == 200
+    clicked_at = datetime.now(timezone.utc)
+    r = client.post("/auth/otp/verify", json={"phone_number": phone, "otp": req.json()["otp"], "flow": "signup"})
+    assert r.status_code == 200, r.text
+    token = r.json()["email_required"]["token"]
+    eotp = client.post("/auth/email-otp/request", json={"email": email, "pending_token": token}).json()["otp"]
+    s = client.post("/auth/email-otp/verify", json={"email": email, "otp": eotp, "pending_token": token}).json()
+    db = _db(client)
+    rows = db.query(ConsentRecord).filter(ConsentRecord.user_id == uuid.UUID(s["user_id"])).all()
+    assert len(rows) == 3 and {r.surface for r in rows} == {"signup_phone"}
+    assert all(r.device_id == "dev-click" for r in rows)
+    for r in rows:
+        recorded = r.recorded_at if r.recorded_at.tzinfo else r.recorded_at.replace(tzinfo=timezone.utc)
+        assert abs(recorded - clicked_at) < timedelta(seconds=5)
+    db.close()
+
+
+def test_phone_signup_get_otp_with_stale_consent_is_422_and_sends_nothing(client):
+    bad = [{"document_type": "terms_of_service", "document_version": "old"}, _consent()[1]]
+    r = client.post(
+        "/auth/otp/request", json={"phone_number": "+919100400032", "flow": "signup", "accepted_documents": bad}
+    )
+    assert r.status_code == 422 and r.json()["detail"]["missing"] == ["terms_of_service"]
+
+
 def test_login_ignores_consent_fields(client):
     phone = "+919100400004"
     _register_phone(client, phone)

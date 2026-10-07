@@ -27,7 +27,7 @@ def test_schedule_account_deletion_records_anonymous_survey_and_five_day_deadlin
     )
 
     assert user.pending_deletion is True
-    assert scheduled_at == now + timedelta(days=5)
+    assert scheduled_at == now + timedelta(days=30)
     persisted_deadline = user.deletion_scheduled_at
     if persisted_deadline.tzinfo is None:  # SQLite drops timezone metadata on reload.
         persisted_deadline = persisted_deadline.replace(tzinfo=timezone.utc)

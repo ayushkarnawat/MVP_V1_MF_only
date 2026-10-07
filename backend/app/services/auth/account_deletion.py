@@ -23,7 +23,7 @@ from app.services.legal.registry import current_documents
 
 logger = logging.getLogger(__name__)
 
-DELETION_GRACE_PERIOD = timedelta(days=5)
+DELETION_GRACE_PERIOD = timedelta(days=30)
 
 
 def schedule_account_deletion(

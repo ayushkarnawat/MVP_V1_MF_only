@@ -22,7 +22,7 @@ from app.config import settings
 from app.models.auth import OtpRequest
 from app.services.auth.device_info import RequestMetadata
 from app.services.auth.email_provider import get_email_provider
-from app.services.auth.email_templates import otp_email_html
+from app.services.auth.email_templates import SUPPORT_EMAIL, otp_email_html
 
 OTP_LENGTH = 6
 OTP_TTL_MINUTES = 5
@@ -69,6 +69,7 @@ def create_otp_request(
     identifier: str,
     channel: Channel = "sms",
     metadata: RequestMetadata | None = None,
+    consent_snapshot: dict | None = None,
 ) -> tuple[OtpRequest, str | None]:
     """Creates or reuses an OtpRequest for either channel. Returns
     (request, raw_otp) — raw_otp is only non-None in dev-stub delivery
@@ -130,7 +131,10 @@ def create_otp_request(
         get_email_provider().send_email(
             to=identifier,
             subject="Your Unifolio verification code",
-            body=f"Your Unifolio verification code is {otp}. It expires in {OTP_TTL_MINUTES} minutes.",
+            body=(
+                f"Your Unifolio verification code is {otp}. It expires in {OTP_TTL_MINUTES} minutes. "
+                f"If you didn't request it, contact us at {SUPPORT_EMAIL}."
+            ),
             html_body=otp_email_html(otp, OTP_TTL_MINUTES),
         )
 
@@ -169,6 +173,10 @@ def create_otp_request(
     request.browser_family = meta.browser_family
     request.browser_version = meta.browser_version
     request.device_id = meta.device_id
+    # Phone sign-up's "Get OTP" consent (0030). A resend that carries no
+    # consent keeps the one already captured instead of erasing it.
+    if consent_snapshot is not None:
+        request.consent_snapshot = consent_snapshot
 
     db.commit()
 

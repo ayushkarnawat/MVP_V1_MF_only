@@ -24,7 +24,7 @@ def test_account_deletion_requires_reason_and_returns_five_day_status(client):
     body = response.json()
     assert body["pending_deletion"] is True
     scheduled = datetime.fromisoformat(body["deletion_scheduled_at"])
-    assert timedelta(days=4, hours=23) < scheduled - datetime.now(timezone.utc) <= timedelta(days=5)
+    assert timedelta(days=29, hours=23) < scheduled - datetime.now(timezone.utc) <= timedelta(days=30)
 
 
 def test_pending_user_can_log_in_and_reactivate(client):
