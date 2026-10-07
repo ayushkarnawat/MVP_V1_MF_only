@@ -575,8 +575,8 @@ The checklist is in `Docs/investigations/2026-10-05-cas-import-fix-plan-final.ht
 | C2 dashboard after import | value about ₹20 Cr; a Realised gain block and a "Sold funds" section; Today’s gain; Current XIRR about 15.5%, Lifetime about 14.7% |
 | C3 plan badges | Direct badges green; Regular grey; no unclassified |
 | C4 one fund, two numbers | the table row and the fund popup show the same unrealised gain |
-| C5 SIPs | the 2013 HDFC Flexi Cap SIP is not under Upcoming (it appears under "Show stopped SIPs"); Parag Parikh shows "× 2"; no fake stopped SIPs from 2020 |
-| C6 distributor + analytics | no-ARN Regular folios labelled "Regular (no ARN on statement)"; per-fund "Saves x% a year vs Regular"; no "Save ~x%" line in TER; the duplicate category labels and the liquid-fund benchmark are known, deferred (#24) |
+| C5 SIPs | the 2013 HDFC Flexi Cap SIP is not under Upcoming (it appears under "Show stopped SIPs"); Parag Parikh shows "× 2"; no fake stopped SIPs from 2020 (exact list: check D1 below) |
+| C6 distributor + analytics | no-ARN Regular folios labelled "Regular (no ARN on statement)"; per-fund "Saves x% a year vs Regular"; no "Save ~x%" line in TER (check D2 below); the duplicate category labels and the liquid-fund benchmark are known, deferred (#24) |
 | C7 mobile | green Direct badges; XIRR, Realised and Today’s gain in the hero; Upcoming SIPs card; "History ›" opens Portfolio history; allocation order Equity, Debt, Hybrid, Other |
 | C8 FY → 7-year → delete FY (`p7_*`, ARJUN SURESH NAIR) | after FY about ₹12 Cr (not ₹28 L); after 7-year the same about ₹12 Cr; after deleting FY still about ₹12 Cr |
 | C9 family (`fam_10yr`) | popup shows 2 people; filtering to NEHA changes the hero to her figures; her PPFAS row opens her numbers |
@@ -586,13 +586,48 @@ The checklist is in `Docs/investigations/2026-10-05-cas-import-fix-plan-final.ht
 | C13 review survives a restart (`p3_FY`, ISHA MOHAN VERMA) | on staging, instead of Ctrl+C: stop at the review screen, then run `aws ecs update-service --cluster unifolio-staging --service unifolio-staging-backend --force-new-deployment --query "service.deployments[0].status" --output text` and wait for `COMPLETED` (Step 8's watch); then press Confirm imports → it saves (no "This review has expired") |
 | C14 two tabs (`p7_1yr`) | tab B should say "This statement was already imported", not "A household member was removed" (check before running: not verified locally; screenshot whatever tab B shows) |
 
+#### Two checks for the 6 October decisions (same `p20_20yr` account as C1–C6)
+
+**D1. Stamp duty no longer splits a SIP.**
+
+1. On the desktop dashboard, open the SIP section, **Upcoming** tab.
+2. Screenshot it as `D1-a.png`.
+3. Press **Show stopped SIPs** and screenshot again as `D1-b.png`.
+
+| | Expected |
+|---|---|
+| Upcoming, default (`D1-a`) | exactly 4 SIPs: HDFC Flexi Cap Direct ₹53,709.81 · Parag Parikh Flexi Cap ₹42,967.85 **× 2** · Nippon India Nifty 50 ₹64,451.78 · Axis Large Cap Regular ₹16,112.94. "Monthly SIP total" counts Parag Parikh twice. |
+| With "Show stopped SIPs" (`D1-b`) | the same 4, plus **one** row with a **Stopped** badge: HDFC Flexi Cap Regular ₹21,485 (last paid Dec 2013). **5 rows in total.** |
+| Not acceptable | any **Stopped** row whose last payment is **June 2020**, e.g. ₹53,712.50 or ₹42,970.00. That is the old split back. |
+
+Then the **This Month** tab:
+1. Press **←** back to **August 2020**. Screenshot it as `D1-c.png`. Expected: HDFC Flexi Cap Direct **₹53,709.81** (the amount paid then, after stamp duty).
+2. Go back further to **March 2020**. Screenshot it as `D1-d.png`. Expected: HDFC Flexi Cap Direct **₹53,712.50** (before stamp duty).
+
+Amounts are from the synthetic statement, so they're exact; they don't depend on NAVs.
+
+**D2. The TER card has no "Save" line.**
+
+1. Open **Analytics**, then the TER section's "Direct vs. Regular Fee Comparison" card.
+2. Screenshot it as `D2-a.png`.
+3. On the dashboard, open **Distributor Comparison** and expand the "Direct Plan (No Broker)" row.
+4. Screenshot it as `D2-b.png`.
+
+| | Expected |
+|---|---|
+| TER card (`D2-a`) | "Direct Plans TER x%" and "Regular Plans TER y%" with their two bars, Direct value / Regular value, Portfolio coverage. **No green "Save ~…% per year with Direct" text anywhere.** A missing value shows "—", not ₹0. |
+| Distributor Comparison (`D2-b`) | under some Direct funds, a line "Saves x% a year vs Regular". It appears only where the same fund's Regular plan costs more; it never shows a negative number. |
+| Not acceptable | any "Save ~" text on the TER card, or a negative "Saves" figure. |
+
+On mobile (phone width, as in C7), repeat D1 (the Upcoming SIPs card shows the same 4, Parag Parikh "× 2") and D2 (the Analytics TER card, no "Save" line).
+
 Also check the **new Portfolio history page** (desktop: the History tab; mobile: "History ›" on the value card). It shows one point per month, a hollow dot for a partial month, and range chips (desktop 1Y/3Y/5Y/All, mobile 1Y/5Y/All).
 
 ### 12d. Send to Aditi
 
 Send:
 - the 12b Import health screenshots;
-- the C1–C14 screenshots;
+- the C1–C14 screenshots and D1/D2 (`D1-a` … `D1-d`, `D2-a`, `D2-b`);
 - any failure, with the time it happened;
 - an `aws logs tail /ecs/staging-backend --since 30m` excerpt around any failure.
 
