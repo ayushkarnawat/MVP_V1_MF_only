@@ -1,10 +1,15 @@
+import sys
+from pathlib import Path
 import json, os, itertools
 from decimal import Decimal as D
 from collections import defaultdict
 import pytest
 from api.import_helpers import _authed_headers_and_member, PAN_DISCLAIMER_VERSION, _test_db
-SYN="/mnt/c/Users/Dell/Desktop/MVP v1/MVP_V1_MF_only/Docs/CAS Files/synthetic/"
-TRUTH=json.load(open(SYN+"truth.json"))
+_HERE=Path(__file__).resolve().parent.parent
+sys.path.insert(0,str(_HERE))
+from pdf_dir import pdf_dir  # noqa: E402  PDFs live outside the repo
+SYN=str(pdf_dir())+"/"
+TRUTH=json.load(open(_HERE/"truth.json"))
 SEQ=os.environ.get("SEQ","p3_FY.pdf").split(",")
 OUT=os.environ.get("OUT","/dev/null")
 

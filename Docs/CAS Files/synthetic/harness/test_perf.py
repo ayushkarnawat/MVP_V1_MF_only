@@ -1,13 +1,17 @@
 """Cost model for production: CPU seconds, DB round-trips and peak memory of
 parse / confirm / holdings / snapshots for one file."""
+import sys
 import json, os, resource, time
 from sqlalchemy import event
 from api.import_helpers import _authed_headers_and_member, PAN_DISCLAIMER_VERSION
 
 from pathlib import Path
-SYN = str(Path(__file__).resolve().parent.parent) + "/"
+_HERE = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(_HERE))
+from pdf_dir import pdf_dir  # noqa: E402  PDFs live outside the repo
+SYN = str(pdf_dir()) + "/"
 FN = os.environ["FN"]; OUT = os.environ["OUT"]
-TRUTH = json.load(open(SYN + "truth.json"))
+TRUTH = json.load(open(_HERE / "truth.json"))
 
 
 def rss_mb():

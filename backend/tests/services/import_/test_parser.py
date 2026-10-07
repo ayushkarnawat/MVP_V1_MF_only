@@ -381,10 +381,24 @@ def test_unrelated_text_error_is_not_scanned():
     assert classify_parse_error(ValueError("bad text encoding in row 3")).code == "parse_failed"
 
 
-def test_parse_error_on_error_pdfs():
+def _synthetic_pdf_dir():
+    """Generated synthetic CAS PDFs live outside the repo (2026-10-07; see
+    Docs/CAS Files/synthetic/pdf_dir.py). Override with UNIFOLIO_SYNTHETIC_CAS."""
+    import os
     from pathlib import Path
+    env = os.environ.get("UNIFOLIO_SYNTHETIC_CAS")
+    if env:
+        return Path(env)
+    for candidate in ("/mnt/c/Users/Dell/Desktop/Unifolio/CAS Files/synthetic",
+                      "C:/Users/Dell/Desktop/Unifolio/CAS Files/synthetic"):
+        if Path(candidate).is_dir():
+            return Path(candidate)
+    return Path(candidate)
+
+
+def test_parse_error_on_error_pdfs():
     from app.services.import_.parser import ParseError, parse_cas_pdf_bytes
-    errors = Path(__file__).resolve().parents[4] / "Docs" / "CAS Files" / "synthetic" / "errors"
+    errors = _synthetic_pdf_dir() / "errors"
     if not errors.exists():
         pytest.skip("synthetic error PDFs not generated (Task 0)")
     expected = {"err_scanned.pdf": "scanned_pdf", "err_truncated.pdf": "damaged_pdf"}
@@ -420,9 +434,10 @@ def test_bare_pdfium_cas_error_is_damaged_pdf():
 
 
 def test_synthetic_parse_releases_temp_pdf():
-    from pathlib import Path
     from app.services.import_.parser import parse_cas_pdf_bytes
-    pdf = Path(__file__).resolve().parents[4] / "Docs/CAS Files/synthetic/p3_FY.pdf"
+    pdf = _synthetic_pdf_dir() / "p3_FY.pdf"
+    if not pdf.exists():
+        pytest.skip("synthetic CAS PDFs not on disk (UNIFOLIO_SYNTHETIC_CAS)")
     result = parse_cas_pdf_bytes(pdf.read_bytes(), "MF@123")
     assert result.schemes
 

@@ -8,8 +8,11 @@ from reportlab.lib.pagesizes import A4
 from cas_builder import encrypt_pdf, CASBuilder
 import gen_scenarios as g
 
-HERE = Path(__file__).parent
+# Reads and writes the PDFs outside the repo (pdf_dir.py).
+from pdf_dir import pdf_dir  # noqa: E402
+HERE = pdf_dir()
 OUT = HERE / "errors"
+OUT.mkdir(parents=True, exist_ok=True)
 PW = "MF@123"
 
 # 1. Scanned statement: every page of p7_FY rasterised to an image, no text layer.

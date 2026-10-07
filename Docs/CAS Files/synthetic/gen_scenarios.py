@@ -29,6 +29,9 @@ from cas_builder import AmcBlock, CASBuilder, Folio, Scheme, Txn, encrypt_pdf
 from layouts import KfinBuilder, OldCamsBuilder
 
 HERE = Path(__file__).resolve().parent
+# PDFs go outside the repo (pdf_dir.py); truth.json stays here.
+from pdf_dir import pdf_dir  # noqa: E402
+PDF_DIR = pdf_dir()
 PASSWORD = "MF@123"
 END = date(2026, 10, 1)  # NAV date of the real latest NAVs below
 STATEMENT_TO = date(2026, 10, 5)
@@ -614,7 +617,7 @@ def main():
         for label, start in p.windows:
             pdf, truth = render(p, L, label, start)
             fname = f"{p.slug}_{label}.pdf"
-            encrypt_pdf(pdf, PASSWORD, str(HERE / fname))
+            encrypt_pdf(pdf, PASSWORD, str(PDF_DIR / fname))
             all_truth[fname] = truth
             print(f"{fname:14} funds={len(truth['funds']):2} value=Rs {D(truth['total_value']):>16,.2f}")
     ledgers = {p.slug: ledger_for(p) for p in PERSONAS}
@@ -639,7 +642,7 @@ def main():
         "oldcams_p20_20yr.pdf": render(by_slug["p20"], ledgers["p20"], "20yr", W20[1], builder=OldCamsBuilder),
     }
     for fname, (pdf, truth) in extras.items():
-        encrypt_pdf(pdf, PASSWORD, str(HERE / fname))
+        encrypt_pdf(pdf, PASSWORD, str(PDF_DIR / fname))
         all_truth[fname] = truth
         print(f"{fname:20} funds={len(truth['funds']):2} value=Rs {D(truth['total_value']):>16,.2f}")
     (HERE / "truth.json").write_text(json.dumps(all_truth, indent=1))

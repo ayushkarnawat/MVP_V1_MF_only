@@ -53,7 +53,7 @@ def main():
     truth_path = g.HERE / "truth.json"
     truth = json.loads(truth_path.read_text())
     for fname, (pdf, t) in files.items():
-        g.encrypt_pdf(pdf, g.PASSWORD, str(g.HERE / fname))
+        g.encrypt_pdf(pdf, g.PASSWORD, str(g.PDF_DIR / fname))
         truth[fname] = t
         print(f"{fname:20} funds={len(t['funds']):2} value=Rs {D(t['total_value']):>16,.2f}")
     truth_path.write_text(json.dumps(truth, indent=1))

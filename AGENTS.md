@@ -43,6 +43,16 @@ it was ported from no longer exists on this branch. `CAS Parsers/mf-import/front
 - Migrations: `alembic revision --autogenerate -m "<message>"` then `alembic upgrade head`
 - Local Postgres for functional tests: `docker compose up postgres`
 
+## CAS test files (outside the repo)
+
+CAS PDFs are never committed. Use them from the shared folder on the Desktop:
+- `Desktop/Unifolio/CAS Files/` (WSL: `/mnt/c/Users/Dell/Desktop/Unifolio/CAS Files/`): real statements
+  (personal data, read-only) and the synthetic family pair `family_cas_1.pdf` / `family_cas_2.pdf`.
+- `Desktop/Unifolio/CAS Files/synthetic/`: the generated synthetic statements (password `MF@123`) and
+  `errors/`. The scripts that make them, the harness and `truth.json` stay in the repo under
+  `Docs/CAS Files/synthetic/` (see its README); `pdf_dir.py` there resolves the folder, and
+  `UNIFOLIO_SYNTHETIC_CAS=<folder>` overrides it.
+
 ## Non-negotiables
 
 - **Test-driven, always.** Red (failing test) → green (minimal passing code) → refactor.

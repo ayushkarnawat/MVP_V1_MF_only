@@ -1,6 +1,7 @@
 """Deep check of everything the dashboard derives from an import, against an
 independent truth computed straight from the CAS rows (casparser). Run one
 scenario per process: SEQ=a.pdf,b.pdf OUT=x.json [SNAP=1] [DELETE_FIRST=1 | DELETE_LAST=1]."""
+import sys
 import asyncio, json, os, time, uuid
 from collections import defaultdict
 from datetime import date, timedelta
@@ -10,8 +11,11 @@ import casparser
 from api.import_helpers import _authed_headers_and_member, PAN_DISCLAIMER_VERSION, _test_db
 
 from pathlib import Path
-SYN = str(Path(__file__).resolve().parent.parent) + "/"
-TRUTH = json.load(open(SYN + "truth.json"))
+_HERE = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(_HERE))
+from pdf_dir import pdf_dir  # noqa: E402  PDFs live outside the repo
+SYN = str(pdf_dir()) + "/"
+TRUTH = json.load(open(_HERE / "truth.json"))
 SEQ = os.environ["SEQ"].split(",")
 OUT = os.environ["OUT"]
 SNAP = os.environ.get("SNAP") == "1"
