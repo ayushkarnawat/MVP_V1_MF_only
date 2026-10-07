@@ -5,7 +5,7 @@ import type { LegalDocument } from "./types";
 // No markdown library: paragraphs are blank-line separated. A leading "# "
 // line is the document heading (already shown as the dialog title, so it is
 // dropped when it repeats it); a leading "> " line is rendered as plain text.
-function toParagraphs(content: string, title: string): { heading: string | null; paragraphs: string[] } {
+export function toParagraphs(content: string, title: string): { heading: string | null; paragraphs: string[] } {
   const blocks = content
     .split(/\n\s*\n/)
     .map((b) => b.trim())
@@ -22,7 +22,16 @@ function toParagraphs(content: string, title: string): { heading: string | null;
   };
 }
 
-export function LegalDocumentModal({ doc, onClose }: { doc: LegalDocument | null; onClose: () => void }) {
+export function LegalDocumentModal({
+  doc,
+  onClose,
+  closeLabel = "Close",
+}: {
+  doc: LegalDocument | null;
+  onClose: () => void;
+  /** The upload page's PAN disclaimer popup uses "Ok". */
+  closeLabel?: string;
+}) {
   if (!doc) return null;
   const { heading, paragraphs } = toParagraphs(doc.content, doc.title);
   return (
@@ -32,7 +41,7 @@ export function LegalDocumentModal({ doc, onClose }: { doc: LegalDocument | null
       onClose={onClose}
       footer={
         <Button type="button" variant="outline" onClick={onClose}>
-          Close
+          {closeLabel}
         </Button>
       }
     >

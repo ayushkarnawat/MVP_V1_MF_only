@@ -14,8 +14,9 @@ const ACCEPTED = [
   { document_type: "privacy_policy", document_version: "privacy-placeholder-2026-10-01" },
 ];
 
+/** No tick box since 2026-10-07: Reactivate enables once the documents load. */
 async function tick() {
-  fireEvent.click(await screen.findByRole("checkbox", { name: /I agree to the/ }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Reactivate" })).toBeEnabled());
 }
 
 describe("PendingDeletionScreen", () => {
@@ -23,7 +24,7 @@ describe("PendingDeletionScreen", () => {
     vi.mocked(getLegalDocuments).mockResolvedValue(DOCS);
   });
 
-  it("shows only the scheduled date and reactivation action; Reactivate is disabled until the box is ticked", async () => {
+  it("shows only the scheduled date and reactivation action; tapping Reactivate is the agreement", async () => {
     const reactivate = vi.fn().mockResolvedValue(undefined);
     render(
       <PendingDeletionScreen
@@ -35,7 +36,8 @@ describe("PendingDeletionScreen", () => {
     expect(screen.getByText(/scheduled for deletion on/i)).toHaveTextContent("16 September 2026");
     expect(screen.queryByText("Dashboard")).not.toBeInTheDocument();
     expect(screen.queryByText("Analytics")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Reactivate" })).toBeDisabled();
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    expect(screen.getByText(/By reactivating, you agree to our/)).toBeInTheDocument();
     await tick();
     fireEvent.click(screen.getByRole("button", { name: "Reactivate" }));
     await waitFor(() => expect(reactivate).toHaveBeenCalledWith(ACCEPTED));

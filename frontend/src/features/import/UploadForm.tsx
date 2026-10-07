@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { ImportFileProgressList } from "./ImportFileProgressList";
 import { OnboardingIllustration } from "@/features/auth/OnboardingIllustration";
 import { cn } from "@/lib/utils";
-import { PanDisclaimer } from "@/features/legal/PanDisclaimer";
+import { PanPrivacyNotice } from "@/features/legal/PanDisclaimer";
 import type { UploadSurface } from "@/features/legal/panDisclaimerStore";
 import {
   UploadCloud,
@@ -27,7 +27,7 @@ export interface UploadFormProps {
 }
 
 export function UploadForm({ passwordError, serverFileError, onBack, onSubmit, surface = "import_upload" }: UploadFormProps) {
-  const [disclaimerChecked, setDisclaimerChecked] = useState(false);
+  const [panReady, setPanReady] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -213,17 +213,18 @@ export function UploadForm({ passwordError, serverFileError, onBack, onSubmit, s
 
       {passwordError && <p id="password-error" role="alert" className="text-xs text-[var(--color-negative)]">{passwordError}</p>}
 
-      <PanDisclaimer checked={disclaimerChecked} onChange={setDisclaimerChecked} surface={surface} />
 
       {/* Submit Button */}
       <Button
         type="submit"
-        disabled={!disclaimerChecked}
+        disabled={!panReady}
         className="w-full h-11 sm:h-12 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs sm:text-sm shadow-xs gap-2 cursor-pointer active:scale-[0.99] transition-all min-h-[44px]"
       >
         <UploadCloud className="h-4 w-4" />
         <span>Upload Statement</span>
       </Button>
+
+      <PanPrivacyNotice surface={surface} onReadyChange={setPanReady} />
     </form>
   );
 }

@@ -98,11 +98,11 @@ describe("App", () => {
 
     expect(await screen.findByText("We’ve updated our Terms")).toBeInTheDocument();
     const agree = screen.getByRole("button", { name: "Agree" });
-    expect(agree).toBeDisabled();
     expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
-    const box = screen.getByRole("checkbox");
-    await waitFor(() => expect(box).toBeEnabled());
-    fireEvent.click(box);
+    // 2026-10-07: no tick box -- Agree enables once the documents load; tapping it is the agreement.
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    expect(screen.getByText(/By tapping Agree, you agree to our/)).toBeInTheDocument();
+    await waitFor(() => expect(agree).toBeEnabled());
     fireEvent.click(agree);
 
     await waitFor(() => expect(screen.queryByText("We’ve updated our Terms")).not.toBeInTheDocument());

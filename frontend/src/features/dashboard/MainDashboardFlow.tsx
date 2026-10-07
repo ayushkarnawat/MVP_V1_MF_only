@@ -24,14 +24,10 @@ import {
 } from "../../components/ui/select";
 import { ArrowLeft, Pencil, ShieldCheck, User } from "lucide-react";
 
-function toMemberOption(m: HouseholdMember, hasPhone: boolean): MemberOption {
-  const label =
-    m.relationship === "self"
-      ? hasPhone ? `${m.name || "Self"} (Me)` : "Self"
-      : m.relationship
-        ? `${m.name} (${m.relationship})`
-        : m.name; // detected member, relationship not chosen yet
-  return { id: m.id, name: label, completion: m.profile_completion };
+// Name only (7 Oct decision): no relationship suffix or completion % in the
+// picker; the % lives on the "N% complete" chip under it.
+function toMemberOption(m: HouseholdMember): MemberOption {
+  return { id: m.id, name: m.name || "Self" };
 }
 
 type MainTab = "dashboard" | "history" | "analytics" | "profile";
@@ -66,7 +62,7 @@ export function MainDashboardFlow() {
     getHouseholdMembers()
       .then((data) => {
         setRawMembers(data);
-        setMembers(data.map((m) => toMemberOption(m, Boolean(me?.phone_number))));
+        setMembers(data.map(toMemberOption));
 
         const firstOpen = data[0];
         if (data.length > 1) {
@@ -114,7 +110,7 @@ export function MainDashboardFlow() {
     try {
       const data = await getHouseholdMembers();
       setRawMembers(data);
-      setMembers(data.map((m) => toMemberOption(m, Boolean(me?.phone_number))));
+      setMembers(data.map(toMemberOption));
     } catch {
       // Keep the list we have; the next load will retry.
     }

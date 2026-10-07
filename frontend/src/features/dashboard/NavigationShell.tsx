@@ -14,8 +14,6 @@ import { UnifolioLogo } from "@/components/UnifolioLogo";
 export interface MemberOption {
   id: string;
   name: string;
-  /** Profile completion %, shown next to the name while below 100. */
-  completion: number;
 }
 
 export interface NavigationShellProps {
@@ -146,12 +144,7 @@ export function NavigationShell({
                     <SelectContent>
                       {members.map((m) => (
                         <SelectItem key={m.id} value={m.id}>
-                          <span className="inline-flex items-center gap-1.5">
-                            {m.name}
-                            {m.completion < 100 && (
-                              <span className="ml-auto text-[11px] text-[var(--color-warning)]">{m.completion}%</span>
-                            )}
-                          </span>
+                          {m.name}
                         </SelectItem>
                       ))}
                     </SelectContent>

@@ -20,7 +20,7 @@ import { isEmailRequired, isLinkRequired, isPhoneRequired } from "./types";
 import type { ExistingMethod } from "./types";
 import { useAuth } from "./AuthContext";
 import { acceptedFor, isConsentRequired } from "../legal/api";
-import { ConsentCheckbox } from "../legal/ConsentCheckbox";
+import { ConsentNotice } from "../legal/ConsentNotice";
 import { useLegalDocuments } from "../legal/useLegalDocuments";
 import { formatAuthErrorMessage, isExpiredVerificationError } from "./validation";
 
@@ -32,7 +32,7 @@ interface LinkInfo {
   existingMethod: ExistingMethod;
 }
 
-const STALE_TERMS_MESSAGE = "Our terms were just updated. Please review and tick the box again.";
+const STALE_TERMS_MESSAGE = "Our terms were just updated. Please review them and continue again.";
 const CONSENT_TYPES = ["terms_of_service", "privacy_policy"] as const;
 
 function errorMessage(err: unknown, fallback: string): string {
@@ -50,7 +50,6 @@ export function AuthEntryFlow({
 }: AuthEntryFlowProps = {}) {
   const { login } = useAuth();
   const { docs, error: docsError, refetch } = useLegalDocuments();
-  const [consent, setConsent] = useState(false);
   const accepted = docs ? acceptedFor(docs, [...CONSENT_TYPES]) : undefined;
   // Set when a Google tap returns consent_required (unknown Google account):
   // holds the id_token so Continue can retry it with accepted_documents.
@@ -171,7 +170,6 @@ export function AuthEntryFlow({
     setEmailOtpEmail("");
     setGoogleConsentToken(null);
     setAuthMode("signup");
-    setConsent(false);
     goToStep("landing");
     await refetch();
     setError(STALE_TERMS_MESSAGE);
@@ -181,11 +179,26 @@ export function AuthEntryFlow({
     setSubmitting(true);
     setError(null);
     try {
-      const result = await requestOtp(phone, phoneGateToken ?? undefined, phoneGateToken ? undefined : authMode);
+      // 2026-10-07: on a phone-first sign-up, clicking "Get OTP" is the T&C +
+      // Privacy agreement, so the versions travel with this request and the
+      // server records the consent at the click.
+      const signupConsent = !phoneGateToken && authMode === "signup" ? accepted : undefined;
+      const result = await requestOtp(
+        phone,
+        phoneGateToken ?? undefined,
+        phoneGateToken ? undefined : authMode,
+        signupConsent,
+      );
       setIdentifier(phone);
       goToStep("otp");
       setDevOtp(result.otp);
     } catch (err) {
+      if (isConsentRequired(err)) {
+        // The terms changed since the page loaded: reload them and ask again.
+        await refetch();
+        setError(STALE_TERMS_MESSAGE);
+        return;
+      }
       setError(errorMessage(err, "Couldn't send the code. Try again."));
     } finally {
       setSubmitting(false);
@@ -210,7 +223,7 @@ export function AuthEntryFlow({
     setSubmitting(true);
     setError(null);
     try {
-      const result = await signupEmail(email, consent ? accepted : undefined);
+      const result = await signupEmail(email, accepted);
       setAuthMode("signup");
       // signupEmail always resolves to email_otp_required — transitions to
       // the inline email-OTP step, which runs before the mandatory phone
@@ -393,12 +406,10 @@ export function AuthEntryFlow({
     } catch (err) {
       if (isConsentRequired(err)) {
         if (!acceptedOverride) {
-          // Unknown Google account: ask for consent, then retry the same token.
-          setConsent(false);
+          // Unknown Google account: show the consent line, then retry the same token.
           setGoogleConsentToken(idToken);
         } else {
           await refetch();
-          setConsent(false);
           setError(STALE_TERMS_MESSAGE);
         }
         return;
@@ -420,27 +431,19 @@ export function AuthEntryFlow({
           {error}
         </p>
       )}
-      <ConsentCheckbox
-        checked={consent}
-        onChange={setConsent}
-        docs={docs}
-        types={[...CONSENT_TYPES]}
-        loadError={docsError}
-        onRetry={() => void refetch()}
-      />
       <Button
         type="button"
-        disabled={submitting || !consent || !accepted}
+        disabled={submitting || !accepted}
         onClick={() => void handleGoogleCredential(token, accepted)}
         className="w-full h-14 rounded-full font-bold text-base bg-[#22C55E] hover:bg-[#22C55E]/90 text-white cursor-pointer"
       >
         Continue
       </Button>
+      <ConsentNotice loadError={docsError} onRetry={() => void refetch()} />
       <button
         type="button"
         onClick={() => {
           setGoogleConsentToken(null);
-          setConsent(false);
           setError(null);
         }}
         className="block mx-auto text-xs font-bold text-[#22C55E] hover:underline cursor-pointer py-1"
@@ -468,8 +471,6 @@ export function AuthEntryFlow({
             onGoogleCredential={handleGoogleCredential}
             error={error}
             submitting={submitting}
-            consentChecked={consent}
-            onConsentChange={setConsent}
             legalDocs={docs}
             legalLoadError={docsError}
             onLegalRetry={() => void refetch()}

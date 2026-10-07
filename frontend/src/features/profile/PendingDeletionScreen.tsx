@@ -2,7 +2,7 @@ import { useState } from "react";
 import { RotateCcw } from "lucide-react";
 import { acceptedFor, isConsentRequired } from "../legal/api";
 import type { AcceptedDocument } from "../legal/types";
-import { ConsentCheckbox } from "../legal/ConsentCheckbox";
+import { ConsentNotice } from "../legal/ConsentNotice";
 import { useLegalDocuments } from "../legal/useLegalDocuments";
 
 export function PendingDeletionScreen({
@@ -14,7 +14,6 @@ export function PendingDeletionScreen({
 }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [consent, setConsent] = useState(false);
   const { docs, error: docsError, refetch } = useLegalDocuments();
   const deletionDate = new Intl.DateTimeFormat("en-IN", {
     day: "numeric",
@@ -33,20 +32,11 @@ export function PendingDeletionScreen({
         <p className="text-sm leading-6 text-[var(--color-text-secondary)]">
           Your account is scheduled for deletion on <strong className="text-[var(--color-ink)]">{deletionDate}</strong>.
         </p>
-        <div className="mx-auto w-fit text-left">
-          <ConsentCheckbox
-            checked={consent}
-            onChange={setConsent}
-            docs={docs}
-            types={["terms_of_service", "privacy_policy"]}
-            label="reactivate"
-            loadError={docsError}
-            onRetry={() => void refetch()}
-          />
-        </div>
+        {/* 2026-10-07: clicking Reactivate is the agreement; no tick box. */}
+        <ConsentNotice lead="By reactivating" loadError={docsError} onRetry={() => void refetch()} />
         <button
           type="button"
-          disabled={pending || !consent || !docs}
+          disabled={pending || !docs}
           onClick={async () => {
             setPending(true);
             setError(null);
@@ -56,8 +46,7 @@ export function PendingDeletionScreen({
               if (isConsentRequired(err)) {
                 // Terms changed since this page loaded: pick up the new versions and re-ask.
                 await refetch();
-                setConsent(false);
-                setError("Our terms were just updated. Please review and tick the box again.");
+                setError("Our terms were just updated. Please review them and tap Reactivate again.");
               } else {
                 setError("Could not reactivate your account. Please try again.");
               }

@@ -52,10 +52,8 @@ describe("SoloCasUpload", () => {
     renderSolo("Ayush");
 
     fireEvent.click(await screen.findByRole("button", { name: /already have a statement|upload/i }));
-    const box = await screen.findByRole("checkbox");
-    await waitFor(() => expect(box).toBeEnabled());
-    fireEvent.click(box);
-    expect(currentPanDisclaimer()?.surface).toBe("onboarding_upload");
+    // No tick box (2026-10-07): the version registers as soon as the policy loads.
+    await waitFor(() => expect(currentPanDisclaimer()?.surface).toBe("onboarding_upload"));
   });
 
   it("reuses an existing self household member instead of creating a duplicate", async () => {

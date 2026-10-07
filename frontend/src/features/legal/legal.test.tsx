@@ -1,11 +1,12 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { ConsentCheckbox } from "./ConsentCheckbox";
+import { ConsentNotice } from "./ConsentNotice";
+import { LegalPage, legalTypeForPath } from "./LegalPage";
 import { LegalDocumentModal } from "./LegalDocumentModal";
 import { acceptedFor, isConsentRequired } from "./api";
 import { ApiError } from "../../lib/apiClient";
 import { DOCS } from "./testFixtures";
-import { PanDisclaimer } from "./PanDisclaimer";
+import { PanPrivacyNotice } from "./PanDisclaimer";
 import { currentPanDisclaimer } from "./panDisclaimerStore";
 
 vi.mock("./api", async () => {
@@ -15,37 +16,46 @@ vi.mock("./api", async () => {
 });
 
 
-describe("ConsentCheckbox", () => {
-  it("renders the agreement copy and toggles", () => {
-    const onChange = vi.fn();
-    render(<ConsentCheckbox checked={false} onChange={onChange} docs={DOCS} types={["terms_of_service", "privacy_policy"]} />);
-    const box = screen.getByRole("checkbox", { name: /I agree to the/ });
-    fireEvent.click(box);
-    expect(onChange).toHaveBeenCalledWith(true);
+describe("ConsentNotice", () => {
+  it("says continuing is agreeing, with both documents opening in a new tab; no tick box", () => {
+    render(<ConsentNotice />);
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    expect(screen.getByText(/By continuing, you agree to our/)).toBeInTheDocument();
+    const terms = screen.getByRole("link", { name: "Terms & Conditions" });
+    const privacy = screen.getByRole("link", { name: "Privacy Policy" });
+    expect(terms).toHaveAttribute("href", "/legal/terms");
+    expect(privacy).toHaveAttribute("href", "/legal/privacy");
+    for (const link of [terms, privacy]) {
+      expect(link).toHaveAttribute("target", "_blank");
+      expect(link).toHaveAttribute("rel", expect.stringContaining("noopener"));
+    }
   });
 
-  it("opens the document modal from each link without toggling", () => {
-    const onChange = vi.fn();
-    render(<ConsentCheckbox checked={false} onChange={onChange} docs={DOCS} types={["terms_of_service", "privacy_policy"]} />);
-    fireEvent.click(screen.getByRole("button", { name: "Terms & Conditions" }));
-    expect(screen.getByRole("dialog")).toHaveTextContent("First paragraph.");
-    expect(onChange).not.toHaveBeenCalled();
-    fireEvent.click(screen.getAllByRole("button", { name: "Close" }).at(-1)!);
-    fireEvent.click(screen.getByRole("button", { name: "Privacy Policy" }));
-    expect(screen.getByRole("dialog")).toHaveTextContent("Privacy body.");
-  });
-
-  it("is disabled until documents load", () => {
-    render(<ConsentCheckbox checked={false} onChange={vi.fn()} docs={null} types={["terms_of_service"]} />);
-    expect(screen.getByRole("checkbox")).toBeDisabled();
+  it("uses the screen's own lead-in", () => {
+    render(<ConsentNotice lead="By reactivating" />);
+    expect(screen.getByText(/By reactivating, you agree to our/)).toBeInTheDocument();
   });
 
   it("shows a retry when loading failed", () => {
     const onRetry = vi.fn();
-    render(<ConsentCheckbox checked={false} onChange={vi.fn()} docs={null} types={["terms_of_service"]} loadError onRetry={onRetry} />);
+    render(<ConsentNotice loadError onRetry={onRetry} />);
     expect(screen.getByRole("alert")).toHaveTextContent("Couldn’t load our terms. Check your connection and try again.");
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
     expect(onRetry).toHaveBeenCalled();
+  });
+});
+
+describe("LegalPage", () => {
+  it("maps /legal/terms and /legal/privacy, ignoring a trailing slash", () => {
+    expect(legalTypeForPath("/legal/terms")).toBe("terms_of_service");
+    expect(legalTypeForPath("/legal/privacy/")).toBe("privacy_policy");
+    expect(legalTypeForPath("/legal/other")).toBeNull();
+  });
+
+  it("renders the document text without needing a login", async () => {
+    render(<LegalPage type="privacy_policy" />);
+    expect(await screen.findByRole("heading", { level: 1, name: "Privacy Policy" })).toBeInTheDocument();
+    expect(screen.getByText("Privacy body.")).toBeInTheDocument();
   });
 });
 
@@ -90,21 +100,26 @@ describe("helpers", () => {
   });
 });
 
-describe("PanDisclaimer", () => {
-  it("shows only the disclaimer sentence: no title, no placeholder note, no full-document link", async () => {
-    render(<PanDisclaimer checked={false} onChange={vi.fn()} surface="import_upload" />);
-    expect(await screen.findByText("I confirm I am authorised to share this statement.")).toBeInTheDocument();
-    expect(screen.queryByText("# PAN disclaimer")).not.toBeInTheDocument();
-    expect(screen.queryByText(/being finalised/)).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /read the full pan disclaimer/i })).not.toBeInTheDocument();
+describe("PanPrivacyNotice", () => {
+  it("shows the two lines with no tick box; 'privacy policy' opens the PAN disclaimer with Ok", async () => {
+    render(<PanPrivacyNotice surface="import_upload" />);
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    expect(screen.getByText(/Your data is encrypted and safe with us\./)).toBeInTheDocument();
+    expect(screen.getByText(/By continuing, you agree to our/)).toBeInTheDocument();
+    const link = screen.getByRole("button", { name: "privacy policy" });
+    await waitFor(() => expect(link).toBeEnabled());
+    fireEvent.click(link);
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog).toHaveTextContent("I confirm I am authorised to share this statement.");
+    fireEvent.click(screen.getByRole("button", { name: "Ok" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
 
-  it("registers the version when ticked and clears it on unmount", async () => {
-    const { rerender, unmount } = render(<PanDisclaimer checked={false} onChange={vi.fn()} surface="mobile_upload" />);
-    await waitFor(() => expect(screen.getByRole("checkbox")).toBeEnabled());
-    expect(currentPanDisclaimer()).toBeNull();
-    rerender(<PanDisclaimer checked onChange={vi.fn()} surface="mobile_upload" />);
-    expect(currentPanDisclaimer()).toEqual({ version: DOCS[2].version, surface: "mobile_upload" });
+  it("registers the version as soon as it loads (no tick needed) and clears it on unmount", async () => {
+    const onReadyChange = vi.fn();
+    const { unmount } = render(<PanPrivacyNotice surface="mobile_upload" onReadyChange={onReadyChange} />);
+    await waitFor(() => expect(currentPanDisclaimer()).toEqual({ version: DOCS[2].version, surface: "mobile_upload" }));
+    expect(onReadyChange).toHaveBeenLastCalledWith(true);
     unmount();
     expect(currentPanDisclaimer()).toBeNull();
   });

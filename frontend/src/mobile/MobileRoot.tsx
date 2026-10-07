@@ -7,9 +7,11 @@ import { MobileAnalyticsView } from "./features/analytics/MobileAnalyticsView";
 import { MobileImportView } from "./features/import/MobileImportView";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { LogOut } from "lucide-react";
+import { LogoutConfirmDialog } from "../features/profile/LogoutConfirmDialog";
 
 export function MobileRoot() {
   const { loading, logout } = useAuth();
+  const [confirmLogout, setConfirmLogout] = useState(false);
   const [importNotice, setImportNotice] = useState<{ text: string; details?: string[] } | null>(null);
   const [activeTab, setActiveTab] = useState<MobileTab>("dashboard");
   const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -19,7 +21,7 @@ export function MobileRoot() {
     <div className="flex items-center gap-1">
       <ThemeToggle className="h-9 w-9 rounded-xl" />
       <button
-        onClick={logout}
+        onClick={() => setConfirmLogout(true)}
         className="h-9 w-9 rounded-xl flex items-center justify-center text-[var(--color-text-secondary)] hover:text-[var(--color-negative)] hover:bg-[var(--color-bg)] active:scale-90 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-negative)]"
         aria-label="Logout"
         title="Logout"
@@ -27,6 +29,7 @@ export function MobileRoot() {
       >
         <LogOut className="h-4 w-4" />
       </button>
+      <LogoutConfirmDialog isOpen={confirmLogout} onCancel={() => setConfirmLogout(false)} onConfirm={logout} />
     </div>
   );
 

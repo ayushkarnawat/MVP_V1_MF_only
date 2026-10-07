@@ -10,11 +10,11 @@ vi.mock("../legal/api", async () => {
   return { ...actual, getLegalDocuments: vi.fn(async () => DOCS) };
 });
 
+/** No tick box since 2026-10-07: waits until the PAN policy has loaded, which
+ * is what enables Upload (its version is sent with the click). */
 async function tickDisclaimer() {
-  const box = await screen.findByRole("checkbox");
-  await waitFor(() => expect(box).toBeEnabled());
-  fireEvent.click(box);
-  return box;
+  await waitFor(() => expect(screen.getByRole("button", { name: "privacy policy" })).toBeEnabled());
+  await waitFor(() => expect(screen.getByRole("button", { name: /upload statement/i })).toBeEnabled());
 }
 
 describe("UploadForm", () => {
@@ -66,19 +66,19 @@ describe("UploadForm", () => {
     expect(screen.getByText(/please select a pdf file to upload/i)).toBeInTheDocument();
   });
 
-  it("upload is disabled until the disclaimer is ticked", async () => {
+  it("upload waits only for the PAN policy to load (no tick box)", async () => {
     render(<UploadForm onSubmit={vi.fn()} />);
     expect(screen.getByRole("button", { name: /upload/i })).toBeDisabled();
     await tickDisclaimer();
     expect(screen.getByRole("button", { name: /upload/i })).toBeEnabled();
   });
 
-  it("ticking sets the store, unticking clears it", async () => {
+  it("registers the PAN disclaimer version as soon as it loads, with no tick box", async () => {
     render(<UploadForm onSubmit={vi.fn()} surface="onboarding_upload" />);
-    const box = await tickDisclaimer();
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    await tickDisclaimer();
     expect(currentPanDisclaimer()).toEqual({ version: DOCS[2].version, surface: "onboarding_upload" });
-    fireEvent.click(box);
-    expect(currentPanDisclaimer()).toBeNull();
+    expect(screen.getByText(/Your data is encrypted and safe with us\./)).toBeInTheDocument();
   });
 
   it("defaults to the import_upload surface and clears the store on unmount", async () => {

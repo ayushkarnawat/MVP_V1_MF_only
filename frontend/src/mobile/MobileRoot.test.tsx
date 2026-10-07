@@ -195,7 +195,7 @@ describe("MobileAppShell & MobileRoot", () => {
     expect(screen.getAllByLabelText("Toggle theme")).toHaveLength(1);
   });
 
-  it("renders mobile logout button and triggers logout on click", () => {
+  it("renders mobile logout button and logs out only after confirming", async () => {
     const mockLogout = vi.fn();
     vi.mocked(authContext.useAuth).mockReturnValue({
       token: "mock-token",
@@ -225,6 +225,8 @@ describe("MobileAppShell & MobileRoot", () => {
     expect(logoutBtn).toBeInTheDocument();
 
     fireEvent.click(logoutBtn);
+    expect(mockLogout).not.toHaveBeenCalled();
+    fireEvent.click(await screen.findByRole("button", { name: "Yes, log out" }));
     expect(mockLogout).toHaveBeenCalledTimes(1);
   });
 });

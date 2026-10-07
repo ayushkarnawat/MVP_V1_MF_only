@@ -34,6 +34,8 @@ export async function requestOtp(
   phoneNumber: string,
   pendingToken?: string,
   flow?: "signup" | "login",
+  /** Phone sign-up only: the T&C + Privacy versions agreed by clicking "Get OTP". */
+  acceptedDocuments?: AcceptedDocument[],
 ): Promise<OtpRequestResponse> {
   const response = await fetch(`${API_BASE_URL}/auth/otp/request`, {
     method: "POST",
@@ -42,6 +44,7 @@ export async function requestOtp(
       phone_number: phoneNumber,
       ...(pendingToken ? { pending_token: pendingToken } : {}),
       ...(flow ? { flow } : {}),
+      ...(acceptedDocuments ? { accepted_documents: acceptedDocuments } : {}),
     }),
   });
   await throwIfError(response);

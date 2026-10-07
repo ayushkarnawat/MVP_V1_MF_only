@@ -2,8 +2,6 @@ import { useState } from "react";
 import { requestCamsStatement } from "@/features/import/api";
 import { setCasResumeStep2 } from "@/features/import/casResumeState";
 import { Button } from "@/components/ui/button";
-import { PanDisclaimer } from "@/features/legal/PanDisclaimer";
-import { useLegalDocuments } from "@/features/legal/useLegalDocuments";
 import {
   ExternalLink,
   AlertTriangle,
@@ -23,18 +21,14 @@ export function MobileRequestCamsView({
   onBack,
   onRequestInitiated,
 }: MobileRequestCamsViewProps) {
-  const [disclaimerChecked, setDisclaimerChecked] = useState(false);
-  const { docs } = useLegalDocuments();
-  const panVersion = docs?.find((d) => d.document_type === "pan_disclaimer")?.version ?? null;
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleRequest = async () => {
-    if (!panVersion) return;
     setIsLoading(true);
     setError(null);
     try {
-      const result = await requestCamsStatement(memberId, panVersion);
+      const result = await requestCamsStatement(memberId);
       setCasResumeStep2(memberId);
       window.open(result.cams_url, "_blank");
       onRequestInitiated(result.import_id, result.expires_at);
@@ -137,12 +131,11 @@ export function MobileRequestCamsView({
         </div>
       )}
 
-      <PanDisclaimer checked={disclaimerChecked} onChange={setDisclaimerChecked} surface="mobile_upload" />
 
       {/* Action Button */}
       <Button
         onClick={handleRequest}
-        disabled={isLoading || !disclaimerChecked || !panVersion}
+        disabled={isLoading}
         className="w-full h-13 sm:h-13.5 rounded-full bg-[#22C55E] hover:bg-[#22C55E]/90 dark:bg-[#22C55E] dark:hover:bg-[#22C55E]/90 text-white font-bold text-[14px] sm:text-[15px] shadow-lg shadow-[#22C55E]/25 gap-2 cursor-pointer active:scale-[0.98] transition-all min-h-[48px] border-none"
       >
         {isLoading ? (

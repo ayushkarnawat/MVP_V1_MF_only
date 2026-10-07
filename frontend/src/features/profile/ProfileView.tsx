@@ -9,6 +9,7 @@ import type { HouseholdMember } from "../auth/types";
 import { HouseholdMembersSection } from "./HouseholdMembersSection";
 import { ImportHistorySection } from "./ImportHistorySection";
 import { TermsSection } from "./TermsSection";
+import { LogoutConfirmDialog } from "./LogoutConfirmDialog";
 
 interface ProfileViewProps {
   name: string;
@@ -65,6 +66,7 @@ export function ProfileView({
   const [historyVersion, setHistoryVersion] = useState(0);
   const [membersVersion, setMembersVersion] = useState(0);
   const [deletionStep, setDeletionStep] = useState<"closed" | "survey" | "confirm">("closed");
+  const [confirmLogout, setConfirmLogout] = useState(false);
   const [deletionReason, setDeletionReason] = useState<AccountDeletionReason | null>(null);
   const [feedback, setFeedback] = useState("");
   const [deletionSubmitting, setDeletionSubmitting] = useState(false);
@@ -167,7 +169,7 @@ export function ProfileView({
       ))}
       <button
         type="button"
-        onClick={logout}
+        onClick={() => setConfirmLogout(true)}
         className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] md:mt-3 md:rounded-none md:border-t md:border-[var(--color-border)] md:pt-4"
       >
         <LogOut className="h-4 w-4" />
@@ -178,6 +180,7 @@ export function ProfileView({
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
+      <LogoutConfirmDialog isOpen={confirmLogout} onCancel={() => setConfirmLogout(false)} onConfirm={logout} />
       <div>
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-text-secondary)]">
           Account
@@ -207,7 +210,7 @@ export function ProfileView({
               <section className="space-y-3 rounded-xl border border-[var(--color-negative)]/60 bg-[color-mix(in_srgb,var(--color-negative)_5%,var(--color-surface))] p-5 sm:p-6">
                 <h3 className="font-display text-lg font-semibold text-[var(--color-negative)]">Delete account</h3>
                 <p className="text-sm text-[var(--color-text-secondary)]">
-                  Permanently remove your account and household data after a five-day grace period.
+                  Permanently remove your account and household data after a 30-day grace period.
                 </p>
                 <button
                   type="button"
@@ -297,7 +300,7 @@ export function ProfileView({
         ) : (
           <div className="space-y-5">
             <p className="text-sm leading-6 text-[var(--color-text-secondary)]">
-              Your account and all household data will be permanently deleted in 5 days. You can cancel anytime before then.
+              Your account and all household data will be permanently deleted in 30 days. You can cancel anytime before then.
             </p>
             <button
               type="button"

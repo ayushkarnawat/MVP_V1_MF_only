@@ -308,11 +308,12 @@ describe("cas-import lifecycle methods", () => {
     );
     vi.stubGlobal("fetch", mockFetch);
 
-    const res = await requestCamsStatement("m-1", "pan-v1");
+    const res = await requestCamsStatement("m-1");
     expect(res.status).toBe("waiting_for_user");
     expect(res.cams_url).toContain("camsonline");
     const [url, options] = mockFetch.mock.calls[0];
-    expect(JSON.parse(options.body as string)).toEqual({ household_member_id: "m-1", pan_disclaimer_version: "pan-v1" });
+    // No PAN consent with a CAMS request (2026-10-07).
+    expect(JSON.parse(options.body as string)).toEqual({ household_member_id: "m-1" });
     expect(url).toContain("/cas-imports/request");
     expect(options.method).toBe("POST");
   });

@@ -17,10 +17,11 @@ vi.mock("@/features/legal/api", async () => {
 });
 
 /** Ticks the PAN disclaimer once the documents have loaded. */
+/** No tick box since 2026-10-07: waits until the PAN policy has loaded, which
+ * is what enables Upload (its version is sent with the click). */
 async function tickDisclaimer() {
-  const box = await screen.findByRole("checkbox");
-  await waitFor(() => expect(box).toBeEnabled());
-  fireEvent.click(box);
+  await waitFor(() => expect(screen.getByRole("button", { name: "privacy policy" })).toBeEnabled());
+  await waitFor(() => expect(screen.getByRole("button", { name: /upload statement/i })).toBeEnabled());
 }
 
 vi.mock("@/features/auth/api", () => ({
@@ -187,11 +188,11 @@ describe("MobileImportView", () => {
     const requestBtn = await screen.findByRole("button", {
       name: /request statement on cams/i,
     });
-    await tickDisclaimer();
+    // No PAN consent on a CAMS request (2026-10-07).
     fireEvent.click(requestBtn);
 
     await waitFor(() => {
-      expect(importApi.requestCamsStatement).toHaveBeenCalledWith("m-1", DOCS[2].version);
+      expect(importApi.requestCamsStatement).toHaveBeenCalledWith("m-1");
       expect(windowOpenSpy).toHaveBeenCalledWith("https://www.camsonline.com/cas", "_blank");
       expect(hasCasResumeStep2("m-1")).toBe(true);
     });
@@ -201,12 +202,12 @@ describe("MobileImportView", () => {
     expect(screen.getByText(/already got the email\? upload it now/i)).toBeInTheDocument();
   });
 
-  it("mobile upload shows the disclaimer with mobile_upload surface", async () => {
+  it("mobile upload shows the privacy line (no tick box) with mobile_upload surface", async () => {
     render(<MobileImportView defaultMemberId="m-1" defaultTab="upload" />);
 
     const submit = screen.getByRole("button", { name: /upload statement/i });
-    expect(submit).toBeDisabled();
-    expect(await screen.findByText(/I confirm I am authorised to share this statement/)).toBeInTheDocument();
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    expect(screen.getByText(/Your data is encrypted and safe with us\./)).toBeInTheDocument();
     await tickDisclaimer();
     expect(submit).toBeEnabled();
     expect(currentPanDisclaimer()).toEqual({ version: DOCS[2].version, surface: "mobile_upload" });

@@ -26,10 +26,11 @@ vi.mock("../legal/api", async () => {
 });
 
 /** Ticks the PAN disclaimer once the legal documents have loaded. */
+/** No tick box since 2026-10-07: waits until the PAN policy has loaded, which
+ * is what enables Upload (its version is sent with the click). */
 async function tickDisclaimer() {
-  const box = await screen.findByRole("checkbox");
-  await waitFor(() => expect(box).toBeEnabled());
-  fireEvent.click(box);
+  await waitFor(() => expect(screen.getByRole("button", { name: "privacy policy" })).toBeEnabled());
+  await waitFor(() => expect(screen.getByRole("button", { name: /upload statement/i })).toBeEnabled());
 }
 
 async function uploadAFile() {

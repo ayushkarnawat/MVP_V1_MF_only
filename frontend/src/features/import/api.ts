@@ -258,7 +258,6 @@ export async function postOpeningBalance(
 
 export async function requestCamsStatement(
   householdMemberId: string,
-  panDisclaimerVersion: string,
 ): Promise<{
   import_id: string;
   household_member_id: string;
@@ -269,7 +268,8 @@ export async function requestCamsStatement(
   const response = await fetch(`${API_BASE_URL}/cas-imports/request`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders() },
-    body: JSON.stringify({ household_member_id: householdMemberId, pan_disclaimer_version: panDisclaimerVersion }),
+    // No PAN consent for a CAMS request (2026-10-07): it is recorded at upload.
+    body: JSON.stringify({ household_member_id: householdMemberId }),
   });
 
   if (!response.ok) {

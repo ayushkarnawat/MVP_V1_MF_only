@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { ImportFileProgressList } from "@/features/import/ImportFileProgressList";
 import { OnboardingIllustration } from "@/features/auth/OnboardingIllustration";
 import { cn } from "@/lib/utils";
-import { PanDisclaimer } from "@/features/legal/PanDisclaimer";
+import { PanPrivacyNotice } from "@/features/legal/PanDisclaimer";
 import {
   UploadCloud,
   Lock,
@@ -33,7 +33,7 @@ export function MobileUploadForm({
   isLoading = false,
   className,
 }: MobileUploadFormProps) {
-  const [disclaimerChecked, setDisclaimerChecked] = useState(false);
+  const [panReady, setPanReady] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -219,17 +219,18 @@ export function MobileUploadForm({
 
       {passwordError && <p id="mobile-password-error" role="alert" className="text-xs text-[var(--color-negative)]">{passwordError}</p>}
 
-      <PanDisclaimer checked={disclaimerChecked} onChange={setDisclaimerChecked} surface="mobile_upload" />
 
       {/* Submit Button */}
       <Button
         type="submit"
-        disabled={isLoading || !disclaimerChecked}
+        disabled={isLoading || !panReady}
         className="w-full h-13 sm:h-13.5 rounded-full bg-[#22C55E] hover:bg-[#22C55E]/90 dark:bg-[#22C55E] dark:hover:bg-[#22C55E]/90 text-white font-bold text-[14px] sm:text-[15px] shadow-lg shadow-[#22C55E]/25 gap-2 cursor-pointer active:scale-[0.98] transition-all min-h-[48px] border-none"
       >
         <UploadCloud className="h-4 w-4" />
         <span>{isLoading ? "Parsing Statement..." : "Upload Statement"}</span>
       </Button>
+
+      <PanPrivacyNotice surface="mobile_upload" onReadyChange={setPanReady} />
     </form>
   );
 }

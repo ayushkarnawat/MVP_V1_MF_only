@@ -4,14 +4,13 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "../auth/AuthContext";
 import { PromptDialog } from "../import/prompts/PromptDialog";
 import { acceptedFor, submitReconsent } from "./api";
-import { ConsentCheckbox } from "./ConsentCheckbox";
+import { ConsentNotice } from "./ConsentNotice";
 import type { LegalDocumentType } from "./types";
 import { useLegalDocuments } from "./useLegalDocuments";
 
 export function ReconsentGate({ children }: { children: ReactNode }) {
   const { me, refreshMe } = useAuth();
   const { docs, error: loadError, refetch } = useLegalDocuments();
-  const [agreed, setAgreed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,20 +41,13 @@ export function ReconsentGate({ children }: { children: ReactNode }) {
         onClose={() => {}}
         hideClose
         footer={
-          <Button type="button" disabled={!agreed || !docs || submitting} onClick={() => void agree()}>
+          <Button type="button" disabled={!docs || submitting} onClick={() => void agree()}>
             Agree
           </Button>
         }
       >
-        <ConsentCheckbox
-          checked={agreed}
-          onChange={setAgreed}
-          docs={docs}
-          types={["terms_of_service", "privacy_policy"]}
-          label="reactivate"
-          loadError={loadError}
-          onRetry={() => void refetch()}
-        />
+        {/* 2026-10-07: clicking Agree is the agreement; no tick box. */}
+        <ConsentNotice lead="By tapping Agree" loadError={loadError} onRetry={() => void refetch()} />
         {error && (
           <p role="alert" className="text-xs text-[var(--color-negative)]">
             {error}

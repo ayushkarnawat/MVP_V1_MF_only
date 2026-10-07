@@ -17,10 +17,11 @@ vi.mock("../legal/api", async () => {
 });
 
 /** Ticks the PAN disclaimer once the legal documents have loaded. */
+/** No tick box since 2026-10-07: waits until the PAN policy has loaded, which
+ * is what enables Upload (its version is sent with the click). */
 async function tickDisclaimer() {
-  const box = await screen.findByRole("checkbox");
-  await waitFor(() => expect(box).toBeEnabled());
-  fireEvent.click(box);
+  await waitFor(() => expect(screen.getByRole("button", { name: "privacy policy" })).toBeEnabled());
+  await waitFor(() => expect(screen.getByRole("button", { name: /upload statement/i })).toBeEnabled());
 }
 
 describe("TwoPathImportContainer", () => {
@@ -120,11 +121,11 @@ describe("TwoPathImportContainer", () => {
     fireEvent.click(screen.getByRole("button", { name: /request from cams/i }));
 
     const requestBtn = screen.getByRole("button", { name: /request statement on cams/i });
-    await tickDisclaimer();
+    // No PAN consent on a CAMS request (2026-10-07).
     fireEvent.click(requestBtn);
 
     await waitFor(() => {
-      expect(api.requestCamsStatement).toHaveBeenCalledWith("m-1", expect.any(String));
+      expect(api.requestCamsStatement).toHaveBeenCalledWith("m-1");
       expect(mockOpen).toHaveBeenCalledWith("https://www.camsonline.com/cas", "_blank");
       expect(hasCasResumeStep2("m-1")).toBe(true);
     });
@@ -208,7 +209,6 @@ describe("TwoPathImportContainer", () => {
 
     render(<TwoPathImportContainer memberId="m-1" onUploadSubmit={onUploadSubmit} />);
     fireEvent.click(screen.getByRole("button", { name: /request from cams/i }));
-    await tickDisclaimer();
     fireEvent.click(screen.getByRole("button", { name: /request statement on cams/i }));
     await screen.findByText(/waiting for cams email/i);
     fireEvent.click(screen.getByRole("button", { name: /already got the email\? upload it now/i }));

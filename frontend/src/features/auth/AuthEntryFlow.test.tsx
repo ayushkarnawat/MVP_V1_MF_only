@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthEntryFlow } from "./AuthEntryFlow";
 import { AuthProvider } from "./AuthContext";
@@ -17,10 +17,12 @@ const ACCEPTED = [
   { document_type: "privacy_policy", document_version: "privacy-placeholder-2026-10-01" },
 ];
 
+/** No tick box since 2026-10-07: waits for the T&C / Privacy versions to load
+ * (they are sent with the button click, so the button waits for them). */
 async function tickConsent() {
-  const box = await screen.findByRole("checkbox", { name: /I agree to the/ });
-  await waitFor(() => expect(box).toBeEnabled());
-  fireEvent.click(box);
+  await screen.findByRole("link", { name: "Terms & Conditions" });
+  await waitFor(() => expect(getLegalDocuments).toHaveBeenCalled());
+  await act(async () => {});
 }
 
 vi.mock("./api", async () => {
@@ -462,7 +464,7 @@ describe("AuthEntryFlow", () => {
     fireEvent.click(screen.getByRole("button", { name: /get otp/i }));
 
     await screen.findByText("An account with this phone number already exists.");
-    expect(api.requestOtp).toHaveBeenCalledWith("+919811100001", undefined, "signup");
+    expect(api.requestOtp).toHaveBeenCalledWith("+919811100001", undefined, "signup", ACCEPTED);
     expect(screen.getByRole("button", { name: /log in instead/i })).toBeInTheDocument();
   });
 
@@ -478,7 +480,7 @@ describe("AuthEntryFlow", () => {
     fireEvent.click(screen.getByRole("button", { name: /send verification code/i }));
 
     await screen.findByText(/No account found for that phone number/);
-    expect(api.requestOtp).toHaveBeenCalledWith("+919811100004", undefined, "login");
+    expect(api.requestOtp).toHaveBeenCalledWith("+919811100004", undefined, "login", undefined);
     fireEvent.click(screen.getByRole("button", { name: /sign up instead/i }));
     expect(await screen.findByText(/create your account/i)).toBeInTheDocument();
   });
@@ -517,19 +519,34 @@ describe("AuthEntryFlow", () => {
     fireEvent.click(screen.getByRole("button", { name: /verify & continue/i }));
   }
 
-  it("sign-up Get OTP is disabled until the box is ticked", async () => {
+  it("sign-up shows the agreement line under Get OTP, with no tick box", async () => {
     renderFlow();
     fireEvent.change(screen.getByLabelText(/mobile number/i), { target: { value: "+919555555557" } });
-    expect(screen.getByRole("button", { name: /get otp/i })).toBeDisabled();
     await tickConsent();
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    expect(screen.getByText(/By continuing, you agree to our/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Terms & Conditions" })).toHaveAttribute("href", "/legal/terms");
+    expect(screen.getByRole("link", { name: "Privacy Policy" })).toHaveAttribute("href", "/legal/privacy");
     expect(screen.getByRole("button", { name: /get otp/i })).toBeEnabled();
   });
 
-  it("login mode shows no consent checkbox", async () => {
+  it("phone sign-up Get OTP sends the accepted documents (consent recorded at the click)", async () => {
+    vi.mocked(api.requestOtp).mockResolvedValue({ message: "OTP sent.", otp: "111111" });
+    renderFlow();
+    fireEvent.change(screen.getByLabelText(/mobile number/i), { target: { value: "+919555555556" } });
+    await tickConsent();
+    fireEvent.click(screen.getByRole("button", { name: /get otp/i }));
+    await waitFor(() =>
+      expect(api.requestOtp).toHaveBeenCalledWith("+919555555556", undefined, "signup", ACCEPTED),
+    );
+  });
+
+  it("login mode shows no consent line", async () => {
     renderFlow();
     fireEvent.click(screen.getByRole("button", { name: /^log in$/i }));
     await waitFor(() => screen.getByTestId("google-button-container"));
     expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    expect(screen.queryByText(/you agree to our/)).not.toBeInTheDocument();
   });
 
   it("phone sign-up verify sends accepted documents", async () => {
@@ -553,8 +570,9 @@ describe("AuthEntryFlow", () => {
 
     await screen.findByText("Create your Unifolio account");
     expect(screen.getByText("It looks like you’re new here.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^continue$/i })).toBeDisabled();
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
     await tickConsent();
+    await waitFor(() => expect(screen.getByRole("button", { name: /^continue$/i })).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
 
     await waitFor(() => expect(api.verifyGoogleCredential).toHaveBeenCalledTimes(2));
@@ -571,7 +589,7 @@ describe("AuthEntryFlow", () => {
     expect(await screen.findByRole("button", { name: /continue with email/i })).toBeInTheDocument();
   });
 
-  it("google stale version refetches, unticks and shows the updated-terms message", async () => {
+  it("google stale version refetches and shows the updated-terms message", async () => {
     vi.mocked(api.verifyGoogleCredential)
       .mockRejectedValueOnce(new ApiError(422, { code: "consent_required", message: "x" }))
       .mockRejectedValueOnce(new ApiError(422, { code: "consent_required", message: "x" }));
@@ -582,9 +600,8 @@ describe("AuthEntryFlow", () => {
     vi.mocked(getLegalDocuments).mockClear();
     fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
 
-    await screen.findByText("Our terms were just updated. Please review and tick the box again.");
+    await screen.findByText("Our terms were just updated. Please review them and continue again.");
     expect(getLegalDocuments).toHaveBeenCalledWith(true);
-    expect(screen.getByRole("checkbox")).not.toBeChecked();
   });
 
   it("R9: consent_required at the final phone sign-up step restarts sign-up", async () => {
@@ -593,11 +610,9 @@ describe("AuthEntryFlow", () => {
     renderFlow();
     await reachSignupOtp("+919555555559");
 
-    await screen.findByText("Our terms were just updated. Please review and tick the box again.");
+    await screen.findByText("Our terms were just updated. Please review them and continue again.");
     expect(getLegalDocuments).toHaveBeenCalledWith(true);
     expect(screen.getByText(/create your account/i)).toBeInTheDocument();
-    expect(screen.getByRole("checkbox", { name: /I agree to the/ })).not.toBeChecked();
-    expect(screen.getByRole("button", { name: /get otp/i })).toBeDisabled();
   });
 });
 

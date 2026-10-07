@@ -1,5 +1,5 @@
 vi.mock("../dev/useDevToolsEnabled", () => ({ useDevToolsEnabled: () => false }));
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ProfileView } from "./ProfileView";
 import { DOCS } from "../legal/testFixtures";
@@ -46,10 +46,18 @@ describe("ProfileView", () => {
     expect(screen.getByRole("heading", { level: 2, name: "Account Info" })).toBeInTheDocument();
   });
 
-  it("logout calls logout", () => {
+  it("logout asks first: Cancel stays, Yes, log out logs out", async () => {
     const logout = vi.fn();
     render(<ProfileView name="Alice" email="alice@example.com" phoneNumber="+919999999999" logout={logout} />);
-    fireEvent.click(screen.getByRole("button", { name: /logout/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^logout$/i }));
+    expect(await screen.findByRole("dialog", { name: "Log out of Unifolio?" })).toBeInTheDocument();
+    expect(logout).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(logout).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: /^logout$/i }));
+    fireEvent.click(await screen.findByRole("button", { name: "Yes, log out" }));
     expect(logout).toHaveBeenCalledOnce();
   });
 
@@ -67,7 +75,7 @@ describe("ProfileView", () => {
     expect(await screen.findByRole("dialog", { name: "Privacy Policy" })).toBeInTheDocument();
   });
 
-  it("collects one exit reason then shows the single five-day confirmation", async () => {
+  it("collects one exit reason then shows the single 30-day confirmation", async () => {
     const requestAccountDeletion = vi.fn().mockResolvedValue(undefined);
     render(
       <ProfileView
@@ -88,7 +96,7 @@ describe("ProfileView", () => {
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
 
     expect(screen.getByText(
-      "Your account and all household data will be permanently deleted in 5 days. You can cancel anytime before then.",
+      "Your account and all household data will be permanently deleted in 30 days. You can cancel anytime before then.",
     )).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /^confirm deletion$/i }));
 

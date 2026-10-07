@@ -12,8 +12,8 @@ describe("NavigationShell", () => {
   });
 
   const sampleMembers = [
-    { id: "m-1", name: "Alice (Self)", completion: 100 },
-    { id: "m-2", name: "Bob (Spouse)", completion: 100 },
+    { id: "m-1", name: "Alice" },
+    { id: "m-2", name: "Bob" },
   ];
 
   it("renders header, logo mark, and enabled Analytics nav item", () => {
@@ -97,15 +97,15 @@ describe("NavigationShell", () => {
     expect(handleTabChange).toHaveBeenCalledWith("profile");
   });
 
-  it("no member shows a lock icon; every pick calls onMemberSelect, with % shown while incomplete", async () => {
+  it("no member shows a lock icon or a %; every pick calls onMemberSelect", async () => {
     const onMemberSelect = vi.fn();
     render(
       <NavigationShell
         viewMode="member"
         selectedMemberId="m-1"
         members={[
-          { id: "m-1", name: "Alice (Me)", completion: 100 },
-          { id: "m-3", name: "Ramesh Sharma", completion: 40 },
+          { id: "m-1", name: "Alice" },
+          { id: "m-3", name: "Ramesh Sharma" },
         ]}
         onViewModeChange={vi.fn()}
         onMemberSelect={onMemberSelect}
@@ -118,7 +118,7 @@ describe("NavigationShell", () => {
     fireEvent.keyDown(screen.getByLabelText("Select household member"), { key: "ArrowDown" });
     const option = await screen.findByRole("option", { name: /Ramesh Sharma/ });
     expect(option.querySelector("svg.lucide-lock")).toBeNull();
-    expect(option).toHaveTextContent("40%");
+    expect(option).not.toHaveTextContent("%");
     expect(screen.getByRole("option", { name: /Alice/ })).not.toHaveTextContent("%");
     fireEvent.click(option);
     expect(onMemberSelect).toHaveBeenCalledWith("m-3");
