@@ -483,6 +483,13 @@ ls terraform.tfvars && grep -c "=" terraform.tfvars
 **Good looks like:** `terraform.tfvars` and a number above 0.
 - **`No such file`:** stop. Copy the `terraform.tfvars` from the machine that ran the last apply. Without it, the plan would turn live email back to stub mode. Don't apply.
 
+**PAN keys for Terraform.** Without these, the plan stops and asks for `var.pan_encryption_key`. They're read from Secrets Manager and never typed or saved.
+```bash
+SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id unifolio-staging-pan-keys --query SecretString --output text)
+export TF_VAR_pan_encryption_key=$(echo "$SECRET_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin)['PAN_ENCRYPTION_KEY'])")
+export TF_VAR_pan_lookup_pepper=$(echo "$SECRET_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin)['PAN_LOOKUP_PEPPER'])")
+```
+
 **Plan:**
 ```bash
 terraform plan -out=scheme-master.tfplan
@@ -496,6 +503,9 @@ terraform plan -out=scheme-master.tfplan
 
 Plan: 3 to add, 1 to change, 0 to destroy.
 ```
+- **Seen on the real run (7 Oct): `4 to add, 1 to change, 0 to destroy`.** The fourth is `module.scheduler.aws_sns_topic_subscription.ops_alerts_email["siddharth.surve@unifolio.in"] will be created`. That's fine. AWS deletes an unconfirmed email subscription after 3 days, so Terraform re-creates it; Siddharth gets a new confirmation email and should click it.
+- `data "aws_iam_policy_document" "scheduler" will be read during apply` is also normal. It's the policy for the in-place update, computed once the new task definition exists.
+- The `dynamodb_table` and `network_interface` "deprecated" warnings are old notices, not changes.
 - The in-place update adds the new task definition to the list of tasks the scheduler may run.
 - The `aws_ecs_task_definition` for the backend service is **not** in the list, because the image tag is `latest` and doesn't change.
 
@@ -505,7 +515,7 @@ Plan: 3 to add, 1 to change, 0 to destroy.
 ```bash
 terraform apply scheme-master.tfplan
 ```
-**Good looks like:** `Apply complete! Resources: 3 added, 1 changed, 0 destroyed.`
+**Good looks like:** `Apply complete! Resources: 3 added, 1 changed, 0 destroyed.` (or `4 added` with the SNS subscription above).
 
 **Check the schedule:**
 ```bash
