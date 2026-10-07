@@ -1,4 +1,4 @@
-# Staging Deploy Guide — CAS import fixes (+ the 1 Oct consent / profile release if it isn't live yet)
+# Staging Deploy Guide — CAS import fixes (+ the 5 Oct small fixes)
 
 **One deploy that brings staging fully up to date** with branch `feat/enhanced-ui`.
 
@@ -22,15 +22,15 @@ Run it on **your manager's laptop**, as usual. It needs:
 
 ## What ships
 
-**A. The 1 October release**, if staging doesn't have it yet. Step 3 tells you which case you're in.
-- The consent tick box at sign-up, and the PAN disclaimer tick box on every upload and CAMS request.
-- The one-time "We've updated our Terms" prompt.
-- The onboarding privacy screen removed, and "Why choose? All of it.".
-- Name and PAN come from the statement.
-- No locked family members, the "% complete" nudge and the Complete profile popup.
-- Profile in five sections, and the OTP email without a logo.
-- Migrations `0021`, `0022` and `0023`.
-- Full detail: `2026-10-01-consent-release-deploy-guide.md` "What ships".
+**Already live on staging, not part of this deploy** (checked on 7 October against the live staging API, and confirmed by Aditi):
+- the 30 September staging QA fixes;
+- the 1 October consent / onboarding / profile release (`/legal/documents` answers, the new profile route exists, the old `/details` route is gone). That is migrations up to `0023`.
+
+**A. The 5 October small fixes** (committed after the 1 October deploy; staging still serves PAN disclaimer version `pan-disclaimer-placeholder-2026-10-01`, the repo has `…-2026-10-05`):
+- The PAN disclaimer text is simplified, with a new version. Every user is asked to tick it once more on their next upload. After the wipe in Step 6 everyone is new anyway.
+- The Profile terms section is cleaned up, and checkboxes are styled for light and dark mode.
+- Statement names with special characters (a hyphen, brackets, "&") no longer block "Yes, that’s me".
+- Stale CAMS requests expire, and request placeholders are hidden from Import history.
 
 **B. The CAS import fixes** (Phases 1–6 plus Phase 7 preparation). The dashboard now equals the CAS for every lookback and upload order. Detail: `session.md` 2026-10-06, `decisions.md` 2026-10-06.
 - The CAS opening balance is saved. This was the cause of the 10-year value gap.
@@ -208,12 +208,11 @@ export DATABASE_URL="postgresql://unifolio:$(python3 -c "import os,urllib.parse;
 
 | Shows | Means | Rollback revision `R` |
 |---|---|---|
-| `0020` | The 1 October release (A) is **not** live yet. This deploy ships A and B. | `0022` (see "If something goes wrong") |
-| `0023` | The 1 October release is live. This deploy ships B. | `0023` |
+| `0023` | **Expected.** The 1 October release is live (confirmed 7 October). | `0023` |
+| `0020`–`0022` | Unexpected: the 1 October release isn't (fully) live after all. Stop and ask Aditi before going on. | — |
 
 The `INFO ... Context impl PostgresqlImpl.` line before it is normal.
 
-- **`0021` or `0022`:** part of the 1 October deploy ran before. That's fine; continue, with `R = 0022`.
 - **`0025` or higher:** stop and ask Aditi. Part of this deploy has already run.
 - **Older than `0020`:** stop. An earlier deploy's migrations are missing. Send the output.
 
@@ -308,11 +307,8 @@ The script opens its own tunnel on port 5439 (Terminal A's 5434 tunnel is separa
 .venv/bin/alembic current
 ```
 
-**Good looks like (staging was on `0020`):**
+**Good looks like (staging is on `0023`, as expected):**
 ```
-INFO  [alembic.runtime.migration] Running upgrade 0020 -> 0021, household_members phone_number / email contact columns
-INFO  [alembic.runtime.migration] Running upgrade 0021 -> 0022, consent_records: append-only consent ledger (consent core)
-INFO  [alembic.runtime.migration] Running upgrade 0022 -> 0023, Member profile completion: drop the detected-member lock
 INFO  [alembic.runtime.migration] Running upgrade 0023 -> 0025, transactions.origin and transactions.cost_source (#1 opening balance)
 INFO  [alembic.runtime.migration] Running upgrade 0025 -> 0026, twin same-day rows (balance_units, occurrence) and new row types (#2, #3)
 INFO  [alembic.runtime.migration] Running upgrade 0026 -> 0027, folios.folio_key (+ duplicate merge) and transaction_imports (#4, #5)
@@ -321,7 +317,7 @@ INFO  [alembic.runtime.migration] Running upgrade 0028 -> 0029, Snapshot history
 ```
 Then `0029 (head)`.
 
-If staging was on `0023`, the first three lines are absent. Going `0023 -> 0025` (skipping `0024`) is correct: `0024` is reserved for a deferred change.
+Going `0023 -> 0025` (skipping `0024`) is correct: `0024` is reserved for a deferred change.
 
 **Sanity check:**
 ```bash
@@ -537,11 +533,14 @@ EOF
 
 Use an incognito window after a hard refresh. **Every account is new** (Step 6 wiped them), so each tester signs up again.
 
-### 12a. The 1 October release (only if Step 3 showed `0020`)
+### 12a. The 5 October small fixes
 
-Run checks 1–15 of `2026-10-01-consent-release-deploy-guide.md` Step 6 (sign-up consent box, PAN disclaimer on upload, five-section Profile, % complete nudge, Complete profile popup, and so on), with two differences:
-- **Skip check 7** (the existing-user re-consent prompt). There are no existing users after the wipe.
-- **Skip "Members that were locked before the deploy"** in check 8, for the same reason.
+1. **PAN disclaimer:** on the upload screen, the disclaimer text is the short version, and Upload stays blocked until it's ticked.
+2. **Checkboxes** look right in both light and dark mode (sign-up consent box, PAN disclaimer).
+3. **Profile → Terms** section shows the cleaned-up layout.
+4. **Import history** shows no "requested" placeholder rows for CAMS requests.
+
+The 1 October checks (consent box at sign-up, five-section Profile, % complete nudge, Complete profile popup) were done at that deploy. A quick look while doing 12b is enough.
 
 ### 12b. CAS import: real statements and Import health (the Phase 7 gate, Step 2)
 
@@ -658,12 +657,12 @@ with sa.create_engine(os.environ["DATABASE_URL"]).begin() as c:
     print("CAS-only funds removed:", c.execute(sa.text("DELETE FROM schemes WHERE amfi_code IS NULL")).rowcount)
 EOF
 ```
-3. **Downgrade to `R`** (`0022` if Step 3 showed `0020`; `0023` if it showed `0023`):
+3. **Downgrade to `0023`** (the revision Step 3 showed):
 ```bash
-.venv/bin/alembic downgrade R      # replace R with 0022 or 0023
+.venv/bin/alembic downgrade 0023
 .venv/bin/alembic current
 ```
-**Good looks like:** `Running downgrade 0029 -> 0028` … down to `R`, then `R`. **Never go below `0022`:** `0022`'s downgrade drops the `consent_records` table and every consent collected. The old (`0020`) backend works fine on `0022`, because `0021`/`0022` only add.
+**Good looks like:** `Running downgrade 0029 -> 0028`, `0028 -> 0027`, `0027 -> 0026`, `0026 -> 0025` and `0025 -> 0023`, then `0023`. **Never go below `0023`:** the old (1 October) backend needs `0023`, and `0022`'s downgrade would drop the `consent_records` table and every consent collected.
 4. **Put the old image back and start it:**
 ```bash
 MANIFEST=$(aws ecr batch-get-image --repository-name unifolio-staging-backend --region ap-south-1 \
@@ -706,7 +705,7 @@ Its log goes to `/ecs/staging-job-nav-daily`: `aws logs tail /ecs/staging-job-na
 ## After it's green
 
 - Tell Aditi:
-  - which Step 3 case you were in (`0020` or `0023`);
+  - what Step 3 showed (expected `0023`);
   - the Step 6 before/after counts;
   - the Step 11 `rows=` line;
   - which Step 12 checks passed.
