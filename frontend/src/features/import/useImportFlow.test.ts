@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as api from "./api";
 import { ApiError } from "./api";
 import { useImportFlow } from "./useImportFlow";
+import { useImportOrchestration } from "./useImportOrchestration";
 import type { ImportPreviewResponse, PersonPreview } from "./types";
 
 vi.mock("./api", async () => {
@@ -67,7 +68,7 @@ beforeEach(() => {
 });
 
 describe("useImportFlow", () => {
-  it("walks 409 self_name_mismatch -> resolveName -> notices -> people -> review -> confirm", async () => {
+  it("walks 409 self_name_mismatch -> resolveName -> notices -> people -> confirming", async () => {
     const two = [person(), person({ person_key: "p2", name: "Ramesh Sharma", is_me: false, needs_name: false })];
     vi.mocked(api.parseImport).mockRejectedValue(
       new ApiError(409, { code: "self_name_mismatch", message: "m", session_id: "s1", details: {} }),
@@ -103,24 +104,24 @@ describe("useImportFlow", () => {
     expect(result.current.stage).toBe("people");
 
     act(() => result.current.dismissNotice());
-    expect(result.current.stage).toBe("review");
+    expect(result.current.stage).toBe("confirming");
 
     const people = [{ person_key: "p1", scheme_confirmations: [] }];
     await act(async () => {
       await result.current.confirm(people, { t1: "p2" });
     });
     expect(api.confirmPeopleImport).toHaveBeenCalledWith("s1", people, { t1: "p2" });
-    expect(result.current.stage).toBe("confirmed");
+    expect(result.current.stage).toBe("confirming");
     expect(result.current.confirmResult).toEqual(CONFIRMED);
   });
 
-  it("goes straight to review for a single, named person with nothing unassigned", async () => {
+  it("goes straight to confirming for a single, named person with nothing unassigned", async () => {
     vi.mocked(api.parseImport).mockResolvedValue(preview());
     const { result } = renderHook(() => useImportFlow("m1"));
     await act(async () => {
       await result.current.upload(FILE, "");
     });
-    expect(result.current.stage).toBe("review");
+    expect(result.current.stage).toBe("confirming");
     expect(result.current.preview?.session_id).toBe("s1");
   });
 
@@ -232,7 +233,7 @@ describe("useImportFlow", () => {
     expect(result.current.error).toBe("Please upload a PDF file.");
   });
 
-  it("ignores a double-press confirm: a late 410 does not overwrite confirmed", async () => {
+  it("ignores a double-press confirm: a late 410 does not overwrite success", async () => {
     vi.mocked(api.parseImport).mockResolvedValue(preview());
     vi.mocked(api.confirmPeopleImport)
       .mockResolvedValueOnce(CONFIRMED)
@@ -247,12 +248,12 @@ describe("useImportFlow", () => {
     await act(async () => {
       await result.current.confirm([]);
     });
-    expect(result.current.stage).toBe("confirmed");
+    expect(result.current.stage).toBe("confirming");
     expect(result.current.prompt).toBeNull();
     expect(api.confirmPeopleImport).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps review with an error after a non-prompt confirm failure, and allows retry", async () => {
+  it("keeps confirming with an error after a non-prompt confirm failure, and allows retry", async () => {
     vi.mocked(api.parseImport).mockResolvedValue(preview());
     vi.mocked(api.confirmPeopleImport)
       .mockRejectedValueOnce(new ApiError(500, "Something broke"))
@@ -264,12 +265,12 @@ describe("useImportFlow", () => {
     await act(async () => {
       await result.current.confirm([]);
     });
-    expect(result.current.stage).toBe("review");
+    expect(result.current.stage).toBe("confirming");
     expect(result.current.error).toBe("Something broke");
     await act(async () => {
       await result.current.confirm([]);
     });
-    expect(result.current.stage).toBe("confirmed");
+    expect(result.current.stage).toBe("confirming");
   });
 });
 
@@ -287,12 +288,27 @@ it("expired upload returns to upload with timeout banner", async () => {
   expect(result.current.stage).toBe("upload");
   expect(result.current.error).toBe("Your upload timed out. Please upload again.");
 });
-it("duplicate confirm leaves review with already_imported notice", async () => {
+it("duplicate confirm provides the already_imported notice", async () => {
   vi.mocked(api.parseImport).mockResolvedValue(preview());
   vi.mocked(api.confirmPeopleImport).mockRejectedValue(new ApiError(409, { code: "already_imported", message: "This statement was already imported." }));
   const { result } = renderHook(() => useImportFlow("m1"));
   await act(() => result.current.upload(FILE, "pw"));
   await act(() => result.current.confirm([]));
-  expect(result.current.stage).toBe("confirmed");
+  expect(result.current.stage).toBe("confirming");
   expect(result.current.errorCode).toBe("already_imported");
+});
+
+it("auto-confirms once per session even on re-render", async () => {
+  vi.mocked(api.parseImport).mockResolvedValue(preview());
+  let finish!: (value: typeof CONFIRMED) => void;
+  vi.mocked(api.confirmPeopleImport).mockReturnValue(new Promise(resolve => { finish = resolve; }));
+  const done = vi.fn();
+  const { result, rerender } = renderHook(() => useImportOrchestration("m1", done));
+  await act(() => result.current.upload(FILE, "pw"));
+  await waitFor(() => expect(api.confirmPeopleImport).toHaveBeenCalledTimes(1));
+  rerender();
+  await act(() => finish(CONFIRMED));
+  rerender();
+  expect(api.confirmPeopleImport).toHaveBeenCalledTimes(1);
+  expect(done).toHaveBeenCalledExactlyOnceWith({ text: "3 transactions added" });
 });

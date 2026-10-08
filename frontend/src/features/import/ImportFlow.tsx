@@ -1,10 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { TwoPathImportContainer } from "./TwoPathImportContainer";
 import { ParsingIndicator } from "./ParsingIndicator";
 import { ImportError } from "./ImportError";
-import { ImportConfirmed } from "./ImportConfirmed";
-import { MemberRibbonReview } from "./MemberRibbonReview";
 import { ReviewExpiryBanner } from "./ReviewExpiryBanner";
 import { useImportOrchestration } from "./useImportOrchestration";
 import { isTestEnv } from "@/lib/motion";
@@ -12,19 +10,18 @@ import type { UploadSurface } from "@/features/legal/panDisclaimerStore";
 
 interface ImportFlowProps {
   householdMemberId: string;
-  ctaLabel?: string;
   onDone?: (notice?: { text: string; details?: string[] }) => void;
   defaultTab?: "choice" | "request" | "upload" | "history" | "waiting";
   /** Which screen the upload came from, for the PAN disclaimer record. */
   surface?: UploadSurface;
 }
 
-export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab, surface }: ImportFlowProps) {
+export function ImportFlow({ householdMemberId, onDone, defaultTab, surface }: ImportFlowProps) {
   const {
-    flow, uploadMessage, edits, nameAnswers, confirming, reviewPeople, setCancelOpen,
-    cancelImport: cancelCurrentImport, upload, runConfirm, dialogs,
-  } = useImportOrchestration(householdMemberId);
-  const { stage, preview, confirmResult, error, errorCode } = flow;
+    flow, uploadMessage,
+    cancelImport: cancelCurrentImport, upload, dialogs,
+  } = useImportOrchestration(householdMemberId, onDone);
+  const { stage, preview, error, errorCode } = flow;
   // After a discard, re-mount the upload container straight on the upload form
   // instead of the request/upload choice screen.
   const [uploadTab, setUploadTab] = useState(defaultTab);
@@ -36,15 +33,6 @@ export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab, su
     setUploadKey(v => v + 1);
   };
   const [requestCasVersion, setRequestCasVersion] = useState(0);
-
-  const duplicateClosed = useRef(false);
-  useEffect(() => {
-    if (stage !== "confirmed") duplicateClosed.current = false;
-    if (stage === "confirmed" && flow.errorCode === "already_imported" && !duplicateClosed.current) {
-      duplicateClosed.current = true;
-      onDone?.({ text: "This statement was already imported" });
-    }
-  }, [stage, flow.errorCode, onDone]);
 
   const shouldReduceMotion = useReducedMotion() || isTestEnv;
 
@@ -58,16 +46,15 @@ export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab, su
   const view =
     stage === "upload" || stage === "prompt"
       ? "upload"
-      : stage === "notices" || stage === "people"
+      : stage === "notices" || stage === "people" || stage === "fallback"
         ? "waiting"
-        : stage;
-  const showRibbons = stage === "review" && preview !== null;
+        : stage === "confirming" ? "parsing" : stage;
 
   return (
     <div className="w-full min-h-full flex-1 flex flex-col justify-center items-center my-auto">
       {dialogs}
 
-      {(stage === "people" || stage === "review") && preview && (
+      {(stage === "people" || stage === "fallback") && preview && (
         <div className="w-full px-4 pb-3">
           <ReviewExpiryBanner key={preview.session_id} expiresAt={preview.expires_at} />
         </div>
@@ -93,28 +80,6 @@ export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab, su
           </motion.div>
         )}
 
-        {view === "review" && showRibbons && preview && (
-          <motion.div
-            key="review"
-            initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={shouldReduceMotion ? undefined : { opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-            className="w-full"
-          >
-            <MemberRibbonReview
-              key={preview.session_id}
-              preview={preview}
-              people={reviewPeople}
-              edits={edits}
-              nameAnswers={nameAnswers}
-              confirming={confirming}
-              onConfirmImports={(people, moved) => void runConfirm(people, moved)}
-              onCancel={() => setCancelOpen(true)}
-            />
-          </motion.div>
-        )}
-
         {view === "error" && (
           <motion.div
             key="error"
@@ -133,28 +98,6 @@ export function ImportFlow({ householdMemberId, ctaLabel, onDone, defaultTab, su
           </motion.div>
         )}
 
-        {view === "confirmed" && confirmResult && (
-          <motion.div
-            key="confirmed"
-            initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={shouldReduceMotion ? undefined : { opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-            className="w-full flex-1 flex flex-col justify-center items-center my-auto min-h-[calc(100dvh-3rem)] sm:min-h-[520px]"
-          >
-            <ImportConfirmed
-              result={confirmResult}
-              ctaLabel={ctaLabel}
-              onImportAnother={
-                (onDone ? () => onDone() : undefined) ??
-                (() => {
-                  setUploadTab(defaultTab);
-                  void cancelImport();
-                })
-              }
-            />
-          </motion.div>
-        )}
       </AnimatePresence>
     </div>
   );

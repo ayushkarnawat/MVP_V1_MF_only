@@ -3,6 +3,7 @@ import { ImportFlow } from "../import/ImportFlow";
 import { useAuth } from "./AuthContext";
 import { createHouseholdMember, listHouseholdMembers } from "./api";
 import { Loader2 } from "lucide-react";
+import { PRIMARY_BTN } from "../import/prompts/copy";
 
 interface SoloCasUploadProps {
   name: string;
@@ -12,6 +13,7 @@ export function SoloCasUpload({ name }: SoloCasUploadProps) {
   const { updateMe } = useAuth();
   const [memberId, setMemberId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [finishFailed, setFinishFailed] = useState(false);
 
   // Two guards for two different problems:
   // - resolvingRef dedupes the network call itself. StrictMode double-invokes
@@ -61,8 +63,17 @@ export function SoloCasUpload({ name }: SoloCasUploadProps) {
     };
   }, [name]);
 
+  // The import is already saved when this runs. With the "Import complete"
+  // button gone (Phase 7), a failed save here needs its own retry, or the
+  // user would sit on the spinner (review 8 Oct).
+  // finishFailed stays set during a retry, so the upload form doesn't flash
+  // back while the request is in flight; on success onboarding moves on.
   const handleDone = async () => {
-    await updateMe({ onboarding_completed: true });
+    try {
+      await updateMe({ onboarding_completed: true });
+    } catch {
+      if (mountedRef.current) setFinishFailed(true);
+    }
   };
 
   if (error) {
@@ -71,6 +82,16 @@ export function SoloCasUpload({ name }: SoloCasUploadProps) {
         <p role="alert" className="text-xs sm:text-sm text-[var(--color-negative)] font-medium">
           {error}
         </p>
+      </div>
+    );
+  }
+  if (finishFailed) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+        <p role="alert" className="text-xs sm:text-sm text-[var(--color-text-secondary)] font-medium">
+          Your statement is saved, but we couldn’t finish setting up your account.
+        </p>
+        <button type="button" className={PRIMARY_BTN} onClick={() => void handleDone()}>Try again</button>
       </div>
     );
   }
@@ -86,7 +107,6 @@ export function SoloCasUpload({ name }: SoloCasUploadProps) {
   return (
     <ImportFlow
       householdMemberId={memberId}
-      ctaLabel="Get my first score"
       surface="onboarding_upload"
       onDone={handleDone}
     />

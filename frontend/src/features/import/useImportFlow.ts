@@ -26,8 +26,8 @@ export type ImportFlowStage =
   | "prompt"
   | "notices"
   | "people"
-  | "review"
-  | "confirmed"
+  | "fallback"
+  | "confirming"
   | "error";
 
 export type PromptAction =
@@ -46,7 +46,7 @@ function errorCodeOf(err: unknown): string | null {
   return null;
 }
 
-const NETWORK_ERROR = "Couldn't reach the server. Check your connection and try again.";
+const NETWORK_ERROR = "Couldn’t reach the server. Check your connection and try again.";
 
 function errorMessage(err: unknown): string {
   if (err instanceof ApiError) {
@@ -58,11 +58,11 @@ function errorMessage(err: unknown): string {
 }
 
 /** Stage after a preview lands: notices first, then the people popup unless
- * skipped (I1: one person, named, nothing unassigned), then review. */
+ * skipped (I1: one person, named, nothing unassigned), then fallback or confirmation. */
 function stageAfterNotices(preview: ImportPreviewResponse): ImportFlowStage {
   const single = preview.people.length <= 1;
   const needsName = preview.people.some((p) => p.needs_name);
-  return single && !needsName && preview.unassigned_temp_ids.length === 0 ? "review" : "people";
+  return single && !needsName && preview.unassigned_temp_ids.length === 0 ? (preview.needs_review ? "fallback" : "confirming") : "people";
 }
 
 function stageForPreview(preview: ImportPreviewResponse): ImportFlowStage {
@@ -71,7 +71,7 @@ function stageForPreview(preview: ImportPreviewResponse): ImportFlowStage {
 }
 
 /**
- * The upload -> prompts -> notices -> people -> review -> confirmed state
+ * The upload -> prompts -> notices -> people -> fallback/confirming -> dashboard state
  * machine shared by the web and mobile import views. UI tasks render each
  * stage; this hook owns the network calls and the ordering.
  */
@@ -86,7 +86,7 @@ export function useImportFlow(householdMemberId: string) {
   // just-finished upload set without waiting for a re-render.
   const sessionRef = useRef<string | null>(null);
   // Double-press guards: confirmingRef drops re-entrant confirm calls;
-  // confirmedRef stops a late 410 from the duplicate call overwriting "confirmed".
+  // confirmedRef stops a late 410 from the duplicate call overwriting a successful result.
   const confirmingRef = useRef(false);
   const [confirmRejected, setConfirmRejected] = useState(false);
   const confirmedRef = useRef(false);
@@ -118,7 +118,7 @@ export function useImportFlow(householdMemberId: string) {
       sessionRef.current = null;
       confirmedRef.current = true;
       setError("This statement was already imported");
-      setStage("confirmed");
+      setStage("confirming");
       return;
     }
     if (code && INLINE_CODES.has(code)) {
@@ -218,6 +218,7 @@ export function useImportFlow(householdMemberId: string) {
       const sessionId = sessionRef.current;
       if (!sessionId || confirmingRef.current || confirmedRef.current) return;
       confirmingRef.current = true;
+      setStage("confirming");
       setError(null);
       setErrorCode(null);
       setConfirmRejected(false);
@@ -226,12 +227,13 @@ export function useImportFlow(householdMemberId: string) {
         sessionRef.current = null;
         confirmedRef.current = true;
         setConfirmResult(result);
-        setStage("confirmed");
+        setStage("confirming");
       } catch (err) {
-        if (getImportPrompt(err) || errorCodeOf(err) === "already_imported") {
+        if (getImportPrompt(err) || errorCodeOf(err) === "already_imported" ||
+            errorCodeOf(err) === "session_expired" || (err instanceof ApiError && err.status === 410)) {
           handleFailure(err);
         } else {
-          // 5xx/network: stay on review with the message so the user can retry (C1).
+          // 5xx/network/confirm_invalid: keep the waiting view and open the retry dialog (C1).
           setError(errorMessage(err));
           // A 422 confirm_invalid is deterministic (e.g. the person is now on another
           // account): retrying the same body can never succeed, so flag it.
@@ -247,11 +249,11 @@ export function useImportFlow(householdMemberId: string) {
     [handleFailure],
   );
 
-  /** Moves forward one step: notices -> people (or review), people -> review. */
+  /** Moves forward one step: notices -> people (or fallback/confirming), people -> fallback/confirming. */
   const dismissNotice = useCallback(() => {
     setStage((current) => {
-      if (current === "notices") return preview ? stageAfterNotices(preview) : "review";
-      if (current === "people") return "review";
+      if (current === "notices") return preview ? stageAfterNotices(preview) : "upload";
+      if (current === "people") return preview?.needs_review ? "fallback" : "confirming";
       return current;
     });
   }, [preview]);

@@ -1,11 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PeopleFoundDialog, NO_EDITS, type PeopleEdits } from "./PeopleFoundDialog";
 import { PromptHost, type HostAction } from "./prompts/PromptHost";
 import { ConfirmFailedDialog } from "./prompts/ConfirmFailedDialog";
 import { CancelImportDialog } from "./prompts/CancelImportDialog";
 import { useImportFlow } from "./useImportFlow";
 import { clearCasResumeStep2 } from "./casResumeState";
-import type { PersonConfirmation, PersonPreview } from "./types";
+import { buildConfirmBody } from "./confirmBody";
+import { UnidentifiedFundsDialog } from "./UnidentifiedFundsDialog";
+import type { ImportPreviewResponse, PersonConfirmation, PersonPreview, SchemeConfirmation } from "./types";
 
 /** Everyone in the file except a person on another account the user left out (U8). */
 export function includedPeople(people: PersonPreview[], edits: PeopleEdits): PersonPreview[] {
@@ -24,10 +26,13 @@ function otherAccountIncludes(people: PersonPreview[]): Record<string, boolean> 
 
 /**
  * The orchestration the web and mobile import views share: the flow state machine,
- * the review edits, cancel/confirm handling and the dialogs. Each view keeps only
+ * the popup edits, cancel/confirm handling and the dialogs. Each view keeps only
  * its own layout.
  */
-export function useImportOrchestration(householdMemberId: string) {
+export function useImportOrchestration(
+  householdMemberId: string,
+  onDone?: (notice: { text: string; details?: string[] }) => void,
+) {
   const flow = useImportFlow(householdMemberId);
   const { stage, preview, prompt, error } = flow;
   // U4 "The one I entered": what the upload form asks the user to upload next.
@@ -41,9 +46,30 @@ export function useImportOrchestration(householdMemberId: string) {
   const [confirming, setConfirming] = useState(false);
   const lastConfirm = useRef<{ people: PersonConfirmation[]; moved: Record<string, string> } | null>(null);
 
+  const autoAttempt = useRef<ImportPreviewResponse | null>(null);
+  const completionSent = useRef(false);
+
   useEffect(() => {
-    if (stage === "confirmed") clearCasResumeStep2(householdMemberId);
-  }, [stage, householdMemberId]);
+    const result = flow.confirmResult;
+    const duplicate = flow.errorCode === "already_imported";
+    if ((!result && !duplicate) || completionSent.current) return;
+    completionSent.current = true;
+    clearCasResumeStep2(householdMemberId);
+    if (duplicate) {
+      onDone?.({ text: "This statement was already imported" });
+      return;
+    }
+    if (!result) return;
+    const details = [
+      ...(result.people.length > 1 ? result.people.map(p =>
+        `${p.name}: ${p.added} added${p.skipped > 0 ? `, ${p.skipped} already saved` : ""}`) : []),
+      ...result.warnings,
+    ];
+    onDone?.({
+      text: `${result.added} transaction${result.added === 1 ? "" : "s"} added${result.skipped > 0 ? ` · ${result.skipped} already saved` : ""}`,
+      ...(details.length ? { details } : {}),
+    });
+  }, [flow.confirmResult, flow.errorCode, householdMemberId, onDone]);
 
   useEffect(() => {
     if (stage === "upload" && flow.errorCode === "session_expired") setUploadMessage(error);
@@ -56,6 +82,9 @@ export function useImportOrchestration(householdMemberId: string) {
     setNameAnswers({});
     setU7Included(false);
     setConfirming(false);
+    lastConfirm.current = null;
+    autoAttempt.current = null;
+    completionSent.current = false;
     await flow.cancel();
   };
 
@@ -65,6 +94,9 @@ export function useImportOrchestration(householdMemberId: string) {
     setEdits(NO_EDITS);
     setNameAnswers({});
     setU7Included(false);
+    lastConfirm.current = null;
+    autoAttempt.current = null;
+    completionSent.current = false;
     await flow.upload(file, password);
   };
 
@@ -88,7 +120,7 @@ export function useImportOrchestration(householdMemberId: string) {
     }
   };
 
-  const runConfirm = async (people: PersonConfirmation[], moved: Record<string, string>) => {
+  const runConfirm = useCallback(async (people: PersonConfirmation[], moved: Record<string, string>) => {
     lastConfirm.current = { people, moved };
     setConfirming(true);
     try {
@@ -96,7 +128,28 @@ export function useImportOrchestration(householdMemberId: string) {
     } finally {
       setConfirming(false);
     }
+  }, [flow.confirm]);
+
+  const confirmChoices = (schemeConfirmations: SchemeConfirmation[] = []) => {
+    if (!preview) return;
+    autoAttempt.current = preview;
+    const body = buildConfirmBody(preview, includedPeople(preview.people, edits), {
+      names: edits.names, owners: edits.owners, nameAnswers, schemeConfirmations,
+    });
+    void runConfirm(body.people, body.movedFunds);
   };
+
+  // One automatic attempt for each ready preview. A failed attempt is retried
+  // explicitly using lastConfirm; a resolved 409 produces a new preview.
+  useEffect(() => {
+    if (stage !== "confirming" || !preview || error || flow.confirmResult ||
+        flow.errorCode === "already_imported" || autoAttempt.current === preview) return;
+    autoAttempt.current = preview;
+    const body = buildConfirmBody(preview, includedPeople(preview.people, edits), {
+      names: edits.names, owners: edits.owners, nameAnswers,
+    });
+    void runConfirm(body.people, body.movedFunds);
+  }, [stage, preview, error, flow.confirmResult, flow.errorCode, edits, nameAnswers, runConfirm]);
 
   const unassigned = useMemo(
     () => (preview ? preview.schemes.filter((s) => preview.unassigned_temp_ids.includes(s.temp_id)) : []),
@@ -132,8 +185,16 @@ export function useImportOrchestration(householdMemberId: string) {
           onCancel={() => setCancelOpen(true)}
         />
       )}
+      {stage === "fallback" && preview && (
+        <UnidentifiedFundsDialog
+          key={preview.session_id}
+          schemes={preview.schemes}
+          onContinue={confirmChoices}
+          onCancel={() => setCancelOpen(true)}
+        />
+      )}
       <ConfirmFailedDialog
-        isOpen={stage === "review" && error !== null && !cancelOpen}
+        isOpen={stage === "confirming" && error !== null && flow.errorCode !== "already_imported" && !cancelOpen}
         onTryAgain={() => lastConfirm.current && void runConfirm(lastConfirm.current.people, lastConfirm.current.moved)}
         onCancelImport={() => setCancelOpen(true)}
         rejectedMessage={flow.confirmRejected ? error : null}

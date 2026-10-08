@@ -49,12 +49,6 @@ const RESULT: ImportConfirmResponse = {
   people: [{ person_key: "me", member_id: "m-1", name: "Ayush", import_id: "imp-final-1", added: 8, skipped: 0 }],
 };
 
-/** Checks the only ribbon (nothing unresolved) is already confirmed. */
-function reviewRibbon(name: string) {
-  // Staging-QA 3b: a ribbon with nothing to resolve confirms itself; no click needed.
-  expect(screen.getByRole("button", { name: new RegExp(`^${name}.*Confirmed`) })).toBeInTheDocument();
-}
-
 async function uploadFile() {
   fireEvent.click(await screen.findByRole("button", { name: /already have a statement/i }));
   const file = new File(["pdf"], "statement.pdf", { type: "application/pdf" });
@@ -91,17 +85,18 @@ describe("MobileImportView", () => {
 
   beforeEach(() => {
     localStorage.clear();
-    vi.clearAllMocks();
+    vi.resetAllMocks();
+    vi.mocked(importApi.confirmPeopleImport).mockResolvedValue(RESULT);
     vi.mocked(authApi.listHouseholdMembers).mockResolvedValue(mockMembers as any);
     vi.mocked(importApi.getMemberImportHistory).mockResolvedValue([]);
     vi.mocked(importApi.getHouseholdImportHistory).mockResolvedValue([]);
   });
 
-  async function openReview() {
-    vi.mocked(importApi.parseImport).mockResolvedValue(preview({ session_id: "sess-mismatch", schemes: [scheme("s1", { person_key: "me" })] }));
+  async function openFallback() {
+    vi.mocked(importApi.parseImport).mockResolvedValue(preview({ session_id: "sess-mismatch", needs_review: true, schemes: [scheme("s1", { person_key: "me", identification: "ask" })] }));
     render(<MobileImportView defaultMemberId="m-1" />);
     await uploadFile();
-    await screen.findByText("Review your import");
+    await screen.findByRole("combobox");
   }
 
   it("keeps the file on a wrong password retry", async () => {
@@ -120,13 +115,35 @@ describe("MobileImportView", () => {
     const onNavigateDashboard = vi.fn();
     render(<MobileImportView defaultMemberId="m-1" onNavigateDashboard={onNavigateDashboard} />);
     await uploadFile();
-    await screen.findByText("Review your import");
-    fireEvent.click(screen.getByRole("button", { name: "Confirm imports" }));
     await waitFor(() => expect(onNavigateDashboard).toHaveBeenCalledWith({ text: "This statement was already imported" }));
     expect(onNavigateDashboard).toHaveBeenCalledTimes(1);
   });
 
 
+
+  it("retries a failed automatic confirm over the waiting view", async () => {
+    vi.mocked(importApi.parseImport).mockResolvedValue(preview());
+    vi.mocked(importApi.confirmPeopleImport)
+      .mockRejectedValueOnce(new TypeError("Failed to fetch")).mockResolvedValueOnce(RESULT);
+    const onNavigateDashboard = vi.fn();
+    render(<MobileImportView defaultMemberId="m-1" onNavigateDashboard={onNavigateDashboard} />);
+    await uploadFile();
+    fireEvent.click(await screen.findByRole("button", { name: "Try again" }));
+    await waitFor(() => expect(onNavigateDashboard).toHaveBeenCalledWith({ text: "8 transactions added" }));
+    expect(importApi.confirmPeopleImport).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(importApi.confirmPeopleImport).mock.calls[1])
+      .toEqual(vi.mocked(importApi.confirmPeopleImport).mock.calls[0]);
+  });
+
+  it("returns to upload with the expiry banner after confirm returns 410", async () => {
+    vi.mocked(importApi.parseImport).mockResolvedValue(preview());
+    vi.mocked(importApi.confirmPeopleImport).mockRejectedValue(new importApi.ApiError(410, { code: "session_expired", message: "expired" }));
+    render(<MobileImportView defaultMemberId="m-1" />);
+    await uploadFile();
+    await screen.findByText("Your upload timed out. Please upload again.");
+    expect(screen.getByLabelText(/cas pdf/i)).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
   it("keeps the waiting upload file for a wrong password retry", async () => {
     let rejectParse!: (error: unknown) => void;
     vi.mocked(importApi.parseImport).mockReturnValue(new Promise((_, reject) => { rejectParse = reject; }));
@@ -242,11 +259,11 @@ describe("MobileImportView", () => {
 
     await waitFor(() => {
       expect(importApi.parseImport).toHaveBeenCalledWith(mockFile, "ABCDE1234F", "m-1");
-      expect(screen.getByText("Review your import")).toBeInTheDocument();
+      expect(importApi.confirmPeopleImport).toHaveBeenCalledWith("sess-99", [{ person_key: "me", scheme_confirmations: [] }], {});
     });
   });
 
-  it("reaches the member ribbons through the people popup for a two-person statement", async () => {
+  it("confirms the family straight after the people popup", async () => {
     vi.mocked(importApi.parseImport).mockResolvedValue(
       familyPreview({ schemes: [scheme("m1", { person_key: "me" }), scheme("r1", { person_key: "ramesh" })] }),
     );
@@ -256,46 +273,29 @@ describe("MobileImportView", () => {
     expect(await screen.findByText("We found 2 people in your statement")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
 
-    await screen.findByText("Review your import");
-    expect(screen.getByRole("button", { name: /^Aditi Sharma \(Me\)/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^Ramesh Sharma/ })).toBeInTheDocument();
+    await waitFor(() => expect(importApi.confirmPeopleImport).toHaveBeenCalledWith("s1", [
+      { person_key: "me", scheme_confirmations: [] }, { person_key: "ramesh", scheme_confirmations: [] },
+    ], {}));
   });
 
-  it("completes review and confirmation, clears resume state, and displays success screen with navigation CTA", async () => {
+  it("auto-confirms, clears resume state and navigates with the success notice", async () => {
     setCasResumeStep2("m-1");
-    vi.mocked(importApi.parseImport).mockResolvedValue(preview({ session_id: "sess-100", schemes: [scheme("s1", { person_key: "me" })] }));
-    vi.mocked(importApi.confirmPeopleImport).mockResolvedValue({
-      ...RESULT,
-      warnings: [
-        "This investment may already be tracked under a different Unifolio account. If that's you, consider using that account instead.",
-      ],
-    });
-
-    const handleDashboardNav = vi.fn();
-    render(<MobileImportView defaultMemberId="m-1" onNavigateDashboard={handleDashboardNav} />);
-
+    vi.mocked(importApi.parseImport).mockResolvedValue(preview({ session_id: "sess-100" }));
+    vi.mocked(importApi.confirmPeopleImport).mockResolvedValue({ ...RESULT, warnings: ["History starts mid-year."] });
+    const onNavigateDashboard = vi.fn(() => expect(hasCasResumeStep2("m-1")).toBe(false));
+    const { rerender } = render(<MobileImportView defaultMemberId="m-1" onNavigateDashboard={onNavigateDashboard} />);
     fireEvent.change(await screen.findByLabelText(/CAS PDF/i), {
       target: { files: [new File(["pdf"], "statement.pdf", { type: "application/pdf" })] },
     });
     await tickDisclaimer();
     fireEvent.click(screen.getByRole("button", { name: /upload statement/i }));
-    await screen.findByText("Review your import");
-
-    reviewRibbon("Aditi Sharma");
-    fireEvent.click(screen.getByRole("button", { name: "Confirm imports" }));
-
-    await waitFor(() => {
-      expect(importApi.confirmPeopleImport).toHaveBeenCalledWith("sess-100", [{ person_key: "me", scheme_confirmations: [] }], {});
-      expect(screen.getByText("Import Complete")).toBeInTheDocument();
-      expect(screen.getByText(/8 new transactions added/i)).toBeInTheDocument();
-      expect(screen.getByRole("status")).toHaveTextContent(/may already be tracked under a different Unifolio account/i);
-      expect(hasCasResumeStep2("m-1")).toBe(false);
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: /dismiss warning/i }));
-    expect(screen.queryByRole("status")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /Go to Dashboard/i }));
-    expect(handleDashboardNav).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(onNavigateDashboard).toHaveBeenCalledWith({
+      text: "8 transactions added", details: ["History starts mid-year."],
+    }));
+    rerender(<MobileImportView defaultMemberId="m-1" onNavigateDashboard={onNavigateDashboard} />);
+    expect(onNavigateDashboard).toHaveBeenCalledTimes(1);
+    expect(importApi.confirmPeopleImport).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText("Import Complete")).not.toBeInTheDocument();
   });
 
   it("shows the cross-account popup right after upload, before any review", async () => {
@@ -330,9 +330,9 @@ describe("MobileImportView", () => {
     expect(screen.getByLabelText(/cas pdf/i)).toBeInTheDocument();
   });
 
-  it("Cancel on review asks first, then discards the session", async () => {
-    await openReview();
-    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
+  it("Cancel on fallback asks first, then discards the session", async () => {
+    await openFallback();
+    fireEvent.click(screen.getByRole("button", { name: /close/i }));
     expect(importApi.discardImportSession).not.toHaveBeenCalled();
     fireEvent.click(await screen.findByRole("button", { name: /cancel import/i }));
     await waitFor(() => expect(importApi.discardImportSession).toHaveBeenCalledWith("sess-mismatch"));

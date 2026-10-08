@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { listHouseholdMembers } from "@/features/auth/api";
 import { invalidateApiCache } from "@/lib/apiClient";
 import {
@@ -14,19 +14,13 @@ import { useImportOrchestration } from "@/features/import/useImportOrchestration
 import { MobileRequestCamsView } from "./MobileRequestCamsView";
 import { ImportError } from "@/features/import/ImportError";
 import { MobileUploadForm } from "./MobileUploadForm";
-import { MobileReviewView } from "./MobileReviewView";
+import { ReviewExpiryBanner } from "@/features/import/ReviewExpiryBanner";
 import { MobileImportHistory } from "./MobileImportHistory";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   History,
   User,
-  CheckCircle2,
-  LayoutDashboard,
-  UploadCloud,
   ArrowLeft,
-  AlertTriangle,
-  X,
 } from "lucide-react";
 
 export interface MobileImportViewProps {
@@ -54,23 +48,12 @@ export function MobileImportView({
   });
   const [pendingImportId, setPendingImportId] = useState<string | null>(null);
 
-  const [dismissedWarnings, setDismissedWarnings] = useState<Set<string>>(new Set());
-
   const {
-    flow, uploadMessage, edits, nameAnswers, confirming, reviewPeople, setCancelOpen,
-    cancelImport, upload, runConfirm, dialogs: orchestrationDialogs,
-  } = useImportOrchestration(selectedMemberId ?? "");
-  const { stage, preview, confirmResult } = flow;
+    flow, uploadMessage,
+    cancelImport, upload, dialogs: orchestrationDialogs,
+  } = useImportOrchestration(selectedMemberId ?? "", onNavigateDashboard);
+  const { stage, preview } = flow;
   const error = flow.error;
-
-  const duplicateClosed = useRef(false);
-  useEffect(() => {
-    if (stage !== "confirmed") duplicateClosed.current = false;
-    if (stage === "confirmed" && flow.errorCode === "already_imported" && !duplicateClosed.current) {
-      duplicateClosed.current = true;
-      onNavigateDashboard?.({ text: "This statement was already imported" });
-    }
-  }, [stage, flow.errorCode, onNavigateDashboard]);
 
   /* Load household members */
   useEffect(() => {
@@ -117,7 +100,6 @@ export function MobileImportView({
   };
 
   const resetFlow = async () => {
-    setDismissedWarnings(new Set());
     await cancelImport();
   };
 
@@ -137,7 +119,7 @@ export function MobileImportView({
   const activeMemberId = selectedMemberId || members[0]?.id || null;
   const renderStage = () => {
   /* 1. Parsing Indicator Screen */
-  if (stage === "parsing") {
+  if (stage === "parsing" || stage === "confirming") {
     return (
       <div className="w-full flex-1 flex flex-col justify-center items-center min-h-[calc(100dvh-7rem)] sm:min-h-[500px] my-auto">
         {flowDialogs}
@@ -146,108 +128,14 @@ export function MobileImportView({
     );
   }
 
-  /* 2. Review Screen */
-  if (stage === "review" && preview) {
-    return (
-      <div className="w-full max-w-md mx-auto">
-        {flowDialogs}
-        <MobileReviewView
-          preview={preview}
-          people={reviewPeople}
-          edits={edits}
-          nameAnswers={nameAnswers}
-          confirming={confirming}
-          onConfirmImports={(people, moved) => void runConfirm(people, moved)}
-          onCancel={() => setCancelOpen(true)}
-        />
-      </div>
-    );
-  }
-
-  /* 2b. Name notices and the people popup sit over a blank screen while the user answers them. */
-  if (stage === "notices" || stage === "people") {
-    return <div className="w-full min-h-[50vh]">{flowDialogs}</div>;
-  }
-
-  /* 3. Confirmed Success Screen */
-  if (stage === "confirmed" && confirmResult) {
-    const addedText = `${confirmResult.added} new transaction${confirmResult.added === 1 ? "" : "s"} added`;
-    const skippedText =
-      confirmResult.skipped > 0
-        ? `, ${confirmResult.skipped} duplicate${confirmResult.skipped === 1 ? "" : "s"} skipped`
-        : "";
-
-    return (
-      <div className="w-full min-w-0 max-w-md mx-auto space-y-4 pt-2 sm:pt-3 text-left box-border animate-in fade-in duration-200 min-h-[calc(100dvh-7rem)] sm:min-h-[500px] flex flex-col justify-center items-center my-auto">
-        <div className="w-full p-5 sm:p-6 rounded-2xl bg-white/80 dark:bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs space-y-4 text-center box-border my-auto">
-          <div className="mx-auto h-12 w-12 rounded-2xl bg-[#22C55E]/15 text-[#22C55E] flex items-center justify-center shadow-2xs">
-            <CheckCircle2 className="h-6 w-6 stroke-[2.2]" />
-          </div>
-
-          <div className="space-y-1.5 max-w-xs mx-auto">
-            <h3 className="font-display font-bold text-lg sm:text-xl text-[var(--color-ink)] tracking-tight">
-              Import Complete
-            </h3>
-            <p className="text-xs text-[#5C5C5C] dark:text-[#A3A3A3] leading-relaxed">
-              <strong className="text-[var(--color-ink)] font-semibold">{addedText}</strong>
-              {skippedText}. Your portfolio and holdings have been updated.
-            </p>
-          </div>
-
-          {confirmResult.warnings
-            .filter((warning) => !dismissedWarnings.has(warning))
-            .map((warning) => (
-              <div
-                key={warning}
-                role="status"
-                className="w-full rounded-xl border border-[var(--color-warning)]/30 bg-[var(--color-warning)]/10 p-3 text-left flex items-start gap-2"
-              >
-                <AlertTriangle
-                  aria-hidden="true"
-                  className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-warning)]"
-                />
-                <p className="m-0 text-xs leading-relaxed text-[var(--color-text-secondary)]">
-                  {warning}
-                </p>
-                <button
-                  type="button"
-                  aria-label="Dismiss warning"
-                  onClick={() =>
-                    setDismissedWarnings((current) => new Set(current).add(warning))
-                  }
-                  className="ml-auto shrink-0 rounded-lg p-1 text-[var(--color-text-secondary)]"
-                >
-                  <X aria-hidden="true" className="h-4 w-4" />
-                </button>
-              </div>
-            ))}
-
-          <div className="w-full space-y-2 pt-1">
-            {onNavigateDashboard && (
-              <Button
-                onClick={() => {
-                  clearCasResumeStep2(selectedMemberId);
-                  onNavigateDashboard();
-                }}
-                className="w-full h-13 sm:h-13.5 rounded-full bg-[#22C55E] hover:bg-[#22C55E]/90 dark:bg-[#22C55E] dark:hover:bg-[#22C55E]/90 text-white font-bold text-xs sm:text-sm shadow-lg shadow-[#22C55E]/25 gap-2 cursor-pointer active:scale-[0.98] transition-all min-h-[48px] border-none"
-              >
-                <LayoutDashboard className="h-4 w-4" />
-                <span>Go to Dashboard</span>
-              </Button>
-            )}
-
-            <Button
-              variant="outline"
-              onClick={() => void resetFlow()}
-              className="w-full h-13 sm:h-13.5 rounded-full border border-[var(--color-border)] bg-transparent hover:bg-black/5 dark:hover:bg-white/5 text-[var(--color-ink)] text-xs sm:text-sm font-bold gap-2 cursor-pointer active:scale-[0.98] transition-all min-h-[48px]"
-            >
-              <UploadCloud className="h-4 w-4" />
-              <span>Import Another CAS</span>
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
+  // Notices, people and fallback are dialogs shared with the web flow.
+  if (stage === "notices" || stage === "people" || stage === "fallback") {
+    return <div className="w-full min-h-[50vh]">
+      {flowDialogs}
+      {(stage === "people" || stage === "fallback") && preview && (
+        <ReviewExpiryBanner key={preview.session_id} expiresAt={preview.expires_at} />
+      )}
+    </div>;
   }
 
   /* 4. Error Screen */
