@@ -214,7 +214,6 @@ export function MainDashboardFlow() {
             <ImportFlow
               key={targetAddMemberId}
               householdMemberId={targetAddMemberId}
-              ctaLabel="Back to Dashboard"
               onDone={(notice) => {
                 setImportNotice(notice ?? null);
                 if (notice) handleTabChange("dashboard");

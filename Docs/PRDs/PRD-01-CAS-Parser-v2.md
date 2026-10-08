@@ -166,6 +166,10 @@ for the rare case where a CAS has no parseable PAN. See
   an adviser's ARN never decides the plan (adviser-held Direct folios are common). Nothing
   is stored as `unclassified` any more: a plan that can't be confirmed is Regular with
   `plan_verified = false`.)*
+  *(Amended 2026-10-08: AMFI leaves the plan blank for some funds (about 270 current
+  plans, e.g. Motilal Oswal Midcap Fund). For those, the plan printed on the statement
+  decides and is verified; a Direct name on a folio with an adviser's ARN stays Regular,
+  unverified, since the two disagree.)*
 - FR-6: Persist the classification (`direct` / `regular` / `unclassified`) per scheme-folio on
   the import record so it's available to the dashboard without recomputation.
 
@@ -183,13 +187,21 @@ for the rare case where a CAS has no parseable PAN. See
   only write is the pending PAN claim for the self member. *(Amended 2026-09-29, CAS member
   detection; was: "no DB writes", called once per file and tagged to one
   `household_member_id`. The Family CAS Upload batch "Parse Files" flow was removed.)*
-- FR-10: User must confirm before `/api/imports/confirm` persists anything. Low-confidence
+- FR-10: ~~User must confirm before `/api/imports/confirm` persists anything. Low-confidence
   AMFI matches (<0.92) and `unclassified` direct/regular results block silent confirm —
-  each requires an explicit user choice.
-  *(Pending, 2026-10-06: the review screen's removal (CAS import fixes Phase 7 Task 3) is
-  planned but **not done**. It waits for staging: real statements, including KFintech, show
-  Import health all ✓, the C1–C14 checks pass, and the user confirms the gate. The synthetic
-  gate and two real CAMS statements already pass locally. Until then this FR stands as written.)*
+  each requires an explicit user choice.~~
+  *(Replaced 2026-10-08, CAS import fixes Phase 7 Task 3, after the gate passed: synthetic
+  suite, real CAMS and KFintech statements on staging with Import health all ✓, and the
+  C1–C14 checks, confirmed by the user.)* The import confirms automatically, without a
+  review screen: upload → any prompts and notices → the "people found" popup (skipped for
+  a single named person) → confirm → dashboard, with a notice "N transactions added
+  · M already saved" and any warnings under it. The user still decides everything that
+  needs a person: names (U9), whether another account's person is included (U8), and the
+  owner of an unmatched fund. The one per-fund question left is a small dialog, shown only
+  when a fund the investor still holds can't be identified by ISIN or NAV
+  (`needs_review`): pick one of the suggested funds or "Not listed" (imported as an
+  unlisted fund valued at the statement's NAV). A fund matched to a person stays with
+  that person: the review screen's "Move to…" choice is gone.
 - FR-11: `/api/imports/confirm` reports `"N new, M duplicates skipped"` on every import.
 
 #### Error Handling
@@ -315,3 +327,4 @@ list below, since the original requirements were accurate as written.
 | 1.3 | 2026-07-22 | Claude (PM partner) | FR-2 clarified: PAN confirmed never persisted (transient use only), resolved via Database Schema's open question |
 | 1.4 | 2026-08-05 | Claude (PM partner), from team brainstorm relayed by Ayush | FR-9 cross-referenced to PRD-02 v1.3's Family CAS Upload batch-parse flow: this endpoint is still called once per file, sequentially, tagged per `household_member_id` — no batch/multi-file mode added here, the queueing/sequencing lives entirely in the frontend per PRD-02 |
 | 1.5 | 2026-10-06 | Claude (orchestrator), CAS import fixes Phases 5–7 | FR-5 amended: the plan comes from the AMFI master; the ARN never decides it; no stored `unclassified`. FR-10 is unchanged for now: the review screen's removal is pending until after staging (see the note under FR-10). |
+| 1.6 | 2026-10-08 | Claude (orchestrator), CAS import fixes Phase 7 | FR-10 replaced: the review screen is removed; the import confirms after the people popup, with a dialog only for an unidentified held fund; "Move to…" removed. FR-5: a blank AMFI plan falls back to the statement's plan. |

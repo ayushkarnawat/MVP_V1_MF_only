@@ -47,3 +47,20 @@ describe("buildConfirmBody (Phase 7: what the review screen used to send)", () =
     expect(people[0].scheme_confirmations).toEqual([{ temp_id: "m1", amfi_code: "123" }, { temp_id: "t9", unlisted: true }]);
   });
 });
+
+it("preserves legacy included-person and plan-override confirmations", () => {
+  const p = preview({
+    people: [person("kiran", "Kiran Sharma", { status: "other_account" }),
+      person("me", "Aditi Sharma", { is_me: true, status: "me" })],
+    schemes: [scheme("k1", { person_key: "kiran" }), scheme("m1", { person_key: "me" })],
+  });
+  expect(buildConfirmBody(p, p.people, {
+    nameAnswers: { me: false }, schemeConfirmations: [{ temp_id: "k1", plan_type_override: "direct" }],
+  })).toEqual({
+    people: [
+      { person_key: "me", accept_name_update: false, scheme_confirmations: [] },
+      { person_key: "kiran", include: true, scheme_confirmations: [{ temp_id: "k1", plan_type_override: "direct" }] },
+    ],
+    movedFunds: {},
+  });
+});

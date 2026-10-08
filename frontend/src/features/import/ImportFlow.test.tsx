@@ -1,9 +1,10 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { ImportFlow } from "./ImportFlow";
 import * as api from "./api";
 import { ApiError } from "./api";
 import { familyPreview, person, preview, scheme } from "./testFixtures";
+import { setCasResumeStep2, hasCasResumeStep2 } from "./casResumeState";
 import type { ImportConfirmResponse } from "./types";
 
 vi.mock("./api", async () => {
@@ -52,28 +53,35 @@ const RESULT: ImportConfirmResponse = {
   people: [{ person_key: "me", member_id: "m1", name: "Aditi Sharma", import_id: "imp1", added: 3, skipped: 1 }],
 };
 
-/** Checks a ribbon with nothing unresolved is already confirmed. */
-function reviewRibbon(name: string) {
-  // Staging-QA 3b: a ribbon with nothing to resolve confirms itself; no click needed.
-  expect(screen.getByRole("button", { name: new RegExp(`^${name}.*Confirmed`) })).toBeInTheDocument();
-}
-
-async function reachSingleReview() {
+async function uploadSingle() {
   vi.mocked(api.parseImport).mockResolvedValue(SINGLE());
   render(<ImportFlow householdMemberId="member-1" />);
   await uploadAFile();
-  await waitFor(() => screen.getByText("Review your import"));
+  await waitFor(() => expect(api.confirmPeopleImport).toHaveBeenCalled());
 }
 
 describe("ImportFlow", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    vi.mocked(api.confirmPeopleImport).mockResolvedValue(RESULT);
+  });
   afterEach(() => {
     vi.clearAllMocks();
   });
 
-  it("goes from upload straight to one ribbon when the file has only Me (I1), with no popup", async () => {
-    await reachSingleReview();
+  it("auto-confirms a single-person statement", async () => {
+    vi.mocked(api.parseImport).mockResolvedValue(SINGLE());
+    const onDone = vi.fn();
+    const { rerender } = render(<ImportFlow householdMemberId="member-1" onDone={onDone} />);
+    await uploadAFile();
+    await waitFor(() => expect(onDone).toHaveBeenCalledWith({ text: "3 transactions added · 1 already saved" }));
+    rerender(<ImportFlow householdMemberId="member-1" onDone={onDone} />);
+    expect(api.confirmPeopleImport).toHaveBeenCalledExactlyOnceWith(
+      "s1", [{ person_key: "me", scheme_confirmations: [] }], {});
+    expect(onDone).toHaveBeenCalledTimes(1);
     expect(screen.queryByText(/we found/i)).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^Aditi Sharma \(Me\).*Confirmed · / })).toBeInTheDocument();
+    expect(screen.queryByText("Review your import")).not.toBeInTheDocument();
+    expect(screen.queryByText(/import complete/i)).not.toBeInTheDocument();
   });
 
   it("keeps the selected file for a wrong password retry", async () => {
@@ -87,31 +95,40 @@ describe("ImportFlow", () => {
     expect(screen.getByRole("button", { name: "Upload Statement" })).toBeEnabled();
   });
 
-  it("shows a generic message on a network failure", async () => {
-    vi.mocked(api.parseImport).mockRejectedValue(new TypeError("Failed to fetch"));
+  it("confirms straight after the people popup", async () => {
+    const p = familyPreview();
+    p.people[1] = person("ramesh", "Person 2", { needs_name: true });
+    vi.mocked(api.parseImport).mockResolvedValue(p);
     render(<ImportFlow householdMemberId="member-1" />);
     await uploadAFile();
-    await waitFor(() => expect(screen.getByText(/couldn't reach the server/i)).toBeInTheDocument());
+    const input = await screen.findByLabelText("Name for Person 2");
+    expect(api.confirmPeopleImport).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
+    fireEvent.change(input, { target: { value: "Meera Sharma" } });
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await waitFor(() => expect(api.confirmPeopleImport).toHaveBeenCalledExactlyOnceWith(
+      "s1", [
+        { person_key: "me", scheme_confirmations: [] },
+        { person_key: "ramesh", name: "Meera Sharma", scheme_confirmations: [] },
+      ], {}));
   });
 
   it("passes the household member id to parse", async () => {
-    await reachSingleReview();
+    await uploadSingle();
     expect(api.parseImport).toHaveBeenCalledWith(expect.any(File), "secret", "member-1");
   });
 
-  it("confirms a single person and shows the complete screen", async () => {
-    vi.mocked(api.confirmPeopleImport).mockResolvedValue(RESULT);
-    await reachSingleReview();
-    reviewRibbon("Aditi Sharma");
-    fireEvent.click(screen.getByRole("button", { name: "Confirm imports" }));
-
-    await waitFor(() => expect(screen.getByText(/import complete/i)).toBeInTheDocument());
-    expect(api.confirmPeopleImport).toHaveBeenCalledWith(
-      "s1", [{ person_key: "me", scheme_confirmations: [] }], {},
-    );
+  it("uses singular success text and clears CAS resume state", async () => {
+    setCasResumeStep2("member-1");
+    vi.mocked(api.parseImport).mockResolvedValue(SINGLE());
+    vi.mocked(api.confirmPeopleImport).mockResolvedValue({ ...RESULT, added: 1, skipped: 0 });
+    const onDone = vi.fn(() => expect(hasCasResumeStep2("member-1")).toBe(false));
+    render(<ImportFlow householdMemberId="member-1" onDone={onDone} />);
+    await uploadAFile();
+    await waitFor(() => expect(onDone).toHaveBeenCalledWith({ text: "1 transaction added" }));
   });
 
-  it("runs parse -> people popup -> two ribbons -> one confirm with both people", async () => {
+  it("confirms both people together after Continue", async () => {
     vi.mocked(api.parseImport).mockResolvedValue(
       familyPreview({
         schemes: [scheme("m1", { person_key: "me" }), scheme("r1", { person_key: "ramesh" })],
@@ -131,14 +148,8 @@ describe("ImportFlow", () => {
     expect(api.confirmPeopleImport).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
 
-    await waitFor(() => screen.getByText("Review your import"));
-    const confirmImports = screen.getByRole("button", { name: "Confirm imports" });
-    reviewRibbon("Aditi Sharma");
-    reviewRibbon("Ramesh Sharma");
-    expect(confirmImports).toBeEnabled();
-    fireEvent.click(confirmImports);
-
-    await waitFor(() => expect(screen.getByText(/import complete/i)).toBeInTheDocument());
+    await waitFor(() => expect(api.confirmPeopleImport).toHaveBeenCalled());
+    expect(api.confirmPeopleImport).toHaveBeenCalledTimes(1);
     expect(api.confirmPeopleImport).toHaveBeenCalledWith(
       "s1",
       [
@@ -147,7 +158,7 @@ describe("ImportFlow", () => {
       ],
       {},
     );
-    expect(screen.getAllByRole("listitem")).toHaveLength(2);
+    expect(screen.queryByText(/import complete/i)).not.toBeInTheDocument();
   });
 
   it("sends popup name edits and leaves an other-account person out", async () => {
@@ -165,10 +176,7 @@ describe("ImportFlow", () => {
     await uploadAFile();
     await waitFor(() => screen.getByText("We found 2 people in your statement"));
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
-    await waitFor(() => screen.getByText("Review your import"));
-    expect(screen.queryByText(/Kiran/)).not.toBeInTheDocument();
-    reviewRibbon("Aditi Sharma");
-    fireEvent.click(screen.getByRole("button", { name: "Confirm imports" }));
+    await waitFor(() => expect(api.confirmPeopleImport).toHaveBeenCalled());
     await waitFor(() => expect(api.confirmPeopleImport).toHaveBeenCalled());
     expect(vi.mocked(api.confirmPeopleImport).mock.calls[0][1]).toEqual([
       { person_key: "me", scheme_confirmations: [] },
@@ -178,27 +186,28 @@ describe("ImportFlow", () => {
 
   it("shows the expiry banner once less than 5 minutes remain", async () => {
     vi.mocked(api.parseImport).mockResolvedValue(
-      preview({ expires_at: new Date(Date.now() + 3 * 60 * 1000).toISOString() }),
+      familyPreview({ expires_at: new Date(Date.now() + 3 * 60 * 1000).toISOString() }),
     );
     render(<ImportFlow householdMemberId="member-1" />);
     await uploadAFile();
-    await waitFor(() => screen.getByText("Review your import"));
+    await screen.findByText("We found 2 people in your statement");
     expect(screen.getByText("Your review closes in 5 minutes. Confirm imports to save it.")).toBeInTheDocument();
   });
 
-  it("C1: a failed confirm keeps the review, and Try again resends the same request", async () => {
+  it("retry after a failed confirm", async () => {
     vi.mocked(api.confirmPeopleImport)
       .mockRejectedValueOnce(new TypeError("Failed to fetch"))
       .mockResolvedValueOnce(RESULT);
-    await reachSingleReview();
-    reviewRibbon("Aditi Sharma");
-    fireEvent.click(screen.getByRole("button", { name: "Confirm imports" }));
+    vi.mocked(api.parseImport).mockResolvedValue(SINGLE());
+    const onDone = vi.fn();
+    render(<ImportFlow householdMemberId="member-1" onDone={onDone} />);
+    await uploadAFile();
 
     await waitFor(() => screen.getByText("We couldn’t finish the import"));
     expect(screen.getByText("Nothing was saved. Your review choices are still here.")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
 
-    await waitFor(() => expect(screen.getByText(/import complete/i)).toBeInTheDocument());
+    await waitFor(() => expect(onDone).toHaveBeenCalledWith({ text: "3 transactions added · 1 already saved" }));
     expect(api.confirmPeopleImport).toHaveBeenCalledTimes(2);
     expect(vi.mocked(api.confirmPeopleImport).mock.calls[1]).toEqual(vi.mocked(api.confirmPeopleImport).mock.calls[0]);
   });
@@ -207,9 +216,7 @@ describe("ImportFlow", () => {
     vi.mocked(api.confirmPeopleImport).mockRejectedValue(
       new ApiError(422, { code: "confirm_invalid", message: "Kiran is now on another Unifolio account. Upload the statement again." }),
     );
-    await reachSingleReview();
-    reviewRibbon("Aditi Sharma");
-    fireEvent.click(screen.getByRole("button", { name: "Confirm imports" }));
+    await uploadSingle();
 
     await waitFor(() => screen.getByText("Kiran is now on another Unifolio account. Upload the statement again."));
     expect(screen.queryByRole("button", { name: "Try again" })).not.toBeInTheDocument();
@@ -220,9 +227,7 @@ describe("ImportFlow", () => {
 
   it("C1 -> Cancel import -> C3 -> Cancel import discards the session", async () => {
     vi.mocked(api.confirmPeopleImport).mockRejectedValue(new TypeError("Failed to fetch"));
-    await reachSingleReview();
-    reviewRibbon("Aditi Sharma");
-    fireEvent.click(screen.getByRole("button", { name: "Confirm imports" }));
+    await uploadSingle();
     await waitFor(() => screen.getByText("We couldn’t finish the import"));
     fireEvent.click(screen.getByRole("button", { name: "Cancel import" }));
     await waitFor(() => screen.getByText("Cancel this import?"));
@@ -232,28 +237,34 @@ describe("ImportFlow", () => {
     await waitFor(() => expect(screen.getByLabelText(/cas pdf/i)).toBeInTheDocument());
   });
 
-  it("C2: a 410 session_expired returns to upload with a banner", async () => {
+  it("expired session returns to upload with banner", async () => {
     vi.mocked(api.confirmPeopleImport).mockRejectedValue(
       new ApiError(410, { code: "session_expired", message: "expired" }),
     );
-    await reachSingleReview();
-    reviewRibbon("Aditi Sharma");
-    fireEvent.click(screen.getByRole("button", { name: "Confirm imports" }));
+    await uploadSingle();
 
     await waitFor(() => screen.getByText("Your upload timed out. Please upload again."));
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     await waitFor(() => expect(screen.getByLabelText(/cas pdf/i)).toBeInTheDocument());
   });
 
-  it("C3: Cancel on the ribbon screen asks first; Keep reviewing changes nothing", async () => {
-    await reachSingleReview();
-    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-    expect(screen.getByText("Cancel this import?")).toBeInTheDocument();
-    expect(screen.getByText("Your review choices for 1 person will be lost.")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Keep reviewing" }));
-    await waitFor(() => expect(screen.queryByText("Cancel this import?")).not.toBeInTheDocument());
-    expect(screen.getByText("Review your import")).toBeInTheDocument();
-    expect(api.discardImportSession).not.toHaveBeenCalled();
+  it("fallback dialog lists only unidentified funds", async () => {
+    vi.mocked(api.parseImport).mockResolvedValue(preview({ needs_review: true, schemes: [
+      scheme("m1", { person_key: "me", identification: "verified" }),
+      scheme("t2", { person_key: "me", name: "Mystery Fund", identification: "ask",
+        candidates: [{ amfi_code: "123", name: "Mystery Fund - Direct" }] }),
+    ] }));
+    render(<ImportFlow householdMemberId="member-1" />);
+    await uploadAFile();
+    await screen.findByText("Mystery Fund");
+    expect(screen.queryByText("Fund m1")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("combobox")).toHaveLength(1);
+    expect(api.confirmPeopleImport).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await waitFor(() => expect(api.confirmPeopleImport).toHaveBeenCalledWith("s1", [
+      { person_key: "me", scheme_confirmations: [{ temp_id: "t2", amfi_code: "123" }] },
+    ], {}));
   });
 
   it("closing the people popup asks C3 before cancelling", async () => {
@@ -280,7 +291,7 @@ describe("ImportFlow", () => {
     await uploadAFile();
     fireEvent.click(await screen.findByRole("button", { name: "Yes, that’s me" }));
 
-    await waitFor(() => screen.getByText("Review your import"));
+    await waitFor(() => expect(api.confirmPeopleImport).toHaveBeenCalled());
     expect(api.resolveName).toHaveBeenCalledWith("s1", "Aditi Sharma");
     expect(screen.queryByRole("button", { name: "Yes, that’s me" })).not.toBeInTheDocument();
   });
@@ -304,9 +315,7 @@ describe("ImportFlow", () => {
     await waitFor(() => screen.getByRole("button", { name: /include in family total/i }));
     fireEvent.click(screen.getByRole("button", { name: /include in family total/i }));
 
-    await waitFor(() => screen.getByText("Review your import"));
-    reviewRibbon("Kiran Sharma");
-    fireEvent.click(screen.getByRole("button", { name: "Confirm imports" }));
+    await waitFor(() => expect(api.confirmPeopleImport).toHaveBeenCalled());
     await waitFor(() => expect(api.confirmPeopleImport).toHaveBeenCalled());
     expect(vi.mocked(api.confirmPeopleImport).mock.calls[0][1]).toEqual([
       { person_key: "kiran", include: true, scheme_confirmations: [] },
@@ -336,10 +345,10 @@ describe("ImportFlow", () => {
     await waitFor(() => screen.getByText("We found 2 people in your statement"));
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
 
-    // Already chosen at U7, so the review has both ribbons rather than none.
-    await waitFor(() => screen.getByText("Review your import"));
-    expect(screen.getByRole("button", { name: /^Kiran Sharma/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^Meera Sharma/ })).toBeInTheDocument();
+    await waitFor(() => expect(api.confirmPeopleImport).toHaveBeenCalledWith("s1", [
+      { person_key: "kiran", include: true, scheme_confirmations: [] },
+      { person_key: "meera", include: true, scheme_confirmations: [] },
+    ], {}));
   });
 
   it.each(["pan_belongs_to_other_member", "pan_mismatch_for_member"])(
@@ -423,7 +432,7 @@ describe("ImportFlow", () => {
     await uploadAFile();
     await waitFor(() => screen.getByText("The name on this statement is a little different"));
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
-    await waitFor(() => screen.getByText("Review your import"));
+    await waitFor(() => expect(api.confirmPeopleImport).toHaveBeenCalled());
   });
 
   it("sends a name-notice 'ask' answer as accept_name_update", async () => {
@@ -440,47 +449,57 @@ describe("ImportFlow", () => {
     await uploadAFile();
     await waitFor(() => screen.getByRole("button", { name: "Update" }));
     fireEvent.click(screen.getByRole("button", { name: "Update" }));
-    await waitFor(() => screen.getByText("Review your import"));
-    reviewRibbon("Aditi Sharma");
-    fireEvent.click(screen.getByRole("button", { name: "Confirm imports" }));
+    await waitFor(() => expect(api.confirmPeopleImport).toHaveBeenCalled());
     await waitFor(() => expect(api.confirmPeopleImport).toHaveBeenCalled());
     expect(vi.mocked(api.confirmPeopleImport).mock.calls[0][1]).toEqual([
       { person_key: "me", accept_name_update: true, scheme_confirmations: [] },
     ]);
   });
 
-  it("resets to upload from the confirmed screen by default", async () => {
-    vi.mocked(api.confirmPeopleImport).mockResolvedValue(RESULT);
-    await reachSingleReview();
-    reviewRibbon("Aditi Sharma");
-    fireEvent.click(screen.getByRole("button", { name: "Confirm imports" }));
-    await waitFor(() => screen.getByRole("button", { name: /import another cas/i }));
-    fireEvent.click(screen.getByRole("button", { name: /import another cas/i }));
-
-    expect(screen.getByRole("button", { name: /request from cams/i })).toBeInTheDocument();
-  });
-
-  it("uses ctaLabel and onDone instead of the default reset when provided", async () => {
-    vi.mocked(api.parseImport).mockResolvedValue(SINGLE());
-    vi.mocked(api.confirmPeopleImport).mockResolvedValue(RESULT);
-    const onDone = vi.fn();
-    render(<ImportFlow householdMemberId="member-1" ctaLabel="Continue" onDone={onDone} />);
+  it("fallback cancellation asks first and Keep reviewing preserves choices", async () => {
+    vi.mocked(api.parseImport).mockResolvedValue(preview({ needs_review: true, schemes: [
+      scheme("t2", { person_key: "me", identification: "ask" }),
+    ] }));
+    render(<ImportFlow householdMemberId="member-1" />);
     await uploadAFile();
-    await waitFor(() => screen.getByText("Review your import"));
-    reviewRibbon("Aditi Sharma");
-    fireEvent.click(screen.getByRole("button", { name: "Confirm imports" }));
-    await waitFor(() => screen.getByRole("button", { name: /^continue$/i }));
-    fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
-    expect(onDone).toHaveBeenCalled();
+    fireEvent.change(await screen.findByRole("combobox"), { target: { value: "__unlisted__" } });
+    fireEvent.click(screen.getByRole("button", { name: /close/i }));
+    await screen.findByText("Cancel this import?");
+    fireEvent.click(screen.getByRole("button", { name: "Keep reviewing" }));
+    await waitFor(() => expect(screen.queryByText("Cancel this import?")).not.toBeInTheDocument());
+    expect(screen.getByRole("combobox")).toHaveValue("__unlisted__");
+    expect(api.discardImportSession).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: /close/i }));
+    fireEvent.click(await screen.findByRole("button", { name: "Cancel import" }));
+    await waitFor(() => expect(api.discardImportSession).toHaveBeenCalledWith("s1"));
   });
+
+  it("sends family success notice details followed by warnings", async () => {
+    vi.mocked(api.parseImport).mockResolvedValue(familyPreview());
+    vi.mocked(api.confirmPeopleImport).mockResolvedValue({
+      ...RESULT, added: 12, skipped: 2, warnings: ["History starts mid-year."],
+      people: [
+        { ...RESULT.people[0], added: 3, skipped: 0 },
+        { ...RESULT.people[0], person_key: "ramesh", name: "Ramesh Sharma", added: 9, skipped: 2 },
+      ],
+    });
+    const onDone = vi.fn();
+    render(<ImportFlow householdMemberId="member-1" onDone={onDone} />);
+    await uploadAFile();
+    fireEvent.click(await screen.findByRole("button", { name: "Continue" }));
+    await waitFor(() => expect(onDone).toHaveBeenCalledWith({
+      text: "12 transactions added · 2 already saved",
+      details: ["Aditi Sharma: 3 added", "Ramesh Sharma: 9 added, 2 already saved", "History starts mid-year."],
+    }));
+  });
+
   it("closes an already imported review with the generic dashboard notice", async () => {
     vi.mocked(api.parseImport).mockResolvedValue(SINGLE());
     vi.mocked(api.confirmPeopleImport).mockRejectedValue(new ApiError(409, { code: "already_imported", message: "This statement was already imported" }));
     const onDone = vi.fn();
     render(<ImportFlow householdMemberId="member-1" onDone={onDone} />);
     await uploadAFile();
-    await screen.findByText("Review your import");
-    fireEvent.click(screen.getByRole("button", { name: "Confirm imports" }));
+    await waitFor(() => expect(api.confirmPeopleImport).toHaveBeenCalled());
     await waitFor(() => expect(onDone).toHaveBeenCalledWith({ text: "This statement was already imported" }));
     expect(onDone).toHaveBeenCalledTimes(1);
   });
@@ -508,6 +527,63 @@ describe("ImportFlow", () => {
     await uploadAFile();
     fireEvent.click(await screen.findByRole("button", { name: "Request CAS from CAMS" }));
     await screen.findByRole("heading", { name: "Request from CAMS" });
+  });
+
+  it("shows a generic message on a parse network failure", async () => {
+    vi.mocked(api.parseImport).mockRejectedValue(new TypeError("Failed to fetch"));
+    render(<ImportFlow householdMemberId="member-1" />);
+    await uploadAFile();
+    expect(await screen.findByText(/couldn[’']t reach the server/i)).toBeInTheDocument();
+  });
+
+  it("retries fallback confirmation with the chosen fund unchanged", async () => {
+    vi.mocked(api.parseImport).mockResolvedValue(preview({ needs_review: true, schemes: [
+      scheme("t2", { person_key: "me", identification: "ask",
+        candidates: [{ amfi_code: "123", name: "Mystery Fund - Direct" }] }),
+    ] }));
+    let reject!: (reason: unknown) => void;
+    vi.mocked(api.confirmPeopleImport)
+      .mockReturnValueOnce(new Promise((_, fail) => { reject = fail; }))
+      .mockResolvedValueOnce(RESULT);
+    const onDone = vi.fn();
+    render(<ImportFlow householdMemberId="member-1" onDone={onDone} />);
+    await uploadAFile();
+    fireEvent.change(await screen.findByRole("combobox"), { target: { value: "123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await screen.findByText("Importing Mutual Fund Statement");
+    await act(() => reject(new TypeError("Failed to fetch")));
+    fireEvent.click(await screen.findByRole("button", { name: "Try again" }));
+    await waitFor(() => expect(onDone).toHaveBeenCalled());
+    expect(api.confirmPeopleImport).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(api.confirmPeopleImport).mock.calls[1]).toEqual(vi.mocked(api.confirmPeopleImport).mock.calls[0]);
+    expect(vi.mocked(api.confirmPeopleImport).mock.calls[1][1][0].scheme_confirmations)
+      .toEqual([{ temp_id: "t2", amfi_code: "123" }]);
+  });
+
+  it("resolves a 409 returned by confirm and confirms the resolved preview", async () => {
+    vi.mocked(api.parseImport).mockResolvedValue(SINGLE());
+    vi.mocked(api.confirmPeopleImport)
+      .mockRejectedValueOnce(new ApiError(409, { code: "self_name_mismatch", message: "m",
+        session_id: "s1", details: { entered_name: "Aditi Rao", statement_name: "Aditi Sharma" } }))
+      .mockResolvedValueOnce(RESULT);
+    vi.mocked(api.resolveName).mockResolvedValue(SINGLE());
+    const onDone = vi.fn();
+    render(<ImportFlow householdMemberId="member-1" onDone={onDone} />);
+    await uploadAFile();
+    fireEvent.click(await screen.findByRole("button", { name: "Yes, that’s me" }));
+    await waitFor(() => expect(onDone).toHaveBeenCalled());
+    expect(api.confirmPeopleImport).toHaveBeenCalledTimes(2);
+  });
+
+  it("returns to upload when the session expires while the people popup is open", async () => {
+    vi.mocked(api.parseImport).mockResolvedValue(familyPreview());
+    vi.mocked(api.confirmPeopleImport).mockRejectedValue(new ApiError(410, { code: "session_expired", message: "expired" }));
+    render(<ImportFlow householdMemberId="member-1" />);
+    await uploadAFile();
+    fireEvent.click(await screen.findByRole("button", { name: "Continue" }));
+    await screen.findByText("Your upload timed out. Please upload again.");
+    expect(screen.getByLabelText(/cas pdf/i)).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
 });

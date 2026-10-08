@@ -68,7 +68,7 @@ trimmed), `backend.md`/`database.md` (backend/schema changes only), `decisions.m
 `Docs/orchestration/delegation-log.md`. Deferred/not-yet-built features:
 `DEFERRED_FEATURES.md`.)*
 
-**Latest (2026-10-08):** Analytics speed fix + stamp duty built, gated (88/88 synthetic, real files, Postgres) and reviewed. Next: staging deploy with `Docs/orchestration/2026-10-08-staging-deploy-guide-analytics-stamp-duty.md`. Status: `session.md`.
+**Latest (2026-10-08):** Analytics speed fix + stamp duty deployed to staging; blank-AMFI-plan fix deployed; Phase 7 Task 3 (Import Review screen removed) built and reviewed, uncommitted. Next: user reviews the PRD-01 v1.6 diff, commits, then staging (Task 6). Status: `session.md`.
 
 **Previous (2026-10-07):** staging bastion `InsufficientInstanceCapacity` (AZ-wide `t4g`-family
 shortage in `ap-south-1a`, confirmed via CloudTrail) fixed by moving the bastion to

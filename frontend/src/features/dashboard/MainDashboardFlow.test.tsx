@@ -25,7 +25,7 @@ vi.mock("./api", () => ({
 
 vi.mock("../import/ImportFlow", () => ({
   ImportFlow: ({ householdMemberId, onDone }: { householdMemberId: string; onDone?: (notice?: { text: string; details?: string[] }) => void }) => (
-    <div data-testid="import-for">{householdMemberId}<button onClick={() => onDone?.({ text: "This statement was already imported" })}>Close duplicate import</button></div>
+    <div data-testid="import-for">{householdMemberId}<button onClick={() => onDone?.({ text: "This statement was already imported" })}>Close duplicate import</button><button onClick={() => onDone?.({ text: "12 transactions added · 2 already saved", details: ["Alice: 3 added", "Ramesh: 9 added, 2 already saved", "History starts mid-year."] })}>Finish import</button></div>
   ),
 }));
 
@@ -327,3 +327,17 @@ describe("MainDashboardFlow", () => {
     fireEvent.click(screen.getByRole("button", { name: "Dismiss import notice" }));
     expect(screen.queryByText("This statement was already imported")).not.toBeInTheDocument();
  });
+
+it("shows the success notice and family details after returning to the dashboard", async () => {
+  vi.mocked(authApi.getHouseholdMembers).mockResolvedValue([{ id: "m-1", name: "Alice", relationship: "self", origin: "onboarding", profile_completion: 100, missing_fields: [] }] as any);
+  vi.mocked(dashboardApi.getMemberHoldings).mockResolvedValue([]);
+  vi.mocked(dashboardApi.getMemberAllocation).mockResolvedValue({ by_asset_class: [], by_amc: [], total_value: "0.00" });
+  render(<MainDashboardFlow />);
+  await screen.findByText("No Holdings Found");
+  fireEvent.click(screen.getByRole("button", { name: "+ Add Data" }));
+  fireEvent.click(await screen.findByText("Finish import"));
+  expect(await screen.findByText("12 transactions added · 2 already saved")).toBeVisible();
+  expect(screen.getByText("Alice: 3 added")).toBeVisible();
+  expect(screen.getByText("Ramesh: 9 added, 2 already saved")).toBeVisible();
+  expect(screen.getByText("History starts mid-year.")).toBeVisible();
+});
