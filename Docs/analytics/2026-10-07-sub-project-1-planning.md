@@ -375,7 +375,7 @@ subsection below; these are not NAV-replayed at all)
 | Scenario | Stated assumption | `scenario_type` |
 |---|---|---|
 | Strait of Hormuz closure | Crude above $150 | HYPOTHETICAL |
-| US recession + Fed pivot | — (assumption TBD at admin-entry time) | HYPOTHETICAL |
+| US recession + Fed pivot | US GDP contracts, Fed cuts rates aggressively | HYPOTHETICAL |
 | AI/tech valuation bust | US tech -40%, spillover to Indian IT | HYPOTHETICAL |
 | Rupee sharp depreciation | Rupee past 105 | HYPOTHETICAL |
 | Indian equity "lost decade" | Prolonged sideways market, tests SIP discipline | HYPOTHETICAL |
@@ -835,20 +835,34 @@ assumption row, and apply `hypothetical_value = current_value * (1 + assumed_pct
 assumption.
 
 **Fallback for a missing assumption row — added 2026-10-08, was undefined before (verified
-against `d331b04`: 4 of the 5 seeded hypotheticals below have zero
-`scenario_hypothetical_assumptions` rows, not a rare edge case).** Before this correction,
-the compute logic above had no documented behavior for `(scenario_id, asset_class)` with no
-matching row — any missing lookup falling through to an un-guarded `None`/`0` would violate
-this sub-project's own honest-data floor (§ frontend spec's cross-cutting rules: "nowhere...
-does a missing/insufficient-data state render as a fabricated or zeroed number"), the exact
-mistake this mechanism must not make. **Required fix:** if a scenario has zero
+against `d331b04`: 4 of the 5 seeded hypotheticals below originally had zero
+`scenario_hypothetical_assumptions` rows, not a rare edge case — now resolved, all 5 are
+seeded, see below).** Before this correction, the compute logic above had no documented
+behavior for `(scenario_id, asset_class)` with no matching row — any missing lookup
+falling through to an un-guarded `None`/`0` would violate this sub-project's own
+honest-data floor (§ frontend spec's cross-cutting rules: "nowhere... does a missing/
+insufficient-data state render as a fabricated or zeroed number"), the exact mistake this
+mechanism must not make. **Required fix, kept even though all 5 current hypotheticals now
+have assumptions — this is correct generic behavior for any future hypothetical an admin
+adds via the DB-entry pattern before filling in its assumptions:** if a scenario has zero
 `scenario_hypothetical_assumptions` rows at all, `hypothetical_value` must not be computed
 for any scheme under it — the API returns an explicit `assumptions_not_set = true` flag
 (scenario-level, not per-scheme, since the missing condition is the same for every scheme),
-no `pct_change`/`hypothetical_value` field at all, and the frontend must render this as an
-explicit state (exact wording and whether the scenario is hidden from "More scenarios"
-entirely vs. shown with this explicit state is **a pending decision for Ayush, not decided
-here** — see "Open items" below) — never a 0% or silently-omitted result.
+no `pct_change`/`hypothetical_value` field at all.
+
+**Hidden vs. shown — decided 2026-10-08 (orchestrator recommendation, per Ayush's explicit
+delegation: "whatever you recommend... take that input, create the proper
+documentation").** A scenario with `assumptions_not_set = true` is **shown**, not hidden,
+in "More scenarios" — with the explicit "assumptions not set yet" state (exact copy: *"We
+haven't set an assumption for this scenario yet — check back soon."*), never silently
+omitted. Reasoning: hiding it gives an admin who adds a new hypothetical row without
+immediately seeding its assumptions zero visibility that the gap exists — nothing would
+ever surface "there's an unfinished scenario sitting in the DB," which is a worse
+operational failure mode than one card briefly showing a stated-as-such placeholder. This
+is also consistent with every other missing-data state in this sub-project (04's "not
+available yet" block, 09's "Insufficient History" badge, the proxy fallback's "no
+comparable data" text) — none of them hide, all of them say so explicitly. Shown, not
+hidden, is the one answer consistent with that existing pattern.
 
 `assumption_note` is a mandatory field, not optional metadata — Ayush's instruction was
 "mark hypotheticals as assumption-driven and state the assumptions." The UI must show this
@@ -1027,7 +1041,7 @@ FROM us_iran_group, (VALUES
 INSERT INTO scenarios (id, name, description, start_date, end_date, scenario_type, is_ongoing, display_rank)
 VALUES
   (gen_random_uuid(), 'Strait of Hormuz closure', 'Crude above $150.', NULL, NULL, 'HYPOTHETICAL', false, NULL),
-  (gen_random_uuid(), 'US recession + Fed pivot', 'Assumption TBD at admin-entry time.', NULL, NULL, 'HYPOTHETICAL', false, NULL),
+  (gen_random_uuid(), 'US recession + Fed pivot', 'US GDP contracts, Fed cuts rates aggressively.', NULL, NULL, 'HYPOTHETICAL', false, NULL),
   (gen_random_uuid(), 'AI/tech valuation bust', 'US tech -40%, spillover to Indian IT.', NULL, NULL, 'HYPOTHETICAL', false, 8),
   (gen_random_uuid(), 'Rupee sharp depreciation', 'Rupee past 105.', NULL, NULL, 'HYPOTHETICAL', false, NULL),
   (gen_random_uuid(), 'Indian equity "lost decade"', 'Prolonged sideways market, tests SIP discipline.', NULL, NULL, 'HYPOTHETICAL', false, NULL);
@@ -1043,34 +1057,65 @@ SELECT id, asset_class, pct, note FROM scenarios, (VALUES
 ) AS a(asset_class, pct, note)
 WHERE scenarios.name = 'AI/tech valuation bust';
 
--- Still needed, blocking: the equivalent 4x4 INSERT above for each of the other
--- 4 category-D hypotheticals (Strait of Hormuz closure, US recession + Fed pivot,
--- Rupee sharp depreciation, Indian equity "lost decade") -- see "Open items" below.
+-- Remaining 4 category-D hypotheticals -- orchestrator-authored 2026-10-08, per
+-- Ayush's explicit delegation ("whatever you recommend... create the proper
+-- documentation"). Each anchored to the closest real analog already in this
+-- scenario library, same reasoning style as the AI/tech bust row above, not
+-- invented from nothing. Provisional in the sense that any judgment call is --
+-- revisit if real usage or a sharper view changes these -- but not "TBD."
+INSERT INTO scenario_hypothetical_assumptions (scenario_id, asset_class, assumed_pct_change, assumption_note)
+SELECT id, asset_class, pct, note FROM scenarios, (VALUES
+  ('Equity', -25.0, 'Anchored to 2022 global tightening (-18.4%, a sanctions-driven partial oil-supply shock) scaled up ~35% for a full chokepoint closure disrupting ~20% of global oil supply -- a more severe, more sudden physical shortage than a sanctions regime.'),
+  ('Debt', -4.0, 'RBI likely hikes/holds hard to defend the rupee against imported inflation -- same direction as the 2022-23 RBI hiking cycle''s debt-fund mark-to-market hit, but assumed shorter/less sustained since this is an acute shock, not a multi-quarter cycle.'),
+  ('Hybrid', -14.0, 'Blended from the Equity/Debt assumptions above at a typical 60/40 hybrid mix.'),
+  ('Other', -20.0, 'Treated like Equity for commodity-adjacent funds in this bucket, even though gold specifically often rallies as a safe haven in an oil shock -- this bucket''s actual gold/commodity mix isn''t known precisely enough to assume a divergent number with confidence.')
+) AS a(asset_class, pct, note)
+WHERE scenarios.name = 'Strait of Hormuz closure';
+
+INSERT INTO scenario_hypothetical_assumptions (scenario_id, asset_class, assumed_pct_change, assumption_note)
+SELECT id, asset_class, pct, note FROM scenarios, (VALUES
+  ('Equity', -15.0, 'A US recession dampens global growth/FII flows into India, but India''s domestic-consumption story partially decouples -- milder than a full crash (COVID''s -38%), closer in shape to the 2019 pre-COVID slowdown.'),
+  ('Debt', 4.0, 'Positive, not negative -- a Fed pivot to rate cuts (and RBI likely following) is a tailwind for duration/debt funds, the mirror image of the 2022-23 RBI hiking cycle and consistent with the actual 2025 rate-cut cycle already in this library.'),
+  ('Hybrid', -7.0, 'Blended -- the positive debt assumption partially offsets the negative equity assumption, more than the other 3 hypotheticals here.'),
+  ('Other', -15.0, 'Treated like Equity for this bucket, same uncertainty caveat as the Hormuz row above.')
+) AS a(asset_class, pct, note)
+WHERE scenarios.name = 'US recession + Fed pivot';
+
+INSERT INTO scenario_hypothetical_assumptions (scenario_id, asset_class, assumed_pct_change, assumption_note)
+SELECT id, asset_class, pct, note FROM scenarios, (VALUES
+  ('Equity', -12.0, 'Anchored to the Taper Tantrum (2013, rupee 55->68, ~24% depreciation): FII outflows and import-cost inflation hurt the broad market, partially offset by IT/export-sector gains -- net negative on the index per that precedent, assumed somewhat milder since Taper Tantrum also had a global QE-taper overhang compounding it.'),
+  ('Debt', -6.0, 'RBI likely hikes/holds hard to defend the currency -- same bond-yield-spike mechanism Taper Tantrum showed, hurting duration funds.'),
+  ('Hybrid', -9.0, 'Blended from the Equity/Debt assumptions above.'),
+  ('Other', -5.0, 'Deliberately less negative than Equity here, unlike the other 3 hypotheticals -- gold is dollar-denominated, so gold priced in INR typically rises when the rupee weakens, a partial natural hedge for this bucket specifically.')
+) AS a(asset_class, pct, note)
+WHERE scenarios.name = 'Rupee sharp depreciation';
+
+INSERT INTO scenario_hypothetical_assumptions (scenario_id, asset_class, assumed_pct_change, assumption_note)
+SELECT id, asset_class, pct, note FROM scenarios, (VALUES
+  ('Equity', -8.0, 'Not a crash -- a "lost decade" is a prolonged sideways/low-return market, not a single trough. This number represents the scenario''s stated characterization (meaningfully below normal expectations over an extended multi-year period), not an instantaneous point-in-time fall the way the other hypotheticals'' numbers are -- the mechanism applies it the same way (times today''s value) but the underlying claim being modeled is different in kind, flagged here so it isn''t misread as "a crash happens tomorrow."'),
+  ('Debt', 3.0, 'Positive -- the defining feature of a "lost decade" for equity is that debt/fixed income keeps accruing normally regardless; debt funds are not assumed to suffer the way they do in a rate-shock scenario.'),
+  ('Hybrid', -2.0, 'Blended -- the equity-weighted portion drags slightly negative, the debt allocation mostly cushions it.'),
+  ('Other', -5.0, 'Modest negative, flagged as the least confident number of the 4 -- gold/commodities have historically sometimes been a bright spot during past Indian equity slow-growth periods, but that isn''t assumed to hold reliably enough to model as positive here.')
+) AS a(asset_class, pct, note)
+WHERE scenarios.name = 'Indian equity "lost decade"';
 ```
 
-**Scope correction, 2026-10-08 (orchestrator verification against `d331b04`):** the
-paragraph above originally undercounted this gap as "one HYPOTHETICAL scenario [AI/tech
-valuation bust] has assumption values, a template for the admin to fill in the rest" without
-flagging how large the rest is. Re-verified directly against the seed script: of the 5
-category-D hypotheticals inserted above, only **AI/tech valuation bust** gets
-`scenario_hypothetical_assumptions` rows. The other **four** — Strait of Hormuz closure, US
-recession + Fed pivot, Rupee sharp depreciation, and Indian equity "lost decade" — have
-**zero** assumption rows each, not partial ones. None of the four are in the curated
-`display_rank` 8 (only AI/tech valuation bust is), so today they'd only ever be reached via
-"More scenarios" — but per the fallback fix above, until real assumptions are supplied for
-them, opening any of the four must show the explicit "assumptions not set yet" state (or be
-hidden, per Ayush's pending decision), never a silently-computed or zeroed result.
-
-**Open items, blocking, need Ayush's input — not guessed here:**
-1. The actual Equity/Debt/Hybrid/Other `assumed_pct_change` + `assumption_note` values for
-   each of the 4 unseeded hypotheticals above (16 numbers + 16 notes total, same shape as
-   the AI/tech valuation bust template) — these are Unifolio-authored judgment calls (same
-   "manual-entry precedent" category as the AI/tech ones already seeded), not something to
-   invent without input.
-2. Whether a hypothetical with no assumption rows should be **hidden** from "More
-   scenarios" entirely until assumptions are supplied, or **shown with an explicit
-   "assumptions not set yet" state** (consistent wording TBD) — either is consistent with
-   the honest-data floor, this is a product-presentation choice, not a correctness one.
+**Scope correction, 2026-10-08 (orchestrator verification against `d331b04`), resolved
+same day per Ayush's delegation:** the paragraph above originally undercounted this gap as
+"one HYPOTHETICAL scenario [AI/tech valuation bust] has assumption values, a template for
+the admin to fill in the rest" without flagging how large the rest was. Re-verified
+directly against the seed script: of the 5 category-D hypotheticals inserted above,
+originally only **AI/tech valuation bust** had `scenario_hypothetical_assumptions` rows —
+the other **four** had zero each, not partial ones. **Now resolved:** the 4 INSERT
+statements above supply real Equity/Debt/Hybrid/Other assumptions + notes for all four,
+authored by the orchestrator 2026-10-08 per Ayush's explicit instruction ("these are
+uncharted territory for me... whatever you recommend... create the proper
+documentation"), each anchored to the closest real historical analog already in this
+scenario library rather than invented from nothing (see each row's `assumption_note`
+for its specific anchor). All 5 category-D hypotheticals are now fully seeded; the
+`assumptions_not_set` fallback above is retained as correct generic behavior for any
+*future* hypothetical an admin adds without immediately seeding its assumptions, not
+because any of today's 5 still need it.
 
 Not yet run anywhere — this is the script to execute via the existing SSM-tunnel +
 `psql`/DBeaver access pattern once the dates above have had their primary-source

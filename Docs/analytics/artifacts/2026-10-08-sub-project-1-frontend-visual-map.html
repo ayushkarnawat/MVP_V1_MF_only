@@ -276,7 +276,7 @@ erDiagram
   <div class="tbl-wrap">
     <table>
       <tr><th>#</th><th>New tables</th><th>Reused, unmodified</th><th>Migration</th></tr>
-      <tr><td>04</td><td><code>scheme_fund_managers</code></td><td><code>schemes</code> (amfi_code join key)</td><td>new, number TBD at implementation time</td></tr>
+      <tr><td>04</td><td><code>scheme_fund_managers</code></td><td><code>schemes</code> (joined via <code>ix_schemes_amc_base</code> on (amc_name, base_name) — corrected 2026-10-08, <code>amfi_code</code> is unique per variant row and can't propagate)</td><td>new, number TBD at implementation time</td></tr>
       <tr><td>09</td><td><code>scheme_rankings</code>, <code>ranking_weights</code></td><td><code>category_ranking.py</code>, <code>risk_metrics.py</code>, <code>ter.py</code> internals</td><td><code>0033_scheme_rankings_and_ranking_weights.py</code> (confirmed next-free number as of 2026-10-08)</td></tr>
       <tr><td>11</td><td><code>scenario_scheme_results</code>, <code>scenario_category_averages</code>, <code>scenario_hypothetical_assumptions</code>; extends existing <code>scenarios</code></td><td><code>nav_history</code> (backfilled wider, one-time), <code>category_ranking.py</code>'s bulk-NAV pattern</td><td>new, number TBD at implementation time</td></tr>
       <tr><td>14</td><td>none</td><td><code>transactions</code>, <code>cash_flow.py</code>, <code>sip.py</code>, <code>holdings.py</code></td><td>none — no schema change</td></tr>

@@ -135,18 +135,35 @@ rather than trusting this summary alone:**
   correctly — **now added:** an explicit requirement for a test covering a category where
   most funds lack TER, and the frontend spec's "Missing 5Y" state was broadened to cover
   missing-TER too, since it's now a common case, not a rare one.
-- **Attribute 11 — four hypotheticals have no assumptions, not one.** This section
-  originally undercounted the gap as "one HYPOTHETICAL scenario [US recession + Fed pivot]
-  has no real assumption values yet, Ayush needs to supply them" — re-verified against the
-  actual seed SQL: only **AI/tech valuation bust** has `scenario_hypothetical_assumptions`
-  rows; Strait of Hormuz closure, US recession + Fed pivot, Rupee sharp depreciation, and
-  Indian equity "lost decade" have **zero** each. **Now fixed:** the compute logic's
-  previously-undocumented fallback for a missing assumption row is now specified (an
-  `assumptions_not_set` flag, no computed value at all, never a 0% or fabricated number),
-  and both the backend doc and the attribute 11 frontend spec document this new state.
-  **Still genuinely pending (see below), not resolved by this fix:** the actual 4×4
-  percentages/notes, and whether an unset hypothetical is hidden from "More scenarios" or
-  shown with the explicit state.
+- **Attribute 11 — four hypotheticals had no assumptions, not one. Now fully resolved,
+  2026-10-08 (same day, later pass).** This section originally undercounted the gap as "one
+  HYPOTHETICAL scenario [US recession + Fed pivot] has no real assumption values yet, Ayush
+  needs to supply them" — re-verified against the actual seed SQL: only **AI/tech valuation
+  bust** had `scenario_hypothetical_assumptions` rows; Strait of Hormuz closure, US recession
+  + Fed pivot, Rupee sharp depreciation, and Indian equity "lost decade" had **zero** each.
+  Two things were needed to close this, and both are now done:
+  1. **The compute logic's fallback for a missing assumption row** — an `assumptions_not_set`
+     flag, no computed value at all, never a 0% or fabricated number — is specified in the
+     planning doc and the attribute 11 frontend spec.
+  2. **The actual 4×4 percentages/notes and the hidden-vs-shown display call** — both were
+     explicitly delegated by Ayush ("these are uncharted territories for me... whatever you
+     recommend... create the proper documentation") and authored/decided orchestrator-side,
+     2026-10-08: real Equity/Debt/Hybrid/Other `assumed_pct_change` + `assumption_note` values
+     for all 4 previously-unseeded hypotheticals, each anchored to a specific real historical
+     analog already in the scenario library (2022 global tightening, 2019 pre-COVID slowdown,
+     2025 rate-cut cycle, the 2013 Taper Tantrum) — see the planning doc's "Attribute 11"
+     section for the full seed SQL and reasoning per value. The hidden-vs-shown call was
+     decided as **shown, not hidden**: an `assumptions_not_set` hypothetical appears in "More
+     scenarios" with literal copy "We haven't set an assumption for this scenario yet — check
+     back soon," never a silent omission — this matches every other honest-data-floor state
+     already in this sub-project (attribute 04's "not available yet," attribute 09's
+     "Insufficient History" badge, this same attribute's historical-scenario proxy-fallback
+     text), none of which hide a gap, all of which state it. All 5 seeded hypotheticals now
+     have real assumption rows, so `assumptions_not_set` is not reachable from any of today's
+     scenarios — the flag and its UI state are kept anyway as correct generic handling for any
+     *future* hypothetical added without assumptions yet, not because a current one needs it.
+     **Nothing about this remains open or pending** — see the planning doc and the attribute
+     11 frontend spec directly, don't rely on this summary alone.
 - **Attribute 14 — not affected, but one claim in an earlier draft of this table was
   wrong.** That draft said a plan file, `Docs/superpowers/plans/2026-10-08-subproject1-a14-
   investment-withdrawal.md`, "stands" — checked via `find` across the repo 2026-10-08: **no
@@ -180,15 +197,10 @@ rather than trusting this summary alone:**
 
 **Still genuinely open — blocking, needs Ayush's input, not guessed here:**
 
-1. **Attribute 11's actual hypothetical assumptions.** The Equity/Debt/Hybrid/Other
-   `assumed_pct_change` + `assumption_note` for each of the 4 unseeded hypotheticals
-   (Strait of Hormuz closure, US recession + Fed pivot, Rupee sharp depreciation, Indian
-   equity "lost decade") — 16 numbers + 16 notes, same shape as the already-seeded AI/tech
-   valuation bust template in the planning doc.
-2. **Attribute 11's display choice for an unset hypothetical** — hidden from "More
-   scenarios" until assumptions are supplied, or shown with the explicit "assumptions not
-   set yet" state. Both are consistent with the honest-data floor; this is a
-   product-presentation call, not a correctness one.
+None. Both items previously listed here (attribute 11's hypothetical assumption values,
+and its hidden-vs-shown display choice) were resolved 2026-10-08 — see the attribute 11
+bullet above. If you're reading this and believe something is still open, re-check the
+planning doc and the relevant attribute spec directly before assuming this list is stale.
 
 ## 4. Suggested implementation sequencing (not a plan — just an observation)
 
