@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Attribute 09 — Mutual Fund Ranking — Visual Map · Unifolio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,500&family=Manrope:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #f7f6f3; --surface: #ffffff; --ink: #1c1b19; --muted: #6b6760; --border: #e4e0d8;
+    --accent: #1d6f5c; --accent-ink: #ffffff; --warn: #8a4b06; --warn-bg: #fdf1dd;
+    --good: #156b3a; --good-bg: #e4f5e9; --bad: #9f2a2a; --bad-bg: #fbe8e6;
+    --code-bg: #f1efe9; --diagram-bg: #fbfaf7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #15140f; --surface: #1e1d18; --ink: #efece3; --muted: #a39d8f; --border: #332f26;
+      --accent: #4fc9ab; --accent-ink: #0c1e18; --warn: #e3a94a; --warn-bg: #352407;
+      --good: #6bd99a; --good-bg: #0f2a1a; --bad: #ef8b85; --bad-bg: #351212;
+      --code-bg: #26241c; --diagram-bg: #1a1813;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: "DM Sans", system-ui, sans-serif; line-height: 1.55; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 48px 24px 96px; display: flex; flex-direction: column; gap: 48px; }
+  header { display: flex; flex-direction: column; gap: 10px; border-bottom: 1px solid var(--border); padding-bottom: 28px; }
+  .eyebrow { font-family: "JetBrains Mono", monospace; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+  h1 { font-family: "Manrope", sans-serif; font-weight: 800; font-size: 30px; margin: 0; letter-spacing: -.01em; }
+  .lede { color: var(--muted); max-width: 760px; font-size: 15px; }
+  nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  nav a { font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--ink); background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; text-decoration: none; }
+  nav a:hover { border-color: var(--accent); color: var(--accent); }
+  section { display: flex; flex-direction: column; gap: 16px; scroll-margin-top: 20px; }
+  .section-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .eyebrow-num { font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--accent-ink); background: var(--accent); border-radius: 6px; padding: 3px 8px; }
+  h2 { font-family: "Manrope", sans-serif; font-size: 21px; margin: 0; }
+  .section-head p { margin: 4px 0 0; color: var(--muted); font-size: 14px; max-width: 640px; }
+  .diagram { background: var(--diagram-bg); border: 1px solid var(--border); border-radius: 14px; padding: 18px; overflow-x: auto; }
+  .callout { border: 1px solid var(--border); border-left: 4px solid var(--accent); background: var(--surface); border-radius: 10px; padding: 14px 16px; font-size: 14px; }
+  .callout.warn { border-left-color: var(--warn); background: var(--warn-bg); }
+  .tbl-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; background: var(--surface); }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { font-family: "JetBrains Mono", monospace; font-size: 11px; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); background: var(--code-bg); }
+  tr:last-child td { border-bottom: none; }
+  code { font-family: "JetBrains Mono", monospace; font-size: 12.5px; background: var(--code-bg); border-radius: 4px; padding: 1px 5px; }
+  footer { border-top: 1px solid var(--border); padding-top: 24px; font-size: 13px; color: var(--muted); }
+
+  /* mockup frame — real app tokens.css */
+  .frame { border-radius: 16px; border: 1px solid var(--border); overflow: hidden; }
+  .frame-label { font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--muted); background: var(--code-bg); padding: 8px 14px; border-bottom: 1px solid var(--border); }
+  .app {
+    --color-bg: #0F0F0F; --color-ink: #F5F5F5; --color-surface: #1A1A1A; --color-border: #2A2A2A;
+    --color-text-secondary: #A3A3A3; --color-accent: #22C55E; --color-positive: #22C55E;
+    --color-negative: #F87171; --color-warning: #F59E0B;
+    font-family: "Manrope", -apple-system, sans-serif; background: var(--color-bg); color: var(--color-ink); padding: 20px;
+  }
+  .app .disp { font-family: "DM Sans", -apple-system, sans-serif; }
+  .app .tabbar { display: flex; gap: 4px; border-bottom: 1px solid var(--color-border); margin-bottom: 20px; font-size: 13px; }
+  .app .tab { padding: 8px 14px; color: var(--color-text-secondary); font-weight: 600; }
+  .app .tab.active { color: var(--color-ink); border-bottom: 2px solid var(--color-accent); }
+  .app .card { border-radius: 12px; border: 1px solid var(--color-border); background: var(--color-surface); padding: 20px; margin-bottom: 16px; }
+  .app .badge { font-size: 10px; font-weight: 600; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--color-warning); color: var(--color-warning); display: inline-block; }
+  .app .n-row { display: flex; justify-content: space-between; padding: 6px 10px; border-radius: 8px; margin: 2px 0; font-size: 13px; }
+  .app .n-rank { color: var(--color-text-secondary); font-variant-numeric: tabular-nums; width: 28px; }
+  .app .you { background: color-mix(in srgb, var(--color-accent) 14%, transparent); border: 1px solid color-mix(in srgb, var(--color-accent) 40%, transparent); font-weight: 700; }
+  .app .you .n-rank { color: var(--color-accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Unifolio · Sub-project 1 · 2026-10-08</div>
+  <h1>Attribute 09 — Mutual Fund Ranking</h1>
+  <p class="lede">
+    Visual companion to <code>2026-10-08-attribute-09-fund-ranking-spec.md</code>. Where
+    each held fund places against its real, named category competitors — the one view in
+    the app that shows other funds by name.
+  </p>
+  <nav>
+    <a href="#decision">Design problem</a>
+    <a href="#mockup">Mockup</a>
+    <a href="#diagram">Structure</a>
+    <a href="#states">States</a>
+    <a href="#schema">Schema &amp; computation</a>
+  </nav>
+</header>
+
+<section id="decision">
+  <div class="section-head">
+    <span class="eyebrow-num">01</span>
+    <div>
+      <h2>The differentiation problem</h2>
+      <p>Two existing surfaces — Scorer v1 (standalone quality score, tier badge) and
+      Category Ranking (single-axis return percentile) — already occupy "a card with a
+      number and a bar." A naive percentile-bar layout for attribute 09 would have been a
+      third copy of the same shape.</p>
+    </div>
+  </div>
+  <div class="callout warn">
+    <b>Rejected 1 — Card + percentile bar:</b> visually redundant with Scorer/Category
+    Ranking, even though the underlying composite formula is genuinely different.<br/><br/>
+    <b>Rejected 2 — Table (fund/rank/percentile/composite/status):</b> same problem in a
+    different widget shape — still only shows a fund's own number.<br/><br/>
+    <b>Resolved — Leaderboard / neighbors view:</b> show the 2 named competitor funds
+    immediately above and 2 below a held fund's rank, by name and composite score. This is
+    the one view that shows <em>other funds by name</em> — what actually earns the word
+    "ranking."
+  </div>
+</section>
+
+<section id="mockup">
+  <div class="section-head">
+    <span class="eyebrow-num">02</span>
+    <div>
+      <h2>Mockup — real tokens.css</h2>
+    </div>
+  </div>
+  <div class="frame">
+    <div class="frame-label">FundRankingSection.tsx — new stacked Analytics section</div>
+    <div class="app">
+      <div class="tabbar">
+        <div class="tab">Holdings</div>
+        <div class="tab active">Analytics</div>
+        <div class="tab">Scenarios</div>
+        <div class="tab">Profile</div>
+      </div>
+      <h2 class="disp" style="font-size:18px;font-weight:700;letter-spacing:-0.01em">Mutual Fund Ranking</h2>
+      <p style="font-size:12px;color:var(--color-text-secondary);margin:2px 0 16px">Where your held funds place against their actual category competitors</p>
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+          <div>
+            <h3 class="disp" style="font-size:14px;font-weight:700">HDFC Flexi Cap Fund</h3>
+            <span style="font-size:12px;color:var(--color-text-secondary);font-weight:500">Flexi Cap &middot; 62 funds</span>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:12px;font-weight:700"><span style="color:var(--color-accent)">#8</span> of 62</div>
+            <div style="font-size:11px;color:var(--color-text-secondary)">Top 13% &middot; score 81.4</div>
+          </div>
+        </div>
+        <div>
+          <div class="n-row"><span class="n-rank">#6</span><span style="flex:1;padding:0 8px">Parag Parikh Flexi Cap</span><span style="font-variant-numeric:tabular-nums;color:var(--color-text-secondary)">83.9</span></div>
+          <div class="n-row"><span class="n-rank">#7</span><span style="flex:1;padding:0 8px">Quant Flexi Cap</span><span style="font-variant-numeric:tabular-nums;color:var(--color-text-secondary)">82.7</span></div>
+          <div class="n-row you"><span class="n-rank">#8</span><span style="flex:1;padding:0 8px">HDFC Flexi Cap Fund <span style="color:var(--color-accent);font-weight:500">(you)</span></span><span style="font-variant-numeric:tabular-nums">81.4</span></div>
+          <div class="n-row"><span class="n-rank">#9</span><span style="flex:1;padding:0 8px">JM Flexi Cap</span><span style="font-variant-numeric:tabular-nums;color:var(--color-text-secondary)">79.8</span></div>
+          <div class="n-row"><span class="n-rank">#10</span><span style="flex:1;padding:0 8px">Franklin Flexi Cap</span><span style="font-variant-numeric:tabular-nums;color:var(--color-text-secondary)">78.1</span></div>
+        </div>
+        <div style="margin-top:12px;padding-top:10px;border-top:1px solid color-mix(in srgb, var(--color-border) 60%, transparent);font-size:11px;color:var(--color-text-secondary)">
+          Tap for the 5-factor breakdown behind this rank &rarr;
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <h3 class="disp" style="font-size:14px;font-weight:700">ICICI Pru Bluechip Fund</h3>
+            <span style="font-size:12px;color:var(--color-text-secondary);font-weight:500">Large Cap</span>
+            <span class="badge" style="margin-left:6px">Insufficient History</span>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--color-text-secondary);margin-top:8px">
+          Not ranked yet — needs 3 years of NAV history to be eligible.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="diagram">
+  <div class="section-head">
+    <span class="eyebrow-num">03</span>
+    <div>
+      <h2>Structure</h2>
+      <p>Composite score = weighted sum of 5 percentile-ranked components (3Y 0.25, 5Y
+      0.25, category-relative 0.20, low-volatility 0.15, low-TER 0.15) — never a raw number
+      summed directly.</p>
+    </div>
+  </div>
+  <div class="diagram">
+    <pre class="mermaid">
+flowchart LR
+    subgraph Card["Per held fund — leaderboard card"]
+        R6["#6 Parag Parikh Flexi Cap — 83.9"]
+        R7["#7 Quant Flexi Cap — 82.7"]
+        YOU["#8 HDFC Flexi Cap Fund (you) — 81.4"]
+        R9["#9 JM Flexi Cap — 79.8"]
+        R10["#10 Franklin Flexi Cap — 78.1"]
+        R6 --> R7 --> YOU --> R9 --> R10
+    end
+    YOU -->|tap| Detail["5-factor breakdown\n(3Y/5Y/category-rel/low-vol/low-TER\npercentiles + raw values)"]
+
+    classDef you fill:#DCFCE7,stroke:#15803D,color:#111,stroke-width:2px
+    class YOU you
+    </pre>
+  </div>
+</section>
+
+<section id="states">
+  <div class="section-head">
+    <span class="eyebrow-num">04</span>
+    <div>
+      <h2>States</h2>
+    </div>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>State</th><th>Trigger</th><th>Treatment</th></tr>
+      <tr><td>Normal</td><td>Ranked, full category context</td><td>Leaderboard card, §2</td></tr>
+      <tr><td>Insufficient history</td><td><code>insufficient_history = true</code> (&lt; 3Y NAV)</td><td>"Insufficient History" badge, no rank/neighbors</td></tr>
+      <tr><td>Thin category</td><td><code>thin_category = true</code> (&lt; 5 peers)</td><td>"Thin Category (N peers)" badge, fewer neighbor rows possible</td></tr>
+      <tr><td>Category unavailable</td><td>No category universe resolvable</td><td>"Category Unavailable" badge</td></tr>
+      <tr><td>Missing 5Y (has 3Y)</td><td><code>return_5y IS NULL</code></td><td>Composite still computed (renormalized); detail view shows "—" for 5Y, never 0</td></tr>
+    </table>
+  </div>
+</section>
+
+<section id="schema">
+  <div class="section-head">
+    <span class="eyebrow-num">05</span>
+    <div>
+      <h2>Schema &amp; computation — backend grounding</h2>
+      <p>Added for implementation handoff: the real tables this screen reads and the
+      computation pipeline that fills them. Not part of the originally approved
+      design-problem/layout above — purely explanatory, grounded verbatim in
+      <code>2026-10-07-sub-project-1-planning.md</code>'s "Attribute 09" section.</p>
+    </div>
+  </div>
+  <div class="diagram">
+    <pre class="mermaid">
+erDiagram
+    SCHEMES ||--o{ SCHEME_RANKINGS : "ranked once per day"
+    RANKING_WEIGHTS ||--o{ SCHEME_RANKINGS : "singleton config read at compute time"
+    SCHEME_RANKINGS {
+        uuid scheme_id FK
+        timestamptz computed_at "pinned to day-start"
+        numeric composite_score "0-100, weighted sum of 5 percentiles"
+        integer category_rank
+        integer category_size
+        numeric percentile
+        numeric return_3y "display-only, never a weighted input"
+        numeric return_5y "nullable, triggers renormalization"
+        numeric category_relative "fund blended return minus category AUM-weighted avg"
+        numeric downside_deviation "raw, same metric Scorer already computes"
+        numeric ter_value
+        numeric return_3y_percentile
+        numeric return_5y_percentile
+        numeric category_relative_percentile
+        numeric volatility_percentile "already inverted, low vol = high percentile"
+        numeric ter_percentile "already inverted, low TER = high percentile"
+    }
+    RANKING_WEIGHTS {
+        boolean id PK "CHECK(id) enforces a single row"
+        numeric weight_return_3y "default 0.25"
+        numeric weight_return_5y "default 0.25"
+        numeric weight_category_relative "default 0.20"
+        numeric weight_low_volatility "default 0.15"
+        numeric weight_low_ter "default 0.15"
+    }
+    </pre>
+  </div>
+  <div class="diagram">
+    <pre class="mermaid">
+sequenceDiagram
+    participant FE as FundRankingSection.tsx
+    participant API as GET /analytics/funds/{id}/ranking
+    participant FR as fund_ranking.py (new)
+    participant CR as category_ranking.py (reused)
+    participant RM as risk_metrics.py (reused)
+    participant TER as ter.py (reused)
+    participant DB as scheme_rankings / ranking_weights
+
+    FE->>API: request ranking for a held scheme
+    API->>FR: compute_fund_ranking(scheme_id)
+    FR->>CR: category universe + blended (r1, r3, r5) returns
+    FR->>CR: AUM-weighted category average -> category_relative
+    FR->>RM: 5yr monthly series -> downside_deviation
+    FR->>TER: latest TER for scheme
+    FR->>FR: percentile-rank each of 5 components within category
+    FR->>DB: read ranking_weights (fallback: hardcoded PDF defaults)
+    FR->>FR: renormalize weights across non-null components
+    FR->>FR: composite_score = sum(renormalized_weight x percentile)
+    FR->>DB: upsert scheme_rankings row (computed_at = day-start)
+    FR-->>API: FundRankingRow + 2 neighbors above/below
+    API-->>FE: leaderboard/neighbors view
+    </pre>
+  </div>
+  <div class="callout">
+    Zero new external data source, zero new scheduled job — every input is already warmed
+    by an existing on-demand cache (NAV) or existing scheduled job (TER daily, AAUM
+    quarterly) with no relation to this feature, same posture as Scorer v1 and Category
+    Ranking.
+  </div>
+</section>
+
+<footer>
+  Spec: <code>2026-10-08-attribute-09-fund-ranking-spec.md</code> · Backend source of truth:
+  <code>2026-10-07-sub-project-1-planning.md</code>, "Attribute 09". Badge copy/variants
+  reused verbatim from <code>CategoryRankingSection.tsx</code>.
+</footer>
+
+
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script>
+  const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: isDark ? 'dark' : 'neutral',
+    themeVariables: { fontFamily: 'DM Sans, sans-serif', primaryColor: isDark ? '#1e1d18' : '#fbfaf7', primaryBorderColor: isDark ? '#332f26' : '#e4e0d8', lineColor: isDark ? '#a39d8f' : '#6b6760' }
+  });
+</script>
+</body>
+</html>

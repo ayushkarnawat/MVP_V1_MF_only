@@ -1,0 +1,619 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Attribute 11 — Drawdown Scenario Simulator — Visual Map · Unifolio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,500&family=Manrope:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #f7f6f3; --surface: #ffffff; --ink: #1c1b19; --muted: #6b6760; --border: #e4e0d8;
+    --accent: #1d6f5c; --accent-ink: #ffffff; --warn: #8a4b06; --warn-bg: #fdf1dd;
+    --good: #156b3a; --good-bg: #e4f5e9; --bad: #9f2a2a; --bad-bg: #fbe8e6;
+    --code-bg: #f1efe9; --diagram-bg: #fbfaf7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #15140f; --surface: #1e1d18; --ink: #efece3; --muted: #a39d8f; --border: #332f26;
+      --accent: #4fc9ab; --accent-ink: #0c1e18; --warn: #e3a94a; --warn-bg: #352407;
+      --good: #6bd99a; --good-bg: #0f2a1a; --bad: #ef8b85; --bad-bg: #351212;
+      --code-bg: #26241c; --diagram-bg: #1a1813;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: "DM Sans", system-ui, sans-serif; line-height: 1.55; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 48px 24px 96px; display: flex; flex-direction: column; gap: 48px; }
+  header { display: flex; flex-direction: column; gap: 10px; border-bottom: 1px solid var(--border); padding-bottom: 28px; }
+  .eyebrow { font-family: "JetBrains Mono", monospace; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+  h1 { font-family: "Manrope", sans-serif; font-weight: 800; font-size: 30px; margin: 0; letter-spacing: -.01em; }
+  .lede { color: var(--muted); max-width: 780px; font-size: 15px; }
+  nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  nav a { font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--ink); background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; text-decoration: none; }
+  nav a:hover { border-color: var(--accent); color: var(--accent); }
+  section { display: flex; flex-direction: column; gap: 16px; scroll-margin-top: 20px; }
+  .section-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .eyebrow-num { font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--accent-ink); background: var(--accent); border-radius: 6px; padding: 3px 8px; }
+  h2 { font-family: "Manrope", sans-serif; font-size: 21px; margin: 0; }
+  .section-head p { margin: 4px 0 0; color: var(--muted); font-size: 14px; max-width: 680px; }
+  .diagram { background: var(--diagram-bg); border: 1px solid var(--border); border-radius: 14px; padding: 18px; overflow-x: auto; }
+  .callout { border: 1px solid var(--border); border-left: 4px solid var(--accent); background: var(--surface); border-radius: 10px; padding: 14px 16px; font-size: 14px; }
+  .callout.warn { border-left-color: var(--warn); background: var(--warn-bg); }
+  .tbl-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; background: var(--surface); }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { font-family: "JetBrains Mono", monospace; font-size: 11px; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); background: var(--code-bg); }
+  tr:last-child td { border-bottom: none; }
+  code { font-family: "JetBrains Mono", monospace; font-size: 12.5px; background: var(--code-bg); border-radius: 4px; padding: 1px 5px; }
+  footer { border-top: 1px solid var(--border); padding-top: 24px; font-size: 13px; color: var(--muted); }
+
+  /* mockup frame */
+  .frame { border-radius: 16px; border: 1px solid var(--border); overflow: hidden; }
+  .frame-label { font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--muted); background: var(--code-bg); padding: 8px 14px; border-bottom: 1px solid var(--border); }
+
+  /* ===== embedded app mockup (real tokens.css, scoped .uf11) ===== */
+  .uf11 {
+    --color-bg: #0F0F0F; --color-ink: #F5F5F5; --color-surface: #1A1A1A;
+    --color-border: #2A2A2A; --color-text-secondary: #A3A3A3; --color-accent: #22C55E;
+    --color-positive: #22C55E; --color-negative: #F87171; --color-warning: #F59E0B;
+    --color-hypo: #A78BFA; --color-freeze: #38BDF8;
+    font-family: "Manrope", -apple-system, sans-serif;
+    background: var(--color-bg); color: var(--color-ink); padding: 20px;
+  }
+  .uf11 .disp { font-family: "DM Sans", -apple-system, sans-serif; }
+  .uf11 .tabbar { display: flex; gap: 4px; border-bottom: 1px solid var(--color-border); margin-bottom: 20px; font-size: 13px; }
+  .uf11 .tab { padding: 8px 14px; color: var(--color-text-secondary); font-weight: 600; }
+  .uf11 .tab.active { color: var(--color-ink); border-bottom: 2px solid var(--color-accent); }
+  .uf11 .lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-secondary); margin: 26px 0 10px; }
+  .uf11 .card { border-radius: 12px; border: 1px solid var(--color-border); background: var(--color-surface); padding: 16px; }
+  .uf11 .grid8 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .uf11 .scard { border-radius: 12px; border: 1px solid var(--color-border); background: color-mix(in srgb, var(--color-bg) 50%, transparent); padding: 13px; cursor: pointer; position: relative; }
+  .uf11 .scard:hover { border-color: var(--color-accent); }
+  .uf11 .scard.hypo { border: 1px dashed var(--color-hypo); background: color-mix(in srgb, var(--color-hypo) 8%, transparent); }
+  .uf11 .cat { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; padding: 1px 6px; border-radius: 999px; display: inline-block; }
+  .uf11 .cat-a { background: color-mix(in srgb, var(--color-negative) 18%, transparent); color: var(--color-negative); }
+  .uf11 .cat-b { background: color-mix(in srgb, var(--color-positive) 18%, transparent); color: var(--color-positive); }
+  .uf11 .cat-c { background: color-mix(in srgb, var(--color-warning) 18%, transparent); color: var(--color-warning); }
+  .uf11 .cat-d { background: color-mix(in srgb, var(--color-hypo) 18%, transparent); color: var(--color-hypo); }
+  .uf11 .pulse { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--color-negative); margin-right: 4px; animation: uf11pulse 1.4s infinite; }
+  @keyframes uf11pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+  .uf11 .quickstat { position: absolute; top: 10px; right: 10px; font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .uf11 .more-toggle { font-size: 12px; color: var(--color-accent); text-align: center; padding: 10px; border: 1px dashed var(--color-border); border-radius: 12px; cursor: pointer; margin-top: 10px; }
+  .uf11 .more-panel { display: none; margin-top: 14px; }
+  .uf11 .more-cats { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+  .uf11 .more-cat-btn { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--color-border); color: var(--color-text-secondary); cursor: pointer; }
+  .uf11 .more-cat-btn.sel { border-color: var(--color-accent); color: var(--color-ink); background: color-mix(in srgb, var(--color-accent) 12%, transparent); }
+  .uf11 .more-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-radius: 8px; font-size: 12.5px; border-top: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent); }
+  .uf11 .more-row:first-child { border-top: none; }
+  .uf11 .result-tabs { display: flex; gap: 6px; margin: 10px 0 16px; flex-wrap: wrap; }
+  .uf11 .result-tab-btn { font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--color-border); color: var(--color-text-secondary); cursor: pointer; }
+  .uf11 .result-tab-btn.sel { border-color: var(--color-accent); color: var(--color-bg); background: var(--color-accent); }
+  .uf11 .result-view { display: none; }
+  .uf11 .result-view.sel { display: block; }
+  .uf11 .compliance { font-size: 11.5px; color: var(--color-text-secondary); background: color-mix(in srgb, var(--color-bg) 50%, transparent); border: 1px solid var(--color-border); border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; font-style: italic; }
+  .uf11 .compliance.hypo { border: 1px solid var(--color-hypo); color: var(--color-hypo); font-style: normal; font-weight: 600; }
+  .uf11 .hero { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .uf11 .stat-tile { border-radius: 12px; border: 1px solid var(--color-border); background: color-mix(in srgb, var(--color-bg) 50%, transparent); padding: 14px; }
+  .uf11 .stat-label { font-size: 11px; color: var(--color-text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; }
+  .uf11 .stat-value { font-family: "DM Sans"; font-size: 22px; font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .uf11 .bench-row { display: flex; align-items: center; gap: 10px; font-size: 12.5px; padding: 6px 0; }
+  .uf11 .bench-name { width: 150px; color: var(--color-text-secondary); flex-shrink: 0; }
+  .uf11 .bench-bar-track { flex: 1; height: 8px; background: var(--color-bg); border-radius: 4px; overflow: hidden; position: relative; }
+  .uf11 .bench-bar { height: 100%; border-radius: 4px; }
+  .uf11 .bench-val { width: 56px; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .uf11 .phase-stepper { display: flex; gap: 8px; margin-bottom: 14px; }
+  .uf11 .phase { flex: 1; border-radius: 10px; border: 1px solid var(--color-border); padding: 10px; position: relative; }
+  .uf11 .phase.relapse { border-color: var(--color-negative); }
+  .uf11 .phase-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--color-text-secondary); }
+  .uf11 .phase-val { font-family: "DM Sans"; font-size: 16px; font-weight: 700; margin-top: 2px; }
+  .uf11 .fund-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-top: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent); font-size: 13px; }
+  .uf11 .fund-row:first-child { border-top: none; }
+  .uf11 .tilde { color: var(--color-warning); border-bottom: 1px dotted var(--color-warning); cursor: help; }
+  .uf11 .freeze-callout { border-radius: 10px; border: 1px solid var(--color-freeze); background: color-mix(in srgb, var(--color-freeze) 10%, transparent); padding: 12px 14px; font-size: 12.5px; margin-bottom: 14px; }
+  .uf11 .freeze-badge { font-size: 10px; font-weight: 700; color: var(--color-freeze); border: 1px solid var(--color-freeze); border-radius: 999px; padding: 1px 7px; margin-right: 6px; }
+  .uf11 .member-card { border-radius: 10px; border: 1px solid var(--color-border); padding: 0; margin-bottom: 8px; overflow: hidden; }
+  .uf11 .member-head { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; cursor: pointer; font-size: 13px; }
+  .uf11 .member-body { display: none; padding: 0 12px 10px; font-size: 12px; color: var(--color-text-secondary); }
+  .uf11 .member-body.open { display: block; }
+  .uf11 .assump-row { display: flex; justify-content: space-between; padding: 8px 0; border-top: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent); font-size: 13px; }
+  .uf11 .assump-row:first-child { border-top: none; }
+  .uf11 .lb-link { font-size: 12px; color: var(--color-accent); cursor: pointer; margin-top: 10px; display: inline-block; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Unifolio · Sub-project 1 · 2026-10-08</div>
+  <h1>Attribute 11 — Drawdown / Scenario Simulator</h1>
+  <p class="lede">
+    Visual companion to <code>2026-10-08-attribute-11-scenario-simulator-spec.md</code>. The
+    most data-dense of the 4 screens — went through 2 mockup passes after Ayush rejected the
+    first as too shallow and asked to "push the limits... use every single thing we get in
+    the back-end side."
+  </p>
+  <nav>
+    <a href="#picker">Picker</a>
+    <a href="#standard">Standard result</a>
+    <a href="#multiphase">Multi-phase (ongoing)</a>
+    <a href="#freeze">Redemption freeze</a>
+    <a href="#hypo">Hypothetical</a>
+    <a href="#dispatch">Dispatch logic</a>
+    <a href="#states">States</a>
+    <a href="#schema">Schema &amp; pipeline</a>
+  </nav>
+</header>
+
+<section id="picker">
+  <div class="section-head">
+    <span class="eyebrow-num">01</span>
+    <div>
+      <h2>Screen 1 — Scenario picker</h2>
+      <p>8 curated cards (<code>display_rank</code> ascending) plus a filterable "More
+      scenarios" panel covering the full 31-scenario library across 4 categories.</p>
+    </div>
+  </div>
+  <div class="frame">
+    <div class="frame-label">New top-level Scenarios route — picker</div>
+    <div class="uf11">
+      <div class="tabbar">
+        <div class="tab">Holdings</div>
+        <div class="tab">Analytics</div>
+        <div class="tab active">Scenarios</div>
+        <div class="tab">Profile</div>
+      </div>
+
+      <h2 class="disp" style="font-size:18px;font-weight:700;letter-spacing:-0.01em">What if your portfolio lived through this?</h2>
+      <p style="font-size:12px;color:var(--color-text-secondary);margin:2px 0 16px">Pick a market event to see how your current holdings would have performed</p>
+
+      <div class="grid8">
+        <div class="scard" onclick="uf11ShowResult('covid')">
+          <span class="quickstat" style="color:var(--color-negative)">-38.0%</span>
+          <span class="cat cat-a">Crash</span>
+          <h3 class="disp" style="font-size:13px;font-weight:700;margin-top:8px">COVID Crash</h3>
+          <p style="font-size:11px;color:var(--color-text-secondary);margin-top:2px">Jan–Mar 2020</p>
+        </div>
+        <div class="scard">
+          <span class="quickstat" style="color:var(--color-negative)">-18.4%</span>
+          <span class="cat cat-a">Crash</span>
+          <h3 class="disp" style="font-size:13px;font-weight:700;margin-top:8px">2022 Global Tightening</h3>
+          <p style="font-size:11px;color:var(--color-text-secondary);margin-top:2px">Oct 2021–Jun 2022</p>
+        </div>
+        <div class="scard">
+          <span class="quickstat" style="color:var(--color-negative)">-60.0%</span>
+          <span class="cat cat-a">Crash</span>
+          <h3 class="disp" style="font-size:13px;font-weight:700;margin-top:8px">GFC (2008)</h3>
+          <p style="font-size:11px;color:var(--color-text-secondary);margin-top:2px">Jan–Oct 2008</p>
+        </div>
+        <div class="scard">
+          <span class="quickstat" style="color:var(--color-positive)">+142%</span>
+          <span class="cat cat-b">Bull Run</span>
+          <h3 class="disp" style="font-size:13px;font-weight:700;margin-top:8px">Post-COVID Bull Run</h3>
+          <p style="font-size:11px;color:var(--color-text-secondary);margin-top:2px">Mar 2020–Oct 2021</p>
+        </div>
+        <div class="scard" onclick="uf11ShowResult('franklin')">
+          <span class="freeze-badge" style="position:absolute;top:10px;right:10px">Freeze</span>
+          <span class="cat cat-a">Crash</span>
+          <h3 class="disp" style="font-size:13px;font-weight:700;margin-top:8px">Franklin Templeton Wind-up</h3>
+          <p style="font-size:11px;color:var(--color-text-secondary);margin-top:2px">Apr–Jun 2020</p>
+        </div>
+        <div class="scard">
+          <span class="cat cat-a">Crash</span>
+          <h3 class="disp" style="font-size:13px;font-weight:700;margin-top:8px">Adani-Hindenburg</h3>
+          <p style="font-size:11px;color:var(--color-text-secondary);margin-top:2px">Jan–Feb 2023</p>
+        </div>
+        <div class="scard" onclick="uf11ShowResult('iran')">
+          <span class="quickstat" style="color:var(--color-negative)"><span class="pulse"></span>ongoing</span>
+          <span class="cat cat-a">Crash</span>
+          <h3 class="disp" style="font-size:13px;font-weight:700;margin-top:8px">US-Iran War</h3>
+          <p style="font-size:11px;color:var(--color-text-secondary);margin-top:2px">Feb 2026 → ongoing · 3 phases</p>
+        </div>
+        <div class="scard hypo" onclick="uf11ShowResult('hypo')">
+          <span class="cat cat-d">Hypothetical</span>
+          <h3 class="disp" style="font-size:13px;font-weight:700;margin-top:8px">AI / Tech Valuation Bust</h3>
+          <p style="font-size:11px;color:var(--color-hypo);margin-top:2px">Assumption-driven, not historical</p>
+        </div>
+      </div>
+
+      <div class="more-toggle" onclick="uf11ToggleMore()">More scenarios (23 more, full library) &darr;</div>
+
+      <div class="more-panel" id="uf11-more">
+        <div class="more-cats">
+          <div class="more-cat-btn sel" onclick="uf11FilterMore(this,'all')">All (31)</div>
+          <div class="more-cat-btn" onclick="uf11FilterMore(this,'a')">Crashes (12)</div>
+          <div class="more-cat-btn" onclick="uf11FilterMore(this,'b')">Bull Runs (4)</div>
+          <div class="more-cat-btn" onclick="uf11FilterMore(this,'c')">Policy/Rate (4)</div>
+          <div class="more-cat-btn" onclick="uf11FilterMore(this,'d')">Hypothetical (5)</div>
+        </div>
+        <div class="card" style="padding:4px 14px">
+          <div class="more-row" data-cat="a"><span>Dot-com bust <span class="cat cat-a" style="margin-left:6px">Crash</span></span><span style="color:var(--color-text-secondary)">Mostly proxied — pre-dates most schemes</span></div>
+          <div class="more-row" data-cat="a"><span>Eurozone debt crisis (2011)</span><span style="color:var(--color-negative)">-24.1%</span></div>
+          <div class="more-row" data-cat="a"><span>Taper tantrum (2013) <span style="color:var(--color-text-secondary);font-size:11px">· debt focus</span></span><span style="color:var(--color-negative)">-9.8%</span></div>
+          <div class="more-row" data-cat="a"><span>China crash / yuan devaluation</span><span style="color:var(--color-negative)">-14.6%</span></div>
+          <div class="more-row" data-cat="a"><span>Demonetisation (2016)</span><span style="color:var(--color-negative)">-11.2%</span></div>
+          <div class="more-row" data-cat="c"><span>Budget 2018 LTCG reintroduction <span style="color:var(--color-text-secondary);font-size:11px">· single-day</span></span><span style="color:var(--color-negative)">-3.4%</span></div>
+          <div class="more-row" data-cat="a"><span>IL&amp;FS / NBFC crisis (2018)</span><span style="color:var(--color-negative)">-16.8%</span></div>
+          <div class="more-row" data-cat="a"><span>2019 pre-COVID slowdown</span><span style="color:var(--color-negative)">-7.2%</span></div>
+          <div class="more-row" data-cat="a"><span>SVB / Credit Suisse (2023)</span><span style="color:var(--color-negative)">-2.1%</span></div>
+          <div class="more-row" data-cat="a"><span>Oct 2024 – Mar 2025 correction</span><span style="color:var(--color-negative)">-10.4%</span></div>
+          <div class="more-row" data-cat="a"><span>Trump tariff shock (2025) <span style="color:var(--color-text-secondary);font-size:11px">· V-shape, 2 weeks</span></span><span style="color:var(--color-negative)">-6.1%</span></div>
+          <div class="more-row" data-cat="b"><span>2003–07 India bull run</span><span style="color:var(--color-positive)">+612%</span></div>
+          <div class="more-row" data-cat="b"><span>Post-GFC rebound</span><span style="color:var(--color-positive)">+89%</span></div>
+          <div class="more-row" data-cat="b"><span>2023 – Sep 2024 broad rally</span><span style="color:var(--color-positive)">+54%</span></div>
+          <div class="more-row" data-cat="b"><span>Gold and silver rally (2024–26) <span class="pulse"></span><span style="color:var(--color-text-secondary);font-size:11px">ongoing</span></span><span style="color:var(--color-positive)">+96%</span></div>
+          <div class="more-row" data-cat="c"><span>2004 election result <span style="color:var(--color-text-secondary);font-size:11px">· single-day</span></span><span style="color:var(--color-negative)">-15.5%</span></div>
+          <div class="more-row" data-cat="c"><span>2024 election result <span style="color:var(--color-text-secondary);font-size:11px">· recovered in 2-3 days</span></span><span style="color:var(--color-negative)">-5.7%</span></div>
+          <div class="more-row" data-cat="c"><span>RBI hiking cycle (2022-23) <span style="color:var(--color-text-secondary);font-size:11px">· debt focus</span></span><span style="color:var(--color-negative)">-4.9%</span></div>
+          <div class="more-row" data-cat="c"><span>Rate cut cycle (2025) <span style="color:var(--color-text-secondary);font-size:11px">· debt, concluded</span></span><span style="color:var(--color-positive)">+6.2%</span></div>
+          <div class="more-row" data-cat="d"><span>Strait of Hormuz closure <span class="cat cat-d" style="margin-left:6px">Hypothetical</span></span><span style="color:var(--color-text-secondary)">Assumption-based</span></div>
+          <div class="more-row" data-cat="d"><span>US recession + Fed pivot</span><span style="color:var(--color-text-secondary)">Assumption-based</span></div>
+          <div class="more-row" data-cat="d"><span>Rupee sharp depreciation</span><span style="color:var(--color-text-secondary)">Assumption-based</span></div>
+          <div class="more-row" data-cat="d"><span>Indian equity "lost decade"</span><span style="color:var(--color-text-secondary)">Assumption-based</span></div>
+        </div>
+      </div>
+
+      <div class="lbl">Result views — 4 distinct data shapes, click to switch</div>
+      <div class="result-tabs">
+        <div class="result-tab-btn sel" data-rt="covid" onclick="uf11ShowResult('covid')">Standard: COVID Crash</div>
+        <div class="result-tab-btn" data-rt="iran" onclick="uf11ShowResult('iran')">Multi-phase: US-Iran War (ongoing)</div>
+        <div class="result-tab-btn" data-rt="franklin" onclick="uf11ShowResult('franklin')">Special-case: Franklin Templeton</div>
+        <div class="result-tab-btn" data-rt="hypo" onclick="uf11ShowResult('hypo')">Hypothetical: AI/Tech Bust</div>
+      </div>
+
+      <!-- COVID: standard scenario -->
+      <div class="result-view sel" id="uf11-rv-covid">
+        <div class="compliance">Here's what this portfolio would have captured during the COVID Crash (Jan–Mar 2020), based on actual historical fund performance — not a prediction of future returns.</div>
+        <div class="hero">
+          <div class="stat-tile"><div class="stat-label">Portfolio impact</div><div class="stat-value" style="color:var(--color-negative)">-28.4%</div></div>
+          <div class="stat-tile"><div class="stat-label">Rupee impact (current holdings)</div><div class="stat-value" style="color:var(--color-negative)">-₹11.9L</div></div>
+        </div>
+
+        <h3 style="font-size:13px;font-weight:700;margin-bottom:8px">Benchmark comparison</h3>
+        <div class="card" style="margin-bottom:14px">
+          <div class="bench-row"><span class="bench-name">Your portfolio</span><div class="bench-bar-track"><div class="bench-bar" style="width:71%;background:var(--color-negative)"></div></div><span class="bench-val" style="color:var(--color-negative)">-28.4%</span></div>
+          <div class="bench-row"><span class="bench-name">Nifty 50</span><div class="bench-bar-track"><div class="bench-bar" style="width:63%;background:var(--color-text-secondary)"></div></div><span class="bench-val" style="color:var(--color-text-secondary)">-25.2%</span></div>
+          <div class="bench-row"><span class="bench-name">Nifty 500</span><div class="bench-bar-track"><div class="bench-bar" style="width:68%;background:var(--color-text-secondary)"></div></div><span class="bench-val" style="color:var(--color-text-secondary)">-27.1%</span></div>
+          <div class="bench-row"><span class="bench-name">Nifty Midcap 150</span><div class="bench-bar-track"><div class="bench-bar" style="width:79%;background:var(--color-text-secondary)"></div></div><span class="bench-val" style="color:var(--color-text-secondary)">-32.6%</span></div>
+        </div>
+
+        <h3 style="font-size:13px;font-weight:700;margin-bottom:8px">By fund</h3>
+        <div class="card" style="margin-bottom:14px">
+          <div class="fund-row"><span>Nippon India Small Cap Fund</span><span style="color:var(--color-negative)">-38.6%</span></div>
+          <div class="fund-row"><span>HDFC Flexi Cap Fund</span><span style="color:var(--color-negative)">-31.2%</span></div>
+          <div class="fund-row"><span>ICICI Pru Bluechip Fund <span class="tilde" title="This scheme launched after the event window — shown using the Large Cap category average, rounded to the nearest 5%.">~-25%</span></span><span style="color:var(--color-negative)">~-25%</span></div>
+          <div class="fund-row"><span style="color:var(--color-text-secondary)">Quant Liquid Fund</span><span style="color:var(--color-text-secondary)">Not enough historical data to estimate</span></div>
+        </div>
+        <div class="lb-link">&#9656; See the full Flexi Cap category leaderboard for this scenario (best/worst of 62 funds)</div>
+
+        <h3 style="font-size:13px;font-weight:700;margin:16px 0 8px">By family member</h3>
+        <div class="member-card">
+          <div class="member-head" onclick="uf11ToggleMember(this)"><span style="font-weight:600">Ayush <span style="color:var(--color-text-secondary);font-weight:400">— biggest contributor</span></span><span style="color:var(--color-negative)">-₹7.8L &#9662;</span></div>
+          <div class="member-body"><div style="display:flex;justify-content:space-between;padding:4px 0">HDFC Flexi Cap Fund<span style="color:var(--color-negative)">-₹5.1L</span></div><div style="display:flex;justify-content:space-between;padding:4px 0">Nippon India Small Cap Fund<span style="color:var(--color-negative)">-₹2.7L</span></div></div>
+        </div>
+        <div class="member-card">
+          <div class="member-head" onclick="uf11ToggleMember(this)"><span>Priya</span><span style="color:var(--color-negative)">-₹3.1L &#9662;</span></div>
+          <div class="member-body"><div style="display:flex;justify-content:space-between;padding:4px 0">ICICI Pru Bluechip Fund<span style="color:var(--color-negative)">-₹3.1L</span></div></div>
+        </div>
+        <div class="member-card">
+          <div class="member-head" onclick="uf11ToggleMember(this)"><span>Rohan (minor)</span><span style="color:var(--color-negative)">-₹1.0L &#9662;</span></div>
+          <div class="member-body"><div style="display:flex;justify-content:space-between;padding:4px 0">Quant Liquid Fund<span style="color:var(--color-text-secondary)">No data to estimate</span></div></div>
+        </div>
+      </div>
+
+      <!-- US-Iran: multi-phase, ongoing -->
+      <div class="result-view" id="uf11-rv-iran">
+        <div class="compliance"><span class="pulse"></span>Ongoing event — here's what this portfolio has captured so far during the US-Iran War (28 Feb 2026 → ongoing), based on actual historical fund performance through the most recent phase. Numbers will update as the event continues.</div>
+        <div class="hero">
+          <div class="stat-tile"><div class="stat-label">Portfolio impact (cumulative)</div><div class="stat-value" style="color:var(--color-negative)">-6.1%</div></div>
+          <div class="stat-tile"><div class="stat-label">Rupee impact (current holdings)</div><div class="stat-value" style="color:var(--color-negative)">-₹2.6L</div></div>
+        </div>
+
+        <h3 style="font-size:13px;font-weight:700;margin-bottom:8px">Phase timeline</h3>
+        <div class="phase-stepper">
+          <div class="phase"><div class="phase-label">Phase 1 — Shock</div><div class="phase-val" style="color:var(--color-negative)">-12.1%</div><div style="font-size:11px;color:var(--color-text-secondary)">28 Feb – 2 Apr 2026</div></div>
+          <div class="phase"><div class="phase-label">Phase 2 — Partial recovery</div><div class="phase-val" style="color:var(--color-positive)">+9.4%</div><div style="font-size:11px;color:var(--color-text-secondary)">2 Apr – 8 Jul 2026</div></div>
+          <div class="phase relapse"><div class="phase-label"><span class="pulse"></span>Phase 3 — Relapse (ongoing)</div><div class="phase-val" style="color:var(--color-negative)">-3.8%</div><div style="font-size:11px;color:var(--color-text-secondary)">8 Jul 2026 → ongoing</div></div>
+        </div>
+
+        <h3 style="font-size:13px;font-weight:700;margin-bottom:8px">By fund (current phase)</h3>
+        <div class="card">
+          <div class="fund-row"><span>Nippon India Small Cap Fund</span><span style="color:var(--color-negative)">-5.2%</span></div>
+          <div class="fund-row"><span>HDFC Flexi Cap Fund</span><span style="color:var(--color-negative)">-3.9%</span></div>
+          <div class="fund-row"><span>Quant Liquid Fund</span><span style="color:var(--color-positive)">+0.8%</span></div>
+        </div>
+      </div>
+
+      <!-- Franklin Templeton: redemption freeze special case -->
+      <div class="result-view" id="uf11-rv-franklin">
+        <div class="compliance">Here's what this portfolio would have captured during the Franklin Templeton Wind-up (Apr–Jun 2020), based on actual historical fund performance — not a prediction of future returns.</div>
+
+        <div class="freeze-callout">
+          <span class="freeze-badge">Redemption Freeze</span>
+          This wasn't a price fall — it was a <strong>~20-month liquidity freeze</strong>. If you'd held one of the 6 wound-up Franklin debt schemes, redemptions were frozen entirely from 23 Apr 2020, regardless of NAV. The % figures below are shown for comparison only; the real stress here was not being able to exit at any price.
+        </div>
+
+        <div class="hero">
+          <div class="stat-tile"><div class="stat-label">If holding a frozen scheme</div><div class="stat-value" style="color:var(--color-freeze)">Frozen, not %</div></div>
+          <div class="stat-tile"><div class="stat-label">Broader illiquid-debt category (not frozen)</div><div class="stat-value" style="color:var(--color-negative)">-9.6%</div></div>
+        </div>
+
+        <h3 style="font-size:13px;font-weight:700;margin-bottom:8px">By fund</h3>
+        <div class="card">
+          <div class="fund-row"><span>Franklin India Credit Risk Fund <span class="freeze-badge" style="margin-left:4px">Frozen</span></span><span style="color:var(--color-freeze)">Redemptions frozen ~20mo</span></div>
+          <div class="fund-row"><span>Nippon India Credit Risk Fund <span style="color:var(--color-text-secondary);font-size:11px">· not frozen</span></span><span style="color:var(--color-negative)">-8.9%</span></div>
+          <div class="fund-row"><span>HDFC Flexi Cap Fund <span style="color:var(--color-text-secondary);font-size:11px">· unrelated to this event</span></span><span style="color:var(--color-negative)">-2.1%</span></div>
+        </div>
+      </div>
+
+      <!-- Hypothetical: AI/tech bust -->
+      <div class="result-view" id="uf11-rv-hypo">
+        <div class="compliance hypo">This is a hypothetical scenario based on a stated assumption, not a historical replay. No market event has happened — these numbers are Unifolio's own judgment call about a possible future, not fact.</div>
+
+        <div class="hero">
+          <div class="stat-tile"><div class="stat-label">Assumption</div><div class="stat-value" style="font-size:14px;color:var(--color-hypo)">US tech -40%, spillover to Indian IT</div></div>
+          <div class="stat-tile"><div class="stat-label">Rupee impact if this happened</div><div class="stat-value" style="color:var(--color-negative)">-₹4.2L</div></div>
+        </div>
+
+        <h3 style="font-size:13px;font-weight:700;margin-bottom:8px">Assumed move, by asset class</h3>
+        <div class="card">
+          <div class="assump-row"><span>Equity</span><span style="color:var(--color-negative)">-18.0%</span></div>
+          <div class="assump-row"><span>Debt</span><span style="color:var(--color-negative)">-1.5%</span></div>
+          <div class="assump-row"><span>Hybrid</span><span style="color:var(--color-negative)">-9.0%</span></div>
+          <div class="assump-row"><span>Other</span><span style="color:var(--color-negative)">-4.0%</span></div>
+        </div>
+        <p style="font-size:11px;color:var(--color-text-secondary);margin-top:8px;font-style:italic">"US tech -40% spillover assumed to hit Indian IT-heavy equity funds hardest; debt largely insulated." — stated assumption, shown next to every number in this scenario.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="standard">
+  <div class="section-head">
+    <span class="eyebrow-num">02</span>
+    <div><h2>Standard result — structure</h2></div>
+  </div>
+  <div class="diagram">
+    <pre class="mermaid">
+flowchart TB
+    Standard["Standard result view"] --> Compliance["Compliance banner (exact copy)"]
+    Standard --> Hero["Hero stats: Portfolio impact % / Rupee impact"]
+    Standard --> Bench["Benchmark comparison bars:\nYour portfolio vs Nifty 50/500/Midcap150"]
+    Standard --> Funds["By fund: real % / ~proxied % w/ tooltip / 'not enough data' text"]
+    Funds --> LB["Leaderboard link-out:\n'See the full [category] leaderboard\nfor this scenario'"]
+    Standard --> Family["By family member: expandable rows,\nbiggest contributor flagged,\nfund-level breakdown on expand"]
+    </pre>
+  </div>
+</section>
+
+<section id="multiphase">
+  <div class="section-head">
+    <span class="eyebrow-num">03</span>
+    <div><h2>Multi-phase, ongoing — structure</h2></div>
+  </div>
+  <div class="diagram">
+    <pre class="mermaid">
+flowchart TB
+    Multi["Multi-phase result view"] --> Pulse["Compliance banner variant:\npulsing indicator + 'numbers will\nupdate as the event continues'"]
+    Multi --> HeroC["Hero stats: CUMULATIVE portfolio/rupee impact\n(group row, parent_scenario_id IS NULL)"]
+    Multi --> Stepper["Phase timeline — 3 segments:\nPhase 1 Shock / Phase 2 Partial recovery /\nPhase 3 Relapse (ongoing, pulsing border)"]
+    Multi --> ByFund["By fund — CURRENT PHASE ONLY\n(not cumulative across phases)"]
+    </pre>
+  </div>
+</section>
+
+<section id="freeze">
+  <div class="section-head">
+    <span class="eyebrow-num">04</span>
+    <div><h2>Redemption freeze special case — structure</h2></div>
+  </div>
+  <div class="diagram">
+    <pre class="mermaid">
+flowchart TB
+    Franklin["Franklin Templeton result view"] --> Callout["Freeze callout — distinct card,\n--color-freeze border/badge:\n'This wasn't a price fall — a ~20-month\nliquidity freeze'"]
+    Franklin --> HeroF["Hero stats: 'Frozen, not %' (sky blue) /\nBroader illiquid-debt category % (for comparison)"]
+    Franklin --> ByFundF["By fund: frozen schemes show 'Redemptions\nfrozen ~20mo' + Frozen badge, NOT a %;\nnon-frozen comparable schemes show their\nactual % alongside, explicitly labeled\n'not frozen' for contrast"]
+    </pre>
+  </div>
+</section>
+
+<section id="hypo">
+  <div class="section-head">
+    <span class="eyebrow-num">05</span>
+    <div><h2>Hypothetical — structure</h2></div>
+  </div>
+  <div class="diagram">
+    <pre class="mermaid">
+flowchart TB
+    Hypo["Hypothetical result view"] --> ComplianceH["Compliance banner variant — SOLID\n--color-hypo border, non-italic, bold"]
+    Hypo --> HeroH["Hero stats: stated assumption text /\nRupee impact if assumption held"]
+    Hypo --> AssumpTable["Per-asset-class assumption table:\nEquity/Debt/Hybrid/Other —\nassumed % each"]
+    Hypo --> Note["Mandatory assumption_note,\nverbatim, shown as footer text"]
+    </pre>
+  </div>
+</section>
+
+<section id="dispatch">
+  <div class="section-head">
+    <span class="eyebrow-num">06</span>
+    <div>
+      <h2>Picker-to-result dispatch logic</h2>
+      <p>A pure function of backend-provided scenario metadata — never inferred from
+      scenario name or category alone.</p>
+    </div>
+  </div>
+  <div class="callout">
+    <code>
+    if scenario.scenarioType === "HYPOTHETICAL" → hypothetical<br/>
+    else if scenario.hadRedemptionFreezeSchemes?.length → redemption_freeze<br/>
+    else if scenario.parentScenarioId === null && scenario.hasPhases → multi_phase<br/>
+    else → standard
+    </code>
+  </div>
+</section>
+
+<section id="states">
+  <div class="section-head">
+    <span class="eyebrow-num">07</span>
+    <div><h2>States</h2></div>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>State</th><th>Trigger</th><th>Treatment</th></tr>
+      <tr><td>Real data</td><td><code>is_proxied = false</code></td><td>Exact %, no caveat</td></tr>
+      <tr><td>Proxied</td><td><code>is_proxied = true</code>, <code>proxy_basis</code> set</td><td><code>~</code> prefix, nearest-5% band, dotted tooltip with verbatim <code>proxy_basis</code></td></tr>
+      <tr><td>No comparable data</td><td><code>pct_change IS NULL</code></td><td>Literal "Not enough historical data to estimate" — never a number</td></tr>
+      <tr><td>Ongoing</td><td><code>is_ongoing = true</code></td><td>Pulsing dot + "numbers will update as the event continues"</td></tr>
+      <tr><td>Redemption freeze</td><td><code>had_redemption_freeze_schemes</code> non-empty</td><td>Freeze callout + "Frozen, not %" hero stat</td></tr>
+      <tr><td>Hypothetical</td><td><code>scenario_type = HYPOTHETICAL</code></td><td>Solid distinct-color banner, assumption table</td></tr>
+    </table>
+  </div>
+  <div class="callout warn">
+    <b>Deferred, not rejected:</b> the family-member card's visual/UX polish (expand/collapse
+    shown here) is accepted as the functional baseline. Ayush: "functionality working first,
+    then we can work on the UI UX later."
+  </div>
+</section>
+
+<section id="schema">
+  <div class="section-head">
+    <span class="eyebrow-num">08</span>
+    <div>
+      <h2>Schema &amp; pipeline — backend grounding</h2>
+      <p>Added for implementation handoff: the real tables and the 3-step
+      precompute-once/serve-cheap pipeline (Option B, confirmed over a live-per-request
+      Option A) behind every result view above. Not part of the originally approved
+      picker/result-view mockups — purely explanatory, grounded verbatim in
+      <code>2026-10-07-sub-project-1-planning.md</code>'s "Attribute 11" section.</p>
+    </div>
+  </div>
+
+  <div class="diagram">
+    <pre class="mermaid">
+erDiagram
+    SCENARIOS ||--o{ SCENARIOS : "parent_scenario_id (phase grouping)"
+    SCENARIOS ||--o{ SCENARIO_SCHEME_RESULTS : "one row per active scheme"
+    SCENARIOS ||--o{ SCENARIO_CATEGORY_AVERAGES : "proxy basis, per sebi_category"
+    SCENARIOS ||--o{ SCENARIO_HYPOTHETICAL_ASSUMPTIONS : "HYPOTHETICAL only, admin-entered"
+    SCHEMES ||--o{ SCENARIO_SCHEME_RESULTS : "per-scheme pct_change"
+
+    SCENARIOS {
+        uuid id PK
+        text name
+        date start_date
+        date end_date "nullable — NULL means ongoing"
+        text scenario_type "CRASH / BULL_RUN / POLICY_RATE / HYPOTHETICAL"
+        boolean is_ongoing
+        integer display_rank "nullable — non-NULL = curated picker card"
+        uuid parent_scenario_id FK "nullable — set on phase rows"
+        text phase_label "e.g. Shock / Partial recovery / Relapse"
+        integer phase_order
+    }
+    SCENARIO_SCHEME_RESULTS {
+        uuid scenario_id FK
+        uuid scheme_id FK
+        numeric pct_change "nullable only for 'no comparable data' edge case"
+        boolean is_proxied
+        text proxy_basis "nullable — e.g. sebi_category_average:... / asset_class_average:..."
+        timestamptz computed_at
+    }
+    SCENARIO_CATEGORY_AVERAGES {
+        uuid scenario_id FK
+        text sebi_category
+        numeric avg_pct_change
+        integer scheme_count "how many REAL (non-proxied) schemes fed this average"
+    }
+    SCENARIO_HYPOTHETICAL_ASSUMPTIONS {
+        uuid scenario_id FK
+        text asset_class "Equity / Debt / Hybrid / Other"
+        numeric assumed_pct_change
+        text assumption_note "mandatory, shown in the UI next to the number"
+    }
+    </pre>
+  </div>
+
+  <div class="diagram">
+    <pre class="mermaid">
+flowchart TB
+    Step1["Step 1 — one-time NAV backfill\n(scenario-count-independent)\nmfapi.in, ~10,538 schemes with zero\nnav_history rows, batched ~150 at a time,\nresumable, circuit-breaker on failure rate"] --> NavHistory[("nav_history\n(existing table)")]
+    NavHistory --> Step2["Step 2 — per-scenario fall-% compute\n(scales with scenario count, trivially —\nseconds per scenario)"]
+    Step2 -->|"real NAV-on-or-before data"| Results[("scenario_scheme_results\n~14,354 rows per scenario")]
+    Step2 -->|"category-average fallback\nwhen a scheme predates the window"| CatAvg[("scenario_category_averages")]
+    Step2 -.->|"HYPOTHETICAL scenarios skip\nNAV replay entirely"| Hypo[("scenario_hypothetical_assumptions\nadmin-entered, not computed")]
+    Results --> Step3["Step 3 — serve\n(steady-state, forever after)\nindexed SELECT, scenario + held schemes,\nsub-200ms, no live NAV computation"]
+    CatAvg --> Step3
+    Hypo --> Step3
+    Step3 --> API["Per-scenario result endpoint"]
+    API --> FE["Scenarios route — picker + 4-shape result view"]
+
+    classDef store fill:#DCFCE7,stroke:#15803D,color:#111
+    class NavHistory,Results,CatAvg,Hypo store
+    </pre>
+  </div>
+
+  <div class="diagram">
+    <pre class="mermaid">
+flowchart TD
+    Start(["resolveResultShape(scenario)"]) --> Q1{"scenario.scenarioType\n=== HYPOTHETICAL ?"}
+    Q1 -->|yes| Hypo["hypothetical\n(assumption table, no NAV replay)"]
+    Q1 -->|no| Q2{"hadRedemptionFreezeSchemes\n?.length > 0 ?"}
+    Q2 -->|yes| Freeze["redemption_freeze\n(Franklin Templeton-style special case)"]
+    Q2 -->|no| Q3{"parentScenarioId === null\n&& hasPhases ?"}
+    Q3 -->|yes| Multi["multi_phase\n(phase stepper, cumulative + current-phase-only)"]
+    Q3 -->|no| Std["standard\n(benchmark + by-fund + by-member)"]
+
+    classDef shape fill:#DCFCE7,stroke:#15803D,color:#111
+    class Hypo,Freeze,Multi,Std shape
+    </pre>
+  </div>
+
+  <div class="callout warn">
+    Invariant Step 2 guarantees: every active scheme gets exactly one
+    <code>scenario_scheme_results</code> row per non-hypothetical scenario — real or
+    proxied, never a missing row. This is what keeps Step 3's serving query branch-free and
+    is why the frontend never needs a "no row at all" fallback, only the
+    <code>is_proxied</code> display check already covered in the states table above.
+  </div>
+</section>
+
+<footer>
+  Spec: <code>2026-10-08-attribute-11-scenario-simulator-spec.md</code> · Backend source of
+  truth: <code>2026-10-07-sub-project-1-planning.md</code>, "Attribute 11". Two flagged
+  non-token colors scoped to this screen only: <code>#A78BFA</code> (hypothetical),
+  <code>#38BDF8</code> (redemption freeze).
+</footer>
+
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script>
+  const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: isDark ? 'dark' : 'neutral',
+    themeVariables: { fontFamily: 'DM Sans, sans-serif', primaryColor: isDark ? '#1e1d18' : '#fbfaf7', primaryBorderColor: isDark ? '#332f26' : '#e4e0d8', lineColor: isDark ? '#a39d8f' : '#6b6760' }
+  });
+
+  function uf11ShowResult(id){
+    document.querySelectorAll('.uf11 .result-view').forEach(function(el){ el.classList.remove('sel'); });
+    document.querySelectorAll('.uf11 .result-tab-btn').forEach(function(el){ el.classList.remove('sel'); });
+    document.getElementById('uf11-rv-'+id).classList.add('sel');
+    document.querySelector('.uf11 .result-tab-btn[data-rt="'+id+'"]').classList.add('sel');
+  }
+  function uf11ToggleMore(){
+    var p = document.getElementById('uf11-more');
+    p.style.display = (p.style.display === 'block') ? 'none' : 'block';
+  }
+  function uf11FilterMore(btn, cat){
+    document.querySelectorAll('.uf11 .more-cat-btn').forEach(function(el){ el.classList.remove('sel'); });
+    btn.classList.add('sel');
+    document.querySelectorAll('.uf11 .more-row').forEach(function(el){
+      el.style.display = (cat === 'all' || el.getAttribute('data-cat') === cat) ? 'flex' : 'none';
+    });
+  }
+  function uf11ToggleMember(head){
+    var body = head.nextElementSibling;
+    body.classList.toggle('open');
+  }
+</script>
+</body>
+</html>
