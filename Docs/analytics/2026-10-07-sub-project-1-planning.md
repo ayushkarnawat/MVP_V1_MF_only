@@ -12,8 +12,10 @@ ranking, 12 TRI benchmark, 14 investment/withdrawal analysis) + bucket C (04 fun
 allocation, 11 drawdown scenarios), all independent, none blocked on the look-through
 engine (bucket D, which is Sub-project 2).
 
-**Covered so far in this doc:** 09 (partially), 11 (in depth). **Not yet covered:** 04, 12's
-sequencing call, 14. These are next.
+**Covered so far in this doc:** all five attributes in scope (09, 11, 04, 12, 14) — backend/
+data design closed for every one as of 2026-10-08. See "Next in this planning pass" at the
+end of this doc for what remains (the consolidated frontend pass and the formal spec/
+artifact sign-off).
 
 ---
 
@@ -21,31 +23,230 @@ sequencing call, 14. These are next.
 
 Confirmed (`decisions.md` 2026-10-06): not a Scorer conflict, an independent net-new
 feature on the PDF's own 5-factor formula (`0.25×3Y + 0.25×5Y + 0.20×category-relative +
-0.15×low-vol + 0.15×low-TER`). Most of the computational infra already exists in
-`category_ranking.py` (category universe, percentile ranking, AUM-weighted averages) —
-this is a much smaller build than a from-scratch feature.
+0.15×low-vol + 0.15×low-TER`). Build-vs-scrape resolved 2026-10-08: build in-house, not
+scrape MoneyControl/AdvisorKhoj/CRISIL — (a) every input the formula needs already exists
+or is cheaply derivable in this codebase, (b) scraping/redisplaying a third party's own
+*computed ranking product* (CRISIL's category rankings are a commercially licensed
+product, distinct from scraping a regulatory public disclosure like a factsheet, which
+attributes 04/15 already do) is a durability and legal risk a from-scratch computation
+doesn't carry. Ayush confirmed this direction 2026-10-08.
 
-**Still open, deliberately not resolved yet** (`decisions.md`'s "category-relative
-parameter partially resolved" entry has the full research trail):
-- "Category-relative" is confirmed to mean *fund return vs. its own category average*
-  (not a broad index) — settled.
-- The exact mechanics are NOT settled: single-period alpha vs. AdvisorKhoj-style
-  multi-period consistency vs. CRISIL-style overlapping-window weighting. WebSearch
-  research into both named sources didn't produce a citable, exact formula for either.
-  **Ayush's explicit instruction: revisit this specifically, after more AdvisorKhoj/
-  MoneyControl digging, before any attribute-09 implementation — do not default to a
-  guess.**
-- Separately (not blocking): the ranked table shows 1Y/3Y/5Y columns but the weighted
-  formula only ever uses 3Y/5Y — 1Y rank needs computing for display regardless of how
-  category-relative resolves.
+### "Category-relative" mechanic — resolved 2026-10-08, grounded in researched precedent
+
+Three candidates were on the table (`decisions.md` 2026-10-06): (a) single-period alpha
+vs. category average, (b) AdvisorKhoj-style multi-period consistency, (c) CRISIL-style
+overlapping-window weighting. Fresh WebSearch research this session (CRISIL's own
+published methodology PDF, Value Research's fund-rating methodology, Morningstar's
+star-rating methodology, and CAPM "alpha" terminology for disambiguation) found:
+
+- **CRISIL** doesn't have a standalone "category-relative" parameter at all — "mean
+  return" and "volatility" are its only atomic inputs, blended across four overlapping
+  windows (36/27/18/9 months). No citable distinct formula for (c) exists; ruled out as
+  not a real precedent, not just "hard to find."
+- **Value Research's "Return Grade"** is the closest real precedent: a fund's
+  risk-adjusted return (vs. a risk-free rate) compared against its *category's average*
+  risk-adjusted return, as its own standalone scored dimension — i.e., "fund vs. category
+  average" genuinely is an established, named rating axis in the industry, not an
+  invented concept. This directly validates (a)'s shape.
+- **CAPM alpha** (fund return vs. a market benchmark, risk/beta-adjusted) is a *different*
+  concept from "vs. category average" — confirms these shouldn't be conflated, and that
+  (a)'s framing (peer-vs-peer, not fund-vs-benchmark) is the right one for a feature whose
+  entire premise is peer ranking.
+
+**Resolved formula, simplified from Value Research's precedent:**
+`category_relative = fund's own blended return − category's AUM-weighted average blended
+return`, where "blended return" reuses `category_ranking.py`'s existing 40%/60% 3yr/5yr
+blend (`_blend_returns`) and "category average" reuses its existing AUM-weighted average
+(`_aum_weighted_average`) — both already built for FR-4, zero new computation. The
+risk-free-rate adjustment Value Research applies is **deliberately dropped**: (1) no
+risk-free-rate time series exists anywhere in this codebase today — adding one would be a
+new, undesirable data dependency for a single formula input; (2) the PDF's own formula
+already has a separate explicit 0.15 low-volatility weight, so re-introducing a
+risk-adjustment inside category-relative would double-count volatility against that
+weight. This simplification is a documented, deliberate corner cut, not an oversight.
+
+### Normalization — every component is a percentile rank, not a raw number (CLAUDE.md
+"stop and say so" judgment call, flagged explicitly)
+
+The PDF's literal wording (`0.25×(3Y return) + ...`) can't mean raw numbers added
+together — a 3Y CAGR (e.g. 0.18), a category-relative delta (e.g. 0.02), and a TER
+percentage (e.g. 1.2) are on incompatible scales; summing them directly would make the
+"low-TER" and "category-relative" terms numerically meaningless next to the return terms.
+The only internally consistent reading: every one of the 5 components is first converted
+to a **percentile rank within the category (0–100, higher = better)**, then the 0.25/0.25/
+0.20/0.15/0.15 weights are applied to those percentiles, matching how `scorer.py`'s own
+Scorer v1 already combines its 3 heterogeneous components (Return/Risk/Consistency
+percentiles) into one composite score — same mechanism, different formula/weights, not an
+invented approach. Reuses `category_ranking.py`'s `_rank_and_percentile` for all 5
+components (inverting sort direction for low-volatility and low-TER, same as Scorer
+already does for its own Risk component).
+
+### Eligibility and edge cases — reuse existing bars, don't invent new ones
+
+- **Minimum 3Y history to be ranked at all** — same floor `category_ranking.py`/
+  `scorer.py` already enforce (and matches CRISIL/Value Research/Morningstar's own
+  published eligibility floors, confirmed via this session's research). Below it:
+  `insufficient_history=True`, not ranked — same field/semantics `CategoryRankRow`/
+  `FundScoreRow` already use.
+- **Thin category** — reuse the existing `_THIN_CATEGORY_THRESHOLD = 5` constant and its
+  existing semantics (still ranked, just flagged `thin_category=True`) rather than
+  adopting Value Research's stricter "≥10 comparable funds" floor — consistent with this
+  codebase's own already-established bar, not a new one.
+- **Missing 5Y history (has 3Y, not yet 5Y):** the 0.25 weight for the missing component
+  is redistributed proportionally across whichever components *are* available for that
+  scheme (generalizing `category_ranking.py`'s existing "3yr-only schemes use 100% 3yr"
+  precedent, which already does exactly this for the 2-component case, to the 5-component
+  case here). Applies the same way if TER or volatility data happen to be unavailable for
+  a given scheme.
+- **1Y return for display:** resolved as part of this design, not a separate open item —
+  see below; the formula still never uses 1Y as a weighted input, only as a display
+  column.
+
+### Schema — two new tables, structurally parallel to existing ones
+
+```sql
+-- One row per scheme per day the ranking was computed, structurally
+-- identical in spirit to fund_scores (Scorer v1's own table) but a
+-- distinct table, per decisions.md's "not a Scorer conflict" ruling —
+-- these are two different formulas and must never share one row shape.
+CREATE TABLE scheme_rankings (
+    scheme_id            UUID NOT NULL REFERENCES schemes(id),
+    computed_at           TIMESTAMPTZ NOT NULL,  -- pinned to day-start, same idempotency trick as fund_scores.computed_at
+    composite_score       NUMERIC(5,2) NOT NULL, -- 0-100, weighted sum of the 5 percentiles (post-renormalization)
+    category_rank         INTEGER,
+    category_size         INTEGER NOT NULL,
+    percentile            NUMERIC(5,2),          -- composite_score's own rank within category (for "top X%" display)
+    return_1y             NUMERIC(8,6),          -- display-only, never a weighted input
+    return_3y             NUMERIC(8,6),
+    return_5y             NUMERIC(8,6),          -- NULL if <5yr history -- triggers the renormalization above
+    category_relative      NUMERIC(8,6),          -- fund blended return minus category AUM-weighted blended average
+    downside_deviation     NUMERIC(8,6),          -- raw value, same metric scorer.py already computes -- sign NOT inverted here (display)
+    ter_value              NUMERIC(5,2),          -- raw %, from scheme_ter -- never duplicated, just the value used this run
+    return_3y_percentile   NUMERIC(5,2),
+    return_5y_percentile   NUMERIC(5,2),
+    category_relative_percentile NUMERIC(5,2),
+    volatility_percentile  NUMERIC(5,2),          -- already inverted (low vol = high percentile)
+    ter_percentile         NUMERIC(5,2),          -- already inverted (low TER = high percentile)
+    PRIMARY KEY (scheme_id, computed_at)
+);
+
+-- Singleton config table, DB-backed/no-admin-UI per decisions.md 2026-10-06.
+-- Seeded once via migration with the PDF's own 25/25/20/15/15 split; edited
+-- directly via the existing SSM-tunnel + psql/DBeaver pattern thereafter.
+-- A missing/empty table is NOT a failure mode -- the service layer falls
+-- back to the same hardcoded defaults the migration seeds, so a row
+-- accidentally deleted in staging degrades to "PDF defaults", not a crash.
+CREATE TABLE ranking_weights (
+    id                     BOOLEAN PRIMARY KEY DEFAULT true CHECK (id),  -- enforces exactly one row, same trick as any singleton table
+    weight_return_3y        NUMERIC(4,3) NOT NULL DEFAULT 0.25,
+    weight_return_5y        NUMERIC(4,3) NOT NULL DEFAULT 0.25,
+    weight_category_relative NUMERIC(4,3) NOT NULL DEFAULT 0.20,
+    weight_low_volatility    NUMERIC(4,3) NOT NULL DEFAULT 0.15,
+    weight_low_ter           NUMERIC(4,3) NOT NULL DEFAULT 0.15,
+    updated_at              TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+Both tables land in one new migration, `backend/alembic/versions/0033_scheme_rankings_and_
+ranking_weights.py` (0033 is the next free number — confirmed by listing
+`backend/alembic/versions/` directly, latest existing is `0032_transaction_stamp_duty.py`).
+
+### Computation flow — new module `fund_ranking.py`, a structural sibling of `scorer.py`
+
+Reuses, with zero changes needed to any of them:
+- `scheme_universe.get_category_universe` — same category-universe fetch Scorer/Category
+  Ranking already use.
+- `category_ranking._aum_weighted_average`, `category_ranking._rank_and_percentile` —
+  used as-is, both already public-enough within the module (same import pattern
+  `scorer.py` already uses for these two).
+- `risk_metrics.build_monthly_series_bulk`, `compute_downside_deviation` — same 5-year
+  monthly-series/downside-deviation computation Scorer already runs for its own Risk
+  component; attribute 09's low-volatility input reuses this verbatim, same window.
+- `ter._latest_ter_for_scheme` — same per-scheme TER lookup `scorer.py`'s
+  `_category_ter_context` already uses, but percentile-ranked here (full 0.15-weighted
+  component) rather than Scorer's small ±0.25 dead-zone nudge — a deliberate difference
+  from Scorer's TER treatment, not an inconsistency: the PDF's formula gives TER a real
+  weighted share, Scorer's doesn't.
+
+One genuinely new (small) piece added to `category_ranking.py` itself: `_compute_category_returns`
+currently only exposes the *blended* 3yr/5yr return per scheme (`returns[scheme.id] =
+_blend_returns(r3, r5)`) — it already computes `r3` and `r5` separately before blending
+them away. Attribute 09 needs those two raw values (plus a new 1yr anchor) for display and
+for independent percentile-ranking, so this function gains a second return value exposing
+`{scheme_id: (r1, r3, r5, blended)}` instead of just `{scheme_id: blended}` — an additive
+change, `scorer.py`'s existing call sites are unaffected (they keep using the blended dict
+as before).
+
+**Per request/day, step by step:**
+1. Get the category universe (same as Scorer).
+2. Compute `{scheme_id: (r1, r3, r5, blended)}` for the whole universe (the extended
+   `category_ranking` function above).
+3. Compute the category's AUM-weighted average blended return (`_aum_weighted_average`),
+   then `category_relative[scheme_id] = blended[scheme_id] - category_avg_blended` for
+   every scheme.
+4. Compute downside deviation per scheme (reused from `risk_metrics`, same as Scorer),
+   negate for "lower is better" ranking.
+5. Fetch TER per scheme for the category (reused from `ter.py`), negate for "lower is
+   better" ranking.
+6. Percentile-rank r3, r5, category_relative, (-downside_deviation), (-ter) each
+   independently within the category via `_rank_and_percentile`.
+7. Read `ranking_weights` (or fall back to hardcoded PDF defaults if the table's empty).
+   Renormalize weights across whichever of the 5 percentiles are non-`None` for this
+   scheme (missing-5Y/missing-TER/missing-volatility case).
+8. `composite_score = Σ(renormalized_weight × percentile)` for the available components.
+9. Rank `composite_score` across the category (`_rank_and_percentile` again, same as
+   Scorer's `_finish_fund_score` ranks `composite`) to get `category_rank`/`percentile`.
+10. Upsert one `scheme_rankings` row, `computed_at` pinned to day-start, same
+    IntegrityError-tolerant one-row-per-day pattern `scorer.py`'s `_finish_fund_score`
+    already uses verbatim (two concurrent requests racing past a check-then-insert both
+    attempt the insert; the loser's `IntegrityError` is swallowed, its own freshly
+    computed result is still returned to its caller).
+
+### No new job, no new infra — the concrete "much smaller build"
+
+Every input is already either cached on-demand (NAV, via the existing `warm_nav_history`)
+or already refreshed by an existing scheduled job with no relation to this feature (TER by
+`ter_daily`, AAUM by the existing quarterly job). Attribute 09 adds **zero new external
+data source and zero new scheduled job** — it's computed on-demand, exactly like Scorer v1
+and Category Ranking already are (`compute_fund_score`/`compute_category_ranking`'s
+existing request-time posture), with the same 15-minute in-process cache idiom
+(`_category_score_cache`-style) worth adding here too for the same reason Scorer added
+one: a category-wide computation repeated across multiple requests/holdings in the same
+category within a session shouldn't be recomputed from scratch every time.
+
+### API contract
+
+- `GET /analytics/funds/{scheme_id}/ranking` — 1:1 structural peer of the existing
+  `GET /analytics/funds/{scheme_id}/score`, same `Scheme`-lookup-then-404 pattern in
+  `api/analytics.py`. Returns a new `FundRankingRow` schema (scheme_id, scheme_name,
+  category_unavailable, insufficient_history, thin_category, composite_score,
+  category_rank, category_size, percentile, plus every raw/percentile field from
+  `scheme_rankings` above — same "never a bare number, always the evidence behind it"
+  principle `FundScoreRow` already follows).
+- Aggregate portfolio-level endpoint mirroring `compute_portfolio_score`/
+  `get_aggregate_category_ranking`'s existing pattern — groups held schemes by category
+  the same way (`compute_portfolio_score`'s existing `schemes_by_category` loop,
+  copy-pasted structurally) so a portfolio with multiple holdings in one category still
+  computes that category's universe/returns/volatility/TER once, not once per holding.
+  New schemas: `FundRankingSummary` (`funds: list[FundRankingRow]`),
+  `AggregateFundRankingResponse` (`members`, `ranking`) — same shape as
+  `AggregateCategoryRankingResponse`.
+
+### Still open after this design (small, not blocking)
+
+- The `ranking_weights` seed values are the PDF's own 25/25/20/15/15 split — only the
+  *category-relative mechanic* was flagged as possibly overstated by Ayush, not this
+  specific weighting split, so no change proposed here; flagging only so it isn't silently
+  assumed settled without having been separately asked about.
 
 ## Admin-configurability (applies to both 09 and 11)
 
 Decided (`decisions.md` 2026-10-06): DB-backed tables, no admin UI. No admin role/
 permission system exists anywhere in the codebase today, so building one would be a
 first-ever admin surface — disproportionate to either attribute's scope. Both 09's
-weights and 11's scenario dates are edited directly via the existing SSM-tunnel +
-`psql`/DBeaver access pattern, same as staging data resets already work. For 11
+weights (the `ranking_weights` singleton table, schema above) and 11's scenario dates are
+edited directly via the existing SSM-tunnel + `psql`/DBeaver access pattern, same as
+staging data resets already work. For 11
 specifically, this is paired with a documented "how to add a scenario" guide (see below)
 rather than a UI, since scenario additions need judgment (sourcing/verifying real market
 dates), not just data entry.
@@ -1745,24 +1946,31 @@ of Sub-project 1's attributes) are explicitly deferred to a dedicated frontend-f
 
 ## Next in this planning pass
 
-Attributes 04, 12, and 14 are **fully closed at the backend/data-design level** — resolver
-architecture, schema, parsing/classification algorithm, job wiring, and API shape are all
-resolved with live evidence or direct precedent, nothing pushed to an implementation-time
-design pass. **Confirmed 2026-10-08: frontend mockups/visual design for every attribute in
-this sub-project are explicitly deferred, not forgotten** — Ayush flagged that none of this
-sub-project's attributes (04, 09, 11, 12, 14) have had their frontend properly discussed
-yet, and wants a dedicated pass covering all of them together (detailed mockups added to
-the eventual HTML visual artifact that's already a required deliverable for this
-sub-project, same `spec.md` + matching-HTML-artifact gate as before) — but only **after**
-backend/data design is finalized for
-everything, including the still-outstanding 09/11 rework below. Sequencing, in his own
-words: backend/data design for all attributes first, then one consolidated frontend pass,
-then the formal spec+artifact sign-off — not attribute-by-attribute frontend design as each
-backend design closes.
+**All five attributes in Sub-project 1 (04, 09, 11, 12, 14) are now fully closed at the
+backend/data-design level** as of 2026-10-08 — resolver architecture, schema, computation
+logic/flow, eligibility rules, job wiring (or explicit no-new-job rulings), and API shape
+are all resolved with live evidence or direct precedent, nothing pushed to an
+implementation-time design pass. 09's "category-relative" mechanic (the last open backend
+item in the whole sub-project) was resolved and signed off this same day, grounded in
+Value Research's "Return Grade" precedent and reusing `scorer.py`'s existing
+percentile-composite architecture wholesale — see its section above.
 
-Ayush flagged (2026-10-08) that
-attributes 09 and 11 need a fresh look/changes before Sub-project 1 execution starts —
-changes to be provided next. Also flagged (2026-10-08, broader than this doc): the way
-AMC/benchmark/TER data loads is currently being reworked elsewhere in the codebase — that
-needs re-understanding before Sub-project 1's execution plan can be considered truly
-final, separate from the 09/11 rework.
+**Confirmed: frontend mockups/visual design for every attribute in this sub-project are
+explicitly deferred, not forgotten** — Ayush wants one dedicated pass covering all five
+attributes together (detailed mockups added to the eventual HTML visual artifact that's
+already a required deliverable for this sub-project, same `spec.md` + matching-HTML-
+artifact gate as before), now that every backend design is settled. Sequencing, in his own
+words: backend/data design for all attributes first (**done**), then one consolidated
+frontend pass, then the formal spec+artifact sign-off — not attribute-by-attribute
+frontend design as each backend design closed.
+
+**Remaining before Sub-project 1's execution plan is truly final** (separate from the
+09/11 backend rework, both now resolved): the way AMC/benchmark/TER data loads is
+currently being reworked elsewhere in the codebase (flagged 2026-10-08, broader than this
+doc) still needs re-understanding, since it may change assumptions this doc's attribute
+04/09/12 designs lean on (all three read `scheme_ter`/AMC factsheet data in some form).
+Not yet investigated this session.
+
+**Next step:** the consolidated frontend/mockup pass for all five attributes, followed by
+graduating this running doc into the formal `spec.md` + HTML visual artifact, both
+requiring Ayush's sign-off per the sub-project planning gate.
