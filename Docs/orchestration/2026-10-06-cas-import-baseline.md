@@ -687,3 +687,76 @@ This supersedes the table in "Phase 7 gate" above, which ran before the unlisted
 | `px_14yr` | pass | pass | 11/11 | 0 | 0 | 175 / 0 / 0 |  |
 | `px_FY` | pass | pass | 8/8 | 0 | 0 | 6 / 0 / 0 |  |
 | `px_FY,px_14yr` | pass | pass | 11/11 | 0 | 0 | 175 / 0 / 0 |  |
+
+## Re-run after the staging deploy (2026-10-07, orchestrator in WSL)
+
+The full automated set was re-run on the deployed code (same tree as staging). Nothing from the real statements is recorded here, only counts.
+
+**Synthetic gate: PASSED, 88/88.**
+- 44 scenarios × normal / mfapi.in blocked.
+- The two `p20_20yr,p20_FY` delete-variant scenarios are no longer counted: they end empty by design.
+- Every fund matches, 0 review items, 0 gaps, and the blocked results are identical. `p3u_FY` imports as unlisted.
+
+**Real statements (counts only): 25 runs. 24 pass, 1 fails.**
+- Six CAMS files, each alone (normal and blocked), plus upload-order, repeat, two-investor and family combinations. All 23 runs pass, all funds verified, 0 needs review, every reconciliation matches.
+- New file, **CP219255789**: passes. 1 fund, closed.
+- New file, **CP219252880**: **FAILS**. The statement has 0 folios, so it is empty. The upload hits `self_name_mismatch`. Clicking "Yes, that's me" (resolve-name) loops back to the same prompt, which is a dead end. This comes from the 29 Sep member detection, not from the CAS fixes.
+  - Proposed fix: reject an empty statement at parse with a clear message. **Awaiting the user's go.**
+
+**Postgres (local, port 5433):**
+- 0028 ↔ 0030 round trip is clean.
+- `functional_postgres`: 14 passed.
+
+**Backend suites:** 1291 passed, 8 skipped. These cover import_, dashboard, analytics, auth, legal, api, scripts and migrations.
+
+**Frontend:** `tsc -b` is clean, and vitest passed 98 files / 767 tests. These cover import, mobile, dashboard, history, analytics, components, auth, legal, profile and lib.
+
+**Known gap: no real KFintech statement.** None is available (user, 2026-10-07). Staging check A3 is skipped. KFintech layouts are covered only by the synthetic `kfin_*` files: the four automated scenarios above, plus staging checks A5 and C10 with `kfin_pk_10yr.pdf`. Run A3 when a real KFintech statement turns up.
+
+### Artifact checks run locally (2026-10-07, after A2 on staging)
+
+The harness `test_real_check.py` now also checks what the dashboard reads, for each member. Results are counts and pass/fail only:
+- the totals add up;
+- there is one row per fund;
+- the allocation adds up;
+- stamp duty doesn't split a SIP;
+- the distributor comparison adds up;
+- the drift from the statement total;
+- a wrong password is refused.
+
+It ran 44 times: 8 real files plus the 8 synthetic files the artifact uses, alone and in combination, with mfapi.in normal and blocked.
+
+**No new product bug.** Every reconciliation matches. Duplicate rows, totals, allocation, distributor comparison and the wrong-password response (422 `wrong_password`) are all fine in every run. A repeat upload gives 409 `already_imported`.
+
+**What the first run flagged, and why none of it is a product bug:**
+- **Unpriced holdings when blocked:** expected. A fresh test database has no cached NAVs, while production keeps the daily NAV job's cache. The harness no longer counts this as a failure.
+- **SIP split on `px_14yr`:** the check was wrong. These are two genuine SIPs in the same fund on the same day with different amounts (one on the minor's folio). The harness now keys SIPs on amount too.
+- **family_cas_1/2 total +72–108% above the statement:** these files print made-up NAVs, for example ~45 for a fund whose real NAV is ~114. The value gap comes from the file, and units match.
+- **CP219252880:** the known empty-statement dead end, fix awaiting the user's go.
+
+**Two dashboard findings from the user's A2 screenshots, both confirmed locally and both pre-existing (not from the CAS fixes):**
+1. **Allocation "Other" is 25.43%** on the 10 Yr file and 37.62% on the CP file. `allocation_labels.py` matches category keywords, so AMFI's "Other Scheme – Index Funds" and "Solution Oriented" funds fall into Other. Grouping decision pending with the user.
+2. **Total Invested is ₹186 below the CAS cost** on the 10 Yr file. Every fund is short by exactly the 0.005% stamp duty: the CAS cost is the gross amount paid, while our invested figure is units × NAV. Decision pending with the user: include stamp duty in cost (recommended) or label it.
+
+## 2026-10-08 — Analytics speed fix and stamp duty: gate after the change
+
+Plan: `Docs/superpowers/plans/2026-10-07-analytics-speed-and-stamp-duty.md`. New checks in this round: Total Invested = the statement's cost per fund (₹1 plus up to 0.00005 × units for 4-decimal NAV rounding), no stamp-duty row left unattached, and on the Analytics run: no TER download, all 7 sections present, none failed.
+
+**Synthetic gate: PASSED, 88/88** (44 scenarios × normal/mfapi-blocked).
+- 81 passed in the main run.
+- The other 7 passed on re-run after test-side fixes: runs that had started before a harness fix, and one new known case.
+- `invested_mismatch` is empty and `stamp_unattached` is 0 everywhere.
+- Skipped funds, all from the known list: ICICI Bluechip and HSBC Value (synthetic prices below the real fund's lowest NAV), and the Franklin segregated portfolio (zero cost).
+
+**Analytics on `p20_20yr` (WSL):** 0 TER downloads, 7/7 sections, status 200. Time 46.6 s on the final run; 155–197 s earlier the same day. The time depends on how many mfapi downloads fail; that fix is deferred.
+
+**Real statements, counts only: 34 runs, 31 pass.**
+- **CP219252880:** fails ×2, as known: an empty statement.
+- **Synthetic `fam_10yr` through the real-file checker:** passes on re-run after the same known-list skip (ICICI Bluechip) was added there.
+- **"CAS 10 Yr":** Total Invested equals the CAS cost within ₹0.02, alone and in every upload order, normal and blocked.
+- **CP225296748, 2025-26 FY, Last 2 years, CP219255789:** within ₹0.57.
+- **family_cas_1/2** (hand-made test files): the same-person popup is answered Yes exactly once on the combined upload. Their cost and value checks are skipped (user decision: their printed cost omits stamp duty and doesn't carry over between the files).
+
+**Postgres (local, port 5433):** 0030 → 0032 → 0030 → 0032 round trip clean, with `stamp_duty` on the parent table and all 8 partitions. 43 `functional_postgres` + migration tests pass.
+
+**Backend:** 592 affected tests pass (imports, dashboard, analytics, jobs, migrations).

@@ -1,0 +1,370 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Analytics Speed Fix</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap">
+<style>
+/* Layout: one reading column (~760px) with wide tables/charts allowed to scroll; numbered sections follow the user's five questions, then fixes. */
+:root{
+  --bg:#f6f7f9; --surface:#ffffff; --ink:#18202b; --muted:#5a6676; --line:#dde2e9;
+  --accent:#2f5d8a; --slow:#b4561a; --slow-soft:#fbeee4; --ok:#2c7a4b; --ok-soft:#e5f3ea; --warn-soft:#fff6db;
+  --f-display:"Newsreader", Georgia, "Times New Roman", serif;
+  --f-body:"Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12161c; --surface:#1a2028; --ink:#e6eaf0; --muted:#9aa6b5; --line:#2c3440;
+  --accent:#7fb0e0; --slow:#f0965a; --slow-soft:#3a2618; --ok:#6fcf97; --ok-soft:#183126; --warn-soft:#352d14; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12161c; --surface:#1a2028; --ink:#e6eaf0; --muted:#9aa6b5; --line:#2c3440;
+  --accent:#7fb0e0; --slow:#f0965a; --slow-soft:#3a2618; --ok:#6fcf97; --ok-soft:#183126; --warn-soft:#352d14; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15.5px;line-height:1.6}
+.wrap{max-width:780px;margin:0 auto;padding-inline:20px;padding-block:40px 80px}
+h1{font-family:var(--f-display);font-weight:600;font-size:2.3rem;line-height:1.15;margin:0 0 .4rem;text-wrap:balance}
+h2{font-family:var(--f-display);font-weight:600;font-size:1.5rem;line-height:1.25;margin:0 0 .6rem;text-wrap:balance}
+h3{font-size:1.02rem;margin:1.4rem 0 .4rem}
+p{margin:.5rem 0}
+.lede{color:var(--muted);font-size:1.05rem;max-width:62ch}
+.eyebrow{font-size:.74rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:600}
+code,.mono{font-family:var(--f-mono);font-size:.86em}
+code{background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:0 .3em;overflow-wrap:anywhere}
+section{border-top:1px solid var(--line);padding-block:30px 6px}
+.qnum{font-family:var(--f-mono);color:var(--accent);font-size:.8rem;font-weight:600;letter-spacing:.05em}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:24px 0 8px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+.stat b{display:block;font-family:var(--f-mono);font-size:1.35rem;font-variant-numeric:tabular-nums}
+.stat span{color:var(--muted);font-size:.84rem}
+.stat.slow b{color:var(--slow)}
+.callout{border-radius:8px;padding:12px 16px;margin:14px 0;border:1px solid var(--line)}
+.callout.fix{background:var(--ok-soft);border-color:transparent}
+.callout.bad{background:var(--slow-soft);border-color:transparent}
+.callout.note{background:var(--warn-soft);border-color:transparent}
+.callout > :first-child{margin-top:0}.callout > :last-child{margin-bottom:0}
+ol.steps{padding-left:0;list-style:none;counter-reset:s;margin:10px 0}
+ol.steps > li{counter-increment:s;position:relative;padding:4px 0 10px 40px}
+ol.steps > li::before{content:counter(s);position:absolute;left:0;top:4px;width:26px;height:26px;border-radius:50%;background:var(--surface);border:1px solid var(--line);font-family:var(--f-mono);font-size:.8rem;display:grid;place-items:center;color:var(--accent);font-weight:600}
+.scroll{overflow-x:auto;margin:12px 0}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:.92rem;background:var(--surface);border:1px solid var(--line);border-radius:8px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.76rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+tr:last-child td{border-bottom:0}
+td.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.chart{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin:14px 0}
+.bar{display:grid;grid-template-columns:minmax(120px,190px) 1fr 58px;gap:10px;align-items:center;font-size:.88rem;padding:4px 0}
+.bar .track{height:14px;background:var(--bg);border-radius:3px;overflow:hidden}
+.bar .fill{height:100%;background:var(--accent);border-radius:3px}
+.bar .fill.hot{background:var(--slow)}
+.bar .v{font-family:var(--f-mono);text-align:right;font-variant-numeric:tabular-nums}
+.chart .cap{color:var(--muted);font-size:.8rem;margin-top:8px}
+.timeline{border-left:2px solid var(--line);margin:12px 0 12px 6px;padding-left:18px}
+.timeline div{position:relative;padding:4px 0 12px}
+.timeline div::before{content:"";position:absolute;left:-24px;top:11px;width:10px;height:10px;border-radius:50%;background:var(--surface);border:2px solid var(--accent)}
+.timeline .when{font-family:var(--f-mono);font-size:.8rem;color:var(--muted)}
+.pill{display:inline-block;font-size:.74rem;font-weight:600;padding:1px 8px;border-radius:999px;background:var(--bg);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok);border-color:transparent}
+.pill.hot{background:var(--slow-soft);color:var(--slow);border-color:transparent}
+footer{color:var(--muted);font-size:.84rem;border-top:1px solid var(--line);margin-top:30px;padding-top:14px}
+@media (max-width:520px){h1{font-size:1.8rem}.bar{grid-template-columns:110px 1fr 50px}}
+</style>
+
+<div class="wrap">
+  <div class="eyebrow">Unifolio · staging · 7 October 2026</div>
+  <h1>Analytics Speed Fix</h1>
+  <p class="lede">Why the Analytics page sits on its loading state, how it got that way, what it costs, and the plan to fix it along with the ₹186 stamp-duty gap in Total Invested. Every timing below was measured on my laptop with the synthetic p20 20-year statement, the same file you used on staging. Nothing has been changed yet.</p>
+
+  <div class="stats">
+    <div class="stat slow"><b>6m 05s</b><span>Analytics work for one portfolio, locally</span></div>
+    <div class="stat slow"><b>205 s</b><span>of that is the TER refresh</span></div>
+    <div class="stat slow"><b>142 s</b><span>is downloading peer funds’ NAV history</span></div>
+    <div class="stat"><b>~30–60 min</b><span>the same work on the staging AWS machine</span></div>
+  </div>
+
+  <!-- 1 -->
+  <section id="slow">
+    <div class="qnum">QUESTION 1</div>
+    <h2>Why is it so slow, and what did we change?</h2>
+    <p>When you open Analytics, AWS starts a background task that works out all seven sections of the page. I timed each one:</p>
+    <div class="chart" role="img" aria-label="Seconds per Analytics step, first scope">
+      <div class="bar"><span>TER refresh (inside the TER section)</span><div class="track"><div class="fill hot" style="width:100%"></div></div><span class="v">205.1s</span></div>
+      <div class="bar"><span>Category ranking: peer NAV download</span><div class="track"><div class="fill hot" style="width:69.2%"></div></div><span class="v">140.9s</span></div>
+      <div class="bar"><span>Quality score</span><div class="track"><div class="fill" style="width:4.4%"></div></div><span class="v">9.1s</span></div>
+      <div class="bar"><span>Benchmark (portfolio)</span><div class="track"><div class="fill" style="width:2.5%"></div></div><span class="v">5.2s</span></div>
+      <div class="bar"><span>Benchmark (per fund)</span><div class="track"><div class="fill" style="width:1.1%"></div></div><span class="v">2.2s</span></div>
+      <div class="bar"><span>Allocation, Direct vs Regular</span><div class="track"><div class="fill" style="width:.3%"></div></div><span class="v">0.0s</span></div>
+      <div class="cap">Bars share one scale (0–205 s). The second pass, for the member’s own view, took about 5 s because everything was cached by then. Staging runs on half a CPU, so the CPU-heavy TER step is several times slower there.</div>
+    </div>
+
+    <h3>How the TER refresh got this slow</h3>
+    <div class="timeline">
+      <div><span class="when">Aug 2026 · original design</span><br>The <code>schemes</code> table held only the funds users actually owned, a few hundred rows. The TER refresh went through those and compared each fund’s name with AMFI’s TER list using a fuzzy text match. A few hundred fuzzy matches was fast enough.</div>
+      <div><span class="when">6 Oct · CAS fixes, Phase 5</span><br>A new daily job loads AMFI’s full fund list (14,356 schemes) into <code>schemes</code>, so fund identification can use AMFI’s own data. That broke TER for held funds: the new rows don’t have the old plan field the refresh selected on, so no held fund got a TER. The Phase 5 reviewer caught this and logged it as item 13 on the list of problems for the next phase to fix (the “carry-over” list in <code>Docs/orchestration/cas-import-fixes-handoff.md</code>).</div>
+      <div><span class="when">6 Oct · CAS fixes, Phase 6 Task 7</span><br>The fix selects funds by the new <code>plan_type</code> field instead. That now matches about 8,661 Direct/Regular schemes, every one in the master, not just the held ones. The plan said “match by exact name within the AMC”. What was built checks the exact name against all 1,813 rows of AMFI’s TER list and cleans up every one of those 1,813 names again for each scheme. Then it falls back to the old fuzzy match, which compares against all 1,813 rows again. Each scheme is also saved with its own database lookup.</div>
+      <div><span class="when">7 Oct · staging</span><br>The monthly TER job took 30+ minutes. The same refresh also runs inside Analytics, as question 3 explains.</div>
+    </div>
+    <div class="callout bad"><p><b>So, plainly:</b> the slow part is that ~8,661 schemes are each compared, in plain text, with 1,813 AMFI names. Locally one fuzzy match takes about 52 ms, which adds up to 205 s. On staging’s half-CPU machine it’s 30+ minutes. Each step was a reasonable fix on its own, but nobody timed the combination against the full fund list, and our test runs don’t measure Analytics time. That gap in our checks is ours to close.</p></div>
+
+    <h3>The second slow step: peer NAV history</h3>
+    <p>Category ranking and the quality score compare each of your funds with every other fund in its SEBI category. To do that they download each peer’s full NAV history from mfapi.in: 6 categories, around 30–150 funds each. The daily NAV job only refreshes funds that someone holds, and a downloaded history counts as fresh for 3 days. So the first Analytics run after 3 days, for anyone, downloads whole categories again in the middle of the run. This was already true before this release; nothing in this week’s changes caused it.</p>
+  </section>
+
+  <!-- 2 -->
+  <section id="portal">
+    <div class="qnum">QUESTION 2</div>
+    <h2>Why the AMFI address changed, and what the Analytics task costs on AWS</h2>
+    <h3>portal.amfiindia.com</h3>
+    <p>AMFI moved the file. <code>www.amfiindia.com/spages/NAVAll.txt</code> now answers with a redirect (HTTP 302) to <code>portal.amfiindia.com/spages/NAVAll.txt</code>. We noted the redirect in the August analytics design and have been following it ever since. Phase 5 points at the real address directly, so we skip a round trip and won’t break if AMFI drops the old address. The file is the same 1.6 MB list, downloaded once a day. <b>This change has nothing to do with the slowness.</b></p>
+
+    <h3>What one Analytics run costs</h3>
+    <p>The task is a short-lived ECS Fargate container with 0.5 vCPU and 1 GB of memory, set in <code>infra/modules/backend/main.tf</code>. It starts after every CAS import or delete, on Retry, the first time a household opens Analytics, and once a day for every household (the 06:30 IST “analytics-recompute-daily” schedule). Prices below are approximate Fargate list prices for Mumbai, about $0.047 per vCPU-hour and $0.005 per GB-hour.</p>
+    <div class="scroll"><table>
+      <tr><th>Case</th><th>Run time</th><th>Cost per run</th><th>Note</th></tr>
+      <tr><td>Today, staging</td><td class="num">~35 min</td><td class="num">≈ $0.017 (₹1.4)</td><td>Most of it spent comparing fund names</td></tr>
+      <tr><td>After the fix</td><td class="num">~1 min or less</td><td class="num">≈ $0.0005</td><td>Fargate bills at least 1 minute</td></tr>
+      <tr><td>Daily run, 1,000 households, today</td><td class="num">many hours</td><td class="num">tens of $/month</td><td>Households run one after another in one container, and the TER refresh can repeat every 15 minutes of run time</td></tr>
+      <tr><td>Daily run, 1,000 households, after the fix</td><td class="num">minutes</td><td class="num">cents per day</td><td>No TER refresh, no network downloads</td></tr>
+    </table></div>
+    <p>In money, today’s cost is small. The real costs are the wait (a user staring at placeholders), database load (each refresh writes about 8,661 TER rows, one lookup at a time), and a daily job that wouldn’t finish once we have real users.</p>
+  </section>
+
+  <!-- 3 -->
+  <section id="inline">
+    <div class="qnum">QUESTION 3</div>
+    <h2>Why Analytics refreshes TER itself, and how we take that out</h2>
+    <p>The TER section, the Direct vs Regular section and the quality score each first check whether every fund involved has a TER row for the current month. If any fund lacks one, they run the full refresh before carrying on. This dates from August, when Analytics was computed while you waited on the page and there was no guarantee the monthly TER job had run. It was a safety net: “if this month’s TER is missing, go and get it”. Analytics has since moved to a background task, and the monthly TER job runs on its own schedule, so the safety net now costs far more than it protects.</p>
+    <div class="callout fix">
+      <p><b>How we remove it, step by step</b></p>
+      <ol class="steps">
+        <li><b>Take the refresh out of Analytics.</b> Delete the three refresh calls: two in <code>backend/app/services/analytics/ter.py</code>, one in <code>scorer.py</code>. Analytics only reads TER rows already in the database. A fund with no TER row shows as “TER not published yet” in coverage, which the page already supports.</li>
+        <li><b>Make the TER job fast</b> (question 5 has the details) so it can run <b>daily</b> at 06:20 IST, after the 06:15 fund-list job and before the 06:30 daily Analytics run. Then a new fund or a changed TER is picked up within a day, with no Analytics run ever waiting for it. Running it daily needs one Terraform schedule change, which you or your manager apply.</li>
+        <li><b>Count only funds that can have a TER.</b> Funds with no AMFI code (CAS-only, unlisted, closed) are left out of the “missing” check and shown as “not available for this fund”, so they can never make anything look stale again.</li>
+        <li><b>Test it:</b> a test that fails if any Analytics section runs the TER refresh (the small existing calls stay for now, decided 7 Oct). A timing check in the harness: Analytics for p20_20yr must finish in under 30 s locally.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section id="levels">
+    <div class="qnum">QUESTION 4</div>
+    <h2>How much it hurts, level by level</h2>
+    <div class="scroll"><table>
+      <tr><th>Level</th><th>Effect today</th><th>Severity</th></tr>
+      <tr><td>The user</td><td>The Analytics page shows placeholders for 30–60 minutes or more after an import, for nearly every account (any large-cap, mid-cap, small-cap, index or liquid fund). One run can repeat the refresh several times (question 5). Even the instant sections wait (see “Other issues”).</td><td><span class="pill hot">blocks release</span></td></tr>
+      <tr><td>AWS task</td><td>Half a CPU is kept 100% busy on text comparison for most of the run.</td><td><span class="pill">low cost, wasteful</span></td></tr>
+      <tr><td>Database (RDS)</td><td>Each refresh reads and writes about 8,661 TER rows one at a time, around 17,000 round trips per run. Two households importing at once means two refreshes running together.</td><td><span class="pill hot">grows with users</span></td></tr>
+      <tr><td>Daily backstop</td><td>It goes through every household in one container. At 5–35 minutes each it can’t finish in a day once there are a few hundred users.</td><td><span class="pill hot">breaks at scale</span></td></tr>
+      <tr><td>External services</td><td>Peer NAV downloads send bursts of requests to mfapi.in during user-facing runs. A slow or rate-limited mfapi.in then slows Analytics directly.</td><td><span class="pill">medium</span></td></tr>
+      <tr><td>The monthly TER job</td><td>30+ minutes. It works, but a run is already slow enough that a timeout or the 21:00 night stop could cut it off.</td><td><span class="pill">medium</span></td></tr>
+    </table></div>
+  </section>
+
+  <!-- 5 -->
+  <section id="repeat">
+    <div class="qnum">QUESTION 5</div>
+    <h2>Why the refresh runs again even though the TER job just ran</h2>
+    <ol class="steps">
+      <li>Before refreshing, Analytics asks: “does <i>every</i> fund here have a TER row for October?” Funds the refresh has checked get a row even when no TER matched, a “checked, nothing found” marker, so they count as covered.</li>
+      <li>But the refresh only looks at funds with a known Direct/Regular plan in AMFI’s master. Funds outside that set get no row at all: funds that exist only in a CAS (old plans like the pre-2013 “HDFC Liquid Fund – Growth”), funds unlisted on AMFI, and closed funds. They are never checked, so they never get a row.</li>
+      <li>So for any portfolio holding one of those funds, the answer is always “no, something’s missing”, and the full 8,661-scheme refresh runs again. That happens on every Analytics run, for every such household, forever. The p20 statement has funds like this, and many real long-history statements will too.</li>
+      <li>There is a guard meant to stop repeats: “don’t refresh again within 15 minutes”. But it lives in the running program’s memory, and every Analytics run on AWS is a new container. Each one starts with an empty memory and refreshes again. The guard only ever worked when Analytics ran inside the web server, as it did in August.</li>
+    </ol>
+    <div class="callout bad">
+      <p><b>Running the monthly job doesn’t help, and a new account hits this too.</b> The quality score checks TER for every peer fund in each held fund’s category, not just your own funds. 5,695 of AMFI’s 14,356 funds have no readable Direct/Regular plan (older plans, ETFs, fixed-maturity plans), so the refresh never gives them a row. They sit in the categories almost everyone holds: Large Cap 14 of 110, Mid Cap 4 of 81, Small Cap 5 of 47, Index Funds 25 of 1,058, Liquid 85 of 301. So anyone holding one of those triggers the refresh.</p>
+      <p><b>It can repeat within one run.</b> The guard only blocks a refresh within 15 minutes of the last one started. On staging one refresh takes 30+ minutes, so the next section that checks TER (Direct vs Regular, the score for each category, then the person’s own view) starts another. One Analytics run can do the refresh several times, which could mean hours (not measured on staging). After 2 hours the page assumes the run crashed and starts a second one. Locally a refresh is 205 s, so it ran only once.</p>
+    </div>
+    <div class="callout note"><p>None of this was intended. The missing check, the guard and the refresh were each written for an earlier setup: computed on the page, a small <code>schemes</code> table, every fund having a plan. Once those three changed, the pieces no longer fit, and no test runs Analytics against the full fund list or with a CAS-only fund. Steps 1 and 3 in question 3 remove the cause. The fast TER job below removes the cost if it ever runs anyway.</p></div>
+
+    <h3>Making the TER job itself fast, and right (revised 8 Oct)</h3>
+    <div class="callout bad"><p><b>Found while building (8 Oct):</b> fuzzy name matching isn’t just slow, it’s wrong. On real data 923 funds were matched to a <b>different fund house</b> (Kotak Business Cycle Fund got Tata Business Cycle Fund’s TER), because AMFI fills each month gradually and HDFC, Kotak and Nippon hadn’t filed October yet. About 116 more got the wrong year or series from their own house (“Gilt April 2026” → “April 2028”). Those wrong TERs are on staging now, from the 7 Oct run.</p></div>
+    <ol class="steps">
+      <li><b>Link each fund once to SEBI’s scheme code.</b> Every row in AMFI’s TER feed carries one (<code>NSDLSchemeCode</code>, one per fund, shared by Direct and Regular). A fund is linked when its name equals a TER row’s name, ignoring case, spaces and punctuation. That covers 7,041 funds today. The link is stored on <code>schemes</code> (migration 0031).</li>
+      <li><b>Every month joins by code</b>, so a fund keeps its TER even if AMFI renames it.</li>
+      <li><b>No fuzzy matching at all.</b> A fund that isn’t linked gets no TER that month and shows under the existing “TER Exclusions” list. Most of these are fund houses that haven’t filed yet; they link the morning after they do.</li>
+      <li><b>Save in bulk:</b> one query to load the month’s rows, one batch to write.</li>
+      <li><b>Result:</b> the job’s matching takes a fraction of a second (was 205 s locally, 30+ min on staging), and no fund ever shows another fund’s TER. A script to link the few remaining funds by hand is deferred until we see how many stay unlinked after every house has filed.</li>
+    </ol>
+  </section>
+
+  <!-- fix plan -->
+  <section id="plan">
+    <div class="qnum">PROPOSED FIX · ANALYTICS</div>
+    <h2>The full plan, aimed at the shortest possible wait</h2>
+    <p>The goal: Analytics never waits on the TER refresh or bulk downloads. The slow work moves to the scheduled jobs that already run every morning. A few small existing calls (benchmark index top-up, AMFI list, held funds’ NAV) stay for now (decided 7 Oct).</p>
+    <div class="scroll"><table>
+      <tr><th>#</th><th>Change</th><th>Files</th><th>Saves (p20, local)</th></tr>
+      <tr><td class="num">A</td><td>Remove the TER refresh from Analytics; read cached rows only.</td><td><code>analytics/ter.py</code>, <code>analytics/scorer.py</code></td><td class="num">205 s → 0</td></tr>
+      <tr><td class="num">B</td><td>TER job links each fund once to SEBI’s scheme code by an exact name and joins by code; no fuzzy matching (revised 8 Oct); bulk save. Runs daily after the fund-list job.</td><td><code>analytics/amfi_ter_client.py</code>, <code>infra/modules/scheduler/main.tf</code></td><td class="num">job 30 min → seconds</td></tr>
+      <tr><td class="num">C</td><td>“Missing TER” counts only funds that can have one.</td><td><code>analytics/ter.py</code></td><td>no more repeat refreshes</td></tr>
+      <tr><td class="num">D</td><td>The daily NAV job also refreshes the peer funds in every category someone holds, so on a normal morning Analytics finds them fresh and downloads nothing. Its own check stays as a safety net for a category nobody held before.</td><td><code>scripts/jobs/refresh_nav_daily.py</code></td><td class="num">142 s → ~1–3 s</td></tr>
+      <tr><td class="num">E</td><td><b>Documented, not built (decided 7 Oct).</b> The idea: compute the cheap sections first, and compute a one-person household once instead of twice. Not doing it, because computing everything together was a deliberate change we made earlier.</td><td>(<code>analytics/recompute.py</code>)</td><td>—</td></tr>
+      <tr><td class="num">5B</td><td>NSE index history counts as fresh within 4 days, and a start date is downloaded once per process (added 8 Oct).</td><td><code>analytics/nse_indices_client.py</code></td><td class="num">up to 127 s → ~0</td></tr>
+      <tr><td class="num">F</td><td>Tests: no network calls inside Analytics, a harness timing limit, and a CAS-only fund in the TER test.</td><td>backend tests, <code>harness/test_deep.py</code></td><td>stops this coming back</td></tr>
+    </table></div>
+    <p><b>Expected outcome</b> (estimate, to be measured after the build): Analytics for p20 goes from about 6 minutes locally to roughly 15–25 s, and on staging from 30–60 minutes to under a minute. With E not built, the sections still appear together when the run finishes. That’s acceptable once the whole run takes seconds to under a minute.</p>
+    <p>Not proposed now, possible later: store each category’s 3- and 5-year returns once a day in a table, so ranking and scoring take milliseconds for everyone. That’s bigger: a new table, a migration and a new job, so I’d only do it if D isn’t enough.</p>
+  </section>
+
+  <!-- other issues -->
+  <section id="other">
+    <div class="qnum">OTHER ANALYTICS ISSUES FOUND</div>
+    <h2>Other Analytics issues</h2>
+    <ol class="steps">
+      <li><b>The quick sections wait behind the slow ones.</b> Analytics is computed for the whole family view first, all seven sections including the 30-minute ones, and only then for each person. You were looking at one person’s view, so even its instant Allocation section waited the full run. That’s why your screenshot showed every section as a placeholder. <span class="pill">not fixing (decided 7 Oct)</span> Computing everything together was a deliberate earlier change, and once runs take seconds the wait is short anyway.</li>
+      <li><b>No “still working” message.</b> The page shows grey placeholders with no explanation however long it takes. <span class="pill">not fixing (decided 7 Oct)</span> Not needed once runs take seconds.</li>
+      <li><b>Peer NAV histories go stale after 3 days</b> and are downloaded again mid-run (question 1). <span class="pill ok">fixing</span> with D.</li>
+      <li><b>Our tests never time Analytics.</b> The 88/88 synthetic gate and the real-file runs check numbers, not speed. That’s how this slipped through. <span class="pill ok">fixing</span> with F.</li>
+      <li><b>The stuck-run timeout is 2 hours.</b> If an Analytics container crashes, the page keeps showing placeholders for up to 2 hours before a new run can start. Once runs take seconds, this can safely drop to 15 minutes, a one-line change in <code>recompute.py</code>. <span class="pill ok">fixing</span></li>
+    </ol>
+  </section>
+
+  <!-- stamp duty -->
+  <section id="stamp">
+    <div class="qnum">PROPOSED FIX · STAMP DUTY</div>
+    <h2>Stamp duty in Total Invested</h2>
+    <div class="callout note"><p><b>A correction to what I told you earlier.</b> I said we read the stamp-duty rows from the CAS and store them. That was wrong. The parser drops them at upload: they carry no units, and <code>parser.py</code> skips “tax rows with no units” on purpose (<code>_SILENT_TAX_TYPES</code>). So the ₹0.25-type amounts never reach the database at all. The fix has to start at the parser.</p></div>
+    <h3>What happens today</h3>
+    <p>A ₹5,000 SIP after 1 July 2020 shows in the CAS as a purchase of ₹4,999.75 and a separate “*** Stamp Duty ***” row of ₹0.25. The CAS’s cost column counts the full ₹5,000. We count only the ₹4,999.75 (units × NAV) and throw the ₹0.25 away. On the “CAS 10 Yr” statement that adds up to ₹186 across 13 funds: exactly 0.005% of each fund’s cost.</p>
+    <h3>The fix, step by step</h3>
+    <ol class="steps">
+      <li><b>Parser:</b> attach each stamp-duty row to the purchase it belongs to (same fund, same date). If one day has several purchases, match each stamp duty to the purchase it is 0.005% of. A new <code>stamp_duty</code> field goes on the purchase. Rows before 1 July 2020 have none.</li>
+      <li><b>Database:</b> one nullable column, <code>transactions.stamp_duty</code> (migration <code>0032</code>; 0031 is the TER link). Postgres adds it to every partition of the partitioned table in one statement. Nothing else changes shape.</li>
+      <li><b>Cost:</b> each purchase’s cost becomes amount + stamp duty, set once in the holdings cost calculation (<code>dashboard/holdings.py</code>). Everything built on it follows automatically: invested, average NAV, unrealised and realised gain (a sold unit carries its share of the stamp duty).</li>
+      <li><b>Cash flows:</b> the money paid out becomes amount + stamp duty in XIRR (<code>dashboard/xirr.py</code>), in the Analytics benchmark (<code>analytics/benchmark.py</code>), and in monthly history’s invested line (<code>dashboard/snapshots.py</code>). Total Invested and XIRR then use the same rupees.</li>
+      <li><b>No double counting:</b> opening balances already use the CAS cost, which includes stamp duty, so they stay as they are.</li>
+      <li><b>Tests and gate:</b> unit tests for the parser matching, plus a new gate check that <b>Total Invested equals the CAS cost to the rupee</b> for every fund, on all synthetic files (they include stamp duty) and the real files. Our gate never checked invested against the CAS cost, which is why this slipped through.</li>
+    </ol>
+    <div class="callout bad"><p><b>What it means for data already uploaded:</b> rows imported before the fix have no stamp duty stored, and uploading the same statement again is refused as “already imported”. So staging needs a wipe (<code>scripts/clean-staging-db.sh</code>) and fresh uploads after this deploy. Production has no users yet, so nothing else is affected.</p></div>
+    <p><b>Visible effect:</b> on “CAS 10 Yr”, Total Invested goes from ₹37,22,451 to ₹37,22,637, the same as the CAS. Unrealised gain drops by the same ₹186, and XIRR moves by a few hundredths of a percent. No frontend change.</p>
+  </section>
+
+  <!-- effort -->
+  <section id="effort">
+    <div class="qnum">EFFORT</div>
+    <h2>How heavy, how clean, how long</h2>
+    <div class="scroll"><table>
+      <tr><th>Fix</th><th>Size</th><th>How clean</th><th>Time</th></tr>
+      <tr><td>Analytics A + C (no refresh inside Analytics, eligible funds only)</td><td>~40 lines removed or changed in 2 files, plus tests</td><td><span class="pill ok">clean</span> it only removes code; Analytics becomes read-only</td><td class="num">~2 h</td></tr>
+      <tr><td>Analytics B (fast TER job + daily schedule)</td><td>~120 lines in 1 file, 1 Terraform schedule, tests, and an old-vs-new match comparison for all 8,661 schemes</td><td><span class="pill ok">clean</span> it implements what the Phase 6 plan described</td><td class="num">~4 h</td></tr>
+      <tr><td>Analytics D (peer NAVs in the daily job)</td><td>~30 lines in the NAV job</td><td><span class="pill ok">clean</span> it reuses the existing warm-up function</td><td class="num">~1.5 h</td></tr>
+      <tr><td>Stuck-run timeout 2 h → 15 min</td><td>1 line plus a test</td><td><span class="pill ok">clean</span></td><td class="num">~0.5 h</td></tr>
+      <tr><td>E, and the “still calculating” message</td><td>—</td><td>not built (decided 7 Oct)</td><td class="num">0</td></tr>
+      <tr><td>Analytics F (no-network test, timing gate)</td><td>tests and harness only</td><td><span class="pill ok">clean</span></td><td class="num">~1 h</td></tr>
+      <tr><td>Stamp duty (parser, migration 0032, cost, cash flows, gate)</td><td>~150 lines across ~6 files, 1 migration, tests</td><td><span class="pill">moderate</span> touches the money path; one column, one cost rule, many tests</td><td class="num">~5 h</td></tr>
+      <tr><td>Independent review, fixes, re-running every gate (synthetic, real, Postgres), staging guide update</td><td>—</td><td>same review gates as every phase</td><td class="num">~4 h</td></tr>
+      <tr><td><b>Total</b></td><td></td><td></td><td class="num"><b>~1.75 working days</b></td></tr>
+    </table></div>
+    <p>Then one staging deploy: migrations 0031 and 0032, the backend image, one Terraform schedule change (run by you or your manager), a staging wipe, and re-running the affected checks (A1, A2, D2, C2, C6).</p>
+  </section>
+
+  <section id="rerun">
+    <div class="qnum">NEXT STAGING DEPLOY</div>
+    <h2>Will you need to run the TER job again?</h2>
+    <p>Today’s run saved October TER figures in the <code>scheme_ter</code> table. That table is reference data: the staging wipe script leaves it alone, and after fix A, Analytics simply reads the latest saved TER for each fund. <b>So today’s run still counts after the fix is deployed. Nothing breaks if you don’t run the job again.</b></p>
+    <div class="scroll"><table>
+      <tr><th></th><th>Keep it monthly</th><th>Switch to daily</th></tr>
+      <tr><td>Must you run the job by hand during the deploy?</td><td>No. Today’s October figures are used.</td><td>No. Today’s October figures are used until the first automatic run.</td></tr>
+      <tr><td>Should you?</td><td><b>Yes, recommended.</b> It takes seconds now. It saves the new matching’s results (fix B), which can find a TER for some funds the old matching missed. And it’s our only real-world test of fix B before 1 November.</td><td><b>Yes, recommended</b>, for the same two reasons, so D2 can be checked the same day.</td></tr>
+      <tr><td>If you skip it</td><td>Analytics shows today’s figures. Funds only the new matching would find show “TER not published yet” until 1 Nov. Funds the fund-list job adds before then have no TER until 1 Nov.</td><td>Same as monthly, but only until 06:20 IST the next morning, when the first automatic run catches everything up.</td></tr>
+      <tr><td>Next automatic run</td><td>1 Nov 2026, 06:00 IST</td><td>Every day at 06:20 IST, starting the morning after the Terraform apply</td></tr>
+      <tr><td>Terraform in the deploy</td><td>None for TER</td><td>One schedule change (plus the rename, if chosen)</td></tr>
+      <tr><td>What the hand run looks like</td><td colspan="2">The same <code>aws ecs run-task</code> block as in the 7 Oct guide. Expected: it finishes in under a minute (it took 30+ minutes today), with a log line <code>success=True</code>.</td></tr>
+    </table></div>
+    <p>The stamp-duty change needs a staging wipe and fresh uploads, but that only clears users’ data. TER figures, the fund list and NAV history all stay.</p>
+  </section>
+
+  <section id="which">
+    <div class="qnum">AFTER THE FIX</div>
+    <h2>Does the TER job still check all 14,000 schemes?</h2>
+    <p><b>The job checks all Direct/Regular schemes, about 8,661, every time it runs, monthly or daily. Analytics checks none.</b></p>
+    <div class="scroll"><table>
+      <tr><th>Who</th><th>Which schemes</th><th>Why</th><th>Time after the fix</th></tr>
+      <tr><td>The TER job (monthly or daily)</td><td>All ~8,661 schemes with a readable Direct or Regular plan</td><td>The quality score compares each of your funds’ TER with its <b>category average</b>, which needs every peer fund’s TER, not just yours. Doing all of them also means a new user’s funds already have a TER the moment they upload.</td><td class="num">seconds</td></tr>
+      <tr><td>The TER job</td><td>Not the other ~5,695 schemes (older plans, ETFs, fixed-maturity plans)</td><td>AMFI’s TER feed has separate Direct and Regular columns, and without a known plan we can’t tell which applies. These show as “TER not available for this fund”, as today.</td><td>—</td></tr>
+      <tr><td>Analytics</td><td>Only reads the saved TER rows for your funds and their category peers</td><td>Fix A. It never fetches or matches anything.</td><td class="num">milliseconds</td></tr>
+    </table></div>
+    <p>Limiting the job to held funds only would make it smaller, but the category average would then be built from a handful of funds and be wrong. Since the full run takes seconds after fix B, there’s no reason to cut it down.</p>
+  </section>
+
+  <section id="jobs">
+    <div class="qnum">BACKGROUND JOBS</div>
+    <h2>Every background job, after the fix</h2>
+    <p>Staging has <b>8 scheduled jobs</b>, <b>6 night-stop schedules</b> that switch staging off overnight to save money, and <b>1 job started by user actions</b>. All times are IST (the schedules are set to Asia/Kolkata). Each job runs in its own short-lived container (0.5 vCPU, 1 GB) and stops when it’s done. Changes from this fix are marked.</p>
+    <div class="scroll"><table>
+      <tr><th>Time (IST)</th><th>Job</th><th>What it does</th><th>Typical run</th><th>This fix</th></tr>
+      <tr><td class="num">04:45</td><td>start-rds</td><td>Starts the database after the night stop</td><td class="num">~5–10 min to come up</td><td><span class="pill">unchanged</span></td></tr>
+      <tr><td class="num">04:50</td><td>start-fck-nat</td><td>Starts the NAT instance (internet access for jobs)</td><td class="num">~1–2 min</td><td><span class="pill">unchanged</span></td></tr>
+      <tr><td class="num">04:58</td><td>start-backend</td><td>Starts the website’s backend service</td><td class="num">~2 min</td><td><span class="pill">unchanged</span></td></tr>
+      <tr><td class="num">06:00 daily</td><td>nav-daily</td><td>Downloads the latest NAV history from mfapi.in for every fund someone holds</td><td class="num">~1 min</td><td><span class="pill ok">fix D</span> also refreshes the category peers of held funds, so Analytics never downloads during a run (a few minutes)</td></tr>
+      <tr><td class="num">06:00 daily</td><td>benchmark-daily</td><td>Updates the NSE benchmark index history (10 years) for the benchmark comparison</td><td class="num">~1 min</td><td><span class="pill">unchanged</span></td></tr>
+      <tr><td class="num">06:15 daily</td><td>scheme-master-daily</td><td>Loads AMFI’s full fund list (~14,356 schemes): new funds, renamed funds, closed funds</td><td class="num">1–3 min</td><td><span class="pill">unchanged</span> (added 7 Oct)</td></tr>
+      <tr><td class="num">06:20 daily</td><td>ter-daily (now ter-monthly)</td><td>Downloads AMFI’s TER feed and saves a TER for every Direct/Regular scheme</td><td class="num">seconds (was 30+ min)</td><td><span class="pill ok">fix B</span> fast matching; moves from monthly to daily (decided 7 Oct)</td></tr>
+      <tr><td class="num">06:30 daily</td><td>analytics-recompute-daily</td><td>Recomputes Analytics for every household, so the page is ready with that morning’s NAVs</td><td class="num">seconds per household (was 5 min to hours)</td><td><span class="pill ok">fixes A, C</span> read-only, no refresh, no downloads</td></tr>
+      <tr><td class="num">08:00 daily</td><td>account-deletion-daily</td><td>Permanently deletes accounts whose 30-day deletion grace period has ended</td><td class="num">&lt; 1 min</td><td><span class="pill">unchanged</span></td></tr>
+      <tr><td class="num">19:00 daily</td><td>cas-file-expiry-daily</td><td>Deletes stored CAS PDFs older than 30 days</td><td class="num">&lt; 1 min</td><td><span class="pill">unchanged</span></td></tr>
+      <tr><td class="num">21:00</td><td>stop-backend</td><td>Stops the website’s backend for the night</td><td>—</td><td><span class="pill">unchanged</span></td></tr>
+      <tr><td class="num">21:05</td><td>stop-rds</td><td>Stops the database</td><td>—</td><td><span class="pill">unchanged</span></td></tr>
+      <tr><td class="num">21:10</td><td>stop-fck-nat</td><td>Stops the NAT instance</td><td>—</td><td><span class="pill">unchanged</span></td></tr>
+      <tr><td class="num">06:00, 1 Jan/Apr/Jul/Oct</td><td>aaum-quarterly</td><td>Downloads AMFI’s quarterly fund sizes (AAUM), used to weight the category-average TER</td><td class="num">~1 min</td><td><span class="pill">unchanged</span></td></tr>
+      <tr><td>On demand</td><td>analytics recompute (one household)</td><td>Started after a CAS import or delete, on Retry, and the first time someone opens Analytics</td><td class="num">~15–60 s (was 30 min to hours)</td><td><span class="pill ok">fixes A, C</span></td></tr>
+    </table></div>
+    <h3>A normal morning, in order</h3>
+    <ol class="steps">
+      <li><b>04:45–05:00</b> staging wakes up: database, then NAT, then backend.</li>
+      <li><b>06:00</b> today’s NAVs and benchmark values come in, now including peer funds (fix D).</li>
+      <li><b>06:15</b> AMFI’s fund list is refreshed.</li>
+      <li><b>06:20</b> (if daily) TERs are refreshed against that fresh list, in seconds.</li>
+      <li><b>06:30</b> every household’s Analytics is recomputed from the saved data, with no downloads, so it’s ready before anyone opens the app. If the 06:00 NAV job is still running, Analytics uses the previous day’s peer NAVs. That’s harmless, and the next run catches up.</li>
+      <li><b>During the day</b> imports trigger single-household recomputes, now under a minute.</li>
+      <li><b>21:00–21:10</b> staging shuts down for the night. No job is scheduled inside the night window.</li>
+    </ol>
+  </section>
+
+  <section id="cost">
+    <div class="qnum">AWS COST AFTER THE CHANGES</div>
+    <h2>What it costs, before and after</h2>
+    <p>Every job and Analytics run is a Fargate container with 0.5 vCPU and 1 GB. At approximate Mumbai list prices that’s about <b>$0.028 an hour, or $0.0005 a minute</b>, billed for at least 1 minute. Staging’s fixed monthly cost (database, load balancer, NAT instance, backend service, about $68.46/month after the 1 Oct cost cuts) <b>doesn’t change</b> with any of this. Only the cents below move.</p>
+    <h3>The TER job: monthly vs daily</h3>
+    <div class="scroll"><table>
+      <tr><th>Option</th><th>Run time</th><th>Runs a month</th><th>Cost a month</th></tr>
+      <tr><td>Monthly, today’s code</td><td class="num">~35 min</td><td class="num">1</td><td class="num">≈ $0.017 (₹1.4)</td></tr>
+      <tr><td>Monthly, after fix B</td><td class="num">≤ 1 min</td><td class="num">1</td><td class="num">≈ $0.0005</td></tr>
+      <tr><td><b>Daily, after fix B</b></td><td class="num">≤ 1 min</td><td class="num">30</td><td class="num"><b>≈ $0.014 (₹1.2)</b></td></tr>
+    </table></div>
+    <p>So the daily TER job after the fix costs about <b>₹1 a month</b>, slightly less than today’s single 35-minute monthly run. Downloading AMFI’s TER feed through our NAT instance adds no per-GB charge.</p>
+    <h3>Everything that changes, per month (staging, a handful of test accounts)</h3>
+    <div class="scroll"><table>
+      <tr><th>Item</th><th>Today</th><th>After the fix</th><th>Why</th></tr>
+      <tr><td>Analytics run (each import, delete, Retry, first open)</td><td class="num">≈ $0.017–0.10+ per run</td><td class="num">≈ $0.0005 per run</td><td>35 min to several hours (repeated refreshes) becomes under a minute</td></tr>
+      <tr><td>Daily Analytics backstop (all households)</td><td class="num">≈ $0.50–3 / month</td><td class="num">≈ $0.02–0.05 / month</td><td>Today, any household with a common fund can repeat the TER refresh</td></tr>
+      <tr><td>TER job</td><td class="num">≈ $0.017 / month</td><td class="num">≈ $0.014 daily, or $0.0005 monthly</td><td>Fix B</td></tr>
+      <tr><td>Daily NAV job (fix D adds the peer funds)</td><td class="num">≈ $0.015 / month</td><td class="num">≈ $0.05–0.10 / month</td><td>A few extra minutes a day downloading peer NAV history, moved out of Analytics so users don’t wait on it</td></tr>
+      <tr><td>Fund-list job</td><td class="num">≈ $0.02 / month</td><td class="num">unchanged</td><td>Not touched</td></tr>
+      <tr><td>Database (RDS)</td><td>fixed price, ~17,000 extra round trips per TER refresh</td><td>fixed price, far less load</td><td>Fixed instance, so the saving is load, not money</td></tr>
+      <tr><td><b>Total variable cost</b></td><td class="num"><b>≈ $1–5 / month</b></td><td class="num"><b>≈ $0.10–0.25 / month</b></td><td>Staging total stays about $68.5 / month either way</td></tr>
+    </table></div>
+    <h3>At real scale (estimate, 1,000 households)</h3>
+    <p>Today’s code wouldn’t keep up. The daily Analytics backstop would need more than 24 hours, and each import’s Analytics run could take hours. After the fix (A–D and F), at about 30–60 s per household on staging’s machine, the daily backstop costs roughly <b>$5–11 a month</b>, and the import-triggered runs a few cents more. If that ever matters, the later option (category returns stored once a day) cuts it further.</p>
+    <p class="cap" style="color:var(--muted);font-size:.84rem">All figures are estimates from approximate Fargate list prices for ap-south-1 and today’s measured run times. Actual charges are in Cost Explorer: <code>aws ce get-cost-and-usage --time-period Start=2026-10-07,End=2026-10-08 --granularity DAILY --metrics UnblendedCost --group-by Type=DIMENSION,Key=SERVICE --region us-east-1</code> (each call costs $0.01; figures lag about a day).</p>
+  </section>
+
+  <section id="decide">
+    <div class="qnum">DECIDED · 7 OCTOBER</div>
+    <h2>What we’re building</h2>
+    <ol class="steps">
+      <li><b>Scope:</b> A, B, C, D and F, plus the stamp-duty fix. From “Other Analytics issues”, items 3, 4 and 5 are fixed (peer NAVs in the daily job, Analytics timing in the tests, the 2-hour stuck-run timeout cut to 15 minutes). <b>E is documented here but not built:</b> computing everything together was our own earlier change. Items 1 and 2 stay as they are.</li>
+      <li><b>The TER job moves to daily</b> at 06:20 IST, one Terraform schedule change. The 1 Oct run showed that a job on the 1st gets the previous month’s TERs, because AMFI hadn’t published October’s yet.</li>
+      <li><b>Staging wipe after the deploy: user data only.</b> <code>scripts/clean-staging-db.sh</code> already does exactly this: it deletes users, members, imports, folios, transactions, snapshots and analytics results, and leaves the fund list, NAV history, TERs, AAUM, benchmarks and fund scores untouched. Today’s 8,665 October TER rows survive.</li>
+      <li><b>No “still calculating” message.</b></li>
+    </ol>
+    <h3>Also decided (7 Oct)</h3>
+    <ol class="steps">
+      <li><b>The job is renamed</b> from <code>ter-monthly</code> to <code>ter-daily</code> (script <code>refresh_ter_daily.py</code>, logs <code>/ecs/staging-job-ter-daily</code>).</li>
+      <li><b>Its log line shows counts and time:</b> <code>refresh_ter_daily: success=True month=… schemes=… matched=… no_match=… seconds=…</code>.</li>
+      <li><b>TER linked by SEBI scheme code, no fuzzy matching (8 Oct):</b> fuzzy matching gave ~1,040 funds another fund’s TER on real data. Funds are now linked once by an exact name to the code in AMFI’s TER feed (migration 0031; stamp duty becomes 0032). The deploy clears the wrong TERs saved on 7 Oct.</li>
+      <li><b>NSE freshness fix added (8 Oct):</b> measured one run making 32 NSE downloads taking 127 s, because the saved index history never counts as covering “today” in the morning. Saved history within 4 days now counts as fresh (plan Task 5B). <b>Not now:</b> the rest of question 3, including stopping the AMFI fund-list download (0.3 s per run). Both work today and cost a few seconds. Fix D keeps Analytics’ own peer check as a safety net for new categories, and fix F tests “no TER refresh” plus the timing limit.</li>
+    </ol>
+    <p>The full change map (files, flows, ER diagrams) is a separate page. I start building when you say go.</p>
+  </section>
+
+  <footer>Measured 7 Oct 2026 on the local test setup: synthetic statement p20_20yr.pdf, AMFI master from 6 Oct, live AMFI TER feed (October 2026, 1,813 schemes), live mfapi.in. Costs are approximate Fargate list prices for ap-south-1. Effort figures are estimates.</footer>
+</div>
+
+</body></html>

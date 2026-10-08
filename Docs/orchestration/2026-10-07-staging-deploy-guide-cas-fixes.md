@@ -581,7 +581,7 @@ with sa.create_engine(os.environ["DATABASE_URL"]).connect() as c:
     print(c.execute(sa.text("SELECT source::text, count(*), count(plan_type) FROM schemes GROUP BY 1 ORDER BY 1")).all())
 EOF
 ```
-**Good looks like:** a row like `('amfi', 14xxx, 14xxx)` (almost every AMFI row has a plan type). There may also be `casparser` rows from before. No `cas_only` rows yet, because no upload has happened.
+**Good looks like:** a row like `('amfi', 14376, 8661)`: today's 14,356 schemes plus about 20 old ones marked inactive. About 8,661 of them have a plan type: the ones whose name says Direct or Regular. The rest (older pre-2013 plans, ETFs, fixed-maturity plans) have none by design; the import then decides from the statement's own fund name. No `cas_only` rows yet, because no upload has happened. Run it from `backend/` (where `.venv` is), in Terminal B with the tunnel open.
 
 ---
 

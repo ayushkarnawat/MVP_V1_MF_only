@@ -68,7 +68,9 @@ trimmed), `backend.md`/`database.md` (backend/schema changes only), `decisions.m
 `Docs/orchestration/delegation-log.md`. Deferred/not-yet-built features:
 `DEFERRED_FEATURES.md`.)*
 
-**Latest (2026-10-06):** CAS import fixes Phases 1–6 and Phase 7 prep built and independently reviewed (uncommitted, not deployed); the local gate passed (46 synthetic scenarios × normal/mfapi-blocked + 2 real CAMS statements: every fund matches, zero review items). The Import Review screen stays until after staging (user decision). Left: staging wipe/deploy/scheme-master load, a real KFintech statement and the C1–C14 checklist, then the review-screen removal — see `session.md`'s 2026-10-06 section.
+**Latest (2026-10-08):** Analytics speed fix + stamp duty built, gated (88/88 synthetic, real files, Postgres) and reviewed, uncommitted. Next: the user commits, then the staging deploy with `Docs/orchestration/2026-10-08-staging-deploy-guide-analytics-stamp-duty.md`. Status: `session.md`.
+
+**Previous (2026-10-06):** CAS import fixes Phases 1–6 and Phase 7 prep built and independently reviewed (uncommitted, not deployed); the local gate passed (46 synthetic scenarios × normal/mfapi-blocked + 2 real CAMS statements: every fund matches, zero review items). The Import Review screen stays until after staging (user decision). Left: staging wipe/deploy/scheme-master load, a real KFintech statement and the C1–C14 checklist, then the review-screen removal — see `session.md`'s 2026-10-06 section.
 
 **Previous (2026-10-01):** AWS staging cost-reduction (Scenario A,
 `Docs/2026-09-29-aws-staging-cost-analysis-and-reduction-plan.md`) applied and verified

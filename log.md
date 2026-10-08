@@ -323,3 +323,15 @@ Gate:
 Carry-over 16 (p20 XIRR gap) turned out to be a harness bug (a reinvestment ISIN missing from the truth's NAV lookup); the app was not tuned.
 
 Not done (needs staging): a real KFintech statement, the C1–C14 frontend checklist, the staging wipe, the deploy, loading the scheme master once, then (after the user confirms the gate) the review-screen removal and its PRD-01 FR-10 / App-Flow edits.
+
+## 2026-10-08 — Analytics speed fix and stamp duty: built, gated, reviewed (uncommitted, not deployed)
+
+Plan `Docs/superpowers/plans/2026-10-07-analytics-speed-and-stamp-duty.md`, built by Codex in three runs over the manual relay, reviewed and finished by Claude (orchestrator; the session moved to another Claude account mid-way, handoff `Docs/orchestration/2026-10-08-claude-session-handoff.md`). Round-by-round record: `Docs/orchestration/analytics-speed-stamp-duty-handoff.md`.
+
+- **Analytics speed:** Analytics never refreshes TER; TER is linked once per scheme to SEBI's scheme code by exact cleaned name (migration 0031, no fuzzy matching: the 7 Oct fuzzy run gave ~1,040 funds another fund's TER); the job is now `ter-daily` at 06:20 IST with `--month`; the 06:00 NAV job warms category peers; stuck-run ceiling 15 minutes with a heartbeat; NSE history fresh within 4 days.
+- **Stamp duty:** attached at parse to the same-day purchase it is 0.005% of (several purchases → each gets its own; reversed rows skipped), stored in `transactions.stamp_duty` (migration 0032), counted in every lot replay (`lot_rules.cost_per_unit`) and every cash flow (`lot_rules.paid_amount`). Real "CAS 10 Yr" Total Invested now equals the CAS cost within ₹0.02 (was ₹186 short).
+- **Harness/generator (Run 3 + orchestrator):** the generator prints cost including stamp duty and drops a bounced SIP's own lot; new gates (invested = CAS cost per fund, no unattached stamp duty, Analytics never fetches TER, all sections present). Investigation found only test-side causes for every gap (ISIN alias lookup, one-member comparison on family files, 4-dp rounding, hand-made family files, synthetic prices below real NAV history).
+- **Reviews:** Run 1 and Run 2 each reviewed by a fresh Opus reviewer with fixes and re-reviews; a final whole-change review approved after fixes (unreadable peer response no longer aborts the warm-up; a codeless TER feed is rejected; harness checks made able to fail).
+- **Gates:** 592 affected backend tests pass; Postgres 0030↔0032 round trip and 43 Postgres/migration tests pass; synthetic gate 88/88; real files pass except the known empty statement CP219252880.
+- **Deferred by the user:** the peer NAV download fix (Analytics 47 s–3.3 min locally on the largest file, depending on mfapi; staging estimated 1–6 min) and data saved before 0032 (staging is wiped). Logged in `DEFERRED_FEATURES.md`, with the merged-fund opening-cost gap found on the way.
+- **Next:** the user commits; staging deploy with `Docs/orchestration/2026-10-08-staging-deploy-guide-analytics-stamp-duty.md`.

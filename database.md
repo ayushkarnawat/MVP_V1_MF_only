@@ -119,3 +119,11 @@ Landing this migration also removed every OTP/session-related route's old direct
 ## 2026-10-07 — Migration 0030: otp_requests.consent_snapshot
 
 `0030_otp_request_consent_snapshot` — `otp_requests` gains `consent_snapshot` (JSONB on Postgres / JSON on SQLite, NULLABLE): a phone sign-up's T&C + Privacy agreement captured at the "Get OTP" click (same shape as `pending_identity_verifications.consent_snapshot`), copied onto the pending record at verify. Additive, no backfill. Downgrade drops the column. Verified on local Postgres 16 (2026-10-07): 0029→0030→0029→0030 clean, column type `jsonb`. Not yet run on staging. (Also 2026-10-07, no schema change: `users.deletion_scheduled_at` is now set 30 days out instead of 5.)
+
+## 2026-10-08 — Migration 0031: schemes.ter_scheme_code (TER link)
+
+`0031_scheme_ter_link` — `schemes` gains `ter_scheme_code` (SEBI's scheme code from AMFI's TER feed, `NSDLSchemeCode`), `ter_link_source` (`exact_name` / `manual`) and `ter_linked_at`, all NULLABLE, plus an index on `ter_scheme_code`. Set once per scheme by the TER job by exact cleaned name; every month joins by code. Additive, no backfill. Verified on local Postgres 16 (2026-10-08): 0030↔0031 round trip clean. Not yet run on staging. The deploy also clears `scheme_ter` once (the 7 Oct fuzzy TERs).
+
+## 2026-10-08 — Migration 0032: transactions.stamp_duty
+
+`0032_transaction_stamp_duty` — `transactions` gains `stamp_duty NUMERIC(14,2)` NULLABLE: the stamp duty charged on a purchase, SIP, switch-in or dividend reinvestment (0.005% from 1 Jul 2020), NULL for other rows and for rows imported before 0032 (no backfill; staging is wiped). On Postgres a plain `ALTER TABLE` on the partitioned parent reaches every partition; SQLite uses batch mode. Verified on local Postgres 16 (2026-10-08): 0030→0032→0030→0032 clean, the column on the parent and all 8 partitions, 43 Postgres/migration tests pass. Not yet run on staging.

@@ -1,4 +1,4 @@
-# Session state — 2026-10-06
+# Session state — 2026-10-08
 
 Working notes for picking this project back up cold. Not a planning doc — see
 `Docs/superpowers/plans/` for those. This file tracks *where things stand*,
@@ -11,6 +11,35 @@ Earlier "Latest" sections (2026-09-30 staging QA fixes, 2026-09-24 PAN-at-upload
 
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
+
+## Latest (2026-10-08): Analytics speed fix + stamp duty — built, gated and reviewed (uncommitted, not deployed)
+
+Plan `Docs/superpowers/plans/2026-10-07-analytics-speed-and-stamp-duty.md` is complete up to the deploy. Round-by-round record: `Docs/orchestration/analytics-speed-stamp-duty-handoff.md`. Decisions: `decisions.md` "2026-10-07/08". Deploy: **`Docs/orchestration/2026-10-08-staging-deploy-guide-analytics-stamp-duty.md`**.
+
+- **Built:**
+  - Analytics never refreshes TER.
+  - TER is linked by SEBI scheme code, exact names only (migration **0031**).
+  - The `ter-daily` job runs at 06:20 IST.
+  - The NAV job warms category peers.
+  - The stuck-run limit is 15 minutes.
+  - NSE history counts as fresh within 4 days.
+  - Stamp duty is stored (migration **0032**) and counted in cost and cash flows.
+- **Verified locally:**
+  - 592 affected backend tests pass.
+  - The Postgres 0030↔0032 round trip and 43 Postgres/migration tests pass.
+  - The synthetic gate is 88/88.
+  - Real files pass, except the known empty CP219252880. "CAS 10 Yr" Total Invested equals the CAS within ₹0.02.
+  - A fresh final review approved, with its fixes made.
+- **Analytics time:** 47 s–3.3 min locally on the largest test file, depending on mfapi.in that day. Staging is estimated at 1–6 minutes (typical household 1–2), not yet measured. Before: 30–60+ minutes.
+- **Next:**
+  1. The user commits.
+  2. The user sends the regenerated synthetic PDFs to the manager.
+  3. Staging deploy with the guide: wipe, 0031+0032, Terraform `ter-monthly`→`ter-daily`, clear TER, rebuild it in two runs, then re-test A1, A2, C2, C6 and D2 and time Analytics.
+- **Deferred by the user** (`DEFERRED_FEATURES.md`):
+  - limit and retry the morning job's mfapi downloads (the remaining Analytics speed fix);
+  - data saved before 0032 (staging is wiped).
+- **Found and logged:** for funds re-coded after a merger, a genuine pre-merger opening cost can be rejected by the plausibility check.
+- **Still open, unchanged:** the empty-statement dead end (CP219252880), "Other" in Portfolio Allocation, no real KFintech statement, and removing the Import Review screen after staging (awaiting the user's confirmation).
 
 ## Latest (2026-10-06): CAS import fixes — Phases 1–6 + Phase 7 prep built, local gate passed; review screen still in (uncommitted, not deployed)
 

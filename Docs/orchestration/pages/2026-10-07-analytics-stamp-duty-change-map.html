@@ -1,0 +1,695 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Analytics and Stamp Duty Change Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;600;700&family=Manrope:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one 1080px column of sections, each a heading, then before/after diagrams side by side (stacking on phones), then the file-level tables. Same visual family as the earlier Unifolio change maps. */
+:root {
+  --bg: #FCFCFC; --surface: #FFFFFF; --ink: #111111; --muted: #5C5C5C; --border: #E5E5E5;
+  --accent: #22C55E; --accent-ink: #15803D;
+  --before: #B45309; --before-bg: #FEF3C7;
+  --after: #15803D; --after-bg: #DCFCE7;
+  --same: #475569; --same-bg: #F1F5F9;
+  --warn: #B91C1C; --warn-bg: #FEE2E2;
+  --new: #4338CA; --new-bg: #E0E7FF;
+  --code-bg: #F4F6F5; --diagram-bg: #FFFFFF;
+  --f-display: "DM Sans", system-ui, sans-serif;
+  --f-body: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  color-scheme: dark;
+  --bg: #0F0F0F; --surface: #1A1A1A; --ink: #F5F5F5; --muted: #A3A3A3; --border: #2A2A2A;
+  --accent: #22C55E; --accent-ink: #4ADE80;
+  --before: #FCD34D; --before-bg: #3A2A0A; --after: #86EFAC; --after-bg: #0F2E1A;
+  --same: #CBD5E1; --same-bg: #1E232B; --warn: #FCA5A5; --warn-bg: #3B1212; --new: #C7D2FE; --new-bg: #22254A;
+  --code-bg: #202322; --diagram-bg: #F7F7F5; } }
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0F0F0F; --surface: #1A1A1A; --ink: #F5F5F5; --muted: #A3A3A3; --border: #2A2A2A;
+  --accent: #22C55E; --accent-ink: #4ADE80;
+  --before: #FCD34D; --before-bg: #3A2A0A; --after: #86EFAC; --after-bg: #0F2E1A;
+  --same: #CBD5E1; --same-bg: #1E232B; --warn: #FCA5A5; --warn-bg: #3B1212; --new: #C7D2FE; --new-bg: #22254A;
+  --code-bg: #202322; --diagram-bg: #F7F7F5; }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 400 15px/1.6 var(--f-body); padding-inline: 20px; padding-block: 40px 72px; margin: 0; }
+.wrap { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 56px; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(28px, 4.2vw, 40px); font-weight: 700; line-height: 1.12; }
+h2 { font-size: 22px; font-weight: 700; line-height: 1.3; }
+h3 { font-size: 16px; font-weight: 600; }
+p { margin: 0; max-width: 72ch; }
+ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 76ch; }
+code { font-family: var(--f-mono); font-size: 0.86em; background: var(--code-bg); padding: 1px 6px; border-radius: 4px; overflow-wrap: anywhere; }
+.eyebrow { font: 600 12px/1 var(--f-body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent-ink); }
+header { display: flex; flex-direction: column; gap: 14px; }
+header .lede { font-size: 17px; color: var(--muted); }
+.meta { display: flex; flex-wrap: wrap; gap: 8px; font-size: 13px; color: var(--muted); }
+.meta span { border: 1px solid var(--border); border-radius: 6px; padding: 2px 8px; background: var(--surface); }
+nav { display: flex; flex-wrap: wrap; gap: 8px; }
+nav a { color: var(--ink); text-decoration: none; font-size: 13px; font-weight: 500; border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; background: var(--surface); }
+nav a:hover { border-color: var(--accent); }
+a { color: var(--accent-ink); }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+section { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 16px; }
+.section-head { display: flex; flex-direction: column; gap: 6px; }
+.section-head p { color: var(--muted); }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px 18px; }
+.fact { border-left: 3px solid var(--accent); padding: 4px 0 4px 14px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.fact strong { font-family: var(--f-display); font-weight: 600; font-size: 15px; }
+.fact span { color: var(--muted); font-size: 14px; }
+.flags { display: flex; flex-direction: column; gap: 10px; }
+.flag { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+.flag .tag { grid-row: span 2; align-self: start; font: 600 11px/1 var(--f-body); letter-spacing: .06em; text-transform: uppercase; padding: 5px 8px; border-radius: 6px; background: var(--before-bg); color: var(--before); white-space: nowrap; }
+.flag .tag.red { background: var(--warn-bg); color: var(--warn); }
+.flag .tag.ok { background: var(--after-bg); color: var(--after); }
+.flag .tag.new { background: var(--new-bg); color: var(--new); }
+.flag b { font-family: var(--f-display); font-weight: 600; }
+.flag p { color: var(--muted); font-size: 14px; }
+.pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 18px; }
+.panel { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.panel .label { font: 600 12px/1 var(--f-body); letter-spacing: .08em; text-transform: uppercase; }
+.panel .label.b { color: var(--before); } .panel .label.a { color: var(--after); }
+.diagram { background: var(--diagram-bg); border: 1px solid var(--border); border-radius: 14px; padding: 18px; overflow-x: auto; }
+.diagram pre.mermaid { margin: 0; background: transparent; display: flex; justify-content: center; min-width: min-content; color: #111; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; border: 1px solid; }
+.lg-slow { background: #ffd6d6; border-color: #c0392b; }
+.lg-net { background: #fff4d6; border-color: #b8860b; }
+.lg-new { background: #e6f7ea; border-color: #2e8b57; }
+.lg-gone { background: #f1f5f9; border-color: #94a3b8; }
+.callout { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; font-size: 14px; color: var(--muted); max-width: none; }
+.callout b { color: var(--ink); }
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+td { min-width: 110px; }
+td.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 0; }
+tr:last-child td { border-bottom: 0; }
+th { font: 600 12px/1.3 var(--f-body); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); background: var(--bg); white-space: nowrap; }
+.pill { display: inline-block; font-weight: 600; font-size: 12px; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+.p-new { color: var(--new); background: var(--new-bg); }
+.p-chg { color: var(--before); background: var(--before-bg); }
+.p-same { color: var(--same); background: var(--same-bg); }
+.p-gone { color: var(--warn); background: var(--warn-bg); }
+.p-ok { color: var(--after); background: var(--after-bg); }
+.fix { font: 600 11px/1 var(--f-mono); padding: 3px 6px; border-radius: 4px; background: var(--code-bg); color: var(--ink); white-space: nowrap; }
+footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--border); padding-top: 18px; display: flex; flex-direction: column; gap: 6px; }
+@media (max-width: 600px) { body { padding-inline: 16px; } .pair { grid-template-columns: 1fr; } .flag { grid-template-columns: 1fr; } .flag .tag { grid-row: auto; justify-self: start; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Unifolio · Analytics speed + stamp duty · Change map for review</span>
+    <h1>What changes, where, and how the data moves</h1>
+    <p class="lede">Every file, table and job this fix touches, with the flow and the database before and after. Analytics becomes read-only and finishes in seconds instead of 30+ minutes. Total Invested starts including stamp duty, so it equals the CAS. Scope is as decided on 7 October: fixes A, B, C, D and F plus stamp duty; E is documented but not built.</p>
+    <div class="meta"><span>Drafted 7 Oct 2026</span><span>Status: design only, no code</span><span>Adds migrations 0031 (TER link) and 0032 (stamp duty)</span><span>One Terraform change</span><span>No frontend change</span></div>
+    <nav aria-label="Sections">
+      <a href="#summary">In short</a>
+      <a href="#first">Read first</a>
+      <a href="#run">Analytics run</a>
+      <a href="#seq">Step by step</a>
+      <a href="#ter">TER job inside</a>
+      <a href="#jobs">Morning jobs</a>
+      <a href="#stamp">Stamp duty flow</a>
+      <a href="#er">ER diagram</a>
+      <a href="#writes">Data written</a>
+      <a href="#backend">Backend files</a>
+      <a href="#frontend">Frontend</a>
+      <a href="#infra">Infra</a>
+      <a href="#tests">Tests</a>
+      <a href="#deploy">Deploy</a>
+      <a href="#inputs">Inputs check</a>
+      <a href="#timing">Job timing</a>
+      <a href="#open">Decisions</a>
+    </nav>
+  </header>
+
+  <section id="summary">
+    <div class="section-head"><h2>The change in six lines</h2></div>
+    <div class="facts">
+      <div class="fact"><strong>No TER refresh in Analytics</strong><span>Analytics never runs the TER refresh, and peer NAVs are prepared by the morning job. It still makes its small existing calls (benchmark index, AMFI list, held funds’ NAV), kept on purpose for now (decided 7 Oct).</span></div>
+      <div class="fact"><strong>TER is linked, never guessed</strong><span>Each fund is linked once to SEBI’s scheme code in AMFI’s TER feed by an exact name, and every month joins by that code. No fuzzy matching, which on 8 Oct gave ~1,040 funds another fund’s TER. The job takes seconds.</span></div>
+      <div class="fact"><strong>TER refreshes daily</strong><span>06:20 IST, after the fund-list job. The monthly run on the 1st was getting the previous month’s figures.</span></div>
+      <div class="fact"><strong>Peers are fetched by the NAV job</strong><span>The 06:00 NAV job also refreshes the other funds in every held fund’s category, so ranking and scoring never wait on mfapi.in.</span></div>
+      <div class="fact"><strong>Stamp duty is kept</strong><span>The parser stops discarding the stamp-duty row and stores it on its purchase. One new column, <code>transactions.stamp_duty</code>.</span></div>
+      <div class="fact"><strong>Nothing changes on screen</strong><span>Same pages, same layouts. Analytics loads quicker, and Total Invested, gains and XIRR use the full amount paid.</span></div>
+    </div>
+  </section>
+
+  <section id="first">
+    <div class="section-head"><h2>Read first</h2><p>Things this map takes a position on, including two small additions found while mapping the files.</p></div>
+    <div class="flags">
+      <div class="flag"><span class="tag ok">Decided 7 Oct: deferred</span><b>Analytics makes two more network calls than the speed page listed</b><p>The benchmark section refreshes NSE index history itself (<code>ensure_index_history_fresh</code> in <code>benchmark.py</code>, about 5 s locally), although the 06:00 <code>benchmark-daily</code> job already does that. Ranking and scoring load each category’s peer list by downloading AMFI’s 1.6 MB fund list (<code>get_category_universe</code>), although the 06:15 fund-list job already saves the same list in <code>schemes</code>. <b>Decision: leave the AMFI list as it is; fix the NSE call’s freshness check now (8 Oct).</b> Measured 8 Oct: the AMFI download is 0.3 s per run, but NSE took 127 s over 32 downloads. Changing them safely needs four coordinated changes (see <a href="#inputs">Inputs check</a>), kept for later.</p></div>
+      <div class="flag"><span class="tag red">Found 8 Oct</span><b>Fuzzy TER matching gave ~1,040 funds another fund’s TER, live on staging today</b><p>Run 1’s comparison on real data showed every fuzzy match was wrong. 923 funds were matched to a <b>different fund house</b> (Kotak Business Cycle → Tata Business Cycle, HDFC Ultra Short Term → HSBC), because AMFI fills each month gradually and on 8 Oct HDFC, Kotak and Nippon hadn’t filed October (11,647 rows against September’s 62,393). About 116 more matched the wrong year or series within one house (Bandhan Gilt April 2026 → April 2028 at 0.81; SBI FMP Series 50 → 51). Exact names cover 7,041 funds correctly. <b>Decision (8 Oct):</b> link each fund to SEBI’s scheme code (<code>NSDLSchemeCode</code>, in every TER row, one per fund) by an exact name ignoring case, spaces and punctuation; store it on <code>schemes</code>; join by code; never fuzzy. An unlinked fund gets no TER and appears under the existing “TER Exclusions” list. The deploy clears the wrong TERs saved on 7 Oct.</p></div>
+      <div class="flag"><span class="tag ok">No frontend change</span><b>E and the “still calculating” message were dropped</b><p>With those out, nothing in <code>frontend/</code> changes. The TER card already shows coverage as “₹x / ₹y”, which handles funds with no TER.</p></div>
+      <div class="flag"><span class="tag">Saved sessions</span><b>Reviews open during the deploy keep working</b><p>Upload previews are saved encrypted between upload and Continue (migration 0029). The saver handles any field generically, and the new <code>stamp_duty</code> field defaults to empty, so a preview saved before the deploy still opens after it. It just has no stamp duty, like any old import.</p></div>
+      <div class="flag"><span class="tag red">Staging wipe</span><b>Data uploaded before the deploy has no stamp duty</b><p>The parser threw those rows away, and re-uploading the same statement is refused as already imported. So staging is wiped after the deploy, user data only (<code>clean-staging-db.sh</code>), and statements are uploaded again. TERs, the fund list and NAV history stay.</p></div>
+    </div>
+  </section>
+
+  <section id="run">
+    <div class="section-head"><h2>One Analytics run: before and after</h2><p>What the background task does after an import, for each view (family, then each person) and each of the 7 sections.</p></div>
+    <div class="legend"><span><i class="lg-slow"></i>Slow step (minutes)</span><span><i class="lg-net"></i>Network call during the run</span><span><i class="lg-new"></i>New or changed</span><span><i class="lg-gone"></i>Removed</span></div>
+    <div class="pair">
+      <div class="panel"><span class="label b">Before (today)</span>
+        <div class="diagram"><pre class="mermaid">flowchart TD
+  S["Import confirmed&lt;br/&gt;AWS starts the Analytics task"] --> V["For each view:&lt;br/&gt;family, then each person"]
+  V --> A1["Allocation"]
+  A1 --> T1{"Any fund or peer&lt;br/&gt;without an October TER?"}
+  T1 -->|"Yes, always:&lt;br/&gt;~5,695 schemes never get one"| R1["FULL TER REFRESH&lt;br/&gt;8,665 schemes × 1,813 names&lt;br/&gt;205 s local · 30+ min AWS"]
+  R1 --> T2["Direct vs Regular&lt;br/&gt;same check, refresh again&lt;br/&gt;if 15 min have passed"]
+  T2 --> B1["Benchmark&lt;br/&gt;downloads NSE index history"]
+  B1 --> C1["Category ranking&lt;br/&gt;downloads AMFI list +&lt;br/&gt;peer NAVs from mfapi.in (142 s)"]
+  C1 --> Q1["Quality score&lt;br/&gt;TER check per category,&lt;br/&gt;refresh again if 15 min passed"]
+  Q1 --> V
+  Q1 --> D1["Page shows results&lt;br/&gt;after 30 min to hours"]
+  classDef slow fill:#ffd6d6,stroke:#c0392b,color:#000
+  classDef net fill:#fff4d6,stroke:#b8860b,color:#000
+  class R1,T2,Q1 slow
+  class B1,C1 net</pre></div>
+      </div>
+      <div class="panel"><span class="label a">After</span>
+        <div class="diagram"><pre class="mermaid">flowchart TD
+  S["Import confirmed&lt;br/&gt;AWS starts the Analytics task"] --> V["For each view:&lt;br/&gt;family, then each person&lt;br/&gt;(order unchanged, E not built)"]
+  V --> A1["Allocation"]
+  A1 --> T1["TER and Direct vs Regular&lt;br/&gt;read saved TER rows only"]
+  T1 --> B1["Benchmark&lt;br/&gt;NSE only when saved history&lt;br/&gt;is over 4 days old (NEW)"]
+  B1 --> C1["Category ranking&lt;br/&gt;peer NAVs already fresh from&lt;br/&gt;the 06:00 job; downloads only&lt;br/&gt;a never-seen category"]
+  C1 --> Q1["Quality score&lt;br/&gt;saved TERs + AAUM"]
+  Q1 --> V
+  Q1 --> D1["Page shows results&lt;br/&gt;~15–25 s local · under 1 min AWS"]
+  G["Stuck-run timeout&lt;br/&gt;2 h → 15 min"] -.-> S
+  classDef new fill:#e6f7ea,stroke:#2e8b57,color:#000
+  class T1,B1,C1,Q1,D1,G new</pre></div>
+      </div>
+    </div>
+    <p class="callout"><b>Why a run can take hours today:</b> the “refresh at most once per 15 minutes” guard counts from when a refresh <i>starts</i>. On AWS a refresh lasts 30+ minutes, so by the time the TER section finishes, the next section that checks TER is allowed to refresh again. After the change there is no refresh to repeat.</p>
+  </section>
+
+  <section id="seq">
+    <div class="section-head"><h2>Step by step: who talks to whom</h2><p>Opening Analytics after an import, before and after. External services are AMFI (TER feed, fund list), mfapi.in (NAV history) and NSE (index history).</p></div>
+    <div class="pair">
+      <div class="panel"><span class="label b">Before</span>
+        <div class="diagram"><pre class="mermaid">sequenceDiagram
+  autonumber
+  participant P as Analytics page
+  participant API as Backend
+  participant T as Analytics task (AWS)
+  participant DB as Database
+  participant X as AMFI · mfapi.in · NSE
+  P->>API: GET /analytics/{view}
+  API->>DB: no results yet, claim the run
+  API->>T: start task
+  loop every 3 s
+    P->>API: still computing?
+  end
+  T->>X: download the TER feed
+  T->>DB: ~17,000 single-row TER reads and writes
+  T->>X: NSE index history
+  T->>X: AMFI fund list + peer NAV histories
+  T->>DB: save the 7 sections
+  Note over T,DB: TER refresh may repeat 2–6 times
+  P->>API: still computing?
+  API-->>P: done, 30 min to hours later</pre></div>
+      </div>
+      <div class="panel"><span class="label a">After</span>
+        <div class="diagram"><pre class="mermaid">sequenceDiagram
+  autonumber
+  participant P as Analytics page
+  participant API as Backend
+  participant T as Analytics task (AWS)
+  participant DB as Database
+  participant X as AMFI · mfapi.in · NSE
+  P->>API: GET /analytics/{view}
+  API->>DB: no results yet, claim the run
+  API->>T: start task
+  loop every 3 s
+    P->>API: still computing?
+  end
+  T->>DB: read holdings, saved TERs, peer NAVs, AAUM
+  T->>X: small calls kept as today:&lt;br/&gt;held funds NAV, AMFI list&lt;br/&gt;(NSE only if history is stale)
+  T->>DB: save the 7 sections
+  P->>API: still computing?
+  API-->>P: done, under a minute later
+  Note over T,X: no TER refresh, no bulk peer downloads</pre></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="ter">
+    <div class="section-head"><h2>Inside the TER job: before and after</h2><p>Same job and script, same schedule slot each morning. Only the matching inside <code>amfi_ter_client.refresh_ter_data</code> changes.</p></div>
+    <div class="pair">
+      <div class="panel"><span class="label b">Before</span>
+        <div class="diagram"><pre class="mermaid">flowchart TD
+  F["Download AMFI TER feed&lt;br/&gt;1,813 schemes, this month"] --> L["Load 8,665 Direct/Regular&lt;br/&gt;schemes from the master"]
+  L --> E["For each scheme:&lt;br/&gt;clean all 1,813 feed names again,&lt;br/&gt;look for an exact name"]
+  E -->|"not exactly one"| Z["Fuzzy-compare with all 1,813 names&lt;br/&gt;~52 ms each"]
+  E -->|found| W
+  Z --> W["Look up this scheme's TER row,&lt;br/&gt;insert or update it&lt;br/&gt;(one query each)"]
+  W --> E
+  W --> D["Log: success=True&lt;br/&gt;205 s local · 30+ min AWS"]
+  classDef slow fill:#ffd6d6,stroke:#c0392b,color:#000
+  class E,Z,W slow</pre></div>
+      </div>
+      <div class="panel"><span class="label a">After</span>
+        <div class="diagram"><pre class="mermaid">flowchart TD
+  F["Download AMFI TER feed&lt;br/&gt;1,813 rows, each with a SEBI scheme code"] --> I["Index once:&lt;br/&gt;code → row,&lt;br/&gt;cleaned name → codes"]
+  I --> L["Load 8,665 Direct/Regular schemes&lt;br/&gt;+ this month's saved TER rows&lt;br/&gt;(two queries)"]
+  L --> K{"Scheme already&lt;br/&gt;linked to a code?"}
+  K -->|yes| J["Join by code&lt;br/&gt;(survives renames)"]
+  K -->|no| E{"Exactly one feed name equals&lt;br/&gt;its base name, ignoring case,&lt;br/&gt;spaces, punctuation?"}
+  E -->|yes| N["Link it: ter_scheme_code,&lt;br/&gt;source exact_name"]
+  N --> J
+  E -->|"no (house not filed yet,&lt;br/&gt;or a different fund)"| X["No TER this month:&lt;br/&gt;month row cleared to NULL"]
+  J --> W["TER from the plan's column&lt;br/&gt;(Direct or Regular)"]
+  W --> B["Write all changes in one batch"]
+  X --> B
+  B --> D["Log: month, schemes, matched,&lt;br/&gt;no match, new links, seconds"]
+  classDef new fill:#e6f7ea,stroke:#2e8b57,color:#000
+  classDef no fill:#f1f5f9,stroke:#94a3b8,color:#000
+  class I,L,K,J,E,N,W,B,D new
+  class X no</pre></div>
+      </div>
+    </div>
+    <p class="callout"><b>Checked on real data (8 Oct):</b> of 8,661 schemes, 7,035 match exactly and 6 more once spaces and punctuation are ignored (“Navi NiftyIT” = “Navi Nifty IT”). The fuzzy step only ever added wrong matches. The build checks again on live data that no linked fund points at another fund house.</p>
+  </section>
+
+  <section id="jobs">
+    <div class="section-head"><h2>The morning jobs: before and after</h2><p>Times are IST. Night-stop, account deletion, CAS file expiry and the quarterly AAUM job are unchanged and left out here (the speed page lists all 15).</p></div>
+    <div class="pair">
+      <div class="panel"><span class="label b">Before</span>
+        <div class="diagram"><pre class="mermaid">flowchart LR
+  N["06:00 nav-daily&lt;br/&gt;held funds only"] --> M["06:15 scheme-master-daily&lt;br/&gt;14,356 schemes"]
+  B["06:00 benchmark-daily"] --> M
+  M --> A["06:30 analytics-recompute-daily&lt;br/&gt;every household, one by one,&lt;br/&gt;each can trigger the TER refresh"]
+  T["06:00 on the 1st only&lt;br/&gt;ter-monthly, 30+ min,&lt;br/&gt;often gets last month's TERs"]
+  classDef slow fill:#ffd6d6,stroke:#c0392b,color:#000
+  class A,T slow</pre></div>
+      </div>
+      <div class="panel"><span class="label a">After</span>
+        <div class="diagram"><pre class="mermaid">flowchart LR
+  N["06:00 nav-daily&lt;br/&gt;held funds + their category peers"] --> M["06:15 scheme-master-daily&lt;br/&gt;14,356 schemes"]
+  B["06:00 benchmark-daily"] --> M
+  M --> T["06:20 TER, daily&lt;br/&gt;seconds"]
+  T --> A["06:30 analytics-recompute-daily&lt;br/&gt;every household, seconds each,&lt;br/&gt;reads only"]
+  classDef new fill:#e6f7ea,stroke:#2e8b57,color:#000
+  class N,T,A new</pre></div>
+      </div>
+    </div>
+    <p class="callout"><b>If the 06:00 NAV job is still running at 06:30</b> (the peers make it a few minutes longer), Analytics uses the previous day’s peer NAVs. That’s harmless for 3- and 5-year returns, and the next run catches up.</p>
+  </section>
+
+  <section id="stamp">
+    <div class="section-head"><h2>Stamp duty: from the CAS to Total Invested</h2><p>Example: a ₹5,000 SIP on 5 Oct 2025. The CAS prints a purchase of ₹4,999.75 and a separate “*** Stamp Duty ***” row of ₹0.25 (0.005%).</p></div>
+    <div class="pair">
+      <div class="panel"><span class="label b">Before</span>
+        <div class="diagram"><pre class="mermaid">flowchart TD
+  C["CAS rows:&lt;br/&gt;Purchase ₹4,999.75 · 103.256 units&lt;br/&gt;Stamp Duty ₹0.25 · no units"] --> P["Parser"]
+  P -->|purchase| K["Kept"]
+  P -->|"stamp duty: no units"| X["DISCARDED&lt;br/&gt;(silent tax row)"]
+  K --> DB[("transactions&lt;br/&gt;amount 4,999.75")]
+  DB --> L["Lot cost = units × NAV&lt;br/&gt;≈ ₹4,999.75"]
+  L --> O["Invested ₹4,999.75&lt;br/&gt;CAS says ₹5,000.00"]
+  classDef gone fill:#ffd6d6,stroke:#c0392b,color:#000
+  class X,O gone</pre></div>
+      </div>
+      <div class="panel"><span class="label a">After</span>
+        <div class="diagram"><pre class="mermaid">flowchart TD
+  C["CAS rows:&lt;br/&gt;Purchase ₹4,999.75 · 103.256 units&lt;br/&gt;Stamp Duty ₹0.25 · no units"] --> P["Parser: attach each stamp duty&lt;br/&gt;to its purchase (same fund, same date,&lt;br/&gt;several that day: the one it is 0.005% of)"]
+  P --> DB[("transactions&lt;br/&gt;amount 4,999.75&lt;br/&gt;stamp_duty 0.25 (NEW)")]
+  DB --> L["Lot cost = amount + stamp duty&lt;br/&gt;= ₹5,000.00"]
+  L --> O["Invested, avg NAV, gains:&lt;br/&gt;₹5,000.00 = CAS"]
+  DB --> F["Cash flows (XIRR, benchmark,&lt;br/&gt;history invested line, cash-flow list):&lt;br/&gt;paid out ₹5,000.00"]
+  classDef new fill:#e6f7ea,stroke:#2e8b57,color:#000
+  class P,DB,L,O,F new</pre></div>
+      </div>
+    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Number on screen</th><th>Before</th><th>After</th><th>Where it comes from</th></tr></thead>
+      <tbody>
+        <tr><td>Total Invested (“CAS 10 Yr”)</td><td class="num">₹37,22,451</td><td class="num">₹37,22,637</td><td>Sum of lot costs, <code>dashboard/holdings.py</code></td></tr>
+        <tr><td>Unrealised gain</td><td>value − invested</td><td>₹186 lower</td><td>Same</td></tr>
+        <tr><td>Average NAV per fund</td><td>net price</td><td>slightly higher (cost per unit incl. stamp duty)</td><td>Same</td></tr>
+        <tr><td>Realised gain on a sale</td><td>cost excl. stamp duty</td><td>a sold unit carries its share of the stamp duty</td><td>FIFO lots, same file</td></tr>
+        <tr><td>XIRR (dashboard and Analytics)</td><td>outflow ₹4,999.75</td><td>outflow ₹5,000.00 (moves a few hundredths of a %)</td><td><code>dashboard/xirr.py</code>, <code>analytics/benchmark.py</code></td></tr>
+        <tr><td>History chart, invested line</td><td>excl. stamp duty</td><td>incl. stamp duty</td><td><code>dashboard/snapshots.py</code></td></tr>
+        <tr><td>Opening balance (statement starts mid-history)</td><td colspan="2">Same total as the CAS. The CAS cost includes stamp duty, so the in-period purchases are now costed with their stamp duty before the opening lot takes the remainder. Nothing is counted twice.</td><td><code>import_/opening_balance.py</code></td></tr>
+        <tr><td>SIP amount shown</td><td colspan="2">Unchanged. It stays the amount the CAS prints for the purchase, and the 7 Oct stamp-duty tolerance still groups instalments.</td><td><code>dashboard/sip.py</code> (not touched)</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="er">
+    <div class="section-head"><h2>ER diagram: before and after</h2><p>Only the tables this change reads or writes. Four columns are added: three on <code>schemes</code> (migration <code>0031</code>) and one on <code>transactions</code> (migration <code>0032</code>). Every other table keeps its shape; some get more rows or are written at a different time, listed under <a href="#writes">Data written</a>.</p></div>
+    <div class="pair">
+      <div class="panel"><span class="label b">Before (migration 0030)</span>
+        <div class="diagram"><pre class="mermaid">erDiagram
+  users ||--o{ household_members : has
+  household_members ||--o{ folios : owns
+  schemes ||--o{ folios : "held in"
+  folios ||--o{ transactions : has
+  imports ||--o{ transactions : created
+  schemes ||--o{ scheme_ter : "TER per month"
+  schemes ||--o{ nav_history : "NAV per day"
+  schemes ||--o{ scheme_aaum : "size per quarter"
+  users ||--o{ analytics_sections : "results"
+  users ||--|| analytics_recompute_status : "run flag"
+  transactions {
+    uuid id PK
+    uuid folio_id FK
+    uuid import_id FK
+    enum type
+    date date
+    numeric amount "net of stamp duty"
+    numeric units
+    numeric nav
+  }
+  schemes {
+    uuid id PK
+    string amfi_code
+    string base_name
+    enum plan_type
+    string sebi_category
+  }
+  scheme_ter {
+    uuid scheme_id PK
+    date reference_period PK
+    numeric ter_value "NULL = checked, no match"
+  }
+  nav_history {
+    uuid scheme_id PK
+    date date PK
+    numeric nav "held funds + peers fetched mid-run"
+  }
+  analytics_recompute_status {
+    uuid user_id PK
+    timestamptz started_at "stale after 2 h"
+    int generation
+  }</pre></div>
+      </div>
+      <div class="panel"><span class="label a">After (migrations 0031, 0032)</span>
+        <div class="diagram"><pre class="mermaid">erDiagram
+  users ||--o{ household_members : has
+  household_members ||--o{ folios : owns
+  schemes ||--o{ folios : "held in"
+  folios ||--o{ transactions : has
+  imports ||--o{ transactions : created
+  schemes ||--o{ scheme_ter : "TER per month"
+  schemes ||--o{ nav_history : "NAV per day"
+  schemes ||--o{ scheme_aaum : "size per quarter"
+  users ||--o{ analytics_sections : "results"
+  users ||--|| analytics_recompute_status : "run flag"
+  transactions {
+    uuid id PK
+    uuid folio_id FK
+    uuid import_id FK
+    enum type
+    date date
+    numeric amount "unchanged, net"
+    numeric units
+    numeric nav
+    numeric stamp_duty "NEW 0032, nullable, purchases from Jul 2020"
+  }
+  schemes {
+    uuid id PK
+    string amfi_code
+    string base_name "used once to link the TER code"
+    enum plan_type
+    string sebi_category
+    string ter_scheme_code "NEW 0031, SEBI code in AMFI TER feed"
+    string ter_link_source "NEW 0031, exact_name or manual"
+    timestamptz ter_linked_at "NEW 0031"
+  }
+  scheme_ter {
+    uuid scheme_id PK
+    date reference_period PK
+    numeric ter_value "written daily, joined by code, NULL if unlinked"
+  }
+  nav_history {
+    uuid scheme_id PK
+    date date PK
+    numeric nav "held funds + peers, written by the 06:00 job"
+  }
+  analytics_recompute_status {
+    uuid user_id PK
+    timestamptz started_at "stale after 15 min"
+    int generation
+  }</pre></div>
+      </div>
+    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Migrations</th><th>Detail</th></tr></thead>
+      <tbody>
+        <tr><td><code>0031</code>: <code>schemes.ter_scheme_code</code>, <code>ter_link_source</code>, <code>ter_linked_at</code></td><td>Three nullable columns plus an index on the code. Filled by the TER job (<code>exact_name</code>) or by hand later (<code>manual</code>, never replaced by the job). No backfill: the first run after the deploy links about 7,000 funds.</td></tr>
+        <tr><td><code>0032</code>: <code>transactions.stamp_duty</code></td><td><code>Numeric(14, 2)</code>, nullable, no default. Set on purchase rows (lump sum, SIP, switch-in) from 1 July 2020 when the CAS prints a stamp duty. NULL everywhere else, including every row imported before this deploy.</td></tr>
+        <tr><td>Postgres (staging)</td><td><code>transactions</code> is partitioned by date. <code>ALTER TABLE transactions ADD COLUMN</code> on the parent adds it to every partition. A nullable column with no default needs no table rewrite, so it is instant.</td></tr>
+        <tr><td>SQLite (local)</td><td>Plain <code>ADD COLUMN</code> in batch mode, like 0027–0029.</td></tr>
+        <tr><td>Indexes, enums, backfill</td><td>None. Old rows stay NULL; staging is wiped and re-uploaded instead.</td></tr>
+        <tr><td>Downgrade</td><td>Each drops its columns. Tested 0030 ↔ 0032 on local Postgres, as for every migration.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="writes">
+    <div class="section-head"><h2>What each table gets written, before and after</h2></div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Table</th><th>Schema</th><th>Before</th><th>After</th></tr></thead>
+      <tbody>
+        <tr><td><code>transactions</code></td><td><span class="pill p-new">+1 column</span></td><td>Purchase rows store the net amount. Stamp duty rows are dropped by the parser.</td><td>Purchase rows also store <code>stamp_duty</code>. When a later, overlapping statement matches an existing purchase that has no stamp duty yet, the match fills it in.</td></tr>
+        <tr><td><code>scheme_ter</code></td><td><span class="pill p-same">same</span></td><td>Written by the monthly job, and again by any Analytics run that finds something missing, one row at a time.</td><td>Written only by the daily TER job at 06:20, in one batch. Analytics never writes it.</td></tr>
+        <tr><td><code>nav_history</code></td><td><span class="pill p-same">same</span></td><td>Held funds by the 06:00 job. Peer funds by Analytics runs, mid-run.</td><td>Held funds and their category peers by the 06:00 job. Analytics writes only for a category nobody held before, and held funds’ NAV as today.</td></tr>
+        <tr><td><code>benchmark_index_history</code></td><td><span class="pill p-same">same</span></td><td>By the 06:00 job, and topped up by Analytics runs.</td><td>The 06:00 job, plus an Analytics run only when the saved history is over 4 days old or older history is needed for the first time.</td></tr>
+        <tr><td><code>schemes</code></td><td><span class="pill p-same">same</span></td><td>By the 06:15 fund-list job, and peer rows created by Analytics from its own AMFI download.</td><td>Unchanged (deferred).</td></tr>
+        <tr><td><code>analytics_sections</code></td><td><span class="pill p-same">same</span></td><td>7 sections per view, after 30 min to hours.</td><td>Same 7 sections, after seconds.</td></tr>
+        <tr><td><code>analytics_recompute_status</code></td><td><span class="pill p-same">same</span></td><td>A run counts as stuck after 2 hours.</td><td>After 15 minutes (a code constant, not a column).</td></tr>
+        <tr><td><code>folios</code>, <code>imports</code>, <code>household_members</code>, <code>scheme_aaum</code>, <code>portfolio_snapshots</code></td><td><span class="pill p-same">same</span></td><td colspan="2">Untouched. Snapshots are rebuilt as today; their invested figure now includes stamp duty.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="backend">
+    <div class="section-head"><h2>Backend: every file and what changes in it</h2><p>Paths are under <code>backend/</code>. The tag shows which fix each change belongs to.</p></div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>File</th><th>Fix</th><th>What changes</th></tr></thead>
+      <tbody>
+        <tr><td><code>app/services/analytics/ter.py</code></td><td><span class="fix">A C</span></td><td>Remove the two refresh calls (weighted TER, Direct vs Regular), then the freshness machinery they used, now dead: <code>_ensure_ter_fresh</code>, <code>_missing_current_month_ter</code>, the 15-minute backoff, the per-loop locks. Sections read <code>scheme_ter</code> only.</td></tr>
+        <tr><td><code>app/services/analytics/scorer.py</code></td><td><span class="fix">A D</span></td><td>Remove the refresh call in <code>_category_ter_context</code>. Peer list from the database (below).</td></tr>
+        <tr><td><code>app/services/analytics/amfi_ter_client.py</code></td><td><span class="fix">B</span></td><td>Link each scheme once to its SEBI scheme code by an exact cleaned name (case, spaces, punctuation ignored); join every month by code; no fuzzy matching (removed: <code>_best_match</code>, the 0.55 threshold); an unlinked scheme’s month row is cleared to NULL. One query to load the month’s rows, one batch to write. Returns counts, including new links, for the log line (revised 8 Oct).</td></tr>
+        <tr><td><code>app/models/reference.py</code> + <code>alembic/versions/0031_scheme_ter_link.py</code></td><td><span class="fix">B</span> <span class="pill p-new">new</span></td><td><code>Scheme.ter_scheme_code</code>, <code>ter_link_source</code>, <code>ter_linked_at</code> (8 Oct).</td></tr>
+        <tr><td><code>scripts/jobs/refresh_ter_monthly.py</code></td><td><span class="fix">B</span></td><td>Log line with month, schemes, matched, no match and seconds (decided 7 Oct). Renamed to <code>refresh_ter_daily.py</code> (decided 7 Oct).</td></tr>
+        <tr><td><code>app/services/analytics/category_ranking.py</code></td><td><span class="pill p-same">no change</span></td><td><b>Unchanged</b> (decided 7 Oct). Its existing peer check stays as a safety net: after the morning job it finds everything fresh and downloads nothing, and for a category nobody held before it downloads those peers, as today.</td></tr>
+        <tr><td><code>app/services/analytics/nse_indices_client.py</code></td><td><span class="fix">5B</span></td><td>Saved index history counts as up to date if it ends within 4 days of today, and a start date is downloaded once per process. Measured 8 Oct: 32 NSE downloads, 127 s in one run, all because “covers today” is never true in the morning (decided 8 Oct).</td></tr>
+        <tr><td><code>app/services/analytics/scheme_universe.py</code></td><td><span class="pill p-same">no change</span></td><td><b>Unchanged</b> (decided 7 Oct: deferred).</td></tr>
+        <tr><td><code>app/services/analytics/benchmark.py</code></td><td><span class="fix">$</span></td><td>Cash flows use amount + stamp duty (<span class="fix">$</span> = stamp duty).</td></tr>
+        <tr><td><code>scripts/jobs/refresh_nav_daily.py</code></td><td><span class="fix">D</span></td><td>After the held funds, collect their SEBI categories and refresh every peer in them with the existing <code>warm_nav_history</code>, which already skips anything fetched in the last 3 days.</td></tr>
+        <tr><td><code>app/services/analytics/recompute.py</code></td><td><span class="fix">5</span></td><td><code>_STALE_RECOMPUTE_CEILING</code>: 2 hours → 15 minutes. The section order and the family-first loop stay as they are (E not built).</td></tr>
+        <tr><td><code>app/services/import_/parser.py</code></td><td><span class="fix">$</span></td><td><code>NormalizedTransaction</code> gains <code>stamp_duty: Decimal | None = None</code>. A stamp-duty row is attached to the purchase in the same fund on the same date (several that day: the purchase it is 0.005% of, within rounding) instead of being skipped. An orphan (no purchase found) is skipped as today, with no warning.</td></tr>
+        <tr><td><code>app/models/transaction.py</code></td><td><span class="fix">$</span></td><td><code>stamp_duty: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))</code>.</td></tr>
+        <tr><td><code>alembic/versions/0032_transaction_stamp_duty.py</code></td><td><span class="fix">$</span> <span class="pill p-new">new</span></td><td>Adds and drops the column (down_revision <code>0031</code>).</td></tr>
+        <tr><td><code>app/services/import_/confirm_people.py</code></td><td><span class="fix">$</span></td><td>Writes <code>stamp_duty</code> on new rows. A matched existing purchase with no stamp duty gets it filled in from the new statement.</td></tr>
+        <tr><td><code>app/services/dashboard/holdings.py</code></td><td><span class="fix">$</span></td><td>A purchase lot’s cost per unit = (amount + stamp duty) ÷ units. Invested, average NAV, unrealised and realised gain all follow from the lots.</td></tr>
+        <tr><td><code>app/services/dashboard/xirr.py</code></td><td><span class="fix">$</span></td><td>Purchase outflow = amount + stamp duty.</td></tr>
+        <tr><td><code>app/services/dashboard/snapshots.py</code></td><td><span class="fix">$</span></td><td>Month-end invested value includes stamp duty.</td></tr>
+        <tr><td><code>app/services/dashboard/cash_flow.py</code></td><td><span class="fix">$</span></td><td>Purchase entries show amount + stamp duty, so the cash-flow list matches XIRR.</td></tr>
+        <tr><td><code>app/services/lot_rules.py</code></td><td><span class="fix">$</span></td><td>New helper <code>cost_per_unit(units, nav, amount, stamp_duty)</code>: the NAV, or (amount + stamp duty) ÷ units when stamp duty was charged. Every lot replay uses it. <i>Found while planning.</i></td></tr>
+        <tr><td><code>app/services/import_/opening_balance.py</code></td><td><span class="fix">$</span></td><td>In-period lots use <code>cost_per_unit</code>. The opening lot is the CAS cost minus the in-period purchases’ cost. That cost must include their stamp duty, or a statement starting mid-history would count it twice (once in the opening lot, once in the purchase). <i>Found while planning.</i></td></tr>
+        <tr><td><code>app/services/import_/opening_restore.py</code></td><td><span class="fix">$</span></td><td>Carries <code>stamp_duty</code> from saved rows when it rebuilds an opening lot after a delete. <i>Found while planning.</i></td></tr>
+        <tr><td><code>app/services/import_/parser.py</code> (<code>_fifo_cost</code>)</td><td><span class="fix">$</span></td><td>The cost a merger or conversion carries over uses <code>cost_per_unit</code>, so it includes stamp duty too. <i>Found while planning.</i></td></tr>
+        <tr><td><code>Docs/CAS Files/synthetic/gen_scenarios.py</code> + harness</td><td><span class="fix">$</span> <span class="fix">F</span></td><td>The synthetic statements printed cost without stamp duty; real CAMS includes it. The generator now prints gross cost and all synthetic files are regenerated. The harness truth attaches stamp duty the same way, gates Total Invested = CAS cost (±₹1) and checks Analytics timing with no TER refresh.</td></tr>
+        <tr><td><code>app/services/import_/preview_store.py</code>, <code>dashboard/sip.py</code></td><td><span class="pill p-same">no change</span></td><td>Checked: the preview store saves any field generically; SIP amounts stay as printed.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="frontend">
+    <div class="section-head"><h2>Frontend: no change</h2><p>Checked against each screen the change affects.</p></div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Screen / file</th><th>Change</th><th>Why none is needed</th></tr></thead>
+      <tbody>
+        <tr><td>Analytics page: <code>AnalyticsView.tsx</code>, <code>useAnalyticsScope.ts</code></td><td><span class="pill p-same">none</span></td><td>It already polls until every section is done. Runs just finish sooner. The “still calculating” message was dropped (7 Oct).</td></tr>
+        <tr><td>TER card: <code>TerSection.tsx</code></td><td><span class="pill p-same">none</span></td><td>Same response shape. Funds without a TER are already reflected in “Portfolio Coverage ₹x / ₹y”.</td></tr>
+        <tr><td>Quality score: <code>ScorerSection.tsx</code></td><td><span class="pill p-same">none</span></td><td>Same response, including its existing “Unscored funds” list.</td></tr>
+        <tr><td>Dashboard totals, holdings table, fund detail, history chart</td><td><span class="pill p-same">none</span></td><td>They show the backend’s figures. Invested, average NAV and gains change in value, not in shape.</td></tr>
+        <tr><td>Import review screen</td><td><span class="pill p-same">none</span></td><td>Stamp duty is not shown separately. It is folded into cost, as in the CAS.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="infra">
+    <div class="section-head"><h2>Infra: one Terraform change</h2></div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>File</th><th>Before</th><th>After</th><th>Terraform plan shows</th></tr></thead>
+      <tbody>
+        <tr><td><code>infra/modules/scheduler/main.tf</code> (<code>ter_monthly</code> entry → <code>ter_daily</code>)</td><td><code>cron(0 6 1 * ? *)</code>, 06:00 on the 1st</td><td><code>cron(20 6 * * ? *)</code>, 06:20 daily</td><td>Renamed to <code>ter-daily</code> (decided): 3 to add, 3 to destroy (schedule, task definition, log group).</td></tr>
+        <tr><td>Analytics task, other jobs, night-stop</td><td colspan="3">Unchanged. Same container size (0.5 vCPU, 1 GB), same permissions.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="tests">
+    <div class="section-head"><h2>Tests that keep it this way</h2></div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Test</th><th>Fix</th><th>Fails if</th></tr></thead>
+      <tbody>
+        <tr><td>No TER refresh during Analytics (new, backend)</td><td><span class="fix">F</span></td><td>Any of the 7 sections calls the TER refresh, or a peer that the morning job already refreshed is downloaded again. (Not “no network at all”: the small calls stay for now.)</td></tr>
+        <tr><td>Analytics timing in the harness (<code>Docs/CAS Files/synthetic/harness/test_deep.py</code>)</td><td><span class="fix">F</span></td><td>Analytics for p20_20yr takes more than 30 s locally.</td></tr>
+        <tr><td>TER matching</td><td><span class="fix">B</span></td><td>A Kotak fund gets Tata’s TER when Kotak hasn’t filed; “Gilt April 2026” links to “April 2028”; a wrong TER saved earlier in the month survives; a renamed fund loses its link; a manual link is replaced; two feed rows with the same name link anything; Direct and Regular don’t read their own columns. On live data: any linked fund pointing at another fund house.</td></tr>
+        <tr><td>Peers in the NAV job</td><td><span class="fix">D</span></td><td>A peer of a held fund isn’t refreshed, or a fresh one is downloaded again.</td></tr>
+        <tr><td>Stuck-run timeout</td><td><span class="fix">5</span></td><td>A run 16 minutes old still blocks a new one.</td></tr>
+        <tr><td>NSE freshness</td><td><span class="fix">5B</span></td><td>History ending yesterday is downloaded again for today; history 5 days old isn’t topped up; a pre-index start date is downloaded more than once per process.</td></tr>
+        <tr><td>Stamp-duty parsing</td><td><span class="fix">$</span></td><td>A stamp duty attaches to the wrong purchase (several on one day), or a pre-July-2020 row gets one.</td></tr>
+        <tr><td>Invested equals the CAS cost (new gate check, synthetic + real files)</td><td><span class="fix">$</span></td><td>Any fund’s Total Invested differs from the CAS cost column by more than ₹1. The synthetic files already include stamp-duty rows.</td></tr>
+        <tr><td>Migrations 0030 ↔ 0032 on Postgres</td><td><span class="fix">$</span></td><td>Upgrade or downgrade fails on the partitioned table.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="deploy">
+    <div class="section-head"><h2>Deploy, in order</h2><p>The staging guide will have the exact commands and expected outputs.</p></div>
+    <ul>
+      <li>Start the bastion; database tunnel; check staging is on migration <code>0030</code>.</li>
+      <li>Build and push the backend image; run migrations <code>0031</code> and <code>0032</code>; roll the backend service.</li>
+      <li>Terraform: the TER job becomes <code>ter-daily</code> at 06:20 (3 to add, 3 to destroy).</li>
+      <li>Wipe user data only: <code>scripts/clean-staging-db.sh</code>.</li>
+      <li>Clear the TER table once (<code>DELETE FROM scheme_ter;</code>): the 7 Oct run saved ~1,040 wrong fuzzy TERs. Then run the TER job by hand: under a minute, <code>success=True</code>, about 7,000 new links. Check no linked fund points at another fund house. Run the NAV job once so peers are fresh.</li>
+      <li>Re-run A1, A2, C2, C6 and D2 on staging. Analytics should load in under a minute, and Total Invested should equal the statement.</li>
+      <li>Stop the bastion.</li>
+    </ul>
+  </section>
+
+  <section id="inputs">
+    <div class="callout"><b>Decided 7 Oct: deferred, except the NSE freshness fix (8 Oct, plan Task 5B).</b> Full write-up in <code>DEFERRED_FEATURES.md</code> “Question 3 in full”. Analytics keeps its other small calls for now. This section is kept as the reference for if and when it’s done later: these changes have to go in together.</div>
+    <div class="section-head"><h2>Does “read-only Analytics” really match what the jobs save?</h2><p>The check that would have caught the TER problem. Every piece of data Analytics uses, where it gets it during a run today, which morning job already saves it, and whether the saved copy covers everything Analytics asks for. Checked against the code, not assumed.</p></div>
+    <div class="callout"><b>How TER broke, as a pattern:</b> Analytics asked for more than the job provided. It checked every peer fund’s TER, but the job only wrote TERs for Direct/Regular schemes, so the gap was permanent and Analytics kept refetching. The same mismatch has to be ruled out for each input below. Three of the seven had a gap like that. Each gets a matching change, so the job covers everything Analytics reads.</div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>What Analytics needs</th><th>Where it gets it today, during the run</th><th>Morning job that already saves it</th><th>Does the saved copy cover it?</th><th>Change so it matches</th></tr></thead>
+      <tbody>
+        <tr><td><b>Your holdings</b> (folios, transactions, lots)</td><td>Database</td><td>Not a job: written at import</td><td><span class="pill p-ok">Yes</span></td><td>None.</td></tr>
+        <tr><td><b>Today’s NAV of each fund you hold</b></td><td>Every section recomputes holdings, and each time it <b>downloads each held fund’s full NAV history from mfapi.in</b>, because today’s NAV is never in the database in the morning (it’s published at night). That’s 7 sections × every view × every held fund. Found while checking this question.</td><td><code>nav-daily</code> (06:00) refreshes held funds…</td><td><span class="pill p-gone">No</span> …but it skips any fund that already has a NAV from the last 3 days. So the saved NAV can be up to 3 days old, and Analytics reading it would use stale prices.</td><td>The NAV job refreshes held funds <b>every day</b>, ignoring the 3-day skip. Analytics then uses the latest saved NAV, which is yesterday’s close, the same figure the dashboard shows in the morning. The dashboard itself keeps fetching live, unchanged.</td></tr>
+        <tr><td><b>TER</b> of your funds and their category peers</td><td>Saved rows, plus the refresh (fixes A, C)</td><td>TER job (06:20, daily after B)</td><td><span class="pill p-ok">Yes</span> for every Direct/Regular scheme linked to a SEBI code (8 Oct). Funds without a readable plan never had a TER and still won’t. Analytics just shows them as not covered instead of refetching.</td><td>Fixes A, B, C as planned.</td></tr>
+        <tr><td><b>Fund sizes (AAUM)</b> for category-average TER</td><td>Database only</td><td><code>aaum-quarterly</code></td><td><span class="pill p-ok">Yes</span> Analytics already only reads this.</td><td>None.</td></tr>
+        <tr><td><b>Benchmark index history</b> (Nifty 50, 500, LargeMidcap 250, Midcap 150)</td><td>Asks NSE for the range <b>from your first transaction to today</b> whenever the saved range doesn’t cover it, which in the morning is every run, because today’s close isn’t out yet.</td><td><code>benchmark-daily</code> (06:00)…</td><td><span class="pill p-gone">No</span> …saves only the <b>last 10 years</b>. The p20 statement starts in 2006 and “CAS 10 Yr” in Jan 2016, both older than 10 years. Read-only Analytics would find no index value for those early purchases and quietly leave them out of the benchmark XIRR: a wrong number, with no error.</td><td>The benchmark job saves each index’s <b>full history from the earliest date NSE has</b> (a one-time back-fill, then a 1-day top-up each morning). Analytics reads it. Before an index existed there is no data anywhere, so nothing is lost compared with today.</td></tr>
+        <tr><td><b>Peer list</b> (all funds in your fund’s category)</td><td>Downloads AMFI’s full 1.6 MB list every run and filters by category</td><td><code>scheme-master-daily</code> (06:15) saves the same list in <code>schemes</code></td><td><span class="pill p-ok">Yes, exactly</span> Same AMFI file, same parser, same category text. Funds AMFI dropped are marked inactive and left out, as they’d be missing from the download anyway.</td><td>Read <code>schemes</code> (same category, active, has an AMFI code).</td></tr>
+        <tr><td><b>Peer NAV history</b> (3- and 5-year returns)</td><td>Downloads any peer without a NAV in the last 3 days, mid-run</td><td><code>nav-daily</code> with fix D: peers of every category someone holds</td><td><span class="pill p-chg">Mostly</span> Covered for every category someone already held at 06:00. <b>Not covered</b> for a category nobody held until today: a new user, or an existing user buying their first fund in a new category. Read-only Analytics would show that fund with no ranking until the next morning.</td><td><b>One-time cold start:</b> if a held fund’s category has peers that have <i>never</i> been downloaded, the Analytics run downloads just those, once. After that the daily job keeps them fresh, and Analytics never downloads for that category again.</td></tr>
+      </tbody>
+    </table></div>
+    <div class="diagram"><pre class="mermaid">flowchart LR
+  subgraph JOBS["Morning jobs write"]
+    J1["06:00 nav-daily&lt;br/&gt;held funds every day +&lt;br/&gt;peers of held categories"]
+    J2["06:00 benchmark-daily&lt;br/&gt;full index history,&lt;br/&gt;then daily top-up"]
+    J3["06:15 scheme-master-daily&lt;br/&gt;AMFI fund list"]
+    J4["06:20 ter-daily&lt;br/&gt;TER for every&lt;br/&gt;Direct/Regular scheme"]
+    J5["quarterly aaum&lt;br/&gt;fund sizes"]
+  end
+  subgraph DB["Database"]
+    D1[("nav_history")]
+    D2[("benchmark_index_history")]
+    D3[("schemes")]
+    D4[("scheme_ter")]
+    D5[("scheme_aaum")]
+  end
+  subgraph AN["Analytics run reads"]
+    A1["Holdings value"]
+    A2["Benchmark XIRR"]
+    A3["Category ranking + score"]
+    A4["TER sections"]
+  end
+  J1 --> D1
+  J2 --> D2
+  J3 --> D3
+  J4 --> D4
+  J5 --> D5
+  D1 --> A1
+  D1 --> A3
+  D2 --> A2
+  D3 --> A3
+  D4 --> A4
+  D4 --> A3
+  D5 --> A3
+  C["Cold start only:&lt;br/&gt;a never-downloaded category's&lt;br/&gt;peer NAVs, once"] -.-> D1
+  classDef new fill:#e6f7ea,stroke:#2e8b57,color:#000
+  class J1,J2,J4,C new</pre></div>
+    <h3>What this adds to the file list</h3>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>File</th><th>Change</th><th>Size</th></tr></thead>
+      <tbody>
+        <tr><td><code>scripts/jobs/refresh_nav_daily.py</code> + <code>app/services/dashboard/nav.py</code></td><td>The job refreshes held funds daily (a “refresh anyway” option on <code>warm_nav_history</code>). Peers keep the 3-day rule, which is fine for 3- and 5-year returns.</td><td class="num">~15 lines</td></tr>
+        <tr><td><code>app/services/dashboard/holdings.py</code> + the 6 Analytics files that call it</td><td>A “saved NAVs only” option for <code>compute_holdings</code>. Analytics passes it; the dashboard doesn’t, so it stays live.</td><td class="num">~20 lines</td></tr>
+        <tr><td><code>scripts/jobs/refresh_benchmark_daily.py</code> + <code>analytics/nse_indices_client.py</code></td><td>Back-fill each index from its earliest NSE date once, then top up only the missing days each morning.</td><td class="num">~25 lines</td></tr>
+        <tr><td><code>analytics/category_ranking.py</code></td><td>The cold start: download peers that have no NAV history at all, once per category.</td><td class="num">~15 lines</td></tr>
+        <tr><td>Tests</td><td>Fix F’s “no network” test runs with the data in place (the normal morning state). A second test checks the cold start downloads only never-seen peers, and only once. A benchmark test with a purchase older than 10 years.</td><td class="num">~3 tests</td></tr>
+      </tbody>
+    </table></div>
+    <p class="callout"><b>Answer:</b> as first written, question 3 would have repeated the TER mistake in two places (the benchmark’s 10-year limit, and new categories’ peers), and a third network call (held funds’ NAV) was still left. With the four changes above, every input Analytics reads has a morning job that writes all of it, and the one case that can’t be prepared in advance (a brand-new category) is handled once, on first use. If done later: about 3 extra hours.</p>
+  </section>
+
+  <section id="timing">
+    <div class="section-head"><h2>Why 06:20, and why this order</h2><p>The answers to “why these times” and “will they really run then”, from the scheduler’s Terraform settings and the job logs on staging.</p></div>
+    <h3>Why the TER job runs at 06:20</h3>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Constraint</th><th>What it means for the TER job</th></tr></thead>
+      <tbody>
+        <tr><td><b>After the 06:15 fund-list job</b></td><td>The TER match uses each scheme’s name and plan from <code>schemes</code>, which the 06:15 job refreshes. Running after it means a fund AMFI added yesterday gets its TER the same morning. That job takes 1–3 minutes, so 06:20 leaves a few minutes’ margin.</td></tr>
+        <tr><td><b>Before the 06:30 daily Analytics run</b></td><td>The daily recompute then uses that morning’s TERs. After the fix the TER job takes seconds, so it’s long finished by 06:30.</td></tr>
+        <tr><td><b>Inside the hours staging is on</b></td><td>Staging is off from 21:00 to about 05:00 (database 04:45, NAT 04:50, backend 04:58). Anything earlier than about 05:15 risks finding the database still starting.</td></tr>
+        <tr><td><b>Why not 06:00 with the others</b></td><td>The fund list isn’t refreshed yet at 06:00, so new funds would wait a day for their TER.</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>Why the whole morning runs in this order</h3>
+    <div class="diagram"><pre class="mermaid">flowchart LR
+  W["04:45–04:58&lt;br/&gt;staging wakes:&lt;br/&gt;database, NAT, backend"] --> N["06:00&lt;br/&gt;NAV + peers&lt;br/&gt;benchmark index"]
+  N --> M["06:15&lt;br/&gt;AMFI fund list"]
+  M --> T["06:20&lt;br/&gt;TER"]
+  T --> A["06:30&lt;br/&gt;Analytics for&lt;br/&gt;every household"]
+  A --> U["From ~06:35&lt;br/&gt;users open the app:&lt;br/&gt;everything ready"]
+  classDef new fill:#e6f7ea,stroke:#2e8b57,color:#000
+  class T new</pre></div>
+    <ul>
+      <li><b>Data first, results last.</b> NAVs, index values, the fund list and TERs are all inputs. Analytics is built from them, so it runs last. Each job only needs the ones before it.</li>
+      <li><b>06:00 for the inputs.</b> Fund houses must publish each day’s NAV by 11 PM, and mfapi.in and NSE have it overnight. 06:00 is an hour after staging wakes up, so the database and the NAT instance are fully up. I found no written reason for the exact 06:00 in the docs (the August job plan just says “6 AM IST”), but this is what that time achieves.</li>
+      <li><b>15–30 minute gaps</b> leave room for each job to finish before the next one needs its output, with margin for a slow day.</li>
+      <li><b>Before people use it.</b> Everything is ready by about 06:35, before the working day.</li>
+    </ul>
+
+    <h3>Will the jobs really run at those times?</h3>
+    <div class="flags">
+      <div class="flag"><span class="tag ok">Start time</span><b>Yes, each job starts at its minute</b><p>The schedules use <code>flexible_time_window = OFF</code> in <code>infra/modules/scheduler/main.tf</code>, so AWS starts each one at the exact minute, Asia/Kolkata time, not somewhere in a window. Staging confirms it: the 1 Oct TER run was scheduled for 06:00 and its log ends at 06:07:12. The container itself takes about 30–90 seconds to start (it pulls the image), so work begins a minute or so after the scheduled time.</p></div>
+      <div class="flag"><span class="tag red">Order</span><b>The order is by clock, not enforced</b><p>Each schedule is independent. The 06:15 job doesn’t wait for the 06:00 jobs, and 06:20 doesn’t wait for 06:15. If a job runs long, the next one starts anyway and uses the previous day’s data for that input. Nothing breaks: a late fund list means TER matches against yesterday’s list, and a late NAV job means Analytics uses yesterday’s peer NAVs. Tomorrow’s run catches up. The gaps are sized so this should be rare.</p></div>
+      <div class="flag"><span class="tag">Failures</span><b>A failed job isn’t retried until its next run</b><p>AWS retries only if it fails to <i>start</i> the container. If the job starts and then fails (AMFI down, for example), nothing retries it. It runs again the next day. Under a monthly TER schedule that would mean a month’s wait, which is another reason daily is better. The <code>success=</code> log line and the <code>TargetErrorCount</code> check from 7 Oct show whether a run worked.</p></div>
+      <div class="flag"><span class="tag">Possible later</span><b>A strict order would need one chained job</b><p>If the order ever matters more, the four morning jobs could run as one task, one after another, so each starts only when the previous finishes. That’s a bigger change than this fix needs, so it isn’t proposed now.</p></div>
+    </div>
+  </section>
+
+  <section id="open">
+    <div class="section-head"><h2>Decisions on this page</h2></div>
+    <div class="flags">
+      <div class="flag"><span class="tag ok">Decided 7 Oct</span><b>Rename the job to <code>ter-daily</code></b><p>The Terraform plan shows 3 to add, 3 to destroy (schedule, task definition, log group). The script becomes <code>refresh_ter_daily.py</code>, and the logs move to <code>/ecs/staging-job-ter-daily</code>.</p></div>
+      <div class="flag"><span class="tag ok">Decided 7 Oct</span><b>Add counts and time to the TER job’s log line</b><p><code>refresh_ter_daily: success=True month=10-2026 schemes=8665 matched=… no_match=… seconds=…</code></p></div>
+      <div class="flag"><span class="tag ok">Decided 7–8 Oct</span><b>Stop Analytics downloading the benchmark index and AMFI’s fund list</b><p>Two more places where Analytics fetches from the internet during a run, which I found while listing the files. Both have a morning job that already saves the same data, so Analytics can read the saved copy instead:</p></div>
+    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th></th><th>Benchmark index (NSE)</th><th>Peer list (AMFI fund list)</th></tr></thead>
+      <tbody>
+        <tr><td>What it’s for</td><td>The benchmark section compares your portfolio with indices like the Nifty 50. It needs each index’s daily history.</td><td>Category ranking and the quality score compare each of your funds with every other fund in its SEBI category. They need the list of those funds.</td></tr>
+        <tr><td>Today</td><td>Before computing, the section asks “is the saved index history up to date?” and, if not, downloads the missing days from NSE in the middle of the run.</td><td>Every run downloads AMFI’s full 1.6 MB fund list and picks out the category. It keeps a 24-hour copy on disk, but each AWS run is a fresh container with an empty disk, so in practice it downloads every time.</td></tr>
+        <tr><td>Already done by</td><td>The 06:00 <code>benchmark-daily</code> job, which downloads the same history every morning.</td><td>The 06:15 <code>scheme-master-daily</code> job, which saves the same AMFI list into <code>schemes</code> every morning (since 6 Oct).</td></tr>
+        <tr><td>After the change</td><td>The section reads the saved history only.</td><td>The peer list is read from <code>schemes</code> (same SEBI category, active).</td></tr>
+        <tr><td>Gain</td><td>About 5 s per run, and a slow or blocked NSE no longer slows Analytics.</td><td>One 1.6 MB download per run saved. The peers are exactly the funds identification uses.</td></tr>
+        <tr><td>If the morning job failed</td><td>The benchmark uses data up to the last good day, like NAVs do today.</td><td>Peers come from the last good fund list (yesterday’s).</td></tr>
+        <tr><td>Size</td><td>About 10 lines in <code>analytics/benchmark.py</code></td><td>About 15 lines in <code>analytics/scheme_universe.py</code></td></tr>
+        <tr><td><b>Measured 8 Oct</b> (one Analytics run, p20)</td><td><b>32 downloads, 127 s.</b> Cause: the check asks for history up to today, which isn’t published in the morning, so every call downloads again.</td><td>1.5 MB in 0.2 s + 0.1 s to read. Once per run.</td></tr>
+        <tr><td><b>Decided 8 Oct</b></td><td><b>Fix the freshness check now</b> (plan Task 5B, ~1 h): history within 4 days counts as fresh; a start date is downloaded once per process. Most of the gain, none of the 10-year risk.</td><td><b>Leave as is.</b> Under a second; not worth a change.</td></tr>
+      </tbody>
+    </table></div>
+    <p class="callout"><b>Why it matters for fix F:</b> F adds a test that fails if Analytics touches the internet during a run. That rule is what keeps Analytics fast for good. With these two calls left in, the test can’t pass, and Analytics would still depend on NSE and AMFI being up while a user waits. <b>Decided: the rest of question 3 not now; the NSE freshness fix now (8 Oct).</b> Keeping the AMFI call breaks nothing and costs under a second per run. Fix D keeps Analytics’ own peer check as a safety net, and fix F tests “no TER refresh” instead of “no network”. Revisit later using the <a href="#inputs">Inputs check</a>.</p>
+  </section>
+
+  <footer>
+    <span>Companion to the Analytics Speed Fix page (why it’s slow, costs, the decisions of 7 Oct). This page is the change map: files, flows and schema.</span>
+    <span>Based on the code at commit 5fb7e42 plus today’s staging checks (8,665 TER rows for October; 30 for September). Implementation plan: <code>Docs/superpowers/plans/2026-10-07-analytics-speed-and-stamp-duty.md</code>.</span>
+  </footer>
+</div>
+
+</body></html>
