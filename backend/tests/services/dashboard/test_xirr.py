@@ -122,3 +122,11 @@ def test_current_holdings_xirr_counts_switch_in_cost():
     summary = calculate_dashboard_xirr(db, [member.id], [holding])
     assert summary.current_holdings_xirr is not None
     assert Decimal("0.09") < Decimal(summary.current_holdings_xirr) < Decimal("0.13")
+
+
+def test_paid_amount_adds_stamp_duty_to_purchases_only():
+    from app.services.dashboard.xirr import paid_amount
+    buy = Transaction(type=TransactionType.PURCHASE_SIP, amount=Decimal("4999.75"), stamp_duty=Decimal("0.25"))
+    sell = Transaction(type=TransactionType.REDEMPTION, amount=Decimal("6000.00"))
+    assert paid_amount(buy) == Decimal("5000.00")
+    assert paid_amount(sell) == Decimal("6000.00")

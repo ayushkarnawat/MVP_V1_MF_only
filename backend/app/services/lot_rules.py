@@ -15,6 +15,7 @@ from collections.abc import Callable
 from decimal import Decimal
 
 from app.models.enums import TransactionType
+from app.models.transaction import Transaction
 
 LOT_ADDING_TYPES = {
     TransactionType.PURCHASE, TransactionType.PURCHASE_SIP, TransactionType.SWITCH_IN,
@@ -28,6 +29,26 @@ LOT_SELLING_TYPES = {TransactionType.REDEMPTION, TransactionType.SWITCH_OUT}
 # Every type that removes units. Callers also use it to sort same-day rows after
 # the adding ones. GIFT_OUT and REVERSAL remove units without a realised gain.
 LOT_CONSUMING_TYPES = LOT_SELLING_TYPES | {TransactionType.GIFT_OUT, TransactionType.REVERSAL}
+
+
+def cost_per_unit(units: Decimal, nav: Decimal, amount: Decimal | None, stamp_duty: Decimal | None) -> Decimal:
+    """What a new lot cost per unit: the row's NAV, or (amount + stamp duty) ÷
+    units when stamp duty was charged, so cost equals the CAS cost column
+    (decided 7 Oct). Every lot replay passes this as `nav`; selling rows carry
+    no stamp duty, so they keep their sale NAV."""
+    if stamp_duty and units and amount is not None:
+        per_unit = (amount + stamp_duty) / units
+        # An exact quotient keeps Decimal's ideal exponent (5000.00 / 100.000
+        # is 5E+1), which then shows up in every average cost as "5E+1" and
+        # the frontend reads as 0.00 (review 8 Oct). Lossless: a positive
+        # exponent means a whole number.
+        return per_unit.quantize(Decimal("1")) if per_unit.as_tuple().exponent > 0 else per_unit
+    return nav
+
+
+def paid_amount(transaction: Transaction) -> Decimal:
+    """Money that actually moved: a purchase's amount plus its stamp duty (7 Oct)."""
+    return transaction.amount + (transaction.stamp_duty or Decimal("0"))
 
 
 def _take_fifo(lots: list[list], units: Decimal) -> list[tuple[list, Decimal]]:

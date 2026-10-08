@@ -1269,3 +1269,30 @@ def test_folio_gets_plan_verified_from_identification(db_session):
     _upload(db_session, me, result)
     folio = db_session.query(Folio).one()
     assert folio.plan_type == PlanType.DIRECT and folio.plan_verified is True
+
+
+@pytest.mark.parametrize("balance", [None, "100"])
+def test_matched_purchase_gets_stamp_duty_without_an_insert(db_session, balance):
+    me = _member(db_session, _user(db_session), "Aditi Sharma")
+    statement = _solo(start=date(2025, 1, 1), rows=[(date(2025, 10, 6), "100", balance)])
+    _upload(db_session, me, statement)
+    saved = db_session.query(Transaction).one()
+    assert saved.stamp_duty is None
+    incoming = replace(statement.transactions[0], stamp_duty=Decimal("0.25"))
+    dry = confirm_people._match_rows(db_session, saved.folio_id, [incoming], dry_run=True)
+    assert not dry.inserts and dry.matched == [saved]
+    assert saved.stamp_duty is None
+    result = confirm_people._match_rows(db_session, saved.folio_id, [incoming])
+    assert not result.inserts and result.matched == [saved]
+    assert result.matched[0].stamp_duty == Decimal("0.25")
+    db_session.commit()
+    assert db_session.query(Transaction).count() == 1
+
+
+def test_fresh_confirm_stores_stamp_duty(db_session):
+    me = _member(db_session, _user(db_session), "Aditi Sharma")
+    statement = _solo(start=date(2025, 1, 1), rows=[(date(2025, 10, 6), "100")])
+    statement.transactions[0].stamp_duty = Decimal("0.25")
+    response = _upload(db_session, me, statement)
+    assert response.added == 1
+    assert db_session.query(Transaction).one().stamp_duty == Decimal("0.25")

@@ -133,7 +133,7 @@ def restore_openings(
                 NormalizedTransaction(
                     folio=folio.folio_number, amc=scheme.amc_name, scheme_name=scheme.name, isin=scheme.isin,
                     amfi=scheme.amfi_code, scheme_type=None, txn_date=t.date, txn_type=t.type,
-                    description=t.raw_description or "", amount=t.amount, units=t.units, nav=t.nav,
+                    description=t.raw_description or "", amount=t.amount, units=t.units, nav=t.nav, stamp_duty=t.stamp_duty,
                 )
                 for t in db.query(Transaction)
                 .join(TransactionImport, TransactionImport.transaction_id == Transaction.id)

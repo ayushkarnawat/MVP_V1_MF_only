@@ -771,3 +771,28 @@ def test_realized_summary_uses_amount_half_up_rounding():
     _persisted_txn(db,folio,TransactionType.REDEMPTION,date(2024,2,1),Decimal("1.01"),Decimal("1"),Decimal("1.0050"))
     summary = compute_realized_summary(db,[member.id])
     assert summary.total == summary.funds[0].realized_gain == "0.01"
+
+
+def test_purchase_cost_includes_stamp_duty_and_sale_carries_its_share():
+    buy = _txn(TransactionType.PURCHASE_SIP, date(2025, 10, 6), Decimal("4999.75"), Decimal("100.000"), Decimal("49.9975"))
+    buy.stamp_duty = Decimal("0.25")
+    sell = _txn(TransactionType.REDEMPTION, date(2026, 1, 6), Decimal("2750.00"), Decimal("50.000"), Decimal("55.0000"))
+    units, cost, realized = _process_folio_lots([buy, sell])
+    assert units == Decimal("50.000")
+    assert cost == Decimal("2500.00")          # half of 5,000.00, not of 4,999.75
+    assert realized == Decimal("250.00")       # 50 × (55 − 50.00)
+
+
+def test_purchase_without_stamp_duty_keeps_units_times_nav():
+    buy = _txn(TransactionType.PURCHASE, date(2019, 1, 1), Decimal("5000.00"), Decimal("100.000"), Decimal("50.0000"))
+    assert _process_folio_lots([buy])[1] == Decimal("5000.00")
+
+
+def test_average_cost_with_stamp_duty_has_no_exponent():
+    """(4,999.75 + 0.25) / 100 divides exactly, and Decimal then keeps the
+    exponent form 5E+1, which the frontend shows as 0.00 (review 8 Oct)."""
+    buy = _txn(TransactionType.PURCHASE_SIP, date(2025, 10, 6), Decimal("4999.75"), Decimal("100.000"), Decimal("49.9975"))
+    buy.stamp_duty = Decimal("0.25")
+    units, cost, _ = _process_folio_lots([buy])
+    assert "E" not in str(cost / units)
+    assert cost / units == Decimal("50")

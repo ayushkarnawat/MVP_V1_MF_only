@@ -172,7 +172,7 @@ def _dispatch_recompute_and_release_claim_on_failure(user_id: uuid.UUID) -> None
     committed the claim via try_claim_recompute -- if dispatch never
     actually places the ECS task (unconfigured, or RunTask failures), a
     fresh session releases that claim rather than leaving it orphaned for
-    up to the 2-hour staleness ceiling."""
+    up to the 15-minute staleness ceiling."""
     try:
         if dispatcher.dispatch(user_id):
             return

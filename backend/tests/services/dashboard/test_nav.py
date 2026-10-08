@@ -470,3 +470,26 @@ def test_closed_scheme_has_no_borrowed_nav(db_session):
         assert asyncio.run(get_nav_on_or_before(db_session, closed, date.today())) is None
         assert asyncio.run(get_navs_on_or_before(db_session, [(closed, date.today())]))[closed.id] is None
     fetch.assert_not_called()
+
+
+def test_warm_nav_history_survives_a_malformed_response_for_one_scheme():
+    """One peer's unreadable response (bad JSON, a NAV Decimal can't parse)
+    must not abort the whole batch: the morning job warms ~1,500 peers
+    (final review L4, 8 Oct)."""
+    import asyncio
+    from app.models.reference import NavHistory
+
+    db = _session()
+    good = _scheme(db, amfi_code="111111")
+    bad = _scheme(db, amfi_code="222222")
+
+    async def fetch(amfi_code):
+        if amfi_code == "222222":
+            raise ValueError("Expecting value: line 1 column 1")
+        return [(date.today(), Decimal("51.0000"))]
+
+    with patch("app.services.dashboard.nav._fetch_nav_history", side_effect=fetch):
+        asyncio.run(warm_nav_history(db, [good, bad]))
+
+    assert db.query(NavHistory).filter_by(scheme_id=good.id).count() == 1
+    assert db.query(NavHistory).filter_by(scheme_id=bad.id).count() == 0

@@ -18,6 +18,7 @@ from app.models.reference import Scheme
 from app.models.transaction import Transaction
 from app.models.user import HouseholdMember
 from app.services.dashboard.schemas import CashFlowEntry
+from app.services.lot_rules import paid_amount
 
 _DEBIT_TYPES = {TransactionType.PURCHASE, TransactionType.PURCHASE_SIP, TransactionType.OPENING_BALANCE}
 # REVERSAL: a bounced SIP's money comes back (#3). Gifts are not cash and
@@ -51,7 +52,7 @@ def compute_cash_flow(db: Session, household_member_ids: list[uuid.UUID]) -> lis
             CashFlowEntry(
                 date=txn.date,
                 type=txn.type,
-                amount=str(txn.amount),
+                amount=str(paid_amount(txn)),
                 direction="debit" if txn.type in _DEBIT_TYPES else "credit",
                 scheme_name=scheme.name,
                 household_member_id=str(folio.household_member_id),

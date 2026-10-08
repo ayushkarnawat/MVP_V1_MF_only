@@ -18,7 +18,7 @@ from sqlalchemy import case
 from sqlalchemy.orm import Session
 
 from app.models.enums import CostSource, PlanType, SchemeSource, TransactionOrigin, TransactionType
-from app.services.lot_rules import LOT_ADDING_TYPES, LOT_CONSUMING_TYPES, LOT_SELLING_TYPES, apply_lot_rules
+from app.services.lot_rules import LOT_ADDING_TYPES, LOT_CONSUMING_TYPES, LOT_SELLING_TYPES, apply_lot_rules, cost_per_unit
 from app.core.decimal_utils import quantize_amount
 from app.models.folio import Folio
 from app.models.reference import Scheme
@@ -90,7 +90,7 @@ class FifoState:
         self.realized_gain = Decimal("0")
 
     def apply(self, txn: Transaction) -> None:
-        pieces = apply_lot_rules(self.lots, txn.type, txn.units, txn.nav, lambda u, n: [u, n])
+        pieces = apply_lot_rules(self.lots, txn.type, txn.units, cost_per_unit(txn.units, txn.nav, txn.amount, txn.stamp_duty), lambda u, n: [u, n])
         if txn.type in LOT_SELLING_TYPES:
             self.realized_gain += sum((take * (txn.nav - lot[1]) for lot, take in pieces), Decimal("0"))
 

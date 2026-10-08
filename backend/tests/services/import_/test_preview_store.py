@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 from app.models.imports import Import
-from app.models.enums import ImportStatus, CostSource
+from app.models.enums import ImportStatus, CostSource, TransactionType
 from app.services.import_ import preview_store
 from app.services.import_.service import _preview_sessions, _sweep_expired_sessions, start_import_session
 from app.services.import_.confirm_people import confirm_people_import
@@ -172,3 +172,17 @@ def test_prompt_resolve_and_switched_pan_restore_survive_restart(db_session):
     db_session.refresh(me)
     assert me.pan_lookup_hash == hash_pan("BCDEF2222B") and me.pan_pending_until is None
     assert db_session.get(Import,uuid.UUID(sid)) is None
+
+
+def test_session_saved_before_stamp_duty_field_still_loads():
+    from app.services.import_.parser import NormalizedTransaction
+    from app.services.import_ import preview_store
+
+    row = NormalizedTransaction(folio="1/1", amc="X", scheme_name="X", isin="INF1", amfi=None, scheme_type=None,
+                                txn_date=date(2025, 10, 6), txn_type=TransactionType.PURCHASE_SIP,
+                                description="SIP", amount=Decimal("4999.75"), units=Decimal("103.256"),
+                                nav=Decimal("48.4205"))
+    encoded = preview_store.serialize({"rows": [row]})
+    del encoded["value"][0][1]["value"][0]["value"]["stamp_duty"]  # what a pre-deploy blob looks like
+    [loaded] = preview_store.deserialize(encoded)["rows"]
+    assert loaded.stamp_duty is None and loaded.amount == Decimal("4999.75")

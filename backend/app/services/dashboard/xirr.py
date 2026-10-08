@@ -13,6 +13,7 @@ from app.models.enums import TransactionType
 from app.services.analytics.xirr import xirr
 from app.services.dashboard.cash_flow import _CREDIT_TYPES, _DEBIT_TYPES
 from app.services.dashboard.schemas import HoldingRow
+from app.services.lot_rules import paid_amount
 
 # #3: a gift isn't cash, but for returns a gift received is money put in at
 # its value and a gift given is money taken out, so neither distorts XIRR.
@@ -32,7 +33,7 @@ def _signed_amount(
     transaction: Transaction,
     extra_debit_types: frozenset[TransactionType] = frozenset(),
 ) -> Decimal:
-    return -transaction.amount if transaction.type in (_XIRR_DEBIT_TYPES | extra_debit_types) else transaction.amount
+    return -paid_amount(transaction) if transaction.type in (_XIRR_DEBIT_TYPES | extra_debit_types) else paid_amount(transaction)
 
 
 def portfolio_xirr(

@@ -680,3 +680,47 @@ def test_bonus_description_on_a_reversal_is_not_bonus():
     [row] = _one(_t("2019-01-01", "Bonus units gifted", None, "-5.000", None, "GIFT_OUT"))
     assert row.txn_type == TransactionType.GIFT_OUT and row.needs_price
 
+
+
+def _stamp(d, amount):
+    return _t(d, "*** Stamp Duty ***", amount, None, None, "STAMP_DUTY_TAX")
+
+
+def test_stamp_duty_attaches_to_its_purchase():
+    rows = _normalize_cas_data(_data(_scheme("X Fund - Direct Plan - Growth", "INF1", [
+        _t("2025-10-06", "SIP Purchase", "4999.75", "103.256", "48.4205", "PURCHASE_SIP"),
+        _stamp("2025-10-06", "0.25"),
+    ], close="103.256"))).transactions
+    assert [r.stamp_duty for r in rows] == [Decimal("0.25")]
+    assert not any("Stamp" in w for w in _normalize_cas_data(_data(_scheme(
+        "X Fund - Direct Plan - Growth", "INF1", [_stamp("2025-10-06", "0.25")]))).parse_warnings)
+
+
+def test_two_purchases_same_day_each_get_their_own_stamp_duty():
+    rows = _normalize_cas_data(_data(_scheme("X Fund - Direct Plan - Growth", "INF1", [
+        _t("2025-10-06", "Purchase", "99995.00", "2000.000", "49.9975", "PURCHASE"),
+        _t("2025-10-06", "SIP Purchase", "4999.75", "100.000", "49.9975", "PURCHASE_SIP"),
+        _stamp("2025-10-06", "0.25"),   # printed out of order on purpose
+        _stamp("2025-10-06", "5.00"),
+    ], close="2100"))).transactions
+    by_type = {r.txn_type: r.stamp_duty for r in rows}
+    assert by_type == {TransactionType.PURCHASE: Decimal("5.00"), TransactionType.PURCHASE_SIP: Decimal("0.25")}
+
+
+def test_stamp_duty_without_a_purchase_that_day_is_dropped_silently():
+    result = _normalize_cas_data(_data(_scheme("X Fund - Direct Plan - Growth", "INF1", [
+        _t("2025-10-06", "Redemption", "5000", "-100", "50", "REDEMPTION"),
+        _stamp("2025-10-07", "0.25"),
+    ], close="0")))
+    assert [r.stamp_duty for r in result.transactions] == [None]
+    assert not any("Stamp" in w for w in result.parse_warnings)
+
+
+def test_reversed_stamp_duty_is_not_attached_as_a_charge():
+    # The parser drops every amount's sign, so a reversed (negative) stamp-duty
+    # row must be skipped before that, not attached to a purchase as +0.25.
+    rows = _normalize_cas_data(_data(_scheme("X Fund - Direct Plan - Growth", "INF1", [
+        _t("2025-10-06", "SIP Purchase", "4999.75", "100.000", "49.9975", "PURCHASE_SIP"),
+        _stamp("2025-10-06", "-0.25"),
+    ], close="100.000"))).transactions
+    assert [r.stamp_duty for r in rows] == [None]

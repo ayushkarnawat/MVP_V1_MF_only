@@ -27,7 +27,7 @@ from casparser.types import CASData, NSDLCASData
 
 from app.core.decimal_utils import quantize_amount, quantize_nav, quantize_units, to_decimal
 from app.models.enums import TransactionType
-from app.services.lot_rules import apply_lot_rules
+from app.services.lot_rules import apply_lot_rules, cost_per_unit
 from app.services.import_.people import (
     ParsedPerson,
     extract_folio_holders,
@@ -180,10 +180,30 @@ class NormalizedTransaction:
     # gift priced from history), not printed by the CAS: only printed NAVs
     # become a CAS-only fund's price history (6 Oct review M3).
     nav_printed: bool = True
+    # Stamp duty charged on this purchase (0.005% from 1 Jul 2020). The CAS
+    # prints it as a separate unit-less row; it is attached here so cost can
+    # include it, as the CAS cost column does (decided 7 Oct).
+    stamp_duty: Decimal | None = None
 
     @property
     def key(self) -> SchemeKey:
         return scheme_key(self.folio, self.amc, self.isin, self.scheme_name)
+
+
+STAMP_DUTY_RATE = Decimal("0.00005")
+STAMPED_TYPES = {TransactionType.PURCHASE, TransactionType.PURCHASE_SIP,
+                 TransactionType.SWITCH_IN, TransactionType.DIVIDEND_REINVEST}
+
+
+def _attach_stamp_duty(rows: list["NormalizedTransaction"], stamps: list[tuple[date, Decimal]]) -> None:
+    """Give each stamp-duty row to the same-day purchase it is 0.005% of. With
+    several purchases that day the closest match wins, so a lump sum and a SIP
+    each get their own. One with no purchase that day is dropped, as before."""
+    for on, duty in stamps:
+        candidates = [r for r in rows if r.txn_date == on and r.txn_type in STAMPED_TYPES
+                      and r.stamp_duty is None and r.amount]
+        if candidates:
+            min(candidates, key=lambda r: abs(r.amount * STAMP_DUTY_RATE - duty)).stamp_duty = duty
 
 
 @dataclass
@@ -314,7 +334,7 @@ def _fifo_cost(rows: list[NormalizedTransaction], opening_units: Decimal, consum
     prices it (preview time)."""
     lots: list[list] = [[opening_units, Decimal("0"), True]] if opening_units > 0 else []
     for r in rows:
-        apply_lot_rules(lots, r.txn_type, r.units, r.nav, lambda u, n: [u, n, False])
+        apply_lot_rules(lots, r.txn_type, r.units, cost_per_unit(r.units, r.nav, r.amount, r.stamp_duty), lambda u, n: [u, n, False])
     pieces = apply_lot_rules(lots, TransactionType.SWITCH_OUT, consume, Decimal("0"), lambda u, n: [u, n, False])
     cost = sum((take * lot[1] for lot, take in pieces if not lot[2]), Decimal("0"))
     return cost, any(lot[2] for lot, _ in pieces)
@@ -446,6 +466,8 @@ def _normalize_cas_data(data: CASData, lines: list[str] | None = None) -> ParseR
                     valuation_nav=_optional_decimal(getattr(scheme.valuation, "nav", None)),
                     valuation_date=parse_statement_date(getattr(scheme.valuation, "date", None)),
                 )
+            first_row = len(transactions)
+            stamps: list[tuple[date, Decimal]] = []
             for txn in scheme.transactions:
                 # casparser genuinely allows amount/units/nav to be None on some
                 # lines; Transaction.amount/units/nav are NOT NULL downstream, so
@@ -471,6 +493,12 @@ def _normalize_cas_data(data: CASData, lines: list[str] | None = None) -> ParseR
                         )
                         amountless.setdefault((folio.amc, candidate.txn_date), []).append(
                             (candidate, to_decimal(txn.units), str(txn.type)))
+                        continue
+                    if _raw_key(txn.type) == "STAMP_DUTY_TAX":
+                        # `amount` has lost its sign; a reversed (negative)
+                        # stamp row is not a charge (review 8 Oct).
+                        if amount and to_decimal(txn.amount) > 0:
+                            stamps.append((_parse_date(txn.date), amount))
                         continue
                     printed_nav = nav  # what casparser read, before any derivation
                     kept = _retain(txn.type, txn.description, amount, units, nav)
@@ -500,6 +528,8 @@ def _normalize_cas_data(data: CASData, lines: list[str] | None = None) -> ParseR
                 )
                 transactions.append(norm)
                 scheme_map[key].transaction_count += 1
+
+            _attach_stamp_duty(transactions[first_row:], stamps)
 
     _pair_conversions(amountless, transactions, scheme_map, parse_warnings)
 

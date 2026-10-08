@@ -972,7 +972,7 @@ def _write_person_rows(
                 id=uuid.uuid4(), folio_id=folio_id, import_id=import_rec.id, type=norm.txn_type,
                 date=norm.txn_date, amount=norm.amount, units=norm.units, nav=norm.nav,
                 raw_description=norm.description, origin=TransactionOrigin.CAS_ROW,
-                balance_units=norm.balance, occurrence=occurrence,
+                balance_units=norm.balance, stamp_duty=norm.stamp_duty, occurrence=occurrence,
             )
             db.add(txn)
             db.add(TransactionImport(transaction_id=txn.id, transaction_date=txn.date, import_id=import_rec.id))
@@ -1072,6 +1072,8 @@ def _match_rows(
                         saved[exact].balance_units = r.balance
                 if exact is not None:
                     used.add(exact)
+                    if not dry_run and saved[exact].stamp_duty is None and r.stamp_duty is not None:
+                        saved[exact].stamp_duty = r.stamp_duty  # a pre-0032 row gets it from the newer statement
                     result.matched.append(saved[exact])
                 elif r.balance in pending_balances:
                     pending_balances.remove(r.balance)
@@ -1092,7 +1094,10 @@ def _match_rows(
         else:
             known = len(saved) + len(already)
             to_insert = incoming[known:] if len(incoming) > known else []
-            result.matched.extend(saved[: len(incoming)])
+            for row, r in zip(saved[: len(incoming)], incoming):
+                if not dry_run and row.stamp_duty is None and r.stamp_duty is not None:
+                    row.stamp_duty = r.stamp_duty
+                result.matched.append(row)
         for r in to_insert:
             top += 1
             result.inserts.append((r, top))

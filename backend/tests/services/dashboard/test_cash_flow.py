@@ -138,3 +138,16 @@ def test_gifts_are_not_cash():
     _txn(db, folio, TransactionType.GIFT_OUT, date(2022, 4, 1), Decimal("100.00"))
     assert compute_cash_flow(db, [member.id]) == []
 
+
+
+def test_purchase_cash_flow_includes_stamp_duty():
+    db = _session()
+    member = _household_member(db)
+    folio = _folio(db, member)
+    original_amount = Decimal("4999.75")
+    buy = _txn(db, folio, TransactionType.PURCHASE, date(2025, 10, 6), original_amount)
+    buy.stamp_duty = Decimal("0.25")
+    db.commit()
+    [entry] = compute_cash_flow(db, [member.id])
+    assert entry.direction == "debit"
+    assert entry.amount == str(original_amount + Decimal("0.25"))

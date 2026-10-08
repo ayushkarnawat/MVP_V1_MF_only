@@ -7,7 +7,7 @@ from app.core.decimal_utils import quantize_amount, quantize_nav
 from app.models.enums import CostSource
 from app.services.import_.parser import NormalizedTransaction, ParsedScheme
 
-from app.services.lot_rules import apply_lot_rules
+from app.services.lot_rules import apply_lot_rules, cost_per_unit
 
 
 def _in_period_lot(units: Decimal, nav: Decimal) -> list:
@@ -42,7 +42,7 @@ def price_opening_lot(
         return None
     lots = [[scheme.open_units, Decimal("0"), True]]
     for row in sorted(txns, key=lambda t: t.txn_date):
-        apply_lot_rules(lots, row.txn_type, row.units, row.nav, _in_period_lot)
+        apply_lot_rules(lots, row.txn_type, row.units, cost_per_unit(row.units, row.nav, row.amount, row.stamp_duty), _in_period_lot)
     remaining = sum((u for u, n, opening in lots if opening), Decimal("0"))
     held_cost = sum((u * n for u, n, opening in lots if not opening), Decimal("0"))
     series = sorted(nav_series or [])
@@ -65,7 +65,7 @@ def apply_opening_cost_to_conversions(
 ) -> None:
     lots = [[lot.units, lot.nav, True]]
     for index, row in sorted(enumerate(txns), key=lambda item: item[1].txn_date):
-        pieces = apply_lot_rules(lots, row.txn_type, row.units, row.nav, _in_period_lot)
+        pieces = apply_lot_rules(lots, row.txn_type, row.units, cost_per_unit(row.units, row.nav, row.amount, row.stamp_duty), _in_period_lot)
         if pieces:
             opening, known_cost = _split(pieces)
             if row.conversion_from_opening:

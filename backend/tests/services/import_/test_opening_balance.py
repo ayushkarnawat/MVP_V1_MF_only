@@ -100,3 +100,17 @@ def test_bonus_and_gift_in_lots_are_held_cost():
     lot = price_opening_lot(_s("100", "5500"), txns, START, SERIES)
     assert lot.cost_source == CostSource.CAS_COST and lot.nav == Decimal("50.0000")
 
+
+
+def test_opening_lot_does_not_absorb_in_period_stamp_duty():
+    """CAS cost 15,000 = 10,000 opening + 5,000 SIP (incl. 0.25 stamp duty).
+    The opening lot must cost 10,000, not 10,000.25."""
+    scheme = ParsedScheme(name="X", isin="INF1", amfi=None, scheme_type=None, folio="1/1", amc="X",
+                          transaction_count=1, open_units=Decimal("100.000"), close_units=Decimal("200.000"),
+                          valuation_cost=Decimal("15000.00"))
+    sip = NormalizedTransaction(folio="1/1", amc="X", scheme_name="X", isin="INF1", amfi=None, scheme_type=None,
+                                txn_date=date(2025, 10, 6), txn_type=TransactionType.PURCHASE_SIP, description="SIP",
+                                amount=Decimal("4999.75"), units=Decimal("100.000"), nav=Decimal("49.9975"),
+                                stamp_duty=Decimal("0.25"))
+    lot = price_opening_lot(scheme, [sip], date(2025, 4, 1), None)
+    assert lot.amount == Decimal("10000.00")

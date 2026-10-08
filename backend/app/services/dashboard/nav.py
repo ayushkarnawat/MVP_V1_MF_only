@@ -209,7 +209,10 @@ async def warm_nav_history(db: Session, schemes: Iterable[Scheme]) -> None:
     async def fetch(scheme: Scheme) -> tuple[Scheme, list[tuple[date, Decimal]] | None]:
         try:
             return scheme, await _fetch_nav_history(scheme.amfi_code)
-        except httpx.HTTPError:
+        # ValueError/KeyError/ArithmeticError: an unreadable response (bad
+        # JSON, a NAV Decimal can't parse). One bad scheme must not abort the
+        # batch: the morning job warms ~1,500 peers (final review, 8 Oct).
+        except (httpx.HTTPError, ValueError, KeyError, ArithmeticError):
             return scheme, None
 
     # Instrumented 2026-08-20 to root-cause a reported regression (Category
