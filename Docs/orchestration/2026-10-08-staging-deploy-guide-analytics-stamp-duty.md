@@ -395,6 +395,12 @@ aws scheduler get-schedule --name unifolio-staging-job-ter-daily \
 { "state": "ENABLED", "cron": "cron(20 6 * * ? *)", "tz": "Asia/Kolkata" }
 ```
 
+**Then delete the saved plan.** A saved plan stores every variable's value in readable form, including the PAN key and pepper exported above:
+```bash
+rm -f ter-daily.tfplan scheme-master.tfplan
+unset TF_VAR_pan_encryption_key TF_VAR_pan_lookup_pepper SECRET_JSON
+```
+
 ---
 
 ## Step 10 — Rebuild TER (two runs) and check the links

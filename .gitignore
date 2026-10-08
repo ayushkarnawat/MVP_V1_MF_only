@@ -66,6 +66,9 @@ terraform.tfvars
 *.auto.tfvars
 tfplan
 tfplan-*
+# Saved plans (terraform plan -out=x.tfplan) hold every variable's value in
+# readable form, including the TF_VAR_ PAN key and pepper: never commit them.
+*.tfplan
 
 # Real CAS statements (personal data: names, PANs, holdings). Never commit them.
 /Docs/CAS Files/*.pdf
