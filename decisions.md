@@ -503,3 +503,23 @@ Reviewed on the plan page https://claude.ai/artifact/UH899y4fhr6BbDdYE4Q9aU (use
 - **CAMS request records no consent** (no box, no line); the PAN consent is recorded only at upload. Supersedes the 2026-10-01 `cams_request` consent.
 - **Account deletion grace: 30 days** (was 5). Accounts already pending keep their 5-day date.
 - **Member pickers show the name only** (no "(relationship)", no "(Me)", no %); the % stays on the "N% complete" chip and Family Members cards.
+
+## 2026-10-07 — Sub-project 1 planning consolidated into a running doc
+
+Full detail: `Docs/analytics/2026-10-07-sub-project-1-planning.md`. Covers attribute 09's
+unresolved "category-relative" mechanics, the admin-configurability call, and attribute
+11's full design (back-tested per-scheme rupee replay, no single benchmark-per-scenario
+schema, 8-scenario starting library, precomputed-table Option B over live-query Option A,
+costing). **Nothing in it has been executed** — no migrations, no spikes, no staging
+changes; this is planning only, per the brainstorming skill's architectural path.
+
+- **Backfill scope confirmed scenario-count-independent:** the one-time NAV-history
+  backfill (Step 1) covers every scenario simultaneously, since `mfapi.in` returns a
+  scheme's full history in one call — adding more scenarios later never re-triggers it.
+  Only Step 2 (the per-scenario fall-% table) scales with scenario count, and does so
+  trivially (~14,354 rows/scenario).
+- **Testing sequencing agreed, not yet run:** a local-dev-only spike (real `mfapi.in`
+  calls, local DB, local egress IP — fully isolated from staging's shared NAT IP and the
+  production daily NAV job) on a small batch first, then — only if clean — a throttled,
+  off-hours, one-off Fargate backfill. Staging's `nav_history` is never touched by the
+  spike itself, only by the eventual real backfill.
