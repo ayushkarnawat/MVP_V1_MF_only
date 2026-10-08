@@ -96,31 +96,70 @@ design.
   blocked on Sub-project 2's look-through engine, which doesn't exist yet. Tracked in
   `DEFERRED_FEATURES.md`.
 
-**Still genuinely open — resolve before or during plan-writing, not by guessing:**
+**Fixed in this pass, 2026-10-08 (orchestrator verification against code at `d331b04`,
+reconciling an earlier draft of this section with a second independent pass against the
+same code) — the planning doc and affected specs/artifacts have been updated, re-read them
+rather than trusting this summary alone:**
 
-- **Verify attribute 04/09/12 against the TER-linking rework that landed the same day.**
-  The planning doc's own closing section ("Next in this planning pass") flags this and
-  says explicitly: "Not yet investigated this session." Commit `697f5fc` ("speed up
-  analytics and link TER by SEBI scheme code", 2026-10-08) substantially rewrote
-  `backend/app/services/analytics/amfi_ter_client.py` (269-line diff) and added migration
-  `0031_scheme_ter_link`. Attribute 04's spec explicitly models its new fund-manager job on
-  "mirroring `amfi_ter_client.py`'s upsert idiom," and attribute 09's composite score reads
-  TER data this file produces — but nobody has re-read the reworked file against those two
-  specs to confirm the idiom/assumptions still hold. **Do this before writing the plan**,
-  not after — if the upsert idiom changed shape, attribute 04's resolver architecture
-  section may need a small update, not a redesign, but it needs to actually be checked, not
-  assumed.
-- **Attribute 11's one HYPOTHETICAL scenario has no real assumption values yet.** "US
-  recession + Fed pivot" is seeded in the schema with `'Assumption TBD at admin-entry
-  time.'` — Ayush (or whoever has DB access) needs to supply the actual hypothetical return
-  assumptions before this specific scenario can go live. The other 7 scenarios and the
-  simulator engine itself are unaffected; this is a single-row data-entry gap, not a design
-  gap.
+- **Attribute 12 — was "almost broken."** The original plan only updated
+  `get_index_level_on_or_before`. Four other places in `nse_indices_client.py` are keyed by
+  `index_name` alone — `_upsert_index_history`, `_cached_date_bounds`, the `_fetched_from`
+  cache, and `ensure_index_history_fresh`'s freshness check — and since daily price history
+  already covers nearly every trading day, leaving them unfixed meant essentially every TRI
+  backfill row would be silently dropped on upsert, not just "mixed" with price rows. **Now
+  fixed:** the planning doc's "Attribute 12" section documents keying all five by `(index,
+  return_type)`, defaulting to `PRICE`, plus a required regression test (seed a PRICE and a
+  TRI row for the same date, assert both persist independently and `benchmark.py`'s
+  existing output is unchanged). Not yet implemented — this is a doc fix, the code change
+  and test still need writing during execution.
+- **Attribute 04 — propagation bug.** The doc's step 6 said managers propagate to "every
+  plan-variant row sharing that `amfi_code`" — wrong, `schemes.amfi_code` is `unique=True`
+  per row (confirmed in `backend/app/models/reference.py`), so that join reached exactly
+  one row, not a scheme family. **Now fixed:** propagates by `(amc_name, base_name)` via the
+  existing `ix_schemes_amc_base` index instead. Also corrected: every reference to "TER's
+  fuzzy matching" in this section described TER's *original* design — migration `0031`
+  fully removed TER's fuzzy matching the same day this section was written (~1,040 schemes
+  had been linked to the wrong fund), replacing it with exact-compact-name-only matching.
+  Attribute 04's own hybrid design (exact-first, scoped 0.80-threshold fuzzy fallback,
+  ambiguity guard, persisted confidence) is **not invalidated by this** — the factsheet PDFs
+  this pipeline reads have no joinable code at all (unlike TER's AMFI feed), so a
+  genuinely different constraint justifies keeping a fuzzy fallback here even though TER
+  itself no longer has one. This is also consistent with Ayush's own general matching-design
+  philosophy (hybrid layered matching preferred over banning fuzzy outright) — **no decision
+  is actually pending here**, despite an earlier verification pass flagging this as a
+  blocking question; the existing design is the right fit and needs no change.
+- **Attribute 09 — reduced TER coverage, not a design break.** `ter._latest_ter_for_scheme`
+  still works unchanged; TER now covers only ~7,000 exactly-linked schemes (down from the
+  fuzzy-matched count before `0031`), so more funds in any category now lack TER entirely.
+  The existing renormalization logic (step 7) already handles a missing-TER scheme
+  correctly — **now added:** an explicit requirement for a test covering a category where
+  most funds lack TER, and the frontend spec's "Missing 5Y" state was broadened to cover
+  missing-TER too, since it's now a common case, not a rare one.
+- **Attribute 11 — four hypotheticals have no assumptions, not one.** This section
+  originally undercounted the gap as "one HYPOTHETICAL scenario [US recession + Fed pivot]
+  has no real assumption values yet, Ayush needs to supply them" — re-verified against the
+  actual seed SQL: only **AI/tech valuation bust** has `scenario_hypothetical_assumptions`
+  rows; Strait of Hormuz closure, US recession + Fed pivot, Rupee sharp depreciation, and
+  Indian equity "lost decade" have **zero** each. **Now fixed:** the compute logic's
+  previously-undocumented fallback for a missing assumption row is now specified (an
+  `assumptions_not_set` flag, no computed value at all, never a 0% or fabricated number),
+  and both the backend doc and the attribute 11 frontend spec document this new state.
+  **Still genuinely pending (see below), not resolved by this fix:** the actual 4×4
+  percentages/notes, and whether an unset hypothetical is hidden from "More scenarios" or
+  shown with the explicit state.
+- **Attribute 14 — not affected, but one claim in an earlier draft of this table was
+  wrong.** That draft said a plan file, `Docs/superpowers/plans/2026-10-08-subproject1-a14-
+  investment-withdrawal.md`, "stands" — checked via `find` across the repo 2026-10-08: **no
+  such file exists.** No `writing-plans` invocation has happened for attribute 14 or any
+  other attribute in this sub-project — the HARD-GATE above is intact, nothing has been
+  silently planned or built ahead of it. This was a stale/incorrect forward-reference in
+  that draft, not a real gate violation; corrected here so it isn't repeated.
 - **Migration numbering.** The planning doc's SQL snippets don't hardcode a migration
-  number. As of this pass, `backend/alembic/versions/` goes up to `0032` — re-check this
-  directly (`ls backend/alembic/versions/`) before writing any migration, since more may
-  have landed since this guide was written. The consolidated artifact's schema-map section
-  carries the same warning.
+  number. As of this pass, `backend/alembic/versions/` goes up to `0032` (`0031_scheme_
+  ter_link.py` was the most recent, landing the same day) — re-check this directly (`ls
+  backend/alembic/versions/`) before writing any migration, since more may have landed
+  since this guide was written. The consolidated artifact's schema-map section carries the
+  same warning.
 - **Attribute 11's NAV backfill batching strategy** (planning doc, Option B architecture)
   involves a 3-step precompute pipeline with real infra cost (batch NAV backfill, per-
   scenario compute, serving). The planning doc describes the approach but the actual job
@@ -139,17 +178,17 @@ design.
   as ongoing, incremental engineering work, not a single estimable task with a fixed
   end-date.
 
-### Verification results — 2026-10-08 (orchestrator, read against code at `d331b04`)
+**Still genuinely open — blocking, needs Ayush's input, not guessed here:**
 
-The two items above were checked against the code. Each plan must carry its row below.
-
-| Attribute | Finding | What the plan must do |
-|---|---|---|
-| **12** | **Breaks today's benchmark section if built as the planning doc writes it.** The doc changes only `get_index_level_on_or_before`. But four other places in `nse_indices_client.py` are keyed by index alone and would mix TRI rows with price rows: `_upsert_index_history` (its existing-date check would skip every TRI row whose date already has a price row), `_cached_date_bounds`, the 8 Oct `_fetched_from` cache and the `fresh_within` check (TRI rows would make price history look fresh, so the price series would stop updating). | Key all five by `(index, return_type)`, defaulting to PRICE. Add a regression test proving price history still refreshes and `benchmark.py`'s XIRR is unchanged once TRI rows exist. |
-| **04** | (a) The `SequenceMatcher` fuzzy idiom the doc says to copy **no longer exists**: the TER rework removed all fuzzy matching after every fuzzy TER match proved wrong (923 pointed at a different fund house). (b) **Propagation bug:** the doc's step 6 attaches managers to "every plan-variant row sharing that `amfi_code`", but `schemes.amfi_code` is unique per plan variant, so that join reaches one row. (c) The parts that survive: the in-memory `existing` dict with an upsert or "checked, NULL" row (`_upsert_scheme_ter`, `_mark_checked_no_match`), the `_compact_key` cleaned-name key, and the link-once-with-a-source pattern (`ter_scheme_code`, `ter_link_source` exact/manual, manual never overwritten). | Propagate by `(amc_name, base_name)` (indexed: `ix_schemes_amc_base`) or by the SEBI code `ter_scheme_code`, never by `amfi_code`. **Ask the user** whether 04 keeps an AMC-scoped fuzzy fallback (with the 0.80 threshold and ambiguity guard) or goes exact-only plus manual entries, like TER now does. |
-| **09** | Still works: `ter._latest_ter_for_scheme` exists and skips "checked, no TER" NULL rows. But TER now covers only exactly-linked funds with a known Direct/Regular plan (about 7,000 linked), so more funds in a category have no TER. | Keep the planned weight renormalisation for missing TER. Rank the TER percentile only among funds that have one, and test a category where most funds lack TER. |
-| **11** | The item above understates it. The planning doc's seed SQL adds assumption rows **only for "AI/tech valuation bust"**. **Four** of the five hypotheticals have none: Strait of Hormuz closure, US recession + Fed pivot, Rupee sharp depreciation, Indian equity "lost decade". Three have a one-line stated assumption in their description, but no per-asset-class %. None of the four is in the curated 8, so they only appear under "More scenarios". | The user supplies the 4 × 4 asset-class %s and notes. Until then, a hypothetical with no assumption rows must show an explicit "assumptions not set yet" state (or be hidden from "More"), never a 0% result. This needs a decision, test included. |
-| **14** | Not affected (no TER, no benchmark). | None. Plan `Docs/superpowers/plans/2026-10-08-subproject1-a14-investment-withdrawal.md` stands. |
+1. **Attribute 11's actual hypothetical assumptions.** The Equity/Debt/Hybrid/Other
+   `assumed_pct_change` + `assumption_note` for each of the 4 unseeded hypotheticals
+   (Strait of Hormuz closure, US recession + Fed pivot, Rupee sharp depreciation, Indian
+   equity "lost decade") — 16 numbers + 16 notes, same shape as the already-seeded AI/tech
+   valuation bust template in the planning doc.
+2. **Attribute 11's display choice for an unset hypothetical** — hidden from "More
+   scenarios" until assumptions are supplied, or shown with the explicit "assumptions not
+   set yet" state. Both are consistent with the honest-data floor; this is a
+   product-presentation call, not a correctness one.
 
 ## 4. Suggested implementation sequencing (not a plan — just an observation)
 

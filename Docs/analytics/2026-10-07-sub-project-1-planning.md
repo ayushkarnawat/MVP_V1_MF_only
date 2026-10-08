@@ -238,6 +238,20 @@ category within a session shouldn't be recomputed from scratch every time.
   *category-relative mechanic* was flagged as possibly overstated by Ayush, not this
   specific weighting split, so no change proposed here; flagging only so it isn't silently
   assumed settled without having been separately asked about.
+- **Added 2026-10-08 (orchestrator verification against `d331b04`): TER coverage is now
+  much smaller than when this section was designed.** `ter._latest_ter_for_scheme` (the
+  function this section's step 5 reuses) still works unchanged — but migration
+  `0031_scheme_ter_link.py`'s exact-only rework (see attribute 04's correction above)
+  dropped TER linkage from a fuzzy-matched majority of schemes to only ~7,000
+  exactly-name-linked ones. This section's own step 7 already handles a scheme-level
+  missing-TER case correctly (renormalizes weights across whichever of the 5 percentiles
+  are non-`None`, same as missing-5Y) — no design change needed there. What's missing is a
+  **test for a category where most funds lack TER** (not just one scheme), to confirm the
+  category-wide percentile ranking (`_rank_and_percentile` over the low-TER component)
+  degrades sensibly when the majority of a category's funds have `ter_value IS NULL`
+  rather than silently producing a near-meaningless percentile from a tiny TER-having
+  minority. This test is required before attribute 09 is considered done, same as
+  attribute 12's regression test above.
 
 ## Admin-configurability (applies to both 09 and 11)
 
@@ -820,6 +834,22 @@ assumption row, and apply `hypothetical_value = current_value * (1 + assumed_pct
 100)`. No "trough," no window, no proxy flag — just today's holding value times the stated
 assumption.
 
+**Fallback for a missing assumption row — added 2026-10-08, was undefined before (verified
+against `d331b04`: 4 of the 5 seeded hypotheticals below have zero
+`scenario_hypothetical_assumptions` rows, not a rare edge case).** Before this correction,
+the compute logic above had no documented behavior for `(scenario_id, asset_class)` with no
+matching row — any missing lookup falling through to an un-guarded `None`/`0` would violate
+this sub-project's own honest-data floor (§ frontend spec's cross-cutting rules: "nowhere...
+does a missing/insufficient-data state render as a fabricated or zeroed number"), the exact
+mistake this mechanism must not make. **Required fix:** if a scenario has zero
+`scenario_hypothetical_assumptions` rows at all, `hypothetical_value` must not be computed
+for any scheme under it — the API returns an explicit `assumptions_not_set = true` flag
+(scenario-level, not per-scheme, since the missing condition is the same for every scheme),
+no `pct_change`/`hypothetical_value` field at all, and the frontend must render this as an
+explicit state (exact wording and whether the scenario is hidden from "More scenarios"
+entirely vs. shown with this explicit state is **a pending decision for Ayush, not decided
+here** — see "Open items" below) — never a 0% or silently-omitted result.
+
 `assumption_note` is a mandatory field, not optional metadata — Ayush's instruction was
 "mark hypotheticals as assumption-driven and state the assumptions." The UI must show this
 note next to every hypothetical number, and category D's scenarios are labelled visibly
@@ -1012,7 +1042,35 @@ SELECT id, asset_class, pct, note FROM scenarios, (VALUES
   ('Other', -22.0, 'Treated like Equity for gold/commodity-adjacent funds pending a sharper assumption.')
 ) AS a(asset_class, pct, note)
 WHERE scenarios.name = 'AI/tech valuation bust';
+
+-- Still needed, blocking: the equivalent 4x4 INSERT above for each of the other
+-- 4 category-D hypotheticals (Strait of Hormuz closure, US recession + Fed pivot,
+-- Rupee sharp depreciation, Indian equity "lost decade") -- see "Open items" below.
 ```
+
+**Scope correction, 2026-10-08 (orchestrator verification against `d331b04`):** the
+paragraph above originally undercounted this gap as "one HYPOTHETICAL scenario [AI/tech
+valuation bust] has assumption values, a template for the admin to fill in the rest" without
+flagging how large the rest is. Re-verified directly against the seed script: of the 5
+category-D hypotheticals inserted above, only **AI/tech valuation bust** gets
+`scenario_hypothetical_assumptions` rows. The other **four** — Strait of Hormuz closure, US
+recession + Fed pivot, Rupee sharp depreciation, and Indian equity "lost decade" — have
+**zero** assumption rows each, not partial ones. None of the four are in the curated
+`display_rank` 8 (only AI/tech valuation bust is), so today they'd only ever be reached via
+"More scenarios" — but per the fallback fix above, until real assumptions are supplied for
+them, opening any of the four must show the explicit "assumptions not set yet" state (or be
+hidden, per Ayush's pending decision), never a silently-computed or zeroed result.
+
+**Open items, blocking, need Ayush's input — not guessed here:**
+1. The actual Equity/Debt/Hybrid/Other `assumed_pct_change` + `assumption_note` values for
+   each of the 4 unseeded hypotheticals above (16 numbers + 16 notes total, same shape as
+   the AI/tech valuation bust template) — these are Unifolio-authored judgment calls (same
+   "manual-entry precedent" category as the AI/tech ones already seeded), not something to
+   invent without input.
+2. Whether a hypothetical with no assumption rows should be **hidden** from "More
+   scenarios" entirely until assumptions are supplied, or **shown with an explicit
+   "assumptions not set yet" state** (consistent wording TBD) — either is consistent with
+   the honest-data floor, this is a product-presentation choice, not a correctness one.
 
 Not yet run anywhere — this is the script to execute via the existing SSM-tunnel +
 `psql`/DBeaver access pattern once the dates above have had their primary-source
@@ -1404,8 +1462,31 @@ matched managers for that scheme this month, logged, not a crash, and not silent
 ### Matching — redesigned 2026-10-08 per Ayush's direction, deterministic wherever the
 source document actually allows it (flagging an honest constraint first)
 
+**Correction, 2026-10-08 (orchestrator verification against code at `d331b04`):** every
+reference below to "TER's fuzzy matching" describes TER's *original, since-replaced*
+design — not what `amfi_ter_client.py` does today. Migration `0031_scheme_ter_link.py`
+(2026-10-08, the same day as this section) fully removed TER's fuzzy matching after it
+linked ~1,040 schemes to the wrong fund; TER now does exact-compact-name matching only
+(`_compact_key`), linked once via `ter_scheme_code`/`ter_link_source`, with no fuzzy
+fallback at all. This section's design below is **not invalidated** by that — attribute
+04 has a structurally different constraint TER didn't (the factsheet PDF carries no
+joinable code at all, confirmed below, so a pure exact-only join can't achieve full
+coverage the way TER's AMFI-code join could) — but every mention of "TER's fuzzy
+matching" past this point should be read as "a past, now-fully-removed design, kept here
+only as the cautionary precedent this pipeline is deliberately built to avoid repeating,"
+not as a currently-live mechanism being mirrored. This also resolves the open question of
+whether attribute 04 should match TER's current (now exact-only) approach: it shouldn't,
+by design — TER's source data (AMFI's own feed) carries an exact deterministic key this
+pipeline's source data (factsheet PDFs) doesn't, so the two pipelines are allowed to
+differ, and the hybrid design below (exact-first, scoped fuzzy fallback, ambiguity guard,
+persisted confidence) remains the right fit for attribute 04 specifically — consistent
+with Ayush's own general matching-design philosophy (hybrid layered matching over banning
+fuzzy outright). No change to the design itself is made by this correction, only to the
+framing of what it's being compared against.
+
 Ayush asked to replace fuzzy matching with a deterministic AMFI-code/ISIN join, citing bad
-past experience with TER's fuzzy matching. Before designing the replacement: **a real
+past experience with TER's fuzzy matching (as it existed before `0031`). Before designing
+the replacement: **a real
 constraint from the source document itself means a zero-fuzziness join isn't fully
 achievable, and it's important to say so plainly rather than silently paper over it (both
 the real DSP and Nippon factsheet pages were re-inspected specifically for this — grep'd
@@ -1474,17 +1555,32 @@ risk profile is nothing like TER's:
    failure mode worth distinguishing operationally — "couldn't find a candidate" vs. "found
    two that looked equally right"). No row is strictly safer than a 50/50-confidence row
    pointing at a competitor fund within the same AMC.
-6. **Resolve once per scheme family, attach via an exact SQL join.** A fund manager is a
-   fact about the *scheme*, not a specific plan-variant row — confirmed by both DSP and
-   Nippon's own factsheets, which list Regular and Direct Plan NAVs together under one
-   `FUND MANAGER` field. So steps 0-5 above run **once** per factsheet-listed scheme name,
-   yielding one `amfi_code`. From there, every local plan-variant row sharing that
-   `amfi_code` (`WHERE amfi_code = :matched_code` — an exact equality join, zero
-   fuzziness) gets the same upserted manager row. This is the step that most directly
-   answers Ayush's original propagation concern: the *propagation* across
-   Direct/Regular/Growth/IDCW variants, which is where a bad per-row match would otherwise
-   compound, is fully deterministic by construction — only one judgment call is made per
-   scheme, not one per row.
+6. **Resolve once per scheme family, attach via an exact SQL join — corrected 2026-10-08,
+   propagation key was wrong.** A fund manager is a fact about the *scheme*, not a specific
+   plan-variant row — confirmed by both DSP and Nippon's own factsheets, which list Regular
+   and Direct Plan NAVs together under one `FUND MANAGER` field. So steps 0-5 above run
+   **once** per factsheet-listed scheme name, yielding one matched `Scheme` row (via its
+   `amc_name`/`base_name`). **This originally said the match "yields one `amfi_code`" and
+   propagates via `WHERE amfi_code = :matched_code` — wrong, verified against
+   `backend/app/models/reference.py` 2026-10-08: `amfi_code` is `unique=True` on the
+   `schemes` table, one distinct code per individual plan-variant row (AMFI assigns a
+   separate code to each Direct/Regular/Growth/IDCW variant), so that `WHERE` clause would
+   match exactly the one row already resolved and propagate to nothing — the exact bug
+   this step exists to prevent.** The correct propagation key is the scheme family's
+   `(amc_name, base_name)` pair — `base_name` is already suffix-stripped per
+   `scheme_master.py`'s ingestion (step 0 above), shared across all of a fund's
+   plan/option variants, and already has a composite index to join on
+   (`ix_schemes_amc_base`, confirmed live in `backend/app/models/reference.py`'s `Scheme.
+   __table_args__`, added by migration `0028_scheme_master_and_plan_verified.py`). So:
+   resolve once per factsheet scheme name → identify that match's `(amc_name, base_name)` →
+   `WHERE amc_name = :matched_amc AND base_name = :matched_base_name` (an exact equality
+   join on an indexed composite key, zero fuzziness) → upsert the same manager row for
+   every local row that query returns. This is the step that most directly answers Ayush's
+   original propagation concern: the *propagation* across Direct/Regular/Growth/IDCW
+   variants, which is where a bad per-row match would otherwise compound, is fully
+   deterministic by construction — only one judgment call is made per scheme, not one per
+   row. (The accuracy-measurement SQL below and the job-wiring step-3 description both also
+   said "amfi_code" for this propagation step — corrected there too, same fix.)
 
 **Net honest answer to "can this be fully deterministic":** no — the factsheet PDF itself
 doesn't carry a joinable code, so a name-resolution step can't be deleted outright. What
@@ -1540,7 +1636,8 @@ sensible one.
    regex for the most-recently-dated `factsheet...pdf` link, download it.
 3. Parse every scheme page in that PDF for the `Fund Manager` block (the regex specified
    above), run the matching algorithm above per scheme name found, upsert into
-   `scheme_fund_managers` for every plan-variant row sharing the resolved `amfi_code`.
+   `scheme_fund_managers` for every plan-variant row sharing the resolved scheme family's
+   `(amc_name, base_name)` (corrected 2026-10-08 — see step 6 above; not `amfi_code`).
 4. Log one summary line (`resolved=%d skipped=%d unmatched_schemes=%d`) and exit.
 
 **When:** `cron(0 6 10 * ? *)` — 06:00 IST on the 10th of each month. Chosen because AMCs
@@ -1760,12 +1857,52 @@ existing `index_name`/`date`/`value` columns — same `enum_column` idiom alread
 `index_name`'s `BenchmarkIndex` enum, so this is a pattern the codebase already has, not a
 new one.
 
-**Consumer contract — the one caller-side change:** `get_index_level_on_or_before` (the
-existing sync cache-only lookup) gains a `return_type: BenchmarkReturnType = PRICE`
-parameter, defaulting to `PRICE` so every existing caller keeps working unmodified; call
-sites that specifically want TRI (ranking/scenario-analysis code consuming this for
-attributes 09/11, once those are built) pass `return_type=BenchmarkReturnType.TRI`
-explicitly. No existing caller needs to change.
+### Consumer contract — corrected 2026-10-08, five call sites key by index alone, not one
+
+**This section originally understated the change to one caller (`get_index_level_on_or_
+before`) and claimed "no open design questions remain." Verified against the live code
+2026-10-08 (orchestrator, read against `d331b04`) and that was wrong: `nse_indices_client.py`
+has five places that read/write `BenchmarkIndexHistory`, and only one of them was in the
+original plan. The other four are keyed by `index_name` alone — adding `return_type` to the
+table without touching them doesn't just "mix" PRICE and TRI rows, it actively breaks the
+PRICE path: `_upsert_index_history`'s existing-dates check (`filter_by(index_name=index)`,
+no `return_type` filter) will see a PRICE row already exists for a given date and skip
+inserting the TRI row for that same date — and since daily price history already covers
+nearly every trading day, this means essentially every TRI backfill row gets silently
+dropped on upsert, not stored at all. This is "almost broken," not a minor gap — flagged
+explicitly per Ayush's 2026-10-08 instruction to treat this as urgent.**
+
+All five call sites in `backend/app/services/analytics/nse_indices_client.py` (line numbers
+as of `d331b04`) must key by `(index_name, return_type)`, not `index_name` alone:
+
+1. **`_upsert_index_history`** (lines 87-92) — `existing_dates` query must add
+   `.filter_by(index_name=index, return_type=return_type)`, and the inserted row must set
+   `return_type=return_type`. Gains a `return_type: BenchmarkReturnType` parameter.
+2. **`_cached_date_bounds`** (lines 95-101) — the `min`/`max` query's `.filter(...)` must add
+   `BenchmarkIndexHistory.return_type == return_type`. Gains a `return_type` parameter.
+3. **`_fetched_from`** (line 112) — the in-process cache dict's key must become
+   `tuple[BenchmarkIndex, BenchmarkReturnType]`, not `BenchmarkIndex` alone, or a PRICE fetch
+   for an index will mark TRI as "already fetched from" that same start date and vice versa.
+4. **`ensure_index_history_fresh`** (lines 115-144) — gains a `return_type: BenchmarkReturnType
+   = PRICE` parameter (default preserves every existing caller unmodified), threads it through
+   to `_cached_date_bounds`, `_fetched_from`, and `_upsert_index_history` above, and branches
+   its fetch call to `_fetch_index_history` (PRICE) or the new `_fetch_tri_history` (TRI)
+   based on this parameter — not a new function, the existing freshness/caching logic is
+   correct and reusable, it just needs the dimension threaded through.
+5. **`get_index_level_on_or_before`** (lines 147-157) — gains a `return_type:
+   BenchmarkReturnType = PRICE` parameter, defaulting to `PRICE` so every existing caller
+   (`benchmark.py`'s two call sites) keeps working unmodified; adds
+   `BenchmarkIndexHistory.return_type == return_type` to its `.filter(...)`. Call sites that
+   specifically want TRI (ranking/scenario-analysis code consuming this for attributes 09/11,
+   once those are built) pass `return_type=BenchmarkReturnType.TRI` explicitly.
+
+**Required regression test, blocking sign-off on this section:** a test that seeds a PRICE
+row and a TRI row for the same `(index_name, date)`, calls `ensure_index_history_fresh` for
+both return types, and asserts (a) both rows persist independently (the upsert bug above,
+caught directly), and (b) `benchmark.py`'s existing XIRR/benchmark-comparison output is
+byte-for-byte unchanged with TRI rows present in the table versus without them (proving the
+default-PRICE behavior for existing callers is truly untouched, not just "should be"
+unchanged).
 
 ### Job wiring — extends the existing `benchmark_daily` job, not a new one
 
@@ -1776,20 +1913,23 @@ new method, `_fetch_tri_history`, mirroring the existing `_fetch_index_history` 
 (same `cinfo` request-building, same date-range-gap-filling logic) but pointed at the new
 endpoint path and reading `TotalReturnsIndex`/`NTR_Value` instead of
 `HistoricalDate`/`CLOSE`; call it alongside the existing fetch inside the same
-`ensure_index_history_fresh` daily run, tagging upserted rows `return_type='TRI'`. Net
-infra change: **zero** — no new Terraform, no new task definition, no new CloudWatch log
-group. The existing job's runtime grows by one extra HTTP round-trip per index (4 extra
-requests/day total) — immaterial against its existing 4-request price-return fetch,
-and well inside the same Fargate task's existing sizing (no cost delta worth computing
-separately; it rides entirely on the already-provisioned `benchmark_daily` job).
+`ensure_index_history_fresh` daily run (now parameterized by `return_type`, see above),
+tagging upserted rows `return_type='TRI'`. Net infra change: **zero** — no new Terraform, no
+new task definition, no new CloudWatch log group. The existing job's runtime grows by one
+extra HTTP round-trip per index (4 extra requests/day total) — immaterial against its
+existing 4-request price-return fetch, and well inside the same Fargate task's existing
+sizing (no cost delta worth computing separately; it rides entirely on the already-
+provisioned `benchmark_daily` job).
 
 ### Remaining work for attribute 12, explicitly scoped
 
-Mechanical only, same posture as attribute 04's "remaining work": the migration (one
-column, one widened constraint), the new `_fetch_tri_history` method (a near-copy of an
-existing, working method against a proven endpoint), and wiring `get_index_level_on_or_before`
-callers that need TRI specifically to pass `return_type='TRI'` into the existing
-cache-only lookup query. No open design questions remain.
+The migration (one column, one widened constraint); reworking all five call sites listed
+above to key by `(index_name, return_type)`, not `index_name` alone (the actual size of this
+change — not just "wiring one caller" as originally scoped); the new `_fetch_tri_history`
+method (a near-copy of an existing, working method against a proven endpoint); and the
+blocking regression test above, which must pass before this is considered done. No other
+open design questions remain — the schema/endpoint/job-wiring decisions above are unaffected
+by this correction, only the caller-side blast radius was understated.
 
 ## Attribute 14 — Investment & withdrawal analysis
 

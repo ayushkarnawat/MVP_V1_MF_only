@@ -75,7 +75,7 @@ flowchart LR
 | Insufficient history | `insufficient_history = true` (< 3Y NAV history) | Card shows fund name + category, no rank/neighbors — badge: "Insufficient History", text: "Not ranked yet — needs 3 years of NAV history to be eligible." Same floor/copy convention as `CategoryRankingSection.tsx`'s own equivalent state. |
 | Thin category | `thin_category = true` (< 5 comparable funds) | Leaderboard still renders (fewer neighbor rows possible), with a "Thin Category (N peers)" badge — same semantics/copy convention as `CategoryRankingSection.tsx`. |
 | Category unavailable | No category universe resolvable | "Category Unavailable" badge, same convention as `CategoryRankingSection.tsx`. |
-| Missing 5Y (has 3Y) | `return_5y IS NULL` | Composite still computed (weights renormalized backend-side); frontend shows "—" for the 5Y row in the detail breakdown, not a 0 or fabricated value. |
+| Missing a component (5Y, TER, or volatility) | `return_5y`/`lowTer.raw`/`lowVolatility.raw` is `null` for this scheme | Composite still computed (weights renormalized backend-side across whichever components are available); frontend shows "—" for that row in the detail breakdown, not a 0 or fabricated value. **Corrected 2026-10-08:** originally scoped to 5Y only — verified against `d331b04` that TER coverage dropped sharply after the exact-only TER rework (migration `0031`, only ~7,000 schemes now exactly-linked), so a missing-TER row is now a common case, not a rare one, and must get the same "—" treatment, not a 0% or omitted-component display. |
 
 ## 5. Data contract (frontend-relevant shape)
 

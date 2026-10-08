@@ -232,9 +232,10 @@ erDiagram
     SCHEMES ||--o{ SCHEME_FUND_MANAGERS : "has resolved managers"
     SCHEMES {
         uuid id PK
-        text amfi_code
+        text amfi_code "unique per variant row -- not a propagation key"
         text isin
-        text base_name
+        text amc_name
+        text base_name "shared across Direct/Regular/Growth/IDCW -- (amc_name, base_name) is the propagation key, via ix_schemes_amc_base"
     }
     SCHEME_FUND_MANAGERS {
         uuid id PK
@@ -264,7 +265,7 @@ flowchart LR
     Fuzzy -->|"ambiguous or below threshold"| NoRow["No row written —\nlogged, counted\n(never a guessed attach)"]
     Exact --> Upsert[("scheme_fund_managers\none row per manager\nper scheme per month")]
     FuzzyOk --> Upsert
-    Upsert -->|"join on amfi_code —\npropagates to every\nDirect/Regular/Growth/IDCW variant"| API["New read API\n(1:1 peer of existing\nanalytics endpoints)"]
+    Upsert -->|"join on (amc_name, base_name) —\nvia ix_schemes_amc_base, propagates to\nevery Direct/Regular/Growth/IDCW variant\n(corrected 2026-10-08: amfi_code is\nunique per variant row, can't propagate)"| API["New read API\n(1:1 peer of existing\nanalytics endpoints)"]
     API --> FE["FundManagerSection.tsx"]
 
     classDef store fill:#DCFCE7,stroke:#15803D,color:#111

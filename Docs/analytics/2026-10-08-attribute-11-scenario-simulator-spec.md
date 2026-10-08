@@ -149,6 +149,18 @@ flowchart TB
   `scenario_hypothetical_assumptions`' mandatory `assumption_note` is always rendered,
   never omitted — it's the only thing that makes a hypothetical number legible as
   "someone's stated judgment," not "computed fact."
+- **Added 2026-10-08 (orchestrator verification against `d331b04`): "assumptions not set
+  yet" state, not previously designed.** Of the 5 seeded category-D hypotheticals, only
+  AI/Tech Valuation Bust currently has `scenario_hypothetical_assumptions` rows — Strait of
+  Hormuz closure, US recession + Fed pivot, Rupee sharp depreciation, and Indian equity
+  "lost decade" have none (see backend doc's attribute 11 section). Per the backend's
+  `assumptions_not_set` flag (added in the same correction), this view must branch: if
+  `assumptions_not_set = true`, render no hero stat, no assumption table, and no rupee
+  figure at all — literal text, e.g. *"We haven't set an assumption for this scenario
+  yet."* — never a 0% or blank-table result. **Whether such a scenario is reachable from
+  "More scenarios" at all (shown with this state) or hidden from the picker entirely until
+  assumptions are supplied is Ayush's pending decision, not resolved in this spec** — see
+  backend doc's "Open items" for attribute 11.
 
 ## 4. Picker-to-result dispatch logic
 
@@ -179,6 +191,7 @@ that template).
 | Ongoing (group or phase) | `is_ongoing = true` | Pulsing dot indicator + "numbers will update as the event continues" in the compliance banner |
 | Redemption freeze | `had_redemption_freeze_schemes` non-empty | Freeze callout + "Frozen, not %" hero stat, §3c |
 | Hypothetical | `scenario_type = HYPOTHETICAL` | Solid distinct-color banner, assumption table, §3d |
+| Hypothetical, assumptions not set | `scenario_type = HYPOTHETICAL`, `assumptions_not_set = true` | No hero stat, no assumption table, no rupee figure — literal "We haven't set an assumption for this scenario yet." Hidden-vs-shown in "More scenarios" is pending Ayush's decision, §3d. |
 
 ## 6. Compliance framing — exact copy (shipped default, not yet SEBI-cleared)
 
@@ -238,6 +251,8 @@ type ScenarioResult = {
     assetClass: "Equity" | "Debt" | "Hybrid" | "Other";
     assumedPctChange: string; assumptionNote: string;
   }>;
+  assumptionsNotSet: boolean;           // hypothetical view only, added 2026-10-08 — true for
+                                        // 4 of 5 seeded hypotheticals today, see §3d/§5
 };
 ```
 
