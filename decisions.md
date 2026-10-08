@@ -504,9 +504,29 @@ Reviewed on the plan page https://claude.ai/artifact/UH899y4fhr6BbDdYE4Q9aU (use
 - **Account deletion grace: 30 days** (was 5). Accounts already pending keep their 5-day date.
 - **Member pickers show the name only** (no "(relationship)", no "(Me)", no %); the % stays on the "N% complete" chip and Family Members cards.
 
-## 2026-10-07/08 — Analytics speed fix and stamp duty: scope and decisions (planned, not built yet)
+## 2026-10-07 — Sub-project 1 planning consolidated into a running doc
 
-Pages: https://claude.ai/artifact/RTvmbJVy1SrpH6XJYYWnqx (why, costs) and https://claude.ai/artifact/VjuDFpFp9EELeT7fcDuA7s (change map). Plan: `Docs/superpowers/plans/2026-10-07-analytics-speed-and-stamp-duty.md`. Handoff: `Docs/orchestration/analytics-speed-stamp-duty-handoff.md`.
+Full detail: `Docs/analytics/2026-10-07-sub-project-1-planning.md`. Covers attribute 09's
+unresolved "category-relative" mechanics, the admin-configurability call, and attribute
+11's full design (back-tested per-scheme rupee replay, no single benchmark-per-scenario
+schema, 8-scenario starting library, precomputed-table Option B over live-query Option A,
+costing). **Nothing in it has been executed** — no migrations, no spikes, no staging
+changes; this is planning only, per the brainstorming skill's architectural path.
+
+- **Backfill scope confirmed scenario-count-independent:** the one-time NAV-history
+  backfill (Step 1) covers every scenario simultaneously, since `mfapi.in` returns a
+  scheme's full history in one call — adding more scenarios later never re-triggers it.
+  Only Step 2 (the per-scenario fall-% table) scales with scenario count, and does so
+  trivially (~14,354 rows/scenario).
+- **Testing sequencing agreed, not yet run:** a local-dev-only spike (real `mfapi.in`
+  calls, local DB, local egress IP — fully isolated from staging's shared NAT IP and the
+  production daily NAV job) on a small batch first, then — only if clean — a throttled,
+  off-hours, one-off Fargate backfill. Staging's `nav_history` is never touched by the
+  spike itself, only by the eventual real backfill.
+
+## 2026-10-07/08 — Analytics speed fix and stamp duty: scope and decisions
+
+Pages: `Docs/orchestration/pages/2026-10-07-analytics-speed-fix.html` (why, costs) and `Docs/orchestration/pages/2026-10-07-analytics-stamp-duty-change-map.html` (change map). Plan: `Docs/superpowers/plans/2026-10-07-analytics-speed-and-stamp-duty.md`. Handoff: `Docs/orchestration/analytics-speed-stamp-duty-handoff.md`.
 - **Analytics never runs the TER refresh** (fixes A, C). On staging it took 30+ minutes per run and could repeat within one run; `scheme_ter` is written only by the TER job. **Why:** every Analytics run on AWS is a new process, so the in-memory 15-minute guard never held, and ~5,695 AMFI schemes without a readable plan made "TER missing" permanently true.
 - **The TER job runs daily at 06:20 IST, renamed `ter-monthly` → `ter-daily`**, log line with month, schemes, matched, no match, new links and seconds. **Why:** the 1 Oct 06:00 run saved September's TERs because AMFI hadn't published October's yet; 06:20 is after the 06:15 fund-list job and before the 06:30 Analytics run.
 - **TER is linked to SEBI's scheme code by an exact name, never fuzzily (8 Oct).** `schemes.ter_scheme_code` (migration 0031), set once when the scheme's base name equals a TER row's name ignoring case, spaces and punctuation; every later month joins by code; manual links are never replaced; an unlinked scheme gets no TER and its month row is cleared. **Why:** the live comparison on 8 Oct showed every fuzzy match was wrong: 923 schemes matched to another fund house (Kotak Business Cycle → Tata Business Cycle, HDFC Ultra Short Term → HSBC) because AMFI fills a month gradually and HDFC, Kotak and Nippon had no October rows yet (11,647 rows vs September's 62,393), and ~116 matched the wrong year or series within one house (Bandhan Gilt April 2026 → April 2028, SBI FMP Series 50 → 51). Exact names cover 7,041 schemes correctly. AMFI's TER rows carry `NSDLSchemeCode` (1,813 names ↔ 1,813 codes), which survives renames. **Rejected:** a separate mapping table (the link is many-plans-to-one-fund and `schemes` already holds AMFI code and ISIN); brand-scoped fuzzy with a fallback (Run 1's first version: both routes produce wrong matches). The 7 Oct staging run saved those wrong TERs, so the deploy clears `scheme_ter` once.

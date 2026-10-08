@@ -106,6 +106,7 @@ module "scheduler" {
   db_instance_id      = module.database.db_instance_id
   db_instance_arn     = module.database.db_instance_arn
   fck_nat_instance_id = module.networking.fck_nat_instance_id
+  bastion_instance_id = module.networking.bastion_instance_id
   account_id          = data.aws_caller_identity.current.account_id
   alert_emails        = var.alert_emails
 }

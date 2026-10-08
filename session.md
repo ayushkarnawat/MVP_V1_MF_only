@@ -12,7 +12,7 @@ Earlier "Latest" sections (2026-09-30 staging QA fixes, 2026-09-24 PAN-at-upload
 **Read this file, then `CLAUDE.md`'s Session State section, before re-deriving
 anything by re-reading the whole repo.**
 
-## Latest (2026-10-08): Analytics speed fix + stamp duty — built, gated and reviewed (uncommitted, not deployed)
+## Latest (2026-10-08): Analytics speed fix + stamp duty — built, gated and reviewed
 
 Plan `Docs/superpowers/plans/2026-10-07-analytics-speed-and-stamp-duty.md` is complete up to the deploy. Round-by-round record: `Docs/orchestration/analytics-speed-stamp-duty-handoff.md`. Decisions: `decisions.md` "2026-10-07/08". Deploy: **`Docs/orchestration/2026-10-08-staging-deploy-guide-analytics-stamp-duty.md`**.
 
@@ -41,7 +41,25 @@ Plan `Docs/superpowers/plans/2026-10-07-analytics-speed-and-stamp-duty.md` is co
 - **Found and logged:** for funds re-coded after a merger, a genuine pre-merger opening cost can be rejected by the plausibility check.
 - **Still open, unchanged:** the empty-statement dead end (CP219252880), "Other" in Portfolio Allocation, no real KFintech statement, and removing the Import Review screen after staging (awaiting the user's confirmation).
 
-## Latest (2026-10-06): CAS import fixes — Phases 1–6 + Phase 7 prep built, local gate passed; review screen still in (uncommitted, not deployed)
+## Previous (2026-10-07): staging bastion `InsufficientInstanceCapacity` fixed (AZ swap), committed
+
+Full narrative: `log.md`'s 2026-10-07 entry.
+
+- Starting the stopped-by-default staging bastion (Scenario A) started failing with
+  `InsufficientInstanceCapacity`. Confirmed via CloudTrail: an AZ-wide `t4g`-family shortage in
+  `ap-south-1a`, not instance-size-specific (nano→micro didn't fix it). Fixed by moving the
+  bastion to `ap-south-1b` (`subnet_id` change — forces destroy+create, since it's immutable).
+  New instance `i-0b3f2f75cfef2465d`, verified running/SSM-online.
+- Bundled in the same targeted apply (had to go together, same instance-ID references): a
+  9PM-only stop schedule for the bastion (no auto-start, on-demand access) and its IAM wiring.
+- Committed: the 5 infra files only. **Not committed**, left as-is: `decisions.md`'s
+  unrelated sub-project-1 planning entry, 3 untracked `Docs/*` files, and
+  `infra/envs/staging/scheme-master.tfplan` (a separate, not-yet-decided
+  `scheme_master_daily`/SNS deploy — plan file excluded, likely contains sensitive data).
+- **Still open:** whether to proceed with that `scheme_master_daily`/SNS deploy at all — not
+  yet answered by the user.
+
+## Previous (2026-10-06): CAS import fixes — Phases 1–6 + Phase 7 prep built, local gate passed; review screen still in (uncommitted, not deployed)
 
 Full narrative: `log.md`'s 2026-10-05/06 entry. Decisions: `decisions.md` (2026-10-06 entries). Plans: `Docs/superpowers/plans/2026-10-06-cas-import-fixes-*.md`. Round-by-round record and every open/closed carry-over: `Docs/orchestration/cas-import-fixes-handoff.md`. Numbers: `Docs/orchestration/2026-10-06-cas-import-baseline.md` ("Phase 7 gate — FINAL").
 

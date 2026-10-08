@@ -324,7 +324,47 @@ Carry-over 16 (p20 XIRR gap) turned out to be a harness bug (a reinvestment ISIN
 
 Not done (needs staging): a real KFintech statement, the C1–C14 frontend checklist, the staging wipe, the deploy, loading the scheme master once, then (after the user confirms the gate) the review-screen removal and its PRD-01 FR-10 / App-Flow edits.
 
-## 2026-10-08 — Analytics speed fix and stamp duty: built, gated, reviewed (uncommitted, not deployed)
+## 2026-10-07 — Staging bastion: `InsufficientInstanceCapacity` root-caused and fixed (AZ swap)
+
+Follow-on to the 2026-10-01 AWS staging cost-reduction work (bastion stopped-by-default under
+Scenario A). Starting the bastion to do staging DB work via the SSM tunnel started failing.
+
+**What went wrong:** `aws ec2 start-instances` failed with `InsufficientInstanceCapacity` —
+AWS's own physical capacity shortage in `ap-south-1a`, checked only at start/placement time.
+Confirmed via `aws cloudtrail lookup-events` (read-only): ~10+ repeated `StartInstances` calls
+from Terraform's internal retry logic, all failing with `Server.InsufficientInstanceCapacity`,
+08:28–08:46 UTC. Bumping `bastion_instance_type` from `t4g.nano` to `t4g.micro`
+(`infra/modules/networking/variables.tf`) did **not** fix it — a `until aws ec2 start-instances
+...; do sleep 30; done` retry loop still failed for 12+ attempts, proving the shortage was
+AZ-wide for the whole `t4g` family, not instance-size-specific.
+
+**What fixed it:** moved the bastion's `subnet_id` to the `ap-south-1b` public subnet instead
+of `ap-south-1a` (`infra/modules/networking/main.tf`, commented inline with the date and a
+note to switch back to `[0]` if `1b` ever becomes the constrained AZ instead). `subnet_id` is
+an immutable EC2 attribute, so this is a destroy+create, not an in-place modify — confirmed via
+a targeted `-target` plan showing `1 to add, 2 to change, 1 to destroy` before applying. New
+instance `i-0b3f2f75cfef2465d` came up `running`/SSM `Online` in under 15 seconds with no
+capacity error.
+
+**Bundled in the same targeted apply** (because the new instance ID has to propagate
+everywhere the old one was referenced, in the same apply, or these would be left pointing at
+the destroyed instance): a `stop_bastion` EventBridge Scheduler entry (9PM IST, stop-only — no
+auto-start, since bastion access is on-demand, not a standing schedule) and its IAM statement in
+`infra/modules/scheduler/main.tf`, a new `bastion_instance_id` variable
+(`infra/modules/scheduler/variables.tf`), and the wiring of
+`module.networking.bastion_instance_id` into `module.scheduler` in
+`infra/envs/staging/main.tf`.
+
+All changes were applied via `-target`-scoped plan/apply (never full-environment), to keep
+them isolated from unrelated pending work already sitting in the staging Terraform directory —
+a `scheme_master_daily` scheduled job and a stale SNS subscription recreate — which stay
+untouched and unapplied.
+
+Not yet resolved: whether/when to proceed with that separate `scheme_master_daily`/SNS deploy
+(a `terraform plan -out=scheme-master.tfplan` was started and interrupted, unrelated to this
+fix) — flagged to the user, no decision made yet.
+
+## 2026-10-08 — Analytics speed fix and stamp duty: built, gated, reviewed
 
 Plan `Docs/superpowers/plans/2026-10-07-analytics-speed-and-stamp-duty.md`, built by Codex in three runs over the manual relay, reviewed and finished by Claude (orchestrator; the session moved to another Claude account mid-way, handoff `Docs/orchestration/2026-10-08-claude-session-handoff.md`). Round-by-round record: `Docs/orchestration/analytics-speed-stamp-duty-handoff.md`.
 
@@ -334,4 +374,4 @@ Plan `Docs/superpowers/plans/2026-10-07-analytics-speed-and-stamp-duty.md`, buil
 - **Reviews:** Run 1 and Run 2 each reviewed by a fresh Opus reviewer with fixes and re-reviews; a final whole-change review approved after fixes (unreadable peer response no longer aborts the warm-up; a codeless TER feed is rejected; harness checks made able to fail).
 - **Gates:** 592 affected backend tests pass; Postgres 0030↔0032 round trip and 43 Postgres/migration tests pass; synthetic gate 88/88; real files pass except the known empty statement CP219252880.
 - **Deferred by the user:** the peer NAV download fix (Analytics 47 s–3.3 min locally on the largest file, depending on mfapi; staging estimated 1–6 min) and data saved before 0032 (staging is wiped). Logged in `DEFERRED_FEATURES.md`, with the merged-fund opening-cost gap found on the way.
-- **Next:** the user commits; staging deploy with `Docs/orchestration/2026-10-08-staging-deploy-guide-analytics-stamp-duty.md`.
+- **Next:** staging deploy with `Docs/orchestration/2026-10-08-staging-deploy-guide-analytics-stamp-duty.md`.

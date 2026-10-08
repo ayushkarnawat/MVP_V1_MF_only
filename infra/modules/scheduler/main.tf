@@ -242,6 +242,16 @@ locals {
         InstanceIds = [var.fck_nat_instance_id]
       })
     }
+    # Stop-only safety net: the bastion is on-demand access, not something the
+    # app needs up during business hours, so (unlike RDS/backend/fck-nat) it
+    # has no paired 5AM auto-start -- that stays manual, per ad-hoc need.
+    stop_bastion = {
+      schedule_expression = "cron(15 21 * * ? *)" # 9:15 PM IST
+      target_arn          = "arn:aws:scheduler:::aws-sdk:ec2:stopInstances"
+      input = jsonencode({
+        InstanceIds = [var.bastion_instance_id]
+      })
+    }
     start_rds = {
       schedule_expression = "cron(45 4 * * ? *)" # 4:45 AM IST
       target_arn          = "arn:aws:scheduler:::aws-sdk:rds:startDBInstance"
@@ -288,6 +298,13 @@ data "aws_iam_policy_document" "night_stop_scheduler" {
     effect    = "Allow"
     actions   = ["ec2:StopInstances", "ec2:StartInstances"]
     resources = ["arn:aws:ec2:${var.aws_region}:${var.account_id}:instance/${var.fck_nat_instance_id}"]
+  }
+
+  statement {
+    sid       = "StopBastion"
+    effect    = "Allow"
+    actions   = ["ec2:StopInstances"]
+    resources = ["arn:aws:ec2:${var.aws_region}:${var.account_id}:instance/${var.bastion_instance_id}"]
   }
 }
 
