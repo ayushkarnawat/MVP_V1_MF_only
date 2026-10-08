@@ -387,3 +387,47 @@ def test_recompute_does_not_refetch_nav_over_network_for_a_category_shared_acros
             p.stop()
 
     assert warm_spy.await_count == 1
+
+
+def test_a_run_started_16_minutes_ago_counts_as_stuck():
+    db = _session()
+    user, _members = _user_with_members(db, n_members=0)
+    db.add(AnalyticsRecomputeStatus(user_id=user.id, started_at=datetime.now(timezone.utc) - timedelta(minutes=16)))
+    db.commit()
+    assert should_dispatch_recompute(db, user.id) is True
+
+
+def test_a_run_started_5_minutes_ago_still_blocks_a_new_one():
+    db = _session()
+    user, _members = _user_with_members(db, n_members=0)
+    db.add(AnalyticsRecomputeStatus(user_id=user.id, started_at=datetime.now(timezone.utc) - timedelta(minutes=5)))
+    db.commit()
+    assert should_dispatch_recompute(db, user.id) is False
+
+
+def test_started_at_is_refreshed_after_each_section_so_a_long_run_is_not_taken_for_stuck():
+    """Review finding 7: a cold run can pass the 15-minute ceiling; refreshing
+    started_at after every committed section keeps the claim alive."""
+    import asyncio
+    db = _session()
+    user, _members = _user_with_members(db, n_members=1)
+    seen = []
+
+    def _recording(name):
+        async def compute(db_, ids):
+            status = db.get(AnalyticsRecomputeStatus, user.id)
+            db.refresh(status)
+            seen.append(status.started_at)
+            return _MOCK_RESULTS[name]
+        return compute
+
+    patches = [patch.object(section, "compute", _recording(section.name)) for section in _SECTIONS]
+    for p in patches:
+        p.start()
+    try:
+        asyncio.run(recompute_household_analytics(db, user.id))
+    finally:
+        for p in patches:
+            p.stop()
+    assert len(set(seen)) > 1          # moved forward during the run
+    assert seen == sorted(seen)

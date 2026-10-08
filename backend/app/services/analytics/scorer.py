@@ -40,7 +40,7 @@ from app.services.analytics.risk_metrics import (
 )
 from app.services.analytics.schemas import FundScoreRow
 from app.services.analytics.scheme_universe import get_category_universe
-from app.services.analytics.ter import _ensure_ter_fresh, _latest_ter_for_scheme
+from app.services.analytics.ter import _latest_ter_for_scheme
 
 _RETURN_WEIGHT = Decimal("0.45")
 _RISK_WEIGHT = Decimal("0.30")
@@ -200,11 +200,9 @@ async def _category_ter_context(
 ) -> tuple[dict[uuid.UUID, Decimal], Decimal | None]:
     """TER-vs-category-average inputs, computed once per category so a
     portfolio holding several funds in the same category doesn't repeat
-    the TER refresh + AUM-weighted average for every held scheme in it."""
+    the AUM-weighted average for every held scheme in it."""
     if not universe:
         return {}, None
-    scheme_ids = {s.id for s in universe}
-    await _ensure_ter_fresh(db, scheme_ids)
     ter_by_scheme = {
         s.id: info[0] for s in universe if (info := _latest_ter_for_scheme(db, s.id)) is not None
     }

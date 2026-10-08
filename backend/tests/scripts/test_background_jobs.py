@@ -1,10 +1,9 @@
 import asyncio
 import importlib.util
 import logging
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
-from app.db.session import commit_off_loop
 from app.models.enums import BenchmarkIndex, Relationship
 from app.models.folio import Folio
 from app.models.reference import Scheme
@@ -33,64 +32,62 @@ def _scheme(code: str) -> Scheme:
     )
 
 
-def test_refresh_nav_daily_passes_only_held_schemes(db_session, monkeypatch, caplog):
+def test_refresh_nav_daily_warms_held_funds_then_their_category_peers(db_session, monkeypatch, caplog):
     job = _load_job("refresh_nav_daily")
     user = User(phone_number="+910000000101", created_at=datetime.now(timezone.utc))
     db_session.add(user)
     db_session.flush()
-    member = HouseholdMember(
-        user_id=user.id,
-        name="Job Test User",
-        relationship=Relationship.SELF,
-        created_at=datetime.now(timezone.utc),
-    )
-    held_a, held_b, unheld = _scheme("JOB-NAV-1"), _scheme("JOB-NAV-2"), _scheme("JOB-NAV-3")
-    db_session.add_all([member, held_a, held_b, unheld])
+    member = HouseholdMember(user_id=user.id, name="Job Test User", relationship=Relationship.SELF,
+                             created_at=datetime.now(timezone.utc))
+    held_a, held_b, unheld, peer = _scheme("JOB-NAV-1"), _scheme("JOB-NAV-2"), _scheme("JOB-NAV-3"), _scheme("JOB-NAV-4")
+    db_session.add_all([member, held_a, held_b, unheld, peer])
     db_session.flush()
-    db_session.add_all(
-        [
-            Folio(household_member_id=member.id, scheme_id=held_a.id, folio_number="NAV-1"),
-            Folio(household_member_id=member.id, scheme_id=held_b.id, folio_number="NAV-2"),
-            Folio(household_member_id=member.id, scheme_id=held_a.id, folio_number="NAV-3"),
-        ]
-    )
+    db_session.add_all([
+        Folio(household_member_id=member.id, scheme_id=held_a.id, folio_number="NAV-1"),
+        Folio(household_member_id=member.id, scheme_id=held_b.id, folio_number="NAV-2"),
+        Folio(household_member_id=member.id, scheme_id=held_a.id, folio_number="NAV-3"),
+    ])
     db_session.flush()
 
-    received_scheme_ids = []
+    warmed: list[set] = []
+    categories: list[str] = []
 
     async def fake_warm_nav_history(db, schemes):
         assert asyncio.get_running_loop().is_running()
-        received_scheme_ids.extend(scheme.id for scheme in schemes)
+        warmed.append({scheme.id for scheme in schemes})
+
+    async def fake_universe(db, sebi_category):
+        categories.append(sebi_category)
+        return [held_a, peer]  # a held fund is also its own peer: not warmed twice
 
     monkeypatch.setattr(job, "SessionLocal", lambda: db_session)
     monkeypatch.setattr(job, "warm_nav_history", fake_warm_nav_history)
+    monkeypatch.setattr(job, "get_category_universe", fake_universe)
     caplog.set_level(logging.INFO)
 
     job.main()
 
-    assert set(received_scheme_ids) == {held_a.id, held_b.id}
-    assert len(received_scheme_ids) == 2
-    assert "refresh_nav_daily: held_schemes=2 success=True" in caplog.messages
+    assert warmed == [{held_a.id, held_b.id}, {peer.id}]
+    assert categories == ["Equity Scheme - Flexi Cap Fund"]
+    assert "refresh_nav_daily: held_schemes=2 categories=1 peer_schemes=1 success=True" in caplog.messages
 
 
-def test_refresh_ter_monthly_runs_refresh_inside_fresh_event_loop(db_session, monkeypatch, caplog):
-    job = _load_job("refresh_ter_monthly")
-    calls = []
+def test_refresh_ter_daily_logs_counts_from_a_fresh_event_loop(db_session, monkeypatch, caplog):
+    from app.services.analytics.amfi_ter_client import TerRefreshResult
 
-    async def fake_refresh_ter_data(db):
+    job = _load_job("refresh_ter_daily")
+
+    async def fake_refresh_ter(db, month=None):
         assert asyncio.get_running_loop().is_running()
-        await commit_off_loop(db)
-        calls.append(db)
-        return True
+        return TerRefreshResult(success=True, month="10-2026", schemes=3, matched=2, no_match=1, new_links=2, seconds=0.4)
 
     monkeypatch.setattr(job, "SessionLocal", lambda: db_session)
-    monkeypatch.setattr(job, "refresh_ter_data", fake_refresh_ter_data)
+    monkeypatch.setattr(job, "refresh_ter", fake_refresh_ter)
     caplog.set_level(logging.INFO)
 
-    job.main()
+    job.main([])
 
-    assert calls == [db_session]
-    assert "refresh_ter_monthly: success=True" in caplog.messages
+    assert "refresh_ter_daily: success=True month=10-2026 schemes=3 matched=2 no_match=1 new_links=2 seconds=0.4" in caplog.messages
 
 
 def test_refresh_aaum_quarterly_logs_expected_refresh_failure(db_session, monkeypatch, caplog):
@@ -123,8 +120,9 @@ def test_refresh_benchmark_daily_uses_ten_calendar_years_for_every_index(
         def today(cls):
             return cls(2024, 2, 29)
 
-    async def fake_ensure_index_history_fresh(db, index, start_date, end_date):
+    async def fake_ensure_index_history_fresh(db, index, start_date, end_date, *, fresh_within):
         assert asyncio.get_running_loop().is_running()
+        assert fresh_within == timedelta(0)  # the job downloads every morning (8 Oct)
         calls.append((db, index, start_date, end_date))
         return index is not BenchmarkIndex.NIFTY_500
 
@@ -174,3 +172,66 @@ def test_refresh_scheme_master_daily_calls_refresh_and_logs_counts(db_session, m
     asyncio.run(job.main_async(db_session))
     assert calls == [db_session]
     assert "refresh_scheme_master_daily: rows=5 inserted=2 updated=3 deactivated=1" in caplog.messages
+
+
+def test_refresh_ter_daily_month_argument_is_passed_through(db_session, monkeypatch, caplog):
+    from app.services.analytics.amfi_ter_client import TerRefreshResult
+
+    job = _load_job("refresh_ter_daily")
+    seen = []
+
+    async def fake_refresh_ter(db, month=None):
+        seen.append(month)
+        return TerRefreshResult(success=True, month=month or "10-2026")
+
+    monkeypatch.setattr(job, "SessionLocal", lambda: db_session)
+    monkeypatch.setattr(job, "refresh_ter", fake_refresh_ter)
+    job.main(["--month", "09-2026"])
+    job.main([])
+    assert seen == ["09-2026", None]
+
+
+def test_refresh_nav_daily_keeps_going_when_one_category_fails(db_session, monkeypatch, caplog):
+    job = _load_job("refresh_nav_daily")
+    user = User(phone_number="+910000000102", created_at=datetime.now(timezone.utc))
+    db_session.add(user)
+    db_session.flush()
+    member = HouseholdMember(user_id=user.id, name="Job Test User 2", relationship=Relationship.SELF,
+                             created_at=datetime.now(timezone.utc))
+    held_a = _scheme("JOB-NAV-21")
+    held_b = Scheme(amfi_code="JOB-NAV-22", name="Scheme JOB-NAV-22", amc_name="Test AMC",
+                    sebi_category="Debt Scheme - Liquid Fund")
+    peer = _scheme("JOB-NAV-23")
+    db_session.add_all([member, held_a, held_b, peer])
+    db_session.flush()
+    db_session.add_all([Folio(household_member_id=member.id, scheme_id=held_a.id, folio_number="NAV-21"),
+                        Folio(household_member_id=member.id, scheme_id=held_b.id, folio_number="NAV-22")])
+    db_session.flush()
+    warmed: list[set] = []
+
+    async def fake_warm(db, schemes):
+        warmed.append({s.id for s in schemes})
+
+    rollbacks = []
+    monkeypatch.setattr(db_session, "rollback", lambda: rollbacks.append(1))
+
+    async def fake_universe(db, sebi_category):
+        if sebi_category == "Debt Scheme - Liquid Fund":
+            raise ValueError("NAVAll parse error")
+        return [peer]
+
+    monkeypatch.setattr(job, "SessionLocal", lambda: db_session)
+    monkeypatch.setattr(job, "warm_nav_history", fake_warm)
+    monkeypatch.setattr(job, "get_category_universe", fake_universe)
+    caplog.set_level(logging.INFO)
+    job.main()
+    assert warmed[-1] == {peer.id}
+    assert rollbacks == [1]  # a failed category leaves the session usable (8 Oct re-review)
+
+
+def test_refresh_ter_daily_rejects_a_malformed_month():
+    import pytest
+    job = _load_job("refresh_ter_daily")
+    with pytest.raises(SystemExit):
+        job.main(["--month", "2026-09"])
+

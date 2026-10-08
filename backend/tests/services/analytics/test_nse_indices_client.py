@@ -1,7 +1,7 @@
 import asyncio
 import decimal
 import uuid
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -11,6 +11,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+import app.services.analytics.nse_indices_client as nse_module
 from app.db.base import Base
 from app.models.enums import BenchmarkIndex
 from app.models.reference import BenchmarkIndexHistory
@@ -187,3 +188,60 @@ def test_get_index_level_on_or_before_returns_nearest_prior_trading_day():
 def test_get_index_level_on_or_before_returns_none_when_nothing_cached():
     db = _session()
     assert get_index_level_on_or_before(db, BenchmarkIndex.NIFTY_50, date(2026, 8, 9)) is None
+
+
+@pytest.fixture(autouse=True)
+def _reset_fetched_from():
+    nse_module._fetched_from.clear()
+    yield
+    nse_module._fetched_from.clear()
+
+
+def _cache(db, *days):
+    for d in days:
+        db.add(BenchmarkIndexHistory(index_name=BenchmarkIndex.NIFTY_50, date=d, value=Decimal("24000")))
+    db.commit()
+
+
+def test_history_ending_yesterday_counts_as_fresh_for_today():
+    db = _session()
+    today = date.today()
+    _cache(db, date(2016, 1, 4), today - timedelta(days=1))
+    fetch = AsyncMock(side_effect=AssertionError("should not download"))
+    with patch("app.services.analytics.nse_indices_client._fetch_index_history", new=fetch):
+        assert asyncio.run(ensure_index_history_fresh(db, BenchmarkIndex.NIFTY_50, date(2016, 1, 4), today)) is True
+
+
+def test_history_ending_five_days_ago_is_topped_up():
+    db = _session()
+    today = date.today()
+    _cache(db, date(2016, 1, 4), today - timedelta(days=5))
+    fetch = AsyncMock(return_value=[(today - timedelta(days=1), Decimal("24100"))])
+    with patch("app.services.analytics.nse_indices_client._fetch_index_history", new=fetch):
+        assert asyncio.run(ensure_index_history_fresh(db, BenchmarkIndex.NIFTY_50, date(2016, 1, 4), today)) is True
+    fetch.assert_awaited_once()
+
+
+def test_start_before_the_index_existed_is_asked_for_once_per_process():
+    """NSE has no history before an index started, so the saved range can never
+    reach a 2003 purchase. Without the memo every call would download again."""
+    db = _session()
+    today = date.today()
+    fetch = AsyncMock(return_value=[(date(2005, 4, 1), Decimal("1000")), (today - timedelta(days=1), Decimal("24000"))])
+    with patch("app.services.analytics.nse_indices_client._fetch_index_history", new=fetch):
+        for _ in range(3):
+            asyncio.run(ensure_index_history_fresh(db, BenchmarkIndex.NIFTY_50, date(2003, 6, 1), today))
+    assert fetch.await_count == 1
+
+
+def test_daily_job_still_tops_up_history_that_ends_yesterday():
+    """The 06:00 benchmark-daily job passes fresh_within=0, so it downloads
+    each morning even though Analytics would count yesterday as fresh."""
+    db = _session()
+    today = date.today()
+    _cache(db, date(2016, 1, 4), today - timedelta(days=1))
+    fetch = AsyncMock(return_value=[(today, Decimal("24100"))])
+    with patch("app.services.analytics.nse_indices_client._fetch_index_history", new=fetch):
+        assert asyncio.run(ensure_index_history_fresh(
+            db, BenchmarkIndex.NIFTY_50, date(2016, 1, 4), today, fresh_within=timedelta(0))) is True
+    fetch.assert_awaited_once()

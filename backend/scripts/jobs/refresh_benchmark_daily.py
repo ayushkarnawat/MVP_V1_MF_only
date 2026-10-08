@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import sys
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
@@ -20,7 +20,9 @@ async def main_async(db: Session) -> None:
     end_date = date.today()
     start_date = years_ago(end_date, 10)
     results = [
-        await ensure_index_history_fresh(db, index, start_date, end_date)
+        # fresh_within=0: the job tops up every morning; only Analytics treats
+        # history up to 4 days old as fresh (8 Oct).
+        await ensure_index_history_fresh(db, index, start_date, end_date, fresh_within=timedelta(0))
         for index in BenchmarkIndex
     ]
     succeeded = sum(results)

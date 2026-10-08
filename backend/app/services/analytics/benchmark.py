@@ -51,6 +51,7 @@ from app.services.dashboard.household_members import list_household_members
 from app.services.dashboard.schemas import HoldingRow
 from app.services.dashboard.xirr import _RELEVANT_TYPES as _XIRR_RELEVANT_TYPES, _XIRR_DEBIT_TYPES, _FUND_RELEVANT_TYPES
 from app.services.dashboard.xirr import portfolio_xirr as _portfolio_xirr
+from app.services.lot_rules import paid_amount
 
 # Same flow sets as the dashboard XIRR (gifts valued, #3).
 _RELEVANT_TYPES = _XIRR_RELEVANT_TYPES
@@ -93,7 +94,8 @@ def _signed_amount(
     txn: Transaction, extra_debit_types: frozenset[TransactionType] = frozenset()
 ) -> Decimal:
     debit_types = _XIRR_DEBIT_TYPES | extra_debit_types
-    return -txn.amount if txn.type in debit_types else txn.amount
+    amount = paid_amount(txn)
+    return -amount if txn.type in debit_types else amount
 
 
 async def _benchmark_xirr_for_transactions(

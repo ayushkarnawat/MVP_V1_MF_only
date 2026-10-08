@@ -16,7 +16,7 @@ used for this POST (confirmed HTTP 405 there).
 from __future__ import annotations
 
 import json
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 
 import httpx
@@ -101,16 +101,35 @@ def _cached_date_bounds(db: Session, index: BenchmarkIndex) -> tuple[date, date]
     return (earliest, latest) if earliest is not None else None
 
 
-async def ensure_index_history_fresh(db: Session, index: BenchmarkIndex, start_date: date, end_date: date) -> bool:
+# Saved history ending within this many days of the requested end counts as
+# up to date: in the morning today's close isn't published yet, so a literal
+# "covers today" check made every Analytics call download again (32 calls,
+# 127 s on 8 Oct). 4 days covers a weekend plus a holiday.
+_FRESH_WITHIN = timedelta(days=4)
+# Earliest start already downloaded in this process, per index. NSE has no
+# history before an index began, so a start older than that can never be
+# covered by the saved range; asking once per process is enough.
+_fetched_from: dict[BenchmarkIndex, date] = {}
+
+
+async def ensure_index_history_fresh(
+    db: Session, index: BenchmarkIndex, start_date: date, end_date: date, *, fresh_within: timedelta = _FRESH_WITHIN
+) -> bool:
     """One bulk fetch of `[start_date, end_date]` per call — not one fetch
     per lookup date. Skipped entirely if the cache's existing bounds
     already cover the requested range. A fetch failure (network error, or
     a malformed/empty response — a real risk on an undocumented,
     reverse-engineered endpoint) leaves whatever's cached in place and
     returns False, same degrade-gracefully posture as
-    `nav.py`/`arn_lookup.py`/`amfi_ter_client.py`."""
+    `nav.py`/`arn_lookup.py`/`amfi_ter_client.py`.
+    Saved history ending within `fresh_within` of `end_date` counts as
+    covering it (8 Oct). Analytics uses the 4-day default; the 06:00
+    benchmark-daily job passes 0 so it still downloads every morning."""
     bounds = _cached_date_bounds(db, index)
-    if bounds is not None and bounds[0] <= start_date and bounds[1] >= end_date:
+    start_covered = bounds is not None and (
+        bounds[0] <= start_date or _fetched_from.get(index, date.max) <= start_date)
+    end_covered = bounds is not None and bounds[1] >= end_date - fresh_within
+    if start_covered and end_covered:
         return True
 
     try:
@@ -121,6 +140,7 @@ async def ensure_index_history_fresh(db: Session, index: BenchmarkIndex, start_d
         return False
 
     await _upsert_index_history(db, index, rows)
+    _fetched_from[index] = min(_fetched_from.get(index, date.max), start_date)
     return True
 
 

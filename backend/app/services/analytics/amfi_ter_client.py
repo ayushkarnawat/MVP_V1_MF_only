@@ -1,13 +1,13 @@
 """AMFI TER (Total Expense Ratio) bulk ingestion — PRD-04 FR-10/FR-11.
 
 AMFI republishes TER daily for the current reference month, one row per
-scheme covering both Direct and Regular plans (`R_TER`/`D_TER`), keyed by
-a scheme-name string with no shared join key against local `schemes`
-(live-verified 2026-08-10, see
-`Docs/superpowers/plans/2026-08-10-phase-4-analytics-backend-design.md`) —
-matching is by fuzzy name, same `difflib.SequenceMatcher` idiom as
-`import_/enrich.py`'s scheme resolution (PRD-01's stdlib-only constraint
-applies equally here, no new fuzzy-matching dependency).
+scheme covering both Direct and Regular plans (`R_TER`/`D_TER`). Each row
+has a `Scheme_Name` and SEBI's scheme code (`NSDLSchemeCode`) but no AMFI
+code or ISIN. A scheme is linked once to that code by an exact cleaned name
+(`schemes.ter_scheme_code`), then joined by code every month, never fuzzy
+(8 Oct). Fuzzy matching assigned
+Kotak Business Cycle Fund Tata's TER when Kotak hadn't filed that month.
+The stored link also survives a renamed fund in the TER feed.
 
 Unlike `dashboard/nav.py`'s per-scheme on-demand fetch, this is a bulk
 endpoint — one month's data covers every scheme at once — so
@@ -21,7 +21,7 @@ page's rows in `{"data": [...], "meta": {"page", "pageSize", "total",
 envelope itself as the row list silently iterated over its two string dict
 keys ("data", "meta") instead of any real row. That was the true root cause
 of the "stray non-dict row" `AttributeError` this module was first patched
-around (`_latest_row_per_scheme`'s `isinstance` guard); the guard made the
+around (the `isinstance` guard now in `_rows_by_code`); the guard made the
 symptom stop crashing, but until `_fetch_ter_rows` was fixed to unwrap the
 envelope, every scheme's TER silently stayed unmatched (0 real rows, only
 2 bogus "rows" per page). `TER_Date` is also an ISO-8601 datetime with a
@@ -35,9 +35,11 @@ import asyncio
 import logging
 import re
 import uuid
-from datetime import date, datetime
+import time
+from dataclasses import dataclass
+from functools import lru_cache
+from datetime import date, datetime, timezone
 from decimal import Decimal
-from difflib import SequenceMatcher
 
 import httpx
 from sqlalchemy.orm import Session
@@ -53,18 +55,6 @@ AMFI_TER_MONTH_URL = "https://www.amfiindia.com/api/populate-ter-month"
 AMFI_TER_DATA_URL = "https://www.amfiindia.com/api/populate-te-rdata-revised"
 AMFI_TER_REFERER = "https://www.amfiindia.com/ter-of-mf-schemes"
 
-# Claude's technical judgment (no PRD-04 sign-off needed, same posture as
-# the FR-5b cost-overlay magnitude decision) — below this, a "best" fuzzy
-# match is more likely a wrong scheme than a genuine one, so the scheme is
-# left without a TER rather than risk a confidently wrong number. Lower
-# than enrich.py's 0.92 scheme-resolution threshold on purpose: local
-# scheme names carry a "- Direct/Regular Plan - Growth/IDCW" suffix that
-# AMFI's TER feed's plan-generic Scheme_Name never has (confirmed live
-# 2026-08-10), which caps a genuine match's ratio well below 0.92 — e.g. a
-# real "HDFC Flexi Cap Fund - Direct Plan - Growth" vs. AMFI's "HDFC Flexi
-# Cap Fund" scores ~0.67, while an unrelated pair scores ~0.26, so 0.55
-# separates the two cases with real margin on both sides.
-MIN_MATCH_CONFIDENCE = 0.55
 _PAGE_SIZE = 500
 _RESOLVED_PLAN_VARIANTS = (PlanNameVariant.DIRECT, PlanNameVariant.REGULAR)
 
@@ -73,11 +63,8 @@ _RESOLVED_PLAN_VARIANTS = (PlanNameVariant.DIRECT, PlanNameVariant.REGULAR)
 # wait, the dominant cost behind a reported post-fix "still slow" regression).
 # Originally 20, on the assumption this endpoint had no documented rate
 # limit -- live-verified 2026-08-21 that assumption was wrong: 20 concurrent
-# requests got a 429 from AMFI, leaving scheme_ter empty until the next
-# ter.py backoff window. Lowered to 5; no retry-on-429 added here on
-# purpose -- ter.py's existing 15-min backoff already retries a failed
-# refresh on the next request, so a second retry layer here would be
-# redundant.
+# requests got a 429 from AMFI. Lowered to 5; failed refreshes are
+# retried by the next daily TER job, with no retry-on-429 layer here.
 _TER_FETCH_CONCURRENCY = 5
 
 
@@ -88,6 +75,7 @@ def _current_financial_year(today: date) -> str:
     return f"{start_year}-{start_year + 1}"
 
 
+@lru_cache(maxsize=65536)
 def _normalize_scheme_name(name: str) -> str:
     s = name.upper()
     s = re.sub(r"\([^)]*\)", "", s)
@@ -125,8 +113,8 @@ def _parse_amfi_date(raw: str) -> date:
 # see `nav.py`'s "57x slower on WSL DrvFs" note) freezes the whole loop --
 # including an in-flight AMFI page request already waiting on its socket,
 # which then blows a 30s client-side timeout even though AMFI answered
-# fine. One page timing out fails the *entire* refresh_ter_data batch for
-# the full 15-min backoff (unlike nav.py's per-scheme degrade), so this
+# fine. One page timing out fails the *entire* refresh_ter_data batch
+# (unlike nav.py's per-scheme degrade), so this
 # client gets real margin against an observed stall rather than matching
 # nav.py's 30s.
 _TER_HTTP_TIMEOUT = 90.0
@@ -154,7 +142,7 @@ async def _fetch_ter_rows(month: str) -> list[dict]:
     # not a bare list — treating the envelope itself as the row list
     # silently iterated over its two string dict keys instead of any real
     # row (the true root cause behind the "stray non-dict row" symptom
-    # `_latest_row_per_scheme`'s isinstance guard was added for).
+    # `_rows_by_code`'s isinstance guard was added for).
     async with httpx.AsyncClient(timeout=_TER_HTTP_TIMEOUT) as client:
 
         async def get_page(page: int) -> dict:
@@ -210,101 +198,120 @@ async def _fetch_ter_rows(month: str) -> list[dict]:
         return rows
 
 
-def _latest_row_per_scheme(rows: list[dict]) -> dict[str, dict]:
-    """AMFI republishes daily even when the value hasn't changed — keep
-    only the row with the latest TER_Date per Scheme_Name."""
+# How a scheme got its TER code: by an exact cleaned name (the job) or by hand.
+# The job never replaces a manual entry (8 Oct).
+TER_LINK_EXACT = "exact_name"
+TER_LINK_MANUAL = "manual"
+
+
+def _compact_key(name: str) -> str:
+    """Upper-cased name with spaces and punctuation removed, so "Navi NiftyIT"
+    and "Navi Nifty IT" agree. Parenthesised text is kept: "(Segregated -
+    06032020)" is a different fund from the main one (8 Oct review)."""
+    return re.sub(r"[^A-Z0-9]", "", name.upper())
+
+
+def _rows_by_code(rows: list[dict]) -> dict[str, dict]:
+    """Latest-dated row per SEBI scheme code. A row without a code is never
+    used: it can't be linked or joined (8 Oct review)."""
     latest: dict[str, tuple[date, dict]] = {}
     for row in rows:
-        # AMFI's paginated feed has been observed mixing in stray non-dict
-        # elements (live-verified 2026-08-14) alongside genuine scheme rows —
-        # skip anything that isn't a row rather than crash the whole refresh.
-        if not isinstance(row, dict):
+        if not isinstance(row, dict) or not row.get("NSDLSchemeCode") or not row.get("Scheme_Name"):
             continue
-        name = row.get("Scheme_Name")
-        if not name:
-            continue
-        row_date = _parse_amfi_date(row["TER_Date"])
-        existing = latest.get(name)
-        if existing is None or row_date > existing[0]:
-            latest[name] = (row_date, row)
-    return {name: row for name, (_, row) in latest.items()}
+        try:
+            row_date = _parse_amfi_date(row["TER_Date"])
+        except (KeyError, ValueError, TypeError):
+            continue  # a malformed row is skipped, never fatal (8 Oct re-review)
+        code = row["NSDLSchemeCode"]
+        if code not in latest or row_date > latest[code][0]:
+            latest[code] = (row_date, row)
+    return {code: row for code, (_, row) in latest.items()}
 
 
-def _best_match(scheme_name: str, ter_rows_by_name: dict[str, dict]) -> tuple[dict, float] | None:
-    norm_query = _normalize_scheme_name(scheme_name)
-    best: tuple[dict, float] | None = None
-    for name, row in ter_rows_by_name.items():
-        ratio = SequenceMatcher(None, norm_query, _normalize_scheme_name(name)).ratio()
-        if best is None or ratio > best[1]:
-            best = (row, ratio)
-    return best
+def _ter_value(scheme: Scheme, row: dict | None) -> Decimal | None:
+    """The scheme's TER from its linked row, or None for "checked, no usable TER"."""
+    if row is None:
+        return None
+    plan = scheme.plan_type or scheme.plan_name_variant
+    raw_value = row["R_TER"] if plan.value == "regular" else row["D_TER"]
+    if raw_value in (None, ""):
+        return None
+    ter_value = Decimal(str(raw_value))
+    # AMFI uses a literal 0 for "no plan of this type", never a real 0.00% TER.
+    return None if ter_value == 0 else ter_value
 
 
-def _upsert_scheme_ter(db: Session, scheme_id: uuid.UUID, reference_period: date, ter_value: Decimal) -> None:
-    existing = db.get(SchemeTer, (scheme_id, reference_period))
-    if existing is not None:
-        existing.ter_value = ter_value
+def _upsert_scheme_ter(db: Session, existing: dict[uuid.UUID, SchemeTer], scheme_id: uuid.UUID,
+                       reference_period: date, ter_value: Decimal) -> None:
+    row = existing.get(scheme_id)
+    if row is not None:
+        row.ter_value = ter_value
     else:
-        db.add(SchemeTer(scheme_id=scheme_id, reference_period=reference_period, ter_value=ter_value))
+        existing[scheme_id] = row = SchemeTer(scheme_id=scheme_id, reference_period=reference_period, ter_value=ter_value)
+        db.add(row)
 
 
-def _mark_checked_no_match(db: Session, scheme_id: uuid.UUID, reference_period: date) -> None:
-    """Persists "checked this scheme against this period's AMFI feed, found
-    no usable TER" as a NULL-value row — distinct from no row at all ("never
-    checked"). Without this, `_missing_current_month_ter` (ter.py) sees a
-    permanently-unmatchable scheme (e.g. a matured FMP no longer in AMFI's
-    feed) as perpetually missing coverage, re-triggering a full AMFI
-    national-feed rescan every backoff window forever — exactly the risk
-    ter.py's own docstring already flagged. Keyed by `reference_period`, so
-    a new calendar month still gets a fresh check; this only silences
-    repeat checks within an already-checked month. If AMFI's feed later
-    does start covering the scheme, the next refresh (triggered by any
-    other still-uncovered scheme, or the month rolling over) re-examines
-    every scheme fresh and overwrites this marker via `_upsert_scheme_ter`.
-
-    Also converts a PRIOR (pre-fix) refresh's stale 0 -- AMFI's "no plan of
-    this type" sentinel, once wrongly persisted as if it were a real TER --
-    into the same NULL marker, rather than leaving it looking like a
-    covered zero-expense-ratio fund."""
-    existing = db.get(SchemeTer, (scheme_id, reference_period))
-    if existing is None:
-        db.add(SchemeTer(scheme_id=scheme_id, reference_period=reference_period, ter_value=None))
-    elif existing.ter_value == 0:
-        existing.ter_value = None
+def _mark_checked_no_match(db: Session, existing: dict[uuid.UUID, SchemeTer], scheme_id: uuid.UUID,
+                           reference_period: date) -> None:
+    """"Checked this month, no usable TER": a NULL row, never a stale value.
+    Clears any value saved earlier this month, including the wrong fuzzy
+    matches the 7 Oct staging run saved (8 Oct)."""
+    row = existing.get(scheme_id)
+    if row is None:
+        existing[scheme_id] = row = SchemeTer(scheme_id=scheme_id, reference_period=reference_period, ter_value=None)
+        db.add(row)
+    else:
+        row.ter_value = None
 
 
-async def refresh_ter_data(db: Session) -> bool:
-    """Fetch the latest published TER month and upsert `scheme_ter` for
-    every locally-known scheme with a confident fuzzy-name match and a
+@dataclass(frozen=True)
+class TerRefreshResult:
+    success: bool
+    month: str | None = None
+    schemes: int = 0
+    matched: int = 0
+    no_match: int = 0
+    new_links: int = 0
+    seconds: float = 0.0
+
+
+async def refresh_ter(db: Session, month: str | None = None) -> TerRefreshResult:
+    """Fetch a TER month (the latest published one, or `month`) and upsert `scheme_ter` for
+    every locally-known scheme linked to a code by exact cleaned name, with a
     resolved Direct/Regular plan (`R_TER` for REGULAR, `D_TER` for
     DIRECT — `Scheme_Name` is plan-generic, one row covers both plans;
     UNRESOLVED-plan schemes are skipped, since which column applies can't
-    be known). Returns False on any fetch failure or empty result — same
+    be known). Never fuzzy: a missing link or code clears this month's TER.
+    `month` ("MM-YYYY") processes that month instead of the latest one; the
+    deploy rebuilds last month first, whose feed is complete (8 Oct).
+    Returns success=False on any fetch failure or empty result — same
     degrade-gracefully posture as `nav.py`/`arn_lookup.py`: a transient
     AMFI outage must never crash a request, callers fall back to whatever
     is already cached."""
+    started = time.perf_counter()
     financial_year = _current_financial_year(date.today())
     try:
-        month = await _fetch_latest_ter_month(financial_year)
         if month is None:
-            return False
+            month = await _fetch_latest_ter_month(financial_year)
+        if month is None:
+            return TerRefreshResult(success=False)
         rows = await _fetch_ter_rows(month)
     except (httpx.HTTPError, KeyError, ValueError, TypeError, AttributeError) as exc:
-        # Degrade-gracefully posture (see docstring) means this must never
-        # raise -- but a bare `return False` with no logging previously left
-        # a real failure (429, DNS/proxy block, AMFI response-shape change)
-        # indistinguishable from "AMFI just hasn't published this month yet".
-        # Live-verified 2026-08-21: this silence is why a colleague's
-        # persistent "TER Data Unavailable" couldn't be diagnosed past
-        # guessing at 429s.
         logger.warning("refresh_ter_data: fetch failed: %r", exc)
-        return False
-
+        return TerRefreshResult(success=False, month=month)
     if not rows:
         logger.warning("refresh_ter_data: AMFI returned no rows for month %s", month)
-        return False
+        return TerRefreshResult(success=False, month=month)
 
-    latest_by_name = _latest_row_per_scheme(rows)
+    by_code = _rows_by_code(rows)
+    if not by_code:
+        # No usable SEBI code in the whole feed (a format change): writing
+        # would clear every scheme's TER for the month (final review, 8 Oct).
+        logger.warning("refresh_ter_data: no rows with a SEBI scheme code for month %s", month)
+        return TerRefreshResult(success=False, month=month)
+    codes_by_key: dict[str, set[str]] = {}
+    for code, row in by_code.items():
+        codes_by_key.setdefault(_compact_key(row["Scheme_Name"]), set()).add(code)
     month_num, year_num = month.split("-")
     reference_period = date(int(year_num), int(month_num), 1)
 
@@ -312,32 +319,32 @@ async def refresh_ter_data(db: Session) -> bool:
         Scheme.plan_type.in_((SchemePlanType.DIRECT, SchemePlanType.REGULAR)),
         and_(Scheme.plan_type.is_(None), Scheme.plan_name_variant.in_(_RESOLVED_PLAN_VARIANTS)),
     )).all()
+    existing = {row.scheme_id: row for row in
+                db.query(SchemeTer).filter(SchemeTer.reference_period == reference_period).all()}
+    now = datetime.now(timezone.utc)
+    matched = no_match = new_links = 0
     for scheme in schemes:
-        exact = [row for name,row in latest_by_name.items()
-                 if scheme.base_name and _normalize_scheme_name(name) == _normalize_scheme_name(scheme.base_name)]
-        # The live feed has MF_ID only. Exact branded base names take priority;
-        # ambiguous normalized names retain the existing fuzzy fallback.
-        match = (exact[0], 1.0) if len(exact) == 1 else _best_match(scheme.name, latest_by_name)
-        if match is None or match[1] < MIN_MATCH_CONFIDENCE:
-            _mark_checked_no_match(db, scheme.id, reference_period)
-            continue
-        row, _confidence = match
-        plan = scheme.plan_type or scheme.plan_name_variant
-        raw_value = row["R_TER"] if plan.value == "regular" else row["D_TER"]
-        if raw_value in (None, ""):
-            _mark_checked_no_match(db, scheme.id, reference_period)
-            continue
-        ter_value = Decimal(str(raw_value))
-        # AMFI uses a literal 0 here for "no plan of this type" (e.g. a
-        # scheme with no Regular plan reports R_TER=0), not a genuine
-        # zero-expense-ratio fund -- real TERs are never actually 0.00% in
-        # practice (regulatory minimum operating costs). Treat it the same
-        # as a missing/unmatched value rather than persisting a misleading
-        # "valid coverage at 0%" row.
-        if ter_value == 0:
-            _mark_checked_no_match(db, scheme.id, reference_period)
-            continue
-        _upsert_scheme_ter(db, scheme.id, reference_period, ter_value)
+        key = _compact_key(scheme.base_name) if scheme.base_name else ""
+        # A manual entry (even "deliberately no code") is never touched.
+        if scheme.ter_scheme_code is None and scheme.ter_link_source != TER_LINK_MANUAL and key:
+            codes = codes_by_key.get(key, set())
+            if len(codes) == 1:  # exactly one fund with this name: link it once
+                scheme.ter_scheme_code = next(iter(codes))
+                scheme.ter_link_source = TER_LINK_EXACT
+                scheme.ter_linked_at = now
+                new_links += 1
+        ter_value = _ter_value(scheme, by_code.get(scheme.ter_scheme_code)) if scheme.ter_scheme_code else None
+        if ter_value is None:
+            _mark_checked_no_match(db, existing, scheme.id, reference_period)
+            no_match += 1
+        else:
+            _upsert_scheme_ter(db, existing, scheme.id, reference_period, ter_value)
+            matched += 1
 
     await commit_off_loop(db)
-    return True
+    return TerRefreshResult(success=True, month=month, schemes=len(schemes), matched=matched,
+                            no_match=no_match, new_links=new_links, seconds=round(time.perf_counter() - started, 1))
+
+
+async def refresh_ter_data(db: Session) -> bool:
+    return (await refresh_ter(db)).success

@@ -18,10 +18,10 @@ locals {
       schedule_expression = "cron(0 6 * * ? *)"
       task_role_arn       = null
     }
-    ter_monthly = {
-      slug                = "ter-monthly"
-      command             = ["python", "scripts/jobs/refresh_ter_monthly.py"]
-      schedule_expression = "cron(0 6 1 * ? *)"
+    ter_daily = {
+      slug                = "ter-daily"
+      command             = ["python", "scripts/jobs/refresh_ter_daily.py"]
+      schedule_expression = "cron(20 6 * * ? *)"
       task_role_arn       = null
     }
     aaum_quarterly = {

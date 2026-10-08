@@ -49,7 +49,10 @@ from app.services.dashboard.schemas import MemberStatus
 
 logger = logging.getLogger(__name__)
 
-_STALE_RECOMPUTE_CEILING = timedelta(hours=2)
+# A run counts as crashed after 15 minutes (was 2 hours, 7 Oct): after the
+# speed fix a run takes seconds to a few minutes, so a stuck claim no longer
+# hides Analytics for up to 2 hours.
+_STALE_RECOMPUTE_CEILING = timedelta(minutes=15)
 
 
 @dataclass  # not frozen: tests patch .compute per-instance via unittest.mock.patch.object
@@ -122,7 +125,7 @@ def release_recompute_claim(db: Session, user_id: uuid.UUID) -> None:
     """Clears a claim taken by try_claim_recompute() when the dispatch it
     was meant to gate never actually started (ECS unconfigured, or RunTask
     reported a placement failure) -- otherwise the claim sits held until
-    the 2-hour staleness ceiling passes, blocking should_dispatch_recompute
+    the 15-minute staleness ceiling passes, blocking should_dispatch_recompute
     /try_claim_recompute recovery even though nothing is really running."""
     status = db.get(AnalyticsRecomputeStatus, user_id)
     if status is not None:
@@ -237,12 +240,19 @@ async def recompute_household_analytics(db: Session, user_id: uuid.UUID) -> None
                     if _locked_generation(db, user_id) != captured_generation:
                         return
                     _mark_section_failed(db, user_id, scope_key, section.name)
+                    db.query(AnalyticsRecomputeStatus).filter_by(user_id=user_id).update(
+                        {AnalyticsRecomputeStatus.started_at: datetime.now(timezone.utc)}, synchronize_session=False)
                     await commit_off_loop(db)
                     continue
 
                 if _locked_generation(db, user_id) != captured_generation:
                     return
                 _upsert_section(db, user_id, scope_key, household_member_id, section.name, payload)
+                # Heartbeat: a long run (e.g. a never-held category's first peer
+                # download) must not pass the 15-minute stuck ceiling and get a
+                # second run started beside it (8 Oct review).
+                db.query(AnalyticsRecomputeStatus).filter_by(user_id=user_id).update(
+                    {AnalyticsRecomputeStatus.started_at: datetime.now(timezone.utc)}, synchronize_session=False)
                 await commit_off_loop(db)
     finally:
         db.query(AnalyticsRecomputeStatus).filter_by(user_id=user_id).update(

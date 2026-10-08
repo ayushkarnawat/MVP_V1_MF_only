@@ -196,7 +196,6 @@ def test_compute_fund_score_persists_one_row_per_day():
     with (
         patch("app.services.analytics.scorer._category_returns", new=AsyncMock(side_effect=_returns)),
         patch("app.services.analytics.scorer.get_category_universe", new=AsyncMock(return_value=[held, peer])),
-        patch("app.services.analytics.scorer._ensure_ter_fresh", new=AsyncMock(return_value=None)),
     ):
         row1 = asyncio.run(compute_fund_score(db, held))
         row2 = asyncio.run(compute_fund_score(db, held))
@@ -238,7 +237,6 @@ def test_compute_fund_score_survives_concurrent_duplicate_insert():
     with (
         patch("app.services.analytics.scorer._category_returns", new=AsyncMock(side_effect=_returns)),
         patch("app.services.analytics.scorer.get_category_universe", new=AsyncMock(return_value=[held, peer])),
-        patch("app.services.analytics.scorer._ensure_ter_fresh", new=AsyncMock(return_value=None)),
     ):
         row = asyncio.run(compute_fund_score(db, held))
 
@@ -264,7 +262,6 @@ def test_compute_fund_score_best_return_in_min_category_gets_tier_five():
     with (
         patch("app.services.analytics.scorer._category_returns", new=AsyncMock(side_effect=_returns)),
         patch("app.services.analytics.scorer.get_category_universe", new=AsyncMock(return_value=all_schemes)),
-        patch("app.services.analytics.scorer._ensure_ter_fresh", new=AsyncMock(return_value=None)),
     ):
         row = asyncio.run(compute_fund_score(db, held))
 
@@ -290,7 +287,6 @@ def test_compute_fund_score_includes_raw_evidence_fields():
     with (
         patch("app.services.analytics.scorer._category_returns", new=AsyncMock(side_effect=_returns)),
         patch("app.services.analytics.scorer.get_category_universe", new=AsyncMock(return_value=[held, peer])),
-        patch("app.services.analytics.scorer._ensure_ter_fresh", new=AsyncMock(return_value=None)),
     ):
         row = asyncio.run(compute_fund_score(db, held))
 
@@ -322,7 +318,6 @@ def test_compute_fund_score_cost_adjustment_nudges_final_score():
     with (
         patch("app.services.analytics.scorer._category_returns", new=AsyncMock(side_effect=_returns)),
         patch("app.services.analytics.scorer.get_category_universe", new=AsyncMock(return_value=[held, peer])),
-        patch("app.services.analytics.scorer._ensure_ter_fresh", new=AsyncMock(return_value=None)),
     ):
         row = asyncio.run(compute_fund_score(db, held))
 
@@ -383,7 +378,6 @@ def test_compute_fund_score_cost_adjustment_is_none_not_zero_when_ter_unavailabl
     with (
         patch("app.services.analytics.scorer._category_returns", new=AsyncMock(side_effect=_returns)),
         patch("app.services.analytics.scorer.get_category_universe", new=AsyncMock(return_value=[held, peer])),
-        patch("app.services.analytics.scorer._ensure_ter_fresh", new=AsyncMock(return_value=None)),
     ):
         row = asyncio.run(compute_fund_score(db, held))
 
@@ -422,7 +416,6 @@ def test_compute_fund_score_cost_adjustment_is_zero_string_not_none_when_genuine
     with (
         patch("app.services.analytics.scorer._category_returns", new=AsyncMock(side_effect=_returns)),
         patch("app.services.analytics.scorer.get_category_universe", new=AsyncMock(return_value=[held, peer])),
-        patch("app.services.analytics.scorer._ensure_ter_fresh", new=AsyncMock(return_value=None)),
     ):
         row = asyncio.run(compute_fund_score(db, held))
 
@@ -483,7 +476,6 @@ def test_compute_portfolio_score_weights_by_holding_value():
     with (
         patch("app.services.analytics.scorer._category_returns", new=AsyncMock(side_effect=_returns)),
         patch("app.services.analytics.scorer.get_category_universe", new=AsyncMock(return_value=[held])),
-        patch("app.services.analytics.scorer._ensure_ter_fresh", new=AsyncMock(return_value=None)),
         patch("app.services.dashboard.holdings.get_nav_on_or_before", new=AsyncMock(side_effect=_nav_lookup)),
         patch("app.services.dashboard.holdings.get_previous_nav_from_cache", return_value=None),
     ):
@@ -510,7 +502,6 @@ def test_compute_portfolio_score_dedupes_category_work_across_holdings_in_same_c
 
     universe_calls = []
     returns_calls = []
-    ter_calls = []
 
     async def _universe(db_, sebi_category):
         universe_calls.append(sebi_category)
@@ -520,16 +511,12 @@ def test_compute_portfolio_score_dedupes_category_work_across_holdings_in_same_c
         returns_calls.append(len(universe))
         return {held_a.id: Decimal("0.20"), held_b.id: Decimal("0.25")}
 
-    async def _ter_fresh(db_, scheme_ids):
-        ter_calls.append(scheme_ids)
-
     async def _nav_lookup(db_, scheme, on_date):
         return Decimal("11"), on_date
 
     with (
         patch("app.services.analytics.scorer.get_category_universe", new=AsyncMock(side_effect=_universe)),
         patch("app.services.analytics.scorer._category_returns", new=AsyncMock(side_effect=_returns)),
-        patch("app.services.analytics.scorer._ensure_ter_fresh", new=AsyncMock(side_effect=_ter_fresh)),
         patch("app.services.dashboard.holdings.get_nav_on_or_before", new=AsyncMock(side_effect=_nav_lookup)),
         patch("app.services.dashboard.holdings.get_previous_nav_from_cache", return_value=None),
     ):
@@ -538,4 +525,26 @@ def test_compute_portfolio_score_dedupes_category_work_across_holdings_in_same_c
     assert len(summary.funds) == 2
     assert len(universe_calls) == 1  # not once per held scheme
     assert len(returns_calls) == 1
-    assert len(ter_calls) == 1
+
+
+def test_fund_score_never_reaches_amfi_ter_feed():
+    """Review finding 8: the quality score's category-average TER reads
+    scheme_ter only."""
+    db = _session()
+    held = _scheme(db, "Held Fund")
+    peer = _scheme(db, "Peer Fund")
+    _seed_monthly_nav(db, held, 24, monthly_growth=Decimal("0.02"))
+    _seed_monthly_nav(db, peer, 24, monthly_growth=Decimal("0.005"))
+
+    async def _returns(db_, universe, today):
+        return {held.id: Decimal("0.30"), peer.id: Decimal("0.05")}
+
+    boom = AsyncMock(side_effect=AssertionError("Analytics reached AMFI"))
+    with (
+        patch("app.services.analytics.scorer._category_returns", new=AsyncMock(side_effect=_returns)),
+        patch("app.services.analytics.scorer.get_category_universe", new=AsyncMock(return_value=[held, peer])),
+        patch("app.services.analytics.amfi_ter_client._fetch_latest_ter_month", new=boom),
+        patch("app.services.analytics.amfi_ter_client._fetch_ter_rows", new=boom),
+    ):
+        asyncio.run(compute_fund_score(db, held))
+    boom.assert_not_awaited()

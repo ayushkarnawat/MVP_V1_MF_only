@@ -33,7 +33,7 @@ class EcsRunTaskDispatcher:
         """Returns True only if RunTask actually placed the task -- callers
         use this to roll back an already-committed try_claim_recompute()
         claim when dispatch never really started anything, so a failed/
-        unconfigured dispatch doesn't orphan the claim for up to the 2-hour
+        unconfigured dispatch doesn't orphan the claim for up to the 15-minute
         staleness ceiling."""
         if not settings.ecs_cluster_arn or not settings.ecs_task_definition_arn:
             logger.info(
@@ -69,7 +69,7 @@ class EcsRunTaskDispatcher:
             # A transport/API-level failure never reaches the "tasks"/
             # "failures" response at all -- left uncaught, it would propagate
             # past every caller's release_recompute_claim() check and orphan
-            # the already-committed claim for up to the 2-hour staleness
+            # the already-committed claim for up to the 15-minute staleness
             # ceiling (round-3 review finding).
             logger.exception("EcsRunTaskDispatcher: RunTask call failed for user %s", user_id)
             return False
