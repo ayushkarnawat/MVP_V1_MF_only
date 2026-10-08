@@ -31,6 +31,13 @@ class Scheme(Base):
     source: Mapped[SchemeSource] = mapped_column(enum_column(SchemeSource), nullable=False,
                                                default=SchemeSource.AMFI, server_default="amfi")
 
+    # SEBI scheme code of this fund's row in AMFI's TER feed (NSDLSchemeCode).
+    # Set once by an exact name match ("exact_name") or by hand ("manual");
+    # every later month's TER joins by it (decided 8 Oct).
+    ter_scheme_code: Mapped[str | None] = mapped_column(String, index=True)
+    ter_link_source: Mapped[str | None] = mapped_column(String)
+    ter_linked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
 
 class NavHistory(Base):
     __tablename__ = "nav_history"

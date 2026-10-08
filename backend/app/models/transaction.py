@@ -33,6 +33,9 @@ class Transaction(Base):
     amount: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
     units: Mapped[Decimal] = mapped_column(Numeric(14, 3), nullable=False)
     nav: Mapped[Decimal] = mapped_column(Numeric(10, 4), nullable=False)
+    # Stamp duty charged on this purchase; NULL for every other row and for
+    # rows imported before 0032 (decided 7 Oct).
+    stamp_duty: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
     raw_description: Mapped[str | None] = mapped_column(String)
     # The earliest-statement rule replaces only CAS openings, never manual lots.
     origin: Mapped[TransactionOrigin] = mapped_column(
