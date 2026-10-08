@@ -1,0 +1,47 @@
+# Synthetic gate (Phase 7, 7 Oct: 88/88 pass = these 44 scenarios x normal/MFAPI_BLOCKED).
+# One scenario per line: comma-separated PDFs (no .pdf), then optional env flags.
+# The two "p20_20yr,p20_FY DELETE_*" variants end empty BY DESIGN and are NOT in the 44 (don't add them).
+p20_10yr,p20_3yr,p20_20yr
+p20_20yr,p20_FY
+fam_10yr,fam_FY
+fam_10yr
+fam_FY
+fam_noname_FY
+fam_FY,fam_10yr
+p20_FY,p20_20yr
+p20_FY,p20_20yr DELETE_FIRST=1
+p20_FY,p20_20yr DELETE_LAST=1
+p20_FY,p20_FY_altfolio
+kfin_p10_FY
+kfin_p7_7yr
+kfin_pk_10yr
+kfin_pk_1yr
+oldcams_p20_20yr
+p20_FY,p10_10yr,fam_10yr
+p20_FY,p3_FY,fam_noname_FY
+p10_10yr
+p10_1yr
+p10_3yr
+p10_7yr
+p10_FY
+p10_FY,p10_10yr
+p20_10yr
+p20_1yr
+p20_20yr
+p20_3yr
+p20_7yr
+p20_FY
+p20_FY_altfolio
+p20_20yr,fam_10yr
+p3_1yr
+p3_3yr
+p3_FY
+p3u_FY
+p7_1yr
+p7_3yr
+p7_7yr
+p7_FY
+kfin_pk_1yr,kfin_pk_10yr
+px_14yr
+px_FY
+px_FY,px_14yr

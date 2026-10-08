@@ -12,7 +12,7 @@ synthetic curve ending at the real NAV. Investors, PANs, folios, amounts and
 dates are fictitious. One merged-away fund uses a made-up ISIN on purpose
 (funds that no longer exist are absent from casparser's master).
 
-Usage:  python gen_scenarios.py            # writes PDFs + truth.json here
+Usage:  python gen_scenarios.py            # writes PDFs to PDF_DIR, truth.json here
 Password for every file: MF@123
 """
 from __future__ import annotations
@@ -178,7 +178,9 @@ class Ledger:
         stamp = q2(gross * D("0.00005")) if d >= STAMP_FROM else None
         net = gross - (stamp or 0)
         units = q3(net / nav)
-        h.lots.append([units, net / units])
+        # Real CAMS prints cost as the gross amount paid, stamp duty included
+        # (checked on the "CAS 10 Yr" statement, 7 Oct). Match it.
+        h.lots.append([units, gross / units])
         self._row(h, d, desc, net, units, nav, stamp=stamp)
         return units
 
@@ -199,7 +201,14 @@ class Ledger:
     def reverse_last(self, folio, key, d):
         h = self.hold(folio, key)
         last = next(r for r in reversed(h.rows) if r.units and r.units > 0)
-        self._consume(h, last.units)
+        # The bounced purchase never happened: drop its own lot (as CAMS and
+        # the app's REVERSAL rule do), not the oldest units (fixed 8 Oct; the
+        # old FIFO removal made the printed cost too high).
+        match = next((i for i in range(len(h.lots) - 1, -1, -1) if h.lots[i][0] == last.units), None)
+        if match is not None:
+            h.lots.pop(match)
+        else:
+            self._consume(h, last.units)
         self._row(h, d, "Reversal - SIP Purchase - Payment not received", -last.amount, -last.units, last.nav)
 
     def _consume(self, h, units) -> Decimal:
@@ -645,7 +654,7 @@ def main():
         encrypt_pdf(pdf, PASSWORD, str(PDF_DIR / fname))
         all_truth[fname] = truth
         print(f"{fname:20} funds={len(truth['funds']):2} value=Rs {D(truth['total_value']):>16,.2f}")
-    (HERE / "truth.json").write_text(json.dumps(all_truth, indent=1))
+    (HERE / "truth.json").write_text(json.dumps(all_truth, indent=1), encoding="utf-8", newline="\n")
 
 
 if __name__ == "__main__":

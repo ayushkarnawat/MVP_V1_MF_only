@@ -15,7 +15,7 @@ _HERE = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_HERE))
 from pdf_dir import pdf_dir  # noqa: E402  PDFs live outside the repo
 SYN = str(pdf_dir()) + "/"
-TRUTH = json.load(open(_HERE / "truth.json"))
+TRUTH = json.loads((_HERE / "truth.json").read_text(encoding="utf-8"))
 SEQ = os.environ["SEQ"].split(",")
 OUT = os.environ["OUT"]
 SNAP = os.environ.get("SNAP") == "1"
@@ -42,9 +42,11 @@ def cas_truth(fn):
     """Truth from the CAS rows themselves (valid when every opening balance is 0)."""
     r = casparser.read_cas_pdf(SYN + fn, "MF@123")
     funds = {}
+    stamp_unattached = 0
     for fo in r.folios:
         for s in fo.schemes:
             lots, realized, flows_fund = [], D(0), []
+            lot_dates = []
             bal_series = []
             sip_series = defaultdict(list)
             payouts = 0
@@ -55,8 +57,21 @@ def cas_truth(fn):
                 u = D(str(t.units)) if t.units is not None else None
                 amt = D(str(t.amount)) if t.amount is not None else D(0)
                 nav = D(str(t.nav)) if t.nav is not None else None
+                if ty == "STAMP_DUTY_TAX":
+                    if amt > 0:
+                        # Stamp duty belongs to that day's purchase cost and
+                        # money paid out, exactly once (decided 7 Oct).
+                        for lot, lot_date in reversed(list(zip(lots, lot_dates))):
+                            if lot_date == t.date and lot[0]:
+                                lot[1] += amt / lot[0]
+                                flows_fund.append((t.date, -amt))
+                                break
+                        else:
+                            stamp_unattached += 1
+                    continue
                 if ty in ("PURCHASE", "PURCHASE_SIP", "SWITCH_IN", "SWITCH_IN_MERGER", "DIVIDEND_REINVEST", "GIFT_IN", "SEGREGATION"):
                     lots.append([u, (amt / u) if u else D(0)])
+                    lot_dates.append(t.date)
                     if ty == "PURCHASE_SIP":
                         key = t.description.split(" - Instalment")[0]
                         sip_series[key].append((t.date, amt))
@@ -81,7 +96,7 @@ def cas_truth(fn):
             funds[key] = dict(fund=s.scheme, isin=s.isin, close=D(str(s.close)), open=D(str(s.open)),
                               cost=D(str(s.valuation.cost or 0)), realized=realized, flows=flows_fund,
                               bal_series=bal_series, sip_series=sip_series, payouts=payouts)
-    return funds, r
+    return funds, r, stamp_unattached
 
 
 def upload(client, headers, mid, fn, log, timing):
@@ -196,20 +211,48 @@ def test_deep(client, monkeypatch):
         from app.services.analytics.recompute import recompute_household_analytics
         from app.models.user import User
         user = db.query(User).first()
+        import importlib.util, time as _time
+        from app.services.analytics import amfi_ter_client
+        job_path = Path(__file__).resolve().parents[4] / "backend" / "scripts" / "jobs" / "refresh_nav_daily.py"
+        print(f"Morning NAV job: {job_path}", flush=True)
+        spec = importlib.util.spec_from_file_location("refresh_nav_daily", job_path)
+        nav_job = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(nav_job)
+        asyncio.run(nav_job.main_async(db))  # held funds + category peers, before timing
+
+        # Record any TER download instead of raising: Analytics swallows a
+        # section's exception, so a raise could never fail the gate (final
+        # review M1, 8 Oct). These are the fetchers every TER refresh calls.
+        ter_calls = []
+
+        async def _ter_fetch(*a, **_k):
+            ter_calls.append(a)
+            return None
+        monkeypatch.setattr(amfi_ter_client, "_fetch_latest_ter_month", _ter_fetch)
+        monkeypatch.setattr(amfi_ter_client, "_fetch_ter_rows", _ter_fetch)
+
+        started = _time.perf_counter()
         asyncio.run(recompute_household_analytics(db, user.id))
+        out["analytics_seconds"] = round(_time.perf_counter() - started, 1)
         a = client.get("/analytics/combined", headers=headers)
         out["analytics"] = {"status": a.status_code, "body": a.json() if a.status_code == 200 else a.text[:2000]}
+        out["ter_fetches_during_analytics"] = len(ter_calls)
       except Exception as e:
         import traceback
         out["analytics"] = f"EXC {type(e).__name__}: {str(e)[:300]} " + traceback.format_exc()[-800:]
 
     # ---- truth comparison (single-member, full-history files) ----
-    funds, raw = cas_truth(last)
+    funds, raw, stamp_unattached = cas_truth(last)
+    out["stamp_unattached"] = stamp_unattached
     me = per_member.get(tr["investor"]) or next(iter(per_member.values()))
     rows = me["holdings"].get("holdings", [])
+    truth_isins = {f["isin"] for f in funds.values()}
     by_isin = defaultdict(lambda: {"units": D(0), "invested": D(0), "realized": D(0), "nav": None, "value": D(0), "plan": set()})
     for r in rows:
-        s = sch[r["scheme_id"]]; b = by_isin[s.isin]
+        s = sch[r["scheme_id"]]
+        # An IDCW-reinvest fund is filed under its payout ISIN with the CAS's
+        # reinvest ISIN in isin_reinvest (8 Oct): compare on the CAS's ISIN.
+        b = by_isin[s.isin_reinvest if s.isin_reinvest in truth_isins and s.isin not in truth_isins else s.isin]
         b["units"] += D(r["units_held"]); b["invested"] += D(r["amount_invested"]); b["realized"] += D(r["realized_gain"])
         b["nav"] = D(r["current_nav"]) if r["current_nav"] else None; b["plan"].add(r["plan_type"])
         b["value"] += D(r["current_value"] or 0)
@@ -224,6 +267,29 @@ def test_deep(client, monkeypatch):
                      "realized_truth": str(round(t["realized"], 2)), "realized_app": str(round(b["realized"], 2)),
                      "plan": sorted(b["plan"])})
     out["funds"] = comp
+    # ₹1, plus what a 4-decimal NAV can round on these units: an opening
+    # balance or switch-in is costed units × NAV to 4 dp, so a fund with lakhs
+    # of units can differ by a few rupees (user decision, 8 Oct).
+    # The statement covers every person in it, so compare against all
+    # members' holdings, not just `me` (family files, 8 Oct).
+    # A fund whose opening cost the app rejected as impossible against the
+    # fund's real NAV history (opening_lot.cost_source "nav_on_start") is
+    # skipped and listed: some synthetic price curves go below the real
+    # fund's lowest NAV, so the statement's cost there is made up (8 Oct).
+    invested_all = defaultdict(lambda: D(0))
+    nav_on_start = set()
+    for pm in per_member.values():
+        for r in pm["holdings"].get("holdings", []):
+            s = sch[r["scheme_id"]]
+            k = s.isin_reinvest if s.isin_reinvest in truth_isins and s.isin not in truth_isins else s.isin
+            invested_all[k] += D(r["amount_invested"])
+            if (r.get("opening_lot") or {}).get("cost_source") == "nav_on_start":
+                nav_on_start.add(k)
+    out["invested_skipped_nav_on_start"] = sorted(t_by_isin[k]["name"][:50] for k in nav_on_start if k in t_by_isin)
+    out["invested_mismatch"] = [dict(fund=t["name"][:50], units_cas=str(t["close"]), cost_cas=str(t["cost"]),
+                                     invested_app=str(round(invested_all[isin], 2)))
+                                for isin, t in t_by_isin.items() if t["close"] > 0 and isin not in nav_on_start
+                                and abs(t["cost"] - invested_all[isin]) > D("1") + t["close"] * D("0.00005")]
 
     # XIRR truth: terminal = CAS units x app's current NAV (isolates row errors from NAV source)
     navs = {isin: b["nav"] for isin, b in by_isin.items()}
@@ -289,6 +355,7 @@ def test_deep(client, monkeypatch):
         app_snap = {x["snapshot_month"]: D(x["total_value"]) for x in snaps}
         out["snap_months"] = [(x["snapshot_month"], bool(x.get("is_partial"))) for x in snaps]
         isin_scheme = {s.isin: s for s in sch.values()}
+        isin_scheme.update({s.isin_reinvest: s for s in sch.values() if s.isin_reinvest and s.isin_reinvest not in isin_scheme})
         chk = {}
         for me_ in ("2016-12-31", "2020-12-31", "2023-12-31", "2026-04-30", "2026-08-31"):
             dd = date.fromisoformat(me_)
@@ -305,7 +372,29 @@ def test_deep(client, monkeypatch):
                 tot += units * nh.nav
             chk[me_] = {"app": str(app_snap.get(me_)), "truth": str(round(tot, 2)), "truth_incomplete": missing}
         out["snapshot_check"] = chk
-    json.dump(out, open(OUT, "w"), indent=1, default=str)
+    json.dump(out, open(OUT, "w", encoding="utf-8", newline="\n"), indent=1, default=str)
     # Asserted after the dump, so a failing scenario still leaves its output.
     if os.environ.get("MASTER_FILE"):
         assert out["reconcile_all_match"], out["reconcile"]
+        assert not out["invested_mismatch"], out["invested_mismatch"]
+        # Only funds known to have a statement cost the app rightly rejects:
+        # a synthetic price curve below the real fund's lowest NAV (ICICI
+        # Bluechip; HSBC Value, whose mfapi history starts Nov 2022 after the
+        # L&T merger), and zero-cost segregated units (8 Oct). Anything new
+        # must be looked at.
+        known = {"ICICI Prudential Bluechip Fund - Growth", "HSBC Value Fund - Direct Plan - Growth",
+                 "Franklin India Low Duration Fund-Direct- Segregate"}
+        assert set(out["invested_skipped_nav_on_start"]) <= known, out["invested_skipped_nav_on_start"]
+        assert out["stamp_unattached"] == 0, out["stamp_unattached"]
+        if os.environ.get("ANALYTICS") == "1":
+            limit = float(os.environ.get("ANALYTICS_MAX_SECONDS", "30"))
+            an = out.get("analytics")
+            assert isinstance(an, dict) and an["status"] == 200, an
+            failed = [k for k, v in an["body"]["sections"].items() if v.get("failed_at")]
+            # A section failing on a fresh database leaves no row at all
+            # (recompute._mark_section_failed), so every section must be there.
+            from app.services.analytics import recompute as _rc
+            assert set(an["body"]["sections"]) == {sec.name for sec in _rc._SECTIONS}, sorted(an["body"]["sections"])
+            assert not failed, failed
+            assert out.get("ter_fetches_during_analytics") == 0, out.get("ter_fetches_during_analytics")
+            assert "analytics_seconds" in out and out["analytics_seconds"] <= limit, out.get("analytics_seconds")

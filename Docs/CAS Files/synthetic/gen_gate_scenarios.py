@@ -51,12 +51,12 @@ def main():
         "p3u_FY.pdf": g.render(p3u, L3u, "FY", g.WFY[1]),
     }
     truth_path = g.HERE / "truth.json"
-    truth = json.loads(truth_path.read_text())
+    truth = json.loads(truth_path.read_text(encoding="utf-8"))
     for fname, (pdf, t) in files.items():
         g.encrypt_pdf(pdf, g.PASSWORD, str(g.PDF_DIR / fname))
         truth[fname] = t
         print(f"{fname:20} funds={len(t['funds']):2} value=Rs {D(t['total_value']):>16,.2f}")
-    truth_path.write_text(json.dumps(truth, indent=1))
+    truth_path.write_text(json.dumps(truth, indent=1), encoding="utf-8", newline="\n")
 
 
 if __name__ == "__main__":
