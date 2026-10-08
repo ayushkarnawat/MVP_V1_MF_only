@@ -139,6 +139,18 @@ design.
   as ongoing, incremental engineering work, not a single estimable task with a fixed
   end-date.
 
+### Verification results — 2026-10-08 (orchestrator, read against code at `d331b04`)
+
+The two items above were checked against the code. Each plan must carry its row below.
+
+| Attribute | Finding | What the plan must do |
+|---|---|---|
+| **12** | **Breaks today's benchmark section if built as the planning doc writes it.** The doc changes only `get_index_level_on_or_before`. But four other places in `nse_indices_client.py` are keyed by index alone and would mix TRI rows with price rows: `_upsert_index_history` (its existing-date check would skip every TRI row whose date already has a price row), `_cached_date_bounds`, the 8 Oct `_fetched_from` cache and the `fresh_within` check (TRI rows would make price history look fresh, so the price series would stop updating). | Key all five by `(index, return_type)`, defaulting to PRICE. Add a regression test proving price history still refreshes and `benchmark.py`'s XIRR is unchanged once TRI rows exist. |
+| **04** | (a) The `SequenceMatcher` fuzzy idiom the doc says to copy **no longer exists**: the TER rework removed all fuzzy matching after every fuzzy TER match proved wrong (923 pointed at a different fund house). (b) **Propagation bug:** the doc's step 6 attaches managers to "every plan-variant row sharing that `amfi_code`", but `schemes.amfi_code` is unique per plan variant, so that join reaches one row. (c) The parts that survive: the in-memory `existing` dict with an upsert or "checked, NULL" row (`_upsert_scheme_ter`, `_mark_checked_no_match`), the `_compact_key` cleaned-name key, and the link-once-with-a-source pattern (`ter_scheme_code`, `ter_link_source` exact/manual, manual never overwritten). | Propagate by `(amc_name, base_name)` (indexed: `ix_schemes_amc_base`) or by the SEBI code `ter_scheme_code`, never by `amfi_code`. **Ask the user** whether 04 keeps an AMC-scoped fuzzy fallback (with the 0.80 threshold and ambiguity guard) or goes exact-only plus manual entries, like TER now does. |
+| **09** | Still works: `ter._latest_ter_for_scheme` exists and skips "checked, no TER" NULL rows. But TER now covers only exactly-linked funds with a known Direct/Regular plan (about 7,000 linked), so more funds in a category have no TER. | Keep the planned weight renormalisation for missing TER. Rank the TER percentile only among funds that have one, and test a category where most funds lack TER. |
+| **11** | The item above understates it. The planning doc's seed SQL adds assumption rows **only for "AI/tech valuation bust"**. **Four** of the five hypotheticals have none: Strait of Hormuz closure, US recession + Fed pivot, Rupee sharp depreciation, Indian equity "lost decade". Three have a one-line stated assumption in their description, but no per-asset-class %. None of the four is in the curated 8, so they only appear under "More scenarios". | The user supplies the 4 × 4 asset-class %s and notes. Until then, a hypothetical with no assumption rows must show an explicit "assumptions not set yet" state (or be hidden from "More"), never a 0% result. This needs a decision, test included. |
+| **14** | Not affected (no TER, no benchmark). | None. Plan `Docs/superpowers/plans/2026-10-08-subproject1-a14-investment-withdrawal.md` stands. |
+
 ## 4. Suggested implementation sequencing (not a plan — just an observation)
 
 The 4 attributes are independent of each other (no shared new table, no shared new
