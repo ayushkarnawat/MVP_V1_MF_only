@@ -186,14 +186,35 @@ rather than trusting this summary alone:**
   working default per Ayush's instruction, explicitly flagged in the frontend spec as not
   yet legally reviewed. Don't treat the current copy as final without checking whether
   that review happened in the meantime.
-- **Attribute 04's per-AMC coverage is inherently exploratory, not fully pre-specifiable.**
-  The resolver *architecture* (3-tier: static-HTML regex / per-AMC backend-API trace /
-  permanent `MANUAL_PENDING`) is engineer-ready and needs no further design. But only 2 of 9
-  sampled AMCs resolve with zero extra engineering — most of the remaining ~49 AMCs need a
-  one-time, per-AMC network-trace to find that AMC's own backend API, done lazily as
-  coverage grows (same posture as TER's own rollout). Whoever plans this should budget it
-  as ongoing, incremental engineering work, not a single estimable task with a fixed
-  end-date.
+- **Attribute 04's per-AMC coverage — re-sampled 2026-10-08 against the top AMCs by AUM,
+  not just a count of AMCs anymore.** The resolver *architecture* (3-tier: static-HTML
+  regex / per-AMC backend-API trace / permanent `MANUAL_PENDING`) is engineer-ready and
+  needs no further design. The original 9-AMC sample (2 resolvable) skewed toward
+  mid-sized names; extending it to 5 more of the largest AMCs by AUM (WebSearch-verified
+  Apr-Jun 2026 AMFI data, industry total ≈ ₹83 lakh crore) gives an honest, AUM-weighted
+  picture instead of a flat AMC count — see the planning doc's attribute 04 section for
+  the full per-AMC table and sources:
+  - **Resolvable today, zero extra engineering:** Nippon + DSP + Aditya Birla Sun Life
+    (AUM rank #6) ≈ **~14% of industry AUM** — a real, nonzero day-1 number.
+  - **Permanently WAF-blocked, not an engineering backlog item:** Kotak (#5) + HDFC (#3)
+    ≈ **~18% of industry AUM.** This is the one part of the gap that incremental
+    engineering genuinely cannot close — a WAF bypass is a different, riskier kind of work
+    than a one-time network trace, and isn't recommended as in-scope.
+  - **Needs incremental per-AMC work (network trace, dead-link fix, or finding the right
+    page) — ordinary engineering effort, just not done yet:** SBI (#1) and ICICI
+    Prudential (#2) — the two largest AMCs in the industry, 28% of industry AUM between
+    them — plus UTI, Axis, Bandhan, Mirae, Tata.
+  - **A new failure mode this pass surfaced:** AMFI's own per-AMC directory link can go
+    stale (ICICI Prudential's returned a flat 404, not a block) — the resolver needs a
+    dead-link case, not just "needs JS" and "WAF-blocked."
+
+  **Prioritization note for whoever plans this:** because SBI and ICICI Prudential (the
+  two largest AMCs) are in the recoverable-with-engineering bucket, not the
+  permanently-blocked one, they should be the first per-AMC traces done once
+  implementation starts — the highest AUM-weighted return for the effort, not an
+  arbitrary pick. Budget this as ongoing, incremental engineering work with the
+  WAF-blocked ~18% called out as a known, accepted ceiling, not a single estimable task
+  with a fixed end-date or an assumption that every AMC is equally reachable.
 
 **Still genuinely open — blocking, needs Ayush's input, not guessed here:**
 

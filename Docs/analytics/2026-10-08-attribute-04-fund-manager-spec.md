@@ -40,8 +40,10 @@ flowchart TB
   holds under them, with this household's rupee value in each — not that manager's full AMC
   fund list (which could be dozens of schemes the household doesn't hold).
 - **Trailing "not available yet" block:** every held scheme whose AMC resolves to
-  `ResolverKind.MANUAL_PENDING` (the default for every AMC except Nippon/DSP at launch —
-  see backend spec §"Resolver architecture") is grouped here, not silently omitted and not
+  `ResolverKind.MANUAL_PENDING` (the default for every AMC except Nippon/DSP/Aditya Birla
+  Sun Life at launch — see backend spec §"Resolver architecture"; HDFC and Kotak are
+  separately confirmed WAF-blocked, a different and likely-permanent case within the same
+  `MANUAL_PENDING` bucket) is grouped here, not silently omitted and not
   attached to a guessed manager. Framed honestly: *"Fund manager data for these schemes
   isn't available yet — we're adding AMC coverage over time."*
 

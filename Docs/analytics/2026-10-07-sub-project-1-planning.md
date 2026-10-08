@@ -1413,6 +1413,53 @@ architecture below, not a single algorithm — the plan explicitly ships a worki
 with partial coverage now and grows coverage over time, exactly like TER's own posture
 (a scheme missing this month's data falls back to its last known value, never blocks).
 
+**Sample extended 2026-10-08 (same day, later pass) to the top AMCs by AUM — "2 of 9
+sampled" re-framed by what those AMCs actually are, not just a count.** The original 9-AMC
+sample skewed toward mid-sized names; re-ran the same live `curl -L` method against 5 more
+of the industry's largest AMCs by AUM (WebSearch-verified Apr-Jun 2026 AMFI figures,
+industry total ≈ ₹83 lakh crore): ICICI Prudential (#2, ₹11.15L cr), HDFC (#3, ₹9.35L cr),
+Aditya Birla Sun Life (#6, ₹4.28L cr), Mirae Asset (#10, ₹2.29L cr), Tata (#9, ₹2.31L cr).
+Results, each a genuinely different case:
+
+| AMC | AUM rank | Result |
+|---|---|---|
+| Aditya Birla Sun Life | #6 | Static HTML, regex finds `absl-factsheet_aug-2026.pdf` directly — **zero extra work, a 3rd confirmed STATIC_REGEX AMC** |
+| HDFC | #3 | **Hard-blocked** — Akamai edge WAF returns a literal "Access Denied" page, same category as Kotak (#5). A second top-5 AMC confirmed permanently `MANUAL_PENDING` unless revisited, not a coincidence specific to Kotak |
+| ICICI Prudential | #2 | AMFI's own directory link for this AMC (`.../news-and-media/downloads?currentTabFilter=Historical Factsheets`) returns a flat **404** (Azure `WebContentNotFound`), not a block — the directory-listed URL itself is stale. The AMC's own homepage loads fine but is client-rendered with no static factsheet link anywhere. **New failure mode this sample surfaces that the original 3-tier design didn't separately name: the AMFI directory's own per-AMC link can go stale**, distinct from "needs JS" or "WAF-blocked" — `STATIC_REGEX`/`JSON_API` resolvers both need a dead-link/404 case, not just an empty-PDF-list case |
+| Tata | #9 | Static HTML, real dated PDFs present, but none match a `factsheet` substring (e.g. `Non_Business_Days_2026.pdf`, `Valuation%20Policy-ver%2029.pdf`) — this AMC's actual monthly factsheet isn't linked from the sampled page at all (likely one hop deeper, or a different page entirely). Confirms the existing design's own caveat that `STATIC_REGEX` is "one regex per AMC's actual markup," not one global regex — Tata needs its own one-time trace same as the JS-widget AMCs, just for a different reason (wrong page, not wrong rendering) |
+| Mirae Asset | #10 | Static HTML, 17 real PDF links present, but all are compliance/policy docs (privacy policy, non-business-days calendar) — the actual monthly factsheet isn't on this page either. Same bucket as Tata: needs a one-time trace to find the real page, not JS-blocked |
+
+**Net effect on the coverage picture — the honest numbers, not just "incremental work
+accepted in principle":**
+- **Resolvable today with zero extra engineering:** Nippon (#4, ₹7.52L cr) + DSP (outside
+  top 10, smaller) + Aditya Birla Sun Life (#6, ₹4.28L cr) ≈ **₹11.8L+ cr, roughly 14% of
+  industry AUM** from confirmed-working AMCs alone — a real, named, nonzero day-1 number,
+  not just "2 of 51."
+- **Permanently blocked (WAF), not an engineering backlog item, needs a product decision
+  (accept the gap, or scope a future anti-bot layer) if it's ever to be closed:** Kotak (#5,
+  ₹5.90L cr) + HDFC (#3, ₹9.35L cr) ≈ **₹15.25L cr, roughly 18% of industry AUM.** This is
+  the one sub-finding that genuinely isn't "incremental work closes it eventually" — a WAF
+  bypass is a different, and riskier, kind of engineering than a one-time network trace, and
+  isn't recommended as in-scope here.
+- **Needs incremental per-AMC work (trace, dead-link fix, or alternate page), same posture
+  as before, now with two top-2 AMCs explicitly in this bucket:** SBI (#1, ₹12.57L cr),
+  ICICI Prudential (#2, ₹11.15L cr), UTI (#7), Axis (#8), Bandhan, Mirae (#10), Tata (#9) —
+  this bucket, not the blocked one, is where most of the remaining ~68% of industry AUM
+  sits, and it is recoverable with ordinary engineering effort, just not done yet.
+
+This changes what "intentionally partial, incremental" should mean to whoever picks this
+up: it is **not** "coverage trickles in AMC by AMC regardless of size." The two largest
+AMCs by AUM (SBI, ICICI Prudential — 28% of industry AUM between them) are both in the
+recoverable-with-engineering bucket and should be prioritized first once implementation
+starts, precisely because they're the highest-value targets, not because of sampling order.
+The WAF-blocked ~18% (HDFC, Kotak) is the part of this gap that is genuinely not a
+near-term engineering task — flagging this explicitly rather than letting "most AMCs need
+incremental work" imply every AMC is equally reachable.
+
+Sources for the AUM figures above (Apr-Jun 2026 AMFI data, cross-checked across sources):
+[Top 10 AMC in India 2026](https://blog.mysiponline.com/top-10-amc-in-india),
+[Mutual Fund Ranking 2026](https://calcguru.in/top-mutual-funds/).
+
 ### Resolver architecture (engineer-ready — no further design pass needed)
 
 **A code-level registry, not a new DB config table.** Which extraction strategy applies to
