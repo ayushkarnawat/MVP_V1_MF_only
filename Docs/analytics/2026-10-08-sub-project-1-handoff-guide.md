@@ -98,6 +98,24 @@ design.
 
 **Still genuinely open — resolve before or during plan-writing, not by guessing:**
 
+- **Verify attribute 04/09/12 against the TER-linking rework that landed the same day.**
+  The planning doc's own closing section ("Next in this planning pass") flags this and
+  says explicitly: "Not yet investigated this session." Commit `697f5fc` ("speed up
+  analytics and link TER by SEBI scheme code", 2026-10-08) substantially rewrote
+  `backend/app/services/analytics/amfi_ter_client.py` (269-line diff) and added migration
+  `0031_scheme_ter_link`. Attribute 04's spec explicitly models its new fund-manager job on
+  "mirroring `amfi_ter_client.py`'s upsert idiom," and attribute 09's composite score reads
+  TER data this file produces — but nobody has re-read the reworked file against those two
+  specs to confirm the idiom/assumptions still hold. **Do this before writing the plan**,
+  not after — if the upsert idiom changed shape, attribute 04's resolver architecture
+  section may need a small update, not a redesign, but it needs to actually be checked, not
+  assumed.
+- **Attribute 11's one HYPOTHETICAL scenario has no real assumption values yet.** "US
+  recession + Fed pivot" is seeded in the schema with `'Assumption TBD at admin-entry
+  time.'` — Ayush (or whoever has DB access) needs to supply the actual hypothetical return
+  assumptions before this specific scenario can go live. The other 7 scenarios and the
+  simulator engine itself are unaffected; this is a single-row data-entry gap, not a design
+  gap.
 - **Migration numbering.** The planning doc's SQL snippets don't hardcode a migration
   number. As of this pass, `backend/alembic/versions/` goes up to `0032` — re-check this
   directly (`ls backend/alembic/versions/`) before writing any migration, since more may
@@ -112,6 +130,14 @@ design.
   working default per Ayush's instruction, explicitly flagged in the frontend spec as not
   yet legally reviewed. Don't treat the current copy as final without checking whether
   that review happened in the meantime.
+- **Attribute 04's per-AMC coverage is inherently exploratory, not fully pre-specifiable.**
+  The resolver *architecture* (3-tier: static-HTML regex / per-AMC backend-API trace /
+  permanent `MANUAL_PENDING`) is engineer-ready and needs no further design. But only 2 of 9
+  sampled AMCs resolve with zero extra engineering — most of the remaining ~49 AMCs need a
+  one-time, per-AMC network-trace to find that AMC's own backend API, done lazily as
+  coverage grows (same posture as TER's own rollout). Whoever plans this should budget it
+  as ongoing, incremental engineering work, not a single estimable task with a fixed
+  end-date.
 
 ## 4. Suggested implementation sequencing (not a plan — just an observation)
 
