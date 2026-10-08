@@ -375,3 +375,13 @@ Plan `Docs/superpowers/plans/2026-10-07-analytics-speed-and-stamp-duty.md`, buil
 - **Gates:** 592 affected backend tests pass; Postgres 0030↔0032 round trip and 43 Postgres/migration tests pass; synthetic gate 88/88; real files pass except the known empty statement CP219252880.
 - **Deferred by the user:** the peer NAV download fix (Analytics 47 s–3.3 min locally on the largest file, depending on mfapi; staging estimated 1–6 min) and data saved before 0032 (staging is wiped). Logged in `DEFERRED_FEATURES.md`, with the merged-fund opening-cost gap found on the way.
 - **Next:** staging deploy with `Docs/orchestration/2026-10-08-staging-deploy-guide-analytics-stamp-duty.md`.
+
+
+## 2026-10-08 (cont'd) — Blank AMFI plan: fund shown "Regular · unverified"
+
+Found on staging after the deploy: Motilal Oswal Midcap Fund showed "Regular · unverified" with the name "Motilal Oswal Midcap Fund - -", while Motilal Oswal Nifty Midcap 150 Index Fund in the same portfolio showed Direct. Cause, confirmed against AMFI's live NAVAll.txt (7 Oct NAVs): AMFI leaves the Plan and Option columns blank for all four Midcap Fund rows (533 current rows in the file; 264 are single-plan ETFs, ~269 others), so `schemes.plan_type` is null and the name has no plan word; the Direct-sibling NAV check can't run because no sibling is marked Direct either. The statement's own plan was parsed but ignored once AMFI matched. NAV evidence (₹116.40 vs the sibling growth plan's ₹100.65) suggests the holding is actually Direct.
+
+- **Fixed (orchestrator-direct, small):** `identify.py` uses the statement's plan (name + ARN rule, FR-5) when AMFI's is blank, verified; still "regular, unverified" when the statement is unclear too. `confirm_people.py`: a hand-picked blank-plan fund took "regular" *and verified*; now the statement's plan, verified only when known. `scheme_universe.py`: names skip blank parts.
+- **Tests:** 5 new (identify ×3, scheme universe, confirm override ×2); 84 pass across the 4 affected files; the override test failed on the old code. Independent code review: no issues.
+- **Not fixed:** TER for blank-plan schemes (the TER job uses the scheme's own plan, still null). Already-imported funds keep the old label until re-imported; names update at the next scheme-master refresh.
+- **Explainer for the manager:** artifact "Motilal Midcap Plan Mix-up".

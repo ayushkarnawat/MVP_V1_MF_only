@@ -842,12 +842,16 @@ def _folio_for(db, member, parsed_scheme, preview, override, scheme_cache, folio
     scheme = scheme_cache[cache_id]
     if scheme is None:
         raise SchemeConfidenceError(f"Scheme '{preview.name}' requires an explicit AMFI code override.")
-    chosen_plan = preview.plan_type
+    chosen_plan, chosen_verified = preview.plan_type, preview.plan_verified
     if override and override.amfi_code:
-        chosen_plan = classify_plan(scheme, False, parsed_scheme.name)[0]
+        chosen_plan, chosen_verified = classify_plan(scheme, False, parsed_scheme.name)
+        # A picked fund with a blank AMFI plan (8 Oct): the statement's plan,
+        # as in identify_scheme, and still unverified when that is unclear too,
+        # rather than an unfounded "regular" marked verified.
+        if not chosen_verified and parsed_scheme.plan_type in ("direct", "regular"):
+            chosen_plan, chosen_verified = parsed_scheme.plan_type, True
     if override and override.plan_type_override:
-        chosen_plan = override.plan_type_override
-    chosen_verified = bool(override and (override.amfi_code or override.plan_type_override)) or preview.plan_verified
+        chosen_plan, chosen_verified = override.plan_type_override, True
     # #4: match on the folio key, so "4400918 / 3" and "4400918/3" are one folio.
     key = normalise_folio_key(parsed_scheme.folio)
     cache_key = (member_id, scheme.id, key)

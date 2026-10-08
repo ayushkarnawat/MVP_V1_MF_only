@@ -111,6 +111,40 @@ def test_neither_word_no_sibling_is_regular_unverified(db_session):
     asyncio.run(run())
 
 
+def _blank_plan_master(db):
+    # AMFI's live file leaves Plan/Option blank for some funds, e.g. all four
+    # Motilal Oswal Midcap Fund rows (8 Oct): no plan type, no plan word.
+    return _master(db, "127042", "INF247L01445", "Motilal Oswal Midcap Fund", "Motilal Oswal Midcap Fund", None,
+                   amc="Motilal Oswal Mutual Fund")
+
+
+@pytest.mark.parametrize("plan", ["direct", "regular"])
+def test_blank_amfi_plan_takes_the_plan_named_on_the_statement(db_session, plan):
+    async def run():
+        _blank_plan_master(db_session)
+        cas = _cas("INF247L01445", "116.4021", name=f"Motilal Oswal Midcap Fund - {plan.title()} Plan - Growth",
+                   amc="Motilal Oswal Mutual Fund")
+        cas.plan_type = plan
+        ident = await identify_scheme(db_session, cas, _series({"127042": [(DAY, Decimal("116.4021"))]}))
+        assert (ident.plan_type, ident.plan_verified) == (plan, True)
+
+    asyncio.run(run())
+
+
+def test_blank_amfi_plan_and_unclear_statement_stays_unverified(db_session):
+    # "unclassified" covers both a statement name without a plan word and a
+    # Direct name on a folio with a distributor code (FR-5): never guess.
+    async def run():
+        _blank_plan_master(db_session)
+        cas = _cas("INF247L01445", "116.4021", name="Motilal Oswal Midcap Fund - Direct Plan - Growth",
+                   amc="Motilal Oswal Mutual Fund")
+        cas.plan_type = "unclassified"
+        ident = await identify_scheme(db_session, cas, _series({"127042": [(DAY, Decimal("116.4021"))]}))
+        assert (ident.plan_type, ident.plan_verified) == ("regular", False)
+
+    asyncio.run(run())
+
+
 def test_franklin_main_and_segregated_resolve_separately(db_session):
     async def run():
         main = _master(db_session, "118530", "INF090I01HG7", "Franklin India Low Duration Fund - Growth", "Franklin India Low Duration Fund", SchemePlanType.REGULAR, amc="Franklin Templeton Mutual Fund")

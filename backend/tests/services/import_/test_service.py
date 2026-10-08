@@ -726,6 +726,43 @@ def test_confirm_import_persists_canonical_name_when_override_code_disagrees_wit
 
     assert db.query(Folio).one().plan_type == PlanType.REGULAR
 
+def test_confirm_import_override_to_a_blank_plan_fund_takes_the_statement_plan():
+    """AMFI leaves Plan/Option blank for some funds (8 Oct). A user-picked code
+    for one must take the statement's plan (here Direct), not an unfounded
+    "regular" marked verified."""
+    from app.services.import_.schemas import SchemeConfirmation
+
+    db = _session()
+    seed_master_scheme(db)
+    member = _household_member(db)
+    preview = asyncio.run(build_import_preview(_sample_parse_result(), "test.pdf", b"%PDF-1.4 fake", client=_mocked_client(), db=db))
+    db.add(Scheme(amfi_code="222222", name="HDFC Flexi Cap Fund", amc_name="A", sebi_category="EQUITY", plan_type=None))
+    db.commit()
+    _confirm_for_member(db, preview, member,
+                        scheme_confirmations=[SchemeConfirmation(temp_id=preview.schemes[0].temp_id, amfi_code="222222")])
+
+    folio = db.query(Folio).one()
+    assert (folio.plan_type, folio.plan_verified) == (PlanType.DIRECT, True)
+
+
+def test_confirm_import_override_to_a_blank_plan_fund_with_an_unclear_statement_stays_unverified():
+    from app.services.import_.schemas import SchemeConfirmation
+
+    db = _session()
+    seed_master_scheme(db)
+    member = _household_member(db)
+    parsed = _sample_parse_result()
+    parsed.schemes[0].plan_type = "unclassified"
+    preview = asyncio.run(build_import_preview(parsed, "test.pdf", b"%PDF-1.4 fake", client=_mocked_client(), db=db))
+    db.add(Scheme(amfi_code="222222", name="HDFC Flexi Cap Fund", amc_name="A", sebi_category="EQUITY", plan_type=None))
+    db.commit()
+    _confirm_for_member(db, preview, member,
+                        scheme_confirmations=[SchemeConfirmation(temp_id=preview.schemes[0].temp_id, amfi_code="222222")])
+
+    folio = db.query(Folio).one()
+    assert (folio.plan_type, folio.plan_verified) == (PlanType.REGULAR, False)
+
+
 def test_confirm_import_override_degrades_gracefully_when_master_list_not_cached():
     # Remote caches are irrelevant: a missing local-master code is always rejected.
     from app.services.import_.schemas import SchemeConfirmation

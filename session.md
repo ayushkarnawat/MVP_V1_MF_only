@@ -39,6 +39,7 @@ Plan `Docs/superpowers/plans/2026-10-07-analytics-speed-and-stamp-duty.md` is co
   - limit and retry the morning job's mfapi downloads (the remaining Analytics speed fix);
   - data saved before 0032 (staging is wiped).
 - **Found and logged:** for funds re-coded after a merger, a genuine pre-merger opening cost can be rejected by the plausibility check.
+- **Found on staging and fixed (uncommitted, not deployed):** funds whose AMFI row has a blank Plan/Option (e.g. Motilal Oswal Midcap Fund) showed "Regular · unverified" and a name ending "- -"; the statement's plan now decides (`identify.py`, `confirm_people.py`, `scheme_universe.py`, 5 new tests, review clean). Deploy = backend rebuild/push/restart only; re-import to correct existing labels. TER for these funds still missing (not fixed). Detail: `log.md`.
 - **Still open, unchanged:** the empty-statement dead end (CP219252880), "Other" in Portfolio Allocation, no real KFintech statement, and removing the Import Review screen after staging (awaiting the user's confirmation).
 
 ## Previous (2026-10-07): staging bastion `InsufficientInstanceCapacity` fixed (AZ swap), committed

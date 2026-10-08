@@ -181,3 +181,13 @@ def test_parse_nav_all_keeps_plan_base_name_and_nav():
     d = next(r for r in rows if r.amfi_code == "140228")
     assert d.plan == "Direct Plan" and d.base_name == "Edelweiss Mid Cap Fund"
     assert d.nav == Decimal("128.3011") and d.nav_date == date(2026, 10, 5)
+
+
+def test_parse_nav_all_leaves_blank_plan_and_option_out_of_the_name():
+    # AMFI leaves Plan/Option blank for some funds (8 Oct); the name used to
+    # read "Motilal Oswal Midcap Fund - - ".
+    text = NAVALL_8 + "127042;INF247L01445;-;Motilal Oswal Midcap Fund;;;116.4021;07-Oct-2026\n"
+    row = next(r for r in _parse_nav_all(text) if r.amfi_code == "127042")
+    assert row.name == "Motilal Oswal Midcap Fund" and row.plan is None
+    assert next(r for r in _parse_nav_all(text) if r.amfi_code == "140228").name == \
+        "Edelweiss Mid Cap Fund - Direct Plan - Growth Option"

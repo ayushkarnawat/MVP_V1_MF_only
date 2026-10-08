@@ -101,7 +101,9 @@ def _parse_nav_all(text: str) -> list[UniverseRow]:
             code, isin_growth, isin_reinvest, name, _nav, _date = fields
         else:
             code, isin_growth, isin_reinvest, base_name, plan, option, _nav, _date = fields
-            name = f"{base_name} - {plan} - {option}"
+            # Some funds have a blank Plan/Option (8 Oct); skip empty parts
+            # so the name doesn't end in "- -".
+            name = " - ".join(part for part in (base_name, plan, option) if part)
         isin = isin_growth if isin_growth != "-" else (isin_reinvest if isin_reinvest != "-" else None)
         try:
             nav = Decimal(_nav) if _nav not in ("N.A.", "-", "") else None

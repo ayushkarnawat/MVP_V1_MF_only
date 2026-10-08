@@ -71,6 +71,13 @@ async def identify_scheme(db: Session, scheme: ParsedScheme, fetch_series: NavSe
                     if _base(s.base_name or s.name) == _base(scheme.name)]
 
     async def result(master, identified_by, nav_matched):
+        # AMFI leaves Plan/Option blank for some funds (all four Motilal Oswal
+        # Midcap Fund rows, 8 Oct), so the master can't say. The statement's
+        # own plan decides then; it is already "unclassified" when its name has
+        # no plan word or a Direct name sits on a distributor's folio (FR-5).
+        if not classify_plan(master, False, scheme.name)[1] and scheme.plan_type in ("direct", "regular"):
+            return Identification("verified", master.id, master.amfi_code, master.name, master.sebi_category,
+                                  scheme.plan_type, True, identified_by, nav_matched=nav_matched)
         differs = False
         if master.plan_type is None and classify_plan(master, False, scheme.name)[1] is False:
             for sibling in siblings:
