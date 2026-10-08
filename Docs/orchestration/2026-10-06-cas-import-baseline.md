@@ -760,3 +760,8 @@ Plan: `Docs/superpowers/plans/2026-10-07-analytics-speed-and-stamp-duty.md`. New
 **Postgres (local, port 5433):** 0030 → 0032 → 0030 → 0032 round trip clean, with `stamp_duty` on the parent table and all 8 partitions. 43 `functional_postgres` + migration tests pass.
 
 **Backend:** 592 affected tests pass (imports, dashboard, analytics, jobs, migrations).
+
+
+## Phase 7 gate — Step 2 (real files on staging): PASSED (user, 2026-10-08)
+
+The user confirmed on 8 Oct that real statements, including KFintech, were uploaded on staging with the review screen still present, Profile → Import health all ✓, and the C1–C14 screenshots done. Results were checked by the user, not by the orchestrator; no per-file counts were recorded here. With Step 1 (synthetic, see "Phase 7 gate — FINAL") this completes the gate. Next: Phase 7 Task 3 (removal) via Codex, handoff `Docs/orchestration/review-screen-removal-handoff.md`.
