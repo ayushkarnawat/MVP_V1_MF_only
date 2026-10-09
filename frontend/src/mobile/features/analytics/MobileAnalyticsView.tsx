@@ -7,6 +7,7 @@ import { isSectionSettled, useAnalyticsScope } from "@/features/analytics/useAna
 import { AllocationSection } from "@/features/analytics/AllocationSection";
 import { TerSection } from "@/features/analytics/TerSection";
 import { CategoryRankingSection } from "@/features/analytics/CategoryRankingSection";
+import { FundRankingSection } from "@/features/analytics/FundRankingSection";
 import { ScorerSection } from "@/features/analytics/ScorerSection";
 import { InvestmentWithdrawalSection } from "@/features/analytics/InvestmentWithdrawalSection";
 import { BenchmarkSection } from "@/features/analytics/BenchmarkSection";
@@ -15,6 +16,7 @@ import type {
   AnalyticsAllocationSummary,
   AnalyticsSectionName,
   CategoryRankingSummary,
+  FundRankingSummary,
   DirectRegularTerComparison,
   FundVsBenchmarkSummary,
   InvestmentWithdrawalResult,
@@ -34,6 +36,7 @@ const AGGREGATE_FIELD: Record<AnalyticsSectionName, string> = {
   benchmark: "benchmark",
   benchmark_funds: "comparison",
   category_ranking: "ranking",
+  ranking: "ranking",
   score: "score",
   investment_withdrawal: "data",
 };
@@ -53,6 +56,7 @@ export function MobileAnalyticsView({ memberId = null }: MobileAnalyticsViewProp
   const ter = unwrap<WeightedTerSummary>("ter");
   const terComparison = unwrap<DirectRegularTerComparison>("ter_direct_regular");
   const ranking = unwrap<CategoryRankingSummary>("category_ranking");
+  const fundRanking = unwrap<FundRankingSummary>("ranking");
   const scoreSummary = unwrap<PortfolioScoreSummary>("score");
   const portfolioBenchmark = unwrap<PortfolioBenchmarkSummary>("benchmark");
   const fundBenchmark = unwrap<FundVsBenchmarkSummary>("benchmark_funds");
@@ -62,6 +66,7 @@ export function MobileAnalyticsView({ memberId = null }: MobileAnalyticsViewProp
   const allocationLoading = !isSectionSettled(sections.allocation);
   const terLoading = !isSectionSettled(sections.ter) || !isSectionSettled(sections.ter_direct_regular);
   const rankingLoading = !isSectionSettled(sections.category_ranking);
+  const fundRankingLoading = !isSectionSettled(sections.ranking);
   const scoreLoading = !isSectionSettled(sections.score);
   const investmentWithdrawalLoading = !isSectionSettled(sections.investment_withdrawal);
   const benchmarkLoading =
@@ -143,6 +148,7 @@ export function MobileAnalyticsView({ memberId = null }: MobileAnalyticsViewProp
 
       {/* Section 3: Category Ranking */}
       <CategoryRankingSection ranking={ranking} isLoading={rankingLoading} />
+      <FundRankingSection data={fundRanking} isLoading={fundRankingLoading} />
 
       {/* Section 4: Scorer */}
       <ScorerSection

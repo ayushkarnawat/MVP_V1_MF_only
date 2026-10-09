@@ -150,6 +150,8 @@ export interface AnalyticsExportPayload {
   ter: WeightedTerSummary | null;
   terComparison: DirectRegularTerComparison | null;
   ranking: CategoryRankingSummary | null;
+  // Optional: exports saved before attribute 09 have no fund ranking.
+  fundRanking?: FundRankingSummary | null;
   scoreSummary: PortfolioScoreSummary | null;
   portfolioBenchmark: PortfolioBenchmarkSummary | null;
   fundBenchmark: FundVsBenchmarkSummary | null;
@@ -163,6 +165,7 @@ export const ANALYTICS_SECTION_NAMES = [
   "benchmark",
   "benchmark_funds",
   "category_ranking",
+  "ranking",
   "score",
   "investment_withdrawal",
 ] as const;
@@ -219,4 +222,53 @@ export interface InvestmentWithdrawalResult {
   yearly: InvestmentWithdrawalBucket[];
   sip_summary: InvestmentWithdrawalSipSummary;
   gifts_net: string; // value of gifts received minus given, at transfer value (ruling 9 Oct)
+}
+
+
+export interface FundRankingNeighbor {
+  scheme_id: string;
+  scheme_name: string;
+  category_rank: number;
+  composite_score: string;
+}
+
+export interface FundRankingComponent {
+  percentile: string | null;
+  raw: string | null;
+}
+
+export interface FundRankingComponents {
+  return_3y: FundRankingComponent;
+  return_5y: FundRankingComponent;
+  category_relative: FundRankingComponent;
+  low_volatility: FundRankingComponent;
+  low_ter: FundRankingComponent;
+}
+
+export interface FundRankingRow {
+  scheme_id: string;
+  scheme_name: string;
+  category_name: string | null;
+  category_unavailable: boolean;
+  insufficient_history: boolean;
+  thin_category: boolean;
+  too_few_peers: boolean;
+  composite_score: string | null;
+  category_rank: number | null;
+  category_size: number;
+  category_universe_size: number;
+  percentile: string | null;
+  return_1y: string | null;
+  ranked_as: string | null;
+  neighbors: FundRankingNeighbor[];
+  components: FundRankingComponents;
+}
+
+export interface FundRankingSummary {
+  funds: FundRankingRow[];
+}
+
+export interface AggregateFundRankingResponse {
+  members: MemberStatus[];
+  ranking: FundRankingSummary;
 }
