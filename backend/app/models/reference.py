@@ -6,7 +6,7 @@ import uuid
 from datetime import date as date_, datetime, timezone
 from decimal import Decimal
 
-from sqlalchemy import CheckConstraint, Boolean, Index, true, DateTime, ForeignKey, Integer, Numeric, String, Uuid
+from sqlalchemy import Date, UniqueConstraint, CheckConstraint, Boolean, Index, true, DateTime, ForeignKey, Integer, Numeric, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -135,3 +135,34 @@ class RankingWeight(Base):
     weight_low_volatility: Mapped[Decimal] = mapped_column(Numeric(4, 3), nullable=False, default=Decimal("0.15"))
     weight_low_ter: Mapped[Decimal] = mapped_column(Numeric(4, 3), nullable=False, default=Decimal("0.15"))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+
+
+class SchemeFundManager(Base):
+    __tablename__ = "scheme_fund_managers"
+    __table_args__ = (
+        UniqueConstraint(
+            "scheme_id", "manager_name", "reference_period",
+            name="uq_scheme_fund_managers_scheme_manager_period",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    scheme_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("schemes.id"), nullable=False, index=True)
+    manager_name: Mapped[str] = mapped_column(String, nullable=False)
+    # Verbatim source label (e.g. "Assistant Fund Manager") or NULL when the
+    # source doesn't label one name as more senior than another (ABSL: every
+    # name is unlabeled). Never fabricated as "Primary Manager" -- see
+    # Review Focus #5 and the frontend spec's explicit "never a fabricated
+    # label" rule.
+    role: Mapped[str | None] = mapped_column(String, nullable=True)
+    # 0 = first-listed/primary in the source's own order; used for stable
+    # ordering only, never displayed as a rank.
+    sequence_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    managing_since_raw: Mapped[str | None] = mapped_column(String, nullable=True)
+    managing_since: Mapped[date_ | None] = mapped_column(Date, nullable=True)
+    reference_period: Mapped[date_] = mapped_column(nullable=False)
+    # "ISIN" | "EXACT" | "FUZZY" | "MANUAL" -- plain String + module constants
+    # (amfi_factsheet_client.py), mirroring ter_link_source's convention,
+    # not a DB enum.
+    match_method: Mapped[str] = mapped_column(String, nullable=False)
+    match_confidence: Mapped[Decimal | None] = mapped_column(Numeric(4, 3), nullable=True)
