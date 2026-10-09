@@ -2,6 +2,7 @@ import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { AnalyticsView } from "./AnalyticsView";
 import * as api from "./api";
+import { ANALYTICS_SECTION_NAMES } from "./types";
 import type { AnalyticsSectionState, MemberStatus } from "./types";
 
 vi.mock("./api");
@@ -66,6 +67,13 @@ const sampleFundBenchmark = {
   overall_broad_market_xirr: "0.1410",
 };
 
+const sampleInvestmentWithdrawal = {
+  total_invested: "10000.00", total_withdrawn: "2000.00", net_invested: "8000.00",
+  current_value: "8500.00", absolute_gain: "500.00", monthly: [], yearly: [],
+  sip_summary: { active_count: 0, total_monthly_amount: "0.00", missed_count: 0 },
+  gifts_net: "0.00",
+};
+
 function settled(
   payload: Record<string, unknown> | null,
   failedAt: string | null = null,
@@ -84,6 +92,7 @@ function buildSections(isAggregate: boolean, members: MemberStatus[] = []) {
     score: settled(wrap("score", sampleScoreSummary)),
     benchmark: settled(wrap("benchmark", samplePortfolioBenchmark)),
     benchmark_funds: settled(wrap("comparison", sampleFundBenchmark)),
+    investment_withdrawal: settled(wrap("data", sampleInvestmentWithdrawal)),
   };
 }
 
@@ -113,6 +122,8 @@ describe("AnalyticsView", () => {
       expect(screen.getByText("SEBI Category Ranking & Peer Comparison")).toBeInTheDocument();
       expect(screen.getByText("Fund Quality Scorer & Composite Ratings")).toBeInTheDocument();
       expect(screen.getByText("Benchmark Comparison (XIRR)")).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Investment & Withdrawal" })).toBeInTheDocument();
+      expect(screen.getByText("₹8,500")).toBeInTheDocument();
     });
 
     expect(screen.getByText("0.85%")).toBeInTheDocument();
@@ -230,5 +241,11 @@ describe("AnalyticsView", () => {
 
     await waitFor(() => expect(api.retryAnalyticsScope).toHaveBeenCalledWith("combined"));
     await waitFor(() => expect(api.getAnalyticsScope).toHaveBeenCalledTimes(2));
+  });
+});
+
+describe("ANALYTICS_SECTION_NAMES", () => {
+  it("includes investment_withdrawal as the 8th registered section", () => {
+    expect(ANALYTICS_SECTION_NAMES).toContain("investment_withdrawal");
   });
 });

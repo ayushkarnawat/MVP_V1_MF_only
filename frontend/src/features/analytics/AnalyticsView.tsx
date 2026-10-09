@@ -10,6 +10,7 @@ import { AllocationSection } from "./AllocationSection";
 import { TerSection } from "./TerSection";
 import { CategoryRankingSection } from "./CategoryRankingSection";
 import { ScorerSection } from "./ScorerSection";
+import { InvestmentWithdrawalSection } from "./InvestmentWithdrawalSection";
 import { BenchmarkSection } from "./BenchmarkSection";
 import { FundScoreDetailModal } from "./FundScoreDetailModal";
 import { ANALYTICS_SECTION_NAMES } from "./types";
@@ -20,6 +21,7 @@ import type {
   CategoryRankingSummary,
   DirectRegularTerComparison,
   FundVsBenchmarkSummary,
+  InvestmentWithdrawalResult,
   MemberStatus,
   PortfolioBenchmarkSummary,
   PortfolioScoreSummary,
@@ -41,6 +43,7 @@ const AGGREGATE_FIELD: Record<AnalyticsSectionName, string> = {
   benchmark_funds: "comparison",
   category_ranking: "ranking",
   score: "score",
+  investment_withdrawal: "data",
 };
 
 export function AnalyticsView({
@@ -66,6 +69,7 @@ export function AnalyticsView({
   const scoreSummary = unwrap<PortfolioScoreSummary>("score");
   const portfolioBenchmark = unwrap<PortfolioBenchmarkSummary>("benchmark");
   const fundBenchmark = unwrap<FundVsBenchmarkSummary>("benchmark_funds");
+  const investmentWithdrawal = unwrap<InvestmentWithdrawalResult>("investment_withdrawal");
   const members: MemberStatus[] = isAggregate
     ? (((sections.allocation?.payload as Record<string, unknown> | undefined)?.members as MemberStatus[]) ?? [])
     : [];
@@ -75,6 +79,7 @@ export function AnalyticsView({
     !!scope && (!isSectionSettled(sections.ter) || !isSectionSettled(sections.ter_direct_regular));
   const rankingLoading = !!scope && !isSectionSettled(sections.category_ranking);
   const scoreLoading = !!scope && !isSectionSettled(sections.score);
+  const investmentWithdrawalLoading = !!scope && !isSectionSettled(sections.investment_withdrawal);
   const benchmarkLoading =
     !!scope && (!isSectionSettled(sections.benchmark) || !isSectionSettled(sections.benchmark_funds));
 
@@ -251,6 +256,9 @@ export function AnalyticsView({
         fundBenchmark={fundBenchmark}
         isLoading={benchmarkLoading}
       />
+
+      {/* Section 6: Investment & Withdrawal (attribute 14) */}
+      <InvestmentWithdrawalSection data={investmentWithdrawal} isLoading={investmentWithdrawalLoading} />
 
       {/* S20 Fund Score Detail Modal */}
       <FundScoreDetailModal

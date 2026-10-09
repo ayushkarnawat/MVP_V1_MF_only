@@ -104,6 +104,13 @@ const sampleFundBenchmark = {
   overall_broad_market_xirr: "0.1410",
 };
 
+const sampleInvestmentWithdrawal = {
+  total_invested: "10000.00", total_withdrawn: "2000.00", net_invested: "8000.00",
+  current_value: "8500.00", absolute_gain: "500.00", monthly: [], yearly: [],
+  sip_summary: { active_count: 0, total_monthly_amount: "0.00", missed_count: 0 },
+  gifts_net: "0.00",
+};
+
 function settled(
   payload: Record<string, unknown> | null,
   failedAt: string | null = null,
@@ -126,6 +133,7 @@ function buildSections(isAggregate: boolean) {
     score: settled(wrap("score", sampleScoreSummary)),
     benchmark: settled(wrap("benchmark", samplePortfolioBenchmark)),
     benchmark_funds: settled(wrap("comparison", sampleFundBenchmark)),
+    investment_withdrawal: settled(wrap("data", sampleInvestmentWithdrawal)),
   };
 }
 
@@ -152,6 +160,8 @@ describe("MobileAnalyticsView", () => {
       expect(screen.getByText("SEBI Category Ranking & Peer Comparison")).toBeInTheDocument();
       expect(screen.getByText("Fund Quality Scorer & Composite Ratings")).toBeInTheDocument();
       expect(screen.getByText("Benchmark Comparison (XIRR)")).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Investment & Withdrawal" })).toBeInTheDocument();
+      expect(screen.getByText("₹8,500")).toBeInTheDocument();
     });
   });
 
