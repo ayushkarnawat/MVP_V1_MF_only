@@ -152,6 +152,8 @@ export interface AnalyticsExportPayload {
   ranking: CategoryRankingSummary | null;
   // Optional: exports saved before attribute 09 have no fund ranking.
   fundRanking?: FundRankingSummary | null;
+  // Optional: exports saved before attribute 04 have no fund managers.
+  fundManager?: FundManagerAllocationSummary | null;
   scoreSummary: PortfolioScoreSummary | null;
   portfolioBenchmark: PortfolioBenchmarkSummary | null;
   fundBenchmark: FundVsBenchmarkSummary | null;
@@ -168,6 +170,7 @@ export const ANALYTICS_SECTION_NAMES = [
   "ranking",
   "score",
   "investment_withdrawal",
+  "fund_manager",
 ] as const;
 
 export type AnalyticsSectionName = (typeof ANALYTICS_SECTION_NAMES)[number];
@@ -271,4 +274,35 @@ export interface FundRankingSummary {
 export interface AggregateFundRankingResponse {
   members: MemberStatus[];
   ranking: FundRankingSummary;
+}
+
+export interface ManagerFundRow {
+  scheme_id: string;
+  scheme_name: string;
+  household_value: string;
+  sequence_order: number;
+  role: string | null;
+}
+
+export interface ManagerGroup {
+  manager_name: string;
+  role: string | null;
+  total_household_value: string;
+  funds: ManagerFundRow[];
+}
+
+export interface UnavailableScheme {
+  scheme_id: string;
+  scheme_name: string;
+  amc_name: string;
+}
+
+export interface FundManagerAllocationSummary {
+  manager_groups: ManagerGroup[];
+  unavailable_schemes: UnavailableScheme[];
+}
+
+export interface AggregateFundManagerAllocationResponse {
+  members: MemberStatus[];
+  fund_manager: FundManagerAllocationSummary;
 }

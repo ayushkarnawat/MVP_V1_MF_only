@@ -4,6 +4,7 @@ import { AllocationSection } from "../AllocationSection";
 import { TerSection } from "../TerSection";
 import { CategoryRankingSection } from "../CategoryRankingSection";
 import { FundRankingSection } from "../FundRankingSection";
+import { FundManagerSection } from "../FundManagerSection";
 import { BenchmarkSection } from "../BenchmarkSection";
 import { FundScoreCard } from "../FundScoreCard";
 import type { AnalyticsExportPayload } from "../types";
@@ -76,6 +77,9 @@ export function PrintAnalyticsView() {
       </div>
       <div className="print-section">
         <CategoryRankingSection ranking={payload.ranking} isLoading={false} />
+      </div>
+      <div className="print-section">
+        <FundManagerSection data={payload.fundManager ?? null} isLoading={false} printMode />
       </div>
       <div className="print-section">
         <FundRankingSection data={payload.fundRanking ?? null} isLoading={false} />
