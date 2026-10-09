@@ -4,7 +4,7 @@ import logging
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
-from app.models.enums import BenchmarkIndex, Relationship
+from app.models.enums import BenchmarkIndex, BenchmarkReturnType, Relationship
 from app.models.folio import Folio
 from app.models.reference import Scheme
 from app.models.user import HouseholdMember, User
@@ -109,7 +109,7 @@ def test_refresh_aaum_quarterly_logs_expected_refresh_failure(db_session, monkey
     assert "refresh_aaum_quarterly: success=False" in caplog.messages
 
 
-def test_refresh_benchmark_daily_uses_ten_calendar_years_for_every_index(
+def test_refresh_benchmark_daily_fetches_price_ten_years_and_tri_from_1990(
     db_session, monkeypatch, caplog
 ):
     job = _load_job("refresh_benchmark_daily")
@@ -120,10 +120,10 @@ def test_refresh_benchmark_daily_uses_ten_calendar_years_for_every_index(
         def today(cls):
             return cls(2024, 2, 29)
 
-    async def fake_ensure_index_history_fresh(db, index, start_date, end_date, *, fresh_within):
+    async def fake_ensure_index_history_fresh(db, index, start_date, end_date, *, return_type, fresh_within):
         assert asyncio.get_running_loop().is_running()
         assert fresh_within == timedelta(0)  # the job downloads every morning (8 Oct)
-        calls.append((db, index, start_date, end_date))
+        calls.append((db, index, return_type, start_date, end_date))
         return index is not BenchmarkIndex.NIFTY_500
 
     monkeypatch.setattr(job, "SessionLocal", lambda: db_session)
@@ -133,11 +133,14 @@ def test_refresh_benchmark_daily_uses_ten_calendar_years_for_every_index(
 
     job.main()
 
-    assert [call[1] for call in calls] == list(BenchmarkIndex)
-    assert all(call[0] is db_session for call in calls)
-    assert all(call[2] == date(2014, 2, 28) for call in calls)
-    assert all(call[3] == date(2024, 2, 29) for call in calls)
-    assert "refresh_benchmark_daily: indexes=4 succeeded=3 success=False" in caplog.messages
+    assert len(calls) == len(BenchmarkIndex) * 2
+    assert {(c[1], c[2]) for c in calls} == {(i, t) for i in BenchmarkIndex for t in BenchmarkReturnType}
+    assert all(c[0] is db_session for c in calls)
+    # PRICE stays at ten years; TRI fills the full history from 1990.
+    assert all(c[3] == date(2014, 2, 28) for c in calls if c[2] is BenchmarkReturnType.PRICE)
+    assert all(c[3] == date(1990, 1, 1) for c in calls if c[2] is BenchmarkReturnType.TRI)
+    assert all(c[4] == date(2024, 2, 29) for c in calls)
+    assert "refresh_benchmark_daily: fetches=8 succeeded=6 success=False" in caplog.messages
 
 
 def test_delete_expired_accounts_daily_runs_hard_delete_service(db_session, monkeypatch, caplog):
