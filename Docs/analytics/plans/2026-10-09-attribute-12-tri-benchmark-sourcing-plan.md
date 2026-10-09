@@ -38,6 +38,10 @@ Explainer: `Docs/orchestration/subproject1-execution/a12-tri-benchmark.html`.
    default, so existing code and tests that create rows without it keep working.
 4. Task 5 updates the existing job test (`tests/scripts/test_background_jobs.py`) instead of
    adding a new test file next to it.
+4b. The migration (Task 1) has a SQLite branch (`batch_alter_table`, like `0027`) because
+   `tests/test_migrations.py` round-trips every migration on SQLite, and its downgrade deletes
+   TRI rows first (they'd collide with PRICE rows once `return_type` is gone). Both verified
+   on SQLite 9 Oct; Postgres is checked by the orchestrator.
 5. The live TRI response was re-checked on 9 Oct with the exact request `_fetch_tri_history`
    sends: top-level JSON array, `Date` as "10 Sep 2026", `TotalReturnsIndex` as a 2-decimal
    string, `NTR_Value` often "-", no range limit. Task 3 needs no change.
@@ -202,7 +206,16 @@ _RETURN_TYPE = sa.Enum("price", "tri", name="benchmarkreturntype")
 
 
 def upgrade() -> None:
-    _RETURN_TYPE.create(op.get_bind(), checkfirst=True)
+    bind = op.get_bind()
+    _RETURN_TYPE.create(bind, checkfirst=True)
+    if bind.dialect.name == "sqlite":
+        # SQLite can't change a primary key in place: rebuild the table, as
+        # 0027 does (tests/test_migrations.py round-trips every migration on
+        # SQLite). Verified 9 Oct.
+        with op.batch_alter_table("benchmark_index_history", recreate="always") as batch:
+            batch.add_column(sa.Column("return_type", _RETURN_TYPE, nullable=False, server_default="price"))
+            batch.create_primary_key("benchmark_index_history_pkey", ["index_name", "date", "return_type"])
+        return
     op.add_column(
         "benchmark_index_history",
         sa.Column("return_type", _RETURN_TYPE, nullable=False, server_default="price"),
@@ -214,11 +227,24 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_constraint("benchmark_index_history_pkey", "benchmark_index_history", type_="primary")
-    op.create_primary_key("benchmark_index_history_pkey", "benchmark_index_history", ["index_name", "date"])
-    op.drop_column("benchmark_index_history", "return_type")
-    _RETURN_TYPE.drop(op.get_bind(), checkfirst=True)
+    bind = op.get_bind()
+    # Without return_type a TRI row would collide with the PRICE row for the
+    # same (index, date), so TRI rows can't survive a downgrade.
+    op.execute("DELETE FROM benchmark_index_history WHERE return_type = 'tri'")
+    if bind.dialect.name == "sqlite":
+        with op.batch_alter_table("benchmark_index_history", recreate="always") as batch:
+            batch.drop_column("return_type")
+            batch.create_primary_key("benchmark_index_history_pkey", ["index_name", "date"])
+    else:
+        op.drop_constraint("benchmark_index_history_pkey", "benchmark_index_history", type_="primary")
+        op.create_primary_key("benchmark_index_history_pkey", "benchmark_index_history", ["index_name", "date"])
+        op.drop_column("benchmark_index_history", "return_type")
+    _RETURN_TYPE.drop(bind, checkfirst=True)
 ```
+
+The Postgres primary-key name `benchmark_index_history_pkey` is Postgres's default for the
+unnamed key created in `0001` (checked 9 Oct). Codex can't reach Postgres; the orchestrator
+runs `alembic upgrade head`, `downgrade -1` and `upgrade head` against local Postgres in WSL.
 
 - [ ] **Step 4: Write the failing shape test**
 
@@ -260,10 +286,12 @@ def test_price_and_tri_rows_for_same_date_both_persist_independently():
 Run: `cd backend && pytest tests/services/analytics/test_nse_indices_client_tri.py -v`
 Expected: FAIL — `ImportError: cannot import name 'BenchmarkReturnType'`
 
-- [ ] **Step 6: Apply the migration, re-run**
+- [ ] **Step 6: Re-run, plus the SQLite migration round trip**
 
-Run: `cd backend && alembic upgrade head && pytest tests/services/analytics/test_nse_indices_client_tri.py -v`
-Expected: PASS
+Run: `cd backend && python3 -m pytest tests/services/analytics/test_nse_indices_client_tri.py tests/test_migrations.py tests/services/analytics/test_nse_indices_client.py -q -p no:cacheprovider`
+Expected: PASS — `test_migrations.py` runs every migration up and down on SQLite, which is
+what exercises the `batch_alter_table` branch. (The tests build tables from the models, so the
+first file needs no migration applied.)
 
 - [ ] **Step 7: Commit**
 
