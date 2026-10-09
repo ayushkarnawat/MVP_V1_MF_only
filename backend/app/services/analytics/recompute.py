@@ -1,5 +1,5 @@
 """Orchestration layer for Docs/superpowers/specs/2026-09-02-analytics-precompute-architecture-design.md.
-Computes all 7 Analytics sections for all 5 scopes (household-combined + up
+Computes all 8 Analytics sections for all 5 scopes (household-combined + up
 to 4 members) and upserts each into analytics_sections. Reuses every
 section's existing compute_*(db, member_ids) function completely unchanged
 -- this module is pure orchestration, never a rewrite of section logic.
@@ -32,7 +32,9 @@ from app.models.analytics import AnalyticsRecomputeStatus, AnalyticsSection
 from app.services.analytics.allocation import compute_category_allocation
 from app.services.analytics.benchmark import compute_fund_vs_benchmark, compute_portfolio_vs_benchmarks
 from app.services.analytics.category_ranking import compute_category_ranking
+from app.services.analytics.investment_withdrawal import compute_investment_withdrawal
 from app.services.analytics.schemas import (
+    AggregateInvestmentWithdrawalResponse,
     AggregateAnalyticsAllocationResponse,
     AggregateCategoryRankingResponse,
     AggregateDirectRegularTerResponse,
@@ -70,6 +72,11 @@ _SECTIONS: list[_SectionSpec] = [
     _SectionSpec("benchmark_funds", compute_fund_vs_benchmark, lambda statuses, result: AggregateFundVsBenchmarkResponse(members=statuses, comparison=result)),
     _SectionSpec("category_ranking", compute_category_ranking, lambda statuses, result: AggregateCategoryRankingResponse(members=statuses, ranking=result)),
     _SectionSpec("score", compute_portfolio_score, lambda statuses, result: AggregatePortfolioScoreResponse(members=statuses, score=result)),
+    _SectionSpec(
+        "investment_withdrawal",
+        compute_investment_withdrawal,
+        lambda statuses, result: AggregateInvestmentWithdrawalResponse(members=statuses, data=result),
+    ),
 ]
 
 

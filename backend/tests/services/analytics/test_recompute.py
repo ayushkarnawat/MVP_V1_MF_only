@@ -23,6 +23,8 @@ from app.services.analytics.schemas import (
     CategoryRankingSummary,
     DirectRegularTerComparison,
     FundVsBenchmarkSummary,
+    InvestmentWithdrawalResult,
+    InvestmentWithdrawalSipSummary,
     PortfolioBenchmarkSummary,
     PortfolioScoreSummary,
     WeightedTerSummary,
@@ -54,6 +56,13 @@ def _user_with_members(db, n_members=2) -> tuple[User, list[HouseholdMember]]:
 
 
 _MOCK_RESULTS = {
+    "investment_withdrawal": InvestmentWithdrawalResult(
+        total_invested="0.00", total_withdrawn="0.00", net_invested="0.00",
+        current_value="0.00", absolute_gain="0.00", monthly=[], yearly=[],
+        sip_summary=InvestmentWithdrawalSipSummary(
+            active_count=0, total_monthly_amount="0.00", missed_count=0,
+        ),
+    ),
     "allocation": AnalyticsAllocationSummary(by_category=[], by_amc=[], total_value="0"),
     "ter": WeightedTerSummary(weighted_ter=None, covered_value="0", total_value="0", reference_period=None, uncovered_schemes=[]),
     "ter_direct_regular": DirectRegularTerComparison(
@@ -91,8 +100,8 @@ def test_recompute_writes_one_row_per_scope_per_section():
             p.stop()
 
     rows = db.query(AnalyticsSection).filter(AnalyticsSection.user_id == user.id).all()
-    # 3 scopes (combined + 2 members) x 7 sections
-    assert len(rows) == 21
+    # 3 scopes (combined + 2 members) x 8 sections
+    assert len(rows) == 24
     scope_keys = {row.scope_key for row in rows}
     assert scope_keys == {"combined", str(members[0].id), str(members[1].id)}
     combined_allocation = db.get(AnalyticsSection, (user.id, "combined", "allocation"))
