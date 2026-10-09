@@ -175,3 +175,33 @@ def test_analytics_retry_route_is_a_noop_while_one_is_already_in_flight(client):
     assert response.status_code == 200
     assert response.json()["dispatched"] is False
     mock_dispatch.assert_not_called()
+
+
+def test_fund_ranking_requires_auth(client):
+    assert client.get(f"/analytics/funds/{uuid.uuid4()}/ranking").status_code == 401
+
+
+def test_fund_ranking_unknown_scheme_is_404(client):
+    headers, _, _ = _authed_headers_and_member(client, "+919000000091")
+    response = client.get(f"/analytics/funds/{uuid.uuid4()}/ranking", headers=headers)
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Scheme not found."
+
+
+def test_fund_ranking_returns_real_unavailable_row(client):
+    from app.db.session import get_db
+    from app.main import app
+    from app.models.reference import Scheme
+    headers, _, _ = _authed_headers_and_member(client, "+919000000092")
+    db = next(app.dependency_overrides[get_db]())
+    scheme_id = uuid.uuid4()
+    db.add(Scheme(id=scheme_id, amfi_code="API-RANK", name="Unknown Category", amc_name="A", sebi_category=""))
+    db.commit()
+    db.close()
+    response = client.get(f"/analytics/funds/{scheme_id}/ranking", headers=headers)
+    assert response.status_code == 200
+    row = response.json()
+    assert row["scheme_id"] == str(scheme_id)
+    assert row["category_unavailable"] is True
+    assert row["composite_score"] is None
+    assert row["neighbors"] == []

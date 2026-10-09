@@ -43,6 +43,8 @@ from app.services.analytics.schemas import (
     AggregatePortfolioScoreResponse,
     AggregateWeightedTerResponse,
 )
+from app.services.analytics.fund_ranking import compute_portfolio_ranking
+from app.services.analytics.schemas import AggregateFundRankingResponse
 from app.services.analytics.scorer import compute_portfolio_score
 from app.services.analytics.ter import compute_direct_regular_ter_comparison, compute_weighted_ter
 from app.services.dashboard.aggregate import get_member_statuses
@@ -71,6 +73,7 @@ _SECTIONS: list[_SectionSpec] = [
     _SectionSpec("benchmark", compute_portfolio_vs_benchmarks, lambda statuses, result: AggregatePortfolioBenchmarkResponse(members=statuses, benchmark=result)),
     _SectionSpec("benchmark_funds", compute_fund_vs_benchmark, lambda statuses, result: AggregateFundVsBenchmarkResponse(members=statuses, comparison=result)),
     _SectionSpec("category_ranking", compute_category_ranking, lambda statuses, result: AggregateCategoryRankingResponse(members=statuses, ranking=result)),
+    _SectionSpec("ranking", compute_portfolio_ranking, lambda statuses, result: AggregateFundRankingResponse(members=statuses, ranking=result)),
     _SectionSpec("score", compute_portfolio_score, lambda statuses, result: AggregatePortfolioScoreResponse(members=statuses, score=result)),
     _SectionSpec(
         "investment_withdrawal",
