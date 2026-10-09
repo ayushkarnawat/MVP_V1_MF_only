@@ -191,3 +191,72 @@ def test_parse_nav_all_leaves_blank_plan_and_option_out_of_the_name():
     assert row.name == "Motilal Oswal Midcap Fund" and row.plan is None
     assert next(r for r in _parse_nav_all(text) if r.amfi_code == "140228").name == \
         "Edelweiss Mid Cap Fund - Direct Plan - Growth Option"
+
+
+import pytest
+from app.models.enums import SchemePlanType
+from app.services.analytics.scheme_universe import (
+    SchemeUniverseClient, UniverseRow, canonical_category, get_category_peers,
+)
+
+
+@pytest.mark.parametrize("raw, expected", [
+    ("Equity Schemes - Flexi Cap Fund", "Equity Scheme - Flexi Cap Fund"),
+    ("Equity Scheme - Flexi Cap Fund", "Equity Scheme - Flexi Cap Fund"),
+    ("Equity Schemes - ELSS- Tax Saver Fund", "Equity Scheme - ELSS"),
+    ("Equity Schemes - Thematic Fund", "Equity Scheme - Sectoral/ Thematic"),
+    ("Hybrid Schemes - Balanced Advantage Fund/ Dynamic Asset Allocation",
+     "Hybrid Scheme - Dynamic Asset Allocation or Balanced Advantage"),
+    ("Income/Debt Oriented Schemes - Liquid Fund", "Debt Scheme - Liquid Fund"),
+    ("Income/Debt Oriented Schemes - Banking and PSU Debt Fund", "Debt Scheme - Banking and PSU Fund"),
+    ("Solution Oriented Schemes ** - Retirement Fund", "Solution Oriented Scheme - Retirement Fund"),
+    # Ambiguous legacy headings are left alone rather than guessed:
+    ("Income/Debt Oriented Schemes - Ultra Short to Short Term Fund",
+     "Debt Scheme - Ultra Short to Short Term Fund"),
+])
+def test_canonical_category(raw, expected):
+    assert canonical_category(raw) == expected
+
+
+def _row(code, base, plan, option, category="Equity Scheme - Contra Fund", amc="A"):
+    return UniverseRow(amfi_code=code, isin=None, name=" - ".join(p for p in (base, plan, option) if p),
+                       amc_name=amc, sebi_category=category, base_name=base, plan=plan, option=option)
+
+
+def test_peers_merge_spellings_and_keep_one_series_per_fund(tmp_path):
+    client = SchemeUniverseClient(cache_dir=tmp_path)
+    client._rows = [
+        _row("1", "Alpha Contra Fund", "Direct Plan", "Growth"),
+        _row("2", "Alpha Contra Fund", "Direct Plan", "IDCW"),
+        _row("3", "Alpha Contra Fund", "Regular Plan", "Growth"),
+        _row("4", "Beta Contra Fund", "Direct Plan", "Growth", category="Equity Schemes - Contra Fund", amc="B"),
+        _row("5", "Beta Contra Fund", "Regular Plan", "Growth", category="Equity Schemes - Contra Fund", amc="B"),
+    ]
+    db = _session()
+    peers = asyncio.run(client.get_category_peers(db, "Equity Schemes - Contra Fund", SchemePlanType.DIRECT))
+    assert sorted(s.amfi_code for s in peers.schemes) == ["1", "4"]   # Direct Growth of each fund
+    assert peers.fund_count == 2
+    by_code = {s.amfi_code: s.id for s in db.query(Scheme).all()}
+    # every variant of a fund maps to that fund's Direct Growth series
+    assert peers.representative_of[by_code["2"]] == by_code["1"]
+    assert peers.representative_of[by_code["3"]] == by_code["1"]
+
+
+def test_peers_for_regular_plan_pick_regular_growth(tmp_path):
+    client = SchemeUniverseClient(cache_dir=tmp_path)
+    client._rows = [
+        _row("1", "Alpha Contra Fund", "Direct Plan", "Growth"),
+        _row("3", "Alpha Contra Fund", "Regular Plan", "Growth"),
+        _row("6", "Alpha Contra Fund", "Regular Plan", "IDCW"),
+    ]
+    peers = asyncio.run(client.get_category_peers(_session(), "Equity Scheme - Contra Fund", SchemePlanType.REGULAR))
+    assert [s.amfi_code for s in peers.schemes] == ["3"]
+
+
+def test_peers_degrade_to_empty_when_amfi_is_unreachable(tmp_path):
+    """get_category_universe already returns [] on a fetch failure; the peer step must
+    keep that graceful behaviour instead of fetching again and raising."""
+    client = SchemeUniverseClient(cache_dir=tmp_path)
+    with patch.object(client, "_fetch_nav_all_text", new=AsyncMock(side_effect=httpx.ConnectError("down"))):
+        peers = asyncio.run(client.get_category_peers(_session(), "Equity Scheme - Contra Fund", SchemePlanType.DIRECT))
+    assert (peers.schemes, peers.fund_count, peers.representative_of) == ([], 0, {})

@@ -180,7 +180,9 @@ def monthly_returns(series: list[Decimal | None]) -> list[Decimal | None]:
     result: list[Decimal | None] = [None] * len(series)
     for i in range(1, len(series)):
         prev, curr = series[i - 1], series[i]
-        if prev is not None and curr is not None:
+        # A NAV of 0 isn't a price (wound-up/segregated schemes carry one), so there's
+        # no return out of it -- dividing by it raised and failed the whole category.
+        if prev is not None and curr is not None and prev > 0:
             result[i] = curr / prev - Decimal(1)
     return result
 
