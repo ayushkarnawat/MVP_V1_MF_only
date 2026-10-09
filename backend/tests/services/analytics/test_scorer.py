@@ -1,4 +1,5 @@
 import asyncio
+import functools
 import uuid
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
@@ -32,6 +33,16 @@ def _clear_category_score_cache():
     `_category_returns`."""
     scorer_module._category_score_cache.clear()
     yield
+
+
+def _peers(schemes):
+    """Every scheme is its own fund's series -- the scorer reads the peer set (9 Oct)."""
+    from app.services.analytics.scheme_universe import CategoryPeers
+    return CategoryPeers(schemes=list(schemes), fund_count=len(schemes), representative_of={s.id: s.id for s in schemes})
+
+
+async def _peers_from(universe_fn, db_, category, plan_type):
+    return _peers(await universe_fn(db_, category))
 
 
 def _session():
@@ -84,7 +95,7 @@ def test_category_component_scores_uses_cache_within_ttl():
 
     returns_calls = 0
 
-    async def _returns(db_, universe, today):
+    async def _returns(db_, universe, today, cache_key=None):
         nonlocal returns_calls
         returns_calls += 1
         return {held.id: Decimal("0.20")}
@@ -108,7 +119,7 @@ def test_category_component_scores_recomputes_once_ttl_has_expired():
 
     returns_calls = 0
 
-    async def _returns(db_, universe, today):
+    async def _returns(db_, universe, today, cache_key=None):
         nonlocal returns_calls
         returns_calls += 1
         return {held.id: Decimal("0.20")}
@@ -138,7 +149,7 @@ def test_category_component_scores_recomputes_on_calendar_day_rollover():
 
     returns_calls = 0
 
-    async def _returns(db_, universe, today):
+    async def _returns(db_, universe, today, cache_key=None):
         nonlocal returns_calls
         returns_calls += 1
         return {held.id: Decimal("0.20")}
@@ -171,12 +182,12 @@ def test_compute_fund_score_insufficient_history_when_no_return():
     db = _session()
     scheme = _scheme(db)
 
-    async def _no_return(db_, universe, today):
+    async def _no_return(db_, universe, today, cache_key=None):
         return {}
 
     with (
         patch("app.services.analytics.scorer._category_returns", new=AsyncMock(side_effect=_no_return)),
-        patch("app.services.analytics.scorer.get_category_universe", new=AsyncMock(return_value=[scheme])),
+        patch("app.services.analytics.scorer.get_category_peers", new=AsyncMock(return_value=_peers([scheme]))),
     ):
         row = asyncio.run(compute_fund_score(db, scheme))
     assert row.insufficient_history is True
@@ -190,12 +201,12 @@ def test_compute_fund_score_persists_one_row_per_day():
     _seed_monthly_nav(db, held, 24, monthly_growth=Decimal("0.02"))
     _seed_monthly_nav(db, peer, 24, monthly_growth=Decimal("0.005"))
 
-    async def _returns(db_, universe, today):
+    async def _returns(db_, universe, today, cache_key=None):
         return {held.id: Decimal("0.30"), peer.id: Decimal("0.05")}
 
     with (
         patch("app.services.analytics.scorer._category_returns", new=AsyncMock(side_effect=_returns)),
-        patch("app.services.analytics.scorer.get_category_universe", new=AsyncMock(return_value=[held, peer])),
+        patch("app.services.analytics.scorer.get_category_peers", new=AsyncMock(return_value=_peers([held, peer]))),
     ):
         row1 = asyncio.run(compute_fund_score(db, held))
         row2 = asyncio.run(compute_fund_score(db, held))
@@ -231,12 +242,12 @@ def test_compute_fund_score_survives_concurrent_duplicate_insert():
     )
     db.commit()
 
-    async def _returns(db_, universe, today):
+    async def _returns(db_, universe, today, cache_key=None):
         return {held.id: Decimal("0.30"), peer.id: Decimal("0.05")}
 
     with (
         patch("app.services.analytics.scorer._category_returns", new=AsyncMock(side_effect=_returns)),
-        patch("app.services.analytics.scorer.get_category_universe", new=AsyncMock(return_value=[held, peer])),
+        patch("app.services.analytics.scorer.get_category_peers", new=AsyncMock(return_value=_peers([held, peer]))),
     ):
         row = asyncio.run(compute_fund_score(db, held))
 
@@ -253,7 +264,7 @@ def test_compute_fund_score_best_return_in_min_category_gets_tier_five():
     for s in all_schemes:
         _seed_monthly_nav(db, s, 24, monthly_growth=Decimal("0.01"))
 
-    async def _returns(db_, universe, today):
+    async def _returns(db_, universe, today, cache_key=None):
         returns = {held.id: Decimal("0.50")}
         for i, p in enumerate(peers):
             returns[p.id] = Decimal("0.10") - Decimal(str(i)) * Decimal("0.01")
@@ -261,7 +272,7 @@ def test_compute_fund_score_best_return_in_min_category_gets_tier_five():
 
     with (
         patch("app.services.analytics.scorer._category_returns", new=AsyncMock(side_effect=_returns)),
-        patch("app.services.analytics.scorer.get_category_universe", new=AsyncMock(return_value=all_schemes)),
+        patch("app.services.analytics.scorer.get_category_peers", new=AsyncMock(return_value=_peers(all_schemes))),
     ):
         row = asyncio.run(compute_fund_score(db, held))
 
@@ -281,12 +292,12 @@ def test_compute_fund_score_includes_raw_evidence_fields():
     db.add(SchemeAaum(scheme_id=peer.id, reference_period=date(2026, 3, 31), aaum_value=Decimal("100")))
     db.commit()
 
-    async def _returns(db_, universe, today):
+    async def _returns(db_, universe, today, cache_key=None):
         return {held.id: Decimal("0.30"), peer.id: Decimal("0.05")}
 
     with (
         patch("app.services.analytics.scorer._category_returns", new=AsyncMock(side_effect=_returns)),
-        patch("app.services.analytics.scorer.get_category_universe", new=AsyncMock(return_value=[held, peer])),
+        patch("app.services.analytics.scorer.get_category_peers", new=AsyncMock(return_value=_peers([held, peer]))),
     ):
         row = asyncio.run(compute_fund_score(db, held))
 
@@ -312,12 +323,12 @@ def test_compute_fund_score_cost_adjustment_nudges_final_score():
     db.add(SchemeAaum(scheme_id=peer.id, reference_period=date(2026, 3, 31), aaum_value=Decimal("100")))
     db.commit()
 
-    async def _returns(db_, universe, today):
+    async def _returns(db_, universe, today, cache_key=None):
         return {held.id: Decimal("0.20"), peer.id: Decimal("0.20")}
 
     with (
         patch("app.services.analytics.scorer._category_returns", new=AsyncMock(side_effect=_returns)),
-        patch("app.services.analytics.scorer.get_category_universe", new=AsyncMock(return_value=[held, peer])),
+        patch("app.services.analytics.scorer.get_category_peers", new=AsyncMock(return_value=_peers([held, peer]))),
     ):
         row = asyncio.run(compute_fund_score(db, held))
 
@@ -372,12 +383,12 @@ def test_compute_fund_score_cost_adjustment_is_none_not_zero_when_ter_unavailabl
     _seed_monthly_nav(db, peer, 24, monthly_growth=Decimal("0.01"))
     # Deliberately no SchemeTer/SchemeAaum rows for either scheme.
 
-    async def _returns(db_, universe, today):
+    async def _returns(db_, universe, today, cache_key=None):
         return {held.id: Decimal("0.20"), peer.id: Decimal("0.20")}
 
     with (
         patch("app.services.analytics.scorer._category_returns", new=AsyncMock(side_effect=_returns)),
-        patch("app.services.analytics.scorer.get_category_universe", new=AsyncMock(return_value=[held, peer])),
+        patch("app.services.analytics.scorer.get_category_peers", new=AsyncMock(return_value=_peers([held, peer]))),
     ):
         row = asyncio.run(compute_fund_score(db, held))
 
@@ -410,12 +421,12 @@ def test_compute_fund_score_cost_adjustment_is_zero_string_not_none_when_genuine
     db.add(SchemeAaum(scheme_id=peer.id, reference_period=date(2026, 3, 31), aaum_value=Decimal("100")))
     db.commit()
 
-    async def _returns(db_, universe, today):
+    async def _returns(db_, universe, today, cache_key=None):
         return {held.id: Decimal("0.20"), peer.id: Decimal("0.20")}
 
     with (
         patch("app.services.analytics.scorer._category_returns", new=AsyncMock(side_effect=_returns)),
-        patch("app.services.analytics.scorer.get_category_universe", new=AsyncMock(return_value=[held, peer])),
+        patch("app.services.analytics.scorer.get_category_peers", new=AsyncMock(return_value=_peers([held, peer]))),
     ):
         row = asyncio.run(compute_fund_score(db, held))
 
@@ -467,7 +478,7 @@ def test_compute_portfolio_score_weights_by_holding_value():
     _seed_monthly_nav(db, held, 24, monthly_growth=Decimal("0.01"))
     _folio_with_purchase(db, member, held, Decimal("1000"), Decimal("100"), Decimal("10"), _START_3Y)
 
-    async def _returns(db_, universe, today):
+    async def _returns(db_, universe, today, cache_key=None):
         return {held.id: Decimal("0.20")}
 
     async def _nav_lookup(db_, scheme, on_date):
@@ -475,7 +486,7 @@ def test_compute_portfolio_score_weights_by_holding_value():
 
     with (
         patch("app.services.analytics.scorer._category_returns", new=AsyncMock(side_effect=_returns)),
-        patch("app.services.analytics.scorer.get_category_universe", new=AsyncMock(return_value=[held])),
+        patch("app.services.analytics.scorer.get_category_peers", new=AsyncMock(return_value=_peers([held]))),
         patch("app.services.dashboard.holdings.get_nav_on_or_before", new=AsyncMock(side_effect=_nav_lookup)),
         patch("app.services.dashboard.holdings.get_previous_nav_from_cache", return_value=None),
     ):
@@ -507,7 +518,7 @@ def test_compute_portfolio_score_dedupes_category_work_across_holdings_in_same_c
         universe_calls.append(sebi_category)
         return [held_a, held_b]
 
-    async def _returns(db_, universe, today):
+    async def _returns(db_, universe, today, cache_key=None):
         returns_calls.append(len(universe))
         return {held_a.id: Decimal("0.20"), held_b.id: Decimal("0.25")}
 
@@ -515,7 +526,7 @@ def test_compute_portfolio_score_dedupes_category_work_across_holdings_in_same_c
         return Decimal("11"), on_date
 
     with (
-        patch("app.services.analytics.scorer.get_category_universe", new=AsyncMock(side_effect=_universe)),
+        patch("app.services.analytics.scorer.get_category_peers", new=AsyncMock(side_effect=functools.partial(_peers_from, _universe))),
         patch("app.services.analytics.scorer._category_returns", new=AsyncMock(side_effect=_returns)),
         patch("app.services.dashboard.holdings.get_nav_on_or_before", new=AsyncMock(side_effect=_nav_lookup)),
         patch("app.services.dashboard.holdings.get_previous_nav_from_cache", return_value=None),
@@ -536,15 +547,98 @@ def test_fund_score_never_reaches_amfi_ter_feed():
     _seed_monthly_nav(db, held, 24, monthly_growth=Decimal("0.02"))
     _seed_monthly_nav(db, peer, 24, monthly_growth=Decimal("0.005"))
 
-    async def _returns(db_, universe, today):
+    async def _returns(db_, universe, today, cache_key=None):
         return {held.id: Decimal("0.30"), peer.id: Decimal("0.05")}
 
     boom = AsyncMock(side_effect=AssertionError("Analytics reached AMFI"))
     with (
         patch("app.services.analytics.scorer._category_returns", new=AsyncMock(side_effect=_returns)),
-        patch("app.services.analytics.scorer.get_category_universe", new=AsyncMock(return_value=[held, peer])),
+        patch("app.services.analytics.scorer.get_category_peers", new=AsyncMock(return_value=_peers([held, peer]))),
         patch("app.services.analytics.amfi_ter_client._fetch_latest_ter_month", new=boom),
         patch("app.services.analytics.amfi_ter_client._fetch_ter_rows", new=boom),
     ):
         asyncio.run(compute_fund_score(db, held))
     boom.assert_not_awaited()
+
+
+def test_scorer_ranks_against_the_peer_set_not_every_plan_row():
+    """9 Oct: the merged categories made the plan-row universe ~4x larger (Sectoral/Thematic:
+    1,035 rows, 256 funds); the scorer now uses the same one-series-per-fund peers as
+    Category Ranking and Fund Ranking."""
+    db = _session()
+    held = _scheme(db, "Held Fund")
+    peer = _scheme(db, "Peer Fund")
+    held_regular = _scheme(db, "Held Fund - Regular")
+    _seed_monthly_nav(db, held, 24, monthly_growth=Decimal("0.02"))
+    _seed_monthly_nav(db, peer, 24, monthly_growth=Decimal("0.005"))
+    seen = []
+
+    async def _returns(db_, universe, today, cache_key=None):
+        seen.append({s.id for s in universe})
+        return {held.id: Decimal("0.30"), peer.id: Decimal("0.05")}
+
+    from app.services.analytics.scheme_universe import CategoryPeers
+    peers = CategoryPeers(schemes=[held, peer], fund_count=2,
+                          representative_of={held.id: held.id, peer.id: peer.id, held_regular.id: held.id})
+    with (
+        patch("app.services.analytics.scorer._category_returns", new=AsyncMock(side_effect=_returns)),
+        patch("app.services.analytics.scorer.get_category_peers", new=AsyncMock(return_value=peers)),
+    ):
+        row = asyncio.run(compute_fund_score(db, held))
+    assert seen == [{held.id, peer.id}]  # the Regular plan row isn't a peer of its own fund
+    assert row.final_score is not None
+
+
+def test_a_held_idcw_plan_is_scored_on_its_funds_growth_series():
+    db = _session()
+    growth = _scheme(db, "Held Fund - Growth")
+    idcw = _scheme(db, "Held Fund - IDCW")
+    peer = _scheme(db, "Peer Fund")
+    _seed_monthly_nav(db, growth, 24, monthly_growth=Decimal("0.02"))
+    _seed_monthly_nav(db, peer, 24, monthly_growth=Decimal("0.005"))
+
+    async def _returns(db_, universe, today, cache_key=None):
+        return {growth.id: Decimal("0.30"), peer.id: Decimal("0.05")}
+
+    from app.services.analytics.scheme_universe import CategoryPeers
+    peers = CategoryPeers(schemes=[growth, peer], fund_count=2,
+                          representative_of={growth.id: growth.id, idcw.id: growth.id, peer.id: peer.id})
+    with (
+        patch("app.services.analytics.scorer._category_returns", new=AsyncMock(side_effect=_returns)),
+        patch("app.services.analytics.scorer.get_category_peers", new=AsyncMock(return_value=peers)),
+    ):
+        row = asyncio.run(compute_fund_score(db, idcw))
+    assert row.scheme_id == str(idcw.id)
+    assert row.insufficient_history is False
+    assert db.query(FundScore).filter_by(scheme_id=idcw.id).count() == 1
+
+
+def test_a_held_scheme_missing_from_amfi_is_category_unavailable():
+    db = _session()
+    gone = _scheme(db, "Closed Fund")
+    from app.services.analytics.scheme_universe import CategoryPeers
+    with patch("app.services.analytics.scorer.get_category_peers",
+               new=AsyncMock(return_value=CategoryPeers(schemes=[], fund_count=0, representative_of={}))):
+        row = asyncio.run(compute_fund_score(db, gone))
+    assert row.category_unavailable is True
+
+
+def test_thin_category_counts_funds_with_returns_like_category_ranking():
+    """A peer fund with no 3Y return isn't ranked, so it doesn't count towards 'thin' --
+    the same rule Category Ranking uses (len(returns) < 5)."""
+    db = _session()
+    held = _scheme(db, "Held Fund")
+    peers_with_returns = [_scheme(db, f"Peer {i}") for i in range(3)]
+    young = [_scheme(db, f"Young {i}") for i in range(3)]  # no 3Y history
+    for s in [held, *peers_with_returns]:
+        _seed_monthly_nav(db, s, 24)
+
+    async def _returns(db_, universe, today, cache_key=None):
+        return {s.id: Decimal("0.10") + Decimal(i) / 100 for i, s in enumerate([held, *peers_with_returns])}
+
+    with (
+        patch("app.services.analytics.scorer._category_returns", new=AsyncMock(side_effect=_returns)),
+        patch("app.services.analytics.scorer.get_category_peers", new=AsyncMock(return_value=_peers([held, *peers_with_returns, *young]))),
+    ):
+        row = asyncio.run(compute_fund_score(db, held))
+    assert row.thin_category is True  # 4 funds with returns, though 7 funds are in the peer set
