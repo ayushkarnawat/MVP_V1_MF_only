@@ -19,6 +19,7 @@ from app.services.analytics.recompute import (
     try_claim_recompute,
 )
 from app.services.analytics.schemas import (
+    FundManagerAllocationSummary,
     AnalyticsAllocationSummary,
     CategoryRankingSummary,
     FundRankingSummary,
@@ -57,6 +58,7 @@ def _user_with_members(db, n_members=2) -> tuple[User, list[HouseholdMember]]:
 
 
 _MOCK_RESULTS = {
+    "fund_manager": FundManagerAllocationSummary(manager_groups=[], unavailable_schemes=[]),
     "ranking": FundRankingSummary(funds=[]),
     "investment_withdrawal": InvestmentWithdrawalResult(
         total_invested="0.00", total_withdrawn="0.00", net_invested="0.00",

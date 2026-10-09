@@ -44,6 +44,8 @@ from app.services.analytics.schemas import (
     AggregateWeightedTerResponse,
 )
 from app.services.analytics.fund_ranking import compute_portfolio_ranking
+from app.services.analytics.fund_manager_allocation import compute_fund_manager_allocation
+from app.services.analytics.schemas import AggregateFundManagerAllocationResponse
 from app.services.analytics.schemas import AggregateFundRankingResponse
 from app.services.analytics.scorer import compute_portfolio_score
 from app.services.analytics.ter import compute_direct_regular_ter_comparison, compute_weighted_ter
@@ -80,6 +82,7 @@ _SECTIONS: list[_SectionSpec] = [
         compute_investment_withdrawal,
         lambda statuses, result: AggregateInvestmentWithdrawalResponse(members=statuses, data=result),
     ),
+    _SectionSpec("fund_manager", compute_fund_manager_allocation, lambda statuses, result: AggregateFundManagerAllocationResponse(members=statuses, fund_manager=result)),
 ]
 
 
