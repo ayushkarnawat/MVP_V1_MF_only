@@ -1,7 +1,15 @@
 # AMC Monthly Portfolio Disclosure — Full 57-AMC Fetchability Spike
 
-**Status:** IN_PROGRESS — 4 batches dispatched 2026-10-09 (A: 14 AMCs, B: 14, C: 14, D: 15),
-findings due at `Docs/analytics/investigations/2026-10-09-amc-portfolio-disclosure-spike-batch-{A,B,C,D}.md`.
+**Status:** DONE. 4 batches dispatched 2026-10-09 (A: 14 AMCs, B: 14, C: 14, D: 15) at
+`Docs/analytics/investigations/2026-10-09-amc-portfolio-disclosure-spike-batch-{A,B,C,D}.md`.
+Batches A, B, and D ran in Codex sandboxes with no DNS resolution to AMC hosts, which inflated
+their `NEEDS_INVESTIGATION` counts (22 cases combined); per the user's instruction to stop
+Codex delegation and do remaining work directly, every one of those cases (plus batch C's 2,
+which already had real network access) was independently re-verified with real `curl` +
+headless-Chromium tracing. Consolidated, corrected findings — final tiers for all 57 AMCs, the
+2 upgrades found during re-verification (Aditya Birla Sun Life, JM Financial), and the
+architectural implications for sub-project 2 — are at
+`Docs/analytics/investigations/2026-10-09-amc-portfolio-disclosure-spike-consolidated.md`.
 
 **Parent plan:** None yet — this spike is the prerequisite for sub-project 2
 (bucket D: look-through engine + attributes 02/06/10/13/15) architectural
