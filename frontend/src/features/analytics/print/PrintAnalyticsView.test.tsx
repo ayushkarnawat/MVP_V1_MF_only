@@ -10,6 +10,7 @@ const payload: AnalyticsExportPayload = {
   ter: null,
   terComparison: null,
   ranking: null,
+  fundManager: null,
   scoreSummary: {
     funds: [
       {
@@ -69,6 +70,40 @@ describe("PrintAnalyticsView", () => {
     vi.spyOn(api, "getExportPayload").mockResolvedValue({ ...payload, fundRanking: { funds: [fundRankingRow] } });
     render(<PrintAnalyticsView />);
     expect((await screen.findAllByText(/Ranked Flexi Cap Fund/)).length).toBeGreaterThan(0);
+  });
+
+  it("prints fund managers from their own export field after Category Ranking", async () => {
+    vi.spyOn(api, "getExportPayload").mockResolvedValue({ ...payload, fundManager: {
+      manager_groups: [{ manager_name: "PDF Manager", role: "Assistant Fund Manager", total_household_value: "100000",
+        funds: [{ scheme_id: "s-1", scheme_name: "PDF Held Fund", household_value: "100000", sequence_order: 1, role: "Assistant Fund Manager" }] }],
+      unavailable_schemes: [{ scheme_id: "s-2", scheme_name: "PDF Pending Fund", amc_name: "Pending AMC" }],
+    } });
+    render(<PrintAnalyticsView />);
+    await screen.findByText("PDF Manager");
+    expect(screen.getByText("Assistant Fund Manager")).toBeInTheDocument();
+    // The manager's total and, printed open, the fund's own value.
+    expect(screen.getAllByText("₹1,00,000")).toHaveLength(2);
+    expect(screen.getByText("PDF Held Fund")).toBeInTheDocument();
+    expect(screen.getByText(/PDF Pending Fund/)).toHaveTextContent("Pending AMC");
+    const category = screen.getByRole("heading", { name: "SEBI Category Ranking & Peer Comparison" });
+    const manager = screen.getByRole("heading", { name: "Fund Manager Allocation" });
+    expect(category.closest(".print-section")?.nextElementSibling).toBe(manager.closest(".print-section"));
+  });
+
+  it("prints every manager's funds without a click (a PDF can't expand a card)", async () => {
+    vi.spyOn(api, "getExportPayload").mockResolvedValue({
+      ...payload,
+      fundManager: {
+        manager_groups: [{
+          manager_name: "Jane Doe", role: null, total_household_value: "150000",
+          funds: [{ scheme_id: "f1", scheme_name: "Printed Fund One", household_value: "150000", sequence_order: 0, role: "Assistant Fund Manager" }],
+        }],
+        unavailable_schemes: [],
+      },
+    });
+    render(<PrintAnalyticsView />);
+    expect(await screen.findByText("Printed Fund One")).toBeInTheDocument();
+    expect(screen.getByText("Assistant Fund Manager")).toBeInTheDocument();
   });
 
   it("still prints an older export saved before fund ranking existed", async () => {

@@ -98,11 +98,18 @@ function settled(
   return { payload: failedAt ? null : payload, computed_at: failedAt ? null : "2026-09-01T00:00:00Z", failed_at: failedAt };
 }
 
+const sampleFundManager = {
+  manager_groups: [{ manager_name: "Jane Doe", role: null, total_household_value: "50000",
+    funds: [{ scheme_id: "scheme-1", scheme_name: "Manager Held Fund", household_value: "50000", sequence_order: 0, role: null }] }],
+  unavailable_schemes: [],
+};
+
 function buildSections(isAggregate: boolean, members: MemberStatus[] = []) {
   const wrap = (field: string, value: Record<string, unknown>): Record<string, unknown> =>
     isAggregate ? { members, [field]: value } : value;
   return {
     allocation: settled(wrap("allocation", sampleAllocationSummary)),
+    fund_manager: settled(wrap("fund_manager", sampleFundManager)),
     ter: settled(wrap("ter", sampleTerSummary)),
     ter_direct_regular: settled(wrap("ter", sampleDirectRegularComparison)),
     category_ranking: settled(wrap("ranking", sampleCategoryRanking)),
@@ -241,6 +248,7 @@ describe("AnalyticsView", () => {
     const call = vi.mocked(api.postExportPdf).mock.calls[0][0];
     expect(call.scope).toBe("aggregate");
     expect(call.payload.scopeName).toBe("Family Aggregate");
+    expect(call.payload.fundManager).toEqual(sampleFundManager);
   });
 
   it("shows a retry banner when a section has permanently failed, and re-fetches on click", async () => {
@@ -268,6 +276,40 @@ describe("ANALYTICS_SECTION_NAMES", () => {
   });
 });
 
+
+describe("Fund Manager dashboard wiring", () => {
+  it.each([true, false])("renders the fund_manager payload after Category Ranking (aggregate=%s)", async (isAggregate) => {
+    vi.mocked(api.getAnalyticsScope).mockResolvedValue({
+      scope: isAggregate ? "combined" : "m-1", recomputing: false, sections: buildSections(isAggregate),
+    });
+    render(<AnalyticsView viewMode={isAggregate ? "aggregate" : "member"} memberId={isAggregate ? null : "m-1"} />);
+    const card = await screen.findByRole("button", { name: /Jane Doe/ });
+    const heading = screen.getByRole("heading", { name: "Fund Manager Allocation" });
+    const category = screen.getByRole("heading", { name: "SEBI Category Ranking & Peer Comparison" });
+    expect(category.closest("section")?.nextElementSibling).toBe(heading.closest("section"));
+    fireEvent.click(card);
+    expect(screen.getByText("Manager Held Fund")).toBeInTheDocument();
+  });
+
+  it("keeps PDF export disabled while fund_manager alone is pending", async () => {
+    const sections = buildSections(true);
+    sections.fund_manager = { payload: null, computed_at: null, failed_at: null };
+    vi.mocked(api.getAnalyticsScope).mockResolvedValue({ scope: "combined", recomputing: false, sections });
+    render(<AnalyticsView viewMode="aggregate" memberId={null} />);
+    await screen.findByText("0.85%");
+    expect(screen.getByRole("button", { name: /download pdf/i })).toBeDisabled();
+    expect(screen.queryByText("No fund manager data available")).not.toBeInTheDocument();
+  });
+
+  it("settles a failed fund_manager section with an empty state and retry available", async () => {
+    const sections = { ...buildSections(true), fund_manager: settled(null, "2026-10-09T00:00:00Z") };
+    vi.mocked(api.getAnalyticsScope).mockResolvedValue({ scope: "combined", recomputing: false, sections });
+    render(<AnalyticsView viewMode="aggregate" memberId={null} />);
+    await screen.findByText("No fund manager data available");
+    expect(screen.getByRole("button", { name: /retry/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /download pdf/i })).toBeEnabled();
+  });
+});
 
 describe("Fund Ranking dashboard wiring", () => {
   it.each([true, false])("renders the snake_case ranking payload (aggregate=%s) after Category Ranking", async (isAggregate) => {

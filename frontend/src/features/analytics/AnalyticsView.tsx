@@ -10,6 +10,7 @@ import { AllocationSection } from "./AllocationSection";
 import { TerSection } from "./TerSection";
 import { CategoryRankingSection } from "./CategoryRankingSection";
 import { FundRankingSection } from "./FundRankingSection";
+import { FundManagerSection } from "./FundManagerSection";
 import { ScorerSection } from "./ScorerSection";
 import { InvestmentWithdrawalSection } from "./InvestmentWithdrawalSection";
 import { BenchmarkSection } from "./BenchmarkSection";
@@ -21,6 +22,7 @@ import type {
   AnalyticsSectionName,
   CategoryRankingSummary,
   FundRankingSummary,
+  FundManagerAllocationSummary,
   DirectRegularTerComparison,
   FundVsBenchmarkSummary,
   InvestmentWithdrawalResult,
@@ -47,6 +49,7 @@ const AGGREGATE_FIELD: Record<AnalyticsSectionName, string> = {
   ranking: "ranking",
   score: "score",
   investment_withdrawal: "data",
+  fund_manager: "fund_manager",
 };
 
 export function AnalyticsView({
@@ -70,6 +73,7 @@ export function AnalyticsView({
   const terComparison = unwrap<DirectRegularTerComparison>("ter_direct_regular");
   const ranking = unwrap<CategoryRankingSummary>("category_ranking");
   const fundRanking = unwrap<FundRankingSummary>("ranking");
+  const fundManager = unwrap<FundManagerAllocationSummary>("fund_manager");
   const scoreSummary = unwrap<PortfolioScoreSummary>("score");
   const portfolioBenchmark = unwrap<PortfolioBenchmarkSummary>("benchmark");
   const fundBenchmark = unwrap<FundVsBenchmarkSummary>("benchmark_funds");
@@ -83,6 +87,7 @@ export function AnalyticsView({
     !!scope && (!isSectionSettled(sections.ter) || !isSectionSettled(sections.ter_direct_regular));
   const rankingLoading = !!scope && !isSectionSettled(sections.category_ranking);
   const fundRankingLoading = !!scope && !isSectionSettled(sections.ranking);
+  const fundManagerLoading = !!scope && !isSectionSettled(sections.fund_manager);
   const scoreLoading = !!scope && !isSectionSettled(sections.score);
   const investmentWithdrawalLoading = !!scope && !isSectionSettled(sections.investment_withdrawal);
   const benchmarkLoading =
@@ -110,6 +115,7 @@ export function AnalyticsView({
         terComparison,
         ranking,
         fundRanking,
+        fundManager,
         scoreSummary,
         portfolioBenchmark,
         fundBenchmark,
@@ -248,6 +254,7 @@ export function AnalyticsView({
 
       {/* Section 3: Category Ranking */}
       <CategoryRankingSection ranking={ranking} isLoading={rankingLoading} />
+      <FundManagerSection data={fundManager} isLoading={fundManagerLoading} />
       <FundRankingSection data={fundRanking} isLoading={fundRankingLoading} />
 
       {/* Section 4: Fund & Portfolio Scorer (FR-5/FR-6/FR-7) */}

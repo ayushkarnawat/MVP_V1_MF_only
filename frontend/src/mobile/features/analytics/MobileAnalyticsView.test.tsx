@@ -127,6 +127,11 @@ function buildSections(isAggregate: boolean) {
     isAggregate ? { members: [], [field]: value } : value;
   return {
     allocation: settled(wrap("allocation", sampleAllocationSummary)),
+    fund_manager: settled(wrap("fund_manager", {
+      manager_groups: [{ manager_name: "Mobile Manager", role: "Overseas Investments", total_household_value: "50000",
+        funds: [{ scheme_id: "scheme-1", scheme_name: "Mobile Manager Fund", household_value: "50000", sequence_order: 1, role: "Overseas Investments" }] }],
+      unavailable_schemes: [],
+    })),
     ter: settled(wrap("ter", sampleTerSummary)),
     ter_direct_regular: settled(wrap("ter", sampleDirectRegularComparison)),
     category_ranking: settled(wrap("ranking", sampleCategoryRanking)),
@@ -141,6 +146,20 @@ function buildSections(isAggregate: boolean) {
 describe("MobileAnalyticsView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it.each([true, false])("renders and expands fund_manager after Category Ranking (aggregate=%s)", async (isAggregate) => {
+    vi.mocked(api.getAnalyticsScope).mockResolvedValue({
+      scope: isAggregate ? "combined" : "m-1", recomputing: false, sections: buildSections(isAggregate),
+    });
+    render(<MobileAnalyticsView memberId={isAggregate ? null : "m-1"} />);
+    const card = await screen.findByRole("button", { name: /Mobile Manager/ });
+    const heading = screen.getByRole("heading", { name: "Fund Manager Allocation" });
+    const category = screen.getByRole("heading", { name: "SEBI Category Ranking & Peer Comparison" });
+    expect(category.closest("section")?.nextElementSibling).toBe(heading.closest("section"));
+    expect(screen.getByText("Overseas Investments")).toBeInTheDocument();
+    fireEvent.click(card);
+    expect(screen.getByText("Mobile Manager Fund")).toBeInTheDocument();
   });
 
   it("fetches and renders all 5 sections for mobile analytics dashboard", async () => {
