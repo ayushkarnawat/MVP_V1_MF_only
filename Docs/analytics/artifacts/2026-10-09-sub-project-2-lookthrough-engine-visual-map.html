@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sub-project 2 — Look-Through Engine — Visual Map · Unifolio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,500&family=Manrope:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #f7f6f3; --surface: #ffffff; --ink: #1c1b19; --muted: #6b6760; --border: #e4e0d8;
+    --accent: #1d6f5c; --accent-ink: #ffffff; --warn: #8a4b06; --warn-bg: #fdf1dd;
+    --good: #156b3a; --good-bg: #e4f5e9; --bad: #9f2a2a; --bad-bg: #fbe8e6;
+    --code-bg: #f1efe9; --diagram-bg: #fbfaf7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #15140f; --surface: #1e1d18; --ink: #efece3; --muted: #a39d8f; --border: #332f26;
+      --accent: #4fc9ab; --accent-ink: #0c1e18; --warn: #e3a94a; --warn-bg: #352407;
+      --good: #6bd99a; --good-bg: #0f2a1a; --bad: #ef8b85; --bad-bg: #351212;
+      --code-bg: #26241c; --diagram-bg: #1a1813;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: "DM Sans", system-ui, sans-serif; line-height: 1.55; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 48px 24px 96px; display: flex; flex-direction: column; gap: 48px; }
+  header { display: flex; flex-direction: column; gap: 10px; border-bottom: 1px solid var(--border); padding-bottom: 28px; }
+  .eyebrow { font-family: "JetBrains Mono", monospace; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+  h1 { font-family: "Manrope", sans-serif; font-weight: 800; font-size: 30px; margin: 0; letter-spacing: -.01em; }
+  .lede { color: var(--muted); max-width: 780px; font-size: 15px; }
+  nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  nav a { font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--ink); background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; text-decoration: none; }
+  nav a:hover { border-color: var(--accent); color: var(--accent); }
+  section { display: flex; flex-direction: column; gap: 16px; scroll-margin-top: 20px; }
+  .section-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .eyebrow-num { font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--accent-ink); background: var(--accent); border-radius: 6px; padding: 3px 8px; }
+  h2 { font-family: "Manrope", sans-serif; font-size: 21px; margin: 0; }
+  .section-head p { margin: 4px 0 0; color: var(--muted); font-size: 14px; max-width: 680px; }
+  .diagram { background: var(--diagram-bg); border: 1px solid var(--border); border-radius: 14px; padding: 18px; overflow-x: auto; }
+  .callout { border: 1px solid var(--border); border-left: 4px solid var(--accent); background: var(--surface); border-radius: 10px; padding: 14px 16px; font-size: 14px; }
+  .callout.warn { border-left-color: var(--warn); background: var(--warn-bg); }
+  .callout.good { border-left-color: var(--good); background: var(--good-bg); }
+  .tbl-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; background: var(--surface); }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { font-family: "JetBrains Mono", monospace; font-size: 11px; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); background: var(--code-bg); }
+  tr:last-child td { border-bottom: none; }
+  code { font-family: "JetBrains Mono", monospace; font-size: 12.5px; background: var(--code-bg); border-radius: 4px; padding: 1px 5px; }
+  pre.code-block { font-family: "JetBrains Mono", monospace; font-size: 12.5px; background: var(--code-bg); border-radius: 10px; padding: 14px 16px; overflow-x: auto; margin: 0; }
+  footer { border-top: 1px solid var(--border); padding-top: 24px; font-size: 13px; color: var(--muted); }
+  .badge { font-family: "JetBrains Mono", monospace; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; display: inline-block; }
+  .badge.good { background: var(--good-bg); color: var(--good); }
+  .badge.warn { background: var(--warn-bg); color: var(--warn); }
+  .badge.bad { background: var(--bad-bg); color: var(--bad); }
+  .stat-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .stat { flex: 1 1 140px; border: 1px solid var(--border); background: var(--surface); border-radius: 12px; padding: 14px 16px; }
+  .stat .n { font-family: "Manrope", sans-serif; font-weight: 800; font-size: 26px; }
+  .stat .l { font-size: 12px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Unifolio · Sub-project 2 · 2026-10-09</div>
+  <h1>Look-Through Engine — Data Model &amp; Ingestion Pipeline</h1>
+  <p class="lede">
+    Visual companion to <code>2026-10-09-sub-project-2-lookthrough-engine-spec.md</code>.
+    The missing stock-level holdings layer behind attributes 02, 06, 10, 13, 15 — a
+    2-table data model, a 5-stage per-AMC ingestion pipeline, and the fetchability
+    verdict for all 57 AMFI-registered AMCs.
+  </p>
+  <nav>
+    <a href="#why">Why this exists</a>
+    <a href="#model">Data model</a>
+    <a href="#pipeline">Pipeline</a>
+    <a href="#amcs">57 AMCs</a>
+    <a href="#pressure">Pressure-test</a>
+  </nav>
+</header>
+
+<section id="why">
+  <div class="section-head">
+    <span class="eyebrow-num">01</span>
+    <div>
+      <h2>Why this exists</h2>
+      <p>Five of the PDF's 15 attributes sit behind one missing data source: what each
+      fund actually holds, stock by stock.</p>
+    </div>
+  </div>
+  <div class="diagram">
+    <pre class="mermaid">
+flowchart TB
+    LT["00 · Look-through engine<br/>Σ(fund weight × stock weight), matched by ISIN"]
+    LT --> A02["02 · Category allocation<br/>(AMFI market-cap list)"]
+    LT --> A06["06 · Overall stock holdings"]
+    LT --> A10["10 · Portfolio overlap<br/>(symmetric, pairwise)"]
+    LT --> A13["13 · Asset allocation<br/>(equity/debt/gold/cash)"]
+    LT --> A15["15 · Portfolio P/E, P/B<br/>(harmonic mean)"]
+    SRC["Each fund's monthly AMC-published<br/>portfolio disclosure (ISIN, sector, qty, MV, %NAV)"] --> LT
+
+    classDef gate fill:#fdf1dd,stroke:#8a4b06,color:#111,stroke-width:2px
+    class LT gate
+    </pre>
+  </div>
+  <div class="stat-row">
+    <div class="stat"><div class="n">47 / 57</div><div class="l">AMCs fetchable today</div></div>
+    <div class="stat"><div class="n">2 / 57</div><div class="l">need standing manual fetch</div></div>
+    <div class="stat"><div class="n">0</div><div class="l">new tables beyond the 2 below</div></div>
+    <div class="stat"><div class="n">4</div><div class="l">investigation passes behind this verdict</div></div>
+  </div>
+</section>
+
+<section id="model">
+  <div class="section-head">
+    <span class="eyebrow-num">02</span>
+    <div>
+      <h2>Data model — 2 tables</h2>
+      <p>Grain fixed at (scheme, as-of-date), not (AMC, month) — the one real gap this
+      design's pressure-test found and fixed. See §05.</p>
+    </div>
+  </div>
+  <div class="diagram">
+    <pre class="mermaid">
+erDiagram
+    SCHEMES ||--o{ DISCLOSURE_BATCHES : "one per (scheme, as_of_date)"
+    DISCLOSURE_BATCHES ||--o{ SCHEME_HOLDINGS : "delete+reinsert per batch_id"
+    DISCLOSURE_BATCHES {
+        uuid scheme_id FK
+        date as_of_date "verbatim from source, never coerced to month-end"
+        string amc_name "denormalized for adapter queries"
+        enum status "PENDING|FETCHED|PARSED|WRITTEN|FAILED|AWAITING_MANUAL_UPLOAD"
+        string source_url
+        string raw_file_reference "S3 key of original file"
+        jsonb parse_errors "nullable, [{file, error}] per failed sheet/file in a bundle"
+    }
+    SCHEME_HOLDINGS {
+        uuid batch_id FK
+        string instrument_name "verbatim"
+        string isin "nullable -- cash/CBLO/TREPS/Net Receivables have none"
+        string sector_raw "verbatim, NOT normalized at write time"
+        numeric quantity
+        numeric market_value "normalized to rupees, never lakhs/crores"
+        numeric pct_to_nav
+    }
+    </pre>
+  </div>
+  <div class="callout good">
+    <b>Why not a third table?</b> <code>disclosure_batches.status</code> +
+    <code>source_url</code> + <code>raw_file_reference</code> + <code>parse_errors</code>
+    already carry everything a separate file/job-tracking table would. The
+    <code>AWAITING_MANUAL_UPLOAD</code> status gives this same table double duty as the
+    manual-upload queue — same precedent as attribute 04's factsheet manual path.
+  </div>
+</section>
+
+<section id="pipeline">
+  <div class="section-head">
+    <span class="eyebrow-num">03</span>
+    <div>
+      <h2>Five-stage pipeline, per AMC adapter</h2>
+      <p>Generic (config row) by default; custom code only where Locate or Parse is
+      genuinely non-formulaic.</p>
+    </div>
+  </div>
+  <div class="diagram">
+    <pre class="mermaid">
+flowchart LR
+    L["1 · Locate<br/>live discovery OR<br/>Wayback/CDX fallback"] --> F["2 · Fetch<br/>carry forward headers/cookies"]
+    F --> P["3 · Parse<br/>auto-detect .xls/.xlsx<br/>assert unit (₹ Lakhs etc.)<br/>reprocess bundle from scratch"]
+    P --> N["4 · Normalize<br/>hybrid layered scheme-name<br/>matching (reused, not new)"]
+    N --> W["5 · Write<br/>delete+reinsert per batch_id<br/>(idempotent by construction)"]
+
+    classDef custom fill:#fdf1dd,stroke:#8a4b06,color:#111
+    classDef generic fill:#e4f5e9,stroke:#156b3a,color:#111
+    class L custom
+    class F,W generic
+    class P,N generic
+    </pre>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>Stage</th><th>Default</th><th>When custom code is needed</th></tr>
+      <tr><td>Locate</td><td>URL template (year/month/scheme-slug placeholders)</td><td>Wayback/CDX-based discovery (HDFC, soon Kotak); cascading-select pages (Bajaj Finserv, Abakkus, Sundaram, quant)</td></tr>
+      <tr><td>Fetch</td><td>Plain HTTP GET</td><td>Carry forward Locate-step headers/cookies if ever required (not yet observed)</td></tr>
+      <tr><td>Parse</td><td>Column-mapping dict</td><td>Multi-scheme bundle with an index-sheet lookup (Bank of India, Abakkus, Sundaram, ICICI Prudential); legacy BIFF via <code>xlrd</code> (Aditya Birla Sun Life)</td></tr>
+      <tr><td>Normalize</td><td>Exact scheme-name match</td><td>Scoped fuzzy fallback + ambiguity guard, reusing <code>scheme_fund_managers.match_method</code>/<code>match_confidence</code> precedent</td></tr>
+      <tr><td>Write</td><td>Delete+reinsert by <code>batch_id</code></td><td>Never — always generic, this is what makes retries safe</td></tr>
+    </table>
+  </div>
+</section>
+
+<section id="amcs">
+  <div class="section-head">
+    <span class="eyebrow-num">04</span>
+    <div>
+      <h2>All 57 AMCs — final verdict</h2>
+      <p>4 independent investigation passes; every AMC has an explicit, justified plan,
+      not an open question.</p>
+    </div>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>Verdict</th><th>Count</th><th>Adapter shape</th><th>Examples</th></tr>
+      <tr><td><span class="badge good">STATIC_REGEX</span></td><td>33</td><td>Generic Locate+Parse (4 need custom multi-scheme bundle parse; 1 needs Wayback Locate)</td><td>Nippon, SBI, HDFC, Union, Canara Robeco, AlphaGrep, Aditya Birla Sun Life</td></tr>
+      <tr><td><span class="badge good">JSON_API</span></td><td>14</td><td>Custom scripted Locate, generic Parse</td><td>PGIM India, Navi, Jio BlackRock, Bandhan, ICICI Prudential, Bajaj Finserv, Sundaram</td></tr>
+      <tr><td><span class="badge warn">BOT_BLOCKED</span> — pending</td><td>1</td><td>Will become generic <code>STATIC_REGEX</code> once its Monthly file publishes</td><td>Kotak Mahindra (re-check ~2026-10-12)</td></tr>
+      <tr><td><span class="badge warn">Adapter not yet built</span></td><td>1</td><td>Custom select/click, same shape as other <code>JSON_API</code> AMCs</td><td>WhiteOak Capital</td></tr>
+      <tr><td><span class="badge warn">Different granularity</span></td><td>1</td><td>Generic, ingest at its real ceiling</td><td>Monarch (Networth) — fortnightly only</td></tr>
+      <tr><td><span class="badge bad">Manual fetch</span></td><td>2</td><td>No adapter — human drops file into the same intake</td><td>Edelweiss (Akamai), Mahindra Manulife (encrypted API, not cracked)</td></tr>
+      <tr><td><span class="badge">NO_CONTENT_FOUND</span></td><td>5</td><td>n/a — expected absence, not a failure</td><td>ASK, IL&amp;FS, Lakshya, Carnelian, Nuvama</td></tr>
+    </table>
+  </div>
+  <div class="callout">
+    A "separate unprotected static-asset/CDN subdomain, distinct from the AMC's main
+    WAF-protected site" recurs across 5 AMCs (HDFC, Kotak, AlphaGrep, Union, Canara
+    Robeco) — named explicitly as a first-class Locate-stage pattern, not a one-off.
+  </div>
+</section>
+
+<section id="pressure">
+  <div class="section-head">
+    <span class="eyebrow-num">05</span>
+    <div>
+      <h2>Pressure-test: the one real gap, and the refinements</h2>
+    </div>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>Found</th><th>Fix</th></tr>
+      <tr><td><b>Real gap:</b> (AMC, month) grain collides when one AMC mixes disclosure cadences per scheme (Canara Robeco: monthly equity, fortnightly some debt)</td><td>Re-key <code>disclosure_batches</code> to (scheme, as_of_date); still 2 tables</td></tr>
+      <tr><td>Multi-file bundle status as free text ("143/151 parsed")</td><td>Structured <code>parse_errors</code> JSONB, <code>[{file, error}]</code></td></tr>
+      <tr><td>Bespoke Python per AMC as the default</td><td>Config-driven adapter as default; custom code only where non-formulaic</td></tr>
+      <tr><td>Per-AMC publishing-lag schedule config</td><td>Flat retry-until-found window, reusing existing EventBridge/ECS Fargate jobs</td></tr>
+      <tr><td>A new one-off scheme-name matcher</td><td>Reuse the hybrid layered-matching pattern + <code>match_method</code>/<code>match_confidence</code> columns already live on <code>scheme_fund_managers</code></td></tr>
+      <tr><td>Resuming partial state on bundle retry</td><td>Rejected — always reprocess the full bundle from scratch, removes a whole bug class</td></tr>
+    </table>
+  </div>
+</section>
+
+<footer>
+  Spec: <code>2026-10-09-sub-project-2-lookthrough-engine-spec.md</code> · Feasibility
+  source: <code>2026-10-09-amc-portfolio-disclosure-spike-consolidated.md</code> (4 passes,
+  all 57 AMCs) · Backend grounding: <code>backend/app/models/reference.py</code>
+  (<code>schemes</code>, <code>scheme_fund_managers</code>).
+</footer>
+
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script>
+  const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: isDark ? 'dark' : 'neutral',
+    themeVariables: { fontFamily: 'DM Sans, sans-serif', primaryColor: isDark ? '#1e1d18' : '#fbfaf7', primaryBorderColor: isDark ? '#332f26' : '#e4e0d8', lineColor: isDark ? '#a39d8f' : '#6b6760' }
+  });
+</script>
+</body>
+</html>
