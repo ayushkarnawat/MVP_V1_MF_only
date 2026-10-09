@@ -1,5 +1,5 @@
 # Handoff: a09-fund-ranking
-**Status:** OPEN — Run 1 (plan Tasks 1, 2, 2a, 3, 4) ready to issue, 2026-10-09
+**Status:** OPEN — Run 1 approved and committed (`24a1f74`, `02d5a2c`, `a5d1919`); Run 2 approved and committed (`94bc9d0`); synthetic CAS gate running, 2026-10-09
 **Parent plan:** `Docs/superpowers/plans/2026-10-09-attribute-09-fund-ranking.md` (binding, as revised 9 Oct — read its "Revised 2026-10-09" block, Global Constraints and Review Focus 1–8 first)
 **Spec:** `Docs/analytics/2026-10-07-sub-project-1-planning.md`, "Attribute 09" · `Docs/analytics/2026-10-08-attribute-09-fund-ranking-spec.md` · explainer: `Docs/orchestration/subproject1-execution/a09-fund-ranking.html`
 **Orchestrator:** Claude Code (rulings, WSL + Postgres verification, review, commits, docs) · **Worker:** Codex (builds the run, self-reviews, prints the report)
@@ -117,3 +117,5 @@ Run date/time: <…>    Environment: Windows    Python: <version>    Baseline HE
 | Round | Run | Result | Notes |
 |---|---|---|---|
 | — | Run 1 | ready 2026-10-09 | Tasks 1, 2, 2a, 3, 4. |
+| 1 | Run 1 | approved 2026-10-09 | Tasks 1–4 built (173 Windows tests). Codex's 6 open questions ruled: 76.67 example was a plan error (Step 6 test governs); "agree" = same peers/counts, not rank; IDCW-only fallback kept; six-field rows kept; AMFI-outage peers → empty (orchestrator fix, test-first); interior zero NAV in `monthly_returns` → skipped (orchestrator fix, test-first; also protects Scorer). Review (Sonnet): APPROVE, 5 Low — fixed: empty peer scores not cached (test-first); accepted: unknown plan_type picks any plan (scheme master sets plan_type), fetch failure shows Category Unavailable, local vs UTC date, CRLF→LF in analytics.py, Numeric(8,6) return ceiling. WSL 198 passed; Postgres 0034 round trip clean. |
+| 2 | Run 2 | approved 2026-10-09 | Task 5 built (27 tests, tsc clean). Codex open question ruled: the PDF export gets its own optional `fundRanking` field (old exports still print); wired by orchestrator, test-first. Review (Sonnet): CHANGES NEEDED → fixed by orchestrator: Fund Ranking now renders on mobile (Med), no "Top 100%" for a missing percentile, duplicate category count dropped, expand button holds only phrasing content + aria-controls; kept "Thin Category (N peers)" (approved copy). 33 tests + tsc clean. Committed `94bc9d0`. |
