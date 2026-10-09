@@ -8,7 +8,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.db.base import Base
-from app.models.enums import BenchmarkIndex, PlanType, Relationship, TransactionType
+from app.models.enums import BenchmarkIndex, BenchmarkReturnType, PlanType, Relationship, TransactionType
 from app.models.folio import Folio
 from app.models.reference import BenchmarkIndexHistory, Scheme
 from app.models.transaction import Transaction
@@ -95,8 +95,8 @@ def test_compute_portfolio_vs_benchmarks_computes_portfolio_and_nifty50_xirr():
     purchase_date = date.today().replace(year=date.today().year - 1)
     _folio_with_purchase(db, member, scheme, Decimal("1000.00"), Decimal("100.000"), Decimal("10.0000"), purchase_date)
 
-    db.add(BenchmarkIndexHistory(index_name=BenchmarkIndex.NIFTY_50, date=purchase_date, value=Decimal("100.00")))
-    db.add(BenchmarkIndexHistory(index_name=BenchmarkIndex.NIFTY_50, date=date.today(), value=Decimal("105.00")))
+    db.add(BenchmarkIndexHistory(index_name=BenchmarkIndex.NIFTY_50, return_type=BenchmarkReturnType.TRI, date=purchase_date, value=Decimal("100.00")))
+    db.add(BenchmarkIndexHistory(index_name=BenchmarkIndex.NIFTY_50, return_type=BenchmarkReturnType.TRI, date=date.today(), value=Decimal("105.00")))
     db.commit()
 
     p1, p2 = _mock_holdings(scheme, Decimal("12.0000"))  # fund value grows to 1200
@@ -128,8 +128,8 @@ def test_compute_portfolio_vs_benchmarks_excludes_switches_from_cash_flow():
     db.add(Transaction(id=uuid.uuid4(), folio_id=folio.id, import_id=uuid.uuid4(), type=TransactionType.SWITCH_IN, date=purchase_date, amount=Decimal("500.00"), units=Decimal("50.000"), nav=Decimal("10.0000")))
     db.commit()
 
-    db.add(BenchmarkIndexHistory(index_name=BenchmarkIndex.NIFTY_50, date=purchase_date, value=Decimal("100.00")))
-    db.add(BenchmarkIndexHistory(index_name=BenchmarkIndex.NIFTY_50, date=date.today(), value=Decimal("105.00")))
+    db.add(BenchmarkIndexHistory(index_name=BenchmarkIndex.NIFTY_50, return_type=BenchmarkReturnType.TRI, date=purchase_date, value=Decimal("100.00")))
+    db.add(BenchmarkIndexHistory(index_name=BenchmarkIndex.NIFTY_50, return_type=BenchmarkReturnType.TRI, date=date.today(), value=Decimal("105.00")))
     db.commit()
 
     p1, p2 = _mock_holdings(scheme, Decimal("12.0000"))
@@ -182,8 +182,8 @@ def test_compute_fund_vs_benchmark_uses_per_fund_appropriate_index():
     _folio_with_purchase(db, member, mid_cap, Decimal("2000.00"), Decimal("200.000"), Decimal("10.0000"), purchase_date)
 
     for index in (BenchmarkIndex.NIFTY_50, BenchmarkIndex.NIFTY_MIDCAP_150, BenchmarkIndex.NIFTY_500):
-        db.add(BenchmarkIndexHistory(index_name=index, date=purchase_date, value=Decimal("100.00")))
-        db.add(BenchmarkIndexHistory(index_name=index, date=date.today(), value=Decimal("110.00")))
+        db.add(BenchmarkIndexHistory(index_name=index, return_type=BenchmarkReturnType.TRI, date=purchase_date, value=Decimal("100.00")))
+        db.add(BenchmarkIndexHistory(index_name=index, return_type=BenchmarkReturnType.TRI, date=date.today(), value=Decimal("110.00")))
     db.commit()
 
     p1, p2 = _mock_holdings_multi({large_cap.id: Decimal("12.0000"), mid_cap.id: Decimal("9.0000")})
@@ -336,3 +336,33 @@ def test_xirr_str_avoids_scientific_notation_for_near_zero_rates():
 
 def test_xirr_str_normalizes_negative_zero():
     assert _xirr_str(Decimal("-0")) == "0"
+
+
+def test_benchmark_uses_tri_and_ignores_price_rows():
+    """Decided 9 Oct: fund-vs-index comparisons use TRI. Price rows alone give no
+    benchmark (no silent fallback), and TRI is used when both exist for the same dates."""
+    db = _session()
+    member = _household_member(db)
+    scheme = _scheme(db)
+    purchase_date = date.today().replace(year=date.today().year - 1)
+    _folio_with_purchase(db, member, scheme, Decimal("1000.00"), Decimal("100.000"), Decimal("10.0000"), purchase_date)
+
+    db.add(BenchmarkIndexHistory(index_name=BenchmarkIndex.NIFTY_50, date=purchase_date, return_type=BenchmarkReturnType.PRICE, value=Decimal("100.00")))
+    db.add(BenchmarkIndexHistory(index_name=BenchmarkIndex.NIFTY_50, date=date.today(), return_type=BenchmarkReturnType.PRICE, value=Decimal("105.00")))
+    db.commit()
+
+    p1, p2 = _mock_holdings(scheme, Decimal("12.0000"))
+    with p1, p2, _no_fetch():
+        price_only = asyncio.run(compute_portfolio_vs_benchmarks(db, [member.id]))
+    assert next(r for r in price_only.benchmarks if r.index == BenchmarkIndex.NIFTY_50).xirr is None
+
+    db.add(BenchmarkIndexHistory(index_name=BenchmarkIndex.NIFTY_50, date=purchase_date, return_type=BenchmarkReturnType.TRI, value=Decimal("100.00")))
+    db.add(BenchmarkIndexHistory(index_name=BenchmarkIndex.NIFTY_50, date=date.today(), return_type=BenchmarkReturnType.TRI, value=Decimal("110.00")))
+    db.commit()
+
+    p1, p2 = _mock_holdings(scheme, Decimal("12.0000"))
+    with p1, p2, _no_fetch():
+        with_tri = asyncio.run(compute_portfolio_vs_benchmarks(db, [member.id]))
+    tri_xirr = Decimal(next(r for r in with_tri.benchmarks if r.index == BenchmarkIndex.NIFTY_50).xirr)
+    # The index grew 10% (TRI), not 5% (price): about a 10% annual rate for one year.
+    assert Decimal("0.09") < tri_xirr < Decimal("0.11")
