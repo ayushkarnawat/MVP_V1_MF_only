@@ -10,7 +10,7 @@ from sqlalchemy import Boolean, Index, true, DateTime, ForeignKey, Integer, Nume
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
-from app.models.enums import ArnStatus, BenchmarkIndex, PlanNameVariant, SchemeSource, SchemePlanType, enum_column
+from app.models.enums import ArnStatus, BenchmarkIndex, BenchmarkReturnType, PlanNameVariant, SchemeSource, SchemePlanType, enum_column
 
 
 class Scheme(Base):
@@ -73,6 +73,13 @@ class BenchmarkIndexHistory(Base):
 
     index_name: Mapped[BenchmarkIndex] = mapped_column(enum_column(BenchmarkIndex), primary_key=True)
     date: Mapped[date_] = mapped_column(primary_key=True)
+    # Python default too, not just server_default: existing code and tests create
+    # rows without return_type (test_nse_indices_client.py), and an ORM insert of
+    # a primary-key column needs the value up front.
+    return_type: Mapped[BenchmarkReturnType] = mapped_column(
+        enum_column(BenchmarkReturnType), primary_key=True,
+        default=BenchmarkReturnType.PRICE, server_default="price",
+    )
     value: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
 
 

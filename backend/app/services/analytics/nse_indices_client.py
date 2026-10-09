@@ -24,10 +24,11 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.db.session import commit_off_loop
-from app.models.enums import BenchmarkIndex
+from app.models.enums import BenchmarkIndex, BenchmarkReturnType
 from app.models.reference import BenchmarkIndexHistory
 
 NSE_INDICES_URL = "https://www.niftyindices.com/BackPage/getHistoricaldatatabletoString"
+NSE_TRI_URL = "https://www.niftyindices.com/BackPage/getTotalReturnIndexString"
 # The site drops requests with no User-Agent at all — any normal browser UA works.
 _USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -84,18 +85,60 @@ async def _fetch_index_history(index: BenchmarkIndex, start_date: date, end_date
     return rows
 
 
-async def _upsert_index_history(db: Session, index: BenchmarkIndex, rows: list[tuple[date, Decimal]]) -> None:
-    existing_dates = {d for (d,) in db.query(BenchmarkIndexHistory.date).filter_by(index_name=index).all()}
+async def _fetch_tri_history(index: BenchmarkIndex, start_date: date, end_date: date) -> list[tuple[date, Decimal]]:
+    """Mirrors _fetch_index_history exactly (same cinfo request shape, same
+    host, same date-range validation) -- confirmed live 2026-10-08 that
+    applying this codebase's own /BackPage/ casing fix (already proven for
+    the price-return endpoint) to the TRI path works on the first try.
+    Reads TotalReturnsIndex (the gross TRI value, universally present) and
+    deliberately ignores NTR_Value (the net-of-withholding-tax variant,
+    confirmed blank "-" for sector/style indices -- not needed for this
+    attribute's dividend-reinvestment comparison use case)."""
+    trading_name = _TRADING_INDEX_NAME[index]
+    cinfo = json.dumps(
+        {
+            "name": trading_name,
+            "startDate": start_date.strftime("%d-%b-%Y"),
+            "endDate": end_date.strftime("%d-%b-%Y"),
+            "indexName": trading_name,
+        }
+    )
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        resp = await client.post(NSE_TRI_URL, json={"cinfo": cinfo}, headers={"User-Agent": _USER_AGENT})
+        resp.raise_for_status()
+        payload = resp.json()
+
+    rows: list[tuple[date, Decimal]] = []
+    for entry in payload:
+        parsed_date = datetime.strptime(entry["Date"], "%d %b %Y").date()
+        if not (start_date <= parsed_date <= end_date):
+            raise ValueError(
+                f"NSE TRI response date {parsed_date} outside requested range {start_date}..{end_date}"
+            )
+        rows.append((parsed_date, Decimal(entry["TotalReturnsIndex"])))
+    return rows
+
+
+async def _upsert_index_history(
+    db: Session, index: BenchmarkIndex, return_type: BenchmarkReturnType, rows: list[tuple[date, Decimal]]
+) -> None:
+    existing_dates = {
+        d for (d,) in db.query(BenchmarkIndexHistory.date)
+        .filter_by(index_name=index, return_type=return_type)
+        .all()
+    }
     for row_date, value in rows:
         if row_date not in existing_dates:
-            db.add(BenchmarkIndexHistory(index_name=index, date=row_date, value=value))
+            db.add(BenchmarkIndexHistory(index_name=index, date=row_date, return_type=return_type, value=value))
     await commit_off_loop(db)
 
 
-def _cached_date_bounds(db: Session, index: BenchmarkIndex) -> tuple[date, date] | None:
+def _cached_date_bounds(
+    db: Session, index: BenchmarkIndex, return_type: BenchmarkReturnType
+) -> tuple[date, date] | None:
     earliest, latest = (
         db.query(func.min(BenchmarkIndexHistory.date), func.max(BenchmarkIndexHistory.date))
-        .filter(BenchmarkIndexHistory.index_name == index)
+        .filter(BenchmarkIndexHistory.index_name == index, BenchmarkIndexHistory.return_type == return_type)
         .one()
     )
     return (earliest, latest) if earliest is not None else None
@@ -106,51 +149,65 @@ def _cached_date_bounds(db: Session, index: BenchmarkIndex) -> tuple[date, date]
 # "covers today" check made every Analytics call download again (32 calls,
 # 127 s on 8 Oct). 4 days covers a weekend plus a holiday.
 _FRESH_WITHIN = timedelta(days=4)
-# Earliest start already downloaded in this process, per index. NSE has no
+# Earliest start already downloaded in this process, per (index, return_type). NSE has no
 # history before an index began, so a start older than that can never be
 # covered by the saved range; asking once per process is enough.
-_fetched_from: dict[BenchmarkIndex, date] = {}
+_fetched_from: dict[tuple[BenchmarkIndex, BenchmarkReturnType], date] = {}
 
 
 async def ensure_index_history_fresh(
-    db: Session, index: BenchmarkIndex, start_date: date, end_date: date, *, fresh_within: timedelta = _FRESH_WITHIN
+    db: Session, index: BenchmarkIndex, start_date: date, end_date: date, *,
+    return_type: BenchmarkReturnType = BenchmarkReturnType.PRICE, fresh_within: timedelta = _FRESH_WITHIN,
 ) -> bool:
-    """One bulk fetch of `[start_date, end_date]` per call — not one fetch
-    per lookup date. Skipped entirely if the cache's existing bounds
-    already cover the requested range. A fetch failure (network error, or
-    a malformed/empty response — a real risk on an undocumented,
-    reverse-engineered endpoint) leaves whatever's cached in place and
-    returns False, same degrade-gracefully posture as
+    """One bulk fetch of `[start_date, end_date]` per call, keyed by
+    (index, return_type) throughout -- a PRICE row existing for a date must
+    never count as covering a TRI fetch for that same date, or vice versa
+    (the bug this attribute exists to fix; see Review Focus #1).
+    Skipped entirely if the cache's existing bounds already cover the
+    requested range. A fetch failure (network error, or a malformed/empty
+    response from an undocumented endpoint) leaves whatever's cached in
+    place and returns False, same degrade-gracefully posture as
     `nav.py`/`arn_lookup.py`/`amfi_ter_client.py`.
     Saved history ending within `fresh_within` of `end_date` counts as
     covering it (8 Oct). Analytics uses the 4-day default; the 06:00
     benchmark-daily job passes 0 so it still downloads every morning."""
-    bounds = _cached_date_bounds(db, index)
+    cache_key = (index, return_type)
+    bounds = _cached_date_bounds(db, index, return_type)
     start_covered = bounds is not None and (
-        bounds[0] <= start_date or _fetched_from.get(index, date.max) <= start_date)
+        bounds[0] <= start_date or _fetched_from.get(cache_key, date.max) <= start_date)
     end_covered = bounds is not None and bounds[1] >= end_date - fresh_within
     if start_covered and end_covered:
         return True
 
     try:
-        rows = await _fetch_index_history(index, start_date, end_date)
+        if return_type == BenchmarkReturnType.TRI:
+            rows = await _fetch_tri_history(index, start_date, end_date)
+        else:
+            rows = await _fetch_index_history(index, start_date, end_date)
     except (httpx.HTTPError, KeyError, ValueError, TypeError, InvalidOperation):
         return False
     if not rows:
         return False
 
-    await _upsert_index_history(db, index, rows)
-    _fetched_from[index] = min(_fetched_from.get(index, date.max), start_date)
+    await _upsert_index_history(db, index, return_type, rows)
+    _fetched_from[cache_key] = min(_fetched_from.get(cache_key, date.max), start_date)
     return True
 
 
-def get_index_level_on_or_before(db: Session, index: BenchmarkIndex, on_date: date) -> tuple[Decimal, date] | None:
-    """Most recent trading-day index level on or before `on_date` — trading
-    holidays/weekends mean the exact date is often not present, same
-    on-or-before convention as `nav.py`'s `get_nav_on_or_before`."""
+def get_index_level_on_or_before(
+    db: Session, index: BenchmarkIndex, on_date: date, *, return_type: BenchmarkReturnType = BenchmarkReturnType.PRICE
+) -> tuple[Decimal, date] | None:
+    """Most recent trading-day index level on or before `on_date` for the
+    given return type -- trading holidays/weekends mean the exact date is
+    often not present, same on-or-before convention as nav.py's
+    get_nav_on_or_before."""
     row = (
         db.query(BenchmarkIndexHistory)
-        .filter(BenchmarkIndexHistory.index_name == index, BenchmarkIndexHistory.date <= on_date)
+        .filter(
+            BenchmarkIndexHistory.index_name == index,
+            BenchmarkIndexHistory.return_type == return_type,
+            BenchmarkIndexHistory.date <= on_date,
+        )
         .order_by(BenchmarkIndexHistory.date.desc())
         .first()
     )
