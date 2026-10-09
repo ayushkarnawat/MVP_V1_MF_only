@@ -1225,3 +1225,25 @@ def test_0029_postgres_snapshot_epoch_and_review_roundtrip(monkeypatch):
         cur.execute("DELETE FROM household_members WHERE id=%s",(member,))
         cur.execute("DELETE FROM users WHERE id=%s",(user,))
     conn.commit();conn.close()
+
+
+def test_0034_ranking_tables_seed_and_singleton_roundtrip(tmp_path, monkeypatch):
+    import sqlite3
+    db_path = tmp_path / "ranking.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    up = _alembic("upgrade", "0034")
+    assert up.returncode == 0, up.stderr
+    conn = sqlite3.connect(db_path)
+    tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    assert {"scheme_rankings", "ranking_weights"} <= tables
+    assert conn.execute("SELECT id, CAST(weight_return_3y AS TEXT), CAST(weight_return_5y AS TEXT), CAST(weight_category_relative AS TEXT), CAST(weight_low_volatility AS TEXT), CAST(weight_low_ter AS TEXT) FROM ranking_weights").fetchone() == (1, "0.25", "0.25", "0.2", "0.15", "0.15")
+    with pytest.raises(sqlite3.IntegrityError):
+        conn.execute("INSERT INTO ranking_weights(id) VALUES(false)")
+    conn.rollback()
+    conn.close()
+    down = _alembic("downgrade", "0033")
+    assert down.returncode == 0, down.stderr
+    conn = sqlite3.connect(db_path)
+    tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    assert not ({"scheme_rankings", "ranking_weights"} & tables)
+    conn.close()

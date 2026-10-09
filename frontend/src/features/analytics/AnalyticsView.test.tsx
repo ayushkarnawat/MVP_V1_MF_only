@@ -74,6 +74,23 @@ const sampleInvestmentWithdrawal = {
   gifts_net: "0.00",
 };
 
+const sampleFundRanking = {
+  funds: [{
+    scheme_id: "rank-1", scheme_name: "Ranking Growth Fund", category_name: "Equity Scheme - Flexi Cap Fund",
+    category_unavailable: false, insufficient_history: false, thin_category: false, too_few_peers: false,
+    composite_score: "75.00", category_rank: 2, category_size: 5, category_universe_size: 7,
+    percentile: "60.00", return_1y: "0.12", ranked_as: "Ranking Growth Series",
+    neighbors: [{ scheme_id: "rank-peer", scheme_name: "Ranking Peer Fund", category_rank: 1, composite_score: "80.00" }],
+    components: {
+      return_3y: { percentile: "60.00", raw: "0.15" },
+      return_5y: { percentile: null, raw: null },
+      category_relative: { percentile: null, raw: null },
+      low_volatility: { percentile: null, raw: null },
+      low_ter: { percentile: null, raw: null },
+    },
+  }],
+};
+
 function settled(
   payload: Record<string, unknown> | null,
   failedAt: string | null = null,
@@ -89,6 +106,7 @@ function buildSections(isAggregate: boolean, members: MemberStatus[] = []) {
     ter: settled(wrap("ter", sampleTerSummary)),
     ter_direct_regular: settled(wrap("ter", sampleDirectRegularComparison)),
     category_ranking: settled(wrap("ranking", sampleCategoryRanking)),
+    ranking: settled(wrap("ranking", sampleFundRanking)),
     score: settled(wrap("score", sampleScoreSummary)),
     benchmark: settled(wrap("benchmark", samplePortfolioBenchmark)),
     benchmark_funds: settled(wrap("comparison", sampleFundBenchmark)),
@@ -247,5 +265,21 @@ describe("AnalyticsView", () => {
 describe("ANALYTICS_SECTION_NAMES", () => {
   it("includes investment_withdrawal as the 8th registered section", () => {
     expect(ANALYTICS_SECTION_NAMES).toContain("investment_withdrawal");
+  });
+});
+
+
+describe("Fund Ranking dashboard wiring", () => {
+  it.each([true, false])("renders the snake_case ranking payload (aggregate=%s) after Category Ranking", async (isAggregate) => {
+    vi.mocked(api.getAnalyticsScope).mockResolvedValue({
+      scope: isAggregate ? "combined" : "m-1", recomputing: false, sections: buildSections(isAggregate),
+    });
+    render(<AnalyticsView viewMode={isAggregate ? "aggregate" : "member"} memberId={isAggregate ? null : "m-1"} />);
+    const fundRankingHeading = await screen.findByRole("heading", { name: "Fund Ranking" });
+    const categoryHeading = screen.getByRole("heading", { name: "SEBI Category Ranking & Peer Comparison" });
+    expect(categoryHeading.compareDocumentPosition(fundRankingHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByText("#2 Ranking Growth Fund (you)")).toBeInTheDocument();
+    expect(screen.getByText("#1 Ranking Peer Fund")).toBeInTheDocument();
+    expect(screen.getByText("Ranked on Ranking Growth Series")).toBeInTheDocument();
   });
 });

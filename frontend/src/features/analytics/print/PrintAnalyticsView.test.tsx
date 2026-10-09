@@ -41,6 +41,18 @@ const payload: AnalyticsExportPayload = {
   fundBenchmark: null,
 };
 
+const fundRankingRow = {
+  scheme_id: "s-9", scheme_name: "Ranked Flexi Cap Fund", category_name: "Equity Scheme - Flexi Cap Fund",
+  category_unavailable: false, insufficient_history: false, thin_category: false, too_few_peers: false,
+  composite_score: "81.40", category_rank: 8, category_size: 62, category_universe_size: 70, percentile: "87.10",
+  return_1y: null, ranked_as: null, neighbors: [],
+  components: {
+    return_3y: { percentile: "92", raw: "0.241" }, return_5y: { percentile: null, raw: null },
+    category_relative: { percentile: null, raw: null }, low_volatility: { percentile: null, raw: null },
+    low_ter: { percentile: null, raw: null },
+  },
+};
+
 describe("PrintAnalyticsView", () => {
   beforeEach(() => {
     delete document.documentElement.dataset.printReady;
@@ -51,6 +63,18 @@ describe("PrintAnalyticsView", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it("prints the fund ranking leaderboard from its own export field", async () => {
+    vi.spyOn(api, "getExportPayload").mockResolvedValue({ ...payload, fundRanking: { funds: [fundRankingRow] } });
+    render(<PrintAnalyticsView />);
+    expect((await screen.findAllByText(/Ranked Flexi Cap Fund/)).length).toBeGreaterThan(0);
+  });
+
+  it("still prints an older export saved before fund ranking existed", async () => {
+    render(<PrintAnalyticsView />);
+    await waitFor(() => expect(screen.getByText("Test Flexi Cap Fund")).toBeInTheDocument());
+    expect(screen.queryByText(/Ranked Flexi Cap Fund/)).not.toBeInTheDocument();
   });
 
   it("renders every fund's score card inline, with no click required", async () => {

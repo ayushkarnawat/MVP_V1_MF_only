@@ -28,10 +28,13 @@ from sqlalchemy.orm import Session
 
 from app.db.session import commit_off_loop
 from app.models.reference import Scheme
+from app.models.enums import SchemePlanType
 
 NAV_ALL_URL = "https://portal.amfiindia.com/spages/NAVAll.txt"
 DEFAULT_CACHE_DIR = Path(__file__).resolve().parent.parent.parent.parent / ".cache" / "amfi_navall"
 NAV_ALL_TTL = timedelta(hours=24)
+# A scheme with no NAV in this window has matured or closed: not a peer.
+_LIVE_WITHIN = timedelta(days=30)
 _CATEGORY_HEADER_RE = re.compile(r"^(?:Open Ended|Close Ended|Interval Fund) Schemes\((.+)\)$")
 
 
@@ -47,6 +50,7 @@ class UniverseRow:
     plan: str | None = None
     nav: Decimal | None = None
     nav_date: date | None = None
+    option: str | None = None
 
 
 def _cache_valid(path: Path, ttl: timedelta) -> bool:
@@ -96,7 +100,7 @@ def _parse_nav_all(text: str) -> list[UniverseRow]:
             continue
 
         fields = [f.strip() for f in fields]
-        base_name = plan = None
+        base_name = plan = option = None
         if len(fields) == 6:
             code, isin_growth, isin_reinvest, name, _nav, _date = fields
         else:
@@ -123,10 +127,54 @@ def _parse_nav_all(text: str) -> list[UniverseRow]:
                 amc_name=current_amc,
                 sebi_category=current_category,
                 isin_reinvest=isin_reinvest if isin_reinvest not in ("-", "") else None,
-                base_name=base_name, plan=plan or None, nav=nav, nav_date=nav_date,
+                base_name=base_name, plan=plan or None, nav=nav, nav_date=nav_date, option=option or None,
             )
         )
     return rows
+
+
+# AMFI's NAVAll.txt headings are supplied per AMC, so one SEBI category appears under
+# several spellings (9 Oct: 101 headings for ~80 categories). Peers are matched on this
+# canonical form. Explicit lists, no fuzzy matching; headings whose mapping would be a
+# guess (e.g. "Ultra Short to Short Term Fund", "Floating Interest Rates Fund") are left as is.
+_PREFIX_ALIASES = {
+    "Equity Schemes": "Equity Scheme",
+    "Hybrid Schemes": "Hybrid Scheme",
+    "Solution Oriented Schemes": "Solution Oriented Scheme",
+    "Solution Oriented Schemes **": "Solution Oriented Scheme",
+    "Income/Debt Oriented Schemes": "Debt Scheme",
+}
+_CATEGORY_ALIASES = {
+    "Equity Scheme - ELSS- Tax Saver Fund": "Equity Scheme - ELSS",
+    "Equity Scheme - Sectoral Fund": "Equity Scheme - Sectoral/ Thematic",
+    "Equity Scheme - Thematic Fund": "Equity Scheme - Sectoral/ Thematic",
+    "Hybrid Scheme - Balanced Advantage Fund/ Dynamic Asset Allocation":
+        "Hybrid Scheme - Dynamic Asset Allocation or Balanced Advantage",
+    "Hybrid Scheme - Equity Savings Fund": "Hybrid Scheme - Equity Savings",
+    "Hybrid Scheme - Multi Asset Allocation Fund": "Hybrid Scheme - Multi Asset Allocation",
+    "Debt Scheme - Banking and PSU Debt Fund": "Debt Scheme - Banking and PSU Fund",
+    "Debt Scheme - Dynamic Term Fund": "Debt Scheme - Dynamic Bond",
+    "Debt Scheme - Ultra Short Term Fund": "Debt Scheme - Ultra Short Duration Fund",
+    "Debt Scheme - Short Term Fund": "Debt Scheme - Short Duration Fund",
+    "Debt Scheme - Medium Term Fund": "Debt Scheme - Medium Duration Fund",
+    "Debt Scheme - Medium to Long Term Fund": "Debt Scheme - Medium to Long Duration Fund",
+    "Debt Scheme - Long Term Fund": "Debt Scheme - Long Duration Fund",
+}
+
+
+def canonical_category(category: str) -> str:
+    text = " ".join(category.replace("’", "'").split())
+    prefix, sep, rest = text.partition(" - ")
+    if sep:
+        text = f"{_PREFIX_ALIASES.get(prefix, prefix)} - {rest}"
+    return _CATEGORY_ALIASES.get(text, text)
+
+
+@dataclass
+class CategoryPeers:
+    schemes: list[Scheme]                      # one series per fund: the ranked set
+    fund_count: int                            # funds in the category, any plan ("N in category")
+    representative_of: dict[uuid.UUID, uuid.UUID]  # every scheme id in the category -> its fund's series
 
 
 class SchemeUniverseClient:
@@ -168,7 +216,15 @@ class SchemeUniverseClient:
 
         from app.services.analytics.scheme_master import plan_type_for
 
-        matched = [r for r in rows if r.sebi_category == sebi_category]
+        # Only live schemes are peers (9 Oct): AMFI keeps matured FMPs and closed funds in
+        # NAVAll with their last NAV (39% of rows), which made a ~0% "return" and got them
+        # ranked. A row with no parseable date is kept -- there's nothing to judge it by.
+        live_since = date.today() - _LIVE_WITHIN
+        matched = [
+            r for r in rows
+            if canonical_category(r.sebi_category) == canonical_category(sebi_category)
+            and (r.nav_date is None or r.nav_date >= live_since)
+        ]
         if not matched:
             return []
 
@@ -202,8 +258,56 @@ class SchemeUniverseClient:
         return result
 
 
+    async def get_category_peers(
+        self, db: Session, sebi_category: str, plan_type: SchemePlanType | None
+    ) -> CategoryPeers:
+        """One series per fund: the holding's plan type (Direct vs Direct, Regular vs
+        Regular), Growth option. IDCW NAVs drop at each payout, so their NAV returns
+        understate the fund; a held IDCW plan is ranked by its fund's Growth series.
+        plan_type None (unknown) -> any plan."""
+        from app.services.analytics.scheme_master import plan_type_for
+
+        universe = await self.get_category_universe(db, sebi_category)
+        if not universe:
+            # Includes an AMFI fetch failure, which get_category_universe already turns
+            # into []; don't fetch again here and raise instead.
+            return CategoryPeers(schemes=[], fund_count=0, representative_of={})
+        rows = {r.amfi_code: r for r in await self._get_rows()}
+        funds: dict[tuple[str, str], list[Scheme]] = {}
+        for scheme in universe:
+            row = rows.get(scheme.amfi_code)
+            base = (row.base_name if row and row.base_name else None) or scheme.base_name or scheme.name
+            funds.setdefault((scheme.amc_name, " ".join(base.lower().split())), []).append(scheme)
+
+        def rank_key(scheme: Scheme) -> tuple[int, str]:
+            row = rows.get(scheme.amfi_code)
+            text = f"{row.option if row else ''} {scheme.name}".lower()
+            growth = "growth" in text and "idcw" not in text and "dividend" not in text
+            return (0 if growth else 1, scheme.amfi_code or "")
+
+        peers: list[Scheme] = []
+        representative_of: dict[uuid.UUID, uuid.UUID] = {}
+        for members in funds.values():
+            candidates = [
+                s for s in members
+                if plan_type is None
+                or (s.plan_type or (plan_type_for(rows[s.amfi_code]) if s.amfi_code in rows else None)) in (plan_type, None)
+            ]
+            if not candidates:
+                continue  # the fund has no series of this plan type
+            representative = min(candidates, key=rank_key)
+            peers.append(representative)
+            for s in members:
+                representative_of[s.id] = representative.id
+        return CategoryPeers(schemes=peers, fund_count=len(funds), representative_of=representative_of)
+
+
 scheme_universe_client = SchemeUniverseClient()
 
 
 async def get_category_universe(db: Session, sebi_category: str) -> list[Scheme]:
     return await scheme_universe_client.get_category_universe(db, sebi_category)
+
+
+async def get_category_peers(db: Session, sebi_category: str, plan_type: SchemePlanType | None) -> CategoryPeers:
+    return await scheme_universe_client.get_category_peers(db, sebi_category, plan_type)

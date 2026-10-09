@@ -20,8 +20,10 @@ from app.services.analytics.schemas import (
     AnalyticsScopeResponse,
     AnalyticsSectionState,
     FundScoreRow,
+    FundRankingRow,
 )
 from app.services.analytics.scorer import compute_fund_score
+from app.services.analytics.fund_ranking import compute_fund_ranking
 from app.services.auth.session import get_active_user
 from app.services.dashboard.member_details import require_member
 
@@ -44,6 +46,18 @@ async def get_fund_score(
     if scheme is None:
         raise HTTPException(status_code=404, detail="Scheme not found.")
     return await compute_fund_score(db, scheme)
+
+
+@router.get("/funds/{scheme_id}/ranking", response_model=FundRankingRow)
+async def get_fund_ranking(
+    scheme_id: uuid.UUID,
+    user: User = Depends(get_active_user),
+    db: DbSession = Depends(get_db),
+):
+    scheme = db.get(Scheme, scheme_id)
+    if scheme is None:
+        raise HTTPException(status_code=404, detail="Scheme not found.")
+    return await compute_fund_ranking(db, scheme)
 
 
 @router.get("/{scope}", response_model=AnalyticsScopeResponse)

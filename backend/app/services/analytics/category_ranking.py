@@ -43,7 +43,7 @@ from app.services.analytics.schemas import (
     CategoryRankRow,
 )
 from app.services.analytics.risk_metrics import years_ago
-from app.services.analytics.scheme_universe import get_category_universe
+from app.services.analytics.scheme_universe import CategoryPeers, canonical_category, get_category_peers
 from app.services.dashboard.aggregate import get_member_statuses
 from app.services.dashboard.holdings import compute_holdings
 from app.services.dashboard.household_members import list_household_members
@@ -66,7 +66,7 @@ _BLEND_WEIGHT_5YR = Decimal("0.6")
 # `get_category_universe` result already shares the same category.
 _CATEGORY_RETURNS_CACHE_TTL_SECONDS = 15 * 60
 _category_returns_clock = time.monotonic
-_category_returns_cache: dict[str, tuple[float, date, dict[uuid.UUID, Decimal]]] = {}
+_category_returns_cache: dict[object, tuple[float, date, dict[uuid.UUID, Decimal]]] = {}
 _category_returns_cache_lock = threading.Lock()
 
 logger = logging.getLogger(__name__)
@@ -116,43 +116,57 @@ def _bulk_nav_on_or_before(
     return result
 
 
-async def _compute_category_returns(db: Session, universe: list[Scheme], today: date) -> dict[uuid.UUID, Decimal]:
+async def _compute_category_returns_detailed(
+    db: Session, universe: list[Scheme], today: date
+) -> dict[uuid.UUID, tuple[Decimal | None, Decimal, Decimal | None, Decimal]]:
+    """{scheme_id: (r1, r3, r5, blended)} -- r3/blended always present for
+    any scheme in the result (a scheme without 3Y history is simply absent,
+    same eligibility floor as the blended-only function below); r1/r5 are
+    `None` when that window isn't available yet. r1 exists only for
+    attribute 09's display-only 1yr column -- `_compute_category_returns`
+    below never surfaces it, since no existing caller needs it."""
     warm_start = time.perf_counter()
     await warm_nav_history(db, universe)
     warm_elapsed = time.perf_counter() - warm_start
 
+    start_1y = years_ago(today, 1)
     start_3y = years_ago(today, 3)
     start_5y = years_ago(today, 5)
     lookup_start = time.perf_counter()
-    navs = _bulk_nav_on_or_before(db, [s.id for s in universe], [start_3y, start_5y, today])
+    navs = _bulk_nav_on_or_before(db, [s.id for s in universe], [start_1y, start_3y, start_5y, today])
     lookup_elapsed = time.perf_counter() - lookup_start
 
-    returns: dict[uuid.UUID, Decimal] = {}
+    detailed: dict[uuid.UUID, tuple[Decimal | None, Decimal, Decimal | None, Decimal]] = {}
     for scheme in universe:
         per_scheme = navs.get(scheme.id, {})
         end = per_scheme.get(today)
         start3 = per_scheme.get(start_3y)
-        if end is None or start3 is None:
+        # Wound-up/segregated schemes carry NAV 0; invalid windows have no return.
+        if end is None or start3 is None or end <= 0 or start3 <= 0:
             continue
         r3 = _cagr(start3, end, 3)
         start5 = per_scheme.get(start_5y)
-        r5 = _cagr(start5, end, 5) if start5 is not None else None
-        returns[scheme.id] = _blend_returns(r3, r5)
+        r5 = _cagr(start5, end, 5) if start5 is not None and start5 > 0 else None
+        start1 = per_scheme.get(start_1y)
+        r1 = _cagr(start1, end, 1) if start1 is not None and start1 > 0 else None
+        detailed[scheme.id] = (r1, r3, r5, _blend_returns(r3, r5))
 
-    # Instrumented 2026-08-20 alongside nav.py's warm_nav_history timing —
-    # see that module's docstring note for why (root-causing a reported
-    # post-fix regression rather than guessing).
     logger.info(
-        "_compute_category_returns[%s]: %d schemes, warm=%.2fs bulk_nav_lookup=%.2fs",
+        "_compute_category_returns_detailed[%s]: %d schemes, warm=%.2fs bulk_nav_lookup=%.2fs",
         universe[0].sebi_category if universe else "?", len(universe), warm_elapsed, lookup_elapsed,
     )
-    return returns
+    return detailed
 
 
-async def _category_returns(db: Session, universe: list[Scheme], today: date) -> dict[uuid.UUID, Decimal]:
+async def _compute_category_returns(db: Session, universe: list[Scheme], today: date) -> dict[uuid.UUID, Decimal]:
+    detailed = await _compute_category_returns_detailed(db, universe, today)
+    return {scheme_id: blended for scheme_id, (_, _, _, blended) in detailed.items()}
+
+
+async def _category_returns(db: Session, universe: list[Scheme], today: date, *, cache_key=None) -> dict[uuid.UUID, Decimal]:
     if not universe:
         return {}
-    sebi_category = universe[0].sebi_category
+    sebi_category = cache_key or universe[0].sebi_category
     now = _category_returns_clock()
     with _category_returns_cache_lock:
         cached = _category_returns_cache.get(sebi_category)
@@ -218,7 +232,8 @@ async def compute_category_ranking(db: Session, household_member_ids: list[uuid.
     }
 
     today = date.today()
-    returns_by_category: dict[str, dict[uuid.UUID, Decimal]] = {}
+    returns_by_category: dict[tuple, dict[uuid.UUID, Decimal]] = {}
+    peers_by_category: dict[tuple, CategoryPeers] = {}
     rows: list[CategoryRankRow] = []
 
     for scheme_id_str in unique_scheme_ids:
@@ -242,13 +257,15 @@ async def compute_category_ranking(db: Session, household_member_ids: list[uuid.
             )
             continue
 
-        if sebi_category not in returns_by_category:
-            universe = await get_category_universe(db, sebi_category)
-            returns_by_category[sebi_category] = await _category_returns(db, universe, today)
-        returns = returns_by_category[sebi_category]
-
-        scheme_return = returns.get(scheme.id)
-        rank_info = _rank_and_percentile(returns, scheme.id)
+        key = (canonical_category(sebi_category), scheme.plan_type)
+        if key not in returns_by_category:
+            peers = await get_category_peers(db, sebi_category, scheme.plan_type)
+            peers_by_category[key] = peers
+            returns_by_category[key] = await _category_returns(db, peers.schemes, today, cache_key=("peers", *key))
+        returns = returns_by_category[key]
+        rep_id = peers_by_category[key].representative_of.get(scheme.id)
+        scheme_return = returns.get(rep_id)
+        rank_info = _rank_and_percentile(returns, rep_id) if rep_id else None
         aaum_by_scheme = _latest_aaum_by_scheme(db, list(returns.keys()))
         category_avg = _aum_weighted_average(returns, aaum_by_scheme)
 
@@ -257,8 +274,8 @@ async def compute_category_ranking(db: Session, household_member_ids: list[uuid.
                 scheme_id=scheme_id_str,
                 scheme_name=scheme.name,
                 sebi_category=sebi_category,
-                category_unavailable=False,
-                insufficient_history=scheme_return is None,
+                category_unavailable=rep_id is None,
+                insufficient_history=rep_id is not None and scheme_return is None,
                 scheme_return=str(scheme_return) if scheme_return is not None else None,
                 category_rank=rank_info[0] if rank_info else None,
                 category_size=len(returns),

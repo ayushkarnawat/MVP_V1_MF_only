@@ -270,3 +270,10 @@ def test_compute_consistency_hit_rate_counts_beats_at_or_above_median():
 
 def test_compute_consistency_hit_rate_none_when_no_comparable_windows():
     assert compute_consistency_hit_rate([None, None], [Decimal("0.1"), None]) is None
+
+
+def test_monthly_returns_skips_a_non_positive_prior_nav():
+    """Wound-up/segregated schemes can carry a NAV of 0 inside an otherwise eligible
+    series; dividing by it used to raise DivisionByZero and fail the whole category."""
+    from app.services.analytics.risk_metrics import monthly_returns
+    assert monthly_returns([Decimal("10"), Decimal("0"), Decimal("12")]) == [None, Decimal("-1"), None]

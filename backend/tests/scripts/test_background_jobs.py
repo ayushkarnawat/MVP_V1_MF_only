@@ -56,19 +56,23 @@ def test_refresh_nav_daily_warms_held_funds_then_their_category_peers(db_session
         assert asyncio.get_running_loop().is_running()
         warmed.append({scheme.id for scheme in schemes})
 
-    async def fake_universe(db, sebi_category):
-        categories.append(sebi_category)
-        return [held_a, peer]  # a held fund is also its own peer: not warmed twice
+    async def fake_peers(db, sebi_category, plan_type):
+        # One series per fund (9 Oct): `unheld` is another plan row of a peer fund, so it's
+        # not in the peer set and isn't downloaded. A held fund is also its own peer.
+        from app.services.analytics.scheme_universe import CategoryPeers
+        categories.append((sebi_category, plan_type))
+        return CategoryPeers(schemes=[held_a, peer], fund_count=2,
+                             representative_of={held_a.id: held_a.id, peer.id: peer.id, unheld.id: peer.id})
 
     monkeypatch.setattr(job, "SessionLocal", lambda: db_session)
     monkeypatch.setattr(job, "warm_nav_history", fake_warm_nav_history)
-    monkeypatch.setattr(job, "get_category_universe", fake_universe)
+    monkeypatch.setattr(job, "get_category_peers", fake_peers)
     caplog.set_level(logging.INFO)
 
     job.main()
 
     assert warmed == [{held_a.id, held_b.id}, {peer.id}]
-    assert categories == ["Equity Scheme - Flexi Cap Fund"]
+    assert categories == [("Equity Scheme - Flexi Cap Fund", None)]
     assert "refresh_nav_daily: held_schemes=2 categories=1 peer_schemes=1 success=True" in caplog.messages
 
 
@@ -218,14 +222,15 @@ def test_refresh_nav_daily_keeps_going_when_one_category_fails(db_session, monke
     rollbacks = []
     monkeypatch.setattr(db_session, "rollback", lambda: rollbacks.append(1))
 
-    async def fake_universe(db, sebi_category):
+    async def fake_peers(db, sebi_category, plan_type):
+        from app.services.analytics.scheme_universe import CategoryPeers
         if sebi_category == "Debt Scheme - Liquid Fund":
             raise ValueError("NAVAll parse error")
-        return [peer]
+        return CategoryPeers(schemes=[peer], fund_count=1, representative_of={peer.id: peer.id})
 
     monkeypatch.setattr(job, "SessionLocal", lambda: db_session)
     monkeypatch.setattr(job, "warm_nav_history", fake_warm)
-    monkeypatch.setattr(job, "get_category_universe", fake_universe)
+    monkeypatch.setattr(job, "get_category_peers", fake_peers)
     caplog.set_level(logging.INFO)
     job.main()
     assert warmed[-1] == {peer.id}

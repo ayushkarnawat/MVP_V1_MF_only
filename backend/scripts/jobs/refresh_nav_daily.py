@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.db.session import SessionLocal
 from app.models.folio import Folio
 from app.models.reference import Scheme
-from app.services.analytics.scheme_universe import get_category_universe
+from app.services.analytics.scheme_universe import canonical_category, get_category_peers
 from app.services.dashboard.nav import warm_nav_history
 
 logger = logging.getLogger(__name__)
@@ -28,13 +28,19 @@ async def main_async(db: Session) -> None:
     # Fix D (7 Oct): also every peer in the held funds' SEBI categories, so
     # category ranking and the quality score find them fresh at 06:30 and the
     # Analytics run downloads nothing. Its own warm-up stays as a safety net
-    # for a category nobody held at 06:00.
+    # for a category nobody held at 06:00. Peers are one series per fund of the
+    # holding's plan type (9 Oct) -- the set all three ranking sections read --
+    # not every plan row, which is ~4x the downloads in the merged categories.
     held_ids = {scheme.id for scheme in schemes}
-    categories = sorted({s.sebi_category for s in schemes if s.amfi_code and s.sebi_category})
+    groups: dict[tuple, Scheme] = {}
+    for scheme in schemes:
+        if scheme.amfi_code and scheme.sebi_category:
+            groups.setdefault((canonical_category(scheme.sebi_category), scheme.plan_type), scheme)
     peers: dict = {}
-    for category in categories:
+    for held in groups.values():
+        category = held.sebi_category
         try:
-            universe = await get_category_universe(db, category)
+            universe = (await get_category_peers(db, category, held.plan_type)).schemes
         except Exception:  # one bad category must not stop the others (8 Oct review)
             logger.exception("refresh_nav_daily: peers for category %r skipped", category)
             db.rollback()  # e.g. a failed commit of new peer rows; keep the session usable
@@ -45,7 +51,7 @@ async def main_async(db: Session) -> None:
     await warm_nav_history(db, peers.values())
     logger.info(
         "refresh_nav_daily: held_schemes=%d categories=%d peer_schemes=%d success=True",
-        len(schemes), len(categories), len(peers),
+        len(schemes), len(groups), len(peers),
     )
 
 

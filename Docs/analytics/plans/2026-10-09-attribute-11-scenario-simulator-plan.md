@@ -30,6 +30,66 @@ zero new external data source. React/TypeScript frontend, 4 distinct result-view
 - `Docs/analytics/2026-10-08-attribute-11-scenario-simulator-spec.md` — frontend spec
 - `Docs/analytics/artifacts/2026-10-08-attribute-11-scenario-simulator-visual-map.html` — visual reference
 
+> **Revised 2026-10-09 — binding, read before Task 1.** All decisions are made (user, 9 Oct;
+> explainer with the full reasoning: `Docs/orchestration/subproject1-execution/a11-scenario-simulator.html`,
+> cards 1–12). Where this block and a code block below disagree, this block wins; the main code
+> blocks have been updated to match it.
+>
+> 1. **Compute every settled scenario** (card 1) — new **Task 5b**, `scripts/compute_all_scenarios.py`.
+>    Staging order: migrations → Task 3 NAV backfill → A12's daily benchmark job (TRI from 1990) →
+>    `compute_all_scenarios.py`. Task 8's daily step also recomputes the US-Iran **group** row.
+> 2. **List column works on SQLite, unchanged on Postgres** (card 2) — model and migration use
+>    `sa.JSON().with_variant(postgresql.ARRAY(sa.String()), "postgresql")`; the seed builds ids with
+>    `uuid.uuid4()` and inserts through typed `sa.table()` objects (no `gen_random_uuid()`, no raw
+>    array binding), so `tests/test_migrations.py` round-trips it on SQLite. Nothing may query inside
+>    the column with SQL array operators; it's read in Python only.
+> 3. **One classifier for every ETF / index fund / FoF** (card 3) — `underlying_asset_class(sebi_category,
+>    scheme_name)` replaces `hypothetical_asset_class_bucket` (Task 4 code below). Used in all three
+>    places: the hypothetical bucket, the historical category average (wrapper categories are averaged per
+>    `"<category>|<asset class>"`), and the historical asset-class fallback (replaces the dashboard's
+>    `asset_class_bucket` inside A11 only; the dashboard is unchanged). Asset classes: `Equity`,
+>    `Index/ETF`, `Gold`, **`Silver`** (new), **`Overseas`** (renamed from `Overseas FoF`), `Debt-short`,
+>    `Debt-long`, `Hybrid`, `Other`. This is an asset-class split for scenario proxies only; it doesn't
+>    touch category-ranking/Scorer peer groups, so it doesn't reopen the deferred index-fund
+>    sub-bucketing (`DEFERRED_FEATURES.md`).
+> 4. **Seed check** (card 4) — `34 rows, 31 top-level, 8 curated, 45 assumptions`.
+> 5. **Engine tests set up correctly** (card 5) — real-data test keys NAVs on the dates the engine reads
+>    (window start and end) plus one test that a NAV on the day before start is *not* used; the
+>    multi-phase and Franklin tests patch `compute_holdings` to return holdings for the schemes under
+>    test and call `get_scenario_result_for_household`. The engine is not changed to satisfy a test.
+> 6. **Every figure is the household's own** (card 6) — `portfolio % = Σ rupee impact ÷ Σ current value
+>    of holdings with a %`; no-data and frozen holdings are left out of both sums, never 0%. Same formula
+>    per member and per phase. The US-Iran hero reads the group row's own results; "by fund" stays on
+>    the current phase. New response fields: `covered_value`, `total_value`, `no_data_funds`, and
+>    `pct` on each member row.
+> 7. **Franklin match, normalised** (card 7) — exact match after one clean-up on both sides (drop a
+>    trailing "(no. of segregated portfolio(s)-N)", lowercase, hyphens → spaces, collapse spaces), and the
+>    scheme's AMC must be Franklin Templeton. Held name = `base_name`, else the scheme name before
+>    " - ". Frozen holdings show "Frozen" and are excluded from the portfolio %.
+> 8. **Benchmarks read TRI only** (card 8) — both lookups in `_scenario_benchmark_comparisons` filter
+>    `return_type == BenchmarkReturnType.TRI` (A12 is committed: `b926933`).
+> 9. **Frontend fits the repo** (card 9) — snake_case types; `features/scenarios/api.ts` copying
+>    `features/analytics/api.ts` (`cachedFetch` + `apiClient`); routes in `App.tsx` and
+>    `MobileBottomNav.tsx` (there's no `frontend/src/app/`); `--color-hypo` and `--color-freeze` added to
+>    `tokens.css` for light and dark, used only here. Written into Tasks 9–12 below (Task 12 rewritten).
+> 10. **Quick stat = market + funds** (card 10) — three nullable columns on `scenarios`:
+>     `quick_market_pct` (Nifty 50 TRI end ÷ start − 1), `quick_equity_pct` and `quick_debt_pct`
+>     (AUM-weighted over real, non-proxied results in that asset class; weight = `scheme_aaum` for the
+>     latest quarter on or before the window start, else the earliest quarter held; hidden when fewer
+>     than 5 weighted funds). Filled by `compute_scenario_results`. `ScenarioSummaryRow.quick_stat_pct`
+>     becomes `quick_market_pct`, `quick_equity_pct`, `quick_debt_pct`, `quick_weight_quarter`. None for
+>     hypotheticals, groups with phases, and Franklin.
+> 11. **Silver assumptions** (card 11) — seeded: Hormuz +4, US recession 0, AI/tech −5, rupee +10,
+>     lost decade +2 (reasons in the seed below).
+> 12. **Release gate: hypotheticals behind a flag** (card 12; `decisions.md` 2026-10-08,
+>     `DEFERRED_FEATURES.md`) — `Settings.scenario_hypotheticals_enabled: bool = False`
+>     (`SCENARIO_HYPOTHETICALS_ENABLED`). Off: `GET /scenarios` omits `HYPOTHETICAL` rows and
+>     `GET /scenarios/{id}` returns 404 for one. Flip only after a markets-literate review of the 45
+>     values. The SEBI disclaimer ships as the working draft (the other release gate).
+>
+> **Migration numbers:** after A09 (expected `0034`), these are expected to be `0035` (tables) and
+> `0036` (seed) — run the `ls` in Global Constraints anyway.
+
 ## Global Constraints
 
 - **Migration numbering:** run `ls backend/alembic/versions | sort | tail -5` before
@@ -88,6 +148,16 @@ zero new external data source. React/TypeScript frontend, 4 distinct result-view
    in the family-level breakdown with a correctly-absent or zero rupee impact for that
    member, never silently omitted from the member list entirely.
 
+6. **A gold, silver or bond ETF/index fund/FoF never gets the equity assumption**, and a generic
+   wrapper's missing fund is proxied by funds holding the same asset (card 3).
+7. **Two households get their own headline %**; no-data and frozen holdings are left out of both
+   sums, never counted as 0% (card 6). The US-Iran hero equals the group row's result.
+8. **All 6 real Franklin AMFI base names match** their seeded names; "Franklin India Short Term
+   Fund" doesn't (card 7).
+9. **SQLite and Postgres both work** — every backend test and `tests/test_migrations.py` pass on
+   SQLite; on Postgres the freeze column is `text[]` (card 2).
+10. **Hypotheticals are hidden with the flag off** — list and results (card 12).
+
 ## File Structure
 
 **Backend — create:**
@@ -97,6 +167,8 @@ zero new external data source. React/TypeScript frontend, 4 distinct result-view
 - `backend/app/services/analytics/scenario_asset_class.py`
 - `backend/app/services/analytics/scenario_engine.py`
 - `backend/app/api/scenarios.py`
+- `backend/scripts/compute_all_scenarios.py` (Task 5b)
+- `backend/tests/scripts/test_compute_all_scenarios.py` (Task 5b)
 - `backend/tests/services/analytics/test_scenario_asset_class.py`
 - `backend/tests/services/analytics/test_scenario_engine.py`
 - `backend/tests/api/test_scenarios_api.py`
@@ -106,6 +178,7 @@ zero new external data source. React/TypeScript frontend, 4 distinct result-view
   `ScenarioCategoryAverage`, `ScenarioHypotheticalAssumption` models
 - `backend/app/services/analytics/schemas.py` — add scenario response schemas
 - `backend/app/main.py` — register the new `scenarios` router
+- `backend/app/config.py` — `scenario_hypotheticals_enabled` release-gate flag (card 12)
 - `backend/scripts/jobs/refresh_nav_daily.py` — add the `is_ongoing` scenario recompute step
 
 **Frontend — create:**
@@ -121,8 +194,11 @@ zero new external data source. React/TypeScript frontend, 4 distinct result-view
 - `frontend/src/features/scenarios/StandardResultView.test.tsx`
 
 **Frontend — modify:**
-- `frontend/src/app/navigation.tsx` (or the equivalent top-level nav config) — add the
-  `Scenarios` route sibling to `Holdings`/`Analytics`/`Profile`
+- `frontend/src/features/dashboard/NavigationShell.tsx`, `MainDashboardFlow.tsx` — desktop `Scenarios` tab
+- `frontend/src/mobile/shell/MobileBottomNav.tsx`, `frontend/src/mobile/MobileRoot.tsx` — mobile tab
+- `frontend/src/styles/tokens.css` — `--color-hypo`, `--color-freeze` (light + dark)
+
+**Frontend — also create:** `features/scenarios/api.ts`, `ScenariosScreen.tsx`, `ScenariosScreen.test.tsx` (Task 12)
 
 ---
 
@@ -140,7 +216,8 @@ zero new external data source. React/TypeScript frontend, 4 distinct result-view
 - [ ] **Step 1: Add the models**
 
 In `backend/app/models/reference.py`, append (add `ARRAY` from `sqlalchemy.dialects.postgresql`
-to the existing imports, alongside the already-imported `postgresql.JSONB`):
+to the existing imports, alongside the already-imported `postgresql.JSONB`, and `JSON` from
+`sqlalchemy` — revised 9 Oct, card 2):
 
 ```python
 class Scenario(Base):
@@ -157,9 +234,16 @@ class Scenario(Base):
     parent_scenario_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("scenarios.id"), nullable=True)
     phase_label: Mapped[str | None] = mapped_column(String, nullable=True)
     phase_order: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # A text[] on Postgres, JSON on SQLite (every backend test builds its database with
+    # create_all, and SQLite has no ARRAY). Read in Python only, never queried inside.
     had_redemption_freeze_schemes: Mapped[list[str] | None] = mapped_column(
-        postgresql.ARRAY(String), nullable=True
+        JSON().with_variant(postgresql.ARRAY(String), "postgresql"), nullable=True
     )
+    # Picker quick stat (card 10): market move + AUM-weighted equity/debt fund moves.
+    quick_market_pct: Mapped[Decimal | None] = mapped_column(Numeric(8, 2), nullable=True)
+    quick_equity_pct: Mapped[Decimal | None] = mapped_column(Numeric(8, 2), nullable=True)
+    quick_debt_pct: Mapped[Decimal | None] = mapped_column(Numeric(8, 2), nullable=True)
+    quick_weight_quarter: Mapped[date_ | None] = mapped_column(Date, nullable=True)
 
     __table_args__ = (
         CheckConstraint(
@@ -201,7 +285,7 @@ class ScenarioHypotheticalAssumption(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "asset_class IN ('Equity', 'Index/ETF', 'Gold', 'Overseas FoF', "
+            "asset_class IN ('Equity', 'Index/ETF', 'Gold', 'Silver', 'Overseas', "
             "'Debt-short', 'Debt-long', 'Hybrid', 'Other')",
             name="ck_scenario_hypothetical_assumptions_asset_class",
         ),
@@ -251,7 +335,11 @@ def upgrade() -> None:
         sa.Column("parent_scenario_id", sa.Uuid(), nullable=True),
         sa.Column("phase_label", sa.String(), nullable=True),
         sa.Column("phase_order", sa.Integer(), nullable=True),
-        sa.Column("had_redemption_freeze_schemes", postgresql.ARRAY(sa.String()), nullable=True),
+        sa.Column("had_redemption_freeze_schemes", sa.JSON().with_variant(postgresql.ARRAY(sa.String()), "postgresql"), nullable=True),
+        sa.Column("quick_market_pct", sa.Numeric(8, 2), nullable=True),
+        sa.Column("quick_equity_pct", sa.Numeric(8, 2), nullable=True),
+        sa.Column("quick_debt_pct", sa.Numeric(8, 2), nullable=True),
+        sa.Column("quick_weight_quarter", sa.Date(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
         sa.ForeignKeyConstraint(["parent_scenario_id"], ["scenarios.id"]),
         sa.CheckConstraint(
@@ -292,7 +380,7 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("scenario_id", "asset_class"),
         sa.ForeignKeyConstraint(["scenario_id"], ["scenarios.id"]),
         sa.CheckConstraint(
-            "asset_class IN ('Equity', 'Index/ETF', 'Gold', 'Overseas FoF', "
+            "asset_class IN ('Equity', 'Index/ETF', 'Gold', 'Silver', 'Overseas', "
             "'Debt-short', 'Debt-long', 'Hybrid', 'Other')",
             name="ck_scenario_hypothetical_assumptions_asset_class",
         ),
@@ -420,13 +508,50 @@ Seed data only -- see 2026-10-07-sub-project-1-planning.md's "Seed data" section
 for the full verification trail behind every date/stat below. A future date
 correction is a plain UPDATE against the named row, not a new migration.
 """
+from decimal import Decimal
+
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 revision = "<NNNN+1>"
 down_revision = "<NNNN>"
 branch_labels = None
 depends_on = None
+
+
+# Revised 9 Oct (card 2): no gen_random_uuid() and no raw array binding, so this seed runs on
+# SQLite too (tests/test_migrations.py). Every INSERT INTO scenarios below goes through
+# _insert_scenario, which types each column for the current database; ids come from Python.
+# Replace each `conn.execute(sa.text("INSERT INTO scenarios ...")).scalar_one()` /
+# `result.scalar_one()` with the id _insert_scenario returns, keeping the same values.
+import uuid
+
+_scenarios = sa.table(
+    "scenarios",
+    sa.column("id", sa.Uuid()), sa.column("parent_scenario_id", sa.Uuid()),
+    sa.column("name", sa.String()), sa.column("description", sa.String()),
+    sa.column("start_date", sa.Date()), sa.column("end_date", sa.Date()),
+    sa.column("scenario_type", sa.String()), sa.column("is_ongoing", sa.Boolean()),
+    sa.column("display_rank", sa.Integer()), sa.column("phase_label", sa.String()),
+    sa.column("phase_order", sa.Integer()),
+    sa.column("had_redemption_freeze_schemes", sa.JSON().with_variant(postgresql.ARRAY(sa.String()), "postgresql")),
+)
+_assumptions = sa.table(
+    "scenario_hypothetical_assumptions",
+    sa.column("scenario_id", sa.Uuid()), sa.column("asset_class", sa.String()),
+    sa.column("assumed_pct_change", sa.Numeric(6, 2)), sa.column("assumption_note", sa.String()),
+)
+
+
+def _insert_scenario(conn, **values) -> uuid.UUID:
+    from datetime import date as _date
+    for key in ("start_date", "end_date"):
+        if isinstance(values.get(key), str):
+            values[key] = _date.fromisoformat(values[key])
+    values["id"] = uuid.uuid4()
+    conn.execute(_scenarios.insert().values(**values))
+    return values["id"]
 
 
 def upgrade() -> None:
@@ -540,7 +665,8 @@ def upgrade() -> None:
             ("Debt-long", -4.0, "RBI likely hikes/holds hard to defend the rupee against imported inflation."),
             ("Hybrid", -16.6, "0.6 x Equity (-25.0) + 0.4 x Debt-long (-4.0), computed not eyeballed."),
             ("Gold", 8.0, "Oil-shock safe-haven demand plus a weaker rupee tailwind."),
-            ("Overseas FoF", -10.0, "Global equity also falls, but a diversified overseas fund is less exposed than India to India-specific oil-import pain."),
+            ("Silver", 4.0, "Safe-haven bid, cut by the industrial slowdown an oil shock brings."),
+            ("Overseas", -10.0, "Global equity also falls, but a diversified overseas fund is less exposed than India to India-specific oil-import pain."),
             ("Other", -15.0, "Residual bucket, follows the broad domestic market moderately."),
         ],
         "US recession + Fed pivot": [
@@ -550,7 +676,8 @@ def upgrade() -> None:
             ("Debt-long", 4.0, "A Fed pivot to rate cuts is a tailwind for duration/debt funds."),
             ("Hybrid", -7.4, "0.6 x Equity (-15.0) + 0.4 x Debt-long (+4.0), computed not eyeballed."),
             ("Gold", 6.0, "A Fed pivot to lower real rates is historically bullish for gold."),
-            ("Overseas FoF", -18.0, "This shock originates IN the US market -- direct hit, not diluted spillover."),
+            ("Silver", 0.0, "Lower real rates help; a US recession hits industrial demand. Roughly cancels."),
+            ("Overseas", -18.0, "This shock originates IN the US market -- direct hit, not diluted spillover."),
             ("Other", -10.0, "Residual bucket, moderate drag."),
         ],
         "AI/tech valuation bust": [
@@ -560,7 +687,8 @@ def upgrade() -> None:
             ("Debt-long", -2.0, "Minor mark-to-market drag from a broader risk-off move."),
             ("Hybrid", -14.0, "0.6 x Equity (-22.0) + 0.4 x Debt-long (-2.0), computed not eyeballed."),
             ("Gold", 5.0, "Modest safe-haven bid, smaller than a macro/oil shock."),
-            ("Overseas FoF", -35.0, "This IS a US-tech-concentrated shock -- close to the full US-market hit."),
+            ("Silver", -5.0, "Electronics and solar demand weakens; a smaller haven bid than gold."),
+            ("Overseas", -35.0, "This IS a US-tech-concentrated shock -- close to the full US-market hit."),
             ("Other", -18.0, "Residual bucket, follows the broader risk-off move."),
         ],
         "Rupee sharp depreciation": [
@@ -570,7 +698,8 @@ def upgrade() -> None:
             ("Debt-long", -6.0, "RBI likely hikes/holds hard to defend the currency, same mechanism as Taper Tantrum."),
             ("Hybrid", -9.6, "0.6 x Equity (-12.0) + 0.4 x Debt-long (-6.0), computed not eyeballed."),
             ("Gold", 10.0, "Gold is dollar-denominated, INR price rises mechanically when the rupee weakens."),
-            ("Overseas FoF", 8.0, "Foreign-currency-denominated assets gain in INR terms purely from currency translation."),
+            ("Silver", 10.0, "Priced in dollars: the same currency translation as gold."),
+            ("Overseas", 8.0, "Foreign-currency-denominated assets gain in INR terms purely from currency translation."),
             ("Other", -5.0, "Residual bucket, modest negative."),
         ],
         "Indian equity \"lost decade\"": [
@@ -580,39 +709,44 @@ def upgrade() -> None:
             ("Debt-long", 3.0, "Positive -- debt keeps accruing normally regardless of equity stagnation."),
             ("Hybrid", -3.6, "0.6 x Equity (-8.0) + 0.4 x Debt-long (+3.0), computed not eyeballed."),
             ("Gold", 2.0, "Mixed historically, kept modest rather than assumed reliably positive."),
-            ("Overseas FoF", 3.0, "Overseas diversification is the thing that helps in a domestic-equity-stagnation scenario."),
+            ("Silver", 2.0, "No India-specific link; modest, like gold."),
+            ("Overseas", 3.0, "Overseas diversification is the thing that helps in a domestic-equity-stagnation scenario."),
             ("Other", -5.0, "Residual bucket, least confident number in this row."),
         ],
     }
     for scenario_name, rows in assumptions.items():
         for asset_class, pct, note in rows:
-            conn.execute(
-                sa.text(
-                    "INSERT INTO scenario_hypothetical_assumptions (scenario_id, asset_class, assumed_pct_change, assumption_note) "
-                    "VALUES (:scenario_id, :asset_class, :pct, :note)"
-                ),
-                {"scenario_id": scenario_ids[scenario_name], "asset_class": asset_class, "pct": pct, "note": note},
-            )
+            conn.execute(_assumptions.insert().values(
+                scenario_id=scenario_ids[scenario_name], asset_class=asset_class,
+                assumed_pct_change=Decimal(str(pct)), assumption_note=note,
+            ))
 
 
 def downgrade() -> None:
+    # Computed results reference the seeded scenarios once compute_all_scenarios has run.
+    op.execute("DELETE FROM scenario_scheme_results")
+    op.execute("DELETE FROM scenario_category_averages")
     op.execute("DELETE FROM scenario_hypothetical_assumptions")
     op.execute("DELETE FROM scenarios")
 ```
 
 - [ ] **Step 2: Run and verify row counts**
 
+(Orchestrator step — Codex doesn't run alembic against a real database; Codex relies on
+`tests/test_migrations.py`, which must round-trip both new migrations on SQLite.)
+
 Run: `cd backend && alembic upgrade head`
 Then: `cd backend && python -c "
 from app.db.session import SessionLocal
 from app.models.reference import Scenario, ScenarioHypotheticalAssumption
 with SessionLocal() as db:
-    assert db.query(Scenario).count() == 31, db.query(Scenario).count()
+    assert db.query(Scenario).count() == 34, db.query(Scenario).count()
+    assert db.query(Scenario).filter(Scenario.parent_scenario_id.is_(None)).count() == 31
     assert db.query(Scenario).filter(Scenario.display_rank.isnot(None)).count() == 8
-    assert db.query(ScenarioHypotheticalAssumption).count() == 40
-    print('OK: 31 scenarios, 8 curated, 40 assumption rows')
+    assert db.query(ScenarioHypotheticalAssumption).count() == 45
+    print('OK: 34 rows, 31 top-level, 8 curated, 45 assumptions')
 "`
-Expected: `OK: 31 scenarios, 8 curated, 40 assumption rows`
+Expected: `OK: 34 rows, 31 top-level, 8 curated, 45 assumptions`
 
 - [ ] **Step 3: Commit**
 
@@ -825,50 +959,58 @@ git commit -m "feat: add one-time scheme-master NAV backfill script"
 - Test: `backend/tests/services/analytics/test_scenario_asset_class.py`
 
 **Interfaces:**
-- Produces: `hypothetical_asset_class_bucket(sebi_category: str) -> str` — consumed by
+- Produces: `underlying_asset_class(sebi_category: str, scheme_name: str = "") -> str` — consumed by
   Task 5's hypothetical computation path.
 
 - [ ] **Step 1: Write the failing tests**
 
 ```python
 # backend/tests/services/analytics/test_scenario_asset_class.py
-from app.services.analytics.scenario_asset_class import hypothetical_asset_class_bucket
+import pytest
+
+from app.services.analytics.scenario_asset_class import underlying_asset_class
 
 
-def test_index_fund_is_index_etf_not_other():
-    assert hypothetical_asset_class_bucket("Other Scheme - Index Funds") == "Index/ETF"
+# Real AMFI category headings and scheme names (live file, 9 Oct).
+@pytest.mark.parametrize("category, name, expected", [
+    ("Equity Scheme - Flexi Cap Fund", "Parag Parikh Flexi Cap Fund", "Equity"),
+    ("Solution Oriented Scheme - Retirement Fund", "HDFC Retirement Savings Fund", "Hybrid"),
+    ("Debt Scheme - Liquid Fund", "SBI Liquid Fund", "Debt-short"),
+    ("Debt Scheme - Credit Risk Fund", "ICICI Prudential Credit Risk Fund", "Debt-long"),
+    ("Some Unclassified Category", "X", "Other"),
+    # wrappers whose category says what they hold
+    ("Other Scheme - Gold ETF", "Nippon India ETF Gold BeES", "Gold"),
+    ("Exchange Traded Funds (ETFs) - Silver ETF", "ICICI Prudential Silver ETF", "Silver"),
+    ("Exchange Traded Funds (ETFs) - Debt ETF", "SBI Nifty 10 yr Benchmark G-Sec ETF", "Debt-long"),
+    ("Index Funds - Debt Funds", "Bandhan CRISIL IBX Gilt June 2027 Index Fund", "Debt-long"),
+    ("Exchange Traded Funds (ETFs) - ETFs investing overseas", "Mirae Asset Hang Seng TECH ETF", "Overseas"),
+    ("Other Scheme - FoF Overseas", "PGIM India Global Equity Opportunities Fund of Funds", "Overseas"),
+    ("Index Funds - Equity Funds", "UTI Nifty 50 Index Fund", "Index/ETF"),
+    # generic wrappers: the name decides
+    ("Other Scheme - Other  ETFs", "Bharat Bond ETF - April 2030", "Debt-long"),
+    ("Other Scheme - Other  ETFs", "Nippon India ETF Liquid BeES", "Debt-short"),
+    ("Other Scheme - Other  ETFs", "Nippon India Silver ETF", "Silver"),
+    ("Other Scheme - Other  ETFs", "Motilal Oswal NASDAQ 100 ETF", "Overseas"),
+    ("Other Scheme - Other  ETFs", "Nippon India ETF Nifty PSU Bank BeES", "Index/ETF"),  # "PSU" isn't debt
+    ("Other Scheme - Index Funds", "Edelweiss CRISIL IBX 50:50 Gilt Plus SDL Apr 2037 Index Fund", "Debt-long"),
+    ("Other Scheme - Index Funds", "Nippon India Nifty 50 Index Fund", "Index/ETF"),
+    ("Other Scheme - FoF Domestic", "SBI Gold Fund", "Gold"),
+    ("Other Scheme - FoF Domestic", "ICICI Prudential Passive Multi-Asset Fund of Funds", "Hybrid"),
+    ("Other Scheme - FoF Domestic", "Groww Nifty PSE ETF FOF", "Index/ETF"),
+    ("Other Scheme - FoF Domestic", "Axis Multi Factor Passive FoF", "Other"),
+])
+def test_underlying_asset_class(category, name, expected):
+    assert underlying_asset_class(category, name) == expected
 
 
-def test_overseas_fof_is_its_own_bucket():
-    assert hypothetical_asset_class_bucket("Other Scheme - FoF Overseas") == "Overseas FoF"
-
-
-def test_domestic_fof_falls_to_other():
-    assert hypothetical_asset_class_bucket("Other Scheme - FoF Domestic") == "Other"
-
-
-def test_gold_fund_is_gold():
-    assert hypothetical_asset_class_bucket("Other Scheme - Gold ETF") == "Gold"
-
-
-def test_equity_scheme_is_equity():
-    assert hypothetical_asset_class_bucket("Equity Scheme - Flexi Cap Fund") == "Equity"
-
-
-def test_retirement_fund_is_hybrid():
-    assert hypothetical_asset_class_bucket("Solution Oriented Scheme - Retirement Fund") == "Hybrid"
-
-
-def test_liquid_fund_is_debt_short():
-    assert hypothetical_asset_class_bucket("Debt Scheme - Liquid Fund") == "Debt-short"
-
-
-def test_credit_risk_fund_is_debt_long():
-    assert hypothetical_asset_class_bucket("Debt Scheme - Credit Risk Fund") == "Debt-long"
-
-
-def test_unclassified_falls_to_other():
-    assert hypothetical_asset_class_bucket("Some Unclassified Category") == "Other"
+def test_no_gold_silver_or_bond_wrapper_lands_in_equity():
+    """The bug this replaces: a gold ETF got the equity move (-25% instead of +8% under Hormuz)."""
+    for category, name in [
+        ("Other Scheme - Gold ETF", "HDFC Gold ETF"),
+        ("Other Scheme - Other  ETFs", "Kotak Silver ETF"),
+        ("Other Scheme - Index Funds", "Axis CRISIL IBX SDL May 2027 Index Fund"),
+    ]:
+        assert underlying_asset_class(category, name) != "Index/ETF"
 ```
 
 - [ ] **Step 2: Run, confirm failure**
@@ -884,39 +1026,82 @@ Expected: FAIL — `ModuleNotFoundError`
 allocation_labels.py's 4-bucket asset_class_bucket(): that function is
 already relied on elsewhere (allocation breakdowns) and widening it isn't
 this attribute's problem to solve or risk regressing. This bucketing is
-finer (8 buckets, not 4) because a hypothetical scenario's assumed % move
+finer (9 buckets, not 4) because a hypothetical scenario's assumed % move
 genuinely differs by sub-bucket -- e.g. an overseas FoF gains in INR terms
 during a rupee-depreciation scenario while a domestic equity index falls,
 which a single "Equity" bucket would get backwards."""
+import re
+
+# An ETF, index fund or fund-of-funds is a wrapper: what moves its value is what it
+# holds. AMFI files ~1,200 of them under 18 headings, and the generic ones ("Other ETFs",
+# "Other Scheme - Index Funds", "FoF Domestic") mix equity, bonds, gold, silver and foreign
+# funds, so the scheme name decides there. Whole-word keywords only; bare "PSU" is not a
+# debt keyword ("Nifty PSU Bank ETF" is equity).
+_SILVER = re.compile(r"\bsilver\b")
+_GOLD = re.compile(r"\bgold\b")
+_OVERSEAS = re.compile(
+    r"\b(nasdaq|s&p|hang seng|msci|nyse|fang\+?|global|world|international|overseas|china|japan|taiwan|emerging markets?)\b"
+)
+_DEBT_SHORT = re.compile(r"\b(liquid|overnight|1d rate|money market|arbitrage)\b")
+_DEBT = re.compile(r"\b(gilt|g-sec|gsec|sdl|bonds?|crisil ibx|ibx|target maturity|t-bill|treasury|debt)\b")
+_EQUITY_HINT = re.compile(r"\b(equity|nifty|bse|sensex|etf)\b")
+_HYBRID = re.compile(r"\b(multi asset|multi-asset|balanced|hybrid|asset allocation)\b")
+_WRAPPER = ("etf", "index fund", "fund of funds", "fof")
+_SHORT_CATEGORY = ("liquid", "overnight", "money market", "ultra short")
 
 
-def hypothetical_asset_class_bucket(sebi_category: str) -> str:
+def underlying_asset_class(sebi_category: str, scheme_name: str = "") -> str:
     category = sebi_category.lower()
-    # Order matters: index/etf/gold/overseas-fof are checked before
-    # equity/debt because some AMFI category strings could otherwise
-    # false-positive match a broader substring (e.g. a future category
-    # string containing both "index" and "equity").
-    if "index" in category or "etf" in category:
-        return "Index/ETF"
+    name = scheme_name.lower()
+    if not any(marker in category for marker in _WRAPPER):
+        if "gold" in category:
+            return "Gold"
+        if "equity" in category:
+            return "Equity"
+        if "hybrid" in category or "retirement" in category or "children" in category:
+            return "Hybrid"
+        if any(k in category for k in ("debt", "income", "liquid", "money market", "gilt", "overnight")):
+            return "Debt-short" if any(k in category for k in _SHORT_CATEGORY) else "Debt-long"
+        return "Other"
+
+    # A wrapper whose category already says what it holds.
+    if "silver" in category:
+        return "Silver"
     if "gold" in category:
         return "Gold"
-    if "fof" in category and "overseas" in category:
-        return "Overseas FoF"
-    if "equity" in category:
-        return "Equity"
-    if "hybrid" in category or "retirement" in category or "children" in category:
+    if "overseas" in category:
+        return "Overseas"
+    if "debt" in category:
+        return "Debt-short" if _DEBT_SHORT.search(name) else "Debt-long"
+    if "hybrid" in category:
         return "Hybrid"
-    if "debt" in category or "income" in category:
-        if any(s in category for s in ("liquid", "overnight", "money market", "ultra short")):
-            return "Debt-short"
+    if "equity" in category:
+        return "Index/ETF"
+
+    # A generic wrapper: the name says what it holds.
+    if _SILVER.search(name):
+        return "Silver"
+    if _GOLD.search(name):
+        return "Gold"
+    if _OVERSEAS.search(name):
+        return "Overseas"
+    if _DEBT_SHORT.search(name):
+        return "Debt-short"
+    if _DEBT.search(name):
         return "Debt-long"
-    return "Other"
+    if _HYBRID.search(name):
+        return "Hybrid"
+    # No asset keyword: generic ETFs/index funds track Indian equity indices, and so does a
+    # domestic FoF whose name points at equity ("... Nifty PSE ETF FOF"); any other domestic
+    # FoF could hold anything, so it stays in the residual bucket.
+    is_fof = "fof" in category or "fund of funds" in category
+    return "Other" if is_fof and not _EQUITY_HINT.search(name) else "Index/ETF"
 ```
 
 - [ ] **Step 4: Run, confirm pass**
 
 Run: `cd backend && pytest tests/services/analytics/test_scenario_asset_class.py -v`
-Expected: PASS (9 tests)
+Expected: PASS (24 tests)
 
 - [ ] **Step 5: Commit**
 
@@ -938,7 +1123,7 @@ git commit -m "feat: add hypothetical-scenario asset-class bucketing"
 - Consumes: `_bulk_nav_on_or_before`-equivalent bounded lookup (reimplemented here scoped to
   the whole scheme master, not one category — `category_ranking.py`'s version is
   category-scoped and not reused directly since this needs the full `schemes` table);
-  `hypothetical_asset_class_bucket` (Task 4); `compute_holdings` (`app/services/dashboard/
+  `underlying_asset_class` (Task 4); `compute_holdings` (`app/services/dashboard/
   holdings.py`); `list_household_members` (`app/services/dashboard/household_members.py`).
 - Produces: `compute_scenario_results(db: Session, scenario: Scenario) ->
   None` (Step 2, writes `scenario_scheme_results`/`scenario_category_averages`, called once
@@ -964,7 +1149,10 @@ class ScenarioSummaryRow(BaseModel):
     parent_scenario_id: str | None
     has_phases: bool
     had_redemption_freeze_schemes: list[str] | None
-    quick_stat_pct: str | None
+    quick_market_pct: str | None      # Nifty 50 TRI over the window (card 10)
+    quick_equity_pct: str | None      # AUM-weighted equity funds
+    quick_debt_pct: str | None        # AUM-weighted debt funds
+    quick_weight_quarter: str | None  # the AUM quarter used as weights
 
 
 class ScenarioPhaseResult(BaseModel):
@@ -995,6 +1183,7 @@ class ScenarioMemberResult(BaseModel):
     household_member_id: str
     member_name: str
     rupee_impact: str
+    pct: str | None                  # this member's own % (fix 6)
     funds: list[ScenarioMemberFundResult]
 
 
@@ -1011,8 +1200,11 @@ class ScenarioHypotheticalAssumptionRow(BaseModel):
 
 class ScenarioResultRow(BaseModel):
     scenario: ScenarioSummaryRow
-    portfolio_impact_pct: str | None
+    portfolio_impact_pct: str | None   # Σ rupee impact ÷ covered_value (fix 6)
     rupee_impact: str
+    covered_value: str                 # current value of holdings with a %
+    total_value: str                   # current value of all holdings
+    no_data_funds: int                 # holdings with no %, frozen excluded
     benchmarks: list[ScenarioBenchmarkResult]
     phases: list[ScenarioPhaseResult]
     by_fund: list[ScenarioFundResult]
@@ -1028,6 +1220,8 @@ class ScenarioResultRow(BaseModel):
 from datetime import date
 from unittest.mock import AsyncMock, patch
 
+import pytest
+
 from app.services.analytics.scenario_engine import compute_scenario_results
 
 
@@ -1040,13 +1234,30 @@ def test_compute_scenario_results_real_data_scheme_gets_is_proxied_false():
     db.add(scenario)
     db.commit()
 
-    navs = {scheme.id: {date(2019, 12, 31): Decimal("100"), date(2020, 3, 31): Decimal("62")}}
+    navs = {scheme.id: {date(2020, 1, 1): Decimal("100"), date(2020, 3, 31): Decimal("62")}}
     with patch("app.services.analytics.scenario_engine._bulk_nav_for_scenario", return_value=navs):
         compute_scenario_results(db, scenario)
 
     result = db.query(ScenarioSchemeResult).filter_by(scenario_id=scenario.id, scheme_id=scheme.id).one()
     assert result.is_proxied is False
     assert result.pct_change == Decimal("-38.00")
+
+
+def test_compute_scenario_results_does_not_use_a_nav_from_before_the_start_date():
+    """Pins the date rule on purpose (card 5): the engine reads the NAV on the window's
+    start date, so a NAV only on the day before leaves the scheme without real data."""
+    db = _session()
+    scheme = Scheme(id=uuid.uuid4(), amfi_code="R9", name="Old Fund", amc_name="AMC", sebi_category="Equity Scheme - Flexi Cap Fund")
+    db.add(scheme)
+    db.commit()
+    scenario = Scenario(id=uuid.uuid4(), name="Test Crash", description="d", start_date=date(2020, 1, 1), end_date=date(2020, 3, 31), scenario_type="CRASH")
+    db.add(scenario)
+    db.commit()
+    navs = {scheme.id: {date(2019, 12, 31): Decimal("100"), date(2020, 3, 31): Decimal("62")}}
+    with patch("app.services.analytics.scenario_engine._bulk_nav_for_scenario", return_value=navs):
+        compute_scenario_results(db, scenario)
+    result = db.query(ScenarioSchemeResult).filter_by(scenario_id=scenario.id, scheme_id=scheme.id).one()
+    assert result.is_proxied is True
 
 
 def test_compute_scenario_results_falls_back_to_category_average():
@@ -1059,13 +1270,13 @@ def test_compute_scenario_results_falls_back_to_category_average():
     db.add(scenario)
     db.commit()
 
-    navs = {old_scheme.id: {date(2019, 12, 31): Decimal("100"), date(2020, 3, 31): Decimal("80")}}
+    navs = {old_scheme.id: {date(2020, 1, 1): Decimal("100"), date(2020, 3, 31): Decimal("80")}}
     with patch("app.services.analytics.scenario_engine._bulk_nav_for_scenario", return_value=navs):
         compute_scenario_results(db, scenario)
 
     new_result = db.query(ScenarioSchemeResult).filter_by(scenario_id=scenario.id, scheme_id=new_scheme.id).one()
     assert new_result.is_proxied is True
-    assert new_result.proxy_basis == "sebi_category_average:Equity Scheme - Flexi Cap Fund"
+    assert new_result.proxy_basis == "sebi_category_average:Equity Scheme - Flexi Cap Fund|Equity"
     assert new_result.pct_change == Decimal("-20.00")
 
 
@@ -1128,6 +1339,7 @@ IDs, no live NAV computation."""
 
 from __future__ import annotations
 
+import re
 import uuid
 from datetime import date, datetime, timezone
 from decimal import Decimal
@@ -1143,7 +1355,7 @@ from app.models.reference import (
     ScenarioSchemeResult,
     Scheme,
 )
-from app.services.analytics.scenario_asset_class import hypothetical_asset_class_bucket
+from app.services.analytics.scenario_asset_class import underlying_asset_class
 from app.services.analytics.schemas import (
     ScenarioBenchmarkResult,
     ScenarioFundResult,
@@ -1154,7 +1366,9 @@ from app.services.analytics.schemas import (
     ScenarioResultRow,
     ScenarioSummaryRow,
 )
-from app.services.dashboard.allocation_labels import asset_class_bucket
+from app.models.enums import BenchmarkIndex, BenchmarkReturnType
+from app.models.reference import SchemeAaum
+from app.services.analytics.nse_indices_client import get_index_level_on_or_before
 from app.services.dashboard.holdings import compute_holdings
 from app.services.dashboard.household_members import list_household_members
 
@@ -1187,6 +1401,14 @@ def _bulk_nav_for_scenario(
     return result
 
 
+def _proxy_group(scheme: Scheme) -> str:
+    # Generic wrapper headings ("Other Scheme - Index Funds") mix equity, bond, gold and
+    # silver funds, so a missing fund is proxied by funds holding the same thing, not by
+    # the whole heading (card 3). For ordinary categories this is one group per category.
+    category = scheme.sebi_category or ""
+    return f"{category}|{underlying_asset_class(category, scheme.name)}"
+
+
 def compute_scenario_results(db: Session, scenario: Scenario) -> None:
     if scenario.scenario_type == "HYPOTHETICAL":
         return  # category D needs no precompute at all -- pure arithmetic at serve time
@@ -1215,7 +1437,7 @@ def compute_scenario_results(db: Session, scenario: Scenario) -> None:
     category_totals: dict[str, list[Decimal]] = {}
     for scheme in all_schemes:
         if scheme.id in real_pct_by_scheme and scheme.sebi_category:
-            category_totals.setdefault(scheme.sebi_category, []).append(real_pct_by_scheme[scheme.id])
+            category_totals.setdefault(_proxy_group(scheme), []).append(real_pct_by_scheme[scheme.id])
     category_averages = {
         category: (sum(values) / len(values)).quantize(Decimal("0.01"))
         for category, values in category_totals.items()
@@ -1229,7 +1451,7 @@ def compute_scenario_results(db: Session, scenario: Scenario) -> None:
     asset_class_totals: dict[str, list[Decimal]] = {}
     for scheme in all_schemes:
         if scheme.id in real_pct_by_scheme:
-            bucket = asset_class_bucket(scheme.sebi_category or "")
+            bucket = underlying_asset_class(scheme.sebi_category or "", scheme.name)
             asset_class_totals.setdefault(bucket, []).append(real_pct_by_scheme[scheme.id])
     asset_class_averages = {
         bucket: (sum(values) / len(values)).quantize(Decimal("0.01"))
@@ -1240,13 +1462,14 @@ def compute_scenario_results(db: Session, scenario: Scenario) -> None:
         if scheme.id in real_pct_by_scheme:
             continue
         category = scheme.sebi_category or ""
-        if category in category_averages:
+        group = _proxy_group(scheme)
+        if group in category_averages:
             db.add(ScenarioSchemeResult(
-                scenario_id=scenario.id, scheme_id=scheme.id, pct_change=category_averages[category],
-                is_proxied=True, proxy_basis=f"sebi_category_average:{category}",
+                scenario_id=scenario.id, scheme_id=scheme.id, pct_change=category_averages[group],
+                is_proxied=True, proxy_basis=f"sebi_category_average:{group}",
             ))
             continue
-        bucket = asset_class_bucket(category)
+        bucket = underlying_asset_class(category, scheme.name)
         if bucket in asset_class_averages:
             db.add(ScenarioSchemeResult(
                 scenario_id=scenario.id, scheme_id=scheme.id, pct_change=asset_class_averages[bucket],
@@ -1258,7 +1481,58 @@ def compute_scenario_results(db: Session, scenario: Scenario) -> None:
             is_proxied=True, proxy_basis="no_comparable_data",
         ))
 
+    _set_quick_stats(db, scenario, all_schemes, real_pct_by_scheme)
     db.commit()
+
+
+_QUICK_MIN_FUNDS = 5
+
+
+def _aum_weighted(pcts: dict[uuid.UUID, Decimal], weights: dict[uuid.UUID, Decimal]) -> Decimal | None:
+    weighted = [(pcts[sid], weights[sid]) for sid in pcts if weights.get(sid, Decimal("0")) > 0]
+    if len(weighted) < _QUICK_MIN_FUNDS:
+        return None
+    total = sum(w for _, w in weighted)
+    return (sum(p * w for p, w in weighted) / total).quantize(Decimal("0.01"))
+
+
+def _set_quick_stats(
+    db: Session, scenario: Scenario, all_schemes: list[Scheme], real_pct_by_scheme: dict[uuid.UUID, Decimal]
+) -> None:
+    """Picker-card figures (card 10): the market's move, and the AUM-weighted move of
+    equity funds and of debt funds -- kept apart, because averaging them together turned
+    COVID's -38% into about -15%. A figure without data stays NULL, never a substitute."""
+    scenario.quick_market_pct = scenario.quick_equity_pct = scenario.quick_debt_pct = None
+    scenario.quick_weight_quarter = None
+    has_phases = db.query(Scenario).filter_by(parent_scenario_id=scenario.id).first() is not None
+    if scenario.scenario_type == "HYPOTHETICAL" or scenario.had_redemption_freeze_schemes or has_phases:
+        return
+
+    end = scenario.end_date or date.today()
+    start_level = get_index_level_on_or_before(db, BenchmarkIndex.NIFTY_50, scenario.start_date, return_type=BenchmarkReturnType.TRI)
+    end_level = get_index_level_on_or_before(db, BenchmarkIndex.NIFTY_50, end, return_type=BenchmarkReturnType.TRI)
+    if start_level and end_level and start_level[0] > 0:
+        scenario.quick_market_pct = ((end_level[0] / start_level[0] - 1) * 100).quantize(Decimal("0.01"))
+
+    # Weight by fund size at the window's start when we hold that quarter; otherwise the
+    # earliest quarter we hold, and the tooltip says which ("weighted by fund size in ...").
+    quarter = (
+        db.query(func.max(SchemeAaum.reference_period)).filter(SchemeAaum.reference_period <= scenario.start_date).scalar()
+        or db.query(func.min(SchemeAaum.reference_period)).scalar()
+    )
+    if quarter is None:
+        return
+    weights = {
+        sid: value for sid, value in db.query(SchemeAaum.scheme_id, SchemeAaum.aaum_value).filter(
+            SchemeAaum.reference_period == quarter, SchemeAaum.scheme_id.in_(list(real_pct_by_scheme))
+        ).all()
+    }
+    classes = {s.id: underlying_asset_class(s.sebi_category or "", s.name) for s in all_schemes if s.id in real_pct_by_scheme}
+    equity = {sid: p for sid, p in real_pct_by_scheme.items() if classes.get(sid) in ("Equity", "Index/ETF")}
+    debt = {sid: p for sid, p in real_pct_by_scheme.items() if classes.get(sid) in ("Debt-short", "Debt-long")}
+    scenario.quick_equity_pct = _aum_weighted(equity, weights)
+    scenario.quick_debt_pct = _aum_weighted(debt, weights)
+    scenario.quick_weight_quarter = quarter
 ```
 
 - [ ] **Step 5: Run, confirm pass**
@@ -1297,6 +1571,16 @@ def test_get_scenario_summary_has_phases_true_for_group_row():
     assert summary.has_phases is True
 
 
+def _holdings(*rows):
+    """compute_holdings stand-in (card 5): `by fund` is built from the household's
+    holdings, so a test must give the member holdings in the schemes under test."""
+    from types import SimpleNamespace
+    return AsyncMock(return_value=[
+        SimpleNamespace(scheme_id=str(scheme.id), household_member_id=str(member.id), scheme_name=scheme.name, current_value=value)
+        for scheme, member, value in rows
+    ])
+
+
 def test_multi_phase_by_fund_uses_current_phase_only():
     db = _session()
     scheme = Scheme(id=uuid.uuid4(), amfi_code="M1", name="Fund", amc_name="AMC", sebi_category="Equity")
@@ -1313,17 +1597,29 @@ def test_multi_phase_by_fund_uses_current_phase_only():
     db.add(ScenarioSchemeResult(scenario_id=phase2.id, scheme_id=scheme.id, pct_change=Decimal("-3.00"), is_proxied=False))
     db.commit()
 
+    db.add(ScenarioSchemeResult(scenario_id=group.id, scheme_id=scheme.id, pct_change=Decimal("-12.00"), is_proxied=False))
+    db.commit()
+
     member = _household_member(db)
-    result = get_scenario_result_for_household(db, group, [member.id])
+    with patch("app.services.analytics.scenario_engine.compute_holdings", new=_holdings((scheme, member, "1000.00"))):
+        result = get_scenario_result_for_household(db, group, [member.id])
     current_phase_fund = next(f for f in result.by_fund if f.scheme_id == str(scheme.id))
     assert current_phase_fund.pct == "-3.00"  # the latest (current/ongoing) phase, not phase1+phase2
+    assert result.portfolio_impact_pct == "-12.00"  # the hero is the group's whole window (fix 6)
 
 
 def test_franklin_frozen_scheme_shows_frozen_not_pct_alongside_other_debt_funds():
     db = _session()
-    frozen = Scheme(id=uuid.uuid4(), amfi_code="F1", name="Franklin India Low Duration Fund", amc_name="Franklin Templeton", sebi_category="Debt Scheme - Low Duration Fund")
+    # The real AMFI base name carries a suffix; the held row is a Direct Growth plan (card 7).
+    frozen = Scheme(
+        id=uuid.uuid4(), amfi_code="F1", amc_name="Franklin Templeton Mutual Fund", sebi_category="Debt Scheme - Low Duration Fund",
+        base_name="Franklin India Low Duration Fund (No. of Segregated Portfolios-2)",
+        name="Franklin India Low Duration Fund (No. of Segregated Portfolios-2) - Direct Plan - Growth",
+    )
     other_debt = Scheme(id=uuid.uuid4(), amfi_code="D1", name="Some Other Debt Fund", amc_name="Other AMC", sebi_category="Debt Scheme - Low Duration Fund")
-    db.add_all([frozen, other_debt])
+    live_franklin = Scheme(id=uuid.uuid4(), amfi_code="F2", name="Franklin India Short Term Fund - Direct Plan - Growth",
+                           base_name="Franklin India Short Term Fund", amc_name="Franklin Templeton Mutual Fund", sebi_category="Debt Scheme - Short Duration Fund")
+    db.add_all([frozen, other_debt, live_franklin])
     db.commit()
     scenario = Scenario(
         id=uuid.uuid4(), name="Franklin Templeton wind-up (2020)", description="d",
@@ -1334,16 +1630,68 @@ def test_franklin_frozen_scheme_shows_frozen_not_pct_alongside_other_debt_funds(
     db.commit()
     db.add(ScenarioSchemeResult(scenario_id=scenario.id, scheme_id=frozen.id, pct_change=Decimal("-5.00"), is_proxied=False))
     db.add(ScenarioSchemeResult(scenario_id=scenario.id, scheme_id=other_debt.id, pct_change=Decimal("-4.00"), is_proxied=False))
+    db.add(ScenarioSchemeResult(scenario_id=scenario.id, scheme_id=live_franklin.id, pct_change=Decimal("1.00"), is_proxied=False))
     db.commit()
 
     member = _household_member(db)
-    result = get_scenario_result_for_household(db, scenario, [member.id])
+    with patch("app.services.analytics.scenario_engine.compute_holdings",
+               new=_holdings((frozen, member, "5000.00"), (other_debt, member, "1000.00"), (live_franklin, member, "1000.00"))):
+        result = get_scenario_result_for_household(db, scenario, [member.id])
     frozen_row = next(f for f in result.by_fund if f.scheme_id == str(frozen.id))
     other_row = next(f for f in result.by_fund if f.scheme_id == str(other_debt.id))
     assert frozen_row.is_frozen is True
     assert frozen_row.pct is None  # never a misleading % for a frozen scheme
     assert other_row.is_frozen is False
     assert other_row.pct == "-4.00"
+    assert next(f for f in result.by_fund if f.scheme_id == str(live_franklin.id)).is_frozen is False
+    # The frozen ₹5,000 is left out: (-40 + 10) / 2,000 = -1.50%
+    assert result.portfolio_impact_pct == "-1.50"
+
+
+@pytest.mark.parametrize("names", [
+    "Franklin India Short-Term Income Plan (no. of segregated portfolios- 3)",
+    "Franklin India Ultra Short Bond Fund (no. of segregated portfolio-1)",
+    "Franklin India Dynamic Accrual Fund (No. of segregated portfolios- 3)",
+    "Franklin India Income Opportunities Fund (no. of segregated portfolios- 2)",
+    "Franklin India Credit Risk Fund (No. of segregated portfolios-3)",
+    "Franklin India Low Duration Fund (No. of Segregated Portfolios-2)",
+])
+def test_every_real_franklin_base_name_matches_its_seeded_name(names):
+    from app.services.analytics.scenario_engine import _freeze_key
+    seeded = {_freeze_key(n) for n in [
+        "Franklin India Low Duration Fund", "Franklin India Ultra Short Bond Fund",
+        "Franklin India Short Term Income Plan", "Franklin India Credit Risk Fund",
+        "Franklin India Dynamic Accrual Fund", "Franklin India Income Opportunities Fund",
+    ]}
+    assert _freeze_key(names) in seeded
+
+
+def test_household_pct_is_weighted_by_its_own_holdings():
+    """Fix 6: two households see different headline %s for the same scenario."""
+    db = _session()
+    equity = Scheme(id=uuid.uuid4(), amfi_code="E1", name="Equity Fund", amc_name="A", sebi_category="Equity Scheme - Flexi Cap Fund")
+    liquid = Scheme(id=uuid.uuid4(), amfi_code="L1", name="Liquid Fund", amc_name="B", sebi_category="Debt Scheme - Liquid Fund")
+    nodata = Scheme(id=uuid.uuid4(), amfi_code="X1", name="New Fund", amc_name="C", sebi_category="Equity Scheme - Flexi Cap Fund")
+    db.add_all([equity, liquid, nodata])
+    scenario = Scenario(id=uuid.uuid4(), name="COVID crash", description="d", start_date=date(2020, 1, 20), end_date=date(2020, 3, 31), scenario_type="CRASH")
+    db.add(scenario)
+    db.commit()
+    db.add(ScenarioSchemeResult(scenario_id=scenario.id, scheme_id=equity.id, pct_change=Decimal("-38.00"), is_proxied=False))
+    db.add(ScenarioSchemeResult(scenario_id=scenario.id, scheme_id=liquid.id, pct_change=Decimal("1.00"), is_proxied=False))
+    db.add(ScenarioSchemeResult(scenario_id=scenario.id, scheme_id=nodata.id, pct_change=None, is_proxied=True, proxy_basis="no_comparable_data"))
+    db.commit()
+    member = _household_member(db)
+
+    with patch("app.services.analytics.scenario_engine.compute_holdings",
+               new=_holdings((equity, member, "800000.00"), (liquid, member, "200000.00"), (nodata, member, "50000.00"))):
+        heavy = get_scenario_result_for_household(db, scenario, [member.id])
+    with patch("app.services.analytics.scenario_engine.compute_holdings",
+               new=_holdings((equity, member, "100000.00"), (liquid, member, "900000.00"))):
+        light = get_scenario_result_for_household(db, scenario, [member.id])
+
+    assert heavy.portfolio_impact_pct == "-30.20"   # (-3,04,000 + 2,000) / 10,00,000; no-data fund left out
+    assert (heavy.covered_value, heavy.total_value, heavy.no_data_funds) == ("1000000.00", "1050000.00", 1)
+    assert light.portfolio_impact_pct == "-2.90"
 
 
 def test_hypothetical_with_assumptions_not_set_returns_flag_and_no_numbers():
@@ -1415,18 +1763,6 @@ Append to `scenario_engine.py`:
 ```python
 def get_scenario_summary(db: Session, scenario: Scenario) -> ScenarioSummaryRow:
     has_phases = db.query(Scenario).filter_by(parent_scenario_id=scenario.id).first() is not None
-    quick_stat_pct = None
-    if scenario.scenario_type != "HYPOTHETICAL" and not scenario.had_redemption_freeze_schemes and not has_phases:
-        # A quick-stat is the household-agnostic category-wide signal shown on the
-        # picker card -- the AUM-weighted average across all real (non-proxied)
-        # schemes, not any one household's number.
-        row = (
-            db.query(func.avg(ScenarioSchemeResult.pct_change))
-            .filter_by(scenario_id=scenario.id, is_proxied=False)
-            .scalar()
-        )
-        quick_stat_pct = str(row.quantize(Decimal("0.01"))) if row is not None else None
-
     return ScenarioSummaryRow(
         scenario_id=str(scenario.id), name=scenario.name, scenario_type=scenario.scenario_type,
         start_date=scenario.start_date.isoformat() if scenario.start_date else None,
@@ -1434,7 +1770,9 @@ def get_scenario_summary(db: Session, scenario: Scenario) -> ScenarioSummaryRow:
         is_ongoing=scenario.is_ongoing, display_rank=scenario.display_rank,
         parent_scenario_id=str(scenario.parent_scenario_id) if scenario.parent_scenario_id else None,
         has_phases=has_phases, had_redemption_freeze_schemes=scenario.had_redemption_freeze_schemes,
-        quick_stat_pct=quick_stat_pct,
+        quick_market_pct=_pct_str(scenario.quick_market_pct), quick_equity_pct=_pct_str(scenario.quick_equity_pct),
+        quick_debt_pct=_pct_str(scenario.quick_debt_pct),
+        quick_weight_quarter=scenario.quick_weight_quarter.isoformat() if scenario.quick_weight_quarter else None,
     )
 
 
@@ -1445,6 +1783,25 @@ def _current_phase(db: Session, group: Scenario) -> Scenario:
 
 def _pct_str(value: Decimal | None) -> str | None:
     return str(value) if value is not None else None
+
+
+_SEGREGATED_SUFFIX = re.compile(r"\s*\(no\.?\s*of\s+segregated\s+portfolios?\s*-\s*\d+\)\s*$", re.IGNORECASE)
+
+
+def _freeze_key(name: str) -> str:
+    # AMFI's base names for the 6 wound-up Franklin schemes carry a suffix with varying case
+    # and spacing ("Franklin India Short-Term Income Plan (no. of segregated portfolios- 3)"),
+    # while live funds have close names ("Franklin India Short Term Fund"), so the match is
+    # exact on cleaned text, never "contains" (card 7).
+    text = _SEGREGATED_SUFFIX.sub("", name).lower().replace("-", " ")
+    return " ".join(text.split())
+
+
+def _is_frozen(scheme: Scheme, frozen_keys: set[str]) -> bool:
+    if not frozen_keys or "franklin" not in (scheme.amc_name or "").lower():
+        return False
+    base = scheme.base_name or scheme.name.split(" - ")[0]
+    return _freeze_key(base) in frozen_keys
 
 
 async def _async_get_scenario_result_for_household(
@@ -1459,39 +1816,53 @@ async def _async_get_scenario_result_for_household(
     from app.models.user import HouseholdMember
     members = {m.id: m for m in db.query(HouseholdMember).filter(HouseholdMember.id.in_(household_member_ids)).all()}
 
-    frozen_names = set(scenario.had_redemption_freeze_schemes or [])
+    frozen_keys = {_freeze_key(name) for name in (scenario.had_redemption_freeze_schemes or [])}
 
     if scenario.scenario_type == "HYPOTHETICAL":
         assumptions = db.query(ScenarioHypotheticalAssumption).filter_by(scenario_id=scenario.id).all()
         if not assumptions:
             return ScenarioResultRow(
-                scenario=summary, portfolio_impact_pct=None, rupee_impact="0.00", benchmarks=[],
+                scenario=summary, portfolio_impact_pct=None, rupee_impact="0.00",
+                covered_value="0.00", total_value="0.00", no_data_funds=0, benchmarks=[],
                 phases=[], by_fund=[], by_member=[], hypothetical_assumptions=[], assumptions_not_set=True,
             )
         assumption_by_class = {a.asset_class: a for a in assumptions}
         holdings = await compute_holdings(db, household_member_ids)
         by_member: dict[uuid.UUID, Decimal] = {mid: Decimal("0") for mid in household_member_ids}
-        total_impact = Decimal("0")
+        by_member_covered: dict[uuid.UUID, Decimal] = {mid: Decimal("0") for mid in household_member_ids}
+        total_impact = covered_value = total_value = Decimal("0")
+        no_data_funds = 0
         for holding in holdings:
+            if holding.current_value is not None:
+                total_value += Decimal(holding.current_value)
             if holding.current_value is None:
                 continue
             scheme = db.get(Scheme, uuid.UUID(holding.scheme_id))
-            bucket = hypothetical_asset_class_bucket(scheme.sebi_category or "") if scheme else "Other"
+            bucket = underlying_asset_class(scheme.sebi_category or "", scheme.name) if scheme else "Other"
             assumption = assumption_by_class.get(bucket)
             if assumption is None:
+                no_data_funds += 1
                 continue
             impact = Decimal(holding.current_value) * assumption.assumed_pct_change / 100
             member_id = uuid.UUID(holding.household_member_id)
             by_member[member_id] = by_member.get(member_id, Decimal("0")) + impact
+            by_member_covered[member_id] = by_member_covered.get(member_id, Decimal("0")) + Decimal(holding.current_value)
             total_impact += impact
+            covered_value += Decimal(holding.current_value)
 
         return ScenarioResultRow(
-            scenario=summary, portfolio_impact_pct=None, rupee_impact=str(total_impact.quantize(Decimal("0.01"))),
+            scenario=summary,
+            portfolio_impact_pct=_pct_str((total_impact / covered_value * 100).quantize(Decimal("0.01"))) if covered_value else None,
+            rupee_impact=str(total_impact.quantize(Decimal("0.01"))),
+            covered_value=str(covered_value.quantize(Decimal("0.01"))), total_value=str(total_value.quantize(Decimal("0.01"))),
+            no_data_funds=no_data_funds,
             benchmarks=[], phases=[], by_fund=[],
             by_member=[
                 ScenarioMemberResult(
                     household_member_id=str(mid), member_name=members[mid].name if mid in members else "Unknown",
-                    rupee_impact=str(impact.quantize(Decimal("0.01"))), funds=[],
+                    rupee_impact=str(impact.quantize(Decimal("0.01"))),
+                    pct=_pct_str((impact / by_member_covered[mid] * 100).quantize(Decimal("0.01"))) if by_member_covered.get(mid) else None,
+                    funds=[],
                 )
                 for mid, impact in by_member.items()
             ],
@@ -1508,25 +1879,38 @@ async def _async_get_scenario_result_for_household(
         for r in db.query(ScenarioSchemeResult).filter_by(scenario_id=serving_scenario.id).all()
     }
     holdings = await compute_holdings(db, household_member_ids)
+    held_schemes = {
+        s.id: s for s in db.query(Scheme).filter(Scheme.id.in_([uuid.UUID(h.scheme_id) for h in holdings])).all()
+    }
+    frozen_ids = {sid for sid, s in held_schemes.items() if _is_frozen(s, frozen_keys)}
 
     by_fund_map: dict[str, ScenarioFundResult] = {}
     by_member_rupee: dict[uuid.UUID, Decimal] = {mid: Decimal("0") for mid in household_member_ids}
+    by_member_covered: dict[uuid.UUID, Decimal] = {mid: Decimal("0") for mid in household_member_ids}
     by_member_funds: dict[uuid.UUID, list[ScenarioMemberFundResult]] = {mid: [] for mid in household_member_ids}
     total_rupee = Decimal("0")
+    covered_value = Decimal("0")
+    total_value = Decimal("0")
+    no_data_funds = 0
 
     for holding in holdings:
         scheme_id = uuid.UUID(holding.scheme_id)
         member_id = uuid.UUID(holding.household_member_id)
         scheme_result = results.get(scheme_id)
-        is_frozen = holding.scheme_name in frozen_names
+        is_frozen = scheme_id in frozen_ids
         current_value = Decimal(holding.current_value) if holding.current_value else Decimal("0")
+        total_value += current_value
 
         pct = None if is_frozen else (scheme_result.pct_change if scheme_result else None)
         rupee_impact = None
         if pct is not None:
             rupee_impact = (current_value * pct / 100).quantize(Decimal("0.01"))
             by_member_rupee[member_id] += rupee_impact
+            by_member_covered[member_id] += current_value
             total_rupee += rupee_impact
+            covered_value += current_value
+        elif not is_frozen:
+            no_data_funds += 1
 
         by_fund_map[holding.scheme_id] = ScenarioFundResult(
             scheme_id=holding.scheme_id, scheme_name=holding.scheme_name,
@@ -1537,32 +1921,50 @@ async def _async_get_scenario_result_for_household(
             ScenarioMemberFundResult(scheme_id=holding.scheme_id, scheme_name=holding.scheme_name, rupee_impact=_pct_str(rupee_impact))
         )
 
+    def household_pct(pct_by_scheme: dict[uuid.UUID, Decimal | None]) -> str | None:
+        # Fix 6: this household's own number -- rupee impact over the value it covers.
+        # No-data and frozen holdings are left out of both sums, never counted as 0%.
+        impact = covered = Decimal("0")
+        for holding in holdings:
+            sid = uuid.UUID(holding.scheme_id)
+            pct = pct_by_scheme.get(sid)
+            if pct is None or sid in frozen_ids or not holding.current_value:
+                continue
+            value = Decimal(holding.current_value)
+            impact += value * pct / 100
+            covered += value
+        return _pct_str((impact / covered * 100).quantize(Decimal("0.01"))) if covered else None
+
     phases: list[ScenarioPhaseResult] = []
     if summary.has_phases:
         for phase in db.query(Scenario).filter_by(parent_scenario_id=scenario.id).order_by(Scenario.phase_order).all():
             phase_results = {r.scheme_id: r.pct_change for r in db.query(ScenarioSchemeResult).filter_by(scenario_id=phase.id).all()}
-            phase_values = [v for v in phase_results.values() if v is not None]
             phases.append(ScenarioPhaseResult(
                 label=phase.phase_label, order=phase.phase_order,
                 start_date=phase.start_date.isoformat(), end_date=phase.end_date.isoformat() if phase.end_date else None,
-                is_ongoing=phase.is_ongoing,
-                pct=_pct_str((sum(phase_values) / len(phase_values)).quantize(Decimal("0.01"))) if phase_values else None,
+                is_ongoing=phase.is_ongoing, pct=household_pct(phase_results),
             ))
-
-    portfolio_values = [v for v in results.values() if v.pct_change is not None]
-    portfolio_impact_pct = (
-        _pct_str((sum(r.pct_change for r in portfolio_values) / len(portfolio_values)).quantize(Decimal("0.01")))
-        if portfolio_values else None
-    )
+        # The hero is cumulative: the group row's own whole-window results, while
+        # "by fund" above stays on the current phase (Review Focus #3).
+        group_results = {r.scheme_id: r.pct_change for r in db.query(ScenarioSchemeResult).filter_by(scenario_id=scenario.id).all()}
+        portfolio_impact_pct = household_pct(group_results)
+    else:
+        portfolio_impact_pct = (
+            _pct_str((total_rupee / covered_value * 100).quantize(Decimal("0.01"))) if covered_value else None
+        )
 
     return ScenarioResultRow(
         scenario=summary, portfolio_impact_pct=portfolio_impact_pct, rupee_impact=str(total_rupee.quantize(Decimal("0.01"))),
+        covered_value=str(covered_value.quantize(Decimal("0.01"))), total_value=str(total_value.quantize(Decimal("0.01"))),
+        no_data_funds=no_data_funds,
         benchmarks=[],  # filled by Task 7's API layer, which has the benchmark query context
         phases=phases, by_fund=list(by_fund_map.values()),
         by_member=[
             ScenarioMemberResult(
                 household_member_id=str(mid), member_name=members[mid].name if mid in members else "Unknown",
-                rupee_impact=str(by_member_rupee[mid].quantize(Decimal("0.01"))), funds=by_member_funds[mid],
+                rupee_impact=str(by_member_rupee[mid].quantize(Decimal("0.01"))),
+                pct=_pct_str((by_member_rupee[mid] / by_member_covered[mid] * 100).quantize(Decimal("0.01"))) if by_member_covered[mid] else None,
+                funds=by_member_funds[mid],
             )
             for mid in household_member_ids
         ],
@@ -1592,6 +1994,131 @@ Expected: PASS (all tests in this file)
 ```bash
 git add backend/app/services/analytics/scenario_engine.py backend/app/services/analytics/schemas.py backend/tests/services/analytics/test_scenario_engine.py
 git commit -m "feat: add scenario proxy-mapping engine and household serving layer"
+```
+
+---
+
+### Task 5b: `compute_all_scenarios.py` — compute every settled scenario once
+
+**Why.** `compute_scenario_results` is the only thing that fills `scenario_scheme_results`, and
+Task 8 calls it only for `is_ongoing` rows. Without this, 26 of the 29 historical rows open empty.
+
+**Files:**
+- Create: `backend/scripts/compute_all_scenarios.py`
+- Test: `backend/tests/scripts/test_compute_all_scenarios.py`
+
+- [ ] **Step 1: Write the failing tests**
+
+```python
+# backend/tests/scripts/test_compute_all_scenarios.py
+import uuid
+from datetime import date
+from unittest.mock import patch
+
+from app.models.reference import Scenario
+from scripts.compute_all_scenarios import main
+
+
+def _scenario(db, name, scenario_type="CRASH", parent=None):
+    s = Scenario(id=uuid.uuid4(), name=name, description="d", start_date=date(2020, 1, 20),
+                 end_date=date(2020, 3, 31), scenario_type=scenario_type, parent_scenario_id=parent)
+    db.add(s)
+    db.commit()
+    return s
+
+
+def test_computes_every_non_hypothetical_row_including_phases_and_groups(db_session):
+    group = _scenario(db_session, "Group")
+    phase = _scenario(db_session, "Phase", parent=group.id)
+    plain = _scenario(db_session, "Plain")
+    _scenario(db_session, "Hypo", scenario_type="HYPOTHETICAL")
+    with patch("scripts.compute_all_scenarios.compute_scenario_results") as compute:
+        failures = main(db_session)
+    assert failures == 0
+    assert {c.args[1].name for c in compute.call_args_list} == {"Group", "Phase", "Plain"}
+
+
+def test_one_failing_scenario_does_not_stop_the_rest(db_session):
+    _scenario(db_session, "Bad")
+    _scenario(db_session, "Good")
+    def compute(db, scenario):
+        if scenario.name == "Bad":
+            raise RuntimeError("no NAVs")
+    with patch("scripts.compute_all_scenarios.compute_scenario_results", side_effect=compute) as mocked:
+        failures = main(db_session)
+    assert failures == 1
+    assert {c.args[1].name for c in mocked.call_args_list} == {"Bad", "Good"}
+```
+
+(`db_session`: use the SQLite session fixture/helper `tests/scripts/test_background_jobs.py` already
+uses; mechanical deviation if it's named differently.) Rerun safety is covered by
+`compute_scenario_results` deleting a scenario's rows before writing (Task 5's existing test).
+
+- [ ] **Step 2: Run, confirm failure** (module not found)
+
+- [ ] **Step 3: Implement**
+
+```python
+# backend/scripts/compute_all_scenarios.py
+"""One-off: compute every non-hypothetical scenario (phases and groups included).
+
+Run on staging after migrations, the NAV backfill (backfill_scheme_nav_history.py) and A12's
+daily benchmark job; rerun after a seed correction or a later backfill. Safe to rerun:
+compute_scenario_results deletes and rewrites one scenario's rows and commits them.
+Settled windows never change, so nothing schedules this; Task 8 keeps ongoing rows fresh."""
+import logging
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from sqlalchemy.orm import Session
+
+from app.db.session import SessionLocal
+from app.models.reference import Scenario, ScenarioSchemeResult
+from app.services.analytics.scenario_engine import compute_scenario_results
+
+logger = logging.getLogger(__name__)
+
+
+def main(db: Session) -> int:
+    failures = 0
+    scenarios = (
+        db.query(Scenario).filter(Scenario.scenario_type != "HYPOTHETICAL")
+        .order_by(Scenario.start_date, Scenario.name).all()
+    )
+    for scenario in scenarios:
+        try:
+            compute_scenario_results(db, scenario)
+        except Exception:  # one bad window shouldn't stop the rest
+            db.rollback()
+            failures += 1
+            logger.exception("compute_all_scenarios: %s failed", scenario.name)
+            continue
+        rows = db.query(ScenarioSchemeResult).filter_by(scenario_id=scenario.id).all()
+        logger.info(
+            "compute_all_scenarios: %s real=%d proxied=%d no_data=%d", scenario.name,
+            sum(1 for r in rows if not r.is_proxied),
+            sum(1 for r in rows if r.is_proxied and r.pct_change is not None),
+            sum(1 for r in rows if r.pct_change is None),
+        )
+    logger.info("compute_all_scenarios: done, %d scenarios, %d failed", len(scenarios), failures)
+    return failures
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    with SessionLocal() as session:
+        sys.exit(1 if main(session) else 0)
+```
+
+- [ ] **Step 4: Run, confirm pass**
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add backend/scripts/compute_all_scenarios.py backend/tests/scripts/test_compute_all_scenarios.py
+git commit -m "feat: one-off script to compute every settled scenario"
 ```
 
 ---
@@ -1647,6 +2174,7 @@ In `scenario_engine.py`, add:
 ```python
 def _scenario_benchmark_comparisons(db: Session, scenario: Scenario) -> list[ScenarioBenchmarkResult]:
     from app.models.enums import BenchmarkIndex
+    from app.models.enums import BenchmarkReturnType
     from app.models.reference import BenchmarkIndexHistory
 
     pre_start = scenario.start_date
@@ -1658,13 +2186,13 @@ def _scenario_benchmark_comparisons(db: Session, scenario: Scenario) -> list[Sce
     for index in BenchmarkIndex:
         start_row = (
             db.query(BenchmarkIndexHistory)
-            .filter(BenchmarkIndexHistory.index_name == index, BenchmarkIndexHistory.date <= pre_start)
+            .filter(BenchmarkIndexHistory.index_name == index, BenchmarkIndexHistory.return_type == BenchmarkReturnType.TRI, BenchmarkIndexHistory.date <= pre_start)
             .order_by(BenchmarkIndexHistory.date.desc())
             .first()
         )
         end_row = (
             db.query(BenchmarkIndexHistory)
-            .filter(BenchmarkIndexHistory.index_name == index, BenchmarkIndexHistory.date <= end)
+            .filter(BenchmarkIndexHistory.index_name == index, BenchmarkIndexHistory.return_type == BenchmarkReturnType.TRI, BenchmarkIndexHistory.date <= end)
             .order_by(BenchmarkIndexHistory.date.desc())
             .first()
         )
@@ -1752,6 +2280,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.api.deps import DbSession, get_active_user, get_db
+from app.config import settings
 from app.models.reference import Scenario
 from app.models.user import User
 from app.services.analytics.scenario_engine import (
@@ -1771,6 +2300,10 @@ async def list_scenarios(
     db: DbSession = Depends(get_db),
 ):
     query = db.query(Scenario).filter(Scenario.parent_scenario_id.is_(None))
+    # Release gate (decisions.md 2026-10-08): hypothetical % values stay hidden until a
+    # markets-literate review; flip SCENARIO_HYPOTHETICALS_ENABLED only after it.
+    if not settings.scenario_hypotheticals_enabled:
+        query = query.filter(Scenario.scenario_type != "HYPOTHETICAL")
     if curated:
         query = query.filter(Scenario.display_rank.isnot(None)).order_by(Scenario.display_rank)
     else:
@@ -1785,11 +2318,24 @@ async def get_scenario_results(
     db: DbSession = Depends(get_db),
 ):
     scenario = db.get(Scenario, scenario_id)
-    if scenario is None:
+    hidden = scenario is not None and scenario.scenario_type == "HYPOTHETICAL" and not settings.scenario_hypotheticals_enabled
+    if scenario is None or hidden:
         raise HTTPException(status_code=404, detail="Scenario not found.")
     members = list_household_members(db, user.id)
     return await _async_get_scenario_result_for_household(db, scenario, [m.id for m in members])
 ```
+
+Add the flag to `backend/app/config.py`'s `Settings` (revised 9 Oct, card 12):
+
+```python
+    # Release gate for attribute 11's hypothetical scenarios: off until their 45 assumed
+    # values get a markets-literate review (decisions.md 2026-10-08).
+    scenario_hypotheticals_enabled: bool = False
+```
+
+And two tests in `test_scenarios_api.py`: with the flag off, `GET /scenarios` lists no
+`HYPOTHETICAL` row and `GET /scenarios/{hypothetical_id}/results` is 404; with it on
+(`monkeypatch.setattr(settings, "scenario_hypotheticals_enabled", True)`), both work.
 
 Register in `backend/app/main.py`:
 
@@ -1926,47 +2472,51 @@ export type ScenarioType = "CRASH" | "BULL_RUN" | "POLICY_RATE" | "HYPOTHETICAL"
 export type ScenarioResultShape = "standard" | "multi_phase" | "redemption_freeze" | "hypothetical";
 
 export interface ScenarioSummary {
-  scenarioId: string;
+  scenario_id: string;
   name: string;
-  scenarioType: ScenarioType;
-  startDate: string | null;
-  endDate: string | null;
-  isOngoing: boolean;
-  displayRank: number | null;
-  parentScenarioId: string | null;
-  hasPhases: boolean;
-  hadRedemptionFreezeSchemes: string[] | null;
-  quickStatPct: string | null;
+  scenario_type: ScenarioType;
+  start_date: string | null;
+  end_date: string | null;
+  is_ongoing: boolean;
+  display_rank: number | null;
+  parent_scenario_id: string | null;
+  has_phases: boolean;
+  had_redemption_freeze_schemes: string[] | null;
+  quick_market_pct: string | null;      // Nifty 50 TRI over the window
+  quick_equity_pct: string | null;      // AUM-weighted equity funds
+  quick_debt_pct: string | null;        // AUM-weighted debt funds
+  quick_weight_quarter: string | null;  // AUM quarter used as weights
 }
 
 export interface ScenarioPhase {
   label: string;
   order: number;
-  startDate: string;
-  endDate: string | null;
-  isOngoing: boolean;
+  start_date: string;
+  end_date: string | null;
+  is_ongoing: boolean;
   pct: string | null;
 }
 
 export interface ScenarioFund {
-  schemeId: string;
-  schemeName: string;
+  scheme_id: string;
+  scheme_name: string;
   pct: string | null;
-  isProxied: boolean;
-  proxyBasis: string | null;
-  isFrozen: boolean;
+  is_proxied: boolean;
+  proxy_basis: string | null;
+  is_frozen: boolean;
 }
 
 export interface ScenarioMemberFund {
-  schemeId: string;
-  schemeName: string;
-  rupeeImpact: string | null;
+  scheme_id: string;
+  scheme_name: string;
+  rupee_impact: string | null;
 }
 
 export interface ScenarioMember {
-  householdMemberId: string;
-  memberName: string;
-  rupeeImpact: string;
+  household_member_id: string;
+  member_name: string;
+  rupee_impact: string;
+  pct: string | null;
   funds: ScenarioMemberFund[];
 }
 
@@ -1976,21 +2526,24 @@ export interface ScenarioBenchmark {
 }
 
 export interface ScenarioHypotheticalAssumption {
-  assetClass: string;
-  assumedPctChange: string;
-  assumptionNote: string;
+  asset_class: string;
+  assumed_pct_change: string;
+  assumption_note: string;
 }
 
 export interface ScenarioResult {
   scenario: ScenarioSummary;
-  portfolioImpactPct: string | null;
-  rupeeImpact: string;
+  portfolio_impact_pct: string | null;  // Σ rupee impact ÷ covered_value (fix 6)
+  rupee_impact: string;
+  covered_value: string;
+  total_value: string;
+  no_data_funds: number;
   benchmarks: ScenarioBenchmark[];
   phases: ScenarioPhase[];
-  byFund: ScenarioFund[];
-  byMember: ScenarioMember[];
-  hypotheticalAssumptions: ScenarioHypotheticalAssumption[];
-  assumptionsNotSet: boolean;
+  by_fund: ScenarioFund[];
+  by_member: ScenarioMember[];
+  hypothetical_assumptions: ScenarioHypotheticalAssumption[];
+  assumptions_not_set: boolean;
 }
 ```
 
@@ -2003,22 +2556,22 @@ import { resolveResultShape } from "./resolveResultShape";
 import type { ScenarioSummary } from "./types";
 
 const base: ScenarioSummary = {
-  scenarioId: "s1", name: "Test", scenarioType: "CRASH", startDate: "2020-01-01", endDate: "2020-03-01",
-  isOngoing: false, displayRank: null, parentScenarioId: null, hasPhases: false,
-  hadRedemptionFreezeSchemes: null, quickStatPct: "-10.00",
+  scenario_id: "s1", name: "Test", scenario_type: "CRASH", start_date: "2020-01-01", end_date: "2020-03-01",
+  is_ongoing: false, display_rank: null, parent_scenario_id: null, has_phases: false,
+  had_redemption_freeze_schemes: null, quick_market_pct: "-10.00", quick_equity_pct: null, quick_debt_pct: null, quick_weight_quarter: null,
 };
 
 describe("resolveResultShape", () => {
   it("returns hypothetical for HYPOTHETICAL scenario_type regardless of other flags", () => {
-    expect(resolveResultShape({ ...base, scenarioType: "HYPOTHETICAL" })).toBe("hypothetical");
+    expect(resolveResultShape({ ...base, scenario_type: "HYPOTHETICAL" })).toBe("hypothetical");
   });
 
-  it("returns redemption_freeze when hadRedemptionFreezeSchemes is non-empty", () => {
-    expect(resolveResultShape({ ...base, hadRedemptionFreezeSchemes: ["Franklin India Low Duration Fund"] })).toBe("redemption_freeze");
+  it("returns redemption_freeze when had_redemption_freeze_schemes is non-empty", () => {
+    expect(resolveResultShape({ ...base, had_redemption_freeze_schemes: ["Franklin India Low Duration Fund"] })).toBe("redemption_freeze");
   });
 
-  it("returns multi_phase for a group row with hasPhases true", () => {
-    expect(resolveResultShape({ ...base, hasPhases: true })).toBe("multi_phase");
+  it("returns multi_phase for a group row with has_phases true", () => {
+    expect(resolveResultShape({ ...base, has_phases: true })).toBe("multi_phase");
   });
 
   it("returns standard otherwise", () => {
@@ -2026,7 +2579,7 @@ describe("resolveResultShape", () => {
   });
 
   it("a crash scenario with phases and a redemption freeze flag resolves to redemption_freeze, not multi_phase (freeze checked first)", () => {
-    expect(resolveResultShape({ ...base, hasPhases: true, hadRedemptionFreezeSchemes: ["X"] })).toBe("redemption_freeze");
+    expect(resolveResultShape({ ...base, has_phases: true, had_redemption_freeze_schemes: ["X"] })).toBe("redemption_freeze");
   });
 });
 ```
@@ -2043,9 +2596,9 @@ Expected: FAIL — module not found
 import type { ScenarioResultShape, ScenarioSummary } from "./types";
 
 export function resolveResultShape(scenario: ScenarioSummary): ScenarioResultShape {
-  if (scenario.scenarioType === "HYPOTHETICAL") return "hypothetical";
-  if (scenario.hadRedemptionFreezeSchemes?.length) return "redemption_freeze";
-  if (scenario.parentScenarioId === null && scenario.hasPhases) return "multi_phase";
+  if (scenario.scenario_type === "HYPOTHETICAL") return "hypothetical";
+  if (scenario.had_redemption_freeze_schemes?.length) return "redemption_freeze";
+  if (scenario.parent_scenario_id === null && scenario.has_phases) return "multi_phase";
   return "standard";
 }
 ```
@@ -2073,7 +2626,7 @@ git commit -m "feat: add scenario result-shape dispatch and types"
 **Interfaces:**
 - Consumes: `GET /scenarios?curated=true`, `GET /scenarios` (Task 7), `ScenarioSummary`
   (Task 9).
-- Produces: `ScenarioPicker` component, `onSelectScenario: (scenarioId: string) => void` prop.
+- Produces: `ScenarioPicker` component, `onSelectScenario: (scenario_id: string) => void` prop.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -2085,22 +2638,22 @@ import { ScenarioPicker } from "./ScenarioPicker";
 import type { ScenarioSummary } from "./types";
 
 const curated: ScenarioSummary[] = [
-  { scenarioId: "c1", name: "COVID crash", scenarioType: "CRASH", startDate: "2020-01-20", endDate: "2020-03-31", isOngoing: false, displayRank: 1, parentScenarioId: null, hasPhases: false, hadRedemptionFreezeSchemes: null, quickStatPct: "-38.00" },
-  { scenarioId: "c5", name: "Franklin Templeton wind-up (2020)", scenarioType: "CRASH", startDate: "2020-04-01", endDate: "2020-06-30", isOngoing: false, displayRank: 5, parentScenarioId: null, hasPhases: false, hadRedemptionFreezeSchemes: ["Franklin India Low Duration Fund"], quickStatPct: null },
-  { scenarioId: "c7", name: "US-Iran war (2026)", scenarioType: "CRASH", startDate: "2026-02-28", endDate: null, isOngoing: true, displayRank: 7, parentScenarioId: null, hasPhases: true, hadRedemptionFreezeSchemes: null, quickStatPct: null },
-  { scenarioId: "c8", name: "AI/tech valuation bust", scenarioType: "HYPOTHETICAL", startDate: null, endDate: null, isOngoing: false, displayRank: 8, parentScenarioId: null, hasPhases: false, hadRedemptionFreezeSchemes: null, quickStatPct: null },
+  { scenario_id: "c1", name: "COVID crash", scenario_type: "CRASH", start_date: "2020-01-20", end_date: "2020-03-31", is_ongoing: false, display_rank: 1, parent_scenario_id: null, has_phases: false, had_redemption_freeze_schemes: null, quick_market_pct: "-38.00", quick_equity_pct: "-35.20", quick_debt_pct: "1.10", quick_weight_quarter: "2019-12-31" },
+  { scenario_id: "c5", name: "Franklin Templeton wind-up (2020)", scenario_type: "CRASH", start_date: "2020-04-01", end_date: "2020-06-30", is_ongoing: false, display_rank: 5, parent_scenario_id: null, has_phases: false, had_redemption_freeze_schemes: ["Franklin India Low Duration Fund"], quick_market_pct: null, quick_equity_pct: null, quick_debt_pct: null, quick_weight_quarter: null },
+  { scenario_id: "c7", name: "US-Iran war (2026)", scenario_type: "CRASH", start_date: "2026-02-28", end_date: null, is_ongoing: true, display_rank: 7, parent_scenario_id: null, has_phases: true, had_redemption_freeze_schemes: null, quick_market_pct: null, quick_equity_pct: null, quick_debt_pct: null, quick_weight_quarter: null },
+  { scenario_id: "c8", name: "AI/tech valuation bust", scenario_type: "HYPOTHETICAL", start_date: null, end_date: null, is_ongoing: false, display_rank: 8, parent_scenario_id: null, has_phases: false, had_redemption_freeze_schemes: null, quick_market_pct: null, quick_equity_pct: null, quick_debt_pct: null, quick_weight_quarter: null },
 ];
 
 const all: ScenarioSummary[] = [
   ...curated,
-  { scenarioId: "m1", name: "Dot-com bust", scenarioType: "CRASH", startDate: "2000-03-01", endDate: "2002-10-31", isOngoing: false, displayRank: null, parentScenarioId: null, hasPhases: false, hadRedemptionFreezeSchemes: null, quickStatPct: "-45.00" },
+  { scenario_id: "m1", name: "Dot-com bust", scenario_type: "CRASH", start_date: "2000-03-01", end_date: "2002-10-31", is_ongoing: false, display_rank: null, parent_scenario_id: null, has_phases: false, had_redemption_freeze_schemes: null, quick_market_pct: "-45.00", quick_equity_pct: null, quick_debt_pct: null, quick_weight_quarter: null },
 ];
 
 describe("ScenarioPicker", () => {
   it("shows the 8 curated cards with a quick-stat %, a Freeze badge, and a pulsing ongoing indicator", () => {
     render(<ScenarioPicker curated={curated} all={all} isLoading={false} onSelectScenario={vi.fn()} />);
     expect(screen.getByText("COVID crash")).toBeInTheDocument();
-    expect(screen.getByText("-38.00%")).toBeInTheDocument();
+    expect(screen.getByText("Nifty 50 −38.00% · Equity funds −35.20% · Debt funds +1.10%")).toBeInTheDocument();
     expect(screen.getByText("Freeze")).toBeInTheDocument();
     expect(screen.getByText(/ongoing/i)).toBeInTheDocument();
   });
@@ -2140,18 +2693,18 @@ export interface ScenarioPickerProps {
   curated: ScenarioSummary[];
   all: ScenarioSummary[];
   isLoading: boolean;
-  onSelectScenario: (scenarioId: string) => void;
+  onSelectScenario: (scenario_id: string) => void;
   className?: string;
 }
 
 function ScenarioCard({ scenario, onSelectScenario }: { scenario: ScenarioSummary; onSelectScenario: (id: string) => void }) {
-  const isHypothetical = scenario.scenarioType === "HYPOTHETICAL";
-  const isFrozen = Boolean(scenario.hadRedemptionFreezeSchemes?.length);
+  const isHypothetical = scenario.scenario_type === "HYPOTHETICAL";
+  const isFrozen = Boolean(scenario.had_redemption_freeze_schemes?.length);
 
   return (
     <button
       type="button"
-      onClick={() => onSelectScenario(scenario.scenarioId)}
+      onClick={() => onSelectScenario(scenario.scenario_id)}
       className={cn(
         "rounded-xl border bg-[var(--color-surface)] p-4 text-left space-y-2 shadow-2xs",
         isHypothetical ? "border-dashed border-[var(--color-hypo)]" : "border-[var(--color-border)]",
@@ -2161,14 +2714,33 @@ function ScenarioCard({ scenario, onSelectScenario }: { scenario: ScenarioSummar
         <span className="font-display text-sm font-bold text-[var(--color-ink)]">{scenario.name}</span>
         {isFrozen ? (
           <Badge variant="outline">Freeze</Badge>
-        ) : scenario.isOngoing ? (
+        ) : scenario.is_ongoing ? (
           <Badge variant="outline" className="animate-pulse">ongoing</Badge>
-        ) : scenario.quickStatPct !== null ? (
-          <span className="text-sm font-semibold tabular-nums text-[var(--color-ink)]">{scenario.quickStatPct}%</span>
         ) : null}
       </div>
+      {quickStatLine(scenario) && (
+        // Card 10: the market's move and the fund moves, each labelled -- never one blended %.
+        <p className="text-xs tabular-nums text-[var(--color-text-secondary)]" title={scenario.quick_weight_quarter ? `Fund moves weighted by fund size in the quarter ending ${scenario.quick_weight_quarter}` : undefined}>
+          {quickStatLine(scenario)}
+        </p>
+      )}
     </button>
   );
+}
+
+function signed(pct: string): string {
+  return pct.startsWith("-") ? `−${pct.slice(1)}%` : `+${pct}%`;
+}
+
+// Card 10: "Nifty 50 −38% · Equity funds −35% · Debt funds +1%"; a figure without data is
+// left out, never replaced.
+export function quickStatLine(s: ScenarioSummary): string | null {
+  const parts = [
+    s.quick_market_pct !== null ? `Nifty 50 ${signed(s.quick_market_pct)}` : null,
+    s.quick_equity_pct !== null ? `Equity funds ${signed(s.quick_equity_pct)}` : null,
+    s.quick_debt_pct !== null ? `Debt funds ${signed(s.quick_debt_pct)}` : null,
+  ].filter(Boolean);
+  return parts.length ? parts.join(" · ") : null;
 }
 
 export function ScenarioPicker({ curated, all, isLoading, onSelectScenario, className }: ScenarioPickerProps) {
@@ -2183,14 +2755,14 @@ export function ScenarioPicker({ curated, all, isLoading, onSelectScenario, clas
     );
   }
 
-  const curatedIds = new Set(curated.map((s) => s.scenarioId));
-  const remaining = all.filter((s) => !curatedIds.has(s.scenarioId));
+  const curatedIds = new Set(curated.map((s) => s.scenario_id));
+  const remaining = all.filter((s) => !curatedIds.has(s.scenario_id));
 
   return (
     <section className={cn("space-y-6", className)}>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {curated.map((scenario) => (
-          <ScenarioCard key={scenario.scenarioId} scenario={scenario} onSelectScenario={onSelectScenario} />
+          <ScenarioCard key={scenario.scenario_id} scenario={scenario} onSelectScenario={onSelectScenario} />
         ))}
       </div>
 
@@ -2205,7 +2777,7 @@ export function ScenarioPicker({ curated, all, isLoading, onSelectScenario, clas
       {showMore && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {remaining.map((scenario) => (
-            <ScenarioCard key={scenario.scenarioId} scenario={scenario} onSelectScenario={onSelectScenario} />
+            <ScenarioCard key={scenario.scenario_id} scenario={scenario} onSelectScenario={onSelectScenario} />
           ))}
         </div>
       )}
@@ -2250,17 +2822,18 @@ import { StandardResultView } from "./StandardResultView";
 import type { ScenarioResult } from "./types";
 
 const result: ScenarioResult = {
-  scenario: { scenarioId: "c1", name: "COVID crash", scenarioType: "CRASH", startDate: "2020-01-20", endDate: "2020-03-31", isOngoing: false, displayRank: 1, parentScenarioId: null, hasPhases: false, hadRedemptionFreezeSchemes: null, quickStatPct: "-38.00" },
-  portfolioImpactPct: "-32.50", rupeeImpact: "-650000.00",
+  scenario: { scenario_id: "c1", name: "COVID crash", scenario_type: "CRASH", start_date: "2020-01-20", end_date: "2020-03-31", is_ongoing: false, display_rank: 1, parent_scenario_id: null, has_phases: false, had_redemption_freeze_schemes: null, quick_market_pct: "-38.00", quick_equity_pct: null, quick_debt_pct: null, quick_weight_quarter: null },
+  portfolio_impact_pct: "-32.50", rupee_impact: "-650000.00",
+  covered_value: "2000000.00", total_value: "2100000.00", no_data_funds: 1,
   benchmarks: [{ name: "nifty_50", pct: "-38.00" }],
   phases: [],
-  byFund: [
-    { schemeId: "s1", schemeName: "Real Fund", pct: "-30.00", isProxied: false, proxyBasis: null, isFrozen: false },
-    { schemeId: "s2", schemeName: "Proxied Fund", pct: "-20.00", isProxied: true, proxyBasis: "sebi_category_average:Equity Scheme - Flexi Cap Fund", isFrozen: false },
-    { schemeId: "s3", schemeName: "No Data Fund", pct: null, isProxied: true, proxyBasis: "no_comparable_data", isFrozen: false },
+  by_fund: [
+    { scheme_id: "s1", scheme_name: "Real Fund", pct: "-30.00", is_proxied: false, proxy_basis: null, is_frozen: false },
+    { scheme_id: "s2", scheme_name: "Proxied Fund", pct: "-20.00", is_proxied: true, proxy_basis: "sebi_category_average:Equity Scheme - Flexi Cap Fund", is_frozen: false },
+    { scheme_id: "s3", scheme_name: "No Data Fund", pct: null, is_proxied: true, proxy_basis: "no_comparable_data", is_frozen: false },
   ],
-  byMember: [{ householdMemberId: "m1", memberName: "Ayush", rupeeImpact: "-650000.00", funds: [] }],
-  hypotheticalAssumptions: [], assumptionsNotSet: false,
+  by_member: [{ household_member_id: "m1", member_name: "Ayush", rupee_impact: "-650000.00", pct: "-32.50", funds: [] }],
+  hypothetical_assumptions: [], assumptions_not_set: false,
 };
 
 describe("StandardResultView", () => {
@@ -2272,6 +2845,8 @@ describe("StandardResultView", () => {
     expect(screen.getByText("-30.00%")).toBeInTheDocument();
     expect(screen.getByText(/~-20.00%/)).toBeInTheDocument();
     expect(screen.getByText("Not enough historical data to estimate")).toBeInTheDocument();
+    // Fix 6: the headline says what it covers.
+    expect(screen.getByText("Based on ₹2000000.00 of your ₹2100000.00 · 1 fund has no data for this period")).toBeInTheDocument();
   });
 });
 ```
@@ -2292,23 +2867,23 @@ import type { ScenarioResult } from "./types";
 const COMPLIANCE_COPY =
   "Here's what this portfolio would have captured during this period, based on actual historical fund performance — not a prediction of future returns.";
 
-function FundRow({ fund }: { fund: ScenarioResult["byFund"][number] }) {
+function FundRow({ fund }: { fund: ScenarioResult["by_fund"][number] }) {
   if (fund.pct === null) {
     return (
       <div className="flex items-center justify-between text-sm">
-        <span className="text-[var(--color-ink)]">{fund.schemeName}</span>
+        <span className="text-[var(--color-ink)]">{fund.scheme_name}</span>
         <span className="text-[var(--color-text-secondary)]">Not enough historical data to estimate</span>
       </div>
     );
   }
   return (
     <div className="flex items-center justify-between text-sm">
-      <span className="text-[var(--color-ink)]">{fund.schemeName}</span>
+      <span className="text-[var(--color-ink)]">{fund.scheme_name}</span>
       <span
         className="tabular-nums font-semibold"
-        title={fund.isProxied ? `Shown using the ${fund.proxyBasis} average` : undefined}
+        title={fund.is_proxied ? `Shown using the ${fund.proxy_basis} average` : undefined}
       >
-        {fund.isProxied ? "~" : ""}{fund.pct}%
+        {fund.is_proxied ? "~" : ""}{fund.pct}%
       </span>
     </div>
   );
@@ -2321,19 +2896,24 @@ export function StandardResultView({ result }: { result: ScenarioResult }) {
     <section className="space-y-6">
       <p className="text-xs italic text-[var(--color-text-secondary)]">
         {COMPLIANCE_COPY}
-        {result.scenario.isOngoing && " Numbers will update as the event continues."}
+        {result.scenario.is_ongoing && " Numbers will update as the event continues."}
       </p>
 
       <div className="flex gap-6">
         <div>
           <p className="text-xs text-[var(--color-text-secondary)]">Portfolio impact</p>
-          <p className="text-2xl font-display font-bold tabular-nums">{result.portfolioImpactPct}%</p>
+          <p className="text-2xl font-display font-bold tabular-nums">{result.portfolio_impact_pct}%</p>
         </div>
         <div>
           <p className="text-xs text-[var(--color-text-secondary)]">Rupee impact</p>
-          <p className="text-2xl font-display font-bold tabular-nums">{result.rupeeImpact}</p>
+          <p className="text-2xl font-display font-bold tabular-nums">{result.rupee_impact}</p>
         </div>
       </div>
+      {/* Fix 6: the % is this household's own, over the holdings that have data. */}
+      <p className="text-xs text-[var(--color-text-secondary)]">
+        Based on ₹{result.covered_value} of your ₹{result.total_value}
+        {result.no_data_funds > 0 && ` · ${result.no_data_funds} ${result.no_data_funds === 1 ? "fund has" : "funds have"} no data for this period`}
+      </p>
 
       {result.benchmarks.length > 0 && (
         <div className="space-y-1">
@@ -2349,29 +2929,31 @@ export function StandardResultView({ result }: { result: ScenarioResult }) {
 
       <div className="space-y-2">
         <p className="text-xs font-semibold text-[var(--color-text-secondary)]">By fund</p>
-        {result.byFund.map((fund) => (
-          <FundRow key={fund.schemeId} fund={fund} />
+        {result.by_fund.map((fund) => (
+          <FundRow key={fund.scheme_id} fund={fund} />
         ))}
       </div>
 
       <div className="space-y-2">
         <p className="text-xs font-semibold text-[var(--color-text-secondary)]">By family member</p>
-        {result.byMember.map((member) => (
-          <div key={member.householdMemberId} className="rounded-lg border border-[var(--color-border)]">
+        {result.by_member.map((member) => (
+          <div key={member.household_member_id} className="rounded-lg border border-[var(--color-border)]">
             <button
               type="button"
-              onClick={() => setExpandedMember((prev) => (prev === member.householdMemberId ? null : member.householdMemberId))}
+              onClick={() => setExpandedMember((prev) => (prev === member.household_member_id ? null : member.household_member_id))}
               className={cn("w-full flex items-center justify-between p-3 text-sm")}
             >
-              <span>{member.memberName}</span>
-              <span className="tabular-nums font-semibold">{member.rupeeImpact}</span>
+              <span>{member.member_name}</span>
+              <span className="tabular-nums font-semibold">
+                {member.rupee_impact}{member.pct !== null && ` (${member.pct}%)`}
+              </span>
             </button>
-            {expandedMember === member.householdMemberId && (
+            {expandedMember === member.household_member_id && (
               <div className="px-3 pb-3 space-y-1">
                 {member.funds.map((f) => (
-                  <div key={f.schemeId} className="flex items-center justify-between text-xs text-[var(--color-text-secondary)]">
-                    <span>{f.schemeName}</span>
-                    <span className="tabular-nums">{f.rupeeImpact ?? "Not enough historical data to estimate"}</span>
+                  <div key={f.scheme_id} className="flex items-center justify-between text-xs text-[var(--color-text-secondary)]">
+                    <span>{f.scheme_name}</span>
+                    <span className="tabular-nums">{f.rupee_impact ?? "Not enough historical data to estimate"}</span>
                   </div>
                 ))}
               </div>
@@ -2407,17 +2989,17 @@ export function MultiPhaseResultView({ result }: { result: ScenarioResult }) {
 
       <div>
         <p className="text-xs text-[var(--color-text-secondary)]">Cumulative portfolio impact</p>
-        <p className="text-2xl font-display font-bold tabular-nums">{result.portfolioImpactPct}%</p>
+        <p className="text-2xl font-display font-bold tabular-nums">{result.portfolio_impact_pct}%</p>
       </div>
 
       <div className="space-y-2">
         {result.phases.map((phase) => (
           <div
             key={phase.label}
-            className={phase.isOngoing ? "rounded-lg border-2 border-[var(--color-negative)] p-3 animate-pulse" : "rounded-lg border border-[var(--color-border)] p-3"}
+            className={phase.is_ongoing ? "rounded-lg border-2 border-[var(--color-negative)] p-3 animate-pulse" : "rounded-lg border border-[var(--color-border)] p-3"}
           >
             <p className="text-sm font-semibold">{phase.label}</p>
-            <p className="text-xs text-[var(--color-text-secondary)]">{phase.startDate} – {phase.endDate ?? "ongoing"}</p>
+            <p className="text-xs text-[var(--color-text-secondary)]">{phase.start_date} – {phase.end_date ?? "ongoing"}</p>
             <p className="tabular-nums font-bold">{phase.pct !== null ? `${phase.pct}%` : "Not enough historical data to estimate"}</p>
           </div>
         ))}
@@ -2425,10 +3007,10 @@ export function MultiPhaseResultView({ result }: { result: ScenarioResult }) {
 
       <div className="space-y-2">
         <p className="text-xs font-semibold text-[var(--color-text-secondary)]">By fund (current phase)</p>
-        {result.byFund.map((fund) => (
-          <div key={fund.schemeId} className="flex items-center justify-between text-sm">
-            <span>{fund.schemeName}</span>
-            <span className="tabular-nums">{fund.pct !== null ? `${fund.isProxied ? "~" : ""}${fund.pct}%` : "Not enough historical data to estimate"}</span>
+        {result.by_fund.map((fund) => (
+          <div key={fund.scheme_id} className="flex items-center justify-between text-sm">
+            <span>{fund.scheme_name}</span>
+            <span className="tabular-nums">{fund.pct !== null ? `${fund.is_proxied ? "~" : ""}${fund.pct}%` : "Not enough historical data to estimate"}</span>
           </div>
         ))}
       </div>
@@ -2459,10 +3041,10 @@ export function RedemptionFreezeResultView({ result }: { result: ScenarioResult 
 
       <div className="space-y-2">
         <p className="text-xs font-semibold text-[var(--color-text-secondary)]">By fund</p>
-        {result.byFund.map((fund) => (
-          <div key={fund.schemeId} className="flex items-center justify-between text-sm">
-            <span>{fund.schemeName}</span>
-            {fund.isFrozen ? (
+        {result.by_fund.map((fund) => (
+          <div key={fund.scheme_id} className="flex items-center justify-between text-sm">
+            <span>{fund.scheme_name}</span>
+            {fund.is_frozen ? (
               <span className="font-semibold" style={{ color: "var(--color-freeze)" }}>Redemptions frozen ~20mo</span>
             ) : (
               <span className="tabular-nums">
@@ -2482,7 +3064,7 @@ export function RedemptionFreezeResultView({ result }: { result: ScenarioResult 
 import type { ScenarioResult } from "./types";
 
 export function HypotheticalResultView({ result }: { result: ScenarioResult }) {
-  if (result.assumptionsNotSet) {
+  if (result.assumptions_not_set) {
     return (
       <section className="rounded-xl border-2 border-dashed border-[var(--color-hypo)] p-6">
         <p className="text-sm font-semibold text-[var(--color-ink)]">
@@ -2504,18 +3086,18 @@ export function HypotheticalResultView({ result }: { result: ScenarioResult }) {
 
       <div>
         <p className="text-xs text-[var(--color-text-secondary)]">Rupee impact if assumption held</p>
-        <p className="text-2xl font-display font-bold tabular-nums">{result.rupeeImpact}</p>
+        <p className="text-2xl font-display font-bold tabular-nums">{result.rupee_impact}</p>
       </div>
 
       <div className="space-y-2">
         <p className="text-xs font-semibold text-[var(--color-text-secondary)]">Per-asset-class assumption</p>
-        {result.hypotheticalAssumptions.map((a) => (
-          <div key={a.assetClass} className="space-y-1">
+        {result.hypothetical_assumptions.map((a) => (
+          <div key={a.asset_class} className="space-y-1">
             <div className="flex items-center justify-between text-sm">
-              <span>{a.assetClass}</span>
-              <span className="tabular-nums font-semibold">{a.assumedPctChange}%</span>
+              <span>{a.asset_class}</span>
+              <span className="tabular-nums font-semibold">{a.assumed_pct_change}%</span>
             </div>
-            <p className="text-xs text-[var(--color-text-secondary)]">{a.assumptionNote}</p>
+            <p className="text-xs text-[var(--color-text-secondary)]">{a.assumption_note}</p>
           </div>
         ))}
       </div>
@@ -2538,27 +3120,94 @@ git commit -m "feat: add the 4 scenario result-view components"
 
 ---
 
-### Task 12: Frontend — wire the `Scenarios` nav route
+### Task 12: Frontend — data access, the Scenarios screen, both navs, two colour tokens
+
+*(Revised 9 Oct, card 9: this repo has no React Query, no `@/lib/api-client` and no
+`frontend/src/app/`. Data goes through `features/<x>/api.ts` on `lib/apiClient`'s `cachedFetch`,
+desktop tabs live in `NavigationShell.tsx` + `MainDashboardFlow.tsx`, mobile tabs in
+`mobile/shell/MobileBottomNav.tsx` + `mobile/MobileRoot.tsx`.)*
 
 **Files:**
-- Modify: `frontend/src/app/navigation.tsx` (or the project's actual top-level nav config —
-  locate it via `grep -rn "Holdings" frontend/src/app/` before editing, since the exact file
-  name/path wasn't independently re-verified in this plan's research pass)
+- Create: `frontend/src/features/scenarios/api.ts`
+- Create: `frontend/src/features/scenarios/ScenariosScreen.tsx`
+- Create: `frontend/src/features/scenarios/ScenariosScreen.test.tsx`
+- Modify: `frontend/src/features/dashboard/NavigationShell.tsx` (tab), `frontend/src/features/dashboard/MainDashboardFlow.tsx` (`MainTab`, `KNOWN_TABS`, render)
+- Modify: `frontend/src/mobile/shell/MobileBottomNav.tsx` (`MobileTab`, 4th button), `frontend/src/mobile/MobileRoot.tsx` (render)
+- Modify: `frontend/src/styles/tokens.css` (`--color-hypo`, `--color-freeze`)
 
 **Interfaces:**
-- Consumes: `ScenarioPicker`, `resolveResultShape`, all 4 result views (Tasks 9-11).
+- Consumes: `ScenarioPicker`, `resolveResultShape`, the 4 result views (Tasks 9–11); `GET /scenarios`, `GET /scenarios?curated=true`, `GET /scenarios/{id}/results` (Task 7).
 
-- [ ] **Step 1: Locate the real nav config file**
+- [ ] **Step 1: The API module** — copy `features/analytics/api.ts`'s `authFetch` shape:
 
-Run: `grep -rln "Holdings" frontend/src/app/ frontend/src/features/*/navigation* 2>/dev/null`
+```ts
+// frontend/src/features/scenarios/api.ts
+import { API_BASE_URL, ApiError, cachedFetch, parseErrorDetail } from "../../lib/apiClient";
+import { getToken } from "../auth/session";
+import type { ScenarioResult, ScenarioSummary } from "./types";
 
-- [ ] **Step 2: Add a container component wiring picker → dispatch → result view**
+async function authFetch(path: string, signal?: AbortSignal): Promise<Response> {
+  const token = getToken();
+  const headers = new Headers();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  const res = await cachedFetch(`${API_BASE_URL}${path}`, { headers, signal });
+  if (!res.ok) throw new ApiError(res.status, await parseErrorDetail(res));
+  return res;
+}
+
+export async function listScenarios(curated: boolean, signal?: AbortSignal): Promise<ScenarioSummary[]> {
+  const res = await authFetch(curated ? "/scenarios?curated=true" : "/scenarios", signal);
+  return res.json();
+}
+
+export async function getScenarioResult(scenarioId: string, signal?: AbortSignal): Promise<ScenarioResult> {
+  const res = await authFetch(`/scenarios/${scenarioId}/results`, signal);
+  return res.json();
+}
+```
+
+- [ ] **Step 2: Write the failing screen test**
+
+```tsx
+// frontend/src/features/scenarios/ScenariosScreen.test.tsx
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { ScenariosScreen } from "./ScenariosScreen";
+import * as api from "./api";
+
+const covid = { scenario_id: "c1", name: "COVID crash", scenario_type: "CRASH" as const, start_date: "2020-01-20", end_date: "2020-03-31", is_ongoing: false, display_rank: 1, parent_scenario_id: null, has_phases: false, had_redemption_freeze_schemes: null, quick_market_pct: "-38.00", quick_equity_pct: null, quick_debt_pct: null, quick_weight_quarter: null };
+
+describe("ScenariosScreen", () => {
+  it("loads the picker, opens a result, and goes back", async () => {
+    vi.spyOn(api, "listScenarios").mockResolvedValue([covid]);
+    vi.spyOn(api, "getScenarioResult").mockResolvedValue({
+      scenario: covid, portfolio_impact_pct: "-30.20", rupee_impact: "-302000.00",
+      covered_value: "1000000.00", total_value: "1000000.00", no_data_funds: 0,
+      benchmarks: [], phases: [], by_fund: [], by_member: [], hypothetical_assumptions: [], assumptions_not_set: false,
+    });
+    render(<ScenariosScreen />);
+    fireEvent.click(await screen.findAllByText("COVID crash").then((els) => els[0]));
+    expect(await screen.findByText("-30.20%")).toBeInTheDocument();
+    fireEvent.click(screen.getByText(/Back to scenarios/));
+    await waitFor(() => expect(screen.queryByText("-30.20%")).not.toBeInTheDocument());
+  });
+
+  it("shows an error card, not a blank screen, when the list fails", async () => {
+    vi.spyOn(api, "listScenarios").mockRejectedValue(new Error("down"));
+    render(<ScenariosScreen />);
+    expect(await screen.findByText("Scenarios aren't available right now.")).toBeInTheDocument();
+  });
+});
+```
+
+- [ ] **Step 3: Run, confirm failure** — `cd frontend && npx vitest run src/features/scenarios/ScenariosScreen.test.tsx`
+
+- [ ] **Step 4: Implement the screen**
 
 ```tsx
 // frontend/src/features/scenarios/ScenariosScreen.tsx
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { apiGet } from "@/lib/api-client";
+import { useEffect, useState } from "react";
+import { getScenarioResult, listScenarios } from "./api";
 import { HypotheticalResultView } from "./HypotheticalResultView";
 import { MultiPhaseResultView } from "./MultiPhaseResultView";
 import { RedemptionFreezeResultView } from "./RedemptionFreezeResultView";
@@ -2568,68 +3217,94 @@ import { StandardResultView } from "./StandardResultView";
 import type { ScenarioResult, ScenarioSummary } from "./types";
 
 export function ScenariosScreen() {
-  const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(null);
+  const [curated, setCurated] = useState<ScenarioSummary[]>([]);
+  const [all, setAll] = useState<ScenarioSummary[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [result, setResult] = useState<ScenarioResult | null>(null);
 
-  const curatedQuery = useQuery({
-    queryKey: ["scenarios", "curated"],
-    queryFn: () => apiGet<ScenarioSummary[]>("/scenarios?curated=true"),
-  });
-  const allQuery = useQuery({
-    queryKey: ["scenarios", "all"],
-    queryFn: () => apiGet<ScenarioSummary[]>("/scenarios"),
-  });
-  const resultQuery = useQuery({
-    queryKey: ["scenarios", "results", selectedScenarioId],
-    queryFn: () => apiGet<ScenarioResult>(`/scenarios/${selectedScenarioId}/results`),
-    enabled: selectedScenarioId !== null,
-  });
+  useEffect(() => {
+    const controller = new AbortController();
+    Promise.all([listScenarios(true, controller.signal), listScenarios(false, controller.signal)])
+      .then(([c, a]) => { setCurated(c); setAll(a); })
+      .catch((err) => { if (!controller.signal.aborted) { console.error(err); setFailed(true); } })
+      .finally(() => { if (!controller.signal.aborted) setIsLoading(false); });
+    return () => controller.abort();
+  }, []);
 
-  if (selectedScenarioId && resultQuery.data) {
-    const shape = resolveResultShape(resultQuery.data.scenario);
+  useEffect(() => {
+    if (!selectedId) { setResult(null); return; }
+    const controller = new AbortController();
+    getScenarioResult(selectedId, controller.signal)
+      .then(setResult)
+      .catch((err) => { if (!controller.signal.aborted) { console.error(err); setFailed(true); } });
+    return () => controller.abort();
+  }, [selectedId]);
+
+  if (failed) {
     return (
-      <div className="space-y-4">
-        <button type="button" onClick={() => setSelectedScenarioId(null)} className="text-sm text-[var(--color-accent)]">
-          ← Back to scenarios
-        </button>
-        {shape === "standard" && <StandardResultView result={resultQuery.data} />}
-        {shape === "multi_phase" && <MultiPhaseResultView result={resultQuery.data} />}
-        {shape === "redemption_freeze" && <RedemptionFreezeResultView result={resultQuery.data} />}
-        {shape === "hypothetical" && <HypotheticalResultView result={resultQuery.data} />}
+      <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 text-sm text-[var(--color-text-secondary)]">
+        Scenarios aren't available right now.
       </div>
     );
   }
 
-  return (
-    <ScenarioPicker
-      curated={curatedQuery.data ?? []}
-      all={allQuery.data ?? []}
-      isLoading={curatedQuery.isLoading || allQuery.isLoading}
-      onSelectScenario={setSelectedScenarioId}
-    />
-  );
+  if (selectedId && result) {
+    const shape = resolveResultShape(result.scenario);
+    return (
+      <div className="space-y-4">
+        <button type="button" onClick={() => setSelectedId(null)} className="text-sm text-[var(--color-accent)]">
+          ← Back to scenarios
+        </button>
+        {shape === "standard" && <StandardResultView result={result} />}
+        {shape === "multi_phase" && <MultiPhaseResultView result={result} />}
+        {shape === "redemption_freeze" && <RedemptionFreezeResultView result={result} />}
+        {shape === "hypothetical" && <HypotheticalResultView result={result} />}
+      </div>
+    );
+  }
+
+  return <ScenarioPicker curated={curated} all={all} isLoading={isLoading} onSelectScenario={setSelectedId} />;
 }
 ```
 
-(`apiGet` — check `frontend/src/lib/api-client.ts` for the real existing helper name/
-signature before using it verbatim; this plan assumes the same pattern every other feature's
-`useQuery` call already uses in this codebase, not a new client.)
+- [ ] **Step 5: Run, confirm pass**
 
-- [ ] **Step 3: Add the nav entry**
+- [ ] **Step 6: Desktop tab** — in `MainDashboardFlow.tsx` add `"scenarios"` to `MainTab` and
+  `KNOWN_TABS`, and render `<ScenariosScreen />` for it (a branch before the `ProfileView` fallback).
+  In `NavigationShell.tsx` widen the `activeTab`/`onTabChange` union with `"scenarios"` and add a
+  `Scenarios` tab button after `Analytics`, copying the Analytics button's markup and active styles.
 
-Add a `Scenarios` route/nav-item pointing at `ScenariosScreen`, sibling to the existing
-`Holdings`/`Analytics`/`Profile` entries, in whichever file Step 1 located.
+- [ ] **Step 7: Mobile tab** — in `MobileBottomNav.tsx` add `"scenarios"` to `MobileTab` and a fourth
+  button copying the Analytics button (icon: `lucide-react`'s `FlaskConical`; label "Scenarios"); in
+  `MobileRoot.tsx` render `{activeTab === "scenarios" && <ScenariosScreen />}`. Update the existing
+  `MobileBottomNav` test if it counts buttons.
 
-- [ ] **Step 4: Manual verification**
+- [ ] **Step 8: Colour tokens** — in `tokens.css`, add to the `:root` block, the dark `@media`
+  `:root` block and the `[data-theme="dark"]` block (and `[data-theme="light"]` if that block repeats
+  light values):
 
-Start the dev server, navigate to `/scenarios`, confirm the picker renders the 8 curated
-cards and tapping each of the 4 differently-shaped scenarios (a standard crash, US-Iran war,
-Franklin Templeton, AI/tech valuation bust) renders the correct result view.
+```css
+  /* Attribute 11 only: hypothetical scenarios (violet) and the Franklin freeze (sky). */
+  --color-hypo: #7C3AED;    /* dark blocks: #A78BFA */
+  --color-freeze: #0284C7;  /* dark blocks: #38BDF8 */
+```
 
-- [ ] **Step 5: Commit**
+They're used only by `features/scenarios/` (the spec scopes them there).
+
+- [ ] **Step 9: Run** the scenarios tests, `MobileBottomNav`/`MainDashboardFlow`/`NavigationShell`
+  tests if they exist (`ls frontend/src/**/__tests__` / `*.test.tsx` next to them), and `npx tsc -b`.
+
+- [ ] **Step 10: Manual check** — dev server, both widths: the Scenarios tab appears on desktop and
+  mobile; the 8 curated cards render (hypotheticals hidden while the backend flag is off); a crash,
+  US-Iran, Franklin and (flag on) a hypothetical each open the right view.
+
+- [ ] **Step 11: Commit**
 
 ```bash
-git add frontend/src/features/scenarios/ScenariosScreen.tsx
-git commit -m "feat: wire the Scenarios screen into the app's top-level navigation"
+git add frontend/src/features/scenarios/api.ts frontend/src/features/scenarios/ScenariosScreen.tsx frontend/src/features/scenarios/ScenariosScreen.test.tsx frontend/src/features/dashboard/NavigationShell.tsx frontend/src/features/dashboard/MainDashboardFlow.tsx frontend/src/mobile/shell/MobileBottomNav.tsx frontend/src/mobile/MobileRoot.tsx frontend/src/styles/tokens.css
+git commit -m "feat: add the Scenarios screen to desktop and mobile navigation"
 ```
 
 ---
@@ -2656,11 +3331,11 @@ spike → small batch → real backfill), not a plan gap.
 
 **3. Type consistency:** `ScenarioSummaryRow`/`ScenarioResultRow`/`ScenarioFundResult`/etc.
 (Pydantic, Task 5) match `ScenarioSummary`/`ScenarioResult`/`ScenarioFund`/etc. (TypeScript,
-Task 9) field-for-field in spirit (snake_case ↔ camelCase, consistent with attributes 04/09's
-same convention). `compute_scenario_results`/`get_scenario_summary`/
+Task 9) field-for-field, both snake_case (revised 9 Oct: the API sends snake_case and the
+frontend reads it as is, like attributes 09 and 14). `compute_scenario_results`/`get_scenario_summary`/
 `get_scenario_result_for_household` signatures are used identically between Task 5's
 definition, Task 6's extension, Task 7's API wiring, and Task 8's job wiring.
-`hypothetical_asset_class_bucket`'s return values (`"Equity"`, `"Index/ETF"`, `"Gold"`,
+`underlying_asset_class`'s return values (`"Equity"`, `"Index/ETF"`, `"Gold"`, `"Silver"`,
 `"Overseas FoF"`, `"Debt-short"`, `"Debt-long"`, `"Hybrid"`, `"Other"`) match exactly between
 Task 4's implementation, Task 2's seeded `scenario_hypothetical_assumptions` rows, and the
 DB's `CHECK` constraint in Task 1.

@@ -221,3 +221,82 @@ class InvestmentWithdrawalResult(BaseModel):
 class AggregateInvestmentWithdrawalResponse(BaseModel):
     members: list[MemberStatus]
     data: InvestmentWithdrawalResult
+
+
+class FundRankingNeighbor(BaseModel):
+    scheme_id: str
+    scheme_name: str
+    category_rank: int
+    composite_score: str
+
+
+class FundRankingComponent(BaseModel):
+    percentile: str | None
+    raw: str | None
+
+
+class FundRankingComponents(BaseModel):
+    return_3y: FundRankingComponent
+    return_5y: FundRankingComponent
+    category_relative: FundRankingComponent
+    low_volatility: FundRankingComponent
+    low_ter: FundRankingComponent
+
+
+class FundRankingRow(BaseModel):
+    scheme_id: str
+    scheme_name: str
+    category_name: str | None
+    category_unavailable: bool
+    insufficient_history: bool
+    thin_category: bool           # ranked funds < 5 (fix 3)
+    too_few_peers: bool           # ranked funds < 3: no rank shown (D2)
+    composite_score: str | None   # the 0-100 composite, never the percentile (fix 1)
+    category_rank: int | None
+    category_size: int            # ranked funds (3Y+ history), one per fund
+    category_universe_size: int   # funds in the category, ranked or not (fix 3, option C)
+    percentile: str | None
+    return_1y: str | None
+    ranked_as: str | None         # the series ranked when it isn't the held one (e.g. IDCW -> Growth)
+    neighbors: list[FundRankingNeighbor]
+    components: FundRankingComponents
+
+
+class FundRankingSummary(BaseModel):
+    funds: list[FundRankingRow]
+
+
+class AggregateFundRankingResponse(BaseModel):
+    members: list[MemberStatus]
+    ranking: FundRankingSummary
+
+
+class ManagerFundRow(BaseModel):
+    scheme_id: str
+    scheme_name: str
+    household_value: str
+    sequence_order: int
+    role: str | None = None  # this manager's role on this fund, as printed ("Assistant Fund Manager")
+
+
+class ManagerGroup(BaseModel):
+    manager_name: str
+    role: str | None
+    total_household_value: str
+    funds: list[ManagerFundRow]
+
+
+class UnavailableScheme(BaseModel):
+    scheme_id: str
+    scheme_name: str
+    amc_name: str
+
+
+class FundManagerAllocationSummary(BaseModel):
+    manager_groups: list[ManagerGroup]
+    unavailable_schemes: list[UnavailableScheme]
+
+
+class AggregateFundManagerAllocationResponse(BaseModel):
+    members: list[MemberStatus]
+    fund_manager: FundManagerAllocationSummary

@@ -117,7 +117,7 @@ def _seed_universe_nav(db, nav_data: dict[uuid.UUID, dict[str, Decimal]], scheme
 
 
 def _mock_universe(schemes):
-    return patch("app.services.analytics.category_ranking.get_category_universe", new=AsyncMock(return_value=schemes))
+    return patch("app.services.analytics.category_ranking.get_category_peers", new=AsyncMock(return_value=CategoryPeers(schemes=schemes, fund_count=len(schemes), representative_of={s.id: s.id for s in schemes})))
 
 
 def test_cagr_exact_ten_percent_over_three_years():
@@ -466,3 +466,98 @@ def test_category_returns_cache_is_isolated_per_category():
     assert set(result_a.keys()) == {scheme_a.id}
     assert set(result_b.keys()) == {scheme_b.id}
     assert warm_mock.call_count == 2
+
+
+from app.services.analytics.category_ranking import _compute_category_returns_detailed, _compute_category_returns
+
+
+def test_compute_category_returns_detailed_exposes_r1_r3_r5_and_blended():
+    db = _session()
+    scheme = _scheme(db, "Held Fund")
+    nav_data = {scheme.id: {"today": Decimal("20"), "start3": Decimal("10"), "start5": Decimal("8")}}
+    _seed_universe_nav(db, nav_data, [scheme])
+    with patch("app.services.analytics.category_ranking.warm_nav_history", new=AsyncMock()), \
+         patch("app.services.analytics.category_ranking._bulk_nav_on_or_before", return_value={scheme.id: {_TODAY: Decimal("20"), _START_3Y: Decimal("10"), _START_5Y: Decimal("8")}}):
+        detailed = asyncio.run(_compute_category_returns_detailed(db, [scheme], _TODAY))
+    r1, r3, r5, blended = detailed[scheme.id]
+    assert r1 is None
+    assert r3 == _cagr(Decimal("10"), Decimal("20"), 3)
+    assert r5 == _cagr(Decimal("8"), Decimal("20"), 5)
+    assert blended == _blend_returns(r3, r5)
+
+
+def test_compute_category_returns_unchanged_by_detailed_refactor():
+    db = _session()
+    scheme = _scheme(db, "Held Fund")
+    nav_data = {scheme.id: {"today": Decimal("20"), "start3": Decimal("10"), "start5": Decimal("8")}}
+    _seed_universe_nav(db, nav_data, [scheme])
+    with patch("app.services.analytics.category_ranking.warm_nav_history", new=AsyncMock()):
+        blended_only = asyncio.run(_compute_category_returns(db, [scheme], _TODAY))
+    assert blended_only == {scheme.id: _blend_returns(_cagr(Decimal("10"), Decimal("20"), 3), _cagr(Decimal("8"), Decimal("20"), 5))}
+
+
+from app.services.analytics.risk_metrics import years_ago
+from app.services.analytics.scheme_universe import CategoryPeers
+def test_zero_nav_scheme_is_skipped_not_crashing():
+    """241 AMFI rows sit at NAV 0.0000 (wound-up/segregated schemes); one of them used to
+    raise decimal.InvalidOperation and fail the whole category."""
+    db = _session()
+    ok = Scheme(id=uuid.uuid4(), amfi_code="Z1", name="Live Fund", amc_name="A", sebi_category="Debt Scheme - Credit Risk Fund")
+    dead = Scheme(id=uuid.uuid4(), amfi_code="Z2", name="Wound-up Fund", amc_name="B", sebi_category="Debt Scheme - Credit Risk Fund")
+    db.add_all([ok, dead]); db.commit()
+    today = date.today()
+    navs = {ok.id: {years_ago(today, 3): Decimal("10"), today: Decimal("13")},
+            dead.id: {years_ago(today, 3): Decimal("0"), today: Decimal("0")}}
+    with patch("app.services.analytics.category_ranking.warm_nav_history", new=AsyncMock()), \
+         patch("app.services.analytics.category_ranking._bulk_nav_on_or_before", return_value=navs):
+        returns = asyncio.run(_compute_category_returns(db, [ok, dead], today))
+    assert set(returns) == {ok.id}
+
+
+def test_category_ranking_idcw_uses_growth_representative():
+    db = _session()
+    member = _household_member(db)
+    held = _scheme(db, "Held Fund - Direct - IDCW")
+    growth = _scheme(db, "Held Fund - Direct - Growth")
+    other = _scheme(db, "Other Growth Fund")
+    _folio_with_purchase(db, member, held, Decimal("1000"), Decimal("100"), Decimal("10"), _START_3Y)
+    nav_data = {held.id: {"today": Decimal("9")}, growth.id: {"today": Decimal("13"), "start3": Decimal("10")}, other.id: {"today": Decimal("11"), "start3": Decimal("10")}}
+    _seed_universe_nav(db, nav_data, [held, growth, other])
+    peers = CategoryPeers(schemes=[growth, other], fund_count=2, representative_of={held.id: growth.id, growth.id: growth.id, other.id: other.id})
+    p1, p2, p3 = _mock_nav(nav_data)
+    with p1, p2, p3, patch("app.services.analytics.category_ranking.get_category_peers", new=AsyncMock(return_value=peers)):
+        row = asyncio.run(compute_category_ranking(db, [member.id])).funds[0]
+    assert row.scheme_id == str(held.id)
+    assert row.category_rank == 1
+    assert row.category_size == 2
+    assert Decimal(row.scheme_return) > Decimal("0")
+
+
+@pytest.mark.parametrize("bad", [Decimal("0"), Decimal("-1")])
+def test_nonpositive_nav_windows_never_compute_return(bad):
+    db = _session()
+    scheme = _scheme(db)
+    navs = {scheme.id: {_TODAY: Decimal("20"), years_ago(_TODAY, 1): bad, _START_3Y: Decimal("10"), _START_5Y: bad}}
+    with patch("app.services.analytics.category_ranking.warm_nav_history", new=AsyncMock()), patch("app.services.analytics.category_ranking._bulk_nav_on_or_before", return_value=navs):
+        r1, r3, r5, blended = asyncio.run(_compute_category_returns_detailed(db, [scheme], _TODAY))[scheme.id]
+    assert r1 is None and r5 is None and blended == r3
+    for invalid_date in (_TODAY, _START_3Y):
+        navs[scheme.id][invalid_date] = bad
+        with patch("app.services.analytics.category_ranking.warm_nav_history", new=AsyncMock()), patch("app.services.analytics.category_ranking._bulk_nav_on_or_before", return_value=navs):
+            assert asyncio.run(_compute_category_returns_detailed(db, [scheme], _TODAY)) == {}
+        navs[scheme.id][invalid_date] = Decimal("10")
+
+
+def test_category_returns_cache_keeps_full_universe_and_plan_peers_separate():
+    from app.models.enums import SchemePlanType
+    db = _session()
+    schemes = [_scheme(db, f"Fund {i}") for i in range(3)]
+    results = [{s.id: Decimal("0.1") for s in schemes}, {schemes[0].id: Decimal("0.2")}, {schemes[1].id: Decimal("0.3")}]
+    category = schemes[0].sebi_category
+    with patch.object(category_ranking_module, "_compute_category_returns", new=AsyncMock(side_effect=results)):
+        full = asyncio.run(_category_returns(db, schemes, _TODAY))
+        direct = asyncio.run(_category_returns(db, schemes[:1], _TODAY, cache_key=("peers", category, SchemePlanType.DIRECT)))
+        regular = asyncio.run(_category_returns(db, schemes[1:2], _TODAY, cache_key=("peers", category, SchemePlanType.REGULAR)))
+        full_again = asyncio.run(_category_returns(db, schemes, _TODAY))
+    assert full == full_again == results[0]
+    assert direct == results[1] and regular == results[2]

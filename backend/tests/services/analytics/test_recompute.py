@@ -19,8 +19,10 @@ from app.services.analytics.recompute import (
     try_claim_recompute,
 )
 from app.services.analytics.schemas import (
+    FundManagerAllocationSummary,
     AnalyticsAllocationSummary,
     CategoryRankingSummary,
+    FundRankingSummary,
     DirectRegularTerComparison,
     FundVsBenchmarkSummary,
     InvestmentWithdrawalResult,
@@ -56,6 +58,8 @@ def _user_with_members(db, n_members=2) -> tuple[User, list[HouseholdMember]]:
 
 
 _MOCK_RESULTS = {
+    "fund_manager": FundManagerAllocationSummary(manager_groups=[], unavailable_schemes=[]),
+    "ranking": FundRankingSummary(funds=[]),
     "investment_withdrawal": InvestmentWithdrawalResult(
         total_invested="0.00", total_withdrawn="0.00", net_invested="0.00",
         current_value="0.00", absolute_gain="0.00", monthly=[], yearly=[],
@@ -100,8 +104,8 @@ def test_recompute_writes_one_row_per_scope_per_section():
             p.stop()
 
     rows = db.query(AnalyticsSection).filter(AnalyticsSection.user_id == user.id).all()
-    # 3 scopes (combined + 2 members) x 8 sections
-    assert len(rows) == 24
+    # 3 scopes (combined + 2 members), including the new ranking section.
+    assert len(rows) == 3 * len(_SECTIONS)
     scope_keys = {row.scope_key for row in rows}
     assert scope_keys == {"combined", str(members[0].id), str(members[1].id)}
     combined_allocation = db.get(AnalyticsSection, (user.id, "combined", "allocation"))
@@ -339,6 +343,7 @@ def test_recompute_does_not_refetch_nav_over_network_for_a_category_shared_acros
     from app.models.enums import PlanType, TransactionType
     from app.models.folio import Folio
     from app.models.reference import Scheme
+    from app.services.analytics.scheme_universe import CategoryPeers
     from app.models.transaction import Transaction
 
     category_ranking_module._category_returns_cache.clear()
@@ -388,7 +393,7 @@ def test_recompute_does_not_refetch_nav_over_network_for_a_category_shared_acros
     warm_spy = AsyncMock(wraps=category_ranking_module.warm_nav_history)
     try:
         with patch("app.services.dashboard.nav._fetch_nav_history", new=fetch), \
-             patch("app.services.analytics.category_ranking.get_category_universe", return_value=[scheme]), \
+             patch("app.services.analytics.category_ranking.get_category_peers", new=AsyncMock(return_value=CategoryPeers(schemes=[scheme], fund_count=1, representative_of={scheme.id: scheme.id}))), \
              patch("app.services.analytics.category_ranking.warm_nav_history", new=warm_spy):
             asyncio.run(recompute_household_analytics(db, user.id))
     finally:

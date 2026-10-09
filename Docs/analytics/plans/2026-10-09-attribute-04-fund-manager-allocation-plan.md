@@ -12,8 +12,8 @@ same build, not just the ones already proven working.
 **Architecture:** A new `scheme_fund_managers` table is populated monthly by a new
 `amfi_factsheet_client.py` (the structural twin of the existing `amfi_ter_client.py`), driven
 by a per-AMC resolver registry (`fund_manager_resolvers.py`) that classifies each AMC as
-`STATIC_REGEX` (scrape AMFI's own factsheet pointer), `JSON_API` (call the AMC's own
-document API directly), or `MANUAL_PENDING` (proven unautomatable, closed by a manual-PDF
+`STATIC_LINK` (a factsheet link on AMFI's landing page or the AMC's own), `JSON_API` (call the AMC's own
+document API directly), or `MANUAL` (proven unautomatable, closed by a manual-PDF
 CLI reusing the same extraction code). Extracted manager names are matched to existing
 `Scheme` rows via a hybrid exact-then-fuzzy algorithm scoped to one AMC at a time, and
 propagated by `(amc_name, base_name)` so every Direct/Regular/IDCW plan variant of the same
@@ -34,6 +34,66 @@ fuzzy scoring (no new dependency), React/TypeScript frontend, Terraform EventBri
 - `Docs/analytics/2026-10-08-attribute-04-fund-manager-spec.md` — frontend spec
 - `Docs/analytics/artifacts/2026-10-08-attribute-04-fund-manager-visual-map.html` — visual
   reference
+
+> **Revised 2026-10-09 — binding, read before Task 1.** Checked against the code at `94bc9d0`, the user's
+> HDFC/Kotak/Edelweiss factsheets and a live fetch of all 57 AMCs in AMFI's directory
+> (`Docs/analytics/2026-10-09-attribute-04-factsheet-layouts.md`; text dumps in
+> `C:\Users\Dell\Desktop\Unifolio\Factsheets\2026-10-catalogue\`, outside the repo). Decisions are on the
+> explainer (`Docs/orchestration/subproject1-execution/a04-fund-manager.html`, cards 1–5). Where this block
+> and older text disagree, this block wins; Tasks 2, 3, 3b, 4, 5, 8 and 21 have been rewritten to match.
+>
+> 1. **Match funds, not plan rows** (card 1). A factsheet names a fund; `schemes` has a row per plan and
+>    option. Match to the `(amc_name, base_name)` family and write the managers to every row in it. Layers:
+>    ISIN printed on the page → exact canonical name → fuzzy ≥ 0.80 **within the same category**, refused
+>    when the runner-up is within 0.05. Notes AMFI and factsheets add ("(Existing Number of Segregated
+>    Portfolios - 1)", "[(Erstwhile …)]") never decide a match. AUM tie-break not built.
+> 2. **One AMC failing never stops the rest, and someone hears about it** (card 2). Per-AMC `except
+>    Exception` + rollback, commit after each AMC, and a `FUND_MANAGER_ALERT amc= reason= detail=` log line
+>    for: no landing URL / no factsheet link / not a factsheet / stale month / matching collapsed (< half of
+>    last month's families) / error. A CloudWatch metric filter + alarm on the existing ops-alerts SNS topic
+>    (Task 4). Last month's managers keep serving; rows older than 3 months show as "not available yet" (Task 5).
+> 3. **No generic layout** (card 3 catalogue). Each AMC has a reader in `fund_manager_layouts.py` (new
+>    Task 3b) = a manager layout + where that AMC prints the scheme name, each built on the AMC's real text
+>    with a fixture test. The old `extract_managers_generic` matched 5 of 22 AMCs' files; it's gone.
+> 4. **This month's factsheet, checked after download** (card 4). Pick links whose URL or text says
+>    factsheet (or the AMC's own pattern), newest first; then a downloaded file must have ≥ 3 scheme pages
+>    its reader understands and an "as on" date within 45 days. The first candidate passing both wins. On
+>    9 Oct, about half the files a naive pick chose were stale or the wrong document.
+> 5. **AMFI's directory is keyed by company, not fund house.** Its `amc_name` is "Aditya Birla Sun Life
+>    AMC Limited"; ours is "Aditya Birla Sun Life Mutual Fund". The registry is keyed by our name and stores
+>    AMFI's (`directory_name`); the parser reads `"amc_name"` (the plan said `"amcName"`). Several old
+>    registry keys didn't match NAVAll at all ("IL&FS Infra Mutual Fund" → "IL&FS Mutual Fund (IDF)",
+>    "Wealth Company Mutual Fund" → "The Wealth Company Mutual Fund", "Monarch Networth Mutual Fund" →
+>    "Monarch Mutual Fund"); Carnelian and Nuvama have no schemes and are dropped. 55 entries.
+> 6. **Manual import: HDFC and Kotak only** (card 5). Edelweiss's page served its September factsheet over
+>    plain HTTP on 9 Oct, so it's automated. HDFC's passive funds are in a separate passive factsheet: ops
+>    imports two HDFC files a month.
+> 7. **Every AMC is onboarded before staging** (Task 8, replacing the old Tasks 8–20): same procedure for
+>    all, coverage ≥ 90% of live funds or a reason per miss. Run 1 ships the framework with 4 AMCs live
+>    (Nippon, Edelweiss automated; HDFC, Kotak manual), measured on the real files: Nippon 100/108,
+>    Edelweiss 75/76, HDFC 53/53 active, Kotak 112/120.
+>
+> **Run 1 rulings (9 Oct, after Codex's report and review — committed `bede56a`…`4f72480`):**
+> 1. Honorifics: `Mrs` is matched before `Mr`, with a word boundary ("Mrs. A" → "A"; "Mrinal" kept).
+> 2. HDFC's "¥ Fund Manager for Overseas Investments" footnote names co-managers: role
+>    `Overseas Investments`, `since_raw` from "(since …)" or "w.e.f. …". A bracketed "(X w.e.f DATE)"
+>    under a table manager is a handover note, not a role: the listed manager stays.
+> 3. Review Focus 5's "no Managing Since date" case is **Kotak** (ABSL's real file has dates).
+> 4. A page with no printed category gets no category gate; a gap of exactly 0.05 is accepted.
+> 5. JSON_API candidate fetching is written per AMC in its Task 8 onboarding (`_json_api_candidates`
+>    raises until then; those entries have `layout=None` and are skipped).
+> 6. Aggregation: one row per fund on a manager card with the household's combined value (members'
+>    holdings summed); each fund row carries the manager's `role` on that fund
+>    (`ManagerFundRow.role`); the card's `role` is set only when all funds agree, else `null`.
+> 7. "Older than 3 months" = this month and the two before are shown (`_oldest_period_shown`).
+> 8. Hardening from review: whole-word month names in links (last one wins); a dead candidate link
+>    falls through to the next; downloads capped at 60 MB; `&amp;`/`\u0026` decoded; a directory that
+>    parses to fewer than 40 AMCs raises one `directory_failed` alert; a name listed twice on a page is
+>    written once (first listing wins); future "as on" dates are ignored.
+>
+> **Run order:** Task 1 → 3b → 2 → 3 → 4 → 5 → 6 → 21 (Run 1, backend) · Task 7 (Run 2, frontend) ·
+> Task 8 batches (Runs 3–7). **Migration number:** after A09's `0034` this is expected to be `0035` —
+> run the `ls` in Global Constraints anyway.
 
 ## Global Constraints
 
@@ -63,10 +123,8 @@ fuzzy scoring (no new dependency), React/TypeScript frontend, Terraform EventBri
 - **Card chrome reuse:** `rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]
   p-5 sm:p-6 shadow-2xs` reused verbatim from `CategoryRankingSection.tsx` — no new visual
   language invented for this section.
-- **Tier 3 AMCs (12 of them) must ship with a real working resolver built during this plan's
-  own tasks.** `MANUAL_PENDING` for a Tier 3 AMC is permitted only with the same standard of
-  proof Edelweiss already met (a real, reproducible failed automation attempt, documented
-  inline in the registry as a comment) — never a default, and never "we'll get to it later."
+- **Every AMC is onboarded in this build** (Task 8). `MANUAL` is permitted only with proof in the
+  registry `note` (URLs tried, what came back, the date) — never a default, never "later".
 - **Per-AMC fault isolation:** one AMC's fetch/parse failure must never abort the run for
   every other AMC — every AMC is wrapped in its own `try`/`except`, logged and counted,
   loop continues.
@@ -79,16 +137,21 @@ fuzzy scoring (no new dependency), React/TypeScript frontend, Terraform EventBri
 2. **Fuzzy-match ambiguity** — two AMC-scoped candidate schemes score within 0.05 of each
    other — must refuse to auto-pick either, leave the extracted name unmatched and logged,
    never silently take the higher score.
-3. **A held scheme under a `MANUAL_PENDING` AMC** (HDFC, Kotak, Edelweiss) — must land in
+3. **A held scheme whose AMC has no current data** (not onboarded, a failed import, or rows older
+   than 3 months) — must land in
    `unavailableSchemes` and render the frontend's "not available yet" block, never a crash,
    a fabricated manager, or a silently-dropped row.
 4. **Re-running the monthly job twice against unchanged source data** (idempotency) — must
    not create duplicate rows; the `UNIQUE (scheme_id, manager_name, reference_period)`
    constraint plus an upsert-not-insert write path must hold.
-5. **ABSL's factsheet has no "Managing Since" date and a different tabular layout** from
+5. **A layout with no "Managing Since" date (Kotak; was "ABSL" before the real files were read)** — must still produce correctly-attributed manager rows with `managing_since` left `NULL`. Original wording, ABSL-specific: **ABSL's factsheet has no "Managing Since" date and a different tabular layout** from
    every other Tier-1 AMC — must still produce correctly-attributed manager rows with
    `managing_since` left `NULL`, not crash the whole AMC's parse or silently produce zero
    rows.
+6. **One AMC's import failing** (download error, stale file, reader finding nothing) — the other AMCs'
+   rows still land, the failure logs one `FUND_MANAGER_ALERT` line, and last month's rows keep serving.
+7. **A wrong or stale file** (how-to guide, last year's factsheet) — rejected by the content and month
+   checks before anything is written.
 
 ## File Structure
 
@@ -96,13 +159,16 @@ fuzzy scoring (no new dependency), React/TypeScript frontend, Terraform EventBri
 - `backend/alembic/versions/<NNNN>_scheme_fund_managers.py` — new table
 - `backend/app/services/analytics/fund_manager_resolvers.py` — `ResolverKind` enum,
   `ResolverEntry` dataclass, the `AMC_RESOLVERS` registry (data)
+- `backend/app/services/analytics/fund_manager_layouts.py` — one reader per AMC (Task 3b)
+- `backend/tests/fixtures/factsheets/*.txt` — real-text excerpts, 1–3 KB each
+- `backend/tests/services/analytics/test_fund_manager_layouts.py`
 - `backend/app/services/analytics/amfi_factsheet_client.py` — fetch, extract, match, upsert
   (the service logic, structural twin of `amfi_ter_client.py`)
 - `backend/app/services/analytics/fund_manager_allocation.py` — household-scoped aggregation
   (`compute_fund_manager_allocation`, the twin of `ter.py`'s `compute_weighted_ter`)
 - `backend/scripts/jobs/refresh_fund_managers_monthly.py` — monthly job entrypoint
 - `backend/scripts/jobs/import_manual_fund_managers.py` — manual-intake CLI for
-  HDFC/Kotak/Edelweiss
+  HDFC/Kotak (two HDFC files a month)
 - `backend/tests/services/analytics/test_fund_manager_resolvers.py`
 - `backend/tests/services/analytics/test_amfi_factsheet_client.py`
 - `backend/tests/services/analytics/test_fund_manager_allocation.py`
@@ -304,72 +370,68 @@ git commit -m "feat: add scheme_fund_managers table"
 
 ### Task 2: Resolver registry — `fund_manager_resolvers.py`
 
+*(Rewritten 9 Oct from the live catalogue: `Docs/analytics/2026-10-09-attribute-04-factsheet-layouts.md`.
+Keys are our fund-house names exactly as `schemes.amc_name` has them (from AMFI's NAVAll); each entry
+also carries AMFI's **company** name, which is what AMFI's factsheet directory is keyed by.)*
+
 **Files:**
 - Create: `backend/app/services/analytics/fund_manager_resolvers.py`
 - Test: `backend/tests/services/analytics/test_fund_manager_resolvers.py`
 
 **Interfaces:**
-- Consumes: nothing (pure data + enum)
-- Produces: `ResolverKind` enum (`STATIC_REGEX`, `JSON_API`, `MANUAL_PENDING`),
-  `ResolverEntry` frozen dataclass (`kind`, `endpoint_url: str | None`,
-  `response_json_path: str | None`, `blocked_reason: str | None`), `AMC_RESOLVERS: dict[str,
-  ResolverEntry]` keyed by `amc_name` exactly as it appears in AMFI's factsheet-directory
-  payload — consumed by `amfi_factsheet_client.py` (Task 3).
+- Produces: `ResolverKind` (`STATIC_LINK`, `JSON_API`, `MANUAL`); `ResolverEntry` (frozen:
+  `kind`, `directory_name`, `layout`, `landing_url`, `link_pattern`, `endpoint_url`,
+  `response_json_path`, `note`); `AMC_RESOLVERS: dict[str, ResolverEntry]` — consumed by Task 3.
 
 - [ ] **Step 1: Write the failing test**
 
 ```python
 # backend/tests/services/analytics/test_fund_manager_resolvers.py
+from app.services.analytics.fund_manager_layouts import LAYOUTS
 from app.services.analytics.fund_manager_resolvers import AMC_RESOLVERS, ResolverKind
 
 
-def test_every_resolver_kind_is_represented():
-    kinds = {entry.kind for entry in AMC_RESOLVERS.values()}
-    assert kinds == {ResolverKind.STATIC_REGEX, ResolverKind.JSON_API, ResolverKind.MANUAL_PENDING}
+def test_every_amfi_fund_house_with_schemes_is_listed():
+    # 55 of AMFI's 57 directory AMCs have schemes in NAVAll on 9 Oct (Carnelian, Nuvama have none).
+    assert len(AMC_RESOLVERS) == 55
 
 
-def test_json_api_entries_all_have_an_endpoint_url():
+def test_every_entry_names_its_amfi_directory_company():
+    assert all(entry.directory_name for entry in AMC_RESOLVERS.values())
+
+
+def test_layouts_exist_for_every_onboarded_amc():
+    for amc, entry in AMC_RESOLVERS.items():
+        assert entry.layout is None or entry.layout in LAYOUTS, amc
+
+
+def test_manual_amcs_say_why_and_have_a_reader():
+    for amc, entry in AMC_RESOLVERS.items():
+        if entry.kind is ResolverKind.MANUAL:
+            assert entry.note and entry.layout, amc
+
+
+def test_json_api_entries_have_an_endpoint():
     for amc, entry in AMC_RESOLVERS.items():
         if entry.kind is ResolverKind.JSON_API:
-            assert entry.endpoint_url, f"{amc} is JSON_API but has no endpoint_url"
-
-
-def test_manual_pending_entries_all_have_a_blocked_reason():
-    for amc, entry in AMC_RESOLVERS.items():
-        if entry.kind is ResolverKind.MANUAL_PENDING:
-            assert entry.blocked_reason, f"{amc} is MANUAL_PENDING with no documented proof"
-
-
-def test_tier_1_and_2_count_is_35():
-    automated = [e for e in AMC_RESOLVERS.values() if e.kind in (ResolverKind.STATIC_REGEX, ResolverKind.JSON_API)]
-    assert len(automated) == 35
+            assert entry.endpoint_url, amc
 ```
 
-- [ ] **Step 2: Run it, confirm it fails**
+- [ ] **Step 2: Run, confirm failure** (`ModuleNotFoundError`)
 
-Run: `cd backend && pytest tests/services/analytics/test_fund_manager_resolvers.py -v`
-Expected: FAIL — `ModuleNotFoundError`
-
-- [ ] **Step 3: Implement the registry**
+- [ ] **Step 3: Implement**
 
 ```python
-"""Per-AMC fund-manager resolver classification (attribute 04).
+"""Per-AMC fund-manager source registry (attribute 04).
 
-AMFI's own Factsheet directory page (`amfiindia.com/online-center/download-
-factsheets`) gives every AMC's current `amc_monthly_mf_factsheets` landing-
-page URL via an embedded RSC JSON payload, re-fetched every run (never
-cached -- see amfi_factsheet_client.py). For most AMCs that landing page's
-HTML has a regex-findable "latest factsheet PDF" link (STATIC_REGEX) -- no
-AMC-specific URL needs to be hardcoded here at all, only the classification.
-A minority publish via their own JSON API instead of (or in addition to) that
-pointer, which AMFI's own pointer doesn't surface reliably for them
-(JSON_API) -- these DO need a hardcoded endpoint, found by live tracing each
-AMC's site. The remainder are MANUAL_PENDING, each with a documented reason
-proving automation was actually attempted and failed -- never a default.
+Keyed by our fund-house name (`schemes.amc_name`, from AMFI's NAVAll). AMFI's factsheet
+directory is keyed by the asset-management *company* ("Aditya Birla Sun Life AMC Limited"),
+so every entry carries that name too (`directory_name`). Built from the 9 Oct catalogue of
+every AMC (Docs/analytics/2026-10-09-attribute-04-factsheet-layouts.md).
 
-Classified 2026-10-08/09 by individually tracing all 57 AMFI-listed AMCs
-live (see Docs/analytics/2026-10-07-sub-project-1-planning.md's "AMC
-coverage" section for the full narrative)."""
+An entry with `layout=None` isn't onboarded yet: the job skips it and its schemes show as
+"not available yet". Task 8 onboards each one (resolver verified against the live site,
+reader built on its real file, coverage measured) before staging -- none is left behind."""
 
 from __future__ import annotations
 
@@ -378,161 +440,96 @@ from enum import Enum
 
 
 class ResolverKind(Enum):
-    STATIC_REGEX = "static_regex"
-    JSON_API = "json_api"
-    MANUAL_PENDING = "manual_pending"
+    STATIC_LINK = "static_link"  # factsheet link found on a landing page (AMFI's, or landing_url)
+    JSON_API = "json_api"        # the AMC's own document API
+    MANUAL = "manual"            # no automatable source; ops imports the PDF monthly (Task 21)
 
 
 @dataclass(frozen=True)
 class ResolverEntry:
     kind: ResolverKind
-    # JSON_API only: the AMC's own document-listing endpoint.
-    endpoint_url: str | None = None
-    # JSON_API only: dotted path to the list of documents in that
-    # endpoint's JSON response (e.g. "data.items") -- Task 3 interprets this.
-    response_json_path: str | None = None
-    # MANUAL_PENDING only: the real, reproducible proof automation was
-    # attempted and failed (never left blank -- Review Focus / Global
-    # Constraints "same standard of proof as Edelweiss").
-    blocked_reason: str | None = None
+    directory_name: str                    # AMFI factsheet directory's amc_name
+    layout: str | None = None              # key into fund_manager_layouts.LAYOUTS
+    landing_url: str | None = None         # overrides AMFI's landing URL when AMFI's is empty or wrong
+    link_pattern: str | None = None        # regex for this AMC's factsheet link text/URL, if not "factsheet"
+    endpoint_url: str | None = None        # JSON_API only
+    response_json_path: str | None = None  # JSON_API only: dotted path to the document list
+    note: str | None = None                # what was tried, why MANUAL; never left blank for MANUAL
 
 
 AMC_RESOLVERS: dict[str, ResolverEntry] = {
-    # --- Tier 1: STATIC_REGEX, confirmed working (27) ---
-    "Nippon India Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
-    "DSP Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
-    "Aditya Birla Sun Life Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
-    "SBI Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
-    "Union Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
-    "Motilal Oswal Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
-    "quant Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
-    "Mirae Asset Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
-    "NJ Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
-    "Franklin Templeton Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
-    "Invesco Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
-    "Canara Robeco Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
-    "Baroda BNP Paribas Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
-    "PPFAS Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
-    "Shriram Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
-    "Bajaj Finserv Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
-    "Helios Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
-    "Zerodha Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
-    "Unifi Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
-    "Angel One Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
-    "Capitalmind Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
-    "Abakkus Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
-    "LIC Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
-    "JM Financial Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
-    "Old Bridge Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
-    "Quantum Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
-    "Samco Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
+    "360 ONE Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "360 ONE Asset Management Limited"),  # 9 Oct: no_factsheet_link_in_html
+    "Abakkus Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Abakkus Investment Managers Private Limited"),  # 9 Oct: ok
+    "Aditya Birla Sun Life Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Aditya Birla Sun Life AMC Limited"),  # 9 Oct: ok
+    "AlphaGrep Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "AlphaGrep Investment Management Private Limited"),  # 9 Oct: no_landing_url
+    "Angel One Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Angel One Asset Management Company Limited"),  # 9 Oct: no_factsheet_link_in_html
+    "ASK MUTUAL FUND": ResolverEntry(ResolverKind.STATIC_LINK, "ASK ASSET MANAGEMENT PRIVATE LIMITED"),  # 9 Oct: no_factsheet_link_in_html
+    "Axis Mutual Fund": ResolverEntry(ResolverKind.JSON_API, "Axis Asset Management Co. Ltd.", endpoint_url="https://www.axismf.com/cms/downloads/category"),  # onboarding: response path + layout
+    "Bajaj Finserv Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Bajaj Finserv Asset Management Limited"),  # 9 Oct: ok
+    "Bandhan Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Bandhan AMC Limited"),  # 9 Oct: no_factsheet_link_in_html
+    "Bank of India Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Bank of India Investment Managers Private Limited"),  # 9 Oct: no_factsheet_link_in_html
+    "Baroda BNP Paribas Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Baroda BNP Paribas Asset Management India Private Limited"),  # 9 Oct: no_factsheet_link_in_html
+    "Canara Robeco Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Canara Robeco Asset Management Company Limited"),  # 9 Oct: ok
+    "Capitalmind Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Capitalmind Asset Management Private Limited"),  # 9 Oct: ok
+    "Choice Mutual Fund": ResolverEntry(ResolverKind.JSON_API, "Choice AMC Private Limited", endpoint_url="https://www.choiceindia.com/api/document-master-list"),  # onboarding: response path + layout
+    "DSP Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "DSP Asset Managers Private Limited"),  # 9 Oct: ok
+    "Edelweiss Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Edelweiss Asset Management Limited", layout="edelweiss"),  # automated again: plain HTTP served the Sept file on 9 Oct
+    "Franklin Templeton Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Franklin Templeton Asset Management (India) Private Limited"),  # 9 Oct: no_factsheet_link_in_html
+    "Groww Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Groww Asset Management Limited"),  # 9 Oct: ok
+    "HDFC Mutual Fund": ResolverEntry(ResolverKind.MANUAL, "HDFC Asset Management Company Limited", layout="hdfc", note="Landing page has no factsheet link in its HTML (9 Oct); monthly manual import (Task 21)."),
+    "Helios Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Helios Capital Asset Management (India) Pvt. Ltd."),  # 9 Oct: ok
+    "HSBC Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "HSBC Asset Management (India) Private Ltd."),  # 9 Oct: ok
+    "ICICI Prudential Mutual Fund": ResolverEntry(ResolverKind.JSON_API, "ICICI Prudential Asset Management Company Limited", endpoint_url="https://apimf.icicipruamc.com/nms/v1/downloads/categories"),  # onboarding: response path + layout
+    "IL&FS Mutual Fund (IDF)": ResolverEntry(ResolverKind.STATIC_LINK, "IL&FS Infra Asset Management Limited"),  # 9 Oct: no_landing_url
+    "Invesco Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Invesco Asset Management (India) Private Limited"),  # 9 Oct: no_factsheet_link_in_html
+    "ITI Mutual Fund": ResolverEntry(ResolverKind.JSON_API, "ITI Asset Management Limited", endpoint_url="https://www.itimf.com/jeeth/api/v1/catalog/digitalfactsheet"),  # onboarding: response path + layout
+    "Jio BlackRock Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Jio BlackRock Asset Management Private Limited"),  # 9 Oct: no_factsheet_link_in_html
+    "JM Financial Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "JM Financial Asset Management Limited"),  # 9 Oct: no_factsheet_link_in_html
+    "Kotak Mahindra Mutual Fund": ResolverEntry(ResolverKind.MANUAL, "Kotak Mahindra Asset Management Company Limited.", layout="kotak", note="Landing page has no factsheet link in its HTML (9 Oct); monthly manual import (Task 21)."),
+    "Lakshya Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Lakshya Asset Management Private Limited"),  # 9 Oct: no_landing_url
+    "LIC Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "LIC Mutual Fund Asset Management Limited"),  # 9 Oct: ok
+    "Mahindra Manulife Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Mahindra Manulife Investment Management Pvt Ltd"),  # 9 Oct: no_factsheet_link_in_html
+    "Mirae Asset Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Mirae Asset Investment Managers (India) Pvt. Ltd"),  # 9 Oct: ok
+    "Monarch Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Monarch Networth Asset Management Private Limited"),  # 9 Oct: no_landing_url
+    "Motilal Oswal Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Motilal Oswal Asset Management Company Limited"),  # 9 Oct: no_factsheet_link_in_html
+    "Navi Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Navi AMC Limited"),  # 9 Oct: no_factsheet_link_in_html
+    "Nippon India Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Nippon Life India Asset Management Limited", layout="nippon"),
+    "NJ Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "NJ Asset Management Private Limited"),  # 9 Oct: ok
+    "Old Bridge Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Old Bridge Asset Management Private Limited"),  # 9 Oct: no_factsheet_link_in_html
+    "PGIM India Mutual Fund": ResolverEntry(ResolverKind.JSON_API, "PGIM India Asset Management Private Limite", endpoint_url="https://www.pgimindia.com/api/v1/brochure/get/file"),  # onboarding: response path + layout
+    "PPFAS Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "PPFAS Asset Management Pvt. Ltd."),  # 9 Oct: ok
+    "quant Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "quant Money Managers Limited"),  # 9 Oct: ok
+    "Quantum Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Quantum Asset Management Company Private Limited"),  # 9 Oct: ok
+    "Samco Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Samco Asset Management Private Limited"),  # 9 Oct: ok
+    "SBI Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "SBI Funds Management Limited"),  # 9 Oct: no_factsheet_link_in_html
+    "Shriram Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Shriram Asset Management Co. Ltd."),  # 9 Oct: ok
+    "Sundaram Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Sundaram Asset Management Company Ltd"),  # 9 Oct: ok
+    "Tata Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Tata Asset Management Private Limited"),  # 9 Oct: no_factsheet_link_in_html
+    "Taurus Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Taurus Asset Management Company Limited"),  # 9 Oct: no_factsheet_link_in_html
+    "The Wealth Company Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Wealth Company Asset Management Holdings Private Limited"),  # 9 Oct: no_factsheet_link_in_html
+    "Trust Mutual Fund": ResolverEntry(ResolverKind.JSON_API, "Trust Asset Management Private Limited", endpoint_url="https://www.trustmf.com/api/api/Trust/GetData"),  # onboarding: response path + layout
+    "Unifi Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Unifi Asset Management Private Limited"),  # 9 Oct: ok
+    "Union Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Union Asset Management Company Private Limited"),  # 9 Oct: no_factsheet_link_in_html
+    "UTI Mutual Fund": ResolverEntry(ResolverKind.JSON_API, "UTI Asset Mgmt. Co. Ltd.", endpoint_url="https://www.utimf.com/api/page/forms-and-downloads-downloads"),  # onboarding: response path + layout
+    "WhiteOak Capital Mutual Fund": ResolverEntry(ResolverKind.JSON_API, "WhiteOak Capital Asset Management Limited", endpoint_url="https://cms.whiteoakamc.com/graphql"),  # onboarding: response path + layout
+    "Zerodha Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Zerodha Asset Management Private Limited"),  # 9 Oct: ok
+    # Carnelian Investment Managers Private Limited: no AMFI-listed schemes on 9 Oct -- nothing to resolve; not in the registry.
+    # Nuvama Asset Management Limited: no AMFI-listed schemes on 9 Oct -- nothing to resolve; not in the registry.
 
-    # --- Tier 2: JSON_API, confirmed endpoint (8) ---
-    "ICICI Prudential Mutual Fund": ResolverEntry(
-        ResolverKind.JSON_API,
-        endpoint_url="https://apimf.icicipruamc.com/nms/v1/downloads/categories",
-        response_json_path="data",
-    ),
-    "Axis Mutual Fund": ResolverEntry(
-        ResolverKind.JSON_API,
-        endpoint_url="https://www.axismf.com/cms/downloads/category",
-        response_json_path="data",
-    ),
-    "Choice Mutual Fund": ResolverEntry(
-        ResolverKind.JSON_API,
-        endpoint_url="https://www.choiceindia.com/api/document-master-list",
-        response_json_path="data",
-    ),
-    "UTI Mutual Fund": ResolverEntry(
-        ResolverKind.JSON_API,
-        endpoint_url="https://www.utimf.com/api/page/forms-and-downloads-downloads",
-        response_json_path="data",
-    ),
-    "ITI Mutual Fund": ResolverEntry(
-        ResolverKind.JSON_API,
-        endpoint_url="https://www.itimf.com/jeeth/api/v1/catalog/digitalfactsheet",
-        response_json_path="data",
-    ),
-    "PGIM India Mutual Fund": ResolverEntry(
-        ResolverKind.JSON_API,
-        endpoint_url="https://www.pgimindia.com/api/v1/brochure/get/file",
-        response_json_path="data",
-    ),
-    "WhiteOak Capital Mutual Fund": ResolverEntry(
-        ResolverKind.JSON_API,
-        endpoint_url="https://cms.whiteoakamc.com/graphql",
-        response_json_path="data",
-    ),
-    "Trust Mutual Fund": ResolverEntry(
-        ResolverKind.JSON_API,
-        endpoint_url="https://www.trustmf.com/api/api/Trust/GetData",
-        response_json_path="data",
-    ),
-
-    # --- Tier 3: live-investigated and resolved as part of this same plan
-    # (Tasks 8-19, one per AMC below) -- placeholder classification here
-    # until each task's own investigation step replaces it with the real
-    # finding. Each of these 12 lines is overwritten by its own task, never
-    # left as MANUAL_PENDING by default.
-    "HSBC Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
-    "Sundaram Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
-    "Groww Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
-    "360 ONE Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
-    "Tata Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
-    "Taurus Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
-    "ASK Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
-    "Bandhan Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
-    "Jio BlackRock Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
-    "Navi Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
-    "Bank of India Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
-    "Mahindra Manulife Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX),
-
-    # --- Tier 4/manual: proven unautomatable (3) ---
-    "HDFC Mutual Fund": ResolverEntry(
-        ResolverKind.MANUAL_PENDING,
-        blocked_reason="No live factsheet/API trace found this session; closed via import_manual_fund_managers.py (Task 21).",
-    ),
-    "Kotak Mahindra Mutual Fund": ResolverEntry(
-        ResolverKind.MANUAL_PENDING,
-        blocked_reason="No live factsheet/API trace found this session; closed via import_manual_fund_managers.py (Task 21).",
-    ),
-    "Edelweiss Mutual Fund": ResolverEntry(
-        ResolverKind.MANUAL_PENDING,
-        blocked_reason="Live-verified 2026-10-08: edelweissmf.com/downloads/factsheets returns HTTP 403 even to a full headless Chromium session, not just a bare curl -- confirmed browser-level block, closed via import_manual_fund_managers.py (Task 21).",
-    ),
-
-    # --- Tier 5: likely no live retail schemes -- liveness-checked in Task 20,
-    # each entry replaced with STATIC_REGEX/JSON_API if that check finds a
-    # live scheme to resolve, or left MANUAL_PENDING with the check's own
-    # negative result as blocked_reason if not.
-    "IL&FS Infra Mutual Fund": ResolverEntry(ResolverKind.MANUAL_PENDING, blocked_reason="Pending Task 20 liveness check."),
-    "Lakshya Mutual Fund": ResolverEntry(ResolverKind.MANUAL_PENDING, blocked_reason="Pending Task 20 liveness check."),
-    "Carnelian Mutual Fund": ResolverEntry(ResolverKind.MANUAL_PENDING, blocked_reason="Pending Task 20 liveness check."),
-    "AlphaGrep Mutual Fund": ResolverEntry(ResolverKind.MANUAL_PENDING, blocked_reason="Pending Task 20 liveness check."),
-    "Nuvama Mutual Fund": ResolverEntry(ResolverKind.MANUAL_PENDING, blocked_reason="Pending Task 20 liveness check."),
-    "Wealth Company Mutual Fund": ResolverEntry(ResolverKind.MANUAL_PENDING, blocked_reason="Pending Task 20 liveness check."),
-    "Monarch Networth Mutual Fund": ResolverEntry(ResolverKind.MANUAL_PENDING, blocked_reason="Pending Task 20 liveness check."),
 }
 ```
 
-**Note for the implementer:** the Tier 3 block above is intentionally marked `STATIC_REGEX`
-as a starting assumption only — Tasks 8-19 each investigate one of these 12 AMCs for real and
-overwrite its entry with whatever the investigation actually finds (`STATIC_REGEX`,
-`JSON_API`, or a proven `MANUAL_PENDING` with its own documented `blocked_reason`). This task
-is not "done" by Tier 3 shipping unverified; it's done once the registry's structure and
-Tier 1/2/4 entries exist and are tested. The `test_tier_1_and_2_count_is_35` test above only
-counts Tier 1 + Tier 2, so it passes regardless of what Tasks 8-19 later do to Tier 3.
+  Comments after each entry record the 9 Oct catalogue result; Task 8 replaces them with what
+  onboarding found. HDFC's `note` also says ops imports **two** files a month (active and passive
+  factsheets).
 
-- [ ] **Step 4: Run tests, confirm they pass**
-
-Run: `cd backend && pytest tests/services/analytics/test_fund_manager_resolvers.py -v`
-Expected: PASS
+- [ ] **Step 4: Run, confirm pass**
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add backend/app/services/analytics/fund_manager_resolvers.py backend/tests/services/analytics/test_fund_manager_resolvers.py
-git commit -m "feat: add per-AMC fund-manager resolver registry"
+git commit -m "feat: fund-manager source registry for every AMFI fund house"
 ```
 
 ---
@@ -546,7 +543,8 @@ git commit -m "feat: add per-AMC fund-manager resolver registry"
 **Interfaces:**
 - Consumes: `AMC_RESOLVERS`, `ResolverKind` (Task 2); `Scheme`, `SchemeFundManager` (Task 1).
 - Produces: `MATCH_METHOD_EXACT = "EXACT"`, `MATCH_METHOD_FUZZY = "FUZZY"`,
-  `MATCH_METHOD_MANUAL = "MANUAL"` constants; `match_extracted_fund_name(extracted_name:
+  `MATCH_METHOD_MANUAL = "MANUAL"`, `MATCH_METHOD_ISIN = "ISIN"` constants; `build_families`, `match_scheme_page(page,
+  families)`, `import_pages`, `looks_like_current_factsheet` (revised 9 Oct; superseded: `match_extracted_fund_name(extracted_name:
   str, candidates: list[Scheme]) -> tuple[Scheme, str, Decimal] | None`;
   `extract_managers_generic(text: str) -> list[dict]`; `extract_managers_absl(text: str) ->
   list[dict]`; `upsert_scheme_fund_managers(db: Session, scheme: Scheme, managers: list[dict],
@@ -556,7 +554,7 @@ git commit -m "feat: add per-AMC fund-manager resolver registry"
   refresh_fund_managers(db: Session) -> FundManagerRefreshResult` — consumed by Task 4's job
   script and Task 21's manual-intake CLI.
 
-- [ ] **Step 1: Write the failing tests — matching engine**
+- [ ] **Step 1: Write the failing tests — fund-level matching (card 1)**
 
 ```python
 # backend/tests/services/analytics/test_amfi_factsheet_client.py
@@ -567,56 +565,64 @@ from app.models.reference import Scheme
 from app.services.analytics.amfi_factsheet_client import (
     MATCH_METHOD_EXACT,
     MATCH_METHOD_FUZZY,
-    extract_managers_absl,
-    extract_managers_generic,
-    match_extracted_fund_name,
+    MATCH_METHOD_ISIN,
+    build_families,
+    match_scheme_page,
 )
+from app.services.analytics.fund_manager_layouts import SchemePage
 
 
-def _scheme(name, base_name, amc="Test AMC"):
-    return Scheme(id=uuid.uuid4(), amfi_code=uuid.uuid4().hex[:6], name=name, base_name=base_name, amc_name=amc, sebi_category="Equity Scheme - Flexi Cap Fund")
+def _scheme(base_name, plan="Direct Plan - Growth", isin=None, category="Equity Scheme - Flexi Cap Fund", amc="Test AMC"):
+    return Scheme(id=uuid.uuid4(), amfi_code=uuid.uuid4().hex[:6], name=f"{base_name} - {plan}", base_name=base_name,
+                  amc_name=amc, sebi_category=category, isin=isin)
 
 
-def test_match_exact_normalized_base_name():
-    candidates = [_scheme("ABC Bluechip Fund - Direct", "ABC Bluechip Fund"), _scheme("XYZ Fund", "XYZ Fund")]
-    result = match_extracted_fund_name("ABC Bluechip", "Test AMC", candidates)
-    assert result is not None
-    scheme, method, confidence = result
-    assert scheme.base_name == "ABC Bluechip Fund"
+def _page(heading, isins=(), category=None):
+    return SchemePage(heading=heading, managers=[{"name": "Jane Doe", "role": None, "since_raw": None}],
+                      isins=list(isins), category=category)
+
+
+def test_one_family_per_fund_holds_every_plan_row():
+    rows = [_scheme("ABC Bluechip Fund"), _scheme("ABC Bluechip Fund", "Regular Plan - Growth"),
+            _scheme("ABC Bluechip Fund", "Direct Plan - IDCW"), _scheme("XYZ Fund")]
+    families = build_families(rows)
+    assert sorted(len(f.schemes) for f in families) == [1, 3]
+
+
+def test_exact_name_matches_the_family_not_a_plan_row():
+    families = build_families([_scheme("ABC Bluechip Fund"), _scheme("ABC Bluechip Fund", "Regular Plan - Growth"), _scheme("XYZ Fund")])
+    family, method, confidence = match_scheme_page(_page("ABC Bluechip"), families)
+    assert family.base_name == "ABC Bluechip Fund" and len(family.schemes) == 2
+    assert (method, confidence) == (MATCH_METHOD_EXACT, Decimal("1.0"))
+
+
+def test_isin_wins_over_a_different_looking_name():
+    families = build_families([_scheme("ABC Long Old Name Fund", isin="INF000A01AB1"), _scheme("ABC Bluechip Fund")])
+    family, method, _ = match_scheme_page(_page("ABC Bluechip", isins=["INF000A01AB1"]), families)
+    assert family.base_name == "ABC Long Old Name Fund" and method == MATCH_METHOD_ISIN
+
+
+def test_fuzzy_match_in_another_category_is_refused():
+    families = build_families([_scheme("ABC Small Cap Opportunities Fund", category="Equity Scheme - Mid Cap Fund")])
+    assert match_scheme_page(_page("ABC Small Cap Opportunity Fund", category="Small Cap Fund"), families) is None
+
+
+def test_fuzzy_match_in_the_same_category_is_accepted():
+    families = build_families([_scheme("ABC Small Cap Opportunities Fund", category="Equity Scheme - Small Cap Fund")])
+    family, method, confidence = match_scheme_page(_page("ABC Small Cap Opportunity Fund", category="Small Cap Fund"), families)
+    assert method == MATCH_METHOD_FUZZY and confidence >= Decimal("0.80")
+
+
+def test_two_close_candidates_are_refused():
+    # Target-maturity funds differ only by date; a heading missing it scores 0.824 against both.
+    families = build_families([_scheme("ABC Nifty G-Sec Jun 2027 Index Fund"), _scheme("ABC Nifty G-Sec Dec 2027 Index Fund")])
+    assert match_scheme_page(_page("ABC Nifty G-Sec Index"), families) is None
+
+
+def test_segregated_and_erstwhile_notes_are_ignored():
+    families = build_families([_scheme("ABC Credit Risk Fund (Existing Number of Segregated Portfolios - 1)")])
+    family, method, _ = match_scheme_page(_page("ABC Credit Risk Fund [(Erstwhile ABC Income Fund)]"), families)
     assert method == MATCH_METHOD_EXACT
-    assert confidence == Decimal("1.0")
-
-
-def test_match_refuses_ambiguous_fuzzy_candidates():
-    # Two candidates close enough in name that neither should auto-win.
-    candidates = [_scheme("ABC Growth Opportunities Fund", "ABC Growth Opportunities Fund"),
-                  _scheme("ABC Growth Opportunities Plus Fund", "ABC Growth Opportunities Plus Fund")]
-    result = match_extracted_fund_name("ABC Growth Opportunity Fund", "Test AMC", candidates)
-    assert result is None
-
-
-def test_match_refuses_below_confidence_floor():
-    candidates = [_scheme("Completely Unrelated Fund", "Completely Unrelated Fund")]
-    result = match_extracted_fund_name("ABC Bluechip", "Test AMC", candidates)
-    assert result is None
-
-
-def test_extract_managers_generic_parses_name_role_and_date():
-    text = "Fund Manager: Mr. Vinit Sambre (Equity)\nManaging this Scheme Since: Jun 10, 2019"
-    managers = extract_managers_generic(text)
-    assert len(managers) == 1
-    assert managers[0]["name"] == "Mr. Vinit Sambre"
-    assert managers[0]["role"] == "Equity"
-    assert managers[0]["since_raw"] == "Jun 10, 2019"
-
-
-def test_extract_managers_absl_parses_comma_separated_names_no_date():
-    text = "Fund Managers: Mr. Harish Krishnan, Mr. Dhaval Joshi"
-    managers = extract_managers_absl(text)
-    assert len(managers) == 2
-    assert managers[0]["name"] == "Harish Krishnan"
-    assert managers[0]["since_raw"] is None
-    assert managers[1]["name"] == "Dhaval Joshi"
 ```
 
 - [ ] **Step 2: Run, confirm failure**
@@ -624,28 +630,26 @@ def test_extract_managers_absl_parses_comma_separated_names_no_date():
 Run: `cd backend && pytest tests/services/analytics/test_amfi_factsheet_client.py -v`
 Expected: FAIL — `ModuleNotFoundError`
 
-- [ ] **Step 3: Implement the matching + extraction half of the module**
+- [ ] **Step 3: Implement the matching half of the module**
 
 ```python
 """AMFI factsheet-based fund-manager attribution (attribute 04).
 
-Mirrors amfi_ter_client.py's shape: a bulk-ish monthly fetch (one AMC's
-factsheet PDF/API response covers every scheme it offers), matched against
-locally-known schemes and upserted. Unlike TER, there is no AMFI bulk feed
-for this at all -- every AMC's own factsheet is the source, fetched per the
-classification in fund_manager_resolvers.py.
+Mirrors amfi_ter_client.py's shape: one monthly file per AMC covers every scheme it
+offers, matched against locally known schemes and upserted. There's no AMFI bulk feed;
+each AMC's own factsheet is the source, fetched per fund_manager_resolvers.py and read
+per fund_manager_layouts.py.
 
-Extraction regex below is reconstructed from the described shape of a
-Nippon/DSP-style factsheet's manager block (name, optional role in
-parens, "Managing Since" date) -- re-verify it against a freshly
-downloaded Nippon or DSP factsheet PDF (via extract_page_text() on that
-PDF's first scheme page) before this task is considered done; if the real
-text differs, adjust the regex and its test together.
-"""
+Matching is per fund, not per plan row (card 1): a factsheet names a fund, while
+`schemes` has one row per plan and option sharing `base_name`. A matched fund's managers
+are written to every row of that (amc_name, base_name) family. Layers, strongest first:
+ISIN printed on the page; exact canonical name; fuzzy name >= 0.80 within the same
+category, refused when the runner-up is within 0.05."""
 
 from __future__ import annotations
 
 import re
+import uuid
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
@@ -654,7 +658,9 @@ from difflib import SequenceMatcher
 from sqlalchemy.orm import Session
 
 from app.models.reference import Scheme, SchemeFundManager
+from app.services.analytics.fund_manager_layouts import SchemePage
 
+MATCH_METHOD_ISIN = "ISIN"
 MATCH_METHOD_EXACT = "EXACT"
 MATCH_METHOD_FUZZY = "FUZZY"
 MATCH_METHOD_MANUAL = "MANUAL"
@@ -663,98 +669,81 @@ MIN_MATCH_CONFIDENCE = Decimal("0.80")
 AMBIGUITY_MARGIN = Decimal("0.05")
 
 _BOILERPLATE_RE = re.compile(
-    r"\b(FUND|SCHEME|PLAN|DIRECT|REGULAR|GROWTH|IDCW|DIVIDEND|REINVESTMENT|PAYOUT)\b",
-    re.IGNORECASE,
+    r"\b(FUND|SCHEME|PLAN|DIRECT|REGULAR|GROWTH|IDCW|DIVIDEND|REINVESTMENT|PAYOUT)\b", re.IGNORECASE,
 )
-
-_MANAGER_BLOCK_RE = re.compile(
-    r"(?P<name>(?:Mr\.|Ms\.|Dr\.)\s*[A-Za-z.\s]+?)\s*"
-    r"(?:\((?P<role>[^)]*)\))?\s*"
-    r".{0,80}?Managing (?:this Scheme )?[Ss]ince[:\s]+(?P<since>[A-Za-z]+\.?\s*\d{0,2},?\s*\d{4})",
-    re.DOTALL,
-)
-
-_ABSL_LINE_RE = re.compile(r"Fund Manager[s]?:\s*(.+)")
-_NAME_PREFIX_RE = re.compile(r"^(Mr\.|Ms\.|Dr\.)\s*")
+# "(Existing Number of Segregated Portfolios - 1)", "[(Erstwhile ABC Income Fund)]" -- AMFI and
+# factsheets add these to the same fund's name, so they never decide a match.
+_NAME_NOTE_RE = re.compile(r"[\[(][^\])]*(?:ERSTWHILE|SEGREGATED)[^\])]*[\])]+", re.IGNORECASE)
 
 
 def _canonical_fund_name(name: str) -> str:
-    """Strips boilerplate words present in schemes.base_name but routinely
-    absent, abbreviated, or reordered in a factsheet's free-text manager-
-    block heading, so e.g. "ABC Bluechip" (factsheet) still matches "ABC
-    Bluechip Fund" (base_name)."""
-    s = name.upper()
+    s = _NAME_NOTE_RE.sub(" ", name).upper()
     s = _BOILERPLATE_RE.sub("", s)
     s = re.sub(r"[^A-Z0-9 ]", " ", s)
-    s = re.sub(r"\s+", " ", s).strip()
-    return s
+    return re.sub(r"\s+", " ", s).strip()
 
 
-def match_extracted_fund_name(
-    extracted_name: str, amc_name: str, candidates: list[Scheme]
-) -> tuple[Scheme, str, Decimal] | None:
-    """`candidates` must already be scoped to `amc_name` by the caller --
-    this never searches across AMCs (a DSP fund name must never match an
-    HDFC scheme). Returns None if no confident, unambiguous match exists
-    (Review Focus #2)."""
-    normalized_extracted = _canonical_fund_name(extracted_name)
+@dataclass(frozen=True)
+class FundFamily:
+    amc_name: str
+    base_name: str
+    sebi_category: str
+    schemes: tuple[Scheme, ...]
+    isins: frozenset[str]
 
-    exact_matches = [
-        c for c in candidates
-        if c.base_name and _canonical_fund_name(c.base_name) == normalized_extracted
+    @property
+    def canonical(self) -> str:
+        return _canonical_fund_name(self.base_name)
+
+
+def build_families(schemes: list[Scheme]) -> list[FundFamily]:
+    grouped: dict[tuple[str, str], list[Scheme]] = {}
+    for scheme in schemes:
+        if scheme.base_name:
+            grouped.setdefault((scheme.amc_name, scheme.base_name), []).append(scheme)
+    return [
+        FundFamily(amc, base, members[0].sebi_category or "", tuple(members),
+                   frozenset(i for s in members for i in (s.isin, s.isin_reinvest) if i))
+        for (amc, base), members in grouped.items()
     ]
-    if len(exact_matches) == 1:
-        return exact_matches[0], MATCH_METHOD_EXACT, Decimal("1.0")
-    if len(exact_matches) > 1:
-        return None  # ambiguous even on an exact name -- never guess
+
+
+def _same_category(page_category: str | None, family: FundFamily) -> bool:
+    # The factsheet's "Category: Small Cap Fund" against our "Equity Scheme - Small Cap Fund".
+    if not page_category:
+        return True  # nothing printed to check against
+    return _canonical_fund_name(page_category) in _canonical_fund_name(family.sebi_category)
+
+
+def match_scheme_page(page: SchemePage, families: list[FundFamily]) -> tuple[FundFamily, str, Decimal] | None:
+    """`families` must already be scoped to one AMC -- never search across AMCs.
+    Returns None when no confident, unambiguous match exists (Review Focus #2)."""
+    if page.isins:
+        by_isin = [f for f in families if f.isins & set(page.isins)]
+        if len(by_isin) == 1:
+            return by_isin[0], MATCH_METHOD_ISIN, Decimal("1.0")
+
+    wanted = _canonical_fund_name(page.heading)
+    exact = [f for f in families if f.canonical == wanted]
+    if len(exact) == 1:
+        return exact[0], MATCH_METHOD_EXACT, Decimal("1.0")
+    if len(exact) > 1:
+        return None
 
     scored = sorted(
-        (
-            (c, Decimal(str(SequenceMatcher(None, normalized_extracted, _canonical_fund_name(c.base_name or "")).ratio())))
-            for c in candidates
-        ),
-        key=lambda pair: pair[1],
-        reverse=True,
+        ((f, Decimal(str(round(SequenceMatcher(None, wanted, f.canonical).ratio(), 3))))
+         for f in families if _same_category(page.category, f)),
+        key=lambda pair: pair[1], reverse=True,
     )
     if not scored or scored[0][1] < MIN_MATCH_CONFIDENCE:
         return None
-    if len(scored) > 1 and (scored[0][1] - scored[1][1]) < AMBIGUITY_MARGIN:
-        return None  # ambiguity guard
+    if len(scored) > 1 and scored[0][1] - scored[1][1] < AMBIGUITY_MARGIN:
+        return None
     return scored[0][0], MATCH_METHOD_FUZZY, scored[0][1]
-
-
-def extract_managers_generic(text: str) -> list[dict]:
-    """The Nippon/DSP-style shape: name, optional parenthesised role, a
-    "Managing Since" date. Used for every Tier 1/2 AMC except ABSL."""
-    managers = []
-    for match in _MANAGER_BLOCK_RE.finditer(text):
-        managers.append({
-            "name": match.group("name").strip(),
-            "role": match.group("role").strip() if match.group("role") else None,
-            "since_raw": match.group("since").strip(),
-        })
-    return managers
-
-
-def extract_managers_absl(text: str) -> list[dict]:
-    """ABSL's factsheet lists managers as a comma-separated line under its
-    own "Equity Snapshot" heading, with no "Managing Since" date at all
-    (Review Focus #5) -- e.g. "Fund Manager: Mr. Harish Krishnan, Mr. Dhaval
-    Joshi". role and since_raw are always None for this AMC."""
-    match = _ABSL_LINE_RE.search(text)
-    if not match:
-        return []
-    return [
-        {"name": _NAME_PREFIX_RE.sub("", n).strip(), "role": None, "since_raw": None}
-        for n in match.group(1).split(",")
-        if n.strip()
-    ]
 ```
 
-- [ ] **Step 4: Run, confirm pass**
+- [ ] **Step 4: Run, confirm pass** (7 tests)
 
-Run: `cd backend && pytest tests/services/analytics/test_amfi_factsheet_client.py -v`
-Expected: PASS (the 5 tests from Step 1)
 
 - [ ] **Step 5: Write the failing test — upsert idempotency (Review Focus #4)**
 
@@ -765,7 +754,7 @@ def test_upsert_scheme_fund_managers_is_idempotent(tmp_db_session):
     from datetime import date
     from app.services.analytics.amfi_factsheet_client import upsert_scheme_fund_managers, MATCH_METHOD_EXACT
     from app.models.reference import SchemeFundManager
-    scheme = _scheme("ABC Fund", "ABC Fund")
+    scheme = _scheme("ABC Fund")
     db = tmp_db_session
     db.add(scheme)
     db.commit()
@@ -872,55 +861,154 @@ class FundManagerRefreshResult:
 
 
 async def _fetch_amfi_directory() -> dict[str, str]:
-    """Returns {amc_name: factsheet_landing_page_url} for every AMC in
-    AMFI's own directory payload -- re-fetched every run, never cached
-    (AMCs occasionally change their own site layout)."""
-    async with httpx.AsyncClient(timeout=_HTTP_TIMEOUT) as client:
+    """{AMFI company name: factsheet landing URL}, re-fetched every run (AMCs move their
+    pages). Keys are AMFI's company names ("Aditya Birla Sun Life AMC Limited"), which the
+    registry maps to our fund-house names -- `schemes.amc_name` never appears here."""
+    async with httpx.AsyncClient(timeout=_HTTP_TIMEOUT, headers=_HEADERS, follow_redirects=True) as client:
         resp = await client.get(AMFI_FACTSHEET_DIRECTORY_URL)
         resp.raise_for_status()
-    # The directory page server-renders an embedded Next.js RSC JSON
-    # payload -- parsed by a dedicated helper, not inlined here, since the
-    # exact extraction regex depends on live page structure the
-    # implementer must re-confirm against the real page before this task
-    # is done (same caveat as the manager-block regex above).
     return _parse_amfi_directory_payload(resp.text)
 
 
 def _parse_amfi_directory_payload(html: str) -> dict[str, str]:
-    # Re-verify this against the real directory page HTML at build time --
-    # it must yield exactly the 57 AMC names used as AMC_RESOLVERS keys.
-    matches = re.findall(r'"amcName":"([^"]+)".*?"amc_monthly_mf_factsheets":"([^"]+)"', html)
-    return {name: url for name, url in matches}
+    # The page server-renders a Next.js payload with escaped quotes; each AMC object
+    # carries "amc_name" and "amc_monthly_mf_factsheets" (checked live 9 Oct: 57 AMCs).
+    text = html.replace('\\"', '"')
+    pairs = re.findall(r'"amc_name":"([^"]+)"[^{}]*?"amc_monthly_mf_factsheets":"([^"]*)"', text)
+    return {name.replace("\\u0026", "&"): url for name, url in pairs}
 
 
-async def _fetch_static_regex_pdf(landing_page_url: str) -> bytes | None:
-    async with httpx.AsyncClient(timeout=_HTTP_TIMEOUT, follow_redirects=True) as client:
-        resp = await client.get(landing_page_url)
-        resp.raise_for_status()
-        pdf_links = re.findall(r'href="([^"]+\.pdf)"', resp.text, re.IGNORECASE)
-        if not pdf_links:
-            return None
-        pdf_resp = await client.get(pdf_links[0])
-        pdf_resp.raise_for_status()
-        return pdf_resp.content
+_MONTHS = {m: i for i, m in enumerate(("jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"), 1)}
+_NOT_A_FACTSHEET = re.compile(r"riskometer|portfolio|how[-_ ]?to|methodology|kim|\bsid\b|addendum|notice|form", re.I)
 
 
-async def _fetch_json_api_pdf(entry: ResolverEntry) -> bytes | None:
-    async with httpx.AsyncClient(timeout=_HTTP_TIMEOUT) as client:
-        resp = await client.get(entry.endpoint_url)
-        resp.raise_for_status()
-        payload = resp.json()
-        node = payload
-        for key in (entry.response_json_path or "").split("."):
-            if not key:
-                continue
-            node = node.get(key, []) if isinstance(node, dict) else []
-        pdf_url = next((item.get("url") or item.get("file") for item in node if isinstance(item, dict) and (item.get("url") or item.get("file"))), None)
-        if not pdf_url:
-            return None
-        pdf_resp = await client.get(pdf_url)
-        pdf_resp.raise_for_status()
-        return pdf_resp.content
+def _link_date(text: str) -> tuple[int, int]:
+    """(year, month) found in a link's URL or text, newest first when sorted descending;
+    (0, 0) when none -- such links sort last."""
+    lowered = text.lower()
+    year = max((int(y) for y in re.findall(r"20\d\d", lowered)), default=0)
+    month = next((_MONTHS[m[:3]] for m in re.findall(r"(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*", lowered)), 0)
+    return year, month
+
+
+async def _static_link_candidates(client: httpx.AsyncClient, landing_url: str, link_pattern: str | None) -> list[str]:
+    """Card 4, pick rule: links whose URL or link text says factsheet (or the AMC's own
+    pattern), newest first. The content and month checks then decide which one is real."""
+    if landing_url.lower().split("?")[0].endswith(".pdf"):
+        return [landing_url]  # e.g. Old Bridge: AMFI points straight at the file
+    resp = await client.get(landing_url)
+    resp.raise_for_status()
+    pattern = re.compile(link_pattern or r"fact\s*[-_ ]?sheet", re.I)
+    links = []
+    for href, label in re.findall(r'<a[^>]+href=["\']([^"\']+\.pdf[^"\']*)["\'][^>]*>(.*?)</a>', resp.text, re.I | re.S):
+        joined = f"{href} {re.sub(r'<[^>]+>', ' ', label)}"
+        if pattern.search(joined) and not _NOT_A_FACTSHEET.search(href):
+            links.append((_link_date(joined), urllib.parse.urljoin(str(resp.url), href)))
+    return [url for _, url in sorted(links, key=lambda pair: pair[0], reverse=True)][:3]
+
+
+async def _download_pdf(client: httpx.AsyncClient, url: str) -> bytes | None:
+    resp = await client.get(url)
+    resp.raise_for_status()
+    return resp.content if resp.content.startswith(b"%PDF") else None
+
+
+_AS_ON = re.compile(
+    r"(?:as on|as of|data as on)\s*:?\s*(\d{1,2})(?:st|nd|rd|th)?\s*([A-Za-z]{3,9})[,.]?\s*(\d{4})"
+    r"|(?:as on|as of|data as on)\s*:?\s*([A-Za-z]{3,9})\s*(\d{1,2}),?\s*(\d{4})", re.I)
+
+
+def _latest_as_on(pages: list[str]) -> date | None:
+    found = []
+    for text in pages[:12]:
+        for m in _AS_ON.finditer(text):
+            day, month, year = (m.group(1), m.group(2), m.group(3)) if m.group(1) else (m.group(5), m.group(4), m.group(6))
+            month_no = _MONTHS.get(month[:3].lower())
+            if month_no:
+                try:
+                    found.append(date(int(year), month_no, int(day)))
+                except ValueError:
+                    continue
+    return max(found) if found else None
+
+
+def looks_like_current_factsheet(pages: list[str], reader, today: date) -> tuple[bool, str]:
+    """Card 4: the downloaded PDF is this AMC's current factsheet. Content: at least 3
+    scheme pages this AMC's reader understands (rejects one-pagers, how-to guides,
+    unrelated PDFs). Month: the latest "as on" date is within 45 days (a factsheet
+    published mid-month can still carry the previous month-end -- Edelweiss's September
+    file says "Data as on August 31"). Returns (ok, reason) for the alert line."""
+    scheme_pages = sum(1 for page in pages if reader(page) is not None)
+    if scheme_pages < 3:
+        return False, "not_a_factsheet"
+    as_on = _latest_as_on(pages)
+    if as_on is None or (today - as_on).days > 45:
+        return False, "stale_month"
+    return True, "ok"
+
+
+def _alert(amc_name: str, reason: str, detail: str) -> None:
+    # One line per problem; a CloudWatch metric filter on this prefix raises an alarm on
+    # the existing ops-alerts SNS topic (Task 4). Card 2.
+    logger.warning("FUND_MANAGER_ALERT amc=%s reason=%s detail=%s", amc_name, reason, detail)
+
+
+def import_pages(
+    db: Session, amc_name: str, pages: list[str], reader, reference_period: date, manual: bool = False,
+) -> tuple[int, int]:
+    """Read every scheme page with the AMC's reader, match each to a fund family within
+    this AMC only, and write the managers to every plan row of the matched family. Shared
+    by the monthly job and the manual-import CLI. Returns (families matched, pages unmatched)."""
+    families = build_families(db.query(Scheme).filter(Scheme.amc_name == amc_name).all())
+    matched: set[tuple[str, str]] = set()
+    unmatched = 0
+    for page_text in pages:
+        page = reader(page_text)
+        if page is None:
+            continue
+        result = match_scheme_page(page, families)
+        if result is None:
+            unmatched += 1
+            logger.info("refresh_fund_managers: unmatched amc=%s heading=%r", amc_name, page.heading[:80])
+            continue
+        family, method, confidence = result
+        for scheme in family.schemes:
+            upsert_scheme_fund_managers(db, scheme, page.managers, reference_period,
+                                        MATCH_METHOD_MANUAL if manual else method, confidence)
+        matched.add((family.amc_name, family.base_name))
+    return len(matched), unmatched
+
+
+def _families_matched_last_month(db: Session, amc_name: str, reference_period: date) -> int:
+    previous = (reference_period.replace(day=1) - timedelta(days=1)).replace(day=1)
+    return (
+        db.query(func.count(func.distinct(Scheme.base_name)))
+        .join(SchemeFundManager, SchemeFundManager.scheme_id == Scheme.id)
+        .filter(Scheme.amc_name == amc_name, SchemeFundManager.reference_period == previous)
+        .scalar() or 0
+    )
+
+
+async def _resolve_and_read(client, entry: ResolverEntry, directory: dict[str, str], reader, today: date) -> tuple[list[str] | None, str]:
+    if entry.kind is ResolverKind.JSON_API:
+        candidates = await _json_api_candidates(client, entry)
+    else:
+        landing = entry.landing_url or directory.get(entry.directory_name or "")
+        if not landing:
+            return None, "no_landing_url"
+        candidates = await _static_link_candidates(client, landing, entry.link_pattern)
+    if not candidates:
+        return None, "no_factsheet_link"
+    reason = "fetch_failed"
+    for url in candidates:  # card 4: the first candidate that passes both checks wins
+        pdf = await _download_pdf(client, url)
+        if pdf is None:
+            continue
+        pages = extract_page_text(pdf)
+        ok, reason = looks_like_current_factsheet(pages, reader, today)
+        if ok:
+            return pages, "ok"
+    return None, reason
 
 
 async def refresh_fund_managers(db: Session) -> FundManagerRefreshResult:
@@ -928,59 +1016,65 @@ async def refresh_fund_managers(db: Session) -> FundManagerRefreshResult:
     try:
         directory = await _fetch_amfi_directory()
     except (httpx.HTTPError, ValueError) as exc:
-        logger.warning("refresh_fund_managers: AMFI directory fetch failed: %r", exc)
+        _alert("ALL", "directory_failed", repr(exc))
         return FundManagerRefreshResult(success=False)
 
-    reference_period = date.today().replace(day=1)
+    today = date.today()
+    reference_period = today.replace(day=1)
     amcs_processed = amcs_failed = schemes_matched = schemes_unmatched = 0
 
-    for amc_name, entry in AMC_RESOLVERS.items():
-        if entry.kind is ResolverKind.MANUAL_PENDING:
-            continue
-        try:
-            if entry.kind is ResolverKind.STATIC_REGEX:
-                landing_page = directory.get(amc_name)
-                if not landing_page:
+    async with httpx.AsyncClient(timeout=_HTTP_TIMEOUT, headers=_HEADERS, follow_redirects=True) as client:
+        for amc_name, entry in AMC_RESOLVERS.items():
+            # Manual AMCs come in through the CLI; an AMC without a reader isn't onboarded yet
+            # (Task 8) -- its schemes show as "not available yet", never guessed.
+            if entry.kind is ResolverKind.MANUAL or entry.layout is None:
+                continue
+            reader = LAYOUTS[entry.layout]
+            try:
+                pages, reason = await _resolve_and_read(client, entry, directory, reader, today)
+                if pages is None:
+                    _alert(amc_name, reason, entry.landing_url or directory.get(entry.directory_name or "", ""))
                     amcs_failed += 1
                     continue
-                pdf_bytes = await _fetch_static_regex_pdf(landing_page)
-            else:
-                pdf_bytes = await _fetch_json_api_pdf(entry)
-            if pdf_bytes is None:
+                matched, unmatched = import_pages(db, amc_name, pages, reader, reference_period)
+                await commit_off_loop(db)  # per AMC: a later AMC failing never undoes this one
+                last = _families_matched_last_month(db, amc_name, reference_period)
+                if last and matched < last / 2:
+                    _alert(amc_name, "matching_collapsed", f"{matched} vs {last} last month")
+                amcs_processed += 1
+                schemes_matched += matched
+                schemes_unmatched += unmatched
+            except Exception as exc:  # card 2: one AMC breaking never stops the rest
+                db.rollback()
+                _alert(amc_name, "error", f"{type(exc).__name__}: {exc}"[:300])
                 amcs_failed += 1
-                continue
 
-            pages = extract_page_text(pdf_bytes)
-            candidates = db.query(Scheme).filter(Scheme.amc_name == amc_name).all()
-            extractor = extract_managers_absl if amc_name == "Aditya Birla Sun Life Mutual Fund" else extract_managers_generic
-            for page_text in pages:
-                managers = extractor(page_text)
-                if not managers:
-                    continue
-                # The scheme name is the page's own heading line -- the
-                # first non-empty line of the page, by convention across
-                # every traced AMC's factsheet layout.
-                scheme_name_guess = next((l.strip() for l in page_text.splitlines() if l.strip()), "")
-                matched = match_extracted_fund_name(scheme_name_guess, amc_name, candidates)
-                if matched is None:
-                    schemes_unmatched += 1
-                    continue
-                scheme, method, confidence = matched
-                upsert_scheme_fund_managers(db, scheme, managers, reference_period, method, confidence)
-                schemes_matched += 1
-            amcs_processed += 1
-        except (httpx.HTTPError, ValueError, KeyError) as exc:
-            logger.warning("refresh_fund_managers: %s failed: %r", amc_name, exc)
-            amcs_failed += 1
-            continue
-
-    await commit_off_loop(db)
     return FundManagerRefreshResult(
         success=True, amcs_processed=amcs_processed, amcs_failed=amcs_failed,
         schemes_matched=schemes_matched, schemes_unmatched=schemes_unmatched,
         seconds=round(time.perf_counter() - started, 1),
     )
 ```
+
+Add at the top of the file: `import urllib.parse`, `from datetime import timedelta`,
+`from sqlalchemy import func`, `from app.services.analytics.fund_manager_layouts import LAYOUTS`,
+`from app.services.analytics.fund_manager_resolvers import AMC_RESOLVERS, ResolverEntry, ResolverKind`, and
+`_HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"}`
+(several AMC sites drop requests without a browser User-Agent). `_json_api_candidates(client, entry)`
+is the plan's `_fetch_json_api_pdf` reshaped to return candidate URLs (newest first) from
+`entry.response_json_path`; each JSON_API AMC's path is confirmed in its Task 8 onboarding.
+
+Tests to add in Step 6 (same file), all with mocked HTTP and fixture pages:
+- `_parse_amfi_directory_payload` on a 2-AMC excerpt of the real page (escaped quotes, `&`)
+  returns `{"Aditya Birla Sun Life AMC Limited": "https://…", "IL&FS Infra Asset Management Limited": ""}`.
+- `_static_link_candidates`: a landing page listing a how-to PDF, an April and a September factsheet
+  returns September first and drops the how-to; a landing URL ending `.pdf` is returned as is.
+- `looks_like_current_factsheet`: 2 scheme pages → `not_a_factsheet`; "Data as on March 31, 2026" on
+  2026-10-10 → `stale_month`; "Data as on August 31, 2026" on 2026-10-10 → ok.
+- `refresh_fund_managers`: an AMC whose download raises `RuntimeError` doesn't stop the next AMC, and
+  logs `FUND_MANAGER_ALERT amc=… reason=error`; an AMC matching 5 families after 40 last month logs
+  `reason=matching_collapsed`; a MANUAL AMC and an AMC with `layout=None` are skipped.
+
 
 Add the missing imports at the top of the file: `import uuid`, `from app.models.reference
 import Scheme, SchemeFundManager` (already partially there — consolidate), `from
@@ -997,6 +1091,226 @@ Expected: PASS (6 tests total)
 ```bash
 git add backend/app/services/analytics/amfi_factsheet_client.py backend/tests/services/analytics/test_amfi_factsheet_client.py
 git commit -m "feat: add AMFI factsheet fetch, extraction, and matching engine"
+```
+
+---
+
+### Task 3b: Layout readers — `fund_manager_layouts.py`
+
+*(New 9 Oct, card 3 / catalogue: there is no "generic" factsheet layout. Each AMC's file is read by a
+named layout function; Run 1 builds the four below, verified on the real files. Every further AMC
+is onboarded in Task 8 — existing layout or a new one, always with a fixture from its real file.)*
+
+**Files:**
+- Create: `backend/app/services/analytics/fund_manager_layouts.py`
+- Create: `backend/tests/fixtures/factsheets/{nippon,edelweiss,hdfc,kotak}.txt`
+  — 1–3 KB each: two scheme pages cut from the real text dumps in
+  `C:\Users\Dell\Desktop\Unifolio\Factsheets\2026-10-catalogue\` (Nippon, Edelweiss) and
+  `manual_hdfc_aug2026.txt` / `manual_kotak_sep2026.txt` (same folder). Copy the text exactly,
+  including its odd line breaks — that's what's being tested. Keep page breaks as `\f`.
+- Test: `backend/tests/services/analytics/test_fund_manager_layouts.py`
+
+**Interfaces:**
+- Produces: `SchemePage(heading: str, managers: list[dict], isins: list[str], category: str | None)`;
+  `LAYOUTS: dict[str, Callable[[str], SchemePage | None]]` — one reader per onboarded AMC (keys
+  `nippon`, `edelweiss`, `hdfc`, `kotak`, `absl`), each a manager layout (`bullets_slash`, `hdfc_table`,
+  `kotak_line`, `absl_line`) paired with where that AMC prints the scheme name; it returns `None` for a
+  page that isn't a scheme page. Manager dicts are `{"name", "role", "since_raw"}` — names without Mr./Ms./Dr.
+
+- [ ] **Step 1: Write the failing tests** — one per layout, against its fixture, asserting the exact
+  headings and manager rows of both fixture pages, e.g. for Edelweiss:
+
+```python
+def test_bullets_slash_pairs_names_with_their_dates():
+    pages = (FIXTURES / "edelweiss.txt").read_text(encoding="utf-8").split("\f")
+    page = next(p for p in (LAYOUTS["edelweiss"](p) for p in pages) if p and p.heading.startswith("Edelweiss Large & Mid Cap"))
+    assert [(m["name"], m["since_raw"]) for m in page.managers] == [
+        ("Sumanta Khan", "Apr 01, 2024"), ("Trideep Bhattacharya", "Oct 01, 2021"), ("Ashish Sood", "Aug 03, 2026"),
+    ]
+```
+
+  Plus, per reader: a non-scheme page (index, glossary) returns `None`; HDFC's specialist role
+  ("Gold/Silver Instruments") lands in `role`; Kotak's "(w.e.f. June 01, 2026)" becomes `since_raw`
+  and is stripped from the name; Nippon's "(Assistant Fund Manager)" lands in `role`; a wrapped heading
+  is joined ("KOTAK INFRASTRUCTURE &" + "ECONOMIC REFORM FUND").
+
+- [ ] **Step 2: Run, confirm failure**
+
+- [ ] **Step 3: Implement**
+
+```python
+# backend/app/services/analytics/fund_manager_layouts.py
+"""Fund-manager extraction, one function per factsheet layout (attribute 04).
+
+AMCs don't share a layout: the 9 Oct catalogue of every AMC's factsheet
+(Docs/analytics/2026-10-09-attribute-04-factsheet-layouts.md) found six families, and a
+single "generic" regex matched 5 AMCs of 22. Each function takes one page of
+pypdfium2 text and returns the scheme's printed heading and managers, or None for a
+page that isn't a scheme page. The registry (fund_manager_resolvers.py) says which
+layout each AMC uses."""
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass, field
+from typing import Callable
+
+_TITLE = re.compile(r"^(?:Mr|Ms|Mrs|Dr)\.?\s*")
+_ISIN = re.compile(r"\bINF[0-9A-Z]{9}\b")
+_CATEGORY = re.compile(r"Category(?: of (?:the )?Scheme)?\s*:?\s*([A-Za-z&/ -]{3,40}?Fund)\b")
+_MONTH = r"(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?"
+_DATE = rf"{_MONTH}\s*\d{{1,2}},?\s*\d{{4}}"
+# Lines that end a heading: the scheme-type sentence and running headers.
+_HEADING_STOP = re.compile(
+    r"^(an open[- ]ended|open[- ]ended|type of scheme|\(erstwhile|product label|this product|"
+    r"past performance|data as on|additional disclosure|an? (?:interval|close))", re.I)
+_RUNNING_HEADER = re.compile(r"^(\d+|\d+ \| \w+ \d{4}|For Product label.*|\.{3,}Contd.*)$")
+
+
+@dataclass(frozen=True)
+class SchemePage:
+    heading: str
+    managers: list[dict]
+    isins: list[str] = field(default_factory=list)
+    category: str | None = None
+
+
+def _clean_name(raw: str) -> str:
+    return " ".join(_TITLE.sub("", raw.strip()).split())
+
+
+def _first_line_heading(page: str, max_lines: int = 3) -> str:
+    """HDFC, Edelweiss: the first line that isn't a running header, joined with its wrapped
+    continuation, stopping at the scheme-type sentence."""
+    out: list[str] = []
+    for line in (l.strip() for l in page.splitlines()):
+        if not line or _RUNNING_HEADER.match(line):
+            if out:
+                break
+            continue
+        if _HEADING_STOP.match(line):
+            break
+        out.append(line)
+        if len(out) == max_lines:
+            break
+    # HDFC prints "[(Erstwhile …)" / "[An open ended …" right after the name.
+    return _TYPE_CUT.split(" ".join(out))[0]
+
+
+def _brand_line_heading(page: str, prefix: str) -> str:
+    """Nippon, ABSL, Kotak: return tables and notes come first on the page, so the name is
+    the first line starting with the AMC's brand ("Nippon India …"), cut at any scheme-type
+    text on the same line and joined with the next line when the name wraps."""
+    lines = [l.strip() for l in page.splitlines() if l.strip()]
+    for i, line in enumerate(lines):
+        if line.lower().startswith(prefix.lower()):
+            name = _TYPE_CUT.split(line)[0]
+            nxt = lines[i + 1] if i + 1 < len(lines) else ""
+            if name.endswith(("&", "-")) or (line.isupper() and nxt.isupper() and len(nxt) < 40
+                                              and not nxt.startswith("(") and not _HEADING_STOP.match(nxt)):
+                name = f"{name} {_TYPE_CUT.split(nxt)[0]}"
+            return name
+    return ""
+
+
+_TYPE_CUT = re.compile(r"\s+(?:-\s+An open|NSE Symbol|BSE Scrip|\(|\[)|\s+-?\d+(?:\.\d+)?%")
+
+
+def _page(heading: str, managers: list[dict], page: str) -> SchemePage | None:
+    if not heading or not managers:
+        return None
+    category = _CATEGORY.search(page)
+    return SchemePage(heading, managers, sorted(set(_ISIN.findall(page))), category.group(1).strip() if category else None)
+
+
+def bullets_slash(page: str) -> list[dict] | None:
+    """Nippon, Edelweiss: "Name of Fund Managers • Mr. A • Mr. B (Assistant Fund Manager)
+    Total Experience 30 / 14  Managing Since: August 2007 / August 2024"."""
+    names = re.search(r"Name of Fund Managers?\s*:?(.*?)Total\s*Experience", page, re.S)
+    if not names:
+        return None
+    managers = []
+    for raw in (n for n in re.split(r"•", names.group(1)) if n.strip()):
+        role = re.search(r"\(([^)]*)\)", raw)
+        managers.append({"name": _clean_name(re.sub(r"\([^)]*\)", "", raw)),
+                         "role": role.group(1).strip() if role else None, "since_raw": None})
+    since = re.search(r"Managing\s*Since\s*:?(.*?)(?:Minimum Investment|Load Structure|Benchmark|$)", page, re.S)
+    dates = [d.strip() for d in " ".join(since.group(1).split()).split("/")] if since else []
+    for manager, date_raw in zip(managers, dates):
+        manager["since_raw"] = date_raw or None
+    return managers
+
+
+def hdfc_table(page: str) -> list[dict] | None:
+    """HDFC: "FUND MANAGER ¥ / Name Since Total Exp / Rahul Baijal July 29, 2022 Over 25 years /
+    Bhagyesh Kagalkar (Gold/Silver Instruments) August 26,2026 …" -- no Mr., dates wrap."""
+    block = re.search(r"FUND MANAGER\s*¥?(.*?)(?:DATE OF ALLOTMENT|NAV\s*\(|ASSETS UNDER)", page, re.S)
+    if not block:
+        return None
+    text = " ".join(block.group(1).split()).replace("Name Since Total Exp", " ")
+    managers = [
+        {"name": _clean_name(m.group("name")), "role": m.group("role"), "since_raw": m.group("since")}
+        for m in re.finditer(rf"(?P<name>[A-Z][A-Za-z.' ]+?)\s*(?:\((?P<role>[^)]*)\))?\s*(?P<since>{_DATE})\s*Over\s*\d+\s*years", text)
+    ]
+    return managers
+
+
+def kotak_line(page: str) -> list[dict] | None:
+    """Kotak: "Fund Manager*: Mr. Harsha Upadhyaya" (names joined by & / , / and; a new
+    manager can carry "(w.e.f. June 01, 2026)"). No managing-since dates otherwise."""
+    line = re.search(r"Fund Manager\*:\s*(.+?)(?:\n\s*\n|AAUM|AUM|Benchmark|Allotment|$)", page, re.S)
+    if not line:
+        return None
+    managers = []
+    # Names are joined by "&", ",", "and" -- or just a line break before the next "Mr.".
+    for raw in re.split(r"&|,(?![^()]*\))|\band\b|(?=\b(?:Mr|Ms|Mrs|Dr)\.)", " ".join(line.group(1).split())):
+        since = re.search(rf"\((?:w\.e\.f\.?|effective)\s*({_DATE})\)", raw)
+        name = _clean_name(re.sub(r"\(.*", "", raw))
+        if re.fullmatch(r"[A-Z][a-z]+(?: [A-Z][A-Za-z.]+)+", name):
+            managers.append({"name": name, "role": None, "since_raw": since.group(1) if since else None})
+    return managers
+
+
+def absl_line(page: str) -> list[dict] | None:
+    """ABSL: "Fund Manager - Mr. Harish Krishnan  Managing the Fund Since: January 07, 2026"
+    (one or more). Replaces the plan's earlier comma-line guess, which the real file doesn't use."""
+    managers = [
+        {"name": _clean_name(m.group(1)), "role": None, "since_raw": m.group(2)}
+        for m in re.finditer(rf"Fund Manager\s*[-:]\s*((?:(?:Mr|Ms|Dr)\.?\s*)?[A-Z][A-Za-z.' ]+?)\s+Managing the Fund Since\s*:?\s*({_DATE})", " ".join(page.split()))
+    ]
+    return managers
+
+
+def _reader(managers: Callable[[str], list[dict] | None], heading: Callable[[str], str]) -> Callable[[str], SchemePage | None]:
+    def read(page: str) -> SchemePage | None:
+        found = managers(page)
+        return _page(heading(page), found, page) if found else None
+    return read
+
+
+# One reader per AMC: a manager layout plus where that AMC prints the scheme name.
+# Task 8 adds an entry per onboarded AMC (reusing a layout where the shape matches).
+LAYOUTS: dict[str, Callable[[str], SchemePage | None]] = {
+    "nippon": _reader(bullets_slash, lambda p: _brand_line_heading(p, "Nippon India")),
+    "edelweiss": _reader(bullets_slash, _first_line_heading),
+    "hdfc": _reader(hdfc_table, _first_line_heading),
+    "kotak": _reader(kotak_line, lambda p: _brand_line_heading(p, "KOTAK ")),
+    "absl": _reader(absl_line, lambda p: _brand_line_heading(p, "Aditya Birla Sun Life")),
+}
+```
+
+  Measured on the real files (9 Oct), with Task 3's matcher: Nippon 100 of 108 live funds, Edelweiss
+  75/76, HDFC 53/53 active funds (passive funds are in HDFC's separate passive factsheet), Kotak 112/120.
+  `absl` reads managers on 103 pages but matches 82/104 funds (renamed funds need aliases) — ABSL is
+  finished in Task 8, so `absl` ships in `LAYOUTS` but its registry entry stays `layout=None` until then.
+  Also test: Nippon's name comes from the "Nippon India …" line, not the return table above it.
+
+- [ ] **Step 4: Run, confirm pass**
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add backend/app/services/analytics/fund_manager_layouts.py backend/tests/services/analytics/test_fund_manager_layouts.py backend/tests/fixtures/factsheets/
+git commit -m "feat: per-layout fund manager readers verified on real factsheets"
 ```
 
 ---
@@ -1066,6 +1380,39 @@ fund_managers_monthly = {
 it shares no meaningful contention with the daily 06:00-hour jobs (`nav_daily`,
 `benchmark_daily`, `ter_daily`) regardless of exact minute — each job gets its own Fargate
 task definition.
+
+- [ ] **Step 2b: Alert on `FUND_MANAGER_ALERT` lines (card 2)** — in the same module, next to the
+  existing `aws_sns_topic.ops_alerts`:
+
+```hcl
+resource "aws_cloudwatch_log_metric_filter" "fund_manager_alerts" {
+  name           = "${var.project}-${var.environment}-fund-manager-alerts"
+  log_group_name = aws_cloudwatch_log_group.jobs["fund_managers_monthly"].name
+  pattern        = "FUND_MANAGER_ALERT"
+  metric_transformation {
+    name      = "FundManagerAlerts"
+    namespace = "${var.project}/${var.environment}/jobs"
+    value     = "1"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "fund_manager_alerts" {
+  alarm_name          = "${var.project}-${var.environment}-fund-manager-alerts"
+  alarm_description   = "An AMC's factsheet import failed or collapsed; the log line names the AMC, reason and URL."
+  namespace           = "${var.project}/${var.environment}/jobs"
+  metric_name         = "FundManagerAlerts"
+  statistic           = "Sum"
+  period              = 3600
+  evaluation_periods  = 1
+  threshold           = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = [aws_sns_topic.ops_alerts.arn]
+}
+```
+
+  No app permission change: the job only writes log lines (`task_role_arn` stays `null`). Check the
+  real variable names in `infra/modules/scheduler/variables.tf` and match them.
 
 - [ ] **Step 3: Confirm it has no syntax errors**
 
@@ -1149,7 +1496,7 @@ def test_compute_fund_manager_allocation_groups_by_manager_and_sums_value():
     scheme_b = Scheme(id=uuid.uuid4(), amfi_code="B1", name="Fund B", base_name="Fund B", amc_name="Test AMC", sebi_category="Equity")
     db.add_all([scheme_a, scheme_b])
     db.commit()
-    period = date(2026, 9, 1)
+    period = date.today().replace(day=1)  # this month: within the 3-month window (card 2)
     db.add_all([
         SchemeFundManager(id=uuid.uuid4(), scheme_id=scheme_a.id, manager_name="Jane Doe", role=None, sequence_order=0, reference_period=period, match_method="EXACT", match_confidence=Decimal("1.0")),
         SchemeFundManager(id=uuid.uuid4(), scheme_id=scheme_b.id, manager_name="Jane Doe", role=None, sequence_order=0, reference_period=period, match_method="EXACT", match_confidence=Decimal("1.0")),
@@ -1180,6 +1527,29 @@ def test_compute_fund_manager_allocation_groups_by_manager_and_sums_value():
     assert Decimal(john.total_household_value) == Decimal("800")
     assert summary.manager_groups[0].manager_name == "Jane Doe"  # sorted desc by value, Jane (2000) before John (800)
     assert summary.unavailable_schemes == []
+
+
+def test_managers_older_than_three_months_count_as_unavailable():
+    """Card 2: an AMC whose imports keep failing must not show months-old managers as fact."""
+    from app.services.analytics.fund_manager_allocation import _months_back
+    db = _session()
+    scheme = Scheme(id=uuid.uuid4(), amfi_code="S1", name="Stale Fund", base_name="Stale Fund", amc_name="Test AMC", sebi_category="Equity")
+    db.add(scheme)
+    db.commit()
+    old_period = _months_back(date.today().replace(day=1), 4)
+    db.add(SchemeFundManager(id=uuid.uuid4(), scheme_id=scheme.id, manager_name="Jane Doe", role=None, sequence_order=0,
+                             reference_period=old_period, match_method="EXACT", match_confidence=Decimal("1.0")))
+    db.commit()
+    holdings = [
+        HoldingRow(scheme_id=str(scheme.id), scheme_name="Stale Fund", amc_name="Test AMC", asset_class="Equity",
+                   household_member_id=str(uuid.uuid4()), household_member_name="Self", plan_type="direct",
+                   units_held="100", average_nav="10", current_nav="10", current_nav_date=None,
+                   amount_invested="1000", current_value="1000", current_profit_total="0", realized_gain="0", unrealized_gain="0"),
+    ]
+    with patch("app.services.analytics.fund_manager_allocation.compute_holdings", new=AsyncMock(return_value=holdings)):
+        summary = asyncio.run(compute_fund_manager_allocation(db, [uuid.uuid4()]))
+    assert summary.manager_groups == []
+    assert [u.scheme_name for u in summary.unavailable_schemes] == ["Stale Fund"]
 
 
 def test_compute_fund_manager_allocation_buckets_unresolved_scheme_as_unavailable():
@@ -1213,6 +1583,7 @@ from __future__ import annotations
 
 import uuid
 from collections import defaultdict
+from datetime import date
 from decimal import Decimal
 
 from sqlalchemy.orm import Session
@@ -1225,6 +1596,11 @@ from app.services.analytics.schemas import (
     UnavailableScheme,
 )
 from app.services.dashboard.holdings import compute_holdings
+
+
+def _months_back(first_of_month: date, months: int) -> date:
+    year, month = divmod(first_of_month.year * 12 + first_of_month.month - 1 - months, 12)
+    return date(year, month + 1, 1)
 
 
 async def compute_fund_manager_allocation(
@@ -1247,9 +1623,12 @@ async def compute_fund_manager_allocation(
     for row in manager_rows:
         if row.scheme_id not in latest_period_by_scheme or row.reference_period > latest_period_by_scheme[row.scheme_id]:
             latest_period_by_scheme[row.scheme_id] = row.reference_period
+    # Card 2: when an AMC's import fails, last month's managers keep serving -- but rows
+    # older than 3 months count as "not available yet" rather than lingering as fact.
+    oldest_shown = _months_back(date.today().replace(day=1), 3)
     rows_by_scheme: dict[uuid.UUID, list[SchemeFundManager]] = defaultdict(list)
     for row in manager_rows:
-        if row.reference_period == latest_period_by_scheme.get(row.scheme_id):
+        if row.reference_period == latest_period_by_scheme.get(row.scheme_id) and row.reference_period >= oldest_shown:
             rows_by_scheme[row.scheme_id].append(row)
 
     groups: dict[str, dict] = {}
@@ -1365,7 +1744,11 @@ git commit -m "feat: register fund_manager as a precomputed analytics section"
 - [ ] **Step 1: Add the types**
 
 In `frontend/src/features/analytics/types.ts`, append (mirroring the backend Pydantic
-schemas from Task 5 field-for-field):
+schemas from Task 5 field-for-field — **the committed `backend/app/services/analytics/schemas.py` wins
+if anything below differs**). Run 1 ruling 6: the card badge shows `group.role` when set; when it's
+`null`, each fund row shows its own `role` (e.g. "Assistant Fund Manager", "Overseas Investments") next
+to the fund name if present — never a fabricated label. Add `role: null` (or a real role) to every
+`ManagerFundRow` in the test fixtures, plus one test where a manager leads one fund and assists on another.
 
 ```ts
 export interface ManagerFundRow {
@@ -1373,6 +1756,7 @@ export interface ManagerFundRow {
   scheme_name: string;
   household_value: string;
   sequence_order: number;
+  role: string | null;  // this manager's role on this fund (Run 1 ruling 6)
 }
 
 export interface ManagerGroup {
@@ -1614,272 +1998,125 @@ git commit -m "feat: add FundManagerSection to the Analytics dashboard and PDF e
 
 ---
 
-## Tasks 8-19: Tier 3 — live investigation, one AMC per task
+## Task 8: Onboard every remaining AMC (one procedure, run per AMC, in batches)
 
-Each of these follows the same 4-step shape. The clue column below is what live tracing
-already found this session (not a guess) — the implementer's job is to turn that clue into a
-real, tested resolver entry, not to start from zero.
+*(Replaces the old Tasks 8–20, 9 Oct. The live catalogue showed "Tier 1 confirmed working" wasn't
+true at the extraction level — the old generic regex matched 5 AMCs of 22 — so every AMC goes through
+the same procedure, including the old Tier 1/2. Nothing is deferred past staging: all batches run
+before release.)*
 
-**Shared step shape for every Tier 3 task:**
+**Inputs per AMC:** its row in the catalogue (`Docs/analytics/2026-10-09-attribute-04-factsheet-layouts.md`,
+"Per-AMC status"); its text dump, if fetched, in `C:\Users\Dell\Desktop\Unifolio\Factsheets\2026-10-catalogue\`;
+its live NAVAll funds (`schemes` rows with that `amc_name` and a NAV dated in the last 30 days).
 
-1. **Investigate live**, starting from the clue below (a real `curl`/browser check against
-   the real AMC site).
-2. **Decide**: does a `STATIC_REGEX`-compatible factsheet link exist, or a `JSON_API`
-   endpoint, or neither?
-3. **Implement**: update this AMC's `AMC_RESOLVERS` entry in
-   `fund_manager_resolvers.py` to the real finding (`ResolverKind.STATIC_REGEX`,
-   `ResolverKind.JSON_API` with a real `endpoint_url`, or — only as a last resort, with a
-   `blocked_reason` citing the specific proof, same bar as Edelweiss — `MANUAL_PENDING`).
-4. **Test + commit**: add one test to `test_fund_manager_resolvers.py` asserting this AMC's
-   entry is no longer the Task 2 placeholder, run `pytest
-   tests/services/analytics/test_fund_manager_resolvers.py -v`, confirm PASS, commit.
+**Procedure — for each AMC:**
 
-### Task 8: HSBC Mutual Fund
+1. **Source.** Make `_resolve_and_read` return this month's factsheet for this AMC, live:
+   - **STATIC_LINK:** AMFI's landing page, or `landing_url` when AMFI's is empty or wrong, plus a
+     `link_pattern` when the link isn't called "factsheet". If the page renders its links with JavaScript,
+     find the request the page makes (browser dev tools → Network) and switch the entry to **JSON_API**
+     with `endpoint_url` and `response_json_path`.
+   - **MANUAL** only with proof in `note`: the URLs tried, what came back, and the date.
+2. **Reader.** Reuse a reader whose shape matches (e.g. `nippon`'s `bullets_slash` layout for another
+   bullet-list AMC), or add a manager layout and/or heading rule to `fund_manager_layouts.py`.
+   - Add a fixture `backend/tests/fixtures/factsheets/<amc>.txt`: 1–3 KB, two scheme pages copied
+     verbatim from the real text.
+   - Add a test asserting both pages' headings and manager rows exactly.
+   - Multi-fund summary tables (Canara Robeco, Groww, LIC): use the AMC's per-scheme pages if the file
+     has them; otherwise use `pypdfium2` character boxes to pair names with columns. Never guess pairs
+     from text order.
+3. **Coverage.** Run the reader and Task 3's matcher over the real file. Record **families matched /
+   live funds** in the registry comment and the catalogue.
+   - Target: ≥ 90%.
+   - Every miss gets a reason in the catalogue: passive funds in a separate file, renamed fund (add a
+     test-covered alias), new fund not in the factsheet yet, or a reader bug — fix the bug.
+4. **Registry.** Set `layout`, plus `landing_url` / `link_pattern` / JSON fields as found; replace the
+   catalogue comment with the result.
 
-**Clue:** live tracing found HSBC's factsheet page uses a stale 2023 `date` query parameter
-in its own URL — the live page likely needs a current-dated parameter instead, or a
-differently-shaped URL entirely.
+**Batches (one Codex run each; each run's report lists coverage per AMC):**
 
-- [ ] Run `curl -sIL "https://www.assetmanagement.hsbc.co.in/en/india-mf/-/media/india-mf/files/factsheets/"` (or the real
-  equivalent found by first loading `https://www.assetmanagement.hsbc.co.in` in a browser and
-  locating its current factsheet download link, since the stale-dated URL is known to not be
-  live) and inspect for a working, current factsheet PDF link.
-- [ ] If found: set `"HSBC Mutual Fund": ResolverEntry(ResolverKind.STATIC_REGEX)` (or
-  `JSON_API` with the real endpoint if the site is dynamically rendered, checked via
-  the same `pdf_total`/`json_total` trace method used earlier this session).
-- [ ] If genuinely not found after a real attempt: `MANUAL_PENDING` with a `blocked_reason`
-  citing the specific real dead end hit (e.g. the exact URL and HTTP status returned).
-- [ ] Add the assertion test, run it, commit.
+| Run | AMCs | Starting point (9 Oct) |
+|---|---|---|
+| 3 | Abakkus, Aditya Birla Sun Life (`absl` reader exists, 82/104 — aliases), Bajaj Finserv, Canara Robeco, Capitalmind, DSP, Groww, Helios, HSBC, LIC | file fetched; some stale or wrong file picked |
+| 4 | Mirae Asset, NJ, PPFAS, quant, Quantum, Samco, Shriram, Sundaram, Unifi, Zerodha | same |
+| 5 | Axis, Choice, ICICI Prudential, ITI, PGIM India, Trust, UTI, WhiteOak Capital | JSON_API endpoints from 8 Oct, unverified |
+| 6 | 360 ONE, Angel One, ASK, Bandhan, Bank of India, Baroda BNP Paribas, Franklin Templeton, Invesco, JM Financial, Jio BlackRock | landing page has no factsheet link in its HTML |
+| 7 | Mahindra Manulife, Motilal Oswal, Navi, Old Bridge (AMFI points at the PDF itself), SBI, Tata, Taurus, The Wealth Company, Union; AlphaGrep, IL&FS (IDF), Lakshya, Monarch (no landing URL, but live funds) | same / find the page by hand |
 
-### Task 9: Sundaram Mutual Fund
-
-**Clue:** live tracing found a real downloadable PDF on Sundaram's site, but it was not the
-scheme factsheet (a different document entirely) — the actual factsheet link is elsewhere on
-the site.
-
-- [ ] Browse `https://www.sundarammutual.com` (or fetch its HTML) specifically looking for a
-  "Factsheet"/"Fund Factsheet" navigation link or download page distinct from whatever
-  document was found before; confirm the PDF found there is page-per-scheme with a "Fund
-  Manager" block before accepting it.
-- [ ] Implement/test/commit per the shared shape above.
-
-### Task 10: Groww Mutual Fund
-
-**Clue:** same situation as Sundaram — a real PDF was found but it wasn't the scheme
-factsheet.
-
-- [ ] Browse `https://groww.in/mutual-funds` or Groww AMC's dedicated site for its factsheet
-  download page specifically (Groww's main consumer app domain is not the AMC's own investor
-  site — check for a separate `growwmf.in`-style domain).
-- [ ] Implement/test/commit per the shared shape above.
-
-### Task 11: 360 ONE Mutual Fund
-
-**Clue:** live tracing found real PDFs on `360.one` (KYC forms, SIP mandate forms) but none
-were the scheme factsheet.
-
-- [ ] Fetch `https://www.360.one/asset-management/mutual-fund/` or its factsheet-specific
-  subpage; look specifically for a "Factsheet"/"Fund Factsheet" link distinct from the KYC/SIP
-  forms already found.
-- [ ] Implement/test/commit per the shared shape above.
-
-### Task 12: Tata Mutual Fund
-
-**Clue:** live tracing found real PDFs on `tatamutualfund.com` (a 2019 DHFL press release, a
-2026 valuation policy) — real documents, but not the scheme factsheet.
-
-- [ ] Fetch `https://www.tatamutualfund.com/downloads` or its factsheet-specific page,
-  looking for the monthly scheme factsheet distinct from the policy/press-release documents
-  already found.
-- [ ] Implement/test/commit per the shared shape above.
-
-### Task 13: Taurus Mutual Fund
-
-**Clue:** live tracing found `taurusmutualfund.com/sites/default/files/downloads/SAI.pdf` and
-a "one pager" PDF — real documents, but SAI is the Statement of Additional Information (ruled
-out generally in this attribute's design — no scheme-level manager mapping), not the
-factsheet.
-
-- [ ] Fetch `https://www.taurusmutualfund.com/downloads` or its factsheet-specific page,
-  looking for the monthly scheme factsheet (distinct from the SAI/one-pager already found).
-- [ ] Implement/test/commit per the shared shape above.
-
-### Task 14: ASK Mutual Fund
-
-**Clue:** live tracing found 3 real working JSON endpoints —
-`https://content.askmutualfund.com/v1/public/dividend`, `.../v1/public/nav`,
-`.../v1/public/ter` — a clear public content API, but no `.../v1/public/factsheet`-style
-endpoint was tried yet.
-
-- [ ] Try `https://content.askmutualfund.com/v1/public/factsheet` and nearby path variants
-  (`/v1/public/documents`, `/v1/public/downloads`) given the confirmed `/v1/public/{noun}`
-  URL shape already working for 3 other nouns.
-- [ ] If found: `JSON_API` with the real endpoint and its response shape's document-list path.
-- [ ] Implement/test/commit per the shared shape above.
-
-### Task 15: Bandhan Mutual Fund
-
-**Clue:** live tracing found only analytics/tracking calls
-(`mpc2-prod-*-is5qnl632q-*.a.run.app/events`), no document API observed at all.
-
-- [ ] Fetch `https://bandhanmutual.com/downloads/factsheet` (or site-search for "factsheet")
-  directly, since the earlier trace only captured background network calls, not a direct
-  content fetch — a static HTML page with a PDF link may still exist even with no JSON API.
-- [ ] Implement/test/commit per the shared shape above.
-
-### Task 16: Jio BlackRock Mutual Fund
-
-**Clue:** live tracing found only `generateInvestorSession` (an authenticated-investor
-session endpoint) — raising a real public-vs-gated question: factsheet content may sit behind
-investor login, which this attribute cannot use (no per-user AMC credentials exist).
-
-- [ ] Fetch `https://www.jioblackrock.com/mutual-funds/downloads` or equivalent directly (not
-  via the authenticated API) to check whether factsheets are published on a public page
-  regardless of the gated session API found earlier.
-- [ ] If factsheets are genuinely only reachable after investor login: `MANUAL_PENDING` with
-  `blocked_reason` citing this — a legitimate, provable automation blocker, same bar as
-  Edelweiss.
-- [ ] Implement/test/commit per the shared shape above.
-
-### Task 17: Navi Mutual Fund
-
-**Clue:** live tracing found nothing at all for this AMC (zero PDFs, zero JSON).
-
-- [ ] Fetch `https://navi.com/mutual-fund` directly and search its HTML for any
-  "factsheet"/"download" link — the earlier trace may have missed a non-standard page
-  structure rather than proving nothing exists.
-- [ ] If a real second attempt still finds nothing: `MANUAL_PENDING` with `blocked_reason`
-  citing both attempts and their results.
-- [ ] Implement/test/commit per the shared shape above.
-
-### Task 18: Bank of India Mutual Fund
-
-**Clue:** live tracing found a factsheet directory link, but dated May 2022 — stale by over 4
-years.
-
-- [ ] Fetch `https://www.boimf.in` (or its real domain) directly and look for a current
-  factsheet download page, since the May-2022 link found earlier is almost certainly
-  superseded by a newer one on the live site.
-- [ ] Implement/test/commit per the shared shape above.
-
-### Task 19: Mahindra Manulife Mutual Fund
-
-**Clue:** live tracing found the factsheet sits behind a tabbed "Investor Corner" UI that the
-earlier trace didn't fully drive (i.e. didn't click through the tab to reveal the underlying
-request).
-
-- [ ] Using a full headless-browser trace (the same method used for Edelweiss's confirmed
-  403), actually click the "Investor Corner" tab and capture whatever network request it
-  fires — this is the one piece of real follow-through the earlier pass didn't do.
-- [ ] Implement/test/commit per the shared shape above.
+**Done means:** every registry entry has a `layout` (or is MANUAL with proof), and the catalogue shows
+each AMC's coverage.
 
 ---
 
-### Task 20: Tier 5 liveness check (7 AMCs)
+### Task 21: Manual-import CLI for HDFC and Kotak
 
-**Files:**
-- Modify: `backend/app/services/analytics/fund_manager_resolvers.py`
-
-**Interfaces:** none new — updates existing `AMC_RESOLVERS` entries in place.
-
-- [ ] **Step 1:** For each of IL&FS Infra, Lakshya, Carnelian, AlphaGrep, Nuvama, Wealth
-  Company, Monarch Networth: check AMFI's own scheme list
-  (`https://www.amfiindia.com/spages/NAVAll.txt`, already fetched daily by the existing
-  `scheme_master_daily` job — query the local `schemes` table instead of a fresh fetch:
-  `SELECT amc_name, COUNT(*) FROM schemes WHERE amc_name = '<AMC>' AND is_active = true`) for
-  whether this AMC has any active scheme at all.
-- [ ] **Step 2:** For any AMC with zero active schemes: leave `MANUAL_PENDING`, update
-  `blocked_reason` to `"Confirmed 2026-10-09: zero active schemes in AMFI's own scheme
-  master -- nothing to resolve yet, not an automation failure."`
-- [ ] **Step 3:** For any AMC that DOES have active schemes despite the earlier trace finding
-  nothing: repeat the Task 8-19 investigation shape for it instead (it's no longer a
-  liveness question, it's a real Tier 3 case).
-- [ ] **Step 4:** Add one test per AMC asserting the final `blocked_reason` text actually
-  changed from the Task 2 placeholder (`"Pending Task 20 liveness check."`), run
-  `pytest tests/services/analytics/test_fund_manager_resolvers.py -v`, confirm PASS.
-- [ ] **Step 5: Commit**
-
-```bash
-git add backend/app/services/analytics/fund_manager_resolvers.py backend/tests/services/analytics/test_fund_manager_resolvers.py
-git commit -m "fix: resolve Tier 5 AMC liveness (scheme-count check, not assumption)"
-```
-
----
-
-### Task 21: Manual-intake CLI for HDFC, Kotak, Edelweiss
+*(Revised 9 Oct, card 5: Edelweiss is automated again; HDFC needs **two** files a month — its active-fund
+factsheet and its separate passive-fund factsheet; the CLI reuses the job's reader, matcher and checks.)*
 
 **Files:**
 - Create: `backend/scripts/jobs/import_manual_fund_managers.py`
 - Test: `backend/tests/scripts/test_import_manual_fund_managers.py`
 
 **Interfaces:**
-- Consumes: `extract_page_text`, `extract_managers_generic`, `extract_managers_absl`,
-  `match_extracted_fund_name`, `upsert_scheme_fund_managers`, `MATCH_METHOD_MANUAL` (Task 3).
+- Consumes: `AMC_RESOLVERS` (Task 2), `LAYOUTS` (Task 3b), `extract_page_text`, `import_pages`,
+  `looks_like_current_factsheet` (Task 3).
 
-A real person manually downloads the current factsheet PDF through an ordinary browser
-session (bypassing whatever automated block applies — Edelweiss's confirmed 403, or
-HDFC/Kotak's no-trace-found status) and saves it locally. This CLI reuses every piece of the
-already-built extraction/matching engine — it does not duplicate parsing logic, since the
-PDF's internal text layout is the same regardless of how the file was obtained.
-
-- [ ] **Step 1: Write the failing test**
+- [ ] **Step 1: Write the failing tests**
 
 ```python
 # backend/tests/scripts/test_import_manual_fund_managers.py
-import sys
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+from datetime import date
+from unittest.mock import patch
 
-from scripts.jobs.import_manual_fund_managers import import_from_pdf_bytes
+import pytest
+
+from scripts.jobs import import_manual_fund_managers as cli
 
 
-def test_import_from_pdf_bytes_uses_manual_match_method(tmp_path):
-    # A real HDFC/Kotak/Edelweiss PDF is required to run this for real --
-    # this test only proves the match_method wiring, using the same
-    # extract_managers_generic text fixture as test_amfi_factsheet_client.py.
-    import uuid
-    from datetime import date
-    from decimal import Decimal
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import sessionmaker
-    from app.db.base import Base
-    from app.models.reference import Scheme, SchemeFundManager
+def test_refuses_an_amc_that_is_not_manual():
+    with pytest.raises(SystemExit):
+        cli.run(db=None, amc_name="Nippon India Mutual Fund", pdfs=[], today=date(2026, 10, 12))
 
-    engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(engine)
-    db = sessionmaker(autoflush=False, bind=engine)()
-    scheme = Scheme(id=uuid.uuid4(), amfi_code="H1", name="HDFC Flexi Cap Fund", base_name="HDFC Flexi Cap Fund", amc_name="HDFC Mutual Fund", sebi_category="Equity")
-    db.add(scheme)
-    db.commit()
 
-    import_from_pdf_bytes(db, "HDFC Mutual Fund", b"", date(2026, 9, 1), pages_override=["HDFC Flexi Cap Fund\nFund Manager: Mr. Vinit Sambre (Equity)\nManaging this Scheme Since: Jun 10, 2019"])
+def test_imports_every_given_file_and_reports_matched_count(tmp_path, db_session):
+    files = [tmp_path / "hdfc_active.pdf", tmp_path / "hdfc_passive.pdf"]
+    for f in files:
+        f.write_bytes(b"%PDF-fake")
+    with patch.object(cli, "extract_page_text", return_value=["page"] * 5), \
+         patch.object(cli, "looks_like_current_factsheet", return_value=(True, "ok")), \
+         patch.object(cli, "import_pages", side_effect=[(53, 0), (50, 2)]) as imported:
+        result = cli.run(db_session, "HDFC Mutual Fund", files, today=date(2026, 10, 12))
+    assert result == {"matched": 103, "unmatched": 2}
+    assert imported.call_count == 2 and imported.call_args.kwargs["manual"] is True
 
-    rows = db.query(SchemeFundManager).filter_by(scheme_id=scheme.id).all()
-    assert len(rows) == 1
-    assert rows[0].match_method == "MANUAL"
+
+def test_a_stale_file_is_refused_before_anything_is_written(tmp_path, db_session):
+    f = tmp_path / "kotak.pdf"
+    f.write_bytes(b"%PDF-fake")
+    with patch.object(cli, "extract_page_text", return_value=["page"] * 5), \
+         patch.object(cli, "looks_like_current_factsheet", return_value=(False, "stale_month")), \
+         patch.object(cli, "import_pages") as imported, pytest.raises(SystemExit):
+        cli.run(db_session, "Kotak Mahindra Mutual Fund", [f], today=date(2026, 10, 12))
+    imported.assert_not_called()
 ```
 
-- [ ] **Step 2: Run, confirm failure**
+(`db_session`: the SQLite session helper the other `tests/scripts/` tests use; mechanical deviation if named differently.)
 
-Run: `cd backend && pytest tests/scripts/test_import_manual_fund_managers.py -v`
-Expected: FAIL — `ModuleNotFoundError`
+- [ ] **Step 2: Run, confirm failure**
 
 - [ ] **Step 3: Implement**
 
 ```python
 # backend/scripts/jobs/import_manual_fund_managers.py
-"""Manual-PDF intake for HDFC/Kotak/Edelweiss (attribute 04) -- the 3 AMCs
-proven unautomatable (see fund_manager_resolvers.py's MANUAL_PENDING
-entries). A staff member downloads the current factsheet through an
-ordinary browser, then runs:
+"""Monthly manual import of fund managers for AMCs whose factsheet can't be fetched
+automatically (HDFC, Kotak; attribute 04, card 5). Ops downloads the factsheet(s) in a browser
+and runs, once per AMC:
 
-  .venv/bin/python scripts/jobs/import_manual_fund_managers.py \
-      --amc "HDFC Mutual Fund" --pdf /path/to/downloaded-factsheet.pdf
+    python scripts/jobs/import_manual_fund_managers.py --amc "HDFC Mutual Fund" \
+        --pdf HDFC_active_2026-09.pdf --pdf HDFC_passive_2026-09.pdf
 
-Reuses amfi_factsheet_client.py's extraction/matching engine unchanged --
-a manually-downloaded PDF has the same internal text layout as one fetched
-automatically, so there is no separate parsing logic for this path."""
-
+Same reader, matcher and month check as the monthly job; rows are marked MANUAL. Prints
+matched=N: compare it with last month's number for the AMC (in the ops guide)."""
 import argparse
 import logging
 import sys
@@ -1889,54 +2126,41 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from app.db.session import SessionLocal
-from app.models.reference import Scheme
-from app.services.analytics.amfi_factsheet_client import (
-    MATCH_METHOD_MANUAL,
-    extract_managers_absl,
-    extract_managers_generic,
-    extract_page_text,
-    match_extracted_fund_name,
-    upsert_scheme_fund_managers,
-)
-
-logger = logging.getLogger(__name__)
-
-_ABSL_AMC = "Aditya Birla Sun Life Mutual Fund"
+from app.services.analytics.amfi_factsheet_client import extract_page_text, import_pages, looks_like_current_factsheet
+from app.services.analytics.fund_manager_layouts import LAYOUTS
+from app.services.analytics.fund_manager_resolvers import AMC_RESOLVERS, ResolverKind
 
 
-def import_from_pdf_bytes(db, amc_name: str, pdf_bytes: bytes, reference_period: date, pages_override: list[str] | None = None) -> int:
-    pages = pages_override if pages_override is not None else extract_page_text(pdf_bytes)
-    candidates = db.query(Scheme).filter(Scheme.amc_name == amc_name).all()
-    extractor = extract_managers_absl if amc_name == _ABSL_AMC else extract_managers_generic
-    matched_count = 0
-    for page_text in pages:
-        managers = extractor(page_text)
-        if not managers:
-            continue
-        scheme_name_guess = next((l.strip() for l in page_text.splitlines() if l.strip()), "")
-        matched = match_extracted_fund_name(scheme_name_guess, amc_name, candidates)
-        if matched is None:
-            logger.warning("import_manual_fund_managers: no confident match for %r under %s", scheme_name_guess, amc_name)
-            continue
-        scheme, _method, confidence = matched
-        upsert_scheme_fund_managers(db, scheme, managers, reference_period, MATCH_METHOD_MANUAL, confidence)
-        matched_count += 1
+def run(db, amc_name: str, pdfs: list[Path], today: date) -> dict[str, int]:
+    entry = AMC_RESOLVERS.get(amc_name)
+    if entry is None or entry.kind is not ResolverKind.MANUAL:
+        sys.exit(f"{amc_name!r} isn't a manual-import AMC; the monthly job handles it.")
+    reader = LAYOUTS[entry.layout]
+    pages_per_file = []
+    for pdf in pdfs:
+        pages = extract_page_text(pdf.read_bytes())
+        ok, reason = looks_like_current_factsheet(pages, reader, today)
+        if not ok:
+            # Checked for every file before writing anything, so a wrong file changes nothing.
+            sys.exit(f"{pdf.name}: {reason} -- download this month's factsheet and run again.")
+        pages_per_file.append(pages)
+    matched = unmatched = 0
+    for pages in pages_per_file:
+        m, u = import_pages(db, amc_name, pages, reader, today.replace(day=1), manual=True)
+        matched, unmatched = matched + m, unmatched + u
     db.commit()
-    return matched_count
+    return {"matched": matched, "unmatched": unmatched}
 
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO)
-    parser = argparse.ArgumentParser(description="Manually import fund-manager data from a downloaded AMC factsheet PDF.")
-    parser.add_argument("--amc", required=True, help='Exact amc_name, e.g. "HDFC Mutual Fund"')
-    parser.add_argument("--pdf", required=True, type=Path, help="Path to the downloaded factsheet PDF")
+    parser = argparse.ArgumentParser(description="Import fund managers from downloaded AMC factsheet PDFs.")
+    parser.add_argument("--amc", required=True, help='Exact fund-house name, e.g. "HDFC Mutual Fund"')
+    parser.add_argument("--pdf", required=True, type=Path, action="append", help="A downloaded factsheet; repeat for HDFC's two files")
     args = parser.parse_args()
-
-    pdf_bytes = args.pdf.read_bytes()
-    reference_period = date.today().replace(day=1)
     with SessionLocal() as db:
-        matched = import_from_pdf_bytes(db, args.amc, pdf_bytes, reference_period)
-    logger.info("import_manual_fund_managers: amc=%s matched=%d", args.amc, matched)
+        result = run(db, args.amc, args.pdf, date.today())
+    print(f"matched={result['matched']} unmatched={result['unmatched']}")
 
 
 if __name__ == "__main__":
@@ -1945,19 +2169,22 @@ if __name__ == "__main__":
 
 - [ ] **Step 4: Run, confirm pass**
 
-Run: `cd backend && pytest tests/scripts/test_import_manual_fund_managers.py -v`
-Expected: PASS
+- [ ] **Step 5: Try it on the real files** (orchestrator, local DB): run the CLI on the user's HDFC August
+  and Kotak September files (`Docs/` or `Desktop/Unifolio/Factsheets/`). Expect matched ≈ 53 (HDFC
+  active) and ≈ 112 (Kotak). Record the numbers in the ops guide.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add backend/scripts/jobs/import_manual_fund_managers.py backend/tests/scripts/test_import_manual_fund_managers.py
-git commit -m "feat: add manual-PDF intake CLI for HDFC/Kotak/Edelweiss fund managers"
+git commit -m "feat: manual fund-manager import CLI for HDFC and Kotak"
 ```
 
 ---
 
 ## Self-Review
+
+*(Written before the 9 Oct revision; where it names old tasks (Tiers, Tasks 8–20, `extract_managers_*`), the Revised block and the rewritten Tasks 2, 3, 3b, 8 and 21 govern.)*
 
 **1. Spec coverage:** Manager-first grouped cards (Task 7) ✓; co-manager/assistant-manager
 no-merge rule (Tasks 1, 5, Review Focus #1) ✓; role badge only when source has one (Task 1,

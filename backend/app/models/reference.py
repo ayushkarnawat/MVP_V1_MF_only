@@ -3,10 +3,10 @@
 Per Database-Schema-Unifolio.md Design Principle 1.
 """
 import uuid
-from datetime import date as date_, datetime
+from datetime import date as date_, datetime, timezone
 from decimal import Decimal
 
-from sqlalchemy import Boolean, Index, true, DateTime, ForeignKey, Integer, Numeric, String, Uuid
+from sqlalchemy import Date, UniqueConstraint, CheckConstraint, Boolean, Index, true, DateTime, ForeignKey, Integer, Numeric, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -100,3 +100,69 @@ class FundScore(Base):
     risk_adjusted_tier: Mapped[int] = mapped_column(Integer, nullable=False)
     cost_adjustment: Mapped[Decimal] = mapped_column(Numeric(3, 2), nullable=False)
     final_score: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False)
+
+
+class SchemeRanking(Base):
+    __tablename__ = "scheme_rankings"
+
+    scheme_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("schemes.id"), primary_key=True)
+    computed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), primary_key=True)
+    composite_score: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False)
+    category_rank: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    category_size: Mapped[int] = mapped_column(Integer, nullable=False)
+    percentile: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
+    return_1y: Mapped[Decimal | None] = mapped_column(Numeric(8, 6), nullable=True)
+    return_3y: Mapped[Decimal | None] = mapped_column(Numeric(8, 6), nullable=True)
+    return_5y: Mapped[Decimal | None] = mapped_column(Numeric(8, 6), nullable=True)
+    category_relative: Mapped[Decimal | None] = mapped_column(Numeric(8, 6), nullable=True)
+    downside_deviation: Mapped[Decimal | None] = mapped_column(Numeric(8, 6), nullable=True)
+    ter_value: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
+    return_3y_percentile: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
+    return_5y_percentile: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
+    category_relative_percentile: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
+    volatility_percentile: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
+    ter_percentile: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
+
+
+class RankingWeight(Base):
+    __tablename__ = "ranking_weights"
+    __table_args__ = (CheckConstraint("id = true", name="ck_ranking_weights_singleton"),)
+
+    id: Mapped[bool] = mapped_column(Boolean, primary_key=True, default=True)
+    weight_return_3y: Mapped[Decimal] = mapped_column(Numeric(4, 3), nullable=False, default=Decimal("0.25"))
+    weight_return_5y: Mapped[Decimal] = mapped_column(Numeric(4, 3), nullable=False, default=Decimal("0.25"))
+    weight_category_relative: Mapped[Decimal] = mapped_column(Numeric(4, 3), nullable=False, default=Decimal("0.20"))
+    weight_low_volatility: Mapped[Decimal] = mapped_column(Numeric(4, 3), nullable=False, default=Decimal("0.15"))
+    weight_low_ter: Mapped[Decimal] = mapped_column(Numeric(4, 3), nullable=False, default=Decimal("0.15"))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+
+
+class SchemeFundManager(Base):
+    __tablename__ = "scheme_fund_managers"
+    __table_args__ = (
+        UniqueConstraint(
+            "scheme_id", "manager_name", "reference_period",
+            name="uq_scheme_fund_managers_scheme_manager_period",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    scheme_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("schemes.id"), nullable=False, index=True)
+    manager_name: Mapped[str] = mapped_column(String, nullable=False)
+    # Verbatim source label (e.g. "Assistant Fund Manager") or NULL when the
+    # source doesn't label one name as more senior than another (ABSL: every
+    # name is unlabeled). Never fabricated as "Primary Manager" -- see
+    # Review Focus #5 and the frontend spec's explicit "never a fabricated
+    # label" rule.
+    role: Mapped[str | None] = mapped_column(String, nullable=True)
+    # 0 = first-listed/primary in the source's own order; used for stable
+    # ordering only, never displayed as a rank.
+    sequence_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    managing_since_raw: Mapped[str | None] = mapped_column(String, nullable=True)
+    managing_since: Mapped[date_ | None] = mapped_column(Date, nullable=True)
+    reference_period: Mapped[date_] = mapped_column(nullable=False)
+    # "ISIN" | "EXACT" | "FUZZY" | "MANUAL" -- plain String + module constants
+    # (amfi_factsheet_client.py), mirroring ter_link_source's convention,
+    # not a DB enum.
+    match_method: Mapped[str] = mapped_column(String, nullable=False)
+    match_confidence: Mapped[Decimal | None] = mapped_column(Numeric(4, 3), nullable=True)

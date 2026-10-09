@@ -39,7 +39,7 @@ from app.services.analytics.risk_metrics import (
     years_ago,
 )
 from app.services.analytics.schemas import FundScoreRow
-from app.services.analytics.scheme_universe import get_category_universe
+from app.services.analytics.scheme_universe import CategoryPeers, canonical_category, get_category_peers
 from app.services.analytics.ter import _latest_ter_for_scheme
 
 _RETURN_WEIGHT = Decimal("0.45")
@@ -87,28 +87,29 @@ def _tier_from_percentile(percentile: Decimal) -> int:
 
 
 async def _category_component_scores(
-    db: Session, universe: list[Scheme], sebi_category: str, today: date
+    db: Session, universe: list[Scheme], cache_key: str | tuple, today: date
 ) -> dict[uuid.UUID, dict[str, Decimal | None]]:
     now = _category_score_clock()
     with _category_score_cache_lock:
-        cached = _category_score_cache.get(sebi_category)
+        cached = _category_score_cache.get(cache_key)
     if cached is not None:
         cached_at, cached_today, scores = cached
         if cached_today == today and now - cached_at <= _CATEGORY_SCORE_CACHE_TTL_SECONDS:
             return scores
 
-    scores = await _compute_category_component_scores(db, universe, today)
+    scores = await _compute_category_component_scores(db, universe, today, cache_key)
 
     with _category_score_cache_lock:
-        _category_score_cache[sebi_category] = (now, today, scores)
+        _category_score_cache[cache_key] = (now, today, scores)
     return scores
 
 
 async def _compute_category_component_scores(
-    db: Session, universe: list[Scheme], today: date
+    db: Session, universe: list[Scheme], today: date, cache_key: str | tuple | None = None
 ) -> dict[uuid.UUID, dict[str, Decimal | None]]:
     returns_start = time.perf_counter()
-    returns = await _category_returns(db, universe, today)
+    # Same key as category_ranking's peer call, so the two sections share one computation.
+    returns = await _category_returns(db, universe, today, cache_key=cache_key)
     returns_elapsed = time.perf_counter() - returns_start
     if not returns:
         return {}
@@ -259,6 +260,7 @@ async def _finish_fund_score(
     ter_by_scheme: dict[uuid.UUID, Decimal],
     category_avg: Decimal | None,
     today: date,
+    series: Scheme | None = None,
 ) -> FundScoreRow:
     """Everything below the category-wide computations (`_category_component_scores`,
     `_category_ter_context`) that's genuinely per-scheme: this scheme's own
@@ -266,7 +268,11 @@ async def _finish_fund_score(
     already hold the category-wide inputs for several schemes (a portfolio
     with multiple holdings in the same category) call this once per scheme
     without recomputing the category-wide work each time."""
-    scheme_scores = scores.get(scheme.id)
+    # The fund's series in the peer set: the held scheme itself, or its fund's Growth series of
+    # the same plan type for an IDCW holding (9 Oct). Scores and TER come from the series;
+    # the row and the fund_scores history stay under the held scheme.
+    series = series or scheme
+    scheme_scores = scores.get(series.id)
 
     if scheme_scores is None or scheme_scores["composite"] is None:
         return _empty_row(scheme, category_unavailable=False, insufficient_history=True)
@@ -274,12 +280,12 @@ async def _finish_fund_score(
     composite_by_scheme = {
         sid: s["composite"] for sid, s in scores.items() if s["composite"] is not None
     }
-    composite_rank = _rank_and_percentile(composite_by_scheme, scheme.id)
+    composite_rank = _rank_and_percentile(composite_by_scheme, series.id)
     if composite_rank is None:
         return _empty_row(scheme, category_unavailable=False, insufficient_history=True)
 
     tier = _tier_from_percentile(composite_rank[1])
-    cost_adjustment = _cost_adjustment_from_context(scheme, ter_by_scheme, category_avg)
+    cost_adjustment = _cost_adjustment_from_context(series, ter_by_scheme, category_avg)
     # `None` (TER data unavailable) applies no nudge to the arithmetic --
     # same numeric effect as a computed zero -- but is reported to the API
     # caller as `None`, not "0", so "unavailable" and "no adjustment
@@ -315,7 +321,8 @@ async def _finish_fund_score(
         scheme_name=scheme.name,
         category_unavailable=False,
         insufficient_history=False,
-        thin_category=len(universe) < _THIN_CATEGORY_THRESHOLD,
+        # Funds with a return are the ones ranked -- same count Category Ranking uses.
+        thin_category=len(scores) < _THIN_CATEGORY_THRESHOLD,
         risk_adjusted_tier=tier,
         cost_adjustment=str(cost_adjustment) if cost_adjustment is not None else None,
         final_score=str(final_score),
@@ -338,15 +345,39 @@ async def compute_fund_score(db: Session, scheme: Scheme) -> FundScoreRow:
         return _empty_row(scheme, category_unavailable=True, insufficient_history=False)
 
     today = datetime.now(timezone.utc).date()
-    universe = await get_category_universe(db, scheme.sebi_category)
-    scores = await _category_component_scores(db, universe, scheme.sebi_category, today)
-    # Skip the TER fetch entirely when nobody in the category has return
-    # data yet -- matches the original short-circuit: cost adjustment is
-    # meaningless without a composite score to adjust.
-    ter_by_scheme, category_avg = (
-        await _category_ter_context(db, universe) if scores else ({}, None)
+    # One series per fund in the canonical category, same plan type as the holding -- the
+    # peer set Category Ranking and Fund Ranking use (9 Oct). Scoring every plan row of the
+    # merged categories made the scorer ~4x slower (Sectoral/Thematic: 1,035 rows, 256 funds).
+    peers = await get_category_peers(db, scheme.sebi_category, scheme.plan_type)
+    return await _score_against_peers(db, scheme, peers, _peer_cache_key(scheme), today)
+
+
+def _peer_cache_key(scheme: Scheme) -> tuple:
+    return ("peers", canonical_category(scheme.sebi_category), scheme.plan_type)
+
+
+async def _score_against_peers(
+    db: Session, scheme: Scheme, peers: CategoryPeers, cache_key: tuple, today: date,
+    category_inputs: tuple | None = None,
+) -> FundScoreRow:
+    series_id = peers.representative_of.get(scheme.id)
+    if series_id is None:
+        # Not in AMFI's current file (closed or merged): nothing to score it against.
+        return _empty_row(scheme, category_unavailable=True, insufficient_history=False)
+    if category_inputs is None:
+        scores = await _category_component_scores(db, peers.schemes, cache_key, today)
+        # Skip the TER fetch entirely when nobody in the category has return
+        # data yet -- matches the original short-circuit: cost adjustment is
+        # meaningless without a composite score to adjust.
+        ter_by_scheme, category_avg = (
+            await _category_ter_context(db, peers.schemes) if scores else ({}, None)
+        )
+    else:
+        scores, ter_by_scheme, category_avg = category_inputs
+    series = next(s for s in peers.schemes if s.id == series_id)
+    return await _finish_fund_score(
+        db, scheme, peers.schemes, scores, ter_by_scheme, category_avg, today, series=series,
     )
-    return await _finish_fund_score(db, scheme, universe, scores, ter_by_scheme, category_avg, today)
 
 
 from app.services.dashboard.aggregate import get_member_statuses
@@ -376,7 +407,7 @@ async def compute_portfolio_score(db: Session, household_member_ids: list[uuid.U
     # instead of once per held scheme in it (each involves a DB query per
     # scheme in the whole category, not just the held ones).
     today = datetime.now(timezone.utc).date()
-    schemes_by_category: dict[str, list[Scheme]] = {}
+    schemes_by_category: dict[tuple, list[Scheme]] = {}
     row_by_scheme: dict[str, FundScoreRow] = {}
     for scheme_id_str, scheme in schemes_by_id.items():
         if not scheme.sebi_category:
@@ -384,17 +415,17 @@ async def compute_portfolio_score(db: Session, household_member_ids: list[uuid.U
                 scheme, category_unavailable=True, insufficient_history=False
             )
             continue
-        schemes_by_category.setdefault(scheme.sebi_category, []).append(scheme)
+        schemes_by_category.setdefault(_peer_cache_key(scheme), []).append(scheme)
 
-    for sebi_category, category_schemes in schemes_by_category.items():
-        universe = await get_category_universe(db, sebi_category)
-        scores = await _category_component_scores(db, universe, sebi_category, today)
+    for cache_key, category_schemes in schemes_by_category.items():
+        peers = await get_category_peers(db, category_schemes[0].sebi_category, cache_key[2])
+        scores = await _category_component_scores(db, peers.schemes, cache_key, today)
         ter_by_scheme, category_avg = (
-            await _category_ter_context(db, universe) if scores else ({}, None)
+            await _category_ter_context(db, peers.schemes) if scores else ({}, None)
         )
         for scheme in category_schemes:
-            row_by_scheme[str(scheme.id)] = await _finish_fund_score(
-                db, scheme, universe, scores, ter_by_scheme, category_avg, today
+            row_by_scheme[str(scheme.id)] = await _score_against_peers(
+                db, scheme, peers, cache_key, today, category_inputs=(scores, ter_by_scheme, category_avg),
             )
 
     rows = [row_by_scheme[sid] for sid in unique_scheme_ids]
