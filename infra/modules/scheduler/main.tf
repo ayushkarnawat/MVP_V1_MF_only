@@ -24,6 +24,12 @@ locals {
       schedule_expression = "cron(20 6 * * ? *)"
       task_role_arn       = null
     }
+    fund_managers_monthly = {
+      slug                = "fund-managers-monthly"
+      command             = ["python", "scripts/jobs/refresh_fund_managers_monthly.py"]
+      schedule_expression = "cron(0 6 10 * ? *)"
+      task_role_arn       = null
+    }
     aaum_quarterly = {
       slug                = "aaum-quarterly"
       command             = ["python", "scripts/jobs/refresh_aaum_quarterly.py"]
@@ -363,4 +369,29 @@ resource "aws_db_event_subscription" "rds_availability" {
   source_ids  = [var.db_instance_id]
 
   event_categories = ["availability", "failure"]
+}
+
+resource "aws_cloudwatch_log_metric_filter" "fund_manager_alerts" {
+  name           = "${var.project}-${var.environment}-fund-manager-alerts"
+  log_group_name = aws_cloudwatch_log_group.jobs["fund_managers_monthly"].name
+  pattern        = "FUND_MANAGER_ALERT"
+  metric_transformation {
+    name      = "FundManagerAlerts"
+    namespace = "${var.project}/${var.environment}/jobs"
+    value     = "1"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "fund_manager_alerts" {
+  alarm_name          = "${var.project}-${var.environment}-fund-manager-alerts"
+  alarm_description   = "An AMC's factsheet import failed or collapsed; the log line names the AMC, reason and URL."
+  namespace           = "${var.project}/${var.environment}/jobs"
+  metric_name         = "FundManagerAlerts"
+  statistic           = "Sum"
+  period              = 3600
+  evaluation_periods  = 1
+  threshold           = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = [aws_sns_topic.ops_alerts.arn]
 }
