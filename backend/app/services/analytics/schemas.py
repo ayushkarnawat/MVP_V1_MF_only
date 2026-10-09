@@ -4,7 +4,7 @@ from datetime import date, datetime
 
 from pydantic import BaseModel
 
-from app.models.enums import BenchmarkIndex
+from app.models.enums import BenchmarkIndex, TransactionType
 from app.services.dashboard.schemas import AllocationBucket, MemberStatus
 
 
@@ -177,3 +177,47 @@ class AnalyticsScopeResponse(BaseModel):
 
 class AnalyticsRetryResponse(BaseModel):
     dispatched: bool
+
+
+class InvestmentWithdrawalEntry(BaseModel):
+    transaction_id: str
+    date: date
+    type: TransactionType
+    amount: str
+    direction: str
+    scheme_name: str
+    household_member_id: str
+    household_member_name: str
+
+
+class InvestmentWithdrawalBucket(BaseModel):
+    period: str  # "YYYY-MM" for monthly buckets, "YYYY" for yearly
+    invested: str
+    withdrawn: str
+    entries: list[InvestmentWithdrawalEntry]
+
+
+class InvestmentWithdrawalSipSummary(BaseModel):
+    active_count: int
+    total_monthly_amount: str
+    missed_count: int
+
+
+class InvestmentWithdrawalResult(BaseModel):
+    total_invested: str
+    total_withdrawn: str
+    net_invested: str
+    current_value: str
+    absolute_gain: str
+    monthly: list[InvestmentWithdrawalBucket]
+    yearly: list[InvestmentWithdrawalBucket]
+    sip_summary: InvestmentWithdrawalSipSummary
+    # Value of units received as gifts minus units given away, at transfer
+    # value. Not cash, so outside Invested/Withdrawn; absolute_gain excludes
+    # it (decided 9 Oct). Non-zero drives the frontend's gift note.
+    gifts_net: str = "0.00"
+
+
+class AggregateInvestmentWithdrawalResponse(BaseModel):
+    members: list[MemberStatus]
+    data: InvestmentWithdrawalResult
