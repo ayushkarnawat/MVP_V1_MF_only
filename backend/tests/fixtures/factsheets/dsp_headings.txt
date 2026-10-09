@@ -1,0 +1,179 @@
+18
+An open ended fund of fund scheme which invests into units/securities issued by overseas Exchange Traded Funds (ETFs) and/or overseas funds and/or units issued by 
+domestic mutual funds that provide exposure to Gold/Gold Mining theme.
+INCEPTION DATE
+Sep 14, 2007
+BENCHMARK
+FTSE Gold Mine TRI (in INR terms)
+FUND MANAGER
+Kaivalya Nadkarni
+Total work experience of 6 years.
+Managing this scheme since May 2025.
+NAV AS ON 
+AUGUST 31, 2026
+Regular Plan
+Growth: ` 63.6633
+Direct Plan
+Growth: ` 68.5671
+TOTAL AUM
+1,828 Cr.
+MONTHLY AVERAGE AUM
+1,743 Cr.
+^^ Fund domiciled in Luxembourg
+^^ Fund domiciled in Luxembourg
+DSP World Gold Mining Overseas Equity Omni FoF as of 31-July-2026 % to Net Assets
+BlackRock Global Funds - World Gold Fund ^^ 67.41%
+TREPS / Reverse Repo Investments 4.10%
+Net Receivables/Payables 28.63%
+Vaneck Gold Miners ETF -0.14%
+TOTAL 100.00%
+BlackRock Global Funds - World Gold Fund (Underlying Fund) as of 31-July-2026
+Top10 stocks
+Security % to Net Assets
+BARRICK MINING CORP 8.16%
+AGNICO EAGLE MINES LTD (ONTARIO) 6.59%
+NEWMONT CORPORATION 6.16%
+ANGLOGOLD ASHANTI PLC 6.06%
+WHEATON PRECIOUS METALS CORP 5.77%
+FRANCO-NEVADA CORP 4.78%
+NORTHERN STAR RESOURCES LTD 4.67%
+ENDEAVOUR MINING PLC 4.03%
+KINROSS GOLD CORP 3.98%
+TOREX GOLD RESOURCES INC 3.62%
+Others 46.18%
+TOTAL 100.00%
+Sector Allocation
+Gold 91.94%
+Silver 7.15%
+Cash and/or Derivatives 0.74%
+Copper 0.05%
+OTHERS 0.11%
+TOTAL 99.99%
+Additional Disclosure
+Month End Expense Ratio
+Plan Name Base Expense Ratio (BER)** 
+Scheme Underlying Funds*^ Total
+Direct 0.75% 0.86% 1.61%
+Regular 1.24% 0.86% 2.10%
+* Weighted average BER (in case of domestic funds) and TER (in case of international 
+funds) of the underlying funds.
+^ Kindly refer Overseas mutual fund section portfolio for more details.
+The investors are bearing the recurring expenses of the Fund, in addition to the expenses 
+of the underlying Fund.
+DSP World Gold Mining Overseas Equity Omni FoF (Erstwhile 
+known DSP World Gold Fund of Fund) 
+Portfolio
+Disclaimer- With effect from March 03, 2023, the name of scheme, type of the 
+scheme, product labelling, investment objective of the scheme, Investment 
+strategies and asset allocation pattern has been revised. Investors are 
+requested to refer the notice cum addenda and updated SID of the scheme 
+available on the website
+- www.dspim.com
+Please refer to Notice cum addendum dated August 22, 2025 for change of 
+name of few of the schemes w.e.f. August 31, 2025.
+Additional Disclosure of Overseas Mutual Fund Holdings 
+Vaneck Gold Miners ETF
+Name of Instrument % to Net
+Assets
+MONEY MARKET INSTRUMENTS
+TREPS / Reverse Repo Investments 4.03%
+Total 4.03%
+OTHERS
+Overseas Mutual Fund
+BlackRock Global Funds - World Gold Fund ^^ 66.74%
+Vaneck Gold Miners ETF 29.52%
+Total 96.26%
+Cash & Cash Equivalent
+Net Receivables/Payables -0.29%
+Total -0.29%
+GRAND TOTAL 100.00%
+**Base Expense Ratio (BER) as per Regulation 66(7) of SEBI (Mutual Funds) 
+Regulations, 2026. For Total Expense Ratio (TER), refer https://www.dspim.
+com/ter21
+INCEPTION DATE
+August 03, 2012
+BENCHMARK
+Russell 1000 TR
+FUND MANAGER
+Kaivalya Nadkarni
+Total work experience of 6 years.
+Managing this scheme since May 2025.
+NAV AS ON 
+AUGUST 31, 2026
+Regular Plan
+Growth: ` 92.4529
+Direct Plan
+Growth: ` 102.3133
+TOTAL AUM
+1,270 Cr.
+MONTHLY AVERAGE AUM
+1,287 Cr.
+^^ Fund domiciled in Luxembourg
+^^ Fund domiciled in Luxembourg
+Please refer to Notice cum addendum dated August 08, 2024 for change in fundamental attribute of scheme with effect from September 21, 2024.
+Please refer to Notice cum addendum dated August 22, 2025 for change of name of few of the schemes w.e.f. August 31, 2025.
+Name of Instrument % to Net
+Assets
+MONEY MARKET INSTRUMENTS
+TREPS / Reverse Repo Investments 4.09%
+Total 4.09%
+OTHERS
+Overseas Mutual Fund
+BlackRock Global Funds - US Flexible Equity Fund ^^ 96.03%
+Total 96.03%
+Cash & Cash Equivalent
+Net Receivables/Payables -0.13%
+Total -0.13%
+GRAND TOTAL 100.00%
+DSP US Specific Equity Omni FoF as of 31-July-2026 % to Net Assets
+BlackRock Global Funds - US Flexible Equity Fund ^^ 95.78%
+TREPS / Reverse Repo Investments 4.35%
+Net Receivables/Payables -0.13%
+TOTAL 100.00%
+BlackRock Global Funds - DSP US Flexible Equity Fund (Underlying Fund) as of 31-July-2026
+Top 10 stocks
+Security % to Net Assets
+AMAZON.COM INC 7.55%
+NVIDIA CORPORATION 6.47%
+MICROSOFT CORPORATION 5.08%
+ALPHABET INC 5.05%
+META PLATFORMS INC 4.15%
+VISA INC 4.10%
+CARDINAL HEALTH INC 3.68%
+APPLE INC 3.68%
+ATI INC 3.25%
+WESCO INTERNATIONAL INC 3.19%
+Others 53.80%
+Cash
+TOTAL 100.00%
+Sector Allocation
+Information Technology 36.10%
+Industrials 13.39%
+Communication 10.49%
+Consumer Discretionary 10.24%
+Financials 10.04%
+Health Care 9.86%
+Energy 2.94%
+Materials 2.42%
+Utilities 2.20%
+Cash and/or Derivatives 1.63%
+Others 0.68%
+TOTAL 99.99%
+Additional Disclosure
+Month End Expense Ratio
+Plan Name Base Expense Ratio (BER)** 
+Scheme Underlying Funds*^ Total
+Direct 0.63% 0.76% 1.39%
+Regular 1.34% 0.76% 2.10%
+* Weighted average BER (in case of domestic funds) and TER (in case of international 
+funds) of the underlying funds.
+^Kindly refer Overseas mutual fund section of scheme portfolio for more details.
+The investors are bearing the recurring expenses of the Fund, in addition to the expenses 
+of the underlying Fund.
+DSP US Specific Equity Omni FoF (Erstwhile known as DSP US 
+Flexible Equity Fund of Fund)
+An open ended Fund of Fund scheme investing in overseas Funds/ETFs that provides exposure to US equity market
+Portfolio
+**Base Expense Ratio (BER) as per Regulation 66(7) of SEBI (Mutual Funds) 
+Regulations, 2026. For Total Expense Ratio (TER), refer https://www.dspim.
+com/ter

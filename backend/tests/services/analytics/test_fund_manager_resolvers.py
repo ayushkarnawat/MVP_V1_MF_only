@@ -1,6 +1,48 @@
 # backend/tests/services/analytics/test_fund_manager_resolvers.py
 from app.services.analytics.fund_manager_layouts import LAYOUTS
 from app.services.analytics.fund_manager_resolvers import AMC_RESOLVERS, ResolverKind
+import pytest
+
+
+@pytest.mark.parametrize("amc,layout,landing", [
+    ("Abakkus Mutual Fund", "abakkus", "https://www.abakkusmf.com/factsheet.html"),
+    ("Canara Robeco Mutual Fund", "canara", "https://www.canararobeco.com/documents/forms-downloads/forms-information-documents/information-documents/factsheets/"),
+    ("Capitalmind Mutual Fund", "capitalmind", "https://capitalmindmf.com/factsheet.html"),
+    ("Groww Mutual Fund", "groww", "https://www.growwmf.in/downloads/fact-sheet"),
+    ("Helios Mutual Fund", "helios", "https://www.heliosmf.in/downloads"),
+    ("HSBC Mutual Fund", "hsbc", "https://www.assetmanagement.hsbc.co.in/en/mutual-funds/investor-resources?Doc=fund-factsheets"),
+])
+def test_batch_one_verified_sources_are_enabled(amc, layout, landing):
+    entry = AMC_RESOLVERS[amc]
+    assert entry.kind is ResolverKind.STATIC_LINK
+    assert entry.layout == layout
+    assert entry.landing_url == landing
+
+
+@pytest.mark.parametrize("amc,reason", [
+    ("Bajaj Finserv Mutual Fund", "stale"),
+    ("LIC Mutual Fund", "geometry"),
+])
+def test_blocked_batch_one_amcs_remain_disabled_with_auditable_notes(amc, reason):
+    entry = AMC_RESOLVERS[amc]
+    assert entry.layout is None
+    assert reason in entry.note.lower()
+
+
+def test_dsp_uses_verified_download_api():
+    entry = AMC_RESOLVERS["DSP Mutual Fund"]
+    assert entry.kind is ResolverKind.JSON_API
+    assert entry.layout == "dsp"
+    assert entry.response_json_path == "data"
+    assert entry.endpoint_url == "https://www.dspim.com/downloads.json?page=1&per_page=10&category=Information%20Documents&sub_category=Factsheets"
+
+
+def test_absl_uses_its_verified_monthly_factsheet_api_and_current_reader():
+    entry = AMC_RESOLVERS["Aditya Birla Sun Life Mutual Fund"]
+    assert entry.kind is ResolverKind.JSON_API
+    assert entry.layout == "absl_september"
+    assert entry.response_json_path == "MonthlyFactsheets"
+    assert "GetMonthlyFactsheetsByYear?datasourceId=" in entry.endpoint_url
 
 
 def test_every_amfi_fund_house_with_schemes_is_listed():

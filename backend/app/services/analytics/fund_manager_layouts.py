@@ -93,7 +93,7 @@ def bullets_slash(page: str) -> list[dict] | None:
         role = re.search(r"\(([^)]*)\)", raw)
         managers.append({"name": _clean_name(re.sub(r"\([^)]*\)", "", raw)),
                          "role": role.group(1).strip() if role else None, "since_raw": None})
-    since = re.search(r"Managing\s*Since\s*:?(.*?)(?:Minimum Investment|Load Structure|Benchmark|$)", page, re.S)
+    since = re.search(r"Managing\s*[Ss]ince\s*:?(.*?)(?:Minimum (?:Additional )?Investment|Load Structure|Benchmark|$)", page, re.S)
     dates = [d.strip() for d in " ".join(since.group(1).split()).split("/")] if since else []
     for manager, date_raw in zip(managers, dates):
         manager["since_raw"] = date_raw or None
@@ -150,6 +150,136 @@ def absl_line(page: str) -> list[dict] | None:
     return managers
 
 
+def abakkus_bullets(page: str) -> list[dict] | None:
+    """September 2026: bullet names with sleeve roles; since dates labelled by name.
+
+    The name block prints 'Abhishek K S', while the date block sometimes prints
+    'Abhishek KS'. Compare whitespace-free names, never pair by column/text order.
+    """
+    text = " ".join(page.split())
+    block = re.search(r"Name of Fund Managers[:;](.*?)(?:Total Experience|Minimum SIP|Performance of scheme)", text)
+    if not block:
+        return None
+    dates = {
+        re.sub(r"\s", "", _clean_name(m.group(1))): m.group(2).strip()
+        for m in re.finditer(r"((?:Mr|Ms|Mrs|Dr)\.?\s+[A-Za-z. ]+?)\s*\((\d{1,2}(?:st|nd|rd|th)? [A-Za-z]+ \d{4})\)", text)
+    }
+    return [
+        {"name": _clean_name(m.group(1)), "role": m.group(2).strip(),
+         "since_raw": dates.get(re.sub(r"\s", "", _clean_name(m.group(1))))}
+        for m in re.finditer(r"•\s*((?:Mr|Ms|Mrs|Dr)\.?\s+[A-Za-z. ]+?)\s*\(([^)]+)\)", block.group(1))
+    ]
+
+
+def _absl_scheme_heading(page: str) -> str:
+    """The scheme title immediately precedes Type of Scheme, after metrics.
+
+    Earlier brand lines name creation units or underlying holdings, not this fund.
+    """
+    lines = [line.strip() for line in page.splitlines() if line.strip()]
+    for i, line in enumerate(lines):
+        if line.startswith("Type of Scheme:"):
+            for j in range(i - 1, max(-1, i - 4), -1):
+                if lines[j].startswith("Aditya Birla Sun Life"):
+                    return " ".join(lines[j:i])
+    return ""
+
+
+def canara_scheme_managers(page: str) -> list[dict] | None:
+    """Use individual scheme pages, never the flattened multi-fund snapshots."""
+    block = re.search(r"FUND MANAGER:\s*(.*?)DATE OF ALLOTMENT:", page, re.S)
+    if not block:
+        return None
+    text = " ".join(block.group(1).split())
+    names = list(re.finditer(r"(?:Mr|Ms|Mrs|Dr)\.\s*([A-Za-z. ]+?)\s*\(", text))
+    managers = []
+    for i, name in enumerate(names):
+        detail = text[name.end():names[i + 1].start() if i + 1 < len(names) else len(text)]
+        since = re.search(r"Managing fund since\s*([^&()]+?)\s*&\s*Overall", detail)
+        role = re.search(r"(?:^|\()(For [^)]+|Dedicated Fund Manager [^)]+)\)", detail)
+        # A name without a parseable date is still a manager; dropping it would leave a
+        # partial list that looks complete (Run 3 review).
+        managers.append({"name": _clean_name(name.group(1)), "role": role.group(1).strip() if role else None,
+                         "since_raw": since.group(1).strip() if since else None})
+    return managers
+
+
+def _canara_heading(page: str) -> str:
+    heading = _brand_line_heading(page, "CANARA ROBECO ").split("(", 1)[0].strip()
+    return re.sub(r"[*#^$~@&]+$", "", heading).strip()
+
+
+def _hsbc_heading(page: str) -> str:
+    for line in page.splitlines():
+        if line.strip().startswith("HSBC "):
+            return re.sub(r"\s+(?:ID\s+)?HSBC Mutual Fund.*$", "", line.strip())
+    return ""
+
+
+def helios_experience(page: str) -> list[dict] | None:
+    block = re.search(r"Name of Fund Managers:(.*?)Minimum Investment", page, re.S)
+    if not block:
+        return None
+    return [{"name": _clean_name(m.group(1)), "role": m.group(2), "since_raw": m.group(3)}
+            for m in re.finditer(rf"((?:Mr|Ms|Mrs|Dr)\.\s*[A-Za-z. ]+?)\s*(?:\(([^)]+)\))?\s+Total Experience:\s*\d+ years\s+Managing Since:\s*(Inception|{_DATE})", " ".join(block.group(1).split()))]
+
+
+def _groww_heading(page: str) -> str:
+    # Scheme titles print GROWW; portfolio holdings print Groww.
+    return _brand_line_heading("\n".join(line for line in page.splitlines()
+                                        if not line.lstrip().startswith("Groww ")), "GROWW ")
+
+
+def groww_scheme_managers(page: str) -> list[dict] | None:
+    """Manager details on individual scheme pages; summary tables are excluded."""
+    if not re.search(r"^GROWW ", page, re.M) or "FUND MANAGER" not in page:
+        return None
+    text = " ".join(page.split())
+    names = list(re.finditer(r"(?:Mr|Ms|Mrs|Dr)\.\s*([A-Z][A-Za-z. ]+?)(?=\s*\(|\s+-|\s+Total experience)", text))
+    managers = []
+    for i, name in enumerate(names):
+        detail = text[name.end():names[i + 1].start() if i + 1 < len(names) else len(text)].strip()
+        if re.search(r"ceased to be (?:a )?(?:FM|fund manager)", detail, re.I):
+            continue  # "(Ceased to be FM Sep 10, 2026)": a departed manager, not a current one
+        since = re.search(r"\(Managing (?:Fund )?Since\s+([^()]+)\)", detail, re.I)
+        role = re.match(r"\(((?:[^()]|\([^()]*\))+)\)", detail)
+        role_raw = role.group(1).strip() if role and not role.group(1).lower().startswith("managing") else None
+        if detail.startswith("-"):
+            role_raw = detail[1:].split("(", 1)[0].strip()
+        managers.append({"name": _clean_name(name.group(1)), "role": role_raw,
+                         "since_raw": since.group(1).strip() if since else None})
+    return managers
+
+
+def _dsp_heading(page: str) -> str:
+    # Overseas holdings captions also start with DSP but carry an 'as of' date.
+    return _brand_line_heading("\n".join(line for line in page.splitlines() if " as of " not in line), "DSP ")
+
+
+def dsp_experience(page: str) -> list[dict] | None:
+    """Individual DSP scheme pages: each name precedes its experience and since."""
+    block = re.search(r"FUND MANAGER\s+(.*?)(?:NAV AS ON|BSE & NSE SCRIP CODE)", page, re.S)
+    if not block:
+        return None
+    return [
+        {"name": _clean_name(m.group(1)), "role": m.group(2), "since_raw": m.group(3)}
+        for m in re.finditer(
+            rf"([A-Z][A-Za-z. ]+?)\s*(?:\(([^)]+)\))?\s+Total work experience of (?:over )?\d+ years\.\s*Managing (?:this|the) (?:Scheme|scheme|fund) since\s+({_MONTH}\s+(?:\d{{1,2}},\s*)?\d{{4}})",
+            " ".join(block.group(1).split()))
+    ]
+
+
+def capitalmind_table(page: str) -> list[dict] | None:
+    """August 2026 scheme pages: name / experience / since in separate rows."""
+    block = re.search(r"Fund Manager Details\s*Name\s*Experience\s*Managing\s*Since(.*?)Minimum Investment", page, re.S)
+    if not block:
+        return None
+    return [
+        {"name": _clean_name(m.group(1)), "role": None, "since_raw": m.group(2)}
+        for m in re.finditer(rf"([A-Z][A-Za-z. ]+?)\s+\d+(?:\.\d+)?\+?\s*yrs\s+(Inception|{_MONTH}\s+\d{{4}})", " ".join(block.group(1).split()))
+    ]
+
+
 def _reader(managers: Callable[[str], list[dict] | None], heading: Callable[[str], str]) -> Callable[[str], SchemePage | None]:
     def read(page: str) -> SchemePage | None:
         found = managers(page)
@@ -160,6 +290,14 @@ def _reader(managers: Callable[[str], list[dict] | None], heading: Callable[[str
 # One reader per AMC: a manager layout plus where that AMC prints the scheme name.
 # Task 8 adds an entry per onboarded AMC (reusing a layout where the shape matches).
 LAYOUTS: dict[str, Callable[[str], SchemePage | None]] = {
+    "hsbc": _reader(bullets_slash, _hsbc_heading),
+    "helios": _reader(helios_experience, lambda p: _brand_line_heading(p, "Helios ")),
+    "groww": _reader(groww_scheme_managers, _groww_heading),
+    "dsp": _reader(dsp_experience, _dsp_heading),
+    "capitalmind": _reader(capitalmind_table, lambda p: _brand_line_heading(p, "Capitalmind ")),
+    "canara": _reader(canara_scheme_managers, _canara_heading),
+    "abakkus": _reader(abakkus_bullets, lambda p: _brand_line_heading(p, "Abakkus ")),
+    "absl_september": _reader(bullets_slash, _absl_scheme_heading),
     "nippon": _reader(bullets_slash, lambda p: _brand_line_heading(p, "Nippon India")),
     "edelweiss": _reader(bullets_slash, _first_line_heading),
     "hdfc": _reader(hdfc_table, _first_line_heading),

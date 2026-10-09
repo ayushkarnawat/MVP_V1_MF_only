@@ -1,5 +1,6 @@
 # backend/tests/services/analytics/test_amfi_factsheet_client.py
 import uuid
+import json
 import asyncio
 from datetime import date
 from pathlib import Path
@@ -18,6 +19,73 @@ from app.services.analytics.amfi_factsheet_client import (
     match_scheme_page,
 )
 from app.services.analytics.fund_manager_layouts import SchemePage
+
+
+def test_hsbc_document_uuid_does_not_override_the_monthly_filename():
+    from app.services.analytics.amfi_factsheet_client import _static_link_candidates
+    def handle(request):
+        return httpx.Response(200, text='<a href="/assets/2050/the-asset-factsheet-feb-2023.pdf">The Asset Feb 2023</a><a href="/assets/877d5650/the-asset-august-2026.pdf">The Asset as on - August 2026</a>')
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+            return await _static_link_candidates(client, "https://www.assetmanagement.hsbc.co.in/en/mutual-funds/investor-resources", "the-asset|The Asset")
+    assert asyncio.run(run())[0].endswith("the-asset-august-2026.pdf")
+
+
+def test_groww_static_landing_includes_embedded_monthly_documents():
+    from app.services.analytics.amfi_factsheet_client import _static_link_candidates
+    payload = {"props": {"pageProps": {"filesData": {"name": "Downloads", "folders": [
+        {"name": "Fact Sheet", "folders": [{"name": "2026 - 2027", "files": [
+            {"name": "Monthly Factsheet August 2026.pdf", "publicUrl": "https://assets-netstorage.growwmf.in/2026-2027/august-2026.pdf"},
+            {"name": "Monthly Factsheet_July 2026.pdf", "publicUrl": "https://assets-netstorage.growwmf.in/2026-2027/july-2026.pdf"},
+        ]}]}]}}}}
+    def handle(request):
+        return httpx.Response(200, text='<script id="__NEXT_DATA__" type="application/json">' + json.dumps(payload) + '</script>')
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+            return await _static_link_candidates(client, "https://www.growwmf.in/downloads/fact-sheet", r"Monthly\s+Factsheet")
+    assert asyncio.run(run()) == ["https://assets-netstorage.growwmf.in/2026-2027/august-2026.pdf", "https://assets-netstorage.growwmf.in/2026-2027/july-2026.pdf"]
+
+
+def test_dsp_download_api_uses_verified_fields_and_monthly_order():
+    from app.services.analytics.amfi_factsheet_client import _json_api_candidates
+    from app.services.analytics.fund_manager_resolvers import ResolverEntry, ResolverKind
+    def handle(request):
+        assert request.url.params["sub_category"] == "Factsheets"
+        return httpx.Response(200, json={"data": [
+            {"title": "Factsheet July 2026", "pdf_url": "/downloads/dsp-factsheet-july-2026.pdf"},
+            {"title": "Factsheet August 2026", "pdf_url": "/downloads/dsp-factsheet-august-2026.pdf"},
+        ]})
+    entry = ResolverEntry(ResolverKind.JSON_API, "DSP Asset Managers Private Limited",
+        endpoint_url="https://www.dspim.com/downloads.json?page=1&per_page=10&category=Information%20Documents&sub_category=Factsheets", response_json_path="data")
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+            return await _json_api_candidates(client, entry)
+    assert asyncio.run(run()) == ["https://www.dspim.com/downloads/dsp-factsheet-august-2026.pdf", "https://www.dspim.com/downloads/dsp-factsheet-july-2026.pdf"]
+
+
+def test_absl_document_api_uses_verified_fields_and_current_year():
+    from app.services.analytics.amfi_factsheet_client import _json_api_candidates
+    from app.services.analytics.fund_manager_resolvers import ResolverEntry, ResolverKind
+    requests = []
+
+    def handle(request):
+        requests.append(request)
+        return httpx.Response(200, json={"MonthlyFactsheets": [
+            {"DocumentTitle": "Empower for the Month of August 2026", "DocumentLink": "/august-2026.pdf"},
+            {"DocumentTitle": "Empower for the Month of September 2026", "DocumentLink": "/september-2026.pdf"},
+        ]})
+
+    entry = ResolverEntry(ResolverKind.JSON_API, "Aditya Birla Sun Life AMC Limited", layout="absl",
+        endpoint_url="https://mutualfund.adityabirlacapital.com/api/sitecore/CalculatorPage/GetMonthlyFactsheetsByYear?datasourceId=%7B2D97ABF5-4F12-479A-86D6-27C538F48D13%7D",
+        response_json_path="MonthlyFactsheets")
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+            return await _json_api_candidates(client, entry)
+
+    assert asyncio.run(run()) == ["https://mutualfund.adityabirlacapital.com/september-2026.pdf", "https://mutualfund.adityabirlacapital.com/august-2026.pdf"]
+    assert requests[0].url.params["year"] == "2026"
+    assert requests[0].url.params["datasourceId"] == "{2D97ABF5-4F12-479A-86D6-27C538F48D13}"
 
 
 @pytest.fixture(autouse=True)
@@ -79,6 +147,22 @@ def test_two_close_candidates_are_refused():
     # Target-maturity funds differ only by date; a heading missing it scores 0.824 against both.
     families = build_families([_scheme("ABC Nifty G-Sec Jun 2027 Index Fund"), _scheme("ABC Nifty G-Sec Dec 2027 Index Fund")])
     assert match_scheme_page(_page("ABC Nifty G-Sec Index"), families) is None
+
+
+@pytest.mark.parametrize("printed,current", [
+    ("Aditya Birla Sun Life Large & Midcap Fund", "Aditya Birla Sun Life Large & Mid Cap Fund"),
+    ("Aditya Birla Sun Life Silver ETF Fund of Fund", "Aditya Birla Sun Life Silver ETF FOF"),
+    ("Aditya Birla Sun Life US Treasury 1-3 year Bonds ETFs Passive FOF", "Aditya Birla Sun Life US Treasury 1-3 Year Bond ETFs Passive FOF"),
+    ("Aditya Birla Sun Life US Treasury 3-10 year Bonds ETFs Passive FOF", "Aditya Birla Sun Life US Treasury 3-10 Year Bond ETFs Passive FOF"),
+])
+def test_absl_verified_printed_name_aliases_are_exact_and_amc_scoped(printed, current):
+    amc = "Aditya Birla Sun Life Mutual Fund"
+    families = build_families([_scheme(current, amc=amc)])
+    result = match_scheme_page(_page(printed), families)
+    assert result is not None
+    assert (result[0].base_name, result[1], result[2]) == (current, MATCH_METHOD_EXACT, Decimal("1.0"))
+    other = match_scheme_page(_page(printed), build_families([_scheme(current, amc="Other AMC")]))
+    assert other is None or other[1] != MATCH_METHOD_EXACT
 
 
 def test_segregated_and_erstwhile_notes_are_ignored():
@@ -372,3 +456,64 @@ def test_a_name_listed_twice_on_one_page_is_written_once(db_session):
     db_session.commit()
     rows = db_session.query(SchemeFundManager).filter_by(scheme_id=scheme.id).all()
     assert [(r.manager_name, r.role) for r in rows] == [("Jane Doe", None)]
+
+
+def test_file_name_date_beats_the_upload_folder_and_duplicates_collapse():
+    """Run 3 (Canara, Helios): /uploads/2026/01/…-December-2025.pdf outranked the August 2026
+    file because the folder's year was taken; and repeated links used up candidate slots."""
+    from app.services.analytics.amfi_factsheet_client import _static_link_candidates
+    page = (
+        '<a href="/wp-content/uploads/2026/01/Factsheet-as-on-December-2025.pdf">Factsheet Dec</a>'
+        '<a href="/wp-content/uploads/2026/09/Factsheet-as-on-August-2026.pdf">Factsheet Aug</a>'
+        '<a href="/wp-content/uploads/2026/09/Factsheet-as-on-August-2026.pdf">Download</a>'
+        '<a href="/wp-content/uploads/2026/08/Factsheet-as-on-July-2026.pdf">Factsheet Jul</a>'
+    )
+    async def run():
+        def handler(request):
+            return httpx.Response(200, text=page)
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler), trust_env=False) as http:
+            return await _static_link_candidates(http, "https://example.test/docs", None)
+    assert asyncio.run(run()) == [
+        "https://example.test/wp-content/uploads/2026/09/Factsheet-as-on-August-2026.pdf",
+        "https://example.test/wp-content/uploads/2026/08/Factsheet-as-on-July-2026.pdf",
+        "https://example.test/wp-content/uploads/2026/01/Factsheet-as-on-December-2025.pdf",
+    ]
+
+
+def test_absl_falls_back_to_last_year_early_in_january(monkeypatch):
+    """Review (10 Oct): on 5 Jan the current year has no uploads yet; December's file is current."""
+    from app.services.analytics import amfi_factsheet_client as client
+    from app.services.analytics.fund_manager_resolvers import ResolverEntry, ResolverKind
+
+    class January(date):
+        @classmethod
+        def today(cls):
+            return date(2027, 1, 5)
+    monkeypatch.setattr(client, "date", January)
+
+    def handle(request):
+        if request.url.params["year"] == "2027":
+            return httpx.Response(200, json={"MonthlyFactsheets": []})
+        return httpx.Response(200, json={"MonthlyFactsheets": [
+            {"DocumentTitle": "Empower for the Month of December 2026", "DocumentLink": "/december-2026.pdf"}]})
+    entry = ResolverEntry(ResolverKind.JSON_API, "Aditya Birla Sun Life AMC Limited", layout="absl",
+        endpoint_url="https://mutualfund.adityabirlacapital.com/api/x?datasourceId=1", response_json_path="MonthlyFactsheets")
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as http:
+            return await client._json_api_candidates(http, entry)
+    assert asyncio.run(run()) == ["https://mutualfund.adityabirlacapital.com/december-2026.pdf"]
+
+
+def test_groww_skips_a_malformed_embedded_document():
+    import json
+    from app.services.analytics.amfi_factsheet_client import _static_link_candidates
+    payload = {"props": {"pageProps": {"filesData": {"files": [
+        {"name": "Monthly Factsheet September 2026.pdf"},  # no publicUrl
+        {"name": "Monthly Factsheet August 2026.pdf", "publicUrl": "https://assets-netstorage.growwmf.in/august-2026.pdf"},
+    ], "folders": []}}}}
+    def handler(request):
+        return httpx.Response(200, text='<script id="__NEXT_DATA__" type="application/json">' + json.dumps(payload) + '</script>')
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler), trust_env=False) as http:
+            return await _static_link_candidates(http, "https://www.growwmf.in/downloads/fact-sheet", r"Monthly\s+Factsheet")
+    assert asyncio.run(run()) == ["https://assets-netstorage.growwmf.in/august-2026.pdf"]

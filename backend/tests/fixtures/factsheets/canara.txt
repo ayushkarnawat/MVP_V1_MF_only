@@ -1,0 +1,419 @@
+24
+CANARA ROBECO CONSERVATIVE HYBRID FUND
+(An open ended hybrid scheme investing predominantly in debt instruments)
+$
+Source ICRA MFI Explorer. #Month end AUM as on 31.08.2026
+^For complete details of Base Expense Ratio refer link: https://www.canararobeco.com/expense-ratio
+Please refer last page for Definition and Disclaimers.
+#Please Refer Notice Cum Addendum No.64 Dated November 28, 2025 For Change In Fund Managers Of Canara Robeco Conservative Hybrid Fund 
+(with effect from December 01, 2025).
+SCHEME OBJECTIVE: To generate income by investing in a wide range 
+of Debt Securities and Money Market instruments of various maturities 
+and small portion in equities and Equity Related Instruments. However, 
+there can be no assurance that the investment objective of the scheme 
+will be realized.
+FUND INFORMATION
+PLANS / OPTIONS: Regular Plan - Monthly Payout of Income Distribution
+cum Capital Withdrawal Option
+Regular Plan - Monthly Reinvestment of Income Distribution cum
+Capital Withdrawal Option
+Regular Plan - Quarterly Payout of Income Distribution
+cum Capital Withdrawal Option
+Regular Plan - Quarterly Reinvestment of Income Distribution cum
+Capital Withdrawal Option
+Regular Plan - Growth Option
+Direct Plan - Monthly Payout of Income Distribution cum Capital
+Withdrawal Option
+Direct Plan -Monthly Reinvestment of Income Distribution cum Capital
+Withdrawal Option
+Direct Plan - Quarterly Payout of Income Distribution cum Capital
+Withdrawal Option
+Direct Plan - Quarterly Reinvestment of Income Distribution cum Capital
+Withdrawal Option
+Direct Plan - Growth Option
+MINIMUM INVESTMENT: 
+Lump sum Investment: ` 5000 and in multiples of ` 1 thereafter
+Subsequent purchases: Minimum amount of ` 1000 and multiples of
+` 1 thereafter
+Systematic Investment Plan (SIP): For Any date/monthly frequency – `
+1000 and in multiples of ` 1 thereafter
+For quarterly frequency – ` 2000 and in multiples of ` 1 thereafter
+Systematic Transfer Plan (STP): For Daily/Weekly/Monthly frequency – 
+` 1000 and in multiples of ` 1 thereafter
+For quarterly frequency – ` 2000 and in multiples of ` 1 thereafter
+Systematic Withdrawal Plan (SWP): For monthly frequency – ` 1000 
+and in multiples of ` 1 thereafter
+For quarterly frequency – ` 2000 and in multiples of ` 1 thereafter
+For Annual Frequency – ` 2,000 and in multiples of ` 1 thereafter
+EXIT LOAD:
+For any redemption / Switch out up to 10% of units within 1 year from 
+thedate of allotment - nil
+For any redemption / Switch out more than 10% of units within 1 year 
+from the date of allotment - 1 %
+For any redemption / Switch out after 10% of units within 1 year from the
+date of allotment - nil 
+FUND MANAGER: 
+Mr. Avnish Jain (Managing fund since 7-Oct-13 & Overall experience of 
+31 years) (For Debt Portfolio )
+#Ms. Suman Prasad (Managing fund since 01-Dec-25 & Overall 
+experience of 28 years)
+Mr. Amit Kadam (Managing fund since 10-April-24 & Overall experience 
+of 15 years) (For Equity Portfolio)
+DATE OF ALLOTMENT: April 24, 1988
+BENCHMARK: CRISIL Hybrid 85+15-Conservative Index
+Month end Assets Under Management (AUM)# ` 852.49 Crores
+Monthly AVG Assets Under Management (AAUM) ` 861.06 Crores
+NAV: (as on August 31, 2026)
+Direct Plan - Growth Option ` 116.1935
+Regular Plan - Growth Option ` 99.9656
+Direct Plan - Monthly IDCW (payout/reinvestment) ` 16.0213
+Regular Plan - Monthly IDCW (payout/reinvestment) ` 12.2672
+Regular Plan - Quarterly IDCW (payout/reinvestment) ` 13.5365
+Direct Plan - Quarterly IDCW (payout/reinvestment) ` 16.2755
+QUANTITATIVE
+INFORMATION$
+Equity Quants
+Standard Deviation 4.46
+Portfolio Beta 1.08
+Portfolio Turnover Ratio (Equity) 0.11 times
+Portfolio Turnover Ratio 1.25 times
+Sharpe Ratio 0.38
+R-Squared 0.88
+Debt Quants
+Annualised Portfolio YTM 7.03%
+Modified Duration 2.05 Years
+Average Maturity 3.78 Years
+Macaulay Duration 2.16 Years
+BASE EXPENSE RATIO (BER)^
+:
+Regular Plan (%) 1.53
+Direct Plan (%) 0.56
+PORTFOLIO
+Name of the Instruments/Issuer Rating % of NAV
+Equities 24.16%
+Listed / awaiting listing on Stock 
+Exchange 24.16%
+Banks 4.74%
+ICICI Bank Ltd 2.31%
+HDFC Bank Ltd 1.58%
+Kotak Mahindra Bank Ltd 0.55%
+Ujjivan Small Finance Bank Ltd 0.30%
+Finance 3.83%
+Bajaj Finance Ltd 1.23%
+Cholamandalam Investment and 
+Finance Co Ltd 0.83%
+Home First Finance Co India Ltd 0.70%
+Tata Capital Ltd 0.56%
+Shriram Finance Ltd 0.51%
+Healthcare Services 2.52%
+Dr. Lal Path Labs Ltd 0.91%
+Global Health Ltd 0.75%
+Max Healthcare Institute Ltd 0.67%
+Dr. Agarwals Health Care Ltd 0.19%
+Food Products 1.45%
+Britannia Industries Ltd 0.74%
+Mrs Bectors Food Specialities Ltd 0.71%
+Retailing 1.45%
+Eternal Ltd 0.80%
+V-Mart Retail Ltd 0.29%
+Info Edge (India) Ltd 0.22%
+Vishal Mega Mart Ltd 0.14%
+Pharmaceuticals & Biotechnology 1.08%
+Torrent Pharmaceuticals Ltd 1.08%
+Leisure Services 1.03%
+Chalet Hotels Ltd 0.82%
+Jubilant Foodworks Ltd 0.21%
+IT - Software 0.85%
+Tech Mahindra Ltd 0.56%
+Ltm Ltd 0.29%
+Telecom - Services 0.84%
+Bharti Airtel Ltd 0.84%
+Transport Services 0.83%
+Interglobe Aviation Ltd 0.83%
+Construction 0.82%
+Larsen & Toubro Ltd 0.82%
+Consumer Durables 0.66%
+Cera Sanitaryware Ltd 0.51%
+Havells India Ltd 0.15%
+Beverages 0.61%
+Varun Beverages Ltd 0.61%
+Cement & Cement Products 0.55%
+Ultratech Cement Ltd 0.55%
+Auto Components 0.42%
+Motherson Sumi Wiring India Ltd 0.42%
+Industrial Products 0.42%
+APL Apollo Tubes Ltd 0.42%
+Realty 0.38%
+Aditya Birla Real Estate Ltd 0.38%
+Petroleum Products 0.35%
+Reliance Industries Ltd 0.35%
+IT - Services 0.33%
+Affle 3i Ltd 0.33%
+Industrial Manufacturing 0.28%
+Name of the Instruments/Issuer Rating % of NAV
+Titagarh Rail Systems Ltd 0.28%
+Automobiles 0.27%
+Eicher Motors Ltd 0.27%
+Aerospace & Defense 0.17%
+Bharat Electronics Ltd 0.17%
+Gas 0.12%
+Gujarat Energy Ltd 0.10%
+GSPL Transmission Ltd 0.02%
+Fertilizers & Agrochemicals 0.10%
+Coromandel International Ltd 0.10%
+Capital Markets 0.06%
+Multi Commodity Exchange Of India Ltd 0.06%
+Debt Instruments 33.76%  Bajaj Housing Finance Ltd AAA(CRISIL) 3.47%  HDFC Bank Ltd AAA(CRISIL) 3.00%
+ Small Industries Development Bank 
+Of India AAA(CRISIL) 2.94%
+ Tata Capital Housing Finance Ltd AAA(CRISIL) 2.94%  Kotak Mahindra Prime Ltd AAA(CRISIL) 2.94%  Bajaj Finance Ltd AAA(CRISIL) 2.94%  LIC Housing Finance Ltd AAA(CRISIL) 2.93%  Power Finance Corporation Ltd AAA(CRISIL) 2.93%
+LIC Housing Finance Ltd AAA(CRISIL) 2.89%
+Indian Oil Corporation Ltd AAA(CRISIL) 2.34%
+HDFC Bank Ltd AAA(CRISIL) 1.79%
+National Bank For Agriculture & Rural 
+Development AAA(CRISIL) 1.76%
+Power Grid Corporation of India Ltd AAA(CRISIL) 0.59%
+Indian Railway Finance Corporation Ltd AAA(CRISIL) 0.30%
+Government Securities 26.41%  6.94% GOI 2036 (11-MAY-2036) Sovereign 6.74%  GOI FRB 2034 (30-OCT-2034) Sovereign 4.22%
+GOI FRB 2033 (22-SEP-2033) Sovereign 2.45%
+8.26% GUJARAT SDL 14-MAR-28 Sovereign 2.40%
+8.15% RAJASTHAN SDL 16-APR-29 Sovereign 1.80%
+6.28% GOI 2032 (14-JUL-2032) Sovereign 1.21%
+7.59% RAJASTHAN SDL 04-JUN-29 Sovereign 1.19%
+7.11% TAMIL NADU SDL 31-JUL-29 Sovereign 1.18%
+6.60% GUJARAT SDL 20-MAY-29 Sovereign 1.16%
+8.53% GUJARAT SDL 20-NOV-28 Sovereign 0.61%
+8.34% UTTAR PRADESH SDL 06-FEB-29 Sovereign 0.60%
+7.48% KERALA SDL 23-AUG-32 Sovereign 0.59%
+7.71% GOI 2066 (18-MAY-2066) Sovereign 0.59%
+6.55% ANDHRA PRADESH SDL 27-
+MAY-28 Sovereign 0.58%
+7.24% GOI 2055 (18-AUG-2055) Sovereign 0.56%
+6.90% GOI 2065 (15-APR-2065) Sovereign 0.53%
+7.72% GOI 2055 (26-OCT-2055) Sovereign 0.00%
+Alternative Investment Fund 0.39%
+Corporate Debt Market Development 
+Fund Class A2 0.39%
+Money Market Instruments 14.49%
+Sundaram Finance Ltd A1+(CRISIL) 2.93%
+Punjab National Bank A1+(CARE) 2.93%
+National Bank For Agriculture & Rural 
+Development A1+(CRISIL) 2.85%
+Treasury Bills 0.59%
+TREPS 5.19%
+Other Current Assets 0.79%
+Grand Total ( Net Asset) 100.00%
+MATURITY PROFILE % Allocation
+0 to 3 Months 11.62%
+3 to 6 Months 5.19%
+6 to 12 Months 6.47%
+1 -2 years 17.01%
+Greater than 2 years 34.34%
+RATING PROFILE
+Others* 30.53%
+AAA & Equivalent 33.76%
+A1+ & Equivalent 8.71%
+Treasury Bills/Sovereign 27.00%
+as on August 31, 2026
+(As per AMFI Tier 1 Benchmark i.e.:
+CRISIL Hybrid 85+15-Conservative Index)
+RISKOMETER & PRODUCT LABELLING
+This product is suitable for investors who are seeking*:
+Income / Capital appreciation over medium term to long term
+Investment predominantly in debt and money market instruments
+and small portion in equity
+The Scheme and Benchmark riskometers are evaluated on a monthly basis and the 
+above riskometers are based on the evaluation of the portfolios for the month ended 
+August 31, 2026.
+ASSET ALLOCATION:
+Equity & Equity Related instruments 10% to 25% 
+Debt securities (Including Securitised Debt) with Money Market 
+Instrument 75% to 90%
+Gold ETFs, Silver ETFs, and such other securities/instruments as may be 
+permitted by SEBI from time to time 0% to 15%
+Exchange Traded Commodity Derivatives (ETCDs) 0% to 10%
+For detailed asset allocation pattern, please refer the Scheme 
+Information Document.
+*Investors should consult their financial advisers, if in doubt about whether the product 
+ is suitable for them.
+Top Ten Holdings
+*Includes Equity & Equity Related Instruments, Tri-Party Repo/Repo/Reverse Repo & Net 
+Current Assets, Unit Funds and other non - rated instruments
+Scheme Riskometer Benchmark Riskometer
+The risk of the scheme is moderately high
+Low Risk
+Low to Moderate Risk
+Moderate Risk Moderately High Risk
+High Risk
+Very High Risk
+RISKOMETER
+The risk of the benchmark is moderately high
+Low Risk
+Low to Moderate Risk
+Moderate Risk Moderately High Risk
+High Risk
+Very High Risk
+RISKOMETER
+ASSET ALLOCATION
+Tri-party repo/Repo/Reverse Repo 
+& Net Current Assets 6.04%
+Certificate Of Deposit 5.78%
+Commercial Paper 2.93%
+NCDs/Bonds 33.75%
+Treasury Bills/ Sovereign 26.99%
+Unit Funds 0.39%
+Equity 24.12%26
+CANARA ROBECO BALANCED ADVANTAGE FUND
+(An open ended dynamic asset allocation fund investing in debt and equity instruments only.)
+$
+Source ICRA MFI Explorer. #Month end AUM as on 31.08.2026
+^For complete details of Base Expense Ratio refer link: https://www.canararobeco.com/expense-ratio
+Please refer last page for Definition and Disclaimers. 
+*Dedicated Fund Manager for overseas investments.
+SCHEME OBJECTIVE: The fund aims to generate long-term capital
+appreciation with income generation by dynamically investing in equity
+and equity related instruments and debt and money market instruments.
+However, there can be no assurance that the investment objective of the
+scheme will be realized.
+FUND INFORMATION
+PLANS / OPTIONS: Regular Plan - Reinvestment of Income Distribution
+cum Capital Withdrawal Option
+Regular Plan - Payout of Income Distribution cum Capital Withdrawal
+Option
+Regular Plan - Growth Option
+Direct Plan - Reinvestment of Income Distribution cum Capital
+Withdrawal Option
+Direct Plan - Payout of Income Distribution cum Capital Withdrawal
+Option
+Direct Plan - Growth Option
+MINIMUM INVESTMENT:
+Lump sum Investment: Purchase: ` 5,000 and in multiples of ` 1 
+thereafter
+Subsequent purchases: Minimum amount of ` 1000 and multiples of 
+` 1 thereafter
+Systematic Investment Plan (SIP): For Any date/monthly frequency – `
+1000 and in multiples of ` 1 thereafter
+For quarterly frequency – ` 2000 and in multiples of ` 1 thereafter
+Systematic Transfer Plan (STP): For Daily/Weekly/Monthly frequency – 
+` 1000 and in multiples of ` 1 thereafter
+For quarterly frequency – ` 2000 and in multiples of ` 1 thereafter
+Systematic Withdrawal Plan (SWP): For monthly frequency – ` 1000 
+and in multiples of ` 1 thereafter
+For quarterly frequency – ` 2000 and in multiples of ` 1 thereafter
+For Annual Frequency – ` 2,000 and in multiples of ` 1 thereafter
+EXIT LOAD:
+1% - if redeemed/switched out above 12% of allotted units
+within 365 days from the date of allotment.
+Nil - if redeemed/switched out upto 12% of allotted units within 365 days
+from the date of allotment, Nil - if redeemed/switched out after 365
+days from the date of allotment
+FUND MANAGER: 
+Ms. Ennette Fernandes (Managing fund since 02-Aug-24 & Overall 
+experience of 16 years)
+Mr. Pranav Gokhale (Managing fund since 05-May-25 & Overall 
+experience of 21 years)
+Ms. Suman Prasad (Managing fund since 02-Aug-24 & Overall 
+experience of 28 years)
+Mr. Amit Kadam (Dedicated Fund Manager for Overseas investments)
+Managing fund since 02-Aug-24 & Overall experience of 15 years)
+Mr. Avnish Jain (Managing fund since 01-Dec-25 & Overall experience 
+of 31 years)
+DATE OF ALLOTMENT: August 2, 2024
+BENCHMARK: CRISIL Hybrid 50+50 – Moderate Index
+Month end Assets Under Management (AUM)# ` 1,079.26 Crores
+Monthly AVG Assets Under Management (AAUM) ` 1,101.77 Crores
+NAV: (as on August 31, 2026)
+Direct Plan - Growth Option ` 10.6200
+Regular Plan - Growth Option ` 10.3200
+Regular Plan - IDCW (payout/reinvestment) ` 10.2100
+Direct Plan - IDCW (payout/reinvestment) ` 10.5200
+BASE EXPENSE RATIO (BER)^
+:
+Regular Plan (%) 1.90
+Direct Plan (%) 0.71
+PORTFOLIO
+MARKET CAPITALIZATION
+Debt, Cash & Others* 22.27%
+Large Cap (34 entities) 59.00%
+Mid Cap (7 entities) 6.24%
+Small Cap (20 entities) 12.49%
+ASSET ALLOCATION
+Tri-party repo/REPO/Reverse Repo 
+& Net Current Assets 10.69%
+NCDs/Bonds 11.49%
+Treasury Bills/ Sovereign 7.29%
+Equity* 70.51%
+Preference shares 0.02%
+(As per AMFI Tier 1 Benchmark i.e.: 
+CRISIL Hybrid 50+50 - Moderate Index)
+RISKOMETER & PRODUCT LABELLING
+This product is suitable for investors who are seeking*:
+Long term capital appreciation with income generation
+Investment in a dynamically managed portfolio of equity & equity
+related instruments and debt & money market securities
+Gross Equity 77.73% | Hedged Equity -7.22% | *Net Equity 70.51%
+as on August 31, 2026
+Name of the Instruments/Issuer Rating Market 
+Cap % of NAV
+Equities 77.73% Listed / awaiting listing on Stock 
+Exchange 77.73%
+Banks 17.84%  HDFC Bank Ltd L 5.52%  ICICI Bank Ltd L 5.25%  Axis Bank Ltd L 2.79%  State Bank of India L 2.41% Kotak Mahindra Bank Ltd L 1.42% Indian Bank L 0.45% Finance 6.90% Power Finance Corporation Ltd L 1.81% Bajaj Finance Ltd L 1.66% Shriram Finance Ltd L 1.62% PNB Housing Finance Ltd S 0.92% Cholamandalam Financial 
+Holdings Ltd S 0.89%
+Petroleum Products 5.55%  Reliance Industries Ltd L 4.59% Bharat Petroleum Corporation Ltd L 0.96% Retailing 5.42% Eternal Ltd L 2.28% Lenskart Solutions Ltd M 1.17% Info Edge (India) Ltd M 0.80% Arvind Fashions Ltd S 0.64% Shoppers Stop Ltd S 0.27% Vedant Fashions Ltd S 0.26% IT - Software 4.55%  Infosys Ltd L 2.34% Tech Mahindra Ltd L 1.01% Tata Consultancy Services Ltd L 0.78% Sonata Software Ltd S 0.42% Telecom - Services 3.29%  Bharti Airtel Ltd L 3.29% Pharmaceuticals & 
+Biotechnology 3.13%
+Divi's Laboratories Ltd L 1.81% Gland Pharma Ltd S 0.72% Abbott India Ltd M 0.60% Construction 3.13%  Larsen & Toubro Ltd L 3.13% Automobiles 3.08% Mahindra & Mahindra Ltd L 2.08% Maruti Suzuki India Ltd L 1.00% Auto Components 2.73% Samvardhana Motherson 
+International Ltd L 2.09%
+Motherson Sumi Wiring India Ltd S 0.64% Consumer Durables 2.51% Crompton Greaves Consumer 
+Electricals Ltd S 0.80%
+Asian Paints Ltd L 0.61% Safari Industries (India) Ltd S 0.56% Greenply Industries Ltd S 0.54% Leisure Services 2.05% Indian Hotels Co Ltd M 1.44% Jubilant Foodworks Ltd S 0.61% Beverages 2.04% Varun Beverages Ltd L 1.06% United Spirits Ltd M 0.98% Aerospace & Defense 1.70%
+Name of the Instruments/Issuer Rating Market 
+Cap % of NAV
+Hindustan Aeronautics Ltd L 0.89% Bharat Electronics Ltd L 0.81% Consumable Fuels 1.55% Coal India Ltd L 1.55% Capital Markets 1.51% Angel One Ltd S 0.93% Billionbrains Garage Ventures Ltd L 0.58% Cement & Cement Products 1.40% Ultratech Cement Ltd L 0.74% J.K. Cement Ltd M 0.66% Chemicals & Petrochemicals 1.24% Vinati Organics Ltd S 0.65% Gujarat Fluorochemicals Ltd M 0.59% Food Products 1.22% Britannia Industries Ltd L 0.73% Mrs Bectors Food Specialities Ltd S 0.49% Transport Services 1.05% Interglobe Aviation Ltd L 1.05% Electrical Equipment 0.95% CG Power and Industrial Solutions 
+Ltd L 0.95%
+Realty 0.85% Brigade Enterprises Ltd S 0.85% Industrial Products 0.76% Cummins India Ltd L 0.76% Entertainment 0.73% PVR Inox Ltd S 0.73% Healthcare Services 0.69% Global Health Ltd S 0.69% Non - Ferrous Metals 0.57% Hindalco Industries Ltd L 0.57% Commercial Services & Supplies 0.50% Awfis Space Solutions Ltd S 0.50% Power 0.41% NTPC Ltd L 0.41% Household Products 0.38% Jyothy Labs Ltd S 0.38% Preference Shares 0.02% 6% TVS Motor Co Ltd Non 
+Convertible Redeemable 
+Preference Shares 0.02%
+Debt Instruments 11.49%  LIC Housing Finance Ltd AAA(CRISIL) 2.32%  Kotak Mahindra Prime Ltd AAA(CRISIL) 2.31% National Bank For Agriculture & 
+Rural Development AAA(CRISIL) 2.30%
+Bajaj Housing Finance Ltd AAA(CRISIL) 2.28% LIC Housing Finance Ltd AAA(CRISIL) 2.28% Government Securities 3.18% 6.48% GOI 2035 (06-OCT-2035) Sovereign 2.25% 6.94% GOI 2036 (11-MAY-2036) Sovereign 0.93% Money Market Instruments 6.87% Treasury Bills 4.12% TREPS 2.75% Margin on Derivatives 0.03% Net Current Assets 0.68% Grand Total (Net Asset) 100.00%
+The Scheme and Benchmark riskometers are evaluated on a monthly basis and the 
+above riskometers are based on the evaluation of the portfolios for the month ended 
+August 31, 2026.
+ASSET ALLOCATION:
+Equity and Equity-related Instruments 65% to100%
+Debt and Money Market Instruments 0% to 35%
+For detailed asset allocation pattern, please refer the Scheme 
+Information Document.
+*Investors should consult their financial advisers, if in doubt about whether the product 
+ is suitable for them.
+Top Ten Holdings | L - Large Cap M - Mid Cap S - Small Cap
+Scheme Riskometer Benchmark Riskometer
+The risk of the scheme is very high
+Low Risk
+Low to Moderate Risk
+Moderate Risk Moderately High Risk
+High Risk
+Very High Risk
+RISKOMETER The risk of the benchmark is high
+Low Risk
+Low to Moderate Risk
+Moderate Risk Moderately High Risk
+High Risk
+Very High Risk
+RISKOMETER
+Others* 81.22%
+AAA & Equivalent 11.49%
+Treasury Bills/Sovereign 7.29%
+*Includes Equity & Equity Related Instruments, Tri-Party Repo/Repo/Reverse Repo & Net 
+Current Assets and other non - rated instruments
+*Including Preference Shares
+QUANTITATIVE INFORMATION$
+Equity Quants
+Portfolio Turnover Ratio (Equity) 0.11 times
+Portfolio Turnover Ratio (Total) 1.14 times
+Debt Quants
+Annualised Portfolio YTM 6.90%
+Modified Duration 2.32 Years
+Average Maturity 3.05 Years
+Macaulay Duration 2.46 Years
+RATING PROFILE

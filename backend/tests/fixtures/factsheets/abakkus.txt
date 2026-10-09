@@ -1,0 +1,356 @@
+6
+s
+Abakkus Small Cap Fund
+An open-ended equity scheme predominantly investing in small cap stocks
+Date of Inception/ 
+Allotment : 17th March 2026
+Fund Details
+Load Structure
+Expense Ratio#
+Quantitative Measures/Risk Measures#
+(as applicable)
+Past Performance is not an indicator or guarantee of future results
+Benchmark : Nifty Smallcap 250 TRI
+NAV (latest month end for all plans) :
+Regular - Growth Plan ` 12.2650
+Direct - Growth Plan ` 12.3550
+Regular Plan : 1.66%
+Direct Plan : 0.49%
+Exit Load if any :
+Entry Load: Nil
+Brief inference provided in important weblinks 
+section
+1. Standard Deviation (%) : NA
+2. Beta : NA
+3. Tracking Error (%) : NA
+4. Sharpe Ratio (%) : NA
+5. Tracking Difference (%) : NA
+6. Information Ratio : NA
+AUM (latest month end) : ` 3,248.33 Crores
+AAUM (latest month end) : ` 3,078.95 Crores
+• If units redeemed or switched out are upto 10% 
+(limit) of the units purchased or switched in 
+within 3 months from the date of allotment - Nil
+• If units redeemed or switched out are over and 
+above the 10% (limit) within 3 months from the 
+date of allotment - 1% of the applicable NAV
+• If redeemed/switched out after 3 months from 
+the date of allotment - Nil
+Fund Manager Details
+Name of Fund Managers:
+• Mr. Sanjay Doshi (Equity)
+• Mr. Abhishek K S (Fixed Income)
+Minimum SIP Amount: INR 500/- & Multiple of INR 
+1/- thereafter, 
+Minimum Investment Amount: INR 500/- & Multiple of 
+INR 1/- thereafter, 
+Minimum Additional Purchase Amount: INR 500/- & 
+Multiple of INR 1/- thereafter, 
+Product Labeling: This product is suitable for investors who are seeking*:
+• Capital appreciation over long term.
+• To generate capital appreciation by investing in equity and equity related instruments in small cap stocks.
+*Investors should consult their financial advisers, if in doubt about whether the product is suitable for them.
+Performance of scheme as on September 30, 2026
+Fund Performance#
+Compounded 
+Annualised Returns
+Scheme 
+Returns % 
+- Regular
+Scheme 
+Returns % 
+- Direct
+Benchmark 
+Returns %
+Returns for last 1 year -- -- --
+Returns for last 3 years -- -- --
+Returns for last 5 years -- -- --
+Returns since inception 41.97% 43.63% 37.07%
+Total Experience : Mr. Sanjay Doshi - 20+ years
+Mr. Abhishek KS - 12+ years
+Managing Since : Mr. Sanjay Doshi
+(17th March 2026)
+Mr. Abhishek KS
+(23rd March 2026)
+Benchmark Riskometer
+Scheme Riskometer
+Major Risk Factors 
+1. Equity and Equity Related 
+Instruments
+2. Derivatives Transactions
+3. Processing of transactions 
+through Stock Exchange 
+Mechanism
+4. Fixed Income Securities
+5. Investment in Tri-Party 
+Repo 
+Detailed explanation in the 
+Important Weblinks section. 
+Moderate Risk
+Low to 
+Moderate Risk
+The risk of the benchmark is Very High Risk
+Moderately High Risk
+High Risk
+Very High 
+Risk
+RISKOMETER
+Low Risk
+Moderate Risk
+Low to 
+Moderate Risk
+The risk of the scheme is Very High Risk
+Moderately High Risk
+High Risk
+Very High 
+Risk
+RISKOMETER
+Low Risk
+Portfolio Data
+Top 10 Holdings 
+(Holding Name):
+% of 
+Net Assets
+1 Welspun Corp Limited 2.51%
+2 Vedant Fashions Limited 2.26%
+3 Leela Palaces Hotels & Resorts Limited 2.23%
+4 ZF Commercial Vehicle Control Systems India 
+Limited 2.19%
+5 Sansera Engineering Limited 2.10%
+6 Aether Industries Limited 2.04%
+7 Karur Vysya Bank Limited 2.00%
+8 Rategain Travel Technologies Limited 1.97%
+9 Central Depository Services (India) Limited 1.95%
+10 Dr. Lal Path Labs Limited 1.94%
+Allocation of Net Assets by Asset Allocation Allocation of Net Asset by Sectors# #
+Allocation of Net Assets by Market Capitalization Allocation of Net Assets by Region/Country# #
+n Large Cap 6.21%
+n Mid Cap 1.85%
+n Small Cap 83.82%
+n Cash & Cash 
+Equivalents 8.12%
+n Equity & Equity 
+related 91.88%
+n Debt 0.61%
+n Cash & Cash 
+Equivalents 7.51%
+Equity & Equity related
+Debt 
+Cash & Cash Equivalents
+Allocation of Net Asset by Sectors Allocation of Net Asset by Sectors
+19.10%
+16.07%
+10.96%
+7.53%
+6.89%
+6.58%
+4.45%
+4.09%
+3.75%
+2.44%
+18.14%
+Financial Services
+Capital Goods
+Healthcare
+Automobile and Auto Components
+Consumer Services
+Services
+Information Technology
+Chemicals
+Consumer Durables
+Power
+Other Sectors
+n India 100%
+Quantitative Measures/Risk Measures#
+(as applicable)
+Brief inference provided in How to read factsheet segment
+1. Portfolio Turnover Ratio (Annualized)
+a) Equity Turnover : NA
+b) Gross Exposure Turnover : NA 
+(Equity + Debt + Derivatives)
+2. Average Maturity (years) : NA
+3. Macaulay Duration (years) : NA
+4. Modified Duration (%) : NA
+5. Annualized Portfolio Yield : NA
+6. Yield to Maturity (%) : NA
+Absolute Returns for each F.Y. since inception #
+#
+Since the scheme had not completed 6 months for the period ending 31st 
+March 2026, absolute returns cannot be shown for FY2612
+s
+Abakkus Liquid Fund
+An Open-ended Liquid Scheme – A relatively low interest rate risk and moderate 
+Credit Risk
+Date of Inception/ 
+Allotment : 12th December 2025
+Fund Details
+Load Structure
+Expense Ratio#
+Quantitative Measures/Risk Measures#
+(as applicable)
+Past Performance is not an indicator or guarantee of future results
+Benchmark : CRISIL Liquid Debt A-I
+NAV (latest month end for all plans and options) :
+Regular (`) Direct (`)
+Growth 104.6884 104.7559
+Daily IDCW 100.0881 100.0881
+Weekly IDCW 100.0940 100.0945
+Monthly IDCW 100.2583 100.2612
+Quarterly IDCW 101.4849 101.5495
+Regular Plan : 0.26%
+Direct Plan : 0.19%
+Exit Load if any :
+Entry Load: Nil
+Brief inference provided in important weblinks 
+section
+1. Standard Deviation (%) : NA
+2. Beta : NA
+3. Tracking Error (%) : NA
+4. Sharpe Ratio (%) : NA
+5. Tracking Difference (%) : NA
+6. Information Ratio : NA
+AUM (latest month end) : 617.02 Crore
+AAUM (latest month end) : 595.54 Crore
+Investment period (Days 
+from subscription NAV)
+1 Day 0.0070%
+2 Days 0.0065%
+3 Days 0.0060%
+4 Days 0.0055%
+5 Days 0.0050%
+6 Days 0.0045%
+7 Days Or More NIL
+Exit Load (% of 
+redemption proceeds)
+Fund Manager Details
+Name of Fund Managers;
+• Mr. Abhishek K S (Fixed Income)
+• Mr. Sanjay Doshi (Equity)
+Total Experience : Mr. Abhishek KS - 12+ years
+Mr. Sanjay Doshi - 20+ years
+Managing Since : Mr. Abhishek KS
+(23rd March 2026)
+Mr. Sanjay Doshi
+(12th December 2025)
+Minimum SIP Amount: INR 500/- & Multiple of INR 
+1/- thereafter, 
+Minimum Investment Amount: INR 1000/- & Multiple 
+of INR 1/- thereafter, 
+Minimum Additional Purchase Amount: INR 100/- & 
+Multiple of INR 1/- thereafter
+Product Labeling: This product is suitable for investors who are seeking*:
+• Income over short term.
+• Investment in Debt and Money Market instruments with maturity upto 91days.
+*Investors should consult their financial advisers, if in doubt about whether the product is suitable for them.
+s
+Performance of scheme as on September 30, 2026
+Fund Performance#
+Compounded 
+Annualised Returns
+Scheme 
+Returns % 
+- Regular
+Scheme 
+Returns % 
+- Direct
+Benchmark 
+Returns %
+Returns for last 1 year -- -- --
+Returns for last 3 years -- -- --
+Returns for last 5 years -- -- --
+Returns since inception 5.86% 5.94% 6.28%
+Benchmark Riskometer
+Scheme Riskometer
+Major Risk Factors 
+1. Fixed Income Securities
+2. Derivatives Transactions
+3. Securitized Debt
+4. Investment in Tri-Party 
+Repo
+5. Investing in Structured 
+Obligation (SO) & Credit 
+Enhancement (CE) rated 
+securities 
+Detailed explanation in the 
+Important Weblinks section. 
+Moderate Risk
+Low to 
+Moderate Risk
+The risk of the benchmark is Very High Risk
+Moderately High Risk
+High Risk
+Very High 
+Risk
+RISKOMETER
+Low Risk
+Moderate Risk
+Low to 
+Moderate Risk
+The risk of the scheme is Very High Risk
+Moderately High Risk
+High Risk
+Very High 
+Risk
+RISKOMETER
+Low Risk
+Potential Risk Class (PRC)
+Credit Risk  Relatively 
+Low 
+(Class A)
+Moderate 
+(Class B)
+Relatively 
+High 
+(Class C) Interest Rate Risk 
+Relatively Low (Class I) B-I
+Moderate (Class II)
+Relatively High (Class III)
+B-I - A Scheme with Relatively Low Interest Rate Risk and Moderate 
+Credit Risk.
+Portfolio Data
+Top 10 Holdings 
+(Holding Name):
+% of Net 
+Assets
+1 Government of India 13.72%
+2 Small Industries Dev Bank of India 6.42%
+3 Kotak Securities Limited 5.61%
+4 Indian Railway Finance Corpora￾tion Limited 4.86%
+5 Indian Bank 4.84%
+6 Aditya Birla Capital Limited 4.83%
+7 REC Limited 4.04%
+8 ICICI Securities Limited 4.02%
+9 LIC Housing Finance Limited 4.01%
+10 Export Import Bank of India 4.01%
+Quantitative Measures/Risk Measures#
+(as applicable)
+Brief inference provided in How to read 
+factsheet segment
+1. Portfolio Turnover Ratio (Annualized)
+a) Equity Turnover : NA
+b) Gross Exposure Turnover : NA 
+(Equity + Debt + Derivatives)
+2. Average Maturity : 48 Days
+3. Macaulay Duration : 48 Days
+4. Modified Duration : 48 Days
+5. Annualized Portfolio Yield : 6.13
+6. Yield to Maturity (%) : 6.13
+Allocation of Net Assets by Instrument Type Allocation of Net Assets by Credit Rating
+n Commercial Paper 39.35%
+n Certificate of Deposit 32.06%
+n Government Securities/
+Treasury Bills 13.72%
+n Corporate Bond & NCDs 4.86%
+n Cash & Cash Equivalents 10.01%
+n A1+/AAA 76.27%
+n Sovereign 13.72%
+n Cash & Cash Equivalents 10.01%
+Abakkus Liquid Fund
+INSTRUMENT ALLOCATION (%)
+Certificate of Deposit 
+Abakkus Liquid Fund
+RATING ALLOCATION (%)
+Absolute Returns for each F.Y. since inception #
+#
+Since the scheme had not completed 6 months for the period ending 31st March 
+2026, absolute returns cannot be shown for FY26

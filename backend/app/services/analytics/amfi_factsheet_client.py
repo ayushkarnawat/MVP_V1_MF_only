@@ -14,6 +14,7 @@ category, refused when the runner-up is within 0.05."""
 from __future__ import annotations
 
 import html
+import json
 import logging
 import re
 import time
@@ -48,6 +49,17 @@ _BOILERPLATE_RE = re.compile(
 # "(Existing Number of Segregated Portfolios - 1)", "[(Erstwhile ABC Income Fund)]" -- AMFI and
 # factsheets add these to the same fund's name, so they never decide a match.
 _NAME_NOTE_RE = re.compile(r"[\[(][^\])]*(?:ERSTWHILE|SEGREGATED)[^\])]*[\])]+", re.IGNORECASE)
+
+# September 2026 printed names verified against this AMC's live NAVAll families.
+# Never global normalization: an alias is scoped to the same AMC as the match.
+_AMC_FUND_ALIASES = {
+    "Aditya Birla Sun Life Mutual Fund": {
+        "Aditya Birla Sun Life Large & Midcap Fund": "Aditya Birla Sun Life Large & Mid Cap Fund",
+        "Aditya Birla Sun Life Silver ETF Fund of Fund": "Aditya Birla Sun Life Silver ETF FOF",
+        "Aditya Birla Sun Life US Treasury 1-3 year Bonds ETFs Passive FOF": "Aditya Birla Sun Life US Treasury 1-3 Year Bond ETFs Passive FOF",
+        "Aditya Birla Sun Life US Treasury 3-10 year Bonds ETFs Passive FOF": "Aditya Birla Sun Life US Treasury 3-10 Year Bond ETFs Passive FOF",
+    },
+}
 
 
 def _canonical_fund_name(name: str) -> str:
@@ -98,7 +110,8 @@ def match_scheme_page(page: SchemePage, families: list[FundFamily]) -> tuple[Fun
             return by_isin[0], MATCH_METHOD_ISIN, Decimal("1.0")
 
     wanted = _canonical_fund_name(page.heading)
-    exact = [f for f in families if f.canonical == wanted]
+    exact = [f for f in families if f.canonical == _canonical_fund_name(
+        _AMC_FUND_ALIASES.get(f.amc_name, {}).get(page.heading, page.heading))]
     if len(exact) == 1:
         return exact[0], MATCH_METHOD_EXACT, Decimal("1.0")
     if len(exact) > 1:
@@ -237,11 +250,36 @@ async def _static_link_candidates(client: httpx.AsyncClient, landing_url: str, l
     resp.raise_for_status()
     pattern = re.compile(link_pattern or r"fact\s*[-_ ]?sheet", re.I)
     links = []
+    if urllib.parse.urlparse(landing_url).hostname == "www.growwmf.in":
+        # Download tabs are embedded in Next page data, not all rendered as anchors.
+        script = re.search(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', resp.text, re.S)
+        if script:
+            root = json.loads(script.group(1))["props"]["pageProps"]["filesData"]
+            def documents(folder):
+                for doc in folder.get("files", []):
+                    name, public_url = doc.get("name"), doc.get("publicUrl")
+                    if not (isinstance(name, str) and isinstance(public_url, str)):
+                        continue  # a malformed entry mustn't stop the rest (Run 3 review)
+                    if pattern.search(name) and not _NOT_A_FACTSHEET.search(public_url):
+                        # Fiscal-year folder names must not override the document year.
+                        links.append((_link_date(name), public_url))
+                for child in folder.get("folders", []):
+                    documents(child)
+            documents(root)
     for href, label in re.findall(r'<a[^>]+href=["\']([^"\']+\.pdf[^"\']*)["\'][^>]*>(.*?)</a>', resp.text, re.I | re.S):
-        joined = f"{href} {re.sub(r'<[^>]+>', ' ', label)}"
+        text = re.sub(r"<[^>]+>", " ", label)
+        joined = f"{href} {text}"
         if pattern.search(joined) and not _NOT_A_FACTSHEET.search(href):
-            links.append((_link_date(joined), urllib.parse.urljoin(str(resp.url), html.unescape(href))))
-    return [url for _, url in sorted(links, key=lambda pair: pair[0], reverse=True)][:3]
+            # Date the link by its file name and text first: upload folders (/2026/01/) and
+            # document ids (HSBC's UUIDs) carry year-like digits unrelated to the factsheet's month.
+            named = f"{urllib.parse.unquote(urllib.parse.urlparse(href).path.rsplit('/', 1)[-1])} {text}"
+            when = _link_date(named) if _link_date(named)[0] else _link_date(joined)
+            links.append((when, urllib.parse.urljoin(str(resp.url), html.unescape(href))))
+    # The same file is often linked twice (title and "Download"): keep one, at its best date.
+    best: dict[str, tuple[int, int]] = {}
+    for when, url in links:
+        best[url] = max(when, best.get(url, (0, 0)))
+    return [url for url, _ in sorted(best.items(), key=lambda pair: pair[1], reverse=True)][:3]
 
 
 # Factsheets on 9 Oct were 1-22 MB; anything far larger isn't one, and pdfium parses it in-process.
@@ -367,8 +405,34 @@ async def _resolve_and_read(client, entry: ResolverEntry, directory: dict[str, s
 
 
 async def _json_api_candidates(client, entry: ResolverEntry) -> list[str]:
-    # Task 8 supplies each API's verified document shape. The revised plan
-    # references an older implementation that is absent; do not guess fields.
+    if entry.directory_name == "DSP Asset Managers Private Limited":
+        # Public downloads.json request made by the AMC's download centre.
+        resp = await client.get(entry.endpoint_url)
+        resp.raise_for_status()
+        links = [(_link_date(f"{doc['title']} {doc['pdf_url']}"),
+                  urllib.parse.urljoin(str(resp.url), doc["pdf_url"]))
+                 for doc in resp.json()[entry.response_json_path]
+                 if isinstance(doc.get("pdf_url"), str) and doc["pdf_url"]]
+        return [url for _, url in sorted(links, key=lambda pair: pair[0], reverse=True)][:3]
+    if entry.directory_name == "Aditya Birla Sun Life AMC Limited":
+        # Published by factsheet-investor-information.js, verified 10 Oct 2026.
+        # Keep the datasourceId query while selecting the rolling current year.
+        url = httpx.URL(entry.endpoint_url)
+        documents = []
+        # Early in January the new year has no uploads yet; December's file is current then.
+        for year in (date.today().year, date.today().year - 1):
+            resp = await client.get(url.copy_merge_params({"year": year}))
+            resp.raise_for_status()
+            documents = resp.json()[entry.response_json_path]
+            if documents:
+                break
+        links = [
+            (_link_date(f"{doc['DocumentTitle']} {doc['DocumentLink']}"),
+             urllib.parse.urljoin(str(resp.url), doc["DocumentLink"]))
+            for doc in documents if isinstance(doc.get("DocumentLink"), str) and doc["DocumentLink"]
+        ]
+        return [url for _, url in sorted(links, key=lambda pair: pair[0], reverse=True)][:3]
+    # Other APIs remain unverified until their own Task 8 onboarding.
     raise NotImplementedError("JSON API document shape requires Task 8 onboarding")
 
 
