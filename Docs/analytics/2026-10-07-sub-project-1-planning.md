@@ -147,9 +147,19 @@ CREATE TABLE ranking_weights (
 );
 ```
 
-Both tables land in one new migration, `backend/alembic/versions/0033_scheme_rankings_and_
-ranking_weights.py` (0033 is the next free number — confirmed by listing
-`backend/alembic/versions/` directly, latest existing is `0032_transaction_stamp_duty.py`).
+Both tables land in one new migration, named `scheme_rankings_and_ranking_weights.py`.
+**Correction, 2026-10-08 (second independent verification pass):** this previously
+pre-assigned the file a fixed number (`0033`, confirmed-next-free at doc-writing time).
+Re-checked: `0033` is still free as of this pass, but **pre-assigning a migration number in
+a design doc is itself the wrong practice** — four other attributes in this same
+sub-project (04, 11, 12, 14) each need their own new migration, and whichever is actually
+implemented first should get `0033`, not whichever was designed/written first. A design doc
+can name a migration's *filename stem* (as above) but should never fix its numeric prefix;
+that gets assigned at implementation time by listing `backend/alembic/versions/` directly
+and taking the next free number, same as the handoff guide's existing warning already says
+to do before writing any migration. Every other attribute section in this doc with a
+pre-assigned migration number should be read the same way — name fixed, number assigned at
+build time.
 
 ### Computation flow — new module `fund_ranking.py`, a structural sibling of `scorer.py`
 
@@ -567,30 +577,52 @@ Everything below extends Option B's existing tables; nothing here changes Step 1
 scheme-wide NAV backfill) or the overall precompute-once/serve-cheap shape — it only adds
 columns/tables Step 2 and Step 3 read and write.
 
+**Correction, 2026-10-08 (second independent verification pass):** the comment below
+originally said this "extends the existing `scenarios` table" — checked directly against
+`backend/app/models/` and `backend/alembic/versions/` and confirmed **there is no existing
+`scenarios` table, model, or migration anywhere in the codebase.** Every reference to
+`scenarios` in this document up to this point (the category tables, the Picker section)
+was describing a table that doesn't exist yet. This is a new table, built in one migration,
+not an extension of a prior one — rewritten below as a single `CREATE TABLE` with every
+column this doc actually needs, rather than a base table plus a same-day `ALTER TABLE`
+pretending to simulate migration history that never happened.
+
 ```sql
--- Extends the existing `scenarios` table (today: name, start_date, end_date, description)
-ALTER TABLE scenarios
-  ADD COLUMN scenario_type TEXT NOT NULL DEFAULT 'CRASH'
+CREATE TABLE scenarios (
+  id                          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name                        TEXT NOT NULL,
+  description                 TEXT NOT NULL,
+  start_date                  DATE NULL,
+    -- NULL only for category-D HYPOTHETICAL rows, which have no real calendar window.
+  end_date                    DATE NULL,
+    -- Nullable for two different reasons: HYPOTHETICAL rows (no window at all) and
+    -- is_ongoing historical/bull-run rows (US-Iran war, gold/silver rally) that have a
+    -- real start but no real end yet.
+  scenario_type               TEXT NOT NULL DEFAULT 'CRASH'
     CHECK (scenario_type IN ('CRASH', 'BULL_RUN', 'POLICY_RATE', 'HYPOTHETICAL')),
     -- Matches Ayush's 4 categories exactly. Doubles as the historical-vs-hypothetical
     -- switch: HYPOTHETICAL is the ONLY value that skips NAV replay entirely (see below) —
     -- no separate boolean needed, one field does both jobs.
-  ALTER COLUMN end_date DROP NOT NULL,
-    -- Needed for is_ongoing scenarios (US-Iran war, gold/silver rally, rate cut cycle)
-    -- where there is no end yet.
-  ADD COLUMN is_ongoing BOOLEAN NOT NULL DEFAULT false,
+  is_ongoing                  BOOLEAN NOT NULL DEFAULT false,
     -- true = this scenario (or phase) hasn't concluded. Step 2 must re-run for these on
     -- every scheduled refresh (piggyback on the existing daily NAV job's schedule) until
     -- flipped false by whoever maintains the scenario library.
-  ADD COLUMN display_rank INTEGER NULL,
+  display_rank                INTEGER NULL,
     -- NULL = exists, computed, queryable via "More scenarios" but not a curated picker
     -- card. Non-NULL = shown as a curated card, ordered ascending. See the Picker
     -- curation subsection for which scenarios get a rank.
-  ADD COLUMN parent_scenario_id UUID NULL REFERENCES scenarios(id),
-  ADD COLUMN phase_label TEXT NULL,
+  parent_scenario_id          UUID NULL REFERENCES scenarios(id),
+  phase_label                 TEXT NULL,
     -- e.g. 'Shock', 'Partial recovery', 'Relapse'. Set only when parent_scenario_id IS NOT NULL.
-  ADD COLUMN phase_order INTEGER NULL;
+  phase_order                 INTEGER NULL,
     -- Display order of phases under their parent card.
+  had_redemption_freeze_schemes TEXT[] NULL
+    -- Scenario-scoped, not scheme-scoped (see the Franklin Templeton subsection below for
+    -- why): the list of scheme base-names whose redemptions were frozen during this
+    -- specific scenario's window. NULL/empty for every scenario except Franklin
+    -- Templeton's wind-up. Lives on this table, not a migration bolted on afterward —
+    -- folded in here now that there's no prior `scenarios` table to have bolted it onto.
+);
 
 -- Per-scheme precomputed result, extended with the proxy flag (Step 2's output table)
 CREATE TABLE scenario_scheme_results (
@@ -623,18 +655,62 @@ CREATE TABLE scenario_category_averages (
 -- Hypothetical-scenario assumptions (admin-entered, see mechanism below)
 CREATE TABLE scenario_hypothetical_assumptions (
   scenario_id        UUID NOT NULL REFERENCES scenarios(id),
-  asset_class        TEXT NOT NULL CHECK (asset_class IN ('Equity', 'Debt', 'Hybrid', 'Other')),
+  asset_class        TEXT NOT NULL CHECK (asset_class IN (
+    'Equity', 'Index/ETF', 'Gold', 'Overseas FoF', 'Debt-short', 'Debt-long', 'Hybrid', 'Other'
+  )),
   assumed_pct_change NUMERIC(6, 2) NOT NULL,
   assumption_note    TEXT NOT NULL,  -- mandatory, shown in the UI next to the number
   PRIMARY KEY (scenario_id, asset_class)
 );
 ```
 
-`asset_class` reuses the existing `asset_class_bucket()` helper
-(`app/services/dashboard/allocation_labels.py`, already used for allocation breakdowns —
-maps a scheme's `sebi_category` string to one of `Equity`/`Debt`/`Hybrid`/`Other` via
-simple substring checks) — not a new taxonomy. This is the same reuse pattern as
-attributes 04/12/14: check for an existing helper before inventing a classification.
+**Correction, 2026-10-08 (second independent verification pass, Q3 decision applied):**
+this originally said `asset_class` reuses the existing `asset_class_bucket()` helper
+(`app/services/dashboard/allocation_labels.py`) unchanged — 4 buckets, `Equity`/`Debt`/
+`Hybrid`/`Other`. Checked directly against real `scheme_category` values already in the
+NAV cache (e.g. `Other Scheme - Index Funds`, `Other Scheme - FoF Domestic`, `Other Scheme
+- FoF Overseas`, `Solution Oriented Scheme - Retirement Fund`) and the fallback is far more
+heterogeneous than "gold" — it silently catches index/ETF funds (pure equity exposure,
+passively managed), domestic and overseas fund-of-funds, and solution-oriented retirement/
+children's funds. Giving all of these one assumed % is wrong in a way that isn't just
+imprecise but backwards in places — e.g. a rupee-depreciation scenario where an overseas
+FoF *gains* in INR terms (foreign-currency assets, pure translation effect) was previously
+given the *same negative number* as a Nifty index fund that falls with the domestic market.
+Likewise `Debt` lumped liquid/overnight funds (should barely move under any of these shocks)
+with long-duration/credit-risk debt (the funds that actually drive the existing `Debt`
+numbers).
+
+`scenario_hypothetical_assumptions.asset_class` therefore uses a **new, attribute-11-only**
+bucketing function — `hypothetical_asset_class_bucket(sebi_category: str) -> str` — kept
+separate from `asset_class_bucket()` rather than widening that function for every caller:
+the existing 4-bucket version is already relied on elsewhere (allocation breakdowns), and
+widening it there isn't this attribute's problem to solve or risk regressing.
+
+```python
+def hypothetical_asset_class_bucket(sebi_category: str) -> str:
+    category = sebi_category.lower()
+    if "index" in category or "etf" in category:
+        return "Index/ETF"
+    if "gold" in category:
+        return "Gold"
+    if "fof" in category and "overseas" in category:
+        return "Overseas FoF"
+    if "equity" in category:
+        return "Equity"
+    if "hybrid" in category or "retirement" in category or "children" in category:
+        return "Hybrid"  # solution-oriented funds are lock-in equity+debt by mandate
+    if "debt" in category or "income" in category:
+        if any(s in category for s in ("liquid", "overnight", "money market", "ultra short")):
+            return "Debt-short"
+        return "Debt-long"
+    return "Other"  # genuinely residual now: domestic FoF, anything unclassified
+```
+
+Order matters — `index`/`etf`/`gold`/`overseas FoF` are checked *before* `equity`/`debt`
+because AMFI's own category strings nest them (`Other Scheme - Index Funds` contains
+neither "equity" nor "debt" as a substring, so this only matters for disambiguating against
+a false-positive substring match, not a real collision today — kept explicit since a future
+AMFI category string could collide).
 
 ### Multi-phase scenario model — worked example: US-Iran war
 
@@ -693,10 +769,19 @@ window but mean different things, and both should be shown, not collapsed into o
 
 1. **If a household actually holds one of the 6 wound-up schemes:** the real stress isn't a
    NAV fall at all — it's that redemptions were frozen for ~20 months regardless of NAV.
-   This needs its own flag on the scheme row (`had_redemption_freeze BOOLEAN`, set by hand
-   for exactly these 6 schemes — there is no general mechanism to detect "was this scheme's
-   redemption frozen," so this is manual, admin-entered data, same posture as scenario
-   dates themselves) rather than being represented purely through `pct_change`. **The 6
+   This needs its own flag, carried on **this scenario's own row** —
+   `scenarios.had_redemption_freeze_schemes TEXT[]` (see the `CREATE TABLE scenarios` above)
+   — rather than being represented purely through `pct_change`.
+   **Correction, 2026-10-08 (second independent verification pass): this doc previously
+   described the flag two incompatible ways — prose here said a `had_redemption_freeze
+   BOOLEAN` on the *scheme* row; the seed SQL below actually used a `TEXT[]` on the
+   *scenario* row. Resolved in favor of the scenario-scoped `TEXT[]`:** freeze status is a
+   fact about this specific scenario's window, not a permanent property of the scheme
+   (the same 6 schemes exist today, post-unwind, with no freeze in force) — modeling it on
+   the scenario row also means a future, different freeze event (if one ever happens) needs
+   no new column, just another row's array. There is no general mechanism to detect "was
+   this scheme's redemption frozen" for an arbitrary scenario — this one array is manual,
+   admin-entered data, same posture as scenario dates themselves. **The 6
    schemes, verified 2026-10-08 (not guessed — see Sources at the end of this section):**
    Franklin India Low Duration Fund, Franklin India Ultra Short Bond Fund, Franklin India
    Short Term Income Plan, Franklin India Credit Risk Fund, Franklin India Dynamic Accrual
@@ -710,11 +795,11 @@ window but mean different things, and both should be shown, not collapsed into o
    scenario via the standard Step 1/2 pipeline. This is what "tests illiquid debt
    specifically" actually measures for almost every real household running this scenario.
 
-Both pieces use the existing schema (scenario row + `scenario_scheme_results`, plus one new
-manually-flagged boolean for the 6 specific schemes) — no new table needed, just a note
-that this scenario's *interpretation* at serve time differs from a pure price-replay, and
-the frontend copy for this one card needs to say so explicitly rather than presenting a
-`pct_change` number as if it were a normal market fall.
+Both pieces use the existing schema (scenario row + `scenario_scheme_results`, plus the
+`had_redemption_freeze_schemes TEXT[]` on the scenario row itself) — no new table needed,
+just a note that this scenario's *interpretation* at serve time differs from a pure
+price-replay, and the frontend copy for this one card needs to say so explicitly rather
+than presenting a `pct_change` number as if it were a normal market fall.
 
 Sources (Franklin Templeton wind-up, verified 2026-10-08):
 [Value Research — Franklin Templeton winding up six debt funds](https://www.valueresearchonline.com/stories/47970/franklin-templeton-winding-up-six-of-its-debt-funds/),
@@ -1007,9 +1092,9 @@ VALUES
   (gen_random_uuid(), 'RBI hiking cycle (2022-23)', 'Repo 4.0% -> 6.5% over 6 MPC hikes (4 May 2022 to 8 Feb 2023, +250bps total). Tests debt-fund mark-to-market losses.', '2022-05-04', '2023-02-08', 'POLICY_RATE', false, NULL),
   (gen_random_uuid(), 'Rate cut cycle (2025)', 'Reverse case: duration funds win. Repo 6.5%->5.25% (125bps cumulative). Concluded, not ongoing -- RBI reversed to a hike on 7 Oct 2026.', '2025-02-07', '2025-12-05', 'POLICY_RATE', false, NULL);
 
--- Franklin Templeton wind-up: its own row since it needs the had_redemption_freeze flag
--- (see its subsection above) rather than being treated as a plain price-replay scenario.
-ALTER TABLE scenarios ADD COLUMN IF NOT EXISTS had_redemption_freeze_schemes TEXT[] NULL;
+-- Franklin Templeton wind-up: its own row since it needs the had_redemption_freeze_schemes
+-- flag (see its subsection above, column already on the base CREATE TABLE) rather than
+-- being treated as a plain price-replay scenario.
 INSERT INTO scenarios (id, name, description, start_date, end_date, scenario_type, is_ongoing, display_rank, had_redemption_freeze_schemes)
 VALUES (
   gen_random_uuid(), 'Franklin Templeton wind-up (2020)',
@@ -1046,56 +1131,83 @@ VALUES
   (gen_random_uuid(), 'Rupee sharp depreciation', 'Rupee past 105.', NULL, NULL, 'HYPOTHETICAL', false, NULL),
   (gen_random_uuid(), 'Indian equity "lost decade"', 'Prolonged sideways market, tests SIP discipline.', NULL, NULL, 'HYPOTHETICAL', false, NULL);
 
--- Example assumption rows for the one curated hypothetical (AI/tech valuation bust) --
--- a template for the admin filling in the other 4's assumed_pct_change/assumption_note.
-INSERT INTO scenario_hypothetical_assumptions (scenario_id, asset_class, assumed_pct_change, assumption_note)
-SELECT id, asset_class, pct, note FROM scenarios, (VALUES
-  ('Equity', -22.0, 'Assumes Indian equity falls ~55% as much as a 40% US tech crash, via IT-sector spillover, not a 1:1 move.'),
-  ('Debt', -2.0, 'Minor mark-to-market drag from a broader risk-off move; not the primary channel.'),
-  ('Hybrid', -12.0, 'Blended from the Equity/Debt assumptions above at a typical 60/40 hybrid mix.'),
-  ('Other', -22.0, 'Treated like Equity for gold/commodity-adjacent funds pending a sharper assumption.')
-) AS a(asset_class, pct, note)
-WHERE scenarios.name = 'AI/tech valuation bust';
-
--- Remaining 4 category-D hypotheticals -- orchestrator-authored 2026-10-08, per
--- Ayush's explicit delegation ("whatever you recommend... create the proper
--- documentation"). Each anchored to the closest real analog already in this
--- scenario library, same reasoning style as the AI/tech bust row above, not
--- invented from nothing. Provisional in the sense that any judgment call is --
--- revisit if real usage or a sharper view changes these -- but not "TBD."
+-- All 5 category-D hypotheticals, rewritten 2026-10-08 (second independent verification
+-- pass, Q3 decision applied) on the finer `hypothetical_asset_class_bucket()` taxonomy.
+-- Hybrid in every row is now literal arithmetic -- 0.6*Equity + 0.4*Debt-long, rounded to
+-- 1 decimal -- not a separately-eyeballed number that drifted from its own stated
+-- methodology (the prior version's Hybrid values were off by 0.4 to 2.6 points against
+-- their own "60/40 blend" note in all 5 rows; worst cases were Hormuz -14 vs an actual
+-- -16.6, and "lost decade" -2 vs an actual -3.6). Index/ETF always equals Equity (a Nifty/
+-- Sensex tracker IS equity exposure, just passive) -- no longer lumped into Other. Gold and
+-- Overseas FoF are now genuinely independent calls per scenario, including sign flips where
+-- the old 4-bucket model got the direction backwards (Overseas FoF in a rupee-depreciation
+-- scenario gains in INR terms from currency translation alone; the old model gave it the
+-- same -12 as Equity). Debt-short (liquid/overnight/money market/ultra-short) is barely
+-- moved in every row, reflecting real low-duration behaviour under acute shocks. `Other`
+-- is now a genuinely small residual (domestic FoF + anything unclassified), not a
+-- disguised equity/gold bucket.
 INSERT INTO scenario_hypothetical_assumptions (scenario_id, asset_class, assumed_pct_change, assumption_note)
 SELECT id, asset_class, pct, note FROM scenarios, (VALUES
   ('Equity', -25.0, 'Anchored to 2022 global tightening (-18.4%, a sanctions-driven partial oil-supply shock) scaled up ~35% for a full chokepoint closure disrupting ~20% of global oil supply -- a more severe, more sudden physical shortage than a sanctions regime.'),
-  ('Debt', -4.0, 'RBI likely hikes/holds hard to defend the rupee against imported inflation -- same direction as the 2022-23 RBI hiking cycle''s debt-fund mark-to-market hit, but assumed shorter/less sustained since this is an acute shock, not a multi-quarter cycle.'),
-  ('Hybrid', -14.0, 'Blended from the Equity/Debt assumptions above at a typical 60/40 hybrid mix.'),
-  ('Other', -20.0, 'Treated like Equity for commodity-adjacent funds in this bucket, even though gold specifically often rallies as a safe haven in an oil shock -- this bucket''s actual gold/commodity mix isn''t known precisely enough to assume a divergent number with confidence.')
+  ('Index/ETF', -25.0, 'Same as Equity -- a Nifty/Sensex index fund is passive equity exposure, not a distinct risk.'),
+  ('Debt-short', -1.0, 'Liquid/overnight/money-market/ultra-short funds carry almost no duration risk; an acute multi-week shock barely moves them.'),
+  ('Debt-long', -4.0, 'RBI likely hikes/holds hard to defend the rupee against imported inflation -- same direction as the 2022-23 RBI hiking cycle''s debt-fund mark-to-market hit, but assumed shorter/less sustained since this is an acute shock, not a multi-quarter cycle.'),
+  ('Hybrid', -16.6, '0.6 x Equity (-25.0) + 0.4 x Debt-long (-4.0), the typical hybrid-fund mix -- computed, not eyeballed.'),
+  ('Gold', 8.0, 'Oil-shock safe-haven demand plus a weaker rupee tailwind (gold is dollar-denominated) -- positive, not treated like Equity.'),
+  ('Overseas FoF', -10.0, 'Global equity markets also fall on oil-driven inflation/recession fears, but a diversified overseas fund is less exposed than the Indian market to India-specific oil-import pain; partially cushioned for an INR investor by the rupee weakening against the dollar.'),
+  ('Other', -15.0, 'Residual bucket (domestic FoF, anything unclassified) -- follows the broad domestic market moderately; least confident number in this row.')
 ) AS a(asset_class, pct, note)
 WHERE scenarios.name = 'Strait of Hormuz closure';
 
 INSERT INTO scenario_hypothetical_assumptions (scenario_id, asset_class, assumed_pct_change, assumption_note)
 SELECT id, asset_class, pct, note FROM scenarios, (VALUES
   ('Equity', -15.0, 'A US recession dampens global growth/FII flows into India, but India''s domestic-consumption story partially decouples -- milder than a full crash (COVID''s -38%), closer in shape to the 2019 pre-COVID slowdown.'),
-  ('Debt', 4.0, 'Positive, not negative -- a Fed pivot to rate cuts (and RBI likely following) is a tailwind for duration/debt funds, the mirror image of the 2022-23 RBI hiking cycle and consistent with the actual 2025 rate-cut cycle already in this library.'),
-  ('Hybrid', -7.0, 'Blended -- the positive debt assumption partially offsets the negative equity assumption, more than the other 3 hypotheticals here.'),
-  ('Other', -15.0, 'Treated like Equity for this bucket, same uncertainty caveat as the Hormuz row above.')
+  ('Index/ETF', -15.0, 'Same as Equity.'),
+  ('Debt-short', 1.0, 'Barely moves, mild positive drift from rate-cut expectations filtering to the short end.'),
+  ('Debt-long', 4.0, 'Positive, not negative -- a Fed pivot to rate cuts (and RBI likely following) is a tailwind for duration/debt funds, the mirror image of the 2022-23 RBI hiking cycle and consistent with the actual 2025 rate-cut cycle already in this library.'),
+  ('Hybrid', -7.4, '0.6 x Equity (-15.0) + 0.4 x Debt-long (+4.0) -- computed, not eyeballed.'),
+  ('Gold', 6.0, 'A Fed pivot to lower real rates is historically bullish for gold.'),
+  ('Overseas FoF', -18.0, 'Unlike the Hormuz/AI-tech rows, this shock originates IN the US market -- a global/overseas FoF holding US equity takes a direct hit, not a diluted spillover; assumed worse than the Indian index, not better, since India''s partial decoupling doesn''t apply to a fund invested directly in the US.'),
+  ('Other', -10.0, 'Residual bucket, moderate drag.')
 ) AS a(asset_class, pct, note)
 WHERE scenarios.name = 'US recession + Fed pivot';
 
 INSERT INTO scenario_hypothetical_assumptions (scenario_id, asset_class, assumed_pct_change, assumption_note)
 SELECT id, asset_class, pct, note FROM scenarios, (VALUES
+  ('Equity', -22.0, 'Assumes Indian equity falls ~55% as much as a 40% US tech crash, via IT-sector spillover, not a 1:1 move.'),
+  ('Index/ETF', -22.0, 'Same as Equity.'),
+  ('Debt-short', 0.0, 'No real linkage -- this is an equity-specific valuation shock, not a rates or credit event.'),
+  ('Debt-long', -2.0, 'Minor mark-to-market drag from a broader risk-off move; not the primary channel.'),
+  ('Hybrid', -14.0, '0.6 x Equity (-22.0) + 0.4 x Debt-long (-2.0) -- computed, not eyeballed.'),
+  ('Gold', 5.0, 'Modest safe-haven bid during an equity-specific risk-off -- smaller than a macro/oil shock since the trigger isn''t inflation or currency stress.'),
+  ('Overseas FoF', -35.0, 'This IS a US-tech-concentrated shock -- a global/overseas FoF holding US tech takes close to the full US-market hit (-40%), not the diluted spillover Indian IT gets.'),
+  ('Other', -18.0, 'Residual bucket, follows the broader risk-off move.')
+) AS a(asset_class, pct, note)
+WHERE scenarios.name = 'AI/tech valuation bust';
+
+INSERT INTO scenario_hypothetical_assumptions (scenario_id, asset_class, assumed_pct_change, assumption_note)
+SELECT id, asset_class, pct, note FROM scenarios, (VALUES
   ('Equity', -12.0, 'Anchored to the Taper Tantrum (2013, rupee 55->68, ~24% depreciation): FII outflows and import-cost inflation hurt the broad market, partially offset by IT/export-sector gains -- net negative on the index per that precedent, assumed somewhat milder since Taper Tantrum also had a global QE-taper overhang compounding it.'),
-  ('Debt', -6.0, 'RBI likely hikes/holds hard to defend the currency -- same bond-yield-spike mechanism Taper Tantrum showed, hurting duration funds.'),
-  ('Hybrid', -9.0, 'Blended from the Equity/Debt assumptions above.'),
-  ('Other', -5.0, 'Deliberately less negative than Equity here, unlike the other 3 hypotheticals -- gold is dollar-denominated, so gold priced in INR typically rises when the rupee weakens, a partial natural hedge for this bucket specifically.')
+  ('Index/ETF', -12.0, 'Same as Equity.'),
+  ('Debt-short', -2.0, 'Mild -- RBI defends the currency with some front-end rate action; short-duration funds see limited mark-to-market.'),
+  ('Debt-long', -6.0, 'RBI likely hikes/holds hard to defend the currency -- same bond-yield-spike mechanism Taper Tantrum showed, hurting duration funds.'),
+  ('Hybrid', -9.6, '0.6 x Equity (-12.0) + 0.4 x Debt-long (-6.0) -- computed, not eyeballed.'),
+  ('Gold', 10.0, 'Gold is dollar-denominated, so its INR price rises mechanically when the rupee weakens -- the clearest positive call in this whole table, corrected from the prior version''s overly conservative -5 (which was for a combined "Other" bucket, not isolated to gold).'),
+  ('Overseas FoF', 8.0, 'Foreign-currency-denominated assets gain in INR terms purely from currency translation -- the most mechanical case in this table. The prior version lumped this with Equity at -12, a sign error: a rupee fall does not make a dollar-denominated holding worth less in rupees, it makes it worth more.'),
+  ('Other', -5.0, 'Residual bucket, modest negative.')
 ) AS a(asset_class, pct, note)
 WHERE scenarios.name = 'Rupee sharp depreciation';
 
 INSERT INTO scenario_hypothetical_assumptions (scenario_id, asset_class, assumed_pct_change, assumption_note)
 SELECT id, asset_class, pct, note FROM scenarios, (VALUES
-  ('Equity', -8.0, 'Not a crash -- a "lost decade" is a prolonged sideways/low-return market, not a single trough. This number represents the scenario''s stated characterization (meaningfully below normal expectations over an extended multi-year period), not an instantaneous point-in-time fall the way the other hypotheticals'' numbers are -- the mechanism applies it the same way (times today''s value) but the underlying claim being modeled is different in kind, flagged here so it isn''t misread as "a crash happens tomorrow."'),
-  ('Debt', 3.0, 'Positive -- the defining feature of a "lost decade" for equity is that debt/fixed income keeps accruing normally regardless; debt funds are not assumed to suffer the way they do in a rate-shock scenario.'),
-  ('Hybrid', -2.0, 'Blended -- the equity-weighted portion drags slightly negative, the debt allocation mostly cushions it.'),
-  ('Other', -5.0, 'Modest negative, flagged as the least confident number of the 4 -- gold/commodities have historically sometimes been a bright spot during past Indian equity slow-growth periods, but that isn''t assumed to hold reliably enough to model as positive here.')
+  ('Equity', -8.0, 'Not a crash -- a "lost decade" is a prolonged sideways/low-return market, not a single trough. This number represents the scenario''s stated characterization (meaningfully below normal expectations over an extended multi-year period), not an instantaneous point-in-time fall the way the other hypotheticals'' numbers are. **Known, accepted limitation, not fixed this pass:** the compute mechanism applies this the same way as every other hypothetical (times today''s value, instantaneously) -- a genuinely different mechanism (amortized over a multi-year holding period) would be a real engineering project of its own for one scenario''s framing nuance; flagged here so the number isn''t misread as "a crash happens tomorrow," not silently engineered around.'),
+  ('Index/ETF', -8.0, 'Same as Equity.'),
+  ('Debt-short', 2.0, 'Accrues normally, slightly muted versus long debt since short-end yields are typically lower.'),
+  ('Debt-long', 3.0, 'Positive -- the defining feature of a "lost decade" for equity is that debt/fixed income keeps accruing normally regardless; debt funds are not assumed to suffer the way they do in a rate-shock scenario.'),
+  ('Hybrid', -3.6, '0.6 x Equity (-8.0) + 0.4 x Debt-long (+3.0) -- computed, not eyeballed.'),
+  ('Gold', 2.0, 'Mixed historically during past Indian equity slow-growth periods; kept modest rather than assumed reliably positive.'),
+  ('Overseas FoF', 3.0, 'In a scenario specifically about domestic equity stagnation, overseas diversification is the thing that helps -- not assumed to share the Indian "lost decade" malaise.'),
+  ('Other', -5.0, 'Residual bucket, flagged as the least confident number in this row.')
 ) AS a(asset_class, pct, note)
 WHERE scenarios.name = 'Indian equity "lost decade"';
 ```
@@ -1480,8 +1592,10 @@ AMC_RESOLVERS: dict[str, ResolverKind] = {
     "Nippon India": ResolverKind.STATIC_REGEX,
     "DSP": ResolverKind.STATIC_REGEX,
     # ... every other AMC defaults to MANUAL_PENDING until a per-AMC network
-    # trace confirms a JSON_API approach is worth adding — see "Still open"
-    # below for exactly how to add one.
+    # trace confirms a JSON_API approach is worth adding — see "Adding a
+    # JSON_API tier later" directly below this code block for the exact shape
+    # to add (not a "Still open" section — that heading belongs to attribute
+    # 09 elsewhere in this doc and was a wrong cross-reference here).
 }
 ```
 
@@ -1551,6 +1665,26 @@ else here — a factsheet whose layout doesn't match either observed shape produ
 matched managers for that scheme this month, logged, not a crash, and not silently wrong
 (no row is better than a wrong row).
 
+**Correction, 2026-10-08 (second independent verification pass): Aditya Birla Sun Life's
+factsheet does NOT match this regex — confirmed by actually downloading and parsing
+ABSL's real August-2026 factsheet (255 pages), not just confirming its PDF link resolves.**
+Both the attribute-04 frontend spec and this doc's "Remaining work" section previously
+implied ABSL was a 3rd resolver on equal footing with Nippon/DSP, needing no further
+engineering — that was wrong; only the PDF-link-discovery half (`STATIC_REGEX` finding the
+file) was ever actually verified for ABSL. Its real layout, confirmed by extracting text
+from actual scheme pages (e.g. page 9, "Aditya Birla Sun Life Large Cap Fund"): a tabular
+"Equity Snapshot" block where `Fund Manager` is a *column header*, not an inline label, and
+the cell value is one or more `Mr. <Name>` entries (comma-and-newline-separated for
+co-managers, e.g. `Mr. Abhinav Khandelwal, \nMr. Dhaval Joshi`) directly under the scheme
+name/inception-date — with **no "Managing Since" date anywhere in that block** (unlike
+Nippon/DSP, where the regex above anchors on exactly that phrase) and no visible per-scheme
+"Assistant Fund Manager"-style role label in this table shape. This needs its own, third
+parsing path — scope the scheme name from the row, split the `Fund Manager` cell on commas/
+`Mr./Ms./Dr.` prefixes for `sequence_order`, no `managing_since_raw`/`managing_since` for
+this shape (store NULL, consistent with the "degrade gracefully, never block" posture
+already established) — a small, bounded, but real and previously-unbudgeted piece of
+engineering, not a free 3rd resolver. Treated honestly in the scope/launch decisions below.
+
 ### Matching — redesigned 2026-10-08 per Ayush's direction, deterministic wherever the
 source document actually allows it (flagging an honest constraint first)
 
@@ -1605,8 +1739,13 @@ risk profile is nothing like TER's:
    candidate's normalized `base_name` for literal string equality. In the common case
    (the factsheet's marketing name and AMFI's `base_name` agree once boilerplate is
    stripped — expected to be the majority of schemes, since both ultimately describe the
-   same SEBI-registered product) this resolves the `amfi_code` with **zero** fuzzy
-   involvement, `match_method='EXACT'`, `match_confidence=1.0`. Fuzzy matching (steps 1-4
+   same SEBI-registered product) this identifies the exact scheme row with **zero** fuzzy
+   involvement, `match_method='EXACT'`, `match_confidence=1.0`. **Wording note, 2026-10-08
+   (second independent verification pass):** this identifies a *single scheme row*, not an
+   `amfi_code` used as a cross-variant key — the propagation key across a scheme's
+   Direct/Regular/Growth/IDCW variants stays `(amc_name, base_name)`, the same fix already
+   applied to TER-linking after the `amfi_code`-as-join-key bug (migration `0031`). Reworded
+   here so a reader doesn't draw the same wrong lesson twice. Fuzzy matching (steps 1-4
    below) only runs as a fallback when no exact match is found — it is one layer of a
    hybrid pipeline, not the only mechanism, per Ayush's direction that fuzzy-only is the
    part to move away from, not fuzzy-at-all.
@@ -1736,11 +1875,15 @@ sensible one.
 typically publish their monthly factsheet within the first ~7-10 days after month-end (an
 industry norm, not independently re-verified against a specific SEBI clause this session —
 flagged as an assumption, not a confirmed regulatory fact); the 10th gives a buffer past
-that window. Clear of the existing 06:00 `nav_daily`/`benchmark_daily` jobs (different
-day-of-month granularity avoids any real contention) and distinct from `ter_monthly`'s
-`cron(0 6 1 * ? *)` (1st of the month) — deliberately offset 9 days later so this job isn't
-racing TER's for the same Fargate capacity, though both could in practice run concurrently
-without issue (each job gets its own task definition).
+that window. **Correction, 2026-10-09:** an earlier draft of this paragraph said this time
+was chosen to be "distinct from `ter_monthly`'s `cron(0 6 1 * ? *)`" — that job doesn't
+exist. The real TER job, confirmed by reading `infra/modules/scheduler/main.tf` directly,
+is `ter_daily` at `cron(20 6 * * ? *)` (daily, 06:20 IST), not monthly. There is no monthly
+TER job to offset against, so that reasoning is dropped. What actually matters: this job
+runs once a month, so it shares no meaningful contention with any daily 06:00-hour job
+(`nav_daily`, `benchmark_daily`, `ter_daily`) regardless of exact minute — each job gets its
+own Fargate task definition, so even same-minute overlap would not race for the same
+container.
 
 **How it runs (infra — no new category, a copy-paste addition to an existing file):**
 `infra/modules/scheduler/main.tf`'s `locals.jobs` map gets one new entry:
@@ -1759,8 +1902,8 @@ in this file, confirmed by reading `infra/modules/scheduler/main.tf` directly, n
 assumed. Two new application files: `backend/app/services/analytics/
 amfi_factsheet_client.py` (the service logic — the 1:1 structural peer of
 `amfi_ter_client.py`) and `backend/scripts/jobs/refresh_fund_managers_monthly.py`
-(identical `main_async`/`main` boilerplate to `refresh_ter_monthly.py`, confirmed by
-reading that file directly).
+(identical `main_async`/`main` boilerplate to `refresh_ter_daily.py` — the real filename,
+corrected 2026-10-09; confirmed by reading that file directly).
 
 **AWS cost (real numbers, not a guess):** every job in `infra/modules/scheduler/main.tf`
 shares one Fargate sizing regardless of which script runs — confirmed live:
@@ -1770,9 +1913,10 @@ ap-south-1's exact current rate wasn't independently re-confirmed this session a
 typically runs somewhat higher, but the conclusion below doesn't change even if doubled):
 
 - Cost per hour of runtime: `(0.5 × $0.04048) + (1 × $0.004445)` ≈ **$0.02469/hour**.
-- This job runs once a month for, realistically, a few minutes (one directory GET + 2
-  AMC PDF downloads/parses at launch, growing slowly as more `STATIC_REGEX`/`JSON_API`
-  resolvers are added over time) — even a pessimistic 10-minute runtime costs
+- This job runs once a month for, realistically, a few minutes (one directory GET + 35
+  AMC PDF/API fetches and parses at launch — Tier 1 + Tier 2 from the AMC coverage
+  section above — growing further as Tier 3's 12 AMCs are investigated and added) — even
+  a pessimistic 10-minute runtime costs
   `$0.02469 × (10/60)` ≈ **$0.0041 per run**, i.e. **under half a cent, once a month.**
   EventBridge Scheduler's own invocation cost ($1 per million invocations) and 7-day
   CloudWatch log storage for a few KB of log lines are both immaterial on top of that.
@@ -1850,17 +1994,89 @@ as the existing TER job, which has no dashboard either, plus the persisted
 `match_method`/`match_confidence` columns above for point-in-time accuracy queries. A
 dedicated coverage dashboard is YAGNI until there's evidence the log line isn't enough.
 
-### Remaining work, explicitly scoped (not open-ended)
+### AMC coverage — every one of the 57 AMFI-listed AMCs individually checked, 2026-10-08
 
-The only thing left for implementation is mechanical, not design: build the two confirmed
-`STATIC_REGEX` resolvers (Nippon, DSP) plus the `scheme_fund_managers` migration and the
-job wiring above — a working, if partial, pipeline ships from day one. Growing coverage
-past those two AMCs is a repeatable, bounded unit of work (one network trace + one dict
-entry per AMC, per the `JSON_API` tier shape already specified) that can happen
-incrementally after this sub-project ships, the same way TER's own coverage was never
-"100% or nothing." Kotak (WAF-blocked) and the 6 empty-link AMCs stay `MANUAL_PENDING`
-indefinitely unless a future session decides a bot-protection bypass is worth the
-engineering cost — not proposed here.
+**Superseding all earlier "launch scope" framing in this section.** Ayush rejected the
+earlier "ship 3 confirmed + 2 traces, defer ~50 others incrementally" decision: every AMC
+except HDFC and Kotak (the two confirmed permanently bot-blocked) was to be actually
+checked and given a concrete engineering path *in this planning pass*, not deferred. That
+check has now been done, live, against all 57 AMFI-listed AMCs (via each AMC's own
+AMFI-registered factsheet-download page), using two methods: a direct HTTP fetch
+(reveals static, server-rendered PDF links) and a headless-browser network trace with
+Playwright (reveals the JSON API calls and dynamically-rendered links that account for
+roughly half of AMC sites, which are React/Angular/Vue single-page apps whose factsheet
+list never appears in the raw HTML a plain HTTP fetch sees). Results, grouped by the real
+engineering path each AMC needs:
+
+**Tier 1 — `STATIC_REGEX`, confirmed working today (27 AMCs).** A real, current (2026)
+factsheet PDF URL was found directly, via a static link or one revealed by the browser
+trace: Nippon, DSP, Aditya Birla Sun Life, SBI, Union Asset Management, Motilal Oswal,
+quant Money Managers, Mirae Asset, NJ Mutual Fund, Franklin Templeton, Invesco, Canara
+Robeco, Baroda BNP Paribas, PPFAS, Shriram, Bajaj Finserv, Helios, Zerodha, Unifi, Angel
+One, Capitalmind, Abakkus, LIC, JM Financial, Old Bridge, Quantum, Samco. Each is the same
+bounded unit of work as Nippon/DSP: one URL pattern + the existing extraction regex (or,
+for a handful with a visibly different factsheet-table layout — confirmed so far only for
+Aditya Birla Sun Life — a second small extraction-shape task, budgeted per-AMC as that
+AMC's own task in the plan, not assumed free).
+
+**Tier 2 — `JSON_API`, confirmed endpoint found, response shape not yet mapped (8 AMCs).**
+The page itself needs JavaScript to render, but the browser trace caught the underlying
+API call the page makes to fetch its own document list, so the endpoint is known and
+reachable; it just hasn't been decoded into a `JSON_API` resolver dict entry yet. ICICI
+Prudential (`apimf.icicipruamc.com/nms/v1/downloads/categories`) — confirmed resolvable
+despite the AMFI directory's own link being a dead 404, since the AMC's real site has a
+working, different URL than the one AMFI's directory lists. Axis
+(`axismf.com/cms/downloads/category`), Choice AMC (`/api/document-master-list`), UTI
+(`/api/page/forms-and-downloads-downloads`), ITI (`/jeeth/api/v1/catalog/digitalfactsheet`
+— literally named for this purpose), PGIM (`/api/v1/brochure/get/file`), WhiteOak (a
+GraphQL endpoint, not REST — same bounded task, slightly different decode shape), Trust
+(a generic `/api/Trust/GetData` endpoint shared across several page sections — needs its
+call parameters inspected to isolate the factsheet-list call specifically).
+
+**Tier 3 — needs one more investigation pass before it's buildable (12 AMCs).** Something
+real was found but it wasn't conclusive — a stale date, a document that isn't actually the
+factsheet, or a factsheet list gated behind a UI tab/dropdown interaction the automated
+trace didn't trigger. Not a dead end, but not yet a confirmed resolver either: HSBC (found
+factsheet PDFs, but dated 2023 — the live page takes a `Date` URL parameter that likely
+needs a current value), Sundaram and Groww (a PDF was found, but it was a methodology/
+disclosure document, not the actual monthly factsheet — the real one is likely behind a
+fund-picker dropdown), 360 ONE, Tata, Taurus, ASK (all three have dozens of real PDFs on
+their sites, none factsheet-specific — the factsheet itself likely lives in a different
+section than the "downloads" page checked here), Bandhan and Jio BlackRock (page loads,
+but no factsheet-related API call was observed even after the trace tried clicking visible
+buttons/dropdowns — Jio BlackRock's one captured API call, `generateInvestorSession`,
+raises the separate question of whether its factsheets are public at all or gated behind
+investor login), Navi (nothing found despite interaction), Bank of India and Mahindra
+Manulife (both keep their real factsheet inside a tabbed "Investor Corner" page that the
+automated check didn't fully drive — Bank of India's own AMFI-directory link is itself a
+stale May-2022 PDF, a 5th distinct failure mode: the directory link resolves and is a real
+PDF, it's just outdated).
+
+**Tier 4 — confirmed automation-blocked, same class as HDFC/Kotak (1 AMC).** Edelweiss
+returned HTTP 403 not just to a plain HTTP fetch (which could be a User-Agent issue) but to
+a full headless Chromium browser as well — real bot-protection, not a fetcher-specific
+block. Joins HDFC/Kotak's manual-PDF-intake path rather than automated resolution.
+
+**Tier 5 — no usable factsheet content found at all (7 AMCs).** IL&FS Infra, Lakshya,
+Carnelian, AlphaGrep, Nuvama, Wealth Company, Monarch Networth. Each AMC's site loads (bar
+Lakshya, which timed out entirely), but none expose any factsheet-shaped document via
+either method — the likeliest explanation, not yet confirmed, is that several of these are
+newer/boutique AMCs that may not have live retail schemes yet, which would make
+`MANUAL_PENDING` the economically correct state regardless of further scraping effort, not
+just a gap. Needs a one-line check per AMC (does AMFI list any active schemes under this
+AMC at all?) before concluding further engineering effort here is warranted.
+
+**What this means for scope:** Tier 1 + Tier 2 (35 AMCs, including SBI #1 and ICICI #2 by
+AUM) have a confirmed, concrete, individually-scoped engineering task each — no AMC in
+these two tiers is "incremental, add later": every one of them gets its own task in the
+`writing-plans` plan for attribute 04, built in this pass. Tier 3's 12 AMCs each get a
+smaller, explicitly-scoped "one more investigation step" task (inspect the specific
+dropdown/tab/date-parameter named above) rather than being silently left as
+`MANUAL_PENDING` — the next concrete action is already identified per AMC, it just hasn't
+been executed yet, which the plan's tasks will do. Only HDFC, Kotak, and Edelweiss (Tier 4)
+get the manual-PDF-intake path. Tier 5's 7 AMCs get the one-line "does this AMC have live
+schemes" check as their task, with `MANUAL_PENDING` the explicit fallback only if that
+check confirms there's nothing to resolve yet.
 
 Moneycontrol/VR scraping is no longer under consideration given this clean AMFI-sourced
 path exists — ranked last in the prior research pass anyway, now entirely superseded.

@@ -39,13 +39,16 @@ flowchart TB
 - **Expand interaction:** tapping a manager card reveals the specific funds this household
   holds under them, with this household's rupee value in each — not that manager's full AMC
   fund list (which could be dozens of schemes the household doesn't hold).
-- **Trailing "not available yet" block:** every held scheme whose AMC resolves to
-  `ResolverKind.MANUAL_PENDING` (the default for every AMC except Nippon/DSP/Aditya Birla
-  Sun Life at launch — see backend spec §"Resolver architecture"; HDFC and Kotak are
-  separately confirmed WAF-blocked, a different and likely-permanent case within the same
-  `MANUAL_PENDING` bucket) is grouped here, not silently omitted and not
-  attached to a guessed manager. Framed honestly: *"Fund manager data for these schemes
-  isn't available yet — we're adding AMC coverage over time."*
+- **Trailing "not available yet" block:** every held scheme whose AMC hasn't resolved yet
+  is grouped here, not silently omitted and not attached to a guessed manager. This is a
+  small remainder, not the common case — see backend spec §"AMC coverage — every one of the
+  57 AMFI-listed AMCs individually checked" for the full per-AMC breakdown: 35 AMCs
+  (Tier 1/2, including SBI and ICICI Prudential) have a confirmed, buildable resolver; 12
+  more (Tier 3) have a concrete next investigation step already identified; only HDFC,
+  Kotak, and Edelweiss are permanently automation-blocked, closed via a monthly
+  manual-PDF-intake workflow rather than left unavailable (backend spec's Q1 decision); the
+  remaining 7 (Tier 5) may simply have no live retail schemes to resolve. Framed honestly:
+  *"Fund manager data for these schemes isn't available yet."*
 
 ## 3. Data contract (frontend-relevant shape)
 
@@ -82,7 +85,7 @@ way other Analytics sections already aggregate household-held schemes.
 | Normal | Manager has ≥1 resolved scheme held by household | Manager card, per §2 |
 | Co-manager / assistant | `scheme_fund_managers` has >1 row for a held scheme | Each manager gets their own card (no merging, no "+1 more") |
 | Unavailable | Scheme's AMC is `MANUAL_PENDING` | Trailing block, §2, never a fake manager card |
-| Empty section | Household holds zero schemes with any resolved manager (plausible at launch, given only 2 AMCs are `STATIC_REGEX`-resolved) | Section still renders, with the "not available yet" framing as the *only* content — not hidden entirely, so the user understands why, not just an absent section |
+| Empty section | Household holds zero schemes with any resolved manager (possible but unlikely now that 35 of 57 AMCs resolve) | Section still renders, with the "not available yet" framing as the *only* content — not hidden entirely, so the user understands why, not just an absent section |
 
 ## 5. Cross-cutting rules applied here
 
