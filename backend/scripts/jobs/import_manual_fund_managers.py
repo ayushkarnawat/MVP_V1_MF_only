@@ -35,10 +35,9 @@ def run(db, amc_name: str, pdfs: list[Path], today: date) -> dict[str, int]:
             # Checked for every file before writing anything, so a wrong file changes nothing.
             sys.exit(f"{pdf.name}: {reason} -- download this month's factsheet and run again.")
         pages_per_file.append(pages)
-    matched = unmatched = 0
-    for pages in pages_per_file:
-        m, u = import_pages(db, amc_name, pages, reader, today.replace(day=1), manual=True)
-        matched, unmatched = matched + m, unmatched + u
+    # One import over every file: a fund printed in both files keeps both files' managers.
+    all_pages = [page for pages in pages_per_file for page in pages]
+    matched, unmatched = import_pages(db, amc_name, all_pages, reader, today.replace(day=1), manual=True)
     db.commit()
     return {"matched": matched, "unmatched": unmatched}
 

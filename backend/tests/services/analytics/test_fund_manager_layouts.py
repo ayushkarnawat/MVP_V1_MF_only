@@ -287,3 +287,125 @@ def test_canara_manager_without_a_parseable_date_is_kept_not_dropped():
             "2) Mr. Shridatta Bhandwaldar (Managing fund since February 1, 2019 & Overall Experience 18 years)\nDATE OF ALLOTMENT: 2019\n")
     managers = LAYOUTS["canara"](page).managers
     assert [(m["name"], m["since_raw"]) for m in managers] == [("Pranav Gokhale", None), ("Shridatta Bhandwaldar", "February 1, 2019")]
+
+
+@pytest.mark.parametrize("fixture,expected", [
+    ("mirae_active", [
+        ("MIRAE ASSET LARGE CAP FUND", [("Gaurav Misra", None, "31st January 2019")]),
+        ("MIRAE ASSET LARGE & MIDCAP FUND", [("Neelesh Surana", None, "Inception"), ("Ankit Jain", None, "31st January 2019")]),
+    ]),
+    ("mirae_passive", [
+        ("MIRAE ASSET NIFTY 200 ALPHA 30 ETF", [("Ekta Gala", None, "October 20, 2023"), ("Akshay Udeshi", None, "March 12, 2025")]),
+        ("MIRAE ASSET NIFTY SMALLCAP 250 MOMENTUM QUALITY 100 ETF", [("Ekta Gala", None, "February 23, 2024"), ("Akshay Udeshi", None, "March 12, 2025")]),
+    ]),
+])
+def test_mirae_active_and_passive_real_scheme_pages(fixture, expected):
+    pages = (FIXTURES / (fixture + ".txt")).read_text(encoding="utf-8").split("\f")
+    assert len(pages) == len(expected) == 2
+    for raw, (heading, managers) in zip(pages, expected):
+        page = LAYOUTS["mirae"](raw)
+        assert page.heading == heading
+        assert [(m["name"], m["role"], m["since_raw"]) for m in page.managers] == managers
+
+
+@pytest.mark.parametrize("fixture,expected", [
+    ("uti_active", [
+        ("UTI LARGE CAP FUND", [("Karthikraj Lakshmanan", None, "Sep 2022")]),
+        ("UTI MID CAP FUND", [("Vishal Chopda", None, "Jun 2025")]),
+    ]),
+    ("uti_passive", [
+        ("UTI NIFTY 50 INDEX FUND", [("Sharwan Kumar Goyal", None, "July 2018"), ("Ayush Jain", "Assistant Fund Manager", "May 2022"), ("Lokesh Kulthia", "Asst. Fund Manager", "June, 2026")]),
+        ("UTI NIFTY NEXT 50 INDEX FUND", [("Sharwan Kumar Goyal", None, "June 2018"), ("Ayush Jain", "Assistant Fund Manager", "May 2022"), ("Lokesh Kulthia", "Asst. Fund Manager", "June, 2026")]),
+    ]),
+])
+def test_uti_real_active_and_passive_pages(fixture, expected):
+    pages = (FIXTURES / (fixture + ".txt")).read_text(encoding="utf-8").split("\f")
+    assert len(pages) == len(expected) == 2
+    for raw, (heading, managers) in zip(pages, expected):
+        page = LAYOUTS["uti"](raw)
+        assert page.heading == heading
+        assert [(m["name"], m["role"], m["since_raw"]) for m in page.managers] == managers
+
+
+def test_mirae_bse_and_mixed_case_fof_titles():
+    pages = (FIXTURES / "mirae_headings.txt").read_text(encoding="utf-8").split("\f")
+    expected = [
+        ("MIRAE ASSET BSE SENSEX ETF", [("Ekta Gala", None, "September 29, 2023"), ("Ritesh Patel", None, "March 12, 2025")]),
+        ("MIRAE ASSET GOLD SILVER PASSIVE FoF", [("Ritesh Patel", None, "August 29, 2025")]),
+    ]
+    assert len(pages) == 2
+    for raw, (heading, managers) in zip(pages, expected):
+        page = LAYOUTS["mirae"](raw)
+        assert page.heading == heading
+        assert [(m["name"], m["role"], m["since_raw"]) for m in page.managers] == managers
+
+
+def test_mirae_no_date_and_specialist_roles_are_kept():
+    pages = (FIXTURES / "mirae_roles.txt").read_text(encoding="utf-8").split("\f")
+    expected = [
+        ("MIRAE ASSET SILVER ETF FOF", [("Ritesh Patel", None, None), ("Akshay Udeshi", "Co- Fund Manager", None)]),
+        ("MIRAE ASSET NIFTY200 MOMENTUM 30 PLUS 8-13YR G-SEC 75:25 INDEX FUND", [("Ekta Gala", "Equity Portion", None), ("Pranavi Kulkarni", "Debt Portion", None)]),
+    ]
+    assert len(pages) == 2
+    for raw, (heading, managers) in zip(pages, expected):
+        page = LAYOUTS["mirae"](raw)
+        assert page.heading == heading
+        assert [(m["name"], m["role"], m["since_raw"]) for m in page.managers] == managers
+
+
+def test_choice_real_pages_include_all_current_managers_and_effective_dates():
+    pages = (FIXTURES / "choice.txt").read_text(encoding="utf-8").split("\f")
+    expected = [
+        ("Choice Gold ETF", [("Rochan Pattnayak", None, "4th November 2025"), ("Khushi Sancheti", None, "24th August 2026")]),
+        ("Choice Nifty 50 Index Fund", [("Rochan Pattnayak", None, "7th April 2026"), ("Diksha Upadhyay", None, "24th August 2026"), ("Khushi Sancheti", None, "24th August 2026")]),
+    ]
+    assert len(pages) == 2
+    for raw, (heading, managers) in zip(pages, expected):
+        page = LAYOUTS["choice"](raw)
+        assert page.heading == heading
+        assert [(m["name"], m["role"], m["since_raw"]) for m in page.managers] == managers
+
+
+def test_pgim_real_pages_keep_wef_dates_separate_from_portion_roles():
+    pages = (FIXTURES / "pgim.txt").read_text(encoding="utf-8").split("\f")
+    expected = [
+        ("PGIM INDIA LARGE CAP FUND", [("Anandha Padmanabhan Anjeneyan", "Equity Portion", "August 19, 2023"), ("Vivek Sharma", "Equity Portion", "April 15, 2024"), ("Vinay Paharia", "Equity Portion", "April 01, 2023"), ("Akhil Dhar", "Debt Portion", "February 25, 2026")]),
+        ("PGIM INDIA FLEXI CAP FUND", [("Anandha Padmanabhan Anjeneyan", "Equity Portion", "June 01, 2021"), ("Vivek Sharma", "Equity Portion", "April 15, 2024"), ("Vinay Paharia", "Equity Portion", "April 01, 2023"), ("Puneet Pal", "Debt Portion", "April 01, 2023")]),
+    ]
+    assert len(pages) == 2
+    for raw, (heading, managers) in zip(pages, expected):
+        page = LAYOUTS["pgim"](raw)
+        assert page.heading == heading
+        assert [(m["name"], m["role"], m["since_raw"]) for m in page.managers] == managers
+
+
+@pytest.mark.parametrize("fixture,expected", [
+    ("uti_portions", [
+        ("UTI BALANCED ADVANTAGE FUND", [("Sachin Trivedi", "Equity Portion", "August 2023"), ("Anurag Mittal", "Debt Portion", "August 2023")]),
+        ("UTI NIFTY500 SHARIAH INDEX FUND", [("Sharwan Kumar Goyal", None, "Inception"), ("Ayush Jain", "Asst. Fund Manager", "Inception"), ("Lokesh Kulthia", "Asst. Fund Manager", "June, 2026")]),
+    ]),
+    ("uti_headings", [
+        ("UTI FOCUSED FUND", [("Vishal Chopda", None, "May 2022")]),
+        ("UTI MEDIUM TERM FUND", [("Anurag Mittal", None, "July 2026")]),
+    ]),
+])
+def test_uti_portions_and_parenthetical_heading_notes(fixture, expected):
+    pages = (FIXTURES / (fixture + ".txt")).read_text(encoding="utf-8").split("\f")
+    assert len(pages) == 2
+    for raw, (heading, managers) in zip(pages, expected):
+        page = LAYOUTS["uti"](raw)
+        assert page.heading == heading
+        assert [(m["name"], m["role"], m["since_raw"]) for m in page.managers] == managers
+
+
+def test_pgim_name_without_a_parenthetical_loses_trailing_separators():
+    """Run 5 review: '(w.e.f. …) Mr. A ; (w.e.f. …) Mr. B' must not yield 'A ;'."""
+    from app.services.analytics.fund_manager_layouts import pgim_managers
+    page = "Fund Manager: (w.e.f. June 01, 2026) Mr. Vinay Paharia ; (w.e.f. July 01, 2026) Ms. Puneet Pal and Benchmark:"
+    assert [(m["name"], m["since_raw"]) for m in pgim_managers(page)] == [("Vinay Paharia", "June 01, 2026"), ("Puneet Pal", "July 01, 2026")]
+
+
+def test_choice_names_may_contain_dots_and_hyphens():
+    from app.services.analytics.fund_manager_layouts import choice_managers
+    page = "Fund Manager(s) Mr. Ajay Kr. Sharma (Managing Since 01-Jan-2025) Ms. Rhea D'Souza-Mehta (Managing Since 02-Feb-2025) Fund Size"
+    assert [m["name"] for m in choice_managers(page)] == ["Ajay Kr. Sharma", "Rhea D'Souza-Mehta"]

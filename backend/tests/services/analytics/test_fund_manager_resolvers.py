@@ -41,7 +41,7 @@ def test_lic_is_enabled_with_positional_summary_reader():
     assert entry.landing_url == "https://www.licmf.com/downloads/factsheet"
 
 
-@pytest.mark.parametrize("amc,reason", [("Mirae Asset Mutual Fund", "two"), ("quant Mutual Fund", "first 12"), ("Samco Mutual Fund", "June")])
+@pytest.mark.parametrize("amc,reason", [("Mirae Asset Mutual Fund", "two"), ("Samco Mutual Fund", "June")])
 def test_batch_two_blockers_remain_disabled_and_explained(amc, reason):
     entry = AMC_RESOLVERS[amc]
     assert entry.layout is None
@@ -95,3 +95,33 @@ def test_json_api_entries_have_an_endpoint():
     for amc, entry in AMC_RESOLVERS.items():
         if entry.kind is ResolverKind.JSON_API:
             assert entry.endpoint_url, amc
+def test_quant_registry_uses_its_verified_aum_caption():
+    from app.services.analytics.fund_manager_resolvers import AMC_RESOLVERS
+    entry = AMC_RESOLVERS["quant Mutual Fund"]
+    assert entry.layout == "quant"
+    assert entry.as_on_pattern == r"\bAUM\s*\((\d{1,2}\s+[A-Za-z]+\s+\d{4})\)"
+
+
+def test_pgim_uses_live_verified_published_forms_and_reader():
+    entry = AMC_RESOLVERS["PGIM India Mutual Fund"]
+    assert entry.layout == "pgim"
+    assert entry.endpoint_url == "https://www.pgimindia.com/api/v1/brochure/published/form"
+    assert entry.response_json_path == "data.tab_0007"
+
+
+@pytest.mark.parametrize("amc,reason", [
+    ("Mirae Asset Mutual Fund", "first 12"), ("Choice Mutual Fund", "first 12"),
+    ("UTI Mutual Fund", "76/88"), ("Axis Mutual Fund", "403"),
+    ("ICICI Prudential Mutual Fund", "404"), ("ITI Mutual Fund", "403"),
+    ("Trust Mutual Fund", "204"), ("WhiteOak Capital Mutual Fund", "403"),
+])
+def test_run_five_blocked_amcs_keep_proof_without_guessing_a_reader(amc, reason):
+    entry = AMC_RESOLVERS[amc]
+    assert entry.layout is None
+    assert entry.kind is ResolverKind.JSON_API
+    assert reason in entry.note
+
+
+def test_mirae_and_uti_require_both_monthly_documents():
+    assert AMC_RESOLVERS["Mirae Asset Mutual Fund"].documents == (r"active-factsheet", r"passive-factsheet")
+    assert AMC_RESOLVERS["UTI Mutual Fund"].documents == (r"watch_active", r"watch_passive")

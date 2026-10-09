@@ -669,3 +669,204 @@ def test_managing_since_parses_the_formats_factsheets_print(raw, expected):
     """Run 4: day-first dates were left NULL in managing_since; only the raw text survived."""
     from app.services.analytics.amfi_factsheet_client import _parse_managing_since
     assert _parse_managing_since(raw) == expected
+
+
+def test_quant_scoped_month_pattern_uses_real_scheme_pages_only_when_configured():
+    from app.services.analytics import amfi_factsheet_client as client
+    from app.services.analytics.fund_manager_layouts import LAYOUTS
+    pages = (Path(__file__).parents[2] / "fixtures/factsheets/quant.txt").read_text(encoding="utf-8").split("\f")
+    pages = ["Contents"] * 12 + pages + [pages[0]]
+    pattern = r"\bAUM\s*\((\d{1,2}\s+[A-Za-z]+\s+\d{4})\)"
+    assert client.looks_like_current_factsheet(pages, LAYOUTS["quant"], date(2026, 10, 10)) == (False, "stale_month")
+    assert client.looks_like_current_factsheet(pages, LAYOUTS["quant"], date(2026, 10, 10), as_on_pattern=pattern) == (True, "ok")
+    stale = [p.replace("30 September 2026", "30 June 2026") for p in pages]
+    assert client.looks_like_current_factsheet(stale, LAYOUTS["quant"], date(2026, 10, 10), as_on_pattern=pattern) == (False, "stale_month")
+
+
+@pytest.mark.parametrize("rejection", [None, "missing", "stale"])
+def test_multi_document_resolver_validates_every_file_before_import(monkeypatch, rejection):
+    from app.services.analytics import amfi_factsheet_client as client
+    from app.services.analytics.fund_manager_layouts import SchemePage
+    from app.services.analytics.fund_manager_resolvers import ResolverEntry, ResolverKind
+    active = (Path(__file__).parents[2] / "fixtures/factsheets/mirae_active.txt").read_text(encoding="utf-8").split("\f")
+    passive = (Path(__file__).parents[2] / "fixtures/factsheets/mirae_passive.txt").read_text(encoding="utf-8").split("\f")
+    # Verbatim caption on active fund-performance page 95 (scheme-page ordinal wraps).
+    active = active + ["Monthly Factsheet as on 31 August, 2026"]
+    passive = passive + [passive[0]]
+    if rejection == "stale":
+        passive = [p.replace("31 August, 2026", "31 May, 2026").replace("31st August, 2026", "31st May, 2026") for p in passive]
+    monkeypatch.setattr(client, "extract_page_text", lambda pdf: active if pdf == b"%PDF-active" else passive)
+    # Reader shape is tested separately; this test isolates the document contract.
+    reader = lambda p: SchemePage("Real scheme", [{"name": "A", "role": None, "since_raw": None}])
+    entry = ResolverEntry(ResolverKind.STATIC_LINK, "Mirae", documents=(r"active", r"passive"))
+    def handle(request):
+        if request.url.path == "/landing":
+            return httpx.Response(200, text='<a href="active-factsheet-september-2026.pdf">Active</a>' + ('' if rejection == "missing" else '<a href="passive-factsheet-september-2026.pdf">Passive</a>'))
+        return httpx.Response(200, content=b"%PDF-active" if "active" in request.url.path else b"%PDF-passive")
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handle), trust_env=False) as http:
+            return await client._resolve_and_read(http, entry, {"Mirae": "https://example.test/landing"}, reader, date(2026,10,10))
+    result = asyncio.run(run())
+    expected = {"missing": (None, "no_factsheet_link"), "stale": (None, "stale_month")}
+    assert result == expected.get(rejection, (active + passive, "ok"))
+
+
+def test_mirae_api_keeps_candidates_for_each_document_pattern():
+    from app.services.analytics import amfi_factsheet_client as client
+    from app.services.analytics.fund_manager_resolvers import ResolverEntry, ResolverKind
+    entry = ResolverEntry(ResolverKind.JSON_API, "Mirae Asset Investment Managers (India) Pvt. Ltd",
+                          endpoint_url="https://www.miraeassetmf.co.in/AjaxService/GetDownloadsData", documents=("active", "passive"))
+    def handle(request):
+        assert request.method == "POST"
+        assert json.loads(request.content) == {"request": {"modulename": "Factsheet", "pgno": 1, "pgsize": 10}}
+        return httpx.Response(200, json={"Data": [
+            {"Title": "August 2026 - Active Fund Factsheet", "URL": "/active-factsheet---august-2026.pdf"},
+            {"Title": "September 2026 - Passive Fund Factsheet", "URL": "/passive-factsheet---september-2026.pdf"},
+            {"Title": "September 2026 - Active Fund Factsheet", "URL": "/active-factsheet---september-2026.pdf"},
+            {"Title": "July 2026 - Passive Fund Factsheet", "URL": "/passive-factsheet---july-2026.pdf"},
+        ]})
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handle), trust_env=False) as http:
+            return await client._json_api_candidates(http, entry)
+    assert asyncio.run(run()) == [
+        "https://www.miraeassetmf.co.in/passive-factsheet---september-2026.pdf",
+        "https://www.miraeassetmf.co.in/active-factsheet---september-2026.pdf",
+        "https://www.miraeassetmf.co.in/active-factsheet---august-2026.pdf",
+        "https://www.miraeassetmf.co.in/passive-factsheet---july-2026.pdf",
+    ]
+
+
+def test_uti_api_uses_month_names_falls_back_and_keeps_both_english_files(monkeypatch):
+    from app.services.analytics import amfi_factsheet_client as client
+    from app.services.analytics.fund_manager_resolvers import ResolverEntry, ResolverKind
+    class Today(date):
+        @classmethod
+        def today(cls):
+            return date(2026,10,10)
+    monkeypatch.setattr(client, "date", Today)
+    entry = ResolverEntry(ResolverKind.JSON_API, "UTI Asset Mgmt. Co. Ltd.", endpoint_url="https://www.utimf.com/api/get-fact-sheet", documents=("active", "passive"))
+    calls = []
+    def handle(request):
+        calls.append(dict(request.url.params))
+        if request.url.params["month"] == "October":
+            return httpx.Response(200, json={"rows": []})
+        return httpx.Response(200, json={"rows": [
+            {"name": "UTI Fund Watch (Active)-September 2026", "doc": "https://cdn.test/active_september_2026.pdf"},
+            {"name": "UTI Fund Watch (Passive)-September 2026", "doc": "https://cdn.test/passive_september_2026.pdf"},
+            {"name": "UTI Fund Watch (Active)-September 2026 Hindi", "doc": "https://cdn.test/Hindi.pdf"},
+        ]})
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handle), trust_env=False) as http:
+            return await client._json_api_candidates(http, entry)
+    assert asyncio.run(run()) == ["https://cdn.test/active_september_2026.pdf", "https://cdn.test/passive_september_2026.pdf"]
+    assert calls == [{"year": "2026", "month": "October"}, {"year": "2026", "month": "September"}]
+
+
+@pytest.mark.parametrize("company,payload,expected", [
+    ("Choice AMC Private Limited", {"body": [{"slug": "scheme-documents", "children": [
+        {"redirection_link": "disclosures/sid", "financial_years": [{"files": [{"doc_name": "SID", "file_path": "sid.pdf"}]}]},
+        {"redirection_link": "disclosures/factsheets", "financial_years": [{"files": [
+            {"doc_name": "Choice Factsheet July 2026", "file_path": "july-2026.pdf", "scheme_id": None},
+            {"doc_name": "Choice Factsheet August 2026", "file_path": "august-2026.pdf", "scheme_id": None},
+            {"doc_name": "Gold ETF August 2026", "file_path": "one-pager.pdf", "scheme_id": 1},
+        ]}]}]}]}, ["https://doc.choicemf.com/august-2026.pdf", "https://doc.choicemf.com/july-2026.pdf"]),
+    ("PGIM India Asset Management Private Limite", {"data": {"tab_0001": [{"pdfPath": "https://cdn.test/SID.pdf"}], "tab_0007": [
+        {"monthYear": "July 2026", "pdfPath": "https://cdn.test/july-2026.pdf", "displayStatus": True},
+        {"monthYear": "September 2026", "pdfPath": "https://cdn.test/september-2026.pdf", "displayStatus": False},
+        {"monthYear": "August 2026", "pdfPath": "https://cdn.test/august-2026.pdf", "displayStatus": True},
+    ]}}, ["https://cdn.test/august-2026.pdf", "https://cdn.test/july-2026.pdf"]),
+])
+def test_choice_and_pgim_verified_api_shapes(company, payload, expected):
+    from app.services.analytics import amfi_factsheet_client as client
+    from app.services.analytics.fund_manager_resolvers import ResolverEntry, ResolverKind
+    entry = ResolverEntry(ResolverKind.JSON_API, company, endpoint_url="https://example.test/api")
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(lambda request: httpx.Response(200, json=payload)), trust_env=False) as http:
+            return await client._json_api_candidates(http, entry)
+    assert asyncio.run(run()) == expected
+
+
+@pytest.mark.parametrize("amc,heading,wanted,other", [
+    ("Mirae Asset Mutual Fund", "MIRAE ASSET NIFTY 1D RATE LIQUID ETF - IDCW*", "Mirae Asset Nifty 1D Rate Liquid ETF-IDCW", "Mirae Asset Nifty 1D Rate Liquid ETF - Growth"),
+    ("Mirae Asset Mutual Fund", "MIRAE ASSET NIFTY 1D RATE LIQUID ETF - GROWTH", "Mirae Asset Nifty 1D Rate Liquid ETF - Growth", "Mirae Asset Nifty 1D Rate Liquid ETF-IDCW"),
+    ("UTI Mutual Fund", "UTI CREDIT RISK FUND", "UTI - Credit Risk Fund.", "UTI - Credit Risk Fund (Segregated - 06032020)"),
+    ("UTI Mutual Fund", "UTI FOCUSED FUND", "UTI Focused Fund (30 stocks)", "UTI Flexi Cap Fund"),
+])
+def test_mirae_and_uti_matching_keeps_ambiguous_families_unmatched(amc, heading, wanted, other):
+    families = build_families([_scheme(wanted, amc=amc), _scheme(other, amc=amc)])
+    match = match_scheme_page(_page(heading), families)
+    if "FOCUSED" in heading:
+        assert match and match[0].base_name == wanted
+        assert match[1] == MATCH_METHOD_EXACT
+    else:
+        # Global Constraints: never resolve two families with the same canonical
+        # name by guesswork. Growth/IDCW and segregated labels collapse today.
+        assert match is None
+
+
+@pytest.mark.parametrize("fail_second_file", [False, True])
+def test_multi_document_import_commits_once_or_rolls_back_the_whole_amc(db_session, monkeypatch, caplog, fail_second_file):
+    from app.models.reference import SchemeFundManager
+    from app.services.analytics import amfi_factsheet_client as client
+    from app.services.analytics.fund_manager_layouts import LAYOUTS
+    from app.services.analytics.fund_manager_resolvers import ResolverEntry, ResolverKind
+    fixtures = Path(__file__).parents[2] / "fixtures/factsheets"
+    active = (fixtures / "mirae_active.txt").read_text(encoding="utf-8").split("\f")
+    passive = (fixtures / "mirae_passive.txt").read_text(encoding="utf-8").split("\f")
+    pages = active + passive
+    schemes = [_scheme(LAYOUTS["mirae"](p).heading, amc="Mirae Test AMC") for p in pages]
+    db_session.add_all(schemes)
+    db_session.commit()
+    monkeypatch.setattr(client, "AMC_RESOLVERS", {"Mirae Test AMC": ResolverEntry(
+        ResolverKind.STATIC_LINK, "Mirae", layout="mirae", documents=("active", "passive"))})
+    monkeypatch.setattr(client, "_fetch_amfi_directory", AsyncMock(return_value={}))
+    monkeypatch.setattr(client, "_resolve_and_read", AsyncMock(return_value=(pages, "ok")))
+    _http(monkeypatch, lambda request: (_ for _ in ()).throw(AssertionError("network forbidden")))
+    commit = AsyncMock(side_effect=client.commit_off_loop)
+    monkeypatch.setattr(client, "commit_off_loop", commit)
+    upsert = client.upsert_scheme_fund_managers
+    def write(db, scheme, *args, **kwargs):
+        if fail_second_file and scheme.scheme_name == schemes[2].scheme_name:
+            raise RuntimeError("second file write failed")
+        return upsert(db, scheme, *args, **kwargs)
+    monkeypatch.setattr(client, "upsert_scheme_fund_managers", write)
+    result = asyncio.run(client.refresh_fund_managers(db_session))
+    if fail_second_file:
+        assert (result.amcs_processed, result.amcs_failed) == (0, 1)
+        assert db_session.query(SchemeFundManager).count() == 0
+        commit.assert_not_awaited()
+        assert sum("FUND_MANAGER_ALERT" in m for m in caplog.messages) == 1
+    else:
+        assert (result.amcs_processed, result.amcs_failed, result.schemes_matched) == (1, 0, 4)
+        assert db_session.query(SchemeFundManager).count() == 7
+        commit.assert_awaited_once_with(db_session)
+
+
+def test_quant_custom_caption_replaces_shared_scan_and_ignores_future_dates():
+    from app.services.analytics import amfi_factsheet_client as client
+    from app.services.analytics.fund_manager_layouts import LAYOUTS
+    pages = (Path(__file__).parents[2] / "fixtures/factsheets/quant.txt").read_text(encoding="utf-8").split("\f")
+    pattern = r"\bAUM\s*\((\d{1,2}\s+[A-Za-z]+\s+\d{4})\)"
+    stale = [p.replace("30 September 2026", "30 June 2026") for p in pages]
+    stale += [stale[0] + "\nData as on September 30, 2026\nAUM (30 September 2027)"]
+    assert client.looks_like_current_factsheet(stale, LAYOUTS["quant"], date(2026, 10, 10)) == (True, "ok")
+    assert client.looks_like_current_factsheet(stale, LAYOUTS["quant"], date(2026, 10, 10), as_on_pattern=pattern) == (False, "stale_month")
+
+
+def test_a_fund_on_two_pages_keeps_every_manager(db_session):
+    """Run 5 review: a fund printed on two pages (or in two files of one month, e.g. Mirae
+    active + passive) must keep the managers from both, not just the last page's."""
+    from app.models.reference import SchemeFundManager
+    from app.services.analytics.amfi_factsheet_client import import_pages
+    scheme = _scheme("ABC Liquid Fund", amc="Two Files AMC")
+    db_session.add(scheme)
+    db_session.commit()
+    def reader(text):
+        name, managers = text.split("|")
+        return SchemePage(heading=name, managers=[{"name": m, "role": None, "since_raw": None} for m in managers.split(",")])
+    matched, unmatched = import_pages(db_session, "Two Files AMC", ["ABC Liquid Fund|Jane Doe,John Roe", "ABC Liquid Fund|Jane Doe,Asha Rao"],
+                                      reader, date(2026, 10, 1))
+    db_session.commit()
+    rows = db_session.query(SchemeFundManager).filter_by(scheme_id=scheme.id).order_by(SchemeFundManager.sequence_order).all()
+    assert [r.manager_name for r in rows] == ["Jane Doe", "John Roe", "Asha Rao"]
+    assert (matched, unmatched) == (1, 0)

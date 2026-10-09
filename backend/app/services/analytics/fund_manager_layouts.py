@@ -418,6 +418,103 @@ def lic_summary(page: str, words: list[Word]) -> list[SchemePage]:
     return result
 
 
+def _mirae_heading(page: str) -> str:
+    lines = [line.strip() for line in page.splitlines() if line.strip()]
+    for i, line in enumerate(lines):
+        if line.startswith("MIRAE ASSET"):
+            title = [line]
+            for following in lines[i + 1:]:
+                if not following.replace("FoF", "FOF").isupper() or following.startswith(("NSE Symbol", "BSE Code", "(")):
+                    break
+                title.append(following)
+            return " ".join(title)
+    return ""
+
+
+def mirae_managers(page: str) -> list[dict] | None:
+    if not _mirae_heading(page):
+        return None  # summary columns and performance tables aren't scheme pages
+    names = re.search(r"Name of Fund Managers:(.*?)(?:Lump sum Amount|Minimum Investment)", page, re.S)
+    if names:
+        return [{"name": _clean_name(m.group(1)), "role": None,
+                 "since_raw": re.sub(r"(\d)\s+(st|nd|rd|th)\b", r"\1\2", " ".join(m.group(2).split()))}
+                for m in re.finditer(r"((?:Mr|Ms)\.\s*.*?)\s*Total Experience:.*?Managing Since:\s*(.*?)(?=(?:Mr|Ms)\.|$)", names.group(1), re.S)]
+    # Passive pages repeat names with their start dates in the performance caption.
+    info = re.search(r"Fund Managers[@*]?\s*:\s*(.*?)Allotment Date", page, re.S)
+    if info:
+        dates = {_clean_name(m.group(1).rstrip("@* ")): " ".join(m.group(2).split())
+                 for m in re.finditer(r"((?:Mr|Ms)\.\s*[^()\r\n]+?)\s*\(since\s+([^)]*)\)", page)}
+        out = []
+        for m in re.finditer(r"((?:Mr|Ms)\.\s*[^()\r\n]+)(?:\s*\(([^)]*)\))?", info.group(1)):
+            name = _clean_name(m.group(1).rstrip("@* "))
+            out.append({"name": name, "role": m.group(2), "since_raw": dates.get(name)})
+        return out or None
+    return None
+
+
+def _uti_heading(page: str) -> str:
+    for line in page.splitlines():
+        title = line.strip().split("(")[0].strip()
+        if title.startswith("UTI ") and title.isupper():
+            return title
+    return ""
+
+
+def uti_managers(page: str) -> list[dict] | None:
+    if "Date of inception/allotment" not in page or "Investment Objective" not in page:
+        return None  # reject biographies and repeated performance-only pages
+    block = re.split(r"(?:\r?\n)Investment Objective\s*(?:\r?\n)", page, maxsplit=1)[0]
+    out = []
+    for m in re.finditer(r"((?:Mr|Ms)\.?\s+[^,()\r\n]+?)(?=\s*[,(-]).*?Managing\s+(?:the|this)\s+scheme\s+Since\s+(.*?)\s*Total Exp:", block, re.S | re.I):
+        role = re.search(r"(Assistant Fund Manager|Asst\. Fund Manager|Equity Portion|Debt Portion)", m.group(0))
+        out.append({"name": _clean_name(m.group(1)), "role": role.group(1) if role else None,
+                    "since_raw": " ".join(m.group(2).split()).rstrip(".")})
+    return out or None
+
+
+def choice_managers(page: str) -> list[dict] | None:
+    block = re.search(r"Fund Manager\(s\)(.*?)Fund Size", page, re.S)
+    if not block:
+        return None
+    # Names can carry dots, hyphens and apostrophes ("Ajay Kr. Sharma", "D'Souza-Mehta").
+    return [{"name": _clean_name(" ".join(m.group(1).split())), "role": None, "since_raw": " ".join(m.group(2).split())}
+            for m in re.finditer(r"((?:(?:Mr|Ms|Mrs|Dr)\.\s*)?[A-Z][A-Za-z.'\- ]+?)\s*\(Managing Since ([^)]*)\)", block.group(1))] or None
+
+
+def _choice_heading(page: str) -> str:
+    return next((line.strip() for line in page.splitlines()
+                 if re.fullmatch(r"Choice [A-Za-z0-9 &-]+(?:Fund|ETF)", line.strip())), "")
+
+
+def pgim_managers(page: str) -> list[dict] | None:
+    block = re.search(r"Fund Manager:(.*?)Benchmark:", page, re.S)
+    if not block:
+        return None
+    out = []
+    # The role parenthetical never starts with "w.e.f." -- that opens the next manager.
+    for m in re.finditer(r"\(w\.e\.f\.\s*([^)]*)\)\s*((?:Mr|Ms)\.?\s*[^()]+)(?:\((?!w\.e\.f)([^)]*)\))?", block.group(1)):
+        role = " ".join(m.group(3).split()) if m.group(3) else None
+        if role and role.startswith("Over "):
+            role = None  # experience is not a role
+        # A name with no parenthetical runs up to the next "(w.e.f." -- drop the separator it carries.
+        name = re.sub(r"(?:\s*(?:[;,&]|\band\b))+\s*$", "", _clean_name(m.group(2)))
+        out.append({"name": name, "role": role, "since_raw": " ".join(m.group(1).split())})
+    return out or None
+
+
+def _pgim_heading(page: str) -> str:
+    lines = [line.strip() for line in page.splitlines() if line.strip()]
+    for i, line in enumerate(lines):
+        if line == "PGIM INDIA" and i:
+            title = [lines[i - 1]]
+            j = i - 2
+            while j >= 0 and lines[j].isupper() and not lines[j].startswith(("RISKOMETER", "AMFI")):
+                title.insert(0, lines[j])
+                j -= 1
+            return "PGIM INDIA " + " ".join(title)
+    return ""
+
+
 def _reader(managers: Callable[[str], list[dict] | None], heading: Callable[[str], str]) -> Callable[[str], SchemePage | None]:
     def read(page: str) -> SchemePage | None:
         found = managers(page)
@@ -439,6 +536,10 @@ def _reader(managers: Callable[[str], list[dict] | None], heading: Callable[[str
 # One reader per AMC: a manager layout plus where that AMC prints the scheme name.
 # Task 8 adds an entry per onboarded AMC (reusing a layout where the shape matches).
 LAYOUTS: dict[str, Callable[..., SchemePage | list[SchemePage] | None]] = {
+    "choice": _reader(choice_managers, _choice_heading),
+    "pgim": _reader(pgim_managers, _pgim_heading),
+    "uti": _reader(uti_managers, _uti_heading),
+    "mirae": _reader(mirae_managers, _mirae_heading),
     "sundaram": _reader(sundaram_managers, _sundaram_heading),
     "zerodha": _reader(zerodha_managers, lambda p: _brand_line_heading(p, "Zerodha ")),
     "unifi": _reader(unifi_managers, _unifi_heading),
