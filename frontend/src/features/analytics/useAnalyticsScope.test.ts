@@ -6,6 +6,7 @@ import * as api from "./api";
 vi.mock("./api");
 
 const settledSections = {
+  investment_withdrawal: { payload: {}, computed_at: "2026-09-01T00:00:00Z", failed_at: null },
   allocation: { payload: { total_value: "100" }, computed_at: "2026-09-01T00:00:00Z", failed_at: null },
   ter: { payload: {}, computed_at: "2026-09-01T00:00:00Z", failed_at: null },
   ter_direct_regular: { payload: {}, computed_at: "2026-09-01T00:00:00Z", failed_at: null },

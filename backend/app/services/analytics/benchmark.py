@@ -31,7 +31,7 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
-from app.models.enums import BenchmarkIndex, TransactionType
+from app.models.enums import BenchmarkIndex, BenchmarkReturnType, TransactionType
 from app.models.folio import Folio
 from app.models.reference import Scheme
 from app.models.transaction import Transaction
@@ -108,12 +108,13 @@ async def _benchmark_xirr_for_transactions(
         return None
     start_date = min(t.date for t in transactions)
     today = date.today()
-    await ensure_index_history_fresh(db, index, start_date, today)
+    # TRI includes reinvested dividends, matching a fund NAV (decided 9 Oct).
+    await ensure_index_history_fresh(db, index, start_date, today, return_type=BenchmarkReturnType.TRI)
 
     net_units = Decimal("0")
     flows: list[tuple[date, Decimal]] = []
     for txn in transactions:
-        level = get_index_level_on_or_before(db, index, txn.date)
+        level = get_index_level_on_or_before(db, index, txn.date, return_type=BenchmarkReturnType.TRI)
         if level is None:
             # This index has no history covering this transaction's date
             # (fetch failed, or genuinely unavailable) — excluded from the
@@ -127,7 +128,7 @@ async def _benchmark_xirr_for_transactions(
             net_units -= signed / index_value
         flows.append((txn.date, signed))
 
-    today_level = get_index_level_on_or_before(db, index, today)
+    today_level = get_index_level_on_or_before(db, index, today, return_type=BenchmarkReturnType.TRI)
     if today_level is None or not flows:
         return None
     flows.append((today, net_units * today_level[0]))

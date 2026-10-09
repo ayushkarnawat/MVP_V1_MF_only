@@ -99,6 +99,89 @@ def cas_truth(fn):
     return funds, r, stamp_unattached
 
 
+def a14_checks(body, raw, per_member):
+    """Attribute 14 (Investment & Withdrawal, added 9 Oct): the section's numbers
+    against themselves, the dashboard, and the CAS rows. Returns the list of
+    mismatches (empty = pass) plus what was compared."""
+    mm = []
+    payload = ((body.get("sections") or {}).get("investment_withdrawal") or {}).get("payload") or {}
+    d = payload.get("data")
+    if not d:
+        return {"mismatches": ["investment_withdrawal section missing or empty"]}
+    inv, wd, net, cv, gain, gifts = (D(d[k]) for k in (
+        "total_invested", "total_withdrawn", "net_invested", "current_value", "absolute_gain", "gifts_net"))
+    # 1. The tiles agree with each other (ruling 9 Oct: gain excludes gifts).
+    if net != inv - wd:
+        mm.append(f"net {net} != invested {inv} - withdrawn {wd}")
+    if gain != cv + wd - inv - gifts:
+        mm.append(f"gain {gain} != value {cv} + withdrawn {wd} - invested {inv} - gifts {gifts}")
+    # 2. Buckets add up to the tiles, and each bucket to its own entries.
+    for label, buckets in (("monthly", d["monthly"]), ("yearly", d["yearly"])):
+        if sum((D(b["invested"]) for b in buckets), D(0)) != inv:
+            mm.append(f"{label} invested sum != {inv}")
+        if sum((D(b["withdrawn"]) for b in buckets), D(0)) != wd:
+            mm.append(f"{label} withdrawn sum != {wd}")
+        for b in buckets:
+            e_inv = sum((D(e["amount"]) for e in b["entries"] if e["direction"] == "invested"), D(0)) \
+                - sum((D(e["amount"]) for e in b["entries"] if e["direction"] == "reversal"), D(0))
+            e_wd = sum((D(e["amount"]) for e in b["entries"] if e["direction"] == "withdrawn"), D(0))
+            if (e_inv, e_wd) != (D(b["invested"]), D(b["withdrawn"])):
+                mm.append(f"{label} {b['period']}: entries {e_inv}/{e_wd} != bucket {b['invested']}/{b['withdrawn']}")
+    # 3. Months are continuous through the current month.
+    months = [b["period"] for b in d["monthly"]]
+    for a, b in zip(months, months[1:]):
+        y, m = map(int, a.split("-"))
+        if b != (f"{y + 1:04d}-01" if m == 12 else f"{y:04d}-{m + 1:02d}"):
+            mm.append(f"monthly gap {a} -> {b}")
+            break
+    if months and months[-1] < f"{date.today():%Y-%m}":
+        mm.append(f"monthly stops at {months[-1]}")
+    # 4. Current value and SIPs match what the dashboard shows for the same people.
+    cv_dash = sum((D(r["current_value"]) for pm in per_member.values()
+                   for r in pm["holdings"].get("holdings", []) if r.get("current_value") is not None), D(0))
+    # The section rounds the summed holdings to paise; the dashboard rows aren't rounded.
+    if cv != cv_dash.quantize(D("0.01")):
+        mm.append(f"current value {cv} != dashboard {cv_dash}")
+    sips = [x for pm in per_member.values() for x in pm["sips"] if x.get("status", "active") == "active"]
+    sip_count = sum(x.get("series_count") or 1 for x in sips)
+    sip_total = sum((D(x["sip_amount"]) * (x.get("series_count") or 1) for x in sips), D(0))
+    if d["sip_summary"]["active_count"] != sip_count:
+        mm.append(f"active SIPs {d['sip_summary']['active_count']} != dashboard {sip_count}")
+    if D(d["sip_summary"]["total_monthly_amount"]) != sip_total:
+        mm.append(f"SIP monthly total {d['sip_summary']['total_monthly_amount']} != dashboard {sip_total}")
+    # 5. Invested / withdrawn / gifts straight from the CAS rows of the last file.
+    # Valid only when no fund opens with a balance (an opening balance is cost
+    # the CAS rows don't itemise) and the run's files don't add other folios.
+    truth = {"invested": D(0), "withdrawn": D(0), "gifts": D(0)}
+    has_opening = False
+    for fo in raw.folios:
+        for s in fo.schemes:
+            if D(str(s.open or 0)) != 0:
+                has_opening = True
+            for t in s.transactions:
+                ty, amt = T(t), abs(D(str(t.amount))) if t.amount is not None else D(0)
+                if ty in ("PURCHASE", "PURCHASE_SIP", "STAMP_DUTY_TAX"):
+                    truth["invested"] += amt
+                elif ty == "REVERSAL":
+                    truth["invested"] -= amt
+                elif ty in ("REDEMPTION", "DIVIDEND_PAYOUT"):
+                    truth["withdrawn"] += amt
+                elif ty == "GIFT_IN":
+                    truth["gifts"] += amt
+                elif ty == "GIFT_OUT":
+                    truth["gifts"] -= amt
+    compare_truth = not has_opening and os.environ.get("A14_TRUTH", "1") == "1"
+    if compare_truth:
+        for k, app in (("invested", inv), ("withdrawn", wd), ("gifts", gifts)):
+            if app != truth[k]:
+                mm.append(f"{k} {app} != CAS rows {truth[k]}")
+    return {"mismatches": mm, "truth_compared": compare_truth, "has_opening_balance": has_opening,
+            "tiles": {k: d[k] for k in ("total_invested", "total_withdrawn", "net_invested", "current_value",
+                                         "absolute_gain", "gifts_net")},
+            "truth": {k: str(v) for k, v in truth.items()}, "months": len(months),
+            "sip_summary": d["sip_summary"]}
+
+
 def upload(client, headers, mid, fn, log, timing):
     t0 = time.time()
     r = client.post("/imports/parse", files={"file": (fn, open(SYN + fn, "rb").read(), "application/pdf")},
@@ -231,9 +314,23 @@ def test_deep(client, monkeypatch):
         monkeypatch.setattr(amfi_ter_client, "_fetch_latest_ter_month", _ter_fetch)
         monkeypatch.setattr(amfi_ter_client, "_fetch_ter_rows", _ter_fetch)
 
+        # Per-section time (summed over scopes), to see where analytics_seconds goes
+        # (added 9 Oct with attribute 14). Wraps compute only; no app change.
+        from app.services.analytics import recompute as _rcm
+        section_seconds = defaultdict(float)
+        for _spec in _rcm._SECTIONS:
+            async def _timed(db_, ids, _orig=_spec.compute, _name=_spec.name):
+                t0 = _time.perf_counter()
+                try:
+                    return await _orig(db_, ids)
+                finally:
+                    section_seconds[_name] += _time.perf_counter() - t0
+            monkeypatch.setattr(_spec, "compute", _timed)
+
         started = _time.perf_counter()
         asyncio.run(recompute_household_analytics(db, user.id))
         out["analytics_seconds"] = round(_time.perf_counter() - started, 1)
+        out["section_seconds"] = {k: round(v, 1) for k, v in sorted(section_seconds.items(), key=lambda kv: -kv[1])}
         a = client.get("/analytics/combined", headers=headers)
         out["analytics"] = {"status": a.status_code, "body": a.json() if a.status_code == 200 else a.text[:2000]}
         out["ter_fetches_during_analytics"] = len(ter_calls)
@@ -372,6 +469,8 @@ def test_deep(client, monkeypatch):
                 tot += units * nh.nav
             chk[me_] = {"app": str(app_snap.get(me_)), "truth": str(round(tot, 2)), "truth_incomplete": missing}
         out["snapshot_check"] = chk
+    if isinstance(out.get("analytics"), dict) and out["analytics"].get("status") == 200:
+        out["a14"] = a14_checks(out["analytics"]["body"], raw, per_member)
     json.dump(out, open(OUT, "w", encoding="utf-8", newline="\n"), indent=1, default=str)
     # Asserted after the dump, so a failing scenario still leaves its output.
     if os.environ.get("MASTER_FILE"):
@@ -396,5 +495,6 @@ def test_deep(client, monkeypatch):
             from app.services.analytics import recompute as _rc
             assert set(an["body"]["sections"]) == {sec.name for sec in _rc._SECTIONS}, sorted(an["body"]["sections"])
             assert not failed, failed
+            assert not out["a14"]["mismatches"], out["a14"]["mismatches"]  # attribute 14 (9 Oct)
             assert out.get("ter_fetches_during_analytics") == 0, out.get("ter_fetches_during_analytics")
             assert "analytics_seconds" in out and out["analytics_seconds"] <= limit, out.get("analytics_seconds")

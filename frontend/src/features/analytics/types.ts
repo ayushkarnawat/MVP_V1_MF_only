@@ -164,6 +164,7 @@ export const ANALYTICS_SECTION_NAMES = [
   "benchmark_funds",
   "category_ranking",
   "score",
+  "investment_withdrawal",
 ] as const;
 
 export type AnalyticsSectionName = (typeof ANALYTICS_SECTION_NAMES)[number];
@@ -182,4 +183,40 @@ export interface AnalyticsScopeResponse {
 
 export interface AnalyticsRetryResponse {
   dispatched: boolean;
+}
+
+export interface InvestmentWithdrawalEntry {
+  transaction_id: string;
+  date: string;
+  type: string;
+  amount: string;
+  direction: "invested" | "withdrawn" | "reversal";
+  scheme_name: string;
+  household_member_id: string;
+  household_member_name: string;
+}
+
+export interface InvestmentWithdrawalBucket {
+  period: string;
+  invested: string;
+  withdrawn: string;
+  entries: InvestmentWithdrawalEntry[];
+}
+
+export interface InvestmentWithdrawalSipSummary {
+  active_count: number;
+  total_monthly_amount: string;
+  missed_count: number;
+}
+
+export interface InvestmentWithdrawalResult {
+  total_invested: string;
+  total_withdrawn: string;
+  net_invested: string;
+  current_value: string;
+  absolute_gain: string;
+  monthly: InvestmentWithdrawalBucket[];
+  yearly: InvestmentWithdrawalBucket[];
+  sip_summary: InvestmentWithdrawalSipSummary;
+  gifts_net: string; // value of gifts received minus given, at transfer value (ruling 9 Oct)
 }

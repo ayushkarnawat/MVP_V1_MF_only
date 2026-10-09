@@ -138,6 +138,11 @@ class BenchmarkIndex(str, enum.Enum):
     NIFTY_MIDCAP_150 = "nifty_midcap_150"
 
 
+class BenchmarkReturnType(str, enum.Enum):
+    PRICE = "price"
+    TRI = "tri"
+
+
 class ArnStatus(str, enum.Enum):
     ACTIVE = "active"
     SUSPENDED = "suspended"
