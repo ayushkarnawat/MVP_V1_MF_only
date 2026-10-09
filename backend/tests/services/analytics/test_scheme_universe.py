@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 import asyncio
 import uuid
@@ -29,6 +29,9 @@ _SAMPLE_TEXT = (
     "\r\n"
     "200001;INF002A01AA1;-;ICICI Prudential Liquid Fund - Direct Plan - Growth;350.1234;10-Aug-2026\r\n"
 )
+# Dated yesterday so the sample schemes count as live peers (only schemes with a NAV in
+# the last 30 days are peers, 9 Oct).
+_SAMPLE_TEXT = _SAMPLE_TEXT.replace("10-Aug-2026", (date.today() - timedelta(days=1)).strftime("%d-%b-%Y"))
 
 
 def _session():
@@ -260,3 +263,23 @@ def test_peers_degrade_to_empty_when_amfi_is_unreachable(tmp_path):
     with patch.object(client, "_fetch_nav_all_text", new=AsyncMock(side_effect=httpx.ConnectError("down"))):
         peers = asyncio.run(client.get_category_peers(_session(), "Equity Scheme - Contra Fund", SchemePlanType.DIRECT))
     assert (peers.schemes, peers.fund_count, peers.representative_of) == ([], 0, {})
+
+
+def test_matured_and_closed_schemes_are_not_peers(tmp_path):
+    """9 Oct: 39% of NAVAll rows are dead (matured FMPs, closed funds: last NAV 2019-2022).
+    Their last NAV made a ~0% "return" and they were ranked as peers. A scheme counts only
+    if AMFI has a NAV for it in the last 30 days; an unparseable date is kept (can't judge)."""
+    from datetime import timedelta
+    client = SchemeUniverseClient(cache_dir=tmp_path)
+    today = date.today()
+    live = _row("1", "Alpha Fund", "Direct Plan", "Growth", category="Income")
+    live.nav_date = today - timedelta(days=3)
+    matured = _row("2", "Beta FMP Series 12", "Direct Plan", "Growth", category="Income")
+    matured.nav_date = date(2021, 6, 30)
+    just_stale = _row("3", "Gamma Fund", "Direct Plan", "Growth", category="Income")
+    just_stale.nav_date = today - timedelta(days=31)
+    undated = _row("4", "Delta Fund", "Direct Plan", "Growth", category="Income")
+    client._rows = [live, matured, just_stale, undated]
+    db = _session()
+    universe = asyncio.run(client.get_category_universe(db, "Income"))
+    assert sorted(s.amfi_code for s in universe) == ["1", "4"]

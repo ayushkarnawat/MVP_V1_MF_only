@@ -33,6 +33,8 @@ from app.models.enums import SchemePlanType
 NAV_ALL_URL = "https://portal.amfiindia.com/spages/NAVAll.txt"
 DEFAULT_CACHE_DIR = Path(__file__).resolve().parent.parent.parent.parent / ".cache" / "amfi_navall"
 NAV_ALL_TTL = timedelta(hours=24)
+# A scheme with no NAV in this window has matured or closed: not a peer.
+_LIVE_WITHIN = timedelta(days=30)
 _CATEGORY_HEADER_RE = re.compile(r"^(?:Open Ended|Close Ended|Interval Fund) Schemes\((.+)\)$")
 
 
@@ -214,7 +216,15 @@ class SchemeUniverseClient:
 
         from app.services.analytics.scheme_master import plan_type_for
 
-        matched = [r for r in rows if canonical_category(r.sebi_category) == canonical_category(sebi_category)]
+        # Only live schemes are peers (9 Oct): AMFI keeps matured FMPs and closed funds in
+        # NAVAll with their last NAV (39% of rows), which made a ~0% "return" and got them
+        # ranked. A row with no parseable date is kept -- there's nothing to judge it by.
+        live_since = date.today() - _LIVE_WITHIN
+        matched = [
+            r for r in rows
+            if canonical_category(r.sebi_category) == canonical_category(sebi_category)
+            and (r.nav_date is None or r.nav_date >= live_since)
+        ]
         if not matched:
             return []
 
