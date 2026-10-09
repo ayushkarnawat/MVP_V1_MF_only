@@ -1,6 +1,6 @@
 # AMC Monthly Portfolio Disclosure — Full 57-AMC Fetchability Spike
 
-**Status:** DONE, through two independent passes. 4 batches dispatched 2026-10-09 (A: 14 AMCs,
+**Status:** DONE, through four independent passes. 4 batches dispatched 2026-10-09 (A: 14 AMCs,
 B: 14, C: 14, D: 15) at
 `Docs/analytics/investigations/2026-10-09-amc-portfolio-disclosure-spike-batch-{A,B,C,D}.md`.
 Batches A, B, and D ran in Codex sandboxes with no DNS resolution to AMC hosts, which inflated
@@ -41,9 +41,27 @@ Fund flagged for a routine re-check after 2026-10-10, its first due date). Net: 
 once WhiteOak's adapter is built, 13 with an explicit justified non-automated plan — this is
 the basis for the "110%" confirmation.
 
-Consolidated, corrected findings — final tiers for all 57 AMCs, every upgrade found across both
-re-verification passes, the third-pass operational plan, and the architectural implications for
-sub-project 2 — are at
+**A fourth, maximal-effort pass (same day, after more token budget became available) found
+genuine new alternate sources for most of what the third pass had accepted as manual-fetch**,
+using two techniques not fully exploited before: Internet Archive/Wayback Machine as a Locate-
+step workaround for WAF-blocked sites (its crawler reaches some pages direct requests can't; the
+cached HTML reveals filenames that then download live from a separate, unblocked static-asset/
+CDN subdomain), and broader non-keyword-filtered domain searches. Result: **HDFC, AlphaGrep,
+Union Asset Management, and Canara Robeco all reclassified from manual-fetch to fully
+automatable** (`STATIC_REGEX`) — each via a separate unprotected static-asset path distinct from
+the AMC's main bot-protected domain. **Kotak Mahindra** upgraded from confirmed-blocked to
+likely-solvable-within-days (same CDN pattern, confirmed live for its Fortnightly file; Monthly
+believed identical but not yet published as of 2026-10-09, ~10-day lag — re-check after
+~2026-10-12). **Edelweiss and Mahindra Manulife reconfirmed as genuine dead ends** — Edelweiss is
+an SPA shell with no capturable API even via Wayback; Mahindra Manulife's encrypted API was
+directly fetched and confirmed opaque this pass (not just inferred), with real static files that
+exist but are undiscoverable without decrypting it — a line this investigation has not crossed.
+**WhiteOak and Monarch reconfirmed unchanged.** Net: **47/57 AMCs fetchable today** (up from 43),
+only **2/57 (Edelweiss, Mahindra Manulife) confirmed to need a standing manual-fetch process**
+(down from 9 after the third pass), with Kotak likely to drop that count to 1 within days.
+
+Consolidated, corrected findings — final tiers for all 57 AMCs, every upgrade found across all
+four passes, and the architectural implications for sub-project 2 — are at
 `Docs/analytics/investigations/2026-10-09-amc-portfolio-disclosure-spike-consolidated.md`.
 
 **Parent plan:** None yet — this spike is the prerequisite for sub-project 2

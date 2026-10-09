@@ -1,12 +1,15 @@
 # AMC Monthly Portfolio Disclosure Fetchability Spike — Consolidated (Spike 2 of N)
 
-**Date:** 2026-10-09 (first closure), deepened same-day in a second, harder audit pass (see
-"Second audit pass" section below) triggered by an explicit "are we 110% sure" gate before any
-look-through architectural brainstorming begins.
-**Status:** Complete through two independent passes. All 57 AMFI-registered AMCs classified;
-every `NEEDS_INVESTIGATION` case from the first pass was re-attempted a second time with harder
-per-site interaction (accordions, cascading selects, button-driven downloads, encrypted-API
-probing, WebSearch for AMC-side dead/moved links) rather than accepted at face value.
+**Date:** 2026-10-09 (first closure), deepened same-day across a second harder audit pass (see
+"Second audit pass" below), a third pass that turned the remaining 9 into an operational plan
+(see "Third pass" below), and a fourth, maximal-effort pass that found genuine new alternate
+sources for most of what the third pass had accepted as manual-fetch (see "Fourth pass" below).
+**Status:** Complete through four passes. All 57 AMFI-registered AMCs classified; every
+`NEEDS_INVESTIGATION`/`BOT_BLOCKED` case was re-attempted multiple times with harder per-site
+interaction (accordions, cascading selects, button-driven downloads, encrypted-API probing,
+WebSearch for AMC-side dead/moved links, and — new in the fourth pass — Wayback Machine/CDX as a
+Locate-step workaround for WAF-blocked main sites plus broad non-keyword-filtered domain
+searches) rather than accepted at face value.
 **Triggered by:** spike 1's recommended-but-undone "second pass" (per
 `2026-10-06-amc-portfolio-disclosure-format-survey.md`) — pull a real monthly portfolio
 disclosure file from every AMC, not a sample, and confirm machine-fetchability the same way
@@ -22,21 +25,25 @@ finding with accordion-opening, cascading-select, and button/`expect_download`-d
 interaction — which is why most of the first pass's `NEEDS_INVESTIGATION` verdicts did not
 survive a harder second look.
 
-## Headline: 43/57 (75%) confirmed machine-fetchable today; 6/57 remain genuinely hard
+## Headline (after the fourth pass): 47/57 (82%) confirmed machine-fetchable today; only 2/57 genuinely need manual fetch
 
 | Tier | Count | Meaning |
 |---|---|---|
-| `STATIC_REGEX` | 29 | Plain HTML/server-rendered page (or a JS-rendered page requiring no scheme/date selection) exposes a direct, dated file URL — fetchable once the URL pattern is known |
+| `STATIC_REGEX` | 33 | Plain HTML/server-rendered page (or a JS-rendered page requiring no scheme/date selection), or a separate unprotected static-asset/CDN subdomain reachable via a Wayback-revealed filename, exposes a direct, dated file URL |
 | `JSON_API` | 14 | Page is client-rendered and requires a scripted interaction (select year/month/scheme, open an accordion, click a button) to reveal the file URL or a backing JSON/XHR endpoint |
-| `BOT_BLOCKED` | 3 | Site returns HTTP 403/a bot-challenge to a plain request; headless-browser access is either also blocked or unreliable enough (first request sometimes succeeds, repeats don't) that it needs a different approach (proxy/rotation, manual fetch), not just more Playwright patience |
+| `BOT_BLOCKED` | 2 | Site returns HTTP 403/a bot-challenge to a plain request; headless-browser access is either also blocked or unreliable enough that it needs a different approach, not just more Playwright patience. One of the two (Kotak) is very likely solvable within days — see "Fourth pass" |
 | `NO_CONTENT_FOUND` | 5 | AMC-side: fund genuinely has no monthly disclosure to publish yet (too new) or no disclosure page/live scheme was found at all |
-| `NEEDS_INVESTIGATION` | 6 | Confirmed, across two independent passes with real network access, that no static file link or simple API exists — needs a dedicated per-AMC deep-dive (deeper form automation, or accepting a third-party mirror) |
+| `NEEDS_INVESTIGATION` | 3 | Confirmed, across up to four independent passes with real network access, that no static file link, simple API, or alternate unprotected source exists — needs a dedicated per-AMC deep-dive, acceptance of manual fetch, or (Monarch) isn't actually a gap |
 
-`STATIC_REGEX` + `JSON_API` = 43 AMCs buildable today with either a direct curl/regex
-(attribute-04 style) or a scripted-interaction adapter (select/click, then capture the
-resulting URL — the same shape already proven for `Tata`/`Choice`/`UTI` in the first pass). Only
-6 AMCs (~10%) need a harder, not-yet-solved per-site approach or a documented decision to accept
-a third-party mirror instead.
+`STATIC_REGEX` + `JSON_API` = 47 AMCs buildable today. Of the remaining 10: 1 (WhiteOak) just
+needs its adapter built (page works, not blocked); 1 (Kotak) is `BOT_BLOCKED` on its main site but
+very likely solvable via an alternate CDN once its Monthly file's ~10-day publishing lag passes;
+1 (Monarch) isn't a gap at all — fortnightly is its genuine ceiling; 5 are an expected empty
+state; only **2 (Edelweiss, Mahindra Manulife) are confirmed to need manual monthly fetch**, down
+from 9 after the third pass's operational-plan count, because the fourth pass found genuine new
+alternate sources (separate unprotected static-asset subdomains, or Wayback-cached HTML revealing
+otherwise WAF-hidden filenames) for HDFC, AlphaGrep, Union Asset Management, and Canara Robeco —
+see "Fourth pass" below for the full detail.
 
 ## Second audit pass (same day): why the fetchable count roughly doubled
 
@@ -183,14 +190,14 @@ September 2026 file.
 | DSP Mutual Fund | STATIC_REGEX | batch A |
 | Aditya Birla Sun Life Mutual Fund | STATIC_REGEX | batch A, upgraded this session |
 | SBI Mutual Fund | STATIC_REGEX | batch A |
-| Union Asset Management | NEEDS_INVESTIGATION | batch A, confirmed across 2 passes (unstable Angular DOM) |
+| Union Asset Management | **STATIC_REGEX** | batch A, upgraded 4th pass (predictable `www.unionmf.com` static file path bypasses the Angular SPA entirely) |
 | Motilal Oswal Mutual Fund | STATIC_REGEX | batch A |
 | quant Money Managers | **JSON_API** | batch A, upgraded 2nd pass (`submit_event1/2` AJAX widget) |
 | Mirae Asset Mutual Fund | STATIC_REGEX | batch A |
 | NJ Mutual Fund | STATIC_REGEX | batch A |
 | Franklin Templeton Mutual Fund (India) | STATIC_REGEX | batch A |
 | Invesco Mutual Fund | STATIC_REGEX | batch A |
-| Canara Robeco Mutual Fund | NEEDS_INVESTIGATION | batch A, confirmed across 2 passes (encrypted API) |
+| Canara Robeco Mutual Fund | **STATIC_REGEX** | batch A, upgraded 4th pass (the encrypted API is only one nav item; the actual monthly files are plain WordPress `wp-content/uploads/` assets) |
 | Baroda BNP Paribas Mutual Fund | **STATIC_REGEX** | batch A, upgraded 2nd pass (direct link in static HTML) |
 | PPFAS Mutual Fund (Parag Parikh) | STATIC_REGEX | batch A |
 | Shriram Mutual Fund | STATIC_REGEX | batch B |
@@ -225,17 +232,17 @@ September 2026 file.
 | Jio BlackRock Mutual Fund | **JSON_API** | batch D, upgraded 2nd pass (Ant Design combobox, `force=True`) |
 | Navi Mutual Fund | **JSON_API** | batch D, upgraded 2nd pass (accordion + WordPress REST endpoint) |
 | Bank of India Mutual Fund | **STATIC_REGEX** | batch D, upgraded 2nd pass (stable curlable workbook URL) |
-| Mahindra Manulife Mutual Fund | NEEDS_INVESTIGATION | batch D, confirmed across 2 passes (site-redesign-orphaned link + encrypted API) |
-| Edelweiss Mutual Fund | BOT_BLOCKED | batch D, confirmed (Akamai, `akamai-grn` header) |
+| Mahindra Manulife Mutual Fund | NEEDS_INVESTIGATION | batch D, confirmed across 4 passes — 4th pass directly observed the `investorapi.mahindramanulife.com` endpoint returning an AES-encrypted payload (not just inferred); real static files exist (`/uploads/download/{uuid}.xlsx`) but the UUID isn't discoverable without decrypting the API |
+| Edelweiss Mutual Fund | BOT_BLOCKED | batch D, confirmed across 4 passes (Akamai, `akamai-grn` header; 4th pass found the real disclosure page via Wayback but it's a client-rendered SPA shell with no static links and no capturable API) |
 | IL&FS Mutual Fund (IDF) | NO_CONTENT_FOUND | batch D (name corrected from "IL&FS Infra") |
 | Lakshya Mutual Fund | NO_CONTENT_FOUND | batch D |
 | Carnelian Mutual Fund | NO_CONTENT_FOUND | batch D |
-| AlphaGrep Mutual Fund | NEEDS_INVESTIGATION | batch D, confirmed across 2 passes (real domain `.ai` found, but encrypted API) |
+| AlphaGrep Mutual Fund | **STATIC_REGEX** | batch D, upgraded 4th pass (a separate plain static path, `www.alphagrepmf.ai/assets/documents/...`, bypasses the encrypted API entirely, deterministic filename from the calendar alone) |
 | Nuvama Mutual Fund | NO_CONTENT_FOUND | batch D |
 | Wealth Company Mutual Fund | **STATIC_REGEX** | batch D, upgraded 2nd pass (97-file server-rendered grid) |
 | Monarch Mutual Fund (Networth) | NEEDS_INVESTIGATION | batch D, confirmed across 2 passes (fortnightly-only, no monthly file) |
-| HDFC Mutual Fund | BOT_BLOCKED | batch D, confirmed (Akamai, `akamai-grn` header) |
-| Kotak Mahindra Mutual Fund | **BOT_BLOCKED** | batch D, reclassified 2nd pass (Radware, non-deterministic) |
+| HDFC Mutual Fund | **STATIC_REGEX** | batch D, upgraded 4th pass (Wayback's cached HTML of the Akamai-blocked disclosure page reveals the current filename; the file itself downloads live from the separate unblocked `files.hdfcfund.com` subdomain) |
+| Kotak Mahindra Mutual Fund | **BOT_BLOCKED**, likely resolving to STATIC_REGEX shortly | batch D, 4th pass found a separate unblocked CDN (`vatseelabs-s3.kotakmf.com`) confirmed live for the Fortnightly file; the Monthly file is believed to follow the identical naming pattern (per the AMC's own hosting-notice PDF) but hasn't yet published for the current month as of 2026-10-09 (~10-day lag) — re-check after ~2026-10-12 |
 
 ## Third pass: closing out the remaining 9 (3 `BOT_BLOCKED` + 6 `NEEDS_INVESTIGATION`) with an operational plan, not more scraping
 
@@ -311,44 +318,188 @@ ingestion is actually built.
 
 | Decision | AMCs | Why |
 |---|---|---|
-| **Manual monthly fetch** (9) | Edelweiss, HDFC, Kotak Mahindra (`BOT_BLOCKED`); Canara Robeco, Mahindra Manulife, AlphaGrep (encrypted API); Union Asset Management (unrecoverable XHR) | Genuinely blocked or genuinely not worth per-AMC reverse-engineering effort for this few AMCs — cheapest real option, same pattern as existing factsheet precedent |
+| **Manual monthly fetch** (7) | Edelweiss, HDFC, Kotak Mahindra (`BOT_BLOCKED`); Canara Robeco, Mahindra Manulife, AlphaGrep (encrypted API); Union Asset Management (unrecoverable XHR) | Genuinely blocked or genuinely not worth per-AMC reverse-engineering effort for this few AMCs — cheapest real option, same pattern as existing factsheet precedent |
 | **Automate during adapter build-out** (1) | WhiteOak Capital | Not blocked — a real, responding page was found this pass; just needs the same select/click-and-capture work already done for the 43 solved AMCs |
 | **Ingest as-is, different granularity** (1) | Monarch (Networth) | No monthly file exists at all; fortnightly is the genuine ceiling, not a gap |
 | **Treat as expected empty state** (5) | ASK, IL&FS, Lakshya, Carnelian, Nuvama | AMC-side: no content to publish yet; design for absence, not failure |
 
 With this, **44/57 AMCs are either already fetchable (43) or will be once WhiteOak's adapter is
-built (1)**; the remaining 13 have an explicit, cheap operational answer (9 manual, 1
+built (1)**; the remaining 13 have an explicit, cheap operational answer (7 manual, 1
 different-granularity, 5 no-op) rather than an open question — this is the basis for the
 "110%" confirmation: not that every AMC is automatable, but that every AMC has a deliberate,
 justified plan.
 
+**Superseded by the fourth pass below** — the third pass's "7 manual fetch" count was accepted
+too early. A fourth, maximal-effort pass (same day, more tokens available) found genuine new
+alternate sources for 4 of those 7, cutting the manual-fetch count to 2.
+
+## Fourth pass: one more maximal-effort round on the remaining 9, before accepting any as final
+
+The third pass closed the "110%" gate with an operational plan, but accepted "manual fetch" for
+7 AMCs after only a short, time-boxed alternate-source check. Given more budget, this pass went
+deliberately harder on exactly those 9 (3 `BOT_BLOCKED` + 6 `NEEDS_INVESTIGATION`, i.e. everything
+except the 5 `NO_CONTENT_FOUND`), using two techniques not fully exploited in the third pass:
+
+1. **Internet Archive / Wayback Machine as a Locate-step workaround for WAF-blocked main sites.**
+   Internet Archive's own crawler reaches some sites our direct `curl`/Playwright requests cannot
+   (observed for HDFC specifically — Akamai's edge rules apparently don't block the Wayback
+   crawler's IP/fingerprint the way they block ours). Wayback's cached HTML of the blocked page
+   reveals the current month's real filename; if that filename happens to live on a *separate*,
+   unblocked static-asset/CDN subdomain (not the WAF-protected main domain), the actual file then
+   downloads live, right now, with no block at all.
+2. **Broad, non-keyword-filtered CDX domain searches**, rather than searches filtered to
+   `urlkey:.*portfolio.*` — the third pass's narrower searches for Union and Canara Robeco missed
+   real hits because the live files don't all have "portfolio" literally in the URL path (Union's
+   uses `/fund-portfolio/`; Canara Robeco's don't have the word in the path at all, just the fund
+   name and month).
+
+**Reclassified from manual-fetch to fully automatable (4 AMCs):**
+
+- **HDFC Mutual Fund → `STATIC_REGEX`.** Wayback's CDX index has both a July-2025 and a
+  September-2026 capture of the (Akamai-blocked) disclosure page; the September 2026 capture's
+  cached HTML lists the current month's exact filename. That filename downloads successfully,
+  live, right now, from `files.hdfcfund.com` — the same separate static-asset subdomain found in
+  the third pass, previously thought useless because its filenames weren't independently
+  discoverable. Wayback turned out to be the missing discovery mechanism. Verified: downloaded
+  and opened a real file (HDFC Arbitrage Fund, 31 August 2026) with genuine ISIN/Industry/
+  Quantity/Market Value/%NAV data.
+- **AlphaGrep Mutual Fund → `STATIC_REGEX`** (not merely "not `NO_CONTENT_FOUND`" as the second
+  pass had it — fully solved, and not behind the encrypted API at all). A Wayback CDX search
+  surfaced a separate, plain, unprotected static path:
+  `www.alphagrepmf.ai/assets/documents/{Scheme_Name}/monthly/FY-{year}-{year+1}/{Month}_{Year}.xls`
+  — fully deterministic from the calendar alone, no discovery step needed at all going forward.
+  Confirmed live via direct download: AlphaGrep Flexi Cap Fund, 31 August 2026, genuine ISIN/
+  Industry/Quantity/Market Value/%AUM data verified with `xlrd`.
+- **Union Asset Management → `STATIC_REGEX`.** The third pass's verdict ("unrecoverable XHR")
+  was about the Angular front-end's year/month selector specifically — but the underlying files
+  sit on a plain Sitefinity-CMS-style static path that was never actually blocked:
+  `www.unionmf.com/docs/default-source/funddetail-downloads/fund-portfolio/{month-year}/
+  monthly-portfolio-report-{scheme-name-slug}-{dd-mm-yyyy}.xlsx`. Confirmed live for the current
+  month: a directly-guessed August-2026 URL (built from the same pattern as a Wayback-captured
+  August-2024 file) returned `HTTP 200` with genuine "MONTHLY PORTFOLIO STATEMENT OF UNION
+  CORPORATE BOND FUND AS ON AUGUST 31, 2026" content — real ISIN/Rating/Industry/Quantity/Market
+  Value/%NAV/YTM columns, verified with `openpyxl`. (Note: `unionmf.com` without the `www.` prefix
+  doesn't resolve — an easy trap when constructing the adapter.)
+- **Canara Robeco Mutual Fund → `STATIC_REGEX`.** The encrypted API found in the second pass is
+  real, but it's not the only path to the data: `canararobeco.com` is a WordPress site, and its
+  monthly portfolio statements are plain `wp-content/uploads/{year}/{month-uploaded}/` media
+  assets — e.g. `SC-–-Canara-Robeco-Small-Cap-Fund-–-August-2026.xlsx`. A broad (non-"portfolio"-
+  filtered) CDX search found dozens of these going back to 2025, with a 2-letter fund-code prefix
+  (`BA`, `BP`, `DB`, `DV`, `EQ`, `FE`, `FR`, `GB`, `GL`, `MO`, `SC`...) + an en-dash + the full
+  fund name + an en-dash + the month. Confirmed live: downloaded the August-2026 Small Cap Fund
+  file, genuine ISIN/Industry/Quantity/Market Value/%NAV data verified with `openpyxl`. The
+  encrypted API is most likely just the disclosure *page's* own search/filter UI, not a gate on
+  the files themselves.
+
+**Upgraded from confirmed-blocked to likely-solvable-shortly (1 AMC, not yet counted as solved):**
+
+- **Kotak Mahindra Mutual Fund — `BOT_BLOCKED` stands for now, but a resolution path is
+  identified.** A separate, plain, unprotected CDN subdomain, `vatseelabs-s3.kotakmf.com`, hosts
+  the real files — confirmed live for the **Fortnightly** disclosure (downloaded and verified with
+  `xlrd`). The AMC's own hosting-notice PDF (also downloaded via Wayback, text-extracted with
+  `pypdf`) confirms the **Monthly** disclosure is hosted on the same CDN with an identically
+  structured path, but publishes with a ~10-day lag after month-end. One evidence-based filename
+  guess for the current month's Monthly file (`.../Monthly-Portfolio-as-on-September-30,-2026/
+  MonthlyPortfolioSeptember302026.xlsx`) returned `403` — most likely because the file genuinely
+  isn't published yet as of 2026-10-09 (one day before the ~10-day mark), not because the naming
+  guess is wrong; no Monthly file for the current month was found anywhere (Wayback or live)
+  either, which is consistent with a timing gap rather than a dead end. Per the standing
+  no-brute-force-guessing correction, this was not retried with further filename variants — the
+  next step is a routine re-check after ~2026-10-12, not more guessing.
+
+**Reconfirmed, still genuinely needs manual fetch (2 AMCs — down from 7 in the third pass):**
+
+- **Edelweiss Mutual Fund.** Found the real current disclosure page URL via Wayback
+  (`edelweissmf.com/altivasif/statutory/portfolio-of-schemes`) and inspected its cached HTML —
+  confirmed to be a client-rendered SPA shell with zero embedded file links and no captured
+  API/XHR call specific to portfolio holdings. The Wayback trick that solved HDFC and Kotak
+  doesn't generalize here: Wayback's crawler doesn't execute client-side JS, so it never triggers
+  (and therefore never captures) whatever API call this specific SPA makes to fetch its data.
+- **Mahindra Manulife Mutual Fund.** The third pass had *inferred* an encrypted API from the
+  shared blocker pattern seen at Canara Robeco/AlphaGrep; this pass found and fetched the actual
+  endpoint via Wayback CDX (`investorapi.mahindramanulife.com/api/v1/web/fetch-all-funds`,
+  captured 2026-07-22) and directly confirmed its JSON response's `payload` field is an opaque
+  encrypted string (not JSON, not a list — a single base64-shaped blob), not merely inferred from
+  pattern-matching. Real static files do exist, unprotected, at a `/uploads/download/{uuid}.xlsx`
+  path — but the UUID for the current month's file is only ever revealed by decrypting this API's
+  response, which is exactly the "don't crack the encrypted API" boundary this investigation has
+  respected throughout. Confirmed dead end without crossing that line.
+
+**Reconfirmed unchanged from the third pass (2 AMCs):**
+
+- **WhiteOak Capital Mutual Fund** — re-fetched `mf.whiteoakamc.com/regulatory-disclosures/
+  scheme-portfolios` live: still `HTTP 200`, still has no direct file links in the raw HTML (the
+  page is JS-rendered, needs a proper select/click-driven adapter, same as ~14 other `JSON_API`
+  AMCs already solved this way). No new blocker found; the third pass's "automate during adapter
+  build-out, not manual" decision stands exactly as-is.
+- **Monarch Mutual Fund (Networth)** — one more broad domain search (no "portfolio" keyword
+  filter) on both `networthdirect.com` and `monarchnetworth.com` surfaced nothing new relevant to
+  mutual fund disclosures. The fortnightly-only ceiling is reconfirmed a third time; "ingest at
+  its real ceiling" stands exactly as-is.
+
+### Revised summary: what every one of the remaining 10 "not immediately automatable" AMCs needs
+
+| Decision | AMCs | Why |
+|---|---|---|
+| **Manual monthly fetch** (2) | Edelweiss (Akamai, SPA shell, no bypass found across 4 passes); Mahindra Manulife (encrypted API directly confirmed, UUID undiscoverable without decrypting it) | Genuinely exhausted every legitimate alternate source; cheapest real option left |
+| **Pending a short re-check, very likely solvable** (1) | Kotak Mahindra | Fortnightly confirmed live on an unblocked CDN; Monthly believed identical, just not yet published as of 2026-10-09 — re-check after ~2026-10-12 before falling back to manual |
+| **Automate during adapter build-out** (1) | WhiteOak Capital | Not blocked — a real, responding page; just needs the same select/click-and-capture work already proven for 14 other AMCs |
+| **Ingest as-is, different granularity** (1) | Monarch (Networth) | No monthly file exists at all; fortnightly is the genuine ceiling, not a gap |
+| **Treat as expected empty state** (5) | ASK, IL&FS, Lakshya, Carnelian, Nuvama | AMC-side: no content to publish yet; design for absence, not failure |
+
+With this, **47/57 AMCs are already fetchable**, 1 more (Kotak) is very likely to join them
+within days, 1 more (WhiteOak) just needs its adapter built, 1 (Monarch) ingests at its genuine
+ceiling, 5 are an expected no-op, and only **2 of 57 AMCs (3.5%) are confirmed to need a standing
+manual-fetch process** — a far smaller permanent operational burden than the third pass's 7
+suggested, found entirely through legitimate alternate-source discovery (Wayback Machine, broader
+domain searches, reading an AMC's own hosting-notice PDF) with no encryption-cracking and no
+brute-force filename guessing beyond single evidence-based hypothesis tests.
+
 ## What this changes for sub-project 2's architectural design
 
-- An ingestion build covering the 43 `STATIC_REGEX`/`JSON_API` AMCs today is real and
+- An ingestion build covering the 47 `STATIC_REGEX`/`JSON_API` AMCs today is real and
   immediately buildable with the same per-AMC-adapter pattern as attribute 04 — no new unknowns.
   Note the recurring "one file, many schemes" shape (a single workbook or ZIP covering every
   scheme for the AMC, e.g. Bank of India, Abakkus, Sundaram, Baroda BNP Paribas, ICICI
   Prudential's 151-file ZIP) — the ingestion job design should assume a per-AMC "bundle" can
   resolve to N schemes, not hardcode a 1-file-per-scheme assumption.
-- `BOT_BLOCKED` (3: Edelweiss/HDFC via Akamai, Kotak Mahindra via Radware) needs an explicit
-  design decision (proxy/rotation, a manual/scheduled fetch, or accepting a third-party mirror
-  as a fallback source for just these AMCs) rather than more scraping engineering. Kotak's
-  non-deterministic behavior (first request sometimes clean, repeats often challenged) means a
-  retry-with-backoff strategy might partially work where it wouldn't for the two hard Akamai
-  blocks — worth distinguishing in the adapter design rather than treating all 3 identically.
+- **A "separate unprotected static-asset/CDN subdomain, distinct from the main WAF-protected
+  domain" is a recurring, nameable pattern, not a one-off** — found this session for HDFC
+  (`files.hdfcfund.com`), Kotak (`vatseelabs-s3.kotakmf.com`), AlphaGrep
+  (`alphagrepmf.ai/assets/documents/...`), Union (`unionmf.com/docs/default-source/...`), and
+  Canara Robeco (`canararobeco.com/wp-content/uploads/...`). AMCs very often build their public
+  website on a bot-protected CMS/app platform but host the actual files on a plain storage/CDN
+  tier that was never configured with the same protection. **The Locate stage's adapter design
+  should explicitly support "find the filename elsewhere (Wayback, a sitemap, a hosting-notice
+  PDF, a broad domain search), then fetch from a different host than the one you located it on"**
+  as a first-class pattern, not treat every WAF 403 as terminal.
+- **Internet Archive / Wayback Machine is a legitimate, reusable Locate-step fallback for the
+  genuinely bot-blocked cases**, not just a one-off trick for this investigation. Its own crawler
+  reaches some WAF-protected pages that direct requests can't, and its CDX API
+  (`web.archive.org/cdx/search/cdx`) is a cheap, scriptable way to search a domain's entire
+  crawled history for a filename pattern. Worth building a small shared helper for this (query
+  CDX for a domain + date range, fetch the cached HTML/JSON of the most recent capture) rather
+  than re-deriving the curl incantations per AMC each time it's needed — likely useful again for
+  AMCs not in today's 2-manual-fetch list if a URL pattern ever changes.
+- `BOT_BLOCKED` (2: Edelweiss via Akamai with no bypass found; Kotak Mahindra via Radware on its
+  main site, but with a confirmed-working alternate-CDN bypass pending only a ~10-day Monthly-
+  file publishing lag) needs an explicit design decision only for Edelweiss (proxy/rotation, a
+  manual/scheduled fetch, or accepting this as a standing exception) — Kotak's design should just
+  be "fetch from `vatseelabs-s3.kotakmf.com` like any other `STATIC_REGEX` AMC," no bot-handling
+  logic needed at all once the Monthly file is confirmed live.
 - `NO_CONTENT_FOUND` (5) isn't a gap to close — these AMCs have nothing to ingest yet; the
   design should treat "no file this month" as an expected, not exceptional, per-AMC state.
-- `NEEDS_INVESTIGATION` (6, ~10% of all AMCs) is the real remaining design question, and it has
-  a sharper shape than the first pass suggested: **3 of the 6** (Canara Robeco, Mahindra
-  Manulife, AlphaGrep) share one specific, named blocker — a genuinely encrypted
-  request/response API — which is a reverse-engineer-the-cipher-per-AMC problem, not a
-  scripting problem; the other 3 (Union Asset Management's unrecoverable backing XHR, WhiteOak
-  Capital's broken-on-their-own-site nav link, Monarch's fortnightly-only disclosure cadence)
-  are each genuinely distinct one-offs. This should directly shape the look-through engine's
-  ingestion architecture: budget for an explicit "encrypted API" adapter category (worth
-  attempting once, since solving it once might generalize across all 3), a documented
-  accept-a-mirror decision for WhiteOak/Union, and no special-casing needed for Monarch beyond
-  accepting its fortnightly file as the best available granularity.
+- `NEEDS_INVESTIGATION` (3, down from 6) no longer has "encrypted API" as its dominant shape —
+  that pattern mostly turned out to be a red herring once a separate static source was found for
+  2 of the original 3 encrypted-API AMCs (Canara Robeco, AlphaGrep). Only **Mahindra Manulife**
+  is now confirmed to be genuinely gated by its encrypted API with no bypass (directly observed,
+  not inferred, this pass). The other 2 (WhiteOak's not-yet-automated-but-unblocked page,
+  Monarch's fortnightly-only cadence) remain distinct one-offs, neither related to encryption.
+  This re-shapes the look-through engine's ingestion architecture: an "encrypted API" adapter
+  category is still worth keeping as a documented concept (for Mahindra Manulife, and in case a
+  future AMC turns out to share the same scheme), but it should no longer be treated as a
+  load-bearing, multi-AMC blocker class the way the third pass suggested — it affects exactly
+  one AMC now.
 
 ## Source documents
 
