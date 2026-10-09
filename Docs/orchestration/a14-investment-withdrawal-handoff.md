@@ -1,5 +1,5 @@
 # Handoff: a14-investment-withdrawal
-**Status:** OPEN — Run 1 (backend, plan Tasks 1–3) ready to issue, 2026-10-09
+**Status:** IN_PROGRESS — Run 1 DONE and committed (`976bb2f`, `bf0e6cd`, `b3dc253`); Run 2 (frontend, Tasks 4–6) ready to issue, 2026-10-09
 **Parent plan:** `Docs/superpowers/plans/2026-10-09-attribute-14-investment-withdrawal.md` (binding, as revised 9 Oct — read its "Revised 2026-10-09" note and Global Constraints first)
 **Spec:** `Docs/analytics/2026-10-08-attribute-14-investment-withdrawal-spec.md` · explainer: `Docs/orchestration/subproject1-execution/a14-investment-withdrawal.html`
 **Orchestrator:** Claude Code (plan, rulings, WSL verification, review, commits, staging, docs) · **Worker:** Codex (builds one run per prompt, self-reviews, prints the report)
@@ -24,6 +24,8 @@
 Run 2 is issued only after Run 1 is reviewed and committed.
 
 ## Where things stand — 2026-10-09
+
+- **Run 1 is done and committed** (`976bb2f`, `bf0e6cd`, `b3dc253`). The backend serves an `investment_withdrawal` section whose payload has the fields in the plan's Task 5 types **plus `gifts_net`** (ruling 9). For Run 2, don't touch `backend/`.
 
 - Latest migration is `0032_transaction_stamp_duty`. **This attribute adds no migration.** Don't create one.
 - The plan was revised against `cd2533d` on 9 Oct; every file, function and field it names as existing was checked then. If the code differs in mechanics, adapt minimally and record it under Deviations.
@@ -115,3 +117,5 @@ Run date/time: <…>    Environment: Windows    Python/Node: <versions>    Basel
 | Round | Run | Result | Notes |
 |---|---|---|---|
 | — | Run 1 | ready 2026-10-09 | Backend: plan Tasks 1–3. |
+| 1 | Run 1 | built 9 Oct (Codex, baseline `4624d5e`) | Tasks 1–3 DONE, 31 tests green on Windows; 86 green in WSL incl. cash_flow/sip/analytics-route. Two open questions ruled: gifts → option A (user: Gain excludes `gifts_net` at transfer value, new field); two folios of one fund → earliest statement end (orchestrator). Fixes applied by the orchestrator (review-loop fix authorship: 2 files + tests already in context); 89 green in WSL. Plan + mirror updated (rulings 9–10, Run 2 gift note). Independent review (Claude subagent, Sonnet): **APPROVE**, no High. Fixed: entries dated after today now land in a bucket; tests added for a reversal in a later month (bucket goes negative, the chart clamps bars at 0), stamp duty in bucket/entry, twin-SIP missed count, gift fields. Accepted, documented in code: a GIFT_IN stored at ₹0 (no NAV in the CAS) can't be excluded from Gain. 91 green in WSL. Committed per task: `976bb2f` (Task 2), `bf0e6cd` (Task 1), `b3dc253` (Task 3). |
+| — | Run 2 | ready 2026-10-09 | Frontend: plan Tasks 4–6, including the `gifts_net` type and gift note (plan Task 5–6, ruling 9). Per-bucket `invested` can be negative (a reversal in a later month): the bar chart already clamps bar heights at 0. |

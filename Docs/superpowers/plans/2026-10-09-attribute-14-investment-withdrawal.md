@@ -47,6 +47,17 @@ of 9 Oct are folded in; the explainer is
 8. Commits: each task's commit step stays. Codex leaves changes uncommitted; Claude commits
    each task after verifying it in WSL. Nothing is pushed.
 
+**Run 1 rulings (9 Oct, after Codex's report).** Applied by the orchestrator to the Task 1–2
+code and tests; the code listings below show the pre-ruling version:
+9. **Gifts (user, option A):** gifts stay out of Invested/Withdrawn and the chart, but Current
+   value holds the gifted units, so `absolute_gain = current + withdrawn − invested − gifts_net`,
+   where `gifts_net` = transfer value of `GIFT_IN` minus `GIFT_OUT` (as the dashboard's XIRR
+   treats gifts, `xirr.py`). New result field `gifts_net: str = "0.00"`; when it's non-zero the
+   frontend shows one line under the tiles (Task 6). `BONUS` needs nothing.
+10. **Missed instalments, two folios of one fund (orchestrator):** folios are grouped by member +
+   scheme (SipRow has no folio id); where their statement ends differ, the **earliest** is
+   used, so a miss is only flagged when every folio's statement shows it.
+
 ## Global Constraints
 
 - **Portfolio-level only — no fund-level drill-down in this phase.** Confirmed user decision;
@@ -113,9 +124,9 @@ of 9 Oct are folded in; the explainer is
 4. **Missed instalments** — a SIP series whose last payment is more than one month overdue
    must surface a visible missed-instalment count/badge, not silently show "active" (spec's
    States table, row 3).
-5. **`GIFT_IN`/`GIFT_OUT`/`BONUS` transactions must be excluded from all 5 tiles** — a
-   household whose only activity is a gift-in transfer must show ₹0 everywhere, not count the
-   gift as an investment (this is a deliberate `cash_flow.py`-precedent decision, not an
+5. **`GIFT_IN`/`GIFT_OUT`/`BONUS` are never Invested or Withdrawn, and Gain excludes gifts at
+   transfer value** (ruling 9 Oct) — a household whose only activity is a ₹5,000 gift now worth
+   ₹5,500 shows Invested ₹0, Current ₹5,500, Gain ₹500, never the gift as an investment or as profit (this is a deliberate `cash_flow.py`-precedent decision, not an
    oversight — worth a named regression test since it's easy to accidentally "fix" into
    counting gifts later).
 6. **A bounced SIP** (a `PURCHASE_SIP` and its `REVERSAL` for the same amount) nets to zero
@@ -1039,6 +1050,7 @@ export interface InvestmentWithdrawalResult {
   monthly: InvestmentWithdrawalBucket[];
   yearly: InvestmentWithdrawalBucket[];
   sip_summary: InvestmentWithdrawalSipSummary;
+  gifts_net: string; // value of gifts received minus given, at transfer value (ruling 9 Oct)
 }
 ```
 
@@ -1110,6 +1122,7 @@ const baseResult: InvestmentWithdrawalResult = {
   ],
   yearly: [{ period: "2026", invested: "5000.00", withdrawn: "0.00", entries: [entry()] }],
   sip_summary: { active_count: 2, total_monthly_amount: "15000.00", missed_count: 0 },
+  gifts_net: "0.00",
 };
 
 describe("InvestmentWithdrawalSection", () => {
@@ -1163,6 +1176,15 @@ describe("InvestmentWithdrawalSection", () => {
     render(<InvestmentWithdrawalSection data={withReversal} />);
     fireEvent.click(screen.getByTestId("bar-group-2026-01"));
     expect(screen.getByText(/bounced sip/i)).toBeInTheDocument();
+  });
+
+  it("explains gifts under the tiles only when there are any", () => {
+    const { rerender } = render(<InvestmentWithdrawalSection data={baseResult} />);
+    expect(screen.queryByText(/gift/i)).not.toBeInTheDocument();
+    rerender(<InvestmentWithdrawalSection data={{ ...baseResult, gifts_net: "5000.00" }} />);
+    expect(screen.getByText("Gain excludes ₹5,000 of units received as gifts.")).toBeInTheDocument();
+    rerender(<InvestmentWithdrawalSection data={{ ...baseResult, gifts_net: "-4000.00" }} />);
+    expect(screen.getByText("Gain includes ₹4,000 of units given away as gifts.")).toBeInTheDocument();
   });
 
   it("shows 'No active SIPs' rather than omitting the SIP card", () => {
@@ -1283,6 +1305,13 @@ export function InvestmentWithdrawalSection({ data, isLoading = false, className
         <Tile label="Current Value" value={data.current_value} valueClass="text-[var(--color-accent)]" />
         <Tile label="Absolute Gain" value={data.absolute_gain} valueClass={signClass(data.absolute_gain)} />
       </div>
+      {/[1-9]/.test(data.gifts_net) && (
+        <p className="text-xs text-[var(--color-text-secondary)]">
+          {data.gifts_net.startsWith("-")
+            ? `Gain includes ₹${formatIndianCurrency(data.gifts_net.slice(1))} of units given away as gifts.`
+            : `Gain excludes ₹${formatIndianCurrency(data.gifts_net)} of units received as gifts.`}
+        </p>
+      )}
 
       {data.monthly.length === 0 ? (
         <p className="text-sm text-[var(--color-text-secondary)]">No transactions yet</p>
