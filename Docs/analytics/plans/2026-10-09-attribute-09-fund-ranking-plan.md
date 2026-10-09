@@ -37,8 +37,9 @@ already computed elsewhere in this codebase), React/TypeScript frontend.
 >
 > 1. **`composite_score` stores the composite, not the percentile** (fix 1). `_finish_fund_ranking`
 >    writes `scheme_scores["composite"]` (2 dp) to `composite_score`; `percentile` stays the
->    category percentile. Test: a 4-fund category → your row's `composite_score == "76.67"`,
->    `percentile == "25.00"` (numbers from the explainer's worked example).
+>    category percentile. Test (Task 3 Step 6): the composite differs from the percentile, and the
+>    stored `scheme_rankings` row carries the same composite as the response. (Run 1 ruling: the
+>    explainer's 76.67 is an illustration, not reachable with 4 funds — percentiles top out at 75.)
 > 2. **`formatPercentString` doesn't exist** (fix 2): use `toPercentString(raw) + "%"` from
 >    `@/lib/decimal` for fraction values (returns, category-relative, downside deviation). **TER is
 >    already a percent** (`scheme_ter.ter_value` is `Numeric(5, 2)`, 0.75 = 0.75%), so the Low-TER row
@@ -129,7 +130,8 @@ already computed elsewhere in this codebase), React/TypeScript frontend.
 
 6. **Peers** — a Direct holding is never ranked against its own Regular or IDCW plan; a Flexi
    Cap fund's peer set includes AMCs from both AMFI spellings; the existing Category Ranking
-   section and this one agree on rank and count for the same fund.
+   section and this one use the same peer set and counts for the same fund (ranks can
+   differ by design: blended return vs the 5-factor composite — Run 1 ruling).
 7. **Counts and copy** — `composite_score` is never the percentile; thin uses the ranked count;
    fewer than 3 ranked → no rank, no percentiles, no `scheme_rankings` row; TER shows as 0.75%,
    not 75.00%.
