@@ -1,5 +1,5 @@
 # Handoff: a12-tri-benchmark-sourcing
-**Status:** OPEN — Run 1 (plan Tasks 1–6) ready to issue after A14's Run 2 is committed, 2026-10-09
+**Status:** BUILT — Run 1 verified, reviewed and committed (`b926933`, `0658f75`, `56f830b`), 2026-10-09; synthetic CAS gate pending
 **Parent plan:** `Docs/superpowers/plans/2026-10-09-attribute-12-tri-benchmark-sourcing.md` (binding, as revised 9 Oct — read its "Revised 2026-10-09" note, Global Constraints and Review Focus first)
 **Spec:** `Docs/analytics/2026-10-07-sub-project-1-planning.md`, "Attribute 12" · explainer: `Docs/orchestration/subproject1-execution/a12-tri-benchmark.html`
 **Orchestrator:** Claude Code (rulings, WSL + Postgres verification, review, commits, docs) · **Worker:** Codex (builds the run, self-reviews, prints the report)
@@ -116,3 +116,4 @@ Run date/time: <…>    Environment: Windows    Python: <version>    Baseline HE
 | Round | Run | Result | Notes |
 |---|---|---|---|
 | — | Run 1 | ready 2026-10-09 | Tasks 1–6, after A14 Run 2 is committed. |
+| 1 | Run 1 | approved 2026-10-09 | All 6 tasks done. WSL: 104 passed, 2 skipped (7 files incl. recompute + analytics route). Postgres round trip 0032→0033→0032→0033 clean, PK `(index_name, date, return_type)`. Review (Claude, inline — subagent runs were cut off by session restarts): no defects; Low: `ensure_index_history_fresh` docstring had dropped its failure/`fresh_within` notes — restored by orchestrator. Deviations accepted (StaticPool test helper, `--basetemp`). |
