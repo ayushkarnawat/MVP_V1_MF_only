@@ -99,6 +99,44 @@ def cas_truth(fn):
     return funds, r, stamp_unattached
 
 
+def a09_checks(body):
+    """Attribute 09 (Fund Ranking, added 9 Oct): each ranked row is internally consistent,
+    and Category Ranking uses the same peer set and counts for the same fund (ranks may
+    differ by design). Returns mismatches (empty = pass)."""
+    mm = []
+    sections = body.get("sections") or {}
+    payload = (sections.get("ranking") or {}).get("payload") or {}
+    rows = (payload.get("ranking") or {}).get("funds")
+    if rows is None:
+        return {"mismatches": ["ranking section missing or empty"]}
+    cat_rows = {r["scheme_id"]: r for r in ((((sections.get("category_ranking") or {}).get("payload") or {}).get("ranking") or {}).get("funds") or [])}
+    ranked = 0
+    for r in rows:
+        sid = r["scheme_id"][:8]
+        if r["category_unavailable"] or r["insufficient_history"]:
+            continue
+        size = r["category_size"]
+        if r["too_few_peers"] != (size < 3): mm.append(f"{sid}: too_few_peers {r['too_few_peers']} with {size} ranked")
+        if r["thin_category"] != (size < 5): mm.append(f"{sid}: thin {r['thin_category']} with {size} ranked")
+        if size > r["category_universe_size"]: mm.append(f"{sid}: ranked {size} > universe {r['category_universe_size']}")
+        if r["too_few_peers"]:
+            if r["category_rank"] is not None or r["percentile"] is not None: mm.append(f"{sid}: too few peers but ranked")
+            continue
+        ranked += 1
+        rank = r["category_rank"]
+        if not (1 <= rank <= size): mm.append(f"{sid}: rank {rank} outside 1..{size}")
+        mine = D(r["composite_score"])
+        for n in r["neighbors"]:
+            if n["category_rank"] == rank: mm.append(f"{sid}: neighbour shares rank {rank}")
+            if n["category_rank"] < rank and D(n["composite_score"]) < mine: mm.append(f"{sid}: fund above scores lower")
+            if n["category_rank"] > rank and D(n["composite_score"]) > mine: mm.append(f"{sid}: fund below scores higher")
+        if len(r["neighbors"]) > 4: mm.append(f"{sid}: {len(r['neighbors'])} neighbours")
+        c = cat_rows.get(r["scheme_id"])
+        if c and not c.get("insufficient_history") and c.get("category_size") != size:
+            mm.append(f"{sid}: fund ranking compares {size} funds, category ranking {c.get('category_size')}")
+    return {"mismatches": mm, "funds": len(rows), "ranked": ranked}
+
+
 def a14_checks(body, raw, per_member):
     """Attribute 14 (Investment & Withdrawal, added 9 Oct): the section's numbers
     against themselves, the dashboard, and the CAS rows. Returns the list of
@@ -471,6 +509,7 @@ def test_deep(client, monkeypatch):
         out["snapshot_check"] = chk
     if isinstance(out.get("analytics"), dict) and out["analytics"].get("status") == 200:
         out["a14"] = a14_checks(out["analytics"]["body"], raw, per_member)
+        out["a09"] = a09_checks(out["analytics"]["body"])
     json.dump(out, open(OUT, "w", encoding="utf-8", newline="\n"), indent=1, default=str)
     # Asserted after the dump, so a failing scenario still leaves its output.
     if os.environ.get("MASTER_FILE"):
@@ -496,5 +535,6 @@ def test_deep(client, monkeypatch):
             assert set(an["body"]["sections"]) == {sec.name for sec in _rc._SECTIONS}, sorted(an["body"]["sections"])
             assert not failed, failed
             assert not out["a14"]["mismatches"], out["a14"]["mismatches"]  # attribute 14 (9 Oct)
+            assert not out["a09"]["mismatches"], out["a09"]["mismatches"]  # attribute 09 (9 Oct)
             assert out.get("ter_fetches_during_analytics") == 0, out.get("ter_fetches_during_analytics")
             assert "analytics_seconds" in out and out["analytics_seconds"] <= limit, out.get("analytics_seconds")

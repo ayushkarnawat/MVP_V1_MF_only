@@ -1,5 +1,5 @@
 # Handoff: a04-fund-manager
-**Status:** OPEN — Run 1 approved and committed (`bede56a`…`4f72480`); Run 2 (Task 7, frontend) ready, 2026-10-09
+**Status:** OPEN — Run 1 approved and committed (`bede56a`…`4f72480`); Run 2 approved and committed; Task 8 onboarding (Runs 3–7) next, 2026-10-09
 **Parent plan:** `Docs/superpowers/plans/2026-10-09-attribute-04-fund-manager-allocation.md` (binding, as revised 9 Oct — read its "Revised 2026-10-09" block, Global Constraints and Review Focus 1–7 first)
 **Spec:** `Docs/analytics/2026-10-07-sub-project-1-planning.md`, "Attribute 04" · `Docs/analytics/2026-10-08-attribute-04-fund-manager-spec.md` · catalogue: `Docs/analytics/2026-10-09-attribute-04-factsheet-layouts.md` · explainer: `Docs/orchestration/subproject1-execution/a04-fund-manager.html`
 **Orchestrator:** Claude Code (rulings, WSL + Postgres verification, review, commits, docs) · **Worker:** Codex
@@ -124,4 +124,5 @@ Run date/time: <…>    Environment: Windows    Python: <version>    Baseline HE
 | Round | Run | Result | Notes |
 |---|---|---|---|
 | 1 | Run 1 | approved 2026-10-09 | Tasks built (Codex: 116 passed, 1 deliberate failure). Codex's 7 questions ruled — fixed by orchestrator test-first: Mrs/Mr honorific bug (plan bug), HDFC overseas-footnote co-managers, joint holdings shown once, future as-on dates ignored; plus HDFC handover note found in the real file; kept: no category gate without a printed category, exactly-0.05 accepted, JSON_API per onboarding, ABSL needs dates (Review Focus 5 → Kotak). Review (Opus): CHANGES NEEDED → all 8 fixed test-first: per-fund roles + card badge only when all agree, whole-word month names, dead link falls through, 60 MB cap, &amp;/\\u0026 decoding, directory <40 AMCs alert, duplicate name written once, 3-month window = 3 periods. WSL 129 passed; Postgres 0035 round trip clean; terraform fmt/validate passed (Codex). Committed per task. Pending: CLI on the real HDFC/Kotak files (Task 21 Step 5) with the scheme master loaded. |
-| — | Run 2 | ready 2026-10-09 | Task 7 frontend. |
+| 2 | Run 2 | approved 2026-10-09 | Task 7 built (37 tests, tsc clean). Codex question ruled: the PDF prints every card open (`printMode`, orchestrator, test-first). Orchestrator also: valid phrasing content inside the card button, `fundManager` optional on old exports, "₹" on amounts like the other cards. Review (Sonnet): APPROVE (Lows: shared currency helper, name-keyed state, failed section via page banner, mobile scope gate — all consistent with siblings). 51 tests + tsc clean. |
+| — | Run 3 | ready | Task 8 batch 1. |
