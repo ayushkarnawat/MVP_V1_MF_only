@@ -31,6 +31,7 @@ class ResolverEntry:
     endpoint_url: str | None = None        # JSON_API only
     response_json_path: str | None = None  # JSON_API only: dotted path to the document list
     note: str | None = None                # what was tried, why MANUAL; never left blank for MANUAL
+    needs_boxes: bool = False              # positional reader; extract words only for this AMC
 
 
 AMC_RESOLVERS: dict[str, ResolverEntry] = {
@@ -63,32 +64,32 @@ AMC_RESOLVERS: dict[str, ResolverEntry] = {
     "JM Financial Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "JM Financial Asset Management Limited"),  # 9 Oct: no_factsheet_link_in_html
     "Kotak Mahindra Mutual Fund": ResolverEntry(ResolverKind.MANUAL, "Kotak Mahindra Asset Management Company Limited.", layout="kotak", note="2026-10-09: https://www.kotakmf.com/Information/forms-and-downloads/Information returned HTTP 200 and no PDF links in its HTML. Monthly manual import (Task 21)."),
     "Lakshya Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Lakshya Asset Management Private Limited"),  # 9 Oct: no_landing_url
-    "LIC Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "LIC Mutual Fund Asset Management Limited", landing_url="https://www.licmf.com/downloads/factsheet", note="2026-10-10: latest listed August 2026 PDF is fresh. Individual pages have manager blocks but many scheme titles are artwork, absent from text. Summary page 10 has character boxes; geometry/multiple-scheme reader interface needs a ruling before safe pairing. Disabled; never paired by flattened text order."),  # 0/43 live families enabled; geometry/interface blocker, not unavailable source.
+    "LIC Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "LIC Mutual Fund Asset Management Limited", layout="lic", landing_url="https://www.licmf.com/downloads/factsheet", needs_boxes=True),  # 10 Oct: latest August 2026; positional summary 43/43 live families (100%); no misses; artwork titles skipped.
     "Mahindra Manulife Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Mahindra Manulife Investment Management Pvt Ltd"),  # 9 Oct: no_factsheet_link_in_html
-    "Mirae Asset Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Mirae Asset Investment Managers (India) Pvt. Ltd"),  # 9 Oct: ok
+    "Mirae Asset Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Mirae Asset Investment Managers (India) Pvt. Ltd", landing_url="https://www.miraeassetmf.co.in/downloads/factsheet", note="2026-10-10: public AjaxService/GetDownloadsData POST lists two September 2026 files, active and passive. Existing resolver/importer takes the first valid PDF only. Disabled pending a ruling for two-file monthly import; landing HTML has no current PDF links."),  # 0/99 enabled; every live family blocked by the unresolved two-file source interface.
     "Monarch Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Monarch Networth Asset Management Private Limited"),  # 9 Oct: no_landing_url
     "Motilal Oswal Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Motilal Oswal Asset Management Company Limited"),  # 9 Oct: no_factsheet_link_in_html
     "Navi Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Navi AMC Limited"),  # 9 Oct: no_factsheet_link_in_html
     "Nippon India Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Nippon Life India Asset Management Limited", layout="nippon"),
-    "NJ Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "NJ Asset Management Private Limited"),  # 9 Oct: ok
+    "NJ Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "NJ Asset Management Private Limited", layout="nj", landing_url="https://downloads.njmutualfund.com/downloads.php"),  # 10 Oct: September 2026; 7/7 live families (100%); no misses.
     "Old Bridge Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Old Bridge Asset Management Private Limited"),  # 9 Oct: no_factsheet_link_in_html
     "PGIM India Mutual Fund": ResolverEntry(ResolverKind.JSON_API, "PGIM India Asset Management Private Limite", endpoint_url="https://www.pgimindia.com/api/v1/brochure/get/file"),  # onboarding: response path + layout
-    "PPFAS Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "PPFAS Asset Management Pvt. Ltd."),  # 9 Oct: ok
-    "quant Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "quant Money Managers Limited"),  # 9 Oct: ok
-    "Quantum Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Quantum Asset Management Company Private Limited"),  # 9 Oct: ok
-    "Samco Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Samco Asset Management Private Limited"),  # 9 Oct: ok
+    "PPFAS Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "PPFAS Asset Management Pvt. Ltd.", layout="ppfas", landing_url="https://amc.ppfas.com/downloads/factsheet/index.php#axzz4I2KR6um7"),  # 10 Oct: September 2026; 7/7 live families (100%); no misses.
+    "quant Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "quant Money Managers Limited", landing_url="https://quantmutual.com/downloads/factsheet", note="2026-10-10: October 2026 PDF served; quant reader matches 30/31 live families (96.77%), Income Plus Arbitrage Active FOF absent. Content check finds no supported as-on date in first 12 pages and rejects stale_month. Disabled pending a date-check scope/format ruling."),  # 0/31 enabled; 30/31 extractable; date-check blocker for all, FOF also absent.
+    "Quantum Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Quantum Asset Management Company Private Limited", layout="quantum", landing_url="https://www.quantumamc.com/factsheets/combined/-1/0/0"),  # 10 Oct: September 2026 (second candidate; first stale); 15/15 live families (100%); no misses.
+    "Samco Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Samco Asset Management Private Limited", landing_url="https://www.samcomf.com/downloads", note="2026-10-10: downloads page's latest factsheet is June 2026, as on June 30; both download and media URLs verified stale. Dedicated /downloads/factsheet route returns 404. Disabled pending a current source."),  # 0/13 live families enabled; all blocked by unavailable current source.
     "SBI Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "SBI Funds Management Limited"),  # 9 Oct: no_factsheet_link_in_html
-    "Shriram Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Shriram Asset Management Co. Ltd."),  # 9 Oct: ok
-    "Sundaram Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Sundaram Asset Management Company Ltd"),  # 9 Oct: ok
+    "Shriram Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Shriram Asset Management Co. Ltd.", layout="shriram", landing_url="https://www.shriramamc.in/factsheet"),  # 10 Oct: latest August 2026; 10/11 live families (90.91%); Gold ETF Passive FOF announced on cover only, no manager page.
+    "Sundaram Mutual Fund": ResolverEntry(ResolverKind.JSON_API, "Sundaram Asset Management Company Ltd", layout="sundaram", landing_url="https://www.sundarammutual.com/fundwise-factsheet", endpoint_url="https://www.sundarammutual.com/ajax/Modules_Forms_Downloads_Fundwise_Factsheet,App_Web_4pv3qucy.ashx?_method=DownloadArchive&_session=no"),  # 10 Oct: September 2026 (31 Aug data); public legacy archive API; 40/40 live families (100%); 17 tested NAVAll legacy-name aliases; no misses.
     "Tata Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Tata Asset Management Private Limited"),  # 9 Oct: no_factsheet_link_in_html
     "Taurus Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Taurus Asset Management Company Limited"),  # 9 Oct: no_factsheet_link_in_html
     "The Wealth Company Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Wealth Company Asset Management Holdings Private Limited"),  # 9 Oct: no_factsheet_link_in_html
     "Trust Mutual Fund": ResolverEntry(ResolverKind.JSON_API, "Trust Asset Management Private Limited", endpoint_url="https://www.trustmf.com/api/api/Trust/GetData"),  # onboarding: response path + layout
-    "Unifi Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Unifi Asset Management Private Limited"),  # 9 Oct: ok
+    "Unifi Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Unifi Asset Management Private Limited", layout="unifi", landing_url="https://unifimf.com/factsheet/"),  # 10 Oct: September 2026; 3/3 live families (100%); no misses.
     "Union Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Union Asset Management Company Private Limited"),  # 9 Oct: no_factsheet_link_in_html
     "UTI Mutual Fund": ResolverEntry(ResolverKind.JSON_API, "UTI Asset Mgmt. Co. Ltd.", endpoint_url="https://www.utimf.com/api/page/forms-and-downloads-downloads"),  # onboarding: response path + layout
     "WhiteOak Capital Mutual Fund": ResolverEntry(ResolverKind.JSON_API, "WhiteOak Capital Asset Management Limited", endpoint_url="https://cms.whiteoakamc.com/graphql"),  # onboarding: response path + layout
-    "Zerodha Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Zerodha Asset Management Private Limited"),  # 9 Oct: ok
+    "Zerodha Mutual Fund": ResolverEntry(ResolverKind.STATIC_LINK, "Zerodha Asset Management Private Limited", layout="zerodha", landing_url="https://www.zerodhafundhouse.com/resources/fund-documents"),  # 10 Oct: latest August 2026; 22/23 live families (95.65%); Life Cycle Fund 2031 absent.
     # Carnelian Investment Managers Private Limited: no AMFI-listed schemes on 9 Oct -- nothing to resolve; not in the registry.
     # Nuvama Asset Management Limited: no AMFI-listed schemes on 9 Oct -- nothing to resolve; not in the registry.
 

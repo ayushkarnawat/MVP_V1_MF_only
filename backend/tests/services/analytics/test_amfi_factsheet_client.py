@@ -21,6 +21,132 @@ from app.services.analytics.amfi_factsheet_client import (
 from app.services.analytics.fund_manager_layouts import SchemePage
 
 
+@pytest.mark.parametrize("heading,nav_name", [
+    ("Sundaram Aggressive Hybrid Fund", "Sundaram Aggressive Hybrid Fund (Formerly Known as Principal Hybrid Equity Fund)"),
+    ("Sundaram Arbitrage Fund", "Sundaram Arbitrage Fund(Formerly Known as Prinicpal Arbitrage Fund)"),
+    ("Sundaram Banking and PSU Debt Fund", "Sundaram Banking and PSU Debt Fund (Formerly Known as Sundaram Banking and PSU Fund)"),
+    ("Sundaram Conservative Hybrid Fund", "Sundaram Conservative Hybrid Fund (Formerly Known as Sundaram Debt Oriented Hybrid Fund)"),
+    ("Sundaram Consumption Fund", "Sundaram Consumption Fund (Formerly Known as Sundaram Rural and Consumption Fund)"),
+    ("Sundaram Dividend Yield Fund", "Sundaram Dividend Yield Fund (Formerly Known as Principal Dividend Yield Fund)"),
+    ("Sundaram Dynamic Asset Allocation Fund", "Sundaram Dynamic Asset Allocation Fund (Formerly Known as Sundaram Balanced Advantage Fund)"),
+    ("Sundaram Equity Savings Fund", "Sundaram Equity Savings Fund (Formerly Known as Principal Equity Savings Fund)"),
+    ("Sundaram Focused Fund", "Sundaram Focused Fund (Formerly Known as Principal Focused Multicap Fund)"),
+    ("Sundaram Large Cap Fund", "Sundaram Large Cap Fund ( Formerly Know as Sundaram Blue Chip Fund)"),
+    ("Sundaram Liquid Fund", "Sundaram Liquid Fund (Formerly Known as Principal Cash Management Fund)"),
+    ("Sundaram Medium Term Fund", "Sundaram Medium Term Fund (Formerly Known as Sundaram Medium Duration Fund)"),
+    ("Sundaram Multi Cap Fund", "Sundaram Multi Cap Fund (Formerly Known as Principal Multi Cap Growth Fund)"),
+    ("Sundaram Nifty 100 Equal Weight Fund", "Sundaram Nifty 100 Equal Weight Fund (Formerly Known as Principal Nifty 100 Equal Weight Fund)"),
+    ("Sundaram Short Term Fund", "Sundaram Short Term Fund (Formerly Known as Sundaram Short Duration Fund)"),
+    ("Sundaram Ultra Short Term Fund", "Sundaram Ultra Short Term Fund (Formerly Known as Sundaram Ultra Short Duration Fund)"),
+    ("Sundaram Ultra Short to Short Term Fund", "Sundaram Ultra Short to Short Term Fund (Formerly Known as Sundaram Low Duration Fund)"),
+])
+def test_sundaram_printed_headings_match_verified_navall_legacy_names(heading, nav_name):
+    family = build_families([_scheme(nav_name, amc="Sundaram Mutual Fund")])
+    match = match_scheme_page(_page(heading), family)
+    assert match is not None
+    assert match[0].base_name == nav_name
+    assert match[1] == MATCH_METHOD_EXACT
+    # Identical strings in another AMC cannot inherit Sundaram's alias.
+    other = match_scheme_page(_page(heading), build_families([_scheme(nav_name, amc="Other AMC")]))
+    assert other is None or other[1] != MATCH_METHOD_EXACT
+
+
+@pytest.mark.parametrize("today,month", [(date(2026, 10, 10), "09/2026"), (date(2027, 1, 10), "12/2026")])
+def test_sundaram_archive_uses_literal_month_and_verified_response(monkeypatch, today, month):
+    from app.services.analytics import amfi_factsheet_client as fc
+    from app.services.analytics.fund_manager_resolvers import ResolverEntry, ResolverKind
+    class Today(date):
+        @classmethod
+        def today(cls): return today
+    monkeypatch.setattr(fc, "date", Today)
+    entry = ResolverEntry(ResolverKind.JSON_API, "Sundaram Asset Management Company Ltd", endpoint_url="https://www.sundarammutual.com/ajax/verified.ashx?_method=DownloadArchive&_session=no")
+    def handle(request):
+        assert request.method == "POST"
+        assert request.content == f"cat=1\r\nmnth={month}".encode()
+        return httpx.Response(200, text="'https://www.sundarammutual.com/uploaddir/consolidated_factsheet/Consolidated_Factsheet_9_2026_280926_125349.pdf'")
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+            return await fc._json_api_candidates(client, entry)
+    assert asyncio.run(run()) == ["https://www.sundarammutual.com/uploaddir/consolidated_factsheet/Consolidated_Factsheet_9_2026_280926_125349.pdf"]
+
+
+def test_zerodha_two_digit_filename_years_sort_current_before_old_december():
+    from app.services.analytics.amfi_factsheet_client import _static_link_candidates
+    def handle(request):
+        return httpx.Response(200, text='<a href="https://assets.zerodhafundhouse.com/offer-documents/factsheet/Factsheet - Dec 25.pdf">Download</a><a href="https://assets.zerodhafundhouse.com/offer-documents/factsheet/Factsheet - Aug 26.pdf">Download</a>')
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+            return await _static_link_candidates(client, "https://www.zerodhafundhouse.com/resources/fund-documents", None)
+    assert asyncio.run(run())[0].endswith("Aug 26.pdf")
+
+
+def test_box_reader_receives_real_lic_boxes_during_check_and_import(db_session):
+    from app.services.analytics.amfi_factsheet_client import FactsheetPages, import_pages, looks_like_current_factsheet
+    root = Path(__file__).parents[2] / "fixtures/factsheets"
+    words = json.loads((root / "lic_words.json").read_text(encoding="utf-8"))
+    texts = (root / "lic.txt").read_text(encoding="utf-8").split("\f")
+    pages = FactsheetPages(texts, words)
+    seen = []
+    def reader(text, boxes):
+        seen.append(boxes)
+        return [_page("LIC MF Large Cap Fund"), _page("LIC MF Liquid Fund"), _page("LIC MF Flexi Cap Fund")] if boxes == words[0] else []
+    for name in ("LIC MF Large Cap Fund", "LIC MF Liquid Fund", "LIC MF Flexi Cap Fund"):
+        db_session.add(_scheme(name))
+    db_session.flush()
+    assert looks_like_current_factsheet(pages, reader, date(2026, 10, 10)) == (True, "ok")
+    assert import_pages(db_session, "Test AMC", pages, reader, date(2026, 10, 1)) == (3, 0)
+    assert seen == words + words
+
+
+def test_real_lic_summary_imports_all_families_all_plans_and_is_idempotent(db_session):
+    from app.models.reference import SchemeFundManager
+    from app.services.analytics import amfi_factsheet_client as fc
+    from app.services.analytics.fund_manager_layouts import LAYOUTS
+    root = Path(__file__).parents[2] / "fixtures/factsheets"
+    pages = fc.FactsheetPages((root / "lic.txt").read_text(encoding="utf-8").split("\f"),
+                             json.loads((root / "lic_words.json").read_text(encoding="utf-8")))
+    reader = LAYOUTS["lic"]
+    schemes = [_scheme(row.heading, amc="LIC Mutual Fund") for row in reader(pages[0], pages.words[0])]
+    regular = _scheme("LIC MF Large Cap Fund", "Regular Plan - Growth", amc="LIC Mutual Fund")
+    other_amc = _scheme("LIC MF Large Cap Fund", amc="Other AMC")
+    db_session.add_all(schemes + [regular, other_amc])
+    db_session.flush()
+    for _ in range(2):
+        assert fc.import_pages(db_session, "LIC Mutual Fund", pages, reader, date(2026, 10, 1)) == (43, 0)
+    rows = db_session.query(SchemeFundManager).all()
+    assert len(rows) == 76  # 75 printed manager rows, plus the Large Cap regular plan
+    assert not [row for row in rows if row.scheme_id == other_amc.id]
+    assert [(row.manager_name, row.role) for row in rows if row.scheme_id == regular.id] == [("Sumit Bhatnagar", "Equity")]
+
+
+def test_resolver_extracts_boxes_only_when_requested(monkeypatch):
+    from app.services.analytics import amfi_factsheet_client as fc
+    from app.services.analytics.fund_manager_resolvers import ResolverEntry, ResolverKind
+    entry = ResolverEntry(ResolverKind.STATIC_LINK, "LIC", landing_url="https://example.test/latest.pdf", needs_boxes=True)
+    boxes = json.loads((Path(__file__).parents[2] / "fixtures/factsheets/lic_words.json").read_text(encoding="utf-8"))[:1]
+    monkeypatch.setattr(fc, "_download_pdf", AsyncMock(return_value=b"%PDF mocked"))
+    monkeypatch.setattr(fc, "extract_page_text", lambda pdf: ["Data as on August 31, 2026"])
+    monkeypatch.setattr(fc, "extract_page_words", lambda pdf: boxes)
+    def reader(text, words):
+        assert words == boxes[0]
+        return [_page("one"), _page("two"), _page("three")]
+    pages, reason = asyncio.run(fc._resolve_and_read(None, entry, {}, reader, date(2026, 10, 10)))
+    assert reason == "ok"
+    assert pages.words == boxes
+
+
+def test_extract_words_unions_character_boxes_and_separates_whitespace(monkeypatch):
+    from app.services.analytics import amfi_factsheet_client as fc
+    class Text:
+        def count_chars(self): return 6
+        def get_text_range(self, start, count): return "LIC MF"[start:start + count]
+        def get_charbox(self, index): return (index, 10, index + 1, 12)
+    class Page:
+        def get_textpage(self): return Text()
+    monkeypatch.setattr(fc.pdfium, "PdfDocument", lambda pdf: [Page()])
+    assert fc.extract_page_words(b"%PDF mocked") == [[(0, 10, 3, 12, "LIC"), (4, 10, 6, 12, "MF")]]
+
+
 def test_hsbc_document_uuid_does_not_override_the_monthly_filename():
     from app.services.analytics.amfi_factsheet_client import _static_link_candidates
     def handle(request):
@@ -110,6 +236,16 @@ def _scheme(base_name, plan="Direct Plan - Growth", isin=None, category="Equity 
 def _page(heading, isins=(), category=None):
     return SchemePage(heading=heading, managers=[{"name": "Jane Doe", "role": None, "since_raw": None}],
                       isins=list(isins), category=category)
+
+
+def test_multi_scheme_page_content_and_import_iterate_every_scheme(db_session):
+    from app.services.analytics.amfi_factsheet_client import import_pages, looks_like_current_factsheet
+    schemes = [_scheme("LIC MF Large Cap Fund"), _scheme("LIC MF Liquid Fund"), _scheme("LIC MF Flexi Cap Fund")]
+    db_session.add_all(schemes); db_session.flush()
+    rows = [_page(s.base_name) for s in schemes]
+    reader = lambda text: rows
+    assert looks_like_current_factsheet(["Data as on August 31, 2026"], reader, date(2026,10,10)) == (True, "ok")
+    assert import_pages(db_session, "Test AMC", ["summary"], reader, date(2026,10,1)) == (3,0)
 
 
 def test_one_family_per_fund_holds_every_plan_row():
@@ -517,3 +653,19 @@ def test_groww_skips_a_malformed_embedded_document():
         async with httpx.AsyncClient(transport=httpx.MockTransport(handler), trust_env=False) as http:
             return await _static_link_candidates(http, "https://www.growwmf.in/downloads/fact-sheet", r"Monthly\s+Factsheet")
     assert asyncio.run(run()) == ["https://assets-netstorage.growwmf.in/august-2026.pdf"]
+
+
+@pytest.mark.parametrize("raw,expected", [
+    ("Jun 10, 2019", date(2019, 6, 10)),
+    ("August 26,2026", date(2026, 8, 26)),
+    ("03 February 2025", date(2025, 2, 3)),     # quant, NJ: day first
+    ("23rd March 2026", date(2026, 3, 23)),     # Abakkus: ordinal day
+    ("1st Sep 2025", date(2025, 9, 1)),
+    ("August 2007", date(2007, 8, 1)),
+    ("Inception", None),
+    ("Since Inception", None),
+])
+def test_managing_since_parses_the_formats_factsheets_print(raw, expected):
+    """Run 4: day-first dates were left NULL in managing_since; only the raw text survived."""
+    from app.services.analytics.amfi_factsheet_client import _parse_managing_since
+    assert _parse_managing_since(raw) == expected

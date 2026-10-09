@@ -1,4 +1,6 @@
 from pathlib import Path
+import json
+import re
 
 import pytest
 
@@ -7,7 +9,123 @@ from app.services.analytics.fund_manager_layouts import LAYOUTS
 FIXTURES = Path(__file__).resolve().parents[2] / "fixtures" / "factsheets"
 
 
+@pytest.mark.parametrize("layout", ["nj", "ppfas", "quant", "quantum", "shriram", "sundaram", "unifi", "zerodha"])
+def test_departure_annotation_never_keeps_a_current_manager(layout):
+    raw = (FIXTURES / f"{layout}.txt").read_text(encoding="utf-8").split("\f")[0]
+    first = LAYOUTS[layout](raw).managers[0]["name"]
+    pattern = r"\s+".join(re.escape(word) for word in first.split())
+    annotated = re.sub(pattern, lambda m: m.group(0) + " (Ceased to be FM Sep 10, 2026)", raw, count=1)
+    found = LAYOUTS[layout](annotated)
+    assert found is None or first not in [m["name"] for m in found.managers]
+
+
+def test_shriram_handover_annotation_is_not_a_role():
+    raw = (FIXTURES / "shriram.txt").read_text(encoding="utf-8").split("\f")[0]
+    raw = raw.replace("Mr. Hitesh Savanth", "Mr. Hitesh Savanth (w.e.f. Jun 15, 2026)", 1)
+    assert LAYOUTS["shriram"](raw).managers[0]["role"] is None
+
+
+def test_lic_summary_pairs_by_position_even_when_words_are_reversed():
+    pages = (FIXTURES / "lic.txt").read_text(encoding="utf-8").split("\f")
+    boxes = json.loads((FIXTURES / "lic_words.json").read_text(encoding="utf-8"))
+    reader = LAYOUTS["lic"]
+    expected = [
+        ("Large Cap Fund", [("Sumit Bhatnagar", "Equity", "Oct 03, 2023")]),
+        ("Large & Mid Cap Fund", [("Sudhanshu Asthana", "Equity", "April 07, 2026")]),
+        ("Flexi Cap Fund", [("Sudhanshu Asthana", "Equity", "April 07, 2026"), ("Nikhil Kapoor", "Equity", "July 01, 2026")]),
+        ("MultiCap Fund", [("Dikshit Mittal", "Equity", "Dec 01, 2022")]),
+        ("Mid Cap Fund", [("Manoj Bajpai", "Equity", "July 01, 2026")]),
+        ("Small Cap Fund", [("Dikshit Mittal", "Equity", "July 24, 2025")]),
+        ("Dividend Yield Fund", [("Dikshit Mittal", "Equity", "July 31, 2023")]),
+        ("Value Fund", [("Mahesh Bendre", "Equity", "July 01, 2024")]),
+        ("Focused Fund", [("Mahesh Bendre", "Equity", "April 07, 2026")]),
+        ("Infrastructure Fund", [("Mahesh Bendre", "Equity", "July 01, 2024")]),
+        ("Manufacturing Fund", [("Mahesh Bendre", "Equity", "Oct 11, 2024")]),
+        ("Consumption Fund", [("Sumit Bhatnagar", "Equity", "Nov 21, 2025"), ("Nikhil Kapoor", "Equity", "July 01, 2026")]),
+        ("Technology Fund", [("Sumit Bhatnagar", "Equity", "April 07, 2026"), ("Siddharth Panjwani", "Equity", "July 01, 2026")]),
+        ("Banking & Financial Services Fund", [("Sudhanshu Asthana", "Equity", "April 07, 2026")]),
+        ("Healthcare Fund", [("Sudhanshu Asthana", "Equity", "April 07, 2026")]),
+        ("ELSS Tax Saver Fund", [("Sumit Bhatnagar", "Equity", "April 07, 2026"), ("Nikhil Kapoor", "Equity", "July 01, 2026")]),
+        ("Unit Linked Insurance Scheme", [("Siddharth Panjwani", "Equity", "July 01, 2026"), ("Pratik Shroff", "Debt", "Sep 26, 2023")]),
+        ("Aggressive Hybrid Fund", [("Manoj Bajpai", "Equity/Arbitrage", "July 01, 2026"), ("Pratik Shroff", "Debt", "Sep 26, 2023")]),
+        ("Balanced Advantage Fund", [("Manoj Bajpai", "Equity/Arbitrage", "July 01, 2026"), ("Rahul singh", "Debt", "Nov 12, 2021")]),
+        ("Equity Savings Fund", [("Siddharth Panjwani", "Equity/Arbitrage", "July 01, 2026"), ("Pratik Shroff", "Debt", "Sep 26, 2023")]),
+        ("Conservative Hybrid Fund", [("Siddharth Panjwani", "Equity/Arbitrage", "July 01, 2026"), ("Pratik Shroff", "Debt", "Sep 26, 2023")]),
+        ("Arbitrage Fund", [("Sumit Bhatnagar", "Equity/Arbitrage", "Oct 03, 2023"), ("Pratik Shroff", "Debt", "Sep 26, 2023"), ("Sasikant Aravamuthan", "Equity", "July 01, 2026")]),
+        ("Multi Asset Allocation Fund", [("Sumit Bhatnagar", "Equity/Arbitrage", "Feb 14, 2025"), ("Pratik Shroff", "Debt", "Feb 14, 2025")]),
+    ]
+    for fund, since in [("Overnight Fund", "July 18, 2019"), ("Liquid Fund", "Oct 05, 2015")]:
+        expected.append((fund, [("Rahul Singh", "Debt", since), ("Aakash Dhulia", "Debt", "Sep 01, 2025")]))
+    for fund, since in [("Ultra Short Term Fund", "Nov 27, 2019"), ("Money Market Fund", "Aug 01, 2022"), ("Ultra Short to Short Term Fund", "Sept 07, 2015")]:
+        expected.append((fund, [("Rahul Singh", "Debt", since), ("Pratik Shroff", "Debt", "Oct 01, 2025")]))
+    for fund in ["Medium to Long Term Fund", "Banking & PSU Debt Fund", "Short Term Fund", "Gilt Fund"]:
+        expected.append((fund, [("Pratik Shroff", "Debt", "Sep 26, 2023"), ("Rahul Singh", "Debt", "Oct 01, 2025")]))
+    expected.append(("Children's Fund", [("Siddharth Panjwani", "Equity", "July 01, 2026"), ("Pratik Shroff", "Debt", "Sep 26, 2023")]))
+    for fund in ["BSE Sensex ETF", "NIFTY 50 ETF", "NIFTY 100 ETF", "Nifty Midcap 100 ETF", "BSE Sensex Index Fund", "NIFTY 50 Index Fund", "Nifty Next 50 Index Fund"]:
+        expected.append((fund, [("Nikhil Kapoor", "Equity", "April 07, 2026"), ("Sasikant Aravamuthan", "Equity", "July 01, 2026")]))
+    for fund in ["Gold Exchange Traded Fund", "Gold ETF Fund of Fund"]:
+        expected.append((fund, [("Sumit Bhatnagar", "Commodity", "June 01, 2024"), ("Sasikant Aravamuthan", "Commodity", "July 01, 2026")]))
+    expected.append(("Nifty 8-13 yr G-Sec ETF", [("Pratik Shroff", "Debt", "Sep 26, 2023"), ("Rahul Singh", "Debt", "Oct 01, 2025")]))
+    expected = [("LIC MF " + heading, managers) for heading, managers in expected]
+    for words in (boxes[0], list(reversed(boxes[0]))):
+        actual = reader(pages[0], words)
+        assert [(p.heading, [(m["name"], m["role"], m["since_raw"]) for m in p.managers]) for p in actual] == expected
+    # Page 11's title is artwork: do not infer it from the summary or the merger note.
+    assert reader(pages[1], boxes[1]) == []
+    assert reader(pages[0], []) == []
+
+
 @pytest.mark.parametrize("layout,headings,managers", [
+    ("sundaram_variants", ["Sundaram Multi Asset Allocation Fund", "Sundaram Long Term Micro Cap Tax Advantage Fund - Series III"], [
+        [("Clyton Richard Fernandes", None, None), ("Rohit Seksaria", None, "05 Jan 2024"), ("Kumaresh Ramakrishnan", None, None),
+         ("Arjun Nagarajan", None, None), ("Shalav Saket", "Overseas", None)],
+        [("Rohit Seksaria", None, "01 Apr 2019")],
+    ]),
+    ("sundaram", ["Sundaram Large Cap Fund", "Sundaram Conservative Hybrid Fund"], [
+        [("Ashwin Jain", None, "21 Oct 2024"), ("Shalav Saket", "Overseas", None)],
+        [("Bharath S", None, "16 May 2022"), ("Kumaresh Ramakrishnan", None, "09 Jun 2026")],
+    ]),
+    ("zerodha", ["Zerodha Nifty Large Midcap250 Index Fund", "Zerodha Gold ETF"], [
+        [("Kedarnath Mirajkar", None, "Nov 2023")],
+        [("Shyam Agarwal", None, "Feb 2024"), ("Kedarnath Mirajkar", "Co-Fund Manager", "Sep 2024")],
+    ]),
+    ("unifi", ["Unifi Dynamic Asset Allocation Fund", "Unifi Liquid Fund"], [
+        [("V N Saravanan", "CIO & Fund Manager", "inception"), ("Aejas Lakhani", "Equity Fund Manager", "inception"), ("Karthik Srinivas", "Debt Fund Manager", "inception")],
+        [("V N Saravanan", "CIO & Fund Manager", "inception"), ("Karthik Srinivas", "Fund Manager", "inception")],
+    ]),
+    ("shriram", ["Shriram Multi Sector Rotation Fund", "Shriram Multi Asset Allocation Fund"], [
+        [("Hitesh Savanth", None, "Jun 15, 2026"), ("Prateek Nigudkar", None, "Aug 7, 2025")],
+        [("Hitesh Savanth", None, "Jun 15, 2026"), ("Prateek Nigudkar", None, "Aug 7, 2025"),
+         ("Amit Modani", None, "Nov 1, 2025"), ("Sudip Suresh More", None, "Oct 3, 2024")],
+    ]),
+    ("quantum_variants", ["Quantum Ethical Fund", "Quantum Multi Asset Allocation Fund"], [
+        [("Chirag Mehta", None, "December 20, 2024")],
+        [("Sneha Pandey", "Fund Manager", "April 01, 2025"), ("Mansi Vasa", "Fund Manager", "April 01, 2025")],
+    ]),
+    ("quantum", ["Quantum Diversified Equity All Cap Active FOF", "Quantum Dynamic Term Fund"], [
+        [("Chirag Mehta", "Fund Manager", "November 01, 2013"), ("Piyush Singh", "Associate Fund Manager", "April 01, 2025")],
+        [("Sneha Pandey", None, "April 01, 2025"), ("Mayur Chauhan", None, "July 01, 2025")],
+    ]),
+    ("quant", ["quant Liquid Fund", "quant Overnight Fund"], [
+        [("Sanjeev Sharma", None, "03 October 2019"), ("Haroonvardhan Sirohi", None, "20 February 2026")],
+        [("Sanjeev Sharma", None, "05 December 2022"), ("Haroonvardhan Sirohi", None, "20 February 2026")],
+    ]),
+    ("ppfas", ["Parag Parikh Flexi Cap Fund", "Parag Parikh Liquid Fund"], [
+        [("Rajeev Thakkar", "Chief Investment Officer - Equity and Director", "Since Inception"),
+         ("Raunak Onkar", "Fund Manager Dedicated for Overseas Securities", "Since Inception"),
+         ("Raj Mehta", "Executive Vice President and Fund Manager - Equity", "September 1, 2025"),
+         ("Rukun Tarachandani", "Executive Vice President & Fund Manager - Equity", "May 16, 2022"),
+         ("Tejas Soman", "Chief Investment Officer - Debt", "September 1, 2025"),
+         ("Mansi Kariya", "Associate Vice President & Fund Manager- Debt", "December 22, 2023"),
+         ("Aishwarya Dhar", "Senior Manager & Fund Manager- Debt", "September 1, 2025")],
+        [("Tejas Soman", "Chief Investment Officer - Debt", "September 1, 2025"),
+         ("Mansi Kariya", "Associate Vice President & Fund Manager- Debt", "December 22, 2023"),
+         ("Aishwarya Dhar", "Senior Manager & Fund Manager - Debt", "September 1, 2025")],
+    ]),
+    ("nj", ["NJ MOMENTUM FUND", "NJ FLEXI CAP FUND"], [
+        [("Viral Shah", None, "inception"), ("Dhaval Patel", None, "inception"), ("Jaimin Ilavia", None, "August 04, 2026")],
+        [("Viral Shah", None, "May 1, 2024"), ("Dhaval Patel", None, "inception"), ("Jaimin Ilavia", None, "June 11, 2026")],
+    ]),
     ("hsbc", ["HSBC Large Cap Fund", "HSBC Multi Asset Allocation Fund"], [
         [("Neelotpal Sahai", None, "May 27, 2013"), ("Mayank Chaturvedi", None, "Oct 01, 2025"), ("Dipan S. Parikh", None, "Aug 26, 2026")],
         [("Cheenu Gupta", None, "Feb 28, 2024"), ("Mahesh Chhabria", None, "Feb 28, 2024"), ("Mohd. Asif Rizwi", None, "Feb 01, 2025"),
@@ -79,7 +197,7 @@ def test_real_scheme_pages(layout, headings, managers):
     pages = (FIXTURES / f"{layout}.txt").read_text(encoding="utf-8").split("\f")
     assert len(pages) == 2
     for raw, heading, expected in zip(pages, headings, managers):
-        page = LAYOUTS["groww" if layout == "groww_passive" else layout](raw)
+        page = LAYOUTS[{"groww_passive": "groww", "quantum_variants": "quantum", "sundaram_variants": "sundaram"}.get(layout, layout)](raw)
         assert page is not None
         assert page.heading == heading
         assert [(m["name"], m["role"], m["since_raw"]) for m in page.managers] == expected
@@ -87,7 +205,10 @@ def test_real_scheme_pages(layout, headings, managers):
 
 @pytest.mark.parametrize("layout", list(LAYOUTS))
 def test_non_scheme_page_returns_none(layout):
-    assert LAYOUTS[layout]("Contents\nGlossary\nFund Manager biographies") is None
+    if layout == "lic":
+        assert LAYOUTS[layout]("Contents\nGlossary\nFund Manager biographies", []) == []
+    else:
+        assert LAYOUTS[layout]("Contents\nGlossary\nFund Manager biographies") is None
 
 
 def test_hsbc_parenthetical_name_and_logo_are_distinguished():

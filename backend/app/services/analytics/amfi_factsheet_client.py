@@ -32,7 +32,7 @@ from sqlalchemy.orm import Session
 
 from app.db.session import commit_off_loop
 from app.models.reference import Scheme, SchemeFundManager
-from app.services.analytics.fund_manager_layouts import SchemePage, LAYOUTS
+from app.services.analytics.fund_manager_layouts import SchemePage, LAYOUTS, Word
 from app.services.analytics.fund_manager_resolvers import AMC_RESOLVERS, ResolverEntry, ResolverKind
 
 MATCH_METHOD_ISIN = "ISIN"
@@ -53,6 +53,25 @@ _NAME_NOTE_RE = re.compile(r"[\[(][^\])]*(?:ERSTWHILE|SEGREGATED)[^\])]*[\])]+",
 # September 2026 printed names verified against this AMC's live NAVAll families.
 # Never global normalization: an alias is scoped to the same AMC as the match.
 _AMC_FUND_ALIASES = {
+    "Sundaram Mutual Fund": {
+        "Sundaram Aggressive Hybrid Fund": "Sundaram Aggressive Hybrid Fund (Formerly Known as Principal Hybrid Equity Fund)",
+        "Sundaram Arbitrage Fund": "Sundaram Arbitrage Fund(Formerly Known as Prinicpal Arbitrage Fund)",
+        "Sundaram Banking and PSU Debt Fund": "Sundaram Banking and PSU Debt Fund (Formerly Known as Sundaram Banking and PSU Fund)",
+        "Sundaram Conservative Hybrid Fund": "Sundaram Conservative Hybrid Fund (Formerly Known as Sundaram Debt Oriented Hybrid Fund)",
+        "Sundaram Consumption Fund": "Sundaram Consumption Fund (Formerly Known as Sundaram Rural and Consumption Fund)",
+        "Sundaram Dividend Yield Fund": "Sundaram Dividend Yield Fund (Formerly Known as Principal Dividend Yield Fund)",
+        "Sundaram Dynamic Asset Allocation Fund": "Sundaram Dynamic Asset Allocation Fund (Formerly Known as Sundaram Balanced Advantage Fund)",
+        "Sundaram Equity Savings Fund": "Sundaram Equity Savings Fund (Formerly Known as Principal Equity Savings Fund)",
+        "Sundaram Focused Fund": "Sundaram Focused Fund (Formerly Known as Principal Focused Multicap Fund)",
+        "Sundaram Large Cap Fund": "Sundaram Large Cap Fund ( Formerly Know as Sundaram Blue Chip Fund)",
+        "Sundaram Liquid Fund": "Sundaram Liquid Fund (Formerly Known as Principal Cash Management Fund)",
+        "Sundaram Medium Term Fund": "Sundaram Medium Term Fund (Formerly Known as Sundaram Medium Duration Fund)",
+        "Sundaram Multi Cap Fund": "Sundaram Multi Cap Fund (Formerly Known as Principal Multi Cap Growth Fund)",
+        "Sundaram Nifty 100 Equal Weight Fund": "Sundaram Nifty 100 Equal Weight Fund (Formerly Known as Principal Nifty 100 Equal Weight Fund)",
+        "Sundaram Short Term Fund": "Sundaram Short Term Fund (Formerly Known as Sundaram Short Duration Fund)",
+        "Sundaram Ultra Short Term Fund": "Sundaram Ultra Short Term Fund (Formerly Known as Sundaram Ultra Short Duration Fund)",
+        "Sundaram Ultra Short to Short Term Fund": "Sundaram Ultra Short to Short Term Fund (Formerly Known as Sundaram Low Duration Fund)",
+    },
     "Aditya Birla Sun Life Mutual Fund": {
         "Aditya Birla Sun Life Large & Midcap Fund": "Aditya Birla Sun Life Large & Mid Cap Fund",
         "Aditya Birla Sun Life Silver ETF Fund of Fund": "Aditya Birla Sun Life Silver ETF FOF",
@@ -137,9 +156,13 @@ _HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit
 
 
 def _parse_managing_since(raw: str) -> date | None:
-    for fmt in ("%b. %d, %Y", "%b %d, %Y", "%B %d, %Y", "%b %Y", "%B %Y"):
+    # Normalise what factsheets print: "August 26,2026" (no space), "23rd March 2026"
+    # (ordinal day), "Sept 2025". Day-first forms come from quant, NJ and Abakkus (Run 4).
+    text = re.sub(r"(\d)(st|nd|rd|th)\b", r"\1", raw.strip())
+    text = re.sub(r",\s*", ", ", text).replace("Sept ", "Sep ")
+    for fmt in ("%b. %d, %Y", "%b %d, %Y", "%B %d, %Y", "%d %B %Y", "%d %b %Y", "%d-%b-%Y", "%b %Y", "%B %Y"):
         try:
-            return datetime.strptime(raw, fmt).date()
+            return datetime.strptime(text, fmt).date()
         except ValueError:
             continue
     return None  # an unparsed date is never fatal -- managing_since_raw keeps the original text
@@ -190,6 +213,42 @@ def extract_page_text(pdf_bytes: bytes) -> list[str]:
     once per page, since each page typically covers one scheme."""
     doc = pdfium.PdfDocument(pdf_bytes)
     return [page.get_textpage().get_text_range() for page in doc]
+
+
+def extract_page_words(pdf_bytes: bytes) -> list[list[Word]]:
+    """Whitespace-delimited words with the union of PDFium character boxes."""
+    doc = pdfium.PdfDocument(pdf_bytes)
+    pages = []
+    for page in doc:
+        text = page.get_textpage()
+        words = []
+        chars = []
+        boxes = []
+        def flush():
+            if chars:
+                words.append((min(b[0] for b in boxes), min(b[1] for b in boxes),
+                              max(b[2] for b in boxes), max(b[3] for b in boxes), "".join(chars)))
+                chars.clear()
+                boxes.clear()
+        for index in range(text.count_chars()):
+            char = text.get_text_range(index, 1)
+            if not char or char.isspace():
+                flush()
+            else:
+                chars.append(char)
+                boxes.append(text.get_charbox(index))
+        flush()
+        pages.append(words)
+    return pages
+
+
+class FactsheetPages(list[str]):
+    """Keep page text and optional geometry together through validation and import."""
+    def __init__(self, texts: list[str], words: list[list[Word]]):
+        if len(texts) != len(words):
+            raise ValueError("Text and geometry page counts differ")
+        super().__init__(texts)
+        self.words = words
 
 
 @dataclass(frozen=True)
@@ -274,6 +333,11 @@ async def _static_link_candidates(client: httpx.AsyncClient, landing_url: str, l
             # document ids (HSBC's UUIDs) carry year-like digits unrelated to the factsheet's month.
             named = f"{urllib.parse.unquote(urllib.parse.urlparse(href).path.rsplit('/', 1)[-1])} {text}"
             when = _link_date(named) if _link_date(named)[0] else _link_date(joined)
+            if urllib.parse.urlparse(landing_url).hostname == "www.zerodhafundhouse.com":
+                # This site's published filenames use "Factsheet - Aug 26.pdf".
+                short = re.search(r"Factsheet\s*-\s*([A-Za-z]+)\s+(\d{2})\.pdf", named, re.I)
+                if short and short.group(1)[:3].lower() in _MONTHS:
+                    when = (2000 + int(short.group(2)), _MONTHS[short.group(1)[:3].lower()])
             links.append((when, urllib.parse.urljoin(str(resp.url), html.unescape(href))))
     # The same file is often linked twice (title and "Download"): keep one, at its best date.
     best: dict[str, tuple[int, int]] = {}
@@ -319,13 +383,20 @@ def _latest_as_on(pages: list[str], today: date | None = None) -> date | None:
     return max(found) if found else None
 
 
+def _read_schemes(reader, text: str, words: list[Word] | None = None) -> list[SchemePage]:
+    found = reader(text, words) if words is not None else reader(text)
+    return [found] if isinstance(found, SchemePage) else found or []
+
+
 def looks_like_current_factsheet(pages: list[str], reader, today: date) -> tuple[bool, str]:
     """Card 4: the downloaded PDF is this AMC's current factsheet. Content: at least 3
-    scheme pages this AMC's reader understands (rejects one-pagers, how-to guides,
+    schemes this AMC's reader understands (including multi-scheme summary pages;
+    rejects single-scheme one-pagers, how-to guides,
     unrelated PDFs). Month: the latest "as on" date is within 45 days (a factsheet
     published mid-month can still carry the previous month-end -- Edelweiss's September
     file says "Data as on August 31"). Returns (ok, reason) for the alert line."""
-    scheme_pages = sum(1 for page in pages if reader(page) is not None)
+    scheme_pages = sum(len(_read_schemes(reader, page, pages.words[i] if isinstance(pages, FactsheetPages) else None))
+                       for i, page in enumerate(pages))
     if scheme_pages < 3:
         return False, "not_a_factsheet"
     as_on = _latest_as_on(pages, today)
@@ -352,20 +423,18 @@ def import_pages(
     families = build_families(db.query(Scheme).filter(Scheme.amc_name == amc_name).all())
     matched: set[tuple[str, str]] = set()
     unmatched = 0
-    for page_text in pages:
-        page = reader(page_text)
-        if page is None:
-            continue
-        result = match_scheme_page(page, families)
-        if result is None:
-            unmatched += 1
-            logger.info("refresh_fund_managers: unmatched amc=%s heading=%r", amc_name, page.heading[:80])
-            continue
-        family, method, confidence = result
-        for scheme in family.schemes:
-            upsert_scheme_fund_managers(db, scheme, page.managers, reference_period,
-                                        MATCH_METHOD_MANUAL if manual else method, confidence)
-        matched.add((family.amc_name, family.base_name))
+    for i, page_text in enumerate(pages):
+        for page in _read_schemes(reader, page_text, pages.words[i] if isinstance(pages, FactsheetPages) else None):
+            result = match_scheme_page(page, families)
+            if result is None:
+                unmatched += 1
+                logger.info("refresh_fund_managers: unmatched amc=%s heading=%r", amc_name, page.heading[:80])
+                continue
+            family, method, confidence = result
+            for scheme in family.schemes:
+                upsert_scheme_fund_managers(db, scheme, page.managers, reference_period,
+                                            MATCH_METHOD_MANUAL if manual else method, confidence)
+            matched.add((family.amc_name, family.base_name))
     return len(matched), unmatched
 
 
@@ -398,6 +467,8 @@ async def _resolve_and_read(client, entry: ResolverEntry, directory: dict[str, s
         if pdf is None:
             continue
         pages = extract_page_text(pdf)
+        if entry.needs_boxes:
+            pages = FactsheetPages(pages, extract_page_words(pdf))
         ok, reason = looks_like_current_factsheet(pages, reader, today)
         if ok:
             return pages, "ok"
@@ -405,6 +476,15 @@ async def _resolve_and_read(client, entry: ResolverEntry, directory: dict[str, s
 
 
 async def _json_api_candidates(client, entry: ResolverEntry) -> list[str]:
+    if entry.directory_name == "Sundaram Asset Management Company Ltd":
+        # Public DownloadArchive request; its legacy script escapes '=' and '%',
+        # but leaves the slash literal. The response is a quoted URL, not JSON.
+        month = date.today().replace(day=1) - timedelta(days=1)
+        resp = await client.post(entry.endpoint_url, content=f"cat=1\r\nmnth={month:%m/%Y}",
+                                 headers={"Content-Type": "text/plain"})
+        resp.raise_for_status()
+        found = re.fullmatch(r"['\"](https://www\.sundarammutual\.com/uploaddir/consolidated_factsheet/[^'\"\s]+\.pdf)['\"]", resp.text.strip())
+        return [found.group(1)] if found else []
     if entry.directory_name == "DSP Asset Managers Private Limited":
         # Public downloads.json request made by the AMC's download centre.
         resp = await client.get(entry.endpoint_url)

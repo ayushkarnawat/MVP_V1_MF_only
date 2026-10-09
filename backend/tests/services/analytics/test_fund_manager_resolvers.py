@@ -5,6 +5,12 @@ import pytest
 
 
 @pytest.mark.parametrize("amc,layout,landing", [
+    ("Zerodha Mutual Fund", "zerodha", "https://www.zerodhafundhouse.com/resources/fund-documents"),
+    ("Unifi Mutual Fund", "unifi", "https://unifimf.com/factsheet/"),
+    ("Shriram Mutual Fund", "shriram", "https://www.shriramamc.in/factsheet"),
+    ("Quantum Mutual Fund", "quantum", "https://www.quantumamc.com/factsheets/combined/-1/0/0"),
+    ("PPFAS Mutual Fund", "ppfas", "https://amc.ppfas.com/downloads/factsheet/index.php#axzz4I2KR6um7"),
+    ("NJ Mutual Fund", "nj", "https://downloads.njmutualfund.com/downloads.php"),
     ("Abakkus Mutual Fund", "abakkus", "https://www.abakkusmf.com/factsheet.html"),
     ("Canara Robeco Mutual Fund", "canara", "https://www.canararobeco.com/documents/forms-downloads/forms-information-documents/information-documents/factsheets/"),
     ("Capitalmind Mutual Fund", "capitalmind", "https://capitalmindmf.com/factsheet.html"),
@@ -21,12 +27,32 @@ def test_batch_one_verified_sources_are_enabled(amc, layout, landing):
 
 @pytest.mark.parametrize("amc,reason", [
     ("Bajaj Finserv Mutual Fund", "stale"),
-    ("LIC Mutual Fund", "geometry"),
 ])
 def test_blocked_batch_one_amcs_remain_disabled_with_auditable_notes(amc, reason):
     entry = AMC_RESOLVERS[amc]
     assert entry.layout is None
     assert reason in entry.note.lower()
+
+
+def test_lic_is_enabled_with_positional_summary_reader():
+    entry = AMC_RESOLVERS["LIC Mutual Fund"]
+    assert entry.layout == "lic"
+    assert entry.needs_boxes is True
+    assert entry.landing_url == "https://www.licmf.com/downloads/factsheet"
+
+
+@pytest.mark.parametrize("amc,reason", [("Mirae Asset Mutual Fund", "two"), ("quant Mutual Fund", "first 12"), ("Samco Mutual Fund", "June")])
+def test_batch_two_blockers_remain_disabled_and_explained(amc, reason):
+    entry = AMC_RESOLVERS[amc]
+    assert entry.layout is None
+    assert reason in (entry.note or "")
+
+
+def test_sundaram_uses_verified_public_archive_api():
+    entry = AMC_RESOLVERS["Sundaram Mutual Fund"]
+    assert entry.kind is ResolverKind.JSON_API
+    assert entry.layout == "sundaram"
+    assert entry.endpoint_url == "https://www.sundarammutual.com/ajax/Modules_Forms_Downloads_Fundwise_Factsheet,App_Web_4pv3qucy.ashx?_method=DownloadArchive&_session=no"
 
 
 def test_dsp_uses_verified_download_api():

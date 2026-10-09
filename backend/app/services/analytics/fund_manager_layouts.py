@@ -3,15 +3,16 @@
 
 AMCs don't share a layout: the 9 Oct catalogue of every AMC's factsheet
 (Docs/analytics/2026-10-09-attribute-04-factsheet-layouts.md) found six families, and a
-single "generic" regex matched 5 AMCs of 22. Each function takes one page of
-pypdfium2 text and returns the scheme's printed heading and managers, or None for a
-page that isn't a scheme page. The registry (fund_manager_resolvers.py) says which
-layout each AMC uses."""
+single "generic" regex matched 5 AMCs of 22. Readers take one page of pypdfium2 text
+and optionally its word boxes, returning one SchemePage, several SchemePages, or
+no schemes. The registry (fund_manager_resolvers.py) selects each AMC's layout."""
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
 from typing import Callable
+
+Word = tuple[float, float, float, float, str]  # PDF coordinates, never financial values
 
 # "Mrs" before "Mr", and a word boundary, so "Mrs. A" loses all of "Mrs." and "Mrinal" keeps its "Mr".
 _TITLE = re.compile(r"^(?:Mrs|Mr|Ms|Dr)\b\.?\s*")
@@ -280,16 +281,173 @@ def capitalmind_table(page: str) -> list[dict] | None:
     ]
 
 
+def sundaram_managers(page: str) -> list[dict] | None:
+    block_names = re.search(r"Name of Fund Managers:(.*?)Total Experience", page, re.S)
+    if not block_names:
+        return None
+    managers = []
+    for raw in re.split(r"•|,", block_names.group(1)):
+        if not raw.strip():
+            continue
+        role = re.search(r"\(([^)]+)\)", raw)
+        managers.append({"name": _clean_name(re.sub(r"\([^)]*\)", "", raw)),
+                         "role": role.group(1) if role else None, "since_raw": None})
+    block = re.search(r"Managing Since:(.*?)Minimum Investment", page, re.S)
+    if block:
+        for match in re.finditer(rf"(\d{{1,2}} {_MONTH} \d{{4}})\s*\(([^)]+)\)", " ".join(block.group(1).split())):
+            for label in re.split(r"\s*&\s*", match.group(2)):
+                # The file labels dates with printed first names ("Madan" for Madanagopal).
+                named = [m for m in managers if m["name"].split()[0].startswith(label)]
+                if len(named) == 1:
+                    named[0]["since_raw"] = match.group(1)
+    return managers
+
+
+def _sundaram_heading(page: str) -> str:
+    match = re.search(r"(Sundaram [^\r\n]+)(?:\s*(Fund - Series [IVX]+))?\s*Type Of Scheme:", page)
+    return " ".join(part.strip() for part in match.groups() if part) if match else ""
+
+
+def zerodha_managers(page: str) -> list[dict] | None:
+    block = re.search(r"Name of Fund Managers(.*?)Minimum Investment", " ".join(page.split()))
+    if not block:
+        return None
+    return [{"name": _clean_name(m.group(1)), "role": m.group(2), "since_raw": m.group(3)}
+            for m in re.finditer(rf"((?:Mr|Ms)\. [A-Za-z ]+?)\s*(?:\(([^)]+)\)\s*)?Total Experience: \d+ years Managing Since: ({_MONTH} \d{{4}})", block.group(1))]
+
+
+def unifi_managers(page: str) -> list[dict] | None:
+    block = re.search(r"Fund Manager\s*\(Managing since inception\)(.*?)Tier [I1] Benchmark", page, re.S)
+    if not block:
+        return None
+    return [{"name": m.group(1).strip(), "role": m.group(2).strip(), "since_raw": "inception"}
+            for m in re.finditer(r"^([A-Za-z ]+) – ([^\r\n]+)", block.group(1), re.M)]
+
+
+def _unifi_heading(page: str) -> str:
+    match = re.search(r"Name of the Fund (Unifi [^\r\n]+)", page)
+    return match.group(1).strip() if match else ""
+
+
+def quantum_managers(page: str) -> list[dict] | None:
+    block = re.search(r"Fund Managers? Experience Managing Fund Since(.*)", page, re.S)
+    if not block:
+        return None
+    return [{"name": _clean_name(m.group(1)), "role": m.group(2) or m.group(3), "since_raw": m.group(4)}
+            for m in re.finditer(rf"((?:Mrs|Mr|Ms)\. [A-Za-z]+ [A-Za-z]+)\s*(?:\(([^)]+)\)\s*| - (Fund Manager)\s*)?\d+ years ({_DATE})", " ".join(block.group(1).split()))]
+
+
+def _quantum_heading(page: str) -> str:
+    found = re.search(r"(Quantum [^\r\n]+)\s*An [Oo]pen", page)
+    return found.group(1).strip() if found else ""
+
+
+def quant_managers(page: str) -> list[dict] | None:
+    block = re.search(r"Fund Manager Details(.*?)Minimum Investment", page, re.S)
+    if not block:
+        return None
+    return [{"name": m.group(1).strip(), "role": None, "since_raw": m.group(2)}
+            for m in re.finditer(rf"Name of Fund Manager: ([A-Za-z ]+?) Total Experience: \d+ (?:Years|Months) Managing Since: (\d{{1,2}} {_MONTH} \d{{4}})", " ".join(block.group(1).split()))]
+
+
+def ppfas_managers(page: str) -> list[dict] | None:
+    block = re.search(r"Name of the Fund Managers:(.*?)Minimum Investment", page, re.S)
+    if not block:
+        return None
+    return [{"name": _clean_name(m.group(1)), "role": m.group(2).strip(), "since_raw": m.group(3)}
+            for m in re.finditer(rf"((?:Mr|Ms)\. [A-Za-z]+ [A-Za-z]+)\s*(?::| -)\s*(.*?) Total Experience: \d+ Years Managing Since: (Since Inception|{_DATE})", " ".join(block.group(1).split()))]
+
+
+def nj_managers(page: str) -> list[dict] | None:
+    names = re.search(r"Name of the Fund Manager:(.*?)Work Experience:", page, re.S)
+    since = re.search(r"Managing the Scheme Since:(.*?)Total Expense Ratio", page, re.S)
+    if not names:
+        return None
+    printed = re.findall(r"Mr\.\s*([A-Za-z]+\s+[A-Za-z]+)", " ".join(names.group(1).split()))
+    dates = {}
+    if since:
+        note = " ".join(since.group(1).split())
+        for clause in re.finditer(rf"((?:Mr\.\s*[A-Za-z]+\s+[A-Za-z]+(?:\s+and\s+)?)+)\s+(?:is\s+)?managing\s+(?:the\s+)?scheme\s+(?:since|from)\s+(inception|{_DATE})", note):
+            for name in re.findall(r"Mr\.\s*([A-Za-z]+\s+[A-Za-z]+)", clause.group(1)):
+                dates[name] = clause.group(2)
+    return [{"name": name, "role": None, "since_raw": dates.get(name)} for name in printed]
+
+
+def lic_summary(page: str, words: list[Word]) -> list[SchemePage]:
+    """LIC's printed summary: associate cells by position, never PDF text order.
+
+    Individual scheme titles are artwork in this file; only the text-labelled
+    summary with its verified three manager/since column pairs is supported.
+    """
+    if "Fund Manager Details" not in page or "Fund Manager 3" not in page or not words:
+        return []
+    def mid(word):
+        return (word[1] + word[3]) / 2
+    def lines(cell):
+        grouped = []
+        for word in sorted(cell, key=lambda w: (-mid(w), w[0])):
+            if not grouped or abs(mid(word) - mid(grouped[-1][0])) > 4:
+                grouped.append([word])
+            else:
+                grouped[-1].append(word)
+        return [(sum(mid(w) for w in row) / len(row), " ".join(w[4] for w in sorted(row, key=lambda w: w[0]))) for row in grouped]
+    anchors = sorted((w for w in words if w[4] == "LIC" and w[0] < 40), key=mid, reverse=True)
+    roles = [w for w in words if w[4] in {"Equity", "Debt", "Commodity", "Equity/Arbitrage"} and w[0] >= 160]
+    result = []
+    for index, anchor in enumerate(anchors):
+        y = mid(anchor)
+        upper = (mid(anchors[index - 1]) + y) / 2 if index else y + 8
+        lower = (mid(anchors[index + 1]) + y) / 2 if index + 1 < len(anchors) else y - 11
+        heading = " ".join(w[4] for w in sorted(words, key=lambda w: w[0]) if w[0] < 160 and abs(mid(w) - y) < 4)
+        managers = []
+        for name_left, date_left, date_right in [(160, 240, 295), (295, 355, 410), (410, 480, 540)]:
+            names = lines([w for w in words if name_left <= w[0] < date_left and lower < mid(w) < upper])
+            dates = lines([w for w in words if date_left <= w[0] < date_right and lower < mid(w) < upper])
+            header = sorted((w for w in roles if name_left <= w[0] < date_left and mid(w) > y + 5), key=mid)
+            role = header[0][4] if header else None
+            for name_y, name in names:
+                nearby = [(abs(date_y - name_y), raw) for date_y, raw in dates if abs(date_y - name_y) < 4]
+                if not nearby or not re.fullmatch(r"[A-Za-z]+(?: [A-Za-z]+)+", name):
+                    continue
+                since = min(nearby)[1]
+                if not re.fullmatch(_DATE, since):
+                    continue
+                managers.append({"name": name, "role": role, "since_raw": since})
+        if heading.startswith("LIC MF ") and managers:
+            result.append(SchemePage(heading, managers))
+    return result
+
+
 def _reader(managers: Callable[[str], list[dict] | None], heading: Callable[[str], str]) -> Callable[[str], SchemePage | None]:
     def read(page: str) -> SchemePage | None:
         found = managers(page)
+        if found:
+            current = []
+            for manager in found:
+                name_pattern = r"\s+".join(re.escape(word) for word in manager["name"].split())
+                if re.search(name_pattern + r"\s*\([^)]*\bceased\b", page, re.I):
+                    continue
+                role = manager.get("role")
+                if role and re.search(r"w\.e\.f\.?", role, re.I):
+                    manager = {**manager, "role": None}
+                current.append(manager)
+            found = current
         return _page(heading(page), found, page) if found else None
     return read
 
 
 # One reader per AMC: a manager layout plus where that AMC prints the scheme name.
 # Task 8 adds an entry per onboarded AMC (reusing a layout where the shape matches).
-LAYOUTS: dict[str, Callable[[str], SchemePage | None]] = {
+LAYOUTS: dict[str, Callable[..., SchemePage | list[SchemePage] | None]] = {
+    "sundaram": _reader(sundaram_managers, _sundaram_heading),
+    "zerodha": _reader(zerodha_managers, lambda p: _brand_line_heading(p, "Zerodha ")),
+    "unifi": _reader(unifi_managers, _unifi_heading),
+    "shriram": _reader(bullets_slash, lambda p: _brand_line_heading(p, "Shriram ")),
+    "quantum": _reader(quantum_managers, _quantum_heading),
+    "quant": _reader(quant_managers, lambda p: _brand_line_heading(p, "quant ")),
+    "ppfas": _reader(ppfas_managers, lambda p: _brand_line_heading(p, "Parag Parikh ")),
+    "nj": _reader(nj_managers, lambda p: _brand_line_heading(p, "NJ ")),
+    "lic": lic_summary,
     "hsbc": _reader(bullets_slash, _hsbc_heading),
     "helios": _reader(helios_experience, lambda p: _brand_line_heading(p, "Helios ")),
     "groww": _reader(groww_scheme_managers, _groww_heading),
