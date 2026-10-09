@@ -269,3 +269,34 @@ class FundRankingSummary(BaseModel):
 class AggregateFundRankingResponse(BaseModel):
     members: list[MemberStatus]
     ranking: FundRankingSummary
+
+
+class ManagerFundRow(BaseModel):
+    scheme_id: str
+    scheme_name: str
+    household_value: str
+    sequence_order: int
+    role: str | None = None  # this manager's role on this fund, as printed ("Assistant Fund Manager")
+
+
+class ManagerGroup(BaseModel):
+    manager_name: str
+    role: str | None
+    total_household_value: str
+    funds: list[ManagerFundRow]
+
+
+class UnavailableScheme(BaseModel):
+    scheme_id: str
+    scheme_name: str
+    amc_name: str
+
+
+class FundManagerAllocationSummary(BaseModel):
+    manager_groups: list[ManagerGroup]
+    unavailable_schemes: list[UnavailableScheme]
+
+
+class AggregateFundManagerAllocationResponse(BaseModel):
+    members: list[MemberStatus]
+    fund_manager: FundManagerAllocationSummary
