@@ -1,14 +1,67 @@
 # AMC Monthly Portfolio Disclosure — Full 57-AMC Fetchability Spike
 
-**Status:** DONE. 4 batches dispatched 2026-10-09 (A: 14 AMCs, B: 14, C: 14, D: 15) at
+**Status:** DONE, through four independent passes. 4 batches dispatched 2026-10-09 (A: 14 AMCs,
+B: 14, C: 14, D: 15) at
 `Docs/analytics/investigations/2026-10-09-amc-portfolio-disclosure-spike-batch-{A,B,C,D}.md`.
 Batches A, B, and D ran in Codex sandboxes with no DNS resolution to AMC hosts, which inflated
 their `NEEDS_INVESTIGATION` counts (22 cases combined); per the user's instruction to stop
 Codex delegation and do remaining work directly, every one of those cases (plus batch C's 2,
 which already had real network access) was independently re-verified with real `curl` +
-headless-Chromium tracing. Consolidated, corrected findings — final tiers for all 57 AMCs, the
-2 upgrades found during re-verification (Aditya Birla Sun Life, JM Financial), and the
-architectural implications for sub-project 2 — are at
+headless-Chromium tracing — first pass landed at 28/57 `STATIC_REGEX`/`JSON_API` fetchable,
+20 `NEEDS_INVESTIGATION`.
+
+The user then set an explicit gate before any look-through architectural work could begin:
+confirm "110%" that every available source/method had been tried for every AMC still in
+`NEEDS_INVESTIGATION` (or misclassified as `BOT_BLOCKED`/`NO_CONTENT_FOUND`) before moving on.
+A second, harder pass pushed past each AMC's first "found nothing" result with one more
+interaction step (opening an accordion, driving a cascading select, clicking a download button,
+force-clicking a JS-only nav item, or WebSearching for the AMC's real/moved domain when the
+first attempt had silently hit a dead or parked one) — this resolved 14 of the 20
+`NEEDS_INVESTIGATION` cases, corrected one `NO_CONTENT_FOUND` (Angel One) and one `BOT_BLOCKED`
+(PGIM India, a batch-C sandbox-network artifact) to fetchable tiers, and reclassified one
+(Kotak Mahindra) from `NEEDS_INVESTIGATION` to a confirmed-real `BOT_BLOCKED` (Radware).
+Final: **43/57 (75%) fetchable** (`STATIC_REGEX` 29 + `JSON_API` 14), 3 `BOT_BLOCKED`, 5
+`NO_CONTENT_FOUND`, 6 `NEEDS_INVESTIGATION` remaining (Union Asset Management, Canara Robeco,
+WhiteOak Capital, Mahindra Manulife, AlphaGrep, Monarch/Networth) — each now with a specific,
+confirmed blocker mechanism documented (encrypted API, unstable Angular DOM, dead/parked
+domain, fortnightly-only disclosure cadence) rather than a vague "nothing found." Full detail,
+including the per-AMC mechanism table for every upgrade: consolidated doc.
+
+A third pass (same day) closed out the remaining 9 (3 `BOT_BLOCKED` + 6 `NEEDS_INVESTIGATION`)
+with an operational decision each, rather than more scraping attempts: **9 need manual monthly
+fetch** (Edelweiss, HDFC, Kotak Mahindra — confirmed-genuine WAF blocks with no alternate
+automatable source after checking alternate subdomains/mirrors/Wayback; Canara Robeco, Mahindra
+Manulife, AlphaGrep — encrypted API, not worth per-AMC reverse-engineering for 3 of 57 AMCs;
+Union Asset Management — unrecoverable XHR), **1 just needs its adapter built** (WhiteOak
+Capital — a genuine new working domain, `mf.whiteoakamc.com`, found this pass, HTTP 200
+confirmed, not yet content-verified), **1 ingests at its real ceiling** (Monarch/Networth —
+confirmed fortnightly-only, no monthly file exists anywhere), and **5 are an expected empty
+state, not a gap** (`NO_CONTENT_FOUND` — AMC genuinely has nothing to disclose yet; ASK Mutual
+Fund flagged for a routine re-check after 2026-10-10, its first due date). Net: 44/57 fetchable
+once WhiteOak's adapter is built, 13 with an explicit justified non-automated plan — this is
+the basis for the "110%" confirmation.
+
+**A fourth, maximal-effort pass (same day, after more token budget became available) found
+genuine new alternate sources for most of what the third pass had accepted as manual-fetch**,
+using two techniques not fully exploited before: Internet Archive/Wayback Machine as a Locate-
+step workaround for WAF-blocked sites (its crawler reaches some pages direct requests can't; the
+cached HTML reveals filenames that then download live from a separate, unblocked static-asset/
+CDN subdomain), and broader non-keyword-filtered domain searches. Result: **HDFC, AlphaGrep,
+Union Asset Management, and Canara Robeco all reclassified from manual-fetch to fully
+automatable** (`STATIC_REGEX`) — each via a separate unprotected static-asset path distinct from
+the AMC's main bot-protected domain. **Kotak Mahindra** upgraded from confirmed-blocked to
+likely-solvable-within-days (same CDN pattern, confirmed live for its Fortnightly file; Monthly
+believed identical but not yet published as of 2026-10-09, ~10-day lag — re-check after
+~2026-10-12). **Edelweiss and Mahindra Manulife reconfirmed as genuine dead ends** — Edelweiss is
+an SPA shell with no capturable API even via Wayback; Mahindra Manulife's encrypted API was
+directly fetched and confirmed opaque this pass (not just inferred), with real static files that
+exist but are undiscoverable without decrypting it — a line this investigation has not crossed.
+**WhiteOak and Monarch reconfirmed unchanged.** Net: **47/57 AMCs fetchable today** (up from 43),
+only **2/57 (Edelweiss, Mahindra Manulife) confirmed to need a standing manual-fetch process**
+(down from 9 after the third pass), with Kotak likely to drop that count to 1 within days.
+
+Consolidated, corrected findings — final tiers for all 57 AMCs, every upgrade found across all
+four passes, and the architectural implications for sub-project 2 — are at
 `Docs/analytics/investigations/2026-10-09-amc-portfolio-disclosure-spike-consolidated.md`.
 
 **Parent plan:** None yet — this spike is the prerequisite for sub-project 2
