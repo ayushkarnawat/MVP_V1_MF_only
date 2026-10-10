@@ -8,8 +8,7 @@ from api.import_helpers import _authed_headers_and_member, PAN_DISCLAIMER_VERSIO
 from pathlib import Path
 _HERE = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_HERE))
-from pdf_dir import pdf_dir  # noqa: E402  PDFs live outside the repo
-SYN = str(pdf_dir()) + "/"
+from pdf_dir import pdf_path  # noqa: E402  PDFs: Docs/CAS Files/synthetic/pdfs/
 FN = os.environ["FN"]; OUT = os.environ["OUT"]
 TRUTH = json.load(open(_HERE / "truth.json"))
 
@@ -34,7 +33,7 @@ def test_perf(client):
                      "db_queries": q["n"], "status": r.status_code, "rss_peak_mb": round(rss_mb())}
         return r
 
-    p = step("parse", lambda: client.post("/imports/parse", files={"file": (FN, open(SYN + FN, "rb").read(), "application/pdf")},
+    p = step("parse", lambda: client.post("/imports/parse", files={"file": (FN, open(pdf_path(FN), "rb").read(), "application/pdf")},
              data={"password": "MF@123", "household_member_id": mid, "pan_disclaimer_version": PAN_DISCLAIMER_VERSION}, headers=headers)).json()
     confs = [{"temp_id": s["temp_id"], "amfi_code": s["suggested_amfi_code"]} for s in p["schemes"]
              if s["match_status"] != "confirmed" and s["suggested_amfi_code"]]

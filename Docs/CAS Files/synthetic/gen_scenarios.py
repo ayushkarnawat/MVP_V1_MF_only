@@ -29,9 +29,9 @@ from cas_builder import AmcBlock, CASBuilder, Folio, Scheme, Txn, encrypt_pdf
 from layouts import KfinBuilder, OldCamsBuilder
 
 HERE = Path(__file__).resolve().parent
-# PDFs go outside the repo (pdf_dir.py); truth.json stays here.
+# PDFs go to pdfs/regression/ (pdf_dir.py); truth.json stays here.
 from pdf_dir import pdf_dir  # noqa: E402
-PDF_DIR = pdf_dir()
+PDF_DIR = pdf_dir() / "regression"
 PASSWORD = "MF@123"
 END = date(2026, 10, 1)  # NAV date of the real latest NAVs below
 STATEMENT_TO = date(2026, 10, 5)

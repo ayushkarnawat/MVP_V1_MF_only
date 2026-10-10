@@ -72,7 +72,8 @@ tfplan-*
 
 # Real CAS statements (personal data: names, PANs, holdings). Never commit them.
 /Docs/CAS Files/*.pdf
-# Generated synthetic CAS PDFs live outside the repo (2026-10-07):
-# Desktop/Unifolio/CAS Files/synthetic (see Docs/CAS Files/synthetic/pdf_dir.py).
-# The generator scripts, harness and truth.json stay tracked; no PDF here, ever.
+# Synthetic CAS PDFs (fictitious people) ARE tracked, but only under
+# Docs/CAS Files/synthetic/pdfs/ (2026-10-10, so anyone can test). Any other PDF
+# under synthetic/ stays out.
 /Docs/CAS Files/synthetic/**/*.pdf
+!/Docs/CAS Files/synthetic/pdfs/**/*.pdf

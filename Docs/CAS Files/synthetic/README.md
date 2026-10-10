@@ -2,12 +2,39 @@
 
 Built 2026-10-05 for the CAS value-discrepancy deep dive. Password for every PDF: `MF@123`.
 
-**Where the PDFs are (2026-10-07):** outside the repo, in `Desktop/Unifolio/CAS Files/synthetic/`
-(WSL: `/mnt/c/Users/Dell/Desktop/Unifolio/CAS Files/synthetic`), so they are never committed.
-This folder keeps only the scripts, the harness and `truth.json`. `pdf_dir.py` resolves the folder for
-the generators, the harness and the backend tests; set `UNIFOLIO_SYNTHETIC_CAS=<folder>` to use another
-one. The generators write there, and the error PDFs go to its `errors/` subfolder. Older copies from
-2026-10-05 are kept there in `_old-2026-10-05/`.
+**Where the PDFs are (2026-10-10):** in the repo, under `pdfs/`, so anyone can test (every person,
+PAN and amount is fictitious; real statements stay out via `.gitignore`):
+
+| Folder | What | Use it for |
+|---|---|---|
+| `pdfs/realistic/` | Real-life investors (table below) | **Manual QA on staging** and testing new features |
+| `pdfs/regression/` | The import edge-case personas (p20/p10/p7/p3/px/pk, KFintech, old CAMS, family variants) | The synthetic gate (`harness/tools/gate_scenarios.txt`); **not** for manual QA, their sizes and histories are extreme on purpose |
+| `pdfs/errors/` | Broken files | The parser's error messages |
+
+`pdf_dir.py` gives the root (`UNIFOLIO_SYNTHETIC_CAS=<folder>` overrides it) and `pdf_path(name)` finds a file
+in any of the folders. The old Desktop copy (`Desktop/Unifolio/CAS Files/synthetic/`) is no longer used.
+
+## Real-life scenarios (`pdfs/realistic/`, added 2026-10-10)
+
+Amounts are the round numbers a real investor types (never scaled), funds are real Direct Growth plans
+from the saved AMFI feed, and every fund is identified by the scheme master. Generators: `gen_big_family.py`,
+`gen_realistic.py` (both only add files and `truth.json` entries).
+
+| File | Who | What it exercises | Invested / value |
+|---|---|---|---|
+| `r1_first_jobber_riya_3yr.pdf` | Riya Sharma, 24, first job (Aug 2023) | 3 SIPs incl. ELSS, 10% step-up every April, one bounced SIP, a Diwali-bonus lumpsum, an emergency fund in a liquid fund drawn once | ₹6.1 L / ₹7.6 L |
+| `r2_couple_rohan_priya_10yr.pdf` | Rohan + Priya Kulkarni, salaried couple (one family statement) | SIPs since 2017, every SIP paused Apr–Jun 2020 (COVID), January ELSS lumpsums, 40% of equity + the bond fund redeemed in Mar 2023 for a house down payment | ₹45.6 L / ₹84 L |
+| `r3_family_minor_suresh_13yr.pdf` | Suresh + Lakshmi Iyer and son Aarav (minor folio, guardian Suresh) | Child-education SIP since 2016 plus a gift, ELSS every February, a bond fund half-redeemed for school fees, the spouse's index + flexi SIPs. **The minor's folio imports under Suresh** (no separate minor member today) | ₹40.7 L / ₹95 L |
+| `big_family_ayush_anand_7yr.pdf` | Ayush + Anand Karnawat (one family statement) | 46 holdings across many AMCs, thousands of SIP rows, step-up SIP in a second folio, one fund in two folios, bounced SIPs, partial redemptions | ₹2 Cr / ₹2.95 Cr |
+
+Verified 2026-10-10 through the full harness (import → dashboard vs `truth.json` → Analytics with A04/A09/A14 checks):
+r1, r2 and big_family pass every check (Analytics 13–58 s). r3 passes everything except one known rounding:
+HDFC Flexi Cap shows ₹3.88 less invested than the statement over 74 pre-July-2020 instalments, because a
+purchase without stamp duty is costed units × NAV (units rounded to 3 decimals, NAV ~₹2,150), not the amount paid
+(the 7 Oct cost rule). Not a file problem.
+
+## Regression personas (`pdfs/regression/`)
+
 Investors, PANs, folios and amounts are fictitious; fund names, ISINs, RTA codes and
 current NAVs are real (one merged-away fund uses a made-up ISIN on purpose).
 
@@ -25,7 +52,7 @@ same history, so **all files of one persona have the same true closing units and
 Windows: `20yr` (from 1 Jan 2006), `10yr` (1 Jan 2016), `7yr` (1 Jan 2019), `3yr`
 (1 Oct 2023), `1yr` (1 Oct 2025), `FY` (1 Apr 2026). Statement date 5 Oct 2026.
 
-Regenerate: `pip install reportlab pikepdf` then `python gen_scenarios.py` (run from this folder; the PDFs are written to the folder above).
+Regenerate: `pip install reportlab pikepdf` then `python gen_scenarios.py` (run from this folder; writes `pdfs/regression/` and rewrites `truth.json`, so run `gen_gate_scenarios.py`, `gen_big_family.py` and `gen_realistic.py` after it).
 `cas_builder.py` is the CAMS-layout PDF builder recovered from the 2026-09-30 session.
 casparser 1.3.0 parses every file with zero warnings and exact opening + transactions =
 closing for every fund.

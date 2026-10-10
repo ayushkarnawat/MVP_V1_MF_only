@@ -10,8 +10,8 @@ import gen_scenarios as g
 
 # Reads and writes the PDFs outside the repo (pdf_dir.py).
 from pdf_dir import pdf_dir  # noqa: E402
-HERE = pdf_dir()
-OUT = HERE / "errors"
+HERE = pdf_dir() / "regression"  # the source files
+OUT = pdf_dir() / "errors"
 OUT.mkdir(parents=True, exist_ok=True)
 PW = "MF@123"
 

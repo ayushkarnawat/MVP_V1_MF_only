@@ -7,14 +7,13 @@ import pytest
 from api.import_helpers import _authed_headers_and_member, PAN_DISCLAIMER_VERSION, _test_db
 _HERE=Path(__file__).resolve().parent.parent
 sys.path.insert(0,str(_HERE))
-from pdf_dir import pdf_dir  # noqa: E402  PDFs live outside the repo
-SYN=str(pdf_dir())+"/"
+from pdf_dir import pdf_path  # noqa: E402  PDFs: Docs/CAS Files/synthetic/pdfs/
 TRUTH=json.load(open(_HERE/"truth.json"))
 SEQ=os.environ.get("SEQ","p3_FY.pdf").split(",")
 OUT=os.environ.get("OUT","/dev/null")
 
 def upload(client, headers, mid, fn, log):
-    r=client.post("/imports/parse", files={"file":(fn,open(SYN+fn,'rb').read(),"application/pdf")},
+    r=client.post("/imports/parse", files={"file":(fn,open(pdf_path(fn),'rb').read(),"application/pdf")},
         data={"password":"MF@123","household_member_id":mid,"pan_disclaimer_version":PAN_DISCLAIMER_VERSION}, headers=headers)
     if r.status_code!=200: log.append(f"PARSE {fn} -> {r.status_code} {r.text[:300]}"); return
     p=r.json()

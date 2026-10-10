@@ -382,18 +382,14 @@ def test_unrelated_text_error_is_not_scanned():
 
 
 def _synthetic_pdf_dir():
-    """Generated synthetic CAS PDFs live outside the repo (2026-10-07; see
-    Docs/CAS Files/synthetic/pdf_dir.py). Override with UNIFOLIO_SYNTHETIC_CAS."""
+    """Synthetic CAS PDFs are in the repo (2026-10-10): Docs/CAS Files/synthetic/pdfs/
+    (realistic/, regression/, errors/; see pdf_dir.py there). Override with UNIFOLIO_SYNTHETIC_CAS."""
     import os
     from pathlib import Path
     env = os.environ.get("UNIFOLIO_SYNTHETIC_CAS")
     if env:
         return Path(env)
-    for candidate in ("/mnt/c/Users/Dell/Desktop/Unifolio/CAS Files/synthetic",
-                      "C:/Users/Dell/Desktop/Unifolio/CAS Files/synthetic"):
-        if Path(candidate).is_dir():
-            return Path(candidate)
-    return Path(candidate)
+    return Path(__file__).resolve().parents[4] / "Docs" / "CAS Files" / "synthetic" / "pdfs"
 
 
 def test_parse_error_on_error_pdfs():
@@ -435,7 +431,7 @@ def test_bare_pdfium_cas_error_is_damaged_pdf():
 
 def test_synthetic_parse_releases_temp_pdf():
     from app.services.import_.parser import parse_cas_pdf_bytes
-    pdf = _synthetic_pdf_dir() / "p3_FY.pdf"
+    pdf = _synthetic_pdf_dir() / "regression" / "p3_FY.pdf"
     if not pdf.exists():
         pytest.skip("synthetic CAS PDFs not on disk (UNIFOLIO_SYNTHETIC_CAS)")
     result = parse_cas_pdf_bytes(pdf.read_bytes(), "MF@123")

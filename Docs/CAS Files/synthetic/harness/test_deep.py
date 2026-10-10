@@ -13,8 +13,7 @@ from api.import_helpers import _authed_headers_and_member, PAN_DISCLAIMER_VERSIO
 from pathlib import Path
 _HERE = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_HERE))
-from pdf_dir import pdf_dir  # noqa: E402  PDFs live outside the repo
-SYN = str(pdf_dir()) + "/"
+from pdf_dir import pdf_path  # noqa: E402  PDFs: Docs/CAS Files/synthetic/pdfs/
 TRUTH = json.loads((_HERE / "truth.json").read_text(encoding="utf-8"))
 SEQ = os.environ["SEQ"].split(",")
 OUT = os.environ["OUT"]
@@ -40,7 +39,7 @@ def xirr(flows):
 
 def cas_truth(fn):
     """Truth from the CAS rows themselves (valid when every opening balance is 0)."""
-    r = casparser.read_cas_pdf(SYN + fn, "MF@123")
+    r = casparser.read_cas_pdf(str(pdf_path(fn)), "MF@123")
     funds = {}
     stamp_unattached = 0
     for fo in r.folios:
@@ -137,6 +136,61 @@ def a09_checks(body):
     return {"mismatches": mm, "funds": len(rows), "ranked": ranked}
 
 
+def a04_checks(body, per_member, sch, fm_by_scheme):
+    """Attribute 04 (Fund managers, added 10 Oct): recomputed from the harness's own holdings and
+    the manager rows it loaded (FM_FILE). Each held fund sits under exactly its managers, with
+    the printed role, or in "not available"; a fund's value is every member's holding summed;
+    a card's total is its funds summed; cards run largest first. Returns mismatches (empty = pass)."""
+    mm = []
+    payload = ((body.get("sections") or {}).get("fund_manager") or {}).get("payload") or {}
+    fm = payload.get("fund_manager")
+    if fm is None:
+        return {"mismatches": ["fund_manager section missing or empty"]}
+    value = defaultdict(lambda: D(0))
+    for pm in per_member.values():
+        for r in pm["holdings"].get("holdings", []):
+            value[r["scheme_id"]] += D(r["current_value"] or 0)
+    expected = {sid: fm_by_scheme.get(sid, []) for sid in value}
+    seen = defaultdict(list)
+    totals = []
+    for g in fm["manager_groups"]:
+        total = D(0)
+        ids = [f["scheme_id"] for f in g["funds"]]
+        if len(ids) != len(set(ids)):
+            mm.append(f"{g['manager_name']}: a fund listed twice")
+        for f in g["funds"]:
+            sid = f["scheme_id"][:8]
+            total += D(f["household_value"])
+            if D(f["household_value"]) != value.get(f["scheme_id"]):
+                mm.append(f"{g['manager_name']}/{sid}: value {f['household_value']} != holdings {value.get(f['scheme_id'])}")
+            want = {m["manager_name"]: m["role"] for m in expected.get(f["scheme_id"], [])}
+            if g["manager_name"] not in want:
+                mm.append(f"{sid}: {g['manager_name']} isn't a loaded manager of this fund")
+            elif want[g["manager_name"]] != f["role"]:
+                mm.append(f"{sid}: {g['manager_name']} role {f['role']!r} != {want[g['manager_name']]!r}")
+            seen[f["scheme_id"]].append(g["manager_name"])
+        if total != D(g["total_household_value"]):
+            mm.append(f"{g['manager_name']}: total {g['total_household_value']} != funds {total}")
+        roles = {f["role"] for f in g["funds"]}
+        if g["role"] != (next(iter(roles)) if len(roles) == 1 else None):
+            mm.append(f"{g['manager_name']}: card role {g['role']!r} with fund roles {roles}")
+        totals.append(D(g["total_household_value"]))
+    if totals != sorted(totals, reverse=True):
+        mm.append("cards not largest first")
+    unavailable = {u["scheme_id"] for u in fm["unavailable_schemes"]}
+    for sid, managers in expected.items():
+        names = sorted(m["manager_name"] for m in managers)
+        if managers and sorted(seen.get(sid, [])) != names:
+            mm.append(f"{sid[:8]}: shown under {sorted(seen.get(sid, []))}, loaded {names}")
+        if not managers and sid not in unavailable:
+            mm.append(f"{sid[:8]}: no managers loaded but not listed as unavailable")
+        if managers and sid in unavailable:
+            mm.append(f"{sid[:8]}: has managers but listed as unavailable")
+    covered = sum(1 for m in expected.values() if m)
+    return {"mismatches": mm, "held_funds": len(expected), "with_managers": covered,
+            "unavailable_amcs": sorted({sch[s].amc_name for s in unavailable if s in sch})}
+
+
 def a14_checks(body, raw, per_member):
     """Attribute 14 (Investment & Withdrawal, added 9 Oct): the section's numbers
     against themselves, the dashboard, and the CAS rows. Returns the list of
@@ -222,7 +276,7 @@ def a14_checks(body, raw, per_member):
 
 def upload(client, headers, mid, fn, log, timing):
     t0 = time.time()
-    r = client.post("/imports/parse", files={"file": (fn, open(SYN + fn, "rb").read(), "application/pdf")},
+    r = client.post("/imports/parse", files={"file": (fn, open(pdf_path(fn), "rb").read(), "application/pdf")},
                     data={"password": "MF@123", "household_member_id": mid, "pan_disclaimer_version": PAN_DISCLAIMER_VERSION},
                     headers=headers)
     timing.append((fn, "parse", round(time.time() - t0, 1)))
@@ -280,6 +334,24 @@ def test_deep(client, monkeypatch):
         from app.services.analytics.scheme_master import refresh_scheme_master
         text = Path(os.environ["MASTER_FILE"]).read_text(encoding="utf-8")
         asyncio.run(refresh_scheme_master(_test_db(), text))
+    fm_by_scheme = defaultdict(list)
+    if os.environ.get("FM_FILE"):
+        # Attribute 04 (10 Oct): the manager rows a real monthly job + hand import wrote locally,
+        # keyed by AMFI code, filed under this month so the 3-month window shows them.
+        from datetime import date as _date
+        from app.models.reference import Scheme as _Scheme, SchemeFundManager as _SFM
+        _db = _test_db()
+        by_code = {s.amfi_code: s for s in _db.query(_Scheme).filter(_Scheme.amfi_code.isnot(None))}
+        period = _date.today().replace(day=1)
+        for r in json.load(open(os.environ["FM_FILE"], encoding="utf-8")):
+            s = by_code.get(r["amfi_code"])
+            if s is None:
+                continue
+            _db.add(_SFM(id=uuid.uuid4(), scheme_id=s.id, manager_name=r["manager_name"], role=r["role"],
+                         sequence_order=r["sequence_order"], managing_since_raw=r["since_raw"], managing_since=None,
+                         reference_period=period, match_method=r["match_method"], match_confidence=None))
+            fm_by_scheme[str(s.id)].append(r)
+        _db.commit()
     last = SEQ[-1]
     tr = TRUTH[last]
     headers, mid = _authed_headers_and_member(client, "+919811122299", name=tr["investor"])
@@ -510,6 +582,8 @@ def test_deep(client, monkeypatch):
     if isinstance(out.get("analytics"), dict) and out["analytics"].get("status") == 200:
         out["a14"] = a14_checks(out["analytics"]["body"], raw, per_member)
         out["a09"] = a09_checks(out["analytics"]["body"])
+        if os.environ.get("FM_FILE"):
+            out["a04"] = a04_checks(out["analytics"]["body"], per_member, sch, fm_by_scheme)
     json.dump(out, open(OUT, "w", encoding="utf-8", newline="\n"), indent=1, default=str)
     # Asserted after the dump, so a failing scenario still leaves its output.
     if os.environ.get("MASTER_FILE"):
@@ -536,5 +610,7 @@ def test_deep(client, monkeypatch):
             assert not failed, failed
             assert not out["a14"]["mismatches"], out["a14"]["mismatches"]  # attribute 14 (9 Oct)
             assert not out["a09"]["mismatches"], out["a09"]["mismatches"]  # attribute 09 (9 Oct)
+            if os.environ.get("FM_FILE"):
+                assert not out["a04"]["mismatches"], out["a04"]["mismatches"]  # attribute 04 (10 Oct)
             assert out.get("ter_fetches_during_analytics") == 0, out.get("ter_fetches_during_analytics")
             assert "analytics_seconds" in out and out["analytics_seconds"] <= limit, out.get("analytics_seconds")
