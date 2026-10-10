@@ -126,4 +126,5 @@ Run date/time: <…>    Environment: Windows    Python: <version>    Baseline HE
 
 | Round | Run | Result | Notes |
 |---|---|---|---|
-| — | Run 1 | issued 2026-10-10 | Tasks 1, 2, 3, 4, 5, 5b, 6, 7, 8 — runs in parallel with A04 Runs 8–9 in the same working tree. |
+| 1 | Run 1 | fix round 2026-10-10 | Codex: Tasks 1–8 built; final run sandbox-blocked. Orchestrator WSL: 120 passed, 1 deliberate failure (unseeded hypothetical); Postgres 0035→0037→0035→0037 clean, seed 34 scenarios / 45 assumptions. Codex's 4 questions ruled (plan Run 1 rulings 1–4; 2 and 3 by the user). Review (Opus): CHANGES NEEDED → rulings 5–10 (serve-time proxy for new schemes; canonical categories, one series per fund; classifier fixes; Numeric(10,2); ongoing end bound; backfill filters, no_data_funds, non-blocking list, real-row date test). Fix round issued to Codex. |
+| — | Run 1 fix | issued 2026-10-10 | Plan Run 1 rulings 1–10. |
