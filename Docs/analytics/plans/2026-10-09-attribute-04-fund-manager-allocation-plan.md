@@ -91,8 +91,91 @@ fuzzy scoring (no new dependency), React/TypeScript frontend, Terraform EventBri
 >    parses to fewer than 40 AMCs raises one `directory_failed` alert; a name listed twice on a page is
 >    written once (first listing wins); future "as on" dates are ignored.
 >
+> **Run 3 rulings (10 Oct, onboarding batch 1 — orchestrator re-ran every enabled AMC live and reproduced the coverage):**
+> 1. **Link dates** come from the file name and link text first (upload folders like `/2026/01/` and document
+>    ids carry unrelated years), falling back to the whole URL; a file linked twice counts once. This replaces
+>    the HSBC-only special case.
+> 2. **Bajaj Finserv** stays `layout=None`: every source served June/July files on 9–10 Oct. Re-check in
+>    Run 7; if the AMC still publishes nothing current, its schemes stay "not available yet" with the proof in
+>    `note` (MANUAL wouldn't help — there's no current file to import).
+> 3. **LIC** needs two interface widenings, built in Run 4 with LIC as its first AMC:
+>    (a) a reader may return `list[SchemePage]` for a page that covers several schemes (`import_pages`
+>    iterates); (b) a registry entry may set `needs_boxes=True`, and then the reader also receives the page's
+>    words with their boxes (`extract_page_words(pdf) -> list[list[Word]]`, `Word = (x0, y0, x1, y1, text)` from
+>    pypdfium2), so names are paired with a scheme by position, never by text order. Scheme titles drawn as
+>    artwork (not in the text layer) are taken from the nearest text title on the page, or the page is skipped
+>    and its schemes stay unmatched — never guessed.
+> 4. **HSBC Ultra Short to Short Term**: its manager text is fragmented in the PDF; left unmatched (44/45).
+> 5. **Departed managers** (review): a factsheet can print a manager with "(Ceased to be FM <date>)" (Groww,
+>    Sep 2026). Every reader must drop such a manager, never write them as current; each onboarding greps its
+>    AMC's real text for "ceased"/"w.e.f." and tests what it finds.
+>
+> **Run 4 rulings (10 Oct, onboarding batch 2 + LIC):**
+> 1. **Several files a month (Mirae Asset):** a registry entry may list `documents`, one link pattern per file
+>    (e.g. active and passive factsheets). The resolver picks the newest current candidate for each pattern;
+>    every file must pass the content and month checks; `import_pages` runs over all of them in one AMC
+>    transaction, so a missing or stale file fails the AMC (alert) rather than importing half its funds. Same
+>    shape as HDFC's two manual files. Built in Run 5 with Mirae as its first AMC.
+> 2. **Month date in an unusual form (quant):** a registry entry may set `as_on_pattern`, a regex for that
+>    AMC's month-end date (e.g. quant's "AUM (31 August 2026)"), used by `looks_like_current_factsheet`
+>    instead of the shared "as on" scan. The shared scan isn't widened, so other AMCs can't be fooled.
+>    Built in Run 5.
+> 3. **Samco** (latest published file June 2026) is handled like Bajaj: re-check in Run 7.
+> 4. **Managing-since dates** printed day-first or with ordinals ("03 February 2025", "23rd March 2026") are
+>    parsed (orchestrator fix); only "Inception" stays `NULL` with the raw text kept.
+>
+> **Run 5 rulings (10 Oct):**
+> 1. **Month-end date scan reads every page**, not the first 12 (Mirae, Choice and UTI print their current
+>    "as on" date after page 12; Mirae has a 2020 date early on). Safe: the latest date wins, future dates are
+>    already ignored, and a stale file contains no date later than its own month. `as_on_pattern` stays for
+>    AMCs whose date wording the shared pattern can't read.
+> 2. **Exact-name ties between variants of one fund** (Mirae "Liquid ETF" Growth/IDCW; UTI "Credit Risk Fund"
+>    and its "(Segregated - 06032020)" portfolio): when every tied family has the same canonical name *and* the
+>    same SEBI category, write the managers to all of them — they're one fund's options or its segregated
+>    portfolio, run by the same managers. Ties across categories, or fuzzy ties, are still refused.
+> 3. **Bot-protected sources → MANUAL** (user decision 10 Oct, option A): Axis, ICICI Prudential, ITI, Trust and
+   WhiteOak block scripted downloads, so each is `source=MANUAL` with that reason in `note`, imported monthly with
+   `import_manual_fund_managers.py` like HDFC/Kotak. Each still gets a per-AMC reader, built in Run 6 from the
+   user's downloaded files (ICICI Sep 2026 — one 180-page file, active and passive together; Axis Aug 2026,
+   171 pages, incl. ETFs/index funds; WhiteOak Aug; ITI Aug; Trust Sep). Text dumps:
+   `2026-10-catalogue/manual_{icici,axis,whiteoak,iti,trust}_*2026.txt`.
+4. **Batch split:** Run 6 = rulings 1–2 (Mirae, Choice, UTI on) + the five manual readers; Run 7 = the
+   browser-page batch (360 ONE, Angel One, ASK, Bandhan, Bank of India, Baroda BNP, Franklin, Invesco, JM
+   Financial, Jio BlackRock); Run 8 = the rest (Mahindra Manulife, Motilal Oswal, Navi, Old Bridge, SBI, Tata,
+   Taurus, The Wealth Company, Union, AlphaGrep, IL&FS, Lakshya, Monarch) + the Bajaj/Samco re-check.
+>
+> **Run 6 rulings (10 Oct):**
+> 1. **Same-fund ties compare canonical categories** (`scheme_universe.canonical_category`, as in A09): NAVAll files
+>    UTI's segregated portfolios under the post-2018 SEBI name and the main fund under the old one.
+> 2. **ICICI legacy option families** ("… - Dividend Option", "- Cash Option", "- Div. Option"; 6 of 158) stay
+>    unmatched — fixing them needs a shared name-normalisation change for every AMC; not worth the risk at 96%.
+> 3. **Box-table columns** place words by their centre, not their left edge.
+>
+> **Run 7 rulings (10 Oct):**
+> 1. **Below 90% with a reason per miss is enabled** (Bank of India 22/25): the missing funds have no manager page in
+>    the AMC's own file, so no source would cover them.
+> 2. **No access-control workarounds:** a source that needs an API key, login or token it doesn't hand to an anonymous
+>    browser (Bandhan's 401 CMS call) is treated like a bot wall — MANUAL or "not available", by user decision.
+> 3. **Single-fund AMCs (ASK):** a registry entry may set `min_schemes` (default 3) to the AMC's live fund count, so
+>    a one-fund factsheet passes the content check; the month check is unchanged. Built in Run 8.
+> 4. **360 ONE dates** come from its performance footnotes ("Managed by the fund manager since …, co-fund manager
+>    since …"); built in Run 8. NULL until then.
+> 5. **Bandhan, Invesco, JM Financial → MANUAL** (user decision 10 Oct, same as ruling 5.3): readers built from the
+>    user's files (Bandhan Oct 2026 issue, 30 Sep data, one 286-page file incl. ETFs/index funds; Invesco Aug 2026;
+>    JM Financial Sep 2026 issue, 31 Aug data). Text: `2026-10-catalogue/manual_{bandhan_oct,invesco_aug,jm_sep}2026.txt`.
+> 6. **Batch split:** Run 8 = the three MANUAL readers + ASK (`min_schemes`) + 360 ONE footnote dates + SBI, Tata,
+>    Motilal Oswal, Mahindra Manulife; Run 9 = Navi, Old Bridge, Taurus, The Wealth Company, Union, AlphaGrep, IL&FS,
+>    Lakshya, Monarch + the Bajaj/Samco re-check.
+>
+> **Run 8 rulings (10 Oct):**
+> 1. **Mahindra Manulife stays automatic** (user decision): its anonymous download list is encrypted in transit and the
+>    page's own public script decodes it; reproducing that sends no credentials, so ruling 7.2 doesn't apply. If it
+>    breaks, the AMC alerts and moves to MANUAL.
+> 2. **Managing-since parsing** accepts U+FFFE separators, spaced hyphens/commas, month-year and full-month forms;
+>    every enabled AMC was re-checked live (Run 8 AMCs: 0 unparsed). Only "Inception" and AMC typos stay NULL.
+>
 > **Run order:** Task 1 → 3b → 2 → 3 → 4 → 5 → 6 → 21 (Run 1, backend) · Task 7 (Run 2, frontend) ·
-> Task 8 batches (Runs 3–7). **Migration number:** after A09's `0034` this is expected to be `0035` —
+> Task 8 batches (Runs 3–9). **Migration number:** after A09's `0034` this is expected to be `0035` —
 > run the `ls` in Global Constraints anyway.
 
 ## Global Constraints
@@ -2042,6 +2125,8 @@ its live NAVAll funds (`schemes` rows with that `amc_name` and a NAV dated in th
 | 5 | Axis, Choice, ICICI Prudential, ITI, PGIM India, Trust, UTI, WhiteOak Capital | JSON_API endpoints from 8 Oct, unverified |
 | 6 | 360 ONE, Angel One, ASK, Bandhan, Bank of India, Baroda BNP Paribas, Franklin Templeton, Invesco, JM Financial, Jio BlackRock | landing page has no factsheet link in its HTML |
 | 7 | Mahindra Manulife, Motilal Oswal, Navi, Old Bridge (AMFI points at the PDF itself), SBI, Tata, Taurus, The Wealth Company, Union; AlphaGrep, IL&FS (IDF), Lakshya, Monarch (no landing URL, but live funds) | same / find the page by hand |
+
+**Also, per AMC:** search the real text for "ceased" and "w.e.f."; a departed manager is never written as current, and a handover note is never a role (Run 1 ruling 2, Run 3 ruling 5).
 
 **Done means:** every registry entry has a `layout` (or is MANUAL with proof), and the catalogue shows
 each AMC's coverage.
