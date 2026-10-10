@@ -249,15 +249,36 @@ def extract_page_text(pdf_bytes: bytes) -> list[str]:
     """One string per page -- the per-scheme regex/absl extraction runs
     once per page, since each page typically covers one scheme."""
     doc = pdfium.PdfDocument(pdf_bytes)
-    return [page.get_textpage().get_text_range() for page in doc]
+    try:
+        pages = []
+        for index in range(len(doc)):
+            page = doc.get_page(index)
+            text = page.get_textpage()
+            try:
+                pages.append(text.get_text_range())
+            finally:
+                # Close-out, 10 Oct: PDFium's native memory is only freed on close. Left to
+                # the garbage collector, the monthly job peaked at 2.9 GB (staging jobs get 1 GB).
+                text.close()
+                page.close()
+        return pages
+    finally:
+        doc.close()
 
 
 def extract_page_words(pdf_bytes: bytes) -> list[list[Word]]:
     """Whitespace-delimited words with the union of PDFium character boxes."""
     doc = pdfium.PdfDocument(pdf_bytes)
-    pages = []
-    for page in doc:
-        text = page.get_textpage()
+    try:
+        return [_page_words(doc, index) for index in range(len(doc))]
+    finally:
+        doc.close()
+
+
+def _page_words(doc, index: int) -> list[Word]:
+    page = doc.get_page(index)
+    text = page.get_textpage()
+    try:
         words = []
         chars = []
         boxes = []
@@ -267,16 +288,18 @@ def extract_page_words(pdf_bytes: bytes) -> list[list[Word]]:
                               max(b[2] for b in boxes), max(b[3] for b in boxes), "".join(chars)))
                 chars.clear()
                 boxes.clear()
-        for index in range(text.count_chars()):
-            char = text.get_text_range(index, 1)
+        for char_index in range(text.count_chars()):
+            char = text.get_text_range(char_index, 1)
             if not char or char.isspace():
                 flush()
             else:
                 chars.append(char)
-                boxes.append(text.get_charbox(index))
+                boxes.append(text.get_charbox(char_index))
         flush()
-        pages.append(words)
-    return pages
+        return words
+    finally:
+        text.close()  # see extract_page_text
+        page.close()
 
 
 class FactsheetPages(list[str]):

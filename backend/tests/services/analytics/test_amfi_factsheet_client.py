@@ -141,9 +141,14 @@ def test_extract_words_unions_character_boxes_and_separates_whitespace(monkeypat
         def count_chars(self): return 6
         def get_text_range(self, start, count): return "LIC MF"[start:start + count]
         def get_charbox(self, index): return (index, 10, index + 1, 12)
+        def close(self): pass
     class Page:
         def get_textpage(self): return Text()
-    monkeypatch.setattr(fc.pdfium, "PdfDocument", lambda pdf: [Page()])
+        def close(self): pass
+    class Doc(list):  # extraction closes every handle (close-out, 10 Oct)
+        def get_page(self, index): return self[index]
+        def close(self): pass
+    monkeypatch.setattr(fc.pdfium, "PdfDocument", lambda pdf: Doc([Page()]))
     assert fc.extract_page_words(b"%PDF mocked") == [[(0, 10, 3, 12, "LIC"), (4, 10, 6, 12, "MF")]]
 
 
@@ -938,3 +943,41 @@ def test_upsert_replaces_pdf_u_fffe_separators_in_stored_text(db_session):
                                                       "since_raw": "01-Mar￾2025"}], date(2026, 9, 1), MATCH_METHOD_EXACT, Decimal("1.0"))
     row = db_session.query(SchemeFundManager).one()
     assert (row.manager_name, row.role, row.managing_since_raw) == ("Jane-Doe", "Co-Fund Manager - Fixed Income", "01-Mar-2025")
+
+
+@pytest.mark.parametrize("extract", ["extract_page_text", "extract_page_words"])
+def test_pdf_extraction_closes_every_document_page_and_textpage(monkeypatch, extract):
+    """Close-out, 10 Oct: unclosed PDFium handles leaked native memory -- the monthly job peaked at
+    2.9 GB across 40 fund houses (staging jobs get 1 GB). Explicit closes keep it near 80 MB."""
+    import io
+    import pypdfium2 as pdfium
+    from app.services.analytics import amfi_factsheet_client as client
+    new = pdfium.PdfDocument.new()
+    for _ in range(3):
+        new.new_page(200, 200)
+    buffer = io.BytesIO()
+    new.save(buffer)
+    new.close()
+    opened = []
+    real_document = pdfium.PdfDocument
+
+    def tracking_document(data):
+        doc = real_document(data)
+        opened.append(doc)
+        real_get_page = doc.get_page
+        def get_page(index):
+            page = real_get_page(index)
+            opened.append(page)
+            real_textpage = page.get_textpage
+            def get_textpage():
+                textpage = real_textpage()
+                opened.append(textpage)
+                return textpage
+            page.get_textpage = get_textpage
+            return page
+        doc.get_page = get_page
+        return doc
+
+    monkeypatch.setattr(client.pdfium, "PdfDocument", tracking_document)
+    assert len(getattr(client, extract)(buffer.getvalue())) == 3
+    assert opened and all(getattr(obj, "raw", None) is None for obj in opened)
