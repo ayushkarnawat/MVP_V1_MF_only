@@ -409,3 +409,144 @@ def test_choice_names_may_contain_dots_and_hyphens():
     from app.services.analytics.fund_manager_layouts import choice_managers
     page = "Fund Manager(s) Mr. Ajay Kr. Sharma (Managing Since 01-Jan-2025) Ms. Rhea D'Souza-Mehta (Managing Since 02-Feb-2025) Fund Size"
     assert [m["name"] for m in choice_managers(page)] == ["Ajay Kr. Sharma", "Rhea D'Souza-Mehta"]
+
+
+@pytest.mark.parametrize("layout,expected", [
+    ("axis", [
+        ("AXIS LARGE CAP FUND", [("Shreyash Devalkar", None, "23rd November 2016"), ("Jayesh Sundar", None, "4th November 2024"), ("Krishnaa N", "for Foreign Securities", "1st March 2024")]),
+        ("AXIS NIFTY MIDCAP 50 INDEX FUND", [("Nandik Malik", None, "6th March 2026"), ("Rohit Gautam", None, "6th March 2026")]),
+    ]),
+    ("icici", [
+        ("ICICI Prudential Large Cap Fund", [("Sankaran Naren", None, "Feb 2026"), ("Vaibhav Dusad", None, "Jan 2021"), ("Sharmila D'silva", None, "March 2026")]),
+        ("ICICI Prudential Silver ETF FOF", [("Manish Banthia", None, "Feb 2022"), ("Nishit Patel", None, "Feb 2022"), ("Ashwini Bharucha", None, "Nov 25"), ("Venus Ahuja", None, "Nov 25")]),
+    ]),
+    ("iti", [
+        ("ITI ELSS Tax Saver Fund", [("Alok Ranjan", None, "04-Nov-24"), ("Dhimant Shah", None, "01-Dec-22")]),
+        ("ITI Banking & PSU Debt Fund", [("Laukik Bagwe", None, "01-Feb-25")]),
+    ]),
+    ("trust", [
+        ("TRUSTMF Flexi Cap Fund", [("Mihir Vora", None, "since inception"), ("Saurabh Kataria", None, "24-04-2026"), ("Aakash Manghani", None, "since inception")]),
+        ("TRUSTMF Corporate Bond Fund", [("Jalpan Shah", None, "11th June 2024"), ("Shradhanjali Panda", None, "01st October 2025")]),
+    ]),
+    ("whiteoak", [
+        ("WhiteOak Capital Flexi Cap Fund", [("Ramesh Mantri", "Equity", "its inception"), ("Piyush Baranwal", "Debt", "its inception"), ("Trupti Agarwal", "Assistant Fund Manager/Equity", "11th August 2022"), ("Dheeresh Pathak", "Asst. Fund Manager – Equity", "01st April 2024"), ("Ashish Agrawal", "For Arbitrage Transactions", "January 6, 2025")]),
+        ("WhiteOak Capital Liquid Fund", [("Piyush Baranwal", None, "its inception")]),
+    ]),
+])
+def test_run_six_manual_real_pages_exact_headings_and_manager_rows(layout, expected):
+    pages = (FIXTURES / (layout + ".txt")).read_text(encoding="utf-8").split("\f")
+    assert len(pages) == 2
+    for raw, (heading, managers) in zip(pages, expected):
+        page = LAYOUTS[layout](raw)
+        assert page.heading == heading
+        assert [(m["name"], m["role"], m["since_raw"]) for m in page.managers] == managers
+    if layout == "icici":
+        # Real departed-manager and effective-date notes must not become current rows/roles.
+        assert "ceased" in pages[0] and "w.e.f." in pages[1]
+        assert not {"Rajat Chandak", "Anish Tawakley"} & {m["name"] for m in LAYOUTS[layout](pages[0]).managers}
+    if layout in {"iti", "whiteoak"}:
+        assert "w.e.f." in pages[1]
+        assert all(not m["role"] or "w.e.f." not in m["role"] for raw in pages for m in LAYOUTS[layout](raw).managers)
+
+
+def test_icici_real_passive_table_uses_boxes_even_when_text_order_is_reversed():
+    texts = (FIXTURES / "icici_table.txt").read_text(encoding="utf-8").split("\f")
+    boxes = json.loads((FIXTURES / "icici_table_boxes.json").read_text(encoding="utf-8"))
+    expected = [
+        ("ICICI Prudential Gold ETF", [("Gaurav Chikane", None, "Feb-22"), ("Nishit Patel", None, "Dec-24"), ("Ashwini Bharucha", None, "Nov-25"), ("Venus Ahuja", None, "Nov-25")]),
+        ("ICICI Prudential Nifty 500 Index Fund", [("Nishit Patel", None, "Dec-24"), ("Ashwini Bharucha", None, "Dec-24"), ("Venus Ahuja", None, "Nov-25")]),
+    ]
+    for text, words, (heading, managers), count in zip(texts, boxes, expected, [73, 79]):
+        normal = LAYOUTS["icici"](text, words)
+        shuffled = LAYOUTS["icici"]("\n".join(reversed(text.splitlines())), list(reversed(words)))
+        assert normal == shuffled
+        found = {p.heading: p for p in normal}
+        assert [(m["name"], m["role"], m["since_raw"]) for m in found[heading].managers] == managers
+        assert len(found) == count
+        assert LAYOUTS["icici"](text, []) == []
+    first = {p.heading: p for p in LAYOUTS["icici"](texts[0], boxes[0])}
+    assert first["ICICI Prudential Income plus Arbitrage Omni FOF"].managers == [
+        {"name": "Manish Banthia", "role": None, "since_raw": "Jun-17"},
+        {"name": "Ritesh Lunawat", "role": None, "since_raw": "Dec-20"},
+    ]
+    assert [(m["name"], m["since_raw"]) for m in first["ICICI Prudential Aggressive Hybrid Fund"].managers] == [
+        ("Sankaran Naren", "Dec-15"), ("Mittul Kalawadia", "Dec-20"), ("Manish Banthia", "Sep-13"),
+        ("Akhil Kakkar", "Jan-24"), ("Sharmila D'silva", "May-24"), ("Nitya Mishra", "Nov-24"),
+    ]
+
+
+def test_axis_portfolio_snapshot_is_a_heading_suffix_not_part_of_the_fund_name():
+    pages = (FIXTURES / "axis_snapshot.txt").read_text(encoding="utf-8").split("\f")
+    for raw, title, names in zip(pages, ["AXIS LONG TERM FUND", "AXIS GILT FUND"], [["Devang Shah", "Hardik Shah"], ["Devang Shah", "Sachin Jain"]]):
+        page = LAYOUTS["axis"](raw)
+        assert page.heading == title
+        assert page.managers == [{"name": name, "role": None, "since_raw": None} for name in names]
+
+
+def test_axis_snapshot_dates_follow_the_manager_column_coordinates():
+    texts = (FIXTURES / "axis_snapshot.txt").read_text(encoding="utf-8").split("\f")
+    boxes = json.loads((FIXTURES / "axis_snapshot_boxes.json").read_text(encoding="utf-8"))
+    expected = [
+        [("Devang Shah", "27th December 2022"), ("Hardik Shah", "27th December 2022")],
+        [("Devang Shah", "5th November 2012"), ("Sachin Jain", "1st February 2023")],
+    ]
+    for raw, words, managers in zip(texts, boxes, expected):
+        page = LAYOUTS["axis"](raw, list(reversed(words)))
+        assert [(m["name"], m["since_raw"]) for m in page.managers] == managers
+
+
+def test_icici_departure_notes_keep_explicitly_reappointed_manager_and_exclude_departed_manager():
+    pages = (FIXTURES / "icici_departures.txt").read_text(encoding="utf-8").split("\f")
+    expected = [
+        ("ICICI Prudential Overnight Fund", [("Nikhil Kabra", None, "Sept 2024"), ("Darshil Dedhia", None, "June 2023")]),
+        ("ICICI Prudential Banking & Financial Services Fund", [("Antariksha Banerjee", None, "March, 2026")]),
+    ]
+    for raw, (heading, managers) in zip(pages, expected):
+        assert "ceased" in raw
+        page = LAYOUTS["icici"](raw)
+        assert page.heading == heading
+        assert [(m["name"], m["role"], m["since_raw"]) for m in page.managers] == managers
+    assert "Nikhil Kabra has been appointed" in pages[0]
+    assert "Roshan Chutkey has ceased" in pages[1]
+
+
+def test_axis_real_etf_pages_have_their_own_headings_and_managers():
+    pages = (FIXTURES / "axis_etf.txt").read_text(encoding="utf-8").split("\f")
+    for raw, heading in zip(pages, ["AXIS NIFTY 50 ETF", "AXIS NIFTY BANK ETF"]):
+        page = LAYOUTS["axis"](raw)
+        assert page.heading == heading
+        assert page.managers == [{"name": name, "role": None, "since_raw": "6th March 2026"} for name in ["Nandik Malik", "Rohit Gautam"]]
+
+
+def test_axis_work_experience_columns_keep_each_managers_date():
+    texts = (FIXTURES / "axis_date_columns.txt").read_text(encoding="utf-8").split("\f")
+    boxes = json.loads((FIXTURES / "axis_date_columns_boxes.json").read_text(encoding="utf-8"))
+    expected = [
+        ("AXIS NIFTY INDIA DEFENCE INDEX FUND", [("Nandik Malik", "29th April 2026"), ("Rohit Gautam", "29th April 2026")]),
+        ("AXIS MONEY MARKET FUND", [("Devang Shah", "6th August 2019"), ("Aditya Pagaria", "6th August 2019"), ("Sachin Jain", "9th November 2021")]),
+    ]
+    for raw, words, (heading, managers) in zip(texts, boxes, expected):
+        page = LAYOUTS["axis"](raw, list(reversed(words)))
+        assert page.heading == heading
+        assert [(m["name"], m["since_raw"]) for m in page.managers] == managers
+
+
+def test_whiteoak_doubled_opening_bracket_is_not_part_of_the_role():
+    """WhiteOak Aug 2026 prints "Mr. Dheeresh Pathak ((Equity)" on two scheme pages."""
+    page = ("WhiteOak Capital Quality Equity Fund\n"
+            "Mr. Dheeresh Pathak ((Equity)\nManaging this Scheme from its inception\nTotal Work Experience-Over 16 Years\n")
+    managers = LAYOUTS["whiteoak"](page).managers
+    assert managers == [{"name": "Dheeresh Pathak", "role": "Equity", "since_raw": "its inception"}]
+
+
+def test_icici_table_name_starting_just_left_of_a_column_boundary_stays_whole():
+    """ICICI Sep 2026, page 149: "Masoomi" starts at x=474.94, a hair left of the fourth manager
+    column (475), so it fell into the third column's date slot and "Jhurmarvala" became a manager."""
+    words = [
+        (40.0, 669.46, 52.0, 673.61, "ICICI"), (86.0, 669.46, 150.0, 673.61, "Prudential"),
+        (152.0, 669.46, 190.0, 673.61, "Example"),
+        (474.94, 669.46, 497.21, 673.50, "Masoomi"), (499.00, 668.46, 529.90, 673.61, "Jhurmarvala"),
+        (539.36, 669.46, 557.70, 673.52, "Nov-24"),
+    ]
+    pages = LAYOUTS["icici"]("Fund Manager Details", words)
+    assert [p.managers for p in pages] == [[{"name": "Masoomi Jhurmarvala", "role": None, "since_raw": "Nov-24"}]]

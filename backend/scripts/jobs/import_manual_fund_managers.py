@@ -17,7 +17,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from app.db.session import SessionLocal
-from app.services.analytics.amfi_factsheet_client import extract_page_text, import_pages, looks_like_current_factsheet
+from app.services.analytics.amfi_factsheet_client import FactsheetPages, extract_page_text, extract_page_words, import_pages, looks_like_current_factsheet
 from app.services.analytics.fund_manager_layouts import LAYOUTS
 from app.services.analytics.fund_manager_resolvers import AMC_RESOLVERS, ResolverKind
 
@@ -29,14 +29,19 @@ def run(db, amc_name: str, pdfs: list[Path], today: date) -> dict[str, int]:
     reader = LAYOUTS[entry.layout]
     pages_per_file = []
     for pdf in pdfs:
-        pages = extract_page_text(pdf.read_bytes())
-        ok, reason = looks_like_current_factsheet(pages, reader, today)
+        pdf_bytes = pdf.read_bytes()
+        pages = extract_page_text(pdf_bytes)
+        if entry.needs_boxes:
+            pages = FactsheetPages(pages, extract_page_words(pdf_bytes))
+        ok, reason = looks_like_current_factsheet(pages, reader, today, as_on_pattern=entry.as_on_pattern)
         if not ok:
             # Checked for every file before writing anything, so a wrong file changes nothing.
             sys.exit(f"{pdf.name}: {reason} -- download this month's factsheet and run again.")
         pages_per_file.append(pages)
     # One import over every file: a fund printed in both files keeps both files' managers.
     all_pages = [page for pages in pages_per_file for page in pages]
+    if entry.needs_boxes:
+        all_pages = FactsheetPages(all_pages, [words for pages in pages_per_file for words in pages.words])
     matched, unmatched = import_pages(db, amc_name, all_pages, reader, today.replace(day=1), manual=True)
     db.commit()
     return {"matched": matched, "unmatched": unmatched}

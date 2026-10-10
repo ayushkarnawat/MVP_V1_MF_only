@@ -1,0 +1,201 @@
+
+150
+Fund Manager Details
+Scheme Name Fund 
+Manager 1
+Managing 
+Since
+Fund 
+Manager 2
+Managing 
+Since
+Fund 
+Manager 3
+Managing 
+Since
+Fund Manager 4/
+Fund Manager 5 / 6
+Managing 
+Since
+BHARAT 22 ETF Nishit Patel Jan-21 Ajaykumar Solanki Feb-24 Ashwini Bharucha Nov-24 Venus Ahuja Nov-25 
+ICICI Prudential Income plus Arbitrage Omni FOF Manish Banthia Jun-17 Ritesh lunawat Dec-20 
+ICICI Prudential Diversified Debt Strategy Active FOF Manish Banthia Jun-17 Ritesh Lunawat Dec-20 
+ICICI Prudential Multi Sector Passive FOF Sankaran Naren Sep-18 Dharmesh Kakkad May-18 Sharmila D'silva May-24 Masoomi Jhurmarvala Nov-24 
+ICICI Prudential Dynamic Asset Allocation Active FOF Dharmesh Kakkad May-18 Manish Banthia Jun-17 Ritesh Lunawat Jun-23 Sharmila D'silva Jan-26 
+ICICI Prudential Aggressive Hybrid Active FOF Dharmesh Kakkad May-18 Manish Banthia Jun-17 Ritesh Lunawat Jun-23 
+ICICI Prudential Balanced Advantage Fund Rajat Chandak Sep-15 Manish Banthia Nov-09 Akhil Kakkar Jan-24 Sri Sharma Apr-21 
+ICICI Prudential Aggressive Hybrid Fund Sankaran Naren Dec-15 Mittul Kalawadia Dec-20 Manish Banthia Sep-13 Akhil Kakkar/ Jan-24/
+Sharmila D'silva/ May-24/
+Nitya Mishra Nov-24 
+ICICI Prudential Banking & Financial Services Fund Antariksha Banerjee Mar-26 
+ICICI Prudential Banking and PSU Debt Fund Manish Banthia Sep-24 Rohit Lakhotia Jun-23 
+ICICI Prudential Children’s Fund Darshil Dedhia Jan-24 Rohit Lakhotia Jun-23 Aatur Shah Aug-25 
+ICICI Prudential 10 year Constant Maturity Gilt Fund Manish Banthia Jan-24 Raunak Surana Jan-24 
+ICICI Prudential Medium Term Fund Manish Banthia Nov-16 Akhil Kakkar Jan-24 
+ICICI Prudential Dividend Yield Fund Mittul Kalawadia Jan-18 
+ICICI Prudential Multi Asset Allocation Fund Sankaran Naren Feb-12 Antariksha Banerjee Jun-26 Manish Banthia Jan-24 Gaurav Chikane/ Aug-21/
+Akhil Kakkar/ Jan-24/
+Sharmila D'silva/ May-24/
+Masoomi Jhurmarvala Nov-24
+ICICI Prudential Equity - Arbitrage Fund Archana Nair Feb-24 Darshil Dedhia Sep-24 Nikhil Kabra Dec-20 Ajaykumar Solanki/ Aug-24/
+Sharmila D'silva 
+ICICI Prudential Equity Savings Fund Archana Nair Feb-24 Dharmesh Kakkad Feb-21 Manish Banthia Dec-14 Ritesh Lunawat/ Dec-20/
+Sri Sharma/ Apr-21/
+Ajaykumar Solanki Aug-24 
+ICICI Prudential Exports and Services Fund Sri Sharma May-23 
+ICICI Prudential Ultra Short to Short Term Fund Darshil Dedhia Jun-23 Nikhil Kabra Sep-24 
+ICICI Prudential FMCG Fund Nitya Mishra Mar-26 
+ICICI Prudential Large Cap Fund Sankaran Naren Feb-26 Vaibhav Dusad Jan-21 Sharmila D'silva Mar-26 
+ICICI Prudential Global Stable Equity Fund (FOF) Ritesh Lunawat Sep-24 Sharmila D'silva Apr-22 Venus Ahuja Aug-26 
+ICICI Prudential Gold ETF Gaurav Chikane Feb-22 Nishit Patel Dec-24 Ashwini Bharucha Nov-25 Venus Ahuja Nov-25 
+ICICI Prudential Medium to Long Term Fund Manish Banthia Jan-24 Rohit Lakhotia Jun-23 
+ICICI Prudential Long Term Fund Manish Banthia Jan-24 Raunak Surana Jan-24 
+ICICI Prudential Small Cap Fund Aatur Shah Apr-25 Rajat Chandak Feb-26 Sakshat Goel Feb-26 Gaurav Jain Feb-26 
+ICICI Prudential Infrastructure Fund Sanket Gaidhani Jun-26 
+ICICI Prudential Liquid Fund Darshil Dedhia Jun-23 Nikhil Kabra Dec-23 
+ICICI Prudential ELSS – Tax Saver Fund Mittul Kalawadia Sep-23 Priyanka Khandelwal Mar-26 
+ICICI Prudential Gilt Fund Manish Banthia Jan-24 Raunak Surana Jan-24 
+ICICI Prudential Dynamic Term Fund Manish Banthia Sep-12 Nikhil Kabra Jan-24 
+ICICI Prudential Mid Cap Fund Lalit Kumar Aug-22 
+ICICI Prudential BSE Midcap Select ETF Nishit Patel Jan-21 Ajaykumar Solanki Feb-24 Ashwini Bharucha Nov-24 Venus Ahuja Nov-25 
+ICICI Prudential Conservative Hybrid Fund Manish Banthia Sep-13 Akhil Kakkar Jan-24 Roshan Chutkey May-22 
+ICICI Prudential Money Market Fund Manish Banthia Jun-23 Nikhil Kabra Aug-16 
+ICICI Prudential Multi Cap Fund Lalit Kumar Aug-25 
+ICICI Prudential Nifty 100 ETF Nishit Patel Jan-21 Ajaykumar Solanki Feb-24 Ashwini Bharucha Nov-24 Venus Ahuja Nov-25 
+ICICI Prudential Nifty 50 Index Fund Nishit Patel Jan-21 Ajaykumar Solanki Feb-24 Ashwini Bharucha Dec-24 Venus Ahuja Nov-25 
+ICICI Prudential Nifty 50 ETF Nishit Patel Jan-21 Ajaykumar Solanki Feb-24 Ashwini Bharucha Nov-24 Venus Ahuja Nov-25 
+ICICI Prudential Nifty 100 Low Volatility 30 ETF Nishit Patel Jan-21 Ajaykumar Solanki Feb-24 Ashwini Bharucha Nov-24 Venus Ahuja Nov-25 
+ICICI Prudential Nifty Next 50 Index Fund Nishit Patel Jan-21 Ajaykumar Solanki Feb-24 Ashwini Bharucha Dec-24 Venus Ahuja Nov-25 
+ICICI Prudential Nifty50 Value 20 ETF Nishit Patel Jan-21 Ajaykumar Solanki Feb-24 Ashwini Bharucha Nov-24 Venus Ahuja Nov-25 
+ICICI Prudential Gold ETF FOF Manish Banthia Sep-12 Nishit Patel Dec-20 Ashwini Bharucha Nov-25 Venus Ahuja Nov-25 
+ICICI Prudential Ultra Short Term Fund Manish Banthia Nov-16 Ritesh Lunawat Jun-17 
+ICICI Prudential Credit Risk Fund Manish Banthia Nov-16 Akhil Kakkar Jan-24 
+ICICI Prudential Floating Interest Rates Fund Ritesh Lunawat Sep-24 Darshil Dedhia Jun-23 
+ICICI Prudential Focused Fund Vaibhav Dusad Aug-22 
+ICICI Prudential BSE Sensex Index Fund Nishit Patel Jan-21 Ajaykumar Solanki Feb-24 Ashwini Bharucha Dec-24 Venus Ahuja Nov-25 
+ICICI Prudential BSE Sensex ETF Nishit Patel Jan-21 Ajaykumar Solanki Feb-24 Ashwini Bharucha Nov-24 Venus Ahuja Nov-25 
+ICICI Prudential Short Term Fund Manish Banthia Nov-09 Nikhil Kabra Dec-20 
+ICICI Prudential Technology Fund Vaibhav Dusad May-20 
+ICICI Prudential Large & Mid Cap Fund Lalit Kumar Jun-26 Gaurav Jain Jun-26 
+ICICI Prudential Corporate Bond Fund Manish Banthia Jan-24 Ritesh Lunawat Jan-24 
+ICICI Prudential US Bluechip Equity Fund Ritesh Lunawat Sep-24 Sharmila D'silva Jul-22 Nitya Mishra Nov-24 Venus Ahuja Aug-26 
+ICICI Prudential Value Fund Sankaran Naren Jan-21 Dharmesh Kakkad Jan-21 Masoomi Jhurmarvala Nov-24 
+ICICI Prudential Long Term Wealth Enhancement Fund Rajat Chandak Mar-18 
+ICICI Prudential BSE 500 ETF Nishit Patel Jan-21 Ajaykumar Solanki Feb-24 Ashwini Bharucha Nov-24 Venus Ahuja Nov-25 
+ICICI Prudential BHARAT 22 FOF Nishit Patel Jan-21 Ajaykumar Solanki Feb-24 Ashwini Bharucha Dec-24 Venus Ahuja Nov-25 
+ICICI Prudential Healthcare Fund Dharmesh Kakkad May-20 
+ICICI Prudential Nifty Next 50 ETF Nishit Patel Jan-21 Ajaykumar Solanki Feb-24 Ashwini Bharucha Nov-24 Venus Ahuja Nov-25 
+ICICI Prudential BSE Liquid Rate ETF Darshil Dedhia Sep-24 Nikhil Kabra Dec-20 
+ICICI Prudential Manufacturing Fund Roshan Chutkey Mar-26 
+ICICI Prudential Overnight Fund Darshil Dedhia Jun-23 Nikhil Kabra Sep-24 
+ICICI Prudential India Opportunities Fund Sankaran Naren Jan-19 Roshan Chutkey Jan-19 Divya Jain Aug-25 
+ICICI Prudential Retirement Fund - Hybrid Aggressive Plan Manasvi Shah Aug-25 Darshil Dedhia Jan-24 Rohit Lakhotia Jun-23 
+ICICI Prudential Retirement Fund - Hybrid Conservative Plan Manasvi Shah Aug-25 Darshil Dedhia Jan-24 Rohit Lakhotia Jun-23 
+ICICI Prudential Retirement Fund - Pure Debt Plan Darshil Dedhia Jan-24 Rohit Lakhotia Jun-23 
+ICICI Prudential Retirement Fund - Pure Equity Plan Sanket Gaidhani Aug-25 Darshil Dedhia Jan-24 Rohit Lakhotia Jan-24 
+ICICI Prudential Fixed Maturity Plan - Series 85 - 10 Years Plan I Rohit Lakhotia Jan-24 Darshil Dedhia Jun-23 
+ICICI Prudential Bharat Consumption Fund Priyanka Khandelwal Jul-22 
+ICICI Prudential MNC Fund Roshan Chutkey Aug-22 
+ICICI Prudential Nifty Bank ETF Nishit Patel Jan-21 Ajaykumar Solanki Feb-24 Ashwini Bharucha Nov-24 Venus Ahuja Nov-25 
+ICICI Prudential Nifty Private Bank ETF Nishit Patel Jan-21 Ajaykumar Solanki Feb-24 Ashwini Bharucha Nov-24 Venus Ahuja Nov-25 
+
+151
+Fund Manager Details
+Scheme Name Fund 
+Manager 1
+Managing 
+Since
+Fund 
+Manager 2
+Managing 
+Since
+Fund 
+Manager 3
+Managing 
+Since
+Fund Manager 4/
+Fund Manager 5
+Managing 
+Since
+ICICI Prudential Commodities Fund Lalit Kumar Jul-20 
+ICICI Prudential Global Advantage Fund (FOF) Sharmila D'silva May-24 
+ICICI Prudential Nifty Midcap 150 ETF Nishit Patel Jan-21 Ajaykumar Solanki Feb-24 Ashwini Bharucha Nov-24 Venus Ahuja Nov-25 
+ICICI Prudential Diversified Equity All Cap Omni FOF Dharmesh Kakkad Feb-20 Sharmila D'silva May-24 Masoomi Jhurmarvala Nov-24 
+ICICI Prudential Nifty Alpha Low- Volatility 30 ETF Nishit Patel Jan-21 Ajaykumar Solanki Feb-24 Ashwini Bharucha Nov-24 Venus Ahuja Nov-25 
+ICICI Prudential Nifty IT ETF Nishit Patel Jan-21 Ajaykumar Solanki Feb-24 Ashwini Bharucha Nov-24 Venus Ahuja Nov-25 
+ICICI Prudential ESG Exclusionary Strategy Fund Mittul Kalawadia Mar-22 Ayush Shah Aug-26 
+ICICI Prudential Quant Fund Roshan Chutkey Dec-20 
+ICICI Prudential Business Cycle Fund Manish Banthia Jan-21 Manan Tijoriwala Aug-25 Divya Jain Jan-26 
+ICICI Prudential Nifty 100 Low Volatility 30 ETF FOF Nishit Patel Apr-21 Ashwini Bharucha Dec-24 Venus Ahuja Nov-25 
+ICICI Prudential Nifty Healthcare ETF Nishit Patel May-21 Ashwini Bharucha Nov-24 Venus Ahuja Nov-25 
+ICICI Prudential Flexi Cap Fund Rajat Chandak Jul-21 
+ICICI Prudential Nifty FMCG ETF Nishit Patel Aug-21 Ajaykumar Solanki Feb-24 Ashwini Bharucha Nov-24 Venus Ahuja Nov-25 
+ICICI Prudential Nifty Alpha Low - Volatility 30 ETF FOF Nishit Patel Sep-21 Ashwini Bharucha Nov-24 Venus Ahuja Nov-25 
+ICICI Prudential Nifty PSU Bond Plus SDL Sep 2027 40:60 Index Fund Darshil Dedhia Jan-24 Rohit Lakhotia Jun-23 
+ICICI Prudential NASDAQ 100 Index Fund Sharmila D'silva Apr-22 Nitya Mishra Nov-24 Venus Ahuja Aug-26 
+ICICI Prudential Nifty India Consumption ETF Nishit Patel Oct-21 Ashwini Bharucha Nov-24 Venus Ahuja Nov-25 
+ICICI Prudential Nifty Smallcap 250 Index Fund Nishit Patel Nov-21 Ajaykumar Solanki Feb-24 Ashwini Bharucha Dec-24 Venus Ahuja Nov-25 
+ICICI Prudential BSE 500 ETF FOF Nishit Patel Dec-21 Ashwini Bharucha Dec-24 Venus Ahuja Nov-25 
+ICICI Prudential Nifty Midcap 150 Index Fund Nishit Patel Dec-21 Ajaykumar Solanki Feb-24 Ashwini Bharucha Dec-24 Venus Ahuja Nov-25 
+ICICI Prudential Passive Multi-Asset Fund of Funds Manish Banthia Jan-22 Ritesh Lunawat Jan-22 Nishit Patel Jan-22 Sharmila D'silva Apr-22 
+ICICI Prudential Nifty Auto ETF Nishit Patel Jan-22 Ashwini Bharucha Nov-24 Venus Ahuja Nov-25 
+ICICI Prudential Silver ETF Gaurav Chikane Jan-22 Nishit Patel Dec-24 Ashwini Bharucha Nov-25 Venus Ahuja Nov-25 
+ICICI Prudential Silver ETF FOF Manish Banthia Feb-22 Nishit Patel Feb-22 Ashwini Bharucha Nov-25 Venus Ahuja Nov-25 
+ICICI Prudential Strategic Metal and Energy Equity Fund of Fund Sharmila D'silva Apr-22 Venus Ahuja Aug-26 
+ICICI Prudential Nifty Bank Index Fund Nishit Patel Mar-22 Ajaykumar Solanki Feb-24 Ashwini Bharucha Dec-24 Venus Ahuja Nov-25 
+ICICI Prudential Nifty 5 yr Benchmark G-SEC ETF Darshil Dedhia Jan-24 Rohit Lakhotia Jun-23 
+ICICI Prudential Nifty SDL Sep 2027 Index Fund Darshil Dedhia Jan-24 Rohit Lakhotia Jun-23 
+"ICICI Prudential Housing Opportunities Fund" Sanket Gaidhani Aug-25 
+ICICI Prudential Nifty 200 Momentum 30 ETF Nishit Patel Aug-22 Ashwini Bharucha Nov-24 Venus Ahuja Nov-25 
+ICICI Prudential Nifty 200 Momentum 30 Index Fund Nishit Patel Aug-22 Ashwini Bharucha Dec-24 Venus Ahuja Nov-25 
+ICICI Prudential Nifty IT Index Fund Nishit Patel Aug-22 Ajaykumar Solanki Feb-24 Ashwini Bharucha Dec-24 Venus Ahuja Nov-25 
+ICICI Prudential Nifty Infrastructure ETF Nishit Patel Aug-22 Ajaykumar Solanki Feb-24 Ashwini Bharucha Nov-24 Venus Ahuja Nov-25 
+ICICI PRUDENTIAL PSU EQUITY FUND Antariksha Banerjee Aug-25 
+ICICI Prudential Nifty50 Equal Weight Index Fund Nishit Patel Oct-22 Ashwini Bharucha Nov-24 Venus Ahuja Nov-25 
+ICICI Prudential Nifty Auto Index Fund Nishit Patel Oct-22 Ashwini Bharucha Dec-24 Venus Ahuja Nov-25 
+ICICI Prudential Nifty G-sec Dec 2030 Index Fund Darshil Dedhia Jan-24 Rohit Lakhotia Jun-23 
+ICICI Prudential Nifty SDL Dec 2028 Index Fund Darshil Dedhia Jan-24 Rohit Lakhotia Jun-23 
+ICICI Prudential Transportation and Logistics Fund Rajat Chandak Sep-23 Priyanka Khandelwal Sep-23 
+ICICI Prudential Nifty Financial Services Ex-Bank ETF Nishit Patel Dec-22 Ashwini Bharucha Nov-24 Venus Ahuja Nov-25 
+ICICI Prudential Nifty Pharma Index Fund Nishit Patel Dec-22 Ashwini Bharucha Dec-24 Venus Ahuja Nov-25 
+ICICI Prudential Fixed Maturity Plan - Series 88 - 1226 Days Plan F Rohit Lakhotia Jan-24 Darshil Dedhia Dec-22 
+ICICI Prudential Nifty 10 yr Benchmark G-Sec ETF Rohit Lakhotia Jan-24 Darshil Dedhia Dec-22 
+ICICI Prudential Nifty Commodities ETF Nishit Patel Dec-22 Ashwini Bharucha Nov-24 Venus Ahuja Nov-25 
+ICICI Prudential Nifty SDL Sep 2026 Index Fund Darshil Dedhia Jan-24 Rohit Lakhotia Jun-23 
+ICICI Prudential Fixed Maturity Plan - Series 88 - 1303 Days Plan S Rohit Lakhotia Jan-24 Darshil Dedhia Mar-23 
+ICICI Prudential Nifty PSU Bank ETF Nishit Patel Mar-23 Ashwini Bharucha Nov-24 Venus Ahuja Nov-25 
+ICICI Prudential Innovation Fund Vaibhav Dusad Apr-23 Sharmila D'silva Apr-23 
+ICICI Prudential Nifty 200 Quality 30 ETF Nishit Patel Aug-23 Ashwini Bharucha Nov-24 Venus Ahuja Nov-25 
+ICICI Prudential Nifty50 Value 20 Index Fund Nishit Patel Feb-24 Ashwini Bharucha Dec-24 Venus Ahuja Nov-25 
+ICICI Prudential Nifty LargeMidcap 250 Index Fund Nishit Patel Mar-24 Ashwini Bharucha Dec-24 Venus Ahuja Nov-25 
+ICICI Prudential Nifty Oil & Gas ETF Nishit Patel Jul-24 Ashwini Bharucha Nov-24 Venus Ahuja Nov-25 
+Icici Prudential Energy Opportunities Fund Nitya Mishra Jul-24 Sharmila D'silva Jul-24 
+ICICI Prudential Nifty Metal ETF Nishit Patel Aug-24 Ashwini Bharucha Nov-24 Venus Ahuja Nov-25 
+ICICI Prudential Nifty200 Value 30 ETF Nishit Patel Oct-24 Ashwini Bharucha Dec-24 Venus Ahuja Nov-25 
+ICICI Prudential Nifty200 Value 30 Index Fund Nishit Patel Oct-24 Ashwini Bharucha Dec-24 Venus Ahuja Nov-25 
+ICICI Prudential Equity Minimum Variance Fund Aatur Shah Feb-26 Nitya Mishra Dec-24 
+ICICI Prudential Nifty 500 Index Fund Nishit Patel Dec-24 Ashwini Bharucha Dec-24 Venus Ahuja Nov-25 
+ICICI Prudential Rural Opportunities Fund Priyanka Khandelwal Jan-25 
+ICICI Prudential BSE Liquid Rate ETF - Growth Darshil Dedhia Mar-25 Nikhil Kabra Mar-25 
+ICICI Prudential CRISIL-IBX Financial Services 3-6 Months 
+Debt Index Fund Darshil Dedhia Mar-25 Nikhil Kabra Mar-25 
+ICICI Prudential Nifty EV & New Age Automotive ETF Nishit Patel Apr-25 Ashwini Bharucha Apr-25 Venus Ahuja Nov-25 
+ICICI Prudential Nifty EV & New Age Automotive ETF FOF Nishit Patel Apr-25 Ashwini Bharucha Apr-25 Venus Ahuja Nov-25 
+ICICI Prudential Quality Fund Masoomi Jhurmarvala May-25 
+ICICI Prudential Nifty200 Quality 30 Index Fund Nishit Patel Apr-25 Ashwini Bharucha Apr-25 Venus Ahuja Nov-25 
+ICICI Prudential Nifty Top 15 Equal Weight ETF Nishit Patel Jun-25 Ashwini Bharucha Jun-25 Venus Ahuja Nov-25 
+ICICI Prudential Nifty Top 15 Equal Weight Index Fund Nishit Patel Jun-25 Ashwini Bharucha Jun-25 Venus Ahuja Nov-25 
+ICICI Prudential Nifty Private Bank Index Fund Nishit Patel Jul-25 Ashwini Bharucha Jul-25 Venus Ahuja Nov-25 
+ICICI Prudential Active Momentum Fund Manasvi Shah Jul-25 Sharmila D'silva Jul-25 
+ICICI Prudential Conglomerate Fund Sri Sharma Jun-26 
+ICICI Prudential Diversified Equity All Cap Active FOF Dharmesh Kakkad Mar-26 Sharmila D'silva Mar-26 
+ICICI Prudential Nifty Smallcap 250 ETF Nishit Patel Jun-26 Ashwini Bharucha Jun-26 Venus Ahuja Jun-26 
+ICICI Prudential Balanced Hybrid Fund Roshan Chutkey Jul-26 Manish Banthia Jul-26 Akhil Kakkar Jul-26 Jul-26 
+ICICI Prudential Multi-Asset Active FOF Dharmesh Kakkad Jul-26 Manish Banthia Jul-26 Akhil Kakkar Jul-26 Gaurav Chikane/ Jul-26/
+Sharmila D'silva/ Jul-26 /
+ICICI Prudential BSE Insurance ETF Nishit Patel Jul-26 Ashwini Bharucha Jul-26 Venus Ahuja Jul-26 
+ICICI Prudential Dynamic Asset Allocation Passive FOF Manish Banthia Sep-26 Manan Tijoriwala Sep-26 Ritesh Lunawat Sep-26 Sharmila D'silva/ Sep-26/
+Nishit Patel Sep-26 
+ICICI Prudential Life Cycle Fund 2041 Divya Jain Sep-26 Manish Banthia Sep-26 Rohit Lakhotia Sep-26 Gaurav Chikane Sep-26 
+ICICI Prudential Life Cycle Fund 2031 Aatur Shah Sep-26 Manish Banthia Sep-26 Rohit Lakhotia Sep-26 Gaurav Chikane Sep-26 
+ICICI Prudential Life Cycle Fund 2036 Manasvi Shah Sep-26 Manish Banthia Sep-26 Rohit Lakhotia Sep-26 Gaurav Chikane Sep-26 

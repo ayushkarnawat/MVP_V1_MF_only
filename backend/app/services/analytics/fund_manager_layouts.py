@@ -515,6 +515,165 @@ def _pgim_heading(page: str) -> str:
     return ""
 
 
+def _axis_heading(page: str) -> str:
+    found = re.search(r"(?m)^(AXIS [A-Z0-9 &'’:/.-]+?)(?: FACTSHEET| Portfolio Snapshot)?\s*$", page)
+    return found.group(1).strip() if found else ""
+
+
+def axis_managers(page: str) -> list[dict] | None:
+    if not _axis_heading(page) or "FUND MANAGER" not in page:
+        return None
+    text = " ".join(page.split())
+    found = [{"name": _clean_name(m.group(1)), "role": None, "since_raw": m.group(2)}
+             for m in re.finditer(r"([A-Z][A-Za-z'’.-]*(?:\s+[A-Z][A-Za-z'’.-]*)*) is managing the scheme since (.*?) and (?:he|she) manages", text)]
+    if not found:
+        # One labelled scheme per page; keep its printed names without pairing
+        # the separate experience/date columns by text order.
+        block = re.search(r"((?:Mr|Ms)\..*?)Work experience", text)
+        if block:
+            found = [{"name": _clean_name(m.group(1)), "role": None, "since_raw": None}
+                     for m in re.finditer(r"((?:Mr|Ms)\.\s*.*?)(?=(?:Mr|Ms)\.|\(|$)", block.group(1))]
+    for manager in found:
+        role = re.search(r"(?:Mr|Ms)\.\s*" + re.escape(manager["name"]) + r"\s*\(([^)]+)\)", text)
+        if role:
+            manager["role"] = role.group(1)
+    return found or None
+
+
+def axis_pages(page: str, words: list[Word] | None = None) -> SchemePage | None:
+    found = _reader(axis_managers, _axis_heading)(page)
+    if found is None or not words:
+        return found
+    def mid(word):
+        return (word[1] + word[3]) / 2
+    anchors = [w for w in words if w[4] in {"Mr.", "Ms."}]
+    for manager in found.managers:
+        if manager["since_raw"] is not None:
+            continue
+        for anchor in anchors:
+            neighbors = sorted((w for w in anchors if abs(mid(w)-mid(anchor)) < 3), key=lambda w: w[0])
+            i = neighbors.index(anchor)
+            right = neighbors[i+1][0] if i+1 < len(neighbors) else anchor[0]+100
+            name_line = " ".join(w[4] for w in sorted(words, key=lambda w: w[0])
+                                 if anchor[0] <= w[0] < right and abs(mid(w)-mid(anchor)) < 3)
+            if manager["name"] not in name_line:
+                continue
+            # Experience cards are wider than their centred name labels. Use
+            # the printed Work headings to bound the date columns, so a word
+            # from the neighboring manager's sentence cannot enter this one.
+            works = [w for w in words if w[4] == "Work" and mid(anchor)-30 < mid(w) < mid(anchor)]
+            if not works:
+                continue
+            work = min(works, key=lambda w: abs(w[0]-anchor[0]))
+            columns = sorted((w for w in works if abs(mid(w)-mid(work)) < 3), key=lambda w:w[0])
+            column = columns.index(work)
+            width = (columns[column+1][0] - work[0] if column+1 < len(columns)
+                     else work[0] - columns[column-1][0] if column else 100)
+            left = work[0] - width * 0.18
+            right = left + width
+            cell = [w for w in words if left <= w[0] < right and mid(anchor)-100 < mid(w) < mid(anchor)-3]
+            lines = []
+            for word in sorted(cell, key=lambda w: (-mid(w),w[0])):
+                if not lines or abs(mid(word)-mid(lines[-1][0])) > 2:
+                    lines.append([word])
+                else:
+                    lines[-1].append(word)
+            text = " ".join(w[4] for line in lines for w in sorted(line,key=lambda w:w[0]))
+            since = re.search(r"managing this fund since\s+(\d{1,2}(?:st|nd|rd|th)?\s+[A-Za-z]+\s+\d{4})", text)
+            if since:
+                manager["since_raw"] = since.group(1)
+            break
+    return found
+
+
+def _icici_heading(page: str) -> str:
+    title = re.search(r"performance details provided herein are of\s+(ICICI Prudential [^.]+)\.", page)
+    if title:
+        return " ".join(title.group(1).split())
+    return ""
+
+
+def icici_managers(page: str) -> list[dict] | None:
+    if not _icici_heading(page):
+        return None
+    return [{"name": _clean_name(m.group(1)), "role": None, "since_raw": " ".join(m.group(2).split())}
+            for m in re.finditer(r"((?:Mr|Ms)\.\s*[^.]+?) has been managing this fund since\s*([^.]+)\.", page)] or None
+
+
+def icici_pages(page: str, words: list[Word] | None = None) -> SchemePage | list[SchemePage] | None:
+    if "Fund Manager Details" not in page:
+        return _reader(icici_managers, _icici_heading)(page)
+    if not words:
+        return []
+    def mid(word):
+        return (word[1] + word[3]) / 2
+    def lines(cell):
+        grouped = []
+        for word in sorted(cell, key=lambda w: (-mid(w), w[0])):
+            if not grouped or abs(mid(word) - mid(grouped[-1][0])) > 2:
+                grouped.append([word])
+            else:
+                grouped[-1].append(word)
+        return [(sum(mid(w) for w in row) / len(row), " ".join(w[4] for w in sorted(row, key=lambda w: w[0]))) for row in grouped]
+    anchors = sorted((w for w in words if w[0] < 50 and w[4].strip('"').lower() in {"icici", "bharat"}), key=mid, reverse=True)
+    result = []
+    for i, anchor in enumerate(anchors):
+        upper = mid(anchor) + 4
+        lower = mid(anchors[i + 1]) + 4 if i + 1 < len(anchors) else 25
+        row = [w for w in words if lower < mid(w) <= upper]
+        heading = " ".join(text for _, text in lines([w for w in row if w[0] < 199])).strip('" ')
+        managers = []
+        # Columns by each word's centre: a name can start a fraction left of its column
+        # ("Masoomi" at x=474.94 against 475, Sep 2026) and split from its surname.
+        for left, date_left, right in [(199, 257, 289), (289, 349, 381), (381, 441, 475), (475, 534, 576)]:
+            dates = lines([w for w in row if date_left <= (w[0] + w[2]) / 2 < right])
+            for y, name in lines([w for w in row if left <= (w[0] + w[2]) / 2 < date_left]):
+                since = next((raw.rstrip("/ ") for dy, raw in dates if abs(dy-y) < 2), None)
+                clean = name.rstrip("/ ")
+                # This table lowercases the surname in one row; the same fund's
+                # scheme page prints "Ritesh Lunawat". Keep one manager identity.
+                if clean == "Ritesh lunawat":
+                    clean = "Ritesh Lunawat"
+                managers.append({"name": clean, "role": None, "since_raw": since})
+        if heading and managers:
+            result.append(SchemePage(heading, managers))
+    return result
+
+
+def iti_managers(page: str) -> list[dict] | None:
+    if "SCHEME DETAILS" not in page and "QUANTITATIVE DATA" not in page:
+        return None  # never pair the ready-reckoner's summary columns by text order
+    block = re.search(r"FUND MANAGER\s*(.*?)(?:PORTFOLIO DETAILS|AUM \(in)", page, re.S)
+    if not block:
+        return None
+    return [{"name": _clean_name(m.group(1)), "role": None, "since_raw": m.group(2).strip()}
+            for m in re.finditer(r"((?:Mr|Ms)\.\s*[^()]+)\s*\(Since ([^)]+)\)", block.group(1))] or None
+
+
+def trust_managers(page: str) -> list[dict] | None:
+    block = re.search(r"Fund Manager/s \(Managing scheme since\)(.*?)Benchmark", page, re.S)
+    if not block:
+        return None
+    return [{"name": _clean_name(re.sub(r"\s+since$", "", m.group(1).strip())), "role": None,
+             "since_raw": m.group(2).strip()}
+            for m in re.finditer(r"([^\r\n]+)\s*\(([^)]+)\)\s*Total Experience", block.group(1))] or None
+
+
+def _whiteoak_heading(page: str) -> str:
+    title = re.search(r"(?:^|\n)(WhiteOak Capital [^\n]+(?:\nFund)?)(?:\n|$)", page)
+    if title:
+        return " ".join(title.group(1).split())
+    title = re.search(r"Why to Invest in (WhiteOak Capital [^?]+)\s*\?", page)
+    return " ".join(title.group(1).split()) if title else ""
+
+
+def whiteoak_managers(page: str) -> list[dict] | None:
+    if not _whiteoak_heading(page):
+        return None
+    return [{"name": _clean_name(m.group(1)), "role": m.group(2), "since_raw": " ".join(m.group(3).split())}
+            for m in re.finditer(r"((?:Mr|Ms)\.\s*[^()\n]+)(?:\s*\(+([^)]+)\))?\s*Managing this [Ss]cheme (?:from|since)\s+(.*?)\s*Total Work Experience", page, re.S)] or None
+
+
 def _reader(managers: Callable[[str], list[dict] | None], heading: Callable[[str], str]) -> Callable[[str], SchemePage | None]:
     def read(page: str) -> SchemePage | None:
         found = managers(page)
@@ -536,6 +695,11 @@ def _reader(managers: Callable[[str], list[dict] | None], heading: Callable[[str
 # One reader per AMC: a manager layout plus where that AMC prints the scheme name.
 # Task 8 adds an entry per onboarded AMC (reusing a layout where the shape matches).
 LAYOUTS: dict[str, Callable[..., SchemePage | list[SchemePage] | None]] = {
+    "axis": axis_pages,
+    "icici": icici_pages,
+    "iti": _reader(iti_managers, lambda p: _brand_line_heading(p, "ITI ")),
+    "trust": _reader(trust_managers, lambda p: _brand_line_heading(p, "TRUSTMF ")),
+    "whiteoak": _reader(whiteoak_managers, _whiteoak_heading),
     "choice": _reader(choice_managers, _choice_heading),
     "pgim": _reader(pgim_managers, _pgim_heading),
     "uti": _reader(uti_managers, _uti_heading),
