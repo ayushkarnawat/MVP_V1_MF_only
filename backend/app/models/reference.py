@@ -6,7 +6,8 @@ import uuid
 from datetime import date as date_, datetime, timezone
 from decimal import Decimal
 
-from sqlalchemy import Date, UniqueConstraint, CheckConstraint, Boolean, Index, true, DateTime, ForeignKey, Integer, Numeric, String, Uuid
+from sqlalchemy.dialects import postgresql
+from sqlalchemy import Text, JSON, Date, UniqueConstraint, CheckConstraint, Boolean, Index, true, DateTime, ForeignKey, Integer, Numeric, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -166,3 +167,76 @@ class SchemeFundManager(Base):
     # not a DB enum.
     match_method: Mapped[str] = mapped_column(String, nullable=False)
     match_confidence: Mapped[Decimal | None] = mapped_column(Numeric(4, 3), nullable=True)
+
+
+class Scenario(Base):
+    __tablename__ = "scenarios"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    description: Mapped[str] = mapped_column(String, nullable=False)
+    start_date: Mapped[date_ | None] = mapped_column(Date, nullable=True)
+    end_date: Mapped[date_ | None] = mapped_column(Date, nullable=True)
+    scenario_type: Mapped[str] = mapped_column(String, nullable=False, default="CRASH")
+    is_ongoing: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    display_rank: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    parent_scenario_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("scenarios.id"), nullable=True)
+    phase_label: Mapped[str | None] = mapped_column(String, nullable=True)
+    phase_order: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # A text[] on Postgres, JSON on SQLite (every backend test builds its database with
+    # create_all, and SQLite has no ARRAY). Read in Python only, never queried inside.
+    had_redemption_freeze_schemes: Mapped[list[str] | None] = mapped_column(
+        JSON().with_variant(postgresql.ARRAY(Text), "postgresql"), nullable=True
+    )
+    # Picker quick stat (card 10): market move + AUM-weighted equity/debt fund moves.
+    quick_market_pct: Mapped[Decimal | None] = mapped_column(Numeric(8, 2), nullable=True)
+    quick_equity_pct: Mapped[Decimal | None] = mapped_column(Numeric(8, 2), nullable=True)
+    quick_debt_pct: Mapped[Decimal | None] = mapped_column(Numeric(8, 2), nullable=True)
+    quick_weight_quarter: Mapped[date_ | None] = mapped_column(Date, nullable=True)
+
+    __table_args__ = (
+        CheckConstraint(
+            "scenario_type IN ('CRASH', 'BULL_RUN', 'POLICY_RATE', 'HYPOTHETICAL')",
+            name="ck_scenarios_type",
+        ),
+    )
+
+
+class ScenarioSchemeResult(Base):
+    __tablename__ = "scenario_scheme_results"
+    __table_args__ = (Index("ix_scenario_scheme_results_scheme_id", "scheme_id"),)
+
+    scenario_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scenarios.id"), primary_key=True)
+    scheme_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("schemes.id"), primary_key=True)
+    pct_change: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), nullable=True)
+    is_proxied: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    proxy_basis: Mapped[str | None] = mapped_column(String, nullable=True)
+    computed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)
+    )
+
+
+class ScenarioCategoryAverage(Base):
+    __tablename__ = "scenario_category_averages"
+
+    scenario_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scenarios.id"), primary_key=True)
+    sebi_category: Mapped[str] = mapped_column(String, primary_key=True)
+    avg_pct_change: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+    scheme_count: Mapped[int] = mapped_column(Integer, nullable=False)
+
+
+class ScenarioHypotheticalAssumption(Base):
+    __tablename__ = "scenario_hypothetical_assumptions"
+
+    scenario_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scenarios.id"), primary_key=True)
+    asset_class: Mapped[str] = mapped_column(String, primary_key=True)
+    assumed_pct_change: Mapped[Decimal] = mapped_column(Numeric(6, 2), nullable=False)
+    assumption_note: Mapped[str] = mapped_column(String, nullable=False)
+
+    __table_args__ = (
+        CheckConstraint(
+            "asset_class IN ('Equity', 'Index/ETF', 'Gold', 'Silver', 'Overseas', "
+            "'Debt-short', 'Debt-long', 'Hybrid', 'Other')",
+            name="ck_scenario_hypothetical_assumptions_asset_class",
+        ),
+    )

@@ -4,6 +4,32 @@ from pathlib import Path
 
 import pytest
 
+
+def test_0036_0037_scenarios_seed_roundtrip(tmp_path, monkeypatch):
+    import json
+    import sqlite3
+
+    path = tmp_path / "scenarios.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{path}")
+    up = _alembic("upgrade", "0037")
+    assert up.returncode == 0, up.stderr
+    with sqlite3.connect(path) as conn:
+        assert conn.execute("SELECT count(*) FROM scenarios").fetchone()[0] == 34
+        assert conn.execute("SELECT count(*) FROM scenarios WHERE parent_scenario_id IS NULL").fetchone()[0] == 31
+        assert conn.execute("SELECT count(*) FROM scenarios WHERE display_rank IS NOT NULL").fetchone()[0] == 8
+        assert conn.execute("SELECT count(*) FROM scenario_hypothetical_assumptions").fetchone()[0] == 45
+        frozen = conn.execute("SELECT had_redemption_freeze_schemes FROM scenarios WHERE had_redemption_freeze_schemes IS NOT NULL").fetchone()[0]
+        assert len(json.loads(frozen)) == 6
+    down = _alembic("downgrade", "0036")
+    assert down.returncode == 0, down.stderr
+    with sqlite3.connect(path) as conn:
+        assert conn.execute("SELECT count(*) FROM scenarios").fetchone()[0] == 0
+    down = _alembic("downgrade", "0035")
+    assert down.returncode == 0, down.stderr
+    with sqlite3.connect(path) as conn:
+        tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        assert "scenarios" not in tables
+
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 
 
@@ -1247,3 +1273,44 @@ def test_0034_ranking_tables_seed_and_singleton_roundtrip(tmp_path, monkeypatch)
     tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     assert not ({"scheme_rankings", "ranking_weights"} & tables)
     conn.close()
+
+
+def _a11_migration(revision):
+    import importlib.util
+    from pathlib import Path
+    path = next((Path(__file__).resolve().parents[1] / "alembic" / "versions").glob(f"{revision}_*.py"))
+    spec = importlib.util.spec_from_file_location(f"a11_{revision}", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_ruling4_freeze_types_model_and_both_migrations(monkeypatch):
+    import sqlalchemy as sa
+    from sqlalchemy.dialects import postgresql, sqlite
+    from app.models.reference import Scenario
+    types = [Scenario.__table__.c.had_redemption_freeze_schemes.type]
+    tables = {}
+    migration = _a11_migration("0036")
+    monkeypatch.setattr(migration.op, "create_table", lambda name, *columns, **kw: tables.update({name: sa.Table(name, sa.MetaData(), *columns)}))
+    monkeypatch.setattr(migration.op, "create_index", lambda *args, **kw: None)
+    migration.upgrade()
+    types.append(tables["scenarios"].c.had_redemption_freeze_schemes.type)
+    seed = _a11_migration("0037")
+    types.append(seed._scenarios.c.had_redemption_freeze_schemes.type)
+    for column_type in types:
+        assert isinstance(column_type.dialect_impl(sqlite.dialect()), sa.JSON)
+        assert isinstance(column_type.dialect_impl(postgresql.dialect()).item_type, sa.Text)
+
+
+
+def test_ruling8_result_numeric_precision_matches_model_and_migration(monkeypatch):
+    from app.models.reference import ScenarioSchemeResult, ScenarioCategoryAverage
+    tables = {}
+    migration = _a11_migration("0036")
+    monkeypatch.setattr(migration.op, "create_table", lambda name, *columns, **kw: tables.update({name: {c.name: c for c in columns if hasattr(c, "type")}}))
+    monkeypatch.setattr(migration.op, "create_index", lambda *args, **kw: None)
+    migration.upgrade()
+    for model, name in ((ScenarioSchemeResult, "pct_change"), (ScenarioCategoryAverage, "avg_pct_change")):
+        for column in (model.__table__.c[name], tables[model.__tablename__][name]):
+            assert (column.type.precision, column.type.scale) == (10, 2)
