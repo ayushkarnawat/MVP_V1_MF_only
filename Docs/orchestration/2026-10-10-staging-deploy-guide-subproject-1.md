@@ -412,7 +412,7 @@ aws logs tail /ecs/staging-job-benchmark-daily --since 20m | grep refresh_benchm
 
 Scenarios need every active fund's NAV history, not just held funds'. This downloads it from mfapi.in for every active fund that has none yet, in batches of 150 with a pause between batches. It aborts by itself if over 25% of a batch fails. It's **resumable**: re-running picks up only what's still missing.
 
-**[close-out]** fills in: how many funds still need history on staging, the measured time per 150 funds locally, and so the expected total run time. Start it only if it will finish before **20:30 IST**.
+Measured locally on 10 October: **14,056 funds in 51 minutes** (94 batches of 150, about 27–32 s each), peak memory 225 MB, 82 single-fund failures in total (0.6%, never near the 25% abort). Staging already has history for held funds and their peers, so expect a little less: **about 45–55 minutes**. Start it only if it will finish before **20:30 IST**.
 
 ```bash
 run_job nav-daily '["python","scripts/jobs/backfill_scheme_nav_history.py"]'
@@ -433,7 +433,9 @@ aws logs tail /ecs/staging-job-nav-daily --follow | grep backfill_scheme_nav_his
 run_job nav-daily '["python","scripts/compute_all_scenarios.py"]'
 aws logs tail /ecs/staging-job-nav-daily --since 60m | grep compute_all_scenarios
 ```
-**Good looks like:** one line per scenario, e.g. `compute_all_scenarios: COVID crash real=… proxied=… no_data=…`, then `compute_all_scenarios: done, 29 scenarios, 0 failed` and exit `0`. **[close-out]** fills in the expected counts and run time. Old scenarios (2000, 2004) have fewer `real` funds, because fewer funds existed; that's expected.
+**Good looks like:** one line per scenario, e.g. `compute_all_scenarios: COVID crash real=… proxied=… no_data=…`, then `compute_all_scenarios: done, 29 scenarios, 0 failed` and exit `0`. Locally on 10 October it took **81 seconds** (peak 194 MB). Expected counts (local, 14,356 active funds): `COVID crash real=6876`, `2024 election result real=7105`, `Global Financial Crisis (2008) real=901` — more recent windows have more real funds; the rest are estimated from category averages (`proxied`).
+
+**Three scenarios show `real=0 proxied=0` on purpose: Dot-com bust, 2003–07 India bull run, 2004 election result.** mfapi.in's NAV history starts in 2006, so no fund has data for those windows. On staging they open with "not enough historical data" for every fund (an open product decision; see `DEFERRED_FEATURES.md`).
 
 **`failed` > 0:** the log names the scenario. Send Aditi the log. The other scenarios still work.
 
@@ -479,7 +481,7 @@ Each prints `matched=N unmatched=M` within seconds. Expected (measured locally o
 
 | Fund house | matched about |
 |---|---|
-| HDFC | 53 from the active file; the passive file adds HDFC's index funds and ETFs (**[close-out]**: not yet tested on a real passive file) |
+| HDFC | 53 from the active file. The passive file (index funds and ETFs) **has not been tested on a real file yet**: if its import prints a low `matched=` or an error, send Aditi the file and the output; the active file's managers still import |
 | ICICI Prudential | 156 |
 | Kotak | 112 |
 | Axis | 88 |
@@ -515,10 +517,10 @@ EOF
 ```
 **Good looks like:**
 - `benchmark rows by type`: a `price` row and a `tri` row; TRI's `min` in the 1990s.
-- `schemes with NAV history`: close to the number of active funds (**[close-out]**).
+- `schemes with NAV history`: close to the number of active funds (locally 14,356 active, all but ~80 got history).
 - `scenario results`: tens of thousands; most `real`.
 - `fund-manager rows / schemes / fund houses`: about 50 fund houses (40 automatic + 10 by hand, minus any that alerted in 12d).
-- `2024 election result`: a **negative** average, never `0`. It averages every fund, debt included, so it's smaller than the ~−6% equity move. (A non-zero figure is the "close before the start" rule working.)
+- `2024 election result`: a **negative** average, never `0` (a household check on 10 Oct: the R2 couple's portfolio −5.71% vs Nifty 50 TRI −5.86%; COVID crash −28.5% vs −30.2%). It averages every fund, debt included, so it's smaller than the ~−6% equity move. (A non-zero figure is the "close before the start" rule working.)
 
 ---
 
