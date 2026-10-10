@@ -1,0 +1,321 @@
+<title>A14 Investment Withdrawal Build</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Manrope:wght@600;700;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one 1040px reading column; diagrams and tables scroll inside their own frames. */
+:root {
+  --paper: #F4F7F6; --surface: #FFFFFF; --ink: #12201C; --muted: #5A6A65; --line: #D9E2DF;
+  --accent: #0E6A56; --accent-soft: #E1F0EB;
+  --crit: #B3262E; --crit-soft: #FBE5E6; --warn: #A86C12; --warn-soft: #FBF0DA;
+  --info: #2D5B9C; --info-soft: #E3EBF7; --codex: #6B4BB8; --codex-soft: #EEE8FA;
+  --display: "Manrope", "Segoe UI", system-ui, sans-serif;
+  --body: "DM Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "Cascadia Code", monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #0D1412; --surface: #141E1B; --ink: #E4ECE9; --muted: #96A7A1; --line: #26342F;
+  --accent: #5DC8A7; --accent-soft: #163029; --crit: #F0767C; --crit-soft: #3A1B1E;
+  --warn: #E5AB4B; --warn-soft: #33270F; --info: #82A9E6; --info-soft: #182437;
+  --codex: #B49BF0; --codex-soft: #261D3D; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --paper: #0D1412; --surface: #141E1B; --ink: #E4ECE9; --muted: #96A7A1; --line: #26342F;
+  --accent: #5DC8A7; --accent-soft: #163029; --crit: #F0767C; --crit-soft: #3A1B1E;
+  --warn: #E5AB4B; --warn-soft: #33270F; --info: #82A9E6; --info-soft: #182437;
+  --codex: #B49BF0; --codex-soft: #261D3D; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font: 400 15px/1.6 var(--body); margin: 0; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 40px 20px 80px; display: flex; flex-direction: column; gap: 44px; }
+header.top { display: flex; flex-direction: column; gap: 14px; }
+.eyebrow { font: 600 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+h1 { font: 800 clamp(28px, 4.4vw, 42px)/1.1 var(--display); margin: 0; letter-spacing: -.02em; text-wrap: balance; }
+h2 { font: 700 22px/1.25 var(--display); margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+h3 { font: 700 16px/1.3 var(--display); margin: 0; }
+p { margin: 0; max-width: 72ch; }
+.lede { font-size: 17px; color: var(--muted); max-width: 70ch; }
+code, .mono { font-family: var(--mono); font-size: .86em; }
+code { background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; word-break: break-word; }
+a { color: var(--accent); }
+section { display: flex; flex-direction: column; gap: 16px; }
+.sec-head { display: flex; flex-direction: column; gap: 6px; }
+.sec-head .tag { font: 600 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font: 500 13px/1 var(--body); padding: 7px 11px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+.chip b { font-family: var(--display); font-weight: 800; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.grid2 > * { min-width: 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.panel .label { font: 600 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.panel.after { border-color: var(--accent); }
+.panel.after .label { color: var(--accent); }
+.diagram { overflow-x: auto; }
+pre.mermaid { margin: 0; background: transparent; font-family: var(--body); }
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 11px/1.2 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--paper); }
+tr:last-child td { border-bottom: 0; }
+td.num { font-variant-numeric: tabular-nums; }
+.pill { display: inline-block; font: 600 11px/1 var(--mono); padding: 4px 7px; border-radius: 5px; letter-spacing: .03em; white-space: nowrap; }
+.p-new { background: var(--accent-soft); color: var(--accent); }
+.p-mod { background: var(--info-soft); color: var(--info); }
+.p-none { background: var(--paper); color: var(--muted); border: 1px solid var(--line); }
+.p-codex { background: var(--codex-soft); color: var(--codex); }
+.p-claude { background: var(--accent-soft); color: var(--accent); }
+.p-you { background: var(--warn-soft); color: var(--warn); }
+.p-crit { background: var(--crit-soft); color: var(--crit); }
+.p-warn { background: var(--warn-soft); color: var(--warn); }
+.p-info { background: var(--info-soft); color: var(--info); }
+ol.passes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0; }
+ol.passes > li { display: grid; grid-template-columns: 132px 1fr; gap: 16px; padding: 14px 0; border-top: 1px solid var(--line); }
+ol.passes > li:first-child { border-top: 0; }
+ol.passes .when { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+ol.passes .when .n { font: 800 13px/1 var(--display); color: var(--muted); }
+ol.passes .what { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+ol.passes ul { margin: 0; padding-left: 18px; }
+@media (max-width: 560px) { ol.passes > li { grid-template-columns: 1fr; gap: 8px; } }
+.issues { display: flex; flex-direction: column; gap: 10px; }
+.issue { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--info); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.issue.crit { border-left-color: var(--crit); }
+.issue.warn { border-left-color: var(--warn); }
+.issue .hd { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.issue .hd h3 { font-size: 15px; }
+.issue .fix { color: var(--muted); font-size: 14px; }
+.callout { background: var(--warn-soft); border: 1px solid var(--warn); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+.callout h2 { font-size: 19px; }
+.note { font-size: 13px; color: var(--muted); }
+ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.bar { display: flex; height: 34px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
+.bar > div { display: flex; align-items: center; justify-content: center; font: 700 12px/1 var(--display); color: #fff; min-width: 0; overflow: hidden; white-space: nowrap; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; background: var(--c); vertical-align: -1px; }
+.formula { font-family: var(--mono); font-size: 13px; background: var(--paper); border: 1px dashed var(--line); border-radius: 8px; padding: 12px 14px; overflow-x: auto; white-space: pre; }
+footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 16px; }
+.ib { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--info); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.ib.crit { border-left-color: var(--crit); } .ib.warn { border-left-color: var(--warn); } .ib.done { border-left-color: var(--accent); }
+.ib .top { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ib .top h3 { font-size: 16px; flex: 1 1 260px; min-width: 0; }
+.ib dl { display: grid; grid-template-columns: 148px minmax(0, 1fr); gap: 10px 18px; margin: 0; }
+.ib dt { font: 600 11px/1.5 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding-top: 2px; }
+.ib dd { margin: 0; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.ib ol.opts { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.ib ol.opts li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 8px; }
+.ib ol.opts .k { font: 800 12px/1.6 var(--display); color: var(--muted); }
+.ib ol.opts li.pick .k { color: var(--accent); }
+.ib ol.opts li.pick > span:last-child { font-weight: 500; }
+.ib .rec { color: var(--accent); font-weight: 700; }
+.ib ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
+@media (max-width: 600px) { .ib dl { grid-template-columns: 1fr; gap: 4px; } .ib dd { margin-bottom: 8px; } }
+.group { display: flex; flex-direction: column; gap: 10px; padding-top: 8px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 22px; margin-top: 6px; }
+.group-head { display: flex; align-items: center; gap: 10px; }
+.group-head h3 { font-size: 18px; }
+.ib ul.muted { color: var(--muted); font-size: 13px; }
+.ib.done .top h3 { color: var(--ink); }
+</style>
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Sub-project 1 · Attribute 14 · 1st in run order · in build</div>
+  <h1>Investment &amp; Withdrawal analysis</h1>
+  <p class="lede">Five money tiles (Invested, Withdrawn, Net invested, Current value, Absolute gain), a month-by-month invested vs withdrawn bar chart where tapping a bar lists its transactions, and a one-line SIP health summary. Everything comes from CAS data already in the database.</p>
+  <div class="chips">
+    <span class="chip"><b>6</b> tasks</span>
+    <span class="chip"><b>0</b> migrations</span>
+    <span class="chip"><b>0</b> new tables</span>
+    <span class="chip"><b>0</b> new routes · 1 new analytics section</span>
+    <span class="chip"><b>2</b> Codex runs</span>
+    <span class="chip mono">plans/2026-10-09-attribute-14-investment-withdrawal.md</span>
+  </div>
+</header>
+
+<div class="callout" style="background:var(--accent-soft);border-color:var(--accent)">
+  <h2>Decided 9 Oct</h2>
+  <ul class="plain">
+    <li>The committed <code>2026-10-09-attribute-14-investment-withdrawal.md</code> is the binding plan. The older 8 Oct plan and its handoff were deleted, and <code>delegation-log.md</code> records them as superseded. Nothing had been built from them.</li>
+    <li>Commits follow the plan: one <code>git add</code> + <code>git commit</code> per task once its tests pass. Claude makes them, since Codex's sandbox can't write git metadata here. Nothing is pushed.</li>
+    <li>New frontend types use snake_case, the same as the existing <code>types.ts</code> and what the API sends.</li>
+  </ul>
+</div>
+
+<div class="callout" style="background:var(--info-soft);border-color:var(--info)">
+  <h2>In build · plan revised 9 Oct</h2>
+  <p>The committed plan was edited in place (<code>Docs/superpowers/plans/2026-10-09-attribute-14-investment-withdrawal.md</code>, mirror synced) with every decision below. Re-checking it line by line against the code turned up six more things, all now fixed in the plan:</p>
+  <ul class="plain">
+    <li><b>Spec features the plan had dropped:</b> the Monthly/Yearly toggle, tap-a-period to list its transactions, and the spec's state copy ("No transactions yet", "No active SIPs", "N missed instalments").</li>
+    <li><b>Mobile:</b> <code>MobileAnalyticsView.tsx</code> has its own section map typed against the shared list, so it fails type-checking without the new entry. The section now renders on mobile too.</li>
+    <li><b>Existing test:</b> <code>test_recompute.py</code> mocks every section and asserts 21 rows (3 scopes × 7); it's updated to 8 sections.</li>
+    <li><b>Twin SIPs:</b> counted <code>series_count</code> times, as the main dashboard does (<code>DashboardView.tsx:280</code>), so the two SIP totals agree.</li>
+    <li><b>Missed instalments:</b> measured against each folio's latest statement end, the reference <code>compute_active_sips</code> already uses — measuring to today would flag every SIP of a household whose last CAS is a few months old.</li>
+    <li><b>Unvalued holdings:</b> a holding with no NAV (<code>current_value = None</code>) is left out of Current value instead of crashing the section.</li>
+  </ul>
+  <p>Execution: <b>Run 1</b> = Tasks 1–3 (backend), <b>Run 2</b> = Tasks 4–6 (frontend), per <code>Docs/orchestration/a14-investment-withdrawal-handoff.md</code>. Claude commits each task after verifying it.</p>
+</div>
+
+<section>
+  <div class="sec-head"><span class="tag">Flow</span><h2>Before and after</h2></div>
+  <div class="grid2">
+    <div class="panel"><span class="label">Before</span><div class="diagram"><pre class="mermaid">
+flowchart TD
+  cas["CAS PDF"] --> imp["CAS import + confirm"]
+  imp --> tx[("transactions · folios")]
+  tx --> rc["recompute_household_analytics"]
+  rc -->|"7 sections"| as[("analytics_sections")]
+  as --> api["GET /analytics/{scope}"]
+  api --> ui["AnalyticsView · 7 sections"]
+  tx -.-> dash["Holdings dashboard&lt;br/&gt;cash_flow.py · sip.py"]
+</pre></div></div>
+    <div class="panel after"><span class="label">After</span><div class="diagram"><pre class="mermaid">
+flowchart TD
+  tx[("transactions · folios")] --> rc["recompute_household_analytics"]
+  rc -->|"8th section"| iw["investment_withdrawal.py"]
+  iw --> cf["cash_flow debit/credit sets"]
+  iw --> ho["compute_holdings → current value"]
+  iw --> sp["compute_active_sips → SIP line"]
+  iw --> as[("analytics_sections&lt;br/&gt;section = investment_withdrawal")]
+  as --> api["GET /analytics/{scope} (unchanged)"]
+  api --> sec["InvestmentWithdrawalSection"]
+  sec --> bc["bar-chart.tsx (visx)"]
+</pre></div></div>
+  </div>
+  <div class="formula">Total invested  = Σ PURCHASE, PURCHASE_SIP, OPENING_BALANCE
+Total withdrawn = Σ REDEMPTION, DIVIDEND_PAYOUT, REVERSAL
+Net invested    = invested − withdrawn
+Absolute gain   = current value + withdrawn − invested
+Excluded        : GIFT_IN, GIFT_OUT, BONUS  (not cash, same as cash_flow.py)</div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="tag">Database</span><h2>ER: the tables it reads (unchanged after the build)</h2><p class="note">No schema change. The only new stored data is one more row per scope in <code>analytics_sections</code>, with <code>section = 'investment_withdrawal'</code> and the result as JSON payload.</p></div>
+  <div class="panel"><div class="diagram"><pre class="mermaid">
+erDiagram
+  USERS ||--o{ HOUSEHOLD_MEMBERS : owns
+  HOUSEHOLD_MEMBERS ||--o{ FOLIOS : holds
+  SCHEMES ||--o{ FOLIOS : "held in"
+  FOLIOS ||--o{ TRANSACTIONS : records
+  USERS ||--o{ ANALYTICS_SECTIONS : "cached per scope"
+  TRANSACTIONS {
+    uuid folio_id FK
+    enum type
+    date date
+    numeric amount
+    numeric stamp_duty
+  }
+  ANALYTICS_SECTIONS {
+    uuid user_id PK
+    string scope_key PK
+    string section PK
+    json payload
+  }
+</pre></div></div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="tag">Change map</span><h2>What changes where</h2></div>
+  <div class="tbl"><table>
+    <tr><th>Layer</th><th>File</th><th>Change</th><th>Task</th></tr>
+    <tr><td>Database</td><td>—</td><td><span class="pill p-none">none</span></td><td>—</td></tr>
+    <tr><td>Backend</td><td><code>app/services/analytics/investment_withdrawal.py</code></td><td><span class="pill p-new">new</span> compute module: tiles, monthly + yearly buckets with embedded transactions, SIP summary</td><td>1</td></tr>
+    <tr><td>Backend</td><td><code>app/services/analytics/schemas.py</code></td><td><span class="pill p-mod">modify</span> 4 result models + <code>AggregateInvestmentWithdrawalResponse</code></td><td>2</td></tr>
+    <tr><td>Backend</td><td><code>app/services/analytics/recompute.py</code></td><td><span class="pill p-mod">modify</span> 8th <code>_SectionSpec</code>; served by the existing generic endpoint</td><td>3</td></tr>
+    <tr><td>Frontend</td><td><code>components/ui/charts/bar-chart.tsx</code></td><td><span class="pill p-new">new</span> grouped bar chart on the installed visx stack</td><td>4</td></tr>
+    <tr><td>Frontend</td><td><code>features/analytics/types.ts</code></td><td><span class="pill p-mod">modify</span> section name + interfaces</td><td>5</td></tr>
+    <tr><td>Frontend</td><td><code>features/analytics/AnalyticsView.tsx</code></td><td><span class="pill p-mod">modify</span> <code>AGGREGATE_FIELD</code> entry, render the section</td><td>5–6</td></tr>
+    <tr><td>Frontend</td><td><code>features/analytics/InvestmentWithdrawalSection.tsx</code></td><td><span class="pill p-new">new</span> tiles, chart, empty state, SIP line</td><td>6</td></tr>
+    <tr><td>Infra / jobs</td><td>—</td><td><span class="pill p-none">none</span></td><td>—</td></tr>
+  </table></div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="tag">Execution</span><h2>Passes, in order</h2></div>
+  <ol class="passes">
+    <li><div class="when"><span class="n">Pass 0</span><span class="pill p-claude">Claude</span></div><div class="what"><h3>Fold in pre-flight fixes</h3><p>Claude writes the corrections below into the plan, writes the handoff doc for Run 1 and logs it in <code>delegation-log.md</code>.</p></div></li>
+    <li><div class="when"><span class="n">Pass 1</span><span class="pill p-codex">Codex run 1</span></div><div class="what"><h3>Backend: tasks 1–3</h3><ul><li>Compute module, schemas, 8th section registered.</li><li>Codex runs only the named pytest files and prints its report.</li></ul></div></li>
+    <li><div class="when"><span class="n">Gate</span><span class="pill p-claude">Claude</span></div><div class="what"><h3>Verify and review</h3><p>Claude re-runs the touched test files in WSL, checks <code>git diff --stat</code>, then runs the adversarial review against Review Focus 1–5. Small findings are fixed inline, larger ones go back to Codex. Claude commits each task as the plan says.</p></div></li>
+    <li><div class="when"><span class="n">Pass 2</span><span class="pill p-codex">Codex run 2</span></div><div class="what"><h3>Frontend: tasks 4–6</h3><ul><li>Bar chart, types, section component, wiring into <code>AnalyticsView</code>.</li></ul></div></li>
+    <li><div class="when"><span class="n">Pass 3</span><span class="pill p-claude">Claude</span><span class="pill p-you">You</span></div><div class="what"><h3>Real data and staging</h3><ul><li>Synthetic harness (<code>test_deep.py</code> picks up the new section automatically) and one real CAS statement.</li><li>Staging deploy: no migration, so this is a plain backend + frontend deploy. Sanity-check the tiles against a statement by hand.</li><li>Docs: <code>log.md</code>, <code>session.md</code>, <code>backend.md</code>.</li></ul></div></li>
+  </ol>
+</section>
+
+<section>
+  <div class="sec-head"><span class="tag">Issues in detail</span><h2>Issues, by status</h2><p class="note"><b>What stays fixed:</b> 5 tiles (invested, withdrawn, net, current value, gain), a monthly/yearly invested-vs-withdrawn chart with drill-in, and a SIP line, all from data already in the database. Every fix below either makes that work at all or makes its numbers correct; none adds a feature, table or dependency. Green letters mark the choice. All seven are decided (9 Oct): option A everywhere.</p><div class="chips"><span class="chip"><span class="pill p-new">Resolved</span> <b>7</b></span></div></div>
+  
+<div class="group"><div class="group-head"><h3>Resolved</h3><span class="pill p-new">7</span></div><p class="note">Decided or verified. Each card shows the problem, the fix we chose, and what happens with it.</p><div class="issues">
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>1 · The compute function is sync, but the pipeline awaits it</h3><span class="pill p-none">was: Blocker</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p><code>recompute.py:233</code> runs <code>await section.compute(db, ids)</code> for every section. The plan's <code>compute_investment_withdrawal</code> is a plain <code>def</code>, and it calls <code>compute_holdings</code> (an <code>async def</code>, <code>holdings.py:159</code>) without <code>await</code>, so it gets a coroutine back instead of a list of holdings.</p><p>Awaiting a plain return value raises <code>TypeError</code>, so the section is marked failed for every household and never lands. The Analytics screen would show the skeleton forever. The plan's own tests wouldn't catch it, because they monkeypatch the value-lookup helper and never go through the pipeline.</p></dd>
+    <dt>Fix chosen</dt><dd><p><span class="rec">A.</span> Make it <code>async def</code> and <code>await compute_holdings(...)</code>, like the other 7 sections.</p><p>It matches every existing section's signature, touches only the new file, and leaves the shared pipeline alone.</p></dd>
+    <dt>What happens now</dt><dd><ul><li><code>compute_investment_withdrawal</code> and <code>_current_value_for_household</code> become <code>async</code>.</li><li>Task 1 tests call it through <code>asyncio.run(...)</code> and patch the value lookup with an <code>AsyncMock</code>.</li><li>Task 3 adds one test that runs the real section through <code>recompute_household_analytics</code>, so a sync/async slip can't come back.</li></ul></dd>
+    <dt>Not chosen</dt><dd><ul class="muted"><li><b>B.</b> Keep it sync and call <code>asyncio.run(...)</code> inside. This fails, because the pipeline already runs inside an event loop.</li><li><b>C.</b> Teach <code>recompute.py</code> to accept sync functions. This changes shared code for one section.</li></ul></dd>
+  </dl>
+</article>
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>2 · Test fixtures build models that don't exist</h3><span class="pill p-none">was: Blocker</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>The tests import an <code>AMC</code> model and build <code>Scheme(amc_id=…, category=…)</code> and <code>HouseholdMember(id, name)</code>. There is no AMC table. <code>Scheme</code> has <code>amc_name</code> and <code>sebi_category</code> (both required), and <code>HouseholdMember</code> needs a <code>user_id</code>.</p><p>Every Task 1 test fails at import, so red-green TDD can't start, and Codex would have to guess at fixtures.</p></dd>
+    <dt>Fix chosen</dt><dd><p><span class="rec">A.</span> Rewrite the fixture helper with the real models, copying the style of an existing test that already seeds users, members, folios and transactions.</p><p>Real rows exercise the real joins between folios, schemes and members, which is exactly what this module does. Mocks would hide a wrong join.</p></dd>
+    <dt>What happens now</dt><dd><ul><li><code>_seed_member_and_scheme</code> creates a <code>User</code>, a <code>HouseholdMember(user_id=…)</code>, a <code>Scheme(amc_name=…, sebi_category=…)</code> and a <code>Folio</code>.</li><li>The test bodies stay the same; only the setup changes.</li></ul></dd>
+    <dt>Not chosen</dt><dd><ul class="muted"><li><b>B.</b> Mock the database queries instead of seeding rows.</li></ul></dd>
+  </dl>
+</article>
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>3 · Field names: camelCase types vs snake_case API</h3><span class="pill p-none">was: Decision</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>The plan's TypeScript types are camelCase (<code>totalInvested</code>), but the API sends Pydantic field names as they are (<code>total_invested</code>). Nothing in <code>lib/apiClient.ts</code> converts them.</p><p>Every value on the section would read <code>undefined</code>, so the tiles would show ₹NaN.</p></dd>
+    <dt>Fix chosen</dt><dd><p><span class="rec">A.</span> snake_case in the new types, as the existing <code>types.ts</code> already does.</p><p>It's the only option that changes nothing existing.</p></dd>
+    <dt>What happens now</dt><dd><ul><li>The new interfaces use <code>total_invested</code>, <code>sip_summary.active_count</code> and so on.</li><li>The component and its tests read those names.</li></ul></dd>
+    <dt>Not chosen</dt><dd><ul class="muted"><li><b>B.</b> Add a camelCase alias generator to the backend. That changes every existing response and breaks the screens that use them.</li><li><b>C.</b> Convert to camelCase inside this section only. This creates a second convention in one feature folder.</li></ul></dd>
+  </dl>
+</article>
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>4 · Quiet months disappear from the chart</h3><span class="pill p-none">was: Fix</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>The backend creates a monthly bucket only for months that have transactions. A month with no activity, sitting between active months, isn't in the list at all.</p><p>The chart would draw Jan, Feb, May next to each other as if March and April never happened, which misrepresents the cadence of investing. It's Review Focus #2. The plan's chart test passes only because it feeds a zero bucket by hand, which the real backend never sends.</p></dd>
+    <dt>Fix chosen</dt><dd><p><span class="rec">A.</span> The backend fills every month (and year) from the first activity to the current month with zero buckets.</p><p>It keeps all computation on the server, like every other section. The PDF export and any future consumer get the same continuous series, and it's one place to test. Running to the current month also shows recent inactivity, which is what a missed SIP looks like.</p></dd>
+    <dt>What happens now</dt><dd><ul><li>Monthly periods are continuous from the first transaction month to this month; yearly periods likewise.</li><li>A new backend test: activity in Jan and Apr gives Feb and Mar buckets at 0.00.</li><li>The chart test stays as it is and now matches real data.</li></ul></dd>
+    <dt>Not chosen</dt><dd><ul class="muted"><li><b>B.</b> The frontend fills the gaps before drawing.</li><li><b>C.</b> Leave it and accept gaps.</li></ul></dd>
+  </dl>
+</article>
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>5 · Stamp duty and bounced SIPs</h3><span class="pill p-none">was: Fix</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>The plan sums raw <code>txn.amount</code>, so Total invested leaves out the stamp duty added in migration 0032. <code>cash_flow.py</code> already uses <code>paid_amount(txn)</code>, which is amount plus stamp duty. The plan also counts a bounced SIP's <code>REVERSAL</code> as Withdrawn. On 8 Oct you ruled that a reversal nets against Invested.</p><p>Without stamp duty, Total invested is a little lower than what actually left the bank, and it disagrees with the XIRR cash flows. Counting a reversal as Withdrawn makes a bounced ₹5,000 SIP show as ₹5,000 invested and ₹5,000 withdrawn, which inflates both tiles. Net invested and Absolute gain come out the same either way; only the Invested and Withdrawn tiles differ.</p></dd>
+    <dt>Fix chosen</dt><dd><p><span class="rec">A.</span> Use <code>paid_amount(txn)</code>, and net REVERSAL against Invested (your 8 Oct ruling).</p><p>It shows the money that actually left the household's account, matches the XIRR numbers elsewhere, and a bounce reads as "this instalment didn't happen" instead of an investment plus a withdrawal.</p></dd>
+    <dt>What happens now</dt><dd><ul><li>Task 1 keeps its own query (it needs <code>transaction_id</code>, which <code>compute_cash_flow</code> doesn't return) but reads amounts through <code>lot_rules.paid_amount</code>.</li><li>A REVERSAL lowers that month's Invested; the drill-in list still shows the reversal row.</li><li>Two new tests: stamp duty included, and a bounced SIP nets to zero invested.</li></ul></dd>
+    <dt>Not chosen</dt><dd><ul class="muted"><li><b>B.</b> Use <code>paid_amount(txn)</code>, and keep REVERSAL as Withdrawn (the plan).</li><li><b>C.</b> Keep raw amounts and REVERSAL as Withdrawn (the plan as written).</li></ul></dd>
+  </dl>
+</article>
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>6 · CSS tokens and a chart dependency that don't exist</h3><span class="pill p-none">was: Fix</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>The section uses <code>--surface-muted</code>, <code>--text-muted</code>, <code>--warning-bg</code>, <code>--warning-text</code> and <code>--border</code>. <code>tokens.css</code> only has <code>--color-*</code> tokens (<code>--color-text-secondary</code>, <code>--color-border</code>, <code>--color-bg</code>, <code>--color-warning</code>…). <code>bar-chart.tsx</code> imports <code>d3-scale</code>, which is in <code>node_modules</code> only as a dependency of another package, not in <code>package.json</code>.</p><p>Unknown CSS variables silently resolve to nothing, so the section would render unstyled. A transitive import works today but breaks the day the parent package drops it.</p></dd>
+    <dt>Fix chosen</dt><dd><p><span class="rec">A.</span> Map to existing tokens, and compute the band and linear scales by hand (about 10 lines of arithmetic).</p><p>No new tokens and no new dependency, both locked in the frontend spec. The scale math for one grouped bar chart is trivial.</p></dd>
+    <dt>What happens now</dt><dd><ul><li><code>--text-muted</code> → <code>--color-text-secondary</code>, <code>--border</code> → <code>--color-border</code>, <code>--surface-muted</code> → <code>--color-bg</code>, warning → <code>--color-warning</code>.</li><li><code>bar-chart.tsx</code> imports only <code>@visx/group</code>, <code>/responsive</code> and <code>/shape</code>.</li><li>Visual polish is deferred: this ships with existing tokens, and the UI pass comes later.</li></ul></dd>
+    <dt>Not chosen</dt><dd><ul class="muted"><li><b>B.</b> Map to existing tokens, and add <code>d3-scale</code> to <code>package.json</code>.</li><li><b>C.</b> Add new tokens for this section.</li></ul></dd>
+  </dl>
+</article>
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>7 · Money formatted with <code>Number()</code></h3><span class="pill p-none">was: Fix</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p><code>formatInr</code> converts the amount string to a JavaScript number before formatting.</p><p>It breaks the decimal-discipline rule. Large or long-fraction values can round, and the formatting won't match the rest of the app.</p></dd>
+    <dt>Fix chosen</dt><dd><p><span class="rec">A.</span> Use <code>formatIndianCurrency</code> from <code>@/lib/decimal</code> for every tile and SIP amount.</p><p>It's the app's existing formatter, works on strings, and matches other sections.</p></dd>
+    <dt>What happens now</dt><dd><ul><li>Tiles and the SIP line show the same format as the rest of Analytics.</li><li>The bar chart still converts to numbers for bar heights only, which is geometry, not a displayed value.</li></ul></dd>
+    <dt>Not chosen</dt><dd><ul class="muted"><li><b>B.</b> Keep <code>Number()</code>.</li></ul></dd>
+  </dl>
+</article>
+</div></div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="tag">Done means</span><h2>Review Focus the gate checks</h2></div>
+  <ul class="plain">
+    <li>A household with zero transactions shows ₹0 on all 5 tiles and an explicit empty-state message, never an empty chart.</li>
+    <li>A month with no activity, between active months, stays on the axis at zero height.</li>
+    <li>No active SIPs reads "0 active SIPs", never an error or a missing line.</li>
+    <li>An overdue SIP shows a visible missed-instalment badge.</li>
+    <li>A household whose only activity is a gift-in shows ₹0 everywhere (named regression test).</li>
+  </ul>
+</section>
+
+<footer>Source: <code>Docs/superpowers/plans/2026-10-09-attribute-14-investment-withdrawal.md</code> and the code at <code>cd2533d</code>. Checked and updated 2026-10-09.</footer>
+</div>

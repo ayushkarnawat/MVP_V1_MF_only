@@ -1,0 +1,337 @@
+<title>A04 Fund Manager Build</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Manrope:wght@600;700;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one 1040px reading column; diagrams and tables scroll inside their own frames. */
+:root {
+  --paper: #F4F7F6; --surface: #FFFFFF; --ink: #12201C; --muted: #5A6A65; --line: #D9E2DF;
+  --accent: #0E6A56; --accent-soft: #E1F0EB;
+  --crit: #B3262E; --crit-soft: #FBE5E6; --warn: #A86C12; --warn-soft: #FBF0DA;
+  --info: #2D5B9C; --info-soft: #E3EBF7; --codex: #6B4BB8; --codex-soft: #EEE8FA;
+  --display: "Manrope", "Segoe UI", system-ui, sans-serif;
+  --body: "DM Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "Cascadia Code", monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #0D1412; --surface: #141E1B; --ink: #E4ECE9; --muted: #96A7A1; --line: #26342F;
+  --accent: #5DC8A7; --accent-soft: #163029; --crit: #F0767C; --crit-soft: #3A1B1E;
+  --warn: #E5AB4B; --warn-soft: #33270F; --info: #82A9E6; --info-soft: #182437;
+  --codex: #B49BF0; --codex-soft: #261D3D; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --paper: #0D1412; --surface: #141E1B; --ink: #E4ECE9; --muted: #96A7A1; --line: #26342F;
+  --accent: #5DC8A7; --accent-soft: #163029; --crit: #F0767C; --crit-soft: #3A1B1E;
+  --warn: #E5AB4B; --warn-soft: #33270F; --info: #82A9E6; --info-soft: #182437;
+  --codex: #B49BF0; --codex-soft: #261D3D; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font: 400 15px/1.6 var(--body); margin: 0; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 40px 20px 80px; display: flex; flex-direction: column; gap: 44px; }
+header.top { display: flex; flex-direction: column; gap: 14px; }
+.eyebrow { font: 600 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+h1 { font: 800 clamp(28px, 4.4vw, 42px)/1.1 var(--display); margin: 0; letter-spacing: -.02em; text-wrap: balance; }
+h2 { font: 700 22px/1.25 var(--display); margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+h3 { font: 700 16px/1.3 var(--display); margin: 0; }
+p { margin: 0; max-width: 72ch; }
+.lede { font-size: 17px; color: var(--muted); max-width: 70ch; }
+code, .mono { font-family: var(--mono); font-size: .86em; }
+code { background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; word-break: break-word; }
+a { color: var(--accent); }
+section { display: flex; flex-direction: column; gap: 16px; }
+.sec-head { display: flex; flex-direction: column; gap: 6px; }
+.sec-head .tag { font: 600 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font: 500 13px/1 var(--body); padding: 7px 11px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+.chip b { font-family: var(--display); font-weight: 800; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.grid2 > * { min-width: 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.panel .label { font: 600 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.panel.after { border-color: var(--accent); }
+.panel.after .label { color: var(--accent); }
+.diagram { overflow-x: auto; }
+pre.mermaid { margin: 0; background: transparent; font-family: var(--body); }
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 11px/1.2 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--paper); }
+tr:last-child td { border-bottom: 0; }
+td.num { font-variant-numeric: tabular-nums; }
+.pill { display: inline-block; font: 600 11px/1 var(--mono); padding: 4px 7px; border-radius: 5px; letter-spacing: .03em; white-space: nowrap; }
+.p-new { background: var(--accent-soft); color: var(--accent); }
+.p-mod { background: var(--info-soft); color: var(--info); }
+.p-none { background: var(--paper); color: var(--muted); border: 1px solid var(--line); }
+.p-codex { background: var(--codex-soft); color: var(--codex); }
+.p-claude { background: var(--accent-soft); color: var(--accent); }
+.p-you { background: var(--warn-soft); color: var(--warn); }
+.p-crit { background: var(--crit-soft); color: var(--crit); }
+.p-warn { background: var(--warn-soft); color: var(--warn); }
+.p-info { background: var(--info-soft); color: var(--info); }
+ol.passes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0; }
+ol.passes > li { display: grid; grid-template-columns: 132px 1fr; gap: 16px; padding: 14px 0; border-top: 1px solid var(--line); }
+ol.passes > li:first-child { border-top: 0; }
+ol.passes .when { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+ol.passes .when .n { font: 800 13px/1 var(--display); color: var(--muted); }
+ol.passes .what { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+ol.passes ul { margin: 0; padding-left: 18px; }
+@media (max-width: 560px) { ol.passes > li { grid-template-columns: 1fr; gap: 8px; } }
+.issues { display: flex; flex-direction: column; gap: 10px; }
+.issue { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--info); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.issue.crit { border-left-color: var(--crit); }
+.issue.warn { border-left-color: var(--warn); }
+.issue .hd { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.issue .hd h3 { font-size: 15px; }
+.issue .fix { color: var(--muted); font-size: 14px; }
+.callout { background: var(--warn-soft); border: 1px solid var(--warn); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+.callout h2 { font-size: 19px; }
+.note { font-size: 13px; color: var(--muted); }
+ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.bar { display: flex; height: 34px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
+.bar > div { display: flex; align-items: center; justify-content: center; font: 700 12px/1 var(--display); color: #fff; min-width: 0; overflow: hidden; white-space: nowrap; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; background: var(--c); vertical-align: -1px; }
+.formula { font-family: var(--mono); font-size: 13px; background: var(--paper); border: 1px dashed var(--line); border-radius: 8px; padding: 12px 14px; overflow-x: auto; white-space: pre; }
+footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 16px; }
+.ib { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--info); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.ib.crit { border-left-color: var(--crit); } .ib.warn { border-left-color: var(--warn); } .ib.done { border-left-color: var(--accent); }
+.ib .top { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ib .top h3 { font-size: 16px; flex: 1 1 260px; min-width: 0; }
+.ib dl { display: grid; grid-template-columns: 148px minmax(0, 1fr); gap: 10px 18px; margin: 0; }
+.ib dt { font: 600 11px/1.5 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding-top: 2px; }
+.ib dd { margin: 0; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.ib ol.opts { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.ib ol.opts li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 8px; }
+.ib ol.opts .k { font: 800 12px/1.6 var(--display); color: var(--muted); }
+.ib ol.opts li.pick .k { color: var(--accent); }
+.ib ol.opts li.pick > span:last-child { font-weight: 500; }
+.ib .rec { color: var(--accent); font-weight: 700; }
+.ib ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
+@media (max-width: 600px) { .ib dl { grid-template-columns: 1fr; gap: 4px; } .ib dd { margin-bottom: 8px; } }
+.group { display: flex; flex-direction: column; gap: 10px; padding-top: 8px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 22px; margin-top: 6px; }
+.group-head { display: flex; align-items: center; gap: 10px; }
+.group-head h3 { font-size: 18px; }
+.ib ul.muted { color: var(--muted); font-size: 13px; }
+.ib.done .top h3 { color: var(--ink); }
+</style>
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Sub-project 1 · Attribute 04 · 4th in run order</div>
+  <h1>Fund manager allocation</h1>
+  <p class="lede">Shows who actually runs the household's money: one card per fund manager, with the total value of every held fund they manage and a list of those funds. The data comes from AMC factsheets, refreshed monthly.</p>
+  <div class="chips">
+    <span class="chip"><b>10</b> tasks · 8 build + 1 onboarding procedure + manual CLI</span>
+    <span class="chip"><b>1</b> migration (expected <span class="mono">0035</span>)</span>
+    <span class="chip"><b>1</b> new table</span>
+    <span class="chip"><b>0</b> routes · 1 new analytics section</span>
+    <span class="chip"><b>1</b> new monthly job (Terraform)</span>
+    <span class="chip"><b>1</b> manual import CLI</span>
+    <span class="chip"><b>7</b> Codex runs · build, frontend, 5 onboarding batches</span>
+  </div>
+</header>
+
+<section>
+  <div class="sec-head"><span class="tag">Coverage</span><h2>The 57 AMFI-listed AMCs, by how we reach their factsheet</h2></div>
+  <div class="bar" role="img" aria-label="27 static regex, 8 JSON API, 12 to investigate, 3 manual, 7 liveness check">
+    <div style="flex:27;background:var(--accent)">27 static</div>
+    <div style="flex:8;background:var(--info)">8 API</div>
+    <div style="flex:12;background:var(--codex)">12 trace</div>
+    <div style="flex:3;background:var(--crit)">3</div>
+    <div style="flex:7;background:var(--muted)">7</div>
+  </div>
+  <div class="legend">
+    <span style="--c:var(--accent)">Tier 1 · STATIC_REGEX: PDF link on the AMC landing page AMFI points to</span>
+    <span style="--c:var(--info)">Tier 2 · JSON_API: AMC's own document API (ICICI Pru, Axis, UTI…)</span>
+    <span style="--c:var(--codex)">Tier 3 · traced live in tasks 8–19 (HSBC, Tata, Bandhan…)</span>
+    <span style="--c:var(--crit)">Tier 4 · manual PDF: HDFC, Kotak, Edelweiss</span>
+    <span style="--c:var(--muted)">Tier 5 · probably no live schemes, checked in task 20</span>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="tag">Flow</span><h2>Before and after</h2><p class="note">Before: there is no fund-manager data anywhere in the product.</p></div>
+  <div class="panel after"><span class="label">After · monthly ingest</span><div class="diagram"><pre class="mermaid">
+flowchart LR
+  eb["EventBridge&lt;br/&gt;10th, 06:00 IST"] --> job["refresh_fund_managers_monthly"]
+  job --> dir["AMFI factsheet directory&lt;br/&gt;AMC → landing page"]
+  dir --> reg{"AMC_RESOLVERS"}
+  reg -->|STATIC_REGEX| s["landing page → .pdf link"]
+  reg -->|JSON_API| j["AMC API → .pdf url"]
+  reg -->|MANUAL_PENDING| skip["skipped"]
+  s --> pdf["pypdfium2 · text per page"]
+  j --> pdf
+  pdf --> ex["extract managers&lt;br/&gt;generic or ABSL layout"]
+  ex --> m["match to scheme&lt;br/&gt;exact base_name → fuzzy ≥ 0.80&lt;br/&gt;refuse if runner-up within 0.05"]
+  m --> up[("scheme_fund_managers&lt;br/&gt;reference_period = 1st of month")]
+  man["Staff downloads PDF&lt;br/&gt;import_manual_fund_managers.py"] --> pdf
+</pre></div></div>
+  <div class="panel after"><span class="label">After · serving</span><div class="diagram"><pre class="mermaid">
+flowchart LR
+  rc["recompute_household_analytics"] --> fma["compute_fund_manager_allocation"]
+  fma --> h["compute_holdings → value per held scheme"]
+  fma --> l[("scheme_fund_managers&lt;br/&gt;latest period per scheme")]
+  fma --> out["manager groups sorted by value&lt;br/&gt;+ unavailable schemes"]
+  out --> as[("analytics_sections · fund_manager")]
+  as --> ui["FundManagerSection&lt;br/&gt;+ PDF print view"]
+</pre></div></div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="tag">Database</span><h2>ER before and after</h2></div>
+  <div class="grid2">
+    <div class="panel"><span class="label">Before</span><div class="diagram"><pre class="mermaid">
+erDiagram
+  SCHEMES {
+    uuid id PK
+    string amfi_code UK "one per plan variant"
+    string base_name "shared by Direct, Regular, IDCW"
+    string amc_name
+  }
+</pre></div></div>
+    <div class="panel after"><span class="label">After</span><div class="diagram"><pre class="mermaid">
+erDiagram
+  SCHEMES ||--o{ SCHEME_FUND_MANAGERS : "managed by"
+  SCHEME_FUND_MANAGERS {
+    uuid id PK
+    uuid scheme_id FK
+    string manager_name "UK with scheme_id, reference_period"
+    string role "verbatim or null"
+    int sequence_order
+    string managing_since_raw
+    date managing_since
+    date reference_period
+    string match_method "EXACT, FUZZY, MANUAL"
+    numeric match_confidence
+  }
+</pre></div></div>
+  </div>
+  <p class="note">Two managers on one scheme means two rows and two cards, never merged. <code>match_method</code> is a plain string with module constants, following <code>schemes.ter_link_source</code>.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="tag">Change map</span><h2>What changes where</h2></div>
+  <div class="tbl"><table>
+    <tr><th>Layer</th><th>File</th><th>Change</th><th>Task</th></tr>
+    <tr><td>Database</td><td><code>alembic/versions/&lt;NNNN&gt;_scheme_fund_managers.py</code></td><td><span class="pill p-new">new</span> table + unique key + index</td><td>1</td></tr>
+    <tr><td>Backend</td><td><code>app/models/reference.py</code></td><td><span class="pill p-mod">modify</span> <code>SchemeFundManager</code></td><td>1</td></tr>
+    <tr><td>Backend</td><td><code>app/services/analytics/fund_manager_resolvers.py</code></td><td><span class="pill p-new">new</span> registry of all 57 AMCs</td><td>2, 8–20</td></tr>
+    <tr><td>Backend</td><td><code>app/services/analytics/amfi_factsheet_client.py</code></td><td><span class="pill p-new">new</span> fetch, extract, match, upsert</td><td>3</td></tr>
+    <tr><td>Jobs</td><td><code>scripts/jobs/refresh_fund_managers_monthly.py</code></td><td><span class="pill p-new">new</span> monthly entrypoint</td><td>4</td></tr>
+    <tr><td>Infra</td><td><code>infra/modules/scheduler/main.tf</code></td><td><span class="pill p-mod">modify</span> <code>fund_managers_monthly</code> job</td><td>4</td></tr>
+    <tr><td>Backend</td><td><code>app/services/analytics/fund_manager_allocation.py</code></td><td><span class="pill p-new">new</span> household aggregation</td><td>5</td></tr>
+    <tr><td>Backend</td><td><code>schemas.py</code>, <code>recompute.py</code></td><td><span class="pill p-mod">modify</span> 5 models; <code>fund_manager</code> section</td><td>5–6</td></tr>
+    <tr><td>Frontend</td><td><code>features/analytics/FundManagerSection.tsx</code></td><td><span class="pill p-new">new</span> manager cards, expand to funds, "not available yet" block</td><td>7</td></tr>
+    <tr><td>Frontend</td><td><code>types.ts</code>, <code>AnalyticsView.tsx</code>, <code>PrintAnalyticsView.tsx</code></td><td><span class="pill p-mod">modify</span> types, wiring, PDF export</td><td>7</td></tr>
+    <tr><td>Jobs</td><td><code>scripts/jobs/import_manual_fund_managers.py</code></td><td><span class="pill p-new">new</span> CLI for HDFC, Kotak, Edelweiss</td><td>21</td></tr>
+  </table></div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="tag">Execution</span><h2>Passes, in order</h2></div>
+  <ol class="passes">
+    <li><div class="when"><span class="n">Pass 0</span><span class="pill p-claude">Claude</span><span class="pill p-you">You</span></div><div class="what"><h3>Redesign the match step before anyone builds it</h3><p>Blocker 1 below changes Task 3's core function. Claude rewrites that part of the plan and you approve it before Run 1.</p></div></li>
+    <li><div class="when"><span class="n">Pass 1</span><span class="pill p-codex">Codex run 1</span></div><div class="what"><h3>Engine: tasks 1–3</h3><ul><li>Table, registry, extraction and matching, upsert.</li></ul></div></li>
+    <li><div class="when"><span class="n">Gate</span><span class="pill p-claude">Claude</span></div><div class="what"><h3>Real-PDF check and Opus review</h3><p>The regexes were reconstructed from descriptions, so Claude runs them on a freshly downloaded Nippon, DSP and ABSL factsheet before the review. This is the riskiest code in the sub-project, so the review uses Opus. Claude commits each task as the plan says.</p></div></li>
+    <li><div class="when"><span class="n">Pass 2</span><span class="pill p-codex">Codex run 2</span></div><div class="what"><h3>Job, aggregation, section, frontend: tasks 4–7</h3></div></li>
+    <li><div class="when"><span class="n">Pass 3</span><span class="pill p-claude">Claude</span><span class="pill p-codex">parallel</span></div><div class="what"><h3>Research batch: tasks 8–20</h3><ul><li>12 independent AMC traces. They touch only the registry file, so they can run alongside attribute 11.</li><li>Live browsing needed. A headless-browser trace is needed for Mahindra Manulife.</li><li>Task 20 queries staging's <code>schemes</code> table through the SSM tunnel; start and stop the bastion around it.</li></ul></div></li>
+    <li><div class="when"><span class="n">Pass 4</span><span class="pill p-codex">Codex</span><span class="pill p-you">You</span></div><div class="what"><h3>Manual CLI (task 21), Terraform, first live run</h3><ul><li><code>terraform validate</code>, then a targeted apply of the scheduler module with you.</li><li>Trigger the job once by hand on staging and read its counts: AMCs processed and failed, schemes matched and unmatched.</li><li>Download this month's HDFC, Kotak and Edelweiss PDFs and run the CLI.</li></ul></div></li>
+  </ol>
+</section>
+
+<section>
+  <div class="sec-head"><span class="tag">Issues in detail</span><h2>Issues, by status</h2><p class="note"><b>What stays fixed:</b> one card per fund manager with the household value they run, sourced monthly from factsheets, and an honest "not available yet" list. The matching thresholds (exact first, fuzzy ≥ 0.80, ambiguity guard 0.05) don't change; the fixes make it match real funds.</p><div class="chips"><span class="chip"><span class="pill p-new">Resolved</span> <b>6</b></span><span class="chip"><span class="pill p-none">Open</span> <b>0</b></span></div></div>
+  
+<div class="group"><div class="group-head"><h3>Resolved</h3><span class="pill p-new">6</span></div><p class="note">Decided or verified. Each card shows the problem, the fix we chose, and what happens with it.</p><div class="issues">
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>1 · Match funds, not plan rows — and how to make matching tighter</h3><span class="pill p-none">was: Blocker</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>A factsheet names a fund; <code>schemes</code> has one row per plan and option, sharing <code>base_name</code> (<code>name = base_name - plan - option</code>, <code>scheme_universe.py:106</code>). The plan's matcher refuses when several rows share a base name, which is almost always, and never copies managers to sibling rows. Decided: match at fund level, then write the managers to every scheme in that <code>(amc_name, base_name)</code> family.</p><p><b>Making it tighter.</b> Name similarity alone is the weakest signal. Factsheets carry other facts we can check against data we already hold. Layered, cheapest and strongest first:<div class="tbl"><table><tr><th>Layer</th><th>Factsheet field</th><th>Our data</th><th>Role</th></tr><tr><td>1 · AMC scope</td><td>whose factsheet it is</td><td><code>schemes.amc_name</code></td><td>Already in the plan; never match across AMCs</td></tr><tr><td>2 · ISIN</td><td>ISINs listed under "Plans/Options", where printed</td><td><code>schemes.isin</code>, <code>isin_reinvest</code></td><td>Exact match, the strongest possible; skips names entirely</td></tr><tr><td>3 · Exact name</td><td>scheme heading</td><td>canonical <code>base_name</code></td><td>Plan's first step, now at fund level</td></tr><tr><td>4 · Category gate</td><td>"Category: Small Cap Fund"</td><td><code>schemes.sebi_category</code></td><td>Fuzzy candidates must share the category, so a small-cap name can't land on a mid-cap fund</td></tr><tr><td>5 · Fuzzy</td><td>scheme heading</td><td><code>base_name</code></td><td>≥ 0.80, refuse if runner-up within 0.05 (unchanged)</td></tr><tr><td>6 · AUM tie-break</td><td>monthly average AUM (₹ cr)</td><td><code>scheme_aaum.aaum_value</code> (quarterly)</td><td>Only to settle a remaining tie, and only if exactly one family is within ±25%</td></tr></table></div><p>Not used: inception date (we only know the first NAV we hold, which A11's backfill fills later), benchmark name (we don't store it), and a saved alias table (matching is deterministic month to month, so it would add a table without changing results). Every name that still doesn't match is logged with its AMC, for monthly review.</p></p></dd>
+    <dt>Fix chosen</dt><dd><p><span class="rec">A.</span> Fund-level matching + family write, plus layers 2 and 4 (ISIN when printed, category gate on fuzzy).</p><p>ISIN and category are near-free once the text is extracted, and they remove the two real risks: a fuzzy match to the wrong fund, and a wrong fund in a different category. The AUM tie-break (C) is only worth adding if the all-AMC download (card 3) shows ties that A leaves unresolved. Whether each AMC prints ISIN and category is one of the things that download records.</p></dd>
+    <dt>What happens now</dt><dd><ul><li><code>match_extracted_fund_name</code> takes the page's extracted ISINs and category with the name, and returns a <code>(amc_name, base_name)</code> family.</li><li><code>upsert_scheme_fund_managers</code> runs once per scheme in the family; the manual CLI does the same.</li><li>Tests: Direct, Regular and IDCW rows all get managers; an ISIN match wins over a different-looking name; a fuzzy name in another category is refused; two different funds within 0.05 are still refused.</li></ul></dd>
+    <dt>Not chosen</dt><dd><ul class="muted"><li><b>B.</b> Fund-level matching + family write only (layers 1, 3, 5).</li><li><b>C.</b> All six layers, including the AUM tie-break.</li></ul></dd>
+  </dl>
+</article>
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>2 · One AMC breaking shouldn't stop the rest, and we should hear about it</h3><span class="pill p-none">was: Fix</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>Decided: both options. Catch everything per AMC (and add the specific types to the log message), and commit after each AMC. Then the question you raised: how does the system notice that an AMC changed its factsheet, and what happens to the data until someone fixes it?</p><p><b>How it detects a change.</b> After each AMC, the job compares the run with what it already knows, using only data it already has:<ul><li><b>Fetch failed:</b> network error, 403, 404, or no PDF link found.</li><li><b>Not a factsheet:</b> the downloaded PDF fails the content check from card 4.</li><li><b>Layout changed:</b> the PDF reads fine but no manager blocks are found on any page.</li><li><b>Matching collapsed:</b> schemes matched this month is under half of last month's count for that AMC (counted from <code>scheme_fund_managers</code> by <code>reference_period</code>, so no new table).</li></ul>Each of these logs one line: <code>FUND_MANAGER_ALERT amc=&lt;name&gt; reason=&lt;code&gt; detail=&lt;url or counts&gt;</code>.<div class="diagram"><pre class="mermaid">flowchart LR
+  job["monthly job · per AMC"] --> chk{"fetch, factsheet check,&lt;br/&gt;extract, match vs last month"}
+  chk -->|"all fine"| ok["commit this AMC's rows"]
+  chk -->|"any check fails"| log["log FUND_MANAGER_ALERT"]
+  log --> mf["CloudWatch metric filter&lt;br/&gt;on the job's log group"]
+  mf --> al["CloudWatch alarm"]
+  al --> sns[("existing ops-alerts SNS topic")]
+  sns --> mail["email to the 2 subscribers"]</pre></div><p><b>How it adapts:</b> it doesn't rewrite its own parser. It keeps serving last month's managers for that AMC, because the household view reads each scheme's latest period and nothing is deleted when a run fails. Someone then fits the pattern to the new layout using the PDF URL in the alert. To keep stale data from lingering, rows older than 3 months count as "not available yet".</p></p></dd>
+    <dt>Fix chosen</dt><dd><p><span class="rec">A.</span> Catch-all per AMC + commit per AMC + alert line + metric filter and alarm on the existing ops-alerts topic.</p><p>The SNS topic and the job's log group already exist (<code>infra/modules/scheduler/main.tf</code>); this adds two Terraform resources and no app permissions. The detection checks reuse data the job already has.</p></dd>
+    <dt>What happens now</dt><dd><ul><li>Task 3: per-AMC <code>except Exception</code>, rollback, commit, and the four checks with the alert line.</li><li>Task 4: <code>aws_cloudwatch_log_metric_filter</code> + <code>aws_cloudwatch_metric_alarm</code> → <code>ops_alerts</code>.</li><li>Task 5: rows older than 3 months are treated as unavailable.</li><li>Tests: an AMC raising <code>RuntimeError</code> doesn't stop the next one; an AMC whose matches drop from 40 to 5 logs the alert line.</li></ul></dd>
+    <dt>Not chosen</dt><dd><ul class="muted"><li><b>B.</b> The same, but the job publishes to SNS itself (needs a task role with <code>sns:Publish</code>; all jobs have <code>task_role_arn = null</code> today).</li><li><b>C.</b> No alerting; read the logs monthly.</li></ul></dd>
+  </dl>
+</article>
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>3 · Fit the patterns to real factsheets, from every reachable AMC</h3><span class="pill p-none">was: Fix</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>The manager-block regex, the ABSL line regex, the AMFI directory parser and the "first line is the scheme name" rule were reconstructed from descriptions. Decided: before Run 1 of A04, download the current factsheet from every AMC we can reach, not just Nippon, DSP and ABSL, and look at what's actually there.</p><p>With 57 AMCs, assuming two layouts (generic and ABSL) is a guess. One pass over all of them tells us how many layouts exist, which fields each prints, and which AMCs need special handling, before any code is written. It also feeds card 1's ISIN and category layers and card 4's factsheet check.</p></dd>
+    <dt>Fix chosen</dt><dd><p><span class="rec">A.</span> Claude fetches every reachable AMC: Tier 1 through the AMFI directory, Tier 2 through their APIs, and Tier 3 by following the plan's clues. The 3 blocked AMCs come from your ops team (card 5). Each PDF is turned into text and catalogued.</p><p>It replaces assumptions with a catalogue, and settles most of Tasks 8–19 (Tier 3) early.</p></dd>
+    <dt>What happens now</dt><dd><ul><li>A layout catalogue in <code>Docs/analytics/</code>: per AMC — reachable or not, how it was reached, page count, how manager names/roles/dates appear, whether ISIN, category and AUM are printed, the heading format, and which extractor it needs.</li><li>Small text excerpts (a few KB each) as test fixtures; the PDFs themselves stay outside the repo.</li><li>The extractors and tests in Task 3 are written against those excerpts.</li><li>This runs before A04's Run 1, while A14–A09 are being built.</li></ul></dd>
+    <dt>Not chosen</dt><dd><ul class="muted"><li><b>B.</b> Only Nippon, DSP and ABSL, as first proposed.</li></ul></dd>
+  </dl>
+</article>
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>4 · Make sure the downloaded PDF is this month's factsheet</h3><span class="pill p-none">was: Fix</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>The API resolvers took the first document in the list; the static resolvers take the first <code>.pdf</code> link on the landing page. Decided: option A, the shared "newest document named factsheet" rule. You asked how much tighter it can go.</p><p>Picking the right link is only half of it. The real guard is checking the file after download, which works the same for every resolver:<div class="tbl"><table><tr><th>Check</th><th>What it catches</th></tr><tr><td>1 · Pick: title or URL contains "factsheet", newest first</td><td>Forms, notices, SAI, KYC PDFs</td></tr><tr><td>2 · Content: at least 3 pages with a manager block</td><td>A one-pager, a single-scheme sheet, an unrelated PDF</td></tr><tr><td>3 · Month: the "as on" date printed in the PDF is last month</td><td>A stale factsheet still linked after month-end</td></tr><tr><td>4 · Coverage: matched families ≥ half of last month's</td><td>A partial or truncated factsheet</td></tr></table></div><p>A file that fails 2 or 3 isn't parsed; the AMC is counted as failed and raises the card 2 alert, and last month's data keeps serving. Check 4 is card 2's "matching collapsed" alert.</p></p></dd>
+    <dt>Fix chosen</dt><dd><p><span class="rec">B.</span> Pick rule + content check + month check, for every resolver.</p><p>Checks 2 and 3 are a few lines each, use text we extract anyway, and stop the two worst failures: parsing the wrong document, and silently re-importing last month. C only if the catalogue (card 3) shows an AMC that needs it.</p></dd>
+    <dt>What happens now</dt><dd><ul><li>One <code>looks_like_current_factsheet(pages, expected_month)</code> helper, used by both resolvers and the manual CLI.</li><li>Tests against the catalogue excerpts: a real factsheet passes, an SAI excerpt fails, last month's factsheet fails.</li></ul></dd>
+    <dt>Not chosen</dt><dd><ul class="muted"><li><b>A.</b> Pick rule only.</li><li><b>C.</b> B + a per-AMC page-range or file-name pattern.</li></ul></dd>
+  </dl>
+</article>
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>5 · HDFC and Kotak: monthly manual import (Edelweiss is automated again)</h3><span class="pill p-none">was: Check</span></div>
+  <dl>
+    <dt>Step 2 result (9 Oct)</dt><dd><p><b>Done with your 3 files.</b> Full write-up: <code>Docs/analytics/2026-10-09-attribute-04-factsheet-layouts.md</code>.</p><ul><li><b>The plan's extractor finds nothing in any of them</b> (0 pages each). Its "first line is the scheme name" rule fails on all three as well.</li><li><b>Each AMC uses its own layout:</b><ul><li>HDFC: a "FUND MANAGER" table with dates.</li><li>Kotak: a "Fund Manager*:" line with no dates.</li><li>Edelweiss: bullet names with slash-separated dates.</li></ul></li><li><b>With one extractor and one heading rule per layout</b> (prototyped), every scheme page yields managers and a name, and the plan's matcher matches all of them: HDFC 53/0/0, Kotak 108/4/0, Edelweiss 71/5/0 (exact / fuzzy / unmatched).</li><li><b>Coverage of live funds:</b> HDFC 53 of 112, Kotak 112 of 120, Edelweiss 76 of 76. HDFC's index funds and ETFs are in a separate passive factsheet, so ops downloads two HDFC files a month.</li></ul></dd>
+<dt>The issue</dt><dd><p>These 3 AMCs block automated downloads (HDFC #3 and Kotak #5 by AUM, about 18% of industry AUM between them). Decided: monthly manual import. Before writing the ops procedure, we test with real files.</p></dd>
+    <dt>Why it matters</dt><dd><p><b>Step 1, now: send us the files.</b><ul><li>From each of HDFC, Kotak Mahindra and Edelweiss, download the <b>monthly factsheet covering all schemes</b> (one consolidated PDF, not single-scheme sheets or a one-pager), for the latest month published.</li><li>It's usually under the AMC website's Downloads, Literature or Factsheets section. Note the exact page URL you used, so the procedure can point to it.</li><li>Name them <code>HDFC_2026-09.pdf</code>, <code>Kotak_2026-09.pdf</code>, <code>Edelweiss_2026-09.pdf</code> and put them in a folder outside the repo, like the CAS files (for example <code>Desktop/Unifolio/Factsheets/2026-09/</code>). Tell me the path.</li></ul><b>Step 2, us:</b> extract the text, add the 3 layouts to the catalogue (card 3), check the extractor and matcher against them, and report how many of each AMC's schemes matched and what didn't.<br><b>Step 3, after A04 is built:</b> we run the import CLI on the same files against staging, then write the ops procedure from what actually happened.<br><br><b>The procedure ops will follow</b> (draft, finalized after step 3):<ol><li>After the 10th of each month, download the 3 factsheets as in step 1 and save them with the month in the name.</li><li>Start the bastion, open the SSM tunnel to the database (same guide as the CAS-data scripts).</li><li>Run, once per AMC: <code>python scripts/jobs/import_manual_fund_managers.py --amc "HDFC Mutual Fund" --pdf &lt;path&gt;</code></li><li>Check the output line <code>matched=N</code>: it should be close to last month's number for that AMC. If it's 0 or far lower, the file is wrong or the layout changed; send the file to the tech team.</li><li>Stop the bastion.</li></ol></p></dd>
+    <dt>Options</dt><dd><ol class="opts"><li class="pick"><span class="k">A</span><span>Monthly manual import by ops, with this procedure.</span></li><li class=""><span class="k">B</span><span>Leave the 3 AMCs as "not available yet".</span></li></ol></dd>
+    <dt>Recommended</dt><dd><p><span class="rec">A.</span> About 10 minutes a month covers almost a fifth of the market, and step 1–3 means the procedure is tested before ops relies on it.</p></dd>
+    <dt>After the fix</dt><dd><ul><li>Now: you send the 3 PDFs and the page URLs.</li><li>After the build: a tested ops guide in <code>Docs/orchestration/</code>, with expected <code>matched</code> counts per AMC.</li><li>Later, only if ops can't use the SSM tunnel: an upload-to-S3 + scheduled import. Not needed now.</li></ul></dd>
+  </dl>
+</article>
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>6 · What fetching all 57 AMCs changed in the plan</h3><span class="pill p-none">was: new</span></div>
+  <dl>
+    <dt>What was done</dt><dd><p>On 9 Oct a script read AMFI's factsheet directory, fetched every AMC's landing page with plain HTTP, picked the newest factsheet link, downloaded it and extracted the text. Write-up: <code>Docs/analytics/2026-10-09-attribute-04-factsheet-layouts.md</code>. The text dumps sit outside the repo, in <code>Desktop/Unifolio/Factsheets/2026-10-catalogue/</code>.</p></dd>
+    <dt>Findings</dt><dd><ul>
+      <li><b>The directory lookup would have found no AMC.</b> AMFI keys its directory by company ("Aditya Birla Sun Life AMC Limited"), not fund house; the plan also read a field that doesn't exist (<code>amcName</code>; the field is <code>amc_name</code>). Several registry names didn't match AMFI's either.</li>
+      <li><b>There is no generic layout.</b> The plan's single pattern matched 5 of 22 AMCs' files. There are six layout families, and some AMCs need their own handling.</li>
+      <li><b>"First PDF on the page" is often wrong.</b> About half the picks were stale (HSBC 2020, Zerodha 2025) or not a factsheet (a how-to guide, a methodology note). Card 4's checks are essential.</li>
+      <li><b>22 of 57 reachable by a plain fetch, 29 render their links in JavaScript, 6 list no page.</b> Edelweiss is reachable again.</li>
+    </ul></dd>
+    <dt>What the plan does now</dt><dd><ul>
+      <li><b>Registry:</b> keyed by our fund-house name, storing AMFI's company name. 55 entries; Carnelian and Nuvama have no schemes.</li>
+      <li><b>Readers:</b> one per AMC (Task 3b), each built on the AMC's real text with a fixture test.</li>
+      <li><b>Run 1 goes live with 4 AMCs,</b> measured on the real files:
+        <ul>
+          <li>Nippon: 100 of 108 live funds.</li>
+          <li>Edelweiss: 75 of 76.</li>
+          <li>HDFC: all 53 active funds.</li>
+          <li>Kotak: 112 of 120.</li>
+        </ul></li>
+      <li><b>Every other AMC:</b> one onboarding procedure (Task 8), run in 5 batches before staging. Each AMC needs a source verified against its live site, a reader with a fixture, and at least 90% of its live funds covered or a reason for each miss.</li>
+    </ul></dd>
+  </dl>
+</article>
+</div></div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="tag">Done means</span><h2>Review Focus the gate checks</h2></div>
+  <ul class="plain">
+    <li>A co-managed scheme gives 2+ rows and 2+ cards, never merged.</li>
+    <li>Two candidates within 0.05 of each other: no auto-pick, logged as unmatched.</li>
+    <li>A held HDFC, Kotak or Edelweiss scheme shows in "not available yet", never fabricated or dropped.</li>
+    <li>Running the job twice on the same data creates no duplicates.</li>
+    <li>ABSL's dateless layout still produces rows with <code>managing_since</code> left null.</li>
+  </ul>
+</section>
+
+<footer>Source: <code>Docs/superpowers/plans/2026-10-09-attribute-04-fund-manager-allocation.md</code> and the code at <code>cd2533d</code>. Checked and updated 2026-10-09; plan revised the same day from the live 57-AMC catalogue (card 6).</footer>
+</div>

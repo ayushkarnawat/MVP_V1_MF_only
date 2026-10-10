@@ -1,0 +1,345 @@
+<title>A09 Fund Ranking Build</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Manrope:wght@600;700;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one 1040px reading column; diagrams and tables scroll inside their own frames. */
+:root {
+  --paper: #F4F7F6; --surface: #FFFFFF; --ink: #12201C; --muted: #5A6A65; --line: #D9E2DF;
+  --accent: #0E6A56; --accent-soft: #E1F0EB;
+  --crit: #B3262E; --crit-soft: #FBE5E6; --warn: #A86C12; --warn-soft: #FBF0DA;
+  --info: #2D5B9C; --info-soft: #E3EBF7; --codex: #6B4BB8; --codex-soft: #EEE8FA;
+  --display: "Manrope", "Segoe UI", system-ui, sans-serif;
+  --body: "DM Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "Cascadia Code", monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #0D1412; --surface: #141E1B; --ink: #E4ECE9; --muted: #96A7A1; --line: #26342F;
+  --accent: #5DC8A7; --accent-soft: #163029; --crit: #F0767C; --crit-soft: #3A1B1E;
+  --warn: #E5AB4B; --warn-soft: #33270F; --info: #82A9E6; --info-soft: #182437;
+  --codex: #B49BF0; --codex-soft: #261D3D; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --paper: #0D1412; --surface: #141E1B; --ink: #E4ECE9; --muted: #96A7A1; --line: #26342F;
+  --accent: #5DC8A7; --accent-soft: #163029; --crit: #F0767C; --crit-soft: #3A1B1E;
+  --warn: #E5AB4B; --warn-soft: #33270F; --info: #82A9E6; --info-soft: #182437;
+  --codex: #B49BF0; --codex-soft: #261D3D; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font: 400 15px/1.6 var(--body); margin: 0; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 40px 20px 80px; display: flex; flex-direction: column; gap: 44px; }
+header.top { display: flex; flex-direction: column; gap: 14px; }
+.eyebrow { font: 600 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+h1 { font: 800 clamp(28px, 4.4vw, 42px)/1.1 var(--display); margin: 0; letter-spacing: -.02em; text-wrap: balance; }
+h2 { font: 700 22px/1.25 var(--display); margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+h3 { font: 700 16px/1.3 var(--display); margin: 0; }
+p { margin: 0; max-width: 72ch; }
+.lede { font-size: 17px; color: var(--muted); max-width: 70ch; }
+code, .mono { font-family: var(--mono); font-size: .86em; }
+code { background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; word-break: break-word; }
+a { color: var(--accent); }
+section { display: flex; flex-direction: column; gap: 16px; }
+.sec-head { display: flex; flex-direction: column; gap: 6px; }
+.sec-head .tag { font: 600 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font: 500 13px/1 var(--body); padding: 7px 11px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+.chip b { font-family: var(--display); font-weight: 800; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.grid2 > * { min-width: 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.panel .label { font: 600 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.panel.after { border-color: var(--accent); }
+.panel.after .label { color: var(--accent); }
+.diagram { overflow-x: auto; }
+pre.mermaid { margin: 0; background: transparent; font-family: var(--body); }
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 11px/1.2 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--paper); }
+tr:last-child td { border-bottom: 0; }
+td.num { font-variant-numeric: tabular-nums; }
+.pill { display: inline-block; font: 600 11px/1 var(--mono); padding: 4px 7px; border-radius: 5px; letter-spacing: .03em; white-space: nowrap; }
+.p-new { background: var(--accent-soft); color: var(--accent); }
+.p-mod { background: var(--info-soft); color: var(--info); }
+.p-none { background: var(--paper); color: var(--muted); border: 1px solid var(--line); }
+.p-codex { background: var(--codex-soft); color: var(--codex); }
+.p-claude { background: var(--accent-soft); color: var(--accent); }
+.p-you { background: var(--warn-soft); color: var(--warn); }
+.p-crit { background: var(--crit-soft); color: var(--crit); }
+.p-warn { background: var(--warn-soft); color: var(--warn); }
+.p-info { background: var(--info-soft); color: var(--info); }
+ol.passes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0; }
+ol.passes > li { display: grid; grid-template-columns: 132px 1fr; gap: 16px; padding: 14px 0; border-top: 1px solid var(--line); }
+ol.passes > li:first-child { border-top: 0; }
+ol.passes .when { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+ol.passes .when .n { font: 800 13px/1 var(--display); color: var(--muted); }
+ol.passes .what { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+ol.passes ul { margin: 0; padding-left: 18px; }
+@media (max-width: 560px) { ol.passes > li { grid-template-columns: 1fr; gap: 8px; } }
+.issues { display: flex; flex-direction: column; gap: 10px; }
+.issue { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--info); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.issue.crit { border-left-color: var(--crit); }
+.issue.warn { border-left-color: var(--warn); }
+.issue .hd { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.issue .hd h3 { font-size: 15px; }
+.issue .fix { color: var(--muted); font-size: 14px; }
+.callout { background: var(--warn-soft); border: 1px solid var(--warn); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+.callout h2 { font-size: 19px; }
+.note { font-size: 13px; color: var(--muted); }
+ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.bar { display: flex; height: 34px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
+.bar > div { display: flex; align-items: center; justify-content: center; font: 700 12px/1 var(--display); color: #fff; min-width: 0; overflow: hidden; white-space: nowrap; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; background: var(--c); vertical-align: -1px; }
+.formula { font-family: var(--mono); font-size: 13px; background: var(--paper); border: 1px dashed var(--line); border-radius: 8px; padding: 12px 14px; overflow-x: auto; white-space: pre; }
+footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 16px; }
+.ib { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--info); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.ib.crit { border-left-color: var(--crit); } .ib.warn { border-left-color: var(--warn); } .ib.done { border-left-color: var(--accent); }
+.ib .top { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ib .top h3 { font-size: 16px; flex: 1 1 260px; min-width: 0; }
+.ib dl { display: grid; grid-template-columns: 148px minmax(0, 1fr); gap: 10px 18px; margin: 0; }
+.ib dt { font: 600 11px/1.5 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding-top: 2px; }
+.ib dd { margin: 0; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.ib ol.opts { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.ib ol.opts li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 8px; }
+.ib ol.opts .k { font: 800 12px/1.6 var(--display); color: var(--muted); }
+.ib ol.opts li.pick .k { color: var(--accent); }
+.ib ol.opts li.pick > span:last-child { font-weight: 500; }
+.ib .rec { color: var(--accent); font-weight: 700; }
+.ib ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
+@media (max-width: 600px) { .ib dl { grid-template-columns: 1fr; gap: 4px; } .ib dd { margin-bottom: 8px; } }
+.group { display: flex; flex-direction: column; gap: 10px; padding-top: 8px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 22px; margin-top: 6px; }
+.group-head { display: flex; align-items: center; gap: 10px; }
+.group-head h3 { font-size: 18px; }
+.ib ul.muted { color: var(--muted); font-size: 13px; }
+.ib.done .top h3 { color: var(--ink); }
+</style>
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Sub-project 1 · Attribute 09 · 3rd in run order</div>
+  <h1>Fund ranking</h1>
+  <p class="lede">Ranks every held fund inside its SEBI category on a 5-factor score and shows a small leaderboard: the 2 funds just above it and the 2 just below, by name. Tapping a fund opens its factor breakdown.</p>
+  <div class="chips">
+    <span class="chip"><b>6</b> tasks (incl. 2a, peers)</span>
+    <span class="chip"><b>1</b> migration (expected <span class="mono">0034</span>)</span>
+    <span class="chip"><b>2</b> new tables</span>
+    <span class="chip"><b>1</b> new route · 1 new analytics section</span>
+    <span class="chip"><b>0</b> new jobs or data sources</span>
+    <span class="chip"><b>2</b> Codex runs</span>
+  </div>
+</header>
+
+<section>
+  <div class="sec-head"><span class="tag">The score</span><h2>Five percentiles, weighted, renormalized when one is missing</h2><p>Each factor is a percentile within the category, never a raw number, because a 3Y CAGR and a TER percentage aren't on the same scale. When a factor is missing, the others are re-weighted to sum to 1. A missing factor is never filled with 0.</p></div>
+  <div class="formula">Weights   3Y return 0.25 · 5Y return 0.25 · category-relative 0.20 · low volatility 0.15 · low TER 0.15
+Example   3Y 92nd · 5Y missing · cat-rel 70th · volatility 60th · TER missing (no exact TER link)
+          available weight = 0.25 + 0.20 + 0.15 = 0.60
+          composite = 92 × 0.25/0.60 + 70 × 0.20/0.60 + 60 × 0.15/0.60
+                    = 38.33 + 23.33 + 15.00 = 76.67
+Floors    under 3Y of history → "Insufficient History", not ranked
+          fewer than 5 ranked funds → ranked, flagged "Thin Category (N peers)", shown as "#2 of 3 ranked · 8 in category"
+          1Y return → shown, never weighted</div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="tag">Flow</span><h2>Before and after</h2></div>
+  <div class="grid2">
+    <div class="panel"><span class="label">Before</span><div class="diagram"><pre class="mermaid">
+flowchart TD
+  rc["recompute_household_analytics"] --> cr["category_ranking section&lt;br/&gt;blended 3Y/5Y return rank"]
+  rc --> sc["score section&lt;br/&gt;Scorer v1"]
+  sc --> fs[("fund_scores")]
+  api1["GET /analytics/funds/{id}/score"] --> sc
+  cr --> ui["AnalyticsView"]
+  sc --> ui
+</pre></div></div>
+    <div class="panel after"><span class="label">After</span><div class="diagram"><pre class="mermaid">
+flowchart TD
+  fr["fund_ranking.py"] --> d["_compute_category_returns_detailed&lt;br/&gt;r1, r3, r5, blended"]
+  fr --> rm["risk_metrics · downside deviation"]
+  fr --> ter["ter._latest_ter_for_scheme"]
+  fr --> au["scheme_aaum · category average"]
+  fr --> w[("ranking_weights&lt;br/&gt;or built-in defaults")]
+  fr --> cache["15-min cache per category"]
+  cache --> sr[("scheme_rankings&lt;br/&gt;1 row per scheme per day")]
+  sr --> a1["GET /analytics/funds/{id}/ranking"]
+  sr --> a2["section 'ranking'&lt;br/&gt;GET /analytics/{scope}"]
+  a2 --> ui["FundRankingSection&lt;br/&gt;+ PDF print view"]
+</pre></div></div>
+  </div>
+  <p class="note">Two doors, exactly like Scorer v1: a per-fund endpoint and a household section. <code>scorer.py</code> and the existing <code>category_ranking</code> section keep working unchanged, because <code>_compute_category_returns</code> becomes a thin wrapper over the new detailed function.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="tag">Database</span><h2>ER before and after</h2></div>
+  <div class="grid2">
+    <div class="panel"><span class="label">Before</span><div class="diagram"><pre class="mermaid">
+erDiagram
+  SCHEMES ||--o{ NAV_HISTORY : prices
+  SCHEMES ||--o{ SCHEME_TER : costs
+  SCHEMES ||--o{ SCHEME_AAUM : size
+  SCHEMES ||--o{ FUND_SCORES : "Scorer v1"
+  SCHEMES {
+    uuid id PK
+    string sebi_category
+    string ter_scheme_code
+  }
+</pre></div></div>
+    <div class="panel after"><span class="label">After</span><div class="diagram"><pre class="mermaid">
+erDiagram
+  SCHEMES ||--o{ NAV_HISTORY : prices
+  SCHEMES ||--o{ SCHEME_TER : costs
+  SCHEMES ||--o{ SCHEME_AAUM : size
+  SCHEMES ||--o{ FUND_SCORES : "Scorer v1"
+  SCHEMES ||--o{ SCHEME_RANKINGS : "NEW · daily rank"
+  SCHEME_RANKINGS {
+    uuid scheme_id PK
+    timestamptz computed_at PK
+    numeric composite_score
+    int category_rank
+    int category_size
+    numeric percentile
+    numeric return_1y_3y_5y
+    numeric five_factor_percentiles
+  }
+  RANKING_WEIGHTS {
+    bool id PK "singleton, id = true"
+    numeric weight_return_3y "0.25"
+    numeric weight_return_5y "0.25"
+    numeric weight_category_relative "0.20"
+    numeric weight_low_volatility "0.15"
+    numeric weight_low_ter "0.15"
+  }
+</pre></div></div>
+  </div>
+  <p class="note"><code>scheme_rankings</code> also stores each raw factor and each factor percentile as separate nullable columns, collapsed into two lines in the diagram. <code>ranking_weights</code> has no admin UI; you edit it in DBeaver through the SSM tunnel.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="tag">Change map</span><h2>What changes where</h2></div>
+  <div class="tbl"><table>
+    <tr><th>Layer</th><th>File</th><th>Change</th><th>Task</th></tr>
+    <tr><td>Database</td><td><code>alembic/versions/&lt;NNNN&gt;_scheme_rankings_and_ranking_weights.py</code></td><td><span class="pill p-new">new</span> 2 tables, seeds the weights row</td><td>1</td></tr>
+    <tr><td>Backend</td><td><code>app/models/reference.py</code></td><td><span class="pill p-mod">modify</span> <code>SchemeRanking</code>, <code>RankingWeight</code></td><td>1</td></tr>
+    <tr><td>Backend</td><td><code>app/services/analytics/category_ranking.py</code></td><td><span class="pill p-mod">modify</span> new <code>_compute_category_returns_detailed</code>; old function becomes a wrapper</td><td>2</td></tr>
+    <tr><td>Backend</td><td><code>app/services/analytics/fund_ranking.py</code></td><td><span class="pill p-new">new</span> composite engine, neighbors, cache, persistence</td><td>3</td></tr>
+    <tr><td>Backend</td><td><code>app/services/analytics/schemas.py</code></td><td><span class="pill p-mod">modify</span> 6 ranking models + aggregate wrapper</td><td>3</td></tr>
+    <tr><td>API</td><td><code>app/api/analytics.py</code></td><td><span class="pill p-mod">modify</span> <code>GET /analytics/funds/{scheme_id}/ranking</code></td><td>4</td></tr>
+    <tr><td>Backend</td><td><code>app/services/analytics/recompute.py</code></td><td><span class="pill p-mod">modify</span> <code>ranking</code> section</td><td>4</td></tr>
+    <tr><td>Frontend</td><td><code>features/analytics/FundRankingSection.tsx</code></td><td><span class="pill p-new">new</span> leaderboard card, "(you)" row, tap-through breakdown</td><td>5</td></tr>
+    <tr><td>Frontend</td><td><code>types.ts</code>, <code>AnalyticsView.tsx</code>, <code>print/PrintAnalyticsView.tsx</code></td><td><span class="pill p-mod">modify</span> types, wiring after <code>CategoryRankingSection</code>, PDF export</td><td>5</td></tr>
+  </table></div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="tag">Execution</span><h2>Passes, in order</h2></div>
+  <ol class="passes">
+    <li><div class="when"><span class="n">Pass 0</span><span class="pill p-claude">Claude</span></div><div class="what"><h3>Pre-flight fixes into the plan</h3><p>Mainly the composite-score bug below.</p></div></li>
+    <li><div class="when"><span class="n">Pass 1</span><span class="pill p-codex">Codex run 1</span></div><div class="what"><h3>Backend: tasks 1, 2, 2a, 3, 4</h3><ul><li>Tables, the detailed-returns refactor (with a test that the old function's output is unchanged), canonical categories and one-series-per-fund peers (2a, also used by Category Ranking), the engine, the endpoint and the section.</li></ul></div></li>
+    <li><div class="when"><span class="n">Gate</span><span class="pill p-claude">Claude</span></div><div class="what"><h3>Verify, migrate, review</h3><p>Touched tests plus <code>test_scorer.py</code>, <code>alembic upgrade</code> on local Postgres, then the adversarial review. Claude commits each task as the plan says.</p></div></li>
+    <li><div class="when"><span class="n">Pass 2</span><span class="pill p-codex">Codex run 2</span></div><div class="what"><h3>Frontend: task 5</h3><ul><li>Section, types, Analytics wiring, PDF print view.</li></ul></div></li>
+    <li><div class="when"><span class="n">Pass 3</span><span class="pill p-claude">Claude</span><span class="pill p-you">You</span></div><div class="what"><h3>Staging</h3><ul><li>Time the first recompute for a big category such as Flexi Cap; the category-wide pass is the slow part.</li><li>Spot-check one fund's rank against its category by hand.</li></ul></div></li>
+  </ol>
+</section>
+
+<section>
+  <div class="sec-head"><span class="tag">Issues in detail</span><h2>Issues, by status</h2><p class="note"><b>What stays fixed:</b> the 5-factor percentile score (25/25/20/15/15, renormalized when a factor is missing) and the 2-above/2-below leaderboard. The fixes correct what is stored and shown; the formula doesn't change.</p><div class="chips"><span class="chip"><span class="pill p-new">Resolved</span> <b>6</b></span><span class="chip"><span class="pill p-none">Open</span> <b>0</b></span></div></div>
+  
+<div class="group"><div class="group-head"><h3>Resolved</h3><span class="pill p-new">6</span></div><p class="note">Decided or verified. Each card shows the problem, the fix we chose, and what happens with it.</p><div class="issues">
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>1 · composite_score holds the percentile, not the score</h3><span class="pill p-none">was: Blocker</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>Two different numbers describe each fund:<ul><li><b>Composite score</b> (0–100): the weighted sum of the 5 factor percentiles. It answers <i>how good is this fund on our formula</i>.</li><li><b>Category percentile</b> (0–100): where that composite sits among the category's composites, <code>(total − rank) ÷ total × 100</code> (<code>category_ranking.py:177</code>). It answers <i>what share of peers does it beat</i>.</li></ul>The plan computes the composite correctly, then ranks it with <code>_rank_and_percentile</code>, which returns <code>(rank, percentile)</code>. It writes <code>rank_info[1]</code> — the percentile — into both <code>composite_score</code> and <code>percentile</code>. The neighbor rows use each neighbor's real composite.</p><p>Worked example, a 4-fund category:<div class="tbl"><table><tr><th>Rank</th><th>Fund</th><th>Composite</th><th>Shown by the plan</th><th>Shown after the fix</th></tr><tr><td class="num">1</td><td>Fund A</td><td class="num">81.40</td><td class="num">81.40</td><td class="num">81.40</td></tr><tr><td class="num">2</td><td>Fund B</td><td class="num">79.00</td><td class="num">79.00</td><td class="num">79.00</td></tr><tr><td class="num">3</td><td><b>Your fund</b></td><td class="num">76.67</td><td class="num"><b>25.00</b> ← percentile</td><td class="num"><b>76.67</b></td></tr><tr><td class="num">4</td><td>Fund D</td><td class="num">60.20</td><td class="num">60.20</td><td class="num">60.20</td></tr></table></div><p>Your fund is correctly ranked #3, but its score reads 25.00 between 79.00 and 60.20, which looks like an error to anyone reading the list. The 25.00 is right as a percentile (it beats 1 of 4 peers) and still feeds "Top 75%". The stored <code>scheme_rankings</code> history would carry the wrong number too.</p></p></dd>
+    <dt>Fix chosen</dt><dd><p><span class="rec">A.</span> <code>composite_score</code> = the composite; <code>percentile</code> = the category percentile.</p><p>It keeps both numbers the spec uses, each in its own field, and changes one assignment. Ranks were never affected.</p></dd>
+    <dt>What happens now</dt><dd><ul><li><code>_finish_fund_ranking</code> stores and returns <code>scheme_scores["composite"]</code> (2 decimals) as <code>composite_score</code>.</li><li>Every leaderboard row shows a composite; the header's "#3 of 4 · Top 75%" uses rank and percentile.</li><li>Test: with the 4-fund example above, your row's <code>composite_score</code> is 76.67 and its <code>percentile</code> is 25.00.</li></ul></dd>
+    <dt>Not chosen</dt><dd><ul class="muted"><li><b>B.</b> Show the percentile everywhere, neighbors included.</li><li><b>C.</b> Show only ranks.</li></ul></dd>
+  </dl>
+</article>
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>2 · <code>formatPercentString</code> doesn't exist</h3><span class="pill p-none">was: Fix</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>The component imports <code>formatPercentString</code> from <code>@/lib/decimal</code>. The file exports <code>toPercentString</code>, which turns a fraction string such as "0.241" into "24.10" with no % sign.</p><p>The frontend build fails on the import.</p></dd>
+    <dt>Fix chosen</dt><dd><p><span class="rec">A.</span> Use <code>toPercentString(raw) + "%"</code>.</p><p>Reuses the existing tested helper; no new API in the shared decimal module.</p></dd>
+    <dt>What happens now</dt><dd><ul><li>The factor breakdown shows e.g. "92nd pct · 24.10%".</li></ul></dd>
+    <dt>Not chosen</dt><dd><ul class="muted"><li><b>B.</b> Add a new <code>formatPercentString</code> helper.</li></ul></dd>
+  </dl>
+</article>
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>4 · Same-day repeat writes: add the test</h3><span class="pill p-none">was: Check</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>Each ranking computation inserts one <code>scheme_rankings</code> row keyed by <code>(scheme_id, computed_at)</code>, where <code>computed_at</code> is midnight UTC of today. A second insert for the same fund on the same day violates the primary key. The plan catches the <code>IntegrityError</code>, rolls back, and still returns its freshly computed row, exactly like <code>scorer.py:298–311</code> does for <code>fund_scores</code>.</p><p><b>It isn't rare, it's routine.</b> <code>recompute_household_analytics</code> runs every section for the combined scope and then once per member (<code>recompute.py:226–229</code>). A one-member household ranks each of its funds twice in every recompute; a 3-member household up to 4 times; and every other household holding the same fund that day collides too. So the catch-and-rollback path runs constantly, and Review Focus #4 is the normal path.<div class="diagram"><pre class="mermaid">sequenceDiagram
+  participant R as recompute_household_analytics
+  participant F as _finish_fund_ranking
+  participant DB as Postgres
+  R->>F: combined scope · Fund X
+  F->>DB: INSERT scheme_rankings (X, today)
+  DB-->>F: OK, committed
+  F-->>R: row (composite 76.67)
+  R->>DB: upsert section + heartbeat, commit
+  R->>F: member scope · Fund X
+  F->>DB: INSERT scheme_rankings (X, today)
+  DB-->>F: IntegrityError (duplicate key)
+  F->>DB: ROLLBACK (only this insert is pending)
+  F-->>R: same freshly computed row
+  R->>DB: upsert member section, commit</pre></div><p>What the rollback can discard: only writes added to the session since the last commit. In the pipeline, the previous section and the previous fund's row were already committed, so only this one insert is pending. The test pins that.</p></p></dd>
+    <dt>Fix chosen</dt><dd><p><span class="rec">B.</span> Add the test.</p><p>The path runs on every recompute, so it deserves a test; the test is small and changes no code.</p></dd>
+    <dt>What happens now</dt><dd><ul><li>New test in <code>test_fund_ranking.py</code>: call <code>compute_fund_ranking</code> twice for the same fund in one session. Both calls return the same composite and rank; exactly one <code>scheme_rankings</code> row exists for today; a query after the second call still works (the session isn't left broken).</li><li>A second test runs <code>compute_portfolio_ranking</code> for a one-member household twice (combined + member) and checks both results are complete.</li></ul></dd>
+    <dt>Not chosen</dt><dd><ul class="muted"><li><b>A.</b> Accept untested, as the plan does.</li><li><b>C.</b> Replace insert-and-catch with <code>INSERT … ON CONFLICT DO NOTHING</code>. Cleaner, but it diverges from <code>fund_scores</code> for no user-visible gain.</li></ul></dd>
+  </dl>
+</article>
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>3 · Thin categories: which funds count as peers</h3><span class="pill p-none">was: Fix</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p><b>Two counts exist for one category.</b> <i>Universe</i>: every active scheme in that SEBI category, from <code>get_category_universe</code>. <i>Ranked</i>: those with at least 3 years of NAV history, the only ones with a composite. The plan showed <code>category_size</code> as the ranked count but set <code>thin_category</code> from the universe count. In a category with 8 schemes and 3 ranked, the rank was shown as solid when it was a 3-fund comparison.</p></dd>
+    <dt>Fix chosen</dt><dd><p><span class="rec">A + C.</span> The ranked count drives both the size and the thin flag, which is the same rule the existing Category Ranking section uses. The card also shows both counts, so the user sees how many funds were compared and how many exist.</p></dd>
+    <dt>What happens now</dt><dd><ul><li><code>thin_category = len(composite_by_scheme) &lt; 5</code>; <code>category_size</code> = ranked count.</li><li>New field <code>category_universe_size</code>: funds in the category, whether ranked or not.</li><li>Header copy: <b>"#2 of 3 ranked · 8 in category"</b>, plus the badge "Thin Category (3 peers)" when fewer than 5 are ranked.</li><li>Test: 8 schemes, 3 ranked → size 3, universe 8, thin flag on.</li><li>"8 in category" should count <i>funds</i>, not plan variants. Today one fund appears up to 4 times, so see proposal 5, fix 2.</li></ul></dd>
+    <dt>Not chosen</dt><dd><ul class="muted"><li><b>B.</b> Universe count for both. "#2 of 8" overstates a rank among 3.</li></ul></dd>
+  </dl>
+</article>
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>5 · Why categories look thin, and how to remove the part that isn't real</h3><span class="pill p-none">was: Proposal</span></div>
+  <dl>
+    <dt>Short answer</dt><dd><p><b>Most thinness today isn't real, but some of it is.</b> Two data problems make categories look smaller (or bigger) than they are, and both can be fixed. A few SEBI categories genuinely have fewer than 5 funds, and no data fix changes that. For those, the answer is how we show the number.</p></dd>
+    <dt>Cause 1 · one category, several spellings</dt><dd><p>AMFI's master file (the live copy cached 9 Oct) lists each AMC's funds under a heading the AMC supplies. The same SEBI category appears under 2–3 spellings, so there are <b>101 headings for about 80 real categories</b>. We match on the exact heading, so a fund is only compared with AMCs that spelled it the same way.</p>
+      <div class="tbl"><table><tr><th>Category</th><th>Spellings in AMFI's file</th><th class="num">Funds compared today</th><th class="num">Funds in the category</th></tr>
+      <tr><td>Flexi Cap</td><td>"Equity Scheme -" / "Equity Schemes -"</td><td class="num">30 <i>or</i> 16</td><td class="num">46</td></tr>
+      <tr><td>Contra</td><td>"Equity Scheme -" / "Equity Schemes -"</td><td class="num">3 <i>or</i> 2</td><td class="num">5</td></tr>
+      <tr><td>Dividend Yield</td><td>same</td><td class="num">9 <i>or</i> 3</td><td class="num">12</td></tr>
+      <tr><td>Balanced Hybrid</td><td>"Hybrid Scheme -" / "Hybrid Schemes -"</td><td class="num">1 <i>or</i> 4</td><td class="num">5</td></tr>
+      <tr><td>Balanced Advantage</td><td>"Dynamic Asset Allocation or Balanced Advantage" / "Balanced Advantage Fund/ Dynamic Asset Allocation"</td><td class="num">split</td><td class="num">merged</td></tr>
+      <tr><td>Liquid, Overnight, Money Market, Gilt, Corporate Bond, Banking &amp; PSU…</td><td>"Debt Scheme -" / "Income/Debt Oriented Schemes -" (+ wording such as "Banking and PSU <i>Debt</i> Fund")</td><td class="num">split</td><td class="num">merged</td></tr></table></div>
+      <p><b>This already affects shipped sections.</b> The existing Category Ranking and the Scorer use the same lookup, so a Flexi Cap fund today is ranked among 30 or 16 funds instead of 46.</p></dd>
+    <dt>Fix 1</dt><dd><ul><li>Map each heading to one canonical category with a short, explicit alias list in <code>scheme_universe.py</code>: "Schemes"→"Scheme", "Income/Debt Oriented Schemes"→"Debt Scheme", plus the named wording pairs above. No fuzzy matching.</li><li><code>get_category_universe</code> compares canonical keys. One change fixes Category Ranking, Scorer and Fund Ranking together.</li><li>Old headings whose mapping is a guess ("Long Term Fund", "Ultra Short to Short Term Fund") stay separate rather than being merged wrongly.</li><li>Test: parse a saved copy of the real file and pin the merged groups (Flexi Cap = 46 funds, Contra = 5).</li><li>Effect: categories under 5 funds drop from 22 to 17, and no mainstream equity or hybrid category stays thin. Small: one function, one alias list, one test.</li></ul></dd>
+    <dt>Cause 2 · plan variants counted as peers</dt><dd><p>The universe is every scheme <i>code</i>, and one fund has up to 4 (Direct/Regular × Growth/IDCW): 14,371 codes in all. Three effects:</p><ul><li>"8 in category" can mean 2 funds.</li><li>Your Direct plan is ranked against its own Regular plan, which always trails it by the expense-ratio gap. That's a free rank step.</li><li>IDCW plans' NAV drops at every payout, so their NAV returns look low, they sink to the bottom, and every Growth plan's percentile rises.</li></ul></dd>
+    <dt>Fix 2</dt><dd><ul><li>Peer set = one entry per fund: the <b>same plan type as your holding</b> (Direct vs Direct, Regular vs Regular), Growth option.</li><li>A held IDCW plan is ranked by its fund's Growth series of the same plan type.</li><li>Counts become fund counts, so "#4 of 46 ranked · 52 in category" means funds.</li><li>Medium effort: <code>UniverseRow</code> already carries <code>base_name</code> and the plan, but 5,709 older codes have no plan in their name and need a grouping rule.</li><li>It changes numbers in the existing Category Ranking too, usually lower and more honest percentiles.</li></ul></dd>
+    <dt>Cause 3 · the 3-year floor</dt><dd><p>Funds younger than 3 years can't be ranked; the spec says so, and they show "Insufficient History". <b>Keep it.</b> Ranking a 1-year-old fund on 1-year returns against 5-year track records would mislead more than a thin badge.</p></dd>
+    <dt>Cause 4 · genuinely small categories</dt><dd><p>SEBI allows each AMC one fund per category, and a Value <i>or</i> a Contra fund, not both. So Contra has 5 funds in all of India. Long Duration, the Life Cycle maturities, single-commodity ETFs and Children's funds are similar. <b>No data fix changes this</b>, so thinness can't be removed completely; it can only be shown honestly.</p></dd>
+    <dt>How to show a thin rank</dt><dd><ol class="opts">
+      <li class="pick"><span class="k">D1</span><span><b>Plain words, no percentile, when thin.</b> "2nd of 3 ranked Contra funds · 5 in category". One line under it: "Only 3 Contra funds have a 3-year record, so this compares your fund with very few others." Hide "Top 33%" and the percentile bar, because with 3 funds a percentile only restates the rank. The leaderboard (2 above, 2 below) already lists every peer in a category this small, so the user sees exactly who the fund was compared with.</span></li>
+      <li class="pick"><span class="k">D2</span><span><b>No rank below 3 ranked funds.</b> "#1 of 1" or "#2 of 2" says nothing. Show "Not enough peers to rank: 2 funds in this category have a 3-year record", and show the fund's own numbers (3Y return, expense ratio) instead of percentiles.</span></li>
+      <li><span class="k">D3</span><span><b>Pool with sibling categories</b>, e.g. Value + Contra + Dividend Yield as "value-style funds", clearly labelled. More peers, but it stops being a SEBI-category rank, which is what the spec promises. Later, if at all.</span></li></ol></dd>
+    <dt>Fix chosen</dt><dd><p><span class="rec">Fix 1 + Fix 2 + D1 + D2, all in A09 (plan Task 2a and Task 5).</span> Fix 2 goes in now: the staging database is wiped before release, and the existing Category Ranking section switches to the same peer set so the two sections agree.</p><p> Fix 1 is small and corrects sections users already see. D1 and D2 are copy rules on the card. Together, a thin badge then appears only where a category really is small, and the card says so in plain words.</p></dd>
+  </dl>
+</article>
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>6 · Found while revising the plan: zero NAVs and TER units</h3><span class="pill p-none">was: new</span></div>
+  <dl>
+    <dt>Zero NAVs crash a category</dt><dd><p>AMFI's file has 241 rows at NAV 0.0000: wound-up and segregated debt schemes (Franklin, UTI, Baroda BNP). The return calculation divides by the start NAV, so one of them raises <code>InvalidOperation</code> and the whole category fails. The A14 synthetic run hit this. Category Ranking and Score failed for 3 of 8 test portfolios, and the same happens for any household holding a fund in those debt categories today.</p><p><b>Fix (plan Task 2a):</b> a start or end NAV ≤ 0 means no return for that window, so the scheme is skipped, never shown as 0%. Test included.</p></dd>
+    <dt>TER shown 100× too big</dt><dd><p>Fix 2's <code>toPercentString</code> turns a fraction into a percent. Returns are fractions, but TER is stored as a percent already (0.75 means 0.75%), so it would read "75.00%". <b>Fix:</b> the Low-TER row prints the stored value with a % sign. Test included.</p></dd>
+  </dl>
+</article>
+</div></div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="tag">Done means</span><h2>Review Focus the gate checks</h2></div>
+  <ul class="plain">
+    <li>3Y but no 5Y history: the score is re-weighted over 4 factors, never 0 for 5Y.</li>
+    <li>No TER link (common since migration 0031): re-weighted, and the breakdown shows "—".</li>
+    <li>Ranked #1 or last: 0 neighbors on that side, no wrap-around.</li>
+    <li>Two same-day computations don't raise an unhandled <code>IntegrityError</code>.</li>
+    <li>Empty <code>ranking_weights</code> falls back to 25/25/20/15/15.</li>
+  </ul>
+</section>
+
+<footer>Source: <code>Docs/superpowers/plans/2026-10-09-attribute-09-fund-ranking.md</code> and the code at <code>cd2533d</code>. Checked and updated 2026-10-09 (all decisions made; plan revised to match the same day).</footer>
+</div>

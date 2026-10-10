@@ -1,0 +1,290 @@
+<title>A12 TRI Benchmark Build</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Manrope:wght@600;700;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one 1040px reading column; diagrams and tables scroll inside their own frames. */
+:root {
+  --paper: #F4F7F6; --surface: #FFFFFF; --ink: #12201C; --muted: #5A6A65; --line: #D9E2DF;
+  --accent: #0E6A56; --accent-soft: #E1F0EB;
+  --crit: #B3262E; --crit-soft: #FBE5E6; --warn: #A86C12; --warn-soft: #FBF0DA;
+  --info: #2D5B9C; --info-soft: #E3EBF7; --codex: #6B4BB8; --codex-soft: #EEE8FA;
+  --display: "Manrope", "Segoe UI", system-ui, sans-serif;
+  --body: "DM Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "Cascadia Code", monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #0D1412; --surface: #141E1B; --ink: #E4ECE9; --muted: #96A7A1; --line: #26342F;
+  --accent: #5DC8A7; --accent-soft: #163029; --crit: #F0767C; --crit-soft: #3A1B1E;
+  --warn: #E5AB4B; --warn-soft: #33270F; --info: #82A9E6; --info-soft: #182437;
+  --codex: #B49BF0; --codex-soft: #261D3D; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --paper: #0D1412; --surface: #141E1B; --ink: #E4ECE9; --muted: #96A7A1; --line: #26342F;
+  --accent: #5DC8A7; --accent-soft: #163029; --crit: #F0767C; --crit-soft: #3A1B1E;
+  --warn: #E5AB4B; --warn-soft: #33270F; --info: #82A9E6; --info-soft: #182437;
+  --codex: #B49BF0; --codex-soft: #261D3D; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font: 400 15px/1.6 var(--body); margin: 0; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 40px 20px 80px; display: flex; flex-direction: column; gap: 44px; }
+header.top { display: flex; flex-direction: column; gap: 14px; }
+.eyebrow { font: 600 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+h1 { font: 800 clamp(28px, 4.4vw, 42px)/1.1 var(--display); margin: 0; letter-spacing: -.02em; text-wrap: balance; }
+h2 { font: 700 22px/1.25 var(--display); margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+h3 { font: 700 16px/1.3 var(--display); margin: 0; }
+p { margin: 0; max-width: 72ch; }
+.lede { font-size: 17px; color: var(--muted); max-width: 70ch; }
+code, .mono { font-family: var(--mono); font-size: .86em; }
+code { background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; word-break: break-word; }
+a { color: var(--accent); }
+section { display: flex; flex-direction: column; gap: 16px; }
+.sec-head { display: flex; flex-direction: column; gap: 6px; }
+.sec-head .tag { font: 600 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font: 500 13px/1 var(--body); padding: 7px 11px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+.chip b { font-family: var(--display); font-weight: 800; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.grid2 > * { min-width: 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.panel .label { font: 600 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.panel.after { border-color: var(--accent); }
+.panel.after .label { color: var(--accent); }
+.diagram { overflow-x: auto; }
+pre.mermaid { margin: 0; background: transparent; font-family: var(--body); }
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 11px/1.2 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--paper); }
+tr:last-child td { border-bottom: 0; }
+td.num { font-variant-numeric: tabular-nums; }
+.pill { display: inline-block; font: 600 11px/1 var(--mono); padding: 4px 7px; border-radius: 5px; letter-spacing: .03em; white-space: nowrap; }
+.p-new { background: var(--accent-soft); color: var(--accent); }
+.p-mod { background: var(--info-soft); color: var(--info); }
+.p-none { background: var(--paper); color: var(--muted); border: 1px solid var(--line); }
+.p-codex { background: var(--codex-soft); color: var(--codex); }
+.p-claude { background: var(--accent-soft); color: var(--accent); }
+.p-you { background: var(--warn-soft); color: var(--warn); }
+.p-crit { background: var(--crit-soft); color: var(--crit); }
+.p-warn { background: var(--warn-soft); color: var(--warn); }
+.p-info { background: var(--info-soft); color: var(--info); }
+ol.passes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0; }
+ol.passes > li { display: grid; grid-template-columns: 132px 1fr; gap: 16px; padding: 14px 0; border-top: 1px solid var(--line); }
+ol.passes > li:first-child { border-top: 0; }
+ol.passes .when { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+ol.passes .when .n { font: 800 13px/1 var(--display); color: var(--muted); }
+ol.passes .what { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+ol.passes ul { margin: 0; padding-left: 18px; }
+@media (max-width: 560px) { ol.passes > li { grid-template-columns: 1fr; gap: 8px; } }
+.issues { display: flex; flex-direction: column; gap: 10px; }
+.issue { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--info); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.issue.crit { border-left-color: var(--crit); }
+.issue.warn { border-left-color: var(--warn); }
+.issue .hd { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.issue .hd h3 { font-size: 15px; }
+.issue .fix { color: var(--muted); font-size: 14px; }
+.callout { background: var(--warn-soft); border: 1px solid var(--warn); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+.callout h2 { font-size: 19px; }
+.note { font-size: 13px; color: var(--muted); }
+ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.bar { display: flex; height: 34px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
+.bar > div { display: flex; align-items: center; justify-content: center; font: 700 12px/1 var(--display); color: #fff; min-width: 0; overflow: hidden; white-space: nowrap; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; background: var(--c); vertical-align: -1px; }
+.formula { font-family: var(--mono); font-size: 13px; background: var(--paper); border: 1px dashed var(--line); border-radius: 8px; padding: 12px 14px; overflow-x: auto; white-space: pre; }
+footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 16px; }
+.ib { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--info); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.ib.crit { border-left-color: var(--crit); } .ib.warn { border-left-color: var(--warn); } .ib.done { border-left-color: var(--accent); }
+.ib .top { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ib .top h3 { font-size: 16px; flex: 1 1 260px; min-width: 0; }
+.ib dl { display: grid; grid-template-columns: 148px minmax(0, 1fr); gap: 10px 18px; margin: 0; }
+.ib dt { font: 600 11px/1.5 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding-top: 2px; }
+.ib dd { margin: 0; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.ib ol.opts { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.ib ol.opts li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 8px; }
+.ib ol.opts .k { font: 800 12px/1.6 var(--display); color: var(--muted); }
+.ib ol.opts li.pick .k { color: var(--accent); }
+.ib ol.opts li.pick > span:last-child { font-weight: 500; }
+.ib .rec { color: var(--accent); font-weight: 700; }
+.ib ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
+@media (max-width: 600px) { .ib dl { grid-template-columns: 1fr; gap: 4px; } .ib dd { margin-bottom: 8px; } }
+.group { display: flex; flex-direction: column; gap: 10px; padding-top: 8px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 22px; margin-top: 6px; }
+.group-head { display: flex; align-items: center; gap: 10px; }
+.group-head h3 { font-size: 18px; }
+.ib ul.muted { color: var(--muted); font-size: 13px; }
+.ib.done .top h3 { color: var(--ink); }
+</style>
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Sub-project 1 · Attribute 12 · 2nd in run order</div>
+  <h1>TRI benchmark sourcing</h1>
+  <p class="lede">Stores the Total Return Index (dividends reinvested) next to today's price-only index for all 4 benchmarks, and re-keys the cache, freshness check and upsert so the two series can't collide. No new screen. TRI becomes the series every fund-vs-index comparison uses, starting with the existing Analytics benchmark section.</p>
+  <div class="chips">
+    <span class="chip"><b>6</b> tasks · 5 planned + 1 added 9 Oct</span>
+    <span class="chip"><b>1</b> migration (expected <span class="mono">0033</span>)</span>
+    <span class="chip"><b>0</b> new tables · 1 new column, wider primary key</span>
+    <span class="chip"><b>0</b> routes · 0 new screens</span>
+    <span class="chip"><b>0</b> new infra · +4 requests/day</span>
+    <span class="chip"><b>1</b> Codex run</span>
+  </div>
+</header>
+
+<div class="callout" style="background:var(--accent-soft);border-color:var(--accent)">
+  <h2>Decided 9 Oct: TRI for every comparison</h2>
+  <p>Any calculation that compares a fund or portfolio with an index uses TRI, because NAVs already include reinvested dividends (SEBI has required TRI benchmarks since 2018). The price series stays in the table as raw data only. The TRI series is never displayed itself, but numbers computed from it are.</p>
+  <ul class="plain">
+    <li><b>Task 6 (added):</b> <code>benchmark.py</code>'s two lookups pass <code>return_type=TRI</code>.</li>
+    <li><b>Older TRI (decided 9 Oct):</b> the daily job asks for TRI from 1 Jan 1990, so scenarios back to 1995 get a benchmark. No separate script. Cost: under $0.01 a month; no effect on page speed or other jobs (resolved card 2).</li>
+    <li><b>No mixing:</b> both ends of a window come from TRI. When TRI is missing there's no benchmark, never a quiet fallback to price.</li>
+  </ul>
+</div>
+
+<div class="callout" style="background:var(--info-soft);border-color:var(--info)">
+  <h2>Plan revised 9 Oct</h2>
+  <p><code>Docs/superpowers/plans/2026-10-09-attribute-12-tri-benchmark-sourcing.md</code> was edited in place (mirror synced): TRI from 1 Jan 1990 in the daily job (Task 5) and <code>benchmark.py</code> → TRI (new Task 6). Re-checking it against the code found three more things, now fixed in the plan:</p>
+  <ul class="plain">
+    <li><b>Python default for <code>return_type</code>:</b> existing code and tests create rows without it; with only a database default the ORM insert of a primary-key column fails.</li>
+    <li><b>Existing job test:</b> <code>tests/scripts/test_background_jobs.py</code> already checks the benchmark job's calls and log line. Task 5 updates it instead of adding a second test file that would have left it failing.</li>
+    <li><b>Benchmark tests:</b> <code>test_benchmark.py</code> seeds price rows; Task 6 moves them to TRI and adds a test that price rows alone give no benchmark.</li>
+  </ul>
+</div>
+
+<section>
+  <div class="sec-head"><span class="tag">Why</span><h2>The bug this attribute exists to fix</h2><p>A fund's NAV already includes reinvested dividends. Comparing it with a price-only index understates the benchmark every year. Adding TRI rows sounds simple, but every existing lookup in <code>nse_indices_client.py</code> is keyed by index name alone:</p></div>
+  <div class="tbl"><table>
+    <tr><th>Date</th><th>Index</th><th>Type</th><th>Today's upsert</th><th>After the fix</th></tr>
+    <tr><td class="num">2026-09-10</td><td>NIFTY 50</td><td>price</td><td class="num">23,477.80 stored</td><td class="num">23,477.80 stored</td></tr>
+    <tr><td class="num">2026-09-10</td><td>NIFTY 50</td><td>tri</td><td><span class="pill p-crit">skipped</span> date already present</td><td class="num">35,674.37 stored</td></tr>
+  </table></div>
+  <p class="note">The price job has run daily for weeks, so almost every TRI row would be silently dropped. Five places have to move to <code>(index, return_type)</code>: <code>_upsert_index_history</code>, <code>_cached_date_bounds</code>, the <code>_fetched_from</code> cache, <code>ensure_index_history_fresh</code> and <code>get_index_level_on_or_before</code>.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="tag">Flow</span><h2>Before and after</h2></div>
+  <div class="grid2">
+    <div class="panel"><span class="label">Before</span><div class="diagram"><pre class="mermaid">
+flowchart TD
+  eb["EventBridge · benchmark_daily"] --> job["refresh_benchmark_daily&lt;br/&gt;4 indices"]
+  job --> ens["ensure_index_history_fresh(index)"]
+  ens --> f1["_fetch_index_history&lt;br/&gt;niftyindices price endpoint"]
+  f1 --> up["_upsert: skip dates already stored"]
+  up --> t[("benchmark_index_history&lt;br/&gt;PK index, date")]
+  t --> b["benchmark.py · XIRR vs index"]
+</pre></div></div>
+    <div class="panel after"><span class="label">After</span><div class="diagram"><pre class="mermaid">
+flowchart TD
+  eb["EventBridge · benchmark_daily"] --> job["refresh_benchmark_daily&lt;br/&gt;4 indices × price, tri = 8 calls"]
+  job --> ens["ensure_index_history_fresh(index, return_type)"]
+  ens -->|price| f1["_fetch_index_history"]
+  ens -->|tri| f2["_fetch_tri_history&lt;br/&gt;getTotalReturnIndexString"]
+  f1 --> up["_upsert keyed by index + return_type"]
+  f2 --> up
+  up --> t[("benchmark_index_history&lt;br/&gt;PK index, date, return_type")]
+  t --> b["benchmark.py · reads TRI (task 6)"]
+</pre></div></div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="tag">Database</span><h2>ER before and after</h2><p class="note">One standalone table with no foreign keys. Existing rows backfill to <code>price</code> through the column default.</p></div>
+  <div class="grid2">
+    <div class="panel"><span class="label">Before</span><div class="diagram"><pre class="mermaid">
+erDiagram
+  BENCHMARK_INDEX_HISTORY {
+    enum index_name PK "nifty_50, nifty_500, largemidcap_250, midcap_150"
+    date date PK
+    numeric value "12,2"
+  }
+</pre></div></div>
+    <div class="panel after"><span class="label">After</span><div class="diagram"><pre class="mermaid">
+erDiagram
+  BENCHMARK_INDEX_HISTORY {
+    enum index_name PK
+    date date PK
+    enum return_type PK "NEW: price or tri, default price"
+    numeric value "12,2"
+  }
+</pre></div></div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="tag">Change map</span><h2>What changes where</h2></div>
+  <div class="tbl"><table>
+    <tr><th>Layer</th><th>File</th><th>Change</th><th>Task</th></tr>
+    <tr><td>Database</td><td><code>alembic/versions/&lt;NNNN&gt;_benchmark_return_type.py</code></td><td><span class="pill p-new">new</span> native enum <code>benchmarkreturntype</code>, column, primary key widened to 3 columns</td><td>1</td></tr>
+    <tr><td>Backend</td><td><code>app/models/enums.py</code></td><td><span class="pill p-mod">modify</span> <code>BenchmarkReturnType</code> (PRICE, TRI)</td><td>1</td></tr>
+    <tr><td>Backend</td><td><code>app/models/reference.py</code></td><td><span class="pill p-mod">modify</span> <code>return_type</code> on <code>BenchmarkIndexHistory</code></td><td>1</td></tr>
+    <tr><td>Backend</td><td><code>app/services/analytics/nse_indices_client.py</code></td><td><span class="pill p-mod">modify</span> 5 lookups re-keyed, new <code>_fetch_tri_history</code></td><td>2–3</td></tr>
+    <tr><td>Jobs</td><td><code>scripts/jobs/refresh_benchmark_daily.py</code></td><td><span class="pill p-mod">modify</span> loops over both return types; TRI from 1 Jan 1990, price stays at 10 years</td><td>5</td></tr>
+    <tr><td>Backend</td><td><code>app/services/analytics/benchmark.py</code></td><td><span class="pill p-mod">modify</span> both lookups (lines 111–130) pass <code>return_type=TRI</code>; tests updated to assert TRI at both ends</td><td>6</td></tr>
+    <tr><td>Frontend</td><td>—</td><td><span class="pill p-none">no code change</span> the Analytics benchmark % rises slightly, so a "beat the index by" gap shrinks</td><td>—</td></tr>
+    <tr><td>Infra</td><td>—</td><td><span class="pill p-none">none</span> rides the existing Fargate job</td><td>—</td></tr>
+  </table></div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="tag">Execution</span><h2>Passes, in order</h2></div>
+  <ol class="passes">
+    <li><div class="when"><span class="n">Pass 0</span><span class="pill p-claude">Claude</span></div><div class="what"><h3>Pre-flight</h3><p>Already done for this page: the migration's primary key name (<code>benchmark_index_history_pkey</code>, Postgres's default for the unnamed PK in <code>0001</code>) and the native-enum style both match the existing schema.</p></div></li>
+    <li><div class="when"><span class="n">Pass 1</span><span class="pill p-codex">Codex run 1</span></div><div class="what"><h3>Tasks 1–6 in one run</h3><ul><li>Small and backend-only, so one run covers it.</li><li>Task 6 rewrites the plan's "benchmark.py unchanged" pin: price lookups must still ignore TRI rows, and <code>benchmark.py</code> now reads TRI.</li><li>Task 2 matters most: the re-keying plus the collision and cross-contamination tests.</li><li>Task 4 is a pinning test that should pass immediately.</li></ul></div></li>
+    <li><div class="when"><span class="n">Gate</span><span class="pill p-claude">Claude</span></div><div class="what"><h3>Verify, run Postgres, review</h3><p>SQLite tests won't prove the primary key swap, so Claude runs <code>alembic upgrade head</code> and <code>downgrade -1</code> on local Postgres. Then the adversarial review against Review Focus 1–5. Claude commits each task as the plan says.</p></div></li>
+    <li><div class="when"><span class="n">Pass 2</span><span class="pill p-claude">Claude</span><span class="pill p-you">You</span></div><div class="what"><h3>Staging</h3><ul><li>Deploy runs the migration. The next <code>benchmark_daily</code> run loads TRI from each index's start date (1995 for Nifty 500, 1999 for Nifty 50, 2005 for the other two), one request each.</li><li>Check row counts per <code>return_type</code> through the SSM tunnel (start the bastion first, stop it after).</li><li>Confirm the Analytics benchmark section moves the expected way: the index return rises by roughly its dividend yield, about 1–1.5% a year.</li></ul></div></li>
+  </ol>
+</section>
+
+<section>
+  <div class="sec-head"><span class="tag">Issues in detail</span><h2>Issues, by status</h2><p class="note"><b>What stays fixed:</b> store the dividend-reinvested index next to the price index without the two colliding, and use it wherever a fund is compared with an index. The only addition is the one task the TRI decision needs (<code>benchmark.py</code> → TRI), if card 2 goes with option B.</p><div class="chips"><span class="chip"><span class="pill p-new">Resolved</span> <b>4</b></span></div></div>
+  
+<div class="group"><div class="group-head"><h3>Resolved</h3><span class="pill p-new">4</span></div><p class="note">Decided or verified. Each card shows the problem, the fix we chose, and what happens with it.</p><div class="issues">
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>1 · Which comparisons read TRI</h3><span class="pill p-none">was: Decision</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>A12 stores TRI next to price, but no plan switched any consumer to it. <code>benchmark.py</code> stayed on price, and A11's scenario benchmarks read whichever row came first.</p><p>A fund's NAV includes reinvested dividends. Comparing it with price-only understates the benchmark by roughly the dividend yield, about 1–1.5% a year for the Nifty, so funds look better than they are.</p></dd>
+    <dt>Fix chosen</dt><dd><p><span class="rec">A.</span> TRI for every fund-vs-index comparison; price kept as raw data only.</p><p>It's the like-for-like comparison, and it's what SEBI has required for fund benchmarks since 2018. One rule is simpler to keep correct than a per-screen choice.</p></dd>
+    <dt>What happens now</dt><dd><ul><li>New Task 6: <code>benchmark.py</code>'s two lookups (lines 111–130) pass <code>return_type=TRI</code>.</li><li>The Analytics benchmark % rises slightly, so a "you beat the index by" gap shrinks. That's a real, visible change.</li><li>The plan's "benchmark.py unchanged" pinning test becomes: price lookups ignore TRI rows, and <code>benchmark.py</code> reads TRI at both ends.</li><li>No fallback: a window with no TRI shows no benchmark, never a price figure.</li></ul></dd>
+    <dt>Not chosen</dt><dd><ul class="muted"><li><b>B.</b> Price everywhere, as today.</li><li><b>C.</b> Choose per screen.</li></ul></dd>
+  </dl>
+</article>
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>2 · Old scenarios need TRI from before 2016</h3><span class="pill p-none">was: Fix</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p><b>Why 10 years today:</b> the window came from the commit that first created the job scripts (<code>9fe21fe</code>, 3 Sep). It wasn't recorded as a decision anywhere. It looks like a reasonable-sounding default, not a requirement. Two facts matter here:<ul><li><b>The job already downloads the whole window every morning.</b> With <code>fresh_within=0</code>, "today" is never covered, so <code>ensure_index_history_fresh</code> fetches <code>[start, today]</code> in full each day and inserts only the new dates. Today that's 10 years × 4 indices daily.</li><li><b>Older history is already fetched on demand.</b> <code>benchmark.py:111</code> asks for history from the household's first transaction. A portfolio that started in 2008 triggers a download back to 2008 during its analytics recompute. That costs time in that recompute and needs NSE up at that moment.</li></ul><b>Measured live today</b> (TRI endpoint, start date 1 Jan 1990): one request per index returns all of it, in 0.2–0.4 s and about 0.8–1.1 MB:<div class="tbl"><table><tr><th>Index</th><th>TRI starts</th><th>Rows</th></tr><tr><td>Nifty 500</td><td class="num">1 Jan 1995</td><td class="num">7,873</td></tr><tr><td>Nifty 50</td><td class="num">30 Jun 1999</td><td class="num">6,785</td></tr><tr><td>Nifty LargeMidcap 250</td><td class="num">1 Apr 2005</td><td class="num">5,338</td></tr><tr><td>Nifty Midcap 150</td><td class="num">1 Apr 2005</td><td class="num">5,338</td></tr></table></div></p><p><b>One-off or daily?</b> The Task 7 I proposed earlier was a one-off script. But the measurements make a script unnecessary. If the daily job simply asks for TRI from 1990, it already re-downloads its whole window each morning, so it fills the old years on day one and keeps them complete from then on. <b>What else that fixes:</b> (1) benchmark comparisons for portfolios older than 10 years no longer download history in the middle of a user's recompute; (2) deleted or missing rows are refilled the next morning. <b>What it costs:</b> about 4 MB and roughly 1–2 seconds of downloads per day instead of about 1.3 MB.</p></dd>
+    <dt>Fix chosen</dt><dd><p><span class="rec">B.</span> Widen the daily job: TRI from 1 Jan 1990. Price stays at 10 years, since it's raw data only now.</p><p>It's a one-constant change instead of a new script and a manual run. It's self-healing, it covers every scenario from 1995 onward, and the cost is measured, not guessed. Price doesn't need the extra years because nothing compares against it any more.</p></dd>
+    <dt>What happens now</dt><dd><ul><li>Task 7 is dropped; A12 is 6 tasks. Task 5's job loop passes <code>start_date = 1990-01-01</code> for TRI and keeps 10 years for price.</li><li>Pre-1995 windows (none of A11's scenarios) have no TRI and show no benchmark.</li><li>Dot-com (Mar 2000) gets Nifty 50 and Nifty 500 rows; the 2003–07 run and 2008 also get those two; Midcap 150 and LargeMidcap 250 appear from Apr 2005.</li><li>The first morning after deploy fills everything; no runbook step.</li><li><b>Cost, speed and effect on other jobs</b> (sizes and times measured 9 Oct; AWS rates derived from our own bill in <code>Docs/2026-09-29-aws-staging-cost-analysis-and-reduction-plan.md</code>):<div class="tbl"><table><tr><th>What</th><th>Today</th><th>After</th></tr><tr><td>Daily download</td><td class="num">4 price requests, ~1.9 MB, ~0.9 s</td><td class="num">+4 TRI requests: ~5.5 MB, ~2 s in total</td></tr><tr><td>Rows in <code>benchmark_index_history</code></td><td class="num">~9,900 (price, 10 years)</td><td class="num">~35,200 (+25,334 TRI rows, once)</td></tr><tr><td>Rows written per day</td><td class="num">4</td><td class="num">8</td></tr><tr><td>Job run time</td><td>seconds of work inside a Fargate task (0.5 vCPU, 1 GB)</td><td>about 1–2 s more per day; the first run inserts 25,334 rows once</td></tr></table></div><p><b>AWS cost:</b> under $0.01 a month in total.</p><ul><li><b>Fargate:</b> the job's task costs about $0.0000071 per second (0.5 vCPU at ~$0.042/vCPU-hour + 1 GB at ~$0.0046/GB-hour, ap-south-1). A few extra seconds a day is about $0.001 a month; the first-run insert is a one-off fraction of a cent. The job already runs daily, so there's no new task, schedule or Terraform.</li><li><b>Data transfer:</b> about 110 MB a month more, all inbound from the internet, which AWS doesn't charge for. It goes out through <code>fck-nat</code>, an EC2 instance with no per-GB fee (a managed NAT gateway would charge per GB; we don't use one).</li><li><b>RDS storage:</b> about 25,000 small rows, a few MB with the index — a fraction of a cent a month.</li></ul><p><b>Loading speed for users:</b> unaffected, and slightly better in one case.</p><ul><li>The job runs in its own Fargate task at 06:00 IST, never inside the API container, so it can't slow a user's request.</li><li>Analytics screens read precomputed results. Benchmark lookups use the table's primary key, so going from ~10k to ~35k rows makes no practical difference.</li><li>Better: a household whose first transaction is before late 2016 no longer triggers an NSE download in the middle of its analytics recompute (<code>benchmark.py:111</code>), because the history is already stored.</li></ul><p><b>Other jobs:</b> no interference.</p><ul><li><code>benchmark-daily</code> runs at 06:00 IST, alongside <code>nav-daily</code> (also 06:00); then <code>scheme-master-daily</code> 06:15, <code>ter-daily</code> 06:20 and the analytics recompute 06:30. Each job is its own Fargate task with its own CPU and memory.</li><li>The only shared pieces are RDS and <code>fck-nat</code>. A couple of seconds of extra download and 4 extra rows a day put no measurable load on either, and the job finishes long before the 06:30 recompute, which then reads fresh TRI.</li><li>The 9 PM–5 AM stop window isn't affected: RDS and <code>fck-nat</code> are back up from about 4:50 AM.</li><li>NSE sees 8 requests a day from us instead of 4, on the same host the job already uses daily.</li></ul></li></ul></dd>
+    <dt>Not chosen</dt><dd><ul class="muted"><li><b>A.</b> One-off <code>backfill_tri_history.py</code> (the Task 7 I proposed earlier); the daily job stays at 10 years.</li><li><b>C.</b> Widen both TRI and price to 1990.</li></ul></dd>
+  </dl>
+</article>
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>3 · A11's benchmark query ignores return_type</h3><span class="pill p-none">was: Fix</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>After A12, every date has a price row and a TRI row per index. A11's <code>_scenario_benchmark_comparisons</code> filters by index only.</p><p>It could take a TRI value at one end of a window and a price value at the other, producing a wrong percentage with nothing to flag it.</p></dd>
+    <dt>Fix chosen</dt><dd><p><span class="rec">A.</span> Filter both lookups to TRI.</p><p>It follows decision 1. The fix is one extra condition per query.</p></dd>
+    <dt>What happens now</dt><dd><ul><li>A11 Task 6 adds <code>return_type == TRI</code> to the start and end lookups.</li><li>A11 gains a test: TRI and price rows on the same dates, and the result uses TRI only.</li></ul></dd>
+    <dt>Not chosen</dt><dd><ul class="muted"><li><b>B.</b> Filter both to price.</li><li><b>C.</b> Leave it.</li></ul></dd>
+  </dl>
+</article>
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Verified</span><h3>4 · The live TRI response, checked against the plan's code</h3><span class="pill p-none">was: Check</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>Every A12 test mocks HTTP, so the plan relies on the 8 Oct live check. I called the endpoint again today with the exact request the plan's <code>_fetch_tri_history</code> sends.<div class="tbl"><table><tr><th>What</th><th>Measured 9 Oct</th><th>Plan code</th></tr><tr><td>Endpoint</td><td><code>POST niftyindices.com/BackPage/getTotalReturnIndexString</code></td><td>Same constant</td></tr><tr><td>Body</td><td><code>{"cinfo": "{\"name\":\"Nifty 50\",\"startDate\":\"01-Sep-2026\",…}"}</code> (JSON inside a string)</td><td>Same, via <code>json.dumps</code></td></tr><tr><td>No User-Agent</td><td>Connection dropped, no response (HTTP 000)</td><td>Sends the existing <code>_USER_AGENT</code></td></tr><tr><td>Response</td><td>A top-level JSON array, newest first</td><td>Iterates <code>resp.json()</code> directly</td></tr><tr><td>Fields</td><td><code>RequestNumber</code>, <code>Index Name</code>, <code>Date</code>, <code>TotalReturnsIndex</code>, <code>NTR_Value</code></td><td>Reads <code>Date</code> and <code>TotalReturnsIndex</code> only</td></tr><tr><td>Date format</td><td><code>"10 Sep 2026"</code></td><td><code>%d %b %Y</code> ✓</td></tr><tr><td>Values</td><td>Strings, 2 decimals, e.g. <code>"35674.37"</code> on 10 Sep 2026 (matches the spec)</td><td><code>Decimal(...)</code> ✓, fits <code>Numeric(12,2)</code></td></tr><tr><td>Non-trading days</td><td>Absent (5–6 Sep missing)</td><td>Lookups are on-or-before ✓</td></tr><tr><td><code>NTR_Value</code></td><td><code>"-"</code> on 129 early Nifty 50 rows, all LargeMidcap 250 and Midcap 150 rows, and 4,957 Nifty 500 rows</td><td>Never read ✓</td></tr><tr><td>Range limit</td><td>None seen: 1990→today in one call, 0.2–0.4 s</td><td>One call per index ✓</td></tr></table></div></p><p>Everything the plan's parser depends on matches today's real response. The <code>Index Name</code> field comes back spelled differently from the request ("NIFTY LargeMidcap 250" for "NIFTY LARGEMID250"), which doesn't matter because the plan never reads it.</p></dd>
+    <dt>Result</dt><dd><p><span class="rec">A.</span> Accept: the shape is now verified twice, and a future change fails loudly (the fetch returns <code>False</code> and the job logs it).</p><p>Nothing in the plan needs to change, and the job's own log line catches a future break. B is optional.</p></dd>
+    <dt>What happens now</dt><dd><ul><li>No change to the plan.</li><li>Staging check: the first run's log shows 8 fetches succeeded, and <code>benchmark_index_history</code> holds TRI rows from each index's start date above.</li></ul></dd>
+    <dt>Not chosen</dt><dd><ul class="muted"><li><b>B.</b> Also save a trimmed copy of today's response as a test fixture.</li></ul></dd>
+  </dl>
+</article>
+</div></div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="tag">Done means</span><h2>Review Focus the gate checks</h2></div>
+  <ul class="plain">
+    <li>A price row and a TRI row for the same index and date both persist.</li>
+    <li>Price-only lookups return the same value whether or not TRI rows exist.</li><li><code>benchmark.py</code> reads TRI at both ends of every window; with no TRI for a window it shows no benchmark, never a price figure.</li>
+    <li><code>NTR_Value = "-"</code> never raises or gets stored.</li>
+    <li>Fetching TRI never marks price as already fetched, and the reverse.</li>
+    <li>A TRI fetch failure returns <code>False</code> and leaves the cache alone.</li>
+  </ul>
+</section>
+
+<footer>Source: <code>Docs/superpowers/plans/2026-10-09-attribute-12-tri-benchmark-sourcing.md</code> and the code at <code>cd2533d</code>. Checked and updated 2026-10-09.</footer>
+</div>

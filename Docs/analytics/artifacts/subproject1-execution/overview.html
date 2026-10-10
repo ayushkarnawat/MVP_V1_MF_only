@@ -1,0 +1,308 @@
+<title>Sub-project 1 Execution Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Manrope:wght@600;700;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one 1040px reading column; diagrams and tables scroll inside their own frames. */
+:root {
+  --paper: #F4F7F6; --surface: #FFFFFF; --ink: #12201C; --muted: #5A6A65; --line: #D9E2DF;
+  --accent: #0E6A56; --accent-soft: #E1F0EB;
+  --crit: #B3262E; --crit-soft: #FBE5E6; --warn: #A86C12; --warn-soft: #FBF0DA;
+  --info: #2D5B9C; --info-soft: #E3EBF7; --codex: #6B4BB8; --codex-soft: #EEE8FA;
+  --display: "Manrope", "Segoe UI", system-ui, sans-serif;
+  --body: "DM Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "Cascadia Code", monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #0D1412; --surface: #141E1B; --ink: #E4ECE9; --muted: #96A7A1; --line: #26342F;
+  --accent: #5DC8A7; --accent-soft: #163029; --crit: #F0767C; --crit-soft: #3A1B1E;
+  --warn: #E5AB4B; --warn-soft: #33270F; --info: #82A9E6; --info-soft: #182437;
+  --codex: #B49BF0; --codex-soft: #261D3D; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --paper: #0D1412; --surface: #141E1B; --ink: #E4ECE9; --muted: #96A7A1; --line: #26342F;
+  --accent: #5DC8A7; --accent-soft: #163029; --crit: #F0767C; --crit-soft: #3A1B1E;
+  --warn: #E5AB4B; --warn-soft: #33270F; --info: #82A9E6; --info-soft: #182437;
+  --codex: #B49BF0; --codex-soft: #261D3D; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font: 400 15px/1.6 var(--body); margin: 0; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 40px 20px 80px; display: flex; flex-direction: column; gap: 44px; }
+header.top { display: flex; flex-direction: column; gap: 14px; }
+.eyebrow { font: 600 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+h1 { font: 800 clamp(28px, 4.4vw, 42px)/1.1 var(--display); margin: 0; letter-spacing: -.02em; text-wrap: balance; }
+h2 { font: 700 22px/1.25 var(--display); margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+h3 { font: 700 16px/1.3 var(--display); margin: 0; }
+p { margin: 0; max-width: 72ch; }
+.lede { font-size: 17px; color: var(--muted); max-width: 70ch; }
+code, .mono { font-family: var(--mono); font-size: .86em; }
+code { background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; word-break: break-word; }
+a { color: var(--accent); }
+section { display: flex; flex-direction: column; gap: 16px; }
+.sec-head { display: flex; flex-direction: column; gap: 6px; }
+.sec-head .tag { font: 600 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font: 500 13px/1 var(--body); padding: 7px 11px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+.chip b { font-family: var(--display); font-weight: 800; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.grid2 > * { min-width: 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.panel .label { font: 600 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.panel.after { border-color: var(--accent); }
+.panel.after .label { color: var(--accent); }
+.diagram { overflow-x: auto; }
+pre.mermaid { margin: 0; background: transparent; font-family: var(--body); }
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 11px/1.2 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--paper); }
+tr:last-child td { border-bottom: 0; }
+td.num { font-variant-numeric: tabular-nums; }
+.pill { display: inline-block; font: 600 11px/1 var(--mono); padding: 4px 7px; border-radius: 5px; letter-spacing: .03em; white-space: nowrap; }
+.p-new { background: var(--accent-soft); color: var(--accent); }
+.p-mod { background: var(--info-soft); color: var(--info); }
+.p-none { background: var(--paper); color: var(--muted); border: 1px solid var(--line); }
+.p-codex { background: var(--codex-soft); color: var(--codex); }
+.p-claude { background: var(--accent-soft); color: var(--accent); }
+.p-you { background: var(--warn-soft); color: var(--warn); }
+.p-crit { background: var(--crit-soft); color: var(--crit); }
+.p-warn { background: var(--warn-soft); color: var(--warn); }
+.p-info { background: var(--info-soft); color: var(--info); }
+ol.passes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0; }
+ol.passes > li { display: grid; grid-template-columns: 132px 1fr; gap: 16px; padding: 14px 0; border-top: 1px solid var(--line); }
+ol.passes > li:first-child { border-top: 0; }
+ol.passes .when { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+ol.passes .when .n { font: 800 13px/1 var(--display); color: var(--muted); }
+ol.passes .what { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+ol.passes ul { margin: 0; padding-left: 18px; }
+@media (max-width: 560px) { ol.passes > li { grid-template-columns: 1fr; gap: 8px; } }
+.issues { display: flex; flex-direction: column; gap: 10px; }
+.issue { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--info); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.issue.crit { border-left-color: var(--crit); }
+.issue.warn { border-left-color: var(--warn); }
+.issue .hd { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.issue .hd h3 { font-size: 15px; }
+.issue .fix { color: var(--muted); font-size: 14px; }
+.callout { background: var(--warn-soft); border: 1px solid var(--warn); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+.callout h2 { font-size: 19px; }
+.note { font-size: 13px; color: var(--muted); }
+ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.bar { display: flex; height: 34px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
+.bar > div { display: flex; align-items: center; justify-content: center; font: 700 12px/1 var(--display); color: #fff; min-width: 0; overflow: hidden; white-space: nowrap; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; background: var(--c); vertical-align: -1px; }
+.formula { font-family: var(--mono); font-size: 13px; background: var(--paper); border: 1px dashed var(--line); border-radius: 8px; padding: 12px 14px; overflow-x: auto; white-space: pre; }
+footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 16px; }
+.ib { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--info); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.ib.crit { border-left-color: var(--crit); } .ib.warn { border-left-color: var(--warn); } .ib.done { border-left-color: var(--accent); }
+.ib .top { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ib .top h3 { font-size: 16px; flex: 1 1 260px; min-width: 0; }
+.ib dl { display: grid; grid-template-columns: 148px minmax(0, 1fr); gap: 10px 18px; margin: 0; }
+.ib dt { font: 600 11px/1.5 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding-top: 2px; }
+.ib dd { margin: 0; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.ib ol.opts { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.ib ol.opts li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 8px; }
+.ib ol.opts .k { font: 800 12px/1.6 var(--display); color: var(--muted); }
+.ib ol.opts li.pick .k { color: var(--accent); }
+.ib ol.opts li.pick > span:last-child { font-weight: 500; }
+.ib .rec { color: var(--accent); font-weight: 700; }
+.ib ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
+@media (max-width: 600px) { .ib dl { grid-template-columns: 1fr; gap: 4px; } .ib dd { margin-bottom: 8px; } }
+.group { display: flex; flex-direction: column; gap: 10px; padding-top: 8px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 22px; margin-top: 6px; }
+.group-head { display: flex; align-items: center; gap: 10px; }
+.group-head h3 { font-size: 18px; }
+.ib ul.muted { color: var(--muted); font-size: 13px; }
+.ib.done .top h3 { color: var(--ink); }
+</style>
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Unifolio · Analytics · Sub-project 1</div>
+  <h1>How we build the five attributes</h1>
+  <p class="lede">The run order, the Claude–Codex loop each plan goes through, what every plan changes in the database, backend and frontend, and the fixes the plans need before execution. Every plan was checked against the code at <code>cd2533d</code>.</p>
+  <div class="chips">
+    <span class="chip"><b>5</b> plans · 50 tasks</span>
+    <span class="chip"><b>5</b> migrations · 0033–0037 expected</span>
+    <span class="chip"><b>7</b> new tables</span>
+    <span class="chip"><b>3</b> new analytics sections · 1 new screen</span>
+    <span class="chip"><b>11</b> Codex runs + 1 research batch</span>
+    <span class="chip"><b>19</b> plan issues resolved</span><span class="chip"><b>3</b> waiting on you</span><span class="chip"><b>8</b> A11 fixes to review</span>
+  </div>
+</header>
+
+<section>
+  <div class="sec-head"><span class="tag">At a glance</span><h2>The five plans</h2></div>
+  <div class="tbl"><table>
+    <tr><th>#</th><th>Attribute</th><th>Database</th><th>Backend</th><th>Frontend</th><th>Runs</th><th>Issues</th></tr>
+    <tr><td class="num">1</td><td><a href="https://claude.ai/artifact/9cUrg74KeC3dXoYmiEtGcE">14 · Investment &amp; withdrawal</a> <span class="pill p-codex">in build</span></td><td>none</td><td>1 module, 8th section</td><td>section + new bar chart</td><td class="num">2</td><td><span class="pill p-new">7 resolved</span></td></tr>
+    <tr><td class="num">2</td><td><a href="https://claude.ai/artifact/QYiQ2NMUNzJccE1nTyfuhC">12 · TRI benchmark</a></td><td>+1 column, wider PK</td><td>5 lookups re-keyed, TRI fetch, daily job, <code>benchmark.py</code> → TRI, TRI from 1990</td><td>no code; benchmark % shifts</td><td class="num">1</td><td><span class="pill p-new">4 resolved</span></td></tr>
+    <tr><td class="num">3</td><td><a href="https://claude.ai/artifact/NRZKZyoxpCLFjLhJBQQ31Y">09 · Fund ranking</a></td><td>2 tables</td><td>ranking engine, 1 route, section</td><td>leaderboard + PDF</td><td class="num">2</td><td><span class="pill p-new">3 resolved</span> <span class="pill p-you">1 your call</span></td></tr>
+    <tr><td class="num">4</td><td><a href="https://claude.ai/artifact/GLR1ozT1v4gvPJD8Zn6v6U">04 · Fund manager</a></td><td>1 table</td><td>factsheet ingest, monthly job, CLI, section</td><td>manager cards + PDF</td><td class="num">2 + batch</td><td><span class="pill p-new">4 resolved</span> <span class="pill p-you">1 needs files</span></td></tr>
+    <tr><td class="num">5</td><td><a href="https://claude.ai/artifact/VToToHPinTtHa4evf3cAUZ">11 · Scenario simulator</a></td><td>4 tables + seed</td><td>NAV backfill, engine, new router</td><td>new Scenarios screen, 4 views</td><td class="num">4</td><td><span class="pill p-new">1 resolved</span> <span class="pill p-you">1 your call</span> <span class="pill p-mod">8 to review</span></td></tr>
+  </table></div>
+  <p class="note">Issue counts come from each attribute page, where every item is grouped as resolved, waiting on you, or proposed. A14 has nothing open and is in build.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="tag">Order</span><h2>Run order and why</h2></div>
+  <div class="panel"><div class="diagram"><pre class="mermaid">
+flowchart LR
+  a14["1 · A14&lt;br/&gt;no schema&lt;br/&gt;proves the 8th-section path"] --> a12["2 · A12&lt;br/&gt;backend only&lt;br/&gt;re-keys benchmark rows"]
+  a12 --> a09["3 · A09&lt;br/&gt;2 tables&lt;br/&gt;reuses existing modules"]
+  a09 --> a04["4 · A04 core&lt;br/&gt;tasks 1–7, 21"]
+  a04 --> a11["5 · A11&lt;br/&gt;heaviest, needs the backfill"]
+  a12 -. "TRI rows + deep backfill" .-> a11
+  a04 --> r["A04 research batch&lt;br/&gt;tasks 8–20, registry file only"]
+  r -. "runs alongside" .-> a11
+</pre></div></div>
+  <ul class="plain">
+    <li><b>A14 first:</b> no migration, and it exercises the full section pipeline (compute → <code>analytics_sections</code> → generic endpoint → screen) that 09 and 04 reuse. The handoff guide suggests the same.</li>
+    <li><b>A12 before A11:</b> A11's scenario benchmarks read TRI only, and scenarios before 2016 need A12's TRI history from 1990.</li>
+    <li><b>09 before 04:</b> 09 is self-contained. 04 needs real-PDF fitting and live AMC tracing, which takes longer than the code.</li>
+    <li><b>A11 last:</b> biggest surface, and the NAV backfill is an operational step with its own runbook. Starting it last lets the backfill's small-batch test run while 04's research batch finishes.</li>
+    <li><b>Serial, not parallel:</b> one Codex session at a time (your setting in <code>delegation-log.md</code>), and the plans share files (table below).</li>
+  </ul>
+</section>
+
+<section>
+  <div class="sec-head"><span class="tag">Shared files</span><h2>Where the plans touch the same file</h2><p class="note">Each run starts from the previous checkpoint, so these edits stack instead of conflicting.</p></div>
+  <div class="tbl"><table>
+    <tr><th>File</th><th>A14</th><th>A12</th><th>A09</th><th>A04</th><th>A11</th></tr>
+    <tr><td><code>backend/app/models/reference.py</code></td><td></td><td>●</td><td>●</td><td>●</td><td>●</td></tr>
+    <tr><td><code>backend/app/services/analytics/schemas.py</code></td><td>●</td><td></td><td>●</td><td>●</td><td>●</td></tr>
+    <tr><td><code>backend/app/services/analytics/recompute.py</code></td><td>●</td><td></td><td>●</td><td>●</td><td></td></tr>
+    <tr><td><code>frontend/src/features/analytics/types.ts</code></td><td>●</td><td></td><td>●</td><td>●</td><td></td></tr>
+    <tr><td><code>frontend/src/features/analytics/AnalyticsView.tsx</code></td><td>●</td><td></td><td>●</td><td>●</td><td></td></tr>
+    <tr><td><code>frontend/src/features/analytics/print/PrintAnalyticsView.tsx</code></td><td></td><td></td><td>●</td><td>●</td><td></td></tr>
+    <tr><td><code>backend/alembic/versions/</code></td><td></td><td>0033</td><td>0034</td><td>0035</td><td>0036–37</td></tr>
+  </table></div>
+  <p class="note">Migration numbers are expected values for this order. The latest today is <code>0032_transaction_stamp_duty</code>. Each number is assigned at build time with <code>ls backend/alembic/versions | sort | tail</code>.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="tag">The loop</span><h2>How one plan moves through Claude and Codex</h2></div>
+  <div class="panel"><div class="diagram"><pre class="mermaid">
+sequenceDiagram
+  autonumber
+  actor You
+  participant C as Claude (orchestrator)
+  participant X as Codex (worker)
+  participant R as Reviewer
+  C->>C: Pre-flight: check plan vs code, fix plan
+  C->>C: Handoff doc + delegation-log line
+  C->>You: Run N prompt
+  You->>X: Paste prompt (manual relay)
+  X->>X: Tasks in order, test first, self-review
+  X->>You: CODEX REPORT
+  You->>C: Paste report
+  C->>C: WSL: git diff --stat, touched tests, alembic on Postgres
+  C->>R: Adversarial review vs Review Focus
+  R->>C: Findings
+  alt small fix
+    C->>C: Fix inline, scoped re-review
+  else larger fix
+    C->>X: New round via you
+  end
+  C->>C: git add + git commit, one per plan task
+  C->>You: Staging guide (bastion start, stop)
+</pre></div></div>
+  <div class="tbl"><table>
+    <tr><th>Who</th><th>Does</th><th>Never does</th></tr>
+    <tr><td><span class="pill p-claude">Claude</span></td><td>Pre-flight, plan fixes, handoff docs, verification in WSL, Postgres migrations, review, small fixes, real-CAS checks, staging guides, <code>log.md</code> / <code>session.md</code> / <code>database.md</code> / <code>backend.md</code>, and each task's commit once its tests pass</td><td>Push, or switch to Opus without asking</td></tr>
+    <tr><td><span class="pill p-codex">Codex</span></td><td>Builds each run's tasks test-first, runs the named test files, self-reviews, prints its report; read-only reviews</td><td>Stage, commit, touch Postgres, staging, AWS or real CAS files</td></tr>
+    <tr><td><span class="pill p-you">You</span></td><td>Decisions, relaying prompts and reports, Terraform applies, the manual factsheet PDFs</td><td>—</td></tr>
+    <tr><td><span class="pill p-info">Reviewer</span></td><td>Codex adversarial review by default. Opus for A04's matcher, A11's engine, and the final review across all five</td><td>Auto-apply findings</td></tr>
+  </table></div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="tag">Issues in detail</span><h2>Issues, by status</h2><p class="note">Decisions that apply to all five plans, and the ones still open. Plan-specific issues are on each attribute's page.</p><div class="chips"><span class="chip"><span class="pill p-new">Resolved</span> <b>8</b></span><span class="chip"><span class="pill p-you">Waiting on files or action from you</span> <b>1</b></span></div></div>
+  
+<div class="group"><div class="group-head"><h3>Resolved</h3><span class="pill p-new">8</span></div><p class="note">Decided or verified. Each card shows the problem, the fix we chose, and what happens with it.</p><div class="issues">
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>Commits</h3><span class="pill p-none">was: Decision</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>Every plan task ends with <code>git add</code> + <code>git commit</code>, while the repo's rule was that agents never commit.</p><p>It decides who commits and when, and how granular the history is.</p></dd>
+    <dt>Fix chosen</dt><dd><p><span class="rec">A.</span> Follow the plans: one commit per task once its tests pass, made by Claude (Codex's sandbox can't write git metadata).</p><p>Your call on 9 Oct. One commit per task makes every review and revert small.</p></dd>
+    <dt>What happens now</dt><dd><ul><li>About 51 commits across the sub-project; nothing pushed.</li><li>Saved to memory as an exception for these five plans only.</li></ul></dd>
+    <dt>Not chosen</dt><dd><ul class="muted"><li><b>B.</b> You commit at each checkpoint.</li><li><b>C.</b> One commit per attribute.</li></ul></dd>
+  </dl>
+</article>
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>Field names on the wire</h3><span class="pill p-none">was: Decision</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>Plans 14 and 11 type API responses in camelCase; the API sends snake_case, and existing frontend types use snake_case.</p><p>camelCase types would read <code>undefined</code> for every field.</p></dd>
+    <dt>Fix chosen</dt><dd><p><span class="rec">A.</span> snake_case in new types.</p><p>Changes nothing existing.</p></dd>
+    <dt>What happens now</dt><dd><ul><li>Plans 14 and 11's types, components and tests use snake_case.</li></ul></dd>
+    <dt>Not chosen</dt><dd><ul class="muted"><li><b>B.</b> Backend camelCase aliases (breaks existing screens).</li><li><b>C.</b> Per-feature conversion.</li></ul></dd>
+  </dl>
+</article>
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>One A14 plan</h3><span class="pill p-none">was: Decision</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>An uncommitted 8 Oct A14 plan and handoff competed with the committed 9 Oct plan.</p><p>Two binding plans for one feature.</p></dd>
+    <dt>Fix chosen</dt><dd><p><span class="rec">A.</span> Keep the committed 9 Oct plan; delete the 8 Oct files.</p><p>Your call on 9 Oct. Its two money rulings are carried as a decision on the A14 page.</p></dd>
+    <dt>What happens now</dt><dd><ul><li>Both files deleted; <code>delegation-log.md</code> marks the old run superseded.</li></ul></dd>
+    <dt>Not chosen</dt><dd><ul class="muted"><li><b>B.</b> Keep the 8 Oct plan.</li></ul></dd>
+  </dl>
+</article>
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>TRI for every fund-vs-index comparison</h3><span class="pill p-none">was: Decision</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>A12 stores TRI, but no plan used it.</p><p>Price-only benchmarks make funds look better by about the dividend yield.</p></dd>
+    <dt>Fix chosen</dt><dd><p><span class="rec">A.</span> TRI everywhere a fund is compared with an index; price as raw data only.</p><p>Like-for-like with NAV, and SEBI's standard since 2018.</p></dd>
+    <dt>What happens now</dt><dd><ul><li>A12 gains Task 6 (<code>benchmark.py</code> → TRI); TRI history from 1990 (A12 card 2). A11 filters to TRI. No fallback to price.</li></ul></dd>
+    <dt>Not chosen</dt><dd><ul class="muted"><li><b>B.</b> Price everywhere.</li></ul></dd>
+  </dl>
+</article>
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>Where the fixes go</h3><span class="pill p-none">was: Decision</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>Every plan needs edits before Run 1: 9 blockers, the casing switch, and the 9 Oct decisions.</p><p>Whoever executes, Codex or an intern, works from the plan files, per your handoff note. Fixes left elsewhere get missed.</p></dd>
+    <dt>Fix chosen</dt><dd><p><span class="rec">A.</span> Edit the five plans in place, update their self-review sections, and update the mirror copies in <code>Docs/analytics/plans/</code> the same way.</p><p>The plan stays the one source of truth, which is how your handoff note tells people to use it.</p></dd>
+    <dt>What happens now</dt><dd><ul><li>Plans are edited in place with a dated revision note, mirrors synced. A14 is done (9 Oct) and in build; the other four are edited as their open items close.</li></ul></dd>
+    <dt>Not chosen</dt><dd><ul class="muted"><li><b>B.</b> Leave the plans as committed and put rulings in each run's handoff doc.</li><li><b>C.</b> One separate errata document.</li></ul></dd>
+  </dl>
+</article>
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>Run order</h3><span class="pill p-none">was: Decision</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>The five plans share files and one Codex session, so they run one after another.</p><p>Order decides when the risky work happens and what each plan can rely on.</p></dd>
+    <dt>Fix chosen</dt><dd><p><span class="rec">A.</span> 14 → 12 → 09 → 04 → 11.</p><p>A14 proves the section pipeline with no migration; A12 must land before A11; 09 is self-contained; 04 needs real-PDF fitting time; A11's backfill test can run while 04's research batch finishes.</p></dd>
+    <dt>What happens now</dt><dd><ul><li>Migrations 0033 (A12) → 0034 (A09) → 0035 (A04) → 0036–0037 (A11), assigned at build time.</li></ul></dd>
+    <dt>Not chosen</dt><dd><ul class="muted"><li><b>B.</b> 12 first, so TRI data starts accumulating earliest.</li><li><b>C.</b> 11 earlier, to start its long NAV backfill sooner.</li></ul></dd>
+  </dl>
+</article>
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>A14 money rules</h3><span class="pill p-none">was: Decision</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>Stamp duty and bounced-SIP handling in the A14 tiles.</p><p>Changes the Invested and Withdrawn tiles.</p></dd>
+    <dt>Fix chosen</dt><dd><p><span class="rec">A.</span> Include stamp duty and net reversals against Invested.</p><p>Your call on 9 Oct, along with option A for every other A14 card.</p></dd>
+    <dt>What happens now</dt><dd><ul><li>Two extra tests in A14 Task 1.</li></ul></dd>
+    <dt>Not chosen</dt><dd><ul class="muted"><li><b>B.</b> Keep the plan as written.</li></ul></dd>
+  </dl>
+</article>
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>A12: TRI history from 1990 in the daily job</h3><span class="pill p-none">was: Fix</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>Old scenarios need TRI from before 2016, and the daily job only fetched 10 years.</p></dd>
+    <dt>Fix chosen</dt><dd><p><span class="rec">B.</span> The daily job asks for TRI from 1 Jan 1990 (decided 9 Oct). One request per index already returns full history in ~0.3 s.</p></dd>
+    <dt>What happens now</dt><dd><ul><li>A12 is 6 tasks; no separate backfill script.</li><li>Under $0.01 a month on AWS, no effect on page speed, no interference with the other 06:00–06:30 jobs. Details on the A12 page, card 2.</li></ul></dd>
+    <dt>Not chosen</dt><dd><ul class="muted"><li><b>A.</b> A one-off backfill script.</li></ul></dd>
+  </dl>
+</article>
+</div></div>
+<div class="group"><div class="group-head"><h3>Waiting on files or action from you</h3><span class="pill p-you">1</span></div><p class="note">Work that needs something from your side before it can continue.</p><div class="issues">
+<article class="ib ">
+  <div class="top"><span class="pill p-info">Check</span><h3>A04: 3 factsheet PDFs from ops</h3><span class="pill p-you">Needs files from you</span></div>
+  <dl>
+    <dt>The issue</dt><dd><p>HDFC, Kotak and Edelweiss block downloads, so their factsheets come from your team.</p></dd>
+    <dt>Why it matters</dt><dd><p>We test the extractor on them before building, then write the ops procedure from a real run.</p></dd>
+    <dt>Options</dt><dd><ol class="opts"><li class="pick"><span class="k">A</span><span>Send the 3 PDFs and their page URLs now.</span></li></ol></dd>
+    <dt>Recommended</dt><dd><p><span class="rec">A.</span> Steps and file naming are on the A04 page, card 5.</p></dd>
+    <dt>After the fix</dt><dd><ul><li>Tested ops guide after A04 is built.</li></ul></dd>
+  </dl>
+</article>
+</div></div>
+</section>
+
+<footer>Pages in this set: <a href="https://claude.ai/artifact/9cUrg74KeC3dXoYmiEtGcE">A14</a> · <a href="https://claude.ai/artifact/QYiQ2NMUNzJccE1nTyfuhC">A12</a> · <a href="https://claude.ai/artifact/NRZKZyoxpCLFjLhJBQQ31Y">A09</a> · <a href="https://claude.ai/artifact/GLR1ozT1v4gvPJD8Zn6v6U">A04</a> · <a href="https://claude.ai/artifact/VToToHPinTtHa4evf3cAUZ">A11</a>. Standalone copies: <code>Docs/orchestration/subproject1-execution/</code>. Checked and updated 2026-10-09.</footer>
+</div>

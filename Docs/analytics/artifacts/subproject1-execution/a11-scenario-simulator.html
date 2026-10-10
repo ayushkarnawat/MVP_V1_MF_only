@@ -1,0 +1,403 @@
+<title>A11 Scenario Simulator Build</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Manrope:wght@600;700;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one 1040px reading column; diagrams and tables scroll inside their own frames. */
+:root {
+  --paper: #F4F7F6; --surface: #FFFFFF; --ink: #12201C; --muted: #5A6A65; --line: #D9E2DF;
+  --accent: #0E6A56; --accent-soft: #E1F0EB;
+  --crit: #B3262E; --crit-soft: #FBE5E6; --warn: #A86C12; --warn-soft: #FBF0DA;
+  --info: #2D5B9C; --info-soft: #E3EBF7; --codex: #6B4BB8; --codex-soft: #EEE8FA;
+  --display: "Manrope", "Segoe UI", system-ui, sans-serif;
+  --body: "DM Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "Cascadia Code", monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #0D1412; --surface: #141E1B; --ink: #E4ECE9; --muted: #96A7A1; --line: #26342F;
+  --accent: #5DC8A7; --accent-soft: #163029; --crit: #F0767C; --crit-soft: #3A1B1E;
+  --warn: #E5AB4B; --warn-soft: #33270F; --info: #82A9E6; --info-soft: #182437;
+  --codex: #B49BF0; --codex-soft: #261D3D; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --paper: #0D1412; --surface: #141E1B; --ink: #E4ECE9; --muted: #96A7A1; --line: #26342F;
+  --accent: #5DC8A7; --accent-soft: #163029; --crit: #F0767C; --crit-soft: #3A1B1E;
+  --warn: #E5AB4B; --warn-soft: #33270F; --info: #82A9E6; --info-soft: #182437;
+  --codex: #B49BF0; --codex-soft: #261D3D; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font: 400 15px/1.6 var(--body); margin: 0; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 40px 20px 80px; display: flex; flex-direction: column; gap: 44px; }
+header.top { display: flex; flex-direction: column; gap: 14px; }
+.eyebrow { font: 600 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+h1 { font: 800 clamp(28px, 4.4vw, 42px)/1.1 var(--display); margin: 0; letter-spacing: -.02em; text-wrap: balance; }
+h2 { font: 700 22px/1.25 var(--display); margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+h3 { font: 700 16px/1.3 var(--display); margin: 0; }
+p { margin: 0; max-width: 72ch; }
+.lede { font-size: 17px; color: var(--muted); max-width: 70ch; }
+code, .mono { font-family: var(--mono); font-size: .86em; }
+code { background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; word-break: break-word; }
+a { color: var(--accent); }
+section { display: flex; flex-direction: column; gap: 16px; }
+.sec-head { display: flex; flex-direction: column; gap: 6px; }
+.sec-head .tag { font: 600 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font: 500 13px/1 var(--body); padding: 7px 11px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+.chip b { font-family: var(--display); font-weight: 800; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.grid2 > * { min-width: 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.panel .label { font: 600 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.panel.after { border-color: var(--accent); }
+.panel.after .label { color: var(--accent); }
+.diagram { overflow-x: auto; }
+pre.mermaid { margin: 0; background: transparent; font-family: var(--body); }
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 11px/1.2 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--paper); }
+tr:last-child td { border-bottom: 0; }
+td.num { font-variant-numeric: tabular-nums; }
+.pill { display: inline-block; font: 600 11px/1 var(--mono); padding: 4px 7px; border-radius: 5px; letter-spacing: .03em; white-space: nowrap; }
+.p-new { background: var(--accent-soft); color: var(--accent); }
+.p-mod { background: var(--info-soft); color: var(--info); }
+.p-none { background: var(--paper); color: var(--muted); border: 1px solid var(--line); }
+.p-codex { background: var(--codex-soft); color: var(--codex); }
+.p-claude { background: var(--accent-soft); color: var(--accent); }
+.p-you { background: var(--warn-soft); color: var(--warn); }
+.p-crit { background: var(--crit-soft); color: var(--crit); }
+.p-warn { background: var(--warn-soft); color: var(--warn); }
+.p-info { background: var(--info-soft); color: var(--info); }
+ol.passes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0; }
+ol.passes > li { display: grid; grid-template-columns: 132px 1fr; gap: 16px; padding: 14px 0; border-top: 1px solid var(--line); }
+ol.passes > li:first-child { border-top: 0; }
+ol.passes .when { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+ol.passes .when .n { font: 800 13px/1 var(--display); color: var(--muted); }
+ol.passes .what { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+ol.passes ul { margin: 0; padding-left: 18px; }
+@media (max-width: 560px) { ol.passes > li { grid-template-columns: 1fr; gap: 8px; } }
+.issues { display: flex; flex-direction: column; gap: 10px; }
+.issue { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--info); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.issue.crit { border-left-color: var(--crit); }
+.issue.warn { border-left-color: var(--warn); }
+.issue .hd { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.issue .hd h3 { font-size: 15px; }
+.issue .fix { color: var(--muted); font-size: 14px; }
+.callout { background: var(--warn-soft); border: 1px solid var(--warn); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+.callout h2 { font-size: 19px; }
+.note { font-size: 13px; color: var(--muted); }
+ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.bar { display: flex; height: 34px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
+.bar > div { display: flex; align-items: center; justify-content: center; font: 700 12px/1 var(--display); color: #fff; min-width: 0; overflow: hidden; white-space: nowrap; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; background: var(--c); vertical-align: -1px; }
+.formula { font-family: var(--mono); font-size: 13px; background: var(--paper); border: 1px dashed var(--line); border-radius: 8px; padding: 12px 14px; overflow-x: auto; white-space: pre; }
+footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 16px; }
+.ib { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--info); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.ib.crit { border-left-color: var(--crit); } .ib.warn { border-left-color: var(--warn); } .ib.done { border-left-color: var(--accent); }
+.ib .top { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ib .top h3 { font-size: 16px; flex: 1 1 260px; min-width: 0; }
+.ib dl { display: grid; grid-template-columns: 148px minmax(0, 1fr); gap: 10px 18px; margin: 0; }
+.ib dt { font: 600 11px/1.5 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding-top: 2px; }
+.ib dd { margin: 0; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.ib ol.opts { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.ib ol.opts li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 8px; }
+.ib ol.opts .k { font: 800 12px/1.6 var(--display); color: var(--muted); }
+.ib ol.opts li.pick .k { color: var(--accent); }
+.ib ol.opts li.pick > span:last-child { font-weight: 500; }
+.ib .rec { color: var(--accent); font-weight: 700; }
+.ib ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
+@media (max-width: 600px) { .ib dl { grid-template-columns: 1fr; gap: 4px; } .ib dd { margin-bottom: 8px; } }
+.group { display: flex; flex-direction: column; gap: 10px; padding-top: 8px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 22px; margin-top: 6px; }
+.group-head { display: flex; align-items: center; gap: 10px; }
+.group-head h3 { font-size: 18px; }
+.ib ul.muted { color: var(--muted); font-size: 13px; }
+.ib.done .top h3 { color: var(--ink); }
+</style>
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Sub-project 1 · Attribute 11 · 5th in run order</div>
+  <h1>Scenario simulator</h1>
+  <p class="lede">A new top-level Scenarios screen. It replays the household's current portfolio through 26 historical market windows and 5 hypothetical shocks, and shows the impact fund by fund and family member by family member. Results are precomputed, so a tap is one indexed lookup.</p>
+  <div class="chips">
+    <span class="chip"><b>12</b> tasks</span>
+    <span class="chip"><b>2</b> migrations (schema + seed)</span>
+    <span class="chip"><b>4</b> new tables</span>
+    <span class="chip"><b>1</b> new router · 3 endpoints</span>
+    <span class="chip"><b>1</b> new nav route</span>
+    <span class="chip"><b>1</b> one-off NAV backfill, ~10,538 schemes</span>
+    <span class="chip"><b>4</b> Codex runs</span>
+  </div>
+</header>
+
+<section>
+  <div class="sec-head"><span class="tag">Library</span><h2>31 scenarios, 4 result shapes</h2><p class="note">31 is the count users see. The database holds 34 rows, because the US-Iran war is 1 group row plus 3 phase rows.</p></div>
+  <div class="tbl"><table>
+    <tr><th>Shape</th><th>Backend flag that selects it</th><th>Example</th><th>What the screen shows</th></tr>
+    <tr><td><span class="pill p-new">standard</span></td><td>none of the below</td><td>COVID crash, 2008 GFC, Post-COVID bull run</td><td>Portfolio %, rupee impact, benchmarks, by fund (~ for proxied), by member</td></tr>
+    <tr><td><span class="pill p-mod">multi_phase</span></td><td><code>has_phases</code></td><td>US-Iran war (2026): Shock, Partial recovery, Relapse (ongoing)</td><td>Cumulative hero, phase cards, by fund for the current phase only</td></tr>
+    <tr><td><span class="pill p-crit">redemption_freeze</span></td><td><code>had_redemption_freeze_schemes</code></td><td>Franklin Templeton wind-up (2020)</td><td>"Redemptions frozen ~20mo" for the 6 schemes; a real % for other debt funds</td></tr>
+    <tr><td><span class="pill p-codex">hypothetical</span></td><td><code>scenario_type = HYPOTHETICAL</code></td><td>Strait of Hormuz closure, AI/tech valuation bust</td><td>Assumed % per asset class × current value, each with its note</td></tr>
+  </table></div>
+  <p class="note">The frontend's <code>resolveResultShape</code> reads only these flags, never a scenario's name or dates.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="tag">Flow</span><h2>Before and after</h2><p class="note">Before: no scenario feature exists, and <code>nav_history</code> holds history only for held schemes and their category peers.</p></div>
+  <div class="panel after"><span class="label">After · the three steps</span><div class="diagram"><pre class="mermaid">
+flowchart LR
+  subgraph S1["Step 1 · one-off"]
+    bf["backfill_scheme_nav_history.py&lt;br/&gt;batches of 150 · 2.5s pause&lt;br/&gt;abort if over 25% fail"] --> mf["mfapi.in"]
+    mf --> nh[("nav_history&lt;br/&gt;whole scheme master")]
+  end
+  subgraph S2["Step 2 · precompute per scenario"]
+    cs["compute_scenario_results"] --> real["real %: NAV at start vs end"]
+    real --> cat["category average&lt;br/&gt;real data only"]
+    cat --> ac["asset-class average"]
+    ac --> nd["else: no_comparable_data, NULL"]
+  end
+  subgraph S3["Step 3 · serve"]
+    api["GET /scenarios/{id}/results"] --> hold["compute_holdings"]
+    hold --> join["join held schemes to results"]
+  end
+  nh --> cs
+  nd --> ssr[("scenario_scheme_results")]
+  cat --> sca[("scenario_category_averages")]
+  ssr --> join
+  daily["refresh_nav_daily&lt;br/&gt;recompute is_ongoing"] --> cs
+</pre></div></div>
+  <div class="panel after"><span class="label">After · the screen</span><div class="diagram"><pre class="mermaid">
+flowchart LR
+  nav["Scenarios nav route"] --> pick["ScenarioPicker&lt;br/&gt;8 curated cards + More scenarios"]
+  pick -->|tap| res["GET /scenarios/{id}/results"]
+  res --> shape{"resolveResultShape"}
+  shape --> v1["StandardResultView"]
+  shape --> v2["MultiPhaseResultView"]
+  shape --> v3["RedemptionFreezeResultView"]
+  shape --> v4["HypotheticalResultView"]
+</pre></div></div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="tag">Database</span><h2>ER after the build</h2><p class="note">Before: only <code>schemes</code> and <code>nav_history</code> exist, with sparse history. All four scenario tables are new.</p></div>
+  <div class="panel after"><div class="diagram"><pre class="mermaid">
+erDiagram
+  SCENARIOS ||--o{ SCENARIOS : "phases via parent_scenario_id"
+  SCENARIOS ||--o{ SCENARIO_SCHEME_RESULTS : precomputes
+  SCHEMES ||--o{ SCENARIO_SCHEME_RESULTS : "one row per scheme"
+  SCENARIOS ||--o{ SCENARIO_CATEGORY_AVERAGES : "proxy source"
+  SCENARIOS ||--o{ SCENARIO_HYPOTHETICAL_ASSUMPTIONS : "8 asset classes"
+  SCHEMES ||--o{ NAV_HISTORY : "backfilled"
+  SCENARIOS {
+    uuid id PK
+    string name
+    date start_date
+    date end_date "null if ongoing"
+    string scenario_type "CRASH, BULL_RUN, POLICY_RATE, HYPOTHETICAL"
+    bool is_ongoing
+    int display_rank "set = curated"
+    uuid parent_scenario_id FK
+    string phase_label
+    int phase_order
+    array had_redemption_freeze_schemes
+  }
+  SCENARIO_SCHEME_RESULTS {
+    uuid scenario_id PK
+    uuid scheme_id PK
+    numeric pct_change "null = no data"
+    bool is_proxied
+    string proxy_basis
+  }
+  SCENARIO_CATEGORY_AVERAGES {
+    uuid scenario_id PK
+    string sebi_category PK
+    numeric avg_pct_change
+    int scheme_count
+  }
+  SCENARIO_HYPOTHETICAL_ASSUMPTIONS {
+    uuid scenario_id PK
+    string asset_class PK
+    numeric assumed_pct_change
+    string assumption_note
+  }
+</pre></div></div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="tag">Change map</span><h2>What changes where</h2></div>
+  <div class="tbl"><table>
+    <tr><th>Layer</th><th>File</th><th>Change</th><th>Task</th></tr>
+    <tr><td>Database</td><td><code>&lt;NNNN&gt;_scenarios_and_scenario_results.py</code></td><td><span class="pill p-new">new</span> 4 tables</td><td>1</td></tr>
+    <tr><td>Database</td><td><code>&lt;NNNN+1&gt;_seed_scenario_library.py</code></td><td><span class="pill p-new">new</span> data migration: 34 scenario rows, 40 assumption rows</td><td>2</td></tr>
+    <tr><td>Backend</td><td><code>app/models/reference.py</code></td><td><span class="pill p-mod">modify</span> 4 models</td><td>1</td></tr>
+    <tr><td>Jobs</td><td><code>scripts/jobs/backfill_scheme_nav_history.py</code></td><td><span class="pill p-new">new</span> one-off, resumable, never scheduled</td><td>3</td></tr>
+    <tr><td>Backend</td><td><code>app/services/analytics/scenario_asset_class.py</code></td><td><span class="pill p-new">new</span> 8-bucket mapping for hypotheticals</td><td>4</td></tr>
+    <tr><td>Backend</td><td><code>app/services/analytics/scenario_engine.py</code></td><td><span class="pill p-new">new</span> proxy cascade, serving, benchmarks</td><td>5–6</td></tr>
+    <tr><td>Backend</td><td><code>schemas.py</code></td><td><span class="pill p-mod">modify</span> 8 scenario models</td><td>5</td></tr>
+    <tr><td>API</td><td><code>app/api/scenarios.py</code>, <code>app/main.py</code></td><td><span class="pill p-new">new</span> <code>GET /scenarios</code>, <code>?curated=true</code>, <code>/{id}/results</code></td><td>7</td></tr>
+    <tr><td>Jobs</td><td><code>scripts/jobs/refresh_nav_daily.py</code></td><td><span class="pill p-mod">modify</span> recompute ongoing scenarios at the end</td><td>8</td></tr>
+    <tr><td>Frontend</td><td><code>features/scenarios/*</code></td><td><span class="pill p-new">new</span> types, <code>resolveResultShape</code>, picker, 4 result views, screen</td><td>9–12</td></tr>
+    <tr><td>Frontend</td><td><code>App.tsx</code>, <code>mobile/shell/MobileBottomNav.tsx</code></td><td><span class="pill p-mod">modify</span> Scenarios route, desktop and mobile</td><td>12</td></tr>
+  </table></div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="tag">Execution</span><h2>Passes, in order</h2></div>
+  <ol class="passes">
+    <li><div class="when"><span class="n">Pass 0</span><span class="pill p-claude">Claude</span><span class="pill p-you">You</span></div><div class="what"><h3>Pre-flight: the longest list in the sub-project</h3><p>Fix the plan for the blockers below and add the missing "compute every scenario" task. You approve the changed plan.</p></div></li>
+    <li><div class="when"><span class="n">Pass 1</span><span class="pill p-codex">Codex run 1</span></div><div class="what"><h3>Schema and seed: tasks 1–2</h3><p>Claude runs both migrations on local Postgres and checks the counts: 34 rows, 8 curated, 40 assumptions.</p></div></li>
+    <li><div class="when"><span class="n">Pass 2</span><span class="pill p-codex">Codex run 2</span></div><div class="what"><h3>Backfill script and bucketing: tasks 3–4</h3></div></li>
+    <li><div class="when"><span class="n">Ops</span><span class="pill p-claude">Claude</span><span class="pill p-you">You</span></div><div class="what"><h3>Backfill runbook, in this order</h3><ul><li>Local only, against a local DB and real mfapi.in.</li><li>A 200–500 scheme batch, timed, watching for 429s and errors.</li><li>Only then the full run as a one-off <code>aws ecs run-task</code>, outside the 06:00 job cluster and the 9PM–5AM IST stop window.</li></ul></div></li>
+    <li><div class="when"><span class="n">Pass 3</span><span class="pill p-codex">Codex run 3</span></div><div class="what"><h3>Engine, API, daily job: tasks 5–8 + the new compute-all task</h3><p>Opus review: the proxy cascade and the serving math are the riskiest logic here. The benchmark step reads TRI only.</p></div></li>
+    <li><div class="when"><span class="n">Pass 4</span><span class="pill p-codex">Codex run 4</span></div><div class="what"><h3>Frontend: tasks 9–12</h3><p>Includes the two scoped colors (violet for hypothetical, sky blue for freeze) added as tokens, and the mobile nav.</p></div></li>
+    <li><div class="when"><span class="n">Pass 5</span><span class="pill p-claude">Claude</span><span class="pill p-you">You</span></div><div class="what"><h3>Staging and the final review</h3><ul><li>Run compute-all on staging after the scheme NAV backfill and A12's first daily run (which loads TRI from 1990), then open one scenario of each shape. Check that an old scenario such as 2008 shows a TRI benchmark row.</li><li>The final Opus review covers the whole sub-project.</li><li>The compliance copy ships as a working default and isn't SEBI-cleared yet.</li></ul></div></li>
+  </ol>
+</section>
+
+<section>
+  <div class="sec-head"><span class="tag">Issues in detail</span><h2>Issues, by status</h2><p class="note"><b>What stays fixed:</b> replay the household's current portfolio through 31 scenarios from precomputed results, with real → category → asset-class → "no data" fallbacks and no fabricated numbers. Cards 1–5 make it run, 6–8 make the numbers right, 9–10 fit the frontend to the repo. No new tables or endpoints beyond the plan's own; card 10 adds 3 columns to the plan's new <code>scenarios</code> table.</p><div class="chips"><span class="chip"><span class="pill p-new">Resolved</span> <b>12</b></span><span class="chip"><span class="pill p-none">Open</span> <b>0</b></span></div></div>
+  
+<div class="group"><div class="group-head"><h3>Resolved</h3><span class="pill p-new">12</span></div><p class="note">Decided or verified. Each card shows the problem, the fix we chose, and what happens with it.</p><div class="issues">
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>1 · Settled scenarios are never computed</h3><span class="pill p-none">was: Blocker</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>Every number a user sees on a historical scenario is read from two precomputed tables: <code>scenario_scheme_results</code> (one % per scheme) and <code>scenario_category_averages</code>. The only code that fills them is <code>compute_scenario_results(db, scenario)</code>. For one scenario it:</p><ol><li>takes every active scheme;</li><li>reads its NAV on the window's start and end dates;</li><li>stores the real % move for each scheme that has both NAVs;</li><li>averages those by SEBI category, then by asset class;</li><li>gives each scheme without its own NAVs the category average, or failing that the asset-class average, marked "proxied".</li></ol><p>In the plan, the only caller is Task 8's step in the daily NAV job, and it runs only for <code>is_ongoing</code> rows: the Gold rally, the US-Iran group and its Relapse phase. Nothing ever computes the settled ones.</p><div class="tbl"><table><tr><th>Scenario kind</th><th class="num">Rows</th><th>Who computes it in the plan</th><th>What the user would see</th></tr><tr><td>Ongoing (Gold rally, US-Iran group, Relapse)</td><td class="num">3</td><td>daily NAV job</td><td>numbers</td></tr><tr><td>Settled (COVID, 2008, Taper Tantrum, …, Franklin, US-Iran phases 1–2)</td><td class="num">26</td><td>nobody</td><td>an empty fund list and "no data"</td></tr><tr><td>Hypothetical</td><td class="num">5</td><td>not needed: worked out when served from the assumptions</td><td>numbers</td></tr></table></div></dd>
+    <dt>Fix chosen</dt><dd><p><span class="rec">A.</span> A one-off script, <code>scripts/compute_all_scenarios.py</code>, calls <code>compute_scenario_results</code> for every non-hypothetical row, phases and the US-Iran group row included (fix 6 needs the group's own whole-window results).</p></dd>
+    <dt>How it works</dt><dd><ul><li><b>Order on staging:</b> migrations (tables + seed) → A11's NAV backfill (history back to each window) → A12's daily benchmark job (TRI from 1990, used by card 10) → <code>compute_all_scenarios.py</code>.</li><li><b>Order matters:</b> computing before the backfill would store "no data" for every pre-2016 window.</li><li><b>Safe to rerun:</b> each scenario's rows are deleted and rewritten in one transaction. After a seed correction or a later backfill, run it again.</li><li><b>Per-scenario commit:</b> one scenario failing (for example a missing NAV range) is logged and skipped; the rest still compute.</li><li><b>Output:</b> one line per scenario, e.g. <code>COVID crash: real=3,912 proxied=1,204 no_data=88</code>, so a bad run is visible.</li><li><b>After that:</b> settled windows never change, so they're never recomputed. Ongoing rows stay with the daily job, which now also refreshes the US-Iran group row.</li></ul></dd>
+    <dt>Tests</dt><dd><ul><li>Computes every non-hypothetical row, phases and group included.</li><li>Writes nothing for hypotheticals.</li><li>A second run leaves the same row counts (no duplicates).</li><li>One scenario raising doesn't stop the next.</li></ul></dd>
+    <dt>Not chosen</dt><dd><ul class="muted"><li><b>B.</b> Compute inside the seed migration: no NAV history exists yet at that point.</li><li><b>C.</b> Compute on first open: minutes of work inside a user's request.</li></ul></dd>
+  </dl>
+</article>
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>2 · The list column breaks SQLite tests; keep Postgres exactly as designed</h3><span class="pill p-none">was: Blocker</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p><code>scenarios.had_redemption_freeze_schemes</code> holds the Franklin scheme names as a list. The plan types it <code>postgresql.ARRAY(String)</code>, a Postgres-only type, in three places:</p><ul><li><b>The model.</b> Every backend test builds a throwaway SQLite database with <code>Base.metadata.create_all()</code>, which creates <i>all</i> tables. SQLite can't create an ARRAY column, so every test file fails at setup, not just A11's.</li><li><b>The migration's table definition.</b> <code>tests/test_migrations.py</code> runs every migration up and down on SQLite, so it fails too.</li><li><b>The migration's seed.</b> It inserts with <code>gen_random_uuid()</code>, a Postgres function, and binds the list as a Postgres array. Both fail on SQLite.</li></ul></dd>
+    <dt>Fix chosen</dt><dd><p><span class="rec">A.</span> <code>JSON().with_variant(postgresql.ARRAY(String), "postgresql")</code> in the model and the migration. The same pattern is already used by <code>folios.coverage_gap_details</code>.</p></dd>
+    <dt>Why Postgres doesn't change</dt><dd><ul><li><code>with_variant</code> means "on Postgres, use exactly this type". Staging and production get the same <code>TEXT[]</code> column, the same stored values and the same reads; SQLite stores JSON text.</li><li>Python sees a <code>list[str]</code> on both.</li><li>One limit: SQL array operators (<code>= ANY</code>, <code>@&gt;</code>) aren't available on a variant column in a query. The plan only reads the list in Python (<code>set(scenario.had_redemption_freeze_schemes)</code>), and the review checks that nothing queries inside it.</li><li>Seed: ids come from Python's <code>uuid4()</code> instead of <code>gen_random_uuid()</code>, and rows go through a typed <code>sa.table()</code> insert, so the list is written correctly for each database.</li></ul></dd>
+    <dt>Verification</dt><dd><ul><li>All existing backend tests still pass.</li><li><code>test_migrations.py</code> passes on SQLite.</li><li>Local Postgres: upgrade, then check the column type is <code>text[]</code> and Franklin's row holds 6 names; downgrade, then upgrade again.</li></ul></dd>
+    <dt>Not chosen</dt><dd><ul class="muted"><li><b>B.</b> JSON everywhere: changes the Postgres design.</li><li><b>C.</b> A separate table: more schema for a 6-name list.</li></ul></dd>
+  </dl>
+</article>
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>3 · Classify every ETF, index fund and fund-of-funds by what it holds</h3><span class="pill p-none">was: Blocker</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>Hypothetical scenarios ("Strait of Hormuz closure" and the others) have no real data. Each held fund gets the assumed % for its asset class, so the asset class decides the answer. The plan's <code>hypothetical_asset_class_bucket(sebi_category)</code> decides it from the category text, checking "index" or "etf" first and sending anything that matches to <b>Index/ETF</b>, which carries the <i>equity</i> assumption.</p><p>But an ETF or index fund is a wrapper; what moves its value is what it holds. AMFI's current file has <b>1,197 such funds</b> under 18 category headings, and many hold no equity at all:</p>
+      <div class="tbl"><table><tr><th>What the fund holds</th><th>Where AMFI lists it</th><th class="num">Funds (approx.)</th><th>Plan sends it to</th><th>Hormuz closure: plan → right</th></tr>
+      <tr><td>Gold</td><td>"Gold ETF" (2 headings), gold FoFs</td><td class="num">≈ 50</td><td>Index/ETF</td><td class="num">−25% → <b>+8%</b></td></tr>
+      <tr><td>Silver</td><td>"Silver ETF", silver ETFs inside "Other ETFs", silver FoFs</td><td class="num">≈ 40</td><td>Index/ETF</td><td class="num">−25% → silver assumption</td></tr>
+      <tr><td>Bonds / gilts / SDLs / target-maturity</td><td>"Debt ETF", "Index Funds - Debt Funds", and inside "Other Scheme - Index Funds" / "Other ETFs"</td><td class="num">≈ 160</td><td>Index/ETF</td><td class="num">−25% → <b>−4%</b></td></tr>
+      <tr><td>Liquid / overnight / 1-day rate</td><td>inside "Other ETFs"</td><td class="num">≈ 10</td><td>Index/ETF</td><td class="num">−25% → <b>−1%</b></td></tr>
+      <tr><td>Foreign equity (Nasdaq 100, S&amp;P 500, Hang Seng…)</td><td>"ETFs investing overseas", inside "Other ETFs" / "Index Funds"</td><td class="num">≈ 30</td><td>Index/ETF</td><td class="num">−25% → <b>−10%</b> (Overseas)</td></tr>
+      <tr><td>Multi-asset / hybrid</td><td>"Hybrid ETF", "Index Funds - Hybrid", domestic FoFs</td><td class="num">≈ 30</td><td>Index/ETF or Other</td><td class="num">→ Hybrid</td></tr>
+      <tr><td>Indian equity (Nifty 50, Bank Nifty, CPSE…)</td><td>"Equity ETF", "Index Funds - Equity", most of "Other ETFs" / "Index Funds"</td><td class="num">≈ 800</td><td>Index/ETF</td><td class="num">−25% (correct)</td></tr></table></div>
+      <p>Two more places get it wrong for the same reason:</p><ul><li><b>Historical fallback.</b> When a fund has no NAV for a window, it gets its category's average. "Other Scheme - Index Funds" mixes about 200 equity and 95 bond index funds, so a new bond index fund would get an equity-heavy average.</li><li><b>The plan's final fallback</b> uses the dashboard's <code>asset_class_bucket</code>, which puts all gold, silver and generic index funds in "Other".</li></ul></dd>
+    <dt>Fix chosen</dt><dd><p><span class="rec">One classifier, all ETFs, used everywhere.</span> A single <code>underlying_asset_class(sebi_category, scheme_name)</code> in <code>scenario_asset_class.py</code>, applied in all three places together.</p></dd>
+    <dt>How it decides</dt><dd><ol><li><b>Not a wrapper</b> (category has no ETF / Index / FoF): the category decides, as today (Equity, Debt-short/long, Hybrid, Other).</li><li><b>A wrapper with a telling category:</b> "Gold ETF" → Gold, "Silver ETF" → Silver, "Debt ETF" / "Index Funds - Debt" → Debt, "ETFs investing overseas" / "FoF Overseas" → Overseas, "Hybrid ETF" / "Index Funds - Hybrid" → Hybrid, "Equity ETF" / "Index Funds - Equity" → Index/ETF (equity).</li><li><b>A generic wrapper</b> ("Other ETFs", "Other Scheme - Index Funds", "FoF Domestic"): the scheme name decides, using whole-word keywords checked in this order:<ul><li>silver</li><li>gold</li><li>overseas: Nasdaq, S&amp;P 500, Hang Seng, MSCI, global…</li><li>short debt: liquid, overnight, 1D rate, money market</li><li>debt: gilt, G-Sec, SDL, bond, CRISIL IBX, target maturity, T-bill</li><li>hybrid: multi asset, balanced</li></ul>Bare "PSU" is <i>not</i> a debt keyword, so "Nifty PSU Bank ETF" stays equity.</li><li><b>A generic wrapper with no keyword:</b> ETFs and index funds → Index/ETF (equity, since most are); domestic FoFs → Other.</li></ol></dd>
+    <dt>Where it's used</dt><dd><ul><li><b>Hypotheticals:</b> picks the assumption row.</li><li><b>Historical category average:</b> wrapper categories are averaged per <i>(category, underlying asset)</i>, so a bond index fund is proxied by other bond index funds, not by the whole heading.</li><li><b>Historical asset-class fallback:</b> replaces the dashboard bucket inside A11 only. The dashboard's allocation chart is unchanged and listed as a follow-up.</li></ul></dd>
+    <dt>New asset classes</dt><dd><p><b>Silver</b> is added to the allowed list, and "Overseas FoF" is renamed <b>Overseas</b> (it now covers ETFs and index funds too). Both tables are new in this plan, so there's no migration cost. Silver's assumption values for the 5 hypotheticals are in card 11.</p></dd>
+    <dt>Tests</dt><dd><ul><li>One test per row of the table above, using real AMFI names.</li><li>Plus a test that runs the classifier over a saved excerpt of the real file and checks no gold, silver or bond fund lands in Index/ETF.</li><li>The plan's 9 existing bucketing tests still pass.</li></ul></dd>
+  </dl>
+</article>
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>4 · The seed check expects 31 rows; the seed inserts 34</h3><span class="pill p-none">was: Blocker</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>The seed inserts 24 plain scenarios, Franklin, the US-Iran group, its 3 phases and 5 hypotheticals: 34 rows. Users see 31 because phases sit inside their group. Task 2's check asserts 31 rows in total, so it fails after a correct migration.</p></dd>
+    <dt>Fix chosen</dt><dd><p><span class="rec">A.</span> Assert 34 in total and 31 top-level (<code>parent_scenario_id IS NULL</code>). With Silver added (card 3), the check reads: <code>34 rows, 31 top-level, 8 curated, 45 assumptions</code>.</p></dd>
+    <dt>Not chosen</dt><dd><ul class="muted"><li><b>B.</b> Change the seed to fit 31.</li></ul></dd>
+  </dl>
+</article>
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>5 · Three engine tests fail for reasons that aren't bugs</h3><span class="pill p-none">was: Blocker</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>Three of the plan's engine tests are written so they fail even when the engine is right. Codex would then "fix" the engine to make them pass, which is how wrong behaviour gets locked in.</p><div class="tbl"><table><tr><th>Test</th><th>What it sets up</th><th>What the engine does</th><th>Result</th></tr><tr><td>Real-data %</td><td>mocked NAVs on <b>2019-12-31</b></td><td>looks up the NAV on the scenario's start date, <b>2020-01-01</b>, as the plan's own note says ("NAV just before start" uses <code>pre_start = start_date</code>)</td><td>no NAV found, so no %</td></tr><tr><td>Multi-phase (US-Iran)</td><td>a member with <b>no holdings</b></td><td>builds "by fund" from the member's holdings, so the list is empty</td><td><code>next()</code> on an empty list: <code>StopIteration</code></td></tr><tr><td>Franklin frozen</td><td>same: no holdings</td><td>same</td><td><code>StopIteration</code></td></tr></table></div></dd>
+    <dt>Fix chosen</dt><dd><p><span class="rec">A.</span> Fix the tests' setup; leave the engine alone.</p><ul><li><b>Real-data:</b> key the mocked NAVs on the dates the engine actually reads, the window's start and end. Add one test that a NAV on the day before start is <i>not</i> picked up, so the date rule is pinned on purpose rather than by accident.</li><li><b>Multi-phase and Franklin:</b> patch <code>compute_holdings</code> to return a holding for each scheme under test, as the hypothetical tests already do, and call the async entry point <code>get_scenario_result_for_household</code>.</li></ul></dd>
+    <dt>Why not change the engine</dt><dd><p>Option B (list every scheme in "by fund") would show the whole scheme master, about 14,000 rows, to every household. "By fund" must mean <i>your</i> funds, which fix 6 relies on too.</p></dd>
+  </dl>
+</article>
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>6 · The headline % is each household's own number</h3><span class="pill p-none">was: Fix</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>The plan's <code>portfolio_impact_pct</code> averages every row in <code>scenario_scheme_results</code>, which covers all ~14,000 schemes. So the big "your portfolio would have fallen X%" is the same for every user and has nothing to do with their funds. Phase % is computed the same way. For US-Iran, the hero labelled "Cumulative" actually reads the current phase only.</p></dd>
+    <dt>Fix chosen</dt><dd><p><span class="rec">A, per user.</span> Every figure on the result screen comes from <i>that</i> household's imported holdings, worked out when the screen is opened. Nothing household-specific is precomputed or shared.</p></dd>
+    <dt>How it's calculated</dt><dd><ul><li><b>Inputs:</b> the household's holdings from <code>compute_holdings</code> (the same numbers as the dashboard) and each held scheme's % for the scenario.</li><li><b>Rupee impact per holding</b> = current value × %.</li><li><b>Portfolio %</b> = Σ rupee impact ÷ Σ current value of the holdings that have a %. A holding with no data (or frozen) is left out of both sums, never counted as 0%. The screen says "Based on ₹X of your ₹Y; N funds have no data for this period".</li><li><b>Family view:</b> the same formula per member, plus the combined household.</li><li><b>Phases:</b> each phase's % uses the same formula over that phase's results.</li><li><b>US-Iran hero:</b> uses the group row's own whole-window results (computed by card 1's script and the daily job). "By fund" stays on the current phase, as the spec says.</li></ul><p><b>Example.</b> ₹8 lakh in an equity fund at −38% and ₹2 lakh in a liquid fund at +1% give −₹3,04,000 + ₹2,000 = −₹3,02,000. That's <b>−30.2%</b> of ₹10 lakh. A different household with ₹1 lakh equity and ₹9 lakh liquid sees −2.9%.</p></dd>
+    <dt>Tests</dt><dd><ul><li>The two-household example above gives −30.2% and −2.9%.</li><li>A no-data holding changes neither sum.</li><li>The US-Iran hero equals the group result, not Phase 3's.</li></ul></dd>
+    <dt>Not chosen</dt><dd><ul class="muted"><li><b>B.</b> Count no-data as 0%.</li><li><b>C.</b> Unweighted average of held funds (a ₹500 SIP would count as much as a ₹10 lakh holding).</li></ul></dd>
+  </dl>
+</article>
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>7 · Recognise a Franklin frozen holding however it's named</h3><span class="pill p-none">was: Fix</span></div>
+  <dl>
+    <dt>What happened at Franklin</dt><dd><p>On 23 April 2020, Franklin Templeton India wound up 6 debt schemes (about ₹25,000 crore) after credit losses and a redemption rush during COVID, and froze redemptions. Investors couldn't sell; money came back in tranches through a Supreme Court-supervised process from 2021 to 2023. For these 6 schemes, the right answer in the scenario isn't a % move. It's that the money was locked.</p></dd>
+    <dt>The problem</dt><dd><p>The seed lists the 6 by plain fund name, e.g. "Franklin India Short Term Income Plan". The plan compares that with the holding's <i>full</i> name ("… - Direct Plan - Growth"), so nothing ever matches. Option A (compare the base name) is the right idea, but AMFI's real base names differ again:</p><div class="tbl"><table><tr><th>Seeded name</th><th>AMFI base name today</th></tr><tr><td>Franklin India Short Term Income Plan</td><td>Franklin India Short<b>-</b>Term Income Plan <b>(no. of segregated portfolios- 3)</b></td></tr><tr><td>Franklin India Low Duration Fund</td><td>Franklin India Low Duration Fund <b>(No. of Segregated Portfolios-2)</b></td></tr><tr><td>Franklin India Ultra Short Bond Fund</td><td>Franklin India Ultra Short Bond Fund <b>(no. of segregated portfolio-1)</b></td></tr></table></div><p>The other three are the same: a suffix with varying case and spacing, and a hyphen. Live funds with close names also exist ("Franklin India Short Term Fund", "Franklin India Ultra Short Term Fund"), so a loose "contains" match would freeze the wrong funds.</p></dd>
+    <dt>Fix chosen</dt><dd><p><span class="rec">A, normalised.</span> Compare base names after one fixed clean-up on both sides:</p><ol><li>lowercase;</li><li>hyphens to spaces;</li><li>drop a trailing "(no. of segregated portfolio(s)-N)";</li><li>collapse spaces.</li></ol><p>Also require the scheme's AMC to be Franklin Templeton. It's still an exact match, just on cleaned text.</p></dd>
+    <dt>How it runs</dt><dd><ul><li>The result screen loads the held schemes' <code>base_name</code>. When it's empty (an older CAS-imported row), it uses the scheme name with " - plan - option" removed.</li><li>A frozen holding shows <b>"Frozen: redemptions suspended"</b> instead of a %, and is left out of the portfolio % (fix 6), since there was no price to sell at.</li><li>Other debt funds in the same household still show their real %.</li><li>Franklin's own segregated side-pocket schemes aren't in the list. They were separate schemes, and they have their own NAVs.</li></ul></dd>
+    <dt>Tests</dt><dd><ul><li>All 6 real AMFI names (as in the table) match.</li><li>"Franklin India Short Term Fund" and "Franklin India Ultra Short Term Fund" don't.</li><li>A Direct-Growth holding shows Frozen while a non-Franklin debt fund shows its %.</li></ul></dd>
+  </dl>
+</article>
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>8 · Benchmarks read TRI only</h3><span class="pill p-none">was: Decision</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p><code>_scenario_benchmark_comparisons</code> filters by index only, so after A12 it could mix a TRI value and a price value.</p><p>A wrong benchmark % with nothing to flag it.</p></dd>
+    <dt>Fix chosen</dt><dd><p><span class="rec">A.</span> TRI at both ends; no TRI for the window means no benchmark row.</p><p>Follows the 9 Oct TRI decision.</p></dd>
+    <dt>What happens now</dt><dd><ul><li>Both lookups filter <code>return_type == TRI</code>.</li><li>Pre-2016 scenarios get benchmarks once A12's daily job has loaded TRI from 1990 (its first run after deploy).</li></ul></dd>
+    <dt>Not chosen</dt><dd><ul class="muted"><li><b>B.</b> Price at both ends.</li></ul></dd>
+  </dl>
+</article>
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>9 · Fit the frontend to the repo</h3><span class="pill p-none">was: Fix</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>The plan's frontend uses:</p><ul><li>camelCase types (the decision is snake_case);</li><li><code>apiGet</code> from <code>@/lib/api-client</code>, which doesn't exist;</li><li>a <code>frontend/src/app/</code> route folder that isn't there;</li><li>no mobile tab;</li><li>two colour tokens that aren't defined.</li></ul></dd>
+    <dt>Fix chosen</dt><dd><p><span class="rec">A.</span> A <code>features/scenarios/api.ts</code> copying <code>features/analytics/api.ts</code> (<code>cachedFetch</code> + <code>apiClient</code>). Routes go in <code>App.tsx</code> and <code>MobileBottomNav.tsx</code>. <code>--color-hypo</code> (violet) and <code>--color-freeze</code> (sky blue) go into <code>tokens.css</code> for light and dark, and are used only here.</p></dd>
+      <dt>Checked against the app (9 Oct)</dt><dd><ul><li><b>No React Query in the repo.</b> The plan's <code>useQuery</code> calls would not build. The screen loads data with plain <code>useEffect</code> calls through <code>features/scenarios/api.ts</code>, like Analytics does, and shows an error card if loading fails.</li><li><b>Desktop:</b> the tab goes into <code>NavigationShell.tsx</code> and <code>MainDashboardFlow.tsx</code> (its <code>MainTab</code> list).</li><li><b>Mobile:</b> a 4th button in <code>MobileBottomNav.tsx</code>, rendered by <code>MobileRoot.tsx</code>.</li><li><b>Field names:</b> all 25 frontend fields renamed to snake_case in the plan's types, tests and components.</li><li><b>New fields:</b> the picker's quick-stat line and the "Based on ₹X of your ₹Y" line now have their own fields and tests.</li></ul></dd>
+</dl>
+</article>
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>10 · The picker's quick stat: market and funds, side by side</h3><span class="pill p-none">was: Check</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>Each scenario card in the picker shows one quick %. The plan takes a plain average of every scheme's result, equity and debt together, while its comment says "AUM-weighted". Mixing debt in turns COVID's crash into about −15%, which matches nothing anyone remembers, and a plain average lets a ₹5-crore fund count as much as a ₹50,000-crore one.</p></dd>
+    <dt>Fix chosen</dt><dd><p><span class="rec">A + B together.</span> Two figures, each answering one clear question, computed once with the scenario's results:</p><ul><li><b>The market (A):</b> Nifty 50 TRI move over the window. It's the figure people recognise for the event (COVID ≈ −38%).</li><li><b>Mutual funds (B):</b> the AUM-weighted move of <i>equity</i> funds and of <i>debt</i> funds, kept separate because mixing them is what produced the −15%.</li></ul><p>The card reads, for example: <b>"Nifty 50 −38% · Equity funds −35% · Debt funds +1%"</b>.</p></dd>
+    <dt>How it's calculated</dt><dd><ul><li><b>Market:</b> Nifty 50 TRI on the window's end ÷ start − 1, via the TRI lookups from card 8.</li><li><b>Equity / debt funds:</b> for each real (not proxied) scheme result in that asset class, weight = the scheme's average AUM from <code>scheme_aaum</code>. Use the latest quarter on or before the window's start; if none is that old, use the earliest quarter we hold, and say so in the tooltip ("weighted by fund size in &lt;quarter&gt;"). Funds with no AUM row aren't weighted in.</li><li><b>Where it's stored:</b> three nullable columns on <code>scenarios</code> (<code>quick_market_pct</code>, <code>quick_equity_pct</code>, <code>quick_debt_pct</code>), filled by <code>compute_scenario_results</code>. The picker reads them directly. This is a new table, so no extra migration.</li><li><b>Fallbacks:</b> no TRI for the window → the market figure is hidden. Fewer than 5 weighted funds in a class → that figure is hidden. All three missing → no quick stat. Never a substitute number.</li><li><b>Not shown for:</b> hypotheticals (no real data), US-Iran (the card shows its phases instead), and Franklin (a freeze, not a move).</li></ul></dd>
+    <dt>Tests</dt><dd><ul><li>Two equity funds with AUM 100 and 300 and moves −40% and −20% give −25%, not −30%.</li><li>A debt fund doesn't change the equity figure.</li><li>No TRI rows → market figure is null.</li><li>Fewer than 5 funds → figure is null.</li></ul></dd>
+  </dl>
+</article>
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>11 · Silver's assumed move in the 5 hypotheticals</h3><span class="pill p-none">was: Decision</span></div>
+  <dl>
+    <dt>The issue</dt><dd><p>Card 3 gives silver funds their own asset class, and every asset class needs an assumed % in each hypothetical, with a one-line reason, like the existing 40. Without one, a silver fund would show "assumption not set". Silver behaves partly like gold (a safe haven priced in dollars) and partly like an industrial metal (solar panels and electronics), so it isn't simply gold's number.</p></dd>
+    <dt>Proposed values</dt><dd><div class="tbl"><table><tr><th>Hypothetical</th><th class="num">Gold (seeded)</th><th class="num">Silver (proposed)</th><th>Reason</th></tr>
+      <tr><td>Strait of Hormuz closure</td><td class="num">+8%</td><td class="num">+4%</td><td>Safe-haven bid, cut by the industrial slowdown an oil shock brings.</td></tr>
+      <tr><td>US recession + Fed pivot</td><td class="num">+6%</td><td class="num">0%</td><td>Lower real rates help; a US recession hits industrial demand. Roughly cancels.</td></tr>
+      <tr><td>AI/tech valuation bust</td><td class="num">+5%</td><td class="num">−5%</td><td>Electronics and solar demand weakens; a smaller haven bid than gold.</td></tr>
+      <tr><td>Rupee sharp depreciation</td><td class="num">+10%</td><td class="num">+10%</td><td>Priced in dollars: the same currency translation as gold.</td></tr>
+      <tr><td>Indian equity "lost decade"</td><td class="num">+2%</td><td class="num">+2%</td><td>No India-specific link; modest, like gold.</td></tr></table></div></dd>
+    <dt>Fix chosen</dt><dd><p><span class="rec">A.</span> Seed the 5 proposed values with their reasons: 45 assumption rows in all. Like every assumption, they live in the table and can be edited later without a code change.</p></dd><dt>Not chosen</dt><dd><ul class="muted"><li><b>B.</b> Your own values.</li><li><b>C.</b> Silver = gold's numbers.</li></ul></dd>
+  </dl>
+</article>
+<article class="ib done">
+  <div class="top"><span class="pill p-new">Resolved</span><h3>12 · Release gate: hypotheticals ship behind a flag</h3><span class="pill p-none">was: new</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p><code>decisions.md</code> (8 Oct) and <code>DEFERRED_FEATURES.md</code> say the hypothetical % values must stay behind a feature flag until someone with markets expertise reviews them. The plan had no flag, so they would have gone live with everything else. Card 11's silver values fall under the same gate.</p></dd>
+    <dt>Fix</dt><dd><p>This implements a decision already made. <code>Settings.scenario_hypotheticals_enabled</code> defaults to <b>off</b> (env <code>SCENARIO_HYPOTHETICALS_ENABLED</code>). While it's off, the picker lists no hypotheticals and their results return "not found". The rest of the simulator works normally. Flip it after the review; the 45 values live in a table and can be edited without a code change. The SEBI disclaimer ships as the working draft, per the other release gate.</p></dd>
+    <dt>Tests</dt><dd><ul><li>Flag off: no hypothetical listed, and results return 404.</li><li>Flag on: both work.</li></ul></dd>
+  </dl>
+</article>
+</div></div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="tag">Done means</span><h2>Review Focus the gate checks</h2></div>
+  <ul class="plain">
+    <li>A scheme launched after a window began falls through real → category → asset class → "no data", never 0%.</li>
+    <li>Franklin's 6 frozen schemes show "Frozen" while other debt funds in the same response show their real %.</li>
+    <li>US-Iran "by fund" shows Phase 3 numbers only; the group hero is the only cumulative figure.</li>
+    <li>A hypothetical with no assumption rows returns <code>assumptions_not_set</code> and no numbers.</li>
+    <li>A member with nothing in the scenario's universe still appears in the family breakdown.</li>
+    <li>Benchmark rows come from TRI at both ends; an index without TRI for the window is left out.</li>
+      <li>A gold, silver or bond ETF/index fund never gets the equity assumption; "Nifty PSU Bank ETF" stays equity.</li>
+    <li>Two households with different holdings get different headline %s; no-data and frozen holdings are left out, never 0%.</li>
+    <li>All 6 real Franklin AMFI names show Frozen; "Franklin India Short Term Fund" doesn't.</li>
+    <li>Backend tests and <code>test_migrations.py</code> pass on SQLite; the column is <code>text[]</code> on Postgres.</li>
+</ul>
+</section>
+
+<footer>Source: <code>Docs/superpowers/plans/2026-10-09-attribute-11-scenario-simulator.md</code> and the code at <code>cd2533d</code>. Checked and updated 2026-10-09; your A11 decisions applied the same day, and the plan revised to match (new Task 5b, all 12 cards).</footer>
+</div>

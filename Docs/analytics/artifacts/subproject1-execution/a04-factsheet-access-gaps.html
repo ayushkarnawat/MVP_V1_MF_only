@@ -1,0 +1,369 @@
+<title>Factsheet Access Gaps</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column (~70ch) with full-width tables; status is carried by chips (automatic / by hand / off). */
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --ink: #17202b;
+  --muted: #566273;
+  --line: #dde2e9;
+  --accent: #1f5f8b;
+  --auto: #1e7a4f;   --auto-bg: #e3f3ea;
+  --hand: #9a5b00;   --hand-bg: #fbefd9;
+  --off: #5c6573;    --off-bg: #eceff3;
+  --warn: #a8322b;   --warn-bg: #fbe7e5;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11161d; --surface: #18202a; --ink: #e6ebf1; --muted: #9aa6b5; --line: #2a3542; --accent: #6fb3e3;
+    --auto: #6fd3a0; --auto-bg: #173326; --hand: #f0b25a; --hand-bg: #3a2a12; --off: #a7b0bd; --off-bg: #232c37;
+    --warn: #f08a80; --warn-bg: #3a1d1b; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11161d; --surface: #18202a; --ink: #e6ebf1; --muted: #9aa6b5; --line: #2a3542; --accent: #6fb3e3;
+  --auto: #6fd3a0; --auto-bg: #173326; --hand: #f0b25a; --hand-bg: #3a2a12; --off: #a7b0bd; --off-bg: #232c37;
+  --warn: #f08a80; --warn-bg: #3a1d1b; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15.5px; line-height: 1.6; }
+.page { max-width: 1040px; margin: 0 auto; padding-inline: 20px; padding-block: 40px 72px; display: grid; gap: 44px; }
+.prose { max-width: 70ch; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(2rem, 4.6vw, 2.9rem); letter-spacing: -0.01em; }
+h2 { font-size: 1.55rem; }
+h3 { font-size: 1.1rem; }
+p { margin: 0; }
+.stack { display: grid; gap: 14px; }
+.eyebrow { font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+.lede { font-size: 1.12rem; color: var(--muted); max-width: 66ch; }
+.meta { font-family: var(--font-mono); font-size: 0.8rem; color: var(--muted); }
+code, .mono { font-family: var(--font-mono); font-size: 0.86em; }
+code { background: var(--off-bg); padding: 1px 5px; border-radius: 4px; }
+a { color: var(--accent); }
+
+/* Split bar: 55 AMCs */
+.split { display: grid; gap: 12px; }
+.bar { display: flex; height: 42px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
+.bar span { display: flex; align-items: center; padding-inline: 10px; font-family: var(--font-mono); font-size: 0.82rem; font-weight: 500; white-space: nowrap; min-width: 0; }
+.bar .a { background: var(--auto-bg); color: var(--auto); flex: 40; }
+.bar .h { background: var(--hand-bg); color: var(--hand); flex: 10; }
+.bar .o { background: var(--off-bg); color: var(--off); flex: 5; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 0.9rem; color: var(--muted); }
+.legend b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+.figs { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+.fig { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; gap: 2px; }
+.fig .n { font-family: var(--font-display); font-size: 1.9rem; font-variant-numeric: tabular-nums; }
+.fig .l { font-size: 0.88rem; color: var(--muted); }
+
+.chip { display: inline-block; font-family: var(--font-mono); font-size: 0.74rem; font-weight: 500; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+.chip.auto { background: var(--auto-bg); color: var(--auto); }
+.chip.hand { background: var(--hand-bg); color: var(--hand); }
+.chip.off { background: var(--off-bg); color: var(--off); }
+.chip.warn { background: var(--warn-bg); color: var(--warn); }
+
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 0.92rem; }
+th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+th { font-family: var(--font-mono); font-size: 0.74rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 500; background: var(--bg); }
+tr:last-child td { border-bottom: 0; }
+td.num { font-variant-numeric: tabular-nums; white-space: nowrap; font-family: var(--font-mono); font-size: 0.86rem; }
+td .sub { display: block; color: var(--muted); font-size: 0.84rem; }
+tfoot td { font-weight: 600; background: var(--bg); }
+
+/* Timeline: a real sequence of dated events */
+.timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; border-left: 2px solid var(--line); }
+.timeline li { position: relative; padding: 0 0 18px 20px; display: grid; gap: 3px; }
+.timeline li::before { content: ""; position: absolute; left: -7px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: var(--surface); border: 2px solid var(--accent); }
+.timeline .when { font-family: var(--font-mono); font-size: 0.8rem; color: var(--accent); }
+
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.panel ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.panel .k { font-family: var(--font-mono); font-size: 0.74rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+
+.option { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: grid; gap: 10px; min-width: 0; }
+.option.rec { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.option header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 12px; }
+.option .tag { font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent); font-weight: 500; }
+.option dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 0; font-size: 0.93rem; }
+.option dt { font-family: var(--font-mono); font-size: 0.74rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); padding-top: 3px; }
+.option dd { margin: 0; min-width: 0; }
+@media (max-width: 520px) { .option dl { grid-template-columns: 1fr; gap: 2px; } .option dd { margin-bottom: 8px; } }
+.options { display: grid; gap: 14px; }
+
+.callout { border-left: 3px solid var(--hand); background: var(--hand-bg); padding: 12px 16px; border-radius: 0 8px 8px 0; max-width: 78ch; }
+.callout.info { border-left-color: var(--accent); background: var(--off-bg); }
+.rec-box { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: grid; gap: 12px; }
+.rec-box ol { margin: 0; padding-left: 20px; display: grid; gap: 8px; }
+footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--line); padding-top: 16px; }
+</style>
+
+<main class="page">
+
+  <header class="stack">
+    <span class="eyebrow">Attribute 04 · Fund manager allocation</span>
+    <h1>Factsheet Access Gaps</h1>
+    <p class="lede">The fund-manager section reads each fund house's monthly factsheet PDF. The plan assumed a monthly job could download nearly all of them on its own. For 15 of the 55 fund houses it can't: 10 now need someone to download the factsheet by hand each month, and 5 publish no usable factsheet at all. This page covers why, what changed from the plan, and the options from here.</p>
+    <p class="meta">Status as of 10 Oct 2026 · after A04 Runs 1–9 · coverage figures re-checked by Claude on the real files</p>
+  </header>
+
+  <section class="split" aria-labelledby="split-h">
+    <h2 id="split-h">Where the 55 fund houses ended up</h2>
+    <div class="bar" role="img" aria-label="40 automatic, 10 imported by hand, 5 off">
+      <span class="a">40 automatic</span><span class="h">10 by hand</span><span class="o">5 off</span>
+    </div>
+    <div class="legend">
+      <span><span class="chip auto">automatic</span> the monthly job downloads and reads the factsheet itself</span>
+      <span><span class="chip hand">by hand</span> someone downloads it in a browser; a script imports it</span>
+      <span><span class="chip off">off</span> no current factsheet exists to read</span>
+    </div>
+    <div class="figs">
+      <div class="fig"><span class="n">2 → 10</span><span class="l">Fund houses imported by hand, plan vs now</span></div>
+      <div class="fig"><span class="n">689</span><span class="l">Live funds that depend on the monthly hand import</span></div>
+      <div class="fig"><span class="n">33</span><span class="l">Live funds with no manager data ("not available yet")</span></div>
+      <div class="fig"><span class="n">11</span><span class="l">PDFs to download each month (HDFC needs two)</span></div>
+    </div>
+  </section>
+
+  <section class="stack prose" aria-labelledby="how-h">
+    <h2 id="how-h">How the feature is meant to work</h2>
+    <p>Every fund house (AMC) publishes a monthly factsheet: a long PDF with one page per fund, listing who manages it and since when. AMFI's website keeps a directory linking to each AMC's factsheet page. Once a month, a background job goes to each AMC's page, finds the newest factsheet, checks it is really this month's factsheet (enough fund pages, an "as on" date within 45 days), reads the manager names with a reader written for that AMC's layout, and saves them against the matching funds.</p>
+    <p>If an AMC can't be read, the job raises an alert (<code>FUND_MANAGER_ALERT</code>, with a CloudWatch alarm), and that AMC's funds show "not available yet" instead of a wrong or made-up manager. Manager data older than three months stops being shown.</p>
+  </section>
+
+  <section class="stack" aria-labelledby="plan-h">
+    <h2 id="plan-h">What the plan assumed, and what happened</h2>
+    <div class="cols">
+      <div class="panel">
+        <span class="k">The plan (8–9 Oct)</span>
+        <ul>
+          <li>Only <b>HDFC and Kotak</b> by hand. Edelweiss was on the manual list in the spec but its page served the PDF normally on 9 Oct, so it moved to automatic.</li>
+          <li>The other <b>53</b> fund houses automatic, onboarded in five batches (Runs 3–7).</li>
+          <li>No AMC pushed past staging: every fund house onboarded before release.</li>
+          <li>A factsheet is found as a link on the AMC's web page.</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <span class="k">What actually happened</span>
+        <ul>
+          <li>Most AMC pages don't contain the PDF link at all. The browser builds the list with JavaScript after the page loads.</li>
+          <li>For most of them, Codex found the request the page itself makes for its download list and used that directly. That's how 40 became automatic.</li>
+          <li>For 8 more, that request was refused, needed a key, or the site blocked scripted visitors. They joined HDFC and Kotak as manual: <b>10 in total</b>.</li>
+          <li>5 publish no current factsheet anywhere, so they're off.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="stack" aria-labelledby="time-h">
+    <h2 id="time-h">How it unfolded</h2>
+    <ol class="timeline">
+      <li><span class="when">8 Oct · spec</span><span>HDFC, Kotak and Edelweiss expected to need manual intake; every other AMC expected to be automatic.</span></li>
+      <li><span class="when">9 Oct · catalogue</span><span>A scripted pass over all 55 AMC pages: dozens show "no factsheet link in the HTML", meaning the links are built by JavaScript. Edelweiss turns out to be downloadable and moves to automatic.</span></li>
+      <li><span class="when">10 Oct · Run 5</span><span>Axis, ICICI Prudential, ITI, Trust and WhiteOak refuse the requests (403 "access denied", Cloudflare/CloudFront bot protection, or error pages). You chose monthly manual import and uploaded the five factsheets.</span></li>
+      <li><span class="when">10 Oct · Run 7</span><span>Bandhan's download list needs an API key (401). The key is visible in the site's code, but using it would be getting around their access control, so a "no workarounds" rule went into the plan. Invesco (403) and JM Financial (406, AppTrana firewall) also block scripts. You chose manual import and uploaded the three factsheets.</span></li>
+      <li><span class="when">10 Oct · Run 8</span><span>Mahindra Manulife's list is encrypted in transit but served to anyone; the page decodes it in every visitor's browser. You chose to keep it automatic (no credentials involved).</span></li>
+      <li><span class="when">10 Oct · Run 9</span><span>AlphaGrep, IL&amp;FS, Lakshya and Monarch confirmed to publish no factsheet; Bajaj still only has a July file. All five left off with the evidence recorded. Samco started publishing again and was switched on.</span></li>
+    </ol>
+  </section>
+
+  <section class="stack" aria-labelledby="hand-h">
+    <h2 id="hand-h">The 10 fund houses imported by hand</h2>
+    <p class="prose">"What we saw" is the response to the job's request, recorded in each AMC's registry note. "Coverage" is what the import matched on your file, out of that AMC's live funds (a NAV in the last 30 days).</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Fund house</th><th>Live funds</th><th>What we saw</th><th>Why it can't be automatic (yet)</th><th>Coverage</th><th>Files / month</th></tr></thead>
+        <tbody>
+          <tr><td><b>ICICI Prudential</b></td><td class="num">158</td><td><span class="chip warn">404 error page</span></td><td>Its download API returns error pages to scripted requests; the old address no longer works.</td><td class="num">152 / 158</td><td class="num">1</td></tr>
+          <tr><td><b>Kotak Mahindra</b></td><td class="num">120</td><td><span class="chip warn">no links</span></td><td>The page loads (200) but contains no PDF links; the list is built in the browser. Manual since the original plan.</td><td class="num">112 / 120</td><td class="num">1</td></tr>
+          <tr><td><b>HDFC</b></td><td class="num">112</td><td><span class="chip warn">403</span></td><td>The downloads page refuses scripted requests. Active and passive funds are in two separate factsheets. Manual since the original plan.</td><td class="num">53 / 53 active<span class="sub">+ passive file</span></td><td class="num">2</td></tr>
+          <tr><td><b>Axis</b></td><td class="num">89</td><td><span class="chip warn">403</span></td><td>The page's own document request is refused; its old address returns 404.</td><td class="num">88 / 89</td><td class="num">1</td></tr>
+          <tr><td><b>Bandhan</b></td><td class="num">89</td><td><span class="chip warn">401 key required</span></td><td>The download list needs an API key. Using the key found in their site code was ruled out as an access-control workaround.</td><td class="num">87 / 89</td><td class="num">1</td></tr>
+          <tr><td><b>Invesco</b></td><td class="num">50</td><td><span class="chip warn">403 CloudFront</span></td><td>The whole factsheet page is behind bot protection.</td><td class="num">44 / 50<span class="sub">6 funds not in the August file</span></td><td class="num">1</td></tr>
+          <tr><td><b>WhiteOak Capital</b></td><td class="num">22</td><td><span class="chip warn">403 CloudFront</span></td><td>Both its data API and its downloads site are behind bot protection.</td><td class="num">22 / 22</td><td class="num">1</td></tr>
+          <tr><td><b>ITI</b></td><td class="num">21</td><td><span class="chip warn">403 Cloudflare</span></td><td>Bot protection refuses scripted requests.</td><td class="num">20 / 21</td><td class="num">1</td></tr>
+          <tr><td><b>JM Financial</b></td><td class="num">17</td><td><span class="chip warn">406 AppTrana</span></td><td>A web firewall rejects scripted requests.</td><td class="num">17 / 17</td><td class="num">1</td></tr>
+          <tr><td><b>Trust</b></td><td class="num">11</td><td><span class="chip warn">blocked</span></td><td>Bot protection refuses scripted requests.</td><td class="num">11 / 11</td><td class="num">1</td></tr>
+        </tbody>
+        <tfoot><tr><td>Total</td><td class="num">689</td><td colspan="3"></td><td class="num">11</td></tr></tfoot>
+      </table>
+    </div>
+    <p class="callout info prose">Some of this blocking depends on <i>where</i> the request comes from. Axis, ITI and ICICI pages loaded normally from Claude's machine but not from Codex's sandbox. That doesn't make them automatable: their factsheet links still only appear after the browser runs the page's scripts, and bot protection commonly blocks cloud addresses like AWS, where the monthly job runs.</p>
+  </section>
+
+  <section class="stack" aria-labelledby="off-h">
+    <h2 id="off-h">The 5 fund houses that are off</h2>
+    <p class="prose">These can't be fixed from our side: there's no current factsheet to download, by script or by hand. Their funds show "not available yet". The registry keeps the evidence and the job can be re-pointed the month a file appears.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Fund house</th><th>Live funds</th><th>What exists</th></tr></thead>
+        <tbody>
+          <tr><td><b>Bajaj Finserv</b></td><td class="num">25</td><td>Latest published factsheet is July 2026 (plus June). Their download filter returns nothing for September. Re-check monthly.</td></tr>
+          <tr><td><b>AlphaGrep</b></td><td class="num">3</td><td>The file addresses its site builds for Aug–Oct return the website shell, not a PDF. Only portfolio spreadsheets exist.</td></tr>
+          <tr><td><b>IL&amp;FS (IDF)</b></td><td class="num">3</td><td>Infrastructure debt series; latest document listed is a May 2018 portfolio and a 2019 AGM notice.</td></tr>
+          <tr><td><b>Lakshya</b></td><td class="num">1</td><td>Its document API answers, with an empty factsheet list.</td></tr>
+          <tr><td><b>Monarch</b></td><td class="num">1</td><td>Policies and scheme documents only; no factsheet anywhere on the site.</td></tr>
+        </tbody>
+        <tfoot><tr><td>Total</td><td class="num">33</td><td></td></tr></tfoot>
+      </table>
+    </div>
+  </section>
+
+  <section class="stack" aria-labelledby="dev-h">
+    <h2 id="dev-h">How we deviated from the plan</h2>
+    <div class="cols">
+      <div class="panel">
+        <span class="k">Scope and effort</span>
+        <ul>
+          <li><b>Manual AMCs: 2 → 10.</b> Monthly ops work goes from 3 files to 11.</li>
+          <li><b>5 AMCs not onboarded</b>, against the plan's "every AMC before staging". 33 live funds affected.</li>
+          <li><b>Onboarding took 9 runs, not 7</b>, because batches grew too large and needed splitting.</li>
+          <li>Each manual AMC still needed its own reader, built from the files you uploaded.</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <span class="k">Rules added to the plan</span>
+        <ul>
+          <li><b>No access-control workarounds</b> (Run 7): no keys, logins or tokens a normal visitor isn't given.</li>
+          <li><b>Encrypted-but-public lists are allowed</b> (Run 8, Mahindra), since no credentials are involved.</li>
+          <li><b>Below 90% coverage is fine</b> when every missing fund has a reason (Run 7).</li>
+          <li><b>No headless browser</b> and no new dependencies in the job.</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <span class="k">Machinery the plan didn't have</span>
+        <ul>
+          <li>Several files per month for one AMC (HDFC, Mirae, UTI, SBI, Navi).</li>
+          <li>Reading word positions for table layouts (Axis, ICICI, Franklin, 360 ONE).</li>
+          <li>A per-AMC minimum fund count for one-fund AMCs (ASK).</li>
+          <li>Per-AMC date patterns, and many new date formats.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="stack" aria-labelledby="risk-h">
+    <h2 id="risk-h">Risks that come with the current setup</h2>
+    <div class="cols">
+      <div class="panel">
+        <span class="k">Someone forgets a month</span>
+        <p>Manager data is only as fresh as the last hand import. After three months without one, those funds' managers stop showing. There is no reminder or alert for a missed manual import yet.</p>
+      </div>
+      <div class="panel">
+        <span class="k">Automatic AMCs may be blocked from AWS</span>
+        <p>The 40 automatic AMCs were verified from a normal network. Some may refuse requests from AWS addresses. The job's alert will name any that fail on the first staging run; each would then move to manual or get fixed.</p>
+      </div>
+      <div class="panel">
+        <span class="k">Sites change</span>
+        <p>The download requests found for 40 AMCs are the sites' own internal requests. A redesign can break one; the job alerts on that AMC, and the others keep working.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="stack" aria-labelledby="opt-h">
+    <h2 id="opt-h">Options from here</h2>
+    <p class="prose">These aren't mutually exclusive. The 5 "off" AMCs can only be covered by option D; the other options apply to the 10 manual ones.</p>
+    <div class="options">
+      <article class="option rec">
+        <header><span class="tag">A</span><h3>Keep the monthly hand import</h3><span class="chip auto">in place now</span></header>
+        <dl>
+          <dt>How</dt><dd>Each month: download 11 PDFs in a browser, run <code>import_manual_fund_managers.py</code> once per AMC, and compare the matched count with last month.</dd>
+          <dt>Cost</dt><dd>About 45 minutes of ops time a month. Nothing new to build.</dd>
+          <dt>Good</dt><dd>Works today, for certain. Uses the sites the way they intend. Same reader and checks as the automatic job.</dd>
+          <dt>Weak</dt><dd>Depends on a person every month; a missed month goes unnoticed until data ages out.</dd>
+        </dl>
+      </article>
+      <article class="option">
+        <header><span class="tag">B</span><h3>Make the hand import easier and watched</h3><span class="chip hand">small build</span></header>
+        <dl>
+          <dt>How</dt><dd>An admin upload screen instead of a command line; a checklist with each AMC's download page; an alert when a manual AMC's latest import is older than ~40 days.</dd>
+          <dt>Cost</dt><dd>A small backend + admin UI task, and one CloudWatch alarm.</dd>
+          <dt>Good</dt><dd>Turns option A into a 15–20 minute routine that can't silently lapse.</dd>
+          <dt>Weak</dt><dd>Still manual.</dd>
+        </dl>
+      </article>
+      <article class="option">
+        <header><span class="tag">C</span><h3>Ask the fund houses for access</h3><span class="chip hand">business effort</span></header>
+        <dl>
+          <dt>How</dt><dd>Request an official API key (Bandhan), allow-listing of our fixed outbound IP (staging already uses one NAT address), or a monthly email of the factsheet. Start with the largest: ICICI (158), Kotak (120), HDFC (112), Axis and Bandhan (89 each).</dd>
+          <dt>Cost</dt><dd>Outreach time; replies may take weeks or never come.</dd>
+          <dt>Good</dt><dd>Legitimate and durable. Each yes moves one AMC to automatic with almost no code (the readers exist).</dd>
+          <dt>Weak</dt><dd>Slow and uncertain; one conversation per fund house.</dd>
+        </dl>
+      </article>
+      <article class="option">
+        <header><span class="tag">D</span><h3>License fund-manager data from a data vendor</h3><span class="chip hand">needs research</span></header>
+        <dl>
+          <dt>How</dt><dd>Indian mutual-fund data providers sell scheme-level data that can include fund managers and their history. A feed would replace or back up the factsheet reading.</dd>
+          <dt>Cost</dt><dd>Unknown: licence fees and display terms need a quote. Changes A04's data source.</dd>
+          <dt>Good</dt><dd>The only option that also covers the 5 "off" AMCs. No scraping, no monthly chores.</dd>
+          <dt>Weak</dt><dd>Recurring cost, a vendor dependency, and licence limits on showing the data to users.</dd>
+        </dl>
+      </article>
+      <article class="option">
+        <header><span class="tag">E</span><h3>Run a real browser inside the monthly job</h3><span class="chip warn">not recommended</span></header>
+        <dl>
+          <dt>How</dt><dd>Add a headless browser (e.g. Playwright) so pages that build their links with JavaScript work, Kotak being the main candidate.</dd>
+          <dt>Cost</dt><dd>A new dependency, a much larger job container, slower runs.</dd>
+          <dt>Good</dt><dd>Could automate the few pages that only need JavaScript and aren't actively blocking.</dd>
+          <dt>Weak</dt><dd>Doesn't help with the 403/406 sites: their bot protection is designed to stop exactly this, often blocks AWS addresses anyway, and pushing past it conflicts with the no-workarounds rule.</dd>
+        </dl>
+      </article>
+      <article class="option">
+        <header><span class="tag">F</span><h3>Drop the smallest manual AMCs</h3><span class="chip off">trade-off</span></header>
+        <dl>
+          <dt>How</dt><dd>Leave Trust (11), JM Financial (17) and ITI (21) as "not available yet" to save ops time.</dd>
+          <dt>Cost</dt><dd>49 live funds lose manager data.</dd>
+          <dt>Good</dt><dd>Cuts the monthly routine from 11 files to 8.</dd>
+          <dt>Weak</dt><dd>Saves only a few minutes; the readers already exist.</dd>
+        </dl>
+      </article>
+    </div>
+  </section>
+
+  <section class="rec-box" aria-labelledby="rec-h">
+    <h2 id="rec-h">Recommendation</h2>
+    <ol>
+      <li><b>Now, for staging:</b> keep A. The readers and import script are built and tested on all 10 files.</li>
+      <li><b>Soon after:</b> build B, so the monthly routine is quick and a missed month raises an alert.</li>
+      <li><b>In parallel:</b> start C with the five largest fund houses, and get a quote for D. D is the only way to cover the 33 funds with no factsheet, and the only route to zero monthly work.</li>
+      <li><b>Skip E</b> unless one specific AMC turns out to need only JavaScript, with no bot protection.</li>
+      <li><b>On the first staging run:</b> read the job's alerts to see whether any of the 40 automatic AMCs are blocked from AWS.</li>
+    </ol>
+  </section>
+
+  <section class="stack" aria-labelledby="month-h">
+    <h2 id="month-h">The monthly routine today</h2>
+    <p class="prose">Download each factsheet in a browser (the newest month available; data up to 45 days old passes), keep the PDFs outside the repo (<code>Desktop\Unifolio\Factsheets\&lt;month&gt;\</code>), then run one command per fund house:</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Fund house</th><th>File(s)</th><th>Command (from <span class="mono">backend/</span>)</th></tr></thead>
+        <tbody>
+          <tr><td>HDFC</td><td>Active + passive factsheet</td><td class="mono">--amc "HDFC Mutual Fund" --pdf active.pdf --pdf passive.pdf</td></tr>
+          <tr><td>ICICI Prudential</td><td>Complete factsheet (one file)</td><td class="mono">--amc "ICICI Prudential Mutual Fund" --pdf icici.pdf</td></tr>
+          <tr><td>Kotak Mahindra</td><td>Monthly factsheet</td><td class="mono">--amc "Kotak Mahindra Mutual Fund" --pdf kotak.pdf</td></tr>
+          <tr><td>Axis</td><td>Monthly factsheet (incl. ETFs, index funds)</td><td class="mono">--amc "Axis Mutual Fund" --pdf axis.pdf</td></tr>
+          <tr><td>Bandhan</td><td>Monthly factsheet (one file)</td><td class="mono">--amc "Bandhan Mutual Fund" --pdf bandhan.pdf</td></tr>
+          <tr><td>Invesco</td><td>Monthly factsheet</td><td class="mono">--amc "Invesco Mutual Fund" --pdf invesco.pdf</td></tr>
+          <tr><td>WhiteOak Capital</td><td>Monthly factsheet</td><td class="mono">--amc "WhiteOak Capital Mutual Fund" --pdf whiteoak.pdf</td></tr>
+          <tr><td>ITI</td><td>Monthly factsheet</td><td class="mono">--amc "ITI Mutual Fund" --pdf iti.pdf</td></tr>
+          <tr><td>JM Financial</td><td>Monthly factsheet</td><td class="mono">--amc "JM Financial Mutual Fund" --pdf jm.pdf</td></tr>
+          <tr><td>Trust</td><td>Monthly factsheet</td><td class="mono">--amc "Trust Mutual Fund" --pdf trust.pdf</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="prose meta">Full command: <span class="mono">python scripts/jobs/import_manual_fund_managers.py --amc "…" --pdf …</span>. The script refuses a stale or wrong file before writing anything, and prints <span class="mono">matched=N</span> to compare with last month.</p>
+  </section>
+
+  <footer>
+    Sources: A04 plan rulings (Runs 1–9), the AMC registry notes in <span class="mono">fund_manager_resolvers.py</span>, the 9 Oct factsheet catalogue, and live coverage checks run on 10 Oct 2026. Live-fund counts use AMFI NAVAll families with a NAV in the last 30 days.
+  </footer>
+</main>
