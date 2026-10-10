@@ -37,6 +37,10 @@ vi.mock("../analytics/AnalyticsView", () => ({
   AnalyticsView: () => <div>Analytics test view</div>,
 }));
 
+vi.mock("../scenarios/ScenariosScreen", () => ({
+  ScenariosScreen: () => <div>Scenarios test view</div>,
+}));
+
 vi.mock("../auth/AuthContext", () => {
   // Stable identity: the flow reloads members whenever `me` changes.
   const value = {
@@ -74,6 +78,14 @@ describe("MainDashboardFlow", () => {
     fireEvent.click(screen.getByRole("button", { name: "Analytics" }));
     expect(screen.getByText("Analytics test view")).toBeInTheDocument();
     expect(window.history.state).toMatchObject({ unifolioTab: "analytics" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Scenarios" }));
+    expect(screen.getByText("Scenarios test view")).toBeInTheDocument();
+    expect(window.history.state).toMatchObject({ unifolioTab: "scenarios" });
+    act(() => { fireEvent.popState(window, { state: { unifolioTab: "analytics" } }); });
+    expect(screen.getByText("Analytics test view")).toBeInTheDocument();
+    act(() => { fireEvent.popState(window, { state: { unifolioTab: "scenarios" } }); });
+    expect(screen.getByText("Scenarios test view")).toBeInTheDocument();
 
     act(() => {
       window.history.replaceState({ unifolioTab: "dashboard" }, "", "/");

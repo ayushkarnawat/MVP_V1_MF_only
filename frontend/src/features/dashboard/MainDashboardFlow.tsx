@@ -4,6 +4,7 @@ import { NavigationShell, type MemberOption } from "./NavigationShell";
 import { DashboardView } from "./DashboardView";
 import { HistoryView } from "../history/HistoryView";
 import { AnalyticsView } from "../analytics/AnalyticsView";
+import { ScenariosScreen } from "../scenarios/ScenariosScreen";
 import { ProfileView } from "../profile/ProfileView";
 import { ImportFlow } from "../import/ImportFlow";
 import { clearCasResumeStep2 } from "../import/casResumeState";
@@ -30,8 +31,8 @@ function toMemberOption(m: HouseholdMember): MemberOption {
   return { id: m.id, name: m.name || "Self" };
 }
 
-type MainTab = "dashboard" | "history" | "analytics" | "profile";
-const KNOWN_TABS: MainTab[] = ["dashboard", "history", "analytics", "profile"];
+type MainTab = "dashboard" | "history" | "analytics" | "scenarios" | "profile";
+const KNOWN_TABS: MainTab[] = ["dashboard", "history", "analytics", "scenarios", "profile"];
 const tabFromHistory = (value: unknown): MainTab =>
   KNOWN_TABS.includes(value as MainTab) ? (value as MainTab) : "dashboard";
 
@@ -283,6 +284,8 @@ export function MainDashboardFlow() {
           onAddDataForMember={handleAddDataTrigger}
           activeMemberName={members.find((m) => m.id === selectedMemberId)?.name}
         />
+      ) : activeTab === "scenarios" ? (
+        <ScenariosScreen />
       ) : (
         <ProfileView
           onOpenImportHealth={() => setDevPage(true)}

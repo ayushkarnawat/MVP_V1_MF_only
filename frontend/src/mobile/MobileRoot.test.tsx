@@ -4,6 +4,10 @@ import { MobileRoot } from "./MobileRoot";
 import { MobileAppShell } from "./shell/MobileAppShell";
 import * as authContext from "../features/auth/AuthContext";
 
+vi.mock("../features/scenarios/ScenariosScreen", () => ({
+  ScenariosScreen: () => <div data-testid="scenarios-view">Scenarios</div>,
+}));
+
 vi.mock("../features/auth/AuthContext", () => ({
   useAuth: vi.fn(),
   AuthProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -92,6 +96,9 @@ describe("MobileAppShell & MobileRoot", () => {
     const analyticsTab = screen.getByRole("button", { name: "Analytics" });
     fireEvent.click(analyticsTab);
     expect(screen.getByTestId("mobile-analytics-view")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Scenarios" }));
+    expect(screen.getByTestId("scenarios-view")).toBeInTheDocument();
 
     const importTab = screen.getByRole("button", { name: "Import" });
     fireEvent.click(importTab);

@@ -23,8 +23,8 @@ export interface NavigationShellProps {
   onViewModeChange: (mode: "aggregate" | "member") => void;
   onMemberSelect: (memberId: string) => void;
   onAddData: () => void;
-  activeTab?: "dashboard" | "history" | "analytics" | "profile";
-  onTabChange?: (tab: "dashboard" | "history" | "analytics" | "profile") => void;
+  activeTab?: "dashboard" | "history" | "analytics" | "scenarios" | "profile";
+  onTabChange?: (tab: "dashboard" | "history" | "analytics" | "scenarios" | "profile") => void;
   children: React.ReactNode;
 }
 
@@ -92,6 +92,19 @@ export function NavigationShell({
                   onClick={() => onTabChange?.("analytics")}
                 >
                   Analytics
+                </button>
+                <button
+                  className={cn(
+                    "inline-flex min-h-11 items-center px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
+                    activeTab === "scenarios"
+                      ? "bg-[var(--color-bg)] text-[var(--color-ink)] border border-[var(--color-border)] shadow-xs font-semibold"
+                      : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] border border-transparent"
+                  )}
+                  type="button"
+                  aria-current={activeTab === "scenarios" ? "page" : undefined}
+                  onClick={() => onTabChange?.("scenarios")}
+                >
+                  Scenarios
                 </button>
               </nav>
             </div>

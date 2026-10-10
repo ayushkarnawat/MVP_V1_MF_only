@@ -1,9 +1,9 @@
-import { LayoutDashboard, PlusCircle, BarChart2 } from "lucide-react";
+import { LayoutDashboard, PlusCircle, BarChart2, FlaskConical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, useReducedMotion } from "motion/react";
 import { isTestEnv } from "@/lib/motion";
 
-export type MobileTab = "dashboard" | "analytics" | "import";
+export type MobileTab = "dashboard" | "analytics" | "scenarios" | "import";
 
 export interface MobileBottomNavProps {
   activeTab: MobileTab;
@@ -99,6 +99,22 @@ export function MobileBottomNav({
           >
             Analytics
           </span>
+        </motion.button>
+
+        <motion.button
+          whileTap={shouldReduceMotion ? undefined : { scale: 0.92 }}
+          transition={{ duration: 0.1 }}
+          onClick={() => onTabChange("scenarios")}
+          className={cn(
+            "group flex flex-col items-center justify-center min-w-[64px] min-h-[48px] py-1 px-3 rounded-2xl transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
+            activeTab === "scenarios" ? "text-[var(--color-accent)]" : "text-[var(--color-text-secondary)] hover:text-[var(--color-ink)]"
+          )}
+          aria-label="Scenarios"
+          aria-current={activeTab === "scenarios" ? "page" : undefined}
+          type="button"
+        >
+          <FlaskConical aria-hidden="true" className={cn("h-5 w-5 transition-transform duration-150", activeTab === "scenarios" ? "scale-110 stroke-[2.2]" : "stroke-[1.7] group-hover:scale-105")} />
+          <span className={cn("text-[10px] mt-1 tracking-tight", activeTab === "scenarios" ? "font-bold text-[var(--color-ink)]" : "font-medium text-[var(--color-text-secondary)]")}>Scenarios</span>
         </motion.button>
 
         {/* 3. Import Tab (Right) */}

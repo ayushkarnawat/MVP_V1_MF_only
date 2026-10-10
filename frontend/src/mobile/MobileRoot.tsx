@@ -4,6 +4,7 @@ import { MobileAppShell } from "./shell/MobileAppShell";
 import type { MobileTab } from "./shell/MobileBottomNav";
 import { MobileDashboardView } from "./features/dashboard/MobileDashboardView";
 import { MobileAnalyticsView } from "./features/analytics/MobileAnalyticsView";
+import { ScenariosScreen } from "../features/scenarios/ScenariosScreen";
 import { MobileImportView } from "./features/import/MobileImportView";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { LogOut } from "lucide-react";
@@ -68,6 +69,7 @@ export function MobileRoot() {
       )}
 
       {activeTab === "analytics" && <MobileAnalyticsView />}
+      {activeTab === "scenarios" && <ScenariosScreen />}
 
       {activeTab === "import" && (
         <MobileImportView

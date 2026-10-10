@@ -6,6 +6,17 @@ vi.mock("../auth/AuthContext", () => ({
   useAuth: () => ({ logout: vi.fn() }),
 }));
 
+it("opens Scenarios from the desktop navigation", () => {
+  const onTabChange = vi.fn();
+  render(<NavigationShell viewMode="aggregate" selectedMemberId={null} members={[]}
+    onViewModeChange={vi.fn()} onMemberSelect={vi.fn()} onAddData={vi.fn()}
+    activeTab="scenarios" onTabChange={onTabChange}><div>Content</div></NavigationShell>);
+  const button = screen.getByRole("button", { name: "Scenarios" });
+  expect(button).toHaveAttribute("aria-current", "page");
+  fireEvent.click(button);
+  expect(onTabChange).toHaveBeenCalledWith("scenarios");
+});
+
 describe("NavigationShell", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -134,7 +145,7 @@ describe("NavigationShell", () => {
     );
     const nav = screen.getByRole("navigation", { name: "Main Navigation" });
     const labels = Array.from(nav.querySelectorAll("button")).map((b) => b.textContent);
-    expect(labels).toEqual(["Dashboard", "History", "Analytics"]);
+    expect(labels).toEqual(["Dashboard", "History", "Analytics", "Scenarios"]);
     fireEvent.click(screen.getByRole("button", { name: "History" }));
     expect(onTabChange).toHaveBeenCalledWith("history");
   });

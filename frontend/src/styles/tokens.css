@@ -10,6 +10,8 @@
   --color-negative: #EF4444;
   --color-neutral-badge: #94A3B8;
   --color-warning: #F59E0B;
+  --color-hypo: #7C3AED;
+  --color-freeze: #0284C7;
 
   /* shadcn/ui Theme Variables (Light Mode) */
   --background: 0 0% 99%;
@@ -135,6 +137,8 @@
     --color-negative: #F87171;
     --color-neutral-badge: #475569;
     --color-warning: #F59E0B;
+    --color-hypo: #A78BFA;
+    --color-freeze: #38BDF8;
 
     --background: 0 0% 6%;
     --foreground: 0 0% 96%;
@@ -173,6 +177,8 @@
   --color-negative: #F87171;
   --color-neutral-badge: #475569;
   --color-warning: #F59E0B;
+  --color-hypo: #A78BFA;
+  --color-freeze: #38BDF8;
 
   --background: 0 0% 6%;
   --foreground: 0 0% 96%;
@@ -206,6 +212,8 @@
   --color-negative: #EF4444;
   --color-neutral-badge: #94A3B8;
   --color-warning: #F59E0B;
+  --color-hypo: #7C3AED;
+  --color-freeze: #0284C7;
 
   --background: 0 0% 99%;
   --foreground: 0 0% 7%;
