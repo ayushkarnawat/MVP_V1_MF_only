@@ -29,6 +29,9 @@ locals {
       command             = ["python", "scripts/jobs/refresh_fund_managers_monthly.py"]
       schedule_expression = "cron(0 6 10 * ? *)"
       task_role_arn       = null
+      # PDFium keeps ~600 MB after reading HSBC's 190-page factsheet; the whole
+      # 40-AMC run peaked at 937 MB locally (10 Oct), too close to 1024.
+      memory = "2048"
     }
     aaum_quarterly = {
       slug                = "aaum-quarterly"
@@ -87,7 +90,7 @@ resource "aws_ecs_task_definition" "jobs" {
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
   cpu                      = "512"
-  memory                   = "1024"
+  memory                   = lookup(each.value, "memory", "1024")
   execution_role_arn       = var.ecs_task_execution_role_arn
   task_role_arn            = each.value.task_role_arn
 
