@@ -10,7 +10,8 @@ from sqlalchemy.orm import Session
 
 from app.db.session import SessionLocal
 from app.models.folio import Folio
-from app.models.reference import Scheme
+from app.models.reference import Scenario, Scheme
+from app.services.analytics.scenario_engine import compute_scenario_results
 from app.services.analytics.scheme_universe import canonical_category, get_category_peers
 from app.services.dashboard.nav import warm_nav_history
 
@@ -49,10 +50,22 @@ async def main_async(db: Session) -> None:
             if peer.id not in held_ids:
                 peers[peer.id] = peer
     await warm_nav_history(db, peers.values())
+    recompute_ongoing_scenarios(db)
     logger.info(
         "refresh_nav_daily: held_schemes=%d categories=%d peer_schemes=%d success=True",
         len(schemes), len(groups), len(peers),
     )
+
+
+def recompute_ongoing_scenarios(db: Session) -> None:
+    ongoing = db.query(Scenario).filter_by(is_ongoing=True).all()
+    for scenario in ongoing:
+        try:
+            compute_scenario_results(db, scenario)
+        except Exception:
+            logger.exception("refresh_nav_daily: scenario recompute failed for %s", scenario.name)
+            db.rollback()
+    logger.info("refresh_nav_daily: recomputed %d is_ongoing scenarios", len(ongoing))
 
 
 def main() -> None:

@@ -300,3 +300,78 @@ class FundManagerAllocationSummary(BaseModel):
 class AggregateFundManagerAllocationResponse(BaseModel):
     members: list[MemberStatus]
     fund_manager: FundManagerAllocationSummary
+
+
+class ScenarioSummaryRow(BaseModel):
+    scenario_id: str
+    name: str
+    scenario_type: str
+    start_date: str | None
+    end_date: str | None
+    is_ongoing: bool
+    display_rank: int | None
+    parent_scenario_id: str | None
+    has_phases: bool
+    had_redemption_freeze_schemes: list[str] | None
+    quick_market_pct: str | None      # Nifty 50 TRI over the window (card 10)
+    quick_equity_pct: str | None      # AUM-weighted equity funds
+    quick_debt_pct: str | None        # AUM-weighted debt funds
+    quick_weight_quarter: str | None  # the AUM quarter used as weights
+
+
+class ScenarioPhaseResult(BaseModel):
+    label: str
+    order: int
+    start_date: str
+    end_date: str | None
+    is_ongoing: bool
+    pct: str | None
+
+
+class ScenarioFundResult(BaseModel):
+    scheme_id: str
+    scheme_name: str
+    pct: str | None
+    is_proxied: bool
+    proxy_basis: str | None
+    is_frozen: bool
+
+
+class ScenarioMemberFundResult(BaseModel):
+    scheme_id: str
+    scheme_name: str
+    rupee_impact: str | None
+
+
+class ScenarioMemberResult(BaseModel):
+    household_member_id: str
+    member_name: str
+    rupee_impact: str
+    pct: str | None                  # this member's own % (fix 6)
+    funds: list[ScenarioMemberFundResult]
+
+
+class ScenarioBenchmarkResult(BaseModel):
+    name: str
+    pct: str
+
+
+class ScenarioHypotheticalAssumptionRow(BaseModel):
+    asset_class: str
+    assumed_pct_change: str
+    assumption_note: str
+
+
+class ScenarioResultRow(BaseModel):
+    scenario: ScenarioSummaryRow
+    portfolio_impact_pct: str | None   # Σ rupee impact ÷ covered_value (fix 6)
+    rupee_impact: str | None
+    covered_value: str | None          # absent when hypothetical assumptions are unset
+    total_value: str | None
+    no_data_funds: int | None
+    benchmarks: list[ScenarioBenchmarkResult]
+    phases: list[ScenarioPhaseResult]
+    by_fund: list[ScenarioFundResult]
+    by_member: list[ScenarioMemberResult]
+    hypothetical_assumptions: list[ScenarioHypotheticalAssumptionRow]
+    assumptions_not_set: bool
