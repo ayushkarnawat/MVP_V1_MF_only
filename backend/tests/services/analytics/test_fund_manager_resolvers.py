@@ -41,7 +41,7 @@ def test_lic_is_enabled_with_positional_summary_reader():
     assert entry.landing_url == "https://www.licmf.com/downloads/factsheet"
 
 
-@pytest.mark.parametrize("amc,reason", [("Mirae Asset Mutual Fund", "two"), ("Samco Mutual Fund", "June")])
+@pytest.mark.parametrize("amc,reason", [("Samco Mutual Fund", "June")])
 def test_batch_two_blockers_remain_disabled_and_explained(amc, reason):
     entry = AMC_RESOLVERS[amc]
     assert entry.layout is None
@@ -109,19 +109,44 @@ def test_pgim_uses_live_verified_published_forms_and_reader():
     assert entry.response_json_path == "data.tab_0007"
 
 
-@pytest.mark.parametrize("amc,reason", [
-    ("Mirae Asset Mutual Fund", "first 12"), ("Choice Mutual Fund", "first 12"),
-    ("UTI Mutual Fund", "76/88"), ("Axis Mutual Fund", "403"),
-    ("ICICI Prudential Mutual Fund", "404"), ("ITI Mutual Fund", "403"),
-    ("Trust Mutual Fund", "204"), ("WhiteOak Capital Mutual Fund", "403"),
+@pytest.mark.parametrize("amc,layout,kind", [
+    ("Mirae Asset Mutual Fund", "mirae", ResolverKind.JSON_API),
+    ("Choice Mutual Fund", "choice", ResolverKind.JSON_API),
+    ("UTI Mutual Fund", "uti", ResolverKind.JSON_API),
+    ("Axis Mutual Fund", "axis", ResolverKind.MANUAL),
+    ("ICICI Prudential Mutual Fund", "icici", ResolverKind.MANUAL),
+    ("ITI Mutual Fund", "iti", ResolverKind.MANUAL),
+    ("Trust Mutual Fund", "trust", ResolverKind.MANUAL),
+    ("WhiteOak Capital Mutual Fund", "whiteoak", ResolverKind.MANUAL),
 ])
-def test_run_five_blocked_amcs_keep_proof_without_guessing_a_reader(amc, reason):
+def test_run_six_amcs_have_approved_readers_and_source_kinds(amc, layout, kind):
     entry = AMC_RESOLVERS[amc]
-    assert entry.layout is None
-    assert entry.kind is ResolverKind.JSON_API
-    assert reason in entry.note
+    assert entry.layout == layout
+    assert entry.kind is kind
+    assert not entry.note or "Disabled pending" not in entry.note
+    if kind is ResolverKind.MANUAL:
+        assert "bot-protected source; user imports monthly via import_manual_fund_managers.py" in entry.note
+    if layout in {"icici", "axis"}:
+        assert entry.needs_boxes is True
 
 
 def test_mirae_and_uti_require_both_monthly_documents():
     assert AMC_RESOLVERS["Mirae Asset Mutual Fund"].documents == (r"active-factsheet", r"passive-factsheet")
-    assert AMC_RESOLVERS["UTI Mutual Fund"].documents == (r"watch_active", r"watch_passive")
+    assert AMC_RESOLVERS["UTI Mutual Fund"].documents == (r"watch(?:[\s_-]|%20)*\(?active", r"watch(?:[\s_-]|%20)*\(?passive")
+
+
+def test_uti_document_patterns_match_both_file_namings():
+    """10 Oct: the October files are named "UTI Fund Watch (Active)-October 2026.pdf"; September's were
+    "uti_fund_watch_active_september_2026_rv2.pdf". Matching only the underscore form made the AMC fail."""
+    import re
+    active, passive = AMC_RESOLVERS["UTI Mutual Fund"].documents
+    urls = {
+        "https://d3ce1o48hc5oli.cloudfront.net/utimf-job/ebook/UTI Fund Watch (Active)-October 2026.pdf": active,
+        "https://d3ce1o48hc5oli.cloudfront.net/utimf-job/ebook/UTI Fund Watch (Passive)-October 2026.pdf": passive,
+        "https://d3ce1o48hc5oli.cloudfront.net/s3fs-public/2026-09/uti_fund_watch_active_september_2026_rv2.pdf": active,
+        "https://d3ce1o48hc5oli.cloudfront.net/s3fs-public/2026-09/uti_fund_watch_passive_september_2026.pdf": passive,
+        "https://d3ce1o48hc5oli.cloudfront.net/utimf-job/ebook/UTI%20Fund%20Watch%20(Active)-October%202026.pdf": active,
+        "https://example.cloudfront.net/uti-fund-watch-passive-november-2026.pdf": passive,
+    }
+    for url, wanted in urls.items():
+        assert [p for p in (active, passive) if re.search(p, url, re.I)] == [wanted], url
