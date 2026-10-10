@@ -707,6 +707,16 @@ def test_groww_skips_a_malformed_embedded_document():
     ("04-Nov-24", date(2024, 11, 4)),
     ("24-04-2026", date(2026, 4, 24)),
     ("19-June-23", date(2023, 6, 19)),       # ITI: full month name, two-digit year
+    ("01-Mar\ufffe2025", date(2025, 3, 1)),   # Tata: PDF prints U+FFFE where the hyphen is
+    ("01- Jul-2025", date(2025, 7, 1)),
+    ("Dec-2023", date(2023, 12, 1)),         # SBI
+    ("June-2024", date(2024, 6, 1)),
+    ("Jan - 2026", date(2026, 1, 1)),
+    ("July 1st\ufffe2025", date(2025, 7, 1)),
+    ("July 1st ,2025", date(2025, 7, 1)),
+    ("13-October-2025", date(2025, 10, 13)), # Motilal
+    ("8-August-2024", date(2024, 8, 8)),
+    ("Nov 2009,", date(2009, 11, 1)),        # UTI: trailing comma
     ("March, 2026", date(2026, 3, 1)),
     ("Inception", None),
     ("Since Inception", None),

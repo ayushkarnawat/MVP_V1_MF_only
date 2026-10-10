@@ -690,6 +690,177 @@ def _run7_heading(page: str, prefix: str) -> str:
     return ""
 
 
+def _bandhan_heading(page: str) -> str:
+    # Holdings can include other Bandhan funds; only the title preceding the
+    # scheme-type sentence identifies this page's fund.
+    title = re.search(r"(?m)^(Bandhan[^\n]+(?:\n[^\n]+)?)[\n]Type of Scheme:", page)
+    return re.sub(r"[£¥§&@^$¢ß]+$", "", " ".join(title.group(1).split()).split(" (")[0]) if title else ""
+
+
+def _invesco_heading(page: str) -> str:
+    title = _brand_line_heading(page, "Invesco")
+    # These two artwork titles lose all word spaces in the actual text layer.
+    return {"InvescoIndiaGoldETFFundofFund": "Invesco India Gold ETF Fund of Fund",
+            "InvescoIndiaIncomePlusArbitrageActiveFundofFund": "Invesco India Income Plus Arbitrage Active Fund of Fund"}.get(title, title)
+
+
+def invesco_managers(page: str) -> list[dict] | None:
+    block = re.search(r"Fund Manager & Experience(.*?)(?:Asset Allocation|$)", page, re.S)
+    if not block:
+        return None
+    return [dict(name=_clean_name(m.group(1)), role=m.group(2), since_raw=m.group(3))
+            for m in re.finditer(r"([A-Za-z. ]+)(?: \(([^)]+)\))?\s*Total Experience \d+ Years\s*Experience in managing this fund:\s*Since ([A-Za-z]+ \d{2}, \d{4})", block.group(1))] or None
+
+
+def _jm_heading(page: str) -> str:
+    title = re.search(r"(?m)^(JM[^\n]+(?:\n[^\n]+)?)[\n]An open[- ]ended", page)
+    if title:
+        return " ".join(title.group(1).split())
+    # Debt pages begin with their own title above the portfolio table.
+    return _brand_line_heading(page, "JM ") if page.lstrip().startswith("JM ") else ""
+
+
+def jm_managers(page: str) -> list[dict] | None:
+    block = re.search(r"FUND MANAGER DETAILS(.*?)(?:NAV DETAILS|$)", page, re.S)
+    if not block:
+        return None
+    role, managers = None, []
+    for m in re.finditer(r"(?P<role>Co Fund Managers|Debt Fund Manager|Advisor for-Asset Allocation)|(?P<name>[A-Za-z. ]+)\s*\(Managing this Scheme since (?P<since>[A-Za-z]+,?\s*(?:\d{1,2},\s*)?\d{4})", block.group(1)):
+        if m.group("role"):
+            role = "Co Fund Manager" if m.group("role") == "Co Fund Managers" else m.group("role")
+        else:
+            managers.append(dict(name=_clean_name(m.group("name")).rstrip("."), role=role, since_raw=" ".join(m.group("since").split())))
+    return managers or None
+
+
+def ask_managers(page: str) -> list[dict] | None:
+    if "Fund Manager" not in page:
+        return None
+    return [dict(name=m.group(1).strip(), role=None, since_raw=m.group(2))
+            for m in re.finditer(r"([A-Za-z ]+) \(Managing Fund Since ([^)]+)\)", page)] or None
+
+
+def _sbi_heading(page: str) -> str:
+    lines = page.splitlines()
+    # Active titles are uppercase; portfolio holdings are mixed case.
+    for line in lines:
+        if line.startswith("SBI ") and line == line.upper() and re.search(r"\b(?:FUND|FOF)\b", line):
+            return {"SBI BANKING AND PSU DEBT FUND": "SBI BANKING & PSU DEBT FUND"}.get(line.strip(), line.strip())
+    # Passive artwork titles omit the brand. Preserve the printed title and
+    # let the page's ISIN identify the family; never manufacture a scheme name.
+    for i, line in enumerate(lines):
+        if re.search(r"\b(?:ETF|FUND)\b", line) and i + 1 < len(lines) and lines[i + 1].startswith(("An open", "An Open")):
+            title = line.strip().removeprefix("INDEX FUNDS ETFs FOFs ")
+            if i and not lines[i - 1].startswith("INDEX FUNDS") and re.match(r"^(?:CRISIL[- ]|NIFTY )", lines[i - 1]):
+                title = lines[i - 1].strip() + " " + title
+            return title
+    for i, line in enumerate(lines):
+        if not line.startswith("SBI "):
+            continue
+        title = " ".join(lines[i:i + 4])
+        found = re.match(r"(SBI .+?\b(?:Fund|ETF)\b)", title)
+        if found:
+            return found.group(1)
+    return ""
+
+
+def sbi_managers(page: str) -> list[dict] | None:
+    text = " ".join(page.split())
+    block = re.search(r"Name of Fund Managers? Total Experience Managing Since(.*?)(?:TER BER|Date of Inception|Minimum Investment|$)", text)
+    name = r"((?:Mr|Ms)\.? [A-Za-z. ]+?)"
+    date_text = r"([A-Za-z]+\s*-?\s*\d{4}|\d{1,2}(?:st|nd|rd|th) [A-Za-z]+ \d{4}|[A-Za-z]+ \d{1,2}(?:st|nd|rd|th)\ufffe\d{4})"
+    if block:
+        role = r"(?: \(([^)]+)\)| -\s*(Equity|Debt|Arbitrage|Commodities)| - \((Co Fund Manager Debt))?"
+        pattern = name + r"[*#]?" + role + r"[#]? \d+ years (?:\(?w\.e\.f\.? )?" + date_text
+        managers = []
+        for m in re.finditer(pattern, block.group(1)):
+            managers.append(dict(name=_clean_name(m.group(1)), role=(m.group(2) or m.group(3) or m.group(4) or "").strip() or None, since_raw=m.group(5)))
+        return managers or None
+    if "Fund Managers" in page or "Fund Manager" in page:
+        # One scheme per page. Explicit name/Managing captions identify each
+        # manager; the co-manager caption supplies the role, never text order.
+        person = r"((?:Mr|Ms)\.? [A-Z][A-Za-z.]*(?: [A-Z][A-Za-z.]*)+)"
+        load = r"(?: (?:date of allotment – Nil|allotment: Nil|the date of allotment: Nil|allotment))?"
+        since = r"([A-Za-z]+ (?:\d{1,2}(?:st|nd|rd|th)? ?[,] ?)?\d{4}|\d{1,2}(?:st|nd|rd|th) [A-Za-z]+, \d{4})"
+        pattern = person + r"[:]?" + load + r" Managing this [Ff]und(?:[:]| -)? (?:(?:Since|since|w\.e\.f) )?" + since
+        co_start = text.find("Co-Fund Managers")
+        managers = []
+        for m in re.finditer(pattern, text):
+            managers.append(dict(name=_clean_name(m.group(1)), role="Co-Fund Manager" if co_start >= 0 and m.start() > co_start else None, since_raw=m.group(2)))
+        return managers or None
+    return None
+
+
+def _mahindra_heading(page: str) -> str:
+    lines = [line.strip() for line in page.splitlines() if line.strip()]
+    for i, line in enumerate(lines):
+        if not line.startswith("Mahindra Manulife"):
+            continue
+        title = line.replace(" FACTSHEET", "")
+        for nxt in lines[i + 1:i + 3]:
+            if re.search(r"\b(?:Fund|FOF)\b", title):
+                return title
+            title += " " + nxt.replace(" FACTSHEET", "")
+        if re.search(r"\b(?:Fund|FOF)\b", title):
+            return title
+    return ""
+
+
+def mahindra_managers(page: str) -> list[dict] | None:
+    return [dict(name=_clean_name(m.group(2)), role=m.group(1), since_raw=m.group(3))
+            for m in re.finditer(r"Fund Manager(?: \((Equity|Debt)\))?\s*:\s*((?:Mr|Ms)\.?\s*[A-Za-z. ]+?)\s*Total Experience:[^()]*\([Mm]anaging since ([A-Za-z]+ \d{1,2}, \d{4})\.?\)", page)] or None
+
+
+def _motilal_name(raw: str) -> str:
+    # Active PDF kerning introduces spaces inside each word. Capital word
+    # initials remain intact; passive pages and same-page captions print the
+    # identical names normally, including the 'tt' glyph in Rakesh Shetty.
+    compact = re.sub(r"\s", "", raw)
+    compact = re.sub(r"^M[rs]\.", "", compact).replace("SheƩy", "Shetty")
+    return re.sub(r"(?<=[a-z])(?=[A-Z])", " ", compact)
+
+
+def _motilal_heading(page: str) -> str:
+    title = re.search(r"(?m)^(?:@ )?(Motilal Oswal [^\n]+)\n\((?:An |Formerly)", page)
+    return title.group(1).strip() if title else _brand_line_heading(page, "Motilal Oswal ")
+
+
+def motilal_managers(page: str) -> list[dict] | None:
+    lines = page.splitlines()
+    role, managers = None, []
+    for i, line in enumerate(lines):
+        if line.strip().lower() in {"for equity component", "for debt component", "for foreign securities"}:
+            role = line.strip()[4:].title()
+        elif line.strip() == "Fund Manager":
+            role = None
+        elif line.strip() == "Associate Fund Manager":
+            role = line.strip()
+        if not re.match(r"M\s*[rs]\.", line.strip()):
+            continue
+        body = " ".join(lines[i + 1:i + 5])
+        since = re.match(r"Managing this fund since (\d{1,2}-[A-Za-z]+-\d{4}|\d{1,2}(?:st|nd|rd|th) [A-Za-z]+, \d{4})", body)
+        if not since and role == "Foreign Securities":
+            since = re.search(r"Foreign securities w\.e\.f\. ([A-Za-z]+ \d{1,2}, \d{4})", body)
+        if since:
+            managers.append(dict(name=_motilal_name(line.strip()), role=role, since_raw=since.group(1)))
+    return managers or None
+
+
+def _one360_dates(page: str, managers: list[dict]) -> None:
+    text = " ".join(page.split())
+    day = r"(\d{1,2} [A-Za-z]+,? \d{4})"
+    primary = set(re.findall(r"Managed by the fund manager (?:since|with effect from) " + day, text, re.I))
+    co = set(re.findall(r"co[-\ufffe]fund manager(?: of equity(?: and Commodity)?)? (?:since|with effect from) " + day, text, re.I))
+    by_role = {role: [m for m in managers if m["role"] == role] for role in [None, "Co-Fund Manager"]}
+    # A footnote mentioning two roles with only one printed manager, or several
+    # primary managers on a hybrid page, cannot be safely attributed by order.
+    if len(primary) != 1 or len(by_role[None]) != 1 or (co and (len(co) != 1 or len(by_role["Co-Fund Manager"]) != 1)):
+        return
+    by_role[None][0]["since_raw"] = next(iter(primary))
+    if co:
+        by_role["Co-Fund Manager"][0]["since_raw"] = next(iter(co))
+
+
 def one360_page(page: str, words: list[Word] | None = None) -> SchemePage | None:
     """Manager labels and names share a baseline; biographies below are not rows."""
     if words is None:
@@ -709,6 +880,7 @@ def one360_page(page: str, words: list[Word] | None = None) -> SchemePage | None
         found = re.match(r"(?:Mr|Ms)\.\s+([A-Za-z.]+(?:\s+[A-Za-z.]+)+)", name)
         if found:
             managers.append({"name": found.group(1), "role": "Co-Fund Manager" if any(w[4] == "Co-" for w in baseline) else None, "since_raw": None})
+    _one360_dates(page, managers)
     return _page(_run7_heading(page, "360 ONE "), managers, page) if managers else None
 
 
@@ -844,6 +1016,14 @@ def _reader(managers: Callable[[str], list[dict] | None], heading: Callable[[str
 # One reader per AMC: a manager layout plus where that AMC prints the scheme name.
 # Task 8 adds an entry per onboarded AMC (reusing a layout where the shape matches).
 LAYOUTS: dict[str, Callable[..., SchemePage | list[SchemePage] | None]] = {
+    "sbi": _reader(sbi_managers, _sbi_heading),
+    "tata": _reader(bullets_slash, lambda p: _brand_line_heading(p, "Tata ")),
+    "mahindra": _reader(mahindra_managers, _mahindra_heading),
+    "motilal": _reader(motilal_managers, _motilal_heading),
+    "ask": _reader(ask_managers, lambda p: _brand_line_heading(p, "ASK Liquid Fund")),
+    "bandhan": _reader(bullets_slash, _bandhan_heading),
+    "invesco": _reader(invesco_managers, _invesco_heading),
+    "jm": _reader(jm_managers, _jm_heading),
     "360": one360_page,
     "angel": _reader(angel_managers, lambda p: _run7_heading(p, "Angel One ")),
     "boi": _reader(boi_managers, lambda p: _run7_heading(p, "Bank of India ")),

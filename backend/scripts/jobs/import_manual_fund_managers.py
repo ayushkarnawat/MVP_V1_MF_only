@@ -33,7 +33,7 @@ def run(db, amc_name: str, pdfs: list[Path], today: date) -> dict[str, int]:
         pages = extract_page_text(pdf_bytes)
         if entry.needs_boxes:
             pages = FactsheetPages(pages, extract_page_words(pdf_bytes))
-        ok, reason = looks_like_current_factsheet(pages, reader, today, as_on_pattern=entry.as_on_pattern)
+        ok, reason = looks_like_current_factsheet(pages, reader, today, as_on_pattern=entry.as_on_pattern, min_schemes=entry.min_schemes)
         if not ok:
             # Checked for every file before writing anything, so a wrong file changes nothing.
             sys.exit(f"{pdf.name}: {reason} -- download this month's factsheet and run again.")

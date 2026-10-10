@@ -125,12 +125,13 @@ def test_enabled_entries_record_live_source_and_measured_coverage(amc, layout):
 
 
 @pytest.mark.parametrize("amc,proof", [
-    ("ASK MUTUAL FUND", "three-scheme"), ("Bandhan Mutual Fund", "401"),
+    ("Bandhan Mutual Fund", "401"),
     ("Invesco Mutual Fund", "403"), ("JM Financial Mutual Fund", "406"),
 ])
-def test_disabled_entries_record_specific_blocker(amc, proof):
+def test_manual_entries_preserve_run_seven_access_control_proof(amc, proof):
     entry = AMC_RESOLVERS[amc]
-    assert entry.layout is None
+    assert entry.kind is ResolverKind.MANUAL
+    assert entry.layout is not None
     assert proof in entry.note
 
 
