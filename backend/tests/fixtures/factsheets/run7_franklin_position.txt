@@ -1,0 +1,61 @@
+$$ Franklin India Large Cap Fund FILCF
+FUND MANAGER(S)
+VOLATILITY MEASURES (3 YEARS)
+Standard Deviation 3.81%
+Beta 0.87
+Sharpe Ratio* 0.43
+* Annualised. Risk-free rate assumed to be 5.24% 
+(FBIL OVERNIGHT MIBOR)
+#
+BASE EXPENSE RATIO
+#
+BASE EXPENSE RATIO (DIRECT) 
+MINIMUM INVESTMENT/
+MULTIPLES FOR NEW INVESTORS
+` 5000/1
+ADDITIONAL INVESTMENT/
+MULTIPLES FOR EXISTING INVESTORS
+` 1000/1
+LOAD STRUCTURE
+ENTRY LOAD Nil
+EXIT LOAD (for each purchase of Units)
+In respect of each 
+purchase of Units - 1% if
+the Units are
+redeemed/switched-out
+within one year of
+allotment
+As on August 31, 2026 PORTFOLIO
+NAV AS OF AUGUST 31, 2026
+www.franklintempletonindia.com Franklin Templeton
+FUND MANAGER(S)
+Shyam Sundar Sriram (w.e.f. September 26, 2024)
+MINIMUM INVESTMENT/
+MULTIPLES FOR NEW INVESTORS
+` 5000/1
+ADDITIONAL INVESTMENT/
+MULTIPLES FOR EXISTING INVESTORS
+` 1000/1
+LOAD STRUCTURE
+ENTRY LOAD Nil
+EXIT LOAD (for each purchase of Units)
+Nil (Effective April 21, 2023)
+PORTFOLIO
+Company Name No. of
+shares
+Market Value
+` Lakhs
+% of
+assets
+Franklin India NSE Nifty 50 Index Fund FIIF
+As on August 31, 2026
+Company Name No. of
+shares
+Market Value
+` Lakhs
+% of
+assets
+HDFC Bank Ltd* 990850 7025.13 9.82
+ICICI Bank Ltd* 463530 6739.73 9.42
+Reliance Industries Ltd* 437127 5582.11 7.80
+Bharti Airtel Ltd* 196760 3565.09 4.98

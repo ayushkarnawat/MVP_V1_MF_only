@@ -319,6 +319,24 @@ def _link_date(text: str) -> tuple[int, int]:
     return year, (_MONTHS[months[-1][:3]] if months else 0)
 
 
+def _next_factsheet_data(page: str, key: str) -> dict:
+    """Read the public server-rendered download props, without executing scripts."""
+    chunks = []
+    for match in re.finditer(r'self\.__next_f\.push\((\[.*?\])\)</script>', page, re.S):
+        try:
+            value = json.loads(match.group(1))
+            if len(value) > 1 and isinstance(value[1], str):
+                chunks.append(value[1])
+        except (ValueError, TypeError):
+            continue
+    stream = "".join(chunks)
+    marker = f'"{key}":'
+    if marker not in stream:
+        return {}
+    value, _ = json.JSONDecoder().raw_decode(stream.split(marker, 1)[1].lstrip())
+    return value if isinstance(value, dict) else {}
+
+
 async def _static_link_candidates(client: httpx.AsyncClient, landing_url: str, link_pattern: str | None) -> list[str]:
     """Card 4, pick rule: links whose URL or link text says factsheet (or the AMC's own
     pattern), newest first. The content and month checks then decide which one is real."""
@@ -328,6 +346,27 @@ async def _static_link_candidates(client: httpx.AsyncClient, landing_url: str, l
     resp.raise_for_status()
     pattern = re.compile(link_pattern or r"fact\s*[-_ ]?sheet", re.I)
     links = []
+    host = urllib.parse.urlparse(landing_url).hostname
+    if host == "www.360.one":
+        data = _next_factsheet_data(resp.text, "factSheets")
+        for year in data.get("yearlyData", []):
+            for month in year.get("monthlyData", []):
+                for group in month.get("documentGroups", []):
+                    if group.get("title") != "Factsheet - Fund":
+                        continue  # regular-plan companion repeats the scheme information
+                    for doc in group.get("documents", []):
+                        url = doc.get("fileUrl")
+                        if isinstance(url, str) and urllib.parse.urlparse(url).path.lower().endswith(".pdf"):
+                            links.append(((int(year["year"]), int(month["month"])), url))
+        return list(dict.fromkeys(url for _, url in sorted(links, key=lambda p: p[0], reverse=True)))[:3]
+    if host == "www.angelonemf.com":
+        data = _next_factsheet_data(resp.text, "factsheetsData")
+        for doc in data.values():
+            fields = doc.get("fields", {})
+            for url in fields.get("post_guid", []):
+                if isinstance(url, str) and urllib.parse.urlparse(url).path.lower().endswith(".pdf"):
+                    links.append((_link_date(fields.get("Dropdown", "") + " " + url), url))
+        return list(dict.fromkeys(url for _, url in sorted(links, key=lambda p: p[0], reverse=True)))[:3]
     if urllib.parse.urlparse(landing_url).hostname == "www.growwmf.in":
         # Download tabs are embedded in Next page data, not all rendered as anchors.
         script = re.search(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', resp.text, re.S)
@@ -524,6 +563,69 @@ async def _resolve_and_read(client, entry: ResolverEntry, directory: dict[str, s
 
 
 async def _json_api_candidates(client, entry: ResolverEntry) -> list[str]:
+    if entry.directory_name == "Bank of India Investment Managers Private Limited":
+        resp = await client.post(entry.endpoint_url, json={"pagno": 0, "category": None, "fromDate": None,
+            "toDate": None, "LibraryName": "InvestorCorner", "folderName": "FACTSHEETS", "CategoryValue": "no"})
+        resp.raise_for_status()
+        documents = json.loads(resp.json()["d"])["Documents"]
+        links = [(_link_date(doc.get("DocName", "")), urllib.parse.urljoin(str(resp.url), doc["FolderUrl"]))
+                 for doc in documents if doc.get("FolderTitle") == "FACTSHEETS"
+                 and isinstance(doc.get("FolderUrl"), str) and doc["FolderUrl"]]
+        return list(dict.fromkeys(url for _, url in sorted(links, key=lambda p: p[0], reverse=True)))[:3]
+    if entry.directory_name == "Franklin Templeton Asset Management (India) Private Limited":
+        resp = await client.get(entry.endpoint_url)
+        resp.raise_for_status()
+        links = []
+        def visit(node):
+            if isinstance(node, dict):
+                href = node.get("literatureHref")
+                if node.get("id") == "FUND-FACTSHEETS" and isinstance(href, str) and href:
+                    named_date = _link_date(node.get("dctermsTitle", ""))
+                    if not named_date[0]:
+                        named_date = _link_date(urllib.parse.unquote(urllib.parse.urlparse(href).path.rsplit("/", 1)[-1]))
+                    links.append((named_date,
+                                  urllib.parse.urljoin("https://www.franklintempletonindia.com/download/", href.lstrip("/"))))
+                for child in node.values():
+                    visit(child)
+            elif isinstance(node, list):
+                for child in node:
+                    visit(child)
+        visit(resp.json()["PageType"])
+        return list(dict.fromkeys(url for _, url in sorted(links, key=lambda p: p[0], reverse=True)))[:3]
+    if entry.directory_name == "Jio BlackRock Asset Management Private Limited":
+        # The download page publishes a Next server action. Discover its deployment id
+        # from that page's own script, then call its ordinary public month filter.
+        resp = await client.get(entry.endpoint_url)
+        resp.raise_for_status()
+        scripts = re.findall(r'<script[^>]+src=["\']([^"\']+)["\']', resp.text)
+        # Several page chunks can load; the action may be in any of them, next to other
+        # server references (arguments hold no parentheses, so the match can't span two).
+        action = None
+        for script in (url for url in scripts if "statutory-disclosure/" in url and "/page-" in url):
+            code = await client.get(urllib.parse.urljoin(str(resp.url), html.unescape(script)))
+            code.raise_for_status()
+            action = re.search(r'createServerReference\)\("([^"\s]+)"[^;()]+?"getDisclosureL3Data"', code.text)
+            if action is not None:
+                break
+        if action is None:
+            return []
+        month = date.today().replace(day=1)
+        for _ in range(3):
+            year = month.year if month.month >= 4 else month.year - 1
+            result = await client.post(entry.endpoint_url, headers={"Next-Action": action.group(1),
+                "Content-Type": "text/plain;charset=UTF-8"}, content=json.dumps([
+                    "factsheet", {"year": f"FI{year}-{year + 1}", "month": month.strftime("%B")}, "MF"]))
+            result.raise_for_status()
+            payload = next((json.loads(line.split(":", 1)[1]) for line in result.text.splitlines()
+                            if re.match(r'^[0-9a-f]+:\{"data":', line)), {})
+            links = [doc["file"]["url"] for doc in payload.get("data", [])
+                     if re.match(r"Jio\s*BlackRock Mutual Fund\b", doc.get("title", ""), re.I)
+                     and doc.get("file", {}).get("ext") == ".pdf"
+                     and isinstance(doc["file"].get("url"), str)]
+            if links:
+                return list(dict.fromkeys(links))
+            month = (month - timedelta(days=1)).replace(day=1)
+        return []
     if entry.directory_name == "Choice AMC Private Limited":
         resp = await client.get(entry.endpoint_url)
         resp.raise_for_status()

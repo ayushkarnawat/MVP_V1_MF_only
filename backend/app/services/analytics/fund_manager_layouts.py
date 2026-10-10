@@ -674,6 +674,155 @@ def whiteoak_managers(page: str) -> list[dict] | None:
             for m in re.finditer(r"((?:Mr|Ms)\.\s*[^()\n]+)(?:\s*\(+([^)]+)\))?\s*Managing this [Ss]cheme (?:from|since)\s+(.*?)\s*Total Work Experience", page, re.S)] or None
 
 
+def _run7_heading(page: str, prefix: str) -> str:
+    """These files print the scheme title on one or two lines before its type caption."""
+    lines = [line.strip() for line in page.splitlines() if line.strip()]
+    for i, line in enumerate(lines):
+        if line.startswith(prefix):
+            title = line
+            if not re.search(r"\b(?:Fund|ETF)\b", title, re.I) and i + 1 < len(lines):
+                title += " " + lines[i + 1]
+            if prefix == "Bank of India " and re.search(r"\d", title):
+                continue  # a portfolio holding followed by its allocation
+            found = re.match(r"(.+?\b(?:Fund(?: of Funds?)?|ETF(?: Fund of Funds?| FOF)?)\b)", title, re.I)
+            if found:
+                return found.group(1)
+    return ""
+
+
+def one360_page(page: str, words: list[Word] | None = None) -> SchemePage | None:
+    """Manager labels and names share a baseline; biographies below are not rows."""
+    if words is None:
+        return None
+    managers = []
+    labels = sorted((w for w in words if w[4] == "Manager" and w[0] < 80), key=lambda w: -w[1])
+    for label in labels:
+        baseline = [w for w in words if abs(w[1] - label[1]) < 3]
+        if not any(w[4] == "Fund" and w[0] < label[0] for w in baseline):
+            continue
+        name_words = []
+        for word in sorted((w for w in baseline if label[2] < w[0] < 190), key=lambda w: w[0]):
+            if name_words and word[0] - name_words[-1][2] > 8:
+                break  # the adjacent portfolio column is a separate text run
+            name_words.append(word)
+        name = " ".join(w[4] for w in name_words)
+        found = re.match(r"(?:Mr|Ms)\.\s+([A-Za-z.]+(?:\s+[A-Za-z.]+)+)", name)
+        if found:
+            managers.append({"name": found.group(1), "role": "Co-Fund Manager" if any(w[4] == "Co-" for w in baseline) else None, "since_raw": None})
+    return _page(_run7_heading(page, "360 ONE "), managers, page) if managers else None
+
+
+def angel_managers(page: str) -> list[dict] | None:
+    if "Fund Manager Details" not in page:
+        return None
+    return [{"name": _clean_name(m.group(1)), "role": None, "since_raw": m.group(2)}
+            for m in re.finditer(r"((?:Mr|Ms)\.\s+[A-Za-z. ]+)\s+Overall Experience:\s*\d+ years\s*\(managing scheme since ([^)]+)\)", page)] or None
+
+
+def boi_managers(page: str) -> list[dict] | None:
+    block = re.search(r"FUND MANAGER(.*?)(?:AVERAGE AUM|$)", page, re.S)
+    if not block:
+        return None
+    return [{"name": _clean_name(m.group(1)), "role": None, "since_raw": m.group(2).strip() if m.group(2) else None}
+            for m in re.finditer(r"((?:Mr|Ms)\.\s+[A-Za-z. ]+?)\s*(?:\(w\.e\.f\.?\s*([^)]+)\))?\s*:", block.group(1))] or None
+
+
+def baroda_managers(page: str) -> list[dict] | None:
+    block = re.search(r"Fund Manager And Experience(.*?)(?:Scheme Riskometer|Fund Performance|Major Risk Factors|Quantitative|Portfolio|$)", page, re.S)
+    if not block:
+        return None
+    managers, role = [], None
+    for match in re.finditer(r"(?P<role>Equity Category|Fixed Income)|(?P<name>(?:Mr|Ms)\.\s+[A-Za-z.\s]+?)\s+\d+\s+[Yy]ears\s+(?P<since>\d{2}-[A-Za-z]+-\d{2})", block.group(1)):
+        if match.group("role"):
+            role = match.group("role")
+        else:
+            managers.append(dict(name=_clean_name(match.group("name")), role=role, since_raw=match.group("since")))
+    return managers or None
+
+
+def jio_managers(page: str) -> list[dict] | None:
+    if "SCHEME DETAILS" not in page:
+        return None
+    return [{"name": _clean_name(m.group(1)), "role": None, "since_raw": m.group(2)}
+            for m in re.finditer(r"((?:Mr|Ms)\.\s+[A-Za-z. ]+)\s+Total Experience\s+\d+ Years\s+Managing this fund since\s+([A-Za-z]+ \d{4})", page)] or None
+
+
+def _position_lines(words: list[Word]) -> list[list[Word]]:
+    """Group by vertical centre, then sort horizontally; input order is irrelevant."""
+    lines: list[list[Word]] = []
+    for word in sorted(words, key=lambda w: -(w[1] + w[3]) / 2):
+        centre = (word[1] + word[3]) / 2
+        if lines and abs(centre - (lines[-1][0][1] + lines[-1][0][3]) / 2) < 2.5:
+            lines[-1].append(word)
+        else:
+            lines.append([word])
+    return [sorted(line, key=lambda w: w[0]) for line in lines]
+
+
+# A person's name: capitalised words or initials; hyphenated and apostrophe surnames
+# ("Padwal-Desai", "D'Souza") are names too, not a reason to drop the manager.
+_FRANKLIN_NAME = r"(?:[A-Z]'[A-Z][a-z]+|[A-Z][a-z]+(?:['-][A-Z][a-z]+)*|[A-Z]\.)(?: (?:[A-Z]'[A-Z][a-z]+|[A-Z][a-z]+(?:['-][A-Z][a-z]+)*|[A-Z]\.))+"
+
+def franklin_pages(page: str, words: list[Word] | None = None) -> SchemePage | list[SchemePage] | None:
+    if words is None:
+        return None  # prose extraction loses the scheme/manager column relationship
+    titles = []
+    lines = _position_lines(words)
+    for i, line in enumerate(lines):
+        text = " ".join(w[4] for w in line)
+        if not any(w[4] in {"Franklin", "Templeton"} and w[0] < 100 for w in line):
+            continue  # titles begin in the left margin; holdings occupy the next column
+        title = re.match(r"^(?:\$+ )?((?:Franklin|Templeton) (?:India|Asian|Build|U\.S\.) .+)", text)
+        if not title:
+            continue
+        text = title.group(1)
+        if not re.search(r"\b(?:Fund|Plan)\b", text) or text.endswith(" of"):
+            if i + 1 < len(lines):
+                text += " " + " ".join(w[4] for w in lines[i + 1])
+        name = re.match(r"(.+?\b(?:Fund(?: of Funds?)?|Plan)\b)", text)
+        if name:
+            titles.append(((line[0][1] + line[0][3]) / 2, name.group(1)))
+    result, seen = [], set()
+    for label in sorted((w for w in words if w[4] in {"MANAGER(S)", "MANAGER"} and w[0] < 100), key=lambda w: -w[1]):
+        y = (label[1] + label[3]) / 2
+        above = [(ty, title) for ty, title in titles if ty > y]
+        if not above:
+            continue
+        _, heading = min(above, key=lambda pair: pair[0] - y)
+        if heading in seen:
+            continue  # the second labelled block on the US FoF belongs to the underlying fund
+        seen.add(heading)
+        fund = next((w for w in words if w[4] == "FUND" and abs((w[1] + w[3]) / 2 - y) < 3 and w[0] < label[0]), None)
+        if fund is None:
+            continue
+        left = fund[0] - 2
+        column = [w for w in words if left <= (w[0] + w[2]) / 2 < left + 132 and y - 100 < (w[1] + w[3]) / 2 < y - 3]
+        rows = []
+        for line in _position_lines(column):
+            text = " ".join(w[4] for w in line)
+            if re.match(r"(?:BENCHMARK|FUND ?SIZE|FUND MANAGER|NAV|DATE ?OF ?ALLOTMENT|TYPE OF|VOLATILITY|MATURITY|LOAD|MINIMUM|BASE)", text):
+                break
+            if text.isupper():
+                continue  # first block's '(FOR …)' caption wraps below its label
+            if rows and (text.startswith("(") or rows[-1].count("(") > rows[-1].count(")")):
+                rows[-1] += " " + text
+            else:
+                rows.append(text)
+        managers = []
+        for row in rows:
+            collective = re.search(r"\(w\.e\.f\.?\s*([^)]+)\)$", row) if "&" in row else None
+            for raw in re.split(r",(?![^()]*\))|&", row):
+                raw = raw.strip()
+                since = re.search(r"\(w\.e\.f\.?\s*([^)]+)\)", raw)
+                role = re.search(r"\((dedicated[^)]+)\)", raw)
+                name = re.sub(r"\s*\(.*", "", raw).strip()
+                if re.fullmatch(_FRANKLIN_NAME, name):
+                    managers.append(dict(name=name, role=role.group(1) if role else None, since_raw=since.group(1) if since else collective.group(1) if collective else None))
+        if managers:
+            result.append(SchemePage(heading, managers))
+    return result[0] if len(result) == 1 else result or None
+
+
 def _reader(managers: Callable[[str], list[dict] | None], heading: Callable[[str], str]) -> Callable[[str], SchemePage | None]:
     def read(page: str) -> SchemePage | None:
         found = managers(page)
@@ -695,6 +844,12 @@ def _reader(managers: Callable[[str], list[dict] | None], heading: Callable[[str
 # One reader per AMC: a manager layout plus where that AMC prints the scheme name.
 # Task 8 adds an entry per onboarded AMC (reusing a layout where the shape matches).
 LAYOUTS: dict[str, Callable[..., SchemePage | list[SchemePage] | None]] = {
+    "360": one360_page,
+    "angel": _reader(angel_managers, lambda p: _run7_heading(p, "Angel One ")),
+    "boi": _reader(boi_managers, lambda p: _run7_heading(p, "Bank of India ")),
+    "baroda": _reader(baroda_managers, lambda p: _run7_heading(p, "Baroda BNP Paribas ")),
+    "franklin": franklin_pages,
+    "jio": _reader(jio_managers, lambda p: _run7_heading(p, "JioBlackRock ")),
     "axis": axis_pages,
     "icici": icici_pages,
     "iti": _reader(iti_managers, lambda p: _brand_line_heading(p, "ITI ")),
