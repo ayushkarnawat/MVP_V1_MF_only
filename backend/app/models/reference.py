@@ -45,7 +45,7 @@ class NavHistory(Base):
 
     scheme_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("schemes.id"), primary_key=True)
     date: Mapped[date_] = mapped_column(primary_key=True)
-    nav: Mapped[Decimal] = mapped_column(Numeric(10, 4), nullable=False)
+    nav: Mapped[Decimal] = mapped_column(Numeric(14, 4), nullable=False)  # 0038: Rs 10 lakh face-value units
 
 
 class SchemeTer(Base):

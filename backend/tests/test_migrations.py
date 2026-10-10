@@ -1314,3 +1314,17 @@ def test_ruling8_result_numeric_precision_matches_model_and_migration(monkeypatc
     for model, name in ((ScenarioSchemeResult, "pct_change"), (ScenarioCategoryAverage, "avg_pct_change")):
         for column in (model.__table__.c[name], tables[model.__tablename__][name]):
             assert (column.type.precision, column.type.scale) == (10, 2)
+
+
+def test_0038_nav_history_holds_a_ten_lakh_face_value_nav(monkeypatch):
+    """A11 close-out (10 Oct): IL&FS Infrastructure Debt Fund units have a Rs 10 lakh face value
+    (NAV 2,185,944.3803 on 31 Mar 2024). NUMERIC(10,4) overflowed and aborted the NAV backfill."""
+    from app.models.reference import NavHistory
+    altered = {}
+    migration = _a11_migration("0038")
+    from types import SimpleNamespace
+    monkeypatch.setattr(migration.op, "get_bind", lambda: SimpleNamespace(dialect=SimpleNamespace(name="postgresql")))
+    monkeypatch.setattr(migration.op, "alter_column", lambda table, column, **kw: altered.update({(table, column): kw}))
+    migration.upgrade()
+    for column_type in (NavHistory.__table__.c["nav"].type, altered[("nav_history", "nav")]["type_"]):
+        assert (column_type.precision, column_type.scale) == (14, 4)
