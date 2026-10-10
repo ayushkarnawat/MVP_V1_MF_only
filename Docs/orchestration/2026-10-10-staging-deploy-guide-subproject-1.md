@@ -37,7 +37,7 @@ Plans: `Docs/superpowers/plans/2026-10-0{8,9}-attribute-*.md` (each has its ruli
 | **A12 Benchmark TRI** | Benchmark comparison uses Nifty **Total Return** indices (dividends reinvested), never price | Migration **`0033`**: `benchmark_index_history.return_type` (`price`/`tri`). The 06:00 benchmark job fetches TRI from 1990 |
 | **A09 Fund ranking** | New Analytics section: each fund's 5-factor rank in its SEBI category, with neighbours | Migration **`0034`**: `scheme_rankings`, `ranking_weights` (1 seeded row). Filled by Analytics itself |
 | **A04 Fund managers** | New Analytics section: manager cards with the household's money per manager, roles, "managing since" | Migration **`0035`**: `scheme_fund_managers`. New **monthly job** (10th, 06:00 IST) for 40 fund houses; **10 imported by hand** (Step 13); 5 show "not available yet" |
-| **A11 Scenarios** | New **Scenarios** tab (desktop + mobile): what past crashes/events would have done to this portfolio | Migrations **`0036`** (tables) + **`0037`** (34 scenarios, 45 hypothetical assumptions). One-off NAV backfill + compute (Step 12). Ongoing scenarios refresh in the 06:00 NAV job. **Hypotheticals stay hidden** (`SCENARIO_HYPOTHETICALS_ENABLED` unset = off) |
+| **A11 Scenarios** (+ migration **`0038`**: `nav_history.nav` NUMERIC(14,4), found by the backfill trial) | New **Scenarios** tab (desktop + mobile): what past crashes/events would have done to this portfolio | Migrations **`0036`** (tables) + **`0037`** (34 scenarios, 45 hypothetical assumptions). One-off NAV backfill + compute (Step 12). Ongoing scenarios refresh in the 06:00 NAV job. **Hypotheticals stay hidden** (`SCENARIO_HYPOTHETICALS_ENABLED` unset = off) |
 
 **Infra:** one Terraform change: the `fund-managers-monthly` job (**2 GB** memory; the other jobs keep 1 GB), plus a CloudWatch metric filter and alarm on its `FUND_MANAGER_ALERT` lines (emails the ops-alerts topic). Locally the full 40-fund-house run peaked at 937 MB (HSBC's factsheet alone holds ~600 MB), too close to 1 GB.
 
@@ -60,7 +60,7 @@ Plans: `Docs/superpowers/plans/2026-10-0{8,9}-attribute-*.md` (each has its ruli
 | 4 | Build the image, save rollback points (no push) | up |
 | 5 | Stop the backend | **down** |
 | 6 | Wipe the user data (**only with Aditi's OK**) | down |
-| 7 | Migrate to `0037` and sanity-check | down |
+| 7 | Migrate to `0038` and sanity-check | down |
 | 8 | Push the image and start the new backend | down → **up** |
 | 9 | Build and publish the frontend (right away) | up |
 | 10 | Terraform: the `fund-managers-monthly` job + alarm | up |
@@ -119,7 +119,7 @@ The synthetic CAS statements for QA are **in the repo** now (`Docs/CAS Files/syn
 
 ## Step 1 — Pre-flight on the laptop: Postgres tests
 
-These run every migration (now up to `0037`) and the Postgres-specific tests against a throwaway local Postgres. Locally on 10 October, `0035 → 0037 → 0035 → 0037` round-tripped clean (with `text[]` and `numeric(10,2)` columns and 34 scenarios / 45 assumptions seeded).
+These run every migration (now up to `0038`) and the Postgres-specific tests against a throwaway local Postgres. Locally on 10 October, `0035 → 0037 → 0035 → 0037` and `0037 → 0038 → 0037 → 0038` round-tripped clean (with `text[]` and `numeric(10,2)` columns and 34 scenarios / 45 assumptions seeded).
 
 ```bash
 cd MVP_V1_MF_only
@@ -190,7 +190,7 @@ export DATABASE_URL="postgresql://unifolio:$(python3 -c "import os,urllib.parse;
 | Shows | Means |
 |---|---|
 | `0032` | **Expected.** Carry on. |
-| `0033`–`0037` | Part of this deploy already ran. Stop and ask Aditi. |
+| `0033`–`0038` | Part of this deploy already ran. Stop and ask Aditi. |
 | Older than `0032` | The 8 October deploy isn't live. Stop and ask Aditi. |
 
 ---
@@ -254,21 +254,22 @@ cd "$REPO_ROOT" && ./scripts/clean-staging-db.sh
 
 ---
 
-## Step 7 — Migrate to `0037` (Terminal B, tunnel open)
+## Step 7 — Migrate to `0038` (Terminal B, tunnel open)
 
 ```bash
 .venv/bin/alembic upgrade head
 .venv/bin/alembic current
 ```
-**Good looks like** five lines, then `0037 (head)`:
+**Good looks like** six lines, then `0038 (head)`:
 ```
 Running upgrade 0032 -> 0033, benchmark_return_type: add PRICE/TRI dimension to benchmark_index_history (attribute 12)
 Running upgrade 0033 -> 0034, scheme_rankings_and_ranking_weights: 5-factor composite fund ranking (attribute 09)
 Running upgrade 0034 -> 0035, scheme_fund_managers: per-scheme fund manager attribution (attribute 04)
 Running upgrade 0035 -> 0036, scenarios_and_scenario_results: drawdown/stress-test scenario library (attribute 11)
 Running upgrade 0036 -> 0037, seed_scenario_library: 31 scenarios + 5 hypothetical assumption sets (attribute 11)
+Running upgrade 0037 -> 0038, nav_history_wider_nav: NUMERIC(10,4) -> NUMERIC(14,4) for nav_history.nav (attribute 11 close-out)
 ```
-`0033` rewrites `benchmark_index_history`'s primary key; it takes a few seconds on a table of tens of thousands of rows.
+`0033` rewrites `benchmark_index_history`'s primary key; it takes a few seconds on a table of tens of thousands of rows. `0038` widens `nav_history.nav` so ₹10-lakh face-value units (IL&FS infrastructure debt funds) fit; it needs no table rewrite.
 
 **Sanity check:**
 ```bash
@@ -553,7 +554,7 @@ aws s3 sync ~/staging-frontend-backup-$(date +%F)/ "s3://$(terraform -chdir="$RE
 aws cloudfront create-invalidation --distribution-id "$(terraform -chdir="$REPO_ROOT/infra/envs/staging" output -raw cloudfront_distribution_id)" --paths "/*"
 ```
 
-**3. Only if you must go back to `0032`:** with the backend stopped, `.venv/bin/alembic downgrade 0032` (drops the scenario, fund-manager and ranking tables and the TRI rows). **Never below `0032`.**
+**3. Only if you must go back to `0032`:** with the backend stopped, `.venv/bin/alembic downgrade 0032` (narrows `nav_history.nav` again, deleting any NAV of ₹10 lakh or more; drops the scenario, fund-manager and ranking tables and the TRI rows). **Never below `0032`.**
 
 **4. Stop the bastion** (Step 15).
 

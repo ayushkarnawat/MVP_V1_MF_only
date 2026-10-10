@@ -16,6 +16,58 @@ of gap than "deferred feature":
 Both are still listed in a short appendix at the bottom for completeness, since they
 answer "what's not done yet" even though they aren't scope deferrals.
 
+## ⚠ PRIORITY 1 — Fund-manager factsheet access gaps (fix before the 10 Nov 2026 monthly job)
+
+**Added 2026-10-10 at the user's request as the top open item.** Attribute 04 (fund-manager
+allocation) reads each fund house's monthly factsheet PDF. The plan assumed the monthly job
+(`fund-managers-monthly`, 06:00 IST on the 10th) could download almost all of them. It can't:
+**10 fund houses (689 live funds) need a person to download the factsheet by hand every month,
+and 5 (33 live funds) publish no usable factsheet at all.** The first automatic run after the
+staging deploy is **10 November 2026, 06:00 IST**; everything below should be settled before then.
+
+Full write-up (why each one fails, how the plan changed, six options with trade-offs):
+`Docs/orchestration/subproject1-execution/a04-factsheet-access-gaps.html`
+(published: https://claude.ai/artifact/STCA9eNZwWZ4ZYYGzmpkTL). Registry with the evidence per
+fund house: `backend/app/services/analytics/fund_manager_resolvers.py` (`note` on each entry).
+Monthly routine and commands: `Docs/orchestration/2026-10-10-staging-deploy-guide-subproject-1.md`,
+Step 13 and Part 3.
+
+### To do, in order
+
+| # | What | Who | By |
+|---|---|---|---|
+| 1 | **Run the first staging import.** Deploy guide Steps 12d + 13. Record every `FUND_MANAGER_ALERT` line and the 10 hand-import `matched=` counts. | Manager (deploy) | Staging deploy day |
+| 2 | **Fund houses blocked from AWS.** The 40 automatic ones were verified from a normal network only. Any that alert with `fetch_failed` from AWS on step 1 must be decided: move to the hand import (their readers already work on a downloaded file; set `ResolverKind.MANUAL` + a `note`) or accept "not available yet". | User decides, Claude/Codex changes the registry | Before 10 Nov |
+| 3 | **Missed-month alert (option B, part 1).** Today nothing warns if a month's hand import is skipped; after 3 missed months those funds silently show "not available yet". Build a check that alerts ops-alerts when a MANUAL fund house's newest `scheme_fund_managers.reference_period` is older than ~40 days. | Claude/Codex | Before 10 Nov |
+| 4 | **Easier hand import (option B, part 2).** Replace the laptop CLI + SSM tunnel with an admin upload screen, so the monthly routine is ~15 minutes and doesn't need AWS access. | Claude/Codex (decide scope first) | Nice before 10 Nov; required before production |
+| 5 | **HDFC passive factsheet.** HDFC needs two files a month; only the active one has been tested (53/53). Get one real passive file and verify the reader on it. | User uploads, Claude verifies | Before 10 Nov |
+| 6 | **Long-term fix decision (options C and D).** C: ask the largest blocked fund houses for official access (ICICI 158, Kotak 120, HDFC 112, Axis 89, Bandhan 89 — API key, IP allow-listing of the staging NAT address, or a monthly email). D: get a quote from an Indian MF data vendor for fund-manager data — the only option that also covers the 5 with no factsheet. | User / manager | Decision before 10 Nov |
+| 7 | **Confirm the ops-alerts email subscriptions** (`PendingConfirmation` since 1 Oct), or no alert reaches anyone. Deploy guide Step 11. | Manager | Staging deploy day |
+| 8 | **Each month, around the 10th–15th:** download the 11 newest factsheets and run the Step 13 commands; compare `matched=` with last month. | Ops (manager/user) | Monthly |
+
+### What's affected
+
+| Group | Fund houses | Why | Live funds |
+|---|---|---|---|
+| **Hand import monthly** (MANUAL) | ICICI Prudential (404 error pages to scripts), Kotak (no links; built in the browser), HDFC (403; 2 files), Axis (403), Bandhan (401 — needs an API key; using the one in their site code was ruled out as an access-control workaround), Invesco (CloudFront 403), WhiteOak (CloudFront 403), ITI (Cloudflare 403), JM Financial (AppTrana 406), Trust (bot protection) | Sites refuse scripted requests or hide links behind JavaScript | 689 |
+| **Off — nothing to read** | Bajaj Finserv (latest file July 2026), AlphaGrep, IL&FS (IDF), Lakshya, Monarch (no factsheet published) | No current factsheet exists anywhere | 33 |
+
+### How this deviated from the plan
+- Manual fund houses: **2 → 10** (plan: HDFC and Kotak only). Monthly ops: 3 files → 11.
+- 5 fund houses not onboarded, against "every AMC before staging".
+- Onboarding took 9 Codex runs, not 7.
+- New rules added to the A04 plan: no access-control workarounds (Run 7); encrypted-but-public lists allowed (Run 8, Mahindra); below 90% coverage allowed with a reason per miss (Run 7).
+
+### Risks while it's open
+- A skipped month is invisible until data ages out after 3 months (fixed by item 3).
+- Some "automatic" fund houses may be blocked from AWS (found by item 1, handled by item 2).
+- A site redesign breaks that fund house's download; the job alerts and the others keep working.
+
+### Already fixed in the A04 close-out (10 Oct)
+- PDF memory leak (unclosed PDFium handles): the monthly job peaked at 2.9 GB; now 0.94 GB.
+- `fund-managers-monthly` gets 2 GB on Fargate (HSBC's factsheet alone holds ~600 MB); other jobs stay at 1 GB.
+- The hand import was verified on all 10 fund houses' real files against Postgres.
+
 ## PRD-01 — CAS Parser v2
 
 | Feature | Spec Source | Status | Deferred Reason | Priority |

@@ -43,15 +43,19 @@ it was ported from no longer exists on this branch. `CAS Parsers/mf-import/front
 - Migrations: `alembic revision --autogenerate -m "<message>"` then `alembic upgrade head`
 - Local Postgres for functional tests: `docker compose up postgres`
 
-## CAS test files (outside the repo)
+## CAS test files and factsheets
 
-CAS PDFs are never committed. Use them from the shared folder on the Desktop:
-- `Desktop/Unifolio/CAS Files/` (WSL: `/mnt/c/Users/Dell/Desktop/Unifolio/CAS Files/`): real statements
-  (personal data, read-only) and the synthetic family pair `family_cas_1.pdf` / `family_cas_2.pdf`.
-- `Desktop/Unifolio/CAS Files/synthetic/`: the generated synthetic statements (password `MF@123`) and
-  `errors/`. The scripts that make them, the harness and `truth.json` stay in the repo under
-  `Docs/CAS Files/synthetic/` (see its README); `pdf_dir.py` there resolves the folder, and
-  `UNIFOLIO_SYNTHETIC_CAS=<folder>` overrides it.
+- **Real CAS statements are never committed.** They live in `Desktop/Unifolio/CAS Files/`
+  (WSL: `/mnt/c/Users/Dell/Desktop/Unifolio/CAS Files/`): personal data, read-only, plus the synthetic
+  family pair `family_cas_1.pdf` / `family_cas_2.pdf`.
+- **Synthetic CAS statements are in the repo** (since 2026-10-10; every person fictitious, password `MF@123`)
+  under `Docs/CAS Files/synthetic/pdfs/`: `realistic/` (real-life scenarios for QA and new features),
+  `regression/` (import edge cases for the synthetic gate, not for manual QA), `errors/` (broken files).
+  Generators, harness and `truth.json` sit beside them (see that folder's README); `pdf_dir.py` gives the
+  root (`UNIFOLIO_SYNTHETIC_CAS=<folder>` overrides it) and `pdf_path(name)` finds a file in any subfolder.
+- **AMC factsheet PDFs (attribute 04) are never committed.** They live in `Desktop/Unifolio/Factsheets/`
+  (`YYYY-MM/<FundHouse>_asof_<date>.pdf`, text dumps in `2026-10-catalogue/`; README there). Tests use the
+  small text excerpts in `backend/tests/fixtures/factsheets/`.
 
 ## Non-negotiables
 

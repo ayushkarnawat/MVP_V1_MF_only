@@ -127,3 +127,23 @@ Landing this migration also removed every OTP/session-related route's old direct
 ## 2026-10-08 — Migration 0032: transactions.stamp_duty
 
 `0032_transaction_stamp_duty` — `transactions` gains `stamp_duty NUMERIC(14,2)` NULLABLE: the stamp duty charged on a purchase, SIP, switch-in or dividend reinvestment (0.005% from 1 Jul 2020), NULL for other rows and for rows imported before 0032 (no backfill; staging is wiped). On Postgres a plain `ALTER TABLE` on the partitioned parent reaches every partition; SQLite uses batch mode. Verified on local Postgres 16 (2026-10-08): 0030→0032→0030→0032 clean, the column on the parent and all 8 partitions, 43 Postgres/migration tests pass. Not yet run on staging.
+
+## 2026-10-09 — Migration 0035: scheme_fund_managers
+
+`0035_scheme_fund_managers` — new table `scheme_fund_managers` (attribute 04): `scheme_id` FK → `schemes`, `manager_name`, `role`, `sequence_order`, `managing_since_raw`, `managing_since` DATE NULL ("inception" stays NULL with the raw text kept), `reference_period` DATE (the month), `match_method` (how the fund was matched: ISIN / exact / fuzzy), `match_confidence` NUMERIC(4,3) NULL, unique on (`scheme_id`, `manager_name`, `reference_period`), index on `scheme_id`; FK to `schemes` (no cascade). Written by the monthly job and the manual CLI; read by the analytics section (latest month per scheme, nothing older than 3 months). Additive. Verified on local Postgres 16 (2026-10-09 round trip; 2026-10-10 a full job + 10 manual imports wrote 19,389 rows across 8,898 schemes / 50 AMCs). Not yet run on staging.
+
+## 2026-10-09 — Migration 0033: benchmark_index_history.return_type
+
+`0033_benchmark_return_type` — enum `benchmarkreturntype` (`price`, `tri`); `benchmark_index_history.return_type` NOT NULL default `price`; primary key widened to (`index_name`, `date`, `return_type`). Downgrade deletes TRI rows first. Postgres round trip clean (9 Oct). Not yet run on staging.
+
+## 2026-10-09 — Migration 0034: scheme_rankings, ranking_weights
+
+`0034_scheme_rankings_and_ranking_weights` — `scheme_rankings` (one row per scheme per computation, PK (`scheme_id`, `computed_at`): composite score, category rank/size, percentile, the factor values and their percentiles; a separate table from Scorer v1's `fund_scores` on purpose) and `ranking_weights` (singleton row, `id = true` check, seeded 25/25/20/15/15; an empty table falls back to the same defaults). Postgres round trip clean. Not yet run on staging.
+
+## 2026-10-10 — Migrations 0036/0037: scenario simulator
+
+`0036_scenarios_and_scenario_results` — `scenarios` (window, type, `is_ongoing`, `display_rank`, `parent_scenario_id` for phases, quick stats NUMERIC(8,2), `had_redemption_freeze_schemes` text[] on Postgres / JSON on SQLite), `scenario_scheme_results` (`pct_change` NUMERIC(10,2), `is_proxied`, `proxy_basis`), `scenario_category_averages` (`avg_pct_change` NUMERIC(10,2), `scheme_count`), `scenario_hypothetical_assumptions`. `0037_seed_scenario_library` — 34 scenarios (31 top-level, 8 curated) and 45 hypothetical assumptions with Python-generated ids. Postgres round trips clean (10 Oct). Not yet run on staging.
+
+## 2026-10-10 — Migration 0038: nav_history.nav NUMERIC(14,4)
+
+`0038_nav_history_wider_nav` — `nav_history.nav` NUMERIC(10,4) → NUMERIC(14,4): IL&FS infrastructure-debt units (₹10 lakh face value) overflowed and aborted the NAV backfill. No table rewrite on Postgres; no-op on SQLite; downgrade deletes NAVs ≥ 1,000,000 first. Postgres round trip clean (10 Oct). Not yet run on staging.
