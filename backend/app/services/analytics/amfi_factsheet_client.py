@@ -14,6 +14,7 @@ category, refused when the runner-up is within 0.05."""
 from __future__ import annotations
 
 import html
+import json
 import logging
 import re
 import time
@@ -31,7 +32,8 @@ from sqlalchemy.orm import Session
 
 from app.db.session import commit_off_loop
 from app.models.reference import Scheme, SchemeFundManager
-from app.services.analytics.fund_manager_layouts import SchemePage, LAYOUTS
+from app.services.analytics.scheme_universe import canonical_category
+from app.services.analytics.fund_manager_layouts import SchemePage, LAYOUTS, Word
 from app.services.analytics.fund_manager_resolvers import AMC_RESOLVERS, ResolverEntry, ResolverKind
 
 MATCH_METHOD_ISIN = "ISIN"
@@ -48,6 +50,44 @@ _BOILERPLATE_RE = re.compile(
 # "(Existing Number of Segregated Portfolios - 1)", "[(Erstwhile ABC Income Fund)]" -- AMFI and
 # factsheets add these to the same fund's name, so they never decide a match.
 _NAME_NOTE_RE = re.compile(r"[\[(][^\])]*(?:ERSTWHILE|SEGREGATED)[^\])]*[\])]+", re.IGNORECASE)
+
+# September 2026 printed names verified against this AMC's live NAVAll families.
+# Never global normalization: an alias is scoped to the same AMC as the match.
+_AMC_FUND_ALIASES = {
+    "UTI Mutual Fund": {"UTI FOCUSED FUND": "UTI Focused Fund (30 stocks)"},
+    "Sundaram Mutual Fund": {
+        "Sundaram Aggressive Hybrid Fund": "Sundaram Aggressive Hybrid Fund (Formerly Known as Principal Hybrid Equity Fund)",
+        "Sundaram Arbitrage Fund": "Sundaram Arbitrage Fund(Formerly Known as Prinicpal Arbitrage Fund)",
+        "Sundaram Banking and PSU Debt Fund": "Sundaram Banking and PSU Debt Fund (Formerly Known as Sundaram Banking and PSU Fund)",
+        "Sundaram Conservative Hybrid Fund": "Sundaram Conservative Hybrid Fund (Formerly Known as Sundaram Debt Oriented Hybrid Fund)",
+        "Sundaram Consumption Fund": "Sundaram Consumption Fund (Formerly Known as Sundaram Rural and Consumption Fund)",
+        "Sundaram Dividend Yield Fund": "Sundaram Dividend Yield Fund (Formerly Known as Principal Dividend Yield Fund)",
+        "Sundaram Dynamic Asset Allocation Fund": "Sundaram Dynamic Asset Allocation Fund (Formerly Known as Sundaram Balanced Advantage Fund)",
+        "Sundaram Equity Savings Fund": "Sundaram Equity Savings Fund (Formerly Known as Principal Equity Savings Fund)",
+        "Sundaram Focused Fund": "Sundaram Focused Fund (Formerly Known as Principal Focused Multicap Fund)",
+        "Sundaram Large Cap Fund": "Sundaram Large Cap Fund ( Formerly Know as Sundaram Blue Chip Fund)",
+        "Sundaram Liquid Fund": "Sundaram Liquid Fund (Formerly Known as Principal Cash Management Fund)",
+        "Sundaram Medium Term Fund": "Sundaram Medium Term Fund (Formerly Known as Sundaram Medium Duration Fund)",
+        "Sundaram Multi Cap Fund": "Sundaram Multi Cap Fund (Formerly Known as Principal Multi Cap Growth Fund)",
+        "Sundaram Nifty 100 Equal Weight Fund": "Sundaram Nifty 100 Equal Weight Fund (Formerly Known as Principal Nifty 100 Equal Weight Fund)",
+        "Sundaram Short Term Fund": "Sundaram Short Term Fund (Formerly Known as Sundaram Short Duration Fund)",
+        "Sundaram Ultra Short Term Fund": "Sundaram Ultra Short Term Fund (Formerly Known as Sundaram Ultra Short Duration Fund)",
+        "Sundaram Ultra Short to Short Term Fund": "Sundaram Ultra Short to Short Term Fund (Formerly Known as Sundaram Low Duration Fund)",
+    },
+    "Bandhan Mutual Fund": {
+        "Bandhan CRISIL IBX 90:10 SDL Plus Gilt November 2026 Index Fund": "BANDHAN CRISIL IBX 90:10 SDL PLUS GILT - NOV 2026 INDEX FUND",
+    },
+    "SBI Mutual Fund": {
+        "CRISIL - IBX FINANCIAL SERVICES 3-6 MONTHS DEBT INDEX FUND": "SBI CRISIL-IBX Financial Services 3-6 Months Debt Index Fund",
+        "CRISIL-IBX FINANCIAL SERVICES 9-12 MONTHS DEBT INDEX FUND": "SBI CRISIL-IBX Financial Services 9-12 Months Debt Index Fund",
+    },
+    "Aditya Birla Sun Life Mutual Fund": {
+        "Aditya Birla Sun Life Large & Midcap Fund": "Aditya Birla Sun Life Large & Mid Cap Fund",
+        "Aditya Birla Sun Life Silver ETF Fund of Fund": "Aditya Birla Sun Life Silver ETF FOF",
+        "Aditya Birla Sun Life US Treasury 1-3 year Bonds ETFs Passive FOF": "Aditya Birla Sun Life US Treasury 1-3 Year Bond ETFs Passive FOF",
+        "Aditya Birla Sun Life US Treasury 3-10 year Bonds ETFs Passive FOF": "Aditya Birla Sun Life US Treasury 3-10 Year Bond ETFs Passive FOF",
+    },
+}
 
 
 def _canonical_fund_name(name: str) -> str:
@@ -98,7 +138,8 @@ def match_scheme_page(page: SchemePage, families: list[FundFamily]) -> tuple[Fun
             return by_isin[0], MATCH_METHOD_ISIN, Decimal("1.0")
 
     wanted = _canonical_fund_name(page.heading)
-    exact = [f for f in families if f.canonical == wanted]
+    exact = [f for f in families if f.canonical == _canonical_fund_name(
+        _AMC_FUND_ALIASES.get(f.amc_name, {}).get(page.heading, page.heading))]
     if len(exact) == 1:
         return exact[0], MATCH_METHOD_EXACT, Decimal("1.0")
     if len(exact) > 1:
@@ -118,15 +159,42 @@ def match_scheme_page(page: SchemePage, families: list[FundFamily]) -> tuple[Fun
 
 logger = logging.getLogger(__name__)
 
+
+def match_scheme_families(page: SchemePage, families: list[FundFamily]) -> list[tuple[FundFamily, str, Decimal]]:
+    """Keep single-family matching intact; expand only approved exact variant ties."""
+    match = match_scheme_page(page, families)
+    if match is not None:
+        return [match]
+    exact = [f for f in families if f.canonical == _canonical_fund_name(
+        _AMC_FUND_ALIASES.get(f.amc_name, {}).get(page.heading, page.heading))]
+    if (len(exact) > 1 and all(f.sebi_category for f in exact) and len({f.canonical for f in exact}) == 1
+            # Canonical category (A09): NAVAll files UTI's segregated portfolios under the post-2018
+            # SEBI name and the main fund under the old one; both canonicalise to one category.
+            and len({canonical_category(f.sebi_category) for f in exact}) == 1
+            and len({f.amc_name for f in exact}) == 1):
+        return [(f, MATCH_METHOD_EXACT, Decimal("1.0")) for f in exact]
+    return []
+
 AMFI_FACTSHEET_DIRECTORY_URL = "https://www.amfiindia.com/online-center/download-factsheets"
 _HTTP_TIMEOUT = 90.0
 _HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"}
 
 
 def _parse_managing_since(raw: str) -> date | None:
-    for fmt in ("%b. %d, %Y", "%b %d, %Y", "%B %d, %Y", "%b %Y", "%B %Y"):
+    # Normalise what factsheets print: "August 26,2026" (no space), "23rd March 2026"
+    # (ordinal day), "Sept 2025". Day-first forms come from quant, NJ and Abakkus (Run 4).
+    # Run 8: Tata/SBI PDFs print U+FFFE where the hyphen is ("01-Mar\ufffe2025"); SBI spaces
+    # its hyphens ("Jan - 2026") and its commas ("July 1st ,2025"); Motilal spells months out.
+    text = raw.strip().rstrip(",;").replace("\ufffe", "-")
+    text = re.sub(r"(\d)(st|nd|rd|th)\b", r"\1", text)
+    text = re.sub(r"\s*-\s*", "-", text)
+    text = re.sub(r"\s*,\s*", ", ", text)
+    text = re.sub(r"\bSept\b", "Sep", text)
+    for fmt in ("%b. %d, %Y", "%b %d, %Y", "%B %d, %Y", "%d %B %Y", "%d %b %Y", "%d %B, %Y", "%d %b, %Y", "%d-%b-%Y",
+                "%d-%B-%Y", "%b %Y", "%B %Y", "%b-%y", "%b-%Y", "%B-%Y", "%b %y", "%d-%b-%y", "%d-%B-%y",
+                "%d-%m-%Y", "%B, %Y", "%b, %Y", "%B %d-%Y"):
         try:
-            return datetime.strptime(raw, fmt).date()
+            return datetime.strptime(text, fmt).date()
         except ValueError:
             continue
     return None  # an unparsed date is never fatal -- managing_since_raw keeps the original text
@@ -179,6 +247,42 @@ def extract_page_text(pdf_bytes: bytes) -> list[str]:
     return [page.get_textpage().get_text_range() for page in doc]
 
 
+def extract_page_words(pdf_bytes: bytes) -> list[list[Word]]:
+    """Whitespace-delimited words with the union of PDFium character boxes."""
+    doc = pdfium.PdfDocument(pdf_bytes)
+    pages = []
+    for page in doc:
+        text = page.get_textpage()
+        words = []
+        chars = []
+        boxes = []
+        def flush():
+            if chars:
+                words.append((min(b[0] for b in boxes), min(b[1] for b in boxes),
+                              max(b[2] for b in boxes), max(b[3] for b in boxes), "".join(chars)))
+                chars.clear()
+                boxes.clear()
+        for index in range(text.count_chars()):
+            char = text.get_text_range(index, 1)
+            if not char or char.isspace():
+                flush()
+            else:
+                chars.append(char)
+                boxes.append(text.get_charbox(index))
+        flush()
+        pages.append(words)
+    return pages
+
+
+class FactsheetPages(list[str]):
+    """Keep page text and optional geometry together through validation and import."""
+    def __init__(self, texts: list[str], words: list[list[Word]]):
+        if len(texts) != len(words):
+            raise ValueError("Text and geometry page counts differ")
+        super().__init__(texts)
+        self.words = words
+
+
 @dataclass(frozen=True)
 class FundManagerRefreshResult:
     success: bool
@@ -228,6 +332,24 @@ def _link_date(text: str) -> tuple[int, int]:
     return year, (_MONTHS[months[-1][:3]] if months else 0)
 
 
+def _next_factsheet_data(page: str, key: str) -> dict:
+    """Read the public server-rendered download props, without executing scripts."""
+    chunks = []
+    for match in re.finditer(r'self\.__next_f\.push\((\[.*?\])\)</script>', page, re.S):
+        try:
+            value = json.loads(match.group(1))
+            if len(value) > 1 and isinstance(value[1], str):
+                chunks.append(value[1])
+        except (ValueError, TypeError):
+            continue
+    stream = "".join(chunks)
+    marker = f'"{key}":'
+    if marker not in stream:
+        return {}
+    value, _ = json.JSONDecoder().raw_decode(stream.split(marker, 1)[1].lstrip())
+    return value if isinstance(value, dict) else {}
+
+
 async def _static_link_candidates(client: httpx.AsyncClient, landing_url: str, link_pattern: str | None) -> list[str]:
     """Card 4, pick rule: links whose URL or link text says factsheet (or the AMC's own
     pattern), newest first. The content and month checks then decide which one is real."""
@@ -237,11 +359,65 @@ async def _static_link_candidates(client: httpx.AsyncClient, landing_url: str, l
     resp.raise_for_status()
     pattern = re.compile(link_pattern or r"fact\s*[-_ ]?sheet", re.I)
     links = []
+    host = urllib.parse.urlparse(landing_url).hostname
+    if host == "www.360.one":
+        data = _next_factsheet_data(resp.text, "factSheets")
+        for year in data.get("yearlyData", []):
+            for month in year.get("monthlyData", []):
+                for group in month.get("documentGroups", []):
+                    if group.get("title") != "Factsheet - Fund":
+                        continue  # regular-plan companion repeats the scheme information
+                    for doc in group.get("documents", []):
+                        url = doc.get("fileUrl")
+                        if isinstance(url, str) and urllib.parse.urlparse(url).path.lower().endswith(".pdf"):
+                            links.append(((int(year["year"]), int(month["month"])), url))
+        return list(dict.fromkeys(url for _, url in sorted(links, key=lambda p: p[0], reverse=True)))[:3]
+    if host == "www.angelonemf.com":
+        data = _next_factsheet_data(resp.text, "factsheetsData")
+        for doc in data.values():
+            fields = doc.get("fields", {})
+            for url in fields.get("post_guid", []):
+                if isinstance(url, str) and urllib.parse.urlparse(url).path.lower().endswith(".pdf"):
+                    links.append((_link_date(fields.get("Dropdown", "") + " " + url), url))
+        return list(dict.fromkeys(url for _, url in sorted(links, key=lambda p: p[0], reverse=True)))[:3]
+    if urllib.parse.urlparse(landing_url).hostname == "www.growwmf.in":
+        # Download tabs are embedded in Next page data, not all rendered as anchors.
+        script = re.search(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', resp.text, re.S)
+        if script:
+            root = json.loads(script.group(1))["props"]["pageProps"]["filesData"]
+            def documents(folder):
+                for doc in folder.get("files", []):
+                    name, public_url = doc.get("name"), doc.get("publicUrl")
+                    if not (isinstance(name, str) and isinstance(public_url, str)):
+                        continue  # a malformed entry mustn't stop the rest (Run 3 review)
+                    if pattern.search(name) and not _NOT_A_FACTSHEET.search(public_url):
+                        # Fiscal-year folder names must not override the document year.
+                        links.append((_link_date(name), public_url))
+                for child in folder.get("folders", []):
+                    documents(child)
+            documents(root)
     for href, label in re.findall(r'<a[^>]+href=["\']([^"\']+\.pdf[^"\']*)["\'][^>]*>(.*?)</a>', resp.text, re.I | re.S):
-        joined = f"{href} {re.sub(r'<[^>]+>', ' ', label)}"
+        text = re.sub(r"<[^>]+>", " ", label)
+        joined = f"{href} {text}"
         if pattern.search(joined) and not _NOT_A_FACTSHEET.search(href):
-            links.append((_link_date(joined), urllib.parse.urljoin(str(resp.url), html.unescape(href))))
-    return [url for _, url in sorted(links, key=lambda pair: pair[0], reverse=True)][:3]
+            # Date the link by its file name and text first: upload folders (/2026/01/) and
+            # document ids (HSBC's UUIDs) carry year-like digits unrelated to the factsheet's month.
+            named = f"{urllib.parse.unquote(urllib.parse.urlparse(href).path.rsplit('/', 1)[-1])} {text}"
+            when = _link_date(named) if _link_date(named)[0] else _link_date(joined)
+            if urllib.parse.urlparse(landing_url).hostname == "www.zerodhafundhouse.com":
+                # This site's published filenames use "Factsheet - Aug 26.pdf".
+                short = re.search(r"Factsheet\s*-\s*([A-Za-z]+)\s+(\d{2})\.pdf", named, re.I)
+                if short and short.group(1)[:3].lower() in _MONTHS:
+                    when = (2000 + int(short.group(2)), _MONTHS[short.group(1)[:3].lower()])
+            # ASK serves this fragment from /pages, but the enclosing document
+            # loads it at the site root. Its ./assests links resolve there.
+            base = "https://www.askmutualfund.com/" if host == "www.askmutualfund.com" else str(resp.url)
+            links.append((when, urllib.parse.urljoin(base, html.unescape(href))))
+    # The same file is often linked twice (title and "Download"): keep one, at its best date.
+    best: dict[str, tuple[int, int]] = {}
+    for when, url in links:
+        best[url] = max(when, best.get(url, (0, 0)))
+    return [url for url, _ in sorted(best.items(), key=lambda pair: pair[1], reverse=True)][:3]
 
 
 # Factsheets on 9 Oct were 1-22 MB; anything far larger isn't one, and pdfium parses it in-process.
@@ -266,7 +442,7 @@ _AS_ON = re.compile(
 
 def _latest_as_on(pages: list[str], today: date | None = None) -> date | None:
     found = []
-    for text in pages[:12]:
+    for text in pages:
         for m in _AS_ON.finditer(text):
             day, month, year = (m.group(1), m.group(2), m.group(3)) if m.group(1) else (m.group(5), m.group(4), m.group(6))
             month_no = _MONTHS.get(month[:3].lower())
@@ -281,16 +457,31 @@ def _latest_as_on(pages: list[str], today: date | None = None) -> date | None:
     return max(found) if found else None
 
 
-def looks_like_current_factsheet(pages: list[str], reader, today: date) -> tuple[bool, str]:
-    """Card 4: the downloaded PDF is this AMC's current factsheet. Content: at least 3
-    scheme pages this AMC's reader understands (rejects one-pagers, how-to guides,
-    unrelated PDFs). Month: the latest "as on" date is within 45 days (a factsheet
+def _read_schemes(reader, text: str, words: list[Word] | None = None) -> list[SchemePage]:
+    found = reader(text, words) if words is not None else reader(text)
+    return [found] if isinstance(found, SchemePage) else found or []
+
+
+def looks_like_current_factsheet(pages: list[str], reader, today: date, *, as_on_pattern: str | None = None, min_schemes: int = 3) -> tuple[bool, str]:
+    """Card 4: the downloaded PDF is this AMC's current factsheet. Content: at least
+    min_schemes (default 3) schemes this AMC's reader understands, including
+    multi-scheme summary pages. Only an explicit single-fund registry entry
+    lowers the threshold; unrelated PDFs still fail. Month: the latest "as on" date is within 45 days (a factsheet
     published mid-month can still carry the previous month-end -- Edelweiss's September
     file says "Data as on August 31"). Returns (ok, reason) for the alert line."""
-    scheme_pages = sum(1 for page in pages if reader(page) is not None)
-    if scheme_pages < 3:
+    scheme_pages = sum(len(_read_schemes(reader, page, pages.words[i] if isinstance(pages, FactsheetPages) else None))
+                       for i, page in enumerate(pages))
+    if scheme_pages < min_schemes:
         return False, "not_a_factsheet"
-    as_on = _latest_as_on(pages, today)
+    if as_on_pattern is None:
+        as_on = _latest_as_on(pages, today)
+    else:
+        # A configured caption is authoritative for this AMC only. Scan all pages:
+        # quant puts AUM dates on scheme pages after its introductory chapters.
+        dates = [_parse_managing_since(m.group(1)) for page in pages
+                 for m in re.finditer(as_on_pattern, page, re.I)]
+        dates = [d for d in dates if d is not None and d <= today + timedelta(days=7)]
+        as_on = max(dates) if dates else None
     if as_on is None or (today - as_on).days > 45:
         return False, "stale_month"
     return True, "ok"
@@ -314,20 +505,27 @@ def import_pages(
     families = build_families(db.query(Scheme).filter(Scheme.amc_name == amc_name).all())
     matched: set[tuple[str, str]] = set()
     unmatched = 0
-    for page_text in pages:
-        page = reader(page_text)
-        if page is None:
-            continue
-        result = match_scheme_page(page, families)
-        if result is None:
-            unmatched += 1
-            logger.info("refresh_fund_managers: unmatched amc=%s heading=%r", amc_name, page.heading[:80])
-            continue
-        family, method, confidence = result
-        for scheme in family.schemes:
-            upsert_scheme_fund_managers(db, scheme, page.managers, reference_period,
-                                        MATCH_METHOD_MANUAL if manual else method, confidence)
-        matched.add((family.amc_name, family.base_name))
+    # A fund can be printed on several pages, or in both files of a month (Mirae active +
+    # passive): gather every page's managers per scheme first, then write each scheme once.
+    # Writing per page let the last page's list delete the earlier pages' managers.
+    by_scheme: dict[uuid.UUID, tuple[Scheme, list[dict], str, Decimal | None]] = {}
+    for i, page_text in enumerate(pages):
+        for page in _read_schemes(reader, page_text, pages.words[i] if isinstance(pages, FactsheetPages) else None):
+            results = match_scheme_families(page, families)
+            if not results:
+                unmatched += 1
+                logger.info("refresh_fund_managers: unmatched amc=%s heading=%r", amc_name, page.heading[:80])
+                continue
+            for family, method, confidence in results:
+                for scheme in family.schemes:
+                    _, managers, first_method, first_confidence = by_scheme.get(scheme.id, (scheme, [], method, confidence))
+                    listed = {m["name"] for m in managers}
+                    managers = managers + [m for m in page.managers if m["name"] not in listed]
+                    by_scheme[scheme.id] = (scheme, managers, first_method, first_confidence)
+                matched.add((family.amc_name, family.base_name))
+    for scheme, managers, method, confidence in by_scheme.values():
+        upsert_scheme_fund_managers(db, scheme, managers, reference_period,
+                                    MATCH_METHOD_MANUAL if manual else method, confidence)
     return len(matched), unmatched
 
 
@@ -344,31 +542,250 @@ def _families_matched_last_month(db: Session, amc_name: str, reference_period: d
 async def _resolve_and_read(client, entry: ResolverEntry, directory: dict[str, str], reader, today: date) -> tuple[list[str] | None, str]:
     if entry.kind is ResolverKind.JSON_API:
         candidates = await _json_api_candidates(client, entry)
+        groups = [[url for url in candidates if re.search(pattern, url, re.I)]
+                  for pattern in entry.documents] if entry.documents else [candidates]
     else:
         landing = entry.landing_url or directory.get(entry.directory_name or "")
         if not landing:
             return None, "no_landing_url"
-        candidates = await _static_link_candidates(client, landing, entry.link_pattern)
-    if not candidates:
-        return None, "no_factsheet_link"
-    reason = "fetch_failed"
-    for url in candidates:  # card 4: the first candidate that passes both checks wins
-        try:
-            pdf = await _download_pdf(client, url)
-        except httpx.HTTPError:
-            continue  # a dead link: try the next candidate; reason stays fetch_failed if none work
-        if pdf is None:
-            continue
-        pages = extract_page_text(pdf)
-        ok, reason = looks_like_current_factsheet(pages, reader, today)
-        if ok:
-            return pages, "ok"
-    return None, reason
+        groups = [await _static_link_candidates(client, landing, pattern)
+                  for pattern in entry.documents or (entry.link_pattern,)]
+    combined, words = [], []
+    for candidates in groups:
+        if not candidates:
+            return None, "no_factsheet_link"
+        reason = "fetch_failed"
+        for url in candidates:  # newest current file for each required pattern
+            try:
+                pdf = await _download_pdf(client, url)
+            except httpx.HTTPError:
+                continue
+            if pdf is None:
+                continue
+            pages = extract_page_text(pdf)
+            if entry.needs_boxes:
+                pages = FactsheetPages(pages, extract_page_words(pdf))
+            ok, reason = looks_like_current_factsheet(pages, reader, today, as_on_pattern=entry.as_on_pattern, min_schemes=entry.min_schemes)
+            if ok:
+                combined.extend(pages)
+                if entry.needs_boxes:
+                    words.extend(pages.words)
+                break
+        else:
+            return None, reason
+    # Validation finishes before any import; refresh imports this union once and
+    # commits once per AMC. Counts are unique families even across several files.
+    return (FactsheetPages(combined, words) if entry.needs_boxes else combined), "ok"
 
 
 async def _json_api_candidates(client, entry: ResolverEntry) -> list[str]:
-    # Task 8 supplies each API's verified document shape. The revised plan
-    # references an older implementation that is absent; do not guess fields.
+    if entry.directory_name == "Mahindra Manulife Investment Management Pvt Ltd":
+        # preLogin/downloads is public (HTTP 200 without credentials). Its page
+        # unwraps the response using public transport constants in its own JS.
+        # Fetch those constants anew; never store keys or authenticate a request.
+        import base64
+        from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+        from cryptography.hazmat.primitives.padding import PKCS7
+        landing = await client.get(entry.landing_url)
+        landing.raise_for_status()
+        script = re.search(r'<script[^>]+src=["\'](/assets/index-[^"\']+\.js)["\']', landing.text)
+        if not script:
+            raise ValueError("Mahindra public download script missing")
+        js = await client.get(urllib.parse.urljoin(entry.landing_url, script.group(1)))
+        js.raise_for_status()
+        constants = re.search(r'const (\w+)="([^"]+)",(\w+)="([^"]+)",\w+=(\w+)\.enc\.Utf8\.parse\(\1\),\w+=\5\.enc\.Utf8\.parse\(\3\)', js.text)
+        if not constants:
+            raise ValueError("Mahindra public transport format changed")
+        resp = await client.get(entry.endpoint_url, headers={"platform": "web", "Accept": "application/json"})
+        resp.raise_for_status()
+        decryptor = Cipher(algorithms.AES(constants.group(2).encode()), modes.CBC(constants.group(4).encode())).decryptor()
+        raw = decryptor.update(base64.b64decode(resp.json()["payload"])) + decryptor.finalize()
+        unpadder = PKCS7(128).unpadder()
+        data = json.loads(unpadder.update(raw) + unpadder.finalize())
+        if data.get("status") != 1:
+            raise ValueError("Mahindra public download list unavailable")
+        links = []
+        def collect(categories):
+            for category in categories:
+                for doc in category.get("files", []):
+                    if "factsheet" in doc.get("title", "").lower() and isinstance(doc.get("fileUrl"), str):
+                        links.append((_link_date(doc["title"]), doc["fileUrl"]))
+                collect(category.get("subcategories", []))
+        collect(data["data"])
+        return list(dict.fromkeys(url for _, url in sorted(links, reverse=True)))[:3]
+    if entry.directory_name == "SBI Funds Management Limited":
+        resp = await client.post(entry.endpoint_url, headers={"Content-Type": "application/json;charset=utf-8"})
+        resp.raise_for_status()
+        links = [(_link_date(re.sub(r"<[^>]+>", " ", label)), html.unescape(url))
+                 for url, label in re.findall(r'<a[^>]+href="([^"]+\.pdf[^\"]*)"[^>]*>(.*?)</a>', resp.text, re.S | re.I)
+                 if re.search(r"factsheet", url, re.I)]
+        return list(dict.fromkeys(url for _, url in sorted(links, reverse=True)))[:6]
+    if entry.directory_name == "Tata Asset Management Private Limited":
+        today = date.today()
+        links = []
+        for offset in range(3):
+            month_index = today.year * 12 + today.month - 1 - offset
+            year, month = divmod(month_index, 12)
+            resp = await client.get(entry.endpoint_url, params={"year": year, "month": f"{month + 1:02d}"},
+                                    headers={"Accept": "application/json", "check-enc": "false"})
+            if resp.is_error:
+                continue  # a month not published yet can error; earlier months still count
+            links.extend((_link_date(doc.get("title", "")), doc["field_media_document"])
+                         for doc in resp.json() if "factsheet" in doc.get("title", "").lower()
+                         and isinstance(doc.get("field_media_document"), str))
+        return list(dict.fromkeys(url for _, url in sorted(links, reverse=True)))[:3]
+    if entry.directory_name == "Motilal Oswal Asset Management Company Limited":
+        today = date.today()
+        years = [today.year] + ([today.year - 1] if today.month <= 2 else [])
+        links = []
+        for year in years:
+            resp = await client.get(entry.endpoint_url, params={"year": year, "category": "factsheet", "month": "", "type": "mf"})
+            resp.raise_for_status()
+            links.extend((_link_date(doc.get("title", "")), urllib.parse.urljoin(str(resp.url), doc["path"]))
+                         for doc in resp.json()["results"] if doc.get("mimeType") == "application/pdf"
+                         and isinstance(doc.get("path"), str) and "factsheet" in doc.get("title", "").lower())
+        return list(dict.fromkeys(url for _, url in sorted(links, reverse=True)))[:6]
+    if entry.directory_name == "Bank of India Investment Managers Private Limited":
+        resp = await client.post(entry.endpoint_url, json={"pagno": 0, "category": None, "fromDate": None,
+            "toDate": None, "LibraryName": "InvestorCorner", "folderName": "FACTSHEETS", "CategoryValue": "no"})
+        resp.raise_for_status()
+        documents = json.loads(resp.json()["d"])["Documents"]
+        links = [(_link_date(doc.get("DocName", "")), urllib.parse.urljoin(str(resp.url), doc["FolderUrl"]))
+                 for doc in documents if doc.get("FolderTitle") == "FACTSHEETS"
+                 and isinstance(doc.get("FolderUrl"), str) and doc["FolderUrl"]]
+        return list(dict.fromkeys(url for _, url in sorted(links, key=lambda p: p[0], reverse=True)))[:3]
+    if entry.directory_name == "Franklin Templeton Asset Management (India) Private Limited":
+        resp = await client.get(entry.endpoint_url)
+        resp.raise_for_status()
+        links = []
+        def visit(node):
+            if isinstance(node, dict):
+                href = node.get("literatureHref")
+                if node.get("id") == "FUND-FACTSHEETS" and isinstance(href, str) and href:
+                    named_date = _link_date(node.get("dctermsTitle", ""))
+                    if not named_date[0]:
+                        named_date = _link_date(urllib.parse.unquote(urllib.parse.urlparse(href).path.rsplit("/", 1)[-1]))
+                    links.append((named_date,
+                                  urllib.parse.urljoin("https://www.franklintempletonindia.com/download/", href.lstrip("/"))))
+                for child in node.values():
+                    visit(child)
+            elif isinstance(node, list):
+                for child in node:
+                    visit(child)
+        visit(resp.json()["PageType"])
+        return list(dict.fromkeys(url for _, url in sorted(links, key=lambda p: p[0], reverse=True)))[:3]
+    if entry.directory_name == "Jio BlackRock Asset Management Private Limited":
+        # The download page publishes a Next server action. Discover its deployment id
+        # from that page's own script, then call its ordinary public month filter.
+        resp = await client.get(entry.endpoint_url)
+        resp.raise_for_status()
+        scripts = re.findall(r'<script[^>]+src=["\']([^"\']+)["\']', resp.text)
+        # Several page chunks can load; the action may be in any of them, next to other
+        # server references (arguments hold no parentheses, so the match can't span two).
+        action = None
+        for script in (url for url in scripts if "statutory-disclosure/" in url and "/page-" in url):
+            code = await client.get(urllib.parse.urljoin(str(resp.url), html.unescape(script)))
+            code.raise_for_status()
+            action = re.search(r'createServerReference\)\("([^"\s]+)"[^;()]+?"getDisclosureL3Data"', code.text)
+            if action is not None:
+                break
+        if action is None:
+            return []
+        month = date.today().replace(day=1)
+        for _ in range(3):
+            year = month.year if month.month >= 4 else month.year - 1
+            result = await client.post(entry.endpoint_url, headers={"Next-Action": action.group(1),
+                "Content-Type": "text/plain;charset=UTF-8"}, content=json.dumps([
+                    "factsheet", {"year": f"FI{year}-{year + 1}", "month": month.strftime("%B")}, "MF"]))
+            result.raise_for_status()
+            payload = next((json.loads(line.split(":", 1)[1]) for line in result.text.splitlines()
+                            if re.match(r'^[0-9a-f]+:\{"data":', line)), {})
+            links = [doc["file"]["url"] for doc in payload.get("data", [])
+                     if re.match(r"Jio\s*BlackRock Mutual Fund\b", doc.get("title", ""), re.I)
+                     and doc.get("file", {}).get("ext") == ".pdf"
+                     and isinstance(doc["file"].get("url"), str)]
+            if links:
+                return list(dict.fromkeys(links))
+            month = (month - timedelta(days=1)).replace(day=1)
+        return []
+    if entry.directory_name == "Choice AMC Private Limited":
+        resp = await client.get(entry.endpoint_url)
+        resp.raise_for_status()
+        documents = [doc for root in resp.json()["body"] if root.get("slug") == "scheme-documents"
+                     for node in root["children"] if node.get("redirection_link") == "disclosures/factsheets"
+                     for year in node["financial_years"] for doc in year["files"]
+                     if doc.get("scheme_id") is None and isinstance(doc.get("file_path"), str) and doc["file_path"]]
+        links = [(_link_date(doc["doc_name"]), urllib.parse.urljoin("https://doc.choicemf.com/", doc["file_path"]))
+                 for doc in documents]
+        return list(dict.fromkeys(url for _, url in sorted(links, key=lambda pair: pair[0], reverse=True)))[:3]
+    if entry.directory_name == "PGIM India Asset Management Private Limite":
+        resp = await client.get(entry.endpoint_url)
+        resp.raise_for_status()
+        documents = resp.json()["data"]["tab_0007"]
+        links = [(_link_date(doc["monthYear"]), urllib.parse.urljoin(str(resp.url), doc["pdfPath"]))
+                 for doc in documents if doc.get("displayStatus") is True
+                 and isinstance(doc.get("pdfPath"), str) and doc["pdfPath"]]
+        return list(dict.fromkeys(url for _, url in sorted(links, key=lambda pair: pair[0], reverse=True)))[:3]
+    if entry.directory_name == "UTI Asset Mgmt. Co. Ltd.":
+        # Fund Watch API's month parameter is a full English name, not a number.
+        month = date.today().replace(day=1)
+        documents = []
+        for _ in range(3):
+            resp = await client.get(entry.endpoint_url, params={"year": month.year, "month": month.strftime("%B")})
+            resp.raise_for_status()
+            documents = [doc for doc in resp.json()["rows"] if "hindi" not in doc.get("name", "").lower()]
+            if documents:
+                break
+            month = (month - timedelta(days=1)).replace(day=1)
+        return list(dict.fromkeys(urllib.parse.urljoin(str(resp.url), doc["doc"])
+                                 for doc in documents if isinstance(doc.get("doc"), str) and doc["doc"]))
+    if entry.directory_name == "Mirae Asset Investment Managers (India) Pvt. Ltd":
+        resp = await client.post(entry.endpoint_url, json={"request": {
+            "modulename": "Factsheet", "pgno": 1, "pgsize": 10}})
+        resp.raise_for_status()
+        documents = resp.json()["Data"]
+        links = [(_link_date(f"{doc['Title']} {doc['URL']}"),
+                  urllib.parse.urljoin(str(resp.url), doc["URL"]))
+                 for doc in documents if isinstance(doc.get("URL"), str) and doc["URL"]]
+        # Don't truncate across patterns: active/passive each need their own fallbacks.
+        return list(dict.fromkeys(url for _, url in sorted(links, key=lambda pair: pair[0], reverse=True)))
+    if entry.directory_name == "Sundaram Asset Management Company Ltd":
+        # Public DownloadArchive request; its legacy script escapes '=' and '%',
+        # but leaves the slash literal. The response is a quoted URL, not JSON.
+        month = date.today().replace(day=1) - timedelta(days=1)
+        resp = await client.post(entry.endpoint_url, content=f"cat=1\r\nmnth={month:%m/%Y}",
+                                 headers={"Content-Type": "text/plain"})
+        resp.raise_for_status()
+        found = re.fullmatch(r"['\"](https://www\.sundarammutual\.com/uploaddir/consolidated_factsheet/[^'\"\s]+\.pdf)['\"]", resp.text.strip())
+        return [found.group(1)] if found else []
+    if entry.directory_name == "DSP Asset Managers Private Limited":
+        # Public downloads.json request made by the AMC's download centre.
+        resp = await client.get(entry.endpoint_url)
+        resp.raise_for_status()
+        links = [(_link_date(f"{doc['title']} {doc['pdf_url']}"),
+                  urllib.parse.urljoin(str(resp.url), doc["pdf_url"]))
+                 for doc in resp.json()[entry.response_json_path]
+                 if isinstance(doc.get("pdf_url"), str) and doc["pdf_url"]]
+        return [url for _, url in sorted(links, key=lambda pair: pair[0], reverse=True)][:3]
+    if entry.directory_name == "Aditya Birla Sun Life AMC Limited":
+        # Published by factsheet-investor-information.js, verified 10 Oct 2026.
+        # Keep the datasourceId query while selecting the rolling current year.
+        url = httpx.URL(entry.endpoint_url)
+        documents = []
+        # Early in January the new year has no uploads yet; December's file is current then.
+        for year in (date.today().year, date.today().year - 1):
+            resp = await client.get(url.copy_merge_params({"year": year}))
+            resp.raise_for_status()
+            documents = resp.json()[entry.response_json_path]
+            if documents:
+                break
+        links = [
+            (_link_date(f"{doc['DocumentTitle']} {doc['DocumentLink']}"),
+             urllib.parse.urljoin(str(resp.url), doc["DocumentLink"]))
+            for doc in documents if isinstance(doc.get("DocumentLink"), str) and doc["DocumentLink"]
+        ]
+        return [url for _, url in sorted(links, key=lambda pair: pair[0], reverse=True)][:3]
+    # Other APIs remain unverified until their own Task 8 onboarding.
     raise NotImplementedError("JSON API document shape requires Task 8 onboarding")
 
 

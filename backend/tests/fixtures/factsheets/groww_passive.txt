@@ -1,0 +1,270 @@
+47
+August 2026 
+Index Page
+GROWW Nifty Total Market Index Fund
+(An open-ended scheme replicating/tracking Nifty Total Market Index.)
+INVESTMENT OBJECTIVE: The investment objective of the scheme is to achieve a return equivalent to the NiftyTotal Market Index-TRI subject to tracking error. This 
+index is diversified throughout the Indian market across sectors and market caps and aims to benefit from India’s economic growth. However, there is no assurance or 
+guarantee that the investment objective of the Scheme will be achieved. The Scheme does not assure or guarantee any returns.
+Instrument Type/Issuer Name Industry/Rating % of NAV
+Equity Shares
+HDFC Bank Ltd. Banks 5.17%
+ICICI Bank Ltd. Banks 4.96%
+Reliance Industries Ltd. Petroleum Products 4.11%
+Bharti Airtel Ltd. Telecom - Services 2.62%
+Larsen & Toubro Ltd. Construction 2.25%
+State Bank of India Banks 2.09%
+Infosys Ltd. IT - Software 1.89%
+Axis Bank Ltd. Banks 1.78%
+Kotak Mahindra Bank Ltd. Banks 1.47%
+Mahindra & Mahindra Ltd. Automobiles 1.40%
+Bajaj Finance Ltd. Finance 1.35%
+ITC Ltd. Diversified FMCG 1.17%
+Tata Consultancy Services Ltd. IT - Software 1.17%
+Eternal Ltd. Retailing 1.13%
+Titan Company Ltd. Consumer Durables 1.00%
+Sun Pharmaceutical Industries Ltd. Pharmaceuticals &
+Biotechnology 1.00%
+Others 65.41%
+Total 99.98%
+Reverse Repo/Net current assets 0.02%
+Grand Total 100.00
+PORTFOLIO
+Monthly Average ` 375.79 Cr.
+Month End AUM ` 373.93 Cr.
+^BASE EXPENSE RATIO 
+Direct Plan 0.53%
+Regular Plan 0.90%
+DATE OF ALLOTMENT
+23rd October, 2023
+BENCHMARK
+Nifty Total Market Index TRI
+FUND SNAPSHOT
+Regular Plan
+Period
+Scheme Benchmark* Additonal Benchmark**
+Return (%) Value of
+Std Investment of
+₹10,000
+invested
+Return (%) Value of
+₹10,000
+invested
+Return (%) Value of
+₹10,000
+invested
+Last 1 Year 4.6127 10,463.86 5.7592 10,579.16 -0.3522 9,964.59
+Since Inception 12.1773 13,886.90 13.5542 14,379.53 9.4067 12,929.11
+ Direct Plan 
+Last 1 Year 5.1936 10,522.28 5.7592 10,579.16 -0.3522 9,964.59
+Since Inception 12.9252 14,153.10 13.5542 14,379.53 9.4067 12,929.11
+*NIFTY Total Return Index **Nifty 50 TRI.
+Returns greater than 1 year period are compounded annualized returns (CAGR). Load is not taken into consideration. Different plans 
+shall have different expense structure. Returns are for Growth Option only. In case the start/end date is non business day, the NAV of 
+previous working day is used for computation. Please refer page no. 94- 98 for name of the other schemes currently managed by the Fund 
+Managers and relevant scheme for performance. Past performance may or may not be sustained in future and its not a guarantee of 
+any future returns. Data as on 31st August 2026.
+PERFORMANCE (As on 31st August, 2026)
+Entry Load: NA
+Exit Load: • 0.25% if redeemed/ switched out within 7 Days from
+the date of allotment.
+• Nil - if redeemed/ switched out after 7 Days from the
+date of allotment
+ENTRY & EXIT LOAD
+Mr. Aakash Chauhan 
+(Fund Manager for Passive
+Schemes (Equity) & Dealer - 
+Equity)
+(Managing Fund since 
+April 14, 2025)
+Total experience - over 08 years
+Mr. Nikhil Satam 
+(Fund Manager & Dealer - Equity)
+(Managing Fund since 
+February 21, 2025)
+Total experience - over 11 years
+Mr. Shashi Kumar 
+(Fund Manager & Dealer – Equity)
+(Managing Fund since 
+May 16, 2025)
+Total experience - over 18 years
+FUND MANAGER
+^Note : BER excludes brokerage incurred towards execution of trades,
+transaction cost & statutory levies as applicable to investor.
+Tracking Error
+One Year Rolling 
+Data as on % Direct % Regular
+31.08.2026 0.04% 0.05%
+PORTFOLIO DETAILS
+Top 10 Stocks 27.74%
+Top 10 Sectors 60.03%
+Sectoral Allocation (Top 10 Sectors)^#
+18.94%
+6.63% 5.93% 5.76% 4.94% 4.92% 3.35% 3.23% 3.18% 3.15%
+39.97%
+0.00%
+10.00%
+20.00%
+30.00%
+40.00%
+50.00%
+Banks
+Finance
+IT - Software
+Pharmaceuticals &
+Biotechnology
+Automobiles
+Petroleum Products
+Telecom - Services
+Consumer Durables
+Retailing
+Power
+other
+^Industrywise Classification as recommended by AMFI. 
+#Disclaimer: Fund Manager may or may not have exposure in the above sectors. 
+NAV of Plans / Options Per Unit
+Regular Plan Direct Plan
+ Growth ` 13.8869 Growth ` 14.1531
+IDCW ` 13.8876 IDCW ` 14.1527
+PORTFOLIO TURNOVER
+0.2251
+August 2026 
+Index Page
+GROWW Nifty 50 Index Fund
+( An open‐ended scheme tracking the Nifty 50 Index - TRI )
+INVESTMENT OBJECTIVE: The investment objective of the Scheme is to generate long-term capital growth by investing in securities of the Nifty 50 Index in the same 
+proportion/weightage with an aim to provide returns before expenses that track the total return of Nifty 50 Index, subject to tracking errors. However, there can be no 
+assurance orguarantee that the investment objective of the scheme will be achieved.
+Instrument Type/Issuer Name Industry/Rating % of NAV
+Equity Shares
+HDFC Bank Ltd. Banks 9.85%
+ICICI Bank Ltd. Banks 9.45%
+Reliance Industries Ltd. Petroleum Products 7.83%
+Bharti Airtel Ltd. Telecom - Services 5.00%
+Larsen & Toubro Ltd. Construction 4.30%
+State Bank of India Banks 3.98%
+Infosys Ltd. IT - Software 3.61%
+Axis Bank Ltd. Banks 3.39%
+Kotak Mahindra Bank Ltd. Banks 2.80%
+Mahindra & Mahindra Ltd. Automobiles 2.66%
+Bajaj Finance Ltd. Finance 2.57%
+ITC Ltd. Diversified FMCG 2.23%
+Tata Consultancy Services Ltd. IT - Software 2.22%
+Eternal Ltd. Retailing 2.15%
+Titan Company Ltd. Consumer Durables 1.91%
+Sun Pharmaceutical Industries Ltd. Pharmaceuticals &
+Biotechnology 1.91%
+Maruti Suzuki India Ltd. Automobiles 1.60%
+Hindustan Unilever Ltd. Diversified FMCG 1.58%
+Shriram Finance Ltd. Finance 1.41%
+NTPC Ltd. Power 1.41%
+Tata Steel Ltd. Ferrous Metals 1.38%
+Bharat Electronics Ltd Aerospace & Defense 1.35%
+Hindalco Industries Ltd. Non - Ferrous Metals 1.33%
+HCL Technologies Ltd. IT - Software 1.25%
+UltraTech Cement Ltd. Cement & Cement
+Products 1.23%
+Bajaj Auto Ltd. Automobiles 1.22%
+Grasim Industries Ltd Cement & Cement
+Products 1.15%
+JSW Steel Ltd. Ferrous Metals 1.11%
+Asian Paints Ltd. Consumer Durables 1.09%
+Power Grid Corporation of India Ltd. Power 1.08%
+Interglobe Aviation Ltd. Transport Services 1.07%
+Adani Ports & Special Economic Zone Ltd Transport 
+Infrastructure 1.07%
+Bajaj Finserv Ltd. Finance 1.06%
+Others 12.71%
+Total 99.96%
+Reverse Repo/Net current assets 0.04%
+Grand Total 100.00
+PORTFOLIO
+Monthly Average ` 26.82 Cr.
+Month End AUM ` 26.81 Cr.
+^BASE EXPENSE RATIO 
+Direct Plan 0.30%
+Regular Plan 0.90%
+DATE OF ALLOTMENT
+21st July, 2025
+BENCHMARK
+Nifty 50 Index - TRI
+FUND SNAPSHOT
+Regular Plan
+Period
+Scheme Benchmark* Additonal Benchmark**
+Return (%) Value of
+Std Investment of
+₹10,000
+invested
+Return (%) Value of
+₹10,000
+invested
+Return (%) Value of
+₹10,000
+invested
+Last 1 Year -1.5510 9,844.06 -0.3522 9,964.59 - -
+Since Inception -3.7036 9,588.90 -2.4891 9,723.52 - -
+ Direct Plan 
+Last 1 Year -0.8672 9,912.81 -0.3522 9,964.59 - -
+Since Inception -3.0322 9,663.30 -2.4891 9,723.52 - -
+* NIFTY 50-TRI
+Returns greater than 1 year period are compounded annualized returns (CAGR). Load is not taken into consideration. Different plans 
+shall have different expense structure. Returns are for Growth Option only. In case the start/end date is non business day, the NAV of 
+previous working day is used for computation. Please refer page no. 94- 98 for name of the other schemes currently managed by the Fund 
+Managers and relevant scheme for performance. Past performance may or may not be sustained in future and its not a guarantee of 
+any future returns. Data as on 31st August 2026.
+PERFORMANCE (As on 31st August, 2026)
+Entry Load: NA
+Exit Load: NIL
+ENTRY & EXIT LOAD
+(Managing Since July, 21 2025)
+Total experience - over 06 years
+(Managing Since July, 21 2025)
+Total experience - over 11 years
+(Managing Fund since July, 21 2025)
+Total experience - over 18 years
+Mr. Aakash Chauhan (Fund 
+Manager & Dealer – Equity )
+Mr. Nikhil Satam
+(Fund manager & Dealer Equity)
+Mr. Shashi Kumar
+(Fund Manager & Dealer – Equity )
+FUND MANAGER
+^Note : BER excludes brokerage incurred towards execution of trades,
+transaction cost & statutory levies as applicable to investor.
+Tracking Error
+One Year Rolling 
+Data as on % Direct % Regular
+31.08.2026 0.05% 0.06%
+PORTFOLIO DETAILS
+Top 10 Stocks 52.85%
+Top 10 Sectors 77.98%
+Sectoral Allocation (Top 10 Sectors)^#
+29.47%
+8.48% 7.83% 7.06% 5.76% 5.00% 4.30% 3.82% 3.26% 3.02%
+22.02%
+0.00%
+10.00%
+20.00%
+30.00%
+40.00%
+Banks
+IT - Software
+Petroleum Products
+Automobiles
+Finance
+Telecom - Services
+Construction
+Diversified FMCG
+Pharmaceuticals &
+Biotechnology
+Retailing
+other
+^Industrywise Classification as recommended by AMFI. 
+#Disclaimer: Fund Manager may or may not have exposure in the above sectors. 
+NAV of Plans / Options Per Unit
+Regular Plan Direct Plan
+ Growth ` 9.5889 Growth ` 9.6633
+IDCW ` 9.5889 IDCW ` 9.6633
+PORTFOLIO TURNOVER
+0.18

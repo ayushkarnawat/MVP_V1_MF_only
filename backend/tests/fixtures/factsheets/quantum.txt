@@ -1,0 +1,382 @@
+10
+Scheme Portfolio as on September 30, 2026
+Purchase: ₹500/- and in multiples of ₹1/- thereafter. 
+Additional Purchase: ₹500/- and in multiples of ₹1/- thereafter
+Inception Date
+Benchmark Index
+Fund Managers Details
+AUM ₹ (In Crores) (as on September 30, 2026)
+Minimum Investment Amount
+July 20, 2009
+Not Applicable
+**Total Expense ratio includes applicable GST on Base Expense Ratio including
+that of underlying of Schemes. For Total Expense ratio inclusive of transaction 
+cost please click the link. https://www.quantumamc.com/regulatory-document
+* Weighted average TER of the underlying funds.
+The investors are bearing the recurring expenses of the Fund, in addition to the 
+expenses of the underlying Fund.
+Exit Load
+Entry Load
+Investment Objective: The investment objective of the scheme is to generate long-term capital appreciation by investing in 
+diversified Equity Schemes across All Market Caps of Mutual Funds. There is no assurance that the investment objective of the
+Scheme will be achieved.
+Name of Instrument % to NAV
+Mutal Fund Units 97.02%
+Aditya Birla Sun Life Focused Fund - Direct Plan - Growth Option 16.48%
+ICICI Prudential Focused Fund - Direct Plan - Growth Option 13.52%
+HDFC Focused Fund - Direct Plan - Growth Option 13.22%
+Kotak Focused Fund -Direct Plan- Growth option 11.23%
+Invesco India Midcap Fund - Direct Plan - Growth Option 8.78%
+HSBC Large & Mid Cap Fund - Direct Plan - Growth Option 7.72%
+Union Small Cap Fund - Direct Plan - Growth Option 6.99%
+Bank of India Small Cap Fund - Direct Plan - Growth Option 6.28%
+Axis Multicap Fund - Direct Plan- Growth option 4.95%
+Union Multicap Fund - Direct Plan- Growth option 3.95%
+Abakkus Flexi Cap Fund -Direct Plan- Growth option 3.90%
+Treps$
+ & Others 2.98%
+Grand Total 100.00%
+$
+Short term instrument
+Quantitative Indicators as on September 30, 2026
+Processed through RTGS/NEFT mode on T+2 basis from the date of 
+transaction where the investor’s Bank details are available. Processed 
+through cheque on T+2 basis from the date of transaction where the 
+required Bank details of investor are not available.
+Redemption Proceeds
+This product is suitable for investors who are seeking*
+• Long Term Capital Appreciation 
+• Investments in portfolio of diversified Equity Schemes 
+across All Market Caps of Mutual Funds
+Risk-o-meter of Scheme
+The risk of the scheme is Very High Risk
+Low
+Risk Low to
+Moderate
+Risk
+Very High
+Risk
+Hig
+R
+h
+isk
+Moderate
+Risk M
+Hi
+o
+g
+derately
+h Risk
+Risk-o-meter of Tier I Benchmark
+The risk of the benchmark is Very High Risk
+Low
+Risk Low to
+Moderate
+Risk
+Very High
+Risk
+Hig
+R
+h
+isk
+Moderate
+Risk M
+Hi
+o
+g
+derately
+h Risk
+*Investors should consult their financial advisers if in doubt about whether 
+the product is suitable for them.
+Investors may please note that they will be bearing the recurring expenses 
+of this Scheme in addition to the expenses of the underlying Schemes.
+Total Expense Ratios** (As on month end)
+Tier I Benchmark - BSE 500 TRI
+Fund Managers Experience Managing Fund Since
+Mr. Chirag Mehta
+(Fund Manager) 24 years November 01, 2013
+Mr. Piyush Singh
+(Associate Fund Manager) 21 years April 01, 2025
+Scheme Underlying
+Funds* Total
+Direct Plan – Total TER 0.41% 0.72% 1.13%
+Regular Plan – Total TER 1.40% 0.72% 2.12%
+Average AUM*: 136.14
+Absolute AUM: 134.13
+Fund Performance as on September 30, 2026
+Quantum Diversified Equity All Cap Active FOF - Regular Plan - 
+Growth Option
+Current Value ₹10,000 Invested
+at the beginning of a given period
+Period Scheme
+Returns (%)
+Tier I -
+Benchmark#
+Returns (%)
+Additional
+Benchmark##
+Returns (%)
+Scheme Returns 
+(₹)
+Tier I -
+Benchmark#
+Returns (₹)
+Additional
+Benchmark##
+Returns (₹)
+1 year -1.21% -2.33% -8.74% 9,879 9,767 9,126
+3 years 9.87% 9.19% 4.46% 13,270 13,024 11,403
+5 years 8.58% 8.90% 5.43% 15,098 15,321 13,027
+7 years 12.78% 14.21% 10.68% 23,215 25,369 20,357
+Since Inception* 11.02% 12.53% 11.21% 27,016 30,723 27,467
+#BSE 500 TRI, ##BSE Sensex TRI. *Inception date - April 01, 2017. Past performance may or may not be sustained in the future. Load is not taken 
+into consideration in scheme returns calculation. Different Plans shall have a different expense structure. Returns are net of total expenses and are 
+calculated on the basis of Compounded Annualized Growth Rate (CAGR).
+• If redeemed or switched out on or before 180 days from the date of 
+allotment – 1% • If redeemed or switched out after 180 days from the date of allotment 
+– NIL
+(Effective from September 07, 2026)
+Note: Redemptions, Switch, Systematic Withdrawal Plan (SWP) and Systematic 
+Transfer Plan (STP) will be processed on First In First Out (FIFO) basis and the 
+applicable exit load will be charged. However, no exit load will be charged for 
+switches between option /plan within the scheme.
+Exit load shown is as of today; applicable exit load on the investment date will apply 
+at redemption.
+Quantum Diversified Equity All Cap Active FOF
+An Open-Ended Fund of Funds Scheme investing in diversified Equity Schemes across 
+All Market Caps of Mutual Funds.
+14.64%
+(15.66%)@
+0.90
+(1.00)@
+0.38
+(0.30)@
+^^Standard Deviation
+(Annualised)
+Measures the up/down movement over
+time also known as volatility
+Measures how Quantum Diversified 
+Equity All Cap Active FOF moved relative 
+to the Index which is 1.00
+Measures the return relative to the volatility
+^^Beta ^^Sharpe Ratio
+@(Benchmark: BSE 500 TRI); Calculated over a 3-Yr period, Monthly Rolling Return basis. Data as of September 2026.
+^^Note:
+Risk Free Rate assumed to be 5.28% (FBIL Overnight MIBOR for 30th 
+September 2026) for calculating Sharpe Ratio. Standard Deviation, Sharpe 
+Ratio & Beta are calculated on Annualised basis using 3 years history of 
+monthly returns. Please refer to page no. 38 for details on taxation.
+Complete Portfolio
+*Cumulative Daily AUM / No of days in the month
+30th Sep 2026 31st Aug 2026
+Regular Plan IDCW Option 80.199 85.608
+Regular Plan Growth Option 81.379 85.826
+Direct Plan IDCW Option 82.084 87.524
+Direct Plan Growth Option 83.265 87.743
+NAV (₹/Unit) as on:
+Income Distribution History
+Record Date Gross IDCW per unit (₹)
+Individual/Non Individual
+Direct Plan Regular Plan
+11-Jun-25 0.21 0.21
+17-Sep-26 1.00 1.00
+*Investors are paid IDCW post deduction of TDS on Gross IDCW as 
+applicable as per Finance Act 202023
+Scheme Portfolio as on September 30, 2026 Asset Allocation (%) as on September 30, 2026
+Quantum Dynamic Term Fund
+An Open-ended Dynamic Debt Scheme Investing Across Duration. 
+A relatively high interest rate risk and relatively low credit risk
+Tier I Benchmark - CRISIL Dynamic Bond A-III Index
+Purchase: ₹500/- and in multiples of ₹1/- thereafter. 
+Additional Purchase: ₹500/- and in multiples of ₹1/- thereafter.
+Inception Date
+Benchmark Index
+Fund Managers Details
+AUM ₹ (In Crores) (as on September 30, 2026)
+Minimum Investment Amount
+May 19, 2015
+Not Applicable
+**Total Expense ratio includes applicable GST on Base Expense Ratio. For Total 
+Expense ratio inclusive of transaction cost please click the link.
+https://www.quantumamc.com/regulatory-document
+Exit Load
+Entry Load
+Note:
+Please refer to page no. 38 for details on taxation.
+Investment Objective: To generate income and capital appreciation through active management of a portfolio consisting of 
+short term and long term debt and money market instruments. There is no assurance that the investment objective of the
+Scheme will be achieved.
+Name of Instrument Rating % to NAV
+Government Securities 44.24%
+7.63% GOI (MD 15/09/2056) SOV 13.78%
+7.71% GOI (MD 18/05/2066) SOV 11.95%
+7.24% GOI (MD 18/08/2055) SOV 11.34%
+7.04% GOI (MD 03/06/2029) SOV 6.03%
+6.48% GOI (MD 06/10/2035) SOV 1.14%
+7.3% GOI (MD 19/06/2053) SOV 0.00%
+Corporate Debt 29.61%
+Power Finance Corporation Ltd CRISIL AAA 6.11%
+IRFC CRISIL AAA 5.96%
+NABARD CRISIL AAA 5.92%
+SIDBI CRISIL AAA 5.91%
+National Housing Bank IND AAA 5.71%
+Money Market Instruments 5.64%
+Treasury Bills (T-Bill) SOV 5.64%
+State Government Securities 0.85%
+7.07% Gujarat SDL (MD 24/09/2032) SOV 0.85%
+Total of Debt Instruments 80.34%
+Treps & Others 19.20%
+Corporate Debt Market Development 
+Fund Class A2 0.46%
+Grand Total 100.00%
+$
+Short term instrument
+Portfolio Information as on September 30, 2026
+13.58
+ years
+Annualised 
+Portfolio YTM* Residual Maturity Macaulay’s Duration
+Processed through RTGS/NEFT mode on T+1 basis from the date of 
+transaction where the investor’s Bank details are available.
+Processed through cheque on T+1 basis from the date of transaction 
+where the required Bank details of investor are not available.
+Redemption Proceeds
+This product is suitable for investors who are seeking*
+• Regular income over short to medium term and capital 
+appreciation
+• Investment in Debt / Money Market Instruments / 
+Government Securities
+Risk-o-meter of Scheme
+The risk of the scheme is Moderate Risk
+Low
+Risk Low to
+Moderate
+Risk
+Very High
+Risk
+Hig
+R
+h
+isk
+Moderate
+Risk M
+Hi
+o
+g
+derately
+h Risk
+Risk-o-meter of Tier I Benchmark
+The risk of the benchmark is Moderate Risk
+Low
+Risk Low to
+Moderate
+Risk
+Very High
+Risk
+Hig
+R
+h
+isk
+Moderate
+Risk M
+Hi
+o
+g
+derately
+h Risk
+*Investors should consult their financial advisers if in doubt about whether 
+the product is suitable for them.
+Total Expense Ratios** (As on month end)
+Average AUM*: 85.94
+Absolute AUM: 83.65
+Fund Managers Experience Managing Fund Since
+Ms. Sneha Pandey 9 years April 01, 2025
+Mr. Mayur Chauhan 15 years July 01, 2025
+Direct Plan – Total TER 0.48%
+Regular Plan – Total TER 0.99%
+Rating Profile (%) as on September 30, 2026
+Modified Duration
+5.42 
+years
+PRC Matrix
+Credit Risk → Relatively 
+Low
+ (Class A)
+Moderate 
+(Class B)
+Relatively 
+High 
+Interest Rate Risk ↓ (Class C)
+Relatively Low (Class I)
+Moderate (Class II)
+Relatively High (Class III) A-III
+Income Distribution History
+Record Date Gross IDCW per unit (₹)
+Individual/Non Individual
+Direct Plan Regular Plan
+25-May-26 0.01754066 0.01451186
+25-Jun-26 0.01873296 0.01666902
+27-Jul-26 0.01618734 0.01457341
+25-Aug-26 0.01501435 0.01347718
+25-Sep-26 0.01340988 0.01132688
+*Investors are paid IDCW post deduction of TDS on Gross IDCW as 
+applicable as per Finance Act 2020
+Fund Performance as on September 30, 2026
+Quantum Dynamic Term Fund - Regular Plan - Growth Option Current Value ₹10,000 Invested 
+at the beginning of a given period
+Period Scheme Returns 
+(%)
+Tier I -
+Benchmark#
+Returns (%)
+Additional
+Benchmark##
+Returns (%)
+Scheme Returns 
+(₹)
+Tier I -
+Benchmark#
+Returns (₹)
+Additional
+Benchmark##
+Returns (₹)
+1 year 2.66% 2.86% 1.33% 10,266 10,286 10,133
+3 years 6.25% 6.22% 6.17% 11,999 11,989 11,972
+5 years 5.76% 5.33% 4.88% 13,231 12,965 12,694
+7 years 6.21% 6.39% 5.21% 15,249 15,431 14,277
+Since Inception* 6.42% 6.62% 5.34% 18,059 18,387 16,399
+#CRISIL Dynamic Bond A-III Index, ##CRISIL 10 Year Gilt Index. *Inception date - April 01, 2017. Past performance may or may not be sustained in 
+the future. Different Plans shall have a different expense structure. Returns are net of total expenses and are calculated on the basis of Compounded 
+Annualized Growth Rate (CAGR).
+Complete Portfolio
+Nil
+Exit load shown is as of today; applicable exit load on the 
+investment date will apply at redemption.
+As on September 30, 2026; *in case of semi annual YTM, it will be annualised
+Asset Allocaon
+50.73%
+Govt. Securies & 
+Treasury Bills
+29.61%
+Finance
+0.46%
+CDMDF
+19.20%
+TREPS & Net Receivable
+/ (Payable)
+Rang Profile
+Sovereign
+50.73% AAA
+29.61%
+19.66%
+TREPS, CDMDF &
+Net Receivable/(Payable)
+*Cumulative Daily AUM / No of days in the month
+7.10% 5.66 
+years
+30th Sep 2026 31st Aug 2026
+Regular Plan IDCW Option 10.3532 10.3989
+Regular Plan Growth Option 22.1458 22.2192
+Direct Plan IDCW Option 10.3045 10.3477
+Direct Plan Growth Option 22.6441 22.7096
+NAV (₹/Unit) as on:

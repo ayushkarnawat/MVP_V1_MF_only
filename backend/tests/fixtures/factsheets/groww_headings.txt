@@ -1,0 +1,329 @@
+39
+August 2026 
+Index Page
+Instrument Type/Issuer Name Industry/Rating
+% to NAV
+(Hedged &
+Unhedged)
+% Exposure
+of Derivativ
+Equity Shares
+ICICI Bank Ltd. Banks 4.01%
+HDFC Bank Ltd. Banks 3.78%
+Reliance Industries Ltd. Petroleum Products 2.99%
+Mahindra & Mahindra Ltd. Automobiles 2.94% -1.80%
+Bajaj Finance Ltd. Finance 1.97% -0.99%
+Bharti Airtel Ltd. Telecom - Services 1.86%
+Larsen & Toubro Ltd. Construction 1.74%
+State Bank of India Banks 1.71%
+Kotak Mahindra Bank Ltd. Banks 1.56%
+Ashok Leyland Ltd. Agricultural, Commercial
+& Construction Vehicles 1.43%
+The Federal Bank Ltd. Banks 1.42%
+Axis Bank Ltd. Banks 1.34%
+YES Bank Ltd. Banks 1.33% -1.05%
+Multi Commodity Exchange of
+India Ltd. Capital Markets 1.21%
+Infosys Ltd. IT - Software 1.14%
+Laurus Labs Ltd Pharmaceuticals &
+Biotechnology 1.11%
+Bharat Forge Ltd. Auto Components 1.10%
+AU Small Finance Bank Ltd Banks 1.04%
+Navin Fluorine International Ltd. Chemicals &
+Petrochemicals 1.02%
+ITC Ltd. Diversified FMCG 1.01% -0.26%
+Titan Company Ltd. Consumer Durables 1.01%
+TVS Motor Company Ltd Automobiles 0.98%
+Tata Consumer Products Ltd Agricultural Food & other 
+Products 0.98%
+FSN E-Commerce Ventures Ltd. Retailing 0.96%
+One 97 Communications Ltd. Financial Technology
+(Fintech) 0.93%
+Indian Hotels Co Ltd Leisure Services 0.89%
+Interglobe Aviation Ltd. Transport Services 0.87%
+Maruti Suzuki India Ltd. Automobiles 0.85%
+Sun Pharmaceutical Industries Ltd. Pharmaceuticals &
+Biotechnology 0.84%
+Indus Towers Ltd. Telecom - Services 0.83% -0.13%
+Aurobindo Pharma Ltd. Pharmaceuticals &
+Biotechnology 0.83%
+Hero MotoCorp Ltd. Automobiles 0.81%
+Indusind Bank Ltd. Banks 0.81%
+Max Healthcare Institute Ltd. Healthcare Services 0.80%
+Adani Enterprises Ltd. Metals & Minerals 
+Trading 0.80%
+Grasim Industries Ltd Cement & Cement
+Products 0.79%
+PB Fintech Ltd. Financial Technology
+(Fintech) 0.79%
+Vedanta Ltd. Diversified Metals 0.78%
+Eternal Ltd. Retailing 0.75%
+Adani Ports & Special Economic
+Zone Ltd Transport Infrastructure 0.75% -0.02%
+Persistent Systems Ltd. IT - Software 0.74%
+Bajaj Auto Ltd. Automobiles 0.72%
+UltraTech Cement Ltd. Cement & Cement
+Products 0.69%
+NTPC Ltd. Power 0.68%
+BSE Ltd Capital Markets 0.62%
+Hindalco Industries Ltd. Non - Ferrous Metals 0.62%
+Sona BLW Precision Forgings Ltd. Auto Components 0.61%
+UPL Ltd. Fertilizers &
+Agrochemicals 0.61%
+Fortis Healthcare Ltd Healthcare Services 0.61%
+JSW Steel Ltd. Ferrous Metals 0.59%
+Tata Consultancy Services Ltd. IT - Software 0.59%
+Suzlon Energy Ltd. Electrical Equipment 0.56%
+Anand Rathi Wealth Ltd. Capital Markets 0.56%
+DLF Ltd. Realty 0.56% -0.54%
+Cipla Ltd. Pharmaceuticals &
+Biotechnology 0.55%
+Tata Steel Ltd. Ferrous Metals 0.55%
+ICICI Lombard General Insurance
+Company Ltd. Insurance 0.52%
+Ather Energy Ltd. Automobiles 0.52%
+Power Finance Corporation Ltd. Finance 0.51%
+The Phoenix Mills Ltd. Realty 0.50%
+NMDC Ltd Minerals & Mining 0.45%
+Lupin Ltd. Pharmaceuticals &
+Biotechnology 0.41%
+Dr. Reddy's Laboratories Ltd. Pharmaceuticals &
+Biotechnology 0.40%
+Radico Khaitan Ltd. Beverages 0.35%
+Hindustan Unilever Ltd. Diversified FMCG 0.33% -0.05%
+Steel Authority of India Ltd Ferrous Metals 0.30%
+Info Edge (India) Ltd Retailing 0.29%
+Shriram Finance Ltd. Finance 0.29%
+Crompton Greaves Consumer
+Elec Ltd Consumer Durables 0.22% -0.21%
+Punjab National Bank Banks 0.07% -0.07%
+SBI Life Insurance Company Ltd. Insurance 0.02% -0.02%
+Total 67.79% -5.14%
+Corporate Bonds/ NCD
+National Bank for Agriculture and
+Rural Development CRISIL AAA 0.25%
+Total 0.25%
+Commercial Papers
+L&T Finance Ltd. CRISIL A1+ 0.68%
+Kotak Mahindra Prime Ltd. CRISIL A1+ 0.51%
+Bharat Petroleum Corporation Ltd. CRISIL A1+ 0.13%
+Total 1.32%
+Certificate of Deposits
+Canara Bank CRISIL A1+ 0.70%
+Small Industries Development 
+Bank of India CRISIL A1+ 0.62%
+Kotak Mahindra Bank Ltd. CRISIL A1+ 0.25%
+Bank of Baroda IND A1+ 0.13%
+Total 1.70%
+Mutual Fund Units
+Groww Gold ETF 12.18%
+Nippon India Mutualfund 1.52%
+Groww Silver ETF 0.21%
+Total 13.91%
+Tri Party Repo (TREPs)
+The Clearing Corporation of India Ltd. 9.97%
+Total 9.97%
+ReITs 0.67%
+Reverse Repo/Net current assets 10.19%
+Grand Total 100.00%
+^Industrywise Classification as recommended by AMFI. 
+#Disclaimer: Fund Manager may or may not have exposure in the above sectors. 
+GROWW Multi Asset Allocation Fund
+(An open-ended scheme investing in Equity, Debt, Commodities and in units of REITs & InvITs )
+INVESTMENT OBJECTIVE: To achieve long-term capital appreciation by predominantly investing in equity and equity-related instruments, Debt & Money market 
+instruments, Commodities and in units of REITs & InvITs. However, there can be no assurance that the investment objective of the scheme will be achieved. 
+PORTFOLIO
+Monthly Average ` 390.68 Cr.
+Month End AUM ` 389.91 Cr.
+PORTFOLIO DETAILS
+Top 10 Stocks 23.98%
+Top 10 Sectors 45.09%
+^BASE EXPENSE RATIO 
+Direct Plan$ 0.57%
+Regular Plan 2.04%
+DATE OF ALLOTMENT
+30th September, 2025
+BENCHMARK
+Nifty 500 TRI (60%) CRISIL Composite 
+Bond Fund Index (30%) Domestic Gold 
+Prices (5%) Domestic Silver Prices (5%)
+FUND SNAPSHOT
+Entry Load: NA
+Exit Load: If redeemed within 30 days from the date of
+allotment: 1%. If redeemed after 30 days from the date 
+of allotment: NIL.
+Sectoral Allocation (Top 10 Sectors)^#
+Regular Plan
+Period
+Scheme Benchmark* Additonal Benchmark**
+Return (%) Value of
+Std Investment of
+₹10,000
+invested
+Return (%) Value of
+₹10,000
+invested
+Return (%) Value of
+₹10,000
+invested
+Last 6 Months -0.6840 9,931.60 0.2845 10,028.45 - -
+Since Inception 3.3880 10,338.80 8.2281 10,822.81 - -
+ Direct Plan 
+Last 6 Months 0.2269 10,022.69 0.2845 10,028.45 - -
+Since Inception 5.1290 10,512.90 8.2281 10,822.81 - -
+* Nifty 500 TRI (60%) CRISIL Composite Bond Fund Index (30%) Domestic Gold Prices (5%) Domestic Silver Prices (5%)
+Simple annualized returns have been provided as per the extant guidelines since the scheme has completed 6 months but not 1 year. 
+Load is not taken into consideration. Different plans shall have different expense structure. Returns are for Growth Option only. In case the 
+start/end date is non business day, the NAV of previous working day is used for computation. Please refer page no. 94- 98 for name of the 
+other schemes currently managed by the Fund Managers and relevant scheme for performance. Past performance may or may not be 
+sustained in future and its not a guarantee of any future returns. Data as on 31st August 2026.
+PERFORMANCE (As on 31st August, 2026)
+^Note : BER excludes brokerage incurred towards execution of trades, transaction
+cost & statutory levies as applicable to investor. $Change in Base Expense Ratio (‘BER’) of the scheme with effect from September
+05, 2026.
+Mr. Paras Matalia 
+(Fund Manager - Equities)
+(Managing Fund Since September 30, 2025)
+Total experience - over 08 years
+FUND MANAGER
+Mr. Kaustubh Sule 
+(Debt - Senior Fund Manager Fixed Income)
+(Managing Fund Since September 30, 2025)
+Total experience - over 18 years
+Mr. Wilfred Gonsalves 
+(Fund Manager & Dealer - Fixed Income)
+(Managing Fund Since September 30, 2025)
+Total experience - over 07 years
+Mr. Nikhil Satam 
+(Fund manager & Dealer Equity)
+(Managing Fund Since Nov 21, 2025)
+Total experience - over 11 years
+Maturity and Yield
+Modified Duration Average Maturity Macaulay Duration Annualized
+YTM
+0.11 0.12 0.12 5.34%
+NAV of Plans / Options Per Unit
+Regular Plan Direct Plan
+Growth `10.3388 Growth `10.5129
+IDCW `10.3390 IDCW `10.5098
+17.06%
+6.83% 4.14% 2.99% 2.77% 2.69% 2.47% 2.40% 2.00% 1.74%
+54.91%
+0.00%
+10.00%
+20.00%
+30.00%
+40.00%
+50.00%
+60.00%
+Banks
+Automobiles
+Pharmaceuticals &
+Biotechnology
+Petroleum
+Products
+Finance
+Telecom -
+Services
+IT - Software
+Capital Markets
+Retailing
+Construction
+other
+PORTFOLIO TURNOVER
+3.9291
+August 2026 
+Index Page
+GROWW Multi Asset Omni FOF
+(An open-ended fund of funds scheme investing in equity-oriented schemes, debt-oriented
+schemes and Gold & Silver ETFs )
+INVESTMENT OBJECTIVE: The primary objective of the Scheme is to generate capital appreciation and income through a diversified portfolio of equity, debt, Gold & 
+Silver ETFs. There is no assurance or guarantee that the investment objective of the Scheme will be achieved.
+Company Name Industry/Rating % of NAV
+Mutual Fund Units
+HDFC Large Cap Fund 14.81%
+ICICI Pru LargeCap Fund 13.85%
+Motilal Oswal Large & Midcap fund 13.07%
+Invesco Midcap Fund 10.12%
+Kotak Contra Fund 9.90%
+HDFC Credit Risk Debt Fund 6.29%
+Motilal Oswal Smallcap Fund 6.21%
+ICICI Pru Bharat Consumption Fund 4.20%
+Bandhan Dynamic Bond Fund 4.18%
+Motilal Oswal Nifty Capital Market ETF 3.83%
+Nippon India ETF Gold Bees 3.47%
+Nippon India MF- Nippon India Silver ETF 3.11%
+Groww Gold ETF 2.37%
+Motilal Oswal Active Mom Fund- Dir-Gr 2.08%
+Groww Silver ETF 1.60%
+Total 99.09%
+Reverse Repo/Net current assets 0.91%
+Grand Total 100.00%
+AUM
+PORTFOLIO
+Monthly Average ` 78.00 Cr.
+Month End AUM ` 78.58 Cr.
+DATE OF ALLOTMENT
+22nd December, 2025
+BENCHMARK
+Nifty 500 TRI (65%) + CRISIL Composite 
+Bond Fund Index (25%) + Domestic Gold 
+Prices (5%) + Domestic Silver Prices (5%)
+FUND SNAPSHOT
+Entry Load: Not Applicable
+Exit Load: NIL
+ENTRY & EXIT LOAD
+The investors are bearing the recurring expenses of the scheme, in addition to the expenses of
+other schemes in which the Fund of Funds Scheme makes investments.
+Mr. Paras Matalia
+ (Fund Manager - Equities)
+(Managing Since Inception)
+Total experience - over 08 years
+FUND MANAGER
+Mr. Wilfred Gonsalves
+ (Fund Manager &
+ Dealer-Fixed Income)
+(Managing Since Inception)
+Total experience - over 07 years
+Mr. Shashi Kumar
+(Fund Manager &
+ Dealer - Equity)
+(Managing Since Inception)
+Total experience - over 18 years
+^BASE EXPENSE RATIO 
+Direct Plan$ 0.19%
+Regular Plan 1.11%
+^Note : BER excludes brokerage incurred towards execution of trades,
+transaction cost & statutory levies as applicable to investor. $Change in Base Expense Ratio (‘BER’) of the scheme with effect from
+September 05, 2026.
+Regular Plan
+Period
+Scheme Benchmark* Additonal Benchmark**
+Return (%) Value of
+Std Investment of
+₹10,000
+invested
+Return (%) Value of
+₹10,000
+invested
+Return (%) Value of
+₹10,000
+invested
+Last 6 Months 5.6130 10,561.30 0.6284 10,062.84 - -
+Since Inception 5.3880 10,538.80 1.3337 10,133.37 - -
+ Direct Plan 
+Last 6 Months 6.2029 10,620.29 0.6284 10,062.84 - -
+Since Inception 6.2040 10,620.40 1.3337 10,133.37 - -
+* Nifty 500 TRI (65%) + CRISIL Composite Bond Fund Index (25%) + Domestic Gold Prices (5%) + Domestic Silver Prices (5%) 
+Simple annualized returns have been provided as per the extant guidelines since the scheme has completed 6 months but not 1 yea. 
+Different plans shall have different expense structure. Returns are for Growth Option only. In case the start/end date is non business day, 
+the NAV of previous working day is used for computation. Please refer page no. 94- 98 for name of the other schemes currently managed 
+by the Fund Managers and relevant scheme for performance. Past performance may or may not be sustained in future and its not a 
+guarantee of any future returns. Data as on 31st August 2026.
+PERFORMANCE (As on 31st August, 2026)
+NAV of Plans / Options Per Unit
+Regular Plan Direct Plan
+ Growth ` 10.5388 Growth ` 10.6204
+IDCW ` 10.5388 IDCW ` 10.6204
+PORTFOLIO TURNOVER
+1.30

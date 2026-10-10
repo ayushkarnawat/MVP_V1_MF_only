@@ -1,0 +1,336 @@
+32
+August 2026 
+Index Page
+GROWW Large Cap Fund
+(An open ended equity scheme predominantly investing in large cap stocks)
+INVESTMENT OBJECTIVE: The primary investment objective of the Scheme is to seek to provide long-term capital appreciation from a portfolio that is invested predominantly in 
+equity and equity-related securities of blue-chip large-cap companies. However, there can be no assurance that the investment objective of the scheme will be achieved.
+Instrument Type/Issuer Name Industry/Rating % of NAV
+Equity & Equity Related Holdings
+ICICI Bank Ltd. Banks 9.23%
+HDFC Bank Ltd. Banks 7.76%
+Larsen & Toubro Ltd. Construction 7.34%
+Bharti Airtel Ltd. Telecom - Services 4.73%
+Coforge Ltd. IT - Software 3.61%
+Cummins India Ltd. Industrial Products 3.42%
+Bajaj Finance Ltd. Finance 3.41%
+State Bank of India Banks 3.22%
+Mahindra & Mahindra Ltd. Automobiles 2.80%
+Cholamandalam Investment & Finance Co Finance 2.78%
+Samvardhana Motherson International Ltd Auto Components 2.75%
+Eternal Ltd. Retailing 2.63%
+Shriram Finance Ltd. Finance 2.58%
+Tech Mahindra Ltd. IT - Software 2.43%
+Axis Bank Ltd. Banks 2.37%
+Bharat Electronics Ltd Aerospace & Defense 2.33%
+Torrent Pharmaceuticals Ltd Pharmaceuticals & 
+Biotechnology 2.33%
+Reliance Industries Ltd. Petroleum Products 1.80%
+Bajaj Auto Ltd. Automobiles 1.69%
+Titan Company Ltd. Consumer Durables 1.67%
+SBI Life Insurance Company Ltd. Insurance 1.66%
+Kotak Mahindra Bank Ltd. Banks 1.60%
+Hyundai Motor India Ltd. Automobiles 1.54%
+Infosys Ltd. IT - Software 1.47%
+ICICI Prudential AMC Ltd Capital Markets 1.30%
+BSE Ltd Capital Markets 1.07%
+Tata Steel Ltd. Ferrous Metals 1.06%
+Dr. Reddy's Laboratories Ltd. Pharmaceuticals & 
+Biotechnology 1.04%
+Hindalco Industries Ltd. Non - Ferrous Metals 1.02%
+GE Vernova T&D India Ltd. Electrical Equipment 1.01%
+Ashok Leyland Ltd.
+Agricultural, 
+Commercial & 
+Construction Vehicles
+1.00%
+Others 8.42%
+Total 93.05%
+Tri Party Repo (TREPs)
+The Clearing Corporation of India Ltd. 3.74%
+Total 3.74%
+Reverse Repo/Net current assets 3.21%
+Grand Total 100.00%
+Regular Plan
+Period
+Scheme Benchmark* Additonal Benchmark**
+Return (%) Value of
+Std Investment of
+₹10,000
+invested
+Return (%) Value of
+₹10,000
+invested
+Return (%) Value of
+₹10,000
+invested
+1 Year 2.7611 10,277.65 1.9705 10,198.15 -2.5372 9,744.91
+3 Years 11.0220 13,688.37 10.7264 13,579.21 7.1110 12,290.90
+5 Years 8.6868 15,169.88 8.9676 15,367.00 7.2808 14,213.28
+Since Inception 10.5881 43,310.00 12.7506 57,422.16 12.0784 52,632.62
+ Direct Plan 
+1 Year 4.0862 10,410.90 1.9705 10,198.15 -2.5372 9,744.91
+3 Years 12.5314 14,254.80 10.7264 13,579.21 7.1110 12,290.90
+5 Years 10.1444 16,215.38 8.9676 15,367.00 7.2808 14,213.28
+Since Inception 12.3618 49,206.35 12.5877 50,576.15 11.9727 46,926.85
+*NIFTY 100- TRI, **BSE SENSEX-TRI
+Returns greater than 1 year period are compounded annualized returns (CAGR). Load is not taken into consideration. Different plans 
+shall have different expense structure. Returns are for Growth Option only. In case the start/end date is non business day, the NAV of 
+previous working day is used for computation. Please refer page no. 94- 98 for name of the other schemes currently managed by the Fund 
+Managers and relevant scheme for performance. Past performance may or may not be sustained in future and its not a guarantee of 
+any future returns. Data as on 31st August 2026.
+PERFORMANCE
+Entry Load: NA
+Exit Load: a) 1% if redeemed/ switched out within 7 
+Days from the date of allotment.
+b) Nil - if redeemed/ switched out after 7 
+Days from the date of allotment.
+(As on 31st August, 2026)
+PORTFOLIO
+Monthly Average ` 136.78 Cr.
+Month End AUM ` 136.68 Cr.
+STATISTICAL MEASURES (3 YEARS)
+Standard Deviation : 4.1509
+Beta : 0.98
+Sharpe Ratio* : 0.32
+R Square : 0.96
+No. of Stocks : 45
+PORTFOLIO TURNOVER
+0.81
+Sectoral Allocation (Top 10 Sectors)^#
+ENTRY & EXIT LOAD
+PORTFOLIO DETAILS
+Top 10 Stocks 48.29%
+Top 10 Sectors 73.49%
+^BASE EXPENSE RATIO
+Direct Plan$ 1.18%
+Regular Plan 2.09%
+Computed for the 3-yr period ended August 31, 2026. Based on month-end
+NAV. *Annualised. Risk free rate assumed to be 5.24% (FBIL OVERNIGHT
+MIBOR). ^Note : BER excludes brokerage incurred towards execution of
+trades, transaction cost & statutory levies as applicable to investor. $Change in Base Expense Ratio (‘BER’) of the scheme with effect from
+September 05, 2026.
+DATE OF ALLOTMENT
+10th February, 2012
+BENCHMARK
+NIFTY 100 - TRI
+FUND SNAPSHOT
+^Industrywise Classification as recommended by AMFI. 
+#Disclaimer: Fund Manager may or may not have exposure in the above sectors. 
+NAV of Plans / Options Per Unit
+Regular Plan Direct Plan
+ Growth ` 43.3100 Growth ` 52.7000
+IDCW ` 24.4000 IDCW ` 30.5200
+Monthly IDCW ` 24.9400 Monthly IDCW ` 23.5300
+Quarterly IDCW ` 25.8600 Quarterly IDCW ` 29.4000
+Half YearlyIDCW ` 26.0000 Half YearlyIDCW ` 29.6200
+Equity - Mr. Anupam Tiwari
+ (Head-Equity)
+(Managing Fund Since May 11, 2023)
+Total experience - over 21 years
+FUND MANAGER
+Mr. Gagan Thareja 
+(Head of Research- Equity & Fund Manager)
+(Managing Fund Since Jan 20, 2026)
+(Ceased to be FM Sep 10, 2026)
+Total experience - over 21 years
+Mr. Saptarshee Chatterjee 
+(Senior Research Analyst & Fund Manager - Equity)
+(Managing Fund Since Sep 24, 2025)
+Total experience - over 11 years
+Mr. Nikhil Satam 
+(Fund Manager & Dealer - Equity)
+(Managing Fund Since July 22, 2026) 
+Total experience - over 11 years
+24.18%
+8.77% 7.50% 7.48% 7.34% 4.73% 3.59% 3.42% 3.37% 3.12%
+26.51%
+0.00%
+10.00%
+20.00%
+30.00%
+Banks
+Finance
+IT - Software
+Automobiles
+Construction
+Telecom	-
+Services
+Retailing
+Industrial
+Products
+Pharmaceuticals
+&	Biotechnology
+Capital	Markets
+other38
+August 2026 
+Index Page
+GROWW Aggressive Hybrid Fund
+(An open ended hybrid scheme investing predominantly in equity and equity related instruments)
+INVESTMENT OBJECTIVE: The Scheme seeks to generate periodic return and long term capital appreciation from a judicious mix of equity and debt instruments. 
+However, there can be no assurance that the investment objective of the Scheme will be achieved. The Scheme does not assure or guarantee any returns.
+Instrument Type/Issuer Name Industry/Rating % of NAV
+Equity Shares
+HDFC Bank Ltd. Banks 4.27%
+ICICI Bank Ltd. Banks 4.11%
+Reliance Industries Ltd. Petroleum Products 3.46%
+Bharti Airtel Ltd. Telecom - Services 2.14%
+Larsen & Toubro Ltd. Construction 1.82%
+State Bank of India Banks 1.80%
+Axis Bank Ltd. Banks 1.61%
+Infosys Ltd. IT - Software 1.60%
+Multi Commodity Exchange of India Ltd. Capital Markets 1.38%
+The Federal Bank Ltd. Banks 1.30%
+Kotak Mahindra Bank Ltd. Banks 1.17%
+Mahindra & Mahindra Ltd. Automobiles 1.15%
+Bajaj Finance Ltd. Finance 1.13%
+Hero MotoCorp Ltd. Automobiles 1.09%
+One 97 Communications Ltd. Financial Technology
+(Fintech) 1.05%
+Tata Consultancy Services Ltd. IT - Software 1.05%
+Laurus Labs Ltd Pharmaceuticals &
+Biotechnology 1.02%
+Dixon Technologies (India) Ltd. Consumer Durables 1.00%
+Others 40.18%
+Total 72.34%
+Certificate of Deposits
+HDFC Bank Ltd. CRISIL A1+ 1.86%
+Union Bank of India ICRA A1+ 2.17%
+Total 4.03%
+Corporate Bonds/ NCD
+Cholamandalam Investment and Finance
+Company Ltd. ICRA AA+ 0.94%
+Total 0.94%
+Tri Party Repo (TREPs)
+The Clearing Corporation of India Ltd. 15.58%
+Total 15.58%
+Reverse Repo/Net current assets 7.11%
+Grand Total 100.00%
+Mr. Paras Matalia - Equity
+(Managing Fund Since April 01, 2026)
+Total experience - over 08 years
+Mr. Wilfred Gonsalves 
+(Fund Manager & Dealer- Fixed Income)
+(Managing Fund Since June 04, 2026)
+Total experience - over 07 years
+FUND MANAGER
+PORTFOLIO
+Mr. Nikhil Satam - Equity - Fund Manager & Dealer
+(Managing Fund Since April 01, 2026)
+Total experience - over 11 years
+Mr. Kaustubh Sule 
+(Debt - Senior Fund Manager Fixed Income)
+(Managing Fund Since May 11, 2023)
+Total experience - over 18 years
+Monthly Average ` 53.07 Cr.
+Month End AUM ` 53.34 Cr.
+STATISTICAL MEASURES (3 YEARS)
+Standard Deviation : 3.2640
+Beta : 1.09
+Sharpe Ratio* : 0.92
+R Square : 0.94
+No. of Stocks : 84
+PORTFOLIO TURNOVER
+2.05
+PORTFOLIO DETAILS
+Top 10 Stocks 23.50%
+Top 10 Sectors 46.99%
+^BASE EXPENSE RATIO 
+Direct Plan$ 1.40%
+Regular Plan 2.08%
+Computed for the 3-yr period ended August 31, 2026. Based on month-end
+NAV. *Annualised. Risk free rate assumed to be 5.24% (FBIL OVERNIGHT
+MIBOR). ^Note : BER excludes brokerage incurred towards execution of
+trades, transaction cost & statutory levies as applicable to investor. $Change in Base Expense Ratio (‘BER’) of the scheme with effect from
+September 05, 2026.
+DATE OF ALLOTMENT
+13th December, 2018
+BENCHMARK
+CRISIL Hybrid 35+65 - Aggressive 
+Index
+Maturity and Yield
+Modified Duration Average Maturity Macaulay Duration Annualized YTM
+0.07 0.07 0.07 5.28%
+FUND SNAPSHOT
+Regular Plan
+Period
+Scheme Benchmark* Additonal Benchmark**
+Return (%) Value of Std 
+Investment of
+₹10,000
+invested
+Return (%) Value of
+₹10,000
+invested
+Return (%) Value of
+₹10,000
+invested
+1 Year 1.9593 10,197.02 4.3221 10,432.58 -0.3522 9,964.59
+3 Years 9.1050 12,990.84 10.1340 13,362.22 8.9939 12,951.19
+5 Years 7.7379 14,518.79 8.9521 15,356.08 8.3186 14,914.55
+Since Inception 9.9866 20,852.90 11.8546 23,748.41 12.2960 24,481.64
+ Direct Plan 
+1 Year 3.0438 10,306.08 4.3221 10,432.58 -0.3522 9,964.59
+3 Years 10.5077 13,498.85 10.1340 13,362.22 8.9939 12,951.19
+5 Years 9.2098 15,538.64 8.9521 15,356.08 8.3186 14,914.55
+Since Inception 11.7517 23,580.20 11.8546 23,748.41 12.2960 24,481.64
+*CRISIL Hybrid 35+65 - Aggressive Index, ** NIFTY 50-TRI.
+Returns greater than 1 year period are compounded annualized returns (CAGR). Load is not taken into consideration. Different plans 
+shall have different expense structure. Returns are for Growth Option only. In case the start/end date is non business day, the NAV of 
+previous working day is used for computation. Please refer page no. 94- 98 for name of the other schemes currently managed by the Fund 
+Managers and relevant scheme for performance. Past performance may or may not be sustained in future and its not a guarantee of 
+any future returns. Data as on 31st August 2026.
+PERFORMANCE (As on 31st August, 2026)
+Entry Load: NA
+Exit Load: a) 1% if redeemed/ switched out within 7
+Days from the date of allotment.
+b) Nil - if redeemed/ switched out after 7 Days from
+the date of allotment.
+ENTRY & EXIT LOAD
+^Industrywise Classification as recommended by AMFI. 
+#Disclaimer: Fund Manager may or may not have exposure in the above sectors. 
+Sectoral Allocation (Top 10 Sectors)^#
+4.03% 0.94%
+95.03%
+Rating Profile
+4.03%
+0.94%
+22.69%
+ Certificate of Deposits
+ Corporate Bonds/
+NCD
+ A1+
+ AA+
+  Cash & Cash TREPS/ Reverse Repo/
+Net Current Assets
+Composition of Asset
+53.01%
+2.03%
+2.19%
+2.40%
+2.80%
+2.81%
+3.46%
+4.15%
+4.30%
+4.36%
+18.48%
+other
+Capital Markets
+Retailing
+Consumer Durables
+Pharmaceuticals &
+Biotechnology
+Telecom - Services
+Petroleum Products
+Automobiles
+Finance
+IT - Software
+Banks
+NAV of Plans / Options Per Unit
+Regular Plan Direct Plan
+ Growth ` 20.8529 Growth ` 23.5802
+IDCW ` 20.8499 IDCW ` 23.3727
+Monthly IDCW ` 20.8511 Monthly IDCW ` 23.3356
+Quarterly IDCW ` 22.1028 Quarterly IDCW ` 23.0955
+Half YearlyIDCW ` 20.8039 Half YearlyIDCW ` 22.6670

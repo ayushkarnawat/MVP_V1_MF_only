@@ -1,5 +1,5 @@
 # Handoff: a11-scenario-simulator
-**Status:** OPEN — Run 1 (plan Tasks 1, 2, 3, 4, 5, 5b, 6, 7, 8) ready to issue after A04 closes, 2026-10-09
+**Status:** OPEN — Run 1 (plan Tasks 1, 2, 3, 4, 5, 5b, 6, 7, 8) issued 2026-10-10, in parallel with A04 Runs 8–9 (user decision)
 **Parent plan:** `Docs/superpowers/plans/2026-10-09-attribute-11-scenario-simulator.md` (binding, as revised 9 Oct — read its "Revised 2026-10-09" block, Global Constraints and Review Focus 1–10 first)
 **Spec:** `Docs/analytics/2026-10-07-sub-project-1-planning.md`, "Attribute 11" · `Docs/analytics/2026-10-08-attribute-11-scenario-simulator-spec.md` · explainer: `Docs/orchestration/subproject1-execution/a11-scenario-simulator.html` (cards 1–12)
 **Orchestrator:** Claude Code (rulings, WSL + Postgres verification, review, commits, docs) · **Worker:** Codex
@@ -31,6 +31,8 @@
 - Task 3's NAV backfill and Task 5b's compute-all are **scripts the orchestrator runs on staging**; Codex builds and tests them only.
 
 ## Constraints (non-negotiable)
+
+**Running alongside A04 (10 Oct).** Another Codex session is building A04 (fund managers) in this same working tree. Its files are yours to ignore — never edit, revert or format them: `backend/app/services/analytics/fund_manager_*.py`, `amfi_factsheet_client.py`, `backend/scripts/jobs/*fund_managers*.py`, `backend/tests/services/analytics/test_fund_manager*`, `test_amfi_factsheet_client.py`, `backend/tests/fixtures/factsheets/`. In `git status`/`git diff`, list only this run's files in the report. If a shared test (`test_recompute.py`, `test_migrations.py`) fails in a fund-manager test or file, report it, don't fix it.
 
 **Git — read-only, whitelist.** Only `git status`, `git diff`, `git log`, `git show`, `git grep`, `git ls-files`. Leave everything uncommitted.
 
@@ -124,4 +126,5 @@ Run date/time: <…>    Environment: Windows    Python: <version>    Baseline HE
 
 | Round | Run | Result | Notes |
 |---|---|---|---|
-| — | Run 1 | ready 2026-10-09 | Tasks 1, 2, 3, 4, 5, 5b, 6, 7, 8 — issue after A04 closes. |
+| 1 | Run 1 | fix round 2026-10-10 | Codex: Tasks 1–8 built; final run sandbox-blocked. Orchestrator WSL: 120 passed, 1 deliberate failure (unseeded hypothetical); Postgres 0035→0037→0035→0037 clean, seed 34 scenarios / 45 assumptions. Codex's 4 questions ruled (plan Run 1 rulings 1–4; 2 and 3 by the user). Review (Opus): CHANGES NEEDED → rulings 5–10 (serve-time proxy for new schemes; canonical categories, one series per fund; classifier fixes; Numeric(10,2); ongoing end bound; backfill filters, no_data_funds, non-blocking list, real-row date test). Fix round issued to Codex. |
+| — | Run 1 fix | issued 2026-10-10 | Plan Run 1 rulings 1–10. |

@@ -1,0 +1,187 @@
+quant Liquid Fund
+An open ended Liquid Scheme- Relatively Low interest rate risk and
+moderate Credit Risk
+Fund Details
+Date of Inception/Allotment: 03 October 2005
+Benchmark Name: CRISIL LIQUID FUND A1 INDEX
+NAV (30 September 2026):
+Direct Daily IDCW 13.1478
+Direct Weekly IDCW 14.7080
+Direct Monthly IDCW 15.7639
+Direct Growth 45.6064
+Regular Weekly IDCW 14.5135
+Regular Monthly IDCW 15.1477
+Regular Growth 44.2823
+Regular Daily IDCW 12.6007
+AUM (30 September 2026): Rs. 1,148.99 Cr
+AAUM (30 September 2026): Rs. 1,355.75 Cr
+Fund Manager Details
+Name of Fund Manager: Sanjeev Sharma
+Total Experience: 20 Years
+Managing Since: 03 October 2019
+Name of Fund Manager: Haroonvardhan Sirohi
+Total Experience: 7 Months
+Managing Since: 20 February 2026
+Minimum Investment
+Lump sum Amount: 5000
+SIP Amount: 1000
+Load Structure
+Exit Load if any:
+Investor exit upon subscription / switch-In Exit Load as a
+% of redemption Proceeds No exit load shall be
+applicable on switches from Regular Plan to Direct Plan,
+under the same scheme.
+Expense Ratio
+Regular Plan (%): 0.59
+Direct Plan (%): 0.31
+Fund Performance:
+Performance of scheme in Tabular form
+Compounded
+Annualised Returns
+Scheme
+Returns % -
+Regular
+Scheme
+Returns % -
+Direct
+Benchmark
+Returns %
+Returns for last 1
+year
+5.77 6.08 6.21
+Returns for last 3
+year
+6.47 6.75 6.76
+Returns for last 5
+year
+6.03 6.31 6.29
+Returns since
+inception
+7.35 7.13 6.71
+Absolute Returns for each F.Y. for last 5 years
+Scheme Riskometer
+Benchmark Riskometer
+Major Risk Factors
+1. Risk factors associated with
+investment in various
+instruments in which the scheme
+intends to invest as indicated in
+asset allocation section of SID
+includes fixed income securities,
+securitised debt, derivatives,
+TREPS and all such other eligible
+securities are detailed in the
+scheme's respective SID along
+with SAI.
+*with a detailed explanation in the
+Important Link Section
+Portfolio Data
+Top 10 Holdings % of
+net
+assets
+1 Rec Ltd Cp 22-Oct-2026 8.67
+2 Pnb Housing Finance Ltd Cp 27-Oct-2026 8.66
+3 Bank Of Baroda Cd 06-Nov-2026 8.65
+4 Godrej Industries Ltd Cp 23-Oct-2026 6.50
+5 Bajaj Finance Limited Cp 05-Nov-2026 6.48
+6 Kotak Mahindra Bank Ltd Cd 18-Dec-2026 6.44
+7 Hdfc Bank Ltd Cd 16-Oct-2026 4.34
+8 Mirae Asset Fin Services Cp -27-Oct-2026 4.33
+9 L&t Finance Ltd Cp 05-Nov-2026 4.32
+10 182 Days Treasury Bill 22-Oct-2026 2.17
+Quantitative Measures / Risk Measures*
+1 Average Maturity (years) 0.08
+2 Macaulay Duration (years) 0.08
+3 Modified Duration (years) 0.08
+4 Yield to Maturity (%) 5.82
+*One liner/brief inference provided in the table at
+page no. 146. w.r.t each of these data points/ratios
+as applicable.
+Additional Information pertaining to Portfolio of the scheme
+Detailed Investment in Securities - https://quantmutual.com/statutory-disclosures
+Allocation of Net Asset by Sectors - https://quantmutual.com/downloads/factsheet
+Allocation of Net Asset by Asset Class - https://quantmutual.com/downloads/factsheet
+Allocation of Net Assets by Credit Rating - https://quantmutual.com/downloads/factsheet
+As on September 30, 2026 Past Performance is not an indicator or guarantee of future results 133quant Overnight Fund
+An open ended Debt Scheme investing in Overnight securities –
+Relatively Low interest rate risk and Relatively Low Credit Risk
+Fund Details
+Date of Inception/Allotment: 04 December 2022
+Benchmark Name: CRISIL OVERNIGHT INDEX
+NAV (30 September 2026):
+Direct IDCW 12.6192
+Direct Growth 12.6142
+Regular IDCW 12.5547
+Regular Growth 12.5663
+AUM (30 September 2026): Rs. 53.7 Cr
+AAUM (30 September 2026): Rs. 59.66 Cr
+Fund Manager Details
+Name of Fund Manager: Sanjeev Sharma
+Total Experience: 20 Years
+Managing Since: 05 December 2022
+Name of Fund Manager: Haroonvardhan Sirohi
+Total Experience: 7 Months
+Managing Since: 20 February 2026
+Minimum Investment
+Lump sum Amount: 5000
+SIP Amount: 1000
+Load Structure
+Exit Load if any:
+Nil
+Expense Ratio
+Regular Plan (%): 0.26
+Direct Plan (%): 0.19
+Fund Performance:
+Performance of scheme in Tabular form
+Compounded
+Annualised Returns
+Scheme
+Returns % -
+Regular
+Scheme
+Returns % -
+Direct
+Benchmark
+Returns %
+Returns for last 1
+year
+4.95 5.04 5.24
+Returns for last 3
+year
+6.01 6.10 6.06
+Returns for last 5
+year
+N.A. N.A. N.A.
+Returns since
+inception
+6.16 6.26 6.19
+Absolute Returns for each F.Y. for last 5 years
+Scheme Riskometer
+Benchmark Riskometer
+Major Risk Factors
+1. Risk factors associated with
+investment in various
+instruments in which the scheme
+intends to invest as indicated in
+asset allocation section of SID
+includes fixed income securities,
+securitised debt, derivatives,
+TREPS and all such other eligible
+securities are detailed in the
+scheme's respective SID along
+with SAI.
+*with a detailed explanation in the
+Important Link Section
+Quantitative Measures / Risk Measures*
+1 Average Maturity (years) 0.00
+2 Macaulay Duration (years) 0.00
+3 Modified Duration (years) 0.00
+4 Yield to Maturity (%) 4.85
+*One liner/brief inference provided in the table at page no. 146. w.r.t
+each of these data points/ratios as applicable.
+Additional Information pertaining to Portfolio of the scheme
+Detailed Investment in Securities - https://quantmutual.com/statutory-disclosures
+Allocation of Net Asset by Sectors - https://quantmutual.com/downloads/factsheet
+Allocation of Net Asset by Asset Class - https://quantmutual.com/downloads/factsheet
+Allocation of Net Assets by Credit Rating - https://quantmutual.com/downloads/factsheet
+As on September 30, 2026 Past Performance is not an indicator or guarantee of future results 141

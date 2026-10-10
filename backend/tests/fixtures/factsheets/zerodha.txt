@@ -1,0 +1,377 @@
+Past Performance is not an indicator or guarantee of future results
+Zerodha Nifty Large Midcap250 Index Fund
+Type of Scheme: An open-ended scheme replicating/tracking Nifty LargeMidcap 250 Index
+Product labeling: Long term capital growth; investment in equity and equity related securities covered by the Nifty
+LargeMidcap 250 Index. Investors should understand that their principal will be at Very High risk. Investors should
+consult their financial advisers if in doubt about whether the product is suitable for them.
+Fund Details
+Date of
+Inception/Allotment
+8-Nov-2023
+Benchmark Name
+Nifty LargeMidcap 250
+Index TRI
+NAV (latest month end
+for all plans and
+options)
+NAV - Direct Plan:
+14.5868
+AUM (as on August 31,
+2026)
+1,613.97 Cr.
+AAUM (Monthly Average
+for August 2026)
+1,592.75 Cr.
+Fund Manager
+Details
+Name of Fund Managers
+Mr. Kedarnath
+Mirajkar
+Total Experience: 20
+years
+Managing Since: Nov
+2023
+Minimum Investment
+Lump sum Amount
+₹100
+SIP Amount
+₹10
+Load Structure
+Exit Load if any
+0
+Expense Ratio
+Regular Plan
+NA
+Direct Plan
+TER: 0.36%
+BER: 0.25%
+Quantitative
+Measures/Risk
+Measures* (as
+applicable)
+1. Standard Deviation
+(%): 14.27%
+2. Beta: 1.00
+3. Tracking Error (%):
+0.04%
+4. Sharpe Ratio (%): NA
+5. Tracking Difference (%)
+— 1Y: 0.26%, 3Y: NA, 5Y:
+NA, 10Y: NA, SI: 0.02%
+6. Information Ratio: NA
+*One liner/brief inference is
+provided in the table on the
+next page w.r.t each of
+these data points/ratios as
+applicable.
+Fund Performance
+Performance of the Scheme – CAGR provided for both Direct & Regular Plans along with Benchmark
+performance as shown below.
+Period Scheme
+Returns
+%
+-
+Regular
+Scheme
+Returns
+%
+- Direct
+Benchmark
+Returns %
+Additional
+Benchmark
+CAGR (%)
+Value of ₹10,000 invested
+Scheme
+(₹)
+Benchmark
+(₹)
+Additional
+Benchmark
+(₹)
+Returns
+for last 1
+year
+NA 8.17% 7.91% -0.35% 10,821.47 10,795.67 9,964.59
+Returns
+since
+inception
+NA 14.36% 14.34% 9.19% 14,586.80 14,580.05 12,805.15
+Absolute Returns for each F.Y. for last 5 years
+Regular Direct Benchmark NA 17.5% 17.8%
+FY 2023-24*
+NA
+7.3%
+7.3%
+FY 2024-25
+NA
+-0.7%
+-0.8%
+FY 2025-26
+Scheme was launched on 8-Nov-2023; return/absolute-return figures for periods before launch are shown as NA.
+*FY 2023-24* is a partial-period return from the scheme’s launch on 8-Nov-2023 to 31 March 2024, not a full
+financial year.
+Source: Zerodha AMC Website
+Portfolio Data
+Top 10 Holdings
+Holding Name %age of net assets
+1. HDFC Bank Limited 3.94%
+2. ICICI Bank Limited 3.78%
+3. Reliance Industries Limited 3.13%
+4. Bharti Airtel Limited 2.00%
+5. Larsen & Toubro Limited 1.72%
+6. BSE Ltd 1.60%
+7. State Bank of India 1.59%
+8. Infosys Limited 1.44%
+9. Axis Bank Limited 1.35%
+10. Kotak Mahindra Bank Limited 1.12%
+Scheme Riskometer
+Very High
+Benchmark
+Riskometer
+Very High
+Major Risk Factors
+1. Tracking error risk –
+scheme returns
+may deviate from
+the Nifty
+LargeMidcap 250
+Index as stated in
+the scheme's
+investment
+objective.
+2. Equity market risk
+arising from
+fluctuations in the
+price of the
+underlying
+constituent stocks.
+3. Concentration risk
+on account of
+exposure to the
+index’s constituent
+stocks and sectors.
+4. Risk arising from
+changes in macro￾economic and
+regulatory
+environment.
+*with a detailed explanation
+in the Important Link
+Section
+Quantitative
+Measures/Risk
+Measures* (as
+applicable)
+1. Portfolio Turnover Ratio
+(Annualized)
+a) Equity Turnover: 0.14
+b) Gross Exposure
+Turnover (Equity + Debt +
+Derivatives): NA
+2. Average Maturity
+(years): NA
+3. Macaulay Duration
+(years): NA
+4. Modified Duration (%):
+NA
+5. Annualized Portfolio
+Yield: NA
+6. Yield to Maturity (%):
+NA
+* One liner/brief inference
+for investor is provided in
+the table on the next page
+w.r.t each of these data
+points/ratios as applicable.Past Performance is not an indicator or guarantee of future results
+Zerodha Gold ETF
+Type of Scheme: An open-ended scheme replicating/tracking domestic prices of Gold
+Product labeling: Long term capital appreciation; investment in gold in order to generate returns similar to the
+performance of gold, subject to tracking errors. Investors should understand that their principal will be at High risk.
+Investors should consult their financial advisers if in doubt about whether the product is suitable for them.
+Fund Details
+Date of
+Inception/Allotment
+26-Feb-2024
+Benchmark Name
+Gold
+NSE/BSE Symbol
+GOLDCASE
+NAV (latest month end
+for all plans and
+options)
+NAV - Direct Plan:
+24.2869
+AUM (as on August 31,
+2026)
+2,570.54 Cr.
+AAUM (Monthly Average
+for August 2026)
+2,514.80 Cr.
+Fund Manager
+Details
+Name of Fund Managers
+Mr. Shyam Agarwal
+Total Experience: 4
+years
+Managing Since: Feb
+2024
+Mr. Kedarnath
+Mirajkar (Co-Fund
+Manager)
+Total Experience: 20
+years
+Managing Since: Sep
+2024
+Minimum Investment
+Min. Investment (at
+exchange)
+1 Unit
+Min. Investment (direct
+with AMC)
+In Creation Unit Size
+SIP Amount
+NA for ETFs
+Load Structure
+Exit Load if any
+0
+Expense Ratio
+Regular Plan
+NA
+Direct Plan
+TER: 0.35%
+BER: 0.3%
+Quantitative
+Measures/Risk
+Measures* (as
+applicable)
+1. Standard Deviation
+(%): 27.46%
+2. Beta: 0.99
+3. Tracking Error (%):
+0.58%
+4. Sharpe Ratio (%): NA
+5. Tracking Difference (%)
+— 1Y: -1.73%, 3Y: NA,
+5Y: NA, 10Y: NA, SI:
+-1.67%
+6. Information Ratio: NA
+*One liner/brief inference is
+provided in the table on the
+next page w.r.t each of
+these data points/ratios as
+applicable.
+Fund Performance
+Performance of the Scheme – CAGR provided for both Direct & Regular Plans along with Benchmark
+performance as shown below.
+Period Scheme
+Returns
+%
+-
+Regular
+Scheme
+Returns
+%
+- Direct
+Benchmark
+Returns %
+Additional
+Benchmark
+CAGR (%)
+Value of ₹10,000 invested
+Scheme
+(₹)
+Benchmark
+(₹)
+Additional
+Benchmark
+(₹)
+Returns
+for last 1
+year
+NA 50.05% 51.77% -0.35% 15,038.70 15,212.18 9,964.59
+Returns
+since
+inception
+NA 42.36% 44.04% 4.74% 24,288.11 25,010.72 11,232.51
+Absolute Returns for each F.Y. for last 5 years
+Regular Direct Benchmark NA7.7% 8.0%
+FY 2023-24*
+NA
+31.0%
+32.4%
+FY 2024-25
+NA
+62.6%
+64.8%
+FY 2025-26
+Scheme was launched on 26-Feb-2024; return/absolute-return figures for periods before launch are shown as
+NA.
+*FY 2023-24* is a partial-period return from the scheme’s launch on 26-Feb-2024 to 31 March 2024, not a full
+financial year.
+Source: Zerodha AMC Website
+Portfolio Data
+Top 10 Holdings
+Holding Name %age of net assets
+1. Gold 1 Kg Bar (995 fineness) 97.45%
+2. Gold ETCDs 1.75%
+3. TREPS 0.72%
+4. Other Current Assets/(Liabilities) 0.08%
+5. - -
+6. - -
+7. - -
+8. - -
+9. - -
+10. - -
+Scheme Riskometer
+High
+Benchmark
+Riskometer
+High
+Major Risk Factors
+1. Price risk of gold in
+domestic and
+international
+markets.
+2. Tracking error risk –
+scheme returns
+may deviate from
+the domestic price
+of the underlying
+commodity.
+3. Storage and
+custody risk
+associated with
+holding physical
+gold.
+4. Risk arising from
+changes in macro￾economic and
+regulatory
+environment.
+*with a detailed explanation
+in the Important Link
+Section
+Quantitative
+Measures/Risk
+Measures* (as
+applicable)
+1. Portfolio Turnover Ratio
+(Annualized)
+a) Equity Turnover: NA
+b) Gross Exposure
+Turnover (Equity + Debt +
+Derivatives): NA
+2. Average Maturity
+(years): NA
+3. Macaulay Duration
+(years): NA
+4. Modified Duration (%):
+NA
+5. Annualized Portfolio
+Yield: NA
+6. Yield to Maturity (%):
+NA
+* One liner/brief inference
+for investor is provided in
+the table on the next page
+w.r.t each of these data
+points/ratios as applicable.

@@ -89,6 +89,39 @@ zero new external data source. React/TypeScript frontend, 4 distinct result-view
 >
 > **Migration numbers:** after A09 (expected `0034`), these are expected to be `0035` (tables) and
 > `0036` (seed) — run the `ls` in Global Constraints anyway.
+>
+> **Run 1 rulings (10 Oct; built in the Run 1 fix round):**
+> 1. **Unseeded hypothetical → no numbers** (orchestrator, per Global Constraints): `rupee_impact`, `covered_value`,
+>    `total_value` and `no_data_funds` on `ScenarioResultRow` become nullable and are `null` when
+>    `assumptions_not_set`; Run 2's types follow.
+> 2. **Start NAV = close before the start** (user, 10 Oct): start = latest NAV *before* `start_date`, end = latest NAV
+>    on or before `end_date` (or today); each must be within 7 days of its target date, else the scheme has no real
+>    data (proxy cascade). One-day events (2004/2024 election results) then show that day's move instead of 0%.
+>    The Nifty TRI benchmark uses the same rule. Replaces card 5's "NAV on the day before start is not used".
+>    Replay stays boundary-to-boundary (the seeded window is the event; no intra-window trough search).
+> 3. **Multi-phase headline = whole event** (user, 10 Oct): headline `portfolio_impact_pct`, `rupee_impact`,
+>    `covered_value`, `total_value`, `no_data_funds` and `by_member` all read the group row's results; `by_fund`
+>    stays on the current phase (card 6), labelled as such in Run 2.
+> 4. **Freeze column type** (orchestrator): `ARRAY(Text)` on Postgres in the model and both migrations, matching
+>    the `text[]` wording; JSON on SQLite unchanged.
+> 5. **Schemes added after the precompute get a proxy at serve time** (review High): a held scheme with no
+>    `scenario_scheme_results` row is proxied from the stored `scenario_category_averages` (canonical category,
+>    then asset class) and shown as proxied — never permanent "no data" for a new fund.
+> 6. **Category averages group on `canonical_category()`** (A09) and count **one series per fund** — Growth
+>    option (Regular preferred, as A09's peers), never IDCW; every plan still gets its own real row. An average
+>    needs ≥ 3 funds, else fall to the asset-class average.
+> 7. **Classifier fixes** (orchestrator; plan code was wrong on real AMFI rows): overseas by fund name before
+>    the equity bucket ("Japan", "Taiwan", "International", "Global", "US ", "Nasdaq", "World", "Overseas",
+>    "Developed Market", "China", "Asia", "Europe"); "Arbitrage" categories → `Debt-short` (cash-like, matching
+>    the wrapper path); "MSCI India" is domestic, not `Overseas`. Tests use real NAVAll names.
+> 8. **`pct_change`/`avg_pct_change` are `Numeric(10,2)`**, and a ratio beyond ±1000% is skipped and logged as
+>    implausible (NAV glitch) rather than stored.
+> 9. **Ongoing scenarios** use ruling 2's 7-day bound at the end too, so a scheme without a recent NAV falls to
+>    the proxy instead of mixing stale end dates into averages.
+> 10. **Smaller fixes:** backfill selects only active schemes with an `amfi_code`; `no_data_funds` skips
+>     zero-value holdings the same way on both paths; `GET /scenarios` loads phases in one query and runs its
+>     DB work off the event loop (`asyncio.to_thread`, like `commit_off_loop`); the card-5 date test is
+>     rewritten on real `NavHistory` rows.
 
 ## Global Constraints
 

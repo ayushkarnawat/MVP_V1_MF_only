@@ -1,0 +1,450 @@
+9
+Performance (CAGR)
+Fund NIFTY 100 TRI^ NIFTY 50 TR Index #
+Period Returns (%) Value (INR)* Returns (%) Value (INR)* Returns (%) Value (INR)*
+Regular Plan - Growth Option
+Last 1 Year -0.08 9,992 1.97 10,198 -0.35 9,965
+Last 3 Years 7.60 12,460 10.73 13,579 8.99 12,951
+Last 5 Years 6.14 13,474 8.97 15,367 8.32 14,915
+Since Inception 16.04 3,34,750 16.47 3,65,451 15.80 3,19,063
+Direct Plan - Growth Option
+Last 1 Year 1.46 10,147 1.97 10,198 -0.35 9,965
+Last 3 Years 9.25 13,044 10.73 13,579 8.99 12,951
+Last 5 Years 7.76 14,534 8.97 15,367 8.32 14,915
+Since Inception 12.80 51,880 12.59 50,576 12.13 47,811
+Source: Internal. Date of Inception: Regular Plan: January 30, 2003; Direct Plan: January 01, 2013. CAGR – Compounded Annual Growth Rate
+^ Scheme Benchmark. # Standard Benchmark. *Based on standard investment of ` 10,000 made at the beginning of the 
+relevant period. Past performance may or may not be sustained in future and should not be used as a basis for comparison 
+with other investments. The above returns are as on August 31, 2026. For SIP Performance, please refer page no. 43. 
+Anandha Padmanabhan Anjeneyan (Equity Portion) is managing this fund from August 19, 2023; Vivek Sharma (Equity Portion) is managing this 
+fund from April 15, 2024; Vinay Paharia (Equity Portion) is managing this fund from April 01, 2023; Mr. Akhil Dhar (Debt Portion) is managing 
+this fund from February 25, 2026. For performance of schemes managed by the respective fund managers, please refer to pages 38–43. Anandha 
+Padmanabhan Anjeneyan is managing 13 schemes; Vivek Sharma is managing 14 schemes; Vinay Paharia is managing 10 schemes and Akhil 
+Dhar is managing 8 schemes. Different plans have a different expense structure. Total Expense Ratio as on August 31, 2026 refer page no. 36. For 
+subscription details, please refer page no. 45.
+Portfolio Classification (%)
+Large Cap (%) (1st-100th stock) 86.86
+Mid Cap (%) (101st-250th stock) 10.46
+Small Cap (%) (251st stock onwards) 0.62
+Cash and Gsec (%) 1.97
+Debt (%) 0.09
+INVTs (%) —
+ETF (%) —
+REITs (%) —
+Fund Details
+Investment Objective: To generate long term capital growth from 
+a diversified portfolio of equity and equity related securities of 
+predominantly large cap companies. However, there is no assurance that 
+the investment objective of the Scheme will be achieved. The Scheme 
+does not guarantee/indicate any returns.
+Fund Manager: (w.e.f. August 19, 2023) Mr. Anandha Padmanabhan 
+Anjeneyan (Equity Portion) (Over 17 years of experience in Equity Market) 
+; (w.e.f. April 15, 2024) Mr. Vivek Sharma (Equity Portion) (Over 15 years 
+of experience in Equity market, research and fund management); (w.e.f. 
+April 01, 2023) Mr. Vinay Paharia (Equity Portion)(Over 22 years of 
+experience in Indian financial markets, primarily in equity research & 
+Fund Management) and (w.e.f. February 25, 2026) Mr. Akhil Dhar (Debt 
+Portion) (Over 9 years of experience in Credit Analysis and Research).
+Benchmark: NIFTY 100 TRI
+Option: IDCW** (Payout of Income Distribution cum Capital Withdrawal 
+option / Reinvestment of Income Distribution cum Capital Withdrawal 
+option) and Growth.
+Quarterly (Apr-June 2026) Average AUM (` in Cr): 538.67 
+Monthly Average AUM (` in Cr): 543.33
+AUM as on 31/08/2026 (` in Cr.): 537.99
+Portfolio Turnover: 0.37
+Volatility Measures (3 Years):
+Standard Deviation of Fund (Annual): 12.93%
+Standard Deviation of Benchmark (Annual): 13.70%
+Beta: 0.92 Sharpe Ratio***: 0.12
+*** Risk Free Rate assumed to be 6.10% (based on MIBOR as on 
+31/08/2026)
+NAV Regular Plan Direct Plan
+Growth ` 334.75 ` 404.04
+IDCW** ` 18.37 ` 26.68
+**Income Distribution cum Capital Withdrawal option
+Load Structure: Entry Load: NA. Exit Load: For Exits within 90 days 
+from date of allotment of units: 0.50%; For Exits beyond 90 days 
+from date of allotment of units: NIL.
+Portfolio
+Issuer % to Net 
+Assets
+Rating
+Aerospace & Defense 0.76
+Bharat Electronics Ltd. 0.76
+Agricultural Food & other Products 0.75
+Tata Consumer Products Ltd. 0.75
+Auto Components 1.46
+Samvardhana Motherson International Ltd. 1.46
+Automobiles 6.29
+TVS Motor Company Ltd. 2.25
+Mahindra & Mahindra Ltd. 1.70
+Eicher Motors Ltd. 1.50
+Maruti Suzuki India Ltd. 0.84
+Banks 26.59
+ICICI Bank Ltd. 8.83
+HDFC Bank Ltd. 7.89
+State Bank of India 4.25
+Kotak Mahindra Bank Ltd. 3.13
+Axis Bank Ltd. 2.48
+Beverages 2.21
+Varun Beverages Limited 1.31
+United Spirits Ltd. 0.89
+Capital Markets 1.11
+SBI Funds Management Ltd. 0.62
+ICICI Prudential Asset Mgmt Co Ltd. 0.49
+Cement & Cement Products 1.98
+Ultratech Cement Ltd. 1.98
+Chemicals & Petrochemicals 0.86
+Solar Industries India Ltd. 0.86
+Construction 4.08
+Larsen & Toubro Ltd. 4.08
+Consumer Durables 4.98
+Titan Company Ltd. 2.86
+Asian Paints Ltd. 1.16
+LG Electronics India Ltd. 0.96
+Diversified FMCG 1.01
+ITC Ltd. 1.01
+Electrical Equipment 1.27
+CG Power and Industrial Solutions Ltd. 0.86
+GE Vernova T&D India Limited 0.41
+Ferrous Metals 2.04
+JSW Steel Ltd. 1.60
+Tata Steel Ltd. 0.45
+Finance 5.23
+Bajaj Finance Ltd. 2.62
+Shriram Finance Ltd. 1.10
+Power Finance Corporation Ltd. 0.82
+Muthoot Finance Ltd. 0.69
+Financial Technology (Fintech) 0.67
+One 97 Communications Ltd. 0.67
+Issuer % to Net 
+Assets
+Rating
+Food Products 1.02
+Nestle India Ltd. 1.02
+Healthcare Services 1.84
+Max Healthcare Institute Ltd. 1.27
+Manipal Health Enterprises Ltd. 0.57
+Insurance 2.04
+ICICI Lombard General Insurance Co. Ltd. 1.12
+HDFC Life Insurance Company Ltd. 0.92
+IT - Software 6.68
+Tech Mahindra Ltd. 2.59
+Tata Consultancy Services Ltd. 1.99
+Infosys Ltd. 1.55
+Persistent Systems Ltd. 0.55
+Non - Ferrous Metals 0.79
+Hindalco Industries Ltd. 0.79
+Petroleum Products 4.42
+Reliance Industries Ltd. 4.42
+Pharmaceuticals & Biotechnology 5.42
+Divi's Laboratories Ltd. 1.74
+Sun Pharmaceutical Industries Ltd. 1.32
+Mankind Pharma Ltd. 1.23
+Torrent Pharmaceuticals Ltd. 1.13
+Power 3.26
+NTPC Ltd. 1.93
+Torrent Power Ltd. 0.87
+Power Grid Corporation of India Ltd. 0.47
+Realty 1.21
+Prestige Estates Projects Ltd. 1.21
+Retailing 3.88
+Eternal Ltd. 3.17
+Vishal Mega Mart Ltd 0.71
+Telecom - Services 4.82
+Bharti Airtel Ltd. 4.82
+Transport Services 1.27
+InterGlobe Aviation Ltd. 1.27
+Equity Holdings Total 97.92
+Preference Shares 0.05
+TVS Motor Company Ltd. 0.05 CARE A1+
+Government Bond And Treasury Bill 0.09
+Treasury Bill 0.09
+364 Days Tbill Red - 2026 0.09 SOVEREIGN
+Cash & Current Assets 1.94
+Total 100.00
+This product is suitable for investors who are seeking*
+• Capital growth over the long term
+• Investment predominantly in equity and equity 
+related securities of Large Cap companies.
+• Degree of risk – VERY HIGH
+* Investors should consult their financial advisers if in 
+doubt about whether the product is suitable for them.
+Scheme Riskometer
+RISKOMETER
+Moderate
+Risk Low to 
+Moderate
+Risk
+Low Risk
+Moderately
+High Risk
+Very High
+Risk
+High Risk
+The risk of the scheme is very high
+ Benchmark Riskometer
+RISKOMETER
+Moderate
+Risk Low to 
+Moderate
+Risk
+Low Risk
+Moderately
+High Risk
+Very High
+Risk
+High Risk
+AMFI Tier 1 Benchmark - NIFTY 100 TRI
+Details as on August 31, 2026 The risk of the benchmark is very high 
+Large Cap Fund - An Open - Ended Equity Scheme Predominantly 
+Investing in Large Cap Stocks
+LARGE CAP FUND
+PGIM INDIA
+For IDCW History of the scheme kindly refer page no. 45-49.10
+Portfolio Classification (%)
+Large Cap (%) (1st-100th stock) 56.74
+Mid Cap (%) (101st-250th stock) 22.02
+Small Cap (%) (251st stock onwards) 17.57
+Cash and GSec (%) 3.56
+Debt (%) 0.11
+INVTs (%) —
+ETF (%) —
+REITs (%) —
+Fund Details
+Investment Objective: To generate income & capital appreciation by 
+predominantly investing in an actively managed diversified portfolio 
+of equity & equity related instruments including derivatives. However, 
+there is no assurance that the investment objective of the Scheme will 
+be achieved. The Scheme does not guarantee/indicate any returns.
+Fund Manager: (w.e.f. June 01, 2021) Mr. Anandha Padmanabhan 
+Anjeneyan (Equity Portion) (Over 17 years of experience in Equity Market); 
+(w.e.f. April 15, 2024) Mr. Vivek Sharma (Equity Portion) (Over 15 years 
+of experience in Equity market, research and fund management); 
+(w.e.f. April 01, 2023) Mr. Vinay Paharia (Equity Portion)(Over 22 years 
+of experience in Indian financial markets, primarily in equity research 
+& Fund Management) and (w.e.f. April 01, 2023) Mr. Puneet Pal (Debt 
+Portion) (Over 24 years of experience in Debt Market).
+Benchmark: Nifty 500 TRI
+Option: IDCW** (Payout of Income Distribution cum Capital Withdrawal 
+option / Reinvestment of Income Distribution cum Capital Withdrawal 
+option) and Growth.
+Quarterly (Apr-June 2026) Average AUM (` in Cr): 5757.94 
+Monthly Average AUM (` in Cr): 5962.25
+AUM as on 31/08/2026 (` in Cr.): 5908.25
+Portfolio Turnover: 0.51
+Volatility Measures (3 Years):
+Standard Deviation of Fund (Annual): 13.54%
+Standard Deviation of Benchmark (Annual): 14.30%
+Beta:0.92 Sharpe Ratio***: 0.33
+*** Risk Free Rate assumed to be 6.10% (based on MIBOR as on 
+31/08/2026)
+NAV Regular Plan Direct Plan
+Growth ` 37.58 ` 44.58
+IDCW** ` 18.37 ` 21.06
+**Income Distribution cum Capital Withdrawal option
+Load Structure: Entry Load: NA. Exit Load: For Exits within 90 days 
+from date of allotment of units: 0.50%; For Exits beyond 90 days from 
+date of allotment of units: NIL.
+This product is suitable for investors who are seeking*
+• Capital appreciation over long term.
+• To generate income and capital appreciation by 
+predominantly investing in an actively managed 
+diversified portfolio of equity and equity related 
+instruments including derivatives.
+• Degree of risk – VERY HIGH
+* Investors should consult their financial advisers if in 
+doubt about whether the product is suitable for them.
+Scheme Riskometer
+RISKOMETER
+Moderate
+Risk Low to 
+Moderate
+Risk
+Low Risk
+Moderately
+High Risk
+Very High
+Risk
+High Risk
+The risk of the scheme is very high
+Benchmark Riskometer
+RISKOMETER
+Moderate
+Risk Low to 
+Moderate
+Risk
+Low Risk
+Moderately
+High Risk
+Very High
+Risk
+High Risk
+AMFI Tier 1 Benchmark - Nifty 500 TR Index
+The risk of the benchmark is very high 
+Performance (CAGR)
+Fund Nifty 500 TR Index^ NIFTY 50 TR Index #
+Period Returns (%) Value (INR)* Returns (%) Value (INR)* Returns (%) Value (INR)*
+Regular Plan - Growth Option
+Last 1 Year 4.80 10,483 5.31 10,534 -0.35 9,965
+Last 3 Years 10.56 13,518 12.54 14,257 8.99 12,951
+Last 5 Years 7.59 14,421 11.12 16,946 8.32 14,915
+Since Inception 12.20 37,580 11.94 36,587 10.37 31,106
+Direct Plan - Growth Option
+Last 1 Year 6.21 10,624 5.31 10,534 -0.35 9,965
+Last 3 Years 12.06 14,076 12.54 14,257 8.99 12,951
+Last 5 Years 9.16 15,506 11.12 16,946 8.32 14,915
+Since Inception 13.88 44,580 11.94 36,587 10.37 31,106
+Source: Internal. Date of Inception: Regular Plan: March 04, 2015; Direct Plan: March 04, 2015. CAGR – Compounded Annual Growth Rate
+^ Scheme Benchmark. # Standard Benchmark. *Based on standard investment of ` 10,000 made at the beginning of the relevant period. Past 
+performance may or may not be sustained in future and should not be used as a basis for comparison with other investments. The above returns 
+are as on August 31, 2026. For SIP Performance, please refer page no. 43. 
+Anandha Padmanabhan Anjeneyan (Equity Portion) is managing this fund from June 01, 2021. Vivek Sharma (Equity Portion) is managing this
+fund from April 15, 2024. Vinay Paharia (Equity Portion) is managing this fund from April 01, 2023. Puneet Pal (Debt Portion) is managing this
+fund from April 01, 2023. For performance of schemes managed by the respective fund managers, please refer to pages 38–43. Anandha Padmanabhan 
+Anjeneyan is managing 13 schemes, Vivek Sharma is managing 14 schemes, Vinay Paharia is managing 10
+schemes and Puneet Pal is managing 20 schemes. Different plans have a different expense structure. Total Expense Ratio as on August 31, 2026 
+refer page no. 36. For subscription details, please refer page no. 45.
+Portfolio
+Issuer % to Net 
+Assets
+Rating
+Aerospace & Defense 1.18
+Bharat Electronics Ltd. 1.18
+Agricultural Food & other Products 1.88
+Marico Ltd. 0.99
+Tata Consumer Products Ltd. 0.89
+Auto Components 2.13
+UNO Minda Ltd. 1.48
+Endurance Technologies Ltd. 0.50
+Sedemac Mechatronics Ltd. 0.15
+Automobiles 6.08
+TVS Motor Company Ltd. 2.45
+Ather Energy Ltd. 1.58
+Mahindra & Mahindra Ltd. 1.19
+Eicher Motors Ltd. 0.85
+Banks 19.40
+ICICI Bank Ltd. 6.17
+HDFC Bank Ltd. 5.74
+State Bank of India 2.81
+Axis Bank Ltd. 1.63
+AU Small Finance Bank Ltd. 1.43
+Kotak Mahindra Bank Ltd. 1.11
+City Union Bank Ltd. 0.51
+Beverages 1.28
+Varun Beverages Limited 1.28
+Capital Markets 3.02
+Multi Commodity Exchange Of India Ltd. 1.52
+ICICI Prudential Asset Mgmt Co Ltd. 0.95
+360 One Wam Ltd. 0.55
+Cement & Cement Products 1.50
+JK Cement Ltd. 1.50
+Chemicals & Petrochemicals 2.74
+Navin Fluorine International Ltd. 1.08
+Solar Industries India Ltd. 0.94
+SRF Ltd. 0.72
+Construction 1.58
+Larsen & Toubro Ltd. 1.58
+Consumer Durables 3.83
+Titan Company Ltd. 1.93
+JSW Dulux Ltd. 0.70
+LG Electronics India Ltd. 0.69
+Blue Star Ltd. 0.48
+V-Guard Industries Ltd. 0.04
+Electrical Equipment 2.47
+CG Power and Industrial Solutions Ltd. 1.01
+TD Power Systems Ltd. 0.59
+GE Vernova T&D India Limited 0.45
+Triveni Turbine Ltd. 0.42
+Ferrous Metals 1.71
+JSW Steel Ltd. 1.71
+Finance 4.27
+Bajaj Finance Ltd. 1.99
+Sundaram Finance Ltd. 1.12
+Muthoot Finance Ltd. 0.62
+Cholamandalam Investment & Finance 
+Company Ltd.
+0.54
+Financial Technology (Fintech) 0.75
+One 97 Communications Ltd. 0.75
+Food Products 0.34
+Britannia Industries Ltd. 0.34
+Healthcare Services 3.28
+Max Healthcare Institute Ltd. 1.12
+Krishna Inst of Medical Sciences Ltd. 0.97
+Manipal Health Enterprises Ltd. 0.94
+Global Health Ltd. 0.25
+Issuer % to Net 
+Assets
+Rating
+Household Products 1.03
+Doms Industries Ltd. 1.03
+Industrial Products 2.02
+Happy Forgings Ltd. 0.82
+Timken India Ltd. 0.67
+Cummins India Ltd. 0.31
+KSB Ltd. 0.23
+Insurance 1.86
+ICICI Lombard General Insurance Co. Ltd. 0.95
+HDFC Life Insurance Company Ltd. 0.90
+IT - Services 2.43
+Affle 3i Ltd. 1.09
+Sagility Ltd. 0.82
+Amagi Media Labs Ltd. 0.52
+IT - Software 4.96
+Tech Mahindra Ltd. 1.95
+Infosys Ltd. 1.07
+Persistent Systems Ltd. 1.07
+Tata Consultancy Services Ltd. 0.87
+Leisure Services 1.77
+TBO Tek Ltd. 1.01
+Jubilant Foodworks Ltd. 0.76
+Non - Ferrous Metals 1.34
+Hindalco Industries Ltd. 1.34
+Personal Products 0.40
+Gillette India Ltd. 0.40
+Petroleum Products 2.19
+Reliance Industries Ltd. 2.19
+Pharmaceuticals & Biotechnology 6.07
+Divi's Laboratories Ltd. 1.28
+Mankind Pharma Ltd. 1.18
+Torrent Pharmaceuticals Ltd. 0.82
+Neuland Laboratories Ltd. 0.69
+Rubicon Research Ltd. 0.61
+Anthem Biosciences Ltd. 0.53
+Sai Life Sciences Ltd 0.51
+Acutaas Chemicals Ltd. 0.43
+Power 2.06
+Power Grid Corporation of India Ltd. 1.30
+Torrent Power Ltd. 0.41
+Clean Max Enviro Energy Solutions Ltd. 0.36
+Realty 1.64
+Prestige Estates Projects Ltd. 1.12
+Horizon Industrial Parks Ltd. 0.53
+Retailing 5.13
+Eternal Ltd. 3.08
+Info Edge (India) Ltd. 1.08
+Vishal Mega Mart Ltd 0.97
+Telecom - Services 3.73
+Bharti Airtel Ltd. 3.73
+Transport Services 2.27
+InterGlobe Aviation Ltd. 0.99
+BlackBuck Ltd. 0.80
+Container Corporation Of India Ltd. 0.47
+Equity Holdings Total 96.33
+Preference Shares 0.04
+TVS Motor Company Ltd. 0.04 CARE A1+
+Government Bond And Treasury Bill 0.11
+Treasury Bill 0.11
+364 Days Tbill Red - 2026 0.11 SOVEREIGN
+Margin Mutual Fund units 0.73
+PGIM India Mutual Fund 0.73
+Cash & Current Assets 2.79
+Total 100.00
+Details as on August 31, 2026
+FLEXI CAP FUND
+PGIM INDIA
+Flexi Cap Fund - An open ended dynamic equity scheme investing across large cap, 
+mid cap, small cap stocks
+For IDCW History of the scheme kindly refer page no. 45-49.
