@@ -501,6 +501,34 @@ brute-force filename guessing beyond single evidence-based hypothesis tests.
   load-bearing, multi-AMC blocker class the way the third pass suggested — it affects exactly
   one AMC now.
 
+## Checked post-spec: AMFI's own "Portfolio Disclosure" page is a directory, not a central file feed
+
+**2026-10-10.** Ayush flagged a lead worth checking immediately before any implementation
+starts: AMFI's own site (`amfiindia.com/online-center/portfolio-disclosure`) advertises a
+central portfolio-disclosure page. Fetched and inspected directly (`curl`, then parsed the
+embedded Next.js RSC JSON payload). **Confirmed real, but it is a directory of links, not
+an aggregated file source:** a JSON array of all 57 AMCs (`mf_id`/`mf_name` keyed), each
+with its own `amc_monthly_portfolio_disclosure`/`amc_fortnightly_portfolio_disclosure`/
+`amc_halfYearly_portfolio_disclosure` URL — pointing to each AMC's own page, not a file
+AMFI itself hosts. Cross-checked a sample against this investigation's own findings: the
+AlphaGrep entry points to `www.alphagrepmf.ai/disclosures` (same domain the fourth pass
+independently found); no `amfiindia.com`-hosted `.xlsx`/`.xls`/`.zip` file links exist
+anywhere on the page (confirmed via regex scan — the only `amfiindia.com` file links on
+the page are unrelated CMS assets: logo SVGs, a code-of-ethics PDF).
+
+**Net effect on this spec: none to the data model or pipeline, one real but small Locate-stage
+optimization.** This directory doesn't reduce the adapter count (still need 47+ per-AMC
+Locate/Parse implementations — AMFI's page gives you the entry *page* URL, not the file
+itself, so Fetch/Parse/Normalize/Write are unaffected either way) or change the
+`disclosure_batch`/`scheme_holding` schema. What it *does* usefully provide: an
+AMFI-maintained, machine-readable seed list of each AMC's current disclosure-page URL —
+worth using as the Locate stage's starting point instead of a hardcoded per-AMC URL,
+since it reduces future config drift if an AMC moves its page (AMFI's directory should
+update before our own re-discovery would notice). Not worth re-opening the 4-pass
+investigation or re-deriving any of the 47 adapters' URLs from this directory now — the
+URLs already found and content-verified are confirmed correct and match this directory
+where checked.
+
 ## Source documents
 
 - `2026-10-06-amc-portfolio-disclosure-format-survey.md` (spike 1 — regulatory format, not
