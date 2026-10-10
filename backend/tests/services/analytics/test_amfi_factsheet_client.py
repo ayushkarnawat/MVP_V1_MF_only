@@ -518,6 +518,46 @@ def test_a_future_as_on_date_does_not_make_a_stale_file_look_current():
     assert _latest_as_on(pages, today=date(2026, 10, 12)) == date(2026, 3, 31)
 
 
+@pytest.mark.parametrize("early,late,expected", [
+    ("Contents", "Data as on September 30, 2026", (True, "ok")),
+    ("Data as on March 31, 2020", "Data as on September 30, 2026", (True, "ok")),
+    ("Data as on May 31, 2026", "Data as on June 30, 2026", (False, "stale_month")),
+    ("Data as on May 31, 2026", "Data as on September 30, 2027", (False, "stale_month")),
+])
+def test_month_check_reads_page_eighteen_but_still_rejects_stale_and_future(early, late, expected):
+    from app.services.analytics.amfi_factsheet_client import looks_like_current_factsheet
+    pages = [early] + ["Contents"] * 16 + [late]
+    reader = lambda raw: _page("Example Fund")
+    assert looks_like_current_factsheet(pages, reader, date(2026, 10, 10)) == expected
+
+
+@pytest.mark.parametrize("names,categories,expected", [
+    (["Mirae Liquid ETF - Growth", "Mirae Liquid ETF-IDCW"], ["Other Scheme - Other ETFs"] * 2, 2),
+    (["UTI Credit Risk Fund", "UTI Credit Risk Fund (Segregated - 06032020)"], ["Debt Scheme - Credit Risk Fund"] * 2, 2),
+    (["UTI Medium Term Fund", "UTI Medium Term Fund (Segregated - 06032020)"], ["Debt Scheme - Medium Duration Fund"] * 2, 2),
+    (["UTI Credit Risk Fund", "UTI Credit Risk Fund (Segregated - 06032020)"], ["Debt Scheme - Credit Risk Fund", "Debt Scheme - Medium Duration Fund"], 0),
+    (["UTI Credit Riska Fund", "UTI Credit Riskb Fund"], ["Debt Scheme - Credit Risk Fund"] * 2, 0),
+    (["UTI Credit Risk Fund", "UTI Credit Risk Fund (Segregated - 06032020)"], ["Income/Debt Oriented Schemes - Credit Risk Fund", "Debt Scheme - Credit Risk Fund"], 2),  # same canonical category (10 Oct ruling)
+    (["UTI Medium Term Fund", "UTI Medium Term Fund (Segregated - 06032020)"], ["Income/Debt Oriented Schemes - Medium Term Fund", "Debt Scheme - Medium Duration Fund"], 2),
+    (["UTI Credit Risk Fund", "UTI Credit Risk Fund (Segregated - 06032020)"], ["", ""], 0),
+])
+def test_import_propagates_only_same_category_exact_ties_to_every_plan(db_session, names, categories, expected):
+    from app.models.reference import SchemeFundManager
+    from app.services.analytics.amfi_factsheet_client import import_pages
+    schemes = [_scheme(name, amc="Test AMC", category=category) for name, category in zip(names, categories)]
+    # Another plan row and another AMC must not be confused with another family.
+    schemes += [_scheme(names[0], amc="Test AMC", category=categories[0]), _scheme(names[0], amc="Other AMC", category=categories[0])]
+    db_session.add_all(schemes)
+    db_session.commit()
+    heading = "UTI Credit Risk Fund" if "Riska" in names[0] else names[0]
+    reader = lambda raw: _page(heading)
+    matched, unmatched = import_pages(db_session, "Test AMC", ["page"], reader, date(2026, 10, 1))
+    db_session.commit()
+    assert (matched, unmatched) == (expected, 0 if expected else 1)
+    rows = db_session.query(SchemeFundManager).all()
+    assert {r.scheme_id for r in rows} == ({s.id for s in schemes[:3]} if expected else set())
+
+
 # --- A04 Run 1 review fixes (9 Oct) ---
 
 def test_link_date_ignores_month_letters_inside_words():
@@ -662,6 +702,12 @@ def test_groww_skips_a_malformed_embedded_document():
     ("23rd March 2026", date(2026, 3, 23)),     # Abakkus: ordinal day
     ("1st Sep 2025", date(2025, 9, 1)),
     ("August 2007", date(2007, 8, 1)),
+    ("Jan-21", date(2021, 1, 1)),
+    ("Nov 25", date(2025, 11, 1)),
+    ("04-Nov-24", date(2024, 11, 4)),
+    ("24-04-2026", date(2026, 4, 24)),
+    ("19-June-23", date(2023, 6, 19)),       # ITI: full month name, two-digit year
+    ("March, 2026", date(2026, 3, 1)),
     ("Inception", None),
     ("Since Inception", None),
 ])
@@ -671,13 +717,13 @@ def test_managing_since_parses_the_formats_factsheets_print(raw, expected):
     assert _parse_managing_since(raw) == expected
 
 
-def test_quant_scoped_month_pattern_uses_real_scheme_pages_only_when_configured():
+def test_quant_scoped_month_pattern_and_whole_file_scan_accept_real_scheme_pages():
     from app.services.analytics import amfi_factsheet_client as client
     from app.services.analytics.fund_manager_layouts import LAYOUTS
     pages = (Path(__file__).parents[2] / "fixtures/factsheets/quant.txt").read_text(encoding="utf-8").split("\f")
     pages = ["Contents"] * 12 + pages + [pages[0]]
     pattern = r"\bAUM\s*\((\d{1,2}\s+[A-Za-z]+\s+\d{4})\)"
-    assert client.looks_like_current_factsheet(pages, LAYOUTS["quant"], date(2026, 10, 10)) == (False, "stale_month")
+    assert client.looks_like_current_factsheet(pages, LAYOUTS["quant"], date(2026, 10, 10)) == (True, "ok")
     assert client.looks_like_current_factsheet(pages, LAYOUTS["quant"], date(2026, 10, 10), as_on_pattern=pattern) == (True, "ok")
     stale = [p.replace("30 September 2026", "30 June 2026") for p in pages]
     assert client.looks_like_current_factsheet(stale, LAYOUTS["quant"], date(2026, 10, 10), as_on_pattern=pattern) == (False, "stale_month")

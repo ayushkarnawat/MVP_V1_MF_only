@@ -32,6 +32,7 @@ from sqlalchemy.orm import Session
 
 from app.db.session import commit_off_loop
 from app.models.reference import Scheme, SchemeFundManager
+from app.services.analytics.scheme_universe import canonical_category
 from app.services.analytics.fund_manager_layouts import SchemePage, LAYOUTS, Word
 from app.services.analytics.fund_manager_resolvers import AMC_RESOLVERS, ResolverEntry, ResolverKind
 
@@ -151,6 +152,22 @@ def match_scheme_page(page: SchemePage, families: list[FundFamily]) -> tuple[Fun
 
 logger = logging.getLogger(__name__)
 
+
+def match_scheme_families(page: SchemePage, families: list[FundFamily]) -> list[tuple[FundFamily, str, Decimal]]:
+    """Keep single-family matching intact; expand only approved exact variant ties."""
+    match = match_scheme_page(page, families)
+    if match is not None:
+        return [match]
+    exact = [f for f in families if f.canonical == _canonical_fund_name(
+        _AMC_FUND_ALIASES.get(f.amc_name, {}).get(page.heading, page.heading))]
+    if (len(exact) > 1 and all(f.sebi_category for f in exact) and len({f.canonical for f in exact}) == 1
+            # Canonical category (A09): NAVAll files UTI's segregated portfolios under the post-2018
+            # SEBI name and the main fund under the old one; both canonicalise to one category.
+            and len({canonical_category(f.sebi_category) for f in exact}) == 1
+            and len({f.amc_name for f in exact}) == 1):
+        return [(f, MATCH_METHOD_EXACT, Decimal("1.0")) for f in exact]
+    return []
+
 AMFI_FACTSHEET_DIRECTORY_URL = "https://www.amfiindia.com/online-center/download-factsheets"
 _HTTP_TIMEOUT = 90.0
 _HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"}
@@ -161,7 +178,8 @@ def _parse_managing_since(raw: str) -> date | None:
     # (ordinal day), "Sept 2025". Day-first forms come from quant, NJ and Abakkus (Run 4).
     text = re.sub(r"(\d)(st|nd|rd|th)\b", r"\1", raw.strip())
     text = re.sub(r",\s*", ", ", text).replace("Sept ", "Sep ")
-    for fmt in ("%b. %d, %Y", "%b %d, %Y", "%B %d, %Y", "%d %B %Y", "%d %b %Y", "%d-%b-%Y", "%b %Y", "%B %Y"):
+    for fmt in ("%b. %d, %Y", "%b %d, %Y", "%B %d, %Y", "%d %B %Y", "%d %b %Y", "%d-%b-%Y",
+                "%b %Y", "%B %Y", "%b-%y", "%b %y", "%d-%b-%y", "%d-%B-%y", "%d-%m-%Y", "%B, %Y", "%b, %Y"):
         try:
             return datetime.strptime(text, fmt).date()
         except ValueError:
@@ -369,7 +387,7 @@ _AS_ON = re.compile(
 
 def _latest_as_on(pages: list[str], today: date | None = None) -> date | None:
     found = []
-    for text in pages[:12]:
+    for text in pages:
         for m in _AS_ON.finditer(text):
             day, month, year = (m.group(1), m.group(2), m.group(3)) if m.group(1) else (m.group(5), m.group(4), m.group(6))
             month_no = _MONTHS.get(month[:3].lower())
@@ -438,18 +456,18 @@ def import_pages(
     by_scheme: dict[uuid.UUID, tuple[Scheme, list[dict], str, Decimal | None]] = {}
     for i, page_text in enumerate(pages):
         for page in _read_schemes(reader, page_text, pages.words[i] if isinstance(pages, FactsheetPages) else None):
-            result = match_scheme_page(page, families)
-            if result is None:
+            results = match_scheme_families(page, families)
+            if not results:
                 unmatched += 1
                 logger.info("refresh_fund_managers: unmatched amc=%s heading=%r", amc_name, page.heading[:80])
                 continue
-            family, method, confidence = result
-            for scheme in family.schemes:
-                _, managers, first_method, first_confidence = by_scheme.get(scheme.id, (scheme, [], method, confidence))
-                listed = {m["name"] for m in managers}
-                managers = managers + [m for m in page.managers if m["name"] not in listed]
-                by_scheme[scheme.id] = (scheme, managers, first_method, first_confidence)
-            matched.add((family.amc_name, family.base_name))
+            for family, method, confidence in results:
+                for scheme in family.schemes:
+                    _, managers, first_method, first_confidence = by_scheme.get(scheme.id, (scheme, [], method, confidence))
+                    listed = {m["name"] for m in managers}
+                    managers = managers + [m for m in page.managers if m["name"] not in listed]
+                    by_scheme[scheme.id] = (scheme, managers, first_method, first_confidence)
+                matched.add((family.amc_name, family.base_name))
     for scheme, managers, method, confidence in by_scheme.values():
         upsert_scheme_fund_managers(db, scheme, managers, reference_period,
                                     MATCH_METHOD_MANUAL if manual else method, confidence)
