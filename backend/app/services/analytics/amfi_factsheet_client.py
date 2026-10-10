@@ -54,6 +54,9 @@ _NAME_NOTE_RE = re.compile(r"[\[(][^\])]*(?:ERSTWHILE|SEGREGATED)[^\])]*[\])]+",
 # September 2026 printed names verified against this AMC's live NAVAll families.
 # Never global normalization: an alias is scoped to the same AMC as the match.
 _AMC_FUND_ALIASES = {
+    "Union Mutual Fund": {
+        "Union ELSS Tax Saver Fund": "Union ELSS Tax Saver Fund (Formerly Union Tax Saver (ELSS) Fund",
+    },
     "UTI Mutual Fund": {"UTI FOCUSED FUND": "UTI Focused Fund (30 stocks)"},
     "Sundaram Mutual Fund": {
         "Sundaram Aggressive Hybrid Fund": "Sundaram Aggressive Hybrid Fund (Formerly Known as Principal Hybrid Equity Fund)",
@@ -210,6 +213,8 @@ def upsert_scheme_fund_managers(
     }
     seen_names = set()
     for order, manager in enumerate(managers):
+        # Some PDFs (Tata, SBI, Union) print U+FFFE where a hyphen is; store the hyphen.
+        manager = {key: value.replace("\ufffe", "-") if isinstance(value, str) else value for key, value in manager.items()}
         name = manager["name"]
         if name in seen_names:
             continue  # listed twice on one page (e.g. table and footnote): the first listing wins
@@ -360,6 +365,43 @@ async def _static_link_candidates(client: httpx.AsyncClient, landing_url: str, l
     pattern = re.compile(link_pattern or r"fact\s*[-_ ]?sheet", re.I)
     links = []
     host = urllib.parse.urlparse(landing_url).hostname
+    if host == "www.taurusmutualfund.com":
+        # The public Drupal form filters the year before it renders PDF anchors.
+        field = re.search(r'<select[^>]+name="field_factsheet_item_target_id"[^>]*>(.*?)</select>', resp.text, re.S)
+        if field:
+            # Early January the new year's option exists but lists nothing; December's file is current.
+            for year in (date.today().year, date.today().year - 1):
+                option = re.search(r'<option[^>]+value="([^"]+)"[^>]*>\s*' + str(year) + r'\s*</option>', field.group(1))
+                if not option:
+                    continue
+                filtered = await client.get(landing_url, params={"field_factsheet_item_target_id": option.group(1)})
+                filtered.raise_for_status()
+                if re.search(r'href="[^"]+\.pdf', filtered.text, re.I):
+                    resp = filtered
+                    break
+    if host == "www.unionmf.com":
+        # Angular consumes this page's inline list, rather than HTML anchors.
+        for block in re.findall(r'downloadfactsheets\.push\(\s*\{(.*?)\}\s*\)', resp.text, re.S):
+            title = re.search(r'Title\s*:\s*["\']([^"\']+)', block)
+            url = re.search(r'Url\s*:\s*["\']([^"\']+)', block)
+            if title and url and pattern.search(title.group(1) + " " + url.group(1)) and urllib.parse.urlparse(url.group(1)).path.lower().endswith(".pdf"):
+                links.append((_link_date(title.group(1)), html.unescape(url.group(1))))
+    if host == "www.wealthcompanyamc.in":
+        chunks = []
+        for match in re.finditer(r'self\.__next_f\.push\((\[.*?\])\)</script>', resp.text, re.S):
+            value = json.loads(match.group(1))
+            if len(value) > 1 and isinstance(value[1], str):
+                chunks.append(value[1])
+        stream = "".join(chunks)
+        if '"downloads":' in stream:
+            docs, _ = json.JSONDecoder().raw_decode(stream.split('"downloads":', 1)[1].lstrip())
+            for doc in docs:
+                name = doc.get("name", "")
+                url = (doc.get("attachment") or {}).get("url")
+                if isinstance(url, str) and pattern.search(name) and urllib.parse.urlparse(url).path.lower().endswith(".pdf"):
+                    printed = re.search(r"\b(\d{2})-(\d{2})-(\d{4})\b", name)
+                    when = (int(printed.group(3)), int(printed.group(2))) if printed else _link_date(name)
+                    links.append((when, urllib.parse.urljoin(str(resp.url), url)))
     if host == "www.360.one":
         data = _next_factsheet_data(resp.text, "factSheets")
         for year in data.get("yearlyData", []):
@@ -409,6 +451,18 @@ async def _static_link_candidates(client: httpx.AsyncClient, landing_url: str, l
                 short = re.search(r"Factsheet\s*-\s*([A-Za-z]+)\s+(\d{2})\.pdf", named, re.I)
                 if short and short.group(1)[:3].lower() in _MONTHS:
                     when = (2000 + int(short.group(2)), _MONTHS[short.group(1)[:3].lower()])
+            if host == "www.oldbridgemf.com":
+                short = re.search(r"(?:^|_)(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept?|Oct|Nov|Dec)_(\d{2})(?:_|\.pdf)", named, re.I)
+                if short:
+                    when = (2000 + int(short.group(2)), _MONTHS[short.group(1)[:3].lower()])
+            if host == "www.samcomf.com":
+                # Samco's trailing numeric document id can contain year-like
+                # digits (June's id contains 2086). Only its month/year pair
+                # dates the file; keep this correction scoped to this AMC.
+                month = _MONTH_WORD.search(named.lower())
+                year = re.match(r"[-_ ]*(20\d{2})(?!\d)", named[month.end():]) if month else None
+                if month and year:
+                    when = (int(year.group(1)), _MONTHS[month.group(1)[:3]])
             # ASK serves this fragment from /pages, but the enclosing document
             # loads it at the site root. Its ./assests links resolve there.
             base = "https://www.askmutualfund.com/" if host == "www.askmutualfund.com" else str(resp.url)
@@ -579,6 +633,37 @@ async def _resolve_and_read(client, entry: ResolverEntry, directory: dict[str, s
 
 
 async def _json_api_candidates(client, entry: ResolverEntry) -> list[str]:
+    if entry.directory_name == "Navi AMC Limited":
+        landing = await client.get(entry.landing_url)
+        landing.raise_for_status()
+        config = re.search(r'var navi_property\s*=\s*(\{[^;]+\})', landing.text)
+        category = re.search(r'data-category="(\d+)"\s+data-type="Monthly"', landing.text)
+        if not config or not category:
+            raise ValueError("Navi public factsheet configuration missing")
+        nonce = json.loads(config.group(1))["nonce"]
+        today = date.today()
+        links = []
+        for offset in range(3):
+            year, month = divmod(today.year * 12 + today.month - 1 - offset, 12)
+            month += 1
+            financial_year = year if month >= 4 else year - 1
+            resp = await client.post(entry.endpoint_url, headers={"WP-NONCE": nonce}, data={
+                "financial_year": f"{financial_year}-{financial_year + 1}",
+                "value": date(year, month, 1).strftime("%B"), "category": category.group(1),
+                "type": "Monthly", "order": "DESC",
+            })
+            resp.raise_for_status()
+            payload = resp.json()
+            if payload.get("success") is not True:
+                raise ValueError("Navi public download list unavailable")
+            for doc in payload.get("data", []):
+                title = doc.get("title", "")
+                urls = doc.get("url", [])
+                urls = [urls] if isinstance(urls, str) else [v.get("link") for v in urls]
+                for url in urls:
+                    if isinstance(url, str) and "factsheet" in title.lower() and urllib.parse.urlparse(url).path.lower().endswith(".pdf"):
+                        links.append((_link_date(title), url))
+        return list(dict.fromkeys(url for _, url in sorted(links, reverse=True)))[:6]
     if entry.directory_name == "Mahindra Manulife Investment Management Pvt Ltd":
         # preLogin/downloads is public (HTTP 200 without credentials). Its page
         # unwraps the response using public transport constants in its own JS.

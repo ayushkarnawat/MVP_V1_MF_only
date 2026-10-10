@@ -41,11 +41,11 @@ def test_lic_is_enabled_with_positional_summary_reader():
     assert entry.landing_url == "https://www.licmf.com/downloads/factsheet"
 
 
-@pytest.mark.parametrize("amc,reason", [("Samco Mutual Fund", "June")])
-def test_batch_two_blockers_remain_disabled_and_explained(amc, reason):
-    entry = AMC_RESOLVERS[amc]
-    assert entry.layout is None
-    assert reason in (entry.note or "")
+def test_samco_recheck_enables_current_september_file():
+    entry = AMC_RESOLVERS["Samco Mutual Fund"]
+    assert entry.layout == "samco"
+    assert "September2026" in entry.note
+    assert "13/13" in entry.note
 
 
 def test_sundaram_uses_verified_public_archive_api():

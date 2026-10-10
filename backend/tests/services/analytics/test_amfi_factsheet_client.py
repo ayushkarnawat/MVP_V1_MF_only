@@ -926,3 +926,15 @@ def test_a_fund_on_two_pages_keeps_every_manager(db_session):
     rows = db_session.query(SchemeFundManager).filter_by(scheme_id=scheme.id).order_by(SchemeFundManager.sequence_order).all()
     assert [r.manager_name for r in rows] == ["Jane Doe", "John Roe", "Asha Rao"]
     assert (matched, unmatched) == (1, 0)
+
+
+def test_upsert_replaces_pdf_u_fffe_separators_in_stored_text(db_session):
+    """Union Sep 2026 prints "Co\\ufffeFund Manager - Fixed Income": the PDF's U+FFFE stands for a hyphen."""
+    from app.services.analytics.amfi_factsheet_client import upsert_scheme_fund_managers, MATCH_METHOD_EXACT
+    from app.models.reference import SchemeFundManager
+    scheme = _scheme("ABC Fund")
+    db_session.add(scheme); db_session.commit()
+    upsert_scheme_fund_managers(db_session, scheme, [{"name": "Jane￾Doe", "role": "Co￾Fund Manager - Fixed Income",
+                                                      "since_raw": "01-Mar￾2025"}], date(2026, 9, 1), MATCH_METHOD_EXACT, Decimal("1.0"))
+    row = db_session.query(SchemeFundManager).one()
+    assert (row.manager_name, row.role, row.managing_since_raw) == ("Jane-Doe", "Co-Fund Manager - Fixed Income", "01-Mar-2025")

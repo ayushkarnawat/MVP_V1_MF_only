@@ -995,6 +995,113 @@ def franklin_pages(page: str, words: list[Word] | None = None) -> SchemePage | l
     return result[0] if len(result) == 1 else result or None
 
 
+def hsbc_managers(page: str) -> list[dict] | None:
+    managers = bullets_slash(page)
+    if not managers:
+        return None
+    # Names printed one per line with no slash between them come back joined
+    # ("Mahesh Chhabria Mr. Shriram Ramanathan"); a second title starts a new manager.
+    managers = [dict(manager, name=part.strip()) for manager in managers
+                for part in re.split(r"\s+(?:Mr|Ms|Mrs|Dr)\.\s*", manager["name"]) if part.strip()]
+    # Performance tables can precede Minimum Investment. Never let their dates
+    # enter the tenure column. A comma joining two full dates is ambiguous:
+    # the printed slash groups do not identify which manager owns either date.
+    block = re.search(r"Managing\s*[Ss]ince\s*:?(.*?)(?:Minimum Investment|Fund Performance|Load Structure|Benchmark|$)", page, re.S)
+    groups = " ".join(block.group(1).split()).split("/") if block else []
+    for index, manager in enumerate(managers):
+        dates = re.findall(_DATE, groups[index]) if index < len(groups) else []
+        manager["since_raw"] = dates[0] if len(dates) == 1 else None
+    return managers
+
+
+def _run9_heading(page: str, brand: str) -> str:
+    lines = [line.strip().lstrip("# ") for line in page.splitlines() if line.strip()]
+    for index, line in enumerate(lines):
+        if line.startswith("MUTUAL FUND "):
+            line = line.removeprefix("MUTUAL FUND ")
+        if not line.lower().startswith(brand.lower()):
+            continue
+        # A holding named Gold ETF with a percentage isn't the scheme title.
+        if re.search(r"\d+(?:\.\d+)?%|\b(?:Direct|Regular)\b", line):
+            continue
+        heading = line
+        for continuation in lines[index + 1:index + 3]:
+            if re.search(r"\b(?:Fund|FOF|ETF(?: FOF)?)$", heading, re.I):
+                break
+            if continuation.lower().startswith(brand.lower()) or _HEADING_STOP.match(continuation):
+                break
+            heading += " " + continuation
+        if re.search(r"\b(?:Fund|FOF|ETF(?: FOF)?)$", heading, re.I):
+            return heading
+    return ""
+
+
+def oldbridge_managers(page: str) -> list[dict] | None:
+    block = re.search(r"Fund Manager:\s*(.*?)Data as on", page, re.S)
+    if not block:
+        return None
+    text = " ".join(block.group(1).split())
+    return [dict(name=m.group(1), role=None, since_raw=m.group(2).strip()) for m in re.finditer(
+        r"([A-Z][A-Za-z]+(?: [A-Z][A-Za-z]+)+) \(Managing since ([^,]+),?\s*total experience \d+ years\)", text)] or None
+
+
+def union_managers(page: str) -> list[dict] | None:
+    text = " ".join(page.split())
+    block = re.search(r"Name of Fund Managers?:\s*(.*?)(?:Managing Since|Total Experience|To t a l|Weekly|The risk|Minimum Investment|$)", text)
+    if not block:
+        return None
+    managers = []
+    for match in re.finditer(r"\bMr\.?\s+([A-Z][a-z]+ [A-Z][a-z]+)\b(?:\s*\(([^)]+)\))?", block.group(1)):
+        name = match.group(1)
+        # Dates repeat the manager's name explicitly, so assign by name.
+        since = re.search(r"Managing Since:(.*?)(?:The risk|Performance|Minimum Investment|$)", text)
+        date_match = re.search(r"Mr\.?\s+" + re.escape(name) + rf":\s*({_DATE}|Since inception)", since.group(1)) if since else None
+        managers.append(dict(name=name, role=match.group(2), since_raw=date_match.group(1) if date_match else None))
+    return managers or None
+
+
+def wealth_managers(page: str) -> list[dict] | None:
+    block = re.search(r"Fund Manager:\s*(.*?)Entry Load", page, re.S)
+    if not block:
+        return None
+    text = " ".join(block.group(1).split())
+    return [dict(name=m.group("name"), role=m.group("role"), since_raw=m.group("since")) for m in re.finditer(
+        rf"(?:Ms|Mr)\.\s+(?P<name>[A-Z][A-Za-z]+(?: [A-Z][A-Za-z]+)+)\s*(?:\((?P<role>Equity|Debt|Commodity)\))?,?\s*(?:Over )?\d+ Years of [Ee]xperience,\s*Managing since (?P<since>{_MONTH} \d{{4}})", text)] or None
+
+
+def taurus_managers(page: str) -> list[dict] | None:
+    # Appointment lines end in Total work experience; prose about earlier
+    # managers is deliberately excluded, including "was Fund Manager" notes.
+    managers = []
+    for match in re.finditer(rf"^Mr\. ([A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+)+)\s*\(w\.e\.f\.?\s+({_DATE})\)\s*Total work experience:", page, re.M):
+        name = " ".join(match.group(1).split())
+        co = re.search(r"Mr\.\s+" + re.escape(name) + r"\s+has been appointed as the Co-Fund Manager", " ".join(page.split()))
+        managers.append(dict(name=name, role="Co-Fund Manager" if co else None, since_raw=match.group(2)))
+    return managers or None
+
+
+def taurus_page(page: str, words: list[Word] | None = None) -> SchemePage | None:
+    managers = taurus_managers(page)
+    if not managers and words:
+        # The Banking page interleaves the right column's commentary into the
+        # left column's appointment line. Reconstruct that printed column by
+        # position, keeping the strict appointment rule intact.
+        column = [w for w in words if (w[0] + w[2]) / 2 < 200]
+        text = "\n".join(" ".join(w[4] for w in line) for line in _position_lines(column))
+        text = re.sub(r"\bMr\s+\.", "Mr.", text)
+        managers = taurus_managers(text)
+    return _page(_run9_heading(page, "TAURUS "), managers, page) if managers else None
+
+
+def samco_managers(page: str) -> list[dict] | None:
+    block = re.search(r"Fund Manager Details(.*?)Lumpsum Amount", page, re.S)
+    if not block:
+        return None
+    text = " ".join(block.group(1).split())
+    return [dict(name=m.group("name"), role=m.group("role"), since_raw=m.group("since")) for m in re.finditer(
+        rf"(?:Mr|Ms)\. (?P<name>{_FRANKLIN_NAME})(?:,\s*|\s+)(?P<role>Director, CIO & Fund Manager|Fund Manager)\s+Total Experience:\s*Over \d+ years\s+Managing since:\s*(?P<since>Inception|\d{{2}}-[A-Za-z]{{3}}-\d{{4}})", text)] or None
+
+
 def _reader(managers: Callable[[str], list[dict] | None], heading: Callable[[str], str]) -> Callable[[str], SchemePage | None]:
     def read(page: str) -> SchemePage | None:
         found = managers(page)
@@ -1016,6 +1123,12 @@ def _reader(managers: Callable[[str], list[dict] | None], heading: Callable[[str
 # One reader per AMC: a manager layout plus where that AMC prints the scheme name.
 # Task 8 adds an entry per onboarded AMC (reusing a layout where the shape matches).
 LAYOUTS: dict[str, Callable[..., SchemePage | list[SchemePage] | None]] = {
+    "navi": _reader(lambda p: bullets_slash(p.replace("Name Of Fund", "Name of Fund")), lambda p: _run9_heading(p, "Navi ")),
+    "oldbridge": _reader(oldbridge_managers, lambda p: _run9_heading(p, "OLD BRIDGE ")),
+    "union": _reader(union_managers, lambda p: _run9_heading(p, "Union ")),
+    "wealth": _reader(wealth_managers, lambda p: _run9_heading(p, "The Wealth Company ")),
+    "taurus": taurus_page,
+    "samco": _reader(samco_managers, lambda p: _run9_heading(p, "Samco ")),
     "sbi": _reader(sbi_managers, _sbi_heading),
     "tata": _reader(bullets_slash, lambda p: _brand_line_heading(p, "Tata ")),
     "mahindra": _reader(mahindra_managers, _mahindra_heading),
@@ -1048,7 +1161,7 @@ LAYOUTS: dict[str, Callable[..., SchemePage | list[SchemePage] | None]] = {
     "ppfas": _reader(ppfas_managers, lambda p: _brand_line_heading(p, "Parag Parikh ")),
     "nj": _reader(nj_managers, lambda p: _brand_line_heading(p, "NJ ")),
     "lic": lic_summary,
-    "hsbc": _reader(bullets_slash, _hsbc_heading),
+    "hsbc": _reader(hsbc_managers, _hsbc_heading),
     "helios": _reader(helios_experience, lambda p: _brand_line_heading(p, "Helios ")),
     "groww": _reader(groww_scheme_managers, _groww_heading),
     "dsp": _reader(dsp_experience, _dsp_heading),
