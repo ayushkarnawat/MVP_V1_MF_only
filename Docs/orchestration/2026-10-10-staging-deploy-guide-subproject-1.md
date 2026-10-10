@@ -22,7 +22,7 @@ Run Part 1 on **your manager's laptop**, as usual. It needs:
 **Nothing in this guide has been run against AWS yet.**
 - It was written from the repo, the 8 October guide (`2026-10-08-staging-deploy-guide-analytics-stamp-duty.md`) and the infra code.
 - Expected outputs for AWS commands are what the code says should happen.
-- Numbers marked **[close-out]** are still being measured locally (A04/A11 close-out). This guide is updated with them before you run it. Don't run it until that's done.
+- The expected numbers come from local runs on real data on 10 October (A04/A11 close-out): the fund-manager job, the hand import, the NAV backfill and the scenario compute. Still to come before you run it: the final independent review across all five attributes.
 
 ---
 
@@ -136,7 +136,7 @@ TEST_DATABASE_URL=postgresql+psycopg2://unifolio:unifolio@localhost:5433/unifoli
 cd ..
 docker compose stop postgres
 ```
-**Good looks like:** the last line `N passed` with **no `failed` and no `skipped`**. **[close-out]** fills in N.
+**Good looks like:** the last line `N passed` with **no `failed` and no `skipped`** (N is around 50: the Postgres functional tests plus every migration's round trip, now up to `0038`).
 
 **If it isn't good:** any `FAILED` → stop and send Aditi the output. `skipped` → `TEST_DATABASE_URL=...` must be on the same line as `pytest`.
 
@@ -658,4 +658,4 @@ Open the US-Iran war scenario again: its "ongoing" figures may have moved slight
   - *the log lines of `refresh_benchmark_daily.py`, `backfill_scheme_nav_history.py`, `compute_all_scenarios.py`, `refresh_fund_managers_monthly.py` and `import_manual_fund_managers.py`;*
   - *`0033`'s downgrade and why a rollback must remove TRI rows.*
 - *Local results so far: A04 481 tests and A11 164 + 55 tests pass; Postgres round trips clean; every attribute independently reviewed.*
-- ***[close-out]** items are filled in after the A04/A11 close-outs. No command in this guide has been run against AWS.*
+- *Close-out measurements (10 Oct, local Postgres, real data) are filled in. No command in this guide has been run against AWS.*
