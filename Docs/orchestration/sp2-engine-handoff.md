@@ -131,10 +131,31 @@ Run date/time: <…>    Environment: Windows    Python: <version>    Baseline HE
    - amfi_factsheet_client.py / fund_manager_*.py / allocation.py unchanged: YES/NO
 ```
 
+## Run 1 — FIX ROUND 1 (2026-10-13, after the Opus review; Codex builds, same uncommitted tree)
+
+Run 1 passed WSL (1032) and the Postgres 0038→0039→0038→0039 round trip. The Opus review returned CHANGES NEEDED. Fix **all** of the following test-first, in the same files, then re-run the Run 1 test files and print a CODEX REPORT (same template; section 4 "Deviations" = the fix round's interface changes). Evidence scripts (run from `backend/` with any python that has openpyxl/xlrd): `/tmp/claude-1000/-mnt-c-Users-Dell-Desktop-MVP-v1-MVP-V1-MF-only/d9d231cb-0a46-4984-b30e-ba7952224e69/scratchpad/{recon,dump,neg,unit}.py` (WSL path; if you cannot read it, reproduce from the descriptions).
+
+**High**
+- **H1 (parsing.py ~177).** A row is never a section header if it has an ISIN match or numeric market value and weight. ICICI Banking & PSU (BANPSU) has 9 real central G-sec rows literally named "Government Securities" (e.g. IN0020250018, 28,597 lakh, 3.56%) currently dropped (sheet sum 90.29 vs Grand Total 100, still WRITTEN). Add a test on that fixture sheet.
+- **H2 (writer.py ~35 + fixture test ~399).** A declared Grand Total must be **reconciled to the parsed rows, not substituted for them**. Rule: the signed sum of all parsed holdings (after per-sheet scaling, derivative rows included once H3 types them) must match the declared total within a named constant tolerance (start 1.5 percentage points) AND the declared total must itself sit in the 90–101% band, else the batch is FAILED (rows kept). Where a sheet legitimately cannot reconcile (memo exposure rows outside the Grand Total), say so in a named allowlist with a one-line reason per sheet and list them in the report; do not widen the tolerance to hide failures. The fixture test must assert the reconciled sum for every Grand-Total sheet (today it only asserts "no error, non-empty"). The writer test that bakes in the old behaviour (`test_declared_total_controls_check…`, ~:131) must be rewritten. Sheets the reviewer found that would wrongly be WRITTEN today (holdings sum vs declared 100): DSP DAAF 83.09, ESF 66.93, ARBITRAGE 32.31; ICICI BANPSU 90.29, ARBITRAGE 114.94; Tata TMAOF 90.07, TAF 34.95; ABSL BSLIF 96.91; quant qMES non-derivative 115.74.
+- **H3 (parsing.py ~33-42, 184-187).** Derivative short legs must be typed `DERIVATIVE`: an "ARBITRAGE" section header matches nothing today, and ISIN-less futures rows ("Tata Steel Limited Oct26", sector "Stock Futures"; Tata "…LTD^") inherit the equity type. Add: ISIN-less rows whose sector or name shows a futures/options contract (month-year suffix; sector "Stock Futures"/"Index Futures"/options) or that have negative quantity inside an equity section become DERIVATIVE; an ARBITRAGE/hedge section header sets DERIVATIVE only for such rows, not for the long equity. Add a commodities section pattern: physical gold/silver ("…COMMODITY" rows, Tata TMAOF) → `GOLD_SILVER`. Known negatives to cover: DSP ARBITRAGE 121 rows (−66.15, typed OTHER), DSP DAAF −16.91 and VALUE −1.03, Tata TAF 132 rows (−63.52 typed EQUITY_DOMESTIC), Tata TMAOF −9.92.
+
+**Medium**
+- **M1 (~175).** `^`, `$`, `*` in the weight cell mean weight 0 whatever the market value (ICICI marks tiny weights with `^`; 14 ICICI Arbitrage equities such as Oil India at 157 lakh and a BANPSU G-sec at 24.04 lakh are dropped today).
+- **M2 (~195).** The scale decision and the 90–101% band use the same total (circular). Decide the scale from the row values (max |w| ≤ 1 and sum ≈ 1) and require a declared total's scale to agree; a text "100%" Grand Total over fraction rows must not leave weights 100× too small as WRITTEN.
+- **M3 (matching.py 52-60).** The fuzzy fallback must be vetoed when number tokens or key words differ (GOLD/SILVER, ETF/INDEX/FOF, "100" vs "50" vs "Next 50"). Verified wrong picks: "ICICI Prudential Silver ETF FOF"→Gold ETF FOF (0.867); "HDFC Nifty 100 Index Fund"→Nifty 50 Index (0.923); "SBI Nifty 50 Index Fund"→SBI Nifty 50 ETF (0.824). An ambiguous or vetoed match returns None.
+
+**Low (do these too; they are small)**
+- **L1** the `.xls` reader skips `derivative*`/`performance` sheets like the `.xlsx` reader. **L2** the `.xlsx` reader stops at the first terminal-looking row only **after** the header row (a banner above the header must not drop the sheet). **L4** Canara's `link_pattern` gets an `exclude_pattern` for the mid-month fortnightly file (`BP-…-15th-September-2026` shape) — Task 6's date filter is planned but the registry should not rely on it alone. **L5** allowlisted fixture sheets must still assert their expected FAILED status and their numeric sum (not just a non-empty reason string).
+- **L3 (accepted, document only):** a failed re-parse of an existing `(scheme, as_of_date)` batch replaces it with FAILED (consumers read WRITTEN only, so a fund drops out of analytics rather than serving wrong data). Task 6 never re-parses a WRITTEN source URL. Make the writer also update `amc_name` on an existing batch.
+
+**Still forbidden:** widening the 90–101% band, proportional reweighting, fabricated weights. Report any fixture sheet that stays FAILED with its numbers.
+
 ---
 
 ## Round log (orchestrator appends after each report)
 
 | Round | Run | Result | Notes |
 |---|---|---|---|
-| — | Pass 0 | in progress 2026-10-13 | Task 0 done (egress OK, Wayback 503 to re-check). Task 12 capture agents running; Run 1 prompt follows their results. |
+| — | Pass 0 | done 2026-10-13 | Task 0 egress OK (Wayback 503 once from AWS, CDX OK from dev later); Task 12 committed `fef039e`. |
+| 1 | Run 1 | built 2026-10-13 (Codex, baseline `083d5d6`) | Tasks 1–5 reported DONE; WSL 1032 passed; Postgres round trip clean. Opus review: CHANGES NEEDED (3 High, 3 Med, 5 Low) → Fix round 1 section above. Nothing committed yet. |
