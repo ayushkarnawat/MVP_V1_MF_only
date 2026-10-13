@@ -195,6 +195,26 @@ Same locator-registry design as Run 3 (`custom_locator` + `_CUSTOM_LOCATORS`; re
 
 **Report:** list per AMC whether its locator was tested against a real trimmed response or a reconstruction, and flag every substitute value (ids, tokens).
 
+## Run 4 — Tasks 13, 14, 15 (2026-10-14; Run 3b committed `a8563e5`)
+
+Plan: Tasks 13 (manual intake), 14 (refresh-loop rework), 15 (retention + failed-file archive). Read the plan's Revision block and these three tasks in full. **Opus reviews this run** (Task 14 reshapes the loop every task depends on). Where the plan's code predates Runs 1–3b, adapt to the code that exists now (`git grep` first); the plan's intent and tests are binding.
+
+**State of the code you build on:** `portfolio_disclosure_client.py` has 29 per-AMC locators in `_CUSTOM_LOCATORS` plus the generic static/template/Wayback paths. Locators return `list[LocatedFile]` with the file bytes already downloaded, mostly through the central helpers `_fetch_candidates` / `_fetch_dated_records` / `_download_workbook`. `refresh_portfolio_disclosures(db)` matches on `sheet.scheme_title or file.scheme_hint or index_map.get(sheet.sheet_name, ...)`, forwards `declared_total`, writes per-sheet `parse_errors`, and returns `PortfolioDisclosureRefreshResult` with `amcs_not_onboarded`. The registry has 52 rows (Bandhan and the 6 manual AMCs are `MANUAL`: Edelweiss, Mahindra Manulife, Invesco, ITI, JM Financial, HSBC, plus Bandhan, so **7 manual rows**).
+
+**Task 14 — acceptance criteria (design the smallest central change; avoid rewriting the 29 locators by hand):**
+1. *Per-file skip before download.* A `source_url` already stored on a `WRITTEN` batch for the latest month is **never requested again** (assert request counts in MockTransport: run twice, the second run makes no file request). A file posted later is picked up alone. Do it centrally (e.g. a skip set made available to the download helpers), not per locator.
+2. *One file's bytes alive at a time* (F2). Locators may keep returning lightweight references, or the helpers may become async generators; whichever you choose must keep every existing locator test green with only mechanical edits. Add a test that parses a multi-file AMC while asserting at most one file body is held at once. Report the peak-memory approach and why it is sufficient for ICICI (25 MB ZIP of 151 workbooks), Mirae (99 files) and Motilal (74 files).
+3. *Alerts (Q12, reading confirmed):* lateness alerts (`no_file_found`, `stale_wayback_capture`, `manual_upload_pending`) fire only on the runs of day 10 and day 20 (`_ALERT_DAYS`, `_alert_due(today)`, `today` injectable); errors, `zero_schemes_matched`, `unmatched_scheme` (one alert per AMC per run, up to 5 names) and failed-sum-check alerts fire on any day. Add `stale_fallback` (a SINGLE_WORKBOOK AMC whose newest file failed and an older month was used). A transient per-file failure (HTTP 5xx/timeout, e.g. Aditya Birla's 503) is recorded and retried the next daily run, never treated as "done".
+4. *Done is per file, not per AMC:* a partially fetched AMC is not complete; the missing files are retried next run. With a `scheme_hint`, only the first holdings sheet of a file may match (a second sheet must not overwrite the first batch for the same scheme and date).
+5. `monthly_zero_batch_summary(db, today)`, `refresh_portfolio_disclosures(db, today=None)`.
+6. Task 7's stray-later-date risk: one stray file with a later date must not discard the whole month in `keep_all` mode (decide the rule, test it, report it).
+
+**Task 13:** `portfolio_disclosure_manual.py` + `scripts/jobs/import_manual_portfolio_disclosures.py` + `Docs/orchestration/portfolio-disclosure-manual-import-guide.md` per the plan. Facts: the intake accepts `.xls/.xlsx/.zip` only (by magic bytes). The 4 real manual fixtures in `backend/tests/fixtures/portfolio_disclosures/` (Edelweiss, ITI Aug, JM Large Cap, JM Mid Cap) must go through the intake end to end in tests. Mahindra Manulife (XML) and Invesco (PDF) have no usable file yet: the guide says so; do not build XML or PDF readers. Keep the all-or-nothing and as-of-date rules from the plan.
+
+**Task 15:** prune rule (confirmed): per scheme keep every batch from the newest 3 calendar months and always the scheme's newest `WRITTEN` batch; `archive_failed_file` writes to the bucket named in `PORTFOLIO_DISCLOSURE_ARCHIVE_BUCKET` and is a **no-op when unset**; an S3 failure is logged and swallowed. Wire the archive call where a file's batches include a `FAILED`.
+
+**Not in Run 4:** job script and Terraform (Run 5), anything attribute-side. Real network only through MockTransport; Windows commands and report template as before.
+
 ---
 
 ## Round log (orchestrator appends after each report)
