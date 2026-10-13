@@ -151,6 +151,26 @@ Run 1 passed WSL (1032) and the Postgres 0038→0039→0038→0039 round trip. T
 
 **Still forbidden:** widening the 90–101% band, proportional reweighting, fabricated weights. Report any fixture sheet that stays FAILED with its numbers.
 
+## Run 2 — Tasks 6, 7, 8 (2026-10-13; Run 1 committed `2ab4daa`…`2204c7d`)
+
+Plan: Tasks 6 (orchestrator), 7 (Wayback + Canara `link_pattern`), 8 (isolation tests). Read the plan's Revision block, Tasks 6–8 and the capture log's cross-cutting section plus the sections for HDFC, Canara, Wealth Company, 360 ONE, Old Bridge, Helios, Unifi (filename shapes).
+
+**What Run 1 changed that the plan's Task 6 code does not know (binding adaptations):**
+1. `parse_workbook(data) -> list[ParsedSheet]` now has `ParsedSheet.declared_total` (optional) and keeps holdings on a sheet error. The refresh loop must pass `declared_total=sheet.declared_total` to `write_disclosure_batch`, and a sheet with `error` **and** holdings is written as a `FAILED` batch (with `parse_errors`), not skipped. A sheet with an error and no holdings is only recorded in `parse_errors`.
+2. ZIP bundles: use `extract_zip_members(data)` and parse each member with `parse_workbook`; a bad member never stops the others. Detect format by magic bytes (`sniff_workbook_format`), never by extension (OOXML under `.xls`, a ZIP wrapping an xls).
+3. `write_disclosure_batch(db, family, as_of, amc_name, source_url, holdings, match_method, confidence, parse_errors=None, declared_total=None)`; `declared_total_reconciles` is public in the writer. The 90–101% band and the 1.5-point tolerance are constants; do not touch them.
+4. `match_scheme_name(raw_name, families)` returns `(family, method, confidence)` or `None`; ambiguous or vetoed means `None`, which the loop reports as unmatched (alerts come in Task 14).
+
+**Capture-log facts Task 6/7 must respect:**
+- Embedded-JSON links: HDFC's cached page, Wealth Company (paginated escaped JSON) and 360 ONE (React payload) carry **absolute URLs inside JSON**, with `\/` and `\u0026` escapes. `_extract_links` must unescape and still find them. Test with a trimmed real snippet.
+- HDFC's plan landing URL has no Wayback captures; the capture log gives the URL that has one (`…/statutory-disclosure/portfolio/monthly-portfolio`, last capture 2026-09-10, which lists the **August** files). Use the capture log's URL in the registry/test. Whether HDFC should instead fetch a direct URL pattern is an open decision (orchestrator will settle it); build Task 7 as planned and do not invent a direct-pattern path.
+- Canara: the month folder is the **upload** month (`2026/10` holds September data); `link_pattern` filter plus the Task 5 `exclude_pattern` apply to the prefix search; the CDX call is `limit=-50`, so say in a test that older months may be absent.
+- `_filename_as_of_date` must parse the real filename shapes in the capture log: `30st`/`30th` ordinals (Helios), `DDMMYYYY` (Unifi), `Sept_26`/`September 2026`, `30-Sep-26`, `30-09-2026`. Add a parametrized test with the real file names from the log. No guessing: an undated file returns `None`.
+
+**Not in Run 2:** per-file skip, day-10/20 alert gating, one-file-at-a-time generator (Task 14); JSON_API Locate, Index-sheet names, WhiteOak (Task 11); manual intake (Task 13); job script/Terraform (Tasks 9–10). Task 6 keeps the plan's list-returning `_locate_and_fetch`; Task 14 reshapes it.
+
+**Tests:** MockTransport only (no live network, Codex has none). Windows command as before; add every test file that `git grep` shows importing the changed modules. Report format as the template; add section "Fixture/log findings" if a capture-log filename or link shape needed handling.
+
 ---
 
 ## Round log (orchestrator appends after each report)
@@ -159,3 +179,5 @@ Run 1 passed WSL (1032) and the Postgres 0038→0039→0038→0039 round trip. T
 |---|---|---|---|
 | — | Pass 0 | done 2026-10-13 | Task 0 egress OK (Wayback 503 once from AWS, CDX OK from dev later); Task 12 committed `fef039e`. |
 | 1 | Run 1 | built 2026-10-13 (Codex, baseline `083d5d6`) | Tasks 1–5 reported DONE; WSL 1032 passed; Postgres round trip clean. Opus review: CHANGES NEEDED (3 High, 3 Med, 5 Low) → Fix round 1 section above. Nothing committed yet. |
+| 1 | Run 1 fix | committed 2026-10-13 | Fix round 1 (Codex) + orchestrator fix: declared total reconciles on the signed or the hedge-balanced non-derivative basis (allowlist 23→7 sheets); scoped Sonnet re-review found one masking case (netted-futures arbitrage with equity dropped), closed by a net-risk-exposure guard; FOF singular. Commits `2ab4daa` T1, `5d8b148` T2, `1aa3701` T3, `6ba24b6` T5 (+T4 writer files, swept in by a git-lock retry), `2204c7d` review fix. WSL 1070 passed; Postgres round trip clean. |
+| — | Run 2 | ready 2026-10-13 | Tasks 6–8. |
