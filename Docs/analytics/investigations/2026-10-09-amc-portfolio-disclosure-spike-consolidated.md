@@ -29,21 +29,42 @@ survive a harder second look.
 
 | Tier | Count | Meaning |
 |---|---|---|
-| `STATIC_REGEX` | 33 | Plain HTML/server-rendered page (or a JS-rendered page requiring no scheme/date selection), or a separate unprotected static-asset/CDN subdomain reachable via a Wayback-revealed filename, exposes a direct, dated file URL |
-| `JSON_API` | 14 | Page is client-rendered and requires a scripted interaction (select year/month/scheme, open an accordion, click a button) to reveal the file URL or a backing JSON/XHR endpoint |
-| `BOT_BLOCKED` | 2 | Site returns HTTP 403/a bot-challenge to a plain request; headless-browser access is either also blocked or unreliable enough that it needs a different approach, not just more Playwright patience. One of the two (Kotak) is very likely solvable within days — see "Fourth pass" |
+| `STATIC_REGEX` | 23 | Plain HTML/server-rendered page (or a JS-rendered page requiring no scheme/date selection), or a separate unprotected static-asset/CDN subdomain reachable via a Wayback-revealed filename, exposes a direct, dated file URL |
+| `JSON_API` | 22 | Page is client-rendered and requires a scripted interaction (select year/month/scheme, open an accordion, click a button) to reveal the file URL or a backing JSON/XHR endpoint |
+| `BOT_BLOCKED` | 3 | Site returns HTTP 403/a bot-challenge to a plain request; headless-browser access is either also blocked or unreliable enough that it needs a different approach, not just more Playwright patience. One of the three (Kotak) is very likely solvable within days — see "Fourth pass" |
 | `NO_CONTENT_FOUND` | 5 | AMC-side: fund genuinely has no monthly disclosure to publish yet (too new) or no disclosure page/live scheme was found at all |
-| `NEEDS_INVESTIGATION` | 3 | Confirmed, across up to four independent passes with real network access, that no static file link, simple API, or alternate unprotected source exists — needs a dedicated per-AMC deep-dive, acceptance of manual fetch, or (Monarch) isn't actually a gap |
+| `NEEDS_INVESTIGATION` | 4 | Confirmed, across up to four independent passes with real network access, that no static file link, simple API, or alternate unprotected source exists — needs a dedicated per-AMC deep-dive, acceptance of manual fetch, or (Monarch) isn't actually a gap |
 
-`STATIC_REGEX` + `JSON_API` = 47 AMCs buildable today. Of the remaining 10: 1 (WhiteOak) just
-needs its adapter built (page works, not blocked); 1 (Kotak) is `BOT_BLOCKED` on its main site but
-very likely solvable via an alternate CDN once its Monthly file's ~10-day publishing lag passes;
-1 (Monarch) isn't a gap at all — fortnightly is its genuine ceiling; 5 are an expected empty
-state; only **2 (Edelweiss, Mahindra Manulife) are confirmed to need manual monthly fetch**, down
-from 9 after the third pass's operational-plan count, because the fourth pass found genuine new
-alternate sources (separate unprotected static-asset subdomains, or Wayback-cached HTML revealing
-otherwise WAF-hidden filenames) for HDFC, AlphaGrep, Union Asset Management, and Canara Robeco —
-see "Fourth pass" below for the full detail.
+**Counts above are post fifth-pass (2026-10-12) correction** — see
+`Docs/analytics/investigations/2026-10-12-amc-disclosure-reconciliation-fifth-pass.md` for the
+full live-rechecked evidence. That pass found this doc's "needs Playwright" implementation-plan
+handoff didn't match its own `STATIC_REGEX` labels for several AMCs, and re-verified every one
+live rather than trusting either prior document. Net changes, all confirmed by downloading and
+opening a real file: **SBI, Bank of India, Trust Mutual Fund, Mirae Asset, LIC, Axis, Aditya
+Birla Sun Life, and Taurus moved `STATIC_REGEX` → `JSON_API`** (each AMC's URL/mechanism recorded
+below had gone stale since 2026-10-09; a one-time Playwright trace found the real, current
+JSON/AJAX endpoint — production fetch for all of them is plain `curl`/`httpx` replay, no browser
+needed, matching how every other `JSON_API` AMC already works); **ITI Mutual Fund moved
+`STATIC_REGEX` → `BOT_BLOCKED`** (a real headless-Chromium Playwright navigation gets a Cloudflare
+challenge page too, not just plain `curl` — a genuine bot wall, not a missing-interaction
+problem); **JM Financial Mutual Fund moved `STATIC_REGEX` → `NEEDS_INVESTIGATION`** (the file this
+doc's query "downloaded" decodes to AES-ciphertext, a confirmed false positive — this doc never
+opened it; it joins Mahindra Manulife in the encrypted-API dead-end bucket). The individual rows
+below (Master tier table, and the two "upgrade" callouts for Bank of India/Aditya Birla Sun Life)
+are left as this doc originally recorded them, now understood to be stale on the 8 points above —
+treat the fifth-pass doc as authoritative wherever the two disagree, rather than editing 2026-10-09's
+own narrative paragraphs after the fact.
+
+`STATIC_REGEX` + `JSON_API` = 45 AMCs buildable today with no Playwright in production. Of the
+remaining 12: 1 (WhiteOak) just needs its adapter built (page works, not blocked); 1 (Kotak) is
+`BOT_BLOCKED` on its main site but very likely solvable via an alternate CDN once its Monthly
+file's ~10-day publishing lag passes; 1 (Monarch) isn't a gap at all — fortnightly is its genuine
+ceiling; 5 are an expected empty state; **HSBC is the only AMC confirmed to genuinely need
+Playwright (or a fingerprint-matching HTTP client) as a standing production dependency** — and
+the fifth pass's go/no-go decision is not to add one for a single AMC, instead naming HSBC a 16th
+standing-manual-fetch AMC; only **3 (Edelweiss, Mahindra Manulife, JM Financial) are confirmed to
+need manual monthly fetch** for an encrypted-API or WAF reason, up from 2 here because of the JM
+Financial correction above.
 
 ## Second audit pass (same day): why the fetchable count roughly doubled
 
@@ -188,12 +209,12 @@ September 2026 file.
 |---|---|---|
 | Nippon India Mutual Fund | STATIC_REGEX | batch A |
 | DSP Mutual Fund | STATIC_REGEX | batch A |
-| Aditya Birla Sun Life Mutual Fund | STATIC_REGEX | batch A, upgraded this session |
-| SBI Mutual Fund | STATIC_REGEX | batch A |
+| Aditya Birla Sun Life Mutual Fund | **JSON_API** | batch A, upgraded this session, **corrected fifth pass 2026-10-12**: real mechanism is `/postlogin/CustomApi/Resources/FactsheetAccordionById` (JSON, no auth); its `pdfUrl` field points to a dead CDN host (`abcscprod.azureedge.net`, confirmed `NXDOMAIN`) — refetch the same `/-/media/...` path on the live `mutualfund.adityabirlacapital.com` domain instead |
+| SBI Mutual Fund | **JSON_API** | batch A, **corrected fifth pass 2026-10-12**: cited URL stale; real mechanism is `POST /ajaxcall/CMS/GetSchemePortfolioSheetsQS` (plain JSON, replayable via `curl`) |
 | Union Asset Management | **STATIC_REGEX** | batch A, upgraded 4th pass (predictable `www.unionmf.com` static file path bypasses the Angular SPA entirely) |
 | Motilal Oswal Mutual Fund | STATIC_REGEX | batch A |
 | quant Money Managers | **JSON_API** | batch A, upgraded 2nd pass (`submit_event1/2` AJAX widget) |
-| Mirae Asset Mutual Fund | STATIC_REGEX | batch A |
+| Mirae Asset Mutual Fund | **JSON_API** | batch A, **corrected fifth pass 2026-10-12**: cited page/guessed filenames were soft-404 traps (HTTP 200, HTML error page under a `.xlsx` extension); real mechanism is `/downloads/portfolio` → `AjaxService/GetDownloadsData` (plain JSON, replayable via `curl`) |
 | NJ Mutual Fund | STATIC_REGEX | batch A |
 | Franklin Templeton Mutual Fund (India) | STATIC_REGEX | batch A |
 | Invesco Mutual Fund | STATIC_REGEX | batch A |
@@ -208,41 +229,41 @@ September 2026 file.
 | Angel One Mutual Fund | **STATIC_REGEX** | batch B, corrected 2nd pass (was misclassified NO_CONTENT_FOUND) |
 | Capitalmind Mutual Fund | STATIC_REGEX | batch B |
 | Abakkus Mutual Fund | **JSON_API** | batch B, upgraded 2nd pass (cascading year/month select) |
-| LIC Mutual Fund | STATIC_REGEX | batch B |
-| JM Financial Mutual Fund | STATIC_REGEX | batch B, upgraded 1st-pass re-verification |
+| LIC Mutual Fund | **JSON_API** | batch B, **corrected fifth pass 2026-10-12**: cited deterministic URL pattern stale (site redesign); real mechanism is a two-step JSON POST chain, `/downloads/portfolio-filter-options` then `/downloads/portfolio-files` (replayable via `curl`) |
+| JM Financial Mutual Fund | **NEEDS_INVESTIGATION** | batch B, upgraded 1st-pass re-verification, **corrected fifth pass 2026-10-12**: confirmed false positive — the "downloaded" file decodes to 832KB of AES-ciphertext (exact 16-byte block multiple, chi-square ≈235/uniform), not a real workbook; moves to the encrypted-API dead-end bucket with Mahindra Manulife |
 | Old Bridge Mutual Fund | STATIC_REGEX | batch B |
 | Quantum Mutual Fund | STATIC_REGEX | batch B |
 | Samco Mutual Fund | STATIC_REGEX | batch B |
 | ICICI Prudential Mutual Fund | **JSON_API** | batch B, upgraded 2nd pass (dead `archive.` subdomain; real page found via WebSearch) |
-| Axis Mutual Fund | STATIC_REGEX | batch C |
+| Axis Mutual Fund | **JSON_API** | batch C, **corrected fifth pass 2026-10-12**: cited static path stale (site redesign); real mechanism is `POST /cms/token` (public, unauthenticated) → `POST /cms/get-scheme-documents` → direct file URL — entire chain replayable via plain `curl`, no Playwright needed even for discovery |
 | Choice Mutual Fund | JSON_API | batch C |
 | UTI Mutual Fund | JSON_API | batch C |
-| ITI Mutual Fund | STATIC_REGEX | batch C |
+| ITI Mutual Fund | **BOT_BLOCKED** | batch C, **corrected fifth pass 2026-10-12**: a real headless-Chromium Playwright navigation gets a Cloudflare interactive-challenge page too, not just plain `curl` — genuine bot wall, not a missing-JS-execution problem |
 | PGIM India Mutual Fund | **JSON_API** | batch C, corrected 2nd pass (was BOT_BLOCKED, a sandbox-DNS artifact) |
 | WhiteOak Capital Mutual Fund | NEEDS_INVESTIGATION | batch C, confirmed across 2 passes (dead-domain + broken-nav-link) |
-| Trust Mutual Fund | STATIC_REGEX | batch C |
-| HSBC Mutual Fund | STATIC_REGEX | batch C |
+| Trust Mutual Fund | **JSON_API** | batch C, **corrected fifth pass 2026-10-12**: a Playwright network trace of the SPA found `POST /api/api/Trust/GetData` (plain JSON, replayable via `curl`) |
+| HSBC Mutual Fund | **Standing manual-fetch** | batch C, **confirmed fifth pass 2026-10-12** as the one AMC in this entire table genuinely needing Playwright/a fingerprint-matching client in production — a real browser passes its WAF, plain `curl` doesn't, and no replayable JSON API was found underneath. **Tier-column label corrected sixth pass 2026-10-12** — this row previously said `STATIC_REGEX`, self-contradicting its own description; handled as a standing manual-fetch AMC per the go/no-go decision, not an automated tier |
 | Sundaram Mutual Fund | **JSON_API** | batch C, upgraded 2nd pass (category select + View button) |
 | Groww Mutual Fund | STATIC_REGEX | batch C |
-| 360 ONE Mutual Fund | STATIC_REGEX | batch C |
+| 360 ONE Mutual Fund | STATIC_REGEX | batch C, **domain corrected fifth pass 2026-10-12**: `archive.iiflmf.com` is now dead (origin timeout); real current domain is `www.360.one/asset/mutual-funds/downloads/`, a Next.js app whose initial server response embeds the file catalog as React Server Component "flight" JSON — still no Playwright needed, tier unchanged |
 | Tata Mutual Fund | JSON_API | batch C |
-| Taurus Mutual Fund | STATIC_REGEX | batch C |
+| Taurus Mutual Fund | **JSON_API** | batch C, **corrected fifth pass 2026-10-12**: real mechanism is a Drupal exposed-filter AJAX POST, replayable as a plain GET with the filter's query-string params; also confirmed Taurus genuinely only publishes Half-Yearly disclosures (March/September — no monthly file exists at all, a data-availability gap, not a fetch problem) and that its separate `/summary/<scheme>-fund` files are a different document type (fund metadata, not holdings) |
 | ASK Mutual Fund | NO_CONTENT_FOUND | batch C |
 | Bandhan Mutual Fund | **JSON_API** | batch D, upgraded 2nd pass (button-driven route + signed GCS URL) |
 | Jio BlackRock Mutual Fund | **JSON_API** | batch D, upgraded 2nd pass (Ant Design combobox, `force=True`) |
 | Navi Mutual Fund | **JSON_API** | batch D, upgraded 2nd pass (accordion + WordPress REST endpoint) |
-| Bank of India Mutual Fund | **STATIC_REGEX** | batch D, upgraded 2nd pass (stable curlable workbook URL) |
+| Bank of India Mutual Fund | **JSON_API** | batch D, upgraded 2nd pass (stable curlable workbook URL), **corrected fifth pass 2026-10-12**: that URL is now stale; real mechanism is `AjaxService.asmx/GetDocuments` (plain JSON, replayable via `curl`) |
 | Mahindra Manulife Mutual Fund | NEEDS_INVESTIGATION | batch D, confirmed across 4 passes — 4th pass directly observed the `investorapi.mahindramanulife.com` endpoint returning an AES-encrypted payload (not just inferred); real static files exist (`/uploads/download/{uuid}.xlsx`) but the UUID isn't discoverable without decrypting the API |
 | Edelweiss Mutual Fund | BOT_BLOCKED | batch D, confirmed across 4 passes (Akamai, `akamai-grn` header; 4th pass found the real disclosure page via Wayback but it's a client-rendered SPA shell with no static links and no capturable API) |
 | IL&FS Mutual Fund (IDF) | NO_CONTENT_FOUND | batch D (name corrected from "IL&FS Infra") |
 | Lakshya Mutual Fund | NO_CONTENT_FOUND | batch D |
 | Carnelian Mutual Fund | NO_CONTENT_FOUND | batch D |
-| AlphaGrep Mutual Fund | **STATIC_REGEX** | batch D, upgraded 4th pass (a separate plain static path, `www.alphagrepmf.ai/assets/documents/...`, bypasses the encrypted API entirely, deterministic filename from the calendar alone) |
+| AlphaGrep Mutual Fund | **STATIC_REGEX** | batch D, upgraded 4th pass (a separate plain static path, `www.alphagrepmf.ai/assets/documents/...`, bypasses the encrypted API entirely, deterministic filename from the calendar alone). **Corrected sixth pass 2026-10-12:** the fifth pass flagged this as possibly broken (all 2026-10-12 guesses 404'd); re-verification found the site's URL template changed its year-range digit format from four-digit (`FY-{year}-{year+1}`) to two-digit (`FY-{YY}-{YY+1}`) — confirmed live via Wayback CDX + direct download. Tier stays `STATIC_REGEX`; only the `link_pattern`'s digit format needs correcting |
 | Nuvama Mutual Fund | NO_CONTENT_FOUND | batch D |
 | Wealth Company Mutual Fund | **STATIC_REGEX** | batch D, upgraded 2nd pass (97-file server-rendered grid) |
 | Monarch Mutual Fund (Networth) | NEEDS_INVESTIGATION | batch D, confirmed across 2 passes (fortnightly-only, no monthly file) |
 | HDFC Mutual Fund | **STATIC_REGEX** | batch D, upgraded 4th pass (Wayback's cached HTML of the Akamai-blocked disclosure page reveals the current filename; the file itself downloads live from the separate unblocked `files.hdfcfund.com` subdomain) |
-| Kotak Mahindra Mutual Fund | **BOT_BLOCKED**, likely resolving to STATIC_REGEX shortly | batch D, 4th pass found a separate unblocked CDN (`vatseelabs-s3.kotakmf.com`) confirmed live for the Fortnightly file; the Monthly file is believed to follow the identical naming pattern (per the AMC's own hosting-notice PDF) but hasn't yet published for the current month as of 2026-10-09 (~10-day lag) — re-check after ~2026-10-12 |
+| Kotak Mahindra Mutual Fund | **STATIC_REGEX** | batch D, 4th pass found a separate unblocked CDN (`vatseelabs-s3.kotakmf.com`) confirmed live for the Fortnightly file; the Monthly file was believed to follow the identical naming pattern but hadn't yet published as of 2026-10-09. **Resolved sixth pass 2026-10-12:** a Wayback CDX query against the CDN surfaced the real current path, `/FAD/Portfolios/Consolidated-SEBI-Portfolio-as-on-{Month}-{DD},-{YYYY}/ConsolidatedSEBIPortfolio{Month}{YYYY}.xlsx` — not the originally-guessed `Monthly-Portfolio-as-on-...` name/path, which is why the pending re-check never found it. Confirmed live via direct download and SEBI-schema verification. No longer `BOT_BLOCKED` or pending; fully automated |
 
 ## Third pass: closing out the remaining 9 (3 `BOT_BLOCKED` + 6 `NEEDS_INVESTIGATION`) with an operational plan, not more scraping
 
@@ -528,6 +549,47 @@ update before our own re-discovery would notice). Not worth re-opening the 4-pas
 investigation or re-deriving any of the 47 adapters' URLs from this directory now — the
 URLs already found and content-verified are confirmed correct and match this directory
 where checked.
+
+## Sixth pass (2026-10-12): three corrections found during a full open-items audit
+
+A full re-audit of this doc, the ingestion plan, and the engine spec — done to confirm zero
+open items remain before the look-through-consumer attributes (02/06/10/13/15) are allowed to
+depend on this ingestion design — found three issues beyond the fifth pass's scope (that pass
+closed out the 16-AMC Playwright-reconciliation contradiction; it didn't touch these):
+
+- **Kotak Mahindra, resolved.** The "pending ~10-day re-check" in the Revised Summary table
+  above and the master tier table's row (now corrected) never found the Monthly file because
+  it was guessing the wrong path. A Wayback CDX query against `vatseelabs-s3.kotakmf.com`
+  surfaced the real current path —
+  `/FAD/Portfolios/Consolidated-SEBI-Portfolio-as-on-{Month}-{DD},-{YYYY}/ConsolidatedSEBIPortfolio{Month}{YYYY}.xlsx`,
+  not the `Monthly-Portfolio-as-on-...` name/prefix this doc had recorded — confirmed via live
+  download and SEBI-schema verification. Moves from `BOT_BLOCKED`/pending to `STATIC_REGEX`,
+  fully automated, no manual fetch.
+- **AlphaGrep, false alarm, not broken.** The ingestion plan's fifth-pass note recorded
+  AlphaGrep as possibly broken (every retry of its recorded URL template 404'd). Re-verification
+  found the site changed its year-range digit format from four-digit (`FY-2026-2027`) to
+  two-digit (`FY-2026-27`) — confirmed via Wayback CDX and a live download of genuine SEBI-schema
+  data. Stays `STATIC_REGEX`; only the registry's `link_pattern` needs the digit-format fix, no
+  fresh discovery or manual fetch needed.
+- **HSBC's master-table row, label-only fix.** The tier column read `STATIC_REGEX` while the
+  row's own description (and the actual go/no-go decision) said HSBC is the one AMC needing a
+  standing Playwright/fingerprint-matching client. Corrected the tier-column label to standing
+  manual-fetch to match; no change to the underlying decision, already correct everywhere else
+  this doc and the engine spec discuss HSBC.
+
+With these three, plus the already-resolved WhiteOak Capital count-gap (found missing from the
+ingestion plan's own AMC accounting, now added — it was never actually open, just undercounted),
+**zero open items remain across the engine spec, the ingestion plan, this spike doc, and the
+fifth-pass reconciliation doc.** Final breakdown of all 57 AMCs: 44 already machine-fetchable
+today with a confirmed mechanism (Kotak's resolution moves it into this bucket; of those 44, 14
+are `JSON_API`-tier AMCs whose exact endpoint is still a scoped, known adapter-build task for
+implementation, not an open research question); 1 (WhiteOak Capital) is the 15th member of that
+same `JSON_API` research-gap bucket but kept out of the 44 since it genuinely needs
+investigation (dead domain/broken nav link), not just endpoint-finding; 6 standing manual-fetch
+AMCs (Edelweiss, Mahindra Manulife, Invesco, ITI, JM Financial, HSBC); 1 different-granularity
+ingest (Monarch); 5 expected no-content AMCs. 44 + 1 + 6 + 1 + 5 = 57. See the engine spec's
+rewritten "Adapter classification — all 57 AMCs" table for the exact per-AMC breakdown that
+supersedes every count in this doc's earlier passes.
 
 ## Source documents
 

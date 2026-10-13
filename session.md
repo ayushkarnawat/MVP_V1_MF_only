@@ -1,4 +1,4 @@
-# Session state — 2026-10-08
+# Session state — 2026-10-13
 
 Working notes for picking this project back up cold. Not a planning doc — see
 `Docs/superpowers/plans/` for those. This file tracks *where things stand*,
@@ -19,7 +19,190 @@ anything by re-reading the whole repo.**
 - Must be settled before the first automatic run on **10 Nov 2026**: (1) first staging import + record alerts; (2) decide on any fund house AWS blocks; (3) build a missed-month alert; (4) admin upload screen instead of the CLI; (5) test HDFC's passive file; (6) decide the long-term fix (ask AMCs for access / vendor data quote); (7) confirm the ops-alerts email subscriptions; (8) the monthly routine itself.
 - Detail and the ordered to-do table: `DEFERRED_FEATURES.md` (top section). Background and options: `Docs/orchestration/subproject1-execution/a04-factsheet-access-gaps.html` (https://claude.ai/artifact/STCA9eNZwWZ4ZYYGzmpkTL).
 
-## Latest (2026-10-10): Sub-project 1 built, reviewed, committed and closed out — final Opus review next
+## Latest (2026-10-13): Sub-project 2 sixth-pass audit closed + attribute 15's P/E/P/B fully resolved (110% — nothing deferred, revised same day) + full attribute-coverage audit closed + integration architecture speced + AMFI re-verified to 110% + ToS call finalized
+
+**Context:** a zero-open-items audit pass over the entire look-through ingestion system
+(continuing straight from the 2026-10-12 session below), followed by the two items that
+session had explicitly left open. **Still no implementation — research/docs only,** confirmed
+via `git log`/`find` as before.
+
+- **Full-system audit (four-document reconciliation): done.** Three real corrections found and
+  fixed, not just re-confirmed: (1) **Kotak Mahindra** resolved from `BOT_BLOCKED` to
+  `STATIC_REGEX` — a Wayback CDX query against its CDN found the real current portfolio-disclosure
+  path; (2) **AlphaGrep** — not actually broken, a false alarm from an earlier pass; the real URL
+  template just uses a 2-digit year-range format (`FY-{YY}-{YY+1}`) instead of the 4-digit one
+  this project's own docs had recorded; (3) **HSBC's row** in the spike-consolidated doc had a
+  self-contradictory tier label (said `STATIC_REGEX` while its own description said
+  `Standing manual-fetch`) — corrected to match its actual, already-decided status. Final AMC
+  count, now internally consistent across the engine spec and the spike-consolidated doc: 44
+  machine-fetchable + 1 (WhiteOak) research-gap + 6 standing-manual-fetch + 1 different-grain
+  (Monarch) + 5 expected-no-content = 57. Detail:
+  `Docs/analytics/investigations/2026-10-09-amc-portfolio-disclosure-spike-consolidated.md`'s new
+  "Sixth pass" section; `Docs/analytics/plans/2026-10-10-sub-project-2-lookthrough-ingestion-plan.md`
+  updated to match.
+- **`asset_type` amendment sign-off: resolved.** Ayush approved it (see `decisions.md`); the
+  column is written into the engine spec's `SchemeHolding` model. The "needs sign-off" framing
+  removed from the consumer spec (§7.1, §9) and plan (Task 1) — both now read "approved
+  2026-10-12," not "pending."
+- **Attribute 15's P/E/P/B data source: fully resolved, nothing deferred.** Full write-up:
+  `Docs/analytics/investigations/2026-10-13-attribute-15-pe-pb-sourcing-feasibility.md`.
+  - Confirmed first (per the format-survey doc) that `scheme_holdings`' SEBI-mandated fields
+    cannot derive P/E/P/B themselves — no EPS/book-value/price field exists in that format.
+  - **Index-level P/E, P/B, Div Yield (Nifty 50/500 benchmark): ✅ free, live-verified** —
+    `niftyindices.com/BackPage/getpepbHistoricaldataDBtoString`, same endpoint family already
+    used by `nse_indices_client.py`.
+  - **Per-stock P/E: ✅ free, live-verified** — NSE's daily
+    `nsearchives.nseindia.com/content/equities/peDetail/PE_<DDMMYY>.csv` report.
+  - **Symbol→ISIN mapping (needed to join that file against `scheme_holdings`): ✅ free,
+    live-verified** — NSE's own security master,
+    `content/cm/NSE_CM_security_<DDMMYYYY>.csv.gz`, `SctySrs == "EQ"` rows; spot-checked against
+    RELIANCE and THERMAX's real, known ISINs.
+  - **Per-stock P/B: ✅ resolved, revised same day.** A first pass wrongly called this a
+    confirmed dead end after checking only NSE (full daily-reports catalog has no P/B report,
+    sibling file-path guesses `pbDetail/`/`pbrDetail/` 404) and BSE (bot-blocked SPA). Ayush
+    pushed back — nothing should move to "deferred" until 110% sure, and named three untried
+    sources. All three were live-checked: **Yahoo Finance's unofficial `quoteSummary` API**
+    (cookie+crumb handshake against `fc.yahoo.com`→`finance.yahoo.com`→
+    `query2.finance.yahoo.com/v1/test/getcrumb`→`query2.finance.yahoo.com/v10/finance/
+    quoteSummary/<SYM>.NS`) returns both `trailingPE` and `priceToBook`/`bookValue` in one call,
+    HTTP 200, no rate-limiting across 14-15 sequential requests. **screener.in**'s
+    `/company/<SYMBOL>/consolidated/` pages are plain server-rendered HTML with `Stock P/E` and
+    `Book Value` fields, cross-validating Yahoo's RELIANCE figures to the rupee (P/B 1.74 both
+    ways). **Google Finance** was checked and correctly ruled out (its old API is dead; its live
+    quote page has a P/E field but no book-value field anywhere — confirmed via direct string
+    search, not assumed).
+  - **Nothing deferred. No product decision needed on scope.** The only remaining item is a
+    non-blocking ToS-sourcing-preference call for Ayush — which free source to prefer for P/B
+    (NSE has none either way, so this doesn't change *whether* attribute 15 is buildable, only
+    *which* vendor's page gets scraped). The consumer spec (§7.2) and plan (Task 6) are updated
+    to drop all "defer"/"P/E-only" framing.
+- **Full sub-project 2 attribute-coverage audit (the second half of Ayush's 2026-10-13
+  instruction): closed, zero open items remain.** All 5 consumer attributes (02/06/10/13/15)
+  confirmed to have dedicated sections in the spec, plan, and visual-map — contrary to Ayush's
+  stated belief that this work hadn't been done. A full-text scan (not just headings) of the
+  consumer spec/plan/visual-map found exactly one genuine gap: the visual-map's open item 4,
+  AMFI's semi-annual market-cap list exact URL/format (attribute 02's classification source).
+  **Live-verified and resolved:** current period at `portal.amfiindia.com/spages/
+  AverageMarketCapitalization30Jun2026.pdf` (HTTP 200, real PDF — ISIN, AMFI rank by row order,
+  `Large/Mid/Small Cap` column, exactly what `market_cap_classifications` needs). Flagged, not
+  silently assumed stable: the host/filename convention has drifted twice historically (older
+  periods on `www.amfiindia.com/Themes/Theme1/downloads/...` with a longer name) — documented as
+  needing the same twice-yearly re-verification as any `STATIC_REGEX` AMC entry, not a
+  hardcoded-forever URL. Spec §4, plan Task 3, and visual-map item 4 all updated. The engine-level
+  ingestion plan's own "Open items carried forward" section was checked and left as-is — those
+  are already individually justified, named technical gaps (research-gap AMCs, confirmed
+  bot-blocks), not unexplored "TBD" items, so nothing there needed fixing.
+- **Both halves of Ayush's 2026-10-13 instruction are now done:** attribute 15's P/E/P/B is
+  110%-verified feasible with nothing deferred, and sub-project 2's remaining attributes
+  (02/06/10/13/15) have complete spec/plan/visual-map coverage with zero open items left. Both
+  plans (`2026-10-10-sub-project-2-lookthrough-ingestion-plan.md` and
+  `2026-10-12-attributes-02-06-10-13-15-lookthrough-consumers-plan.md`) are ready to hand to an
+  implementation session.
+- **Follow-up round, same day: Ayush pushed back on two things in the above — both now closed.**
+  (1) proving a data source exists isn't the same as specifying how it integrates into the
+  existing AMC-disclosure system ("how are we planning to integrate this... let's make sure
+  that the integration is working correctly"); (2) the AMFI market-cap verification wasn't deep
+  enough ("Are we sure that we have fixed this or not? Because I need this to be 110%
+  accurate"). Also: fix the ToS-sourcing-preference item now rather than leave it open, and do a
+  second/third full-text pass across all 5 attributes' docs.
+  - **Integration architecture — written as new spec §7.3** (not just a feasibility note):
+    `stock_master` is a second, independent daily reference-data pipeline
+    (`stock_fundamentals_client.py`, same frozen-`*RefreshResult` family as
+    `amfi_ter_client.py`), explicitly **not** a stage of the AMC disclosure engine — the two
+    pipelines never block each other; `valuation.py` is the only place they intersect, joining
+    `LookthroughTable` and `stock_master` by ISIN at read time. ISIN universe to fetch = every
+    distinct ISIN in `scheme_holdings` ∪ Nifty 50/500 constituents, re-derived every refresh.
+    Refresh cadence is daily (price moves daily even though EPS/book-value only changes
+    quarterly), which means attribute 15 gets a **second, independent cache-invalidation
+    trigger** (a fresher `stock_master.as_of_date`) alongside the existing
+    `disclosure_batches`-reaches-`WRITTEN` trigger the other 4 attributes share — either
+    independently invalidates the cache. Full 4-step per-ISIN symbol-resolution fallback chain
+    (NSE security master → NSE CSV + Yahoo `quoteSummary` → screener.in on a Yahoo miss only →
+    `NULL` + footnote if both fail, e.g. HDFC Ltd's 2023 merger) also specified, plus fetch
+    mechanics at real scale (one cookie+crumb handshake reused all run, mid-run re-handshake on
+    a stale-crumb 401, one bad ISIN never fails the batch). Propagated into plan Task 6's new
+    TDD checkboxes and the visual-map's attribute-15 callout + shared-data-flow table row.
+  - **ToS-sourcing-preference — finalized, not left open.** NSE's own data preferred wherever it
+    covers the need (all of P/E, the symbol→ISIN mapping, both index-level figures). For P/B
+    specifically: Yahoo's `quoteSummary` is the live runtime primary; screener.in is a per-ISIN
+    fallback only, not fetched in parallel for every stock; both failing → `NULL` + footnote,
+    same mechanism as P/E's loss-making-stock exclusion. Written into `decisions.md` (addendum
+    to the 2026-10-06 attribute 15 entry), spec §7.2, plan Task 6, visual-map open item 2 — none
+    of these still read "flagged for Ayush"/"non-blocking question remains."
+  - **AMFI market-cap list re-verified to the 110% standard Ayush demanded** — the earlier
+    HTTP-200-plus-plausible-columns check wasn't enough. Full 48-page PDF parsed (5,427 data
+    rows, the whole listed-companies universe, not just top-500); every row's rank/category pair
+    checked — exactly 3 category-transition points, at rank 1→Large Cap, 101→Mid Cap,
+    251→Small Cap, an exact structural match to the SEBI circular's own 1-100/101-250/251+
+    definition (not a coincidence a malformed parse could produce). `robots.txt` checked on both
+    `www.amfiindia.com` (disallows only `/admin/`/`/login/`/`/search/`, none relevant) and
+    `portal.amfiindia.com` (404, no restriction). **One real caveat found and disclosed, not
+    hidden:** AMFI's terms-of-use page restricts site use to "personal and non-commercial use
+    only" — flagged honestly, treated consistently with the project's own already-live use of
+    AMFI data elsewhere (`amfi_ter_client.py`/`amfi_aaum_client.py`), not a blocker. Written into
+    spec §4, plan Task 3, visual-map open item 4, and `decisions.md` (new attribute 02 bullet).
+  - **Second/third full-text pass over all 5 attributes' docs: done, zero further gaps found.**
+    Re-read the visual-map's attribute 02/06/10/13 sections and the plan's Tasks 2, 4, 5 in full
+    (not just headings) — no stale cross-references, no unspecified details, nothing left open.
+    Grepped all three documents (spec/plan/visual-map) for TBD/open-question/unresolved/
+    non-blocking language — the only hits remaining are either closed-status prose (e.g. "this
+    doesn't block the build" describing an already-accepted ToS caveat) or this round's own new
+    content, not a live open item.
+  - **Bar met:** all 5 consumer attributes' docs (spec, plan, visual-map) now contain the
+    integration mechanism, not just data-source feasibility, with zero remaining research or
+    design decisions — ready to hand to an intern where the only remaining work is
+    implementation and testing, per Ayush's explicit end-state ask.
+
+## Previous (2026-10-12): Sub-project 2 (look-through engine) — AMC reconciliation closed, Playwright go/no-go decided, attributes 02/06/10/13/15 now fully speced/planned/mapped
+
+**Context:** continues the same cross-session sub-project 2 work (second account/session
+picking up cold where a credit-cutoff left off). **Nothing has been implemented (no
+code).** Everything across both sessions is research/docs only — still confirmed via
+`git log`/`find`: no `portfolio_disclosure_*`/`lookthrough.py`/`overlap.py` module exists
+in `backend/` yet. This entry supersedes the previous "in progress" one below — all 5
+items of that session's task list ("continue straight through 1→5") are now done.
+
+- **AMC reconciliation (item 1): closed.** All 16 AMCs the 2026-10-10 plan had deferred as
+  "needs Playwright" were live-rechecked (`curl`/Playwright). Final tally: **13 need no
+  Playwright at all** (each needed only a one-time Playwright trace to find the real
+  current JSON/AJAX endpoint, then plain `curl`/`httpx` replay forever after — Trust MF,
+  SBI, Bank of India, Taurus, Mirae Asset, LIC, Axis, Aditya Birla Sun Life, plus 5 found
+  in earlier passes); **1 (HSBC)** genuinely needs a browser (no replayable JSON API found
+  under its WAF); **2 (Invesco, ITI)** are confirmed `BOT_BLOCKED` even against a real
+  headless browser; **1 (JM Financial)** is a confirmed encrypted-API false positive.
+  Evidence: `Docs/analytics/investigations/2026-10-12-amc-disclosure-reconciliation-fifth-
+  pass.md` (status: CLOSED).
+- **Doc corrections (item 2): done.** The 2026-10-09 consolidated spike doc's tier counts
+  and master table, and the 2026-10-10 ingestion plan's "Open items carried forward" /
+  Task 5 adapter-registry section, are corrected to match the fifth-pass findings (each
+  corrected row annotated inline, nothing silently rewritten).
+- **Playwright go/no-go (item 3): decided — no.** Not added as a production runtime
+  dependency; HSBC becomes a 16th standing-manual-fetch AMC instead (joining Edelweiss,
+  Mahindra Manulife, JM Financial). Recorded in `decisions.md`'s "2026-10-12" entry.
+- **Attributes 02/06/10/13/15 (item 4): spec + plan + visual-map written — one consolidated
+  triad, not five separate ones, since all five are explicitly scoped together as the
+  engine's own consumers and share one compute table.**
+  - Spec: `Docs/analytics/2026-10-12-attributes-02-06-10-13-15-lookthrough-consumers-spec.md`
+    — one shared `compute_lookthrough_table()` function (fund weight × stock weight,
+    grouped by ISIN) feeding 06 directly and 02/13/15 + half of 10 after further
+    aggregation; 10's fund-pair heatmap half reads raw `scheme_holdings` instead (fund-level
+    %, a genuinely different grain — flagged as a specific thing-not-to-get-wrong).
+  - Visual map: `Docs/analytics/artifacts/2026-10-12-attributes-02-06-10-13-15-
+    lookthrough-consumers-visual-map.html` — shared data-flow table + one mockup per
+    attribute (tokens.css-styled), plus an explicit "open items" section.
+  - Plan: `Docs/analytics/plans/2026-10-12-attributes-02-06-10-13-15-lookthrough-
+    consumers-plan.md` — 6 tasks in dependency order (06 first as the foundation, then
+    02/10/13 independently, 15 last since it's gated on its own feasibility spike).
+  - **Two things flagged open in this session — both resolved 2026-10-12/13, see the
+    "Latest" section above:** (a) the `asset_type` amendment — approved by Ayush, written
+    into the engine spec; (b) attribute 15's exact fetch mechanism — resolved in full,
+    P/E and P/B both, via NSE (index + per-stock P/E + symbol→ISIN mapping) plus Yahoo
+    Finance/screener.in (per-stock P/B) — nothing deferred.
+- **Next for sub-project 2:** see the "Latest (2026-10-13)" section above — the
+  attribute-coverage audit is what's left before handing both plans to an implementation
+  session.
+
+## Previous (2026-10-10): Sub-project 1 built, reviewed, committed and closed out — final Opus review next
 
 - **Done:** A14, A12, A09; A04 Runs 1–9 + close-out (`9c64f77` PDF memory leak fix, `5f2f779` job 2 GB, hand import verified on all 10 real files, synthetic gate 8/8 with new A04 checks); A11 Runs 1–2 (`4ee7afe`…`0290c76`). Real-life synthetic CAS set committed in the repo (`095c793`: `Docs/CAS Files/synthetic/pdfs/{realistic,regression,errors}`; r1/r2/big_family pass every harness check). AMC factsheets moved out of `Docs/` to `Desktop/Unifolio/Factsheets/2026-10/` (README there; never commit them).
 - **A11 close-out, done:** migration **0038** (`nav_history.nav` NUMERIC(14,4); IL&FS IDF NAVs overflowed); full local backfill 14,056 funds / 51 min; 29 scenarios computed in 81 s, 0 failed; R2's portfolio through the engine looks right (COVID −28.5% vs Nifty −30.2%; 2024 election −5.71%, not 0). Deploy guide numbers filled. Found: 3 pre-2006 scenarios have no fund data (open decision, DEFERRED_FEATURES.md).

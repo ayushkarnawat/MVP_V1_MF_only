@@ -111,6 +111,24 @@ today, not for token-conservation:**
   headless-browser fetch step (a new production dependency — more Fargate CPU/memory, a
   slower job, `playwright`'s browser binaries — a real infra-cost decision this plan
   doesn't make unilaterally) or further manual per-AMC research. Not onboarded.
+
+  **Corrected 2026-10-12** (this plan's own "114/1,253-byte body" test was a missing-`User-Agent`
+  artifact, not a real block — see
+  `Docs/analytics/investigations/2026-10-12-amc-disclosure-reconciliation-fifth-pass.md` for the
+  full live-rechecked evidence behind every AMC below): DSP, NJ Mutual Fund, Wealth Company,
+  Baroda BNP Paribas, and 360 ONE were `STATIC_REGEX` all along — this plan's re-check used the
+  wrong URL or a bare `httpx` GET missing a realistic Chrome `User-Agent` header, not a real
+  JS-shell. SBI, Mirae Asset, Axis, Trust Mutual Fund, Taurus, Aditya Birla Sun Life, Bank of
+  India, and LIC each had a stale cited URL; a one-time Playwright trace found a plain
+  JSON/AJAX endpoint underneath each one, replayable forever via `curl`/`httpx` — no headless
+  browser needed in production (see the `JSON_API`-kind Locate bullet in "Open items carried
+  forward" for each one's exact endpoint). Invesco and ITI are confirmed `BOT_BLOCKED` — a real
+  headless-Chromium Playwright navigation gets blocked too, so this is not a Playwright candidate
+  at all. JM Financial's "file" decodes to AES-ciphertext, a confirmed false positive — not a
+  JS-shell, an encrypted dead end. **That leaves exactly 1 AMC, HSBC, confirmed to genuinely need
+  a standing-browser fetch step in production** — and the decision is not to add Playwright for
+  one AMC (see the go/no-go decision in "Open items carried forward"); HSBC is handled as a
+  standing-manual-fetch AMC instead.
 - **Old Bridge Mutual Fund** — the spike's recorded filename pattern
   (`Monthly_Portfolio_<Month>_<Year>.xlsx`) has visibly changed since the spike to a
   different, less obviously holdings-specific naming convention
@@ -118,20 +136,33 @@ today, not for token-conservation:**
   `Old_Bridge_<Scheme>_<Month>_<Year>_<hash>.xlsx` files, inconsistent across months) —
   genuinely ambiguous which file is the holdings disclosure today, not a copy-paste from
   old research.
-- **`JSON_API` tier (14 AMCs: PGIM India, Navi, Jio BlackRock, Bandhan, ICICI Prudential,
-  Bajaj Finserv, Unifi, Zerodha, Abakkus, quant Money Managers, Sundaram, Choice, UTI,
-  Tata)** — re-reading every investigation doc in full (not just structured tables) found
-  that not one of these 14 has a literal, reusable, non-expiring endpoint recorded
-  anywhere — only qualitative mechanism descriptions survive (a WordPress REST path with
-  no query string; a signed/expiring GCS URL that can't be hardcoded; a button-triggered
-  ZIP download, not a static link). This is a hard research gap, not a scope choice: the
-  registry's `JSON_API` kind still exists (unused this round) so these are a drop-in
-  follow-on once that research is done, same precedent as
-  `amfi_factsheet_client._json_api_candidates`.
+- **`JSON_API` tier (originally 14 AMCs: PGIM India, Navi, Jio BlackRock, Bandhan, ICICI
+  Prudential, Bajaj Finserv, Unifi, Zerodha, Abakkus, quant Money Managers, Sundaram,
+  Choice, UTI, Tata — now 15, see correction below)** — re-reading every investigation doc
+  in full (not just structured tables) found that not one of these 14 has a literal,
+  reusable, non-expiring endpoint recorded anywhere — only qualitative mechanism
+  descriptions survive (a WordPress REST path with no query string; a signed/expiring GCS
+  URL that can't be hardcoded; a button-triggered ZIP download, not a static link). This is
+  a hard research gap, not a scope choice: the registry's `JSON_API` kind still exists
+  (unused this round) so these are a drop-in follow-on once that research is done, same
+  precedent as `amfi_factsheet_client._json_api_candidates`. **Corrected 2026-10-12 (sixth
+  pass): WhiteOak Capital belongs in this same research-gap bucket** (page confirmed live
+  at `mf.whiteoakamc.com/regulatory-disclosures/scheme-portfolios`, same select/click shape
+  as the other 14, just not yet driven to a download) — the engine spec already named it as
+  needing its adapter built during build-out, but this plan's own JSON_API-tier accounting
+  never actually included it. 15, not 14 (or 23, not 22, counting the fifth pass's 8
+  already-found-endpoint additions below).
 - **Edelweiss, Mahindra Manulife** — standing manual-fetch per the spec (Akamai WAF;
   genuinely encrypted request/response API — see the project's constraint against
-  attempting to crack it). **Kotak Mahindra** — pending its ~2026-10-12 CDN re-check, per
-  the spec. None of these three are a new decision this plan is making.
+  attempting to crack it). **Kotak Mahindra — resolved 2026-10-12 (sixth pass), no longer
+  pending.** Live-checked on the trigger date itself: the real path is
+  `/FAD/Portfolios/Consolidated-SEBI-Portfolio-as-on-{Month}-{DD},-{YYYY}/
+  ConsolidatedSEBIPortfolio{Month}{YYYY}.xlsx` on `vatseelabs-s3.kotakmf.com` (found via
+  Wayback CDX) — the spec's originally-recorded filename guess had the wrong path prefix
+  and naming convention, which is why it 403'd on 2026-10-09 even though Wayback shows the
+  real file was already crawled live by 2026-10-10. Confirmed via live download with
+  genuine SEBI-schema data. Folds into `STATIC_REGEX`, Wayback-Locate — a plain config row,
+  no adapter code, same shape as HDFC.
 
 ## Global Constraints
 
@@ -2542,6 +2573,20 @@ git commit -m "feat: schedule daily portfolio-disclosure ingestion with its own 
 
 ## Open items carried forward (not in this plan's scope)
 
+**Corrected 2026-10-12** (fifth-pass reconciliation — see
+`Docs/analytics/investigations/2026-10-12-amc-disclosure-reconciliation-fifth-pass.md` for the
+full live-rechecked evidence): the "JS-shell AMCs... needs a headless-browser Fetch step"
+bullet below, as this plan originally wrote it, was wrong for 15 of its 16 AMCs. Every one of
+those 16 was live-rechecked with real `curl`/Playwright; 13 turned out to need no Playwright at
+all in production (wrong URL, wrong UA, or a plain JSON/AJAX API found via a one-time discovery
+trace), 2 (Invesco, ITI) are genuine bot walls regardless of tooling, 1 (JM Financial) is a
+confirmed encrypted-API false positive, and only **1 (HSBC)** genuinely needs Playwright (or a
+fingerprint-matching HTTP client) as a standing production dependency. **Go/no-go decision: do
+not add Playwright as a production dependency for one AMC** — HSBC moves to the
+standing-manual-fetch bucket instead. The bullets below are corrected to match; where a prior
+bullet's own reasoning is now stale it is struck through rather than silently rewritten, per this
+project's "don't silently resolve a doc conflict" rule.
+
 Every item below has a specific, named technical reason it isn't onboarded this round —
 see this plan's Scope note for the live re-check each one is based on. None are deferred
 purely to conserve token/implementation effort; each either needs a capability this plan
@@ -2550,43 +2595,80 @@ fresh research no amount of extra time today could responsibly substitute for (a
 endpoint that survives nowhere in writing), or is already a pre-existing spec-level
 decision outside this plan's scope to revisit.
 
-- **`JSON_API`-kind Locate (14 AMCs: PGIM India, Navi, Jio BlackRock, Bandhan, ICICI
-  Prudential, Bajaj Finserv, Unifi, Zerodha, Abakkus, quant Money Managers, Sundaram,
-  Choice, UTI, Tata).** The registry's `DisclosureResolverKind.JSON_API` enum member
-  anticipates this, but `_locate_and_fetch` only implements `STATIC_REGEX` and
-  `WAYBACK_LOCATE` this round (raises `NotImplementedError` otherwise, the same
-  precedent as `amfi_factsheet_client._json_api_candidates`) — no literal reusable
-  endpoint survives in writing anywhere for any of these 14; each needs its own
-  from-scratch network-trace research pass before an adapter can be written at all.
+- **`JSON_API`-kind Locate, now 23 AMCs, not 14.** The original 14 (PGIM India, Navi, Jio
+  BlackRock, Bandhan, ICICI Prudential, Bajaj Finserv, Unifi, Zerodha, Abakkus, quant Money
+  Managers, Sundaram, Choice, UTI, Tata) still have no literal reusable endpoint written down
+  anywhere — each needs its own from-scratch network-trace research pass before an adapter can be
+  written. **Corrected 2026-10-12 (sixth pass): WhiteOak Capital is a 15th member of this same
+  research-gap bucket** — the engine spec already named it as needing its adapter built during
+  build-out (page confirmed live at `mf.whiteoakamc.com/regulatory-disclosures/
+  scheme-portfolios`, same select/click shape as the other 14), but this plan's own accounting
+  never included it; a real gap, not a design question. **The fifth pass adds 8 more AMCs to this
+  same registry bucket, but with their literal endpoints already found and documented** (no
+  further research needed, just adapter-writing):
+  SBI (`POST /ajaxcall/CMS/GetSchemePortfolioSheetsQS`), Bank of India (`AjaxService.asmx/GetDocuments`),
+  Trust Mutual Fund (`POST /api/api/Trust/GetData`), Mirae Asset (`AjaxService/GetDownloadsData`
+  on `/downloads/portfolio`), LIC (`/downloads/portfolio-filter-options` then
+  `/downloads/portfolio-files`), Axis (`POST /cms/token` → `POST /cms/get-scheme-documents`, both
+  unauthenticated, full chain replayable via plain `curl`), Aditya Birla Sun Life
+  (`/postlogin/CustomApi/Resources/FactsheetAccordionById` — **adapter must rewrite the response's
+  `pdfUrl` host from the dead `abcscprod.azureedge.net` CDN to the live
+  `mutualfund.adityabirlacapital.com` domain, same path**, not fetch it as literally returned),
+  and Taurus (a Drupal exposed-filter AJAX call, replayable as a plain GET with its query-string
+  params — **flag this AMC's cadence as Half-Yearly-only, March/September, not monthly**, a
+  `disclosure_batches`-grain question for whoever onboards it, not a fetch problem). `_locate_and_fetch`
+  still only implements `STATIC_REGEX` and `WAYBACK_LOCATE` this round; `JSON_API` support (for
+  all 22) remains future work, same as originally planned — this correction only changes which 8
+  of those 22 are "ready to adapt" versus "needs research first."
 - **`ZIP_OF_WORKBOOKS` has no onboarded AMC yet**, despite Task 2 building
   `extract_zip_members` generically — ICICI Prudential's real ZIP-of-151-xlsx and the
-  other AMCs that share this bundling pattern (Bank of India, Abakkus, Sundaram, Baroda
+  other AMCs that share this bundling pattern (Abakkus, Sundaram, Baroda
   BNP Paribas) are all also in the `JSON_API`-research-gap bucket above, so there's no
   AMC today where only the ZIP step is missing; wiring a registry entry for it is moot
-  until one of those 14 is separately onboarded.
-- **JS-shell AMCs (DSP, NJ Mutual Fund, and 14 others individually re-confirmed the same
+  until one of those is separately onboarded. (Bank of India, previously listed here as sharing
+  this bundling pattern, is corrected above to a single multi-sheet workbook via
+  `AjaxService.asmx/GetDocuments` — not a ZIP — per the fifth pass.)
+- ~~**JS-shell AMCs (DSP, NJ Mutual Fund, and 14 others individually re-confirmed the same
   way — SBI, Mirae Asset, Invesco, Axis, ITI, Trust Mutual Fund, Taurus, Wealth Company,
   Aditya Birla Sun Life, JM Financial, Bank of India, Baroda BNP Paribas, 360 ONE, HSBC,
-  LIC).** A plain `httpx` GET returns a near-empty JS-rendered shell (DSP: 114 bytes; NJ:
-  1,253 bytes), not the real content — needs a headless-browser Fetch step (Playwright),
-  a new production dependency with real infra cost (more Fargate CPU/memory, a slower
-  job), not just more Locate-pattern research. Worth its own follow-on plan once the
-  cost/benefit of adding Playwright to the ingestion job is weighed on its own.
-- **AlphaGrep Mutual Fund.** The spike's recorded calendar-deterministic URL template was
-  re-tried today with 4 real scheme-name slug guesses plus a deliberately bogus one — all
-  5 returned an identical `HTTP 200` soft-404 HTML shell (`Content-Type: text/html`,
-  `Content-Length: 59089` for every guess). No literal working URL survives today; either
-  the site changed or the original verification was mistaken. Needs fresh, from-scratch
-  discovery, not a registry entry built on an unconfirmed claim.
+  LIC). A plain `httpx` GET returns a near-empty JS-rendered shell... needs a headless-browser
+  Fetch step (Playwright), a new production dependency with real infra cost... Worth its own
+  follow-on plan once the cost/benefit of adding Playwright to the ingestion job is weighed on
+  its own.**~~ **Superseded 2026-10-12.** Of these 16: DSP, NJ Mutual Fund, Wealth Company,
+  Baroda BNP Paribas, and 360 ONE were already correctly `STATIC_REGEX` all along (this plan's
+  own re-check used the wrong URL/missing `User-Agent`, see the fifth-pass doc); SBI, Mirae
+  Asset, Axis, Trust Mutual Fund, Taurus, Aditya Birla Sun Life, Bank of India, and LIC move to
+  the `JSON_API` bucket above (one-time-discovered endpoints, no Playwright in production);
+  Invesco and ITI are confirmed `BOT_BLOCKED` (a real browser is blocked too — moved to the
+  standing-manual-fetch bullet below, not a Playwright candidate); JM Financial is a confirmed
+  encrypted-API false positive (moved to the standing-manual-fetch bullet below). **Only HSBC
+  remains — see the go/no-go decision above: not worth a production Playwright dependency for
+  one AMC.**
+- ~~**AlphaGrep Mutual Fund.** ... Needs fresh, from-scratch discovery~~ — **resolved
+  2026-10-12 (sixth pass), false alarm.** A Wayback CDX query against `alphagrepmf.ai`
+  found the real path still live, just with a different digit format than this plan's
+  (and the spike's) recorded template: `FY-{YY}-{YY+1}` (two-digit year range, e.g.
+  `FY-2026-27`), not `FY-{year}-{year+1}` (four-digit, e.g. `FY-2026-2027`) as previously
+  written down — that's why every guess against the recorded template 404'd, including a
+  retry of the exact August file this plan had earlier verified live. Confirmed via live
+  download with the corrected template: genuine SEBI-schema data (ISIN, Industry, Quantity,
+  Market value, % to AUM). Stays `STATIC_REGEX`, fully automatable — correct the
+  `link_pattern`'s digit format in the registry, no further research or manual fetch
+  needed.
 - **Old Bridge Mutual Fund.** Its filename convention has visibly drifted since the
   spike — a mix of `IR_Old_Bridge_Mutual_Fund_DDMMYYYY_hash.xlsx` and separate
   per-scheme files, with the per-scheme pattern only confirmed through January 2026.
   Genuinely ambiguous today; not safe to hardcode a `link_pattern` against.
-- **Standing manual-fetch (Edelweiss, Mahindra Manulife) and Kotak Mahindra's
-  pending-CDN re-check (~2026-10-12).** All three are pre-existing spec-level decisions
-  (confirmed-genuine WAF/encrypted-API blocks for the first two; a believed-identical,
-  not-yet-live CDN path for Kotak) — not a new design question raised by this plan, just
-  sequencing already settled before this plan was written.
+- **Standing manual-fetch: exactly 6 AMCs (Edelweiss, Mahindra Manulife, Invesco, ITI, JM
+  Financial, HSBC).** Edelweiss and Mahindra Manulife remain confirmed-genuine WAF/encrypted-API
+  blocks. The fifth pass adds four more for named, confirmed reasons: Invesco and ITI are
+  confirmed `BOT_BLOCKED` even against a real headless browser; JM Financial's "file" is
+  confirmed AES-ciphertext, an encrypted-API dead end like Mahindra Manulife; HSBC is the sole
+  AMC confirmed to need a standing Playwright/fingerprint-matching-client dependency, which this
+  project is declining to add for one AMC (see go/no-go decision above) — so it is handled as a
+  manual-fetch AMC instead. **Kotak Mahindra is no longer in this bucket** — resolved
+  2026-10-12 (sixth pass) to automated `STATIC_REGEX` via the corrected Wayback-discovered URL
+  path; no re-check pending.
 - Attributes 02/06/10/13/15's own compute logic, reading from `scheme_holding` — each is
   its own future implementation plan against this one's two tables, per the spec's own
   "Open items" section.

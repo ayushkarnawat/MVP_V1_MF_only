@@ -407,7 +407,74 @@ cross-reference: `Docs/analytics/2026-10-06-analytics-pdf-deep-understanding.md`
 - **Attribute 15 (stock P/E, P/B, sector): build free in-house, no paid vendor exception.** Scrape
   NSE/BSE company-fundamentals pages and/or parse AMC-published factsheets, accepting the extra
   engineering/upkeep cost to stay within the in-house-only rule. Scoped as part of the look-through
-  engine's ingestion work, not a separate vendor contract.
+  engine's ingestion work, not a separate vendor contract. **Exact mechanism resolved
+  2026-10-13** (`Docs/analytics/investigations/2026-10-13-attribute-15-pe-pb-sourcing-feasibility.md`):
+  index-level P/E/P/B/Div Yield (`niftyindices.com/BackPage/getpepbHistoricaldataDBtoString`) and
+  per-stock P/E (NSE's daily `peDetail/PE_<DDMMYY>.csv` + its `NSE_CM_security_<DDMMYYYY>.csv.gz`
+  symbol→ISIN master) are all free, live-verified, in-house-buildable — the in-house rule holds.
+  **Revised same day, after a first pass wrongly called per-stock P/B a dead end having checked
+  only NSE/BSE:** per-stock P/B is also free and in-house-buildable, via two independent
+  live-verified sources — Yahoo Finance's unofficial `quoteSummary` API (cookie+crumb handshake)
+  and screener.in's server-rendered company pages, cross-validated against each other to the
+  rupee for RELIANCE and scale-tested across 14-15 sequential requests with no rate-limiting.
+  Google Finance was also checked and correctly ruled out (no book-value field on its live quote
+  page; its old public API is dead). **Nothing is deferred and the "no paid vendor" rule is not
+  exercised — attribute 15 is fully in-house, P/E and P/B, index and per-stock.** The only
+  remaining item is a non-blocking ToS-sourcing-preference call for Ayush (which free source to
+  prefer for P/B — NSE has none either way), not a feasibility question. See
+  `Docs/analytics/investigations/2026-10-13-attribute-15-pe-pb-sourcing-feasibility.md`.
+  **ToS-sourcing-preference call, finalized 2026-10-13 (same day, decided rather than left
+  open):** NSE's own data is preferred wherever it covers the need — all of P/E, the
+  symbol→ISIN mapping, and both index-level figures. For P/B specifically (the one metric NSE
+  doesn't publish at all), **Yahoo Finance's `quoteSummary` API is the live runtime primary
+  source; screener.in is a per-ISIN fallback only** (called only when Yahoo returns no data for
+  a specific stock — e.g. a delisted/merged ticker like the HDFC Ltd→HDFC Bank 2023 merger —
+  not fetched in parallel for every stock), to minimize exposure to screener.in's more
+  explicit "materials license" commercial-use restriction while keeping its resilience value
+  for individual misses. If both fail for a given ISIN, `pb_ratio` is `NULL` with a disclosed
+  footnote, the same pattern already specified for P/E's loss-making-stock exclusion (§7 of the
+  consumer spec) — never silently dropped. **Not revisited as a paid-vendor question**: this
+  stays within the 2026-10-06 "no paid vendor" rule; a licensed vendor remains available as a
+  future option if Yahoo/screener.in's ToS posture ever becomes a problem in practice, not a
+  prerequisite to building this now.
+  **Integration architecture decided 2026-10-13** (spec §7.3 of
+  `Docs/analytics/2026-10-12-attributes-02-06-10-13-15-lookthrough-consumers-spec.md`):
+  `stock_master` is built as a second, independent daily reference-data pipeline
+  (`stock_fundamentals_client.py`, same frozen-`*RefreshResult` family as
+  `amfi_ter_client.py`/`amfi_aaum_client.py`) — explicitly **not** a stage of the 5-stage AMC
+  disclosure engine (Locate/Fetch/Parse/Normalize/Write). The two pipelines never block or
+  gate each other; `valuation.py` is the only place they intersect, joining
+  `LookthroughTable` and `stock_master` by ISIN at read time. Refreshed daily (price moves
+  daily; EPS/book-value inputs don't), which means attribute 15 gets its own, second
+  cache-invalidation trigger (a fresher `stock_master.as_of_date`) independent of the
+  `disclosure_batches`-reaching-`WRITTEN` trigger the other 4 attributes share — either
+  trigger independently invalidates the cache, not merged into one. **Why decided now rather
+  than left as a data-feasibility footnote:** Ayush's explicit follow-up ("how are we
+  planning to integrate this within our systems of disclosures... let's make sure that the
+  integration is working correctly") — proving a data source exists is not the same as
+  specifying how it wires into the existing system, and the latter was the actual gap.
+- **Attribute 02 (AMFI market-cap list sourcing): re-verified to a 110%-confidence standard,
+  2026-10-13.** Ayush rejected the first pass's verification (HTTP 200 + plausible-looking
+  columns) as insufficient ("Are we sure that we have fixed this or not? Because I need this
+  to be 110% accurate"). Deeper check: the full 48-page PDF
+  (`https://portal.amfiindia.com/spages/AverageMarketCapitalization30Jun2026.pdf`) was parsed
+  in full — 5,427 data rows (the entire listed-companies universe, not just top-500) — and
+  every row's rank/category pair checked; exactly 3 category-transition points were found, at
+  rank 1 (→Large Cap), 101 (→Mid Cap), 251 (→Small Cap), an exact match to the SEBI circular's
+  own Large=1-100/Mid=101-250/Small=251+ definition. This is structural confirmation (a
+  malformed parse could not produce this exact a match) that the row order genuinely is
+  AMFI's rank and the categorization column is genuinely correct, not just a plausible-looking
+  header. `robots.txt` checked on both `www.amfiindia.com` (disallows only
+  `/admin/`/`/login/`/`/search/`, none relevant) and `portal.amfiindia.com` (404, no
+  restriction declared). **One real caveat found and disclosed, not hidden:** AMFI's own
+  terms-of-use page (`https://www.amfiindia.com/terms-of-use`) restricts site use to
+  "personal and non-commercial use only" — more explicit language than previously assumed.
+  **Decision: proceed anyway, caveat recorded.** This is treated consistently with the
+  project's own already-live, already-accepted practice of using AMFI data in production
+  elsewhere (`amfi_ter_client.py`/`amfi_aaum_client.py` already ingest AMFI data daily for
+  TER/AAUM) — it is not a new risk category this project hasn't already accepted. See spec §4
+  and plan Task 3 for the full detail.
+
 ## 2026-10-06 — Attribute 09 (fund ranking): "category-relative" parameter partially resolved, exact formula still pending
 
 Source: brainstorming session for Sub-project 1 (attribute 09 build), continued from the
@@ -564,3 +631,8 @@ Pages: `Docs/orchestration/pages/2026-10-07-analytics-speed-fix.html` (why, cost
 - **Bajaj Finserv, AlphaGrep, IL&FS (IDF), Lakshya and Monarch are off**: none publishes a current factsheet (Bajaj's latest is July 2026). Their funds show "not available yet".
 - **The remaining gaps are the top open item, deadline 10 Nov 2026 06:00 IST** (user request, 10 Oct): AWS blocking of the 40 automatic fund houses is unverified until the first staging run; no alert exists for a skipped monthly hand import; HDFC's passive file is untested; the long-term fix (ask AMCs for official access / license vendor data) is undecided. Ordered to-do list: `DEFERRED_FEATURES.md` top section. Background and options: `Docs/orchestration/subproject1-execution/a04-factsheet-access-gaps.html`.
 - **Close-out fixes (10 Oct):** PDFium handles are closed explicitly (the monthly job peaked at 2.9 GB from leaked native memory; now 0.94 GB), and the `fund-managers-monthly` task gets 2 GB (HSBC's 190-page factsheet alone holds ~600 MB); other jobs keep 1 GB.
+
+## 2026-10-12 — Sub-project 2: AMC reconciliation closed; no Playwright in production
+
+- **Decision: do not add Playwright as a production runtime dependency for sub-project 2.** Of the implementation plan's original 16-AMC "needs Playwright" bucket, all 16 were live-rechecked (`curl`/Playwright) this pass: **13 need no Playwright at all** (Trust MF, SBI, Bank of India, Taurus, Mirae Asset, LIC, Axis, Aditya Birla Sun Life, plus 5 resolved in earlier passes) — each needed only a one-time Playwright network trace to discover the real current JSON/AJAX endpoint (prior documented URLs had gone stale since the 2026-10-09 spike), after which production replay is plain `curl`/`httpx` with no JS execution. **1 (HSBC)** genuinely needs a browser — no replayable JSON API found underneath its WAF — and moves to the standing-manual-fetch list (joining Edelweiss, Mahindra Manulife, JM Financial). **2 (Invesco, ITI)** are confirmed `BOT_BLOCKED` (Cloudflare/WAF challenge) against a real headless-Chromium browser too, so Playwright wouldn't help them anyway. **1 (JM Financial)** is a confirmed encrypted-API false positive, already on the manual-fetch list for an unrelated reason. **Why:** one AMC (HSBC) doesn't justify a new production infra dependency (browser runtime, real CPU/memory cost, bot-detection fragility) when a 16th manual-fetch entry costs nothing new. Full evidence: `Docs/analytics/investigations/2026-10-12-amc-disclosure-reconciliation-fifth-pass.md`; corrected tier counts in `Docs/analytics/investigations/2026-10-09-amc-portfolio-disclosure-spike-consolidated.md` and `Docs/analytics/plans/2026-10-10-sub-project-2-lookthrough-ingestion-plan.md`.
+- **Two notable adapter-registry implementation details surfaced and documented, not yet built:** Axis's entire chain (including the discovery step) is curl-replayable because its `POST /cms/token` bearer-token endpoint is itself public and unauthenticated — no login needed anywhere in the chain. Aditya Birla Sun Life's JSON API returns a `pdfUrl` pointing at a genuinely dead/retired CDN host (`abcscprod.azureedge.net`, confirmed `NXDOMAIN` against 3 independent public resolvers' Azure-authoritative lookups) — the adapter must rewrite that host to the live main domain (`mutualfund.adityabirlacapital.com`), which serves the identical `/-/media/...` path directly.
