@@ -1,11 +1,62 @@
 from __future__ import annotations
 
 from datetime import date, datetime
+from decimal import Decimal
+from typing import Literal
+from uuid import UUID
 
 from pydantic import BaseModel
 
-from app.models.enums import BenchmarkIndex, TransactionType
+from app.models.enums import AssetType, BenchmarkIndex, TransactionType
 from app.services.dashboard.schemas import AllocationBucket, MemberStatus
+
+
+class LookthroughFundAge(BaseModel):
+    scheme_id: UUID
+    holdings_as_of: date
+    cadence: str
+    age_tag: Literal["older_than_60_days", "on_cycle"] | None
+
+
+class FundContribution(LookthroughFundAge):
+    fund_weight_pct: Decimal
+    stock_weight_pct: Decimal
+
+
+class LookthroughCoverage(BaseModel):
+    covered_value_pct: Decimal
+    not_published_yet: list[UUID]
+    not_available_from_amc: list[UUID]
+    missing_value_schemes: list[UUID]
+    funds: list[LookthroughFundAge]
+
+
+class StockHoldingRow(BaseModel):
+    isin: str | None
+    instrument_name: str
+    sector_raw: str | None
+    asset_type: AssetType
+    exposure_pct: Decimal
+    exposure_value: Decimal
+    contributing_funds: list[FundContribution]
+
+
+class StockHoldingsSummary(BaseModel):
+    rows: list[StockHoldingRow]
+    nav_as_of: date | None
+    holdings_as_of: date | None
+    total_portfolio_value: Decimal
+    coverage: LookthroughCoverage
+    truncated: bool
+    total_stock_count: int
+    hide_headlines: bool
+    excluded_share: Decimal
+    non_equity_share: Decimal
+
+
+class AggregateStockHoldingsResponse(BaseModel):
+    members: list[MemberStatus]
+    stock_holdings: StockHoldingsSummary
 
 
 class AnalyticsAllocationSummary(BaseModel):

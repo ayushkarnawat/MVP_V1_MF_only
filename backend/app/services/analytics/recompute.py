@@ -33,7 +33,9 @@ from app.services.analytics.allocation import compute_category_allocation
 from app.services.analytics.benchmark import compute_fund_vs_benchmark, compute_portfolio_vs_benchmarks
 from app.services.analytics.category_ranking import compute_category_ranking
 from app.services.analytics.investment_withdrawal import compute_investment_withdrawal
+from app.services.analytics.lookthrough import compute_stock_holdings
 from app.services.analytics.schemas import (
+    AggregateStockHoldingsResponse,
     AggregateInvestmentWithdrawalResponse,
     AggregateAnalyticsAllocationResponse,
     AggregateCategoryRankingResponse,
@@ -83,6 +85,7 @@ _SECTIONS: list[_SectionSpec] = [
         lambda statuses, result: AggregateInvestmentWithdrawalResponse(members=statuses, data=result),
     ),
     _SectionSpec("fund_manager", compute_fund_manager_allocation, lambda statuses, result: AggregateFundManagerAllocationResponse(members=statuses, fund_manager=result)),
+    _SectionSpec("stock_holdings", compute_stock_holdings, lambda statuses, result: AggregateStockHoldingsResponse(members=statuses, stock_holdings=result)),
 ]
 
 

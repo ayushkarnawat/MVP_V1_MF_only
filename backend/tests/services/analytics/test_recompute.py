@@ -19,6 +19,8 @@ from app.services.analytics.recompute import (
     try_claim_recompute,
 )
 from app.services.analytics.schemas import (
+    LookthroughCoverage,
+    StockHoldingsSummary,
     FundManagerAllocationSummary,
     AnalyticsAllocationSummary,
     CategoryRankingSummary,
@@ -58,6 +60,13 @@ def _user_with_members(db, n_members=2) -> tuple[User, list[HouseholdMember]]:
 
 
 _MOCK_RESULTS = {
+    "stock_holdings": StockHoldingsSummary(
+        rows=[], nav_as_of=None, holdings_as_of=None, total_portfolio_value=Decimal("0"),
+        coverage=LookthroughCoverage(covered_value_pct=Decimal("0"), not_published_yet=[],
+                                     not_available_from_amc=[], missing_value_schemes=[], funds=[]),
+        truncated=False, total_stock_count=0, hide_headlines=True,
+        excluded_share=Decimal("0"), non_equity_share=Decimal("0"),
+    ),
     "fund_manager": FundManagerAllocationSummary(manager_groups=[], unavailable_schemes=[]),
     "ranking": FundRankingSummary(funds=[]),
     "investment_withdrawal": InvestmentWithdrawalResult(
@@ -112,6 +121,10 @@ def test_recompute_writes_one_row_per_scope_per_section():
     assert combined_allocation.payload["members"][0]["id"] in {str(members[0].id), str(members[1].id)}
     member_allocation = db.get(AnalyticsSection, (user.id, str(members[0].id), "allocation"))
     assert "members" not in member_allocation.payload
+    combined_stocks = db.get(AnalyticsSection, (user.id, "combined", "stock_holdings"))
+    member_stocks = db.get(AnalyticsSection, (user.id, str(members[0].id), "stock_holdings"))
+    assert combined_stocks.payload["stock_holdings"] == _MOCK_RESULTS["stock_holdings"].model_dump(mode="json")
+    assert member_stocks.payload == _MOCK_RESULTS["stock_holdings"].model_dump(mode="json")
 
 
 def test_recompute_clears_started_at_when_done():
