@@ -89,10 +89,10 @@ def test_jio_blackrock_uses_the_captured_server_action():
 
 
 def test_capture_corrected_registry_count_names_hosts_shapes_and_manual():
-    assert len(AMC_DISCLOSURE_RESOLVERS) == 51
+    assert len(AMC_DISCLOSURE_RESOLVERS) == 52
     assert "The Wealth Company Mutual Fund" in AMC_DISCLOSURE_RESOLVERS
     assert "Monarch Mutual Fund" in AMC_DISCLOSURE_RESOLVERS
-    assert "WhiteOak Capital Mutual Fund" not in AMC_DISCLOSURE_RESOLVERS
+    assert "WhiteOak Capital Mutual Fund" in AMC_DISCLOSURE_RESOLVERS
     monarch = AMC_DISCLOSURE_RESOLVERS["Monarch Mutual Fund"]
     assert monarch.landing_url == "https://www.monarchamc.in/forms-downloads/portfolio-holdings/monthly"
     assert monarch.link_pattern == r"Monthly_Portfolio_Monarch_"
@@ -123,3 +123,23 @@ def test_fix_l4_canara_excludes_midmonth_fortnightly_links():
     assert entry.exclude_pattern
     assert re.search(entry.exclude_pattern, midmonth, re.I)
     assert not re.search(entry.exclude_pattern, monthly, re.I)
+
+
+def test_run3_scoped_locators_are_implemented_and_have_captured_requests():
+    from app.services.analytics import portfolio_disclosure_client as client
+    scoped = {"Franklin Templeton": "franklin", "Axis": "axis", "LIC": "lic", "SBI": "sbi",
+              "Trust": "trust", "Mirae Asset": "mirae", "Bank of India": "boi", "Taurus": "taurus",
+              "Aditya Birla Sun Life": "absl", "Navi": "navi", "PGIM India": "pgim",
+              "WhiteOak Capital": "whiteoak", "ICICI Prudential": "icici", "UTI": "uti"}
+    for amc, locator in scoped.items():
+        entry = AMC_DISCLOSURE_RESOLVERS[f"{amc} Mutual Fund"]
+        assert entry.kind is DisclosureResolverKind.JSON_API
+        assert entry.custom_locator == locator and locator in client._CUSTOM_LOCATORS
+        assert entry.file_shape is not None and client._is_locate_implemented(entry)
+        assert "Capture 2026-10-13" in entry.note and "NEEDS LIVE VERIFICATION" not in entry.note
+        assert entry.endpoint_url
+    assert AMC_DISCLOSURE_RESOLVERS["Taurus Mutual Fund"].cadence == "half_yearly"
+    assert AMC_DISCLOSURE_RESOLVERS["Monarch Mutual Fund"].cadence == "monthly"
+    assert AMC_DISCLOSURE_RESOLVERS["Bandhan Mutual Fund"].kind is DisclosureResolverKind.MANUAL
+    for amc in ("AlphaGrep", "Tata", "Sundaram", "Jio BlackRock", "Abakkus", "quant", "Bajaj Finserv"):
+        assert not client._is_locate_implemented(AMC_DISCLOSURE_RESOLVERS[f"{amc} Mutual Fund"])

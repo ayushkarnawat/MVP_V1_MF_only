@@ -1,6 +1,6 @@
 """Declarative discovery registry. Capture log (2026-10-13) overrides the plan.
 JSON_API includes POST chains and embedded payloads, implemented in Task 11.
-WhiteOak is deliberately absent until Task 11. Dates are never rounded here."""
+Task 11a implements HTTP chains; page-payload adapters remain for 11b."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -41,6 +41,12 @@ class DisclosureResolverEntry:
     endpoint_url: str | None = None
     response_json_path: str | None = None
     documents: tuple[str, ...] | None = None
+    custom_locator: str | None = None
+    http_method: str = "GET"
+    request_params: dict | None = None
+    request_body: dict | None = None
+    rewrite_host: tuple[str, str] | None = None
+    cadence: str = "monthly"
     note: str | None = None
 
 
@@ -148,14 +154,23 @@ AMC_DISCLOSURE_RESOLVERS: dict[str, DisclosureResolverEntry] = {
         file_shape=DisclosureFileShape.ZIP_OF_WORKBOOKS,
         endpoint_url='https://www.utimf.com/api/get-consolidate-portfolio-disclosure',
         response_json_path='rows',
-        note='Capture 2026-10-13: "one consolidated ZIP holding a single all-scheme sheet". Locate implementation: Task 11.',
+        documents=('Consolidated Portfolio',),
+        custom_locator='uti',
+        http_method='GET',
+        request_params={'year': '{yyyy}', 'month': '{month_name}'},
+        cadence='monthly',
+        note='Capture 2026-10-13 / Task 11a: GET get-consolidate-portfolio-disclosure?year=2026&month=September -> rows[0].doc ZIP; EXPOSURE code blocks remain unmatched without exact tested name mapping.',
     ),
     'PGIM India Mutual Fund': DisclosureResolverEntry(
         kind=DisclosureResolverKind.JSON_API,
         file_shape=DisclosureFileShape.MULTI_FILE_SINGLE_SCHEME,
         endpoint_url='https://www.pgimindia.com/api/v1/brochure/published/disclosure',
         response_json_path='data',
-        note='Capture 2026-10-13: "true endpoint /api/v1/brochure/published/disclosure with POST body above". Locate implementation: Task 11.',
+        custom_locator='pgim',
+        http_method='POST',
+        request_body={'headerId': 2, 'sectionId': 'SECTION_747960037', 'source': 'W', 'branchCode': None},
+        cadence='monthly',
+        note='Capture 2026-10-13 / Task 11a: POST /api/v1/brochure/published/disclosure {headerId:2,sectionId:SECTION_747960037,source:W,branchCode:null}; data[].content[].pdfPath/dateMonthYear.',
     ),
     'Navi Mutual Fund': DisclosureResolverEntry(
         kind=DisclosureResolverKind.JSON_API,
@@ -163,7 +178,11 @@ AMC_DISCLOSURE_RESOLVERS: dict[str, DisclosureResolverEntry] = {
         landing_url='https://navi.com/mutual-fund/downloads/portfolio',
         endpoint_url='https://navi.com/wp-json/nv/v1/documents',
         response_json_path='data',
-        note='Capture 2026-10-13: "category 884 = Monthly portfolio". Locate implementation: Task 11.',
+        custom_locator='navi',
+        http_method='POST',
+        request_body={'financial_year': '{financial_year}', 'value': '{month_name}', 'category': '884', 'type': 'Monthly', 'order': 'DESC'},
+        cadence='monthly',
+        note='Capture 2026-10-13 / Task 11a: GET portfolio page navi_property nonce -> form POST documents, WP-NONCE header, financial_year=2026-2027,value=September,category=884,type=Monthly,order=DESC; data[].title/url.',
     ),
     'Bandhan Mutual Fund': DisclosureResolverEntry(
         kind=DisclosureResolverKind.MANUAL,
@@ -217,7 +236,11 @@ AMC_DISCLOSURE_RESOLVERS: dict[str, DisclosureResolverEntry] = {
         landing_url='https://www.icicipruamc.com/media-center/downloads?currentTabFilter=OtherSchemeDisclosures&subCatTabFilter=Monthly+Portfolio+Disclosures',
         endpoint_url='https://apimf.icicipruamc.com/nms/v1/downloads/files',
         response_json_path='success.data.files',
-        note='Capture 2026-10-13: "Chrome UA + the three headers + Origin/Referer/Accept returned JSON 3 of 3". Locate implementation: Task 11.',
+        custom_locator='icici',
+        http_method='POST',
+        request_body={'categoryId': '26a073d7-08d2-4a95-95fa-f83a4ee51e40', 'schemeCategory': '', 'userType': 'Investor', 'fileType': 'All', 'page': '1', 'size': '20', 'filter': [], 'categoryName': 'OTHERS'},
+        cadence='monthly',
+        note='Capture 2026-10-13 / Task 11a: POST /nms/v1/downloads/files categoryId=26a073d7-08d2-4a95-95fa-f83a4ee51e40; requestapiid/sourceurl/env plus Origin/Referer/Accept; require JSON; files[].url downloaded through www.icicipruamc.com/blob.',
     ),
     'DSP Mutual Fund': DisclosureResolverEntry(
         kind=DisclosureResolverKind.STATIC_REGEX,
@@ -244,10 +267,14 @@ AMC_DISCLOSURE_RESOLVERS: dict[str, DisclosureResolverEntry] = {
     'Franklin Templeton Mutual Fund': DisclosureResolverEntry(
         kind=DisclosureResolverKind.JSON_API,
         file_shape=DisclosureFileShape.MULTI_FILE_SINGLE_SCHEME,
-        landing_url='https://www.franklintempletonindia.com/fund-details/fund-overview/42352/reports/investor-services/funds-and-solutions/investor/about-us',
-        endpoint_url='https://www.franklintempletonindia.com/api/literature/v1/documents?channel=en-in&cache=true',
+        landing_url='https://www.franklintempletonindia.com/sitemap.xml',
+        endpoint_url='https://www.franklintempletonindia.com/api/literature/v1/documents',
         response_json_path='document',
-        note='Capture 2026-10-13: "Mechanism (plain unauthenticated GET, JSON)". Locate implementation: Task 11.',
+        custom_locator='franklin',
+        http_method='GET',
+        request_params={'channel': 'en-in', 'cache': 'true'},
+        cadence='monthly',
+        note='Capture 2026-10-13 / Task 11a: GET sitemap.xml fund-overview ids -> GET documents?channel=en-in&cache=true&frkOneTISNumber=<id>; contentGrouping=Dis-Portfolio-Monthly; dctermsTitle as-of, downloadUrl widen.net.',
     ),
     'Quantum Mutual Fund': DisclosureResolverEntry(
         kind=DisclosureResolverKind.STATIC_REGEX,
@@ -296,52 +323,96 @@ AMC_DISCLOSURE_RESOLVERS: dict[str, DisclosureResolverEntry] = {
         kind=DisclosureResolverKind.JSON_API,
         file_shape=DisclosureFileShape.SINGLE_WORKBOOK_MULTI_SHEET,
         endpoint_url='https://www.sbimf.com/ajaxcall/CMS/GetSchemePortfolioSheets',
-        note='Capture 2026-10-13: "Response is an HTML table fragment (not JSON)". Locate implementation: Task 11.',
+        custom_locator='sbi',
+        http_method='POST',
+        request_body={'FundId': '', 'PSYear': '{yyyy}', 'PSMonth': '{month_name}', 'PSFrequency': 'Monthly'},
+        cadence='monthly',
+        note='Capture 2026-10-13 / Task 11a: JSON POST GetSchemePortfolioSheets (no QS), FundId="",PSYear=2026,PSMonth=September,PSFrequency=Monthly; X-Requested-With:XMLHttpRequest; HTML all-schemes anchor.',
     ),
     'Bank of India Mutual Fund': DisclosureResolverEntry(
         kind=DisclosureResolverKind.JSON_API,
         file_shape=DisclosureFileShape.SINGLE_WORKBOOK_MULTI_SHEET,
         endpoint_url='https://www.boimf.in/AjaxService.asmx/GetDocuments',
-        note='Capture 2026-10-13: "WORKING HOST: https://www.boimf.in". Locate implementation: Task 11.',
+        custom_locator='boi',
+        http_method='POST',
+        request_body={'pagno': 0, 'category': None, 'fromDate': None, 'toDate': None, 'LibraryName': 'InvestorCorner', 'folderName': 'MONTHLY PORTFOLIO', 'CategoryValue': None},
+        cadence='monthly',
+        note='Capture 2026-10-13 / Task 11a: POST www.boimf.in/AjaxService.asmx/GetDocuments; case-sensitive folderName="MONTHLY PORTFOLIO"; decode d JSON string -> Documents[].FolderUrl/DocName; Index translation remains 11b.',
     ),
     'Trust Mutual Fund': DisclosureResolverEntry(
         kind=DisclosureResolverKind.JSON_API,
         file_shape=DisclosureFileShape.SINGLE_WORKBOOK_MULTI_SHEET,
         endpoint_url='https://www.trustmf.com/api/api/Trust/GetData',
         response_json_path='resultSetArray',
-        note='Capture 2026-10-13: "resultSetArray[i].fileurl (newest first)". Locate implementation: Task 11.',
+        custom_locator='trust',
+        http_method='POST',
+        request_body={'systemQueryFileName': 'disclosuresweb.xml', 'tagName': 'GetDisclosureByType', 'searchField': '', 'searchValue': '', 'sortField': 'uploaddate', 'sortDirection': 'DESC', 'replaceField': '_slug_', 'replaceValue': 'portfolio-monthly-disclosure'},
+        cadence='monthly',
+        note='Capture 2026-10-13 / Task 11a: JSON POST GetData disclosuresweb.xml/GetDisclosureByType, replaceValue=portfolio-monthly-disclosure; resultSetArray[].fileurl/title; apex 307 to www; uploaddate is publication date.',
     ),
     'Mirae Asset Mutual Fund': DisclosureResolverEntry(
         kind=DisclosureResolverKind.JSON_API,
         file_shape=DisclosureFileShape.MULTI_FILE_SINGLE_SCHEME,
         endpoint_url='https://www.miraeassetmf.co.in/AjaxService/GetDownloadsData',
         response_json_path='Data',
-        note='Capture 2026-10-13: "Data[i].URL (relative)". Locate implementation: Task 11.',
+        custom_locator='mirae',
+        http_method='POST',
+        request_body={'request': {'modulename': 'portfolio_tab1', 'pgno': 1, 'pgsize': 200}},
+        cadence='monthly',
+        note='Capture 2026-10-13 / Task 11a: JSON POST AjaxService/GetDownloadsData {request:{modulename:portfolio_tab1,pgno:1,pgsize:200}}; X-Requested-With; Data[].URL/Title and DataCount paging; missing file 302 -> HTML rejected.',
     ),
     'LIC Mutual Fund': DisclosureResolverEntry(
         kind=DisclosureResolverKind.JSON_API,
         file_shape=DisclosureFileShape.SINGLE_WORKBOOK_MULTI_SHEET,
         endpoint_url='https://www.licmf.com/downloads/consolidated-portfolio-filters',
-        note='Capture 2026-10-13: "Consolidated route (NOT in the plan, simpler, 2 requests for all 40+ funds)". Locate implementation: Task 11.',
+        custom_locator='lic',
+        http_method='POST',
+        request_body={'id': '639', 'filter': 'year'},
+        cadence='monthly',
+        note='Capture 2026-10-13 / Task 11a: Form POST consolidated-portfolio-filters id=639&filter=year, then year=2026&id=639&filter=month; consolidated-portfolio-files id=639&month=9&year=2026 -> equity/debt HTML anchors; X-Requested-With:XMLHttpRequest.',
     ),
     'Axis Mutual Fund': DisclosureResolverEntry(
         kind=DisclosureResolverKind.JSON_API,
         file_shape=DisclosureFileShape.SINGLE_WORKBOOK_MULTI_SHEET,
         endpoint_url='https://www.axismf.com/cms/token',
-        note='Capture 2026-10-13: "the URL key is spelled docuementURL (typo in the API)". Locate implementation: Task 11.',
+        custom_locator='axis',
+        http_method='POST',
+        request_body={},
+        cadence='monthly',
+        note='Capture 2026-10-13 / Task 11a: POST /cms/token {} -> data.token (Bearer); POST /cms/get-scheme-documents {sdType:yearMonthSchemeDocs,sdID:sdMonthSchemePortfolio,year:2026,month:September,schemeCode:Consolidated}; data.documentList[].docuementURL; documentName Monthly Portfolio.',
     ),
     'Aditya Birla Sun Life Mutual Fund': DisclosureResolverEntry(
         kind=DisclosureResolverKind.JSON_API,
         file_shape=DisclosureFileShape.ZIP_OF_WORKBOOKS,
         endpoint_url='https://mutualfund.adityabirlacapital.com/postlogin/CustomApi/Resources/FactsheetAccordionById',
         response_json_path='AccordionList',
-        note='Capture 2026-10-13: "the download is a ZIP (one member 30092026_ABSLMF_MonthlyDisclosure.xls)". Locate implementation: Task 11.',
+        documents=('Monthly Portfolios',),
+        custom_locator='absl',
+        http_method='GET',
+        request_params={'id': '3ccab227-9de5-4494-b78d-2b4f7c0c054a', 'ctype': '/sitecore/content/Root/BSL/Library/Lists/FAQ/Customer Types/Individual', 'month': ' ', 'year': '0'},
+        rewrite_host=('abcscprod.azureedge.net', 'mutualfund.adityabirlacapital.com'),
+        cadence='monthly',
+        note='Capture 2026-10-13 / Task 11a: GET FactsheetAccordionById?id=3ccab227-9de5-4494-b78d-2b4f7c0c054a&ctype=/sitecore/content/Root/BSL/Library/Lists/FAQ/Customer Types/Individual&month=%20&year=0; AccordionList[].pdfUrl/ResourceLink; dead host rewrite; ZIP wraps legacy xls.',
     ),
     'Taurus Mutual Fund': DisclosureResolverEntry(
         kind=DisclosureResolverKind.JSON_API,
         file_shape=DisclosureFileShape.MULTI_FILE_SINGLE_SCHEME,
         endpoint_url='https://www.taurusmutualfund.com/financials/portfolio',
-        note='Capture 2026-10-13: "September 2026: HTTP 200, page renders with no .xls(x) links". Locate implementation: Task 11.',
+        custom_locator='taurus',
+        http_method='GET',
+        cadence='half_yearly',
+        note='Capture 2026-10-13 / Task 11a: GET /financials/portfolio select ids; field_hy_portfolio_year_target_id=562 (2026), field_hy_portfolio_month_target_id=435 (March)/436 (September); September empty; March xlsx href has leading space.',
+    ),
+    'WhiteOak Capital Mutual Fund': DisclosureResolverEntry(
+        kind=DisclosureResolverKind.JSON_API,
+        file_shape=DisclosureFileShape.MULTI_FILE_SINGLE_SCHEME,
+        custom_locator='whiteoak',
+        landing_url='https://mf.whiteoakamc.com/regulatory-disclosures/scheme-portfolios',
+        endpoint_url='https://cms.whiteoakamc.com/api/scheme-portfolios',
+        response_json_path='data',
+        request_params={'pagination[page]': 1, 'pagination[pageSize]': 100, 'sort[0]': 'published_date:desc', 'sort[1]': 'id:desc', 'populate': '*'},
+        cadence='monthly',
+        note='Capture 2026-10-13 / Task 11a: GET cms.whiteoakamc.com/api/scheme-portfolios?pagination[page]=1&pagination[pageSize]=100&sort[0]=published_date:desc&sort[1]=id:desc&populate=*; project Chrome UA; attributes.period=Monthly, doc_name as-of, doc_file.data.attributes.url; paginate meta.pagination.',
     ),
     'Monarch Mutual Fund': DisclosureResolverEntry(
         kind=DisclosureResolverKind.STATIC_REGEX,

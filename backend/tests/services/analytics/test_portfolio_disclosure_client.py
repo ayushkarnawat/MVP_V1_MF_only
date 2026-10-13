@@ -1,4 +1,5 @@
 import asyncio
+import json
 import io
 import logging
 import uuid
@@ -617,6 +618,376 @@ def test_canara_real_filename_hint_writes_code_named_fixture(db_session, monkeyp
     assert batch.source_url == url and db_session.query(SchemeHolding).count() > 1
 
 
+def locate_run3(amc, handler, monkeypatch, as_of=date(2026, 9, 30)):
+    monkeypatch.setattr(client, "_latest_month_end", lambda: as_of)
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler),
+                                    headers=client._HEADERS, follow_redirects=True) as http:
+            return await client._locate_and_fetch(http, AMC_DISCLOSURE_RESOLVERS[f"{amc} Mutual Fund"], [])
+    return asyncio.run(run())
+
+
+def assert_located(files, urls, hints=None, as_of=date(2026, 9, 30)):
+    assert [f.source_url for f in files] == urls
+    assert all(f.as_of_date == as_of and f.data == b"PK\x03\x04fixture" for f in files)
+    if hints is not None:
+        assert [f.scheme_hint for f in files] == hints
+
+
+def test_run3_franklin_sitemap_and_title_date_not_reference_date(monkeypatch):
+    # Capture log §12 Franklin: document[], contentGrouping/dctermsTitle/downloadUrl.
+    url = "https://franklintempletonprod.widen.net/content/captured/original/Franklin_India_Long_Term_Fund_Sep_26_Monthly_Portfolio.xls?u=pl55mb&download=true"
+    seen = []
+    def handler(r):
+        seen.append(str(r.url))
+        if r.url.path == "/sitemap.xml":
+            return httpx.Response(200, text='<urlset><url><loc>https://www.franklintempletonindia.com/fund-details/fund-overview/42352</loc></url><url><loc>https://www.franklintempletonindia.com/fund-details/fund-overview/42352/reports</loc></url></urlset>')
+        if r.url.path == "/api/literature/v1/documents":
+            assert r.method == "GET" and dict(r.url.params) == {"channel": "en-in", "cache": "true", "frkOneTISNumber": "42352"}
+            return httpx.Response(200, json={"document": [
+                {"contentGrouping": "Dis-Portfolio-Monthly", "dctermsTitle": "As on September 30, 2026 (Uploaded on October 08, 2026)", "frkReferenceDate": "2026-10-08", "downloadUrl": url},
+                {"contentGrouping": "Dis-Portfolio-Fortnightly", "dctermsTitle": "As on September 30, 2026", "downloadUrl": "https://bad.test/fortnightly.xls"},
+                {"contentGrouping": "Dis-Portfolio-Monthly", "dctermsTitle": "As on August 31, 2026", "frkReferenceDate": "2026-09-09", "downloadUrl": "https://bad.test/old.xls"},
+            ]})
+        assert str(r.url) == url
+        return httpx.Response(200, content=b"PK\x03\x04fixture")
+    assert_located(locate_run3("Franklin Templeton", handler, monkeypatch), [url], ["Franklin India Long Term Fund"])
+    assert len(seen) == 3
+
+
+@pytest.mark.parametrize("token_data", [{"token": "Bearer captured-token"}, "{'token': 'Bearer captured-token'}"])
+def test_run3_axis_token_chain_and_misspelled_url_key(monkeypatch, token_data):
+    # Capture log Axis: data string/dict, data.documentList[].docuementURL.
+    url = "https://www.axismf.com/1/5/464/560/3622/4593/Monthly_Portfolio_30_09_2026_75011dd855.xlsx"
+    def handler(r):
+        if r.url.path == "/cms/token":
+            assert r.method == "POST" and json.loads(r.content) == {}
+            return httpx.Response(200, json={"status": "success", "statusCode": "0", "data": token_data})
+        if r.url.path == "/cms/get-scheme-documents":
+            assert r.headers["Authorization"] == "Bearer captured-token"
+            assert json.loads(r.content) == {"sdType": "yearMonthSchemeDocs", "sdID": "sdMonthSchemePortfolio", "year": "2026", "month": "September", "schemeCode": "Consolidated"}
+            return httpx.Response(200, json={"data": {"documentList": [
+                {"documentName": "Weekly Debt Portfolio 30-09-2026", "docuementURL": "https://bad.test/weekly.xlsx"},
+                {"documentName": "Monthly Portfolio 30-09-2026", "docuementURL": url, "documentPostedDate": "2026-10-09"},
+            ]}})
+        assert str(r.url) == url
+        return httpx.Response(200, content=b"PK\x03\x04fixture")
+    assert_located(locate_run3("Axis", handler, monkeypatch), [url], [None])
+
+
+def test_run3_lic_consolidated_form_chain_returns_both_files(monkeypatch):
+    # Capture log LIC consolidated route: option fragments; two equity/debt anchors.
+    urls = ["https://www.licmf.com/assets/pdf/statuary_disclosure_new/21/LIC%20MF%20Monthly%20" + name + "%20Portfolio_Sep_26.xlsx" for name in ("Equity", "Debt")]
+    def handler(r):
+        body = dict(httpx.QueryParams(r.content.decode()))
+        if r.url.path == "/downloads/consolidated-portfolio-filters":
+            assert r.method == "POST" and r.headers["X-Requested-With"] == "XMLHttpRequest"
+            assert r.headers["Content-Type"].startswith("application/x-www-form-urlencoded")
+            if body == {"id": "639", "filter": "year"}:
+                return httpx.Response(200, text="<option value='2026'>2026</option>")
+            assert body == {"year": "2026", "id": "639", "filter": "month"}
+            return httpx.Response(200, text="<option value='9'>September</option>")
+        if r.url.path == "/downloads/consolidated-portfolio-files":
+            assert body == {"id": "639", "month": "9", "year": "2026"}
+            return httpx.Response(200, text='<a href="/assets/pdf/statuary_disclosure_new/21/LIC MF Monthly Equity Portfolio_Sep_26.xlsx">Monthly Portfolio Equity as on September 30, 2026</a><a href="/assets/pdf/statuary_disclosure_new/21/LIC MF Monthly Debt Portfolio_Sep_26.xlsx">Monthly Portfolio Debt as on September 30, 2026</a>')
+        assert str(r.url) in urls
+        return httpx.Response(200, content=b"PK\x03\x04fixture")
+    assert_located(locate_run3("LIC", handler, monkeypatch), urls, [None, None])
+
+
+def test_run3_sbi_html_fragment_prefers_all_schemes(monkeypatch):
+    # Capture log SBI: GetSchemePortfolioSheets (without QS), HTML response.
+    url = "https://www.sbimf.com/docs/default-source/scheme-portfolios/all-schemes-monthly-portfolio---as-on-30th-september-2026.xlsx?sfvrsn=2a79126c_2"
+    def handler(r):
+        if r.url.path == "/ajaxcall/CMS/GetSchemePortfolioSheets":
+            assert r.method == "POST" and r.headers["X-Requested-With"] == "XMLHttpRequest"
+            assert json.loads(r.content) == {"FundId": "", "PSYear": "2026", "PSMonth": "September", "PSFrequency": "Monthly"}
+            return httpx.Response(200, text=f'<table><a href="/docs/default-source/scheme-portfolios/sbi-balanced-advantage-fund-monthly-portfolio---september-2026.xlsx">Portfolio</a><a href="{url}">All Schemes Monthly Portfolio</a></table>')
+        assert str(r.url) == url
+        return httpx.Response(200, content=b"PK\x03\x04fixture")
+    assert_located(locate_run3("SBI", handler, monkeypatch), [url], [None])
+
+
+def test_run3_trust_title_dates_opaque_url_and_follows_apex_redirect(monkeypatch):
+    # Capture log Trust: resultSetArray[].fileurl; filename is upload timestamp.
+    apex = "https://trustmf.com/Content/2026/10/Monthly%20Port_20261009132916.xlsx"
+    live = apex.replace("https://trustmf.com", "https://www.trustmf.com")
+    def handler(r):
+        if r.url.path == "/api/api/Trust/GetData":
+            assert json.loads(r.content) == {"systemQueryFileName": "disclosuresweb.xml", "tagName": "GetDisclosureByType", "searchField": "", "searchValue": "", "sortField": "uploaddate", "sortDirection": "DESC", "replaceField": "_slug_", "replaceValue": "portfolio-monthly-disclosure"}
+            return httpx.Response(200, json={"resultSetArray": [{"title": "TRUSTMF Monthly Portfolio Report as on 30.09.2026", "uploaddate": "10/9/2026 12:00:00 AM", "fileurl": apex.replace("%20", " ")}]})
+        if str(r.url) == apex:
+            return httpx.Response(307, headers={"Location": live})
+        assert str(r.url) == live
+        return httpx.Response(200, content=b"PK\x03\x04fixture")
+    assert_located(locate_run3("Trust", handler, monkeypatch), [apex], [None])
+
+
+def test_run3_mirae_title_scheme_hint_and_redirected_html_rejected(monkeypatch):
+    # Capture log Mirae: Data[].URL/Title, DataCount, 302 soft-404.
+    url = "https://www.miraeassetmf.co.in/docs/default-source/portfolios/mafcf_sept2026.xlsx"
+    def handler(r):
+        if r.url.path == "/AjaxService/GetDownloadsData":
+            assert json.loads(r.content) == {"request": {"modulename": "portfolio_tab1", "pgno": 1, "pgsize": 200}}
+            return httpx.Response(200, json={"Data": [
+                {"Title": "Portfolio Details as on 30th September 2026 for Mirae Asset Flexi Cap Fund", "URL": "/docs/default-source/portfolios/mafcf_sept2026.xlsx"},
+                {"Title": "Portfolio Details as on 30th September 2026 for Mirae Asset Missing Fund", "URL": "/docs/default-source/portfolios/missing_sept2026.xlsx"},
+            ], "DataCount": 2})
+        if "missing_" in r.url.path:
+            return httpx.Response(302, headers={"Location": "/error?aspxerrorpath=missing"})
+        if r.url.path == "/error":
+            return httpx.Response(200, text="<html>Not found</html>")
+        assert str(r.url) == url
+        return httpx.Response(200, content=b"PK\x03\x04fixture")
+    assert_located(locate_run3("Mirae Asset", handler, monkeypatch), [url], ["Mirae Asset Flexi Cap Fund"])
+
+
+def test_run3_boi_case_sensitive_folder_and_nested_json_string(monkeypatch):
+    # Capture log Bank of India: d is JSON text; Documents[].FolderUrl/DocName.
+    url = "https://www.boimf.in/docs/default-source/investorcorner/monthly-portfolio/monthly-portfolio---30-sep-2026.xlsx?sfvrsn=8dbd0a0e_3"
+    def handler(r):
+        if r.url.path == "/AjaxService.asmx/GetDocuments":
+            assert r.url.host == "www.boimf.in" and r.method == "POST"
+            assert json.loads(r.content) == {"pagno": 0, "category": None, "fromDate": None, "toDate": None, "LibraryName": "InvestorCorner", "folderName": "MONTHLY PORTFOLIO", "CategoryValue": None}
+            return httpx.Response(200, json={"d": json.dumps({"Documents": [{"DocName": "MONTHLY-PORTFOLIO - 30-SEP-2026", "FolderUrl": url}]})})
+        assert str(r.url) == url
+        return httpx.Response(200, content=b"PK\x03\x04fixture")
+    assert_located(locate_run3("Bank of India", handler, monkeypatch), [url], [None])
+
+
+@pytest.mark.parametrize("as_of,month_id,has_files", [(date(2026, 9, 30), "436", False), (date(2026, 3, 31), "435", True)])
+def test_run3_taurus_select_ids_half_yearly_and_unpublished_september(monkeypatch, as_of, month_id, has_files):
+    # Capture log Taurus: year 562, months 435/436; March href starts with space.
+    url = "https://www.taurusmutualfund.com/sites/default/files/downloads/Taurus_Flexi_Cap_Fund_Half_Yearly_Portfolio_Report_Performance_March_2026.xlsx"
+    def handler(r):
+        if r.url.path == "/financials/portfolio":
+            if not r.url.query:
+                return httpx.Response(200, text='<select name="field_hy_portfolio_year_target_id"><option value="562">2026</option></select><select name="field_hy_portfolio_month_target_id"><option value="435">March</option><option value="436">September</option></select>')
+            assert dict(r.url.params) == {"field_hy_portfolio_year_target_id": "562", "field_hy_portfolio_month_target_id": month_id}
+            return httpx.Response(200, text=f'<a href=" /sites/default/files/downloads/Taurus_Flexi_Cap_Fund_Half_Yearly_Portfolio_Report_Performance_March_2026.xlsx">Portfolio</a>' if has_files else "<html>No file links</html>")
+        assert str(r.url) == url
+        return httpx.Response(200, content=b"PK\x03\x04fixture")
+    files = locate_run3("Taurus", handler, monkeypatch, as_of)
+    if has_files:
+        assert_located(files, [url], ["Taurus Flexi Cap Fund"], as_of)
+    else:
+        assert files == []
+
+
+def test_run3_absl_captured_accordion_request_and_dead_host_rewrite(monkeypatch):
+    # Capture log ABSL: AccordionList[].pdfUrl/ResourceLink; varying ZIP stems.
+    dead = "https://abcscprod.azureedge.net/-/media/bsl/files/resources/monthly-portfolio/2026/30092026_abslmf_monthlydisclosure.zip"
+    live = dead.replace("abcscprod.azureedge.net", "mutualfund.adityabirlacapital.com")
+    def handler(r):
+        if r.url.path.endswith("/FactsheetAccordionById"):
+            assert r.method == "GET" and dict(r.url.params) == {"id": "3ccab227-9de5-4494-b78d-2b4f7c0c054a", "ctype": "/sitecore/content/Root/BSL/Library/Lists/FAQ/Customer Types/Individual", "month": " ", "year": "0"}
+            return httpx.Response(200, json={"AccordionList": [{"ResourceLink": "Monthly Portfolios as on September 30, 2026", "IconClass": "zip", "pdfUrl": dead}]})
+        assert str(r.url) == live
+        return httpx.Response(200, content=b"PK\x03\x04fixture")
+    assert_located(locate_run3("Aditya Birla Sun Life", handler, monkeypatch), [live], [None])
+
+
+@pytest.mark.parametrize("as_of,fy,month", [(date(2026, 9, 30), "2026-2027", "September"), (date(2026, 1, 31), "2025-2026", "January")])
+def test_run3_navi_nonce_header_category_and_financial_year(monkeypatch, as_of, fy, month):
+    # Capture log Navi: navi_property rest_url/nonce; data[].title/url, form POST.
+    title = f"Navi Flexi Cap Fund 1st &#8211; {as_of.day}th {month} {as_of.year}"
+    url = f"https://public-assets.prod.navi-tech.in/navi-website-assests/documents/Navi_Flexi_Cap_Fund_1st_{as_of.day}th_{month}_{as_of.year}_20261009174229.xlsx"
+    def handler(r):
+        if r.url.path == "/mutual-fund/downloads/portfolio":
+            return httpx.Response(200, text='<script>navi_property = {"ajaxurl":"/ajax","rest_url":"https://navi.com/wp-json/","nonce":"abc123","filter_nonce":"wrong"}</script>')
+        if r.url.path == "/wp-json/nv/v1/documents":
+            assert r.method == "POST" and r.headers["WP-NONCE"] == "abc123"
+            assert dict(httpx.QueryParams(r.content.decode())) == {"financial_year": fy, "value": month, "category": "884", "type": "Monthly", "order": "DESC"}
+            return httpx.Response(200, json={"success": True, "data": [{"title": title, "url": url}]})
+        assert str(r.url) == url
+        return httpx.Response(200, content=b"PK\x03\x04fixture")
+    assert_located(locate_run3("Navi", handler, monkeypatch, as_of), [url], ["Navi Flexi Cap Fund"], as_of)
+
+
+def test_run3_pgim_nested_tabs_and_report_date(monkeypatch):
+    # Capture log PGIM: data[].content[].pdfPath/title/dateMonthYear/month/year.
+    url = "https://www.pgimindia.com/api/v1/brochure/about-us/image/PGIM%20INDIA%20FLEXI%20CAP%20FUND%20Sep%202026.xlsx"
+    def handler(r):
+        if r.url.path == "/api/v1/brochure/published/disclosure":
+            assert json.loads(r.content) == {"headerId": 2, "sectionId": "SECTION_747960037", "source": "W", "branchCode": None}
+            return httpx.Response(200, json={"resultInfo": {}, "data": [{"tabName": "Equity", "content": [
+                {"title": "PGIM INDIA FLEXI CAP FUND Sep 2026", "pdfPath": url.replace("%20", " "), "dateMonthYear": "30 September 2026", "month": "September", "year": "2026"},
+                {"title": "PGIM INDIA FLEXI CAP FUND Aug 2026", "pdfPath": "https://bad.test/old.xlsx", "dateMonthYear": "31 August 2026", "month": "August", "year": "2026"},
+            ]}]})
+        assert str(r.url) == url
+        return httpx.Response(200, content=b"PK\x03\x04fixture")
+    assert_located(locate_run3("PGIM India", handler, monkeypatch), [url], ["PGIM INDIA FLEXI CAP FUND"])
+
+
+def test_run3_whiteoak_strapi_paging_monthly_filter_and_project_ua(monkeypatch):
+    # Capture log WhiteOak: data[].attributes.doc_file.data.attributes.url;
+    # meta.pagination, published_date is upload date, not disclosure date.
+    url = "https://content.whiteoakamc.com/WOC_Special_Opportunities_Fund_Sept_2026_e22c53bbd6.xlsx"
+    def handler(r):
+        assert r.headers["User-Agent"] == client._HEADERS["User-Agent"]
+        if r.url.path == "/api/scheme-portfolios":
+            p = dict(r.url.params)
+            assert p == {"pagination[page]": p["pagination[page]"], "pagination[pageSize]": "100", "sort[0]": "published_date:desc", "sort[1]": "id:desc", "populate": "*"}
+            attrs = {"scheme_name": "WhiteOak Capital Special Opportunities Fund", "period": "Monthly", "doc_name": "WhiteOak Capital Special Opportunities Fund Monthly Portfolio Disclosure - 30th September2026", "doc_link": None, "published_date": "2026-10-09", "doc_file": {"data": {"attributes": {"url": url}}}}
+            if p["pagination[page]"] == "1":
+                attrs = dict(attrs, period="Fortnightly")
+            return httpx.Response(200, json={"data": [{"id": 1560, "attributes": attrs}], "meta": {"pagination": {"page": int(p["pagination[page]"]), "pageCount": 2, "pageSize": 100, "total": 2}}})
+        assert str(r.url) == url
+        return httpx.Response(200, content=b"PK\x03\x04fixture")
+    assert_located(locate_run3("WhiteOak Capital", handler, monkeypatch), [url], ["WhiteOak Capital Special Opportunities Fund"])
+
+
+@pytest.mark.parametrize("blocked", [False, True])
+def test_run3_icici_complete_headers_json_gate_and_blob_path(monkeypatch, blocked):
+    # Capture log ICICI: success.data.files[].title.text/url; F5 HTML gate.
+    url = "https://www.icicipruamc.com/blob/downloads/Files/Monthly%20Portfolio%20Disclosures/2026/Sep/Monthly-Portfolio-Disclosure-September-2026.zip"
+    def handler(r):
+        if r.url.host == "apimf.icicipruamc.com":
+            assert r.method == "POST" and r.url.path == "/nms/v1/downloads/files"
+            assert r.headers["sourceurl"] == "DOWNLOADS" and r.headers["env"] == "api"
+            uuid.UUID(r.headers["requestapiid"])
+            assert r.headers["Origin"] == "https://www.icicipruamc.com"
+            assert r.headers["Referer"].startswith("https://www.icicipruamc.com/media-center/downloads")
+            assert "application/json" in r.headers["Accept"]
+            assert json.loads(r.content) == {"categoryId": "26a073d7-08d2-4a95-95fa-f83a4ee51e40", "schemeCategory": "", "userType": "Investor", "fileType": "All", "page": "1", "size": "20", "filter": [], "categoryName": "OTHERS"}
+            if blocked:
+                return httpx.Response(200, text="<html>bobcmn /TSPD/ challenge</html>", headers={"Content-Type": "text/html"})
+            return httpx.Response(200, json={"success": {"data": {"files": [{"title": {"text": "Monthly Portfolio Disclosure September 2026"}, "url": "/downloads/Files/Monthly Portfolio Disclosures/2026/Sep/Monthly-Portfolio-Disclosure-September-2026.zip"}], "isNext": False}}})
+        assert not blocked and str(r.url) == url
+        return httpx.Response(200, content=b"PK\x03\x04fixture")
+    if blocked:
+        with pytest.raises(ValueError, match="BLOCKED.*JSON"):
+            locate_run3("ICICI Prudential", handler, monkeypatch)
+    else:
+        assert_located(locate_run3("ICICI Prudential", handler, monkeypatch), [url], [None])
+
+
+def test_run3_uti_exact_doc_zip_and_no_invented_scheme_hint(monkeypatch):
+    # Capture log UTI: rows[0].doc; raw codes map only through an exact name source.
+    url = "https://d3ce1o48hc5oli.cloudfront.net/static/generic-zip/Oct-26/FW__UTI_MF_SCHEME_PORTFOLIOS_-_30.09.2026_.zip"
+    def handler(r):
+        if r.url.path == "/api/get-consolidate-portfolio-disclosure":
+            assert dict(r.url.params) == {"year": "2026", "month": "September"}
+            return httpx.Response(200, json={"rows": [{"name": "Consolidated Portfolio September 2026", "type": "Zip", "doc": url, "url": url, "category": "Consolidate portfolio disclosure", "month": "September", "year": "2026"}]})
+        assert str(r.url) == url
+        return httpx.Response(200, content=b"PK\x03\x04fixture")
+    assert_located(locate_run3("UTI", handler, monkeypatch), [url], [None])
+
+
+@pytest.mark.parametrize("method", ["GET", "POST"])
+def test_run3_generic_json_path_regex_placeholders_and_rewrite(method):
+    entry = Entry(kind=Kind.JSON_API, endpoint_url="https://example.test/api", http_method=method,
+                  request_params={"year": "{yyyy}", "month": "{mm}"}, request_body={"month": "{month_name}"},
+                  response_json_path="data.files", documents=(r"Monthly Portfolio {month_name} {yyyy}",),
+                  rewrite_host=("abcscprod.azureedge.net", "mutualfund.adityabirlacapital.com"))
+    live = "https://mutualfund.adityabirlacapital.com/-/media/portfolio-30-Sep-26.zip"
+    def handler(r):
+        if r.url.path == "/api":
+            assert r.method == method and dict(r.url.params) == {"year": "2026", "month": "09"}
+            if method == "POST":
+                assert json.loads(r.content) == {"month": "September"}
+            return httpx.Response(200, json={"data": {"files": [
+                {"name": "Monthly Portfolio September 2026", "url": live.replace("mutualfund.adityabirlacapital.com", "abcscprod.azureedge.net")},
+                {"name": "Other Document September 2026", "url": "https://bad.test/notselected.zip"},
+            ]}})
+        assert str(r.url) == live
+        return httpx.Response(200, content=b"PK\x03\x04fixture")
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
+            return await client._locate_json_api(http, entry, date(2026, 9, 30))
+    assert_located(asyncio.run(run()), [live], [None])
+
+
+@pytest.mark.parametrize("rows", [[], [{"name": "Portfolio", "url": "https://bad.test/current.zip"}]])
+def test_run3_generic_empty_or_undated_response_has_no_download(rows):
+    entry = Entry(kind=Kind.JSON_API, endpoint_url="https://example.test/api", response_json_path="data", documents=())
+    def handler(r):
+        assert r.url.path == "/api"
+        return httpx.Response(200, json={"data": rows})
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
+            return await client._locate_json_api(http, entry, date(2026, 9, 30))
+    assert asyncio.run(run()) == []
+
+
+@pytest.mark.parametrize("amc", ["Franklin Templeton", "Axis", "LIC", "SBI", "Trust", "Mirae Asset",
+                                "Bank of India", "Taurus", "Aditya Birla Sun Life", "Navi", "PGIM India",
+                                "WhiteOak Capital", "ICICI Prudential", "UTI"])
+def test_run3_every_scoped_locator_empty_response_returns_no_files(monkeypatch, amc):
+    # Same capture-log response containers, trimmed to no published documents.
+    def handler(r):
+        assert not client._WORKBOOK_URL.search(str(r.url)), "Empty response must not download a file"
+        if r.url.path == "/sitemap.xml":
+            return httpx.Response(200, text='<loc>https://www.franklintempletonindia.com/fund-details/fund-overview/42352</loc>')
+        if r.url.path == "/cms/token":
+            return httpx.Response(200, json={"data": {"token": "Bearer captured-token"}})
+        if r.url.path == "/cms/get-scheme-documents":
+            return httpx.Response(200, json={"data": {"documentList": []}})
+        if amc in {"LIC", "SBI", "Taurus"}:
+            return httpx.Response(200, text="<html></html>")
+        if r.url.path == "/mutual-fund/downloads/portfolio":
+            return httpx.Response(200, text='<script>navi_property={"rest_url":"https://navi.com/wp-json/","nonce":"abc123"}</script>')
+        payloads = {
+            "Franklin Templeton": {"document": []}, "Trust": {"resultSetArray": []},
+            "Mirae Asset": {"Data": [], "DataCount": 0}, "Bank of India": {"d": '{"Documents":[]}'},
+            "Aditya Birla Sun Life": {"AccordionList": []}, "Navi": {"success": True, "data": []},
+            "PGIM India": {"data": []}, "WhiteOak Capital": {"data": [], "meta": {"pagination": {"pageCount": 1}}},
+            "ICICI Prudential": {"success": {"data": {"files": [], "isNext": False}}}, "UTI": {"rows": []},
+        }
+        return httpx.Response(200, json=payloads[amc])
+    assert locate_run3(amc, handler, monkeypatch) == []
+
+
+def test_run3_mirae_paging_keeps_all_target_scheme_files(monkeypatch):
+    # Capture log Mirae DataCount/pgno: two pages, older rows never downloaded.
+    first = "https://www.miraeassetmf.co.in/docs/default-source/portfolios/mafcf_sept2026.xlsx"
+    second = "https://www.miraeassetmf.co.in/docs/default-source/portfolios/macmf_sept2026.xlsx"
+    def handler(r):
+        if r.url.path == "/AjaxService/GetDownloadsData":
+            page = json.loads(r.content)["request"]["pgno"]
+            row = {"Title": "Portfolio Details as on 30th September 2026 for Mirae Asset Flexi Cap Fund", "URL": first}
+            if page == 1:
+                rows = [row] * 200
+            else:
+                assert page == 2
+                rows = [{"Title": "Portfolio Details as on 30th September 2026 for Mirae Asset Liquid Fund", "URL": second}]
+            return httpx.Response(200, json={"Data": rows, "DataCount": 201})
+        assert str(r.url) in {first, second}
+        return httpx.Response(200, content=b"PK\x03\x04fixture")
+    assert_located(locate_run3("Mirae Asset", handler, monkeypatch), [first, second], ["Mirae Asset Flexi Cap Fund", "Mirae Asset Liquid Fund"])
+
+
+def test_run3_uti_real_zip_code_blocks_remain_unmatched(db_session, monkeypatch, mock_http, caplog):
+    # Capture log UTI: exact SCHEME: source exists but no code-to-name mapping is
+    # wired in this run. Never assign every EXPOSURE block to one family.
+    seed(db_session, amc="UTI Mutual Fund", base="UTI - Unit Linked Insurance Plan")
+    fixture = Path(__file__).resolve().parents[2] / 'fixtures/portfolio_disclosures/uti-consolidated_asof_2026-09-30.zip'
+    url = "https://d3ce1o48hc5oli.cloudfront.net/static/generic-zip/Oct-26/FW__UTI_MF_SCHEME_PORTFOLIOS_-_30.09.2026_.zip"
+    api = "https://www.utimf.com/api/get-consolidate-portfolio-disclosure?year=2026&month=September"
+    monkeypatch.setattr(client, "_latest_month_end", lambda: date(2026, 9, 30))
+    with caplog.at_level(logging.INFO):
+        result, _ = run_refresh(db_session, monkeypatch, mock_http, {
+            api: httpx.Response(200, json={"rows": [{"name": "Consolidated Portfolio September 2026", "doc": url}]}),
+            url: httpx.Response(200, content=fixture.read_bytes()),
+        }, AMC_DISCLOSURE_RESOLVERS["UTI Mutual Fund"], amc="UTI Mutual Fund")
+    assert result.amcs_processed == 1 and result.schemes_written == 0
+    assert db_session.query(DisclosureBatch).count() == 0
+    assert "unmatched" in caplog.text and "EXPOSURE:002" in caplog.text
+
+
+def test_run3_upload_only_title_is_not_a_disclosure_date():
+    # Franklin explicitly distinguishes as-on from uploaded-on in dctermsTitle.
+    assert client._disclosed_date("Monthly Portfolio (Uploaded on September 30, 2026)") is None
+
+
+def test_run3_whiteoak_monthly_row_without_attached_file_is_skipped(monkeypatch):
+    # Strapi nullable relations must not turn an unavailable file into today's data.
+    def handler(r):
+        assert r.url.path == "/api/scheme-portfolios"
+        return httpx.Response(200, json={"data": [{"attributes": {"period": "Monthly", "scheme_name": "WhiteOak Capital Liquid Fund", "doc_name": "Monthly Portfolio Disclosure - 30th September2026", "doc_file": None}}], "meta": {"pagination": {"pageCount": 1}}})
+    assert locate_run3("WhiteOak Capital", handler, monkeypatch) == []
+
+
 def test_html_served_under_a_workbook_name_is_not_a_file():
     # Mirae-style: HTTP 200 with an HTML error page under a .xlsx name (F18).
     async def run():
@@ -640,3 +1011,11 @@ def test_wayback_prefix_search_ignores_dated_pdfs_and_images_that_would_win_on_d
         async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
             return await client._locate_wayback(http, entry)
     assert [f.source_url for f in asyncio.run(run())] == [xlsx]
+
+
+def test_empty_204_json_response_means_no_documents_not_an_error():
+    # Franklin answers HTTP 204 with an empty body for funds that have no documents
+    # (found live 2026-10-13: 6 of 52 funds); one such fund must not fail the whole AMC.
+    req = httpx.Request("GET", "https://example.test/api")
+    assert client._response_json(httpx.Response(204, headers={"Content-Type": "application/json"}, request=req)) == {}
+    assert client._response_json(httpx.Response(200, headers={"Content-Type": "application/json"}, content=b"", request=req)) == {}

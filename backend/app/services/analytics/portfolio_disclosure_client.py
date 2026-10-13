@@ -4,17 +4,21 @@ The synchronous Session queries/flushes inside async functions are intentional f
 the scheduled job; commits use commit_off_loop. Never call this from an API route.
 Each AMC commits separately, so a later failure cannot undo an earlier success.
 Task 14 replaces the list-returning fetch and AMC-period skip with per-file skips
-and gated alerts. JSON_API Locate and Index-sheet translation belong to Task 11.
+and gated alerts. Task 11a adds HTTP locators; page payloads and Index translation
+remain for Task 11b.
 """
 from __future__ import annotations
 
 import html
+import ast
+import json
 import logging
 import re
 import time
 import urllib.parse
 import zipfile
 import io
+import uuid
 from dataclasses import dataclass
 from datetime import date, timedelta
 
@@ -206,11 +210,22 @@ async def _locate_deterministic_template(client: httpx.AsyncClient, entry: Discl
 
 
 def _is_locate_implemented(entry: DisclosureResolverEntry) -> bool:
+    if entry.kind is DisclosureResolverKind.MANUAL:
+        return False
+    if entry.custom_locator:
+        return entry.custom_locator in _CUSTOM_LOCATORS
+    if entry.kind is DisclosureResolverKind.JSON_API:
+        # Unconfigured page-payload rows must remain counted as not onboarded.
+        return bool(entry.endpoint_url and entry.response_json_path is not None and entry.documents is not None)
     return (entry.kind in {DisclosureResolverKind.STATIC_REGEX, DisclosureResolverKind.WAYBACK_LOCATE}
             or entry.file_shape is DisclosureFileShape.DETERMINISTIC_TEMPLATE)
 
 
 async def _locate_and_fetch(client: httpx.AsyncClient, entry: DisclosureResolverEntry, scheme_rows: list[Scheme]) -> list[LocatedFile]:
+    if entry.custom_locator:
+        return await _CUSTOM_LOCATORS[entry.custom_locator](client, entry, scheme_rows)
+    if entry.kind is DisclosureResolverKind.JSON_API and _is_locate_implemented(entry):
+        return await _locate_json_api(client, entry, _latest_month_end())
     if entry.kind is DisclosureResolverKind.WAYBACK_LOCATE:
         return await _locate_wayback(client, entry)  # implemented in Task 7
     if entry.file_shape is DisclosureFileShape.DETERMINISTIC_TEMPLATE:
@@ -219,6 +234,337 @@ async def _locate_and_fetch(client: httpx.AsyncClient, entry: DisclosureResolver
         raise NotImplementedError(f"{entry.kind} Locate requires its own onboarding task")
     return await _fetch_candidates(client, await _static_regex_candidates(client, entry),
                                    keep_all=entry.file_shape is DisclosureFileShape.MULTI_FILE_SINGLE_SCHEME)
+
+
+def _request_values(value, as_of: date):
+    """Fill only named placeholders; regex quantifier braces remain literal."""
+    fy = as_of.year if as_of.month >= 4 else as_of.year - 1
+    fields = {'yyyy': str(as_of.year), 'year': str(as_of.year), 'yy': f'{as_of.year % 100:02d}',
+              'yy_plus_1': f'{(as_of.year + 1) % 100:02d}', 'mm': f'{as_of.month:02d}',
+              'month': str(as_of.month), 'month_name': as_of.strftime('%B'),
+              'financial_year': f'{fy}-{fy + 1}'}
+    if isinstance(value, str):
+        for key, replacement in fields.items():
+            value = value.replace('{' + key + '}', replacement)
+    elif isinstance(value, dict):
+        return {key: _request_values(item, as_of) for key, item in value.items()}
+    elif isinstance(value, (list, tuple)):
+        return [_request_values(item, as_of) for item in value]
+    return value
+
+
+def _response_json(response):
+    response.raise_for_status()
+    if response.status_code == 204 or not response.content:
+        return {}  # "no documents" (Franklin answers 204 for funds with none), not an error
+    if not response.headers.get('Content-Type', '').lower().startswith('application/json'):
+        raise ValueError('BLOCKED: expected JSON response, received non-JSON content type')
+    return response.json()
+
+
+async def _json_request(client, entry, as_of, *, headers=None, body=None, params=None):
+    kwargs = {'params': _request_values(entry.request_params if params is None else params, as_of),
+              'headers': {**_HEADERS, **(headers or {})}}
+    if entry.http_method.upper() == 'POST':
+        kwargs['json'] = _request_values(entry.request_body if body is None else body, as_of)
+    response = await client.request(entry.http_method, entry.endpoint_url, **kwargs)
+    return _response_json(response)
+
+
+def _disclosed_date(text: str | None) -> date | None:
+    """Parse a disclosure title, never an upload/reference/published timestamp."""
+    text = html.unescape(str(text or '')).strip()
+    text = re.split(r'\(?\bUploaded on\b', text, maxsplit=1, flags=re.I)[0].strip()
+    # Franklin's month-first title precedes its parenthetical upload date.
+    month_first = re.search(rf'({_MONTH_PATTERN})\s+(\d{{1,2}})(?:st|nd|rd|th)?\s*,\s*(\d{{4}})', text, re.I)
+    if month_first:
+        month, day, year = month_first.groups()
+        try:
+            return date(int(year), _MONTHS[month[:3].lower()], int(day))
+        except ValueError:
+            return None
+    # WhiteOak writes "30th September2026" without a space before the year.
+    text = re.sub(rf'({_MONTH_PATTERN})(?=\d{{4}})', r'\1 ', text, flags=re.I)
+    return _filename_as_of_date('https://disclosure.invalid/' + urllib.parse.quote(text, safe=''))
+
+
+def _file_url(url: str, base: str, rewrite_host=None):
+    joined = urllib.parse.urljoin(base, html.unescape(url).strip())
+    parsed = urllib.parse.urlsplit(joined)
+    if parsed.scheme not in {'http', 'https'}:
+        return None
+    if rewrite_host and parsed.netloc.lower() == rewrite_host[0].lower():
+        joined = parsed._replace(netloc=rewrite_host[1]).geturl()
+    return str(httpx.URL(joined))
+
+
+async def _fetch_dated_records(client, records, as_of, *, keep_all=True):
+    """Source metadata can date opaque URLs; an undated source never gets a default."""
+    results, seen = [], set()
+    for url, disclosed, hint in records:
+        if not url or disclosed != as_of or url in seen or not _WORKBOOK_URL.search(url):
+            continue
+        seen.add(url)
+        try:
+            data = await _download_workbook(client, url)
+        except httpx.HTTPError:
+            continue
+        if data:
+            results.append(LocatedFile(data, url, disclosed, hint))
+            if not keep_all:
+                break
+    return results
+
+
+async def _locate_json_api(client, entry, as_of) -> list[LocatedFile]:
+    rows = await _json_request(client, entry, as_of)
+    for key in (entry.response_json_path or '').split('.'):
+        if key:
+            rows = rows.get(key, []) if isinstance(rows, dict) else []
+    records = []
+    for row in rows if isinstance(rows, list) else []:
+        if isinstance(row, str):
+            url, label = row, ''
+        elif isinstance(row, dict):
+            url = row.get('doc') or row.get('pdfUrl') or row.get('url')
+            label = row.get('ResourceLink') or row.get('name') or ''
+        else:
+            continue
+        if not isinstance(url, str):
+            continue
+        if entry.documents and not any(re.search(_request_values(pattern, as_of), f'{label} {url}', re.I)
+                                       for pattern in entry.documents):
+            continue
+        url = _file_url(url, entry.endpoint_url, entry.rewrite_host)
+        disclosed = _disclosed_date(label) or (_filename_as_of_date(url) if url else None)
+        records.append((url, disclosed, None))
+    return await _fetch_dated_records(client, records, as_of,
+                                    keep_all=entry.file_shape is DisclosureFileShape.MULTI_FILE_SINGLE_SCHEME)
+
+
+async def _locate_franklin(client, entry, scheme_rows):
+    as_of = _latest_month_end()
+    sitemap = await client.get(entry.landing_url)
+    sitemap.raise_for_status()
+    ids = dict.fromkeys(re.findall(r'/fund-details/fund-overview/(\d+)', sitemap.text))
+    records = []
+    for fund_id in ids:
+        params = {**(entry.request_params or {}), 'frkOneTISNumber': fund_id}
+        payload = await _json_request(client, entry, as_of, params=params)
+        for row in payload.get('document', []):
+            if row.get('contentGrouping') != 'Dis-Portfolio-Monthly':
+                continue
+            url = _file_url(row.get('downloadUrl', ''), entry.endpoint_url)
+            filename = urllib.parse.unquote(urllib.parse.urlsplit(url or '').path.rsplit('/', 1)[-1])
+            hint = re.sub(rf'_{_MONTH_PATTERN}_\d{{2,4}}_Monthly_Portfolio\.xlsx?$', '', filename, flags=re.I)
+            records.append((url, _disclosed_date(row.get('dctermsTitle')), hint.replace('_', ' ')))
+    return await _fetch_dated_records(client, records, as_of)
+
+
+async def _locate_axis(client, entry, scheme_rows):
+    as_of = _latest_month_end()
+    payload = await _json_request(client, entry, as_of)
+    token_data = payload.get('data', {})
+    if isinstance(token_data, str):
+        token_data = ast.literal_eval(token_data)
+    token = token_data.get('token', '').strip()
+    if not token:
+        raise ValueError('Axis token missing')
+    authorization = token if token.lower().startswith('bearer ') else 'Bearer ' + token
+    response = await client.post(urllib.parse.urljoin(entry.endpoint_url, '/cms/get-scheme-documents'),
+                                 headers={'Authorization': authorization}, json={
+                                     'sdType': 'yearMonthSchemeDocs', 'sdID': 'sdMonthSchemePortfolio',
+                                     'year': str(as_of.year), 'month': as_of.strftime('%B'), 'schemeCode': 'Consolidated'})
+    rows = _response_json(response).get('data', {}).get('documentList', [])
+    records = [(_file_url(r.get('docuementURL', ''), entry.endpoint_url), _disclosed_date(r.get('documentName')), None)
+               for r in rows if str(r.get('documentName', '')).lower().startswith('monthly portfolio')]
+    return await _fetch_dated_records(client, records, as_of, keep_all=False)
+
+
+def _html_records(text, base, *, hints=False):
+    return [(_file_url(url, base), _disclosed_date(label) or _filename_as_of_date(url.strip()),
+             _clean_label(label) if hints else None) for url, label in _extract_links(text)]
+
+
+def _options(text, select_name=None):
+    if select_name:
+        found = re.search(r'<select\b[^>]*name=["\']' + re.escape(select_name) + r'["\'][^>]*>(.*?)</select>', text, re.I | re.S)
+        text = found.group(1) if found else ''
+    return [(value.strip(), ' '.join(re.sub(r'<[^>]+>', '', html.unescape(label)).split()))
+            for value, label in re.findall(r'<option\b[^>]*value=["\']([^"\']*)["\'][^>]*>(.*?)</option>', text, re.I | re.S)]
+
+
+async def _locate_lic(client, entry, scheme_rows):
+    as_of = _latest_month_end()
+    headers = {'X-Requested-With': 'XMLHttpRequest'}
+    year = await client.post(entry.endpoint_url, data=entry.request_body, headers=headers)
+    year.raise_for_status()
+    if str(as_of.year) not in {v for v, label in _options(year.text)}:
+        return []
+    month = await client.post(entry.endpoint_url, data={'year': str(as_of.year), 'id': '639', 'filter': 'month'}, headers=headers)
+    month.raise_for_status()
+    values = {v for v, label in _options(month.text)}
+    month_value = next((v for v in values if v.isdigit() and int(v) == as_of.month), None)
+    if month_value is None:
+        return []
+    response = await client.post(urllib.parse.urljoin(entry.endpoint_url, '/downloads/consolidated-portfolio-files'),
+                                 data={'id': '639', 'month': month_value, 'year': str(as_of.year)}, headers=headers)
+    response.raise_for_status()
+    # Both consolidated workbooks cover different schemes; neither is a scheme hint.
+    return await _fetch_dated_records(client, _html_records(response.text, str(response.url)), as_of)
+
+
+async def _locate_sbi(client, entry, scheme_rows):
+    as_of = _latest_month_end()
+    response = await client.post(entry.endpoint_url, json=_request_values(entry.request_body, as_of),
+                                 headers={'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/json;charset=UTF-8'})
+    response.raise_for_status()
+    records = [r for r in _html_records(response.text, str(response.url)) if r[0] and 'all-schemes-monthly-portfolio' in r[0].lower()]
+    return await _fetch_dated_records(client, records, as_of, keep_all=False)
+
+
+async def _locate_trust(client, entry, scheme_rows):
+    as_of = _latest_month_end()
+    payload = await _json_request(client, entry, as_of)
+    records = [(_file_url(r.get('fileurl', ''), entry.endpoint_url), _disclosed_date(r.get('title')), None)
+               for r in payload.get('resultSetArray', [])]
+    return await _fetch_dated_records(client, records, as_of, keep_all=False)
+
+
+async def _locate_mirae(client, entry, scheme_rows):
+    as_of = _latest_month_end()
+    records, page = [], 1
+    while True:
+        body = _request_values(entry.request_body, as_of)
+        body['request']['pgno'] = page
+        payload = await _json_request(client, entry, as_of, body=body, headers={'X-Requested-With': 'XMLHttpRequest'})
+        rows = payload.get('Data', [])
+        for row in rows:
+            title = row.get('Title', '')
+            hint = title.split(' for ', 1)[1].strip() if ' for ' in title else None
+            records.append((_file_url(row.get('URL', ''), entry.endpoint_url), _disclosed_date(title), hint))
+        if not rows or page * body['request']['pgsize'] >= int(payload.get('DataCount', len(rows))):
+            break
+        page += 1
+    return await _fetch_dated_records(client, records, as_of)
+
+
+async def _locate_boi(client, entry, scheme_rows):
+    as_of = _latest_month_end()
+    payload = await _json_request(client, entry, as_of)
+    data = payload.get('d', {})
+    if isinstance(data, str):
+        data = json.loads(data)
+    records = [(_file_url(r.get('FolderUrl', ''), entry.endpoint_url), _disclosed_date(r.get('DocName')), None)
+               for r in data.get('Documents', [])]
+    return await _fetch_dated_records(client, records, as_of, keep_all=False)
+
+
+async def _locate_taurus(client, entry, scheme_rows):
+    completed = _latest_month_end()
+    year, month = completed.year, 9 if completed.month >= 9 else 3
+    if completed.month < 3:
+        year, month = year - 1, 9
+    as_of = date(year, month + 1, 1) - timedelta(days=1)
+    response = await client.get(entry.endpoint_url)
+    response.raise_for_status()
+    year_id = next((v for v, label in _options(response.text, 'field_hy_portfolio_year_target_id') if label == str(year)), None)
+    month_id = next((v for v, label in _options(response.text, 'field_hy_portfolio_month_target_id') if label.lower() == as_of.strftime('%B').lower()), None)
+    if year_id is None or month_id is None:
+        return []
+    response = await client.get(entry.endpoint_url, params={'field_hy_portfolio_year_target_id': year_id,
+                                                            'field_hy_portfolio_month_target_id': month_id})
+    response.raise_for_status()
+    records = []
+    for url, label in _extract_links(response.text):
+        url = _file_url(url, str(response.url))
+        filename = urllib.parse.unquote(urllib.parse.urlsplit(url or '').path.rsplit('/', 1)[-1])
+        hint = re.sub(r'_Half_Yearly_Portfolio.*$', '', filename, flags=re.I).replace('_', ' ')
+        records.append((url, _filename_as_of_date(url) if url else None, hint))
+    return await _fetch_dated_records(client, records, as_of)
+
+
+async def _locate_absl(client, entry, scheme_rows):
+    return await _locate_json_api(client, entry, _latest_month_end())
+
+
+async def _locate_navi(client, entry, scheme_rows):
+    as_of = _latest_month_end()
+    page = await client.get(entry.landing_url)
+    page.raise_for_status()
+    nonce = re.search(r'"rest_url"\s*:\s*"[^"]*"\s*,\s*"nonce"\s*:\s*"([a-z0-9]+)"', page.text)
+    if nonce is None:
+        raise ValueError('Navi WP nonce missing')
+    response = await client.post(entry.endpoint_url, data=_request_values(entry.request_body, as_of), headers={'WP-NONCE': nonce.group(1)})
+    rows = _response_json(response).get('data', [])
+    records = []
+    for row in rows:
+        title = html.unescape(row.get('title', ''))
+        hint = re.split(r'\s+\d{1,2}(?:st|nd|rd|th)\b', title, maxsplit=1, flags=re.I)[0].strip()
+        records.append((_file_url(row.get('url', ''), entry.endpoint_url), _disclosed_date(title), hint))
+    return await _fetch_dated_records(client, records, as_of)
+
+
+async def _locate_pgim(client, entry, scheme_rows):
+    as_of = _latest_month_end()
+    payload = await _json_request(client, entry, as_of)
+    records = []
+    for tab in payload.get('data', []):
+        for row in tab.get('content', []):
+            title = row.get('title', '')
+            hint = re.sub(rf'\s+{_MONTH_PATTERN}\s+\d{{4}}$', '', title, flags=re.I).strip()
+            records.append((_file_url(row.get('pdfPath', ''), entry.endpoint_url), _disclosed_date(row.get('dateMonthYear')), hint))
+    return await _fetch_dated_records(client, records, as_of)
+
+
+async def _locate_whiteoak(client, entry, scheme_rows):
+    as_of = _latest_month_end()
+    records, page = [], 1
+    while True:
+        params = {**entry.request_params, 'pagination[page]': page}
+        payload = await _json_request(client, entry, as_of, params=params)
+        for row in payload.get('data', []):
+            attrs = row.get('attributes', {})
+            if attrs.get('period') != 'Monthly':
+                continue
+            file = (attrs.get('doc_file') or {}).get('data') or {}
+            records.append((_file_url(file.get('attributes', {}).get('url', ''), entry.endpoint_url),
+                            _disclosed_date(attrs.get('doc_name')), attrs.get('scheme_name')))
+        if page >= int(payload.get('meta', {}).get('pagination', {}).get('pageCount', 1)):
+            break
+        page += 1
+    return await _fetch_dated_records(client, records, as_of)
+
+
+async def _locate_icici(client, entry, scheme_rows):
+    as_of = _latest_month_end()
+    headers = {'requestapiid': str(uuid.uuid4()), 'sourceurl': 'DOWNLOADS', 'env': 'api',
+               'Origin': 'https://www.icicipruamc.com', 'Referer': entry.landing_url,
+               'Accept': 'application/json'}
+    payload = await _json_request(client, entry, as_of, headers=headers)
+    rows = payload.get('success', {}).get('data', {}).get('files', [])
+    records = []
+    for row in rows:
+        path = row.get('url', '')
+        if not path.startswith('/downloads/'):
+            continue
+        url = _file_url('/blob' + path, 'https://www.icicipruamc.com')
+        records.append((url, _disclosed_date(row.get('title', {}).get('text')), None))
+    return await _fetch_dated_records(client, records, as_of, keep_all=False)
+
+
+async def _locate_uti(client, entry, scheme_rows):
+    # No blanket scheme hint: EXPOSURE:<code> is not a tested scheme name.
+    return await _locate_json_api(client, entry, _latest_month_end())
+
+
+_CUSTOM_LOCATORS = {
+    'franklin': _locate_franklin, 'axis': _locate_axis, 'lic': _locate_lic,
+    'sbi': _locate_sbi, 'trust': _locate_trust, 'mirae': _locate_mirae,
+    'boi': _locate_boi, 'taurus': _locate_taurus, 'absl': _locate_absl,
+    'navi': _locate_navi, 'pgim': _locate_pgim, 'whiteoak': _locate_whiteoak,
+    'icici': _locate_icici, 'uti': _locate_uti,
+}
 
 
 async def _cdx_query(client: httpx.AsyncClient, url: str, *, match_type: str = "exact") -> list[str]:
