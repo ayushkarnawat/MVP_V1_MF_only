@@ -122,8 +122,8 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
 <header class="top">
   <div class="eyebrow">Unifolio · Analytics · Sub-project 2 · attribute 13</div>
   <h1>Asset allocation</h1>
-  <p class="lede">Shows the true equity, debt, gold and cash mix across all of a client's funds, taken from what each fund discloses, and leads into the cap split and stock list.</p>
-  <div class="chips"><span class="chip"><b>1</b> Codex run</span><span class="chip"><b>1</b> task</span><span class="chip"><b>0</b> tables of its own</span><span class="chip"><b>1</b> new analytics section</span><span class="chip"><b>1</b> new component</span><span class="chip"><b>2</b> questions for you</span><span class="chip"><b>1</b> plan fix</span></div>
+  <p class="lede">Shows the true equity, debt, gold and cash mix across all of a client's funds, taken from what each fund discloses, and leads into the cap split and stock list. Revised 2026-10-13: it is built after attribute 02, because its outer ring reuses 02's classification (F19).</p>
+  <div class="chips"><span class="chip"><b>1</b> Codex run (9)</span><span class="chip"><b>1</b> task</span><span class="chip"><b>0</b> tables of its own</span><span class="chip"><b>1</b> new analytics section</span><span class="chip"><b>1</b> new component</span><span class="chip"><b>2</b> questions, all decided</span><span class="chip"><b>2</b> plan fixes, applied (F19 found 2026-10-13)</span></div>
 </header>
 <section>
   <div class="sec-head"><span class="tag">The formula</span><h2>Asset mix from what funds actually hold</h2><p class="note">The three fund weights are derived from the spec's result; the spec states only the four percentages.</p></div>
@@ -145,12 +145,12 @@ flowchart TD
   a02 -.-> a06["attribute 06 stock table"]
 </pre></div></div>
 </section><section>
-  <div class="sec-head"><span class="tag">Change map</span><h2>What changes where</h2></div>
+  <div class="sec-head"><span class="tag">Change map</span><h2>What changes where</h2><p class="note">Depends on attribute 02's classification table for the outer ring (Q27), so Task 3 comes first.</p></div>
 <div class="tbl"><table>
-<tr><th>Layer</th><th>File</th><th>Change</th><th>Task</th></tr><tr><td>Backend</td><td><code>services/analytics/asset_allocation.py</code></td><td><span class="pill p-new">new</span> per-fund class totals, client roll-up</td><td>5</td></tr><tr><td>Backend</td><td><code>schemas.py</code>, <code>recompute.py</code></td><td><span class="pill p-mod">modify</span> models, one <code>_SectionSpec</code></td><td>5</td></tr><tr><td>Frontend</td><td><code>AssetAllocationSection.tsx</code>, <code>types.ts</code>, both views</td><td><span class="pill p-new">new</span> two-ring donut, drill chain to 02 and 06</td><td>5</td></tr><tr><td>Database</td><td>none beyond Q8's column</td><td>no new table</td><td>-</td></tr></table></div>
+<tr><th>Layer</th><th>File</th><th>Change</th><th>Task</th></tr><tr><td>Backend</td><td><code>services/analytics/asset_allocation.py</code></td><td><span class="pill p-new">new</span> per-fund class totals, client roll-up, the hedged-arbitrage toggle on <code>sebi_category</code>, derivative and other rows counted in the coverage note</td><td>5</td></tr><tr><td>Backend</td><td><code>schemas.py</code>, <code>recompute.py</code></td><td><span class="pill p-mod">modify</span> models, one <code>_SectionSpec</code></td><td>5</td></tr><tr><td>Frontend</td><td><code>AssetAllocationSection.tsx</code>, <code>types.ts</code>, both views</td><td><span class="pill p-new">new</span> two-ring donut (outer ring for equity only), drill chain to 02 and 06, the shared coverage banner</td><td>5</td></tr><tr><td>Database</td><td>none</td><td>no new table; <code>asset_type</code> is created by the engine's Task 1</td><td>-</td></tr></table></div>
 </section><section>
-  <div class="sec-head"><span class="tag">Execution</span><h2>Run</h2><p class="note">Small enough for one run; the plan has one task.</p></div>
-<ol class="passes"><li><div class="when"><span class="n">Pass 0</span><span class="pill p-claude">Claude</span></div><div class="what"><h3>Pre-flight</h3><p>F13, Q8, Q13, Q26 and Q27 settled; handoff document and log line.</p></div></li><li><div class="when"><span class="n">Run 6</span><span class="pill p-codex">Codex run 6</span></div><div class="what"><h3>Task 5, backend and frontend</h3><ul><li>Three-fund 76.5 / 9.0 / 10.0 / 4.5 test, no-ISIN rows sum across funds, derivative rows excluded, roll-up, section, donut.</li></ul></div></li><li><div class="when"><span class="n">Gate 6</span><span class="pill p-claude">Claude</span></div><div class="what"><h3>Verify, review, synthetic CAS check</h3><p>Gate = touched test files only, <code>alembic upgrade</code> on local Postgres where a migration is involved, the adversarial review against Review Focus, then one commit per task by Claude. Codex never stages, commits or touches Postgres, staging or AWS. Then the synthetic harness with the seeded holdings fixture, checking the class totals.</p></div></li></ol>
+  <div class="sec-head"><span class="tag">Execution</span><h2>Run</h2><p class="note">Runs after attribute 02 (Run 8).</p></div>
+<ol class="passes"><li><div class="when"><span class="n">Pass 0</span><span class="pill p-claude">Claude</span></div><div class="what"><h3>Pre-flight</h3><p>F13, Q8, Q13, Q26 and Q27 are decided and in the plan; handoff document and log line.</p></div></li><li><div class="when"><span class="n">Run 9</span><span class="pill p-codex">Codex run 9</span></div><div class="what"><h3>Task 5, backend and frontend</h3><ul><li>Three-fund 76.5 / 9.0 / 10.0 / 4.5 test, no-ISIN rows sum across funds, derivative and other rows excluded, the arbitrage toggle, the equity outer ring, section, donut.</li></ul></div></li><li><div class="when"><span class="n">Gate 9</span><span class="pill p-claude">Claude</span></div><div class="what"><h3>Verify, review, synthetic CAS check</h3><p>Gate = touched test files only, <code>alembic upgrade</code> on local Postgres where a migration is involved, the adversarial review against Review Focus, then one commit per task by Claude. Codex never stages, commits or touches Postgres, staging or AWS. Then the synthetic harness with the seeded holdings fixture, checking the class totals.</p></div></li></ol>
 </section><section>
   <div class="sec-head"><span class="tag">Issues in detail</span><h2>Issues, by status</h2></div>
 <div class="group"><div class="group-head"><h3>Decided</h3><span class="pill p-new">2</span></div><p class="note">Resolved 2026-10-13; rationale in <code>decisions.md</code>. How two display features get their data.</p><div class="issues"><article class="ib done">
@@ -173,9 +173,10 @@ flowchart TD
     <dt>After your answer</dt><dd><ul><li>Rating capture is added to the deferred list.</li></ul></dd>
     <dt>Decided 2026-10-13</dt><dd><p><b class="rec">A confirmed.</b> Outer ring is equity-only (Large/Mid/Small/Other from attribute 02); debt-rating detail stays flagged as cheap future work in <code>DEFERRED_FEATURES.md</code>, not built now.</p></dd>
   </dl>
-</article></div></div><div class="group"><div class="group-head"><h3>Plan fixes</h3><span class="pill p-mod">1</span></div><p class="note">Follows Q8 and Q13.</p><div class="issues"><article class="ib">
-  <div class="top"><span class="qid">F13</span><span class="pill p-mod">Plan fix</span><h3>The asset-class test depends on how Q8 and Q13 are answered</h3><span class="pill p-none">no decision needed</span></div>
+</article></div></div><div class="group"><div class="group-head"><h3>Plan fixes</h3><span class="pill p-mod">2</span></div><p class="note">Applied 2026-10-13. F19 was found while applying the decisions.</p><div class="issues"><article class="ib">
+  <div class="top"><span class="qid">F13</span><span class="pill p-mod">Plan fix</span><h3>The asset-class test depends on how Q8 and Q13 are answered</h3><span class="pill p-new">applied 2026-10-13</span></div>
   <dl>
+    <dt>Applied</dt><dd>Consumer Task 5 now tests against the final 8-value enum (no OTHER backfill) and gains a test that derivative and other rows are excluded from every class sum and counted in the coverage note.</dd>
     <dt>The problem</dt><dd><p>The attribute 13 test needs <code>asset_type</code> stamped from real section headers on each holding row. The current ingestion plan does not stamp it at all, and the consumer plan's Task 1 would add the column later with a backfill to <code>OTHER</code>, a value outside the six-value enum. It also treats every row inside "Equity" as equity, though arbitrage funds list futures and fund-of-funds list fund units there (Q13).</p></dd>
     
     <dt>Why it matters</dt><dd><p>The three-fund worked example (76.5 / 9.0 / 10.0 / 4.5) would pass on synthetic rows and still be wrong on a real arbitrage fund.</p></dd>
@@ -189,7 +190,23 @@ flowchart TD
   t -->|DERIVATIVE or OTHER| x["Excluded, counted in coverage note"]
 </pre></div></dd>
   </dl>
+</article><article class="ib">
+  <div class="top"><span class="qid">F19</span><span class="pill p-mod">Plan fix</span><h3>Attribute 13 cannot be built before attribute 02</h3><span class="pill p-new">found 2026-10-13, applied to the plan</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>The overview's suggested order was 13, then 02, then 10, on the reasoning that 13 shares the drill-down into 02. Q27 (decided) says attribute 13's outer ring splits the equity ring into Large, Mid, Small and Other <i>by reusing attribute 02's classification directly</i>. That classification is the <code>market_cap_classifications</code> table and join that Task 3 (attribute 02) creates.</p></dd>
+    <dt>Evidence</dt><dd>Consumer plan Task 5 and Q27's decided text.</dd>
+    <dt>Why it matters</dt><dd><p>Built first, attribute 13 would have no classification to read. Either its outer ring would be stubbed and redone, or the work would be pulled into the wrong task.</p></dd>
+    <dt>The fix</dt><dd><ul><li>Order is now 06, 02, 13, 10. The consumer plan's order line and Task 5 heading say so, and the runs are renumbered.</li><li>Attribute 10 depends on neither and can go last.</li></ul></dd>
+    <dt>Effect on the current system</dt><dd><ul><li>None.</li></ul></dd>
+    <dt>Effect on the plan</dt><dd>Run order only. No task changes content.</dd>
+    <dt>Flow after the fix</dt><dd><div class="diagram"><pre class="mermaid">
+flowchart LR
+  a06["06 shared table"] --> a02["02 classification table"]
+  a02 --> a13["13 outer ring reuses it"]
+  a06 --> a10["10 overlap, independent"]
+</pre></div></dd>
+  </dl>
 </article></div></div>
 </section>
-<footer>Checked against the code at <code>c9fb248</code> (branch <code>feat/enhanced-ui</code>, migration head <code>0038</code>) and the Sub-project 2 docs at <code>bef12be</code>, 2026-10-13. Nothing has been built or edited for Sub-project 2. Standalone copies: <code>Docs/analytics/artifacts/subproject2-execution/</code>.</footer>
+<footer>Plans revised 2026-10-13 after the Q3 to Q30 decisions and the plan-fix approvals (commit <code>db2ef36</code> and the revision that follows it). Checked against the code at <code>c9fb248</code> (branch <code>feat/enhanced-ui</code>, migration head <code>0038</code>). Nothing has been built for Sub-project 2 and nothing will be until you say go. Standalone copies: <code>Docs/analytics/artifacts/subproject2-execution/</code>.</footer>
 </div>

@@ -133,7 +133,7 @@ doesn't need a sector-matching concept at all, only the holdings layer does.
 
 Every AMC adapter implements the same five stages. Whether a given stage is **generic**
 (driven entirely by a declarative config row) or **custom** (bespoke Python) is decided
-per AMC, per stage — most of the 47 fetchable AMCs are generic in every stage; custom
+per AMC, per stage — most of the 45 automatable AMCs (44 with a known mechanism plus WhiteOak) are generic in every stage; custom
 code is reserved for genuinely non-formulaic behavior.
 
 1. **Locate** — resolve this month's file URL(s) for a scheme or AMC bundle.
@@ -156,7 +156,7 @@ code is reserved for genuinely non-formulaic behavior.
      the Locate stage must support "find the filename on host A, fetch it from host B" as
      a first-class case, not treat every WAF 403 on the main domain as terminal.
 2. **Fetch** — download the located URL(s). Should carry forward any headers/cookies/
-   referer the Locate step needed (not yet observed as required by any of the 47, but
+   referer the Locate step needed (not yet observed as required by any of the 45, but
    cheap to design for given how many AMCs route through a CMS/CDN split).
 3. **Parse** — extract rows from the downloaded file(s).
    - Must auto-detect file format: legacy `.xls` (BIFF/Composite Document Format, `xlrd`)
@@ -190,9 +190,10 @@ Most of the fetchable AMCs need only a declarative row — a URL template (with
 `{year}`/`{month}`/`{scheme_slug}` placeholders) plus a column-mapping dict (source header
 → `scheme_holding` field) — no bespoke Python. Custom adapter code is reserved for AMCs
 whose Locate or Parse step is genuinely non-formulaic: multi-sheet/multi-scheme bundles
-needing an index-sheet lookup (Canara Robeco, Baroda BNP Paribas), cascading-select-driven
-discovery (Bajaj Finserv, Abakkus, Sundaram), or Wayback-based Locate (HDFC, Kotak
-Mahindra).
+needing a sheet-code-to-scheme-name lookup (Bank of India confirmed; any other bundle that names
+its sheets by code), JSON/AJAX or select-driven discovery (the 22 `JSON_API`/captured rows), or
+Wayback-based Locate (HDFC and Canara Robeco only; Kotak Mahindra became a direct fetch on
+2026-10-13, see Q16).
 
 ### Adapter classification — all 57 AMCs
 
@@ -205,15 +206,17 @@ consistent across all three documents.
 
 | Tier | Count | Locate | Parse | Notes |
 |---|---|---|---|---|
-| `STATIC_REGEX`, single scheme/URL pattern | 18 | generic (URL template) | generic (column map) | Nippon, DSP, Union Asset Management (`www.unionmf.com` static path, bypasses its own Angular SPA), Motilal Oswal, NJ, Franklin Templeton, PPFAS, Shriram, Helios, Angel One, Capitalmind, Old Bridge, Quantum, Samco, Groww, 360 ONE, AlphaGrep (`alphagrepmf.ai`, calendar-deterministic — re-verified live 2026-10-12, see "Open items"), Wealth Company |
-| `STATIC_REGEX`, multi-scheme bundle | 2 | generic (URL template) | custom (index-sheet lookup) | Canara Robeco (plain WordPress `wp-content/uploads/`, per-scheme 2-letter code prefix), Baroda BNP Paribas (`/downloads/monthly-portfolio-scheme`, direct `.xls` links in static HTML) |
-| `STATIC_REGEX`, Wayback-Locate | 2 | custom (CDX helper, then generic fetch from a second host) | generic | HDFC (`files.hdfcfund.com`); Kotak Mahindra (`vatseelabs-s3.kotakmf.com`) — resolved live 2026-10-12, see "Open items" |
+| `STATIC_REGEX`, single scheme/URL pattern | 20 | generic (URL template) | generic (column map) | Nippon, DSP, Union Asset Management (`www.unionmf.com` static path, bypasses its own Angular SPA), Motilal Oswal, NJ, Franklin Templeton, PPFAS, Shriram, Helios, Angel One, Capitalmind, Old Bridge, Quantum, Samco, Groww, 360 ONE, AlphaGrep (`alphagrepmf.ai`, calendar-deterministic — re-verified live 2026-10-12, see "Open items"), Wealth Company; plus, corrected 2026-10-13 (Q16): Kotak Mahindra (`vatseelabs-s3.kotakmf.com`, date-built path, direct fetch, no Wayback) and Baroda BNP Paribas (`/archivedownload/`, direct `.xlsx` link in static HTML). Sheet names in a bundle may be scheme codes; the ingestion plan's Task 11 Step 6 translates them through the workbook's Index sheet |
+| `STATIC_REGEX`, multi-scheme bundle | 0 | — | — | Removed 2026-10-13 (Q16): Canara Robeco is a per-scheme workbook fetched through Wayback (below), and Baroda BNP Paribas is a plain direct link (row above). The sheet-code translation for bundles like Bank of India is a Parse-stage step, not a separate tier |
+| `STATIC_REGEX`, Wayback-Locate | 2 | custom (CDX helper, then generic fetch from the same or a second host) | generic | HDFC (`files.hdfcfund.com`, cached listing page then live CDN); Canara Robeco (per-scheme workbooks under `wp-content/uploads/`, found by a CDX prefix search filtered by `link_pattern`). Both raise a `stale_wayback_capture` alert when Wayback stops finding a fresh capture |
 | `JSON_API`, endpoint already found (ready to adapt, no further research) | 8 | custom (one scripted call per AMC, already documented) | generic (JSON field map) | SBI (`POST /ajaxcall/CMS/GetSchemePortfolioSheetsQS`), Bank of India (`AjaxService.asmx/GetDocuments`), Trust Mutual Fund (`POST /api/api/Trust/GetData`), Mirae Asset (`/downloads/portfolio` → `AjaxService/GetDownloadsData`), LIC (`/downloads/portfolio-filter-options` then `/downloads/portfolio-files`), Axis (`POST /cms/token` → `POST /cms/get-scheme-documents`), Aditya Birla Sun Life (`/postlogin/CustomApi/Resources/FactsheetAccordionById`, adapter rewrites the dead `abcscprod.azureedge.net` host in its `pdfUrl` response to the live `mutualfund.adityabirlacapital.com` domain), Taurus (Drupal exposed-filter AJAX, replayable as a plain GET — Half-Yearly cadence only, March/September, a `disclosure_batches`-grain note not a fetch problem) |
 | `JSON_API`, Locate mechanism documented (needs browser-automation adapter code, not fresh research) | 14 | custom (one scripted select/click/accordion interaction per AMC, already documented and confirmed by downloading and opening a real file — scoped adapter-build work, the same shape as the 8 "endpoint already found" row, just one UI-interaction step deeper) | generic (JSON field map) | PGIM India (clean JSON REST API, `resultStatus`/`pdfPath` fields, history to 2021), Navi (open a hidden accordion → WordPress REST `/wp-json/nv/v1/documents`), Jio BlackRock (Ant Design combobox, click needs `force=True` → direct Azure CDN links per scheme), Bandhan (button nav to `/portfolio-summary/monthly` → backend proxy signs a GCS URL), Unifi (real per-scheme Monthly Portfolio Statement file, only reachable via the rendered page), Zerodha/Coin (real Sept-2026 monthly file, only reachable via the rendered page), Abakkus (cascading `#mpdYear`/`#mpdMonth` selects → one workbook, Index sheet + 4 per-scheme sheets), quant Money Managers (`<li onclick="submit_event1/2(...)">` widget drives an AJAX call populating a `#files` div), Sundaram (category select + "View" button → one Index-sheet workbook, 31 schemes), Choice (rendered page/API supplies year/month/scheme records; downloaded workbook uses "% to AUM"), UTI (browser-driven selection returns per-scheme workbook URLs from `utimf.com/downloads/scheme-wise-portfolio-disclosure`), Tata (browser interaction supplies the monthly workbook link from `tatamutualfund.com/schemes-related/portfolio`), Bajaj Finserv (cascading year/month selects, month populates after year is chosen → one workbook, 25 schemes), ICICI Prudential (`/media-center/downloads?currentTabFilter=OtherSchemeDisclosures&subCatTabFilter=Monthly+Portfolio+Disclosures`, "DOWNLOAD" button → one ZIP of all 151 schemes) |
 | `JSON_API`, genuinely still needs investigation (not yet driven to a download) | 1 | custom (page confirmed live; needs the same select/click-and-capture work as the row above, not yet completed) | generic (JSON field map) | WhiteOak Capital — `mf.whiteoakamc.com/regulatory-disclosures/scheme-portfolios` confirmed `HTTP 200`, same select/click shape as the 14 above, but not yet driven to an actual downloaded file (kept out of the 44-AMC "already fetchable" count for exactly this reason — not a different kind of gap, just one step further behind) |
 | Standing manual-fetch | 6 | — | — | Edelweiss (Akamai, confirmed no bypass across 4 passes); Mahindra Manulife (encrypted payload directly confirmed opaque, real file UUID undiscoverable without decrypting it — explicitly not attempted, per standing constraint); Invesco, ITI (confirmed `BOT_BLOCKED` even against a real headless-Chromium browser — a genuine bot wall, not a missing-JS-execution problem); JM Financial (confirmed false positive — its "downloaded" file decodes to AES-ciphertext, an encrypted-API dead end, not a real workbook); HSBC (the sole AMC where a real browser passes its WAF but plain `curl` and every attempted JSON-API replay don't — rejected adding a standing Playwright/fingerprint-matching production dependency for one AMC, see the go/no-go decision in `decisions.md`, 2026-10-12) |
 | Different-granularity ingest | 1 | generic | generic | Monarch (Networth) — ingest the fortnightly file as its real ceiling, not a gap |
 | `NO_CONTENT_FOUND` — expected absence | 5 | n/a | n/a | ASK, IL&FS, Lakshya, Carnelian, Nuvama — no row that month is a normal state, not a failure |
+
+**Reconciliation (2026-10-13):** 20 + 0 + 2 + 8 + 14 + 1 + 6 + 1 + 5 = 57. The spike's own table counted 22 `STATIC_REGEX` + 22 `JSON_API`; moving WhiteOak into the JSON group makes that 23, and Kotak, Canara and Baroda moving between rows above changes the static sub-counts, not the total. 44 AMCs have a known mechanism, WhiteOak is captured in the ingestion plan's Task 12, and 6 are manual.
 
 Full per-AMC URL patterns, column headers, and verification evidence:
 `2026-10-09-amc-portfolio-disclosure-spike-consolidated.md`'s master tier table (as
@@ -244,7 +247,7 @@ queue already does — no new UI concept, no separate table.
   everything else below is a refinement, not a fix.
 - **Multi-file bundle status tracking as free text** ("143/151 parsed, 8 failed") — too
   weak for debugging. Fixed: `parse_errors` as structured JSONB.
-- **Bespoke Python per AMC as the default** — unnecessary cost for ~33 of 57 AMCs that
+- **Bespoke Python per AMC as the default** — unnecessary cost for most of the 45 automatable AMCs that
   are a pure URL-template + column-map. Fixed: config-driven adapters as the default,
   custom code only where Locate/Parse is genuinely non-formulaic.
 - **Per-AMC publishing-lag configuration** for scheduling — adds config surface for no
@@ -271,9 +274,9 @@ queue already does — no new UI concept, no separate table.
   a matching/taxonomy concern into the ingestion layer that only attribute 06's
   aggregation actually needs; keeping it raw at write time keeps the Write stage dumb and
   idempotent.
-- **Paid residential-proxy/CAPTCHA-solving for the 2 `BOT_BLOCKED`/encrypted-API
+- **Paid residential-proxy/CAPTCHA-solving for the 6 `BOT_BLOCKED`/encrypted-API/browser-only
   manual-fetch AMCs.** Rejected (already decided in the consolidated investigation,
-  carried forward here) — real recurring cost and operational complexity for only 2 of
+  carried forward here) — real recurring cost and operational complexity for only 6 of
   57 AMCs; manual fetch is the same precedent already used for attribute 04 factsheets.
 - **Reverse-engineering the encrypted API** (Mahindra Manulife). Explicitly out of scope
   per standing constraint — manual fetch is the accepted cost instead.

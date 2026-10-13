@@ -78,8 +78,8 @@ end regardless of tooling.
 
 **Go/no-go decision: no — do not add Playwright as a production runtime dependency for
 sub-project 2.** One AMC does not justify a headless-browser runtime, its container image size,
-or its ongoing maintenance burden. HSBC becomes a 16th standing-manual-fetch AMC (joining
-Mahindra Manulife, Edelweiss, JM Financial), re-evaluated later if Playwright becomes needed for
+or its ongoing maintenance burden. HSBC becomes the sixth standing-manual-fetch AMC (joining
+Edelweiss, Mahindra Manulife, Invesco, ITI and JM Financial), re-evaluated later if Playwright becomes needed for
 other reasons. Playwright remains useful as a **one-time discovery tool** run ad hoc from a
 developer machine whenever an AMC's URL/API goes stale — that is a research technique, not a
 production dependency, and needs no infra decision.
@@ -95,7 +95,7 @@ production dependency, and needs no infra decision.
    India/Taurus/Mirae/LIC/Axis/Aditya Birla Sun Life → no Playwright needed (with corrected
    URLs/mechanisms); ITI and Invesco → confirmed `BOT_BLOCKED`; JM Financial → confirmed false
    positive, move to the encrypted-dead-end bucket; HSBC → confirmed genuinely needs
-   Playwright/a fingerprint-matching client, named the 16th standing-manual-fetch AMC instead.
+   Playwright/a fingerprint-matching client, named the sixth standing-manual-fetch AMC instead (the six are Edelweiss, Mahindra Manulife, Invesco, ITI, JM Financial, HSBC).
 3. Record the go/no-go decision above in `decisions.md`.
 4. Brainstorm + spec + plan + visual-map for look-through-dependent attributes 02, 06, 10, 13, 15.
 5. Update `session.md`/`log.md` to reflect this reconciliation's close-out.

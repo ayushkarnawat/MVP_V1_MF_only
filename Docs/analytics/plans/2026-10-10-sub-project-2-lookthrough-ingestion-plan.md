@@ -42,7 +42,91 @@ separate, already-written plan that reads off this one's output —
 That plan's Task 0 is gated on this plan: it needs at least one AMC's `disclosure_batches`
 row reaching `WRITTEN` with real `scheme_holdings` rows before it can start in earnest.
 
+## Revision 2026-10-13 — execution scope, task order, applied fixes
+
+Added after the Q3–Q30 decisions and the plan-fix approvals (`decisions.md`, 2026-10-13;
+artifacts in `Docs/analytics/artifacts/subproject2-execution/`). **Where an older passage
+below calls an AMC or mechanism "future work", "deferred", or "a later wave", this block
+wins.** Those passages are kept as an audit trail and marked in place. Nothing in this plan
+has been built yet; migration `0038_nav_history_wider_nav` is still the head.
+
+**Scope (decided, Q14/Q15, overriding the artifact's own "wave" recommendation):** all 57
+AMFI-listed AMCs get a working mechanism in this one execution — 51 registry rows (Task 5),
+5 AMCs that need no row (ASK, IL&FS, Lakshya, Carnelian, Nuvama), and WhiteOak Capital
+(Task 12). The 6 manual AMCs get their monthly intake script (Task 13). No wave 2 or 3.
+
+**Execution order:** `0 → 12 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 11 → 13 → 14 → 15 → 9 → 10`.
+Task 12 (the capture pass) runs second because Task 2's parser must be tuned against real
+files (Q9) and Task 11 needs each AMC's captured request shape. Tasks 9 and 10 (the job
+script and Terraform) run last on purpose: they wrap everything the later tasks add (prune
+step, archive bucket, manual-queue rows, summary alarm).
+
+| Task | What it is | Why it exists |
+|---|---|---|
+| 0 | Source reachability check from the AWS network (new) | Q6 |
+| 1–8 | The original pipeline tasks, amended in place | Q8–Q13, Q16, F1, F4a–d |
+| 11 | `JSON_API` Locate code: generic single-call, plus dedicated Axis, LIC, Navi and Bandhan functions, the Aditya Birla host rewrite, the WhiteOak row (new) | Q14 override; F4c and the registry previously pointed at "Task 9" for this, which is the job script |
+| 12 | Capture pass, run by Claude with no Codex: a real file for every registry AMC saved as a test fixture, the literal request for every `NEEDS LIVE VERIFICATION` row, and WhiteOak's discovery (new) | Q9 fixtures; Q14 override |
+| 13 | Manual intake script for the 6 manual AMCs, plus the `AWAITING_MANUAL_UPLOAD` queue rows (new) | Q15 |
+| 14 | Refresh-loop rework: one file at a time, per-file skip, gated alerts, monthly summary (new) | F2, Q12, Q16 |
+| 15 | Retention prune and failed-file archive (new) | Q10, Q11 |
+| 9, 10 | Job script and Terraform, amended | F2, F3, Q10, Q11, Q12 |
+
+**How each task is run (same as Sub-project 1):** Claude pre-flight (reads the real head
+migration and live code, writes the handoff doc), Codex implements from the handoff,
+Claude verifies and runs the adversarial review, Claude makes one commit per task, nothing
+is ever pushed. There is no per-task staging: everything is deployed once, at the end,
+after every attribute is built.
+
+**Plan fixes and where they landed:**
+
+| Fix | Landed in |
+|---|---|
+| F1 migration number | Task 1 Step 6 note; migration test added at Task 1 Step 7a |
+| F2 memory and one-file-at-a-time | Task 10 Step 1 (memory 2048); Task 14 (generator) |
+| F3 job before the 06:30 recompute | Task 10 Step 1 (05:45 IST) |
+| F4a AlphaGrep/Kotak registry | Task 5 |
+| F4b registry names equal scheme-master names | Task 5 convention test; Task 6 `zero_schemes_matched`; two keys corrected 2026-10-13, see below |
+| F4c unbuilt Locate kinds | Task 6 `_is_locate_implemented`; goes to zero once Task 11 is done, Task 11 Step 6 asserts it |
+| F4d sync session inside async | Task 6 module docstring |
+| F5 counts across documents | Task 16 (docs only) |
+| F6 cadence rule | Global Constraints, last bullet |
+
+**Registry key corrections found 2026-10-13 (F4b's one-time live cross-check, done early
+against `backend/.cache/amfi_navall/nav_all.txt`, the file the scheme master is built from):**
+`"Wealth Company Mutual Fund"` is `"The Wealth Company Mutual Fund"` in AMFI's list, and
+`"Monarch Networth Capital Mutual Fund"` is `"Monarch Mutual Fund"`. Both keys are corrected
+in Task 5 below. Left uncorrected, each would have raised `zero_schemes_matched` on every
+run. The other 49 keys match exactly. Task 5's last step repeats this check against the
+live `schemes` table before the registry ships.
+
+**Readings of the decisions this plan makes. Confirm these in review; each is marked where
+it is used:**
+
+1. *Q12 timing.* "Alert after day 10, again on day 20" is read as: lateness alerts fire only
+   on the runs of day 10 and day 20 (the cron window is days 1–20, so both runs exist).
+   Errors, zero-schemes-matched, unmatched-scheme and failed-sum-check alerts are not
+   lateness and fire immediately.
+2. *Q10 retention.* "Latest 3 months plus each cadence period's last disclosure" is read as:
+   per scheme, keep every batch from the newest 3 calendar months, and always keep the
+   scheme's newest `WRITTEN` batch however old it is (so Taurus's March file survives in
+   October).
+3. *Q11 archive.* The job has no task role today (`task_role_arn = null`), so the new bucket
+   needs a dedicated job role (Task 10), not a widening of the backend role.
+4. *"Done" for per-scheme-file AMCs.* The old "any scheme written means done" skip would
+   miss files an AMC posts a few days later. Task 14 skips per source file instead.
+5. *Q6 egress.* The staging bastion has a public IP and the Fargate jobs leave through the
+   `fck-nat` Elastic IP, so a bastion pass does not prove the jobs can reach a source. Task
+   0 uses a one-off Fargate task.
+
+---
+
 ## Scope note (writing-plans' Scope Check)
+
+> **Read this note as history where it conflicts with the Revision block above (2026-10-13).**
+> Its "10 adapters built, everything else deferred" framing is the original draft's. The
+> scope is now all 57 AMCs, and the per-AMC deferral reasons below are resolved or
+> reassigned to Tasks 11–13 as marked in place.
 
 An earlier draft of this plan scoped down to one adapter (Nippon India) and deferred the
 other 46 fetchable AMCs wholesale as "incremental follow-on," reasoning that only Nippon's
@@ -195,7 +279,7 @@ today, not for token-conservation:**
   `mf.whiteoakamc.com/regulatory-disclosures/scheme-portfolios`, but its mechanism isn't
   discovered at all yet) is the sole AMC in the entire 57-AMC universe still genuinely
   open — intentionally left without a registry row (see the registry's closing comment)
-  rather than guessed, pending one bounded research pass before Task 6 onboards it; every
+  rather than guessed, pending Task 12's capture pass and Task 11's registry row; every
   other AMC below now has either a working mechanism or a confirmed hard blocker. **Final
   tally: 51 registry entries (`STATIC_REGEX`/`JSON_API`/`MANUAL`) + 1 open (WhiteOak) + 5
   no-registry-row-needed (ASK, IL&FS, Lakshya, Carnelian, Nuvama) = all 57 AMCs
@@ -244,8 +328,22 @@ today, not for token-conservation:**
 - Scheme-name matching reuses the hybrid layered pattern already established in
   `amfi_factsheet_client.py` (exact-first, scoped fuzzy fallback, ambiguity guard,
   persisted confidence) — not a new one-off matcher.
-- Scheduling is retry-until-found (skip an AMC already `WRITTEN` this month, otherwise
-  retry), not a per-AMC publishing-lag config.
+- Scheduling is retry-until-found, not a per-AMC publishing-lag config. Since Task 14 the
+  skip is per source file (a file whose URL is already stored on a `WRITTEN` batch is not
+  downloaded again), not per AMC.
+- **Cadence rule (F6, added 2026-10-13).** The engine stores every disclosure with the
+  `as_of_date` the file itself states, and never rounds it to a month-end or drops a file for
+  being on a different cadence. Taurus is Half-Yearly (March and September) and Monarch is
+  Fortnightly; both are ingested as published. HDFC-style fortnightly debt files that sit
+  next to monthly ones are excluded only where the registry says so (`exclude_pattern`).
+  Which batch counts for a given NAV date is a read-time decision: the consumer plan takes,
+  per fund, the newest `WRITTEN` batch at or before the NAV date, and tags its age (Q18,
+  60 days, with the cadence exception) rather than hiding it.
+- Real files, not invented rows (Q9): Task 2's parser is tuned against the fixtures Task 12
+  saves in `backend/tests/fixtures/portfolio_disclosures/`.
+- No Playwright, no proxies, no rotating addresses, no fingerprint matching in production
+  (decision of 2026-10-12). A blocked source goes to the user, never around the block.
+- One file in memory at a time (F2). Do not collect a whole AMC's downloads into a list.
 
 ## Review Focus
 
@@ -263,6 +361,125 @@ today, not for token-conservation:**
 - Re-running the daily job after an AMC is already `WRITTEN` for the current month must
   not re-fetch, re-parse, or duplicate `scheme_holding` rows — Task 6's idempotent-rerun
   test.
+- *(Added 2026-10-13.)* A `Sub Total` row must never become a holding, and a percent written as
+  text (`"2.50%"`) must not drop a real row — Task 2's tests.
+- *(Added 2026-10-13.)* A batch whose weights sum outside 90–101% is `FAILED`, with its parsed
+  holdings kept, and is never `WRITTEN` — Task 4. Consumers read only `WRITTEN` batches.
+- *(Added 2026-10-13.)* An AMC that posts per-scheme files over several days must have the later
+  files picked up without re-downloading the earlier ones — Task 14's per-file skip.
+- *(Added 2026-10-13.)* A workbook whose sheets are named by scheme code (Bank of India's
+  `YB01`) must match through its `Index` sheet — Task 11 Step 6; and HTML served under an
+  `.xlsx` name must be rejected before parsing — Task 11 Step 2.
+- *(Added 2026-10-13.)* Lateness alerts fire only on days 10 and 20; errors fire at once — Task 14.
+- *(Added 2026-10-13.)* The prune never deletes a scheme's newest `WRITTEN` batch, however old —
+  Task 15.
+
+---
+
+### Task 0: Source reachability from the AWS network (Q6) — runs before everything else
+
+**Decided 2026-10-13 (Q6, option A).** Every external source this sub-project depends on is
+tested once from the same network path the scheduled jobs will use, before any code is
+built. A source that works from a developer laptop can still refuse AWS addresses. The
+same check also retires `CLAUDE.md`'s open Priority-1 item (whether AWS blocks the 40
+"automatic" factsheet AMCs), because those requests leave through the same address.
+
+**Files:** none shipped. Result document only:
+`Docs/analytics/investigations/2026-10-13-sub-project-2-aws-egress-check.md`.
+
+**Why a one-off Fargate task, not the bastion (a reading of the infrastructure, checked
+2026-10-13):** the staging bastion has `associate_public_ip_address = true`, so its requests
+leave from its own public address. The scheduled jobs run in private subnets and leave
+through the `fck-nat` Elastic IP (`infra/modules/networking/main.tf`). Those are two
+different addresses, so a bastion pass would not prove the jobs can reach a source. Both are
+AWS-owned ranges, so a bastion *failure* is still a useful early warning.
+
+- [ ] **Step 1: Write the URL list** into the result document first, so the check is
+      reviewable before it runs. Each row is a URL plus what a good answer looks like.
+      - NSE: the daily P/E file (`nsearchives.nseindia.com/content/equities/peDetail/PE_<DDMMYY>.csv`),
+        the security master (`.../content/cm/NSE_CM_security_<DDMMYYYY>.csv.gz`), the Nifty 500
+        list (`archives.nseindia.com/content/indices/ind_nifty500list.csv`).
+      - NSE Indices: the Nifty 50 list (`www.niftyindices.com/IndexConstituent/ind_nifty50list.csv`)
+        and the index P/E and P/B `BackPage` endpoint.
+      - Yahoo Finance (cookie handshake, then one `quoteSummary` call) and one screener.in page.
+      - AMFI: the market-cap PDF (`portal.amfiindia.com/spages/AverageMarketCapitalization30Jun2026.pdf`)
+        and the NAV file.
+      - Wayback: one `web.archive.org/cdx/search/cdx` query and one `web/2id_/` fetch.
+      - Every `landing_url`, `endpoint_url` and `url_template` host in Task 5's registry
+        (51 rows; manual rows are included for information only).
+      - The 40 automatic AMC hosts in attribute 04's `AMC_RESOLVERS`
+        (`backend/app/services/analytics/fund_manager_resolvers.py`).
+- [ ] **Step 2: Run it as a one-off Fargate task.** Use an existing scheduler job's task
+      definition, the same subnets and security group, and a command override of
+      `python -c "<loop over the URL list with httpx and the Chrome User-Agent from Task 6>"`.
+      `httpx` is already in the image. It performs read-only GETs only. It writes no
+      database row and no file. No bastion is needed, so there is nothing to start or stop.
+      Staging must be up (it runs 05:00–21:00 IST). Nothing is deployed.
+- [ ] **Step 3: Record the result** per URL: HTTP status, content type, byte count, and a
+      verdict. `OK` means a real file or JSON. `BLOCKED` means 403, 429, a challenge page or a
+      timeout. `SOFT-404` means HTTP 200 with HTML where a workbook or PDF should be (check
+      the first bytes: `PK\x03\x04` for xlsx and zip, `\xd0\xcf\x11\xe0` for xls, `%PDF` for
+      a PDF). Run it from the developer machine too and add that column, so a source that
+      differs between the two stands out.
+- [ ] **Step 4: Gate.** If every source is `OK`, continue to Task 12. If any source is
+      `BLOCKED` from AWS but `OK` from the developer machine, **stop and report it to the
+      user before building anything.** Do not add a proxy, rotating addresses, or browser
+      fingerprinting (standing project constraint). The affected AMC moves to the manual
+      list only with the user's approval, and the plan's counts are then updated.
+- [ ] **Step 5: Update the Priority-1 item.** Record the 40-AMC result in `DEFERRED_FEATURES.md`'s
+      top section and in `CLAUDE.md`'s Priority-1 paragraph (one line each, dated).
+- [ ] **Step 6: Commit** the result document and the two one-line edits. Nothing else.
+
+---
+
+### Task 12: Capture pass — real files, literal requests, and WhiteOak (Claude, no Codex; runs right after Task 0)
+
+**Decided 2026-10-13 (Q9 option C and the Q14 override).** This task exists because two
+promises in the decisions cannot be met by code alone. Q9 says Task 2's parser is tuned
+against real files, one per registered AMC. Q14 says no AMC is left to a later wave, yet
+16 registry rows carry `NEEDS LIVE VERIFICATION` (and ICICI Prudential's download button still needs its real request captured), and WhiteOak has no row at all. Each needs
+someone to look at the real site once. That is investigation, so Claude does it directly with
+`curl` and, where a page needs a rendered session, a one-time Playwright trace on the
+developer machine. Playwright is a development tool for this step only. It is never added
+to `requirements.txt` or to any production job (decision of 2026-10-12).
+
+**Files:**
+- Create: `backend/tests/fixtures/portfolio_disclosures/<amc-slug>.<ext>` (one real file per AMC)
+- Create: `Docs/analytics/investigations/2026-10-13-sub-project-2-capture-log.md`
+- Create: `backend/tests/fixtures/portfolio_disclosures/README.md` (where each file came from and its as-of date)
+
+- [ ] **Step 1: Fixture for every registry AMC that can be downloaded automatically.** For
+      each of the 45 non-manual registry rows (51 minus the 6 manual), download the current
+      month's real file by the mechanism the registry describes, and save it unchanged. Keep
+      each fixture under about 2 MB. For large bundles (ICICI Prudential's 151-file ZIP,
+      Aditya Birla Sun Life's 105-sheet workbook, DSP's ZIP) trim to 2 or 3 real members and
+      say so in the README. Never edit cell contents. For the 6 manual AMCs there is nothing
+      to download automatically, so ask the user for one hand-downloaded file each; until
+      supplied, Task 13's tests use a synthetic file and the README says so.
+- [ ] **Step 2: Resolve every `NEEDS LIVE VERIFICATION` row.** The rows are Tata, Sundaram,
+      Choice, UTI, PGIM India, Bandhan, Unifi, Zerodha, Abakkus, quant, Bajaj Finserv,
+      ICICI Prudential (the DOWNLOAD button's real request), Jio BlackRock, Navi (the
+      `category` value for portfolio disclosures), Motilal Oswal (does every live scheme
+      have a reachable fund page), 360 ONE (is the file link inside the React Server
+      Component payload), and Old Bridge (is the per-scheme file the real holdings
+      disclosure). For each, write into the capture log: the literal URL or request (method,
+      headers that matter, body or query string with the month and year parts marked as
+      placeholders), the response shape, the path to the file URL inside it, and the
+      real downloaded file's name and size.
+- [ ] **Step 3: WhiteOak Capital — full discovery.** Its page
+      (`mf.whiteoakamc.com/regulatory-disclosures/scheme-portfolios`) answers HTTP 200 but
+      no mechanism has been captured. Do the same trace as Step 2. Outcomes: (a) a plain
+      request or static link, which becomes a registry row in Task 11; (b) a genuine block,
+      which is reported to the user and, with approval, becomes a manual row.
+- [ ] **Step 4: Offline parse check.** For each fixture, run it through Task 2's parser once
+      Task 2 exists (this step is repeated at the end of Task 2) and record: sheets found,
+      holdings per sheet, and the sum of `pct_to_nav` per sheet against the 90–101% band
+      from Task 4. A fixture that fails is evidence for a parser fix, never for loosening
+      the band.
+- [ ] **Step 5: Gate.** A `BLOCKED` result for any AMC is reported to the user. It is not
+      worked around, and the AMC is not silently moved to manual. Only the user's approval
+      changes the counts.
+- [ ] **Step 6: Commit** the fixtures, README and capture log. Nothing else.
 
 ---
 
@@ -571,10 +788,21 @@ def downgrade() -> None:
 Run: `cd backend && alembic upgrade head && alembic downgrade -1 && alembic upgrade head`
 Expected: all three commands exit 0, no error.
 
+- [ ] **Step 7a: Add the migration test (F1)**
+
+The step above only tests the models. Add one test to `backend/tests/test_migrations.py`
+in the file's existing pattern (a temp SQLite file, `alembic upgrade <NNNN>`, then
+`PRAGMA table_info`): both tables exist, `scheme_holdings.asset_type` is `NOT NULL`, the
+unique index `uq_disclosure_batches_scheme_date` exists, and `downgrade` to the previous
+revision drops both tables. Also add `"disclosure_batches"` and `"scheme_holdings"` to the
+`expected` set in `test_alembic_upgrade_creates_all_tables`, which lists tables by name.
+Run: `cd backend && pytest tests/test_migrations.py -k "disclosure or creates_all_tables" -v`.
+
 - [ ] **Step 8: Commit**
 
 ```bash
 git add backend/app/models/enums.py backend/app/models/reference.py \
+  backend/tests/test_migrations.py \
   backend/alembic/versions/<NNNN>_disclosure_batches_and_scheme_holdings.py \
   backend/tests/services/analytics/test_portfolio_disclosure_models.py
 git commit -m "feat: add disclosure_batches/scheme_holdings schema (sub-project 2 ingestion)"
@@ -1300,7 +1528,7 @@ holds, so collapsing variants into a shared row would push de-duplication work o
 every reader for a write-side convenience). Keep the latest 3 months' batches per scheme
 plus each cadence period's last disclosure (so Taurus/Monarch's Half-Yearly/Fortnightly
 batches, see Task 5's registry notes, are never pruned as "stale monthly"); prune
-everything older in Task 9's daily job. Option C (one copy per fund family) is rejected
+everything older in Task 15's `prune_old_batches`, called from Task 9's daily job (see Task 15 for the exact rule). Option C (one copy per fund family) is rejected
 for now — it needs a family-key concept that doesn't exist yet, for a storage saving
 (5-7M rows/year, by estimate) Postgres already handles comfortably; revisit only if a
 measured row count, not the estimate above, actually threatens query latency.
@@ -1308,7 +1536,7 @@ measured row count, not the estimate above, actually threatens query latency.
 **Decided 2026-10-13 (resolves engine.html Q11 — keep the original downloaded files? —
 see `decisions.md`):** option C. Only files whose batch ends up `FAILED` (either the
 parser raised, or Q9's post-Write sum check above falls outside 90-101%) are archived,
-to a new private S3 bucket with a 12-month lifecycle rule (Task 10's Terraform; distinct
+to a new private S3 bucket with a 12-month lifecycle rule (the archive function is Task 15, the bucket and the job's role are Task 10's Terraform; distinct
 from the existing CAS-file bucket, which carries a PAN-retention lifecycle that doesn't
 fit this data). Every other batch leaves `raw_file_reference` NULL — re-fetching a
 `WRITTEN` batch's source, if ever needed, means re-running Locate against the AMC's
@@ -1603,7 +1831,7 @@ def test_alphagrep_is_onboarded_with_the_two_digit_year_template():
     assert "FY-{yy}-{yy_plus_1}" in entry.url_template
 
 
-def test_kotak_mahindra_is_onboarded_as_wayback_locate_with_the_monthly_path():
+def test_kotak_mahindra_is_onboarded_as_a_direct_date_built_template():
     # F4b: missing from the registry entirely until this pass, despite being resolved
     # (sixth pass, 2026-10-12) -- the original spike's filename guess had the wrong
     # path prefix/naming convention, which is why it 403'd even though the real file
@@ -1833,9 +2061,10 @@ AMC_DISCLOSURE_RESOLVERS: dict[str, DisclosureResolverEntry] = {
     # Decided 2026-10-13 (resolves amc-coverage.html Q16, option B/C -- see decisions.md):
     # the real path is date-built, not something only Wayback can find -- fetch it
     # directly every month like AlphaGrep below, same DETERMINISTIC_TEMPLATE shape.
-    # Wayback is kept only as Task 7's fallback for the rare month this CDN path changes
-    # again, not the normal path -- removes an avoidable failure point and the ~1-day
-    # capture lag the Wayback-only approach carried.
+    # No automatic Wayback fallback is built (see the note below): removes an avoidable
+    # failure point and the ~1-day capture lag the Wayback-only approach carried. If the
+    # path changes again, the 404 raises the day-10/day-20 alert and the fix is a repeat of
+    # the sixth pass's one-off CDX re-discovery.
     "Kotak Mahindra Mutual Fund": DisclosureResolverEntry(
         kind=DisclosureResolverKind.STATIC_REGEX,
         file_shape=DisclosureFileShape.DETERMINISTIC_TEMPLATE,
@@ -2140,7 +2369,9 @@ AMC_DISCLOSURE_RESOLVERS: dict[str, DisclosureResolverEntry] = {
              "VERIFICATION: confirm Task 6's static-HTML regex finds the file inside "
              "the RSC flight payload, or whether this needs a small parse step.",
     ),
-    "Wealth Company Mutual Fund": DisclosureResolverEntry(
+    # Key corrected 2026-10-13: AMFI's name is "The Wealth Company Mutual Fund"
+    # (backend/.cache/amfi_navall/nav_all.txt); the old key matched zero schemes.
+    "The Wealth Company Mutual Fund": DisclosureResolverEntry(
         kind=DisclosureResolverKind.STATIC_REGEX,
         file_shape=DisclosureFileShape.MULTI_FILE_SINGLE_SCHEME,
         landing_url="https://www.wealthcompanyamc.in/literature-forms/portfolio-documents/monthly/",
@@ -2293,7 +2524,8 @@ AMC_DISCLOSURE_RESOLVERS: dict[str, DisclosureResolverEntry] = {
 
     # -- Fortnightly-only AMC: not a gap, a genuine ceiling. Same cadence treatment
     # as Taurus above -- disclosure_batches must accept non-monthly for this AMC.
-    "Monarch Networth Capital Mutual Fund": DisclosureResolverEntry(
+    # Key corrected 2026-10-13: AMFI lists this AMC as "Monarch Mutual Fund".
+    "Monarch Mutual Fund": DisclosureResolverEntry(
         kind=DisclosureResolverKind.STATIC_REGEX,
         landing_url="https://mf.monarchnetworth.com/statutory-disclosure/portfolio",
         note="Spike: Monarch genuinely only publishes a Fortnightly portfolio "
@@ -2355,8 +2587,8 @@ AMC_DISCLOSURE_RESOLVERS: dict[str, DisclosureResolverEntry] = {
     # -- Genuinely still open: the one AMC in the entire registry whose mechanism is
     # not yet discovered at all (every other AMC above has either a working
     # mechanism or a confirmed hard blocker). Not a registry entry yet --
-    # intentionally absent; research this one before Task 6 onboards it, same
-    # bounded Pass-0 step as every other spike AMC.
+    # intentionally absent from this Task; Task 12 (capture pass) discovers its
+    # mechanism and Task 11 adds its row (or, with the user's approval, a manual row).
     # "WhiteOak Capital Mutual Fund": genuinely NEEDS_INVESTIGATION, page confirmed
     # live at mf.whiteoakamc.com/regulatory-disclosures/scheme-portfolios.
 
@@ -2371,6 +2603,15 @@ AMC_DISCLOSURE_RESOLVERS: dict[str, DisclosureResolverEntry] = {
 
 Run: `cd backend && pytest tests/services/analytics/test_portfolio_disclosure_resolvers.py -v`
 Expected: PASS (9 tests) — including F4b's registry-naming-convention test added above.
+
+- [ ] **Step 4a: One-time cross-check against the live scheme master (F4b)**
+
+Run against the local database after a scheme-master load (not a committed test):
+`SELECT DISTINCT amc_name FROM schemes ORDER BY 1`, and confirm every registry key appears in
+that list exactly. An early cross-check against `backend/.cache/amfi_navall/nav_all.txt` on
+2026-10-13 already found and fixed two keys (`The Wealth Company Mutual Fund`, `Monarch Mutual
+Fund`); this step repeats it on the real table. The only AMFI-listed AMCs expected to have
+no row are Lakshya (no content expected) and WhiteOak (added by Task 11).
 
 - [ ] **Step 5: Commit**
 
@@ -2414,7 +2655,7 @@ the Normalize-stage matcher can't match raises its own alert instead of the curr
 INFO-only log line, since an unmatched scheme is a silent coverage gap, not routine
 noise. A monthly summary line lists every AMC with zero `WRITTEN` batches that period,
 matching the spec's "not found by day N" wording and giving a month-end checklist
-instead of requiring someone to reconstruct it from daily logs.
+instead of requiring someone to reconstruct it from daily logs. **Built in Task 14 (the alerts and the per-file skip) and Task 9 (the summary line); the Steps below are Task 6's original form and Task 14 reshapes them.**
 
 - [ ] **Step 1: Write the failing test for filename-date parsing and Locate candidate ranking**
 
@@ -2521,7 +2762,7 @@ class PortfolioDisclosureRefreshResult:
     amcs_processed: int = 0
     amcs_failed: int = 0
     # F4c: AMCs whose registry entry exists but whose Locate kind isn't built yet
-    # (JSON_API's generic shape, the Axis/LIC chains -- Task 9) are counted here, not in
+    # (JSON_API's generic shape, the Axis/LIC chains -- Task 11) are counted here, not in
     # amcs_failed -- an AMC with no Locate code is an expected, known gap, not a run that
     # broke. Kept as its own field so dashboards/alerts can treat the two differently.
     amcs_not_onboarded: int = 0
@@ -2842,7 +3083,7 @@ async def _locate_deterministic_template(
 
 
 # F4c: kinds this task actually implements a Locate for. JSON_API's generic single-call
-# shape and the Axis/LIC two-step chains are deliberately NOT built in this task (Task 9
+# shape and the Axis/LIC two-step chains are deliberately NOT built in this task (Task 11
 # below is where that happens) -- registering those registry entries ahead of their
 # Locate code is correct (it's how every other AMC in this plan was onboarded too), but
 # running them must not look like a *failure*. `_is_locate_implemented` lets the refresh
@@ -2961,7 +3202,7 @@ async def refresh_portfolio_disclosures(db: Session) -> PortfolioDisclosureRefre
 
     if amcs_not_onboarded:
         # F4c: one INFO line for the whole run, not one WARNING per AMC -- this is a
-        # known, static gap (tracked against Task 9's JSON_API build-out), not something
+        # known, static gap (tracked against Task 11's JSON_API build-out), not something
         # that regressed today, so it must never look like a failure in the alert feed.
         logger.info(
             "refresh_portfolio_disclosures: %d registered AMC(s) skipped, Locate not yet built",
@@ -3165,10 +3406,11 @@ genuinely has no direct, bot-free path. Two fixes land in this task: the prefix-
 helper below gains a `link_pattern` filter so Canara's open-ended
 `wp-content/uploads/` search (today: every captured upload under that path, up to 50,
 with no filter at all) only downloads files actually matching the AMC's known naming shape;
-and after a CDX query, if the newest capture found is not newer than the previous month's,
-`_alert(amc_name, "stale_wayback_capture", ...)` fires through the same ops-topic path as
-Q12's other alerts — telling you Wayback has stopped finding fresh captures for HDFC or
-Canara before a silent monthly gap builds up.
+and, if the newest capture found is older than the last completed month-end, a
+`stale_wayback_capture` alert fires through the same ops-topic path as Q12's other alerts —
+telling you Wayback has stopped finding fresh captures for HDFC or Canara before a silent
+monthly gap builds up. **The alert itself is built in Task 14 (Step 5)**, because it shares
+Q12's day-10/day-20 gate; this task builds the `link_pattern` filter (Steps 8a to 8c).
 
 - [ ] **Step 1: Write the failing test for the CDX query helper**
 
@@ -3390,10 +3632,25 @@ def test_wayback_prefix_search_fetches_every_capture_live_from_the_same_domain(d
     assert result.amcs_failed == 0
 ```
 
+- [ ] **Step 8a: Write the failing test for the Canara `link_pattern` filter**
+
+A capture list containing a Canara scheme workbook and an unrelated upload (an image, a PDF
+brochure, another year's unrelated file): only the workbook matching the entry's
+`link_pattern` (`Canara-Robeco-.*-Fund`) may be downloaded. Count GET requests to the
+unrelated URL in the MockTransport handler: it must be zero.
+
+- [ ] **Step 8b: Implement it**
+
+In `_locate_wayback_prefix_search`, filter `originals` through `re.compile(entry.link_pattern, re.I)`
+when the entry has one (and through `exclude_pattern` likewise), before building `candidates`.
+An entry with no `link_pattern` behaves exactly as before.
+
+- [ ] **Step 8c: Run** `cd backend && pytest tests/services/analytics/test_portfolio_disclosure_client.py -k wayback -v`. Expected: PASS.
+
 - [ ] **Step 9: Run the full file and commit**
 
 Run: `cd backend && pytest tests/services/analytics/test_portfolio_disclosure_client.py -v`
-Expected: PASS (9 tests total in this file).
+Expected: PASS (all tests in this file).
 
 ```bash
 git add backend/app/services/analytics/portfolio_disclosure_client.py \
@@ -3516,12 +3773,17 @@ git commit -m "test: pin failure-isolation and ambiguity-guard regressions for p
 
 ### Task 9: Scheduled job script
 
+**Revised 2026-10-13.** This task runs near the end (see the Revision block's execution
+order) because the script now also calls the manual-queue, prune and summary functions
+from Tasks 13–15.
+
 **Files:**
 - Create: `backend/scripts/jobs/refresh_portfolio_disclosures_daily.py`
 
 **Interfaces:**
 - Consumes: `SessionLocal` (`app.db.session`); `refresh_portfolio_disclosures`,
-  `PortfolioDisclosureRefreshResult` (Task 6).
+  `monthly_zero_batch_summary`, `_alert`, `_alert_due` (Tasks 6 and 14);
+  `ensure_manual_queue_rows`, `manual_queue_summary` (Task 13); `prune_old_batches` (Task 15).
 - Produces: a `main()` CLI entrypoint — Task 10's Terraform `command` list invokes this
   script by path, exactly like every other job in `infra/modules/scheduler/main.tf`.
 
@@ -3532,23 +3794,44 @@ git commit -m "test: pin failure-isolation and ambiguity-guard regressions for p
 import asyncio
 import logging
 import sys
+from datetime import date
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from app.db.session import SessionLocal
-from app.services.analytics.portfolio_disclosure_client import refresh_portfolio_disclosures
+from app.services.analytics.portfolio_disclosure_client import (
+    _alert, _alert_due, monthly_zero_batch_summary, refresh_portfolio_disclosures,
+)
+from app.services.analytics.portfolio_disclosure_manual import (
+    ensure_manual_queue_rows, manual_queue_summary,
+)
+from app.services.analytics.portfolio_disclosure_retention import prune_old_batches
 
 logger = logging.getLogger(__name__)
 
 
 async def main_async(db) -> None:
-    result = await refresh_portfolio_disclosures(db)
+    today = date.today()
+    ensure_manual_queue_rows(db, today)  # Task 13: the six manual AMCs' waiting rows
+    db.commit()
+    result = await refresh_portfolio_disclosures(db, today)
+    pruned = prune_old_batches(db, today)  # Task 15: Q10 retention
+    db.commit()
     logger.info(
         "refresh_portfolio_disclosures_daily: success=%s amcs_processed=%d amcs_failed=%d "
-        "schemes_written=%d seconds=%.1f",
-        result.success, result.amcs_processed, result.amcs_failed, result.schemes_written, result.seconds,
+        "amcs_not_onboarded=%d schemes_written=%d pruned=%d seconds=%.1f",
+        result.success, result.amcs_processed, result.amcs_failed, result.amcs_not_onboarded,
+        result.schemes_written, pruned, result.seconds,
     )
+    if _alert_due(today):
+        waiting = {amc: n for amc, n in manual_queue_summary(db).items() if n}
+        if waiting:
+            _alert("ALL", "manual_upload_pending", ", ".join(f"{a}={n}" for a, n in sorted(waiting.items())))
+    if today.day == 20:  # last run of the 1st-20th window: the month-end checklist (Q12)
+        missing = monthly_zero_batch_summary(db, today)
+        if missing:
+            _alert("ALL", "monthly_zero_batch_summary", ", ".join(missing))
 
 
 def main() -> None:
@@ -3561,13 +3844,14 @@ if __name__ == "__main__":
     main()
 ```
 
-- [ ] **Step 2: Verify it runs against a local/dev database**
+- [ ] **Step 2: Verify it runs against a local database**
 
 Run: `cd backend && python scripts/jobs/refresh_portfolio_disclosures_daily.py`
-Expected: exits 0; logs a line starting `refresh_portfolio_disclosures_daily:
-success=True amcs_processed=1 amcs_failed=0` (Nippon India fetched live) — confirms the
-Locate regex and landing URL are still correct against the real site, not just the
-mocked test.
+Expected: exits 0 and logs a `refresh_portfolio_disclosures_daily:` line with
+`success=True`. `amcs_processed` is the number of onboarded AMCs whose file was found this
+run (it depends on the date, so do not assert a fixed number), `amcs_not_onboarded=0`
+(Task 11's invariant), and any `PORTFOLIO_DISCLOSURE_ALERT` line names a real AMC and
+reason. This confirms the live landing pages and patterns still work, not just the mocks.
 
 - [ ] **Step 3: Commit**
 
@@ -3619,13 +3903,37 @@ minutes to finish before `06:30`'s recompute needs its output.
       slug                = "portfolio-disclosures-daily"
       command             = ["python", "scripts/jobs/refresh_portfolio_disclosures_daily.py"]
       schedule_expression = "cron(45 5 1-20 * ? *)"
-      task_role_arn       = null
+      # Revised 2026-10-13 (Q11): a dedicated role so the job can write failed files to the
+      # archive bucket (Step 1b). It was null, like most jobs; it must not borrow the
+      # backend role, which can read and delete clients' CAS files.
+      task_role_arn = aws_iam_role.portfolio_disclosures_job.arn
+      extra_env = [
+        { name = "PORTFOLIO_DISCLOSURE_ARCHIVE_BUCKET", value = var.portfolio_disclosure_archive_bucket_name },
+      ]
       # Same order-of-magnitude memory pressure as fund_managers_monthly's run (44+1
       # AMCs, several bundled multi-scheme workbooks held in memory per AMC) -- the
       # module's 1024MB default was sized for the smaller, original 10-AMC scope.
       memory = "2048"
     }
 ```
+
+- [ ] **Step 1b: Add the archive bucket, the job role, and the env wiring (Q11)**
+
+Three pieces, none applied until the single end-of-project staging:
+
+1. In `infra/modules/storage/main.tf`, a new private bucket
+   `${var.project}-${var.environment}-portfolio-disclosure-failed-${var.account_id}` with a
+   public-access block, default encryption, and a lifecycle rule that expires objects after
+   365 days (a separate bucket from the CAS bucket, whose lifecycle is about PAN retention).
+   Output its name and ARN, and pass the name into the scheduler module as
+   `portfolio_disclosure_archive_bucket_name`.
+2. In `infra/modules/scheduler/main.tf`, `aws_iam_role.portfolio_disclosures_job` (trust:
+   `ecs-tasks.amazonaws.com`) with one inline policy allowing only `s3:PutObject` on
+   `<bucket arn>/failed/*`. Add the role's ARN to the scheduler's existing `iam:PassRole`
+   statement, the same way `var.backend_task_role_arn` is listed there for the CAS-expiry job.
+3. The job task definition's `environment` list is shared by every job. Change it to
+   `concat([...existing entries...], lookup(each.value, "extra_env", []))` so only this job
+   receives `PORTFOLIO_DISCLOSURE_ARCHIVE_BUCKET`.
 
 - [ ] **Step 2: Add the metric filter and alarm**
 
@@ -3645,7 +3953,7 @@ resource "aws_cloudwatch_log_metric_filter" "portfolio_disclosure_alerts" {
 
 resource "aws_cloudwatch_metric_alarm" "portfolio_disclosure_alerts" {
   alarm_name          = "${var.project}-${var.environment}-portfolio-disclosure-alerts"
-  alarm_description   = "An AMC's monthly portfolio disclosure wasn't found or failed to parse; the log line names the AMC, reason and URL."
+  alarm_description   = "A portfolio-disclosure problem: a late or missing AMC file (day 10 and 20), a parse or sum-check failure, an unmatched scheme, a stale Wayback capture, a pending manual upload, or the month-end zero-batch summary. The log line names the AMC and reason."
   namespace           = "${var.project}/${var.environment}/jobs"
   metric_name         = "PortfolioDisclosureAlerts"
   statistic           = "Sum"
@@ -3668,9 +3976,321 @@ explicit step the user takes later, same as every other infra change in this pro
 - [ ] **Step 4: Commit**
 
 ```bash
-git add infra/modules/scheduler/main.tf
+git add infra/modules/scheduler/main.tf infra/modules/storage/main.tf \
+  infra/modules/storage/outputs.tf infra/modules/scheduler/variables.tf
 git commit -m "feat: schedule daily portfolio-disclosure ingestion with its own alerting"
 ```
+
+---
+
+### Task 11: `JSON_API` Locate code, index-sheet names, and the remaining registry rows
+
+**Files:**
+- Modify: `backend/app/services/analytics/portfolio_disclosure_resolvers.py`
+- Modify: `backend/app/services/analytics/portfolio_disclosure_client.py`
+- Modify: `backend/app/services/analytics/portfolio_disclosure_parsing.py` (index-sheet reader only)
+- Modify: `backend/tests/services/analytics/test_portfolio_disclosure_resolvers.py`
+- Modify: `backend/tests/services/analytics/test_portfolio_disclosure_client.py`
+- Modify: `backend/tests/services/analytics/test_portfolio_disclosure_parsing.py`
+
+**Interfaces:**
+- Consumes: Task 12's capture log (each AMC's literal request and response shape) and fixtures;
+  `LocatedFile`, `_fetch_candidates`, `_download_workbook` (Task 6); `DisclosureResolverEntry` (Task 5).
+- Produces: `_locate_json_api(client, entry, as_of)`; four dedicated functions in a
+  `_CUSTOM_LOCATORS` dict (`"axis"`, `"lic"`, `"navi"`, `"bandhan"`); `read_index_sheet(data)
+  -> dict[str, str]` in the parsing module; a registry in which **every non-manual row has a
+  working Locate** and `NEEDS LIVE VERIFICATION` appears nowhere.
+
+**Why this task exists (Q14 override).** Task 5 registers 15 `JSON_API` rows and 7
+`STATIC_REGEX` rows whose request is not yet literal, and Task 6 originally said "Task 9 is
+where JSON_API is built". Task 9 is the job script. Without this task, 22 registered AMCs
+would run every day as "not onboarded" and no data would ever arrive from them, which is
+exactly the "left for later" outcome the Q14 decision rules out.
+
+**Two things the plan previously got wrong, found while preparing this task:**
+
+1. *Index-sheet workbooks need a name translation.* The Q16 note in Task 5 says Bank of India
+   "needs no custom parse code" because the multi-sheet parse is generic. The parse is
+   generic, but the matcher in Task 6 matches on `sheet.sheet_name`, and Bank of India names
+   its sheets by scheme code (`YB01`…`YB44`) with an `Index` sheet that maps code to name
+   (spike consolidated doc, line 83). `YB01` would match no scheme, so every sheet would be
+   logged unmatched. Task 2 already skips the `Index` sheet as a non-holdings sheet; this task
+   adds a reader for it. Task 12 records which other bundles name sheets by code (Abakkus,
+   Sundaram, Baroda BNP Paribas, Bajaj Finserv and ICICI Prudential are the candidates).
+2. *Status 200 is not proof of a file.* Mirae Asset's CMS returns an HTML error page with
+   HTTP 200 under a `.xlsx` name. `_download_workbook` currently accepts any body. It must
+   check the first bytes.
+
+- [ ] **Step 1: Red — workbook magic-byte check**
+
+```python
+def test_download_workbook_rejects_html_served_under_a_workbook_name():
+    # Mirae Asset's CMS: HTTP 200, text/html body, ".xlsx" URL.
+    ...  # MockTransport returns b"<html>Not found</html>"; expect _download_workbook -> None
+
+def test_download_workbook_accepts_xlsx_xls_and_zip_magic():
+    ...  # b"PK\x03\x04", b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" both returned unchanged
+```
+
+- [ ] **Step 2: Green** — add `_looks_like_workbook(data: bytes) -> bool` (xlsx/zip magic or xls
+      magic, the same constants Task 2 already defines) and have `_download_workbook` return
+      `None` for anything else. This benefits every AMC, not only Mirae.
+- [ ] **Step 3: Red — generic `JSON_API` Locate.** Add four optional fields to
+      `DisclosureResolverEntry`: `http_method: str = "GET"`, `request_params: dict | None`,
+      `request_body: dict | None` (values may contain `{yyyy}`, `{mm}`, `{month_name}`,
+      `{year}`, `{month}` placeholders), `rewrite_host: tuple[str, str] | None`, and
+      `cadence: str = "monthly"` (F6; the consumer plan reads it to tell a half-yearly or
+      fortnightly AMC's batch from a stale one). Tests
+      (MockTransport, one each): a GET with query parameters; a POST with a JSON body; a
+      `response_json_path` of `data.files` reaching a list; the `documents` regex choosing the
+      current month's file; and `rewrite_host=("abcscprod.azureedge.net",
+      "mutualfund.adityabirlacapital.com")` turning the returned `pdfUrl` into the live host
+      with the same `/-/media/...` path. Also a test that a response with an empty list returns
+      `[]` (which the loop reports as `no_file_found`, not a crash).
+- [ ] **Step 4: Green — `_locate_json_api`.** Build the request from the entry with the as-of
+      placeholders filled (the same `month_name`, `yy`, `yy_plus_1` values Task 6's template
+      function now supplies), call it, walk `response_json_path`, filter with `documents`,
+      apply `rewrite_host`, then hand the URLs to `_fetch_candidates`. Use the same Chrome
+      `User-Agent` as the rest of the module.
+- [ ] **Step 5: Red/Green — the four dedicated functions**, one test each, written against
+      the capture log's real response shapes (copy a trimmed real response into the test):
+      - `axis`: `POST /cms/token` (public, returns a bearer token), then `POST
+        /cms/get-scheme-documents` with `{sdType: "yearMonthSchemeDocs", sdID:
+        "sdMonthSchemePortfolio", year, month, schemeCode: "Consolidated"}`; the file URLs are
+        in `documentList`.
+      - `lic`: `POST /downloads/portfolio-filter-options` (which year and month exist), then
+        `POST /downloads/portfolio-files` for the chosen pair.
+      - `navi`: `GET` the page for the WP nonce, then `POST /wp-json/nv/v1/documents` with the
+        `category` value Task 12 recorded for portfolio disclosures.
+      - `bandhan`: the public download-proxy request Task 12 recorded, which returns a
+        time-limited signed GCS URL; fetch that URL immediately, never store it.
+      Registry rows for these four set `custom_locator="axis"` and so on.
+- [ ] **Step 6: Red/Green — index-sheet names.** Test with a workbook whose `Index` sheet is
+      `[["Scheme Code", "Scheme Name"], ["YB01", "Fund A"]]` and whose holdings sheet is
+      named `YB01`: after the refresh, the holdings land on the scheme named "Fund A". Implement
+      `read_index_sheet` (find a sheet whose header row has a scheme-code and a scheme-name
+      column; return code→name) and, in Task 14's loop, use
+      `index_map.get(sheet.sheet_name, sheet.sheet_name)` as the match key when no
+      `scheme_hint` exists. A workbook with no index sheet behaves exactly as before.
+- [ ] **Step 7: Complete the registry.** For each row Task 12 resolved, replace the
+      "NEEDS LIVE VERIFICATION" note with the literal URL, request and link pattern from the
+      capture log; add WhiteOak Capital's row (or, with the user's approval after a blocked
+      Task 12, a manual row). Set the `custom_locator` and `file_shape` values, and `cadence="half_yearly"` on Taurus and `cadence="fortnightly"` on Monarch. Correct the Task
+      5 note that says Bank of India needs no custom handling (it needs Step 6's name
+      translation, nothing else).
+- [ ] **Step 8: Red/Green — nothing is "not onboarded".** Update `_is_locate_implemented` to
+      accept `JSON_API` rows (generic or `custom_locator`) and add this invariant test:
+      every non-manual row in `AMC_DISCLOSURE_RESOLVERS` satisfies `_is_locate_implemented`,
+      and no row's `note` contains `NEEDS LIVE VERIFICATION`. After this, `amcs_not_onboarded`
+      is always 0 in production and the counter is kept only as a safety net.
+- [ ] **Step 9: Fixture check.** Run each Task 12 fixture through the parser, matcher and sum
+      check offline and confirm the same results Task 12 Step 4 recorded.
+- [ ] **Step 10: Run** `cd backend && pytest tests/services/analytics/test_portfolio_disclosure_resolvers.py tests/services/analytics/test_portfolio_disclosure_client.py tests/services/analytics/test_portfolio_disclosure_parsing.py -v`. Expected: all pass.
+- [ ] **Step 11: Commit** — `feat: JSON_API Locate, index-sheet names and the full 57-AMC registry`.
+
+---
+
+### Task 13: Manual intake for the six manual AMCs
+
+**Decided 2026-10-13 (Q15, option A, built now, not in a later wave).** Edelweiss, Mahindra
+Manulife, Invesco, ITI, JM Financial and HSBC cannot be fetched without breaking a standing
+rule (an encrypted API we will not crack, a bot wall we will not evade, a browser we will not
+add). A person downloads each month's file and runs one command. The design copies attribute
+04's `import_manual_fund_managers.py` and the engine spec's own sentence that
+`AWAITING_MANUAL_UPLOAD` is "the queue for the 6 AMCs needing a human-dropped file".
+
+**Files:**
+- Create: `backend/scripts/jobs/import_manual_portfolio_disclosures.py`
+- Create: `backend/app/services/analytics/portfolio_disclosure_manual.py` (`ensure_manual_queue_rows`, `import_manual_files`)
+- Create: `Docs/orchestration/portfolio-disclosure-manual-import-guide.md`
+- Test: `backend/tests/services/analytics/test_portfolio_disclosure_manual.py`
+
+**Interfaces:**
+- Consumes: `parse_workbook`, `extract_zip_members` (Task 2); `match_scheme_name`,
+  `build_families` (Task 3, `amfi_factsheet_client`); `write_disclosure_batch` (Task 4);
+  `AMC_DISCLOSURE_RESOLVERS` with `DisclosureResolverKind.MANUAL` (Task 5);
+  `_filename_as_of_date`, `_latest_month_end` (Task 6).
+- Produces: `ensure_manual_queue_rows(db, today) -> int` (called by Task 9's job);
+  `import_manual_files(db, amc_name, files: list[tuple[str, bytes]], as_of: date | None, today)
+  -> dict` returning `{"matched": n, "unmatched": m, "schemes_written": k}`; the CLI;
+  `manual_queue_summary(db) -> dict[str, int]` (AMC name to its count of
+  `AWAITING_MANUAL_UPLOAD` rows for the latest month-end; Task 9's job raises a
+  `manual_upload_pending` alert from it on days 10 and 20 only).
+
+- [ ] **Step 1: Red — queue rows.** On any day of the month, for every `MANUAL` registry AMC and
+      every scheme of that AMC with no batch for the latest month-end, a row is created with
+      status `AWAITING_MANUAL_UPLOAD` and no holdings. Running it twice creates no duplicates
+      (the `(scheme_id, as_of_date)` unique constraint is the guard). A scheme whose batch for
+      that month is already `WRITTEN` gets no queue row. The consumer reads only `WRITTEN`
+      batches, so queue rows never reach a client screen.
+- [ ] **Step 2: Green — `ensure_manual_queue_rows` and `manual_queue_summary`** (one test that the summary counts only the latest month-end's waiting rows and drops to zero once a file is imported).
+- [ ] **Step 3: Red — import.** Using a synthetic one-sheet workbook (replace it with the
+      user-supplied real file when Task 12 Step 1 gets one): (a) the file is parsed, matched
+      by sheet name or index-sheet name, and written, flipping the queue row to `WRITTEN`; (b)
+      an AMC that is not `MANUAL` in the registry exits with a message, as in attribute 04's
+      script; (c) a file whose bytes are not a workbook or zip is rejected before anything is
+      written; (d) an as-of date in the future, or more than 45 days old, is rejected unless
+      `--allow-old` is passed; (e) the as-of date comes from `--as-of`, else from the
+      filename, else the script refuses (no guessing); (f) nothing is written if any file in
+      the call fails its checks (all-or-nothing, like attribute 04's per-file check).
+- [ ] **Step 4: Green — `import_manual_files` and the CLI**, e.g.
+      `python scripts/jobs/import_manual_portfolio_disclosures.py --amc "Invesco Mutual Fund"
+      --file Invesco_Sep2026.xlsx --as-of 2026-09-30`. `source_url` is stored as
+      `manual:<filename>`. The script prints `matched=N unmatched=M schemes_written=K`, to be
+      compared with last month's numbers for that AMC.
+- [ ] **Step 5: Ops guide.** Write the guide with, per AMC, the page to open (from the registry
+      note), the file to download, and the exact command, plus how to read the queue:
+      `SELECT amc_name, count(*) FROM disclosure_batches WHERE status = 'awaiting_manual_upload' GROUP BY 1`.
+- [ ] **Step 6: Run** `cd backend && pytest tests/services/analytics/test_portfolio_disclosure_manual.py -v`.
+- [ ] **Step 7: Commit** — `feat: manual intake and queue rows for the six manual-fetch AMCs`.
+
+---
+
+### Task 14: Refresh-loop rework — one file at a time, per-file skip, gated alerts, summary
+
+**Decided 2026-10-13 (F2, Q12, Q16).** Task 6's loop has four problems that the decisions
+expose, so this task changes the loop itself rather than adding a wrapper.
+
+1. *Memory (F2).* `_fetch_candidates` downloads every file for an AMC and returns them all in
+   one list, and `parse_workbook` turns each sheet into Python lists. ICICI Prudential (151
+   files), Aditya Birla Sun Life (105 sheets) and DSP (345 links) are big. The fund-manager
+   job's 40-AMC run peaked at 937 MB of a 1,024 MB task. Fetch must hand over one file at a
+   time and release it after the AMC's matching sheets are written.
+2. *"Done" is too coarse (Q12).* The skip check treats an AMC as done once any scheme is
+   written. An AMC that posts its per-scheme files over several days would have its later
+   files missed. The skip is now per source file.
+3. *Alert noise (Q12).* The loop alerts on the first missing day. A normal late publisher would
+   page ops every morning. Lateness alerts now fire only on days 10 and 20.
+4. *Silent gaps (Q12, Q16).* An unmatched scheme is only an INFO log line, and nothing tells
+   anyone that Wayback has stopped finding fresh captures for HDFC or Canara.
+
+**Files:**
+- Modify: `backend/app/services/analytics/portfolio_disclosure_client.py`
+- Modify: `backend/tests/services/analytics/test_portfolio_disclosure_client.py`
+
+**Interfaces:**
+- Produces: `async def _iter_located_files(client, entry, scheme_rows, skip_urls: set[str]) ->
+  AsyncIterator[LocatedFile]` (replaces the list-returning `_locate_and_fetch` for callers; the
+  old name can stay as a thin wrapper that collects the generator, so Task 6/7/8's tests keep
+  working); `_alert_due(today: date) -> bool`; `_written_source_urls(db, amc_name, as_of) ->
+  set[str]`; `monthly_zero_batch_summary(db, today) -> list[str]`;
+  `refresh_portfolio_disclosures(db, today: date | None = None)`.
+
+- [ ] **Step 1: Red — one file at a time.** A MULTI_FILE AMC with three files: assert at most
+      one download is in flight at once and that `parse_workbook` has finished with file 1
+      before file 2 is requested (a counter in the MockTransport handler).
+- [ ] **Step 2: Red — per-file skip.** Run the refresh twice with the same landing page and
+      files: the second run makes no download request for a URL already stored as
+      `source_url` on a `WRITTEN` batch (count GETs on the file URL: 1, not 2). A third run
+      where the page now also lists file B downloads only B.
+- [ ] **Step 3: Red — lateness alerts only on days 10 and 20.** With a registry row whose page
+      lists no matching file, parametrize `today` over days 3, 10, 15, 20: an alert
+      `reason=no_file_found` appears on 10 and 20 only. Errors (`reason=error`),
+      `zero_schemes_matched`, `unmatched_scheme` and a failed sum check alert on any day.
+- [ ] **Step 4: Red — unmatched scheme alert.** A sheet that matches no scheme raises
+      `PORTFOLIO_DISCLOSURE_ALERT amc=… reason=unmatched_scheme detail=<sheet name>` (one per
+      AMC per run, listing up to the first five names), replacing the INFO-only line.
+- [ ] **Step 5: Red — stale Wayback capture (Q16).** For a `WAYBACK_LOCATE` row, if the newest
+      file found has an as-of date earlier than the last completed month-end, and `_alert_due`
+      is true, raise `reason=stale_wayback_capture detail=newest=<date>`. A current capture
+      raises nothing.
+- [ ] **Step 6: Red — monthly zero-batch summary.** `monthly_zero_batch_summary(db, today)`
+      returns the names of every registry AMC (manual ones included) that has schemes in the
+      scheme master and zero `WRITTEN` batches for the latest month-end. Task 9's script
+      logs it as one `PORTFOLIO_DISCLOSURE_SUMMARY` line on day 20, the last run of the window.
+- [ ] **Step 7: Green.** Implement. Core pieces:
+
+```python
+_ALERT_DAYS = (10, 20)  # Q12 reading 1: lateness alerts only on these runs
+
+
+def _alert_due(today: date) -> bool:
+    return today.day in _ALERT_DAYS
+
+
+async def _iter_located_files(client, entry, scheme_rows, skip_urls):
+    """Yields one LocatedFile at a time; a URL in skip_urls is never downloaded."""
+    ...  # same dispatch as _locate_and_fetch, but each branch yields instead of returning,
+         # and every download is guarded by `if url in skip_urls: continue`
+```
+
+      In `refresh_portfolio_disclosures`, replace the "locate everything, then parse
+      everything" body with: build `scheme_rows` and `families` once; compute
+      `skip_urls = _written_source_urls(...)` for the latest month-end; `async for file in
+      _iter_located_files(...)`: parse, match (translating index-sheet names, Task 11 Step 6),
+      write, then drop the reference to `file.data`. Track `files_seen` and
+      `unmatched_names`. After the loop: no file seen and not already complete → `no_file_found`
+      only if `_alert_due(today)`; unmatched names → one `unmatched_scheme` alert; a
+      `WAYBACK_LOCATE` entry with an old newest file → the stale alert. Commit per AMC as
+      before. Keep `_is_locate_implemented` and the per-AMC `try/except`.
+- [ ] **Step 8: Run** the whole client test file. Tasks 6, 7 and 8's existing tests must still
+      pass unchanged (they call `refresh_portfolio_disclosures(db_session)` with no `today`,
+      so default to `date.today()` and make their fixtures not depend on the day).
+- [ ] **Step 9: Commit** — `feat: one-file-at-a-time fetch, per-file skip and gated alerts for portfolio disclosures`.
+
+---
+
+### Task 15: Retention prune and failed-file archive
+
+**Decided 2026-10-13 (Q10 option B, Q11 option C).**
+
+**Files:**
+- Create: `backend/app/services/analytics/portfolio_disclosure_retention.py`
+- Test: `backend/tests/services/analytics/test_portfolio_disclosure_retention.py`
+
+**Interfaces:**
+- Produces: `prune_old_batches(db, today: date) -> int` (batches deleted; Task 9's job calls
+  it once a day); `archive_failed_file(data: bytes, amc_name: str, as_of: date, filename: str)
+  -> str | None` (the S3 location, stored on the failed batches' `raw_file_reference`);
+  Task 14's loop calls the archive function once per file whose sheets produced a `FAILED`
+  batch or a parse error.
+
+- [ ] **Step 1: Red — prune.** (Q10 reading 2.) Per scheme, keep every batch whose
+      `as_of_date` falls in the current or the two previous calendar months, and always keep
+      the scheme's newest `WRITTEN` batch however old it is. Everything else is deleted
+      together with its `scheme_holdings` rows (the foreign key has no cascade, so delete the
+      holdings first, in chunks). Cases: a monthly fund with batches for 6 months keeps 3;
+      Taurus with only a March batch in October keeps it; Monarch's two fortnightly batches in
+      one month both survive; an `AWAITING_MANUAL_UPLOAD` row older than 3 months is deleted;
+      running twice deletes nothing the second time.
+- [ ] **Step 2: Green — `prune_old_batches`.**
+- [ ] **Step 3: Red — archive.** With `PORTFOLIO_DISCLOSURE_ARCHIVE_BUCKET` unset (local, CI),
+      `archive_failed_file` returns `None` and does nothing. With it set and a stubbed boto3
+      client, it writes one object at `failed/<yyyy>/<mm>/<amc-slug>/<filename>` and returns
+      its `s3://` location. A `WRITTEN` batch never gets a `raw_file_reference`.
+- [ ] **Step 4: Green — `archive_failed_file`** (boto3 is already pinned in `requirements.txt`).
+      An S3 failure is logged and swallowed. Losing the archive copy must never fail the
+      ingestion run.
+- [ ] **Step 5: Wire** the archive call into Task 14's loop at the one place a file's batches
+      are known to include a `FAILED` status.
+- [ ] **Step 6: Run** the retention tests and the client tests.
+- [ ] **Step 7: Commit** — `feat: retention prune and failed-file archive for portfolio disclosures`.
+
+---
+
+### Task 16: Reconcile counts across the research documents (F5, documents only)
+
+**Files (edits only, no code):**
+- `Docs/analytics/2026-10-09-sub-project-2-lookthrough-engine-spec.md`
+- `Docs/analytics/investigations/2026-10-09-amc-portfolio-disclosure-spike-consolidated.md`
+- `Docs/analytics/investigations/2026-10-12-amc-disclosure-reconciliation-fifth-pass.md`
+- `Docs/analytics/artifacts/2026-10-09-sub-project-2-lookthrough-engine-visual-map.html` (engine visual map)
+- `Docs/analytics/artifacts/2026-10-12-attributes-02-06-10-13-15-lookthrough-consumers-visual-map.html`
+
+The same facts are stated with different numbers in these documents (47 fetchable, 2 manual,
+"16th manual AMC", Invesco as `STATIC_REGEX`, no `asset_type` column in the engine diagram).
+**Applied 2026-10-13 alongside this revision** (the spec's tier table, headings and
+rejected-alternatives wording; the spike's headline and master-table rows; the fifth-pass
+"16th" wording; both visual maps). The checklist below is what a reviewer verifies, not new work:
+
+- [x] Every tier count reads 20, 0, 2, 8, 14, 1, 6, 1, 5 (= 57): 44 AMCs with a known
+      mechanism, WhiteOak to be captured, 6 manual. Kotak, Canara and Baroda moved between rows
+      (Q16), which is why the static and bundle sub-counts differ from the older 18 and 2.
+- [x] "47 fetchable", "~33 of 57", "only 2 of 57 need manual fetch" and "16th" appear nowhere
+      as a current claim.
+- [x] Invesco is a manual AMC in the spike's master table (fixed in the 2026-10-13 commit).
+- [x] The engine visual map shows `asset_type` and Kotak as resolved.
+- [x] The consumer visual map's section 01 no longer calls `asset_type` a proposed amendment.
 
 ---
 
@@ -3690,7 +4310,10 @@ standing-manual-fetch bucket instead. The bullets below are corrected to match; 
 bullet's own reasoning is now stale it is struck through rather than silently rewritten, per this
 project's "don't silently resolve a doc conflict" rule.
 
-Every item below has a specific, named technical reason it isn't onboarded this round —
+**2026-10-13: see the Revision block at the top. Nothing in this section is left to a later
+wave; items below are either resolved (struck through, with the task that handles them),
+or are standing constraints (manual-fetch AMCs, no Playwright).** The original text of this
+intro follows for the record. Every item below had a specific, named technical reason it wasn't onboarded in the first draft —
 see this plan's Scope note for the live re-check each one is based on. None are deferred
 purely to conserve token/implementation effort; each either needs a capability this plan
 doesn't build (a headless-browser Fetch step, a bespoke CDX-to-prefix mapping), needs
@@ -3737,9 +4360,9 @@ decision outside this plan's scope to revisit.
   and Taurus (a Drupal exposed-filter AJAX call, replayable as a plain GET with its query-string
   params — **flag this AMC's cadence as Half-Yearly-only, March/September, not monthly**, a
   `disclosure_batches`-grain question for whoever onboards it, not a fetch problem). `_locate_and_fetch`
-  still only implements `STATIC_REGEX` and `WAYBACK_LOCATE` this round; `JSON_API` support (for
-  all 22) remains future work, same as originally planned — this correction only changes which 8
-  of those 22 are "ready to adapt" versus "needs research first."
+  implements `STATIC_REGEX` and `WAYBACK_LOCATE` in Tasks 6 and 7. **Superseded 2026-10-13:
+  `JSON_API` support for all of them is built in Task 11, after Task 12's capture pass.** It is
+  not future work.
 - ~~**`ZIP_OF_WORKBOOKS` has no onboarded AMC yet**~~ — **corrected 2026-10-13: it does
   now.** ICICI Prudential's real ZIP-of-151-xlsx is onboarded against this shape in Task
   5 this round (the AMC's real page, found via WebSearch after its primary

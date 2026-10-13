@@ -105,10 +105,10 @@ flowchart TB
     </pre>
   </div>
   <div class="stat-row">
-    <div class="stat"><div class="n">47 / 57</div><div class="l">AMCs fetchable today</div></div>
-    <div class="stat"><div class="n">2 / 57</div><div class="l">need standing manual fetch</div></div>
+    <div class="stat"><div class="n">44 / 57</div><div class="l">AMCs with a live-verified mechanism (WhiteOak captured in Task 12)</div></div>
+    <div class="stat"><div class="n">6 / 57</div><div class="l">need standing manual fetch</div></div>
     <div class="stat"><div class="n">0</div><div class="l">new tables beyond the 2 below</div></div>
-    <div class="stat"><div class="n">4</div><div class="l">investigation passes behind this verdict</div></div>
+    <div class="stat"><div class="n">6</div><div class="l">investigation passes behind this verdict</div></div>
   </div>
 </section>
 
@@ -140,6 +140,7 @@ erDiagram
         string instrument_name "verbatim"
         string isin "nullable -- cash/CBLO/TREPS/Net Receivables have none"
         string sector_raw "verbatim, NOT normalized at write time"
+        enum asset_type "8 values: equity domestic/international, debt, gold/silver, REIT/InvIT, cash equivalent, derivative, other"
         numeric quantity
         numeric market_value "normalized to rupees, never lakhs/crores"
         numeric pct_to_nav
@@ -182,9 +183,9 @@ flowchart LR
   <div class="tbl-wrap">
     <table>
       <tr><th>Stage</th><th>Default</th><th>When custom code is needed</th></tr>
-      <tr><td>Locate</td><td>URL template (year/month/scheme-slug placeholders)</td><td>Wayback/CDX-based discovery (HDFC, soon Kotak); cascading-select pages (Bajaj Finserv, Abakkus, Sundaram, quant)</td></tr>
+      <tr><td>Locate</td><td>URL template (year/month/scheme-slug placeholders)</td><td>Wayback/CDX-based discovery (HDFC, Canara Robeco; Kotak became a direct fetch); JSON/AJAX or select-driven pages (22 AMCs, captured once in Task 12)</td></tr>
       <tr><td>Fetch</td><td>Plain HTTP GET</td><td>Carry forward Locate-step headers/cookies if ever required (not yet observed)</td></tr>
-      <tr><td>Parse</td><td>Column-mapping dict</td><td>Multi-scheme bundle with an index-sheet lookup (Bank of India, Abakkus, Sundaram, ICICI Prudential); legacy BIFF via <code>xlrd</code> (Aditya Birla Sun Life)</td></tr>
+      <tr><td>Parse</td><td>Column-mapping dict</td><td>Section-aware <code>asset_type</code> stamping; a sheet-code-to-name lookup for bundles that name sheets by scheme code (Bank of India confirmed); legacy BIFF via <code>xlrd</code> (Aditya Birla Sun Life)</td></tr>
       <tr><td>Normalize</td><td>Exact scheme-name match</td><td>Scoped fuzzy fallback + ambiguity guard, reusing <code>scheme_fund_managers.match_method</code>/<code>match_confidence</code> precedent</td></tr>
       <tr><td>Write</td><td>Delete+reinsert by <code>batch_id</code></td><td>Never — always generic, this is what makes retries safe</td></tr>
     </table>
@@ -196,26 +197,27 @@ flowchart LR
     <span class="eyebrow-num">04</span>
     <div>
       <h2>All 57 AMCs — final verdict</h2>
-      <p>4 independent investigation passes; every AMC has an explicit, justified plan,
+      <p>6 investigation passes; every AMC has an explicit, justified plan,
       not an open question.</p>
     </div>
   </div>
   <div class="tbl-wrap">
     <table>
       <tr><th>Verdict</th><th>Count</th><th>Adapter shape</th><th>Examples</th></tr>
-      <tr><td><span class="badge good">STATIC_REGEX</span></td><td>33</td><td>Generic Locate+Parse (4 need custom multi-scheme bundle parse; 1 needs Wayback Locate)</td><td>Nippon, SBI, HDFC, Union, Canara Robeco, AlphaGrep, Aditya Birla Sun Life</td></tr>
-      <tr><td><span class="badge good">JSON_API</span></td><td>14</td><td>Custom scripted Locate, generic Parse</td><td>PGIM India, Navi, Jio BlackRock, Bandhan, ICICI Prudential, Bajaj Finserv, Sundaram</td></tr>
-      <tr><td><span class="badge warn">BOT_BLOCKED</span> — pending</td><td>1</td><td>Will become generic <code>STATIC_REGEX</code> once its Monthly file publishes</td><td>Kotak Mahindra (re-check ~2026-10-12)</td></tr>
-      <tr><td><span class="badge warn">Adapter not yet built</span></td><td>1</td><td>Custom select/click, same shape as other <code>JSON_API</code> AMCs</td><td>WhiteOak Capital</td></tr>
+      <tr><td><span class="badge good">STATIC_REGEX</span></td><td>20</td><td>Generic Locate and Parse (Kotak and Baroda included after the 2026-10-13 corrections)</td><td>Nippon, DSP, Union, Kotak Mahindra, Baroda BNP Paribas, AlphaGrep, Wealth Company</td></tr>
+      <tr><td><span class="badge good">Wayback Locate</span></td><td>2</td><td>CDX lookup, then fetch; stale-capture alert</td><td>HDFC, Canara Robeco</td></tr>
+      <tr><td><span class="badge good">JSON_API, endpoint known</span></td><td>8</td><td>One scripted call per AMC (Axis and LIC are two-call chains)</td><td>SBI, Bank of India, Trust, Mirae Asset, LIC, Axis, Aditya Birla Sun Life, Taurus</td></tr>
+      <tr><td><span class="badge good">JSON_API, mechanism documented</span></td><td>14</td><td>Literal request captured once in Task 12, then plain HTTP replay</td><td>PGIM India, Navi, Jio BlackRock, Bandhan, ICICI Prudential, Bajaj Finserv, Sundaram, Tata, UTI</td></tr>
+      <tr><td><span class="badge warn">To be captured</span></td><td>1</td><td>Same capture pass as the 14 above</td><td>WhiteOak Capital</td></tr>
       <tr><td><span class="badge warn">Different granularity</span></td><td>1</td><td>Generic, ingest at its real ceiling</td><td>Monarch (Networth) — fortnightly only</td></tr>
-      <tr><td><span class="badge bad">Manual fetch</span></td><td>2</td><td>No adapter — human drops file into the same intake</td><td>Edelweiss (Akamai), Mahindra Manulife (encrypted API, not cracked)</td></tr>
+      <tr><td><span class="badge bad">Manual fetch</span></td><td>6</td><td>No fetcher — a person downloads the file; a script writes it (Task 13)</td><td>Edelweiss, Mahindra Manulife, Invesco, ITI, JM Financial, HSBC</td></tr>
       <tr><td><span class="badge">NO_CONTENT_FOUND</span></td><td>5</td><td>n/a — expected absence, not a failure</td><td>ASK, IL&amp;FS, Lakshya, Carnelian, Nuvama</td></tr>
     </table>
   </div>
   <div class="callout">
     A "separate unprotected static-asset/CDN subdomain, distinct from the AMC's main
     WAF-protected site" recurs across 5 AMCs (HDFC, Kotak, AlphaGrep, Union, Canara
-    Robeco) — named explicitly as a first-class Locate-stage pattern, not a one-off.
+    Robeco; Kotak is now a direct fetch) — named explicitly as a first-class Locate-stage pattern, not a one-off.
   </div>
 </section>
 

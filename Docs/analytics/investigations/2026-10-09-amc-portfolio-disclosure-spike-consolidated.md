@@ -25,15 +25,17 @@ finding with accordion-opening, cascading-select, and button/`expect_download`-d
 interaction — which is why most of the first pass's `NEEDS_INVESTIGATION` verdicts did not
 survive a harder second look.
 
-## Headline (after the fourth pass): 47/57 (82%) confirmed machine-fetchable today; only 2/57 genuinely need manual fetch
+## Headline (corrected 2026-10-13, sixth pass): 44/57 confirmed machine-fetchable with a live-verified mechanism, WhiteOak to be added, 6/57 standing manual-fetch
+
+> **Corrected 2026-10-13.** The heading above this line used to read "47/57 (82%)... only 2/57 need manual fetch", which was the fourth-pass count. The table below used to show 23/22/3/5/4. Both are replaced by the engine spec's six-tier count (18 static single, 2 multi-scheme bundle, 2 Wayback, 8 JSON with a known endpoint, 14 JSON with a documented mechanism, 1 WhiteOak still to capture, 6 manual, 1 Monarch fortnightly, 5 no-content = 57; Kotak is now a direct fetch, so Wayback is HDFC and Canara only).
 
 | Tier | Count | Meaning |
 |---|---|---|
-| `STATIC_REGEX` | 23 | Plain HTML/server-rendered page (or a JS-rendered page requiring no scheme/date selection), or a separate unprotected static-asset/CDN subdomain reachable via a Wayback-revealed filename, exposes a direct, dated file URL |
-| `JSON_API` | 22 | Page is client-rendered and requires a scripted interaction (select year/month/scheme, open an accordion, click a button) to reveal the file URL or a backing JSON/XHR endpoint |
-| `BOT_BLOCKED` | 3 | Site returns HTTP 403/a bot-challenge to a plain request; headless-browser access is either also blocked or unreliable enough that it needs a different approach, not just more Playwright patience. One of the three (Kotak) is very likely solvable within days — see "Fourth pass" |
+| `STATIC_REGEX` (single-file 18, multi-scheme bundle 2, Wayback 2) | 22 | Plain HTML/server-rendered page (or a JS-rendered page requiring no scheme/date selection), or a separate unprotected static-asset/CDN subdomain reachable via a Wayback-revealed filename, exposes a direct, dated file URL |
+| `JSON_API` (8 with a known endpoint, 14 with a documented mechanism, WhiteOak 1) | 23 | Page is client-rendered and requires a scripted interaction (select year/month/scheme, open an accordion, click a button) to reveal the file URL or a backing JSON/XHR endpoint |
+| Standing manual-fetch | 6 | Edelweiss, Mahindra Manulife, Invesco, ITI, JM Financial, HSBC — each blocked or encrypted for a confirmed reason (see the fifth and sixth passes). Kotak, listed here at the fourth pass, resolved to a direct fetch on 2026-10-12 |
 | `NO_CONTENT_FOUND` | 5 | AMC-side: fund genuinely has no monthly disclosure to publish yet (too new) or no disclosure page/live scheme was found at all |
-| `NEEDS_INVESTIGATION` | 4 | Confirmed, across up to four independent passes with real network access, that no static file link, simple API, or alternate unprotected source exists — needs a dedicated per-AMC deep-dive, acceptance of manual fetch, or (Monarch) isn't actually a gap |
+| Different granularity | 1 | Monarch (Networth): fortnightly is its real ceiling, not a gap |
 
 **Counts above are post fifth-pass (2026-10-12) correction** — see
 `Docs/analytics/investigations/2026-10-12-amc-disclosure-reconciliation-fifth-pass.md` for the
@@ -61,10 +63,10 @@ remaining 12: 1 (WhiteOak) just needs its adapter built (page works, not blocked
 file's ~10-day publishing lag passes; 1 (Monarch) isn't a gap at all — fortnightly is its genuine
 ceiling; 5 are an expected empty state; **HSBC is the only AMC confirmed to genuinely need
 Playwright (or a fingerprint-matching HTTP client) as a standing production dependency** — and
-the fifth pass's go/no-go decision is not to add one for a single AMC, instead naming HSBC a 16th
-standing-manual-fetch AMC; only **3 (Edelweiss, Mahindra Manulife, JM Financial) are confirmed to
-need manual monthly fetch** for an encrypted-API or WAF reason, up from 2 here because of the JM
-Financial correction above.
+the fifth pass's go/no-go decision is not to add one for a single AMC, instead naming HSBC the sixth
+standing-manual-fetch AMC; **6 (Edelweiss, Mahindra Manulife, Invesco, ITI, JM Financial, HSBC)
+are confirmed to need manual monthly fetch** (the fifth pass moved Invesco, ITI, JM Financial and
+HSBC into this list).
 
 ## Second audit pass (same day): why the fetchable count roughly doubled
 
@@ -468,9 +470,10 @@ except the 5 `NO_CONTENT_FOUND`), using two techniques not fully exploited in th
 | **Ingest as-is, different granularity** (1) | Monarch (Networth) | No monthly file exists at all; fortnightly is the genuine ceiling, not a gap |
 | **Treat as expected empty state** (5) | ASK, IL&FS, Lakshya, Carnelian, Nuvama | AMC-side: no content to publish yet; design for absence, not failure |
 
-With this, **47/57 AMCs are already fetchable**, 1 more (Kotak) is very likely to join them
+With this (fourth-pass count, superseded 2026-10-13 by 44 fetchable plus WhiteOak, and 6 manual),
+**47/57 AMCs were then fetchable**, 1 more (Kotak) was very likely to join them
 within days, 1 more (WhiteOak) just needs its adapter built, 1 (Monarch) ingests at its genuine
-ceiling, 5 are an expected no-op, and only **2 of 57 AMCs (3.5%) are confirmed to need a standing
+ceiling, 5 are an expected no-op, and **2 of 57 AMCs (3.5%) were then confirmed to need a standing
 manual-fetch process** — a far smaller permanent operational burden than the third pass's 7
 suggested, found entirely through legitimate alternate-source discovery (Wayback Machine, broader
 domain searches, reading an AMC's own hosting-notice PDF) with no encryption-cracking and no

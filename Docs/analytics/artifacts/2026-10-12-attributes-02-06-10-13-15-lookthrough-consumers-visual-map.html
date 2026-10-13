@@ -124,8 +124,8 @@
             <span class="badge">NEW ingest, daily, independent of AMC cadence</span></td>
             <td><code>stock_master</code><br><span style="color:var(--muted);font-size:12px">(isin, pe_ratio, pb_ratio, sector) — refreshed daily, not gated on any <code>disclosure_batches</code> status, see spec §7.3</span></td>
             <td>15 only (06's sector display optionally backfilled)</td></tr>
-        <tr><td><code>scheme_holdings.asset_type</code> <span class="badge">proposed amendment</span></td>
-            <td>per-row asset class, stamped at Parse time from disclosure section headers</td>
+        <tr><td><code>scheme_holdings.asset_type</code> <span class="badge">approved, created with the engine tables</span></td>
+            <td>per-row asset class (8 values, including derivative and other), stamped at Parse time from disclosure section headers</td>
             <td>13 (required) · 15's equity-only exclusion (required)</td></tr>
       </table>
     </div>
@@ -246,7 +246,7 @@
   <div class="section-head">
     <span class="eyebrow-num">05</span>
     <div><h2>Attribute 13 — Asset allocation within MF portfolio</h2>
-    <p>Needs the non-equity line items too — the one attribute that depends on the proposed <code>asset_type</code> amendment (§07 below).</p></div>
+    <p>Needs the non-equity line items too — the one attribute that depends on the <code>asset_type</code> column (approved, §07 below).</p></div>
   </div>
   <div class="frame">
     <div class="frame-label">AssetAllocationSection.tsx — two-ring donut</div>
@@ -310,7 +310,7 @@
   <div class="callout ok">
     <b>1. <code>scheme_holdings.asset_type</code> amendment (§7.1 of the spec) — resolved.</b>
     Approved by Ayush 2026-10-12, written into the 2026-10-09 engine spec's <code>SchemeHolding</code>
-    model.
+    model. Decided 2026-10-13: the column is created by the engine's own first migration with 8 values (derivative and other added), not by a second migration here.
   </div>
   <div class="callout ok">
     <b>2. Attribute 15's exact NSE/BSE/Yahoo/screener.in fetch mechanism — resolved.</b>

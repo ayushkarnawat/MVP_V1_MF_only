@@ -58,6 +58,11 @@ class LookthroughTable:
 async def compute_lookthrough_table(db: AsyncSession, client_id: uuid.UUID) -> LookthroughTable: ...
 ```
 
+> **Corrected 2026-10-13 (F7).** The signature above does not fit this codebase: every analytics
+> compute function is `async def compute_x(db: Session, household_member_ids: list[uuid.UUID])` on the
+> app's synchronous `Session`, and `LookthroughTable` carries those member ids instead of a `client_id`.
+> The consumer plan's Revision block is authoritative.
+
 **Formula** (restated from the engine spec, now wired to real columns):
 
 ```
@@ -353,6 +358,12 @@ for a held scheme; `valuation.py` additionally needs its own, second trigger —
 can genuinely change day-to-day on price movement alone, with zero new AMC disclosures that
 day. **Either event independently invalidates attribute 15's cached result; they are not merged
 into one trigger.**
+
+> **Revised 2026-10-13 (Q3 option C, F16).** No event hook exists in the codebase, and building one
+> means a recompute task per affected household. Both data jobs instead run at 05:45 IST, before the
+> 06:30 recompute, so a result is at most one day old. Either job's new data reaches the next recompute;
+> the four invalidation tests become one schedule-order test. Revisit only if next-morning latency is
+> reported as a real problem.
 
 **Fetch mechanics at real scale (not the 14-stock stress test's toy scale):** one Yahoo Finance
 cookie+crumb handshake per daily run, reused for the whole ISIN universe (confirmed reusable
