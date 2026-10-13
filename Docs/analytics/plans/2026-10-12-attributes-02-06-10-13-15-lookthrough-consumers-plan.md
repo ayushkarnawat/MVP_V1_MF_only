@@ -36,12 +36,18 @@ against**; Task 0 below is explicitly gated on that.
 **Implementation gate — lifted 2026-10-13.** This plan was written under a standing
 research/docs-only constraint ("this is not an implementation session... no kind of
 implementation will be done here"), which held through all of this plan's own writing,
-revision, and the feasibility/integration/ToS work closed out above. Ayush has now
-explicitly asked for this plan (plus the sibling engine/ingestion plan) to be handed to an
-intern to execute — this is that explicit go-ahead. **Tasks 0-6 below are cleared to start.**
-The one dependency that still gates Task 0 itself is unchanged: real `WRITTEN`
-`disclosure_batches` rows from the ingestion plan's own build-out (see "Depends on" above) —
-confirm that first, per Task 0's own checklist.
+revision, and the feasibility/integration/ToS work closed out above. That constraint is
+gone: Ayush has explicitly asked for this plan (plus the sibling engine/ingestion plan) to
+be handed to an intern to execute, and every research/design question this plan depended on
+is closed (ToS sourcing call, AMFI verification, integration architecture — see
+`decisions.md`). **Tasks 0-6 below are cleared to start, no further sign-off needed.**
+
+Task 0's checklist (below) is a plain build-order mechanic, not an open question: Tasks 1-6
+compute aggregates over `scheme_holdings`, so they need that table to hold real rows before
+there's anything to test against — the same reason you'd write the producer before the
+consumer in any pipeline. It is not a pending decision, and not blocked on anything this plan
+or its sibling specs still need to resolve. Run Task 0's checklist, and once it passes, start
+Task 1 directly.
 
 ---
 
@@ -59,8 +65,7 @@ confirm that first, per Task 0's own checklist.
       spec (new `AssetType` enum column on `scheme_holdings`, populated by the Parse stage from
       disclosure section headers) — approved 2026-10-12 and written into the engine spec's
       `SchemeHolding` model, per the spec's own §7.1 note. Implementation (the migration below)
-      remains out of scope until a dedicated implementation session starts, per this plan's
-      standing "no implementation yet" constraint.
+      is cleared to start per the "Implementation gate — lifted" note above.
 - [ ] Red: a migration test asserting `scheme_holdings.asset_type` exists with the 6 enum
       values (`EQUITY_DOMESTIC`, `EQUITY_INTERNATIONAL`, `DEBT`, `GOLD_SILVER`, `REIT_INVIT`,
       `CASH_EQUIVALENT`), run against SQLite per `tests/test_migrations.py`'s existing pattern.

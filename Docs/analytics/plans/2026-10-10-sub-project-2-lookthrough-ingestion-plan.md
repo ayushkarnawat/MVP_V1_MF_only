@@ -35,6 +35,13 @@ either — consistency with the established pattern over a marginal library diff
 (two-table data model, five-stage pipeline, full 57-AMC adapter classification) and its
 feasibility source, `Docs/analytics/investigations/2026-10-09-amc-portfolio-disclosure-spike-consolidated.md`.
 
+**Downstream consumer:** this plan builds the ingestion layer only (section 00: the two
+tables + pipeline + adapters). Attributes 02/06/10/13/15's own compute logic and UI are a
+separate, already-written plan that reads off this one's output —
+`Docs/analytics/plans/2026-10-12-attributes-02-06-10-13-15-lookthrough-consumers-plan.md`.
+That plan's Task 0 is gated on this plan: it needs at least one AMC's `disclosure_batches`
+row reaching `WRITTEN` with real `scheme_holdings` rows before it can start in earnest.
+
 ## Scope note (writing-plans' Scope Check)
 
 An earlier draft of this plan scoped down to one adapter (Nippon India) and deferred the
@@ -2669,6 +2676,8 @@ decision outside this plan's scope to revisit.
   manual-fetch AMC instead. **Kotak Mahindra is no longer in this bucket** — resolved
   2026-10-12 (sixth pass) to automated `STATIC_REGEX` via the corrected Wayback-discovered URL
   path; no re-check pending.
-- Attributes 02/06/10/13/15's own compute logic, reading from `scheme_holding` — each is
-  its own future implementation plan against this one's two tables, per the spec's own
-  "Open items" section.
+- Attributes 02/06/10/13/15's own compute logic, reading from `scheme_holding` — out of
+  scope here; built against this plan's own `Docs/analytics/plans/2026-10-12-attributes-
+  02-06-10-13-15-lookthrough-consumers-plan.md`, already written and committed. That plan's
+  Task 0 is gated on this plan producing at least one AMC's real `WRITTEN`
+  `disclosure_batches` row — the first AMC this plan completes should be used to unblock it.
