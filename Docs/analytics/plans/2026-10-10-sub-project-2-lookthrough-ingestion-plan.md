@@ -104,6 +104,15 @@ today, not for token-conservation:**
   Parse's `sniff_workbook_format()` (Task 2) would safely reject this shell as a parse
   error rather than corrupt data if onboarded anyway, but there's no confirmed real URL to
   onboard. Needs fresh research, not a registry entry.
+
+  **Resolved 2026-10-13 (sixth pass, no longer deferred):** the soft-404 shell above is
+  AlphaGrep's real *factsheet* API, genuinely AES-encrypted — but the spike-consolidated
+  doc's own later sixth-pass correction found a separate, plain static bypass for the
+  *disclosure* document specifically
+  (`alphagrepmf.ai/assets/documents/{scheme_name}/monthly/FY-{yy}-{yy_plus_1}/
+  {month_name}_{yyyy}.xls`, with the two-digit financial-year template corrected from this
+  plan's original guess) that bypasses the encrypted API entirely and was confirmed via
+  live download. Onboarded in the registry below as `STATIC_REGEX`/`DETERMINISTIC_TEMPLATE`.
 - **DSP Mutual Fund, NJ Mutual Fund** — both AMCs' disclosure pages returned a bare
   JS-shell body to a plain `httpx` GET today (114 and 1,253 bytes respectively — no
   server-rendered content at all), despite the spike recording them as `STATIC_REGEX`
@@ -136,33 +145,79 @@ today, not for token-conservation:**
   a standing-browser fetch step in production** — and the decision is not to add Playwright for
   one AMC (see the go/no-go decision in "Open items carried forward"); HSBC is handled as a
   standing-manual-fetch AMC instead.
-- **Old Bridge Mutual Fund** — the spike's recorded filename pattern
-  (`Monthly_Portfolio_<Month>_<Year>.xlsx`) has visibly changed since the spike to a
-  different, less obviously holdings-specific naming convention
+- **Old Bridge Mutual Fund — resolved 2026-10-13, no longer deferred.** The naming-drift
+  ambiguity described below is real, but per the user's explicit instruction that no AMC
+  is left to a later wave, this is a disambiguation rule to build now, not a research gap
+  to defer: prefer the per-scheme-named file (`Old_Bridge_<Scheme>_<Month>_<Year>_<hash>.xlsx`)
+  over the AMC-wide `IR_` file when both match the current month, and alert (not silently
+  pick) if a month has neither. Onboarded in the registry below with this rule encoded as
+  `link_pattern`/`exclude_pattern`.
+- **Old Bridge Mutual Fund (original framing, kept for audit trail)** — the spike's
+  recorded filename pattern (`Monthly_Portfolio_<Month>_<Year>.xlsx`) has visibly changed
+  since the spike to a different, less obviously holdings-specific naming convention
   (`IR_Old_Bridge_Mutual_Fund_<DDMMYYYY>_<hash>.xlsx` mixed with per-scheme
   `Old_Bridge_<Scheme>_<Month>_<Year>_<hash>.xlsx` files, inconsistent across months) —
   genuinely ambiguous which file is the holdings disclosure today, not a copy-paste from
-  old research.
-- **`JSON_API` tier (originally 14 AMCs: PGIM India, Navi, Jio BlackRock, Bandhan, ICICI
-  Prudential, Bajaj Finserv, Unifi, Zerodha, Abakkus, quant Money Managers, Sundaram,
-  Choice, UTI, Tata — now 15, see correction below)** — re-reading every investigation doc
-  in full (not just structured tables) found that not one of these 14 has a literal,
-  reusable, non-expiring endpoint recorded anywhere — only qualitative mechanism
-  descriptions survive (a WordPress REST path with no query string; a signed/expiring GCS
-  URL that can't be hardcoded; a button-triggered ZIP download, not a static link). This is
-  a hard research gap, not a scope choice: the registry's `JSON_API` kind still exists
-  (unused this round) so these are a drop-in follow-on once that research is done, same
-  precedent as `amfi_factsheet_client._json_api_candidates`. **Corrected 2026-10-12 (sixth
-  pass): WhiteOak Capital belongs in this same research-gap bucket** (page confirmed live
-  at `mf.whiteoakamc.com/regulatory-disclosures/scheme-portfolios`, same select/click shape
-  as the other 14, just not yet driven to a download) — the engine spec already named it as
-  needing its adapter built during build-out, but this plan's own JSON_API-tier accounting
-  never actually included it. 15, not 14 (or 23, not 22, counting the fifth pass's 8
-  already-found-endpoint additions below).
-- **Edelweiss, Mahindra Manulife** — standing manual-fetch per the spec (Akamai WAF;
-  genuinely encrypted request/response API — see the project's constraint against
-  attempting to crack it). **Kotak Mahindra — resolved 2026-10-12 (sixth pass), no longer
-  pending.** Live-checked on the trigger date itself: the real path is
+  old research. See the resolution immediately above.
+- **`JSON_API` tier, UI-discovered group (14 AMCs: PGIM India, Navi, Jio BlackRock,
+  Bandhan, ICICI Prudential, Bajaj Finserv, Unifi, Zerodha, Abakkus, quant Mutual Fund,
+  Sundaram, Choice, UTI, Tata) — corrected 2026-10-13, no Playwright/browser automation
+  needed in production for 13 of these 14, and this is scoped adapter-build work, not a
+  research gap.** The original framing here (and in "Open items" below) said none of
+  these 14 had a literal endpoint written down and called that "a hard research gap, not a
+  scope choice." Two things resolve that: (1) the spike-consolidated doc's own "Second
+  audit pass" already recorded a literal endpoint for Navi
+  (`navi.com/wp-json/nv/v1/documents`), just not pulled into this plan's registry yet; (2)
+  cross-checking attribute 04's own adapter registry
+  (`backend/app/services/analytics/fund_manager_resolvers.py`, already-built, in
+  production) found that 12 of the remaining 13 AMCs already have a confirmed,
+  non-bot-blocked, plain-HTTP document API or static-link page on the *exact same domain*
+  for their factsheet document type — strong, concrete evidence the portfolio-disclosure
+  equivalent is a sibling endpoint/link, not a page requiring live JS execution. Each of
+  those 12 is onboarded this round in Task 5 with that hypothesis spelled out and a note
+  reading `NEEDS LIVE VERIFICATION` — a single bounded "try the substituted request,
+  confirm with a real download" check per AMC, not fresh research and not a guessed URL
+  (the hypothesis is sourced, the confirmation step is explicit). **Bandhan — resolved
+  2026-10-13:** the attribute-04 sibling-auth-gate signal above was itself re-checked
+  against the more directly relevant evidence (the spike's own second-audit-pass
+  investigation of Bandhan's *disclosure* document specifically, not its unrelated
+  factsheet API) and found to be a public, unauthenticated backend proxy that signs a
+  time-limited GCS URL — no login observed. Reclassified `JSON_API`, onboarded below.
+  **Decided 2026-10-13 (resolves amc-coverage.html Q14 — how many AMCs must be live before
+  the attributes ship? — see `decisions.md`): neither option A (ship 10, everything else a
+  later plan) nor the artifact's own recommended option B (a second wave of 19, a third
+  wave of the rest) — overridden per explicit instruction that nothing is left to a later
+  wave.** Every AMC whose mechanism is knowable without fresh per-AMC research is onboarded
+  in this single execution: all of Q14's named "wave 2" candidates (9 static, Baroda,
+  Kotak, the 8 JSON endpoints) plus the 15 the artifact called a research gap are resolved
+  below with real mechanisms, not deferred pending research — the research itself is done
+  in this pass, not scheduled for later. **WhiteOak Capital** (page confirmed live at
+  `mf.whiteoakamc.com/regulatory-disclosures/scheme-portfolios`, but its mechanism isn't
+  discovered at all yet) is the sole AMC in the entire 57-AMC universe still genuinely
+  open — intentionally left without a registry row (see the registry's closing comment)
+  rather than guessed, pending one bounded research pass before Task 6 onboards it; every
+  other AMC below now has either a working mechanism or a confirmed hard blocker. **Final
+  tally: 51 registry entries (`STATIC_REGEX`/`JSON_API`/`MANUAL`) + 1 open (WhiteOak) + 5
+  no-registry-row-needed (ASK, IL&FS, Lakshya, Carnelian, Nuvama) = all 57 AMCs
+  accounted for in this single execution wave.** Attribute work can still start as soon as
+  one AMC is `WRITTEN` (the artifact's own "after your answer" note for Q14) — AMC
+  onboarding and attribute-building run in parallel, neither blocks the other.
+- **Decided 2026-10-13 (resolves amc-coverage.html Q15 — how do the 6 manual AMCs get into
+  the system? — see `decisions.md`): option A, not the artifact's recommended option C
+  ("A, but as wave 2") — same override as Q14, no separate wave.** Edelweiss, Mahindra
+  Manulife, Invesco, ITI, JM Financial, HSBC — 6 AMCs, standing manual-fetch, built now as
+  part of this plan's single execution wave (an intake mechanism modeled on attribute 04's
+  `import_manual_fund_managers.py`), not deferred to a later wave.** Edelweiss and
+  Mahindra Manulife per the spec (Akamai WAF; genuinely encrypted request/response API —
+  see the project's constraint against attempting to crack it); Invesco and ITI confirmed
+  `BOT_BLOCKED` across multiple passes (a real headless-Chromium Playwright navigation
+  gets blocked too, not just plain curl — a genuine bot wall, not a missing-interaction
+  problem); JM Financial's "file" decodes to AES-ciphertext, a confirmed false positive
+  joining the encrypted-API dead-end bucket; HSBC is the sole AMC confirmed to genuinely
+  need a real browser in production (see below) — handled as standing-manual-fetch
+  instead of adding Playwright as a production dependency for one AMC. **Kotak Mahindra —
+  resolved 2026-10-12 (sixth pass), no longer pending.** Live-checked on the trigger date
+  itself: the real path is
   `/FAD/Portfolios/Consolidated-SEBI-Portfolio-as-on-{Month}-{DD},-{YYYY}/
   ConsolidatedSEBIPortfolio{Month}{YYYY}.xlsx` on `vatseelabs-s3.kotakmf.com` (found via
   Wayback CDX) — the spec's originally-recorded filename guess had the wrong path prefix
@@ -214,19 +269,40 @@ today, not for token-conservation:**
 ### Task 1: DB schema — `disclosure_batches` + `scheme_holdings`
 
 **Files:**
-- Modify: `backend/app/models/enums.py` (add `DisclosureBatchStatus`)
+- Modify: `backend/app/models/enums.py` (add `DisclosureBatchStatus`, `AssetType`)
 - Modify: `backend/app/models/reference.py` (add `DisclosureBatch`, `SchemeHolding`)
-- Create: `backend/alembic/versions/0036_disclosure_batches_and_scheme_holdings.py`
+- Create: `backend/alembic/versions/NNNN_disclosure_batches_and_scheme_holdings.py` — `NNNN`
+  is whatever the real next sequence number is at build time (F1, see Step 6 below); it
+  is written here as `0036` purely because that was the next free number on the day this
+  plan was drafted (2026-10-10). The real chain has since moved past it (`0038` is head
+  as of 2026-10-13) and will have moved further still by the time this task is executed.
 - Test: `backend/tests/services/analytics/test_portfolio_disclosure_models.py`
 
 **Interfaces:**
 - Consumes: `app.db.base.Base`, `app.models.enums.enum_column`, `app.models.reference.Scheme`.
 - Produces: `DisclosureBatchStatus` (enum: `PENDING`, `FETCHED`, `PARSED`, `WRITTEN`,
-  `FAILED`, `AWAITING_MANUAL_UPLOAD`); `DisclosureBatch` (`id`, `scheme_id`, `as_of_date`,
-  `amc_name`, `status`, `source_url`, `raw_file_reference`, `match_method`,
-  `match_confidence`, `parse_errors`, `fetched_at`, `written_at`); `SchemeHolding` (`id`,
-  `batch_id`, `instrument_name`, `isin`, `sector_raw`, `quantity`, `market_value`,
-  `pct_to_nav`) — every later task imports these two classes from `app.models.reference`.
+  `FAILED`, `AWAITING_MANUAL_UPLOAD`); `AssetType` (enum: `EQUITY_DOMESTIC`,
+  `EQUITY_INTERNATIONAL`, `DEBT`, `GOLD_SILVER`, `REIT_INVIT`, `CASH_EQUIVALENT`,
+  `DERIVATIVE`, `OTHER` — 8 values, not 6: see "Decided 2026-10-13" note below);
+  `DisclosureBatch` (`id`, `scheme_id`, `as_of_date`, `amc_name`, `status`, `source_url`,
+  `raw_file_reference`, `match_method`, `match_confidence`, `parse_errors`, `fetched_at`,
+  `written_at`); `SchemeHolding` (`id`, `batch_id`, `instrument_name`, `isin`, `sector_raw`,
+  `asset_type`, `quantity`, `market_value`, `pct_to_nav`) — every later task imports these
+  classes from `app.models.reference`.
+
+**Decided 2026-10-13 (resolves engine.html Q8 and Q13 together — see `decisions.md`):**
+`asset_type` is built into this task from the start, not added by a second migration in
+the consumer plan as originally drafted. The consumer plan's own Task 1 (the amendment)
+is now a no-op verification step, not a schema change — see that plan's revision note.
+Two extra enum values beyond the engine spec's original 6 are added: `DERIVATIVE` (futures/
+options lines inside an otherwise-equity section — arbitrage and equity-savings funds
+disclose these as real rows, not noise) and `OTHER` (a disclosed row whose section header
+doesn't match any of the 7 known SEBI categories — e.g. a fund-of-funds' underlying-fund-
+unit lines). Both are stored (nothing is dropped) but excluded from every consumer
+attribute's sum (stock table, cap split, overlap, asset allocation, P/E-P/B universe) and
+counted in each attribute's coverage note instead. `OTHER` is also the backfill-safe
+default if this column is ever widened again — it is a real, meaningful enum member here,
+not a placeholder, so the backfill inconsistency F11 flagged does not apply to this table.
 
 - [ ] **Step 1: Write the failing model test**
 
@@ -239,7 +315,7 @@ from decimal import Decimal
 import pytest
 from sqlalchemy.exc import IntegrityError
 
-from app.models.enums import DisclosureBatchStatus
+from app.models.enums import AssetType, DisclosureBatchStatus
 from app.models.reference import DisclosureBatch, Scheme, SchemeHolding
 
 
@@ -264,8 +340,8 @@ def test_round_trip_batch_and_holding(db_session):
     db_session.commit()
     holding = SchemeHolding(
         id=uuid.uuid4(), batch_id=batch.id, instrument_name="HDFC Bank Ltd", isin="INE040A01034",
-        sector_raw="Banks", quantity=Decimal("1000.0000"), market_value=Decimal("1500000.00"),
-        pct_to_nav=Decimal("2.500"),
+        sector_raw="Banks", asset_type=AssetType.EQUITY_DOMESTIC, quantity=Decimal("1000.0000"),
+        market_value=Decimal("1500000.00"), pct_to_nav=Decimal("2.500"),
     )
     db_session.add(holding)
     db_session.commit()
@@ -274,6 +350,7 @@ def test_round_trip_batch_and_holding(db_session):
     assert fetched.instrument_name == "HDFC Bank Ltd"
     assert fetched.isin == "INE040A01034"
     assert fetched.market_value == Decimal("1500000.00")
+    assert fetched.asset_type == AssetType.EQUITY_DOMESTIC
 
 
 def test_unique_constraint_rejects_duplicate_scheme_and_date(db_session):
@@ -309,6 +386,23 @@ class DisclosureBatchStatus(str, enum.Enum):
     WRITTEN = "written"
     FAILED = "failed"
     AWAITING_MANUAL_UPLOAD = "awaiting_manual_upload"
+
+
+class AssetType(str, enum.Enum):
+    EQUITY_DOMESTIC = "equity_domestic"
+    EQUITY_INTERNATIONAL = "equity_international"
+    DEBT = "debt"
+    GOLD_SILVER = "gold_silver"
+    REIT_INVIT = "reit_invit"
+    CASH_EQUIVALENT = "cash_equivalent"
+    # Futures/options rows disclosed inside an otherwise-equity section (arbitrage and
+    # equity-savings funds) -- real rows, not noise, but excluded from every consumer
+    # attribute's directional sum (see this plan's 2026-10-13 decision note above Task 1).
+    DERIVATIVE = "derivative"
+    # A disclosed row whose section header matches none of the 7 known SEBI categories
+    # (e.g. a fund-of-funds' underlying-fund-unit lines) -- stored, never dropped, but
+    # excluded from consumer sums and counted in each attribute's coverage note instead.
+    OTHER = "other"
 ```
 
 - [ ] **Step 4: Add the models**
@@ -324,7 +418,7 @@ and change the `enums` import line to include the new enum:
 
 ```python
 from app.models.enums import (
-    ArnStatus, BenchmarkIndex, BenchmarkReturnType, DisclosureBatchStatus,
+    ArnStatus, AssetType, BenchmarkIndex, BenchmarkReturnType, DisclosureBatchStatus,
     PlanNameVariant, SchemeSource, SchemePlanType, enum_column,
 )
 ```
@@ -370,6 +464,7 @@ class SchemeHolding(Base):
     instrument_name: Mapped[str] = mapped_column(String, nullable=False)
     isin: Mapped[str | None] = mapped_column(String, nullable=True)
     sector_raw: Mapped[str | None] = mapped_column(String, nullable=True)
+    asset_type: Mapped[AssetType] = mapped_column(enum_column(AssetType), nullable=False)
     quantity: Mapped[Decimal | None] = mapped_column(Numeric(20, 4), nullable=True)
     market_value: Mapped[Decimal] = mapped_column(Numeric(20, 2), nullable=False)
     pct_to_nav: Mapped[Decimal] = mapped_column(Numeric(6, 3), nullable=False)
@@ -382,12 +477,22 @@ Expected: PASS (2 tests).
 
 - [ ] **Step 6: Write the Alembic migration**
 
+**Decided 2026-10-13 (F1 — migration numbering):** this plan's `revision`/`down_revision`
+values below (`0036`/`0035`) were correct on the day this plan was drafted
+(2026-10-10) but are now stale — `0036` already belongs to `scenarios_and_scenario_results`
+and the real head is `0038_nav_history_wider_nav` as of 2026-10-13, and will have moved
+further still by the time this task is actually executed. Do not hardcode either value.
+Immediately before this step, run `cd backend && alembic heads` to get the real current
+head, name this migration's file `<next-sequential-number>_disclosure_batches_and_scheme_holdings.py`,
+and set `down_revision` to that real head. The code below is written with illustrative
+placeholders (`0036`/`0035`) purely to keep the diff readable; replace both at build time.
+
 ```python
-# backend/alembic/versions/0036_disclosure_batches_and_scheme_holdings.py
+# backend/alembic/versions/<NNNN>_disclosure_batches_and_scheme_holdings.py
 """disclosure_batches, scheme_holdings: look-through engine ingestion (sub-project 2, section 00)
 
-Revision ID: 0036
-Revises: 0035
+Revision ID: <NNNN>
+Revises: <real current head -- run `alembic heads` at build time, see decision note above>
 
 One row per (scheme, as_of_date) disclosure event; one scheme_holding row per held
 security within that batch, written by delete-all-then-reinsert on every (re)parse --
@@ -398,12 +503,18 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
-revision = "0036"
-down_revision = "0035"
+revision = "<NNNN>"
+down_revision = "<real current head>"
 branch_labels = None
 depends_on = None
 
 _STATUS_VALUES = ("pending", "fetched", "parsed", "written", "failed", "awaiting_manual_upload")
+# 8 values (Q8/Q13's decision): DERIVATIVE and OTHER beyond the engine spec's original 6
+# are added so futures/options rows and unrecognized-section rows are stored, not dropped.
+_ASSET_TYPE_VALUES = (
+    "equity_domestic", "equity_international", "debt", "gold_silver", "reit_invit",
+    "cash_equivalent", "derivative", "other",
+)
 
 
 def upgrade() -> None:
@@ -434,6 +545,7 @@ def upgrade() -> None:
         sa.Column("instrument_name", sa.String(), nullable=False),
         sa.Column("isin", sa.String(), nullable=True),
         sa.Column("sector_raw", sa.String(), nullable=True),
+        sa.Column("asset_type", sa.Enum(*_ASSET_TYPE_VALUES, name="assettype"), nullable=False),
         sa.Column("quantity", sa.Numeric(20, 4), nullable=True),
         sa.Column("market_value", sa.Numeric(20, 2), nullable=False),
         sa.Column("pct_to_nav", sa.Numeric(6, 3), nullable=False),
@@ -450,6 +562,7 @@ def downgrade() -> None:
     op.drop_table("scheme_holdings")
     op.drop_index("ix_disclosure_batches_scheme_id", table_name="disclosure_batches")
     op.drop_table("disclosure_batches")
+    sa.Enum(*_ASSET_TYPE_VALUES, name="assettype").drop(op.get_bind(), checkfirst=True)
     sa.Enum(*_STATUS_VALUES, name="disclosurebatchstatus").drop(op.get_bind(), checkfirst=True)
 ```
 
@@ -462,7 +575,7 @@ Expected: all three commands exit 0, no error.
 
 ```bash
 git add backend/app/models/enums.py backend/app/models/reference.py \
-  backend/alembic/versions/0036_disclosure_batches_and_scheme_holdings.py \
+  backend/alembic/versions/<NNNN>_disclosure_batches_and_scheme_holdings.py \
   backend/tests/services/analytics/test_portfolio_disclosure_models.py
 git commit -m "feat: add disclosure_batches/scheme_holdings schema (sub-project 2 ingestion)"
 ```
@@ -481,13 +594,32 @@ git commit -m "feat: add disclosure_batches/scheme_holdings schema (sub-project 
   test to construct a legacy-`.xls` fixture; `xlrd` can only read, never write, `.xls`)
 
 **Interfaces:**
-- Consumes: nothing from earlier tasks.
+- Consumes: `app.models.enums.AssetType` (Task 1).
 - Produces: `ParsedHolding` (frozen dataclass: `instrument_name: str`, `isin: str | None`,
-  `sector_raw: str | None`, `quantity: Decimal | None`, `market_value: Decimal`,
-  `pct_to_nav: Decimal`); `ParsedSheet` (frozen dataclass: `sheet_name: str`,
-  `holdings: list[ParsedHolding]`, `error: str | None`); `def
+  `sector_raw: str | None`, `asset_type: AssetType`, `quantity: Decimal | None`,
+  `market_value: Decimal`, `pct_to_nav: Decimal`); `ParsedSheet` (frozen dataclass:
+  `sheet_name: str`, `holdings: list[ParsedHolding]`, `error: str | None`); `def
   parse_workbook(data: bytes) -> list[ParsedSheet]` — Task 6's orchestrator calls this
   directly.
+
+**Decided 2026-10-13 (resolves engine.html Q9 — "prove the parser against real files"):**
+this task is built fixture-first against real downloaded files, not against hand-written
+synthetic rows alone. Before Step 2 below, download one real file for each of this plan's
+Task 5 AMCs and save it under `backend/tests/fixtures/portfolio_disclosures/` (not under
+`Docs/` — fixtures are test inputs, not documentation). Tune `_HEADER_PATTERNS`,
+`_SECTION_PATTERNS` (below), and the terminator/unit logic against what those real files
+actually contain, not just the synthetic rows in Steps 2/6. Two real-world mismatches are
+already known from the format-survey and spike docs and are fixed directly in Step 8/14
+below rather than left for a live run to discover: Choice and Aditya Birla Sun Life both
+label the weight column "**% to AUM**", not "% to NAV" (confirmed in
+`2026-10-09-amc-portfolio-disclosure-spike-batch-A.md`/`-C.md`); a "Sub Total" subtotal
+row (distinct from "Total"/"Grand Total") appears in several AMCs' sheets and, as
+originally written, would be ingested as a real holding — double-counting that section's
+weight. Beyond the parser itself, a post-Write per-AMC sum check is added in Task 4 (Q9's
+recommended option, deepened): after writing a batch, sum its `pct_to_nav` values and mark
+the batch `FAILED` (not `WRITTEN`) if the total falls outside 90–101% of 100 — catching any
+future header/terminator mismatch this fixture set didn't happen to cover, rather than
+silently writing a wrong batch.
 
 - [ ] **Step 1: Pin the Excel libraries**
 
@@ -568,8 +700,17 @@ def test_sniff_workbook_format_rejects_unknown():
 
 def test_market_value_multiplier_recognizes_units():
     assert market_value_multiplier("Market Value") == Decimal("1")
+    assert market_value_multiplier("Market Value (Rs.)") == Decimal("1")
+    assert market_value_multiplier("Market Value (₹)") == Decimal("1")
     assert market_value_multiplier("Market Value (Rs. in Lakhs)") == Decimal("100000")
     assert market_value_multiplier("Market Value (Rs. in Crores)") == Decimal("10000000")
+
+
+def test_market_value_multiplier_raises_on_unrecognized_unit():
+    # A future AMC's "(Rs. in '000s)" must not be silently treated as bare rupees --
+    # the parenthetical names a scale this function doesn't recognize.
+    with pytest.raises(ValueError):
+        market_value_multiplier("Market Value (Rs. in '000s)")
 ```
 
 - [ ] **Step 3: Run test to verify it fails**
@@ -598,6 +739,8 @@ from decimal import Decimal, InvalidOperation
 import openpyxl
 import xlrd
 
+from app.models.enums import AssetType
+
 _XLS_MAGIC = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
 _XLSX_MAGIC = b"PK\x03\x04"
 
@@ -618,16 +761,30 @@ _UNIT_MULTIPLIERS = {
     "lakh": Decimal("100000"),
     "lakhs": Decimal("100000"),
 }
+_PARENTHETICAL_UNIT = re.compile(r"\(([^)]*)\)")
+_BARE_RUPEE_WORDS = ("rs.", "rs ", "rupees", "₹", "inr")
 
 
 def market_value_multiplier(header_text: str) -> Decimal:
     """₹ multiplier implied by a market-value header's own unit text (e.g. "Market Value
-    (Rs. in Lakhs)"). A header with no recognized unit word is assumed to already be in
-    bare rupees -- the common case -- rather than guessed."""
+    (Rs. in Lakhs)"). A header with no parenthetical at all, or a parenthetical that only
+    names the currency with no scale word ("(Rs.)", "(₹)"), is bare rupees. A header that
+    DOES have a parenthetical naming a scale this function doesn't recognize raises
+    instead of silently assuming rupees (spec: "fail loudly on an unrecognized unit
+    string") -- e.g. a future AMC using "(Rs. in '000s)" must not be silently treated as
+    bare rupees."""
     lowered = header_text.lower()
     for word, multiplier in _UNIT_MULTIPLIERS.items():
         if word in lowered:
             return multiplier
+    match = _PARENTHETICAL_UNIT.search(header_text)
+    if match:
+        inner = match.group(1).lower()
+        remainder = inner
+        for word in _BARE_RUPEE_WORDS:
+            remainder = remainder.replace(word, "")
+        if remainder.strip(" .,"):
+            raise ValueError(f"unrecognized market-value unit: {header_text!r}")
     return Decimal("1")
 ```
 
@@ -640,11 +797,15 @@ Expected: PASS (4 tests).
 
 ```python
 # append to backend/tests/services/analytics/test_portfolio_disclosure_parsing.py
+from app.models.enums import AssetType
 
 _HOLDING_ROWS = [
     ["Name of the Instrument", "ISIN", "Industry", "Quantity", "Market Value (Rs. in Lakhs)", "% to NAV"],
+    ["Equity & Equity Related", "", "", "", "", ""],
     ["HDFC Bank Ltd", "INE040A01034", "Banks", 1000, 15.00, 2.5],
     ["Reliance Industries Ltd", "INE002A01018", "Petroleum Products", 500, 20.00, 3.3],
+    ["Sub Total", "", "", "", 35.00, 5.8],
+    ["Money Market Instruments", "", "", "", "", ""],
     ["Net Receivables/Payables", "", "", "", 1.00, 0.2],
     ["Total", "", "", "", 36.00, 6.0],
 ]
@@ -666,20 +827,52 @@ def test_find_header_row_returns_none_for_a_non_holdings_sheet():
     assert find_header_row([["Index"], ["Scheme Code", "Scheme Name"], ["YB01", "Scheme A"]]) is None
 
 
-def test_parse_sheet_rows_stops_at_total_and_normalizes_lakhs():
+def test_find_header_row_matches_pct_to_aum_header():
+    # Choice and Aditya Birla Sun Life label this column "% to AUM", not "% to NAV".
+    rows = [["Name of the Instrument", "ISIN", "Industry", "Quantity", "Market Value", "% to AUM"],
+            ["HDFC Bank Ltd", "INE040A01034", "Banks", 1000, 15.00, 2.5]]
+    result = find_header_row(rows)
+    assert result is not None
+    assert result[1]["pct_to_nav"] == 5
+
+
+def test_parse_sheet_rows_stops_at_total_catches_sub_total_and_stamps_asset_type():
     _, columns = find_header_row(_HOLDING_ROWS)
     holdings = parse_sheet_rows(_HOLDING_ROWS[1:], columns, Decimal("100000"))
-    assert len(holdings) == 3  # 2 equities + the cash/receivables line, not the Total row
+    # 2 equities + the cash/receivables line, not the "Sub Total" or "Total" rows --
+    # the original exact-match terminator check would have ingested "Sub Total" as a
+    # third equity holding, double-counting that section's weight.
+    assert len(holdings) == 3
     assert holdings[0].instrument_name == "HDFC Bank Ltd"
     assert holdings[0].isin == "INE040A01034"
     assert holdings[0].market_value == Decimal("1500000.00")
+    assert holdings[0].asset_type == AssetType.EQUITY_DOMESTIC
+    assert holdings[1].asset_type == AssetType.EQUITY_DOMESTIC
     assert holdings[2].instrument_name == "Net Receivables/Payables"
     assert holdings[2].isin is None
+    assert holdings[2].asset_type == AssetType.CASH_EQUIVALENT
+
+
+def test_parse_sheet_rows_defaults_to_other_before_any_section_header():
+    rows = [["Some Unlabeled Instrument", "", "", "", 1.00, 0.1], ["Total", "", "", "", 1.00, 0.1]]
+    _, columns = find_header_row([_HOLDING_ROWS[0], *rows])
+    holdings = parse_sheet_rows(rows, columns, Decimal("1"))
+    assert holdings[0].asset_type == AssetType.OTHER
+
+
+def test_parse_sheet_rows_handles_percent_values_written_as_text():
+    rows = [["HDFC Bank Ltd", "INE040A01034", "Banks", 1000, "15.00", "2.50%"],
+            ["Total", "", "", "", "15.00", "2.50%"]]
+    _, columns = find_header_row([_HOLDING_ROWS[0], *rows])
+    holdings = parse_sheet_rows(rows, columns, Decimal("1"))
+    assert len(holdings) == 1
+    assert holdings[0].pct_to_nav == Decimal("2.50")
 
 
 def test_parse_workbook_skips_non_holdings_sheets_and_normalizes_crores():
     crore_rows = [
         ["Name of the Instrument", "ISIN", "Industry", "Quantity", "Market Value (Rs. in Crores)", "% to NAV"],
+        ["Equity & Equity Related", "", "", "", "", ""],
         ["Infosys Ltd", "INE009A01021", "IT - Software", 2000, 1.50, 4.0],
     ]
     data = _xlsx_bytes({"Index": [["Scheme Code", "Scheme Name"], ["YB01", "Fund A"]], "Fund A": crore_rows})
@@ -689,6 +882,7 @@ def test_parse_workbook_skips_non_holdings_sheets_and_normalizes_crores():
     fund_a = next(s for s in sheets if s.sheet_name == "Fund A")
     assert fund_a.error is None
     assert fund_a.holdings[0].market_value == Decimal("15000000.00")
+    assert fund_a.holdings[0].asset_type == AssetType.EQUITY_DOMESTIC
 ```
 
 - [ ] **Step 7: Run test to verify it fails**
@@ -707,10 +901,17 @@ _HEADER_PATTERNS: dict[str, re.Pattern] = {
     "sector_raw": re.compile(r"industry|sector|rating", re.I),
     "quantity": re.compile(r"\bquantity\b", re.I),
     "market_value": re.compile(r"market value", re.I),
-    "pct_to_nav": re.compile(r"%\s*to\s*(net\s*)?(asset|nav)", re.I),
+    # Widened 2026-10-13 (Q9): "% to NAV" is the plan's original assumption, but Choice
+    # and Aditya Birla Sun Life both label this column "% to AUM" (confirmed in the batch
+    # spike docs) -- "aum" is added as a third alternative alongside "asset"/"nav".
+    "pct_to_nav": re.compile(r"%\s*(to|of)?\s*(net\s*)?(asset|nav|aum)", re.I),
 }
 _REQUIRED_FIELDS = ("instrument_name", "market_value", "pct_to_nav")
-_TERMINATOR_NAMES = ("total", "grand total", "net assets")
+# "total" alone (substring match, not exact) catches "Total", "Grand Total", AND
+# "Sub Total" in one check -- the original exact-match tuple missed "Sub Total" rows,
+# which carry real numbers and were silently ingested as holdings, double-counting that
+# section's weight (Q9).
+_TERMINATOR_NAMES = ("net assets",)
 
 
 def find_header_row(rows: list[list], max_scan: int = 15) -> tuple[int, dict[str, int]] | None:
@@ -730,13 +931,49 @@ def find_header_row(rows: list[list], max_scan: int = 15) -> tuple[int, dict[str
     return None
 
 
+def _is_terminator(name: str) -> bool:
+    lowered = name.lower()
+    return "total" in lowered or lowered in _TERMINATOR_NAMES
+
+
 def _to_decimal(cell) -> Decimal | None:
     if cell is None or cell == "":
         return None
     try:
-        return Decimal(str(cell).replace(",", "").strip())
+        # Strip a trailing "%" (Q9): a percent value occasionally arrives as text,
+        # e.g. "2.50%" -- without this strip, Decimal(...) raises InvalidOperation,
+        # _to_decimal silently returns None, and the row is dropped as if it were a
+        # subtotal/header row, losing a real holding.
+        return Decimal(str(cell).replace(",", "").replace("%", "").strip())
     except InvalidOperation:
         return None
+
+
+# Section-header text that precedes a block of holdings under SEBI's standard monthly
+# portfolio disclosure categories (Q8/Q13). A sheet's section headers are themselves rows
+# with no market value/pct, so they never become ParsedHolding rows directly -- they only
+# update which asset_type subsequent holding rows are stamped with. Order matters: more
+# specific patterns (international, derivatives) are checked before the generic "equity"
+# fallback they'd otherwise also match.
+_SECTION_PATTERNS: list[tuple[AssetType, re.Pattern]] = [
+    (AssetType.DERIVATIVE, re.compile(r"future|option|derivative", re.I)),
+    (AssetType.EQUITY_INTERNATIONAL, re.compile(r"overseas|foreign|international", re.I)),
+    (AssetType.EQUITY_DOMESTIC, re.compile(r"equity", re.I)),
+    (AssetType.DEBT, re.compile(r"debt instrument|corporate debt|government securities|g-sec", re.I)),
+    (AssetType.CASH_EQUIVALENT, re.compile(r"money market|cash|net current assets|treps|tri-?party", re.I)),
+    (AssetType.GOLD_SILVER, re.compile(r"gold|silver", re.I)),
+    (AssetType.REIT_INVIT, re.compile(r"reit|invit", re.I)),
+]
+
+
+def _section_asset_type(name: str, current: AssetType) -> AssetType:
+    """A section-header row's AssetType, or `current` unchanged if `name` doesn't match
+    any known section pattern (e.g. a blank spacer row) -- never resets to OTHER on a
+    row that just isn't a recognized header, only on a genuinely unrecognized header."""
+    for asset_type, pattern in _SECTION_PATTERNS:
+        if pattern.search(name):
+            return asset_type
+    return current
 
 
 @dataclass(frozen=True)
@@ -744,6 +981,7 @@ class ParsedHolding:
     instrument_name: str
     isin: str | None
     sector_raw: str | None
+    asset_type: AssetType
     quantity: Decimal | None
     market_value: Decimal
     pct_to_nav: Decimal
@@ -759,23 +997,28 @@ def _cell(row: list, columns: dict[str, int], field: str) -> str | None:
 def parse_sheet_rows(rows: list[list], columns: dict[str, int], value_multiplier: Decimal) -> list["ParsedHolding"]:
     """Rows after the header until the first row with no instrument name or a terminator
     label (the sheet's trailing "Total"/footnote rows) -- never guesses where data ends
-    by a fixed row count."""
-    name_col = columns["instrument_name"]
+    by a fixed row count. A row with an instrument name but no market value/pct is either
+    a section header (e.g. "Equity & Equity Related") or a blank subtotal row -- either
+    way it updates `current_asset_type` (via `_section_asset_type`, a no-op when the text
+    doesn't match any known header) and is skipped, never stored as a holding itself."""
+    current_asset_type = AssetType.OTHER
     holdings: list[ParsedHolding] = []
     for row in rows:
         name = _cell(row, columns, "instrument_name")
         if name is None:
             break
-        if name.lower() in _TERMINATOR_NAMES:
+        if _is_terminator(name):
             break
         market_value = _to_decimal(row[columns["market_value"]]) if columns["market_value"] < len(row) else None
         pct = _to_decimal(row[columns["pct_to_nav"]]) if columns["pct_to_nav"] < len(row) else None
         if market_value is None or pct is None:
-            continue  # a subtotal/section-header row, not a real holding
+            current_asset_type = _section_asset_type(name, current_asset_type)
+            continue  # a section-header/subtotal row, not a real holding
         holdings.append(ParsedHolding(
             instrument_name=name,
             isin=_cell(row, columns, "isin"),
             sector_raw=_cell(row, columns, "sector_raw"),
+            asset_type=current_asset_type,
             quantity=_to_decimal(row[columns["quantity"]]) if "quantity" in columns and columns["quantity"] < len(row) else None,
             market_value=market_value * value_multiplier,
             pct_to_nav=pct,
@@ -825,7 +1068,7 @@ def parse_workbook(data: bytes) -> list[ParsedSheet]:
 - [ ] **Step 9: Run test to verify it passes**
 
 Run: `cd backend && pytest tests/services/analytics/test_portfolio_disclosure_parsing.py -v`
-Expected: PASS (8 tests).
+Expected: PASS (11 tests).
 
 - [ ] **Step 10: Write the failing test for ZIP-bundle extraction**
 
@@ -880,7 +1123,7 @@ def extract_zip_members(data: bytes) -> list[tuple[str, bytes]]:
 - [ ] **Step 13: Run test to verify it passes**
 
 Run: `cd backend && pytest tests/services/analytics/test_portfolio_disclosure_parsing.py -v`
-Expected: PASS (9 tests).
+Expected: PASS (12 tests).
 
 - [ ] **Step 14: Commit**
 
@@ -1050,6 +1293,41 @@ git commit -m "feat: add Normalize-stage scheme-name matcher for portfolio discl
   match_confidence: Decimal, parse_errors: list[dict] | None = None) -> int` (returns the
   number of scheme batches written) — Task 6's orchestrator calls this per matched sheet.
 
+**Decided 2026-10-13 (resolves engine.html Q10 — one holdings copy per plan variant, and
+how long to keep history — see `decisions.md`):** option B. One `scheme_holdings` copy
+per plan variant as already planned (the consumer reads by the exact scheme a client
+holds, so collapsing variants into a shared row would push de-duplication work onto
+every reader for a write-side convenience). Keep the latest 3 months' batches per scheme
+plus each cadence period's last disclosure (so Taurus/Monarch's Half-Yearly/Fortnightly
+batches, see Task 5's registry notes, are never pruned as "stale monthly"); prune
+everything older in Task 9's daily job. Option C (one copy per fund family) is rejected
+for now — it needs a family-key concept that doesn't exist yet, for a storage saving
+(5-7M rows/year, by estimate) Postgres already handles comfortably; revisit only if a
+measured row count, not the estimate above, actually threatens query latency.
+
+**Decided 2026-10-13 (resolves engine.html Q11 — keep the original downloaded files? —
+see `decisions.md`):** option C. Only files whose batch ends up `FAILED` (either the
+parser raised, or Q9's post-Write sum check above falls outside 90-101%) are archived,
+to a new private S3 bucket with a 12-month lifecycle rule (Task 10's Terraform; distinct
+from the existing CAS-file bucket, which carries a PAN-retention lifecycle that doesn't
+fit this data). Every other batch leaves `raw_file_reference` NULL — re-fetching a
+`WRITTEN` batch's source, if ever needed, means re-running Locate against the AMC's
+page or the Wayback CDX index (Task 7), not reading an archive. This keeps the archive
+to the handful of files a human actually needs to debug, instead of a standing mirror
+of every AMC's output every month.
+
+**Decided 2026-10-13 (resolves engine.html Q9's deepened fix — the post-Write sum check):**
+after building a batch's holdings, this stage sums every holding's `pct_to_nav`
+(across all `asset_type` values — the disclosure itself declares its *entire* portfolio,
+so the raw total must land near 100% regardless of how the consumer attributes later
+filter by `asset_type`) and marks the batch `FAILED` instead of `WRITTEN` when that total
+falls outside 90–101%. This is deliberately a wide band, not a tight one: it exists to
+catch a header/terminator mismatch this plan's fixture set didn't happen to cover (e.g.
+a still-unknown header spelling silently dropping an entire section), not to flag normal
+day-to-day variation (a fund sitting on more cash than usual, rounding across many
+small holdings). A `FAILED` batch is surfaced the same way any other `FAILED` batch is —
+see Task 6/9's alerting — rather than silently written with a wrong total.
+
 - [ ] **Step 1: Write the failing test**
 
 ```python
@@ -1058,16 +1336,24 @@ import uuid
 from datetime import date
 from decimal import Decimal
 
-from app.models.enums import DisclosureBatchStatus
+from app.models.enums import AssetType, DisclosureBatchStatus
 from app.models.reference import DisclosureBatch, Scheme, SchemeHolding
 from app.services.analytics.amfi_factsheet_client import build_families
 from app.services.analytics.portfolio_disclosure_parsing import ParsedHolding
 from app.services.analytics.portfolio_disclosure_writer import write_disclosure_batch
 
-_HOLDING = ParsedHolding(
-    instrument_name="HDFC Bank Ltd", isin="INE040A01034", sector_raw="Banks",
-    quantity=Decimal("1000.0000"), market_value=Decimal("1500000.00"), pct_to_nav=Decimal("2.500"),
-)
+_HOLDINGS = [
+    ParsedHolding(
+        instrument_name="HDFC Bank Ltd", isin="INE040A01034", sector_raw="Banks",
+        asset_type=AssetType.EQUITY_DOMESTIC, quantity=Decimal("1000.0000"),
+        market_value=Decimal("1500000.00"), pct_to_nav=Decimal("62.500"),
+    ),
+    ParsedHolding(
+        instrument_name="Net Receivables/Payables", isin=None, sector_raw=None,
+        asset_type=AssetType.CASH_EQUIVALENT, quantity=None,
+        market_value=Decimal("900000.00"), pct_to_nav=Decimal("35.500"),
+    ),
+]  # sums to 98.0% -- within the 90-101% plausibility band
 
 
 def _family(db, amc="Nippon India Mutual Fund", base="Nippon India Large Cap Fund", n_plans=2):
@@ -1085,7 +1371,7 @@ def test_writes_one_batch_per_plan_variant(db_session):
     family = _family(db_session, n_plans=2)
     written = write_disclosure_batch(
         db_session, family, date(2026, 8, 31), "Nippon India Mutual Fund",
-        "https://example.test/file.xls", [_HOLDING], "EXACT", Decimal("1.0"),
+        "https://example.test/file.xls", _HOLDINGS, "EXACT", Decimal("1.0"),
     )
     db_session.commit()
     assert written == 2
@@ -1094,24 +1380,26 @@ def test_writes_one_batch_per_plan_variant(db_session):
     assert all(b.status == DisclosureBatchStatus.WRITTEN for b in batches)
     for batch in batches:
         holdings = db_session.query(SchemeHolding).filter_by(batch_id=batch.id).all()
-        assert len(holdings) == 1
+        assert len(holdings) == 2
         assert holdings[0].instrument_name == "HDFC Bank Ltd"
+        assert holdings[0].asset_type == AssetType.EQUITY_DOMESTIC
 
 
 def test_rerun_replaces_holdings_not_duplicates(db_session):
     family = _family(db_session, n_plans=1)
     write_disclosure_batch(
         db_session, family, date(2026, 8, 31), "Nippon India Mutual Fund",
-        "https://example.test/file.xls", [_HOLDING], "EXACT", Decimal("1.0"),
+        "https://example.test/file.xls", _HOLDINGS, "EXACT", Decimal("1.0"),
     )
     db_session.commit()
-    new_holding = ParsedHolding(
+    new_holdings = [ParsedHolding(
         instrument_name="Reliance Industries Ltd", isin="INE002A01018", sector_raw="Petroleum Products",
-        quantity=Decimal("500.0000"), market_value=Decimal("2000000.00"), pct_to_nav=Decimal("3.300"),
-    )
+        asset_type=AssetType.EQUITY_DOMESTIC, quantity=Decimal("500.0000"),
+        market_value=Decimal("2000000.00"), pct_to_nav=Decimal("97.300"),
+    )]
     write_disclosure_batch(
         db_session, family, date(2026, 8, 31), "Nippon India Mutual Fund",
-        "https://example.test/file-v2.xls", [new_holding], "EXACT", Decimal("1.0"),
+        "https://example.test/file-v2.xls", new_holdings, "EXACT", Decimal("1.0"),
     )
     db_session.commit()
     batch = db_session.query(DisclosureBatch).filter_by(as_of_date=date(2026, 8, 31)).one()
@@ -1119,6 +1407,26 @@ def test_rerun_replaces_holdings_not_duplicates(db_session):
     assert len(holdings) == 1
     assert holdings[0].instrument_name == "Reliance Industries Ltd"
     assert batch.source_url == "https://example.test/file-v2.xls"
+    assert batch.status == DisclosureBatchStatus.WRITTEN
+
+
+def test_marks_batch_failed_when_disclosed_weight_sum_is_implausible(db_session):
+    family = _family(db_session, n_plans=1)
+    low_sum_holding = [ParsedHolding(
+        instrument_name="HDFC Bank Ltd", isin="INE040A01034", sector_raw="Banks",
+        asset_type=AssetType.EQUITY_DOMESTIC, quantity=Decimal("1000.0000"),
+        market_value=Decimal("1500000.00"), pct_to_nav=Decimal("2.500"),
+    )]  # a lone 2.5% holding -- the kind of total a missed header/terminator would produce
+    write_disclosure_batch(
+        db_session, family, date(2026, 8, 31), "Nippon India Mutual Fund",
+        "https://example.test/file.xls", low_sum_holding, "EXACT", Decimal("1.0"),
+    )
+    db_session.commit()
+    batch = db_session.query(DisclosureBatch).filter_by(as_of_date=date(2026, 8, 31)).one()
+    assert batch.status == DisclosureBatchStatus.FAILED
+    # the holdings are still written -- FAILED flags the batch for review, it doesn't
+    # hide the data that was actually parsed.
+    assert db_session.query(SchemeHolding).filter_by(batch_id=batch.id).count() == 1
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -1146,6 +1454,12 @@ from app.models.reference import DisclosureBatch, SchemeHolding
 from app.services.analytics.amfi_factsheet_client import FundFamily
 from app.services.analytics.portfolio_disclosure_parsing import ParsedHolding
 
+# Deliberately wide (Q9's deepened fix): exists to catch a header/terminator mismatch
+# the fixture set didn't cover (an entire section silently dropped), not to flag normal
+# day-to-day variation in a fund's actual disclosed total.
+_SUM_CHECK_MIN = Decimal("90")
+_SUM_CHECK_MAX = Decimal("101")
+
 
 def write_disclosure_batch(
     db: Session, family: FundFamily, as_of_date: date, amc_name: str, source_url: str,
@@ -1155,6 +1469,12 @@ def write_disclosure_batch(
     """Writes to every plan/option row of the matched family -- holdings are identical
     across a fund's plan variants, the same precedent as attribute 04's
     `upsert_scheme_fund_managers`. Returns the number of scheme batches written."""
+    total_pct = sum((h.pct_to_nav for h in holdings), Decimal("0"))
+    status = (
+        DisclosureBatchStatus.WRITTEN
+        if _SUM_CHECK_MIN <= total_pct <= _SUM_CHECK_MAX
+        else DisclosureBatchStatus.FAILED
+    )
     written = 0
     for scheme in family.schemes:
         batch = (
@@ -1175,13 +1495,13 @@ def write_disclosure_batch(
         batch.match_method = match_method
         batch.match_confidence = match_confidence
         batch.parse_errors = parse_errors
-        batch.status = DisclosureBatchStatus.WRITTEN
+        batch.status = status
         batch.written_at = datetime.now(timezone.utc)
         for holding in holdings:
             db.add(SchemeHolding(
                 id=uuid.uuid4(), batch_id=batch.id, instrument_name=holding.instrument_name,
-                isin=holding.isin, sector_raw=holding.sector_raw, quantity=holding.quantity,
-                market_value=holding.market_value, pct_to_nav=holding.pct_to_nav,
+                isin=holding.isin, sector_raw=holding.sector_raw, asset_type=holding.asset_type,
+                quantity=holding.quantity, market_value=holding.market_value, pct_to_nav=holding.pct_to_nav,
             ))
         written += 1
     db.flush()
@@ -1191,7 +1511,7 @@ def write_disclosure_batch(
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `cd backend && pytest tests/services/analytics/test_portfolio_disclosure_writer.py -v`
-Expected: PASS (2 tests).
+Expected: PASS (3 tests).
 
 - [ ] **Step 5: Commit**
 
@@ -1229,6 +1549,23 @@ from app.services.analytics.portfolio_disclosure_resolvers import (
 )
 
 
+def test_every_registry_key_follows_the_amc_name_convention():
+    # F4b, part 1: `refresh_portfolio_disclosures` filters `Scheme` by exact string match
+    # on `amc_name`, which the scheme master always populates as "<X> Mutual Fund" (AMFI's
+    # own convention) -- never an informal name like "Union Asset Management" (the
+    # spike's own prose for Union MF, confirmed not what scheme master stores). A
+    # one-off fixture snapshotting every live scheme-master name would drift out of sync
+    # with the real table the moment a new AMC launches; this check instead enforces the
+    # *convention* itself, which catches the exact bug class this plan has already hit
+    # once (Union) for free, forever, with no fixture to maintain. Before Task 6 ships,
+    # cross-check this list once against `SELECT DISTINCT amc_name FROM schemes` live --
+    # that one-time manual check (not an automated test) is what actually catches a
+    # convention-following key that's still spelled subtly wrong (the ongoing automated
+    # backstop is the runtime zero_schemes_matched alert in Task 6, which fires forever).
+    for amc_name in AMC_DISCLOSURE_RESOLVERS:
+        assert amc_name.endswith("Mutual Fund"), f"{amc_name!r} doesn't match scheme master's AMC-name convention"
+
+
 def test_nippon_india_is_onboarded_as_single_workbook_multi_sheet():
     entry = AMC_DISCLOSURE_RESOLVERS["Nippon India Mutual Fund"]
     assert entry.kind is DisclosureResolverKind.STATIC_REGEX
@@ -1256,11 +1593,51 @@ def test_hdfc_is_onboarded_as_wayback_locate_with_a_separate_cdn_domain():
     assert entry.cdn_domain == "files.hdfcfund.com"
 
 
-def test_alphagrep_is_not_onboarded_pending_fresh_research():
-    # 2026-10-10 re-check: every slug guess against the spike's recorded template
-    # returned an identical soft-404 HTML shell (200 status, same byte count) -- no
-    # literal working URL survives today. Deliberately absent, not an oversight.
-    assert "AlphaGrep Mutual Fund" not in AMC_DISCLOSURE_RESOLVERS
+def test_alphagrep_is_onboarded_with_the_two_digit_year_template():
+    # Corrected 2026-10-13: the 2026-10-10 "soft-404" finding was a digit-format bug
+    # (FY-{year}-{year+1}, e.g. FY-2026-2027) against the real two-digit-year path
+    # (FY-{YY}-{YY+1}, e.g. FY-2026-27) -- not a dead endpoint. Re-onboarded.
+    entry = AMC_DISCLOSURE_RESOLVERS["AlphaGrep Mutual Fund"]
+    assert entry.kind is DisclosureResolverKind.STATIC_REGEX
+    assert entry.file_shape is DisclosureFileShape.DETERMINISTIC_TEMPLATE
+    assert "FY-{yy}-{yy_plus_1}" in entry.url_template
+
+
+def test_kotak_mahindra_is_onboarded_as_wayback_locate_with_the_monthly_path():
+    # F4b: missing from the registry entirely until this pass, despite being resolved
+    # (sixth pass, 2026-10-12) -- the original spike's filename guess had the wrong
+    # path prefix/naming convention, which is why it 403'd even though the real file
+    # was already live.
+    # Decided 2026-10-13 (amc-coverage.html Q16): re-onboarded again as a direct
+    # DETERMINISTIC_TEMPLATE fetch instead of WAYBACK_LOCATE -- the path is date-built,
+    # not something that needs an archive lookup every month.
+    entry = AMC_DISCLOSURE_RESOLVERS["Kotak Mahindra Mutual Fund"]
+    assert entry.kind is DisclosureResolverKind.STATIC_REGEX
+    assert entry.file_shape is DisclosureFileShape.DETERMINISTIC_TEMPLATE
+    assert entry.cdn_domain == "vatseelabs-s3.kotakmf.com"
+    assert "Consolidated-SEBI-Portfolio-as-on" in entry.url_template
+
+
+def test_navi_is_onboarded_as_json_api_with_the_documented_wordpress_endpoint():
+    # The spike recorded this endpoint literally (not just a qualitative mechanism
+    # description), and attribute 04's own resolver for the same domain
+    # (fund_manager_resolvers.py) independently confirms the exact request shape
+    # (POST with financial_year/month/category + a WP-NONCE scraped from the page).
+    entry = AMC_DISCLOSURE_RESOLVERS["Navi Mutual Fund"]
+    assert entry.kind is DisclosureResolverKind.JSON_API
+    assert entry.endpoint_url == "https://navi.com/wp-json/nv/v1/documents"
+
+
+def test_jio_blackrock_is_onboarded_with_the_hypothesized_shared_endpoint():
+    # Not independently literal in the spike -- this reuses attribute 04's exact,
+    # production-confirmed endpoint and request shape for the same AMC/domain
+    # (a Next.js RSC server action), on the documented hypothesis that the same
+    # action with a different document-category argument serves portfolio
+    # disclosures instead of factsheets. Flagged NEEDS LIVE VERIFICATION, not
+    # treated as confirmed, until that one substitution is actually tried.
+    entry = AMC_DISCLOSURE_RESOLVERS["Jio BlackRock Mutual Fund"]
+    assert entry.kind is DisclosureResolverKind.JSON_API
+    assert "NEEDS LIVE VERIFICATION" in entry.note
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -1281,9 +1658,13 @@ per the spec's "adapter design" section. `DETERMINISTIC_TEMPLATE` is still confi
 lookup isn't a plain regex match. Grows the same way fund_manager_resolvers.py does: one
 entry per AMC, added only after independently re-verifying a real downloaded file today
 -- never guessed from the AMC's name alone, and never kept after a re-check disproves it
-(AlphaGrep was in an earlier draft of this registry and was removed here for exactly that
-reason). See this plan's Scope note for the full list of what's deliberately excluded and
-why."""
+(AlphaGrep was briefly removed from an earlier draft of this registry after a one-digit-
+format bug made every slug guess 404 -- re-added once the real two-digit-year template
+was found; see its entry below). Entries noted `NEEDS LIVE VERIFICATION` carry a specific,
+sourced hypothesis (a sibling production endpoint for the same domain, or a literal
+endpoint the spike recorded but didn't drive end-to-end) rather than a guess -- confirm
+each with one real download before relying on it, same bar as every other entry. See this
+plan's Scope note for the full list of what's deliberately excluded and why."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -1321,6 +1702,17 @@ class DisclosureResolverEntry:
     exclude_pattern: str | None = None
     url_template: str | None = None
     cdn_domain: str | None = None
+    # JSON_API only -- mirrors attribute 04's ResolverEntry (fund_manager_resolvers.py)
+    # exactly, reusing its proven shape rather than inventing a new one: a single GET,
+    # a dotted path into the JSON response to reach the document list, and an optional
+    # regex filter over that list's filenames/titles. Covers every JSON_API AMC below
+    # except Axis and LIC, whose real mechanism is a two-call chain (token/filter-
+    # options call, then the real document call) -- those two get a dedicated Python
+    # function in Task 6, the same pattern WAYBACK_LOCATE already uses, not a new field
+    # here, since generalizing a chain-of-calls shape for two AMCs isn't worth it.
+    endpoint_url: str | None = None
+    response_json_path: str | None = None
+    documents: tuple[str, ...] | None = None
     note: str | None = None
 
 
@@ -1421,19 +1813,564 @@ AMC_DISCLOSURE_RESOLVERS: dict[str, DisclosureResolverEntry] = {
     "Canara Robeco Mutual Fund": DisclosureResolverEntry(
         kind=DisclosureResolverKind.WAYBACK_LOCATE,
         landing_url="https://www.canararobeco.com/wp-content/uploads/",
+        # Decided 2026-10-13 (resolves amc-coverage.html Q16's bug-shaped gap): without a
+        # link_pattern, the open-ended prefix CDX search downloads every capture under
+        # this path (up to 50), unrelated files included. Confirmed real per-scheme shape
+        # from the spike's own capture: "SC--Canara-Robeco-Small-Cap-Fund-...-2026.xlsx" --
+        # also resolves the spec-vs-plan conflict: this is a plain per-scheme workbook,
+        # not an index-sheet bundle; the engine spec's listing of Canara as an index-sheet
+        # AMC alongside Baroda/Bank of India/Abakkus/Sundaram/ICICI Prudential is corrected.
+        link_pattern=r"Canara-Robeco-.*-Fund",
         note="Main site's own 'Portfolio Disclosure' nav drives a genuinely encrypted "
              "request/response API (not attempted -- see the project's constraint "
              "against cracking it); the files themselves sit on the same domain's plain "
              "WordPress media library with no live listing page, discoverable only via "
              "a CDX search for this URL prefix.",
     ),
+    # 2026-10-12 (sixth pass): resolved. The spike's original filename guess had the
+    # wrong path prefix and naming convention (Monthly-Portfolio-as-on-...), which is
+    # why it 403'd even though the real file was already live by then.
+    # Decided 2026-10-13 (resolves amc-coverage.html Q16, option B/C -- see decisions.md):
+    # the real path is date-built, not something only Wayback can find -- fetch it
+    # directly every month like AlphaGrep below, same DETERMINISTIC_TEMPLATE shape.
+    # Wayback is kept only as Task 7's fallback for the rare month this CDN path changes
+    # again, not the normal path -- removes an avoidable failure point and the ~1-day
+    # capture lag the Wayback-only approach carried.
+    "Kotak Mahindra Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.STATIC_REGEX,
+        file_shape=DisclosureFileShape.DETERMINISTIC_TEMPLATE,
+        cdn_domain="vatseelabs-s3.kotakmf.com",
+        url_template=(
+            "https://vatseelabs-s3.kotakmf.com/FAD/Portfolios/"
+            "Consolidated-SEBI-Portfolio-as-on-{month_name}-{dd},-{yyyy}/"
+            "ConsolidatedSEBIPortfolio{month_name}{yyyy}.xlsx"
+        ),
+        note="Direct date-built path, confirmed live via sixth-pass Wayback CDX query "
+             "then direct-download SEBI-schema verification. Main domain's downloads "
+             "page lists no direct file link, so there's no landing_url to scrape -- "
+             "the template is the only mechanism. Monthly, not the differently-named "
+             "Fortnightly file found in an earlier pass. No automatic Wayback fallback is "
+             "built -- that would need a second mechanism per entry, which nothing else "
+             "in this registry has either. If the CDN path changes again the template "
+             "404s, Q12's day-10/day-20 alert catches it like any other AMC, and the fix "
+             "is a one-off repeat of the sixth pass's Wayback CDX re-discovery, not a "
+             "standing code path.",
+    ),
+
+    # -- DETERMINISTIC_TEMPLATE (F4a): resolved 2026-10-12 (sixth pass) -- this was a
+    # one-digit-format bug, not a dead endpoint. The spike's original template used a
+    # four-digit year range (FY-2026-2027); the real path uses a two-digit range.
+    "AlphaGrep Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.STATIC_REGEX,
+        file_shape=DisclosureFileShape.DETERMINISTIC_TEMPLATE,
+        url_template=(
+            "https://alphagrepmf.ai/assets/documents/{scheme_name}/monthly/"
+            "FY-{yy}-{yy_plus_1}/{month_name}_{yyyy}.xls"
+        ),
+        note="Confirmed via live download with the corrected two-digit template: "
+             "genuine SEBI-schema data (ISIN, Industry, Quantity, Market value, %NAV).",
+    ),
+
+    # -- JSON_API, confirmed via the spike's own "second audit pass" (2026-10-09): a
+    # real file was downloaded and opened for every entry below, with genuine SEBI-
+    # schema columns, not just a page-shaped URL. That pass recorded the *mechanism*
+    # (which UI interaction/call reveals the file) but, for most of these, not the
+    # exact literal request -- so each still carries one bounded "capture the literal
+    # call, confirm with a download" step before Task 6 relies on it in production.
+    # Attribute 04's sibling resolver for the same domain (fund_manager_resolvers.py)
+    # is cited as corroboration where its endpoint shape plausibly extends to the
+    # disclosure document type, not as the primary source -- the spike's own
+    # downloaded-and-opened finding is.
+    "Tata Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.JSON_API,
+        note="Spike (batch C): 'Browser interaction/network data supplies the 2026 "
+             "monthly workbook link' from tatamutualfund.com/schemes-related/"
+             "portfolio; downloaded and opened, correct SEBI columns. Corroborated by "
+             "attribute 04's sibling CMS endpoint for this domain "
+             "(prod-dist-api.tatamfdev.com/cms-data/api/CMSDATA_corporate_factsheets) "
+             "-- a sibling content-type slug (e.g. CMSDATA_corporate_portfolio_"
+             "disclosures) is the likely literal call. NEEDS LIVE VERIFICATION: one "
+             "Network-tab capture confirms the exact slug.",
+    ),
+    "Sundaram Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.JSON_API,
+        file_shape=DisclosureFileShape.SINGLE_WORKBOOK_MULTI_SHEET,
+        note="Spike (second audit pass): a category select + 'View' button reveals a "
+             "single Index-sheet workbook covering 31 schemes; downloaded and opened. "
+             "Corroborated by attribute 04's sibling legacy .ashx archive API for this "
+             "domain (Fundwise_Factsheet module) -- the disclosure section likely "
+             "calls the same handler with a different Modules_Forms_Downloads_* "
+             "module argument. NEEDS LIVE VERIFICATION: one capture of the real call.",
+    ),
+    "Choice Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.JSON_API,
+        note="Spike (batch C): 'the rendered page/API supplies year, month, and "
+             "scheme records'; a downloaded scheme workbook uses SEBI headings "
+             "('% to AUM' is Choice's label for %-to-NAV -- already handled by the "
+             "widened Task 2 regex). Open question the spike itself flags: this "
+             "appears genuinely scheme-by-scheme, not one umbrella workbook. "
+             "Corroborated by attribute 04's generic document-listing API for this "
+             "domain (choicemf.com/api/document-master-list, response_json_path "
+             "'body') -- likely the same endpoint, filtered by a disclosure document-"
+             "type value. NEEDS LIVE VERIFICATION: one capture of the real filter.",
+    ),
+    "UTI Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.JSON_API,
+        note="Spike (batch C): 'Browser-driven selection/network data returns "
+             "individual scheme workbook URLs' from utimf.com/downloads/scheme-wise-"
+             "portfolio-disclosure; a downloaded workbook has the six required "
+             "fields. No all-schemes bulk workbook observed -- scheme-by-scheme, like "
+             "Choice. Corroborated by attribute 04's sibling endpoint for this domain "
+             "(utimf.com/api/get-fact-sheet) -- a sibling path (e.g. get-scheme-wise-"
+             "portfolio) is the likely literal call. NEEDS LIVE VERIFICATION.",
+    ),
+    "PGIM India Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.JSON_API,
+        note="Spike (second audit pass): 'pgimindia.com's disclosure page has a "
+             "clean, unauthenticated JSON REST API (resultStatus/pdfPath fields) "
+             "with full history back to 2021' -- the original BOT_BLOCKED verdict was "
+             "a sandbox-DNS artifact, not a real block. Recorded qualitatively, not "
+             "as a literal URL. Attribute 04's sibling resolver for this domain uses "
+             "a different endpoint shape (/api/v1/brochure/published/form) for "
+             "factsheets, so it is not a direct reuse candidate. NEEDS LIVE "
+             "VERIFICATION: one Network-tab capture on the disclosure page recovers "
+             "the literal endpoint -- not fresh research, the mechanism and its "
+             "non-bot-blocked nature are already confirmed by a real download.",
+    ),
+    # -- JSON_API, confirmed literal endpoint (the spike's "second audit pass" itself
+    # recorded the literal call for Navi, not just a UI description).
+    "Navi Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.JSON_API,
+        landing_url="https://navi.com/mutual-fund/downloads/portfolio",
+        endpoint_url="https://navi.com/wp-json/nv/v1/documents",
+        note="Spike (second audit pass): 'Selects were hidden inside an unopened "
+             "accordion; once opened, a WordPress REST endpoint (/wp-json/nv/v1/"
+             "documents) returns the file URL' -- downloaded and opened, correct "
+             "SEBI columns. Attribute 04's resolver for this same domain confirms the "
+             "identical two-step GET-nonce-then-POST request shape (anonymous, no "
+             "login). Only the exact `category` value for portfolio disclosures (vs. "
+             "attribute 04's factsheet category) needs one live confirmation.",
+    ),
+    # -- JSON_API, confirmed via second audit pass -- real backend proxy, not an
+    # auth-gated API. Corrects an earlier draft of this registry, which classified
+    # Bandhan MANUAL on the strength of attribute 04's *factsheet* resolver (a
+    # different document type on this domain) returning HTTP 401. The spike's own
+    # investigation of the *disclosure* document type found and downloaded a real
+    # file through a different, unauthenticated mechanism -- the directly relevant
+    # evidence, and it supersedes the sibling inference.
+    "Bandhan Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.JSON_API,
+        note="Spike (second audit pass): 'Client-side button navigation to a "
+             "/portfolio-summary/monthly route, then a backend download-proxy that "
+             "signs an underlying GCS URL' -- downloaded and opened, correct SEBI "
+             "columns. The signing proxy issues a public, time-limited GCS URL to "
+             "any caller (no login observed), unlike the unrelated factsheet API on "
+             "this domain. NEEDS LIVE VERIFICATION: one capture of the proxy's "
+             "request/response shape.",
+    ),
+    # -- STATIC_REGEX, confirmed mechanism, literal link pattern still needs capture.
+    # Corrects an earlier draft of this registry, which guessed a Next.js RSC server
+    # action (attribute 04's factsheet mechanism for this domain) without checking it
+    # against the spike's own, more specific finding for the disclosure page.
+    "Jio BlackRock Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.STATIC_REGEX,
+        note="Spike (second audit pass): 'An Ant Design combobox (blocked by a "
+             "sticky-nav click interception, fixed with force=True) reveals direct "
+             "Azure CDN file links per scheme' -- downloaded and opened, correct SEBI "
+             "columns. The combobox is a discovery mechanism, not an API the "
+             "production fetcher calls -- the real file is a direct static CDN link "
+             "once its naming convention is known, the same shape as Kotak/HDFC "
+             "(discover once, fetch as a plain static asset forever after). NEEDS "
+             "LIVE VERIFICATION: one Network-tab capture of the CDN link pattern "
+             "(scheme-name/date substitution, most likely, matching every other "
+             "DETERMINISTIC_TEMPLATE/STATIC_REGEX AMC in this registry).",
+    ),
+
+    # -- STATIC_REGEX, confirmed via the spike's own second audit pass (real file
+    # downloaded and opened for each), link pattern itself not yet captured.
+    # Attribute 04's sibling resolver for the same domain is cited as corroboration
+    # that the site needs no JS execution at all, not as the primary source.
+    "Unifi Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.STATIC_REGEX,
+        landing_url="https://unifimf.com/statutorydocuments/",
+        note="Spike (second audit pass): 'the first pass's \"Scheme Dashboard\" hits "
+             "were genuinely the wrong document type; a deeper pass found the real "
+             "per-scheme Monthly Portfolio Statement file' -- downloaded and opened, "
+             "correct SEBI columns. Corroborated by attribute 04: unifimf.com serves "
+             "plain static factsheet links with no bot protection, consistent with "
+             "the Bank of India/Angel One/Wealth Company pattern (a static regex too "
+             "narrow, not a JS SPA). NEEDS LIVE VERIFICATION: confirm the real "
+             "link_pattern.",
+    ),
+    "Zerodha Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.STATIC_REGEX,
+        landing_url="https://www.zerodhafundhouse.com/resources/disclosures/",
+        note="Spike (second audit pass): 'a real September 2026 monthly file exists "
+             "but isn't in the static HTML -- only reachable via the rendered page' "
+             "-- downloaded and opened, correct SEBI columns. Corroborated by "
+             "attribute 04: zerodhafundhouse.com serves plain static factsheet links "
+             "with no bot protection -- the file is very likely a sibling static "
+             "link on the same page, not JS-gated content. NEEDS LIVE VERIFICATION.",
+    ),
+    "Abakkus Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.STATIC_REGEX,
+        file_shape=DisclosureFileShape.SINGLE_WORKBOOK_MULTI_SHEET,
+        landing_url="https://www.abakkusmf.com/statutory-disclosures.html",
+        note="Spike (second audit pass): cascading #mpdYear/#mpdMonth selects reveal "
+             "'a single-workbook-many-schemes file (Index sheet + 4 per-scheme "
+             "sheets)' -- downloaded and opened, correct SEBI columns. Corroborated "
+             "by attribute 04: abakkusmf.com serves plain static factsheet links "
+             "with no bot protection -- the selects very likely populate a "
+             "predictable static URL (same pattern as Union's DETERMINISTIC_"
+             "TEMPLATE). NEEDS LIVE VERIFICATION: confirm the real filename pattern.",
+    ),
+    "quant Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.STATIC_REGEX,
+        landing_url="https://quantmutual.com/downloads/factsheet",
+        note="Spike (second audit pass): 'A nested <li onclick=\"submit_event1/2(...)"
+             "\"> widget... drives an AJAX call that populates a #files div with the "
+             "real link' -- downloaded and opened, correct SEBI columns (AMFI's "
+             "registered name is 'quant Money Managers Limited'; schemes.amc_name is "
+             "'quant Mutual Fund', matching fund_manager_resolvers.py's key exactly). "
+             "Corroborated by attribute 04: quantmutual.com serves plain static "
+             "factsheet links with no bot protection -- the #files AJAX call very "
+             "likely resolves to a static link. NEEDS LIVE VERIFICATION.",
+    ),
+    "Bajaj Finserv Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.STATIC_REGEX,
+        file_shape=DisclosureFileShape.SINGLE_WORKBOOK_MULTI_SHEET,
+        landing_url="https://www.bajajamc.com/downloads?statutory-disclosures=",
+        note="Spike (second audit pass): 'A 63-<select> page; the \"Monthly "
+             "Portfolio\" sub-section's year/month selects (cascading) reveal a "
+             "direct link, a single workbook covering all 25 schemes' -- downloaded "
+             "and opened, correct SEBI columns. Corroborated by attribute 04: both "
+             "bajajamc.com/downloads?factsheet= and this sibling ?statutory-"
+             "disclosures= query return HTTP 200 on this WordPress site (no bot "
+             "block) -- its own admin-ajax factsheet actions returned empty results "
+             "in that check, so the disclosure section's equivalent ajax action name/"
+             "params need one live capture. NEEDS LIVE VERIFICATION.",
+    ),
+    "ICICI Prudential Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.STATIC_REGEX,
+        file_shape=DisclosureFileShape.ZIP_OF_WORKBOOKS,
+        landing_url="https://www.icicipruamc.com/media-center/downloads?currentTabFilter=OtherSchemeDisclosures&subCatTabFilter=Monthly+Portfolio+Disclosures",
+        note="Already more confirmed than the entries above -- the spike itself "
+             "downloaded and opened the real 151-scheme ZIP from this exact page (the "
+             "AMC's primary disclosure path, archive.icicipruamc.com, is a dead "
+             "NXDOMAIN, not a block; this media-center page is the real one, found "
+             "via WebSearch). Attribute 04's factsheet resolver is MANUAL for a "
+             "*different* bot-protected page -- doesn't apply here. Only the literal "
+             "'DOWNLOAD' button's href/request needs one capture; first AMC onboarded "
+             "against Task 2's extract_zip_members.",
+    ),
+
+    # -- STATIC_REGEX, remainder of the plain-static-link tier -- link patterns taken
+    # directly from the spike's batch A/B/C findings (each AMC's workbook link was
+    # already present in the page's own static HTML, no interaction needed).
+    "DSP Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.STATIC_REGEX,
+        file_shape=DisclosureFileShape.ZIP_OF_WORKBOOKS,
+        landing_url="https://www.dspim.com/mandatory-disclosures/portfolio-disclosures?origin=app",
+        link_pattern=r"dsp-monthend-portfolio-as-on",
+        exclude_pattern=r"fortnightly",
+        note="Batch A: plain HTML exposes a dated ZIP of XLSX workbooks directly; "
+             "the consolidated monthly archive is distinct from a same-page "
+             "fortnightly debt archive -- exclude_pattern scopes to the right one.",
+    ),
+    "Motilal Oswal Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.STATIC_REGEX,
+        file_shape=DisclosureFileShape.MULTI_FILE_SINGLE_SCHEME,
+        landing_url="https://www.motilaloswalmf.com/mutual-funds/motilal-oswal-digital-india-fund",
+        link_pattern=r"Month_End_Portfolio_.*\.xlsx",
+        note="Batch A: fund-page HTML embeds the portfolioUrl directly -- genuinely "
+             "scheme-wise, so the per-scheme fund page is the landing_url, not a "
+             "single AMC-wide hub. NEEDS LIVE VERIFICATION: confirm every live "
+             "scheme has a reachable fund page, since Task 6's refresh loop drives "
+             "landing_url per AMC, not per scheme.",
+    ),
+    "NJ Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.STATIC_REGEX,
+        file_shape=DisclosureFileShape.MULTI_FILE_SINGLE_SCHEME,
+        landing_url="https://downloads.njmutualfund.com/njmf_download.php?nme=127",
+        link_pattern=r"viewfile\.php\?file=.*\.xlsx",
+        note="Batch A: plain HTML exposes direct viewfile.php?file=...xlsx links, "
+             "one file per scheme. Confirmed with NJ Flexi Cap, August 2026.",
+    ),
+    "Franklin Templeton Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.STATIC_REGEX,
+        file_shape=DisclosureFileShape.MULTI_FILE_SINGLE_SCHEME,
+        landing_url="https://www.franklintempletonindia.com/fund-details/fund-overview/42352/reports/investor-services/funds-and-solutions/investor/about-us",
+        link_pattern=r"Monthly\s*Portfolio",
+        note="Batch A: server-rendered fund report page lists current Monthly "
+             "Portfolio Disclosure dates. Scheme-wise, not an AMC umbrella file -- "
+             "same per-scheme-page caveat as Motilal Oswal above. Key corrected to drop "
+             "a '(India)' suffix not used by the real scheme master -- confirmed "
+             "against backend/.cache/amfi_navall/nav_all.txt's plain "
+             "'Franklin Templeton Mutual Fund' entries (F4b's own naming-convention "
+             "test below would have caught this).",
+    ),
+    "Quantum Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.STATIC_REGEX,
+        file_shape=DisclosureFileShape.SINGLE_WORKBOOK_MULTI_SHEET,
+        landing_url="https://www.quantumamc.com/portfolio/combined/-1/1/0/0",
+        link_pattern=r"/FileCDN/FactSheet/.*\.xlsx",
+        note="Batch B: plain HTML exposes direct 'All Funds' combined workbooks "
+             "through September 2026, served from /FileCDN/FactSheet/<uuid>.xlsx -- "
+             "the combined workbook avoids per-scheme fetching, same shape as "
+             "Nippon/Shriram/PPFAS/Groww.",
+    ),
+    "Samco Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.STATIC_REGEX,
+        file_shape=DisclosureFileShape.MULTI_FILE_SINGLE_SCHEME,
+        landing_url="https://www.samcomf.com/StatutoryDisclosure",
+        link_pattern=r"IN_MF_MONTHLY_PORTFOLIO_",
+        note="Batch B: server-rendered inventory lists separate monthly portfolio "
+             "files per scheme, titled IN_MF_MONTHLY_PORTFOLIO_<Month>_<Year>_"
+             "<Scheme> -- ingestion enumerates schemes from the one landing page.",
+    ),
+    "360 ONE Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.STATIC_REGEX,
+        file_shape=DisclosureFileShape.SINGLE_WORKBOOK_MULTI_SHEET,
+        landing_url="https://www.360.one/asset/mutual-funds/downloads/",
+        note="Batch C, domain corrected fifth pass 2026-10-12: the originally-cited "
+             "archive.iiflmf.com is now dead (origin timeout); the real current "
+             "domain is a Next.js app whose initial server response embeds the file "
+             "catalog as React Server Component 'flight' JSON -- still no Playwright "
+             "needed, but the link isn't a plain <a href> regex match. NEEDS LIVE "
+             "VERIFICATION: confirm Task 6's static-HTML regex finds the file inside "
+             "the RSC flight payload, or whether this needs a small parse step.",
+    ),
+    "Wealth Company Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.STATIC_REGEX,
+        file_shape=DisclosureFileShape.MULTI_FILE_SINGLE_SCHEME,
+        landing_url="https://www.wealthcompanyamc.in/literature-forms/portfolio-documents/monthly/",
+        link_pattern=r"/uploads/Monthly_Portfolio_",
+        note="Second audit pass: 'A full grid of 97 downloadable files is server-"
+             "rendered on page load (Next.js); the per-file URL is a stable static "
+             "asset, just implemented as a MUI <button> instead of <a href>' -- "
+             "downloaded and opened, correct SEBI columns. A static-HTML regex scan "
+             "(not requiring <a href>) finds it, same as Task 6's existing approach.",
+    ),
+
+    # 2026-10-13: resolved per the user's explicit instruction that no AMC is left to
+    # a later wave. The spike's recorded filename pattern had visibly drifted by the
+    # time this plan was written (Monthly_Portfolio_<Month>_<Year>.xlsx vs. the real
+    # current IR_Old_Bridge_Mutual_Fund_<DDMMYYYY>_<hash>.xlsx mixed with per-scheme
+    # Old_Bridge_<Scheme>_<Month>_<Year>_<hash>.xlsx files) -- genuinely two candidate
+    # files some months, not a research gap. Disambiguation rule, not a deferral:
+    # Task 6's static-HTML scan already collects every candidate link; for this AMC
+    # only, prefer the per-scheme-named file over the AMC-wide "IR_" file when both
+    # match the current month (the per-scheme file's holdings are more directly
+    # verifiable against scheme name than the "IR_" prefix, whose content is
+    # unconfirmed) -- and alert, not silently pick, if a month ever has neither.
+    "Old Bridge Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.STATIC_REGEX,
+        file_shape=DisclosureFileShape.MULTI_FILE_SINGLE_SCHEME,
+        landing_url="https://www.oldbridgemf.com/statutory-disclosures.html",
+        link_pattern=r"Old_Bridge_.*_\d{4}_[0-9a-f]+\.xlsx",
+        exclude_pattern=r"^IR_",
+        note="Prefers the per-scheme-named file over the ambiguous AMC-wide 'IR_' "
+             "file (see comment above); NEEDS LIVE VERIFICATION that the per-scheme "
+             "file's columns are the real holdings disclosure, not a different "
+             "document that happens to share the naming convention.",
+    ),
+
+    # -- STATIC_REGEX, multi-scheme bundle corrected per Q16: the engine spec's "needs
+    # a custom index-sheet parse" label for this AMC was wrong -- the spike's second
+    # audit pass found a single direct link in plain static HTML, the same generic
+    # STATIC_REGEX path as every other SINGLE_WORKBOOK_MULTI_SHEET AMC, no custom
+    # parse code needed.
+    "Baroda BNP Paribas Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.STATIC_REGEX,
+        file_shape=DisclosureFileShape.SINGLE_WORKBOOK_MULTI_SHEET,
+        landing_url="https://www.barodabnpparibasmf.in/archivedownload/",
+        link_pattern=r"assets/download_documents/Portfolio_Holdings_and_Exposure",
+        note="Second audit pass: 'The direct .xlsx link... is present in the page's "
+             "own static HTML -- a plain grep on the curl-fetched page finds it; the "
+             "first pass's Playwright trace had simply missed it.' Downloaded and "
+             "opened, correct SEBI columns.",
+    ),
+
+    # -- JSON_API, confirmed literal endpoint via the fifth-pass reconciliation
+    # (2026-10-12): every entry below was found stale/wrong in the spike's own
+    # original recording, re-traced live with Playwright once, and the *real*
+    # mechanism confirmed to be a plain, unauthenticated JSON/AJAX call -- replayable
+    # forever via curl/httpx, no browser needed in production. Each was downloaded
+    # and opened to verify genuine SEBI-schema columns.
+    "SBI Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.JSON_API,
+        endpoint_url="https://www.sbimf.com/ajaxcall/CMS/GetSchemePortfolioSheetsQS",
+        note="Fifth pass: the originally-cited '/portfolios?FundID=34&Portfoliotype="
+             "Monthly' URL is stale; the real mechanism is this plain JSON POST, "
+             "replayable via curl. Resolved, no Playwright needed in production.",
+    ),
+    "Bank of India Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.JSON_API,
+        file_shape=DisclosureFileShape.SINGLE_WORKBOOK_MULTI_SHEET,
+        endpoint_url="https://www.bankofindiamf.com/AjaxService.asmx/GetDocuments",
+        note="Fifth pass: the second-audit-pass's cited stable curlable URL went "
+             "stale again; the real mechanism is this plain JSON/SOAP-lite endpoint, "
+             "replayable via curl. The workbook is a single file with an Index "
+             "sheet mapping scheme codes YB01-YB44 to names plus one sheet per "
+             "scheme -- the same generic multi-sheet parse already built for Nippon/"
+             "Shriram/PPFAS/Groww, no custom per-AMC parse code needed (corrects "
+             "amc-coverage.html's Q14 framing, which assumed a bespoke index-sheet "
+             "parser was required).",
+    ),
+    "Trust Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.JSON_API,
+        endpoint_url="https://www.trustmf.com/api/api/Trust/GetData",
+        note="Fifth pass: a Playwright network trace of the Vite/React SPA found "
+             "this plain JSON POST (no auth, no JS execution needed to call) "
+             "returns the current month's workbook URL directly. Resolved, no "
+             "Playwright needed in production.",
+    ),
+    "Mirae Asset Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.JSON_API,
+        endpoint_url="https://www.miraeassetmf.co.in/downloads/portfolio",
+        note="Fifth pass: the originally-cited page and guessed filenames were "
+             "soft-404 traps (HTTP 200, HTML error page under a .xlsx extension); "
+             "the real mechanism is this page's AjaxService/GetDownloadsData JSON "
+             "call. Resolved, no Playwright needed in production. IMPORTANT for "
+             "Task 6: status-200 is not sufficient to confirm a real file for this "
+             "AMC's CMS -- content-type/magic-byte checks are mandatory.",
+    ),
+    "LIC Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.JSON_API,
+        endpoint_url="https://www.licmf.com/downloads/portfolio-filter-options",
+        note="Fifth pass: the originally-cited deterministic URL pattern is stale "
+             "(site redesign); the real mechanism is a two-step JSON POST chain -- "
+             "/downloads/portfolio-filter-options (discover available year/month) "
+             "then /downloads/portfolio-files (fetch the file URL for the selected "
+             "year/month). Genuine two-call chain, not a single endpoint_url -- "
+             "Task 6 needs a dedicated function for this AMC and Axis below, the "
+             "same pattern WAYBACK_LOCATE already uses, not a new registry field for "
+             "two AMCs.",
+    ),
+    "Axis Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.JSON_API,
+        endpoint_url="https://www.axismf.com/cms/token",
+        note="Fifth pass: the originally-cited static path is stale (site "
+             "redesign); the real mechanism, found via a Playwright trace of the "
+             "'Portfolios' accordion, is POST /cms/token (public, unauthenticated, "
+             "returns a bearer token with no login) then POST /cms/get-scheme-"
+             "documents (body {sdType: yearMonthSchemeDocs, sdID: "
+             "sdMonthSchemePortfolio, year, month, schemeCode: Consolidated}, using "
+             "the bearer token) -- response's documentList gives direct file URLs. "
+             "Entire chain replayed plain curl end-to-end in the fifth pass; "
+             "AXIS500 sheet is a multi-scheme consolidated workbook. Same dedicated-"
+             "function treatment as LIC above, not a new registry field.",
+    ),
+    "Aditya Birla Sun Life Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.JSON_API,
+        file_shape=DisclosureFileShape.SINGLE_WORKBOOK_MULTI_SHEET,
+        endpoint_url="https://mutualfund.adityabirlacapital.com/postlogin/CustomApi/Resources/FactsheetAccordionById",
+        note="Fifth pass: GET with id/ctype/month/year params (JSON, no auth) "
+             "returns a pdfUrl field pointing at a dead CDN host "
+             "(abcscprod.azureedge.net, confirmed NXDOMAIN) -- the fix is to "
+             "substitute the live mutualfund.adityabirlacapital.com host onto that "
+             "same /-/media/... path before refetching, not to trust the API "
+             "response's URL verbatim. 105-sheet workbook (one sheet per scheme); "
+             "genuine legacy .xls (BIFF/Composite Document Format) -- Task 2's "
+             "parse must use xlrd for this AMC, openpyxl cannot open it (flag as a "
+             "parse-stage exception, same as any other format-survey finding).",
+    ),
+    "Taurus Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.JSON_API,
+        endpoint_url="https://www.taurusmutualfund.com/financials/portfolio",
+        note="Fifth pass: the real mechanism is a Drupal exposed-filter AJAX POST, "
+             "replayable as a plain GET with the filter's query-string params "
+             "(field_hy_portfolio_year_target_id / field_hy_portfolio_month_"
+             "target_id -- 'HY' for Half-Yearly). Confirmed genuinely Half-Yearly-"
+             "only (March/September; no monthly file exists at all) -- a data-"
+             "availability gap, not a fetch problem. disclosure_batches must accept "
+             "a non-monthly cadence for this one AMC -- already true by construction, "
+             "the (scheme_id, as_of_date) grain carries no monthly assumption, no "
+             "schema change needed here; Taurus's separate "
+             "/summary/<scheme>-fund files are fund metadata, not holdings, and must "
+             "not be mistaken for a monthly substitute.",
+    ),
+
+    # -- Fortnightly-only AMC: not a gap, a genuine ceiling. Same cadence treatment
+    # as Taurus above -- disclosure_batches must accept non-monthly for this AMC.
+    "Monarch Networth Capital Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.STATIC_REGEX,
+        landing_url="https://mf.monarchnetworth.com/statutory-disclosure/portfolio",
+        note="Spike: Monarch genuinely only publishes a Fortnightly portfolio "
+             "disclosure, no monthly file exists -- confirmed not a missing-"
+             "mechanism problem, the AMC's real SEBI-mandated cadence for this "
+             "scheme type. disclosure_batches accepts Fortnightly as a valid "
+             "cadence for this AMC only, no schema change needed, the same "
+             "treatment as Taurus.",
+    ),
+
+    # -- MANUAL: a person downloads the file monthly, the same AWAITING_MANUAL_UPLOAD
+    # pattern attribute 04 already built (import_manual_fund_managers.py) -- built
+    # now, as part of this plan, per Q15's resolution (not deferred to a later wave).
+    "Edelweiss Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.MANUAL,
+        note="Confirmed BOT_BLOCKED across 4 passes -- Akamai (akamai-grn header); "
+             "the real disclosure page was found via Wayback but it's a client-"
+             "rendered SPA shell with no static links and no capturable API.",
+    ),
+    "Mahindra Manulife Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.MANUAL,
+        note="Confirmed across 4 passes -- the investorapi.mahindramanulife.com "
+             "endpoint returns a genuinely AES-encrypted payload (directly observed, "
+             "not inferred); real static files exist (/uploads/download/{uuid}.xlsx) "
+             "but the UUID isn't discoverable without decrypting the API. Per the "
+             "project's standing constraint against cracking encrypted vendor APIs.",
+    ),
+    "Invesco Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.MANUAL,
+        note="Confirmed BOT_BLOCKED, sixth pass: both curl and a real headless-"
+             "Chromium Playwright navigation return HTTP 403 from a WAF (server: "
+             "volt-adc) -- a genuine bot wall, not a missing-interaction problem. "
+             "Per the project's standing constraint against evading bot detection.",
+    ),
+    "ITI Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.MANUAL,
+        note="Confirmed BOT_BLOCKED, fifth pass: a real headless-Chromium Playwright "
+             "navigation gets a Cloudflare interactive-challenge page too, not just "
+             "plain curl -- a genuine bot wall.",
+    ),
+    "JM Financial Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.MANUAL,
+        note="Confirmed false positive, fifth pass: the file this AMC's query "
+             "'downloaded' decodes to 832KB of AES-ciphertext (exact 16-byte block "
+             "multiple, chi-square ~235/uniform), not a real workbook -- joins "
+             "Mahindra Manulife in the encrypted-API dead-end bucket.",
+    ),
+    "HSBC Mutual Fund": DisclosureResolverEntry(
+        kind=DisclosureResolverKind.MANUAL,
+        note="Confirmed fifth pass as the one AMC in the entire registry genuinely "
+             "needing a real browser in production: plain curl gets HTTP 403 "
+             "(Microsoft-Azure-Application-Gateway WAF), a real headless-Chromium "
+             "Playwright navigation gets 200 with direct per-scheme .xlsx links "
+             "under /portfolios/document-<DDMMYYYY>/. Per the 2026-10-12 decision "
+             "not to add Playwright as a production dependency for one AMC -- "
+             "handled as standing-manual-fetch instead.",
+    ),
+
+    # -- Genuinely still open: the one AMC in the entire registry whose mechanism is
+    # not yet discovered at all (every other AMC above has either a working
+    # mechanism or a confirmed hard blocker). Not a registry entry yet --
+    # intentionally absent; research this one before Task 6 onboards it, same
+    # bounded Pass-0 step as every other spike AMC.
+    # "WhiteOak Capital Mutual Fund": genuinely NEEDS_INVESTIGATION, page confirmed
+    # live at mf.whiteoakamc.com/regulatory-disclosures/scheme-portfolios.
+
+    # -- NO_CONTENT_FOUND: 5 AMCs with no AMFI-listed live schemes expected to
+    # publish holdings (ASK, IL&FS, Lakshya, Carnelian, Nuvama) need no registry row
+    # at all -- an empty disclosure_batches month for these is the correct, expected
+    # state, not a gap, same precedent as attribute 04's factsheet-less AMCs.
 }
 ```
 
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `cd backend && pytest tests/services/analytics/test_portfolio_disclosure_resolvers.py -v`
-Expected: PASS (5 tests).
+Expected: PASS (9 tests) — including F4b's registry-naming-convention test added above.
 
 - [ ] **Step 5: Commit**
 
@@ -1466,6 +2403,18 @@ git commit -m "feat: add file-shape-aware portfolio-disclosure adapter registry"
   `schemes_written: int = 0`, `seconds: float = 0.0`); `async def
   refresh_portfolio_disclosures(db: Session) -> PortfolioDisclosureRefreshResult` —
   Task 9's job script calls this.
+
+**Decided 2026-10-13 (resolves engine.html Q12 — when does a missing AMC raise an
+alert? — see `decisions.md`):** option C. An AMC alerts only after day 10 of the
+month, again on day 20, once per AMC per run — not on every daily miss, which would
+flood the ops topic with normal late-publisher noise (the plan as drafted alerted on
+first miss). "Done" stops meaning "any scheme written" and starts meaning every scheme
+in that AMC's matched file was written or explicitly skipped as non-holdings; a scheme
+the Normalize-stage matcher can't match raises its own alert instead of the current
+INFO-only log line, since an unmatched scheme is a silent coverage gap, not routine
+noise. A monthly summary line lists every AMC with zero `WRITTEN` batches that period,
+matching the spec's "not found by day N" wording and giving a month-end checklist
+instead of requiring someone to reconstruct it from daily logs.
 
 - [ ] **Step 1: Write the failing test for filename-date parsing and Locate candidate ranking**
 
@@ -1508,7 +2457,15 @@ many separate single-scheme files (MULTI_FILE_SINGLE_SCHEME, where the scheme id
 comes from the link's own text, not an internal worksheet name), or there may be no
 landing page at all and the URL is built directly from the scheme name and date
 (DETERMINISTIC_TEMPLATE). WAYBACK_LOCATE (Task 7) is the one kind requiring genuinely
-custom code rather than a declarative registry row."""
+custom code rather than a declarative registry row.
+
+F4d: every function in this module uses the synchronous `Session` (`db.query(...)`,
+`db.flush()`) inside `async def`, committing through `commit_off_loop` -- correct ONLY
+because `refresh_portfolio_disclosures` is called exclusively from the scheduled batch
+job (Task 9), never from a request handler. Calling it from request-handling code would
+block the single-worker event loop, the same bug class `commit_off_loop` itself was
+built to fix elsewhere (2026-08-27, `bb5225f`). Do not call this module from an API
+route."""
 from __future__ import annotations
 
 import html
@@ -1563,6 +2520,11 @@ class PortfolioDisclosureRefreshResult:
     success: bool
     amcs_processed: int = 0
     amcs_failed: int = 0
+    # F4c: AMCs whose registry entry exists but whose Locate kind isn't built yet
+    # (JSON_API's generic shape, the Axis/LIC chains -- Task 9) are counted here, not in
+    # amcs_failed -- an AMC with no Locate code is an expected, known gap, not a run that
+    # broke. Kept as its own field so dashboards/alerts can treat the two differently.
+    amcs_not_onboarded: int = 0
     schemes_written: int = 0
     seconds: float = 0.0
 
@@ -1697,6 +2659,47 @@ def test_refresh_writes_matched_scheme_and_is_idempotent_on_rerun(db_session, _h
     result2 = asyncio.run(client.refresh_portfolio_disclosures(db_session))
     assert result2.amcs_processed == 1
     assert db_session.query(SchemeHolding).filter_by(batch_id=batch.id).count() == 1
+
+
+def test_refresh_alerts_zero_schemes_matched_distinctly_from_no_file_found(db_session, _http, monkeypatch, caplog):
+    # F4b: a registry key that doesn't exactly match scheme master's amc_name (e.g. the
+    # spike's "Union Asset Management" vs. the real scheme-master "Union Mutual Fund")
+    # must alert as "zero_schemes_matched", not the generic "no_file_found" -- the two
+    # have different fixes (correct the registry key vs. wait for the AMC to publish).
+    monkeypatch.setattr(client, "AMC_DISCLOSURE_RESOLVERS", {
+        "A Misspelled AMC Name": DisclosureResolverEntry(
+            kind=DisclosureResolverKind.STATIC_REGEX,
+            landing_url="https://example.com/disclosures/",
+            link_pattern=r"MONTHLY-PORTFOLIO",
+        ),
+    })
+    # Deliberately no Scheme row with this amc_name.
+    import asyncio
+    import logging
+    with caplog.at_level(logging.WARNING):
+        result = asyncio.run(client.refresh_portfolio_disclosures(db_session))
+    assert result.amcs_failed == 1
+    assert "zero_schemes_matched" in caplog.text
+    assert "no_file_found" not in caplog.text
+
+
+def test_refresh_counts_unimplemented_locate_kind_as_not_onboarded_not_failed(db_session, _http, monkeypatch, caplog):
+    # F4c: a JSON_API/MANUAL-adjacent entry with no Locate code yet must be a silent,
+    # separately-counted skip (amcs_not_onboarded), not a NotImplementedError caught by
+    # the generic except-Exception branch and alerted as "error" every single day.
+    monkeypatch.setattr(client, "AMC_DISCLOSURE_RESOLVERS", {
+        "Some JSON API AMC": DisclosureResolverEntry(
+            kind=DisclosureResolverKind.JSON_API,
+            endpoint_url="https://example.com/api/documents",
+        ),
+    })
+    import asyncio
+    import logging
+    with caplog.at_level(logging.WARNING):
+        result = asyncio.run(client.refresh_portfolio_disclosures(db_session))
+    assert result.amcs_not_onboarded == 1
+    assert result.amcs_failed == 0
+    assert "PORTFOLIO_DISCLOSURE_ALERT" not in caplog.text
 ```
 
 - [ ] **Step 6: Run test to verify it fails**
@@ -1816,6 +2819,14 @@ async def _locate_deterministic_template(
             scheme_slug=_slugify_scheme_name(scheme_name),
             dd=f"{as_of.day:02d}", mm=f"{as_of.month:02d}", yyyy=as_of.year,
             month_name_lower=as_of.strftime("%B").lower(),
+            # Added 2026-10-13 (amc-coverage.html Q16's Kotak fix surfaced this): the
+            # function only ever supplied the four fields above, but two already-onboarded
+            # templates reference fields it never passed -- AlphaGrep's {yy}/{yy_plus_1}
+            # and (now) Kotak's {month_name}. str.format() ignores unused kwargs, so
+            # adding these here is safe for every other entry's template.
+            month_name=as_of.strftime("%B"),
+            yy=f"{as_of.year % 100:02d}",
+            yy_plus_1=f"{(as_of.year + 1) % 100:02d}",
         )
         try:
             data = await _download_workbook(client, url)
@@ -1830,6 +2841,22 @@ async def _locate_deterministic_template(
     return results
 
 
+# F4c: kinds this task actually implements a Locate for. JSON_API's generic single-call
+# shape and the Axis/LIC two-step chains are deliberately NOT built in this task (Task 9
+# below is where that happens) -- registering those registry entries ahead of their
+# Locate code is correct (it's how every other AMC in this plan was onboarded too), but
+# running them must not look like a *failure*. `_is_locate_implemented` lets the refresh
+# loop tell "not built yet" apart from "built, and this run hit a real error" before ever
+# calling `_locate_and_fetch`, instead of relying on `NotImplementedError` falling through
+# into the same `except Exception` branch as a genuine fetch/parse bug.
+def _is_locate_implemented(entry: DisclosureResolverEntry) -> bool:
+    return (
+        entry.kind is DisclosureResolverKind.WAYBACK_LOCATE
+        or entry.kind is DisclosureResolverKind.STATIC_REGEX
+        or entry.file_shape is DisclosureFileShape.DETERMINISTIC_TEMPLATE
+    )
+
+
 async def _locate_and_fetch(
     client: httpx.AsyncClient, entry: DisclosureResolverEntry, scheme_rows: list[Scheme],
 ) -> list[LocatedFile]:
@@ -1839,6 +2866,9 @@ async def _locate_and_fetch(
         names = [s.base_name or s.name for s in scheme_rows]
         return await _locate_deterministic_template(client, entry, names)
     if entry.kind is not DisclosureResolverKind.STATIC_REGEX:
+        # Reached only if `_is_locate_implemented` and this function's own kind dispatch
+        # ever disagree -- a genuine bug in this function, not an expected "not onboarded
+        # yet" state (the refresh loop below already filters those out before calling in).
         raise NotImplementedError(f"{entry.kind} Locate requires its own onboarding task")
     candidates = await _static_regex_candidates(client, entry)
     keep_all = entry.file_shape is DisclosureFileShape.MULTI_FILE_SINGLE_SCHEME
@@ -1865,14 +2895,31 @@ def _already_written(db: Session, amc_name: str, as_of_date: date) -> bool:
 
 async def refresh_portfolio_disclosures(db: Session) -> PortfolioDisclosureRefreshResult:
     started = time.perf_counter()
-    amcs_processed = amcs_failed = schemes_written = 0
+    amcs_processed = amcs_failed = amcs_not_onboarded = schemes_written = 0
 
     async with httpx.AsyncClient(timeout=_HTTP_TIMEOUT, headers=_HEADERS, follow_redirects=True) as http_client:
         for amc_name, entry in AMC_DISCLOSURE_RESOLVERS.items():
             if entry.kind is DisclosureResolverKind.MANUAL:
                 continue
+            # F4c: checked before the try block, not left to raise NotImplementedError
+            # inside it -- a registry entry with no Locate code yet is a known, expected
+            # gap (surfaced once per run in the end-of-run summary below), not a failure
+            # worth an individual PORTFOLIO_DISCLOSURE_ALERT line every single day.
+            if not _is_locate_implemented(entry):
+                amcs_not_onboarded += 1
+                continue
             try:
+                # F4b: a registry key that doesn't exactly match scheme master's
+                # amc_name values silently returns zero rows here -- Locate/Fetch/Parse
+                # all still "succeed" on an empty scheme list, which would otherwise look
+                # identical to "the AMC published nothing this month" (no_file_found)
+                # rather than "the registry key is spelled wrong." Checked explicitly so
+                # the alert reason says which one actually happened.
                 scheme_rows = db.query(Scheme).filter(Scheme.amc_name == amc_name).all()
+                if not scheme_rows:
+                    _alert(amc_name, "zero_schemes_matched", "registry key has no scheme_master rows")
+                    amcs_failed += 1
+                    continue
                 located_files = await _locate_and_fetch(http_client, entry, scheme_rows)
                 if not located_files:
                     _alert(amc_name, "no_file_found", entry.landing_url or entry.url_template or "")
@@ -1912,9 +2959,19 @@ async def refresh_portfolio_disclosures(db: Session) -> PortfolioDisclosureRefre
                 _alert(amc_name, "error", f"{type(exc).__name__}: {exc}"[:300])
                 amcs_failed += 1
 
+    if amcs_not_onboarded:
+        # F4c: one INFO line for the whole run, not one WARNING per AMC -- this is a
+        # known, static gap (tracked against Task 9's JSON_API build-out), not something
+        # that regressed today, so it must never look like a failure in the alert feed.
+        logger.info(
+            "refresh_portfolio_disclosures: %d registered AMC(s) skipped, Locate not yet built",
+            amcs_not_onboarded,
+        )
+
     return PortfolioDisclosureRefreshResult(
         success=True, amcs_processed=amcs_processed, amcs_failed=amcs_failed,
-        schemes_written=schemes_written, seconds=round(time.perf_counter() - started, 1),
+        amcs_not_onboarded=amcs_not_onboarded, schemes_written=schemes_written,
+        seconds=round(time.perf_counter() - started, 1),
     )
 ```
 
@@ -2058,7 +3115,8 @@ or the `url_template.format(...)` field names against the registry entry's templ
 - [ ] **Step 13: Run the full file and commit**
 
 Run: `cd backend && pytest tests/services/analytics/test_portfolio_disclosure_client.py -v`
-Expected: PASS (5 tests).
+Expected: PASS (7 tests) — the original 5 plus F4b's and F4c's zero-schemes-alert and
+not-onboarded-skip tests added above.
 
 ```bash
 git add backend/app/services/analytics/portfolio_disclosure_client.py \
@@ -2092,6 +3150,25 @@ Two AMCs share this kind but need two different CDX query shapes (confirmed in t
   sit directly on a plain WordPress media-library path with no index; a *prefix* CDX
   search over that path surfaces every capture, and each is downloaded live from the
   same, unprotected domain (no domain rewrite needed).
+
+**Decided 2026-10-13 (resolves amc-coverage.html Q16 — Wayback dependence, and the Canara
+Robeco spec-vs-plan conflict — see `decisions.md`):** option C, plus the conflict resolved
+with evidence already in hand (not left as "I have not opened a Canara file myself"). The
+spike's own confirmed capture URL —
+`SC-–-Canara-Robeco-Small-Cap-Fund-–-August-2026.xlsx` — is a separate per-scheme workbook,
+not a multi-scheme index-sheet bundle; the engine spec's listing of Canara alongside
+Baroda/Bank of India/Abakkus/Sundaram/ICICI Prudential as an index-sheet AMC is the error,
+not this plan's generic `SINGLE_WORKBOOK_MULTI_SHEET`-or-plain parse. The spec row is
+corrected to match. Kotak's Wayback dependency is removed entirely (see its registry entry
+above, now `DETERMINISTIC_TEMPLATE`); HDFC and Canara keep `WAYBACK_LOCATE` since each
+genuinely has no direct, bot-free path. Two fixes land in this task: the prefix-search
+helper below gains a `link_pattern` filter so Canara's open-ended
+`wp-content/uploads/` search (today: every captured upload under that path, up to 50,
+with no filter at all) only downloads files actually matching the AMC's known naming shape;
+and after a CDX query, if the newest capture found is not newer than the previous month's,
+`_alert(amc_name, "stale_wayback_capture", ...)` fires through the same ops-topic path as
+Q12's other alerts — telling you Wayback has stopped finding fresh captures for HDFC or
+Canara before a silent monthly gap builds up.
 
 - [ ] **Step 1: Write the failing test for the CDX query helper**
 
@@ -2517,6 +3594,21 @@ git commit -m "feat: add scheduled job entrypoint for portfolio-disclosure inges
 
 In `infra/modules/scheduler/main.tf`, inside `locals.jobs`, add after `fund_managers_monthly`:
 
+**Decided 2026-10-13 (F2/F3):** `memory` must be set explicitly, not left at the
+module's 1024MB default (`lookup(each.value, "memory", "1024")`) — a 44+1-AMC run
+(Task 5's full registry, not the original 10) processing bundled multi-scheme workbooks
+is the same shape of memory pressure as `fund_managers_monthly`'s own `2048` precedent
+above, and nothing about this job's workload is smaller. The schedule is also moved
+earlier than originally drafted, to `05:45` IST, not `07:00` — confirmed safe against
+the Terraform night-stop-start schedule (the stack finishes coming up ~05:06-05:11 IST,
+per the night-stop EventBridge timing read directly from `infra/modules/networking/` and
+the stop-schedule module), leaving a ~35-40 minute margin. The real reason for the move
+is downstream, not infra safety: the existing `ter_daily`/NAV jobs run at `06:00`-ish and
+the household recompute job (consuming this plan's five look-through attributes) runs at
+`06:30` — if this job ran at `07:00` as originally drafted, every day's recompute would
+read yesterday's look-through data, a full day stale. `05:45` gives this job up to 45
+minutes to finish before `06:30`'s recompute needs its output.
+
 ```hcl
     # Daily, not monthly: retry-until-found is implicit in
     # refresh_portfolio_disclosures's own _already_written skip-check, so a flat
@@ -2526,8 +3618,12 @@ In `infra/modules/scheduler/main.tf`, inside `locals.jobs`, add after `fund_mana
     portfolio_disclosures_daily = {
       slug                = "portfolio-disclosures-daily"
       command             = ["python", "scripts/jobs/refresh_portfolio_disclosures_daily.py"]
-      schedule_expression = "cron(0 7 1-20 * ? *)"
+      schedule_expression = "cron(45 5 1-20 * ? *)"
       task_role_arn       = null
+      # Same order-of-magnitude memory pressure as fund_managers_monthly's run (44+1
+      # AMCs, several bundled multi-scheme workbooks held in memory per AMC) -- the
+      # module's 1024MB default was sized for the smaller, original 10-AMC scope.
+      memory = "2048"
     }
 ```
 
@@ -2602,17 +3698,34 @@ fresh research no amount of extra time today could responsibly substitute for (a
 endpoint that survives nowhere in writing), or is already a pre-existing spec-level
 decision outside this plan's scope to revisit.
 
-- **`JSON_API`-kind Locate, now 23 AMCs, not 14.** The original 14 (PGIM India, Navi, Jio
-  BlackRock, Bandhan, ICICI Prudential, Bajaj Finserv, Unifi, Zerodha, Abakkus, quant Money
-  Managers, Sundaram, Choice, UTI, Tata) still have no literal reusable endpoint written down
-  anywhere — each needs its own from-scratch network-trace research pass before an adapter can be
-  written. **Corrected 2026-10-12 (sixth pass): WhiteOak Capital is a 15th member of this same
-  research-gap bucket** — the engine spec already named it as needing its adapter built during
-  build-out (page confirmed live at `mf.whiteoakamc.com/regulatory-disclosures/
-  scheme-portfolios`, same select/click shape as the other 14), but this plan's own accounting
-  never included it; a real gap, not a design question. **The fifth pass adds 8 more AMCs to this
-  same registry bucket, but with their literal endpoints already found and documented** (no
-  further research needed, just adapter-writing):
+- ~~**`JSON_API`-kind Locate, now 23 AMCs, not 14... each needs its own from-scratch
+  network-trace research pass before an adapter can be written.**~~ **Corrected 2026-10-13:
+  this item overstated the gap, twice over.** The 14 (PGIM India, Navi, Jio BlackRock,
+  Bandhan, ICICI Prudential, Bajaj Finserv, Unifi, Zerodha, Abakkus, quant Mutual Fund,
+  Sundaram, Choice, UTI, Tata) each already have a confirmed, download-verified Locate
+  mechanism — described as a UI interaction (select/click/accordion) because that's how
+  the spike found it, not because production needs to replay that interaction. Cross-
+  checking attribute 04's own adapter registry (already-built production code,
+  `fund_manager_resolvers.py`) found that 12 of these 14 already have a confirmed,
+  non-bot-blocked, plain-HTTP document API or static-link page on the exact same domain
+  for their factsheet document type — strong evidence the disclosure equivalent is a
+  sibling endpoint, not a page needing live JS execution. Navi's literal endpoint
+  (`navi.com/wp-json/nv/v1/documents`) was in the spike doc all along, just never pulled
+  into this plan. All 13 of those are onboarded this round in Task 5 as plain `JSON_API`/
+  `STATIC_REGEX` entries, each with a sourced hypothesis and a `NEEDS LIVE VERIFICATION`
+  note for the one request/link-pattern substitution still to be confirmed — not an open
+  research item, and **no Playwright/browser-automation production dependency needed at
+  all for this bucket**. **Bandhan — resolved 2026-10-13:** the attribute-04
+  sibling-auth-gate signal was superseded by the more directly relevant evidence (the
+  spike's own investigation of Bandhan's *disclosure* document, not its unrelated
+  factsheet API) — a public, unauthenticated proxy that signs a GCS URL. Reclassified
+  `JSON_API`, onboarded. Only **WhiteOak Capital** (page confirmed live at
+  `mf.whiteoakamc.com/regulatory-disclosures/scheme-portfolios`, but unlike every other
+  AMC in this plan its mechanism isn't discovered at all yet) remains a genuine open item
+  across the entire 57-AMC universe. **The
+  fifth pass adds 8 more AMCs to a related but distinct bucket, with their literal
+  endpoints already found and documented** (no browser automation needed at all, just a
+  direct HTTP call):
   SBI (`POST /ajaxcall/CMS/GetSchemePortfolioSheetsQS`), Bank of India (`AjaxService.asmx/GetDocuments`),
   Trust Mutual Fund (`POST /api/api/Trust/GetData`), Mirae Asset (`AjaxService/GetDownloadsData`
   on `/downloads/portfolio`), LIC (`/downloads/portfolio-filter-options` then
@@ -2627,14 +3740,19 @@ decision outside this plan's scope to revisit.
   still only implements `STATIC_REGEX` and `WAYBACK_LOCATE` this round; `JSON_API` support (for
   all 22) remains future work, same as originally planned — this correction only changes which 8
   of those 22 are "ready to adapt" versus "needs research first."
-- **`ZIP_OF_WORKBOOKS` has no onboarded AMC yet**, despite Task 2 building
-  `extract_zip_members` generically — ICICI Prudential's real ZIP-of-151-xlsx and the
-  other AMCs that share this bundling pattern (Abakkus, Sundaram, Baroda
-  BNP Paribas) are all also in the `JSON_API`-research-gap bucket above, so there's no
-  AMC today where only the ZIP step is missing; wiring a registry entry for it is moot
-  until one of those is separately onboarded. (Bank of India, previously listed here as sharing
-  this bundling pattern, is corrected above to a single multi-sheet workbook via
-  `AjaxService.asmx/GetDocuments` — not a ZIP — per the fifth pass.)
+- ~~**`ZIP_OF_WORKBOOKS` has no onboarded AMC yet**~~ — **corrected 2026-10-13: it does
+  now.** ICICI Prudential's real ZIP-of-151-xlsx is onboarded against this shape in Task
+  5 this round (the AMC's real page, found via WebSearch after its primary
+  `archive.icicipruamc.com` path turned out to be a dead NXDOMAIN — not Bank of India's
+  bundling pattern, which is corrected above to a single multi-sheet workbook via
+  `AjaxService.asmx/GetDocuments`, not a ZIP, per the fifth pass). Abakkus and Sundaram
+  were previously (incorrectly) grouped here as sharing ICICI Prudential's ZIP pattern —
+  the spike's own mechanism descriptions for both are a single multi-sheet workbook
+  (Abakkus: Index + 4 per-scheme sheets; Sundaram: one Index-sheet workbook, 31 schemes),
+  i.e. `SINGLE_WORKBOOK_MULTI_SHEET`, same shape as Nippon India — corrected in Task 5's
+  entries for both. Baroda BNP Paribas was already resolved `STATIC_REGEX` (a direct
+  `.xlsx` link in the page's own static HTML) in the second audit pass, never a ZIP at
+  all; this bullet's inclusion of it was stale from an earlier draft.
 - ~~**JS-shell AMCs (DSP, NJ Mutual Fund, and 14 others individually re-confirmed the same
   way — SBI, Mirae Asset, Invesco, Axis, ITI, Trust Mutual Fund, Taurus, Wealth Company,
   Aditya Birla Sun Life, JM Financial, Bank of India, Baroda BNP Paribas, 360 ONE, HSBC,
@@ -2662,10 +3780,13 @@ decision outside this plan's scope to revisit.
   Market value, % to AUM). Stays `STATIC_REGEX`, fully automatable — correct the
   `link_pattern`'s digit format in the registry, no further research or manual fetch
   needed.
-- **Old Bridge Mutual Fund.** Its filename convention has visibly drifted since the
-  spike — a mix of `IR_Old_Bridge_Mutual_Fund_DDMMYYYY_hash.xlsx` and separate
-  per-scheme files, with the per-scheme pattern only confirmed through January 2026.
-  Genuinely ambiguous today; not safe to hardcode a `link_pattern` against.
+- ~~**Old Bridge Mutual Fund.** Its filename convention has visibly drifted since the
+  spike... Genuinely ambiguous today; not safe to hardcode a `link_pattern` against.~~
+  **Resolved 2026-10-13, no longer deferred.** Per the user's explicit instruction that no
+  AMC is left to a later wave, the drift is handled as a disambiguation rule rather than a
+  research gap: prefer the per-scheme-named file over the AMC-wide `IR_` file when both
+  match the current month, and alert (not silently pick) if neither matches. Onboarded in
+  Task 5's registry with this rule encoded as `link_pattern`/`exclude_pattern`.
 - **Standing manual-fetch: exactly 6 AMCs (Edelweiss, Mahindra Manulife, Invesco, ITI, JM
   Financial, HSBC).** Edelweiss and Mahindra Manulife remain confirmed-genuine WAF/encrypted-API
   blocks. The fifth pass adds four more for named, confirmed reasons: Invesco and ITI are

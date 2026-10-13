@@ -152,32 +152,35 @@ flowchart TD
 <ol class="passes"><li><div class="when"><span class="n">Pass 0</span><span class="pill p-claude">Claude</span></div><div class="what"><h3>Pre-flight</h3><p>Q23 to Q25 settled; handoff document and log line.</p></div></li><li><div class="when"><span class="n">Run 8</span><span class="pill p-codex">Codex run 8</span></div><div class="what"><h3>Task 4, backend and frontend</h3><ul><li>42% example, symmetry, raw-weight regression, concentration read, heatmap section.</li></ul></div></li><li><div class="when"><span class="n">Gate 8</span><span class="pill p-claude">Claude</span></div><div class="what"><h3>Verify, review, synthetic CAS check</h3><p>Gate = touched test files only, <code>alembic upgrade</code> on local Postgres where a migration is involved, the adversarial review against Review Focus, then one commit per task by Claude. Codex never stages, commits or touches Postgres, staging or AWS. Then the harness with the seeded holdings fixture, checking one fund pair by hand.</p></div></li></ol>
 </section><section>
   <div class="sec-head"><span class="tag">Issues in detail</span><h2>Issues, by status</h2></div>
-<div class="group"><div class="group-head"><h3>Waiting on you</h3><span class="pill p-you">3</span></div><p class="note">All three are display or scope rules.</p><div class="issues"><article class="ib you">
-  <div class="top"><span class="qid">Q23</span><span class="pill p-you">Your call</span><h3>Overlap across all common instruments, or stocks only?</h3></div>
+<div class="group"><div class="group-head"><h3>Decided</h3><span class="pill p-new">3</span></div><p class="note">Resolved 2026-10-13; rationale in <code>decisions.md</code>. All three are display or scope rules.</p><div class="issues"><article class="ib done">
+  <div class="top"><span class="qid">Q23</span><span class="pill p-new">Decided</span><h3>Overlap across all common instruments, or stocks only?</h3></div>
   <dl>
     <dt>The issue</dt><dd><p>The formula is the sum of the smaller of two weights over common ISINs. The shared data holds every instrument with an ISIN. Two hybrid funds can share government bonds or the same deposit, and two debt funds can overlap heavily on paper that is not a stock.</p></dd>
     <dt>Why it matters</dt><dd><p>The PDF's headline reads "Top 10 stocks" and its overlap example lists stocks. Counting bonds would raise the overlap of hybrid and debt pairs well above what an investor means by it.</p></dd>
     <dt>Options</dt><dd><ol class="opts"><li class="pick"><span class="k">A</span><span>Equity rows only (domestic and international). A hybrid pair is measured on its equity part only.</span></li><li class=""><span class="k">B</span><span>All instruments with an ISIN.</span></li><li class=""><span class="k">C</span><span>Equity rows only by default, with a toggle for all.</span></li></ol></dd>
     <dt>Recommended</dt><dd><p><span class="rec">A.</span> Matches the PDF's wording. Debt overlap can be a later addition.</p></dd>
     <dt>After your answer</dt><dd><ul><li><code>compute_fund_pair_overlap</code> filters on <code>asset_type</code> before the minimum.</li><li>The percentage is a share of each fund's net assets, so a fund with 70% equity can reach at most 70%. The UI says so.</li></ul></dd>
+    <dt>Decided 2026-10-13</dt><dd><p><b class="rec">A confirmed.</b> Equity-only overlap, consistent with Q17/Q27's equity-only scope for this attribute family — in Task 4 of the consumer plan.</p></dd>
   </dl>
-</article><article class="ib you">
-  <div class="top"><span class="qid">Q24</span><span class="pill p-you">Your call</span><h3>Where do the overlap bands live?</h3></div>
+</article><article class="ib done">
+  <div class="top"><span class="qid">Q24</span><span class="pill p-new">Decided</span><h3>Where do the overlap bands live?</h3></div>
   <dl>
     <dt>The issue</dt><dd><p>The spec gives 20% and 40% as suggested thresholds and says "configurable". Sub-project 1 settled that configurable values live in a small table edited in DBeaver, with no admin screen (ranking weights, scenario library).</p></dd>
     <dt>Why it matters</dt><dd><p>A constant in code is the cheapest. A table follows the precedent but adds a migration for two numbers.</p></dd>
     <dt>Options</dt><dd><ol class="opts"><li class=""><span class="k">A</span><span>Constants in the frontend and backend, no table.</span></li><li class=""><span class="k">B</span><span>A one-row config table like <code>ranking_weights</code>.</span></li><li class="pick"><span class="k">C</span><span>Constants now, move to a table only if you ask to change them.</span></li></ol></dd>
     <dt>Recommended</dt><dd><p><span class="rec">C.</span> Two numbers do not earn a table yet. You can tell me to move them.</p></dd>
     <dt>After your answer</dt><dd><ul><li>One shared constants module, tested.</li></ul></dd>
+    <dt>Decided 2026-10-13</dt><dd><p><b class="rec">C confirmed.</b> Named constants, not a config table — no admin surface for two values that don't need runtime editing. Revisit as a table only if a change is actually requested.</p></dd>
   </dl>
-</article><article class="ib you">
-  <div class="top"><span class="qid">Q25</span><span class="pill p-you">Your call</span><h3>How many funds before the heatmap becomes unreadable?</h3></div>
+</article><article class="ib done">
+  <div class="top"><span class="qid">Q25</span><span class="pill p-new">Decided</span><h3>How many funds before the heatmap becomes unreadable?</h3></div>
   <dl>
     <dt>The issue</dt><dd><p>The matrix grows with the square of the funds held. A household of 4 members with 10 funds each has 40 funds and 780 unordered pairs in the combined scope, all stored in the one JSON payload that every Analytics load fetches.</p></dd>
     <dt>Why it matters</dt><dd><p>A 40 by 40 grid does not fit a phone, and the payload grows with it.</p></dd>
     <dt>Options</dt><dd><ol class="opts"><li class=""><span class="k">A</span><span>Cap at the 12 largest holdings by value per scope and say "top 12 funds by value" under the heatmap.</span></li><li class=""><span class="k">B</span><span>No cap, horizontal scroll.</span></li><li class="pick"><span class="k">C</span><span>Cap at 12 and add a "show all pairs above 20%" list underneath.</span></li></ol></dd>
     <dt>Recommended</dt><dd><p><span class="rec">C.</span> Keeps the heatmap readable and the payload small, and the list still surfaces any high pair.</p></dd>
     <dt>After your answer</dt><dd><ul><li>The cap is applied in the compute step, so it also bounds stored size (see Q4).</li></ul></dd>
+    <dt>Decided 2026-10-13</dt><dd><p><b class="rec">C confirmed.</b> 12-fund cap on the heatmap plus a "pairs over 20%" list underneath, so the cap never silently hides a genuinely high overlap — in Task 4 of the consumer plan.</p></dd>
   </dl>
 </article></div></div><div class="group"><div class="group-head"><h3>Plan fixes</h3><span class="pill p-mod">0</span></div><p class="note">Nothing specific to this attribute beyond the shared fixes F7 to F11 on the attribute 06 page.</p><div class="issues"></div></div>
 </section>

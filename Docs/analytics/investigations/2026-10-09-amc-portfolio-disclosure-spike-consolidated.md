@@ -217,7 +217,7 @@ September 2026 file.
 | Mirae Asset Mutual Fund | **JSON_API** | batch A, **corrected fifth pass 2026-10-12**: cited page/guessed filenames were soft-404 traps (HTTP 200, HTML error page under a `.xlsx` extension); real mechanism is `/downloads/portfolio` → `AjaxService/GetDownloadsData` (plain JSON, replayable via `curl`) |
 | NJ Mutual Fund | STATIC_REGEX | batch A |
 | Franklin Templeton Mutual Fund (India) | STATIC_REGEX | batch A |
-| Invesco Mutual Fund | STATIC_REGEX | batch A |
+| Invesco Mutual Fund | **BOT_BLOCKED** | batch A, **corrected sixth pass 2026-10-13** (this row was stale — the fifth-pass doc already found `curl` and a real headless-Chromium Playwright navigation both return `403` from a WAF (`server: volt-adc`); a genuine bot wall, not `STATIC_REGEX`. This table's row was never updated to match at the time; fixed here to agree with the fifth pass and the sixth pass's own 44+1+6+1+5=57 closing paragraph, which already correctly counts Invesco among the 6 standing manual-fetch AMCs) |
 | Canara Robeco Mutual Fund | **STATIC_REGEX** | batch A, upgraded 4th pass (the encrypted API is only one nav item; the actual monthly files are plain WordPress `wp-content/uploads/` assets) |
 | Baroda BNP Paribas Mutual Fund | **STATIC_REGEX** | batch A, upgraded 2nd pass (direct link in static HTML) |
 | PPFAS Mutual Fund (Parag Parikh) | STATIC_REGEX | batch A |

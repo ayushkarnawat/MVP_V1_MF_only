@@ -59,24 +59,55 @@ Task 1 directly.
       nothing to TDD a real aggregation against beyond trivial empty-input cases, and the
       amendment in Task 1 needs real section-header data to verify against.
 
-## Task 1 — `scheme_holdings.asset_type` amendment (spec §7.1) — approved 2026-10-12
+## Task 1 — `scheme_holdings.asset_type` — verification step only (revised 2026-10-13)
+
+**Revised 2026-10-13 (resolves engine.html Q8/Q13 — see the ingestion plan's Task 1 "Decided
+2026-10-13" note and `decisions.md`):** this task is no longer a second migration. The
+ingestion plan's own Task 1 now creates `scheme_holdings.asset_type` with the full 8-value
+`AssetType` enum (`DERIVATIVE`/`OTHER` included) from the start, and Task 2 stamps it via
+section-aware parsing — there is nothing left for this task to build. It survives only as a
+gate check that this task's two assumptions actually held once the engine is built.
 
 - [x] Get explicit user sign-off on the amendment to the already-written 2026-10-09 engine
       spec (new `AssetType` enum column on `scheme_holdings`, populated by the Parse stage from
       disclosure section headers) — approved 2026-10-12 and written into the engine spec's
-      `SchemeHolding` model, per the spec's own §7.1 note. Implementation (the migration below)
-      is cleared to start per the "Implementation gate — lifted" note above.
-- [ ] Red: a migration test asserting `scheme_holdings.asset_type` exists with the 6 enum
-      values (`EQUITY_DOMESTIC`, `EQUITY_INTERNATIONAL`, `DEBT`, `GOLD_SILVER`, `REIT_INVIT`,
-      `CASH_EQUIVALENT`), run against SQLite per `tests/test_migrations.py`'s existing pattern.
-- [ ] Green: write the Alembic migration (next sequential number) adding the column, backfill
-      existing rows as `OTHER`/`NULL`-safe default if any pre-amendment rows exist.
-- [ ] Red/Green: extend the ingestion plan's Parse-stage tests (wherever they live) to assert
-      `asset_type` is stamped correctly from each AMC's section headers for at least the 2-3
-      AMCs already built in the ingestion plan at that point.
-- [ ] Commit.
+      `SchemeHolding` model, per the spec's own §7.1 note.
+- [ ] Verify (no new migration, no new code): `scheme_holdings.asset_type` exists and is
+      `NOT NULL` on the 8-value enum, not the 6-value one — read the ingestion plan's applied
+      migration, don't re-derive it.
+- [ ] Verify: at least one real `WRITTEN` batch (Task 0's gate) has a `DERIVATIVE` or `OTHER`
+      row if the source AMC's sheet contains one, confirming Parse's section-aware stamping
+      ran on real data, not just the ingestion plan's synthetic fixtures.
+- [ ] Commit only if either check above required a fix; otherwise this task closes with no diff.
 
 ## Task 2 — Shared `lookthrough.py` service + Attribute 06 (build together — 06 has no logic beyond reading the shared table)
+
+**Decided 2026-10-13 (resolves a06 Q17 — does the stock table show only stocks? — see
+`decisions.md`):** option A. `StockHoldingsSection` filters the shared `LookthroughTable` to
+`asset_type in (EQUITY_DOMESTIC, EQUITY_INTERNATIONAL)` only; the shared table itself stays
+unfiltered (every other consumer attribute reads the full set). A one-line summary under the
+top-10 states the combined debt/gold/cash/derivative share, linking to attribute 13 for detail
+— matches both the "overall stock holdings" heading and the PDF's worked example.
+
+**Decided 2026-10-13 (resolves a06 Q18 — how old can a fund's holdings be before we say so? —
+see `decisions.md`):** option C, with one refinement. A fund's holdings are tagged "older than
+60 days" (not dropped, not excluded from the count) in the coverage notice and the drill-down
+when its newest `WRITTEN` batch's `as_of_date` is more than 60 days before the computed-as-of
+date — 60, not the artifact's own inconsistent "50"/"60" wording, chosen because it covers two
+full monthly cycles plus the ~10-day publication lag the issue text itself names, so a normally-
+late AMC isn't flagged every month. The refinement: an AMC on an accepted non-monthly cadence
+(Taurus/Monarch Networth, per the ingestion plan's Task 5 registry notes) is never tagged
+"older than 60 days" for being on-cadence — it is tagged "on `<cadence>` cycle" instead, so a
+genuinely-current Half-Yearly disclosure doesn't read as stale data every single month.
+
+**Decided 2026-10-13 (resolves a06 Q19 — is a sector breakdown part of this release? — see
+`decisions.md`):** option A. No sector chart or normalisation table this release;
+`sector_raw` shows as a column in "View all" exactly as the spec already says, and the gap is
+recorded in `DEFERRED_FEATURES.md`. Not deferred for lack of a free source — option C's two
+sources (NSE's Nifty 500 Industry column, already live-verified for Q21/a02; Yahoo's
+`assetProfile`) are real and free — deferred because a label-normalisation table is a second,
+separable piece of work this release doesn't need to carry. The `DEFERRED_FEATURES.md` entry
+must name both sources so a future session doesn't re-run the same spike.
 
 - [ ] Red: `compute_lookthrough_table()` test — 3 synthetic funds, synthetic `scheme_holdings`
       rows, assert the Reliance 8%/6%/5% → 6.55% worked example from the spec/PDF exactly
@@ -95,6 +126,33 @@ Task 1 directly.
 - [ ] Commit.
 
 ## Task 3 — Attribute 02: AMFI market-cap ingestion + Cap Allocation
+
+**Decided 2026-10-13 (resolves a02 Q20 — which AMFI list applies to a holding, and how far
+back do we load? — see `decisions.md`). Live-verified, not assumed:** option A. AMFI's
+semi-annual list is effective the day *after* its averaging period ends, confirmed against
+the real-world pattern of the SEBI 2017 circular's operation — the Jul-Dec average becomes
+effective 1 Jan, the Jan-Jun average becomes effective 1 Jul (funds then get a separate
+~30-day window to actually rebalance, which is about portfolio composition, not about which
+classification list Unifolio should look up — the lookup itself uses the day-after-period-end
+date). So the file named for "the six months ended 30 Jun 2026" gets `effective_date =
+2026-07-01`. Load the last 4 lists (two years) at first deploy, per option A's other half.
+
+**Decided 2026-10-13 (resolves a02 Q21 — the Nifty 500 comparison strip needs data nobody
+has sourced — see `decisions.md`). Checked, not just deferred:** option A — drop the strip
+this release, spec already marks it optional. Checked today whether a free weight-based
+alternative exists before deferring: NSE's factsheet (`ind_nifty_500.pdf`) publishes only
+top-10 holdings and sector weights, not a full 500-constituent weight file; no free,
+machine-readable per-constituent weight CSV was found on `nseindia.com` or
+`niftyindices.com` (both host the unweighted constituent list already used elsewhere in this
+plan). A count-based strip (option B) remains available later without new sourcing if the
+weight-based version never turns up free — record both facts in `DEFERRED_FEATURES.md` so
+a future session doesn't re-run this spike.
+
+**Decided 2026-10-13 (resolves a02 Q22 — what goes in "Other / Unclassified"? — see
+`decisions.md`):** option C. The donut keeps one "Other / Unclassified" slice exactly as
+drawn in the PDF and visual map; the drill-down splits it into "Not equity (debt, cash,
+gold, REITs)" and "Equity not in AMFI list" so the two meanings are never conflated, without
+changing the headline chart's shape.
 
 - [x] **Feasibility spike — done 2026-10-13, deepened to 110%-confidence same day.**
       Live-verified AMFI's half-yearly market-cap list: current period
@@ -141,6 +199,26 @@ Task 1 directly.
 
 ## Task 4 — Attribute 10: fund-pair overlap + concentration curve
 
+**Decided 2026-10-13 (resolves a10 Q23 — overlap across all common instruments, or stocks
+only? — see `decisions.md`):** option A, consistent with a06 Q17's equity-only treatment of
+the same shared table. `compute_fund_pair_overlap` filters to `asset_type in
+(EQUITY_DOMESTIC, EQUITY_INTERNATIONAL)` before taking the per-ISIN minimum; the result is a
+share of each fund's net assets (so a 70%-equity fund caps out at 70% overlap with anything),
+and the UI states that explicitly rather than implying 100% is reachable.
+
+**Decided 2026-10-13 (resolves a10 Q24 — where do the overlap bands live? — see
+`decisions.md`):** option C. The 20%/40% thresholds are constants in one shared module
+(backend and frontend each import from it, not two copies), not a config table — two numbers
+don't earn Sub-project 1's `ranking_weights`-style table yet. Move to a table only on
+explicit request to change the values.
+
+**Decided 2026-10-13 (resolves a10 Q25 — how many funds before the heatmap becomes
+unreadable? — see `decisions.md`):** option C. The compute step itself caps the heatmap at
+the 12 largest holdings by value per scope (bounding both the UI grid and the stored JSON
+payload — same mechanism overview.html's Q4 storage-scope question depends on), labelled
+"top 12 funds by value," plus an uncapped "pairs above 20%" list underneath so a high-overlap
+pair involving a smaller holding is never silently dropped.
+
 - [ ] Red: `compute_fund_pair_overlap()` test using the spec's own worked numbers (two funds,
       42% overlap across HDFC Bank/Reliance/ICICI Bank/Infosys/TCS + 11 others) — explicitly
       assert it reads raw per-scheme `pct_to_nav`, **not** `LookthroughTable.exposure_pct`
@@ -156,6 +234,25 @@ Task 1 directly.
 
 ## Task 5 — Attribute 13: asset allocation (depends on Task 1's amendment)
 
+**Decided 2026-10-13 (resolves a13 Q26 — how is the hedged-arbitrage "cash-like" toggle
+built? — see `decisions.md`):** option A. The toggle acts on `schemes.sebi_category ==
+"Arbitrage Fund"` — a field that already exists, no new ingestion — moving that fund's
+entire holding to cash-like when switched on. Option C (extend the same treatment to Equity
+Savings funds' hedged portion) is correctly left for later: it needs a rule nobody has
+written yet (how much of an Equity Savings fund's equity is actually hedged isn't derivable
+from today's disclosure fields), so building it now would mean inventing a heuristic, not
+applying one. Record the gap in `DEFERRED_FEATURES.md`.
+
+**Decided 2026-10-13 (resolves a13 Q27 — what is the outer ring of the donut for debt, gold
+and cash? — see `decisions.md`):** option A. Only the equity ring gets an outer level
+(Large/Mid/Small/Other, reusing attribute 02's classification directly); debt, gold and cash
+each stay one undivided segment. Option B (debt by credit-rating bucket) needs a
+`credit_rating` field Parse doesn't capture today — flagged in `DEFERRED_FEATURES.md` as
+cheaper than it looks (the rating string, e.g. "AAA"/"SOV", is already present in most AMCs'
+raw sheets, often inside the instrument name or an adjacent column Parse already walks past
+section-aware since Q8/Q13's decision) but still a second piece of parsing work this release
+doesn't need to carry.
+
 - [ ] Red: a test grouping `scheme_holdings` by `asset_type` per scheme, asserting the
       3-fund worked example (95/0/0/5, 65/30/0/5, 0/0/100/0 → 76.5/9.0/10.0/4.5 client-level)
       from the spec/PDF exactly.
@@ -169,6 +266,35 @@ Task 1 directly.
 - [ ] Commit.
 
 ## Task 6 — Attribute 15: stock fundamentals ingestion + P/E, P/B (both in full scope, integration fully speced)
+
+**Decided 2026-10-13 (resolves a15 Q28 — which P/E, and are P/E and P/B comparable? — see
+`decisions.md`). The untested comparison the artifact flagged is now reasoned through, not
+left open:** option A — P/E from NSE's `SYMBOL P/E` column, P/B from Yahoo, with the source
+line shown under the chart. Researched which NSE per-stock column actually matches the
+index-level methodology before picking: NSE's own per-stock `ADJUSTED P/E` specifically
+excludes exceptional items (one-off gains/losses) from earnings; `SYMBOL P/E` uses the raw
+reported trailing-4-quarter net profit. NSE Indices' published Nifty 50 index P/E is an
+aggregate of constituent market cap over aggregate constituent trailing earnings — a raw
+aggregation, with no per-stock exceptional-item adjustment folded in. `SYMBOL P/E` is
+therefore the methodologically consistent column for a portfolio-level aggregate meant to
+sit next to that index figure; `ADJUSTED P/E` would silently mix two different earnings
+definitions into one "comparison." P/B still comes from a different vendor than P/E (Yahoo),
+so the two ratios still answer slightly different questions — recorded as the source-line
+caveat per option A, not hidden.
+
+**Decided 2026-10-13 (resolves a15 Q29 — compare against Nifty 50 only, or Nifty 500 too? —
+see `decisions.md`):** option B. Both indices are drawn as two rows on each bar — same
+endpoint, same request shape, the fetch universe already includes both lists per the
+feasibility spike above, so there's no new sourcing cost to showing the closer Nifty 500
+comparison alongside the spec's original Nifty 50.
+
+**Decided 2026-10-13 (resolves a15 Q30 — how much of the equity must have data before we
+show P/E and P/B? — see `decisions.md`):** option B. The ratio shows only once at least 70%
+of equity exposure (by value) has it; below that, the section shows "not enough data" and
+lists which holdings are missing it (delisted/merged, BSE-only, no Yahoo P/B, loss-making
+excluded from P/E), rather than publishing a number built from under a third of the
+portfolio. 70% is a chosen threshold, not a measured one — it is a named constant, not
+buried in logic, so it can be revisited without a code change.
 
 - [x] **Feasibility spike — done 2026-10-13, revised same day.** Live-verified per spec §7.2 and
       `Docs/analytics/investigations/2026-10-13-attribute-15-pe-pb-sourcing-feasibility.md`:
