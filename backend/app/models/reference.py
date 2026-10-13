@@ -11,7 +11,7 @@ from sqlalchemy import Text, JSON, Date, UniqueConstraint, CheckConstraint, Bool
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
-from app.models.enums import ArnStatus, BenchmarkIndex, BenchmarkReturnType, PlanNameVariant, SchemeSource, SchemePlanType, enum_column
+from app.models.enums import AssetType, DisclosureBatchStatus, ArnStatus, BenchmarkIndex, BenchmarkReturnType, PlanNameVariant, SchemeSource, SchemePlanType, enum_column
 
 
 class Scheme(Base):
@@ -240,3 +240,47 @@ class ScenarioHypotheticalAssumption(Base):
             name="ck_scenario_hypothetical_assumptions_asset_class",
         ),
     )
+
+
+class DisclosureBatch(Base):
+    __tablename__ = "disclosure_batches"
+    __table_args__ = (
+        UniqueConstraint("scheme_id", "as_of_date", name="uq_disclosure_batches_scheme_date"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    scheme_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("schemes.id"), nullable=False, index=True)
+    as_of_date: Mapped[date_] = mapped_column(Date, nullable=False)
+    amc_name: Mapped[str] = mapped_column(String, nullable=False)
+    status: Mapped[DisclosureBatchStatus] = mapped_column(
+        enum_column(DisclosureBatchStatus), nullable=False, default=DisclosureBatchStatus.PENDING,
+    )
+    source_url: Mapped[str | None] = mapped_column(String, nullable=True)
+    raw_file_reference: Mapped[str | None] = mapped_column(String, nullable=True)
+    # "EXACT" | "FUZZY" -- same convention as SchemeFundManager.match_method (plain
+    # String + module constants in portfolio_disclosure_matching.py, not a DB enum).
+    match_method: Mapped[str | None] = mapped_column(String, nullable=True)
+    match_confidence: Mapped[Decimal | None] = mapped_column(Numeric(4, 3), nullable=True)
+    parse_errors: Mapped[list[dict] | None] = mapped_column(
+        JSON().with_variant(postgresql.JSONB(astext_type=String()), "postgresql"), nullable=True,
+    )
+    fetched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    written_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class SchemeHolding(Base):
+    __tablename__ = "scheme_holdings"
+    __table_args__ = (
+        Index("ix_scheme_holdings_batch", "batch_id"),
+        Index("ix_scheme_holdings_isin", "isin"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    batch_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("disclosure_batches.id"), nullable=False)
+    instrument_name: Mapped[str] = mapped_column(String, nullable=False)
+    isin: Mapped[str | None] = mapped_column(String, nullable=True)
+    sector_raw: Mapped[str | None] = mapped_column(String, nullable=True)
+    asset_type: Mapped[AssetType] = mapped_column(enum_column(AssetType), nullable=False)
+    quantity: Mapped[Decimal | None] = mapped_column(Numeric(20, 4), nullable=True)
+    market_value: Mapped[Decimal] = mapped_column(Numeric(20, 2), nullable=False)
+    pct_to_nav: Mapped[Decimal] = mapped_column(Numeric(6, 3), nullable=False)

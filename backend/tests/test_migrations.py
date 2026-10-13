@@ -33,6 +33,31 @@ def test_0036_0037_scenarios_seed_roundtrip(tmp_path, monkeypatch):
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 
 
+def test_0039_disclosure_schema_roundtrip(tmp_path, monkeypatch):
+    import sqlite3
+
+    path = tmp_path / "disclosure.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{path}")
+    up = _alembic("upgrade", "0039")
+    assert up.returncode == 0, up.stderr
+    with sqlite3.connect(path) as conn:
+        tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        assert {"disclosure_batches", "scheme_holdings"} <= tables
+        columns = {r[1]: r for r in conn.execute("PRAGMA table_info(scheme_holdings)")}
+        assert columns["asset_type"][3] == 1
+        indexes = list(conn.execute("PRAGMA index_list(disclosure_batches)"))
+        assert any(r[2] and [c[2] for c in conn.execute(f'PRAGMA index_info("{r[1]}")')]
+                   == ["scheme_id", "as_of_date"] for r in indexes)
+        sql = conn.execute("SELECT sql FROM sqlite_master WHERE name='disclosure_batches'").fetchone()[0]
+        assert "uq_disclosure_batches_scheme_date" in sql
+    down = _alembic("downgrade", "0038")
+    assert down.returncode == 0, down.stderr
+    with sqlite3.connect(path) as conn:
+        tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        assert not ({"disclosure_batches", "scheme_holdings"} & tables)
+    assert _alembic("upgrade", "0039").returncode == 0
+
+
 def test_alembic_upgrade_and_downgrade_round_trip(tmp_path, monkeypatch):
     db_path = tmp_path / "alembic_test.db"
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
@@ -71,6 +96,7 @@ def test_alembic_upgrade_creates_all_tables(tmp_path, monkeypatch):
         "fund_scores", "otp_requests", "sessions",
         "auth_identities", "pending_identity_verifications",
         "account_deletion_surveys",
+        "disclosure_batches", "scheme_holdings",
     }
     assert expected.issubset(tables)
     user_columns = {row[1] for row in conn.execute("PRAGMA table_info(users)")}

@@ -186,6 +186,32 @@ class SchemePlanType(str, enum.Enum):
     REGULAR = "regular"
 
 
+class DisclosureBatchStatus(str, enum.Enum):
+    PENDING = "pending"
+    FETCHED = "fetched"
+    PARSED = "parsed"
+    WRITTEN = "written"
+    FAILED = "failed"
+    AWAITING_MANUAL_UPLOAD = "awaiting_manual_upload"
+
+
+class AssetType(str, enum.Enum):
+    EQUITY_DOMESTIC = "equity_domestic"
+    EQUITY_INTERNATIONAL = "equity_international"
+    DEBT = "debt"
+    GOLD_SILVER = "gold_silver"
+    REIT_INVIT = "reit_invit"
+    CASH_EQUIVALENT = "cash_equivalent"
+    # Futures/options rows disclosed inside an otherwise-equity section (arbitrage and
+    # equity-savings funds) -- real rows, not noise, but excluded from every consumer
+    # attribute's directional sum (see this plan's 2026-10-13 decision note above Task 1).
+    DERIVATIVE = "derivative"
+    # A disclosed row whose section header matches none of the 7 known SEBI categories
+    # (e.g. a fund-of-funds' underlying-fund-unit lines) -- stored, never dropped, but
+    # excluded from consumer sums and counted in each attribute's coverage note instead.
+    OTHER = "other"
+
+
 def enum_column(enum_cls: type[enum.Enum]) -> Enum:
     """SQLAlchemy Enum that persists the member's lowercase ``.value``.
 
