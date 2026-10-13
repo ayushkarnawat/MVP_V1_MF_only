@@ -235,6 +235,27 @@ Plan: Tasks 13 (manual intake), 14 (refresh-loop rework), 15 (retention + failed
 
 **After this run the orchestrator will:** re-run the live end-to-end, run the Opus review across Runs 4 and 4b, then commit.
 
+## Run 4c — fix round after the Opus review of Runs 4 and 4b (2026-10-14; baseline `bd13d1e`)
+
+Opus review: CHANGES NEEDED (2 High, 3 Med, 5 Low), every item verified on real fixtures or the cached AMFI file (the reviewer's scripts are in `/tmp/claude-1000/rv/` on the orchestrator's WSL; reproduce from the descriptions). Fix **all**, test-first, minimal central changes, same files plus the manual-intake module.
+
+**H1 — holdings written to the wrong fund (the worst class of defect: wrong data, silently).**
+- Verified: real Bandhan fixture through manual intake: sheet `Bandhan CRF` (Credit Risk) saved WRITTEN to **Bandhan Contra Fund** (FUZZY 0.800); `Bandhan ON` (Overnight) also → Contra (0.833), so the two sheets overwrite one batch; 17 of 23 Bandhan sheets unmatched because manual intake never reads title candidates. Nippon: when a sheet's title matches no family (new/renamed fund), the AMC-prefix retry on its two-letter code matches a wrong fund (ME, ON, SC and ~30 codes → MNC Fund 0.903; IT → Gilt; UE → Value). DSP: `HEALTHCARE IDX` → Healthcare Fund, `NIFTYNEXT50 ETF` → Nifty 50 ETF, `LIQUIDETF` → Liquid Fund. A filename hint on a single consolidated workbook that contains the AMC name (`Edelweiss Mutual Fund`, `Mirae Asset Mutual Fund`, `Bajaj Finserv Fund`) matched Multi Cap / Multicap / Gilt.
+- **Ruling (match-key policy), one shared function used by both the refresh loop and manual intake** (`_match_sheet`): key order = Index entry → `scheme_title` → cleaned title candidates → filename hint **only for MULTI_FILE_SINGLE_SCHEME files and ZIP members** → raw sheet name last. **A raw sheet name (a code like `GF`, `ON`, `CRF`) and any AMC-prefix-retried key accepts an EXACT match only; never FUZZY.** Never prefix-retry a raw sheet-name code. If two sheets of one file match the same family, write **neither** and raise an immediate alert (`duplicate_match`).
+- Tests: Bandhan fixture through manual intake and the loop (CRF → Credit Risk, ON → Overnight, no Contra); for Nippon and DSP, remove the true family from the pool and assert the sheet stays **unmatched**, never a wrong fund; filename-with-AMC-name case; a **fixture-wide test** that maps every holdings sheet of every fixture to its family and fails on any sheet matching a second family or two sheets matching one (store the reviewed `(fixture, sheet) → family` map as a golden file so any change is a visible diff). Strengthen `test_real_manual_fixtures_end_to_end` to assert exact matched counts per fixture, not `>= 1`.
+
+**H2 — wrong as-of date, then retention deletes real data.**
+- Verified: filenames with no separator between month and day (`Sep30_2026`, `Sept30,2026`; Abakkus's live name `Final_Monthly_Portolio_Sep30_2026_fd59….xlsx`) parse as **2030-09-30** via the month-year pattern; the `keep_all=False` discovery path (single-workbook and ZIP AMCs: Nippon, Shriram, PPFAS, Groww, Baroda, DSP) has no "not later than the target month" filter, so such a link is written under 2030 and `prune_old_batches` then sets its cutoff in 2030 and **deletes every real batch** of those schemes.
+- **Rulings:** allow a zero-width separator in the month-first date pattern; in **every** discovery path drop dates later than the target month and implausibly old dates (older than 18 months); `prune_old_batches` ignores any `as_of_date` later than today (and never lets a future batch define the cutoff).
+
+**M1 — second run rewrites the previous month (verified).** A skipped newest-month URL does `continue` without locking the month, so ZIP/multi-file shapes fall back to the older month on **every daily run after the newest month is written** (September DSP ZIP in `skip_urls` → August ZIP and August debt xlsx re-downloaded and saved as 2026-08-31). **Ruling:** a skipped newest reference locks the month; fall back to an older month only when every newest-month download **failed** (not when skipped) or none exists. Add a **two-run** test.
+**M2.** Raise `stale_fallback` whenever an older month is used, for **all** shapes (today only single-workbook).
+**M3.** Filter `is_active` when building families in the client, manual intake and `ensure_manual_queue_rows` (matured or merged schemes must neither compete in fuzzy matching nor be queued forever).
+
+**Low (do them, small):** L1 Groww titles `IB01-Groww Large Cap Fund`: strip a leading scheme-code prefix (`^[A-Z]{1,4}\d{1,3}\s*[-–]\s*`) so Groww matches; L2 document that a URL counts as done once any batch from it is WRITTEN (revised file at the same URL, a scheme added later, an unreadable ZIP member are not retried that month) — add the retry only if it is a few lines; L3 catch `httpx.InvalidURL` and `httpx.StreamError` per file like `HTTPError` so one bad URL cannot roll back an AMC's earlier files; L4 manual `--as-of` rejects a date that is not a month end unless `--allow-any-date`, and ZIP-member dates inside a ZIP are never used to override the batch as-of (document); L5 archive only when a FAILED batch exists for the file.
+
+**Unchanged:** the matcher's vetoes, the writer, the 90–101% band and tolerances. Report per finding: cause, fix, test, and the before/after of the fixture-wide map (list any sheet whose match changed). After this round the orchestrator re-runs the live end-to-end and commits.
+
 ---
 
 ## Round log (orchestrator appends after each report)
