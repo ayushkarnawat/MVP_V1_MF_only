@@ -100,6 +100,8 @@ module "scheduler" {
   backend_task_role_arn = module.backend.backend_task_role_arn
   cas_files_bucket_name = module.storage.bucket_name
 
+  portfolio_disclosure_archive_bucket_name = module.storage.portfolio_disclosure_archive_bucket_name
+
   ecs_cluster_name    = module.backend.ecs_cluster_name
   ecs_service_name    = module.backend.ecs_service_name
   ecs_service_arn     = module.backend.ecs_service_arn

@@ -33,6 +33,18 @@ locals {
       # 40-AMC run peaked at 937 MB locally (10 Oct), too close to 1024.
       memory = "2048"
     }
+    # Daily retry window, 05:45 IST: night-start finishes around 05:06-05:11,
+    # leaving margin before 06:30 recompute. This Fargate task needs RDS up.
+    portfolio_disclosures_daily = {
+      slug                = "portfolio-disclosures-daily"
+      command             = ["python", "scripts/jobs/refresh_portfolio_disclosures_daily.py"]
+      schedule_expression = "cron(45 5 1-20 * ? *)"
+      task_role_arn       = aws_iam_role.portfolio_disclosures_job.arn
+      memory              = "2048"
+      extra_env = [
+        { name = "PORTFOLIO_DISCLOSURE_ARCHIVE_BUCKET", value = var.portfolio_disclosure_archive_bucket_name },
+      ]
+    }
     aaum_quarterly = {
       slug                = "aaum-quarterly"
       command             = ["python", "scripts/jobs/refresh_aaum_quarterly.py"]
@@ -101,14 +113,14 @@ resource "aws_ecs_task_definition" "jobs" {
       essential = true
       command   = each.value.command
 
-      environment = [
+      environment = concat([
         { name = "DB_USERNAME", value = "unifolio" },
         { name = "DB_HOST", value = var.db_address },
         { name = "DB_PORT", value = tostring(var.db_port) },
         { name = "DB_NAME", value = var.db_name },
         { name = "CAS_FILE_STORAGE_BACKEND", value = "s3" },
         { name = "CAS_FILES_BUCKET_NAME", value = var.cas_files_bucket_name }
-      ]
+      ], lookup(each.value, "extra_env", []))
 
       secrets = [
         {
@@ -167,14 +179,13 @@ data "aws_iam_policy_document" "scheduler" {
     }
   }
 
-  # cas_file_expiry_daily is the only job with a task_role_arn set -- ECS
-  # needs the scheduler role to be able to pass that role too, not just the
-  # shared execution role above.
+  # The CAS-expiry and disclosure jobs have dedicated runtime permissions;
+  # ECS needs the scheduler to pass these roles as well as the execution role.
   statement {
     sid       = "PassCasFileExpiryTaskRole"
     effect    = "Allow"
     actions   = ["iam:PassRole"]
-    resources = [var.backend_task_role_arn]
+    resources = [var.backend_task_role_arn, aws_iam_role.portfolio_disclosures_job.arn]
 
     condition {
       test     = "StringEquals"
@@ -390,6 +401,62 @@ resource "aws_cloudwatch_metric_alarm" "fund_manager_alerts" {
   alarm_description   = "An AMC's factsheet import failed or collapsed; the log line names the AMC, reason and URL."
   namespace           = "${var.project}/${var.environment}/jobs"
   metric_name         = "FundManagerAlerts"
+  statistic           = "Sum"
+  period              = 3600
+  evaluation_periods  = 1
+  threshold           = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = [aws_sns_topic.ops_alerts.arn]
+}
+
+data "aws_iam_policy_document" "portfolio_disclosures_job_assume_role" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["ecs-tasks.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "portfolio_disclosures_job" {
+  name               = "${var.project}-${var.environment}-portfolio-disclosures-job"
+  assume_role_policy = data.aws_iam_policy_document.portfolio_disclosures_job_assume_role.json
+}
+
+data "aws_iam_policy_document" "portfolio_disclosures_job" {
+  statement {
+    effect    = "Allow"
+    actions   = ["s3:PutObject"]
+    resources = ["arn:aws:s3:::${var.portfolio_disclosure_archive_bucket_name}/failed/*"]
+  }
+}
+
+resource "aws_iam_role_policy" "portfolio_disclosures_job" {
+  name   = "archive-failed-disclosures"
+  role   = aws_iam_role.portfolio_disclosures_job.id
+  policy = data.aws_iam_policy_document.portfolio_disclosures_job.json
+}
+
+resource "aws_cloudwatch_log_metric_filter" "portfolio_disclosure_alerts" {
+  name           = "${var.project}-${var.environment}-portfolio-disclosure-alerts"
+  log_group_name = aws_cloudwatch_log_group.jobs["portfolio_disclosures_daily"].name
+  pattern        = "PORTFOLIO_DISCLOSURE_ALERT"
+  metric_transformation {
+    name      = "PortfolioDisclosureAlerts"
+    namespace = "${var.project}/${var.environment}/jobs"
+    value     = "1"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "portfolio_disclosure_alerts" {
+  alarm_name          = "${var.project}-${var.environment}-portfolio-disclosure-alerts"
+  alarm_description   = "A portfolio-disclosure problem: a late or missing AMC file (day 10 and 20), a parse or sum-check failure, an unmatched scheme, a stale Wayback capture, a pending manual upload, or the month-end zero-batch summary. The log line names the AMC and reason."
+  namespace           = "${var.project}/${var.environment}/jobs"
+  metric_name         = "PortfolioDisclosureAlerts"
   statistic           = "Sum"
   period              = 3600
   evaluation_periods  = 1

@@ -73,6 +73,11 @@ variable "cas_files_bucket_name" {
   type        = string
 }
 
+variable "portfolio_disclosure_archive_bucket_name" {
+  description = "Name of the private failed-disclosure archive bucket (infra/modules/storage)."
+  type        = string
+}
+
 # Night-stop automation (Scenario A, 9PM-5AM IST) -- not part of the existing
 # local.jobs RunTask pattern above, since these call ecs:UpdateService /
 # rds:Stop-StartDBInstance / ec2:Stop-StartInstances directly via EventBridge
