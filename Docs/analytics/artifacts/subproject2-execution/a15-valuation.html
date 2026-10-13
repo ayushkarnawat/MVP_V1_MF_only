@@ -1,0 +1,266 @@
+<title>A15 Valuation Build</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Manrope:wght@600;700;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one 1040px reading column; diagrams and tables scroll inside their own frames. */
+:root {
+  --paper: #F4F7F6; --surface: #FFFFFF; --ink: #12201C; --muted: #5A6A65; --line: #D9E2DF;
+  --accent: #0E6A56; --accent-soft: #E1F0EB;
+  --crit: #B3262E; --crit-soft: #FBE5E6; --warn: #A86C12; --warn-soft: #FBF0DA;
+  --info: #2D5B9C; --info-soft: #E3EBF7; --codex: #6B4BB8; --codex-soft: #EEE8FA;
+  --display: "Manrope", "Segoe UI", system-ui, sans-serif;
+  --body: "DM Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "Cascadia Code", monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #0D1412; --surface: #141E1B; --ink: #E4ECE9; --muted: #96A7A1; --line: #26342F;
+  --accent: #5DC8A7; --accent-soft: #163029; --crit: #F0767C; --crit-soft: #3A1B1E;
+  --warn: #E5AB4B; --warn-soft: #33270F; --info: #82A9E6; --info-soft: #182437;
+  --codex: #B49BF0; --codex-soft: #261D3D; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --paper: #0D1412; --surface: #141E1B; --ink: #E4ECE9; --muted: #96A7A1; --line: #26342F;
+  --accent: #5DC8A7; --accent-soft: #163029; --crit: #F0767C; --crit-soft: #3A1B1E;
+  --warn: #E5AB4B; --warn-soft: #33270F; --info: #82A9E6; --info-soft: #182437;
+  --codex: #B49BF0; --codex-soft: #261D3D; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font: 400 15px/1.6 var(--body); margin: 0; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 40px 20px 80px; display: flex; flex-direction: column; gap: 44px; }
+header.top { display: flex; flex-direction: column; gap: 14px; }
+.eyebrow { font: 600 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+h1 { font: 800 clamp(28px, 4.4vw, 42px)/1.1 var(--display); margin: 0; letter-spacing: -.02em; text-wrap: balance; }
+h2 { font: 700 22px/1.25 var(--display); margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+h3 { font: 700 16px/1.3 var(--display); margin: 0; }
+p { margin: 0; max-width: 72ch; }
+.lede { font-size: 17px; color: var(--muted); max-width: 70ch; }
+code, .mono { font-family: var(--mono); font-size: .86em; }
+code { background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; word-break: break-word; }
+a { color: var(--accent); }
+section { display: flex; flex-direction: column; gap: 16px; }
+.sec-head { display: flex; flex-direction: column; gap: 6px; }
+.sec-head .tag { font: 600 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font: 500 13px/1 var(--body); padding: 7px 11px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+.chip b { font-family: var(--display); font-weight: 800; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.grid2 > * { min-width: 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.panel .label { font: 600 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.panel.after { border-color: var(--accent); }
+.panel.after .label { color: var(--accent); }
+.diagram { overflow-x: auto; }
+pre.mermaid { margin: 0; background: transparent; font-family: var(--body); }
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 11px/1.2 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--paper); }
+tr:last-child td { border-bottom: 0; }
+td.num { font-variant-numeric: tabular-nums; }
+.pill { display: inline-block; font: 600 11px/1 var(--mono); padding: 4px 7px; border-radius: 5px; letter-spacing: .03em; white-space: nowrap; }
+.p-new { background: var(--accent-soft); color: var(--accent); }
+.p-mod { background: var(--info-soft); color: var(--info); }
+.p-none { background: var(--paper); color: var(--muted); border: 1px solid var(--line); }
+.p-codex { background: var(--codex-soft); color: var(--codex); }
+.p-claude { background: var(--accent-soft); color: var(--accent); }
+.p-you { background: var(--warn-soft); color: var(--warn); }
+.p-crit { background: var(--crit-soft); color: var(--crit); }
+.p-warn { background: var(--warn-soft); color: var(--warn); }
+.p-info { background: var(--info-soft); color: var(--info); }
+ol.passes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0; }
+ol.passes > li { display: grid; grid-template-columns: 132px 1fr; gap: 16px; padding: 14px 0; border-top: 1px solid var(--line); }
+ol.passes > li:first-child { border-top: 0; }
+ol.passes .when { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+ol.passes .when .n { font: 800 13px/1 var(--display); color: var(--muted); }
+ol.passes .what { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+ol.passes ul { margin: 0; padding-left: 18px; }
+@media (max-width: 560px) { ol.passes > li { grid-template-columns: 1fr; gap: 8px; } }
+.issues { display: flex; flex-direction: column; gap: 10px; }
+.issue { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--info); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.issue.crit { border-left-color: var(--crit); }
+.issue.warn { border-left-color: var(--warn); }
+.issue .hd { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.issue .hd h3 { font-size: 15px; }
+.issue .fix { color: var(--muted); font-size: 14px; }
+.callout { background: var(--warn-soft); border: 1px solid var(--warn); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+.callout h2 { font-size: 19px; }
+.note { font-size: 13px; color: var(--muted); }
+ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.bar { display: flex; height: 34px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
+.bar > div { display: flex; align-items: center; justify-content: center; font: 700 12px/1 var(--display); color: #fff; min-width: 0; overflow: hidden; white-space: nowrap; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; background: var(--c); vertical-align: -1px; }
+.formula { font-family: var(--mono); font-size: 13px; background: var(--paper); border: 1px dashed var(--line); border-radius: 8px; padding: 12px 14px; overflow-x: auto; white-space: pre; }
+footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 16px; }
+.ib { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--info); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.ib.crit { border-left-color: var(--crit); } .ib.warn { border-left-color: var(--warn); } .ib.done { border-left-color: var(--accent); }
+.ib .top { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ib .top h3 { font-size: 16px; flex: 1 1 260px; min-width: 0; }
+.ib dl { display: grid; grid-template-columns: 148px minmax(0, 1fr); gap: 10px 18px; margin: 0; }
+.ib dt { font: 600 11px/1.5 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding-top: 2px; }
+.ib dd { margin: 0; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.ib ol.opts { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.ib ol.opts li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 8px; }
+.ib ol.opts .k { font: 800 12px/1.6 var(--display); color: var(--muted); }
+.ib ol.opts li.pick .k { color: var(--accent); }
+.ib ol.opts li.pick > span:last-child { font-weight: 500; }
+.ib .rec { color: var(--accent); font-weight: 700; }
+.ib ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
+@media (max-width: 600px) { .ib dl { grid-template-columns: 1fr; gap: 4px; } .ib dd { margin-bottom: 8px; } }
+.group { display: flex; flex-direction: column; gap: 10px; padding-top: 8px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 22px; margin-top: 6px; }
+.group-head { display: flex; align-items: center; gap: 10px; }
+.group-head h3 { font-size: 18px; }
+.ib ul.muted { color: var(--muted); font-size: 13px; }
+.ib.done .top h3 { color: var(--ink); }
+</style>
+<style>
+.qid{font:800 12px/1 var(--mono);color:var(--muted)}
+.ib.you{border-left-color:var(--warn)}
+.tbl code{white-space:normal}
+</style>
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Unifolio · Analytics · Sub-project 2 · attribute 15</div>
+  <h1>Portfolio P/E and P/B</h1>
+  <p class="lede">Tells the client how expensive the stocks inside their funds are compared with the Nifty, using a harmonic mean over the equity part of the portfolio. It is the only attribute with its own daily data feed.</p>
+  <div class="chips"><span class="chip"><b>2</b> Codex runs</span><span class="chip"><b>1</b> task (the largest)</span><span class="chip"><b>1</b> migration</span><span class="chip"><b>1</b> new table</span><span class="chip"><b>1</b> new daily job</span><span class="chip"><b>1</b> new analytics section</span><span class="chip"><b>3</b> questions for you</span><span class="chip"><b>3</b> plan fixes</span></div>
+</header>
+<section>
+  <div class="sec-head"><span class="tag">The formula</span><h2>A harmonic mean over the equity part only</h2></div>
+<div class="formula">Portfolio P/E = 1 ÷ Σ( wᵢ ÷ P/Eᵢ )        Portfolio P/B = 1 ÷ Σ( wᵢ ÷ P/Bᵢ )
+wᵢ = equity exposure of stock i ÷ total equity exposure   (rescaled so equity = 100%; debt, cash, gold left out)
+Loss-making stocks (P/E null or negative) leave the P/E sum, the rest rescaled, footnote "x% of equity excluded". P/B has no such exclusion.
+Worked example (spec)   portfolio 25.0x P/E and 3.35x P/B vs Nifty 50 22.8x and 3.10x  →  about 10% and 8% more expensive</div>
+</section><section>
+  <div class="sec-head"><span class="tag">Sources</span><h2>Every input, where it comes from</h2><p class="note">All of the above were verified from a development machine, not from the AWS network the job will run on (overview, Q6).</p></div>
+<div class="tbl"><table>
+<tr><th>Input</th><th>Source</th><th>Verified</th><th>Note</th></tr><tr><td>Index P/E, P/B (Nifty 50, 500)</td><td>niftyindices.com <code>getpepbHistoricaldataDBtoString</code></td><td>live, 2026-10-13</td><td>same host and request shape as the existing index client</td></tr><tr><td>Stock P/E</td><td>NSE <code>peDetail/PE_&lt;DDMMYY&gt;.csv</code></td><td>live, ~2,257 symbols</td><td>which column: Q28</td></tr><tr><td>Symbol to ISIN</td><td>NSE <code>NSE_CM_security_&lt;DDMMYYYY&gt;.csv.gz</code>, series EQ</td><td>live, RELIANCE and THERMAX matched</td><td>8-digit date, unlike the P/E file's 6</td></tr><tr><td>Stock P/B</td><td>Yahoo <code>quoteSummary</code> with cookie and crumb</td><td>live, 13 of 14 stocks</td><td>unofficial; ToS decision recorded</td></tr><tr><td>P/B fallback</td><td>screener.in page, price ÷ book value</td><td>live, matched Yahoo for RELIANCE</td><td>one stock at a time, only after a Yahoo miss</td></tr><tr><td>Nifty 50 and 500 member lists</td><td>NSE and niftyindices CSV files</td><td>live today, F15</td><td>new in this review</td></tr></table></div>
+</section><section>
+  <div class="sec-head"><span class="tag">Flow</span><h2>What gets added</h2><p class="note">The two pipelines never wait on each other. <code>valuation.py</code> is the only place they meet, joined by ISIN at read time.</p></div>
+<div class="panel"><div class="diagram"><pre class="mermaid">
+flowchart TD
+  nse["NSE P/E file<br/>security master"] --> sf["stock_fundamentals_client.py<br/>new, daily"]
+  yh["Yahoo quoteSummary<br/>one crumb per run"] --> sf
+  sc["screener.in<br/>per-ISIN fallback"] -.-> sf
+  sh[("scheme_holdings ISINs")] --> sf
+  nl["Nifty 50 and 500 lists"] --> sf
+  sf --> sm[("stock_master<br/>isin, pe, pb, as_of, source")]
+  lt["LookthroughTable"] --> val["valuation.py<br/>harmonic mean"]
+  sm --> val
+  val --> sec["section: valuation"]
+  sec --> ui["ValuationSection<br/>two bars + plain delta"]
+</pre></div></div>
+</section><section>
+  <div class="sec-head"><span class="tag">Database</span><h2>ER after</h2><p class="note">One new table. Source is stored per row, so a footnote can say where each number came from.</p></div>
+<div class="panel"><div class="diagram"><pre class="mermaid">
+erDiagram
+  STOCK_MASTER {
+    string isin PK
+    string name
+    string sector "optional"
+    numeric pe_ratio "null = excluded"
+    numeric pb_ratio "null = excluded"
+    date as_of_date
+    string source "NSE, YAHOO, SCREENER"
+  }
+</pre></div></div>
+</section><section>
+  <div class="sec-head"><span class="tag">Change map</span><h2>What changes where</h2></div>
+<div class="tbl"><table>
+<tr><th>Layer</th><th>File</th><th>Change</th><th>Task</th></tr><tr><td>Database</td><td><code>alembic/versions/&lt;next&gt;_stock_master.py</code></td><td><span class="pill p-new">new</span> 1 table (F14)</td><td>6</td></tr><tr><td>Backend</td><td><code>services/analytics/stock_fundamentals_client.py</code></td><td><span class="pill p-new">new</span> universe query, fallback chain, crumb reuse, re-handshake</td><td>6</td></tr><tr><td>Backend</td><td><code>services/analytics/valuation.py</code></td><td><span class="pill p-new">new</span> harmonic mean, exclusions, footnotes</td><td>6</td></tr><tr><td>Backend</td><td><code>schemas.py</code>, <code>recompute.py</code></td><td><span class="pill p-mod">modify</span> models, one <code>_SectionSpec</code></td><td>6</td></tr><tr><td>Job</td><td><code>scripts/jobs/refresh_stock_fundamentals_daily.py</code>, scheduler entry</td><td><span class="pill p-new">new</span> daily, before 06:30 (F14)</td><td>6</td></tr><tr><td>Frontend</td><td><code>ValuationSection.tsx</code>, <code>types.ts</code>, both views</td><td><span class="pill p-new">new</span> two bars, delta sentence</td><td>6</td></tr></table></div>
+</section><section>
+  <div class="sec-head"><span class="tag">Recorded</span><h2>Already decided</h2></div>
+<div class="issues"><article class="ib done">
+  <div class="top"><span class="pill p-new">Recorded</span><h3>Free, in-house sourcing for attribute 15</h3><span class="pill p-none">already decided</span></div>
+  <dl><dt>What was decided</dt><dd>2026-10-06 and 2026-10-13: no paid vendor. NSE data wherever it covers the need; Yahoo is the runtime source for P/B; screener.in is a per-ISIN fallback only; both failing leaves P/B empty with a footnote.</dd></dl>
+</article><article class="ib done">
+  <div class="top"><span class="pill p-new">Recorded</span><h3>stock_master is its own pipeline</h3><span class="pill p-none">already decided</span></div>
+  <dl><dt>What was decided</dt><dd>2026-10-13: not a stage of the AMC disclosure engine. Refreshed daily because price moves daily. Pinned in spec section 7.3.</dd></dl>
+</article></div>
+</section><section>
+  <div class="sec-head"><span class="tag">Execution</span><h2>Runs, in order</h2><p class="note">Two runs, as for Sub-project 1's larger plans.</p></div>
+<ol class="passes"><li><div class="when"><span class="n">Pass 0</span><span class="pill p-claude">Claude</span></div><div class="what"><h3>Pre-flight</h3><p>F14 to F16, Q28 to Q30 settled. Claude checks which NSE P/E column matches the Nifty 50 index P/E (Q28) and runs the Q6 egress check first. Real fetched sample responses go into the test fixtures; Codex has no network.</p></div></li><li><div class="when"><span class="n">Run 9</span><span class="pill p-codex">Codex run 9</span></div><div class="what"><h3>Backend: Task 6 data side</h3><ul><li>Model and migration, universe query, fallback chain, crumb reuse and re-handshake, job.</li></ul></div></li><li><div class="when"><span class="n">Gate 9</span><span class="pill p-claude">Claude</span><span class="pill p-info">Opus review</span></div><div class="what"><h3>Verify and review</h3><p>Gate = touched test files only, <code>alembic upgrade</code> on local Postgres where a migration is involved, the adversarial review against Review Focus, then one commit per task by Claude. Codex never stages, commits or touches Postgres, staging or AWS. Opus reviews this run: the fallback chain and the crumb logic are the riskiest code in the sub-project.</p></div></li><li><div class="when"><span class="n">Run 10</span><span class="pill p-codex">Codex run 10</span></div><div class="what"><h3>Valuation and frontend</h3><ul><li>Harmonic mean with exclusions and footnotes, section, bars.</li></ul></div></li><li><div class="when"><span class="n">Gate 10</span><span class="pill p-claude">Claude</span></div><div class="what"><h3>Verify, review, synthetic CAS check</h3><p>Review, then the harness with the seeded holdings and stock fixtures, checking the portfolio P/E and P/B by hand.</p></div></li></ol>
+</section><section>
+  <div class="sec-head"><span class="tag">Issues in detail</span><h2>Issues, by status</h2></div>
+<div class="group"><div class="group-head"><h3>Waiting on you</h3><span class="pill p-you">3</span></div><p class="note">Method and display rules.</p><div class="issues"><article class="ib you">
+  <div class="top"><span class="qid">Q28</span><span class="pill p-you">Your call</span><h3>Which P/E, and are P/E and P/B comparable?</h3></div>
+  <dl>
+    <dt>The issue</dt><dd><p>NSE's <code>PE_&lt;date&gt;.csv</code> has two columns, <code>SYMBOL P/E</code> and <code>ADJUSTED P/E</code>. The spec does not say which to use. Yahoo's <code>trailingPE</code> and <code>priceToBook</code> come from a different vendor and may use different earnings (standalone or consolidated) than NSE's. screener.in's own page is consolidated. The investigation notes the RELIANCE P/E from NSE's file and from Yahoo "differ, as expected".</p></dd>
+    <dt>Why it matters</dt><dd><p>The portfolio P/E mixes sources by stock and the P/B always comes from a different source than the P/E. The two numbers then answer slightly different questions, and the Nifty 50 comparison (index P/E from niftyindices.com) is a third methodology.</p></dd>
+    <dt>Options</dt><dd><ol class="opts"><li class="pick"><span class="k">A</span><span>P/E from NSE's <code>SYMBOL P/E</code> column. P/B from Yahoo. Show the source line under the chart. Accept that they differ.</span></li><li class=""><span class="k">B</span><span>Use Yahoo for both P/E and P/B so the pair is internally consistent; use NSE only as the fallback.</span></li><li class=""><span class="k">C</span><span>A, but compute P/B as price from NSE's own data divided by Yahoo's book value so at least the price is shared.</span></li></ol></dd>
+    <dt>Recommended</dt><dd><p><span class="rec">A.</span> NSE's data is the lower-risk source and the decision record already prefers it for everything it covers. I have not tested which column matches NSE's index P/E for the Nifty 50, which would settle it.</p></dd>
+    <dt>After your answer</dt><dd><ul><li>I would run that one comparison from the Nifty 50 constituents before writing the aggregation, as a test fixture.</li></ul></dd>
+  </dl>
+</article><article class="ib you">
+  <div class="top"><span class="qid">Q29</span><span class="pill p-you">Your call</span><h3>Compare against Nifty 50 only, or Nifty 500 too?</h3></div>
+  <dl>
+    <dt>The issue</dt><dd><p>The spec's UI compares the portfolio with Nifty 50. The sourcing covers both Nifty 50 and Nifty 500 index figures, and the fetch universe includes both lists.</p></dd>
+    <dt>Why it matters</dt><dd><p>Most Indian equity portfolios are broader than Nifty 50. Nifty 500 is the closer comparison for mid and small cap heavy holders, and fetching it costs nothing extra.</p></dd>
+    <dt>Options</dt><dd><ol class="opts"><li class=""><span class="k">A</span><span>Nifty 50 only, as drawn.</span></li><li class="pick"><span class="k">B</span><span>Nifty 50 and Nifty 500 as two rows on each bar.</span></li><li class=""><span class="k">C</span><span>Nifty 500 only.</span></li></ol></dd>
+    <dt>Recommended</dt><dd><p><span class="rec">B.</span> Same endpoint and request shape, one more series.</p></dd>
+    <dt>After your answer</dt><dd><ul><li>The universe query already includes the 500 list.</li></ul></dd>
+  </dl>
+</article><article class="ib you">
+  <div class="top"><span class="qid">Q30</span><span class="pill p-you">Your call</span><h3>How much of the equity must have data before we show P/E and P/B?</h3></div>
+  <dl>
+    <dt>The issue</dt><dd><p>Each stock can fail on its own: delisted or merged, not on NSE (BSE-only), Yahoo has no P/B and screener.in has none either, or a loss-making stock excluded from P/E only. The spec lists the footnotes but sets no limit.</p></dd>
+    <dt>Why it matters</dt><dd><p>A portfolio P/E built from 40% of the equity is a number that looks authoritative and describes less than half the money.</p></dd>
+    <dt>Options</dt><dd><ol class="opts"><li class=""><span class="k">A</span><span>Always show, with a footnote of the percentage excluded.</span></li><li class="pick"><span class="k">B</span><span>Show only if at least 70% of equity exposure has the ratio. Otherwise say "not enough data" and list what is missing.</span></li><li class=""><span class="k">C</span><span>Show only if 90% have it.</span></li></ol></dd>
+    <dt>Recommended</dt><dd><p><span class="rec">B.</span> A number shown with a footnote still gets read as the answer.</p></dd>
+    <dt>After your answer</dt><dd><ul><li>The 70% line is a constant I picked, not a measured figure; you can change it.</li></ul></dd>
+  </dl>
+</article></div></div><div class="group"><div class="group-head"><h3>Plan fixes</h3><span class="pill p-mod">3</span></div><p class="note">Verified against the plan and the repo.</p><div class="issues"><article class="ib">
+  <div class="top"><span class="qid">F14</span><span class="pill p-mod">Plan fix</span><h3>Table, migration, job and schedule for stock_master are not in the plan</h3><span class="pill p-none">no decision needed</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>Task 6 specifies the fetch client's behaviour in detail, down to the fallback chain and crumb reuse. It has no step for the <code>stock_master</code> model, its migration, a job script, or a Terraform entry, and does not say how long the daily run takes.</p></dd>
+    <dt>Evidence</dt><dd>Plan Task 6; <code>infra/modules/scheduler/main.tf</code>.</dd>
+    <dt>Why it matters</dt><dd><p>The daily feed is the only part of Sub-project 2 that runs every day for the whole year. With no job and no schedule, the table would stay empty, and attribute 15 would show footnotes for every stock.</p></dd>
+    <dt>The fix</dt><dd><ul><li>Add steps: model, migration (next free number), job script <code>refresh_stock_fundamentals_daily.py</code>, scheduler entry at 05:45 IST (F3), and task memory sized for a few thousand sequential requests.</li><li>Run-time planning figure: at about 0.3 s per request, 3,000 stocks take about 15 minutes. That is arithmetic on the planned delay, not a measured run.</li><li>One <code>*RefreshResult</code> dataclass, same shape as <code>amfi_ter_client.py</code>; never overwrite a good row with a failed fetch.</li></ul></dd>
+    <dt>Effect on the current system</dt><dd><ul><li>One new table, no foreign keys. No change to <code>scheme_holdings</code> (read only, for the ISIN universe).</li><li>New outbound traffic to NSE, Yahoo and screener.in from Fargate: see Q6.</li></ul></dd>
+    <dt>Effect on the plan</dt><dd>Task 6 gains the missing steps and the job. The cache-invalidation tests change per F16.</dd>
+    <dt>Flow after the fix</dt><dd><div class="diagram"><pre class="mermaid">
+flowchart TD
+  j["05:45 daily job"] --> u["ISIN universe<br/>holdings plus Nifty 50 and 500"]
+  u --> f["Fetch chain per ISIN<br/>NSE, Yahoo, screener fallback"]
+  f --> w["Upsert stock_master<br/>never overwrite good with failed"]
+  w --> v["valuation reads at 06:30 recompute"]
+</pre></div></dd>
+  </dl>
+</article><article class="ib">
+  <div class="top"><span class="qid">F15</span><span class="pill p-mod">Plan fix</span><h3>The Nifty 50 and 500 constituent lists have no documented source</h3><span class="pill p-none">no decision needed</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>The ISIN-universe step unions every ISIN in <code>scheme_holdings</code> with the Nifty 50 and Nifty 500 constituents. The investigation documents verify the index P/E endpoint, the NSE P/E file, the security master and Yahoo, but never the constituent lists.</p></dd>
+    <dt>Evidence</dt><dd>Live requests 2026-10-13: 200 OK, 32,785 bytes (500) and 3,344 bytes (50), from a dev machine.</dd>
+    <dt>Why it matters</dt><dd><p>Without a source, that half of the universe could not be built, and the benchmark comparison would have no index members to fetch.</p></dd>
+    <dt>The fix</dt><dd><ul><li>I checked today, from this development machine, that <code>archives.nseindia.com/content/indices/ind_nifty500list.csv</code> and <code>www.niftyindices.com/IndexConstituent/ind_nifty50list.csv</code> return HTTP 200 with <code>Company Name, Industry, Symbol, Series, ISIN Code</code>.</li><li>Record both in the plan as the source, add them to the Q6 egress check, and add a test fixture of a few rows.</li><li>The files carry no weights (Q21) but do carry NSE's industry label, which is a ready sector label for Nifty 500 stocks if Q19 option C is chosen.</li></ul></dd>
+    <dt>Effect on the current system</dt><dd><ul><li>Two more small daily downloads; no existing code touched.</li></ul></dd>
+    <dt>Effect on the plan</dt><dd>Task 6's universe test uses the fixture; the plan text names the two URLs.</dd>
+    <dt>Flow after the fix</dt><dd><div class="diagram"><pre class="mermaid">
+flowchart TD
+  a["Nifty 50 list"] --> u["ISIN universe"]
+  b["Nifty 500 list"] --> u
+  h[("scheme_holdings ISINs")] --> u
+  u --> d["De-duplicated list for the daily fetch"]
+</pre></div></dd>
+  </dl>
+</article><article class="ib">
+  <div class="top"><span class="qid">F16</span><span class="pill p-mod">Plan fix</span><h3>The second cache-invalidation trigger collapses into job order</h3><span class="pill p-none">no decision needed</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>The plan and spec ask for two separate triggers for attribute 15's cache (a disclosure reaching <code>WRITTEN</code>, or a fresher <code>stock_master.as_of_date</code>) and four tests proving each works alone. In the code there is no event hook of that kind. Analytics results refresh on a CAS import or retry, or at the daily 06:30 run, which recomputes every household.</p></dd>
+    
+    <dt>Why it matters</dt><dd><p>Building the two triggers means finding every household that holds the affected funds and starting a recompute for each. That is a new mechanism and a Fargate task per household, for data that changes at most once a day.</p></dd>
+    <dt>The fix</dt><dd><ul><li>If Q3 is answered A or C: put both data jobs before 06:30 (F3). Results are then at most one day old with no trigger code, and the four invalidation tests become one test that the scheduler entries run before the recompute entry.</li><li>If Q3 is answered B (event-driven), build the triggers and keep the four tests as written.</li></ul></dd>
+    <dt>Effect on the current system</dt><dd><ul><li>No existing code changes under A or C. Under B, the disclosure job gains a step that selects households and calls <code>try_claim_recompute</code> and the dispatcher for each.</li></ul></dd>
+    <dt>Effect on the plan</dt><dd>Task 6's last two tests are replaced or kept depending on Q3. The visual map and spec section 7.3 describe two triggers, so they get a dated note.</dd>
+    <dt>Flow after the fix</dt><dd><div class="diagram"><pre class="mermaid">
+flowchart TD
+  q["Q3 answer"] -->|A or C| a["Jobs before 06:30"]
+  a --> b["06:30 recompute picks up both"]
+  q -->|B| c["Disclosure job selects households<br/>and dispatches recompute"]
+  c --> d["Second trigger on fresher stock_master"]
+</pre></div></dd>
+  </dl>
+</article></div></div>
+</section>
+<footer>Checked against the code at <code>c9fb248</code> (branch <code>feat/enhanced-ui</code>, migration head <code>0038</code>) and the Sub-project 2 docs at <code>bef12be</code>, 2026-10-13. Nothing has been built or edited for Sub-project 2. Standalone copies: <code>Docs/analytics/artifacts/subproject2-execution/</code>.</footer>
+</div>

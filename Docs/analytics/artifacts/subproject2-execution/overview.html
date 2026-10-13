@@ -1,0 +1,269 @@
+<title>Sub-project 2 Execution Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Manrope:wght@600;700;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one 1040px reading column; diagrams and tables scroll inside their own frames. */
+:root {
+  --paper: #F4F7F6; --surface: #FFFFFF; --ink: #12201C; --muted: #5A6A65; --line: #D9E2DF;
+  --accent: #0E6A56; --accent-soft: #E1F0EB;
+  --crit: #B3262E; --crit-soft: #FBE5E6; --warn: #A86C12; --warn-soft: #FBF0DA;
+  --info: #2D5B9C; --info-soft: #E3EBF7; --codex: #6B4BB8; --codex-soft: #EEE8FA;
+  --display: "Manrope", "Segoe UI", system-ui, sans-serif;
+  --body: "DM Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "Cascadia Code", monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #0D1412; --surface: #141E1B; --ink: #E4ECE9; --muted: #96A7A1; --line: #26342F;
+  --accent: #5DC8A7; --accent-soft: #163029; --crit: #F0767C; --crit-soft: #3A1B1E;
+  --warn: #E5AB4B; --warn-soft: #33270F; --info: #82A9E6; --info-soft: #182437;
+  --codex: #B49BF0; --codex-soft: #261D3D; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --paper: #0D1412; --surface: #141E1B; --ink: #E4ECE9; --muted: #96A7A1; --line: #26342F;
+  --accent: #5DC8A7; --accent-soft: #163029; --crit: #F0767C; --crit-soft: #3A1B1E;
+  --warn: #E5AB4B; --warn-soft: #33270F; --info: #82A9E6; --info-soft: #182437;
+  --codex: #B49BF0; --codex-soft: #261D3D; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font: 400 15px/1.6 var(--body); margin: 0; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 40px 20px 80px; display: flex; flex-direction: column; gap: 44px; }
+header.top { display: flex; flex-direction: column; gap: 14px; }
+.eyebrow { font: 600 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+h1 { font: 800 clamp(28px, 4.4vw, 42px)/1.1 var(--display); margin: 0; letter-spacing: -.02em; text-wrap: balance; }
+h2 { font: 700 22px/1.25 var(--display); margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+h3 { font: 700 16px/1.3 var(--display); margin: 0; }
+p { margin: 0; max-width: 72ch; }
+.lede { font-size: 17px; color: var(--muted); max-width: 70ch; }
+code, .mono { font-family: var(--mono); font-size: .86em; }
+code { background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; word-break: break-word; }
+a { color: var(--accent); }
+section { display: flex; flex-direction: column; gap: 16px; }
+.sec-head { display: flex; flex-direction: column; gap: 6px; }
+.sec-head .tag { font: 600 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font: 500 13px/1 var(--body); padding: 7px 11px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+.chip b { font-family: var(--display); font-weight: 800; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.grid2 > * { min-width: 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.panel .label { font: 600 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.panel.after { border-color: var(--accent); }
+.panel.after .label { color: var(--accent); }
+.diagram { overflow-x: auto; }
+pre.mermaid { margin: 0; background: transparent; font-family: var(--body); }
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 11px/1.2 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--paper); }
+tr:last-child td { border-bottom: 0; }
+td.num { font-variant-numeric: tabular-nums; }
+.pill { display: inline-block; font: 600 11px/1 var(--mono); padding: 4px 7px; border-radius: 5px; letter-spacing: .03em; white-space: nowrap; }
+.p-new { background: var(--accent-soft); color: var(--accent); }
+.p-mod { background: var(--info-soft); color: var(--info); }
+.p-none { background: var(--paper); color: var(--muted); border: 1px solid var(--line); }
+.p-codex { background: var(--codex-soft); color: var(--codex); }
+.p-claude { background: var(--accent-soft); color: var(--accent); }
+.p-you { background: var(--warn-soft); color: var(--warn); }
+.p-crit { background: var(--crit-soft); color: var(--crit); }
+.p-warn { background: var(--warn-soft); color: var(--warn); }
+.p-info { background: var(--info-soft); color: var(--info); }
+ol.passes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0; }
+ol.passes > li { display: grid; grid-template-columns: 132px 1fr; gap: 16px; padding: 14px 0; border-top: 1px solid var(--line); }
+ol.passes > li:first-child { border-top: 0; }
+ol.passes .when { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+ol.passes .when .n { font: 800 13px/1 var(--display); color: var(--muted); }
+ol.passes .what { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+ol.passes ul { margin: 0; padding-left: 18px; }
+@media (max-width: 560px) { ol.passes > li { grid-template-columns: 1fr; gap: 8px; } }
+.issues { display: flex; flex-direction: column; gap: 10px; }
+.issue { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--info); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.issue.crit { border-left-color: var(--crit); }
+.issue.warn { border-left-color: var(--warn); }
+.issue .hd { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.issue .hd h3 { font-size: 15px; }
+.issue .fix { color: var(--muted); font-size: 14px; }
+.callout { background: var(--warn-soft); border: 1px solid var(--warn); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+.callout h2 { font-size: 19px; }
+.note { font-size: 13px; color: var(--muted); }
+ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.bar { display: flex; height: 34px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
+.bar > div { display: flex; align-items: center; justify-content: center; font: 700 12px/1 var(--display); color: #fff; min-width: 0; overflow: hidden; white-space: nowrap; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; background: var(--c); vertical-align: -1px; }
+.formula { font-family: var(--mono); font-size: 13px; background: var(--paper); border: 1px dashed var(--line); border-radius: 8px; padding: 12px 14px; overflow-x: auto; white-space: pre; }
+footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 16px; }
+.ib { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--info); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.ib.crit { border-left-color: var(--crit); } .ib.warn { border-left-color: var(--warn); } .ib.done { border-left-color: var(--accent); }
+.ib .top { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ib .top h3 { font-size: 16px; flex: 1 1 260px; min-width: 0; }
+.ib dl { display: grid; grid-template-columns: 148px minmax(0, 1fr); gap: 10px 18px; margin: 0; }
+.ib dt { font: 600 11px/1.5 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding-top: 2px; }
+.ib dd { margin: 0; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.ib ol.opts { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.ib ol.opts li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 8px; }
+.ib ol.opts .k { font: 800 12px/1.6 var(--display); color: var(--muted); }
+.ib ol.opts li.pick .k { color: var(--accent); }
+.ib ol.opts li.pick > span:last-child { font-weight: 500; }
+.ib .rec { color: var(--accent); font-weight: 700; }
+.ib ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
+@media (max-width: 600px) { .ib dl { grid-template-columns: 1fr; gap: 4px; } .ib dd { margin-bottom: 8px; } }
+.group { display: flex; flex-direction: column; gap: 10px; padding-top: 8px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 22px; margin-top: 6px; }
+.group-head { display: flex; align-items: center; gap: 10px; }
+.group-head h3 { font-size: 18px; }
+.ib ul.muted { color: var(--muted); font-size: 13px; }
+.ib.done .top h3 { color: var(--ink); }
+</style>
+<style>
+.qid{font:800 12px/1 var(--mono);color:var(--muted)}
+.ib.you{border-left-color:var(--warn)}
+.tbl code{white-space:normal}
+</style>
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Unifolio · Analytics · Sub-project 2</div>
+  <h1>How we build the look-through engine and its five attributes</h1>
+  <p class="lede">Two plans, one data engine and five dashboard sections that read it. This set covers the run order, what each plan changes, what stays safe, and every decision and open question, with a recommendation for each. Checked against the code at <code>c9fb248</code>.</p>
+  <div class="chips"><span class="chip"><b>2</b> plans · 17 tasks · 10 Codex runs</span><span class="chip"><b>3</b> migrations expected</span><span class="chip"><b>4</b> new tables</span><span class="chip"><b>5</b> new analytics sections</span><span class="chip"><b>3</b> new scheduled jobs</span><span class="chip"><b>29</b> questions for you</span><span class="chip"><b>19</b> plan fixes</span></div>
+</header>
+<section>
+  <div class="sec-head"><span class="tag">At a glance</span><h2>The two plans</h2><p class="note">Plan 2 is the consumer plan; its Tasks 0 to 6 are shown as 2a to 2e. Attributes 01, 03, 05, 07 and 08 are built and out of scope; the gap analysis confirms none depend on the engine.</p></div>
+<div class="tbl"><table>
+<tr><th>#</th><th>Plan</th><th>Database</th><th>Backend</th><th>Frontend</th><th>Questions</th><th>Fixes</th></tr><tr><td>1</td><td><a href="https://claude.ai/artifact/J76AtXThdCN59drN53g9W5">Look-through engine ingestion</a> <span class="pill p-none">not started</span></td><td>2 tables, 1 migration</td><td>10 tasks, 5 stages, 1 daily job, 10 AMCs</td><td>none</td><td>Q8 to Q13</td><td>F1 to F4</td></tr><tr><td>-</td><td><a href="https://claude.ai/artifact/VQAHG8mkm3XR5h9erkZSGK">AMC coverage</a> <span class="pill p-none">proposal</span></td><td>none</td><td>wave 2 of 19 AMCs, manual intake</td><td>none</td><td>Q14 to Q16</td><td>F5, F6</td></tr><tr><td>2a</td><td><a href="https://claude.ai/artifact/S2Fk9MWcrHX36sQBY8pimA">06 · stock holdings + shared table</a></td><td>none</td><td>shared table, 1 section</td><td>1 section</td><td>Q17 to Q19</td><td>F7 to F11</td></tr><tr><td>2b</td><td><a href="https://claude.ai/artifact/7DnDJEdV4jBAU3sQZJLmhi">02 · cap allocation</a></td><td>1 table, 1 migration</td><td>half-yearly client, 1 job, 1 section</td><td>1 section</td><td>Q20 to Q22</td><td>F12</td></tr><tr><td>2c</td><td><a href="https://claude.ai/artifact/CL5awiNduCyhmLBB3yrEhB">10 · overlap</a></td><td>none</td><td>pair overlap, 1 section</td><td>1 section</td><td>Q23 to Q25</td><td>-</td></tr><tr><td>2d</td><td><a href="https://claude.ai/artifact/XQR6nmfKd6GYVuRWAE7X89">13 · asset allocation</a></td><td>none</td><td>class roll-up, 1 section</td><td>1 section</td><td>Q26, Q27</td><td>F13</td></tr><tr><td>2e</td><td><a href="https://claude.ai/artifact/PK32qovXoNJZrVXLfWepcv">15 · P/E and P/B</a></td><td>1 table, 1 migration</td><td>daily client, 1 job, 1 section</td><td>1 section</td><td>Q28 to Q30</td><td>F14 to F16</td></tr></table></div>
+</section><section>
+  <div class="sec-head"><span class="tag">Order</span><h2>Run order and why</h2></div>
+<div class="panel"><div class="diagram"><pre class="mermaid">
+flowchart LR
+  e["1 · Engine<br/>schema, parse, registry<br/>first WRITTEN batch"] --> a06["2a · A06<br/>shared table<br/>builds the foundation"]
+  e -. "wave 2 AMCs" .-> w["Coverage wave 2<br/>19 more AMCs"]
+  a06 --> a13["2d · A13"]
+  a06 --> a02["2b · A02<br/>new table + job"]
+  a06 --> a10["2c · A10"]
+  a02 --> a15["2e · A15<br/>new table + daily job"]
+</pre></div></div>
+</section><ul class="plain"><li><b>Engine first:</b> every attribute reads its two tables. The consumer plan's Task 0 refuses to start until one AMC has a real <code>WRITTEN</code> batch, which is a build-order fact, not an open decision.</li><li><b>A06 before the rest:</b> it builds the shared look-through table and the helper that 02, 10, 13 and 15 reuse.</li><li><b>02, 10 and 13 are independent</b> once 06 lands (the plan's own sequencing note). I would run 13, 02, 10 in that order: 13 shares the drill-down into 02.</li><li><b>A15 last:</b> it has the only new daily feed and the least-verified sources (Q6, Q28).</li><li><b>Serial, not parallel:</b> the plans share <code>reference.py</code>, <code>schemas.py</code>, <code>recompute.py</code> and the Analytics views, so runs follow one another.</li></ul><section>
+  <div class="sec-head"><span class="tag">Shared files</span><h2>Where the plans touch the same file</h2><p class="note">Migration numbers are assigned at build time: the head today is <code>0038_nav_history_wider_nav</code>, so the three new ones follow it. The ingestion plan still says 0036 (F1).</p></div>
+<div class="tbl"><table>
+<tr><th>File</th><th>Engine</th><th>06</th><th>02</th><th>10</th><th>13</th><th>15</th></tr><tr><td><code>backend/app/models/reference.py</code></td><td>●</td><td></td><td>●</td><td></td><td></td><td>●</td></tr><tr><td><code>backend/app/models/enums.py</code></td><td>●</td><td></td><td>●</td><td></td><td></td><td></td></tr><tr><td><code>services/analytics/schemas.py</code></td><td></td><td>●</td><td>●</td><td>●</td><td>●</td><td>●</td></tr><tr><td><code>services/analytics/recompute.py</code></td><td></td><td>●</td><td>●</td><td>●</td><td>●</td><td>●</td></tr><tr><td><code>frontend/.../types.ts</code>, <code>AnalyticsView.tsx</code></td><td></td><td>●</td><td>●</td><td>●</td><td>●</td><td>●</td></tr><tr><td><code>frontend/mobile/.../MobileAnalyticsView.tsx</code></td><td></td><td>●</td><td>●</td><td>●</td><td>●</td><td>●</td></tr><tr><td><code>print/PrintAnalyticsView.tsx</code> (Q5)</td><td></td><td>●</td><td>●</td><td>●</td><td>●</td><td>●</td></tr><tr><td><code>infra/modules/scheduler/main.tf</code></td><td>●</td><td></td><td>●</td><td></td><td></td><td>●</td></tr><tr><td><code>backend/alembic/versions/</code></td><td>1</td><td></td><td>1</td><td></td><td></td><td>1</td></tr></table></div>
+</section><section>
+  <div class="sec-head"><span class="tag">Nothing built gets disturbed</span><h2>What the work touches in code that already runs</h2><p class="note">Tests run per file touched, as the repo's rule says. No full suite.</p></div>
+<div class="tbl"><table>
+<tr><th>Existing piece</th><th>What changes</th><th>Why it should hold</th><th>Guard test</th></tr><tr><td>Analytics recompute (<code>recompute.py</code>)</td><td>5 more <code>_SectionSpec</code> entries</td><td>each section runs in its own try block; a failing section is marked failed and the loop continues. Run time grows by 5 sections × (members + 1) scopes per household</td><td>the existing recompute tests, which count sections; a timing check on one large household</td></tr><tr><td><code>GET /analytics/{scope}</code></td><td>none in code; payload gets larger</td><td>the route returns whatever rows exist</td><td>payload size rule from Q4</td></tr><tr><td><code>AnalyticsView</code>, mobile view, PDF</td><td>5 more sections</td><td>the PDF button waits on <code>allSectionsLoaded</code>, so a slow or failed new section can block it</td><td>view tests; a test that a failed section does not block the others</td></tr><tr><td><code>amfi_factsheet_client</code> (attribute 04)</td><td>none; only imported by the matcher</td><td>the new matcher imports <code>FundFamily</code> and <code>build_families</code> and never edits them</td><td>its own tests, unchanged</td></tr><tr><td>Holdings and allocation (<code>allocation.py</code>, <code>compute_holdings</code>)</td><td>none; a new helper reads <code>compute_holdings</code></td><td>the plan's claim of reusing <code>allocation.py</code>'s calculation is wrong, so nothing existing is rewired (F8)</td><td>allocation and holdings tests, unchanged</td></tr><tr><td><code>schemes</code> table and scheme master</td><td>none; a foreign key points at it</td><td>no column added</td><td>migration tests</td></tr><tr><td>Scheduler (<code>main.tf</code>)</td><td>3 new jobs, new alarm</td><td>existing jobs untouched; new jobs placed ahead of 06:30 (Q3). You run the apply</td><td><code>terraform fmt</code> and <code>validate</code> only</td></tr><tr><td>Requirements</td><td>pin <code>openpyxl</code>, <code>xlrd</code>; dev <code>xlwt</code>; maybe a PDF library (F12)</td><td>openpyxl and xlrd are already installed through <code>casparser</code></td><td>install check; CAS import tests, since the pins touch its dependencies</td></tr></table></div>
+</section><section>
+  <div class="sec-head"><span class="tag">Scale</span><h2>What gets bigger</h2></div>
+<ul class=""><li><b>Rows:</b> about 0.4 to 0.55 million holdings rows a month under my stated assumptions (Q10), none measured.</li><li><b>Jobs:</b> disclosure daily (days 1 to 20), stock fundamentals daily, market cap half-yearly.</li><li><b>Recompute:</b> five more sections for every household every day.</li><li><b>Payload:</b> one GET carries all sections; Q4 caps the new ones.</li></ul>
+</section><section>
+  <div class="sec-head"><span class="tag">The setup</span><h2>Who does what, as in Sub-project 1</h2></div>
+<div class="panel"><div class="diagram"><pre class="mermaid">
+sequenceDiagram
+  autonumber
+  actor You
+  participant C as Claude (orchestrator)
+  participant X as Codex (worker)
+  participant R as Reviewer
+  C->>C: Pre-flight: check plan vs code, fix plan
+  C->>C: Handoff doc + delegation-log line
+  C->>You: Run N prompt
+  You->>X: Paste prompt (manual relay)
+  X->>X: Tasks in order, test first, self-review
+  X->>You: CODEX REPORT
+  You->>C: Paste report
+  C->>C: WSL: git diff --stat, touched tests, alembic on Postgres
+  C->>R: Adversarial review vs Review Focus
+  R->>C: Findings
+  alt small fix
+    C->>C: Fix inline, scoped re-review
+  else larger fix
+    C->>X: New round via you
+  end
+  C->>C: git add + git commit, one per plan task
+  Note over C,You: After the last run and final review: one staging guide, one deploy
+</pre></div></div>
+</section><div class="tbl"><table>
+<tr><th>Who</th><th>Does</th><th>Never does</th></tr><tr><td><span class="pill p-claude">Claude</span></td><td>Pre-flight, plan fixes, handoff documents, verification in WSL, Postgres migrations, review, small fixes, the Q6 egress check, synthetic CAS checks, one staging guide at the end, <code>log.md</code> / <code>session.md</code> / <code>database.md</code> / <code>backend.md</code>, and each task's commit once its tests pass</td><td>Push, or switch to Opus without asking</td></tr><tr><td><span class="pill p-codex">Codex</span></td><td>Builds each run's tasks test-first, runs the named test files, self-reviews, prints a report of 15 lines or fewer. Has no network, so sample files and fetched responses come from Claude</td><td>Stage, commit, touch Postgres, staging, AWS or real CAS files</td></tr><tr><td><span class="pill p-you">You</span></td><td>Answers to the questions, relaying prompts and reports, Terraform applies, starting and stopping the bastion, any manual AMC downloads</td><td>-</td></tr><tr><td><span class="pill p-info">Reviewer</span></td><td>Codex adversarial review by default. Opus for the engine's Parse and matcher run, the Attribute 15 data-side run, and the final review across everything</td><td>Auto-apply findings</td></tr></table></div><section>
+  <div class="sec-head"><span class="tag">Runs</span><h2>Ten Codex runs, one at a time</h2><p class="note">Runs 6 to 8 follow the dependency order (13 shares the drill-down into 02); 02, 10 and 13 can swap. Batching and models follow the token-budget rule: tasks that share files go in one run, Sonnet by default, Opus for the riskiest review and the final one.</p></div>
+<div class="tbl"><table>
+<tr><th>Run</th><th>Scope</th><th>Gate reviewer</th><th>Page</th></tr><tr><td>1</td><td>Engine tasks 1 to 5: schema, Parse, Normalize, Write, registry</td><td>Opus</td><td><a href="https://claude.ai/artifact/J76AtXThdCN59drN53g9W5">engine</a></td></tr><tr><td>2</td><td>Engine tasks 6 to 8: orchestrator, Wayback, isolation tests</td><td>Codex</td><td><a href="https://claude.ai/artifact/J76AtXThdCN59drN53g9W5">engine</a></td></tr><tr><td>3</td><td>Engine tasks 9 and 10: job script, Terraform text; then the first real batch</td><td>Codex</td><td><a href="https://claude.ai/artifact/J76AtXThdCN59drN53g9W5">engine</a></td></tr><tr><td>4</td><td>Shared table and A06 backend</td><td>Codex</td><td><a href="https://claude.ai/artifact/S2Fk9MWcrHX36sQBY8pimA">A06</a></td></tr><tr><td>5</td><td>A06 frontend</td><td>Codex</td><td><a href="https://claude.ai/artifact/S2Fk9MWcrHX36sQBY8pimA">A06</a></td></tr><tr><td>6</td><td>A13 asset allocation, backend and frontend</td><td>Codex</td><td><a href="https://claude.ai/artifact/XQR6nmfKd6GYVuRWAE7X89">A13</a></td></tr><tr><td>7</td><td>A02 cap allocation, backend and frontend</td><td>Codex</td><td><a href="https://claude.ai/artifact/7DnDJEdV4jBAU3sQZJLmhi">A02</a></td></tr><tr><td>8</td><td>A10 overlap, backend and frontend</td><td>Codex</td><td><a href="https://claude.ai/artifact/CL5awiNduCyhmLBB3yrEhB">A10</a></td></tr><tr><td>9</td><td>A15 data side: stock_master, client, jobs</td><td>Opus</td><td><a href="https://claude.ai/artifact/PK32qovXoNJZrVXLfWepcv">A15</a></td></tr><tr><td>10</td><td>A15 valuation and frontend</td><td>Codex</td><td><a href="https://claude.ai/artifact/PK32qovXoNJZrVXLfWepcv">A15</a></td></tr><tr><td>11 (optional)</td><td>Wave 2: 19 more AMCs as registry rows, after Q14</td><td>Codex</td><td><a href="https://claude.ai/artifact/VQAHG8mkm3XR5h9erkZSGK">coverage</a></td></tr><tr><td>Final</td><td>One whole-sub-project review before staging</td><td>Opus</td><td>-</td></tr><tr><td>Staging</td><td>One guide, one deploy for everything, after the final review. Not per run or attribute.</td><td>-</td><td>-</td></tr></table></div>
+</section><section>
+  <div class="sec-head"><span class="tag">Question index</span><h2>All 29 open questions, with the recommendation for each</h2><p class="note">Answer by number, for example "Q1 A, Q2 A, Q3 C". Anything you leave unanswered stays open, and nothing is built until you say go.</p></div>
+<div class="tbl"><table>
+<tr><th>#</th><th>Question</th><th>Page</th><th>Recommended</th></tr><tr><td><span class="qid">Q1</span></td><td>Who builds it, and how do commits work?</td><td>below</td><td><span class="pill p-new">decided</span></td></tr><tr><td><span class="qid">Q2</span></td><td>Does Sub-project 1 reach staging before Sub-project 2's deploy, or in the same one?</td><td>below</td><td><b class="rec">A</b></td></tr><tr><td><span class="qid">Q3</span></td><td>How do new disclosures reach a client's screen?</td><td>below</td><td><b class="rec">C</b></td></tr><tr><td><span class="qid">Q4</span></td><td>How much of the look-through table is stored per scope?</td><td>below</td><td><b class="rec">B</b></td></tr><tr><td><span class="qid">Q5</span></td><td>Do the five new sections go into the PDF export?</td><td>below</td><td><b class="rec">C</b></td></tr><tr><td><span class="qid">Q6</span></td><td>Test every source from the AWS network before building?</td><td>below</td><td><b class="rec">A</b></td></tr><tr><td><span class="qid">Q7</span></td><td>What do we show when many of a client's funds have no stock data?</td><td>below</td><td><b class="rec">B</b></td></tr><tr><td><span class="qid">Q8</span></td><td>Where does asset_type enter the schema?</td><td><a href="https://claude.ai/artifact/J76AtXThdCN59drN53g9W5">Engine build</a></td><td><b class="rec">A</b></td></tr><tr><td><span class="qid">Q9</span></td><td>How do we prove the parser against real files?</td><td><a href="https://claude.ai/artifact/J76AtXThdCN59drN53g9W5">Engine build</a></td><td><b class="rec">C</b></td></tr><tr><td><span class="qid">Q10</span></td><td>One holdings copy per plan variant, and how long to keep history</td><td><a href="https://claude.ai/artifact/J76AtXThdCN59drN53g9W5">Engine build</a></td><td><b class="rec">B</b></td></tr><tr><td><span class="qid">Q11</span></td><td>Keep the original downloaded files?</td><td><a href="https://claude.ai/artifact/J76AtXThdCN59drN53g9W5">Engine build</a></td><td><b class="rec">C</b></td></tr><tr><td><span class="qid">Q12</span></td><td>When does a missing AMC raise an alert?</td><td><a href="https://claude.ai/artifact/J76AtXThdCN59drN53g9W5">Engine build</a></td><td><b class="rec">C</b></td></tr><tr><td><span class="qid">Q13</span></td><td>What become derivative, fund-unit and unrecognised-section rows?</td><td><a href="https://claude.ai/artifact/J76AtXThdCN59drN53g9W5">Engine build</a></td><td><b class="rec">A</b></td></tr><tr><td><span class="qid">Q14</span></td><td>How many AMCs must be live before the attributes ship?</td><td><a href="https://claude.ai/artifact/VQAHG8mkm3XR5h9erkZSGK">AMC coverage</a></td><td><b class="rec">B</b></td></tr><tr><td><span class="qid">Q15</span></td><td>How do the 6 manual AMCs get into the system?</td><td><a href="https://claude.ai/artifact/VQAHG8mkm3XR5h9erkZSGK">AMC coverage</a></td><td><b class="rec">C</b></td></tr><tr><td><span class="qid">Q16</span></td><td>Wayback dependence, and a spec-versus-plan conflict on Canara Robeco</td><td><a href="https://claude.ai/artifact/VQAHG8mkm3XR5h9erkZSGK">AMC coverage</a></td><td><b class="rec">C</b></td></tr><tr><td><span class="qid">Q17</span></td><td>Does the stock table show only stocks?</td><td><a href="https://claude.ai/artifact/S2Fk9MWcrHX36sQBY8pimA">A06 stock holdings</a></td><td><b class="rec">A</b></td></tr><tr><td><span class="qid">Q18</span></td><td>How old can a fund's holdings be before we say so?</td><td><a href="https://claude.ai/artifact/S2Fk9MWcrHX36sQBY8pimA">A06 stock holdings</a></td><td><b class="rec">C</b></td></tr><tr><td><span class="qid">Q19</span></td><td>Is a sector breakdown part of this release?</td><td><a href="https://claude.ai/artifact/S2Fk9MWcrHX36sQBY8pimA">A06 stock holdings</a></td><td><b class="rec">A</b></td></tr><tr><td><span class="qid">Q20</span></td><td>Which AMFI list applies to a holding, and how far back do we load?</td><td><a href="https://claude.ai/artifact/7DnDJEdV4jBAU3sQZJLmhi">A02 cap allocation</a></td><td><b class="rec">A</b></td></tr><tr><td><span class="qid">Q21</span></td><td>The Nifty 500 comparison strip needs data nobody has sourced</td><td><a href="https://claude.ai/artifact/7DnDJEdV4jBAU3sQZJLmhi">A02 cap allocation</a></td><td><b class="rec">A</b></td></tr><tr><td><span class="qid">Q22</span></td><td>What goes in "Other / Unclassified"?</td><td><a href="https://claude.ai/artifact/7DnDJEdV4jBAU3sQZJLmhi">A02 cap allocation</a></td><td><b class="rec">C</b></td></tr><tr><td><span class="qid">Q23</span></td><td>Overlap across all common instruments, or stocks only?</td><td><a href="https://claude.ai/artifact/CL5awiNduCyhmLBB3yrEhB">A10 overlap</a></td><td><b class="rec">A</b></td></tr><tr><td><span class="qid">Q24</span></td><td>Where do the overlap bands live?</td><td><a href="https://claude.ai/artifact/CL5awiNduCyhmLBB3yrEhB">A10 overlap</a></td><td><b class="rec">C</b></td></tr><tr><td><span class="qid">Q25</span></td><td>How many funds before the heatmap becomes unreadable?</td><td><a href="https://claude.ai/artifact/CL5awiNduCyhmLBB3yrEhB">A10 overlap</a></td><td><b class="rec">C</b></td></tr><tr><td><span class="qid">Q26</span></td><td>How is the hedged-arbitrage "cash-like" toggle built?</td><td><a href="https://claude.ai/artifact/XQR6nmfKd6GYVuRWAE7X89">A13 asset allocation</a></td><td><b class="rec">A</b></td></tr><tr><td><span class="qid">Q27</span></td><td>What is the outer ring of the donut for debt, gold and cash?</td><td><a href="https://claude.ai/artifact/XQR6nmfKd6GYVuRWAE7X89">A13 asset allocation</a></td><td><b class="rec">A</b></td></tr><tr><td><span class="qid">Q28</span></td><td>Which P/E, and are P/E and P/B comparable?</td><td><a href="https://claude.ai/artifact/PK32qovXoNJZrVXLfWepcv">A15 valuation</a></td><td><b class="rec">A</b></td></tr><tr><td><span class="qid">Q29</span></td><td>Compare against Nifty 50 only, or Nifty 500 too?</td><td><a href="https://claude.ai/artifact/PK32qovXoNJZrVXLfWepcv">A15 valuation</a></td><td><b class="rec">B</b></td></tr><tr><td><span class="qid">Q30</span></td><td>How much of the equity must have data before we show P/E and P/B?</td><td><a href="https://claude.ai/artifact/PK32qovXoNJZrVXLfWepcv">A15 valuation</a></td><td><b class="rec">B</b></td></tr></table></div>
+</section><section>
+  <div class="sec-head"><span class="tag">Issues in detail</span><h2>Issues, by status</h2></div>
+<div class="group"><div class="group-head"><h3>Decided</h3><span class="pill p-new">2</span></div><p class="note">Recorded from your 2026-10-13 instruction.</p><div class="issues"><article class="ib done">
+  <div class="top"><span class="pill p-new">Recorded</span><h3>Q1 · Same setup as Sub-project 1</h3><span class="pill p-none">already decided</span></div>
+  <dl><dt>What was decided</dt><dd>Decided 2026-10-13 (your words: "use the same Claude coding setup we used for subproject 1"). Claude does pre-flight, plan fixes and handoff documents; Codex builds in runs; Claude verifies, reviews and commits one commit per task; nothing is pushed. Opus reviews the riskiest runs and the final one. The commit exception in memory now covers Sub-project 2.</dd></dl>
+</article><article class="ib done">
+  <div class="top"><span class="pill p-new">Recorded</span><h3>Staging once, at the end</h3><span class="pill p-none">already decided</span></div>
+  <dl><dt>What was decided</dt><dd>Decided 2026-10-13: no staging between runs or per attribute. Every task is committed as the plans say (never pushed); after the last run and the final review, Claude writes one staging guide for the whole sub-project (bastion start and stop, migrations, jobs, checks) and you apply it once, as for Sub-project 1.</dd></dl>
+</article></div></div><div class="group"><div class="group-head"><h3>Waiting on you</h3><span class="pill p-you">6</span></div><p class="note">Cross-cutting decisions. The other 23 are on the pages above.</p><div class="issues"><article class="ib you">
+  <div class="top"><span class="qid">Q2</span><span class="pill p-you">Your call</span><h3>Does Sub-project 1 reach staging before Sub-project 2's deploy, or in the same one?</h3></div>
+  <dl>
+    <dt>The issue</dt><dd><p>Decided 2026-10-13: Sub-project 2 is built and committed run by run with no staging in between, and staged once, for every attribute together, after the final review, the way Sub-project 1 was. What is left is the order against Sub-project 1. Its final Opus review and staging deploy are still ahead (<code>session.md</code> lists the staging deploy guide as next), and its migrations 0036 to 0038 are not on staging. Priority 1 (factsheet gaps, deadline 10 Nov 2026 06:00 IST) is also open.</p></dd>
+    <dt>Why it matters</dt><dd><p>Sub-project 2 adds migrations after 0038 and edits the same shared files. Two undeployed migration chains reaching staging at once make a failure harder to localise.</p></dd>
+    <dt>Options</dt><dd><ol class="opts"><li class="pick"><span class="k">A</span><span>Sub-project 1 goes to staging first on its own guide. Sub-project 2 follows with its single end-of-project deploy.</span></li><li class=""><span class="k">B</span><span>One combined staging deploy for both sub-projects, at the end of Sub-project 2.</span></li><li class=""><span class="k">C</span><span>Sub-project 1 deploys whenever you choose; Sub-project 2 does not wait for it either way.</span></li></ol></dd>
+    <dt>Recommended</dt><dd><p><span class="rec">A.</span> Staging stays one change at a time and Sub-project 1's review is not held back by a long build.</p></dd>
+    <dt>After your answer</dt><dd><ul><li>Sub-project 2's staging guide is written once, after the final Opus review.</li></ul></dd>
+  </dl>
+</article><article class="ib you">
+  <div class="top"><span class="qid">Q3</span><span class="pill p-you">Your call</span><h3>How do new disclosures reach a client's screen?</h3></div>
+  <dl>
+    <dt>The issue</dt><dd><p>The plans say a disclosure reaching <code>WRITTEN</code> invalidates the affected households' cached results, and that attribute 15 has a second trigger on fresher stock data. No such event exists today. A household recompute starts after a CAS import or an on-demand retry, or from the daily run at 06:30 IST that recomputes every household. Nothing recomputes households when a table they read changes. The new disclosure job is scheduled for 07:00, after that run.</p></dd>
+    <dt>Why it matters</dt><dd><p>Without a choice, a new disclosure appears the day after next. Building event-driven recompute means finding every household that holds the affected funds and starting one Fargate task per household.</p></dd>
+    <dt>Options</dt><dd><ol class="opts"><li class=""><span class="k">A</span><span>Use the daily run. Schedule both new data jobs ahead of 06:30 so a new disclosure shows the next morning. No new trigger code.</span></li><li class=""><span class="k">B</span><span>After the disclosure job, recompute only the households that hold a fund that just got a new batch.</span></li><li class="pick"><span class="k">C</span><span>A now; B only if you find next-morning too slow.</span></li></ol></dd>
+    <dt>Recommended</dt><dd><p><span class="rec">C.</span> Holdings change monthly and the stock fundamentals change daily. Next-morning is enough for both.</p></dd>
+    <dt>After your answer</dt><dd><ul><li>The four invalidation tests in the A15 plan become a schedule-order check.</li><li>Jobs move to about 05:45 (F3); Terraform edit only, you apply.</li></ul></dd>
+  </dl>
+</article><article class="ib you">
+  <div class="top"><span class="qid">Q4</span><span class="pill p-you">Your call</span><h3>How much of the look-through table is stored per scope?</h3></div>
+  <dl>
+    <dt>The issue</dt><dd><p>Every household analytics result is stored as one JSON payload per scope and per section, and every Analytics load returns all sections for the scope in one request (and again on every poll while recomputing). There is no size limit anywhere. A full look-through table of a few hundred stocks, each with its contributing funds, is hundreds of kilobytes per scope. Five scopes for a 4-member household multiply it.</p></dd>
+    <dt>Why it matters</dt><dd><p>The Analytics page is the one most users open first.</p></dd>
+    <dt>Options</dt><dd><ol class="opts"><li class=""><span class="k">A</span><span>Store the full table for each scope.</span></li><li class="pick"><span class="k">B</span><span>Store the top 100 stocks per scope with a note that the full list is shorter than the portfolio. Overlap capped by Q25.</span></li><li class=""><span class="k">C</span><span>Store the top 25 and drop "View all" from this release.</span></li></ol></dd>
+    <dt>Recommended</dt><dd><p><span class="rec">B.</span> 100 rows cover the large majority of exposure for typical diversified portfolios. I have not measured this on real data; the first real batch would show it.</p></dd>
+    <dt>After your answer</dt><dd><ul><li>The cut-off is one constant; the row count shown is stated under the table.</li></ul></dd>
+  </dl>
+</article><article class="ib you">
+  <div class="top"><span class="qid">Q5</span><span class="pill p-you">Your call</span><h3>Do the five new sections go into the PDF export?</h3></div>
+  <dl>
+    <dt>The issue</dt><dd><p>The PDF is built in the browser from each loaded section and has no schema on the backend. Sub-project 1's <code>investment_withdrawal</code> section was never added to it, so the export already omits one live section. Sub-project 1's other plans listed the PDF print view in their change map.</p></dd>
+    <dt>Why it matters</dt><dd><p>Heavy charts (a heatmap, two donuts) can slow the page the export waits on; the export waits 15 seconds.</p></dd>
+    <dt>Options</dt><dd><ol class="opts"><li class=""><span class="k">A</span><span>Add all five new sections to the export.</span></li><li class=""><span class="k">B</span><span>Leave the new sections out of the PDF for now.</span></li><li class="pick"><span class="k">C</span><span>Add the five, and add <code>investment_withdrawal</code> too, since it is the same edit in the same files.</span></li></ol></dd>
+    <dt>Recommended</dt><dd><p><span class="rec">C.</span> Same files, same pattern, and one gap closed.</p></dd>
+    <dt>After your answer</dt><dd><ul><li>Adds print view blocks, a payload field per section and <code>printMode</code> on each component.</li></ul></dd>
+  </dl>
+</article><article class="ib you">
+  <div class="top"><span class="qid">Q6</span><span class="pill p-you">Your call</span><h3>Test every source from the AWS network before building?</h3></div>
+  <dl>
+    <dt>The issue</dt><dd><p>Every source was verified from a development machine. The job runs in Fargate behind the <code>fck-nat</code> instance. NSE, Yahoo, AMC sites and the Internet Archive may block cloud addresses. This is the same unverified assumption already listed under Priority 1 for the 40 automatic factsheet AMCs.</p></dd>
+    <dt>Why it matters</dt><dd><p>A source that works on a laptop and fails in production would show up as a missing-AMC alert weeks after launch.</p></dd>
+    <dt>Options</dt><dd><ol class="opts"><li class="pick"><span class="k">A</span><span>Before building, run one throwaway Fargate or bastion-side check that requests each source once (NSE files, Yahoo handshake, AMFI portal, Wayback, the 10 registered AMC hosts, the Nifty lists) and reports status codes. Covers Priority 1's question for the same AMC hosts as well.</span></li><li class=""><span class="k">B</span><span>Find out at the first staging run.</span></li><li class=""><span class="k">C</span><span>Check only Yahoo, NSE and the Archive, the three most likely to block.</span></li></ol></dd>
+    <dt>Recommended</dt><dd><p><span class="rec">A.</span> It is cheap, it uses the guide pattern that starts and stops the bastion, and it answers Priority 1 for free.</p></dd>
+    <dt>After your answer</dt><dd><ul><li>I write the check as a read-only script with a short guide; you start the bastion.</li></ul></dd>
+  </dl>
+</article><article class="ib you">
+  <div class="top"><span class="qid">Q7</span><span class="pill p-you">Your call</span><h3>What do we show when many of a client's funds have no stock data?</h3></div>
+  <dl>
+    <dt>The issue</dt><dd><p>Some funds will have no batch: AMCs not yet onboarded, the 6 manual ones, the 5 that publish nothing, and funds that are late. The spec says a banner "N of your M funds haven't published this month's holdings yet". That wording is wrong for an AMC that never will, and it counts funds, not money.</p></dd>
+    <dt>Why it matters</dt><dd><p>"Top 10 stocks represent 38%" computed over 30% of the portfolio is misleading. "Yet" promises something that for some AMCs never arrives.</p></dd>
+    <dt>Options</dt><dd><ol class="opts"><li class=""><span class="k">A</span><span>Banner always, counted by value: "Based on 62% of your portfolio. 3 funds not covered." Two reasons shown separately: "not published yet" and "not available from this AMC".</span></li><li class="pick"><span class="k">B</span><span>A, and hide headline sentences (concentration, top-10 share, portfolio P/E) when covered value is under 50%.</span></li><li class=""><span class="k">C</span><span>Show nothing for the five attributes until at least 50% is covered.</span></li></ol></dd>
+    <dt>Recommended</dt><dd><p><span class="rec">B.</span> Honest at every level and never silent. The 50% line is my pick, not a measured number.</p></dd>
+    <dt>After your answer</dt><dd><ul><li>One shared coverage figure computed in the shared table and read by all five sections.</li></ul></dd>
+  </dl>
+</article></div></div><div class="group"><div class="group-head"><h3>Plan fixes</h3><span class="pill p-mod">1</span></div><p class="note">All 19 plan fixes (F4 is four items, F4a to F4d) are listed on their pages and applied on your go.</p><div class="issues"><article class="ib">
+  <div class="top"><span class="qid">F-all</span><span class="pill p-mod">Plan fix</span><h3>Shared fixes F7 to F11 apply to every attribute</h3><span class="pill p-none">no decision needed</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>Five fixes found while checking the consumer plan against the code are not specific to one attribute: the wrong function signature (F7), the missing fund-weight helper (F8), the unneeded endpoint step (F9), the incomplete frontend file list (F10), and contradicting plan wording (F11). Full detail, with flows, is on the attribute 06 page.</p></dd>
+    
+    <dt>Why it matters</dt><dd><p>All five attributes build on the same shared table and the same section wiring, so each of these would otherwise repeat in five tasks.</p></dd>
+    <dt>The fix</dt><dd>Apply once, in the consumer plan, before Run 4, as a dated revision note, the way Sub-project 1's plans were edited in place.</dd>
+    <dt>Effect on the current system</dt><dd><ul><li>Only plan text and one list in <code>recompute.py</code> are affected, as described under F7.</li></ul></dd>
+    <dt>Effect on the plan</dt><dd>Tasks 2 to 6 are reworded once; no task is added or removed.</dd>
+    <dt>Flow after the fix</dt><dd><div class="diagram"><pre class="mermaid">
+flowchart LR
+  f["F7 to F11 applied once"] --> t["Tasks 2 to 6 inherit them"]
+</pre></div></dd>
+  </dl>
+</article></div></div>
+</section>
+<footer>Checked against the code at <code>c9fb248</code> (branch <code>feat/enhanced-ui</code>, migration head <code>0038</code>) and the Sub-project 2 docs at <code>bef12be</code>, 2026-10-13. Nothing has been built or edited for Sub-project 2. Standalone copies: <code>Docs/analytics/artifacts/subproject2-execution/</code>.</footer>
+</div>

@@ -1,0 +1,224 @@
+<title>A02 Cap Allocation Build</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Manrope:wght@600;700;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one 1040px reading column; diagrams and tables scroll inside their own frames. */
+:root {
+  --paper: #F4F7F6; --surface: #FFFFFF; --ink: #12201C; --muted: #5A6A65; --line: #D9E2DF;
+  --accent: #0E6A56; --accent-soft: #E1F0EB;
+  --crit: #B3262E; --crit-soft: #FBE5E6; --warn: #A86C12; --warn-soft: #FBF0DA;
+  --info: #2D5B9C; --info-soft: #E3EBF7; --codex: #6B4BB8; --codex-soft: #EEE8FA;
+  --display: "Manrope", "Segoe UI", system-ui, sans-serif;
+  --body: "DM Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "Cascadia Code", monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #0D1412; --surface: #141E1B; --ink: #E4ECE9; --muted: #96A7A1; --line: #26342F;
+  --accent: #5DC8A7; --accent-soft: #163029; --crit: #F0767C; --crit-soft: #3A1B1E;
+  --warn: #E5AB4B; --warn-soft: #33270F; --info: #82A9E6; --info-soft: #182437;
+  --codex: #B49BF0; --codex-soft: #261D3D; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --paper: #0D1412; --surface: #141E1B; --ink: #E4ECE9; --muted: #96A7A1; --line: #26342F;
+  --accent: #5DC8A7; --accent-soft: #163029; --crit: #F0767C; --crit-soft: #3A1B1E;
+  --warn: #E5AB4B; --warn-soft: #33270F; --info: #82A9E6; --info-soft: #182437;
+  --codex: #B49BF0; --codex-soft: #261D3D; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font: 400 15px/1.6 var(--body); margin: 0; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 40px 20px 80px; display: flex; flex-direction: column; gap: 44px; }
+header.top { display: flex; flex-direction: column; gap: 14px; }
+.eyebrow { font: 600 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+h1 { font: 800 clamp(28px, 4.4vw, 42px)/1.1 var(--display); margin: 0; letter-spacing: -.02em; text-wrap: balance; }
+h2 { font: 700 22px/1.25 var(--display); margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+h3 { font: 700 16px/1.3 var(--display); margin: 0; }
+p { margin: 0; max-width: 72ch; }
+.lede { font-size: 17px; color: var(--muted); max-width: 70ch; }
+code, .mono { font-family: var(--mono); font-size: .86em; }
+code { background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; word-break: break-word; }
+a { color: var(--accent); }
+section { display: flex; flex-direction: column; gap: 16px; }
+.sec-head { display: flex; flex-direction: column; gap: 6px; }
+.sec-head .tag { font: 600 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font: 500 13px/1 var(--body); padding: 7px 11px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+.chip b { font-family: var(--display); font-weight: 800; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.grid2 > * { min-width: 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.panel .label { font: 600 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.panel.after { border-color: var(--accent); }
+.panel.after .label { color: var(--accent); }
+.diagram { overflow-x: auto; }
+pre.mermaid { margin: 0; background: transparent; font-family: var(--body); }
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 11px/1.2 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--paper); }
+tr:last-child td { border-bottom: 0; }
+td.num { font-variant-numeric: tabular-nums; }
+.pill { display: inline-block; font: 600 11px/1 var(--mono); padding: 4px 7px; border-radius: 5px; letter-spacing: .03em; white-space: nowrap; }
+.p-new { background: var(--accent-soft); color: var(--accent); }
+.p-mod { background: var(--info-soft); color: var(--info); }
+.p-none { background: var(--paper); color: var(--muted); border: 1px solid var(--line); }
+.p-codex { background: var(--codex-soft); color: var(--codex); }
+.p-claude { background: var(--accent-soft); color: var(--accent); }
+.p-you { background: var(--warn-soft); color: var(--warn); }
+.p-crit { background: var(--crit-soft); color: var(--crit); }
+.p-warn { background: var(--warn-soft); color: var(--warn); }
+.p-info { background: var(--info-soft); color: var(--info); }
+ol.passes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0; }
+ol.passes > li { display: grid; grid-template-columns: 132px 1fr; gap: 16px; padding: 14px 0; border-top: 1px solid var(--line); }
+ol.passes > li:first-child { border-top: 0; }
+ol.passes .when { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+ol.passes .when .n { font: 800 13px/1 var(--display); color: var(--muted); }
+ol.passes .what { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+ol.passes ul { margin: 0; padding-left: 18px; }
+@media (max-width: 560px) { ol.passes > li { grid-template-columns: 1fr; gap: 8px; } }
+.issues { display: flex; flex-direction: column; gap: 10px; }
+.issue { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--info); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.issue.crit { border-left-color: var(--crit); }
+.issue.warn { border-left-color: var(--warn); }
+.issue .hd { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.issue .hd h3 { font-size: 15px; }
+.issue .fix { color: var(--muted); font-size: 14px; }
+.callout { background: var(--warn-soft); border: 1px solid var(--warn); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+.callout h2 { font-size: 19px; }
+.note { font-size: 13px; color: var(--muted); }
+ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.bar { display: flex; height: 34px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
+.bar > div { display: flex; align-items: center; justify-content: center; font: 700 12px/1 var(--display); color: #fff; min-width: 0; overflow: hidden; white-space: nowrap; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; background: var(--c); vertical-align: -1px; }
+.formula { font-family: var(--mono); font-size: 13px; background: var(--paper); border: 1px dashed var(--line); border-radius: 8px; padding: 12px 14px; overflow-x: auto; white-space: pre; }
+footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 16px; }
+.ib { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--info); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.ib.crit { border-left-color: var(--crit); } .ib.warn { border-left-color: var(--warn); } .ib.done { border-left-color: var(--accent); }
+.ib .top { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ib .top h3 { font-size: 16px; flex: 1 1 260px; min-width: 0; }
+.ib dl { display: grid; grid-template-columns: 148px minmax(0, 1fr); gap: 10px 18px; margin: 0; }
+.ib dt { font: 600 11px/1.5 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding-top: 2px; }
+.ib dd { margin: 0; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.ib ol.opts { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.ib ol.opts li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 8px; }
+.ib ol.opts .k { font: 800 12px/1.6 var(--display); color: var(--muted); }
+.ib ol.opts li.pick .k { color: var(--accent); }
+.ib ol.opts li.pick > span:last-child { font-weight: 500; }
+.ib .rec { color: var(--accent); font-weight: 700; }
+.ib ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
+@media (max-width: 600px) { .ib dl { grid-template-columns: 1fr; gap: 4px; } .ib dd { margin-bottom: 8px; } }
+.group { display: flex; flex-direction: column; gap: 10px; padding-top: 8px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 22px; margin-top: 6px; }
+.group-head { display: flex; align-items: center; gap: 10px; }
+.group-head h3 { font-size: 18px; }
+.ib ul.muted { color: var(--muted); font-size: 13px; }
+.ib.done .top h3 { color: var(--ink); }
+</style>
+<style>
+.qid{font:800 12px/1 var(--mono);color:var(--muted)}
+.ib.you{border-left-color:var(--warn)}
+.tbl code{white-space:normal}
+</style>
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Unifolio · Analytics · Sub-project 2 · attribute 02</div>
+  <h1>Large, mid and small cap</h1>
+  <p class="lede">Classifies the stocks a client actually holds through their funds as large, mid or small cap using AMFI's own half-yearly list, instead of trusting the fund's label.</p>
+  <div class="chips"><span class="chip"><b>1</b> Codex run</span><span class="chip"><b>1</b> task</span><span class="chip"><b>1</b> migration</span><span class="chip"><b>1</b> new table</span><span class="chip"><b>1</b> new half-yearly job</span><span class="chip"><b>1</b> new analytics section</span><span class="chip"><b>3</b> questions for you</span><span class="chip"><b>1</b> plan fix</span></div>
+</header>
+<section>
+  <div class="sec-head"><span class="tag">The data</span><h2>One half-yearly list, joined by date</h2></div>
+<div class="formula">AMFI list   rank 1 to 100 Large · 101 to 250 Mid · 251+ Small      (5,427 rows parsed, 3 transitions: ranks 1, 101, 251)
+join        stock bucket = list with the latest effective_date ≤ holdings_as_of   (not ≤ today)
+denominator toggle  "% of total portfolio"  vs  "% of equity only"   (two different sums)
+
+Worked example (spec)   Flexi 50% · Mid 30% · Small 20% of the portfolio, each with its own split
+                        client split 39% Large · 35% Mid · 22.5% Small · 3.5% Other</div>
+</section><section>
+  <div class="sec-head"><span class="tag">Flow</span><h2>What gets added</h2><p class="note">The sibling pattern is <code>amfi_ter_client.py</code>: a frozen result dataclass, a refresh function that degrades gracefully.</p></div>
+<div class="panel"><div class="diagram"><pre class="mermaid">
+flowchart TD
+  amfi["AMFI market-cap PDF<br/>twice a year"] --> cl["amfi_market_cap_client.py<br/>new, half-yearly job"]
+  cl --> t[("market_cap_classifications<br/>isin, rank, bucket, effective_date")]
+  lt["LookthroughTable<br/>from attribute 06"] --> agg["cap allocation<br/>join by ISIN and date"]
+  t --> agg
+  agg --> sec["section: cap_allocation"]
+  sec --> ui["CapAllocationSection<br/>donut, legend, drill-down"]
+</pre></div></div>
+</section><section>
+  <div class="sec-head"><span class="tag">Database</span><h2>ER after</h2><p class="note">One new table, no foreign keys (the ISIN is matched by value, because many AMFI ISINs will never appear in <code>schemes</code>). Primary key and index choice are part of Task 3's missing steps (F12).</p></div>
+<div class="panel"><div class="diagram"><pre class="mermaid">
+erDiagram
+  MARKET_CAP_CLASSIFICATIONS {
+    string isin PK
+    date effective_date PK
+    int rank
+    enum bucket "LARGE, MID, SMALL"
+  }
+</pre></div></div>
+</section><section>
+  <div class="sec-head"><span class="tag">Change map</span><h2>What changes where</h2></div>
+<div class="tbl"><table>
+<tr><th>Layer</th><th>File</th><th>Change</th><th>Task</th></tr><tr><td>Database</td><td><code>alembic/versions/&lt;next&gt;_market_cap_classifications.py</code></td><td><span class="pill p-new">new</span> 1 table</td><td>3</td></tr><tr><td>Backend</td><td><code>models/reference.py</code>, <code>models/enums.py</code></td><td><span class="pill p-mod">modify</span> class, bucket enum</td><td>3</td></tr><tr><td>Backend</td><td><code>services/analytics/amfi_market_cap_client.py</code></td><td><span class="pill p-new">new</span> fetch, parse, store</td><td>3</td></tr><tr><td>Backend</td><td><code>services/analytics/cap_allocation.py</code></td><td><span class="pill p-new">new</span> bucket join, toggle, drill-down data</td><td>3</td></tr><tr><td>Backend</td><td><code>schemas.py</code>, <code>recompute.py</code></td><td><span class="pill p-mod">modify</span> models, one <code>_SectionSpec</code></td><td>3</td></tr><tr><td>Job</td><td><code>scripts/jobs/refresh_market_cap_halfyearly.py</code>, scheduler entry</td><td><span class="pill p-new">new</span> not in the plan today (F12)</td><td>3</td></tr><tr><td>Frontend</td><td><code>CapAllocationSection.tsx</code>, <code>types.ts</code>, both views</td><td><span class="pill p-new">new</span> donut and legend</td><td>3</td></tr></table></div>
+</section><section>
+  <div class="sec-head"><span class="tag">Recorded</span><h2>Already decided</h2></div>
+<div class="issues"><article class="ib done">
+  <div class="top"><span class="pill p-new">Recorded</span><h3>AMFI source, verified in depth</h3><span class="pill p-none">already decided</span></div>
+  <dl><dt>What was decided</dt><dd>2026-10-13: the full 48-page file was parsed (5,427 rows) and its rank/category column matched SEBI's 100/250 boundaries exactly. <code>robots.txt</code> checked on both hosts.</dd></dl>
+</article><article class="ib done">
+  <div class="top"><span class="pill p-new">Recorded</span><h3>AMFI terms say "personal and non-commercial use only"</h3><span class="pill p-none">already decided</span></div>
+  <dl><dt>What was decided</dt><dd>Decided 2026-10-13 to proceed, caveat recorded, on the same footing as the TER and AAUM feeds already in production. Not reopened here.</dd></dl>
+</article></div>
+</section><section>
+  <div class="sec-head"><span class="tag">Execution</span><h2>Run</h2><p class="note">One run; backfill of earlier lists (Q20) is an operational step Claude runs locally and writes into the single end-of-project staging guide.</p></div>
+<ol class="passes"><li><div class="when"><span class="n">Pass 0</span><span class="pill p-claude">Claude</span></div><div class="what"><h3>Pre-flight</h3><p>F12, Q20 to Q22 settled. Claude proves the PDF text extraction on the real 48-page file before the run, since Codex has no network.</p></div></li><li><div class="when"><span class="n">Run 7</span><span class="pill p-codex">Codex run 7</span></div><div class="what"><h3>Task 3, backend and frontend</h3><ul><li>Model and migration, client, effective-date join test, both denominators, section and donut.</li></ul></div></li><li><div class="when"><span class="n">Gate 7</span><span class="pill p-claude">Claude</span></div><div class="what"><h3>Verify, review, synthetic CAS check</h3><p>Gate = touched test files only, <code>alembic upgrade</code> on local Postgres where a migration is involved, the adversarial review against Review Focus, then one commit per task by Claude. Codex never stages, commits or touches Postgres, staging or AWS. Then the harness with the seeded holdings fixture, checking the bucket split.</p></div></li></ol>
+</section><section>
+  <div class="sec-head"><span class="tag">Issues in detail</span><h2>Issues, by status</h2></div>
+<div class="group"><div class="group-head"><h3>Waiting on you</h3><span class="pill p-you">3</span></div><p class="note">Date rule, one removed strip, one label.</p><div class="issues"><article class="ib you">
+  <div class="top"><span class="qid">Q20</span><span class="pill p-you">Your call</span><h3>Which AMFI list applies to a holding, and how far back do we load?</h3></div>
+  <dl>
+    <dt>The issue</dt><dd><p>The AMFI file is named for the six months that <i>ended</i> on 30 Jun 2026. The spec stores that as <code>effective_date</code> and picks the newest list with <code>effective_date ≤ holdings_as_of</code>. Two problems. First, a list that averages the six months to 30 Jun is normally used from the start of the next period, so a June month-end portfolio would be bucketed with the <i>new</i> list if the period end is used as the effective date. I have not checked the SEBI circular's effective rule; that is for you to confirm. Second, the plan ingests only the current list. A holding dated before it finds no list at all and falls into "Other".</p></dd>
+    <dt>Why it matters</dt><dd><p>A wrong effective date moves every stock near rank 100 or 250 in the month it changes. A missing earlier list makes recent months look 100% unclassified.</p></dd>
+    <dt>Options</dt><dd><ol class="opts"><li class="pick"><span class="k">A</span><span>Effective date = the day after the period end (1 Jul 2026 for the file above, which is then used for holdings dated 1 Jul onward). Load the last 4 lists (two years) when the client is first deployed.</span></li><li class=""><span class="k">B</span><span>Effective date = the period end as written. Load the current list only.</span></li><li class=""><span class="k">C</span><span>Effective date = the day the list was published. Load the last 4 lists, capture each publication date by hand.</span></li></ol></dd>
+    <dt>Recommended</dt><dd><p><span class="rec">A.</span> Matches how the two lists meet at a boundary and gives every normal holding date a list to use. You confirm the rule against the circular.</p></dd>
+    <dt>After your answer</dt><dd><ul><li>Task 3's date-join test uses the A rule in its example.</li><li>The older URL pattern (verbose name on <code>www.amfiindia.com</code>) is needed for the backfill and was only spot-checked.</li></ul></dd>
+  </dl>
+</article><article class="ib you">
+  <div class="top"><span class="qid">Q21</span><span class="pill p-you">Your call</span><h3>The Nifty 500 comparison strip needs data nobody has sourced</h3></div>
+  <dl>
+    <dt>The issue</dt><dd><p>The spec says the strip "needs no new data source" because Nifty 500's constituents already define AMFI's rank 1 to 500 split. Two things in that sentence are unverified. Nifty 500 is built by NSE on its own free-float basis; AMFI's rank is average market cap over six months, so the two lists can differ at the edges. And a cap split of an index needs each constituent's index <i>weight</i>. I checked today that NSE's constituent file (<code>ind_nifty500list.csv</code>) is live and has company, industry, symbol and ISIN, with <b>no weights</b>.</p></dd>
+    <dt>Why it matters</dt><dd><p>Without weights the strip cannot be drawn honestly. Counting constituents by AMFI bucket is a different, simpler claim ("of the 500 companies, 100 are Large") and says nothing about weight.</p></dd>
+    <dt>Options</dt><dd><ol class="opts"><li class="pick"><span class="k">A</span><span>Drop the strip from this release. The spec already calls it optional.</span></li><li class=""><span class="k">B</span><span>Show a count-based strip, labelled "companies by AMFI bucket", using the constituent list and the classification table.</span></li><li class=""><span class="k">C</span><span>Source index weights (not investigated yet) and draw a weight-based strip.</span></li></ol></dd>
+    <dt>Recommended</dt><dd><p><span class="rec">A.</span> The attribute works without it and nothing new needs sourcing.</p></dd>
+    <dt>After your answer</dt><dd><ul><li>Recorded in <code>DEFERRED_FEATURES.md</code> with the reason.</li></ul></dd>
+  </dl>
+</article><article class="ib you">
+  <div class="top"><span class="qid">Q22</span><span class="pill p-you">Your call</span><h3>What goes in "Other / Unclassified"?</h3></div>
+  <dl>
+    <dt>The issue</dt><dd><p>The bucket mixes unlike things: debt, cash, gold and REITs (not equity at all), foreign stocks, and Indian listed stocks missing from the AMFI list (a new IPO, a recent merger). The toggle "% of equity only" removes only the first group.</p></dd>
+    <dt>Why it matters</dt><dd><p>A reader cannot tell "3.5% other" meaning cash from "3.5% other" meaning listed stocks we could not classify.</p></dd>
+    <dt>Options</dt><dd><ol class="opts"><li class=""><span class="k">A</span><span>Split into "Not equity (debt, cash, gold, REITs)" and "Equity not in AMFI list".</span></li><li class=""><span class="k">B</span><span>Keep one bucket as the spec says and rely on the toggle.</span></li><li class="pick"><span class="k">C</span><span>Show one bucket in the donut and the split in the drill-down only.</span></li></ol></dd>
+    <dt>Recommended</dt><dd><p><span class="rec">C.</span> Keeps the donut as drawn in the PDF and the visual map, with the detail one tap away.</p></dd>
+    <dt>After your answer</dt><dd><ul><li>One more grouping in the drill-down data.</li></ul></dd>
+  </dl>
+</article></div></div><div class="group"><div class="group-head"><h3>Plan fixes</h3><span class="pill p-mod">1</span></div><p class="note">Verified against the repo.</p><div class="issues"><article class="ib">
+  <div class="top"><span class="qid">F12</span><span class="pill p-mod">Plan fix</span><h3>The plan has no model, migration, job or schedule for the classification table</h3><span class="pill p-none">no decision needed</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>Task 3 goes from the feasibility spike straight to <code>amfi_market_cap_client.py</code> "writing <code>market_cap_classifications (isin, rank, bucket, effective_date)</code>". There is no step for the SQLAlchemy model, the bucket enum, the Alembic migration, a job script, or a scheduler entry. The spike's note says it parsed the PDF with <code>pypdf</code>, but <code>pypdf</code> is not in <code>requirements.txt</code>; the repo has <code>pypdfium2==5.12.1</code>.</p></dd>
+    <dt>Evidence</dt><dd><code>backend/requirements.txt</code> lines 42 and 48; plan Task 3.</dd>
+    <dt>Why it matters</dt><dd><p>An implementer would have nowhere to store the data, nothing would run twice a year, and a new PDF dependency could slip in unreviewed (the CAS import already depends on the PDF stack).</p></dd>
+    <dt>The fix</dt><dd><ul><li>Add steps in order: model and <code>MarketCapBucket</code> enum, migration (next free number), a half-yearly job script and its scheduler entry.</li><li>Before writing the client, prove text extraction on the real 48-page file with <code>pypdfium2</code>; pin <code>pypdf</code> only if that fails.</li><li>The client re-checks the URL each half-year, as the plan already says, and treats a changed host or name as a failure to alert on, not a silent empty table.</li></ul></dd>
+    <dt>Effect on the current system</dt><dd><ul><li>One new table with no foreign keys; no existing table changes.</li><li>A PDF library pin could affect the CAS import's dependency set, so its tests run after any pin.</li><li>New scheduler entry: you apply it at the single end-of-project staging.</li></ul></dd>
+    <dt>Effect on the plan</dt><dd>Task 3 grows by four steps and a dependency decision. Its existing tests (date join, both denominators) are unchanged.</dd>
+    <dt>Flow after the fix</dt><dd><div class="diagram"><pre class="mermaid">
+flowchart TD
+  a["Half-yearly job<br/>scheduler entry"] --> b["amfi_market_cap_client"]
+  b --> c["pypdfium2 text extraction<br/>rank, ISIN, category"]
+  c --> d[("market_cap_classifications<br/>effective-dated rows")]
+  d --> e["Cap allocation join<br/>by ISIN and date"]
+  c -. "format or URL changed" .-> f["Alert, keep old rows"]
+</pre></div></dd>
+  </dl>
+</article></div></div>
+</section>
+<footer>Checked against the code at <code>c9fb248</code> (branch <code>feat/enhanced-ui</code>, migration head <code>0038</code>) and the Sub-project 2 docs at <code>bef12be</code>, 2026-10-13. Nothing has been built or edited for Sub-project 2. Standalone copies: <code>Docs/analytics/artifacts/subproject2-execution/</code>.</footer>
+</div>

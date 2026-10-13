@@ -1,0 +1,222 @@
+<title>AMC Disclosure Coverage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Manrope:wght@600;700;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one 1040px reading column; diagrams and tables scroll inside their own frames. */
+:root {
+  --paper: #F4F7F6; --surface: #FFFFFF; --ink: #12201C; --muted: #5A6A65; --line: #D9E2DF;
+  --accent: #0E6A56; --accent-soft: #E1F0EB;
+  --crit: #B3262E; --crit-soft: #FBE5E6; --warn: #A86C12; --warn-soft: #FBF0DA;
+  --info: #2D5B9C; --info-soft: #E3EBF7; --codex: #6B4BB8; --codex-soft: #EEE8FA;
+  --display: "Manrope", "Segoe UI", system-ui, sans-serif;
+  --body: "DM Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "Cascadia Code", monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #0D1412; --surface: #141E1B; --ink: #E4ECE9; --muted: #96A7A1; --line: #26342F;
+  --accent: #5DC8A7; --accent-soft: #163029; --crit: #F0767C; --crit-soft: #3A1B1E;
+  --warn: #E5AB4B; --warn-soft: #33270F; --info: #82A9E6; --info-soft: #182437;
+  --codex: #B49BF0; --codex-soft: #261D3D; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --paper: #0D1412; --surface: #141E1B; --ink: #E4ECE9; --muted: #96A7A1; --line: #26342F;
+  --accent: #5DC8A7; --accent-soft: #163029; --crit: #F0767C; --crit-soft: #3A1B1E;
+  --warn: #E5AB4B; --warn-soft: #33270F; --info: #82A9E6; --info-soft: #182437;
+  --codex: #B49BF0; --codex-soft: #261D3D; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font: 400 15px/1.6 var(--body); margin: 0; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 40px 20px 80px; display: flex; flex-direction: column; gap: 44px; }
+header.top { display: flex; flex-direction: column; gap: 14px; }
+.eyebrow { font: 600 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+h1 { font: 800 clamp(28px, 4.4vw, 42px)/1.1 var(--display); margin: 0; letter-spacing: -.02em; text-wrap: balance; }
+h2 { font: 700 22px/1.25 var(--display); margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+h3 { font: 700 16px/1.3 var(--display); margin: 0; }
+p { margin: 0; max-width: 72ch; }
+.lede { font-size: 17px; color: var(--muted); max-width: 70ch; }
+code, .mono { font-family: var(--mono); font-size: .86em; }
+code { background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; word-break: break-word; }
+a { color: var(--accent); }
+section { display: flex; flex-direction: column; gap: 16px; }
+.sec-head { display: flex; flex-direction: column; gap: 6px; }
+.sec-head .tag { font: 600 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font: 500 13px/1 var(--body); padding: 7px 11px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+.chip b { font-family: var(--display); font-weight: 800; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.grid2 > * { min-width: 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.panel .label { font: 600 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.panel.after { border-color: var(--accent); }
+.panel.after .label { color: var(--accent); }
+.diagram { overflow-x: auto; }
+pre.mermaid { margin: 0; background: transparent; font-family: var(--body); }
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 11px/1.2 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--paper); }
+tr:last-child td { border-bottom: 0; }
+td.num { font-variant-numeric: tabular-nums; }
+.pill { display: inline-block; font: 600 11px/1 var(--mono); padding: 4px 7px; border-radius: 5px; letter-spacing: .03em; white-space: nowrap; }
+.p-new { background: var(--accent-soft); color: var(--accent); }
+.p-mod { background: var(--info-soft); color: var(--info); }
+.p-none { background: var(--paper); color: var(--muted); border: 1px solid var(--line); }
+.p-codex { background: var(--codex-soft); color: var(--codex); }
+.p-claude { background: var(--accent-soft); color: var(--accent); }
+.p-you { background: var(--warn-soft); color: var(--warn); }
+.p-crit { background: var(--crit-soft); color: var(--crit); }
+.p-warn { background: var(--warn-soft); color: var(--warn); }
+.p-info { background: var(--info-soft); color: var(--info); }
+ol.passes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0; }
+ol.passes > li { display: grid; grid-template-columns: 132px 1fr; gap: 16px; padding: 14px 0; border-top: 1px solid var(--line); }
+ol.passes > li:first-child { border-top: 0; }
+ol.passes .when { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+ol.passes .when .n { font: 800 13px/1 var(--display); color: var(--muted); }
+ol.passes .what { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+ol.passes ul { margin: 0; padding-left: 18px; }
+@media (max-width: 560px) { ol.passes > li { grid-template-columns: 1fr; gap: 8px; } }
+.issues { display: flex; flex-direction: column; gap: 10px; }
+.issue { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--info); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.issue.crit { border-left-color: var(--crit); }
+.issue.warn { border-left-color: var(--warn); }
+.issue .hd { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.issue .hd h3 { font-size: 15px; }
+.issue .fix { color: var(--muted); font-size: 14px; }
+.callout { background: var(--warn-soft); border: 1px solid var(--warn); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+.callout h2 { font-size: 19px; }
+.note { font-size: 13px; color: var(--muted); }
+ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.bar { display: flex; height: 34px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
+.bar > div { display: flex; align-items: center; justify-content: center; font: 700 12px/1 var(--display); color: #fff; min-width: 0; overflow: hidden; white-space: nowrap; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; background: var(--c); vertical-align: -1px; }
+.formula { font-family: var(--mono); font-size: 13px; background: var(--paper); border: 1px dashed var(--line); border-radius: 8px; padding: 12px 14px; overflow-x: auto; white-space: pre; }
+footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 16px; }
+.ib { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--info); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.ib.crit { border-left-color: var(--crit); } .ib.warn { border-left-color: var(--warn); } .ib.done { border-left-color: var(--accent); }
+.ib .top { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ib .top h3 { font-size: 16px; flex: 1 1 260px; min-width: 0; }
+.ib dl { display: grid; grid-template-columns: 148px minmax(0, 1fr); gap: 10px 18px; margin: 0; }
+.ib dt { font: 600 11px/1.5 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding-top: 2px; }
+.ib dd { margin: 0; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.ib ol.opts { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.ib ol.opts li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 8px; }
+.ib ol.opts .k { font: 800 12px/1.6 var(--display); color: var(--muted); }
+.ib ol.opts li.pick .k { color: var(--accent); }
+.ib ol.opts li.pick > span:last-child { font-weight: 500; }
+.ib .rec { color: var(--accent); font-weight: 700; }
+.ib ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
+@media (max-width: 600px) { .ib dl { grid-template-columns: 1fr; gap: 4px; } .ib dd { margin-bottom: 8px; } }
+.group { display: flex; flex-direction: column; gap: 10px; padding-top: 8px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 22px; margin-top: 6px; }
+.group-head { display: flex; align-items: center; gap: 10px; }
+.group-head h3 { font-size: 18px; }
+.ib ul.muted { color: var(--muted); font-size: 13px; }
+.ib.done .top h3 { color: var(--ink); }
+</style>
+<style>
+.qid{font:800 12px/1 var(--mono);color:var(--muted)}
+.ib.you{border-left-color:var(--warn)}
+.tbl code{white-space:normal}
+</style>
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Unifolio · Analytics · Sub-project 2 · coverage</div>
+  <h1>How many of the 57 AMCs we can read</h1>
+  <p class="lede">The engine can in principle read 44 of the 57 AMC disclosures automatically. The plan as written builds 10. This page lays out the rest, what blocks each group, and the three decisions that set the launch bar.</p>
+  <div class="chips"><span class="chip"><b>57</b> AMCs</span><span class="chip"><b>44</b> automatable per spec</span><span class="chip"><b>10</b> built by the plan</span><span class="chip"><b>6</b> manual</span><span class="chip"><b>3</b> questions for you</span><span class="chip"><b>2</b> doc fixes</span></div>
+</header>
+<section>
+  <div class="sec-head"><span class="tag">The gap</span><h2>57 AMCs, what the plan builds</h2><p class="note">Counts follow the engine spec's table (18, 2, 2, 8, 15, 6, 1, 5 = 57). The research documents' own tables still disagree in places (F5).</p></div>
+<div class="tbl"><table>
+<tr><th>Tier</th><th>AMCs</th><th>Built by the plan</th><th>Not built</th><th>Status</th></tr><tr><td>Plain static link, one file</td><td>18</td><td>Nippon, Shriram, PPFAS, Groww, Helios, Capitalmind, Angel One, Union</td><td>DSP, Motilal Oswal, NJ, Franklin, Quantum, Samco, 360 ONE, AlphaGrep, Wealth Company. Old Bridge is held back: its file name changed and it is ambiguous which file is the holdings.</td><td>8 built, 10 not</td></tr><tr><td>Static, multi-scheme bundle</td><td>2</td><td>Canara Robeco (as Wayback, Q16)</td><td>Baroda BNP Paribas (needs index-sheet parse)</td><td>1 built, 1 not</td></tr><tr><td>Wayback lookup</td><td>2</td><td>HDFC</td><td>Kotak Mahindra</td><td>1 built, 1 not</td></tr><tr><td>JSON endpoint found</td><td>8</td><td>none</td><td>SBI, Bank of India, Trust, Mirae, LIC, Axis, ABSL, Taurus (half-yearly)</td><td>0 built</td></tr><tr><td>JSON, needs a network trace</td><td>15</td><td>none</td><td>PGIM, Navi, Jio BlackRock, Bandhan, Unifi, Zerodha, Abakkus, quant, Sundaram, Choice, UTI, Tata, Bajaj Finserv, ICICI Prudential, WhiteOak</td><td>0 built, research first</td></tr><tr><td>Standing manual download</td><td>6</td><td>none</td><td>Edelweiss, Mahindra Manulife, Invesco, ITI, JM Financial, HSBC</td><td>no mechanism (Q15)</td></tr><tr><td>Fortnightly only</td><td>1</td><td>none</td><td>Monarch (Networth)</td><td>not built</td></tr><tr><td>No content expected</td><td>5</td><td>n/a</td><td>ASK, IL&amp;FS, Lakshya, Carnelian, Nuvama</td><td>fine, an empty month is normal</td></tr></table></div>
+</section><section>
+  <div class="sec-head"><span class="tag">Waves</span><h2>A way to read the gap</h2><p class="note">Only the engine plan is written today. The waves are a proposal for Q14, not a document that exists.</p></div>
+<div class="panel"><div class="diagram"><pre class="mermaid">
+flowchart LR
+  E["Engine plan<br/>10 AMCs<br/>proves the pipeline"] --> W2["Wave 2<br/>19 AMCs, mechanism known<br/>registry rows + 8 JSON Locate entries"]
+  W2 --> W3["Wave 3<br/>15 AMCs need a trace first<br/>+ Old Bridge"]
+  W2 --> M["Manual path<br/>6 AMCs<br/>intake script + monthly alert"]
+  E -. "first WRITTEN batch" .-> C["Attribute plan<br/>Task 0 gate"]
+</pre></div></div>
+</section><section>
+  <div class="sec-head"><span class="tag">Recorded</span><h2>Decisions already made that bound this page</h2></div>
+<div class="issues"><article class="ib done">
+  <div class="top"><span class="pill p-new">Recorded</span><h3>No Playwright in production</h3><span class="pill p-none">already decided</span></div>
+  <dl><dt>What was decided</dt><dd>Decided 2026-10-12: one AMC (HSBC) does not justify a browser runtime. HSBC goes to the manual list. Playwright stays a developer-machine discovery tool. See <code>decisions.md</code>.</dd></dl>
+</article><article class="ib done">
+  <div class="top"><span class="pill p-new">Recorded</span><h3>No proxies, CAPTCHA solving, or breaking encrypted APIs</h3><span class="pill p-none">already decided</span></div>
+  <dl><dt>What was decided</dt><dd>Invesco, ITI (bot walls), Mahindra Manulife and JM Financial (encrypted responses) stay manual. Edelweiss stays manual (Akamai).</dd></dl>
+</article></div>
+</section><section>
+  <div class="sec-head"><span class="tag">Execution</span><h2>How wave 2 would run</h2><p class="note">Sub-project 1 loop, decided 2026-10-13.</p></div>
+<ol class="passes"><li><div class="when"><span class="n">Pass 0</span><span class="pill p-claude">Claude</span></div><div class="what"><h3>Trace and fetch</h3><p>Claude (or you, on a laptop) traces each wave-2 AMC's endpoint and saves one real file, because Codex has no network. Same as A04's research batch.</p></div></li><li><div class="when"><span class="n">Run 11</span><span class="pill p-codex">Codex batch</span></div><div class="what"><h3>Registry rows and per-AMC Locate entries</h3><ul><li>Registry file and tests only, no pipeline change. Optional, depends on Q14.</li></ul></div></li><li><div class="when"><span class="n">Gate</span><span class="pill p-claude">Claude</span></div><div class="what"><h3>Verify and review</h3><p>Per-AMC live check, adversarial review, one commit per AMC.</p></div></li></ol>
+</section><section>
+  <div class="sec-head"><span class="tag">Issues in detail</span><h2>Issues, by status</h2></div>
+<div class="group"><div class="group-head"><h3>Waiting on you</h3><span class="pill p-you">3</span></div><p class="note">Each answer sets how much of the 57 the first release can see.</p><div class="issues"><article class="ib you">
+  <div class="top"><span class="qid">Q14</span><span class="pill p-you">Your call</span><h3>How many AMCs must be live before the attributes ship?</h3></div>
+  <dl>
+    <dt>The issue</dt><dd><p>The spec classifies 44 of 57 AMCs as automatable. The ingestion plan builds 10 of them. It does not build any of the 8 JSON-API AMCs with known endpoints, the 15 that still need a network-trace pass, the 6 manual ones, or 9 of the plain static ones. The large AMCs I can name from outside the docs (SBI, ICICI Prudential, Kotak, Axis, Aditya Birla Sun Life, UTI, Mirae, DSP) are not among the 10. No document gives an AUM share for the 10, so I cannot say what fraction of a typical portfolio they cover.</p></dd>
+    <dt>Why it matters</dt><dd><p>Every one of the five attributes is only as good as the funds it can see. With 10 AMCs a typical investor will have several holdings with no stock data, and "Top 10 stocks" would describe only part of the portfolio.</p></dd>
+    <dt>Options</dt><dd><ol class="opts"><li class=""><span class="k">A</span><span>Ship the 10 as planned. Build the consumers on them. Everything else is a later plan.</span></li><li class="pick"><span class="k">B</span><span>Plan a second wave of 19 more AMCs whose mechanism is already known (9 static, Baroda, Kotak, 8 JSON endpoints). Build it right after the engine, before the attributes go to users. The 15 research-gap AMCs and Old Bridge are a third wave.</span></li><li class=""><span class="k">C</span><span>All 44 before anything ships, including the 15 that need their own research.</span></li></ol></dd>
+    <dt>Recommended</dt><dd><p><span class="rec">B.</span> A is fast but thin. C waits on research nobody has done. B gets the biggest names in without new research.</p></dd>
+    <dt>After your answer</dt><dd><ul><li>A wave-2 plan is written the way Sub-project 1's A04 research batch was: a registry file per AMC, no pipeline changes.</li><li>The attribute work can start as soon as one AMC is <code>WRITTEN</code>, so waves and attributes can overlap.</li></ul></dd>
+  </dl>
+</article><article class="ib you">
+  <div class="top"><span class="qid">Q15</span><span class="pill p-you">Your call</span><h3>How do the 6 manual AMCs get into the system?</h3></div>
+  <dl>
+    <dt>The issue</dt><dd><p>Edelweiss, Mahindra Manulife, Invesco, ITI, JM Financial and HSBC need a person to download the file each month. The spec says they sit in <code>AWAITING_MANUAL_UPLOAD</code> and surface like attribute 04's manual queue. The plan never creates those rows, its refresh loop skips the <code>MANUAL</code> kind, and no intake script exists.</p></dd>
+    <dt>Why it matters</dt><dd><p>Sub-project 1 already shows the cost of leaving this open: the fund-manager side has no alert for a skipped manual month either (Priority 1 in <code>CLAUDE.md</code>). The same gap would repeat here.</p></dd>
+    <dt>Options</dt><dd><ol class="opts"><li class=""><span class="k">A</span><span>Build an intake script modelled on <code>import_manual_fund_managers.py</code>, create <code>AWAITING_MANUAL_UPLOAD</code> rows each month for these AMCs, and raise the Q12 alert when one is still waiting on day 10.</span></li><li class=""><span class="k">B</span><span>Leave them uncovered for now. Their funds show as "holdings not available" permanently.</span></li><li class="pick"><span class="k">C</span><span>A, but built as part of wave 2 (Q14), not the engine plan.</span></li></ol></dd>
+    <dt>Recommended</dt><dd><p><span class="rec">C.</span> The engine plan stays small, and the manual path gets built alongside the other per-AMC work.</p></dd>
+    <dt>After your answer</dt><dd><ul><li>You or ops do the monthly downloads. File naming and a short runbook come from the real first run, the way the A04 guide did.</li></ul></dd>
+  </dl>
+</article><article class="ib you">
+  <div class="top"><span class="qid">Q16</span><span class="pill p-you">Your call</span><h3>Wayback dependence, and a spec-versus-plan conflict on Canara Robeco</h3></div>
+  <dl>
+    <dt>The issue</dt><dd><p>HDFC, Kotak and Canara Robeco are fetched by asking the Internet Archive for a capture and then downloading from the AMC's own file host. Two separate points. <b>Conflict:</b> the spec lists Canara as a multi-scheme bundle needing a custom index-sheet parse; the plan registers it as a Wayback prefix search with the generic parser. <b>Bug-shaped gap:</b> the prefix search passes every captured upload under <code>wp-content/uploads/</code> (up to 50) to the fetcher with no link pattern, so unrelated files get downloaded.</p></dd>
+    <dt>Why it matters</dt><dd><p>Kotak's real path is built from the date alone (<code>Consolidated-SEBI-Portfolio-as-on-{Month}-{DD},-{YYYY}/ConsolidatedSEBIPortfolio{Month}{YYYY}.xlsx</code>), so it could be fetched directly with no archive lookup. The archive lookup adds a failure point and a capture lag (Kotak's file was crawled a day after it appeared).</p></dd>
+    <dt>Options</dt><dd><ol class="opts"><li class=""><span class="k">A</span><span>Keep Wayback for all three as the plan has it, add a link pattern to the prefix search, and get a real Canara file to decide between generic and custom parsing.</span></li><li class=""><span class="k">B</span><span>Kotak: fetch directly from the date-built path, Wayback only as the fallback. HDFC and Canara as in A.</span></li><li class="pick"><span class="k">C</span><span>B, plus an alert when a Wayback lookup returns no capture newer than the previous month.</span></li></ol></dd>
+    <dt>Recommended</dt><dd><p><span class="rec">C.</span> Removes the archive from Kotak's normal path and tells you when it stops working for the other two.</p></dd>
+    <dt>After your answer</dt><dd><ul><li>Task 7 gains a pattern filter, a Kotak template entry and a stale-capture alert.</li><li>Canara's parse choice waits on the real file from Q9.</li></ul></dd>
+  </dl>
+</article></div></div><div class="group"><div class="group-head"><h3>Plan fixes</h3><span class="pill p-mod">2</span></div><p class="note">Documentation corrections, applied on your go.</p><div class="issues"><article class="ib">
+  <div class="top"><span class="qid">F5</span><span class="pill p-mod">Plan fix</span><h3>Counts that disagree across the research documents</h3><span class="pill p-none">no decision needed</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>The same facts are stated differently in several places, so someone reading only one document gets a different picture:</p><p><ul><li>Engine spec: "47 fetchable" (lines 135 and 159) and "~33 of 57" generic (line 246) disagree with its own table (44 automatable); "2 BOT_BLOCKED/encrypted-API manual-fetch AMCs... only 2 of 57" (lines 273 to 276) disagrees with the 6 manual in the same table.</li><li>Spike-consolidated doc: headline table (lines 30 to 36) still shows 3 bot-blocked, its master table shows 2; its master table lists Invesco as <code>STATIC_REGEX</code> although the fifth pass found it bot-blocked; its narrative calls HSBC the "16th" manual AMC.</li><li>Fifth-pass doc (lines 59 to 64 and 79 to 82): "16th standing-manual AMC joining three others", where the final count is 6.</li><li>WhiteOak: "needs investigation" in the spike master table, counted in the 15 JSON research-gap AMCs in the spec (so 23 JSON AMCs against the spike's 22).</li></ul></p></dd>
+    
+    <dt>Why it matters</dt><dd><p>These documents are the evidence behind Q14, and Q14 is a decision about how many AMCs to build. A reader who takes "47 fetchable" at face value overestimates the first release by three AMCs, and one who takes "2 manual" underestimates the monthly manual work by four.</p></dd>
+    <dt>The fix</dt><dd><ul><li>Correct each sentence to the six-tier numbers on the AMC coverage page: 18, 2, 2, 8, 15, 6, 1, 5 (57), with 44 automatable and 6 manual.</li><li>Move Invesco in the spike master table from <code>STATIC_REGEX</code> to manual, and change the headline counts to match its master table.</li><li>Replace "16th" with "sixth" and list the six names once.</li><li>Add a one-line reconciliation under the spec table (spike 22 STATIC + WhiteOak moves 22 to 23 JSON).</li></ul></dd>
+    <dt>Effect on the current system</dt><dd><ul><li>None. Only documents change.</li></ul></dd>
+    <dt>Effect on the plan</dt><dd>No task changes. The ingestion plan already carries the corrected narrative; only a few cross-references need the same numbers.</dd>
+    <dt>Flow after the fix</dt><dd><div class="diagram"><pre class="mermaid">
+flowchart TD
+  t["Six-tier table<br/>18, 2, 2, 8, 15, 6, 1, 5"] --> s["Fix spec sentences"]
+  t --> c["Fix spike headline and master table"]
+  t --> f["Fix fifth-pass wording"]
+  s --> v["One grep for 47, 33, 16th, 2 of 57<br/>finds nothing stale"]
+  c --> v
+  f --> v
+</pre></div></dd>
+  </dl>
+</article><article class="ib">
+  <div class="top"><span class="qid">F6</span><span class="pill p-mod">Plan fix</span><h3>Cadence cases need one stated rule</h3><span class="pill p-none">no decision needed</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>Different AMCs publish on different calendars: Taurus half-yearly (March and September), Monarch fortnightly only, Canara Robeco monthly for equity and fortnightly for some debt schemes, and Helios and Groww publish fortnightly files next to the monthly ones. Today the plan handles only the last pair, through an <code>exclude_pattern</code> of <code>fortnightly</code> in the registry. The rest is described in notes.</p></dd>
+    
+    <dt>Why it matters</dt><dd><p>Without a stated rule, the first Taurus run would write a six-month-old batch that the consumer treats as current, and a fortnightly Monarch file could be mistaken for a monthly one.</p></dd>
+    <dt>The fix</dt><dd><ul><li>State once, in the engine plan and spec: the engine stores every disclosure's own <code>as_of_date</code> exactly as the file states it (the spec already says so).</li><li>The consumer picks, per fund, the newest batch at or before the NAV date.</li><li>Age is handled by Q18's tag (older than 50 days), not by dropping data.</li><li>Keep fortnightly files out only where the registry excludes them; Monarch is ingested as its real cadence, and Taurus as half-yearly.</li></ul></dd>
+    <dt>Effect on the current system</dt><dd><ul><li>None.</li></ul></dd>
+    <dt>Effect on the plan</dt><dd>A paragraph in the engine plan's Global Constraints and one test in the consumer plan: a half-yearly fund's old batch is used and tagged, not dropped. No new code in the engine.</dd>
+    <dt>Flow after the fix</dt><dd><div class="diagram"><pre class="mermaid">
+flowchart TD
+  f["Any AMC file with its own as-of date"] --> w["Engine stores it verbatim"]
+  w --> r["Consumer: newest batch at or before NAV date, per fund"]
+  r --> a{"Older than the Q18 limit?"}
+  a -->|no| u["Use it"]
+  a -->|yes| t["Use it and tag it stale"]
+</pre></div></dd>
+  </dl>
+</article></div></div>
+</section>
+<footer>Checked against the code at <code>c9fb248</code> (branch <code>feat/enhanced-ui</code>, migration head <code>0038</code>) and the Sub-project 2 docs at <code>bef12be</code>, 2026-10-13. Nothing has been built or edited for Sub-project 2. Standalone copies: <code>Docs/analytics/artifacts/subproject2-execution/</code>.</footer>
+</div>

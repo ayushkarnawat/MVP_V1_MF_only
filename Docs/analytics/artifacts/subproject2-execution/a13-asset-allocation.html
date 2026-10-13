@@ -1,0 +1,193 @@
+<title>A13 Asset Allocation Build</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Manrope:wght@600;700;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one 1040px reading column; diagrams and tables scroll inside their own frames. */
+:root {
+  --paper: #F4F7F6; --surface: #FFFFFF; --ink: #12201C; --muted: #5A6A65; --line: #D9E2DF;
+  --accent: #0E6A56; --accent-soft: #E1F0EB;
+  --crit: #B3262E; --crit-soft: #FBE5E6; --warn: #A86C12; --warn-soft: #FBF0DA;
+  --info: #2D5B9C; --info-soft: #E3EBF7; --codex: #6B4BB8; --codex-soft: #EEE8FA;
+  --display: "Manrope", "Segoe UI", system-ui, sans-serif;
+  --body: "DM Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "Cascadia Code", monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #0D1412; --surface: #141E1B; --ink: #E4ECE9; --muted: #96A7A1; --line: #26342F;
+  --accent: #5DC8A7; --accent-soft: #163029; --crit: #F0767C; --crit-soft: #3A1B1E;
+  --warn: #E5AB4B; --warn-soft: #33270F; --info: #82A9E6; --info-soft: #182437;
+  --codex: #B49BF0; --codex-soft: #261D3D; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --paper: #0D1412; --surface: #141E1B; --ink: #E4ECE9; --muted: #96A7A1; --line: #26342F;
+  --accent: #5DC8A7; --accent-soft: #163029; --crit: #F0767C; --crit-soft: #3A1B1E;
+  --warn: #E5AB4B; --warn-soft: #33270F; --info: #82A9E6; --info-soft: #182437;
+  --codex: #B49BF0; --codex-soft: #261D3D; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font: 400 15px/1.6 var(--body); margin: 0; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 40px 20px 80px; display: flex; flex-direction: column; gap: 44px; }
+header.top { display: flex; flex-direction: column; gap: 14px; }
+.eyebrow { font: 600 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+h1 { font: 800 clamp(28px, 4.4vw, 42px)/1.1 var(--display); margin: 0; letter-spacing: -.02em; text-wrap: balance; }
+h2 { font: 700 22px/1.25 var(--display); margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+h3 { font: 700 16px/1.3 var(--display); margin: 0; }
+p { margin: 0; max-width: 72ch; }
+.lede { font-size: 17px; color: var(--muted); max-width: 70ch; }
+code, .mono { font-family: var(--mono); font-size: .86em; }
+code { background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; word-break: break-word; }
+a { color: var(--accent); }
+section { display: flex; flex-direction: column; gap: 16px; }
+.sec-head { display: flex; flex-direction: column; gap: 6px; }
+.sec-head .tag { font: 600 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font: 500 13px/1 var(--body); padding: 7px 11px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+.chip b { font-family: var(--display); font-weight: 800; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.grid2 > * { min-width: 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.panel .label { font: 600 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.panel.after { border-color: var(--accent); }
+.panel.after .label { color: var(--accent); }
+.diagram { overflow-x: auto; }
+pre.mermaid { margin: 0; background: transparent; font-family: var(--body); }
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 11px/1.2 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--paper); }
+tr:last-child td { border-bottom: 0; }
+td.num { font-variant-numeric: tabular-nums; }
+.pill { display: inline-block; font: 600 11px/1 var(--mono); padding: 4px 7px; border-radius: 5px; letter-spacing: .03em; white-space: nowrap; }
+.p-new { background: var(--accent-soft); color: var(--accent); }
+.p-mod { background: var(--info-soft); color: var(--info); }
+.p-none { background: var(--paper); color: var(--muted); border: 1px solid var(--line); }
+.p-codex { background: var(--codex-soft); color: var(--codex); }
+.p-claude { background: var(--accent-soft); color: var(--accent); }
+.p-you { background: var(--warn-soft); color: var(--warn); }
+.p-crit { background: var(--crit-soft); color: var(--crit); }
+.p-warn { background: var(--warn-soft); color: var(--warn); }
+.p-info { background: var(--info-soft); color: var(--info); }
+ol.passes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0; }
+ol.passes > li { display: grid; grid-template-columns: 132px 1fr; gap: 16px; padding: 14px 0; border-top: 1px solid var(--line); }
+ol.passes > li:first-child { border-top: 0; }
+ol.passes .when { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+ol.passes .when .n { font: 800 13px/1 var(--display); color: var(--muted); }
+ol.passes .what { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+ol.passes ul { margin: 0; padding-left: 18px; }
+@media (max-width: 560px) { ol.passes > li { grid-template-columns: 1fr; gap: 8px; } }
+.issues { display: flex; flex-direction: column; gap: 10px; }
+.issue { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--info); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.issue.crit { border-left-color: var(--crit); }
+.issue.warn { border-left-color: var(--warn); }
+.issue .hd { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.issue .hd h3 { font-size: 15px; }
+.issue .fix { color: var(--muted); font-size: 14px; }
+.callout { background: var(--warn-soft); border: 1px solid var(--warn); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+.callout h2 { font-size: 19px; }
+.note { font-size: 13px; color: var(--muted); }
+ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.bar { display: flex; height: 34px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
+.bar > div { display: flex; align-items: center; justify-content: center; font: 700 12px/1 var(--display); color: #fff; min-width: 0; overflow: hidden; white-space: nowrap; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; background: var(--c); vertical-align: -1px; }
+.formula { font-family: var(--mono); font-size: 13px; background: var(--paper); border: 1px dashed var(--line); border-radius: 8px; padding: 12px 14px; overflow-x: auto; white-space: pre; }
+footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 16px; }
+.ib { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--info); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.ib.crit { border-left-color: var(--crit); } .ib.warn { border-left-color: var(--warn); } .ib.done { border-left-color: var(--accent); }
+.ib .top { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ib .top h3 { font-size: 16px; flex: 1 1 260px; min-width: 0; }
+.ib dl { display: grid; grid-template-columns: 148px minmax(0, 1fr); gap: 10px 18px; margin: 0; }
+.ib dt { font: 600 11px/1.5 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding-top: 2px; }
+.ib dd { margin: 0; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.ib ol.opts { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.ib ol.opts li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 8px; }
+.ib ol.opts .k { font: 800 12px/1.6 var(--display); color: var(--muted); }
+.ib ol.opts li.pick .k { color: var(--accent); }
+.ib ol.opts li.pick > span:last-child { font-weight: 500; }
+.ib .rec { color: var(--accent); font-weight: 700; }
+.ib ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
+@media (max-width: 600px) { .ib dl { grid-template-columns: 1fr; gap: 4px; } .ib dd { margin-bottom: 8px; } }
+.group { display: flex; flex-direction: column; gap: 10px; padding-top: 8px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 22px; margin-top: 6px; }
+.group-head { display: flex; align-items: center; gap: 10px; }
+.group-head h3 { font-size: 18px; }
+.ib ul.muted { color: var(--muted); font-size: 13px; }
+.ib.done .top h3 { color: var(--ink); }
+</style>
+<style>
+.qid{font:800 12px/1 var(--mono);color:var(--muted)}
+.ib.you{border-left-color:var(--warn)}
+.tbl code{white-space:normal}
+</style>
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Unifolio · Analytics · Sub-project 2 · attribute 13</div>
+  <h1>Asset allocation</h1>
+  <p class="lede">Shows the true equity, debt, gold and cash mix across all of a client's funds, taken from what each fund discloses, and leads into the cap split and stock list.</p>
+  <div class="chips"><span class="chip"><b>1</b> Codex run</span><span class="chip"><b>1</b> task</span><span class="chip"><b>0</b> tables of its own</span><span class="chip"><b>1</b> new analytics section</span><span class="chip"><b>1</b> new component</span><span class="chip"><b>2</b> questions for you</span><span class="chip"><b>1</b> plan fix</span></div>
+</header>
+<section>
+  <div class="sec-head"><span class="tag">The formula</span><h2>Asset mix from what funds actually hold</h2><p class="note">The three fund weights are derived from the spec's result; the spec states only the four percentages.</p></div>
+<div class="formula">asset class % = Σ over held funds ( fund weight × fund's % in that class )     from each fund's own disclosed rows, not its SEBI category
+
+Worked example (spec)   fund weights 60% / 30% / 10%
+                        equity fund 95/0/0/5 · hybrid 65/30/0/5 · gold fund 0/0/100/0   (equity / debt / gold / cash)
+                        equity 0.60×95 + 0.30×65 = 76.5   debt 0.30×30 = 9.0   gold 0.10×100 = 10.0   cash 0.60×5 + 0.30×5 = 4.5
+Rows with no ISIN (CBLO, TREPS, net receivables) are summed into their class across funds here. Attribute 06 keeps them apart. Opposite rules, on purpose.</div>
+</section><section>
+  <div class="sec-head"><span class="tag">Flow</span><h2>What gets added</h2><p class="note">Reads <code>scheme_holdings</code> grouped by <code>asset_type</code> per scheme, not the ISIN-level shared table.</p></div>
+<div class="panel"><div class="diagram"><pre class="mermaid">
+flowchart TD
+  sh[("scheme_holdings<br/>asset_type per row")] --> aa["asset_allocation.py<br/>group by class per fund"]
+  fw["fund weights"] --> aa
+  aa --> sec["section: asset_allocation"]
+  sec --> ui["AssetAllocationSection<br/>two-ring donut"]
+  ui -. "equity ring" .-> a02["attribute 02 cap split"]
+  a02 -.-> a06["attribute 06 stock table"]
+</pre></div></div>
+</section><section>
+  <div class="sec-head"><span class="tag">Change map</span><h2>What changes where</h2></div>
+<div class="tbl"><table>
+<tr><th>Layer</th><th>File</th><th>Change</th><th>Task</th></tr><tr><td>Backend</td><td><code>services/analytics/asset_allocation.py</code></td><td><span class="pill p-new">new</span> per-fund class totals, client roll-up</td><td>5</td></tr><tr><td>Backend</td><td><code>schemas.py</code>, <code>recompute.py</code></td><td><span class="pill p-mod">modify</span> models, one <code>_SectionSpec</code></td><td>5</td></tr><tr><td>Frontend</td><td><code>AssetAllocationSection.tsx</code>, <code>types.ts</code>, both views</td><td><span class="pill p-new">new</span> two-ring donut, drill chain to 02 and 06</td><td>5</td></tr><tr><td>Database</td><td>none beyond Q8's column</td><td>no new table</td><td>-</td></tr></table></div>
+</section><section>
+  <div class="sec-head"><span class="tag">Execution</span><h2>Run</h2><p class="note">Small enough for one run; the plan has one task.</p></div>
+<ol class="passes"><li><div class="when"><span class="n">Pass 0</span><span class="pill p-claude">Claude</span></div><div class="what"><h3>Pre-flight</h3><p>F13, Q8, Q13, Q26 and Q27 settled; handoff document and log line.</p></div></li><li><div class="when"><span class="n">Run 6</span><span class="pill p-codex">Codex run 6</span></div><div class="what"><h3>Task 5, backend and frontend</h3><ul><li>Three-fund 76.5 / 9.0 / 10.0 / 4.5 test, no-ISIN rows sum across funds, derivative rows excluded, roll-up, section, donut.</li></ul></div></li><li><div class="when"><span class="n">Gate 6</span><span class="pill p-claude">Claude</span></div><div class="what"><h3>Verify, review, synthetic CAS check</h3><p>Gate = touched test files only, <code>alembic upgrade</code> on local Postgres where a migration is involved, the adversarial review against Review Focus, then one commit per task by Claude. Codex never stages, commits or touches Postgres, staging or AWS. Then the synthetic harness with the seeded holdings fixture, checking the class totals.</p></div></li></ol>
+</section><section>
+  <div class="sec-head"><span class="tag">Issues in detail</span><h2>Issues, by status</h2></div>
+<div class="group"><div class="group-head"><h3>Waiting on you</h3><span class="pill p-you">2</span></div><p class="note">How two display features get their data.</p><div class="issues"><article class="ib you">
+  <div class="top"><span class="qid">Q26</span><span class="pill p-you">Your call</span><h3>How is the hedged-arbitrage "cash-like" toggle built?</h3></div>
+  <dl>
+    <dt>The issue</dt><dd><p>The spec says hedged arbitrage positions can be treated as cash-like, as a display toggle and not at parse time, because the raw disclosure does not reliably say which lines are hedged. But a toggle needs something to act on, and a line-level flag does not exist.</p></dd>
+    <dt>Why it matters</dt><dd><p>As written the toggle has no data behind it. Arbitrage funds also carry futures lines (see Q13), which are the other half of the hedge.</p></dd>
+    <dt>Options</dt><dd><ol class="opts"><li class="pick"><span class="k">A</span><span>Decide at fund level: a fund whose SEBI category is Arbitrage Fund moves wholly into cash-like when the toggle is on.</span></li><li class=""><span class="k">B</span><span>Drop the toggle in this release; arbitrage stays equity.</span></li><li class=""><span class="k">C</span><span>A, and apply the same to the Equity Savings category's hedged part (needs a rule nobody has written).</span></li></ol></dd>
+    <dt>Recommended</dt><dd><p><span class="rec">A.</span> Uses a field that exists (<code>schemes.sebi_category</code>) and matches how investors think of arbitrage funds.</p></dd>
+    <dt>After your answer</dt><dd><ul><li>The toggle recomputes from the same stored rows, no extra ingestion.</li></ul></dd>
+  </dl>
+</article><article class="ib you">
+  <div class="top"><span class="qid">Q27</span><span class="pill p-you">Your call</span><h3>What is the outer ring of the donut for debt, gold and cash?</h3></div>
+  <dl>
+    <dt>The issue</dt><dd><p>The spec describes a two-ring donut, inner ring asset class, outer ring "next level down", and chains the equity ring into attribute 02 then 06. Nothing says what the outer ring shows for debt, gold or cash. The disclosures carry a credit rating for debt lines but the parser does not capture it as its own field (Q9 notes the rating can be swallowed into <code>sector_raw</code>).</p></dd>
+    <dt>Why it matters</dt><dd><p>Without a rule, three of the four rings have no outer level and the chart looks unfinished.</p></dd>
+    <dt>Options</dt><dd><ol class="opts"><li class="pick"><span class="k">A</span><span>Outer ring only for equity (Large, Mid, Small, Other, from attribute 02). Other classes are one segment.</span></li><li class=""><span class="k">B</span><span>Equity as in A; debt by rating bucket (needs a rating field).</span></li><li class=""><span class="k">C</span><span>Equity as in A; debt split by fund (which fund holds the debt).</span></li></ol></dd>
+    <dt>Recommended</dt><dd><p><span class="rec">A.</span> Needs no new data. Rating can follow once Parse captures it.</p></dd>
+    <dt>After your answer</dt><dd><ul><li>Rating capture is added to the deferred list.</li></ul></dd>
+  </dl>
+</article></div></div><div class="group"><div class="group-head"><h3>Plan fixes</h3><span class="pill p-mod">1</span></div><p class="note">Follows Q8 and Q13.</p><div class="issues"><article class="ib">
+  <div class="top"><span class="qid">F13</span><span class="pill p-mod">Plan fix</span><h3>The asset-class test depends on how Q8 and Q13 are answered</h3><span class="pill p-none">no decision needed</span></div>
+  <dl>
+    <dt>The problem</dt><dd><p>The attribute 13 test needs <code>asset_type</code> stamped from real section headers on each holding row. The current ingestion plan does not stamp it at all, and the consumer plan's Task 1 would add the column later with a backfill to <code>OTHER</code>, a value outside the six-value enum. It also treats every row inside "Equity" as equity, though arbitrage funds list futures and fund-of-funds list fund units there (Q13).</p></dd>
+    
+    <dt>Why it matters</dt><dd><p>The three-fund worked example (76.5 / 9.0 / 10.0 / 4.5) would pass on synthetic rows and still be wrong on a real arbitrage fund.</p></dd>
+    <dt>The fix</dt><dd><ul><li>After Q8 and Q13: rewrite Task 5's first test against the final enum.</li><li>Add a second test that derivative and unrecognised-section rows are excluded from every class sum and are counted in the coverage note.</li></ul></dd>
+    <dt>Effect on the current system</dt><dd><ul><li>None until built. Reads only <code>scheme_holdings</code>.</li></ul></dd>
+    <dt>Effect on the plan</dt><dd>Task 5 gains one test and a reworded first test.</dd>
+    <dt>Flow after the fix</dt><dd><div class="diagram"><pre class="mermaid">
+flowchart TD
+  r["scheme_holdings row"] --> t{"asset_type"}
+  t -->|six classes| s["Summed into class totals"]
+  t -->|DERIVATIVE or OTHER| x["Excluded, counted in coverage note"]
+</pre></div></dd>
+  </dl>
+</article></div></div>
+</section>
+<footer>Checked against the code at <code>c9fb248</code> (branch <code>feat/enhanced-ui</code>, migration head <code>0038</code>) and the Sub-project 2 docs at <code>bef12be</code>, 2026-10-13. Nothing has been built or edited for Sub-project 2. Standalone copies: <code>Docs/analytics/artifacts/subproject2-execution/</code>.</footer>
+</div>
