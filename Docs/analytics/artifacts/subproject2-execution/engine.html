@@ -241,7 +241,7 @@ erDiagram
     <dt>Evidence</dt><dd><code>backend/alembic/versions/</code> listing on 2026-10-13: head is <code>0038_nav_history_wider_nav</code>.</dd>
     <dt>Why it matters</dt><dd><p>Two migration files would claim revision id <code>0036</code> and a second would branch off <code>0035</code>, so Alembic would see two competing chains instead of one. I have not run it, but a branch like that is exactly what Alembic refuses to upgrade across. The plan's own Step 7 would then fail, or worse, be edited around by whoever executes it.</p></dd>
     <dt>The fix</dt><dd><ul><li>Never hard-code a number in the plan. At build time run <code>ls backend/alembic/versions | sort | tail</code>, take the head, and set <code>down_revision</code> to that value.</li><li>Today that gives <code>0039</code> for the engine migration. If the three new migrations are built in plan order, the market-cap table becomes <code>0040</code> and <code>stock_master</code> <code>0041</code> (a separate asset_type migration would add one more, depending on Q8).</li><li>Update the revision id inside the file, its docstring, the file name, the test that asserts the column set, and the commit's <code>git add</code> path.</li><li>Add a migration test in <code>tests/test_migrations.py</code> in the existing pattern (upgrade to the new revision on a temp SQLite file, check <code>PRAGMA table_info</code> and <code>index_list</code>), because the plan only tests the models, not the migration itself.</li></ul></dd>
-    <dt>Effect on the current system</dt><dd><ul><li>No existing table changes. The new migration only creates two tables and three indexes.</li><li>Per <code>CLAUDE.md</code>, Sub-project 1's migrations 0033 to 0038 are not on staging yet, so the single end-of-project staging guide has to apply the whole chain, 0033 through the last new one, in order. Q2 decides whether Sub-project 1 goes first.</li></ul></dd>
+    <dt>Effect on the current system</dt><dd><ul><li>No existing table changes. The new migration only creates two tables and three indexes.</li><li>Sub-project 1 is live on staging (you confirmed 2026-10-13), so migrations 0033 to 0038 are already applied there. The single end-of-project staging guide applies only the new ones, starting at 0039, in order.</li></ul></dd>
     <dt>Effect on the plan</dt><dd>Task 1 Steps 6 and 7 and the commit step change. Consumer plan Task 1 already says "next sequential number", so it needs no change. The market-cap and stock-master tasks inherit the same rule once they have migration steps (F12, F14).</dd>
     <dt>Flow after the fix</dt><dd><div class="diagram"><pre class="mermaid">
 flowchart TD
@@ -249,7 +249,7 @@ flowchart TD
   b --> c["Codex writes migration<br/>and its sqlite migration test"]
   c --> d["Claude on local Postgres<br/>upgrade, downgrade -1, upgrade"]
   d --> e["One commit for Task 1"]
-  e --> f["Staging guide lists the chain<br/>0033 to last new number"]
+  e --> f["Staging guide lists the new chain<br/>0039 to last new number"]
 </pre></div></dd>
   </dl>
 </article><article class="ib">
