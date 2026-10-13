@@ -1520,3 +1520,211 @@ def test_run4_parse_error_archives_once_written_peer_has_no_reference(db_session
     assert result.schemes_written==1 and len(calls)==1
     batch=db_session.query(DisclosureBatch).one()
     assert batch.status is DisclosureBatchStatus.WRITTEN and batch.raw_file_reference is None
+@pytest.mark.parametrize('label',[ 'Download','View','September 2026','September','2026','...','30-Sep-2026','Sep 30,2026'])
+def test_run4b_unusable_hint_absent(label):
+    assert client._usable_hint(label) is None
+
+
+@pytest.mark.parametrize('filename,expected',[
+    ('Monthly%20Portfolio-%20Sep%2030%202026.xlsx',date(2026,9,30)),
+    ('June 30, 2026.xlsx',date(2026,6,30)),('May 31,2026.xlsx',date(2026,5,31)),
+    ('July 31 2026.xlsx',date(2026,7,31)),('February 30 2026.xlsx',None),
+])
+def test_run4b_month_first_filename(filename,expected):
+    assert client._filename_as_of_date('https://example.test/'+filename)==expected
+
+
+def test_run4b_real_fixtures_match_cached_master(db_session):
+    from app.services.analytics.scheme_master import refresh_scheme_master
+    from app.services.analytics.amfi_factsheet_client import build_families
+    text=(Path(__file__).parents[3]/'.cache/amfi_navall/nav_all.txt').read_text(encoding='utf-8')
+    asyncio.run(refresh_scheme_master(db_session,text=text))
+    cases=[
+        ('Nippon India Mutual Fund','nippon-india_asof_2026-09-30.xls','GF','Nippon India Growth Mid Cap Fund'),
+        ('PPFAS Mutual Fund','ppfas_asof_2026-09-30.xls','PPFCF','Parag Parikh Flexi Cap Fund'),
+        ('quant Mutual Fund','quant-all-schemes_asof_2026-09-30.xlsx','qMES','quant Equity Savings Fund'),
+        ('Bajaj Finserv Mutual Fund','bajaj-finserv_asof_2026-09-30.xls','BFARB','Bajaj Finserv Arbitrage Fund'),
+        ('Bajaj Finserv Mutual Fund','bajaj-finserv_asof_2026-09-30.xls','BFBPSU','Bajaj Finserv Banking and PSU Debt Fund'),
+        ('Bajaj Finserv Mutual Fund','bajaj-finserv_asof_2026-09-30.xls','BFELSS','Bajaj Finserv ELSS - Tax Saver Fund'),
+        ('Bajaj Finserv Mutual Fund','bajaj-finserv_asof_2026-09-30.xls','BFLMC','Bajaj Finserv Large & Mid Cap Fund'),
+        ('Bajaj Finserv Mutual Fund','bajaj-finserv_asof_2026-09-30.xls','BFLOWD','Bajaj Finserv Ultra Short to Short Term Fund'),
+        ('Trust Mutual Fund','trust_asof_2026-09-30-trimmed.xlsx','TMFLIQ','TRUSTMF Liquid Fund'),
+        ('Helios Mutual Fund','helios-flexi-cap_asof_2026-09-30.xls','HFCF','Helios Flexi Cap Fund'),
+        ('Samco Mutual Fund','samco-arbitrage_asof_2026-09-30.xlsx',None,'Samco Arbitrage Fund'),
+        ('Zerodha Mutual Fund','zerodha-arbitrage_asof_2026-09-30.xlsx',None,'Zerodha Arbitrage Fund'),
+        ('Angel One Mutual Fund','angel-one-nifty-50-etf_asof_2026-09-30.xlsx',None,'Angel One Nifty 50 ETF'),
+        ('Old Bridge Mutual Fund','old-bridge-arbitrage_asof_2026-09-30.xlsx',None,'Old Bridge Arbitrage Fund'),
+        ('Capitalmind Mutual Fund','capitalmind-arbitrage_asof_2026-09-30.xlsx',None,'Capitalmind Arbitrage Fund'),
+        ('360 ONE Mutual Fund','360-one_asof_2026-09-30.xls','Liquid Fund','360 ONE Liquid Fund'),
+    ]
+    for amc,filename,code,expected in cases:
+        data=(Path(__file__).parents[2]/'fixtures/portfolio_disclosures'/filename).read_bytes()
+        sheet=next(s for s in client.parse_workbook(data) if code is None or s.sheet_name==code)
+        families=build_families(db_session.query(Scheme).filter_by(amc_name=amc).all())
+        file=client.LocatedFile(data,'https://example.test/file.xlsx',date(2026,9,30),'Download')
+        match=client._match_sheet(sheet,file,file.source_url,client.read_index_sheet(data),families,amc)
+        assert match is not None, (filename,sheet.sheet_name)
+        assert match[0].base_name.lower()==expected.lower(), (filename,match[0])
+    union=build_families(db_session.query(Scheme).filter_by(amc_name='Union Mutual Fund').all())
+    from app.services.analytics.portfolio_disclosure_parsing import ParsedSheet
+    # Existing shortened-name veto sees both Gold ETF and Gold ETF Fund of Fund.
+    assert client._match_sheet(ParsedSheet('CODE',[],None),
+        client.LocatedFile(None,'https://example.test/x.xlsx',date(2026,9,30),'Union Gold ETF'),
+        'https://example.test/x.xlsx',{},union,'Union Mutual Fund') is None
+    nippon=build_families(db_session.query(Scheme).filter_by(amc_name='Nippon India Mutual Fund').all())
+    # Quarterly Series 2 cannot be silently assigned to Interval Fund V Series 2.
+    ambiguous=ParsedSheet('K5',[],None,title_candidates=('Nippon India Quarterly Interval Fund-Series 2',))
+    file=client.LocatedFile(None,'https://example.test/x.xlsx',date(2026,9,30))
+    assert client._match_sheet(ambiguous,file,file.source_url,{},nippon,'Nippon India Mutual Fund') is None
+
+
+def test_run4b_zip_member_hint_and_bad_hint_allow_all_sheets(db_session,monkeypatch,mock_http):
+    seed(db_session,base='Example Equity Fund')
+    seed(db_session,base='Example Debt Fund')
+    bundle=io.BytesIO()
+    with zipfile.ZipFile(bundle,'w') as archive:
+        archive.writestr('Example Equity Fund.xlsx',workbook([('CODE1',100,100)]))
+        archive.writestr('Example Debt Fund.xlsx',workbook([('CODE2',100,100)]))
+    result,_=run_refresh(db_session,monkeypatch,mock_http,{
+        'https://example.test/list':httpx.Response(200,text='<a href="/portfolio-30-Sep-26.zip">Download</a>'),
+        'https://example.test/portfolio-30-Sep-26.zip':httpx.Response(200,content=bundle.getvalue())},static_entry(Shape.MULTI_FILE_SINGLE_SCHEME))
+    assert result.schemes_written==2
+    assert db_session.query(DisclosureBatch).filter_by(status=DisclosureBatchStatus.WRITTEN).count()==2
+
+
+def test_run4b_samco_relative_preferred_and_404_variant_fallback(db_session,monkeypatch,mock_http):
+    amc='Samco Mutual Fund'
+    seed(db_session,amc=amc,base='Samco Arbitrage Fund')
+    entry=AMC_DISCLOSURE_RESOLVERS[amc]
+    name='IN_MF_MONTHLY_PORTFOLIO_September_2026_Arbitrage.xlsx'
+    relative='https://www.samcomf.com/amc-document-download/'+name
+    absolute='https://media1.samco.in/'+name
+    routes={entry.landing_url:httpx.Response(200,text=f'<a href="{absolute} ">Download</a><a href="/amc-document-download/{name}">Download</a>'),
+            relative:httpx.Response(404),absolute:httpx.Response(200,content=workbook([('Samco Arbitrage Fund',100,100)]))}
+    monkeypatch.setattr(client,'AMC_DISCLOSURE_RESOLVERS',{amc:entry})
+    requests=mock_http(routes)
+    result=asyncio.run(client.refresh_portfolio_disclosures(db_session,today=date(2026,10,3)))
+    assert result.schemes_written==1 and requests[1:]==[relative,absolute]
+    requests.clear()
+    assert asyncio.run(client.refresh_portfolio_disclosures(db_session,today=date(2026,10,4))).schemes_written==0
+    assert requests==[entry.landing_url]  # persisted alternate skips the entire file group
+    routes[relative]=httpx.Response(200,content=workbook([('Samco Arbitrage Fund',100,100)]))
+    db_session.query(SchemeHolding).delete();db_session.query(DisclosureBatch).delete();db_session.commit()
+    requests.clear()
+    asyncio.run(client.refresh_portfolio_disclosures(db_session,today=date(2026,10,3)))
+    assert requests[1:]==[relative]
+    db_session.query(SchemeHolding).delete();db_session.query(DisclosureBatch).delete();db_session.commit()
+    routes[relative]=httpx.Response(500)
+    requests.clear()
+    assert asyncio.run(client.refresh_portfolio_disclosures(db_session,today=date(2026,10,3))).amcs_failed==1
+    assert requests[1:]==[relative]  # alternatives are tried only on 404
+
+
+def test_run4b_union_missing_slugs_quiet_but_whole_amc_missing_gated(db_session,monkeypatch,mock_http,caplog):
+    amc='Union Mutual Fund'
+    seed(db_session,amc=amc,base='Union Flexi Cap Fund')
+    seed(db_session,amc=amc,base='Union Fixed Maturity Plan')
+    entry=AMC_DISCLOSURE_RESOLVERS[amc]
+    monkeypatch.setattr(client,'AMC_DISCLOSURE_RESOLVERS',{amc:entry})
+    state={'available':True}
+    def response(request):
+        if state['available'] and 'union-flexi-cap' in str(request.url): return httpx.Response(200,content=workbook([('Union Flexi Cap Fund',100,100)]))
+        return httpx.Response(500)
+    real=httpx.AsyncClient
+    monkeypatch.setattr(client.httpx,'AsyncClient',lambda **kw:real(transport=httpx.MockTransport(response),**kw))
+    result=asyncio.run(client.refresh_portfolio_disclosures(db_session,today=date(2026,10,3)))
+    assert result.amcs_processed==1 and result.amcs_failed==0 and 'reason=error' not in caplog.text
+    db_session.query(SchemeHolding).delete();db_session.query(DisclosureBatch).delete();db_session.commit()
+    state['available']=False
+    caplog.clear()
+    result=asyncio.run(client.refresh_portfolio_disclosures(db_session,today=date(2026,10,3)))
+    assert result.amcs_failed==1 and not caplog.text
+    asyncio.run(client.refresh_portfolio_disclosures(db_session,today=date(2026,10,10)))
+    assert 'reason=no_file_found' in caplog.text and 'reason=error' not in caplog.text
+
+
+def test_run4b_filename_fallback_preserves_scheme_identity(db_session):
+    from app.services.analytics.amfi_factsheet_client import build_families
+    from app.services.analytics.portfolio_disclosure_parsing import ParsedSheet
+    rows=seed(db_session,base='Example Nifty 50 Index Fund')
+    rows+=seed(db_session,base='Example Nifty Next 50 Index Fund')
+    file=client.LocatedFile(None,'https://example.test/Example-Nifty-50-Index-Fund-monthly-portfolio-30-Sep-2026.xlsx',date(2026,9,30),'Download')
+    match=client._match_sheet(ParsedSheet('CODE',[],None),file,file.source_url,{},build_families(rows),'Example Mutual Fund')
+    assert match and match[0].base_name=='Example Nifty 50 Index Fund'
+
+
+@pytest.mark.parametrize('statuses,expected', [([429,503,200],True),([429,503,503],False)])
+def test_run4b_wayback_bounded_backoff(monkeypatch,statuses,expected):
+    attempts=[];delays=[]
+    async def sleep(seconds): delays.append(seconds)
+    monkeypatch.setattr(client.asyncio,'sleep',sleep,raising=False)
+    def handler(request):
+        status=statuses[len(attempts)];attempts.append(status)
+        return httpx.Response(status,json=cdx_rows(['https://example.test/page']) if status==200 else None)
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
+            return await client._cdx_query(http,'https://example.test/page')
+    if expected:
+        assert asyncio.run(run())==['https://example.test/page']
+    else:
+        with pytest.raises(ValueError,match='BLOCKED.*3'):
+            asyncio.run(run())
+    assert len(attempts)==3 and delays==[1,2]
+
+
+def test_run4b_absl_503_retried_next_run_not_done(db_session,monkeypatch,mock_http,caplog):
+    amc='Aditya Birla Sun Life Mutual Fund'
+    seed(db_session,amc=amc,base='Aditya Birla Sun Life Flexi Cap Fund')
+    entry=AMC_DISCLOSURE_RESOLVERS[amc]
+    url='https://mutualfund.adityabirlacapital.com/30092026_abslmf_monthlydisclosure.zip'
+    bundle=io.BytesIO()
+    with zipfile.ZipFile(bundle,'w') as archive:
+        archive.writestr('Aditya Birla Sun Life Flexi Cap Fund.xls',workbook([('CODE',100,100)]))
+    calls=[];attempts=[]
+    def handler(request):
+        calls.append(str(request.url))
+        if request.url.path.endswith('/FactsheetAccordionById'):
+            return httpx.Response(200,json={'AccordionList':[{'ResourceLink':'Monthly Portfolios as on September 30, 2026','IconClass':'zip','pdfUrl':url}]})
+        assert str(request.url)==url
+        attempts.append(1)
+        return httpx.Response(503) if len(attempts)==1 else httpx.Response(200,content=bundle.getvalue())
+    real=httpx.AsyncClient
+    monkeypatch.setattr(client.httpx,'AsyncClient',lambda **kw:real(transport=httpx.MockTransport(handler),**kw))
+    monkeypatch.setattr(client,'AMC_DISCLOSURE_RESOLVERS',{amc:entry})
+    first=asyncio.run(client.refresh_portfolio_disclosures(db_session,today=date(2026,10,3)))
+    assert first.amcs_failed==1 and db_session.query(DisclosureBatch).count()==0
+    assert len([r for r in caplog.records if 'reason=error' in r.message])==1
+    second=asyncio.run(client.refresh_portfolio_disclosures(db_session,today=date(2026,10,4)))
+    assert second.schemes_written==1 and len(attempts)==2
+    asyncio.run(client.refresh_portfolio_disclosures(db_session,today=date(2026,10,5)))
+    assert len(attempts)==2
+
+
+@pytest.mark.parametrize("url,expected", [
+    ("https://x.test/monthend-portfolio-february-28-2026.zip", date(2026, 2, 28)),
+    ("https://x.test/monthend-portfolio-january-31-2026.zip", date(2026, 1, 31)),
+    ("https://x.test/monthend-portfolio-december-31-2025.zip", date(2025, 12, 31)),
+    ("https://x.test/monthend-portfolio-31march2026.zip", date(2026, 3, 31)),
+    ("https://x.test/monthend-portfolios_30-april-2026.zip", date(2026, 4, 30)),
+])
+def test_month_name_day_year_with_hyphens_is_not_read_as_a_two_digit_year(url, expected):
+    # DSP live 2026-10-14: "february-28-2026" was read as month + year "28" = 2028-02-29.
+    assert client._filename_as_of_date(url) == expected
+
+
+def test_one_run_writes_one_month_only_even_when_the_landing_page_lists_years(db_session, monkeypatch, mock_http):
+    seed(db_session)
+    sep = "https://example.test/portfolio-30-Sep-26.xlsx"
+    aug = "https://example.test/portfolio-31-Aug-26.xlsx"
+    jun = "https://example.test/portfolio-30-Jun-25.xlsx"
+    html = "".join(f'<a href="{u}">Portfolio</a>' for u in (sep, aug, jun))
+    result, requests = run_refresh(db_session, monkeypatch, mock_http, {
+        "https://example.test/list": httpx.Response(200, text=html),
+        sep: httpx.Response(200, content=workbook()),
+        aug: httpx.Response(200, content=workbook()),
+        jun: httpx.Response(200, content=workbook()),
+    }, entry=Entry(kind=Kind.STATIC_REGEX, file_shape=Shape.ZIP_OF_WORKBOOKS,
+                   landing_url="https://example.test/list", link_pattern=r"portfolio"))
+    dates = {b.as_of_date for b in db_session.query(DisclosureBatch).all()}
+    assert dates == {date(2026, 9, 30)}, dates
+    assert sep in requests and aug not in requests and jun not in requests

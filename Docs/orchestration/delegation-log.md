@@ -544,3 +544,4 @@ fix" rule.
 - 2026-10-14 | sp2-engine — Run 3b (Task 11b) APPROVED | worker=codex (manual relay) | 13 locators + Index names + UTI titles; WSL 1205 passed; live smoke 28/29 (ABSL transient 503). Next: Run 4 (Tasks 13–15), Opus gate.
 - 2026-10-14 | sp2-engine — Run 4 (Tasks 13–15) READY | worker=codex (manual relay) | Opus gate. Per-file skip, one-file-at-a-time, gated alerts, manual intake (7 manual rows), retention + failed-file archive.
 - 2026-10-14 | sp2-engine — Run 4 built; live e2e (39 AMCs, 8111 batches) found 16 AMCs writing nothing → Run 4b READY | Title candidates from pre-header rows, bad-hint rejection, AMC-prefix retry, ICICI member hint + double-count, Samco URL/space, Groww MDY dates, Union quiet skip, HDFC 429 backoff.
+- 2026-10-14 | sp2-engine — Run 4b APPROVED pending Opus review | worker=codex + orchestrator fixes | live e2e 3 runs; DSP history bug and 2028 date bug fixed. WSL 1301 passed.

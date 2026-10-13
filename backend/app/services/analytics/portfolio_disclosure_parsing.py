@@ -52,6 +52,7 @@ _NON_HOLDINGS = {"index", "scheme", "common notes", "xdo_metadata", "annexure", 
 _AGGREGATE_CATEGORY = re.compile(
     r"^(?:units of mutual fund|units of real estate investment trusts?|units of infrastructure investment trusts?|compulsory convertible debentures?)\s*(?:\(.*\))?$", re.I,
 )
+_ICICI_AGGREGATE_CATEGORY = re.compile(r'^(?:units of mutual funds?|equity shares|foreign securities/overseas ETFs|reverse repo)$', re.I)
 
 
 class _SheetRows(list):
@@ -151,6 +152,29 @@ class ParsedSheet:
     error: str | None
     declared_total: Decimal | None = None
     scheme_title: str | None = None
+    title_candidates: tuple[str, ...] = ()
+
+
+def _title_candidates(rows):
+    candidates = []
+    for row in rows:
+        for cell in row:
+            text = _text(cell)
+            text = re.sub(r'^SCHEME\s*(?:NAME)?\s*:\s*', '', text, flags=re.I)
+            statement = re.match(r'^MONTHLY PORTFOLIO STATEMENT OF\s+(.+?)\s+(?:AS ON|FOR)\b', text, re.I)
+            if statement:
+                text = statement.group(1)
+            text = re.split(r'\s*(?:\(|[-–]\s*)?\bAn?\s+open[- ]ended\b', text, maxsplit=1, flags=re.I)[0].strip(' -–(')
+            text = re.split(r'\s*\(\s*(?:formerly|erstwhile|an?\b)', text, maxsplit=1, flags=re.I)[0].strip()
+            text = re.split(r'\s+\b(?:AS ON|FOR THE (?:MONTH|PERIOD)|PORTFOLIO AS)\b', text, maxsplit=1, flags=re.I)[0].strip()
+            if (not text or not re.search(r'[A-Za-z]', text)
+                    or re.search(r'\bmutual fund\b', text, re.I)
+                    or re.match(r'^(?:monthly|portfolio|scheme name|market value|name of)', text, re.I)
+                    or not re.search(r'\b(?:fund|ETF|FOF|plan|scheme)\b', text, re.I)):
+                continue
+            if text not in candidates:
+                candidates.append(text)
+    return tuple(candidates)
 
 
 def read_index_sheet(data: bytes) -> dict[str, str]:
@@ -231,7 +255,7 @@ _CONTRACT = re.compile(
 )
 
 
-def _parse_unscaled_rows(rows: list[list], columns: dict[str, int], value_multiplier: Decimal) -> list[ParsedHolding]:
+def _parse_unscaled_rows(rows: list[list], columns: dict[str, int], value_multiplier: Decimal, *, icici_summary_blocks=False) -> list[ParsedHolding]:
     current = AssetType.OTHER
     holdings = []
     for row_index, row in enumerate(rows):
@@ -249,17 +273,21 @@ def _parse_unscaled_rows(rows: list[list], columns: dict[str, int], value_multip
         numeric_position = market is not None and pct is not None
         if re.match(r"^notes?\s*[:(]?$", name, re.I) and not isin and not numeric_position:
             break
-        category = _SECTION_ONLY.fullmatch(_label(name)) or _AGGREGATE_CATEGORY.fullmatch(_label(name))
+        category = (_SECTION_ONLY.fullmatch(_label(name)) or _AGGREGATE_CATEGORY.fullmatch(_label(name))
+                    or (icici_summary_blocks and _ICICI_AGGREGATE_CATEGORY.fullmatch(_label(name))))
         # Explicit numeric aggregate summaries precede detailed positions in ICICI/Jio.
         # An ISIN-bearing position (even one named Government Securities) never enters here.
         aggregate = category and not isin and quantity is None and numeric_position and any(
-            any(_ISIN.fullmatch(_text(c)) for c in following) or (
+            (any(_ISIN.fullmatch(_text(c)) for c in following)
+             or (icici_summary_blocks and (_to_decimal(_cell(following, columns, 'quantity')) is not None
+                 or (_label(name).lower() == 'reverse repo' and re.match(r'^REVERSE REPO\s*\(', _row_label(following, columns) or '', re.I))))) or (
                 not _TERMINAL.search(_row_label(following, columns) or "")
                 and not _SUBTOTAL.search(_row_label(following, columns) or "")
                 and _to_decimal(_cell(following, columns, "market_value")) == market
                 and _weight_decimal(_cell(following, columns, "pct_to_nav")) == pct
             )
-            for following in rows[row_index + 1:row_index + 6]
+            for following in (rows[row_index + 1:] if icici_summary_blocks else rows[row_index + 1:row_index + 6])
+            if not _TERMINAL.search(_row_label(following, columns) or '')
         )
         if aggregate:
             current = _section_asset_type(name, current)
@@ -402,6 +430,7 @@ def parse_workbook(data: bytes) -> list[ParsedSheet]:
         index, columns = header
         scheme_title = next((m.group(1).strip() for row in rows[:index] for cell in row
                              if (m := re.match(r'^SCHEME\s*:\s*(.+)$', _text(cell), re.I))), None)
+        titles = _title_candidates(rows[:index])
         holdings = []
         total = None
         try:
@@ -413,7 +442,9 @@ def parse_workbook(data: bytes) -> list[ParsedSheet]:
                 if unit_match:
                     unit_text += f" ({unit_match.group(1)})"
             multiplier = market_value_multiplier(unit_text)
-            unscaled = _parse_unscaled_rows(rows[index + 1:], columns, multiplier)
+            icici = any(re.fullmatch(r'ICICI Prudential Mutual Fund', _text(c), re.I)
+                        for row in rows[:index] for c in row)
+            unscaled = _parse_unscaled_rows(rows[index + 1:], columns, multiplier, icici_summary_blocks=icici)
             scale = _weight_scale(unscaled, getattr(rows, "percent_weight_format", False))
             holdings = [replace(h, pct_to_nav=h.pct_to_nav * scale) for h in unscaled]
             total = _declared_total(rows[index + 1:], columns)
@@ -424,9 +455,9 @@ def parse_workbook(data: bytes) -> list[ParsedSheet]:
                 total *= declared_scale
                 if not explicit_percent and declared_scale != scale and any(h.pct_to_nav for h in unscaled):
                     raise ValueError("declared total scale disagrees with row weights")
-            parsed.append(ParsedSheet(name, holdings, None, total, scheme_title))
+            parsed.append(ParsedSheet(name, holdings, None, total, scheme_title, titles))
         except Exception as exc:
-            parsed.append(ParsedSheet(name, holdings, f"{type(exc).__name__}: {exc}", total, scheme_title))
+            parsed.append(ParsedSheet(name, holdings, f"{type(exc).__name__}: {exc}", total, scheme_title, titles))
     return parsed
 
 

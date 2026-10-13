@@ -372,6 +372,12 @@ REAL_SHEET_SUM_ALLOWLIST = {
         ('Zero-NAV segregated YES Bank portfolio.', Decimal('0.000000'), None),
 }
 
+REAL_SHEET_PARSE_ERROR_ALLOWLIST = {
+    ('the-wealth-company-gold-etf_asof_2026-09-30.xlsx', 'WCGE'):
+        ('Source mixes percentage-point gold weights with fractional cash weights; no authorized reweighting.',
+         Decimal('97.0894504019786352648'), Decimal('100')),
+}
+
 
 @lru_cache(maxsize=None)
 def _fixture_workbooks(filename):
@@ -443,6 +449,27 @@ def test_every_real_holdings_sheet_parses_with_a_plausible_scaled_total(filename
     parsed = _parsed_fixture(filename, member)
     assert name in parsed, f"Holdings sheet skipped: {filename}/{member}/{name}"
     sheet = parsed[name]
+    key = (filename, name)
+    if key in REAL_SHEET_PARSE_ERROR_ALLOWLIST:
+        reason, expected_sum, expected_declared = REAL_SHEET_PARSE_ERROR_ALLOWLIST[key]
+        assert reason and 'declared total scale disagrees' in sheet.error
+        assert sum((h.pct_to_nav for h in sheet.holdings), Decimal(0)) == expected_sum
+        assert sheet.declared_total == expected_declared
+        import uuid
+        from datetime import date
+        from app.models.reference import Scheme, DisclosureBatch, SchemeHolding
+        from app.models.enums import DisclosureBatchStatus
+        from app.services.analytics.amfi_factsheet_client import build_families
+        from app.services.analytics.portfolio_disclosure_writer import write_disclosure_batch
+        db = request.getfixturevalue('db_session')
+        scheme = Scheme(id=uuid.uuid4(), name=name, base_name=name, amc_name='Fixture AMC', sebi_category='Test')
+        db.add(scheme); db.flush()
+        write_disclosure_batch(db, build_families([scheme])[0], date(2026,9,30), 'Fixture AMC',
+            'https://example.test/fixture', sheet.holdings, 'EXACT', Decimal(1),
+            parse_errors=[{'error':sheet.error}], declared_total=sheet.declared_total)
+        assert db.query(DisclosureBatch).one().status is DisclosureBatchStatus.FAILED
+        assert db.query(SchemeHolding).count() == 4
+        return
     assert sheet.error is None, sheet.error
     assert sheet.holdings, f"Empty holdings: {filename}/{name}"
     declared = sheet.declared_total
@@ -973,3 +1000,38 @@ def test_run4_edelweiss_real_index_names():
     from app.services.analytics.portfolio_disclosure_parsing import read_index_sheet
     data = (Path(__file__).parents[2] / 'fixtures/portfolio_disclosures/edelweiss_asof_2026-09-30.xlsx').read_bytes()
     assert read_index_sheet(data)['EEECRF'] == 'Edelweiss Flexi-Cap Fund'
+@pytest.mark.parametrize('stem,name', [
+    ('nasdaq-100-index-fund','NASDAQ'), ('overnight-fund','OVERNITE'),
+    ('silver-etf-fof','SILFOF'), ('technology-fund','TECH'),
+    ('us-bluechip-equity-fund','USBLUE'),
+])
+def test_run4b_icici_summary_blocks_not_positions(stem,name):
+    from app.services.analytics.portfolio_disclosure_writer import declared_total_reconciles
+    data=(_FIXTURES/f'icici-prudential-{stem}_asof_2026-09-30.xlsx').read_bytes()
+    sheet=next(s for s in parse_workbook(data) if s.sheet_name==name)
+    assert sheet.error is None
+    total=sum((h.pct_to_nav for h in sheet.holdings),Decimal(0))
+    assert abs(total-Decimal(100)) < Decimal('0.000001')
+    assert declared_total_reconciles(sheet.holdings,sheet.declared_total)
+    assert not any(h.instrument_name in {'Foreign Securities/Overseas ETFs','Equity shares','Units of Mutual Funds','Money Market Instruments','Reverse Repo'} for h in sheet.holdings)
+
+
+@pytest.mark.parametrize('filename,title', [
+    ('nippon-india_asof_2026-09-30.xls','Nippon India Growth Mid Cap Fund'),
+    ('ppfas_asof_2026-09-30.xls','Parag Parikh Flexi Cap Fund'),
+    ('helios-flexi-cap_asof_2026-09-30.xls','Helios Flexi Cap Fund'),
+    ('samco-arbitrage_asof_2026-09-30.xlsx','SAMCO ARBITRAGE FUND'),
+    ('zerodha-arbitrage_asof_2026-09-30.xlsx','ZERODHA ARBITRAGE FUND'),
+    ('angel-one-nifty-50-etf_asof_2026-09-30.xlsx','Angel One Nifty 50 ETF'),
+    ('old-bridge-arbitrage_asof_2026-09-30.xlsx','Old Bridge Arbitrage Fund'),
+    ('capitalmind-arbitrage_asof_2026-09-30.xlsx','Capitalmind Arbitrage Fund'),
+])
+def test_run4b_real_title_candidates(filename,title):
+    sheets=parse_workbook((_FIXTURES/filename).read_bytes())
+    assert any(title.lower() in [t.lower() for t in s.title_candidates] for s in sheets)
+    assert all(not re.fullmatch(r'.*Mutual Fund',t,re.I) for s in sheets for t in s.title_candidates)
+
+
+def test_run4b_fixed_maturity_title_is_not_noise():
+    sheet=next(s for s in parse_workbook((_FIXTURES/'nippon-india_asof_2026-09-30.xls').read_bytes()) if s.sheet_name=='G6')
+    assert 'Nippon India Fixed Maturity Plan - XLI - Series 8' in sheet.title_candidates

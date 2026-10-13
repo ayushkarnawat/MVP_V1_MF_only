@@ -18,9 +18,10 @@ import urllib.parse
 import zipfile
 import io
 import uuid
+import asyncio
 from contextvars import ContextVar
 from collections.abc import AsyncIterator
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, timedelta
 
 import httpx
@@ -49,8 +50,8 @@ _RUN_TODAY = ContextVar('portfolio_disclosure_run_today', default=None)
 _ALERT_DAYS = (10, 20)
 _HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"}
 _MAX_WORKBOOK_BYTES = 60 * 1024 * 1024
-_ANCHOR_LINK_RE = re.compile(r'<a\b[^>]*\bhref=["\']([^"\']+\.(?:xlsx?|zip)(?:[?#][^"\']*)?)["\'][^>]*>(.*?)</a>', re.I | re.S)
-_BARE_LINK_RE = re.compile(r'["\']([^"\'<>\r\n]+\.(?:xlsx?|zip)(?:[?#][^"\'<>\r\n]*)?)["\']', re.I)
+_ANCHOR_LINK_RE = re.compile(r'<a\b[^>]*\bhref=["\']([^"\']+\.(?:xlsx?|zip)(?:[?#][^"\']*)?)\s*["\'][^>]*>(.*?)</a>', re.I | re.S)
+_BARE_LINK_RE = re.compile(r'["\']([^"\'<>\r\n]+\.(?:xlsx?|zip)(?:[?#][^"\'<>\r\n]*)?)\s*["\']', re.I)
 _MONTH_PATTERN = r"(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)"
 _MONTHS = {m: i for i, m in enumerate(("jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"), 1)}
 _SEPARATOR = r"[\s_.–-]+"
@@ -65,6 +66,7 @@ class LocatedFile:
     source_url: str
     as_of_date: date
     scheme_hint: str | None = None
+    alternatives: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -79,6 +81,13 @@ class PortfolioDisclosureRefreshResult:
 
 def _filename_as_of_date(url: str) -> date | None:
     filename = urllib.parse.unquote(urllib.parse.urlsplit(url).path.rsplit("/", 1)[-1])
+    month_first = re.search(rf'(?<![A-Za-z])({_MONTH_PATTERN})(?:\s+|[-_])(\d{{1,2}})(?:st|nd|rd|th)?(?:\s*,\s*|\s+|[-_])(\d{{4}})(?!\d)', filename, re.I)
+    if month_first:
+        month, day, year = month_first.groups()
+        try:
+            return date(int(year), _MONTHS[month[:3].lower()], int(day))
+        except ValueError:
+            return None
     match = _DAY_DATE_RE.search(filename) or _COMPACT_DATE_RE.search(filename)
     if match:
         day, month, year = match.groups()
@@ -107,9 +116,9 @@ def _extract_links(html_text: str) -> list[tuple[str, str]]:
     text = html.unescape(text)
     found = {}
     for href, label in _ANCHOR_LINK_RE.findall(text):
-        found[href] = " ".join(re.sub(r"<[^>]+>", " ", label).split())
+        found[href.strip()] = " ".join(re.sub(r"<[^>]+>", " ", label).split())
     for href in _BARE_LINK_RE.findall(text):
-        found.setdefault(href, "")
+        found.setdefault(href.strip(), "")
     return list(found.items())
 
 
@@ -130,6 +139,63 @@ def _clean_label(label: str) -> str:
 
 _WORKBOOK_URL = re.compile(r"\.(?:xlsx?|zip)(?:$|[?#])", re.I)
 _WORKBOOK_MAGICS = (b"PK\x03\x04", b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1")
+
+
+def _usable_hint(value: str | None) -> str | None:
+    hint = _clean_label(value or '').strip()
+    if (not re.search(r'[A-Za-z]', hint)
+            or re.fullmatch(r'(?:download|view)(?:\s+(?:file|portfolio|document))?', hint, re.I)
+            or re.fullmatch(rf'{_MONTH_PATTERN}(?:\s+\d{{2,4}})?', hint, re.I)
+            or re.fullmatch(rf'{_MONTH_PATTERN}\s+\d{{1,2}}(?:st|nd|rd|th)?(?:\s*,\s*|\s+)\d{{4}}', hint, re.I)
+            or re.fullmatch(rf'\d{{1,2}}(?:st|nd|rd|th)?[\s.-]+{_MONTH_PATTERN}[\s,.-]+\d{{2,4}}', hint, re.I)):
+        return None
+    return hint
+
+
+def _match_sheet(sheet, file, member, index_map, families, amc_name):
+    def candidate_match(key):
+        match = match_scheme_name(key, families)
+        # Interval series can share the same Arabic number across different
+        # periods. A fuzzy quarterly title must not identify a different series.
+        if match and match[1] != 'EXACT' and re.search(r'\binterval\b.*\bseries\b', key, re.I):
+            return None
+        return match
+    member_hint = None
+    if member != file.source_url:
+        stem = urllib.parse.unquote(member.replace('\\', '/').rsplit('/', 1)[-1]).rsplit('.', 1)[0]
+        if re.search(r'\b(?:fund|ETF|FOF)\b', stem, re.I):
+            member_hint = _usable_hint(stem)
+    keys = [sheet.scheme_title, _usable_hint(file.scheme_hint) or member_hint,
+            index_map.get(sheet.sheet_name, sheet.sheet_name), *sheet.title_candidates,
+            _filename_hint(file.source_url)]
+    keys = list(dict.fromkeys(key for key in keys if key))
+    for key in keys:
+        match = candidate_match(key)
+        if match is not None:
+            return match
+    entry = AMC_DISCLOSURE_RESOLVERS.get(amc_name)
+    prefixes = entry.name_prefixes if entry and entry.name_prefixes else (re.sub(r'\s+Mutual Fund$', '', amc_name, flags=re.I),)
+    for key in keys:
+        for prefix in prefixes:
+            if re.match(re.escape(prefix) + r'\b', key, re.I):
+                continue  # Repeating an existing prefix can bypass short-name ambiguity.
+            candidate = re.sub(r'^TRUSTMF\b', prefix, key, flags=re.I) if key.upper().startswith('TRUSTMF') else f'{prefix} {key}'
+            match = candidate_match(candidate)
+            if match is not None:
+                return match
+    return None
+
+
+def _filename_hint(url):
+    name = urllib.parse.unquote(urllib.parse.urlsplit(url).path.rsplit('/', 1)[-1])
+    name = _DAY_DATE_RE.sub(' ', name)
+    name = _COMPACT_DATE_RE.sub(' ', name)
+    name = re.sub(rf'{_MONTH_PATTERN}\s+\d{{1,2}}(?:\s*,\s*|\s+)\d{{4}}', ' ', name, flags=re.I)
+    name = _MONTH_YEAR_RE.sub(' ', name)
+    name = re.sub(r'\.xlsx?$|\.zip$', '', name, flags=re.I).replace('_', ' ').replace('-', ' ')
+    name = re.sub(r'\bmonthly portfolio(?: report|disclosure|statement)?(?: as on)?\b', ' ', name, flags=re.I)
+    name = ' '.join(name.split()).strip()
+    return name if re.search(r'\b(?:fund|ETF|FOF)\b', name, re.I) else None
 
 
 def _looks_like_workbook(data: bytes) -> bool:
@@ -955,7 +1021,7 @@ async def _cdx_query(client: httpx.AsyncClient, url: str, *, match_type: str = "
     limit=-50 selects the last 50 index rows, not the latest 50 disclosures;
     older months and some schemes may be absent. Dates are ranked separately.
     """
-    resp = await client.get("https://web.archive.org/cdx/search/cdx", params={
+    resp = await _wayback_get(client, "https://web.archive.org/cdx/search/cdx", params={
         "url": url, "output": "json", "matchType": match_type,
         "filter": "statuscode:200", "collapse": "urlkey", "limit": "-50",
     })
@@ -968,10 +1034,21 @@ async def _cdx_query(client: httpx.AsyncClient, url: str, *, match_type: str = "
     return [row[original_idx] for row in data_rows]
 
 
+async def _wayback_get(client, url, **kwargs):
+    for attempt in range(3):
+        response = await client.get(url, **kwargs)
+        if response.status_code not in {429, 503}:
+            response.raise_for_status()
+            return response
+        if attempt < 2:
+            await asyncio.sleep(2 ** attempt)
+    raise ValueError(f'BLOCKED: web.archive.org HTTP {response.status_code} after 3 tries')
+
+
 async def _locate_wayback_cached_page(client: httpx.AsyncClient, entry: DisclosureResolverEntry) -> list[LocatedFile]:
     if not await _cdx_query(client, entry.landing_url, match_type="exact"):
         return []
-    cached = await client.get(f"https://web.archive.org/web/2id_/{entry.landing_url}")
+    cached = await _wayback_get(client, f"https://web.archive.org/web/2id_/{entry.landing_url}")
     cached.raise_for_status()
     candidates = []
     for href, label in _extract_links(cached.text):
@@ -1039,6 +1116,12 @@ def _downloaded_hint(data: bytes, entry: DisclosureResolverEntry, hint: str | No
     return hint
 
 
+def _newest_group_first(references: list[LocatedFile]) -> list[LocatedFile]:
+    """References of the newest as-of date only; older dates follow as a lazy fallback via the
+    caller's `newest_only` check. Returned as one list ordered newest date first."""
+    return sorted(references, key=lambda ref: ref.as_of_date, reverse=True)
+
+
 async def _iter_located_files(client, entry, scheme_rows, skip_urls: set[str]) -> AsyncIterator[LocatedFile]:
     """Discover metadata first, then hold one downloaded body until the caller finishes.
 
@@ -1050,22 +1133,51 @@ async def _iter_located_files(client, entry, scheme_rows, skip_urls: set[str]) -
         references = await _locate_and_fetch(client, entry, scheme_rows)
     finally:
         _DISCOVERY_ONLY.reset(token)
+    if entry.prefer_site_variants:
+        groups = {}
+        host = urllib.parse.urlsplit(entry.landing_url).netloc
+        for ref in references:
+            key = urllib.parse.unquote(urllib.parse.urlsplit(ref.source_url).path.rsplit('/', 1)[-1])
+            groups.setdefault(key, []).append(ref)
+        references = []
+        for variants in groups.values():
+            variants.sort(key=lambda ref: urllib.parse.urlsplit(ref.source_url).netloc != host)
+            references.append(replace(variants[0], alternatives=tuple(dict.fromkeys(ref.source_url for ref in variants[1:]))))
     single = entry.file_shape is DisclosureFileShape.SINGLE_WORKBOOK_MULTI_SHEET
+    # One run never writes more than one disclosure month: a landing page lists years of
+    # history (DSP lists 53 zips), and writing all of them would store old data under old
+    # dates for every scheme. Take the newest as-of group; fall back to an older group only
+    # when the newest produced no file (the caller raises the stale-fallback alert).
+    references = _newest_group_first(references)
     seen = set()
+    yielded_month = None
     for reference in references:
         if reference.source_url in seen:
             continue
         seen.add(reference.source_url)
-        if reference.source_url in skip_urls:
+        if yielded_month is not None and (reference.as_of_date.year, reference.as_of_date.month) != yielded_month:
+            continue  # an older month is only a fallback while the newest produced nothing
+        if skip_urls.intersection((reference.source_url, *reference.alternatives)):
             if single:
                 break
             continue
         error = None
-        try:
-            data = await _download_workbook(client, reference.source_url)
-        except httpx.HTTPError as exc:
-            error = f'{type(exc).__name__}: {exc}'
-            data = None
+        data = None
+        quiet_miss = False
+        urls = (reference.source_url, *reference.alternatives)
+        for index, url in enumerate(urls):
+            try:
+                data = await _download_workbook(client, url)
+            except httpx.HTTPError as exc:
+                status = exc.response.status_code if isinstance(exc, httpx.HTTPStatusError) else None
+                if status == 404 and index + 1 < len(urls):
+                    continue
+                if entry.file_shape is DisclosureFileShape.DETERMINISTIC_TEMPLATE and status in {404, 500}:
+                    quiet_miss = True
+                error = f'{type(exc).__name__}: {exc}'
+            break
+        if quiet_miss:
+            continue
         if data is None:
             _alert(scheme_rows[0].amc_name, 'error', f'file={reference.source_url} {error or "unavailable or invalid workbook"}')
             yield reference
@@ -1076,7 +1188,8 @@ async def _iter_located_files(client, entry, scheme_rows, skip_urls: set[str]) -
             # Retain the bytes for Parse/archive and continue to later files.
             _alert(scheme_rows[0].amc_name, 'parse_error', f'file={reference.source_url} title: {exc}')
             hint = reference.scheme_hint
-        yield LocatedFile(data, reference.source_url, reference.as_of_date, hint)
+        yield LocatedFile(data, url, reference.as_of_date, hint)
+        yielded_month = (reference.as_of_date.year, reference.as_of_date.month)
         del data
         if single:
             break
@@ -1185,14 +1298,14 @@ async def refresh_portfolio_disclosures(db: Session, today: date | None = None) 
                                             _alert(amc_name, 'parse_error', f'file={member} sheet={sheet.sheet_name} {sheet.error}')
                                         if not sheet.holdings:
                                             continue
-                                        if file.scheme_hint:
+                                        if _usable_hint(file.scheme_hint):
                                             if hinted_sheet_used:
                                                 continue
                                             hinted_sheet_used = True
                                         parse_errors = ([{'file': member, 'sheet': sheet.sheet_name, 'error': sheet.error}]
                                                         if sheet.error else None)
                                         match_key = sheet.scheme_title or file.scheme_hint or index_map.get(sheet.sheet_name, sheet.sheet_name)
-                                        match = match_scheme_name(match_key, families)
+                                        match = _match_sheet(sheet, file, member, index_map, families, amc_name)
                                         if match is None:
                                             if match_key not in unmatched_names and len(unmatched_names) < 5:
                                                 unmatched_names.append(match_key)

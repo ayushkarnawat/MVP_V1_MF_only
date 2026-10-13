@@ -48,6 +48,8 @@ class DisclosureResolverEntry:
     rewrite_host: tuple[str, str] | None = None
     cadence: str = "monthly"
     note: str | None = None
+    name_prefixes: tuple[str, ...] = ()
+    prefer_site_variants: bool = False
 
 
 
@@ -66,6 +68,7 @@ AMC_DISCLOSURE_RESOLVERS: dict[str, DisclosureResolverEntry] = {
     ),
     'PPFAS Mutual Fund': DisclosureResolverEntry(
         kind=DisclosureResolverKind.STATIC_REGEX,
+        name_prefixes=('Parag Parikh',),
         file_shape=DisclosureFileShape.SINGLE_WORKBOOK_MULTI_SHEET,
         landing_url='https://amc.ppfas.com/downloads/portfolio-disclosure/',
         link_pattern='/PPFAS_Monthly_Portfolio_Report',
@@ -321,6 +324,7 @@ AMC_DISCLOSURE_RESOLVERS: dict[str, DisclosureResolverEntry] = {
     ),
     'Samco Mutual Fund': DisclosureResolverEntry(
         kind=DisclosureResolverKind.STATIC_REGEX,
+        prefer_site_variants=True,
         file_shape=DisclosureFileShape.MULTI_FILE_SINGLE_SCHEME,
         landing_url='https://www.samcomf.com/StatutoryDisclosure',
         link_pattern='IN_MF_MONTHLY_PORTFOLIO_',
