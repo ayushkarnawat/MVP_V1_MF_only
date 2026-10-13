@@ -957,9 +957,9 @@ def test_run3_mirae_paging_keeps_all_target_scheme_files(monkeypatch):
     assert_located(locate_run3("Mirae Asset", handler, monkeypatch), [first, second], ["Mirae Asset Flexi Cap Fund", "Mirae Asset Liquid Fund"])
 
 
-def test_run3_uti_real_zip_code_blocks_remain_unmatched(db_session, monkeypatch, mock_http, caplog):
-    # Capture log UTI: exact SCHEME: source exists but no code-to-name mapping is
-    # wired in this run. Never assign every EXPOSURE block to one family.
+def test_run3b_uti_exact_scheme_title_reaches_writer(db_session, monkeypatch, mock_http, caplog):
+    # Capture log UTI: exact SCHEME: titles map each block independently.
+    # Never assign every EXPOSURE block to one family.
     seed(db_session, amc="UTI Mutual Fund", base="UTI - Unit Linked Insurance Plan")
     fixture = Path(__file__).resolve().parents[2] / 'fixtures/portfolio_disclosures/uti-consolidated_asof_2026-09-30.zip'
     url = "https://d3ce1o48hc5oli.cloudfront.net/static/generic-zip/Oct-26/FW__UTI_MF_SCHEME_PORTFOLIOS_-_30.09.2026_.zip"
@@ -970,9 +970,9 @@ def test_run3_uti_real_zip_code_blocks_remain_unmatched(db_session, monkeypatch,
             api: httpx.Response(200, json={"rows": [{"name": "Consolidated Portfolio September 2026", "doc": url}]}),
             url: httpx.Response(200, content=fixture.read_bytes()),
         }, AMC_DISCLOSURE_RESOLVERS["UTI Mutual Fund"], amc="UTI Mutual Fund")
-    assert result.amcs_processed == 1 and result.schemes_written == 0
-    assert db_session.query(DisclosureBatch).count() == 0
-    assert "unmatched" in caplog.text and "EXPOSURE:002" in caplog.text
+    assert result.amcs_processed == 1 and result.schemes_written == 1
+    assert db_session.query(DisclosureBatch).one().amc_name == 'UTI Mutual Fund'
+    assert "UTI - Unit Linked Insurance Plan" not in caplog.text
 
 
 def test_run3_upload_only_title_is_not_a_disclosure_date():
@@ -986,6 +986,313 @@ def test_run3_whiteoak_monthly_row_without_attached_file_is_skipped(monkeypatch)
         assert r.url.path == "/api/scheme-portfolios"
         return httpx.Response(200, json={"data": [{"attributes": {"period": "Monthly", "scheme_name": "WhiteOak Capital Liquid Fund", "doc_name": "Monthly Portfolio Disclosure - 30th September2026", "doc_file": None}}], "meta": {"pagination": {"pageCount": 1}}})
     assert locate_run3("WhiteOak Capital", handler, monkeypatch) == []
+
+
+@pytest.mark.parametrize('real_fixture', [False, True])
+def test_run3b_index_name_translation_reaches_writer(db_session, monkeypatch, mock_http, real_fixture):
+    if real_fixture:
+        base, code = 'Bank Of India Liquid Fund', 'YB01'
+        data = (Path(__file__).resolve().parents[2] / 'fixtures/portfolio_disclosures/bank-of-india_asof_2026-09-30.xlsx').read_bytes()
+    else:
+        base, code = 'Fund A', 'YB01'
+        wb = openpyxl.load_workbook(io.BytesIO(workbook([(code, 100, 100)])))
+        index = wb.create_sheet('Index', 0)
+        index.append(['Scheme Code', 'Scheme Name']); index.append([code, base])
+        buf = io.BytesIO(); wb.save(buf); wb.close(); data = buf.getvalue()
+    scheme = seed(db_session, base=base)[0]
+    if real_fixture:
+        seed(db_session, base='Bank of India Value Fund')
+    url = 'https://example.test/portfolio-30-Sep-26.xlsx'
+    result, _ = run_refresh(db_session, monkeypatch, mock_http, {
+        'https://example.test/list': httpx.Response(200, text=f'<a href="{url}">Portfolio</a>'),
+        url: httpx.Response(200, content=data),
+    })
+    assert result.schemes_written == (2 if real_fixture else 1)
+    assert db_session.query(DisclosureBatch).filter_by(scheme_id=scheme.id).one().status is DisclosureBatchStatus.WRITTEN
+
+
+def rsc_page(value):
+    # Reconstructed Next envelope; its leaf fields/values below come from the log.
+    return '<script>self.__next_f.push([1,' + json.dumps(json.dumps(value)) + '])</script>'
+
+
+@pytest.mark.parametrize('action', ['705bdd1994b82409c4f44c64a077cd477327752135', 'redeployed-action-id'])
+def test_run3b_jio_discovers_deployed_action_and_prefers_all_schemes(monkeypatch, action):
+    # Capture log Jio: real action/request/row fields. Substitutes: page-captured.js,
+    # redeployed-action-id, and all-schemes CDN URL (opaque ID absent from log).
+    url = 'https://cdnstorage-ddh3hqhvg3gyedd9.a02.azurefd.net/brcms/all-schemes-test.xlsx'
+    per = 'https://cdnstorage-ddh3hqhvg3gyedd9.a02.azurefd.net/brcms/jioblackro-mv0kd9he-62d1e1.xlsx'
+    def handler(r):
+        if r.method == 'GET' and r.url.path.endswith('monthly-portfolio-disclosure'):
+            return httpx.Response(200, text='<script src="/_next/static/chunks/app/statutory-disclosure/disclosures/page-captured.js"></script>')
+        if r.url.path.endswith('page-captured.js'):
+            return httpx.Response(200, text=f'(0,a.createServerReference)("{action}",a,null,"getDisclosureL3Data");')
+        if r.method == 'POST':
+            assert r.headers['Next-Action'] == action and r.headers['Accept'] == 'text/x-component'
+            assert json.loads(r.content) == ['monthly-portfolio-disclosure', {'year':'FI2026-2027','month':'September','date':'$undefined'}, 'MF']
+            return httpx.Response(200, text='0:{"a":"$@1"}\n1:'+json.dumps({'data':[
+                {'title':'JioBlackRock Arbitrage Fund-Monthly-Portfolio-30-09-2026','file':{'url':per,'ext':'.xlsx'}},
+                {'title':'JioBlackRock Mutual Fund-Monthly-Portfolio-30-09-2026','file':{'url':url,'ext':'.xlsx'}},
+            ]}))
+        assert str(r.url) == url
+        return httpx.Response(200, content=b'PK\x03\x04fixture')
+    assert_located(locate_run3('Jio BlackRock', handler, monkeypatch), [url], [None])
+
+
+def test_run3b_quant_replays_three_page_methods_and_per_fund_hint(monkeypatch):
+    # Capture log quant: literal pseudo-JSON bodies and d HTML. Month li envelope
+    # reconstructed from the recorded ids 1..9; file links/labels are recorded.
+    root = 'https://quantmutual.com'
+    all_url = root+'/Admin/disclouser/Monthly_portfolio_sept_30092026.xlsx'
+    per_url = root+'/Admin/disclouser/quant_Flexi_Cap_Fund_30_Sep_2026.xlsx'
+    bodies = {'displaydisclouser': "{id:'2026',cat:'MONTHLY PORTFOLIO'}",
+              'displaydisclouser1': "{id:'2026',cat:'MONTHLY PORTFOLIO - FUND - WISE'}",
+              'displaydisclouser2': "{id:'9',cat:'MONTHLY PORTFOLIO - FUND - WISE',tab:'2026'}"}
+    def handler(r):
+        key = r.url.path.rsplit('/',1)[-1]
+        if key in bodies:
+            assert r.method == 'POST' and r.content.decode() == bodies[key]
+            assert r.headers['Content-Type'].startswith('application/json')
+            replies = {'displaydisclouser': "<ul><li>&#9658;<a href='/Admin/disclouser/Monthly_portfolio_sept_30092026.xlsx'>September 2026</a></li></ul>",
+                       'displaydisclouser1': "<ul><li id='9'>September</li></ul>",
+                       'displaydisclouser2': "<a href='/Admin/disclouser/quant_Flexi_Cap_Fund_30_Sep_2026.xlsx'>quant Flexi cap Fund</a>"}
+            return httpx.Response(200, json={'d':replies[key]})
+        assert str(r.url) in {all_url,per_url}
+        return httpx.Response(200, content=b'PK\x03\x04fixture')
+    assert_located(locate_run3('quant', handler, monkeypatch), [all_url,per_url], [None,'quant Flexi cap Fund'])
+
+
+def test_run3b_abakkus_embedded_vertical_tree(monkeypatch):
+    # Capture log Abakkus: exact vertical/items keys and recorded misspelled URL.
+    url = 'https://www.abakkusmf.com/uploads/Final_Monthly_Portolio_Sep30_2026_fd59e57829.xlsx'
+    payload = [{'title':'Monthly Portfolio Disclosures','sections':[{'subSections':[{'items':[
+        {'title':'September 30, 2026','downloadUrl':None,'downloadMedia':{'url':url.replace('https://www.abakkusmf.com',''),'ext':'.xlsx'}},
+        {'title':'Flexi Cap 15 Jan 2026','downloadMedia':{'url':'/uploads/old.xls'}},
+    ]}]}]}]
+    def handler(r):
+        if r.url.path.endswith('statutory-disclosures.html'):
+            return httpx.Response(200,text='<script id="verticals-data" type="application/json">'+json.dumps(payload)+'</script>')
+        assert str(r.url) == url
+        return httpx.Response(200,content=b'PK\x03\x04fixture')
+    assert_located(locate_run3('Abakkus', handler, monkeypatch), [url], [None])
+
+
+def test_run3b_zerodha_redirect_payload_and_exact_workbook_title(monkeypatch):
+    # Capture log Zerodha: actual URL/name format; UUID replaced by uuid-test.
+    url = 'https://assets.zerodhafundhouse.com/statutory-reports/portfolio-disclosures/ZARBI%20-%20Monthly%20Portfolio%20September%202026.xlsx'
+    fixture = (Path(__file__).resolve().parents[2]/'fixtures/portfolio_disclosures/zerodha-arbitrage_asof_2026-09-30.xlsx').read_bytes()
+    def handler(r):
+        if r.url.path == '/resources/disclosures/':
+            return httpx.Response(308, headers={'Location':'/resources/disclosures'})
+        if r.url.path == '/resources/disclosures':
+            return httpx.Response(200, text=rsc_page({'id':'uuid-test','name':'ZARBI - Monthly Portfolio September 2026','url':url.replace('%20',' '),'modTs':'2026-10-09T09:39:25Z'}))
+        assert str(r.url) == url
+        return httpx.Response(200,content=fixture)
+    files=locate_run3('Zerodha',handler,monkeypatch)
+    assert len(files)==1 and files[0].scheme_hint=='ZERODHA ARBITRAGE FUND'
+    assert files[0].as_of_date==date(2026,9,30) and files[0].data==fixture
+
+
+def test_run3b_unifi_uses_mp_links_not_notice_and_supports_xls(monkeypatch):
+    # Capture log Unifi: real MP-Unifi stems; notice href placeholder is a negative control.
+    root='https://unifimf.com/wp-content/uploads/fund-sheets/'
+    urls=[root+'MP-Unifi-Flexi-Cap-Fund-30092026.xlsx',root+'MP-Unifi-Liquid-Fund-30092026.xls']
+    def handler(r):
+        if r.url.path=='/statutorydocuments/':
+            return httpx.Response(200,text='<a href="/notice.pdf">September 2026</a>'+''.join(f'<a href="{u}">Download</a>' for u in urls)+'<a href="/FN-Unifi-Liquid-Fund-15092026.xls">Fortnightly</a>')
+        assert str(r.url) in urls
+        return httpx.Response(200,content=b'PK\x03\x04fixture')
+    assert_located(locate_run3('Unifi',handler,monkeypatch),urls,['Unifi Flexi Cap Fund','Unifi Liquid Fund'])
+
+
+def test_run3b_tata_escaped_fields_title_date_and_redirect(monkeypatch):
+    # Capture log Tata: exact field names, title and beta CMS URL.
+    url='https://betacms.tatamutualfund.com/system/files/2026-10/Monthly%20Portfolio%20as%20on%2030th%20September%202026.xlsx'
+    live=url.replace('betacms.','www.')
+    def handler(r):
+        if r.url.path=='/schemes-related/portfolio':
+            return httpx.Response(200,text=rsc_page({'field_document_title':'Portfolio as on 30th September, 2026','field_media_document':url}))
+        if str(r.url)==url:
+            return httpx.Response(302,headers={'Location':live})
+        assert str(r.url)==live
+        return httpx.Response(200,content=b'PK\x03\x04fixture')
+    assert_located(locate_run3('Tata',handler,monkeypatch),[url],[None])
+
+
+def test_run3b_sundaram_discovers_proxy_and_keeps_both_workbooks(monkeypatch):
+    # Capture log Sundaram: recorded deploy hash and single-quoted HTML response.
+    script='/ajax/Modules_Disclosure_Monthly_Fortnightly_Adhoc_Portfolios,App_Web_ni5waqhv.ashx'
+    urls=['https://www.sundarammutual.com/uploaddir/MonthlyPortfolio/monthlyportfolio_'+stem+'.xlsx' for stem in ('091026155031','091026155117')]
+    markup=''.join(f'<a href="{u}">Monthly Portfolio Disclosure {kind} - Sep 2026</a>' for u,kind in zip(urls,('Equity & Fund of Funds','Fixed Income')))
+    def handler(r):
+        if r.url.path=='/monthly-fortnightly-adhoc-portfolios':
+            return httpx.Response(200,text=f'<script src="{script}"></script>')
+        if r.url.path==script:
+            assert r.method=='POST' and dict(r.url.params)=={'_method':'GetCategory','_session':'no'}
+            assert r.content==b'Catid=Monthly' and r.headers['Content-Type']=='text/plain'
+            return httpx.Response(200,text="'"+markup.replace("'",r"\'")+"'")
+        assert str(r.url) in urls
+        return httpx.Response(200,content=b'PK\x03\x04fixture')
+    assert_located(locate_run3('Sundaram',handler,monkeypatch),urls,[None,None])
+
+
+def test_run3b_bajaj_uses_own_nonce_and_financial_year(monkeypatch):
+    # Capture log Bajaj: both literal nonce examples, options/HTML fields and URL.
+    url='https://media.bajajamc.com/wp-content/uploads/2026/10/Bajaj-Finserv-Mutual-Fund_Monthly-Portfolio-as-on-30-Sep2026-1.xls'
+    def handler(r):
+        if r.url.path=='/downloads':
+            return httpx.Response(200,text='<script>other={"nonce":"aaf0554ab8"};bajajDownloads={"ajaxUrl":"https://www.bajajamc.com/wp-admin/admin-ajax.php","nonce":"e0b28f6063"}</script>')
+        if r.url.path=='/wp-admin/admin-ajax.php':
+            body=dict(httpx.QueryParams(r.content.decode()))
+            assert body['nonce']=='e0b28f6063' and body['section_id']=='757'
+            if body['action']=='bajaj_get_filter_options':
+                if body['filter_for']=='years':
+                    return httpx.Response(200,json={'success':True,'data':{'options':[{'value':'2026-27'}]}})
+                assert body['filter_for']=='months' and body['year']=='2026-27'
+                return httpx.Response(200,json={'success':True,'data':{'options':[{'value':'September'}]}})
+            assert body['action']=='bajaj_get_downloads' and body['year']=='2026-27' and body['month']=='September'
+            return httpx.Response(200,json={'success':True,'data':{'html':f'<div class="bd-download-row"><span class="bd-download-title">Bajaj Finserv Mutual Fund_Monthly Portfolio as on 30 Sep 2026</span><a href="{url}">Download</a></div>','count':1}})
+        assert str(r.url)==url
+        return httpx.Response(200,content=b'PK\x03\x04fixture')
+    assert_located(locate_run3('Bajaj Finserv',handler,monkeypatch),[url],[None])
+
+
+def test_run3b_alphagrep_manifest_folder_case_and_soft404(monkeypatch):
+    # Capture log AlphaGrep leaves, reconstructed root monthly container.
+    url='https://www.alphagrepmf.ai/assets/documents/AlphaGrep_Flexi_Cap_Fund/monthly/FY-2026-27/September_2026.xls'
+    def handler(r):
+        if r.url.path=='/assets/documents/files.json':
+            return httpx.Response(200,json={'monthly':[
+                {'schemeName':'AlphaGrep Flexi Cap Fund','folderName':'AlphaGrep_Flexi_Cap_Fund','financialYears':[{'yearFolder':'FY-2026-27','documents':[{'title':'September Report','fileName':'September_2026'}]}]},
+                {'schemeName':'AlphaGrep Liquid Omni Fof Fund','folderName':'AlphaGrep_Liquid_OMNI_Fund','financialYears':[{'yearFolder':'FY-2026-27','documents':[{'title':'September Report','fileName':'September_2026'}]}]},
+            ]})
+        if 'AlphaGrep_Liquid_OMNI_Fund' in r.url.path:
+            return httpx.Response(200,text='<html>SPA shell</html>')
+        assert str(r.url)==url
+        return httpx.Response(200,content=b'PK\x03\x04fixture')
+    assert_located(locate_run3('AlphaGrep',handler,monkeypatch),[url],['AlphaGrep Flexi Cap Fund'])
+
+
+def test_run3b_wealth_pagination_dates_opaque_names_from_payload(monkeypatch):
+    # Capture log Wealth: exact September record fields and two captured URLs.
+    # records envelope and second-page metadata are reconstructed control values.
+    urls=['https://www.wealthcompanyamc.in/uploads/Monthly_Portfolio_Flexi_Cap_0fd0dc18c8.xlsx','https://www.wealthcompanyamc.in/uploads/Monthly_Portfolio_Arbitrage_49f61aa67c.xlsx']
+    def handler(r):
+        if r.url.path.endswith('/monthly/'):
+            page=int(r.url.params.get('page','1')); assert page in (1,2)
+            label='Flexicap' if page==1 else 'Arbitrage'
+            return httpx.Response(200,text=rsc_page({'records':[{'uploadDate':'2026-09-30','name':f'Monthly - The Wealth Company {label} Fund - Sep 30, 2026','attachment':{'url':urls[page-1].replace('https://www.wealthcompanyamc.in','')}}], 'pagination':{'page':page,'pageSize':25,'pageCount':2,'total':26}}))
+        assert str(r.url) in urls
+        return httpx.Response(200,content=b'PK\x03\x04fixture')
+    assert_located(locate_run3('The Wealth Company',handler,monkeypatch),urls,['The Wealth Company Flexicap Fund','The Wealth Company Arbitrage Fund'])
+
+
+def test_run3b_360_strict_monthly_pattern_excludes_other_documents(monkeypatch):
+    # Capture log 360 ONE: captured S3 URL; negative document URLs are controls.
+    url='https://s3.ap-south-1.amazonaws.com/x-web-s3.360.one/IN_MF_MONTHLY_PORTFOLIO_Sep2026_Final_fc91906e39.xls'
+    def handler(r):
+        if r.url.path=='/asset/mutual-funds/downloads/':
+            return httpx.Response(200,text=rsc_page({'fileUrl':url,'other':['https://bad.test/Notice_Monthly_Portfolio_10_09_26.pdf','https://bad.test/MF_Portfolio_Overlap_Sep_2026_Monthly.xlsx','https://bad.test/360_ONE_MF_Half_yearly_portfolio_Sep_2026.xlsb']}))
+        assert str(r.url)==url
+        return httpx.Response(200,content=b'PK\x03\x04fixture')
+    assert_located(locate_run3('360 ONE',handler,monkeypatch),[url],[None])
+
+
+def test_run3b_motilal_sitemap_text_link_empty_page_and_workbook_name(monkeypatch):
+    # Capture log Motilal: real page/link, missing-fund page slug is a control.
+    root='https://www.motilaloswalmf.com'
+    url=root+'/content/dam/motilal-mf/sheets/fund-csvs/Month_End_Portfolio_September_2026/YO58.xlsx'
+    fixture=(Path(__file__).resolve().parents[2]/'fixtures/portfolio_disclosures/motilal-oswal-yo58_asof_2026-09-30.xlsx').read_bytes()
+    def handler(r):
+        if r.url.path=='/sitemap.xml':
+            return httpx.Response(200,text='<urlset><loc>'+root+'/mutual-funds/motilal-oswal-digital-india-fund</loc><loc>'+root+'/mutual-funds/missing-fund</loc></urlset>')
+        if r.url.path.startswith('/mutual-funds/'):
+            path=url.replace(root,'') if 'digital-india' in r.url.path else ''
+            return httpx.Response(200,text=f'<p><strong>Date As On:</strong> 30 Sep 2026</p><p><strong>portfolioUrl:</strong> {path}</p>')
+        assert str(r.url)==url
+        return httpx.Response(200,content=fixture)
+    files=locate_run3('Motilal Oswal',handler,monkeypatch)
+    assert len(files)==1 and files[0].source_url==url and files[0].data==fixture
+    assert files[0].scheme_hint.upper()=='MOTILAL OSWAL DIGITAL INDIA FUND'
+
+
+def test_run3b_choice_tree_only_published_month_end_overnight(monkeypatch):
+    # Capture log Choice: real full URL/branch fields; tree envelope reconstructed.
+    url='https://choicemf.com/api/document/ngCwkJfMCu/Choice-Mutual-Fund-Fortnightly-Portfolio-OV-30-Sep-2026.xlsx'
+    def handler(r):
+        if r.url.path=='/api/document-master-list':
+            return httpx.Response(200,json={'body':[{'slug':'regulatory-compliance','children':[
+                {'slug':'fortnight-portfolio','financial_years':[{'financial_year':'2026-27','files':[{'doc_name':'Choice Mutual Fund-Fortnightly Portfolio-OV-30 Sep 2026.xlsx','scheme_id':10,'scheme_name':'Choice Overnight Fund','frequency':'monthly','month':'September','open_file_url':url},
+                    {'scheme_name':'Choice Overnight Fund','open_file_url':'https://bad.test/portfolio-15-Sep-2026.xlsx'}]}]},
+                {'slug':'monthly-portfolio','financial_years':[{'files':[{'scheme_name':'Choice Gold ETF','open_file_url':'https://bad.test/portfolio-28-Feb-2026.xls'}]}]},
+            ]}]})
+        assert str(r.url)==url
+        return httpx.Response(200,content=b'PK\x03\x04fixture')
+    assert_located(locate_run3('Choice',handler,monkeypatch),[url],['Choice Overnight Fund'])
+
+
+@pytest.mark.parametrize('amc',['Jio BlackRock','quant','Abakkus','Zerodha','Unifi','Tata','Sundaram','Bajaj Finserv','AlphaGrep','The Wealth Company','360 ONE','Motilal Oswal','Choice'])
+def test_run3b_empty_payload_never_guesses_a_date(monkeypatch,amc):
+    # Synthetic negative responses in the documented containers, no dates/files.
+    def handler(r):
+        assert not client._WORKBOOK_URL.search(str(r.url))
+        if amc=='quant':
+            return httpx.Response(200,json={'d':''})
+        if amc=='AlphaGrep':
+            return httpx.Response(200,json={'monthly':[]})
+        if amc=='Choice':
+            return httpx.Response(200,json={'body':[]})
+        return httpx.Response(200,text='<html></html>')
+    assert locate_run3(amc,handler,monkeypatch)==[]
+
+
+def test_run3b_full_registry_has_zero_not_onboarded(db_session,monkeypatch,mock_http):
+    monkeypatch.setattr(client,'AMC_DISCLOSURE_RESOLVERS',AMC_DISCLOSURE_RESOLVERS)
+    requests=mock_http({})  # Empty scheme master: no provider request is needed.
+    result=asyncio.run(client.refresh_portfolio_disclosures(db_session))
+    assert result.amcs_not_onboarded==0 and requests==[]
+
+
+def test_run3b_quantum_dates_opaque_uuid_from_its_own_anchor(monkeypatch):
+    # Capture log Quantum: exact September UUID and same-anchor label.
+    url='https://www.quantumamc.com/FileCDN/FactSheet/18650bf5-c7b8-47b1-a725-78a86416c1a5.xlsx'
+    def handler(r):
+        if r.url.path.startswith('/portfolio/combined/'):
+            return httpx.Response(200,text=f'<a href="{url}">September 2026 - All Funds</a>')
+        assert str(r.url)==url
+        return httpx.Response(200,content=b'PK\x03\x04fixture')
+    assert_located(locate_run3('Quantum',handler,monkeypatch),[url],[None])
+
+
+def test_run3b_nj_dates_only_explicit_file_parameter_and_reads_title(monkeypatch):
+    # Capture log NJ: exact September file query and source workbook title.
+    url='https://downloads.njmutualfund.com/viewfile.php?file=NJ-MF-Monthly-Portfolio-NJFCP-September-2026-20261008113127.xlsx'
+    fixture=(Path(__file__).resolve().parents[2]/'fixtures/portfolio_disclosures/nj-flexi-cap_asof_2026-09-30.xlsx').read_bytes()
+    def handler(r):
+        if r.url.path=='/njmf_download.php':
+            return httpx.Response(200,text=f'<a href="{url}">Download</a><a href="/viewfile.php?date=30-Sep-2026">Other</a>')
+        assert str(r.url)==url
+        return httpx.Response(200,content=fixture)
+    files=locate_run3('NJ',handler,monkeypatch)
+    assert len(files)==1 and files[0].source_url==url and files[0].as_of_date==date(2026,9,30)
+    assert files[0].scheme_hint=='NJ Flexi Cap Fund' and files[0].data==fixture
+
+
+def test_run3b_alphagrep_excludes_nonmonthly_manifest_categories(monkeypatch):
+    # Reconstructed mixed-category envelope; HalfYearly_September_2026 is a
+    # synthetic negative file stem, not a reported real document.
+    url='https://www.alphagrepmf.ai/assets/documents/AlphaGrep_Flexi_Cap_Fund/monthly/FY-2026-27/September_2026.xls'
+    def record(filename):
+        return {'schemeName':'AlphaGrep Flexi Cap Fund','folderName':'AlphaGrep_Flexi_Cap_Fund',
+                'financialYears':[{'yearFolder':'FY-2026-27','documents':[{'fileName':filename}]}]}
+    def handler(r):
+        if r.url.path.endswith('files.json'):
+            return httpx.Response(200,json={'monthly':[record('September_2026')],
+                                          'halfyearly':[record('HalfYearly_September_2026')],
+                                          'fortnightly':[record('Fortnightly_September_2026')]})
+        assert str(r.url)==url
+        return httpx.Response(200,content=b'PK\x03\x04fixture')
+    assert_located(locate_run3('AlphaGrep',handler,monkeypatch),[url],['AlphaGrep Flexi Cap Fund'])
 
 
 def test_html_served_under_a_workbook_name_is_not_a_file():

@@ -141,5 +141,21 @@ def test_run3_scoped_locators_are_implemented_and_have_captured_requests():
     assert AMC_DISCLOSURE_RESOLVERS["Taurus Mutual Fund"].cadence == "half_yearly"
     assert AMC_DISCLOSURE_RESOLVERS["Monarch Mutual Fund"].cadence == "monthly"
     assert AMC_DISCLOSURE_RESOLVERS["Bandhan Mutual Fund"].kind is DisclosureResolverKind.MANUAL
-    for amc in ("AlphaGrep", "Tata", "Sundaram", "Jio BlackRock", "Abakkus", "quant", "Bajaj Finserv"):
-        assert not client._is_locate_implemented(AMC_DISCLOSURE_RESOLVERS[f"{amc} Mutual Fund"])
+
+
+def test_run3b_every_nonmanual_registry_row_is_implemented():
+    from app.services.analytics import portfolio_disclosure_client as client
+    exceptions = {'HDFC Mutual Fund': 'Discovery is an open manager decision; keep existing Wayback route.',
+                  'Taurus Mutual Fund': 'September is unpublished; data availability does not mean unimplemented code.'}
+    for amc, entry in AMC_DISCLOSURE_RESOLVERS.items():
+        assert 'NEEDS LIVE VERIFICATION' not in (entry.note or '')
+        if entry.kind is DisclosureResolverKind.MANUAL:
+            continue
+        assert client._is_locate_implemented(entry), (amc, exceptions.get(amc))
+    scoped = {'Jio BlackRock':'jio', 'quant':'quant', 'Abakkus':'abakkus', 'Zerodha':'zerodha', 'Unifi':'unifi',
+              'Tata':'tata', 'Sundaram':'sundaram', 'Bajaj Finserv':'bajaj', 'AlphaGrep':'alphagrep',
+              'The Wealth Company':'wealth', '360 ONE':'360', 'Motilal Oswal':'motilal', 'Choice':'choice'}
+    for name, key in scoped.items():
+        entry = AMC_DISCLOSURE_RESOLVERS[name+' Mutual Fund']
+        assert entry.custom_locator == key and key in client._CUSTOM_LOCATORS
+        assert entry.cadence == 'monthly' and entry.file_shape is not None

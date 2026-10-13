@@ -150,6 +150,51 @@ class ParsedSheet:
     holdings: list[ParsedHolding]
     error: str | None
     declared_total: Decimal | None = None
+    scheme_title: str | None = None
+
+
+def read_index_sheet(data: bytes) -> dict[str, str]:
+    """Read explicit scheme tables, irrespective of the worksheet's name.
+
+    Prefer codes which actually name a worksheet (SBI has both numeric codes and
+    short codes). Conflicting names for one code are deliberately left unmapped.
+    """
+    fmt = sniff_workbook_format(data)
+    wb = (openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
+          if fmt == 'xlsx' else xlrd.open_workbook(file_contents=data))
+    sheet_names = set(wb.sheetnames if fmt == 'xlsx' else wb.sheet_names())
+    result, conflicts = {}, set()
+    code_headers = {'schemecode', 'schemeshortcode', 'shortname', 'acronym', 'scheme', 'code', 'abbreviations'}
+    try:
+        for ws in (wb if fmt == 'xlsx' else wb.sheets()):
+            rows = (list(ws.iter_rows(max_row=40, values_only=True)) if fmt == 'xlsx'
+                    else [ws.row_values(i) for i in range(min(40, ws.nrows))])
+            for index, row in enumerate(rows):
+                labels = [re.sub(r'[^a-z0-9]', '', _text(c).lower()) for c in row]
+                name_col = next((i for i, label in enumerate(labels) if label in {'schemename', 'schemenames', 'schemefullname'}), None)
+                code_cols = [i for i, label in enumerate(labels) if label in code_headers]
+                if name_col is None or not code_cols:
+                    continue
+                data_rows = (ws.iter_rows(min_row=index + 2, values_only=True) if fmt == 'xlsx'
+                             else (ws.row_values(i) for i in range(index + 1, ws.nrows)))
+                for item in data_rows:
+                    codes = [_text(item[i]) for i in code_cols if i < len(item) and _text(item[i])]
+                    code = next((c for c in codes if c in sheet_names), codes[-1] if codes else None)
+                    if not code or name_col >= len(item) or not _text(item[name_col]):
+                        continue
+                    name = str(item[name_col]).splitlines()[0].strip()
+                    name = re.sub(r'\s*\((?:an?\s+)?open[- ]ended.*$', '', name, flags=re.I).strip()
+                    if not name or code in conflicts:
+                        continue
+                    if code in result and result[code] != name:
+                        result.pop(code)
+                        conflicts.add(code)
+                    else:
+                        result[code] = name
+                break
+    finally:
+        wb.close() if fmt == 'xlsx' else wb.release_resources()
+    return result
 
 
 def _row_label(row, columns):
@@ -317,7 +362,7 @@ def _read_xls_sheets(data):
 def _logical_sheets(sheets):
     """Code-delimited portfolios share one worksheet in the captured UTI file.
 
-    Preserve code identities here; scheme-name translation is a later stage.
+    Preserve code identities and the SCHEME: title for explicit name translation.
     A named portfolio total ends its positions before a defaulted-security annexure.
     """
     for name, rows in sheets:
@@ -355,6 +400,8 @@ def parse_workbook(data: bytes) -> list[ParsedSheet]:
         if header is None:
             continue
         index, columns = header
+        scheme_title = next((m.group(1).strip() for row in rows[:index] for cell in row
+                             if (m := re.match(r'^SCHEME\s*:\s*(.+)$', _text(cell), re.I))), None)
         holdings = []
         total = None
         try:
@@ -377,9 +424,9 @@ def parse_workbook(data: bytes) -> list[ParsedSheet]:
                 total *= declared_scale
                 if not explicit_percent and declared_scale != scale and any(h.pct_to_nav for h in unscaled):
                     raise ValueError("declared total scale disagrees with row weights")
-            parsed.append(ParsedSheet(name, holdings, None, total))
+            parsed.append(ParsedSheet(name, holdings, None, total, scheme_title))
         except Exception as exc:
-            parsed.append(ParsedSheet(name, holdings, f"{type(exc).__name__}: {exc}", total))
+            parsed.append(ParsedSheet(name, holdings, f"{type(exc).__name__}: {exc}", total, scheme_title))
     return parsed
 
 
