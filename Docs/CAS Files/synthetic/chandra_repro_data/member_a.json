@@ -1,0 +1,2934 @@
+{
+ "folios": [
+  {
+   "amc": "AXIS Mutual Fund",
+   "folio": "910117948224 / 0",
+   "schemes": [
+    {
+     "rta": "KFINTECH",
+     "amfi": "120468",
+     "isin": "INF846K01CQ8",
+     "open": "14600.347",
+     "type": "EQUITY",
+     "close": "14600.347",
+     "scheme": "Axis Focused Fund - Direct Growth (Non Demat)",
+     "advisor": "INZ000305337",
+     "nominees": [
+      "Deepa Oak"
+     ],
+     "rta_code": "128AFDGG",
+     "valuation": {
+      "nav": "66.22",
+      "cost": "700092.00",
+      "date": "2026-08-24",
+      "value": "966834.98"
+     },
+     "transactions": [],
+     "close_calculated": "14600.347"
+    }
+   ]
+  },
+  {
+   "amc": "AXIS Mutual Fund",
+   "folio": "910117956394 / 0",
+   "schemes": [
+    {
+     "rta": "KFINTECH",
+     "amfi": "125354",
+     "isin": "INF846K01K35",
+     "open": "17933.438",
+     "type": "EQUITY",
+     "close": "18132.461",
+     "scheme": "Axis Small Cap Fund Direct Growth (Non Demat)",
+     "advisor": "INZ000305337",
+     "nominees": [
+      "Deepa Oak"
+     ],
+     "rta_code": "128SCDGG",
+     "valuation": {
+      "nav": "137.33",
+      "cost": "1135996.00",
+      "date": "2026-08-24",
+      "value": "2490130.87"
+     },
+     "transactions": [
+      {
+       "nav": "124.37",
+       "date": "2026-05-29",
+       "type": "PURCHASE",
+       "units": "16.080",
+       "amount": "1999.90",
+       "balance": "17949.518",
+       "gift_folio": null,
+       "description": "Purchase",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-05-29",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.10",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "124.48",
+       "date": "2026-06-04",
+       "type": "PURCHASE",
+       "units": "16.066",
+       "amount": "1999.90",
+       "balance": "17965.584",
+       "gift_folio": null,
+       "description": "Purchase",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-06-04",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.10",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "122.58",
+       "date": "2026-06-11",
+       "type": "PURCHASE",
+       "units": "16.315",
+       "amount": "1999.90",
+       "balance": "17981.899",
+       "gift_folio": null,
+       "description": "Purchase",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-06-11",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.10",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "129.11",
+       "date": "2026-06-18",
+       "type": "PURCHASE",
+       "units": "15.490",
+       "amount": "1999.90",
+       "balance": "17997.389",
+       "gift_folio": null,
+       "description": "Purchase",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-06-18",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.10",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "130.06",
+       "date": "2026-06-25",
+       "type": "PURCHASE",
+       "units": "15.377",
+       "amount": "1999.90",
+       "balance": "18012.766",
+       "gift_folio": null,
+       "description": "Purchase",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-06-25",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.10",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "132.00",
+       "date": "2026-07-02",
+       "type": "PURCHASE",
+       "units": "15.151",
+       "amount": "1999.90",
+       "balance": "18027.917",
+       "gift_folio": null,
+       "description": "Purchase",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-07-02",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.10",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "131.52",
+       "date": "2026-07-09",
+       "type": "PURCHASE",
+       "units": "15.206",
+       "amount": "1999.90",
+       "balance": "18043.123",
+       "gift_folio": null,
+       "description": "Purchase",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-07-09",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.10",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "133.23",
+       "date": "2026-07-16",
+       "type": "PURCHASE",
+       "units": "15.011",
+       "amount": "1999.90",
+       "balance": "18058.134",
+       "gift_folio": null,
+       "description": "Purchase",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-07-16",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.10",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "130.52",
+       "date": "2026-07-23",
+       "type": "PURCHASE",
+       "units": "15.323",
+       "amount": "1999.90",
+       "balance": "18073.457",
+       "gift_folio": null,
+       "description": "Purchase",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-07-23",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.10",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "132.41",
+       "date": "2026-07-30",
+       "type": "PURCHASE",
+       "units": "15.104",
+       "amount": "1999.90",
+       "balance": "18088.561",
+       "gift_folio": null,
+       "description": "Purchase",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-07-30",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.10",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "135.58",
+       "date": "2026-08-06",
+       "type": "PURCHASE",
+       "units": "14.751",
+       "amount": "1999.90",
+       "balance": "18103.312",
+       "gift_folio": null,
+       "description": "Purchase",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-08-06",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.10",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "136.47",
+       "date": "2026-08-13",
+       "type": "PURCHASE",
+       "units": "14.655",
+       "amount": "1999.90",
+       "balance": "18117.967",
+       "gift_folio": null,
+       "description": "Purchase",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-08-13",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.10",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "137.98",
+       "date": "2026-08-20",
+       "type": "PURCHASE",
+       "units": "14.494",
+       "amount": "1999.90",
+       "balance": "18132.461",
+       "gift_folio": null,
+       "description": "Purchase",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-08-20",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.10",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      }
+     ],
+     "close_calculated": "18132.461"
+    }
+   ]
+  },
+  {
+   "amc": "AXIS Mutual Fund",
+   "folio": "910117956424 / 0",
+   "schemes": [
+    {
+     "rta": "KFINTECH",
+     "amfi": "120465",
+     "isin": "INF846K01DP8",
+     "open": "24936.286",
+     "type": "EQUITY",
+     "close": "24936.286",
+     "scheme": "Axis Large Cap Fund - Direct Growth (Non Demat)",
+     "advisor": "INZ000305337",
+     "nominees": [
+      "Deepa Oak"
+     ],
+     "rta_code": "128EFDGG",
+     "valuation": {
+      "nav": "70.59",
+      "cost": "1251984.00",
+      "date": "2026-08-24",
+      "value": "1760252.43"
+     },
+     "transactions": [],
+     "close_calculated": "24936.286"
+    }
+   ]
+  },
+  {
+   "amc": "AXIS Mutual Fund",
+   "folio": "910178381423 / 0",
+   "schemes": [
+    {
+     "rta": "KFINTECH",
+     "amfi": "120505",
+     "isin": "INF846K01EH3",
+     "open": "1618.184",
+     "type": "EQUITY",
+     "close": "1618.184",
+     "scheme": "Axis Mid Cap Fund - Direct Growth (Non Demat)",
+     "advisor": "INZ000305337",
+     "nominees": [
+      "DEEPA OAK"
+     ],
+     "rta_code": "128MCDGG",
+     "valuation": {
+      "nav": "144.51",
+      "cost": "189000.00",
+      "date": "2026-08-24",
+      "value": "233843.77"
+     },
+     "transactions": [],
+     "close_calculated": "1618.184"
+    }
+   ]
+  },
+  {
+   "amc": "AXIS Mutual Fund",
+   "folio": "91042248856 / 0",
+   "schemes": [
+    {
+     "rta": "KFINTECH",
+     "amfi": "125354",
+     "isin": "INF846K01K35",
+     "open": "431.461",
+     "type": "EQUITY",
+     "close": "431.461",
+     "scheme": "Axis Small Cap Fund Direct Growth (Non Demat)",
+     "advisor": "INZ000305337",
+     "nominees": [
+      "DEEPA OAK"
+     ],
+     "rta_code": "128SCDGG",
+     "valuation": {
+      "nav": "137.33",
+      "cost": "28525.29",
+      "date": "2026-08-24",
+      "value": "59252.54"
+     },
+     "transactions": [],
+     "close_calculated": "431.461"
+    }
+   ]
+  },
+  {
+   "amc": "Bandhan Mutual Fund",
+   "folio": "8768600 / 18",
+   "schemes": [
+    {
+     "rta": "CAMS",
+     "amfi": "147944",
+     "isin": "INF194KB1AJ8",
+     "open": "0",
+     "type": "EQUITY",
+     "close": "5123.606",
+     "scheme": "Bandhan Small Cap Fund-Regular Plan-Growth",
+     "advisor": "ARN-13549",
+     "nominees": [],
+     "rta_code": "G340",
+     "valuation": {
+      "nav": "51.765",
+      "cost": "250000.00",
+      "date": "2026-08-24",
+      "value": "265223.46"
+     },
+     "transactions": [
+      {
+       "nav": "46.630",
+       "date": "2026-04-17",
+       "type": "PURCHASE_SIP",
+       "units": "1072.217",
+       "amount": "49997.50",
+       "balance": "1072.217",
+       "gift_folio": null,
+       "description": "Net Systematic Purchase Instalment No - 1 via Online",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-04-17",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "2.50",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "46.998",
+       "date": "2026-05-18",
+       "type": "PURCHASE_SIP",
+       "units": "1063.822",
+       "amount": "49997.50",
+       "balance": "2136.039",
+       "gift_folio": null,
+       "description": "Net Systematic Purchase Instalment No - 2/6 via Online",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-05-18",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "2.50",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "49.093",
+       "date": "2026-06-17",
+       "type": "PURCHASE_SIP",
+       "units": "1018.424",
+       "amount": "49997.50",
+       "balance": "3154.463",
+       "gift_folio": null,
+       "description": "Net Systematic Purchase Instalment No - 3/6 via Online",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-06-17",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "2.50",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "50.280",
+       "date": "2026-07-17",
+       "type": "PURCHASE_SIP",
+       "units": "994.381",
+       "amount": "49997.50",
+       "balance": "4148.844",
+       "gift_folio": null,
+       "description": "Net Systematic Purchase Instalment No - 4/6 via Online",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-07-17",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "2.50",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "51.292",
+       "date": "2026-08-17",
+       "type": "PURCHASE_SIP",
+       "units": "974.762",
+       "amount": "49997.50",
+       "balance": "5123.606",
+       "gift_folio": null,
+       "description": "Net Systematic Purchase Instalment No - 5/6 via Online",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-08-17",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "2.50",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      }
+     ],
+     "close_calculated": "5123.606"
+    }
+   ]
+  },
+  {
+   "amc": "Canara Robeco Mutual Fund",
+   "folio": "17728342345 / 0",
+   "schemes": [
+    {
+     "rta": "KFINTECH",
+     "amfi": "118278",
+     "isin": "INF760K01EI4",
+     "open": "12234.980",
+     "type": "EQUITY",
+     "close": "12234.980",
+     "scheme": "Canara Robeco Large and Mid Cap Fund - Direct Growth (Non Demat)",
+     "advisor": "INZ000305337",
+     "nominees": [
+      "Deepa Oak"
+     ],
+     "rta_code": "101EQDGG",
+     "valuation": {
+      "nav": "303.38",
+      "cost": "2149430.00",
+      "date": "2026-08-24",
+      "value": "3711848.23"
+     },
+     "transactions": [],
+     "close_calculated": "12234.980"
+    }
+   ]
+  },
+  {
+   "amc": "Canara Robeco Mutual Fund",
+   "folio": "18874332996 / 0",
+   "schemes": [
+    {
+     "rta": "KFINTECH",
+     "amfi": "112152",
+     "isin": "INF760K01241",
+     "open": "0",
+     "type": "EQUITY",
+     "close": "183.932",
+     "scheme": "Canara Robeco Consumption Fund - Regular Growth",
+     "advisor": "ARN-13549",
+     "nominees": [
+      "DEEPA OAK"
+     ],
+     "rta_code": "101CFGPG",
+     "valuation": {
+      "nav": "109.9700",
+      "cost": "20000.00",
+      "date": "2026-08-24",
+      "value": "20227.00"
+     },
+     "transactions": [
+      {
+       "nav": "106.9600",
+       "date": "2026-07-10",
+       "type": "PURCHASE_SIP",
+       "units": "93.488",
+       "amount": "9999.50",
+       "balance": "93.488",
+       "gift_folio": null,
+       "description": "Systematic Investment New Purchase with SIP (1)",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-07-10",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.50",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "110.5600",
+       "date": "2026-08-10",
+       "type": "PURCHASE_SIP",
+       "units": "90.444",
+       "amount": "9999.50",
+       "balance": "183.932",
+       "gift_folio": null,
+       "description": "Systematic Investment (1)",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-08-10",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.50",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      }
+     ],
+     "close_calculated": "183.932"
+    }
+   ]
+  },
+  {
+   "amc": "DSP Mutual Fund",
+   "folio": "11084123 / 07",
+   "schemes": [
+    {
+     "rta": "CAMS",
+     "amfi": "152056",
+     "isin": "INF740KA1TE9",
+     "open": "0",
+     "type": "EQUITY",
+     "close": "6096.550",
+     "scheme": "DSP Multi Asset Allocation Fund - Direct - Growth",
+     "advisor": "INZ000305337",
+     "nominees": [],
+     "rta_code": "D896",
+     "valuation": {
+      "nav": "17.0796",
+      "cost": "100000.00",
+      "date": "2026-08-24",
+      "value": "104126.64"
+     },
+     "transactions": [
+      {
+       "nav": "16.4019",
+       "date": "2026-04-30",
+       "type": "PURCHASE",
+       "units": "6096.550",
+       "amount": "99995.00",
+       "balance": "6096.550",
+       "gift_folio": null,
+       "description": "Purchase-BSE - - INZ000305337",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-04-30",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "5.00",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      }
+     ],
+     "close_calculated": "6096.550"
+    }
+   ]
+  },
+  {
+   "amc": "Edelweiss Mutual Fund",
+   "folio": "9108928712 / 0",
+   "schemes": [
+    {
+     "rta": "KFINTECH",
+     "amfi": "118615",
+     "isin": "INF754K01BS2",
+     "open": "27445.331",
+     "type": "EQUITY",
+     "close": "27445.331",
+     "scheme": "Edelweiss Balanced Advantage Fund - Direct Plan Growth (Non Demat)",
+     "advisor": "INZ000305337",
+     "nominees": [
+      "Deepa Oak"
+     ],
+     "rta_code": "118ARDGG",
+     "valuation": {
+      "nav": "61.89",
+      "cost": "1000998.00",
+      "date": "2026-08-24",
+      "value": "1698591.54"
+     },
+     "transactions": [],
+     "close_calculated": "27445.331"
+    }
+   ]
+  },
+  {
+   "amc": "HDFC Mutual Fund",
+   "folio": "28799808 / 28",
+   "schemes": [
+    {
+     "rta": "CAMS",
+     "amfi": "152600",
+     "isin": "INF179KC1II1",
+     "open": "9999.500",
+     "type": "EQUITY",
+     "close": "14039.376",
+     "scheme": "HDFC Manufacturing Fund Direct Growth",
+     "advisor": "INZ000305337",
+     "nominees": [
+      "DEEPA OAK"
+     ],
+     "rta_code": "HHFDGR",
+     "valuation": {
+      "nav": "12.326",
+      "cost": "150000.00",
+      "date": "2026-08-24",
+      "value": "173049.35"
+     },
+     "transactions": [
+      {
+       "nav": "12.376",
+       "date": "2026-08-12",
+       "type": "PURCHASE",
+       "units": "4039.876",
+       "amount": "49997.50",
+       "balance": "14039.376",
+       "gift_folio": null,
+       "description": "Purchase-BSE - Online",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-08-12",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "2.50",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      }
+     ],
+     "close_calculated": "14039.376"
+    }
+   ]
+  },
+  {
+   "amc": "HDFC Mutual Fund",
+   "folio": "30281147 / 66",
+   "schemes": [
+    {
+     "rta": "CAMS",
+     "amfi": "152713",
+     "isin": "INF179KC1IM3",
+     "open": "9535.452",
+     "type": "EQUITY",
+     "close": "9535.452",
+     "scheme": "HDFC NIFTY100 Low Volatility 30 Index Fund Direct Growth",
+     "advisor": "INZ000305337",
+     "nominees": [
+      "DEEPA OAK"
+     ],
+     "rta_code": "HHLVDG",
+     "valuation": {
+      "nav": "10.5117",
+      "cost": "100000.00",
+      "date": "2026-08-24",
+      "value": "100233.81"
+     },
+     "transactions": [],
+     "close_calculated": "9535.452"
+    }
+   ]
+  },
+  {
+   "amc": "HDFC Mutual Fund",
+   "folio": "743845 / 47",
+   "schemes": [
+    {
+     "rta": "CAMS",
+     "amfi": "101762",
+     "isin": "INF179K01608",
+     "open": "603.209",
+     "type": "EQUITY",
+     "close": "603.209",
+     "scheme": "HDFC Flexi Cap Fund - Regular Plan - Growth",
+     "advisor": "ARN-28004",
+     "nominees": [
+      "NIKHIL OAK"
+     ],
+     "rta_code": "H02",
+     "valuation": {
+      "nav": "2080.430",
+      "cost": "30000.00",
+      "date": "2026-08-24",
+      "value": "1254934.10"
+     },
+     "transactions": [],
+     "close_calculated": "603.209"
+    }
+   ]
+  },
+  {
+   "amc": "ICICI Prudential Mutual Fund",
+   "folio": "41606336 / 10",
+   "schemes": [
+    {
+     "rta": "CAMS",
+     "amfi": "120251",
+     "isin": "INF109K01Y07",
+     "open": "219.124",
+     "type": "EQUITY",
+     "close": "443.484",
+     "scheme": "ICICI Prudential Equity & Debt Fund - Direct Plan - Growth",
+     "advisor": "INZ000305337",
+     "nominees": [],
+     "rta_code": "P8017",
+     "valuation": {
+      "nav": "456.23",
+      "cost": "200000.00",
+      "date": "2026-08-24",
+      "value": "202330.71"
+     },
+     "transactions": [
+      {
+       "nav": "445.69",
+       "date": "2026-04-30",
+       "type": "PURCHASE",
+       "units": "224.360",
+       "amount": "99995.00",
+       "balance": "443.484",
+       "gift_folio": null,
+       "description": "Purchase-BSE - - INZ000305337",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-04-30",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "5.00",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      }
+     ],
+     "close_calculated": "443.484"
+    }
+   ]
+  },
+  {
+   "amc": "ICICI Prudential Mutual Fund",
+   "folio": "42682192 / 20",
+   "schemes": [
+    {
+     "rta": "CAMS",
+     "amfi": "148990",
+     "isin": "INF109KC1R14",
+     "open": "5081.047",
+     "type": "EQUITY",
+     "close": "5081.047",
+     "scheme": "ICICI Prudential Flexicap Fund Direct Plan Growth",
+     "advisor": "INZ000305337",
+     "nominees": [],
+     "rta_code": "P9645",
+     "valuation": {
+      "nav": "22.35",
+      "cost": "100000.00",
+      "date": "2026-08-24",
+      "value": "113561.40"
+     },
+     "transactions": [],
+     "close_calculated": "5081.047"
+    }
+   ]
+  },
+  {
+   "amc": "ICICI Prudential Mutual Fund",
+   "folio": "44180381 / 45",
+   "schemes": [
+    {
+     "rta": "CAMS",
+     "amfi": "120596",
+     "isin": "INF109K011O5",
+     "open": "0",
+     "type": "EQUITY",
+     "close": "43.202",
+     "scheme": "ICICI Prudential Large & Mid Cap Fund - Direct Plan - Growth",
+     "advisor": "INZ000305337",
+     "nominees": [],
+     "rta_code": "P8002",
+     "valuation": {
+      "nav": "1201.73",
+      "cost": "50000.00",
+      "date": "2026-08-24",
+      "value": "51917.14"
+     },
+     "transactions": [
+      {
+       "nav": "1154.80",
+       "date": "2026-04-22",
+       "type": "PURCHASE_SIP",
+       "units": "8.659",
+       "amount": "9999.50",
+       "balance": "8.659",
+       "gift_folio": null,
+       "description": "SIP Purchase-BSE - Instalment No - 1 - INZ000305337",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-04-22",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.50",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "1119.45",
+       "date": "2026-05-22",
+       "type": "PURCHASE_SIP",
+       "units": "8.933",
+       "amount": "9999.50",
+       "balance": "17.592",
+       "gift_folio": null,
+       "description": "SIP Purchase-BSE - Instalment No - 2/960 - INZ000305337",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-05-22",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.50",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "1149.11",
+       "date": "2026-06-22",
+       "type": "PURCHASE_SIP",
+       "units": "8.702",
+       "amount": "9999.50",
+       "balance": "26.294",
+       "gift_folio": null,
+       "description": "SIP Purchase-BSE - Instalment No - 3/960 - INZ000305337",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-06-22",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.50",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "1164.49",
+       "date": "2026-07-22",
+       "type": "PURCHASE_SIP",
+       "units": "8.587",
+       "amount": "9999.50",
+       "balance": "34.881",
+       "gift_folio": null,
+       "description": "SIP Purchase-BSE - Instalment No - 4/960 - INZ000305337",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-07-22",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.50",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "1201.73",
+       "date": "2026-08-24",
+       "type": "PURCHASE_SIP",
+       "units": "8.321",
+       "amount": "9999.50",
+       "balance": "43.202",
+       "gift_folio": null,
+       "description": "SIP Purchase-BSE - Instalment No - 5/960 - INZ000305337",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-08-24",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.50",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      }
+     ],
+     "close_calculated": "43.202"
+    }
+   ]
+  },
+  {
+   "amc": "ICICI Prudential Mutual Fund",
+   "folio": "44288903 / 11",
+   "schemes": [
+    {
+     "rta": "CAMS",
+     "amfi": "152936",
+     "isin": "INF109KC13X2",
+     "open": "0",
+     "type": "EQUITY",
+     "close": "17463.630",
+     "scheme": "ICICI Prudential Nifty200 Value 30 Index Fund - Direct Plan - Growth",
+     "advisor": "INZ000305337",
+     "nominees": [],
+     "rta_code": "P9753",
+     "valuation": {
+      "nav": "11.0443",
+      "cost": "200000.00",
+      "date": "2026-08-24",
+      "value": "192873.57"
+     },
+     "transactions": [
+      {
+       "nav": "11.4518",
+       "date": "2026-04-30",
+       "type": "PURCHASE",
+       "units": "17463.630",
+       "amount": "199990.00",
+       "balance": "17463.630",
+       "gift_folio": null,
+       "description": "Purchase-BSE - - INZ000305337",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-04-30",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "10.00",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      }
+     ],
+     "close_calculated": "17463.630"
+    }
+   ]
+  },
+  {
+   "amc": "Invesco Mutual Fund",
+   "folio": "31041844613 / 0",
+   "schemes": [
+    {
+     "rta": "KFINTECH",
+     "amfi": "153047",
+     "isin": "INF205KA1AC1",
+     "open": "15784.530",
+     "type": "EQUITY",
+     "close": "15784.530",
+     "scheme": "Invesco India Multi Asset Allocation Fund - Direct Plan Growth (Non Demat)",
+     "advisor": "INZ000305337",
+     "nominees": [],
+     "rta_code": "120MLD1G",
+     "valuation": {
+      "nav": "13.00",
+      "cost": "200000.00",
+      "date": "2026-08-24",
+      "value": "205198.89"
+     },
+     "transactions": [],
+     "close_calculated": "15784.530"
+    }
+   ]
+  },
+  {
+   "amc": "JioBlackRock Mutual Fund",
+   "folio": "1947037",
+   "schemes": [
+    {
+     "rta": "CAMS",
+     "amfi": "153787",
+     "isin": "INF22M001044",
+     "open": "9597.002",
+     "type": "EQUITY",
+     "close": "20021.400",
+     "scheme": "JioBlackRock Nifty 50 Index Fund - Direct Growth",
+     "advisor": "INZ000305337",
+     "nominees": [],
+     "rta_code": "JIO130",
+     "valuation": {
+      "nav": "9.8252",
+      "cost": "200000.00",
+      "date": "2026-08-24",
+      "value": "196714.26"
+     },
+     "transactions": [
+      {
+       "nav": "9.5924",
+       "date": "2026-04-13",
+       "type": "PURCHASE",
+       "units": "10424.398",
+       "amount": "99995.00",
+       "balance": "20021.400",
+       "gift_folio": null,
+       "description": "Purchase-BSE -",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-04-13",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "5.00",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      }
+     ],
+     "close_calculated": "20021.400"
+    }
+   ]
+  },
+  {
+   "amc": "JioBlackRock Mutual Fund",
+   "folio": "2190423",
+   "schemes": [
+    {
+     "rta": "CAMS",
+     "amfi": "154082",
+     "isin": "INF22M001168",
+     "open": "19999.000",
+     "type": "EQUITY",
+     "close": "19999.000",
+     "scheme": "JioBlackRock Sector Rotation Fund-Direct - Growth",
+     "advisor": "INZ000305337",
+     "nominees": [],
+     "rta_code": "JIO220",
+     "valuation": {
+      "nav": "10.0682",
+      "cost": "200000.00",
+      "date": "2026-08-24",
+      "value": "201353.93"
+     },
+     "transactions": [],
+     "close_calculated": "19999.000"
+    }
+   ]
+  },
+  {
+   "amc": "Kotak Mutual Fund",
+   "folio": "13038025",
+   "schemes": [
+    {
+     "rta": "CAMS",
+     "amfi": "104908",
+     "isin": "INF174K01DS9",
+     "open": "1297.051",
+     "type": "EQUITY",
+     "close": "3190.944",
+     "scheme": "Kotak Midcap Fund-Growth (Regular Plan)",
+     "advisor": "ARN-13549",
+     "nominees": [
+      "DEEPA DEVENDRA OAK"
+     ],
+     "rta_code": "K123",
+     "valuation": {
+      "nav": "147.942",
+      "cost": "425000.00",
+      "date": "2026-08-24",
+      "value": "472074.64"
+     },
+     "transactions": [
+      {
+       "nav": "137.764",
+       "date": "2026-04-17",
+       "type": "PURCHASE_SIP",
+       "units": "362.921",
+       "amount": "49997.50",
+       "balance": "1659.972",
+       "gift_folio": null,
+       "description": "Systematic Purchase (Continuous Offer) Instalment No - 1",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-04-17",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "2.50",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "139.931",
+       "date": "2026-04-27",
+       "type": "PURCHASE_SIP",
+       "units": "35.730",
+       "amount": "4999.75",
+       "balance": "1695.702",
+       "gift_folio": null,
+       "description": "Systematic Purchase (Continuous Offer) Instalment No - 32/36",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-04-27",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.25",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "137.440",
+       "date": "2026-05-18",
+       "type": "PURCHASE_SIP",
+       "units": "363.777",
+       "amount": "49997.50",
+       "balance": "2059.479",
+       "gift_folio": null,
+       "description": "Systematic Purchase (Continuous Offer) Instalment No - 2/6",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-05-18",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "2.50",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "140.496",
+       "date": "2026-05-26",
+       "type": "PURCHASE_SIP",
+       "units": "35.586",
+       "amount": "4999.75",
+       "balance": "2095.065",
+       "gift_folio": null,
+       "description": "Systematic Purchase (Continuous Offer) Instalment No - 33/36",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-05-26",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.25",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "143.776",
+       "date": "2026-06-17",
+       "type": "PURCHASE_SIP",
+       "units": "347.746",
+       "amount": "49997.50",
+       "balance": "2442.811",
+       "gift_folio": null,
+       "description": "Systematic Purchase (Continuous Offer) Instalment No - 3/6",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-06-17",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "2.50",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "143.025",
+       "date": "2026-06-29",
+       "type": "PURCHASE_SIP",
+       "units": "34.957",
+       "amount": "4999.75",
+       "balance": "2477.768",
+       "gift_folio": null,
+       "description": "Systematic Purchase (Continuous Offer) Instalment No - 34/36",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-06-29",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.25",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "146.395",
+       "date": "2026-07-17",
+       "type": "PURCHASE_SIP",
+       "units": "341.525",
+       "amount": "49997.50",
+       "balance": "2819.293",
+       "gift_folio": null,
+       "description": "Systematic Purchase (Continuous Offer) Instalment No - 4/6",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-07-17",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "2.50",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "145.477",
+       "date": "2026-07-27",
+       "type": "PURCHASE_SIP",
+       "units": "34.368",
+       "amount": "4999.75",
+       "balance": "2853.661",
+       "gift_folio": null,
+       "description": "Systematic Purchase (Continuous Offer) Instalment No - 35/36",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-07-27",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.25",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "148.236",
+       "date": "2026-08-17",
+       "type": "PURCHASE_SIP",
+       "units": "337.283",
+       "amount": "49997.50",
+       "balance": "3190.944",
+       "gift_folio": null,
+       "description": "Systematic Purchase (Continuous Offer) Instalment No - 5/6",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-08-17",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "2.50",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      }
+     ],
+     "close_calculated": "3190.944"
+    }
+   ]
+  },
+  {
+   "amc": "Kotak Mutual Fund",
+   "folio": "15049133",
+   "schemes": [
+    {
+     "rta": "CAMS",
+     "amfi": "119769",
+     "isin": "INF174K01KZ9",
+     "open": "131.828",
+     "type": "EQUITY",
+     "close": "131.828",
+     "scheme": "Kotak Contra Fund - Direct Plan - Growth ( Erstwhile Kotak India EQ Contra Scheme)",
+     "advisor": "Registrar : CAMS INZ000305337",
+     "nominees": [
+      "DEEPA OAK"
+     ],
+     "rta_code": "K124D",
+     "valuation": {
+      "nav": "185.579",
+      "cost": "22500.00",
+      "date": "2026-08-24",
+      "value": "24464.51"
+     },
+     "transactions": [],
+     "close_calculated": "131.828"
+    }
+   ]
+  },
+  {
+   "amc": "Kotak Mutual Fund",
+   "folio": "18977193",
+   "schemes": [
+    {
+     "rta": "CAMS",
+     "amfi": "149185",
+     "isin": "INF174KA1HV3",
+     "open": "0",
+     "type": "EQUITY",
+     "close": "2365.420",
+     "scheme": "Kotak Multicap Fund Direct Plan - Growth",
+     "advisor": "INZ000305337",
+     "nominees": [],
+     "rta_code": "K1155D",
+     "valuation": {
+      "nav": "21.704",
+      "cost": "50000.00",
+      "date": "2026-08-24",
+      "value": "51339.08"
+     },
+     "transactions": [
+      {
+       "nav": "20.610",
+       "date": "2026-04-24",
+       "type": "PURCHASE",
+       "units": "485.177",
+       "amount": "9999.50",
+       "balance": "485.177",
+       "gift_folio": null,
+       "description": "Purchase-BSE -",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-04-24",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.50",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "20.862",
+       "date": "2026-05-25",
+       "type": "PURCHASE",
+       "units": "479.316",
+       "amount": "9999.50",
+       "balance": "964.493",
+       "gift_folio": null,
+       "description": "Purchase-BSE -",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-05-25",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.50",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "21.425",
+       "date": "2026-06-24",
+       "type": "PURCHASE",
+       "units": "466.721",
+       "amount": "9999.50",
+       "balance": "1431.214",
+       "gift_folio": null,
+       "description": "Purchase-BSE -",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-06-24",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.50",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "21.119",
+       "date": "2026-07-24",
+       "type": "PURCHASE",
+       "units": "473.484",
+       "amount": "9999.50",
+       "balance": "1904.698",
+       "gift_folio": null,
+       "description": "Purchase-BSE -",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-07-24",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.50",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "21.704",
+       "date": "2026-08-24",
+       "type": "PURCHASE",
+       "units": "460.722",
+       "amount": "9999.50",
+       "balance": "2365.420",
+       "gift_folio": null,
+       "description": "Purchase-BSE -",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-08-24",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.50",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      }
+     ],
+     "close_calculated": "2365.420"
+    }
+   ]
+  },
+  {
+   "amc": "Kotak Mutual Fund",
+   "folio": "8545843",
+   "schemes": [
+    {
+     "rta": "CAMS",
+     "amfi": "119775",
+     "isin": "INF174K01LT0",
+     "open": "15476.827",
+     "type": "EQUITY",
+     "close": "15750.727",
+     "scheme": "Kotak Midcap Fund- Direct Plan - Growth",
+     "advisor": "DIRECT",
+     "nominees": [
+      "Deepa Oak"
+     ],
+     "rta_code": "K123D",
+     "valuation": {
+      "nav": "173.148",
+      "cost": "1329999.94",
+      "date": "2026-08-24",
+      "value": "2727206.88"
+     },
+     "transactions": [
+      {
+       "nav": "144.661",
+       "date": "2026-04-02",
+       "type": "PURCHASE",
+       "units": "27.649",
+       "amount": "3999.80",
+       "balance": "15504.476",
+       "gift_folio": null,
+       "description": "Purchase (Continuous Offer)-BSE -",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-04-02",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.20",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "160.979",
+       "date": "2026-04-20",
+       "type": "PURCHASE_SIP",
+       "units": "31.058",
+       "amount": "4999.75",
+       "balance": "15535.534",
+       "gift_folio": null,
+       "description": "Systematic Purchase (Continuous Offer) - Instalment 32/60 - via myCAMS",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-04-20",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.25",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "162.223",
+       "date": "2026-05-04",
+       "type": "PURCHASE",
+       "units": "24.656",
+       "amount": "3999.80",
+       "balance": "15560.190",
+       "gift_folio": null,
+       "description": "Purchase (Continuous Offer)-BSE -",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-05-04",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.20",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "161.586",
+       "date": "2026-05-19",
+       "type": "PURCHASE_SIP",
+       "units": "30.942",
+       "amount": "4999.75",
+       "balance": "15591.132",
+       "gift_folio": null,
+       "description": "Systematic Purchase (Continuous Offer) - Instalment 33/60 - via myCAMS",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-05-19",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.25",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "160.429",
+       "date": "2026-06-01",
+       "type": "PURCHASE",
+       "units": "24.932",
+       "amount": "3999.80",
+       "balance": "15616.064",
+       "gift_folio": null,
+       "description": "Purchase (Continuous Offer)-BSE -",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-06-01",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.20",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "168.241",
+       "date": "2026-06-18",
+       "type": "PURCHASE_SIP",
+       "units": "29.718",
+       "amount": "4999.75",
+       "balance": "15645.782",
+       "gift_folio": null,
+       "description": "Systematic Purchase (Continuous Offer) - Instalment 34/60 - via myCAMS",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-06-18",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.25",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "168.007",
+       "date": "2026-07-01",
+       "type": "PURCHASE",
+       "units": "23.807",
+       "amount": "3999.80",
+       "balance": "15669.589",
+       "gift_folio": null,
+       "description": "Purchase (Continuous Offer)-BSE -",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-07-01",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.20",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "171.832",
+       "date": "2026-07-20",
+       "type": "PURCHASE_SIP",
+       "units": "29.097",
+       "amount": "4999.75",
+       "balance": "15698.686",
+       "gift_folio": null,
+       "description": "Systematic Purchase (Continuous Offer) - Instalment 35/60 - via myCAMS",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-07-20",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.25",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "172.589",
+       "date": "2026-08-03",
+       "type": "PURCHASE",
+       "units": "23.175",
+       "amount": "3999.80",
+       "balance": "15721.861",
+       "gift_folio": null,
+       "description": "Purchase (Continuous Offer)-BSE -",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-08-03",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.20",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "173.206",
+       "date": "2026-08-18",
+       "type": "PURCHASE_SIP",
+       "units": "28.866",
+       "amount": "4999.75",
+       "balance": "15750.727",
+       "gift_folio": null,
+       "description": "Systematic Purchase (Continuous Offer) - Instalment 36/60 - via myCAMS",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-08-18",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.25",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      }
+     ],
+     "close_calculated": "15750.727"
+    }
+   ]
+  },
+  {
+   "amc": "Mahindra Manulife Mutual Fund",
+   "folio": "1000035058",
+   "schemes": [
+    {
+     "rta": "CAMS",
+     "amfi": "140446",
+     "isin": "INF174V01176",
+     "open": "1503.068",
+     "type": "EQUITY",
+     "close": "1529.977",
+     "scheme": "Mahindra Manulife Equity Savings Fund - Regular - Quarterly IDCW",
+     "advisor": "ARN-13549",
+     "nominees": [],
+     "rta_code": "MMMDYRD",
+     "valuation": {
+      "nav": "14.1812",
+      "cost": "16746.63",
+      "date": "2026-08-24",
+      "value": "21696.91"
+     },
+     "transactions": [
+      {
+       "nav": "13.9636",
+       "date": "2026-06-30",
+       "type": "DIVIDEND_REINVEST",
+       "units": "26.909",
+       "amount": "375.75",
+       "balance": "1529.977",
+       "gift_folio": null,
+       "description": "IDCW Reinvested @ Rs.0.25 per unit",
+       "dividend_rate": "0.25"
+      },
+      {
+       "nav": null,
+       "date": "2026-06-30",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.02",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      }
+     ],
+     "close_calculated": "1529.977"
+    }
+   ]
+  },
+  {
+   "amc": "Mahindra Manulife Mutual Fund",
+   "folio": "1001289802",
+   "schemes": [
+    {
+     "rta": "CAMS",
+     "amfi": "152672",
+     "isin": "INF174V01CC2",
+     "open": "5171.617",
+     "type": "EQUITY",
+     "close": "5171.617",
+     "scheme": "Mahindra Manulife Manufacturing Fund - Direct - Growth",
+     "advisor": "INZ000305337",
+     "nominees": [
+      "DEEPA OAK"
+     ],
+     "rta_code": "MMMMFDG",
+     "valuation": {
+      "nav": "11.2650",
+      "cost": "49995.00",
+      "date": "2026-08-24",
+      "value": "58258.27"
+     },
+     "transactions": [],
+     "close_calculated": "5171.617"
+    }
+   ]
+  },
+  {
+   "amc": "MOTILAL OSWAL MUTUAL FUND",
+   "folio": "910134175615 / 0",
+   "schemes": [
+    {
+     "rta": "KFINTECH",
+     "amfi": "133386",
+     "isin": "INF247L01569",
+     "open": "2218.285",
+     "type": "EQUITY",
+     "close": "2749.889",
+     "scheme": "Motilal Oswal ELSS Tax Saver Fund - Direct Plan Growth (Non Demat)",
+     "advisor": "INZ000305337",
+     "nominees": [],
+     "rta_code": "127LTGDG",
+     "valuation": {
+      "nav": "67.0354",
+      "cost": "160000.00",
+      "date": "2026-08-24",
+      "value": "184339.91"
+     },
+     "transactions": [
+      {
+       "nav": "56.7557",
+       "date": "2026-04-08",
+       "type": "PURCHASE_SIP",
+       "units": "281.896",
+       "amount": "15999.20",
+       "balance": "2500.181",
+       "gift_folio": null,
+       "description": "Systematic Investment (1)",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-04-08",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.80",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "64.0716",
+       "date": "2026-05-08",
+       "type": "PURCHASE_SIP",
+       "units": "249.708",
+       "amount": "15999.20",
+       "balance": "2749.889",
+       "gift_folio": null,
+       "description": "Systematic Investment (1)",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-05-08",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.80",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      }
+     ],
+     "close_calculated": "2749.889"
+    }
+   ]
+  },
+  {
+   "amc": "MOTILAL OSWAL MUTUAL FUND",
+   "folio": "910162471155 / 0",
+   "schemes": [
+    {
+     "rta": "KFINTECH",
+     "amfi": "147704",
+     "isin": "INF247L01999",
+     "open": "0",
+     "type": "EQUITY",
+     "close": "1274.351",
+     "scheme": "Motilal Oswal Large and Midcap Fund - Direct Plan Growth (Non Demat)",
+     "advisor": "INZ000305337",
+     "nominees": [],
+     "rta_code": "127LMGDG",
+     "valuation": {
+      "nav": "41.2921",
+      "cost": "50000.00",
+      "date": "2026-08-24",
+      "value": "52620.63"
+     },
+     "transactions": [
+      {
+       "nav": "38.1970",
+       "date": "2026-04-22",
+       "type": "PURCHASE_SIP",
+       "units": "261.788",
+       "amount": "9999.50",
+       "balance": "261.788",
+       "gift_folio": null,
+       "description": "Systematic Investment New Purchase with SIP (1)",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-04-22",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.50",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "37.7074",
+       "date": "2026-05-22",
+       "type": "PURCHASE_SIP",
+       "units": "265.187",
+       "amount": "9999.50",
+       "balance": "526.975",
+       "gift_folio": null,
+       "description": "Systematic Investment (1)",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-05-22",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.50",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "39.8359",
+       "date": "2026-06-22",
+       "type": "PURCHASE_SIP",
+       "units": "251.017",
+       "amount": "9999.50",
+       "balance": "777.992",
+       "gift_folio": null,
+       "description": "Systematic Investment (1)",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-06-22",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.50",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "39.3381",
+       "date": "2026-07-22",
+       "type": "PURCHASE_SIP",
+       "units": "254.194",
+       "amount": "9999.50",
+       "balance": "1032.186",
+       "gift_folio": null,
+       "description": "Systematic Investment (1)",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-07-22",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.50",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "41.2921",
+       "date": "2026-08-24",
+       "type": "PURCHASE_SIP",
+       "units": "242.165",
+       "amount": "9999.50",
+       "balance": "1274.351",
+       "gift_folio": null,
+       "description": "Systematic Investment (1)",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-08-24",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.50",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      }
+     ],
+     "close_calculated": "1274.351"
+    }
+   ]
+  },
+  {
+   "amc": "MOTILAL OSWAL MUTUAL FUND",
+   "folio": "910170167973 / 0",
+   "schemes": [
+    {
+     "rta": "KFINTECH",
+     "amfi": "152237",
+     "isin": "INF247L01BY3",
+     "open": "0",
+     "type": "EQUITY",
+     "close": "2833.041",
+     "scheme": "Motilal Oswal Small Cap Fund - Direct Plan Growth (Non Demat)",
+     "advisor": "INZ000305337",
+     "nominees": [],
+     "rta_code": "127SCGDG",
+     "valuation": {
+      "nav": "17.6106",
+      "cost": "50000.00",
+      "date": "2026-08-24",
+      "value": "49891.55"
+     },
+     "transactions": [
+      {
+       "nav": "17.6480",
+       "date": "2026-08-20",
+       "type": "PURCHASE",
+       "units": "2833.041",
+       "amount": "49997.50",
+       "balance": "2833.041",
+       "gift_folio": null,
+       "description": "Purchase",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-08-20",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "2.50",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      }
+     ],
+     "close_calculated": "2833.041"
+    }
+   ]
+  },
+  {
+   "amc": "Nippon India Mutual Fund",
+   "folio": "488165165517 / 0",
+   "schemes": [
+    {
+     "rta": "KFINTECH",
+     "amfi": "113177",
+     "isin": "INF204K01HY3",
+     "open": "578.163",
+     "type": "EQUITY",
+     "close": "634.975",
+     "scheme": "NIPPON INDIA SMALL CAP FUND - GROWTH PLAN GROWTH OPTION",
+     "advisor": "ARN-13549",
+     "nominees": [
+      "DEEPA OAK"
+     ],
+     "rta_code": "RMFSCGPG",
+     "valuation": {
+      "nav": "185.8428",
+      "cost": "90000.00",
+      "date": "2026-08-24",
+      "value": "118005.53"
+     },
+     "transactions": [
+      {
+       "nav": "167.5142",
+       "date": "2026-04-17",
+       "type": "PURCHASE_SIP",
+       "units": "11.939",
+       "amount": "1999.90",
+       "balance": "590.102",
+       "gift_folio": null,
+       "description": "Sys. Investment (41/60)",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-04-17",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.10",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "169.7988",
+       "date": "2026-05-18",
+       "type": "PURCHASE_SIP",
+       "units": "11.778",
+       "amount": "1999.90",
+       "balance": "601.880",
+       "gift_folio": null,
+       "description": "Sys. Investment (42/60)",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-05-18",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.10",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "177.8023",
+       "date": "2026-06-17",
+       "type": "PURCHASE_SIP",
+       "units": "11.248",
+       "amount": "1999.90",
+       "balance": "613.128",
+       "gift_folio": null,
+       "description": "Sys. Investment (43/60)",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-06-17",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.10",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "180.3582",
+       "date": "2026-07-17",
+       "type": "PURCHASE_SIP",
+       "units": "11.088",
+       "amount": "1999.90",
+       "balance": "624.216",
+       "gift_folio": null,
+       "description": "Sys. Investment (44/60)",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-07-17",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.10",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "185.8773",
+       "date": "2026-08-17",
+       "type": "PURCHASE_SIP",
+       "units": "10.759",
+       "amount": "1999.90",
+       "balance": "634.975",
+       "gift_folio": null,
+       "description": "Sys. Investment (45/60)",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-08-17",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.10",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      }
+     ],
+     "close_calculated": "634.975"
+    }
+   ]
+  },
+  {
+   "amc": "Nippon India Mutual Fund",
+   "folio": "488176395705 / 0",
+   "schemes": [
+    {
+     "rta": "KFINTECH",
+     "amfi": "104637",
+     "isin": "INF204K01GE7",
+     "open": "1689.194",
+     "type": "EQUITY",
+     "close": "1689.194",
+     "scheme": "NIPPON INDIA FOCUSED FUND - GROWTH PLAN GROWTH OPTION",
+     "advisor": "ARN-13549",
+     "nominees": [
+      "DEEPA OAK"
+     ],
+     "rta_code": "RMFLEGPG",
+     "valuation": {
+      "nav": "124.6439",
+      "cost": "79000.00",
+      "date": "2026-08-24",
+      "value": "210547.73"
+     },
+     "transactions": [],
+     "close_calculated": "1689.194"
+    }
+   ]
+  },
+  {
+   "amc": "Old Bridge Mutual Fund",
+   "folio": "1771247992 / 0",
+   "schemes": [
+    {
+     "rta": "KFINTECH",
+     "amfi": "152358",
+     "isin": "INF0S5R01042",
+     "open": "14293.441",
+     "type": "EQUITY",
+     "close": "16172.351",
+     "scheme": "Old Bridge Focused Fund - Direct - Growth (Non Demat)",
+     "advisor": "INZ000305337",
+     "nominees": [
+      "DEEPA OAK"
+     ],
+     "rta_code": "139FED1G",
+     "valuation": {
+      "nav": "14.31",
+      "cost": "200000.00",
+      "date": "2026-08-24",
+      "value": "231426.34"
+     },
+     "transactions": [
+      {
+       "nav": "12.61",
+       "date": "2026-04-24",
+       "type": "PURCHASE",
+       "units": "396.491",
+       "amount": "4999.75",
+       "balance": "14689.932",
+       "gift_folio": null,
+       "description": "Purchase",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-04-24",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.25",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "13.06",
+       "date": "2026-05-25",
+       "type": "PURCHASE",
+       "units": "382.829",
+       "amount": "4999.75",
+       "balance": "15072.761",
+       "gift_folio": null,
+       "description": "Purchase",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-05-25",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.25",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "13.44",
+       "date": "2026-06-24",
+       "type": "PURCHASE",
+       "units": "372.005",
+       "amount": "4999.75",
+       "balance": "15444.766",
+       "gift_folio": null,
+       "description": "Purchase",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-06-24",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.25",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "13.22",
+       "date": "2026-07-24",
+       "type": "PURCHASE",
+       "units": "378.196",
+       "amount": "4999.75",
+       "balance": "15822.962",
+       "gift_folio": null,
+       "description": "Purchase",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-07-24",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.25",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "14.31",
+       "date": "2026-08-24",
+       "type": "PURCHASE",
+       "units": "349.389",
+       "amount": "4999.75",
+       "balance": "16172.351",
+       "gift_folio": null,
+       "description": "Purchase",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-08-24",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.25",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      }
+     ],
+     "close_calculated": "16172.351"
+    }
+   ]
+  },
+  {
+   "amc": "PPFAS Mutual Fund",
+   "folio": "11140463",
+   "schemes": [
+    {
+     "rta": "CAMS",
+     "amfi": "122639",
+     "isin": "INF879O01027",
+     "open": "22136.252",
+     "type": "EQUITY",
+     "close": "22413.005",
+     "scheme": "Parag Parikh Flexi Cap Fund - Direct Plan Growth",
+     "advisor": "INZ000305337",
+     "nominees": [
+      "Deepa Oak"
+     ],
+     "rta_code": "PP001ZG",
+     "valuation": {
+      "nav": "90.9964",
+      "cost": "1150010.00",
+      "date": "2026-08-24",
+      "value": "2039502.77"
+     },
+     "transactions": [
+      {
+       "nav": "86.5155",
+       "date": "2026-04-02",
+       "type": "PURCHASE_SIP",
+       "units": "57.802",
+       "amount": "5000.75",
+       "balance": "22194.054",
+       "gift_folio": null,
+       "description": "Purchase Systematic-BSE - Instalment No - 6/960",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-04-02",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.25",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "91.2571",
+       "date": "2026-05-04",
+       "type": "PURCHASE_SIP",
+       "units": "54.798",
+       "amount": "5000.75",
+       "balance": "22248.852",
+       "gift_folio": null,
+       "description": "Purchase Systematic-BSE - Instalment No - 7/960",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-05-04",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.25",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "89.7887",
+       "date": "2026-06-02",
+       "type": "PURCHASE_SIP",
+       "units": "55.695",
+       "amount": "5000.75",
+       "balance": "22304.547",
+       "gift_folio": null,
+       "description": "Purchase Systematic-BSE - Instalment No - 8/960",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-06-02",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.25",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "90.8648",
+       "date": "2026-07-02",
+       "type": "PURCHASE_SIP",
+       "units": "55.035",
+       "amount": "5000.75",
+       "balance": "22359.582",
+       "gift_folio": null,
+       "description": "Purchase Systematic-BSE - Instalment No - 9/960",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-07-02",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.25",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "93.6064",
+       "date": "2026-08-03",
+       "type": "PURCHASE_SIP",
+       "units": "53.423",
+       "amount": "5000.75",
+       "balance": "22413.005",
+       "gift_folio": null,
+       "description": "Purchase Systematic-BSE - Instalment No - 10/960",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-08-03",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.25",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      }
+     ],
+     "close_calculated": "22413.005"
+    }
+   ]
+  },
+  {
+   "amc": "Quant MF",
+   "folio": "51022386175 / 0",
+   "schemes": [
+    {
+     "rta": "KFINTECH",
+     "amfi": "100175",
+     "isin": "INF966L01135",
+     "open": "610.355",
+     "type": "EQUITY",
+     "close": "610.355",
+     "scheme": "quant ELSS Tax Saver Fund - Regular Plan - Growth (Non Demat)",
+     "advisor": "ARN-28004",
+     "nominees": [
+      "NIKHIL OAK"
+     ],
+     "rta_code": "166TPGPG",
+     "valuation": {
+      "nav": "410.1022",
+      "cost": "150000.00",
+      "date": "2026-08-24",
+      "value": "250307.93"
+     },
+     "transactions": [],
+     "close_calculated": "610.355"
+    }
+   ]
+  },
+  {
+   "amc": "Quant MF",
+   "folio": "51052050102 / 0",
+   "schemes": [
+    {
+     "rta": "KFINTECH",
+     "amfi": "120847",
+     "isin": "INF966L01986",
+     "open": "400.095",
+     "type": "EQUITY",
+     "close": "400.095",
+     "scheme": "quant ELSS Tax Saver Fund - Direct Plan - Growth (Non Demat)",
+     "advisor": "INZ000305337",
+     "nominees": [
+      "DEEPA OAK"
+     ],
+     "rta_code": "166TPDGG",
+     "valuation": {
+      "nav": "463.9220",
+      "cost": "150000.00",
+      "date": "2026-08-24",
+      "value": "185612.87"
+     },
+     "transactions": [],
+     "close_calculated": "400.095"
+    }
+   ]
+  },
+  {
+   "amc": "SBI Mutual Fund",
+   "folio": "47281518",
+   "schemes": [
+    {
+     "rta": "CAMS",
+     "amfi": "119727",
+     "isin": "INF200K01RJ1",
+     "open": "471.951",
+     "type": "EQUITY",
+     "close": "471.951",
+     "scheme": "SBI Focused Fund - Direct Plan - Growth",
+     "advisor": "Registrar : CAMS INZ000305337",
+     "nominees": [],
+     "rta_code": "LD81G",
+     "valuation": {
+      "nav": "459.6320",
+      "cost": "200000.00",
+      "date": "2026-08-24",
+      "value": "216923.78"
+     },
+     "transactions": [],
+     "close_calculated": "471.951"
+    }
+   ]
+  },
+  {
+   "amc": "Sundaram Mutual Fund",
+   "folio": "61010262913 / 0",
+   "schemes": [
+    {
+     "rta": "KFINTECH",
+     "amfi": "152311",
+     "isin": "INF903JA1LH5",
+     "open": "9999.500",
+     "type": "EQUITY",
+     "close": "9999.500",
+     "scheme": "SUNDARAM MULTI ASSET ALLOCATION FUND - REGULAR GROWTH",
+     "advisor": "ARN-13549",
+     "nominees": [
+      "DEEPA OAK"
+     ],
+     "rta_code": "176MUGP",
+     "valuation": {
+      "nav": "13.6551",
+      "cost": "100000.00",
+      "date": "2026-08-24",
+      "value": "136544.17"
+     },
+     "transactions": [],
+     "close_calculated": "9999.500"
+    }
+   ]
+  },
+  {
+   "amc": "Tata Mutual Fund",
+   "folio": "8657637 / 03",
+   "schemes": [
+    {
+     "rta": "CAMS",
+     "amfi": "151235",
+     "isin": "INF277KA1703",
+     "open": "27498.625",
+     "type": "EQUITY",
+     "close": "27498.625",
+     "scheme": "Tata Multicap Fund - Regular Plan - Growth",
+     "advisor": "ARN-13549",
+     "nominees": [],
+     "rta_code": "TMLG",
+     "valuation": {
+      "nav": "15.5738",
+      "cost": "275000.00",
+      "date": "2026-08-24",
+      "value": "428258.09"
+     },
+     "transactions": [],
+     "close_calculated": "27498.625"
+    },
+    {
+     "rta": "CAMS",
+     "amfi": "145208",
+     "isin": "INF277K015O2",
+     "open": "4281.684",
+     "type": "EQUITY",
+     "close": "4965.423",
+     "scheme": "Tata Small Cap Fund - Regular Plan - Growth",
+     "advisor": "ARN-13549",
+     "nominees": [],
+     "rta_code": "TSCFG",
+     "valuation": {
+      "nav": "39.2993",
+      "cost": "180000.00",
+      "date": "2026-08-24",
+      "value": "195137.65"
+     },
+     "transactions": [
+      {
+       "nav": "34.0594",
+       "date": "2026-04-15",
+       "type": "PURCHASE_SIP",
+       "units": "146.795",
+       "amount": "4999.75",
+       "balance": "4428.479",
+       "gift_folio": null,
+       "description": "Purchase SIP Instalment No - 32/36 Online - ARN-13549",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-04-15",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.25",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "35.2241",
+       "date": "2026-05-14",
+       "type": "PURCHASE_SIP",
+       "units": "141.941",
+       "amount": "4999.75",
+       "balance": "4570.420",
+       "gift_folio": null,
+       "description": "Purchase SIP Instalment No - 33/36 Online - ARN-13549",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-05-14",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.25",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "36.6157",
+       "date": "2026-06-15",
+       "type": "PURCHASE_SIP",
+       "units": "136.547",
+       "amount": "4999.75",
+       "balance": "4706.967",
+       "gift_folio": null,
+       "description": "Purchase SIP Instalment No - 34/36 Online - ARN-13549",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-06-15",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.25",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "38.3512",
+       "date": "2026-07-14",
+       "type": "PURCHASE_SIP",
+       "units": "130.367",
+       "amount": "4999.75",
+       "balance": "4837.334",
+       "gift_folio": null,
+       "description": "Purchase SIP Instalment No - 35/36 Online - ARN-13549",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-07-14",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.25",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "39.0334",
+       "date": "2026-08-14",
+       "type": "PURCHASE_SIP",
+       "units": "128.089",
+       "amount": "4999.75",
+       "balance": "4965.423",
+       "gift_folio": null,
+       "description": "Purchase SIP Instalment No - 36/36 Online - ARN-13549",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-08-14",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.25",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      }
+     ],
+     "close_calculated": "4965.423"
+    }
+   ]
+  },
+  {
+   "amc": "UTI Mutual Fund",
+   "folio": "577342578292 / 0",
+   "schemes": [
+    {
+     "rta": "KFINTECH",
+     "amfi": "120716",
+     "isin": "INF789F01XA0",
+     "open": "9231.162",
+     "type": "EQUITY",
+     "close": "9231.162",
+     "scheme": "UTI Nifty 50 Index Fund - Direct Plan (Non Demat)",
+     "advisor": "INZ000305337",
+     "nominees": [
+      "Deepa Oak"
+     ],
+     "rta_code": "108NID2G",
+     "valuation": {
+      "nav": "170.5368",
+      "cost": "1120000.00",
+      "date": "2026-08-24",
+      "value": "1574252.83"
+     },
+     "transactions": [],
+     "close_calculated": "9231.162"
+    }
+   ]
+  }
+ ],
+ "statement_period": {
+  "to": "25-Aug-2026",
+  "from_": "01-Apr-2026"
+ }
+}

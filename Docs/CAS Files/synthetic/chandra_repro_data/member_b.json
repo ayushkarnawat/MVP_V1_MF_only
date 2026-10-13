@@ -1,0 +1,279 @@
+{
+ "folios": [
+  {
+   "amc": "Franklin Templeton Mutual Fund",
+   "folio": "13879431 / 0",
+   "schemes": [
+    {
+     "rta": "CAMS",
+     "amfi": "100497",
+     "isin": "INF090I01288",
+     "open": "3364.190",
+     "type": "EQUITY",
+     "close": "3364.190",
+     "scheme": "Templeton India Value Fund - IDCW",
+     "advisor": "ARN-0145",
+     "nominees": [
+      "NIKHIL OAK"
+     ],
+     "rta_code": "FTI154",
+     "valuation": {
+      "nav": "91.3904",
+      "cost": "207723.19",
+      "date": "2026-08-24",
+      "value": "307454.67"
+     },
+     "transactions": [],
+     "close_calculated": "3364.190"
+    }
+   ]
+  },
+  {
+   "amc": "HDFC Mutual Fund",
+   "folio": "170070 / 10",
+   "schemes": [
+    {
+     "rta": "CAMS",
+     "amfi": "101762",
+     "isin": "INF179K01608",
+     "open": "249.206",
+     "type": "EQUITY",
+     "close": "249.206",
+     "scheme": "HDFC Flexi Cap Fund - Regular Plan - Growth",
+     "advisor": "ARN-28004",
+     "nominees": [
+      "D R OAK"
+     ],
+     "rta_code": "H02",
+     "valuation": {
+      "nav": "2080.430",
+      "cost": "49000.00",
+      "date": "2026-08-24",
+      "value": "518455.64"
+     },
+     "transactions": [],
+     "close_calculated": "249.206"
+    }
+   ]
+  },
+  {
+   "amc": "HDFC Mutual Fund",
+   "folio": "28496297 / 22",
+   "schemes": [
+    {
+     "rta": "CAMS",
+     "amfi": "101762",
+     "isin": "INF179K01608",
+     "open": "62.998",
+     "type": "EQUITY",
+     "close": "75.464",
+     "scheme": "HDFC Flexi Cap Fund - Regular Plan - Growth",
+     "advisor": "ARN-0845",
+     "nominees": [],
+     "rta_code": "H02",
+     "valuation": {
+      "nav": "2080.430",
+      "cost": "145000.00",
+      "date": "2026-08-24",
+      "value": "156997.57"
+     },
+     "transactions": [
+      {
+       "nav": "1975.420",
+       "date": "2026-04-23",
+       "type": "PURCHASE_SIP",
+       "units": "2.531",
+       "amount": "4999.75",
+       "balance": "65.529",
+       "gift_folio": null,
+       "description": "SIP Purchase-BSE - Instalment No - 25/60 Online",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-04-23",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.25",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "1970.828",
+       "date": "2026-05-25",
+       "type": "PURCHASE_SIP",
+       "units": "2.537",
+       "amount": "4999.75",
+       "balance": "68.066",
+       "gift_folio": null,
+       "description": "SIP Purchase-BSE - Instalment No - 26/60 Online",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-05-25",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.25",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "1995.844",
+       "date": "2026-06-23",
+       "type": "PURCHASE_SIP",
+       "units": "2.505",
+       "amount": "4999.75",
+       "balance": "70.571",
+       "gift_folio": null,
+       "description": "SIP Purchase-BSE - Instalment No - 27/60 Online",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-06-23",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.25",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "2007.556",
+       "date": "2026-07-23",
+       "type": "PURCHASE_SIP",
+       "units": "2.490",
+       "amount": "4999.75",
+       "balance": "73.061",
+       "gift_folio": null,
+       "description": "SIP Purchase-BSE - Instalment No - 28/60 Online",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-07-23",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.25",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      },
+      {
+       "nav": "2080.430",
+       "date": "2026-08-24",
+       "type": "PURCHASE_SIP",
+       "units": "2.403",
+       "amount": "4999.75",
+       "balance": "75.464",
+       "gift_folio": null,
+       "description": "SIP Purchase-BSE - Instalment No - 29/60 Online",
+       "dividend_rate": null
+      },
+      {
+       "nav": null,
+       "date": "2026-08-24",
+       "type": "STAMP_DUTY_TAX",
+       "units": null,
+       "amount": "0.25",
+       "balance": null,
+       "gift_folio": null,
+       "description": "*** Stamp Duty ***",
+       "dividend_rate": null
+      }
+     ],
+     "close_calculated": "75.464"
+    }
+   ]
+  },
+  {
+   "amc": "Mirae Asset Mutual Fund",
+   "folio": "7927617185 / 0",
+   "schemes": [
+    {
+     "rta": "KFINTECH",
+     "amfi": "135784",
+     "isin": "INF769K01DK3",
+     "open": "9917.355",
+     "type": "EQUITY",
+     "close": "9917.355",
+     "scheme": "Mirae Asset ELSS Tax Saver Fund - Regular Plan (Non Demat)",
+     "advisor": "ARN-28004",
+     "nominees": [
+      "NIKHIL OAK"
+     ],
+     "rta_code": "117TSRGG",
+     "valuation": {
+      "nav": "50.804",
+      "cost": "150000.00",
+      "date": "2026-08-24",
+      "value": "503841.30"
+     },
+     "transactions": [],
+     "close_calculated": "9917.355"
+    }
+   ]
+  },
+  {
+   "amc": "Quant MF",
+   "folio": "51022561581 / 0",
+   "schemes": [
+    {
+     "rta": "KFINTECH",
+     "amfi": "100631",
+     "isin": "INF966L01234",
+     "open": "789.193",
+     "type": "EQUITY",
+     "close": "789.193",
+     "scheme": "quant Multi Cap Fund - Regular Plan - Growth (Non Demat)",
+     "advisor": "ARN-28004",
+     "nominees": [
+      "NIKHIL OAK"
+     ],
+     "rta_code": "166GFGPG",
+     "valuation": {
+      "nav": "660.3231",
+      "cost": "460000.00",
+      "date": "2026-08-24",
+      "value": "521122.37"
+     },
+     "transactions": [],
+     "close_calculated": "789.193"
+    },
+    {
+     "rta": "KFINTECH",
+     "amfi": "100175",
+     "isin": "INF966L01135",
+     "open": "439.200",
+     "type": "EQUITY",
+     "close": "439.200",
+     "scheme": "quant ELSS Tax Saver Fund - Regular Plan - Growth (Non Demat)",
+     "advisor": "ARN-28004",
+     "nominees": [
+      "NIKHIL OAK"
+     ],
+     "rta_code": "166TPGPG",
+     "valuation": {
+      "nav": "410.1022",
+      "cost": "150000.00",
+      "date": "2026-08-24",
+      "value": "180116.89"
+     },
+     "transactions": [],
+     "close_calculated": "439.200"
+    }
+   ]
+  }
+ ],
+ "statement_period": {
+  "to": "25-Aug-2026",
+  "from_": "01-Apr-2026"
+ }
+}
