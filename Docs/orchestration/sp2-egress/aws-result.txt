@@ -1,0 +1,104 @@
+BLOCKED | 403 | text/html | 421 | 3c48544d4c3e3c48 | sp2-registry | https://www.hdfcfund.com/statutory-disclosure/portfolio-disclosure
+BLOCKED | 403 | application/xml | 111 | 3c3f786d6c207665 | sp2-registry | https://www.canararobeco.com/wp-content/uploads/
+BLOCKED | 403 | application/json; charset=UTF-8 | 106 | 7b22636f6465223a | sp2-registry | https://navi.com/wp-json/nv/v1/documents
+BLOCKED | 403 | application/xml | 111 | 3c3f786d6c207665 | sp2-registry | https://vatseelabs-s3.kotakmf.com/
+ERROR | 0 | ConnectError | 0 |  | sp2-registry | https://www.bankofindiamf.com/AjaxService.asmx/GetDocuments
+ERROR | 0 | ConnectError | 0 |  | sp2-registry | https://mf.monarchnetworth.com/statutory-disclosure/portfolio
+HTTP404 | 404 | text/html; charset=utf-8 | 39999 | 203c21444f435459 | a04-factsheet | https://www.sbimf.com/ajaxcall/CMS/GetRecentFactSheets
+HTTP404 | 404 | text/html | 15724 | 3c21444f43545950 | sp2-registry | https://www.icicipruamc.com/media-center/downloads?currentTabFilter=OtherSchemeDisclosures&subCatTabFilter=Monthly+Portfolio+Disclosures
+HTTP404 | 404 | application/json; charset=utf-8 | 94 | 7b2264617461223a | sp2-registry | https://www.axismf.com/cms/token
+HTTP404 | 404 | text/html | 4578 | 3c21444f43545950 | yahoo-cookie | https://fc.yahoo.com/
+HTTP405 | 405 |  | 0 |  | sp2-registry | https://www.trustmf.com/api/api/Trust/GetData
+HTTP500 | 500 | text/html; charset=utf-8 | 262863 | 0d0a3c21444f4354 | a04-factsheet | https://mutualfund.adityabirlacapital.com/api/sitecore/CalculatorPage/GetMonthlyFactsheetsByYear?datasourceId=%7B2D97ABF5-4F12-479A-86D6-27C538F48D13%7D
+HTTP500 | 500 | text/plain; charset=utf-8 | 27 | 4d697373696e6720 | a04-factsheet | https://www.boimf.in/AjaxService.asmx/GetDocuments
+HTTP500 | 500 | text/html; charset=utf-8 | 1024 | 3c21444f43545950 | a04-factsheet | https://www.motilaloswalmf.com/content/aem-cloud-dept-backend-motilal-oswal/api/search-documents.json
+HTTP500 | 500 | text/html; charset=utf-8 | 261265 | 0d0a3c21444f4354 | sp2-registry | https://mutualfund.adityabirlacapital.com/postlogin/CustomApi/Resources/FactsheetAccordionById
+HTTP503 | 503 | text/html | 11832 | 3c68746d6c3e3c68 | wayback-cdx | https://web.archive.org/cdx/search/cdx?url=hdfcfund.com&limit=1&output=json
+OK | 200 | text/html; charset=utf-8 | 45687 | 0d0a0d0a3c21444f | a04-factsheet | https://www.abakkusmf.com/factsheet.html
+OK | 200 | text/html; charset=utf-8 | 277050 | 0d0a3c21444f4354 | a04-factsheet | https://mutualfund.adityabirlacapital.com/forms-and-downloads/factsheets
+OK | 200 | text/html | 59089 | 3c21646f63747970 | a04-factsheet | https://www.alphagrepmf.ai/disclosures
+OK | 200 | text/html | 116629 | 3c73656374696f6e | a04-factsheet | https://www.askmutualfund.com/pages/downloads.html
+OK | 200 | text/html; charset=UTF-8 | 1457365 | 0a3c21646f637479 | a04-factsheet | https://www.bajajamc.com/downloads?factsheet=
+OK | 200 | text/html | 10496 | 3c21646f63747970 | a04-factsheet | https://bandhanmutual.com/downloads/factsheets
+OK | 200 | text/html; charset=UTF-8 | 135546 | 3c21444f43545950 | a04-factsheet | https://www.barodabnpparibasmf.in/downloads/monthly-factsheet
+OK | 200 | text/html; charset=UTF-8 | 223516 | 3c21646f63747970 | a04-factsheet | https://www.canararobeco.com/documents/forms-downloads/forms-information-documents/information-documents/factsheets/
+OK | 200 | text/html; charset=utf-8 | 45902 | 3c212d2d6d6f6465 | a04-factsheet | https://capitalmindmf.com/factsheet.html
+OK | 200 | text/html; charset=utf-8 | 45326 | 3c21444f43545950 | a04-factsheet | https://choicemf.com/disclosures/factsheets
+OK | 200 | application/json; charset=utf-8 | 199850 | 7b226d6573736167 | a04-factsheet | https://choicemf.com/api/document-master-list
+OK | 200 | text/html; charset=UTF-8 | 399648 | 3c21646f63747970 | a04-factsheet | https://www.dspim.com/downloads?category=Information%20Documents&sub_category=Factsheets
+OK | 200 | application/json; charset=UTF-8 | 3913 | 7b2264617461223a | a04-factsheet | https://www.dspim.com/downloads.json?page=1&per_page=10&category=Information%20Documents&sub_category=Factsheets
+OK | 200 | application/json | 3664211 | 7b22506167655479 | a04-factsheet | https://www.franklintempletonindia.com/api/literature/v1/responseLitJson?type=download
+OK | 200 | text/html; charset=utf-8 | 583989 | 3c21444f43545950 | a04-factsheet | https://www.growwmf.in/downloads/fact-sheet
+OK | 200 | text/html; charset=utf-8 | 1064001 | 3c21444f43545950 | a04-factsheet | https://www.heliosmf.in/downloads
+OK | 200 | text/html; charset=utf-8 | 12408581 | 0d0a0d0a3c21444f | a04-factsheet | https://www.assetmanagement.hsbc.co.in/en/mutual-funds/investor-resources?Doc=fund-factsheets
+OK | 200 | text/html | 719266 | 3c21444f43545950 | a04-factsheet | https://www.ilfsinfrafund.com/other.php
+OK | 200 | text/html; charset=utf-8 | 424649 | 3c21444f43545950 | a04-factsheet | https://invescomutualfund.com/literature-and-form?tab=Factsheets
+OK | 200 | text/html; charset=utf-8 | 296326 | 3c21444f43545950 | a04-factsheet | https://www.jioblackrockamc.com/statutory-disclosure/fund-documents/factsheet
+OK | 200 | text/html; charset=UTF-8 | 3089 | 3c21646f63747970 | a04-factsheet | https://www.jmfinancialmf.com/downloads/Factsheet/Factsheet
+OK | 200 | text/html; charset=UTF-8 | 15080 | 3c21444f43545950 | a04-factsheet | https://www.kotakmf.com/Information/forms-and-downloads/Information
+OK | 200 | text/html | 4791 | 3c21646f63747970 | a04-factsheet | https://www.lakshyafunds.com/compliance
+OK | 200 | text/html; charset=UTF-8 | 95357 | 093c21444f435459 | a04-factsheet | https://www.licmf.com/downloads/factsheet
+OK | 200 | text/html | 8986 | 3c21646f63747970 | a04-factsheet | https://www.mahindramanulife.com/downloads
+OK | 200 | application/json; charset=utf-8 | 2618426 | 7b227061796c6f61 | a04-factsheet | https://investorapi.mahindramanulife.com/api/v1/web/preLogin/downloads
+OK | 200 | text/html; charset=utf-8 | 147415 | 203c21444f435459 | a04-factsheet | https://www.miraeassetmf.co.in/downloads/factsheet
+OK | 200 | text/html; charset=utf-8 | 140468 | 203c21444f435459 | a04-factsheet | https://www.miraeassetmf.co.in/AjaxService/GetDownloadsData
+OK | 200 | text/html; charset=utf-8 | 123207 | 3c21444f43545950 | a04-factsheet | https://www.monarchamc.in/forms-downloads
+OK | 200 | text/html; charset=utf-8 | 40536 | 3c21444f43545950 | a04-factsheet | https://www.motilaloswalmf.com/downloads/factsheets
+OK | 200 | text/html; charset=UTF-8 | 92626 | 3c21646f63747970 | a04-factsheet | https://navi.com/mutual-fund/downloads/factsheet
+OK | 200 | text/html; charset=UTF-8 | 216932 | 0d0a0d0a3c21646f | a04-factsheet | https://downloads.njmutualfund.com/downloads.php
+OK | 200 | text/html; charset=utf-8 | 63052 | 0a3c21444f435459 | a04-factsheet | https://www.oldbridgemf.com/factsheet.html
+OK | 200 | text/html; charset=utf-8 | 472196 | 3c21444f43545950 | a04-factsheet | https://www.pgimindia.com/mutual-funds/forms-and-product-updates/Fund-Factsheet
+OK | 200 | application/json | 99485 | 7b22726573756c74 | a04-factsheet | https://www.pgimindia.com/api/v1/brochure/published/form
+OK | 200 | text/html; charset=UTF-8 | 652599 | 3c21444f43545950 | a04-factsheet | https://amc.ppfas.com/downloads/factsheet/index.php#axzz4I2KR6um7
+OK | 200 | text/html; charset=utf-8 | 142952 | 0d0a0d0a3c21444f | a04-factsheet | https://www.quantumamc.com/factsheets/combined/-1/0/0
+OK | 200 | text/html; charset=UTF-8 | 973160 | 3c21444f43545950 | a04-factsheet | https://www.samcomf.com/downloads
+OK | 200 | text/html; charset=utf-8 | 44410 | 203c21444f435459 | a04-factsheet | https://www.sbimf.com/factsheets
+OK | 200 | text/html; charset=utf-8 | 264305 | 3c21444f43545950 | a04-factsheet | https://www.shriramamc.in/factsheet
+OK | 200 | text/html; charset=utf-8 | 335211 | 0d0a0d0a3c21444f | a04-factsheet | https://www.sundarammutual.com/fundwise-factsheet
+OK | 200 | text/html; charset=utf-8 | 314482 | 0d0a0d0a3c21444f | a04-factsheet | https://www.sundarammutual.com/ajax/Modules_Forms_Downloads_Fundwise_Factsheet
+OK | 200 | text/html; charset=utf-8 | 273121 | 3c21444f43545950 | a04-factsheet | https://www.tatamutualfund.com/information-documents/factsheets
+OK | 200 | application/json | 2 | 5b5d | a04-factsheet | https://prod-dist-api.tatamfdev.com/cms-data/api/CMSDATA_corporate_factsheets
+OK | 200 | text/html; charset=UTF-8 | 74360 | 0a0a3c212d2d2054 | a04-factsheet | https://www.taurusmutualfund.com/factsheet
+OK | 200 | text/html; charset=utf-8 | 134762 | 3c21444f43545950 | a04-factsheet | https://www.wealthcompanyamc.in/literature-forms/scheme-documents/factsheets/
+OK | 200 | text/html; charset=UTF-8 | 223697 | 3c21444f43545950 | a04-factsheet | https://unifimf.com/factsheet/
+OK | 200 | text/html; charset=utf-8 | 117441 | 203c21444f435459 | a04-factsheet | https://www.unionmf.com/about-us/downloads/factsheets
+OK | 200 | text/html;charset=UTF-8 | 1315525 | 3c21444f43545950 | a04-factsheet | https://www.utimf.com/downloads/fund-watch
+OK | 200 | application/json | 11 | 7b22726f7773223a | a04-factsheet | https://www.utimf.com/api/get-fact-sheet
+OK | 200 | text/html; charset=utf-8 | 240597 | 3c21444f43545950 | a04-factsheet | https://www.zerodhafundhouse.com/resources/fund-documents
+OK | 200 | text/plain | 1520677 | 536368656d652043 | amfi-nav | https://portal.amfiindia.com/spages/NAVAll.txt
+OK | 200 | application/octet-stream | 3344 | 436f6d70616e7920 | nifty50 | https://www.niftyindices.com/IndexConstituent/ind_nifty50list.csv
+OK | 200 | text/csv | 32785 | 436f6d70616e7920 | nifty500 | https://archives.nseindia.com/content/indices/ind_nifty500list.csv
+OK | 200 | text/csv | 44730 | 53594d424f4c2c53 | nse-pe | https://nsearchives.nseindia.com/content/equities/peDetail/PE_121026.csv
+OK | 200 | application/x-gzip | 1263884 | 1f8b080000000000 | nse-secmaster | https://nsearchives.nseindia.com/content/cm/NSE_CM_security_12102026.csv.gz
+OK | 200 | text/html; charset=utf-8 | 231642 | 0a3c21444f435459 | screener | https://screener.in/company/RELIANCE/consolidated/
+OK | 200 | text/html; charset=utf-8 | 411599 | 0d0a3c212d2d2020 | sp2-registry | https://mf.nipponindiaim.com/investor-service/downloads/factsheet-portfolio-and-other-disclosures/
+OK | 200 | text/html; charset=utf-8 | 1287822 | 3c21444f43545950 | sp2-registry | https://www.shriramamc.in/investor-statutory-disclosures
+OK | 200 | text/html; charset=UTF-8 | 426995 | 3c21444f43545950 | sp2-registry | https://amc.ppfas.com/downloads/portfolio-disclosure/
+OK | 200 | text/html; charset=utf-8 | 403993 | 3c21444f43545950 | sp2-registry | https://www.growwmf.in/statutory-disclosure/portfolio
+OK | 200 | text/html; charset=utf-8 | 236482 | 3c21444f43545950 | sp2-registry | https://www.heliosmf.in/portfolio-disclosure/
+OK | 200 | text/html; charset=utf-8 | 557154 | 3c21444f43545950 | sp2-registry | https://www.capitalmindmf.com/statutory-disclosures.html
+OK | 200 | text/html; charset=utf-8 | 641135 | 3c21444f43545950 | sp2-registry | https://www.angelonemf.com/downloads
+OK | 200 | text/html; charset=UTF-8 | 105385 | 3c21646f63747970 | sp2-registry | https://navi.com/mutual-fund/downloads/portfolio
+OK | 200 | text/html; charset=UTF-8 | 577605 | 3c21444f43545950 | sp2-registry | https://unifimf.com/statutorydocuments/
+OK | 200 | text/html; charset=utf-8 | 728773 | 3c21444f43545950 | sp2-registry | https://www.zerodhafundhouse.com/resources/disclosures/
+OK | 200 | text/html; charset=utf-8 | 635922 | 0d0a0d0a3c21444f | sp2-registry | https://www.abakkusmf.com/statutory-disclosures.html
+OK | 200 | text/html; charset=utf-8 | 80927 | 0a3c21444f435459 | sp2-registry | https://quantmutual.com/downloads/factsheet
+OK | 200 | text/html; charset=UTF-8 | 1457256 | 0a3c21646f637479 | sp2-registry | https://www.bajajamc.com/downloads?statutory-disclosures=
+OK | 200 | text/html; charset=UTF-8 | 405979 | 3c21646f63747970 | sp2-registry | https://www.dspim.com/mandatory-disclosures/portfolio-disclosures?origin=app
+OK | 200 | text/html; charset=utf-8 | 134845 | 3c21444f43545950 | sp2-registry | https://www.motilaloswalmf.com/mutual-funds/motilal-oswal-digital-india-fund
+OK | 200 | text/html; charset=UTF-8 | 147889 | 0d0a0d0a3c21646f | sp2-registry | https://downloads.njmutualfund.com/njmf_download.php?nme=127
+OK | 200 | text/html | 4708 | 3c21646f63747970 | sp2-registry | https://www.franklintempletonindia.com/fund-details/fund-overview/42352/reports/investor-services/funds-and-solutions/investor/about-us
+OK | 200 | text/html; charset=utf-8 | 149189 | 0d0a0d0a3c21444f | sp2-registry | https://www.quantumamc.com/portfolio/combined/-1/1/0/0
+OK | 200 | text/html; charset=UTF-8 | 4160019 | 3c21444f43545950 | sp2-registry | https://www.samcomf.com/StatutoryDisclosure
+OK | 200 | text/html; charset=utf-8 | 722949 | 3c21444f43545950 | sp2-registry | https://www.360.one/asset/mutual-funds/downloads/
+OK | 200 | text/html; charset=utf-8 | 172559 | 3c21444f43545950 | sp2-registry | https://www.wealthcompanyamc.in/literature-forms/portfolio-documents/monthly/
+OK | 200 | text/html; charset=utf-8 | 799048 | 0a3c21444f435459 | sp2-registry | https://www.oldbridgemf.com/statutory-disclosures.html
+OK | 200 | text/html; charset=UTF-8 | 91793 | 3c21444f43545950 | sp2-registry | https://www.barodabnpparibasmf.in/archivedownload/
+OK | 200 | text/html; charset=utf-8 | 39999 | 203c21444f435459 | sp2-registry | https://www.sbimf.com/ajaxcall/CMS/GetSchemePortfolioSheetsQS
+OK | 200 | text/html; charset=utf-8 | 147492 | 203c21444f435459 | sp2-registry | https://www.miraeassetmf.co.in/downloads/portfolio
+OK | 200 | text/html; charset=UTF-8 | 1 | 09 | sp2-registry | https://www.licmf.com/downloads/portfolio-filter-options
+OK | 200 | text/html; charset=UTF-8 | 78044 | 0a0a3c212d2d2054 | sp2-registry | https://www.taurusmutualfund.com/financials/portfolio
+OK | 200 | text/html | 89 | 3c68746d6c3e0d0a | sp2-registry | https://files.hdfcfund.com/
+OK | 200 | yahoo-crumb+quoteSummary | 2333 |  | yahoo | quoteSummary RELIANCE.NS
+OK-FILE | 200 | application/pdf | 1121602 | 255044462d312e37 | amfi-mcap | https://portal.amfiindia.com/spages/AverageMarketCapitalization30Jun2026.pdf
+SUMMARY total=103 ok=87 not_ok=16
