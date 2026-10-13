@@ -209,7 +209,7 @@ erDiagram
     <dt>Options</dt><dd><ol class="opts"><li class=""><span class="k">A</span><span>Keep one copy per scheme as planned, and keep all months.</span></li><li class="pick"><span class="k">B</span><span>One copy per scheme as planned, keep the latest 3 months plus each period's last disclosure, and prune older months in the daily job.</span></li><li class=""><span class="k">C</span><span>Store holdings once per fund family and have readers resolve the family. Needs a family key that does not exist today.</span></li></ol></dd>
     <dt>Recommended</dt><dd><p><span class="rec">B.</span> A is the least change and the volume is manageable; B caps growth with one extra delete. C is cleaner but touches the schema and every reader.</p></dd>
     <dt>After your answer</dt><dd><ul><li>B adds a small pruning step to Task 9's job and one test.</li></ul></dd>
-    <dt>Decided 2026-10-13</dt><dd><p><b>B confirmed.</b> Built as Task 15's prune, called from Task 9's job. My reading, to confirm: keep every batch from the newest 3 calendar months, and always keep a scheme's newest WRITTEN batch however old (so Taurus's March file survives in October).</p></dd>
+    <dt>Decided 2026-10-13</dt><dd><p><b>B confirmed.</b> Built as Task 15's prune, called from Task 9's job. My reading, confirmed 2026-10-13: keep every batch from the newest 3 calendar months, and always keep a scheme's newest WRITTEN batch however old (so Taurus's March file survives in October).</p></dd>
   </dl>
 </article><article class="ib done">
   <div class="top"><span class="qid">Q11</span><span class="pill p-new">Decided</span><h3>Keep the original downloaded files?</h3></div>
@@ -219,7 +219,7 @@ erDiagram
     <dt>Options</dt><dd><ol class="opts"><li class=""><span class="k">A</span><span>Do not store raw files. Leave the column NULL. Re-fetch if the source still exists.</span></li><li class=""><span class="k">B</span><span>New private bucket with a 12-month lifecycle rule, written by the ingestion task. Needs a Terraform change that you apply.</span></li><li class="pick"><span class="k">C</span><span>Store only the files that fail to parse or fail the sum check.</span></li></ol></dd>
     <dt>Recommended</dt><dd><p><span class="rec">C.</span> Keeps the useful evidence for debugging without a standing archive.</p></dd>
     <dt>After your answer</dt><dd><ul><li>C needs the bucket from B but writes far fewer objects.</li></ul></dd>
-    <dt>Decided 2026-10-13</dt><dd><p><b>C confirmed.</b> The archive function is Task 15, the bucket and its 12-month lifecycle are Task 10. The job has no task role today, so it gets its own role (write to that bucket only) instead of borrowing the backend's, which can delete clients' CAS files.</p></dd>
+    <dt>Decided 2026-10-13</dt><dd><p><b>C confirmed.</b> The archive function is Task 15, the bucket and its 12-month lifecycle are Task 10. The job has no task role today, so it gets its own role (write to that bucket only) instead of borrowing the backend's, which can delete clients' CAS files. Confirmed 2026-10-13.</p></dd>
   </dl>
 </article><article class="ib done">
   <div class="top"><span class="qid">Q12</span><span class="pill p-new">Decided</span><h3>When does a missing AMC raise an alert?</h3></div>
@@ -229,7 +229,7 @@ erDiagram
     <dt>Options</dt><dd><ol class="opts"><li class=""><span class="k">A</span><span>Alert only after day 10 of the month, again on day 20, once per AMC per run. "Done" means every scheme in that AMC's file matched or was explicitly skipped; unmatched schemes raise an alert.</span></li><li class=""><span class="k">B</span><span>Alert on the first miss, as the plan is written.</span></li><li class="pick"><span class="k">C</span><span>A, plus a monthly summary line listing AMCs with zero batches.</span></li></ol></dd>
     <dt>Recommended</dt><dd><p><span class="rec">C.</span> Matches the spec's wording and gives you a month-end list of what is missing.</p></dd>
     <dt>After your answer</dt><dd><ul><li>Task 6 gains an unmatched-scheme alert and a day-threshold; the retry check compares matched against expected, not just "any batch".</li></ul></dd>
-    <dt>Decided 2026-10-13</dt><dd><p><b>C confirmed.</b> Built in Task 14 (the gated alerts, the unmatched-scheme alert, a per-file skip instead of 'any scheme written') and Task 9 (the month-end summary). My reading, to confirm: lateness alerts fire only on the runs of day 10 and day 20; errors fire at once.</p></dd>
+    <dt>Decided 2026-10-13</dt><dd><p><b>C confirmed.</b> Built in Task 14 (the gated alerts, the unmatched-scheme alert, a per-file skip instead of 'any scheme written') and Task 9 (the month-end summary). My reading, confirmed 2026-10-13: lateness alerts fire only on the runs of day 10 and day 20; errors fire at once.</p></dd>
   </dl>
 </article><article class="ib done">
   <div class="top"><span class="qid">Q13</span><span class="pill p-new">Decided</span><h3>What become derivative, fund-unit and unrecognised-section rows?</h3></div>

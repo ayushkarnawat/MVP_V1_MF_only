@@ -65,7 +65,8 @@ a build-order check (a consumer needs real rows to be tested against), not a pen
 directly, so 13 cannot be built first. (The execution overview's earlier suggestion of 13
 before 02 is corrected to match.) Task 4 (attribute 10) is independent of both. Runs are serial (the tasks share `reference.py`, `schemas.py`, `recompute.py` and the
 Analytics views). Task 2 is committed in two parts, backend after its run and frontend after
-the next, because the two are separate runs; every other task is one commit. Attribute work
+the next, because the two are separate runs (confirmed 2026-10-13: this is the standing pattern for
+any task that spans more than one run, with a gate and a commit per run); every other task is one commit. Attribute work
 can start as soon as one AMC has a real `WRITTEN` batch; it does not wait for all 57.
 
 **Shared rules for Tasks 2–6 (F7–F11, applied once here, not repeated in each task):**
@@ -120,7 +121,7 @@ can start as soon as one AMC has a real `WRITTEN` batch; it does not wait for al
 | Q6, option A | The engine plan's Task 0. Attribute 15 depends on its result for NSE, Yahoo and screener.in. |
 | Q7, option B | The shared table computes one coverage figure by value; every section shows the banner; headline sentences hide below 50% (`HEADLINE_MIN_COVERAGE`). |
 
-*Reading of Q7 to confirm:* the two reasons are derived from the engine registry. A scheme
+*Reading of Q7 (confirmed 2026-10-13):* the two reasons are derived from the engine registry. A scheme
 with no `WRITTEN` batch is "not available from this AMC" when its AMC has no registry row
 (the five no-content AMCs) or is a manual AMC that has never had a `WRITTEN` batch, and
 "not published yet" otherwise.
@@ -498,7 +499,7 @@ Code`. They carry no weights (Q21) but do carry NSE's industry label.
 
 - [ ] Red/Green: model and migration for `stock_master` (F14) — `StockMaster` in
       `reference.py` with the spec's columns (`isin` primary key, `name`, `sector`, `pe_ratio`,
-      `pb_ratio`, `as_of_date`, `source`) plus two additions to confirm in review: `pb_source`
+      `pb_ratio`, `as_of_date`, `source`) plus two additions (confirmed 2026-10-13): `pb_source`
       (`YAHOO` or `SCREENER`, because one `source` column cannot name both ratios' vendors; the
       P/E source is always NSE) and `footnote` (the delisted/merged, loss-making or no-P/B
       reason), no foreign keys; the

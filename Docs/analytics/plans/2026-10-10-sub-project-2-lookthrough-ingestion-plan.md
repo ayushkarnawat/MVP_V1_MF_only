@@ -100,8 +100,8 @@ in Task 5 below. Left uncorrected, each would have raised `zero_schemes_matched`
 run. The other 49 keys match exactly. Task 5's last step repeats this check against the
 live `schemes` table before the registry ships.
 
-**Readings of the decisions this plan makes. Confirm these in review; each is marked where
-it is used:**
+**Readings of the decisions this plan makes. All five confirmed 2026-10-13 (Ayush's manager);
+each is marked where it is used:**
 
 1. *Q12 timing.* "Alert after day 10, again on day 20" is read as: lateness alerts fire only
    on the runs of day 10 and day 20 (the cron window is days 1–20, so both runs exist).
