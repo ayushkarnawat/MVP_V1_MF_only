@@ -19,6 +19,7 @@ import zipfile
 import io
 import uuid
 import asyncio
+import calendar
 from contextvars import ContextVar
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, replace
@@ -81,7 +82,7 @@ class PortfolioDisclosureRefreshResult:
 
 def _filename_as_of_date(url: str) -> date | None:
     filename = urllib.parse.unquote(urllib.parse.urlsplit(url).path.rsplit("/", 1)[-1])
-    month_first = re.search(rf'(?<![A-Za-z])({_MONTH_PATTERN})(?:\s+|[-_])(\d{{1,2}})(?:st|nd|rd|th)?(?:\s*,\s*|\s+|[-_])(\d{{4}})(?!\d)', filename, re.I)
+    month_first = re.search(rf'(?<![A-Za-z])({_MONTH_PATTERN})(?:\s*|[-_])(\d{{1,2}})(?:st|nd|rd|th)?(?:\s*,\s*|\s+|[-_])(\d{{4}})(?!\d)', filename, re.I)
     if month_first:
         month, day, year = month_first.groups()
         try:
@@ -152,38 +153,60 @@ def _usable_hint(value: str | None) -> str | None:
     return hint
 
 
-def _match_sheet(sheet, file, member, index_map, families, amc_name):
-    def candidate_match(key):
+def _match_sheet(sheet, file, member, index_map, families, amc_name, *, file_shape=None):
+    """Shared match-key policy: trusted names first; raw codes and prefixes EXACT only."""
+    def candidate_match(key, exact_only=False):
         match = match_scheme_name(key, families)
-        # Interval series can share the same Arabic number across different
-        # periods. A fuzzy quarterly title must not identify a different series.
-        if match and match[1] != 'EXACT' and re.search(r'\binterval\b.*\bseries\b', key, re.I):
+        if match and (exact_only or re.search(r'\binterval\b.*\bseries\b', key, re.I)) and match[1] != 'EXACT':
             return None
         return match
-    member_hint = None
+
+    entry = AMC_DISCLOSURE_RESOLVERS.get(amc_name)
+    shape = file_shape if file_shape is not None else (entry.file_shape if entry else None)
+    keys = [index_map.get(sheet.sheet_name), sheet.scheme_title, *sheet.title_candidates]
     if member != file.source_url:
         stem = urllib.parse.unquote(member.replace('\\', '/').rsplit('/', 1)[-1]).rsplit('.', 1)[0]
-        if re.search(r'\b(?:fund|ETF|FOF)\b', stem, re.I):
-            member_hint = _usable_hint(stem)
-    keys = [sheet.scheme_title, _usable_hint(file.scheme_hint) or member_hint,
-            index_map.get(sheet.sheet_name, sheet.sheet_name), *sheet.title_candidates,
-            _filename_hint(file.source_url)]
-    keys = list(dict.fromkeys(key for key in keys if key))
+        keys.append(_usable_hint(stem))
+    elif shape is DisclosureFileShape.MULTI_FILE_SINGLE_SCHEME:
+        keys.extend((_usable_hint(file.scheme_hint), _filename_hint(file.source_url)))
+    short_amc = re.sub(r'\s+Mutual Fund$', '', amc_name, flags=re.I)
+    keys = list(dict.fromkeys(key for key in keys if key and not re.fullmatch(
+        re.escape(short_amc) + r'(?:\s+Mutual)?\s+Fund', key, re.I)))
+    prefixes = entry.name_prefixes if entry and entry.name_prefixes else (short_amc,)
     for key in keys:
         match = candidate_match(key)
         if match is not None:
             return match
-    entry = AMC_DISCLOSURE_RESOLVERS.get(amc_name)
-    prefixes = entry.name_prefixes if entry and entry.name_prefixes else (re.sub(r'\s+Mutual Fund$', '', amc_name, flags=re.I),)
-    for key in keys:
         for prefix in prefixes:
             if re.match(re.escape(prefix) + r'\b', key, re.I):
-                continue  # Repeating an existing prefix can bypass short-name ambiguity.
+                continue
             candidate = re.sub(r'^TRUSTMF\b', prefix, key, flags=re.I) if key.upper().startswith('TRUSTMF') else f'{prefix} {key}'
-            match = candidate_match(candidate)
+            match = candidate_match(candidate, exact_only=True)
             if match is not None:
                 return match
-    return None
+    return candidate_match(sheet.sheet_name, exact_only=True)
+
+
+def _plan_matches(file, amc_name, families, members, *, file_shape=None):
+    """Only matching metadata survives planning; reject every duplicate family before Write."""
+    matches = {}
+    assigned = {}
+    for member, sheets, index_map in members:
+        for sheet in sheets:
+            if not sheet.holdings:
+                continue
+            key = (member, sheet.sheet_name)
+            match = _match_sheet(sheet, file, member, index_map, families, amc_name, file_shape=file_shape)
+            matches[key] = match
+            if match:
+                assigned.setdefault(match[0].base_name, []).append(key)
+    duplicates = {family: keys for family, keys in assigned.items() if len(keys) > 1}
+    for keys in duplicates.values():
+        for key in keys:
+            matches[key] = None
+    if duplicates:
+        _alert(amc_name, 'duplicate_match', ' | '.join(sorted(duplicates)))
+    return matches
 
 
 def _filename_hint(url):
@@ -231,7 +254,7 @@ async def _download_workbook(client: httpx.AsyncClient, url: str) -> bytes | Non
 
 async def _fetch_candidates(client: httpx.AsyncClient, candidates: list[tuple[str, str]], *, keep_all: bool) -> list[LocatedFile]:
     dated = sorted(((url, label, as_of) for url, label in candidates
-                    if (as_of := _filename_as_of_date(url)) is not None),
+                    if (as_of := _filename_as_of_date(url)) is not None and _date_allowed(as_of)),
                    key=lambda item: item[2], reverse=True)
     if keep_all and dated:
         # Prefer the target month; otherwise the newest available non-future month.
@@ -273,6 +296,14 @@ def _latest_month_end(today: date | None = None) -> date:
 def _locate_month_end() -> date:
     today = _RUN_TODAY.get()
     return _latest_month_end(today) if today is not None else _latest_month_end()
+
+
+def _date_allowed(disclosed: date) -> bool:
+    target = _locate_month_end()
+    month = target.year * 12 + target.month - 1 - 18
+    year, month_index = divmod(month, 12)
+    earliest = date(year, month_index + 1, min(target.day, calendar.monthrange(year, month_index + 1)[1]))
+    return earliest <= disclosed <= target
 
 
 async def _locate_deterministic_template(client: httpx.AsyncClient, entry: DisclosureResolverEntry, scheme_names: list[str]) -> list[LocatedFile]:
@@ -396,7 +427,7 @@ async def _fetch_dated_records(client, records, as_of, *, keep_all=True):
     """Source metadata can date opaque URLs; an undated source never gets a default."""
     results, seen = [], set()
     for url, disclosed, hint in records:
-        if not url or disclosed != as_of or url in seen or not _WORKBOOK_URL.search(url):
+        if not url or disclosed != as_of or not _date_allowed(disclosed) or url in seen or not _WORKBOOK_URL.search(url):
             continue
         seen.add(url)
         if _DISCOVERY_ONLY.get():
@@ -1086,6 +1117,11 @@ def _already_written(db: Session, amc_name: str, as_of_date: date) -> bool:
 
 
 def _written_source_urls(db: Session, amc_name: str, as_of: date) -> set[str]:
+    """Any WRITTEN batch marks its URL done for this month.
+
+    Same-URL revisions, newly added schemes and unreadable ZIP members are not
+    retried that month; retrying those requires explicit operational re-import.
+    """
     return {url for (url,) in db.query(DisclosureBatch.source_url).filter_by(
         amc_name=amc_name, as_of_date=as_of, status=DisclosureBatchStatus.WRITTEN) if url}
 
@@ -1148,7 +1184,7 @@ async def _iter_located_files(client, entry, scheme_rows, skip_urls: set[str]) -
     # history (DSP lists 53 zips), and writing all of them would store old data under old
     # dates for every scheme. Take the newest as-of group; fall back to an older group only
     # when the newest produced no file (the caller raises the stale-fallback alert).
-    references = _newest_group_first(references)
+    references = _newest_group_first([ref for ref in references if _date_allowed(ref.as_of_date)])
     seen = set()
     yielded_month = None
     for reference in references:
@@ -1158,6 +1194,7 @@ async def _iter_located_files(client, entry, scheme_rows, skip_urls: set[str]) -
         if yielded_month is not None and (reference.as_of_date.year, reference.as_of_date.month) != yielded_month:
             continue  # an older month is only a fallback while the newest produced nothing
         if skip_urls.intersection((reference.source_url, *reference.alternatives)):
+            yielded_month = (reference.as_of_date.year, reference.as_of_date.month)
             if single:
                 break
             continue
@@ -1168,7 +1205,7 @@ async def _iter_located_files(client, entry, scheme_rows, skip_urls: set[str]) -
         for index, url in enumerate(urls):
             try:
                 data = await _download_workbook(client, url)
-            except httpx.HTTPError as exc:
+            except (httpx.HTTPError, httpx.InvalidURL, httpx.StreamError) as exc:
                 status = exc.response.status_code if isinstance(exc, httpx.HTTPStatusError) else None
                 if status == 404 and index + 1 < len(urls):
                     continue
@@ -1260,7 +1297,7 @@ async def refresh_portfolio_disclosures(db: Session, today: date | None = None) 
                     amcs_not_onboarded += 1
                     continue
                 try:
-                    scheme_rows = db.query(Scheme).filter(Scheme.amc_name == amc_name).all()
+                    scheme_rows = db.query(Scheme).filter_by(amc_name=amc_name, is_active=True).all()
                     if not scheme_rows:
                         _alert(amc_name, 'zero_schemes_matched', 'registry key has no scheme_master rows')
                         amcs_failed += 1
@@ -1280,14 +1317,13 @@ async def refresh_portfolio_disclosures(db: Session, today: date | None = None) 
                             failed_newest = max(failed_newest or file.as_of_date, file.as_of_date)
                             del file
                             continue
-                        if (entry.file_shape is DisclosureFileShape.SINGLE_WORKBOOK_MULTI_SHEET
-                                and failed_newest and file.as_of_date < failed_newest):
-                            _alert(amc_name, 'stale_fallback', f'newest={failed_newest} used={file.as_of_date}')
+                        if file.as_of_date < target:
+                            _alert(amc_name, 'stale_fallback', f'target={target} used={file.as_of_date}')
                         file_failed = False
                         failed_batches = []
                         written_this_file = 0
-                        hinted_sheet_used = False
                         try:
+                            match_plan = _plan_matches(file, amc_name, families, _parse_file(file, amc_name), file_shape=entry.file_shape)
                             with db.begin_nested():
                                 for member, sheets, index_map in _parse_file(file, amc_name):
                                     if '__parse_error__' in index_map:
@@ -1298,14 +1334,10 @@ async def refresh_portfolio_disclosures(db: Session, today: date | None = None) 
                                             _alert(amc_name, 'parse_error', f'file={member} sheet={sheet.sheet_name} {sheet.error}')
                                         if not sheet.holdings:
                                             continue
-                                        if _usable_hint(file.scheme_hint):
-                                            if hinted_sheet_used:
-                                                continue
-                                            hinted_sheet_used = True
                                         parse_errors = ([{'file': member, 'sheet': sheet.sheet_name, 'error': sheet.error}]
                                                         if sheet.error else None)
                                         match_key = sheet.scheme_title or file.scheme_hint or index_map.get(sheet.sheet_name, sheet.sheet_name)
-                                        match = _match_sheet(sheet, file, member, index_map, families, amc_name)
+                                        match = match_plan.get((member, sheet.sheet_name))
                                         if match is None:
                                             if match_key not in unmatched_names and len(unmatched_names) < 5:
                                                 unmatched_names.append(match_key)
@@ -1329,7 +1361,7 @@ async def refresh_portfolio_disclosures(db: Session, today: date | None = None) 
                             failed_batches = []
                             failed = True
                             _alert(amc_name, 'error', f'file={file.source_url} {type(exc).__name__}: {exc}'[:300])
-                        if file_failed:
+                        if failed_batches:
                             location = archive_failed_file(file.data, amc_name, file.as_of_date,
                                 urllib.parse.unquote(urllib.parse.urlsplit(file.source_url).path.rsplit('/', 1)[-1]))
                             for batch in failed_batches:

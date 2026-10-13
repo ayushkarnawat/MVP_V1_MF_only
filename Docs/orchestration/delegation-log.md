@@ -546,3 +546,4 @@ fix" rule.
 - 2026-10-14 | sp2-engine — Run 4 built; live e2e (39 AMCs, 8111 batches) found 16 AMCs writing nothing → Run 4b READY | Title candidates from pre-header rows, bad-hint rejection, AMC-prefix retry, ICICI member hint + double-count, Samco URL/space, Groww MDY dates, Union quiet skip, HDFC 429 backoff.
 - 2026-10-14 | sp2-engine — Run 4b APPROVED pending Opus review | worker=codex + orchestrator fixes | live e2e 3 runs; DSP history bug and 2028 date bug fixed. WSL 1301 passed.
 - 2026-10-14 | sp2-engine — Run 4c READY | worker=codex (manual relay) | Opus review of Runs 4/4b: H1 wrong-fund writes (sheet-code/prefix fuzzy, manual intake without titles), H2 Sep30_2026→2030 + prune deletes real data, M1 daily rerun rewrites previous month, M2/M3, L1-L5.
+- 2026-10-14 | sp2-engine — Run 4c APPROVED | worker=codex (manual relay) | WSL 1327 passed; live e2e 41 AMCs / 6,544 batches / 402k rows. Next: Run 5 (job script + Terraform), then final engine review.

@@ -19,16 +19,17 @@ def prune_old_batches(db: Session, today: date) -> int:
     # Handoff: newest three calendar months *per scheme*, not relative to the
     # job's current month (a September monthly disclosure must keep July too).
     newest = dict(db.query(DisclosureBatch.scheme_id, func.max(DisclosureBatch.as_of_date))
+                  .filter(DisclosureBatch.as_of_date <= today)
                   .group_by(DisclosureBatch.scheme_id).all())
     cutoffs = {}
     for scheme_id, disclosed in newest.items():
         month = disclosed.year * 12 + disclosed.month - 3
         cutoffs[scheme_id] = date(month // 12, month % 12 + 1, 1)
     latest = dict(db.query(DisclosureBatch.scheme_id, func.max(DisclosureBatch.as_of_date))
-                  .filter(DisclosureBatch.status == DisclosureBatchStatus.WRITTEN)
+                  .filter(DisclosureBatch.status == DisclosureBatchStatus.WRITTEN, DisclosureBatch.as_of_date <= today)
                   .group_by(DisclosureBatch.scheme_id).all())
     ids = [batch.id for batch in db.query(DisclosureBatch)
-           if batch.as_of_date < cutoffs[batch.scheme_id]
+           if batch.as_of_date <= today and batch.as_of_date < cutoffs[batch.scheme_id]
            and not (batch.status is DisclosureBatchStatus.WRITTEN
                    and batch.as_of_date == latest.get(batch.scheme_id))]
     for offset in range(0, len(ids), 400):

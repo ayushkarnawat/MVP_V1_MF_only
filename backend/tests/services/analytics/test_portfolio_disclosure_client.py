@@ -172,7 +172,7 @@ def test_template_uses_month_end_and_deduplicates_plan_variants(db_session, monk
     good = "https://example.test/september-2026/union-corporate-bond-fund-30-09-2026.xlsx"
     bad = "https://example.test/september-2026/union-missing-fund-30-09-2026.xlsx"
     result, requests = run_refresh(db_session, monkeypatch, mock_http, {
-        good: httpx.Response(200, content=workbook([("Sheet", 100, 100)])), bad: httpx.Response(500),
+        good: httpx.Response(200, content=workbook([("Union Corporate Bond Fund", 100, 100)])), bad: httpx.Response(500),
     }, entry)
     assert result.schemes_written == 2
     assert requests == [good, bad]
@@ -360,7 +360,7 @@ def test_wayback_hdfc_capture_log_url_and_embedded_august_link():
 
 
 def test_wayback_cached_page_rewrites_relative_path_to_live_cdn():
-    entry = Entry(kind=Kind.WAYBACK_LOCATE, landing_url="https://blocked.test/list", cdn_domain="files.test")
+    entry = Entry(kind=Kind.WAYBACK_LOCATE, file_shape=Shape.MULTI_FILE_SINGLE_SCHEME, landing_url="https://blocked.test/list", cdn_domain="files.test")
     requests = []
     def handler(request):
         requests.append(str(request.url))
@@ -506,7 +506,7 @@ def test_per_amc_commit_and_rollback_preserve_neighbors(db_session, monkeypatch,
 
 def test_wayback_dispatch_runs_through_refresh(db_session, monkeypatch, mock_http):
     seed(db_session)
-    entry = Entry(kind=Kind.WAYBACK_LOCATE, landing_url="https://blocked.test/list", cdn_domain="files.test")
+    entry = Entry(kind=Kind.WAYBACK_LOCATE, file_shape=Shape.MULTI_FILE_SINGLE_SCHEME, landing_url="https://blocked.test/list", cdn_domain="files.test")
     def cdx_response(request):
         assert request.url.params["url"] == entry.landing_url
         return httpx.Response(200, json=cdx_rows([entry.landing_url]))
@@ -1366,7 +1366,7 @@ def test_run4_parse_and_release_before_next_download(db_session, monkeypatch, mo
     monkeypatch.setattr(client,'parse_workbook',parse)
     def body(request):
         gc.collect()
-        assert len(completed)==urls.index(str(request.url))
+        assert len(completed)==2*urls.index(str(request.url))
         assert all(ref() is None for ref in live), 'previous file retained at next GET'
         return httpx.Response(200,content=workbook([('Sheet',100,100)]))
     original_file=client.LocatedFile
@@ -1380,7 +1380,7 @@ def test_run4_parse_and_release_before_next_download(db_session, monkeypatch, mo
     result,_=run_refresh(db_session,monkeypatch,mock_http,
         {'https://example.test/list':httpx.Response(200,text=html),**{url:body for url in urls}},
         static_entry(Shape.MULTI_FILE_SINGLE_SCHEME))
-    assert result.schemes_written==3 and len(completed)==3
+    assert result.schemes_written==3 and len(completed)==6
 
 
 @pytest.mark.parametrize('day,due',[(3,False),(10,True),(15,False),(20,True)])
@@ -1392,16 +1392,16 @@ def test_run4_lateness_gated(db_session,monkeypatch,mock_http,caplog,day,due):
     assert ('reason=no_file_found' in caplog.text) is due
 
 
-def test_run4_hint_first_holdings_sheet_and_failed_sum_alert(db_session,monkeypatch,mock_http,caplog):
+def test_run4_duplicate_filename_hints_rejected(db_session,monkeypatch,mock_http,caplog):
     seed(db_session)
     url='https://example.test/portfolio-30-Sep-26.xlsx'
     monkeypatch.setattr(client,'AMC_DISCLOSURE_RESOLVERS',{'Example Mutual Fund':static_entry(Shape.MULTI_FILE_SINGLE_SCHEME)})
     mock_http({'https://example.test/list':httpx.Response(200,text=f'<a href="{url}">Example Equity Fund</a>'),
                url:httpx.Response(200,content=workbook([('First',100,100),('Second',20,20)]))})
     result=asyncio.run(client.refresh_portfolio_disclosures(db_session,today=date(2026,10,3)))
-    assert result.schemes_written==1
-    assert db_session.query(DisclosureBatch).one().status is DisclosureBatchStatus.WRITTEN
-    assert db_session.query(SchemeHolding).one().pct_to_nav==Decimal(100)
+    assert result.schemes_written==0
+    assert db_session.query(DisclosureBatch).count()==0
+    assert 'reason=duplicate_match' in caplog.text
 
 
 def test_run4_unmatched_aggregated_and_zero_summary(db_session,monkeypatch,mock_http,caplog):
@@ -1482,11 +1482,12 @@ def test_run4_title_reader_failure_does_not_hide_other_file(db_session,monkeypat
 
 
 def test_run4_zip_members_parsed_before_next_extraction(db_session,monkeypatch,mock_http):
-    seed(db_session)
+    names=['Example Equity Fund','Example Debt Fund','Example Liquid Fund']
+    for name in names:seed(db_session,base=name)
     buf=io.BytesIO()
     with zipfile.ZipFile(buf,'w') as archive:
-        for i in range(3):
-            archive.writestr(f'member{i}.xlsx',workbook())
+        for i,name in enumerate(names):
+            archive.writestr(f'member{i}.xlsx',workbook([(name,100,100)]))
     completed=[]
     real_parse=client.parse_workbook
     def parse(data):
@@ -1496,7 +1497,7 @@ def test_run4_zip_members_parsed_before_next_extraction(db_session,monkeypatch,m
     real_read=zipfile.ZipFile.read
     def read(archive,name,*args,**kwargs):
         if isinstance(name,str) and name.startswith('member'):
-            assert len(completed)==int(name[6]), 'eagerly extracted a later member'
+            assert len(completed)%3==int(name[6]), 'eagerly extracted a later member'
         return real_read(archive,name,*args,**kwargs)
     monkeypatch.setattr(client,'parse_workbook',parse)
     monkeypatch.setattr(zipfile.ZipFile,'read',read)
@@ -1504,7 +1505,7 @@ def test_run4_zip_members_parsed_before_next_extraction(db_session,monkeypatch,m
     result,_=run_refresh(db_session,monkeypatch,mock_http,{
         'https://example.test/list':httpx.Response(200,text=f'<a href="{url}">all</a>'),
         url:httpx.Response(200,content=buf.getvalue())},static_entry(Shape.ZIP_OF_WORKBOOKS))
-    assert result.schemes_written==3 and len(completed)==3
+    assert result.schemes_written==3 and len(completed)==6
 def test_run4_parse_error_archives_once_written_peer_has_no_reference(db_session,monkeypatch,mock_http):
     seed(db_session)
     bundle=io.BytesIO()
@@ -1517,7 +1518,7 @@ def test_run4_parse_error_archives_once_written_peer_has_no_reference(db_session
     result,_=run_refresh(db_session,monkeypatch,mock_http,{
         'https://example.test/list':httpx.Response(200,text=f'<a href="{url}">all</a>'),
         url:httpx.Response(200,content=bundle.getvalue())},static_entry(Shape.ZIP_OF_WORKBOOKS))
-    assert result.schemes_written==1 and len(calls)==1
+    assert result.schemes_written==1 and len(calls)==0
     batch=db_session.query(DisclosureBatch).one()
     assert batch.status is DisclosureBatchStatus.WRITTEN and batch.raw_file_reference is None
 @pytest.mark.parametrize('label',[ 'Download','View','September 2026','September','2026','...','30-Sep-2026','Sep 30,2026'])
@@ -1649,7 +1650,7 @@ def test_run4b_filename_fallback_preserves_scheme_identity(db_session):
     rows=seed(db_session,base='Example Nifty 50 Index Fund')
     rows+=seed(db_session,base='Example Nifty Next 50 Index Fund')
     file=client.LocatedFile(None,'https://example.test/Example-Nifty-50-Index-Fund-monthly-portfolio-30-Sep-2026.xlsx',date(2026,9,30),'Download')
-    match=client._match_sheet(ParsedSheet('CODE',[],None),file,file.source_url,{},build_families(rows),'Example Mutual Fund')
+    match=client._match_sheet(ParsedSheet('CODE',[],None),file,file.source_url,{},build_families(rows),'Example Mutual Fund',file_shape=Shape.MULTI_FILE_SINGLE_SCHEME)
     assert match and match[0].base_name=='Example Nifty 50 Index Fund'
 
 
@@ -1728,3 +1729,161 @@ def test_one_run_writes_one_month_only_even_when_the_landing_page_lists_years(db
     dates = {b.as_of_date for b in db_session.query(DisclosureBatch).all()}
     assert dates == {date(2026, 9, 30)}, dates
     assert sep in requests and aug not in requests and jun not in requests
+@pytest.mark.parametrize('name', ['Sep30_2026.xlsx','Sept30,2026.xlsx','Final_Monthly_Portolio_Sep30_2026_fd59.xlsx'])
+def test_run4c_compact_month_day_date(name):
+    assert client._filename_as_of_date('https://example.test/'+name)==date(2026,9,30)
+
+
+@pytest.mark.parametrize('shape',[Shape.SINGLE_WORKBOOK_MULTI_SHEET,Shape.ZIP_OF_WORKBOOKS,Shape.MULTI_FILE_SINGLE_SCHEME])
+def test_run4c_dates_filtered_and_skipped_month_locked(db_session,monkeypatch,mock_http,shape,caplog):
+    seed(db_session)
+    current='https://example.test/portfolio-30-Sep-26.xlsx'
+    old='https://example.test/portfolio-31-Aug-26.xlsx'
+    future='https://example.test/portfolio-30-Sep-30.xlsx'
+    ancient='https://example.test/portfolio-31-Dec-23.xlsx'
+    entry=static_entry(shape)
+    html=''.join(f'<a href="{url}">Example Equity Fund</a>' for url in (future,current,old,ancient))
+    routes={'https://example.test/list':httpx.Response(200,text=html),current:httpx.Response(200,content=workbook()),old:httpx.Response(200,content=workbook()),future:httpx.Response(200,content=workbook()),ancient:httpx.Response(200,content=workbook())}
+    monkeypatch.setattr(client,'AMC_DISCLOSURE_RESOLVERS',{'Example Mutual Fund':entry})
+    requests=mock_http(routes)
+    first=asyncio.run(client.refresh_portfolio_disclosures(db_session,today=date(2026,10,3)))
+    second=asyncio.run(client.refresh_portfolio_disclosures(db_session,today=date(2026,10,4)))
+    assert first.schemes_written==1 and second.schemes_written==0
+    assert requests.count(current)==1 and old not in requests and future not in requests and ancient not in requests
+    assert {b.as_of_date for b in db_session.query(DisclosureBatch)}=={date(2026,9,30)}
+
+
+def test_run4c_duplicate_family_writes_neither(db_session,monkeypatch,mock_http,caplog):
+    seed(db_session)
+    url='https://example.test/portfolio-30-Sep-26.xlsx'
+    wb=openpyxl.load_workbook(io.BytesIO(workbook([('First',100,100),('Second',100,100)])))
+    for ws in wb:
+        ws.insert_rows(1);ws.cell(1,1,'Example Equity Fund')
+    buf=io.BytesIO();wb.save(buf);wb.close()
+    result,_=run_refresh(db_session,monkeypatch,mock_http,{
+        'https://example.test/list':httpx.Response(200,text=f'<a href="{url}">all</a>'),
+        url:httpx.Response(200,content=buf.getvalue())})
+    assert result.schemes_written==0 and db_session.query(DisclosureBatch).count()==0
+    assert 'reason=duplicate_match' in caplog.text
+
+
+@pytest.mark.parametrize('error',[httpx.InvalidURL('bad URL'),httpx.StreamError('bad stream')])
+def test_run4c_bad_file_does_not_undo_earlier_file(db_session,monkeypatch,mock_http,error):
+    seed(db_session)
+    good='https://example.test/portfolio-good-30-Sep-26.xlsx'
+    bad='https://example.test/portfolio-bad-30-Sep-26.xlsx'
+    def fail(request): raise error
+    result,_=run_refresh(db_session,monkeypatch,mock_http,{
+        'https://example.test/list':httpx.Response(200,text=f'<a href="{good}">Example Equity Fund</a><a href="{bad}">Example Debt Fund</a>'),
+        good:httpx.Response(200,content=workbook()),bad:fail},static_entry(Shape.MULTI_FILE_SINGLE_SCHEME))
+    assert result.schemes_written==1 and result.amcs_failed==1
+    assert db_session.query(DisclosureBatch).one().source_url==good
+
+
+def test_run4c_key_policy_and_inactive_family(db_session):
+    from app.services.analytics.amfi_factsheet_client import build_families
+    from app.services.analytics.portfolio_disclosure_parsing import ParsedSheet
+    rows=seed(db_session,base='Example Credit Risk Fund')+seed(db_session,base='Example Contra Fund')
+    families=build_families(rows)
+    file=client.LocatedFile(None,'https://example.test/Example-Mutual-Fund.xlsx',date(2026,9,30),'Example Contra Fund')
+    sheet=ParsedSheet('CRF',[],None,scheme_title='Example Contra Fund',title_candidates=('Example Contra Fund',))
+    match=client._match_sheet(sheet,file,file.source_url,{'CRF':'Example Credit Risk Fund'},families,'Example Mutual Fund')
+    assert match[0].base_name=='Example Credit Risk Fund'
+    match=client._match_sheet(sheet,file,file.source_url,{'CRF':'Credit Risk Fund'},families,'Example Mutual Fund')
+    assert match[0].base_name=='Example Credit Risk Fund'  # exact prefix retry retains Index priority
+    assert client._match_sheet(ParsedSheet('CRF',[],None),file,file.source_url,{},families,'Example Mutual Fund') is None
+
+def _run4c_inventory(prefixes=None):
+    """Independent fixture inventory and real cached master; no network or DB writes."""
+    from app.services.analytics.scheme_universe import _parse_nav_all
+    from app.services.analytics.amfi_factsheet_client import build_families
+    root=Path(__file__).parents[2]/'fixtures/portfolio_disclosures'
+    text=(Path(__file__).parents[3]/'.cache/amfi_navall/nav_all.txt').read_text(encoding='utf-8')
+    groups={}
+    for row in _parse_nav_all(text):
+        groups.setdefault(row.amc_name,[]).append(Scheme(name=row.name,base_name=row.base_name,
+            amc_name=row.amc_name,sebi_category=row.sebi_category,isin=row.isin,is_active=True))
+    pools={amc:build_families(rows) for amc,rows in groups.items()}
+    aliases={'360-one':'360 ONE Mutual Fund','whiteoak':'WhiteOak Capital Mutual Fund'}
+    for amc in AMC_DISCLOSURE_RESOLVERS:
+        slug=client._slugify_scheme_name(amc.removesuffix(' Mutual Fund'))
+        aliases.setdefault(slug,amc)
+    for path in sorted(root.iterdir()):
+        if path.suffix.lower() not in {'.xls','.xlsx','.zip'}: continue
+        if prefixes and not any(path.name.startswith(prefix) for prefix in prefixes): continue
+        amc=next((aliases[slug] for slug in sorted(aliases,key=len,reverse=True) if path.name.startswith(slug)),None)
+        assert amc is not None,path.name
+        data=path.read_bytes()
+        source='https://fixture.test/'+path.name
+        file=client.LocatedFile(data,source,date(2026,9,30))
+        members=[(source,data)]
+        try: client.sniff_workbook_format(data)
+        except ValueError:
+            with zipfile.ZipFile(io.BytesIO(data)) as archive:
+                members=[(name,archive.read(name)) for name in archive.namelist() if name.lower().endswith(('.xls','.xlsx'))]
+        for member,body in members:
+            index=client.read_index_sheet(body)
+            for sheet in client.parse_workbook(body):
+                if sheet.holdings:
+                    yield path.name,amc,file,member,sheet,index,pools.get(amc,[])
+
+
+def _run4c_match_map():
+    result={}
+    for name,amc,file,member,sheet,index,pool in _run4c_inventory():
+        match=client._match_sheet(sheet,file,member,index,pool,amc)
+        key='|'.join((name,member if member!=file.source_url else '',sheet.sheet_name))
+        result[key]=match[0].base_name if match else None
+    return result
+
+
+def test_run4c_fixture_wide_golden_map():
+    golden=Path(__file__).parents[2]/'fixtures/portfolio_disclosures/match-map-golden.json'
+    expected=json.loads(golden.read_text(encoding='utf-8'))
+    actual=_run4c_match_map()
+    assert actual==expected
+    matched={}
+    for key,family in actual.items():
+        if family is None:continue
+        fixture=key.split('|')[0]
+        assert (fixture,family) not in matched,(matched.get((fixture,family)),key,family)
+        matched[fixture,family]=key
+
+
+def test_run4c_missing_true_families_do_not_match_codes():
+    cases=[row for row in _run4c_inventory(('nippon-india','dsp_')) if (row[0].startswith('nippon-india') and row[4].sheet_name in {'ME','ON','SC','IT','UE'})
+           or (row[0].startswith('dsp_') and row[4].sheet_name in {'HEALTHCARE IDX','NIFTYNEXT50 ETF','LIQUIDETF'})]
+    assert len(cases)>=5
+    for name,amc,file,member,sheet,index,pool in cases:
+        true=client._match_sheet(sheet,file,member,index,pool,amc)
+        assert true is not None,(name,sheet.sheet_name)
+        reduced=[f for f in pool if f.base_name!=true[0].base_name]
+        assert client._match_sheet(sheet,file,member,index,reduced,amc) is None,(name,sheet.sheet_name)
+def test_run4c_bandhan_refresh_matches_manual_policy(db_session,monkeypatch,mock_http):
+    from app.services.analytics.scheme_master import refresh_scheme_master
+    text=(Path(__file__).parents[3]/'.cache/amfi_navall/nav_all.txt').read_text(encoding='utf-8')
+    asyncio.run(refresh_scheme_master(db_session,text=text))
+    amc='Bandhan Mutual Fund'
+    url='https://example.test/portfolio-30-Sep-26.xlsx'
+    data=(Path(__file__).parents[2]/'fixtures/portfolio_disclosures/bandhan-debt-funds_asof_2026-09-30.xlsx').read_bytes()
+    monkeypatch.setattr(client,'AMC_DISCLOSURE_RESOLVERS',{amc:static_entry()})
+    mock_http({'https://example.test/list':httpx.Response(200,text=f'<a href="{url}">Bandhan Mutual Fund</a>'),url:httpx.Response(200,content=data)})
+    result=asyncio.run(client.refresh_portfolio_disclosures(db_session,today=date(2026,10,14)))
+    names={db_session.get(Scheme,b.scheme_id).base_name.lower() for b in db_session.query(DisclosureBatch)}
+    assert result.schemes_written>0 and 'bandhan credit risk fund' in names and 'bandhan overnight fund' in names
+    assert 'bandhan contra fund' not in names
+
+
+def test_run4c_active_pool_ignores_inactive_canonical_twin(db_session,monkeypatch,mock_http):
+    active=seed(db_session)[0]
+    inactive=seed(db_session,base='EXAMPLE EQUITY FUND')[0]
+    inactive.is_active=False;db_session.commit()
+    url='https://example.test/portfolio-30-Sep-26.xlsx'
+    result,_=run_refresh(db_session,monkeypatch,mock_http,{'https://example.test/list':httpx.Response(200,text=f'<a href="{url}">all</a>'),url:httpx.Response(200,content=workbook())})
+    assert result.schemes_written==1 and db_session.query(DisclosureBatch).one().scheme_id==active.id
+
+
+@pytest.mark.parametrize('disclosed,allowed',[(date(2025,3,29),False),(date(2025,3,30),True),(date(2026,9,30),True),(date(2026,10,1),False)])
+def test_run4c_date_window_boundaries(monkeypatch,disclosed,allowed):
+    monkeypatch.setattr(client,'_locate_month_end',lambda:date(2026,9,30))
+    assert client._date_allowed(disclosed) is allowed

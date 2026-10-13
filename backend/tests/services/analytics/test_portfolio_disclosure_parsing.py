@@ -1035,3 +1035,12 @@ def test_run4b_real_title_candidates(filename,title):
 def test_run4b_fixed_maturity_title_is_not_noise():
     sheet=next(s for s in parse_workbook((_FIXTURES/'nippon-india_asof_2026-09-30.xls').read_bytes()) if s.sheet_name=='G6')
     assert 'Nippon India Fixed Maturity Plan - XLI - Series 8' in sheet.title_candidates
+def test_run4c_groww_title_code_prefix_removed():
+    from app.services.analytics.portfolio_disclosure_parsing import _title_candidates
+    assert _title_candidates([['IB01-Groww Large Cap Fund']]) == ('Groww Large Cap Fund',)
+
+
+def test_run4c_dsp_former_name_description_cleaned():
+    from app.services.analytics.portfolio_disclosure_parsing import _title_candidates
+    assert _title_candidates([['DSP Liquid Fund (Ex DSP Liquidity Fund)']]) == ('DSP Liquid Fund',)
+    assert _title_candidates([['DSP FMP Series - 270 - 1172 Days']]) == ('DSP FMP Series - 270 - 1172 Days',)

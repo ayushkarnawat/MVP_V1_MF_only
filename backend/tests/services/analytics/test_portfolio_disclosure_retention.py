@@ -64,3 +64,11 @@ def test_prune_sparse_history_preserves_old_written_with_new_failed(db_session):
     assert retention.prune_old_batches(db_session,date(2027,1,10))==1
     assert {b.as_of_date for b in db_session.query(DisclosureBatch)} == {
         date(2026,3,31),date(2026,7,31),date(2026,9,30)}
+def test_run4c_future_batch_never_defines_prune_cutoff(db_session):
+    scheme=Scheme(id=uuid.uuid4(),name='History',amc_name='Test',sebi_category='Debt')
+    db_session.add(scheme);db_session.flush()
+    for day in [date(2026,7,31),date(2026,8,31),date(2026,9,30),date(2030,9,30)]:
+        db_session.add(DisclosureBatch(scheme_id=scheme.id,amc_name='Test',as_of_date=day,status=Status.WRITTEN))
+    db_session.flush()
+    assert retention.prune_old_batches(db_session,date(2026,10,14))==0
+    assert db_session.query(DisclosureBatch).count()==4

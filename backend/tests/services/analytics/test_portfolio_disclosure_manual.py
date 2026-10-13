@@ -95,7 +95,8 @@ def test_real_manual_fixtures_end_to_end(db_session, filename, amc, base, as_of)
                 seed(db_session, name, amc)
     result = manual.import_manual_files(db_session, amc, [(filename, data)], as_of,
                                        date(2026, 10, 13), allow_old=True)
-    assert result['matched'] >= 1 and result['schemes_written'] >= 1
+    expected=76 if amc=='Edelweiss Mutual Fund' else 1
+    assert result['matched'] == expected and result['schemes_written'] == expected
     batch = db_session.query(DisclosureBatch).filter_by(scheme_id=scheme.id).one()
     assert batch.status is Status.WRITTEN
     assert batch.as_of_date == as_of and batch.source_url == 'manual:'+filename
@@ -135,3 +136,52 @@ def test_manual_parse_failure_in_second_file_leaves_existing_queue(db_session):
             [('valid.xlsx',workbook()),('invalid.xlsx',buf.getvalue())],date(2026,9,30),date(2026,10,3))
     assert db_session.query(DisclosureBatch).one().status is Status.AWAITING_MANUAL_UPLOAD
     assert db_session.query(SchemeHolding).count()==0
+def test_run4c_bandhan_titles_no_contra_and_inactive_queue(db_session):
+    from app.services.analytics.scheme_master import refresh_scheme_master
+    import asyncio
+    text=(Path(__file__).parents[3]/'.cache/amfi_navall/nav_all.txt').read_text(encoding='utf-8')
+    asyncio.run(refresh_scheme_master(db_session,text=text))
+    path=Path(__file__).parents[2]/'fixtures/portfolio_disclosures/bandhan-debt-funds_asof_2026-09-30.xlsx'
+    result=manual.import_manual_files(db_session,'Bandhan Mutual Fund',[(path.name,path.read_bytes())],
+                                     date(2026,9,30),date(2026,10,14))
+    batches=db_session.query(DisclosureBatch).all()
+    names={db_session.get(Scheme,b.scheme_id).base_name.lower() for b in batches}
+    assert 'bandhan credit risk fund' in names and 'bandhan overnight fund' in names
+    assert 'bandhan contra fund' not in names
+    # Four names have ambiguous duplicate canonical families in this cache.
+    assert result['matched'] == 19 and result['unmatched'] == 4
+
+
+def test_run4c_manual_non_month_end_requires_explicit_override(db_session):
+    seed(db_session)
+    with pytest.raises(ValueError,match='month.end'):
+        manual.import_manual_files(db_session,'ITI Mutual Fund',[('file.xlsx',workbook())],date(2026,9,15),date(2026,10,3))
+    assert manual.import_manual_files(db_session,'ITI Mutual Fund',[('file.xlsx',workbook())],date(2026,9,15),date(2026,10,3),allow_any_date=True)['matched']==1
+
+
+def test_run4c_inactive_scheme_not_queued_or_matched(db_session):
+    scheme=seed(db_session)
+    scheme.is_active=False;db_session.commit()
+    assert manual.ensure_manual_queue_rows(db_session,date(2026,10,3))==0
+    result=manual.import_manual_files(db_session,'ITI Mutual Fund',[('file.xlsx',workbook())],date(2026,9,30),date(2026,10,3))
+    assert result=={'matched':0,'unmatched':1,'schemes_written':0}
+def test_run4c_zip_member_date_cannot_override_batch_date(db_session):
+    import zipfile
+    seed(db_session)
+    bundle=io.BytesIO()
+    with zipfile.ZipFile(bundle,'w') as archive:
+        archive.writestr('ITI Flexi Cap Fund-31-Aug-2026.xlsx',workbook())
+    result=manual.import_manual_files(db_session,'ITI Mutual Fund',[('batch.zip',bundle.getvalue())],date(2026,9,30),date(2026,10,3))
+    assert result['matched']==1 and db_session.query(DisclosureBatch).one().as_of_date==date(2026,9,30)
+
+
+def test_run4c_manual_duplicate_title_writes_neither(db_session,caplog):
+    seed(db_session)
+    wb=openpyxl.load_workbook(io.BytesIO(workbook()))
+    clone=wb.copy_worksheet(wb.active);clone.title='OTHER'
+    for ws in wb:
+        ws.insert_rows(1);ws.cell(1,1,'ITI Flexi Cap Fund')
+    buf=io.BytesIO();wb.save(buf);wb.close()
+    result=manual.import_manual_files(db_session,'ITI Mutual Fund',[('file.xlsx',buf.getvalue())],date(2026,9,30),date(2026,10,3))
+    assert result=={'matched':0,'unmatched':2,'schemes_written':0}
+    assert db_session.query(DisclosureBatch).count()==0 and 'reason=duplicate_match' in caplog.text

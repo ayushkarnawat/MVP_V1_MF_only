@@ -160,17 +160,18 @@ def _title_candidates(rows):
     for row in rows:
         for cell in row:
             text = _text(cell)
+            text = re.sub(r'^[A-Z]{1,4}\d{1,3}\s*[-–]\s*', '', text)
             text = re.sub(r'^SCHEME\s*(?:NAME)?\s*:\s*', '', text, flags=re.I)
             statement = re.match(r'^MONTHLY PORTFOLIO STATEMENT OF\s+(.+?)\s+(?:AS ON|FOR)\b', text, re.I)
             if statement:
                 text = statement.group(1)
             text = re.split(r'\s*(?:\(|[-–]\s*)?\bAn?\s+open[- ]ended\b', text, maxsplit=1, flags=re.I)[0].strip(' -–(')
-            text = re.split(r'\s*\(\s*(?:formerly|erstwhile|an?\b)', text, maxsplit=1, flags=re.I)[0].strip()
+            text = re.split(r'\s*\(\s*(?:formerly|erstwhile|an?\b|ex\b\s*:?)', text, maxsplit=1, flags=re.I)[0].strip()
             text = re.split(r'\s+\b(?:AS ON|FOR THE (?:MONTH|PERIOD)|PORTFOLIO AS)\b', text, maxsplit=1, flags=re.I)[0].strip()
             if (not text or not re.search(r'[A-Za-z]', text)
                     or re.search(r'\bmutual fund\b', text, re.I)
                     or re.match(r'^(?:monthly|portfolio|scheme name|market value|name of)', text, re.I)
-                    or not re.search(r'\b(?:fund|ETF|FOF|plan|scheme)\b', text, re.I)):
+                    or not re.search(r'\b(?:fund|ETF|FOF|FMP|plan|scheme)\b', text, re.I)):
                 continue
             if text not in candidates:
                 candidates.append(text)
