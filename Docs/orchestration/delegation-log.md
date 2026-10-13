@@ -548,3 +548,4 @@ fix" rule.
 - 2026-10-14 | sp2-engine — Run 4c READY | worker=codex (manual relay) | Opus review of Runs 4/4b: H1 wrong-fund writes (sheet-code/prefix fuzzy, manual intake without titles), H2 Sep30_2026→2030 + prune deletes real data, M1 daily rerun rewrites previous month, M2/M3, L1-L5.
 - 2026-10-14 | sp2-engine — Run 4c APPROVED | worker=codex (manual relay) | WSL 1327 passed; live e2e 41 AMCs / 6,544 batches / 402k rows. Next: Run 5 (job script + Terraform), then final engine review.
 - 2026-10-14 | sp2-engine — Run 5 (Tasks 9–10) READY | worker=codex (manual relay) | Job script + Terraform text (bucket, role, 05:45 job, alarm); fmt/validate only; infra edit allowed for listed files.
+- 2026-10-14 | sp2-consumers — Run 6 (Task 2 backend) READY | worker=codex (manual relay) | Engine complete (Runs 1–5, e08dd2c). Shared look-through table + stock_holdings section; real-data facts (percent-point weights, derivative/other excluded, WRITTEN only) in the handoff.
