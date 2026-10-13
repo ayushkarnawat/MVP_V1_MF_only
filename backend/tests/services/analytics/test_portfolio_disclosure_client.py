@@ -74,10 +74,10 @@ def static_entry(shape=Shape.SINGLE_WORKBOOK_MULTI_SHEET):
                  exclude_pattern="fortnightly")
 
 
-def run_refresh(db, monkeypatch, mock_http, routes, entry=None, amc="Example Mutual Fund"):
+def run_refresh(db, monkeypatch, mock_http, routes, entry=None, amc="Example Mutual Fund", today=None):
     monkeypatch.setattr(client, "AMC_DISCLOSURE_RESOLVERS", {amc: entry or static_entry()})
     requests = mock_http(routes)
-    return asyncio.run(client.refresh_portfolio_disclosures(db)), requests
+    return asyncio.run(client.refresh_portfolio_disclosures(db, today=today)), requests
 
 
 @pytest.mark.parametrize("filename,expected", [
@@ -277,7 +277,7 @@ def test_no_dated_file_raises_no_file_found_without_guessing(db_session, monkeyp
     with caplog.at_level(logging.WARNING):
         result, requests = run_refresh(db_session, monkeypatch, mock_http, {
             "https://example.test/list": httpx.Response(200, text='<a href="/portfolio-current.xls">September 2026</a>'),
-        })
+        }, today=date(2026, 10, 10))
     assert result.amcs_failed == 1 and len(requests) == 1
     assert "reason=no_file_found" in caplog.text
 
@@ -461,7 +461,7 @@ def test_ambiguous_sheet_name_logged_unmatched_without_writing(db_session, monke
         })
     assert result.schemes_written == 0 and db_session.query(DisclosureBatch).count() == 0
     assert "unmatched" in caplog.text and "Example Equity" in caplog.text
-    assert "PORTFOLIO_DISCLOSURE_ALERT" not in caplog.text  # unmatched alerts belong to Task 14
+    assert "reason=unmatched_scheme" in caplog.text  # Task 14 now alerts immediately.
 
 
 def test_fuzzy_identity_veto_remains_unmatched_through_refresh(db_session, monkeypatch, mock_http, caplog):
@@ -1326,3 +1326,197 @@ def test_empty_204_json_response_means_no_documents_not_an_error():
     req = httpx.Request("GET", "https://example.test/api")
     assert client._response_json(httpx.Response(204, headers={"Content-Type": "application/json"}, request=req)) == {}
     assert client._response_json(httpx.Response(200, headers={"Content-Type": "application/json"}, content=b"", request=req)) == {}
+def test_run4_skip_before_download_late_file_and_transient_retry(db_session, monkeypatch, mock_http, caplog):
+    seed(db_session,base='Example Equity Fund')
+    seed(db_session,base='Example Debt Fund')
+    a='https://example.test/portfolio-a-30-Sep-26.xlsx'
+    b='https://example.test/portfolio-b-30-Sep-26.xlsx'
+    routes={'https://example.test/list':httpx.Response(200,text=f'<a href="{a}">Example Equity Fund</a>'),
+            a:httpx.Response(200,content=workbook([('Sheet',100,100)])),
+            b:httpx.Response(503)}
+    monkeypatch.setattr(client,'AMC_DISCLOSURE_RESOLVERS',{'Example Mutual Fund':static_entry(Shape.MULTI_FILE_SINGLE_SCHEME)})
+    requests=mock_http(routes)
+    today=date(2026,10,3)
+    first=asyncio.run(client.refresh_portfolio_disclosures(db_session,today=today))
+    second=asyncio.run(client.refresh_portfolio_disclosures(db_session,today=today))
+    assert first.schemes_written==1 and second.schemes_written==0 and requests.count(a)==1
+    routes['https://example.test/list']=httpx.Response(200,text=f'<a href="{a}">Example Equity Fund</a><a href="{b}">Example Debt Fund</a>')
+    failed=asyncio.run(client.refresh_portfolio_disclosures(db_session,today=today))
+    assert failed.amcs_failed==1 and 'reason=error' in caplog.text
+    assert len([r for r in caplog.records if 'reason=error' in r.message])==1
+    routes[b]=httpx.Response(200,content=workbook([('Sheet',100,100)]))
+    repaired=asyncio.run(client.refresh_portfolio_disclosures(db_session,today=today))
+    assert repaired.schemes_written==1 and requests.count(a)==1 and requests.count(b)==2
+    assert db_session.query(DisclosureBatch).filter_by(status=DisclosureBatchStatus.WRITTEN).count()==2
+
+
+def test_run4_parse_and_release_before_next_download(db_session, monkeypatch, mock_http):
+    import weakref
+    import gc
+    for name in ('Equity','Debt','Liquid'):
+        seed(db_session,base=f'Example {name} Fund')
+    urls=[f'https://example.test/portfolio-{name}-30-Sep-26.xlsx' for name in ('equity','debt','liquid')]
+    live=[]
+    original_parse=client.parse_workbook
+    completed=[]
+    def parse(data):
+        result=original_parse(data)
+        completed.append(1)
+        return result
+    monkeypatch.setattr(client,'parse_workbook',parse)
+    def body(request):
+        gc.collect()
+        assert len(completed)==urls.index(str(request.url))
+        assert all(ref() is None for ref in live), 'previous file retained at next GET'
+        return httpx.Response(200,content=workbook([('Sheet',100,100)]))
+    original_file=client.LocatedFile
+    def tracked(*args,**kwargs):
+        file=original_file(*args,**kwargs)
+        if file.data:
+            live.append(weakref.ref(file))
+        return file
+    monkeypatch.setattr(client,'LocatedFile',tracked)
+    html=''.join(f'<a href="{url}">Example {name} Fund</a>' for url,name in zip(urls,('Equity','Debt','Liquid')))
+    result,_=run_refresh(db_session,monkeypatch,mock_http,
+        {'https://example.test/list':httpx.Response(200,text=html),**{url:body for url in urls}},
+        static_entry(Shape.MULTI_FILE_SINGLE_SCHEME))
+    assert result.schemes_written==3 and len(completed)==3
+
+
+@pytest.mark.parametrize('day,due',[(3,False),(10,True),(15,False),(20,True)])
+def test_run4_lateness_gated(db_session,monkeypatch,mock_http,caplog,day,due):
+    seed(db_session)
+    monkeypatch.setattr(client,'AMC_DISCLOSURE_RESOLVERS',{'Example Mutual Fund':static_entry()})
+    mock_http({'https://example.test/list':httpx.Response(200,text='none')})
+    asyncio.run(client.refresh_portfolio_disclosures(db_session,today=date(2026,10,day)))
+    assert ('reason=no_file_found' in caplog.text) is due
+
+
+def test_run4_hint_first_holdings_sheet_and_failed_sum_alert(db_session,monkeypatch,mock_http,caplog):
+    seed(db_session)
+    url='https://example.test/portfolio-30-Sep-26.xlsx'
+    monkeypatch.setattr(client,'AMC_DISCLOSURE_RESOLVERS',{'Example Mutual Fund':static_entry(Shape.MULTI_FILE_SINGLE_SCHEME)})
+    mock_http({'https://example.test/list':httpx.Response(200,text=f'<a href="{url}">Example Equity Fund</a>'),
+               url:httpx.Response(200,content=workbook([('First',100,100),('Second',20,20)]))})
+    result=asyncio.run(client.refresh_portfolio_disclosures(db_session,today=date(2026,10,3)))
+    assert result.schemes_written==1
+    assert db_session.query(DisclosureBatch).one().status is DisclosureBatchStatus.WRITTEN
+    assert db_session.query(SchemeHolding).one().pct_to_nav==Decimal(100)
+
+
+def test_run4_unmatched_aggregated_and_zero_summary(db_session,monkeypatch,mock_http,caplog):
+    seed(db_session)
+    entry=static_entry()
+    monkeypatch.setattr(client,'AMC_DISCLOSURE_RESOLVERS',{'Example Mutual Fund':entry,'ITI Mutual Fund':AMC_DISCLOSURE_RESOLVERS['ITI Mutual Fund']})
+    seed(db_session,amc='ITI Mutual Fund',base='ITI Liquid Fund')
+    url='https://example.test/portfolio-30-Sep-26.xlsx'
+    mock_http({'https://example.test/list':httpx.Response(200,text=f'<a href="{url}">all</a>'),
+        url:httpx.Response(200,content=workbook([(f'Unknown {i}',100,100) for i in range(7)]))})
+    asyncio.run(client.refresh_portfolio_disclosures(db_session,today=date(2026,10,3)))
+    alerts=[r.message for r in caplog.records if 'reason=unmatched_scheme' in r.message]
+    assert len(alerts)==1 and 'Unknown 4' in alerts[0] and 'Unknown 5' not in alerts[0]
+    assert client.monthly_zero_batch_summary(db_session,date(2026,10,3))==['Example Mutual Fund','ITI Mutual Fund']
+
+
+def test_run4_single_fallback_alert_and_failed_archive(db_session,monkeypatch,mock_http,caplog):
+    seed(db_session)
+    old='https://example.test/portfolio-31-Aug-26.xlsx'
+    new='https://example.test/portfolio-30-Sep-26.xlsx'
+    archived=[]
+    monkeypatch.setattr(client,'archive_failed_file',lambda *args: archived.append(args) or 's3://test/failed.xls',raising=False)
+    monkeypatch.setattr(client,'AMC_DISCLOSURE_RESOLVERS',{'Example Mutual Fund':static_entry()})
+    mock_http({'https://example.test/list':httpx.Response(200,text=f'<a href="{new}">new</a><a href="{old}">old</a>'),
+               new:httpx.Response(503),old:httpx.Response(200,content=workbook([('Example Equity Fund',50,50)]))})
+    asyncio.run(client.refresh_portfolio_disclosures(db_session,today=date(2026,10,3)))
+    assert 'reason=stale_fallback' in caplog.text and 'reason=failed_sum_check' in caplog.text
+    assert len(archived)==1
+    batch=db_session.query(DisclosureBatch).one()
+    assert batch.status is DisclosureBatchStatus.FAILED and batch.raw_file_reference=='s3://test/failed.xls'
+@pytest.mark.parametrize('day,due',[(3,False),(10,True),(20,True)])
+def test_run4_stale_wayback_and_manual_pending_gated(db_session,monkeypatch,mock_http,caplog,day,due):
+    seed(db_session)
+    seed(db_session,amc='ITI Mutual Fund',base='ITI Liquid Fund')
+    manual_scheme=db_session.query(Scheme).filter_by(amc_name='ITI Mutual Fund').one()
+    db_session.add(DisclosureBatch(scheme_id=manual_scheme.id,amc_name='ITI Mutual Fund',
+        as_of_date=date(2026,9,30),status=DisclosureBatchStatus.AWAITING_MANUAL_UPLOAD))
+    db_session.commit()
+    entry=Entry(kind=Kind.WAYBACK_LOCATE,landing_url='https://example.test/portfolio-')
+    monkeypatch.setattr(client,'AMC_DISCLOSURE_RESOLVERS',{'Example Mutual Fund':entry,'ITI Mutual Fund':AMC_DISCLOSURE_RESOLVERS['ITI Mutual Fund']})
+    old='https://example.test/portfolio-31-Aug-26.xlsx'
+    cdx='https://web.archive.org/cdx/search/cdx?url=https%3A%2F%2Fexample.test%2Fportfolio-&output=json&matchType=prefix&filter=statuscode%3A200&collapse=urlkey&limit=-50'
+    mock_http({cdx:httpx.Response(200,json=[['original'],[old]]),old:httpx.Response(200,content=workbook())})
+    asyncio.run(client.refresh_portfolio_disclosures(db_session,today=date(2026,10,day)))
+    assert ('reason=stale_wayback_capture' in caplog.text) is due
+    assert ('reason=manual_upload_pending' in caplog.text) is due
+
+
+def test_run4_stray_later_date_does_not_discard_target_month(db_session,monkeypatch,mock_http):
+    seed(db_session)
+    current='https://example.test/portfolio-30-Sep-26.xlsx'
+    stray='https://example.test/portfolio-31-Oct-26.xlsx'
+    monkeypatch.setattr(client,'AMC_DISCLOSURE_RESOLVERS',{'Example Mutual Fund':static_entry(Shape.MULTI_FILE_SINGLE_SCHEME)})
+    requests=mock_http({'https://example.test/list':httpx.Response(200,text=f'<a href="{stray}">Wrong</a><a href="{current}">Example Equity Fund</a>'),
+                       current:httpx.Response(200,content=workbook())})
+    asyncio.run(client.refresh_portfolio_disclosures(db_session,today=date(2026,10,3)))
+    assert stray not in requests and requests.count(current)==1
+    assert db_session.query(DisclosureBatch).one().as_of_date==date(2026,9,30)
+def test_run4_title_reader_failure_does_not_hide_other_file(db_session,monkeypatch,mock_http,caplog):
+    seed(db_session,amc='NJ Mutual Fund',base='NJ Flexi Cap Fund')
+    entry=AMC_DISCLOSURE_RESOLVERS['NJ Mutual Fund']
+    a='https://example.test/a.xlsx'
+    b='https://example.test/b.xlsx'
+    async def discover(http,entry,rows):
+        assert client._DISCOVERY_ONLY.get()
+        return [client.LocatedFile(None,a,date(2026,9,30)),client.LocatedFile(None,b,date(2026,9,30),'NJ Flexi Cap Fund')]
+    monkeypatch.setitem(client._CUSTOM_LOCATORS,'nj',discover)
+    monkeypatch.setattr(client,'AMC_DISCLOSURE_RESOLVERS',{'NJ Mutual Fund':entry})
+    good=workbook([('NJ Flexi Cap Fund',100,100)])
+    bad=io.BytesIO()
+    with zipfile.ZipFile(bad,'w') as archive:
+        archive.writestr('[Content_Types].xml',b'invalid xml')
+        archive.writestr('xl/workbook.xml',b'invalid xml')
+    mock_http({a:httpx.Response(200,content=bad.getvalue()),b:httpx.Response(200,content=good)})
+    result=asyncio.run(client.refresh_portfolio_disclosures(db_session,today=date(2026,10,3)))
+    assert result.schemes_written==1 and result.amcs_failed==1
+    assert db_session.query(DisclosureBatch).one().source_url==b
+
+
+def test_run4_zip_members_parsed_before_next_extraction(db_session,monkeypatch,mock_http):
+    seed(db_session)
+    buf=io.BytesIO()
+    with zipfile.ZipFile(buf,'w') as archive:
+        for i in range(3):
+            archive.writestr(f'member{i}.xlsx',workbook())
+    completed=[]
+    real_parse=client.parse_workbook
+    def parse(data):
+        result=real_parse(data)
+        completed.append(1)
+        return result
+    real_read=zipfile.ZipFile.read
+    def read(archive,name,*args,**kwargs):
+        if isinstance(name,str) and name.startswith('member'):
+            assert len(completed)==int(name[6]), 'eagerly extracted a later member'
+        return real_read(archive,name,*args,**kwargs)
+    monkeypatch.setattr(client,'parse_workbook',parse)
+    monkeypatch.setattr(zipfile.ZipFile,'read',read)
+    url='https://example.test/portfolio-30-Sep-26.zip'
+    result,_=run_refresh(db_session,monkeypatch,mock_http,{
+        'https://example.test/list':httpx.Response(200,text=f'<a href="{url}">all</a>'),
+        url:httpx.Response(200,content=buf.getvalue())},static_entry(Shape.ZIP_OF_WORKBOOKS))
+    assert result.schemes_written==3 and len(completed)==3
+def test_run4_parse_error_archives_once_written_peer_has_no_reference(db_session,monkeypatch,mock_http):
+    seed(db_session)
+    bundle=io.BytesIO()
+    with zipfile.ZipFile(bundle,'w') as archive:
+        archive.writestr('bad.xlsx',b'not a workbook')
+        archive.writestr('good.xls',workbook())
+    calls=[]
+    monkeypatch.setattr(client,'archive_failed_file',lambda *args: calls.append(args) or 's3://test/failed.zip')
+    url='https://example.test/portfolio-30-Sep-26.zip'
+    result,_=run_refresh(db_session,monkeypatch,mock_http,{
+        'https://example.test/list':httpx.Response(200,text=f'<a href="{url}">all</a>'),
+        url:httpx.Response(200,content=bundle.getvalue())},static_entry(Shape.ZIP_OF_WORKBOOKS))
+    assert result.schemes_written==1 and len(calls)==1
+    batch=db_session.query(DisclosureBatch).one()
+    assert batch.status is DisclosureBatchStatus.WRITTEN and batch.raw_file_reference is None

@@ -968,3 +968,8 @@ def test_run3b_uti_titles_and_realistic_family_coverage():
     assert len(sheets) == 88 and len(sheets)-len(unmatched) == 84
     assert unmatched == ['EXPOSURE:399', 'EXPOSURE:540', 'EXPOSURE:747', 'EXPOSURE:748']
     assert ParsedSheet('No title', [], None).scheme_title is None
+def test_run4_edelweiss_real_index_names():
+    from pathlib import Path
+    from app.services.analytics.portfolio_disclosure_parsing import read_index_sheet
+    data = (Path(__file__).parents[2] / 'fixtures/portfolio_disclosures/edelweiss_asof_2026-09-30.xlsx').read_bytes()
+    assert read_index_sheet(data)['EEECRF'] == 'Edelweiss Flexi-Cap Fund'

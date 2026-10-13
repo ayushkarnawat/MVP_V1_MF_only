@@ -3,9 +3,8 @@
 The synchronous Session queries/flushes inside async functions are intentional for
 the scheduled job; commits use commit_off_loop. Never call this from an API route.
 Each AMC commits separately, so a later failure cannot undo an earlier success.
-Task 14 replaces the list-returning fetch and AMC-period skip with per-file skips
-and gated alerts. Tasks 11a/11b add HTTP/page locators and explicit scheme-name
-translation; fetch/commit/alert behavior remains the original Task 6 loop.
+Discovery keeps lightweight references; the refresh iterator downloads, parses and
+writes one file at a time. Lateness alerts are gated; file errors remain isolated.
 """
 from __future__ import annotations
 
@@ -19,6 +18,8 @@ import urllib.parse
 import zipfile
 import io
 import uuid
+from contextvars import ContextVar
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from datetime import date, timedelta
 
@@ -39,9 +40,13 @@ from app.services.analytics.portfolio_disclosure_resolvers import (
     AMC_DISCLOSURE_RESOLVERS, DisclosureFileShape, DisclosureResolverEntry, DisclosureResolverKind,
 )
 from app.services.analytics.portfolio_disclosure_writer import write_disclosure_batch
+from app.services.analytics.portfolio_disclosure_retention import archive_failed_file
 
 logger = logging.getLogger(__name__)
 _HTTP_TIMEOUT = 90.0
+_DISCOVERY_ONLY = ContextVar('portfolio_disclosure_discovery_only', default=False)
+_RUN_TODAY = ContextVar('portfolio_disclosure_run_today', default=None)
+_ALERT_DAYS = (10, 20)
 _HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"}
 _MAX_WORKBOOK_BYTES = 60 * 1024 * 1024
 _ANCHOR_LINK_RE = re.compile(r'<a\b[^>]*\bhref=["\']([^"\']+\.(?:xlsx?|zip)(?:[?#][^"\']*)?)["\'][^>]*>(.*?)</a>', re.I | re.S)
@@ -56,7 +61,7 @@ _MONTH_YEAR_RE = re.compile(rf"(?<![A-Za-z])({_MONTH_PATTERN})[\s_.–-]*(\d{{4}
 
 @dataclass(frozen=True)
 class LocatedFile:
-    data: bytes
+    data: bytes | None  # None is a lightweight discovery reference, never parsed.
     source_url: str
     as_of_date: date
     scheme_hint: str | None = None
@@ -162,12 +167,24 @@ async def _fetch_candidates(client: httpx.AsyncClient, candidates: list[tuple[st
     dated = sorted(((url, label, as_of) for url, label in candidates
                     if (as_of := _filename_as_of_date(url)) is not None),
                    key=lambda item: item[2], reverse=True)
+    if keep_all and dated:
+        # Prefer the target month; otherwise the newest available non-future month.
+        # Keep every date in that month so a stray later date cannot drop its peers.
+        target = _locate_month_end()
+        eligible = [item for item in dated if item[2] <= target]
+        month = (target.year, target.month)
+        if not any((item[2].year, item[2].month) == month for item in eligible) and eligible:
+            month = (eligible[0][2].year, eligible[0][2].month)
+        dated = [item for item in eligible if (item[2].year, item[2].month) == month]
     results = []
     seen = set()
     for url, label, as_of in dated:
-        if url in seen or (keep_all and as_of != dated[0][2]):
+        if url in seen:
             continue
         seen.add(url)
+        if _DISCOVERY_ONLY.get():
+            results.append(LocatedFile(None, url, as_of, _clean_label(label) or None if keep_all else None))
+            continue
         try:
             data = await _download_workbook(client, url)
         except httpx.HTTPError:
@@ -187,8 +204,13 @@ def _latest_month_end(today: date | None = None) -> date:
     return (today or date.today()).replace(day=1) - timedelta(days=1)
 
 
+def _locate_month_end() -> date:
+    today = _RUN_TODAY.get()
+    return _latest_month_end(today) if today is not None else _latest_month_end()
+
+
 async def _locate_deterministic_template(client: httpx.AsyncClient, entry: DisclosureResolverEntry, scheme_names: list[str]) -> list[LocatedFile]:
-    as_of = _latest_month_end()
+    as_of = _locate_month_end()
     results = []
     seen = set()
     for name in scheme_names:
@@ -201,6 +223,9 @@ async def _locate_deterministic_template(client: httpx.AsyncClient, entry: Discl
         if url in seen:
             continue
         seen.add(url)
+        if _DISCOVERY_ONLY.get():
+            results.append(LocatedFile(None, url, as_of, name if '{scheme_slug}' in entry.url_template else None))
+            continue
         try:
             data = await _download_workbook(client, url)
         except httpx.HTTPError:
@@ -227,7 +252,7 @@ async def _locate_and_fetch(client: httpx.AsyncClient, entry: DisclosureResolver
     if entry.custom_locator:
         return await _CUSTOM_LOCATORS[entry.custom_locator](client, entry, scheme_rows)
     if entry.kind is DisclosureResolverKind.JSON_API and _is_locate_implemented(entry):
-        return await _locate_json_api(client, entry, _latest_month_end())
+        return await _locate_json_api(client, entry, _locate_month_end())
     if entry.kind is DisclosureResolverKind.WAYBACK_LOCATE:
         return await _locate_wayback(client, entry)  # implemented in Task 7
     if entry.file_shape is DisclosureFileShape.DETERMINISTIC_TEMPLATE:
@@ -308,6 +333,9 @@ async def _fetch_dated_records(client, records, as_of, *, keep_all=True):
         if not url or disclosed != as_of or url in seen or not _WORKBOOK_URL.search(url):
             continue
         seen.add(url)
+        if _DISCOVERY_ONLY.get():
+            results.append(LocatedFile(None, url, disclosed, hint))
+            continue
         try:
             data = await _download_workbook(client, url)
         except httpx.HTTPError:
@@ -346,7 +374,7 @@ async def _locate_json_api(client, entry, as_of) -> list[LocatedFile]:
 
 
 async def _locate_franklin(client, entry, scheme_rows):
-    as_of = _latest_month_end()
+    as_of = _locate_month_end()
     sitemap = await client.get(entry.landing_url)
     sitemap.raise_for_status()
     ids = dict.fromkeys(re.findall(r'/fund-details/fund-overview/(\d+)', sitemap.text))
@@ -365,7 +393,7 @@ async def _locate_franklin(client, entry, scheme_rows):
 
 
 async def _locate_axis(client, entry, scheme_rows):
-    as_of = _latest_month_end()
+    as_of = _locate_month_end()
     payload = await _json_request(client, entry, as_of)
     token_data = payload.get('data', {})
     if isinstance(token_data, str):
@@ -398,7 +426,7 @@ def _options(text, select_name=None):
 
 
 async def _locate_lic(client, entry, scheme_rows):
-    as_of = _latest_month_end()
+    as_of = _locate_month_end()
     headers = {'X-Requested-With': 'XMLHttpRequest'}
     year = await client.post(entry.endpoint_url, data=entry.request_body, headers=headers)
     year.raise_for_status()
@@ -418,7 +446,7 @@ async def _locate_lic(client, entry, scheme_rows):
 
 
 async def _locate_sbi(client, entry, scheme_rows):
-    as_of = _latest_month_end()
+    as_of = _locate_month_end()
     response = await client.post(entry.endpoint_url, json=_request_values(entry.request_body, as_of),
                                  headers={'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/json;charset=UTF-8'})
     response.raise_for_status()
@@ -427,7 +455,7 @@ async def _locate_sbi(client, entry, scheme_rows):
 
 
 async def _locate_trust(client, entry, scheme_rows):
-    as_of = _latest_month_end()
+    as_of = _locate_month_end()
     payload = await _json_request(client, entry, as_of)
     records = [(_file_url(r.get('fileurl', ''), entry.endpoint_url), _disclosed_date(r.get('title')), None)
                for r in payload.get('resultSetArray', [])]
@@ -435,7 +463,7 @@ async def _locate_trust(client, entry, scheme_rows):
 
 
 async def _locate_mirae(client, entry, scheme_rows):
-    as_of = _latest_month_end()
+    as_of = _locate_month_end()
     records, page = [], 1
     while True:
         body = _request_values(entry.request_body, as_of)
@@ -453,7 +481,7 @@ async def _locate_mirae(client, entry, scheme_rows):
 
 
 async def _locate_boi(client, entry, scheme_rows):
-    as_of = _latest_month_end()
+    as_of = _locate_month_end()
     payload = await _json_request(client, entry, as_of)
     data = payload.get('d', {})
     if isinstance(data, str):
@@ -488,11 +516,11 @@ async def _locate_taurus(client, entry, scheme_rows):
 
 
 async def _locate_absl(client, entry, scheme_rows):
-    return await _locate_json_api(client, entry, _latest_month_end())
+    return await _locate_json_api(client, entry, _locate_month_end())
 
 
 async def _locate_navi(client, entry, scheme_rows):
-    as_of = _latest_month_end()
+    as_of = _locate_month_end()
     page = await client.get(entry.landing_url)
     page.raise_for_status()
     nonce = re.search(r'"rest_url"\s*:\s*"[^"]*"\s*,\s*"nonce"\s*:\s*"([a-z0-9]+)"', page.text)
@@ -509,7 +537,7 @@ async def _locate_navi(client, entry, scheme_rows):
 
 
 async def _locate_pgim(client, entry, scheme_rows):
-    as_of = _latest_month_end()
+    as_of = _locate_month_end()
     payload = await _json_request(client, entry, as_of)
     records = []
     for tab in payload.get('data', []):
@@ -521,7 +549,7 @@ async def _locate_pgim(client, entry, scheme_rows):
 
 
 async def _locate_whiteoak(client, entry, scheme_rows):
-    as_of = _latest_month_end()
+    as_of = _locate_month_end()
     records, page = [], 1
     while True:
         params = {**entry.request_params, 'pagination[page]': page}
@@ -540,7 +568,7 @@ async def _locate_whiteoak(client, entry, scheme_rows):
 
 
 async def _locate_icici(client, entry, scheme_rows):
-    as_of = _latest_month_end()
+    as_of = _locate_month_end()
     headers = {'requestapiid': str(uuid.uuid4()), 'sourceurl': 'DOWNLOADS', 'env': 'api',
                'Origin': 'https://www.icicipruamc.com', 'Referer': entry.landing_url,
                'Accept': 'application/json'}
@@ -558,7 +586,7 @@ async def _locate_icici(client, entry, scheme_rows):
 
 async def _locate_uti(client, entry, scheme_rows):
     # No blanket scheme hint: EXPOSURE:<code> is not a tested scheme name.
-    return await _locate_json_api(client, entry, _latest_month_end())
+    return await _locate_json_api(client, entry, _locate_month_end())
 
 
 def _walk_dicts(value):
@@ -623,7 +651,7 @@ def _workbook_title_rows(data, count=12):
 
 
 async def _locate_jio(client, entry, scheme_rows):
-    as_of = _latest_month_end()
+    as_of = _locate_month_end()
     page = await client.get(entry.landing_url); page.raise_for_status()
     scripts = re.findall(r'<script[^>]+src=["\']([^"\']+)["\']', page.text)
     action = None
@@ -654,7 +682,7 @@ async def _locate_jio(client, entry, scheme_rows):
 
 
 async def _locate_quant(client, entry, scheme_rows):
-    as_of = _latest_month_end()
+    as_of = _locate_month_end()
     base = entry.endpoint_url.rsplit('/',1)[0] + '/'
     async def call(method, body):
         response = await client.post(base+method, content=body, headers={'Content-Type':'application/json; charset=utf-8'})
@@ -670,7 +698,7 @@ async def _locate_quant(client, entry, scheme_rows):
 
 
 async def _locate_abakkus(client, entry, scheme_rows):
-    as_of = _latest_month_end()
+    as_of = _locate_month_end()
     page = await client.get(entry.landing_url); page.raise_for_status()
     script = re.search(r'<script\b(?=[^>]*\bid=["\']verticals-data["\'])[^>]*>(.*?)</script>', page.text, re.I|re.S)
     if not script:
@@ -688,13 +716,16 @@ async def _locate_abakkus(client, entry, scheme_rows):
 
 
 async def _locate_zerodha(client, entry, scheme_rows):
-    as_of = _latest_month_end()
+    as_of = _locate_month_end()
     page = await client.get(entry.landing_url); page.raise_for_status()
     records = [(_file_url(url, str(page.url)), _filename_as_of_date(url), None)
                for url, label in _extract_links(page.text) if _candidate_allowed(entry, url, label)]
     files = await _fetch_dated_records(client, records, as_of)
     result = []
     for file in files:
+        if file.data is None:
+            result.append(file)
+            continue
         text = ' '.join(str(c or '') for row in _workbook_title_rows(file.data, 4) for c in row)
         title = re.search(r'MONTHLY PORTFOLIO STATEMENT OF\s+(.+?)\s+FOR\s+', text, re.I)
         result.append(LocatedFile(file.data,file.source_url,file.as_of_date,title.group(1).strip() if title else None))
@@ -702,7 +733,7 @@ async def _locate_zerodha(client, entry, scheme_rows):
 
 
 async def _locate_unifi(client, entry, scheme_rows):
-    as_of = _latest_month_end()
+    as_of = _locate_month_end()
     page = await client.get(entry.landing_url); page.raise_for_status()
     records = []
     for url, label in _extract_links(page.text):
@@ -716,7 +747,7 @@ async def _locate_unifi(client, entry, scheme_rows):
 
 
 async def _locate_tata(client, entry, scheme_rows):
-    as_of = _latest_month_end()
+    as_of = _locate_month_end()
     page = await client.get(entry.landing_url); page.raise_for_status()
     records = []
     for row in _page_objects(page.text):
@@ -727,7 +758,7 @@ async def _locate_tata(client, entry, scheme_rows):
 
 
 async def _locate_sundaram(client, entry, scheme_rows):
-    as_of = _latest_month_end()
+    as_of = _locate_month_end()
     page = await client.get(entry.landing_url); page.raise_for_status()
     script = re.search(r'<script[^>]+src=["\']([^"\']*Modules_Disclosure_Monthly_Fortnightly_Adhoc_Portfolios,App_Web_[^"\']+\.ashx)["\']',page.text,re.I)
     if not script:
@@ -739,7 +770,7 @@ async def _locate_sundaram(client, entry, scheme_rows):
 
 
 async def _locate_bajaj(client, entry, scheme_rows):
-    as_of = _latest_month_end()
+    as_of = _locate_month_end()
     page = await client.get(entry.landing_url); page.raise_for_status()
     nonce = re.search(r'bajajDownloads\s*=\s*\{[^}]*?["\']nonce["\']\s*:\s*["\']([0-9a-f]+)',page.text)
     if not nonce:
@@ -784,7 +815,7 @@ def _monthly_manifest_schemes(value, period=None, identity=None):
 
 
 async def _locate_alphagrep(client, entry, scheme_rows):
-    as_of = _latest_month_end()
+    as_of = _locate_month_end()
     payload = await _json_request(client,entry,as_of)
     records = []
     for scheme in _monthly_manifest_schemes(payload):
@@ -801,7 +832,7 @@ async def _locate_alphagrep(client, entry, scheme_rows):
 
 
 async def _locate_wealth(client, entry, scheme_rows):
-    as_of = _latest_month_end()
+    as_of = _locate_month_end()
     records, page = [], 1
     while True:
         response = await client.get(entry.landing_url,params={'page':page} if page>1 else None)
@@ -831,14 +862,14 @@ async def _locate_wealth(client, entry, scheme_rows):
 
 
 async def _locate_360(client, entry, scheme_rows):
-    as_of = _latest_month_end()
+    as_of = _locate_month_end()
     candidates=await _static_regex_candidates(client,entry)
     records=[(_file_url(url,entry.landing_url),_filename_as_of_date(url),None) for url,label in candidates]
     return await _fetch_dated_records(client,records,as_of,keep_all=False)
 
 
 async def _locate_motilal(client, entry, scheme_rows):
-    as_of=_latest_month_end()
+    as_of=_locate_month_end()
     sitemap=await client.get(entry.landing_url);sitemap.raise_for_status()
     pages=dict.fromkeys(re.findall(r'<loc>\s*(https?://[^<]+/mutual-funds/[^<]+)\s*</loc>',sitemap.text))
     records=[]
@@ -852,6 +883,9 @@ async def _locate_motilal(client, entry, scheme_rows):
     files=await _fetch_dated_records(client,records,as_of)
     result=[]
     for file in files:
+        if file.data is None:
+            result.append(file)
+            continue
         rows=_workbook_title_rows(file.data)
         title=next((str(c).strip() for c in rows[7] if c and 'motilal' in str(c).lower()),None) if len(rows)>7 else None
         result.append(LocatedFile(file.data,file.source_url,file.as_of_date,title))
@@ -859,7 +893,7 @@ async def _locate_motilal(client, entry, scheme_rows):
 
 
 async def _locate_choice(client, entry, scheme_rows):
-    as_of=_latest_month_end()
+    as_of=_locate_month_end()
     payload=await _json_request(client,entry,as_of)
     records=[]
     for root in payload.get('body',[]):
@@ -876,7 +910,7 @@ async def _locate_choice(client, entry, scheme_rows):
 
 
 async def _locate_quantum(client, entry, scheme_rows):
-    as_of = _latest_month_end()
+    as_of = _locate_month_end()
     candidates = await _static_regex_candidates(client, entry)
     records = [(_file_url(url,entry.landing_url),_disclosed_date(label),None)
                for url,label in candidates if re.search(r'\bAll Funds\b',label,re.I)]
@@ -884,7 +918,7 @@ async def _locate_quantum(client, entry, scheme_rows):
 
 
 async def _locate_nj(client, entry, scheme_rows):
-    as_of = _latest_month_end()
+    as_of = _locate_month_end()
     records = []
     for url,label in await _static_regex_candidates(client,entry):
         filename = urllib.parse.parse_qs(urllib.parse.urlsplit(url).query).get('file',[''])[0]
@@ -892,6 +926,9 @@ async def _locate_nj(client, entry, scheme_rows):
     files = await _fetch_dated_records(client,records,as_of)
     result = []
     for file in files:
+        if file.data is None:
+            result.append(file)
+            continue
         rows = _workbook_title_rows(file.data,2)
         title = next((str(c).strip().splitlines()[0] for c in rows[1] if c and re.match(r'^NJ\s',str(c).strip())),None) if len(rows)>1 else None
         result.append(LocatedFile(file.data,file.source_url,file.as_of_date,title))
@@ -971,24 +1008,94 @@ def _already_written(db: Session, amc_name: str, as_of_date: date) -> bool:
         amc_name=amc_name, as_of_date=as_of_date, status=DisclosureBatchStatus.WRITTEN).first() is not None
 
 
-def _zip_members(data: bytes, amc_name: str):
+def _written_source_urls(db: Session, amc_name: str, as_of: date) -> set[str]:
+    return {url for (url,) in db.query(DisclosureBatch.source_url).filter_by(
+        amc_name=amc_name, as_of_date=as_of, status=DisclosureBatchStatus.WRITTEN) if url}
+
+
+def _alert_due(today: date) -> bool:
+    return today.day in _ALERT_DAYS
+
+
+def monthly_zero_batch_summary(db: Session, today: date) -> list[str]:
+    represented = {amc for (amc,) in db.query(Scheme.amc_name).distinct()}
+    written = {amc for (amc,) in db.query(DisclosureBatch.amc_name).filter_by(
+        as_of_date=_latest_month_end(today), status=DisclosureBatchStatus.WRITTEN).distinct()}
+    return sorted(set(AMC_DISCLOSURE_RESOLVERS).intersection(represented) - written)
+
+
+def _downloaded_hint(data: bytes, entry: DisclosureResolverEntry, hint: str | None) -> str | None:
+    # Exact title readers moved mechanically from discovery's three workbook readers.
+    if entry.custom_locator == 'zerodha':
+        text = ' '.join(str(c or '') for row in _workbook_title_rows(data, 4) for c in row)
+        title = re.search(r'MONTHLY PORTFOLIO STATEMENT OF\s+(.+?)\s+FOR\s+', text, re.I)
+        return title.group(1).strip() if title else None
+    if entry.custom_locator == 'motilal':
+        rows = _workbook_title_rows(data)
+        return next((str(c).strip() for c in rows[7] if c and 'motilal' in str(c).lower()), None) if len(rows) > 7 else None
+    if entry.custom_locator == 'nj':
+        rows = _workbook_title_rows(data, 2)
+        return next((str(c).strip().splitlines()[0] for c in rows[1] if c and re.match(r'^NJ\s', str(c).strip())), None) if len(rows) > 1 else None
+    return hint
+
+
+async def _iter_located_files(client, entry, scheme_rows, skip_urls: set[str]) -> AsyncIterator[LocatedFile]:
+    """Discover metadata first, then hold one downloaded body until the caller finishes.
+
+    Failure references (data=None) let the caller record failures without hiding peers.
+    No WRITTEN URL is requested. Discovery context is task-local and always reset.
+    """
+    token = _DISCOVERY_ONLY.set(True)
     try:
-        members = extract_zip_members(data)
-    except Exception:
-        # The shared extractor eagerly reads every member. A CRC/read failure needs
-        # a per-member retry so one damaged workbook does not hide readable peers.
-        with zipfile.ZipFile(io.BytesIO(data)) as archive:
-            for name in archive.namelist():
-                if not name.lower().endswith((".xls", ".xlsx")) or name.endswith("/"):
-                    continue
-                try:
-                    member_data = archive.read(name)
-                except Exception as exc:
-                    _alert(amc_name, "parse_error", f"member={name} {type(exc).__name__}: {exc}")
-                    continue
-                yield name, member_data
-    else:
-        yield from members
+        references = await _locate_and_fetch(client, entry, scheme_rows)
+    finally:
+        _DISCOVERY_ONLY.reset(token)
+    single = entry.file_shape is DisclosureFileShape.SINGLE_WORKBOOK_MULTI_SHEET
+    seen = set()
+    for reference in references:
+        if reference.source_url in seen:
+            continue
+        seen.add(reference.source_url)
+        if reference.source_url in skip_urls:
+            if single:
+                break
+            continue
+        error = None
+        try:
+            data = await _download_workbook(client, reference.source_url)
+        except httpx.HTTPError as exc:
+            error = f'{type(exc).__name__}: {exc}'
+            data = None
+        if data is None:
+            _alert(scheme_rows[0].amc_name, 'error', f'file={reference.source_url} {error or "unavailable or invalid workbook"}')
+            yield reference
+            continue
+        try:
+            hint = _downloaded_hint(data, entry, reference.scheme_hint)
+        except Exception as exc:
+            # Retain the bytes for Parse/archive and continue to later files.
+            _alert(scheme_rows[0].amc_name, 'parse_error', f'file={reference.source_url} title: {exc}')
+            hint = reference.scheme_hint
+        yield LocatedFile(data, reference.source_url, reference.as_of_date, hint)
+        del data
+        if single:
+            break
+
+
+def _zip_members(data: bytes, amc_name: str):
+    # Never materialize every decompressed member (ICICI has 151 workbooks).
+    with zipfile.ZipFile(io.BytesIO(data)) as archive:
+        for name in archive.namelist():
+            if not name.lower().endswith(('.xls', '.xlsx')) or name.endswith('/'):
+                continue
+            try:
+                member_data = archive.read(name)
+            except Exception as exc:
+                _alert(amc_name, 'parse_error', f'member={name} {type(exc).__name__}: {exc}')
+                yield name, None
+                continue
+            yield name, member_data
+            del member_data
 
 
 def _parse_file(file: LocatedFile, amc_name: str):
@@ -1000,14 +1107,19 @@ def _parse_file(file: LocatedFile, amc_name: str):
             raise
         parsed_member = False
         for name, data in _zip_members(file.data, amc_name):
+            if data is None:
+                yield name, [], {'__parse_error__': 'unreadable ZIP member'}
+                continue
             try:
                 sheets = parse_workbook(data)
                 index_map = read_index_sheet(data)
             except Exception as exc:
                 _alert(amc_name, "parse_error", f"member={name} {type(exc).__name__}: {exc}")
+                yield name, [], {'__parse_error__': str(exc)}
                 continue
             parsed_member = True
             yield name, sheets, index_map
+            del data, sheets, index_map
         if not parsed_member:
             raise ValueError("ZIP contains no readable workbook members")
     else:
@@ -1015,60 +1127,123 @@ def _parse_file(file: LocatedFile, amc_name: str):
         yield file.source_url, parse_workbook(file.data), read_index_sheet(file.data)
 
 
-async def refresh_portfolio_disclosures(db: Session) -> PortfolioDisclosureRefreshResult:
+async def refresh_portfolio_disclosures(db: Session, today: date | None = None) -> PortfolioDisclosureRefreshResult:
     started = time.perf_counter()
+    effective_today = today or date.today()
+    target = _latest_month_end(today) if today is not None else _latest_month_end()
+    token = _RUN_TODAY.set(today)
     amcs_processed = amcs_failed = amcs_not_onboarded = schemes_written = 0
-    async with httpx.AsyncClient(timeout=_HTTP_TIMEOUT, headers=_HEADERS, follow_redirects=True) as http_client:
-        for amc_name, entry in AMC_DISCLOSURE_RESOLVERS.items():
-            if entry.kind is DisclosureResolverKind.MANUAL:
-                continue
-            if not _is_locate_implemented(entry):
-                amcs_not_onboarded += 1
-                continue
-            try:
-                scheme_rows = db.query(Scheme).filter(Scheme.amc_name == amc_name).all()
-                if not scheme_rows:
-                    _alert(amc_name, "zero_schemes_matched", "registry key has no scheme_master rows")
+    try:
+        async with httpx.AsyncClient(timeout=_HTTP_TIMEOUT, headers=_HEADERS, follow_redirects=True) as http_client:
+            for amc_name, entry in AMC_DISCLOSURE_RESOLVERS.items():
+                if entry.kind is DisclosureResolverKind.MANUAL:
+                    if _alert_due(effective_today):
+                        waiting = db.query(DisclosureBatch).filter_by(amc_name=amc_name, as_of_date=target,
+                            status=DisclosureBatchStatus.AWAITING_MANUAL_UPLOAD).count()
+                        if waiting:
+                            _alert(amc_name, 'manual_upload_pending', f'waiting={waiting}')
+                    continue
+                if not _is_locate_implemented(entry):
+                    amcs_not_onboarded += 1
+                    continue
+                try:
+                    scheme_rows = db.query(Scheme).filter(Scheme.amc_name == amc_name).all()
+                    if not scheme_rows:
+                        _alert(amc_name, 'zero_schemes_matched', 'registry key has no scheme_master rows')
+                        amcs_failed += 1
+                        continue
+                    families = build_families(scheme_rows)
+                    skip_urls = _written_source_urls(db, amc_name, target)
+                    files_seen = written_this_amc = 0
+                    failed = False
+                    newest = None
+                    failed_newest = None
+                    unmatched_names = []
+                    async for file in _iter_located_files(http_client, entry, scheme_rows, skip_urls):
+                        files_seen += 1
+                        newest = max(newest or file.as_of_date, file.as_of_date)
+                        if file.data is None:
+                            failed = True
+                            failed_newest = max(failed_newest or file.as_of_date, file.as_of_date)
+                            del file
+                            continue
+                        if (entry.file_shape is DisclosureFileShape.SINGLE_WORKBOOK_MULTI_SHEET
+                                and failed_newest and file.as_of_date < failed_newest):
+                            _alert(amc_name, 'stale_fallback', f'newest={failed_newest} used={file.as_of_date}')
+                        file_failed = False
+                        failed_batches = []
+                        written_this_file = 0
+                        hinted_sheet_used = False
+                        try:
+                            with db.begin_nested():
+                                for member, sheets, index_map in _parse_file(file, amc_name):
+                                    if '__parse_error__' in index_map:
+                                        file_failed = True
+                                    for sheet in sheets:
+                                        if sheet.error:
+                                            file_failed = True
+                                            _alert(amc_name, 'parse_error', f'file={member} sheet={sheet.sheet_name} {sheet.error}')
+                                        if not sheet.holdings:
+                                            continue
+                                        if file.scheme_hint:
+                                            if hinted_sheet_used:
+                                                continue
+                                            hinted_sheet_used = True
+                                        parse_errors = ([{'file': member, 'sheet': sheet.sheet_name, 'error': sheet.error}]
+                                                        if sheet.error else None)
+                                        match_key = sheet.scheme_title or file.scheme_hint or index_map.get(sheet.sheet_name, sheet.sheet_name)
+                                        match = match_scheme_name(match_key, families)
+                                        if match is None:
+                                            if match_key not in unmatched_names and len(unmatched_names) < 5:
+                                                unmatched_names.append(match_key)
+                                            continue
+                                        family, method, confidence = match
+                                        written_this_file += write_disclosure_batch(db, family, file.as_of_date,
+                                            amc_name, file.source_url, sheet.holdings, method, confidence,
+                                            parse_errors=parse_errors, declared_total=sheet.declared_total)
+                                        batches = db.query(DisclosureBatch).filter(
+                                            DisclosureBatch.scheme_id.in_([scheme.id for scheme in family.schemes]),
+                                            DisclosureBatch.as_of_date == file.as_of_date).all()
+                                        for batch in batches:
+                                            if batch.status is DisclosureBatchStatus.FAILED:
+                                                file_failed = True
+                                                failed_batches.append(batch)
+                                        if any(batch.status is DisclosureBatchStatus.FAILED for batch in batches):
+                                            _alert(amc_name, 'failed_sum_check', f'file={file.source_url} sheet={sheet.sheet_name}')
+                        except Exception as exc:
+                            file_failed = True
+                            written_this_file = 0
+                            failed_batches = []
+                            failed = True
+                            _alert(amc_name, 'error', f'file={file.source_url} {type(exc).__name__}: {exc}'[:300])
+                        if file_failed:
+                            location = archive_failed_file(file.data, amc_name, file.as_of_date,
+                                urllib.parse.unquote(urllib.parse.urlsplit(file.source_url).path.rsplit('/', 1)[-1]))
+                            for batch in failed_batches:
+                                batch.raw_file_reference = location
+                        written_this_amc += written_this_file
+                        del file
+                    if unmatched_names:
+                        _alert(amc_name, 'unmatched_scheme', ' | '.join(unmatched_names))
+                    if not files_seen and not skip_urls:
+                        failed = True
+                        if _alert_due(effective_today):
+                            _alert(amc_name, 'no_file_found', entry.landing_url or entry.url_template or '')
+                    if (entry.kind is DisclosureResolverKind.WAYBACK_LOCATE and newest
+                            and newest < target and _alert_due(effective_today)):
+                        _alert(amc_name, 'stale_wayback_capture', f'newest={newest}')
+                    await commit_off_loop(db)
+                    schemes_written += written_this_amc
+                    if failed:
+                        amcs_failed += 1
+                    else:
+                        amcs_processed += 1
+                except Exception as exc:
+                    db.rollback()
+                    _alert(amc_name, 'error', f'{type(exc).__name__}: {exc}'[:300])
                     amcs_failed += 1
-                    continue
-                files = await _locate_and_fetch(http_client, entry, scheme_rows)
-                if not files:
-                    _alert(amc_name, "no_file_found", entry.landing_url or entry.url_template or "")
-                    amcs_failed += 1
-                    continue
-                if _already_written(db, amc_name, max(f.as_of_date for f in files)):
-                    amcs_processed += 1
-                    continue
-                families = build_families(scheme_rows)
-                written_this_amc = 0
-                for file in files:
-                    for member, sheets, index_map in _parse_file(file, amc_name):
-                        for sheet in sheets:
-                            if not sheet.holdings:
-                                continue
-                            # Per-sheet errors: one broken sheet must not FAIL its good neighbours.
-                            parse_errors = ([{"file": member, "sheet": sheet.sheet_name, "error": sheet.error}]
-                                            if sheet.error else None)
-                            match_key = sheet.scheme_title or file.scheme_hint or index_map.get(sheet.sheet_name, sheet.sheet_name)
-                            match = match_scheme_name(match_key, families)
-                            if match is None:
-                                logger.info("refresh_portfolio_disclosures: unmatched amc=%s key=%r", amc_name, match_key[:80])
-                                continue
-                            family, method, confidence = match
-                            written_this_amc += write_disclosure_batch(
-                                db, family, file.as_of_date, amc_name, file.source_url,
-                                sheet.holdings, method, confidence, parse_errors=parse_errors,
-                                declared_total=sheet.declared_total,
-                            )
-                await commit_off_loop(db)
-                amcs_processed += 1
-                schemes_written += written_this_amc
-            except Exception as exc:
-                db.rollback()
-                _alert(amc_name, "error", f"{type(exc).__name__}: {exc}"[:300])
-                amcs_failed += 1
-    if amcs_not_onboarded:
-        logger.info("refresh_portfolio_disclosures: %d registered AMC(s) skipped, Locate not yet built", amcs_not_onboarded)
+    finally:
+        _RUN_TODAY.reset(token)
     return PortfolioDisclosureRefreshResult(
         success=True, amcs_processed=amcs_processed, amcs_failed=amcs_failed,
         amcs_not_onboarded=amcs_not_onboarded, schemes_written=schemes_written,

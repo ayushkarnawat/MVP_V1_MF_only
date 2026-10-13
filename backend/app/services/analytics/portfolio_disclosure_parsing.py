@@ -164,14 +164,14 @@ def read_index_sheet(data: bytes) -> dict[str, str]:
           if fmt == 'xlsx' else xlrd.open_workbook(file_contents=data))
     sheet_names = set(wb.sheetnames if fmt == 'xlsx' else wb.sheet_names())
     result, conflicts = {}, set()
-    code_headers = {'schemecode', 'schemeshortcode', 'shortname', 'acronym', 'scheme', 'code', 'abbreviations'}
+    code_headers = {'schemecode', 'schemeshortcode', 'shortname', 'acronym', 'scheme', 'code', 'abbreviations', 'fundid'}
     try:
         for ws in (wb if fmt == 'xlsx' else wb.sheets()):
             rows = (list(ws.iter_rows(max_row=40, values_only=True)) if fmt == 'xlsx'
                     else [ws.row_values(i) for i in range(min(40, ws.nrows))])
             for index, row in enumerate(rows):
                 labels = [re.sub(r'[^a-z0-9]', '', _text(c).lower()) for c in row]
-                name_col = next((i for i, label in enumerate(labels) if label in {'schemename', 'schemenames', 'schemefullname'}), None)
+                name_col = next((i for i, label in enumerate(labels) if label in {'schemename', 'schemenames', 'schemefullname', 'funddesc'}), None)
                 code_cols = [i for i, label in enumerate(labels) if label in code_headers]
                 if name_col is None or not code_cols:
                     continue
