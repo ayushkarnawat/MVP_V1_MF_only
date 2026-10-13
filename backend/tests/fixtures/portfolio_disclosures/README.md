@@ -1,0 +1,94 @@
+# Real AMC disclosure fixtures (Task 12 capture pass, 2026-10-13)
+
+Unmodified downloads of public AMC portfolio disclosures, month-end 2026-09-30 unless the file name says otherwise (Taurus March, Choice mixed). Files marked `-trimmed` are openpyxl/zip trims (cell contents and ZIP members byte-identical). Source mechanism and findings per AMC: `Docs/analytics/investigations/2026-10-13-sub-project-2-capture-log.md`. Do not edit these files.
+
+Manual-AMC files (Edelweiss, ITI Aug, JM x2) were downloaded by hand by the project owner. Mahindra Manulife (an XML file) and Invesco (PDF only) are NOT usable yet: see the capture log and the plan.
+
+| File | Size (bytes) |
+|---|---|
+| 360-one_asof_2026-09-30.xls | 269718 |
+| abakkus-all-schemes_asof_2026-09-30.xlsx | 262012 |
+| aditya-birla-sun-life_asof_2026-09-30.zip | 2194065 |
+| alphagrep-flexi-cap_asof_2026-09-30.xls | 1247232 |
+| alphagrep-multi-asset-allocation_asof_2026-09-30.xls | 1228800 |
+| angel-one-nifty-50-etf_asof_2026-09-30.xlsx | 166057 |
+| angel-one-nifty-50-index-fund_asof_2026-09-30.xlsx | 167734 |
+| axis_asof_2026-09-30.xlsx | 1290236 |
+| bajaj-finserv_asof_2026-09-30.xls | 2122463 |
+| bandhan-debt-funds_asof_2026-09-30.xlsx | 1339221 |
+| bank-of-india_asof_2026-09-30.xlsx | 579215 |
+| baroda-bnp-paribas-overnight-yr51_asof_2026-09-30.xlsx | 442587 |
+| baroda-bnp-paribas_asof_2026-09-30-trimmed.xlsx | 44662 |
+| canara-robeco-liquid_asof_2026-09-30.xlsx | 854021 |
+| canara-robeco-small-cap_asof_2026-09-30.xlsx | 106033 |
+| capitalmind-arbitrage_asof_2026-09-30.xlsx | 182136 |
+| capitalmind-flexi-cap_asof_2026-09-30.xlsx | 150775 |
+| choice-clontf_asof_2026-07-31.xlsx | 254168 |
+| choice-gold-etf_asof_2026-02-28.xls | 285184 |
+| choice-overnight_asof_2026-09-30.xlsx | 261107 |
+| dsp_asof_2026-09-30.zip | 1147927 |
+| edelweiss_asof_2026-09-30.xlsx | 1087241 |
+| franklin-templeton-flexi-cap_asof_2026-09-30.xls | 152064 |
+| franklin-templeton-long-term_asof_2026-09-30.xls | 163840 |
+| groww_asof_2026-09-30-trimmed.xlsx | 160066 |
+| hdfc-bse-500-index-fund_asof_2026-09-30.xlsx | 190714 |
+| hdfc-flexi-cap_asof_2026-08-31.xlsx | 730405 |
+| hdfc-flexi-cap_asof_2026-09-30.xlsx | 752904 |
+| helios-flexi-cap_asof_2026-09-30.xls | 256000 |
+| helios-overnight_asof_2026-09-30.xls | 336896 |
+| icici-prudential_asof_2026-09-30-trimmed.zip | 602997 |
+| iti_asof_2026-08-31.xlsx | 1755591 |
+| jio-blackrock-all-schemes_asof_2026-09-30.xlsx | 539832 |
+| jio-blackrock-arbitrage_asof_2026-09-30.xlsx | 125243 |
+| jio-blackrock-flexi-cap_asof_2026-09-30.xlsx | 129054 |
+| jm-financial-large-cap_asof_2026-09-30.xlsx | 72543 |
+| jm-financial-mid-cap_asof_2026-09-30.xlsx | 68803 |
+| kotak-mahindra_asof_2026-09-30-trimmed.xlsx | 35342 |
+| lic-consolidated-debt_asof_2026-09-30.xlsx | 507614 |
+| lic-consolidated-equity_asof_2026-09-30.xlsx | 827310 |
+| lic-flexi-cap_asof_2026-09-30.xlsx | 120887 |
+| mirae-asset-flexi-cap_asof_2026-09-30.xlsx | 382272 |
+| mirae-asset-liquid_asof_2026-09-30.xlsx | 396810 |
+| monarch-overnight-fortnightly_asof_2026-09-30.xls | 304640 |
+| monarch-overnight-monthly_asof_2026-09-30.xls | 257536 |
+| motilal-oswal-yo58_asof_2026-09-30.xlsx | 178318 |
+| navi-flexi-cap_asof_2026-09-30.xlsx | 41229 |
+| navi-large-midcap_asof_2026-09-30.xlsx | 40816 |
+| nippon-india_asof_2026-09-30.xls | 1352141 |
+| nj-balanced-advantage_asof_2026-09-30.xlsx | 329661 |
+| nj-flexi-cap_asof_2026-09-30.xlsx | 189610 |
+| old-bridge-arbitrage_asof_2026-09-30.xlsx | 241943 |
+| old-bridge-flexi-cap_asof_2026-09-30.xlsx | 192267 |
+| pgim-india-flexi-cap_asof_2026-09-30.xlsx | 88519 |
+| pgim-india-global-real-estate-fof_asof_2026-09-30.xlsx | 81597 |
+| pgim-india-liquid_asof_2026-09-30.xlsx | 78871 |
+| ppfas-elss-tsf_asof_2026-09-30.xlsx | 82602 |
+| ppfas_asof_2026-09-30.xls | 400503 |
+| quant-all-schemes_asof_2026-09-30.xlsx | 1143508 |
+| quant-arbitrage_asof_2026-09-30.xlsx | 125174 |
+| quant-flexi-cap_asof_2026-09-30.xlsx | 114149 |
+| quantum_asof_2026-09-30.xlsx | 994824 |
+| samco-arbitrage_asof_2026-09-30.xlsx | 197408 |
+| samco-flexicap_asof_2026-09-30.xlsx | 196972 |
+| sbi_asof_2026-09-30-trimmed.xlsx | 127672 |
+| shriram_asof_2026-09-30.xls | 557056 |
+| sundaram-equity-fof_asof_2026-09-30.xlsx | 567251 |
+| sundaram-fixed-income_asof_2026-09-30.xlsx | 784198 |
+| tata_asof_2026-09-30.xlsx | 1788845 |
+| taurus-flexi-cap_asof_2026-03-31.xlsx | 204125 |
+| taurus-large-cap_asof_2026-03-31.xlsx | 200264 |
+| the-wealth-company-arbitrage_asof_2026-09-30.xlsx | 115630 |
+| the-wealth-company-flexi-cap_asof_2026-09-30.xlsx | 95682 |
+| trust_asof_2026-09-30-trimmed.xlsx | 38461 |
+| unifi-dynamic-asset-allocation_asof_2026-09-30.xlsx | 133114 |
+| unifi-flexi-cap_asof_2026-09-30.xlsx | 39330 |
+| unifi-liquid_asof_2026-09-30.xlsx | 58170 |
+| union-corporate-bond_asof_2026-09-30.xlsx | 316518 |
+| union-flexi-cap_asof_2026-09-30.xlsx | 97900 |
+| uti-consolidated_asof_2026-09-30.zip | 1808905 |
+| whiteoak-balanced-advantage_asof_2026-09-30.xlsx | 217233 |
+| whiteoak-liquid_asof_2026-09-30.xlsx | 78271 |
+| whiteoak-special-opportunities_asof_2026-09-30.xlsx | 191238 |
+| zerodha-arbitrage_asof_2026-09-30.xlsx | 175072 |
+| zerodha-liquid-etf_asof_2026-09-30.xlsx | 134453 |
+| zerodha-nifty100-etf_asof_2026-09-30.xlsx | 133809 |
