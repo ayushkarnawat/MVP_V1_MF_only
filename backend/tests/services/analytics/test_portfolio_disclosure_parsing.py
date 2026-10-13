@@ -433,8 +433,8 @@ def test_every_real_holdings_sheet_parses_with_a_plausible_scaled_total(filename
         assert batch.status is DisclosureBatchStatus.FAILED
         assert db.query(SchemeHolding).filter_by(batch_id=batch.id).count() == len(sheet.holdings)
     elif declared is not None:
-        assert Decimal(90) <= declared <= Decimal(101), f"{key}: declared={declared}"
-        assert abs(total - declared) <= Decimal("1.5"), f"{key}: sum={total}, declared={declared}"
+        from app.services.analytics.portfolio_disclosure_writer import declared_total_reconciles
+        assert declared_total_reconciles(sheet.holdings, declared), f"{key}: all={all_sum}, nonderiv={nd_sum}, declared={declared}"
     else:
         assert Decimal(90) <= total <= Decimal(101), f"{key}: sum={total}"
 

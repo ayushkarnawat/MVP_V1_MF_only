@@ -146,16 +146,18 @@ def test_fix_h2_declared_total_is_reconciled_without_changing_rows(db_session, s
     assert sorted(h.pct_to_nav for h in db_session.query(SchemeHolding).all()) == sorted(h.pct_to_nav for h in holdings)
 
 
-@pytest.mark.parametrize("equity,derivative,status", [
-    ("100", "-68", DisclosureBatchStatus.WRITTEN),     # DSP/Edelweiss: shorts are memo outside the Grand Total
-    ("113.3", "-13.3", DisclosureBatchStatus.WRITTEN),  # Axis: shorts are netted into NAV
-    ("80", "-5", DisclosureBatchStatus.FAILED),         # a dropped section shortens both bases
+@pytest.mark.parametrize("equity,derivative,cash,status", [
+    ("66", "-66", "34", DisclosureBatchStatus.WRITTEN),       # DSP/Edelweiss: shorts are memo; long equity + cash = 100
+    ("113.3", "-13.3", "0", DisclosureBatchStatus.WRITTEN),   # Axis: shorts are netted into NAV (signed sum = 100)
+    ("80", "-5", "0", DisclosureBatchStatus.FAILED),          # a dropped section shortens both bases
+    ("0", "-79.8", "100.4", DisclosureBatchStatus.FAILED),    # netted-futures fund with its equity section dropped
 ])
-def test_declared_total_reconciles_on_either_derivative_basis(db_session, equity, derivative, status):
+def test_declared_total_reconciles_on_either_derivative_basis(db_session, equity, derivative, cash, status):
     from dataclasses import replace
     family = _family(db_session, n_plans=1)
     holdings = [replace(_HOLDINGS[0], pct_to_nav=Decimal(equity)),
-                replace(_HOLDINGS[1], asset_type=AssetType.DERIVATIVE, pct_to_nav=Decimal(derivative))]
+                replace(_HOLDINGS[1], asset_type=AssetType.DERIVATIVE, pct_to_nav=Decimal(derivative)),
+                replace(_HOLDINGS[1], pct_to_nav=Decimal(cash))]
     write_disclosure_batch(db_session, family, date(2026, 9, 30), family.amc_name,
                            "https://example.test/file.xls", holdings, "EXACT", Decimal(1),
                            declared_total=Decimal(100))

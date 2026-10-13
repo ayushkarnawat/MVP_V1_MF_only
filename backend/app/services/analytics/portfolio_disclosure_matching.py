@@ -34,7 +34,7 @@ def _canonical_name(name: str) -> str:
 
 def _identity_tokens(name: str) -> tuple[frozenset[str], frozenset[str]]:
     identity_name = _NAME_NOTE_RE.sub(" ", name).upper()
-    identity_name = re.sub(r"\bFUND\s+OF\s+FUNDS\b", "FOF", identity_name)
+    identity_name = re.sub(r"\bFUNDS?\s+OF\s+FUNDS?\b", "FOF", identity_name)
     identity_name = re.sub(r"\bEXCHANGE\s+TRADED\s+FUNDS?\b", "ETF", identity_name)
     canonical = _canonical_name(identity_name)
     tokens = set(canonical.split())

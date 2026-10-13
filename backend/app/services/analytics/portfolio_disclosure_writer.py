@@ -20,7 +20,31 @@ from app.services.analytics.portfolio_disclosure_parsing import ParsedHolding, S
 # day-to-day variation in a fund's actual disclosed total.
 _SUM_CHECK_MIN = SUM_CHECK_MIN
 _SUM_CHECK_MAX = SUM_CHECK_MAX
+HEDGE_BALANCE_TOLERANCE = Decimal("5")  # percentage points: net risk exposure may not be below -this
 RECONCILIATION_TOLERANCE = Decimal("1.5")  # percentage points; never adjusts source weights
+
+
+def declared_total_reconciles(holdings: list[ParsedHolding], declared_total: Decimal) -> bool:
+    """True when the sheet's Grand Total is in the 90-101 band and the parsed rows reconcile
+    to it within RECONCILIATION_TOLERANCE on the signed basis or (hedge balanced) the
+    non-derivative basis."""
+    total_pct = sum((h.pct_to_nav for h in holdings), Decimal("0"))
+    if not (total_pct.is_finite() and declared_total.is_finite()):
+        return False
+    nav_pct = sum((h.pct_to_nav for h in holdings if h.asset_type is not AssetType.DERIVATIVE), Decimal("0"))
+    deriv_pct = total_pct - nav_pct
+    risk_pct = sum((h.pct_to_nav for h in holdings if h.asset_type not in (AssetType.DERIVATIVE, AssetType.CASH_EQUIVALENT)), Decimal("0"))
+    # The non-derivative basis is only trusted when net risk exposure (non-cash,
+    # non-derivative rows plus derivative legs) is not negative: a real fund is not net short,
+    # so a negative net means the risk assets were dropped while its short legs survived
+    # (a fund that nets futures into cash would otherwise still reconcile).
+    # AMCs differ on whether futures sit inside NAV (Axis) or are memo exposure (DSP).
+    hedge_balanced = deriv_pct == 0 or (risk_pct + deriv_pct) >= -HEDGE_BALANCE_TOLERANCE
+    return (
+        _SUM_CHECK_MIN <= declared_total <= _SUM_CHECK_MAX
+        and (abs(total_pct - declared_total) <= RECONCILIATION_TOLERANCE
+             or (hedge_balanced and abs(nav_pct - declared_total) <= RECONCILIATION_TOLERANCE))
+    )
 
 
 def write_disclosure_batch(
@@ -39,21 +63,7 @@ def write_disclosure_batch(
     total_pct = sum((h.pct_to_nav for h in holdings), Decimal("0"))
     valid_total = total_pct.is_finite()
     if declared_total is not None:
-        # Whether futures/options rows belong to NAV composition differs by AMC (Axis nets
-        # them into cash; DSP/Edelweiss/Tata show them as memo exposure outside the Grand
-        # Total). So the declared total must reconcile on EITHER basis: the signed sum of
-        # all rows, or the sum of the non-DERIVATIVE rows. A silently dropped section
-        # shortens both sums, so it still fails. Fixture evidence: 40+ hedged sheets.
-        nav_pct = sum((h.pct_to_nav for h in holdings if h.asset_type is not AssetType.DERIVATIVE), Decimal("0"))
-        reconciles = (
-            nav_pct.is_finite()
-            and (abs(total_pct - declared_total) <= RECONCILIATION_TOLERANCE
-                 or abs(nav_pct - declared_total) <= RECONCILIATION_TOLERANCE)
-        ) if declared_total.is_finite() else False
-        valid_total = (
-            valid_total and reconciles
-            and _SUM_CHECK_MIN <= declared_total <= _SUM_CHECK_MAX
-        )
+        valid_total = valid_total and declared_total_reconciles(holdings, declared_total)
     else:
         valid_total = valid_total and _SUM_CHECK_MIN <= total_pct <= _SUM_CHECK_MAX
     status = (
