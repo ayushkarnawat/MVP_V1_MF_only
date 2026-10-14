@@ -87,6 +87,27 @@ Plan: consumer plan Task 5 in full, plus shared rules F7–F11, F13 and decision
 
 **Report extras:** the 8-value to 4-class map, the exact helper you factored out (if any), and UI states tested (loading, empty, partial coverage, hidden headlines, toggle on/off, both views).
 
+## Run 10 — Task 4: Attribute 10, fund-pair overlap + concentration curve (2026-10-14; Run 9 committed `859cbd7`)
+
+Plan: consumer plan Task 4 in full, plus shared rules F7–F11 and decisions Q23–Q25 (read them first). Spec §5 and the visual map section 04 for the UI. Section name `overlap`, wrapper field `overlap`, component `OverlapSection.tsx`, module `overlap.py`, tests `tests/services/analytics/test_overlap.py`.
+
+**Reuse, do not re-implement:** Run 9 factored `get_disclosure_scope` (selected batches, raw rows, values, coverage) and `build_lookthrough_table` out of `lookthrough.py`. Use `get_disclosure_scope` for the per-scheme raw rows; use `get_lookthrough_table` (memoised) for the concentration curve. Do not change the engine, `allocation.py`, or the Run 6–9 section payloads.
+
+**Design rulings (so you do not ask):**
+- Overlap is computed on RAW per-scheme `pct_to_nav` of equity rows only (`EQUITY_DOMESTIC`, `EQUITY_INTERNATIONAL`), per ISIN, `min(weight_A, weight_B)` summed over common ISINs, as a percentage of each fund's net assets. Never use `LookthroughTable.exposure_pct` (the plan's regression test). Sum repeated lines of the same ISIN within a scheme first. NULL-ISIN rows never match across funds. REIT/InvIT rows are not equity here (Run 9 put them in "equity Other" for allocation only; overlap stays stock-only per Q23).
+- Funds considered are only the scheme with a selected WRITTEN batch (covered funds). Uncovered funds are named through the existing `coverage` payload; they are not shown as zero overlap.
+- One value per unordered pair; the matrix is symmetric, diagonal omitted or null (your choice, document it).
+- Heatmap: top 12 covered funds by household value, labelled "top 12 funds by value". `pairs_above_low` is uncapped over ALL covered funds and carries the overlap %, both fund names and the common-stock list so a tap needs no second request. Common-stock list per pair: ISIN, name, both weights, sorted by the smaller weight, desc. For the 12-fund matrix cells include the common-stock list as well; if the payload gets large, cap each list at 20 stocks with a `common_total` count and say so in the report.
+- Bands: `OVERLAP_BAND_LOW = 20`, `OVERLAP_BAND_HIGH = 40` as constants in `overlap.py`, carried in the payload as `bands: {low, high}`; the frontend must read them from the payload (no second copy).
+- Concentration curve: from the complete shared table's equity rows, top-N cumulative `exposure_pct` for N = 5, 10, 20, 50 (and the full count if smaller); a separate code path from the heatmap. Headline sentence hidden when `hide_headlines`; the heatmap and banner still show.
+- The UI states that a 70%-equity fund caps at 70% overlap, in plain words. A household with fewer than 2 covered funds shows an explicit "overlap needs at least two funds with published holdings" state, not an empty chart.
+
+**Tests (named in the plan):** spec worked example (two funds, 42% across HDFC Bank/Reliance/ICICI Bank/Infosys/TCS + 11 others); equity-only (debt/cash/derivative common lines add nothing; 70%-equity cap); symmetry; 15 funds gives a 12-fund matrix and `pairs_above_low` still contains a pair outside the 12; concentration curve; `test_recompute.py` section wiring. Also one real-data test on committed fixtures if two real funds from the same AMC share holdings (list which in the report). Frontend: the new section test, the three shared view tests, `tsc -b`. Run affected tests only.
+
+**Not in Run 10:** PDF print (Task 7), other attributes, migrations (none expected; stop and ask if you think one is needed), Terraform. No git write commands.
+
+**Report extras:** payload size for a 15-fund household, the per-list cap decision, UI states tested (loading, empty, fewer than two funds, partial coverage, hidden headlines, 12-cap label, band colours, desktop and mobile).
+
 ---
 
 ## Self-review (before printing the report)
@@ -126,4 +147,4 @@ Run date/time: <…>    Environment: Windows    Python: <version>    Baseline HE
 | 8 | Run 8 | built + committed 2026-10-14 (Codex, baseline `6e28c66`) | Migration 0040, AMFI client (4 verified lists, 21,053 rows), job + cron text, cap_allocation section, frontend. WSL 35 passed. Claude review notes: new half-year needs a code edit (explicit URL table, alerts until added); job exits 0 even when a period fails; classification date uses oldest holdings_as_of across funds. Commit `78400ff`. |
 | — | Run 9 | ready 2026-10-14 | Task 5 (A13). Depends on Run 8 (done). |
 | 9 | Run 9 | built + committed 2026-10-14 (Codex, baseline `4745a50`) | `asset_allocation` section: both arbitrage variants in payload, shared helpers factored from lookthrough.py (`get_disclosure_scope`, `build_lookthrough_table`, `build_cap_allocation`), embedded CapAllocation drill-down. WSL 54 passed; Codex 121 backend / 147 frontend. Judgment call: REIT_INVIT counted as equity (outer Other). |
-
+| — | Run 10 | ready 2026-10-14 | Task 4 (A10). Uses Run 9's shared scope helper. |

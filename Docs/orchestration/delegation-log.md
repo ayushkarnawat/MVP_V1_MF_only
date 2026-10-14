@@ -554,3 +554,4 @@ fix" rule.
 - 2026-10-14 | sp2-consumers — Run 8 APPROVED (78400ff) | worker=codex (manual relay) | Task 3 / A02 done; Run 9 (A13) next.
 - 2026-10-14 | sp2-consumers — Run 9 (Task 5, A13) READY | worker=codex (manual relay) | New section asset_allocation beside the existing allocation section; toggle variants both in payload.
 - 2026-10-14 | sp2-consumers — Run 9 APPROVED | worker=codex (manual relay) | Task 5 / A13 done; Run 10 (A10 overlap) next.
+- 2026-10-14 | sp2-consumers — Run 10 (Task 4, A10) READY | worker=codex (manual relay) | Raw per-scheme equity overlap, 12-fund heatmap + uncapped pairs list, bands in payload, concentration curve from shared table.
