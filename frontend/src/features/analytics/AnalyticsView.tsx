@@ -1,5 +1,6 @@
+import { OverlapSection, openStockHoldings } from "./OverlapSection";
 import { AssetAllocationSection } from "./AssetAllocationSection";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { formatIndianCurrency } from "@/lib/decimal";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -20,6 +21,7 @@ import { BenchmarkSection } from "./BenchmarkSection";
 import { FundScoreDetailModal } from "./FundScoreDetailModal";
 import { ANALYTICS_SECTION_NAMES } from "./types";
 import type {
+  OverlapSummary,
   AssetAllocationSummary,
   CapAllocationSummary,
   StockHoldingsSummary,
@@ -48,6 +50,7 @@ export interface AnalyticsViewProps {
 const AGGREGATE_FIELD: Record<AnalyticsSectionName, string> = {
   allocation: "allocation",
   stock_holdings: "stock_holdings",
+  overlap: "overlap",
   asset_allocation: "asset_allocation",
   cap_allocation: "cap_allocation",
   ter: "ter",
@@ -67,6 +70,7 @@ export function AnalyticsView({
   onAddDataForMember,
   activeMemberName,
 }: AnalyticsViewProps) {
+  const analyticsRoot = useRef<HTMLDivElement>(null);
   const isAggregate = viewMode === "aggregate";
   const scope = isAggregate ? "combined" : memberId;
   const { sections, recomputing, fetchError, hasFailedSection, isRetrying, retry } = useAnalyticsScope(scope);
@@ -79,6 +83,7 @@ export function AnalyticsView({
 
   const allocation = unwrap<AnalyticsAllocationSummary>("allocation");
   const stockHoldings = unwrap<StockHoldingsSummary>("stock_holdings");
+  const overlap = unwrap<OverlapSummary>("overlap");
   const assetAllocation = unwrap<AssetAllocationSummary>("asset_allocation");
   const capAllocation = unwrap<CapAllocationSummary>("cap_allocation");
   const ter = unwrap<WeightedTerSummary>("ter");
@@ -96,6 +101,7 @@ export function AnalyticsView({
 
   const allocationLoading = !!scope && !isSectionSettled(sections.allocation);
   const stockHoldingsLoading = !!scope && !isSectionSettled(sections.stock_holdings);
+  const overlapLoading = !!scope && !isSectionSettled(sections.overlap);
   const assetAllocationLoading = !!scope && !isSectionSettled(sections.asset_allocation);
   const capAllocationLoading = !!scope && !isSectionSettled(sections.cap_allocation);
   const terLoading =
@@ -174,7 +180,7 @@ export function AnalyticsView({
   const totalValStr = allocation?.total_value || "0";
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300">
+    <div ref={analyticsRoot} className="space-y-8 animate-in fade-in duration-300">
       {/* Hero Summary Header */}
       <Card className="p-6 sm:p-7 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xs relative overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
@@ -266,6 +272,7 @@ export function AnalyticsView({
       <StockHoldingsSection data={stockHoldings} isLoading={stockHoldingsLoading} />
       <CapAllocationSection data={capAllocation} isLoading={capAllocationLoading} />
       <AssetAllocationSection data={assetAllocation} isLoading={assetAllocationLoading} />
+      <OverlapSection data={overlap} isLoading={overlapLoading} onOpenStocks={() => openStockHoldings(analyticsRoot.current)} />
 
       {/* Section 2: Cost / TER */}
       <TerSection ter={ter} comparison={terComparison} isLoading={terLoading} />

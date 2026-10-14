@@ -1,5 +1,6 @@
+import { OverlapSection, openStockHoldings } from "@/features/analytics/OverlapSection";
 import { AssetAllocationSection } from "@/features/analytics/AssetAllocationSection";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { formatIndianCurrency } from "@/lib/decimal";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,6 +18,7 @@ import { InvestmentWithdrawalSection } from "@/features/analytics/InvestmentWith
 import { BenchmarkSection } from "@/features/analytics/BenchmarkSection";
 import { FundScoreDetailModal } from "@/features/analytics/FundScoreDetailModal";
 import type {
+  OverlapSummary,
   AssetAllocationSummary,
   CapAllocationSummary,
   StockHoldingsSummary,
@@ -40,6 +42,7 @@ export interface MobileAnalyticsViewProps {
 const AGGREGATE_FIELD: Record<AnalyticsSectionName, string> = {
   allocation: "allocation",
   stock_holdings: "stock_holdings",
+  overlap: "overlap",
   asset_allocation: "asset_allocation",
   cap_allocation: "cap_allocation",
   ter: "ter",
@@ -55,6 +58,7 @@ const AGGREGATE_FIELD: Record<AnalyticsSectionName, string> = {
 
 export function MobileAnalyticsView({ memberId = null }: MobileAnalyticsViewProps) {
   const isAggregate = !memberId;
+  const analyticsRoot = useRef<HTMLDivElement>(null);
   const scope = memberId || "combined";
   const { sections, fetchError, hasFailedSection, isRetrying, retry } = useAnalyticsScope(scope);
 
@@ -66,6 +70,7 @@ export function MobileAnalyticsView({ memberId = null }: MobileAnalyticsViewProp
 
   const allocation = unwrap<AnalyticsAllocationSummary>("allocation");
   const stockHoldings = unwrap<StockHoldingsSummary>("stock_holdings");
+  const overlap = unwrap<OverlapSummary>("overlap");
   const assetAllocation = unwrap<AssetAllocationSummary>("asset_allocation");
   const capAllocation = unwrap<CapAllocationSummary>("cap_allocation");
   const ter = unwrap<WeightedTerSummary>("ter");
@@ -81,6 +86,7 @@ export function MobileAnalyticsView({ memberId = null }: MobileAnalyticsViewProp
 
   const allocationLoading = !isSectionSettled(sections.allocation);
   const stockHoldingsLoading = !isSectionSettled(sections.stock_holdings);
+  const overlapLoading = !isSectionSettled(sections.overlap);
   const assetAllocationLoading = !isSectionSettled(sections.asset_allocation);
   const capAllocationLoading = !isSectionSettled(sections.cap_allocation);
   const terLoading = !isSectionSettled(sections.ter) || !isSectionSettled(sections.ter_direct_regular);
@@ -118,7 +124,7 @@ export function MobileAnalyticsView({ memberId = null }: MobileAnalyticsViewProp
   const totalValStr = allocation?.total_value || "0";
 
   return (
-    <div className="space-y-6 pb-24 px-3 sm:px-4 pt-3 animate-in fade-in duration-200">
+    <div ref={analyticsRoot} className="space-y-6 pb-24 px-3 sm:px-4 pt-3 animate-in fade-in duration-200">
       {/* Mobile Header Card */}
       <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-2xs space-y-3">
         <div className="flex items-center justify-end">
@@ -165,6 +171,7 @@ export function MobileAnalyticsView({ memberId = null }: MobileAnalyticsViewProp
       <StockHoldingsSection data={stockHoldings} isLoading={stockHoldingsLoading} />
       <CapAllocationSection data={capAllocation} isLoading={capAllocationLoading} />
       <AssetAllocationSection data={assetAllocation} isLoading={assetAllocationLoading} />
+      <OverlapSection data={overlap} isLoading={overlapLoading} onOpenStocks={() => openStockHoldings(analyticsRoot.current)} />
 
       {/* Section 2: TER & Cost */}
       <TerSection ter={ter} comparison={terComparison} isLoading={terLoading} />

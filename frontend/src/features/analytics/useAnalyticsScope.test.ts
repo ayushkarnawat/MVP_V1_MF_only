@@ -6,6 +6,7 @@ import * as api from "./api";
 vi.mock("./api");
 
 const settledSections = {
+  overlap: { payload: {}, computed_at: "2026-10-14T00:00:00Z", failed_at: null },
   asset_allocation: { payload: {}, computed_at: "2026-10-14T00:00:00Z", failed_at: null },
   cap_allocation: { payload: {}, computed_at: "2026-10-14T00:00:00Z", failed_at: null },
   stock_holdings: { payload: {}, computed_at: "2026-10-14T00:00:00Z", failed_at: null },
@@ -27,7 +28,7 @@ const coldStartSections = {
 };
 
 describe("useAnalyticsScope", () => {
-  it.each(["stock_holdings", "asset_allocation"] as const)("keeps polling while %s is missing and stops on failure", async (section) => {
+  it.each(["stock_holdings", "asset_allocation", "overlap"] as const)("keeps polling while %s is missing and stops on failure", async (section) => {
     vi.mocked(api.getAnalyticsScope)
       .mockResolvedValueOnce({ scope: "combined", recomputing: false, sections: { ...settledSections, [section]: { payload: null, computed_at: null, failed_at: null } } })
       .mockResolvedValue({ scope: "combined", recomputing: false, sections: { ...settledSections, [section]: { payload: null, computed_at: null, failed_at: "2026-10-14T00:00:00Z" } } });

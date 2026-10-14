@@ -499,3 +499,58 @@ class AssetAllocationSummary(BaseModel):
 class AggregateAssetAllocationResponse(BaseModel):
     members: list[MemberStatus]
     asset_allocation: AssetAllocationSummary
+
+
+class OverlapBands(BaseModel):
+    low: Decimal
+    high: Decimal
+
+
+class OverlapCommonStock(BaseModel):
+    isin: str
+    instrument_name: str
+    weight_a: Decimal
+    weight_b: Decimal
+
+
+class OverlapResult(BaseModel):
+    overlap_pct: Decimal
+    common_stocks: list[OverlapCommonStock]
+    common_total: int
+
+
+class OverlapFund(CoverageFund):
+    current_value: Decimal
+
+
+class OverlapPair(OverlapResult):
+    fund_a: OverlapFund
+    fund_b: OverlapFund
+
+
+class ConcentrationPoint(BaseModel):
+    stock_count: int
+    exposure_pct: Decimal
+
+
+class OverlapSummary(BaseModel):
+    matrix_funds: list[OverlapFund]
+    matrix: list[OverlapPair]  # unordered pairs; diagonal omitted
+    pairs_above_low: list[OverlapPair]
+    matrix_truncated: bool
+    total_fund_count: int
+    common_stock_limit: int
+    bands: OverlapBands
+    concentration: list[ConcentrationPoint]
+    total_stock_count: int
+    nav_as_of: date | None
+    holdings_as_of: date | None
+    total_portfolio_value: Decimal
+    coverage: LookthroughCoverage
+    hide_headlines: bool
+    excluded_share: Decimal
+
+
+class AggregateOverlapResponse(BaseModel):
+    members: list[MemberStatus]
+    overlap: OverlapSummary

@@ -174,6 +174,7 @@ export const ANALYTICS_SECTION_NAMES = [
   "stock_holdings",
   "cap_allocation",
   "asset_allocation",
+  "overlap",
 ] as const;
 
 export type AnalyticsSectionName = (typeof ANALYTICS_SECTION_NAMES)[number];
@@ -419,4 +420,41 @@ export interface AssetAllocationSummary {
 export interface AggregateAssetAllocationResponse {
   members: MemberStatus[];
   asset_allocation: AssetAllocationSummary;
+}
+
+
+export interface OverlapFund extends CoverageFund { current_value: string; }
+export interface OverlapCommonStock {
+  isin: string;
+  instrument_name: string;
+  weight_a: string;
+  weight_b: string;
+}
+export interface OverlapPair {
+  fund_a: OverlapFund;
+  fund_b: OverlapFund;
+  overlap_pct: string;
+  common_stocks: OverlapCommonStock[];
+  common_total: number;
+}
+export interface OverlapSummary {
+  matrix_funds: OverlapFund[];
+  matrix: OverlapPair[];
+  pairs_above_low: OverlapPair[];
+  matrix_truncated: boolean;
+  total_fund_count: number;
+  common_stock_limit: number;
+  bands: { low: string; high: string };
+  concentration: { stock_count: number; exposure_pct: string }[];
+  total_stock_count: number;
+  nav_as_of: string | null;
+  holdings_as_of: string | null;
+  total_portfolio_value: string;
+  coverage: LookthroughCoverage;
+  hide_headlines: boolean;
+  excluded_share: string;
+}
+export interface AggregateOverlapResponse {
+  members: MemberStatus[];
+  overlap: OverlapSummary;
 }
