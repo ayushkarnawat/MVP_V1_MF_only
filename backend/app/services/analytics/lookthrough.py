@@ -10,6 +10,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
+from types import SimpleNamespace
 
 from sqlalchemy.orm import Session
 
@@ -96,9 +97,31 @@ def _age_tag(as_of: date, nav_date: date, cadence: str) -> str | None:
     return "older_than_60_days"
 
 
-async def compute_lookthrough_table(
+@dataclass(frozen=True)
+class DisclosureScope:
+    household_member_ids: list[uuid.UUID]
+    values: dict[uuid.UUID, Decimal]
+    total: Decimal
+    covered: Decimal
+    schemes: dict[uuid.UUID, SimpleNamespace]
+    selected: dict[uuid.UUID, SimpleNamespace]
+    raw_rows: list[SimpleNamespace]
+    ages: dict[uuid.UUID, LookthroughFundAge]
+    nav_as_of: date | None
+    coverage: LookthroughCoverage
+
+
+async def get_disclosure_scope(db: Session, household_member_ids: list[uuid.UUID]) -> DisclosureScope:
+    memo = db.info.setdefault("disclosure_scope", {})
+    key = tuple(sorted(household_member_ids))
+    if key not in memo:
+        memo[key] = await compute_disclosure_scope(db, household_member_ids)
+    return memo[key]
+
+
+async def compute_disclosure_scope(
     db: Session, household_member_ids: list[uuid.UUID],
-) -> LookthroughTable:
+) -> DisclosureScope:
     holdings = await compute_holdings(db, household_member_ids)
     values, total, missing = scheme_values(holdings)
     # A stale NAV must not admit a disclosure from after its valuation date.
@@ -153,7 +176,25 @@ async def compute_lookthrough_table(
     raw_rows = db.query(SchemeHolding).filter(SchemeHolding.batch_id.in_(by_batch)).order_by(
         SchemeHolding.id,
     ).all() if by_batch else []
-    grouped: dict[str | uuid.UUID, list[tuple[SchemeHolding, uuid.UUID, Decimal]]] = defaultdict(list)
+    # Cache primitive snapshots; section commits expire ORM instances.
+    def snapshot(obj, fields):
+        return SimpleNamespace(**{field: getattr(obj, field) for field in fields})
+    return DisclosureScope(
+        list(household_member_ids), values, total, covered,
+        {sid: snapshot(s, ("id", "name", "sebi_category")) for sid, s in schemes.items()},
+        {sid: snapshot(b, ("id", "as_of_date")) for sid, b in selected.items()},
+        [snapshot(r, ("id", "batch_id", "isin", "instrument_name", "sector_raw", "asset_type", "pct_to_nav")) for r in raw_rows],
+        ages, nav_as_of, coverage,
+    )
+
+
+def build_lookthrough_table(scope: DisclosureScope) -> LookthroughTable:
+    values, total, schemes, selected = scope.values, scope.total, scope.schemes, scope.selected
+    ages, nav_as_of, coverage = scope.ages, scope.nav_as_of, scope.coverage
+    coverage_fraction = scope.covered / total if total else _ZERO
+    household_member_ids, raw_rows = scope.household_member_ids, scope.raw_rows
+    by_batch = {b.id: sid for sid, b in selected.items()}
+    grouped: dict[str | uuid.UUID, list[tuple[SimpleNamespace, uuid.UUID, Decimal]]] = defaultdict(list)
     excluded_value, non_equity_value = _ZERO, _ZERO
     for row in raw_rows:
         sid = by_batch[row.batch_id]
@@ -197,6 +238,10 @@ async def compute_lookthrough_table(
         excluded_share=excluded_value / total * _HUNDRED if total else _ZERO,
         non_equity_share=non_equity_value / total * _HUNDRED if total else _ZERO,
     )
+
+
+async def compute_lookthrough_table(db: Session, household_member_ids: list[uuid.UUID]) -> LookthroughTable:
+    return build_lookthrough_table(await get_disclosure_scope(db, household_member_ids))
 
 
 async def get_lookthrough_table(db: Session, household_member_ids: list[uuid.UUID]) -> LookthroughTable:

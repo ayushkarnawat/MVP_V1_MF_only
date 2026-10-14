@@ -32,9 +32,10 @@ export interface CapAllocationSectionProps {
   data: CapAllocationSummary | null;
   isLoading?: boolean;
   className?: string;
+  embedded?: boolean;
 }
 
-export function CapAllocationSection({ data, isLoading = false, className }: CapAllocationSectionProps) {
+export function CapAllocationSection({ data, isLoading = false, className, embedded = false }: CapAllocationSectionProps) {
   const id = useId();
   const [equityOnly, setEquityOnly] = useState(false);
   const [selected, setSelected] = useState<CapAllocationBucket["key"] | null>(null);
@@ -50,12 +51,12 @@ export function CapAllocationSection({ data, isLoading = false, className }: Cap
   const empty = compare(data?.total_portfolio_value ?? "0", "0") === 0;
   // Only chart geometry uses numbers. All text comes from backend Decimal strings.
   const pieData = buckets.map((bucket, index) => ({ label: LABELS[bucket.key], value: Math.max(0, Number(percent(bucket))), color: defaultPieColors[index], formattedValue: percent(bucket) }));
-  return <section id="cap-allocation" aria-labelledby={`${id}-heading`} className={cn(CARD, "space-y-5", className)}>
+  return <section id={embedded ? undefined : "cap-allocation"} aria-labelledby={`${id}-heading`} className={cn(CARD, "space-y-5", className)}>
     <h2 id={`${id}-heading`} className="font-display text-lg font-bold tracking-tight text-[var(--color-ink)]">Market-cap allocation</h2>
     {!data ? <p className="py-12 text-center text-sm text-[var(--color-text-secondary)]">No market-cap allocation data available</p> : <>
       <p className="text-xs text-[var(--color-text-secondary)]">Values as on {holdingsDate(data.nav_as_of)} · Holdings as on {holdingsDate(data.holdings_as_of)}</p>
       <p className="text-xs text-[var(--color-text-secondary)]">{data.classification_as_of ? `AMFI classification effective from ${holdingsDate(data.classification_as_of)}` : "No applicable AMFI classifications for these holdings"}</p>
-      <CoverageBanner coverage={data.coverage} excludedShare={data.excluded_share} />
+      {!embedded && <CoverageBanner coverage={data.coverage} excludedShare={data.excluded_share} />}
       <div role="group" aria-label="Allocation denominator" className="flex flex-wrap gap-2">
         {([false, true] as const).map((only) => <button key={String(only)} type="button" aria-pressed={equityOnly === only}
           onClick={() => setEquityOnly(only)} className={cn(BUTTON, "border border-[var(--color-border)]", equityOnly === only ? "bg-[var(--color-ink)] text-[var(--color-surface)]" : "text-[var(--color-text-secondary)]")}>
@@ -82,9 +83,9 @@ export function CapAllocationSection({ data, isLoading = false, className }: Cap
         {buckets.some((bucket) => compare(percent(bucket), "0") < 0) && <p className="text-xs text-[var(--color-text-secondary)]">Negative net positions are listed with their signed percentages; the donut shows positive exposures.</p>}
         {active && <div id={`${id}-drill`} role="region" aria-label={`${LABELS[active.key]} breakdown`} className="space-y-4 border-t border-[var(--color-border)] pt-4">
           {active.key === "OTHER" ? <>
-            <div className="space-y-2"><h3 className="text-sm font-semibold text-[var(--color-ink)]">Not equity (debt, cash, gold, REITs)</h3>
+            {!embedded && <div className="space-y-2"><h3 className="text-sm font-semibold text-[var(--color-ink)]">Not equity (debt, cash, gold, REITs)</h3>
               {equityOnly ? <p className="text-xs text-[var(--color-text-secondary)]">Excluded from the equity-only view</p> : <><p className="text-sm tabular-nums">₹{formatIndianCurrency(data.other.non_equity_value)}</p><Stocks rows={data.other.non_equity_rows} /></>}
-            </div>
+            </div>}
             <div className="space-y-2"><h3 className="text-sm font-semibold text-[var(--color-ink)]">Equity not in AMFI list</h3>
               <p className="text-sm tabular-nums">₹{formatIndianCurrency(data.other.unclassified_equity_value)}</p><Stocks rows={data.other.unclassified_equity_rows} />
             </div>

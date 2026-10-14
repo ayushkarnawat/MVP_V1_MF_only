@@ -1,3 +1,4 @@
+import { AssetAllocationSection } from "./AssetAllocationSection";
 import { useState } from "react";
 import { formatIndianCurrency } from "@/lib/decimal";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +20,7 @@ import { BenchmarkSection } from "./BenchmarkSection";
 import { FundScoreDetailModal } from "./FundScoreDetailModal";
 import { ANALYTICS_SECTION_NAMES } from "./types";
 import type {
+  AssetAllocationSummary,
   CapAllocationSummary,
   StockHoldingsSummary,
   AnalyticsAllocationSummary,
@@ -46,6 +48,7 @@ export interface AnalyticsViewProps {
 const AGGREGATE_FIELD: Record<AnalyticsSectionName, string> = {
   allocation: "allocation",
   stock_holdings: "stock_holdings",
+  asset_allocation: "asset_allocation",
   cap_allocation: "cap_allocation",
   ter: "ter",
   ter_direct_regular: "ter",
@@ -76,6 +79,7 @@ export function AnalyticsView({
 
   const allocation = unwrap<AnalyticsAllocationSummary>("allocation");
   const stockHoldings = unwrap<StockHoldingsSummary>("stock_holdings");
+  const assetAllocation = unwrap<AssetAllocationSummary>("asset_allocation");
   const capAllocation = unwrap<CapAllocationSummary>("cap_allocation");
   const ter = unwrap<WeightedTerSummary>("ter");
   const terComparison = unwrap<DirectRegularTerComparison>("ter_direct_regular");
@@ -92,6 +96,7 @@ export function AnalyticsView({
 
   const allocationLoading = !!scope && !isSectionSettled(sections.allocation);
   const stockHoldingsLoading = !!scope && !isSectionSettled(sections.stock_holdings);
+  const assetAllocationLoading = !!scope && !isSectionSettled(sections.asset_allocation);
   const capAllocationLoading = !!scope && !isSectionSettled(sections.cap_allocation);
   const terLoading =
     !!scope && (!isSectionSettled(sections.ter) || !isSectionSettled(sections.ter_direct_regular));
@@ -260,6 +265,7 @@ export function AnalyticsView({
       <AllocationSection summary={allocation} isLoading={allocationLoading} />
       <StockHoldingsSection data={stockHoldings} isLoading={stockHoldingsLoading} />
       <CapAllocationSection data={capAllocation} isLoading={capAllocationLoading} />
+      <AssetAllocationSection data={assetAllocation} isLoading={assetAllocationLoading} />
 
       {/* Section 2: Cost / TER */}
       <TerSection ter={ter} comparison={terComparison} isLoading={terLoading} />

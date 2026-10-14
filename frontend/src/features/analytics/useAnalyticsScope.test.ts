@@ -6,6 +6,7 @@ import * as api from "./api";
 vi.mock("./api");
 
 const settledSections = {
+  asset_allocation: { payload: {}, computed_at: "2026-10-14T00:00:00Z", failed_at: null },
   cap_allocation: { payload: {}, computed_at: "2026-10-14T00:00:00Z", failed_at: null },
   stock_holdings: { payload: {}, computed_at: "2026-10-14T00:00:00Z", failed_at: null },
   ranking: { payload: {}, computed_at: "2026-10-14T00:00:00Z", failed_at: null },
@@ -26,10 +27,10 @@ const coldStartSections = {
 };
 
 describe("useAnalyticsScope", () => {
-  it("keeps polling while stock holdings are missing and stops on stock failure", async () => {
+  it.each(["stock_holdings", "asset_allocation"] as const)("keeps polling while %s is missing and stops on failure", async (section) => {
     vi.mocked(api.getAnalyticsScope)
-      .mockResolvedValueOnce({ scope: "combined", recomputing: false, sections: { ...settledSections, stock_holdings: { payload: null, computed_at: null, failed_at: null } } })
-      .mockResolvedValue({ scope: "combined", recomputing: false, sections: { ...settledSections, stock_holdings: { payload: null, computed_at: null, failed_at: "2026-10-14T00:00:00Z" } } });
+      .mockResolvedValueOnce({ scope: "combined", recomputing: false, sections: { ...settledSections, [section]: { payload: null, computed_at: null, failed_at: null } } })
+      .mockResolvedValue({ scope: "combined", recomputing: false, sections: { ...settledSections, [section]: { payload: null, computed_at: null, failed_at: "2026-10-14T00:00:00Z" } } });
     const { result } = renderHook(() => useAnalyticsScope("combined"));
     await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
     expect(api.getAnalyticsScope).toHaveBeenCalledTimes(2);

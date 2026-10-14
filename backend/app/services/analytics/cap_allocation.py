@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.models.enums import AssetType
 from app.models.reference import MarketCapClassification
-from app.services.analytics.lookthrough import get_lookthrough_table
+from app.services.analytics.lookthrough import LookthroughTable, get_lookthrough_table
 from app.services.analytics.schemas import (
     CapAllocationBucket, CapAllocationOther, CapAllocationSummary, StockHoldingRow,
 )
@@ -19,10 +19,17 @@ _ZERO = Decimal("0")
 
 async def compute_cap_allocation(db: Session, household_member_ids: list[uuid.UUID]) -> CapAllocationSummary:
     table = await get_lookthrough_table(db, household_member_ids)
-    equity = [row for row in table.rows if row.asset_type in _EQUITY]
-    non_equity = [row for row in table.rows if row.asset_type not in _EQUITY]
+    return build_cap_allocation(db, table)
+
+
+def build_cap_allocation(
+    db: Session, table: LookthroughTable, equity_types: set[AssetType] = _EQUITY,
+) -> CapAllocationSummary:
+    """Shared holdings-dated AMFI grouping; extra equity kinds remain Other."""
+    equity = [row for row in table.rows if row.asset_type in equity_types]
+    non_equity = [row for row in table.rows if row.asset_type not in equity_types]
     equity_value = sum((row.exposure_value for row in equity), _ZERO)
-    isins = {row.isin for row in equity if row.isin is not None}
+    isins = {row.isin for row in equity if row.isin is not None and row.asset_type in _EQUITY}
     classifications = db.query(MarketCapClassification).filter(
         MarketCapClassification.isin.in_(isins),
         MarketCapClassification.effective_date <= table.holdings_as_of,
@@ -33,7 +40,7 @@ async def compute_cap_allocation(db: Session, household_member_ids: list[uuid.UU
     grouped = {key: [] for key in ("LARGE", "MID", "SMALL", "OTHER")}
     used_dates = []
     for row in equity:
-        classification = by_isin.get(row.isin)
+        classification = by_isin.get(row.isin) if row.asset_type in _EQUITY else None
         grouped[classification.bucket.value if classification else "OTHER"].append(row)
         if classification:
             used_dates.append(classification.effective_date)

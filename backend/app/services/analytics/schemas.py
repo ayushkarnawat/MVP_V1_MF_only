@@ -463,3 +463,39 @@ class ScenarioResultRow(BaseModel):
     by_member: list[ScenarioMemberResult]
     hypothetical_assumptions: list[ScenarioHypotheticalAssumptionRow]
     assumptions_not_set: bool
+
+
+class AssetAllocationClass(BaseModel):
+    key: Literal["equity", "debt", "gold", "cash_like"]
+    value: Decimal
+    percentage: Decimal
+
+
+class AssetAllocationOuter(BaseModel):
+    key: Literal["LARGE", "MID", "SMALL", "OTHER"]
+    value: Decimal
+    percentage: Decimal
+
+
+class AssetAllocationVariant(BaseModel):
+    classes: list[AssetAllocationClass]
+    equity_outer: list[AssetAllocationOuter]
+    cap_allocation: CapAllocationSummary
+
+
+class AssetAllocationSummary(BaseModel):
+    as_disclosed: AssetAllocationVariant
+    arbitrage_as_cash: AssetAllocationVariant
+    total_portfolio_value: Decimal
+    covered_value: Decimal
+    nav_as_of: date | None
+    holdings_as_of: date | None
+    coverage: LookthroughCoverage
+    hide_headlines: bool
+    excluded_share: Decimal
+    arbitrage_funds: list[CoverageFund]
+
+
+class AggregateAssetAllocationResponse(BaseModel):
+    members: list[MemberStatus]
+    asset_allocation: AssetAllocationSummary

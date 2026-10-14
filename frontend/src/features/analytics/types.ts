@@ -173,6 +173,7 @@ export const ANALYTICS_SECTION_NAMES = [
   "fund_manager",
   "stock_holdings",
   "cap_allocation",
+  "asset_allocation",
 ] as const;
 
 export type AnalyticsSectionName = (typeof ANALYTICS_SECTION_NAMES)[number];
@@ -390,4 +391,32 @@ export interface FundManagerAllocationSummary {
 export interface AggregateFundManagerAllocationResponse {
   members: MemberStatus[];
   fund_manager: FundManagerAllocationSummary;
+}
+
+
+export interface AssetAllocationClass {
+  key: "equity" | "debt" | "gold" | "cash_like";
+  value: string;
+  percentage: string;
+}
+export interface AssetAllocationVariant {
+  classes: AssetAllocationClass[];
+  equity_outer: { key: CapAllocationBucket["key"]; value: string; percentage: string }[];
+  cap_allocation: CapAllocationSummary;
+}
+export interface AssetAllocationSummary {
+  as_disclosed: AssetAllocationVariant;
+  arbitrage_as_cash: AssetAllocationVariant;
+  total_portfolio_value: string;
+  covered_value: string;
+  nav_as_of: string | null;
+  holdings_as_of: string | null;
+  coverage: LookthroughCoverage;
+  hide_headlines: boolean;
+  excluded_share: string;
+  arbitrage_funds: CoverageFund[];
+}
+export interface AggregateAssetAllocationResponse {
+  members: MemberStatus[];
+  asset_allocation: AssetAllocationSummary;
 }

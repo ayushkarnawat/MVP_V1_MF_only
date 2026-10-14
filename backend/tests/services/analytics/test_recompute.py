@@ -19,6 +19,8 @@ from app.services.analytics.recompute import (
     try_claim_recompute,
 )
 from app.services.analytics.schemas import (
+    AssetAllocationSummary,
+    AssetAllocationVariant,
     CapAllocationSummary,
     CapAllocationOther,
     LookthroughCoverage,
@@ -98,6 +100,15 @@ _MOCK_RESULTS = {
 }
 
 
+_asset_variant = AssetAllocationVariant(classes=[], equity_outer=[], cap_allocation=_MOCK_RESULTS["cap_allocation"])
+_MOCK_RESULTS["asset_allocation"] = AssetAllocationSummary(
+    as_disclosed=_asset_variant, arbitrage_as_cash=_asset_variant, total_portfolio_value=Decimal(0),
+    covered_value=Decimal(0), nav_as_of=None, holdings_as_of=None,
+    coverage=_MOCK_RESULTS["cap_allocation"].coverage, hide_headlines=True,
+    excluded_share=Decimal(0), arbitrage_funds=[],
+)
+
+
 def _patched_computes():
     return [
         patch(f"app.services.analytics.recompute._SECTIONS", _SECTIONS)  # placeholder, replaced below
@@ -134,6 +145,10 @@ def test_recompute_writes_one_row_per_scope_per_section():
     member_stocks = db.get(AnalyticsSection, (user.id, str(members[0].id), "stock_holdings"))
     assert combined_stocks.payload["stock_holdings"] == _MOCK_RESULTS["stock_holdings"].model_dump(mode="json")
     assert member_stocks.payload == _MOCK_RESULTS["stock_holdings"].model_dump(mode="json")
+    combined_assets = db.get(AnalyticsSection, (user.id, "combined", "asset_allocation"))
+    member_assets = db.get(AnalyticsSection, (user.id, str(members[0].id), "asset_allocation"))
+    assert combined_assets.payload["asset_allocation"] == _MOCK_RESULTS["asset_allocation"].model_dump(mode="json")
+    assert member_assets.payload == _MOCK_RESULTS["asset_allocation"].model_dump(mode="json")
 
 
 def test_recompute_clears_started_at_when_done():

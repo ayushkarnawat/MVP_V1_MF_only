@@ -1,3 +1,4 @@
+import { AssetAllocationSection } from "@/features/analytics/AssetAllocationSection";
 import { useState } from "react";
 import { formatIndianCurrency } from "@/lib/decimal";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +17,7 @@ import { InvestmentWithdrawalSection } from "@/features/analytics/InvestmentWith
 import { BenchmarkSection } from "@/features/analytics/BenchmarkSection";
 import { FundScoreDetailModal } from "@/features/analytics/FundScoreDetailModal";
 import type {
+  AssetAllocationSummary,
   CapAllocationSummary,
   StockHoldingsSummary,
   AnalyticsAllocationSummary,
@@ -38,6 +40,7 @@ export interface MobileAnalyticsViewProps {
 const AGGREGATE_FIELD: Record<AnalyticsSectionName, string> = {
   allocation: "allocation",
   stock_holdings: "stock_holdings",
+  asset_allocation: "asset_allocation",
   cap_allocation: "cap_allocation",
   ter: "ter",
   ter_direct_regular: "ter",
@@ -63,6 +66,7 @@ export function MobileAnalyticsView({ memberId = null }: MobileAnalyticsViewProp
 
   const allocation = unwrap<AnalyticsAllocationSummary>("allocation");
   const stockHoldings = unwrap<StockHoldingsSummary>("stock_holdings");
+  const assetAllocation = unwrap<AssetAllocationSummary>("asset_allocation");
   const capAllocation = unwrap<CapAllocationSummary>("cap_allocation");
   const ter = unwrap<WeightedTerSummary>("ter");
   const terComparison = unwrap<DirectRegularTerComparison>("ter_direct_regular");
@@ -77,6 +81,7 @@ export function MobileAnalyticsView({ memberId = null }: MobileAnalyticsViewProp
 
   const allocationLoading = !isSectionSettled(sections.allocation);
   const stockHoldingsLoading = !isSectionSettled(sections.stock_holdings);
+  const assetAllocationLoading = !isSectionSettled(sections.asset_allocation);
   const capAllocationLoading = !isSectionSettled(sections.cap_allocation);
   const terLoading = !isSectionSettled(sections.ter) || !isSectionSettled(sections.ter_direct_regular);
   const rankingLoading = !isSectionSettled(sections.category_ranking);
@@ -159,6 +164,7 @@ export function MobileAnalyticsView({ memberId = null }: MobileAnalyticsViewProp
       <AllocationSection summary={allocation} isLoading={allocationLoading} />
       <StockHoldingsSection data={stockHoldings} isLoading={stockHoldingsLoading} />
       <CapAllocationSection data={capAllocation} isLoading={capAllocationLoading} />
+      <AssetAllocationSection data={assetAllocation} isLoading={assetAllocationLoading} />
 
       {/* Section 2: TER & Cost */}
       <TerSection ter={ter} comparison={terComparison} isLoading={terLoading} />
