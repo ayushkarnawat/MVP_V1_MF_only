@@ -103,3 +103,5 @@ Run date/time: <…>    Environment: Windows    Python: <version>    Baseline HE
 | — | Run 7 | ready 2026-10-14 | Task 2 frontend + scheme names in the payload. |
 | 7 | Run 7 | built + committed 2026-10-14 (Codex) | Scheme names in payload (`CoverageFund`), CoverageBanner, StockHoldingsSection, views/types. WSL backend 45 passed, vitest 44 passed, tsc -b exit 0. Commit `84185e4`. |
 | — | Run 8 | ready 2026-10-14 | Task 3 (A02). Only 2 of 4 AMFI list URLs verified; Codex finds the rest. |
+| 8 | Run 8 | built + committed 2026-10-14 (Codex, baseline `6e28c66`) | Migration 0040, AMFI client (4 verified lists, 21,053 rows), job + cron text, cap_allocation section, frontend. WSL 35 passed. Claude review notes: new half-year needs a code edit (explicit URL table, alerts until added); job exits 0 even when a period fails; classification date uses oldest holdings_as_of across funds. Commit `78400ff`. |
+
