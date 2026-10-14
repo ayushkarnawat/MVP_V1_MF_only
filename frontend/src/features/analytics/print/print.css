@@ -10,3 +10,18 @@
 .print-cover {
   break-after: page;
 }
+
+/* Charts and heatmaps keep a fixed width; long tables never get a scroll bar on paper. */
+.print-section svg {
+  max-width: 100%;
+}
+
+.print-section table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.print-section li,
+.print-section tr {
+  break-inside: avoid;
+}

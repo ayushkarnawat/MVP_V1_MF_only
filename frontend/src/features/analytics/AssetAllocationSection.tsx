@@ -14,7 +14,7 @@ const CAPS = { LARGE: "Large Cap", MID: "Mid Cap", SMALL: "Small Cap", OTHER: "O
 const CARD = "rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 sm:p-6 shadow-2xs";
 const compare = (a: string, b: string) => compareDecimalStrings(percentageProduct(a, "100"), percentageProduct(b, "100"));
 
-export function AssetAllocationSection({ data, isLoading = false, className }: { data: AssetAllocationSummary | null; isLoading?: boolean; className?: string }) {
+export function AssetAllocationSection({ data, isLoading = false, className, printMode = false }: { data: AssetAllocationSummary | null; isLoading?: boolean; className?: string; printMode?: boolean }) {
   const id = useId();
   const [asCash, setAsCash] = useState(false);
   const [equityOpen, setEquityOpen] = useState(false);
@@ -32,7 +32,7 @@ export function AssetAllocationSection({ data, isLoading = false, className }: {
       <p className="text-xs text-[var(--color-text-secondary)]">Values as on {holdingsDate(data.nav_as_of)} · Holdings as on {holdingsDate(data.holdings_as_of)}</p>
       <p className="text-xs text-[var(--color-text-secondary)]">Percentages of covered portfolio value. Equity’s outer ring shows Large, Mid, Small and Other; debt, gold and cash-like stay undivided.</p>
       <CoverageBanner coverage={data.coverage} excludedShare={data.excluded_share} />
-      <label className="flex gap-3 items-center min-h-11 text-sm text-[var(--color-ink)]"><input type="checkbox" checked={asCash} onChange={e => { setAsCash(e.target.checked); setEquityOpen(false); }} className="size-4 accent-[var(--color-accent)]" />Treat arbitrage funds as cash-like</label>
+      {!printMode && <label className="flex gap-3 items-center min-h-11 text-sm text-[var(--color-ink)]"><input type="checkbox" checked={asCash} onChange={e => { setAsCash(e.target.checked); setEquityOpen(false); }} className="size-4 accent-[var(--color-accent)]" />Treat arbitrage funds as cash-like</label>}
       <p className="text-xs text-[var(--color-text-secondary)]">{data.arbitrage_funds.length ? `Applies to ${data.arbitrage_funds.map(f => f.scheme_name).join(", ")}. Entire fund value moves to cash-like; Equity Savings is unchanged.` : "No covered Arbitrage Fund holdings for this selection."}</p>
       {compare(data.covered_value, "0") === 0 ? <p className="text-sm text-[var(--color-text-secondary)]">No covered holdings for this selection</p> : <>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
@@ -45,6 +45,7 @@ export function AssetAllocationSection({ data, isLoading = false, className }: {
         <ul aria-label="Equity outer breakdown" className="flex flex-wrap gap-3 text-xs text-[var(--color-text-secondary)]">{variant.equity_outer.map((b, i) => <li key={b.key} className="flex items-center gap-2"><span aria-hidden="true" className="size-2 rounded-full" style={{ backgroundColor: defaultPieColors[i + 3] }} />{CAPS[b.key]}: {formatPercent(b.percentage)}%</li>)}</ul>
         {!data.hide_headlines && largest && <p className="text-sm font-semibold text-[var(--color-ink)]">Largest asset class: {LABELS[largest.key]} ({formatPercent(largest.percentage)}%)</p>}
         {(classes.some(c => compare(c.percentage, "0") < 0) || variant.equity_outer.some(b => compare(b.percentage, "0") < 0)) && <p className="text-xs text-[var(--color-text-secondary)]">Negative net positions are listed with their signed percentages; the donut shows positive exposures.</p>}
+        {printMode && data.arbitrage_funds.length > 0 && <p className="text-xs text-[var(--color-text-secondary)]">If arbitrage funds were treated as cash-like: {data.arbitrage_as_cash.classes.map((c) => `${LABELS[c.key]} ${formatPercent(c.percentage)}%`).join(" · ")}. Equity by size: {data.arbitrage_as_cash.equity_outer.map((b) => `${CAPS[b.key]} ${formatPercent(b.percentage)}%`).join(" · ")}.</p>}
         {equityOpen && <div id={`${id}-equity`} role="region" aria-label="Equity market-cap drill-down"><CapAllocationSection data={variant.cap_allocation} embedded /></div>}
       </>}
     </>}

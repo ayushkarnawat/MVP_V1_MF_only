@@ -7,6 +7,12 @@ import { FundRankingSection } from "../FundRankingSection";
 import { FundManagerSection } from "../FundManagerSection";
 import { BenchmarkSection } from "../BenchmarkSection";
 import { FundScoreCard } from "../FundScoreCard";
+import { AssetAllocationSection } from "../AssetAllocationSection";
+import { CapAllocationSection } from "../CapAllocationSection";
+import { StockHoldingsSection } from "../StockHoldingsSection";
+import { OverlapSection } from "../OverlapSection";
+import { ValuationSection } from "../ValuationSection";
+import { InvestmentWithdrawalSection } from "../InvestmentWithdrawalSection";
 import type { AnalyticsExportPayload } from "../types";
 import { UnifolioLogo } from "@/components/UnifolioLogo";
 import "./print.css";
@@ -72,6 +78,31 @@ export function PrintAnalyticsView() {
       <div className="print-section">
         <AllocationSection summary={payload.allocation} isLoading={false} printMode />
       </div>
+      {payload.assetAllocation && (
+        <div className="print-section">
+          <AssetAllocationSection data={payload.assetAllocation} isLoading={false} printMode />
+        </div>
+      )}
+      {payload.capAllocation && (
+        <div className="print-section">
+          <CapAllocationSection data={payload.capAllocation} isLoading={false} printMode />
+        </div>
+      )}
+      {payload.stockHoldings && (
+        <div className="print-section">
+          <StockHoldingsSection data={payload.stockHoldings} isLoading={false} printMode />
+        </div>
+      )}
+      {payload.overlap && (
+        <div className="print-section">
+          <OverlapSection data={payload.overlap} isLoading={false} printMode />
+        </div>
+      )}
+      {payload.valuation && (
+        <div className="print-section">
+          <ValuationSection data={payload.valuation} isLoading={false} />
+        </div>
+      )}
       <div className="print-section">
         <TerSection ter={payload.ter} comparison={payload.terComparison} isLoading={false} />
       </div>
@@ -81,6 +112,11 @@ export function PrintAnalyticsView() {
       <div className="print-section">
         <FundManagerSection data={payload.fundManager ?? null} isLoading={false} printMode />
       </div>
+      {payload.investmentWithdrawal && (
+        <div className="print-section">
+          <InvestmentWithdrawalSection data={payload.investmentWithdrawal} isLoading={false} printMode />
+        </div>
+      )}
       <div className="print-section">
         <FundRankingSection data={payload.fundRanking ?? null} isLoading={false} />
       </div>

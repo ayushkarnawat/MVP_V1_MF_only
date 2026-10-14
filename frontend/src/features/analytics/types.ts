@@ -157,6 +157,13 @@ export interface AnalyticsExportPayload {
   scoreSummary: PortfolioScoreSummary | null;
   portfolioBenchmark: PortfolioBenchmarkSummary | null;
   fundBenchmark: FundVsBenchmarkSummary | null;
+  // Optional: exports saved before sub-project 2 have none of these. null = the section failed.
+  assetAllocation?: AssetAllocationSummary | null;
+  capAllocation?: CapAllocationSummary | null;
+  stockHoldings?: StockHoldingsSummary | null;
+  overlap?: OverlapSummary | null;
+  valuation?: ValuationSummary | null;
+  investmentWithdrawal?: InvestmentWithdrawalResult | null;
 }
 
 /* Consolidated precompute contract (backend/app/services/analytics/schemas.py) */

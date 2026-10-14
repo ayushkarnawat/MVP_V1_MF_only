@@ -10,6 +10,8 @@ export interface InvestmentWithdrawalSectionProps {
   data: InvestmentWithdrawalResult | null;
   isLoading?: boolean;
   className?: string;
+  /** A PDF cannot click the Monthly/Yearly toggle: print the default monthly view. */
+  printMode?: boolean;
 }
 
 type Granularity = "monthly" | "yearly";
@@ -78,7 +80,7 @@ function PeriodTransactions({ bucket }: { bucket: InvestmentWithdrawalBucket }) 
   );
 }
 
-export function InvestmentWithdrawalSection({ data, isLoading = false, className }: InvestmentWithdrawalSectionProps) {
+export function InvestmentWithdrawalSection({ data, isLoading = false, className, printMode = false }: InvestmentWithdrawalSectionProps) {
   const [granularity, setGranularity] = useState<Granularity>("monthly");
   const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
 
@@ -130,7 +132,7 @@ export function InvestmentWithdrawalSection({ data, isLoading = false, className
         <p className="text-sm text-[var(--color-text-secondary)]">No transactions yet</p>
       ) : (
         <div className="space-y-3">
-          <div className="inline-flex rounded-lg border border-[var(--color-border)] p-0.5" role="group" aria-label="Period">
+          {!printMode && (<div className="inline-flex rounded-lg border border-[var(--color-border)] p-0.5" role="group" aria-label="Period">
             {(["monthly", "yearly"] as const).map((g) => (
               <button
                 key={g}
@@ -145,7 +147,7 @@ export function InvestmentWithdrawalSection({ data, isLoading = false, className
                 {g === "monthly" ? "Monthly" : "Yearly"}
               </button>
             ))}
-          </div>
+          </div>)}
           <BarChart
             data={buckets.map((b) => ({ period: b.period, invested: Number(b.invested), withdrawn: Number(b.withdrawn) }))}
             selectedPeriod={selectedPeriod}
@@ -153,7 +155,7 @@ export function InvestmentWithdrawalSection({ data, isLoading = false, className
             onBarClick={setSelectedPeriod}
           />
           <p className="text-xs text-[var(--color-text-secondary)]">
-            <span className="text-[var(--color-positive)]">■</span> Invested · <span className="text-[var(--color-negative)]">■</span> Withdrawn · Tap a period to see its transactions
+            <span className="text-[var(--color-positive)]">■</span> Invested · <span className="text-[var(--color-negative)]">■</span> Withdrawn{printMode ? "" : " · Tap a period to see its transactions"}
           </p>
           {selected && (
             <div className="rounded-lg border border-[var(--color-border)] p-3 space-y-2">

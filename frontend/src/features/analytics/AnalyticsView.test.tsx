@@ -335,6 +335,39 @@ describe("AnalyticsView", () => {
     expect(call.payload.fundManager).toEqual(sampleFundManager);
   });
 
+  it("puts every new section's loaded result in the export payload", async () => {
+    vi.mocked(api.getAnalyticsScope).mockResolvedValue({ scope: "combined", recomputing: false, sections: buildSections(true, []) });
+    vi.mocked(api.postExportPdf).mockResolvedValue(new Blob(["%PDF-1.4"], { type: "application/pdf" }));
+    vi.stubGlobal("URL", { ...URL, createObjectURL: vi.fn(() => "blob:fake"), revokeObjectURL: vi.fn() });
+    render(<AnalyticsView viewMode="aggregate" memberId={null} />);
+    const button = await screen.findByRole("button", { name: /download pdf/i });
+    await waitFor(() => expect(button).toBeEnabled());
+    fireEvent.click(button);
+    await waitFor(() => expect(api.postExportPdf).toHaveBeenCalledTimes(1));
+    const { payload } = vi.mocked(api.postExportPdf).mock.calls[0][0];
+    expect(payload.stockHoldings).toEqual(sampleStockHoldings);
+    expect(payload.capAllocation).toEqual(sampleCapAllocation);
+    expect(payload.overlap).toEqual(sampleOverlap);
+    expect(payload.assetAllocation).toEqual(sampleAssetAllocation);
+    expect(payload.valuation).toEqual(sampleValuation);
+    expect(payload.investmentWithdrawal).toEqual(sampleInvestmentWithdrawal);
+  });
+
+  it("a failed new section is omitted from the payload and does not block the download", async () => {
+    const sections = { ...buildSections(true, []), overlap: settled(null, "2026-09-01T00:00:00Z") };
+    vi.mocked(api.getAnalyticsScope).mockResolvedValue({ scope: "combined", recomputing: false, sections });
+    vi.mocked(api.postExportPdf).mockResolvedValue(new Blob(["%PDF-1.4"], { type: "application/pdf" }));
+    vi.stubGlobal("URL", { ...URL, createObjectURL: vi.fn(() => "blob:fake"), revokeObjectURL: vi.fn() });
+    render(<AnalyticsView viewMode="aggregate" memberId={null} />);
+    const button = await screen.findByRole("button", { name: /download pdf/i });
+    await waitFor(() => expect(button).toBeEnabled());
+    fireEvent.click(button);
+    await waitFor(() => expect(api.postExportPdf).toHaveBeenCalledTimes(1));
+    const { payload } = vi.mocked(api.postExportPdf).mock.calls[0][0];
+    expect(payload.overlap).toBeNull();
+    expect(payload.valuation).toEqual(sampleValuation);
+  });
+
   it("shows a retry banner when a section has permanently failed, and re-fetches on click", async () => {
     const sectionsWithFailure = { ...buildSections(true, []), score: settled(null, "2026-09-01T00:00:00Z") };
     vi.mocked(api.getAnalyticsScope).mockResolvedValue({

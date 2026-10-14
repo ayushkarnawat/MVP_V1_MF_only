@@ -26,9 +26,11 @@ export interface StockHoldingsSectionProps {
   data: StockHoldingsSummary | null;
   isLoading?: boolean;
   className?: string;
+  /** A PDF cannot click: print the top rows with each fund breakdown open and no View all / search. */
+  printMode?: boolean;
 }
 
-export function StockHoldingsSection({ data, isLoading = false, className }: StockHoldingsSectionProps) {
+export function StockHoldingsSection({ data, isLoading = false, className, printMode = false }: StockHoldingsSectionProps) {
   const sectionId = useId();
   const [showAll, setShowAll] = useState(false);
   const [search, setSearch] = useState("");
@@ -71,10 +73,10 @@ export function StockHoldingsSection({ data, isLoading = false, className }: Sto
               return <li key={key} className="rounded-lg border border-[var(--color-border)] p-3">
                 <button type="button" className="min-h-11 w-full block text-left rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
                   aria-label={`${row.instrument_name}: ${formatPercent(row.exposure_pct)}%`}
-                  aria-expanded={!!expanded[key]} aria-controls={detailId} onClick={() => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }))}>
+                  aria-expanded={printMode || !!expanded[key]} aria-controls={detailId} onClick={() => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }))}>
                   <span className="flex min-h-11 items-center justify-between gap-3">
                   <span className="text-sm font-medium text-[var(--color-ink)] min-w-0 break-words">{row.instrument_name}</span>
-                  <span className="text-sm font-semibold text-[var(--color-ink)] tabular-nums shrink-0 flex items-center gap-2">{formatPercent(row.exposure_pct)}%{expanded[key] ? <ChevronUp aria-hidden="true" className="h-4 w-4" /> : <ChevronDown aria-hidden="true" className="h-4 w-4" />}</span>
+                  <span className="text-sm font-semibold text-[var(--color-ink)] tabular-nums shrink-0 flex items-center gap-2">{formatPercent(row.exposure_pct)}%{printMode || expanded[key] ? <ChevronUp aria-hidden="true" className="h-4 w-4" /> : <ChevronDown aria-hidden="true" className="h-4 w-4" />}</span>
                   </span>
                 <svg viewBox="0 0 100 8" width="100%" className="h-5" preserveAspectRatio="none" role="img"
                   aria-label={`${row.instrument_name}: ${segments.map(({ fund, pct }) => `${fund.scheme_name}: ${formatPercent(pct)}%`).join(", ")}`}>
@@ -86,15 +88,16 @@ export function StockHoldingsSection({ data, isLoading = false, className }: Sto
                   })}</Group>
                 </svg>
                 </button>
-                {expanded[key] && <FundBreakdown row={row} id={detailId} />}
+                {(printMode || expanded[key]) && <FundBreakdown row={row} id={detailId} />}
               </li>;
             })}
           </ol>
           <ul aria-label="Fund legend" className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-[var(--color-text-secondary)]">
             {[...funds.values()].map((fund) => <li key={fund.scheme_id} className="flex items-center gap-2 min-w-0"><span aria-hidden="true" className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: colors.get(fund.scheme_id) }} /><span className="min-w-0 break-words">{fund.scheme_name}</span></li>)}
           </ul>
-          <button type="button" className={BUTTON} aria-expanded={showAll} aria-controls={`${sectionId}-all`} onClick={() => setShowAll((prev) => !prev)}>{showAll ? "Hide all" : "View all"}</button>
-          {showAll && <div id={`${sectionId}-all`} className="space-y-3">
+          {printMode && data.total_stock_count > top.length && <p className="text-xs text-[var(--color-text-secondary)]">Top {top.length} of {data.total_stock_count} stocks shown; the full list is in the app.</p>}
+          {!printMode && <button type="button" className={BUTTON} aria-expanded={showAll} aria-controls={`${sectionId}-all`} onClick={() => setShowAll((prev) => !prev)}>{showAll ? "Hide all" : "View all"}</button>}
+          {!printMode && showAll && <div id={`${sectionId}-all`} className="space-y-3">
             <label htmlFor={`${sectionId}-search`} className="block text-xs font-medium text-[var(--color-text-secondary)]">Search stocks</label>
             <input id={`${sectionId}-search`} type="search" value={search} onChange={(event) => setSearch(event.target.value)}
               className="w-full min-h-11 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 text-sm text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]" />

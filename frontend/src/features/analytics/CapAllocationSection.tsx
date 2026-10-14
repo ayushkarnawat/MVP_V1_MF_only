@@ -12,6 +12,17 @@ const CARD = "rounded-xl border border-[var(--color-border)] bg-[var(--color-sur
 const LABELS = { LARGE: "Large Cap", MID: "Mid Cap", SMALL: "Small Cap", OTHER: "Other / Unclassified" };
 const BUTTON = "min-h-11 rounded-lg p-3 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]";
 
+const PRINT_ROWS = 5;
+
+/** Static top holdings for the PDF: nothing to click, so no expandable rows. */
+function PrintStocks({ title, rows }: { title: string; rows: StockHoldingRow[] }) {
+  if (!rows.length) return null;
+  return <div className="space-y-1"><h3 className="text-sm font-semibold text-[var(--color-ink)]">{title}</h3>
+    <ul className="space-y-1 text-xs text-[var(--color-text-secondary)]">{rows.slice(0, PRINT_ROWS).map((row, index) => <li key={row.isin ?? `${row.instrument_name}-${index}`} className="flex justify-between gap-3"><span className="min-w-0 break-words">{row.instrument_name}</span><span className="shrink-0 tabular-nums">₹{formatIndianCurrency(row.exposure_value)}</span></li>)}</ul>
+    {rows.length > PRINT_ROWS && <p className="text-xs text-[var(--color-text-secondary)]">Top {PRINT_ROWS} of {rows.length} shown.</p>}
+  </div>;
+}
+
 function Stocks({ rows }: { rows: StockHoldingRow[] }) {
   const id = useId();
   const [expanded, setExpanded] = useState<Record<number, boolean>>({});
@@ -33,9 +44,11 @@ export interface CapAllocationSectionProps {
   isLoading?: boolean;
   className?: string;
   embedded?: boolean;
+  /** A PDF cannot click the denominator toggle: print both denominators as text. */
+  printMode?: boolean;
 }
 
-export function CapAllocationSection({ data, isLoading = false, className, embedded = false }: CapAllocationSectionProps) {
+export function CapAllocationSection({ data, isLoading = false, className, embedded = false, printMode = false }: CapAllocationSectionProps) {
   const id = useId();
   const [equityOnly, setEquityOnly] = useState(false);
   const [selected, setSelected] = useState<CapAllocationBucket["key"] | null>(null);
@@ -57,12 +70,13 @@ export function CapAllocationSection({ data, isLoading = false, className, embed
       <p className="text-xs text-[var(--color-text-secondary)]">Values as on {holdingsDate(data.nav_as_of)} · Holdings as on {holdingsDate(data.holdings_as_of)}</p>
       <p className="text-xs text-[var(--color-text-secondary)]">{data.classification_as_of ? `AMFI classification effective from ${holdingsDate(data.classification_as_of)}` : "No applicable AMFI classifications for these holdings"}</p>
       {!embedded && <CoverageBanner coverage={data.coverage} excludedShare={data.excluded_share} />}
-      <div role="group" aria-label="Allocation denominator" className="flex flex-wrap gap-2">
+      {!printMode && <div role="group" aria-label="Allocation denominator" className="flex flex-wrap gap-2">
         {([false, true] as const).map((only) => <button key={String(only)} type="button" aria-pressed={equityOnly === only}
           onClick={() => setEquityOnly(only)} className={cn(BUTTON, "border border-[var(--color-border)]", equityOnly === only ? "bg-[var(--color-ink)] text-[var(--color-surface)]" : "text-[var(--color-text-secondary)]")}>
           {only ? "% of equity only" : "% of total portfolio"}
         </button>)}
-      </div>
+      </div>}
+      {printMode && <p className="text-xs text-[var(--color-text-secondary)]">% of total portfolio: {buckets.map((b) => `${LABELS[b.key]} ${formatPercent(b.percentage_total)}%`).join(" · ")}. % of equity only: {buckets.map((b) => `${LABELS[b.key]} ${formatPercent(b.percentage_equity)}%`).join(" · ")}.</p>}
       {noEquity ? <p className="text-sm text-[var(--color-text-secondary)]">No equity holdings for this selection</p> : empty ? <p className="text-sm text-[var(--color-text-secondary)]">No holdings for this selection</p> : <>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
           <div role="group" aria-label="Market-cap allocation chart" className="w-full max-w-[240px] mx-auto">
@@ -81,6 +95,11 @@ export function CapAllocationSection({ data, isLoading = false, className, embed
         </div>
         {!data.hide_headlines && largest && <p className="text-sm font-semibold text-[var(--color-ink)]">Largest allocation: {LABELS[largest.key]} ({formatPercent(percent(largest))}%)</p>}
         {buckets.some((bucket) => compare(percent(bucket), "0") < 0) && <p className="text-xs text-[var(--color-text-secondary)]">Negative net positions are listed with their signed percentages; the donut shows positive exposures.</p>}
+        {printMode && <div className="space-y-3 border-t border-[var(--color-border)] pt-4">
+          {buckets.filter((b) => b.key !== "OTHER").map((b) => <PrintStocks key={b.key} title={`${LABELS[b.key]} — top holdings`} rows={b.rows} />)}
+          <PrintStocks title="Equity not in AMFI list — top holdings" rows={data.other.unclassified_equity_rows} />
+          {!embedded && <PrintStocks title="Not equity (debt, cash, gold, REITs) — top holdings" rows={data.other.non_equity_rows} />}
+        </div>}
         {active && <div id={`${id}-drill`} role="region" aria-label={`${LABELS[active.key]} breakdown`} className="space-y-4 border-t border-[var(--color-border)] pt-4">
           {active.key === "OTHER" ? <>
             {!embedded && <div className="space-y-2"><h3 className="text-sm font-semibold text-[var(--color-ink)]">Not equity (debt, cash, gold, REITs)</h3>

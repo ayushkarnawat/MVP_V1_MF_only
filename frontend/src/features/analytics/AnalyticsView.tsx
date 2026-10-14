@@ -145,6 +145,12 @@ export function AnalyticsView({
         scoreSummary,
         portfolioBenchmark,
         fundBenchmark,
+        assetAllocation,
+        capAllocation,
+        stockHoldings,
+        overlap,
+        valuation,
+        investmentWithdrawal,
       };
       const blob = await postExportPdf({ scope: viewMode, memberId, payload });
       const url = URL.createObjectURL(blob);

@@ -3,6 +3,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { PrintAnalyticsView } from "./PrintAnalyticsView";
 import * as api from "../api";
 import type { AnalyticsExportPayload } from "../types";
+import { sampleStockHoldings } from "../stockHoldingsTestData";
+import { sampleCapAllocation } from "../capAllocationTestData";
+import { sampleAssetAllocation } from "../assetAllocationTestData";
+import { sampleOverlap } from "../overlapTestData";
+import { sampleValuation } from "../valuationTestData";
 
 const payload: AnalyticsExportPayload = {
   scopeName: "Family Aggregate",
@@ -137,5 +142,74 @@ describe("PrintAnalyticsView", () => {
     );
     expect(document.documentElement.dataset.printReady).toBeUndefined();
     expect(screen.getByTestId("print-error")).toHaveTextContent("payload unavailable");
+  });
+  describe("look-through sections and investment & withdrawal", () => {
+    const withdrawal = {
+      total_invested: "3840000.00", total_withdrawn: "600000.00", net_invested: "3240000.00",
+      current_value: "3500000.00", absolute_gain: "260000.00",
+      monthly: [{ period: "2026-01", invested: "5000.00", withdrawn: "0.00", entries: [] }],
+      yearly: [{ period: "2026", invested: "5000.00", withdrawn: "0.00", entries: [] }],
+      sip_summary: { active_count: 2, total_monthly_amount: "15000.00", missed_count: 0 }, gifts_net: "0.00",
+    };
+    const full = () => ({
+      ...payload,
+      fundManager: { manager_groups: [], unavailable_schemes: [] },
+      assetAllocation: sampleAssetAllocation, capAllocation: sampleCapAllocation,
+      stockHoldings: sampleStockHoldings, overlap: sampleOverlap, valuation: sampleValuation,
+      investmentWithdrawal: withdrawal,
+    }) as unknown as AnalyticsExportPayload;
+    const headingOrder = () => screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
+
+    it("prints the new blocks in the stated order and still sets print-ready", async () => {
+      vi.spyOn(api, "getExportPayload").mockResolvedValue(full());
+      render(<PrintAnalyticsView />);
+      await screen.findByRole("heading", { name: "Portfolio valuation" });
+      const order = headingOrder();
+      const at = (name: string) => order.indexOf(name);
+      expect(at("Look-through asset allocation")).toBeGreaterThan(at("Allocation"));
+      const chain = ["Look-through asset allocation", "Market-cap allocation", "Overall stock holdings", "Fund overlap", "Portfolio valuation"].map(at);
+      expect(chain.every((n, i) => n >= 0 && (i === 0 || n > chain[i - 1]))).toBe(true);
+      expect(at("Investment & Withdrawal")).toBeGreaterThan(at("Fund Manager Allocation"));
+      for (const name of ["Look-through asset allocation", "Market-cap allocation", "Overall stock holdings", "Fund overlap", "Portfolio valuation", "Investment & Withdrawal"]) {
+        expect(screen.getByRole("heading", { name }).closest(".print-section")).not.toBeNull();
+      }
+      await waitFor(() => expect(document.documentElement.dataset.printReady).toBe("true"));
+    });
+
+    it("renders an older export without the new fields exactly as before", async () => {
+      render(<PrintAnalyticsView />);
+      await screen.findByText("Test Flexi Cap Fund");
+      for (const name of ["Look-through asset allocation", "Market-cap allocation", "Overall stock holdings", "Fund overlap", "Portfolio valuation", "Investment & Withdrawal"]) {
+        expect(screen.queryByRole("heading", { name })).not.toBeInTheDocument();
+      }
+    });
+
+    it("omits a block whose section failed (null) without breaking the others", async () => {
+      vi.spyOn(api, "getExportPayload").mockResolvedValue({ ...full(), overlap: null } as AnalyticsExportPayload);
+      render(<PrintAnalyticsView />);
+      await screen.findByRole("heading", { name: "Portfolio valuation" });
+      expect(screen.queryByRole("heading", { name: "Fund overlap" })).not.toBeInTheDocument();
+    });
+
+    it("prints static views: no toggles, search, View all or scroll regions", async () => {
+      vi.spyOn(api, "getExportPayload").mockResolvedValue(full());
+      render(<PrintAnalyticsView />);
+      await screen.findByRole("heading", { name: "Portfolio valuation" });
+      expect(screen.queryByRole("button", { name: "View all" })).not.toBeInTheDocument();
+      expect(screen.queryByLabelText("Search stocks")).not.toBeInTheDocument();
+      expect(screen.queryByRole("group", { name: "Allocation denominator" })).not.toBeInTheDocument();
+      expect(screen.queryByLabelText(/Treat arbitrage funds as cash-like/)).not.toBeInTheDocument();
+      expect(screen.queryByRole("group", { name: "Period" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("region", { name: "Scrollable overlap matrix" })).not.toBeInTheDocument();
+      // Nothing printed may point at a click: no "view all", no tap hint, no disabled call-to-action.
+      expect(screen.queryByText(/view all stocks/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Tap a period/i)).not.toBeInTheDocument();
+      // Content that a click would reveal is printed instead.
+      expect(screen.getByText(/Large Cap — top holdings/)).toBeInTheDocument();
+      expect(screen.getByRole("region", { name: "Common stock breakdown" })).toBeInTheDocument();
+      // Both cap-allocation denominators are printed, since a PDF cannot click the toggle.
+      expect(screen.getByText(/% of equity only/)).toBeInTheDocument();
+      expect(screen.getByText(/% of total portfolio/)).toBeInTheDocument();
+    });
   });
 });
