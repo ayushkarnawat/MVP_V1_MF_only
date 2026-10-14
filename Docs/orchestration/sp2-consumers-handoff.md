@@ -125,3 +125,5 @@ Run date/time: <…>    Environment: Windows    Python: <version>    Baseline HE
 | — | Run 8 | ready 2026-10-14 | Task 3 (A02). Only 2 of 4 AMFI list URLs verified; Codex finds the rest. |
 | 8 | Run 8 | built + committed 2026-10-14 (Codex, baseline `6e28c66`) | Migration 0040, AMFI client (4 verified lists, 21,053 rows), job + cron text, cap_allocation section, frontend. WSL 35 passed. Claude review notes: new half-year needs a code edit (explicit URL table, alerts until added); job exits 0 even when a period fails; classification date uses oldest holdings_as_of across funds. Commit `78400ff`. |
 | — | Run 9 | ready 2026-10-14 | Task 5 (A13). Depends on Run 8 (done). |
+| 9 | Run 9 | built + committed 2026-10-14 (Codex, baseline `4745a50`) | `asset_allocation` section: both arbitrage variants in payload, shared helpers factored from lookthrough.py (`get_disclosure_scope`, `build_lookthrough_table`, `build_cap_allocation`), embedded CapAllocation drill-down. WSL 54 passed; Codex 121 backend / 147 frontend. Judgment call: REIT_INVIT counted as equity (outer Other). |
+
