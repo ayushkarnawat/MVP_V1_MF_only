@@ -43,3 +43,14 @@ def test_stock_scheduler_precedes_analytics_recompute():
     assert minutes('stock_fundamentals_daily') == minutes('portfolio_disclosures_daily') == 345
     assert minutes('analytics_recompute_daily') == 390
     assert 'memory              = "2048"' in entry('stock_fundamentals_daily')
+
+
+@pytest.mark.parametrize('universe,failed,alert', [(2000, 5, False), (2000, 400, False), (2000, 401, True)])
+def test_incomplete_alert_needs_a_meaningful_share_of_failures(db_session, monkeypatch, caplog, universe, failed, alert):
+    """A few stocks with no P/B (new listings, Yahoo gaps) happen every day and must not page anyone."""
+    job = _load_job('refresh_stock_fundamentals_daily')
+    monkeypatch.setattr(job, 'refresh_stock_fundamentals', AsyncMock(return_value=StockFundamentalsRefreshResult(
+        True, universe_count=universe, rows_written=universe - failed, failed=failed)))
+    monkeypatch.setattr(job, 'refresh_index_valuations', AsyncMock(return_value=True))
+    asyncio.run(job.main_async(db_session))
+    assert ('stock_refresh_incomplete' in caplog.text) is alert

@@ -11,16 +11,17 @@ from app.services.analytics.amfi_market_cap_client import refresh_market_cap
 logger = logging.getLogger(__name__)
 
 
-async def main_async(db) -> None:
+async def main_async(db) -> int:
     result = await refresh_market_cap(db)
     logger.info("refresh_market_cap_half_yearly: success=%s loaded=%d failed=%d rows=%d seconds=%.1f",
                 result.success, len(result.periods_loaded), len(result.periods_failed), result.rows_written, result.seconds)
+    return 0 if result.success else 1
 
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO)
     with SessionLocal() as db:
-        asyncio.run(main_async(db))
+        raise SystemExit(asyncio.run(main_async(db)))
 
 
 if __name__ == "__main__":

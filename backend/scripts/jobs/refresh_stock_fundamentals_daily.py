@@ -18,7 +18,9 @@ async def main_async(db) -> int:
         stock_success = result.success
         logger.info("stock_fundamentals_daily success=%s universe=%d written=%d failed=%d seconds=%.1f",
                     result.success, result.universe_count, result.rows_written, result.failed, result.seconds)
-        if not result.success or result.failed:
+        # A few stocks with no P/B (new listings, Yahoo gaps) happen every day; alert only when
+        # more than a fifth of the universe failed, which points at a blocked source.
+        if not result.success or result.failed * 5 > result.universe_count:
             logger.warning("STOCK_FUNDAMENTALS_ALERT stock_refresh_incomplete")
     except Exception:
         db.rollback()
