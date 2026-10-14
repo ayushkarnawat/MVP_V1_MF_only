@@ -67,6 +67,26 @@ Plan: consumer plan Task 3 in full (all checkboxes, backend then frontend), plus
 
 **Report extras:** list the periods actually loaded with row counts (expect ~5,400 per list, 3 category transitions at ranks 1/101/251), the pypdfium2 outcome, the migration number, and the rendered UI states tested.
 
+## Run 9 — Task 5: Attribute 13, look-through asset allocation (2026-10-14; Run 8 committed `78400ff`)
+
+Plan: consumer plan Task 5 in full, plus shared rules F7–F11, F13 and decisions Q26–Q27. Task 3 is done, so the equity outer ring reuses attribute 02's classification: call `compute_cap_allocation` / reuse its bucket logic from `cap_allocation.py`; do not re-implement the effective-date join. Reuse `get_lookthrough_table`'s memo for anything table-shaped.
+
+**Careful, existing code:** the dashboard already has an `allocation` section built from `allocation.py` (declared asset class, not look-through). Do not change `allocation.py`, `AllocationSection.tsx` or the `allocation` section. The new section is named `asset_allocation`, with its own schema, `_SectionSpec`, wrapper field and component `AssetAllocationSection.tsx`; the UI placement and wording must make clear it is the look-through view.
+
+**Design rulings (so you do not ask):**
+- The shared `LookthroughTable.rows` already drops DERIVATIVE/OTHER and is grouped per instrument, so it is the wrong source for class sums. Read `scheme_holdings` per selected scheme batch grouped by `asset_type` (the plan's first Red test is exactly this), using the same selected-batch rule as `compute_lookthrough_table` (WRITTEN only, newest batch ≤ that scheme's NAV date). If you need the selection, factor it out of `lookthrough.py` into a small shared helper rather than copying it; Run 6/7 tests must stay green.
+- NULL-ISIN cash lines (CBLO/TREPS, net receivables) SUM into their class. This is the opposite of attribute 06.
+- Asset classes in the payload: equity (with the Large/Mid/Small/Other outer split), debt, gold, cash-like, plus a separate excluded/other note carried in coverage (`excluded_share`). Map the 8 `asset_type` values to those four classes explicitly in one constant and document any value that has no obvious class in the report.
+- Percentages are of the covered portfolio value, using the same coverage-by-value logic and `HEADLINE_MIN_COVERAGE` hide rule as the other sections.
+- Hedged-arbitrage toggle (Q26): the payload carries BOTH variants (`as_disclosed` and `arbitrage_as_cash`) so the frontend toggles without a request. A fund counts as arbitrage only if `schemes.sebi_category == "Arbitrage Fund"`; its whole covered value moves to cash-like. Equity Savings is unaffected.
+- The equity ring's drill-down chains into attribute 02's buckets (and from there into stocks) through one shared path; do not build three drill-downs.
+
+**Tests (named in the plan):** `tests/services/analytics/test_asset_allocation_lookthrough.py` with the 3-fund worked example 95/0/0/5, 65/30/0/5, 0/0/100/0 giving 76.5/9.0/10.0/4.5 exactly; NULL-ISIN cash sums; derivative/other excluded (arbitrage fixture with futures does not inflate equity); toggle; outer ring; plus `test_recompute.py`. Frontend: the new section test plus the three shared view tests and `tsc -b`. Run affected tests only.
+
+**Not in Run 9:** PDF print (Task 7), other attributes, migrations (none expected; if you think one is needed, stop and ask), Terraform. No git write commands.
+
+**Report extras:** the 8-value to 4-class map, the exact helper you factored out (if any), and UI states tested (loading, empty, partial coverage, hidden headlines, toggle on/off, both views).
+
 ---
 
 ## Self-review (before printing the report)
@@ -104,4 +124,4 @@ Run date/time: <…>    Environment: Windows    Python: <version>    Baseline HE
 | 7 | Run 7 | built + committed 2026-10-14 (Codex) | Scheme names in payload (`CoverageFund`), CoverageBanner, StockHoldingsSection, views/types. WSL backend 45 passed, vitest 44 passed, tsc -b exit 0. Commit `84185e4`. |
 | — | Run 8 | ready 2026-10-14 | Task 3 (A02). Only 2 of 4 AMFI list URLs verified; Codex finds the rest. |
 | 8 | Run 8 | built + committed 2026-10-14 (Codex, baseline `6e28c66`) | Migration 0040, AMFI client (4 verified lists, 21,053 rows), job + cron text, cap_allocation section, frontend. WSL 35 passed. Claude review notes: new half-year needs a code edit (explicit URL table, alerts until added); job exits 0 even when a period fails; classification date uses oldest holdings_as_of across funds. Commit `78400ff`. |
-
+| — | Run 9 | ready 2026-10-14 | Task 5 (A13). Depends on Run 8 (done). |
