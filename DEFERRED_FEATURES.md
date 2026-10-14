@@ -245,3 +245,12 @@ Doing it properly takes four changes together (~3 h): `benchmark-daily` saves fu
 | **Pre-2006 scenarios have no data** (A11) | Dot-com bust, 2003–07 India bull run and 2004 election result compute `real=0 proxied=0` for every fund: mfapi.in's NAV history starts in 2006. Users open them and see "not enough historical data" for every fund. | (a) hide scenarios whose window has no fund data; (b) show only the index (Nifty TRI goes back to 1990) with a "funds didn't report NAVs then" note; (c) leave as is. | Needs a user decision before production |
 | **Invested drifts a few rupees on pre-July-2020 purchases** (import) | A purchase without stamp duty is costed units × NAV (units rounded to 3 dp), not the amount paid, so a high-NAV fund's Total Invested can differ from the CAS cost (R3 synthetic: HDFC Flexi Cap ₹3.88 over 74 instalments). | Cost every purchase at the amount paid, as stamped purchases already are (`lot_rules.cost_per_unit`); outside sub-project 1 (the 7 Oct cost rule). | Needs a user decision (fix vs accept) |
 | **A minor's folio imports under the guardian** | A folio held by a minor (no PAN, "Guardian:" line) has no member of its own; it shows under the statement's main investor. | A minor member type linked to the guardian. | Future feature |
+
+## Sub-project 2 follow-ups (logged 2026-10-14, from Runs 8–11)
+- **AMFI market-cap lists need a code edit each half-year** (`amfi_market_cap_client.py` URL table). Until added the job alerts and the Jul 2026 list stays in use. The job also exits 0 when a period fails (no CloudWatch alarm).
+- **REIT/InvIT counted as equity** (equity "Other" slice) in the look-through asset allocation — manager to confirm.
+- **Overlap payload size** — 344 KB for a 15-fund household (pairs stored in the matrix and the above-20% list). Store each pair once if it matters.
+- **Stock fundamentals (attribute 15):** `as_of_date` is bumped even when an old ratio is kept; no time budget if Yahoo blocks the server (up to ~2k sequential screener.in calls, one commit at the end, could overrun the 06:30 recompute); a stock moved to BE/BZ series is treated as delisted and its ratios nulled; job exits 0 when P/B fails for every stock; missing-holding reason can show the wrong ratio's footnote.
+- **Equity Savings hedged portion** for the arbitrage toggle (Q26 option C) and **debt by credit rating** (Q27 option B) are not built.
+- **Nifty 500 comparison strip** for cap allocation not built (Q21); count-based version possible later.
+
