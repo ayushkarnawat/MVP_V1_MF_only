@@ -52,6 +52,21 @@ Plan: Task 2, frontend part (`CoverageBanner`, `StockHoldingsSection`, `types.ts
 
 **Not in Run 7:** PDF print (Task 7), other attributes, migrations. Report extras: screenshots are not possible, so list the rendered states you tested (loading, empty, partial coverage, truncated, hide_headlines, desktop and mobile).
 
+## Run 8 — Task 3: Attribute 02, AMFI market-cap ingestion + Cap Allocation (2026-10-14; Run 7 committed `84185e4`)
+
+Plan: consumer plan Task 3 in full (all checkboxes, backend then frontend), plus shared rules F7–F11 and Q3–Q7. Read the plan's Task 3 text and decisions Q20–Q22 first. Follow Run 6/7 conventions (`lookthrough.py` shared table, `_SectionSpec`, `CoverageBanner`, `AGGREGATE_FIELD`).
+
+**Order inside the run:** (1) pypdfium2 proof on the real file, report the outcome; (2) enum/model/migration (`alembic heads` for the number; add to `test_alembic_upgrade_creates_all_tables`); (3) client + job + Terraform text (fmt/validate only, nothing applied); (4) aggregation + schemas + `_SectionSpec`; (5) frontend. Tests first for each.
+
+**Verified URLs (Claude, 2026-10-14, HTTP 200 + application/pdf):**
+- Six months ended 30 Jun 2026 (effective 2026-07-01): `https://portal.amfiindia.com/spages/AverageMarketCapitalization30Jun2026.pdf` (1.1 MB)
+- Six months ended 31 Dec 2024 (effective 2025-01-01): `https://www.amfiindia.com/Themes/Theme1/downloads/AverageMarketCapitalizationoflistedcompaniesduringthesixmonthsended31Dec2024.pdf` (2.1 MB)
+- NOT found (404 on every pattern tried on both hosts): 31 Dec 2025 and 30 Jun 2025. Find the real links yourself (AMFI's "categorization of stocks" page, search), and put every verified URL in a per-period table in the client. If a period still cannot be found, the client loads what it can, raises the alert line for the missing period, and the report says which. Do not guess URLs in production code and never write an empty table silently. Save one real PDF per found period under `backend/tests/fixtures/market_cap/` (small ones only; 1–2 MB is fine) for tests.
+
+**Rules:** weights Decimal; ISIN is the key (no name matching); `effective_date` = day after the period ends; the join uses `holdings_as_of`, not today; Q21 no Nifty 500 strip; Q22 donut slice "Other / Unclassified" with two-way drill-down. LF/UTF-8. Run affected tests only (commands in the plan). No git write commands.
+
+**Report extras:** list the periods actually loaded with row counts (expect ~5,400 per list, 3 category transitions at ranks 1/101/251), the pypdfium2 outcome, the migration number, and the rendered UI states tested.
+
 ---
 
 ## Self-review (before printing the report)
@@ -86,3 +101,5 @@ Run date/time: <…>    Environment: Windows    Python: <version>    Baseline HE
 | — | Run 6 | ready 2026-10-14 | Task 2 backend. |
 | 6 | Run 6 | built + committed 2026-10-14 (Codex, baseline `dbfb19c`) | Shared table, memo, coverage, age tags, equity-only section, schemas, `_SectionSpec`. Cap ruling: 100 applies to the stored section payload only; the shared table is complete (user ruling to Codex). Real-data test: Zerodha arbitrage (−68.87% derivatives, 12.88% OTHER excluded), Monarch overnight (ISIN-less cash kept), Union flexi cap; 117 shared rows, 108 stocks, stored 100, `truncated`. WSL 52+ passed. Commit `eeeaa20`. |
 | — | Run 7 | ready 2026-10-14 | Task 2 frontend + scheme names in the payload. |
+| 7 | Run 7 | built + committed 2026-10-14 (Codex) | Scheme names in payload (`CoverageFund`), CoverageBanner, StockHoldingsSection, views/types. WSL backend 45 passed, vitest 44 passed, tsc -b exit 0. Commit `84185e4`. |
+| — | Run 8 | ready 2026-10-14 | Task 3 (A02). Only 2 of 4 AMFI list URLs verified; Codex finds the rest. |

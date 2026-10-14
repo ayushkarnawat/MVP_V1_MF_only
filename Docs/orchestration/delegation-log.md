@@ -550,3 +550,4 @@ fix" rule.
 - 2026-10-14 | sp2-engine — Run 5 (Tasks 9–10) READY | worker=codex (manual relay) | Job script + Terraform text (bucket, role, 05:45 job, alarm); fmt/validate only; infra edit allowed for listed files.
 - 2026-10-14 | sp2-consumers — Run 6 (Task 2 backend) READY | worker=codex (manual relay) | Engine complete (Runs 1–5, e08dd2c). Shared look-through table + stock_holdings section; real-data facts (percent-point weights, derivative/other excluded, WRITTEN only) in the handoff.
 - 2026-10-14 | sp2-consumers — Run 6 APPROVED, Run 7 (Task 2 frontend) READY | worker=codex (manual relay) | Run 6 committed eeeaa20. Run 7 adds scheme names to the payload (UI needs fund names).
+- 2026-10-14 | sp2-consumers — Run 7 APPROVED (84185e4), Run 8 (Task 3, A02) READY | worker=codex (manual relay) | AMFI lists: Jun2026 and Dec2024 URLs verified, Dec2025/Jun2025 not found; Codex to discover.
