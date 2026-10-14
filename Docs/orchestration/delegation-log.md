@@ -558,3 +558,4 @@ fix" rule.
 - 2026-10-14 | sp2-consumers — Run 10 APPROVED | worker=codex (manual relay) | Task 4 / A10 done; Run 11 (A15 data side, Opus) next.
 - 2026-10-14 | sp2-consumers — Run 11 (Task 6, A15) READY | worker=codex (manual relay) | User ruled: index-level P/E,P/B reuse benchmark_index_history (new PE/PB return_type values) instead of a new table. Opus review after.
 - 2026-10-14 | sp2-consumers — Run 11 APPROVED after Opus review | worker=codex (manual relay), reviewer=opus subagent | Task 6 / A15 done; Run 12 (A15 frontend/rest) check needed; then Run 13 PDF export.
+- 2026-10-14 | sp2-consumers — Run 12 (Task 7 PDF) built by Claude directly (Codex quota exhausted), reviewed by Sonnet subagent | 6 findings fixed; print-wait check on synthetic harness still to do.
