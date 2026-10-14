@@ -478,6 +478,8 @@ def test_benchmark_comparison_filters_tri_at_both_ends():
         BenchmarkIndexHistory(index_name=BenchmarkIndex.NIFTY_500, date=date(2019, 12, 31), return_type=BenchmarkReturnType.PRICE, value=Decimal("100")),
         BenchmarkIndexHistory(index_name=BenchmarkIndex.NIFTY_500, date=date(2020, 3, 31), return_type=BenchmarkReturnType.PRICE, value=Decimal("50")),
     ])
+    for kind in (BenchmarkReturnType.PE, BenchmarkReturnType.PB):
+        db.add(BenchmarkIndexHistory(index_name=BenchmarkIndex.NIFTY_50, return_type=kind, date=date(2020, 3, 31), value=Decimal("999")))
     db.commit()
     assert [(b.name, b.pct) for b in _scenario_benchmark_comparisons(db, scenario)] == [("nifty_50", "-20.00")]
 

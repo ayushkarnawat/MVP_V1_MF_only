@@ -1,3 +1,4 @@
+import { sampleValuation } from "./valuationTestData";
 import { sampleOverlap } from "./overlapTestData";
 import { sampleAssetAllocation } from "./assetAllocationTestData";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
@@ -114,6 +115,7 @@ function buildSections(isAggregate: boolean, members: MemberStatus[] = []) {
   return {
     allocation: settled(wrap("allocation", sampleAllocationSummary)),
     stock_holdings: settled(wrap("stock_holdings", sampleStockHoldings)),
+    valuation: settled(wrap("valuation", sampleValuation)),
     overlap: settled(wrap("overlap", sampleOverlap)),
     asset_allocation: settled(wrap("asset_allocation", sampleAssetAllocation)),
     cap_allocation: settled(wrap("cap_allocation", sampleCapAllocation)),
@@ -130,6 +132,12 @@ function buildSections(isAggregate: boolean, members: MemberStatus[] = []) {
 }
 
 describe("AnalyticsView", () => {
+  it.each([true, false])("unwraps valuation for both scopes (aggregate=%s)", async (aggregate) => {
+    vi.mocked(api.getAnalyticsScope).mockResolvedValue({ scope: aggregate ? "combined" : "m-1", recomputing: false, sections: buildSections(aggregate) });
+    render(<AnalyticsView viewMode={aggregate ? "aggregate" : "member"} memberId={aggregate ? null : "m-1"} />);
+    expect(await screen.findByRole("heading", { name: "Portfolio valuation" })).toBeInTheDocument();
+    expect(screen.getByText("25.00x")).toBeInTheDocument();
+  });
   it.each([true, false])("unwraps overlap and opens the existing full stock table (aggregate=%s)", async (aggregate) => {
     vi.mocked(api.getAnalyticsScope).mockResolvedValue({ scope: aggregate ? "combined" : "m-1", recomputing: false, sections: buildSections(aggregate) });
     render(<AnalyticsView viewMode={aggregate ? "aggregate" : "member"} memberId={aggregate ? null : "m-1"} />);
@@ -142,6 +150,14 @@ describe("AnalyticsView", () => {
     render(<AnalyticsView viewMode={aggregate ? "aggregate" : "member"} memberId={aggregate ? null : "m-1"} />);
     expect(await screen.findByRole("heading", { name: "Look-through asset allocation" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Equity.*80.00%/ })).toBeInTheDocument();
+  });
+  it("settles a failed valuation section with an empty card and retry action", async () => {
+    vi.mocked(api.getAnalyticsScope).mockResolvedValue({ scope: "combined", recomputing: false,
+      sections: { ...buildSections(true), valuation: settled(null, "2026-10-14T00:00:00Z") } });
+    render(<AnalyticsView viewMode="aggregate" memberId={null} />);
+    expect(await screen.findByText("No portfolio valuation data available")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /retry/i })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Loading portfolio valuation")).not.toBeInTheDocument();
   });
   it("settles a failed overlap section with an empty card and retry action", async () => {
     vi.mocked(api.getAnalyticsScope).mockResolvedValue({ scope: "combined", recomputing: false,

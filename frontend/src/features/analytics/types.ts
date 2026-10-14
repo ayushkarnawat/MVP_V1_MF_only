@@ -175,6 +175,7 @@ export const ANALYTICS_SECTION_NAMES = [
   "cap_allocation",
   "asset_allocation",
   "overlap",
+  "valuation",
 ] as const;
 
 export type AnalyticsSectionName = (typeof ANALYTICS_SECTION_NAMES)[number];
@@ -457,4 +458,39 @@ export interface OverlapSummary {
 export interface AggregateOverlapResponse {
   members: MemberStatus[];
   overlap: OverlapSummary;
+}
+
+
+export interface ValuationMetric {
+  ratio: string | null;
+  coverage_pct: string;
+  enough_data: boolean;
+  as_of_date: string | null;
+  missing: { isin: string | null; instrument_name: string; exposure_value: string; percentage_equity: string; reason: string }[];
+}
+export interface ValuationIndex {
+  index_name: "nifty_50" | "nifty_500";
+  pe_ratio: string | null;
+  pb_ratio: string | null;
+  pe_as_of: string | null;
+  pb_as_of: string | null;
+  pe_delta_pct: string | null;
+  pb_delta_pct: string | null;
+}
+export interface ValuationSummary {
+  pe: ValuationMetric;
+  pb: ValuationMetric;
+  indices: ValuationIndex[];
+  total_equity_value: string;
+  total_portfolio_value: string;
+  nav_as_of: string | null;
+  holdings_as_of: string | null;
+  coverage: LookthroughCoverage;
+  hide_headlines: boolean;
+  excluded_share: string;
+  footnotes: string[];
+}
+export interface AggregateValuationResponse {
+  members: MemberStatus[];
+  valuation: ValuationSummary;
 }

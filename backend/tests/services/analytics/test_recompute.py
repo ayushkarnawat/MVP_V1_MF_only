@@ -19,6 +19,8 @@ from app.services.analytics.recompute import (
     try_claim_recompute,
 )
 from app.services.analytics.schemas import (
+    ValuationSummary,
+    ValuationMetric,
     OverlapSummary,
     OverlapBands,
     AssetAllocationSummary,
@@ -118,6 +120,13 @@ _MOCK_RESULTS["overlap"] = OverlapSummary(
     hide_headlines=True, excluded_share=Decimal(0),
 )
 
+_metric = ValuationMetric(ratio=None, coverage_pct=Decimal(0), enough_data=False, as_of_date=None, missing=[])
+_MOCK_RESULTS["valuation"] = ValuationSummary(
+    pe=_metric, pb=_metric, indices=[], total_equity_value=Decimal(0), total_portfolio_value=Decimal(0),
+    nav_as_of=None, holdings_as_of=None, coverage=_MOCK_RESULTS["cap_allocation"].coverage,
+    hide_headlines=True, excluded_share=Decimal(0), footnotes=[],
+)
+
 
 def _patched_computes():
     return [
@@ -163,6 +172,10 @@ def test_recompute_writes_one_row_per_scope_per_section():
     member_overlap = db.get(AnalyticsSection, (user.id, str(members[0].id), "overlap"))
     assert combined_overlap.payload["overlap"] == _MOCK_RESULTS["overlap"].model_dump(mode="json")
     assert member_overlap.payload == _MOCK_RESULTS["overlap"].model_dump(mode="json")
+    combined_valuation = db.get(AnalyticsSection, (user.id, "combined", "valuation"))
+    member_valuation = db.get(AnalyticsSection, (user.id, str(members[0].id), "valuation"))
+    assert combined_valuation.payload["valuation"] == _MOCK_RESULTS["valuation"].model_dump(mode="json")
+    assert member_valuation.payload == _MOCK_RESULTS["valuation"].model_dump(mode="json")
 
 
 def test_recompute_clears_started_at_when_done():

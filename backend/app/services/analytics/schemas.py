@@ -554,3 +554,48 @@ class OverlapSummary(BaseModel):
 class AggregateOverlapResponse(BaseModel):
     members: list[MemberStatus]
     overlap: OverlapSummary
+
+
+class ValuationMissingHolding(BaseModel):
+    isin: str | None
+    instrument_name: str
+    exposure_value: Decimal
+    percentage_equity: Decimal
+    reason: str
+
+
+class ValuationMetric(BaseModel):
+    ratio: Decimal | None
+    coverage_pct: Decimal
+    enough_data: bool
+    as_of_date: date | None
+    missing: list[ValuationMissingHolding]
+
+
+class ValuationIndex(BaseModel):
+    index_name: BenchmarkIndex
+    pe_ratio: Decimal | None
+    pb_ratio: Decimal | None
+    pe_as_of: date | None
+    pb_as_of: date | None
+    pe_delta_pct: Decimal | None
+    pb_delta_pct: Decimal | None
+
+
+class ValuationSummary(BaseModel):
+    pe: ValuationMetric
+    pb: ValuationMetric
+    indices: list[ValuationIndex]
+    total_equity_value: Decimal
+    total_portfolio_value: Decimal
+    nav_as_of: date | None
+    holdings_as_of: date | None
+    coverage: LookthroughCoverage
+    hide_headlines: bool
+    excluded_share: Decimal
+    footnotes: list[str]
+
+
+class AggregateValuationResponse(BaseModel):
+    members: list[MemberStatus]
+    valuation: ValuationSummary

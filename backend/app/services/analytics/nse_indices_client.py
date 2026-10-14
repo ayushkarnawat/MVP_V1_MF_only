@@ -171,6 +171,8 @@ async def ensure_index_history_fresh(
     Saved history ending within `fresh_within` of `end_date` counts as
     covering it (8 Oct). Analytics uses the 4-day default; the 06:00
     benchmark-daily job passes 0 so it still downloads every morning."""
+    if return_type not in (BenchmarkReturnType.PRICE, BenchmarkReturnType.TRI):
+        return False  # Valuation series belong to the independent fundamentals job.
     cache_key = (index, return_type)
     bounds = _cached_date_bounds(db, index, return_type)
     start_covered = bounds is not None and (

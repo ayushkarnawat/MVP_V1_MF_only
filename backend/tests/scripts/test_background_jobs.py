@@ -138,7 +138,7 @@ def test_refresh_benchmark_daily_fetches_price_ten_years_and_tri_from_1990(
     job.main()
 
     assert len(calls) == len(BenchmarkIndex) * 2
-    assert {(c[1], c[2]) for c in calls} == {(i, t) for i in BenchmarkIndex for t in BenchmarkReturnType}
+    assert {(c[1], c[2]) for c in calls} == {(i, t) for i in BenchmarkIndex for t in (BenchmarkReturnType.PRICE, BenchmarkReturnType.TRI)}
     assert all(c[0] is db_session for c in calls)
     # PRICE stays at ten years; TRI fills the full history from 1990.
     assert all(c[3] == date(2014, 2, 28) for c in calls if c[2] is BenchmarkReturnType.PRICE)

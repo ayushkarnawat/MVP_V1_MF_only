@@ -184,6 +184,8 @@ def test_compute_fund_vs_benchmark_uses_per_fund_appropriate_index():
     for index in (BenchmarkIndex.NIFTY_50, BenchmarkIndex.NIFTY_MIDCAP_150, BenchmarkIndex.NIFTY_500):
         db.add(BenchmarkIndexHistory(index_name=index, return_type=BenchmarkReturnType.TRI, date=purchase_date, value=Decimal("100.00")))
         db.add(BenchmarkIndexHistory(index_name=index, return_type=BenchmarkReturnType.TRI, date=date.today(), value=Decimal("110.00")))
+    for kind in (BenchmarkReturnType.PE, BenchmarkReturnType.PB):
+        db.add(BenchmarkIndexHistory(index_name=BenchmarkIndex.NIFTY_50, return_type=kind, date=date.today(), value=Decimal("999")))
     db.commit()
 
     p1, p2 = _mock_holdings_multi({large_cap.id: Decimal("12.0000"), mid_cap.id: Decimal("9.0000")})

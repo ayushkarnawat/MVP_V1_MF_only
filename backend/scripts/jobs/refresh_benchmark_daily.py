@@ -33,7 +33,7 @@ async def main_async(db: Session) -> None:
             db, index, starts[return_type], end_date, return_type=return_type, fresh_within=timedelta(0)
         )
         for index in BenchmarkIndex
-        for return_type in BenchmarkReturnType
+        for return_type in starts
     ]
     succeeded = sum(results)
     logger.info(

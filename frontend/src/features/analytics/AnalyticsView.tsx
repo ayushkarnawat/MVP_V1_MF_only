@@ -1,3 +1,4 @@
+import { ValuationSection } from "./ValuationSection";
 import { OverlapSection, openStockHoldings } from "./OverlapSection";
 import { AssetAllocationSection } from "./AssetAllocationSection";
 import { useRef, useState } from "react";
@@ -21,6 +22,7 @@ import { BenchmarkSection } from "./BenchmarkSection";
 import { FundScoreDetailModal } from "./FundScoreDetailModal";
 import { ANALYTICS_SECTION_NAMES } from "./types";
 import type {
+  ValuationSummary,
   OverlapSummary,
   AssetAllocationSummary,
   CapAllocationSummary,
@@ -50,6 +52,7 @@ export interface AnalyticsViewProps {
 const AGGREGATE_FIELD: Record<AnalyticsSectionName, string> = {
   allocation: "allocation",
   stock_holdings: "stock_holdings",
+  valuation: "valuation",
   overlap: "overlap",
   asset_allocation: "asset_allocation",
   cap_allocation: "cap_allocation",
@@ -83,6 +86,7 @@ export function AnalyticsView({
 
   const allocation = unwrap<AnalyticsAllocationSummary>("allocation");
   const stockHoldings = unwrap<StockHoldingsSummary>("stock_holdings");
+  const valuation = unwrap<ValuationSummary>("valuation");
   const overlap = unwrap<OverlapSummary>("overlap");
   const assetAllocation = unwrap<AssetAllocationSummary>("asset_allocation");
   const capAllocation = unwrap<CapAllocationSummary>("cap_allocation");
@@ -101,6 +105,7 @@ export function AnalyticsView({
 
   const allocationLoading = !!scope && !isSectionSettled(sections.allocation);
   const stockHoldingsLoading = !!scope && !isSectionSettled(sections.stock_holdings);
+  const valuationLoading = !!scope && !isSectionSettled(sections.valuation);
   const overlapLoading = !!scope && !isSectionSettled(sections.overlap);
   const assetAllocationLoading = !!scope && !isSectionSettled(sections.asset_allocation);
   const capAllocationLoading = !!scope && !isSectionSettled(sections.cap_allocation);
@@ -273,6 +278,7 @@ export function AnalyticsView({
       <CapAllocationSection data={capAllocation} isLoading={capAllocationLoading} />
       <AssetAllocationSection data={assetAllocation} isLoading={assetAllocationLoading} />
       <OverlapSection data={overlap} isLoading={overlapLoading} onOpenStocks={() => openStockHoldings(analyticsRoot.current)} />
+      <ValuationSection data={valuation} isLoading={valuationLoading} />
 
       {/* Section 2: Cost / TER */}
       <TerSection ter={ter} comparison={terComparison} isLoading={terLoading} />

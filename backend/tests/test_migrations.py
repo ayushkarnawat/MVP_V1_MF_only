@@ -117,7 +117,7 @@ def test_alembic_upgrade_creates_all_tables(tmp_path, monkeypatch):
         "auth_identities", "pending_identity_verifications",
         "account_deletion_surveys",
         "disclosure_batches", "scheme_holdings",
-        "market_cap_classifications",
+        "market_cap_classifications", "stock_master",
     }
     assert expected.issubset(tables)
     user_columns = {row[1] for row in conn.execute("PRAGMA table_info(users)")}
@@ -1375,3 +1375,44 @@ def test_0038_nav_history_holds_a_ten_lakh_face_value_nav(monkeypatch):
     migration.upgrade()
     for column_type in (NavHistory.__table__.c["nav"].type, altered[("nav_history", "nav")]["type_"]):
         assert (column_type.precision, column_type.scale) == (14, 4)
+
+
+def test_stock_master_model_has_decimal_ratios_and_no_foreign_keys():
+    from app.models.reference import StockMaster
+    table = StockMaster.__table__
+    assert list(table.primary_key.columns.keys()) == ["isin"]
+    assert not table.foreign_keys
+    assert set(table.columns.keys()) == {"isin", "name", "sector", "pe_ratio", "pb_ratio", "as_of_date", "source", "pb_source", "footnote"}
+    assert all(table.c[name].type.scale == 6 for name in ("pe_ratio", "pb_ratio"))
+
+
+def test_0041_stock_and_valuation_enum_roundtrip(tmp_path, monkeypatch):
+    import sqlite3
+    path = tmp_path / "stock.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{path}")
+    up = _alembic("upgrade", "0041")
+    assert up.returncode == 0, up.stderr
+    with sqlite3.connect(path) as conn:
+        assert not conn.execute("PRAGMA foreign_key_list(stock_master)").fetchall()
+        conn.execute("INSERT INTO stock_master VALUES ('INE002A01018','Reliance','Energy',25,3.35,'2026-10-12','NSE','YAHOO',NULL)")
+        for kind in ("price", "tri", "pe", "pb"):
+            conn.execute("INSERT INTO benchmark_index_history VALUES ('nifty_50','2026-10-12',25,?)", (kind,))
+        with pytest.raises(sqlite3.IntegrityError):
+            conn.execute("INSERT INTO benchmark_index_history VALUES ('nifty_50','2026-10-13',25,'wrong')")
+    down = _alembic("downgrade", "0040")
+    assert down.returncode == 0, down.stderr
+    with sqlite3.connect(path) as conn:
+        assert not conn.execute("SELECT name FROM sqlite_master WHERE name='stock_master'").fetchall()
+        assert {r[0] for r in conn.execute("SELECT return_type FROM benchmark_index_history")} == {"price", "tri"}
+
+
+def test_stock_migration_extends_postgres_native_enum(monkeypatch):
+    from types import SimpleNamespace
+    migration = _a11_migration("0041")
+    statements = []
+    monkeypatch.setattr(migration.op, "get_bind", lambda: SimpleNamespace(dialect=SimpleNamespace(name="postgresql")))
+    monkeypatch.setattr(migration.op, "execute", lambda sql: statements.append(str(sql)))
+    monkeypatch.setattr(migration.op, "create_table", lambda *a, **kw: None)
+    migration.upgrade()
+    assert "ALTER TYPE benchmarkreturntype ADD VALUE IF NOT EXISTS 'pe'" in statements
+    assert "ALTER TYPE benchmarkreturntype ADD VALUE IF NOT EXISTS 'pb'" in statements

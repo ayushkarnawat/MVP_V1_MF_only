@@ -45,6 +45,13 @@ locals {
         { name = "PORTFOLIO_DISCLOSURE_ARCHIVE_BUCKET", value = var.portfolio_disclosure_archive_bucket_name },
       ]
     }
+    stock_fundamentals_daily = {
+      slug                = "stock-fundamentals-daily"
+      command             = ["python", "scripts/jobs/refresh_stock_fundamentals_daily.py"]
+      schedule_expression = "cron(45 5 * * ? *)"
+      task_role_arn       = null
+      memory              = "2048"
+    }
     market_cap_half_yearly = {
       slug                = "market-cap-half-yearly"
       command             = ["python", "scripts/jobs/refresh_market_cap_half_yearly.py"]

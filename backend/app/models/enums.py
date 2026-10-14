@@ -141,6 +141,8 @@ class BenchmarkIndex(str, enum.Enum):
 class BenchmarkReturnType(str, enum.Enum):
     PRICE = "price"
     TRI = "tri"
+    PE = "pe"
+    PB = "pb"
 
 
 class ArnStatus(str, enum.Enum):

@@ -296,3 +296,17 @@ class SchemeHolding(Base):
     quantity: Mapped[Decimal | None] = mapped_column(Numeric(20, 4), nullable=True)
     market_value: Mapped[Decimal] = mapped_column(Numeric(20, 2), nullable=False)
     pct_to_nav: Mapped[Decimal] = mapped_column(Numeric(6, 3), nullable=False)
+
+
+class StockMaster(Base):
+    __tablename__ = "stock_master"
+
+    isin: Mapped[str] = mapped_column(String(12), primary_key=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    sector: Mapped[str | None] = mapped_column(String)
+    pe_ratio: Mapped[Decimal | None] = mapped_column(Numeric(18, 6))
+    pb_ratio: Mapped[Decimal | None] = mapped_column(Numeric(18, 6))
+    as_of_date: Mapped[date_] = mapped_column(Date, nullable=False)
+    source: Mapped[str] = mapped_column(String, nullable=False)
+    pb_source: Mapped[str | None] = mapped_column(String)
+    footnote: Mapped[str | None] = mapped_column(Text)
