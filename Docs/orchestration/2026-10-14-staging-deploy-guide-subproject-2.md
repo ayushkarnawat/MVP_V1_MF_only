@@ -109,7 +109,12 @@ Download each in a normal browser **on the deploy day or the day before**. The i
 | HSBC Mutual Fund | All scheme-wise monthly spreadsheets | **Not collected yet** |
 | Bandhan Mutual Fund | Monthly holdings workbook | **Not collected yet** (decision pending whether Bandhan stays manual) |
 
-Put them in `~/portfolio-disclosures/` on the manager's laptop. A missing file is not a blocker: that fund house just shows "not available" until it is imported. The synthetic CAS statements for QA are in the repo (`Docs/CAS Files/synthetic/pdfs/realistic/`, password `MF@123`).
+The files are in `D:\Portfolio Disclosures` on the manager's laptop. WSL sees that drive as `/mnt/d/Portfolio Disclosures` (note the space: always quote the path). Check the names once:
+```bash
+DISC="/mnt/d/Portfolio Disclosures"
+ls -la "$DISC"
+```
+**Good looks like:** the `.xls`, `.xlsx` or `.zip` files for the fund houses collected. No copying is needed: Step 12c reads them from there. A missing file is not a blocker: that fund house just shows "not available" until it is imported. The synthetic CAS statements for QA are in the repo (`Docs/CAS Files/synthetic/pdfs/realistic/`, password `MF@123`).
 
 ---
 
@@ -424,9 +429,10 @@ aws logs tail /ecs/staging-job-portfolio-disclosures-daily --since 90m | grep -E
 
 From `backend/` on the laptop, with `DATABASE_URL` set (Step 2). The commands are in `Docs/orchestration/portfolio-disclosure-manual-import-guide.md`; in bash they look like (replace names and dates with the real downloads):
 ```bash
-.venv/bin/python scripts/jobs/import_manual_portfolio_disclosures.py --amc "Edelweiss Mutual Fund" --file ~/portfolio-disclosures/Edelweiss.xlsx --as-of 2026-09-30
-.venv/bin/python scripts/jobs/import_manual_portfolio_disclosures.py --amc "JM Financial Mutual Fund" --file ~/portfolio-disclosures/JM-Large-Cap.xlsx --file ~/portfolio-disclosures/JM-Mid-Cap.xlsx --as-of 2026-09-30
-# ...one command per fund house whose file you collected (ITI, HSBC, Invesco, Mahindra, Bandhan)
+DISC="/mnt/d/Portfolio Disclosures"      # the folder from Step 0b; keep the quotes, the path has a space
+.venv/bin/python scripts/jobs/import_manual_portfolio_disclosures.py --amc "Edelweiss Mutual Fund" --file "$DISC/<Edelweiss file>" --as-of 2026-09-30
+.venv/bin/python scripts/jobs/import_manual_portfolio_disclosures.py --amc "JM Financial Mutual Fund" --file "$DISC/<JM Large Cap file>" --file "$DISC/<JM Mid Cap file>" --as-of 2026-09-30
+# ...one command per fund house whose file is in the folder (ITI, HSBC, Invesco, Mahindra, Bandhan)
 ```
 **Good looks like:** each command prints `matched=N unmatched=M schemes_written=K`. The importer checks the file type, every member and every date **before writing anything**, and commits one fund house's call as a whole. Unknown names stay unmatched (never guessed). `schemes_written` counts failed batches too: Step 13 shows the statuses. A file refused for its type or date writes nothing and says why.
 
