@@ -15,19 +15,19 @@ const BUTTON = "min-h-11 rounded-lg p-3 text-xs font-semibold focus-visible:outl
 const PRINT_ROWS = 5;
 
 /** Static top holdings for the PDF: nothing to click, so no expandable rows. */
-function PrintStocks({ title, rows }: { title: string; rows: StockHoldingRow[] }) {
+function PrintStocks({ title, rows, total }: { title: string; rows: StockHoldingRow[]; total: number }) {
   if (!rows.length) return null;
   return <div className="space-y-1"><h3 className="text-sm font-semibold text-[var(--color-ink)]">{title}</h3>
     <ul className="space-y-1 text-xs text-[var(--color-text-secondary)]">{rows.slice(0, PRINT_ROWS).map((row, index) => <li key={row.isin ?? `${row.instrument_name}-${index}`} className="flex justify-between gap-3"><span className="min-w-0 break-words">{row.instrument_name}</span><span className="shrink-0 tabular-nums">₹{formatIndianCurrency(row.exposure_value)}</span></li>)}</ul>
-    {rows.length > PRINT_ROWS && <p className="text-xs text-[var(--color-text-secondary)]">Top {PRINT_ROWS} of {rows.length} shown.</p>}
+    {total > Math.min(rows.length, PRINT_ROWS) && <p className="text-xs text-[var(--color-text-secondary)]">Top {Math.min(rows.length, PRINT_ROWS)} of {total} shown.</p>}
   </div>;
 }
 
-function Stocks({ rows }: { rows: StockHoldingRow[] }) {
+function Stocks({ rows, total }: { rows: StockHoldingRow[]; total: number }) {
   const id = useId();
   const [expanded, setExpanded] = useState<Record<number, boolean>>({});
   if (!rows.length) return <p className="text-xs text-[var(--color-text-secondary)]">No holdings in this group</p>;
-  return <ul className="space-y-2">{rows.map((row, index) => <li key={row.isin ?? `${row.instrument_name}-${index}`} className="border-b last:border-0 border-[var(--color-border)] pb-2">
+  return <><ul className="space-y-2">{rows.map((row, index) => <li key={row.isin ?? `${row.instrument_name}-${index}`} className="border-b last:border-0 border-[var(--color-border)] pb-2">
     <button type="button" aria-expanded={!!expanded[index]} aria-controls={`${id}-${index}`} onClick={() => setExpanded((prev) => ({ ...prev, [index]: !prev[index] }))}
       className={cn(BUTTON, "w-full flex justify-between gap-3 text-left text-[var(--color-ink)] border border-[var(--color-border)]")}>
       <span className="min-w-0 break-words">{row.instrument_name}</span><span className="shrink-0 tabular-nums">₹{formatIndianCurrency(row.exposure_value)}</span>
@@ -36,7 +36,7 @@ function Stocks({ rows }: { rows: StockHoldingRow[] }) {
       <span className="font-semibold">{fund.scheme_name}</span> · {formatPercent(percentageProduct(fund.fund_weight_pct, fund.stock_weight_pct))}% of portfolio
       {fundAgeText(fund) ? ` · ${fundAgeText(fund)}` : ""}
     </li>)}</ul>}
-  </li>)}</ul>;
+  </li>)}</ul>{total > rows.length && <p className="mt-2 text-xs text-[var(--color-text-secondary)]">Showing the largest {rows.length} of {total} holdings in this group.</p>}</>;
 }
 
 export interface CapAllocationSectionProps {
@@ -96,19 +96,19 @@ export function CapAllocationSection({ data, isLoading = false, className, embed
         {!data.hide_headlines && largest && <p className="text-sm font-semibold text-[var(--color-ink)]">Largest allocation: {LABELS[largest.key]} ({formatPercent(percent(largest))}%)</p>}
         {buckets.some((bucket) => compare(percent(bucket), "0") < 0) && <p className="text-xs text-[var(--color-text-secondary)]">Negative net positions are listed with their signed percentages; the donut shows positive exposures.</p>}
         {printMode && <div className="space-y-3 border-t border-[var(--color-border)] pt-4">
-          {buckets.filter((b) => b.key !== "OTHER").map((b) => <PrintStocks key={b.key} title={`${LABELS[b.key]} — top holdings`} rows={b.rows} />)}
-          <PrintStocks title="Equity not in AMFI list — top holdings" rows={data.other.unclassified_equity_rows} />
-          {!embedded && <PrintStocks title="Not equity (debt, cash, gold, REITs) — top holdings" rows={data.other.non_equity_rows} />}
+          {buckets.filter((b) => b.key !== "OTHER").map((b) => <PrintStocks key={b.key} title={`${LABELS[b.key]} — top holdings`} rows={b.rows} total={b.row_count} />)}
+          <PrintStocks title="Equity not in AMFI list — top holdings" rows={data.other.unclassified_equity_rows} total={data.other.unclassified_equity_count} />
+          {!embedded && <PrintStocks title="Not equity (debt, cash, gold, REITs) — top holdings" rows={data.other.non_equity_rows} total={data.other.non_equity_count} />}
         </div>}
         {active && <div id={`${id}-drill`} role="region" aria-label={`${LABELS[active.key]} breakdown`} className="space-y-4 border-t border-[var(--color-border)] pt-4">
           {active.key === "OTHER" ? <>
             {!embedded && <div className="space-y-2"><h3 className="text-sm font-semibold text-[var(--color-ink)]">Not equity (debt, cash, gold, REITs)</h3>
-              {equityOnly ? <p className="text-xs text-[var(--color-text-secondary)]">Excluded from the equity-only view</p> : <><p className="text-sm tabular-nums">₹{formatIndianCurrency(data.other.non_equity_value)}</p><Stocks rows={data.other.non_equity_rows} /></>}
+              {equityOnly ? <p className="text-xs text-[var(--color-text-secondary)]">Excluded from the equity-only view</p> : <><p className="text-sm tabular-nums">₹{formatIndianCurrency(data.other.non_equity_value)}</p><Stocks rows={data.other.non_equity_rows} total={data.other.non_equity_count} /></>}
             </div>}
             <div className="space-y-2"><h3 className="text-sm font-semibold text-[var(--color-ink)]">Equity not in AMFI list</h3>
-              <p className="text-sm tabular-nums">₹{formatIndianCurrency(data.other.unclassified_equity_value)}</p><Stocks rows={data.other.unclassified_equity_rows} />
+              <p className="text-sm tabular-nums">₹{formatIndianCurrency(data.other.unclassified_equity_value)}</p><Stocks rows={data.other.unclassified_equity_rows} total={data.other.unclassified_equity_count} />
             </div>
-          </> : <Stocks rows={active.rows} />}
+          </> : <Stocks rows={active.rows} total={active.row_count} />}
         </div>}
       </>}
     </>}

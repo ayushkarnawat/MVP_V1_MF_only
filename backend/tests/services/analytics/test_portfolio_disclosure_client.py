@@ -1427,11 +1427,29 @@ def test_run4_single_fallback_alert_and_failed_archive(db_session,monkeypatch,mo
     monkeypatch.setattr(client,'AMC_DISCLOSURE_RESOLVERS',{'Example Mutual Fund':static_entry()})
     mock_http({'https://example.test/list':httpx.Response(200,text=f'<a href="{new}">new</a><a href="{old}">old</a>'),
                new:httpx.Response(503),old:httpx.Response(200,content=workbook([('Example Equity Fund',50,50)]))})
-    asyncio.run(client.refresh_portfolio_disclosures(db_session,today=date(2026,10,3)))
+    asyncio.run(client.refresh_portfolio_disclosures(db_session,today=date(2026,10,10)))  # a due day: stale alerts are gated to days 10 and 20
     assert 'reason=stale_fallback' in caplog.text and 'reason=failed_sum_check' in caplog.text
     assert len(archived)==1
     batch=db_session.query(DisclosureBatch).one()
     assert batch.status is DisclosureBatchStatus.FAILED and batch.raw_file_reference=='s3://test/failed.xls'
+@pytest.mark.parametrize('day,due',[(3,False),(10,True),(20,True)])
+def test_prior_month_already_written_is_not_redownloaded_or_alerted_daily(db_session,monkeypatch,mock_http,caplog,day,due):
+    seed(db_session)
+    old='https://example.test/portfolio-31-Aug-26.xlsx'
+    scheme=db_session.query(Scheme).filter_by(amc_name='Example Mutual Fund').first()
+    db_session.add(DisclosureBatch(scheme_id=scheme.id,amc_name='Example Mutual Fund',as_of_date=date(2026,8,31),
+        status=DisclosureBatchStatus.WRITTEN,source_url=old)); db_session.commit()
+    monkeypatch.setattr(client,'AMC_DISCLOSURE_RESOLVERS',{'Example Mutual Fund':static_entry()})
+    requests=mock_http({'https://example.test/list':httpx.Response(200,text=f'<a href="{old}">old</a>'),
+                        old:httpx.Response(200,content=workbook([('Example Equity Fund',50,50)]))})
+    result=asyncio.run(client.refresh_portfolio_disclosures(db_session,today=date(2026,10,day)))
+    assert old not in requests  # no download, no re-write of a good batch
+    assert 'reason=stale_fallback' not in caplog.text and 'reason=no_file_found' not in caplog.text
+    assert ('reason=target_month_not_published' in caplog.text) is due
+    assert db_session.query(DisclosureBatch).one().status is DisclosureBatchStatus.WRITTEN
+    assert result.amcs_failed == 0
+
+
 @pytest.mark.parametrize('day,due',[(3,False),(10,True),(20,True)])
 def test_run4_stale_wayback_and_manual_pending_gated(db_session,monkeypatch,mock_http,caplog,day,due):
     seed(db_session)

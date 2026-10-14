@@ -245,6 +245,8 @@ export interface CapAllocationBucket {
   percentage_total: string;
   percentage_equity: string;
   rows: StockHoldingRow[];
+  // rows is capped by the backend (largest first); value, percentages and this count cover every stock.
+  row_count: number;
 }
 
 export interface CapAllocationSummary {
@@ -254,6 +256,8 @@ export interface CapAllocationSummary {
     unclassified_equity_value: string;
     non_equity_rows: StockHoldingRow[];
     unclassified_equity_rows: StockHoldingRow[];
+    non_equity_count: number;
+    unclassified_equity_count: number;
   };
   total_portfolio_value: string;
   total_equity_value: string;

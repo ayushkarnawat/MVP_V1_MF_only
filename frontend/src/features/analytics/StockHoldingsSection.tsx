@@ -63,7 +63,7 @@ export function StockHoldingsSection({ data, isLoading = false, className, print
         <p className="text-xs text-[var(--color-text-secondary)]">Values as on {holdingsDate(data.nav_as_of)} · Holdings as on {holdingsDate(data.holdings_as_of)}</p>
         <CoverageBanner coverage={data.coverage} excludedShare={data.excluded_share} />
         {rows.length === 0 ? <p className="py-8 text-center text-sm text-[var(--color-text-secondary)]">No equity stocks disclosed for this selection</p> : <>
-          {!data.hide_headlines && <p className="text-sm font-semibold text-[var(--color-ink)]">Top 10 stocks represent {formatPercent(sumDecimalStrings(top.map((row) => percentageProduct(row.exposure_pct, "100"))))}% of your portfolio</p>}
+          {!data.hide_headlines && <p className="text-sm font-semibold text-[var(--color-ink)]">Top {top.length} stocks represent {formatPercent(sumDecimalStrings(top.map((row) => percentageProduct(row.exposure_pct, "100"))))}% of your portfolio</p>}
           <ol aria-label="Top stock holdings" className="space-y-3">
             {top.map((row, index) => {
               const key = row.isin ?? `${row.instrument_name}-${index}`;

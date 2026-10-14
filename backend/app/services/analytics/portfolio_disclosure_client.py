@@ -1126,6 +1126,21 @@ def _written_source_urls(db: Session, amc_name: str, as_of: date) -> set[str]:
         amc_name=amc_name, as_of_date=as_of, status=DisclosureBatchStatus.WRITTEN) if url}
 
 
+def _written_prior_months(db: Session, amc_name: str, target: date) -> set[tuple[str, date]]:
+    """(url, as_of) of WRITTEN batches from months before the target month.
+
+    Before an AMC publishes the new month the newest file it lists is last
+    month's. Re-downloading and re-writing it every day wastes a download (ICICI's
+    ZIP is 25 MB), raises a stale alert daily, and lets one transient failure turn
+    a good batch into FAILED. Keyed by (url, as_of), not url alone: an AMC that
+    reuses one fixed URL and overwrites it monthly must still be fetched again.
+    """
+    return {(url, as_of) for url, as_of in db.query(
+        DisclosureBatch.source_url, DisclosureBatch.as_of_date).filter(
+        DisclosureBatch.amc_name == amc_name, DisclosureBatch.status == DisclosureBatchStatus.WRITTEN,
+        DisclosureBatch.as_of_date < target) if url}
+
+
 def _alert_due(today: date) -> bool:
     return today.day in _ALERT_DAYS
 
@@ -1158,7 +1173,7 @@ def _newest_group_first(references: list[LocatedFile]) -> list[LocatedFile]:
     return sorted(references, key=lambda ref: ref.as_of_date, reverse=True)
 
 
-async def _iter_located_files(client, entry, scheme_rows, skip_urls: set[str]) -> AsyncIterator[LocatedFile]:
+async def _iter_located_files(client, entry, scheme_rows, skip_urls: set[str], skip_prior=None, prior_hits=None) -> AsyncIterator[LocatedFile]:
     """Discover metadata first, then hold one downloaded body until the caller finishes.
 
     Failure references (data=None) let the caller record failures without hiding peers.
@@ -1193,6 +1208,15 @@ async def _iter_located_files(client, entry, scheme_rows, skip_urls: set[str]) -
         seen.add(reference.source_url)
         if yielded_month is not None and (reference.as_of_date.year, reference.as_of_date.month) != yielded_month:
             continue  # an older month is only a fallback while the newest produced nothing
+        if skip_prior and any((u, reference.as_of_date) in skip_prior for u in (reference.source_url, *reference.alternatives)):
+            # Already written for that exact month: nothing to do, and an older month
+            # must not be tried while the newest listed file is this one.
+            yielded_month = (reference.as_of_date.year, reference.as_of_date.month)
+            if prior_hits is not None:
+                prior_hits.append(reference.source_url)
+            if single:
+                break
+            continue
         if skip_urls.intersection((reference.source_url, *reference.alternatives)):
             yielded_month = (reference.as_of_date.year, reference.as_of_date.month)
             if single:
@@ -1309,7 +1333,9 @@ async def refresh_portfolio_disclosures(db: Session, today: date | None = None) 
                     newest = None
                     failed_newest = None
                     unmatched_names = []
-                    async for file in _iter_located_files(http_client, entry, scheme_rows, skip_urls):
+                    skip_prior = _written_prior_months(db, amc_name, target)
+                    prior_hits: list[str] = []
+                    async for file in _iter_located_files(http_client, entry, scheme_rows, skip_urls, skip_prior, prior_hits):
                         files_seen += 1
                         newest = max(newest or file.as_of_date, file.as_of_date)
                         if file.data is None:
@@ -1317,7 +1343,7 @@ async def refresh_portfolio_disclosures(db: Session, today: date | None = None) 
                             failed_newest = max(failed_newest or file.as_of_date, file.as_of_date)
                             del file
                             continue
-                        if file.as_of_date < target:
+                        if file.as_of_date < target and _alert_due(effective_today):
                             _alert(amc_name, 'stale_fallback', f'target={target} used={file.as_of_date}')
                         file_failed = False
                         failed_batches = []
@@ -1371,9 +1397,15 @@ async def refresh_portfolio_disclosures(db: Session, today: date | None = None) 
                     if unmatched_names:
                         _alert(amc_name, 'unmatched_scheme', ' | '.join(unmatched_names))
                     if not files_seen and not skip_urls:
-                        failed = True
-                        if _alert_due(effective_today):
-                            _alert(amc_name, 'no_file_found', entry.landing_url or entry.url_template or '')
+                        if prior_hits:
+                            # Last month's file is already stored and the new month is not out yet:
+                            # a quiet no-op, with the late-file alert only on days 10 and 20.
+                            if _alert_due(effective_today):
+                                _alert(amc_name, 'target_month_not_published', f'target={target}')
+                        else:
+                            failed = True
+                            if _alert_due(effective_today):
+                                _alert(amc_name, 'no_file_found', entry.landing_url or entry.url_template or '')
                     if (entry.kind is DisclosureResolverKind.WAYBACK_LOCATE and newest
                             and newest < target and _alert_due(effective_today)):
                         _alert(amc_name, 'stale_wayback_capture', f'newest={newest}')

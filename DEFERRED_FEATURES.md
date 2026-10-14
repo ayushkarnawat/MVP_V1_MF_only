@@ -254,3 +254,14 @@ Doing it properly takes four changes together (~3 h): `benchmark-daily` saves fu
 - **Equity Savings hedged portion** for the arbitrage toggle (Q26 option C) and **debt by credit rating** (Q27 option B) are not built.
 - **Nifty 500 comparison strip** for cap allocation not built (Q21); count-based version possible later.
 
+### Added after the final Sub-project 2 review (2026-10-14)
+Fixed in the review pass: excluded-share denominator now total portfolio value in every section; non-equity share no longer nets derivative/other lines; cap and asset-allocation row lists capped at 50 with counts; disclosure job no longer re-downloads/re-writes last month's file daily (skip by URL and as-of date, stale alert on days 10 and 20 only, new `target_month_not_published` alert); CloudWatch filters and alarms added for the market-cap and stock-fundamentals jobs (Terraform text, not applied).
+Still open (all Low):
+- **Retention vs a very stale NAV.** `prune_old_batches` keeps the newest 3 months plus the latest WRITTEN batch; a scheme whose NAV is over 3 months old (suspended or segregated) may need a batch that was pruned and shows as "not published".
+- **Batch query is wider than needed.** `lookthrough.py` loads every WRITTEN batch for each held fund house, not just the held schemes (thousands of ORM rows per scope inside the 1024 MB recompute task).
+- **First day on a wiped database.** `scheme_master_daily` (06:15) runs after the disclosure job (05:45), so every fund house alerts `zero_schemes_matched` and the stock universe is index constituents only until the next day. Staging already has a scheme master.
+- **Disclosure fetches send a browser-style User-Agent** (needed for WhiteOak's UA gate); pacing is polite.
+- **Accessibility:** `aria-controls` points at panels that exist only when expanded (same known pattern as the SIP tab limitation); the overlap concentration chart does nothing if the stock section is empty or failed.
+- **A disclosure failure is not memoised**, so each of the five sections re-runs `compute_holdings` before failing.
+- **Arbitrage-as-cash banner** still counts the arbitrage fund's futures in the single `excluded_share` figure.
+

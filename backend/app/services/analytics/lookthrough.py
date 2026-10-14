@@ -199,7 +199,9 @@ def build_lookthrough_table(scope: DisclosureScope) -> LookthroughTable:
     for row in raw_rows:
         sid = by_batch[row.batch_id]
         value = values[sid] * row.pct_to_nav / _HUNDRED
-        if row.asset_type not in _EQUITY:
+        # Derivatives and other lines are excluded everywhere; netting a negative
+        # futures leg into "non-equity" made this share near zero for arbitrage funds.
+        if row.asset_type not in _EQUITY and row.asset_type not in _EXCLUDED:
             non_equity_value += value
         if row.asset_type in _EXCLUDED:
             excluded_value += value

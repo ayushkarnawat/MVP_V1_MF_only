@@ -17,7 +17,8 @@ describe("StockHoldingsSection", () => {
   it("renders exact weighted segments, fund legend, dates and drill-down", () => {
     render(<StockHoldingsSection data={sampleStockHoldings} />);
     expect(screen.getByRole("heading", { name: "Overall stock holdings" })).toBeInTheDocument();
-    expect(screen.getByText(/Top 10 stocks represent 6.55%/)).toBeInTheDocument();
+    // The headline names the real count: the sample has fewer than 10 stocks, so it must not say "Top 10".
+    expect(screen.getByText(new RegExp(`Top ${Math.min(10, sampleStockHoldings.rows.length)} stocks represent 6.55%`))).toBeInTheDocument();
     expect(screen.getByRole("img", { name: /Reliance Industries.*Fund A: 3.20%.*Fund B: 2.10%.*Fund C: 1.25%/ })).toBeInTheDocument();
     expect(within(screen.getByLabelText("Fund legend")).getByText("Fund A")).toBeInTheDocument();
     expect(screen.getByText(/Values as on 13 Oct 2026.*Holdings as on 31 Mar 2026/)).toBeInTheDocument();
@@ -71,7 +72,7 @@ describe("StockHoldingsSection", () => {
   it("hides headlines below the coverage threshold while keeping rows, banner and notes", () => {
     render(<StockHoldingsSection data={{ ...sampleStockHoldings, hide_headlines: true,
       coverage: { ...sampleStockHoldings.coverage, covered_value_pct: "40", not_published_yet: [{ scheme_id: "d", scheme_name: "Pending Fund" }] } }} />);
-    expect(screen.queryByText(/Top 10 stocks represent/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Top \d+ stocks represent/)).not.toBeInTheDocument();
     expect(screen.getByText("Based on 40.0% of your portfolio")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Reliance Industries/ })).toBeInTheDocument();
     expect(screen.getByText(/Pending Fund.*not published yet/)).toBeInTheDocument();

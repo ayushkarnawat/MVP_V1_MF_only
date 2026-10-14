@@ -15,6 +15,10 @@ from app.services.analytics.schemas import (
 
 _EQUITY = {AssetType.EQUITY_DOMESTIC, AssetType.EQUITY_INTERNATIONAL}
 _ZERO = Decimal("0")
+# The stored section payload must not grow with the household (it is saved as JSON,
+# served on every dashboard load and posted back for the PDF). Totals and percentages
+# always cover every stock; only the drill-down row lists are capped, largest first.
+CAP_ROWS_LIMIT = 50
 
 
 async def compute_cap_allocation(db: Session, household_member_ids: list[uuid.UUID]) -> CapAllocationSummary:
@@ -49,7 +53,8 @@ def build_cap_allocation(
     missing_value = sum((row.exposure_value for row in missing), _ZERO)
 
     def payload(rows):
-        return [StockHoldingRow.model_validate(row, from_attributes=True) for row in rows]
+        return [StockHoldingRow.model_validate(row, from_attributes=True)
+                for row in sorted(rows, key=lambda r: -r.exposure_value)[:CAP_ROWS_LIMIT]]
 
     buckets = []
     for key, rows in grouped.items():
@@ -59,12 +64,13 @@ def build_cap_allocation(
             key=key, value=value,
             percentage_total=value / table.total_portfolio_value * 100 if table.total_portfolio_value else _ZERO,
             percentage_equity=equity_part / equity_value * 100 if equity_value else _ZERO,
-            rows=payload(rows) if key != "OTHER" else [],
+            rows=payload(rows) if key != "OTHER" else [], row_count=len(rows) if key != "OTHER" else 0,
         ))
     return CapAllocationSummary(
         buckets=buckets, other=CapAllocationOther(
             non_equity_value=non_equity_value, unclassified_equity_value=missing_value,
             non_equity_rows=payload(non_equity), unclassified_equity_rows=payload(missing),
+            non_equity_count=len(non_equity), unclassified_equity_count=len(missing),
         ), total_portfolio_value=table.total_portfolio_value, total_equity_value=equity_value,
         nav_as_of=table.nav_as_of, holdings_as_of=table.holdings_as_of,
         classification_as_of=min(used_dates, default=None), coverage=table.coverage,

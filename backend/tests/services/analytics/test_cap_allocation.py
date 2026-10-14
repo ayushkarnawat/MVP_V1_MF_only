@@ -58,7 +58,8 @@ def test_cap_allocation_reads_full_shared_table_and_reuses_stock_memo(db_session
     async def sections():
         stock = await lookthrough.compute_stock_holdings(db_session, ids)
         cap = await compute_cap_allocation(db_session, ids)
-        assert len(stock.rows) == 100 and len(cap.other.unclassified_equity_rows) == 150
+        assert len(stock.rows) == 100 and cap.other.unclassified_equity_count == 150  # the shared table is complete
+        assert len(cap.other.unclassified_equity_rows) == 50  # but the stored cap payload keeps only the largest 50
         assert cap.total_equity_value == Decimal("750")
     asyncio.run(sections())
     assert spy.await_count == 1
@@ -86,3 +87,30 @@ def test_cap_allocation_section_registered_and_wraps_combined(db_session, monkey
     spec = next(s for s in _SECTIONS if s.name == "cap_allocation")
     result = asyncio.run(spec.compute(db_session, []))
     assert spec.wrap_combined([], result).model_dump(mode="json") == {"members": [], "cap_allocation": result.model_dump(mode="json")}
+
+
+def test_cap_allocation_payload_caps_each_row_list_but_keeps_totals_and_counts(db_session, monkeypatch):
+    """A stored payload must not grow with the household: 60 stocks keep the biggest 50 per list,
+    while the bucket value, percentages and a row_count still describe all 60."""
+    from app.services.analytics import cap_allocation, lookthrough
+    from app.services.analytics.cap_allocation import compute_cap_allocation
+    scheme = _scheme(db_session)
+    lines = [(f"Large {i}", f"LG{i:03d}", str(Decimal("1") + Decimal(i) / 100), AssetType.EQUITY_DOMESTIC) for i in range(60)]
+    lines += [(f"Unlisted {i}", f"UN{i:03d}", "0.5", AssetType.EQUITY_DOMESTIC) for i in range(55)]
+    lines += [(f"Bond {i}", f"BD{i:03d}", "0.1", AssetType.DEBT) for i in range(52)]
+    _batch(db_session, scheme, lines, date(2026, 6, 30))
+    for i in range(60):
+        _classification(db_session, f"LG{i:03d}", MarketCapBucket.LARGE, date(2026, 1, 1))
+    monkeypatch.setattr(lookthrough, "compute_holdings", AsyncMock(return_value=[_holding(scheme, "1000")]))
+    result = asyncio.run(compute_cap_allocation(db_session, [uuid.uuid4()]))
+    large = next(b for b in result.buckets if b.key == "LARGE")
+    limit = cap_allocation.CAP_ROWS_LIMIT
+    assert limit == 50
+    assert large.row_count == 60 and len(large.rows) == limit
+    # the kept rows are the largest ones, biggest first
+    kept = [r.exposure_value for r in large.rows]
+    assert kept == sorted(kept, reverse=True) and kept[0] == Decimal("1.59") * 10
+    # totals still cover every stock, not just the kept rows
+    assert large.value == sum((Decimal("1") + Decimal(i) / 100 for i in range(60)), Decimal(0)) * 10
+    assert result.other.unclassified_equity_count == 55 and len(result.other.unclassified_equity_rows) == limit
+    assert result.other.non_equity_count == 52 and len(result.other.non_equity_rows) == limit

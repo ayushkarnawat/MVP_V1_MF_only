@@ -171,7 +171,7 @@ def test_equity_section_and_excluded_signed_share(db_session, monkeypatch):
     assert table.excluded_share == Decimal("-18")
     result = asyncio.run(compute_stock_holdings(db_session, ids))
     assert [r.isin for r in result.rows] == ["D", "F"]
-    assert result.non_equity_share == Decimal("12")  # debt + gold + cash + excluded
+    assert result.non_equity_share == Decimal("30")  # debt + gold + cash only; derivative/other lines are excluded, never netted in
     assert result.excluded_share == Decimal("-18")
     payload = result.model_dump(mode="json")
     assert isinstance(payload["rows"][0]["exposure_pct"], str)
@@ -222,7 +222,7 @@ def test_stock_cap_never_loses_equity_to_large_non_equity_rows(db_session, monke
     result = asyncio.run(compute_stock_holdings(db_session, ids))
     assert len(result.rows) == 100 and result.total_stock_count == 150 and result.truncated
     assert all(row.asset_type == AssetType.EQUITY_DOMESTIC for row in result.rows)
-    assert result.non_equity_share == Decimal("77")
+    assert result.non_equity_share == Decimal("85")  # same rule: the -8% derivative leg is not netted into non-equity
     assert result.excluded_share == Decimal("-8")
 
 

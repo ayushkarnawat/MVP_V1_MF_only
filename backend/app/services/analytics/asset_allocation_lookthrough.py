@@ -63,6 +63,6 @@ async def compute_asset_allocation(
         nav_as_of=table.nav_as_of, holdings_as_of=table.holdings_as_of,
         coverage=scope.coverage, hide_headlines=table.hide_headlines,
         excluded_share=sum((scope.values[by_batch[r.batch_id]] * r.pct_to_nav / 100
-                            for r in scope.raw_rows if ASSET_CLASS_MAP[r.asset_type] is None), ZERO) / scope.covered * 100 if scope.covered else ZERO,
+                            for r in scope.raw_rows if ASSET_CLASS_MAP[r.asset_type] is None), ZERO) / scope.total * 100 if scope.total else ZERO,  # same denominator (total portfolio value) as every other section's banner
         arbitrage_funds=[CoverageFund(scheme_id=sid, scheme_name=scope.schemes[sid].name) for sid in scope.selected if sid in arbitrage],
     )

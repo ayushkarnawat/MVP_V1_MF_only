@@ -56,7 +56,8 @@ def test_asset_allocation_covered_denominator_batch_selection_and_exclusions(db_
     result = _compute(db_session, monkeypatch, [_holding(covered, "400"), _holding(missing, "600")])
     assert result.coverage.covered_value_pct == Decimal("40") and result.hide_headlines
     assert _values(result.as_disclosed) == {"equity": Decimal("80"), "debt": Decimal("0"), "gold": Decimal("0"), "cash_like": Decimal("20")}
-    assert result.excluded_share == Decimal("-48")
+    # -50% and +2% excluded lines of a 400 holding, over the TOTAL portfolio of 1000 (same denominator as every other banner)
+    assert result.excluded_share == Decimal("-19.2")
     assert result.holdings_as_of == date(2026, 8, 31)
 
 
@@ -149,4 +150,4 @@ def test_excluded_share_has_no_intermediate_portfolio_rounding(db_session, monke
     _batch(db_session, covered, [("Stock", "EQ", "100", AssetType.EQUITY_DOMESTIC),
         ("Future", "EQ", "-1", AssetType.DERIVATIVE)])
     result = _compute(db_session, monkeypatch, [_holding(covered, "1"), _holding(missing, "2")])
-    assert result.excluded_share == Decimal("-1")
+    assert result.excluded_share == Decimal("-1") / Decimal("3")  # -0.01 of a 3-rupee total, exact, no intermediate rounding

@@ -69,6 +69,8 @@ class CapAllocationBucket(BaseModel):
     percentage_total: Decimal
     percentage_equity: Decimal
     rows: list[StockHoldingRow]
+    # rows is capped (CAP_ROWS_LIMIT, largest first); the value, percentages and this count cover every stock.
+    row_count: int = 0
 
 
 class CapAllocationOther(BaseModel):
@@ -76,6 +78,8 @@ class CapAllocationOther(BaseModel):
     unclassified_equity_value: Decimal
     non_equity_rows: list[StockHoldingRow]
     unclassified_equity_rows: list[StockHoldingRow]
+    non_equity_count: int = 0
+    unclassified_equity_count: int = 0
 
 
 class CapAllocationSummary(BaseModel):

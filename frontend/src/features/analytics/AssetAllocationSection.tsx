@@ -30,7 +30,7 @@ export function AssetAllocationSection({ data, isLoading = false, className, pri
     <h2 id={`${id}-heading`} className="font-display text-lg font-bold tracking-tight text-[var(--color-ink)]">Look-through asset allocation</h2>
     {!data || !variant ? <p className="py-12 text-center text-sm text-[var(--color-text-secondary)]">No look-through asset allocation data available</p> : <>
       <p className="text-xs text-[var(--color-text-secondary)]">Values as on {holdingsDate(data.nav_as_of)} · Holdings as on {holdingsDate(data.holdings_as_of)}</p>
-      <p className="text-xs text-[var(--color-text-secondary)]">Percentages of covered portfolio value. Equity’s outer ring shows Large, Mid, Small and Other; debt, gold and cash-like stay undivided.</p>
+      <p className="text-xs text-[var(--color-text-secondary)]">Percentages of covered portfolio value, so they differ from the market-cap section, which uses your total portfolio or equity only. Equity’s outer ring shows Large, Mid, Small and Other; debt, gold and cash-like stay undivided.</p>
       <CoverageBanner coverage={data.coverage} excludedShare={data.excluded_share} />
       {!printMode && <label className="flex gap-3 items-center min-h-11 text-sm text-[var(--color-ink)]"><input type="checkbox" checked={asCash} onChange={e => { setAsCash(e.target.checked); setEquityOpen(false); }} className="size-4 accent-[var(--color-accent)]" />Treat arbitrage funds as cash-like</label>}
       <p className="text-xs text-[var(--color-text-secondary)]">{data.arbitrage_funds.length ? `Applies to ${data.arbitrage_funds.map(f => f.scheme_name).join(", ")}. Entire fund value moves to cash-like; Equity Savings is unchanged.` : "No covered Arbitrage Fund holdings for this selection."}</p>

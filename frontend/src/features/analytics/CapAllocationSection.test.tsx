@@ -15,6 +15,15 @@ describe("CapAllocationSection", () => {
     fireEvent.click(screen.getByRole("button", { name: "% of equity only" }));
     expect(screen.getByText("No equity holdings for this selection")).toBeInTheDocument();
   });
+  it("says so when a drill-down list is capped, on screen and in print", () => {
+    const capped = { ...sampleCapAllocation, buckets: sampleCapAllocation.buckets.map((b) => b.key === "LARGE" ? { ...b, row_count: 120 } : b) };
+    const { unmount } = render(<CapAllocationSection data={capped} />);
+    fireEvent.click(screen.getByRole("button", { name: /Large Cap/ }));
+    expect(screen.getByText("Showing the largest 1 of 120 holdings in this group.")).toBeInTheDocument();
+    unmount();
+    render(<CapAllocationSection data={capped} printMode />);
+    expect(screen.getByText("Top 1 of 120 shown.")).toBeInTheDocument();
+  });
   it("renders one Other slice, exact denominator values, dates and no Nifty strip", () => {
     render(<CapAllocationSection data={sampleCapAllocation} />);
     const legend = screen.getByLabelText("Market-cap breakdown");

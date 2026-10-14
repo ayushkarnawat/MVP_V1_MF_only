@@ -479,3 +479,57 @@ resource "aws_cloudwatch_metric_alarm" "portfolio_disclosure_alerts" {
   treat_missing_data  = "notBreaching"
   alarm_actions       = [aws_sns_topic.ops_alerts.arn]
 }
+
+# The market-cap and stock-fundamentals jobs log to their own groups, so the
+# disclosure filter above never sees their alerts.
+resource "aws_cloudwatch_log_metric_filter" "market_cap_alerts" {
+  name           = "${var.project}-${var.environment}-market-cap-alerts"
+  log_group_name = aws_cloudwatch_log_group.jobs["market_cap_half_yearly"].name
+  pattern        = "PORTFOLIO_DISCLOSURE_ALERT"
+  metric_transformation {
+    name      = "MarketCapAlerts"
+    namespace = "${var.project}/${var.environment}/jobs"
+    value     = "1"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "market_cap_alerts" {
+  alarm_name          = "${var.project}-${var.environment}-market-cap-alerts"
+  alarm_description   = "The AMFI market-cap job could not load a half-year list: an unverified period (a new half-year needs its URL added in amfi_market_cap_client.py), a changed row count, a download failure, or an unreadable ISIN."
+  namespace           = "${var.project}/${var.environment}/jobs"
+  metric_name         = "MarketCapAlerts"
+  statistic           = "Sum"
+  period              = 3600
+  evaluation_periods  = 1
+  threshold           = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = [aws_sns_topic.ops_alerts.arn]
+}
+
+# Aggregate failure lines only. The per-ISIN "pb_unavailable" line is expected
+# for some stocks every day and must not page anyone.
+resource "aws_cloudwatch_log_metric_filter" "stock_fundamentals_alerts" {
+  name           = "${var.project}-${var.environment}-stock-fundamentals-alerts"
+  log_group_name = aws_cloudwatch_log_group.jobs["stock_fundamentals_daily"].name
+  pattern        = "?bulk_fetch_failed ?index_failed ?stock_refresh_incomplete ?stock_refresh_failed ?index_refresh_incomplete ?index_refresh_failed"
+  metric_transformation {
+    name      = "StockFundamentalsAlerts"
+    namespace = "${var.project}/${var.environment}/jobs"
+    value     = "1"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "stock_fundamentals_alerts" {
+  alarm_name          = "${var.project}-${var.environment}-stock-fundamentals-alerts"
+  alarm_description   = "The daily stock P/E and P/B refresh failed or was incomplete (NSE files missing, Yahoo or the index endpoint unreachable). Valuation keeps showing the last good ratios."
+  namespace           = "${var.project}/${var.environment}/jobs"
+  metric_name         = "StockFundamentalsAlerts"
+  statistic           = "Sum"
+  period              = 3600
+  evaluation_periods  = 1
+  threshold           = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = [aws_sns_topic.ops_alerts.arn]
+}
