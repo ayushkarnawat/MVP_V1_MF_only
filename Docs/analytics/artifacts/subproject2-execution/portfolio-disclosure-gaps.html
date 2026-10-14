@@ -1,0 +1,226 @@
+<title>Portfolio Disclosure Gaps</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column (~70ch) with full-width tables; status is carried by chips (automatic / by hand / off). */
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --ink: #17202b;
+  --muted: #566273;
+  --line: #dde2e9;
+  --accent: #1f5f8b;
+  --auto: #1e7a4f;   --auto-bg: #e3f3ea;
+  --hand: #9a5b00;   --hand-bg: #fbefd9;
+  --off: #5c6573;    --off-bg: #eceff3;
+  --warn: #a8322b;   --warn-bg: #fbe7e5;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11161d; --surface: #18202a; --ink: #e6ebf1; --muted: #9aa6b5; --line: #2a3542; --accent: #6fb3e3;
+    --auto: #6fd3a0; --auto-bg: #173326; --hand: #f0b25a; --hand-bg: #3a2a12; --off: #a7b0bd; --off-bg: #232c37;
+    --warn: #f08a80; --warn-bg: #3a1d1b; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11161d; --surface: #18202a; --ink: #e6ebf1; --muted: #9aa6b5; --line: #2a3542; --accent: #6fb3e3;
+  --auto: #6fd3a0; --auto-bg: #173326; --hand: #f0b25a; --hand-bg: #3a2a12; --off: #a7b0bd; --off-bg: #232c37;
+  --warn: #f08a80; --warn-bg: #3a1d1b; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15.5px; line-height: 1.6; }
+.page { max-width: 1040px; margin: 0 auto; padding-inline: 20px; padding-block: 40px 72px; display: grid; gap: 44px; }
+.prose { max-width: 70ch; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(2rem, 4.6vw, 2.9rem); letter-spacing: -0.01em; }
+h2 { font-size: 1.55rem; }
+h3 { font-size: 1.1rem; }
+p { margin: 0; }
+.stack { display: grid; gap: 14px; }
+.eyebrow { font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+.lede { font-size: 1.12rem; color: var(--muted); max-width: 66ch; }
+.meta { font-family: var(--font-mono); font-size: 0.8rem; color: var(--muted); }
+code, .mono { font-family: var(--font-mono); font-size: 0.86em; }
+code { background: var(--off-bg); padding: 1px 5px; border-radius: 4px; }
+a { color: var(--accent); }
+
+/* Split bar: 55 AMCs */
+.split { display: grid; gap: 12px; }
+.bar { display: flex; height: 42px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
+.bar span { display: flex; align-items: center; padding-inline: 10px; font-family: var(--font-mono); font-size: 0.82rem; font-weight: 500; white-space: nowrap; min-width: 0; }
+.bar .a { background: var(--auto-bg); color: var(--auto); flex: 40; }
+.bar .h { background: var(--hand-bg); color: var(--hand); flex: 10; }
+.bar .o { background: var(--off-bg); color: var(--off); flex: 5; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 0.9rem; color: var(--muted); }
+.legend b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+.figs { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+.fig { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; gap: 2px; }
+.fig .n { font-family: var(--font-display); font-size: 1.9rem; font-variant-numeric: tabular-nums; }
+.fig .l { font-size: 0.88rem; color: var(--muted); }
+
+.chip { display: inline-block; font-family: var(--font-mono); font-size: 0.74rem; font-weight: 500; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+.chip.auto { background: var(--auto-bg); color: var(--auto); }
+.chip.hand { background: var(--hand-bg); color: var(--hand); }
+.chip.off { background: var(--off-bg); color: var(--off); }
+.chip.warn { background: var(--warn-bg); color: var(--warn); }
+
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 0.92rem; }
+th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+th { font-family: var(--font-mono); font-size: 0.74rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 500; background: var(--bg); }
+tr:last-child td { border-bottom: 0; }
+td.num { font-variant-numeric: tabular-nums; white-space: nowrap; font-family: var(--font-mono); font-size: 0.86rem; }
+td .sub { display: block; color: var(--muted); font-size: 0.84rem; }
+tfoot td { font-weight: 600; background: var(--bg); }
+
+/* Timeline: a real sequence of dated events */
+.timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; border-left: 2px solid var(--line); }
+.timeline li { position: relative; padding: 0 0 18px 20px; display: grid; gap: 3px; }
+.timeline li::before { content: ""; position: absolute; left: -7px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: var(--surface); border: 2px solid var(--accent); }
+.timeline .when { font-family: var(--font-mono); font-size: 0.8rem; color: var(--accent); }
+
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.panel ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.panel .k { font-family: var(--font-mono); font-size: 0.74rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+
+.option { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: grid; gap: 10px; min-width: 0; }
+.option.rec { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.option header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 12px; }
+.option .tag { font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent); font-weight: 500; }
+.option dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 0; font-size: 0.93rem; }
+.option dt { font-family: var(--font-mono); font-size: 0.74rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); padding-top: 3px; }
+.option dd { margin: 0; min-width: 0; }
+@media (max-width: 520px) { .option dl { grid-template-columns: 1fr; gap: 2px; } .option dd { margin-bottom: 8px; } }
+.options { display: grid; gap: 14px; }
+
+.callout { border-left: 3px solid var(--hand); background: var(--hand-bg); padding: 12px 16px; border-radius: 0 8px 8px 0; max-width: 78ch; }
+.callout.info { border-left-color: var(--accent); background: var(--off-bg); }
+.rec-box { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: grid; gap: 12px; }
+.rec-box ol { margin: 0; padding-left: 20px; display: grid; gap: 8px; }
+footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--line); padding-top: 16px; }
+
+.tablewrap table.wide { min-width: 900px; }
+pre.mermaid { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; overflow-x: auto; margin: 0; }
+.split .bar .a { flex: 45; } .split .bar .h { flex: 7; } .split .bar .o { flex: 5; }
+.chip.ok { background: var(--auto-bg); color: var(--auto); }
+.cmd { font-family: var(--font-mono); font-size: 0.8rem; white-space: pre-wrap; word-break: break-word; }
+.k2 { color: var(--muted); }
+</style>
+<main class="page">
+<header class="stack">
+ <div class="eyebrow">Sub-project 2 · Look-through engine</div>
+ <h1>Portfolio Disclosure Gaps</h1>
+ <p class="lede">The look-through engine reads each fund house's monthly portfolio file: every stock, bond and cash line a fund holds. A daily job downloads these files on its own. For 7 of the 57 fund houses it cannot, so someone downloads the file in a browser each month and imports it with one command. This page covers what that is, why, which attributes depend on it, and the options.</p>
+ <p class="meta">Status as of 14 Oct 2026 · engine built and run live against the real sites · 4 manual files received so far, from 3 of the 7 AMCs</p>
+</header>
+
+<section class="split">
+ <h2>Where the 57 fund houses ended up</h2>
+ <div class="bar"><span class="a">45 automatic</span><span class="h">7 by hand</span><span class="o">5 off</span></div>
+ <div class="legend"><span><b>automatic</b> the daily job finds and reads the file itself</span><span><b>by hand</b> a person downloads it, a script imports it</span><span><b>off</b> no holdings file is expected (ASK, IL&amp;FS, Lakshya, Carnelian, Nuvama)</span></div>
+ <div class="figs">
+  <div class="fig"><span class="n">7</span><span class="l">fund houses imported by hand each month</span></div>
+  <div class="fig"><span class="n">1,692</span><span class="l">scheme rows at those AMCs in AMFI's list (every plan variant, not live-fund counts)</span></div>
+  <div class="fig"><span class="n">5</span><span class="l">dashboard sections that read this data</span></div>
+  <div class="fig"><span class="n">3</span><span class="l">of the 7 AMCs have a usable file in hand (4 files)</span></div>
+ </div>
+</section>
+
+<section class="stack prose">
+ <h2>What this is</h2>
+ <p>SEBI requires every fund house to publish each scheme's full portfolio every month, shortly after month-end. The engine collects these files so it can answer questions a fund's category label cannot: how much Reliance does a client really own across all their funds, and how much of the portfolio is large-cap.</p>
+ <p>For 45 fund houses a daily job finds the file on the AMC's site, downloads it, reads the stock lines, matches each sheet to the right scheme, checks that the weights add up to about 100%, and stores the result. For the 7 below, the job cannot fetch the file. Each month a person does that one step in a browser. Everything after the download is the same code as the automatic path, with the same checks.</p>
+ <p>This is the same arrangement the fund-manager section (attribute 04) already uses for its factsheets. The two chores fall in the same week of each month.</p>
+</section>
+
+<section class="stack">
+ <h2>Which attributes depend on it</h2>
+ <div class="tablewrap"><table><thead><tr><th>Attribute</th><th>What it needs from the monthly files</th></tr></thead><tbody><tr><td><b>06 · Overall stock holdings</b></td><td>Reads every fund's stock list to total each stock across the portfolio. A manual AMC's funds add nothing until its file is in.</td></tr><tr><td><b>02 · Large, mid and small cap</b></td><td>Classifies the stocks inside each fund. Same dependency.</td></tr><tr><td><b>10 · Portfolio overlap</b></td><td>Compares funds pair by pair. A fund with no file cannot appear in the heatmap.</td></tr><tr><td><b>13 · Asset allocation</b></td><td>Adds up equity, debt, gold and cash from what each fund discloses. A missing fund is counted as uncovered.</td></tr><tr><td><b>15 · P/E and P/B</b></td><td>Needs the stocks a client holds through funds. Shown only when at least 70% of the equity has data.</td></tr></tbody></table></div>
+ <p class="prose">When a fund has no file, it is not dropped. The Analytics page shows a banner such as "Based on 62% of your portfolio", names the uncovered funds, and splits them into "not published yet" and "not available from this AMC". A manual AMC with no file at all is counted as "not available from this AMC" until its first import.</p>
+</section>
+
+<section class="stack">
+ <h2>The 7 fund houses imported by hand</h2>
+ <p class="prose">"Scheme rows" counts every plan variant AMFI lists for that AMC, so it overstates the number of distinct funds. "What we saw" comes from the research passes on 9 to 13 Oct, recorded in the capture log.</p>
+ <div class="tablewrap"><table class="wide"><thead><tr><th>Fund house</th><th>Scheme rows</th><th>Why a script cannot fetch it</th><th>What works instead</th><th>Files / month</th><th>Our file</th></tr></thead><tbody><tr><td><b>Edelweiss</b></td><td class="num">312</td><td>Akamai bot protection. Its real disclosure page is a browser-built page with no file links and no request we can capture.</td><td>Four research passes found no way in. A normal browser download works.</td><td>1 workbook</td><td><span class="chip ok">Sept 2026 file received</span><span class="sub">76 scheme batches written in the test run</span></td></tr><tr><td><b>Mahindra Manulife</b></td><td class="num">122</td><td>The file list comes from an encrypted response. The real file names are random IDs that can only be read by decrypting it.</td><td>Decrypting a site's API is ruled out. The download page itself works in a browser.</td><td>1 workbook</td><td><span class="chip warn">wrong file received</span><span class="sub">The 9 KB XML we got is not a portfolio. The monthly portfolio workbook is still to be found.</span></td></tr><tr><td><b>Invesco</b></td><td class="num">249</td><td>A bot wall (HTTP 403) that also stops a real headless browser.</td><td>The statutory-disclosures page offers the monthly portfolio only as a PDF.</td><td>1 file</td><td><span class="chip warn">PDF only</span><span class="sub">No PDF reader exists. Needs a decision, see below.</span></td></tr><tr><td><b>ITI</b></td><td class="num">114</td><td>A Cloudflare challenge page that also stops a real headless browser.</td><td>The September file was not on the site on 13 Oct. August was.</td><td>1 workbook</td><td><span class="chip hand">August file received</span><span class="sub">Import September when it appears.</span></td></tr><tr><td><b>JM Financial</b></td><td class="num">178</td><td>The site's own file list decodes to encrypted data, a dead end for scripts.</td><td>A browser download of each scheme works and opens as a real workbook.</td><td>one per scheme (about 17 funds)</td><td><span class="chip hand">2 of ~17 received</span><span class="sub">Large Cap and Mid Cap, both imported cleanly.</span></td></tr><tr><td><b>HSBC</b></td><td class="num">282</td><td>Its firewall lets a real browser through but refuses scripts. It is the only AMC that would need a standing browser in production.</td><td>Scheme-wise spreadsheets are downloadable by hand from the investor-resources area.</td><td>one per scheme (count not yet taken)</td><td><span class="chip warn">not yet received</span><span class="sub">The right page is still being located.</span></td></tr><tr><td><b>Bandhan</b></td><td class="num">435</td><td>The page that lists the files makes an encrypted call. The files themselves are public but their names carry a hash we cannot guess.</td><td>Making the encrypted call ourselves is ruled out.</td><td>1 or more workbooks (September lists only the debt one)</td><td><span class="chip warn">decision pending</span><span class="sub">Treated as the seventh manual AMC until your manager confirms.</span></td></tr></tbody></table></div>
+ <p class="prose">These sites block scripts for different reasons, but none can be fixed without breaking a project rule: no decrypting private APIs, no disguising traffic, no standing browser in the job. Each was tested by hand from a developer machine. A separate check from the AWS network on 13 Oct confirmed the sources the automatic path uses are reachable.</p>
+</section>
+
+<section class="stack">
+ <h2>Do we have to do this every month?</h2>
+ <p class="prose">Yes, for as long as these 7 stay manual. Fund houses publish by about the 10th of the following month, so the routine runs once, around days 10 to 12.</p>
+ <div class="cols">
+  <div class="panel"><span class="k">Daily job</span><ul><li>Runs at 05:45 IST on days 1 to 20, once the Terraform is applied at the end of the build.</li><li>Creates a "waiting for upload" row for each manual scheme that has no file for the latest month-end.</li><li>Alerts on days 10 and 20 if rows are still waiting, naming the fund houses.</li></ul></div>
+  <div class="panel"><span class="k">If a month is missed</span><ul><li>The funds keep showing the last month's data, tagged "older than 60 days" once they pass that age.</li><li>The coverage banner says so.</li><li>The newest file is never deleted, even if it is old.</li></ul></div>
+  <div class="panel"><span class="k">Next due</span><ul><li>October month-end files, published about 10 Nov.</li><li>The 10 Nov fund-manager factsheet job falls on the same day. Plan both chores for that week.</li></ul></div>
+ </div>
+ <p class="prose">Effort: 7 fund houses. Edelweiss, Mahindra, Invesco, ITI and Bandhan are one file each. JM Financial and HSBC publish one file per scheme, which is the bulk of the work: about 17 for JM, and HSBC's count has not been taken. I have not timed it. The comparable factsheet routine was estimated at about 45 minutes.</p>
+</section>
+
+<section class="stack">
+ <h2>How the monthly import works</h2>
+<pre class="mermaid">
+flowchart LR
+  a["Month-end<br/>AMC publishes by ~10th"] --> b["You download the file<br/>in a normal browser"]
+  b --> c["One import command<br/>per fund house"]
+  c --> d["Checks: real workbook, date,<br/>scheme match, weights ~100%"]
+  d -->|all pass| e["Waiting rows become<br/>WRITTEN batches"]
+  d -->|any check fails| f["Nothing is written<br/>for that call"]
+  e --> g["06:30 recompute<br/>next morning"]
+  g --> h["Client sees it<br/>in Analytics"]
+</pre>
+ <p class="prose">The command writes all the files in one call or none of them. It refuses a file that is not a workbook, a date in the future, or a date that is not a month-end unless you say so. It never guesses weights: a sheet whose weights do not add up is stored as failed and is never shown to clients.</p>
+</section>
+
+<section class="stack">
+ <h2>How it unfolded</h2>
+ <ol class="timeline">
+  <li><span class="when">9 Oct · spec</span><span>The research found 6 fund houses needing a standing manual fetch (Edelweiss, Mahindra, Invesco, ITI, JM Financial, HSBC). The spec called manual fetch the accepted cost, the same precedent as attribute 04.</span></li>
+  <li><span class="when">12 Oct · decision</span><span>Playwright was ruled out as a production dependency: one AMC (HSBC) would need it, and Invesco and ITI block even a real browser.</span></li>
+  <li><span class="when">13 Oct · decision</span><span>Your manager overrode the plan to build the manual path later. All 57 fund houses are covered in this build, and the six manual ones get their import now.</span></li>
+  <li><span class="when">13 Oct · capture pass</span><span>Bandhan turned out to be the seventh: its file list is encrypted. Mahindra's and JM Financial's lists are encrypted too.</span></li>
+  <li><span class="when">13 Oct · files</span><span>You downloaded Edelweiss, ITI (August), Mahindra (an XML, unusable), Invesco (PDF) and two JM Financial schemes. Four files (Edelweiss, ITI, two JM schemes) imported cleanly in tests.</span></li>
+ </ol>
+</section>
+
+<section class="stack">
+ <h2>Why manual, and what else we could do</h2>
+ <p class="prose"><b>Why we chose it.</b> It is the only route that is reliable today and respects the project's access rules. It reuses the same parser, matcher and weight checks as the automatic path, so the data is held to the same standard. It also matches how attribute 04 already works, so one team routine covers both.</p>
+ <div class="options"><article class="option rec"><header><span class="tag">A</span><h3>Keep the monthly hand import</h3><span class="chip ok">chosen, built</span></header><dl><dt>How</dt><dd>Each month, download the files in a browser and run one import command per AMC. A script checks the files, matches schemes, checks weights and writes them.</dd><dt>Cost</dt><dd>Built and tested on the four real files we have. Waiting rows show what is still owed and an alert fires on days 10 and 20.</dd><dt>Good</dt><dd>Works today, for certain. Uses each site as intended. Same checks as the automatic path.</dd><dt>Weak</dt><dd>Depends on a person every month. Some AMCs need many files.</dd></dl></article><article class="option"><header><span class="tag">B</span><h3>Make the hand import easier</h3><span class="chip hand">small build, later</span></header><dl><dt>How</dt><dd>An admin upload screen instead of a command line, plus a checklist with each AMC's download page.</dd><dt>Cost</dt><dd>One small backend and admin task.</dd><dt>Good</dt><dd>Cuts the routine to a few minutes and removes typing mistakes.</dd><dt>Weak</dt><dd>Still manual. The missed-month alert already exists for this path.</dd></dl></article><article class="option"><header><span class="tag">C</span><h3>Ask the AMCs for a feed</h3><span class="chip hand">business effort, in parallel</span></header><dl><dt>How</dt><dd>Ask for an official API, an allow-list for our fixed outbound IP (the jobs leave through one fixed address), or a monthly email with the workbook.</dd><dt>Cost</dt><dd>Outreach time. Replies can take weeks or never come.</dd><dt>Good</dt><dd>Legitimate and durable. Each yes moves one AMC to automatic with almost no code.</dd><dt>Weak</dt><dd>Slow and one conversation per AMC.</dd></dl></article><article class="option"><header><span class="tag">D</span><h3>License holdings data from a data vendor</h3><span class="chip off">needs a quote</span></header><dl><dt>How</dt><dd>Indian fund-data providers sell scheme portfolios. A feed would replace or back up the AMC files.</dd><dt>Cost</dt><dd>Unknown. Licence fees and display terms need a quote.</dd><dt>Good</dt><dd>The only option with no monthly chore. Would also cover any AMC we cannot read.</dd><dt>Weak</dt><dd>Recurring cost, a vendor dependency, limits on showing the data.</dd></dl></article><article class="option"><header><span class="tag">E</span><h3>Run a real browser inside the monthly job</h3><span class="chip off">rejected 12 Oct</span></header><dl><dt>How</dt><dd>Add a headless browser so pages that block plain requests load.</dd><dt>Cost</dt><dd>A new production dependency, a larger job, slower runs.</dd><dt>Good</dt><dd>Could read HSBC.</dd><dt>Weak</dt><dd>Invesco and ITI block a real browser too. One AMC does not justify the dependency.</dd></dl></article><article class="option"><header><span class="tag">F</span><h3>Decrypt the encrypted listings</h3><span class="chip off">ruled out</span></header><dl><dt>How</dt><dd>Mahindra, JM Financial and Bandhan use encrypted lists. We could copy what their pages do.</dd><dt>Cost</dt><dd>Small code.</dd><dt>Good</dt><dd>Would automate three AMCs.</dd><dt>Weak</dt><dd>It is working around access control, which the project rules out. The method also breaks whenever the site changes.</dd></dl></article><article class="option"><header><span class="tag">G</span><h3>Proxies, rotating addresses, CAPTCHA solving</h3><span class="chip off">ruled out</span></header><dl><dt>How</dt><dd>Disguise the job's traffic as a normal visitor.</dd><dt>Cost</dt><dd>Recurring cost and fragile.</dd><dt>Good</dt><dd>Might get past some of the blocks.</dd><dt>Weak</dt><dd>Same rule as F. Also unreliable.</dd></dl></article><article class="option"><header><span class="tag">H</span><h3>Use AMFI's directory of disclosure pages</h3><span class="chip off">does not help</span></header><dl><dt>How</dt><dd>AMFI links every AMC's disclosure page.</dd><dt>Cost</dt><dd>None.</dd><dt>Good</dt><dd>Could help us notice a moved page.</dd><dt>Weak</dt><dd>It lists pages, not files. It reduces no AMC to automatic.</dd></dl></article><article class="option"><header><span class="tag">I</span><h3>Leave these AMCs out</h3><span class="chip off">rejected 13 Oct</span></header><dl><dt>How</dt><dd>Funds from these AMCs show no look-through.</dd><dt>Cost</dt><dd>None.</dd><dt>Good</dt><dd>Zero monthly work.</dd><dt>Weak</dt><dd>Their funds show as uncovered on all five attributes. Your manager asked for every AMC to be covered in this build.</dd></dl></article></div>
+</section>
+
+<section class="rec-box">
+ <h2>Recommendation</h2>
+ <ol>
+  <li><b>Now:</b> keep A. The import is built and verified on every file we have.</li>
+  <li><b>Close the gaps in hand:</b> find Mahindra's real monthly workbook and HSBC's scheme-wise files, and send September's remaining JM schemes. Invesco needs a decision (below).</li>
+  <li><b>In parallel:</b> start C with the biggest AMCs by scheme count (Bandhan, Edelweiss, HSBC, Invesco), and get a quote for D. Those are the only routes to removing the monthly chore.</li>
+  <li><b>Later:</b> build B if the chore proves heavy, mainly for JM and HSBC.</li>
+  <li><b>Skip</b> E, F, G and I.</li>
+ </ol>
+</section>
+
+<section class="stack">
+ <h2>Decisions still open</h2>
+ <div class="cols">
+  <div class="panel"><span class="k">Bandhan</span><p>Confirm it is the seventh manual AMC. Its file list is encrypted, so the alternative is to leave it uncovered or ask Bandhan for a feed.</p></div>
+  <div class="panel"><span class="k">Invesco</span><p>Its monthly holdings are published as a PDF only. Options: ask Invesco for Excel, build a PDF reader (a bigger change with fragile table extraction), or leave Invesco's funds uncovered.</p></div>
+  <div class="panel"><span class="k">Could join the list</span><p>HDFC (the archive route hit a rate limit, so a direct URL pattern is the likely fix) and Aditya Birla (HTTP 503 on several live runs). Neither is manual yet.</p></div>
+ </div>
+</section>
+
+<section class="stack">
+ <h2>The monthly routine</h2>
+ <p class="prose">Download each file in a normal browser, unchanged. Keep them outside the repo (for example <code>Desktop\Unifolio\Portfolio Disclosures\&lt;month&gt;\</code>). Do not open and re-save them. Then, from <code>backend\</code>, run once per fund house, using the month-end date:</p>
+ <div class="tablewrap"><table><thead><tr><th>Fund house</th><th>Command arguments for <code>scripts/jobs/import_manual_portfolio_disclosures.py</code></th></tr></thead><tbody><tr><td><b>Edelweiss</b></td><td class="cmd">--amc "Edelweiss Mutual Fund" --file Edelweiss.xlsx --as-of 2026-09-30</td></tr><tr><td><b>Mahindra Manulife</b></td><td class="cmd">--amc "Mahindra Manulife Mutual Fund" --file Mahindra.xlsx --as-of 2026-09-30</td></tr><tr><td><b>Invesco</b></td><td class="cmd">--amc "Invesco Mutual Fund" --file Invesco.xlsx --as-of 2026-09-30</td></tr><tr><td><b>ITI</b></td><td class="cmd">--amc "ITI Mutual Fund" --file ITI.xlsx --as-of 2026-09-30</td></tr><tr><td><b>JM Financial</b></td><td class="cmd">--amc "JM Financial Mutual Fund" --file JM-Large-Cap.xlsx --file JM-Mid-Cap.xlsx   (one --file per scheme) --as-of 2026-09-30</td></tr><tr><td><b>HSBC</b></td><td class="cmd">--amc "HSBC Mutual Fund" --file HSBC-scheme-1.xlsx --file HSBC-scheme-2.xlsx   (one --file per scheme) --as-of 2026-09-30</td></tr><tr><td><b>Bandhan</b></td><td class="cmd">--amc "Bandhan Mutual Fund" --file Bandhan.xlsx --as-of 2026-09-30</td></tr></tbody></table></div>
+ <p class="prose">It prints <code>matched=N unmatched=M schemes_written=K</code>. Compare the numbers with last month's. A file for an earlier month needs <code>--allow-old</code>, and a date that is not a month-end needs <code>--allow-any-date</code>. To see what is still owed, count the waiting rows (status <code>awaiting_manual_upload</code>) for the latest month-end.</p>
+</section>
+
+<footer>Sources: the engine spec and ingestion plan (Sub-project 2), the capture log of 13 Oct 2026, <code>decisions.md</code> (12 and 13 Oct), and the manual import guide in <code>Docs/orchestration/</code>. Scheme counts come from AMFI's NAV file. Companion page: Factsheet Access Gaps (attribute 04).</footer>
+</main>
