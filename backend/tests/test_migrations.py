@@ -33,6 +33,26 @@ def test_0036_0037_scenarios_seed_roundtrip(tmp_path, monkeypatch):
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 
 
+def test_0040_market_cap_schema_roundtrip(tmp_path, monkeypatch):
+    import sqlite3
+    path = tmp_path / "market-cap.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{path}")
+    up = _alembic("upgrade", "0040")
+    assert up.returncode == 0, up.stderr
+    with sqlite3.connect(path) as conn:
+        columns = {r[1] for r in conn.execute("PRAGMA table_info(market_cap_classifications)")}
+        assert columns == {"id", "isin", "rank", "bucket", "effective_date", "source_period"}
+        assert not list(conn.execute("PRAGMA foreign_key_list(market_cap_classifications)"))
+        conn.execute("INSERT INTO market_cap_classifications VALUES ('one','INE002A01018',1,'LARGE','2026-07-01','2026-06-30')")
+        import pytest
+        with pytest.raises(sqlite3.IntegrityError):
+            conn.execute("INSERT INTO market_cap_classifications VALUES ('two','INE002A01018',2,'MID','2026-07-01','2026-06-30')")
+    down = _alembic("downgrade", "0039")
+    assert down.returncode == 0, down.stderr
+    with sqlite3.connect(path) as conn:
+        assert not conn.execute("SELECT name FROM sqlite_master WHERE name='market_cap_classifications'").fetchall()
+
+
 def test_0039_disclosure_schema_roundtrip(tmp_path, monkeypatch):
     import sqlite3
 
@@ -97,6 +117,7 @@ def test_alembic_upgrade_creates_all_tables(tmp_path, monkeypatch):
         "auth_identities", "pending_identity_verifications",
         "account_deletion_surveys",
         "disclosure_batches", "scheme_holdings",
+        "market_cap_classifications",
     }
     assert expected.issubset(tables)
     user_columns = {row[1] for row in conn.execute("PRAGMA table_info(users)")}

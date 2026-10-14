@@ -63,6 +63,39 @@ class AggregateStockHoldingsResponse(BaseModel):
     stock_holdings: StockHoldingsSummary
 
 
+class CapAllocationBucket(BaseModel):
+    key: Literal["LARGE", "MID", "SMALL", "OTHER"]
+    value: Decimal
+    percentage_total: Decimal
+    percentage_equity: Decimal
+    rows: list[StockHoldingRow]
+
+
+class CapAllocationOther(BaseModel):
+    non_equity_value: Decimal
+    unclassified_equity_value: Decimal
+    non_equity_rows: list[StockHoldingRow]
+    unclassified_equity_rows: list[StockHoldingRow]
+
+
+class CapAllocationSummary(BaseModel):
+    buckets: list[CapAllocationBucket]
+    other: CapAllocationOther
+    total_portfolio_value: Decimal
+    total_equity_value: Decimal
+    nav_as_of: date | None
+    holdings_as_of: date | None
+    classification_as_of: date | None
+    coverage: LookthroughCoverage
+    hide_headlines: bool
+    excluded_share: Decimal
+
+
+class AggregateCapAllocationResponse(BaseModel):
+    members: list[MemberStatus]
+    cap_allocation: CapAllocationSummary
+
+
 class AnalyticsAllocationSummary(BaseModel):
     by_category: list[AllocationBucket]
     by_amc: list[AllocationBucket]

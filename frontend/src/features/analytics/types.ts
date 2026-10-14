@@ -172,6 +172,7 @@ export const ANALYTICS_SECTION_NAMES = [
   "investment_withdrawal",
   "fund_manager",
   "stock_holdings",
+  "cap_allocation",
 ] as const;
 
 export type AnalyticsSectionName = (typeof ANALYTICS_SECTION_NAMES)[number];
@@ -226,6 +227,37 @@ export interface StockHoldingsSummary {
 export interface AggregateStockHoldingsResponse {
   members: MemberStatus[];
   stock_holdings: StockHoldingsSummary;
+}
+
+export interface CapAllocationBucket {
+  key: "LARGE" | "MID" | "SMALL" | "OTHER";
+  value: string;
+  percentage_total: string;
+  percentage_equity: string;
+  rows: StockHoldingRow[];
+}
+
+export interface CapAllocationSummary {
+  buckets: CapAllocationBucket[];
+  other: {
+    non_equity_value: string;
+    unclassified_equity_value: string;
+    non_equity_rows: StockHoldingRow[];
+    unclassified_equity_rows: StockHoldingRow[];
+  };
+  total_portfolio_value: string;
+  total_equity_value: string;
+  nav_as_of: string | null;
+  holdings_as_of: string | null;
+  classification_as_of: string | null;
+  coverage: LookthroughCoverage;
+  hide_headlines: boolean;
+  excluded_share: string;
+}
+
+export interface AggregateCapAllocationResponse {
+  members: MemberStatus[];
+  cap_allocation: CapAllocationSummary;
 }
 
 export interface AnalyticsSectionState {

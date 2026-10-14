@@ -19,6 +19,8 @@ from app.services.analytics.recompute import (
     try_claim_recompute,
 )
 from app.services.analytics.schemas import (
+    CapAllocationSummary,
+    CapAllocationOther,
     LookthroughCoverage,
     StockHoldingsSummary,
     FundManagerAllocationSummary,
@@ -60,6 +62,13 @@ def _user_with_members(db, n_members=2) -> tuple[User, list[HouseholdMember]]:
 
 
 _MOCK_RESULTS = {
+    "cap_allocation": CapAllocationSummary(
+        buckets=[], other=CapAllocationOther(non_equity_value=Decimal("0"), unclassified_equity_value=Decimal("0"), non_equity_rows=[], unclassified_equity_rows=[]),
+        total_portfolio_value=Decimal("0"), total_equity_value=Decimal("0"), nav_as_of=None,
+        holdings_as_of=None, classification_as_of=None,
+        coverage=LookthroughCoverage(covered_value_pct=Decimal("0"), not_published_yet=[], not_available_from_amc=[], missing_value_schemes=[], funds=[]),
+        hide_headlines=True, excluded_share=Decimal("0"),
+    ),
     "stock_holdings": StockHoldingsSummary(
         rows=[], nav_as_of=None, holdings_as_of=None, total_portfolio_value=Decimal("0"),
         coverage=LookthroughCoverage(covered_value_pct=Decimal("0"), not_published_yet=[],

@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { MobileAnalyticsView } from "./MobileAnalyticsView";
 import { sampleStockHoldings } from "@/features/analytics/stockHoldingsTestData";
+import { sampleCapAllocation } from "@/features/analytics/capAllocationTestData";
 import * as api from "@/features/analytics/api";
 import type { AnalyticsSectionState } from "@/features/analytics/types";
 
@@ -129,6 +130,7 @@ function buildSections(isAggregate: boolean) {
   return {
     allocation: settled(wrap("allocation", sampleAllocationSummary)),
     stock_holdings: settled(wrap("stock_holdings", sampleStockHoldings)),
+    cap_allocation: settled(wrap("cap_allocation", sampleCapAllocation)),
     fund_manager: settled(wrap("fund_manager", {
       manager_groups: [{ manager_name: "Mobile Manager", role: "Overseas Investments", total_household_value: "50000",
         funds: [{ scheme_id: "scheme-1", scheme_name: "Mobile Manager Fund", household_value: "50000", sequence_order: 1, role: "Overseas Investments" }] }],
@@ -146,6 +148,20 @@ function buildSections(isAggregate: boolean) {
 }
 
 describe("MobileAnalyticsView", () => {
+  it("settles a failed cap section with an empty card and retry action", async () => {
+    vi.mocked(api.getAnalyticsScope).mockResolvedValue({ scope: "combined", recomputing: false,
+      sections: { ...buildSections(true), cap_allocation: settled(null, "2026-10-14T00:00:00Z") } });
+    render(<MobileAnalyticsView />);
+    expect(await screen.findByText("No market-cap allocation data available")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /retry/i })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Loading market-cap allocation")).not.toBeInTheDocument();
+  });
+  it.each([true, false])("unwraps cap_allocation for both scopes (aggregate=%s)", async (aggregate) => {
+    vi.mocked(api.getAnalyticsScope).mockResolvedValue({ scope: aggregate ? "combined" : "m-1", recomputing: false, sections: buildSections(aggregate) });
+    render(<MobileAnalyticsView memberId={aggregate ? null : "m-1"} />);
+    expect(await screen.findByRole("heading", { name: "Market-cap allocation" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Other \/ Unclassified.*30.00%/ })).toBeInTheDocument();
+  });
   it.each([true, false])("renders stock holdings immediately after allocation (aggregate=%s)", async (isAggregate) => {
     vi.mocked(api.getAnalyticsScope).mockResolvedValue({ scope: isAggregate ? "combined" : "m-1", recomputing: false, sections: buildSections(isAggregate) });
     render(<MobileAnalyticsView memberId={isAggregate ? null : "m-1"} />);

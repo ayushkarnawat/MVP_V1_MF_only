@@ -195,6 +195,12 @@ class DisclosureBatchStatus(str, enum.Enum):
     AWAITING_MANUAL_UPLOAD = "awaiting_manual_upload"
 
 
+class MarketCapBucket(str, enum.Enum):
+    LARGE = "LARGE"
+    MID = "MID"
+    SMALL = "SMALL"
+
+
 class AssetType(str, enum.Enum):
     EQUITY_DOMESTIC = "equity_domestic"
     EQUITY_INTERNATIONAL = "equity_international"

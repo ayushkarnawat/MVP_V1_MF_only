@@ -11,7 +11,7 @@ from sqlalchemy import Text, JSON, Date, UniqueConstraint, CheckConstraint, Bool
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
-from app.models.enums import AssetType, DisclosureBatchStatus, ArnStatus, BenchmarkIndex, BenchmarkReturnType, PlanNameVariant, SchemeSource, SchemePlanType, enum_column
+from app.models.enums import MarketCapBucket, AssetType, DisclosureBatchStatus, ArnStatus, BenchmarkIndex, BenchmarkReturnType, PlanNameVariant, SchemeSource, SchemePlanType, enum_column
 
 
 class Scheme(Base):
@@ -240,6 +240,18 @@ class ScenarioHypotheticalAssumption(Base):
             name="ck_scenario_hypothetical_assumptions_asset_class",
         ),
     )
+
+
+class MarketCapClassification(Base):
+    __tablename__ = "market_cap_classifications"
+    __table_args__ = (UniqueConstraint("isin", "effective_date", name="uq_market_cap_isin_date"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    isin: Mapped[str] = mapped_column(String(12), nullable=False, index=True)
+    rank: Mapped[int] = mapped_column(Integer, nullable=False)
+    bucket: Mapped[MarketCapBucket] = mapped_column(enum_column(MarketCapBucket), nullable=False)
+    effective_date: Mapped[date_] = mapped_column(Date, nullable=False)
+    source_period: Mapped[date_] = mapped_column(Date, nullable=False)
 
 
 class DisclosureBatch(Base):
