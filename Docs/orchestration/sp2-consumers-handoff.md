@@ -148,3 +148,5 @@ Run date/time: <…>    Environment: Windows    Python: <version>    Baseline HE
 | — | Run 9 | ready 2026-10-14 | Task 5 (A13). Depends on Run 8 (done). |
 | 9 | Run 9 | built + committed 2026-10-14 (Codex, baseline `4745a50`) | `asset_allocation` section: both arbitrage variants in payload, shared helpers factored from lookthrough.py (`get_disclosure_scope`, `build_lookthrough_table`, `build_cap_allocation`), embedded CapAllocation drill-down. WSL 54 passed; Codex 121 backend / 147 frontend. Judgment call: REIT_INVIT counted as equity (outer Other). |
 | — | Run 10 | ready 2026-10-14 | Task 4 (A10). Uses Run 9's shared scope helper. |
+| 10 | Run 10 | built + committed 2026-10-14 (Codex, baseline `d2d72d7`) | `overlap` section: raw equity weights per ISIN, 12-fund matrix (one entry per unordered pair), uncapped pairs_above_low, 20-stock lists with common_total, bands in payload, concentration from shared table. Real HDFC Flexi Cap vs BSE 500 index: 40.31% across 70 ISINs. WSL 26 passed. Payload 344 KB for 15 funds (pairs stored in both matrix and above list). |
+
