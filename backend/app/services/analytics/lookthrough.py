@@ -20,6 +20,7 @@ from app.services.analytics.portfolio_disclosure_resolvers import (
     DisclosureResolverKind,
 )
 from app.services.analytics.schemas import (
+    CoverageFund,
     FundContribution,
     LookthroughCoverage,
     LookthroughFundAge,
@@ -108,7 +109,9 @@ async def compute_lookthrough_table(
             sid = uuid.UUID(holding.scheme_id)
             nav_dates[sid] = min(nav_dates.get(sid, holding.current_nav_date), holding.current_nav_date)
     nav_as_of = min(nav_dates.values(), default=None)
-    schemes = {s.id: s for s in db.query(Scheme).filter(Scheme.id.in_(values)).all()} if values else {}
+    scheme_ids = set(values) | set(missing)
+    schemes = {s.id: s for s in db.query(Scheme).filter(Scheme.id.in_(scheme_ids)).all()} if scheme_ids else {}
+    named_funds = {sid: CoverageFund(scheme_id=sid, scheme_name=s.name) for sid, s in schemes.items()}
     # Query all WRITTEN history once. Historical presence also determines
     # the registry's MANUAL-AMC reason, including other schemes at that AMC.
     amcs = {s.amc_name for s in schemes.values()}
@@ -132,19 +135,19 @@ async def compute_lookthrough_table(
             batch = selected[sid]
             cadence = entry.cadence if entry else "monthly"
             ages[sid] = LookthroughFundAge(
-                scheme_id=sid, holdings_as_of=batch.as_of_date, cadence=cadence,
+                scheme_id=sid, scheme_name=scheme.name, holdings_as_of=batch.as_of_date, cadence=cadence,
                 age_tag=_age_tag(batch.as_of_date, nav_dates[sid], cadence),
             )
         elif entry is None or (entry.kind == DisclosureResolverKind.MANUAL and scheme.amc_name not in published_amcs):
-            not_available.append(sid)
+            not_available.append(named_funds[sid])
         else:
-            not_published.append(sid)
+            not_published.append(named_funds[sid])
     covered = sum((values[sid] for sid in selected), _ZERO)
     coverage_fraction = covered / total if total else _ZERO
     coverage = LookthroughCoverage(
         covered_value_pct=coverage_fraction * _HUNDRED,
         not_published_yet=not_published, not_available_from_amc=not_available,
-        missing_value_schemes=missing, funds=list(ages.values()),
+        missing_value_schemes=[named_funds[sid] for sid in missing], funds=list(ages.values()),
     )
     by_batch = {b.id: sid for sid, b in selected.items()}
     raw_rows = db.query(SchemeHolding).filter(SchemeHolding.batch_id.in_(by_batch)).order_by(
@@ -172,7 +175,7 @@ async def compute_lookthrough_table(
         for row, sid, _ in parts:
             weights[sid] += row.pct_to_nav
         contributions = [FundContribution(
-            scheme_id=sid, fund_weight_pct=values[sid] / total * _HUNDRED if total else _ZERO,
+            scheme_id=sid, scheme_name=schemes[sid].name, fund_weight_pct=values[sid] / total * _HUNDRED if total else _ZERO,
             stock_weight_pct=weight, holdings_as_of=ages[sid].holdings_as_of,
             cadence=ages[sid].cadence, age_tag=ages[sid].age_tag,
         ) for sid, weight in weights.items()]

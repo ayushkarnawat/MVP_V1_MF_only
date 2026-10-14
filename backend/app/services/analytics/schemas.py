@@ -11,8 +11,12 @@ from app.models.enums import AssetType, BenchmarkIndex, TransactionType
 from app.services.dashboard.schemas import AllocationBucket, MemberStatus
 
 
-class LookthroughFundAge(BaseModel):
+class CoverageFund(BaseModel):
     scheme_id: UUID
+    scheme_name: str
+
+
+class LookthroughFundAge(CoverageFund):
     holdings_as_of: date
     cadence: str
     age_tag: Literal["older_than_60_days", "on_cycle"] | None
@@ -25,9 +29,9 @@ class FundContribution(LookthroughFundAge):
 
 class LookthroughCoverage(BaseModel):
     covered_value_pct: Decimal
-    not_published_yet: list[UUID]
-    not_available_from_amc: list[UUID]
-    missing_value_schemes: list[UUID]
+    not_published_yet: list[CoverageFund]
+    not_available_from_amc: list[CoverageFund]
+    missing_value_schemes: list[CoverageFund]
     funds: list[LookthroughFundAge]
 
 

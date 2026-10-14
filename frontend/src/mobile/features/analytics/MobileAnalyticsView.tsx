@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { isSectionSettled, useAnalyticsScope } from "@/features/analytics/useAnalyticsScope";
 import { AllocationSection } from "@/features/analytics/AllocationSection";
+import { StockHoldingsSection } from "@/features/analytics/StockHoldingsSection";
 import { TerSection } from "@/features/analytics/TerSection";
 import { CategoryRankingSection } from "@/features/analytics/CategoryRankingSection";
 import { FundRankingSection } from "@/features/analytics/FundRankingSection";
@@ -14,6 +15,7 @@ import { InvestmentWithdrawalSection } from "@/features/analytics/InvestmentWith
 import { BenchmarkSection } from "@/features/analytics/BenchmarkSection";
 import { FundScoreDetailModal } from "@/features/analytics/FundScoreDetailModal";
 import type {
+  StockHoldingsSummary,
   AnalyticsAllocationSummary,
   AnalyticsSectionName,
   CategoryRankingSummary,
@@ -33,6 +35,7 @@ export interface MobileAnalyticsViewProps {
 
 const AGGREGATE_FIELD: Record<AnalyticsSectionName, string> = {
   allocation: "allocation",
+  stock_holdings: "stock_holdings",
   ter: "ter",
   ter_direct_regular: "ter",
   benchmark: "benchmark",
@@ -56,6 +59,7 @@ export function MobileAnalyticsView({ memberId = null }: MobileAnalyticsViewProp
   }
 
   const allocation = unwrap<AnalyticsAllocationSummary>("allocation");
+  const stockHoldings = unwrap<StockHoldingsSummary>("stock_holdings");
   const ter = unwrap<WeightedTerSummary>("ter");
   const terComparison = unwrap<DirectRegularTerComparison>("ter_direct_regular");
   const ranking = unwrap<CategoryRankingSummary>("category_ranking");
@@ -68,6 +72,7 @@ export function MobileAnalyticsView({ memberId = null }: MobileAnalyticsViewProp
   const investmentWithdrawal = unwrap<InvestmentWithdrawalResult>("investment_withdrawal");
 
   const allocationLoading = !isSectionSettled(sections.allocation);
+  const stockHoldingsLoading = !isSectionSettled(sections.stock_holdings);
   const terLoading = !isSectionSettled(sections.ter) || !isSectionSettled(sections.ter_direct_regular);
   const rankingLoading = !isSectionSettled(sections.category_ranking);
   const fundRankingLoading = !isSectionSettled(sections.ranking);
@@ -147,6 +152,7 @@ export function MobileAnalyticsView({ memberId = null }: MobileAnalyticsViewProp
 
       {/* Section 1: Allocation */}
       <AllocationSection summary={allocation} isLoading={allocationLoading} />
+      <StockHoldingsSection data={stockHoldings} isLoading={stockHoldingsLoading} />
 
       {/* Section 2: TER & Cost */}
       <TerSection ter={ter} comparison={terComparison} isLoading={terLoading} />

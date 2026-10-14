@@ -3,6 +3,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { AnalyticsView } from "./AnalyticsView";
 import * as api from "./api";
 import { ANALYTICS_SECTION_NAMES } from "./types";
+import { sampleStockHoldings } from "./stockHoldingsTestData";
 import type { AnalyticsSectionState, MemberStatus } from "./types";
 
 vi.mock("./api");
@@ -109,6 +110,7 @@ function buildSections(isAggregate: boolean, members: MemberStatus[] = []) {
     isAggregate ? { members, [field]: value } : value;
   return {
     allocation: settled(wrap("allocation", sampleAllocationSummary)),
+    stock_holdings: settled(wrap("stock_holdings", sampleStockHoldings)),
     fund_manager: settled(wrap("fund_manager", sampleFundManager)),
     ter: settled(wrap("ter", sampleTerSummary)),
     ter_direct_regular: settled(wrap("ter", sampleDirectRegularComparison)),
@@ -122,6 +124,23 @@ function buildSections(isAggregate: boolean, members: MemberStatus[] = []) {
 }
 
 describe("AnalyticsView", () => {
+  it.each([true, false])("renders stock holdings immediately after allocation (aggregate=%s)", async (isAggregate) => {
+    vi.mocked(api.getAnalyticsScope).mockResolvedValue({ scope: isAggregate ? "combined" : "m-1", recomputing: false, sections: buildSections(isAggregate) });
+    render(<AnalyticsView viewMode={isAggregate ? "aggregate" : "member"} memberId={isAggregate ? null : "m-1"} />);
+    const heading = await screen.findByRole("heading", { name: "Overall stock holdings" });
+    const allocation = screen.getByRole("heading", { name: "Portfolio Allocation" });
+    expect(allocation.closest("section")?.nextElementSibling).toBe(heading.closest("section"));
+    expect(screen.getByRole("button", { name: /Reliance Industries.*6.55%/ })).toBeInTheDocument();
+  });
+
+  it("settles a failed stock section and keeps the household retry action", async () => {
+    vi.mocked(api.getAnalyticsScope).mockResolvedValue({ scope: "combined", recomputing: false,
+      sections: { ...buildSections(true), stock_holdings: settled(null, "2026-10-14T00:00:00Z") } });
+    render(<AnalyticsView viewMode="aggregate" memberId={null} />);
+    expect(await screen.findByText("No stock holdings data available")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /retry/i })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Loading overall stock holdings")).not.toBeInTheDocument();
+  });
   beforeEach(() => {
     vi.clearAllMocks();
   });

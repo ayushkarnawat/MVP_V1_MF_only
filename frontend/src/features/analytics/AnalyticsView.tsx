@@ -7,6 +7,7 @@ import { AlertCircle, RefreshCw, TrendingUp } from "lucide-react";
 import { postExportPdf } from "./api";
 import { isSectionSettled, useAnalyticsScope } from "./useAnalyticsScope";
 import { AllocationSection } from "./AllocationSection";
+import { StockHoldingsSection } from "./StockHoldingsSection";
 import { TerSection } from "./TerSection";
 import { CategoryRankingSection } from "./CategoryRankingSection";
 import { FundRankingSection } from "./FundRankingSection";
@@ -17,6 +18,7 @@ import { BenchmarkSection } from "./BenchmarkSection";
 import { FundScoreDetailModal } from "./FundScoreDetailModal";
 import { ANALYTICS_SECTION_NAMES } from "./types";
 import type {
+  StockHoldingsSummary,
   AnalyticsAllocationSummary,
   AnalyticsExportPayload,
   AnalyticsSectionName,
@@ -41,6 +43,7 @@ export interface AnalyticsViewProps {
 
 const AGGREGATE_FIELD: Record<AnalyticsSectionName, string> = {
   allocation: "allocation",
+  stock_holdings: "stock_holdings",
   ter: "ter",
   ter_direct_regular: "ter",
   benchmark: "benchmark",
@@ -69,6 +72,7 @@ export function AnalyticsView({
   }
 
   const allocation = unwrap<AnalyticsAllocationSummary>("allocation");
+  const stockHoldings = unwrap<StockHoldingsSummary>("stock_holdings");
   const ter = unwrap<WeightedTerSummary>("ter");
   const terComparison = unwrap<DirectRegularTerComparison>("ter_direct_regular");
   const ranking = unwrap<CategoryRankingSummary>("category_ranking");
@@ -83,6 +87,7 @@ export function AnalyticsView({
     : [];
 
   const allocationLoading = !!scope && !isSectionSettled(sections.allocation);
+  const stockHoldingsLoading = !!scope && !isSectionSettled(sections.stock_holdings);
   const terLoading =
     !!scope && (!isSectionSettled(sections.ter) || !isSectionSettled(sections.ter_direct_regular));
   const rankingLoading = !!scope && !isSectionSettled(sections.category_ranking);
@@ -248,6 +253,7 @@ export function AnalyticsView({
 
       {/* Section 1: Allocation */}
       <AllocationSection summary={allocation} isLoading={allocationLoading} />
+      <StockHoldingsSection data={stockHoldings} isLoading={stockHoldingsLoading} />
 
       {/* Section 2: Cost / TER */}
       <TerSection ter={ter} comparison={terComparison} isLoading={terLoading} />

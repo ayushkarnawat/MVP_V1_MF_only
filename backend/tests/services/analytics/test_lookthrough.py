@@ -99,9 +99,11 @@ def test_coverage_by_value_reasons_missing_nav_and_headline_threshold(db_session
     table = _compute(db_session, monkeypatch, [_holding(s, v) for s, v in zip(schemes, ("400", "300", "200", "100", None))])
     assert table.total_portfolio_value == Decimal("1000")
     assert table.coverage.covered_value_pct == Decimal("40")
-    assert table.coverage.not_published_yet == [schemes[1].id, schemes[3].id]
-    assert table.coverage.not_available_from_amc == [schemes[2].id]
-    assert table.coverage.missing_value_schemes == [schemes[4].id]
+    assert [(f.scheme_id, f.scheme_name) for f in table.coverage.not_published_yet] == [(s.id, s.name) for s in (schemes[1], schemes[3])]
+    assert [(f.scheme_id, f.scheme_name) for f in table.coverage.not_available_from_amc] == [(schemes[2].id, schemes[2].name)]
+    assert [(f.scheme_id, f.scheme_name) for f in table.coverage.missing_value_schemes] == [(schemes[4].id, schemes[4].name)]
+    assert table.coverage.funds[0].scheme_name == schemes[0].name
+    assert table.rows[0].contributing_funds[0].scheme_name == schemes[0].name
     assert table.hide_headlines is True
     table = _compute(db_session, monkeypatch, [_holding(schemes[0], "500"), _holding(schemes[1], "500")])
     assert table.hide_headlines is False
@@ -112,7 +114,7 @@ def test_manual_amc_with_no_written_history_is_unavailable(db_session, monkeypat
     scheme = _scheme(db_session, "HSBC Mutual Fund")
     _batch(db_session, scheme, [], status=DisclosureBatchStatus.FAILED)
     table = _compute(db_session, monkeypatch, [_holding(scheme, "100")])
-    assert table.coverage.not_available_from_amc == [scheme.id]
+    assert [(f.scheme_id, f.scheme_name) for f in table.coverage.not_available_from_amc] == [(scheme.id, scheme.name)]
     assert table.rows == []
     assert table.holdings_as_of is None
 

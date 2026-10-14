@@ -171,9 +171,62 @@ export const ANALYTICS_SECTION_NAMES = [
   "score",
   "investment_withdrawal",
   "fund_manager",
+  "stock_holdings",
 ] as const;
 
 export type AnalyticsSectionName = (typeof ANALYTICS_SECTION_NAMES)[number];
+
+export interface CoverageFund {
+  scheme_id: string;
+  scheme_name: string;
+}
+
+export interface LookthroughFundAge extends CoverageFund {
+  holdings_as_of: string;
+  cadence: string;
+  age_tag: "older_than_60_days" | "on_cycle" | null;
+}
+
+export interface FundContribution extends LookthroughFundAge {
+  fund_weight_pct: string;
+  stock_weight_pct: string;
+}
+
+export interface LookthroughCoverage {
+  covered_value_pct: string;
+  not_published_yet: CoverageFund[];
+  not_available_from_amc: CoverageFund[];
+  missing_value_schemes: CoverageFund[];
+  funds: LookthroughFundAge[];
+}
+
+export interface StockHoldingRow {
+  isin: string | null;
+  instrument_name: string;
+  sector_raw: string | null;
+  asset_type: "equity_domestic" | "equity_international" | "debt" | "gold_silver" | "reit_invit" | "cash_equivalent" | "derivative" | "other";
+  exposure_pct: string;
+  exposure_value: string;
+  contributing_funds: FundContribution[];
+}
+
+export interface StockHoldingsSummary {
+  rows: StockHoldingRow[];
+  nav_as_of: string | null;
+  holdings_as_of: string | null;
+  total_portfolio_value: string;
+  coverage: LookthroughCoverage;
+  truncated: boolean;
+  total_stock_count: number;
+  hide_headlines: boolean;
+  excluded_share: string;
+  non_equity_share: string;
+}
+
+export interface AggregateStockHoldingsResponse {
+  members: MemberStatus[];
+  stock_holdings: StockHoldingsSummary;
+}
 
 export interface AnalyticsSectionState {
   payload: Record<string, unknown> | null;

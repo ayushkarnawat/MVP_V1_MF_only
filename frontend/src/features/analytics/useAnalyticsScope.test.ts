@@ -6,6 +6,9 @@ import * as api from "./api";
 vi.mock("./api");
 
 const settledSections = {
+  stock_holdings: { payload: {}, computed_at: "2026-10-14T00:00:00Z", failed_at: null },
+  ranking: { payload: {}, computed_at: "2026-10-14T00:00:00Z", failed_at: null },
+  fund_manager: { payload: {}, computed_at: "2026-10-14T00:00:00Z", failed_at: null },
   investment_withdrawal: { payload: {}, computed_at: "2026-09-01T00:00:00Z", failed_at: null },
   allocation: { payload: { total_value: "100" }, computed_at: "2026-09-01T00:00:00Z", failed_at: null },
   ter: { payload: {}, computed_at: "2026-09-01T00:00:00Z", failed_at: null },
@@ -22,6 +25,17 @@ const coldStartSections = {
 };
 
 describe("useAnalyticsScope", () => {
+  it("keeps polling while stock holdings are missing and stops on stock failure", async () => {
+    vi.mocked(api.getAnalyticsScope)
+      .mockResolvedValueOnce({ scope: "combined", recomputing: false, sections: { ...settledSections, stock_holdings: { payload: null, computed_at: null, failed_at: null } } })
+      .mockResolvedValue({ scope: "combined", recomputing: false, sections: { ...settledSections, stock_holdings: { payload: null, computed_at: null, failed_at: "2026-10-14T00:00:00Z" } } });
+    const { result } = renderHook(() => useAnalyticsScope("combined"));
+    await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
+    expect(api.getAnalyticsScope).toHaveBeenCalledTimes(2);
+    expect(result.current.hasFailedSection).toBe(true);
+    await act(async () => { await vi.advanceTimersByTimeAsync(6000); });
+    expect(api.getAnalyticsScope).toHaveBeenCalledTimes(2);
+  });
   beforeEach(() => {
     vi.useFakeTimers();
   });
