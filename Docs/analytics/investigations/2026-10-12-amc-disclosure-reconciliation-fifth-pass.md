@@ -1,5 +1,11 @@
 # AMC portfolio-disclosure reconciliation — fifth pass (2026-10-12)
 
+> **⚠ SUPERSEDED — not the current state, 2026-10-13.** The sixth pass found and fixed three
+> further issues this doc didn't catch (Kotak, AlphaGrep, HSBC's label). The single current
+> source of truth is `Docs/analytics/2026-10-09-sub-project-2-lookthrough-engine-spec.md`'s
+> "Adapter classification — all 57 AMCs" table. This doc is kept only for the live-recheck
+> evidence behind the 16-AMC reconciliation it performed.
+
 **Status:** CLOSED — all 14 AMCs in the plan's "needs Playwright" bucket have been
 live-rechecked and resolved (one way or another). Final count, go/no-go decision, and
 doc corrections are in this file; see "Still to do" at the end for the remaining,

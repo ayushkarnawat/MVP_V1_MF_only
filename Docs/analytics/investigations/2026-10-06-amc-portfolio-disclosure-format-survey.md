@@ -1,5 +1,11 @@
 # AMC Monthly Portfolio Disclosure — Format Survey (Spike 1 of N)
 
+> **⚠ SUPERSEDED — not the current state, 2026-10-13.** The single current source of truth
+> for per-AMC disclosure fetchability is `Docs/analytics/2026-10-09-sub-project-2-lookthrough-engine-spec.md`'s
+> "Adapter classification — all 57 AMCs" table. This doc's per-AMC reachability notes went
+> through 6 further passes elsewhere before that table was finalized — kept here only as
+> historical evidence, not current state.
+
 **Date:** 2026-10-06
 **Status:** First-pass spike complete — regulatory format confirmed, per-AMC file reachability
 spot-checked. Not exhaustive (did not individually crawl all 40+ AMC websites); this de-risks the

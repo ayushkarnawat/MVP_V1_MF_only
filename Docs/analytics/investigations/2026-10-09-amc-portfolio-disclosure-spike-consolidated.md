@@ -1,5 +1,15 @@
 # AMC Monthly Portfolio Disclosure Fetchability Spike — Consolidated (Spike 2 of N)
 
+> **⚠ SUPERSEDED — not the current state, 2026-10-13.** This doc went through six passes and
+> contains real self-corrections (Kotak, PGIM, AlphaGrep, JM Financial, HSBC and others each
+> flipped tier at least once below — that back-and-forth is genuine investigation history, not
+> noise, but it means this document's body is a derivation trail, not a live status). The single
+> current source of truth for every AMC's final classification is
+> `Docs/analytics/2026-10-09-sub-project-2-lookthrough-engine-spec.md`'s "Adapter classification
+> — all 57 AMCs" table — read that table, not this document, to know where any AMC currently
+> stands. This doc is kept only for the per-AMC URL patterns, selectors, and verification
+> evidence behind that table.
+
 **Date:** 2026-10-09 (first closure), deepened same-day across a second harder audit pass (see
 "Second audit pass" below), a third pass that turned the remaining 9 into an operational plan
 (see "Third pass" below), and a fourth, maximal-effort pass that found genuine new alternate
