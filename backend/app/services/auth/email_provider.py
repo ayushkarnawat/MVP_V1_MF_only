@@ -63,10 +63,14 @@ class SesEmailProvider:
             message_body["Html"] = {"Data": html_body, "Charset": "UTF-8"}
 
         client = boto3.client("ses", region_name=settings.aws_region)
+        # Comma-split for ops-alert recipients (send_job_failure_alert.py) --
+        # a no-op for the single-address OTP callers since those never
+        # contain a comma.
+        to_addresses = [addr.strip() for addr in to.split(",") if addr.strip()]
         try:
             client.send_email(
                 Source=settings.ses_from_email,
-                Destination={"ToAddresses": [to]},
+                Destination={"ToAddresses": to_addresses},
                 Message={
                     "Subject": {"Data": subject, "Charset": "UTF-8"},
                     "Body": message_body,

@@ -55,6 +55,28 @@ def test_ses_email_provider_sends_expected_request(monkeypatch):
     )
 
 
+def test_ses_email_provider_splits_comma_separated_recipients(monkeypatch):
+    import app.services.auth.email_provider as email_provider_module
+
+    monkeypatch.setattr(email_provider_module.settings, "aws_region", "ap-south-1")
+    monkeypatch.setattr(email_provider_module.settings, "ses_from_email", "otp@unifolio.in")
+
+    mock_client = MagicMock()
+    with patch.object(email_provider_module.boto3, "client", return_value=mock_client):
+        email_provider_module.SesEmailProvider().send_email(
+            to="a@unifolio.in, b@unifolio.in", subject="Job failed", body="exit 1"
+        )
+
+    mock_client.send_email.assert_called_once_with(
+        Source="otp@unifolio.in",
+        Destination={"ToAddresses": ["a@unifolio.in", "b@unifolio.in"]},
+        Message={
+            "Subject": {"Data": "Job failed", "Charset": "UTF-8"},
+            "Body": {"Text": {"Data": "exit 1", "Charset": "UTF-8"}},
+        },
+    )
+
+
 def test_ses_email_provider_includes_html_body_when_provided(monkeypatch):
     import app.services.auth.email_provider as email_provider_module
 
