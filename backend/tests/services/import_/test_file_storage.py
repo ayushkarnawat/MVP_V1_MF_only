@@ -352,3 +352,35 @@ def test_preview_status_never_keeps_a_stored_file_alive(db_session,status):
     storage = _CountingStorage()
     assert release_file_if_unreferenced(db_session,ref,storage) is True
     assert storage.deleted == [ref]
+
+
+@patch("app.services.import_.file_storage.boto3")
+def test_build_s3_client_uses_real_aws_when_endpoint_unset(mock_boto3, monkeypatch):
+    from app.services.import_.file_storage import build_s3_client, settings
+
+    monkeypatch.setattr(settings, "object_storage_endpoint_url", "")
+
+    build_s3_client()
+
+    mock_boto3.client.assert_called_once_with("s3")
+
+
+@patch("app.services.import_.file_storage.boto3")
+def test_build_s3_client_targets_cloudpe_endpoint_when_configured(mock_boto3, monkeypatch):
+    from app.services.import_.file_storage import build_s3_client, settings
+
+    monkeypatch.setattr(settings, "object_storage_endpoint_url", "https://s3.in-west3.purestore.io")
+    monkeypatch.setattr(settings, "object_storage_region", "in-west3")
+    monkeypatch.setattr(settings, "object_storage_access_key", "ak")
+    monkeypatch.setattr(settings, "object_storage_secret_key", "sk")
+    monkeypatch.setattr(settings, "object_storage_force_path_style", True)
+
+    build_s3_client()
+
+    call_kwargs = mock_boto3.client.call_args.kwargs
+    assert mock_boto3.client.call_args.args == ("s3",)
+    assert call_kwargs["endpoint_url"] == "https://s3.in-west3.purestore.io"
+    assert call_kwargs["region_name"] == "in-west3"
+    assert call_kwargs["aws_access_key_id"] == "ak"
+    assert call_kwargs["aws_secret_access_key"] == "sk"
+    assert call_kwargs["config"].s3["addressing_style"] == "path"

@@ -1,0 +1,16 @@
+# LeapSwitch/CloudPe staging reverse proxy and static frontend host
+# (Docs/orchestration/leapswitch-staging-plan.html). Caddy's automatic HTTPS
+# (Let's Encrypt) replaces ACM + the load balancer AWS uses for this -- the
+# single public HTTPS entry point this plan's AWS-setup email describes to
+# CloudPe. Mirrors AWS staging's subdomain split (staging / staging-api).
+
+{$LS_FRONTEND_DOMAIN:ls-staging.unifolio.in} {
+	root * /srv/frontend
+	encode gzip
+	try_files {path} /index.html
+	file_server
+}
+
+{$LS_API_DOMAIN:ls-staging-api.unifolio.in} {
+	reverse_proxy backend:8000
+}

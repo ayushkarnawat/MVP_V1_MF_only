@@ -1,14 +1,20 @@
-"""Dispatches a household's analytics recompute as a short-lived ECS
-Fargate RunTask, never inline on a request-serving replica (see this plan's
-Global Constraints and Docs/superpowers/specs/2026-09-02-analytics-precompute-architecture-design.md).
+"""Dispatches a household's analytics recompute as a short-lived task, never
+inline on a request-serving replica (see this plan's Global Constraints and
+Docs/superpowers/specs/2026-09-02-analytics-precompute-architecture-design.md).
 
-The RunTask invocation contract (cluster/task-definition ARNs, container
-name, subnet/security-group ids) is wired via infra/modules/backend as of
-2026-09-10 (`aws_ecs_task_definition.analytics_recompute` + a dedicated
-`backend_task` IAM role scoped to RunTask on just that task def), injected
-into the running container as the settings below -- pending `terraform
-apply` in staging. `dispatch` degrades to a logged no-op when unconfigured
-(e.g. local dev, or before that apply)."""
+Two implementations of RecomputeDispatcher exist, selected by
+ANALYTICS_DISPATCH_MODE (app/config.py):
+
+- EcsRunTaskDispatcher (default, "ecs"): AWS staging and production. Calls
+  ECS RunTask; the invocation contract (cluster/task-definition ARNs,
+  container name, subnet/security-group ids) is wired via
+  infra/modules/backend as of 2026-09-10. Degrades to a logged no-op when
+  unconfigured (e.g. local dev).
+- WorkerContainerDispatcher ("worker_container"): LeapSwitch staging only
+  (Docs/orchestration/leapswitch-staging-plan.html D2, go received
+  2026-10-15). ECS doesn't exist there, so this calls a long-lived sibling
+  worker container over the VM's internal Docker network instead.
+"""
 
 from __future__ import annotations
 
@@ -17,6 +23,7 @@ import uuid
 from typing import Protocol
 
 import boto3
+import httpx
 from botocore.exceptions import BotoCoreError, ClientError
 
 from app.config import settings
@@ -99,4 +106,50 @@ class EcsRunTaskDispatcher:
         return True
 
 
-dispatcher: RecomputeDispatcher = EcsRunTaskDispatcher()
+class WorkerContainerDispatcher:
+    """D2, go received 2026-10-15 (Docs/orchestration/leapswitch-staging-plan.html):
+    dispatches to a long-lived sibling worker container over the LeapSwitch VM's
+    internal Docker network -- never the Docker socket (that was option 2,
+    rejected: it would give anyone who breaks into the backend root on the
+    VM). The worker (app/worker_server.py) runs the identical recompute
+    script behind a 3-slot bounded pool, matching the AWS "bump" scenario's
+    3-container shape this plan sizes against. Selected only when
+    ANALYTICS_DISPATCH_MODE=worker_container; AWS staging and production keep
+    EcsRunTaskDispatcher as the default, so this class never runs there."""
+
+    def dispatch(self, user_id: uuid.UUID) -> bool:
+        if not settings.worker_container_url:
+            logger.info(
+                "WorkerContainerDispatcher: worker not configured, skipping recompute dispatch "
+                "for user %s (set worker_container_url to enable)",
+                user_id,
+            )
+            return False
+
+        try:
+            response = httpx.post(
+                f"{settings.worker_container_url}/recompute/{user_id}", timeout=5.0
+            )
+            response.raise_for_status()
+        except httpx.HTTPError:
+            # Mirrors EcsRunTaskDispatcher's BotoCoreError/ClientError handling:
+            # an unreachable or erroring worker must release the already-
+            # committed claim, not orphan it for the 15-minute staleness ceiling.
+            logger.exception(
+                "WorkerContainerDispatcher: dispatch call failed for user %s", user_id
+            )
+            return False
+
+        logger.info(
+            "WorkerContainerDispatcher: dispatched recompute to worker for user %s", user_id
+        )
+        return True
+
+
+def _build_dispatcher() -> RecomputeDispatcher:
+    if settings.analytics_dispatch_mode == "worker_container":
+        return WorkerContainerDispatcher()
+    return EcsRunTaskDispatcher()
+
+
+dispatcher: RecomputeDispatcher = _build_dispatcher()

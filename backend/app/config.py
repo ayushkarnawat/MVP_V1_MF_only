@@ -53,5 +53,28 @@ class Settings(BaseSettings):
     ecs_subnet_ids: str = ""  # comma-separated subnet ids
     ecs_security_group_ids: str = ""  # comma-separated security group ids
 
+    # LeapSwitch/CloudPe staging (2026-10-15, Docs/orchestration/leapswitch-staging-plan.html
+    # D2/D4). Every value below defaults to off/empty so AWS staging and
+    # production are byte-for-byte unaffected; these only take effect via the
+    # CloudPe VM's own .env (deploy/leapswitch/.env.example).
+
+    # D2: which RecomputeDispatcher dispatch.py builds. "ecs" (default) keeps
+    # today's AWS behavior everywhere except the LeapSwitch VM.
+    analytics_dispatch_mode: str = "ecs"
+    worker_container_url: str = ""  # e.g. http://worker:8008 -- LeapSwitch only
+
+    # S3-compatible object storage (CAS files, disclosure archive). Empty
+    # endpoint_url means real AWS S3 via boto3's default credential chain --
+    # unchanged from before these settings existed. A non-empty endpoint_url
+    # (LeapSwitch) switches to CloudPe's object storage, which needs its own
+    # credentials, kept separate from the AWS_* ones SES uses on the same VM
+    # (email stays on real AWS regardless of host -- D4 note above), and
+    # usually path-style addressing.
+    object_storage_endpoint_url: str = ""
+    object_storage_region: str = ""
+    object_storage_access_key: str = ""
+    object_storage_secret_key: str = ""
+    object_storage_force_path_style: bool = False
+
 
 settings = Settings()

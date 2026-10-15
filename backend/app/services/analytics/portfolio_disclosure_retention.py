@@ -5,12 +5,12 @@ import re
 from datetime import date
 from pathlib import PureWindowsPath
 
-import boto3
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.enums import DisclosureBatchStatus
 from app.models.reference import DisclosureBatch, SchemeHolding
+from app.services.import_.file_storage import build_s3_client
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +48,7 @@ def archive_failed_file(data: bytes, amc_name: str, as_of: date, filename: str) 
     filename = PureWindowsPath(filename).name or 'disclosure.bin'
     key = f'failed/{as_of.year:04d}/{as_of.month:02d}/{slug}/{filename}'
     try:
-        boto3.client('s3').put_object(Bucket=bucket, Key=key, Body=data)
+        build_s3_client().put_object(Bucket=bucket, Key=key, Body=data)
     except Exception as exc:
         logger.warning('portfolio disclosure archive failed: %s', exc)
         return None

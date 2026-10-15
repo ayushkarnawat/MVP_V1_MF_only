@@ -1,0 +1,82 @@
+# LeapSwitch/CloudPe staging stack (Docs/orchestration/leapswitch-staging-plan.html).
+# Single a.gp1.16g VM. No managed container orchestrator, database or load
+# balancer exist here -- this is the plain-VM equivalent of ECS + RDS + ALB,
+# built additively, never touching AWS staging/production (see that plan's
+# "Protecting the AWS setup" section).
+#
+# `worker` is D2's option 1 (go received 2026-10-15): a long-lived sibling
+# container on this compose network running app/worker_server.py, capped at
+# the same 0.5 CPU / 1 GB as the AWS ECS task it replaces. The backend talks
+# to it over this network, never via the Docker socket.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ../../backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      ANALYTICS_DISPATCH_MODE: worker_container
+      WORKER_CONTAINER_URL: http://worker:8008
+    depends_on:
+      postgres:
+        condition: service_healthy
+    expose:
+      - "8000"
+
+  worker:
+    build:
+      context: ../../backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["uvicorn", "app.worker_server:app", "--host", "0.0.0.0", "--port", "8008"]
+    # Same cap as the AWS ECS task it replaces (D2) -- a 4th concurrent
+    # recompute queues behind these 3, matching the 3-container AWS "bump"
+    # shape this plan sizes against (see leapswitch-staging-plan.html).
+    cpus: "0.5"
+    mem_limit: "1g"
+    expose:
+      - "8008"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    env_file: .env
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ../../frontend/dist:/srv/frontend:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Protocol
 
 import boto3
+from botocore.client import Config as BotoConfig
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -26,6 +27,29 @@ from app.models.imports import Import
 from app.services.import_.preview_store import PREVIEW_STATUSES
 
 CAS_FILE_RETENTION_DAYS = 30
+
+
+def build_s3_client():
+    """Single S3-compatible client factory for every boto3 S3 consumer in
+    this app (CAS file storage below, plus the disclosure archive in
+    services/analytics/portfolio_disclosure_retention.py). An empty
+    object_storage_endpoint_url means real AWS S3 via boto3's default
+    credential chain -- identical to this app's behavior before these
+    settings existed. A non-empty endpoint_url (LeapSwitch staging) switches
+    to CloudPe's S3-compatible object storage, which needs its own
+    credentials and usually path-style addressing."""
+    if not settings.object_storage_endpoint_url:
+        return boto3.client("s3")
+    return boto3.client(
+        "s3",
+        endpoint_url=settings.object_storage_endpoint_url,
+        region_name=settings.object_storage_region or None,
+        aws_access_key_id=settings.object_storage_access_key or None,
+        aws_secret_access_key=settings.object_storage_secret_key or None,
+        config=BotoConfig(
+            s3={"addressing_style": "path" if settings.object_storage_force_path_style else "auto"}
+        ),
+    )
 
 
 class FileStorage(Protocol):
@@ -59,7 +83,7 @@ class S3FileStorage:
 
     def __init__(self, bucket_name: str | None = None):
         self._bucket_name = bucket_name if bucket_name is not None else settings.cas_files_bucket_name
-        self._client = boto3.client("s3")
+        self._client = build_s3_client()
 
     def save(self, key: str, data: bytes) -> str:
         self._client.put_object(Bucket=self._bucket_name, Key=key, Body=data)

@@ -35,7 +35,7 @@ def test_prune_calendar_months_newest_written_and_holdings(db_session):
 
 def test_archive_unset_never_creates_client(monkeypatch):
     monkeypatch.delenv('PORTFOLIO_DISCLOSURE_ARCHIVE_BUCKET',raising=False)
-    monkeypatch.setattr(retention.boto3,'client',lambda *a,**k: (_ for _ in ()).throw(AssertionError('network')))
+    monkeypatch.setattr(retention,'build_s3_client',lambda: (_ for _ in ()).throw(AssertionError('network')))
     assert retention.archive_failed_file(b'abc','AMC',date(2026,9,30),'file.xls') is None
 
 
@@ -45,7 +45,7 @@ def test_archive_key_body_and_failure_swallowed(monkeypatch,caplog):
     class S3:
         def put_object(self,**kwargs):
             calls.append(kwargs)
-    monkeypatch.setattr(retention.boto3,'client',lambda name: S3())
+    monkeypatch.setattr(retention,'build_s3_client',lambda: S3())
     assert retention.archive_failed_file(b'abc','JM Financial Mutual Fund',date(2026,9,30),'../file.xls') == 's3://private-test/failed/2026/09/jm-financial-mutual-fund/file.xls'
     assert calls == [{'Bucket':'private-test','Key':'failed/2026/09/jm-financial-mutual-fund/file.xls','Body':b'abc'}]
     monkeypatch.setattr(S3,'put_object',lambda *a,**k: (_ for _ in ()).throw(RuntimeError('S3 down')))

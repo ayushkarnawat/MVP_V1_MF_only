@@ -1,9 +1,10 @@
 import uuid
 from unittest.mock import MagicMock, patch
 
+import httpx
 from botocore.exceptions import EndpointConnectionError
 
-from app.services.analytics.dispatch import EcsRunTaskDispatcher
+from app.services.analytics.dispatch import EcsRunTaskDispatcher, WorkerContainerDispatcher, _build_dispatcher
 
 
 def test_dispatch_is_a_noop_when_ecs_not_configured():
@@ -107,3 +108,53 @@ def test_dispatch_returns_false_when_run_task_reports_no_tasks_and_no_failures()
 
     assert result is False
     mock_logger.error.assert_called_once()
+
+
+def test_worker_dispatch_is_a_noop_when_worker_not_configured():
+    dispatcher = WorkerContainerDispatcher()
+    with patch("app.services.analytics.dispatch.settings") as mock_settings, \
+         patch("app.services.analytics.dispatch.httpx.post") as mock_post:
+        mock_settings.worker_container_url = ""
+        result = dispatcher.dispatch(uuid.uuid4())
+    mock_post.assert_not_called()
+    assert result is False
+
+
+def test_worker_dispatch_posts_to_worker_url_when_configured():
+    dispatcher = WorkerContainerDispatcher()
+    user_id = uuid.uuid4()
+    mock_response = MagicMock()
+
+    with patch("app.services.analytics.dispatch.settings") as mock_settings, \
+         patch("app.services.analytics.dispatch.httpx.post", return_value=mock_response) as mock_post:
+        mock_settings.worker_container_url = "http://worker:8008"
+        result = dispatcher.dispatch(user_id)
+
+    assert result is True
+    mock_post.assert_called_once_with(f"http://worker:8008/recompute/{user_id}", timeout=5.0)
+    mock_response.raise_for_status.assert_called_once()
+
+
+def test_worker_dispatch_returns_false_when_worker_unreachable():
+    # Mirrors EcsRunTaskDispatcher's transport-failure handling: the already-
+    # committed claim must be released, not orphaned, when the worker never
+    # actually accepted the job.
+    dispatcher = WorkerContainerDispatcher()
+    user_id = uuid.uuid4()
+
+    with patch("app.services.analytics.dispatch.settings") as mock_settings, \
+         patch("app.services.analytics.dispatch.httpx.post", side_effect=httpx.ConnectError("refused")), \
+         patch("app.services.analytics.dispatch.logger") as mock_logger:
+        mock_settings.worker_container_url = "http://worker:8008"
+        result = dispatcher.dispatch(user_id)
+
+    assert result is False
+    mock_logger.exception.assert_called_once()
+
+
+def test_build_dispatcher_selects_by_mode():
+    with patch("app.services.analytics.dispatch.settings") as mock_settings:
+        mock_settings.analytics_dispatch_mode = "worker_container"
+        assert isinstance(_build_dispatcher(), WorkerContainerDispatcher)
+        mock_settings.analytics_dispatch_mode = "ecs"
+        assert isinstance(_build_dispatcher(), EcsRunTaskDispatcher)
