@@ -570,6 +570,25 @@ Siddharth Surve, Unifolio</pre>
   <li>If out-of-memory kills appear during normal daytime use (not just the 05:45 window), or real load testing pushes further, resize to <code>a.gp1.24g</code> (+₹908/mo). CloudPe confirms VM resize works with a brief power-off; ask support whether it also works on a reserved (annual) billing plan before committing to annual.</li>
   <li>The number to actually watch is the 05:45 worst case (1.95 GB/12.2% free) &mdash; if a 4th recompute slot, a 4th uvicorn worker, or a bigger per-job cap is ever wanted, do it by moving to <code>a.gp1.24g</code> first, not by shrinking that margin further.</li>
 </ul>
+
+<h3>5 recompute / 2 uvicorn vs. 3 recompute / 3 uvicorn &mdash; which is actually better, and for what</h3>
+<p>Neither shape is free; each trades depth in one lever for depth in the other, out of the same fixed 16 GB. Compared side by side:</p>
+<div class="tbl"><table>
+<tr><th></th><th>5 recompute / 2 uvicorn (pass 1, reverted)</th><th>3 recompute / 3 uvicorn (current)</th></tr>
+<tr><td>Protects</td><td>Up to 5 households' post-import recomputes run at once with zero queuing, for the rare case of genuinely simultaneous imports.</td><td>Dashboard/API requests get a 3rd independent process &mdash; the actual thing QA exercises when several testers browse at once.</td></tr>
+<tr><td>Costs</td><td>Only 2 processes serving HTTP requests; and a worse memory margin overall.</td><td>A 4th household's simultaneous recompute queues behind the other 3, a few seconds to minutes longer "pending" state &mdash; not a failure.</td></tr>
+<tr><td>Worst-case margin (05:45 IST)</td><td>0.7 GB / 4.4% free</td><td>1.95 GB / 12.2% free</td></tr>
+<tr><td>Daytime margin</td><td>5.7 GB / 36% free</td><td>6.95 GB / 43% free</td></tr>
+<tr><td>Best fit when</td><td>Many households import at the exact same moment (production-scale concurrent traffic)</td><td>A handful of testers browse and occasionally import, which is what staging QA actually is</td></tr>
+</table></div>
+<p>For this project, at this stage, 3/3 is the better scenario: the thing being tested (several people loading the dashboard) is better served, and the safer memory margin is a real reduction in OOM risk during the one genuinely tight window (05:45&ndash;06:35 IST), not just a number. 5/2 would only be the better choice if staging needed to rehearse true production-scale concurrent imports, which it doesn't.</p>
+<p><strong>What to watch for while testing:</strong></p>
+<ul>
+  <li>If you or several testers import CAS files within the same few seconds and the dashboard shows "recompute pending" for longer than usual (more than the single-household baseline), that's the 3-slot pool queuing as designed &mdash; not a bug, and not data loss. It should still resolve within the 15-minute self-heal / 06:30 daily job window at the latest.</li>
+  <li>If dashboard pages feel slow or hang with 3+ people browsing at once, that would point to the uvicorn worker count still being insufficient &mdash; worth a note, since the current budget has no headroom to add a 4th without resizing to <code>a.gp1.24g</code> first.</li>
+  <li>Any email from <code>check-memory.sh</code> during the 05:40&ndash;06:35 IST window is a signal the real numbers diverge from this budget &mdash; treat it as a reason to investigate or resize, not to ignore.</li>
+  <li>This is a reversible, one-line-each trade (<code>MAX_CONCURRENT_RECOMPUTES</code> in <code>worker_server.py</code>, <code>--workers</code> and <code>mem_limit</code> in <code>docker-compose.yml</code>) &mdash; if the 15&ndash;20 day observation window shows the opposite problem (queued recomputes piling up, not slow dashboards), it can be rebalanced back without a redesign.</li>
+</ul>
 </section>
 
 <section id="aws">
