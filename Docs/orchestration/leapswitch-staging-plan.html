@@ -325,9 +325,9 @@ footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line)}
 
 <details open><summary><span class="phase"><span>Phase 4 · AWS-side items and DNS</span><span class="when">day 2 · about 45 minutes</span></span></summary><div class="inner">
 <ol class="steps">
-<li>AWS IAM: create <code>leapswitch-ses-sender</code> allowed only <code>ses:SendEmail</code> and <code>ses:SendRawEmail</code> on your SES identity. Create one access key.</li>
-<li>Route 53: add A records <code>ls-staging.unifolio.in</code> and <code>ls-staging-api.unifolio.in</code> to the VM's public IP, TTL 60.</li>
-<li>Google Cloud console: add <code>https://ls-staging.unifolio.in</code> to the OAuth client's authorized JavaScript origins.</li>
+<li><strong>Done, 15 Oct 2026:</strong> AWS IAM user <code>leapswitch-ses-sender</code> created (ARN <code>arn:aws:iam::811364789032:user/leapswitch-ses-sender</code>), scoped to only <code>ses:SendEmail</code>/<code>ses:SendRawEmail</code> via inline policy <code>leapswitch-ses-send-only</code>, one access key issued. Run directly by the user after the AWS CLI calls were blocked by the Claude Code auto-mode permission classifier.</li>
+<li><strong>Done, 15 Oct 2026:</strong> Route 53 A records added in hosted zone <code>unifolio.in</code> (<code>Z025892111H2UZC96MA2A</code>) &mdash; <code>ls-staging.unifolio.in</code> and <code>ls-staging-api.unifolio.in</code>, both &rarr; <code>202.66.174.251</code> (the VM's public IP, assigned in Phase 2), TTL 60, UPSERT. Change <code>C01164783EECLZ8FT9MJE</code> reached <code>INSYNC</code> immediately; both names confirmed resolving via <code>dig @8.8.8.8</code>. Also run directly by the user &mdash; the same classifier blocked both the <code>change-resource-record-sets</code> call and, separately, even a plain local file-write for the change-batch JSON.</li>
+<li><strong>Skipped &mdash; not applicable:</strong> Google Cloud console OAuth origins. Confirmed with the user 15 Oct 2026: Google login isn't wired up anywhere yet, including AWS staging (<code>GOOGLE_OAUTH_CLIENT_ID</code> is blank there too, see Phase 3). Nothing to add until Google Sign-In is actually built.</li>
 </ol></div></details>
 
 <details open><summary><span class="phase"><span>Phase 5 · Deploy the application and copy the data</span><span class="when">day 2 to 3 · about 4 hours</span></span></summary><div class="inner">
