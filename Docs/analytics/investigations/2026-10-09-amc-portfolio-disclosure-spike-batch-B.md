@@ -1,5 +1,10 @@
 # AMC Monthly Portfolio Disclosure — Fetchability Spike, Batch B
 
+> **⚠ SUPERSEDED — raw, pre-re-verification, 2026-10-13.** Most of this batch's tiers were
+> corrected by later passes. The single current source of truth is
+> `Docs/analytics/2026-10-09-sub-project-2-lookthrough-engine-spec.md`'s "Adapter
+> classification — all 57 AMCs" table. Kept only for original page URLs and notes.
+
 | AMC | Website/base URL used | Disclosure page URL found | Tier | File format | Columns confirmed (if downloaded) | Notes/blockers |
 |---|---|---|---|---|---|---|
 | Shriram Mutual Fund | https://www.shriramamc.in/ | https://www.shriramamc.in/investor-statutory-disclosures | STATIC_REGEX | XLSX | Name of Instrument; ISIN; Industry; Quantity; Market/Fair Value (₹ lakh); % to NAV | Plain HTML exposes recent month-labelled downloads (September through April 2026) under “Monthly, Fortnightly & Weekly Portfolio of Scheme(s)”. One monthly workbook covers the schemes and is suitable for direct-link extraction. |

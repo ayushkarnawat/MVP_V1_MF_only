@@ -1,5 +1,10 @@
 # AMC Monthly Portfolio Disclosure Fetchability — Batch D
 
+> **⚠ SUPERSEDED — raw, pre-re-verification, 2026-10-13.** No real DNS resolution to AMC hosts
+> in this pass; most tiers corrected by later passes. The single current source of truth is
+> `Docs/analytics/2026-10-09-sub-project-2-lookthrough-engine-spec.md`'s "Adapter
+> classification — all 57 AMCs" table. Kept only for original page URLs and notes.
+
 Research date: 2026-10-09. A browser-like plain fetch was attempted first. Where the returned page did not expose a usable recent file, a browser-rendered/indexed-page check and searches for the site's backing download/API surface were made. The local execution sandbox could not resolve public DNS for either `requests` or Chromium, so cases requiring an uncached live network trace are conservatively left as `NEEDS_INVESTIGATION`, not promoted to `JSON_API` or `BOT_BLOCKED`.
 
 | AMC | Website/base URL used | Disclosure page URL found | Tier | File format | Columns confirmed (if downloaded) | Notes/blockers |

@@ -1,5 +1,10 @@
 # AMC Monthly Portfolio Disclosure Fetchability — Batch C
 
+> **⚠ SUPERSEDED — raw, pre-re-verification, 2026-10-13.** Ran with no real DNS resolution to
+> AMC hosts; most tiers corrected by later passes (e.g. PGIM's `BOT_BLOCKED` here was a sandbox
+> artifact). The single current source of truth is `Docs/analytics/2026-10-09-sub-project-2-lookthrough-engine-spec.md`'s
+> "Adapter classification — all 57 AMCs" table. Kept only for original page URLs and notes.
+
 Research performed 2026-10-09. A realistic browser user-agent was used for plain-HTTP attempts; browser/network inspection was used only where the returned HTML did not expose a usable recent file. A representative recent workbook was opened far enough to inspect its headings and at least one security row wherever the table says the columns were confirmed.
 
 | AMC | Website/base URL used | Disclosure page URL found | Tier | File format | Columns confirmed (if downloaded) | Notes/blockers |

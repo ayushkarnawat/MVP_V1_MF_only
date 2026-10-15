@@ -197,6 +197,12 @@ Wayback-based Locate (HDFC and Canara Robeco only; Kotak Mahindra became a direc
 
 ### Adapter classification — all 57 AMCs
 
+**This table is the single current source of truth for every AMC's classification.** The
+investigation that produced it ran six passes and flipped several AMCs' tiers more than once
+(Kotak, PGIM, AlphaGrep, JM Financial, HSBC's label, among others) before landing here — those
+source documents are marked superseded and kept only as derivation/evidence trail; don't read
+them for current state, read this table.
+
 **Status (2026-10-12, sixth pass):** fully reconciled against the fifth pass's
 `2026-10-12-amc-disclosure-reconciliation-fifth-pass.md` and two further live
 re-verifications done in this pass (Kotak Mahindra, AlphaGrep) — this table previously

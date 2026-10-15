@@ -1,5 +1,10 @@
 # AMC Monthly Portfolio Disclosure Fetchability Spike — Batch A
 
+> **⚠ SUPERSEDED — raw, pre-re-verification, 2026-10-13.** This batch ran with no real DNS
+> resolution to AMC hosts and most of its tiers were corrected by later passes. The single
+> current source of truth is `Docs/analytics/2026-10-09-sub-project-2-lookthrough-engine-spec.md`'s
+> "Adapter classification — all 57 AMCs" table. Kept only for original page URLs and notes.
+
 Research date: 2026-10-09. “Columns confirmed” refers to the equity-relevant field set in the handoff. A file described as consolidated contains multiple scheme worksheets; “scheme-wise” means one download per scheme.
 
 | AMC | Website/base URL used | Disclosure page URL found | Tier | File format | Columns confirmed (if downloaded) | Notes/blockers |
