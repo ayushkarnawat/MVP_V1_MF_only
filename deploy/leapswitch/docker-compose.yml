@@ -53,6 +53,13 @@ services:
       DB_PORT: "5432"
       ANALYTICS_DISPATCH_MODE: worker_container
       WORKER_CONTAINER_URL: http://worker:8008
+    # Dockerfile doesn't COPY these (AWS runs alembic from a local venv over
+    # the SSM tunnel instead, never inside the ECS task) -- bind-mounted here
+    # so `docker compose run --rm backend alembic upgrade head` (README step
+    # 5) has something to run against.
+    volumes:
+      - ../../backend/alembic.ini:/app/alembic.ini:ro
+      - ../../backend/alembic:/app/alembic:ro
     depends_on:
       postgres:
         condition: service_healthy
