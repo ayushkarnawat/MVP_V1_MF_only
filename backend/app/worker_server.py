@@ -23,13 +23,15 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
-# 5, not the 3-container AWS "bump" shape this plan otherwise sizes against
-# (see leapswitch-staging-plan.html's D2 and "Which VM size" sections) --
-# raised 16 Oct 2026 to use spare daytime VM memory, since each job's own
-# memory/CPU use is unchanged (see docstring below) and queuing only ever
-# happens under genuine overlap, not back-to-back sequential recomputes. A
-# 6th concurrent recompute queues behind these 5.
-MAX_CONCURRENT_RECOMPUTES = 5
+# 3, matching the AWS "bump" load-test shape this plan otherwise sizes
+# against (see leapswitch-staging-plan.html's D2 and "Which VM size"
+# sections). Briefly raised to 5 on 16 Oct 2026, then reverted the same day
+# in favour of a 3rd uvicorn worker instead -- dashboard concurrency (what
+# QA actually exercises) outranks recompute-pool depth (a rare-overlap edge
+# case that was never observed to need more than 3; a queued recompute is
+# invisible to the user, just a longer "pending" state, not a failure). A
+# 4th concurrent recompute queues behind these 3.
+MAX_CONCURRENT_RECOMPUTES = 3
 _pool = ThreadPoolExecutor(max_workers=MAX_CONCURRENT_RECOMPUTES)
 
 # Matches EcsRunTaskDispatcher's own staleness ceiling (dispatch.py / the

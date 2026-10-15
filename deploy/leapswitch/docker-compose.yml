@@ -9,11 +9,12 @@
 # mem_limit/cpus are a SINGLE cgroup ceiling for the whole container, shared
 # across every concurrent subprocess worker_server.py spawns (unlike AWS ECS,
 # where each RunTask is its own container with its own independent cap, so
-# one oversized job there only kills itself). Sized at 5 GB / 1.0 CPU to
-# match MAX_CONCURRENT_RECOMPUTES=5 in worker_server.py (raised from 3 on
-# 16 Oct 2026) -- see that file's docstring and the plan's "Is a.gp1.16g
-# right?" memory budget. The backend talks to it over this network, never
-# via the Docker socket.
+# one oversized job there only kills itself). Sized at 3 GB / 1.0 CPU to
+# match MAX_CONCURRENT_RECOMPUTES=3 in worker_server.py -- the memory this
+# frees versus a 5-slot pool is spent on a 3rd uvicorn worker on `backend`
+# instead (dashboard concurrency over recompute-pool depth, decided
+# 16 Oct 2026; see the plan's "Is a.gp1.16g right?" section). The backend
+# talks to the worker over this network, never via the Docker socket.
 
 services:
   postgres:
@@ -55,10 +56,15 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    # 2 uvicorn workers (vs. AWS's 1-per-task), since the VM has vCPUs to
-    # spare for this and a 2nd worker means one slow dashboard request
-    # doesn't block other testers' requests behind it.
-    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+    # 3 uvicorn workers (vs. AWS's 1-per-task), since the VM has vCPUs to
+    # spare and this is the lever that actually matters for "several
+    # testers load the dashboard at once" -- unlike the recompute worker
+    # pool (worker service below), each uvicorn worker is an independent
+    # process able to serve a request without waiting on another's. Raised
+    # from 2 on 16 Oct 2026, funded by shrinking the recompute pool from 5
+    # to 3 (worker service below) rather than spending more of the 16 GB
+    # budget outright.
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "3"]
     expose:
       - "8000"
 
@@ -74,9 +80,9 @@ services:
       postgres:
         condition: service_healthy
     command: ["uvicorn", "app.worker_server:app", "--host", "0.0.0.0", "--port", "8008"]
-    # 5 GB/1.0 CPU is a ceiling shared across ALL 5 concurrent recompute
+    # 3 GB/1.0 CPU is a ceiling shared across ALL 3 concurrent recompute
     # subprocesses (see the module docstring above), not a per-job cap --
-    # sized for 5 slots at up to ~1 GB each per the plan's memory budget. A
+    # sized for 3 slots at up to ~1 GB each per the plan's memory budget. A
     # sustained combined overrun gets the whole container OOM-killed,
     # taking every in-flight recompute with it, not just the oversized one
     # -- this is the one real isolation gap vs. the AWS ECS task it
@@ -84,7 +90,7 @@ services:
     # scripts/check-memory.sh during the daily-batch window this is
     # tightest against (crontab.leapswitch).
     cpus: "1.0"
-    mem_limit: "5g"
+    mem_limit: "3g"
     expose:
       - "8008"
 
