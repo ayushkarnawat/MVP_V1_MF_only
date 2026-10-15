@@ -14,6 +14,7 @@
 
 CRON_TZ=Asia/Kolkata
 RUN=/opt/unifolio/deploy/leapswitch/scripts/run-job.sh
+CHECK_MEM=/opt/unifolio/deploy/leapswitch/scripts/check-memory.sh
 
 0  6  *  *  *              $RUN nav-daily                    scripts/jobs/refresh_nav_daily.py
 15 6  *  *  *              $RUN scheme-master-daily           scripts/jobs/refresh_scheme_master_daily.py
@@ -27,3 +28,12 @@ RUN=/opt/unifolio/deploy/leapswitch/scripts/run-job.sh
 30 6  *  *  *              $RUN analytics-recompute-all       scripts/run_analytics_recompute.py --all
 0  8  *  *  *              $RUN delete-expired-accounts-daily scripts/jobs/delete_expired_accounts_daily.py
 0  19 *  *  *              $RUN cas-file-expiry-daily         -m app.scripts.expire_cas_files
+
+# Memory watch over the tightest window in the 16 GB budget: both daily
+# batch jobs above (05:45/05:55) plus analytics-recompute-all's 5-slot
+# worker pool (06:30) overlapping daytime use -- added 16 Oct 2026 alongside
+# the worker mem_limit/MAX_CONCURRENT_RECOMPUTES bump (docker-compose.yml,
+# worker_server.py). Alerts via the same SES path as $RUN jobs; see
+# check-memory.sh.
+40,45,50,55 5  *  *  *     $CHECK_MEM
+0,5,10,15,20,25,30,35 6 *  *  *  $CHECK_MEM

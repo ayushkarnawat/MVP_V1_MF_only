@@ -5,12 +5,15 @@
 # "Protecting the AWS setup" section).
 #
 # `worker` is D2's option 1 (go received 2026-10-15): a long-lived sibling
-# container on this compose network running app/worker_server.py, capped at
-# 1 GB (unchanged from the AWS ECS task it replaces -- that's not the
-# bottleneck, see the plan's D2/"spare capacity" discussion) and 1.0 CPU
-# (raised from 0.5 16 Oct 2026 -- cheap given 4 idle vCPUs most of the day,
-# removes a throttle that served no resource-sharing purpose). The backend
-# talks to it over this network, never via the Docker socket.
+# container on this compose network running app/worker_server.py. Its
+# mem_limit/cpus are a SINGLE cgroup ceiling for the whole container, shared
+# across every concurrent subprocess worker_server.py spawns (unlike AWS ECS,
+# where each RunTask is its own container with its own independent cap, so
+# one oversized job there only kills itself). Sized at 5 GB / 1.0 CPU to
+# match MAX_CONCURRENT_RECOMPUTES=5 in worker_server.py (raised from 3 on
+# 16 Oct 2026) -- see that file's docstring and the plan's "Is a.gp1.16g
+# right?" memory budget. The backend talks to it over this network, never
+# via the Docker socket.
 
 services:
   postgres:
@@ -71,11 +74,17 @@ services:
       postgres:
         condition: service_healthy
     command: ["uvicorn", "app.worker_server:app", "--host", "0.0.0.0", "--port", "8008"]
-    # Same cap as the AWS ECS task it replaces (D2) -- a 4th concurrent
-    # recompute queues behind these 3, matching the 3-container AWS "bump"
-    # shape this plan sizes against (see leapswitch-staging-plan.html).
-    cpus: "0.5"
-    mem_limit: "1g"
+    # 5 GB/1.0 CPU is a ceiling shared across ALL 5 concurrent recompute
+    # subprocesses (see the module docstring above), not a per-job cap --
+    # sized for 5 slots at up to ~1 GB each per the plan's memory budget. A
+    # sustained combined overrun gets the whole container OOM-killed,
+    # taking every in-flight recompute with it, not just the oversized one
+    # -- this is the one real isolation gap vs. the AWS ECS task it
+    # replaces, where each RunTask only ever kills itself. Watched by
+    # scripts/check-memory.sh during the daily-batch window this is
+    # tightest against (crontab.leapswitch).
+    cpus: "1.0"
+    mem_limit: "5g"
     expose:
       - "8008"
 
